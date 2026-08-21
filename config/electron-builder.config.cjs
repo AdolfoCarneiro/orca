@@ -70,6 +70,9 @@ const {
 } = require('./scripts/appimage-node-runtime.cjs')
 const { signWindowsUninstallerViaSignPath } = require('./scripts/windows-uninstaller-signing.cjs')
 const { buildMacShipItScheduling } = require('./scripts/macos-shipit-scheduling.cjs')
+const {
+  verifyMacOSComputerHelperBuild
+} = require('./scripts/macos-computer-helper-build-contract.cjs')
 
 // Dev channels need release bundle ID/signature/notarization so Squirrel.Mac accepts updates and macOS retains app identity.
 const isMacHourly = process.env.ORCA_MAC_HOURLY === '1'
@@ -488,7 +491,11 @@ module.exports = {
     })
     chmodUnixCliLaunchers(resourcesDir, context.electronPlatformName)
     if (context.electronPlatformName === 'darwin') {
-      await signMacComputerUseHelper(join(resourcesDir, 'Orca Computer Use.app'), context.packager)
+      const computerUseHelperPath = join(resourcesDir, 'Orca Computer Use.app')
+      await signMacComputerUseHelper(computerUseHelperPath, context.packager)
+      verifyMacOSComputerHelperBuild(computerUseHelperPath, {
+        productAppPath: join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
+      })
       await signMacStandaloneHelper(
         join(resourcesDir, '..', 'MacOS', 'orca-notification-status'),
         'orca-notification-status',

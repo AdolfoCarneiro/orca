@@ -13,6 +13,7 @@ on:
       - 'config/scripts/build-native-for-platform.mjs'
       - 'config/scripts/build-native-for-platform.test.mjs'
       - 'config/scripts/pnpm-cli-invocation.mjs'
+      - 'config/scripts/macos-computer-helper-build-contract*'
       - 'config/scripts/macos-computer-helper-owner-loss-*'
       - 'config/scripts/verify-computer-native.mjs'
       - 'native/computer-use-macos/**'
@@ -62,3 +63,9 @@ jobs:
         run: pnpm bench:macos-computer-helper-owner-loss --expect reaped --trials 1
       - name: Swift tests and signed universal helper verification
         run: pnpm verify:computer-native
+      - name: Reproduce LaunchServices helper incompatibility
+        env:
+          ORCA_COMPUTER_HELPER_LAUNCHSERVICES_REPRO: '1'
+        run: >-
+          pnpm vitest run --config config/vitest.config.ts
+          src/main/computer/macos-computer-use-launchservices-repro.test.ts
