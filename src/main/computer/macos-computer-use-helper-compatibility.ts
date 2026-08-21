@@ -7,19 +7,31 @@ export type MacOSHelperSystemCompatibility = {
   minimumVersion: string
 }
 
+const compatibilityByHelperAppPath = new Map<string, MacOSHelperSystemCompatibility>()
+
 export function getMacOSComputerUseHelperCompatibility(
   helperAppPath: string
 ): MacOSHelperSystemCompatibility | null {
+  const cached = compatibilityByHelperAppPath.get(helperAppPath)
+  if (cached) {
+    return cached
+  }
   const currentVersion = readCurrentMacOSVersion()
   const minimumVersion = readHelperMinimumMacOSVersion(helperAppPath)
   if (!currentVersion || !minimumVersion) {
     return null
   }
-  return {
+  const compatibility = {
     compatible: compareVersions(currentVersion, minimumVersion) >= 0,
     currentVersion,
     minimumVersion
   }
+  compatibilityByHelperAppPath.set(helperAppPath, compatibility)
+  return compatibility
+}
+
+export function clearMacOSComputerUseHelperCompatibilityCache(): void {
+  compatibilityByHelperAppPath.clear()
 }
 
 export function formatMacOSComputerUseHelperUnavailableReason(

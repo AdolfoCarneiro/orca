@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  clearMacOSComputerUseHelperCompatibilityCache,
   compareVersions,
   formatMacOSComputerUseHelperUnavailableReason,
   getMacOSComputerUseHelperCompatibility
@@ -11,6 +12,7 @@ vi.mock('node:child_process', () => ({ execFileSync: vi.fn() }))
 describe('macOS Computer Use helper compatibility', () => {
   beforeEach(() => {
     vi.mocked(execFileSync).mockReset()
+    clearMacOSComputerUseHelperCompatibilityCache()
   })
 
   it('compares dotted macOS versions numerically', () => {
@@ -45,5 +47,16 @@ describe('macOS Computer Use helper compatibility', () => {
     })
 
     expect(getMacOSComputerUseHelperCompatibility('/Applications/Orca Computer Use.app')).toBeNull()
+  })
+
+  it('caches successful compatibility metadata for the immutable helper app', () => {
+    vi.mocked(execFileSync).mockImplementation((command) => {
+      return command === '/usr/bin/sw_vers' ? '12.7.6\n' : '12.0\n'
+    })
+
+    getMacOSComputerUseHelperCompatibility('/Applications/Orca Computer Use.app')
+    getMacOSComputerUseHelperCompatibility('/Applications/Orca Computer Use.app')
+
+    expect(execFileSync).toHaveBeenCalledTimes(2)
   })
 })

@@ -63,6 +63,10 @@ jobs:
         run: pnpm bench:macos-computer-helper-owner-loss --expect reaped --trials 1
       - name: Swift tests and signed universal helper verification
         run: pnpm verify:computer-native
+      - name: Verify helper build contract rejection coverage
+        run: >-
+          pnpm vitest run --config config/vitest.config.ts
+          config/scripts/macos-computer-helper-build-contract.test.mjs
       - name: Reproduce LaunchServices helper incompatibility
         env:
           ORCA_COMPUTER_HELPER_LAUNCHSERVICES_REPRO: '1'
