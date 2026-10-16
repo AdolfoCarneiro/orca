@@ -31,6 +31,7 @@ import {
   hostAccountsManagedByDesktopMessage,
   type HostAccountLaunchEnv
 } from '../../shared/host-account-launch-env'
+import { FirstHostLaunchEnvGate } from './first-host-launch-env-gate'
 
 export type RuntimeAccountServices = {
   claudeAccounts: ClaudeAccountService
@@ -64,6 +65,7 @@ export class RuntimeAccountController {
   /** Pushed by the desktop that owns this host's accounts; held in memory, re-pushed on connect. */
   private hostLaunchEnv: HostAccountLaunchEnv | null = null
   private persistHostLaunchEnv: ((launchEnv: HostAccountLaunchEnv) => void) | null = null
+  private readonly firstHostLaunchEnv = new FirstHostLaunchEnvGate()
 
   setServices(services: RuntimeAccountServices): void {
     this.services = services
@@ -77,17 +79,24 @@ export class RuntimeAccountController {
     if (this.commitMessageAgentEnvironment) {
       return this.commitMessageAgentEnvironment
     }
-    const hostLaunchEnv = this.hostLaunchEnv
-    if (!hostLaunchEnv) {
+    if (!this.hostLaunchEnv && !this.firstHostLaunchEnv.armed) {
       return undefined
     }
+    const currentHostLaunchEnv = async (): Promise<HostAccountLaunchEnv | null> => {
+      await this.firstHostLaunchEnv.wait()
+      return this.hostLaunchEnv
+    }
     return {
-      prepareForCodexLaunch: () => hostLaunchEnv.terminal.CODEX_HOME ?? null,
-      prepareForClaudeLaunch: async () => ({
-        configDir: hostLaunchEnv.claude.CLAUDE_CONFIG_DIR ?? '',
-        envPatch: { ...hostLaunchEnv.claude },
-        provenance: 'desktop-host-launch-env'
-      })
+      prepareForCodexLaunch: async () =>
+        (await currentHostLaunchEnv())?.terminal.CODEX_HOME ?? null,
+      prepareForClaudeLaunch: async () => {
+        const claude = (await currentHostLaunchEnv())?.claude ?? {}
+        return {
+          configDir: claude.CLAUDE_CONFIG_DIR ?? '',
+          envPatch: { ...claude },
+          provenance: 'desktop-host-launch-env'
+        }
+      }
     }
   }
 
@@ -107,6 +116,7 @@ export class RuntimeAccountController {
       )
       retireAtRestCommandContext()
     }
+    this.firstHostLaunchEnv.settle()
     try {
       this.persistHostLaunchEnv?.(launchEnv)
     } catch (error) {
@@ -118,10 +128,14 @@ export class RuntimeAccountController {
   /** orcad's store: starts from the last pushed env, so launches before a reconnect keep it. */
   restoreHostLaunchEnv(
     saved: HostAccountLaunchEnv | null,
-    persist: (launchEnv: HostAccountLaunchEnv) => void
+    persist: (launchEnv: HostAccountLaunchEnv) => void,
+    options: { expectDesktopPush?: boolean } = {}
   ): void {
     this.persistHostLaunchEnv = persist
-    if (saved && !this.services) {
+    if (this.services) {
+      return
+    }
+    if (saved) {
       const previous = this.hostLaunchEnv
       this.hostLaunchEnv = saved
       if (JSON.stringify(previous) !== JSON.stringify(saved)) {
@@ -133,7 +147,16 @@ export class RuntimeAccountController {
         )
         retireAtRestCommandContext()
       }
+      return
     }
+    if (options.expectDesktopPush) {
+      this.firstHostLaunchEnv.arm()
+    }
+  }
+
+  /** Waits, once and briefly, for a fresh WSL host's first account push before an agent launch. */
+  awaitHostLaunchEnv(): Promise<void> {
+    return this.firstHostLaunchEnv.wait()
   }
 
   /** The desktop-selected account env for a process `agent` starts here; empty when none. */

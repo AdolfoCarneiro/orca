@@ -135,6 +135,7 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
         reason: 'hostUnsupported'
       })
     }
+    await this.accounts.awaitHostLaunchEnv()
     const launchEnv = this.structuredAgentLaunchEnv(agent, this.requireStore().getSettings())
     return resolveAccountHome({ launchEnv, location: null })
   }
@@ -160,6 +161,7 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
         reason: 'hostUnsupported'
       })
     }
+    await this.accounts.awaitHostLaunchEnv()
     const settings = this.requireStore().getSettings()
     const launchEnv = this.structuredAgentLaunchEnv(input.agent, settings)
     const options = this.structuredAgentSessionLaunchSeedOptions(input.agent)
