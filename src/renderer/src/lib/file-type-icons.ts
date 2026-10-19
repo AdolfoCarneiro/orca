@@ -1,6 +1,7 @@
 import { File, FileCog, FileLock, FileTerminal, Smartphone, type LucideIcon } from 'lucide-react'
 import { COMPOUND_EXTENSIONS, FILE_ICON_BY_EXTENSION } from './file-type-icon-extension-table'
 import { FILE_ICON_BY_NAME } from './file-type-icon-name-table'
+import type { ActivePluginIconTheme } from '../store/plugin-icon-themes'
 
 function getFilename(filePath: string | undefined | null): string {
   if (!filePath) {
@@ -55,4 +56,22 @@ export function getFileTypeIcon(filePath: string | undefined | null): LucideIcon
 
   // Match names/extensions deterministically; SSH worktrees have no local OS file associations.
   return FILE_ICON_BY_EXTENSION[getExtension(filename)] ?? File
+}
+
+/** The active plugin icon theme's icon index for a path: exact name, then extension, then
+ *  its file icon. */
+export function getPluginFileTypeIconIndex(
+  theme: ActivePluginIconTheme | null,
+  filePath: string | undefined | null
+): number | null {
+  const filename = getFilename(filePath).toLowerCase()
+  if (!theme || !filename) {
+    return null
+  }
+  return (
+    theme.fileNames[filename] ??
+    theme.fileExtensions[getExtension(filename)] ??
+    theme.icons.file ??
+    null
+  )
 }
