@@ -11863,7 +11863,9 @@
           "experimental": "Experimental",
           "description": "Themes, languages, commands, and more. Plugins run on this computer.",
           "logsFailed": "Could not load plugin logs.",
-          "rollbackFailed": "Couldn't roll back this plugin."
+          "rollbackFailed": "Couldn't roll back this plugin.",
+          "fileTypeSuggestionsLabel": "Suggest plugins for unknown files",
+          "fileTypeSuggestionsDescription": "Offer a catalog plugin when Orca can’t open or highlight a file."
         },
         "PluginSettingsRow": {
           "blocked": "Blocked",
@@ -16341,6 +16343,12 @@
           "siblingFileAlreadyOpen": "The sibling file is already open; close one tab before restoring it.",
           "siblingFileOwnerChanged": "The sibling file owner changed while the tab was restoring.",
           "csvGrewTooLarge": "CSV grew too large for editing. Your draft has been kept; reopen the file to preview it."
+        },
+        "PluginFileTypeSuggestion": {
+          "message": "A plugin can open .{{value0}} files: {{value1}}",
+          "view": "View plugin",
+          "notNow": "Not now",
+          "never": "Don't suggest for .{{value0}}"
         }
       },
       "diff": {

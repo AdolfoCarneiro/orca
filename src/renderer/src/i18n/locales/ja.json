@@ -11367,7 +11367,9 @@
           "experimental": "実験的機能",
           "description": "テーマ、言語、コマンドなど。プラグインはこのコンピューターで実行されます。",
           "logsFailed": "プラグインログをロードできませんでした。",
-          "rollbackFailed": "このプラグインを以前のバージョンに戻せませんでした。"
+          "rollbackFailed": "このプラグインを以前のバージョンに戻せませんでした。",
+          "fileTypeSuggestionsLabel": "不明なファイルにプラグインを提案",
+          "fileTypeSuggestionsDescription": "Orca で開けない、またはハイライトできないファイルにカタログのプラグインを提案します。"
         },
         "PluginSettingsRow": {
           "blocked": "ブロック中",
@@ -15794,6 +15796,12 @@
           "siblingFileAlreadyOpen": "対応するファイルはすでに開いています。復元する前にタブを 1 つ閉じてください。",
           "siblingFileOwnerChanged": "タブの復元中に、対応するファイルの所有者が変わりました。",
           "csvGrewTooLarge": "CSV が大きくなりすぎたため編集できません。下書きは保持されています。ファイルを開き直すとプレビューできます。"
+        },
+        "PluginFileTypeSuggestion": {
+          "message": ".{{value0}} ファイルを開けるプラグインがあります: {{value1}}",
+          "view": "プラグインを表示",
+          "notNow": "今はしない",
+          "never": ".{{value0}} では提案しない"
         }
       },
       "diff": {

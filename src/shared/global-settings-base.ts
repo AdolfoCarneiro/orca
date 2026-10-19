@@ -5,6 +5,7 @@ import type { ClaudeAccountSwitchSettings } from './claude-account-switch-settin
 import type { ExternalConversationSettings } from './external-conversation-settings'
 import type { NativeChatGlobalSettings } from './native-chat/native-chat-appearance-settings'
 import type { PluginAppearanceSettings } from './plugin-appearance-settings-types'
+import type { PluginFileTypeSuggestionSettings } from './plugins/plugin-file-type'
 import type { WorktreeDeletionPreferences } from './worktree-deletion-preferences'
 import type { AgentPermissionGlobalSettings } from './tui-agent-permission-choice'
 import type { OrchestrationHeartbeatSettings } from './orchestration-heartbeat'
@@ -19,4 +20,5 @@ export type GlobalSettingsBase = ClaudeAgentViewSettings &
   BrowserLinkOpeningSettings &
   OrchestrationHeartbeatSettings &
   BrowserExtensionGlobalSettings &
-  PluginAppearanceSettings
+  PluginAppearanceSettings &
+  PluginFileTypeSuggestionSettings
