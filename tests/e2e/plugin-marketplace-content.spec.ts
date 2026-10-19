@@ -1,26 +1,17 @@
 // Use production Git paths from a fresh profile for official marketplace discovery and Phase 1 language/VM/keybinding setup.
 
-import { execFile } from 'node:child_process'
 import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { promisify } from 'node:util'
 import type { Page, TestInfo } from '@stablyai/playwright-test'
 import { expect, test } from '@stablyai/playwright-test'
 import { createRestartSession } from './helpers/orca-restart'
+import { commitRepository, configureFixtureGit } from './helpers/plugin-git-fixture'
 import {
   FIXTURE_LANGUAGE_PLUGIN,
   writeFixtureLanguagePlugin
 } from './helpers/plugin-language-pack-fixture'
 
-const execFileAsync = promisify(execFile)
-const SSH_SHIM = join(
-  process.cwd(),
-  'src',
-  'main',
-  'plugins',
-  'plugin-private-marketplace-ssh-shim.cjs'
-)
 const FIXTURE_REPOSITORIES = [
   'orca-plugins',
   FIXTURE_LANGUAGE_PLUGIN.repository,
@@ -32,45 +23,6 @@ type MarketplaceFixture = {
   root: string
   home: string
   gitEnvironment: Record<string, string>
-}
-
-function isolatedGitProcessEnv(gitEnvironment: Record<string, string>): NodeJS.ProcessEnv {
-  return {
-    ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'))),
-    ...gitEnvironment
-  }
-}
-
-async function runGit(
-  cwd: string,
-  args: string[],
-  gitEnvironment: Record<string, string>
-): Promise<void> {
-  await execFileAsync('git', args, { cwd, env: isolatedGitProcessEnv(gitEnvironment) })
-}
-
-async function commitRepository(
-  repository: string,
-  gitEnvironment: Record<string, string>
-): Promise<void> {
-  await runGit(repository, ['init', '--quiet'], gitEnvironment)
-  await runGit(repository, ['checkout', '--quiet', '-b', 'main'], gitEnvironment)
-  await runGit(repository, ['add', '--all'], gitEnvironment)
-  await runGit(
-    repository,
-    [
-      '-c',
-      'user.name=Orca Test',
-      '-c',
-      'user.email=orca-test@example.invalid',
-      'commit',
-      '--quiet',
-      '-m',
-      'fixture'
-    ],
-    gitEnvironment
-  )
-  await runGit(repository, ['tag', 'v1.0.0'], gitEnvironment)
 }
 
 async function copyLaunchPlugin(
@@ -86,46 +38,13 @@ async function copyLaunchPlugin(
   await commitRepository(repository, gitEnvironment)
 }
 
-async function configureFixtureGit(
-  home: string,
-  repositories: string
-): Promise<Record<string, string>> {
-  const hooksDirectory = join(home, 'hooks')
-  const configPath = join(home, '.gitconfig')
-  await mkdir(hooksDirectory, { recursive: true })
-  const gitEnvironment: Record<string, string> = {
-    GIT_CONFIG_GLOBAL: configPath,
-    GIT_CONFIG_NOSYSTEM: '1',
-    GIT_TERMINAL_PROMPT: '0'
-  }
-  // Why SSH: plugin downloads refuse the file transport even behind an insteadOf rewrite, so the
-  // fixture repositories are served through the same GIT_SSH_COMMAND shim the unit tests use.
-  gitEnvironment.GIT_SSH_COMMAND = `"${process.execPath.replaceAll('\\', '/')}" "${SSH_SHIM.replaceAll('\\', '/')}"`
-  gitEnvironment.GIT_SSH_VARIANT = 'ssh'
-  gitEnvironment.ORCA_TEST_SSH_REPOSITORIES = JSON.stringify(
-    Object.fromEntries(
-      FIXTURE_REPOSITORIES.map((name) => [`/${name}.git`, join(repositories, `${name}.git`)])
-    )
-  )
-  const entries = [
-    ['url.ssh://git@fixtures.invalid/.insteadOf', 'https://github.com/stablyai/'],
-    ['commit.gpgSign', 'false'],
-    ['tag.gpgSign', 'false'],
-    ['core.hooksPath', hooksDirectory]
-  ] as const
-  for (const [key, value] of entries) {
-    await runGit(home, ['config', '--file', configPath, key, value], gitEnvironment)
-  }
-  return gitEnvironment
-}
-
 async function createMarketplaceFixture(): Promise<MarketplaceFixture> {
   const root = await mkdtemp(join(tmpdir(), 'orca-marketplace-e2e-'))
   const repositories = join(root, 'repositories')
   const home = join(root, 'home')
   await mkdir(repositories, { recursive: true })
   await mkdir(home, { recursive: true })
-  const gitEnvironment = await configureFixtureGit(home, repositories)
+  const gitEnvironment = await configureFixtureGit(home, repositories, FIXTURE_REPOSITORIES)
   const languageRepository = join(repositories, `${FIXTURE_LANGUAGE_PLUGIN.repository}.git`)
   await writeFixtureLanguagePlugin(languageRepository)
   await commitRepository(languageRepository, gitEnvironment)
