@@ -17,7 +17,8 @@ async function activatePack(
       resourceLanguage: PACK_RESOURCE,
       pluginKey: 'smwbev.russian',
       locale,
-      catalog
+      catalog,
+      coverage: 100
     }
   ])
   await i18n.changeLanguage(PACK_RESOURCE)

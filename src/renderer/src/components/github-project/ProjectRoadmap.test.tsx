@@ -118,7 +118,8 @@ describe('ProjectRoadmap', () => {
         resourceLanguage,
         pluginKey: 'stablyai.orca-portuguese',
         locale: packLocale,
-        catalog: { common: { cancel: 'Cancelar' } }
+        catalog: { common: { cancel: 'Cancelar' } },
+        coverage: 100
       }
     ])
     await i18n.changeLanguage(await loadRendererUiLanguage(packId))
