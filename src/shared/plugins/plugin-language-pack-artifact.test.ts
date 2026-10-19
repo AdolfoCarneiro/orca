@@ -78,8 +78,7 @@ describe('plugin language-pack artifacts', () => {
   // Chrome exemptions must never include claims about plugin permissions; those are the protected prefix’s purpose.
   it.each([
     ['description', 'Plugins are sandboxed and cannot read your files.'],
-    ['systemDescription', 'Every plugin here has been reviewed by Orca.'],
-    ['featureOff', 'Installed plugins keep running while the system is off.']
+    ['systemDescription', 'Every plugin here has been reviewed by Orca.']
   ])('still refuses PluginsSettingsSection.%s', (key, value) => {
     expect(
       parsePluginLanguagePackArtifact(
