@@ -18626,7 +18626,7 @@
           "all": "Todos",
           "installed": "Instalados",
           "searchLabel": "Buscar plugins",
-          "searchPlaceholder": "Buscar plugins, categorias, ou publicadores"
+          "searchPlaceholder": "Pesquisar plugins"
         }
       },
       "native": {
