@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { pluginFieldDoc, PLUGIN_SCHEMA_SINCE_V1 } from './plugin-schema-field-docs'
 
 /** Closed v0 capabilities fail unknown kinds instead of silently granting nothing. Consent binds capabilities and worker trust;
  * host boundaries enforce them across desktop, headless serve and relay. Scoped kinds remain future work. */
@@ -15,8 +16,16 @@ export const PLUGIN_CAPABILITY_KINDS = [
 
 export type PluginCapabilityKind = (typeof PLUGIN_CAPABILITY_KINDS)[number]
 
-// Object shape permits future per-kind scopes without changing manifest structure.
-export const pluginCapabilitySchema = z.object({ kind: z.enum(PLUGIN_CAPABILITY_KINDS) }).strict()
+// Strict object (not a bare enum) so scoped fields can be added per-kind later
+// without changing the manifest shape.
+export const pluginCapabilitySchema = z
+  .object({
+    kind: z
+      .enum(PLUGIN_CAPABILITY_KINDS)
+      .meta(pluginFieldDoc('Capability granted on user consent.', PLUGIN_SCHEMA_SINCE_V1))
+  })
+  .strict()
+  .meta({ id: 'Capability', description: 'A host API the plugin may call once the user consents.' })
 
 export type PluginCapability = z.infer<typeof pluginCapabilitySchema>
 
