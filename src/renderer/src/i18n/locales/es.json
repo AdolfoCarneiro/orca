@@ -12616,7 +12616,8 @@
         "PluginAddMenu": {
           "add": "Añadir plugin",
           "folder": "Desde una carpeta…",
-          "git": "Desde una URL de Git…"
+          "git": "Desde una URL de Git…",
+          "sources": "Fuentes del catálogo…"
         },
         "PluginManager": {
           "verified": "verificado",
