@@ -90,7 +90,7 @@ describe('content-pack manifest contributions', () => {
   it('rejects the removed plugin skills contribution', () => {
     expect(parsePluginManifest(manifest({ skills: [{ path: 'skills' }] }))).toMatchObject({
       ok: false,
-      error: expect.stringContaining('Unrecognized key')
+      error: 'contributes: unknown key "skills"'
     })
   })
 
