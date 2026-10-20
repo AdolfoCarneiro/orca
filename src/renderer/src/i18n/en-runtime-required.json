@@ -583,6 +583,30 @@
           "fullCoverage_one": "All 1 detected agent has the skill.",
           "fullCoverage_other": "All {{value0}} detected agents have the skill."
         },
+        "PluginConsentDialog": {
+          "capabilities": "This plugin can",
+          "declarativeTrust": "Declarative content — no plugin code",
+          "instructionalTitle": "Review plugin content",
+          "instructionalTrust": "Instructional content — runs later under user or agent authority",
+          "keepDisabled": "Keep Disabled",
+          "mixedTitle": "Review access and content",
+          "panelTrust": "Panel or host-integrated content — no worker process",
+          "reviewTitle": "Review plugin",
+          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
+          "title": "Review permissions",
+          "whatChanged": "What changed",
+          "workerTrust": "Background worker — runs its own process"
+        },
+        "PluginDetailPage": {
+          "install": "Install…",
+          "reviewBody": "Review what it adds and what it can reach, then enable it. Nothing runs before that."
+        },
+        "PluginDetailSections": {
+          "noAccess": "Nothing outside its own files"
+        },
+        "PluginDevelopmentSection": {
+          "title": "Development"
+        },
         "PluginMarketplaceBrowser": {
           "addSource": "Add marketplace",
           "empty": "The configured marketplaces do not list any plugins.",
@@ -604,7 +628,8 @@
           "install": "Install plugin",
           "loading": "Loading plugins…",
           "noInstalledResults": "No installed plugins match this search.",
-          "noInstalledResultsTitle": "No matching plugins"
+          "noInstalledResultsTitle": "No matching plugins",
+          "systemLabel": "Plugin system"
         },
         "ProjectWindowsRuntimeSetting": {
           "activeTaskPlural": "{{count}} active tasks",
