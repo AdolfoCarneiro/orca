@@ -272,6 +272,19 @@ export function registerPluginHandlers(
     return listPluginsForClients(pluginService)
   })
   if (marketplaceServices) {
-    registerPluginMarketplaceHandlers(pluginService, marketplaceServices, () => store.getSettings())
+    registerPluginMarketplaceHandlers(
+      pluginService,
+      marketplaceServices,
+      () => store.getSettings(),
+      (pluginKey, reviewedFingerprint, originWebContentsId) =>
+        applyPluginConsent({
+          store,
+          pluginService,
+          pluginKey,
+          reviewedFingerprint,
+          decision: 'approve',
+          originWebContentsId
+        })
+    )
   }
 }

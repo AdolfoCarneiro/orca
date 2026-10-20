@@ -15,6 +15,10 @@ import {
   isOfficialPluginIdentity
 } from '../../shared/plugins/plugin-marketplace'
 import { mapWithConcurrency } from '../../shared/map-with-concurrency'
+import {
+  pluginExecutionProfile,
+  type PluginExecutionProfile
+} from '../../shared/plugins/plugin-execution-profile'
 
 const PLUGIN_LIST_PROJECTION_CONCURRENCY = 4
 
@@ -42,6 +46,8 @@ export type PluginListEntry = {
   version: string
   publisher: string
   description?: string
+  /** Verified from the installed manifest, so the UI never infers authority from contents. */
+  execution?: PluginExecutionProfile
   license?: string
   homepage?: string
   repository?: string
@@ -153,6 +159,7 @@ export async function buildPluginList(
         version: plugin.manifest.version,
         publisher: plugin.manifest.publisher,
         ...(plugin.manifest.description ? { description: plugin.manifest.description } : {}),
+        execution: pluginExecutionProfile(plugin.manifest),
         ...(plugin.manifest.license ? { license: plugin.manifest.license } : {}),
         ...(plugin.manifest.homepage ? { homepage: plugin.manifest.homepage } : {}),
         ...(plugin.manifest.repository ? { repository: plugin.manifest.repository } : {}),
