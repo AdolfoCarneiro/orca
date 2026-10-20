@@ -11,7 +11,8 @@
     ".anti-slop-plugin/**",
     "src/main/runtime/__fixtures__/*.timing.json",
     "resources/skills/released-digests.json",
-    "schemas/plugins/*.schema.json",
+    "schemas/plugins/**/*.schema.json",
+    "examples/plugins/*/orca-plugin.schema.json",
     "docs/reference/plugin-manifest.md",
     "docs/reference/plugin-catalog.md"
   ]

@@ -8,7 +8,7 @@ import { normalizeKeybinding } from '../keybindings'
 import { pluginCommandContextSchema } from './plugin-command-contribution'
 import {
   pluginFieldDoc,
-  PLUGIN_SCHEMA_SINCE_UNRELEASED,
+  PLUGIN_MANIFEST_V2_SINCE,
   PLUGIN_SCHEMA_SINCE_V1
 } from './plugin-schema-field-docs'
 
@@ -61,7 +61,7 @@ export const pluginLanguagePackContributionSchema = z
       .meta(
         pluginFieldDoc(
           'Native-language name for the Settings picker. Omitted packs show `{locale} — {pluginKey}`.',
-          PLUGIN_SCHEMA_SINCE_UNRELEASED,
+          PLUGIN_MANIFEST_V2_SINCE,
           ['Português (Brasil)']
         )
       )
@@ -135,7 +135,7 @@ export const pluginThemeContributionSchema = z
     id: pluginIdSchema.meta(
       pluginFieldDoc(
         'Theme id, unique within its family in this plugin.',
-        PLUGIN_SCHEMA_SINCE_UNRELEASED,
+        PLUGIN_MANIFEST_V2_SINCE,
         ['dusk']
       )
     ),
@@ -143,11 +143,9 @@ export const pluginThemeContributionSchema = z
       .string()
       .min(1)
       .max(128)
-      .meta(
-        pluginFieldDoc('Name shown in the theme picker.', PLUGIN_SCHEMA_SINCE_UNRELEASED, ['Dusk'])
-      ),
+      .meta(pluginFieldDoc('Name shown in the theme picker.', PLUGIN_MANIFEST_V2_SINCE, ['Dusk'])),
     path: pluginRelativePathSchema.meta(
-      pluginFieldDoc('JSON theme file, at most 16 KiB.', PLUGIN_SCHEMA_SINCE_UNRELEASED, [
+      pluginFieldDoc('JSON theme file, at most 16 KiB.', PLUGIN_MANIFEST_V2_SINCE, [
         'themes/dusk.json'
       ])
     )
@@ -164,26 +162,22 @@ export const pluginGrammarScopeSchema = z
 export const pluginSyntaxContributionSchema = z
   .object({
     id: pluginIdSchema.meta(
-      pluginFieldDoc('Language id, unique within the plugin.', PLUGIN_SCHEMA_SINCE_UNRELEASED, [
-        'gleam'
-      ])
+      pluginFieldDoc('Language id, unique within the plugin.', PLUGIN_MANIFEST_V2_SINCE, ['gleam'])
     ),
     label: z
       .string()
       .min(1)
       .max(128)
       .meta(
-        pluginFieldDoc('Language name shown in the editor.', PLUGIN_SCHEMA_SINCE_UNRELEASED, [
-          'Gleam'
-        ])
+        pluginFieldDoc('Language name shown in the editor.', PLUGIN_MANIFEST_V2_SINCE, ['Gleam'])
       ),
     scopeName: pluginGrammarScopeSchema.meta(
-      pluginFieldDoc("The grammar's root TextMate scope.", PLUGIN_SCHEMA_SINCE_UNRELEASED, [
+      pluginFieldDoc("The grammar's root TextMate scope.", PLUGIN_MANIFEST_V2_SINCE, [
         'source.gleam'
       ])
     ),
     path: pluginRelativePathSchema.meta(
-      pluginFieldDoc('TextMate grammar JSON file.', PLUGIN_SCHEMA_SINCE_UNRELEASED, [
+      pluginFieldDoc('TextMate grammar JSON file.', PLUGIN_MANIFEST_V2_SINCE, [
         'syntaxes/gleam.tmLanguage.json'
       ])
     ),
@@ -192,7 +186,7 @@ export const pluginSyntaxContributionSchema = z
       .meta(
         pluginFieldDoc(
           'Language configuration JSON file: comments, brackets and auto-closing pairs.',
-          PLUGIN_SCHEMA_SINCE_UNRELEASED,
+          PLUGIN_MANIFEST_V2_SINCE,
           ['syntaxes/language-configuration.json']
         )
       ),
@@ -208,7 +202,7 @@ export const pluginSyntaxContributionSchema = z
       .meta(
         pluginFieldDoc(
           'File extensions this language opens, with the dot.',
-          PLUGIN_SCHEMA_SINCE_UNRELEASED,
+          PLUGIN_MANIFEST_V2_SINCE,
           [['.gleam']]
         )
       ),
@@ -230,7 +224,7 @@ export const pluginSyntaxContributionSchema = z
       .max(32)
       .default([])
       .meta(
-        pluginFieldDoc('Exact file names this language opens.', PLUGIN_SCHEMA_SINCE_UNRELEASED, [
+        pluginFieldDoc('Exact file names this language opens.', PLUGIN_MANIFEST_V2_SINCE, [
           ['gleam.toml']
         ])
       )
