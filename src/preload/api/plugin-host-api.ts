@@ -44,6 +44,12 @@ export type PluginHostListEntry = {
   version: string
   publisher: string
   description?: string
+  /** SPDX license expression from the manifest. */
+  license?: string
+  homepage?: string
+  repository?: string
+  /** Version "Roll back" would restore; absent when no rollback is available. */
+  previousVersion?: string
   status: PluginHostStatus
   needsReconsent: boolean
   error?: string
@@ -128,6 +134,16 @@ export type PluginMarketplaceHostListing = {
   official: boolean
   bundled: boolean
   blockedByKillList?: { reason: string; advisoryUrl?: string }
+  /** Release details from a v2 catalog; all absent for v1 catalogs. */
+  name?: string
+  version?: string
+  license?: string
+  repository?: string
+  homepage?: string
+  /** ISO 8601 date or date-time the release was published. */
+  updatedAt?: string
+  /** Plain-text release notes, at most 2000 characters. */
+  changelog?: string
 }
 
 export type PluginFileTypeHostSuggestion = {
