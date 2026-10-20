@@ -2,6 +2,10 @@ import { Blocks, Loader2, SearchX } from 'lucide-react'
 import type { PluginHostListEntry } from '../../../../preload/api-types'
 import { translate } from '@/i18n/i18n'
 import { PluginCatalogEmptyState } from '../plugin-catalog/PluginCatalogEmptyState'
+import {
+  matchesPluginSearch,
+  pluginListEntryFromInstalled
+} from '../plugin-catalog/plugin-list-entries'
 import { PluginDevelopmentSection } from './PluginDevelopmentSection'
 import { PluginMarketplaceBrowser } from './PluginMarketplaceBrowser'
 import { PluginSettingsRow, type PluginLogsState } from './PluginSettingsRow'
@@ -32,13 +36,7 @@ type PluginSettingsOverviewProps = {
 }
 
 function matchesInstalledPlugin(plugin: PluginHostListEntry, search: string): boolean {
-  const query = search.trim().toLowerCase()
-  return (
-    !query ||
-    [plugin.name, plugin.pluginKey, plugin.publisher, plugin.description ?? ''].some((value) =>
-      value.toLowerCase().includes(query)
-    )
-  )
+  return matchesPluginSearch(pluginListEntryFromInstalled(plugin), search)
 }
 
 export function PluginSettingsOverview({
