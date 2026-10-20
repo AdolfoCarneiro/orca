@@ -14,6 +14,7 @@ import { getPluginsSectionPresentation } from './plugins-search'
 import { SettingsSection } from './SettingsSection'
 import { usePluginLogs } from './use-plugin-logs'
 import { usePluginMarketplaceLifecycle } from './use-plugin-marketplace-lifecycle'
+import { usePluginPageNavigation } from './use-plugin-page-navigation'
 import { isPluginEnabled } from './plugin-status-presentation'
 
 type PluginsSettingsSectionProps = {
@@ -45,9 +46,18 @@ export function PluginsSettingsSection({
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const mountedRef = useRef(false)
   const listRequestRef = useRef(0)
+  const page = usePluginPageNavigation()
+  const installedKeysRef = useRef<ReadonlySet<string>>(new Set())
 
   const applyPluginList = (nextPlugins: PluginHostListEntry[]): void => {
     const installedPluginKeys = new Set(nextPlugins.map((plugin) => plugin.pluginKey))
+    // Why: a plugin removed while its page is open closes the page, so a reinstall starts fresh.
+    for (const pluginKey of installedKeysRef.current) {
+      if (!installedPluginKeys.has(pluginKey)) {
+        page.leave(pluginKey)
+      }
+    }
+    installedKeysRef.current = installedPluginKeys
     setPlugins(nextPlugins)
     setError(null)
     // Accepted discovery owns plugin identity; clear stale dialog/busy state.
@@ -86,6 +96,12 @@ export function PluginsSettingsSection({
         setPluginListError(cause)
       }
       return null
+    }
+  }
+
+  const clearBusy = (pluginKey: string): void => {
+    if (mountedRef.current) {
+      setBusyPluginKeys((current) => new Set([...current].filter((key) => key !== pluginKey)))
     }
   }
 
@@ -213,13 +229,7 @@ export function PluginsSettingsSection({
         setConsentPluginId(null)
       }
     } finally {
-      if (mountedRef.current) {
-        setBusyPluginKeys((current) => {
-          const next = new Set(current)
-          next.delete(pluginKey)
-          return next
-        })
-      }
+      clearBusy(pluginKey)
     }
   }
 
@@ -244,13 +254,7 @@ export function PluginsSettingsSection({
         setPluginListError(cause)
       }
     } finally {
-      if (mountedRef.current) {
-        setBusyPluginKeys((current) => {
-          const next = new Set(current)
-          next.delete(plugin.pluginKey)
-          return next
-        })
-      }
+      clearBusy(plugin.pluginKey)
     }
   }
 
@@ -258,10 +262,12 @@ export function PluginsSettingsSection({
   const restart = async (pluginKey: string): Promise<void> => {
     setBusyPluginKeys((current) => new Set(current).add(pluginKey))
     try {
-      await window.api.plugins.setEnabled({ pluginKey, enabled: false })
+      applyCompletedMutation(await window.api.plugins.setEnabled({ pluginKey, enabled: false }))
       applyCompletedMutation(await window.api.plugins.setEnabled({ pluginKey, enabled: true }))
     } catch (cause) {
       if (mountedRef.current) {
+        // Why: the stop may have landed before the start failed; show what is true now.
+        void loadPluginList(window.api.plugins.list())
         toast.error(
           translate(
             'auto.components.settings.PluginsSettingsSection.restartFailed',
@@ -274,13 +280,7 @@ export function PluginsSettingsSection({
         console.warn('[plugins] restart failed:', cause)
       }
     } finally {
-      if (mountedRef.current) {
-        setBusyPluginKeys((current) => {
-          const next = new Set(current)
-          next.delete(pluginKey)
-          return next
-        })
-      }
+      clearBusy(pluginKey)
     }
   }
 
@@ -297,13 +297,7 @@ export function PluginsSettingsSection({
         setPluginListError(cause)
       }
     } finally {
-      if (mountedRef.current) {
-        setBusyPluginKeys((current) => {
-          const next = new Set(current)
-          next.delete(pluginKey)
-          return next
-        })
-      }
+      clearBusy(pluginKey)
     }
   }
 
@@ -338,6 +332,7 @@ export function PluginsSettingsSection({
     <SettingsSection
       id="plugins"
       {...sectionPresentation}
+      hideHeader={featureEnabled && page.openKey !== null}
       bodyClassName="space-y-6 rounded-none border-0 bg-transparent p-0 shadow-none"
       headerAction={
         <PluginAddMenu
@@ -379,6 +374,7 @@ export function PluginsSettingsSection({
         onShowLogs={pluginLogs.showLogs}
         sourcesOpen={sourcesOpen}
         setSourcesOpen={setSourcesOpen}
+        page={page}
         onOpenShortcuts={() =>
           useAppStore.getState().openSettingsTarget({ pane: 'shortcuts', repoId: null })
         }
