@@ -11704,8 +11704,6 @@
         "PluginMarketplaceBrowser": {
           "loadFailed": "Impossible de charger les plugins du marketplace.",
           "refreshFailed": "Impossible d'actualiser les marketplaces. Réessayez.",
-          "previewFailed": "Impossible de charger ce plugin. Actualisez et réessayez.",
-          "installFailed": "Impossible d'installer ce plugin. La source examinée a peut-être changé.",
           "manageSources": "Gérer les sources",
           "refreshing": "Actualisation…",
           "refresh": "Actualiser",

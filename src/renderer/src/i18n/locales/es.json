@@ -11527,8 +11527,6 @@
         "PluginMarketplaceBrowser": {
           "loadFailed": "No se pudieron cargar los plugins del marketplace.",
           "refreshFailed": "No se pudieron actualizar los marketplaces. Inténtalo de nuevo.",
-          "previewFailed": "No se pudo cargar este plugin. Actualiza e inténtalo de nuevo.",
-          "installFailed": "No se pudo instalar este plugin. Es posible que la fuente revisada haya cambiado.",
           "manageSources": "Gestionar fuentes",
           "refreshing": "Actualizando…",
           "refresh": "Actualizar",

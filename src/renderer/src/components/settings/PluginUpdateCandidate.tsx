@@ -170,8 +170,8 @@ export function CandidateRow({
               <p className="text-xs text-muted-foreground">{preview.manifest.description}</p>
             ) : null}
             <ul className="text-xs text-muted-foreground">
-              {pluginContributionSummary(preview.manifest).map((item, index) => (
-                <li key={`${item.kind}:${index}`}>
+              {pluginContributionSummary(preview.manifest).map((item) => (
+                <li key={`${item.kind}:${item.name}:${item.detail ?? ''}`}>
                   {item.name}
                   {item.detail ? ` · ${item.detail}` : ''}
                 </li>

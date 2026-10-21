@@ -62,8 +62,11 @@ describe('usePluginPageNavigation', () => {
       const container = await mountOpen()
       await act(async () => reviews?.show('acme.notes'))
       const back = (): void => {
-        if (method === 'button') container.querySelector<HTMLButtonElement>('[data-back]')?.click()
-        else pressBack(container.querySelector('[data-plain]'))
+        if (method === 'button') {
+          container.querySelector<HTMLButtonElement>('[data-back]')?.click()
+        } else {
+          pressBack(container.querySelector('[data-plain]'))
+        }
       }
       await act(async () => back())
       expect(nav?.openKey).toBeNull()

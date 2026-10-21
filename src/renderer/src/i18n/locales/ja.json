@@ -11253,8 +11253,6 @@
         "PluginMarketplaceBrowser": {
           "loadFailed": "マーケットプレイスプラグインをロードできませんでした。",
           "refreshFailed": "マーケットプレイスを更新できませんでした。もう一度お試しください。",
-          "previewFailed": "このプラグインを読み込めませんでした。更新してもう一度お試しください。",
-          "installFailed": "このプラグインをインストールできませんでした。レビューされたソースが変更された可能性があります。",
           "manageSources": "ソースを管理",
           "refreshing": "更新中…",
           "refresh": "更新",

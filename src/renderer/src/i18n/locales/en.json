@@ -11750,8 +11750,6 @@
         "PluginMarketplaceBrowser": {
           "loadFailed": "Could not load marketplace plugins.",
           "refreshFailed": "Couldn't refresh marketplaces. Try again.",
-          "previewFailed": "Couldn't load this plugin. Refresh and try again.",
-          "installFailed": "Could not install this plugin. The reviewed source may have changed.",
           "manageSources": "Manage sources",
           "refreshing": "Refreshing…",
           "refresh": "Refresh",

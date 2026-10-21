@@ -11253,8 +11253,6 @@
         "PluginMarketplaceBrowser": {
           "loadFailed": "마켓플레이스 플러그인을 로드할 수 없습니다.",
           "refreshFailed": "마켓플레이스를 새로 고칠 수 없습니다. 다시 시도하세요.",
-          "previewFailed": "이 플러그인을 불러올 수 없습니다. 새로 고친 후 다시 시도하세요.",
-          "installFailed": "이 플러그인을 설치할 수 없습니다. 검토된 소스가 변경되었을 수 있습니다.",
           "manageSources": "소스 관리",
           "refreshing": "새로고침 중…",
           "refresh": "새로고침",

@@ -11253,8 +11253,6 @@
         "PluginMarketplaceBrowser": {
           "loadFailed": "无法加载插件市场中的插件。",
           "refreshFailed": "无法刷新插件市场。请重试。",
-          "previewFailed": "无法加载此插件。请刷新后重试。",
-          "installFailed": "无法安装此插件。审核过的源可能已更改。",
           "manageSources": "管理源",
           "refreshing": "正在刷新…",
           "refresh": "刷新",
