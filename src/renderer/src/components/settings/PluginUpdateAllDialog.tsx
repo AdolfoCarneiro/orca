@@ -2,6 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Check, Loader2 } from 'lucide-react'
 import type { PluginMarketplaceHostInstallPreview } from '../../../../preload/api-types'
 import { satisfiesOrcaEngineRange } from '../../../../shared/plugins/plugin-manifest'
+import { pluginExecutionProfile } from '../../../../shared/plugins/plugin-execution-profile'
+import { pluginPointsFromManifest, pluginTrust } from './plugin-access-profile'
+import { pluginTrustWarnings } from './plugin-consent-copy'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../ui/button'
 import { Checkbox } from '../ui/checkbox'
@@ -34,6 +37,20 @@ export function newAccess(
   return preview.manifest.capabilities
     .map((capability) => capability.kind)
     .filter((kind) => !held.has(kind))
+}
+
+/** Unknown older-host profiles cannot establish that execution authority is unchanged. */
+function executionChanges(
+  entry: PluginListEntry,
+  preview: PluginMarketplaceHostInstallPreview
+): string[] {
+  const execution = pluginExecutionProfile(preview.manifest)
+  if (execution === 'data' || execution === entry.installed?.execution) {
+    return []
+  }
+  return pluginTrustWarnings(
+    pluginTrust({ execution, points: pluginPointsFromManifest(preview.manifest) })
+  )
 }
 
 /** The update's minimum Orca when this Orca can't run it; null when it can or either is unknown. */
@@ -131,7 +148,10 @@ export function PluginUpdateAllDialog({
     (candidate) => installable(candidate) && !skipped.has(candidate.entry.pluginKey)
   )
   const growing = (candidates ?? []).filter(
-    (candidate) => candidate.preview && newAccess(candidate.entry, candidate.preview).length > 0
+    (candidate) =>
+      candidate.preview &&
+      (newAccess(candidate.entry, candidate.preview).length > 0 ||
+        executionChanges(candidate.entry, candidate.preview).length > 0)
   ).length
 
   const update = async (): Promise<void> => {
@@ -270,6 +290,7 @@ function CandidateRow({
 }): React.JSX.Element {
   const { entry, preview, error, needsOrca } = candidate
   const added = preview ? newAccess(entry, preview) : []
+  const execution = preview ? executionChanges(entry, preview) : []
   const checkboxId = `plugin-update-${entry.pluginKey}`
   let note: React.ReactNode
   if (done) {
@@ -298,9 +319,14 @@ function CandidateRow({
         )}
       </p>
     )
-  } else if (added.length > 0) {
+  } else if (added.length > 0 || execution.length > 0) {
     note = (
       <ul className="mt-1.5 space-y-0.5 border-l-2 border-status-warning pl-2 text-xs">
+        {execution.map((warning) => (
+          <li key={warning} className="text-status-warning-text">
+            {warning}
+          </li>
+        ))}
         {added.map((kind) => (
           <li key={kind} className="text-status-warning-text">
             {translate(
