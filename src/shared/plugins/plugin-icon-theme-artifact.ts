@@ -19,12 +19,33 @@ const fileNameSchema = z
   .refine((name) => !/[\\/]/.test(name) && !hasControlCharacter(name), 'unsafe file name')
 const fileExtensionSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9+._-]{0,31}$/)
 
+// Why: z.record drops an own `__proto__` key, but a file may legitimately be named that.
+function ownKeyRecord<Value>(keySchema: z.ZodType<string>, valueSchema: z.ZodType<Value>) {
+  return z.unknown().transform((raw, ctx) => {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+      ctx.addIssue({ code: 'custom', message: 'expected an object' })
+      return z.NEVER
+    }
+    const result: Record<string, Value> = Object.create(null)
+    for (const [key, entry] of Object.entries(raw)) {
+      const parsedKey = keySchema.safeParse(key)
+      const parsedValue = valueSchema.safeParse(entry)
+      if (!parsedKey.success || !parsedValue.success) {
+        ctx.addIssue({ code: 'custom', message: `invalid entry: ${key}` })
+        return z.NEVER
+      }
+      result[key] = parsedValue.data
+    }
+    return result
+  })
+}
+
 const pluginIconThemeArtifactSchema = z
   .object({
     schemaVersion: z.literal(1),
     icons: z.partialRecord(iconSlotSchema, pluginRelativePathSchema).default({}),
-    fileNames: z.record(fileNameSchema, pluginRelativePathSchema).default({}),
-    fileExtensions: z.record(fileExtensionSchema, pluginRelativePathSchema).default({})
+    fileNames: ownKeyRecord(fileNameSchema, pluginRelativePathSchema).default({}),
+    fileExtensions: ownKeyRecord(fileExtensionSchema, pluginRelativePathSchema).default({})
   })
   .strict()
 
@@ -38,10 +59,11 @@ export type PluginIconThemeArtifact = {
 export function parsePluginIconThemeArtifact(raw: string): PluginIconThemeArtifact {
   const parsed = pluginIconThemeArtifactSchema.parse(JSON.parse(raw))
   const lowercaseKeys = (entries: Record<string, string>, label: string) => {
-    const result: Record<string, string> = {}
+    // Why: a null prototype keeps keys like `constructor` and `__proto__` plain data.
+    const result: Record<string, string> = Object.create(null)
     for (const [key, path] of Object.entries(entries)) {
       const canonical = key.toLowerCase()
-      if (canonical in result) {
+      if (Object.hasOwn(result, canonical)) {
         throw new Error(`duplicate ${label}: ${key}`)
       }
       result[canonical] = path
@@ -91,12 +113,21 @@ const pluginIconThemeMetadataSchema = z.object({
 })
 
 /** Each distinct SVG is sent once; the maps point into `svgs` so rows never repeat image data. */
-const pluginIconThemeRegistrationSchema = pluginIconThemeMetadataSchema.extend({
+const pluginIconThemeRegistrationShape = pluginIconThemeMetadataSchema.extend({
   svgs: z.array(z.string().max(PLUGIN_ICON_SVG_MAX_BYTES)).max(PLUGIN_ICON_THEME_MAX_SVGS),
   icons: z.partialRecord(iconSlotSchema, svgIndexSchema),
-  fileNames: z.record(z.string(), svgIndexSchema),
-  fileExtensions: z.record(z.string(), svgIndexSchema)
+  fileNames: ownKeyRecord(z.string(), svgIndexSchema),
+  fileExtensions: ownKeyRecord(z.string(), svgIndexSchema)
 })
+const pluginIconThemeRegistrationSchema = pluginIconThemeRegistrationShape.refine(
+  (theme) =>
+    [
+      ...Object.values(theme.icons),
+      ...Object.values(theme.fileNames),
+      ...Object.values(theme.fileExtensions)
+    ].every((index) => index < theme.svgs.length),
+  'icon index outside svgs'
+)
 
 export type PluginIconThemeMetadata = z.infer<typeof pluginIconThemeMetadataSchema>
 export type PluginIconThemeRegistration = z.infer<typeof pluginIconThemeRegistrationSchema>
