@@ -30,8 +30,6 @@ type PluginSettingsOverviewProps = {
   onToggleFeature: () => void
   onRefresh: () => Promise<void>
   onMarketplaceInstalled: (pluginKeys: string | readonly string[]) => Promise<void>
-  /** Removes a plugin at once from its catalog card; rejects so the card can say why. */
-  onRemoveNow: (pluginKey: string) => Promise<void>
   logsByPlugin: Readonly<Record<string, PluginLogsState>>
   onShowLogs: (pluginKey: string) => void
   onOpenShortcuts: () => void
@@ -131,7 +129,6 @@ export function PluginSettingsOverview({
   onToggleFeature,
   onRefresh,
   onMarketplaceInstalled,
-  onRemoveNow,
   logsByPlugin,
   onShowLogs,
   onOpenShortcuts,
@@ -161,7 +158,6 @@ export function PluginSettingsOverview({
           page={page}
           sourcesOpen={sourcesOpen}
           setSourcesOpen={setSourcesOpen}
-          onRemoveNow={onRemoveNow}
         />
       ) : null}
     </>

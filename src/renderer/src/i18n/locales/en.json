@@ -13033,8 +13033,7 @@
           "moreLabel": "More actions for {{value0}}",
           "turnOff": "Turn off",
           "turnOn": "Turn on",
-          "remove": "Remove",
-          "removeFailed": "Couldn’t remove it. Try again."
+          "remove": "Remove"
         },
         "PluginInstallConsent": {
           "install": "Install & enable",

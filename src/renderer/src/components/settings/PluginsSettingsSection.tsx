@@ -283,15 +283,14 @@ export function PluginsSettingsSection({
   // Why one wrapper: a list mutation marks its plugin busy and shows a failure on the list.
   const mutateList = async (
     pluginKey: string,
-    request: () => Promise<PluginHostListEntry[]>,
-    { reportFailure = true }: { reportFailure?: boolean } = {}
+    request: () => Promise<PluginHostListEntry[]>
   ): Promise<boolean> => {
     setBusyPluginKeys((current) => new Set(current).add(pluginKey))
     try {
       applyCompletedMutation(await request())
       return true
     } catch (cause) {
-      if (mountedRef.current && reportFailure) {
+      if (mountedRef.current) {
         setPluginListError(cause)
       }
       return false
@@ -306,16 +305,6 @@ export function PluginsSettingsSection({
       mountedRef.current
     ) {
       setRemovePluginId(null)
-    }
-  }
-
-  // Why it throws: a card's ⋯ Remove runs at once and shows its own failure, not the list's.
-  const removeNow = async (pluginKey: string): Promise<void> => {
-    const removed = await mutateList(pluginKey, () => window.api.plugins.remove({ pluginKey }), {
-      reportFailure: false
-    })
-    if (!removed) {
-      throw new Error('remove failed')
     }
   }
 
@@ -371,7 +360,6 @@ export function PluginsSettingsSection({
         onToggleFeature={() => void toggleFeature()}
         onRefresh={refresh}
         onMarketplaceInstalled={marketplaceLifecycle.reloadAfterMutation}
-        onRemoveNow={removeNow}
         logsByPlugin={pluginLogs.logsByPlugin}
         onShowLogs={pluginLogs.showLogs}
         sourcesOpen={sourcesOpen}

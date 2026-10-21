@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { AlertTriangle, CircleAlert } from 'lucide-react'
 import type { PluginMarketplaceHostSourceState } from '../../../../preload/api-types'
 import { translate } from '@/i18n/i18n'
@@ -73,8 +72,8 @@ export type CatalogCardHandlers = {
   orcaVersion: string | null
   /** A catalog refresh is in flight; installs wait for it. */
   refreshing: boolean
-  /** Removes at once; rejects so the card can show why. */
-  onRemove: (pluginKey: string) => Promise<void>
+  /** Requests confirmation before deleting plugin data. */
+  onRemove: (pluginKey: string) => void
   onToggleEnabled: (pluginKey: string) => void
 }
 
@@ -89,8 +88,6 @@ function CatalogCard({
   const phase = handlers.install.phaseOf(entry.pluginKey)
   const listing = entry.listing
   const installed = entry.installed
-  const [removing, setRemoving] = useState(false)
-  const [removeError, setRemoveError] = useState<string | null>(null)
   const release = listing?.release
   // Why the summary only below its cap: a capped list can't rule a command out.
   const trustLabel = release
@@ -124,20 +121,18 @@ function CatalogCard({
       statusText={statusText}
       palettes={palettes}
       notice={
-        removeError
-          ? { text: removeError, tone: 'destructive' }
-          : phase?.kind === 'error'
-            ? { text: phase.message, tone: 'destructive' }
-            : listing?.blockedByKillList && !entry.installed
-              ? {
-                  text: translate(
-                    'auto.components.settings.PluginMarketplaceListingRow.blocked',
-                    "Blocked by Orca's safety list: {{value0}}",
-                    { value0: listing.blockedByKillList.reason }
-                  ),
-                  tone: 'destructive'
-                }
-              : undefined
+        phase?.kind === 'error'
+          ? { text: phase.message, tone: 'destructive' }
+          : listing?.blockedByKillList && !entry.installed
+            ? {
+                text: translate(
+                  'auto.components.settings.PluginMarketplaceListingRow.blocked',
+                  "Blocked by Orca's safety list: {{value0}}",
+                  { value0: listing.blockedByKillList.reason }
+                ),
+                tone: 'destructive'
+              }
+            : undefined
       }
       chips={
         <>
@@ -160,22 +155,7 @@ function CatalogCard({
             }
           }}
           onOpen={() => handlers.openEntry(entry.pluginKey)}
-          busy={removing}
-          onRemove={() => {
-            setRemoving(true)
-            setRemoveError(null)
-            void handlers
-              .onRemove(entry.pluginKey)
-              .catch(() =>
-                setRemoveError(
-                  translate(
-                    'auto.components.settings.PluginCardAction.removeFailed',
-                    'Couldn’t remove it. Try again.'
-                  )
-                )
-              )
-              .finally(() => setRemoving(false))
-          }}
+          onRemove={() => handlers.onRemove(entry.pluginKey)}
           onToggleEnabled={() => handlers.onToggleEnabled(entry.pluginKey)}
           onUpdate={() => handlers.onUpdate(entry)}
         />

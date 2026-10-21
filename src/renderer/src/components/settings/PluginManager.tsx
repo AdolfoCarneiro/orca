@@ -64,8 +64,6 @@ type PluginManagerProps = {
   page: PluginPageNavigation
   sourcesOpen: boolean
   setSourcesOpen: (open: boolean) => void
-  /** Removes a plugin at once from its catalog card; rejects so the card can say why. */
-  onRemoveNow: (pluginKey: string) => Promise<void>
   onConsent: (
     pluginKey: string,
     reviewedFingerprint: string,
@@ -87,7 +85,6 @@ export function PluginManager({
   page,
   sourcesOpen,
   setSourcesOpen,
-  onRemoveNow,
   onConsent
 }: PluginManagerProps): React.JSX.Element {
   const [search, setSearch] = useState('')
@@ -174,7 +171,7 @@ export function PluginManager({
     openEntry,
     orcaVersion,
     refreshing: catalog.refreshBusy,
-    onRemove: onRemoveNow,
+    onRemove: handlers.onRemoveRequest,
     onToggleEnabled: handlers.onToggleEnabled,
     onUpdate: (entry: PluginListEntry) => {
       if (entry.listing) {

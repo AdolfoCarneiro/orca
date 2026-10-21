@@ -26,7 +26,7 @@ export function installsInOneClick(entry: PluginListEntry): boolean {
   return entry.listing?.release?.execution === 'data'
 }
 
-/** An installed card's ⋯: Remove at once, and Turn off / Turn on where the plugin can switch. */
+/** Compact installed actions; removal uses the shared confirmation. */
 function InstalledCardMenu({
   entry,
   busy,

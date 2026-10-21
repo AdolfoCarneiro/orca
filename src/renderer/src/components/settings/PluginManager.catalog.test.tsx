@@ -165,11 +165,11 @@ let root: Root | null = null
 function Harness({
   plugins,
   onInstalled,
-  onRemoveNow
+  onRemoveRequest
 }: {
   plugins: PluginHostListEntry[]
   onInstalled: (keys: string | readonly string[]) => Promise<void>
-  onRemoveNow: (pluginKey: string) => Promise<void>
+  onRemoveRequest: (pluginKey: string) => void
 }): React.JSX.Element {
   const page = usePluginPageNavigation()
   return (
@@ -185,7 +185,7 @@ function Harness({
         onRestart: vi.fn(),
         onViewLogs: vi.fn(),
         onRollbackRequest: vi.fn(),
-        onRemoveRequest: vi.fn()
+        onRemoveRequest
       }}
       onRefreshInstalled={vi.fn().mockResolvedValue(undefined)}
       onInstalled={onInstalled}
@@ -195,7 +195,6 @@ function Harness({
       page={page}
       sourcesOpen={false}
       setSourcesOpen={vi.fn()}
-      onRemoveNow={onRemoveNow}
       onConsent={vi.fn().mockResolvedValue(undefined)}
     />
   )
@@ -204,13 +203,15 @@ function Harness({
 async function render(
   plugins: PluginHostListEntry[] = [],
   onInstalled = vi.fn().mockResolvedValue(undefined),
-  onRemoveNow: (pluginKey: string) => Promise<void> = vi.fn().mockResolvedValue(undefined)
+  onRemoveRequest: (pluginKey: string) => void = vi.fn().mockResolvedValue(undefined)
 ): Promise<{ container: HTMLDivElement; onInstalled: typeof onInstalled }> {
   const container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
   await act(async () => {
-    root?.render(<Harness plugins={plugins} onInstalled={onInstalled} onRemoveNow={onRemoveNow} />)
+    root?.render(
+      <Harness plugins={plugins} onInstalled={onInstalled} onRemoveRequest={onRemoveRequest} />
+    )
   })
   return { container, onInstalled }
 }
@@ -321,35 +322,21 @@ describe('PluginManager catalog', () => {
     expect(window.api.plugins.previewMarketplacePlugin).not.toHaveBeenCalled()
   })
 
-  it('removes an installed plugin from its card menu at once, with no dialog', async () => {
-    const onRemoveNow = vi.fn().mockResolvedValue(undefined)
+  it('requests the shared removal confirmation from the card without deleting data', async () => {
+    const onRemoveRequest = vi.fn()
     const { container } = await render(
       [installedPlugin(preview.contentHash)],
       undefined,
-      onRemoveNow
+      onRemoveRequest
     )
     const more = container.querySelector<HTMLButtonElement>(
       'button[aria-label="More actions for Worktree Notes"]'
     )
     expect(more).toBeTruthy()
-    // Why a sibling: the card's own open button can't nest another tab stop.
     expect(more?.closest('[data-plugin-row-name]')).toBeNull()
     await act(async () => button('Remove').click())
 
-    expect(onRemoveNow).toHaveBeenCalledWith(listing.pluginKey)
-    expect(document.querySelector('[role="dialog"]')).toBeNull()
-  })
-
-  it('says on the card when removing from its menu fails', async () => {
-    const onRemoveNow = vi.fn().mockRejectedValue(new Error('locked'))
-    const { container } = await render(
-      [installedPlugin(preview.contentHash)],
-      undefined,
-      onRemoveNow
-    )
-    await act(async () => button('Remove').click())
-
-    expect(container.textContent).toContain('Couldn’t remove it. Try again.')
+    expect(onRemoveRequest).toHaveBeenCalledWith(listing.pluginKey)
   })
 
   it('says when an update preview matches the installed bytes', async () => {
