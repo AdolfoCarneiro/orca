@@ -105,6 +105,14 @@ async function screenshot(page: Page, name: string): Promise<void> {
     return
   }
   await mkdir(directory, { recursive: true })
+  await page.evaluate(async () => {
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+        .map((animation) => animation.finished.catch(() => undefined))
+    )
+  })
   const cdp = await page.context().newCDPSession(page)
   try {
     const { data } = await cdp.send('Page.captureScreenshot', {
