@@ -200,3 +200,63 @@ it('does not tombstone a renderer browser when the acknowledged close fails', as
   expect(forgetTabs).not.toHaveBeenCalled()
   expect((await list()).tabs.map((tab) => tab.id)).toEqual(['renderer-tab'])
 })
+
+it('projects a renderer page only once when the offscreen inventory also lists its page id', async () => {
+  const closeTab = vi.fn(async (_pageId: string) => {})
+  const { runtime, sync, addPage, list } = browserRuntime(closeTab)
+  sync([publication()])
+  addPage('renderer-page')
+  addPage('separate-runtime-page')
+  runtime.notifyMobileSessionTabsChanged(TEST_WORKTREE_ID)
+
+  const snapshot = await list()
+  expect(snapshot.tabs.map((tab) => tab.id)).toEqual(['renderer-tab', 'separate-runtime-page'])
+  expect(snapshot.publicationEpoch).toBe('renderer-1')
+  expect(snapshot.tabGroups?.flatMap((group) => group.tabOrder)).toEqual([
+    'renderer-tab',
+    'separate-runtime-page'
+  ])
+  await expect(
+    runtime.closeMobileSessionTab(`id:${TEST_WORKTREE_ID}`, 'separate-runtime-page')
+  ).resolves.toMatchObject({ closed: true })
+  expect(closeTab).toHaveBeenCalledWith('separate-runtime-page')
+  expect(closeTab).not.toHaveBeenCalledWith(rendererTab.browserPageId)
+})
+
+it('keeps a replacement client page through a stale placement retirement and retires only the live generation', async () => {
+  const { runtime, sync, list } = browserRuntime()
+  sync([publication()])
+  const pages = getRuntimeBrowserPageRegistry(runtime)
+  const original = {
+    kind: 'client' as const,
+    browserHostClientId: 'phone',
+    browserHostGeneration: 1,
+    pageHostGeneration: 1
+  }
+  const replacement = { ...original, browserHostGeneration: 2, pageHostGeneration: 2 }
+  const page = {
+    browserPageId: 'reconnected-client-page',
+    workspaceId: TEST_WORKTREE_ID,
+    browserProfileId: 'profile',
+    executionHostKey: 'host',
+    url: 'https://client.example/',
+    loading: false,
+    active: false
+  }
+  pages.publishClientPage({ ...page, placement: original })
+  runtime.notifyMobileSessionTabsChanged(TEST_WORKTREE_ID)
+  expect(pages.retirePage(page.browserPageId, original)).toBe(true)
+  pages.publishClientPage({ ...page, placement: replacement, title: 'Reconnected page' })
+  expect(pages.retirePage(page.browserPageId, original)).toBe(false)
+  runtime.notifyMobileSessionTabsChanged(TEST_WORKTREE_ID)
+  const reconnected = await list()
+  expect(reconnected.tabs.map((tab) => tab.id)).toEqual(['renderer-tab', page.browserPageId])
+  expect(reconnected.tabs[1]).toMatchObject({ title: 'Reconnected page', placement: replacement })
+  expect(reconnected.publicationEpoch).toBe('renderer-1')
+
+  expect(pages.retirePage(page.browserPageId, replacement)).toBe(true)
+  runtime.notifyMobileSessionTabsChanged(TEST_WORKTREE_ID)
+  const retired = await list()
+  expect(retired.tabs.map((tab) => tab.id)).toEqual(['renderer-tab'])
+  expect(retired.tabGroups?.flatMap((group) => group.tabOrder)).toEqual(['renderer-tab'])
+})
