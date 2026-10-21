@@ -18,24 +18,30 @@ import {
 } from './plugin-discovery'
 import { PluginEventBus } from './plugin-event-bus'
 import { PluginAuditLog } from './plugin-audit-log'
-import { executePluginHostCallRequest } from './plugin-host-call-adapter'
+import { executePluginHostCallRequest } from './workers/plugin-host-call-adapter'
 import { PluginContentVerifier } from './plugin-content-integrity'
-import { bindPluginHostServices, type PluginRuntimeDelegate } from './plugin-host-service-bindings'
-import { PluginPanelController } from './plugin-panel-controller'
-import { PluginWorkerController } from './plugin-worker-controller'
+import {
+  bindPluginHostServices,
+  type PluginRuntimeDelegate
+} from './workers/plugin-host-service-bindings'
+import { PluginPanelController } from './panels/plugin-panel-controller'
+import { PluginWorkerController } from './workers/plugin-worker-controller'
 import { PluginServiceHousekeeping } from './plugin-service-housekeeping'
-import { collectApprovedWorkerSpecs, isApprovedWorkerSpec } from './plugin-worker-reconciliation'
-import type { PluginRunState } from './plugin-supervisor'
+import {
+  collectApprovedWorkerSpecs,
+  isApprovedWorkerSpec
+} from './workers/plugin-worker-reconciliation'
+import type { PluginRunState } from './workers/plugin-supervisor'
 import { isPluginApproved, snapshotPluginConsentLists } from './plugin-activation-policy'
-import { PluginContentPackRegistry } from './plugin-content-pack-registry'
+import { PluginContentPackRegistry } from './contributions/plugin-content-pack-registry'
 import type { PluginServiceOptions } from './plugin-service-options'
 import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
 import { waitForPluginRefreshSettlement } from './plugin-refresh-settlement'
 import { assertPluginWorkerCommand } from './plugin-command-invocation'
 import { deliverPluginEvent } from './plugin-event-delivery'
-import { PluginInstallationState } from './plugin-installation-state'
+import { PluginInstallationState } from './installation/plugin-installation-state'
 
-export type { PluginRuntimeDelegate } from './plugin-host-service-bindings'
+export type { PluginRuntimeDelegate } from './workers/plugin-host-service-bindings'
 export type { PluginLogLine } from './plugin-log-buffer'
 export type { PluginServiceOptions } from './plugin-service-options'
 

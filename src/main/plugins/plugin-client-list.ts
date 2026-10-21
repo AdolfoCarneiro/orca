@@ -5,7 +5,7 @@ import {
   isInvalidDiscoveredPlugin,
   type DiscoveredPlugin
 } from './plugin-discovery'
-import { readPluginLockfile } from './plugin-install'
+import { readPluginLockfile } from './installation/plugin-install'
 import { buildPluginList, type PluginListEntry } from './plugin-list-projection'
 import type { PluginService } from './plugin-service'
 

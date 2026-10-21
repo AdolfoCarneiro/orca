@@ -10,7 +10,7 @@ import {
   pluginShaImageUrl
 } from '../../shared/plugins/plugin-image-url'
 import { PLUGIN_MANIFEST_V2_SINCE } from '../../shared/plugins/plugin-schema-field-docs'
-import { extractCatalogImages } from './plugin-catalog-image-extraction'
+import { extractCatalogImages } from './catalog/plugin-catalog-image-extraction'
 import { PluginImageCache } from './plugin-image-cache'
 
 vi.mock('electron', () => ({ protocol: { handle: vi.fn() } }))

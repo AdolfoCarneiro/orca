@@ -18,10 +18,10 @@ import {
 } from '../../shared/plugins/plugin-consent-fingerprint'
 import { validateDeclaredPluginArtifacts } from './plugin-artifact-validation'
 import { readPluginManifestText } from './plugin-manifest-file'
-import { readPluginCurrentPointer } from './plugin-current-pointer'
+import { readPluginCurrentPointer } from './installation/plugin-current-pointer'
 import { hashPluginTree } from './plugin-content-hash'
 
-export { PLUGIN_CURRENT_POINTER_FILENAME } from './plugin-current-pointer'
+export { PLUGIN_CURRENT_POINTER_FILENAME } from './installation/plugin-current-pointer'
 
 const INSTALLED_PLUGIN_DISCOVERY_CONCURRENCY = 8
 

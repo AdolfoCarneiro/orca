@@ -7,7 +7,7 @@ import { pluginManifestSchema, type PluginManifest } from '../../shared/plugins/
 import { hashPluginTree } from './plugin-content-hash'
 import { PluginContentVerifier } from './plugin-content-integrity'
 import { PluginService } from './plugin-service'
-import type { PluginWorkerFactory } from './plugin-worker-manager'
+import type { PluginWorkerFactory } from './workers/plugin-worker-manager'
 
 const roots: string[] = []
 

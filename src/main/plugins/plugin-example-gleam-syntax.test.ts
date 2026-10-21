@@ -3,8 +3,8 @@ import { PLUGIN_SCHEMA_NEWEST_SINCE } from '../../shared/plugins/plugin-host-ver
 import { expect, it } from 'vitest'
 import { fingerprintPluginConsent } from '../../shared/plugins/plugin-consent-fingerprint'
 import { PluginContentVerifier } from './plugin-content-integrity'
-import { inspectPluginInstallTree } from './plugin-install-staging'
-import { PluginSyntaxRegistry } from './plugin-syntax-registry'
+import { inspectPluginInstallTree } from './installation/plugin-install-staging'
+import { PluginSyntaxRegistry } from './contributions/plugin-syntax-registry'
 
 const root = join(process.cwd(), 'examples', 'plugins', 'orca-gleam-syntax')
 

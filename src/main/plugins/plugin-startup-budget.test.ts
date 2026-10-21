@@ -11,7 +11,7 @@ import {
   type PluginManifest
 } from '../../shared/plugins/plugin-manifest'
 import { PluginService, type PluginServiceOptions } from './plugin-service'
-import type { PluginWorkerFactory } from './plugin-worker-manager'
+import type { PluginWorkerFactory } from './workers/plugin-worker-manager'
 
 const PLUGIN_COUNT = 20
 const SAMPLE_COUNT = 20

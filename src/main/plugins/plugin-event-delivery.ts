@@ -5,7 +5,7 @@ import {
   type ValidDiscoveredPlugin
 } from './plugin-discovery'
 import type { PluginEventBus } from './plugin-event-bus'
-import type { PluginWorkerController } from './plugin-worker-controller'
+import type { PluginWorkerController } from './workers/plugin-worker-controller'
 
 export function deliverPluginEvent(options: {
   event: PluginEventName

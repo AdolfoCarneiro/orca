@@ -4,13 +4,13 @@ import { z } from 'zod'
 import { PLUGIN_COMMIT_PATTERN } from '../../shared/plugins/plugin-install-lockfile'
 import { isQualifiedPluginKey } from '../../shared/plugins/plugin-manifest'
 import { pluginMarketplaceGitSourceSchema } from '../../shared/plugins/plugin-marketplace'
-import type { PluginMarketplaceInstaller } from '../plugins/plugin-marketplace-installer'
-import type { PluginMarketplaceService } from '../plugins/plugin-marketplace-service'
-import { PLUGIN_MARKETPLACE_SOURCE_ID_PATTERN } from '../plugins/plugin-marketplace-store'
+import type { PluginMarketplaceInstaller } from '../plugins/catalog/plugin-marketplace-installer'
+import type { PluginMarketplaceService } from '../plugins/catalog/plugin-marketplace-service'
+import { PLUGIN_MARKETPLACE_SOURCE_ID_PATTERN } from '../plugins/catalog/plugin-marketplace-store'
 import type { PluginService } from '../plugins/plugin-service'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import { pluginFileTypeSchema } from '../../shared/plugins/plugin-file-type'
-import { findPluginFileTypeSuggestion } from '../plugins/plugin-file-type-suggestion'
+import { findPluginFileTypeSuggestion } from '../plugins/catalog/plugin-file-type-suggestion'
 
 export type PluginMarketplaceHandlerServices = {
   marketplace: PluginMarketplaceService
