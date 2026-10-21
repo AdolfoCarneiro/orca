@@ -38,7 +38,7 @@ export function sendTerminalQuickCommandToPane({
 
   if (/[\r\n]/.test(command.command) && !pane.terminal.modes.bracketedPasteMode) {
     onError(
-      'This shell cannot safely receive a multiline command here. Use Run in New Tab or enable bracketed paste.'
+      'This shell cannot safely receive a multiline command here. Use a script file or a shell with bracketed paste.'
     )
     return false
   }

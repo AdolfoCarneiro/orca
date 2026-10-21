@@ -152,7 +152,7 @@ describe('sendTerminalQuickCommandToPane', () => {
       ).toBe(false)
       expect(sendInput).not.toHaveBeenCalled()
       expect(onError).toHaveBeenCalledWith(
-        'This shell cannot safely receive a multiline command here. Use Run in New Tab or enable bracketed paste.'
+        'This shell cannot safely receive a multiline command here. Use a script file or a shell with bracketed paste.'
       )
       expect(pane.terminal.focus).not.toHaveBeenCalled()
       expect(mocks.recordTerminalUserInputForLeaf).not.toHaveBeenCalled()
