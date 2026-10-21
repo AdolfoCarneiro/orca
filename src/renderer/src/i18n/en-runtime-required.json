@@ -630,6 +630,10 @@
           "refreshing": "Refreshing…",
           "tryAgain": "Try again"
         },
+        "PluginSettingsMenu": {
+          "turnOff": "Turn off plugins",
+          "turnOffDetail": "Nothing from any plugin runs until you turn them back on."
+        },
         "PluginsSettingsSection": {
           "empty": "Browse the All tab to install plugins from a marketplace.",
           "emptyTitle": "No plugins installed yet",
