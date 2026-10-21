@@ -1,6 +1,6 @@
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { parsePluginManifest } from '../../../shared/plugins/plugin-manifest'
+import { parsePluginManifest } from '../../../shared/plugins/manifest/plugin-manifest'
 import { readPluginCurrentPointer } from './plugin-current-pointer'
 import { readPluginManifestText } from '../plugin-manifest-file'
 import { PLUGIN_CONTENT_HASH_PATTERN } from '../../../shared/plugins/plugin-install-lockfile'

@@ -3,7 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { pluginManifestSchema } from '../../../../shared/plugins/plugin-manifest'
+import { pluginManifestSchema } from '../../../../shared/plugins/manifest/plugin-manifest'
 import { useInstalledPluginManifest } from './use-plugin-contribution-source'
 
 const base = {

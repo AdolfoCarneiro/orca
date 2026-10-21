@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pluginCatalogReleaseSchema } from '../../../shared/plugins/plugin-catalog-release'
+import { pluginCatalogReleaseSchema } from '../../../shared/plugins/catalog/plugin-catalog-release'
 import { pluginCatalogListingDetails } from './plugin-marketplace-projection'
 
 describe('pluginCatalogListingDetails', () => {

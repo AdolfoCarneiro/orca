@@ -9,7 +9,7 @@ import {
   UI_LANGUAGE_SPANISH
 } from '../../../shared/ui-language'
 import { i18n, loadRendererUiLanguage, setRendererPluginLanguagePacks } from './i18n'
-import { pluginLanguageResourceId } from '../../../shared/plugins/plugin-language-pack-artifact'
+import { pluginLanguageResourceId } from '../../../shared/plugins/artifacts/plugin-language-pack-artifact'
 
 // Every changeLanguage caller must transparently load real non-English translations before its promise settles.
 

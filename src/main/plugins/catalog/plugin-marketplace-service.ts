@@ -5,7 +5,7 @@ import {
   pluginMarketplaceGitSourceSchema,
   type PluginMarketplaceEntry,
   type PluginMarketplaceGitSource
-} from '../../../shared/plugins/plugin-marketplace'
+} from '../../../shared/plugins/catalog/plugin-marketplace'
 import {
   fetchPluginMarketplace,
   type PluginMarketplaceFetchResult

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pluginManifestSchema } from '../../../../shared/plugins/plugin-manifest'
+import { pluginManifestSchema } from '../../../../shared/plugins/manifest/plugin-manifest'
 import {
   pluginPageExecutionProfile,
   pluginPointsFromManifest,

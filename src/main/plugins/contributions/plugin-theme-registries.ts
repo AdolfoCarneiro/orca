@@ -3,11 +3,11 @@ import type { PluginThemeContribution } from '../../../shared/plugins/plugin-con
 import {
   parsePluginAppThemeArtifact,
   type PluginThemeRegistration
-} from '../../../shared/plugins/plugin-theme-artifact'
+} from '../../../shared/plugins/artifacts/plugin-theme-artifact'
 import {
   parsePluginTerminalThemeArtifact,
   type PluginTerminalThemeRegistration
-} from '../../../shared/plugins/plugin-terminal-theme-artifact'
+} from '../../../shared/plugins/artifacts/plugin-terminal-theme-artifact'
 import {
   PLUGIN_THEME_MAX_BYTES,
   readContainedPluginArtifactText

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { i18n, setRendererPluginLanguagePacks, translate } from './i18n'
-import { pluginLanguageResourceId } from '../../../shared/plugins/plugin-language-pack-artifact'
+import { pluginLanguageResourceId } from '../../../shared/plugins/artifacts/plugin-language-pack-artifact'
 import { DEFAULT_LOCALE } from './supported-languages'
 
 const PACK_ID = 'plugin:smwbev.russian/ru-RU' as const

@@ -1,4 +1,4 @@
-import type { PluginCatalogRelease } from './plugin-catalog-release'
+import type { PluginCatalogRelease } from '../catalog/plugin-catalog-release'
 import { orcaEngineRangeSchema, satisfiesOrcaEngineRange } from './plugin-manifest'
 
 /** Newest manifest format this build reads. */

@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
-import type { PluginLanguagePackRegistration } from '../../../../shared/plugins/plugin-language-pack-artifact'
+import type { PluginLanguagePackRegistration } from '../../../../shared/plugins/artifacts/plugin-language-pack-artifact'
 import { languageDisplayName } from './plugin-contributions'
 import { PluginContributionActionLanguage } from './PluginContributionActionLanguage'
 

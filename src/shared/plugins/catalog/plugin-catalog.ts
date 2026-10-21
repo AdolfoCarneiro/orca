@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { pluginCatalogReleaseSchema, type PluginCatalogRelease } from './plugin-catalog-release'
-import { satisfiesOrcaEngineRange } from './plugin-manifest-engine-range'
+import { satisfiesOrcaEngineRange } from '../manifest/plugin-manifest-engine-range'
 import {
   catalogV2GitSourceSchema,
   marketplaceCategorySchema,
@@ -9,7 +9,7 @@ import {
   PLUGIN_MARKETPLACE_CATEGORY_LIMIT,
   PLUGIN_MARKETPLACE_ENTRY_LIMIT
 } from './plugin-marketplace'
-import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from './plugin-schema-field-docs'
+import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from '../manifest/plugin-schema-field-docs'
 
 /**
  * The plugin catalog (`orca-catalog.json`). The name never changes; `catalogVersion` does, and

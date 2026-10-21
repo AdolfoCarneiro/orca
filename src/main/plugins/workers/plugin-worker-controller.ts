@@ -1,5 +1,5 @@
 import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabilities'
-import type { PluginEventName } from '../../../shared/plugins/plugin-manifest'
+import type { PluginEventName } from '../../../shared/plugins/manifest/plugin-manifest'
 import type { PluginPanelActionOutcome } from '../../../shared/plugins/plugin-panel-bridge'
 import {
   PLUGIN_COMMAND_EXTENSION_POINT,

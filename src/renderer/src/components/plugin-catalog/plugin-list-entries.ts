@@ -3,8 +3,8 @@ import type {
   PluginMarketplaceHostListing,
   PluginMarketplaceHostSourceState
 } from '../../../../preload/api-types'
-import { satisfiesOrcaEngineRange } from '../../../../shared/plugins/plugin-manifest'
-import type { PluginCatalogType } from '../../../../shared/plugins/plugin-catalog-release'
+import { satisfiesOrcaEngineRange } from '../../../../shared/plugins/manifest/plugin-manifest'
+import type { PluginCatalogType } from '../../../../shared/plugins/catalog/plugin-catalog-release'
 import { compareAppVersions } from '../../../../shared/app-version'
 import { pluginDisplayNameFromKey } from './plugin-display-name'
 

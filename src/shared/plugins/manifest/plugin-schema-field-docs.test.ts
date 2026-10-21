@@ -5,7 +5,7 @@ import { PLUGIN_SCHEMA_GIT_REF } from './plugin-json-schema'
 import { satisfiesOrcaEngineRange } from './plugin-manifest'
 import { PLUGIN_MANIFEST_V2_SINCE, PLUGIN_SCHEMA_SINCE_V1 } from './plugin-schema-field-docs'
 
-const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
+const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
 
 function git(args: string[]): string | null {
   try {

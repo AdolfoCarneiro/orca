@@ -1,5 +1,5 @@
-import type { PluginEventName } from '../../../shared/plugins/plugin-manifest'
-import { PLUGIN_WORKSPACE_TERMINAL_LIMIT } from '../../../shared/plugins/plugin-host-api'
+import type { PluginEventName } from '../../../shared/plugins/manifest/plugin-manifest'
+import { PLUGIN_WORKSPACE_TERMINAL_LIMIT } from '../../../shared/plugins/workers/plugin-host-api'
 import type { PluginHostServices } from './plugin-host-methods'
 import { PluginSecretsStore } from '../plugin-secrets-store'
 import { PluginKvStore } from '../plugin-storage-store'

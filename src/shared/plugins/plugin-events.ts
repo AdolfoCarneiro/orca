@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { PluginEventName } from './plugin-manifest'
+import type { PluginEventName } from './manifest/plugin-manifest'
 
 /** Publish bounded worktree/agent projections, never raw runtime objects, to avoid leaking unrelated paths, remotes or credentials. */
 

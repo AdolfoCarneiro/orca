@@ -7,7 +7,7 @@ import type {
   PluginMarketplaceHostInstallPreview,
   PluginMarketplaceHostListing
 } from '../../../../preload/api-types'
-import { pluginManifestSchema } from '../../../../shared/plugins/plugin-manifest'
+import { pluginManifestSchema } from '../../../../shared/plugins/manifest/plugin-manifest'
 import { usePluginInstallAction } from './use-plugin-install-action'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))

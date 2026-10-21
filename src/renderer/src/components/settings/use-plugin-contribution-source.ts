@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { PluginHostListEntry } from '../../../../preload/api-types'
-import type { PluginManifest } from '../../../../shared/plugins/plugin-manifest'
+import type { PluginManifest } from '../../../../shared/plugins/manifest/plugin-manifest'
 import { usePluginIconThemes } from '@/store/plugin-icon-themes'
 import {
   ensurePluginLanguagePacksLoaded,

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { isQualifiedPluginKey } from '../../../shared/plugins/plugin-manifest'
+import { isQualifiedPluginKey } from '../../../shared/plugins/manifest/plugin-manifest'
 import type { PluginPanelActionOutcome } from '../../../shared/plugins/plugin-panel-bridge'
 import { executePluginHostCall, type ExecutePluginHostCallInput } from './plugin-host-methods'
 

@@ -1,6 +1,6 @@
 import type { RefinementCtx } from 'zod'
-import { isPluginCommandAliasActionId } from './plugin-command-actions'
-import { getKeybindingConflictIdentity } from '../keybindings'
+import { isPluginCommandAliasActionId } from '../plugin-command-actions'
+import { getKeybindingConflictIdentity } from '../../keybindings'
 
 type IdentifiedContribution = { id: string }
 type PathContribution = { path: string }

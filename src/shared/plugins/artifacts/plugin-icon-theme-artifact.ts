@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { pluginRelativePathSchema } from './plugin-manifest-fields'
+import { pluginRelativePathSchema } from '../manifest/plugin-manifest-fields'
 import { pluginContentIdSchema } from './plugin-theme-artifact'
 
 export const PLUGIN_ICON_THEME_SLOTS = ['file', 'folder', 'folder-open'] as const

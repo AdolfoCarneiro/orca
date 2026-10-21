@@ -17,7 +17,7 @@ import { setPluginServiceForRpc } from '../runtime/rpc/methods/plugins'
 import {
   normalizePluginConsents,
   normalizePluginIdList
-} from '../../shared/plugins/plugin-consent-state'
+} from '../../shared/plugins/approval/plugin-consent-state'
 import { projectPluginAgentStatusChangedPayload } from '../plugins/plugin-agent-status-event'
 import { setMainPluginLanguagePacks, setMainUiLanguage } from '../i18n/main-i18n'
 import { isUsablePluginLanguagePack } from '../../shared/plugins/plugin-language-pack-coverage'

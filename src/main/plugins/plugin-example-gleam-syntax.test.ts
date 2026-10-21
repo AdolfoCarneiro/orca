@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { PLUGIN_SCHEMA_NEWEST_SINCE } from '../../shared/plugins/plugin-host-version'
 import { expect, it } from 'vitest'
-import { fingerprintPluginConsent } from '../../shared/plugins/plugin-consent-fingerprint'
+import { fingerprintPluginConsent } from '../../shared/plugins/approval/plugin-consent-fingerprint'
 import { PluginContentVerifier } from './plugin-content-integrity'
 import { inspectPluginInstallTree } from './installation/plugin-install-staging'
 import { PluginSyntaxRegistry } from './contributions/plugin-syntax-registry'

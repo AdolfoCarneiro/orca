@@ -5,15 +5,15 @@ import {
   isOfficialPluginIdentity,
   type PluginMarketplaceEntry,
   type PluginMarketplaceGitSource
-} from '../../../shared/plugins/plugin-marketplace'
+} from '../../../shared/plugins/catalog/plugin-marketplace'
 import type { PluginKillListEntry } from '../../../shared/plugins/plugin-kill-list'
 import type {
   PluginMarketplaceCachedSnapshot,
   PluginMarketplaceRegisteredSource
 } from './plugin-marketplace-store'
-import { selectPluginCatalogRelease } from '../../../shared/plugins/plugin-catalog'
+import { selectPluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog'
 import { pluginShaImageUrl, type PluginHostImages } from '../../../shared/plugins/plugin-image-url'
-import type { PluginCatalogRelease } from '../../../shared/plugins/plugin-catalog-release'
+import type { PluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog-release'
 
 export type PluginMarketplaceSourceState = {
   id: string

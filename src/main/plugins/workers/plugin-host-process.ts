@@ -6,9 +6,9 @@ import {
   PLUGIN_WORKER_READY_TIMEOUT_MS,
   pluginWorkerChildMessageSchema,
   type PluginWorkerParentMessage
-} from '../../../shared/plugins/plugin-host-protocol'
+} from '../../../shared/plugins/workers/plugin-host-protocol'
 import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabilities'
-import type { PluginEventName } from '../../../shared/plugins/plugin-manifest'
+import type { PluginEventName } from '../../../shared/plugins/manifest/plugin-manifest'
 import type { PluginPanelActionOutcome } from '../../../shared/plugins/plugin-panel-bridge'
 import { buildPluginWorkerEnv } from './plugin-worker-env'
 import { pipePluginWorkerOutput } from './plugin-worker-output-buffer'

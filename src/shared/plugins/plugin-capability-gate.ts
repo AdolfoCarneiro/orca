@@ -1,4 +1,4 @@
-import { getPluginHostMethodSpec, isPluginPanelAction } from './plugin-host-api'
+import { getPluginHostMethodSpec, isPluginPanelAction } from './workers/plugin-host-api'
 import type { PluginCapabilityKind } from './plugin-capabilities'
 
 /** Shared Electron-free deny-by-default gate for desktop, serve and relay; conformance tests pin identical decisions.

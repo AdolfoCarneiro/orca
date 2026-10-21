@@ -3,13 +3,13 @@ import {
   PLUGIN_MARKETPLACE_FILENAME,
   pluginMarketplaceSchema,
   type PluginMarketplace
-} from '../../../shared/plugins/plugin-marketplace'
+} from '../../../shared/plugins/catalog/plugin-marketplace'
 import {
   PLUGIN_CATALOG_FILENAME,
   pluginCatalogSchema,
   pluginCatalogVersionError
-} from '../../../shared/plugins/plugin-catalog'
-import { formatPluginSchemaIssues } from '../../../shared/plugins/plugin-schema-issues'
+} from '../../../shared/plugins/catalog/plugin-catalog'
+import { formatPluginSchemaIssues } from '../../../shared/plugins/manifest/plugin-schema-issues'
 import { gitExecFileAsyncBuffer } from '../../git/runner'
 import { extractCatalogImages } from './plugin-catalog-image-extraction'
 import { readPluginGitCommit } from '../installation/plugin-git-repository'

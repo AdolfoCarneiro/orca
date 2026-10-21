@@ -1,4 +1,4 @@
-import type { PluginEventName } from '../../shared/plugins/plugin-manifest'
+import type { PluginEventName } from '../../shared/plugins/manifest/plugin-manifest'
 import {
   isInvalidDiscoveredPlugin,
   type DiscoveredPlugin,

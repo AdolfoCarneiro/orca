@@ -11,7 +11,7 @@ import { installStagedPluginTree } from '../installation/plugin-install-staging'
 import { getUserPluginsDir } from '../plugin-discovery'
 import { PluginWorkerController } from '../workers/plugin-worker-controller'
 import { UninstallWorkerPort } from '../plugin-uninstall-worker-fixture'
-import type { PluginManifest } from '../../../shared/plugins/plugin-manifest'
+import type { PluginManifest } from '../../../shared/plugins/manifest/plugin-manifest'
 
 const ports = vi.hoisted(() => ({
   handlers: new Map<string, (...args: unknown[]) => unknown>(),

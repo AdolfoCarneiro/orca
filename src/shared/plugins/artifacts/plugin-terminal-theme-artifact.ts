@@ -3,7 +3,7 @@ import {
   TERMINAL_COLOR_KEYS,
   hasUsableTerminalThemeColors,
   normalizeTerminalColorOverrides
-} from '../terminal-custom-themes'
+} from '../../terminal-custom-themes'
 import { pluginContentIdSchema } from './plugin-theme-artifact'
 
 const terminalColorKeySchema = z.enum(TERMINAL_COLOR_KEYS)

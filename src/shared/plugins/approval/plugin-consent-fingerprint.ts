@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
-import { canonicalizeCapabilitySet } from './plugin-capabilities'
-import { pluginExecutionAllows, type PluginExecutionProfile } from './plugin-execution-profile'
-import type { PluginManifest } from './plugin-manifest'
+import { canonicalizeCapabilitySet } from '../plugin-capabilities'
+import { pluginExecutionAllows, type PluginExecutionProfile } from '../plugin-execution-profile'
+import type { PluginManifest } from '../manifest/plugin-manifest'
 
 type PluginConsentSubject = Pick<PluginManifest, 'capabilities' | 'main'> & {
   execution?: PluginExecutionProfile

@@ -2,12 +2,12 @@ import {
   parsePluginLanguagePackArtifact,
   pluginLanguageResourceId,
   type PluginLanguagePackRegistration
-} from '../../../shared/plugins/plugin-language-pack-artifact'
+} from '../../../shared/plugins/artifacts/plugin-language-pack-artifact'
 import {
   pluginLanguagePackCoverage,
   translatableCatalogPaths
 } from '../../../shared/plugins/plugin-language-pack-coverage'
-import type { PluginManifest } from '../../../shared/plugins/plugin-manifest'
+import type { PluginManifest } from '../../../shared/plugins/manifest/plugin-manifest'
 import {
   PLUGIN_LANGUAGE_PACK_MAX_BYTES,
   readContainedPluginArtifactText

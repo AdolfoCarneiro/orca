@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { isQualifiedPluginKey } from './plugin-manifest'
+import { isQualifiedPluginKey } from './manifest/plugin-manifest'
 
 /** Lock source, exact commit, content hash and reviewed consent so mismatching updates are visible.
  * Adapted from community PR #5801’s SHA-256/lockfile installer. */

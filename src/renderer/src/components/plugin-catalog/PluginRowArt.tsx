@@ -9,7 +9,7 @@ import {
   Puzzle,
   SquareTerminal
 } from 'lucide-react'
-import type { PluginCatalogType } from '../../../../shared/plugins/plugin-catalog-release'
+import type { PluginCatalogType } from '../../../../shared/plugins/catalog/plugin-catalog-release'
 import type { PluginListEntry } from './plugin-list-entries'
 
 const TYPE_ICON: Record<PluginCatalogType, typeof Palette> = {

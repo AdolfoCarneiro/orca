@@ -3,7 +3,7 @@ import {
   isOfficialMarketplaceGitSource,
   isOfficialOrganizationGitSource,
   isReservedPluginIdentity
-} from '../../../shared/plugins/plugin-marketplace'
+} from '../../../shared/plugins/catalog/plugin-marketplace'
 import type { PluginMarketplaceFetchResult } from './plugin-marketplace-fetch'
 import type { PluginMarketplaceRegisteredSource } from './plugin-marketplace-store'
 

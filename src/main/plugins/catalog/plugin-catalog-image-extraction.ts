@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import type { PluginCatalogRelease } from '../../../shared/plugins/plugin-catalog-release'
+import type { PluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog-release'
 import { readPluginImageHeader } from '../../../shared/plugins/plugin-image-format'
 import {
   PLUGIN_IMAGE_RULES,
@@ -7,7 +7,7 @@ import {
   type PluginCatalogImages,
   type PluginImageKind
 } from '../../../shared/plugins/plugin-image-fields'
-import type { PluginMarketplace } from '../../../shared/plugins/plugin-marketplace'
+import type { PluginMarketplace } from '../../../shared/plugins/catalog/plugin-marketplace'
 
 // Why a catalog-wide cap: a large catalog must not turn one refresh into an unbounded download.
 const CATALOG_IMAGES_MAX_BYTES = 64 * 1024 * 1024

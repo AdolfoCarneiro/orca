@@ -1,7 +1,7 @@
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { PLUGIN_WORKSPACE_TERMINAL_LIMIT } from '../../../shared/plugins/plugin-host-api'
+import { PLUGIN_WORKSPACE_TERMINAL_LIMIT } from '../../../shared/plugins/workers/plugin-host-api'
 import { bindPluginHostServices, type PluginRuntimeDelegate } from './plugin-host-service-bindings'
 import { executePluginHostCall, type PluginHostServices } from './plugin-host-methods'
 

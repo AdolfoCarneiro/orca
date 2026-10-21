@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { PluginMarketplaceGitSource } from '../../../shared/plugins/plugin-marketplace'
+import type { PluginMarketplaceGitSource } from '../../../shared/plugins/catalog/plugin-marketplace'
 import { marketplaceSourceId, PluginMarketplaceStore } from './plugin-marketplace-store'
 
 const roots: string[] = []

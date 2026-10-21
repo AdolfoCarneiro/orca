@@ -1,7 +1,7 @@
 import {
   getPluginActivationState,
   type PluginConsentLists
-} from '../../shared/plugins/plugin-consent-state'
+} from '../../shared/plugins/approval/plugin-consent-state'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
 
 export function snapshotPluginConsentLists(source: {

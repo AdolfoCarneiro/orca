@@ -1,5 +1,5 @@
-import { PLUGIN_CATALOG_FILENAME, PLUGIN_CATALOG_VERSION } from './plugin-catalog'
-import { PLUGIN_MARKETPLACE_FILENAME } from './plugin-marketplace'
+import { PLUGIN_CATALOG_FILENAME, PLUGIN_CATALOG_VERSION } from '../catalog/plugin-catalog'
+import { PLUGIN_MARKETPLACE_FILENAME } from '../catalog/plugin-marketplace'
 import { PLUGIN_SCHEMA_SINCE_V1 } from './plugin-schema-field-docs'
 
 /** Compatibility policy appended to the manifest reference. Prose lives beside the schemas it

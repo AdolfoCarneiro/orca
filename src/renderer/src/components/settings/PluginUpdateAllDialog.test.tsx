@@ -7,7 +7,7 @@ import type {
   PluginHostListEntry,
   PluginMarketplaceHostInstallPreview
 } from '../../../../preload/api-types'
-import { pluginManifestSchema } from '../../../../shared/plugins/plugin-manifest'
+import { pluginManifestSchema } from '../../../../shared/plugins/manifest/plugin-manifest'
 import type { PluginListEntry } from '../plugin-catalog/plugin-list-entries'
 import { PluginUpdateAllDialog } from './PluginUpdateAllDialog'
 import { newAccess } from './PluginUpdateCandidate'

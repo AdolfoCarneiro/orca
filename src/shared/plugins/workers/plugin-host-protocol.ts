@@ -1,6 +1,10 @@
 import { z } from 'zod'
-import { PLUGIN_COMMAND_LIMIT, PLUGIN_EVENT_NAMES, pluginCommandIdSchema } from './plugin-manifest'
-import { PLUGIN_CAPABILITY_KINDS } from './plugin-capabilities'
+import {
+  PLUGIN_COMMAND_LIMIT,
+  PLUGIN_EVENT_NAMES,
+  pluginCommandIdSchema
+} from '../manifest/plugin-manifest'
+import { PLUGIN_CAPABILITY_KINDS } from '../plugin-capabilities'
 
 /** Validate fork-channel messages on both sides: third-party worker code cannot supply trusted structure. */
 

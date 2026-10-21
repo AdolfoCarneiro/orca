@@ -3,7 +3,7 @@ import {
   isOfficialOrganizationGitSource,
   isOfficialPluginIdentity,
   isReservedPluginIdentity
-} from '../../../shared/plugins/plugin-marketplace'
+} from '../../../shared/plugins/catalog/plugin-marketplace'
 
 export function pluginInstallTrustError(
   pluginKey: string,

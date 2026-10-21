@@ -1,4 +1,4 @@
-import { isQualifiedPluginKey } from './plugin-manifest'
+import { isQualifiedPluginKey } from '../manifest/plugin-manifest'
 
 /** Consent binds qualified key and fingerprint (capabilities plus trusted worker tier); either trust change requires reapproval. */
 

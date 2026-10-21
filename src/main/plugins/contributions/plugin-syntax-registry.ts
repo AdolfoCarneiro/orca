@@ -10,7 +10,7 @@ import {
   type PluginLanguageConfiguration,
   type PluginSyntaxMetadata,
   type PluginSyntaxPayload
-} from '../../../shared/plugins/plugin-syntax-artifact'
+} from '../../../shared/plugins/artifacts/plugin-syntax-artifact'
 import { readContainedPluginArtifactText } from '../plugin-artifact-validation'
 import { PluginArtifactPackRegistry } from './plugin-artifact-pack-registry'
 import type { PluginContentVerifier } from '../plugin-content-integrity'

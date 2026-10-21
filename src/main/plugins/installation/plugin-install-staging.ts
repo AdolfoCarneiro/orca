@@ -7,13 +7,13 @@ import {
   qualifiedPluginKey,
   satisfiesOrcaEngineRange,
   type PluginManifest
-} from '../../../shared/plugins/plugin-manifest'
-import { pluginManifestCompatibilityError } from '../../../shared/plugins/plugin-manifest-compatibility'
-import { fingerprintPluginConsent } from '../../../shared/plugins/plugin-consent-fingerprint'
+} from '../../../shared/plugins/manifest/plugin-manifest'
+import { pluginManifestCompatibilityError } from '../../../shared/plugins/manifest/plugin-manifest-compatibility'
+import { fingerprintPluginConsent } from '../../../shared/plugins/approval/plugin-consent-fingerprint'
 import {
   pluginCatalogReleaseError,
   type PluginCatalogRelease
-} from '../../../shared/plugins/plugin-catalog-release'
+} from '../../../shared/plugins/catalog/plugin-catalog-release'
 import type {
   PluginInstallSource,
   PluginLockEntry

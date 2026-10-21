@@ -6,7 +6,7 @@ import {
   pluginExecutionProfile,
   type PluginExecutionProfile
 } from '../../../../shared/plugins/plugin-execution-profile'
-import type { PluginManifest } from '../../../../shared/plugins/plugin-manifest'
+import type { PluginManifest } from '../../../../shared/plugins/manifest/plugin-manifest'
 import {
   PLUGIN_CONTRIBUTION_POINT_POLICY,
   PLUGIN_CONTRIBUTION_POINTS,

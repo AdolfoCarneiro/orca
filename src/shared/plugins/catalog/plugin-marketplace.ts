@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import { isAllowedPluginGitUrl } from './plugin-install-lockfile'
-import { isQualifiedPluginKey } from './plugin-manifest'
+import { isAllowedPluginGitUrl } from '../plugin-install-lockfile'
+import { isQualifiedPluginKey } from '../manifest/plugin-manifest'
 import { pluginCatalogReleaseSchema } from './plugin-catalog-release'
-import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from './plugin-schema-field-docs'
+import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from '../manifest/plugin-schema-field-docs'
 
 const NEXT = PLUGIN_MANIFEST_V2_SINCE
 

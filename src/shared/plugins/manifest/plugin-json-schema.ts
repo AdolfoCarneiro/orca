@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { pluginManifestV2Object } from './plugin-manifest'
-import { PLUGIN_CATALOG_FILENAME, pluginCatalogDocumentSchema } from './plugin-catalog'
+import { PLUGIN_CATALOG_FILENAME, pluginCatalogDocumentSchema } from '../catalog/plugin-catalog'
 import { renderPluginSchemaReference } from './plugin-schema-reference-doc'
 import {
   PLUGIN_CATALOG_POLICY_NOTES,

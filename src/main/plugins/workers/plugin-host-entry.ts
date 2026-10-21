@@ -1,6 +1,6 @@
 // ELECTRON_RUN_AS_NODE entry: imports must stay transitively Electron-free.
 import { createPluginWorkerRuntime } from './plugin-host-runtime'
-import type { PluginWorkerChildMessage } from '../../../shared/plugins/plugin-host-protocol'
+import type { PluginWorkerChildMessage } from '../../../shared/plugins/workers/plugin-host-protocol'
 
 function sendToParent(message: PluginWorkerChildMessage): void {
   process.send?.(message)

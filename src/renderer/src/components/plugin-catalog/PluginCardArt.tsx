@@ -1,5 +1,5 @@
 import { Cpu, File, FileCode, FileJson, FileText, Folder, Image } from 'lucide-react'
-import type { PluginCatalogType } from '../../../../shared/plugins/plugin-catalog-release'
+import type { PluginCatalogType } from '../../../../shared/plugins/catalog/plugin-catalog-release'
 import { formatKeybinding } from '../../../../shared/keybindings/formatting'
 import { pluginMonogram } from './plugin-display-name'
 

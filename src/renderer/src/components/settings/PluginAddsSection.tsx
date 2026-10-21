@@ -15,7 +15,7 @@ import type {
   PluginMarketplaceHostInstallPreview
 } from '../../../../preload/api-types'
 import { formatKeybinding } from '../../../../shared/keybindings/formatting'
-import type { PluginCatalogType } from '../../../../shared/plugins/plugin-catalog-release'
+import type { PluginCatalogType } from '../../../../shared/plugins/catalog/plugin-catalog-release'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { usePluginLanguagePackStore } from '@/store/plugin-language-packs'

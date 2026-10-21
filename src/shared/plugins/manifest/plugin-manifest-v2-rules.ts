@@ -1,5 +1,5 @@
 import type { RefinementCtx } from 'zod'
-import { pluginExecutionAllows, type PluginExecutionProfile } from './plugin-execution-profile'
+import { pluginExecutionAllows, type PluginExecutionProfile } from '../plugin-execution-profile'
 
 type V2RuleSubject = {
   execution: PluginExecutionProfile

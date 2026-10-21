@@ -1,8 +1,8 @@
 import {
   PLUGIN_WORKER_IDLE_REAP_MS,
   PLUGIN_WORKER_MAX_ACTIVE_DEFAULT
-} from '../../../shared/plugins/plugin-host-protocol'
-import type { PluginEventName } from '../../../shared/plugins/plugin-manifest'
+} from '../../../shared/plugins/workers/plugin-host-protocol'
+import type { PluginEventName } from '../../../shared/plugins/manifest/plugin-manifest'
 import {
   PluginSupervisor,
   type PluginRestartDecision,

@@ -8,7 +8,7 @@ import {
   v2ManifestFixture as manifest
 } from './plugin-json-schema.test-fixture'
 import { parsePluginManifest } from './plugin-manifest'
-import { pluginCatalogSchema } from './plugin-catalog'
+import { pluginCatalogSchema } from '../catalog/plugin-catalog'
 
 const manifestSchema = pluginManifestJsonSchema()
 const catalogSchema = pluginCatalogJsonSchema()

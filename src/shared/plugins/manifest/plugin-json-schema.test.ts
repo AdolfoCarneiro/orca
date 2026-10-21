@@ -14,9 +14,9 @@ import {
   type PluginJsonSchema
 } from './plugin-json-schema'
 import { parsePluginManifest, pluginManifestV2Object } from './plugin-manifest'
-import { pluginCatalogDocumentSchema, pluginCatalogSchema } from './plugin-catalog'
+import { pluginCatalogDocumentSchema, pluginCatalogSchema } from '../catalog/plugin-catalog'
 
-const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
+const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
 
 /** Every property in the schema with its JSON pointer, including fragments and nested objects. */
 function properties(schema: PluginJsonSchema, pointer = ''): [string, PluginJsonSchema][] {

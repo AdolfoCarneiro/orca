@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { PLUGIN_EVENT_NAMES } from './plugin-manifest'
-import type { PluginCapabilityKind } from './plugin-capabilities'
+import { PLUGIN_EVENT_NAMES } from '../manifest/plugin-manifest'
+import type { PluginCapabilityKind } from '../plugin-capabilities'
 
 /** Versioned plugin facade with params/results and capability/mutation metadata, shared by desktop/serve/relay.
  * Keep raw internal RPC private: it lacks result schemas and evolves independently. Gate, panel actions and worker SDK

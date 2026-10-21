@@ -3,9 +3,9 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
-import type { PluginThemeRegistration } from '../../../../shared/plugins/plugin-theme-artifact'
-import type { PluginTerminalThemeRegistration } from '../../../../shared/plugins/plugin-terminal-theme-artifact'
-import type { PluginIconThemeMetadata } from '../../../../shared/plugins/plugin-icon-theme-artifact'
+import type { PluginThemeRegistration } from '../../../../shared/plugins/artifacts/plugin-theme-artifact'
+import type { PluginTerminalThemeRegistration } from '../../../../shared/plugins/artifacts/plugin-terminal-theme-artifact'
+import type { PluginIconThemeMetadata } from '../../../../shared/plugins/artifacts/plugin-icon-theme-artifact'
 import { PluginThemeUseNow } from './PluginThemeUseNow'
 
 const state = vi.hoisted(

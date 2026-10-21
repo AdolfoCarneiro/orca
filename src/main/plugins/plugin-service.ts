@@ -1,4 +1,4 @@
-import type { PluginEventName } from '../../shared/plugins/plugin-manifest'
+import type { PluginEventName } from '../../shared/plugins/manifest/plugin-manifest'
 import {
   capabilityKinds,
   type PluginCapabilityKind
@@ -6,7 +6,7 @@ import {
 import {
   getPluginActivationState,
   type PluginConsentLists
-} from '../../shared/plugins/plugin-consent-state'
+} from '../../shared/plugins/approval/plugin-consent-state'
 import type { PluginPanelActionOutcome } from '../../shared/plugins/plugin-panel-bridge'
 import { createPluginExtensionRegistry } from '../../shared/plugins/plugin-extension-registry'
 import {

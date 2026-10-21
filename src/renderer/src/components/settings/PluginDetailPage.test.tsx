@@ -11,7 +11,7 @@ import type {
 import { usePluginSyntaxFailureStore } from '@/store/plugin-syntax-failures'
 import { usePluginSyntaxStore } from '@/store/plugin-syntax-packs'
 import { usePluginThemeStore } from '@/store/plugin-themes'
-import { pluginManifestSchema } from '../../../../shared/plugins/plugin-manifest'
+import { pluginManifestSchema } from '../../../../shared/plugins/manifest/plugin-manifest'
 import {
   pluginListEntryFromInstalled,
   pluginListEntryFromListing,

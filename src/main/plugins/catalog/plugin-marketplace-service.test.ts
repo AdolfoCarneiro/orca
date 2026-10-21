@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   PluginMarketplace,
   PluginMarketplaceGitSource
-} from '../../../shared/plugins/plugin-marketplace'
-import { OFFICIAL_MARKETPLACE_GIT_SOURCE } from '../../../shared/plugins/plugin-marketplace'
+} from '../../../shared/plugins/catalog/plugin-marketplace'
+import { OFFICIAL_MARKETPLACE_GIT_SOURCE } from '../../../shared/plugins/catalog/plugin-marketplace'
 import type { PluginMarketplaceFetchResult } from './plugin-marketplace-fetch'
 import { PluginMarketplaceService } from './plugin-marketplace-service'
 import {

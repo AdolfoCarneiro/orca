@@ -5,14 +5,14 @@ import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import {
   PLUGIN_MANIFEST_FILENAME,
   isQualifiedPluginKey
-} from '../../../shared/plugins/plugin-manifest'
+} from '../../../shared/plugins/manifest/plugin-manifest'
 import {
   isAllowedPluginGitUrl,
   PLUGIN_COMMIT_PATTERN,
   pluginInstallSourceSchema,
   removePluginLock
 } from '../../../shared/plugins/plugin-install-lockfile'
-import type { PluginCatalogRelease } from '../../../shared/plugins/plugin-catalog-release'
+import type { PluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog-release'
 import { readPluginLockfile, writePluginLockfile } from './plugin-install-lockfile-store'
 import {
   inspectPluginInstallTree,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { PLUGIN_CATALOG_FILENAME } from '../../../shared/plugins/plugin-catalog'
-import { PLUGIN_MARKETPLACE_FILENAME } from '../../../shared/plugins/plugin-marketplace'
+import { PLUGIN_CATALOG_FILENAME } from '../../../shared/plugins/catalog/plugin-catalog'
+import { PLUGIN_MARKETPLACE_FILENAME } from '../../../shared/plugins/catalog/plugin-marketplace'
 import { parsePluginMarketplaceIndex } from './plugin-marketplace-fetch'
 
 const entry = {

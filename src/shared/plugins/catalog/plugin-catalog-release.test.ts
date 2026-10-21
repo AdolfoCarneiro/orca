@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { PLUGIN_MANIFEST_V2_SINCE } from './plugin-schema-field-docs'
+import { PLUGIN_MANIFEST_V2_SINCE } from '../manifest/plugin-schema-field-docs'
 import {
   pluginCatalogReleaseError,
   pluginCatalogReleaseSchema,
   type PluginCatalogRelease
 } from './plugin-catalog-release'
-import { pluginContributionSummary } from './plugin-contribution-summary'
-import { parsePluginManifest, type PluginManifest } from './plugin-manifest'
+import { pluginContributionSummary } from '../plugin-contribution-summary'
+import { parsePluginManifest, type PluginManifest } from '../manifest/plugin-manifest'
 
 const COMMIT = 'c'.repeat(40)
 const HASH = 'f'.repeat(64)

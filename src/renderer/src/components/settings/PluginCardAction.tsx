@@ -1,5 +1,5 @@
 import { Check, Ellipsis, Loader2, Power, Trash2 } from 'lucide-react'
-import { satisfiesOrcaEngineRange } from '../../../../shared/plugins/plugin-manifest'
+import { satisfiesOrcaEngineRange } from '../../../../shared/plugins/manifest/plugin-manifest'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../ui/button'
 import { StatusWord } from '../plugin-catalog/PluginStatusWord'

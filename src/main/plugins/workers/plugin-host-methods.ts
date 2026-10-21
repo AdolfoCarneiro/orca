@@ -1,5 +1,5 @@
 import { getBoundPluginHostMethod, type PluginHostServices } from './plugin-host-method-bindings'
-import { isQualifiedPluginKey } from '../../../shared/plugins/plugin-manifest'
+import { isQualifiedPluginKey } from '../../../shared/plugins/manifest/plugin-manifest'
 import { gatePluginHostCall as decidePluginHostCall } from '../../../shared/plugins/plugin-capability-gate'
 import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabilities'
 import type { PluginPanelActionOutcome } from '../../../shared/plugins/plugin-panel-bridge'

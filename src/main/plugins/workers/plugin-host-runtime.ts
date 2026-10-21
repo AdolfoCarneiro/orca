@@ -3,8 +3,8 @@ import { pathToFileURL } from 'node:url'
 import {
   pluginWorkerParentMessageSchema,
   type PluginWorkerChildMessage
-} from '../../../shared/plugins/plugin-host-protocol'
-import type { PluginEventName } from '../../../shared/plugins/plugin-manifest'
+} from '../../../shared/plugins/workers/plugin-host-protocol'
+import type { PluginEventName } from '../../../shared/plugins/manifest/plugin-manifest'
 
 export type PluginHostCallError = Error & { code?: string }
 

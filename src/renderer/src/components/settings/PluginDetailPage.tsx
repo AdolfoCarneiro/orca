@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { BadgeCheck, ChevronLeft } from 'lucide-react'
-import { satisfiesOrcaEngineRange } from '../../../../shared/plugins/plugin-manifest'
+import { satisfiesOrcaEngineRange } from '../../../../shared/plugins/manifest/plugin-manifest'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../ui/button'
 import type { PluginListEntry } from '../plugin-catalog/plugin-list-entries'

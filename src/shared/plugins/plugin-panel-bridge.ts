@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { isPluginPanelAction } from './plugin-host-api'
+import { isPluginPanelAction } from './workers/plugin-host-api'
 
 /** Opaque-origin sandbox panels cannot authenticate by origin. Verify sender window and payload; main rechecks capabilities.
  * Transport uses host API params/results rather than a second contract. */

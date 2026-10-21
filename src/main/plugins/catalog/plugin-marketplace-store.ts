@@ -10,7 +10,7 @@ import {
   pluginMarketplaceSchema,
   type PluginMarketplace,
   type PluginMarketplaceGitSource
-} from '../../../shared/plugins/plugin-marketplace'
+} from '../../../shared/plugins/catalog/plugin-marketplace'
 import { writePluginFileAtomically } from '../installation/plugin-atomic-file-write'
 
 export const PLUGIN_MARKETPLACE_SOURCE_LIMIT = 64

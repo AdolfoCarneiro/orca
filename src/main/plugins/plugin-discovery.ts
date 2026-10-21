@@ -9,13 +9,13 @@ import {
   qualifiedPluginKey,
   satisfiesOrcaEngineRange,
   type PluginManifest
-} from '../../shared/plugins/plugin-manifest'
-import { pluginManifestCompatibilityError } from '../../shared/plugins/plugin-manifest-compatibility'
+} from '../../shared/plugins/manifest/plugin-manifest'
+import { pluginManifestCompatibilityError } from '../../shared/plugins/manifest/plugin-manifest-compatibility'
 import {
   fingerprintPluginConsent,
   hasInstructionalPluginContributions,
   requiresPluginContentApproval
-} from '../../shared/plugins/plugin-consent-fingerprint'
+} from '../../shared/plugins/approval/plugin-consent-fingerprint'
 import { validateDeclaredPluginArtifacts } from './plugin-artifact-validation'
 import { readPluginManifestText } from './plugin-manifest-file'
 import { readPluginCurrentPointer } from './installation/plugin-current-pointer'

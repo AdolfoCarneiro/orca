@@ -3,8 +3,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { KeybindingOverrides } from '../../shared/keybindings'
-import { fingerprintPluginConsent } from '../../shared/plugins/plugin-consent-fingerprint'
-import { pluginManifestSchema, type PluginManifest } from '../../shared/plugins/plugin-manifest'
+import { fingerprintPluginConsent } from '../../shared/plugins/approval/plugin-consent-fingerprint'
+import {
+  pluginManifestSchema,
+  type PluginManifest
+} from '../../shared/plugins/manifest/plugin-manifest'
 import type { PluginWorkerHandle } from './workers/plugin-host-process'
 import { PluginService } from './plugin-service'
 import type { PluginWorkerFactory } from './workers/plugin-worker-manager'

@@ -6,7 +6,7 @@ import {
   isOfficialOrganizationGitSource,
   isOfficialPluginIdentity,
   pluginMarketplaceSchema
-} from '../../shared/plugins/plugin-marketplace'
+} from '../../shared/plugins/catalog/plugin-marketplace'
 import { bootstrapBundledPlugins, resolveBundledPluginRoot } from './plugin-bundled-bootstrap'
 import { inspectPluginInstallTree } from './installation/plugin-install-staging'
 

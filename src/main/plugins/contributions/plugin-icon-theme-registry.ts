@@ -6,7 +6,7 @@ import {
   type PluginIconThemeArtifact,
   type PluginIconThemeMetadata,
   type PluginIconThemeRegistration
-} from '../../../shared/plugins/plugin-icon-theme-artifact'
+} from '../../../shared/plugins/artifacts/plugin-icon-theme-artifact'
 import {
   PLUGIN_ICON_THEME_MAX_BYTES,
   readContainedPluginArtifactText

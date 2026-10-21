@@ -2,23 +2,23 @@ import { z } from 'zod'
 import {
   PLUGIN_CONTRIBUTION_POINT_POLICY,
   PLUGIN_CONTRIBUTION_POINTS
-} from './plugin-contribution-points'
+} from '../plugin-contribution-points'
 import {
   pluginExecutionAllows,
   pluginExecutionProfileSchema,
   type PluginExecutionProfile
-} from './plugin-execution-profile'
-import { PLUGIN_CAPABILITY_KINDS } from './plugin-capabilities'
+} from '../plugin-execution-profile'
+import { PLUGIN_CAPABILITY_KINDS } from '../plugin-capabilities'
 import {
   pluginContributionSummary,
   pluginContributionSummaryKey,
   pluginContributionSummarySchema
-} from './plugin-contribution-summary'
-import { pluginCatalogReleaseDetailFields } from './plugin-detail-fields'
-import { pluginCatalogImagesSchema } from './plugin-image-fields'
-import { pluginFileTypeSchema } from './plugin-file-type'
-import type { PluginManifest } from './plugin-manifest'
-import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from './plugin-schema-field-docs'
+} from '../plugin-contribution-summary'
+import { pluginCatalogReleaseDetailFields } from '../plugin-detail-fields'
+import { pluginCatalogImagesSchema } from '../plugin-image-fields'
+import { pluginFileTypeSchema } from '../plugin-file-type'
+import type { PluginManifest } from '../manifest/plugin-manifest'
+import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from '../manifest/plugin-schema-field-docs'
 
 const NEXT = PLUGIN_MANIFEST_V2_SINCE
 
