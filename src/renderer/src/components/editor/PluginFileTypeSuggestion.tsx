@@ -21,7 +21,7 @@ export function PluginFileTypeSuggestion({
   const settings = useAppStore((state) => state.settings)
   const updateSettings = useAppStore((state) => state.updateSettings)
   const [suggestion, setSuggestion] = useState<PluginFileTypeHostSuggestion | null>(null)
-  const [hidden, setHidden] = useState(false)
+  const [hiddenFileType, setHiddenFileType] = useState<string | null>(null)
   const dismissed = settings?.pluginDismissedFileTypes ?? []
   const active =
     fileType !== null &&
@@ -49,7 +49,7 @@ export function PluginFileTypeSuggestion({
     }
   }, [active, fileType])
 
-  if (!active || hidden || !suggestion || !fileType) {
+  if (!active || !fileType || hiddenFileType === fileType || !suggestion) {
     return null
   }
   const name = suggestion.name ?? pluginDisplayNameFromKey(suggestion.pluginKey)
@@ -88,7 +88,7 @@ export function PluginFileTypeSuggestion({
           variant="ghost"
           onClick={() => {
             hiddenThisSession.add(fileType)
-            setHidden(true)
+            setHiddenFileType(fileType)
           }}
         >
           {translate('auto.components.editor.PluginFileTypeSuggestion.notNow', 'Not now')}

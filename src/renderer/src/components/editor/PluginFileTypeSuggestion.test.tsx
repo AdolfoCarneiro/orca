@@ -67,6 +67,27 @@ it('asks nothing when suggestions are off, dismissed, or the file has no extensi
   await waitFor(() => expect(suggestForFileType).not.toHaveBeenCalled())
 })
 
+it('keeps "Not now" scoped to the file type when the same editor switches files', async () => {
+  suggestForFileType.mockImplementation(async (fileType: string) => ({
+    marketplaceSourceId: 'official',
+    pluginKey: `samples.${fileType}`,
+    fileType,
+    name: `Plugin ${fileType}`
+  }))
+  const view = render(<PluginFileTypeSuggestion filePath="a.foo" />)
+  fireEvent.click(await view.findByRole('button', { name: 'Not now' }))
+  expect(view.queryByRole('status')).toBeNull()
+
+  view.rerender(<PluginFileTypeSuggestion filePath="a.bar" />)
+  expect(await view.findByText('A plugin can open .bar files: Plugin bar')).toBeTruthy()
+
+  fireEvent.click(view.getByRole('button', { name: 'Not now' }))
+  suggestForFileType.mockClear()
+  view.rerender(<PluginFileTypeSuggestion filePath="a.foo" />)
+  await waitFor(() => expect(suggestForFileType).not.toHaveBeenCalled())
+  expect(view.queryByRole('status')).toBeNull()
+})
+
 it('hides for the rest of the session after "Not now"', async () => {
   const first = render(<PluginFileTypeSuggestion filePath="b.gleam" />)
   suggestForFileType.mockResolvedValue({
