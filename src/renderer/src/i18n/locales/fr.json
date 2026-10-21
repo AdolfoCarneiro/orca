@@ -11779,6 +11779,17 @@
           "fileTypeSuggestionsDescription": "Propose un plugin du catalogue quand Orca ne peut pas ouvrir ou colorer un fichier.",
           "restartFailed": "Impossible de redémarrer {{value0}}."
         },
+        "PluginCardAction": {
+          "installed": "Installé",
+          "installing": "Installation…",
+          "reviewLabel": "Vérifier et installer {{value0}}",
+          "review": "Vérifier et installer",
+          "retry": "Réessayer",
+          "moreLabel": "Plus d’actions pour {{value0}}",
+          "disable": "Désactiver",
+          "enable": "Activer",
+          "remove": "Supprimer"
+        },
         "PluginSettingsRow": {
           "blocked": "Bloquée",
           "needsReview": "En attente de relecture",
@@ -11808,6 +11819,49 @@
           "destroy": "Détruire",
           "heading": "Commandes de recette de VM",
           "commandLabel": "{{value0}} · {{value1}} commande"
+        },
+        "PluginThemeUseNow": {
+          "label": "Utiliser maintenant :",
+          "useName": "Utiliser maintenant : {{value0}}"
+        },
+        "PluginContributionActionCommand": {
+          "run": "Exécuter",
+          "runName": "Exécuter {{value0}}",
+          "ran": "{{value0}} exécutée",
+          "failed": "Échec de {{value0}}",
+          "seeLogs": "Tout ce qu’elle a affiché se trouve dans Journaux, ci-dessous.",
+          "needsWorkspace": "Ouvrez un espace de travail pour l’exécuter."
+        },
+        "PluginContributionActionPanel": {
+          "open": "Ouvrir le panneau",
+          "openName": "Ouvrir le panneau : {{value0}}",
+          "needsWorkspace": "Ouvrez un espace de travail pour le voir."
+        },
+        "PluginContributionActionLanguage": {
+          "switch": "Changer de langue",
+          "switchTo": "Passer la langue en {{value0}}",
+          "switchBack": "Revenir à la langue précédente",
+          "switchBackFrom": "Quitter {{value0}}",
+          "failed": "Impossible de changer de langue"
+        },
+        "PluginContributionActionSyntax": {
+          "openExtension": "Ouvrez n’importe quel fichier {{value0}}",
+          "openFilename": "Ouvrez {{value0}}"
+        },
+        "PluginContributionActionEvents": {
+          "worktreeCreated": "Quand un espace de travail est créé",
+          "worktreeRemoved": "Quand un espace de travail est supprimé",
+          "agentStatusChanged": "Quand l’état d’un Agent change",
+          "detail": "Du code s’exécute en arrière-plan"
+        },
+        "pluginInstallAction": {
+          "installed": "{{value0}} installé",
+          "useNow": "Utiliser maintenant",
+          "tryIt": "Essayer",
+          "mismatch": "Le téléchargement ne correspondait pas à ce que le catalogue a publié ; rien n’a été installé.",
+          "catalogChanged": "Le catalogue a changé depuis l’ouverture de cette page. Actualisez-le, puis réessayez.",
+          "blocked": "La liste de sécurité d’Orca bloque ce plugin.",
+          "downloadFailed": "Impossible de télécharger ce plugin. Vérifiez votre connexion, puis réessayez. Rien n’a été installé."
         },
         "pluginError": {
           "installManifestMissing": "Aucun orca-plugin.json lisible trouvé. Choisissez le dossier racine du plugin.",

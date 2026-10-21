@@ -18,8 +18,20 @@ import { formatKeybinding } from '../../../../shared/keybindings/formatting'
 import type { PluginCatalogType } from '../../../../shared/plugins/plugin-catalog-release'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
+import { usePluginLanguagePackStore } from '@/store/plugin-language-packs'
+import type { ActivePluginCommand } from '@/store/plugin-panels'
+import { usePluginSyntaxes } from '@/store/plugin-syntax-packs'
 import { ShortcutKeyCombo } from '../ShortcutKeyCombo'
 import { DetailRow, DetailSection } from './PluginDetailSections'
+import { PluginContributionActionCommand } from './PluginContributionActionCommand'
+import { PluginContributionEventRow, usePluginWorkerEvents } from './PluginContributionActionEvents'
+import { PluginContributionActionLanguage } from './PluginContributionActionLanguage'
+import { PluginContributionActionPanel } from './PluginContributionActionPanel'
+import { PluginContributionSyntaxHint } from './PluginContributionActionSyntax'
+import {
+  isPluginContributionLive,
+  pluginCommandUnavailableReason
+} from './plugin-contribution-action-availability'
 import { shadowedKeybindingTitles } from './plugin-keybinding-conflicts'
 import type { PluginContributionSummaryItem } from '../../../../shared/plugins/plugin-contribution-summary'
 import {
@@ -28,6 +40,7 @@ import {
   EMPTY_CONTRIBUTION_SOURCE,
   manifestContributionSource,
   uncoveredCatalogTypes,
+  type PluginContribution,
   type PluginContributionKind
 } from './plugin-contributions'
 import { useInstalledPluginContributions } from './use-plugin-contribution-source'
@@ -93,6 +106,8 @@ type AddsCommand = {
   id: string
   title: string
   keybindings: readonly { key: string; when: 'global' | 'worktree' }[]
+  /** Set once the plugin is on, so the row can run it exactly as the palette would. */
+  live?: ActivePluginCommand
 }
 
 function CommandRow({
@@ -103,9 +118,13 @@ function CommandRow({
   onOpenShortcuts: () => void
 }): React.JSX.Element {
   const overrides = useAppStore((state) => state.keybindings)
+  const activeWorktreeId = useAppStore((state) => state.activeWorktreeId)
   const platform = shortcutPlatform()
   const binding = command.keybindings[0]
   const shadowed = binding ? shadowedKeybindingTitles(binding.key, platform, overrides) : []
+  const unavailableReason = command.live
+    ? pluginCommandUnavailableReason(command.live, activeWorktreeId)
+    : null
   return (
     <DetailRow
       icon={<Command />}
@@ -130,6 +149,8 @@ function CommandRow({
               )}
             </button>
           </span>
+        ) : unavailableReason ? (
+          unavailableReason
         ) : binding?.when === 'worktree' ? (
           translate(
             'auto.components.settings.PluginKeybindingConsentPreview.worktree',
@@ -140,10 +161,72 @@ function CommandRow({
         )
       }
       trailing={
-        binding ? <ShortcutKeyCombo keys={formatKeybinding(binding.key, platform)} /> : null
+        binding || command.live ? (
+          <span className="flex items-center gap-2">
+            {binding ? <ShortcutKeyCombo keys={formatKeybinding(binding.key, platform)} /> : null}
+            {command.live ? (
+              <PluginContributionActionCommand
+                command={command.live}
+                unavailableReason={unavailableReason}
+              />
+            ) : null}
+          </span>
+        ) : null
       }
     />
   )
+}
+
+/** The id a row's key carries after its kind, e.g. a syntax id, a locale or a panel index. */
+function contributionRowId(row: PluginContribution): string {
+  return row.key.slice(row.kind.length + 1)
+}
+
+/**
+ * The "try it" control for a row, only while the plugin is on and Orca's live registration
+ * (not the manifest) backs it, so the control never promises something that isn't there.
+ */
+function useContributionRowActions(
+  plugin: PluginHostListEntry | null
+): (row: PluginContribution) => React.ReactNode {
+  const syntaxes = usePluginSyntaxes()
+  const languagePacks = usePluginLanguagePackStore((state) => state.entries)
+  if (!isPluginContributionLive(plugin)) {
+    return () => null
+  }
+  return (row) => {
+    const id = contributionRowId(row)
+    switch (row.kind) {
+      case 'syntax': {
+        const syntax = syntaxes.find(
+          (entry) => entry.id === id && entry.pluginKey === plugin.pluginKey
+        )
+        return syntax && row.tone !== 'destructive' ? (
+          <PluginContributionSyntaxHint
+            extensions={syntax.extensions}
+            filenames={syntax.filenames}
+          />
+        ) : null
+      }
+      case 'language': {
+        const pack = languagePacks.find(
+          (entry) => entry.locale === id && entry.pluginKey === plugin.pluginKey
+        )
+        return pack ? <PluginContributionActionLanguage pack={pack} /> : null
+      }
+      case 'panel': {
+        const panel = plugin.panels[Number(id)]
+        return panel ? <PluginContributionActionPanel panel={panel} /> : null
+      }
+      case 'app-theme':
+      case 'terminal-theme':
+      case 'icon-theme':
+      case 'agent':
+      case 'recipe':
+        // Themes have "Use now" above the list; agents and recipes have nothing to try here.
+        return null
+    }
+  }
 }
 
 /**
@@ -183,8 +266,14 @@ export function PluginAddsSection({
       .filter((binding) => binding.command === command.id)
       .map((binding) => ({ key: binding.key, when: binding.when ?? 'global' }))
   }))
+  const rowAction = useContributionRowActions(plugin)
+  const events = usePluginWorkerEvents(plugin)
   const commands: AddsCommand[] =
-    plugin?.commands ??
+    plugin?.commands.map((command) =>
+      isPluginContributionLive(plugin)
+        ? { ...command, live: { ...command, pluginKey: plugin.pluginKey, pluginName: plugin.name } }
+        : command
+    ) ??
     (summary
       ? summary
           .filter((item) => item.kind === 'commands')
@@ -203,7 +292,7 @@ export function PluginAddsSection({
   // Why: a fetched manifest or a catalog summary is exact, so its types add nothing.
   const fallbackTypes =
     (preview || summary) && !plugin ? [] : uncoveredCatalogTypes(types, rows, commands.length > 0)
-  const total = rows.length + commands.length + fallbackTypes.length
+  const total = rows.length + commands.length + events.length + fallbackTypes.length
   if (total === 0) {
     return null
   }
@@ -219,10 +308,14 @@ export function PluginAddsSection({
           title={row.title}
           detail={row.detail}
           detailTone={row.tone}
+          trailing={rowAction(row)}
         />
       ))}
       {commands.map((command) => (
         <CommandRow key={command.id} command={command} onOpenShortcuts={onOpenShortcuts} />
+      ))}
+      {events.map((event) => (
+        <PluginContributionEventRow key={`event:${event}`} event={event} />
       ))}
       {fallbackTypes.map((type) => (
         <DetailRow key={type} icon={<FileCode />} title={catalogTypeLabel(type)} />

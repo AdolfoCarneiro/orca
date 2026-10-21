@@ -72,8 +72,8 @@ function InstalledCardMenu({
           <DropdownMenuItem onSelect={onToggleEnabled}>
             <Power />
             {enabled
-              ? translate('auto.components.settings.PluginCardAction.turnOff', 'Turn off')
-              : translate('auto.components.settings.PluginCardAction.turnOn', 'Turn on')}
+              ? translate('auto.components.settings.PluginCardAction.disable', 'Disable')
+              : translate('auto.components.settings.PluginCardAction.enable', 'Enable')}
           </DropdownMenuItem>
         ) : null}
         {removable ? (

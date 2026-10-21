@@ -101,10 +101,11 @@ export function PluginCard({
         >
           {notice?.text ?? entry.description ?? ''}
         </p>
-        <div className="mt-1.5 flex min-h-6 items-center gap-1.5">
-          <div className="flex min-w-0 gap-1 overflow-hidden">{chips}</div>
-          {/* Why a fixed width: Install, then "Installed ⋯", fill one slot, so the footer never moves. */}
-          <div className="relative z-10 ml-auto flex w-40 shrink-0 items-center justify-end gap-1.5">
+        {/* Why the footer wraps: the card clips overflow, so when chips and the action can't share a row the action drops below them instead of a chip being cut off. */}
+        <div className="mt-auto flex min-h-6 flex-wrap items-center gap-x-1.5 gap-y-1 pt-1.5">
+          <div className="flex min-w-0 flex-wrap gap-1">{chips}</div>
+          {/* Why a fixed width: Install, then "Installed ⋯", fill one slot, so the footer never moves when the action changes. It matches the button. */}
+          <div className="relative z-10 ml-auto flex w-32 shrink-0 items-center justify-end gap-1.5">
             {action}
           </div>
         </div>

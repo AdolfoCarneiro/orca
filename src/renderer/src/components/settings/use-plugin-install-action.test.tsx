@@ -10,6 +10,9 @@ import type {
 import { pluginManifestSchema } from '../../../../shared/plugins/plugin-manifest'
 import { usePluginInstallAction } from './use-plugin-install-action'
 
+vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
+import { toast } from 'sonner'
+
 const listing: PluginMarketplaceHostListing = {
   marketplaceSourceId: 'source',
   marketplaceName: 'Catalog',
@@ -56,15 +59,16 @@ const codePreview: PluginMarketplaceHostInstallPreview = {
 }
 
 function setup() {
+  const onTryPlugin = vi.fn()
   const onInstalled = vi.fn().mockResolvedValue(undefined)
   const fetchPreview = vi.fn().mockResolvedValue({ ok: true, preview })
   const hook: { current: ReturnType<typeof usePluginInstallAction> | null } = { current: null }
   function Probe(): null {
-    hook.current = usePluginInstallAction({ fetchPreview, onInstalled })
+    hook.current = usePluginInstallAction({ fetchPreview, onInstalled, onTryPlugin })
     return null
   }
   act(() => createRoot(document.createElement('div')).render(<Probe />))
-  return { hook, onInstalled, fetchPreview }
+  return { hook, onInstalled, onTryPlugin, fetchPreview }
 }
 
 function installResult(on: boolean) {
@@ -80,6 +84,7 @@ function installResult(on: boolean) {
 }
 
 beforeEach(() => {
+  vi.mocked(toast.success).mockClear()
   Object.defineProperty(window, 'api', {
     configurable: true,
     value: {
@@ -102,6 +107,51 @@ describe('usePluginInstallAction', () => {
     expect(window.api.plugins.consent).not.toHaveBeenCalled()
     expect(onInstalled).toHaveBeenCalledWith(listing.pluginKey)
     expect(hook.current?.phaseOf(listing.pluginKey)).toBeNull()
+  })
+
+  it('offers a theme action after a successful card install', async () => {
+    const { hook, onTryPlugin } = setup()
+    await act(async () => hook.current?.install(listing))
+    expect(toast.success).toHaveBeenCalledWith('Dusk installed', {
+      action: { label: 'Use now', onClick: expect.any(Function) }
+    })
+    const options = vi.mocked(toast.success).mock.calls[0]?.[1]
+    if (options?.action && typeof options.action === 'object' && 'onClick' in options.action) {
+      Reflect.apply(options.action.onClick, null, [])
+    }
+    expect(onTryPlugin).toHaveBeenCalledWith(listing.pluginKey)
+  })
+
+  it('offers Try it for non-theme releases', async () => {
+    const { hook, fetchPreview } = setup()
+    const syntaxListing = {
+      ...listing,
+      release: { ...listing.release!, types: ['syntax' as const] }
+    }
+    fetchPreview.mockResolvedValue({
+      ok: true,
+      preview: {
+        ...preview,
+        manifest: pluginManifestSchema.parse({
+          ...preview.manifest,
+          contributes: {
+            syntaxes: [
+              {
+                id: 'gleam',
+                label: 'Gleam',
+                extensions: ['.gleam'],
+                scopeName: 'source.gleam',
+                path: 'grammar.json'
+              }
+            ]
+          }
+        })
+      }
+    })
+    await act(async () => hook.current?.install(syntaxListing))
+    expect(toast.success).toHaveBeenCalledWith('Dusk installed', {
+      action: { label: 'Try it', onClick: expect.any(Function) }
+    })
   })
 
   it('approves exactly the fingerprint the page showed for a plugin that runs code', async () => {

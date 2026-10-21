@@ -174,6 +174,18 @@ describe('PluginDetailPage', () => {
     }
   )
 
+  it.each(['data', 'trusted-worker'] as const)(
+    'keeps theme actions prominent for an installed %s plugin',
+    async (execution) => {
+      const entry: PluginListEntry = {
+        ...pluginListEntryFromInstalled({ ...installed, execution }),
+        types: ['app-theme']
+      }
+      const container = await render(entry, () => Promise.resolve({ ok: true, preview }))
+      expect(container.querySelector('.min-h-7')).not.toBeNull()
+    }
+  )
+
   it('names what a catalog plugin adds from its manifest', async () => {
     const container = await render(pluginListEntryFromListing(listing), () =>
       Promise.resolve({ ok: true, preview })

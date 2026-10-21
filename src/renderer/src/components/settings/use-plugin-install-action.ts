@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import type {
   PluginMarketplaceHostInstallPreview,
   PluginMarketplaceHostListing
@@ -48,11 +49,13 @@ const downloadFailed = (): string =>
  */
 export function usePluginInstallAction({
   fetchPreview,
-  onInstalled
+  onInstalled,
+  onTryPlugin
 }: {
   fetchPreview: (listing: PluginMarketplaceHostListing) => Promise<PluginPagePreview>
   /** Reloads the list; opens review on the page for any plugin still waiting for it. */
   onInstalled: (pluginKey: string) => Promise<void>
+  onTryPlugin?: (pluginKey: string) => void
 }): {
   phaseOf: (pluginKey: string) => PluginInstallPhase | null
   install: (
@@ -148,12 +151,37 @@ export function usePluginInstallAction({
         }
         await onInstalled(pluginKey)
         setPhase(pluginKey, null)
+        if (onTryPlugin) {
+          const contributions = preview.manifest.contributes
+          const themed =
+            contributions.themes.length +
+              contributions.iconThemes.length +
+              contributions.terminalThemes.length >
+            0
+          toast.success(
+            translate(
+              'auto.components.settings.pluginInstallAction.installed',
+              '{{value0}} installed',
+              {
+                value0: preview.manifest.name
+              }
+            ),
+            {
+              action: {
+                label: themed
+                  ? translate('auto.components.settings.pluginInstallAction.useNow', 'Use now')
+                  : translate('auto.components.settings.pluginInstallAction.tryIt', 'Try it'),
+                onClick: () => onTryPlugin(pluginKey)
+              }
+            }
+          )
+        }
       } catch (cause) {
         console.warn('[plugins] catalog install failed:', cause)
         setPhase(pluginKey, { kind: 'error', message: catalogInstallErrorMessage(cause) })
       }
     },
-    [dismiss, fetchPreview, onInstalled, setPhase]
+    [dismiss, fetchPreview, onInstalled, onTryPlugin, setPhase]
   )
 
   const phaseOf = useCallback((pluginKey: string) => phases[pluginKey] ?? null, [phases])

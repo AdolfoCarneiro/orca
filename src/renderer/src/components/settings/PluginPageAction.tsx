@@ -139,12 +139,9 @@ export function usePluginPageAction({
   }
 
   if (plugin) {
-    if (plugin.execution !== 'data') {
-      return none
-    }
     return {
       ...none,
-      status: <ContentOnlyNote />,
+      status: plugin.execution === 'data' ? <ContentOnlyNote /> : null,
       body: <UseNowLine pluginKey={plugin.pluginKey} reserved={themed} />
     }
   }

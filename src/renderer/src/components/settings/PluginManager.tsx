@@ -98,9 +98,16 @@ export function PluginManager({
     onRefreshInstalled,
     onOpenRequested: open
   })
+  const openEntry = (pluginKey: string): void => {
+    open(pluginKey)
+    if (plugins.find((plugin) => plugin.pluginKey === pluginKey)?.hasWorker) {
+      onShowLogs(pluginKey)
+    }
+  }
   const install = usePluginInstallAction({
     fetchPreview: catalog.fetchPreview,
-    onInstalled
+    onInstalled,
+    onTryPlugin: openEntry
   })
   const prefetch = usePluginHoverPrefetch(catalog.fetchPreview)
   const orcaVersion = useOrcaVersion()
@@ -136,12 +143,6 @@ export function PluginManager({
   const showAll = (groupId: string) => () =>
     setExpandedGroups((current) => new Set(current).add(groupId))
 
-  const openEntry = (pluginKey: string): void => {
-    open(pluginKey)
-    if (plugins.find((plugin) => plugin.pluginKey === pluginKey)?.hasWorker) {
-      onShowLogs(pluginKey)
-    }
-  }
   const openUpdates = (entries: readonly PluginListEntry[]): void => {
     setUpdateAllOpens((count) => count + 1)
     setUpdateEntries(entries)

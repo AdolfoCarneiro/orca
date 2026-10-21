@@ -11328,6 +11328,17 @@
           "fileTypeSuggestionsDescription": "当 Orca 无法打开或高亮文件时，推荐插件市场中的插件。",
           "restartFailed": "无法重新启动 {{value0}}。"
         },
+        "PluginCardAction": {
+          "installed": "已安装",
+          "installing": "正在安装…",
+          "reviewLabel": "审核并安装 {{value0}}",
+          "review": "审核并安装",
+          "retry": "重试",
+          "moreLabel": "{{value0}} 的更多操作",
+          "disable": "禁用",
+          "enable": "启用",
+          "remove": "移除"
+        },
         "PluginSettingsRow": {
           "blocked": "已阻止",
           "needsReview": "需要审查",
@@ -11357,6 +11368,49 @@
           "destroy": "销毁",
           "heading": "VM 配方命令",
           "commandLabel": "{{value0}} · {{value1}} 个命令"
+        },
+        "PluginThemeUseNow": {
+          "label": "立即使用：",
+          "useName": "立即使用：{{value0}}"
+        },
+        "PluginContributionActionCommand": {
+          "run": "运行",
+          "runName": "运行 {{value0}}",
+          "ran": "已运行 {{value0}}",
+          "failed": "{{value0}} 失败",
+          "seeLogs": "它输出的内容在下方的日志中。",
+          "needsWorkspace": "打开一个工作区后即可运行。"
+        },
+        "PluginContributionActionPanel": {
+          "open": "打开面板",
+          "openName": "打开面板：{{value0}}",
+          "needsWorkspace": "打开一个工作区后即可查看。"
+        },
+        "PluginContributionActionLanguage": {
+          "switch": "切换语言",
+          "switchTo": "将语言切换为 {{value0}}",
+          "switchBack": "切回原语言",
+          "switchBackFrom": "从 {{value0}} 切回",
+          "failed": "无法切换语言"
+        },
+        "PluginContributionActionSyntax": {
+          "openExtension": "打开任意 {{value0}} 文件",
+          "openFilename": "打开 {{value0}}"
+        },
+        "PluginContributionActionEvents": {
+          "worktreeCreated": "创建工作区时",
+          "worktreeRemoved": "移除工作区时",
+          "agentStatusChanged": "Agent 状态变化时",
+          "detail": "后台代码会运行"
+        },
+        "pluginInstallAction": {
+          "installed": "已安装 {{value0}}",
+          "useNow": "立即使用",
+          "tryIt": "试一试",
+          "mismatch": "下载内容与目录发布的内容不一致，因此未安装任何内容。",
+          "catalogChanged": "打开此页面后目录已更改。请刷新后重试。",
+          "blocked": "Orca 的安全列表阻止了此插件。",
+          "downloadFailed": "无法下载此插件。请检查网络连接后重试。未安装任何内容。"
         },
         "pluginError": {
           "installManifestMissing": "未找到可读的 orca-plugin.json。请选择插件的根文件夹。",

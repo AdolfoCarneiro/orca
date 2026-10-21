@@ -12996,8 +12996,8 @@
           "review": "Review & install",
           "retry": "Try again",
           "moreLabel": "More actions for {{value0}}",
-          "turnOff": "Turn off",
-          "turnOn": "Turn on",
+          "disable": "Disable",
+          "enable": "Enable",
           "remove": "Remove"
         },
         "PluginInstallConsent": {
@@ -13018,7 +13018,8 @@
           "development": "Development folders…"
         },
         "PluginThemeUseNow": {
-          "label": "Use now:"
+          "label": "Use now:",
+          "useName": "Use now: {{value0}}"
         },
         "PluginPageHero": {
           "screenshots": "Screenshots",
@@ -13033,7 +13034,40 @@
           "addsPanel": "Adds a panel",
           "contentOnly": "Content only"
         },
+        "PluginContributionActionCommand": {
+          "run": "Run",
+          "runName": "Run {{value0}}",
+          "ran": "Ran {{value0}}",
+          "failed": "{{value0}} failed",
+          "seeLogs": "Anything it printed is in Logs below.",
+          "needsWorkspace": "Open a workspace to run it."
+        },
+        "PluginContributionActionPanel": {
+          "open": "Open panel",
+          "openName": "Open panel: {{value0}}",
+          "needsWorkspace": "Open a workspace to see it."
+        },
+        "PluginContributionActionLanguage": {
+          "switch": "Switch language",
+          "switchTo": "Switch language to {{value0}}",
+          "switchBack": "Switch back",
+          "switchBackFrom": "Switch back from {{value0}}",
+          "failed": "Could not switch language"
+        },
+        "PluginContributionActionSyntax": {
+          "openExtension": "Open any {{value0}} file",
+          "openFilename": "Open {{value0}}"
+        },
+        "PluginContributionActionEvents": {
+          "worktreeCreated": "When a workspace is created",
+          "worktreeRemoved": "When a workspace is removed",
+          "agentStatusChanged": "When an agent’s status changes",
+          "detail": "Background code runs"
+        },
         "pluginInstallAction": {
+          "installed": "{{value0}} installed",
+          "useNow": "Use now",
+          "tryIt": "Try it",
           "mismatch": "The download didn’t match what the catalog published, so nothing was installed.",
           "catalogChanged": "The catalog changed since this page opened. Refresh it, then try again.",
           "blocked": "Orca’s safety list blocks this plugin.",

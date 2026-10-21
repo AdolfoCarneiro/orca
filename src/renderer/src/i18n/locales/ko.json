@@ -11328,6 +11328,17 @@
           "fileTypeSuggestionsDescription": "Orca가 열거나 강조할 수 없는 파일에 카탈로그 플러그인을 제안합니다.",
           "restartFailed": "{{value0}}을(를) 다시 시작할 수 없습니다."
         },
+        "PluginCardAction": {
+          "installed": "설치됨",
+          "installing": "설치 중…",
+          "reviewLabel": "{{value0}} 검토 후 설치",
+          "review": "검토 후 설치",
+          "retry": "다시 시도",
+          "moreLabel": "{{value0}}에 대한 추가 작업",
+          "disable": "비활성화",
+          "enable": "활성화",
+          "remove": "제거"
+        },
         "PluginSettingsRow": {
           "blocked": "차단됨",
           "needsReview": "검토 필요",
@@ -11357,6 +11368,49 @@
           "destroy": "파괴",
           "heading": "VM 레시피 명령",
           "commandLabel": "{{value0}} · {{value1}}개 명령"
+        },
+        "PluginThemeUseNow": {
+          "label": "지금 사용:",
+          "useName": "지금 사용: {{value0}}"
+        },
+        "PluginContributionActionCommand": {
+          "run": "실행",
+          "runName": "{{value0}} 실행",
+          "ran": "{{value0}} 실행됨",
+          "failed": "{{value0}} 실패",
+          "seeLogs": "출력된 내용은 아래 로그에 있습니다.",
+          "needsWorkspace": "실행하려면 워크스페이스를 여세요."
+        },
+        "PluginContributionActionPanel": {
+          "open": "패널 열기",
+          "openName": "패널 열기: {{value0}}",
+          "needsWorkspace": "보려면 워크스페이스를 여세요."
+        },
+        "PluginContributionActionLanguage": {
+          "switch": "언어 전환",
+          "switchTo": "언어를 {{value0}}(으)로 전환",
+          "switchBack": "이전 언어로 되돌리기",
+          "switchBackFrom": "{{value0}}에서 되돌리기",
+          "failed": "언어를 전환하지 못했습니다"
+        },
+        "PluginContributionActionSyntax": {
+          "openExtension": "{{value0}} 파일을 여세요",
+          "openFilename": "{{value0}} 파일을 여세요"
+        },
+        "PluginContributionActionEvents": {
+          "worktreeCreated": "워크스페이스가 생성될 때",
+          "worktreeRemoved": "워크스페이스가 제거될 때",
+          "agentStatusChanged": "Agent 상태가 바뀔 때",
+          "detail": "백그라운드 코드가 실행됩니다"
+        },
+        "pluginInstallAction": {
+          "installed": "{{value0}} 설치됨",
+          "useNow": "지금 사용",
+          "tryIt": "사용해 보기",
+          "mismatch": "다운로드한 내용이 카탈로그에 게시된 내용과 일치하지 않아 아무것도 설치되지 않았습니다.",
+          "catalogChanged": "이 페이지를 연 뒤 카탈로그가 변경되었습니다. 새로 고친 다음 다시 시도하세요.",
+          "blocked": "Orca의 안전 목록이 이 플러그인을 차단합니다.",
+          "downloadFailed": "이 플러그인을 다운로드할 수 없습니다. 연결을 확인한 다음 다시 시도하세요. 아무것도 설치되지 않았습니다."
         },
         "pluginError": {
           "installManifestMissing": "읽을 수 있는 orca-plugin.json이 없습니다. 플러그인 루트 폴더를 선택하세요.",

@@ -165,11 +165,13 @@ let root: Root | null = null
 function Harness({
   plugins,
   onInstalled,
-  onRemoveRequest
+  onRemoveRequest,
+  onToggleEnabled
 }: {
   plugins: PluginHostListEntry[]
   onInstalled: (keys: string | readonly string[]) => Promise<void>
   onRemoveRequest: (pluginKey: string) => void
+  onToggleEnabled: (pluginKey: string) => void
 }): React.JSX.Element {
   const page = usePluginPageNavigation()
   return (
@@ -181,7 +183,7 @@ function Harness({
       handlers={{
         onOpen: vi.fn(),
         onReview: vi.fn(),
-        onToggleEnabled: vi.fn(),
+        onToggleEnabled,
         onRestart: vi.fn(),
         onViewLogs: vi.fn(),
         onRollbackRequest: vi.fn(),
@@ -203,14 +205,20 @@ function Harness({
 async function render(
   plugins: PluginHostListEntry[] = [],
   onInstalled = vi.fn().mockResolvedValue(undefined),
-  onRemoveRequest: (pluginKey: string) => void = vi.fn().mockResolvedValue(undefined)
+  onRemoveRequest: (pluginKey: string) => void = vi.fn().mockResolvedValue(undefined),
+  onToggleEnabled: (pluginKey: string) => void = vi.fn()
 ): Promise<{ container: HTMLDivElement; onInstalled: typeof onInstalled }> {
   const container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
   await act(async () => {
     root?.render(
-      <Harness plugins={plugins} onInstalled={onInstalled} onRemoveRequest={onRemoveRequest} />
+      <Harness
+        plugins={plugins}
+        onInstalled={onInstalled}
+        onRemoveRequest={onRemoveRequest}
+        onToggleEnabled={onToggleEnabled}
+      />
     )
   })
   return { container, onInstalled }
@@ -337,6 +345,23 @@ describe('PluginManager catalog', () => {
     await act(async () => button('Remove').click())
 
     expect(onRemoveRequest).toHaveBeenCalledWith(listing.pluginKey)
+  })
+
+  it('offers Disable for one installed plugin, never the global Turn off wording', async () => {
+    const onToggleEnabled = vi.fn()
+    await render([installedPlugin(preview.contentHash)], undefined, undefined, onToggleEnabled)
+    expect(buttons('Disable')).toHaveLength(1)
+    expect(buttons('Turn off')).toHaveLength(0)
+    expect(buttons('Turn on')).toHaveLength(0)
+    await act(async () => button('Disable').click())
+
+    expect(onToggleEnabled).toHaveBeenCalledWith(listing.pluginKey)
+  })
+
+  it('offers Enable for one disabled plugin', async () => {
+    await render([{ ...installedPlugin(preview.contentHash), status: 'disabled' }])
+    expect(buttons('Enable')).toHaveLength(1)
+    expect(buttons('Disable')).toHaveLength(0)
   })
 
   it('says when an update preview matches the installed bytes', async () => {

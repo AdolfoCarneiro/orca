@@ -11328,6 +11328,17 @@
           "fileTypeSuggestionsDescription": "Orca で開けない、またはハイライトできないファイルにカタログのプラグインを提案します。",
           "restartFailed": "{{value0}} を再起動できませんでした。"
         },
+        "PluginCardAction": {
+          "installed": "インストール済み",
+          "installing": "インストール中…",
+          "reviewLabel": "{{value0}} を確認してインストール",
+          "review": "確認してインストール",
+          "retry": "再試行",
+          "moreLabel": "{{value0}} のその他の操作",
+          "disable": "無効にする",
+          "enable": "有効にする",
+          "remove": "削除"
+        },
         "PluginSettingsRow": {
           "blocked": "ブロック中",
           "needsReview": "レビュー待ち",
@@ -11357,6 +11368,49 @@
           "destroy": "破棄",
           "heading": "VMレシピコマンド",
           "commandLabel": "{{value0}} · {{value1}}個のコマンド"
+        },
+        "PluginThemeUseNow": {
+          "label": "今すぐ使う:",
+          "useName": "今すぐ使う: {{value0}}"
+        },
+        "PluginContributionActionCommand": {
+          "run": "実行",
+          "runName": "{{value0}} を実行",
+          "ran": "{{value0}} を実行しました",
+          "failed": "{{value0}} が失敗しました",
+          "seeLogs": "出力内容は下のログにあります。",
+          "needsWorkspace": "実行するにはワークスペースを開いてください。"
+        },
+        "PluginContributionActionPanel": {
+          "open": "パネルを開く",
+          "openName": "パネルを開く: {{value0}}",
+          "needsWorkspace": "表示するにはワークスペースを開いてください。"
+        },
+        "PluginContributionActionLanguage": {
+          "switch": "言語を切り替える",
+          "switchTo": "言語を {{value0}} に切り替える",
+          "switchBack": "元の言語に戻す",
+          "switchBackFrom": "{{value0}} から元の言語に戻す",
+          "failed": "言語を切り替えられませんでした"
+        },
+        "PluginContributionActionSyntax": {
+          "openExtension": "{{value0}} ファイルを開いてください",
+          "openFilename": "{{value0}} を開いてください"
+        },
+        "PluginContributionActionEvents": {
+          "worktreeCreated": "ワークスペースが作成されたとき",
+          "worktreeRemoved": "ワークスペースが削除されたとき",
+          "agentStatusChanged": "Agent のステータスが変わったとき",
+          "detail": "バックグラウンドでコードが実行されます"
+        },
+        "pluginInstallAction": {
+          "installed": "{{value0}} をインストールしました",
+          "useNow": "今すぐ使う",
+          "tryIt": "試す",
+          "mismatch": "ダウンロードした内容がカタログの公開内容と一致しなかったため、何もインストールされませんでした。",
+          "catalogChanged": "このページを開いた後にカタログが変更されました。更新してからもう一度お試しください。",
+          "blocked": "Orca の安全リストがこのプラグインをブロックしています。",
+          "downloadFailed": "このプラグインをダウンロードできませんでした。接続を確認してからもう一度お試しください。何もインストールされていません。"
         },
         "pluginError": {
           "installManifestMissing": "読み取り可能なorca-plugin.jsonが見つかりません。プラグインのルートフォルダーを選択してください。",

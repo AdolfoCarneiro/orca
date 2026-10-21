@@ -49,9 +49,14 @@ export function PluginThemeUseNow({
       {themes.map((theme) => (
         <Button
           key={theme.id}
-          variant={settings.pluginAppTheme === theme.id ? 'secondary' : 'outline'}
+          variant={settings.pluginAppTheme === theme.id ? 'secondary' : 'default'}
           size="xs"
           aria-pressed={settings.pluginAppTheme === theme.id}
+          aria-label={translate(
+            'auto.components.settings.PluginThemeUseNow.useName',
+            'Use now: {{value0}}',
+            { value0: theme.label }
+          )}
           onClick={() => use(theme)}
         >
           {/* Why inline colour: the swatch is the theme's own palette. */}
@@ -71,9 +76,14 @@ export function PluginThemeUseNow({
       {icons.map((theme) => (
         <Button
           key={`icon:${theme.id}`}
-          variant={settings.pluginIconTheme === theme.id ? 'secondary' : 'outline'}
+          variant={settings.pluginIconTheme === theme.id ? 'secondary' : 'default'}
           size="xs"
           aria-pressed={settings.pluginIconTheme === theme.id}
+          aria-label={translate(
+            'auto.components.settings.PluginThemeUseNow.useName',
+            'Use now: {{value0}}',
+            { value0: theme.label }
+          )}
           onClick={() => void updateSettings({ pluginIconTheme: theme.id })}
         >
           {theme.label}
@@ -87,9 +97,14 @@ export function PluginThemeUseNow({
         return (
           <Button
             key={`terminal:${theme.id}`}
-            variant={selected ? 'secondary' : 'outline'}
+            variant={selected ? 'secondary' : 'default'}
             size="xs"
             aria-pressed={selected}
+            aria-label={translate(
+              'auto.components.settings.PluginThemeUseNow.useName',
+              'Use now: {{value0}}',
+              { value0: theme.label }
+            )}
             onClick={() =>
               void updateSettings(
                 withTerminalPluginPalettes(
