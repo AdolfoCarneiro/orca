@@ -260,3 +260,41 @@ it('keeps a replacement client page through a stale placement retirement and ret
   expect(retired.tabs.map((tab) => tab.id)).toEqual(['renderer-tab'])
   expect(retired.tabGroups?.flatMap((group) => group.tabOrder)).toEqual(['renderer-tab'])
 })
+
+it('finishes a pending runtime close after renderer detach without losing other pages or revived renderer groups', async () => {
+  const closing = Promise.withResolvers<void>()
+  const closeTab = vi.fn(async (_pageId: string) => closing.promise)
+  const { runtime, livePages, sync, addPage, list } = browserRuntime(closeTab)
+  sync([publication()])
+  addPage('closing-page')
+  addPage('surviving-page')
+  runtime.notifyMobileSessionTabsChanged(TEST_WORKTREE_ID)
+  const close = runtime.closeMobileSessionTab(`id:${TEST_WORKTREE_ID}`, 'closing-page', {
+    expectedPublicationEpoch: 'renderer-1'
+  })
+  await vi.waitFor(() => expect(closeTab).toHaveBeenCalledWith('closing-page'))
+
+  sync([])
+  const detached = await list()
+  expect(detached.tabs.map((tab) => tab.id)).toEqual(['closing-page', 'surviving-page'])
+  expect(detached.publicationEpoch).toMatch(/^headless-hydrated:/)
+  livePages.delete('closing-page')
+  closing.resolve()
+  await expect(close).resolves.toMatchObject({ closed: true })
+  const closedWhileDetached = await list()
+  expect(closedWhileDetached.tabs.map((tab) => tab.id)).toEqual(['surviving-page'])
+  expect(closedWhileDetached.tabGroups?.flatMap((group) => group.tabOrder)).not.toContain(
+    'closing-page'
+  )
+
+  sync([publication('renderer-returned')])
+  const returned = await list()
+  expect(returned.publicationEpoch).toBe('renderer-returned')
+  expect(returned.tabs.map((tab) => tab.id)).toEqual(['renderer-tab', 'surviving-page'])
+  expect(returned.tabGroups?.flatMap((group) => group.tabOrder)).toEqual([
+    'renderer-tab',
+    'surviving-page'
+  ])
+  expect(returned.snapshotVersion).toBeGreaterThan(closedWhileDetached.snapshotVersion)
+  expect(closeTab).toHaveBeenCalledTimes(1)
+})
