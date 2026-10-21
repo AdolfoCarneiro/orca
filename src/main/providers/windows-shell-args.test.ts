@@ -100,6 +100,20 @@ describe('resolveWindowsShellLaunchArgs', () => {
     expect(result.startupCommandDeliveredInShellArgs).toBeUndefined()
   })
 
+  it('keeps multiline cmd.exe scripts on interactive stdin delivery', () => {
+    for (const newline of ['\n', '\r\n', '\r']) {
+      const result = resolveWindowsShellLaunchArgs(
+        'cmd.exe',
+        'C:\\Users\\alice',
+        'C:\\Users\\alice',
+        undefined,
+        `echo ^${newline}continuation${newline}if 2 GTR 1 (${newline}echo block${newline})`
+      )
+      expect(result.shellArgs).toEqual(['/K', 'chcp 65001 > nul'])
+      expect(result.startupCommandDeliveredInShellArgs).toBeUndefined()
+    }
+  })
+
   it('keeps large cmd.exe startup commands on stdin delivery', () => {
     const result = resolveWindowsShellLaunchArgs(
       'cmd.exe',

@@ -59,8 +59,8 @@ function getCmdShellArgStartupCommand(command?: string): string | null {
   if (!command || command.length > STARTUP_COMMAND_TEXT_MAX_CHARS) {
     return null
   }
-  // node-pty C-runtime escaping changes cmd /K quotes; interactive stdin preserves them.
-  if (command.includes('"')) {
+  // /K truncates multiline scripts; node-pty C-runtime escaping changes quotes. Interactive stdin preserves both.
+  if (command.includes('"') || /[\r\n]/.test(command)) {
     return null
   }
   const commandArg = `${CMD_UTF8_SETUP_COMMAND} & ${command}`

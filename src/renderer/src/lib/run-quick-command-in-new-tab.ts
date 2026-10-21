@@ -3,7 +3,7 @@ import { persistAgentLaunchTabOrder } from '@/lib/launch-agent-tab-order'
 import { launchAgentInNewTab } from '@/lib/launch-agent-in-new-tab'
 import { newAgentLaunchRequestId } from '@/lib/agent-launch-request-id'
 import {
-  flattenTerminalQuickCommand,
+  normalizeTerminalQuickCommandText,
   isTerminalAgentQuickCommand,
   supportsTerminalAgentQuickCommand
 } from '../../../shared/terminal-quick-commands'
@@ -91,7 +91,10 @@ export function runQuickCommandInNewTab({
   const store = useAppStore.getState()
   const tab = store.createTab(worktreeId, targetGroupId, undefined, {
     quickCommandLabel: command.label,
-    pendingStartup: { command: flattenTerminalQuickCommand(command).command }
+    pendingStartup: {
+      command: normalizeTerminalQuickCommandText(command.command),
+      startupCommandDelivery: 'shell-ready'
+    }
   })
 
   // Switch to terminal view like the + button; otherwise an editor keeps the new tab invisible.

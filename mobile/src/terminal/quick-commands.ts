@@ -2,7 +2,7 @@ import type { TerminalQuickCommand } from '../../../src/shared/terminal-quick-co
 import type { TuiAgent } from '../../../src/shared/tui-agent'
 import {
   applyTerminalQuickCommandMutation,
-  flattenTerminalQuickCommand,
+  normalizeTerminalQuickCommandText,
   getTerminalQuickCommandBody,
   isTerminalAgentQuickCommand,
   MAX_QUICK_COMMAND_LABEL_LENGTH,
@@ -75,9 +75,9 @@ export function buildMobileQuickCommandLaunch(
         }
       }
     : {
-        // Raw agent-looking commands must not bypass slow native/WSL/SSH startup; flatten multiline commands identically to desktop.
+        // Raw agent-looking commands must not bypass slow native/WSL/SSH startup.
         options: {
-          startupCommand: flattenTerminalQuickCommand(command).command,
+          startupCommand: normalizeTerminalQuickCommandText(command.command),
           startupCommandDelivery: 'shell-ready'
         }
       }
