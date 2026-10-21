@@ -45,8 +45,8 @@ export function PluginsSettingsSection({
   const [busyPluginKeys, setBusyPluginKeys] = useState<Set<string>>(() => new Set())
   const mountedRef = useRef(false)
   const listRequestRef = useRef(0)
-  const page = usePluginPageNavigation()
   const review = usePluginReviewQueue()
+  const page = usePluginPageNavigation(review.pause)
   const clearReviews = review.clear
   const installedKeysRef = useRef<ReadonlySet<string>>(new Set())
   const openPage = page.open
@@ -341,11 +341,7 @@ export function PluginsSettingsSection({
         onConsent={decideConsent}
         handlers={{
           onOpen: () => undefined,
-          // Why open directly: the queue's key may already be this plugin after going Back.
-          onReview: (pluginKey) => {
-            review.show(pluginKey)
-            page.open(pluginKey)
-          },
+          onReview: review.show,
           onToggleEnabled: (pluginKey) => {
             const plugin = plugins.find((entry) => entry.pluginKey === pluginKey)
             if (plugin) {
