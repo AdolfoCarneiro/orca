@@ -83,7 +83,9 @@ export function usePluginPageAction({
   const [consentError, setConsentError] = useState<string | null>(null)
   const { plugin, listing, execution, preview, trust } = model
   const phase = install.phaseOf(entry.pluginKey)
-  const themed = entry.types.includes('app-theme')
+  const themed = entry.types.some(
+    (type) => type === 'app-theme' || type === 'icon-theme' || type === 'terminal-theme'
+  )
   const none: PluginPageActionParts = { header: null, status: null, body: null }
 
   if (plugin && pluginNeedsReview(plugin) && plugin.consentFingerprint) {

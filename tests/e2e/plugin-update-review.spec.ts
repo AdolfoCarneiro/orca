@@ -30,15 +30,27 @@ async function writePlugin(repository: string, id: string, version: string): Pro
       execution: version === '1.0.0' ? 'data' : 'trusted-worker',
       engines: { orca: `>=${PLUGIN_MANIFEST_V2_SINCE}` },
       ...(version === '1.0.0' ? {} : { main: 'worker.mjs' }),
-      contributes: { themes: [{ id: 'review', label: 'Review Theme', path: 'theme.json' }] },
+      contributes:
+        id === PLUGINS[0]
+          ? { iconThemes: [{ id: 'review', label: 'Review Icons', path: 'icons.json' }] }
+          : { terminalThemes: [{ id: 'review', label: 'Review Terminal', path: 'terminal.json' }] },
       capabilities: []
     })
   )
   await writeFile(
-    join(repository, 'theme.json'),
+    join(repository, 'icons.json'),
+    JSON.stringify({ schemaVersion: 1, icons: { file: 'file.svg' } })
+  )
+  await writeFile(
+    join(repository, 'file.svg'),
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#888888"/></svg>'
+  )
+  await writeFile(
+    join(repository, 'terminal.json'),
     JSON.stringify({
-      base: 'dark',
-      tokens: { '--background': '#181818', '--foreground': '#eeeeee' }
+      schemaVersion: 1,
+      mode: 'light',
+      terminal: { background: '#eeeeee', foreground: '#181818', red: '#ff0000' }
     })
   )
   if (version !== '1.0.0') {
@@ -135,11 +147,71 @@ test('confirms card removal and shares single/bulk update review without strandi
       state?.openSettingsPage()
     })
     await page.getByRole('button', { name: 'Turn on plugins', exact: true }).click()
+    const appearanceBefore = await page.evaluate(() => {
+      const settings = window.__store?.getState().settings
+      return {
+        icon: settings?.pluginIconTheme,
+        terminal: settings?.terminalThemeLight,
+        app: settings?.pluginAppTheme
+      }
+    })
     for (const id of PLUGINS) {
-      await page
-        .locator(`[data-plugin-key="stablyai.${id}"]`)
-        .getByRole('button', { name: /^Install / })
-        .click()
+      await page.locator(`[data-plugin-key="stablyai.${id}"] [data-plugin-row-name]`).click()
+      const added = page.getByRole('heading', { name: /^Adds to Orca/ })
+      const beforeInstall = await added.boundingBox()
+      await page.getByRole('button', { name: /^Install / }).click()
+      const label = id === PLUGINS[0] ? 'Review Icons' : 'Review Terminal'
+      const use = page.getByRole('button', { name: label, exact: true })
+      await expect(use).toBeVisible()
+      const afterInstall = await added.boundingBox()
+      expect(afterInstall?.y).toBe(beforeInstall?.y)
+      await expect
+        .poll(() =>
+          page.evaluate(() => {
+            const settings = window.__store?.getState().settings
+            return {
+              icon: settings?.pluginIconTheme,
+              terminal: settings?.terminalThemeLight,
+              app: settings?.pluginAppTheme
+            }
+          })
+        )
+        .toEqual(appearanceBefore)
+      await screenshot(
+        page,
+        id === PLUGINS[0] ? 'icon-theme-after-install' : 'terminal-theme-after-install'
+      )
+      await use.click()
+      await expect(use).toHaveAttribute('aria-pressed', 'true')
+      await expect
+        .poll(() =>
+          page.evaluate((key) => {
+            const settings = window.__store?.getState().settings
+            return key === 'orca-review-notes'
+              ? settings?.pluginIconTheme
+              : settings?.terminalThemeLight
+          }, id)
+        )
+        .toBe(`plugin:stablyai.${id}/review`)
+      if (id !== PLUGINS[0]) {
+        await expect
+          .poll(() =>
+            page.evaluate(() => window.__store?.getState().settings?.terminalUseSeparateLightTheme)
+          )
+          .toBe(true)
+      }
+      await page.getByRole('article').getByRole('button', { name: 'Plugins', exact: true }).click()
+      Object.assign(
+        appearanceBefore,
+        await page.evaluate(() => {
+          const settings = window.__store?.getState().settings
+          return {
+            icon: settings?.pluginIconTheme,
+            terminal: settings?.terminalThemeLight,
+            app: settings?.pluginAppTheme
+          }
+        })
+      )
     }
     const notes = page.locator(`[data-plugin-key="stablyai.${PLUGINS[0]}"]`)
     await notes.getByRole('button', { name: 'More actions for Review Notes', exact: true }).click()

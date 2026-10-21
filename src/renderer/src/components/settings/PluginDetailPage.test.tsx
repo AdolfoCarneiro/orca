@@ -162,6 +162,18 @@ afterEach(() => {
 })
 
 describe('PluginDetailPage', () => {
+  it.each(['app-theme', 'icon-theme', 'terminal-theme'] as const)(
+    'reserves its Use now line for an installed %s before registrations arrive',
+    async (type) => {
+      const entry: PluginListEntry = {
+        ...pluginListEntryFromInstalled({ ...installed, execution: 'data' }),
+        types: [type]
+      }
+      const container = await render(entry, () => Promise.resolve({ ok: true, preview }))
+      expect(container.querySelector('.min-h-7')).not.toBeNull()
+    }
+  )
+
   it('names what a catalog plugin adds from its manifest', async () => {
     const container = await render(pluginListEntryFromListing(listing), () =>
       Promise.resolve({ ok: true, preview })
