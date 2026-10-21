@@ -25,7 +25,7 @@ export type PluginWorkerControllerOptions = {
   registry: PluginExtensionRegistry
   contentVerifier: PluginContentVerifier
   capabilities: (pluginKey: string) => readonly PluginCapabilityKind[] | null
-  isCurrentApproved: (plugin: ValidDiscoveredPlugin) => boolean
+  isCurrentApproved: (spec: PluginWorkerSpawnSpec) => boolean
   invokeCommand: (pluginKey: string, commandId: string, args: unknown) => Promise<unknown>
   executeHostCall: (
     pluginKey: string,
@@ -72,18 +72,18 @@ export class PluginWorkerController {
       throw new Error(`plugin ${plugin.pluginKey} has no worker entry`)
     }
     try {
-      this.assertCurrentApproved(plugin)
-      await resolveContainedPluginArtifact(plugin.rootDir, plugin.manifest.main)
-      this.assertCurrentApproved(plugin)
       const capabilities = this.options.capabilities(plugin.pluginKey)
       if (!capabilities) {
         throw new Error(`plugin ${plugin.pluginKey} is no longer approved`)
       }
       const spec = buildPluginWorkerSpawnSpec(plugin, capabilities)
+      this.assertCurrentApproved(spec)
+      await resolveContainedPluginArtifact(plugin.rootDir, plugin.manifest.main)
+      this.assertCurrentApproved(spec)
       // Why per spawn and uncached: an integrity check (not a sandbox) that bytes didn't change
       // between a crash and its restart; an already running worker is reused without hashing.
       const handle = await this.manager.ensureActive(spec, {
-        assertApproved: () => this.assertCurrentApproved(plugin),
+        assertApproved: () => this.assertCurrentApproved(spec),
         verifyBeforeSpawn: () =>
           this.options.contentVerifier.verifyNow({
             pluginKey: plugin.pluginKey,
@@ -91,7 +91,7 @@ export class PluginWorkerController {
             contentHash: spec.reviewedContentHash ?? null
           })
       })
-      if (!this.options.isCurrentApproved(plugin)) {
+      if (!this.options.isCurrentApproved(spec)) {
         await this.manager.deactivate(plugin.pluginKey)
         throw new Error(`plugin ${plugin.pluginKey} changed or was disabled during activation`)
       }
@@ -120,9 +120,9 @@ export class PluginWorkerController {
     }
   }
 
-  private assertCurrentApproved(plugin: ValidDiscoveredPlugin): void {
-    if (!this.options.isCurrentApproved(plugin)) {
-      throw new Error(`plugin ${plugin.pluginKey} changed or is no longer approved`)
+  private assertCurrentApproved(spec: PluginWorkerSpawnSpec): void {
+    if (!this.options.isCurrentApproved(spec)) {
+      throw new Error(`plugin ${spec.pluginKey} changed or is no longer approved`)
     }
   }
 
@@ -154,11 +154,7 @@ export class PluginWorkerController {
     if (generation !== this.reconcileGeneration) {
       return
     }
-    await Promise.all(
-      restarts
-        .filter((plugin) => this.options.isCurrentApproved(plugin))
-        .map((plugin) => this.ensure(plugin).catch(() => undefined))
-    )
+    await Promise.all(restarts.map((plugin) => this.ensure(plugin).catch(() => undefined)))
   }
 
   async deactivate(pluginKey: string): Promise<void> {
