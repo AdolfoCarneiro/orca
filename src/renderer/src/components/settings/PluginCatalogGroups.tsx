@@ -13,9 +13,9 @@ import { Badge } from '../ui/badge'
 import { PLUGIN_CONTRIBUTION_SUMMARY_LIMIT } from '../../../../shared/plugins/plugin-contribution-summary'
 import { pluginPointsFromSummary, pluginTrust } from './plugin-access-profile'
 import { pluginTrustLabel } from './plugin-consent-copy'
-import { statusWordFor } from '../plugin-catalog/PluginStatusWord'
-import { pluginStatusKind } from './plugin-status-presentation'
+import { installedPluginPresentation } from './plugin-status-presentation'
 import { usePluginArtPalettes } from './use-plugin-art-palettes'
+import type { InstalledRowHandlers } from './PluginManagerRows'
 import type { usePluginCatalog } from './use-plugin-catalog'
 import type { usePluginHoverPrefetch } from './use-plugin-hover-prefetch'
 import type { usePluginInstallAction } from './use-plugin-install-action'
@@ -68,7 +68,8 @@ export type CatalogCardHandlers = {
   install: ReturnType<typeof usePluginInstallAction>
   prefetch: ReturnType<typeof usePluginHoverPrefetch>
   openEntry: (pluginKey: string) => void
-  onUpdate: (entry: PluginListEntry) => void
+  installedHandlers: InstalledRowHandlers
+  busyPluginKeys: ReadonlySet<string>
   orcaVersion: string | null
   /** A catalog refresh is in flight; installs wait for it. */
   refreshing: boolean
@@ -102,18 +103,7 @@ function CatalogCard({
       )
     : null
   const statusText = installed
-    ? [
-        statusWordFor(pluginStatusKind(installed)),
-        entry.updateVersion
-          ? translate(
-              'auto.components.settings.PluginManagerRows.updateAvailable',
-              'update {{value0}} available',
-              { value0: entry.updateVersion }
-            )
-          : null
-      ]
-        .filter(Boolean)
-        .join(', ')
+    ? installedPluginPresentation(installed, entry.updateVersion).statusText
     : undefined
   return (
     <PluginCard
@@ -155,9 +145,10 @@ function CatalogCard({
             }
           }}
           onOpen={() => handlers.openEntry(entry.pluginKey)}
+          busy={handlers.busyPluginKeys.has(entry.pluginKey)}
+          installedHandlers={handlers.installedHandlers}
           onRemove={() => handlers.onRemove(entry.pluginKey)}
           onToggleEnabled={() => handlers.onToggleEnabled(entry.pluginKey)}
-          onUpdate={() => handlers.onUpdate(entry)}
         />
       }
     />

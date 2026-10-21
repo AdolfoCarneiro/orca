@@ -170,7 +170,8 @@ export function PluginManager({
     refreshing: catalog.refreshBusy,
     onRemove: handlers.onRemoveRequest,
     onToggleEnabled: handlers.onToggleEnabled,
-    onUpdate: (entry: PluginListEntry) => openUpdates([entry])
+    installedHandlers: rowHandlers,
+    busyPluginKeys
   }
   const visibleAvailableCount = [
     ...entries.available,

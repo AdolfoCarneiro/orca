@@ -1,4 +1,4 @@
-import { ArrowUpCircle, Check, Ellipsis, Loader2, Power, Trash2 } from 'lucide-react'
+import { Check, Ellipsis, Loader2, Power, Trash2 } from 'lucide-react'
 import { satisfiesOrcaEngineRange } from '../../../../shared/plugins/plugin-manifest'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../ui/button'
@@ -10,7 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '../ui/dropdown-menu'
-import { isPluginEnabled, pluginNeedsReview, pluginStatusKind } from './plugin-status-presentation'
+import { installedPluginPresentation } from './plugin-status-presentation'
+import { installedPluginControls, type InstalledRowHandlers } from './PluginManagerRows'
 import type { PluginInstallPhase } from './use-plugin-install-action'
 
 export function needsNewerOrca(entry: PluginListEntry, orcaVersion: string | null): string | null {
@@ -42,9 +43,11 @@ function InstalledCardMenu({
   if (!installed) {
     return null
   }
-  const kind = pluginStatusKind(installed)
-  const removable = !installed.bundled && !installed.isDev
-  const switchable = kind !== 'review' && kind !== 'invalid' && kind !== 'blocked'
+  const { removable, switchable, enabled } = installedPluginPresentation(
+    installed,
+    entry.updateVersion,
+    busy
+  )
   if (!removable && !switchable) {
     return null
   }
@@ -68,7 +71,7 @@ function InstalledCardMenu({
         {switchable ? (
           <DropdownMenuItem onSelect={onToggleEnabled}>
             <Power />
-            {isPluginEnabled(installed)
+            {enabled
               ? translate('auto.components.settings.PluginCardAction.turnOff', 'Turn off')
               : translate('auto.components.settings.PluginCardAction.turnOn', 'Turn on')}
           </DropdownMenuItem>
@@ -91,9 +94,9 @@ export function PluginCardAction({
   orcaVersion,
   onInstall,
   onOpen,
-  onUpdate,
   onRemove,
   onToggleEnabled,
+  installedHandlers,
   busy = false,
   refreshing = false
 }: {
@@ -103,38 +106,25 @@ export function PluginCardAction({
   orcaVersion: string | null
   onInstall: () => void
   onOpen: () => void
-  onUpdate: () => void
   onRemove: () => void
   onToggleEnabled: () => void
+  installedHandlers: InstalledRowHandlers
   /** A remove or switch for this plugin is in flight. */
   busy?: boolean
 }): React.JSX.Element | null {
   const installed = entry.installed
   if (installed) {
-    let status: React.ReactNode
-    if (pluginNeedsReview(installed)) {
-      status = (
-        <Button size="xs" onClick={onOpen}>
-          {translate('auto.components.settings.PluginManagerRows.review', 'Review')}
-        </Button>
-      )
-    } else if (entry.updateVersion) {
-      status = (
-        <Button variant="outline" size="xs" onClick={onUpdate}>
-          <ArrowUpCircle />
-          {translate('auto.components.settings.PluginManagerRows.update', 'Update {{value0}}', {
-            value0: entry.updateVersion
-          })}
-        </Button>
-      )
-    } else {
-      status = (
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Check className="size-3.5" aria-hidden="true" />
-          {translate('auto.components.settings.PluginCardAction.installed', 'Installed')}
-        </span>
-      )
-    }
+    const controls = installedPluginControls(installed, entry, {
+      busy,
+      canCheckUpdate: entry.updatable,
+      handlers: installedHandlers
+    })
+    const status = controls.action ?? (
+      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+        <Check className="size-3.5" aria-hidden="true" />
+        {translate('auto.components.settings.PluginCardAction.installed', 'Installed')}
+      </span>
+    )
     return (
       <>
         {status}

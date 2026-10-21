@@ -7,16 +7,15 @@ import { PluginListRow } from '../plugin-catalog/PluginListRow'
 import type { PluginListEntry } from '../plugin-catalog/plugin-list-entries'
 import { SettingsSwitch } from './SettingsFormControls'
 import {
-  isPluginEnabled,
   pluginNeedsReview,
-  pluginStatusKind,
+  installedPluginPresentation,
   type PluginStatusKind
 } from './plugin-status-presentation'
 import { invalidPluginErrorMessage } from './plugin-error-presentation'
 import { usePluginRollbackVersion } from './use-plugin-rollback-version'
 import { copyContentHash, copyPluginId, DetailsItem, MoreButton } from './PluginRowMenu'
 import { PluginChips } from '../plugin-catalog/PluginChips'
-import { StatusWord, statusWordFor } from '../plugin-catalog/PluginStatusWord'
+import { StatusWord } from '../plugin-catalog/PluginStatusWord'
 
 export type InstalledRowHandlers = {
   onOpen: (pluginKey: string) => void
@@ -57,17 +56,12 @@ export function installedPluginControls(
     inPage?: boolean
   }
 ): InstalledPluginControls {
-  const kind = pluginStatusKind(plugin)
+  const { kind, enabled, statusText, removable, primary, switchable } = installedPluginPresentation(
+    plugin,
+    entry.updateVersion,
+    busy
+  )
   const needsReview = pluginNeedsReview(plugin)
-  const enabled = isPluginEnabled(plugin)
-  const statusText = entry.updateVersion
-    ? `${statusWordFor(kind)}, ${translate(
-        'auto.components.settings.PluginManagerRows.updateAvailable',
-        'update {{value0}} available',
-        { value0: entry.updateVersion }
-      )}`
-    : statusWordFor(kind)
-  const removable = !plugin.bundled && !plugin.isDev
 
   let description: React.ReactNode = entry.description ?? ''
   let tone: 'default' | 'destructive' = 'default'
@@ -102,9 +96,9 @@ export function installedPluginControls(
   }
 
   let action: React.ReactNode = null
-  if (busy) {
+  if (primary === 'busy') {
     action = <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
-  } else if (plugin.blockedByKillList && removable) {
+  } else if (primary === 'remove') {
     action = (
       <Button
         variant="outline"
@@ -114,20 +108,20 @@ export function installedPluginControls(
         {translate('auto.components.settings.PluginManagerRows.remove', 'Remove…')}
       </Button>
     )
-  } else if (needsReview) {
+  } else if (primary === 'review') {
     action = (
       <Button size="xs" onClick={() => handlers.onReview(plugin.pluginKey)}>
         {translate('auto.components.settings.PluginManagerRows.review', 'Review')}
       </Button>
     )
-  } else if (kind === 'error') {
+  } else if (primary === 'restart') {
     action = (
       <Button variant="outline" size="xs" onClick={() => handlers.onRestart(plugin.pluginKey)}>
         <RotateCcw />
         {translate('auto.components.settings.PluginManagerRows.restart', 'Restart')}
       </Button>
     )
-  } else if (entry.updateVersion) {
+  } else if (primary === 'update') {
     action = (
       <Button
         variant="outline"
@@ -145,7 +139,7 @@ export function installedPluginControls(
         })}
       </Button>
     )
-  } else if (kind === 'invalid') {
+  } else if (primary === 'error') {
     action = (
       <Button variant="outline" size="xs" onClick={() => handlers.onOpen(plugin.pluginKey)}>
         {translate('auto.components.settings.PluginManagerRows.viewError', 'View error')}
@@ -153,8 +147,6 @@ export function installedPluginControls(
     )
   }
 
-  const switchDisabled =
-    busy || needsReview || kind === 'invalid' || Boolean(plugin.blockedByKillList)
   return {
     kind,
     statusText,
@@ -167,7 +159,7 @@ export function installedPluginControls(
       <span className="relative inline-flex">
         <SettingsSwitch
           checked={enabled && !needsReview}
-          disabled={switchDisabled}
+          disabled={!switchable}
           onChange={() => handlers.onToggleEnabled(plugin.pluginKey)}
           ariaLabel={
             enabled && !needsReview

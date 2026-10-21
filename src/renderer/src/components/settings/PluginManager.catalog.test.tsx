@@ -364,6 +364,18 @@ describe('PluginManager catalog', () => {
     expect(buttons('Install plugin')).toHaveLength(0)
   })
 
+  it('matches row action priority on crashed installed cards, even with an update available', async () => {
+    installApi({
+      listMarketplacePlugins: vi.fn().mockResolvedValue([{ ...listing, version: '2.0.0' }])
+    })
+    const { container } = await render([{ ...installedPlugin(), status: 'errored' }])
+    expect(buttons('Restart')).toHaveLength(1)
+    expect(buttons('Update 2.0.0')).toHaveLength(0)
+    expect(container.querySelector('[data-plugin-row-name]')?.getAttribute('aria-label')).toContain(
+      'Stopped'
+    )
+  })
+
   it('uses the shared update review for a single plugin', async () => {
     installApi({
       listMarketplacePlugins: vi.fn().mockResolvedValue([{ ...listing, version: '2.0.0' }])
