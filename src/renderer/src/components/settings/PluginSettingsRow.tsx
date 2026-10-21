@@ -13,7 +13,8 @@ import { PluginCatalogAvatar } from '../plugin-catalog/PluginCatalogAvatar'
 import { invalidPluginErrorMessage } from './plugin-error-presentation'
 import { cn } from '@/lib/utils'
 import { usePluginLanguagePackStore } from '@/store/plugin-language-packs'
-import { usePluginSyntaxFailureStore } from '@/store/plugin-syntax-failures'
+import { hasPluginSyntaxFailure, usePluginSyntaxFailureStore } from '@/store/plugin-syntax-failures'
+import { usePluginSyntaxStore } from '@/store/plugin-syntax-packs'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import {
@@ -141,9 +142,10 @@ export function PluginSettingsRow({
   onRemoveRequest
 }: PluginSettingsRowProps): React.JSX.Element {
   const status = statusPresentation(plugin)
-  const syntaxFailed = usePluginSyntaxFailureStore((state) =>
-    Object.keys(state.failures).some((id) => id.startsWith(`plugin:${plugin.pluginKey}/`))
-  )
+  const syntaxFailures = usePluginSyntaxFailureStore((state) => state.failures)
+  // Why the raw store: a row must not start a syntax list load.
+  const installedSyntaxes = usePluginSyntaxStore((state) => state.entries)
+  const syntaxFailed = hasPluginSyntaxFailure(syntaxFailures, installedSyntaxes, plugin.pluginKey)
   // Why the raw store: I18nProvider already loads language packs; a row must not start a load.
   const languagePacks = usePluginLanguagePackStore((state) => state.entries).filter(
     (pack) => pack.pluginKey === plugin.pluginKey

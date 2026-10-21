@@ -1,7 +1,7 @@
 import * as monaco from 'monaco-editor'
 import type { PluginSyntaxMetadata } from '../../../../shared/plugins/plugin-syntax-artifact'
 import { parsePluginSyntaxPayload } from '../../../../shared/plugins/plugin-syntax-artifact'
-import { recordPluginSyntaxFailure } from '@/store/plugin-syntax-failures'
+import { pluginSyntaxRevisionKey, recordPluginSyntaxFailure } from '@/store/plugin-syntax-failures'
 import { createPluginSyntaxEngine, type PluginSyntaxEngine } from './plugin-syntax-engine'
 import { PluginSyntaxSlotPool, type PluginSyntaxLease } from './plugin-syntax-slot-pool'
 
@@ -18,7 +18,7 @@ function slotPool(): PluginSyntaxSlotPool<PluginSyntaxEngine> {
         load: async () => parsePluginSyntaxPayload(await window.api.plugins.loadSyntax(syntaxId)),
         createWorker: () =>
           new Worker(new URL('./plugin-grammar.worker.ts', import.meta.url), { type: 'module' }),
-        onFailure: (reason) => recordPluginSyntaxFailure(syntaxId, reason)
+        onFailure: (reason) => recordPluginSyntaxFailure(key, reason)
       })
     }
   })
@@ -30,7 +30,7 @@ function slotPool(): PluginSyntaxSlotPool<PluginSyntaxEngine> {
 export function acquirePluginSyntaxLanguage(
   syntax: PluginSyntaxMetadata
 ): PluginSyntaxLease | null {
-  const lease = slotPool().acquire(`${syntax.id}@${syntax.revision}`)
+  const lease = slotPool().acquire(pluginSyntaxRevisionKey(syntax))
   if (!lease) {
     console.warn(`[plugins] ${syntax.id} shows plain text: every syntax slot is in use`)
   }
