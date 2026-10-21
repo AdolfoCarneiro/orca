@@ -350,7 +350,7 @@ describe('PluginManager catalog', () => {
       pluginKey: listing.pluginKey
     })
     expect(document.body.textContent).toContain('This exact plugin content is already installed.')
-    expect(buttons('Update plugin')).toHaveLength(0)
+    expect(buttons('Update 1 plugin')).toHaveLength(0)
   })
 
   it('opens the plugin page for a plugin asked for from outside Settings, with no dialog', async () => {
@@ -362,6 +362,22 @@ describe('PluginManager catalog', () => {
     expect(document.body.textContent).toContain('If you install Worktree Notes, it can:')
     expect(document.querySelector('[role="dialog"]')).toBeNull()
     expect(buttons('Install plugin')).toHaveLength(0)
+  })
+
+  it('uses the shared update review for a single plugin', async () => {
+    installApi({
+      listMarketplacePlugins: vi.fn().mockResolvedValue([{ ...listing, version: '2.0.0' }])
+    })
+    const { onInstalled } = await render([installedPlugin()])
+    await act(async () => button('Update 2.0.0').click())
+    expect(document.body.textContent).toContain('Update plugins?')
+    expect(document.querySelectorAll('[data-plugin-update]')).toHaveLength(1)
+    expect(document.body.textContent).toContain('Source')
+    expect(document.body.textContent).toContain(
+      'full access to your files, network, and other processes'
+    )
+    await act(async () => button('Update 1 plugin').click())
+    expect(onInstalled).toHaveBeenCalledWith([listing.pluginKey])
   })
 
   it('reaches Update all from the Updates tab', async () => {

@@ -9,7 +9,8 @@ import type {
 } from '../../../../preload/api-types'
 import { pluginManifestSchema } from '../../../../shared/plugins/plugin-manifest'
 import type { PluginListEntry } from '../plugin-catalog/plugin-list-entries'
-import { PluginUpdateAllDialog, newAccess } from './PluginUpdateAllDialog'
+import { PluginUpdateAllDialog } from './PluginUpdateAllDialog'
+import { newAccess } from './PluginUpdateCandidate'
 
 vi.mock('../ui/dialog', () => ({
   Dialog: ({ open, children }: { open: boolean; children: React.ReactNode }) =>

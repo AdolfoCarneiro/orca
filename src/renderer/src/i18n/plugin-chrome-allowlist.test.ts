@@ -9,7 +9,7 @@ const SECURITY_COPY_COMPONENTS = [
   'pluginError',
   'PluginKeybindingConsentPreview',
   'PluginMarketplaceListingRow',
-  'PluginMarketplacePreviewDialog',
+  'PluginUpdateAllDialog',
   'PluginMarketplaceSourceDialog',
   'PluginVmRecipeConsentPreview',
   // The inline consent and its copy replaced the review dialog.

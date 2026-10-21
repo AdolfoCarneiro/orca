@@ -16,7 +16,6 @@ import {
   type PluginListEntry
 } from '../plugin-catalog/plugin-list-entries'
 import { InstalledPluginRow, type InstalledRowHandlers } from './PluginManagerRows'
-import { PluginMarketplacePreviewDialog } from './PluginMarketplacePreviewDialog'
 import { PluginMarketplaceSourceDialog } from './PluginMarketplaceSourceDialog'
 import { usePluginCatalog } from './use-plugin-catalog'
 import { usePluginHoverPrefetch } from './use-plugin-hover-prefetch'
@@ -92,12 +91,10 @@ export function PluginManager({
   const [listFilter, setListFilter] = useState<PluginListFilter>(NO_PLUGIN_LIST_FILTER)
   // Why a count: each open mounts a fresh dialog, so its previews and results start clean.
   const [updateAllOpens, setUpdateAllOpens] = useState(0)
-  const [updateAllOpen, setUpdateAllOpen] = useState(false)
+  const [updateEntries, setUpdateEntries] = useState<readonly PluginListEntry[] | null>(null)
   const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(() => new Set())
   const { openKey, open, back } = page
   const catalog = usePluginCatalog({
-    installedPlugins: plugins,
-    onInstalled,
     onRefreshInstalled,
     onOpenRequested: open
   })
@@ -145,21 +142,21 @@ export function PluginManager({
       onShowLogs(pluginKey)
     }
   }
+  const openUpdates = (entries: readonly PluginListEntry[]): void => {
+    setUpdateAllOpens((count) => count + 1)
+    setUpdateEntries(entries)
+  }
   const rowHandlers: InstalledRowHandlers = {
     ...handlers,
     onOpen: openEntry,
     onViewLogs: openEntry,
-    onCheckUpdate: (entry) => {
-      if (entry.listing) {
-        void catalog.openPreview(entry.listing, true)
-      }
-    }
+    onCheckUpdate: (entry) => openUpdates([entry])
   }
   const installedRow = (entry: PluginListEntry) => (
     <InstalledPluginRow
       key={entry.pluginKey}
       entry={entry}
-      busy={busyPluginKeys.has(entry.pluginKey) || catalog.previewBusyKey === entry.pluginKey}
+      busy={busyPluginKeys.has(entry.pluginKey)}
       canCheckUpdate={entry.updatable}
       handlers={rowHandlers}
     />
@@ -173,11 +170,7 @@ export function PluginManager({
     refreshing: catalog.refreshBusy,
     onRemove: handlers.onRemoveRequest,
     onToggleEnabled: handlers.onToggleEnabled,
-    onUpdate: (entry: PluginListEntry) => {
-      if (entry.listing) {
-        void catalog.openPreview(entry.listing, true)
-      }
-    }
+    onUpdate: (entry: PluginListEntry) => openUpdates([entry])
   }
   const visibleAvailableCount = [
     ...entries.available,
@@ -244,10 +237,10 @@ export function PluginManager({
     <>
       <PluginUpdateAllDialog
         key={updateAllOpens}
-        open={updateAllOpen}
-        entries={updates}
+        open={updateEntries !== null}
+        entries={updateEntries ?? []}
         orcaVersion={orcaVersion}
-        onClose={() => setUpdateAllOpen(false)}
+        onClose={() => setUpdateEntries(null)}
         onUpdated={onInstalled}
       />
       <PluginMarketplaceSourceDialog
@@ -255,18 +248,6 @@ export function PluginManager({
         sources={catalog.sources}
         onOpenChange={setSourcesOpen}
         onChanged={catalog.loadMarketplaceData}
-      />
-      <PluginMarketplacePreviewDialog
-        key={
-          catalog.preview ? `${catalog.preview.pluginKey}:${catalog.preview.contentHash}` : 'closed'
-        }
-        preview={catalog.preview}
-        mode={catalog.previewMode}
-        busy={catalog.installBusy}
-        currentVersion={catalog.currentVersion}
-        error={catalog.actionError}
-        onClose={catalog.closePreview}
-        onConfirm={() => void catalog.installPreview()}
       />
     </>
   )
@@ -284,10 +265,7 @@ export function PluginManager({
         <PluginDetailPage
           key={openedEntry.pluginKey}
           entry={openedEntry}
-          busy={
-            busyPluginKeys.has(openedEntry.pluginKey) ||
-            catalog.previewBusyKey === openedEntry.pluginKey
-          }
+          busy={busyPluginKeys.has(openedEntry.pluginKey)}
           orcaVersion={orcaVersion}
           logsState={logsByPlugin[openedEntry.pluginKey]}
           handlers={rowHandlers}
@@ -315,10 +293,7 @@ export function PluginManager({
         toolbar={
           <PluginListToolbar
             updateCount={filter === 'updates' ? updates.length : 0}
-            onUpdateAll={() => {
-              setUpdateAllOpens((count) => count + 1)
-              setUpdateAllOpen(true)
-            }}
+            onUpdateAll={() => openUpdates(updates)}
             filter={listFilter}
             categories={pluginFilterCategories([...entries.installed, ...entries.available])}
             sources={catalog.sources}

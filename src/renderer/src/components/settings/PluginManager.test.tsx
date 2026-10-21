@@ -10,16 +10,11 @@ import type {
 } from '../../../../preload/api-types'
 import { PLUGIN_GROUP_ROW_CAP, PluginManager } from './PluginManager'
 import { usePluginPageNavigation } from './use-plugin-page-navigation'
-import type * as PreviewDialogModule from './PluginMarketplacePreviewDialog'
 
 vi.mock('../ui/tooltip', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: () => null
-}))
-vi.mock('./PluginMarketplacePreviewDialog', async (importOriginal) => ({
-  ...(await importOriginal<typeof PreviewDialogModule>()),
-  PluginMarketplacePreviewDialog: () => null
 }))
 vi.mock('./PluginMarketplaceSourceDialog', () => ({ PluginMarketplaceSourceDialog: () => null }))
 
