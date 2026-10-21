@@ -195,7 +195,7 @@ describe('PluginDetailPage', () => {
       ]
     })
     usePluginSyntaxFailureStore.setState({
-      failures: { 'plugin:stablyai.gleam/gleam': 'crashed' }
+      failures: { 'plugin:stablyai.gleam/gleam@1': 'crashed' }
     })
     const container = await render(pluginListEntryFromInstalled(installed), vi.fn())
     expect(container.textContent).toContain('Gleam')

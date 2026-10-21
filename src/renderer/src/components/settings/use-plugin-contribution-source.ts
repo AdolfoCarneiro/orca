@@ -6,7 +6,10 @@ import {
   ensurePluginLanguagePacksLoaded,
   usePluginLanguagePackStore
 } from '@/store/plugin-language-packs'
-import { usePluginSyntaxFailureStore } from '@/store/plugin-syntax-failures'
+import {
+  pluginSyntaxRevisionKey,
+  usePluginSyntaxFailureStore
+} from '@/store/plugin-syntax-failures'
 import { usePluginSyntaxes } from '@/store/plugin-syntax-packs'
 import { usePluginTerminalThemes, usePluginThemes } from '@/store/plugin-themes'
 import {
@@ -40,7 +43,7 @@ export function useInstalledPluginContributionSource(
       iconThemes: ours(iconThemes),
       syntaxes: ours(syntaxes).map((syntax) => ({
         ...syntax,
-        failed: Boolean(failures[syntax.id])
+        failed: Boolean(failures[pluginSyntaxRevisionKey(syntax)])
       })),
       languages: ours(languagePacks),
       panels: plugin.panels.map((panel) => panel.title),
