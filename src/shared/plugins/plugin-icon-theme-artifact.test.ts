@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   isPlausiblePluginIconSvg,
+  isPluginIconThemeRegistration,
   parsePluginIconThemeArtifact
 } from './plugin-icon-theme-artifact'
 
@@ -29,6 +30,81 @@ describe('plugin icon theme artifacts', () => {
     ['an escaping icon path', { schemaVersion: 1, icons: { file: '../a.svg' } }]
   ])('rejects %s', (_label, value) => {
     expect(() => parse(value)).toThrow()
+  })
+})
+
+describe('plugin icon theme artifact prototype keys', () => {
+  it('keeps constructor and __proto__ keys as own data', () => {
+    const artifact = parsePluginIconThemeArtifact(
+      '{"schemaVersion":1,"fileNames":{"constructor":"a.svg","__proto__":"b.svg"},' +
+        '"fileExtensions":{"constructor":"c.svg"}}'
+    )
+    expect(Object.hasOwn(artifact.fileNames, 'constructor')).toBe(true)
+    expect(Object.hasOwn(artifact.fileNames, '__proto__')).toBe(true)
+    expect(Object.keys(artifact.fileNames).sort()).toEqual(['__proto__', 'constructor'])
+    expect(Object.getPrototypeOf(artifact.fileNames)).toBeNull()
+    expect(Object.entries(artifact.fileNames)).toContainEqual(['__proto__', 'b.svg'])
+    expect(Object.hasOwn(artifact.fileExtensions, 'constructor')).toBe(true)
+  })
+
+  it('accepts a file literally named __proto__ and folds its case', () => {
+    for (const key of ['__proto__', '__PROTO__']) {
+      const artifact = parsePluginIconThemeArtifact(
+        `{"schemaVersion":1,"fileNames":{"${key}":"b.svg"}}`
+      )
+      expect(Object.entries(artifact.fileNames)).toEqual([['__proto__', 'b.svg']])
+    }
+    expect(() =>
+      parsePluginIconThemeArtifact(
+        '{"schemaVersion":1,"fileNames":{"__proto__":"a.svg","__PROTO__":"b.svg"}}'
+      )
+    ).toThrow(/duplicate/)
+  })
+
+  it('rejects case-folded duplicates of prototype names', () => {
+    expect(() =>
+      parse({ schemaVersion: 1, fileNames: { constructor: 'a.svg', CONSTRUCTOR: 'b.svg' } })
+    ).toThrow(/duplicate/)
+    expect(() =>
+      parse({ schemaVersion: 1, fileExtensions: { constructor: 'a.svg', CONSTRUCTOR: 'b.svg' } })
+    ).toThrow(/duplicate/)
+  })
+
+  it('does not treat an inherited name as a duplicate of itself', () => {
+    expect(() =>
+      parse({ schemaVersion: 1, fileNames: { Constructor: 'a.svg', toString: 'b.svg' } })
+    ).not.toThrow()
+  })
+})
+
+describe('isPluginIconThemeRegistration', () => {
+  const base = {
+    id: 'plugin:samples.icons/minimal',
+    pluginKey: 'samples.icons',
+    label: 'Minimal',
+    svgs: ['<svg/>'],
+    icons: {},
+    fileExtensions: {}
+  }
+
+  it.each([
+    ['an index past the SVG list', { constructor: 1 }],
+    ['a negative index', { constructor: -1 }],
+    ['a fractional index', { constructor: 0.5 }]
+  ])('rejects %s', (_label, fileNames) => {
+    expect(isPluginIconThemeRegistration({ ...base, fileNames })).toBe(false)
+  })
+
+  it('checks the range of an own __proto__ index too', () => {
+    const fileNames = JSON.parse('{"__proto__":5}')
+    expect(isPluginIconThemeRegistration({ ...base, fileNames })).toBe(false)
+    expect(
+      isPluginIconThemeRegistration({ ...base, fileNames: JSON.parse('{"__proto__":0}') })
+    ).toBe(true)
+  })
+
+  it('accepts in-range indexes', () => {
+    expect(isPluginIconThemeRegistration({ ...base, fileNames: { constructor: 0 } })).toBe(true)
   })
 })
 

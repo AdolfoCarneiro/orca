@@ -26,13 +26,17 @@ function getExtension(filename: string): string {
   return filename.slice(lastDot + 1).toLowerCase()
 }
 
+function ownIcon(table: Record<string, LucideIcon>, key: string): LucideIcon | undefined {
+  return Object.hasOwn(table, key) ? table[key] : undefined
+}
+
 export function getFileTypeIcon(filePath: string | undefined | null): LucideIcon {
   const filename = getFilename(filePath)
   if (!filename) {
     return File
   }
   const lowerName = filename.toLowerCase()
-  const exactMatch = FILE_ICON_BY_NAME[lowerName]
+  const exactMatch = ownIcon(FILE_ICON_BY_NAME, lowerName)
   if (exactMatch) {
     return exactMatch
   }
@@ -54,8 +58,17 @@ export function getFileTypeIcon(filePath: string | undefined | null): LucideIcon
     return FileTerminal
   }
 
-  // Match names/extensions deterministically; SSH worktrees have no local OS file associations.
-  return FILE_ICON_BY_EXTENSION[getExtension(filename)] ?? File
+  // Why: filename/extension matching keeps icons deterministic for SSH worktrees
+  // where OS-native file associations are not available.
+  return ownIcon(FILE_ICON_BY_EXTENSION, getExtension(filename)) ?? File
+}
+
+function ownIconIndex(entries: Partial<Record<string, number>>, key: string): number | null {
+  if (!Object.hasOwn(entries, key)) {
+    return null
+  }
+  const index = entries[key]
+  return Number.isInteger(index) && index !== undefined && index >= 0 ? index : null
 }
 
 /** The active plugin icon theme's icon index for a path: exact name, then extension, then
@@ -69,9 +82,8 @@ export function getPluginFileTypeIconIndex(
     return null
   }
   return (
-    theme.fileNames[filename] ??
-    theme.fileExtensions[getExtension(filename)] ??
-    theme.icons.file ??
-    null
+    ownIconIndex(theme.fileNames, filename) ??
+    ownIconIndex(theme.fileExtensions, getExtension(filename)) ??
+    ownIconIndex(theme.icons, 'file')
   )
 }
