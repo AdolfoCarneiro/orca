@@ -56,7 +56,7 @@ export type MobileQuickCommandLaunch = {
 
 export function buildMobileQuickCommandLaunch(
   command: TerminalQuickCommand
-): MobileQuickCommandLaunch | null {
+): MobileQuickCommandLaunch | { error: string } | null {
   if (isTerminalAgentQuickCommand(command)) {
     if (!command.prompt.trim() || !supportsTerminalAgentQuickCommand(command.agent)) {
       return null
@@ -65,6 +65,9 @@ export function buildMobileQuickCommandLaunch(
   }
   if (!command.command.trim()) {
     return null
+  }
+  if (command.appendEnter === false && /[\r\n]/.test(command.command)) {
+    return { error: 'Mobile can insert one line at a time. Use Run for this multiline command.' }
   }
   return command.appendEnter === false
     ? {

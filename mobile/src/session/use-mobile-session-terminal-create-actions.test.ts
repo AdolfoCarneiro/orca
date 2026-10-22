@@ -100,6 +100,66 @@ describe('mobile + Codex tab creation routing', () => {
   let renderer: ReactTestRenderer | undefined
   afterEach(() => renderer?.unmount())
 
+  it('refuses multiline Insert before any RPC or selection change, while retaining single-line Insert', async () => {
+    const client = clientReturning(terminalCreateResponse(), {
+      ok: true,
+      result: { send: { accepted: true } }
+    })
+    const scope = createScope(client)
+    let actions: ReturnType<typeof useMobileSessionTerminalCreateActions> | undefined
+    function Harness() {
+      // SAFETY: this fixture supplies every ref and callback reached by terminal creation.
+      actions = useMobileSessionTerminalCreateActions(scope as never)
+      return null
+    }
+    await act(async () => {
+      renderer = create(createElement(Harness))
+    })
+    for (const newline of ['\n', '\r\n', '\r']) {
+      await act(async () => {
+        expect(
+          actions?.launchQuickCommand({
+            id: 'insert',
+            label: 'Insert',
+            command: ["printf 'INSERT_%s\\n' EXECUTED", "printf 'LAST_%s\\n' PENDING"].join(
+              newline
+            ),
+            appendEnter: false
+          })
+        ).toBe(false)
+      })
+    }
+    expect(client.sendRequest).not.toHaveBeenCalled()
+    expect(scope.setActiveHandle).not.toHaveBeenCalled()
+    expect(scope.setActiveSessionTabId).not.toHaveBeenCalled()
+    expect(scope.pendingSelectionRef.current).toBeNull()
+    expect(scope.activeHandleRef.current).toBe('existing-terminal')
+    expect(scope.creatingTerminalRef.current).toBeNull()
+    expect(scope.showToast).toHaveBeenCalledWith(
+      'Mobile can insert one line at a time. Use Run for this multiline command.',
+      3200
+    )
+
+    await act(async () => {
+      expect(
+        actions?.launchQuickCommand({
+          id: 'insert',
+          label: 'Insert',
+          command: 'printf INSERT_SINGLE_LINE',
+          appendEnter: false
+        })
+      ).toBe(true)
+    })
+    expect(client.sendRequest).toHaveBeenCalledWith(
+      'terminal.send',
+      expect.objectContaining({
+        terminal: 'terminal-1',
+        text: 'printf INSERT_SINGLE_LINE',
+        enter: false
+      })
+    )
+  })
+
   it('uses the structured agent-session path for a bare Codex launch', async () => {
     const client = clientReturning(
       { ok: true, result: { supported: true } },

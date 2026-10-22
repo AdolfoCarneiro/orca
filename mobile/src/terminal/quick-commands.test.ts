@@ -73,12 +73,12 @@ describe('mobile quick-command launch', () => {
     })
   })
 
-  it('keeps append-enter-off commands as unsubmitted terminal input', () => {
+  it('refuses multiline Insert instead of treating interior newlines as unsubmitted input', () => {
     const multiline = 'printf "first\\nsecond"\n# leave this unsubmitted'
     expect(
       buildMobileQuickCommandLaunch(command({ command: multiline, appendEnter: false }))
     ).toEqual({
-      options: { initialPrompt: multiline, enter: false, successToast: 'Command inserted' }
+      error: 'Mobile can insert one line at a time. Use Run for this multiline command.'
     })
   })
 
