@@ -108,7 +108,7 @@ export function useMobileSessionTerminalCreateActions(scope: MobileSessionAttach
       setCreateError(reason)
       // Only empty sessions show inline errors; existing tabs need toast feedback.
       triggerError()
-      showToast(options?.errorToast ?? reason, 1800)
+      showToast(reason, options?.errorToast ? 3200 : 1800)
     }
 
     try {

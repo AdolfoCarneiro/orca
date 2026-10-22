@@ -160,6 +160,47 @@ describe('mobile + Codex tab creation routing', () => {
     )
   })
 
+  it('shows the host refusal when running a quick command beside an existing terminal', async () => {
+    const reason =
+      'cmd.exe cannot safely run a multiline startup command. Save it as a .cmd file and run that file instead.'
+    const client = clientReturning({
+      ok: false,
+      error: { code: 'terminal_create_failed', message: reason }
+    })
+    const scope = createScope(client)
+    let actions: ReturnType<typeof useMobileSessionTerminalCreateActions> | undefined
+    function Harness() {
+      // SAFETY: this fixture supplies every ref and callback reached by terminal creation.
+      actions = useMobileSessionTerminalCreateActions(scope as never)
+      return null
+    }
+    await act(async () => {
+      renderer = create(createElement(Harness))
+    })
+    await act(async () => {
+      expect(
+        actions?.launchQuickCommand({
+          id: 'run',
+          label: 'Read answer',
+          command: 'set /p answer=\necho %answer%',
+          appendEnter: true
+        })
+      ).toBe(true)
+    })
+
+    expect(client.sendRequest).toHaveBeenCalledTimes(1)
+    expect(client.sendRequest).toHaveBeenCalledWith(
+      'session.tabs.createTerminal',
+      expect.objectContaining({ command: 'set /p answer=\necho %answer%' })
+    )
+    expect(scope.showToast).toHaveBeenCalledWith(reason, 3200)
+    expect(scope.setCreateError).toHaveBeenLastCalledWith(reason)
+    expect(scope.setActiveHandle).not.toHaveBeenCalled()
+    expect(scope.setActiveSessionTabId).not.toHaveBeenCalled()
+    expect(scope.activeHandleRef.current).toBe('existing-terminal')
+    expect(scope.creatingTerminalRef.current).toBeNull()
+  })
+
   it('uses the structured agent-session path for a bare Codex launch', async () => {
     const client = clientReturning(
       { ok: true, result: { supported: true } },
