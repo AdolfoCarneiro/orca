@@ -11856,7 +11856,6 @@
         },
         "pluginInstallAction": {
           "installed": "{{value0}} installé",
-          "useNow": "Utiliser maintenant",
           "tryIt": "Essayer",
           "mismatch": "Le téléchargement ne correspondait pas à ce que le catalogue a publié ; rien n’a été installé.",
           "catalogChanged": "Le catalogue a changé depuis l’ouverture de cette page. Actualisez-le, puis réessayez.",

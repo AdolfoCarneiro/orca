@@ -11679,7 +11679,6 @@
         },
         "pluginInstallAction": {
           "installed": "{{value0}} instalado",
-          "useNow": "Usar ahora",
           "tryIt": "Probar",
           "mismatch": "La descarga no coincidió con lo que publicó el catálogo, así que no se instaló nada.",
           "catalogChanged": "El catálogo cambió desde que se abrió esta página. Actualízalo y vuelve a intentarlo.",

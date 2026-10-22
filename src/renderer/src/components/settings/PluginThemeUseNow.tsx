@@ -1,3 +1,4 @@
+import { SquareTerminal } from 'lucide-react'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { translate } from '@/i18n/i18n'
 import { withTerminalPluginPalettes } from '@/lib/terminal-plugin-palettes'
@@ -120,6 +121,8 @@ export function PluginThemeUseNow({
               )
             }
           >
+            {/* Why an icon: a plugin's terminal themes often share their app themes' names. */}
+            <SquareTerminal aria-hidden="true" />
             {theme.label}
           </Button>
         )

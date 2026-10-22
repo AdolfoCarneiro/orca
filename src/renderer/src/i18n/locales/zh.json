@@ -11405,7 +11405,6 @@
         },
         "pluginInstallAction": {
           "installed": "已安装 {{value0}}",
-          "useNow": "立即使用",
           "tryIt": "试一试",
           "mismatch": "下载内容与目录发布的内容不一致，因此未安装任何内容。",
           "catalogChanged": "打开此页面后目录已更改。请刷新后重试。",

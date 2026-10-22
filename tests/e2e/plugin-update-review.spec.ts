@@ -168,7 +168,7 @@ test('confirms card removal and shares single/bulk update review without strandi
       const added = page.getByRole('heading', { name: /^Adds to Orca/ })
       const beforeInstall = await added.boundingBox()
       await page.getByRole('button', { name: /^Install / }).click()
-      const label = id === PLUGINS[0] ? 'Review Icons' : 'Review Terminal'
+      const label = `Use now: ${id === PLUGINS[0] ? 'Review Icons' : 'Review Terminal'}`
       const use = page.getByRole('button', { name: label, exact: true })
       await expect(use).toBeVisible()
       const afterInstall = await added.boundingBox()

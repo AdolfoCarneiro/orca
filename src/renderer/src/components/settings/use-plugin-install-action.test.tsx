@@ -109,49 +109,17 @@ describe('usePluginInstallAction', () => {
     expect(hook.current?.phaseOf(listing.pluginKey)).toBeNull()
   })
 
-  it('offers a theme action after a successful card install', async () => {
+  it('offers Try it after a successful card install', async () => {
     const { hook, onTryPlugin } = setup()
     await act(async () => hook.current?.install(listing))
     expect(toast.success).toHaveBeenCalledWith('Dusk installed', {
-      action: { label: 'Use now', onClick: expect.any(Function) }
+      action: { label: 'Try it', onClick: expect.any(Function) }
     })
     const options = vi.mocked(toast.success).mock.calls[0]?.[1]
     if (options?.action && typeof options.action === 'object' && 'onClick' in options.action) {
       Reflect.apply(options.action.onClick, null, [])
     }
     expect(onTryPlugin).toHaveBeenCalledWith(listing.pluginKey)
-  })
-
-  it('offers Try it for non-theme releases', async () => {
-    const { hook, fetchPreview } = setup()
-    const syntaxListing = {
-      ...listing,
-      release: { ...listing.release!, types: ['syntax' as const] }
-    }
-    fetchPreview.mockResolvedValue({
-      ok: true,
-      preview: {
-        ...preview,
-        manifest: pluginManifestSchema.parse({
-          ...preview.manifest,
-          contributes: {
-            syntaxes: [
-              {
-                id: 'gleam',
-                label: 'Gleam',
-                extensions: ['.gleam'],
-                scopeName: 'source.gleam',
-                path: 'grammar.json'
-              }
-            ]
-          }
-        })
-      }
-    })
-    await act(async () => hook.current?.install(syntaxListing))
-    expect(toast.success).toHaveBeenCalledWith('Dusk installed', {
-      action: { label: 'Try it', onClick: expect.any(Function) }
-    })
   })
 
   it('approves exactly the fingerprint the page showed for a plugin that runs code', async () => {

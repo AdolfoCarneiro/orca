@@ -13066,7 +13066,6 @@
         },
         "pluginInstallAction": {
           "installed": "{{value0}} installed",
-          "useNow": "Use now",
           "tryIt": "Try it",
           "mismatch": "The download didn’t match what the catalog published, so nothing was installed.",
           "catalogChanged": "The catalog changed since this page opened. Refresh it, then try again.",

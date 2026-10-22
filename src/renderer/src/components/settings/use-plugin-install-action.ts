@@ -152,25 +152,16 @@ export function usePluginInstallAction({
         await onInstalled(pluginKey)
         setPhase(pluginKey, null)
         if (onTryPlugin) {
-          const contributions = preview.manifest.contributes
-          const themed =
-            contributions.themes.length +
-              contributions.iconThemes.length +
-              contributions.terminalThemes.length >
-            0
+          // Why "Try it" for themes too: the action opens the page, where Use now applies them.
           toast.success(
             translate(
               'auto.components.settings.pluginInstallAction.installed',
               '{{value0}} installed',
-              {
-                value0: preview.manifest.name
-              }
+              { value0: preview.manifest.name }
             ),
             {
               action: {
-                label: themed
-                  ? translate('auto.components.settings.pluginInstallAction.useNow', 'Use now')
-                  : translate('auto.components.settings.pluginInstallAction.tryIt', 'Try it'),
+                label: translate('auto.components.settings.pluginInstallAction.tryIt', 'Try it'),
                 onClick: () => onTryPlugin(pluginKey)
               }
             }
