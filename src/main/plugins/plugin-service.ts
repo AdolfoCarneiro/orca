@@ -3,9 +3,9 @@ import {
   capabilityKinds,
   type PluginCapabilityKind
 } from '../../shared/plugins/plugin-capabilities'
-import {
-  getPluginActivationState,
-  type PluginConsentLists
+import type {
+  PluginActivationState,
+  PluginConsentLists
 } from '../../shared/plugins/approval/plugin-consent-state'
 import type { PluginPanelActionOutcome } from '../../shared/plugins/plugin-panel-bridge'
 import { createPluginExtensionRegistry } from '../../shared/plugins/plugin-extension-registry'
@@ -32,7 +32,11 @@ import {
   isApprovedWorkerSpec
 } from './workers/plugin-worker-reconciliation'
 import type { PluginRunState } from './workers/plugin-supervisor'
-import { isPluginApproved, snapshotPluginConsentLists } from './plugin-activation-policy'
+import {
+  isPluginApproved,
+  livePluginActivationState,
+  snapshotPluginConsentLists
+} from './plugin-activation-policy'
 import { PluginContentPackRegistry } from './contributions/plugin-content-pack-registry'
 import type { PluginServiceOptions } from './plugin-service-options'
 import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
@@ -40,10 +44,6 @@ import { waitForPluginRefreshSettlement } from './plugin-refresh-settlement'
 import { assertPluginWorkerCommand } from './plugin-command-invocation'
 import { deliverPluginEvent } from './plugin-event-delivery'
 import { PluginInstallationState } from './installation/plugin-installation-state'
-
-export type { PluginRuntimeDelegate } from './workers/plugin-host-service-bindings'
-export type { PluginLogLine } from './plugin-log-buffer'
-export type { PluginServiceOptions } from './plugin-service-options'
 
 export class PluginService {
   readonly options: PluginServiceOptions
@@ -134,9 +134,8 @@ export class PluginService {
     const enabled = this.options.isPluginSystemEnabled()
     const devPaths = this.options.getDevPluginPaths()
     const consentLists = snapshotPluginConsentLists(this.options)
-    const refresh = this.refreshChain.then(() =>
-      this.performRefresh(enabled, devPaths, consentLists)
-    )
+    const run = (): Promise<void> => this.performRefresh(enabled, devPaths, consentLists)
+    const refresh = this.refreshChain.then(run)
     this.refreshChain = refresh.catch(() => undefined)
     return refresh
   }
@@ -200,15 +199,8 @@ export class PluginService {
     return this.installed.findValid(pluginKey)
   }
 
-  activationState(plugin: ValidDiscoveredPlugin): ReturnType<typeof getPluginActivationState> {
-    // Feature-off revokes authority immediately, before asynchronous reconciliation.
-    if (!this.options.isPluginSystemEnabled()) {
-      return 'disabled'
-    }
-    return getPluginActivationState(plugin.pluginKey, plugin.consentFingerprint, {
-      pluginConsents: this.options.getPluginConsents(),
-      disabledPlugins: this.options.getDisabledPlugins()
-    })
+  activationState(plugin: ValidDiscoveredPlugin): PluginActivationState {
+    return livePluginActivationState(this.options, plugin)
   }
 
   private canStartPluginWork(plugin: ValidDiscoveredPlugin, allowRefreshPause = false): boolean {

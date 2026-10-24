@@ -9,7 +9,9 @@ import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { PluginsSettingsSection } from './PluginsSettingsSection'
 import { applyPluginThemesNow } from '../plugins/state/plugin-theme-apply'
 
-vi.mock('../plugins/state/plugin-theme-apply', () => ({ applyPluginThemesNow: vi.fn().mockResolvedValue(false) }))
+vi.mock('../plugins/state/plugin-theme-apply', () => ({
+  applyPluginThemesNow: vi.fn().mockResolvedValue(false)
+}))
 
 vi.mock('./SettingsSection', () => ({
   SettingsSection: ({

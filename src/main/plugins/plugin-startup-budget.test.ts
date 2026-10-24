@@ -10,7 +10,8 @@ import {
   qualifiedPluginKey,
   type PluginManifest
 } from '../../shared/plugins/manifest/plugin-manifest'
-import { PluginService, type PluginServiceOptions } from './plugin-service'
+import { PluginService } from './plugin-service'
+import type { PluginServiceOptions } from './plugin-service-options'
 import type { PluginWorkerFactory } from './workers/plugin-worker-manager'
 
 const PLUGIN_COUNT = 20
