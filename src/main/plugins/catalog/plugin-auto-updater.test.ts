@@ -5,6 +5,7 @@ import {
   type PluginManifest
 } from '../../../shared/plugins/manifest/plugin-manifest'
 import {
+  isPluginAutoUpdateOn,
   normalizePluginUpdatePolicySettings,
   type PluginAutoUpdateState
 } from '../../../shared/plugins/plugin-update-policy'
@@ -208,13 +209,19 @@ describe('plugin auto-update', () => {
     }
   })
 
-  it('keeps the policy a bounded union with auto as the default', () => {
+  it('keeps the policy a bounded union with auto as the default and unknown values manual', () => {
     expect(normalizePluginUpdatePolicySettings({})).toEqual({})
+    expect(isPluginAutoUpdateOn({})).toBe(true)
+    expect(
+      isPluginAutoUpdateOn(
+        normalizePluginUpdatePolicySettings({ pluginUpdatePolicy: 'official-only' })
+      )
+    ).toBe(false)
     expect(normalizePluginUpdatePolicySettings({ pluginUpdatePolicy: 'manual' })).toEqual({
       pluginUpdatePolicy: 'manual'
     })
-    expect(normalizePluginUpdatePolicySettings({ pluginUpdatePolicy: 'weird' })).toEqual({
-      pluginUpdatePolicy: 'auto'
+    expect(normalizePluginUpdatePolicySettings({ pluginUpdatePolicy: 'official-only' })).toEqual({
+      pluginUpdatePolicy: 'manual'
     })
   })
 })

@@ -9,7 +9,8 @@ export type PluginUpdatePolicySettings = {
 }
 
 export function isPluginAutoUpdateOn(settings: PluginUpdatePolicySettings): boolean {
-  return settings.pluginUpdatePolicy !== 'manual'
+  const policy = settings.pluginUpdatePolicy
+  return policy === undefined || policy === 'auto'
 }
 
 /** Bounds the policy on every write and load; only a key present in `input` returns. */
@@ -20,7 +21,8 @@ export function normalizePluginUpdatePolicySettings(
     return {}
   }
   const value = input.pluginUpdatePolicy
-  return { pluginUpdatePolicy: value === 'manual' ? 'manual' : 'auto' }
+  // Why manual: a policy from a newer Orca is likely stricter, so never widen it to auto.
+  return { pluginUpdatePolicy: value === undefined || value === 'auto' ? 'auto' : 'manual' }
 }
 
 /** What the last automatic pass did, by plugin key → version. */
