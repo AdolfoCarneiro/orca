@@ -1,6 +1,11 @@
 import { isQualifiedPluginKey } from '../manifest/plugin-manifest'
 
-/** Consent binds qualified key and fingerprint (capabilities plus trusted worker tier); either trust change requires reapproval. */
+/**
+ * Consent + enablement state derivation. Consent is recorded against the
+ * (qualified plugin key → consent fingerprint) pair, never the bare id. The
+ * fingerprint covers capabilities and the execution profile, so
+ * crossing either trust boundary requires approval before plugin code runs.
+ */
 
 export type PluginActivationState = 'approved' | 'pending' | 'disabled'
 
