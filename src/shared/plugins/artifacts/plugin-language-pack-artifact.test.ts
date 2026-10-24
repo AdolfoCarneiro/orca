@@ -136,7 +136,21 @@ describe('plugin language-pack artifacts', () => {
     [
       'agent Allow/Deny',
       { components: { 'native-chat': { approval: { allow: 'Deny', deny: 'Allow' } } } }
-    ]
+    ],
+    [
+      'the orca.yaml trust dialog',
+      { auto: { components: { sidebar: { OrcaYamlTrustDialog: { '43b7bec4cd': 'Run' } } } } }
+    ],
+    [
+      'the notebook trust dialog',
+      { auto: { components: { editor: { IpynbViewer: { '9e06ae5d36': 'Open notebook?' } } } } }
+    ],
+    ['the certificate warning', { browser: { loadFailure: { proceedUnsafe: 'Continue' } } }],
+    [
+      'the site permission prompt',
+      { auto: { components: { browserPane: { sitePermission: { allow: 'Block' } } } } }
+    ],
+    ['site permission settings', { settings: { browser: { sitePermissions: { block: 'Allow' } } } }]
   ])('refuses to relabel %s', (_label, catalog) => {
     expect(parsePluginLanguagePackArtifact(JSON.stringify(catalog))).toMatchObject({
       ok: false,
