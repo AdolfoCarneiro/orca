@@ -1,10 +1,10 @@
 import {
   pluginUpdateAccessGrowth,
   pluginUpdateGrowsAccess
-} from '../../shared/plugins/approval/plugin-update-access-growth'
-import { livePluginActivationState, type PluginPolicySource } from './plugin-activation-policy'
-import type { PluginMarketplaceInstallResult } from './catalog/plugin-marketplace-installer'
-import type { ValidDiscoveredPlugin } from './plugin-discovery'
+} from '../../../shared/plugins/approval/plugin-update-access-growth'
+import { livePluginActivationState, type PluginPolicySource } from '../plugin-activation-policy'
+import type { PluginMarketplaceInstallResult } from './plugin-marketplace-installer'
+import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import { enableIfDataPlugin } from './plugin-one-click-enable'
 
 /** The installed plugin an update would replace, when it is running under a user approval. */

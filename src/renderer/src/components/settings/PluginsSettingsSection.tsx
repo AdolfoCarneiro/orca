@@ -1,4 +1,4 @@
-import { isPluginAutoUpdateOn } from '../../../../shared/plugins/plugin-update-policy'
+import { isPluginAutoUpdateOn } from '../../../../shared/plugins/catalog/plugin-update-policy'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { PluginHostInstallSource, PluginHostListEntry } from '../../../../preload/api-types'

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { toast } from 'sonner'
 import type { PluginAutoUpdateEvent } from '../../../preload/api-types'
-import type { PluginAutoUpdateState } from '../../../shared/plugins/plugin-update-policy'
+import type { PluginAutoUpdateState } from '../../../shared/plugins/catalog/plugin-update-policy'
 import { translate } from '@/i18n/i18n'
 
 /** What automatic plugin updates last did, mirrored from main. */

@@ -13,9 +13,12 @@ export function isPluginAutoUpdateOn(settings: PluginUpdatePolicySettings): bool
   return policy === undefined || policy === 'auto'
 }
 
+/** The unvalidated policy key as a settings write or load carries it. */
+export type PluginUpdatePolicySettingsInput = { pluginUpdatePolicy?: unknown }
+
 /** Bounds the policy on every write and load; only a key present in `input` returns. */
 export function normalizePluginUpdatePolicySettings(
-  input: object
+  input: PluginUpdatePolicySettingsInput
 ): Partial<PluginUpdatePolicySettings> {
   if (!('pluginUpdatePolicy' in input)) {
     return {}

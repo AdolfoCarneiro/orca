@@ -8,7 +8,7 @@ import {
   isPluginAutoUpdateOn,
   normalizePluginUpdatePolicySettings,
   type PluginAutoUpdateState
-} from '../../../shared/plugins/plugin-update-policy'
+} from '../../../shared/plugins/catalog/plugin-update-policy'
 import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import { PLUGIN_AUTO_UPDATE_HOLD_BACK_MS, PluginAutoUpdater } from './plugin-auto-updater'
 

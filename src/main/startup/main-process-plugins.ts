@@ -10,7 +10,7 @@ import { PluginMarketplaceService } from '../plugins/catalog/plugin-marketplace-
 import { PluginMarketplaceInstaller } from '../plugins/catalog/plugin-marketplace-installer'
 import { PluginAutoUpdater } from '../plugins/catalog/plugin-auto-updater'
 import { PluginReleaseFirstSeenStore } from '../plugins/catalog/plugin-release-first-seen-store'
-import { isPluginAutoUpdateOn } from '../../shared/plugins/plugin-update-policy'
+import { isPluginAutoUpdateOn } from '../../shared/plugins/catalog/plugin-update-policy'
 import { PluginBundledBootstrapCoordinator } from '../plugins/plugin-bundled-bootstrap-coordinator'
 import { getPluginsDataDir } from '../plugins/plugin-discovery'
 import { resolveBundledPluginRoot } from '../plugins/plugin-bundled-bootstrap'

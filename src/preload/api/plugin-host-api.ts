@@ -1,6 +1,6 @@
 import type { PluginHostImages } from '../../shared/plugins/plugin-image-url'
 import type { PluginUpdateAccessGrowth } from '../../shared/plugins/approval/plugin-update-access-growth'
-import type { PluginAutoUpdateState } from '../../shared/plugins/plugin-update-policy'
+import type { PluginAutoUpdateState } from '../../shared/plugins/catalog/plugin-update-policy'
 import type { PluginExecutionProfile } from '../../shared/plugins/plugin-execution-profile'
 import type {
   PluginIconThemeMetadata,

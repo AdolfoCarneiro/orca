@@ -1,4 +1,4 @@
-import { isPluginAutoUpdateOn } from '../../../../../shared/plugins/plugin-update-policy'
+import { isPluginAutoUpdateOn } from '../../../../../shared/plugins/catalog/plugin-update-policy'
 import { useCallback, useState, type MutableRefObject } from 'react'
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
 import { translate } from '@/i18n/i18n'

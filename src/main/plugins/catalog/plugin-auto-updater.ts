@@ -3,7 +3,7 @@ import {
   pluginUpdateAccessGrowth,
   pluginUpdateGrowsAccess
 } from '../../../shared/plugins/approval/plugin-update-access-growth'
-import type { PluginAutoUpdateState } from '../../../shared/plugins/plugin-update-policy'
+import type { PluginAutoUpdateState } from '../../../shared/plugins/catalog/plugin-update-policy'
 import {
   isInvalidDiscoveredPlugin,
   type DiscoveredPlugin,
@@ -13,7 +13,7 @@ import {
   installCatalogReleaseWithApproval,
   readApprovedPredecessor,
   type PluginCatalogInstallOutcome
-} from '../plugin-update-approval'
+} from './plugin-update-approval'
 import type { PluginPolicySource } from '../plugin-activation-policy'
 import type { PluginMarketplaceInstaller } from './plugin-marketplace-installer'
 import type { PluginReleaseFirstSeenStore } from './plugin-release-first-seen-store'

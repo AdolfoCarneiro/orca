@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fingerprintPluginConsent } from '../../shared/plugins/approval/plugin-consent-fingerprint'
+import { fingerprintPluginConsent } from '../../../shared/plugins/approval/plugin-consent-fingerprint'
 import {
   pluginManifestSchema,
   type PluginManifest
-} from '../../shared/plugins/manifest/plugin-manifest'
-import type { ValidDiscoveredPlugin } from './plugin-discovery'
+} from '../../../shared/plugins/manifest/plugin-manifest'
+import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import { installCatalogReleaseWithApproval } from './plugin-update-approval'
 
 const KEY = 'samples.demo'

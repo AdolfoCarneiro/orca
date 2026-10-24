@@ -10,7 +10,7 @@ import {
 } from '../../../../../shared/plugins/catalog/plugin-catalog-release'
 import { compareAppVersions } from '../../../../../shared/app-version'
 import { pluginDisplayNameFromKey } from './plugin-display-name'
-import type { PluginAutoUpdateState } from '../../../../../shared/plugins/plugin-update-policy'
+import type { PluginAutoUpdateState } from '../../../../../shared/plugins/catalog/plugin-update-policy'
 
 /** One plugin as the list and detail page show it, whether installed, listed, or both. */
 export type PluginListEntry = {
