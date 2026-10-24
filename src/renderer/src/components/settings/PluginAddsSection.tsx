@@ -1,4 +1,5 @@
 import {
+  Blocks,
   Bot,
   Command,
   FileCode,
@@ -7,7 +8,6 @@ import {
   Palette,
   PanelRight,
   Server,
-  Shapes,
   SquareTerminal
 } from 'lucide-react'
 import type {
@@ -80,7 +80,7 @@ function catalogTypeLabel(type: PluginCatalogType): string {
 const CONTRIBUTION_ICON: Record<PluginContributionKind, React.ReactNode> = {
   'app-theme': <Palette />,
   'terminal-theme': <SquareTerminal />,
-  'icon-theme': <Shapes />,
+  'icon-theme': <Blocks />,
   syntax: <Highlighter />,
   language: <Languages />,
   panel: <PanelRight />,
