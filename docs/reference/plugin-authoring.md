@@ -24,6 +24,8 @@ asked to approve:
   are enabled.
 - `sandboxed-ui`: panels, in a sandboxed frame that can only call the host methods marked
   "Panels: yes".
+  Orca's colors reach panel CSS as `--orca-background`, `--orca-foreground`, `--orca-primary`
+  and the rest of its panel token set, so they never collide with a panel's own variables.
 - `trusted-worker`: `main` runs in a separate Node process and can call every host method its
   `capabilities` allow.
 
