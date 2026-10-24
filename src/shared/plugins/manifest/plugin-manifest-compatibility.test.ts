@@ -18,6 +18,12 @@ describe('pluginManifestCompatibilityError', () => {
     )
   })
 
+  it('reads the leading floor of a range grammar it does not know', () => {
+    expect(pluginManifestCompatibilityError({ engines: { orca: '>=9.0.0 <10' } }, '1.4.0')).toBe(
+      'requires Orca >=9.0.0 <10 (this is 1.4.0)'
+    )
+  })
+
   it('leaves ordinary mistakes to the schema', () => {
     expect(pluginManifestCompatibilityError({ engines: { orca: '>=1.0.0' } }, '1.4.0')).toBeNull()
     expect(pluginManifestCompatibilityError({ engines: { orca: '^9.0.0' } }, '1.4.0')).toBeNull()
