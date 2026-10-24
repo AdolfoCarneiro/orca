@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { act } from 'react'
+import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -12,7 +12,7 @@ import { usePluginInstallAction } from './use-plugin-install-action'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 vi.mock('./plugin-theme-apply', () => ({ applyPluginThemesNow: vi.fn() }))
-import { toast } from 'sonner'
+import { toast, type ExternalToast } from 'sonner'
 import { applyPluginThemesNow } from './plugin-theme-apply'
 
 const listing: PluginMarketplaceHostListing = {
@@ -99,6 +99,19 @@ beforeEach(() => {
   })
 })
 
+/** Clicks a sonner toast action through a real button, as the toast would. */
+function clickToastAction(options: ExternalToast | undefined): void {
+  const action = options?.action
+  if (!action || typeof action !== 'object' || !('onClick' in action)) {
+    return
+  }
+  const container = document.createElement('div')
+  const root = createRoot(container)
+  act(() => root.render(createElement('button', { onClick: action.onClick })))
+  act(() => container.querySelector('button')?.click())
+  act(() => root.unmount())
+}
+
 describe('usePluginInstallAction', () => {
   it('asks main to turn on a content-only release and leaves nothing pending after', async () => {
     const { hook, onInstalled } = setup()
@@ -138,10 +151,7 @@ describe('usePluginInstallAction', () => {
     expect(toast.success).toHaveBeenCalledWith('Dusk installed', {
       action: { label: 'Try it', onClick: expect.any(Function) }
     })
-    const options = vi.mocked(toast.success).mock.calls[0]?.[1]
-    if (options?.action && typeof options.action === 'object' && 'onClick' in options.action) {
-      Reflect.apply(options.action.onClick, null, [])
-    }
+    clickToastAction(vi.mocked(toast.success).mock.calls[0]?.[1])
     expect(onTryPlugin).toHaveBeenCalledWith(listing.pluginKey)
   })
 

@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+import { act, createElement } from 'react'
+import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
@@ -12,7 +14,7 @@ vi.mock('@/lib/document-theme', async (original) => ({
   ...(await original<typeof DocumentTheme>()),
   applyDocumentTheme: mocks.applyDocumentTheme
 }))
-import { toast } from 'sonner'
+import { toast, type ExternalToast } from 'sonner'
 
 const pluginKey = 'acme.dusk'
 const appTheme = (name: string, base: 'dark' | 'light') => ({
@@ -42,11 +44,21 @@ function installApi(lists: { themes?: unknown[]; icons?: unknown[]; terminals?: 
   })
 }
 
-function switchBack(): void {
-  const options = vi.mocked(toast.success).mock.calls.at(-1)?.[1]
-  if (options?.action && typeof options.action === 'object' && 'onClick' in options.action) {
-    Reflect.apply(options.action.onClick, null, [])
+/** Clicks a sonner toast action through a real button, as the toast would. */
+function clickToastAction(options: ExternalToast | undefined): void {
+  const action = options?.action
+  if (!action || typeof action !== 'object' || !('onClick' in action)) {
+    return
   }
+  const container = document.createElement('div')
+  const root = createRoot(container)
+  act(() => root.render(createElement('button', { onClick: action.onClick })))
+  act(() => container.querySelector('button')?.click())
+  act(() => root.unmount())
+}
+
+function switchBack(): void {
+  clickToastAction(vi.mocked(toast.success).mock.calls.at(-1)?.[1])
 }
 
 beforeEach(() => {

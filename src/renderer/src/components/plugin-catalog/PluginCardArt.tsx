@@ -32,13 +32,19 @@ function hashKey(key: string): number {
   return hash
 }
 
+// Why two: a theme pair shows its dark and light palettes side by side.
+const THEME_ART_SLOTS = ['first', 'second'] as const
+
 function ThemeArt({ palettes }: { palettes: readonly PluginArtPalette[] }): React.JSX.Element {
   return (
     <div className="absolute inset-0 flex">
-      {palettes.slice(0, 2).map((palette, index) => (
+      {THEME_ART_SLOTS.flatMap((slot, index) => {
+        const palette = palettes[index]
+        return palette ? [{ slot, palette }] : []
+      }).map(({ slot, palette }) => (
         // Why inline colour: these are the plugin's own theme values, painted as its picture.
         <div
-          key={index}
+          key={slot}
           className="relative flex-1 overflow-hidden"
           style={{ background: palette.background }}
         >
@@ -98,12 +104,19 @@ function SyntaxArt({ fileType }: { fileType: string | null }): React.JSX.Element
 }
 
 function IconThemeArt(): React.JSX.Element {
-  const glyphs = [Folder, FileCode, FileJson, FileText, Image, File]
+  const glyphs = [
+    { name: 'folder', Glyph: Folder },
+    { name: 'code', Glyph: FileCode },
+    { name: 'json', Glyph: FileJson },
+    { name: 'text', Glyph: FileText },
+    { name: 'image', Glyph: Image },
+    { name: 'file', Glyph: File }
+  ]
   return (
     <div className="absolute inset-0 grid grid-cols-3 place-content-center place-items-center gap-3 px-[22%]">
-      {glyphs.map((Glyph, index) => (
+      {glyphs.map(({ name, Glyph }, index) => (
         <span
-          key={index}
+          key={name}
           className="flex size-9 items-center justify-center rounded-lg border border-border bg-background shadow-xs"
         >
           <Glyph className="size-4" style={{ color: ART_INKS[index % ART_INKS.length] }} />
