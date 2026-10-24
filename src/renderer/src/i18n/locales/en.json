@@ -11676,12 +11676,12 @@
           "enable": "Enable plugin",
           "capability": {
             "workspaceRead": "Read the name, branch, and terminal list of your focused workspace, and get notified when workspaces are created or removed",
-            "terminalSend": "Type text into a terminal you can see (always a specific terminal)",
             "notificationsShow": "Show desktop notifications labeled with the plugin name",
             "storage": "Store data in the plugin's own storage folder",
             "secrets": "Store and read secrets in the plugin's own encrypted file",
             "settingsOwn": "Read and change the plugin's own settings",
-            "agentsRead": "Get notified when agent status changes"
+            "agentsRead": "Get notified when agent status changes",
+            "terminalRun": "Type and run commands in your terminals, local and SSH"
           },
           "decisionFailed": "Could not save the permission decision. Try again."
         },

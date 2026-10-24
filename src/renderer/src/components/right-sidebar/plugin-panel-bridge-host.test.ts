@@ -22,14 +22,14 @@ const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 
 const VALID_DATA = {
   type: 'orca-panel-action',
   requestId: 'req-1',
-  action: 'terminal.sendText',
-  params: { terminalId: 'term-1', text: '/model haiku', enter: true }
+  action: 'notifications.show',
+  params: { title: 'hi' }
 }
 const SESSION_TOKEN = 's'.repeat(43)
 
 function createHandler(
   panelWindow: FakePanelWindow,
-  outcome: PluginPanelActionOutcome = { ok: true, value: { accepted: true } }
+  outcome: PluginPanelActionOutcome = { ok: true, value: { delivered: true } }
 ): { handler: (event: MessageEvent) => void; callPanelAction: ReturnType<typeof vi.fn> } {
   const callPanelAction = vi.fn().mockResolvedValue(outcome)
   const handler = createPanelBridgeMessageHandler({
@@ -50,15 +50,15 @@ describe('createPanelBridgeMessageHandler', () => {
 
     expect(callPanelAction).toHaveBeenCalledWith({
       sessionToken: SESSION_TOKEN,
-      action: 'terminal.sendText',
-      params: { terminalId: 'term-1', text: '/model haiku', enter: true }
+      action: 'notifications.show',
+      params: { title: 'hi' }
     })
     expect(panelWindow.postMessage).toHaveBeenCalledWith(
       {
         type: 'orca-panel-action-result',
         requestId: 'req-1',
         ok: true,
-        value: { accepted: true }
+        value: { delivered: true }
       },
       '*'
     )
@@ -174,7 +174,7 @@ describe('createPanelBridgeMessageHandler', () => {
     const { handler } = createHandler(panelWindow, {
       ok: false,
       code: 'capability_denied',
-      error: 'plugin does not have the "terminal.sendText" permission'
+      error: 'plugin does not have the "notifications.show" permission'
     })
 
     handler(messageEvent(VALID_DATA, panelWindow))
@@ -186,7 +186,7 @@ describe('createPanelBridgeMessageHandler', () => {
         requestId: 'req-1',
         ok: false,
         errorCode: 'capability_denied',
-        error: 'plugin does not have the "terminal.sendText" permission'
+        error: 'plugin does not have the "notifications.show" permission'
       },
       '*'
     )

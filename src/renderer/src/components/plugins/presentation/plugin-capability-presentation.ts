@@ -14,8 +14,8 @@ export function pluginCapabilityDescription(kind: string, fallback: string): str
       )
     case 'terminal:send':
       return translate(
-        'auto.components.settings.PluginConsentDialog.capability.terminalSend',
-        'Type text into a terminal you can see (always a specific terminal)'
+        'auto.components.settings.PluginConsentDialog.capability.terminalRun',
+        'Type and run commands in your terminals, local and SSH'
       )
     case 'notifications:show':
       return translate(

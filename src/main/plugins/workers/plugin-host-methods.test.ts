@@ -152,12 +152,29 @@ async function sendTerminalText(
     pluginId: 'samples.demo',
     method: 'terminal.sendText',
     params: { terminalId, text: 'echo hi', enter: true },
-    viaPanel: true,
+    viaPanel: false,
     grantedCapabilities: ['terminal:send'],
     services,
     audit: { record: vi.fn().mockResolvedValue(undefined) }
   })
 }
+
+describe('terminal.sendText panel surface', () => {
+  it('refuses a sandboxed panel even with terminal:send granted', async () => {
+    const { delegate, services } = createTerminalHarness(['term-1'])
+    const outcome = await executePluginHostCall({
+      pluginId: 'orca-samples.demo',
+      method: 'terminal.sendText',
+      params: { terminalId: 'term-1', text: 'echo hi', enter: true },
+      viaPanel: true,
+      grantedCapabilities: ['terminal:send'],
+      services,
+      audit: { record: vi.fn().mockResolvedValue(undefined) }
+    })
+    expect(outcome).toMatchObject({ ok: false, code: 'panel_forbidden' })
+    expect(delegate.sendTerminal).not.toHaveBeenCalled()
+  })
+})
 
 describe('terminal.sendText explicit worktree routing', () => {
   it('performs one bounded list and zero sends when the terminal is outside the worktree', async () => {

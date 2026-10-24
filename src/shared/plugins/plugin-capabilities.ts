@@ -59,7 +59,7 @@ export const PLUGIN_CAPABILITY_DESCRIPTIONS: Record<PluginCapabilityKind, string
   'workspace:read':
     'Read the name, branch, and terminal list of your focused workspace, and get notified when workspaces are created or removed',
   'agents:read': 'Get notified when agent status changes',
-  'terminal:send': 'Type text into a terminal you can see (always a specific terminal)',
+  'terminal:send': 'Type and run commands in your terminals, local and SSH',
   'notifications:show': 'Show desktop notifications labeled with the plugin name',
   'storage:own': "Store data in the plugin's own storage folder",
   'secrets:own': "Store and read secrets in the plugin's own encrypted file",

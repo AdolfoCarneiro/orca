@@ -132,7 +132,8 @@ export const PLUGIN_HOST_API: readonly PluginHostMethodSpec[] = [
     scope: 'explicit-terminal',
     capability: 'terminal:send',
     mutation: true,
-    panel: true,
+    // Why: text plus Enter runs shell commands (local or SSH), so only full-access workers get it.
+    panel: false,
     params: terminalSendTextParams,
     result: terminalSendTextResult
   }),

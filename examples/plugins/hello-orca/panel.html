@@ -27,10 +27,6 @@
         cursor: pointer;
         font: inherit;
       }
-      select {
-        margin: 6px 0;
-        max-width: 100%;
-      }
       .status {
         margin-top: 10px;
         min-height: 1.4em;
@@ -43,8 +39,6 @@
     <h1>Hello Orca 👋</h1>
     <p>Panel + worker command + events, gated by consent.</p>
     <button id="ctx">Read workspace context</button>
-    <select id="terms" hidden></select>
-    <button id="send" hidden>Type "echo hi from plugin" into selected terminal</button>
     <button id="notify">Show a notification</button>
     <p class="status" id="status"></p>
     <script>
@@ -52,7 +46,6 @@
       var seq = 0
       var pending = new Map()
       var statusEl = document.getElementById('status')
-      var termsEl = document.getElementById('terms')
 
       function call(action, params) {
         return new Promise(function (resolve) {
@@ -87,32 +80,14 @@
             statusEl.textContent = 'No workspace is focused.'
             return
           }
-          statusEl.textContent = result.value.displayName + ' on branch ' + result.value.branch
-          termsEl.innerHTML = ''
-          result.value.terminals.forEach(function (terminal, index) {
-            var option = document.createElement('option')
-            // Terminal ids are opaque handles; show people a position instead.
-            option.value = terminal.id
-            option.textContent = 'Terminal ' + (index + 1)
-            termsEl.appendChild(option)
-          })
-          termsEl.hidden = result.value.terminals.length === 0
-          document.getElementById('send').hidden = result.value.terminals.length === 0
-        })
-      })
-
-      document.getElementById('send').addEventListener('click', function () {
-        // Explicit terminal id — the API has no "active terminal" target.
-        call('terminal.sendText', {
-          terminalId: termsEl.value,
-          text: 'echo hi from plugin',
-          enter: true
-        }).then(function (result) {
-          statusEl.textContent = result.ok
-            ? result.value.accepted
-              ? 'Typed into the terminal.'
-              : 'The terminal did not accept the text.'
-            : 'send failed: ' + (result.error || result.errorCode)
+          var count = result.value.terminals.length
+          statusEl.textContent =
+            result.value.displayName +
+            ' on branch ' +
+            result.value.branch +
+            ' · ' +
+            count +
+            (count === 1 ? ' terminal' : ' terminals')
         })
       })
 

@@ -16,7 +16,6 @@
   },
   "capabilities": [
     { "kind": "workspace:read" },
-    { "kind": "terminal:send" },
     { "kind": "notifications:show" },
     { "kind": "storage:own" },
     { "kind": "agents:read" }

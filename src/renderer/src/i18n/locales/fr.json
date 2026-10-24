@@ -11631,7 +11631,6 @@
           "enable": "Activer le plugin",
           "capability": {
             "workspaceRead": "Lire le nom, la branche et la liste des terminaux de l'espace de travail actif, et être notifié quand des espaces de travail sont créés ou supprimés",
-            "terminalSend": "Saisir du texte dans un terminal visible (toujours un terminal spécifique)",
             "notificationsShow": "Afficher des notifications de bureau libellées avec le nom du plugin",
             "storage": "Stocker des données dans le dossier de stockage propre au plugin",
             "secrets": "Stocker et lire des secrets dans le fichier chiffré propre au plugin",
