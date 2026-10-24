@@ -70,7 +70,9 @@ const DERIVED_TOKENS: Record<string, DerivationRule> = {
   '--secondary-foreground': ['--foreground'],
   '--input': ['--border'],
   '--ring': ['--primary'],
-  '--sidebar': ['--background'],
+  // Why a lift: Orca draws no line between the left sidebar and the canvas; the surface step is
+  // the divider, so a sidebar equal to the background leaves no edge at all.
+  '--sidebar': { mixForeground: 8 },
   '--sidebar-foreground': ['--foreground'],
   '--sidebar-primary': ['--primary'],
   '--sidebar-primary-foreground': ['--primary-foreground'],

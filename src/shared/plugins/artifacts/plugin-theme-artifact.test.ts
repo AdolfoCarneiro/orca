@@ -144,12 +144,34 @@ describe('plugin app theme completion', () => {
     )
     expect(tokens).toMatchObject({
       '--card': '#101018',
-      '--sidebar': '#101018',
-      '--worktree-sidebar': '#101018',
+      '--sidebar': 'color-mix(in srgb, #f0f0ff 8%, #101018)',
+      '--worktree-sidebar': 'color-mix(in srgb, #f0f0ff 8%, #101018)',
       '--sidebar-accent': '#2a2050',
       '--worktree-sidebar-accent': '#2a2050',
       '--primary': '#f0f0ff',
       '--primary-foreground': '#101018'
     })
+  })
+
+  // Why: the left sidebar has no border; only its surface step separates it from the canvas.
+  it('lifts an omitted sidebar off the background so the left divider stays visible', () => {
+    const { tokens } = parsePluginAppThemeArtifact(
+      JSON.stringify({
+        base: 'dark',
+        tokens: { '--background': '#1d1533', '--foreground': '#e8e0ff', '--border': '#4a3480' }
+      })
+    )
+    expect(tokens['--worktree-sidebar']).not.toBe(tokens['--background'])
+    expect(tokens['--worktree-sidebar']).toBe('color-mix(in srgb, #e8e0ff 8%, #1d1533)')
+  })
+
+  it('keeps a sidebar the theme sets', () => {
+    const { tokens } = parsePluginAppThemeArtifact(
+      JSON.stringify({
+        base: 'dark',
+        tokens: { '--background': '#1d1533', '--foreground': '#e8e0ff', '--sidebar': '#271d45' }
+      })
+    )
+    expect(tokens['--worktree-sidebar']).toBe('#271d45')
   })
 })
