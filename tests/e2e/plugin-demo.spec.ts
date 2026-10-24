@@ -76,7 +76,10 @@ test('runs hello-orca panel, command, and event behind visible consent', async (
 
   try {
     const installed = await orcaPage.evaluate(async (sourcePath) => {
-      const settings = await window.api.settings.set({ pluginSystemEnabled: true })
+      const settings = await window.api.settings.set({
+        pluginSystemEnabled: true,
+        pluginFullAccessEnabled: true
+      })
       window.__store?.setState({ settings })
       const result = await window.api.plugins.install({ kind: 'local-path', path: sourcePath })
       if (!result.ok) {

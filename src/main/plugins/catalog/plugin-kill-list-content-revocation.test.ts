@@ -63,6 +63,7 @@ async function createService(root: string, isKilled: () => boolean): Promise<Plu
     userDataPath: root,
     hostVersion: '1.4.0',
     isPluginSystemEnabled: () => true,
+    isFullAccessAllowed: () => true,
     getDisabledPlugins: () => [],
     getPluginConsents: () => ({
       [pluginKey]: fingerprintPluginConsent(contentManifest(), content.hash)

@@ -56,6 +56,8 @@ type PluginManagerProps = {
   logsByPlugin: Readonly<Record<string, PluginLogsState>>
   onShowLogs: (pluginKey: string) => void
   onOpenShortcuts: () => void
+  /** Opens plugin settings at the full access switch. */
+  onOpenFullAccessSetting: () => void
   /** Which plugin's page is open; owned by the pane, which hides its header and cards for it. */
   page: PluginPageNavigation
   sourcesOpen: boolean
@@ -78,6 +80,7 @@ export function PluginManager({
   logsByPlugin,
   onShowLogs,
   onOpenShortcuts,
+  onOpenFullAccessSetting,
   page,
   sourcesOpen,
   setSourcesOpen,
@@ -168,6 +171,7 @@ export function PluginManager({
     refreshing: catalog.refreshBusy,
     onRemove: handlers.onRemoveRequest,
     onToggleEnabled: handlers.onToggleEnabled,
+    onOpenFullAccessSetting,
     installedHandlers: rowHandlers,
     busyPluginKeys
   }

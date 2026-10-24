@@ -84,6 +84,18 @@ export function usePluginSettingsWrites({
     }
   }
 
+  const toggleFullAccess = async (): Promise<void> => {
+    setSettingsError(null)
+    try {
+      await updateSettings({ pluginFullAccessEnabled: !settings.pluginFullAccessEnabled })
+      await rediscover()
+    } catch {
+      if (mountedRef.current) {
+        setSettingsError(saveFailed())
+      }
+    }
+  }
+
   return {
     featureBusy,
     devPathsBusy,
@@ -91,6 +103,7 @@ export function usePluginSettingsWrites({
     reset,
     toggleFeature,
     toggleSuggestions,
+    toggleFullAccess,
     updateDevPaths
   }
 }

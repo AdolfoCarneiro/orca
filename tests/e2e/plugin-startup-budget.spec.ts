@@ -24,6 +24,7 @@ function updateProfile(userDataDir: string, pluginConsents: Record<string, strin
   profile.settings = {
     ...profile.settings,
     pluginSystemEnabled: true,
+    pluginFullAccessEnabled: true,
     pluginConsents,
     disabledPlugins: [],
     devPluginPaths: []

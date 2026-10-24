@@ -17,18 +17,27 @@ export function PluginSettingsMenu({
   featureEnabled,
   suggestionsEnabled,
   onToggleSuggestions,
+  fullAccessEnabled,
+  onToggleFullAccess,
+  open,
+  onOpenChange,
   onSources,
   onDevelopment
 }: {
   featureEnabled: boolean
   suggestionsEnabled: boolean
   onToggleSuggestions: () => void
+  fullAccessEnabled: boolean
+  onToggleFullAccess: () => void
+  /** Controlled so a catalog card can open it to the full access switch. */
+  open: boolean
+  onOpenChange: (open: boolean) => void
   onSources: () => void
   onDevelopment: () => void
 }): React.JSX.Element {
   const label = translate('auto.components.settings.PluginSettingsMenu.label', 'Plugin settings')
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <Tooltip>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
@@ -59,6 +68,28 @@ export function PluginSettingsMenu({
               {translate(
                 'auto.components.settings.PluginsSettingsSection.fileTypeSuggestionsDescription',
                 'Offer a catalog plugin when Orca can’t open or highlight a file.'
+              )}
+            </span>
+          </span>
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem
+          checked={fullAccessEnabled}
+          disabled={!featureEnabled}
+          onCheckedChange={onToggleFullAccess}
+          onSelect={(event) => event.preventDefault()}
+          className="items-start"
+        >
+          <span className="min-w-0">
+            <span className="block">
+              {translate(
+                'auto.components.settings.PluginSettingsMenu.fullAccessLabel',
+                'Allow plugins that run code with full access'
+              )}
+            </span>
+            <span className="block text-muted-foreground">
+              {translate(
+                'auto.components.settings.PluginSettingsMenu.fullAccessDescription',
+                'They run as a normal process with access to your files, network, and other processes.'
               )}
             </span>
           </span>

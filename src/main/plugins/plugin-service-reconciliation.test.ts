@@ -64,6 +64,7 @@ function createHarness(root: string) {
   let disabled: string[] = []
   let devPaths = [root]
   let killed = false
+  let fullAccess = true
   const consent = fingerprintPluginConsent(manifest())
   const workers: ReturnType<typeof testWorker>[] = []
   const factory = vi.fn<PluginWorkerFactory>(async () => {
@@ -75,6 +76,7 @@ function createHarness(root: string) {
     userDataPath: root,
     hostVersion: '1.4.0',
     isPluginSystemEnabled: () => enabled,
+    isFullAccessAllowed: () => fullAccess,
     getDisabledPlugins: () => disabled,
     getPluginConsents: () => ({ [pluginKey]: consent }),
     getDevPluginPaths: () => devPaths,
@@ -100,6 +102,9 @@ function createHarness(root: string) {
     },
     setKilled: (value: boolean) => {
       killed = value
+    },
+    setFullAccess: (value: boolean) => {
+      fullAccess = value
     }
   }
 }
@@ -150,6 +155,7 @@ describe('PluginService worker reconciliation', () => {
       userDataPath: firstRoot,
       hostVersion: '1.4.0',
       isPluginSystemEnabled: () => true,
+      isFullAccessAllowed: () => true,
       getDisabledPlugins: () => [],
       getPluginConsents: () => ({
         'samples.first': fingerprintPluginConsent(firstManifest, firstHash.hash),
@@ -207,6 +213,7 @@ describe('PluginService worker reconciliation', () => {
       userDataPath: root,
       hostVersion: '1.4.0',
       isPluginSystemEnabled: () => true,
+      isFullAccessAllowed: () => true,
       getDisabledPlugins: () => [],
       getPluginConsents: () => ({ [pluginKey]: fingerprintPluginConsent(aliasManifest) }),
       getDevPluginPaths: () => [root],
@@ -288,6 +295,21 @@ describe('PluginService worker reconciliation', () => {
     })
   })
 
+  it('stops an approved worker and refuses to start it while full access is off', async () => {
+    const root = await pluginRoot()
+    const harness = createHarness(root)
+    await activate(harness.service)
+
+    harness.setFullAccess(false)
+    await harness.service.reconcileActivationState()
+
+    expect(harness.workers[0]!.dispose).toHaveBeenCalledOnce()
+    expect(harness.service.getGrantedCapabilities(pluginKey)).toBeNull()
+    expect(harness.service.activationError(pluginKey)).toContain('full access')
+    await expect(harness.service.invokeCommand(pluginKey, 'run')).rejects.toThrow('not enabled')
+    expect(harness.factory).toHaveBeenCalledOnce()
+  })
+
   it('deactivates a worker when changed capabilities make consent pending', async () => {
     const root = await pluginRoot()
     const harness = createHarness(root)
@@ -344,6 +366,7 @@ describe('PluginService worker reconciliation', () => {
       userDataPath: root,
       hostVersion: '1.4.0',
       isPluginSystemEnabled: () => true,
+      isFullAccessAllowed: () => true,
       getDisabledPlugins: () => [],
       getPluginConsents: () => ({ [pluginKey]: consent }),
       getDevPluginPaths: () => [root],

@@ -332,7 +332,10 @@ export type GlobalSettings = GlobalSettingsBase & {
   disabledTuiAgents: TuiAgent[]
   /** Experimental plugin master switch; off prevents discovery, panels and plugin execution. */
   pluginSystemEnabled: boolean
-  /** Disabled publisher.id keys remain discoverable but inactive. */
+  /** Second opt-in for trusted-worker plugins (unsandboxed Node). Off by default. */
+  pluginFullAccessEnabled: boolean
+  /** Qualified plugin keys (`publisher.id`) the user disabled. Discovered
+   *  plugins stay listed but are not activated. */
   disabledPlugins: string[]
   /** publisher.id → consented capability/worker-trust fingerprint; changes prompt again before code runs. Missing means never consented. */
   pluginConsents: Record<string, string>

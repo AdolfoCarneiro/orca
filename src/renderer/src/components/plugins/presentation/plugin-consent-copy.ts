@@ -4,7 +4,7 @@ import type { PluginTrust } from './plugin-access-profile'
 /** Plain words for the chip: the broadest thing it may do. */
 export function pluginTrustLabel(trust: PluginTrust): string {
   if (trust.worker) {
-    return translate('auto.components.settings.pluginConsentCopy.runsWorker', 'Runs a worker')
+    return translate('auto.components.settings.pluginConsentCopy.fullAccess', 'Full access')
   }
   if (trust.declarative) {
     return translate('auto.components.settings.pluginConsentCopy.addsCommands', 'Adds commands')

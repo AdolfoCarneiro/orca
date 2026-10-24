@@ -124,6 +124,7 @@ describe('declared plugin artifacts', () => {
       userDataPath,
       hostVersion: '1.4.0',
       isPluginSystemEnabled: () => true,
+      isFullAccessAllowed: () => true,
       getDisabledPlugins: () => [],
       getPluginConsents: () => ({
         [pluginKey]: fingerprintPluginConsent(pluginManifest)

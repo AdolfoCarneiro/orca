@@ -39,9 +39,12 @@ function createStore(): {
 
 function createPluginService(
   getFingerprint: () => string,
-  overrides: Partial<ValidDiscoveredPlugin> = {}
+  overrides: Partial<ValidDiscoveredPlugin> = {},
+  fullAccessAllowed = true
 ): PluginService {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the enablement paths read only these members.
   return {
+    options: { isFullAccessAllowed: () => fullAccessAllowed },
     findValidPlugin: (requestedKey: string) =>
       requestedKey === pluginKey
         ? {
@@ -58,6 +61,42 @@ function createPluginService(
     reconcileActivationState: vi.fn().mockResolvedValue(undefined)
   } as unknown as PluginService
 }
+
+describe('full access gate', () => {
+  const workerManifest = pluginManifestSchema.parse({ ...manifest, main: 'main.mjs' })
+  const workerService = (allowed: boolean): PluginService =>
+    createPluginService(() => 'sha256-reviewed', { manifest: workerManifest }, allowed)
+
+  it('refuses to approve or enable a trusted worker while full access is off', async () => {
+    const harness = createStore()
+    const pluginService = workerService(false)
+    const request = { store: harness.store, pluginService, pluginKey }
+
+    await expect(
+      applyPluginConsent({
+        ...request,
+        reviewedFingerprint: 'sha256-reviewed',
+        decision: 'approve'
+      })
+    ).rejects.toThrow('Allow plugins that run code with full access')
+    await expect(applyPluginEnablement({ ...request, enabled: true })).rejects.toThrow(
+      'Allow plugins that run code with full access'
+    )
+    expect(harness.updateSettings).not.toHaveBeenCalled()
+  })
+
+  it('approves a trusted worker once full access is on', async () => {
+    const harness = createStore()
+    await applyPluginConsent({
+      store: harness.store,
+      pluginService: workerService(true),
+      pluginKey,
+      reviewedFingerprint: 'sha256-reviewed',
+      decision: 'approve'
+    })
+    expect(harness.getSettings().pluginConsents[pluginKey]).toBe('sha256-reviewed')
+  })
+})
 
 describe('applyPluginConsent', () => {
   it('stores approval only for the fingerprint the user reviewed', async () => {

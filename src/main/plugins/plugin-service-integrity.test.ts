@@ -68,6 +68,7 @@ function createService(
     userDataPath: plugin.userDataPath,
     hostVersion: '1.4.0',
     isPluginSystemEnabled: () => true,
+    isFullAccessAllowed: () => true,
     getDisabledPlugins: () => [],
     getPluginConsents: () => ({ [plugin.pluginKey]: consentFingerprint }),
     getDevPluginPaths: () => [],

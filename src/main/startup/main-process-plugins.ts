@@ -64,6 +64,7 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
     userDataPath: app.getPath('userData'),
     hostVersion: pluginHostVersion(app.getVersion()),
     blockedPluginReason: (pluginKey) => state.pluginKillListService?.reason(pluginKey) ?? null,
+    isFullAccessAllowed: () => state.store?.getSettings().pluginFullAccessEnabled === true,
     imageCache: pluginImageCache
   })
   state.pluginService = new PluginService({
@@ -72,6 +73,7 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
     // Feature flag: with the setting off, discovery returns nothing and no
     // plugin code path runs at all.
     isPluginSystemEnabled: () => state.store?.getSettings().pluginSystemEnabled === true,
+    isFullAccessAllowed: () => state.store?.getSettings().pluginFullAccessEnabled === true,
     getDisabledPlugins: () => normalizePluginIdList(state.store?.getSettings().disabledPlugins),
     getPluginConsents: () => normalizePluginConsents(state.store?.getSettings().pluginConsents),
     getDevPluginPaths: () => normalizePluginIdList(state.store?.getSettings().devPluginPaths),

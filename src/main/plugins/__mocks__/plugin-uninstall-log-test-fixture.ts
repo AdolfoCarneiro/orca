@@ -86,6 +86,7 @@ export async function createUninstallFixture() {
     userDataPath: root,
     hostVersion: '1.4.0',
     isPluginSystemEnabled: () => settings.pluginSystemEnabled,
+    isFullAccessAllowed: () => true,
     getDisabledPlugins: () => settings.disabledPlugins,
     getPluginConsents: () => settings.pluginConsents,
     getDevPluginPaths: () => [],
