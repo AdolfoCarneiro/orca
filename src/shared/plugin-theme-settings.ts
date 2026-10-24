@@ -39,8 +39,13 @@ function palettes(value: unknown): TerminalPluginPalette[] {
   return result.slice(0, MAX_TERMINAL_PLUGIN_PALETTES)
 }
 
+/** Unvalidated plugin theme keys as a settings write or load carries them. */
+export type PluginThemeSettingsInput = { [Key in keyof PluginThemeSettings]?: unknown }
+
 /** Bounds plugin theme settings on every write and load; only keys present in `input` return. */
-export function normalizePluginThemeSettings(input: object): Partial<PluginThemeSettings> {
+export function normalizePluginThemeSettings(
+  input: PluginThemeSettingsInput
+): Partial<PluginThemeSettings> {
   const result: Partial<PluginThemeSettings> = {}
   if ('pluginAppTheme' in input) {
     result.pluginAppTheme = contentId(input.pluginAppTheme)

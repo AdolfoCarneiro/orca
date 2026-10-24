@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { GlobalSettings } from './global-settings-types'
 import {
   normalizePluginThemeSettings,
   pluginThemeSettingsAfterRemoval
@@ -32,7 +33,8 @@ describe('plugin theme settings', () => {
     expect(
       normalizePluginThemeSettings({ pluginAppTheme: 'plugin:../x', themeBeforePlugin: 'neon' })
     ).toEqual({ pluginAppTheme: null, themeBeforePlugin: null })
-    expect(normalizePluginThemeSettings({ editorAutoSave: true })).toEqual({})
+    const unrelated: Partial<GlobalSettings> = { editorAutoSave: true }
+    expect(normalizePluginThemeSettings(unrelated)).toEqual({})
   })
 
   it('forgets an uninstalled plugin and restores the earlier Theme choice', () => {

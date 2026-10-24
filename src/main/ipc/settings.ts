@@ -25,7 +25,6 @@ import { normalizeAppIconId } from '../../shared/app-icon'
 import { normalizeUiLanguage } from '../../shared/ui-language'
 import { applyAppIcon } from '../app-icon'
 import { normalizeTerminalCustomThemes } from '../../shared/terminal-custom-themes'
-import { normalizePluginThemeSettings } from '../../shared/plugin-theme-settings'
 import { normalizeDesktopTerminalScrollbackRows } from '../../shared/terminal-scrollback-policy'
 import { normalizeTerminalLineHeight } from '../../shared/terminal-line-height-settings'
 import { prepareLocalWorktreeRootsForRepos } from '../worktree-root-preparation'
@@ -157,7 +156,6 @@ export function registerSettingsHandlers(
     if ('terminalCustomThemes' in args) {
       sanitizedArgs.terminalCustomThemes = normalizeTerminalCustomThemes(args.terminalCustomThemes)
     }
-    Object.assign(sanitizedArgs, normalizePluginThemeSettings(args))
     if ('terminalScrollbackRows' in args) {
       sanitizedArgs.terminalScrollbackRows = normalizeDesktopTerminalScrollbackRows(
         args.terminalScrollbackRows
