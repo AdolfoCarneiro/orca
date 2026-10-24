@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { pluginManifestV2Object } from './plugin-manifest'
 import { PLUGIN_CATALOG_FILENAME, pluginCatalogDocumentSchema } from '../catalog/plugin-catalog'
 import { renderPluginSchemaReference } from './plugin-schema-reference-doc'
+import { renderPluginHostApiReference } from '../workers/plugin-host-api-reference-doc'
 import {
   PLUGIN_CATALOG_POLICY_NOTES,
   PLUGIN_MANIFEST_POLICY_NOTES
@@ -79,6 +80,7 @@ export function pluginSchemaGeneratedFiles(): Record<string, string> {
       sinceNote:
         '`Since` is the first Orca release that reads the field. Older releases ignore fields they do not know.',
       appendix: PLUGIN_CATALOG_POLICY_NOTES
-    })
+    }),
+    'docs/reference/plugin-host-api.md': renderPluginHostApiReference()
   }
 }

@@ -8,7 +8,7 @@ import type { PluginEventName } from '../../../shared/plugins/manifest/plugin-ma
 
 export type PluginHostCallError = Error & { code?: string }
 
-/** Experimental activate(orca) surface; host capability checks remain authoritative. */
+/** API surface handed to a plugin's `activate(orca)` export (host API v0, pluginApi 1). */
 export type PluginWorkerOrcaApi = {
   commands: {
     register(commandId: string, handler: (args: unknown) => unknown): void

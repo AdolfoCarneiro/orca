@@ -32,6 +32,18 @@ describe('manifest format 2 rules', () => {
     ).toMatchObject({ ok: true })
   })
 
+  it('refuses host API majors this Orca does not implement', () => {
+    const worker = { execution: 'trusted-worker', main: 'main.mjs' }
+    expect(parsePluginManifest(v2({ ...worker, pluginApi: 2 }))).toEqual({
+      ok: false,
+      error: 'pluginApi: targets host API 2, but this Orca supports only 1; update Orca'
+    })
+    expect(parsePluginManifest(v2({ ...worker, pluginApi: 0 }))).toEqual({
+      ok: false,
+      error: 'pluginApi: must be 1'
+    })
+  })
+
   it('keeps contributes.agents reserved', () => {
     expect(
       parsePluginManifest(
