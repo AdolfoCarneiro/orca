@@ -1,19 +1,20 @@
 import { PLUGIN_V1_CAPABILITY_ALIASES } from '../plugin-capabilities'
+import { PLUGIN_V1_EVENT_ALIASES } from '../plugin-event-contribution'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function renameCapabilities(capabilities: unknown): unknown {
-  if (!Array.isArray(capabilities)) {
-    return capabilities
-  }
-  return capabilities.flatMap((capability) => {
-    const aliases = isRecord(capability)
-      ? PLUGIN_V1_CAPABILITY_ALIASES.get(String(capability.kind))
-      : undefined
-    return aliases ? aliases.map((kind) => ({ ...capability, kind })) : [capability]
-  })
+function mapRecords(list: unknown, map: (entry: Record<string, unknown>) => unknown[]): unknown {
+  return Array.isArray(list)
+    ? list.flatMap((entry) => (isRecord(entry) ? map(entry) : [entry]))
+    : list
+}
+
+function renameField(field: string, from: string, to: string) {
+  return (entry: Record<string, unknown>) => [
+    entry[field] === from ? { ...entry, [field]: to } : entry
+  ]
 }
 
 /** Rewrites names format 1 used into today's, so v1 manifests keep loading; v2 must use the new names. */
@@ -21,5 +22,25 @@ export function upgradePluginManifestV1Names(raw: unknown): unknown {
   if (!isRecord(raw) || raw.manifestVersion !== 1) {
     return raw
   }
-  return { ...raw, capabilities: renameCapabilities(raw.capabilities) }
+  const capabilities = mapRecords(raw.capabilities, (capability) => {
+    const kinds = PLUGIN_V1_CAPABILITY_ALIASES.get(String(capability.kind))
+    return kinds ? kinds.map((kind) => ({ ...capability, kind })) : [capability]
+  })
+  if (!isRecord(raw.contributes)) {
+    return { ...raw, capabilities }
+  }
+  const { commands, keybindings, events } = raw.contributes
+  return {
+    ...raw,
+    capabilities,
+    contributes: {
+      ...raw.contributes,
+      commands: mapRecords(commands, renameField('context', 'worktree', 'workspace')),
+      keybindings: mapRecords(keybindings, renameField('when', 'worktree', 'workspace')),
+      events: mapRecords(events, (event) => {
+        const on = PLUGIN_V1_EVENT_ALIASES.get(String(event.on))
+        return [on ? { ...event, on } : event]
+      })
+    }
+  }
 }

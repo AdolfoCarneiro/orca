@@ -170,7 +170,7 @@ const RUNTIME_ONLY_RULES = [
     raw: manifest({
       execution: 'trusted-worker',
       main: 'main.mjs',
-      contributes: { events: [{ on: 'worktree.created' }] }
+      contributes: { events: [{ on: 'workspace.created' }] }
     }),
     pointer: '/$defs/EventContribution',
     phrase: 'workspace:read'

@@ -5,7 +5,10 @@ import {
   pluginRelativePathSchema
 } from './manifest/plugin-manifest-fields'
 import { normalizeKeybinding } from '../keybindings'
-import { pluginCommandContextSchema } from './plugin-command-contribution'
+import {
+  PLUGIN_COMMAND_CONTEXT_SINCE,
+  pluginCommandContextSchema
+} from './plugin-command-contribution'
 import {
   pluginFieldDoc,
   pluginPathFieldDoc,
@@ -100,14 +103,13 @@ export const pluginKeybindingContributionSchema = z
         }
         return normalized.value
       }),
-    when: pluginCommandContextSchema
-      .optional()
-      .meta(
-        pluginFieldDoc(
-          "Where the shortcut is active; must match its command's `context`.",
-          PLUGIN_SCHEMA_SINCE_V1
-        )
-      )
+    when: pluginCommandContextSchema.optional().meta({
+      ...pluginFieldDoc(
+        "Where the shortcut is active; must match its command's `context`.",
+        PLUGIN_SCHEMA_SINCE_V1
+      ),
+      ...PLUGIN_COMMAND_CONTEXT_SINCE
+    })
   })
   .strict()
   .meta({ id: 'KeybindingContribution', description: 'A keyboard shortcut for a command.' })

@@ -10,10 +10,10 @@ type ContributionValidationManifest = {
   main?: string
   contributes: {
     panels: IdentifiedContribution[]
-    commands: (IdentifiedContribution & { action?: string; context?: 'global' | 'worktree' })[]
+    commands: (IdentifiedContribution & { action?: string; context?: 'global' | 'workspace' })[]
     events: { on: PluginEventName }[]
     languagePacks: { locale: string }[]
-    keybindings: { command: string; key: string; when?: 'global' | 'worktree' }[]
+    keybindings: { command: string; key: string; when?: 'global' | 'workspace' }[]
     vmRecipes: PathContribution[]
     agents: PathContribution[]
     themes: IdentifiedContribution[]

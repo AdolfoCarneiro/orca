@@ -10,7 +10,7 @@ Every call is checked against the capabilities the user approved, and params are
 
 | Method | Capability | Panels | Mutation | Since | Summary |
 | --- | --- | --- | --- | --- | --- |
-| [`workspace.readContext`](#workspacereadcontext) | `workspace:read` | yes | no | 1.0 | Branch, name and terminal ids of the focused worktree, or null when none is focused. |
+| [`workspace.readContext`](#workspacereadcontext) | `workspace:read` | yes | no | 1.0 | Branch, name and terminal ids of the focused workspace, or null when none is focused. |
 | [`terminal.sendText`](#terminalsendtext) | `terminal:send` | yes | yes | 1.0 | Types text into one terminal named by id, optionally pressing Enter. |
 | [`notifications.show`](#notificationsshow) | `notifications:show` | yes | yes | 1.0 | Shows a desktop notification. |
 | [`storage.get`](#storageget) | `storage:own` | no | no | 1.0 | Reads a JSON value from the plugin's private store; null when absent. |
@@ -25,7 +25,7 @@ Every call is checked against the capabilities the user approved, and params are
 
 ### `workspace.readContext`
 
-Branch, name and terminal ids of the focused worktree, or null when none is focused.
+Branch, name and terminal ids of the focused workspace, or null when none is focused.
 
 ```ts
 (params: {}) => { branch: string; displayName: string; terminals: { id: string }[] } | null

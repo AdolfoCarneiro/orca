@@ -5,6 +5,7 @@ import {
   type PluginWorkerChildMessage
 } from '../../../shared/plugins/workers/plugin-host-protocol'
 import type { PluginEventName } from '../../../shared/plugins/manifest/plugin-manifest'
+import { PLUGIN_V1_EVENT_ALIASES } from '../../../shared/plugins/plugin-event-contribution'
 
 export type PluginHostCallError = Error & { code?: string }
 
@@ -84,9 +85,11 @@ export function createPluginWorkerRuntime(
       },
       events: {
         on(event, handler) {
-          const handlers = eventHandlers.get(event) ?? []
+          // Why: format 1 workers still listen under the old worktree.* names.
+          const name = PLUGIN_V1_EVENT_ALIASES.get(event) ?? event
+          const handlers = eventHandlers.get(name) ?? []
           handlers.push(handler)
-          eventHandlers.set(event, handlers)
+          eventHandlers.set(name, handlers)
         }
       },
       host: {

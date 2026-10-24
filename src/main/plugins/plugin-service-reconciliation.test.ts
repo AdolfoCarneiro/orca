@@ -131,7 +131,7 @@ describe('PluginService worker reconciliation', () => {
           panels: [{ id: 'panel', title: 'Panel', entry: 'panel.html' }],
           commands: [{ id: 'run', title: 'Run' }],
           keybindings: [{ command: 'run', key: 'Mod+Alt+T' }],
-          events: [{ on: 'worktree.created' }]
+          events: [{ on: 'workspace.created' }]
         },
         capabilities: [{ kind: 'workspace:read' }, { kind: 'agents:read' }]
       })
@@ -167,8 +167,9 @@ describe('PluginService worker reconciliation', () => {
     expect(service.getGrantedCapabilities('samples.first')).toBeNull()
     await expect(service.invokeCommand('samples.first', 'run')).rejects.toThrow('not enabled')
     await expect(service.panels.readEntry('samples.first', 'panel')).resolves.toBeNull()
-    service.emitEvent('worktree.created', {
-      worktreeId: 'worktree-1',
+    service.emitEvent('workspace.created', {
+      workspaceId: 'worktree-1',
+      kind: 'worktree',
       path: '/repo',
       branch: 'feature'
     })
@@ -273,8 +274,9 @@ describe('PluginService worker reconciliation', () => {
     expect(harness.service.activationError(pluginKey)).toContain('Security incident')
     await expect(harness.service.invokeCommand(pluginKey, 'run')).rejects.toThrow('not enabled')
     await expect(harness.service.panels.readEntry(pluginKey, 'panel')).resolves.toBeNull()
-    harness.service.emitEvent('worktree.created', {
-      worktreeId: 'worktree-1',
+    harness.service.emitEvent('workspace.created', {
+      workspaceId: 'worktree-1',
+      kind: 'worktree',
       path: '/repo',
       branch: 'feature'
     })

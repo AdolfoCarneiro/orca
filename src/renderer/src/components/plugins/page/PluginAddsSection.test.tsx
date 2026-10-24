@@ -52,7 +52,7 @@ const hello: PluginHostListEntry = {
     {
       id: 'here',
       title: 'Hello: Here',
-      context: 'worktree',
+      context: 'workspace',
       handler: { type: 'worker' },
       keybindings: []
     }
@@ -70,7 +70,7 @@ const helloManifest = pluginManifestSchema.parse({
   contributes: {
     panels: [{ id: 'hello', title: 'Hello Orca', entry: 'panel.html' }],
     commands: [{ id: 'ping', title: 'Hello: Ping' }],
-    events: [{ on: 'worktree.created' }, { on: 'agent.status.changed' }]
+    events: [{ on: 'workspace.created' }, { on: 'agent.status.changed' }]
   },
   capabilities: [{ kind: 'workspace:read' }, { kind: 'agents:read' }]
 })

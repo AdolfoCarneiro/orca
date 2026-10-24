@@ -13,7 +13,7 @@ export function projectPluginAgentStatusChangedPayload(
   }
   const mainAgent = enriched.payload.mainAgent
   return {
-    worktreeId: enriched.worktreeId ?? null,
+    workspaceId: enriched.worktreeId ?? null,
     paneKey: enriched.paneKey,
     state: enriched.payload.state,
     receivedAt: enriched.receivedAt,

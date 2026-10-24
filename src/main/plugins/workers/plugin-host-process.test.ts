@@ -85,8 +85,9 @@ describe('startPluginWorker', () => {
     child.emit('message', { type: 'ready', commands: [] })
     const handle = await pending
 
-    handle.deliverEvent('worktree.created', {
-      worktreeId: 'worktree-1',
+    handle.deliverEvent('workspace.created', {
+      workspaceId: 'worktree-1',
+      kind: 'worktree',
       path: '/repo',
       branch: 'feature'
     })
@@ -103,8 +104,9 @@ describe('startPluginWorker', () => {
     child.emit('message', { type: 'ready', commands: [] })
     const handle = await pending
 
-    handle.deliverEvent('worktree.created', {
-      worktreeId: 'worktree-1',
+    handle.deliverEvent('workspace.created', {
+      workspaceId: 'worktree-1',
+      kind: 'worktree',
       path: '/repo',
       branch: 'feature'
     })
@@ -122,7 +124,7 @@ describe('startPluginWorker', () => {
 
     for (let index = 0; index < 65; index += 1) {
       handle.deliverEvent('agent.status.changed', {
-        worktreeId: null,
+        workspaceId: null,
         paneKey: `pane-${index}`,
         state: 'working',
         receivedAt: Date.now()

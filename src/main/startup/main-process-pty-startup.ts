@@ -36,15 +36,14 @@ import type { RuntimeWorktreeLifecycleEvent } from '../runtime/orca-runtime'
 import { mainProcessState as state } from './main-process-state'
 
 export function emitPluginWorktreeLifecycle(event: RuntimeWorktreeLifecycleEvent): void {
+  const identity = { workspaceId: event.worktreeId, kind: 'worktree', path: event.path }
   // Public worktree events retain their Git-only scope.
   if (parseWorkspaceKey(event.worktreeId)?.type === 'folder') {
     return
   }
   state.pluginService?.emitEvent(
-    event.kind === 'created' ? 'worktree.created' : 'worktree.removed',
-    event.kind === 'created'
-      ? { worktreeId: event.worktreeId, path: event.path, branch: event.branch }
-      : { worktreeId: event.worktreeId, path: event.path }
+    event.kind === 'created' ? 'workspace.created' : 'workspace.removed',
+    event.kind === 'created' ? { ...identity, branch: event.branch } : identity
   )
 }
 

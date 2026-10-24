@@ -7,15 +7,15 @@ export default function activate(orca) {
     return { pong: true, count, args: args ?? null }
   })
 
-  orca.events.on('worktree.created', async (payload) => {
-    orca.log(`worktree created: ${payload.worktreeId} at ${payload.path}`)
+  orca.events.on('workspace.created', async (payload) => {
+    orca.log(`${payload.kind} created: ${payload.workspaceId} at ${payload.path}`)
     await orca.host.call('notifications.show', {
-      title: 'Worktree created',
+      title: 'Workspace created',
       body: payload.path
     })
   })
 
   orca.events.on('agent.status.changed', (payload) => {
-    orca.log(`agent status: ${payload.state} in ${payload.worktreeId ?? 'unknown worktree'}`)
+    orca.log(`agent status: ${payload.state} in ${payload.workspaceId ?? 'unknown workspace'}`)
   })
 }

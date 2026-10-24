@@ -480,12 +480,16 @@
           ]
         },
         "context": {
-          "description": "`worktree` hides the command when no worktree is active. Defaults to `global`.",
+          "description": "`workspace` hides the command when no workspace is active. Defaults to `global`.",
           "x-orca-since": "1.4.160",
+          "x-orca-enum-since": {
+            "global": "1.4.160",
+            "workspace": "1.4.244"
+          },
           "type": "string",
           "enum": [
             "global",
-            "worktree"
+            "workspace"
           ]
         },
         "action": {
@@ -547,15 +551,15 @@
         "on": {
           "type": "string",
           "enum": [
-            "worktree.created",
-            "worktree.removed",
+            "workspace.created",
+            "workspace.removed",
             "agent.status.changed"
           ],
           "description": "Event delivered to the plugin worker.",
           "x-orca-since": "1.4.160",
           "x-orca-enum-since": {
-            "worktree.created": "1.4.160",
-            "worktree.removed": "1.4.160",
+            "workspace.created": "1.4.244",
+            "workspace.removed": "1.4.244",
             "agent.status.changed": "1.4.160"
           }
         }
@@ -636,10 +640,14 @@
         "when": {
           "description": "Where the shortcut is active; must match its command's `context`.",
           "x-orca-since": "1.4.160",
+          "x-orca-enum-since": {
+            "global": "1.4.160",
+            "workspace": "1.4.244"
+          },
           "type": "string",
           "enum": [
             "global",
-            "worktree"
+            "workspace"
           ]
         }
       },

@@ -21,7 +21,7 @@ it('blocks fresh work while removal is pending and restores admission after fail
   const { service, install } = await createUninstallFixture()
   const key = await install('failure', {
     panels: [{ id: 'panel', title: 'Panel', entry: 'panel.html' }],
-    events: [{ on: 'worktree.created' }]
+    events: [{ on: 'workspace.created' }]
   })
   const entered = uninstallGate()
   const release = uninstallGate()
@@ -39,8 +39,9 @@ it('blocks fresh work while removal is pending and restores admission after fail
     expect(service.getLogs(key)).toHaveLength(200)
     await expect(service.invokeCommand(key, 'run')).rejects.toThrow('not enabled')
     await expect(service.panels.readEntry(key, 'panel')).resolves.toBeNull()
-    service.emitEvent('worktree.created', {
-      worktreeId: 'fixture',
+    service.emitEvent('workspace.created', {
+      workspaceId: 'fixture',
+      kind: 'worktree',
       path: 'synthetic-path',
       branch: 'main'
     })
@@ -59,7 +60,7 @@ it('publishes retirement before a held subsequent refresh can finish', async () 
   const { service, install } = await createUninstallFixture()
   const key = await install('refresh-gap', {
     panels: [{ id: 'panel', title: 'Panel', entry: 'panel.html' }],
-    events: [{ on: 'worktree.created' }]
+    events: [{ on: 'workspace.created' }]
   })
   const child = latestUninstallWorker()
   const held = holdNextUninstallRefresh(service)
@@ -71,8 +72,9 @@ it('publishes retirement before a held subsequent refresh can finish', async () 
     const workers = uninstallWorkerPorts.length
     await expect(service.invokeCommand(key, 'run')).rejects.toThrow('not enabled')
     await expect(service.panels.readEntry(key, 'panel')).resolves.toBeNull()
-    service.emitEvent('worktree.created', {
-      worktreeId: 'fixture',
+    service.emitEvent('workspace.created', {
+      workspaceId: 'fixture',
+      kind: 'worktree',
       path: 'synthetic-path',
       branch: 'main'
     })

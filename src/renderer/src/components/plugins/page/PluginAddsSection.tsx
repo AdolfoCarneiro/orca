@@ -1,3 +1,4 @@
+import { isWorkspaceScopedPluginContext } from '../../../../../shared/plugins/plugin-command-contribution'
 import {
   Blocks,
   Bot,
@@ -105,7 +106,7 @@ const CONTRIBUTION_ICON: Record<PluginContributionKind, React.ReactNode> = {
 type AddsCommand = {
   id: string
   title: string
-  keybindings: readonly { key: string; when: 'global' | 'worktree' }[]
+  keybindings: readonly { key: string; when: string }[]
   /** Set once the plugin is on, so the row can run it exactly as the palette would. */
   live?: ActivePluginCommand
 }
@@ -151,7 +152,7 @@ function CommandRow({
           </span>
         ) : unavailableReason ? (
           unavailableReason
-        ) : binding?.when === 'worktree' ? (
+        ) : isWorkspaceScopedPluginContext(binding?.when) ? (
           translate(
             'auto.components.settings.PluginKeybindingConsentPreview.worktree',
             'Runs only while a workspace is active.'

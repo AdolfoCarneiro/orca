@@ -67,9 +67,10 @@ export type PluginHostListEntry = {
   commands: {
     id: string
     title: string
-    context: 'global' | 'worktree'
+    // Why `worktree`: hosts from before the rename to `workspace` still send it.
+    context: 'global' | 'workspace' | 'worktree'
     handler: { type: 'built-in'; action: string } | { type: 'worker' }
-    keybindings: { key: string; when: 'global' | 'worktree' }[]
+    keybindings: { key: string; when: 'global' | 'workspace' | 'worktree' }[]
   }[]
   hasWorker: boolean
   vmRecipes?: {

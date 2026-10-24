@@ -24,7 +24,7 @@ describe('content-pack manifest contributions', () => {
           {
             id: 'workspace.openTasks',
             title: 'Open tasks',
-            context: 'worktree',
+            context: 'workspace',
             action: 'view.tasks'
           }
         ],
@@ -126,7 +126,7 @@ describe('content-pack manifest contributions', () => {
     [
       'global binding for a worktree command',
       {
-        commands: [{ id: 'open', title: 'Open', context: 'worktree', action: 'view.tasks' }],
+        commands: [{ id: 'open', title: 'Open', context: 'workspace', action: 'view.tasks' }],
         keybindings: [{ command: 'open', key: 'Mod+K', when: 'global' }]
       },
       'command context'

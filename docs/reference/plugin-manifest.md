@@ -72,7 +72,7 @@ A command palette entry. Requires the `instructional` execution profile or highe
 | --- | --- | --- | --- | --- |
 | `id` | string | yes | 1.4.160 | Command id, unique among this plugin's commands. Dotted namespaces are allowed. Example: `"jupyter.restartKernel"` |
 | `title` | string | yes | 1.4.160 | Title shown in the command palette. Example: `"Restart kernel"` |
-| `context` | `"global"` \| `"worktree"` | no | 1.4.160 | `worktree` hides the command when no worktree is active. Defaults to `global`. |
+| `context` | `"global"` \| `"workspace"` | no | 1.4.160 | `workspace` hides the command when no workspace is active. Defaults to `global`. |
 | `action` | `"worktree.history.back"` \| `"worktree.history.forward"` \| `"sidebar.left.toggle"` \| `"sidebar.sleepingWorkspaces.toggle"` \| `"floatingWorkspace.maximize"` \| `"tab.rename"` \| `"workspace.rename"` \| `"workspace.openBoard"` \| `"view.tasks"` \| `"sidebar.right.toggle"` \| `"sidebar.explorer.toggle"` \| `"sidebar.search.toggle"` \| `"sidebar.sourceControl.toggle"` \| `"sidebar.checks.toggle"` \| `"sidebar.ports.toggle"` | no | 1.4.160 | Built-in Orca action this command runs. A command with an action is declarative and never starts the plugin worker; one without needs `main`. Example: `"view.tasks"` |
 
 ## EventContribution
@@ -81,7 +81,7 @@ An event subscription. Requires `main`, the `trusted-worker` execution profile a
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `on` | `"worktree.created"` \| `"worktree.removed"` \| `"agent.status.changed"` | yes | 1.4.160 | Event delivered to the plugin worker. |
+| `on` | `"workspace.created"` \| `"workspace.removed"` \| `"agent.status.changed"` | yes | 1.4.160 | Event delivered to the plugin worker. |
 
 ## LanguagePackContribution
 
@@ -101,7 +101,7 @@ A keyboard shortcut for a command.
 | --- | --- | --- | --- | --- |
 | `command` | string | yes | 1.4.160 | Id of a command this plugin contributes in `contributes.commands`. Example: `"jupyter.restartKernel"` |
 | `key` | string | yes | 1.4.160 | Key chord Orca recognizes, such as `Mod+Shift+K`. `Mod` is Cmd on macOS and Ctrl elsewhere. Each chord may be bound once on every platform. Example: `"Mod+Shift+K"` |
-| `when` | `"global"` \| `"worktree"` | no | 1.4.160 | Where the shortcut is active; must match its command's `context`. |
+| `when` | `"global"` \| `"workspace"` | no | 1.4.160 | Where the shortcut is active; must match its command's `context`. |
 
 ## VmRecipeContribution
 
