@@ -313,10 +313,7 @@ describe('PluginPanel', () => {
 
     await act(async () => watchdogCallbacks.onUnresponsive?.())
 
-    expect(setPanelHealthMock).toHaveBeenCalledWith(
-      'plugin:samples.my-plugin/dashboard',
-      'error'
-    )
+    expect(setPanelHealthMock).toHaveBeenCalledWith('plugin:samples.my-plugin/dashboard', 'error')
     expect(container.textContent).toContain('stopped responding and was suspended')
   })
 
@@ -332,10 +329,7 @@ describe('PluginPanel', () => {
     await act(async () => root.render(<div>Explorer</div>))
 
     expect(setPanelHealthMock).toHaveBeenCalledTimes(1)
-    expect(setPanelHealthMock).toHaveBeenCalledWith(
-      'plugin:samples.my-plugin/dashboard',
-      'error'
-    )
+    expect(setPanelHealthMock).toHaveBeenCalledWith('plugin:samples.my-plugin/dashboard', 'error')
   })
 
   it('shows an unavailable state for a tab whose plugin is gone', async () => {

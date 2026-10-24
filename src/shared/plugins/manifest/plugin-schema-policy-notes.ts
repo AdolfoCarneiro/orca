@@ -27,7 +27,7 @@ export const PLUGIN_MANIFEST_POLICY_NOTES: readonly string[] = [
   'Each reserved point is planned as declared data that Orca renders and enforces, never arbitrary plugin UI. The intended shapes, which may still change:',
   '',
   ...Object.entries(PLUGIN_PLANNED_CONTRIBUTION_POINTS).map(
-    ([key, shape]) => `- \`${key}\`: ${shape}`
+    ([key, plan]) => `- \`${key}\`: ${plan}`
   ),
   '',
   '## Legacy format 1',

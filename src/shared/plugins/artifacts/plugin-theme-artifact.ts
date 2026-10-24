@@ -159,7 +159,7 @@ export function pickKnownArtifactKeys(known: ReadonlySet<string>) {
 }
 
 function pluginAppThemeArtifactSchema(strictness: PluginArtifactStrictness) {
-  const shape = {
+  const fields = {
     schemaVersion: z.literal(1).optional(),
     base: themeFields.base,
     tokens:
@@ -167,7 +167,7 @@ function pluginAppThemeArtifactSchema(strictness: PluginArtifactStrictness) {
         ? themeFields.tokens
         : z.preprocess(pickKnownArtifactKeys(THEME_TOKEN_SET), themeFields.tokens)
   }
-  return (strictness === 'strict' ? z.strictObject(shape) : z.object(shape)).refine(
+  return (strictness === 'strict' ? z.strictObject(fields) : z.object(fields)).refine(
     hasRequiredTokens,
     `must define ${PLUGIN_APP_THEME_REQUIRED_TOKENS.join(' and ')}`
   )

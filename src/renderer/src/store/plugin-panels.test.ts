@@ -84,9 +84,7 @@ describe('plugin panel list loading', () => {
       'plugin:samples.current/dashboard': true
     })
 
-    usePluginPanelsStore
-      .getState()
-      .setPanelHealth('plugin:samples.current/dashboard', 'healthy')
+    usePluginPanelsStore.getState().setPanelHealth('plugin:samples.current/dashboard', 'healthy')
     expect(usePluginPanelsStore.getState().panelErrors).toEqual({})
 
     usePluginPanelsStore.getState().setPanelHealth('plugin:samples.current/dashboard', 'error')

@@ -10,6 +10,7 @@ import {
   pluginExecutionProfile,
   type PluginExecutionProfile
 } from '../plugin-execution-profile'
+import { isPluginJsonObject } from '../manifest/plugin-json-object'
 
 type GrowthSubject = Pick<PluginManifest, 'capabilities' | 'main' | 'contributes'> & {
   execution?: PluginExecutionProfile
@@ -32,14 +33,14 @@ const AUTHORITY_POINTS = PLUGIN_CONTRIBUTION_POINTS.filter(
 /** What counts as the same entry. Why ids for panels: their code may change like any worker's;
  *  shortcuts, aliases and events count whole, since each part changes what they reach. */
 function entryIdentity(point: PluginContributionPoint, entry: unknown): string {
-  if (typeof entry !== 'object' || entry === null) {
+  if (!isPluginJsonObject(entry)) {
     return JSON.stringify(entry)
   }
   if (point === 'panels' && 'id' in entry) {
     return `id:${String(entry.id)}`
   }
   if (point === 'commands') {
-    const field = (key: string): unknown => (key in entry ? Reflect.get(entry, key) : null)
+    const field = (key: string): unknown => (key in entry ? entry[key] : null)
     return JSON.stringify([field('id'), field('action'), field('context') ?? 'global'])
   }
   return JSON.stringify(entry)

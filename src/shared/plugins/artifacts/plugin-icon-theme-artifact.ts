@@ -48,7 +48,7 @@ const ICON_SLOT_SET: ReadonlySet<string> = new Set(PLUGIN_ICON_THEME_SLOTS)
 
 function pluginIconThemeArtifactSchema(strictness: PluginArtifactStrictness) {
   const icons = z.partialRecord(iconSlotSchema, pluginRelativePathSchema)
-  const shape = {
+  const fields = {
     schemaVersion: z.literal(1),
     icons: (strictness === 'strict'
       ? icons
@@ -57,7 +57,7 @@ function pluginIconThemeArtifactSchema(strictness: PluginArtifactStrictness) {
     fileNames: ownKeyRecord(fileNameSchema, pluginRelativePathSchema).default({}),
     fileExtensions: ownKeyRecord(fileExtensionSchema, pluginRelativePathSchema).default({})
   }
-  return strictness === 'strict' ? z.strictObject(shape) : z.object(shape)
+  return strictness === 'strict' ? z.strictObject(fields) : z.object(fields)
 }
 
 export type PluginIconThemeArtifact = {

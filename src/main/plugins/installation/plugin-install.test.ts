@@ -300,9 +300,7 @@ describe('installPluginFromLocalPath', () => {
       }
     }
 
-    const versionDirs = (
-      await readdir(join(pluginsDir, 'samples.demo'), { withFileTypes: true })
-    )
+    const versionDirs = (await readdir(join(pluginsDir, 'samples.demo'), { withFileTypes: true }))
       .filter((entry) => entry.isDirectory() && /^[0-9a-f]{64}$/.test(entry.name))
       .map((entry) => entry.name)
       .sort()

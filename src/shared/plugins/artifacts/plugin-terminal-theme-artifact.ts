@@ -17,7 +17,7 @@ const TERMINAL_COLOR_KEY_SET: ReadonlySet<string> = new Set(TERMINAL_COLOR_KEYS)
 
 function pluginTerminalThemeArtifactSchema(strictness: PluginArtifactStrictness) {
   const terminal = z.partialRecord(terminalColorKeySchema, z.string())
-  const shape = {
+  const fields = {
     schemaVersion: z.literal(1),
     mode: terminalModeSchema.default('unknown'),
     terminal:
@@ -25,7 +25,7 @@ function pluginTerminalThemeArtifactSchema(strictness: PluginArtifactStrictness)
         ? terminal
         : z.preprocess(pickKnownArtifactKeys(TERMINAL_COLOR_KEY_SET), terminal)
   }
-  return strictness === 'strict' ? z.strictObject(shape) : z.object(shape)
+  return strictness === 'strict' ? z.strictObject(fields) : z.object(fields)
 }
 
 const pluginTerminalThemeRegistrationSchema = z.object({

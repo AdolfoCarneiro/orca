@@ -7,6 +7,7 @@ import type { NativeChatGlobalSettings } from './native-chat/native-chat-appeara
 import type { PluginAppearanceSettings } from './plugin-appearance-settings-types'
 import type { PluginFileTypeSuggestionSettings } from './plugins/plugin-file-type'
 import type { PluginUpdatePolicySettings } from './plugins/catalog/plugin-update-policy'
+import type { PluginSystemSettings } from './plugins/plugin-system-settings'
 import type { WorktreeDeletionPreferences } from './worktree-deletion-preferences'
 import type { AgentPermissionGlobalSettings } from './tui-agent-permission-choice'
 import type { OrchestrationHeartbeatSettings } from './orchestration-heartbeat'
@@ -23,4 +24,5 @@ export type GlobalSettingsBase = ClaudeAgentViewSettings &
   BrowserExtensionGlobalSettings &
   PluginAppearanceSettings &
   PluginFileTypeSuggestionSettings &
-  PluginUpdatePolicySettings
+  PluginUpdatePolicySettings &
+  PluginSystemSettings
