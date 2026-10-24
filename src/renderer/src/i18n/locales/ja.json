@@ -1425,7 +1425,7 @@
         "linearTitle": "Linear",
         "linearDescription": "Orca での Linear の仕組み、セットアップチェックリスト、Agent スキル、プロンプト例。",
         "pluginsTitle": "プラグイン",
-        "pluginsDescription": "実験的機能の Orca プラグインをインストール・管理します。",
+        "pluginsDescription": "Orca プラグインをインストール・管理します（アルファ版）。",
         "tasksDescription": "プロバイダーを接続し、Linear スキルをインストールして、タスクに表示する項目を選択します。",
         "artifactsTitle": "アーティファクト",
         "artifactsDescription": "HTML および Markdown ファイルをチームと共有し、パブリックリンクを管理します。",
@@ -11301,7 +11301,7 @@
           "settingsUpdateFailed": "プラグイン設定を保存できませんでした。",
           "install": "プラグインをインストール",
           "title": "プラグイン",
-          "experimental": "実験的機能",
+          "alpha": "アルファ版",
           "description": "テーマ、言語、コマンドなど。プラグインはこのコンピューターで実行されます。",
           "logsFailed": "プラグインログをロードできませんでした。",
           "rollbackFailed": "このプラグインを以前のバージョンに戻せませんでした。",
@@ -11411,7 +11411,7 @@
         "plugins": {
           "search": {
             "title": "プラグイン",
-            "description": "実験的機能の Orca プラグインをインストール・管理します。",
+            "description": "Orca プラグインをインストール・管理します（アルファ版）。",
             "install": "プラグインをインストール",
             "permissions": "プラグイン権限",
             "logs": "プラグインログ",

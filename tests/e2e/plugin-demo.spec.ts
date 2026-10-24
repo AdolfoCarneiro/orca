@@ -16,7 +16,9 @@ async function openPluginSettings(page: Page): Promise<void> {
     state.openSettingsTarget({ pane: 'plugins', repoId: null })
     state.openSettingsPage()
   })
-  await expect(page.locator('[data-settings-section="plugins"]')).toBeVisible()
+  const section = page.locator('[data-settings-section="plugins"]')
+  await expect(section).toBeVisible()
+  await expect(section.getByText('Alpha', { exact: true })).toBeVisible()
 }
 
 async function openDemoPanel(page: Page): Promise<void> {

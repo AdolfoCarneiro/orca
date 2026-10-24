@@ -1425,7 +1425,7 @@
         "linearTitle": "Linear",
         "linearDescription": "Orca에서 Linear가 작동하는 방식, 설정 체크리스트, 에이전트 스킬, 프롬프트 예시입니다.",
         "pluginsTitle": "플러그인",
-        "pluginsDescription": "실험적인 Orca 플러그인을 설치하고 관리합니다.",
+        "pluginsDescription": "Orca 플러그인을 설치하고 관리합니다(알파).",
         "tasksDescription": "제공업체를 연결하고 Linear 스킬을 설치한 다음 작업에 표시할 항목을 선택하세요.",
         "automationsTitle": "자동화",
         "automationsDescription": "에이전트 작업을 예약하고 사이드바에 자동화 표시 여부를 선택합니다.",
@@ -11301,7 +11301,7 @@
           "settingsUpdateFailed": "플러그인 설정을 저장할 수 없습니다.",
           "install": "플러그인 설치",
           "title": "플러그인",
-          "experimental": "실험적",
+          "alpha": "알파",
           "description": "테마, 언어, 명령 등. 플러그인은 이 컴퓨터에서 실행됩니다.",
           "logsFailed": "플러그인 로그를 로드할 수 없습니다.",
           "rollbackFailed": "이 플러그인을 롤백할 수 없습니다.",
@@ -11411,7 +11411,7 @@
         "plugins": {
           "search": {
             "title": "플러그인",
-            "description": "실험적 Orca 플러그인을 설치하고 관리하세요.",
+            "description": "Orca 플러그인을 설치하고 관리합니다(알파).",
             "install": "플러그인 설치",
             "permissions": "플러그인 권한",
             "logs": "플러그인 로그",

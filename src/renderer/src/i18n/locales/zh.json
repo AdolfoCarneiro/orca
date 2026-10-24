@@ -1425,7 +1425,7 @@
         "linearTitle": "Linear",
         "linearDescription": "Linear 在 Orca 中的工作方式、设置清单、智能体技能和提示词示例。",
         "pluginsTitle": "插件",
-        "pluginsDescription": "安装和管理实验性 Orca 插件。",
+        "pluginsDescription": "安装和管理 Orca 插件（Alpha 版）。",
         "tasksDescription": "连接提供商、安装 Linear 技能并选择要在任务中显示的内容。",
         "artifactsTitle": "工件",
         "artifactsDescription": "与您的团队共享 HTML 和 Markdown 文件并管理他们的公共链接。",
@@ -11301,7 +11301,7 @@
           "settingsUpdateFailed": "无法保存插件设置。",
           "install": "安装插件",
           "title": "插件",
-          "experimental": "实验性",
+          "alpha": "Alpha 版",
           "description": "主题、语言、命令等。插件在这台电脑上运行。",
           "logsFailed": "无法加载插件日志。",
           "rollbackFailed": "无法回滚此插件。",
@@ -11411,7 +11411,7 @@
         "plugins": {
           "search": {
             "title": "插件",
-            "description": "安装和管理实验性 Orca 插件。",
+            "description": "安装和管理 Orca 插件（Alpha 版）。",
             "install": "安装插件",
             "permissions": "插件权限",
             "logs": "插件日志",

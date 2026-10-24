@@ -1613,7 +1613,7 @@
         "linearTitle": "Linear",
         "linearDescription": "Fonctionnement de Linear dans Orca, checklist de configuration, skill d'agent et exemples de prompts.",
         "pluginsTitle": "Plugins",
-        "pluginsDescription": "Installez et gérez les plugins Orca expérimentaux.",
+        "pluginsDescription": "Installez et gérez les plugins Orca (Alpha).",
         "tasksDescription": "Connectez des fournisseurs, installez le skill Linear et choisissez ce qui apparaît dans Tâches.",
         "artifactsTitle": "Artefacts",
         "artifactsDescription": "Partagez des fichiers HTML et Markdown avec votre équipe et gérez leurs liens publics.",
@@ -11752,7 +11752,7 @@
           "settingsUpdateFailed": "Impossible d'enregistrer les paramètres du plugin.",
           "install": "Installer le plugin",
           "title": "Plugins",
-          "experimental": "Expérimental",
+          "alpha": "Alpha",
           "description": "Thèmes, langues, commandes et plus encore. Les plugins s'exécutent sur cet ordinateur.",
           "logsFailed": "Impossible de charger les logs du plugin.",
           "rollbackFailed": "Impossible de restaurer la version précédente de ce plugin.",
@@ -11862,7 +11862,7 @@
         "plugins": {
           "search": {
             "title": "Plugins",
-            "description": "Installez et gérez les plugins Orca expérimentaux.",
+            "description": "Installez et gérez les plugins Orca (Alpha).",
             "install": "installer le plugin",
             "permissions": "permissions du plugin",
             "logs": "logs du plugin",

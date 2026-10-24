@@ -94,7 +94,8 @@ silently. Orca asks the user to approve it again.
 
 ## Stability
 
-Plugins are experimental. These parts are stable and change only additively:
+Plugins are in Alpha: the manifest v2 format and catalog format are stable contracts; items
+listed as experimental may change. These parts are stable and change only additively:
 
 - manifest format 2, capability names and execution profiles;
 - host API 1 (`"pluginApi": 1`): method names, params and results;
@@ -103,7 +104,7 @@ Plugins are experimental. These parts are stable and change only additively:
 - theme token names, and theme ids once published (users' settings store them);
 - catalog format 2 (`orca-catalog.json`).
 
-These may still change without a new format:
+Experimental; these may still change without a new format:
 
 - the `agent.status.changed` payload: `state` and `outcome` are free strings and `paneKey` is
   not yet a terminal id `terminal.sendText` accepts;
