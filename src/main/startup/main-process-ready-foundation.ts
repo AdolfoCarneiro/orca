@@ -15,6 +15,7 @@ import { getAppEnvironment } from '../../shared/app-environment'
 import { loadWslMoveFence } from '../persistence/moving-wsl-projects/wsl-move-scope-guard'
 import { startWslMoveStartup } from '../persistence/moving-wsl-projects/wsl-move-startup'
 import { startWslHostsPolicyLiveUpdates } from '../wsl/wsl-hosts-policy-live-update'
+import { runPendingWslDriveUncConversions } from '../wsl/wsl-drive-unc-conversion-startup'
 import { createProfileStateStoreForStartup } from '../persistence/profile-state/profile-state-startup-authority'
 import { getProfileUserDataPath } from '../orca-profiles/profile-storage-paths'
 import { initializeBrowserClientHostId } from '../browser/browser-client-host-id'
@@ -144,6 +145,12 @@ export async function initializeReadyFoundation(): Promise<void> {
   initializeBrowserClientHostId(profile.profileDirectory)
   // Why before the store loads: its pane normalization tells a moved project's retained rows from
   // a rival host's, and no handler or runtime may give a moving project a new terminal.
+  // Before the fence too: a conversion that rewrites the profile here leaves nothing to fence.
+  runPendingWslDriveUncConversions({
+    userDataPath: getAppEnvironment().getPath('userData'),
+    profileUserDataPath: getProfileUserDataPath(),
+    profileId: profile.profile.id
+  })
   loadWslMoveFence(getAppEnvironment().getPath('userData'))
   const profileState = await createProfileStateStoreForStartup({
     userDataPath: getProfileUserDataPath(),
