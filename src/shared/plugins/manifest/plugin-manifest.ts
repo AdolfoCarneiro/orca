@@ -80,7 +80,7 @@ const pluginManifestFields = {
   // Why both ids: bare-id global uniqueness is unverifiable without a registry.
   publisher: pluginIdSchema.meta(
     pluginFieldDoc(
-      'Publisher slug, kebab-case, usually your GitHub user or organization. The reserved names `constructor` and `prototype` are refused.',
+      'Publisher slug, kebab-case, usually your GitHub user or organization. The reserved names `constructor` and `prototype` are refused. The publishers `stablyai`, `orca`, `orca-*`, `official`, `anthropic`, `openai` and `github`, and ids starting `orca-`, install only from the stablyai organization.',
       V1,
       ['acme']
     )

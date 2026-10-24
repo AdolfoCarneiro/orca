@@ -220,11 +220,22 @@ export function splitQualifiedPluginKey(pluginKey: string): {
   }
 }
 
+// Why now: reserving a publisher after adoption would break existing installs under it.
+const RESERVED_PLUGIN_PUBLISHERS: readonly string[] = [
+  OFFICIAL_PLUGIN_PUBLISHER,
+  'orca',
+  'official',
+  'anthropic',
+  'openai',
+  'github'
+]
+
 export function isReservedPluginIdentity(pluginKey: string): boolean {
   const identity = splitQualifiedPluginKey(pluginKey)
   return (
     identity !== null &&
-    (identity.publisher === OFFICIAL_PLUGIN_PUBLISHER ||
+    (RESERVED_PLUGIN_PUBLISHERS.includes(identity.publisher) ||
+      identity.publisher.startsWith(OFFICIAL_PLUGIN_ID_PREFIX) ||
       identity.id.startsWith(OFFICIAL_PLUGIN_ID_PREFIX))
   )
 }

@@ -15,7 +15,7 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | `manifestVersion` | `2` | yes | 1.4.244 | Manifest format. Use 2 for new plugins. |
 | `execution` | `"data"` \| `"instructional"` \| `"sandboxed-ui"` \| `"trusted-worker"` | yes | 1.4.244 | Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `instructional` (commands, shortcuts, recipes, agents), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation. Example: `"data"` |
 | `id` | string | yes | 1.4.160 | Plugin id, kebab-case. The install identity is `<publisher>.<id>`. The reserved names `constructor` and `prototype` are refused. Example: `"gleam-syntax"` |
-| `publisher` | string | yes | 1.4.160 | Publisher slug, kebab-case, usually your GitHub user or organization. The reserved names `constructor` and `prototype` are refused. Example: `"acme"` |
+| `publisher` | string | yes | 1.4.160 | Publisher slug, kebab-case, usually your GitHub user or organization. The reserved names `constructor` and `prototype` are refused. The publishers `stablyai`, `orca`, `orca-*`, `official`, `anthropic`, `openai` and `github`, and ids starting `orca-`, install only from the stablyai organization. Example: `"acme"` |
 | `name` | string | yes | 1.4.160 | Display name. Example: `"Gleam"` |
 | `version` | string | yes | 1.4.160 | Plugin version, semver. Example: `"1.2.0"` |
 | `description` | string | no | 1.4.160 | One or two sentences shown in the plugin list. |

@@ -129,6 +129,11 @@ describe('marketplace provenance contracts', () => {
     ['stablyai.skills', true, false],
     ['community.orca-skills', true, false],
     ['community.skills', false, false],
+    ['orca.skills', true, false],
+    ['orca-labs.skills', true, false],
+    ['openai.skills', true, false],
+    ['github.skills', true, false],
+    ['orcas.skills', false, false],
     ['invalid', false, false]
   ])('classifies %s', (pluginKey, reserved, official) => {
     expect(isReservedPluginIdentity(pluginKey)).toBe(reserved)
