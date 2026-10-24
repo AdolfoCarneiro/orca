@@ -161,7 +161,7 @@ export const pluginContributesFields = {
   )
 } satisfies Record<PluginContributionPoint, z.ZodType>
 
-export const pluginReservedContributesShape = {
+export const pluginReservedContributesFields = {
   skills: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.skills),
   mcpServers: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.mcpServers),
   taskSources: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.taskSources),

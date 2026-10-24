@@ -9,8 +9,8 @@ function asSchema(node: z.core.JSONSchema._JSONSchema | undefined): JsonSchema {
   return typeof node === 'object' ? node : {}
 }
 
-/** TypeScript-like shape, so a method reads as a signature rather than a JSON Schema dump. */
-function shape(schema: JsonSchema): string {
+/** TypeScript-like type text, so a method reads as a signature rather than a JSON Schema dump. */
+function typeText(schema: JsonSchema): string {
   if (schema.const !== undefined) {
     return JSON.stringify(schema.const)
   }
@@ -18,21 +18,21 @@ function shape(schema: JsonSchema): string {
     return schema.enum.map((value) => JSON.stringify(value)).join(' | ')
   }
   if (schema.anyOf) {
-    return schema.anyOf.map((node) => shape(asSchema(node))).join(' | ')
+    return schema.anyOf.map((node) => typeText(asSchema(node))).join(' | ')
   }
   if (schema.type === 'array') {
-    const item = shape(asSchema(Array.isArray(schema.items) ? undefined : schema.items))
+    const item = typeText(asSchema(Array.isArray(schema.items) ? undefined : schema.items))
     return item.includes(' ') && !item.startsWith('{') ? `(${item})[]` : `${item}[]`
   }
   if (schema.type === 'object' && schema.properties) {
     const required = new Set(schema.required ?? [])
     const fields = Object.entries(schema.properties).map(
-      ([key, node]) => `${key}${required.has(key) ? '' : '?'}: ${shape(asSchema(node))}`
+      ([key, node]) => `${key}${required.has(key) ? '' : '?'}: ${typeText(asSchema(node))}`
     )
     return fields.length === 0 ? '{}' : `{ ${fields.join('; ')} }`
   }
   if (schema.type === 'object' && typeof schema.additionalProperties === 'object') {
-    return `Record<string, ${shape(schema.additionalProperties)}>`
+    return `Record<string, ${typeText(schema.additionalProperties)}>`
   }
   if (schema.type === 'integer') {
     return 'number'
@@ -47,7 +47,7 @@ function signature(params: z.ZodType, result: z.ZodType): string {
   const options = { target: 'draft-2020-12', unrepresentable: 'any' } as const
   const input = z.toJSONSchema(params, { ...options, io: 'input' })
   const output = z.toJSONSchema(result, { ...options, io: 'output' })
-  return `(params: ${shape(input)}) => ${shape(output)}`
+  return `(params: ${typeText(input)}) => ${typeText(output)}`
 }
 
 // Why a Record: a new error code fails typecheck until it is documented here.

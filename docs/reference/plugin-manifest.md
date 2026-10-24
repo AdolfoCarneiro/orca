@@ -41,11 +41,11 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | `contributes.terminalThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | Terminal ANSI palettes. At most 64. |
 | `contributes.iconThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | File icon themes. At most 32. |
 | `contributes.syntaxes` | [SyntaxContribution](#syntaxcontribution)[] | no | 1.4.244 | Syntax highlighting for editor languages. At most 16. |
-| `contributes.skills` | any[] | no | 1.4.233 | Reserved for agent skills; must be empty until their format is defined. |
-| `contributes.mcpServers` | any[] | no | 1.4.233 | Reserved for MCP server definitions; must be empty until their format is defined. |
-| `contributes.taskSources` | any[] | no | 1.4.233 | Reserved for task sources; must be empty until their format is defined. |
-| `contributes.connections` | any[] | no | 1.4.233 | Reserved for account connections; must be empty until their format is defined. |
-| `contributes.settings` | any[] | no | 1.4.233 | Reserved for plugin settings; must be empty until their format is defined. |
+| `contributes.skills` | any[] | no | 1.4.244 | Reserved for agent skills; must be empty until their format is defined. |
+| `contributes.mcpServers` | any[] | no | 1.4.244 | Reserved for MCP server definitions; must be empty until their format is defined. |
+| `contributes.taskSources` | any[] | no | 1.4.244 | Reserved for task sources; must be empty until their format is defined. |
+| `contributes.connections` | any[] | no | 1.4.244 | Reserved for account connections; must be empty until their format is defined. |
+| `contributes.settings` | any[] | no | 1.4.244 | Reserved for plugin settings; must be empty until their format is defined. |
 | `capabilities` | [Capability](#capability)[] | no | 1.4.160 | Host APIs the plugin asks the user to grant. At most 32. |
 | `cover` | object | no | 1.4.244 | Wide image at the top of the plugin page. |
 | `cover.path` | string | yes | 1.4.244 | Cover image shown on the plugin page, 16:10 recommended (1600×1000). PNG, JPEG, WEBP, static, at least 800×500, at most 1024 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"images/cover.png"` |
