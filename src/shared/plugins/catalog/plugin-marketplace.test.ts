@@ -153,6 +153,21 @@ describe('marketplace provenance contracts', () => {
       false
     )
     expect(isOfficialOrganizationGitSource('https://gitlab.com/stablyai/orca-skills')).toBe(false)
+    expect(isOfficialOrganizationGitSource('git@github.com:stablyai/../evil/orca-skills.git')).toBe(
+      false
+    )
+  })
+
+  it('rejects a listing whose Git host starts with a dash or contains ..', () => {
+    for (const url of ['git@-oProxyCommand=evil:a/b.git', 'https://github..com/a/b.git']) {
+      expect(
+        pluginMarketplaceSchema.safeParse({
+          name: 'Community plugins',
+          owner: 'community',
+          plugins: [{ ...listing(), source: { kind: 'git', url, ref: 'main' } }]
+        }).success
+      ).toBe(false)
+    }
   })
 
   it('recognizes only the canonical official marketplace repository', () => {
