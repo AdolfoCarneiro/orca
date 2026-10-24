@@ -4,16 +4,16 @@
 
 The orca-plugin.json file at the root of an Orca plugin (manifest format 2).
 
-Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/schemas/plugins/orca-plugin.v2.schema.json"` to `orca-plugin.json` for completion and inline errors in your editor.
+Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schemas/plugins/orca-plugin.v2.schema.json"` to `orca-plugin.json` for completion and inline errors in your editor.
 `Since` is the first Orca release that reads the field; raise `engines.orca` when you use a newer one.
 
 ## Fields
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `$schema` | string | no | 1.4.233 | JSON Schema URL for editor completion. Ignored by Orca. |
-| `manifestVersion` | `2` | yes | 1.4.233 | Manifest format. Use 2 for new plugins. |
-| `execution` | `"data"` \| `"instructional"` \| `"sandboxed-ui"` \| `"trusted-worker"` | yes | 1.4.233 | Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `instructional` (commands, shortcuts, recipes, agents), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation. Example: `"data"` |
+| `$schema` | string | no | 1.4.244 | JSON Schema URL for editor completion. Ignored by Orca. |
+| `manifestVersion` | `2` | yes | 1.4.244 | Manifest format. Use 2 for new plugins. |
+| `execution` | `"data"` \| `"instructional"` \| `"sandboxed-ui"` \| `"trusted-worker"` | yes | 1.4.244 | Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `instructional` (commands, shortcuts, recipes, agents), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation. Example: `"data"` |
 | `id` | string | yes | 1.4.160 | Plugin id, kebab-case. The install identity is `<publisher>.<id>`. The reserved names `constructor` and `prototype` are refused. Example: `"gleam-syntax"` |
 | `publisher` | string | yes | 1.4.160 | Publisher slug, kebab-case, usually your GitHub user or organization. The reserved names `constructor` and `prototype` are refused. Example: `"acme"` |
 | `name` | string | yes | 1.4.160 | Display name. Example: `"Gleam"` |
@@ -23,11 +23,11 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/schemas/pl
 | `author.name` | string | yes | 1.4.160 | Author or organization name. Example: `"Acme"` |
 | `author.url` | string | no | 1.4.160 | Author homepage. Example: `"https://example.com"` |
 | `repository` | string | no | 1.4.160 | Source repository URL. Example: `"https://github.com/acme/orca-gleam-syntax"` |
-| `license` | string | no | 1.4.233 | SPDX license expression. Example: `"MIT"` |
-| `homepage` | string | no | 1.4.233 | Project homepage, https only. Example: `"https://example.com/gleam"` |
+| `license` | string | no | 1.4.244 | SPDX license expression. Example: `"MIT"` |
+| `homepage` | string | no | 1.4.244 | Project homepage, https only. Example: `"https://example.com/gleam"` |
 | `icon` | string | no | 1.4.160 | Square image shown beside the plugin name. PNG, WEBP, static, at least 128×128, square, at most 256 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"assets/icon.png"` |
 | `engines` | object | yes | 1.4.160 | Host versions this plugin supports. Older hosts refuse to load it. |
-| `engines.orca` | string | yes | 1.4.160 | Oldest Orca release this plugin runs on, as `>=x.y.z`. Raise it to the newest "Since" of any field you use; a format 2 manifest needs at least `>=1.4.233`, because older Orca cannot read format 2. Example: `">=1.4.233"` |
+| `engines.orca` | string | yes | 1.4.160 | Oldest Orca release this plugin runs on, as `>=x.y.z`. Raise it to the newest "Since" of any field you use; a format 2 manifest needs at least `>=1.4.244`, because older Orca cannot read format 2. Example: `">=1.4.244"` |
 | `main` | string | no | 1.4.160 | Node entry run in an out-of-process plugin worker. Requires the `trusted-worker` execution profile, and is required by it, by `contributes.events` and by any command without an `action`. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"dist/main.mjs"` |
 | `contributes` | object | no | 1.4.160 | What the plugin adds to Orca. Every point defaults to empty. |
 | `contributes.panels` | [PanelContribution](#panelcontribution)[] | no | 1.4.160 | Sidebar panels. At most 64. |
@@ -37,15 +37,15 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/schemas/pl
 | `contributes.keybindings` | [KeybindingContribution](#keybindingcontribution)[] | no | 1.4.160 | Keyboard shortcuts for contributed commands. At most 256. |
 | `contributes.vmRecipes` | [VmRecipeContribution](#vmrecipecontribution)[] | no | 1.4.160 | Virtual machine environment recipes. At most 64. |
 | `contributes.agents` | [AgentProfileContribution](#agentprofilecontribution)[] | no | 1.4.160 | Reserved for coding-agent definitions; must be empty in manifest format 2 until their format is defined. At most 64. |
-| `contributes.themes` | [ThemeContribution](#themecontribution)[] | no | 1.4.233 | App color themes. At most 64. |
-| `contributes.terminalThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.233 | Terminal ANSI palettes. At most 64. |
-| `contributes.iconThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.233 | File icon themes. At most 32. |
-| `contributes.syntaxes` | [SyntaxContribution](#syntaxcontribution)[] | no | 1.4.233 | Syntax highlighting for editor languages. At most 16. |
+| `contributes.themes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | App color themes. At most 64. |
+| `contributes.terminalThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | Terminal ANSI palettes. At most 64. |
+| `contributes.iconThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | File icon themes. At most 32. |
+| `contributes.syntaxes` | [SyntaxContribution](#syntaxcontribution)[] | no | 1.4.244 | Syntax highlighting for editor languages. At most 16. |
 | `capabilities` | [Capability](#capability)[] | no | 1.4.160 | Host APIs the plugin asks the user to grant. At most 32. |
-| `cover` | object | no | 1.4.233 | Wide image at the top of the plugin page. |
-| `cover.path` | string | yes | 1.4.233 | Cover image shown on the plugin page, 16:10 recommended (1600×1000). PNG, JPEG, WEBP, static, at least 800×500, at most 1024 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"images/cover.png"` |
-| `cover.alt` | string | yes | 1.4.233 | What the image shows, for screen readers. Required. Example: `"The Dusk theme on a terminal"` |
-| `screenshots` | [Screenshot](#screenshot)[] | no | 1.4.233 | Screenshots for the plugin page, at most 6. All images together may be at most 8 MB. |
+| `cover` | object | no | 1.4.244 | Wide image at the top of the plugin page. |
+| `cover.path` | string | yes | 1.4.244 | Cover image shown on the plugin page, 16:10 recommended (1600×1000). PNG, JPEG, WEBP, static, at least 800×500, at most 1024 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"images/cover.png"` |
+| `cover.alt` | string | yes | 1.4.244 | What the image shows, for screen readers. Required. Example: `"The Dusk theme on a terminal"` |
+| `screenshots` | [Screenshot](#screenshot)[] | no | 1.4.244 | Screenshots for the plugin page, at most 6. All images together may be at most 8 MB. |
 | `pluginApi` | `1` | no | 1.4.160 | Major version of the plugin host API this plugin targets. Optional (defaults to 1), and refused on `data` and `instructional` plugins, which never call it. |
 
 ## PanelContribution
@@ -86,7 +86,7 @@ An interface translation.
 | --- | --- | --- | --- | --- |
 | `locale` | string | yes | 1.4.160 | BCP 47 locale the pack translates Orca into. Each locale appears once, ignoring case. Example: `"pt-BR"` |
 | `path` | string | yes | 1.4.160 | JSON file of translated interface strings. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"locales/pt-BR.json"` |
-| `displayName` | string | no | 1.4.233 | Native-language name for the Settings picker. Omitted packs show `{locale} — {pluginKey}`. Example: `"Português (Brasil)"` |
+| `displayName` | string | no | 1.4.244 | Native-language name for the Settings picker. Omitted packs show `{locale} — {pluginKey}`. Example: `"Português (Brasil)"` |
 
 ## KeybindingContribution
 
@@ -120,9 +120,9 @@ A labelled theme file.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `id` | string | yes | 1.4.233 | Theme id, unique within its family in this plugin. The reserved names `constructor` and `prototype` are refused. Example: `"dusk"` |
-| `label` | string | yes | 1.4.233 | Name shown in the theme picker. Example: `"Dusk"` |
-| `path` | string | yes | 1.4.233 | JSON theme file, at most 16 KiB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"themes/dusk.json"` |
+| `id` | string | yes | 1.4.244 | Theme id, unique within its family in this plugin. The reserved names `constructor` and `prototype` are refused. Example: `"dusk"` |
+| `label` | string | yes | 1.4.244 | Name shown in the theme picker. Example: `"Dusk"` |
+| `path` | string | yes | 1.4.244 | JSON theme file, at most 16 KiB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"themes/dusk.json"` |
 
 ## SyntaxContribution
 
@@ -130,13 +130,13 @@ Syntax highlighting for one language.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `id` | string | yes | 1.4.233 | Language id, unique among this plugin's syntaxes. The reserved names `constructor` and `prototype` are refused. Example: `"gleam"` |
-| `label` | string | yes | 1.4.233 | Language name shown in the editor. Example: `"Gleam"` |
-| `scopeName` | string | yes | 1.4.233 | The grammar's root TextMate scope, unique among this plugin's syntaxes. Example: `"source.gleam"` |
-| `path` | string | yes | 1.4.233 | TextMate grammar JSON file. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"syntaxes/gleam.tmLanguage.json"` |
-| `configuration` | string | no | 1.4.233 | Language configuration JSON file: comments, brackets and auto-closing pairs. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"syntaxes/language-configuration.json"` |
-| `extensions` | string[] | no | 1.4.233 | File extensions this language opens, with the dot. Example: `[".gleam"]` |
-| `filenames` | string[] | no | 1.4.233 | Exact file names this language opens. Names must be portable: no path separators, `.`, `..` or characters Windows forbids. Example: `["gleam.toml"]` |
+| `id` | string | yes | 1.4.244 | Language id, unique among this plugin's syntaxes. The reserved names `constructor` and `prototype` are refused. Example: `"gleam"` |
+| `label` | string | yes | 1.4.244 | Language name shown in the editor. Example: `"Gleam"` |
+| `scopeName` | string | yes | 1.4.244 | The grammar's root TextMate scope, unique among this plugin's syntaxes. Example: `"source.gleam"` |
+| `path` | string | yes | 1.4.244 | TextMate grammar JSON file. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"syntaxes/gleam.tmLanguage.json"` |
+| `configuration` | string | no | 1.4.244 | Language configuration JSON file: comments, brackets and auto-closing pairs. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"syntaxes/language-configuration.json"` |
+| `extensions` | string[] | no | 1.4.244 | File extensions this language opens, with the dot. Example: `[".gleam"]` |
+| `filenames` | string[] | no | 1.4.244 | Exact file names this language opens. Names must be portable: no path separators, `.`, `..` or characters Windows forbids. Example: `["gleam.toml"]` |
 
 ## Capability
 
@@ -152,10 +152,10 @@ One screenshot of the plugin in use.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `path` | string | yes | 1.4.233 | Screenshot, 16:10 recommended (up to 2560×1600). PNG, JPEG, WEBP, static, at least 1280×800, at most 1536 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"images/editor.png"` |
-| `alt` | string | yes | 1.4.233 | What the image shows, for screen readers. Required. Example: `"The Dusk theme on a terminal"` |
-| `caption` | string | no | 1.4.233 | Short caption under the screenshot. Example: `"Gleam in the editor"` |
-| `theme` | `"light"` \| `"dark"` | no | 1.4.233 | Show this screenshot only with a light or dark Orca theme. |
+| `path` | string | yes | 1.4.244 | Screenshot, 16:10 recommended (up to 2560×1600). PNG, JPEG, WEBP, static, at least 1280×800, at most 1536 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"images/editor.png"` |
+| `alt` | string | yes | 1.4.244 | What the image shows, for screen readers. Required. Example: `"The Dusk theme on a terminal"` |
+| `caption` | string | no | 1.4.244 | Short caption under the screenshot. Example: `"Gleam in the editor"` |
+| `theme` | `"light"` \| `"dark"` | no | 1.4.244 | Show this screenshot only with a light or dark Orca theme. |
 
 ## Versions and compatibility
 

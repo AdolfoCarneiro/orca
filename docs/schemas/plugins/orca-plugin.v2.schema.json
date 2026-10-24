@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/stablyai/orca/main/schemas/plugins/orca-plugin.v2.schema.json",
+  "$id": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schemas/plugins/orca-plugin.v2.schema.json",
   "title": "Orca plugin manifest",
   "description": "The orca-plugin.json file at the root of an Orca plugin (manifest format 2).",
   "type": "object",
   "properties": {
     "$schema": {
       "description": "JSON Schema URL for editor completion. Ignored by Orca.",
-      "x-orca-since": "1.4.233",
+      "x-orca-since": "1.4.244",
       "type": "string",
       "maxLength": 2048
     },
@@ -15,7 +15,7 @@
       "type": "number",
       "const": 2,
       "description": "Manifest format. Use 2 for new plugins.",
-      "x-orca-since": "1.4.233"
+      "x-orca-since": "1.4.244"
     },
     "execution": {
       "type": "string",
@@ -26,7 +26,7 @@
         "trusted-worker"
       ],
       "description": "Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `instructional` (commands, shortcuts, recipes, agents), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation.",
-      "x-orca-since": "1.4.233",
+      "x-orca-since": "1.4.244",
       "examples": [
         "data"
       ]
@@ -117,7 +117,7 @@
     },
     "license": {
       "description": "SPDX license expression.",
-      "x-orca-since": "1.4.233",
+      "x-orca-since": "1.4.244",
       "examples": [
         "MIT",
         "Apache-2.0 OR MIT"
@@ -128,7 +128,7 @@
     },
     "homepage": {
       "description": "Project homepage, https only.",
-      "x-orca-since": "1.4.233",
+      "x-orca-since": "1.4.244",
       "examples": [
         "https://example.com/gleam"
       ],
@@ -154,10 +154,10 @@
           "type": "string",
           "maxLength": 64,
           "pattern": "^>=\\d+\\.\\d+\\.\\d+$",
-          "description": "Oldest Orca release this plugin runs on, as `>=x.y.z`. Raise it to the newest \"Since\" of any field you use; a format 2 manifest needs at least `>=1.4.233`, because older Orca cannot read format 2.",
+          "description": "Oldest Orca release this plugin runs on, as `>=x.y.z`. Raise it to the newest \"Since\" of any field you use; a format 2 manifest needs at least `>=1.4.244`, because older Orca cannot read format 2.",
           "x-orca-since": "1.4.160",
           "examples": [
-            ">=1.4.233"
+            ">=1.4.244"
           ]
         }
       },
@@ -257,7 +257,7 @@
         "themes": {
           "default": [],
           "description": "App color themes. At most 64.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "maxItems": 64,
           "type": "array",
           "items": {
@@ -267,7 +267,7 @@
         "terminalThemes": {
           "default": [],
           "description": "Terminal ANSI palettes. At most 64.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "maxItems": 64,
           "type": "array",
           "items": {
@@ -277,7 +277,7 @@
         "iconThemes": {
           "default": [],
           "description": "File icon themes. At most 32.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "maxItems": 32,
           "type": "array",
           "items": {
@@ -287,7 +287,7 @@
         "syntaxes": {
           "default": [],
           "description": "Syntax highlighting for editor languages. At most 16.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "maxItems": 16,
           "type": "array",
           "items": {
@@ -309,7 +309,7 @@
     },
     "cover": {
       "description": "Wide image at the top of the plugin page.",
-      "x-orca-since": "1.4.233",
+      "x-orca-since": "1.4.244",
       "type": "object",
       "properties": {
         "path": {
@@ -318,7 +318,7 @@
           "maxLength": 1024,
           "pattern": "^[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ](?:[\\\\/][^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ])*$",
           "description": "Cover image shown on the plugin page, 16:10 recommended (1600×1000). PNG, JPEG, WEBP, static, at least 800×500, at most 1024 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "images/cover.png"
           ]
@@ -328,7 +328,7 @@
           "minLength": 1,
           "maxLength": 160,
           "description": "What the image shows, for screen readers. Required.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "The Dusk theme on a terminal"
           ]
@@ -342,7 +342,7 @@
     },
     "screenshots": {
       "description": "Screenshots for the plugin page, at most 6. All images together may be at most 8 MB.",
-      "x-orca-since": "1.4.233",
+      "x-orca-since": "1.4.244",
       "maxItems": 6,
       "type": "array",
       "items": {
@@ -558,7 +558,7 @@
         },
         "displayName": {
           "description": "Native-language name for the Settings picker. Omitted packs show `{locale} — {pluginKey}`.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "Português (Brasil)"
           ],
@@ -665,7 +665,7 @@
           "maxLength": 64,
           "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
           "description": "Theme id, unique within its family in this plugin. The reserved names `constructor` and `prototype` are refused.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "dusk"
           ]
@@ -675,7 +675,7 @@
           "minLength": 1,
           "maxLength": 128,
           "description": "Name shown in the theme picker.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "Dusk"
           ]
@@ -686,7 +686,7 @@
           "maxLength": 1024,
           "pattern": "^[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ](?:[\\\\/][^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ])*$",
           "description": "JSON theme file, at most 16 KiB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "themes/dusk.json"
           ]
@@ -708,7 +708,7 @@
           "maxLength": 64,
           "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
           "description": "Language id, unique among this plugin's syntaxes. The reserved names `constructor` and `prototype` are refused.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "gleam"
           ]
@@ -718,7 +718,7 @@
           "minLength": 1,
           "maxLength": 128,
           "description": "Language name shown in the editor.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "Gleam"
           ]
@@ -728,7 +728,7 @@
           "maxLength": 128,
           "pattern": "^[A-Za-z][A-Za-z0-9_-]*(?:\\.[A-Za-z0-9_-]+)+$",
           "description": "The grammar's root TextMate scope, unique among this plugin's syntaxes.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "source.gleam"
           ]
@@ -739,14 +739,14 @@
           "maxLength": 1024,
           "pattern": "^[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ](?:[\\\\/][^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ])*$",
           "description": "TextMate grammar JSON file. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "syntaxes/gleam.tmLanguage.json"
           ]
         },
         "configuration": {
           "description": "Language configuration JSON file: comments, brackets and auto-closing pairs. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "syntaxes/language-configuration.json"
           ],
@@ -758,7 +758,7 @@
         "extensions": {
           "default": [],
           "description": "File extensions this language opens, with the dot.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             [
               ".gleam"
@@ -775,7 +775,7 @@
         "filenames": {
           "default": [],
           "description": "Exact file names this language opens. Names must be portable: no path separators, `.`, `..` or characters Windows forbids.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             [
               "gleam.toml"
@@ -841,7 +841,7 @@
           "maxLength": 1024,
           "pattern": "^[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ](?:[\\\\/][^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ])*$",
           "description": "Screenshot, 16:10 recommended (up to 2560×1600). PNG, JPEG, WEBP, static, at least 1280×800, at most 1536 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "images/editor.png"
           ]
@@ -851,14 +851,14 @@
           "minLength": 1,
           "maxLength": 160,
           "description": "What the image shows, for screen readers. Required.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "The Dusk theme on a terminal"
           ]
         },
         "caption": {
           "description": "Short caption under the screenshot.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "examples": [
             "Gleam in the editor"
           ],
@@ -868,7 +868,7 @@
         },
         "theme": {
           "description": "Show this screenshot only with a light or dark Orca theme.",
-          "x-orca-since": "1.4.233",
+          "x-orca-since": "1.4.244",
           "type": "string",
           "enum": [
             "light",

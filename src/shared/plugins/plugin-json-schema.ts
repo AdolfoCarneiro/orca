@@ -9,7 +9,7 @@ import {
 
 // Why the format in the file name: a later breaking format publishes beside v2, so a URL an author
 // pinned never changes meaning under them.
-export const PLUGIN_SCHEMA_DIRECTORY = 'schemas/plugins'
+export const PLUGIN_SCHEMA_DIRECTORY = 'docs/schemas/plugins'
 export const PLUGIN_MANIFEST_SCHEMA_FILE = 'orca-plugin.v2.schema.json'
 export const PLUGIN_CATALOG_SCHEMA_FILE = 'orca-catalog.v2.schema.json'
 /** Git ref the published `$id` points at. Why `main` for now: no release ships v2 yet; switch to
