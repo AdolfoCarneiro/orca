@@ -24,7 +24,7 @@ export type PluginSyntaxEngine = {
  * tokens, shifted by edits, until the new pass lands.
  */
 export function createPluginSyntaxEngine(options: {
-  monaco: typeof Monaco
+  monaco: Pick<typeof Monaco, 'languages' | 'editor'>
   languageId: string
   load: () => Promise<PluginSyntaxPayload | null>
   createWorker: () => PluginGrammarWorker

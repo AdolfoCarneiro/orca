@@ -13,7 +13,7 @@ type TokensProvider = {
 
 const providers: TokensProvider[] = []
 
-vi.mock('monaco-editor', () => ({
+vi.mock('monaco-editor/esm/vs/editor/editor.api.js', () => ({
   languages: {
     register: () => {},
     setLanguageConfiguration: () => ({ dispose: () => {} }),
