@@ -122,10 +122,13 @@ export class PluginAutoUpdater {
       }
       try {
         const verdict = await this.updateOne(plugin, startedAt, refreshKillList)
+        // Why logged: a headless or remote host has no toast, so the log is the only record.
         if (verdict?.kind === 'updated') {
           updatedNow[plugin.pluginKey] = verdict.version
+          console.info(`[plugins] auto-updated ${plugin.pluginKey} to ${verdict.version}`)
         } else if (verdict?.kind === 'needs-review') {
           needsReview[plugin.pluginKey] = verdict.version
+          console.info(`[plugins] update ${verdict.version} of ${plugin.pluginKey} needs review`)
         }
       } catch (error) {
         console.warn(`[plugins] auto-update skipped ${plugin.pluginKey}:`, error)

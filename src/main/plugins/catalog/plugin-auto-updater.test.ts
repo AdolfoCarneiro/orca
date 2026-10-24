@@ -218,10 +218,13 @@ describe('plugin auto-update', () => {
     expect(offline.install).not.toHaveBeenCalled()
   })
 
-  it('installs at once from an official catalog', async () => {
+  it('installs at once from an official catalog and logs it for hosts without a UI', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined)
     const { updater, install } = setup({ officialCatalog: true })
     await updater.run()
     expect(install).toHaveBeenCalledTimes(1)
+    expect(info).toHaveBeenCalledWith(`[plugins] auto-updated ${KEY} to 1.1.0`)
+    info.mockRestore()
   })
 
   it('leaves an update that asks for more access uninstalled and marked for review', async () => {
