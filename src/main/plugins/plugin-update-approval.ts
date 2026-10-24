@@ -18,32 +18,29 @@ type ApprovalSource = Pick<
 >
 
 /** The installed plugin an update would replace, when it is running under a user approval. */
-export type PluginApprovedPredecessor = { plugin: ValidDiscoveredPlugin } | null
-
 export function readApprovedPredecessor(
   source: ApprovalSource,
   plugin: ValidDiscoveredPlugin | null
-): PluginApprovedPredecessor {
+): ValidDiscoveredPlugin | null {
   // Why dev excluded: a development folder shadows the install, so its approval is not the install's.
   if (!plugin || plugin.isDev || livePluginActivationState(source, plugin) !== 'approved') {
     return null
   }
-  return { plugin }
+  return plugin
 }
 
 /**
  * Trust once per access level: an update from the same repository that asks for nothing new keeps
  * the approval of the version it replaces, code changes included. Returns whether it was carried.
  */
-export async function carryPluginApprovalAcrossUpdate(input: {
-  predecessor: PluginApprovedPredecessor
-  repositoryMoved: boolean
+async function carryPluginApprovalAcrossUpdate(input: {
+  previous: ValidDiscoveredPlugin | null
   installedFingerprint: string
   findValidPlugin: (pluginKey: string) => ValidDiscoveredPlugin | null
   approve: (pluginKey: string, reviewedFingerprint: string) => Promise<void>
 }): Promise<boolean> {
-  const previous = input.predecessor?.plugin
-  if (!previous || input.repositoryMoved) {
+  const { previous } = input
+  if (!previous) {
     return false
   }
   const next = input.findValidPlugin(previous.pluginKey)
@@ -103,8 +100,7 @@ export async function installCatalogReleaseWithApproval(input: {
     pluginService.findValidPlugin(key)
   if (
     await carryPluginApprovalAcrossUpdate({
-      predecessor,
-      repositoryMoved: false,
+      previous: predecessor,
       installedFingerprint: result.consentFingerprint,
       findValidPlugin,
       approve: input.approve
