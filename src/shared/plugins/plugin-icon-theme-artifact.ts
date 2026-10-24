@@ -113,13 +113,13 @@ const pluginIconThemeMetadataSchema = z.object({
 })
 
 /** Each distinct SVG is sent once; the maps point into `svgs` so rows never repeat image data. */
-const pluginIconThemeRegistrationShape = pluginIconThemeMetadataSchema.extend({
+const pluginIconThemeRegistrationObjectSchema = pluginIconThemeMetadataSchema.extend({
   svgs: z.array(z.string().max(PLUGIN_ICON_SVG_MAX_BYTES)).max(PLUGIN_ICON_THEME_MAX_SVGS),
   icons: z.partialRecord(iconSlotSchema, svgIndexSchema),
   fileNames: ownKeyRecord(z.string(), svgIndexSchema),
   fileExtensions: ownKeyRecord(z.string(), svgIndexSchema)
 })
-const pluginIconThemeRegistrationSchema = pluginIconThemeRegistrationShape.refine(
+const pluginIconThemeRegistrationSchema = pluginIconThemeRegistrationObjectSchema.refine(
   (theme) =>
     [
       ...Object.values(theme.icons),
