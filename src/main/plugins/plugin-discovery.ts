@@ -13,7 +13,7 @@ import {
 import { pluginManifestCompatibilityError } from '../../shared/plugins/manifest/plugin-manifest-compatibility'
 import {
   fingerprintPluginConsent,
-  hasInstructionalPluginContributions,
+  hasDeclarativePluginContributions,
   requiresPluginContentApproval
 } from '../../shared/plugins/approval/plugin-consent-fingerprint'
 import { validateDeclaredPluginArtifacts } from './plugin-artifact-validation'
@@ -33,7 +33,7 @@ export type ValidDiscoveredPlugin = {
   manifest: PluginManifest
   /** Fingerprint of the capabilities and trusted-worker execution tier. */
   consentFingerprint: string
-  /** Immutable tree identity included in consent for instructional packs. */
+  /** Immutable tree identity included in consent for declarative packs. */
   consentContentHash?: string | null
   /** Null for mutable dev trees. */
   contentHash: string | null
@@ -122,7 +122,7 @@ async function readManifestDir(
   }
   // Why dev trees bind only instructions: dev code is the author's working copy, and
   // binding it would re-prompt on every save.
-  if (isDev && hasInstructionalPluginContributions(manifest)) {
+  if (isDev && hasDeclarativePluginContributions(manifest)) {
     const treeHash = await hashPluginTree(rootDir)
     if (!treeHash.ok) {
       return { pluginKey, rootDir, error: treeHash.error, isDev }

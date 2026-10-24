@@ -162,7 +162,7 @@ export const pluginManifestV2Object = z
       .meta(pluginFieldDoc('Manifest format. Use 2 for new plugins.', NEXT)),
     execution: pluginExecutionProfileSchema.meta(
       pluginFieldDoc(
-        'Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `instructional` (commands, shortcuts, recipes, agents), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation.',
+        'Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `declarative` (commands, shortcuts, recipes, agents), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation.',
         NEXT,
         ['data']
       )
@@ -172,12 +172,12 @@ export const pluginManifestV2Object = z
     // Why strict here too: format 2 refuses unknown keys at every level; format 1 never did.
     author: z.strictObject(authorFields).optional().meta(authorDoc),
     engines: z.strictObject(enginesFields).meta(enginesDoc),
-    // Why optional: only code calls the host API, so data and instructional plugins leave it out.
+    // Why optional: only code calls the host API, so data and declarative plugins leave it out.
     pluginApi: pluginApiMajorSchema
       .optional()
       .meta(
         pluginFieldDoc(
-          `${pluginApiDoc} Optional (defaults to 1), and refused on \`data\` and \`instructional\` plugins, which never call it.`,
+          `${pluginApiDoc} Optional (defaults to 1), and refused on \`data\` and \`declarative\` plugins, which never call it.`,
           V1
         )
       )

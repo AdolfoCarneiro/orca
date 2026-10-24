@@ -123,7 +123,7 @@ describe('catalog releases', () => {
 
   it.each([
     ['version', release({ version: '1.3.0' }), 'version'],
-    ['profile', release({ execution: 'instructional' }), 'execution profile'],
+    ['profile', release({ execution: 'declarative' }), 'execution profile'],
     ['compatibility', release({ minimumOrca: '1.5.0' }), 'compatibility']
   ])('rejects a manifest whose %s differs from the release', (_label, record, message) => {
     expect(check(record)).toContain(message)
@@ -131,10 +131,10 @@ describe('catalog releases', () => {
 
   it('rejects declared contributions the manifest does not carry', () => {
     const record = release({
-      execution: 'instructional',
+      execution: 'declarative',
       types: ['interface-language', 'instructions']
     })
-    expect(check(record, manifest({ execution: 'instructional' }))).toContain('contributions')
+    expect(check(record, manifest({ execution: 'declarative' }))).toContain('contributions')
   })
 
   it('accepts file types only when a syntax in the release handles them', () => {

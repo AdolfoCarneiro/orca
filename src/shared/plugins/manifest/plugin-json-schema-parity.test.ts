@@ -153,7 +153,7 @@ const RUNTIME_ONLY_RULES = [
   {
     rule: 'keybindings for commands the plugin does not contribute',
     raw: manifest({
-      execution: 'instructional',
+      execution: 'declarative',
       contributes: { keybindings: [{ command: 'missing', key: 'Mod+K' }] }
     }),
     pointer: '/$defs/KeybindingContribution/properties/command',

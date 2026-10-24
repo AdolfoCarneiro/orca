@@ -54,7 +54,7 @@ describe('fingerprintPluginConsent', () => {
     expect(needsReconsent('samples.demo', withWorker, lists)).toBe(true)
   })
 
-  it('requires re-consent when instructional content bytes change', () => {
+  it('requires re-consent when declarative content bytes change', () => {
     const subject = {
       main: undefined,
       capabilities: [],
@@ -117,7 +117,7 @@ describe('fingerprintPluginConsent', () => {
   })
 
   it('requires re-approval whenever an update changes the execution profile', () => {
-    const profiles = ['data', 'instructional', 'sandboxed-ui', 'trusted-worker'] as const
+    const profiles = ['data', 'declarative', 'sandboxed-ui', 'trusted-worker'] as const
     const fingerprintFor = (execution: (typeof profiles)[number]) =>
       fingerprintPluginConsent(
         {

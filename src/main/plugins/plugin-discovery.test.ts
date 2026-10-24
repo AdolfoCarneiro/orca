@@ -188,7 +188,7 @@ describe('installed plugin discovery identity', () => {
   })
 })
 
-describe('instructional plugin discovery identity', () => {
+describe('declarative plugin discovery identity', () => {
   it('changes dev consent when a VM recipe command changes', async () => {
     const pluginsDir = await tempPluginsDir()
     const devRoot = await tempPluginsDir()

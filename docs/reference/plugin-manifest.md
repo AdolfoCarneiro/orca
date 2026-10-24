@@ -13,7 +13,7 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | --- | --- | --- | --- | --- |
 | `$schema` | string | no | 1.4.244 | JSON Schema URL for editor completion. Ignored by Orca. |
 | `manifestVersion` | `2` | yes | 1.4.244 | Manifest format. Use 2 for new plugins. |
-| `execution` | `"data"` \| `"instructional"` \| `"sandboxed-ui"` \| `"trusted-worker"` | yes | 1.4.244 | Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `instructional` (commands, shortcuts, recipes, agents), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation. Example: `"data"` |
+| `execution` | `"data"` \| `"declarative"` \| `"sandboxed-ui"` \| `"trusted-worker"` | yes | 1.4.244 | Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `declarative` (commands, shortcuts, recipes, agents), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation. Example: `"data"` |
 | `id` | string | yes | 1.4.160 | Plugin id, kebab-case. The install identity is `<publisher>.<id>`. The reserved names `constructor` and `prototype` are refused. Example: `"gleam-syntax"` |
 | `publisher` | string | yes | 1.4.160 | Publisher slug, kebab-case, usually your GitHub user or organization. The reserved names `constructor` and `prototype` are refused. The publishers `stablyai`, `orca`, `orca-*`, `official`, `anthropic`, `openai` and `github`, and ids starting `orca-`, install only from the stablyai organization. Example: `"acme"` |
 | `name` | string | yes | 1.4.160 | Display name. Example: `"Gleam"` |
@@ -51,7 +51,7 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | `cover.path` | string | yes | 1.4.244 | Cover image shown on the plugin page, 16:10 recommended (1600×1000). PNG, JPEG, WEBP, static, at least 800×500, at most 1024 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"images/cover.png"` |
 | `cover.alt` | string | yes | 1.4.244 | What the image shows, for screen readers. Required. Example: `"The Dusk theme on a terminal"` |
 | `screenshots` | [Screenshot](#screenshot)[] | no | 1.4.244 | Screenshots for the plugin page, at most 6. All images together may be at most 8 MB. |
-| `pluginApi` | `1` | no | 1.4.160 | Major version of the plugin host API this plugin targets. Optional (defaults to 1), and refused on `data` and `instructional` plugins, which never call it. |
+| `pluginApi` | `1` | no | 1.4.160 | Major version of the plugin host API this plugin targets. Optional (defaults to 1), and refused on `data` and `declarative` plugins, which never call it. |
 
 ## PanelContribution
 
@@ -66,7 +66,7 @@ A sidebar panel. Requires the `sandboxed-ui` execution profile or higher.
 
 ## CommandContribution
 
-A command palette entry. Requires the `instructional` execution profile or higher.
+A command palette entry. Requires the `declarative` execution profile or higher.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
@@ -166,7 +166,7 @@ One screenshot of the plugin in use.
 
 - **What runs is strict.** Orca refuses a manifest with any key it does not know, at every level, so an older Orca never silently ignores something a plugin relies on.
 - **`engines.orca` is the only version gate.** It must be at least the newest `Since` of every field and every value (capability, event, built-in action) the manifest uses. Orca checks this when it validates, lists or installs a plugin, so an older Orca can always say "requires Orca >=X (this is Y)" instead of listing unknown fields.
-- **`pluginApi` is optional.** It names the major version of the host API ([reference](plugin-host-api.md)), which only grows within major 1; Orca refuses a major it does not implement. Only `sandboxed-ui` and `trusted-worker` plugins call that API, so `data` and `instructional` plugins must leave it out.
+- **`pluginApi` is optional.** It names the major version of the host API ([reference](plugin-host-api.md)), which only grows within major 1; Orca refuses a major it does not implement. Only `sandboxed-ui` and `trusted-worker` plugins call that API, so `data` and `declarative` plugins must leave it out.
 - **New fields, contribution points and values are additive.** They arrive with a `Since` version; nothing else changes. `manifestVersion` rises only if an existing field changes meaning.
 - **Deprecation.** A field to be removed is marked deprecated here and keeps working for at least one release; it is removed only together with a higher `engines.orca` requirement, and its name is never reused.
 - **Reserved contribution points.** `contributes.agents`, `skills`, `mcpServers`, `taskSources`, `connections` and `settings` are held for planned features and must stay empty until their format is defined. Each will arrive as an additive point with its own `Since`, without a new manifest format.

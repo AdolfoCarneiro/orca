@@ -45,7 +45,7 @@ export const PLUGIN_CATALOG_TYPES = [
 export type PluginCatalogType = (typeof PLUGIN_CATALOG_TYPES)[number]
 
 const CATALOG_TYPE_PROFILE: Partial<Record<PluginCatalogType, PluginExecutionProfile>> = {
-  instructions: 'instructional',
+  instructions: 'declarative',
   panel: 'sandboxed-ui',
   worker: 'trusted-worker'
 }
@@ -93,7 +93,7 @@ export const pluginCatalogReleaseSchema = z
       .refine((types) => new Set(types).size === types.length, 'duplicate contribution type')
       .meta({
         ...pluginFieldDoc(
-          'Every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `instructional` profile or higher, `panel` needs `sandboxed-ui`, and `worker` needs `trusted-worker`.',
+          'Every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` needs `sandboxed-ui`, and `worker` needs `trusted-worker`.',
           NEXT,
           [['syntax']]
         ),

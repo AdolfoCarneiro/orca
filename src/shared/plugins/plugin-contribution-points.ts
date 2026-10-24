@@ -181,13 +181,13 @@ export const PLUGIN_CONTRIBUTION_POINT_POLICY: Record<
   ContributionPointPolicy
 > = {
   panels: { execution: 'sandboxed-ui', catalogType: 'panel' },
-  commands: { execution: 'instructional', catalogType: 'instructions' },
+  commands: { execution: 'declarative', catalogType: 'instructions' },
   // Why no catalog type: events need a worker, which `main` already declares.
   events: { execution: 'trusted-worker', catalogType: null },
   languagePacks: { execution: 'data', catalogType: 'interface-language' },
-  keybindings: { execution: 'instructional', catalogType: 'instructions' },
-  vmRecipes: { execution: 'instructional', catalogType: 'instructions' },
-  agents: { execution: 'instructional', catalogType: 'instructions' },
+  keybindings: { execution: 'declarative', catalogType: 'instructions' },
+  vmRecipes: { execution: 'declarative', catalogType: 'instructions' },
+  agents: { execution: 'declarative', catalogType: 'instructions' },
   themes: { execution: 'data', catalogType: 'app-theme' },
   terminalThemes: { execution: 'data', catalogType: 'terminal-theme' },
   iconThemes: { execution: 'data', catalogType: 'icon-theme' },

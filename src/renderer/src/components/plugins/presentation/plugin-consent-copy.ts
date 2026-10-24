@@ -6,7 +6,7 @@ export function pluginTrustLabel(trust: PluginTrust): string {
   if (trust.worker) {
     return translate('auto.components.settings.pluginConsentCopy.runsWorker', 'Runs a worker')
   }
-  if (trust.instructional) {
+  if (trust.declarative) {
     return translate('auto.components.settings.pluginConsentCopy.addsCommands', 'Adds commands')
   }
   if (trust.panel) {
@@ -26,7 +26,7 @@ export function pluginTrustWarnings(trust: PluginTrust): string[] {
       )
     )
   }
-  if (trust.instructional) {
+  if (trust.declarative) {
     warnings.push(
       translate(
         'auto.components.settings.PluginConsentDialog.instructionalWarning',

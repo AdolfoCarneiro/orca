@@ -20,7 +20,7 @@ Pick the lowest `execution` profile that covers what you contribute; it decides 
 asked to approve:
 
 - `data`: themes, terminal themes, icon themes, syntaxes, translations. Installs in one click.
-- `instructional`: commands that run Orca actions, shortcuts, VM recipes. Reviewed before they
+- `declarative`: commands that run Orca actions, shortcuts, VM recipes. Reviewed before they
   are enabled.
 - `sandboxed-ui`: panels, in a sandboxed frame that can only call the host methods marked
   "Panels: yes".

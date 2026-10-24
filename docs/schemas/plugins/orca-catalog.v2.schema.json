@@ -174,7 +174,7 @@
           "type": "string",
           "enum": [
             "data",
-            "instructional",
+            "declarative",
             "sandboxed-ui",
             "trusted-worker"
           ],
@@ -210,7 +210,7 @@
               "worker"
             ]
           },
-          "description": "Every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `instructional` profile or higher, `panel` needs `sandboxed-ui`, and `worker` needs `trusted-worker`.",
+          "description": "Every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` needs `sandboxed-ui`, and `worker` needs `trusted-worker`.",
           "x-orca-since": "1.4.244",
           "examples": [
             [

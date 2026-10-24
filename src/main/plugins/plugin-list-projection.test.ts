@@ -82,8 +82,8 @@ describe('buildPluginList consent identity', () => {
       pluginKey: plugin.pluginKey,
       consentFingerprint: 'sha256-current',
       status: 'pending',
-      // Why instructional: a capability makes it more than content, with no worker in sight.
-      execution: 'instructional'
+      // Why declarative: a capability makes it more than content, with no worker in sight.
+      execution: 'declarative'
     })
   })
 
@@ -154,7 +154,7 @@ describe('buildPluginList consent identity', () => {
     expect(JSON.stringify(projected)).not.toContain(invalid.rootDir)
   })
 
-  it('projects exact VM lifecycle commands for instructional consent', async () => {
+  it('projects exact VM lifecycle commands for declarative consent', async () => {
     const recipeManifest = pluginManifestSchema.parse({
       ...manifest,
       contributes: { vmRecipes: [{ path: 'recipes/cloud.json' }] }
@@ -222,7 +222,7 @@ describe('buildPluginList consent identity', () => {
 
     const [entry] = await buildPluginList(serviceWith(plugin), emptyPluginLockfile())
     // Why: a worker-less commands plugin still runs instructions, so the page must not say content only.
-    expect(entry).toMatchObject({ hasWorker: false, execution: 'instructional' })
+    expect(entry).toMatchObject({ hasWorker: false, execution: 'declarative' })
     expect(
       (
         await buildPluginList(

@@ -10,7 +10,7 @@ type PluginConsentSubject = Pick<PluginManifest, 'capabilities' | 'main'> & {
   >
 }
 
-export function hasInstructionalPluginContributions(manifest: PluginConsentSubject): boolean {
+export function hasDeclarativePluginContributions(manifest: PluginConsentSubject): boolean {
   const contributions = manifest.contributes
   return Boolean(
     contributions &&
@@ -30,7 +30,7 @@ function bindsExecutableContent(manifest: PluginConsentSubject): boolean {
 
 /** Whether approval names exact package bytes, so any byte change needs a new review. */
 export function requiresPluginContentApproval(manifest: PluginConsentSubject): boolean {
-  return hasInstructionalPluginContributions(manifest) || bindsExecutableContent(manifest)
+  return hasDeclarativePluginContributions(manifest) || bindsExecutableContent(manifest)
 }
 
 /**
@@ -43,7 +43,7 @@ export function canonicalizePluginConsent(
   contentIdentity?: string
 ): string {
   const capabilities = canonicalizeCapabilitySet(manifest.capabilities)
-  // Why: a data pack that becomes instructional (e.g. adds alias commands) binds no new bytes, yet
+  // Why: a data pack that becomes declarative (e.g. adds alias commands) binds no new bytes, yet
   // crossed the one-click boundary. Data stays out so content packs keep their approval.
   const executionIdentity =
     manifest.execution === undefined || manifest.execution === 'data'
@@ -53,12 +53,12 @@ export function canonicalizePluginConsent(
   const executableIdentity = bindsExecutableContent(manifest)
     ? `\0executable-content:${contentIdentity ?? 'unresolved'}`
     : ''
-  // Instructional bytes execute later under user or agent authority, so
+  // Declarative bytes execute later under user or agent authority, so
   // approval is bound to their immutable install/dev-tree identity.
-  const instructionalIdentity = hasInstructionalPluginContributions(manifest)
+  const declarativeIdentity = hasDeclarativePluginContributions(manifest)
     ? `\0instructional-content:${contentIdentity ?? 'unresolved'}`
     : ''
-  return `${capabilities}${executionIdentity}${workerIdentity}${executableIdentity}${instructionalIdentity}`
+  return `${capabilities}${executionIdentity}${workerIdentity}${executableIdentity}${declarativeIdentity}`
 }
 
 export function fingerprintPluginConsent(

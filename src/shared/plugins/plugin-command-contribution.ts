@@ -63,8 +63,7 @@ export const pluginCommandContributionSchema = z
   .strict()
   .meta({
     id: 'CommandContribution',
-    description:
-      'A command palette entry. Requires the `instructional` execution profile or higher.'
+    description: 'A command palette entry. Requires the `declarative` execution profile or higher.'
   })
 
 export type PluginCommandContribution = z.infer<typeof pluginCommandContributionSchema>

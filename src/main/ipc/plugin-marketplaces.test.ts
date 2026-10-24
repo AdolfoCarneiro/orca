@@ -240,7 +240,7 @@ describe('plugin marketplace IPC authority', () => {
     expect(approve).toHaveBeenCalledWith(PLUGIN_KEY, 'sha256-fp', 7)
 
     approve.mockClear()
-    execution.value = 'instructional'
+    execution.value = 'declarative'
     await expect(handler?.(event, { ...identity, enableIfData: true })).resolves.toMatchObject({
       needsReview: true
     })

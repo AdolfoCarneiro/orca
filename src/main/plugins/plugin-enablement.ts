@@ -5,7 +5,7 @@ import {
 import type { Store } from '../persistence'
 import type { PluginService } from './plugin-service'
 import type { PluginConsentRequest } from '../../shared/plugins/approval/plugin-consent-request'
-import { verifyInstructionalPluginContent } from './plugin-instructional-content-integrity'
+import { verifyDeclarativePluginContent } from './plugin-declarative-content-integrity'
 
 // Desktop and headless writes share qualified-key consent; capability or worker-tier expansion requires reapproval.
 
@@ -28,8 +28,9 @@ export async function applyPluginConsent(input: {
     throw new Error(`plugin ${pluginKey} changed since its permissions were reviewed`)
   }
   if (input.decision === 'approve') {
-    // Direct IPC/serve callers bypass the dialog; verify instructional bytes in main.
-    await verifyInstructionalPluginContent(plugin)
+    // Why: IPC and serve callers can bypass the renderer dialog, so main must
+    // prove every declarative byte is still reviewable before enabling it.
+    await verifyDeclarativePluginContent(plugin)
   }
   const settings = store.getSettings()
   const disabled = new Set(normalizePluginIdList(settings.disabledPlugins))

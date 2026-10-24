@@ -73,7 +73,7 @@ async function writeCurrentPlugin(destination: string): Promise<void> {
       ...(git.v2
         ? {
             manifestVersion: 2,
-            execution: 'instructional',
+            execution: 'declarative',
             engines: { orca: `>=${PLUGIN_SCHEMA_NEWEST_SINCE}` },
             contributes: { commands: [{ id: 'tasks', title: 'Tasks', action: 'view.tasks' }] }
           }
@@ -193,7 +193,7 @@ describe('PluginMarketplaceInstaller', () => {
       version: '1.0.0',
       commit: git.commit,
       contentHash: unpinned.contentHash,
-      execution: 'instructional',
+      execution: 'declarative',
       minimumOrca: PLUGIN_SCHEMA_NEWEST_SINCE,
       types: ['instructions']
     }
@@ -219,7 +219,7 @@ describe('PluginMarketplaceInstaller', () => {
       version: '1.0.0',
       commit: git.commit,
       contentHash: 'c'.repeat(64),
-      execution: 'instructional',
+      execution: 'declarative',
       minimumOrca: '9.0.0',
       types: ['instructions']
     }
