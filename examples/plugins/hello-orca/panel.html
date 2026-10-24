@@ -84,7 +84,7 @@
           statusEl.textContent =
             result.value.displayName +
             ' on branch ' +
-            result.value.branch +
+            result.value.branch.replace(/^refs\/heads\//, '') +
             ' · ' +
             count +
             (count === 1 ? ' terminal' : ' terminals')
