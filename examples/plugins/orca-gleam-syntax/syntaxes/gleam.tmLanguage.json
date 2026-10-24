@@ -168,7 +168,5 @@
     }
   },
   "scopeName": "source.gleam",
-  "fileTypes": [
-    "gleam"
-  ]
+  "fileTypes": ["gleam"]
 }
