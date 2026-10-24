@@ -1,14 +1,13 @@
 import { SquareTerminal } from 'lucide-react'
-import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { translate } from '@/i18n/i18n'
-import { withTerminalPluginPalettes } from '@/lib/terminal-plugin-palettes'
 import { usePluginIconThemes } from '@/store/plugin-icon-themes'
 import { applyDocumentTheme, resolveDocumentTheme } from '@/lib/document-theme'
 import { useAppStore } from '@/store'
 import { usePluginThemes, usePluginTerminalThemes } from '@/store/plugin-themes'
 import { Button } from '../ui/button'
+import { appThemeUpdate, terminalSlot, terminalThemeUpdate } from './plugin-theme-apply'
 
-/** One-click "use it" for the themes a plugin just added; never applied unasked. */
+/** One-click "use it" for each theme a plugin adds, e.g. the other light/dark variant. */
 export function PluginThemeUseNow({
   pluginKey,
   fallback = null
@@ -27,21 +26,10 @@ export function PluginThemeUseNow({
     return <>{fallback}</>
   }
   const use = (theme: (typeof themes)[number]): void => {
-    const updates: Partial<GlobalSettings> = {
-      theme: theme.base,
-      pluginAppTheme: theme.id,
-      // Why keep the first one: switching between plugin themes must not lose it.
-      themeBeforePlugin: settings.themeBeforePlugin ?? settings.theme
-    }
-    void updateSettings(updates)
+    void updateSettings(appThemeUpdate(settings, theme))
     applyDocumentTheme(theme.base)
   }
-  const terminalSlot = (
-    mode: 'dark' | 'light' | 'unknown'
-  ): 'terminalThemeDark' | 'terminalThemeLight' =>
-    mode === 'light' || (mode === 'unknown' && !resolveDocumentTheme(settings.theme))
-      ? 'terminalThemeLight'
-      : 'terminalThemeDark'
+  const dark = resolveDocumentTheme(settings.theme)
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="mr-1 text-xs text-muted-foreground">
@@ -91,7 +79,7 @@ export function PluginThemeUseNow({
         </Button>
       ))}
       {terminals.map((theme) => {
-        const slot = terminalSlot(theme.mode)
+        const slot = terminalSlot(theme.mode, dark)
         const selected =
           settings[slot] === theme.id &&
           (slot !== 'terminalThemeLight' || settings.terminalUseSeparateLightTheme)
@@ -107,18 +95,7 @@ export function PluginThemeUseNow({
               { value0: theme.label }
             )}
             onClick={() =>
-              void updateSettings(
-                withTerminalPluginPalettes(
-                  settings,
-                  {
-                    [slot]: theme.id,
-                    ...(slot === 'terminalThemeLight'
-                      ? { terminalUseSeparateLightTheme: true }
-                      : {})
-                  },
-                  terminalThemes
-                )
-              )
+              void updateSettings(terminalThemeUpdate(settings, theme, dark, terminalThemes))
             }
           >
             {/* Why an icon: a plugin's terminal themes often share their app themes' names. */}

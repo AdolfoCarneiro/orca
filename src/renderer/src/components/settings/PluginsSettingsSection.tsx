@@ -18,6 +18,7 @@ import { usePluginPageNavigation } from './use-plugin-page-navigation'
 import { usePluginReviewQueue } from './use-plugin-review-queue'
 import { usePluginSettingsWrites } from './use-plugin-settings-writes'
 import { isPluginEnabled } from './plugin-status-presentation'
+import { applyPluginThemesNow } from './plugin-theme-apply'
 
 type PluginsSettingsSectionProps = {
   mounted: boolean
@@ -214,6 +215,8 @@ export function PluginsSettingsSection({
     decision: 'approve' | 'keep-disabled'
   ): Promise<void> => {
     setBusyPluginKeys((current) => new Set(current).add(pluginKey))
+    // Why: re-approving an update keeps the user's current choice; a first Enable shows the theme.
+    const firstEnable = !plugins.find((plugin) => plugin.pluginKey === pluginKey)?.needsReconsent
     try {
       const nextPlugins = await window.api.plugins.consent({
         pluginKey,
@@ -221,6 +224,9 @@ export function PluginsSettingsSection({
         decision
       })
       applyCompletedMutation(nextPlugins)
+      if (decision === 'approve' && firstEnable) {
+        void applyPluginThemesNow(pluginKey).catch(() => false)
+      }
       if (mountedRef.current) {
         review.advance(nextPlugins)
       }
@@ -244,6 +250,8 @@ export function PluginsSettingsSection({
       const next = nextPlugins.find((entry) => entry.pluginKey === plugin.pluginKey)
       if (nextEnabled && next?.status === 'pending' && mountedRef.current) {
         review.show(plugin.pluginKey)
+      } else if (nextEnabled) {
+        void applyPluginThemesNow(plugin.pluginKey).catch(() => false)
       }
     } catch (cause) {
       if (mountedRef.current) {

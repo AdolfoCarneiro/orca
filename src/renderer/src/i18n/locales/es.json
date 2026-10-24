@@ -11685,6 +11685,10 @@
           "blocked": "La lista de seguridad de Orca bloquea este plugin.",
           "downloadFailed": "No se pudo descargar este plugin. Comprueba tu conexión y vuelve a intentarlo. No se instaló nada."
         },
+        "pluginThemeApply": {
+          "nowUsing": "Ahora usas {{value0}}",
+          "switchBack": "Volver"
+        },
         "pluginError": {
           "installManifestMissing": "No se encontró un orca-plugin.json legible. Elige la carpeta raíz del plugin.",
           "installManifestInvalid": "orca-plugin.json no es válido. Pide al autor del plugin que corrija el manifiesto.",

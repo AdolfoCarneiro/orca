@@ -120,7 +120,49 @@ describe('useDocumentAppearance', () => {
     usePluginThemeStore.setState({ entries: [], loaded: false })
   })
 
-  it('leaves the theme alone when a plugin theme is installed but not chosen', () => {
+  it("falls back to the earlier choice while the selected theme's plugin is disabled", async () => {
+    const dusk = {
+      id: 'plugin:samples.dusk/dusk' as const,
+      revision: 'r1',
+      pluginKey: 'samples.dusk',
+      pluginName: 'Dusk',
+      label: 'Dusk',
+      base: 'dark' as const,
+      tokens: { '--background': '#1a1025' }
+    }
+    usePluginThemeStore.setState({ entries: [dusk], loaded: true })
+    useAppStore.setState({
+      updateSettings: async (updates) => {
+        const current = useAppStore.getState().settings ?? getDefaultSettings('/tmp')
+        useAppStore.setState({ settings: { ...current, ...updates } })
+      }
+    })
+    act(() => {
+      const settings = useAppStore.getState().settings!
+      useAppStore.setState({
+        settings: {
+          ...settings,
+          theme: 'dark',
+          themeBeforePlugin: 'light',
+          pluginAppTheme: dusk.id
+        }
+      })
+    })
+    const { unmount } = renderHook(() => useDocumentAppearance())
+    expect(mocks.applyPluginAppTheme).toHaveBeenLastCalledWith(dusk)
+    // A disabled plugin's themes leave the list, and its saved choice is no longer backed.
+    act(() => {
+      const settings = useAppStore.getState().settings!
+      useAppStore.setState({ settings: { ...settings, disabledPlugins: [dusk.pluginKey] } })
+      usePluginThemeStore.setState({ entries: [] })
+    })
+    expect(mocks.applyPluginAppTheme).toHaveBeenLastCalledWith(null)
+    await vi.waitFor(() => expect(useAppStore.getState().settings?.theme).toBe('light'))
+    unmount()
+    usePluginThemeStore.setState({ entries: [], loaded: false })
+  })
+
+  it('selects no theme when one appears without a click (update, startup discovery, refresh)', () => {
     const updateSettings = vi.fn().mockResolvedValue(undefined)
     useAppStore.setState({ updateSettings })
     usePluginThemeStore.setState({ entries: [], loaded: true })
@@ -128,7 +170,7 @@ describe('useDocumentAppearance', () => {
     mocks.applyDocumentTheme.mockClear()
     mocks.applyPluginAppTheme.mockClear()
 
-    // Why: only "Use now" or Appearance picks a plugin theme; installing just registers it.
+    // Why: only a user's install/enable click, Use now or Appearance picks a plugin theme.
     act(() =>
       usePluginThemeStore.setState({
         entries: [

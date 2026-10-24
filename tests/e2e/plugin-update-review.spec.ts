@@ -168,11 +168,28 @@ test('confirms card removal and shares single/bulk update review without strandi
       const added = page.getByRole('heading', { name: /^Adds to Orca/ })
       const beforeInstall = await added.boundingBox()
       await page.getByRole('button', { name: /^Install / }).click()
-      const label = `Use now: ${id === PLUGINS[0] ? 'Review Icons' : 'Review Terminal'}`
-      const use = page.getByRole('button', { name: label, exact: true })
+      const themeName = id === PLUGINS[0] ? 'Review Icons' : 'Review Terminal'
+      const use = page.getByRole('button', { name: `Use now: ${themeName}`, exact: true })
       await expect(use).toBeVisible()
       const afterInstall = await added.boundingBox()
       expect(afterInstall?.y).toBe(beforeInstall?.y)
+      const chosen = (key: string) =>
+        page.evaluate((pluginId) => {
+          const settings = window.__store?.getState().settings
+          return pluginId === 'orca-review-notes'
+            ? settings?.pluginIconTheme
+            : settings?.terminalThemeLight
+        }, key)
+      // Installing by click applies the theme at once; its toast offers one click back.
+      await expect.poll(() => chosen(id)).toBe(`plugin:stablyai.${id}/review`)
+      await expect(use).toHaveAttribute('aria-pressed', 'true')
+      await expect(page.getByText(`Now using ${themeName}`, { exact: true })).toBeVisible()
+      await screenshot(
+        page,
+        id === PLUGINS[0] ? 'icon-theme-after-install' : 'terminal-theme-after-install'
+      )
+      // Why dispatch: Sonner restacks toasts off-screen as others arrive, so a pointer click can miss.
+      await page.getByRole('button', { name: 'Switch back', exact: true }).dispatchEvent('click')
       await expect
         .poll(() =>
           page.evaluate(() => {
@@ -185,22 +202,10 @@ test('confirms card removal and shares single/bulk update review without strandi
           })
         )
         .toEqual(appearanceBefore)
-      await screenshot(
-        page,
-        id === PLUGINS[0] ? 'icon-theme-after-install' : 'terminal-theme-after-install'
-      )
+      await expect(use).toHaveAttribute('aria-pressed', 'false')
       await use.click()
       await expect(use).toHaveAttribute('aria-pressed', 'true')
-      await expect
-        .poll(() =>
-          page.evaluate((key) => {
-            const settings = window.__store?.getState().settings
-            return key === 'orca-review-notes'
-              ? settings?.pluginIconTheme
-              : settings?.terminalThemeLight
-          }, id)
-        )
-        .toBe(`plugin:stablyai.${id}/review`)
+      await expect.poll(() => chosen(id)).toBe(`plugin:stablyai.${id}/review`)
       if (id !== PLUGINS[0]) {
         await expect
           .poll(() =>

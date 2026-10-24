@@ -7,6 +7,7 @@ import type {
 import { pluginExecutionProfile } from '../../../../shared/plugins/plugin-execution-profile'
 import { translate } from '@/i18n/i18n'
 import { pluginInstallErrorMessage } from './plugin-error-presentation'
+import { applyPluginThemesNow } from './plugin-theme-apply'
 import type { PluginPagePreview } from './use-plugin-catalog'
 import { previewMatchesListing } from './use-plugin-page-model'
 
@@ -151,8 +152,13 @@ export function usePluginInstallAction({
         }
         await onInstalled(pluginKey)
         setPhase(pluginKey, null)
+        const { themes, iconThemes, terminalThemes } = preview.manifest.contributes
+        const themed = themes.length + iconThemes.length + terminalThemes.length > 0
+        // Why: a click to install a theme should show it at once; its toast offers Switch back.
+        if (themed && (await applyPluginThemesNow(pluginKey).catch(() => false))) {
+          return
+        }
         if (onTryPlugin) {
-          // Why "Try it" for themes too: the action opens the page, where Use now applies them.
           toast.success(
             translate(
               'auto.components.settings.pluginInstallAction.installed',

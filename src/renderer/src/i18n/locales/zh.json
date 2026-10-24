@@ -11411,6 +11411,10 @@
           "blocked": "Orca 的安全列表阻止了此插件。",
           "downloadFailed": "无法下载此插件。请检查网络连接后重试。未安装任何内容。"
         },
+        "pluginThemeApply": {
+          "nowUsing": "正在使用 {{value0}}",
+          "switchBack": "切换回去"
+        },
         "pluginError": {
           "installManifestMissing": "未找到可读的 orca-plugin.json。请选择插件的根文件夹。",
           "installManifestInvalid": "orca-plugin.json 无效。请要求插件作者修复清单。",

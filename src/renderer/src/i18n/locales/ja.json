@@ -11411,6 +11411,10 @@
           "blocked": "Orca の安全リストがこのプラグインをブロックしています。",
           "downloadFailed": "このプラグインをダウンロードできませんでした。接続を確認してからもう一度お試しください。何もインストールされていません。"
         },
+        "pluginThemeApply": {
+          "nowUsing": "{{value0}} を使用中",
+          "switchBack": "元に戻す"
+        },
         "pluginError": {
           "installManifestMissing": "読み取り可能なorca-plugin.jsonが見つかりません。プラグインのルートフォルダーを選択してください。",
           "installManifestInvalid": "orca-plugin.jsonが無効です。プラグイン作成者にマニフェストの修正を依頼してください。",

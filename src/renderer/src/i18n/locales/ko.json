@@ -11411,6 +11411,10 @@
           "blocked": "Orca의 안전 목록이 이 플러그인을 차단합니다.",
           "downloadFailed": "이 플러그인을 다운로드할 수 없습니다. 연결을 확인한 다음 다시 시도하세요. 아무것도 설치되지 않았습니다."
         },
+        "pluginThemeApply": {
+          "nowUsing": "{{value0}} 사용 중",
+          "switchBack": "되돌리기"
+        },
         "pluginError": {
           "installManifestMissing": "읽을 수 있는 orca-plugin.json이 없습니다. 플러그인 루트 폴더를 선택하세요.",
           "installManifestInvalid": "orca-plugin.json이 유효하지 않습니다. 플러그인 작성자에게 매니페스트 수정을 요청하세요.",

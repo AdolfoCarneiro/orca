@@ -11,7 +11,9 @@ import { pluginManifestSchema } from '../../../../shared/plugins/plugin-manifest
 import { usePluginInstallAction } from './use-plugin-install-action'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
+vi.mock('./plugin-theme-apply', () => ({ applyPluginThemesNow: vi.fn() }))
 import { toast } from 'sonner'
+import { applyPluginThemesNow } from './plugin-theme-apply'
 
 const listing: PluginMarketplaceHostListing = {
   marketplaceSourceId: 'source',
@@ -85,6 +87,7 @@ function installResult(on: boolean) {
 
 beforeEach(() => {
   vi.mocked(toast.success).mockClear()
+  vi.mocked(applyPluginThemesNow).mockReset().mockResolvedValue(false)
   Object.defineProperty(window, 'api', {
     configurable: true,
     value: {
@@ -107,6 +110,26 @@ describe('usePluginInstallAction', () => {
     expect(window.api.plugins.consent).not.toHaveBeenCalled()
     expect(onInstalled).toHaveBeenCalledWith(listing.pluginKey)
     expect(hook.current?.phaseOf(listing.pluginKey)).toBeNull()
+  })
+
+  it('applies a theme the user just installed, and its own toast replaces Try it', async () => {
+    vi.mocked(applyPluginThemesNow).mockResolvedValue(true)
+    const { hook } = setup()
+    await act(async () => hook.current?.install(listing))
+    expect(applyPluginThemesNow).toHaveBeenCalledExactlyOnceWith(listing.pluginKey)
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  it('applies no theme for a plugin that adds none', async () => {
+    const { hook } = setup()
+    const codeListing = {
+      ...listing,
+      release: { ...listing.release!, execution: 'instructional' as const }
+    }
+    vi.mocked(window.api.plugins.installMarketplacePlugin).mockResolvedValue(installResult(false))
+    await act(async () => hook.current?.install(codeListing, { preview: codePreview }))
+    expect(window.api.plugins.consent).toHaveBeenCalled()
+    expect(applyPluginThemesNow).not.toHaveBeenCalled()
   })
 
   it('offers Try it after a successful card install', async () => {

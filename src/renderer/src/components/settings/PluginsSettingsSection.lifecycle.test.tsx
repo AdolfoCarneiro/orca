@@ -7,6 +7,9 @@ import type { PluginHostListEntry } from '../../../../preload/api-types'
 import { getDefaultSettings } from '../../../../shared/constants'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { PluginsSettingsSection } from './PluginsSettingsSection'
+import { applyPluginThemesNow } from './plugin-theme-apply'
+
+vi.mock('./plugin-theme-apply', () => ({ applyPluginThemesNow: vi.fn().mockResolvedValue(false) }))
 
 vi.mock('./SettingsSection', () => ({
   SettingsSection: ({
@@ -321,16 +324,20 @@ describe('PluginsSettingsSection lifecycle', () => {
       throw new Error('missing plugin switch')
     }
 
+    vi.mocked(applyPluginThemesNow).mockClear()
     await act(async () => click(pluginSwitch))
     expect(window.api.plugins.setEnabled).toHaveBeenCalledWith({
       pluginKey: plugin.pluginKey,
       enabled: false
     })
+    // Why: disabling falls back through the theme sync; only the Enable click applies themes.
+    expect(applyPluginThemesNow).not.toHaveBeenCalled()
     await act(async () => click(pluginSwitch))
     expect(window.api.plugins.setEnabled).toHaveBeenLastCalledWith({
       pluginKey: plugin.pluginKey,
       enabled: true
     })
+    expect(applyPluginThemesNow).toHaveBeenCalledExactlyOnceWith(plugin.pluginKey)
 
     const removeAction = Array.from(container.querySelectorAll('button')).find(
       (button) => button.textContent === 'Remove…'
