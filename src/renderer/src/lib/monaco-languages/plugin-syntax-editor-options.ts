@@ -1,4 +1,4 @@
-import * as monaco from 'monaco-editor'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
 
 /** Plugin syntaxes paint through semantic tokens, which standalone themes leave off. Monaco
  *  applies this global option from any editor, including diff editors, whose option types omit it. */
