@@ -44,6 +44,8 @@ export type PluginMarketplaceInstallPreview = {
   blockedByKillList?: { reason: string; advisoryUrl?: string }
   /** The manifest's images, verified at preview and cached by hash. */
   images?: PluginHostImages
+  /** Update previews only: the catalog now points at a different repository than the install. */
+  repositoryMoved?: true
 }
 
 /** `repositoryMoved`: this replaced an install that came from a different repository. */
@@ -196,14 +198,16 @@ export class PluginMarketplaceInstaller {
       url: entry.source.marketplace.url,
       ref: entry.source.marketplace.ref
     })
-    return this.preview(sourceId, pluginKey)
+    const preview = await this.preview(sourceId, pluginKey)
+    return isSameGitRepository(entry.source.plugin.url, preview.source.url)
+      ? preview
+      : { ...preview, repositoryMoved: true }
   }
 
   /** The own-catalog listing an installed plugin would update from, read from caches only. */
   async findInstalledUpdateListing(pluginKey: string): Promise<{
     listing: PluginMarketplaceListing
     officialCatalog: boolean
-    installedRepository: string
   } | null> {
     const entry = (await readPluginLockfile(getUserPluginsDir(this.userDataPath))).plugins[
       pluginKey
@@ -223,8 +227,7 @@ export class PluginMarketplaceInstaller {
     const source = (await this.marketplace.listSources()).find(({ id }) => id === sourceId)
     return {
       listing,
-      officialCatalog: source?.official === true,
-      installedRepository: entry.source.plugin.url
+      officialCatalog: source?.official === true
     }
   }
 

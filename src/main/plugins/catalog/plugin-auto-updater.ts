@@ -1,5 +1,4 @@
 import { compareAppVersions } from '../../../shared/app-version'
-import { isSameGitRepository } from '../../../shared/plugins/catalog/plugin-marketplace'
 import {
   pluginUpdateAccessGrowth,
   pluginUpdateGrowsAccess
@@ -176,7 +175,7 @@ export class PluginAutoUpdater {
       return null
     }
     if (
-      !isSameGitRepository(found.installedRepository, preview.source.url) ||
+      preview.repositoryMoved ||
       pluginUpdateGrowsAccess(pluginUpdateAccessGrowth(plugin.manifest, preview.manifest))
     ) {
       return { kind: 'needs-review', version: preview.manifest.version }

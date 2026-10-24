@@ -14,11 +14,9 @@ import {
 } from '../../ui/dialog'
 import {
   CandidateRow,
-  executionChanges,
-  newAccess,
-  newContributions,
   isCurrent,
   movedFromSource,
+  updateAsksAgain,
   type UpdateCandidate
 } from '../review/PluginUpdateCandidate'
 import type { PluginListEntry } from '../list/plugin-list-entries'
@@ -111,7 +109,7 @@ export function PluginUpdateAllDialog({
             new Set([
               ...current,
               ...next
-                .filter(({ entry, preview }) => preview && movedFromSource(entry, preview))
+                .filter(({ entry, preview }) => preview && movedFromSource(entry, preview) !== null)
                 .map(({ entry }) => entry.pluginKey)
             ])
         )
@@ -132,12 +130,7 @@ export function PluginUpdateAllDialog({
     (candidate) => installable(candidate) && !skipped.has(candidate.entry.pluginKey)
   )
   const growing = (candidates ?? []).filter(
-    (candidate) =>
-      candidate.preview &&
-      (newAccess(candidate.entry, candidate.preview).length > 0 ||
-        executionChanges(candidate.entry, candidate.preview).length > 0 ||
-        newContributions(candidate.preview).length > 0 ||
-        movedFromSource(candidate.entry, candidate.preview))
+    (candidate) => candidate.preview && updateAsksAgain(candidate.entry, candidate.preview)
   ).length
 
   const update = async (): Promise<void> => {

@@ -118,8 +118,7 @@ function setup(
           ...(options.pinned === false ? {} : { release: release(nextManifest.version) }),
           ...(options.blocked ? { blockedByKillList: { reason: 'malware' } } : {})
         },
-        officialCatalog: options.officialCatalog === true,
-        installedRepository: REPO
+        officialCatalog: options.officialCatalog === true
       })),
       previewInstalledUpdate: vi.fn(async () => ({
         marketplaceSourceId: 'a'.repeat(32),
@@ -128,6 +127,7 @@ function setup(
         marketplaceCommit: 'b'.repeat(40),
         pluginKey: KEY,
         source: { kind: 'git' as const, url: options.repository ?? REPO, ref: 'main' },
+        ...(options.repository ? { repositoryMoved: true as const } : {}),
         resolvedCommit: options.previewCommit ?? COMMIT,
         contentHash: 'sha-new',
         consentFingerprint: next.consentFingerprint,

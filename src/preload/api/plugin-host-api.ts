@@ -186,8 +186,10 @@ export type PluginMarketplaceHostInstallPreview = {
   blockedByKillList?: { reason: string; advisoryUrl?: string }
   /** The manifest's images, verified at preview. */
   images?: PluginHostImages
-  /** For an update: what it asks for beyond the installed version. Absent from older hosts. */
+  /** For an update: what it asks for beyond the installed version. */
   accessGrowth?: PluginUpdateAccessGrowth
+  /** For an update: the catalog now points at a different repository than the install. */
+  repositoryMoved?: true
 }
 
 export type PluginsApi = {

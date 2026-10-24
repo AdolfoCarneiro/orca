@@ -361,9 +361,9 @@ describe('PluginMarketplaceInstaller', () => {
     git.marketplaceCommit = 'e'.repeat(40)
     await service.refreshSource(sourceId)
     git.payload = 'respelled'
-    const respelled = await installer.install(
-      await installer.previewInstalledUpdate('community.notes')
-    )
+    const respelledPreview = await installer.previewInstalledUpdate('community.notes')
+    expect(respelledPreview).not.toHaveProperty('repositoryMoved')
+    const respelled = await installer.install(respelledPreview)
     expect(respelled).toMatchObject({ ok: true })
     expect(respelled).not.toHaveProperty('repositoryMoved')
 
@@ -371,8 +371,11 @@ describe('PluginMarketplaceInstaller', () => {
     git.marketplaceCommit = 'd'.repeat(40)
     await service.refreshSource(sourceId)
     git.payload = 'moved'
-    await expect(
-      installer.install(await installer.previewInstalledUpdate('community.notes'))
-    ).resolves.toMatchObject({ ok: true, repositoryMoved: true })
+    const movedPreview = await installer.previewInstalledUpdate('community.notes')
+    expect(movedPreview).toMatchObject({ repositoryMoved: true })
+    await expect(installer.install(movedPreview)).resolves.toMatchObject({
+      ok: true,
+      repositoryMoved: true
+    })
   })
 })
