@@ -15,7 +15,7 @@ import {
   readApprovedPredecessor,
   type PluginCatalogInstallOutcome
 } from '../plugin-update-approval'
-import type { PluginServiceOptions } from '../plugin-service-options'
+import type { PluginPolicySource } from '../plugin-activation-policy'
 import type { PluginMarketplaceInstaller } from './plugin-marketplace-installer'
 import type { PluginReleaseFirstSeenStore } from './plugin-release-first-seen-store'
 
@@ -25,14 +25,7 @@ export const PLUGIN_AUTO_UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000
 export const PLUGIN_AUTO_UPDATE_HOLD_BACK_MS = 12 * 60 * 60 * 1000
 
 type AutoUpdatePluginService = {
-  readonly options: Pick<
-    PluginServiceOptions,
-    | 'isPluginSystemEnabled'
-    | 'isFullAccessAllowed'
-    | 'getPluginConsents'
-    | 'getDisabledPlugins'
-    | 'getPluginKillListEntry'
-  >
+  readonly options: PluginPolicySource
   getDiscovered: () => readonly DiscoveredPlugin[]
   findValidPlugin: (pluginKey: string) => ValidDiscoveredPlugin | null
   refresh: () => Promise<void>

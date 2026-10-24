@@ -48,7 +48,8 @@ export function isPluginApproved(
   )
 }
 
-type PluginPolicySource = Pick<
+/** The settings every plugin policy decision reads. */
+export type PluginPolicySource = Pick<
   PluginServiceOptions,
   | 'isPluginSystemEnabled'
   | 'isFullAccessAllowed'
