@@ -84,15 +84,16 @@
             return
           }
           if (!result.value) {
-            statusEl.textContent = 'no focused workspace'
+            statusEl.textContent = 'No workspace is focused.'
             return
           }
           statusEl.textContent = result.value.displayName + ' on branch ' + result.value.branch
           termsEl.innerHTML = ''
-          result.value.terminals.forEach(function (terminal) {
+          result.value.terminals.forEach(function (terminal, index) {
             var option = document.createElement('option')
+            // Terminal ids are opaque handles; show people a position instead.
             option.value = terminal.id
-            option.textContent = terminal.id
+            option.textContent = 'Terminal ' + (index + 1)
             termsEl.appendChild(option)
           })
           termsEl.hidden = result.value.terminals.length === 0
@@ -108,7 +109,9 @@
           enter: true
         }).then(function (result) {
           statusEl.textContent = result.ok
-            ? 'typed (accepted=' + result.value.accepted + ')'
+            ? result.value.accepted
+              ? 'Typed into the terminal.'
+              : 'The terminal did not accept the text.'
             : 'send failed: ' + (result.error || result.errorCode)
         })
       })
@@ -116,7 +119,9 @@
       document.getElementById('notify').addEventListener('click', function () {
         call('notifications.show', { title: 'Hello from the panel' }).then(function (result) {
           statusEl.textContent = result.ok
-            ? 'notification delivered=' + result.value.delivered
+            ? result.value.delivered
+              ? 'Notification shown.'
+              : 'Notifications are turned off.'
             : 'notify failed: ' + (result.error || result.errorCode)
         })
       })

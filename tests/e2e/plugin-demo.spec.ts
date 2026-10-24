@@ -139,8 +139,8 @@ test('runs hello-orca panel, command, and event behind visible consent', async (
       })
       return { first, second }
     }, installed.pluginKey)
-    expect(commandResults.first).toEqual({ pong: true, count: 1, args: { source: 'e2e' } })
-    expect(commandResults.second).toEqual({ pong: true, count: 2, args: { source: 'e2e' } })
+    expect(commandResults.first).toBe('Pong! First ping.')
+    expect(commandResults.second).toBe('Pong! 2 pings so far.')
 
     await orcaPage.evaluate(async (sourcePath) => {
       const settings = await window.api.settings.set({ devPluginPaths: [sourcePath] })
