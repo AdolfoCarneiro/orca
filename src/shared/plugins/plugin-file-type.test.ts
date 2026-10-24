@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest'
+import type { GlobalSettings } from '../global-settings-types'
 import { fileTypeOfPath, normalizePluginFileTypeSuggestionSettings } from './plugin-file-type'
 
 it('reads the last extension of a path in lowercase', () => {
@@ -19,7 +20,8 @@ it('bounds the suggestion settings', () => {
   expect(normalizePluginFileTypeSuggestionSettings({ pluginFileTypeSuggestions: false })).toEqual({
     pluginFileTypeSuggestions: false
   })
-  expect(normalizePluginFileTypeSuggestionSettings({ theme: 'dark' })).toEqual({})
+  const unrelated: Partial<GlobalSettings> = { theme: 'dark' }
+  expect(normalizePluginFileTypeSuggestionSettings(unrelated)).toEqual({})
   const full = Array.from({ length: 256 }, (_, index) => `t${index}`)
   expect(
     normalizePluginFileTypeSuggestionSettings({

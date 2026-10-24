@@ -23,9 +23,14 @@ export type PluginFileTypeSuggestionSettings = {
   pluginDismissedFileTypes?: string[]
 }
 
+/** Unvalidated suggestion keys as a settings write or load carries them. */
+export type PluginFileTypeSuggestionSettingsInput = {
+  [Key in keyof PluginFileTypeSuggestionSettings]?: unknown
+}
+
 /** Bounds the suggestion settings on every write and load; only keys present in `input` return. */
 export function normalizePluginFileTypeSuggestionSettings(
-  input: object
+  input: PluginFileTypeSuggestionSettingsInput
 ): Partial<PluginFileTypeSuggestionSettings> {
   const result: Partial<PluginFileTypeSuggestionSettings> = {}
   if ('pluginFileTypeSuggestions' in input) {
