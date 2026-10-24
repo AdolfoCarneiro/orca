@@ -32,9 +32,9 @@ import {
 } from './workers/plugin-worker-reconciliation'
 import type { PluginRunState } from './workers/plugin-supervisor'
 import {
-  fullAccessError,
   isPluginApproved,
   livePluginActivationState,
+  pluginPolicyBlockError,
   snapshotPluginConsentLists
 } from './plugin-activation-policy'
 import { PluginContentPackRegistry } from './contributions/plugin-content-pack-registry'
@@ -132,10 +132,14 @@ export class PluginService {
     const enabled = this.options.isPluginSystemEnabled()
     const devPaths = this.options.getDevPluginPaths()
     const consentLists = snapshotPluginConsentLists(this.options)
-    const run = (): Promise<void> => this.performRefresh(enabled, devPaths, consentLists)
-    const refresh = this.refreshChain.then(run)
-    this.refreshChain = refresh.catch(() => undefined)
-    return refresh
+    return this.enqueue(() => this.performRefresh(enabled, devPaths, consentLists))
+  }
+
+  /** Serializes discovery, removal, and reconciliation so none sees another's partial state. */
+  private enqueue(work: () => Promise<void>): Promise<void> {
+    const queued = this.refreshChain.then(work)
+    this.refreshChain = queued.catch(() => undefined)
+    return queued
   }
 
   private async performRefresh(
@@ -210,8 +214,7 @@ export class PluginService {
       (allowRefreshPause || this.contentPacksReady) &&
       this.activationState(plugin) === 'approved' &&
       !this.contentPacks.error(plugin.pluginKey) &&
-      !this.options.getPluginKillListEntry?.(plugin.pluginKey) &&
-      !fullAccessError(plugin, this.options.isFullAccessAllowed)
+      !pluginPolicyBlockError(this.options, plugin.pluginKey, plugin)
     )
   }
 
@@ -220,10 +223,8 @@ export class PluginService {
   }
 
   activationError(pluginKey: string): string | null {
-    const blocked = this.options.getPluginKillListEntry?.(pluginKey)
     return (
-      (blocked ? `Blocked by Orca's plugin safety list: ${blocked.reason}` : null) ??
-      fullAccessError(this.findValidPlugin(pluginKey), this.options.isFullAccessAllowed) ??
+      pluginPolicyBlockError(this.options, pluginKey, this.findValidPlugin(pluginKey)) ??
       this.contentPacks.error(pluginKey) ??
       this.workerController.activationError(pluginKey)
     )
@@ -289,9 +290,7 @@ export class PluginService {
   }
 
   removePlugin(pluginKey: string, remove: () => Promise<void>): Promise<void> {
-    const removal = this.refreshChain.then(() => this.installed.remove(pluginKey, remove))
-    this.refreshChain = removal.catch(() => undefined)
-    return removal
+    return this.enqueue(() => this.installed.remove(pluginKey, remove))
   }
 
   async deactivatePlugin(pluginKey: string): Promise<void> {
@@ -301,9 +300,7 @@ export class PluginService {
 
   /** Reconcile consent/enablement without rereading files or starting workers. */
   async reconcileActivationState(): Promise<void> {
-    const reconcile = this.refreshChain.then(() => this.performActivationStateReconciliation())
-    this.refreshChain = reconcile.catch(() => undefined)
-    return reconcile
+    return this.enqueue(() => this.performActivationStateReconciliation())
   }
 
   private async performActivationStateReconciliation(): Promise<void> {

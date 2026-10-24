@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { PluginCatalogType } from './catalog/plugin-catalog-release'
+import type { PluginCatalogType } from './catalog/plugin-catalog-types'
 import {
   PLUGIN_COMMAND_LIMIT,
   pluginCommandContributionSchema
