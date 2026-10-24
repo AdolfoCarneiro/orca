@@ -54,10 +54,29 @@ export const PLUGIN_RESERVED_CONTRIBUTION_POINTS = {
   mcpServers: 'MCP server definitions',
   taskSources: 'task sources',
   connections: 'account connections',
-  settings: 'plugin settings'
+  settings: 'plugin settings',
+  statusBarItems: 'status bar items',
+  sidebarCards: 'sidebar cards'
 } as const
 
 export type PluginReservedContributionPoint = keyof typeof PLUGIN_RESERVED_CONTRIBUTION_POINTS
+
+/** The intended shape of each reserved point, in the order the references list them. */
+export const PLUGIN_PLANNED_CONTRIBUTION_POINTS: Readonly<
+  Record<PluginReservedContributionPoint, string>
+> = {
+  taskSources:
+    'Issue and task providers such as Asana, Linear or Jira, declared as data that a worker fills with tasks.',
+  connections:
+    'Account providers with a host-run sign-in, so a plugin never handles credentials itself.',
+  agents: 'New coding-agent harnesses described as data: how to launch them and read their status.',
+  statusBarItems:
+    'Declarative status bar widgets (label, icon, tooltip) whose values a worker updates.',
+  sidebarCards: 'Declarative left-sidebar cards with fixed layouts whose values a worker updates.',
+  mcpServers: 'MCP server definitions that Orca offers to the agents it launches.',
+  skills: 'Agent skills shipped as files that Orca installs for the agents it launches.',
+  settings: 'Typed plugin settings that Orca renders in its own settings UI.'
+}
 
 function reservedList(purpose: string) {
   // Why a refine, not max(0): the issue then carries the reason; maxItems still reaches editors.
@@ -159,7 +178,9 @@ export const pluginReservedContributesFields = {
   mcpServers: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.mcpServers),
   taskSources: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.taskSources),
   connections: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.connections),
-  settings: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.settings)
+  settings: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.settings),
+  statusBarItems: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.statusBarItems),
+  sidebarCards: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.sidebarCards)
 } satisfies Record<PluginReservedContributionPoint, z.ZodType>
 
 type ContributionPointPolicy = {

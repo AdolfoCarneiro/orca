@@ -46,6 +46,8 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | `contributes.taskSources` | any[] | no | 1.4.244 | Reserved for task sources; must be empty until their format is defined. |
 | `contributes.connections` | any[] | no | 1.4.244 | Reserved for account connections; must be empty until their format is defined. |
 | `contributes.settings` | any[] | no | 1.4.244 | Reserved for plugin settings; must be empty until their format is defined. |
+| `contributes.statusBarItems` | any[] | no | 1.4.244 | Reserved for status bar items; must be empty until their format is defined. |
+| `contributes.sidebarCards` | any[] | no | 1.4.244 | Reserved for sidebar cards; must be empty until their format is defined. |
 | `capabilities` | [Capability](#capability)[] | no | 1.4.160 | Host APIs the plugin asks the user to grant. At most 32. |
 | `cover` | object | no | 1.4.244 | Wide image at the top of the plugin page. |
 | `cover.path` | string | yes | 1.4.244 | Cover image shown on the plugin page, 16:10 recommended (1600×1000). PNG, JPEG, WEBP, static, at least 800×500, at most 1024 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"images/cover.png"` |
@@ -161,7 +163,20 @@ One screenshot of the plugin in use.
 - **`pluginApi` is optional.** It names the major version of the host API ([reference](plugin-host-api.md)), which only grows within major 1; Orca refuses a major it does not implement. Only `sandboxed-ui` and `trusted-worker` plugins call that API, so `data` and `declarative` plugins must leave it out.
 - **New fields, contribution points and values are additive.** They arrive with a `Since` version; nothing else changes. `manifestVersion` rises only if an existing field changes meaning.
 - **Deprecation.** A field to be removed is marked deprecated here and keeps working for at least one release; it is removed only together with a higher `engines.orca` requirement, and its name is never reused.
-- **Reserved contribution points.** `contributes.agents`, `skills`, `mcpServers`, `taskSources`, `connections` and `settings` are held for planned features and must stay empty until their format is defined. Each will arrive as an additive point with its own `Since`, without a new manifest format.
+- **Reserved contribution points.** `contributes.agents`, `skills`, `mcpServers`, `taskSources`, `connections`, `settings`, `statusBarItems` and `sidebarCards` are held for planned features and must stay empty until their format is defined. Each will arrive as an additive point with its own `Since`, without a new manifest format.
+
+## Planned contribution points
+
+Each reserved point is planned as declared data that Orca renders and enforces, never arbitrary plugin UI. The intended shapes, which may still change:
+
+- `taskSources`: Issue and task providers such as Asana, Linear or Jira, declared as data that a worker fills with tasks.
+- `connections`: Account providers with a host-run sign-in, so a plugin never handles credentials itself.
+- `agents`: New coding-agent harnesses described as data: how to launch them and read their status.
+- `statusBarItems`: Declarative status bar widgets (label, icon, tooltip) whose values a worker updates.
+- `sidebarCards`: Declarative left-sidebar cards with fixed layouts whose values a worker updates.
+- `mcpServers`: MCP server definitions that Orca offers to the agents it launches.
+- `skills`: Agent skills shipped as files that Orca installs for the agents it launches.
+- `settings`: Typed plugin settings that Orca renders in its own settings UI.
 
 ## Legacy format 1
 

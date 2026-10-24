@@ -92,6 +92,23 @@ for.
 An update that asks for a new capability or changes the execution profile is never applied
 silently. Orca asks the user to approve it again.
 
+## Planned contribution points
+
+These `contributes` keys are reserved: a manifest may list them only as empty arrays until
+their format ships. Each is planned as declared data that Orca renders and enforces, not
+arbitrary plugin UI:
+
+- `taskSources`: issue and task providers such as Asana, Linear or Jira, filled by a worker.
+- `connections`: account providers with a host-run sign-in.
+- `agents`: new coding-agent harnesses described as data.
+- `statusBarItems`: declarative status bar widgets whose values a worker updates.
+- `sidebarCards`: declarative left-sidebar cards whose values a worker updates.
+- `mcpServers`: MCP server definitions offered to the agents Orca launches.
+- `skills`: agent skills shipped as files.
+- `settings`: typed plugin settings shown in Orca's settings UI.
+
+See [the manifest reference](plugin-manifest.md#planned-contribution-points) for details.
+
 ## Stability
 
 Plugins are in Alpha: the manifest v2 format and catalog format are stable contracts; items

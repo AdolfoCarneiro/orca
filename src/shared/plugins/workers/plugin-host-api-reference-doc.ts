@@ -105,6 +105,8 @@ export function renderPluginHostApiReference(): string {
     '',
     '## Stability and deprecation',
     '',
+    'Plugins are in Alpha: the manifest v2 format and catalog format are stable contracts; items listed as experimental in [Plugin authoring](./plugin-authoring.md#stability) may change.',
+    '',
     `- **Host API ${PLUGIN_HOST_API_MAJOR} is frozen.** Within \`pluginApi\` ${PLUGIN_HOST_API_MAJOR}, methods, params and results only grow: a new method or a new optional param arrives with a higher \`Since\` minor, and nothing listed here is removed, renamed or narrowed.`,
     '- **Deprecation.** A method to be retired is marked deprecated in this table and keeps working for the rest of the major.',
     '- **New majors.** A breaking change ships as a new `pluginApi` major beside the old one. Orca refuses a manifest whose `pluginApi` names a major it does not implement, with "update Orca", instead of loading it against the wrong API.',
