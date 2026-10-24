@@ -11654,7 +11654,6 @@
           "saveFailed": "Impossible d'enregistrer les chemins de plugins de développement.",
           "pathRequired": "Saisissez un chemin de dossier de plugin.",
           "title": "Développement",
-          "help": "Chargez des plugins depuis des dossiers de cet ordinateur.",
           "remove": "Supprimer",
           "pathLabel": "Chemin du dossier de plugin de développement",
           "placeholder": "/Users/you/plugins/my-plugin or C:\\Users\\you\\plugins\\my-plugin",

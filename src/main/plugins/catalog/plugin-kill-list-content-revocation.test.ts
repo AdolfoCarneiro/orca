@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { fingerprintPluginConsent } from '../../../shared/plugins/approval/plugin-consent-fingerprint'
+import { devFolderConsentIdentity } from '../plugin-discovery'
 import {
   pluginManifestSchema,
   type PluginManifest
@@ -59,6 +60,7 @@ async function createService(root: string, isKilled: () => boolean): Promise<Plu
   if (!content.ok) {
     throw new Error(content.error)
   }
+  const identity = await devFolderConsentIdentity(root, content.hash)
   const service = new PluginService({
     userDataPath: root,
     hostVersion: '1.4.0',
@@ -66,7 +68,7 @@ async function createService(root: string, isKilled: () => boolean): Promise<Plu
     isFullAccessAllowed: () => true,
     getDisabledPlugins: () => [],
     getPluginConsents: () => ({
-      [pluginKey]: fingerprintPluginConsent(contentManifest(), content.hash)
+      [pluginKey]: fingerprintPluginConsent(contentManifest(), identity)
     }),
     getDevPluginPaths: () => [root],
     getPluginKillListEntry: (key) =>

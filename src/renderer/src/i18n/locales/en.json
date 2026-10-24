@@ -11700,12 +11700,12 @@
           "saveFailed": "Could not save development plugin paths.",
           "pathRequired": "Enter a plugin folder path.",
           "title": "Development",
-          "help": "Load plugins from folders on this computer.",
           "remove": "Remove",
           "pathLabel": "Development plugin folder path",
           "placeholder": "/Users/you/plugins/my-plugin or C:\\Users\\you\\plugins\\my-plugin",
           "add": "Add path",
-          "dialogTitle": "Development folders"
+          "dialogTitle": "Development folders",
+          "reviewHelp": "Load plugins from folders on this computer. Each folder is reviewed once; later edits to its code run without another review."
         },
         "PluginInstallDialog": {
           "localRequired": "Enter the plugin folder path.",

@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { KeybindingOverrides } from '../../shared/keybindings'
 import { fingerprintPluginConsent } from '../../shared/plugins/approval/plugin-consent-fingerprint'
+import { devFolderConsentIdentity } from './plugin-discovery'
 import {
   pluginManifestSchema,
   type PluginManifest
@@ -59,13 +60,13 @@ function testWorker(): PluginWorkerHandle & { dispose: ReturnType<typeof vi.fn> 
   }
 }
 
-function createHarness(root: string) {
+async function createHarness(root: string) {
   let enabled = true
   let disabled: string[] = []
   let devPaths = [root]
   let killed = false
   let fullAccess = true
-  const consent = fingerprintPluginConsent(manifest())
+  const consent = fingerprintPluginConsent(manifest(), await devFolderConsentIdentity(root))
   const workers: ReturnType<typeof testWorker>[] = []
   const factory = vi.fn<PluginWorkerFactory>(async () => {
     const handle = testWorker()
@@ -149,6 +150,14 @@ describe('PluginService worker reconciliation', () => {
     if (!firstHash.ok || !secondHash.ok) {
       throw new Error('could not hash conflict fixtures')
     }
+    const firstConsent = fingerprintPluginConsent(
+      firstManifest,
+      await devFolderConsentIdentity(firstRoot, firstHash.hash)
+    )
+    const secondConsent = fingerprintPluginConsent(
+      secondManifest,
+      await devFolderConsentIdentity(secondRoot, secondHash.hash)
+    )
     let keybindings: KeybindingOverrides = {}
     const factory = vi.fn<PluginWorkerFactory>(async () => testWorker())
     const service = new PluginService({
@@ -158,8 +167,8 @@ describe('PluginService worker reconciliation', () => {
       isFullAccessAllowed: () => true,
       getDisabledPlugins: () => [],
       getPluginConsents: () => ({
-        'samples.first': fingerprintPluginConsent(firstManifest, firstHash.hash),
-        'samples.second': fingerprintPluginConsent(secondManifest, secondHash.hash)
+        'samples.first': firstConsent,
+        'samples.second': secondConsent
       }),
       getDevPluginPaths: () => [firstRoot, secondRoot],
       getKeybindings: () => keybindings,
@@ -208,6 +217,10 @@ describe('PluginService worker reconciliation', () => {
       capabilities: []
     })
     const root = await pluginRoot(aliasManifest)
+    const aliasConsent = fingerprintPluginConsent(
+      aliasManifest,
+      await devFolderConsentIdentity(root)
+    )
     const factory = vi.fn<PluginWorkerFactory>()
     const service = new PluginService({
       userDataPath: root,
@@ -215,7 +228,7 @@ describe('PluginService worker reconciliation', () => {
       isPluginSystemEnabled: () => true,
       isFullAccessAllowed: () => true,
       getDisabledPlugins: () => [],
-      getPluginConsents: () => ({ [pluginKey]: fingerprintPluginConsent(aliasManifest) }),
+      getPluginConsents: () => ({ [pluginKey]: aliasConsent }),
       getDevPluginPaths: () => [root],
       workerFactory: factory
     })
@@ -231,7 +244,7 @@ describe('PluginService worker reconciliation', () => {
 
   it('denies every authority boundary immediately when the feature flag turns off', async () => {
     const root = await pluginRoot()
-    const harness = createHarness(root)
+    const harness = await createHarness(root)
     await activate(harness.service)
     const plugin = harness.service.findValidPlugin(pluginKey)!
     const opened = await harness.service.panels.open('renderer:1', pluginKey, 'panel')
@@ -259,7 +272,7 @@ describe('PluginService worker reconciliation', () => {
 
   it('deactivates a worker when its plugin becomes disabled', async () => {
     const root = await pluginRoot()
-    const harness = createHarness(root)
+    const harness = await createHarness(root)
     await activate(harness.service)
 
     harness.setDisabled([pluginKey])
@@ -271,7 +284,7 @@ describe('PluginService worker reconciliation', () => {
 
   it('immediately revokes every authority surface and stops a killed plugin', async () => {
     const root = await pluginRoot()
-    const harness = createHarness(root)
+    const harness = await createHarness(root)
     await activate(harness.service)
     expect(await harness.service.panels.open('renderer:1', pluginKey, 'panel')).not.toBeNull()
 
@@ -297,7 +310,7 @@ describe('PluginService worker reconciliation', () => {
 
   it('stops an approved worker and refuses to start it while full access is off', async () => {
     const root = await pluginRoot()
-    const harness = createHarness(root)
+    const harness = await createHarness(root)
     await activate(harness.service)
 
     harness.setFullAccess(false)
@@ -312,7 +325,7 @@ describe('PluginService worker reconciliation', () => {
 
   it('deactivates a worker when changed capabilities make consent pending', async () => {
     const root = await pluginRoot()
-    const harness = createHarness(root)
+    const harness = await createHarness(root)
     await activate(harness.service)
     await writeFile(
       join(root, 'orca-plugin.json'),
@@ -329,7 +342,7 @@ describe('PluginService worker reconciliation', () => {
 
   it('restarts a running worker once on its updated spec', async () => {
     const root = await pluginRoot()
-    const harness = createHarness(root)
+    const harness = await createHarness(root)
     await activate(harness.service)
     await writeFile(
       join(root, 'orca-plugin.json'),
@@ -361,7 +374,7 @@ describe('PluginService worker reconciliation', () => {
       workers.push(handle)
       return handle
     })
-    const consent = fingerprintPluginConsent(manifest())
+    const consent = fingerprintPluginConsent(manifest(), await devFolderConsentIdentity(root))
     const service = new PluginService({
       userDataPath: root,
       hostVersion: '1.4.0',
@@ -390,10 +403,10 @@ describe('PluginService worker reconciliation', () => {
     await refreshing
   })
 
-  it('deactivates removed and replaced dev paths without eager activation', async () => {
+  it('deactivates removed dev paths and makes a replacement folder wait for its own review', async () => {
     const firstRoot = await pluginRoot()
     const secondRoot = await pluginRoot()
-    const harness = createHarness(firstRoot)
+    const harness = await createHarness(firstRoot)
     await activate(harness.service)
 
     harness.setDevPaths([])
@@ -401,17 +414,19 @@ describe('PluginService worker reconciliation', () => {
     expect(harness.workers[0]!.dispose).toHaveBeenCalledOnce()
     expect(harness.service.findValidPlugin(pluginKey)).toBeNull()
 
+    // Same key and capabilities, different folder: the first folder's approval must not carry over.
     harness.setDevPaths([secondRoot])
     await harness.service.refresh()
+    const replacement = harness.service.findValidPlugin(pluginKey)
+    expect(replacement && harness.service.activationState(replacement)).toBe('pending')
+    await expect(harness.service.invokeCommand(pluginKey, 'run')).rejects.toThrow('not enabled')
     expect(harness.factory).toHaveBeenCalledTimes(1)
-    await harness.service.invokeCommand(pluginKey, 'run')
-    expect(harness.factory.mock.calls[1]?.[0].rootDir).toBe(secondRoot)
   })
 
   it('starts and stops housekeeping on feature-flag transitions', async () => {
     vi.useFakeTimers()
     const root = await pluginRoot()
-    const harness = createHarness(root)
+    const harness = await createHarness(root)
     await harness.service.initialize()
     expect(vi.getTimerCount()).toBe(1)
 
@@ -428,7 +443,7 @@ describe('PluginService worker reconciliation', () => {
 
   it('serializes activation reconciliation so the latest disabled state wins', async () => {
     const root = await pluginRoot()
-    const harness = createHarness(root)
+    const harness = await createHarness(root)
     await harness.service.initialize()
 
     const originalReconcile = harness.service.contentPacks.reconcile.bind(

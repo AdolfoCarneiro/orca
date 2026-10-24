@@ -11477,7 +11477,6 @@
           "saveFailed": "No se pudieron guardar las rutas de plugins de desarrollo.",
           "pathRequired": "Introduce la ruta de una carpeta de plugin.",
           "title": "Desarrollo",
-          "help": "Carga plugins desde carpetas de este equipo.",
           "remove": "Eliminar",
           "pathLabel": "Ruta de la carpeta del plugin de desarrollo",
           "placeholder": "/Users/you/plugins/my-plugin or C:\\Users\\you\\plugins\\my-plugin",

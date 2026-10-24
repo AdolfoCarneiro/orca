@@ -11203,7 +11203,6 @@
           "saveFailed": "개발 플러그인 경로를 저장할 수 없습니다.",
           "pathRequired": "플러그인 폴더 경로를 입력하세요.",
           "title": "개발",
-          "help": "이 컴퓨터의 폴더에서 플러그인을 불러옵니다.",
           "remove": "제거",
           "pathLabel": "개발 플러그인 폴더 경로",
           "placeholder": "/Users/you/plugins/my-plugin or C:\\Users\\you\\plugins\\my-plugin",

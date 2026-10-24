@@ -1,4 +1,4 @@
-import { readdir } from 'node:fs/promises'
+import { readdir, realpath } from 'node:fs/promises'
 import type { Dirent } from 'node:fs'
 import { join } from 'node:path'
 import { PLUGIN_CONTENT_HASH_PATTERN } from '../../shared/plugins/plugin-install-lockfile'
@@ -133,11 +133,25 @@ async function readManifestDir(
     pluginKey,
     rootDir,
     manifest,
-    consentFingerprint: fingerprintPluginConsent(manifest, consentContentIdentity),
+    consentFingerprint: fingerprintPluginConsent(
+      manifest,
+      isDev
+        ? await devFolderConsentIdentity(rootDir, consentContentIdentity)
+        : consentContentIdentity
+    ),
     consentContentHash: consentContentIdentity ?? null,
     contentHash: null,
     isDev
   }
+}
+
+/** Why the folder: otherwise approving one dev folder approves any other claiming the same key. */
+export async function devFolderConsentIdentity(
+  rootDir: string,
+  contentIdentity?: string
+): Promise<string> {
+  const folder = await realpath(rootDir).catch(() => rootDir)
+  return `dev-folder:${folder}\0${contentIdentity ?? ''}`
 }
 
 async function readInstalledPlugin(
