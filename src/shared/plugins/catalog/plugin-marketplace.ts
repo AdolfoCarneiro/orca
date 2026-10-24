@@ -3,6 +3,7 @@ import { isAllowedPluginGitUrl } from '../plugin-install-lockfile'
 import { isQualifiedPluginKey } from '../manifest/plugin-manifest'
 import { pluginCatalogReleaseSchema } from './plugin-catalog-release'
 import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from '../manifest/plugin-schema-field-docs'
+import { isPluginRepositoryPath, PLUGIN_REPOSITORY_PATH_RE } from '../plugin-path-safety'
 
 const NEXT = PLUGIN_MANIFEST_V2_SINCE
 
@@ -69,9 +70,30 @@ const gitSourceFields = {
 
 export const pluginMarketplaceGitSourceSchema = z.strictObject(gitSourceFields)
 
+// Why v2 only: the frozen v1 file cannot carry it, and an old client would install the repository root.
+const catalogGitSourceFields = {
+  ...gitSourceFields,
+  path: z
+    .string()
+    .max(1_024)
+    .regex(PLUGIN_REPOSITORY_PATH_RE, 'must be a relative directory using / without . or ..')
+    .refine(
+      (path) => !PLUGIN_REPOSITORY_PATH_RE.test(path) || isPluginRepositoryPath(path),
+      'path segment is a Windows reserved device name'
+    )
+    .optional()
+    .meta(
+      pluginFieldDoc(
+        'Directory inside the repository that holds `orca-plugin.json`, so one repository can publish many plugins. Use `/` separators, with no leading `/`, `.` or `..`. Omit when the plugin is the repository root.',
+        NEXT,
+        ['plugins/gleam-syntax']
+      )
+    )
+}
+
 // Why strip-unknown in v2: a later optional source field must not make older clients drop the entry.
 export const catalogV2GitSourceSchema = z
-  .object(gitSourceFields)
+  .object(catalogGitSourceFields)
   .meta({ id: 'CatalogGitSource', description: 'Where the plugin source lives.' })
 
 // Why regex then refine: the regex is the published `pattern`; the refine adds length and
@@ -155,6 +177,7 @@ export const pluginMarketplaceEntrySchema = z
 const pluginMarketplaceListingEntrySchema = z
   .strictObject({
     ...marketplaceEntryFields,
+    source: z.strictObject(catalogGitSourceFields),
     releases: z.array(pluginCatalogReleaseSchema).min(1).optional()
   })
   .superRefine(rejectDuplicateCategories)
@@ -198,6 +221,7 @@ export const pluginMarketplaceTrustMetadataSchema = z
 export type PluginMarketplace = z.infer<typeof pluginMarketplaceListingSchema>
 export type PluginMarketplaceEntry = z.infer<typeof pluginMarketplaceListingEntrySchema>
 export type PluginMarketplaceGitSource = z.infer<typeof pluginMarketplaceGitSourceSchema>
+export type PluginCatalogGitSource = z.infer<typeof catalogV2GitSourceSchema>
 export type PluginMarketplaceTrustMetadata = z.infer<typeof pluginMarketplaceTrustMetadataSchema>
 
 export const OFFICIAL_MARKETPLACE_GIT_SOURCE: PluginMarketplaceGitSource = {
@@ -301,6 +325,19 @@ export function isSameGitRepository(left: string, right: string): boolean {
     return left.trim() === right.trim()
   }
   return a.host === b.host && a.path === b.path
+}
+
+/** Same plugin location: one repository and one directory in it; a moved directory is a move. */
+export function isSamePluginSource(
+  left: { url: string; path?: string },
+  right: { url: string; path?: string }
+): boolean {
+  return isSameGitRepository(left.url, right.url) && (left.path ?? '') === (right.path ?? '')
+}
+
+/** Display form of a plugin location, naming the directory when it is not the repository root. */
+export function pluginSourceLabel(source: { url: string; path?: string }): string {
+  return source.path ? `${source.url} (${source.path})` : source.url
 }
 
 export function isOfficialOrganizationGitSource(url: string): boolean {

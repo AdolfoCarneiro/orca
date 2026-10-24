@@ -25,6 +25,8 @@ const git = vi.hoisted(
     pluginUrl: string
     marketplaceCommit: string
     worker: boolean
+    /** Directories of one repository listed as separate plugins named after them. */
+    paths: string[] | null
   } => ({
     checkout: vi.fn(),
     version: '1.0.0',
@@ -36,7 +38,8 @@ const git = vi.hoisted(
     release: undefined,
     pluginUrl: 'https://github.com/community/notes.git',
     marketplaceCommit: 'f'.repeat(40),
-    worker: false
+    worker: false,
+    paths: null
   })
 )
 
@@ -53,6 +56,17 @@ async function tempRoot(): Promise<string> {
 }
 
 function marketplace(): PluginMarketplace {
+  if (git.paths) {
+    return {
+      name: 'Community',
+      owner: 'community',
+      plugins: git.paths.map((path) => ({
+        id: `community.${path.split('/').at(-1)}`,
+        source: { kind: 'git', url: git.pluginUrl, ref: 'stable', path },
+        categories: []
+      }))
+    }
+  }
   return {
     name: 'Community',
     owner: 'community',
@@ -71,7 +85,7 @@ function marketplace(): PluginMarketplace {
   }
 }
 
-async function writeCurrentPlugin(destination: string): Promise<void> {
+async function writeCurrentPlugin(destination: string, path?: string): Promise<void> {
   await mkdir(destination, { recursive: true })
   await writeFile(
     join(destination, 'orca-plugin.json'),
@@ -84,7 +98,7 @@ async function writeCurrentPlugin(destination: string): Promise<void> {
             contributes: { commands: [{ id: 'tasks', title: 'Tasks', action: 'view.tasks' }] }
           }
         : { manifestVersion: 1, engines: { orca: '>=1.0.0' }, pluginApi: 1 }),
-      id: git.id,
+      id: path?.split('/').at(-1) ?? git.id,
       publisher: git.publisher,
       name: 'Notes',
       version: git.version,
@@ -137,11 +151,14 @@ beforeEach(() => {
   git.pluginUrl = 'https://github.com/community/notes.git'
   git.marketplaceCommit = 'f'.repeat(40)
   git.worker = false
+  git.paths = null
   git.checkout.mockReset()
-  git.checkout.mockImplementation(async ({ destination }: { destination: string }) => {
-    await writeCurrentPlugin(destination)
-    return git.commit
-  })
+  git.checkout.mockImplementation(
+    async ({ destination, path }: { destination: string; path?: string }) => {
+      await writeCurrentPlugin(destination, path)
+      return git.commit
+    }
+  )
 })
 
 afterEach(async () => {
@@ -369,6 +386,46 @@ describe('PluginMarketplaceInstaller', () => {
 
     git.pluginUrl = 'https://github.com/someone-else/notes.git'
     git.marketplaceCommit = 'd'.repeat(40)
+    await service.refreshSource(sourceId)
+    git.payload = 'moved'
+    const movedPreview = await installer.previewInstalledUpdate('community.notes')
+    expect(movedPreview).toMatchObject({ repositoryMoved: true })
+    await expect(installer.install(movedPreview)).resolves.toMatchObject({
+      ok: true,
+      repositoryMoved: true
+    })
+  })
+
+  it('installs two plugins from one repository side by side, each from its own directory', async () => {
+    git.paths = ['plugins/notes', 'plugins/tasks']
+    const { root, installer, sourceId } = await setup()
+    for (const key of ['community.notes', 'community.tasks']) {
+      await expect(
+        installer.install(await installer.preview(sourceId, key))
+      ).resolves.toMatchObject({ ok: true, pluginKey: key })
+    }
+    expect(git.checkout.mock.calls.map(([input]) => input.path)).toEqual([
+      'plugins/notes',
+      'plugins/notes',
+      'plugins/tasks',
+      'plugins/tasks'
+    ])
+    const lock = await readPluginLockfile(join(root, 'plugins'))
+    expect(lock.plugins['community.notes']?.source).toMatchObject({
+      plugin: { url: git.pluginUrl, ref: 'stable', path: 'plugins/notes' }
+    })
+    expect(lock.plugins['community.tasks']?.source).toMatchObject({
+      plugin: { path: 'plugins/tasks' }
+    })
+  })
+
+  it('treats a changed directory in the same repository as a moved plugin', async () => {
+    git.paths = ['plugins/notes']
+    const { marketplace: service, installer, sourceId } = await setup()
+    await installer.install(await installer.preview(sourceId, 'community.notes'))
+
+    git.paths = ['archive/notes']
+    git.marketplaceCommit = 'e'.repeat(40)
     await service.refreshSource(sourceId)
     git.payload = 'moved'
     const movedPreview = await installer.previewInstalledUpdate('community.notes')

@@ -38,6 +38,7 @@ Where the plugin source lives.
 | `kind` | `"git"` | yes | 1.4.244 | Source kind. Only `git` is supported. |
 | `url` | string | yes | 1.4.244 | HTTPS or SSH URL of the plugin repository. Example: `"https://github.com/acme/orca-gleam-syntax.git"` |
 | `ref` | string | yes | 1.4.244 | Branch or tag the author publishes from. Each release pins an exact commit. Example: `"main"` |
+| `path` | string | no | 1.4.244 | Directory inside the repository that holds `orca-plugin.json`, so one repository can publish many plugins. Use `/` separators, with no leading `/`, `.` or `..`. Omit when the plugin is the repository root. Example: `"plugins/gleam-syntax"` |
 
 ## CatalogRelease
 
@@ -114,9 +115,19 @@ One thing the release adds to Orca.
 - **The file name never changes.** `catalogVersion` (now 2) rises only for a change older clients cannot ignore; an Orca that sees a higher number refuses the catalog with "update Orca to browse this catalog" rather than misreading it.
 - **Releases are a list, newest first.** Orca offers the first release whose `minimumOrca` it meets, so keep the previous release listed when a new one raises `engines.orca`; Orca shows "Needs Orca X" only when none fits.
 
+## One repository can hold many plugins
+
+Give each plugin its own directory and set `source.path` to it. Orca downloads the pinned commit but installs only that directory, and `contentHash` covers only its files, so a commit that changes a sibling plugin leaves this plugin's hash, and its users, untouched. Moving a plugin to another directory counts as moving repositories: users review the update before it installs.
+
+```json
+{ "id": "acme.gleam-syntax", "source": { "kind": "git", "url": "https://github.com/acme/orca-plugins.git", "ref": "main", "path": "plugins/gleam-syntax" } }
+```
+
+Run `pnpm validate:plugin plugins/gleam-syntax` in that repository to print the directory's `path` and its release entry. Listing images stay relative to the catalog repository.
+
 ## Clients before format 2
 
-Orca reads `orca-catalog.json` first and falls back to `orca-marketplace.json`. That older file is frozen: shipped clients reject any key they do not know, so it carries only `name`, `owner` and each plugin's `id`, `source`, `description` and `categories`. Generate it from `orca-catalog.json` rather than editing two files:
+Orca reads `orca-catalog.json` first and falls back to `orca-marketplace.json`. That older file is frozen: shipped clients reject any key they do not know, so it carries only `name`, `owner` and each plugin's `id`, `source`, `description` and `categories`, and leaves out plugins with a `source.path`, which those clients would install from the repository root. Generate it from `orca-catalog.json` rather than editing two files:
 
 ```sh
 node config/scripts/export-legacy-plugin-catalog.mjs orca-catalog.json orca-marketplace.json

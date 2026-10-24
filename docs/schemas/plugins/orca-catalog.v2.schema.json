@@ -136,6 +136,16 @@
           "examples": [
             "main"
           ]
+        },
+        "path": {
+          "description": "Directory inside the repository that holds `orca-plugin.json`, so one repository can publish many plugins. Use `/` separators, with no leading `/`, `.` or `..`. Omit when the plugin is the repository root.",
+          "x-orca-since": "1.4.244",
+          "examples": [
+            "plugins/gleam-syntax"
+          ],
+          "type": "string",
+          "maxLength": 1024,
+          "pattern": "^[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ](?:\\/[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ])*$"
         }
       },
       "required": [

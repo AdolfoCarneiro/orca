@@ -162,6 +162,8 @@ export async function readPluginGitCommit<T>(
 export async function checkoutPluginGitSource(input: {
   url: string
   ref: string
+  /** Plugin directory inside the repository; absent means the repository root. */
+  path?: string
   destination: string
   workingDirectory: string
   maxDownloadBytes?: number
@@ -173,7 +175,12 @@ export async function checkoutPluginGitSource(input: {
   const { commit } = await readPluginGitCommit(
     { ...input, maxDownloadBytes: input.maxDownloadBytes ?? PLUGIN_GIT_DOWNLOAD_MAX_BYTES },
     (repository, resolved) =>
-      materializePluginGitTree({ repository, commit: resolved, destination: input.destination })
+      materializePluginGitTree({
+        repository,
+        commit: resolved,
+        destination: input.destination,
+        ...(input.path ? { path: input.path } : {})
+      })
   )
   return commit
 }

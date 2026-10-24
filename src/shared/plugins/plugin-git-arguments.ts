@@ -45,6 +45,7 @@ export function pluginGitFetchCommitArgs(commit: string): string[] {
   return ['fetch', '--quiet', '--no-tags', '--depth', '1', 'origin', commit]
 }
 
-export function pluginGitTreeArgs(commit: string): string[] {
-  return ['ls-tree', '-r', '-t', '-l', '-z', '--full-tree', commit]
+/** `path` lists only that directory, with entries relative to it (`<commit>:<path>` tree-ish). */
+export function pluginGitTreeArgs(commit: string, path?: string): string[] {
+  return ['ls-tree', '-r', '-t', '-l', '-z', '--full-tree', path ? `${commit}:${path}` : commit]
 }

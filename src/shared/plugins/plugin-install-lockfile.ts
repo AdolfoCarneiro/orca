@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { isQualifiedPluginKey } from './manifest/plugin-manifest'
+import { isPluginRepositoryPath } from './plugin-path-safety'
 
 /** Lock source, exact commit, content hash and reviewed consent so mismatching updates are visible.
  * Adapted from community PR #5801’s SHA-256/lockfile installer. */
@@ -44,7 +45,9 @@ export const pluginInstallSourceSchema = z.discriminatedUnion('kind', [
         .min(1)
         .max(32 * 1024)
         .refine(isAllowedPluginGitUrl, 'plugin Git URL must use HTTPS or SSH'),
-      ref: z.string().min(1).max(4096)
+      ref: z.string().min(1).max(4096),
+      /** Plugin directory inside the repository; absent means the repository root. */
+      path: z.string().max(1024).refine(isPluginRepositoryPath).optional()
     })
   }),
   z.object({

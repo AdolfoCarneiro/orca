@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, expect, it, vi } from 'vitest'
 import { serveRepositoriesOverTestSsh } from '../__mocks__/plugin-git-ssh-remote-fixture'
+import { hashPluginTree } from '../plugin-content-hash'
 import {
   checkoutPluginGitSource,
   pluginGitAllowedProtocols,
@@ -139,4 +140,39 @@ it('only narrows an inherited Git protocol allowlist', () => {
   expect(pluginGitAllowedProtocols(undefined)).toBe('https:ssh')
   expect(pluginGitAllowedProtocols('https:file:ext')).toBe('https')
   expect(pluginGitAllowedProtocols('')).toBe('')
+})
+
+it('materializes only the catalog path, hashed the same after a sibling-only commit', async () => {
+  const f = await fixture()
+  for (const name of ['a', 'b']) {
+    await mkdir(join(f.repository, 'plugins', name, 'nested'), { recursive: true })
+    await writeFile(join(f.repository, 'plugins', name, 'nested', 'file.txt'), `${name}\n`)
+  }
+  await f.git(['add', '--all'])
+  await f.git(['commit', '--quiet', '-m', 'Two plugins'])
+  const download = async (path: string) => {
+    const destination = join(f.root, `download-${randomBytes(4).toString('hex')}`)
+    const commit = await f.git(['rev-parse', 'HEAD'])
+    await checkoutPluginGitSource({
+      url: PLUGIN_URL,
+      ref: commit,
+      path,
+      destination,
+      workingDirectory: f.root
+    })
+    return destination
+  }
+  const first = await download('plugins/a')
+  expect(await readdir(first)).toEqual(['nested'])
+  expect(await readFile(join(first, 'nested', 'file.txt'), 'utf8')).toBe('a\n')
+  const before = await hashPluginTree(first)
+
+  await writeFile(join(f.repository, 'plugins', 'b', 'nested', 'file.txt'), 'b2\n')
+  await f.git(['commit', '--quiet', '-am', 'Sibling only'])
+  expect(await hashPluginTree(await download('plugins/a'))).toEqual(before)
+
+  await expect(download('plugins/missing')).rejects.toThrow()
+  for (const unsafe of ['../a', '/plugins/a', 'plugins\\a', 'plugins/./a', 'plugins/a/']) {
+    await expect(download(unsafe)).rejects.toThrow('unsafe plugin repository path')
+  }
 })

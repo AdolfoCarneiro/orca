@@ -129,4 +129,31 @@ describe('plugin catalog', () => {
       categories: ['themes']
     })
   })
+
+  it('lists plugins from directories of one repository and refuses unsafe directories', () => {
+    const at = (path: string, index: number) =>
+      entry(`acme.p${index}`, {
+        source: { kind: 'git', url: 'https://github.com/acme/plugins.git', ref: 'main', path }
+      })
+    const safe = ['gleam', 'plugins/gleam-syntax', 'a/b.c/d']
+    const unsafe = ['', '../gleam', 'plugins/../gleam', '/plugins/gleam', 'plugins\\gleam']
+    const more = ['C:/plugins', './gleam', 'plugins/./gleam', 'plugins/', 'plugins//gleam', 'nul']
+    const parsed = pluginCatalogSchema.parse(catalog([...safe, ...unsafe, ...more].map(at)))
+    expect(parsed.plugins.map((plugin) => plugin.source.path)).toEqual(safe)
+  })
+
+  it('leaves plugins in a repository directory out of the frozen v1 file', () => {
+    const nested = entry('acme.two', {
+      source: { kind: 'git', url: 'https://github.com/acme/plugins.git', ref: 'main', path: 'two' }
+    })
+    const parsed = pluginCatalogSchema.parse(catalog([entry('acme.one'), nested]))
+    const legacy = legacyPluginCatalog(parsed)
+    expect(legacy.plugins.map((plugin: { id: string }) => plugin.id)).toEqual(['acme.one'])
+    expect(
+      pluginMarketplaceSchema.safeParse({
+        ...legacy,
+        plugins: [{ ...legacy.plugins[0], source: nested.source }]
+      }).success
+    ).toBe(false)
+  })
 })

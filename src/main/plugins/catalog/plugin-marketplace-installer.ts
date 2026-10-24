@@ -26,7 +26,7 @@ import type {
 } from './plugin-marketplace-service'
 import { marketplaceSourceId } from './plugin-marketplace-store'
 import { fullAccessError, PLUGIN_FULL_ACCESS_OFF_ERROR } from '../plugin-activation-policy'
-import { isSameGitRepository } from '../../../shared/plugins/catalog/plugin-marketplace'
+import { isSamePluginSource } from '../../../shared/plugins/catalog/plugin-marketplace'
 
 export type PluginMarketplaceInstallPreview = {
   marketplaceSourceId: string
@@ -95,6 +95,7 @@ export class PluginMarketplaceInstaller {
         url: listing.source.url,
         // Why: a pinned release names its commit; the listed ref is only what the author calls it.
         ref: listing.release?.commit ?? listing.source.ref,
+        ...(listing.source.path ? { path: listing.source.path } : {}),
         destination: stagingDirectory,
         workingDirectory: tmpdir()
       })
@@ -157,7 +158,7 @@ export class PluginMarketplaceInstaller {
       return { ok: false, error: 'marketplace source is no longer configured' }
     }
     // Why read first: the install rewrites the lock entry this comparison needs.
-    const repositoryMoved = await this.isRepositoryMoved(preview.pluginKey, listing.source.url)
+    const repositoryMoved = await this.isRepositoryMoved(preview.pluginKey, listing.source)
     const result = await installPluginFromMarketplace({
       pluginsDir: getUserPluginsDir(this.userDataPath),
       hostVersion: this.hostVersion,
@@ -168,7 +169,11 @@ export class PluginMarketplaceInstaller {
         ref: sourceState.source.ref,
         resolvedCommit: preview.marketplaceCommit
       },
-      plugin: { url: listing.source.url, ref: listing.source.ref },
+      plugin: {
+        url: listing.source.url,
+        ref: listing.source.ref,
+        ...(listing.source.path ? { path: listing.source.path } : {})
+      },
       ...(listing.release ? { release: listing.release } : {}),
       blockedPluginReason: this.blockedPluginReason,
       // Why also here: an unpinned listing names no execution profile to check before checkout.
@@ -178,13 +183,14 @@ export class PluginMarketplaceInstaller {
     return result.ok && repositoryMoved ? { ...result, repositoryMoved: true } : result
   }
 
-  private async isRepositoryMoved(pluginKey: string, nextUrl: string): Promise<boolean> {
+  private async isRepositoryMoved(
+    pluginKey: string,
+    next: PluginMarketplaceListing['source']
+  ): Promise<boolean> {
     const entry = (await readPluginLockfile(getUserPluginsDir(this.userDataPath))).plugins[
       pluginKey
     ]
-    return (
-      entry?.source.kind === 'marketplace' && !isSameGitRepository(entry.source.plugin.url, nextUrl)
-    )
+    return entry?.source.kind === 'marketplace' && !isSamePluginSource(entry.source.plugin, next)
   }
 
   async previewInstalledUpdate(pluginKey: string): Promise<PluginMarketplaceInstallPreview> {
@@ -199,7 +205,7 @@ export class PluginMarketplaceInstaller {
       ref: entry.source.marketplace.ref
     })
     const preview = await this.preview(sourceId, pluginKey)
-    return isSameGitRepository(entry.source.plugin.url, preview.source.url)
+    return isSamePluginSource(entry.source.plugin, preview.source)
       ? preview
       : { ...preview, repositoryMoved: true }
   }

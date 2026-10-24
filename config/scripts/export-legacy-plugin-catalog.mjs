@@ -10,12 +10,15 @@ export function legacyPluginCatalog(catalog) {
   return {
     name: catalog.name,
     owner: catalog.owner,
-    plugins: catalog.plugins.map((entry) => ({
-      id: entry.id,
-      source: { kind: entry.source.kind, url: entry.source.url, ref: entry.source.ref },
-      ...(entry.description ? { description: entry.description } : {}),
-      categories: entry.categories ?? []
-    }))
+    // Why skipped: format 1 has no `path`, so those builds would install the repository root.
+    plugins: catalog.plugins
+      .filter((entry) => !entry.source.path)
+      .map((entry) => ({
+        id: entry.id,
+        source: { kind: entry.source.kind, url: entry.source.url, ref: entry.source.ref },
+        ...(entry.description ? { description: entry.description } : {}),
+        categories: entry.categories ?? []
+      }))
   }
 }
 

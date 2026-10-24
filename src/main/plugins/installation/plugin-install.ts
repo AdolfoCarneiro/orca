@@ -142,7 +142,7 @@ export async function installPluginFromMarketplace(input: {
   expectedPluginKey: string
   expectedResolvedCommit: string
   marketplace: { url: string; ref: string; resolvedCommit: string }
-  plugin: { url: string; ref: string }
+  plugin: { url: string; ref: string; path?: string }
   release?: PluginCatalogRelease
   blockedPluginReason?: (pluginKey: string) => string | null
   manifestError?: (manifest: PluginManifest) => string | null
@@ -175,6 +175,7 @@ export async function installPluginFromMarketplace(input: {
       const resolvedCommit = await checkoutPluginGitSource({
         url: input.plugin.url,
         ref: input.release?.commit ?? input.plugin.ref,
+        ...(input.plugin.path ? { path: input.plugin.path } : {}),
         destination: stagingDir,
         workingDirectory: tmpdir()
       })

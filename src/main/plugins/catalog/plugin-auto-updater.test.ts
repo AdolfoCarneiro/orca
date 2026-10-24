@@ -273,6 +273,14 @@ describe('plugin auto-update', () => {
     expect(install).not.toHaveBeenCalled()
   })
 
+  it('ignores a release re-pinned after a commit that only touched a sibling plugin', async () => {
+    // Why: the plugin's directory, so its version and hash, did not change; only `commit` did.
+    const { updater, install } = setup({ officialCatalog: true, next: manifest('1.0.0') })
+    await updater.run()
+    expect(install).not.toHaveBeenCalled()
+    expect(updater.getState()).toEqual({ updated: {}, needsReview: {} })
+  })
+
   it('installs only the release that was held, not one listed since', async () => {
     const { updater, install } = setup({ officialCatalog: true, previewCommit: 'd'.repeat(40) })
     await updater.run()

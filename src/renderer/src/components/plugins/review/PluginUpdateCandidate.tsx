@@ -32,6 +32,10 @@ export function movedFromSource(
   return installed?.kind === 'marketplace' ? installed.reference : ''
 }
 
+// Why the same form as main's list projection: `movedFrom` is compared against it by eye.
+const sourceLabel = (source: { url: string; path?: string }): string =>
+  source.path ? `${source.url} (${source.path})` : source.url
+
 const contributionGrowthLabel = (point: PluginContributionPoint): string => {
   if (point === 'keybindings') {
     return translate(
@@ -176,7 +180,7 @@ export function CandidateRow({
             {translate(
               'auto.components.settings.PluginUpdateAllDialog.sourceMoved',
               'Now comes from a different repository: {{value0}} (was {{value1}})',
-              { value0: preview.source.url, value1: movedFrom }
+              { value0: sourceLabel(preview.source), value1: movedFrom }
             )}
           </li>
         ) : null}
@@ -221,7 +225,10 @@ export function CandidateRow({
               publisher={preview.manifest.publisher}
               source={{
                 kind: preview.bundled ? 'bundled' : 'marketplace',
-                reference: `${preview.source.url}#${preview.source.ref}`,
+                reference: sourceLabel({
+                  ...preview.source,
+                  url: `${preview.source.url}#${preview.source.ref}`
+                }),
                 resolvedCommit: preview.resolvedCommit,
                 marketplace: {
                   reference: preview.marketplaceName,

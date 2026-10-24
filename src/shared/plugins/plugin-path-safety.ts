@@ -8,6 +8,8 @@ const WINDOWS_FORBIDDEN_CHAR_RE = /[<>:"|?*]/
 // flag the character rules; only Windows device names are left to the predicate.
 const PATH_SEGMENT = String.raw`[^<>:"|?*\x00-\x1f\\/]*[^<>:"|?*\x00-\x1f\\/. ]`
 export const PLUGIN_RELATIVE_PATH_RE = new RegExp(`^${PATH_SEGMENT}(?:[\\\\/]${PATH_SEGMENT})*$`)
+/** A normalized POSIX directory inside a repository: `/` separators only, no dot segments. */
+export const PLUGIN_REPOSITORY_PATH_RE = new RegExp(`^${PATH_SEGMENT}(?:/${PATH_SEGMENT})*$`)
 
 export function pluginPathSegmentError(segment: string): string | null {
   if (segment.length === 0 || segment === '.' || segment === '..') {
@@ -44,4 +46,8 @@ export function pluginRelativePathError(value: string): string | null {
 
 export function isSafePluginRelativePath(value: string): boolean {
   return pluginRelativePathError(value) === null
+}
+
+export function isPluginRepositoryPath(value: string): boolean {
+  return PLUGIN_REPOSITORY_PATH_RE.test(value) && pluginRelativePathError(value) === null
 }

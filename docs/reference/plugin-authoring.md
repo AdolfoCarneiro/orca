@@ -62,7 +62,7 @@ A catalog is a Git repository with `orca-catalog.json` at its root that lists pl
 each release to an exact commit and file hash, so Orca refuses bytes the catalog did not vouch
 for.
 
-1. Commit the plugin and run `pnpm validate:plugin` on the root of its repository. It prints the
+1. Commit the plugin and run `pnpm validate:plugin` on its directory. It prints the
    release entry for `HEAD`: version, full commit SHA, `contentHash`, execution profile, minimum
    Orca, contribution summary, capabilities and file types. Every field must match
    what Orca finds at install, so paste it rather than writing it by hand.
@@ -84,6 +84,12 @@ for.
    `commit` must be a full 40-character SHA. A tag or branch name is refused by validation and
    skipped by Orca. Keep the previous release listed when you raise `engines.orca`, so older
    Orca still has something to install.
+
+   **One repository can hold many plugins.** Put each in its own directory, such as
+   `plugins/gleam-syntax/orca-plugin.json`, and add `"path": "plugins/gleam-syntax"` to its
+   `source`; validating that directory prints the `path` to use. Orca installs only that
+   directory, and its `contentHash` covers only its files, so commits to sibling plugins never
+   change it. Moving a plugin to another directory counts as a different repository.
 
 3. Run `pnpm validate:plugin path/to/catalog` and regenerate the older
    `orca-marketplace.json` as described in the [catalog reference](plugin-catalog.md#clients-before-format-2).

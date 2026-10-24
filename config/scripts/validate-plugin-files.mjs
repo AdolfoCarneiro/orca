@@ -1,8 +1,9 @@
 // Strict check of plugin manifests and catalogs, for authors and catalog CI.
 // Usage: node config/scripts/validate-plugin-files.mjs <plugin dir | orca-plugin.json | orca-catalog.json>...
-// For a plugin repository root it also prints the catalog release entry for the committed HEAD.
+// For a plugin directory in a Git repository it also prints the catalog release entry for the
+// committed HEAD, with the `source.path` to list when the plugin is not the repository root.
 import { createHash } from 'node:crypto'
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
@@ -18,6 +19,7 @@ const { materializePluginGitTree } = loadPluginSchemaModule(
 const { hashPluginTree } = loadPluginSchemaModule('../../main/plugins/plugin-content-hash.ts')
 const { gitExecFileAsync } = loadPluginSchemaModule('../../main/git/runner.ts')
 const { formatPluginSchemaIssues } = loadPluginSchemaModule('manifest/plugin-schema-issues.ts')
+const { isPluginRepositoryPath } = loadPluginSchemaModule('plugin-path-safety.ts')
 const ARTIFACT_PARSERS = {
   themes: loadPluginSchemaModule('artifacts/plugin-theme-artifact.ts').parsePluginAppThemeArtifact,
   terminalThemes: loadPluginSchemaModule('artifacts/plugin-terminal-theme-artifact.ts')
@@ -50,17 +52,27 @@ async function git(cwd, args) {
   return (await gitExecFileAsync(args, { cwd })).stdout.trim()
 }
 
-/** Release entry for HEAD of the repository at `pluginDir`; a note when that is not possible. */
+/** Release entry for HEAD of the repository holding `pluginDir`; a note when that is not possible. */
 async function catalogReleaseEntry(pluginDir) {
-  const top = await git(pluginDir, ['rev-parse', '--show-toplevel']).catch(() => null)
-  if (!top || realpathSync(top) !== realpathSync(pluginDir)) {
-    return { note: 'no catalog release entry: run this on the root of the plugin repository' }
+  // Why --show-prefix: it is the plugin's directory in the repository, always with `/`.
+  const prefix = await git(pluginDir, ['rev-parse', '--show-prefix']).catch(() => null)
+  if (prefix === null) {
+    return { note: 'no catalog release entry: the plugin is not in a Git repository' }
+  }
+  const sourcePath = prefix.replace(/\/$/, '') || undefined
+  if (sourcePath !== undefined && !isPluginRepositoryPath(sourcePath)) {
+    return { note: `no catalog release entry: ${sourcePath} cannot be a catalog source path` }
   }
   const commit = await git(pluginDir, ['rev-parse', 'HEAD'])
-  const dirty = (await git(pluginDir, ['status', '--porcelain'])) !== ''
+  const dirty = (await git(pluginDir, ['status', '--porcelain', '--', '.'])) !== ''
   const tree = mkdtempSync(path.join(tmpdir(), 'orca-plugin-release-'))
   try {
-    await materializePluginGitTree({ repository: pluginDir, commit, destination: tree })
+    await materializePluginGitTree({
+      repository: pluginDir,
+      commit,
+      destination: tree,
+      ...(sourcePath ? { path: sourcePath } : {})
+    })
     const hashed = await hashPluginTree(tree)
     const parsed = parsePluginManifest(
       JSON.parse(readFileSync(path.join(tree, 'orca-plugin.json'), 'utf8'))
@@ -76,6 +88,7 @@ async function catalogReleaseEntry(pluginDir) {
     }
     return {
       entry,
+      sourcePath,
       ...(dirty ? { note: 'uncommitted changes are not in this release; commit them first' } : {})
     }
   } finally {
@@ -134,7 +147,12 @@ for (const target of targets) {
     }
   }
   if (manifestOk && statSync(target).isDirectory()) {
-    const { entry, note } = await catalogReleaseEntry(target)
+    const { entry, sourcePath, note } = await catalogReleaseEntry(target)
+    if (sourcePath) {
+      console.log(
+        `\nCatalog source path (set "path" in this plugin's "source"): ${JSON.stringify(sourcePath)}`
+      )
+    }
     if (entry) {
       console.log(
         `\nCatalog release entry for HEAD (newest first in "releases"):\n${JSON.stringify(entry, null, 2)}`

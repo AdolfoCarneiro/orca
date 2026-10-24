@@ -20,7 +20,10 @@ import type { PluginConsentRequest } from '../../shared/plugins/approval/plugin-
 import type { PluginLanguagePackRegistration } from '../../shared/plugins/artifacts/plugin-language-pack-artifact'
 import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
 import type { PluginManifest } from '../../shared/plugins/manifest/plugin-manifest'
-import type { PluginMarketplaceGitSource } from '../../shared/plugins/catalog/plugin-marketplace'
+import type {
+  PluginCatalogGitSource,
+  PluginMarketplaceGitSource
+} from '../../shared/plugins/catalog/plugin-marketplace'
 import type { PluginCatalogRelease } from '../../shared/plugins/catalog/plugin-catalog-release'
 
 export type PluginHostPanel = {
@@ -141,7 +144,7 @@ export type PluginMarketplaceHostListing = {
   marketplaceOwner: string
   marketplaceCommit: string
   pluginKey: string
-  source: PluginMarketplaceGitSource
+  source: PluginCatalogGitSource
   description?: string
   categories: string[]
   official: boolean
@@ -176,7 +179,7 @@ export type PluginMarketplaceHostInstallPreview = {
   marketplaceOwner: string
   marketplaceCommit: string
   pluginKey: string
-  source: PluginMarketplaceGitSource
+  source: PluginCatalogGitSource
   resolvedCommit: string
   contentHash: string
   consentFingerprint: string

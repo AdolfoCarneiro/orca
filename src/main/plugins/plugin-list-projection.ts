@@ -14,7 +14,8 @@ import type { PluginCommandAliasActionId } from '../../shared/plugins/plugin-com
 import {
   isOfficialMarketplaceGitSource,
   isOfficialOrganizationGitSource,
-  isOfficialPluginIdentity
+  isOfficialPluginIdentity,
+  pluginSourceLabel
 } from '../../shared/plugins/catalog/plugin-marketplace'
 import { mapWithConcurrency } from '../../shared/map-with-concurrency'
 import {
@@ -223,7 +224,7 @@ export async function buildPluginList(
                     : lockEntry.source.kind === 'git'
                       ? lockEntry.source.url
                       : lockEntry.source.kind === 'marketplace'
-                        ? lockEntry.source.plugin.url
+                        ? pluginSourceLabel(lockEntry.source.plugin)
                         : `bundled:${lockEntry.source.bundleId}`,
                 resolvedCommit: lockEntry.resolvedCommit,
                 contentHash: lockEntry.contentHash,

@@ -2,7 +2,10 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { gitExecFileAsyncBuffer } from '../../git/runner'
 import { pluginGitTreeArgs } from '../../../shared/plugins/plugin-git-arguments'
-import { pluginRelativePathError } from '../../../shared/plugins/plugin-path-safety'
+import {
+  isPluginRepositoryPath,
+  pluginRelativePathError
+} from '../../../shared/plugins/plugin-path-safety'
 import { MAX_PLUGIN_FILES, MAX_PLUGIN_TOTAL_BYTES } from '../plugin-content-hash'
 
 const MAX_PATH_BYTES = 1024
@@ -128,9 +131,14 @@ export async function materializePluginGitTree(input: {
   repository: string
   commit: string
   destination: string
+  /** Plugin directory inside the repository; only its subtree is written. */
+  path?: string
 }): Promise<void> {
+  if (input.path !== undefined && !isPluginRepositoryPath(input.path)) {
+    throw new Error(`unsafe plugin repository path: ${input.path}`)
+  }
   const options = { cwd: input.repository, timeout: PLUGIN_GIT_TREE_TIMEOUT_MS }
-  const metadata = await gitExecFileAsyncBuffer(pluginGitTreeArgs(input.commit), {
+  const metadata = await gitExecFileAsyncBuffer(pluginGitTreeArgs(input.commit, input.path), {
     ...options,
     maxBuffer: TREE_METADATA_MAX_BYTES
   })
