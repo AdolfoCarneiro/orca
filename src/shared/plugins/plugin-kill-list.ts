@@ -11,14 +11,16 @@ const advisoryUrlSchema = z
   .max(2_048)
   .refine((value) => new URL(value).protocol === 'https:', 'advisory URL must use HTTPS')
 
-export const pluginKillListEntrySchema = z.strictObject({
+// Why strip, not strict: old clients must keep revoking when a later list adds a field. Ignoring a
+// narrowing field over-kills, which is the safe direction.
+export const pluginKillListEntrySchema = z.object({
   pluginKey: z.string().refine(isQualifiedPluginKey, 'invalid qualified plugin key'),
   reason: z.string().min(1).max(1_024),
   advisoryUrl: advisoryUrlSchema.optional()
 })
 
 export const pluginKillListSchema = z
-  .strictObject({
+  .object({
     version: z.literal(1),
     generatedAt: z.string().datetime({ offset: true }),
     plugins: z.array(pluginKillListEntrySchema).max(PLUGIN_KILL_LIST_ENTRY_LIMIT)

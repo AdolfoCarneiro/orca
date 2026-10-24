@@ -17,7 +17,18 @@ function entry(pluginKey = 'community.unsafe'): Record<string, unknown> {
 }
 
 describe('pluginKillListSchema', () => {
-  it('parses a strict versioned revocation document', () => {
+  it('ignores fields a later list adds so old clients keep revoking', () => {
+    const parsed = pluginKillListSchema.parse({
+      version: 1,
+      generatedAt: '2026-07-12T20:00:00Z',
+      plugins: [{ ...entry(), contentHash: 'f'.repeat(64) }],
+      revoked: []
+    })
+
+    expect(findKilledPlugin(parsed, 'community.unsafe')).toEqual(entry())
+  })
+
+  it('parses a versioned revocation document', () => {
     const parsed = pluginKillListSchema.parse({
       version: 1,
       generatedAt: '2026-07-12T20:00:00Z',
@@ -28,17 +39,6 @@ describe('pluginKillListSchema', () => {
   })
 
   it.each([
-    {
-      version: 1,
-      generatedAt: '2026-07-12T20:00:00Z',
-      plugins: [],
-      unexpected: true
-    },
-    {
-      version: 1,
-      generatedAt: '2026-07-12T20:00:00Z',
-      plugins: [{ ...entry(), unexpected: true }]
-    },
     {
       version: 1,
       generatedAt: 'not-a-date',

@@ -18,7 +18,7 @@ describe('pluginConsentRequestSchema', () => {
     ).toBe(false)
   })
 
-  it('accepts an explicit opaque fingerprint and rejects contract drift', () => {
+  it('accepts an explicit opaque fingerprint and ignores fields from newer clients', () => {
     expect(
       pluginConsentRequestSchema.parse({
         pluginKey: 'samples.demo',
@@ -30,13 +30,17 @@ describe('pluginConsentRequestSchema', () => {
       reviewedFingerprint: 'sha256-reviewed',
       decision: 'keep-disabled'
     })
-    expect(() =>
+    expect(
       pluginConsentRequestSchema.parse({
         pluginKey: 'samples.demo',
         reviewedFingerprint: 'sha256-reviewed',
         decision: 'approve',
-        unexpected: true
+        reviewSurface: ['panels']
       })
-    ).toThrow()
+    ).toEqual({
+      pluginKey: 'samples.demo',
+      reviewedFingerprint: 'sha256-reviewed',
+      decision: 'approve'
+    })
   })
 })
