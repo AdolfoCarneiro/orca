@@ -1,7 +1,6 @@
 import { isWorkspaceScopedPluginContext } from '../../../../../shared/plugins/plugin-command-contribution'
 import {
   Blocks,
-  Bot,
   Command,
   FileCode,
   Highlighter,
@@ -99,8 +98,7 @@ const CONTRIBUTION_ICON: Record<PluginContributionKind, React.ReactNode> = {
   syntax: <Highlighter />,
   language: <Languages />,
   panel: <PanelRight />,
-  recipe: <Server />,
-  agent: <Bot />
+  recipe: <Server />
 }
 
 type AddsCommand = {
@@ -222,9 +220,8 @@ function useContributionRowActions(
       case 'app-theme':
       case 'terminal-theme':
       case 'icon-theme':
-      case 'agent':
       case 'recipe':
-        // Themes have "Use now" above the list; agents and recipes have nothing to try here.
+        // Themes have "Use now" above the list; recipes have nothing to try here.
         return null
     }
   }

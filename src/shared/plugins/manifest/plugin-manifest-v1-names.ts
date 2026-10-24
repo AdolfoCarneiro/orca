@@ -29,12 +29,13 @@ export function upgradePluginManifestV1Names(raw: unknown): unknown {
   if (!isRecord(raw.contributes)) {
     return { ...raw, capabilities }
   }
-  const { commands, keybindings, events } = raw.contributes
+  // Why drop agents: format 1 accepted entries Orca never read, so they stay inert forever.
+  const { agents: _inert, commands, keybindings, events, ...contributes } = raw.contributes
   return {
     ...raw,
     capabilities,
     contributes: {
-      ...raw.contributes,
+      ...contributes,
       commands: mapRecords(commands, renameField('context', 'worktree', 'workspace')),
       keybindings: mapRecords(keybindings, renameField('when', 'worktree', 'workspace')),
       events: mapRecords(events, (event) => {

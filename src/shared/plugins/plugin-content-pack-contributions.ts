@@ -19,7 +19,6 @@ import {
 export const PLUGIN_LANGUAGE_PACK_LIMIT = 16
 export const PLUGIN_KEYBINDING_LIMIT = 256
 export const PLUGIN_VM_RECIPE_LIMIT = 64
-export const PLUGIN_AGENT_PROFILE_LIMIT = 64
 export const PLUGIN_THEME_LIMIT = 64
 export const PLUGIN_TERMINAL_THEME_LIMIT = 64
 export const PLUGIN_ICON_THEME_LIMIT = 32
@@ -124,21 +123,6 @@ export const pluginVmRecipeContributionSchema = z
   })
   .strict()
   .meta({ id: 'VmRecipeContribution', description: 'A virtual machine environment recipe.' })
-
-export const pluginAgentProfileContributionSchema = z
-  .object({
-    path: pluginRelativePathSchema.meta(
-      pluginPathFieldDoc('JSON agent profile file, listed once.', PLUGIN_SCHEMA_SINCE_V1, [
-        'agents/reviewer.json'
-      ])
-    )
-  })
-  .strict()
-  .meta({
-    id: 'AgentProfileContribution',
-    description:
-      'Reserved for coding-agent definitions. Manifest format 2 refuses a non-empty `agents` list until their format is defined.'
-  })
 
 /** App, terminal and icon themes share one shape: a labelled JSON artifact. */
 export const pluginThemeContributionSchema = z
@@ -254,6 +238,5 @@ export const pluginSyntaxContributionSchema = z
 export type PluginLanguagePackContribution = z.infer<typeof pluginLanguagePackContributionSchema>
 export type PluginKeybindingContribution = z.infer<typeof pluginKeybindingContributionSchema>
 export type PluginVmRecipeContribution = z.infer<typeof pluginVmRecipeContributionSchema>
-export type PluginAgentProfileContribution = z.infer<typeof pluginAgentProfileContributionSchema>
 export type PluginThemeContribution = z.infer<typeof pluginThemeContributionSchema>
 export type PluginSyntaxContribution = z.infer<typeof pluginSyntaxContributionSchema>

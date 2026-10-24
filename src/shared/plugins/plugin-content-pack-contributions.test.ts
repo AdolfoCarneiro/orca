@@ -29,8 +29,7 @@ describe('content-pack manifest contributions', () => {
           }
         ],
         keybindings: [{ command: 'workspace.openTasks', key: 'Mod+Alt+T' }],
-        vmRecipes: [{ path: 'recipes/fly.json' }],
-        agents: [{ path: 'agents/custom.json' }]
+        vmRecipes: [{ path: 'recipes/fly.json' }]
       })
     )
 
@@ -79,7 +78,6 @@ describe('content-pack manifest contributions', () => {
       languagePacks: [],
       keybindings: [],
       vmRecipes: [],
-      agents: [],
       themes: [],
       terminalThemes: [],
       iconThemes: [],
@@ -158,8 +156,7 @@ describe('content-pack manifest contributions', () => {
     ['duplicate region', { languagePacks: [{ locale: 'en-US-US', path: 'locale.json' }] }],
     ['unknown subtag', { languagePacks: [{ locale: 'en-aaa', path: 'locale.json' }] }],
     ['language pack path', { languagePacks: [{ locale: 'pt-BR', path: '../outside.json' }] }],
-    ['VM recipe', { vmRecipes: [{ path: '\\\\server\\recipe.json' }] }],
-    ['agent profile', { agents: [{ path: 'agents/../profile.json' }] }]
+    ['VM recipe', { vmRecipes: [{ path: '\\\\server\\recipe.json' }] }]
   ])('rejects unsafe or malformed %s contributions', (_label, contributes) => {
     expect(parsePluginManifest(manifest(contributes)).ok).toBe(false)
   })

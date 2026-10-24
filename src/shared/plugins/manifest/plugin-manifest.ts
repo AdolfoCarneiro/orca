@@ -162,7 +162,7 @@ export const pluginManifestV2Object = z
       .meta(pluginFieldDoc('Manifest format. Use 2 for new plugins.', NEXT)),
     execution: pluginExecutionProfileSchema.meta(
       pluginFieldDoc(
-        'Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `declarative` (commands, shortcuts, recipes, agents), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation.',
+        'Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `declarative` (commands, shortcuts, recipes), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation.',
         NEXT,
         ['data']
       )

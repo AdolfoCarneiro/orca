@@ -12940,8 +12940,7 @@
           "dark": "Sombre",
           "light": "Clair",
           "languageIncomplete": "Traduit à {{value0}} %, trop incomplet pour servir de langue à Orca",
-          "languageCoverage": "Langue de l’interface · traduite à {{value0}} %",
-          "agent": "Profil d’agent"
+          "languageCoverage": "Langue de l’interface · traduite à {{value0}} %"
         },
         "notification": {
           "settings": {

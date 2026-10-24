@@ -13,7 +13,7 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | --- | --- | --- | --- | --- |
 | `$schema` | string | no | 1.4.244 | JSON Schema URL for editor completion. Ignored by Orca. |
 | `manifestVersion` | `2` | yes | 1.4.244 | Manifest format. Use 2 for new plugins. |
-| `execution` | `"data"` \| `"declarative"` \| `"sandboxed-ui"` \| `"trusted-worker"` | yes | 1.4.244 | Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `declarative` (commands, shortcuts, recipes, agents), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation. Example: `"data"` |
+| `execution` | `"data"` \| `"declarative"` \| `"sandboxed-ui"` \| `"trusted-worker"` | yes | 1.4.244 | Most authority the plugin needs, least first: `data` (themes, syntaxes, translations), `declarative` (commands, shortcuts, recipes), `sandboxed-ui` (panels), `trusted-worker` (`main` and events). Contributions beyond it fail validation. Example: `"data"` |
 | `id` | string | yes | 1.4.160 | Plugin id, kebab-case. The install identity is `<publisher>.<id>`. The reserved names `constructor` and `prototype` are refused. Example: `"gleam-syntax"` |
 | `publisher` | string | yes | 1.4.160 | Publisher slug, kebab-case, usually your GitHub user or organization. The reserved names `constructor` and `prototype` are refused. The publishers `stablyai`, `orca`, `orca-*`, `official`, `anthropic`, `openai` and `github`, and ids starting `orca-`, install only from the stablyai organization. Example: `"acme"` |
 | `name` | string | yes | 1.4.160 | Display name. Example: `"Gleam"` |
@@ -36,11 +36,11 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | `contributes.languagePacks` | [LanguagePackContribution](#languagepackcontribution)[] | no | 1.4.160 | Interface translations. At most 16. |
 | `contributes.keybindings` | [KeybindingContribution](#keybindingcontribution)[] | no | 1.4.160 | Keyboard shortcuts for contributed commands. At most 256. |
 | `contributes.vmRecipes` | [VmRecipeContribution](#vmrecipecontribution)[] | no | 1.4.160 | Virtual machine environment recipes. At most 64. |
-| `contributes.agents` | [AgentProfileContribution](#agentprofilecontribution)[] | no | 1.4.160 | Reserved for coding-agent definitions; must be empty in manifest format 2 until their format is defined. At most 64. |
 | `contributes.themes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | App color themes. At most 64. |
 | `contributes.terminalThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | Terminal ANSI palettes. At most 64. |
 | `contributes.iconThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | File icon themes. At most 32. |
 | `contributes.syntaxes` | [SyntaxContribution](#syntaxcontribution)[] | no | 1.4.244 | Syntax highlighting for editor languages. At most 16. |
+| `contributes.agents` | any[] | no | 1.4.244 | Reserved for coding-agent definitions; must be empty until their format is defined. |
 | `contributes.skills` | any[] | no | 1.4.244 | Reserved for agent skills; must be empty until their format is defined. |
 | `contributes.mcpServers` | any[] | no | 1.4.244 | Reserved for MCP server definitions; must be empty until their format is defined. |
 | `contributes.taskSources` | any[] | no | 1.4.244 | Reserved for task sources; must be empty until their format is defined. |
@@ -110,14 +110,6 @@ A virtual machine environment recipe.
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
 | `path` | string | yes | 1.4.160 | JSON environment recipe file, listed once. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"recipes/ubuntu.json"` |
-
-## AgentProfileContribution
-
-Reserved for coding-agent definitions. Manifest format 2 refuses a non-empty `agents` list until their format is defined.
-
-| Field | Type | Required | Since | Description |
-| --- | --- | --- | --- | --- |
-| `path` | string | yes | 1.4.160 | JSON agent profile file, listed once. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"agents/reviewer.json"` |
 
 ## ThemeContribution
 

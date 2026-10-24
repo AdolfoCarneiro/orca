@@ -5,18 +5,14 @@ import type { PluginManifest } from '../manifest/plugin-manifest'
 
 type PluginConsentSubject = Pick<PluginManifest, 'capabilities' | 'main'> & {
   execution?: PluginExecutionProfile
-  contributes?: Partial<
-    Pick<PluginManifest['contributes'], 'keybindings' | 'vmRecipes' | 'agents' | 'panels'>
-  >
+  contributes?: Partial<Pick<PluginManifest['contributes'], 'keybindings' | 'vmRecipes' | 'panels'>>
 }
 
 export function hasDeclarativePluginContributions(manifest: PluginConsentSubject): boolean {
   const contributions = manifest.contributes
   return Boolean(
     contributions &&
-    ((contributions.keybindings?.length ?? 0) > 0 ||
-      (contributions.vmRecipes?.length ?? 0) > 0 ||
-      (contributions.agents?.length ?? 0) > 0)
+    ((contributions.keybindings?.length ?? 0) > 0 || (contributions.vmRecipes?.length ?? 0) > 0)
   )
 }
 

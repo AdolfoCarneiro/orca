@@ -12477,8 +12477,7 @@
           "dark": "다크",
           "light": "라이트",
           "languageIncomplete": "{{value0}}% 번역됨. Orca 언어로 사용하기에는 너무 불완전합니다",
-          "languageCoverage": "인터페이스 언어 · {{value0}}% 번역됨",
-          "agent": "에이전트 프로필"
+          "languageCoverage": "인터페이스 언어 · {{value0}}% 번역됨"
         },
         "notification": {
           "settings": {

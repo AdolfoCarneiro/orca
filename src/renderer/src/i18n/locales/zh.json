@@ -12510,8 +12510,7 @@
           "dark": "深色",
           "light": "浅色",
           "languageIncomplete": "已翻译 {{value0}}%，不够完整，无法用作 Orca 的语言",
-          "languageCoverage": "界面语言 · 已翻译 {{value0}}%",
-          "agent": "智能体配置"
+          "languageCoverage": "界面语言 · 已翻译 {{value0}}%"
         },
         "notification": {
           "settings": {

@@ -5,7 +5,6 @@ import {
   pluginCommandContributionSchema
 } from './plugin-command-contribution'
 import {
-  PLUGIN_AGENT_PROFILE_LIMIT,
   PLUGIN_ICON_THEME_LIMIT,
   PLUGIN_KEYBINDING_LIMIT,
   PLUGIN_LANGUAGE_PACK_LIMIT,
@@ -13,7 +12,6 @@ import {
   PLUGIN_TERMINAL_THEME_LIMIT,
   PLUGIN_THEME_LIMIT,
   PLUGIN_VM_RECIPE_LIMIT,
-  pluginAgentProfileContributionSchema,
   pluginKeybindingContributionSchema,
   pluginLanguagePackContributionSchema,
   pluginSyntaxContributionSchema,
@@ -40,7 +38,6 @@ export const PLUGIN_CONTRIBUTION_POINTS = [
   'languagePacks',
   'keybindings',
   'vmRecipes',
-  'agents',
   'themes',
   'terminalThemes',
   'iconThemes',
@@ -52,6 +49,7 @@ export type PluginContributionPoint = (typeof PLUGIN_CONTRIBUTION_POINTS)[number
 /** `contributes` keys held for planned points, so each can ship later as an additive minor
  *  instead of a new manifest format. Each must stay empty until its format is defined. */
 export const PLUGIN_RESERVED_CONTRIBUTION_POINTS = {
+  agents: 'coding-agent definitions',
   skills: 'agent skills',
   mcpServers: 'MCP server definitions',
   taskSources: 'task sources',
@@ -129,12 +127,6 @@ export const pluginContributesFields = {
     'Virtual machine environment recipes.',
     V1
   ),
-  agents: contributionList(
-    pluginAgentProfileContributionSchema,
-    PLUGIN_AGENT_PROFILE_LIMIT,
-    'Reserved for coding-agent definitions; must be empty in manifest format 2 until their format is defined.',
-    V1
-  ),
   themes: contributionList(
     pluginThemeContributionSchema,
     PLUGIN_THEME_LIMIT,
@@ -162,6 +154,7 @@ export const pluginContributesFields = {
 } satisfies Record<PluginContributionPoint, z.ZodType>
 
 export const pluginReservedContributesFields = {
+  agents: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.agents),
   skills: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.skills),
   mcpServers: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.mcpServers),
   taskSources: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.taskSources),
@@ -187,7 +180,6 @@ export const PLUGIN_CONTRIBUTION_POINT_POLICY: Record<
   languagePacks: { execution: 'data', catalogType: 'interface-language' },
   keybindings: { execution: 'declarative', catalogType: 'instructions' },
   vmRecipes: { execution: 'declarative', catalogType: 'instructions' },
-  agents: { execution: 'declarative', catalogType: 'instructions' },
   themes: { execution: 'data', catalogType: 'app-theme' },
   terminalThemes: { execution: 'data', catalogType: 'terminal-theme' },
   iconThemes: { execution: 'data', catalogType: 'icon-theme' },

@@ -12754,8 +12754,7 @@
           "dark": "Oscuro",
           "light": "Claro",
           "languageIncomplete": "{{value0}} % traducido, demasiado incompleto para usarlo como idioma de Orca",
-          "languageCoverage": "Idioma de la interfaz · {{value0}} % traducido",
-          "agent": "Perfil de agente"
+          "languageCoverage": "Idioma de la interfaz · {{value0}} % traducido"
         },
         "notification": {
           "settings": {
