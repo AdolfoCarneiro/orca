@@ -17,6 +17,8 @@ export function PluginSettingsMenu({
   featureEnabled,
   suggestionsEnabled,
   onToggleSuggestions,
+  autoUpdateEnabled,
+  onToggleAutoUpdate,
   fullAccessEnabled,
   onToggleFullAccess,
   open,
@@ -27,6 +29,8 @@ export function PluginSettingsMenu({
   featureEnabled: boolean
   suggestionsEnabled: boolean
   onToggleSuggestions: () => void
+  autoUpdateEnabled: boolean
+  onToggleAutoUpdate: () => void
   fullAccessEnabled: boolean
   onToggleFullAccess: () => void
   /** Controlled so a catalog card can open it to the full access switch. */
@@ -59,6 +63,17 @@ export function PluginSettingsMenu({
           {translate(
             'auto.components.settings.PluginsSettingsSection.fileTypeSuggestionsLabel',
             'Suggest plugins for unknown files'
+          )}
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem
+          checked={autoUpdateEnabled}
+          disabled={!featureEnabled}
+          onCheckedChange={onToggleAutoUpdate}
+          onSelect={(event) => event.preventDefault()}
+        >
+          {translate(
+            'auto.components.settings.PluginSettingsMenu.autoUpdateLabel',
+            'Update plugins automatically'
           )}
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem

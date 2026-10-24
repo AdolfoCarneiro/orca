@@ -1104,6 +1104,10 @@
             }
           }
         }
+      },
+      "pluginAutoUpdates": {
+        "one": "{{value0}} updated to {{value1}}",
+        "many": "{{value0}} plugins updated"
       }
     },
     "lib": {
@@ -12904,7 +12908,10 @@
           "needsOrca": "Needs Orca {{value0}}",
           "off": "Off",
           "rollbackTo": "Roll back to {{value0}}…",
-          "copyContentHash": "Copy content hash"
+          "copyContentHash": "Copy content hash",
+          "reviewUpdate": "Review update",
+          "updateNeedsReview": "update {{value0}} needs review",
+          "updatedTo": "updated to {{value0}}"
         },
         "PluginSettingsOverview": {
           "offTitle": "Plugins are off",
@@ -12999,7 +13006,8 @@
           "label": "Plugin settings",
           "development": "Development folders…",
           "fullAccessLabel": "Allow full-access plugins",
-          "fullAccessHint": "Full access to files and network"
+          "fullAccessHint": "Full access to files and network",
+          "autoUpdateLabel": "Update plugins automatically"
         },
         "PluginThemeUseNow": {
           "label": "Use now:",
@@ -13062,6 +13070,10 @@
         },
         "PluginCatalogGroups": {
           "fullAccessOff": "Full access · turned off in settings"
+        },
+        "PluginChips": {
+          "updateNeedsReview": "Update needs review",
+          "updatedTo": "Updated to {{value0}}"
         },
         "notification": {
           "settings": {

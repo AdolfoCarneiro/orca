@@ -9,6 +9,8 @@ import type { PluginMarketplaceInstaller } from '../plugins/catalog/plugin-marke
 import type { PluginMarketplaceService } from '../plugins/catalog/plugin-marketplace-service'
 import { PLUGIN_MARKETPLACE_SOURCE_ID_PATTERN } from '../plugins/catalog/plugin-marketplace-store'
 import type { PluginService } from '../plugins/plugin-service'
+import type { PluginAutoUpdater } from '../plugins/catalog/plugin-auto-updater'
+import type { PluginAutoUpdateState } from '../../shared/plugins/plugin-update-policy'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import { pluginFileTypeSchema } from '../../shared/plugins/plugin-file-type'
 import { findPluginFileTypeSuggestion } from '../plugins/catalog/plugin-file-type-suggestion'
@@ -16,6 +18,7 @@ import { findPluginFileTypeSuggestion } from '../plugins/catalog/plugin-file-typ
 export type PluginMarketplaceHandlerServices = {
   marketplace: PluginMarketplaceService
   installer: PluginMarketplaceInstaller
+  autoUpdater?: Pick<PluginAutoUpdater, 'getState'>
 }
 
 /** The consent write path (applyPluginConsent), bound to the store by the caller. */
@@ -104,6 +107,11 @@ export function registerPluginMarketplaceHandlers(
       ? { ...preview, accessGrowth: pluginUpdateAccessGrowth(installed.manifest, preview.manifest) }
       : preview
   })
+  ipcMain.handle(
+    'plugins:getAutoUpdateState',
+    (): PluginAutoUpdateState =>
+      services.autoUpdater?.getState() ?? { updated: {}, needsReview: {} }
+  )
   ipcMain.handle('plugins:getRollbackVersion', (_event, args: unknown) => {
     const { pluginKey } = installedPluginSchema.parse(args)
     return services.installer.rollbackVersion(pluginKey)

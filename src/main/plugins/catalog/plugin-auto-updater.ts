@@ -1,0 +1,180 @@
+import { compareAppVersions } from '../../../shared/app-version'
+import { isSameGitRepository } from '../../../shared/plugins/catalog/plugin-marketplace'
+import {
+  pluginUpdateAccessGrowth,
+  pluginUpdateGrowsAccess
+} from '../../../shared/plugins/approval/plugin-update-access-growth'
+import type { PluginAutoUpdateState } from '../../../shared/plugins/plugin-update-policy'
+import { isInvalidDiscoveredPlugin, type DiscoveredPlugin } from '../plugin-discovery'
+import {
+  installCatalogReleaseWithApproval,
+  readApprovedPredecessor,
+  type PluginCatalogInstallOutcome
+} from '../plugin-update-approval'
+import type { PluginServiceOptions } from '../plugin-service-options'
+import type { ValidDiscoveredPlugin } from '../plugin-discovery'
+import type { PluginMarketplaceInstaller } from './plugin-marketplace-installer'
+import type { PluginReleaseFirstSeenStore } from './plugin-release-first-seen-store'
+
+export const PLUGIN_AUTO_UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000
+/** Why: a release must stay listed this long before it installs unasked, so takedowns can land. */
+export const PLUGIN_AUTO_UPDATE_HOLD_BACK_MS = 12 * 60 * 60 * 1000
+
+type AutoUpdatePluginService = {
+  readonly options: Pick<
+    PluginServiceOptions,
+    | 'isPluginSystemEnabled'
+    | 'isFullAccessAllowed'
+    | 'getPluginConsents'
+    | 'getDisabledPlugins'
+    | 'getPluginKillListEntry'
+  >
+  getDiscovered: () => readonly DiscoveredPlugin[]
+  findValidPlugin: (pluginKey: string) => ValidDiscoveredPlugin | null
+  refresh: () => Promise<void>
+}
+
+type AutoUpdateInstaller = Pick<
+  PluginMarketplaceInstaller,
+  'findInstalledUpdateListing' | 'previewInstalledUpdate' | 'install'
+>
+
+/**
+ * Installs catalog updates for enabled plugins when they ask for nothing new, like an editor's
+ * extension auto-update. An update that grows access, or comes from a moved repository, is left
+ * uninstalled and marked for review; the running version keeps running.
+ */
+export class PluginAutoUpdater {
+  private readonly options: {
+    pluginService: AutoUpdatePluginService
+    installer: AutoUpdateInstaller
+    firstSeen: Pick<PluginReleaseFirstSeenStore, 'firstSeen'>
+    isEnabled: () => boolean
+    refreshCatalogs: () => Promise<unknown>
+    approve: (pluginKey: string, reviewedFingerprint: string) => Promise<void>
+    onChanged: (state: PluginAutoUpdateState, updatedNow: PluginAutoUpdateState['updated']) => void
+    now?: () => number
+  }
+  private state: PluginAutoUpdateState = { updated: {}, needsReview: {} }
+  private running: Promise<void> | null = null
+  private timer: ReturnType<typeof setInterval> | null = null
+
+  constructor(options: PluginAutoUpdater['options']) {
+    this.options = options
+  }
+
+  getState(): PluginAutoUpdateState {
+    return this.state
+  }
+
+  /** One pass; concurrent callers share it. */
+  run(): Promise<void> {
+    this.running ??= this.performRun().finally(() => {
+      this.running = null
+    })
+    return this.running
+  }
+
+  syncPeriodicRun(enabled: boolean, intervalMs = PLUGIN_AUTO_UPDATE_INTERVAL_MS): void {
+    if (!enabled) {
+      this.dispose()
+      return
+    }
+    if (this.timer) {
+      return
+    }
+    this.timer = setInterval(() => {
+      void this.run().catch((error) => console.warn('[plugins] auto-update failed:', error))
+    }, intervalMs)
+    this.timer.unref?.()
+  }
+
+  dispose(): void {
+    if (this.timer) {
+      clearInterval(this.timer)
+      this.timer = null
+    }
+  }
+
+  private async performRun(): Promise<void> {
+    if (!this.options.isEnabled()) {
+      return
+    }
+    await this.options
+      .refreshCatalogs()
+      .catch((error) => console.warn('[plugins] auto-update kept cached catalogs:', error))
+    const updatedNow: PluginAutoUpdateState['updated'] = {}
+    const needsReview: PluginAutoUpdateState['needsReview'] = {}
+    for (const plugin of this.options.pluginService.getDiscovered()) {
+      if (isInvalidDiscoveredPlugin(plugin) || !this.options.isEnabled()) {
+        continue
+      }
+      try {
+        const verdict = await this.updateOne(plugin)
+        if (verdict?.kind === 'updated') {
+          updatedNow[plugin.pluginKey] = verdict.version
+        } else if (verdict?.kind === 'needs-review') {
+          needsReview[plugin.pluginKey] = verdict.version
+        }
+      } catch (error) {
+        console.warn(`[plugins] auto-update skipped ${plugin.pluginKey}:`, error)
+      }
+    }
+    const updated = { ...this.state.updated, ...updatedNow }
+    for (const key of Object.keys(needsReview)) {
+      delete updated[key]
+    }
+    this.state = { updated, needsReview }
+    this.options.onChanged(this.state, updatedNow)
+  }
+
+  private async updateOne(
+    plugin: ValidDiscoveredPlugin
+  ): Promise<{ kind: 'updated' | 'needs-review'; version: string } | null> {
+    const { pluginService, installer } = this.options
+    // Why approved only: a disabled or never-approved plugin is the user's to update.
+    if (!readApprovedPredecessor(pluginService.options, plugin)) {
+      return null
+    }
+    const found = await installer.findInstalledUpdateListing(plugin.pluginKey)
+    const version = found ? (found.listing.version ?? found.listing.release?.version) : undefined
+    if (
+      !found ||
+      !version ||
+      found.listing.blockedByKillList ||
+      compareAppVersions(version, plugin.manifest.version) <= 0
+    ) {
+      return null
+    }
+    if (!found.officialCatalog) {
+      const now = (this.options.now ?? Date.now)()
+      const release = `${version}@${found.listing.release?.commit ?? found.listing.marketplaceCommit}`
+      const firstSeenAt = await this.options.firstSeen.firstSeen(plugin.pluginKey, release, now)
+      if (now - firstSeenAt < PLUGIN_AUTO_UPDATE_HOLD_BACK_MS) {
+        return null
+      }
+    }
+    const preview = await installer.previewInstalledUpdate(plugin.pluginKey)
+    if (preview.contentHash === plugin.contentHash) {
+      return null
+    }
+    if (
+      !isSameGitRepository(found.installedRepository, preview.source.url) ||
+      pluginUpdateGrowsAccess(pluginUpdateAccessGrowth(plugin.manifest, preview.manifest))
+    ) {
+      return { kind: 'needs-review', version: preview.manifest.version }
+    }
+    const outcome: PluginCatalogInstallOutcome = await installCatalogReleaseWithApproval({
+      pluginKey: plugin.pluginKey,
+      pluginService,
+      install: () => installer.install(preview),
+      approve: this.options.approve
+    })
+    if (!outcome.ok) {
+      throw new Error(outcome.error)
+    }
+    return outcome.needsReview
+      ? { kind: 'needs-review', version: outcome.version }
+      : { kind: 'updated', version: outcome.version }
+  }
+}

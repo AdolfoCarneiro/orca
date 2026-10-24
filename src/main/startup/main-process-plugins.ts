@@ -8,6 +8,9 @@ import { PluginService } from '../plugins/plugin-service'
 import { PluginKillListService } from '../plugins/catalog/plugin-kill-list-service'
 import { PluginMarketplaceService } from '../plugins/catalog/plugin-marketplace-service'
 import { PluginMarketplaceInstaller } from '../plugins/catalog/plugin-marketplace-installer'
+import { PluginAutoUpdater } from '../plugins/catalog/plugin-auto-updater'
+import { PluginReleaseFirstSeenStore } from '../plugins/catalog/plugin-release-first-seen-store'
+import { isPluginAutoUpdateOn } from '../../shared/plugins/plugin-update-policy'
 import { PluginBundledBootstrapCoordinator } from '../plugins/plugin-bundled-bootstrap-coordinator'
 import { getPluginsDataDir } from '../plugins/plugin-discovery'
 import { resolveBundledPluginRoot } from '../plugins/plugin-bundled-bootstrap'
@@ -28,6 +31,8 @@ import { agentHookServer } from '../agent-hooks/server'
 import { emitPluginWorktreeLifecycle } from './main-process-pty-startup'
 import { mainProcessState as state } from './main-process-state'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
+
+const PLUGIN_AUTO_UPDATE_STARTUP_DELAY_MS = 60_000
 
 export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService): Promise<void> {
   const store = state.store
@@ -81,6 +86,53 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
     getPluginKillListEntry: (pluginKey) => state.pluginKillListService?.find(pluginKey) ?? null,
     hostEntryPath: resolvePluginHostEntryPath(app.getAppPath(), app.isPackaged)
   })
+  const pluginService = state.pluginService
+  const pluginAutoUpdater = new PluginAutoUpdater({
+    pluginService,
+    installer: state.pluginMarketplaceInstaller,
+    firstSeen: new PluginReleaseFirstSeenStore(getPluginsDataDir(app.getPath('userData'))),
+    isEnabled: () => {
+      const settings = store.getSettings()
+      return settings.pluginSystemEnabled === true && isPluginAutoUpdateOn(settings)
+    },
+    refreshCatalogs: () => state.pluginMarketplaceService?.refreshAll() ?? Promise.resolve(),
+    approve: (pluginKey, reviewedFingerprint) =>
+      applyPluginConsent({
+        store,
+        pluginService,
+        pluginKey,
+        reviewedFingerprint,
+        decision: 'approve'
+      }),
+    onChanged: (autoUpdate, updatedNow) => {
+      const updated = Object.entries(updatedNow).map(([pluginKey, version]) => ({
+        pluginKey,
+        version,
+        name: pluginService.findValidPlugin(pluginKey)?.manifest.name ?? pluginKey
+      }))
+      for (const window of BrowserWindow.getAllWindows()) {
+        if (!window.isDestroyed()) {
+          window.webContents.send('plugins:autoUpdateChanged', { state: autoUpdate, updated })
+        }
+      }
+    }
+  })
+  state.pluginAutoUpdater = pluginAutoUpdater
+  // Why packaged only (like the safety list): dev and e2e runs must not update fixtures unasked.
+  const autoUpdateScheduled = app.isPackaged || process.env.ORCA_PLUGIN_AUTO_UPDATE === '1'
+  const syncPluginAutoUpdate = (runNow: boolean): void => {
+    if (!autoUpdateScheduled) {
+      return
+    }
+    const enabled =
+      store.getSettings().pluginSystemEnabled === true && isPluginAutoUpdateOn(store.getSettings())
+    pluginAutoUpdater.syncPeriodicRun(enabled)
+    if (enabled && runNow) {
+      void pluginAutoUpdater
+        .run()
+        .catch((error) => console.warn('[plugins] auto-update failed:', error))
+    }
+  }
   installPluginImageProtocolHandler({
     cache: pluginImageCache,
     findValidPlugin: (pluginKey) => state.pluginService?.findValidPlugin(pluginKey) ?? null
@@ -129,6 +181,9 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
     if (app.isPackaged && updates.pluginSystemEnabled !== undefined) {
       state.pluginKillListService?.syncPeriodicRefresh(updates.pluginSystemEnabled === true)
     }
+    if (updates.pluginSystemEnabled !== undefined || updates.pluginUpdatePolicy !== undefined) {
+      syncPluginAutoUpdate(true)
+    }
   })
   // Headless RPC resolves this service too; consent shares the desktop hash-keyed write path.
   setPluginServiceForRpc(state.pluginService, {
@@ -145,6 +200,8 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
         durationMs: Number((performance.now() - pluginSystemStartupStartedAt).toFixed(2)),
         installedPlugins: state.pluginService?.getDiscovered().length ?? 0
       })
+      // Why delayed: catalog fetches and git checkouts must not compete with startup.
+      setTimeout(() => syncPluginAutoUpdate(true), PLUGIN_AUTO_UPDATE_STARTUP_DELAY_MS).unref?.()
     })
     .catch((error) => console.warn('[plugins] failed to initialize plugin service:', error))
   if (app.isPackaged && store.getSettings().pluginSystemEnabled === true) {

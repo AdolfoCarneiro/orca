@@ -1,3 +1,4 @@
+import { isPluginAutoUpdateOn } from '../../../../shared/plugins/plugin-update-policy'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { PluginHostInstallSource, PluginHostListEntry } from '../../../../preload/api-types'
@@ -131,6 +132,7 @@ export function PluginsSettingsSection({
     reset: resetSettingsWrites,
     toggleFeature,
     toggleSuggestions,
+    toggleAutoUpdate,
     toggleFullAccess,
     updateDevPaths
   } = usePluginSettingsWrites({
@@ -334,6 +336,8 @@ export function PluginsSettingsSection({
           featureEnabled={featureEnabled}
           suggestionsEnabled={settings.pluginFileTypeSuggestions !== false}
           onToggleSuggestions={() => void toggleSuggestions()}
+          autoUpdateEnabled={isPluginAutoUpdateOn(settings)}
+          onToggleAutoUpdate={() => void toggleAutoUpdate()}
           fullAccessEnabled={settings.pluginFullAccessEnabled === true}
           onToggleFullAccess={() => void toggleFullAccess()}
           open={settingsMenuOpen}

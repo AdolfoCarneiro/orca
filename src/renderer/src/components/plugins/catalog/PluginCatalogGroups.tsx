@@ -112,7 +112,8 @@ function CatalogCard({
         )
       : null
   const statusText = installed
-    ? installedPluginPresentation(installed, entry.updateVersion).statusText
+    ? installedPluginPresentation(installed, entry.updateVersion, false, entry.autoUpdate)
+        .statusText
     : undefined
   return (
     <PluginCard

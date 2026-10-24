@@ -9,6 +9,7 @@ import {
 } from './plugin-file-type'
 
 type PluginOwnedSettingsInput = PluginThemeSettingsInput & PluginFileTypeSuggestionSettingsInput
+import { normalizePluginUpdatePolicySettings } from './plugin-update-policy'
 
 /** Bounds every setting that plugins or plugin UI write; only keys present in `input` return. */
 export function normalizePluginOwnedSettings(
@@ -16,6 +17,7 @@ export function normalizePluginOwnedSettings(
 ): Partial<GlobalSettings> {
   return {
     ...normalizePluginThemeSettings(input),
-    ...normalizePluginFileTypeSuggestionSettings(input)
+    ...normalizePluginFileTypeSuggestionSettings(input),
+    ...normalizePluginUpdatePolicySettings(input)
   }
 }

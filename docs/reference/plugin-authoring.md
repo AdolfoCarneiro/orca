@@ -95,6 +95,12 @@ asks again, listing what is new, when an update adds a capability, raises the ex
 adds a command, shortcut, panel or event subscription, ships virtual machine recipes, or comes from
 a different repository.
 
+With **Update plugins automatically** on (the default), Orca installs such updates for enabled
+catalog plugins by itself, checking at startup and every 12 hours. A release installs only once it
+has been listed for 12 hours, or at once from the official catalog, so a takedown has time to land.
+An update that needs approval is not installed: the current version keeps running and the plugin
+shows **Update needs review**.
+
 ## Planned contribution points
 
 These `contributes` keys are reserved: a manifest may list them only as empty arrays until

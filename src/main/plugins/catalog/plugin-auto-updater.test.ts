@@ -1,0 +1,220 @@
+import { describe, expect, it, vi } from 'vitest'
+import { fingerprintPluginConsent } from '../../../shared/plugins/approval/plugin-consent-fingerprint'
+import {
+  pluginManifestSchema,
+  type PluginManifest
+} from '../../../shared/plugins/manifest/plugin-manifest'
+import {
+  normalizePluginUpdatePolicySettings,
+  type PluginAutoUpdateState
+} from '../../../shared/plugins/plugin-update-policy'
+import type { ValidDiscoveredPlugin } from '../plugin-discovery'
+import { PLUGIN_AUTO_UPDATE_HOLD_BACK_MS, PluginAutoUpdater } from './plugin-auto-updater'
+
+const KEY = 'samples.demo'
+const REPO = 'https://example.com/samples/demo.git'
+const HOUR = 60 * 60 * 1000
+
+function manifest(version: string, overrides: Partial<PluginManifest> = {}): PluginManifest {
+  return pluginManifestSchema.parse({
+    manifestVersion: 1,
+    id: 'demo',
+    publisher: 'samples',
+    name: 'Demo',
+    version,
+    engines: { orca: '>=1.0.0' },
+    pluginApi: 1,
+    main: 'worker.js',
+    capabilities: [{ kind: 'notifications:show' }],
+    ...overrides
+  })
+}
+
+function discovered(m: PluginManifest, contentHash: string, isDev = false): ValidDiscoveredPlugin {
+  return {
+    pluginKey: KEY,
+    rootDir: `/plugins/${KEY}/${contentHash}`,
+    manifest: m,
+    consentFingerprint: fingerprintPluginConsent(m, contentHash),
+    contentHash,
+    isDev
+  }
+}
+
+function setup(
+  options: {
+    next?: PluginManifest
+    officialCatalog?: boolean
+    repository?: string
+    approved?: boolean
+    disabled?: boolean
+    dev?: boolean
+    enabled?: boolean
+    blocked?: boolean
+  } = {}
+) {
+  let now = 1_000_000
+  const previous = discovered(manifest('1.0.0'), 'sha-old', options.dev)
+  const nextManifest = options.next ?? manifest('1.1.0')
+  const next = discovered(nextManifest, 'sha-new')
+  let current = previous
+  const consents: Record<string, string> =
+    options.approved === false ? {} : { [KEY]: previous.consentFingerprint }
+  const firstSeen = new Map<string, { release: string; at: number }>()
+  const install = vi.fn(async () => ({
+    ok: true as const,
+    pluginKey: KEY,
+    version: nextManifest.version,
+    contentHash: 'sha-new',
+    consentFingerprint: next.consentFingerprint,
+    resolvedCommit: null
+  }))
+  const changes: { state: PluginAutoUpdateState; updated: Record<string, string> }[] = []
+  const updater = new PluginAutoUpdater({
+    pluginService: {
+      options: {
+        isPluginSystemEnabled: () => true,
+        isFullAccessAllowed: () => true,
+        getPluginConsents: () => consents,
+        getDisabledPlugins: () => (options.disabled ? [KEY] : [])
+      },
+      getDiscovered: () => [current],
+      findValidPlugin: () => current,
+      refresh: async () => {
+        current = next
+      }
+    },
+    installer: {
+      findInstalledUpdateListing: vi.fn(async () => ({
+        listing: {
+          marketplaceSourceId: 'a'.repeat(32),
+          marketplaceName: 'Samples',
+          marketplaceOwner: 'samples',
+          marketplaceCommit: 'b'.repeat(40),
+          pluginKey: KEY,
+          source: { kind: 'git' as const, url: REPO, ref: 'main' },
+          categories: [],
+          official: false,
+          bundled: false,
+          version: nextManifest.version,
+          ...(options.blocked ? { blockedByKillList: { reason: 'malware' } } : {})
+        },
+        officialCatalog: options.officialCatalog === true,
+        installedRepository: REPO
+      })),
+      previewInstalledUpdate: vi.fn(async () => ({
+        marketplaceSourceId: 'a'.repeat(32),
+        marketplaceName: 'Samples',
+        marketplaceOwner: 'samples',
+        marketplaceCommit: 'b'.repeat(40),
+        pluginKey: KEY,
+        source: { kind: 'git' as const, url: options.repository ?? REPO, ref: 'main' },
+        resolvedCommit: 'c'.repeat(40),
+        contentHash: 'sha-new',
+        consentFingerprint: next.consentFingerprint,
+        manifest: nextManifest,
+        official: false,
+        bundled: false
+      })),
+      install
+    },
+    firstSeen: {
+      firstSeen: async (pluginKey, release, at) => {
+        const known = firstSeen.get(pluginKey)
+        if (known?.release === release) {
+          return known.at
+        }
+        firstSeen.set(pluginKey, { release, at })
+        return at
+      }
+    },
+    isEnabled: () => options.enabled !== false,
+    refreshCatalogs: async () => undefined,
+    approve: async (pluginKey, fingerprint) => {
+      consents[pluginKey] = fingerprint
+    },
+    onChanged: (state, updated) => changes.push({ state, updated }),
+    now: () => now
+  })
+  return {
+    updater,
+    install,
+    consents,
+    next,
+    changes,
+    advance: (ms: number) => {
+      now += ms
+    }
+  }
+}
+
+describe('plugin auto-update', () => {
+  it('holds a release back until it has been listed for 12 hours, then installs it in place', async () => {
+    const { updater, install, consents, next, changes, advance } = setup()
+    await updater.run()
+    expect(install).not.toHaveBeenCalled()
+    advance(PLUGIN_AUTO_UPDATE_HOLD_BACK_MS - HOUR)
+    await updater.run()
+    expect(install).not.toHaveBeenCalled()
+    advance(HOUR)
+    await updater.run()
+    expect(install).toHaveBeenCalledTimes(1)
+    expect(consents[KEY]).toBe(next.consentFingerprint)
+    expect(updater.getState()).toEqual({ updated: { [KEY]: '1.1.0' }, needsReview: {} })
+    expect(changes.at(-1)?.updated).toEqual({ [KEY]: '1.1.0' })
+  })
+
+  it('installs at once from an official catalog', async () => {
+    const { updater, install } = setup({ officialCatalog: true })
+    await updater.run()
+    expect(install).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves an update that asks for more access uninstalled and marked for review', async () => {
+    const { updater, install, consents } = setup({
+      officialCatalog: true,
+      next: manifest('1.1.0', {
+        capabilities: [{ kind: 'notifications:show' }, { kind: 'terminal:send' }]
+      })
+    })
+    const before = consents[KEY]
+    await updater.run()
+    expect(install).not.toHaveBeenCalled()
+    expect(consents[KEY]).toBe(before)
+    expect(updater.getState().needsReview).toEqual({ [KEY]: '1.1.0' })
+  })
+
+  it('marks an update from a moved repository for review', async () => {
+    const { updater, install } = setup({
+      officialCatalog: true,
+      repository: 'https://example.com/someone-else/demo.git'
+    })
+    await updater.run()
+    expect(install).not.toHaveBeenCalled()
+    expect(updater.getState().needsReview).toEqual({ [KEY]: '1.1.0' })
+  })
+
+  it('skips disabled, unapproved, development, blocked plugins and the manual policy', async () => {
+    for (const options of [
+      { disabled: true },
+      { approved: false },
+      { dev: true },
+      { blocked: true },
+      { enabled: false }
+    ]) {
+      const { updater, install } = setup({ officialCatalog: true, ...options })
+      await updater.run()
+      expect(install, JSON.stringify(options)).not.toHaveBeenCalled()
+    }
+  })
+
+  it('keeps the policy a bounded union with auto as the default', () => {
+    expect(normalizePluginUpdatePolicySettings({})).toEqual({})
+    expect(normalizePluginUpdatePolicySettings({ pluginUpdatePolicy: 'manual' })).toEqual({
+      pluginUpdatePolicy: 'manual'
+    })
+    expect(normalizePluginUpdatePolicySettings({ pluginUpdatePolicy: 'weird' })).toEqual({
+      pluginUpdatePolicy: 'auto'
+    })
+  })
+})

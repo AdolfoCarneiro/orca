@@ -195,6 +195,35 @@ export class PluginMarketplaceInstaller {
     return this.preview(sourceId, pluginKey)
   }
 
+  /** The own-catalog listing an installed plugin would update from, read from caches only. */
+  async findInstalledUpdateListing(pluginKey: string): Promise<{
+    listing: PluginMarketplaceListing
+    officialCatalog: boolean
+    installedRepository: string
+  } | null> {
+    const entry = (await readPluginLockfile(getUserPluginsDir(this.userDataPath))).plugins[
+      pluginKey
+    ]
+    if (!entry || entry.source.kind !== 'marketplace') {
+      return null
+    }
+    const sourceId = marketplaceSourceId({
+      kind: 'git',
+      url: entry.source.marketplace.url,
+      ref: entry.source.marketplace.ref
+    })
+    const listing = await this.marketplace.findPlugin(sourceId, pluginKey)
+    if (!listing) {
+      return null
+    }
+    const source = (await this.marketplace.listSources()).find(({ id }) => id === sourceId)
+    return {
+      listing,
+      officialCatalog: source?.official === true,
+      installedRepository: entry.source.plugin.url
+    }
+  }
+
   /** What `rollback` would restore, read only when the UI asks. */
   async rollbackVersion(pluginKey: string): Promise<string | null> {
     return isQualifiedPluginKey(pluginKey)

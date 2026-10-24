@@ -56,6 +56,7 @@ function entry(pluginKey: string, kinds: string[]): PluginListEntry {
     types: [],
     minimumOrca: null,
     catalogIds: [],
+    autoUpdate: { updatedTo: null, needsReview: false },
     updatable: true,
     updateVersion: '1.1.0',
     installed: plugin,
