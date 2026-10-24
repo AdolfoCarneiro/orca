@@ -26,6 +26,7 @@ import type {
 } from './plugin-marketplace-service'
 import { marketplaceSourceId } from './plugin-marketplace-store'
 import { PLUGIN_FULL_ACCESS_OFF_ERROR } from '../plugin-activation-policy'
+import { isSameGitRepository } from '../../../shared/plugins/catalog/plugin-marketplace'
 
 export type PluginMarketplaceInstallPreview = {
   marketplaceSourceId: string
@@ -44,6 +45,9 @@ export type PluginMarketplaceInstallPreview = {
   /** The manifest's images, verified at preview and cached by hash. */
   images?: PluginHostImages
 }
+
+/** `repositoryMoved`: this replaced an install that came from a different repository. */
+export type PluginMarketplaceInstallResult = PluginInstallResult & { repositoryMoved?: true }
 
 export type PluginMarketplacePreviewIdentity = Pick<
   PluginMarketplaceInstallPreview,
@@ -123,7 +127,9 @@ export class PluginMarketplaceInstaller {
     }
   }
 
-  async install(preview: PluginMarketplacePreviewIdentity): Promise<PluginInstallResult> {
+  async install(
+    preview: PluginMarketplacePreviewIdentity
+  ): Promise<PluginMarketplaceInstallResult> {
     const listing = await this.requireListing(preview.marketplaceSourceId, preview.pluginKey)
     const blockedReason =
       listing.blockedByKillList?.reason ?? this.blockedPluginReason(preview.pluginKey)
@@ -147,7 +153,9 @@ export class PluginMarketplaceInstaller {
     if (!sourceState) {
       return { ok: false, error: 'marketplace source is no longer configured' }
     }
-    return installPluginFromMarketplace({
+    // Why read first: the install rewrites the lock entry this comparison needs.
+    const repositoryMoved = await this.isRepositoryMoved(preview.pluginKey, listing.source.url)
+    const result = await installPluginFromMarketplace({
       pluginsDir: getUserPluginsDir(this.userDataPath),
       hostVersion: this.hostVersion,
       expectedPluginKey: preview.pluginKey,
@@ -161,6 +169,16 @@ export class PluginMarketplaceInstaller {
       ...(listing.release ? { release: listing.release } : {}),
       blockedPluginReason: this.blockedPluginReason
     })
+    return result.ok && repositoryMoved ? { ...result, repositoryMoved: true } : result
+  }
+
+  private async isRepositoryMoved(pluginKey: string, nextUrl: string): Promise<boolean> {
+    const entry = (await readPluginLockfile(getUserPluginsDir(this.userDataPath))).plugins[
+      pluginKey
+    ]
+    return (
+      entry?.source.kind === 'marketplace' && !isSameGitRepository(entry.source.plugin.url, nextUrl)
+    )
   }
 
   async previewInstalledUpdate(pluginKey: string): Promise<PluginMarketplaceInstallPreview> {

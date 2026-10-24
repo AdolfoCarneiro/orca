@@ -246,4 +246,46 @@ describe('plugin marketplace IPC authority', () => {
     })
     expect(approve).not.toHaveBeenCalled()
   })
+
+  it('sends an update from a moved repository to review even when one-click was asked', async () => {
+    const services = createServices()
+    services.installer.install = vi.fn().mockResolvedValue({
+      ok: true,
+      pluginKey: PLUGIN_KEY,
+      consentFingerprint: 'sha256-fp',
+      repositoryMoved: true
+    })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the handler reads only refresh and findValidPlugin.
+    const pluginService = {
+      ...createPluginService(),
+      findValidPlugin: vi.fn(() => ({
+        pluginKey: PLUGIN_KEY,
+        consentFingerprint: 'sha256-fp',
+        manifest: { manifestVersion: 2, execution: 'data' }
+      }))
+    } as unknown as PluginService
+    const approve = vi.fn().mockResolvedValue(undefined)
+    registerPluginMarketplaceHandlers(
+      pluginService,
+      services,
+      () => getDefaultSettings('/tmp'),
+      approve
+    )
+    const identity = {
+      marketplaceSourceId: SOURCE_ID,
+      marketplaceCommit: MARKETPLACE_COMMIT,
+      pluginKey: PLUGIN_KEY,
+      resolvedCommit: PLUGIN_COMMIT
+    }
+    const handler = handlers.get('plugins:installMarketplacePlugin')
+    for (const args of [
+      identity,
+      { ...identity, enableIfData: true, expectedFingerprint: 'sha256-fp' }
+    ]) {
+      await expect(handler?.({ sender: { id: 7 } }, args)).resolves.toMatchObject({
+        needsReview: true
+      })
+    }
+    expect(approve).not.toHaveBeenCalled()
+  })
 })

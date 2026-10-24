@@ -91,6 +91,10 @@ export function registerPluginMarketplaceHandlers(
       return result
     }
     await pluginService.refresh()
+    // Why main decides: a repository move must reach review even if the renderer skipped its flag.
+    if (result.repositoryMoved) {
+      return { ...result, needsReview: true }
+    }
     if (!enableIfData) {
       return result
     }
