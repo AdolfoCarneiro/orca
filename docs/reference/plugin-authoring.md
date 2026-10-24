@@ -98,8 +98,12 @@ a different repository.
 With **Update plugins automatically** on (the default), Orca installs such updates for enabled
 catalog plugins by itself, checking at startup and every 6 hours. A release installs only once it
 has been listed for 12 hours, or at once from the official catalog, so a takedown has time to land.
-An update that needs approval is not installed: the current version keeps running and the plugin
-shows **Update needs review**.
+Only pinned catalog releases (a `releases` entry with its commit and content hash) install by
+themselves; a listing without one updates only when the user clicks Update. This includes
+full-access plugins: an update that asks for nothing new runs its new code with the access the user
+already granted, the same way an editor's extensions update. Turn the setting off to review every
+update. An update that needs approval is not installed: the current version keeps running and the
+plugin shows **Update needs review**.
 
 ## Planned contribution points
 

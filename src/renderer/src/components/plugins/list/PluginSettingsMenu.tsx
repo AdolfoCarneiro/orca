@@ -70,11 +70,22 @@ export function PluginSettingsMenu({
           disabled={!featureEnabled}
           onCheckedChange={onToggleAutoUpdate}
           onSelect={(event) => event.preventDefault()}
+          className="items-start"
         >
-          {translate(
-            'auto.components.settings.PluginSettingsMenu.autoUpdateLabel',
-            'Update plugins automatically'
-          )}
+          <span className="min-w-0">
+            <span className="block">
+              {translate(
+                'auto.components.settings.PluginSettingsMenu.autoUpdateLabel',
+                'Update plugins automatically'
+              )}
+            </span>
+            <span className="block text-muted-foreground">
+              {translate(
+                'auto.components.settings.PluginSettingsMenu.autoUpdateHint',
+                'Updates can change what a plugin does, including full-access ones'
+              )}
+            </span>
+          </span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={fullAccessEnabled}
