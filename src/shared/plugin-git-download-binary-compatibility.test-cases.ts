@@ -24,7 +24,14 @@ export function registerPluginGitDownloadBinaryCompatibilityCase(
     await writeFile(join(getRepoPath(), source, 'bin', 'run'), 'plugin\n', { mode: 0o755 })
     await runGit(['init', '-q', source])
     await runGit(['-C', source, 'add', '--all'])
-    await runGit(['-C', source, 'commit', '-qm', 'plugin'])
+    // Why inline identity: a fresh repository does not inherit the fixture repository's config.
+    const identity = [
+      '-c',
+      'user.name=Compatibility Test',
+      '-c',
+      'user.email=compatibility@example.invalid'
+    ]
+    await runGit(['-C', source, ...identity, 'commit', '-qm', 'plugin'])
     await runGit(['-C', source, 'tag', 'v1'])
     const commit = (await runGit(['-C', source, 'rev-parse', 'HEAD'])).stdout.trim()
     const config = pluginGitConfigArgs('compat-no-hooks')
