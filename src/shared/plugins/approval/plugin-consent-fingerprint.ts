@@ -2,18 +2,24 @@ import { createHash } from 'node:crypto'
 import { canonicalizeCapabilitySet } from '../plugin-capabilities'
 import { pluginExecutionAllows, type PluginExecutionProfile } from '../plugin-execution-profile'
 import type { PluginManifest } from '../manifest/plugin-manifest'
+import {
+  PLUGIN_CONTRIBUTION_POINT_POLICY,
+  PLUGIN_CONTRIBUTION_POINTS,
+  type PluginContributionPoint
+} from '../plugin-contribution-points'
 
 type PluginConsentSubject = Pick<PluginManifest, 'capabilities' | 'main'> & {
   execution?: PluginExecutionProfile
-  contributes?: Partial<Pick<PluginManifest['contributes'], 'keybindings' | 'vmRecipes' | 'panels'>>
+  contributes?: Partial<Record<PluginContributionPoint, readonly unknown[]>>
 }
 
+// Why from the policy table: a new point must decide here, not be missed by a hand-kept list.
+const CONTENT_BOUND_POINTS = PLUGIN_CONTRIBUTION_POINTS.filter(
+  (point) => PLUGIN_CONTRIBUTION_POINT_POLICY[point].bindsContent
+)
+
 export function hasDeclarativePluginContributions(manifest: PluginConsentSubject): boolean {
-  const contributions = manifest.contributes
-  return Boolean(
-    contributions &&
-    ((contributions.keybindings?.length ?? 0) > 0 || (contributions.vmRecipes?.length ?? 0) > 0)
-  )
+  return CONTENT_BOUND_POINTS.some((point) => (manifest.contributes?.[point]?.length ?? 0) > 0)
 }
 
 // Why v1 too: a worker or panel update must not swap code under an old approval, even though

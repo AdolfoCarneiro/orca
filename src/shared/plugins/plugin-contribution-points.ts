@@ -167,21 +167,25 @@ type ContributionPointPolicy = {
   execution: PluginExecutionProfile
   /** Catalog type a release declares for this point; null when `main` already implies it. */
   catalogType: PluginCatalogType | null
+  /** Its bytes act later under user or agent authority, so approval names the exact content.
+   *  Executable points (panels, events) are bound by their execution profile instead. */
+  bindsContent: boolean
 }
 
 export const PLUGIN_CONTRIBUTION_POINT_POLICY: Record<
   PluginContributionPoint,
   ContributionPointPolicy
 > = {
-  panels: { execution: 'sandboxed-ui', catalogType: 'panel' },
-  commands: { execution: 'declarative', catalogType: 'instructions' },
+  panels: { execution: 'sandboxed-ui', catalogType: 'panel', bindsContent: false },
+  // Why unbound: an alias command only names a built-in action; it carries no bytes.
+  commands: { execution: 'declarative', catalogType: 'instructions', bindsContent: false },
   // Why no catalog type: events need a worker, which `main` already declares.
-  events: { execution: 'trusted-worker', catalogType: null },
-  languagePacks: { execution: 'data', catalogType: 'interface-language' },
-  keybindings: { execution: 'declarative', catalogType: 'instructions' },
-  vmRecipes: { execution: 'declarative', catalogType: 'instructions' },
-  themes: { execution: 'data', catalogType: 'app-theme' },
-  terminalThemes: { execution: 'data', catalogType: 'terminal-theme' },
-  iconThemes: { execution: 'data', catalogType: 'icon-theme' },
-  syntaxes: { execution: 'data', catalogType: 'syntax' }
+  events: { execution: 'trusted-worker', catalogType: null, bindsContent: false },
+  languagePacks: { execution: 'data', catalogType: 'interface-language', bindsContent: false },
+  keybindings: { execution: 'declarative', catalogType: 'instructions', bindsContent: true },
+  vmRecipes: { execution: 'declarative', catalogType: 'instructions', bindsContent: true },
+  themes: { execution: 'data', catalogType: 'app-theme', bindsContent: false },
+  terminalThemes: { execution: 'data', catalogType: 'terminal-theme', bindsContent: false },
+  iconThemes: { execution: 'data', catalogType: 'icon-theme', bindsContent: false },
+  syntaxes: { execution: 'data', catalogType: 'syntax', bindsContent: false }
 }
