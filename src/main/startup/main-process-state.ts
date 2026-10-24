@@ -115,6 +115,7 @@ export const mainProcessState = {
   pluginKillListService: null as PluginKillListService | null,
   pluginMarketplaceService: null as PluginMarketplaceService | null,
   pluginMarketplaceInstaller: null as PluginMarketplaceInstaller | null,
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: widens the null initial value; assigned once plugins start.
   pluginAutoUpdater: null as PluginAutoUpdater | null,
   keybindings: null as KeybindingService | null,
   // Timed reload flags cannot leak to later loads; recovery did-finish-load must preserve live PTYs (#5787).

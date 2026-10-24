@@ -41,6 +41,7 @@ function createServices(): PluginMarketplaceHandlerServices {
 }
 
 function createPluginService(): PluginService {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the handlers read only these members.
   return {
     options: {
       isPluginSystemEnabled: () => true,

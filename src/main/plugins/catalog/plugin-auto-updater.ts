@@ -5,14 +5,17 @@ import {
   pluginUpdateGrowsAccess
 } from '../../../shared/plugins/approval/plugin-update-access-growth'
 import type { PluginAutoUpdateState } from '../../../shared/plugins/plugin-update-policy'
-import { isInvalidDiscoveredPlugin, type DiscoveredPlugin } from '../plugin-discovery'
+import {
+  isInvalidDiscoveredPlugin,
+  type DiscoveredPlugin,
+  type ValidDiscoveredPlugin
+} from '../plugin-discovery'
 import {
   installCatalogReleaseWithApproval,
   readApprovedPredecessor,
   type PluginCatalogInstallOutcome
 } from '../plugin-update-approval'
 import type { PluginServiceOptions } from '../plugin-service-options'
-import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import type { PluginMarketplaceInstaller } from './plugin-marketplace-installer'
 import type { PluginReleaseFirstSeenStore } from './plugin-release-first-seen-store'
 

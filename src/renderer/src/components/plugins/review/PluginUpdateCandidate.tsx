@@ -45,35 +45,34 @@ export function movedFromSource(
 }
 
 const contributionGrowthLabel = (point: PluginContributionPoint): string => {
-  switch (point) {
-    case 'keybindings':
-      return translate(
-        'auto.components.settings.PluginUpdateAllDialog.newShortcuts',
-        'Adds keyboard shortcuts'
-      )
-    case 'commands':
-      return translate(
-        'auto.components.settings.PluginUpdateAllDialog.newCommands',
-        'Adds commands'
-      )
-    case 'panels':
-      return translate('auto.components.settings.PluginUpdateAllDialog.newPanels', 'Adds panels')
-    case 'events':
-      return translate(
-        'auto.components.settings.PluginUpdateAllDialog.newEvents',
-        'Listens for more events'
-      )
-    case 'vmRecipes':
-      return translate(
-        'auto.components.settings.PluginUpdateAllDialog.newRecipes',
-        'Changes virtual machine recipes'
-      )
-    default:
-      return translate(
-        'auto.components.settings.PluginUpdateAllDialog.newContributions',
-        'Adds new features that act for you'
-      )
+  if (point === 'keybindings') {
+    return translate(
+      'auto.components.settings.PluginUpdateAllDialog.newShortcuts',
+      'Adds keyboard shortcuts'
+    )
   }
+  if (point === 'commands') {
+    return translate('auto.components.settings.PluginUpdateAllDialog.newCommands', 'Adds commands')
+  }
+  if (point === 'panels') {
+    return translate('auto.components.settings.PluginUpdateAllDialog.newPanels', 'Adds panels')
+  }
+  if (point === 'events') {
+    return translate(
+      'auto.components.settings.PluginUpdateAllDialog.newEvents',
+      'Listens for more events'
+    )
+  }
+  if (point === 'vmRecipes') {
+    return translate(
+      'auto.components.settings.PluginUpdateAllDialog.newRecipes',
+      'Changes virtual machine recipes'
+    )
+  }
+  return translate(
+    'auto.components.settings.PluginUpdateAllDialog.newContributions',
+    'Adds new features that act for you'
+  )
 }
 
 /** Authority-bearing additions main found against the installed version, as review lines. */
