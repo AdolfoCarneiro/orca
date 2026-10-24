@@ -17,6 +17,7 @@ import {
   executionChanges,
   newAccess,
   isCurrent,
+  movedFromSource,
   type UpdateCandidate
 } from '../review/PluginUpdateCandidate'
 import type { PluginListEntry } from '../list/plugin-list-entries'
@@ -103,6 +104,16 @@ export function PluginUpdateAllDialog({
     ).then((next) => {
       if (!stale) {
         setCandidates(next)
+        // Why unticked: a moved source is a different publisher's code until the user opts in.
+        setSkipped(
+          (current) =>
+            new Set([
+              ...current,
+              ...next
+                .filter(({ entry, preview }) => preview && movedFromSource(entry, preview))
+                .map(({ entry }) => entry.pluginKey)
+            ])
+        )
       }
     })
     return () => {
@@ -123,7 +134,8 @@ export function PluginUpdateAllDialog({
     (candidate) =>
       candidate.preview &&
       (newAccess(candidate.entry, candidate.preview).length > 0 ||
-        executionChanges(candidate.entry, candidate.preview).length > 0)
+        executionChanges(candidate.entry, candidate.preview).length > 0 ||
+        movedFromSource(candidate.entry, candidate.preview))
   ).length
 
   const update = async (): Promise<void> => {

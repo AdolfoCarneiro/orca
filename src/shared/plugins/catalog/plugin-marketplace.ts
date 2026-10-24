@@ -290,6 +290,20 @@ function repositoryIdentity(host: string, repositoryPath: string): GitRepository
   return { host: host.toLowerCase(), owner: segments[0]!, repository }
 }
 
+/** Same repository regardless of URL spelling (https vs scp, `.git`, case). */
+export function isSameGitRepository(left: string, right: string): boolean {
+  const a = parseGitRepositoryIdentity(left)
+  const b = parseGitRepositoryIdentity(right)
+  if (!a || !b) {
+    return left.trim() === right.trim()
+  }
+  return (
+    a.host === b.host &&
+    a.owner.toLowerCase() === b.owner.toLowerCase() &&
+    a.repository.toLowerCase() === b.repository.toLowerCase()
+  )
+}
+
 export function isOfficialOrganizationGitSource(url: string): boolean {
   const source = parseGitRepositoryIdentity(url)
   return source?.host === 'github.com' && source.owner.toLowerCase() === OFFICIAL_PLUGIN_PUBLISHER

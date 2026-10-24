@@ -12941,7 +12941,8 @@
           "retry": "Try again",
           "updated": "Updated",
           "needsOrca": "Needs Orca {{value0}} or later. Update Orca first.",
-          "current": "This exact plugin content is already installed."
+          "current": "This exact plugin content is already installed.",
+          "sourceMoved": "Now comes from a different repository: {{value0}} (was {{value1}})"
         },
         "PluginDetailInfo": {
           "previous": "Previous",

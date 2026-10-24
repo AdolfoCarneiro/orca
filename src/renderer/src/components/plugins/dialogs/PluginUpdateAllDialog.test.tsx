@@ -144,6 +144,40 @@ describe('PluginUpdateAllDialog', () => {
     expect(container.textContent).not.toContain('None of these updates asks for new access')
   })
 
+  it('flags an update whose catalog moved it to another repository and leaves it unticked', async () => {
+    const installMarketplacePlugin = vi.fn()
+    installApi({
+      previewMarketplaceUpdate: vi.fn(({ pluginKey }: { pluginKey: string }) =>
+        Promise.resolve({
+          ...preview(pluginKey, []),
+          source: { kind: 'git', url: 'https://example.com/acme/plugin.git', ref: 'main' }
+        })
+      ),
+      installMarketplacePlugin
+    })
+    const moved = entry('a', [])
+    moved.installed!.source = {
+      kind: 'marketplace',
+      reference: 'git@example.com:acme/original.git',
+      resolvedCommit: 'r0',
+      contentHash: 'h0'
+    }
+    const sameRepo = entry('b', [])
+    sameRepo.installed!.source = {
+      kind: 'marketplace',
+      reference: 'git@example.com:ACME/plugin',
+      resolvedCommit: 'r0',
+      contentHash: 'h0'
+    }
+    const container = await renderDialog([moved, sameRepo])
+
+    expect(container.textContent).toContain(
+      'Now comes from a different repository: https://example.com/acme/plugin.git (was git@example.com:acme/original.git)'
+    )
+    expect(container.querySelector('#plugin-update-a')?.getAttribute('aria-checked')).toBe('false')
+    expect(container.querySelector('#plugin-update-b')?.getAttribute('aria-checked')).toBe('true')
+  })
+
   it('names only access the installed version lacks', () => {
     expect(
       newAccess(entry('a', ['storage:own']), preview('a', ['storage:own', 'secrets:own']))

@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react'
 import type { PluginMarketplaceHostInstallPreview } from '../../../../../preload/api-types'
 import { pluginExecutionProfile } from '../../../../../shared/plugins/plugin-execution-profile'
+import { isSameGitRepository } from '../../../../../shared/plugins/catalog/plugin-marketplace'
 import { pluginContributionSummary } from '../../../../../shared/plugins/plugin-contribution-summary'
 import { translate } from '@/i18n/i18n'
 import type { PluginListEntry } from '../list/plugin-list-entries'
@@ -28,6 +29,18 @@ export function newAccess(
   return preview.manifest.capabilities
     .map((capability) => capability.kind)
     .filter((kind) => !held.has(kind))
+}
+
+/** The installed repository when the catalog now points the update somewhere else. */
+export function movedFromSource(
+  entry: PluginListEntry,
+  preview: PluginMarketplaceHostInstallPreview
+): string | null {
+  const installed = entry.installed?.source
+  return installed?.kind === 'marketplace' &&
+    !isSameGitRepository(installed.reference, preview.source.url)
+    ? installed.reference
+    : null
 }
 
 export function isCurrent(
@@ -67,6 +80,7 @@ export function CandidateRow({
   const { entry, preview, error, needsOrca } = candidate
   const added = preview ? newAccess(entry, preview) : []
   const execution = preview ? executionChanges(entry, preview) : []
+  const movedFrom = preview ? movedFromSource(entry, preview) : null
   const checkboxId = `plugin-update-${entry.pluginKey}`
   let note: React.ReactNode
   if (done) {
@@ -114,9 +128,18 @@ export function CandidateRow({
         )}
       </p>
     )
-  } else if (added.length > 0 || execution.length > 0) {
+  } else if (added.length > 0 || execution.length > 0 || movedFrom) {
     note = (
       <ul className="mt-1.5 space-y-0.5 border-l-2 border-status-warning pl-2 text-xs">
+        {movedFrom && preview ? (
+          <li className="text-status-warning-text">
+            {translate(
+              'auto.components.settings.PluginUpdateAllDialog.sourceMoved',
+              'Now comes from a different repository: {{value0}} (was {{value1}})',
+              { value0: preview.source.url, value1: movedFrom }
+            )}
+          </li>
+        ) : null}
         {execution.map((warning) => (
           <li key={warning} className="text-status-warning-text">
             {warning}
