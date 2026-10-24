@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Blocks, Loader2, RefreshCw, SearchX, Settings2, Store } from 'lucide-react'
 import type {
   PluginHostListEntry,
@@ -182,7 +182,9 @@ export function PluginMarketplaceBrowser({
 
   const previewRequest = usePluginPreviewRequestStore((state) => state.request)
   const openPreviewRef = useRef(openPreview)
-  openPreviewRef.current = openPreview
+  useLayoutEffect(() => {
+    openPreviewRef.current = openPreview
+  })
   useEffect(() => {
     if (!previewRequest || loading) {
       return
