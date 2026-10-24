@@ -182,6 +182,7 @@ describe('plugin auto-update', () => {
     advance(HOUR)
     await updater.run()
     expect(install).toHaveBeenCalledTimes(1)
+    expect(install).toHaveBeenCalledWith(expect.anything(), { requireInstalled: true })
     expect(consents[KEY]).toBe(next.consentFingerprint)
     expect(updater.getState()).toEqual({ updated: { [KEY]: '1.1.0' }, needsReview: {} })
     expect(changes.at(-1)?.updated).toEqual({ [KEY]: '1.1.0' })

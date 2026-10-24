@@ -146,6 +146,8 @@ export async function installPluginFromMarketplace(input: {
   release?: PluginCatalogRelease
   blockedPluginReason?: (pluginKey: string) => string | null
   manifestError?: (manifest: PluginManifest) => string | null
+  /** Only replace an install from this marketplace; set by auto-update so Remove wins a race. */
+  requireInstalled?: boolean
 }): Promise<PluginInstallResult> {
   const source = pluginInstallSourceSchema.parse({
     kind: 'marketplace',
@@ -159,6 +161,15 @@ export async function installPluginFromMarketplace(input: {
     return { ok: false, error: 'invalid previewed plugin commit' }
   }
   return serializePluginMutation(input.pluginsDir, async () => {
+    if (input.requireInstalled) {
+      const entry = (await readPluginLockfile(input.pluginsDir)).plugins[input.expectedPluginKey]
+      if (
+        entry?.source.kind !== 'marketplace' ||
+        entry.source.marketplace.url !== input.marketplace.url
+      ) {
+        return { ok: false, error: 'plugin was removed before its update installed' }
+      }
+    }
     const stagingDir = await mkdtemp(join(tmpdir(), 'orca-plugin-marketplace-install-'))
     try {
       const resolvedCommit = await checkoutPluginGitSource({

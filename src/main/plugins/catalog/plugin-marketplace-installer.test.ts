@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog-release'
 import type { PluginMarketplace } from '../../../shared/plugins/catalog/plugin-marketplace'
-import { readPluginLockfile } from '../installation/plugin-install'
+import { readPluginLockfile, removeInstalledPlugin } from '../installation/plugin-install'
 import { PluginMarketplaceInstaller } from './plugin-marketplace-installer'
 import { PluginMarketplaceService } from './plugin-marketplace-service'
 
@@ -332,6 +332,25 @@ describe('PluginMarketplaceInstaller', () => {
       version: '1.0.0',
       resolvedCommit: 'a'.repeat(40)
     })
+  })
+
+  it('lets a Remove that starts during an automatic update win', async () => {
+    const { root, installer, sourceId } = await setup()
+    await installer.install(await installer.preview(sourceId, 'community.notes'))
+    git.commit = 'b'.repeat(40)
+    git.payload = 'second'
+    const update = await installer.previewInstalledUpdate('community.notes')
+    const pluginsDir = join(root, 'plugins')
+    const [, result] = await Promise.all([
+      removeInstalledPlugin({
+        pluginsDir,
+        pluginsDataDir: join(root, 'plugins-data'),
+        pluginKey: 'community.notes'
+      }),
+      installer.install(update, { requireInstalled: true })
+    ])
+    expect(result).toMatchObject({ ok: false, error: expect.stringContaining('removed') })
+    expect((await readPluginLockfile(pluginsDir)).plugins).toEqual({})
   })
 
   it('flags an update whose catalog moved the plugin to a different repository', async () => {

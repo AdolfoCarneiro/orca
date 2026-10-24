@@ -190,7 +190,7 @@ export class PluginAutoUpdater {
     const outcome: PluginCatalogInstallOutcome = await installCatalogReleaseWithApproval({
       pluginKey: plugin.pluginKey,
       pluginService,
-      install: () => installer.install(preview),
+      install: () => installer.install(preview, { requireInstalled: true }),
       approve: this.options.approve
     })
     if (!outcome.ok) {

@@ -128,7 +128,8 @@ export class PluginMarketplaceInstaller {
   }
 
   async install(
-    preview: PluginMarketplacePreviewIdentity
+    preview: PluginMarketplacePreviewIdentity,
+    options: { requireInstalled?: boolean } = {}
   ): Promise<PluginMarketplaceInstallResult> {
     const listing = await this.requireListing(preview.marketplaceSourceId, preview.pluginKey)
     const blockedReason =
@@ -169,7 +170,8 @@ export class PluginMarketplaceInstaller {
       ...(listing.release ? { release: listing.release } : {}),
       blockedPluginReason: this.blockedPluginReason,
       // Why also here: an unpinned listing names no execution profile to check before checkout.
-      manifestError: (manifest) => fullAccessError({ manifest }, this.isFullAccessAllowed)
+      manifestError: (manifest) => fullAccessError({ manifest }, this.isFullAccessAllowed),
+      ...(options.requireInstalled ? { requireInstalled: true } : {})
     })
     return result.ok && repositoryMoved ? { ...result, repositoryMoved: true } : result
   }
