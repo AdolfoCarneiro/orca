@@ -88,11 +88,21 @@ describe('createPanelBridgeMessageHandler', () => {
     expect(panelWindow.postMessage).not.toHaveBeenCalled()
   })
 
-  it('answers a malformed bridge request with invalid_request instead of relaying it', async () => {
+  it('relays an action it does not know, leaving the method gate to the host', async () => {
     const panelWindow = createFakePanelWindow()
     const { handler, callPanelAction } = createHandler(panelWindow)
 
     handler(messageEvent({ ...VALID_DATA, action: 'fs.readFile' }, panelWindow))
+    await flush()
+
+    expect(callPanelAction).toHaveBeenCalledTimes(1)
+  })
+
+  it('answers a malformed bridge request with invalid_request instead of relaying it', async () => {
+    const panelWindow = createFakePanelWindow()
+    const { handler, callPanelAction } = createHandler(panelWindow)
+
+    handler(messageEvent({ ...VALID_DATA, action: 'x'.repeat(129) }, panelWindow))
     await flush()
 
     expect(callPanelAction).not.toHaveBeenCalled()
