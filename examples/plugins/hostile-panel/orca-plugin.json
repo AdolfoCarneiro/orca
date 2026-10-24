@@ -6,7 +6,7 @@
   "name": "Hostile Panel (security fixture)",
   "version": "1.0.0",
   "description": "Deliberately hostile panel used by the plugin containment tests: exfiltration, navigation, message floods, busy loops. Never grant it anything.",
-  "engines": { "orca": ">=1.4.233" },
+  "engines": { "orca": ">=1.4.244" },
   "pluginApi": 1,
   "contributes": {
     "panels": [
