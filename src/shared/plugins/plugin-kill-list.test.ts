@@ -4,6 +4,7 @@ import {
   PLUGIN_KILL_LIST_FUTURE_SKEW_MS,
   findKilledPlugin,
   isPluginKillListTooFarInFuture,
+  pluginKillListEntrySchema,
   pluginKillListSchema,
   type PluginKillList
 } from './plugin-kill-list'
@@ -38,41 +39,33 @@ describe('pluginKillListSchema', () => {
     expect(findKilledPlugin(parsed, 'community.unsafe')).toEqual(entry())
   })
 
-  it.each([
-    {
-      version: 1,
-      generatedAt: 'not-a-date',
-      plugins: []
-    },
-    {
-      version: 1,
-      generatedAt: '2026-07-12T20:00:00Z',
-      plugins: [{ ...entry(), pluginKey: 'unsafe' }]
-    },
-    {
-      version: 1,
-      generatedAt: '2026-07-12T20:00:00Z',
-      plugins: [{ ...entry(), advisoryUrl: 'http://orca.example/advisory' }]
-    }
-  ])('rejects malformed or untrusted fields', (killList) => {
-    expect(pluginKillListSchema.safeParse(killList).success).toBe(false)
+  it('rejects a list whose header is malformed', () => {
+    expect(
+      pluginKillListSchema.safeParse({ version: 1, generatedAt: 'not-a-date', plugins: [] }).success
+    ).toBe(false)
   })
 
-  it('rejects duplicate killed plugin identities', () => {
-    const parsed = pluginKillListSchema.safeParse({
+  it('drops only the entries it cannot read, and keeps one entry per plugin', () => {
+    const parsed = pluginKillListSchema.parse({
       version: 1,
       generatedAt: '2026-07-12T20:00:00Z',
-      plugins: [entry(), entry()]
+      plugins: [
+        { ...entry(), pluginKey: 'unsafe' },
+        { ...entry('community.other'), advisoryUrl: 'http://orca.example/advisory' },
+        { publisher: 'community', reason: 'keyed by a field this client predates' },
+        entry(),
+        { ...entry(), reason: 'duplicate' }
+      ]
     })
+    expect(parsed.plugins).toEqual([entry()])
+  })
 
-    expect(parsed.success).toBe(false)
-    if (!parsed.success) {
-      expect(parsed.error.issues).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ message: 'duplicate killed plugin: community.unsafe' })
-        ])
-      )
-    }
+  it('pins the published entry fields, which shipped clients parse strictly', () => {
+    expect(Object.keys(pluginKillListEntrySchema.shape)).toEqual([
+      'pluginKey',
+      'reason',
+      'advisoryUrl'
+    ])
   })
 
   it('caps the revocation document size by entry count', () => {
