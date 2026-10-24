@@ -318,7 +318,7 @@ describe('PluginService worker reconciliation', () => {
 
     expect(harness.workers[0]!.dispose).toHaveBeenCalledOnce()
     expect(harness.service.getGrantedCapabilities(pluginKey)).toBeNull()
-    expect(harness.service.activationError(pluginKey)).toContain('full access')
+    expect(harness.service.activationError(pluginKey)).toContain('Allow full-access plugins')
     await expect(harness.service.invokeCommand(pluginKey, 'run')).rejects.toThrow('not enabled')
     expect(harness.factory).toHaveBeenCalledOnce()
   })
