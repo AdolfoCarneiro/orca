@@ -423,14 +423,41 @@
           ]
         },
         "icon": {
-          "description": "Lucide icon name shown in the right-sidebar activity bar.",
+          "description": "Icon shown in the right-sidebar activity bar. Defaults to `plug`.",
           "x-orca-since": "1.4.160",
           "examples": [
-            "layout-dashboard"
+            "database"
           ],
           "type": "string",
-          "minLength": 1,
-          "maxLength": 64
+          "enum": [
+            "activity",
+            "bar-chart-3",
+            "bell",
+            "blocks",
+            "book",
+            "bot",
+            "bug",
+            "calendar",
+            "cloud",
+            "code",
+            "database",
+            "file-text",
+            "flag",
+            "folder",
+            "gauge",
+            "globe",
+            "hammer",
+            "layers",
+            "lightbulb",
+            "package",
+            "plug",
+            "puzzle",
+            "rocket",
+            "star",
+            "terminal",
+            "wrench",
+            "zap"
+          ]
         },
         "entry": {
           "type": "string",
