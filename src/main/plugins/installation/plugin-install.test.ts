@@ -46,7 +46,7 @@ async function writePluginSource(
     JSON.stringify({
       manifestVersion: 1,
       id: options.id ?? 'demo',
-      publisher: 'orca-samples',
+      publisher: 'samples',
       name: 'Demo',
       version: '1.0.0',
       engines: { orca: '>=1.0.0' },
@@ -272,7 +272,7 @@ describe('installPluginFromLocalPath', () => {
     }
 
     const versionDirs = (
-      await readdir(join(pluginsDir, 'orca-samples.demo'), {
+      await readdir(join(pluginsDir, 'samples.demo'), {
         withFileTypes: true
       })
     )
@@ -301,7 +301,7 @@ describe('installPluginFromLocalPath', () => {
     }
 
     const versionDirs = (
-      await readdir(join(pluginsDir, 'orca-samples.demo'), { withFileTypes: true })
+      await readdir(join(pluginsDir, 'samples.demo'), { withFileTypes: true })
     )
       .filter((entry) => entry.isDirectory() && /^[0-9a-f]{64}$/.test(entry.name))
       .map((entry) => entry.name)
@@ -382,7 +382,7 @@ describe('installPluginFromLocalPath', () => {
     const lock = JSON.parse(await readFile(join(pluginsDir, 'plugins.lock.json'), 'utf8')) as {
       plugins: Record<string, unknown>
     }
-    expect(Object.keys(lock.plugins).sort()).toEqual(['orca-samples.first', 'orca-samples.second'])
+    expect(Object.keys(lock.plugins).sort()).toEqual(['samples.first', 'samples.second'])
   })
 
   it('serializes concurrent lockfile publications without temporary-file collisions', async () => {
@@ -487,7 +487,7 @@ describe('removeInstalledPlugin', () => {
     await writeFile(marker, 'keep')
     await symlink(
       outside,
-      join(pluginsDir, 'orca-samples.demo'),
+      join(pluginsDir, 'samples.demo'),
       process.platform === 'win32' ? 'junction' : 'dir'
     )
 
@@ -495,7 +495,7 @@ describe('removeInstalledPlugin', () => {
       removeInstalledPlugin({
         pluginsDir,
         pluginsDataDir,
-        pluginKey: 'orca-samples.demo'
+        pluginKey: 'samples.demo'
       })
     ).rejects.toThrow('outside')
     await expect(readFile(marker, 'utf8')).resolves.toBe('keep')
@@ -504,7 +504,7 @@ describe('removeInstalledPlugin', () => {
   it('removes qualified install and data directories', async () => {
     const pluginsDir = await tempRoot('orca-plugin-installs-')
     const pluginsDataDir = await tempRoot('orca-plugin-data-')
-    const key = 'orca-samples.demo'
+    const key = 'samples.demo'
     await mkdir(join(pluginsDir, key))
     await mkdir(join(pluginsDataDir, key))
     await writeFile(join(pluginsDir, key, 'content'), 'installed')

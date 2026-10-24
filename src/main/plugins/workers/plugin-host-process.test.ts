@@ -18,7 +18,7 @@ class FakeChild extends EventEmitter {
 function start(child: FakeChild, options: { eventTimeoutMs?: number } = {}) {
   processMocks.fork.mockReturnValue(child)
   return startPluginWorker({
-    pluginId: 'orca-samples.demo',
+    pluginId: 'samples.demo',
     rootDir: '/plugin',
     mainEntry: 'worker.js',
     entryPath: '/host.js',

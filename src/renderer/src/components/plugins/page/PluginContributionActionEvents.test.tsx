@@ -8,11 +8,11 @@ const useInstalledPluginManifest = vi.hoisted(() => vi.fn())
 vi.mock('../state/use-plugin-contribution-source', () => ({ useInstalledPluginManifest }))
 
 const plugin: PluginHostListEntry = {
-  pluginKey: 'orca-samples.hello-orca',
+  pluginKey: 'samples.hello-orca',
   consentFingerprint: 'sha256-hello',
   name: 'Hello Orca',
   version: '1.0.0',
-  publisher: 'orca-samples',
+  publisher: 'samples',
   status: 'running',
   needsReconsent: false,
   isDev: false,
@@ -37,7 +37,7 @@ it('names each subscribed event once, keyed to the installed revision', () => {
   })
   const { result } = renderHook(() => usePluginWorkerEvents(plugin))
   expect(result.current).toEqual(['worktree.created', 'worktree.removed'])
-  expect(useInstalledPluginManifest).toHaveBeenCalledWith('orca-samples.hello-orca', 'sha256-hello')
+  expect(useInstalledPluginManifest).toHaveBeenCalledWith('samples.hello-orca', 'sha256-hello')
 })
 
 it('never reads a manifest for a plugin without a worker', () => {

@@ -33,7 +33,7 @@ describe('executePluginHostCall mutation auditing', () => {
   it('rejects prototype-sensitive storage keys before any host service call', async () => {
     const storageSet = vi.fn().mockReturnValue({ ok: true })
     const outcome = await executePluginHostCall({
-      pluginId: 'orca-samples.demo',
+      pluginId: 'samples.demo',
       method: 'storage.set',
       params: { key: '__proto__', value: 42 },
       viaPanel: false,
@@ -49,7 +49,7 @@ describe('executePluginHostCall mutation auditing', () => {
   it('rejects non-JSON storage values before any host service call', async () => {
     const storageSet = vi.fn().mockReturnValue({ ok: true })
     const outcome = await executePluginHostCall({
-      pluginId: 'orca-samples.demo',
+      pluginId: 'samples.demo',
       method: 'storage.set',
       params: { key: 'created', value: new Date() },
       viaPanel: false,
@@ -65,7 +65,7 @@ describe('executePluginHostCall mutation auditing', () => {
   it('fails closed before a mutation when the audit intent cannot be recorded', async () => {
     const storageSet = vi.fn().mockReturnValue({ ok: true })
     const outcome = await executePluginHostCall({
-      pluginId: 'orca-samples.demo',
+      pluginId: 'samples.demo',
       method: 'storage.set',
       params: { key: 'answer', value: 42 },
       viaPanel: false,
@@ -89,7 +89,7 @@ describe('executePluginHostCall mutation auditing', () => {
     })
 
     const outcome = await executePluginHostCall({
-      pluginId: 'orca-samples.demo',
+      pluginId: 'samples.demo',
       method: 'storage.set',
       params: { key: 'answer', value: 42 },
       viaPanel: false,
@@ -105,7 +105,7 @@ describe('executePluginHostCall mutation auditing', () => {
   it('refuses mutations when no audit writer is configured', async () => {
     const storageSet = vi.fn().mockReturnValue({ ok: true })
     const outcome = await executePluginHostCall({
-      pluginId: 'orca-samples.demo',
+      pluginId: 'samples.demo',
       method: 'storage.set',
       params: { key: 'answer', value: 42 },
       viaPanel: false,
@@ -149,7 +149,7 @@ async function sendTerminalText(
   terminalId: string
 ): ReturnType<typeof executePluginHostCall> {
   return executePluginHostCall({
-    pluginId: 'orca-samples.demo',
+    pluginId: 'samples.demo',
     method: 'terminal.sendText',
     params: { terminalId, text: 'echo hi', enter: true },
     viaPanel: true,
@@ -214,7 +214,7 @@ describe('terminal.sendText explicit worktree routing', () => {
     const { delegate, services } = createTerminalHarness(handles)
 
     const outcome = await executePluginHostCall({
-      pluginId: 'orca-samples.demo',
+      pluginId: 'samples.demo',
       method: 'workspace.readContext',
       params: {},
       viaPanel: true,

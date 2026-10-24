@@ -15,13 +15,13 @@ import { hashPluginTree } from './plugin-content-hash'
 
 const roots: string[] = []
 const services: PluginService[] = []
-const pluginKey = 'orca-samples.demo'
+const pluginKey = 'samples.demo'
 
 function manifest(options: { main?: string; capabilities?: PluginManifest['capabilities'] } = {}) {
   return pluginManifestSchema.parse({
     manifestVersion: 1,
     id: 'demo',
-    publisher: 'orca-samples',
+    publisher: 'samples',
     name: 'Demo',
     version: '1.0.0',
     engines: { orca: '>=1.0.0' },
@@ -121,7 +121,7 @@ describe('PluginService worker reconciliation', () => {
       pluginManifestSchema.parse({
         manifestVersion: 1,
         id,
-        publisher: 'orca-samples',
+        publisher: 'samples',
         name: id,
         version: '1.0.0',
         engines: { orca: '>=1.0.0' },
@@ -152,8 +152,8 @@ describe('PluginService worker reconciliation', () => {
       isPluginSystemEnabled: () => true,
       getDisabledPlugins: () => [],
       getPluginConsents: () => ({
-        'orca-samples.first': fingerprintPluginConsent(firstManifest, firstHash.hash),
-        'orca-samples.second': fingerprintPluginConsent(secondManifest, secondHash.hash)
+        'samples.first': fingerprintPluginConsent(firstManifest, firstHash.hash),
+        'samples.second': fingerprintPluginConsent(secondManifest, secondHash.hash)
       }),
       getDevPluginPaths: () => [firstRoot, secondRoot],
       getKeybindings: () => keybindings,
@@ -163,10 +163,10 @@ describe('PluginService worker reconciliation', () => {
 
     await service.initialize()
 
-    expect(service.activationError('orca-samples.first')).toContain('conflicts')
-    expect(service.getGrantedCapabilities('orca-samples.first')).toBeNull()
-    await expect(service.invokeCommand('orca-samples.first', 'run')).rejects.toThrow('not enabled')
-    await expect(service.panels.readEntry('orca-samples.first', 'panel')).resolves.toBeNull()
+    expect(service.activationError('samples.first')).toContain('conflicts')
+    expect(service.getGrantedCapabilities('samples.first')).toBeNull()
+    await expect(service.invokeCommand('samples.first', 'run')).rejects.toThrow('not enabled')
+    await expect(service.panels.readEntry('samples.first', 'panel')).resolves.toBeNull()
     service.emitEvent('worktree.created', {
       worktreeId: 'worktree-1',
       path: '/repo',
@@ -175,14 +175,14 @@ describe('PluginService worker reconciliation', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(factory).not.toHaveBeenCalled()
 
-    keybindings = { 'plugin:orca-samples.first/run': ['Mod+Shift+T'] }
+    keybindings = { 'plugin:samples.first/run': ['Mod+Shift+T'] }
     await service.reconcileActivationState()
 
-    expect(service.activationError('orca-samples.first')).toBeNull()
-    await expect(service.panels.readEntry('orca-samples.first', 'panel')).resolves.toMatchObject({
+    expect(service.activationError('samples.first')).toBeNull()
+    await expect(service.panels.readEntry('samples.first', 'panel')).resolves.toMatchObject({
       html: expect.stringContaining('<h1>Panel</h1>')
     })
-    await expect(service.invokeCommand('orca-samples.first', 'run')).resolves.toBeNull()
+    await expect(service.invokeCommand('samples.first', 'run')).resolves.toBeNull()
     expect(factory).toHaveBeenCalledOnce()
   })
 
@@ -190,7 +190,7 @@ describe('PluginService worker reconciliation', () => {
     const aliasManifest = pluginManifestSchema.parse({
       manifestVersion: 1,
       id: 'demo',
-      publisher: 'orca-samples',
+      publisher: 'samples',
       name: 'Demo',
       version: '1.0.0',
       engines: { orca: '>=1.0.0' },

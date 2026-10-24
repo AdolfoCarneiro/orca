@@ -18,7 +18,7 @@ async function pluginWithCatalog(catalog: unknown): Promise<ValidDiscoveredPlugi
   const manifest = pluginManifestSchema.parse({
     manifestVersion: 1,
     id: 'portuguese',
-    publisher: 'orca-samples',
+    publisher: 'samples',
     name: 'Portuguese',
     version: '1.0.0',
     engines: { orca: '>=1.0.0' },
@@ -29,7 +29,7 @@ async function pluginWithCatalog(catalog: unknown): Promise<ValidDiscoveredPlugi
     capabilities: []
   })
   return {
-    pluginKey: 'orca-samples.portuguese',
+    pluginKey: 'samples.portuguese',
     rootDir,
     manifest,
     consentFingerprint: fingerprintPluginConsent(manifest),
@@ -51,10 +51,9 @@ describe('PluginLanguagePackRegistry', () => {
 
     expect(registry.list()).toEqual([
       {
-        id: 'plugin:orca-samples.portuguese/pt-BR',
-        resourceLanguage:
-          'pt-BR-x-orcapk-6f726361-2d73616d-706c6573-2e706f72-74756775-6573652f-70742d42-52',
-        pluginKey: 'orca-samples.portuguese',
+        id: 'plugin:samples.portuguese/pt-BR',
+        resourceLanguage: 'pt-BR-x-orcapk-73616d70-6c65732e-706f7274-75677565-73652f70-742d4252',
+        pluginKey: 'samples.portuguese',
         locale: 'pt-BR',
         catalog: { common: { save: 'Salvar' } },
         // One string against the whole English catalog.

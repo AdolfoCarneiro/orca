@@ -14,7 +14,7 @@ function commandPlugin(
   const manifest = pluginManifestSchema.parse({
     manifestVersion: 1,
     id,
-    publisher: 'orca-samples',
+    publisher: 'samples',
     name: id,
     version: '1.0.0',
     engines: { orca: '>=1.0.0' },
@@ -26,7 +26,7 @@ function commandPlugin(
     capabilities: []
   })
   return {
-    pluginKey: `orca-samples.${id}`,
+    pluginKey: `samples.${id}`,
     rootDir: `/plugins/${id}`,
     manifest,
     consentFingerprint: fingerprintPluginConsent(manifest, `content-${id}`),
@@ -110,8 +110,8 @@ describe('PluginCommandRegistry', () => {
       [plugin],
       () => true,
       {
-        'plugin:orca-samples.repeat/one': ['Mod+Alt+T', 'Mod+Alt+Y'],
-        'plugin:orca-samples.repeat/two': ['Ctrl+Alt+T', 'Ctrl+Alt+Y']
+        'plugin:samples.repeat/one': ['Mod+Alt+T', 'Mod+Alt+Y'],
+        'plugin:samples.repeat/two': ['Ctrl+Alt+T', 'Ctrl+Alt+Y']
       },
       'linux'
     )
@@ -195,7 +195,7 @@ describe('PluginCommandRegistry', () => {
     registry.reconcile(
       [first, second],
       () => true,
-      { 'plugin:orca-samples.first/tasks': ['Mod+Shift+T'] },
+      { 'plugin:samples.first/tasks': ['Mod+Shift+T'] },
       'linux'
     )
 
@@ -217,8 +217,8 @@ describe('PluginCommandRegistry', () => {
       [plugin],
       () => true,
       {
-        'plugin:orca-samples.aliases/tasks': ['Mod+Alt+T'],
-        'plugin:orca-samples.aliases/sidebar': ['Mod+Alt+T']
+        'plugin:samples.aliases/tasks': ['Mod+Alt+T'],
+        'plugin:samples.aliases/sidebar': ['Mod+Alt+T']
       },
       'linux'
     )

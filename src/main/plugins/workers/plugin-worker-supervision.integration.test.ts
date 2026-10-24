@@ -85,7 +85,7 @@ async function createPluginSpec(
   pluginRoots.push(rootDir)
   await writeFile(join(rootDir, 'main.mjs'), source)
   return {
-    pluginKey: 'orca-samples.supervision',
+    pluginKey: 'samples.supervision',
     rootDir,
     mainEntry: 'main.mjs',
     grantedCapabilities: []

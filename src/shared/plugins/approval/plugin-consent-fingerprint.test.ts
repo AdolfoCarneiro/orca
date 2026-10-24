@@ -22,10 +22,10 @@ describe('fingerprintPluginConsent', () => {
         __proto__: 'polluted',
         constructor: 'polluted',
         invalid: 'sha256-invalid',
-        'orca-samples.demo': 'sha256-valid',
-        'orca-samples.large': 'x'.repeat(257)
+        'samples.demo': 'sha256-valid',
+        'samples.large': 'x'.repeat(257)
       })
-    ).toEqual({ 'orca-samples.demo': 'sha256-valid' })
+    ).toEqual({ 'samples.demo': 'sha256-valid' })
   })
 
   it('is stable across capability order and duplicate declarations', () => {
@@ -47,11 +47,11 @@ describe('fingerprintPluginConsent', () => {
 
     expect(withWorker).not.toBe(panelOnly)
     const lists = {
-      pluginConsents: { 'orca-samples.demo': panelOnly },
+      pluginConsents: { 'samples.demo': panelOnly },
       disabledPlugins: []
     }
-    expect(getPluginActivationState('orca-samples.demo', withWorker, lists)).toBe('pending')
-    expect(needsReconsent('orca-samples.demo', withWorker, lists)).toBe(true)
+    expect(getPluginActivationState('samples.demo', withWorker, lists)).toBe('pending')
+    expect(needsReconsent('samples.demo', withWorker, lists)).toBe(true)
   })
 
   it('requires re-consent when instructional content bytes change', () => {
@@ -69,8 +69,8 @@ describe('fingerprintPluginConsent', () => {
 
     expect(second).not.toBe(first)
     expect(
-      getPluginActivationState('orca-samples.recipes', second, {
-        pluginConsents: { 'orca-samples.recipes': first },
+      getPluginActivationState('samples.recipes', second, {
+        pluginConsents: { 'samples.recipes': first },
         disabledPlugins: []
       })
     ).toBe('pending')
@@ -90,8 +90,8 @@ describe('fingerprintPluginConsent', () => {
 
     expect(updated).not.toBe(approved)
     expect(
-      needsReconsent('orca-samples.demo', updated, {
-        pluginConsents: { 'orca-samples.demo': approved },
+      needsReconsent('samples.demo', updated, {
+        pluginConsents: { 'samples.demo': approved },
         disabledPlugins: []
       })
     ).toBe(true)
@@ -99,7 +99,7 @@ describe('fingerprintPluginConsent', () => {
 
   it('requires re-approval when an update adds a capability', () => {
     const lists = (approved: string) => ({
-      pluginConsents: { 'orca-samples.demo': approved },
+      pluginConsents: { 'samples.demo': approved },
       disabledPlugins: []
     })
     for (const execution of ['data', 'sandboxed-ui', 'trusted-worker'] as const) {
@@ -112,7 +112,7 @@ describe('fingerprintPluginConsent', () => {
         { execution, main, capabilities: [storage] },
         'a'.repeat(64)
       )
-      expect(needsReconsent('orca-samples.demo', updated, lists(approved)), execution).toBe(true)
+      expect(needsReconsent('samples.demo', updated, lists(approved)), execution).toBe(true)
     }
   })
 
@@ -132,8 +132,8 @@ describe('fingerprintPluginConsent', () => {
     for (const from of profiles) {
       for (const to of profiles.filter((profile) => profile !== from)) {
         expect(
-          needsReconsent('orca-samples.demo', fingerprintFor(to), {
-            pluginConsents: { 'orca-samples.demo': fingerprintFor(from) },
+          needsReconsent('samples.demo', fingerprintFor(to), {
+            pluginConsents: { 'samples.demo': fingerprintFor(from) },
             disabledPlugins: []
           }),
           `${from} -> ${to}`
@@ -168,7 +168,7 @@ describe('fingerprintPluginConsent', () => {
 
 describe('plugin install lockfile consent fingerprints', () => {
   const persistedEntry = {
-    pluginKey: 'orca-samples.demo',
+    pluginKey: 'samples.demo',
     version: '1.0.0',
     source: { kind: 'local-path' as const, path: '/plugins/demo' },
     resolvedCommit: null,
@@ -180,17 +180,17 @@ describe('plugin install lockfile consent fingerprints', () => {
   it('reads the legacy capabilityHash field as a consent fingerprint', () => {
     const parsed = parsePluginLockfile({
       version: 1,
-      plugins: { 'orca-samples.demo': persistedEntry }
+      plugins: { 'samples.demo': persistedEntry }
     })
 
-    expect(parsed.plugins['orca-samples.demo']?.consentFingerprint).toBe('sha256-legacy-name')
+    expect(parsed.plugins['samples.demo']?.consentFingerprint).toBe('sha256-legacy-name')
   })
 
   it('keeps writing the v1 field name for rollback compatibility', () => {
     const lock: PluginLockfile = {
       version: 1,
       plugins: {
-        'orca-samples.demo': {
+        'samples.demo': {
           ...persistedEntry,
           consentFingerprint: 'sha256-current'
         }
@@ -200,14 +200,14 @@ describe('plugin install lockfile consent fingerprints', () => {
     expect(serializePluginLockfile(lock)).toMatchObject({
       version: 1,
       plugins: {
-        'orca-samples.demo': {
+        'samples.demo': {
           capabilityHash: 'sha256-current'
         }
       }
     })
     expect(
       (serializePluginLockfile(lock) as { plugins: Record<string, unknown> }).plugins[
-        'orca-samples.demo'
+        'samples.demo'
       ]
     ).not.toHaveProperty('consentFingerprint')
   })
@@ -216,7 +216,7 @@ describe('plugin install lockfile consent fingerprints', () => {
     const parsed = parsePluginLockfile({
       version: 1,
       plugins: {
-        'orca-samples.other': persistedEntry
+        'samples.other': persistedEntry
       }
     })
 
@@ -227,10 +227,10 @@ describe('plugin install lockfile consent fingerprints', () => {
     const parsed = parsePluginLockfile({
       version: 1,
       plugins: {
-        'orca-samples.demo': { ...persistedEntry, resolvedCommit: 'a'.repeat(64) }
+        'samples.demo': { ...persistedEntry, resolvedCommit: 'a'.repeat(64) }
       }
     })
 
-    expect(parsed.plugins['orca-samples.demo']?.resolvedCommit).toBe('a'.repeat(64))
+    expect(parsed.plugins['samples.demo']?.resolvedCommit).toBe('a'.repeat(64))
   })
 })

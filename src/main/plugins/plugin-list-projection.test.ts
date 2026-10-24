@@ -33,7 +33,7 @@ vi.mock('node:fs/promises', async (importOriginal) => {
 const manifest = pluginManifestSchema.parse({
   manifestVersion: 1,
   id: 'demo',
-  publisher: 'orca-samples',
+  publisher: 'samples',
   name: 'Demo',
   version: '1.0.0',
   engines: { orca: '>=1.0.0' },
@@ -70,7 +70,7 @@ function serviceWith(
 describe('buildPluginList consent identity', () => {
   it('projects the exact current fingerprint for an optimistic consent write', async () => {
     const plugin: ValidDiscoveredPlugin = {
-      pluginKey: 'orca-samples.demo',
+      pluginKey: 'samples.demo',
       rootDir: join(tmpdir(), 'plugins', 'demo'),
       manifest,
       consentFingerprint: 'sha256-current',
@@ -89,7 +89,7 @@ describe('buildPluginList consent identity', () => {
 
   it('projects supervised backoff as restarting instead of running', async () => {
     const plugin: ValidDiscoveredPlugin = {
-      pluginKey: 'orca-samples.demo',
+      pluginKey: 'samples.demo',
       rootDir: join(tmpdir(), 'plugins', 'demo'),
       manifest,
       consentFingerprint: 'sha256-current',
@@ -112,7 +112,7 @@ describe('buildPluginList consent identity', () => {
 
   it('does not attribute a shadowing dev plugin to the installed source', async () => {
     const plugin: ValidDiscoveredPlugin = {
-      pluginKey: 'orca-samples.demo',
+      pluginKey: 'samples.demo',
       rootDir: join(tmpdir(), 'development', 'demo'),
       manifest,
       consentFingerprint: 'sha256-current',
@@ -160,7 +160,7 @@ describe('buildPluginList consent identity', () => {
       contributes: { vmRecipes: [{ path: 'recipes/cloud.json' }] }
     })
     const plugin: ValidDiscoveredPlugin = {
-      pluginKey: 'orca-samples.demo',
+      pluginKey: 'samples.demo',
       rootDir: join(tmpdir(), 'plugins', 'demo'),
       manifest: recipeManifest,
       consentFingerprint: 'sha256-current',
@@ -209,7 +209,7 @@ describe('buildPluginList consent identity', () => {
       }
     })
     const plugin: ValidDiscoveredPlugin = {
-      pluginKey: 'orca-samples.demo',
+      pluginKey: 'samples.demo',
       rootDir: join(tmpdir(), 'plugins', 'demo'),
       manifest: commandManifest,
       consentFingerprint: 'sha256-current',
@@ -254,8 +254,8 @@ describe('buildPluginList consent identity', () => {
 describe('buildPluginList I/O', () => {
   it('builds the list for installed plugins without reading the plugin directories', async () => {
     const plugin: ValidDiscoveredPlugin = {
-      pluginKey: 'orca-samples.demo',
-      rootDir: join(tmpdir(), 'plugins', 'orca-samples.demo', 'a'.repeat(64)),
+      pluginKey: 'samples.demo',
+      rootDir: join(tmpdir(), 'plugins', 'samples.demo', 'a'.repeat(64)),
       manifest,
       consentFingerprint: 'sha256-current',
       contentHash: 'a'.repeat(64),
@@ -265,7 +265,7 @@ describe('buildPluginList I/O', () => {
     lock.plugins[plugin.pluginKey] = {
       pluginKey: plugin.pluginKey,
       version: '1.0.0',
-      source: { kind: 'git', url: 'https://github.com/orca-samples/demo.git', ref: 'main' },
+      source: { kind: 'git', url: 'https://github.com/samples/demo.git', ref: 'main' },
       resolvedCommit: 'c'.repeat(40),
       contentHash: 'a'.repeat(64),
       consentFingerprint: 'sha256-current',
@@ -281,8 +281,8 @@ describe('buildPluginList I/O', () => {
 
   it('reports the catalog ref a marketplace install came from', async () => {
     const plugin: ValidDiscoveredPlugin = {
-      pluginKey: 'orca-samples.demo',
-      rootDir: join(tmpdir(), 'plugins', 'orca-samples.demo', 'a'.repeat(64)),
+      pluginKey: 'samples.demo',
+      rootDir: join(tmpdir(), 'plugins', 'samples.demo', 'a'.repeat(64)),
       manifest,
       consentFingerprint: 'sha256-current',
       contentHash: 'a'.repeat(64),
@@ -299,7 +299,7 @@ describe('buildPluginList I/O', () => {
           ref: 'stable',
           resolvedCommit: 'f'.repeat(40)
         },
-        plugin: { url: 'https://github.com/orca-samples/demo.git', ref: 'main' }
+        plugin: { url: 'https://github.com/samples/demo.git', ref: 'main' }
       },
       resolvedCommit: 'c'.repeat(40),
       contentHash: 'a'.repeat(64),

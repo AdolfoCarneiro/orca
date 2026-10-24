@@ -15,13 +15,13 @@ import { hashPluginTree } from '../plugin-content-hash'
 
 const roots: string[] = []
 const services: PluginService[] = []
-const pluginKey = 'orca-samples.recipes'
+const pluginKey = 'samples.recipes'
 
 function contentManifest(): PluginManifest {
   return pluginManifestSchema.parse({
     manifestVersion: 1,
     id: 'recipes',
-    publisher: 'orca-samples',
+    publisher: 'samples',
     name: 'Recipes',
     version: '1.0.0',
     engines: { orca: '>=1.0.0' },

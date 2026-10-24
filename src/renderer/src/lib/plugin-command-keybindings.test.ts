@@ -11,7 +11,7 @@ import {
 } from './plugin-command-keybindings'
 
 const command: ActivePluginCommand = {
-  pluginKey: 'orca-samples.tasks',
+  pluginKey: 'samples.tasks',
   pluginName: 'Tasks',
   id: 'open',
   title: 'Open Tasks',
