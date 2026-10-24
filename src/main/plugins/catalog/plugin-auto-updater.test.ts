@@ -66,6 +66,7 @@ function setup(
     pinned?: boolean
     previewCommit?: string
     refreshMs?: number
+    killListRefresh?: () => Promise<unknown>
   } = {}
 ) {
   let now = 1_000_000
@@ -151,6 +152,7 @@ function setup(
       now += refreshMs
       refreshMs = 0
     },
+    refreshKillList: options.killListRefresh ?? (async () => undefined),
     approve: async (pluginKey, fingerprint) => {
       consents[pluginKey] = fingerprint
     },
@@ -191,6 +193,28 @@ describe('plugin auto-update', () => {
     advance(PLUGIN_AUTO_UPDATE_HOLD_BACK_MS - 60_000)
     await updater.run()
     expect(install).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes the kill list before installing and installs nothing when that fails', async () => {
+    const order: string[] = []
+    const ok = setup({
+      officialCatalog: true,
+      killListRefresh: async () => order.push('kill-list')
+    })
+    ok.install.mockImplementation(async () => {
+      order.push('install')
+      throw new Error('stop')
+    })
+    await ok.updater.run()
+    expect(order).toEqual(['kill-list', 'install'])
+    const offline = setup({
+      officialCatalog: true,
+      killListRefresh: async () => {
+        throw new Error('offline')
+      }
+    })
+    await offline.updater.run()
+    expect(offline.install).not.toHaveBeenCalled()
   })
 
   it('installs at once from an official catalog', async () => {

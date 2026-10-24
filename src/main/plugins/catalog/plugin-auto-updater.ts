@@ -55,6 +55,7 @@ export class PluginAutoUpdater {
     firstSeen: Pick<PluginReleaseFirstSeenStore, 'firstSeen'>
     isEnabled: () => boolean
     refreshCatalogs: () => Promise<unknown>
+    refreshKillList: () => Promise<unknown>
     approve: (pluginKey: string, reviewedFingerprint: string) => Promise<void>
     onChanged: (state: PluginAutoUpdateState, updatedNow: PluginAutoUpdateState['updated']) => void
     now?: () => number
@@ -109,6 +110,10 @@ export class PluginAutoUpdater {
     await this.options
       .refreshCatalogs()
       .catch((error) => console.warn('[plugins] auto-update kept cached catalogs:', error))
+    // Why once, lazily: the kill list can be hours old, so take a fresh copy only when about to install.
+    let killListFresh: Promise<void> | null = null
+    const refreshKillList = (): Promise<void> =>
+      (killListFresh ??= this.options.refreshKillList().then(() => undefined))
     const updatedNow: PluginAutoUpdateState['updated'] = {}
     const needsReview: PluginAutoUpdateState['needsReview'] = {}
     for (const plugin of this.options.pluginService.getDiscovered()) {
@@ -116,7 +121,7 @@ export class PluginAutoUpdater {
         continue
       }
       try {
-        const verdict = await this.updateOne(plugin, startedAt)
+        const verdict = await this.updateOne(plugin, startedAt, refreshKillList)
         if (verdict?.kind === 'updated') {
           updatedNow[plugin.pluginKey] = verdict.version
         } else if (verdict?.kind === 'needs-review') {
@@ -136,7 +141,8 @@ export class PluginAutoUpdater {
 
   private async updateOne(
     plugin: ValidDiscoveredPlugin,
-    now: number
+    now: number,
+    refreshKillList: () => Promise<void>
   ): Promise<{ kind: 'updated' | 'needs-review'; version: string } | null> {
     const { pluginService, installer } = this.options
     // Why approved only: a disabled or never-approved plugin is the user's to update.
@@ -179,6 +185,8 @@ export class PluginAutoUpdater {
     ) {
       return { kind: 'needs-review', version: preview.manifest.version }
     }
+    // Why fail closed: without a current kill list a takedown could not stop this install.
+    await refreshKillList()
     const outcome: PluginCatalogInstallOutcome = await installCatalogReleaseWithApproval({
       pluginKey: plugin.pluginKey,
       pluginService,

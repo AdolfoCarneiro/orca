@@ -96,6 +96,7 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
       return settings.pluginSystemEnabled === true && isPluginAutoUpdateOn(settings)
     },
     refreshCatalogs: () => state.pluginMarketplaceService?.refreshAll() ?? Promise.resolve(),
+    refreshKillList: () => state.pluginKillListService?.refresh() ?? Promise.resolve(),
     approve: (pluginKey, reviewedFingerprint) =>
       applyPluginConsent({
         store,
