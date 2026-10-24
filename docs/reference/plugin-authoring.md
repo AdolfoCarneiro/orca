@@ -64,7 +64,7 @@ for.
 
 1. Commit the plugin and run `pnpm validate:plugin` on the root of its repository. It prints the
    release entry for `HEAD`: version, full commit SHA, `contentHash`, execution profile, minimum
-   Orca, contribution types and summary, capabilities and file types. Every field must match
+   Orca, contribution summary, capabilities and file types. Every field must match
    what Orca finds at install, so paste it rather than writing it by hand.
 2. Add or update the plugin's entry in the catalog's `orca-catalog.json`, newest release first:
 
@@ -91,3 +91,31 @@ for.
 
 An update that asks for a new capability or changes the execution profile is never applied
 silently. Orca asks the user to approve it again.
+
+## Stability
+
+Plugins are experimental. These parts are stable and change only additively:
+
+- manifest format 2, capability names and execution profiles;
+- host API 1 (`"pluginApi": 1`): method names, params and results;
+- the panel bridge message names (`orca-panel-action`, `-result`, `-ping`, `-pong`) and error
+  codes;
+- theme token names, and theme ids once published (users' settings store them);
+- catalog format 2 (`orca-catalog.json`).
+
+These may still change without a new format:
+
+- the `agent.status.changed` payload: `state` and `outcome` are free strings and `paneKey` is
+  not yet a terminal id `terminal.sendText` accepts;
+- the worker process model: Node version, lifecycle and the channel to Orca. Only
+  `activate(orca)` and `orca.host`, `orca.commands`, `orca.events` and `orca.log` are promised,
+  and workers may be stopped at any time;
+- language-pack keys, which change when Orca's source moves or its English copy changes; packs
+  get best-effort coverage per release;
+- `pnpm validate:plugin` output; only its exit codes (`0` valid, `1` invalid, `2` usage) are
+  stable;
+- `settings:own`, which stores untyped values until plugins can declare settings;
+- manifest format 1, which is deprecated. Catalogs need format 2.
+
+Data folders, `orca-plugin-image://` URLs, tab keys and the `pluginRoot` a worker receives are
+internal.

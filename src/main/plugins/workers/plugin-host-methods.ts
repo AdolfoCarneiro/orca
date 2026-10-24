@@ -5,7 +5,13 @@ import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabi
 import type { PluginPanelActionOutcome } from '../../../shared/plugins/plugin-panel-bridge'
 import type { PluginAuditLog } from '../plugin-audit-log'
 
-// All plugin transports share these Electron-free host-policy checks and runtime bindings.
+/**
+ * Host API 1 handler bindings — the one place plugin-originated calls
+ * (panel bridge, worker hostCall, serve RPC relay) execute. Handlers
+ * delegate to runtime services through the structural `PluginHostServices`
+ * interface, so this module stays electron-free and the relay conformance
+ * suite can run the identical chokepoint against a fake service set.
+ */
 
 export type { PluginHostServices } from './plugin-host-method-bindings'
 

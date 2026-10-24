@@ -2,7 +2,7 @@ import { z } from 'zod'
 import type { PluginCapabilityKind } from '../plugin-capabilities'
 
 /**
- * Host API v0 — the separately-versioned public facade plugins call. Every
+ * Host API 1 (`pluginApi: 1`) — the separately-versioned public facade plugins call. Every
  * method carries params AND result schemas plus capability/mutation metadata;
  * handlers (bound in main) delegate to runtime services. The raw runtime-RPC
  * registry is never exposed: its methods have no result schemas and evolve at
@@ -12,7 +12,7 @@ import type { PluginCapabilityKind } from '../plugin-capabilities'
  * bridge action set, and the worker SDK. Electron-free by design: desktop
  * main, headless serve, the relay conformance path, and tests all import it.
  *
- * Frozen as v0 (pluginApi major 1): additive only. The policy that binds this
+ * Frozen within major 1: additive only. The policy that binds this
  * table is in docs/reference/plugin-host-api.md, generated from it.
  */
 
@@ -92,7 +92,7 @@ export type PluginHostMethodSpec = {
   name: string
   /** One line for the generated reference. */
   summary: string
-  /** pluginApi minor the method appeared in (`1.0` for the v0 set). */
+  /** pluginApi minor the method appeared in (`1.0` for the first set). */
   since: string
   /** pluginApi minor that deprecated it; it keeps working until the next major. */
   deprecatedSince?: string
@@ -112,7 +112,7 @@ const spec = <P extends z.ZodTypeAny, R extends z.ZodTypeAny>(
   entry: Omit<PluginHostMethodSpec, 'params' | 'result'> & { params: P; result: R }
 ): PluginHostMethodSpec => entry
 
-export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
+export const PLUGIN_HOST_API: readonly PluginHostMethodSpec[] = [
   spec({
     name: 'workspace.readContext',
     summary:
@@ -248,14 +248,15 @@ export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
   })
 ]
 
-const SPEC_BY_NAME = new Map(PLUGIN_HOST_API_V0.map((entry) => [entry.name, entry]))
+const SPEC_BY_NAME = new Map(PLUGIN_HOST_API.map((entry) => [entry.name, entry]))
 
 export function getPluginHostMethodSpec(name: string): PluginHostMethodSpec | null {
   return SPEC_BY_NAME.get(name) ?? null
 }
 
-/** Derive panel-callable actions from the API table so the bridge cannot drift from capability enforcement. */
-export const PLUGIN_PANEL_ACTIONS = PLUGIN_HOST_API_V0.filter((entry) => entry.panel).map(
+/** Actions sandboxed panels may request over the postMessage bridge. Derived
+ *  from the spec table so the panel surface can never drift from the gate. */
+export const PLUGIN_PANEL_ACTIONS = PLUGIN_HOST_API.filter((entry) => entry.panel).map(
   (entry) => entry.name
 )
 

@@ -1,8 +1,16 @@
 import { getPluginHostMethodSpec, isPluginPanelAction } from './workers/plugin-host-api'
 import type { PluginCapabilityKind } from './plugin-capabilities'
 
-/** Shared Electron-free deny-by-default gate for desktop, serve and relay; conformance tests pin identical decisions.
- * Ported from community PR #5801 to the host API v0 table. */
+/**
+ * The capability gate — pure, electron-free, shared by the Electron main
+ * host, the headless serve RPC path, and the relay so a security decision
+ * cannot land on desktop while drifting on the remote path. Deny-by-default:
+ * an empty capability set grants nothing. A conformance test runs identical
+ * cases against the desktop and relay enforcement surfaces.
+ *
+ * Ported from community PR #5801's electron-free gate, rekeyed to the host
+ * API 1 spec table.
+ */
 
 export type PluginGateErrorCode =
   | 'unknown_method'

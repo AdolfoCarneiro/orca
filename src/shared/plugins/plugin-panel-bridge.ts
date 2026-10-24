@@ -1,7 +1,15 @@
 import { z } from 'zod'
 
-/** Opaque-origin sandbox panels cannot authenticate by origin. Verify sender window and payload; main rechecks capabilities.
- * Transport uses host API params/results rather than a second contract. */
+/**
+ * postMessage protocol between a sandboxed plugin panel iframe and the host
+ * renderer, plus the action call shape relayed to main. The frame has an
+ * opaque origin (sandbox="allow-scripts"), so neither side can use origins
+ * for trust: the host verifies the sending window's identity and re-validates
+ * every payload here; main re-checks capabilities before executing.
+ *
+ * Param/result schemas come from the host API 1 spec table — the panel
+ * bridge is a transport, not a second contract.
+ */
 
 export const PANEL_ACTION_REQUEST_TYPE = 'orca-panel-action'
 export const PANEL_ACTION_RESULT_TYPE = 'orca-panel-action-result'
