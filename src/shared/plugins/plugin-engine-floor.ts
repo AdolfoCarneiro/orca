@@ -2,6 +2,7 @@ import { z, type RefinementCtx } from 'zod'
 import { formatPluginSchemaPath } from './plugin-schema-issues'
 import { PLUGIN_ENUM_SINCE_KEY } from './plugin-engine-floor-keys'
 import { orcaEngineRangeSchema, satisfiesOrcaEngineRange } from './plugin-manifest-engine-range'
+import { isPluginJsonObject } from './plugin-json-object'
 
 type Floor = { version: string; path: readonly PropertyKey[] }
 
@@ -27,8 +28,8 @@ function sinceOf(
   const meta = z.globalRegistry.get(schema)
   let next = newer(floor, meta?.['x-orca-since'], path)
   const enumSince = meta?.[PLUGIN_ENUM_SINCE_KEY]
-  if (typeof value === 'string' && typeof enumSince === 'object' && enumSince !== null) {
-    next = newer(next, Reflect.get(enumSince, value), path)
+  if (typeof value === 'string' && isPluginJsonObject(enumSince)) {
+    next = newer(next, enumSince[value], path)
   }
   return next
 }
@@ -59,9 +60,9 @@ function walk(
       current
     )
   }
-  if (schema instanceof z.ZodObject && typeof value === 'object' && value !== null) {
+  if (schema instanceof z.ZodObject && isPluginJsonObject(value)) {
     return Object.entries(schema.def.shape).reduce<Floor | null>((acc, [key, field]) => {
-      const child: unknown = Reflect.get(value, key)
+      const child = value[key]
       if (child === undefined || (Array.isArray(child) && child.length === 0)) {
         return acc
       }

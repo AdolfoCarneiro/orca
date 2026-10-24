@@ -65,7 +65,7 @@ function contributionList<Item extends z.ZodType>(
 const V1 = PLUGIN_SCHEMA_SINCE_V1
 const NEXT = PLUGIN_MANIFEST_V2_SINCE
 
-export const pluginContributesShape = {
+export const pluginContributesFields = {
   panels: contributionList(
     pluginPanelContributionSchema,
     PLUGIN_PANEL_LIMIT,

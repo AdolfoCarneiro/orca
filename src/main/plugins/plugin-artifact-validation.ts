@@ -189,7 +189,11 @@ export async function validatePluginInstallContent(
   rootDir: string,
   manifest: PluginManifest
 ): Promise<PluginArtifactValidationResult> {
-  const images = await validatePluginImageArtifacts(rootDir, manifest)
+  const images = await validatePluginImageArtifacts(
+    rootDir,
+    manifest,
+    readContainedPluginArtifactBytes
+  )
   if (!images.ok) {
     return images
   }

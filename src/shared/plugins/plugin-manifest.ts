@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { pluginCapabilitySchema } from './plugin-capabilities'
 import { orcaEngineRangeSchema } from './plugin-manifest-engine-range'
-import { pluginContributesShape } from './plugin-contribution-points'
+import { pluginContributesFields } from './plugin-contribution-points'
 import { pluginIdSchema, pluginRelativePathSchema } from './plugin-manifest-fields'
 import { pluginManifestDetailFields } from './plugin-detail-fields'
 import { PLUGIN_ICON_RULE_TEXT, pluginManifestImageFields } from './plugin-image-fields'
@@ -40,7 +40,7 @@ export { orcaEngineRangeSchema, satisfiesOrcaEngineRange } from './plugin-manife
 const V1 = PLUGIN_SCHEMA_SINCE_V1
 const NEXT = PLUGIN_MANIFEST_V2_SINCE
 
-const authorShape = {
+const authorFields = {
   name: z
     .string()
     .min(1)
@@ -53,7 +53,7 @@ const authorShape = {
     .meta(pluginFieldDoc('Author homepage.', V1, ['https://example.com']))
 }
 const authorDoc = pluginFieldDoc('Who maintains the plugin.', V1)
-const enginesShape = {
+const enginesFields = {
   orca: orcaEngineRangeSchema.meta(
     pluginFieldDoc(
       `Oldest Orca release this plugin runs on, as \`>=x.y.z\`. Raise it to the newest "Since" of any field you use; a format 2 manifest needs at least \`>=${NEXT}\`, because older Orca cannot read format 2.`,
@@ -98,7 +98,7 @@ const pluginManifestFields = {
     .max(4096)
     .optional()
     .meta(pluginFieldDoc('One or two sentences shown in the plugin list.', V1)),
-  author: z.object(authorShape).optional().meta(authorDoc),
+  author: z.object(authorFields).optional().meta(authorDoc),
   repository: z
     .string()
     .max(2048)
@@ -116,7 +116,7 @@ const pluginManifestFields = {
         ['assets/icon.png']
       )
     ),
-  engines: z.object(enginesShape).meta(enginesDoc),
+  engines: z.object(enginesFields).meta(enginesDoc),
   main: pluginRelativePathSchema
     .optional()
     .meta(
@@ -127,7 +127,7 @@ const pluginManifestFields = {
       )
     ),
   contributes: z
-    .object(pluginContributesShape)
+    .object(pluginContributesFields)
     .strict()
     // Why prefault: runs `{}` through the schema, so every family's own default applies.
     .prefault({})
@@ -168,8 +168,8 @@ export const pluginManifestV2Object = z
     ...pluginManifestFields,
     ...pluginManifestImageFields,
     // Why strict here too: format 2 refuses unknown keys at every level; format 1 never did.
-    author: z.strictObject(authorShape).optional().meta(authorDoc),
-    engines: z.strictObject(enginesShape).meta(enginesDoc),
+    author: z.strictObject(authorFields).optional().meta(authorDoc),
+    engines: z.strictObject(enginesFields).meta(enginesDoc),
     // Why optional: only code calls the host API, so data and instructional plugins leave it out.
     pluginApi: z
       .literal(1)

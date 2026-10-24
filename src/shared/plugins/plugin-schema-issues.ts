@@ -1,4 +1,5 @@
 import type { z } from 'zod'
+import { isPluginJsonObject } from './plugin-json-object'
 
 /** Enough to fix several mistakes per edit without flooding a one-line error surface. */
 export const PLUGIN_SCHEMA_ISSUE_LIMIT = 8
@@ -39,10 +40,10 @@ const LINE_MAX_LENGTH = 200
 function isMissing(input: unknown, path: readonly PropertyKey[]): boolean {
   let value: unknown = input
   for (const segment of path) {
-    if (typeof value !== 'object' || value === null) {
+    if (!isPluginJsonObject(value)) {
       return false
     }
-    value = Reflect.get(value, segment)
+    value = value[segment]
   }
   return path.length > 0 && value === undefined
 }

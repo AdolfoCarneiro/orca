@@ -1,6 +1,7 @@
 import Ajv2020 from 'ajv/dist/2020'
 import { PLUGIN_MANIFEST_V2_SINCE } from './plugin-schema-field-docs'
 import type { PluginJsonSchema } from './plugin-json-schema'
+import { isPluginJsonObject } from './plugin-json-object'
 
 export function compilePluginJsonSchema(schema: PluginJsonSchema) {
   // Why no format plugin: every format the schemas use also carries a `pattern`.
@@ -15,7 +16,7 @@ export function compilePluginJsonSchema(schema: PluginJsonSchema) {
 export function descriptionAt(schema: PluginJsonSchema, pointer: string): string | undefined {
   let node: unknown = schema
   for (const segment of [...pointer.split('/').slice(1), 'description']) {
-    node = typeof node === 'object' && node !== null ? Reflect.get(node, segment) : undefined
+    node = isPluginJsonObject(node) ? node[segment] : undefined
   }
   return typeof node === 'string' ? node : undefined
 }

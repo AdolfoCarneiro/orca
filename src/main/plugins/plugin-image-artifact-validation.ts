@@ -6,7 +6,6 @@ import {
   pluginImageRuleError,
   type PluginImageKind
 } from '../../shared/plugins/plugin-image-fields'
-import { readContainedPluginArtifactBytes } from './plugin-artifact-validation'
 
 /** The images a format 2 manifest declares, with the rules each must meet. */
 export function declaredPluginImages(
@@ -27,14 +26,16 @@ export function declaredPluginImages(
 }
 
 /** Checks each declared image by its header at the install boundary; nothing is decoded. */
+// Why the reader is passed in: the artifact validator owns contained reads and calls this module.
 export async function validatePluginImageArtifacts(
   rootDir: string,
-  manifest: PluginManifest
+  manifest: PluginManifest,
+  readContainedBytes: (rootDir: string, path: string, maxBytes: number) => Promise<Buffer>
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   let total = 0
   for (const image of declaredPluginImages(manifest)) {
     try {
-      const bytes = await readContainedPluginArtifactBytes(
+      const bytes = await readContainedBytes(
         rootDir,
         image.path,
         PLUGIN_IMAGE_RULES[image.kind].maxBytes
