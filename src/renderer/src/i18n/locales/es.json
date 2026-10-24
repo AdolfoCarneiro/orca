@@ -11540,7 +11540,6 @@
           "loading": "Cargando plugins del marketplace…",
           "tryAgain": "Intentar de nuevo",
           "noSourcesTitle": "No marketplaces configured",
-          "noSources": "Añade un marketplace de Git oficial, comunitario o privado para explorar plugins.",
           "addSource": "Añadir marketplace",
           "noResultsTitle": "No matching plugins",
           "noResults": "Ningún plugin del marketplace coincide con esta búsqueda.",
@@ -11549,12 +11548,8 @@
           "empty": "Los marketplaces configurados no incluyen ningún plugin."
         },
         "PluginMarketplaceListingRow": {
-          "official": "Oficial",
-          "installed": "Instalado",
           "noDescription": "No description provided.",
           "blocked": "Bloqueado por la lista de seguridad de Orca: {{value0}}",
-          "blockedAction": "Bloqueado",
-          "checkUpdate": "Buscar actualización",
           "install": "Install"
         },
         "PluginMarketplacePreviewDialog": {
@@ -11629,7 +11624,6 @@
         },
         "PluginsSettingsSection": {
           "systemLabel": "Sistema de plugins",
-          "systemDescription": "Nada se ejecuta hasta que lo revises y actives.",
           "loading": "Cargando plugins…",
           "noInstalledResultsTitle": "No matching plugins",
           "noInstalledResults": "Ningún complemento instalado coincide con esta búsqueda.",
@@ -11659,24 +11653,14 @@
           "loadingLogs": "Cargando registros…",
           "noLogs": "No hay líneas de registro.",
           "logCount": "Últimas {{value0}} de hasta 200 líneas conservadas",
-          "reviewAndEnable": "Review & enable",
-          "official": "Oficial",
           "dev": "Desarrollo",
           "bundled": "Incluido",
-          "noDescription": "No description provided.",
           "killListMessage": "La lista de seguridad de Orca desactivó este plugin: {{value0}}",
-          "viewAdvisory": "Ver aviso",
-          "runtimeError": "Se detuvo tras un error. Consulta los registros para ver los detalles.",
-          "restartCount": " · {{value0}} reinicios",
           "moreActions": "Más acciones para {{value0}}",
-          "hideLogs": "Ocultar registros",
           "viewLogs": "Ver registros",
-          "rollback": "Revertir",
-          "remove": "Eliminar",
           "disableLabel": "Desactivar {{value0}}",
           "enableLabel": "Activar {{value0}}",
           "invalidPluginError": "Los archivos de este plugin no son válidos. Corrígelos y actualiza.",
-          "languageCoverage": "{{value0}} traducido al {{value1}}%",
           "syntaxFailed": "El resaltado se detuvo: esta gramática falló."
         },
         "PluginVmRecipeConsentPreview": {
@@ -12636,7 +12620,6 @@
           "installed": "Instalados",
           "installedFailedTitle": "No se pudieron leer tus plugins instalados.",
           "updatesTitle": "Actualizaciones",
-          "sourcesLabel": "Fuentes del catálogo",
           "refreshLabel": "Actualizar catálogos",
           "noResultsTitle": "Ningún plugin coincide con «{{value0}}»",
           "noResults": "La búsqueda revisa nombres, descripciones, editores y categorías.",
@@ -12704,7 +12687,6 @@
           "viewError": "Ver error",
           "copyId": "Copiar ID del plugin",
           "checkUpdate": "Buscar actualización",
-          "rollback": "Revertir…",
           "bundledWithOrca": "Incluido con Orca",
           "installName": "Instalar {{value0}}",
           "copied": "ID del plugin copiado",
@@ -12713,7 +12695,6 @@
           "cantLoad": "No se puede cargar",
           "on": "Activado",
           "details": "Detalles",
-          "enterKey": "Intro",
           "unverified": "Sin verificar",
           "crashedOnce": "Falló una vez. Consulta sus registros en la página del plugin.",
           "updateAvailable": "actualización {{value0}} disponible",
@@ -12728,8 +12709,7 @@
           "offBody": "No se ejecuta nada de tus plugins. Actívalos para explorar el catálogo y usar lo que instalaste.",
           "turnOn": "Activar plugins",
           "systemDescription": "Desactiva todos los plugins a la vez. No se ejecuta nada hasta que lo revises y lo actives.",
-          "pausedCount": "{{value0}} en pausa",
-          "pausedUnknown": "Tus plugins instalados están en pausa y volverán cuando actives los plugins."
+          "pausedCount": "{{value0}} en pausa"
         },
         "PluginFilterPopover": {
           "label": "Filtrar plugins",

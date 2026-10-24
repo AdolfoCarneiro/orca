@@ -11266,7 +11266,6 @@
           "loading": "마켓플레이스 플러그인 로딩 중…",
           "tryAgain": "다시 시도",
           "noSourcesTitle": "마켓플레이스 미구성",
-          "noSources": "플러그인을 탐색하려면 공식, 커뮤니티 또는 비공개 Git 마켓플레이스를 추가하세요.",
           "addSource": "마켓플레이스 추가",
           "noResultsTitle": "일치하는 플러그인 없음",
           "noResults": "이 검색에 일치하는 마켓플레이스 플러그인이 없습니다.",
@@ -11275,12 +11274,8 @@
           "empty": "구성된 마켓플레이스에 플러그인이 나열되어 있지 않습니다."
         },
         "PluginMarketplaceListingRow": {
-          "official": "공식",
-          "installed": "설치됨",
           "noDescription": "설명이 제공되지 않았습니다.",
           "blocked": "Orca 안전 목록에 의해 차단됨: {{value0}}",
-          "blockedAction": "차단됨",
-          "checkUpdate": "업데이트 확인",
           "install": "설치"
         },
         "PluginMarketplacePreviewDialog": {
@@ -11355,7 +11350,6 @@
         },
         "PluginsSettingsSection": {
           "systemLabel": "플러그인 시스템",
-          "systemDescription": "검토하고 활성화하기 전에는 아무것도 실행되지 않습니다.",
           "loading": "플러그인 로딩 중…",
           "noInstalledResultsTitle": "일치하는 플러그인 없음",
           "noInstalledResults": "이 검색에 일치하는 설치된 플러그인이 없습니다.",
@@ -11385,24 +11379,14 @@
           "loadingLogs": "로그 로딩 중…",
           "noLogs": "기록된 로그 라인이 없습니다.",
           "logCount": "최근 {{value0}}줄 (최대 200줄 보존)",
-          "reviewAndEnable": "검토 및 활성화",
-          "official": "공식",
           "dev": "개발",
           "bundled": "번들",
-          "noDescription": "설명이 제공되지 않았습니다.",
           "killListMessage": "Orca 안전 목록이 이 플러그인을 비활성화했습니다: {{value0}}",
-          "viewAdvisory": "공지 보기",
-          "runtimeError": "오류로 중지되었습니다. 자세한 내용은 로그를 확인하세요.",
-          "restartCount": " · {{value0}}회 재시작",
           "moreActions": "{{value0}}의 더 많은 작업",
-          "hideLogs": "로그 숨기기",
           "viewLogs": "로그 보기",
-          "rollback": "롤백",
-          "remove": "제거",
           "disableLabel": "{{value0}} 비활성화",
           "enableLabel": "{{value0}} 활성화",
           "invalidPluginError": "이 플러그인의 파일이 유효하지 않습니다. 수정한 후 새로 고치세요.",
-          "languageCoverage": "{{value0}} {{value1}}% 번역됨",
           "syntaxFailed": "강조 표시가 중지됨: 이 문법에 오류가 발생했습니다."
         },
         "PluginVmRecipeConsentPreview": {
@@ -12359,7 +12343,6 @@
           "installed": "설치됨",
           "installedFailedTitle": "설치된 플러그인을 읽을 수 없습니다.",
           "updatesTitle": "업데이트",
-          "sourcesLabel": "카탈로그 소스",
           "refreshLabel": "카탈로그 새로 고침",
           "noResultsTitle": "‘{{value0}}’와(과) 일치하는 플러그인이 없습니다",
           "noResults": "이름, 설명, 게시자, 카테고리에서 검색합니다.",
@@ -12427,7 +12410,6 @@
           "viewError": "오류 보기",
           "copyId": "플러그인 ID 복사",
           "checkUpdate": "업데이트 확인",
-          "rollback": "롤백…",
           "bundledWithOrca": "Orca에 기본 포함",
           "installName": "{{value0}} 설치",
           "copied": "플러그인 ID를 복사했습니다",
@@ -12436,7 +12418,6 @@
           "cantLoad": "불러올 수 없음",
           "on": "켜짐",
           "details": "세부 정보",
-          "enterKey": "Enter",
           "unverified": "확인되지 않음",
           "crashedOnce": "한 번 충돌했습니다. 플러그인 페이지에서 로그를 확인하세요.",
           "updateAvailable": "업데이트 {{value0}} 사용 가능",
@@ -12451,8 +12432,7 @@
           "offBody": "플러그인이 아무것도 실행되지 않습니다. 켜면 카탈로그를 둘러보고 설치한 항목을 사용할 수 있습니다.",
           "turnOn": "플러그인 켜기",
           "systemDescription": "모든 플러그인을 한 번에 끕니다. 검토하고 사용하도록 설정하기 전에는 아무것도 실행되지 않습니다.",
-          "pausedCount": "{{value0}}개 일시 중지됨",
-          "pausedUnknown": "설치된 플러그인은 일시 중지되었으며 플러그인을 켜면 다시 사용할 수 있습니다."
+          "pausedCount": "{{value0}}개 일시 중지됨"
         },
         "PluginFilterPopover": {
           "label": "플러그인 필터",

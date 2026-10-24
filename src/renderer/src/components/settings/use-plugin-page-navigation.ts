@@ -1,5 +1,5 @@
 import { pluginHostVersion } from '../../../../shared/plugins/plugin-host-version'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 function isBackShortcut(event: KeyboardEvent): boolean {
   const mac = navigator.userAgent.includes('Mac')
@@ -67,7 +67,9 @@ export function usePluginPageNavigation(): PluginPageNavigation {
   }, [openKey, returnKey])
 
   const openKeyRef = useRef(openKey)
-  openKeyRef.current = openKey
+  useLayoutEffect(() => {
+    openKeyRef.current = openKey
+  })
   const back = useCallback(() => {
     setReturnKey(openKeyRef.current)
     setOpenKey(null)

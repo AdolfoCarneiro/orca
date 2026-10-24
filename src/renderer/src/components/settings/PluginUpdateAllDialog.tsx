@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Check, Loader2 } from 'lucide-react'
 import type { PluginMarketplaceHostInstallPreview } from '../../../../preload/api-types'
 import { satisfiesOrcaEngineRange } from '../../../../shared/plugins/plugin-manifest'
@@ -89,7 +89,9 @@ export function PluginUpdateAllDialog({
   // belong to the set the user opened, and the parent mounts a fresh dialog per open.
   const [plugins] = useState(entries)
   const orcaVersionRef = useRef(orcaVersion)
-  orcaVersionRef.current = orcaVersion
+  useLayoutEffect(() => {
+    orcaVersionRef.current = orcaVersion
+  })
 
   useEffect(() => {
     if (!open) {

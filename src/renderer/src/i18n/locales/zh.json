@@ -11266,7 +11266,6 @@
           "loading": "正在加载市场插件…",
           "tryAgain": "重试",
           "noSourcesTitle": "未配置市场",
-          "noSources": "添加官方、社区或私有 Git 市场以浏览插件。",
           "addSource": "添加市场",
           "noResultsTitle": "没有匹配的插件",
           "noResults": "没有市场插件匹配此搜索。",
@@ -11275,12 +11274,8 @@
           "empty": "已配置的市场中没有任何插件。"
         },
         "PluginMarketplaceListingRow": {
-          "official": "官方",
-          "installed": "已安装",
           "noDescription": "未提供描述。",
           "blocked": "已被 Orca 安全列表阻止：{{value0}}",
-          "blockedAction": "已阻止",
-          "checkUpdate": "检查更新",
           "install": "Install"
         },
         "PluginMarketplacePreviewDialog": {
@@ -11355,7 +11350,6 @@
         },
         "PluginsSettingsSection": {
           "systemLabel": "插件系统",
-          "systemDescription": "在你审查并启用之前，不会运行任何内容。",
           "loading": "正在加载插件…",
           "noInstalledResultsTitle": "没有匹配的插件",
           "noInstalledResults": "没有已安装的插件匹配此搜索。",
@@ -11385,24 +11379,14 @@
           "loadingLogs": "正在加载日志…",
           "noLogs": "未记录日志行。",
           "logCount": "最近 {{value0}} 行（最多保留 200 行）",
-          "reviewAndEnable": "审查并启用",
-          "official": "官方",
           "dev": "开发",
           "bundled": "内置",
-          "noDescription": "未提供描述。",
           "killListMessage": "Orca 的安全列表禁用了此插件：{{value0}}",
-          "viewAdvisory": "查看公告",
-          "runtimeError": "因错误而停止。请查看日志了解详情。",
-          "restartCount": " · {{value0}} 次重启",
           "moreActions": "{{value0}} 的更多操作",
-          "hideLogs": "隐藏日志",
           "viewLogs": "查看日志",
-          "rollback": "回滚",
-          "remove": "移除",
           "disableLabel": "禁用 {{value0}}",
           "enableLabel": "启用 {{value0}}",
           "invalidPluginError": "此插件的文件无效。修复后请刷新。",
-          "languageCoverage": "{{value0}} 已翻译 {{value1}}%",
           "syntaxFailed": "高亮已停止：此语法出错。"
         },
         "PluginVmRecipeConsentPreview": {
@@ -12392,7 +12376,6 @@
           "installed": "已安装",
           "installedFailedTitle": "无法读取已安装的插件。",
           "updatesTitle": "更新",
-          "sourcesLabel": "目录来源",
           "refreshLabel": "刷新目录",
           "noResultsTitle": "没有与“{{value0}}”匹配的插件",
           "noResults": "搜索范围包括名称、描述、发布者和类别。",
@@ -12460,7 +12443,6 @@
           "viewError": "查看错误",
           "copyId": "复制插件 ID",
           "checkUpdate": "检查更新",
-          "rollback": "回滚…",
           "bundledWithOrca": "随 Orca 附带",
           "installName": "安装 {{value0}}",
           "copied": "已复制插件 ID",
@@ -12469,7 +12451,6 @@
           "cantLoad": "无法加载",
           "on": "已开启",
           "details": "详情",
-          "enterKey": "Enter",
           "unverified": "未验证",
           "crashedOnce": "崩溃了一次。请在插件页面查看日志。",
           "updateAvailable": "有可用更新 {{value0}}",
@@ -12484,8 +12465,7 @@
           "offBody": "你的插件都不会运行。开启后即可浏览目录并使用已安装的插件。",
           "turnOn": "开启插件",
           "systemDescription": "一次性关闭所有插件。在你查看并启用之前，不会运行任何内容。",
-          "pausedCount": "已暂停 {{value0}} 个",
-          "pausedUnknown": "已安装的插件已暂停，开启插件后即可恢复。"
+          "pausedCount": "已暂停 {{value0}} 个"
         },
         "PluginFilterPopover": {
           "label": "筛选插件",

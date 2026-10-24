@@ -6114,20 +6114,11 @@
           "loadingLogs": "Carregando logs…",
           "noLogs": "Nenhuma linha de log registrada.",
           "logCount": "Últimas {{value0}} de até 200 linhas retidas",
-          "reviewAndEnable": "Revisar e ativar",
-          "official": "Oficial",
           "dev": "Dev",
           "bundled": "Incluído",
-          "noDescription": "Nenhuma descrição fornecida.",
           "killListMessage": "A lista de segurança do Orca desativou este plugin: {{value0}}",
-          "viewAdvisory": "Ver aviso",
-          "runtimeError": "O plugin parou após um erro de ativação ou de worker.",
-          "restartCount": " · {{value0}} reinicializações",
           "moreActions": "Mais ações para {{value0}}",
-          "hideLogs": "Ocultar logs",
           "viewLogs": "Ver logs",
-          "rollback": "Reverter",
-          "remove": "Remover",
           "disableLabel": "Desativar {{value0}}",
           "enableLabel": "Ativar {{value0}}",
           "invalidPluginError": "O manifesto do plugin ou os arquivos instalados são inválidos. Corrija o plugin e atualize."
@@ -6778,7 +6769,6 @@
           "loading": "Carregando plugins do marketplace…",
           "tryAgain": "Tentar novamente",
           "noSourcesTitle": "Nenhum marketplace configurado",
-          "noSources": "Adicione um marketplace Git oficial, da comunidade ou privado para navegar por plugins.",
           "addSource": "Adicionar marketplace",
           "noResultsTitle": "Nenhum plugin correspondente",
           "noResults": "Nenhum plugin do marketplace corresponde a esta busca.",
@@ -7111,7 +7101,6 @@
         },
         "PluginsSettingsSection": {
           "systemLabel": "Sistema de plugins",
-          "systemDescription": "Descobre plugins instalados e permite ativá-los individualmente. Nada é executado até que você revise e ative. Os workers sempre são executados neste computador; ações de espaço de trabalho SSH são roteadas através do Orca.",
           "loading": "Carregando plugins…",
           "noInstalledResultsTitle": "Nenhum plugin correspondente",
           "noInstalledResults": "Nenhum plugin instalado corresponde a esta busca.",
@@ -7894,12 +7883,8 @@
           }
         },
         "PluginMarketplaceListingRow": {
-          "official": "Oficial",
-          "installed": "Instalado",
           "noDescription": "Nenhuma descrição fornecida.",
           "blocked": "Bloqueado pela lista de segurança do Orca: {{value0}}",
-          "blockedAction": "Bloqueado",
-          "checkUpdate": "Verificar atualização",
           "install": "Instalar"
         },
         "useWarpThemeImport": {

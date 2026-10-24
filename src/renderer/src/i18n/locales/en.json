@@ -11762,7 +11762,6 @@
           "loading": "Loading marketplace plugins…",
           "tryAgain": "Try again",
           "noSourcesTitle": "No marketplaces configured",
-          "noSources": "Add an official, community, or private Git marketplace to browse plugins.",
           "addSource": "Add marketplace",
           "noResultsTitle": "No matching plugins",
           "noResults": "No marketplace plugins match this search.",
@@ -11771,12 +11770,8 @@
           "empty": "The configured marketplaces do not list any plugins."
         },
         "PluginMarketplaceListingRow": {
-          "official": "Official",
-          "installed": "Installed",
           "noDescription": "No description provided.",
           "blocked": "Blocked by Orca's safety list: {{value0}}",
-          "blockedAction": "Blocked",
-          "checkUpdate": "Check for update",
           "install": "Install"
         },
         "PluginMarketplacePreviewDialog": {
@@ -11851,7 +11846,6 @@
         },
         "PluginsSettingsSection": {
           "systemLabel": "Plugin system",
-          "systemDescription": "Nothing runs until you review and enable it.",
           "loading": "Loading plugins…",
           "noInstalledResultsTitle": "No matching plugins",
           "noInstalledResults": "No installed plugins match this search.",
@@ -11881,24 +11875,14 @@
           "loadingLogs": "Loading logs…",
           "noLogs": "No log lines recorded.",
           "logCount": "Last {{value0}} of up to 200 retained lines",
-          "reviewAndEnable": "Review & enable",
-          "official": "Official",
           "dev": "Dev",
           "bundled": "Bundled",
-          "noDescription": "No description provided.",
           "killListMessage": "Orca's safety list disabled this plugin: {{value0}}",
-          "viewAdvisory": "View advisory",
-          "runtimeError": "Stopped after an error. View logs for details.",
-          "restartCount": " · {{value0}} restarts",
           "moreActions": "More actions for {{value0}}",
-          "hideLogs": "Hide logs",
           "viewLogs": "View logs",
-          "rollback": "Roll back",
-          "remove": "Remove",
           "disableLabel": "Disable {{value0}}",
           "enableLabel": "Enable {{value0}}",
           "invalidPluginError": "This plugin's files are invalid. Fix them, then refresh.",
-          "languageCoverage": "{{value0}} {{value1}}% translated",
           "syntaxFailed": "Highlighting stopped: this grammar failed."
         },
         "PluginVmRecipeConsentPreview": {
@@ -12892,7 +12876,6 @@
           "installed": "Installed",
           "installedFailedTitle": "Couldn’t read your installed plugins.",
           "updatesTitle": "Updates",
-          "sourcesLabel": "Catalog sources",
           "refreshLabel": "Refresh catalogs",
           "noResultsTitle": "No plugins match “{{value0}}”",
           "noResults": "Search looks at names, descriptions, publishers and categories.",
@@ -12960,7 +12943,6 @@
           "viewError": "View error",
           "copyId": "Copy plugin ID",
           "checkUpdate": "Check for update",
-          "rollback": "Roll back…",
           "bundledWithOrca": "Bundled with Orca",
           "installName": "Install {{value0}}",
           "copied": "Plugin ID copied",
@@ -12969,7 +12951,6 @@
           "cantLoad": "Can’t load",
           "on": "On",
           "details": "Details",
-          "enterKey": "Enter",
           "unverified": "Unverified",
           "crashedOnce": "Crashed once. View its logs on the plugin page.",
           "updateAvailable": "update {{value0}} available",
@@ -12984,8 +12965,7 @@
           "offBody": "Nothing from your plugins runs. Turn them on to browse the catalog and use what you installed.",
           "turnOn": "Turn on plugins",
           "systemDescription": "Turns every plugin off at once. Nothing runs until you review and enable it.",
-          "pausedCount": "{{value0}} paused",
-          "pausedUnknown": "Your installed plugins are paused and will be back when you turn plugins on."
+          "pausedCount": "{{value0}} paused"
         },
         "PluginFilterPopover": {
           "label": "Filter plugins",

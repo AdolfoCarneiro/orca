@@ -11266,7 +11266,6 @@
           "loading": "マーケットプレイスプラグインを読み込み中…",
           "tryAgain": "再試行",
           "noSourcesTitle": "マーケットプレイス未設定",
-          "noSources": "公式、コミュニティ、またはプライベート Git マーケットプレイスを追加してプラグインを参照。",
           "addSource": "マーケットプレイスを追加",
           "noResultsTitle": "一致するプラグインなし",
           "noResults": "この検索に一致するマーケットプレイスプラグインはありません。",
@@ -11275,12 +11274,8 @@
           "empty": "設定されたマーケットプレイスにはプラグインがリストされていません。"
         },
         "PluginMarketplaceListingRow": {
-          "official": "公式",
-          "installed": "インストール済み",
           "noDescription": "説明はありません。",
           "blocked": "Orca の安全リストによりブロック: {{value0}}",
-          "blockedAction": "ブロック中",
-          "checkUpdate": "更新を確認",
           "install": "インストール"
         },
         "PluginMarketplacePreviewDialog": {
@@ -11355,7 +11350,6 @@
         },
         "PluginsSettingsSection": {
           "systemLabel": "プラグインシステム",
-          "systemDescription": "確認して有効にするまで何も実行されません。",
           "loading": "プラグインを読み込み中…",
           "noInstalledResultsTitle": "一致するプラグインなし",
           "noInstalledResults": "この検索に一致するインストールされたプラグインはありません。",
@@ -11385,24 +11379,14 @@
           "loadingLogs": "ログを読み込み中…",
           "noLogs": "記録されたログ行なし。",
           "logCount": "最新{{value0}}行（最大200行保持）",
-          "reviewAndEnable": "レビューして有効にする",
-          "official": "公式",
           "dev": "開発",
           "bundled": "同梱",
-          "noDescription": "説明はありません。",
           "killListMessage": "Orca の安全リストがこのプラグインを無効にしました: {{value0}}",
-          "viewAdvisory": "アドバイザリーを表示",
-          "runtimeError": "エラーで停止しました。詳細はログを確認してください。",
-          "restartCount": " · {{value0}}回再起動",
           "moreActions": "{{value0}}の追加操作",
-          "hideLogs": "ログを非表示",
           "viewLogs": "ログを表示",
-          "rollback": "ロールバック",
-          "remove": "削除",
           "disableLabel": "{{value0}}を無効にする",
           "enableLabel": "{{value0}}を有効にする",
           "invalidPluginError": "このプラグインのファイルが無効です。修正してから更新してください。",
-          "languageCoverage": "{{value0}} {{value1}}% 翻訳済み",
           "syntaxFailed": "ハイライトを停止しました: この文法でエラーが発生しました。"
         },
         "PluginVmRecipeConsentPreview": {
@@ -12359,7 +12343,6 @@
           "installed": "インストール済み",
           "installedFailedTitle": "インストール済みのプラグインを読み取れませんでした。",
           "updatesTitle": "アップデート",
-          "sourcesLabel": "カタログのソース",
           "refreshLabel": "カタログを更新",
           "noResultsTitle": "「{{value0}}」に一致するプラグインはありません",
           "noResults": "名前、説明、発行元、カテゴリを検索します。",
@@ -12427,7 +12410,6 @@
           "viewError": "エラーを表示",
           "copyId": "プラグイン ID をコピー",
           "checkUpdate": "アップデートを確認",
-          "rollback": "ロールバック…",
           "bundledWithOrca": "Orca に同梱",
           "installName": "{{value0}} をインストール",
           "copied": "プラグイン ID をコピーしました",
@@ -12436,7 +12418,6 @@
           "cantLoad": "読み込めません",
           "on": "オン",
           "details": "詳細",
-          "enterKey": "Enter",
           "unverified": "未検証",
           "crashedOnce": "1 回クラッシュしました。プラグインのページでログを確認してください。",
           "updateAvailable": "アップデート {{value0}} あり",
@@ -12451,8 +12432,7 @@
           "offBody": "プラグインは何も実行されていません。オンにすると、カタログを閲覧し、インストールしたものを使えます。",
           "turnOn": "プラグインをオンにする",
           "systemDescription": "すべてのプラグインを一度にオフにします。確認して有効にするまで何も実行されません。",
-          "pausedCount": "{{value0}} 件を一時停止中",
-          "pausedUnknown": "インストール済みのプラグインは一時停止中です。プラグインをオンにすると再開します。"
+          "pausedCount": "{{value0}} 件を一時停止中"
         },
         "PluginFilterPopover": {
           "label": "プラグインを絞り込む",
