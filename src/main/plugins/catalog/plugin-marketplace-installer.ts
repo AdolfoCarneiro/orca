@@ -25,7 +25,7 @@ import type {
   PluginMarketplaceService
 } from './plugin-marketplace-service'
 import { marketplaceSourceId } from './plugin-marketplace-store'
-import { PLUGIN_FULL_ACCESS_OFF_ERROR } from '../plugin-activation-policy'
+import { fullAccessError, PLUGIN_FULL_ACCESS_OFF_ERROR } from '../plugin-activation-policy'
 import { isSameGitRepository } from '../../../shared/plugins/catalog/plugin-marketplace'
 
 export type PluginMarketplaceInstallPreview = {
@@ -167,7 +167,9 @@ export class PluginMarketplaceInstaller {
       },
       plugin: { url: listing.source.url, ref: listing.source.ref },
       ...(listing.release ? { release: listing.release } : {}),
-      blockedPluginReason: this.blockedPluginReason
+      blockedPluginReason: this.blockedPluginReason,
+      // Why also here: an unpinned listing names no execution profile to check before checkout.
+      manifestError: (manifest) => fullAccessError({ manifest }, this.isFullAccessAllowed)
     })
     return result.ok && repositoryMoved ? { ...result, repositoryMoved: true } : result
   }

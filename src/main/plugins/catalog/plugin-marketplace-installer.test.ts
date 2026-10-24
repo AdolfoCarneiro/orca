@@ -24,6 +24,7 @@ const git = vi.hoisted(
     release: PluginCatalogRelease | undefined
     pluginUrl: string
     marketplaceCommit: string
+    worker: boolean
   } => ({
     checkout: vi.fn(),
     version: '1.0.0',
@@ -34,7 +35,8 @@ const git = vi.hoisted(
     v2: false,
     release: undefined,
     pluginUrl: 'https://github.com/community/notes.git',
-    marketplaceCommit: 'f'.repeat(40)
+    marketplaceCommit: 'f'.repeat(40),
+    worker: false
   })
 )
 
@@ -86,10 +88,14 @@ async function writeCurrentPlugin(destination: string): Promise<void> {
       publisher: git.publisher,
       name: 'Notes',
       version: git.version,
-      capabilities: []
+      capabilities: [],
+      ...(git.worker ? { main: 'worker.js' } : {})
     })
   )
   await writeFile(join(destination, 'payload.txt'), git.payload)
+  if (git.worker) {
+    await writeFile(join(destination, 'worker.js'), '')
+  }
 }
 
 async function setup(): Promise<{
@@ -130,6 +136,7 @@ beforeEach(() => {
   git.release = undefined
   git.pluginUrl = 'https://github.com/community/notes.git'
   git.marketplaceCommit = 'f'.repeat(40)
+  git.worker = false
   git.checkout.mockReset()
   git.checkout.mockImplementation(async ({ destination }: { destination: string }) => {
     await writeCurrentPlugin(destination)
@@ -271,6 +278,17 @@ describe('PluginMarketplaceInstaller', () => {
       error: expect.stringContaining('Allow full-access plugins')
     })
     expect(git.checkout).not.toHaveBeenCalled()
+  })
+
+  it('refuses an unpinned full-access plugin while the full access setting is off', async () => {
+    git.worker = true
+    const { installer, sourceId, root } = await setup()
+    const preview = await installer.preview(sourceId, 'community.notes')
+    await expect(installer.install(preview)).resolves.toMatchObject({
+      ok: false,
+      error: expect.stringContaining('Allow full-access plugins')
+    })
+    expect((await readPluginLockfile(join(root, 'plugins'))).plugins).toEqual({})
   })
 
   it('rejects a source whose manifest identity differs from its listing', async () => {

@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import {
   PLUGIN_MANIFEST_FILENAME,
-  isQualifiedPluginKey
+  isQualifiedPluginKey,
+  type PluginManifest
 } from '../../../shared/plugins/manifest/plugin-manifest'
 import {
   isAllowedPluginGitUrl,
@@ -144,6 +145,7 @@ export async function installPluginFromMarketplace(input: {
   plugin: { url: string; ref: string }
   release?: PluginCatalogRelease
   blockedPluginReason?: (pluginKey: string) => string | null
+  manifestError?: (manifest: PluginManifest) => string | null
 }): Promise<PluginInstallResult> {
   const source = pluginInstallSourceSchema.parse({
     kind: 'marketplace',
@@ -176,7 +178,8 @@ export async function installPluginFromMarketplace(input: {
         resolvedCommit,
         expectedPluginKey: input.expectedPluginKey,
         ...(input.release ? { release: input.release } : {}),
-        blockedPluginReason: input.blockedPluginReason
+        blockedPluginReason: input.blockedPluginReason,
+        manifestError: input.manifestError
       })
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : String(error) }

@@ -143,6 +143,8 @@ export async function installStagedPluginTree(input: {
   /** Trusted bundled bytes may restore an immutable directory damaged on disk. */
   repairCorruptedVersion?: boolean
   blockedPluginReason?: (pluginKey: string) => string | null
+  /** A refusal decided by the inspected manifest itself, e.g. full access being off. */
+  manifestError?: (manifest: PluginManifest) => string | null
 }): Promise<PluginInstallResult> {
   const sourceInspection = await inspectPluginInstallTree({
     rootDir: input.stagingDir,
@@ -162,6 +164,10 @@ export async function installStagedPluginTree(input: {
   const blockedReason = input.blockedPluginReason?.(sourceInspection.pluginKey)
   if (blockedReason) {
     return { ok: false, error: `plugin is blocked by Orca's safety list: ${blockedReason}` }
+  }
+  const manifestError = input.manifestError?.(sourceInspection.manifest)
+  if (manifestError) {
+    return { ok: false, error: manifestError }
   }
   let manifest = sourceInspection.manifest
   const pluginKey = sourceInspection.pluginKey
