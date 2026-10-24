@@ -19,7 +19,8 @@ import type { PluginServiceOptions } from '../plugin-service-options'
 import type { PluginMarketplaceInstaller } from './plugin-marketplace-installer'
 import type { PluginReleaseFirstSeenStore } from './plugin-release-first-seen-store'
 
-export const PLUGIN_AUTO_UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000
+// Why half the hold: a release first seen one pass ago is old enough by the second pass, not the third.
+export const PLUGIN_AUTO_UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000
 /** Why: a release must stay listed this long before it installs unasked, so takedowns can land. */
 export const PLUGIN_AUTO_UPDATE_HOLD_BACK_MS = 12 * 60 * 60 * 1000
 
@@ -103,6 +104,8 @@ export class PluginAutoUpdater {
     if (!this.options.isEnabled()) {
       return
     }
+    // Why before the refresh: a pass that starts exactly one hold later must see the hold as over.
+    const startedAt = (this.options.now ?? Date.now)()
     await this.options
       .refreshCatalogs()
       .catch((error) => console.warn('[plugins] auto-update kept cached catalogs:', error))
@@ -113,7 +116,7 @@ export class PluginAutoUpdater {
         continue
       }
       try {
-        const verdict = await this.updateOne(plugin)
+        const verdict = await this.updateOne(plugin, startedAt)
         if (verdict?.kind === 'updated') {
           updatedNow[plugin.pluginKey] = verdict.version
         } else if (verdict?.kind === 'needs-review') {
@@ -132,7 +135,8 @@ export class PluginAutoUpdater {
   }
 
   private async updateOne(
-    plugin: ValidDiscoveredPlugin
+    plugin: ValidDiscoveredPlugin,
+    now: number
   ): Promise<{ kind: 'updated' | 'needs-review'; version: string } | null> {
     const { pluginService, installer } = this.options
     // Why approved only: a disabled or never-approved plugin is the user's to update.
@@ -151,7 +155,6 @@ export class PluginAutoUpdater {
       return null
     }
     if (!found.officialCatalog) {
-      const now = (this.options.now ?? Date.now)()
       const firstSeenAt = await this.options.firstSeen.firstSeen(
         plugin.pluginKey,
         `${release.version}@${release.commit}`,

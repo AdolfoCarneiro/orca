@@ -65,9 +65,12 @@ function setup(
     blocked?: boolean
     pinned?: boolean
     previewCommit?: string
+    refreshMs?: number
   } = {}
 ) {
   let now = 1_000_000
+  // Why first pass only: later refreshes hit warm caches and finish sooner.
+  let refreshMs = options.refreshMs ?? 0
   const previous = discovered(manifest('1.0.0'), 'sha-old', options.dev)
   const nextManifest = options.next ?? manifest('1.1.0')
   const next = discovered(nextManifest, 'sha-new')
@@ -144,7 +147,10 @@ function setup(
       }
     },
     isEnabled: () => options.enabled !== false,
-    refreshCatalogs: async () => undefined,
+    refreshCatalogs: async () => {
+      now += refreshMs
+      refreshMs = 0
+    },
     approve: async (pluginKey, fingerprint) => {
       consents[pluginKey] = fingerprint
     },
@@ -177,6 +183,14 @@ describe('plugin auto-update', () => {
     expect(consents[KEY]).toBe(next.consentFingerprint)
     expect(updater.getState()).toEqual({ updated: { [KEY]: '1.1.0' }, needsReview: {} })
     expect(changes.at(-1)?.updated).toEqual({ [KEY]: '1.1.0' })
+  })
+
+  it('installs on the pass one hold later even when the first catalog refresh was slow', async () => {
+    const { updater, install, advance } = setup({ refreshMs: 60_000 })
+    await updater.run()
+    advance(PLUGIN_AUTO_UPDATE_HOLD_BACK_MS - 60_000)
+    await updater.run()
+    expect(install).toHaveBeenCalledTimes(1)
   })
 
   it('installs at once from an official catalog', async () => {
