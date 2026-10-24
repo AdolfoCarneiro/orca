@@ -25,8 +25,7 @@ function createServices(storageSet: PluginHostServices['storage']['set']): Plugi
     settings: {
       getAll: vi.fn().mockReturnValue({}),
       set: vi.fn().mockReturnValue({ ok: true })
-    },
-    subscribeEvents: vi.fn().mockReturnValue([])
+    }
   }
 }
 
@@ -38,7 +37,7 @@ describe('executePluginHostCall mutation auditing', () => {
       method: 'storage.set',
       params: { key: '__proto__', value: 42 },
       viaPanel: false,
-      grantedCapabilities: ['storage'],
+      grantedCapabilities: ['storage:own'],
       services: createServices(storageSet),
       audit: { record: vi.fn().mockResolvedValue(undefined) }
     })
@@ -54,7 +53,7 @@ describe('executePluginHostCall mutation auditing', () => {
       method: 'storage.set',
       params: { key: 'created', value: new Date() },
       viaPanel: false,
-      grantedCapabilities: ['storage'],
+      grantedCapabilities: ['storage:own'],
       services: createServices(storageSet),
       audit: { record: vi.fn().mockResolvedValue(undefined) }
     })
@@ -70,7 +69,7 @@ describe('executePluginHostCall mutation auditing', () => {
       method: 'storage.set',
       params: { key: 'answer', value: 42 },
       viaPanel: false,
-      grantedCapabilities: ['storage'],
+      grantedCapabilities: ['storage:own'],
       services: createServices(storageSet),
       audit: { record: vi.fn().mockRejectedValue(new Error('disk full')) }
     })
@@ -94,7 +93,7 @@ describe('executePluginHostCall mutation auditing', () => {
       method: 'storage.set',
       params: { key: 'answer', value: 42 },
       viaPanel: false,
-      grantedCapabilities: ['storage'],
+      grantedCapabilities: ['storage:own'],
       services: createServices(storageSet),
       audit: { record }
     })
@@ -110,7 +109,7 @@ describe('executePluginHostCall mutation auditing', () => {
       method: 'storage.set',
       params: { key: 'answer', value: 42 },
       viaPanel: false,
-      grantedCapabilities: ['storage'],
+      grantedCapabilities: ['storage:own'],
       services: createServices(storageSet)
     })
 
@@ -140,8 +139,7 @@ function createTerminalHarness(terminalHandles: string[]): {
     delegate,
     services: bindPluginHostServices({
       delegate,
-      pluginsDataDir: join(tmpdir(), 'plugin-host-methods-test'),
-      subscribeEvents: vi.fn().mockReturnValue([])
+      pluginsDataDir: join(tmpdir(), 'plugin-host-methods-test')
     })
   }
 }

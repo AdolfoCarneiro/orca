@@ -166,14 +166,14 @@ const RUNTIME_ONLY_RULES = [
     phrase: 'is required by it'
   },
   {
-    rule: 'events without the events:subscribe capability',
+    rule: 'events without their domain capability',
     raw: manifest({
       execution: 'trusted-worker',
       main: 'main.mjs',
       contributes: { events: [{ on: 'worktree.created' }] }
     }),
     pointer: '/$defs/EventContribution',
-    phrase: 'events:subscribe'
+    phrase: 'workspace:read'
   },
   {
     rule: 'catalog types beyond the execution profile',

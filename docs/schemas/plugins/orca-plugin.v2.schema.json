@@ -564,7 +564,7 @@
         "on"
       ],
       "additionalProperties": false,
-      "description": "An event subscription. Requires `main`, the `trusted-worker` execution profile and the `events:subscribe` capability."
+      "description": "An event subscription. Requires `main`, the `trusted-worker` execution profile and the capability of the event's domain: `workspace:read` for workspace events, `agents:read` for agent events."
     },
     "LanguagePackContribution": {
       "type": "object",
@@ -841,22 +841,22 @@
           "type": "string",
           "enum": [
             "workspace:read",
+            "agents:read",
             "terminal:send",
             "notifications:show",
-            "storage",
-            "secrets",
-            "events:subscribe",
+            "storage:own",
+            "secrets:own",
             "settings:own"
           ],
           "description": "Capability granted on user consent.",
           "x-orca-since": "1.4.160",
           "x-orca-enum-since": {
             "workspace:read": "1.4.160",
+            "agents:read": "1.4.244",
             "terminal:send": "1.4.160",
             "notifications:show": "1.4.160",
-            "storage": "1.4.160",
-            "secrets": "1.4.160",
-            "events:subscribe": "1.4.160",
+            "storage:own": "1.4.244",
+            "secrets:own": "1.4.244",
             "settings:own": "1.4.160"
           }
         }

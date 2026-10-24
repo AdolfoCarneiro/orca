@@ -133,7 +133,7 @@ describe('PluginService worker reconciliation', () => {
           keybindings: [{ command: 'run', key: 'Mod+Alt+T' }],
           events: [{ on: 'worktree.created' }]
         },
-        capabilities: [{ kind: 'events:subscribe' }]
+        capabilities: [{ kind: 'workspace:read' }, { kind: 'agents:read' }]
       })
     const firstManifest = conflictingManifest('first')
     const secondManifest = conflictingManifest('second')
@@ -292,7 +292,7 @@ describe('PluginService worker reconciliation', () => {
     await activate(harness.service)
     await writeFile(
       join(root, 'orca-plugin.json'),
-      JSON.stringify(manifest({ capabilities: [{ kind: 'storage' }] }))
+      JSON.stringify(manifest({ capabilities: [{ kind: 'storage:own' }] }))
     )
 
     await harness.service.refresh()

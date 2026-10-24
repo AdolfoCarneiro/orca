@@ -11179,13 +11179,13 @@
           "declarativeWarning": "仅内容：没有代码、没有后台工作进程，也无法访问 Orca 的 API。",
           "enable": "启用插件",
           "capability": {
-            "workspaceRead": "读取您聚焦的工作树的名称、分支和终端列表",
+            "workspaceRead": "读取当前聚焦工作区的名称、分支和终端列表，并在工作区创建或移除时获得通知",
             "terminalSend": "在您可见的终端中输入文本（始终是特定终端）",
             "notificationsShow": "显示标有插件名称的桌面通知",
             "storage": "在插件自己的存储文件夹中存储数据",
-            "secrets": "在插件自己的加密保险库中存储和读取密钥",
-            "eventsSubscribe": "在工作树创建或移除以及智能体状态更改时获得通知",
-            "settingsOwn": "读取和更改插件自己的设置"
+            "secrets": "在插件自己的加密文件中存储和读取密钥",
+            "settingsOwn": "读取和更改插件自己的设置",
+            "agentsRead": "在智能体状态更改时获得通知"
           },
           "decisionFailed": "无法保存权限决定。请重试。"
         },

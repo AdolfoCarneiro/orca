@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { PLUGIN_EVENT_NAMES } from '../manifest/plugin-manifest'
 import type { PluginCapabilityKind } from '../plugin-capabilities'
 
 /**
@@ -88,11 +87,6 @@ const settingsGetResult = z.object({ settings: z.record(z.string(), pluginJsonVa
 const settingsSetParams = z.object({ key: storageKeySchema, value: pluginJsonValueSchema })
 const settingsSetResult = z.object({ ok: z.literal(true) })
 
-const eventsSubscribeParams = z.object({
-  events: z.array(z.enum(PLUGIN_EVENT_NAMES)).min(1).max(PLUGIN_EVENT_NAMES.length)
-})
-const eventsSubscribeResult = z.object({ subscribed: z.array(z.enum(PLUGIN_EVENT_NAMES)) })
-
 export type PluginHostMethodSpec = {
   name: string
   /** One line for the generated reference. */
@@ -102,7 +96,7 @@ export type PluginHostMethodSpec = {
   /** pluginApi minor that deprecated it; it keeps working until the next major. */
   deprecatedSince?: string
   /** Machine-readable resource boundary enforced by the host binding. */
-  scope: 'active-worktree' | 'explicit-terminal' | 'plugin-private' | 'desktop' | 'host-events'
+  scope: 'active-worktree' | 'explicit-terminal' | 'plugin-private' | 'desktop'
   capability: PluginCapabilityKind
   /** Mutations are audit-logged with actor `plugin:<id>`. */
   mutation: boolean
@@ -156,7 +150,7 @@ export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
     summary: "Reads a JSON value from the plugin's private store; null when absent.",
     since: '1.0',
     scope: 'plugin-private',
-    capability: 'storage',
+    capability: 'storage:own',
     mutation: false,
     panel: false,
     params: storageGetParams,
@@ -167,7 +161,7 @@ export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
     summary: "Writes a JSON value to the plugin's private store.",
     since: '1.0',
     scope: 'plugin-private',
-    capability: 'storage',
+    capability: 'storage:own',
     mutation: true,
     panel: false,
     params: storageSetParams,
@@ -178,7 +172,7 @@ export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
     summary: "Removes a key from the plugin's private store.",
     since: '1.0',
     scope: 'plugin-private',
-    capability: 'storage',
+    capability: 'storage:own',
     mutation: true,
     panel: false,
     params: storageDeleteParams,
@@ -189,7 +183,7 @@ export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
     summary: "Lists the keys in the plugin's private store.",
     since: '1.0',
     scope: 'plugin-private',
-    capability: 'storage',
+    capability: 'storage:own',
     mutation: false,
     panel: false,
     params: storageKeysParams,
@@ -197,10 +191,10 @@ export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
   }),
   spec({
     name: 'secrets.get',
-    summary: 'Reads a secret from the OS keychain; null when absent.',
+    summary: "Reads a secret from the plugin's encrypted secrets file; null when absent.",
     since: '1.0',
     scope: 'plugin-private',
-    capability: 'secrets',
+    capability: 'secrets:own',
     mutation: false,
     panel: false,
     params: secretsGetParams,
@@ -208,10 +202,10 @@ export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
   }),
   spec({
     name: 'secrets.set',
-    summary: 'Stores a secret in the OS keychain.',
+    summary: "Stores a secret in the plugin's encrypted secrets file.",
     since: '1.0',
     scope: 'plugin-private',
-    capability: 'secrets',
+    capability: 'secrets:own',
     mutation: true,
     panel: false,
     params: secretsSetParams,
@@ -219,10 +213,10 @@ export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
   }),
   spec({
     name: 'secrets.delete',
-    summary: 'Removes a secret from the OS keychain.',
+    summary: "Removes a secret from the plugin's encrypted secrets file.",
     since: '1.0',
     scope: 'plugin-private',
-    capability: 'secrets',
+    capability: 'secrets:own',
     mutation: true,
     panel: false,
     params: secretsDeleteParams,
@@ -249,18 +243,6 @@ export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
     panel: false,
     params: settingsSetParams,
     result: settingsSetResult
-  }),
-  spec({
-    name: 'events.subscribe',
-    summary:
-      'Starts delivering the named events to the worker; returns every event now subscribed.',
-    since: '1.0',
-    scope: 'host-events',
-    capability: 'events:subscribe',
-    mutation: false,
-    panel: false,
-    params: eventsSubscribeParams,
-    result: eventsSubscribeResult
   })
 ]
 

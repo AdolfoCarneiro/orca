@@ -13,7 +13,7 @@ import {
 } from '../plugin-install-lockfile'
 
 const workspaceRead: PluginCapability = { kind: 'workspace:read' }
-const storage: PluginCapability = { kind: 'storage' }
+const storage: PluginCapability = { kind: 'storage:own' }
 
 describe('fingerprintPluginConsent', () => {
   it('drops malformed persisted consent identities and oversized fingerprints', () => {

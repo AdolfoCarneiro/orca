@@ -11630,13 +11630,13 @@
           "declarativeWarning": "Contenu uniquement : pas de code, pas de worker en arrière-plan et aucun accès à l'API d'Orca.",
           "enable": "Activer le plugin",
           "capability": {
-            "workspaceRead": "Lire le nom, la branche et la liste des terminaux de votre worktree actif",
+            "workspaceRead": "Lire le nom, la branche et la liste des terminaux de l'espace de travail actif, et être notifié quand des espaces de travail sont créés ou supprimés",
             "terminalSend": "Saisir du texte dans un terminal visible (toujours un terminal spécifique)",
             "notificationsShow": "Afficher des notifications de bureau libellées avec le nom du plugin",
             "storage": "Stocker des données dans le dossier de stockage propre au plugin",
-            "secrets": "Stocker et lire des secrets dans le coffre chiffré propre au plugin",
-            "eventsSubscribe": "Être notifié quand des worktrees sont créés ou supprimés et quand le statut d'un agent change",
-            "settingsOwn": "Lire et modifier les paramètres propres au plugin"
+            "secrets": "Stocker et lire des secrets dans le fichier chiffré propre au plugin",
+            "settingsOwn": "Lire et modifier les paramètres propres au plugin",
+            "agentsRead": "Être notifié quand le statut d'un agent change"
           },
           "decisionFailed": "Impossible d'enregistrer la décision d'autorisation. Réessayez."
         },

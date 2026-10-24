@@ -1,6 +1,7 @@
 import type { RefinementCtx } from 'zod'
 import { isPluginCommandAliasActionId } from '../plugin-command-actions'
 import { getKeybindingConflictIdentity } from '../../keybindings'
+import { PLUGIN_EVENT_CAPABILITY, type PluginEventName } from '../plugin-event-contribution'
 
 type IdentifiedContribution = { id: string }
 type PathContribution = { path: string }
@@ -10,7 +11,7 @@ type ContributionValidationManifest = {
   contributes: {
     panels: IdentifiedContribution[]
     commands: (IdentifiedContribution & { action?: string; context?: 'global' | 'worktree' })[]
-    events: { on: string }[]
+    events: { on: PluginEventName }[]
     languagePacks: { locale: string }[]
     keybindings: { command: string; key: string; when?: 'global' | 'worktree' }[]
     vmRecipes: PathContribution[]
@@ -149,14 +150,14 @@ export function validatePluginManifestContributions(
       message: 'required when contributes.events is non-empty'
     })
   }
-  if (
-    manifest.contributes.events.length > 0 &&
-    !manifest.capabilities.some((capability) => capability.kind === 'events:subscribe')
-  ) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['capabilities'],
-      message: 'events:subscribe capability required when contributes.events is non-empty'
-    })
+  for (const [index, subscription] of manifest.contributes.events.entries()) {
+    const required = PLUGIN_EVENT_CAPABILITY[subscription.on]
+    if (!manifest.capabilities.some((capability) => capability.kind === required)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['contributes', 'events', index, 'on'],
+        message: `${subscription.on} requires the ${required} capability`
+      })
+    }
   }
 }

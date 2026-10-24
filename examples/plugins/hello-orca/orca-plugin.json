@@ -18,7 +18,7 @@
     { "kind": "workspace:read" },
     { "kind": "terminal:send" },
     { "kind": "notifications:show" },
-    { "kind": "storage" },
-    { "kind": "events:subscribe" }
+    { "kind": "storage:own" },
+    { "kind": "agents:read" }
   ]
 }

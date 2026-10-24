@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { PLUGIN_ENUM_SINCE_KEY } from './manifest/plugin-engine-floor-keys'
 import { pluginFieldDoc, PLUGIN_SCHEMA_SINCE_V1 } from './manifest/plugin-schema-field-docs'
+import type { PluginCapabilityKind } from './plugin-capabilities'
 
 /** Domain events a plugin can subscribe to in v0. Closed set: server-side
  *  filtering means plugins only ever receive what they subscribed to. */
@@ -20,6 +21,13 @@ export const PLUGIN_EVENT_SINCE: Record<PluginEventName, string> = {
   'agent.status.changed': PLUGIN_SCHEMA_SINCE_V1
 }
 
+/** Each event is gated by the read capability of its domain, never a blanket event grant. */
+export const PLUGIN_EVENT_CAPABILITY: Record<PluginEventName, PluginCapabilityKind> = {
+  'worktree.created': 'workspace:read',
+  'worktree.removed': 'workspace:read',
+  'agent.status.changed': 'agents:read'
+}
+
 export const pluginEventContributionSchema = z
   .object({
     on: z.enum(PLUGIN_EVENT_NAMES).meta({
@@ -31,7 +39,7 @@ export const pluginEventContributionSchema = z
   .meta({
     id: 'EventContribution',
     description:
-      'An event subscription. Requires `main`, the `trusted-worker` execution profile and the `events:subscribe` capability.'
+      "An event subscription. Requires `main`, the `trusted-worker` execution profile and the capability of the event's domain: `workspace:read` for workspace events, `agents:read` for agent events."
   })
 
 export type PluginEventContribution = z.infer<typeof pluginEventContributionSchema>

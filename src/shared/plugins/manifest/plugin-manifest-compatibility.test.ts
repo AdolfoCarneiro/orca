@@ -27,10 +27,10 @@ describe('pluginManifestCompatibilityError', () => {
 
   it('tracks the newest format the schema accepts', () => {
     expect(
-      pluginManifestSchema.options.map((option) => option.shape.manifestVersion.value)
+      pluginManifestSchema.def.out.options.map((option) => option.shape.manifestVersion.value)
     ).toContain(PLUGIN_MANIFEST_VERSION_CURRENT)
     expect(
-      pluginManifestSchema.options.every(
+      pluginManifestSchema.def.out.options.every(
         (option) => option.shape.manifestVersion.value <= PLUGIN_MANIFEST_VERSION_CURRENT
       )
     ).toBe(true)

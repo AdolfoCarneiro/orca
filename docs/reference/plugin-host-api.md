@@ -13,16 +13,15 @@ Every call is checked against the capabilities the user approved, and params are
 | [`workspace.readContext`](#workspacereadcontext) | `workspace:read` | yes | no | 1.0 | Branch, name and terminal ids of the focused worktree, or null when none is focused. |
 | [`terminal.sendText`](#terminalsendtext) | `terminal:send` | yes | yes | 1.0 | Types text into one terminal named by id, optionally pressing Enter. |
 | [`notifications.show`](#notificationsshow) | `notifications:show` | yes | yes | 1.0 | Shows a desktop notification. |
-| [`storage.get`](#storageget) | `storage` | no | no | 1.0 | Reads a JSON value from the plugin's private store; null when absent. |
-| [`storage.set`](#storageset) | `storage` | no | yes | 1.0 | Writes a JSON value to the plugin's private store. |
-| [`storage.delete`](#storagedelete) | `storage` | no | yes | 1.0 | Removes a key from the plugin's private store. |
-| [`storage.keys`](#storagekeys) | `storage` | no | no | 1.0 | Lists the keys in the plugin's private store. |
-| [`secrets.get`](#secretsget) | `secrets` | no | no | 1.0 | Reads a secret from the OS keychain; null when absent. |
-| [`secrets.set`](#secretsset) | `secrets` | no | yes | 1.0 | Stores a secret in the OS keychain. |
-| [`secrets.delete`](#secretsdelete) | `secrets` | no | yes | 1.0 | Removes a secret from the OS keychain. |
+| [`storage.get`](#storageget) | `storage:own` | no | no | 1.0 | Reads a JSON value from the plugin's private store; null when absent. |
+| [`storage.set`](#storageset) | `storage:own` | no | yes | 1.0 | Writes a JSON value to the plugin's private store. |
+| [`storage.delete`](#storagedelete) | `storage:own` | no | yes | 1.0 | Removes a key from the plugin's private store. |
+| [`storage.keys`](#storagekeys) | `storage:own` | no | no | 1.0 | Lists the keys in the plugin's private store. |
+| [`secrets.get`](#secretsget) | `secrets:own` | no | no | 1.0 | Reads a secret from the plugin's encrypted secrets file; null when absent. |
+| [`secrets.set`](#secretsset) | `secrets:own` | no | yes | 1.0 | Stores a secret in the plugin's encrypted secrets file. |
+| [`secrets.delete`](#secretsdelete) | `secrets:own` | no | yes | 1.0 | Removes a secret from the plugin's encrypted secrets file. |
 | [`settings.get`](#settingsget) | `settings:own` | no | no | 1.0 | Reads every setting the plugin owns. |
 | [`settings.set`](#settingsset) | `settings:own` | no | yes | 1.0 | Writes one setting the plugin owns. |
-| [`events.subscribe`](#eventssubscribe) | `events:subscribe` | no | no | 1.0 | Starts delivering the named events to the worker; returns every event now subscribed. |
 
 ### `workspace.readContext`
 
@@ -82,7 +81,7 @@ Lists the keys in the plugin's private store.
 
 ### `secrets.get`
 
-Reads a secret from the OS keychain; null when absent.
+Reads a secret from the plugin's encrypted secrets file; null when absent.
 
 ```ts
 (params: { key: string }) => { value: string | null }
@@ -90,7 +89,7 @@ Reads a secret from the OS keychain; null when absent.
 
 ### `secrets.set`
 
-Stores a secret in the OS keychain.
+Stores a secret in the plugin's encrypted secrets file.
 
 ```ts
 (params: { key: string; value: string }) => { ok: true }
@@ -98,7 +97,7 @@ Stores a secret in the OS keychain.
 
 ### `secrets.delete`
 
-Removes a secret from the OS keychain.
+Removes a secret from the plugin's encrypted secrets file.
 
 ```ts
 (params: { key: string }) => { ok: true }
@@ -118,14 +117,6 @@ Writes one setting the plugin owns.
 
 ```ts
 (params: { key: string; value: JSON }) => { ok: true }
-```
-
-### `events.subscribe`
-
-Starts delivering the named events to the worker; returns every event now subscribed.
-
-```ts
-(params: { events: ("worktree.created" | "worktree.removed" | "agent.status.changed")[] }) => { subscribed: ("worktree.created" | "worktree.removed" | "agent.status.changed")[] }
 ```
 
 ## Errors

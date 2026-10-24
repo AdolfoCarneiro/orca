@@ -145,9 +145,9 @@ describe('PluginUpdateAllDialog', () => {
   })
 
   it('names only access the installed version lacks', () => {
-    expect(newAccess(entry('a', ['storage']), preview('a', ['storage', 'secrets']))).toEqual([
-      'secrets'
-    ])
+    expect(
+      newAccess(entry('a', ['storage:own']), preview('a', ['storage:own', 'secrets:own']))
+    ).toEqual(['secrets:own'])
   })
 
   it('reviews every update in one dialog and installs only the ticked ones', async () => {
@@ -157,7 +157,7 @@ describe('PluginUpdateAllDialog', () => {
       value: {
         plugins: {
           previewMarketplaceUpdate: vi.fn(({ pluginKey }: { pluginKey: string }) =>
-            Promise.resolve(preview(pluginKey, pluginKey === 'a' ? ['secrets'] : []))
+            Promise.resolve(preview(pluginKey, pluginKey === 'a' ? ['secrets:own'] : []))
           ),
           installMarketplacePlugin
         }

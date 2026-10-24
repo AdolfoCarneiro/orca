@@ -11,6 +11,7 @@ import { PLUGIN_ICON_RULE_TEXT, pluginManifestImageFields } from '../plugin-imag
 import { validatePluginManifestContributions } from './plugin-manifest-contribution-validation'
 import { validatePluginEngineFloor } from './plugin-engine-floor'
 import { validatePluginManifestV2Rules } from './plugin-manifest-v2-rules'
+import { upgradePluginManifestV1Names } from './plugin-manifest-v1-names'
 import { formatPluginSchemaIssues } from './plugin-schema-issues'
 import { pluginApiMajorSchema } from '../workers/plugin-host-api-major'
 import {
@@ -183,15 +184,18 @@ export const pluginManifestV2Object = z
   })
   .strict()
 
-export const pluginManifestSchema = z.discriminatedUnion('manifestVersion', [
-  pluginManifestV1Object.superRefine(validatePluginManifestContributions),
-  pluginManifestV2Object.superRefine((manifest, ctx) => {
-    validatePluginManifestContributions(manifest, ctx)
-    validatePluginExecutionProfile(manifest, ctx)
-    validatePluginManifestV2Rules(manifest, ctx)
-    validatePluginEngineFloor(pluginManifestV2Object, manifest, ctx)
-  })
-])
+export const pluginManifestSchema = z.preprocess(
+  upgradePluginManifestV1Names,
+  z.discriminatedUnion('manifestVersion', [
+    pluginManifestV1Object.superRefine(validatePluginManifestContributions),
+    pluginManifestV2Object.superRefine((manifest, ctx) => {
+      validatePluginManifestContributions(manifest, ctx)
+      validatePluginExecutionProfile(manifest, ctx)
+      validatePluginManifestV2Rules(manifest, ctx)
+      validatePluginEngineFloor(pluginManifestV2Object, manifest, ctx)
+    })
+  ])
+)
 
 export type PluginManifest = z.infer<typeof pluginManifestSchema>
 export { PLUGIN_PANEL_LIMIT, type PluginPanelContribution } from '../plugin-panel-contribution'

@@ -1,17 +1,21 @@
 import { z } from 'zod'
 import { PLUGIN_ENUM_SINCE_KEY } from './manifest/plugin-engine-floor-keys'
-import { pluginFieldDoc, PLUGIN_SCHEMA_SINCE_V1 } from './manifest/plugin-schema-field-docs'
+import {
+  pluginFieldDoc,
+  PLUGIN_MANIFEST_V2_SINCE,
+  PLUGIN_SCHEMA_SINCE_V1
+} from './manifest/plugin-schema-field-docs'
 
 /** Closed v0 capabilities fail unknown kinds instead of silently granting nothing. Consent binds capabilities and worker trust;
  * host boundaries enforce them across desktop, headless serve and relay. Scoped kinds remain future work. */
 
 export const PLUGIN_CAPABILITY_KINDS = [
   'workspace:read',
+  'agents:read',
   'terminal:send',
   'notifications:show',
-  'storage',
-  'secrets',
-  'events:subscribe',
+  'storage:own',
+  'secrets:own',
   'settings:own'
 ] as const
 
@@ -20,13 +24,21 @@ export type PluginCapabilityKind = (typeof PLUGIN_CAPABILITY_KINDS)[number]
 /** The release each capability arrived in; engines.orca must cover every one a plugin asks for. */
 export const PLUGIN_CAPABILITY_SINCE: Record<PluginCapabilityKind, string> = {
   'workspace:read': PLUGIN_SCHEMA_SINCE_V1,
+  'agents:read': PLUGIN_MANIFEST_V2_SINCE,
   'terminal:send': PLUGIN_SCHEMA_SINCE_V1,
   'notifications:show': PLUGIN_SCHEMA_SINCE_V1,
-  storage: PLUGIN_SCHEMA_SINCE_V1,
-  secrets: PLUGIN_SCHEMA_SINCE_V1,
-  'events:subscribe': PLUGIN_SCHEMA_SINCE_V1,
+  'storage:own': PLUGIN_MANIFEST_V2_SINCE,
+  'secrets:own': PLUGIN_MANIFEST_V2_SINCE,
   'settings:own': PLUGIN_SCHEMA_SINCE_V1
 }
+
+/** Format 1 capability names and what each now grants. `events:subscribe` split by event domain. */
+export const PLUGIN_V1_CAPABILITY_ALIASES: ReadonlyMap<string, readonly PluginCapabilityKind[]> =
+  new Map([
+    ['storage', ['storage:own']],
+    ['secrets', ['secrets:own']],
+    ['events:subscribe', ['workspace:read', 'agents:read']]
+  ])
 
 // Strict object (not a bare enum) so scoped fields can be added per-kind later
 // without changing the manifest shape.
@@ -44,13 +56,13 @@ export type PluginCapability = z.infer<typeof pluginCapabilitySchema>
 
 /** Consent copy shown verbatim; describe only what the host actually enforces. */
 export const PLUGIN_CAPABILITY_DESCRIPTIONS: Record<PluginCapabilityKind, string> = {
-  'workspace:read': 'Read the name, branch, and terminal list of your focused worktree',
+  'workspace:read':
+    'Read the name, branch, and terminal list of your focused workspace, and get notified when workspaces are created or removed',
+  'agents:read': 'Get notified when agent status changes',
   'terminal:send': 'Type text into a terminal you can see (always a specific terminal)',
   'notifications:show': 'Show desktop notifications labeled with the plugin name',
-  storage: "Store data in the plugin's own storage folder",
-  secrets: "Store and read secrets in the plugin's own encrypted vault",
-  'events:subscribe':
-    'Get notified when worktrees are created or removed and when agent status changes',
+  'storage:own': "Store data in the plugin's own storage folder",
+  'secrets:own': "Store and read secrets in the plugin's own encrypted file",
   'settings:own': "Read and change the plugin's own settings"
 }
 

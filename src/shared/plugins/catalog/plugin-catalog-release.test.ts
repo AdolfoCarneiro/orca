@@ -75,7 +75,7 @@ describe('catalog releases', () => {
       {
         execution: 'trusted-worker',
         main: 'main.mjs',
-        capabilities: [{ kind: 'storage' }],
+        capabilities: [{ kind: 'storage:own' }],
         contributes: {
           syntaxes: [
             {
@@ -202,7 +202,7 @@ describe('catalog release summaries', () => {
       })
     ).toBe('the listed contributions do not match the catalog release')
     expect(
-      pluginCatalogReleaseError({ ...base, release: { ...listed, capabilities: ['secrets'] } })
+      pluginCatalogReleaseError({ ...base, release: { ...listed, capabilities: ['secrets:own'] } })
     ).toBe('the listed capabilities do not match the catalog release')
   })
 

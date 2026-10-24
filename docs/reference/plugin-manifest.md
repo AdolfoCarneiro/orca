@@ -77,7 +77,7 @@ A command palette entry. Requires the `instructional` execution profile or highe
 
 ## EventContribution
 
-An event subscription. Requires `main`, the `trusted-worker` execution profile and the `events:subscribe` capability.
+An event subscription. Requires `main`, the `trusted-worker` execution profile and the capability of the event's domain: `workspace:read` for workspace events, `agents:read` for agent events.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
@@ -149,7 +149,7 @@ A host API the plugin may call once the user consents.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
-| `kind` | `"workspace:read"` \| `"terminal:send"` \| `"notifications:show"` \| `"storage"` \| `"secrets"` \| `"events:subscribe"` \| `"settings:own"` | yes | 1.4.160 | Capability granted on user consent. |
+| `kind` | `"workspace:read"` \| `"agents:read"` \| `"terminal:send"` \| `"notifications:show"` \| `"storage:own"` \| `"secrets:own"` \| `"settings:own"` | yes | 1.4.160 | Capability granted on user consent. |
 
 ## Screenshot
 
