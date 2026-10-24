@@ -9,6 +9,8 @@ import { PluginKillListStore } from './plugin-kill-list-store'
 
 export const PLUGIN_KILL_LIST_URL = 'https://onorca.dev/plugins/kill-list.json'
 const PLUGIN_KILL_LIST_DOWNLOAD_LIMIT = 4 * 1024 * 1024
+// Why: revocations must reach sessions that stay open for days, not only fresh launches.
+export const PLUGIN_KILL_LIST_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000
 
 type PluginKillListFetcher = () => Promise<PluginKillList>
 
@@ -18,6 +20,7 @@ export class PluginKillListService {
   private readonly listeners = new Set<() => void>()
   private currentList: PluginKillList | null = null
   private loadPromise: Promise<void> | null = null
+  private periodicTimer: ReturnType<typeof setInterval> | null = null
   private refreshChain: Promise<PluginKillList> = Promise.resolve({
     version: 1,
     generatedAt: '1970-01-01T00:00:00Z',
@@ -70,6 +73,30 @@ export class PluginKillListService {
       .then(() => this.performRefresh())
     this.refreshChain = refresh
     return refresh
+  }
+
+  /** Keeps a background refresh running while plugins are on; stops it when they are off. */
+  syncPeriodicRefresh(enabled: boolean, intervalMs = PLUGIN_KILL_LIST_REFRESH_INTERVAL_MS): void {
+    if (!enabled) {
+      this.dispose()
+      return
+    }
+    if (this.periodicTimer) {
+      return
+    }
+    this.periodicTimer = setInterval(() => {
+      void this.refresh().catch((error) =>
+        console.warn('[plugins] failed to refresh plugin safety list; using cached state:', error)
+      )
+    }, intervalMs)
+    this.periodicTimer.unref?.()
+  }
+
+  dispose(): void {
+    if (this.periodicTimer) {
+      clearInterval(this.periodicTimer)
+      this.periodicTimer = null
+    }
   }
 
   private async performRefresh(): Promise<PluginKillList> {
