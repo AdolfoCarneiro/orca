@@ -91,9 +91,10 @@ export const pluginCatalogReleaseSchema = z
       .min(1)
       .max(PLUGIN_CATALOG_TYPES.length)
       .refine((types) => new Set(types).size === types.length, 'duplicate contribution type')
+      .optional()
       .meta({
         ...pluginFieldDoc(
-          'Every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` needs `sandboxed-ui`, and `worker` needs `trusted-worker`.',
+          'Optional; Orca derives it from `contributes` and `execution`. When present, every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` needs `sandboxed-ui`, and `worker` needs `trusted-worker`.',
           NEXT,
           [['syntax']]
         ),
@@ -187,7 +188,7 @@ export const pluginCatalogReleaseSchema = z
       )
   })
   .superRefine((release, ctx) => {
-    for (const [index, type] of release.types.entries()) {
+    for (const [index, type] of (release.types ?? []).entries()) {
       const required = CATALOG_TYPE_PROFILE[type]
       if (required && !pluginExecutionAllows(release.execution, required)) {
         ctx.addIssue({
@@ -219,6 +220,27 @@ export function pluginCatalogTypes(manifest: PluginManifest): PluginCatalogType[
   return PLUGIN_CATALOG_TYPES.filter((type) => declared.has(type))
 }
 
+/** The release's types, derived from its summary and profile when the catalog leaves them out. */
+export function pluginCatalogReleaseTypes(
+  release: Pick<PluginCatalogRelease, 'types' | 'contributes' | 'execution'>
+): readonly PluginCatalogType[] {
+  if (release.types) {
+    return release.types
+  }
+  const declared = new Set<PluginCatalogType>()
+  for (const item of release.contributes ?? []) {
+    const type = PLUGIN_CONTRIBUTION_POINT_POLICY[item.kind].catalogType
+    if (type) {
+      declared.add(type)
+    }
+  }
+  // Why: format 2 requires `main` for trusted-worker, and only it.
+  if (release.execution === 'trusted-worker') {
+    declared.add('worker')
+  }
+  return PLUGIN_CATALOG_TYPES.filter((type) => declared.has(type))
+}
+
 /** The release entry a catalog should list for these exact bytes, so authors paste it instead of
  *  hand-copying fields that `pluginCatalogReleaseError` would refuse. */
 export function pluginCatalogReleaseEntry(
@@ -242,7 +264,6 @@ export function pluginCatalogReleaseEntry(
     contentHash: pinned.contentHash,
     execution: manifest.execution,
     minimumOrca: manifest.engines.orca.replace(/^>=/, ''),
-    types: pluginCatalogTypes(manifest),
     name: manifest.name,
     contributes: pluginContributionSummary(manifest),
     ...(capabilities.length > 0 ? { capabilities } : {}),
@@ -276,8 +297,10 @@ export function pluginCatalogReleaseError(input: {
   if (manifest.engines.orca !== `>=${release.minimumOrca}`) {
     return 'Orca compatibility does not match the catalog release'
   }
-  const declared = [...release.types].sort().join()
-  if (pluginCatalogTypes(manifest).sort().join() !== declared) {
+  if (
+    release.types &&
+    pluginCatalogTypes(manifest).sort().join() !== [...release.types].sort().join()
+  ) {
     return 'contributions do not match the catalog release'
   }
   // Why: a suggestion must lead to a plugin that really handles the file.

@@ -4,6 +4,7 @@ import {
   pluginCatalogReleaseEntry,
   pluginCatalogReleaseError,
   pluginCatalogReleaseSchema,
+  pluginCatalogReleaseTypes,
   type PluginCatalogRelease
 } from './plugin-catalog-release'
 import { pluginContributionSummary } from '../plugin-contribution-summary'
@@ -93,6 +94,16 @@ describe('catalog releases', () => {
     const subject = manifest(overrides)
     const entry = pluginCatalogReleaseEntry(subject, { commit: COMMIT, contentHash: HASH })
     expect(check(pluginCatalogReleaseSchema.parse(entry), subject)).toBeNull()
+  })
+
+  it('derives types from the summary and profile when the catalog leaves them out', () => {
+    const derived = release({
+      types: undefined,
+      execution: 'trusted-worker',
+      contributes: [{ kind: 'panels', name: 'Dash' }]
+    })
+    expect(pluginCatalogReleaseTypes(derived)).toEqual(['panel', 'worker'])
+    expect(check(release({ types: undefined }))).toBeNull()
   })
 
   it('strips unknown optional fields instead of rejecting the release', () => {

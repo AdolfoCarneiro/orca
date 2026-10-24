@@ -4,7 +4,10 @@ import type {
   PluginMarketplaceHostSourceState
 } from '../../../../../preload/api-types'
 import { satisfiesOrcaEngineRange } from '../../../../../shared/plugins/manifest/plugin-manifest'
-import type { PluginCatalogType } from '../../../../../shared/plugins/catalog/plugin-catalog-release'
+import {
+  pluginCatalogReleaseTypes,
+  type PluginCatalogType
+} from '../../../../../shared/plugins/catalog/plugin-catalog-release'
 import { compareAppVersions } from '../../../../../shared/app-version'
 import { pluginDisplayNameFromKey } from './plugin-display-name'
 
@@ -69,7 +72,7 @@ export function pluginListEntryFromInstalled(
     description: plugin.description ?? listing?.description ?? null,
     official: plugin.official,
     categories: listing?.categories ?? [],
-    types: listing?.release?.types ?? [],
+    types: listing?.release ? pluginCatalogReleaseTypes(listing.release) : [],
     minimumOrca: listing?.release?.minimumOrca ?? null,
     updateVersion: newerCatalogVersion(plugin, listing, orcaVersion),
     catalogIds,
@@ -92,7 +95,7 @@ export function pluginListEntryFromListing(
     description: listing.description ?? null,
     official: listing.official,
     categories: listing.categories,
-    types: listing.release?.types ?? [],
+    types: listing.release ? pluginCatalogReleaseTypes(listing.release) : [],
     minimumOrca: listing.release?.minimumOrca ?? null,
     updateVersion: null,
     catalogIds,

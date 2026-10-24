@@ -50,7 +50,7 @@ The exact release the catalog vouches for. Orca refuses bytes that differ.
 | `contentHash` | string | yes | 1.4.244 | SHA-256 of the plugin's installed files, as Orca computes it at install. |
 | `execution` | `"data"` \| `"declarative"` \| `"sandboxed-ui"` \| `"trusted-worker"` | yes | 1.4.244 | The manifest's `execution` profile. Example: `"data"` |
 | `minimumOrca` | string | yes | 1.4.244 | The manifest's `engines.orca` without `>=`. Older Orca lists the plugin but will not install it. Example: `"1.4.244"` |
-| `types` | (`"interface-language"` \| `"app-theme"` \| `"terminal-theme"` \| `"icon-theme"` \| `"syntax"` \| `"instructions"` \| `"panel"` \| `"worker"`)[] | yes | 1.4.244 | Every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` needs `sandboxed-ui`, and `worker` needs `trusted-worker`. Example: `["syntax"]` |
+| `types` | (`"interface-language"` \| `"app-theme"` \| `"terminal-theme"` \| `"icon-theme"` \| `"syntax"` \| `"instructions"` \| `"panel"` \| `"worker"`)[] | no | 1.4.244 | Optional; Orca derives it from `contributes` and `execution`. When present, every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` needs `sandboxed-ui`, and `worker` needs `trusted-worker`. Example: `["syntax"]` |
 | `name` | string | no | 1.4.244 | The manifest's `name`, so Orca can suggest the plugin before downloading it. Example: `"Gleam"` |
 | `license` | string | no | 1.4.244 | SPDX license expression. Example: `"MIT"` |
 | `repository` | string | no | 1.4.244 | Source repository page, https only. Example: `"https://github.com/acme/orca-gleam-syntax"` |
