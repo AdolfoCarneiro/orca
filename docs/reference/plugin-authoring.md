@@ -89,8 +89,11 @@ for.
    `orca-marketplace.json` as described in the [catalog reference](plugin-catalog.md#clients-before-format-2).
 4. Users add the catalog under Settings → Plugins → **Add marketplace** with its Git URL and ref.
 
-An update that asks for a new capability or changes the execution profile is never applied
-silently. Orca asks the user to approve it again.
+Users approve a plugin once per level of access. An update from the same repository that asks
+for nothing new, code changes included, installs without asking again and stays enabled. Orca
+asks again, listing what is new, when an update adds a capability, raises the execution profile,
+adds a command, shortcut, panel or event subscription, ships virtual machine recipes, or comes from
+a different repository.
 
 ## Planned contribution points
 

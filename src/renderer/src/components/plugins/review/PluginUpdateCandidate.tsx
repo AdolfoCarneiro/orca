@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react'
 import type { PluginMarketplaceHostInstallPreview } from '../../../../../preload/api-types'
 import { pluginExecutionProfile } from '../../../../../shared/plugins/plugin-execution-profile'
+import type { PluginContributionPoint } from '../../../../../shared/plugins/plugin-contribution-points'
 import { isSameGitRepository } from '../../../../../shared/plugins/catalog/plugin-marketplace'
 import { pluginContributionSummary } from '../../../../../shared/plugins/plugin-contribution-summary'
 import { translate } from '@/i18n/i18n'
@@ -43,6 +44,43 @@ export function movedFromSource(
     : null
 }
 
+const contributionGrowthLabel = (point: PluginContributionPoint): string => {
+  switch (point) {
+    case 'keybindings':
+      return translate(
+        'auto.components.settings.PluginUpdateAllDialog.newShortcuts',
+        'Adds keyboard shortcuts'
+      )
+    case 'commands':
+      return translate(
+        'auto.components.settings.PluginUpdateAllDialog.newCommands',
+        'Adds commands'
+      )
+    case 'panels':
+      return translate('auto.components.settings.PluginUpdateAllDialog.newPanels', 'Adds panels')
+    case 'events':
+      return translate(
+        'auto.components.settings.PluginUpdateAllDialog.newEvents',
+        'Listens for more events'
+      )
+    case 'vmRecipes':
+      return translate(
+        'auto.components.settings.PluginUpdateAllDialog.newRecipes',
+        'Changes virtual machine recipes'
+      )
+    default:
+      return translate(
+        'auto.components.settings.PluginUpdateAllDialog.newContributions',
+        'Adds new features that act for you'
+      )
+  }
+}
+
+/** Authority-bearing additions main found against the installed version, as review lines. */
+export function newContributions(preview: PluginMarketplaceHostInstallPreview): string[] {
+  return [...new Set((preview.accessGrowth?.contributions ?? []).map(contributionGrowthLabel))]
+}
+
 export function isCurrent(
   entry: PluginListEntry,
   preview: PluginMarketplaceHostInstallPreview | null
@@ -80,6 +118,7 @@ export function CandidateRow({
   const { entry, preview, error, needsOrca } = candidate
   const added = preview ? newAccess(entry, preview) : []
   const execution = preview ? executionChanges(entry, preview) : []
+  const contributions = preview ? newContributions(preview) : []
   const movedFrom = preview ? movedFromSource(entry, preview) : null
   const checkboxId = `plugin-update-${entry.pluginKey}`
   let note: React.ReactNode
@@ -128,7 +167,7 @@ export function CandidateRow({
         )}
       </p>
     )
-  } else if (added.length > 0 || execution.length > 0 || movedFrom) {
+  } else if (added.length > 0 || execution.length > 0 || contributions.length > 0 || movedFrom) {
     note = (
       <ul className="mt-1.5 space-y-0.5 border-l-2 border-status-warning pl-2 text-xs">
         {movedFrom && preview ? (
@@ -140,7 +179,7 @@ export function CandidateRow({
             )}
           </li>
         ) : null}
-        {execution.map((warning) => (
+        {[...execution, ...contributions].map((warning) => (
           <li key={warning} className="text-status-warning-text">
             {warning}
           </li>

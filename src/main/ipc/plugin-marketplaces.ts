@@ -1,4 +1,5 @@
-import { enableIfDataPlugin } from '../plugins/plugin-one-click-enable'
+import { installCatalogReleaseWithApproval } from '../plugins/plugin-update-approval'
+import { pluginUpdateAccessGrowth } from '../../shared/plugins/approval/plugin-update-access-growth'
 import { ipcMain } from 'electron'
 import { z } from 'zod'
 import { PLUGIN_COMMIT_PATTERN } from '../../shared/plugins/plugin-install-lockfile'
@@ -86,31 +87,22 @@ export function registerPluginMarketplaceHandlers(
   ipcMain.handle('plugins:installMarketplacePlugin', async (event, args: unknown) => {
     const { enableIfData, expectedFingerprint, ...identity } =
       installMarketplacePluginSchema.parse(args)
-    const result = await services.installer.install(identity)
-    if (!result.ok) {
-      return result
-    }
-    await pluginService.refresh()
-    // Why main decides: a repository move must reach review even if the renderer skipped its flag.
-    if (result.repositoryMoved) {
-      return { ...result, needsReview: true }
-    }
-    if (!enableIfData) {
-      return result
-    }
-    const { needsReview } = await enableIfDataPlugin({
-      pluginKey: result.pluginKey,
-      installedFingerprint: result.consentFingerprint,
-      ...(expectedFingerprint ? { expectedFingerprint } : {}),
-      findValidPlugin: (key) => pluginService.findValidPlugin(key),
+    return installCatalogReleaseWithApproval({
+      pluginKey: identity.pluginKey,
+      pluginService,
+      install: () => services.installer.install(identity),
       approve: (pluginKey, reviewedFingerprint) =>
-        approveConsent(pluginKey, reviewedFingerprint, event.sender.id)
+        approveConsent(pluginKey, reviewedFingerprint, event.sender.id),
+      ...(enableIfData ? { enableIfData: { expectedFingerprint } } : {})
     })
-    return { ...result, needsReview }
   })
   ipcMain.handle('plugins:previewMarketplaceUpdate', async (_event, args: unknown) => {
     const { pluginKey } = installedPluginSchema.parse(args)
-    return services.installer.previewInstalledUpdate(pluginKey)
+    const preview = await services.installer.previewInstalledUpdate(pluginKey)
+    const installed = pluginService.findValidPlugin(pluginKey)
+    return installed
+      ? { ...preview, accessGrowth: pluginUpdateAccessGrowth(installed.manifest, preview.manifest) }
+      : preview
   })
   ipcMain.handle('plugins:getRollbackVersion', (_event, args: unknown) => {
     const { pluginKey } = installedPluginSchema.parse(args)

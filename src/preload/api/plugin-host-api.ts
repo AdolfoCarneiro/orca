@@ -1,4 +1,5 @@
 import type { PluginHostImages } from '../../shared/plugins/plugin-image-url'
+import type { PluginUpdateAccessGrowth } from '../../shared/plugins/approval/plugin-update-access-growth'
 import type { PluginExecutionProfile } from '../../shared/plugins/plugin-execution-profile'
 import type {
   PluginIconThemeMetadata,
@@ -184,6 +185,8 @@ export type PluginMarketplaceHostInstallPreview = {
   blockedByKillList?: { reason: string; advisoryUrl?: string }
   /** The manifest's images, verified at preview. */
   images?: PluginHostImages
+  /** For an update: what it asks for beyond the installed version. Absent from older hosts. */
+  accessGrowth?: PluginUpdateAccessGrowth
 }
 
 export type PluginsApi = {

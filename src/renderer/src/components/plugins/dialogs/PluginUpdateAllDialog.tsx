@@ -16,6 +16,7 @@ import {
   CandidateRow,
   executionChanges,
   newAccess,
+  newContributions,
   isCurrent,
   movedFromSource,
   type UpdateCandidate
@@ -135,6 +136,7 @@ export function PluginUpdateAllDialog({
       candidate.preview &&
       (newAccess(candidate.entry, candidate.preview).length > 0 ||
         executionChanges(candidate.entry, candidate.preview).length > 0 ||
+        newContributions(candidate.preview).length > 0 ||
         movedFromSource(candidate.entry, candidate.preview))
   ).length
 
@@ -192,12 +194,12 @@ export function PluginUpdateAllDialog({
                 )
               : growing > 0
                 ? translate(
-                    'auto.components.settings.PluginUpdateAllDialog.someGrow',
-                    'Updates that ask for new access are expanded below. The others change only what they add.'
+                    'auto.components.settings.PluginUpdateAllDialog.someGrowAsk',
+                    'Updates that ask for new access are expanded below and need your approval again. The others install without asking.'
                   )
                 : translate(
-                    'auto.components.settings.PluginUpdateAllDialog.noneGrow',
-                    'None of these updates asks for new access.'
+                    'auto.components.settings.PluginUpdateAllDialog.noneGrowKeep',
+                    'None of these updates asks for new access, so they install without asking again.'
                   )}
           </DialogDescription>
         </DialogHeader>

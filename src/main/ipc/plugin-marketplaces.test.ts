@@ -42,6 +42,13 @@ function createServices(): PluginMarketplaceHandlerServices {
 
 function createPluginService(): PluginService {
   return {
+    options: {
+      isPluginSystemEnabled: () => true,
+      isFullAccessAllowed: () => false,
+      getPluginConsents: () => ({}),
+      getDisabledPlugins: () => []
+    },
+    findValidPlugin: vi.fn(() => null),
     deactivatePlugin: vi.fn().mockResolvedValue(undefined),
     refresh: vi.fn().mockResolvedValue(undefined)
   } as unknown as PluginService

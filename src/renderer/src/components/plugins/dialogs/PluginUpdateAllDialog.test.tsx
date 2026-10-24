@@ -184,6 +184,21 @@ describe('PluginUpdateAllDialog', () => {
     ).toEqual(['secrets:own'])
   })
 
+  it('expands an update that adds a shortcut even with no new capability', async () => {
+    installApi({
+      previewMarketplaceUpdate: vi.fn(({ pluginKey }: { pluginKey: string }) =>
+        Promise.resolve({
+          ...preview(pluginKey, []),
+          accessGrowth: { capabilities: [], execution: null, contributions: ['keybindings'] }
+        })
+      ),
+      installMarketplacePlugin: vi.fn()
+    })
+    const container = await renderDialog([entry('a', [])])
+    expect(container.textContent).toContain('Adds keyboard shortcuts')
+    expect(container.textContent).toContain('need your approval again')
+  })
+
   it('reviews every update in one dialog and installs only the ticked ones', async () => {
     const installMarketplacePlugin = vi.fn().mockResolvedValue({ ok: true, pluginKey: 'b' })
     Object.defineProperty(window, 'api', {
@@ -211,7 +226,9 @@ describe('PluginUpdateAllDialog', () => {
         />
       )
     })
-    expect(container.textContent).toContain('Updates that ask for new access are expanded below.')
+    expect(container.textContent).toContain(
+      'Updates that ask for new access are expanded below and need your approval again.'
+    )
     expect(container.textContent).toContain('New access:')
 
     const first = container.querySelector<HTMLButtonElement>('#plugin-update-a')

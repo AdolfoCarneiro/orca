@@ -12473,8 +12473,6 @@
         "PluginUpdateAllDialog": {
           "title": "要更新插件吗？",
           "reading": "正在读取每个更新的变更…",
-          "someGrow": "需要新访问权限的更新在下方展开显示，其余更新只改变所添加的内容。",
-          "noneGrow": "这些更新都不需要新的访问权限。",
           "previewError": "无法读取此更新，将跳过。",
           "newAccess": "新访问权限：{{value0}}",
           "noNewAccess": "无新访问权限",

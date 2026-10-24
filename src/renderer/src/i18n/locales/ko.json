@@ -12440,8 +12440,6 @@
         "PluginUpdateAllDialog": {
           "title": "플러그인을 업데이트할까요?",
           "reading": "각 업데이트의 변경 사항을 읽는 중…",
-          "someGrow": "새 접근 권한을 요청하는 업데이트는 아래에 펼쳐 표시됩니다. 나머지는 추가되는 항목만 바뀝니다.",
-          "noneGrow": "새 접근 권한을 요청하는 업데이트가 없습니다.",
           "previewError": "이 업데이트를 읽을 수 없습니다. 건너뜁니다.",
           "newAccess": "새 접근 권한: {{value0}}",
           "noNewAccess": "새 접근 권한 없음",

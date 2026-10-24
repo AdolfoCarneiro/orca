@@ -12926,8 +12926,6 @@
         "PluginUpdateAllDialog": {
           "title": "Update plugins?",
           "reading": "Reading what each update changes…",
-          "someGrow": "Updates that ask for new access are expanded below. The others change only what they add.",
-          "noneGrow": "None of these updates asks for new access.",
           "previewError": "Couldn’t read this update. It will be skipped.",
           "newAccess": "New access: {{value0}}",
           "noNewAccess": "No new access",
@@ -12941,7 +12939,15 @@
           "updated": "Updated",
           "needsOrca": "Needs Orca {{value0}} or later. Update Orca first.",
           "current": "This exact plugin content is already installed.",
-          "sourceMoved": "Now comes from a different repository: {{value0}} (was {{value1}})"
+          "sourceMoved": "Now comes from a different repository: {{value0}} (was {{value1}})",
+          "someGrowAsk": "Updates that ask for new access are expanded below and need your approval again. The others install without asking.",
+          "noneGrowKeep": "None of these updates asks for new access, so they install without asking again.",
+          "newShortcuts": "Adds keyboard shortcuts",
+          "newCommands": "Adds commands",
+          "newPanels": "Adds panels",
+          "newEvents": "Listens for more events",
+          "newRecipes": "Changes virtual machine recipes",
+          "newContributions": "Adds new features that act for you"
         },
         "PluginDetailInfo": {
           "previous": "Previous",
@@ -12982,7 +12988,8 @@
           "noOtherAccess": "It asks for no other access.",
           "keepOff": "Keep off",
           "replacesShortcut": "{{value0}} ({{value1}}) replaces your shortcut for {{value2}}.",
-          "reading": "Reading what it can access…"
+          "reading": "Reading what it can access…",
+          "updatesKeepApproval": "Updates that don’t ask for more access install without asking again."
         },
         "PluginPageAction": {
           "failedTitle": "Couldn’t install {{value0}}",

@@ -12717,8 +12717,6 @@
         "PluginUpdateAllDialog": {
           "title": "¿Actualizar plugins?",
           "reading": "Leyendo qué cambia cada actualización…",
-          "someGrow": "Las actualizaciones que piden acceso nuevo se muestran desplegadas abajo. Las demás solo cambian lo que añaden.",
-          "noneGrow": "Ninguna de estas actualizaciones pide acceso nuevo.",
           "previewError": "No se pudo leer esta actualización. Se omitirá.",
           "newAccess": "Acceso nuevo: {{value0}}",
           "noNewAccess": "Sin acceso nuevo",

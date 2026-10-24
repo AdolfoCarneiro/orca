@@ -12903,8 +12903,6 @@
         "PluginUpdateAllDialog": {
           "title": "Mettre à jour les plugins ?",
           "reading": "Lecture des changements de chaque mise à jour…",
-          "someGrow": "Les mises à jour qui demandent un nouvel accès sont détaillées ci-dessous. Les autres ne changent que ce qu’elles ajoutent.",
-          "noneGrow": "Aucune de ces mises à jour ne demande de nouvel accès.",
           "previewError": "Impossible de lire cette mise à jour. Elle sera ignorée.",
           "newAccess": "Nouvel accès : {{value0}}",
           "noNewAccess": "Aucun nouvel accès",
