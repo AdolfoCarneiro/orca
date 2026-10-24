@@ -81,13 +81,9 @@
             return
           }
           var count = result.value.terminals.length
-          statusEl.textContent =
-            result.value.displayName +
-            ' on branch ' +
-            result.value.branch.replace(/^refs\/heads\//, '') +
-            ' · ' +
-            count +
-            (count === 1 ? ' terminal' : ' terminals')
+          var branch = result.value.branch.replace(/^refs\/heads\//, '')
+          var terminals = count === 1 ? 'terminal' : 'terminals'
+          statusEl.textContent = `${result.value.displayName} on branch ${branch} · ${count} ${terminals}`
         })
       })
 
