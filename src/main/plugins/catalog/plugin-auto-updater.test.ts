@@ -15,6 +15,17 @@ import { PLUGIN_AUTO_UPDATE_HOLD_BACK_MS, PluginAutoUpdater } from './plugin-aut
 const KEY = 'samples.demo'
 const REPO = 'https://example.com/samples/demo.git'
 const HOUR = 60 * 60 * 1000
+const COMMIT = 'c'.repeat(40)
+
+function release(version: string) {
+  return {
+    version,
+    commit: COMMIT,
+    contentHash: 'sha-new',
+    execution: 'trusted-worker' as const,
+    minimumOrca: '1.0.0'
+  }
+}
 
 function manifest(version: string, overrides: Partial<PluginManifest> = {}): PluginManifest {
   return pluginManifestSchema.parse({
@@ -52,6 +63,8 @@ function setup(
     dev?: boolean
     enabled?: boolean
     blocked?: boolean
+    pinned?: boolean
+    previewCommit?: string
   } = {}
 ) {
   let now = 1_000_000
@@ -98,6 +111,7 @@ function setup(
           official: false,
           bundled: false,
           version: nextManifest.version,
+          ...(options.pinned === false ? {} : { release: release(nextManifest.version) }),
           ...(options.blocked ? { blockedByKillList: { reason: 'malware' } } : {})
         },
         officialCatalog: options.officialCatalog === true,
@@ -110,7 +124,7 @@ function setup(
         marketplaceCommit: 'b'.repeat(40),
         pluginKey: KEY,
         source: { kind: 'git' as const, url: options.repository ?? REPO, ref: 'main' },
-        resolvedCommit: 'c'.repeat(40),
+        resolvedCommit: options.previewCommit ?? COMMIT,
         contentHash: 'sha-new',
         consentFingerprint: next.consentFingerprint,
         manifest: nextManifest,
@@ -207,6 +221,20 @@ describe('plugin auto-update', () => {
       await updater.run()
       expect(install, JSON.stringify(options)).not.toHaveBeenCalled()
     }
+  })
+
+  it('never auto-installs an unpinned listing, whose bytes are a moving branch head', async () => {
+    const { updater, install, advance } = setup({ pinned: false })
+    await updater.run()
+    advance(PLUGIN_AUTO_UPDATE_HOLD_BACK_MS)
+    await updater.run()
+    expect(install).not.toHaveBeenCalled()
+  })
+
+  it('installs only the release that was held, not one listed since', async () => {
+    const { updater, install } = setup({ officialCatalog: true, previewCommit: 'd'.repeat(40) })
+    await updater.run()
+    expect(install).not.toHaveBeenCalled()
   })
 
   it('keeps the policy a bounded union with auto as the default and unknown values manual', () => {

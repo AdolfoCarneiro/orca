@@ -140,25 +140,34 @@ export class PluginAutoUpdater {
       return null
     }
     const found = await installer.findInstalledUpdateListing(plugin.pluginKey)
-    const version = found ? (found.listing.version ?? found.listing.release?.version) : undefined
+    // Why pinned only: an unpinned listing installs a branch head, which can move after the hold.
+    const release = found?.listing.release
     if (
       !found ||
-      !version ||
+      !release ||
       found.listing.blockedByKillList ||
-      compareAppVersions(version, plugin.manifest.version) <= 0
+      compareAppVersions(release.version, plugin.manifest.version) <= 0
     ) {
       return null
     }
     if (!found.officialCatalog) {
       const now = (this.options.now ?? Date.now)()
-      const release = `${version}@${found.listing.release?.commit ?? found.listing.marketplaceCommit}`
-      const firstSeenAt = await this.options.firstSeen.firstSeen(plugin.pluginKey, release, now)
+      const firstSeenAt = await this.options.firstSeen.firstSeen(
+        plugin.pluginKey,
+        `${release.version}@${release.commit}`,
+        now
+      )
       if (now - firstSeenAt < PLUGIN_AUTO_UPDATE_HOLD_BACK_MS) {
         return null
       }
     }
     const preview = await installer.previewInstalledUpdate(plugin.pluginKey)
-    if (preview.contentHash === plugin.contentHash) {
+    // Why: a catalog refresh since the hold check can list another release; install only the held one.
+    if (
+      preview.resolvedCommit !== release.commit ||
+      preview.contentHash !== release.contentHash ||
+      preview.contentHash === plugin.contentHash
+    ) {
       return null
     }
     if (
