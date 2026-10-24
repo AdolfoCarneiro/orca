@@ -34,6 +34,7 @@ import { logStartupMilestone } from './startup-diagnostics'
 import type { WindowsDesktopStartupServices } from './windows-desktop-shell-path-startup'
 import type { RuntimeWorktreeLifecycleEvent } from '../runtime/orca-runtime'
 import { mainProcessState as state } from './main-process-state'
+import { shortPluginBranchName } from '../../shared/plugins/plugin-events'
 
 export function emitPluginWorktreeLifecycle(event: RuntimeWorktreeLifecycleEvent): void {
   const identity = { workspaceId: event.worktreeId, kind: 'worktree', path: event.path }
@@ -43,7 +44,9 @@ export function emitPluginWorktreeLifecycle(event: RuntimeWorktreeLifecycleEvent
   }
   state.pluginService?.emitEvent(
     event.kind === 'created' ? 'workspace.created' : 'workspace.removed',
-    event.kind === 'created' ? { ...identity, branch: event.branch } : identity
+    event.kind === 'created'
+      ? { ...identity, branch: shortPluginBranchName(event.branch) }
+      : identity
   )
 }
 

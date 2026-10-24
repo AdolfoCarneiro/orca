@@ -6,6 +6,7 @@ import {
   PLUGIN_WORKSPACE_TERMINAL_LIMIT,
   type PluginHostMethodSpec
 } from '../../../shared/plugins/workers/plugin-host-api'
+import { shortPluginBranchName } from '../../../shared/plugins/plugin-events'
 
 export type PluginWorktreeContext = {
   worktreeId: string
@@ -73,7 +74,7 @@ const HANDLERS = new Map<string, BoundPluginHostMethod>([
     const terminals = await services.listWorktreeTerminals(context.worktreeId)
     // Worktree IDs embed provider paths; explicitly project safe public fields.
     return {
-      branch: context.branch.slice(0, PLUGIN_WORKSPACE_LABEL_MAX_LENGTH),
+      branch: shortPluginBranchName(context.branch).slice(0, PLUGIN_WORKSPACE_LABEL_MAX_LENGTH),
       displayName: context.displayName.slice(0, PLUGIN_WORKSPACE_LABEL_MAX_LENGTH),
       terminals: terminals
         .filter(

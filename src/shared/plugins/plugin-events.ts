@@ -8,6 +8,11 @@ import type { PluginEventName } from './manifest/plugin-manifest'
  * own, remotes, credentials) can leak through the event stream.
  */
 
+/** Plugins see `main`, not the `refs/heads/main` Orca tracks internally. */
+export function shortPluginBranchName(branch: string): string {
+  return branch.replace(/^refs\/heads\//, '')
+}
+
 const workspaceIdentity = {
   workspaceId: z.string().min(1).max(2048),
   /** Folder workspaces have no branch; only worktrees emit lifecycle events today. */
