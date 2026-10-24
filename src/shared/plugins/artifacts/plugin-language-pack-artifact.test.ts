@@ -124,6 +124,37 @@ describe('plugin language-pack artifacts', () => {
     ).toMatchObject({ ok: false, error: expect.stringContaining('protected security copy') })
   })
 
+  it.each([
+    [
+      'the Official badge',
+      { auto: { components: { pluginCatalog: { PluginListRow: { official: 'x' } } } } }
+    ],
+    [
+      'the suggestion banner',
+      { auto: { components: { editor: { PluginFileTypeSuggestion: { view: 'x' } } } } }
+    ],
+    [
+      'agent Allow/Deny',
+      { components: { 'native-chat': { approval: { allow: 'Deny', deny: 'Allow' } } } }
+    ]
+  ])('refuses to relabel %s', (_label, catalog) => {
+    expect(parsePluginLanguagePackArtifact(JSON.stringify(catalog))).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('protected security copy')
+    })
+  })
+
+  it('still translates neighbours of protected components', () => {
+    expect(
+      parsePluginLanguagePackArtifact(
+        JSON.stringify({
+          auto: { components: { pluginCatalog: { PluginListRow: { install: 'Instalar' } } } },
+          components: { 'native-chat': { composer: { send: 'Enviar' } } }
+        })
+      ).ok
+    ).toBe(true)
+  })
+
   it('still lets language packs translate non-plugin settings copy', () => {
     expect(
       parsePluginLanguagePackArtifact(
