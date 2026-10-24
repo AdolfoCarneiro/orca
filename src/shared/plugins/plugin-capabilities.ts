@@ -68,12 +68,14 @@ export const PLUGIN_CAPABILITY_DESCRIPTIONS: Record<PluginCapabilityKind, string
 
 /** Canonicalize order, duplicates and field order so equivalent grants preserve consent across manifest formatting changes. */
 export function canonicalizeCapabilitySet(capabilities: readonly PluginCapability[]): string {
-  const encoded = capabilities.map((capability) =>
-    JSON.stringify(
-      Object.fromEntries(Object.entries(capability).sort(([a], [b]) => a.localeCompare(b)))
-    )
+  return JSON.stringify([...new Set(capabilities.map(canonicalizeCapability))].sort())
+}
+
+/** One grant, key-sorted, so a scoped field such as hosts counts as part of what is granted. */
+export function canonicalizeCapability(capability: PluginCapability): string {
+  return JSON.stringify(
+    Object.fromEntries(Object.entries(capability).sort(([a], [b]) => a.localeCompare(b)))
   )
-  return JSON.stringify([...new Set(encoded)].sort())
 }
 
 export function capabilityKinds(capabilities: readonly PluginCapability[]): PluginCapabilityKind[] {

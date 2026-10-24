@@ -1,5 +1,5 @@
 import type { PluginManifest } from '../manifest/plugin-manifest'
-import type { PluginCapabilityKind } from '../plugin-capabilities'
+import { canonicalizeCapability, type PluginCapabilityKind } from '../plugin-capabilities'
 import {
   PLUGIN_CONTRIBUTION_POINT_POLICY,
   PLUGIN_CONTRIBUTION_POINTS,
@@ -49,10 +49,13 @@ export function pluginUpdateAccessGrowth(
   installed: GrowthSubject,
   next: GrowthSubject
 ): PluginUpdateAccessGrowth {
-  const held = new Set(installed.capabilities.map((capability) => capability.kind))
+  // Why whole entries: a same-kind grant with a wider scope is still more access.
+  const held = new Set(installed.capabilities.map(canonicalizeCapability))
   const capabilities = [
     ...new Set(
-      next.capabilities.map((capability) => capability.kind).filter((kind) => !held.has(kind))
+      next.capabilities
+        .filter((capability) => !held.has(canonicalizeCapability(capability)))
+        .map((capability) => capability.kind)
     )
   ]
   const nextExecution = pluginExecutionProfile(next)
