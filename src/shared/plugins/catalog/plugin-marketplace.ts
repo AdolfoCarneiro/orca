@@ -253,6 +253,8 @@ type GitRepositoryIdentity = {
   host: string
   owner: string
   repository: string
+  /** Every path segment, so a GitLab subgroup move is a different repository. */
+  path: string
 }
 
 /** Extracts the host and first owner segment from the HTTPS/SSH Git forms the
@@ -287,7 +289,8 @@ function repositoryIdentity(host: string, repositoryPath: string): GitRepository
   if (!repository) {
     return null
   }
-  return { host: host.toLowerCase(), owner: segments[0]!, repository }
+  const path = [...segments.slice(0, -1), repository].join('/').toLowerCase()
+  return { host: host.toLowerCase(), owner: segments[0]!, repository, path }
 }
 
 /** Same repository regardless of URL spelling (https vs scp, `.git`, case). */
@@ -297,11 +300,7 @@ export function isSameGitRepository(left: string, right: string): boolean {
   if (!a || !b) {
     return left.trim() === right.trim()
   }
-  return (
-    a.host === b.host &&
-    a.owner.toLowerCase() === b.owner.toLowerCase() &&
-    a.repository.toLowerCase() === b.repository.toLowerCase()
-  )
+  return a.host === b.host && a.path === b.path
 }
 
 export function isOfficialOrganizationGitSource(url: string): boolean {

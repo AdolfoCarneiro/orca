@@ -8,6 +8,7 @@ import {
   isOfficialOrganizationGitSource,
   isOfficialPluginIdentity,
   isReservedPluginIdentity,
+  isSameGitRepository,
   parseGitRepositoryIdentity,
   pluginMarketplaceSchema,
   pluginMarketplaceTrustMetadataSchema
@@ -183,7 +184,8 @@ describe('marketplace provenance contracts', () => {
     expect(parseGitRepositoryIdentity('https://gitlab.com/team/subgroup/plugin.git')).toEqual({
       host: 'gitlab.com',
       owner: 'team',
-      repository: 'plugin'
+      repository: 'plugin',
+      path: 'team/subgroup/plugin'
     })
   })
 
@@ -205,5 +207,22 @@ describe('marketplace provenance contracts', () => {
     for (const supported of ['themes', 'terminal-themes', 'icons', 'icon-themes']) {
       expect(isMarketplaceListingSupported([supported, 'official'])).toBe(true)
     }
+  })
+})
+
+describe('isSameGitRepository', () => {
+  it('matches respellings and treats a GitLab subgroup move as a different repository', () => {
+    expect(
+      isSameGitRepository(
+        'https://gitlab.com/acme/team-a/tool.git',
+        'git@gitlab.com:Acme/Team-A/Tool'
+      )
+    ).toBe(true)
+    expect(
+      isSameGitRepository(
+        'https://gitlab.com/acme/team-a/tool',
+        'https://gitlab.com/acme/evil/tool'
+      )
+    ).toBe(false)
   })
 })
