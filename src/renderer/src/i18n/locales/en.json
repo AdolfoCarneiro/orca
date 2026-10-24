@@ -11805,7 +11805,6 @@
           "logsFailed": "Could not load plugin logs.",
           "rollbackFailed": "Couldn't roll back this plugin.",
           "fileTypeSuggestionsLabel": "Suggest plugins for unknown files",
-          "fileTypeSuggestionsDescription": "Offer a catalog plugin when Orca can’t open or highlight a file.",
           "restartFailed": "Couldn't restart {{value0}}."
         },
         "PluginSettingsRow": {
@@ -12992,8 +12991,8 @@
         "PluginSettingsMenu": {
           "label": "Plugin settings",
           "development": "Development folders…",
-          "fullAccessLabel": "Allow plugins that run code with full access",
-          "fullAccessDescription": "They run as a normal process with access to your files, network, and other processes."
+          "fullAccessLabel": "Allow full-access plugins",
+          "fullAccessHint": "Full access to files and network"
         },
         "PluginThemeUseNow": {
           "label": "Use now:",

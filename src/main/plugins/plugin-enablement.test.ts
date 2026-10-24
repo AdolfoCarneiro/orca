@@ -78,9 +78,9 @@ describe('full access gate', () => {
         reviewedFingerprint: 'sha256-reviewed',
         decision: 'approve'
       })
-    ).rejects.toThrow('Allow plugins that run code with full access')
+    ).rejects.toThrow('Allow full-access plugins')
     await expect(applyPluginEnablement({ ...request, enabled: true })).rejects.toThrow(
-      'Allow plugins that run code with full access'
+      'Allow full-access plugins'
     )
     expect(harness.updateSettings).not.toHaveBeenCalled()
   })

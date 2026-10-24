@@ -268,7 +268,7 @@ describe('PluginMarketplaceInstaller', () => {
       })
     ).resolves.toMatchObject({
       ok: false,
-      error: expect.stringContaining('Allow plugins that run code with full access')
+      error: expect.stringContaining('Allow full-access plugins')
     })
     expect(git.checkout).not.toHaveBeenCalled()
   })

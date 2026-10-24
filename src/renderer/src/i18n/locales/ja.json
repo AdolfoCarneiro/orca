@@ -11306,7 +11306,6 @@
           "logsFailed": "プラグインログをロードできませんでした。",
           "rollbackFailed": "このプラグインを以前のバージョンに戻せませんでした。",
           "fileTypeSuggestionsLabel": "不明なファイルにプラグインを提案",
-          "fileTypeSuggestionsDescription": "Orca で開けない、またはハイライトできないファイルにカタログのプラグインを提案します。",
           "restartFailed": "{{value0}} を再起動できませんでした。"
         },
         "PluginCardAction": {

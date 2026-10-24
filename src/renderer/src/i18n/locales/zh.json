@@ -11306,7 +11306,6 @@
           "logsFailed": "无法加载插件日志。",
           "rollbackFailed": "无法回滚此插件。",
           "fileTypeSuggestionsLabel": "为未知文件推荐插件",
-          "fileTypeSuggestionsDescription": "当 Orca 无法打开或高亮文件时，推荐插件市场中的插件。",
           "restartFailed": "无法重新启动 {{value0}}。"
         },
         "PluginCardAction": {

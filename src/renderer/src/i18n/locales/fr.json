@@ -11757,7 +11757,6 @@
           "logsFailed": "Impossible de charger les logs du plugin.",
           "rollbackFailed": "Impossible de restaurer la version précédente de ce plugin.",
           "fileTypeSuggestionsLabel": "Suggérer des plugins pour les fichiers inconnus",
-          "fileTypeSuggestionsDescription": "Propose un plugin du catalogue quand Orca ne peut pas ouvrir ou colorer un fichier.",
           "restartFailed": "Impossible de redémarrer {{value0}}."
         },
         "PluginCardAction": {

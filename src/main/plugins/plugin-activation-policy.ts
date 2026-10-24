@@ -8,7 +8,7 @@ import type { PluginServiceOptions } from './plugin-service-options'
 import { pluginExecutionProfile } from '../../shared/plugins/plugin-execution-profile'
 
 export const PLUGIN_FULL_ACCESS_OFF_ERROR =
-  'Full access plugins are turned off. Turn on "Allow plugins that run code with full access" in Plugin settings.'
+  'Full access plugins are turned off. Turn on "Allow full-access plugins" in Plugin settings.'
 
 /** Why a second gate: trusted workers are unsandboxed Node, so the system switch alone is not enough. */
 export function isFullAccessBlocked(

@@ -55,22 +55,11 @@ export function PluginSettingsMenu({
           checked={suggestionsEnabled}
           onCheckedChange={onToggleSuggestions}
           onSelect={(event) => event.preventDefault()}
-          className="items-start"
         >
-          <span className="min-w-0">
-            <span className="block">
-              {translate(
-                'auto.components.settings.PluginsSettingsSection.fileTypeSuggestionsLabel',
-                'Suggest plugins for unknown files'
-              )}
-            </span>
-            <span className="block text-muted-foreground">
-              {translate(
-                'auto.components.settings.PluginsSettingsSection.fileTypeSuggestionsDescription',
-                'Offer a catalog plugin when Orca can’t open or highlight a file.'
-              )}
-            </span>
-          </span>
+          {translate(
+            'auto.components.settings.PluginsSettingsSection.fileTypeSuggestionsLabel',
+            'Suggest plugins for unknown files'
+          )}
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={fullAccessEnabled}
@@ -83,13 +72,13 @@ export function PluginSettingsMenu({
             <span className="block">
               {translate(
                 'auto.components.settings.PluginSettingsMenu.fullAccessLabel',
-                'Allow plugins that run code with full access'
+                'Allow full-access plugins'
               )}
             </span>
             <span className="block text-muted-foreground">
               {translate(
-                'auto.components.settings.PluginSettingsMenu.fullAccessDescription',
-                'They run as a normal process with access to your files, network, and other processes.'
+                'auto.components.settings.PluginSettingsMenu.fullAccessHint',
+                'Full access to files and network'
               )}
             </span>
           </span>
