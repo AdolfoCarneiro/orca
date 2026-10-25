@@ -210,6 +210,21 @@ describe('PluginDetailPage', () => {
     expect(onOpenFullAccessSetting).toHaveBeenCalledTimes(1)
   })
 
+  it.each([
+    ['data', 'Couldn’t load its files', 'kept crashing'],
+    ['trusted-worker', 'Its code kept crashing', 'load its files']
+  ] as const)(
+    'explains a stopped %s plugin in terms of what it has',
+    async (execution, shown, hidden) => {
+      const container = await render(
+        pluginListEntryFromInstalled({ ...installed, execution, status: 'errored', restarts: 3 }),
+        vi.fn()
+      )
+      expect(container.textContent).toContain(shown)
+      expect(container.textContent).not.toContain(hidden)
+    }
+  )
+
   it('names what a catalog plugin adds from its manifest', async () => {
     const container = await render(pluginListEntryFromListing(listing), () =>
       Promise.resolve({ ok: true, preview })

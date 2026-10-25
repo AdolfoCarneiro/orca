@@ -12646,7 +12646,8 @@
           "requiresValue": "Orca {{value0}} o posterior",
           "categories": "Categorías",
           "pluginId": "ID del plugin",
-          "repository": "Repositorio"
+          "repository": "Repositorio",
+          "stoppedDataBody": "No se pudieron cargar sus archivos, así que Orca dejó de intentarlo. Sigue activado; Reiniciar lo vuelve a intentar."
         },
         "PluginDetailSections": {
           "typeLanguagePack": "Idioma de la interfaz",
@@ -12697,7 +12698,8 @@
           "update": "Actualizar a {{value0}}",
           "needsOrca": "Requiere Orca {{value0}}",
           "off": "Desactivado",
-          "rollbackTo": "Volver a {{value0}}…"
+          "rollbackTo": "Volver a {{value0}}…",
+          "dataLoadFailed": "No se pudieron cargar sus archivos. Reinicia para volver a intentarlo."
         },
         "PluginSettingsOverview": {
           "offTitle": "Los plugins están desactivados",

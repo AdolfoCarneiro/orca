@@ -12369,7 +12369,8 @@
           "requiresValue": "Orca {{value0}} 以降",
           "categories": "カテゴリ",
           "pluginId": "プラグイン ID",
-          "repository": "リポジトリ"
+          "repository": "リポジトリ",
+          "stoppedDataBody": "ファイルを読み込めなかったため、Orca は再試行を停止しました。オンのままです。「再起動」で再試行します。"
         },
         "PluginDetailSections": {
           "typeLanguagePack": "表示言語",
@@ -12420,7 +12421,8 @@
           "update": "{{value0}} にアップデート",
           "needsOrca": "Orca {{value0}} が必要",
           "off": "オフ",
-          "rollbackTo": "{{value0}} に戻す…"
+          "rollbackTo": "{{value0}} に戻す…",
+          "dataLoadFailed": "ファイルを読み込めませんでした。再起動して再試行してください。"
         },
         "PluginSettingsOverview": {
           "offTitle": "プラグインはオフです",

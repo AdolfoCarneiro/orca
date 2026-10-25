@@ -76,6 +76,13 @@ export function installedPluginControls(
   } else if (kind === 'invalid' && plugin.error) {
     tone = 'destructive'
     description = invalidPluginErrorMessage(plugin.error)
+  } else if (kind === 'error' && plugin.execution === 'data') {
+    // Why: content-only plugins have no code or logs; only their files can fail.
+    tone = 'destructive'
+    description = translate(
+      'auto.components.settings.PluginManagerRows.dataLoadFailed',
+      'Couldn’t load its files. Restart to try again.'
+    )
   } else if (kind === 'error') {
     tone = 'destructive'
     description =

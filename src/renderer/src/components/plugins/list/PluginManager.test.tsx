@@ -192,6 +192,28 @@ describe('PluginManager', () => {
     expect(buttonNamed(container, /^Updates/)?.getAttribute('aria-hidden')).not.toBe('true')
   })
 
+  it('never says a content-only plugin crashed or points it at logs it has none of', async () => {
+    const container = await render([
+      {
+        ...installedPlugin,
+        pluginKey: 'local.lang-pack',
+        name: 'Lang Pack',
+        execution: 'data',
+        status: 'errored',
+        restarts: 2,
+        source: {
+          kind: 'local-path',
+          reference: '/tmp/lang',
+          resolvedCommit: null,
+          contentHash: 'h'
+        }
+      }
+    ])
+    const row = container.querySelector('[data-plugin-key="local.lang-pack"]')
+    expect(row?.textContent).toContain('Couldn’t load its files.')
+    expect(row?.textContent).not.toContain('Crashed')
+  })
+
   it('keeps installed plugins when the catalog never loads', async () => {
     installApi({ listMarketplaces: vi.fn().mockRejectedValue(new Error('offline')) })
     const container = await render()

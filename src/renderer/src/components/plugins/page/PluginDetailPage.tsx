@@ -129,10 +129,18 @@ export function PluginDetailPage({
           'auto.components.settings.PluginDetailPage.stoppedTitle',
           'Stopped after an error'
         )}
-        body={translate(
-          'auto.components.settings.PluginDetailPage.stoppedBody',
-          'Its code kept crashing, so Orca stopped restarting it. It’s still switched on; Restart tries again.'
-        )}
+        body={
+          // Why: a content-only plugin has no code to crash; its files failed to load.
+          plugin?.execution === 'data'
+            ? translate(
+                'auto.components.settings.PluginDetailPage.stoppedDataBody',
+                'Couldn’t load its files, so Orca stopped trying. It’s still switched on; Restart tries again.'
+              )
+            : translate(
+                'auto.components.settings.PluginDetailPage.stoppedBody',
+                'Its code kept crashing, so Orca stopped restarting it. It’s still switched on; Restart tries again.'
+              )
+        }
       />
     )
   } else if (controls?.kind === 'invalid') {

@@ -12832,7 +12832,8 @@
           "requiresValue": "Orca {{value0}} ou ultérieur",
           "categories": "Catégories",
           "pluginId": "ID du plugin",
-          "repository": "Dépôt"
+          "repository": "Dépôt",
+          "stoppedDataBody": "Impossible de charger ses fichiers, donc Orca a cessé d’essayer. Il reste activé ; Redémarrer réessaie."
         },
         "PluginDetailSections": {
           "typeLanguagePack": "Langue de l’interface",
@@ -12883,7 +12884,8 @@
           "update": "Mettre à jour vers {{value0}}",
           "needsOrca": "Nécessite Orca {{value0}}",
           "off": "Désactivé",
-          "rollbackTo": "Revenir à {{value0}}…"
+          "rollbackTo": "Revenir à {{value0}}…",
+          "dataLoadFailed": "Impossible de charger ses fichiers. Redémarrez pour réessayer."
         },
         "PluginSettingsOverview": {
           "offTitle": "Les plugins sont désactivés",

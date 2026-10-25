@@ -12855,7 +12855,8 @@
           "repository": "Repository",
           "newerTitle": "Newer version available",
           "newerBody": "The catalog changed while this page was open. Show the newer version to review it.",
-          "showNewer": "Show it"
+          "showNewer": "Show it",
+          "stoppedDataBody": "Couldn’t load its files, so Orca stopped trying. It’s still switched on; Restart tries again."
         },
         "PluginDetailSections": {
           "typeLanguagePack": "Interface language",
@@ -12911,7 +12912,8 @@
           "copyContentHash": "Copy content hash",
           "reviewUpdate": "Review update",
           "updateNeedsReview": "update {{value0}} needs review",
-          "updatedTo": "updated to {{value0}}"
+          "updatedTo": "updated to {{value0}}",
+          "dataLoadFailed": "Couldn’t load its files. Restart to try again."
         },
         "PluginSettingsOverview": {
           "offTitle": "Plugins are off",
