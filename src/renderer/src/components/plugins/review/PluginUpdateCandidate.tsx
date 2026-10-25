@@ -126,37 +126,35 @@ function AllAccess({
   return (
     <Collapsible>
       <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          size="xs"
-          className="group -ml-1.5 mt-1 gap-1 px-1.5 text-muted-foreground"
-        >
+        <Button variant="ghost" size="xs" className="group -ml-2 mt-1">
           {translate('auto.components.settings.PluginUpdateAllDialog.allAccess', 'See all access')}
           <ChevronDown className="transition-transform group-data-[state=open]:rotate-180" />
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-1.5 pt-1">
-        <ul className="space-y-0.5 text-xs text-muted-foreground">
-          {[...new Set(lines)].map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-        <PluginConsentProvenance
-          official={preview.official}
-          publisher={preview.manifest.publisher}
-          source={{
-            kind: preview.bundled ? 'bundled' : 'marketplace',
-            reference: sourceLabel({
-              ...preview.source,
-              url: `${preview.source.url}#${preview.source.ref}`
-            }),
-            resolvedCommit: preview.resolvedCommit,
-            marketplace: {
-              reference: preview.marketplaceName,
-              resolvedCommit: preview.marketplaceCommit
-            }
-          }}
-        />
+      <CollapsibleContent>
+        <div className="space-y-1.5 pt-1">
+          <ul className="space-y-0.5 text-xs text-muted-foreground">
+            {[...new Set(lines)].map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <PluginConsentProvenance
+            official={preview.official}
+            publisher={preview.manifest.publisher}
+            source={{
+              kind: preview.bundled ? 'bundled' : 'marketplace',
+              reference: sourceLabel({
+                ...preview.source,
+                url: `${preview.source.url}#${preview.source.ref}`
+              }),
+              resolvedCommit: preview.resolvedCommit,
+              marketplace: {
+                reference: preview.marketplaceName,
+                resolvedCommit: preview.marketplaceCommit
+              }
+            }}
+          />
+        </div>
       </CollapsibleContent>
     </Collapsible>
   )
