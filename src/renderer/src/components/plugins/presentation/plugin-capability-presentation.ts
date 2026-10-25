@@ -1,4 +1,16 @@
 import { translate } from '@/i18n/i18n'
+import { reachablePluginCapabilities } from '../../../../../shared/plugins/plugin-capability-reach'
+import type { PluginTrust } from './plugin-access-profile'
+
+/** The grants a plugin of this trust can use; approvals never list the rest. */
+export function shownPluginCapabilities<T extends { kind: string }>(
+  capabilities: readonly T[],
+  trust: Pick<PluginTrust, 'worker'> | null
+): T[] {
+  return trust?.worker
+    ? [...capabilities]
+    : reachablePluginCapabilities(capabilities, 'sandboxed-ui')
+}
 
 export function pluginCapabilityDescription(kind: string, fallback: string): string {
   switch (kind) {

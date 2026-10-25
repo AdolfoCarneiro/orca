@@ -1,6 +1,10 @@
 import { Check } from 'lucide-react'
 import type { PluginMarketplaceHostInstallPreview } from '../../../../../preload/api-types'
 import { pluginExecutionProfile } from '../../../../../shared/plugins/plugin-execution-profile'
+import {
+  pluginCapabilityReachable,
+  reachablePluginCapabilities
+} from '../../../../../shared/plugins/plugin-capability-reach'
 import type { PluginContributionPoint } from '../../../../../shared/plugins/plugin-contribution-points'
 import { pluginContributionSummary } from '../../../../../shared/plugins/plugin-contribution-summary'
 import { translate } from '@/i18n/i18n'
@@ -121,9 +125,11 @@ export function CandidateRow({
   onCheckedChange: (checked: boolean) => void
 }): React.JSX.Element {
   const { entry, preview, error, needsOrca } = candidate
-  const { capabilities: added, warnings } = preview
+  const { capabilities: requestedAdded, warnings } = preview
     ? updateChanges(preview)
     : { capabilities: [], warnings: [] }
+  const execution = preview ? pluginExecutionProfile(preview.manifest) : 'data'
+  const added = requestedAdded.filter((kind) => pluginCapabilityReachable(kind, execution))
   const movedFrom = preview ? movedFromSource(entry, preview) : null
   const checkboxId = `plugin-update-${entry.pluginKey}`
   let note: React.ReactNode
@@ -247,11 +253,13 @@ export function CandidateRow({
                 </li>
               ))}
             </ul>
-            {preview.manifest.capabilities.map((capability) => (
-              <p key={capability.kind} className="text-xs text-muted-foreground">
-                {pluginCapabilityDescription(capability.kind, capability.kind)}
-              </p>
-            ))}
+            {reachablePluginCapabilities(preview.manifest.capabilities, execution).map(
+              (capability) => (
+                <p key={capability.kind} className="text-xs text-muted-foreground">
+                  {pluginCapabilityDescription(capability.kind, capability.kind)}
+                </p>
+              )
+            )}
             {pluginTrustWarnings(
               pluginTrust({
                 execution: pluginExecutionProfile(preview.manifest),

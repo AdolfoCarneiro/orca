@@ -4,7 +4,10 @@ import type { PluginHostListEntry } from '../../../../../preload/api-types'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../../ui/button'
 import { SecuritySurface } from '../../ui/security-surface'
-import { pluginCapabilityDescription } from '../presentation/plugin-capability-presentation'
+import {
+  pluginCapabilityDescription,
+  shownPluginCapabilities
+} from '../presentation/plugin-capability-presentation'
 import { formatKeybindingList } from '../../../../../shared/keybindings'
 import { useAppStore } from '@/store'
 import type { PluginTrust } from '../presentation/plugin-access-profile'
@@ -53,7 +56,7 @@ export function PluginInstallConsent({
   name,
   mode,
   trust,
-  capabilities,
+  capabilities: requested,
   shortcuts,
   reading = false,
   failed = false,
@@ -66,6 +69,7 @@ export function PluginInstallConsent({
   error
 }: PluginInstallConsentProps): React.JSX.Element {
   const headingId = useId()
+  const capabilities = requested ? shownPluginCapabilities(requested, trust) : null
   const ready = capabilities !== null
   const overrides = useAppStore((state) => state.keybindings)
   const platform = shortcutPlatform()

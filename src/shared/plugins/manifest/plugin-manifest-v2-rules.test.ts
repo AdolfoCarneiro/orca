@@ -32,6 +32,24 @@ describe('manifest format 2 rules', () => {
     ).toMatchObject({ ok: true })
   })
 
+  it('refuses terminal:send below trusted-worker, since panels have no way to use it', () => {
+    const panel = {
+      execution: 'sandboxed-ui',
+      contributes: { panels: [{ id: 'p', title: 'P', entry: 'panel/index.html' }] },
+      capabilities: [{ kind: 'notifications:show' }, { kind: 'terminal:send' }]
+    }
+    expect(parsePluginManifest(v2(panel))).toEqual({
+      ok: false,
+      error:
+        "capabilities[1].kind: terminal:send needs the trusted-worker execution profile; sandboxed-ui plugins can't use it, so remove it or add a worker"
+    })
+    expect(
+      parsePluginManifest(
+        v2({ execution: 'trusted-worker', main: 'main.mjs', capabilities: panel.capabilities })
+      )
+    ).toMatchObject({ ok: true })
+  })
+
   it('refuses host API majors this Orca does not implement', () => {
     const worker = { execution: 'trusted-worker', main: 'main.mjs' }
     expect(parsePluginManifest(v2({ ...worker, pluginApi: 2 }))).toEqual({

@@ -3,7 +3,10 @@ import { translate } from '@/i18n/i18n'
 import type { PluginTrust } from '../presentation/plugin-access-profile'
 import { pluginTrustWarnings } from '../presentation/plugin-consent-copy'
 import { Button } from '../../ui/button'
-import { pluginCapabilityDescription } from '../presentation/plugin-capability-presentation'
+import {
+  pluginCapabilityDescription,
+  shownPluginCapabilities
+} from '../presentation/plugin-capability-presentation'
 import type { PluginLogsState } from '../state/use-plugin-logs'
 
 export function DetailSection({
@@ -69,7 +72,7 @@ export function DetailRow({
 
 /** What the plugin can reach, in the consent's words. */
 export function PluginAccessSection({
-  capabilities,
+  capabilities: requested,
   trust,
   loading,
   failed = false,
@@ -83,6 +86,7 @@ export function PluginAccessSection({
   failed?: boolean
   onRetry?: () => void
 }): React.JSX.Element {
+  const capabilities = requested ? shownPluginCapabilities(requested, trust) : null
   const unknown = trust === null
   // Why "own files" only then: a panel bounded by no capabilities is sandboxed; anything that
   // runs instructions or a worker reaches further, whatever it asks for.
