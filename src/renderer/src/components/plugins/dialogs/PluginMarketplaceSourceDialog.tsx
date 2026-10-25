@@ -67,7 +67,7 @@ export function PluginMarketplaceSourceDialog({
           cause,
           translate(
             'auto.components.settings.PluginMarketplaceSourceDialog.addFailed',
-            "Couldn't add this marketplace. Check the URL, ref, and Git access."
+            "Couldn't add this catalog. Check the URL, ref, and Git access."
           )
         )
       )
@@ -88,7 +88,7 @@ export function PluginMarketplaceSourceDialog({
           cause,
           translate(
             'auto.components.settings.PluginMarketplaceSourceDialog.refreshFailed',
-            "Couldn't refresh this marketplace. Try again."
+            "Couldn't refresh this catalog. Try again."
           )
         )
       )
@@ -109,7 +109,7 @@ export function PluginMarketplaceSourceDialog({
           cause,
           translate(
             'auto.components.settings.PluginMarketplaceSourceDialog.removeFailed',
-            'Could not remove this marketplace.'
+            'Could not remove this catalog.'
           )
         )
       )
@@ -133,7 +133,7 @@ export function PluginMarketplaceSourceDialog({
           <DialogTitle>
             {translate(
               'auto.components.settings.PluginMarketplaceSourceDialog.title',
-              'Marketplace sources'
+              'Catalog sources'
             )}
           </DialogTitle>
           <DialogDescription>
@@ -154,7 +154,7 @@ export function PluginMarketplaceSourceDialog({
             <p className="text-xs text-muted-foreground">
               {translate(
                 'auto.components.settings.PluginMarketplaceSourceDialog.urlDescription',
-                'Use an HTTPS or SSH repository URL containing orca-marketplace.json.'
+                'Use an HTTPS or SSH repository URL containing orca-catalog.json (or the older orca-marketplace.json).'
               )}
             </p>
           </div>
@@ -224,7 +224,7 @@ export function PluginMarketplaceSourceDialog({
             <p className="rounded-lg border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">
               {translate(
                 'auto.components.settings.PluginMarketplaceSourceDialog.empty',
-                'No marketplace sources configured.'
+                'No catalog sources configured.'
               )}
             </p>
           ) : (

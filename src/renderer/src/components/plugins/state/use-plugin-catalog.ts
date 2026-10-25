@@ -56,7 +56,7 @@ export function usePluginCatalog({
             cause,
             translate(
               'auto.components.settings.PluginMarketplaceBrowser.loadFailed',
-              'Could not load marketplace plugins.'
+              'Could not load catalog plugins.'
             )
           )
         )
@@ -90,7 +90,7 @@ export function usePluginCatalog({
             cause,
             translate(
               'auto.components.settings.PluginMarketplaceBrowser.refreshFailed',
-              "Couldn't refresh marketplaces. Try again."
+              "Couldn't refresh catalogs. Try again."
             )
           )
         )

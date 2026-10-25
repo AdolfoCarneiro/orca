@@ -21,7 +21,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Marketplace display name.",
+      "description": "Catalog display name.",
       "x-orca-since": "1.4.244",
       "examples": [
         "Orca Plugins"
@@ -32,7 +32,7 @@
       "minLength": 1,
       "maxLength": 128,
       "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$",
-      "description": "Account that publishes the marketplace.",
+      "description": "Account that publishes the catalog.",
       "x-orca-since": "1.4.244",
       "examples": [
         "stablyai"

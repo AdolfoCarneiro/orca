@@ -503,6 +503,6 @@ describe('PluginManager catalog', () => {
       'button[aria-label="Refresh catalogs"]'
     )
     await act(async () => refresh?.click())
-    expect(document.body.textContent).toContain("Couldn't refresh marketplaces. Try again.")
+    expect(document.body.textContent).toContain("Couldn't refresh catalogs. Try again.")
   })
 })

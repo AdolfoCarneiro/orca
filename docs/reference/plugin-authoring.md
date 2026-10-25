@@ -34,7 +34,7 @@ only when a panel or worker calls the host API.
 
 ## 2. Load it while you work
 
-1. Settings → Plugins: turn on **Plugin system**.
+1. Settings → Plugins: click **Turn on plugins**.
 2. **Development folders…** → add the plugin folder. A development folder overrides an installed
    copy with the same `<publisher>.<id>`.
 3. Review and enable it. Nothing runs before that.
@@ -93,7 +93,7 @@ for.
 
 3. Run `pnpm validate:plugin path/to/catalog` and regenerate the older
    `orca-marketplace.json` as described in the [catalog reference](plugin-catalog.md#clients-before-format-2).
-4. Users add the catalog under Settings → Plugins → **Add marketplace** with its Git URL and ref.
+4. Users add the catalog under Settings → Plugins → ⋯ → **Catalog sources…** with its Git URL and ref.
 
 Users approve a plugin once per level of access. An update from the same repository that asks
 for nothing new, code changes included, installs without asking again and stays enabled. Orca

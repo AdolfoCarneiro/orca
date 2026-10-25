@@ -48,6 +48,28 @@ afterEach(() => {
 })
 
 describe('PluginMarketplaceSourceDialog', () => {
+  it('calls them catalogs, matching the menu item that opens it', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    await act(async () => {
+      root.render(
+        <PluginMarketplaceSourceDialog
+          open
+          sources={[]}
+          onOpenChange={vi.fn()}
+          onChanged={vi.fn()}
+        />
+      )
+    })
+    const text = document.querySelector('[role="dialog"]')?.textContent ?? ''
+    expect(text).toContain('Catalog sources')
+    expect(text).toContain('orca-catalog.json')
+    // Why the filename aside: older catalogs still publish orca-marketplace.json.
+    expect(text.replaceAll('orca-marketplace.json', '')).not.toMatch(/marketplace/i)
+    act(() => root.unmount())
+  })
+
   it('adds private SSH marketplaces through the system-Git source contract', async () => {
     const container = document.createElement('div')
     document.body.appendChild(container)

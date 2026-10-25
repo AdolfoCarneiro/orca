@@ -187,9 +187,9 @@ export const marketplaceHeaderFields = {
     .string()
     .min(1)
     .max(256)
-    .meta(pluginFieldDoc('Marketplace display name.', NEXT, ['Orca Plugins'])),
+    .meta(pluginFieldDoc('Catalog display name.', NEXT, ['Orca Plugins'])),
   owner: marketplaceOwnerSchema.meta(
-    pluginFieldDoc('Account that publishes the marketplace.', NEXT, ['stablyai'])
+    pluginFieldDoc('Account that publishes the catalog.', NEXT, ['stablyai'])
   )
 }
 

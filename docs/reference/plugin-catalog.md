@@ -13,8 +13,8 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | --- | --- | --- | --- | --- |
 | `$schema` | string | no | 1.4.244 | JSON Schema URL for editor completion. Ignored by Orca. |
 | `catalogVersion` | `2` | yes | 1.4.244 | Catalog format. Raised only for a change older Orca cannot ignore; a newer Orca reads this one. |
-| `name` | string | yes | 1.4.244 | Marketplace display name. Example: `"Orca Plugins"` |
-| `owner` | string | yes | 1.4.244 | Account that publishes the marketplace. Example: `"stablyai"` |
+| `name` | string | yes | 1.4.244 | Catalog display name. Example: `"Orca Plugins"` |
+| `owner` | string | yes | 1.4.244 | Account that publishes the catalog. Example: `"stablyai"` |
 | `plugins` | [CatalogEntry](#catalogentry)[] | yes | 1.4.244 | Listed plugins, at most 2048. Each `id` should appear once; Orca keeps the first. An entry this Orca cannot read is skipped, never fatal. |
 
 ## CatalogEntry
