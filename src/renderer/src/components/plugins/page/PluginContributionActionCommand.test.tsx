@@ -9,6 +9,8 @@ const executePluginCommand = vi.hoisted(() => vi.fn())
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('@/lib/plugin-command-execution', () => ({ executePluginCommand }))
 vi.mock('sonner', () => ({ toast }))
+const closeSettingsPage = vi.hoisted(() => vi.fn())
+vi.mock('@/store', () => ({ useAppStore: { getState: () => ({ closeSettingsPage }) } }))
 
 function command(handler: ActivePluginCommand['handler']): ActivePluginCommand {
   return {
@@ -27,6 +29,7 @@ afterEach(() => {
   executePluginCommand.mockReset()
   toast.success.mockClear()
   toast.error.mockClear()
+  closeSettingsPage.mockClear()
 })
 
 it('runs the command as the palette would and shows what it returned', async () => {
@@ -36,6 +39,7 @@ it('runs the command as the palette would and shows what it returned', async () 
 
   fireEvent.click(screen.getByRole('button', { name: 'Run Open Tasks' }))
   expect(executePluginCommand).toHaveBeenCalledExactlyOnceWith(worker, 'plugin-palette')
+  expect(closeSettingsPage).not.toHaveBeenCalled()
   await vi.waitFor(() =>
     expect(toast.success).toHaveBeenCalledWith('Ran Open Tasks', { description: '3 tasks open' })
   )
@@ -125,4 +129,21 @@ it('stays visible but off while the command cannot run', () => {
   expect(button).toBeDisabled()
   fireEvent.click(button)
   expect(executePluginCommand).not.toHaveBeenCalled()
+})
+
+it('leaves Settings before running a built-in action, which Settings would disable', async () => {
+  executePluginCommand.mockImplementation(() => {
+    expect(closeSettingsPage).toHaveBeenCalledOnce()
+    return Promise.resolve(undefined)
+  })
+  render(
+    <PluginContributionActionCommand
+      command={command({ type: 'built-in', action: 'view.tasks' })}
+      unavailableReason={null}
+    />
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Run Open Tasks' }))
+  await vi.waitFor(() =>
+    expect(toast.success).toHaveBeenCalledWith('Ran Open Tasks', { description: undefined })
+  )
 })

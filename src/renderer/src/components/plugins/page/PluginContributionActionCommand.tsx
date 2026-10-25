@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import { executePluginCommand } from '@/lib/plugin-command-execution'
+import { useAppStore } from '@/store'
 import type { ActivePluginCommand } from '@/store/plugin-panels'
 import { Button } from '../../ui/button'
 
@@ -27,7 +29,8 @@ function resultPreview(result: unknown): string | null {
   return text.length > RESULT_PREVIEW_LIMIT ? `${text.slice(0, RESULT_PREVIEW_LIMIT)}…` : text
 }
 
-/** Runs one plugin command the same way the palette does, and says what happened. */
+/** Runs one plugin command the same way the palette does, and says what happened. Built-in
+ *  actions leave Settings first, since they act on the app behind it. */
 export function PluginContributionActionCommand({
   command,
   unavailableReason
@@ -39,6 +42,11 @@ export function PluginContributionActionCommand({
   const [running, setRunning] = useState(false)
   const run = async (): Promise<void> => {
     setRunning(true)
+    if (command.handler.type === 'built-in') {
+      // Why sync: built-in actions act on the app view, and their dispatcher reads it only after
+      // the closed Settings page commits.
+      flushSync(() => useAppStore.getState().closeSettingsPage())
+    }
     try {
       const result = await executePluginCommand(command, 'plugin-palette')
       const preview = resultPreview(result)
