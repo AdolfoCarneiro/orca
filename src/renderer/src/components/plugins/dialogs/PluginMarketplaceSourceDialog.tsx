@@ -67,7 +67,7 @@ export function PluginMarketplaceSourceDialog({
           cause,
           translate(
             'auto.components.settings.PluginMarketplaceSourceDialog.addFailed',
-            "Couldn't add this catalog. Check the URL, ref, and Git access."
+            'Couldn’t add this catalog. Check the URL and ref.'
           )
         )
       )
@@ -139,7 +139,7 @@ export function PluginMarketplaceSourceDialog({
           <DialogDescription>
             {translate(
               'auto.components.settings.PluginMarketplaceSourceDialog.description',
-              'A Git repository that lists plugins. Private ones use your Git credentials.'
+              'Git repositories that list plugins'
             )}
           </DialogDescription>
         </DialogHeader>
@@ -154,7 +154,7 @@ export function PluginMarketplaceSourceDialog({
             <p className="text-xs text-muted-foreground">
               {translate(
                 'auto.components.settings.PluginMarketplaceSourceDialog.urlDescription',
-                'Use an HTTPS or SSH repository URL containing orca-catalog.json (or the older orca-marketplace.json).'
+                'HTTPS or SSH, with an orca-catalog.json'
               )}
             </p>
           </div>
@@ -179,7 +179,7 @@ export function PluginMarketplaceSourceDialog({
             <p className="text-xs text-muted-foreground">
               {translate(
                 'auto.components.settings.PluginMarketplaceSourceDialog.refDescription',
-                'A branch, tag, or commit.'
+                'Branch, tag, or commit'
               )}
             </p>
           </div>
@@ -217,14 +217,14 @@ export function PluginMarketplaceSourceDialog({
           <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
             {translate(
               'auto.components.settings.PluginMarketplaceSourceDialog.configured',
-              'Configured sources'
+              'Sources'
             )}
           </p>
           {sources.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">
               {translate(
                 'auto.components.settings.PluginMarketplaceSourceDialog.empty',
-                'No catalog sources configured.'
+                'No sources yet'
               )}
             </p>
           ) : (
@@ -262,11 +262,14 @@ export function PluginMarketplaceSourceDialog({
                         {source.source.url}#{source.source.ref}
                       </p>
                       {source.marketplace ? (
-                        <p className="truncate font-mono text-[11px] text-muted-foreground">
+                        <p
+                          className="truncate font-mono text-[11px] text-muted-foreground"
+                          title={source.marketplace.resolvedCommit}
+                        >
                           {translate(
                             'auto.components.settings.PluginMarketplaceSourceDialog.pinnedCommit',
                             'Pinned at {{value0}}',
-                            { value0: source.marketplace.resolvedCommit }
+                            { value0: source.marketplace.resolvedCommit.slice(0, 10) }
                           )}
                         </p>
                       ) : null}
@@ -274,7 +277,7 @@ export function PluginMarketplaceSourceDialog({
                         <p className="mt-1 text-xs text-destructive">
                           {translate(
                             'auto.components.settings.PluginMarketplaceSourceDialog.stale',
-                            "Couldn't refresh. This list may be out of date."
+                            'Couldn’t refresh. May be out of date.'
                           )}
                         </p>
                       ) : null}

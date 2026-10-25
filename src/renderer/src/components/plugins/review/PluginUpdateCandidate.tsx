@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react'
+import { Check, ChevronDown } from 'lucide-react'
 import type { PluginMarketplaceHostInstallPreview } from '../../../../../preload/api-types'
 import { pluginExecutionProfile } from '../../../../../shared/plugins/plugin-execution-profile'
 import {
@@ -6,11 +6,12 @@ import {
   reachablePluginCapabilities
 } from '../../../../../shared/plugins/plugin-capability-reach'
 import type { PluginContributionPoint } from '../../../../../shared/plugins/plugin-contribution-points'
-import { pluginContributionSummary } from '../../../../../shared/plugins/plugin-contribution-summary'
 import { translate } from '@/i18n/i18n'
 import type { PluginListEntry } from '../list/plugin-list-entries'
 import { PluginCatalogAvatar } from '../list/PluginCatalogAvatar'
+import { Button } from '../../ui/button'
 import { Checkbox } from '../../ui/checkbox'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible'
 import { PluginConsentProvenance } from './PluginConsentProvenance'
 import { pluginPointsFromManifest, pluginTrust } from '../presentation/plugin-access-profile'
 import { pluginTrustWarnings } from '../presentation/plugin-consent-copy'
@@ -44,30 +45,24 @@ const contributionGrowthLabel = (point: PluginContributionPoint): string => {
   if (point === 'keybindings') {
     return translate(
       'auto.components.settings.PluginUpdateAllDialog.newShortcuts',
-      'Adds keyboard shortcuts'
+      'Keyboard shortcuts'
     )
   }
   if (point === 'commands') {
-    return translate('auto.components.settings.PluginUpdateAllDialog.newCommands', 'Adds commands')
+    return translate('auto.components.settings.PluginUpdateAllDialog.newCommands', 'Commands')
   }
   if (point === 'panels') {
-    return translate('auto.components.settings.PluginUpdateAllDialog.newPanels', 'Adds panels')
+    return translate('auto.components.settings.PluginUpdateAllDialog.newPanels', 'Panels')
   }
   if (point === 'events') {
-    return translate(
-      'auto.components.settings.PluginUpdateAllDialog.newEvents',
-      'Listens for more events'
-    )
+    return translate('auto.components.settings.PluginUpdateAllDialog.newEvents', 'More events')
   }
   if (point === 'vmRecipes') {
-    return translate(
-      'auto.components.settings.PluginUpdateAllDialog.newRecipes',
-      'Changes virtual machine recipes'
-    )
+    return translate('auto.components.settings.PluginUpdateAllDialog.newRecipes', 'Machine recipes')
   }
   return translate(
     'auto.components.settings.PluginUpdateAllDialog.newContributions',
-    'Adds new features that act for you'
+    'Features that act for you'
   )
 }
 
@@ -85,23 +80,14 @@ function updateChanges(preview: PluginMarketplaceHostInstallPreview): {
         })
       )
     : []
+  // Why: a panel profile has no trust warning of its own, but its growth still asks again.
+  const executionLines =
+    growth?.execution && execution.length === 0 ? [contributionGrowthLabel('panels')] : execution
   const contributions = (growth?.contributions ?? []).map(contributionGrowthLabel)
   return {
     capabilities: growth?.capabilities ?? [],
-    warnings: [...new Set([...execution, ...contributions])]
+    warnings: [...new Set([...executionLines, ...contributions])]
   }
-}
-
-export function updateAsksAgain(
-  entry: PluginListEntry,
-  preview: PluginMarketplaceHostInstallPreview
-): boolean {
-  const changes = updateChanges(preview)
-  return (
-    changes.capabilities.length > 0 ||
-    changes.warnings.length > 0 ||
-    movedFromSource(entry, preview) !== null
-  )
 }
 
 export function isCurrent(
@@ -111,6 +97,72 @@ export function isCurrent(
   return Boolean(preview && entry.installed?.source?.contentHash === preview.contentHash)
 }
 
+function NewLine({ children }: { children: string }): React.JSX.Element {
+  return (
+    <li className="text-status-warning-text">
+      {translate('auto.components.settings.PluginUpdateAllDialog.newAccess', 'New: {{value0}}', {
+        value0: children
+      })}
+    </li>
+  )
+}
+
+/** Everything the update can reach, for the rare reader who wants more than what's new. */
+function AllAccess({
+  preview,
+  execution
+}: {
+  preview: PluginMarketplaceHostInstallPreview
+  execution: ReturnType<typeof pluginExecutionProfile>
+}): React.JSX.Element {
+  const lines = [
+    ...pluginTrustWarnings(
+      pluginTrust({ execution, points: pluginPointsFromManifest(preview.manifest) })
+    ),
+    ...reachablePluginCapabilities(preview.manifest.capabilities, execution).map((capability) =>
+      pluginCapabilityDescription(capability.kind, capability.kind)
+    )
+  ]
+  return (
+    <Collapsible>
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="ghost"
+          size="xs"
+          className="group -ml-1.5 mt-1 gap-1 px-1.5 text-muted-foreground"
+        >
+          {translate('auto.components.settings.PluginUpdateAllDialog.allAccess', 'See all access')}
+          <ChevronDown className="transition-transform group-data-[state=open]:rotate-180" />
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-1.5 pt-1">
+        <ul className="space-y-0.5 text-xs text-muted-foreground">
+          {[...new Set(lines)].map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        <PluginConsentProvenance
+          official={preview.official}
+          publisher={preview.manifest.publisher}
+          source={{
+            kind: preview.bundled ? 'bundled' : 'marketplace',
+            reference: sourceLabel({
+              ...preview.source,
+              url: `${preview.source.url}#${preview.source.ref}`
+            }),
+            resolvedCommit: preview.resolvedCommit,
+            marketplace: {
+              reference: preview.marketplaceName,
+              resolvedCommit: preview.marketplaceCommit
+            }
+          }}
+        />
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+/** One line per plugin; only an update that needs approval opens up, and only to what's new. */
 export function CandidateRow({
   candidate,
   done,
@@ -132,26 +184,26 @@ export function CandidateRow({
   const added = requestedAdded.filter((kind) => pluginCapabilityReachable(kind, execution))
   const movedFrom = preview ? movedFromSource(entry, preview) : null
   const checkboxId = `plugin-update-${entry.pluginKey}`
-  let note: React.ReactNode
+  let note: React.ReactNode = null
   if (done) {
     note = (
-      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+      <p className="flex items-center gap-1 text-xs text-muted-foreground">
         <Check className="size-3" aria-hidden="true" />
         {translate('auto.components.settings.PluginUpdateAllDialog.updated', 'Updated')}
       </p>
     )
   } else if (error) {
     note = (
-      <p className="mt-0.5 text-xs text-destructive">
+      <p className="text-xs text-destructive">
         {translate(
           'auto.components.settings.PluginUpdateAllDialog.previewError',
-          'Couldn’t read this update. It will be skipped.'
+          'Couldn’t read this update'
         )}
       </p>
     )
   } else if (preview?.blockedByKillList) {
     note = (
-      <p className="mt-0.5 text-xs text-destructive">
+      <p className="text-xs text-destructive">
         {translate(
           'auto.components.settings.PluginMarketplaceListingRow.blocked',
           "Blocked by Orca's safety list: {{value0}}",
@@ -161,126 +213,62 @@ export function CandidateRow({
     )
   } else if (isCurrent(entry, preview)) {
     note = (
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        {translate(
-          'auto.components.settings.PluginUpdateAllDialog.current',
-          'This exact plugin content is already installed.'
-        )}
+      <p className="text-xs text-muted-foreground">
+        {translate('auto.components.settings.PluginUpdateAllDialog.current', 'Already installed')}
       </p>
     )
   } else if (needsOrca) {
     note = (
-      <p className="mt-0.5 text-xs text-status-warning-text">
+      <p className="text-xs text-status-warning-text">
         {translate(
           'auto.components.settings.PluginUpdateAllDialog.needsOrca',
-          'Needs Orca {{value0}} or later. Update Orca first.',
+          'Needs Orca {{value0}} or later',
           { value0: needsOrca }
         )}
       </p>
     )
-  } else if (added.length > 0 || warnings.length > 0 || movedFrom !== null) {
+  } else if (preview && (added.length > 0 || warnings.length > 0 || movedFrom !== null)) {
     note = (
-      <ul className="mt-1.5 space-y-0.5 border-l-2 border-status-warning pl-2 text-xs">
-        {movedFrom !== null && preview ? (
-          <li className="text-status-warning-text">
-            {translate(
-              'auto.components.settings.PluginUpdateAllDialog.sourceMoved',
-              'Now comes from a different repository: {{value0}} (was {{value1}})',
-              { value0: sourceLabel(preview.source), value1: movedFrom }
-            )}
-          </li>
-        ) : null}
-        {warnings.map((warning) => (
-          <li key={warning} className="text-status-warning-text">
-            {warning}
-          </li>
-        ))}
-        {added.map((kind) => (
-          <li key={kind} className="text-status-warning-text">
-            {translate(
-              'auto.components.settings.PluginUpdateAllDialog.newAccess',
-              'New access: {{value0}}',
-              { value0: pluginCapabilityDescription(kind, kind) }
-            )}
-          </li>
-        ))}
-      </ul>
-    )
-  } else {
-    note = (
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        {translate('auto.components.settings.PluginUpdateAllDialog.noNewAccess', 'No new access')}
-      </p>
+      <>
+        <ul className="space-y-0.5 text-xs">
+          {movedFrom !== null ? (
+            <li className="text-status-warning-text">
+              {translate(
+                'auto.components.settings.PluginUpdateAllDialog.sourceMoved',
+                'New source: {{value0}} (was {{value1}})',
+                { value0: sourceLabel(preview.source), value1: movedFrom }
+              )}
+            </li>
+          ) : null}
+          {warnings.map((warning) => (
+            <NewLine key={warning}>{warning}</NewLine>
+          ))}
+          {added.map((kind) => (
+            <NewLine key={kind}>{pluginCapabilityDescription(kind, kind)}</NewLine>
+          ))}
+        </ul>
+        <AllAccess preview={preview} execution={execution} />
+      </>
     )
   }
   return (
-    <li data-plugin-update={entry.pluginKey} className="flex items-start gap-3 py-2.5">
-      <PluginCatalogAvatar name={entry.name} className="size-7 rounded-md text-3xs" />
-      <div className="min-w-0 flex-1">
-        <label htmlFor={checkboxId} className="text-sm font-medium">
+    <li data-plugin-update={entry.pluginKey} className="py-2">
+      <div className="flex items-center gap-3">
+        <PluginCatalogAvatar name={entry.name} className="size-7 rounded-md text-3xs" />
+        <label htmlFor={checkboxId} className="min-w-0 flex-1 truncate text-sm font-medium">
           {entry.name}
           <span className="ml-1.5 text-xs font-normal text-muted-foreground">
             {entry.installed?.version} → {preview?.manifest.version ?? entry.updateVersion}
           </span>
         </label>
-        {note}
-        {preview ? (
-          <div className="mt-2 space-y-1.5">
-            <PluginConsentProvenance
-              official={preview.official}
-              publisher={preview.manifest.publisher}
-              source={{
-                kind: preview.bundled ? 'bundled' : 'marketplace',
-                reference: sourceLabel({
-                  ...preview.source,
-                  url: `${preview.source.url}#${preview.source.ref}`
-                }),
-                resolvedCommit: preview.resolvedCommit,
-                marketplace: {
-                  reference: preview.marketplaceName,
-                  resolvedCommit: preview.marketplaceCommit
-                }
-              }}
-            />
-            {preview.manifest.description ? (
-              <p className="text-xs text-muted-foreground">{preview.manifest.description}</p>
-            ) : null}
-            <ul className="text-xs text-muted-foreground">
-              {pluginContributionSummary(preview.manifest).map((item) => (
-                <li key={`${item.kind}:${item.name}:${item.detail ?? ''}`}>
-                  {item.name}
-                  {item.detail ? ` · ${item.detail}` : ''}
-                </li>
-              ))}
-            </ul>
-            {reachablePluginCapabilities(preview.manifest.capabilities, execution).map(
-              (capability) => (
-                <p key={capability.kind} className="text-xs text-muted-foreground">
-                  {pluginCapabilityDescription(capability.kind, capability.kind)}
-                </p>
-              )
-            )}
-            {pluginTrustWarnings(
-              pluginTrust({
-                execution: pluginExecutionProfile(preview.manifest),
-                points: pluginPointsFromManifest(preview.manifest)
-              })
-            )
-              .filter((warning) => !warnings.includes(warning))
-              .map((warning) => (
-                <p key={warning} className="text-xs text-muted-foreground">
-                  {warning}
-                </p>
-              ))}
-          </div>
-        ) : null}
+        <Checkbox
+          id={checkboxId}
+          checked={checked}
+          disabled={disabled}
+          onCheckedChange={(next) => onCheckedChange(next === true)}
+        />
       </div>
-      <Checkbox
-        id={checkboxId}
-        checked={checked}
-        disabled={disabled}
-        onCheckedChange={(next) => onCheckedChange(next === true)}
-      />
+      {note ? <div className="mt-1 ml-10">{note}</div> : null}
     </li>
   )
 }

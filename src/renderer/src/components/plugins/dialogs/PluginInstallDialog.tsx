@@ -40,12 +40,12 @@ function installValidationMessage(reason: string): string {
     case 'invalid-git-url':
       return translate(
         'auto.components.settings.PluginInstallDialog.gitUrlInvalid',
-        'Use an HTTPS or SSH Git URL. Executable Git helper protocols are not allowed.'
+        'Use an HTTPS or SSH Git URL.'
       )
     default:
       return translate(
         'auto.components.settings.PluginInstallDialog.gitRefRequired',
-        'Add a #ref (tag or commit), for example #v0.1.0.'
+        'Add a #tag or #commit, like #v0.1.0.'
       )
   }
 }
@@ -90,7 +90,7 @@ export function PluginInstallDialog({
           <DialogDescription>
             {translate(
               'auto.components.settings.PluginInstallDialog.description',
-              'No plugin code runs until you review and enable it.'
+              'Nothing runs until you enable it.'
             )}
           </DialogDescription>
         </DialogHeader>
@@ -135,7 +135,7 @@ export function PluginInstallDialog({
                 onChange={(event) => setLocalPath(event.target.value)}
                 placeholder={translate(
                   'auto.components.settings.PluginInstallDialog.localPlaceholder',
-                  '/Users/you/plugins/my-plugin or C:\\Users\\you\\plugins\\my-plugin'
+                  'Path to a plugin folder'
                 )}
                 spellCheck={false}
                 aria-invalid={kind === 'local-path' && Boolean(error)}
@@ -145,7 +145,7 @@ export function PluginInstallDialog({
               <p className="text-xs leading-5 text-muted-foreground">
                 {translate(
                   'auto.components.settings.PluginInstallDialog.localHelp',
-                  'The folder that contains orca-plugin.json.'
+                  'The folder with orca-plugin.json'
                 )}
               </p>
             </TabsContent>
@@ -153,7 +153,7 @@ export function PluginInstallDialog({
               <Label htmlFor="plugin-git-url">
                 {translate(
                   'auto.components.settings.PluginInstallDialog.gitLabel',
-                  'Repository URL with #ref'
+                  'Repository URL'
                 )}
               </Label>
               <Input
@@ -172,7 +172,7 @@ export function PluginInstallDialog({
               <p className="text-xs leading-5 text-muted-foreground">
                 {translate(
                   'auto.components.settings.PluginInstallDialog.gitHelp',
-                  'End the URL with #tag or #commit to pin the version.'
+                  'End with #tag or #commit to pin a version'
                 )}
               </p>
             </TabsContent>

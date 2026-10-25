@@ -311,10 +311,8 @@ describe('PluginManager catalog', () => {
     setFullAccess(true)
     const { onInstalled } = await render()
     await act(async () => button('Review & install').click())
-    expect(document.body.textContent).toContain('If you install Worktree Notes, it can:')
-    expect(document.body.textContent).toContain(
-      'Its worker runs as a normal process with full access to your files, network, and other processes.'
-    )
+    expect(document.body.textContent).toContain('Can access')
+    expect(document.body.textContent).toContain('Full access to your files, network, and processes')
 
     await act(async () => button('Install & enable').click())
     expect(window.api.plugins.installMarketplacePlugin).toHaveBeenCalledWith({
@@ -348,7 +346,7 @@ describe('PluginManager catalog', () => {
       ])
     })
     const { container } = await render()
-    expect(container.textContent).toContain('Full access · turned off in settings')
+    expect(container.textContent).toContain('Full access')
     expect(buttons('Review & install')).toHaveLength(0)
     expect(buttons('Turn on in settings')).toHaveLength(1)
   })
@@ -365,11 +363,11 @@ describe('PluginManager catalog', () => {
     const { container } = await render()
     await act(async () => button('Review & install').click())
     await act(async () => button('Install & enable').click())
-    expect(container.textContent).toContain('Full-access plugins are turned off.')
+    expect(container.textContent).toContain('Full-access plugins are off.')
     expect(container.textContent).not.toContain('Plugin installation failed')
 
     setFullAccess(false)
-    expect(container.textContent).not.toContain('Full-access plugins are turned off.')
+    expect(container.textContent).not.toContain('Full-access plugins are off.')
     expect(buttons('Turn on in settings')).toHaveLength(1)
   })
 
@@ -432,8 +430,8 @@ describe('PluginManager catalog', () => {
     expect(window.api.plugins.previewMarketplaceUpdate).toHaveBeenCalledWith({
       pluginKey: listing.pluginKey
     })
-    expect(document.body.textContent).toContain('This exact plugin content is already installed.')
-    expect(buttons('Update 1 plugin')).toHaveLength(0)
+    expect(document.body.textContent).toContain('Already installed')
+    expect(button('Update').disabled).toBe(true)
   })
 
   it('opens the plugin page for a plugin asked for from outside Settings, with no dialog', async () => {
@@ -442,7 +440,7 @@ describe('PluginManager catalog', () => {
       requestPluginPreview({ marketplaceSourceId: SOURCE_ID, pluginKey: listing.pluginKey })
     )
     expect(document.querySelector('#plugin-detail-heading')?.textContent).toBe('Worktree Notes')
-    expect(document.body.textContent).toContain('If you install Worktree Notes, it can:')
+    expect(document.body.textContent).toContain('Can access')
     expect(document.querySelector('[role="dialog"]')).toBeNull()
     expect(buttons('Install plugin')).toHaveLength(0)
   })
@@ -465,13 +463,11 @@ describe('PluginManager catalog', () => {
     })
     const { onInstalled } = await render([installedPlugin()])
     await act(async () => button('Update 2.0.0').click())
-    expect(document.body.textContent).toContain('Update plugins?')
+    expect(document.body.textContent).toContain('Update 1 plugin')
     expect(document.querySelectorAll('[data-plugin-update]')).toHaveLength(1)
-    expect(document.body.textContent).toContain('Source')
-    expect(document.body.textContent).toContain(
-      'full access to your files, network, and other processes'
-    )
-    await act(async () => button('Update 1 plugin').click())
+    // Why one line: nothing in this update asks for new access.
+    expect(document.body.textContent).not.toContain('See all access')
+    await act(async () => button('Update').click())
     expect(onInstalled).toHaveBeenCalledWith([listing.pluginKey])
   })
 
@@ -493,7 +489,7 @@ describe('PluginManager catalog', () => {
     expect(window.api.plugins.previewMarketplaceUpdate).toHaveBeenCalledWith({
       pluginKey: listing.pluginKey
     })
-    expect(document.body.textContent).toContain('Update plugins?')
+    expect(document.body.textContent).toContain('Update 1 plugin')
   })
 
   it('reports a failed catalog refresh even while catalogs are listed', async () => {

@@ -95,22 +95,18 @@ function CatalogCard({
   const fullAccessEnabled = useAppStore((s) => s.settings?.pluginFullAccessEnabled === true)
   const fullAccessOff = !installed && release?.execution === 'trusted-worker' && !fullAccessEnabled
   // Why the summary only below its cap: a capped list can't rule a command out.
-  const trustLabel = fullAccessOff
-    ? translate(
-        'auto.components.settings.PluginCatalogGroups.fullAccessOff',
-        'Full access · turned off in settings'
+  // Why no "turned off" note: the card's button already says to turn it on.
+  const trustLabel = release
+    ? pluginTrustLabel(
+        pluginTrust({
+          execution: release.execution,
+          points:
+            release.contributes && release.contributes.length < PLUGIN_CONTRIBUTION_SUMMARY_LIMIT
+              ? pluginPointsFromSummary(release.contributes)
+              : null
+        })
       )
-    : release
-      ? pluginTrustLabel(
-          pluginTrust({
-            execution: release.execution,
-            points:
-              release.contributes && release.contributes.length < PLUGIN_CONTRIBUTION_SUMMARY_LIMIT
-                ? pluginPointsFromSummary(release.contributes)
-                : null
-          })
-        )
-      : null
+    : null
   const statusText = installed
     ? installedPluginPresentation(installed, entry.updateVersion, false, entry.autoUpdate)
         .statusText

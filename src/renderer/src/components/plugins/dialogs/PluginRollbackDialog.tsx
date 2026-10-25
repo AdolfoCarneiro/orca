@@ -42,19 +42,24 @@ export function PluginRollbackDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {translate('auto.components.settings.PluginRollbackDialog.title', 'Roll back plugin?')}
+            {translate(
+              'auto.components.settings.PluginRollbackDialog.title',
+              'Roll back {{value0}}?',
+              {
+                value0: plugin?.name ?? ''
+              }
+            )}
           </DialogTitle>
           <DialogDescription>
             {version
               ? translate(
                   'auto.components.settings.PluginRollbackDialog.descriptionVersion',
-                  'Restores {{value0}} {{value1}}. Changed access needs another review.',
-                  { value0: plugin?.name ?? '', value1: version }
+                  'Restores version {{value0}}.',
+                  { value0: version }
                 )
               : translate(
                   'auto.components.settings.PluginRollbackDialog.description',
-                  'Restores the previous version of {{value0}}. Changed access needs another review.',
-                  { value0: plugin?.name ?? '' }
+                  'Restores the previous version.'
                 )}
           </DialogDescription>
         </DialogHeader>
@@ -69,7 +74,7 @@ export function PluginRollbackDialog({
             onClick={() => plugin && onConfirm(plugin.pluginKey)}
           >
             {busy ? <Loader2 className="animate-spin" /> : null}
-            {translate('auto.components.settings.PluginRollbackDialog.confirm', 'Roll back plugin')}
+            {translate('auto.components.settings.PluginRollbackDialog.confirm', 'Roll back')}
           </Button>
         </DialogFooter>
       </DialogContent>

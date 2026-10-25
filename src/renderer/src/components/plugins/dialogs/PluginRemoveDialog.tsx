@@ -38,13 +38,14 @@ export function PluginRemoveDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {translate('auto.components.settings.PluginRemoveDialog.title', 'Remove plugin?')}
+            {translate('auto.components.settings.PluginRemoveDialog.title', 'Remove {{value0}}?', {
+              value0: plugin?.name ?? ''
+            })}
           </DialogTitle>
           <DialogDescription>
             {translate(
               'auto.components.settings.PluginRemoveDialog.description',
-              'Removes {{value0}} and its data from this computer.',
-              { value0: plugin?.name ?? '' }
+              'Its data is removed too.'
             )}
           </DialogDescription>
         </DialogHeader>
@@ -58,7 +59,7 @@ export function PluginRemoveDialog({
             onClick={() => plugin && onConfirm(plugin.pluginKey)}
           >
             {busy ? <Loader2 className="animate-spin" /> : null}
-            {translate('auto.components.settings.PluginRemoveDialog.remove', 'Remove plugin')}
+            {translate('auto.components.settings.PluginRemoveDialog.remove', 'Remove')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -82,7 +82,7 @@ it('truncates a long result and falls back to Logs for one it cannot serialize',
   fireEvent.click(screen.getByRole('button', { name: 'Run Open Tasks' }))
   await vi.waitFor(() =>
     expect(toast.success).toHaveBeenCalledWith('Ran Open Tasks', {
-      description: 'Anything it printed is in Logs below.'
+      description: 'See Logs below'
     })
   )
 })
@@ -98,7 +98,7 @@ it('points a silent worker command at Logs', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Run Open Tasks' }))
   await vi.waitFor(() =>
     expect(toast.success).toHaveBeenCalledWith('Ran Open Tasks', {
-      description: 'Anything it printed is in Logs below.'
+      description: 'See Logs below'
     })
   )
 })
@@ -122,7 +122,7 @@ it('stays visible but off while the command cannot run', () => {
   render(
     <PluginContributionActionCommand
       command={command({ type: 'worker' })}
-      unavailableReason="Open a workspace to run it."
+      unavailableReason="Needs an open workspace"
     />
   )
   const button = screen.getByRole('button', { name: 'Run Open Tasks' })

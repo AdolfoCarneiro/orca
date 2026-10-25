@@ -4,19 +4,11 @@ import type { PluginMarketplaceHostInstallPreview } from '../../../../../preload
 import { satisfiesOrcaEngineRange } from '../../../../../shared/plugins/manifest/plugin-manifest'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../../ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '../../ui/dialog'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../ui/dialog'
 import {
   CandidateRow,
   isCurrent,
   movedFromSource,
-  updateAsksAgain,
   type UpdateCandidate
 } from '../review/PluginUpdateCandidate'
 import type { PluginListEntry } from '../list/plugin-list-entries'
@@ -48,7 +40,7 @@ function failureMessage(failed: readonly string[], updatedCount: number): string
 }
 
 /**
- * One review for every pending update. Plugins whose access grows are expanded with what's new;
+ * One review for every pending update. Plugins whose access grows show only what's new;
  * the rest are one line. Any can be unticked; nothing installs until Update.
  * Why no reset effect: the parent mounts a fresh dialog per open (keyed), so state starts clean.
  */
@@ -129,10 +121,6 @@ export function PluginUpdateAllDialog({
   const chosen = (candidates ?? []).filter(
     (candidate) => installable(candidate) && !skipped.has(candidate.entry.pluginKey)
   )
-  const growing = (candidates ?? []).filter(
-    (candidate) => candidate.preview && updateAsksAgain(candidate.entry, candidate.preview)
-  ).length
-
   const update = async (): Promise<void> => {
     setBusy(true)
     setFailure(null)
@@ -174,27 +162,20 @@ export function PluginUpdateAllDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
-      <DialogContent surface="security" scrollable>
+      <DialogContent surface="security" scrollable aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
-            {translate('auto.components.settings.PluginUpdateAllDialog.title', 'Update plugins?')}
-          </DialogTitle>
-          <DialogDescription>
-            {candidates === null
+            {plugins.length === 1
               ? translate(
-                  'auto.components.settings.PluginUpdateAllDialog.reading',
-                  'Reading what each update changes…'
+                  'auto.components.settings.PluginUpdateAllDialog.updateOne',
+                  'Update 1 plugin'
                 )
-              : growing > 0
-                ? translate(
-                    'auto.components.settings.PluginUpdateAllDialog.someGrowAsk',
-                    'Updates that ask for new access are expanded below and need your approval again. The others install without asking.'
-                  )
-                : translate(
-                    'auto.components.settings.PluginUpdateAllDialog.noneGrowKeep',
-                    'None of these updates asks for new access, so they install without asking again.'
-                  )}
-          </DialogDescription>
+              : translate(
+                  'auto.components.settings.PluginUpdateAllDialog.updateMany',
+                  'Update {{value0}} plugins',
+                  { value0: plugins.length }
+                )}
+          </DialogTitle>
         </DialogHeader>
         {candidates === null ? (
           <Loader2 className="mx-auto my-4 size-4 animate-spin text-muted-foreground" />
@@ -237,16 +218,7 @@ export function PluginUpdateAllDialog({
             {busy ? <Loader2 className="animate-spin" /> : null}
             {failure
               ? translate('auto.components.settings.PluginUpdateAllDialog.retry', 'Try again')
-              : chosen.length === 1
-                ? translate(
-                    'auto.components.settings.PluginUpdateAllDialog.updateOne',
-                    'Update 1 plugin'
-                  )
-                : translate(
-                    'auto.components.settings.PluginUpdateAllDialog.updateMany',
-                    'Update {{value0}} plugins',
-                    { value0: chosen.length }
-                  )}
+              : translate('auto.components.settings.PluginUpdateAllDialog.update', 'Update')}
           </Button>
         </DialogFooter>
       </DialogContent>

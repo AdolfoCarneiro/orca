@@ -17,7 +17,7 @@ export function pluginCapabilityDescription(kind: string, fallback: string): str
     case 'workspace:read':
       return translate(
         'auto.components.settings.PluginConsentDialog.capability.workspaceRead',
-        'Read the name, branch, and terminal list of your focused workspace, and get notified when workspaces are created or removed'
+        'Read workspace names, branches, and terminals'
       )
     case 'agents:read':
       return translate(
@@ -27,27 +27,27 @@ export function pluginCapabilityDescription(kind: string, fallback: string): str
     case 'terminal:send':
       return translate(
         'auto.components.settings.PluginConsentDialog.capability.terminalRun',
-        'Type and run commands in your terminals, local and SSH'
+        'Run commands in your terminals, including SSH'
       )
     case 'notifications:show':
       return translate(
         'auto.components.settings.PluginConsentDialog.capability.notificationsShow',
-        'Show desktop notifications labeled with the plugin name'
+        'Show desktop notifications'
       )
     case 'storage:own':
       return translate(
         'auto.components.settings.PluginConsentDialog.capability.storage',
-        "Store data in the plugin's own storage folder"
+        'Store its own data'
       )
     case 'secrets:own':
       return translate(
         'auto.components.settings.PluginConsentDialog.capability.secrets',
-        "Store and read secrets in the plugin's own encrypted file"
+        'Store its own encrypted secrets'
       )
     case 'settings:own':
       return translate(
         'auto.components.settings.PluginConsentDialog.capability.settingsOwn',
-        "Read and change the plugin's own settings"
+        'Read and change its own settings'
       )
     default:
       return fallback

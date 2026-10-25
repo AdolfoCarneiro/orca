@@ -212,7 +212,7 @@ describe('PluginDetailPage', () => {
 
   it.each([
     ['data', 'Couldn’t load its files', 'kept crashing'],
-    ['trusted-worker', 'Its code kept crashing', 'load its files']
+    ['trusted-worker', 'It kept crashing', 'load its files']
   ] as const)(
     'explains a stopped %s plugin in terms of what it has',
     async (execution, shown, hidden) => {
@@ -232,7 +232,7 @@ describe('PluginDetailPage', () => {
     expect(container.textContent).toContain('Minimal Icons')
     expect(container.textContent).toContain('File icon theme')
     // Why from the release: install refuses bytes whose profile differs from it.
-    expect(container.textContent).toContain('Can’t reach anything outside its own files')
+    expect(container.textContent).toContain('Content only')
   })
 
   it('installs a content-only plugin in one click from its page', async () => {
@@ -256,7 +256,7 @@ describe('PluginDetailPage', () => {
       pluginListEntryFromListing({ ...listing, release: undefined }),
       fetchPreview
     )
-    expect(container.textContent).toContain('Couldn’t read what it can access')
+    expect(container.textContent).toContain('Couldn’t read its access')
     expect(container.textContent).not.toContain('outside its own files')
     const installButton = Array.from(container.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Install & enable')
@@ -268,7 +268,7 @@ describe('PluginDetailPage', () => {
     )
     await act(async () => retry?.click())
     expect(fetchPreview).toHaveBeenCalledTimes(2)
-    expect(container.textContent).toContain('Can’t reach anything outside its own files')
+    expect(container.textContent).toContain('Content only')
   })
 
   it('names an installed plugin’s syntax and says when its grammar failed', async () => {
@@ -317,9 +317,7 @@ describe('PluginDetailPage', () => {
       })
     )
     expect(container.textContent).not.toContain('Content only')
-    expect(container.textContent).toContain(
-      'Its commands and instructions can take actions when you or an agent use them.'
-    )
+    expect(container.textContent).toContain('Its commands can act for you or your agents')
   })
 
   it('warns that an installed worker plugin has full access even without capabilities', async () => {
@@ -328,9 +326,7 @@ describe('PluginDetailPage', () => {
       vi.fn()
     )
     expect(container.textContent).not.toContain('sandbox')
-    expect(container.textContent).toContain(
-      'Its worker runs as a normal process with full access to your files, network, and other processes.'
-    )
+    expect(container.textContent).toContain('Full access to your files, network, and processes')
   })
 
   it('warns about the commands a panel plugin carries and discloses replaced shortcuts first', async () => {
@@ -354,9 +350,7 @@ describe('PluginDetailPage', () => {
         preview: { ...preview, pluginKey: 'stablyai.board', manifest: panelManifest }
       })
     )
-    expect(container.textContent).toContain(
-      'Its commands and instructions can take actions when you or an agent use them.'
-    )
+    expect(container.textContent).toContain('Its commands can act for you or your agents')
     expect(container.textContent).not.toContain('These permissions limit what it can do')
     expect(container.textContent).not.toContain('outside its own files')
     expect(container.textContent).toMatch(/replaces your shortcut for/)
@@ -463,10 +457,10 @@ describe('PluginDetailPage', () => {
       pluginListEntryFromListing(summarized),
       () => new Promise((resolve) => (resolvePreview = resolve))
     )
-    expect(container.textContent).toContain('Reading what it can access…')
-    expect(container.textContent).not.toContain('It asks for no other access.')
+    expect(container.textContent).toContain('Reading the plugin…')
+    expect(container.textContent).not.toContain('No other access')
     await act(async () => resolvePreview({ ok: true, preview: codePreview }))
-    expect(container.textContent).toContain('It asks for no other access.')
+    expect(container.textContent).toContain('No other access')
   })
 
   it('disarms while a catalog refresh is in flight', async () => {
@@ -500,15 +494,11 @@ describe('PluginDetailPage', () => {
       pluginListEntryFromListing(panelListing),
       () => new Promise((resolve) => (resolvePreview = resolve))
     )
-    expect(container.textContent).toContain(
-      'Its commands and instructions can take actions when you or an agent use them.'
-    )
+    expect(container.textContent).toContain('Its commands can act for you or your agents')
     await act(async () =>
       resolvePreview({ ok: true, preview: { ...codePreview, manifest: panelManifest } })
     )
-    expect(container.textContent).toContain(
-      'Its commands and instructions can take actions when you or an agent use them.'
-    )
+    expect(container.textContent).toContain('Its commands can act for you or your agents')
     expect(container.textContent).not.toContain('These permissions limit what it can do')
   })
 

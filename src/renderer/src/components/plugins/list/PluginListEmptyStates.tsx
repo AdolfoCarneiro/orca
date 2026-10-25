@@ -28,10 +28,6 @@ export function PluginNoMatches({
               'No plugins match these filters'
             )
       }
-      description={translate(
-        'auto.components.settings.PluginManager.noResults',
-        'Search looks at names, descriptions, publishers and categories.'
-      )}
       action={
         <Button variant="outline" size="sm" onClick={onClear}>
           {query && filtered

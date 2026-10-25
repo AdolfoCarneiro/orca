@@ -82,7 +82,7 @@ export function PluginSettingsMenu({
             <span className="block text-muted-foreground">
               {translate(
                 'auto.components.settings.PluginSettingsMenu.autoUpdateHint',
-                'Updates can change what a plugin does, including full-access ones'
+                'Asks again only for new access'
               )}
             </span>
           </span>

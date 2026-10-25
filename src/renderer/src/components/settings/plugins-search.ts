@@ -24,7 +24,7 @@ export function getPluginsSectionPresentation() {
     badge: translate('auto.components.settings.PluginsSettingsSection.alpha', 'Alpha'),
     description: translate(
       'auto.components.settings.PluginsSettingsSection.description',
-      'Themes, languages, commands, and more. Plugins run on this computer.'
+      'Themes, languages, commands, and more.'
     ),
     searchEntries: getPluginsPaneSearchEntries()
   }

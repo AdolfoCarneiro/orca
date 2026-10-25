@@ -114,10 +114,10 @@ test('runs hello-orca panel, command, and event behind visible consent', async (
     const row = orcaPage.locator(`[data-plugin-key="${installed.pluginKey}"]`)
     // Why on the page: review sits above its one button there, not in a dialog over the list.
     await row.getByRole('button', { name: 'Review', exact: true }).click()
-    const consent = orcaPage.getByRole('region', { name: /^If you enable .+, it can:$/ })
+    const consent = orcaPage.locator('[data-plugin-consent]')
     await expect(consent).toBeVisible()
     await expect(orcaPage.getByRole('article')).toContainText('Local folder')
-    await expect(consent).toContainText('full access to your files, network, and other processes')
+    await expect(consent).toContainText('Full access to your files, network, and processes')
     await expect(orcaPage.getByRole('dialog')).toHaveCount(0)
     await orcaPage
       .getByRole('article')

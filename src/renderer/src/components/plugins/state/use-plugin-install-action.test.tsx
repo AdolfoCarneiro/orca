@@ -188,7 +188,7 @@ describe('usePluginInstallAction', () => {
     expect(window.api.plugins.installMarketplacePlugin).not.toHaveBeenCalled()
     expect(hook.current?.phaseOf(listing.pluginKey)).toEqual({
       kind: 'error',
-      message: 'The catalog changed since this page opened. Refresh it, then try again.'
+      message: 'The catalog changed. Refresh and try again.'
     })
   })
 
@@ -201,7 +201,7 @@ describe('usePluginInstallAction', () => {
     await act(async () => hook.current?.install(listing))
     expect(hook.current?.phaseOf(listing.pluginKey)).toEqual({
       kind: 'error',
-      message: 'The download didn’t match what the catalog published, so nothing was installed.'
+      message: 'Download didn’t match the catalog. Nothing installed.'
     })
     expect(onInstalled).not.toHaveBeenCalled()
   })

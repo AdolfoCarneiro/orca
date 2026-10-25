@@ -81,25 +81,22 @@ export function installedPluginControls(
     tone = 'destructive'
     description = translate(
       'auto.components.settings.PluginManagerRows.dataLoadFailed',
-      'Couldn’t load its files. Restart to try again.'
+      'Couldn’t load its files'
     )
   } else if (kind === 'error') {
     tone = 'destructive'
     description =
       plugin.restarts === 1
-        ? translate(
-            'auto.components.settings.PluginManagerRows.crashedOnce',
-            'Crashed once. View its logs on the plugin page.'
-          )
+        ? translate('auto.components.settings.PluginManagerRows.crashedOnce', 'Crashed once')
         : plugin.restarts > 1
           ? translate(
               'auto.components.settings.PluginManagerRows.crashedCount',
-              'Crashed {{value0}} times in a row. View its logs on the plugin page.',
+              'Crashed {{value0}} times in a row',
               { value0: plugin.restarts }
             )
           : translate(
               'auto.components.settings.PluginManagerRows.crashed',
-              'Crashed while starting. View its logs on the plugin page.'
+              'Crashed while starting'
             )
   }
 

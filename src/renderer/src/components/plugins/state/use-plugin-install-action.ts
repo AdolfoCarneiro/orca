@@ -23,19 +23,19 @@ function catalogInstallErrorMessage(cause: unknown): string {
   if (/(do not match|does not match|no longer matches)/.test(detail)) {
     return translate(
       'auto.components.settings.pluginInstallAction.mismatch',
-      'The download didn’t match what the catalog published, so nothing was installed.'
+      'Download didn’t match the catalog. Nothing installed.'
     )
   }
   if (detail.includes('marketplace changed')) {
     return translate(
       'auto.components.settings.pluginInstallAction.catalogChanged',
-      'The catalog changed since this page opened. Refresh it, then try again.'
+      'The catalog changed. Refresh and try again.'
     )
   }
   if (detail.includes('full access plugins are turned off')) {
     return translate(
       'auto.components.settings.pluginInstallAction.fullAccessOff',
-      'Full-access plugins are turned off. Turn on “Allow full-access plugins” in the plugin settings menu, then try again.'
+      'Full-access plugins are off. Turn them on in plugin settings.'
     )
   }
   if (detail.includes('safety list')) {
@@ -50,7 +50,7 @@ function catalogInstallErrorMessage(cause: unknown): string {
 const downloadFailed = (): string =>
   translate(
     'auto.components.settings.pluginInstallAction.downloadFailed',
-    'Couldn’t download this plugin. Check your connection, then try again. Nothing was installed.'
+    'Couldn’t download. Check your connection.'
   )
 
 /**

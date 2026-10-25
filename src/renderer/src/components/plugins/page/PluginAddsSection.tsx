@@ -153,7 +153,7 @@ function CommandRow({
         ) : isWorkspaceScopedPluginContext(binding?.when) ? (
           translate(
             'auto.components.settings.PluginKeybindingConsentPreview.worktree',
-            'Runs only while a workspace is active.'
+            'Only in a workspace'
           )
         ) : (
           translate('auto.components.settings.PluginDetailSections.command', 'Command')

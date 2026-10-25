@@ -151,9 +151,8 @@ it('runs a live worker command from its row and shows what came back', async () 
 it('explains inline why a workspace command and the panel are off without a workspace', () => {
   renderAdds(hello)
   expect(screen.getByRole('button', { name: 'Run Hello: Here' })).toBeDisabled()
-  expect(screen.getByText('Open a workspace to run it.')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Open panel: Hello Orca' })).toBeDisabled()
-  expect(screen.getByText('Open a workspace to see it.')).toBeInTheDocument()
+  expect(screen.getAllByText('Needs an open workspace')).toHaveLength(2)
 })
 
 it('opens a live panel over the workspace Settings came from', () => {

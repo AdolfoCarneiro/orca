@@ -5955,18 +5955,18 @@
           "e4b5e909ff": "Quando desativado, os espaços de trabalho ocultos por uma opção Ocultar no menu Filtros da barra lateral não mostram o ponto de não lido nem enviam notificações para este computador ou seu celular."
         },
         "PluginConsentDialog": {
-          "reconsent": "As permissões, o nível de confiança do worker ou o conteúdo instrucional mudaram desde sua última revisão deste plugin. Revise-o novamente antes que ele possa ser executado.",
-          "warning": "Estas permissões limitam como o plugin usa a API do Orca. Seu worker ainda é executado como um processo normal no seu computador, com acesso total aos seus arquivos, rede e outros processos.",
-          "instructionalWarning": "Este plugin não tem processo worker. Seu conteúdo instrucional ainda pode causar ações quando você ou um agente o usam. Revise as instruções e comandos abaixo antes de ativá-lo.",
-          "panelWarning": "Estas permissões limitam como o plugin usa a API do Orca. Este plugin não tem worker em segundo plano.",
-          "declarativeWarning": "Este plugin contribui somente com conteúdo validado. Ele não executa um worker em segundo plano nem recebe acesso à API do Orca.",
+          "reconsent": "Mudou desde que você aprovou",
+          "warning": "Acesso total aos seus arquivos, rede e processos",
+          "instructionalWarning": "Os comandos podem agir por você ou seus agentes",
+          "declarativeWarning": "Somente conteúdo. Nenhum código é executado.",
           "enable": "Ativar plugin",
           "capability": {
-            "workspaceRead": "Ler o nome, a branch e a lista de terminais da sua worktree em foco",
-            "notificationsShow": "Mostrar notificações de desktop rotuladas com o nome do plugin",
-            "storage": "Armazenar dados na própria pasta de armazenamento do plugin",
-            "secrets": "Armazenar e ler segredos no próprio cofre criptografado do plugin",
-            "settingsOwn": "Ler e alterar as próprias configurações do plugin"
+            "workspaceRead": "Ler nomes, branches e terminais dos workspaces",
+            "notificationsShow": "Mostrar notificações na área de trabalho",
+            "storage": "Guardar os próprios dados",
+            "secrets": "Guardar os próprios segredos criptografados",
+            "settingsOwn": "Ler e alterar as próprias configurações",
+            "terminalRun": "Executar comandos nos seus terminais, incluindo SSH"
           },
           "decisionFailed": "Não foi possível salvar a decisão de permissão. Tente novamente."
         },
@@ -6095,8 +6095,8 @@
           "running": "Em execução",
           "enabled": "Ativado",
           "loadingLogs": "Carregando logs…",
-          "noLogs": "Nenhuma linha de log registrada.",
-          "logCount": "Últimas {{value0}} de até 200 linhas retidas",
+          "noLogs": "Nenhum log ainda",
+          "logCount": "Últimas {{value0}} linhas",
           "dev": "Dev",
           "bundled": "Incluído",
           "killListMessage": "A lista de segurança do Orca desativou este plugin: {{value0}}",
@@ -6612,24 +6612,24 @@
           }
         },
         "PluginMarketplaceSourceDialog": {
-          "addFailed": "Não foi possível adicionar este catálogo. Verifique a URL, a ref e o acesso ao Git.",
+          "addFailed": "Não foi possível adicionar este catálogo. Verifique a URL e a ref.",
           "refreshFailed": "Não foi possível atualizar este catálogo. Tente novamente.",
           "removeFailed": "Não foi possível remover este catálogo.",
           "title": "Origens do catálogo",
-          "description": "Marketplaces são repositórios Git fixados. O Orca usa suas credenciais Git existentes do sistema para repositórios privados.",
+          "description": "Repositórios Git que listam plugins",
           "urlLabel": "URL do Git",
-          "urlDescription": "Use uma URL de repositório HTTPS ou SSH contendo orca-catalog.json (ou o antigo orca-marketplace.json).",
+          "urlDescription": "HTTPS ou SSH, com um orca-catalog.json",
           "urlPlaceholder": "https://git.example.com/team/plugins.git",
           "refLabel": "Ref do Git",
-          "refDescription": "Escolha uma branch, tag ou commit. Cada índice obtido é registrado em um commit exato.",
+          "refDescription": "Branch, tag ou commit",
           "adding": "Adicionando…",
           "add": "Adicionar origem",
-          "configured": "Origens configuradas",
-          "empty": "Nenhuma origem de catálogo configurada.",
+          "configured": "Fontes",
+          "empty": "Nenhuma fonte ainda",
           "official": "Oficial",
           "owner": "Proprietário: {{value0}}",
           "pinnedCommit": "Fixado em {{value0}}",
-          "stale": "Falha na atualização. Navegando pelo último índice válido em cache.",
+          "stale": "Não foi possível atualizar. Pode estar desatualizado.",
           "refreshLabel": "Atualizar {{value0}}",
           "removeLabel": "Remover {{value0}}",
           "done": "Concluído"
@@ -6695,19 +6695,19 @@
         "PluginInstallDialog": {
           "localRequired": "Digite o caminho da pasta do plugin.",
           "gitUrlRequired": "Digite uma URL de repositório.",
-          "gitUrlInvalid": "Use uma URL Git HTTPS ou SSH. Protocolos auxiliares executáveis do Git não são permitidos.",
-          "gitRefRequired": "Adicione um #ref explícito (tag ou commit) para que a instalação seja fixada — por exemplo #v0.1.0.",
+          "gitUrlInvalid": "Use uma URL Git HTTPS ou SSH.",
+          "gitRefRequired": "Adicione um #tag ou #commit, como #v0.1.0.",
           "title": "Instalar plugin",
-          "description": "Instalar copia o plugin para o Orca e mostra suas permissões para revisão. Nenhum código do plugin é executado até que você o ative.",
+          "description": "Nada é executado até você ativar.",
           "source": "Origem da instalação",
           "localTab": "Pasta local",
           "gitTab": "URL do Git",
           "localLabel": "Caminho da pasta do plugin",
-          "localPlaceholder": "/Users/you/plugins/my-plugin or C:\\Users\\you\\plugins\\my-plugin",
-          "localHelp": "Caminho completo para uma pasta contendo orca-plugin.json neste computador. O caminho é usado exatamente como informado.",
-          "gitLabel": "URL do repositório com #ref",
+          "localPlaceholder": "Caminho para uma pasta de plugin",
+          "localHelp": "A pasta com orca-plugin.json",
+          "gitLabel": "URL do repositório",
           "gitPlaceholder": "https://git.example/acme/orca-notes#v0.1.0",
-          "gitHelp": "Adicione um #ref explícito — uma tag ou commit — para que a instalação seja fixada. Funciona com GitHub, GitLab e qualquer host git.",
+          "gitHelp": "Termine com #tag ou #commit para fixar uma versão",
           "cancel": "Cancelar",
           "installing": "Instalando…",
           "install": "Instalar",
@@ -7065,7 +7065,7 @@
           "settingsUpdateFailed": "Não foi possível salvar as configurações do plugin.",
           "install": "Instalar plugin",
           "title": "Plugins",
-          "description": "Instale e gerencie plugins do Orca. Os plugins são executados neste computador, mesmo para espaços de trabalho SSH.",
+          "description": "Temas, idiomas, comandos e mais.",
           "logsFailed": "Não foi possível carregar os logs do plugin.",
           "rollbackFailed": "Não foi possível reverter este plugin. Uma versão imutável anterior pode não estar disponível."
         },
@@ -7790,8 +7790,9 @@
           "title": "Desenvolvimento",
           "remove": "Remover",
           "pathLabel": "Caminho da pasta do plugin de desenvolvimento",
-          "placeholder": "/Users/you/plugins/my-plugin or C:\\Users\\you\\plugins\\my-plugin",
-          "add": "Adicionar caminho"
+          "placeholder": "Caminho para uma pasta de plugin",
+          "add": "Adicionar caminho",
+          "reviewHelp": "Revisado uma vez. Edições de código depois rodam sem perguntar."
         },
         "GeneralPane": {
           "confirm_running_work_close": "Confirmar antes de fechar chats ou terminais ativos",
@@ -7991,19 +7992,20 @@
           "description": "Links do terminal, do chat e do markdown abrem no navegador sem tirar o foco de onde você clicou."
         },
         "PluginKeybindingConsentPreview": {
-          "worktree": "Executa somente enquanto um espaço de trabalho está ativo."
+          "worktree": "Somente em um workspace"
         },
         "PluginRemoveDialog": {
-          "title": "Remover plugin?",
-          "description": "Isso remove {{value0}} e seus dados de plugin armazenados deste computador. Você pode instalá-lo novamente depois.",
+          "title": "Remover {{value0}}?",
+          "description": "Os dados também são removidos.",
           "cancel": "Cancelar",
-          "remove": "Remover plugin"
+          "remove": "Remover"
         },
         "PluginRollbackDialog": {
-          "title": "Reverter plugin?",
-          "description": "Isso desativa {{value0}} e restaura sua versão imutável anterior. Se essa versão solicitar acesso diferente ou conteúdo instrucional, o Orca vai exigir outra revisão.",
+          "title": "Reverter {{value0}}?",
+          "description": "Restaura a versão anterior.",
           "cancel": "Cancelar",
-          "confirm": "Reverter plugin"
+          "confirm": "Reverter",
+          "descriptionVersion": "Restaura a versão {{value0}}."
         },
         "AppIconSelector": {
           "d5a112dc9b": "Próximo ícone",
@@ -8715,7 +8717,60 @@
           "noMatches": "Nenhuma build encontrada."
         },
         "pluginInstallAction": {
-          "fullAccessOff": "Os plugins com acesso total estão desativados. Ative “Allow full-access plugins” no menu de configurações de plugins e tente novamente."
+          "fullAccessOff": "Plugins com acesso total estão desativados. Ative-os nas configurações de plugins.",
+          "catalogChanged": "O catálogo mudou. Atualize e tente de novo.",
+          "downloadFailed": "Não foi possível baixar. Verifique sua conexão.",
+          "mismatch": "O download não corresponde ao catálogo. Nada foi instalado."
+        },
+        "PluginContributionActionCommand": {
+          "needsWorkspace": "Requer um workspace aberto",
+          "seeLogs": "Veja os logs abaixo"
+        },
+        "PluginContributionActionPanel": {
+          "needsWorkspace": "Requer um workspace aberto"
+        },
+        "PluginDetailPage": {
+          "needsOrcaBody": "Você tem o Orca {{value0}}.",
+          "newerBody": "O catálogo mudou enquanto você estava aqui.",
+          "showNewer": "Ver a nova",
+          "stoppedBody": "Continuou falhando. Reinicie para tentar de novo.",
+          "stoppedDataBody": "Não foi possível carregar os arquivos. Reinicie para tentar de novo."
+        },
+        "PluginDetailSections": {
+          "accessFailed": "Não foi possível ler o acesso",
+          "noAccessReach": "Nada fora dos próprios arquivos"
+        },
+        "PluginInstallConsent": {
+          "fullAccessUpdates": "Atualizações podem mudar o código sem perguntar",
+          "noOtherAccess": "Nenhum outro acesso",
+          "updatesKeepApproval": "Atualizações só perguntam de novo por novo acesso"
+        },
+        "PluginManagerRows": {
+          "crashed": "Falhou ao iniciar",
+          "crashedCount": "Falhou {{value0}} vezes seguidas",
+          "crashedOnce": "Falhou uma vez",
+          "dataLoadFailed": "Não foi possível carregar os arquivos"
+        },
+        "PluginPageAction": {
+          "contentOnly": "Somente conteúdo"
+        },
+        "PluginSettingsMenu": {
+          "autoUpdateHint": "Só pergunta de novo por novo acesso"
+        },
+        "PluginUpdateAllDialog": {
+          "allAccess": "Ver todo o acesso",
+          "current": "Já instalado",
+          "needsOrca": "Requer Orca {{value0}} ou posterior",
+          "newAccess": "Novo: {{value0}}",
+          "newCommands": "Comandos",
+          "newContributions": "Recursos que agem por você",
+          "newEvents": "Mais eventos",
+          "newPanels": "Painéis",
+          "newRecipes": "Receitas de máquina",
+          "newShortcuts": "Atalhos de teclado",
+          "previewError": "Não foi possível ler esta atualização",
+          "sourceMoved": "Nova fonte: {{value0}} (antes {{value1}})",
+          "update": "Atualizar"
         },
         "notification": {
           "settings": {

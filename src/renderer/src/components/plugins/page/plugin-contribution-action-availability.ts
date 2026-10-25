@@ -20,7 +20,7 @@ export function pluginCommandUnavailableReason(
   if (isWorkspaceScopedPluginContext(command.context) && !activeWorktreeId) {
     return translate(
       'auto.components.settings.PluginContributionActionCommand.needsWorkspace',
-      'Open a workspace to run it.'
+      'Needs an open workspace'
     )
   }
   return null
@@ -33,7 +33,7 @@ export function pluginPanelUnavailableReason(
   if (!canShowRightSidebarForView(state.previousViewBeforeSettings) || !state.activeWorktreeId) {
     return translate(
       'auto.components.settings.PluginContributionActionPanel.needsWorkspace',
-      'Open a workspace to see it.'
+      'Needs an open workspace'
     )
   }
   return null

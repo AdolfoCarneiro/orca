@@ -134,11 +134,11 @@ export function PluginDetailPage({
           plugin?.execution === 'data'
             ? translate(
                 'auto.components.settings.PluginDetailPage.stoppedDataBody',
-                'Couldn’t load its files, so Orca stopped trying. It’s still switched on; Restart tries again.'
+                'Couldn’t load its files. Restart to try again.'
               )
             : translate(
                 'auto.components.settings.PluginDetailPage.stoppedBody',
-                'Its code kept crashing, so Orca stopped restarting it. It’s still switched on; Restart tries again.'
+                'It kept crashing. Restart to try again.'
               )
         }
       />
@@ -176,11 +176,11 @@ export function PluginDetailPage({
         )}
         body={translate(
           'auto.components.settings.PluginDetailPage.newerBody',
-          'The catalog changed while this page was open. Show the newer version to review it.'
+          'The catalog changed while you were here.'
         )}
         action={
           <Button variant="outline" size="xs" onClick={model.showNewer}>
-            {translate('auto.components.settings.PluginDetailPage.showNewer', 'Show it')}
+            {translate('auto.components.settings.PluginDetailPage.showNewer', 'Show newer')}
           </Button>
         }
       />
@@ -198,7 +198,7 @@ export function PluginDetailPage({
         )}
         body={translate(
           'auto.components.settings.PluginDetailPage.needsOrcaBody',
-          'You have Orca {{value0}}. Update Orca to install this plugin.',
+          'You have Orca {{value0}}.',
           {
             value0: orcaVersion ?? ''
           }

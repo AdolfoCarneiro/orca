@@ -18,9 +18,6 @@ import { PluginVmRecipeConsentPreview } from './PluginVmRecipeConsentPreview'
 import type { PluginPageShortcut } from '../state/use-plugin-page-model'
 
 type PluginInstallConsentProps = {
-  name: string
-  /** `install` grants on install; `enable` reviews a plugin already installed. */
-  mode: 'install' | 'enable'
   trust: PluginTrust
   /** Null until the plugin's own files were read; the button stays off until then. */
   capabilities: readonly { kind: string; description: string }[] | null
@@ -53,8 +50,6 @@ function shortcutPlatform(): NodeJS.Platform {
  * that grants it. On the host's security surface so a plugin theme cannot restyle the decision.
  */
 export function PluginInstallConsent({
-  name,
-  mode,
   trust,
   capabilities: requested,
   shortcuts,
@@ -87,17 +82,7 @@ export function PluginInstallConsent({
         <div className="flex items-center gap-2 border-b border-foreground/15 bg-muted px-4 py-2.5">
           <ShieldAlert className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <h3 id={headingId} className="min-w-0 flex-1 text-sm font-medium">
-            {mode === 'install'
-              ? translate(
-                  'auto.components.settings.PluginInstallConsent.installHeading',
-                  'If you install {{value0}}, it can:',
-                  { value0: name }
-                )
-              : translate(
-                  'auto.components.settings.PluginInstallConsent.enableHeading',
-                  'If you enable {{value0}}, it can:',
-                  { value0: name }
-                )}
+            {translate('auto.components.settings.PluginDetailSections.access', 'Can access')}
           </h3>
           <span className="shrink-0 rounded-md border border-border px-1.5 py-px text-2xs font-medium text-muted-foreground">
             {pluginTrustLabel(trust)}
@@ -108,7 +93,7 @@ export function PluginInstallConsent({
             <p className="rounded-md bg-muted px-2.5 py-1.5 text-xs leading-5">
               {translate(
                 'auto.components.settings.PluginConsentDialog.reconsent',
-                'This plugin changed since you approved it. Review it to run it again.'
+                'Changed since you approved it'
               )}
             </p>
           ) : null}
@@ -149,19 +134,14 @@ export function PluginInstallConsent({
               <Check className="mt-1 size-4 shrink-0" />
               {translate(
                 'auto.components.settings.PluginInstallConsent.noOtherAccess',
-                'It asks for no other access.'
+                'No other access'
               )}
             </p>
           ) : ready ? (
             capabilities.map((capability) => (
-              <p key={capability.kind} className="flex items-start gap-2">
+              <p key={capability.kind} className="flex items-start gap-2" title={capability.kind}>
                 <Check className="mt-1 size-4 shrink-0 text-muted-foreground" />
-                <span>
-                  {pluginCapabilityDescription(capability.kind, capability.description)}{' '}
-                  <span className="font-mono text-2xs text-muted-foreground">
-                    ({capability.kind})
-                  </span>
-                </span>
+                <span>{pluginCapabilityDescription(capability.kind, capability.description)}</span>
               </p>
             ))
           ) : failed ? (
@@ -170,7 +150,7 @@ export function PluginInstallConsent({
               <span className="flex-1">
                 {translate(
                   'auto.components.settings.PluginDetailSections.accessFailed',
-                  'Couldn’t read what it can access'
+                  'Couldn’t read its access'
                 )}
               </span>
               {onRetry ? (
@@ -193,23 +173,16 @@ export function PluginInstallConsent({
         {error ? <p className="px-4 pb-2 text-xs text-destructive">{error}</p> : null}
         {/* Why no button here: the page's one decision sits top-right, beside the name. */}
         <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2.5">
-          {reading && !failed ? (
-            <span className="text-xs text-muted-foreground" aria-live="polite">
-              {translate(
-                'auto.components.settings.PluginInstallConsent.reading',
-                'Reading what it can access…'
-              )}
-            </span>
-          ) : (
+          {reading && !failed ? null : (
             <span className="text-xs text-muted-foreground">
               {trust.worker
                 ? translate(
                     'auto.components.settings.PluginInstallConsent.fullAccessUpdates',
-                    'Updates that don’t ask for more access install without asking again, and can change what its full-access code does.'
+                    'Updates can change its code without asking'
                   )
                 : translate(
                     'auto.components.settings.PluginInstallConsent.updatesKeepApproval',
-                    'Updates that don’t ask for more access install without asking again.'
+                    'Updates ask again only for new access'
                   )}
             </span>
           )}

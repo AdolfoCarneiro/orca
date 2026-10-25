@@ -1,4 +1,4 @@
-import { AlertTriangle, Loader2, RotateCw, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, Check, Loader2, RotateCw, ShieldCheck } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 import type { PluginTrust } from '../presentation/plugin-access-profile'
 import { pluginTrustWarnings } from '../presentation/plugin-consent-copy'
@@ -102,13 +102,8 @@ export function PluginAccessSection({
           icon={<AlertTriangle />}
           title={translate(
             'auto.components.settings.PluginDetailSections.accessFailed',
-            'Couldn’t read what it can access'
+            'Couldn’t read its access'
           )}
-          detail={translate(
-            'auto.components.settings.PluginDetailSections.accessFailedDetail',
-            'Orca couldn’t fetch or check this plugin’s files.'
-          )}
-          detailTone="warning"
           trailing={
             failed && onRetry ? (
               <Button variant="ghost" size="xs" onClick={onRetry}>
@@ -131,19 +126,8 @@ export function PluginAccessSection({
           icon={<ShieldCheck />}
           title={translate(
             'auto.components.settings.PluginDetailSections.noAccessReach',
-            'Can’t reach anything outside its own files'
+            'Nothing outside its own files'
           )}
-          detail={
-            trust.panel
-              ? translate(
-                  'auto.components.settings.PluginDetailSections.noAccessCode',
-                  'Its code runs in a sandbox with no extra access.'
-                )
-              : translate(
-                  'auto.components.settings.PluginDetailSections.noAccessContent',
-                  'Content only. It has no code that runs.'
-                )
-          }
         />
       ) : (
         <>
@@ -155,7 +139,7 @@ export function PluginAccessSection({
           {capabilities.map((capability) => (
             <DetailRow
               key={capability.kind}
-              icon={<AlertTriangle />}
+              icon={<Check />}
               title={pluginCapabilityDescription(capability.kind, capability.description)}
             />
           ))}
@@ -183,7 +167,7 @@ export function PluginLogsSection({
         state?.lines
           ? translate(
               'auto.components.settings.PluginSettingsRow.logCount',
-              'Last {{value0}} of up to 200 retained lines',
+              'Last {{value0}} lines',
               {
                 value0: lines.length
               }
@@ -204,11 +188,7 @@ export function PluginLogsSection({
             tabIndex={0}
             className="scrollbar-sleek max-h-44 overflow-auto bg-muted/40 px-3.5 py-2.5 font-mono text-2xs leading-5"
           >
-            {text ||
-              translate(
-                'auto.components.settings.PluginSettingsRow.noLogs',
-                'No log lines recorded.'
-              )}
+            {text || translate('auto.components.settings.PluginSettingsRow.noLogs', 'No logs yet')}
           </pre>
           {text ? (
             <div className="flex justify-end border-t border-border px-2 py-1">

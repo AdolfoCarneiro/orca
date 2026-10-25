@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 type PluginCatalogEmptyStateProps = {
   icon: LucideIcon
   title: string
-  description: string
+  description?: string
   action?: React.ReactNode
   className?: string
   tone?: 'default' | 'destructive'
@@ -45,14 +45,16 @@ export function PluginCatalogEmptyState({
       >
         {title}
       </h4>
-      <p
-        className={cn(
-          'mt-1.5 max-w-sm text-[13px] leading-5',
-          destructive ? 'text-destructive/90' : 'text-muted-foreground'
-        )}
-      >
-        {description}
-      </p>
+      {description ? (
+        <p
+          className={cn(
+            'mt-1.5 max-w-sm text-[13px] leading-5',
+            destructive ? 'text-destructive/90' : 'text-muted-foreground'
+          )}
+        >
+          {description}
+        </p>
+      ) : null}
       {action ? (
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">{action}</div>
       ) : null}

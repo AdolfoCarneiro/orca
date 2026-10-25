@@ -210,7 +210,7 @@ describe('PluginManager', () => {
       }
     ])
     const row = container.querySelector('[data-plugin-key="local.lang-pack"]')
-    expect(row?.textContent).toContain('Couldn’t load its files.')
+    expect(row?.textContent).toContain('Couldn’t load its files')
     expect(row?.textContent).not.toContain('Crashed')
   })
 

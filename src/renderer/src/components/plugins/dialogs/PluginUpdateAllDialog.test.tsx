@@ -141,10 +141,8 @@ describe('PluginUpdateAllDialog', () => {
     installApi({ previewMarketplaceUpdate: vi.fn().mockResolvedValue(worker) })
     const container = await renderDialog([entry('a', [])])
     expect(container.textContent).toContain(
-      'full access to your files, network, and other processes'
+      'New: Full access to your files, network, and processes'
     )
-    expect(container.textContent).not.toContain('No new access')
-    expect(container.textContent).not.toContain('None of these updates asks for new access')
   })
 
   it('flags an update whose catalog moved it to another repository and leaves it unticked', async () => {
@@ -176,7 +174,7 @@ describe('PluginUpdateAllDialog', () => {
     const container = await renderDialog([moved, sameRepo])
 
     expect(container.textContent).toContain(
-      'Now comes from a different repository: https://example.com/acme/plugin.git (was git@example.com:acme/original.git)'
+      'New source: https://example.com/acme/plugin.git (was git@example.com:acme/original.git)'
     )
     expect(container.querySelector('#plugin-update-a')?.getAttribute('aria-checked')).toBe('false')
     expect(container.querySelector('#plugin-update-b')?.getAttribute('aria-checked')).toBe('true')
@@ -192,7 +190,8 @@ describe('PluginUpdateAllDialog', () => {
     const worker = entry('a', [])
     worker.installed!.execution = 'trusted-worker'
     const container = await renderDialog([worker])
-    expect(container.textContent).toContain('No new access')
+    expect(container.textContent).not.toContain('New:')
+    expect(container.querySelector('[data-plugin-update="a"]')?.textContent).toBe('Aa1.0.0 → 1.1.0')
   })
 
   it('expands an update that adds a shortcut even with no new capability', async () => {
@@ -206,8 +205,8 @@ describe('PluginUpdateAllDialog', () => {
       installMarketplacePlugin: vi.fn()
     })
     const container = await renderDialog([entry('a', [])])
-    expect(container.textContent).toContain('Adds keyboard shortcuts')
-    expect(container.textContent).toContain('need your approval again')
+    expect(container.textContent).toContain('New: Keyboard shortcuts')
+    expect(container.textContent).toContain('See all access')
   })
 
   it('reviews every update in one dialog and installs only the ticked ones', async () => {
@@ -237,15 +236,14 @@ describe('PluginUpdateAllDialog', () => {
         />
       )
     })
-    expect(container.textContent).toContain(
-      'Updates that ask for new access are expanded below and need your approval again.'
-    )
-    expect(container.textContent).toContain('New access:')
+    expect(container.querySelector('h2')?.textContent).toBe('Update 2 plugins')
+    expect(container.textContent).toContain('New: Store its own encrypted secrets')
+    expect(container.querySelector('[data-plugin-update="b"]')?.textContent).toBe('Bb1.0.0 → 1.1.0')
 
     const first = container.querySelector<HTMLButtonElement>('#plugin-update-a')
     await act(async () => first?.click())
     const confirm = Array.from(container.querySelectorAll('button')).find(
-      (button) => button.textContent === 'Update 1 plugin'
+      (button) => button.textContent === 'Update'
     )
     await act(async () => confirm?.click())
 
@@ -291,7 +289,7 @@ describe('PluginUpdateAllDialog', () => {
     const onUpdated = vi.fn().mockResolvedValue(undefined)
     const container = await renderDialog([entry('a', []), entry('b', [])], { onUpdated })
 
-    await act(async () => button(container, 'Update 2 plugins')?.click())
+    await act(async () => button(container, 'Update')?.click())
     expect(container.textContent).toContain('Couldn’t update a. The others were updated.')
     expect(onUpdated).toHaveBeenCalledWith(['b'])
     expect(container.querySelector('[data-plugin-update="b"]')?.textContent).toContain('Updated')
@@ -318,7 +316,7 @@ describe('PluginUpdateAllDialog', () => {
     })
     const onUpdated = vi.fn().mockResolvedValue(undefined)
     const container = await renderDialog([entry('a', []), entry('b', [])], { onUpdated })
-    await act(async () => button(container, 'Update 2 plugins')?.click())
+    await act(async () => button(container, 'Update')?.click())
     // Why: after "b" updates, the reloaded list no longer has it among pending updates.
     await act(async () => {
       root?.render(
@@ -344,7 +342,7 @@ describe('PluginUpdateAllDialog', () => {
     const onUpdated = vi.fn().mockResolvedValue(undefined)
     const container = await renderDialog([entry('a', []), entry('b', [])], { onUpdated })
 
-    await act(async () => button(container, 'Update 2 plugins')?.click())
+    await act(async () => button(container, 'Update')?.click())
     expect(container.textContent).toContain('Couldn’t update a, b. Nothing was updated.')
     expect(container.textContent).not.toContain('The others were updated.')
     expect(onUpdated).not.toHaveBeenCalled()
@@ -361,10 +359,10 @@ describe('PluginUpdateAllDialog', () => {
       orcaVersion: '1.4.0'
     })
 
-    expect(container.textContent).toContain('Needs Orca 9.0.0 or later.')
+    expect(container.textContent).toContain('Needs Orca 9.0.0 or later')
     const checkbox = container.querySelector<HTMLButtonElement>('#plugin-update-a')
     expect(checkbox?.disabled).toBe(true)
     expect(checkbox?.getAttribute('aria-checked')).toBe('false')
-    expect(button(container, 'Update 1 plugin')).toBeDefined()
+    expect(button(container, 'Update')?.disabled).toBe(false)
   })
 })

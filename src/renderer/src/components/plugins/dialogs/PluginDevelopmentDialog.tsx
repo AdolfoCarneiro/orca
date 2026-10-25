@@ -81,7 +81,7 @@ export function PluginDevelopmentDialog({
           <DialogDescription>
             {translate(
               'auto.components.settings.PluginDevelopmentSection.reviewHelp',
-              'Load plugins from folders on this computer. Each folder is reviewed once; later edits to its code run without another review.'
+              'Reviewed once. Later code edits run without asking.'
             )}
           </DialogDescription>
         </DialogHeader>
@@ -124,7 +124,7 @@ export function PluginDevelopmentDialog({
               className="h-8 min-w-0 font-mono text-xs"
               placeholder={translate(
                 'auto.components.settings.PluginDevelopmentSection.placeholder',
-                '/Users/you/plugins/my-plugin or C:\\Users\\you\\plugins\\my-plugin'
+                'Path to a plugin folder'
               )}
               spellCheck={false}
               aria-invalid={Boolean(error)}

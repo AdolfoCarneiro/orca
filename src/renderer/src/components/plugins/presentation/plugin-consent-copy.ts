@@ -15,14 +15,14 @@ export function pluginTrustLabel(trust: PluginTrust): string {
   return translate('auto.components.settings.pluginConsentCopy.contentOnly', 'Content only')
 }
 
-/** Every warning that applies; the panel's "bounded" line only when nothing broader does. */
+/** Every warning that applies. A sandboxed panel has none: its capabilities say what it can do. */
 export function pluginTrustWarnings(trust: PluginTrust): string[] {
   const warnings: string[] = []
   if (trust.worker) {
     warnings.push(
       translate(
         'auto.components.settings.PluginConsentDialog.warning',
-        'Its worker runs as a normal process with full access to your files, network, and other processes.'
+        'Full access to your files, network, and processes'
       )
     )
   }
@@ -30,23 +30,15 @@ export function pluginTrustWarnings(trust: PluginTrust): string[] {
     warnings.push(
       translate(
         'auto.components.settings.PluginConsentDialog.instructionalWarning',
-        'Its commands and instructions can take actions when you or an agent use them.'
+        'Its commands can act for you or your agents'
       )
     )
   }
-  if (trust.panel && warnings.length === 0) {
-    warnings.push(
-      translate(
-        'auto.components.settings.PluginConsentDialog.panelWarning',
-        'No background worker. These permissions limit what it can do in Orca.'
-      )
-    )
-  }
-  if (warnings.length === 0) {
+  if (warnings.length === 0 && !trust.panel) {
     warnings.push(
       translate(
         'auto.components.settings.PluginConsentDialog.declarativeWarning',
-        "Content only: no code, no background worker, and no access to Orca's API."
+        'Content only. No code runs.'
       )
     )
   }

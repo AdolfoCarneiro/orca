@@ -11672,20 +11672,19 @@
           "leaveToTerminalLabel": "Leave to terminal"
         },
         "PluginConsentDialog": {
-          "reconsent": "This plugin changed since you approved it. Review it to run it again.",
-          "warning": "Its worker runs as a normal process with full access to your files, network, and other processes.",
-          "instructionalWarning": "Its commands and instructions can take actions when you or an agent use them.",
-          "panelWarning": "No background worker. These permissions limit what it can do in Orca.",
-          "declarativeWarning": "Content only: no code, no background worker, and no access to Orca's API.",
+          "reconsent": "Changed since you approved it",
+          "warning": "Full access to your files, network, and processes",
+          "instructionalWarning": "Its commands can act for you or your agents",
+          "declarativeWarning": "Content only. No code runs.",
           "enable": "Enable plugin",
           "capability": {
-            "workspaceRead": "Read the name, branch, and terminal list of your focused workspace, and get notified when workspaces are created or removed",
-            "notificationsShow": "Show desktop notifications labeled with the plugin name",
-            "storage": "Store data in the plugin's own storage folder",
-            "secrets": "Store and read secrets in the plugin's own encrypted file",
-            "settingsOwn": "Read and change the plugin's own settings",
+            "workspaceRead": "Read workspace names, branches, and terminals",
+            "notificationsShow": "Show desktop notifications",
+            "storage": "Store its own data",
+            "secrets": "Store its own encrypted secrets",
+            "settingsOwn": "Read and change its own settings",
             "agentsRead": "Get notified when agent status changes",
-            "terminalRun": "Type and run commands in your terminals, local and SSH"
+            "terminalRun": "Run commands in your terminals, including SSH"
           },
           "decisionFailed": "Could not save the permission decision. Try again."
         },
@@ -11706,34 +11705,34 @@
           "title": "Development",
           "remove": "Remove",
           "pathLabel": "Development plugin folder path",
-          "placeholder": "/Users/you/plugins/my-plugin or C:\\Users\\you\\plugins\\my-plugin",
+          "placeholder": "Path to a plugin folder",
           "add": "Add path",
           "dialogTitle": "Development folders",
-          "reviewHelp": "Load plugins from folders on this computer. Each folder is reviewed once; later edits to its code run without another review."
+          "reviewHelp": "Reviewed once. Later code edits run without asking."
         },
         "PluginInstallDialog": {
           "localRequired": "Enter the plugin folder path.",
           "gitUrlRequired": "Enter a repository URL.",
-          "gitUrlInvalid": "Use an HTTPS or SSH Git URL. Executable Git helper protocols are not allowed.",
-          "gitRefRequired": "Add a #ref (tag or commit), for example #v0.1.0.",
+          "gitUrlInvalid": "Use an HTTPS or SSH Git URL.",
+          "gitRefRequired": "Add a #tag or #commit, like #v0.1.0.",
           "title": "Install plugin",
-          "description": "No plugin code runs until you review and enable it.",
+          "description": "Nothing runs until you enable it.",
           "source": "Install source",
           "localTab": "Local folder",
           "gitTab": "Git URL",
           "localLabel": "Plugin folder path",
-          "localPlaceholder": "/Users/you/plugins/my-plugin or C:\\Users\\you\\plugins\\my-plugin",
-          "localHelp": "The folder that contains orca-plugin.json.",
-          "gitLabel": "Repository URL with #ref",
+          "localPlaceholder": "Path to a plugin folder",
+          "localHelp": "The folder with orca-plugin.json",
+          "gitLabel": "Repository URL",
           "gitPlaceholder": "https://git.example/acme/orca-notes#v0.1.0",
-          "gitHelp": "End the URL with #tag or #commit to pin the version.",
+          "gitHelp": "End with #tag or #commit to pin a version",
           "cancel": "Cancel",
           "installing": "Installing…",
           "install": "Install",
           "installFailed": "Plugin installation failed. Check the source and try again."
         },
         "PluginKeybindingConsentPreview": {
-          "worktree": "Runs only while a workspace is active."
+          "worktree": "Only in a workspace"
         },
         "PluginMarketplaceBrowser": {
           "loadFailed": "Could not load catalog plugins.",
@@ -11758,40 +11757,40 @@
           "install": "Install"
         },
         "PluginMarketplaceSourceDialog": {
-          "addFailed": "Couldn't add this catalog. Check the URL, ref, and Git access.",
+          "addFailed": "Couldn’t add this catalog. Check the URL and ref.",
           "refreshFailed": "Couldn't refresh this catalog. Try again.",
           "removeFailed": "Could not remove this catalog.",
           "title": "Catalog sources",
-          "description": "A Git repository that lists plugins. Private ones use your Git credentials.",
+          "description": "Git repositories that list plugins",
           "urlLabel": "Git URL",
-          "urlDescription": "Use an HTTPS or SSH repository URL containing orca-catalog.json (or the older orca-marketplace.json).",
+          "urlDescription": "HTTPS or SSH, with an orca-catalog.json",
           "urlPlaceholder": "https://git.example.com/team/plugins.git",
           "refLabel": "Git ref",
-          "refDescription": "A branch, tag, or commit.",
+          "refDescription": "Branch, tag, or commit",
           "adding": "Adding…",
           "add": "Add source",
-          "configured": "Configured sources",
-          "empty": "No catalog sources configured.",
+          "configured": "Sources",
+          "empty": "No sources yet",
           "official": "Official",
           "owner": "Owner: {{value0}}",
           "pinnedCommit": "Pinned at {{value0}}",
-          "stale": "Couldn't refresh. This list may be out of date.",
+          "stale": "Couldn’t refresh. May be out of date.",
           "refreshLabel": "Refresh {{value0}}",
           "removeLabel": "Remove {{value0}}",
           "done": "Done"
         },
         "PluginRemoveDialog": {
-          "title": "Remove plugin?",
-          "description": "Removes {{value0}} and its data from this computer.",
+          "title": "Remove {{value0}}?",
+          "description": "Its data is removed too.",
           "cancel": "Cancel",
-          "remove": "Remove plugin"
+          "remove": "Remove"
         },
         "PluginRollbackDialog": {
-          "title": "Roll back plugin?",
-          "description": "Restores the previous version of {{value0}}. Changed access needs another review.",
+          "title": "Roll back {{value0}}?",
+          "description": "Restores the previous version.",
           "cancel": "Cancel",
-          "confirm": "Roll back plugin",
-          "descriptionVersion": "Restores {{value0}} {{value1}}. Changed access needs another review."
+          "confirm": "Roll back",
+          "descriptionVersion": "Restores version {{value0}}."
         },
         "PluginsSettingsSection": {
           "systemLabel": "Plugin system",
@@ -11805,7 +11804,7 @@
           "install": "Install plugin",
           "title": "Plugins",
           "alpha": "Alpha",
-          "description": "Themes, languages, commands, and more. Plugins run on this computer.",
+          "description": "Themes, languages, commands, and more.",
           "logsFailed": "Could not load plugin logs.",
           "rollbackFailed": "Couldn't roll back this plugin.",
           "fileTypeSuggestionsLabel": "Suggest plugins for unknown files",
@@ -11821,8 +11820,8 @@
           "running": "Running",
           "enabled": "Enabled",
           "loadingLogs": "Loading logs…",
-          "noLogs": "No log lines recorded.",
-          "logCount": "Last {{value0}} of up to 200 retained lines",
+          "noLogs": "No logs yet",
+          "logCount": "Last {{value0}} lines",
           "dev": "Dev",
           "bundled": "Bundled",
           "killListMessage": "Orca's safety list disabled this plugin: {{value0}}",
@@ -12826,9 +12825,7 @@
           "updatesTitle": "Updates",
           "refreshLabel": "Refresh catalogs",
           "noResultsTitle": "No plugins match “{{value0}}”",
-          "noResults": "Search looks at names, descriptions, publishers and categories.",
           "noneInstalledTitle": "No plugins installed",
-          "noneInstalled": "Browse the catalog for themes, languages and commands, or add one from a folder or Git.",
           "browseAll": "Browse all plugins",
           "resultCount": "{{value0}} plugins match",
           "resultCountOne": "1 plugin matches",
@@ -12840,10 +12837,10 @@
           "localFolder": "Local folder",
           "gitUrl": "Git URL",
           "stoppedTitle": "Stopped after an error",
-          "stoppedBody": "Its code kept crashing, so Orca stopped restarting it. It’s still switched on; Restart tries again.",
+          "stoppedBody": "It kept crashing. Restart to try again.",
           "invalidTitle": "Orca can’t load this plugin",
           "needsOrcaTitle": "Needs Orca {{value0}} or later",
-          "needsOrcaBody": "You have Orca {{value0}}. Update Orca to install this plugin.",
+          "needsOrcaBody": "You have Orca {{value0}}.",
           "back": "Plugins",
           "info": "Info",
           "version": "Version",
@@ -12854,9 +12851,9 @@
           "pluginId": "Plugin ID",
           "repository": "Repository",
           "newerTitle": "Newer version available",
-          "newerBody": "The catalog changed while this page was open. Show the newer version to review it.",
-          "showNewer": "Show it",
-          "stoppedDataBody": "Couldn’t load its files, so Orca stopped trying. It’s still switched on; Restart tries again."
+          "newerBody": "The catalog changed while you were here.",
+          "showNewer": "Show newer",
+          "stoppedDataBody": "Couldn’t load its files. Restart to try again."
         },
         "PluginDetailSections": {
           "typeLanguagePack": "Interface language",
@@ -12875,18 +12872,15 @@
           "recipe": "Machine recipe",
           "access": "Can access",
           "accessLoading": "Reading the plugin…",
-          "noAccessCode": "Its code runs in a sandbox with no extra access.",
-          "noAccessContent": "Content only. It has no code that runs.",
           "logs": "Logs",
           "copyLogs": "Copy",
-          "accessFailed": "Couldn’t read what it can access",
-          "accessFailedDetail": "Orca couldn’t fetch or check this plugin’s files.",
+          "accessFailed": "Couldn’t read its access",
           "retry": "Retry",
-          "noAccessReach": "Can’t reach anything outside its own files"
+          "noAccessReach": "Nothing outside its own files"
         },
         "PluginManagerRows": {
-          "crashedCount": "Crashed {{value0}} times in a row. View its logs on the plugin page.",
-          "crashed": "Crashed while starting. View its logs on the plugin page.",
+          "crashedCount": "Crashed {{value0}} times in a row",
+          "crashed": "Crashed while starting",
           "remove": "Remove…",
           "review": "Review",
           "restart": "Restart",
@@ -12902,7 +12896,7 @@
           "on": "On",
           "details": "Details",
           "unverified": "Unverified",
-          "crashedOnce": "Crashed once. View its logs on the plugin page.",
+          "crashedOnce": "Crashed once",
           "updateAvailable": "update {{value0}} available",
           "updateLabel": "Update {{value0}} to {{value1}}",
           "update": "Update {{value0}}",
@@ -12913,13 +12907,12 @@
           "reviewUpdate": "Review update",
           "updateNeedsReview": "update {{value0}} needs review",
           "updatedTo": "updated to {{value0}}",
-          "dataLoadFailed": "Couldn’t load its files. Restart to try again."
+          "dataLoadFailed": "Couldn’t load its files"
         },
         "PluginSettingsOverview": {
           "offTitle": "Plugins are off",
           "turnOn": "Turn on plugins",
-          "pausedCount": "{{value0}} paused",
-          "offShort": "Nothing from your plugins runs."
+          "pausedCount": "{{value0}} paused"
         },
         "PluginFilterPopover": {
           "label": "Filter plugins",
@@ -12933,11 +12926,8 @@
           "machines": "Machines & recipes"
         },
         "PluginUpdateAllDialog": {
-          "title": "Update plugins?",
-          "reading": "Reading what each update changes…",
-          "previewError": "Couldn’t read this update. It will be skipped.",
-          "newAccess": "New access: {{value0}}",
-          "noNewAccess": "No new access",
+          "previewError": "Couldn’t read this update",
+          "newAccess": "New: {{value0}}",
           "failed": "Couldn’t update {{value0}}. The others were updated.",
           "cancel": "Cancel",
           "updateOne": "Update 1 plugin",
@@ -12946,17 +12936,17 @@
           "close": "Close",
           "retry": "Try again",
           "updated": "Updated",
-          "needsOrca": "Needs Orca {{value0}} or later. Update Orca first.",
-          "current": "This exact plugin content is already installed.",
-          "sourceMoved": "Now comes from a different repository: {{value0}} (was {{value1}})",
-          "someGrowAsk": "Updates that ask for new access are expanded below and need your approval again. The others install without asking.",
-          "noneGrowKeep": "None of these updates asks for new access, so they install without asking again.",
-          "newShortcuts": "Adds keyboard shortcuts",
-          "newCommands": "Adds commands",
-          "newPanels": "Adds panels",
-          "newEvents": "Listens for more events",
-          "newRecipes": "Changes virtual machine recipes",
-          "newContributions": "Adds new features that act for you"
+          "needsOrca": "Needs Orca {{value0}} or later",
+          "current": "Already installed",
+          "sourceMoved": "New source: {{value0}} (was {{value1}})",
+          "newShortcuts": "Keyboard shortcuts",
+          "newCommands": "Commands",
+          "newPanels": "Panels",
+          "newEvents": "More events",
+          "newRecipes": "Machine recipes",
+          "newContributions": "Features that act for you",
+          "allAccess": "See all access",
+          "update": "Update"
         },
         "PluginDetailInfo": {
           "previous": "Previous",
@@ -12992,18 +12982,15 @@
         },
         "PluginInstallConsent": {
           "install": "Install & enable",
-          "installHeading": "If you install {{value0}}, it can:",
-          "enableHeading": "If you enable {{value0}}, it can:",
-          "noOtherAccess": "It asks for no other access.",
+          "noOtherAccess": "No other access",
           "keepOff": "Keep off",
           "replacesShortcut": "{{value0}} ({{value1}}) replaces your shortcut for {{value2}}.",
-          "reading": "Reading what it can access…",
-          "updatesKeepApproval": "Updates that don’t ask for more access install without asking again.",
-          "fullAccessUpdates": "Updates that don’t ask for more access install without asking again, and can change what its full-access code does."
+          "updatesKeepApproval": "Updates ask again only for new access",
+          "fullAccessUpdates": "Updates can change its code without asking"
         },
         "PluginPageAction": {
           "failedTitle": "Couldn’t install {{value0}}",
-          "contentOnly": "Can’t reach anything outside its own files"
+          "contentOnly": "Content only"
         },
         "PluginSettingsMenu": {
           "label": "Plugin settings",
@@ -13011,7 +12998,7 @@
           "fullAccessLabel": "Allow full-access plugins",
           "fullAccessHint": "Full access to files and network",
           "autoUpdateLabel": "Update plugins automatically",
-          "autoUpdateHint": "Updates can change what a plugin does, including full-access ones"
+          "autoUpdateHint": "Asks again only for new access"
         },
         "PluginThemeUseNow": {
           "label": "Use now:",
@@ -13035,13 +13022,13 @@
           "runName": "Run {{value0}}",
           "ran": "Ran {{value0}}",
           "failed": "{{value0}} failed",
-          "seeLogs": "Anything it printed is in Logs below.",
-          "needsWorkspace": "Open a workspace to run it."
+          "seeLogs": "See Logs below",
+          "needsWorkspace": "Needs an open workspace"
         },
         "PluginContributionActionPanel": {
           "open": "Open panel",
           "openName": "Open panel: {{value0}}",
-          "needsWorkspace": "Open a workspace to see it."
+          "needsWorkspace": "Needs an open workspace"
         },
         "PluginContributionActionLanguage": {
           "switch": "Switch language",
@@ -13063,18 +13050,15 @@
         "pluginInstallAction": {
           "installed": "{{value0}} installed",
           "tryIt": "Try it",
-          "mismatch": "The download didn’t match what the catalog published, so nothing was installed.",
-          "catalogChanged": "The catalog changed since this page opened. Refresh it, then try again.",
+          "mismatch": "Download didn’t match the catalog. Nothing installed.",
+          "catalogChanged": "The catalog changed. Refresh and try again.",
           "blocked": "Orca’s safety list blocks this plugin.",
-          "downloadFailed": "Couldn’t download this plugin. Check your connection, then try again. Nothing was installed.",
-          "fullAccessOff": "Full-access plugins are turned off. Turn on “Allow full-access plugins” in the plugin settings menu, then try again."
+          "downloadFailed": "Couldn’t download. Check your connection.",
+          "fullAccessOff": "Full-access plugins are off. Turn them on in plugin settings."
         },
         "pluginThemeApply": {
           "nowUsing": "Now using {{value0}}",
           "switchBack": "Switch back"
-        },
-        "PluginCatalogGroups": {
-          "fullAccessOff": "Full access · turned off in settings"
         },
         "PluginChips": {
           "updateNeedsReview": "Update needs review",

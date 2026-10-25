@@ -64,7 +64,7 @@ export function PluginContributionActionCommand({
             (command.handler.type === 'worker'
               ? translate(
                   'auto.components.settings.PluginContributionActionCommand.seeLogs',
-                  'Anything it printed is in Logs below.'
+                  'See Logs below'
                 )
               : undefined)
         }

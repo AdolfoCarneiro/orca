@@ -347,10 +347,6 @@ export function PluginManager({
               'auto.components.settings.PluginManager.noneInstalledTitle',
               'No plugins installed'
             )}
-            description={translate(
-              'auto.components.settings.PluginManager.noneInstalled',
-              'Browse the catalog for themes, languages and commands, or add one from a folder or Git.'
-            )}
             action={
               <Button variant="outline" size="sm" onClick={() => setTab('all')}>
                 {translate(

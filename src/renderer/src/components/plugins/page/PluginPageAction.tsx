@@ -44,10 +44,7 @@ function ContentOnlyNote(): React.JSX.Element {
   return (
     <span className="plugin-security-chrome inline-flex items-center gap-1.5 text-xs text-muted-foreground">
       <ShieldCheck className="size-3.5" aria-hidden="true" />
-      {translate(
-        'auto.components.settings.PluginPageAction.contentOnly',
-        'Can’t reach anything outside its own files'
-      )}
+      {translate('auto.components.settings.PluginPageAction.contentOnly', 'Content only')}
     </span>
   )
 }
@@ -127,8 +124,6 @@ export function usePluginPageAction({
       ),
       body: (
         <PluginInstallConsent
-          name={plugin.name}
-          mode="enable"
           trust={trust ?? installedPluginTrust(plugin, null)}
           capabilities={plugin.capabilities}
           shortcuts={model.shortcuts}
@@ -240,8 +235,6 @@ export function usePluginPageAction({
     body: (
       <>
         <PluginInstallConsent
-          name={name}
-          mode="install"
           trust={trust ?? installedPluginTrust({ panels: [], hasWorker: false }, null)}
           capabilities={model.capabilities}
           shortcuts={model.shortcuts}

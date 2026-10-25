@@ -11,8 +11,6 @@ function renderConsent(
 ): void {
   render(
     <PluginInstallConsent
-      name="Demo"
-      mode="install"
       trust={{ worker, declarative: false, panel: !worker }}
       capabilities={capabilities}
       shortcuts={[]}
@@ -28,12 +26,12 @@ function renderConsent(
 describe('PluginInstallConsent', () => {
   it('says that updates to a full-access plugin can change what its code does', () => {
     renderConsent(true)
-    expect(screen.getByText(/can change what its full-access code does/)).toBeTruthy()
+    expect(screen.getByText('Updates can change its code without asking')).toBeTruthy()
   })
 
   it('keeps the plain update line for plugins without full access', () => {
     renderConsent(false)
-    expect(screen.queryByText(/full-access code/)).toBeNull()
+    expect(screen.getByText('Updates ask again only for new access')).toBeTruthy()
   })
 
   it('never lists terminal access a panel cannot use, but keeps it for a worker', () => {
@@ -42,10 +40,10 @@ describe('PluginInstallConsent', () => {
       { kind: 'terminal:send', description: 'terminal:send' }
     ]
     renderConsent(false, asked)
-    expect(screen.queryByText(/Type and run commands/)).toBeNull()
+    expect(screen.queryByText(/Run commands in your terminals/)).toBeNull()
     expect(screen.getByText(/Show desktop notifications/)).toBeTruthy()
     cleanup()
     renderConsent(true, asked)
-    expect(screen.getByText(/Type and run commands/)).toBeTruthy()
+    expect(screen.getByText(/Run commands in your terminals/)).toBeTruthy()
   })
 })

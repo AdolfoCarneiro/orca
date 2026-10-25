@@ -90,16 +90,12 @@ describe('pluginTrust', () => {
       points: pluginPointsFromManifest(commandManifest)
     })
     expect(trust).toEqual({ worker: false, declarative: true, panel: true })
-    expect(pluginTrustWarnings(trust)).toEqual([
-      'Its commands and instructions can take actions when you or an agent use them.'
-    ])
+    expect(pluginTrustWarnings(trust)).toEqual(['Its commands can act for you or your agents'])
   })
 
-  it('says a panel is bounded only when it is known to carry no instructions', () => {
+  it('adds no warning for a panel known to carry no instructions', () => {
     const trust = pluginTrust({ execution: 'sandboxed-ui', points: new Set(['panels']) })
-    expect(pluginTrustWarnings(trust)).toEqual([
-      'No background worker. These permissions limit what it can do in Orca.'
-    ])
+    expect(pluginTrustWarnings(trust)).toEqual([])
   })
 
   it('over-warns when the profile or contributions are unknown', () => {

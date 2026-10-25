@@ -127,9 +127,7 @@ async function installMarketplacePluginThroughUi(
   await expect(page.locator('#plugin-detail-heading')).toContainText(pluginName)
   await expect(page.getByRole('dialog')).toHaveCount(0)
   if (runsInstructions) {
-    const consent = page.getByRole('region', {
-      name: new RegExp(`^If you install .*${pluginName}, it can:$`)
-    })
+    const consent = page.locator('[data-plugin-consent]')
     await expect(consent).toContainText('Official · stablyai')
     // Why the page: the one decision sits beside the name, above the consent it grants.
     await page
@@ -138,9 +136,7 @@ async function installMarketplacePluginThroughUi(
       .click()
     // Why a second step: recipe command lines are read from the installed files, so they are
     // reviewed on the page after install instead of approved unseen.
-    const review = page.getByRole('region', {
-      name: new RegExp(`^If you enable .*${pluginName}, it can:$`)
-    })
+    const review = page.locator('[data-plugin-consent]')
     await page
       .getByRole('article')
       .getByRole('button', { name: /^Enable plugin/ })
@@ -165,8 +161,9 @@ async function enableInstalledPluginThroughUi(
   const plugin = page.locator(`[data-plugin-key="${pluginKey}"]`)
   await expect(plugin).toBeVisible()
   await plugin.getByRole('button', { name: 'Review', exact: true }).click()
-  const consent = page.getByRole('region', { name: `If you enable ${pluginName}, it can:` })
+  const consent = page.locator('[data-plugin-consent]')
   await expect(consent).toBeVisible()
+  await expect(page.locator('#plugin-detail-heading')).toHaveText(pluginName)
   await page
     .getByRole('article')
     .getByRole('button', { name: /^Enable plugin/ })

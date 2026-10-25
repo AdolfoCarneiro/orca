@@ -69,20 +69,8 @@ function PluginsOffState({
     <>
       <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/40 py-2.5 pr-3 pl-4">
         <Puzzle className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <p className="min-w-0 flex-1 text-sm">
-          <span className="font-medium">
-            {translate(
-              'auto.components.settings.PluginSettingsOverview.offTitle',
-              'Plugins are off'
-            )}
-          </span>
-          <span className="text-muted-foreground">
-            {' · '}
-            {translate(
-              'auto.components.settings.PluginSettingsOverview.offShort',
-              'Nothing from your plugins runs.'
-            )}
-          </span>
+        <p className="min-w-0 flex-1 text-sm font-medium">
+          {translate('auto.components.settings.PluginSettingsOverview.offTitle', 'Plugins are off')}
         </p>
         <Button size="sm" disabled={featureBusy} onClick={onTurnOn}>
           {translate('auto.components.settings.PluginSettingsOverview.turnOn', 'Turn on plugins')}
