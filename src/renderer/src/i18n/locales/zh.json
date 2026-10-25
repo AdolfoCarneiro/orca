@@ -11389,7 +11389,8 @@
           "mismatch": "下载内容与目录发布的内容不一致，因此未安装任何内容。",
           "catalogChanged": "打开此页面后目录已更改。请刷新后重试。",
           "blocked": "Orca 的安全列表阻止了此插件。",
-          "downloadFailed": "无法下载此插件。请检查网络连接后重试。未安装任何内容。"
+          "downloadFailed": "无法下载此插件。请检查网络连接后重试。未安装任何内容。",
+          "fullAccessOff": "完全访问插件已关闭。请在插件设置菜单中开启“Allow full-access plugins”，然后重试。"
         },
         "pluginThemeApply": {
           "nowUsing": "正在使用 {{value0}}",

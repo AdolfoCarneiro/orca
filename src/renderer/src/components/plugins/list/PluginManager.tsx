@@ -282,6 +282,11 @@ export function PluginManager({
           onConsent={onConsent}
           onBack={back}
           onOpenShortcuts={onOpenShortcuts}
+          // Why back first: the settings menu lives in the list header the page hides.
+          onOpenFullAccessSetting={() => {
+            back()
+            onOpenFullAccessSetting()
+          }}
         />
         {dialogs}
       </>

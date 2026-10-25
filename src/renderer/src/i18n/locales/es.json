@@ -11663,7 +11663,8 @@
           "mismatch": "La descarga no coincidió con lo que publicó el catálogo, así que no se instaló nada.",
           "catalogChanged": "El catálogo cambió desde que se abrió esta página. Actualízalo y vuelve a intentarlo.",
           "blocked": "La lista de seguridad de Orca bloquea este plugin.",
-          "downloadFailed": "No se pudo descargar este plugin. Comprueba tu conexión y vuelve a intentarlo. No se instaló nada."
+          "downloadFailed": "No se pudo descargar este plugin. Comprueba tu conexión y vuelve a intentarlo. No se instaló nada.",
+          "fullAccessOff": "Los plugins con acceso total están desactivados. Activa “Allow full-access plugins” en el menú de ajustes de plugins y vuelve a intentarlo."
         },
         "pluginThemeApply": {
           "nowUsing": "Ahora usas {{value0}}",

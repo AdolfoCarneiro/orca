@@ -35,6 +35,7 @@ type PluginDetailPageProps = {
   ) => Promise<void>
   onBack: () => void
   onOpenShortcuts: () => void
+  onOpenFullAccessSetting: () => void
 }
 
 function sourceLabel(entry: PluginListEntry): string {
@@ -63,7 +64,8 @@ export function PluginDetailPage({
   refreshing,
   onConsent,
   onBack,
-  onOpenShortcuts
+  onOpenShortcuts,
+  onOpenFullAccessSetting
 }: PluginDetailPageProps): React.JSX.Element {
   const model = usePluginPageModel({ entry, fetchPreview, refreshing })
   const { plugin, listing, preview, stale } = model
@@ -81,7 +83,8 @@ export function PluginDetailPage({
       ),
     busy,
     install,
-    onConsent
+    onConsent,
+    onOpenFullAccessSetting
   })
   const headingRef = useRef<HTMLHeadingElement>(null)
 

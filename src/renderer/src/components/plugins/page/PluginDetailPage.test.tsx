@@ -105,7 +105,10 @@ const install = {
 async function render(
   entry: PluginListEntry,
   fetchPreview: (target: PluginMarketplaceHostListing) => Promise<PluginPagePreview>,
-  { refreshing = false }: { refreshing?: boolean } = {}
+  {
+    refreshing = false,
+    onOpenFullAccessSetting = vi.fn()
+  }: { refreshing?: boolean; onOpenFullAccessSetting?: () => void } = {}
 ): Promise<HTMLDivElement> {
   const container = document.createElement('div')
   document.body.appendChild(container)
@@ -133,6 +136,7 @@ async function render(
         onConsent={vi.fn().mockResolvedValue(undefined)}
         onBack={vi.fn()}
         onOpenShortcuts={vi.fn()}
+        onOpenFullAccessSetting={onOpenFullAccessSetting}
       />
     )
   })
@@ -185,6 +189,26 @@ describe('PluginDetailPage', () => {
       expect(container.querySelector('.min-h-7')).not.toBeNull()
     }
   )
+
+  it('offers the full access setting instead of an install that would be refused', async () => {
+    const workerListing: PluginMarketplaceHostListing = {
+      ...listing,
+      pluginKey: 'stablyai.worker',
+      release: { ...listing.release!, execution: 'trusted-worker', types: ['worker'] }
+    }
+    const onOpenFullAccessSetting = vi.fn()
+    const container = await render(
+      pluginListEntryFromListing(workerListing),
+      () => Promise.resolve({ ok: false }),
+      { onOpenFullAccessSetting }
+    )
+    expect(container.textContent).not.toContain('Install & enable')
+    const turnOn = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Turn on in settings'
+    )
+    await act(async () => turnOn?.click())
+    expect(onOpenFullAccessSetting).toHaveBeenCalledTimes(1)
+  })
 
   it('names what a catalog plugin adds from its manifest', async () => {
     const container = await render(pluginListEntryFromListing(listing), () =>

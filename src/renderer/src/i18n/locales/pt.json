@@ -8714,6 +8714,9 @@
           "searchPlaceholder": "Buscar builds…",
           "noMatches": "Nenhuma build encontrada."
         },
+        "pluginInstallAction": {
+          "fullAccessOff": "Os plugins com acesso total estão desativados. Ative “Allow full-access plugins” no menu de configurações de plugins e tente novamente."
+        },
         "notification": {
           "settings": {
             "copy": {

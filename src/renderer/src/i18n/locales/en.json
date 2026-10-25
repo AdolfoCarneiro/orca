@@ -13064,7 +13064,8 @@
           "mismatch": "The download didn’t match what the catalog published, so nothing was installed.",
           "catalogChanged": "The catalog changed since this page opened. Refresh it, then try again.",
           "blocked": "Orca’s safety list blocks this plugin.",
-          "downloadFailed": "Couldn’t download this plugin. Check your connection, then try again. Nothing was installed."
+          "downloadFailed": "Couldn’t download this plugin. Check your connection, then try again. Nothing was installed.",
+          "fullAccessOff": "Full-access plugins are turned off. Turn on “Allow full-access plugins” in the plugin settings menu, then try again."
         },
         "pluginThemeApply": {
           "nowUsing": "Now using {{value0}}",

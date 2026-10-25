@@ -10,6 +10,7 @@ import type {
   PluginMarketplaceHostSourceState
 } from '../../../../../preload/api-types'
 import { requestPluginPreview } from '@/store/plugin-preview-request'
+import { useAppStore } from '@/store'
 import { PluginManager } from './PluginManager'
 import { usePluginPageNavigation } from '../state/use-plugin-page-navigation'
 
@@ -248,7 +249,18 @@ afterEach(() => {
   root = null
   document.body.innerHTML = ''
   vi.restoreAllMocks()
+  setFullAccess(false)
 })
+
+function setFullAccess(enabled: boolean): void {
+  const settings = useAppStore.getState().settings
+  act(() =>
+    useAppStore.setState({
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the catalog reads only this field.
+      settings: { ...settings, pluginFullAccessEnabled: enabled } as NonNullable<typeof settings>
+    })
+  )
+}
 
 describe('PluginManager catalog', () => {
   it('installs a content-only plugin in one click and lets main decide it turns on', async () => {
@@ -296,6 +308,7 @@ describe('PluginManager catalog', () => {
   })
 
   it('reviews a plugin that runs code on its page and approves exactly what it showed', async () => {
+    setFullAccess(true)
     const { onInstalled } = await render()
     await act(async () => button('Review & install').click())
     expect(document.body.textContent).toContain('If you install Worktree Notes, it can:')
@@ -337,6 +350,26 @@ describe('PluginManager catalog', () => {
     const { container } = await render()
     expect(container.textContent).toContain('Full access · turned off in settings')
     expect(buttons('Review & install')).toHaveLength(0)
+    expect(buttons('Turn on in settings')).toHaveLength(1)
+  })
+
+  it('shows the real reason a full-access install was refused, and drops it when the setting changes', async () => {
+    setFullAccess(true)
+    installApi({
+      installMarketplacePlugin: vi.fn().mockResolvedValue({
+        ok: false,
+        error:
+          'Full access plugins are turned off. Turn on "Allow full-access plugins" in Plugin settings.'
+      })
+    })
+    const { container } = await render()
+    await act(async () => button('Review & install').click())
+    await act(async () => button('Install & enable').click())
+    expect(container.textContent).toContain('Full-access plugins are turned off.')
+    expect(container.textContent).not.toContain('Plugin installation failed')
+
+    setFullAccess(false)
+    expect(container.textContent).not.toContain('Full-access plugins are turned off.')
     expect(buttons('Turn on in settings')).toHaveLength(1)
   })
 
