@@ -31,10 +31,7 @@ vi.mock('@/store/plugin-themes', () => ({
   usePluginTerminalThemes: () => state.terminal
 }))
 vi.mock('@/store/plugin-icon-themes', () => ({ usePluginIconThemes: () => state.icons }))
-vi.mock('@/lib/document-theme', () => ({
-  applyDocumentTheme: vi.fn(),
-  resolveDocumentTheme: () => true
-}))
+vi.mock('@/lib/document-theme', () => ({ resolveDocumentTheme: () => true }))
 
 const pluginKey = 'samples.theme'
 const id = 'plugin:samples.theme/dusk'
@@ -47,26 +44,41 @@ afterEach(() => {
   state.updateSettings.mockClear()
 })
 
-it('applies an app theme only when asked and remembers the previous appearance', () => {
-  state.settings = { ...getDefaultSettings('/tmp'), theme: 'light' }
-  state.app = [
-    {
-      id,
-      pluginKey,
-      pluginName: 'Dusk',
-      label: 'Dusk',
-      revision: 'r1',
-      base: 'dark',
-      tokens: { '--background': '#181818', '--foreground': '#eeeeee' }
-    }
-  ]
+const appTheme = (name: string, base: 'dark' | 'light'): PluginThemeRegistration => ({
+  id: `plugin:${pluginKey}/${name}`,
+  pluginKey,
+  pluginName: 'Dusk',
+  label: name,
+  revision: 'r1',
+  base,
+  tokens: { '--background': '#181818', '--foreground': '#eeeeee' }
+})
+
+it('fills only the slot of the theme it was asked for', () => {
+  state.settings = { ...getDefaultSettings('/tmp'), theme: 'dark' }
+  state.app = [appTheme('Dusk', 'dark')]
   render(<PluginThemeUseNow pluginKey={pluginKey} />)
   expect(state.updateSettings).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Use now: Dusk' }))
   expect(state.updateSettings).toHaveBeenCalledExactlyOnceWith({
+    pluginAppThemeDark: `plugin:${pluginKey}/Dusk`
+  })
+})
+
+it('labels a theme for the other mode with its slot', () => {
+  state.settings = {
+    ...getDefaultSettings('/tmp'),
     theme: 'dark',
-    pluginAppTheme: id,
-    themeBeforePlugin: 'light'
+    pluginAppThemeLight: `plugin:${pluginKey}/Dawn`
+  }
+  state.app = [appTheme('Dusk', 'dark'), appTheme('Dawn', 'light')]
+  render(<PluginThemeUseNow pluginKey={pluginKey} />)
+  expect(screen.getByText('Use for light:')).toBeDefined()
+  const dawn = screen.getByRole('button', { name: 'Use for light: Dawn' })
+  expect(dawn.getAttribute('aria-pressed')).toBe('true')
+  fireEvent.click(dawn)
+  expect(state.updateSettings).toHaveBeenCalledWith({
+    pluginAppThemeLight: `plugin:${pluginKey}/Dawn`
   })
 })
 

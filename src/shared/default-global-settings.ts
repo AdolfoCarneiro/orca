@@ -42,6 +42,8 @@ export function buildDefaultSettings(args: {
     jiraIssueKeyCasing: 'lowercase',
     theme: 'system',
     pluginAppTheme: null,
+    pluginAppThemeLight: null,
+    pluginAppThemeDark: null,
     pluginIconTheme: null,
     leftSidebarAppearanceMode: 'default',
     leftSidebarTintColor: DEFAULT_LEFT_SIDEBAR_TINT_COLOR,

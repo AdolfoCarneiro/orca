@@ -15,7 +15,9 @@ Each entry is `{ "id", "label", "path" }` pointing at a JSON file of at most 16 
 ```
 
 - `schemaVersion` is optional for app themes and must be `1` when present.
-- `base` (`light` or `dark`) becomes the app's light/dark mode while the theme is selected.
+- `base` (`light` or `dark`) picks the slot the theme fills: users choose a Light theme and a
+  Dark theme separately, and Orca paints the one for its current mode (following the OS under
+  System). Contribute one theme of each base to ship a pair; installing it fills both slots.
 - `--background` and `--foreground` are required. Every other public token is optional; an
   omitted token is derived from the ones you set (cards from `--background`, sidebars lifted a
   step off `--background` so the left sidebar keeps a visible edge, text from `--foreground`,

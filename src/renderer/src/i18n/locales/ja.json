@@ -11352,7 +11352,9 @@
         },
         "PluginThemeUseNow": {
           "label": "今すぐ使う:",
-          "useName": "今すぐ使う: {{value0}}"
+          "useName": "今すぐ使う: {{value0}}",
+          "useForLight": "ライトで使う:",
+          "useForDark": "ダークで使う:"
         },
         "PluginContributionActionCommand": {
           "run": "実行",
@@ -11395,7 +11397,9 @@
         },
         "pluginThemeApply": {
           "nowUsing": "{{value0}} を使用中",
-          "switchBack": "元に戻す"
+          "switchBack": "元に戻す",
+          "setAsLight": "{{value0}} をライトテーマに設定しました",
+          "setAsDark": "{{value0}} をダークテーマに設定しました"
         },
         "pluginError": {
           "installManifestMissing": "読み取り可能なorca-plugin.jsonが見つかりません。プラグインのルートフォルダーを選択してください。",
@@ -12319,6 +12323,11 @@
             "title": "アイコンテーマ",
             "description": "有効なプラグインのファイルとフォルダーのアイコンです。",
             "builtIn": "組み込み"
+          },
+          "lightTheme": "ライトテーマ",
+          "darkTheme": "ダークテーマ",
+          "themeSlot": {
+            "description": "このモードのアプリの配色です。"
           }
         },
         "PluginAddMenu": {

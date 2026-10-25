@@ -11352,7 +11352,9 @@
         },
         "PluginThemeUseNow": {
           "label": "立即使用：",
-          "useName": "立即使用：{{value0}}"
+          "useName": "立即使用：{{value0}}",
+          "useForLight": "用于浅色：",
+          "useForDark": "用于深色："
         },
         "PluginContributionActionCommand": {
           "run": "运行",
@@ -11395,7 +11397,9 @@
         },
         "pluginThemeApply": {
           "nowUsing": "正在使用 {{value0}}",
-          "switchBack": "切换回去"
+          "switchBack": "切换回去",
+          "setAsLight": "已将 {{value0}} 设为浅色主题",
+          "setAsDark": "已将 {{value0}} 设为深色主题"
         },
         "pluginError": {
           "installManifestMissing": "未找到可读的 orca-plugin.json。请选择插件的根文件夹。",
@@ -12352,6 +12356,11 @@
             "title": "图标主题",
             "description": "来自已启用插件的文件和文件夹图标。",
             "builtIn": "内置"
+          },
+          "lightTheme": "浅色主题",
+          "darkTheme": "深色主题",
+          "themeSlot": {
+            "description": "此模式下的应用配色。"
           }
         },
         "PluginAddMenu": {

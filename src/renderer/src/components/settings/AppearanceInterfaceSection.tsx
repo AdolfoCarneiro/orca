@@ -28,7 +28,8 @@ import { translate } from '@/i18n/i18n'
 import type { UiLanguage } from '../../../../shared/ui-language'
 import { matchesSettingsSearch, normalizeSettingsSearchQuery } from './settings-search'
 import { usePluginLanguagePacks } from '@/store/plugin-language-packs'
-import { AppearanceThemeControl } from './AppearanceThemeControl'
+import { AppearanceThemeControl, AppearanceThemeSlotSelect } from './AppearanceThemeControl'
+import { usePluginThemes } from '@/store/plugin-themes'
 import { usePluginIconThemes } from '@/store/plugin-icon-themes'
 
 type AppearanceInterfaceSectionProps = {
@@ -55,6 +56,23 @@ export function AppearanceInterfaceSection({
   const searchQuery = useAppStore((state) => state.settingsSearchQuery)
   const pluginLanguagePacks = usePluginLanguagePacks()
   const pluginIconThemes = usePluginIconThemes()
+  const hasPluginThemes = usePluginThemes().length > 0
+  const themeSlots = [
+    {
+      base: 'light' as const,
+      title: translate(
+        'auto.components.settings.AppearanceInterfaceSection.lightTheme',
+        'Light theme'
+      )
+    },
+    {
+      base: 'dark' as const,
+      title: translate(
+        'auto.components.settings.AppearanceInterfaceSection.darkTheme',
+        'Dark theme'
+      )
+    }
+  ]
   const iconThemeTitle = translate(
     'auto.components.settings.AppearanceInterfaceSection.pluginIconTheme.title',
     'Icon theme'
@@ -98,6 +116,33 @@ export function AppearanceInterfaceSection({
           }
         />
       </SearchableSetting>
+
+      {hasPluginThemes
+        ? themeSlots.map((slot) => (
+            <SearchableSetting
+              key={slot.base}
+              title={slot.title}
+              description={translate(
+                'auto.components.settings.AppearanceInterfaceSection.themeSlot.description',
+                'App colors for this mode.'
+              )}
+              keywords={['plugin', 'theme', slot.base]}
+              forceVisible={forceVisiblePrimary}
+            >
+              <SettingsRow
+                label={slot.title}
+                control={
+                  <AppearanceThemeSlotSelect
+                    base={slot.base}
+                    label={slot.title}
+                    settings={settings}
+                    updateSettings={updateSettings}
+                  />
+                }
+              />
+            </SearchableSetting>
+          ))
+        : null}
 
       {pluginIconThemes.length > 0 ? (
         <SearchableSetting

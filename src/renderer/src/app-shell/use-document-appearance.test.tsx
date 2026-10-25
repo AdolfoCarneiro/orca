@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../shared/constants'
 import { useAppStore } from '../store'
 import { usePluginThemeStore } from '../store/plugin-themes'
+import { resetSystemPrefersDarkSubscriptionForTests } from '@/components/terminal-pane/use-system-prefers-dark'
 
 const mocks = vi.hoisted(() => ({
   applyDocumentTheme: vi.fn(),
@@ -80,84 +81,114 @@ describe('useDocumentAppearance', () => {
     unmount()
   })
 
-  it('applies a selected plugin theme and restores the earlier choice when it disappears', async () => {
-    const midnight = {
-      id: 'plugin:samples.midnight/midnight' as const,
-      revision: 'r1',
-      pluginKey: 'samples.midnight',
-      pluginName: 'Midnight',
-      label: 'Midnight',
-      base: 'light' as const,
-      tokens: { '--background': '#fafafa' }
-    }
-    usePluginThemeStore.setState({ entries: [midnight], loaded: true })
+  const pluginTheme = (name: string, base: 'light' | 'dark') => ({
+    id: `plugin:samples.${name}/${name}` as const,
+    revision: 'r1',
+    pluginKey: `samples.${name}`,
+    pluginName: name,
+    label: name,
+    base,
+    tokens: { '--background': base === 'dark' ? '#1a1025' : '#fafafa' }
+  })
+  const midnight = pluginTheme('midnight', 'light')
+  const dusk = pluginTheme('dusk', 'dark')
+
+  function storeUpdates(): void {
     useAppStore.setState({
       updateSettings: async (updates) => {
         const current = useAppStore.getState().settings ?? getDefaultSettings('/tmp')
         useAppStore.setState({ settings: { ...current, ...updates } })
       }
     })
+  }
+
+  it('moves a legacy single theme into the slot of its base without changing the mode', async () => {
+    usePluginThemeStore.setState({ entries: [midnight], loaded: true })
+    storeUpdates()
     act(() => {
       const settings = useAppStore.getState().settings!
       useAppStore.setState({
         settings: {
           ...settings,
-          theme: midnight.base,
+          theme: 'light',
           themeBeforePlugin: 'dark',
           pluginAppTheme: midnight.id
         }
       })
     })
     const { unmount } = renderHook(() => useDocumentAppearance())
+    await vi.waitFor(() =>
+      expect(useAppStore.getState().settings).toMatchObject({
+        theme: 'light',
+        pluginAppTheme: null,
+        themeBeforePlugin: null,
+        pluginAppThemeLight: midnight.id,
+        pluginAppThemeDark: null
+      })
+    )
     expect(mocks.applyPluginAppTheme).toHaveBeenLastCalledWith(midnight)
-    expect(mocks.applyDocumentTheme).toHaveBeenLastCalledWith('light')
-
-    act(() => usePluginThemeStore.setState({ entries: [] }))
-    expect(mocks.applyPluginAppTheme).toHaveBeenLastCalledWith(null)
-    // The earlier built-in choice comes back with the built-in colors.
-    await vi.waitFor(() => expect(useAppStore.getState().settings?.theme).toBe('dark'))
     unmount()
     usePluginThemeStore.setState({ entries: [], loaded: false })
   })
 
-  it("falls back to the earlier choice while the selected theme's plugin is disabled", async () => {
-    const dusk = {
-      id: 'plugin:samples.dusk/dusk' as const,
-      revision: 'r1',
-      pluginKey: 'samples.dusk',
-      pluginName: 'Dusk',
-      label: 'Dusk',
-      base: 'dark' as const,
-      tokens: { '--background': '#1a1025' }
+  it('swaps between the light and dark slots live when the OS appearance flips', () => {
+    const listeners = new Set<(event: { matches: boolean }) => void>()
+    let systemDark = false
+    const media = {
+      get matches() {
+        return systemDark
+      },
+      addEventListener: (_: string, listener: (event: { matches: boolean }) => void) =>
+        listeners.add(listener),
+      removeEventListener: (_: string, listener: (event: { matches: boolean }) => void) =>
+        listeners.delete(listener)
     }
-    usePluginThemeStore.setState({ entries: [dusk], loaded: true })
-    useAppStore.setState({
-      updateSettings: async (updates) => {
-        const current = useAppStore.getState().settings ?? getDefaultSettings('/tmp')
-        useAppStore.setState({ settings: { ...current, ...updates } })
-      }
-    })
+    vi.stubGlobal('matchMedia', () => media)
+    resetSystemPrefersDarkSubscriptionForTests()
+    usePluginThemeStore.setState({ entries: [midnight, dusk], loaded: true })
     act(() => {
       const settings = useAppStore.getState().settings!
       useAppStore.setState({
         settings: {
           ...settings,
-          theme: 'dark',
-          themeBeforePlugin: 'light',
-          pluginAppTheme: dusk.id
+          theme: 'system',
+          pluginAppThemeLight: midnight.id,
+          pluginAppThemeDark: dusk.id
         }
       })
     })
     const { unmount } = renderHook(() => useDocumentAppearance())
+    expect(mocks.applyPluginAppTheme).toHaveBeenLastCalledWith(midnight)
+    act(() => {
+      systemDark = true
+      for (const listener of listeners) {
+        listener({ matches: true })
+      }
+    })
+    expect(mocks.applyDocumentTheme).toHaveBeenLastCalledWith('system')
     expect(mocks.applyPluginAppTheme).toHaveBeenLastCalledWith(dusk)
-    // A disabled plugin's themes leave the list, and its saved choice is no longer backed.
+    unmount()
+    vi.unstubAllGlobals()
+    resetSystemPrefersDarkSubscriptionForTests()
+    usePluginThemeStore.setState({ entries: [], loaded: false })
+  })
+
+  it("paints the built-in colors while a slot's plugin is disabled and keeps the slot", () => {
+    usePluginThemeStore.setState({ entries: [dusk], loaded: true })
+    const updateSettings = vi.fn().mockResolvedValue(undefined)
+    useAppStore.setState({ updateSettings })
     act(() => {
       const settings = useAppStore.getState().settings!
-      useAppStore.setState({ settings: { ...settings, disabledPlugins: [dusk.pluginKey] } })
-      usePluginThemeStore.setState({ entries: [] })
+      useAppStore.setState({
+        settings: { ...settings, theme: 'dark', pluginAppThemeDark: dusk.id }
+      })
     })
+    const { unmount } = renderHook(() => useDocumentAppearance())
+    expect(mocks.applyPluginAppTheme).toHaveBeenLastCalledWith(dusk)
+    // A disabled plugin's themes leave the list; re-enabling paints the same slot again.
+    act(() => usePluginThemeStore.setState({ entries: [] }))
     expect(mocks.applyPluginAppTheme).toHaveBeenLastCalledWith(null)
-    await vi.waitFor(() => expect(useAppStore.getState().settings?.theme).toBe('light'))
+    expect(updateSettings).not.toHaveBeenCalled()
     unmount()
     usePluginThemeStore.setState({ entries: [], loaded: false })
   })

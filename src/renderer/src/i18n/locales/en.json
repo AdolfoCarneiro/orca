@@ -12799,6 +12799,11 @@
             "title": "Icon theme",
             "description": "File and folder icons from an enabled plugin.",
             "builtIn": "Built-in"
+          },
+          "lightTheme": "Light theme",
+          "darkTheme": "Dark theme",
+          "themeSlot": {
+            "description": "App colors for this mode."
           }
         },
         "PluginAddMenu": {
@@ -13002,7 +13007,9 @@
         },
         "PluginThemeUseNow": {
           "label": "Use now:",
-          "useName": "Use now: {{value0}}"
+          "useName": "Use now: {{value0}}",
+          "useForLight": "Use for light:",
+          "useForDark": "Use for dark:"
         },
         "PluginPageHero": {
           "screenshots": "Screenshots",
@@ -13058,7 +13065,9 @@
         },
         "pluginThemeApply": {
           "nowUsing": "Now using {{value0}}",
-          "switchBack": "Switch back"
+          "switchBack": "Switch back",
+          "setAsLight": "{{value0}} set as your light theme",
+          "setAsDark": "{{value0}} set as your dark theme"
         },
         "PluginChips": {
           "updateNeedsReview": "Update needs review",

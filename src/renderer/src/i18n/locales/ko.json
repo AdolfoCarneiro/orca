@@ -11352,7 +11352,9 @@
         },
         "PluginThemeUseNow": {
           "label": "지금 사용:",
-          "useName": "지금 사용: {{value0}}"
+          "useName": "지금 사용: {{value0}}",
+          "useForLight": "라이트에 사용:",
+          "useForDark": "다크에 사용:"
         },
         "PluginContributionActionCommand": {
           "run": "실행",
@@ -11395,7 +11397,9 @@
         },
         "pluginThemeApply": {
           "nowUsing": "{{value0}} 사용 중",
-          "switchBack": "되돌리기"
+          "switchBack": "되돌리기",
+          "setAsLight": "{{value0}}을(를) 라이트 테마로 설정함",
+          "setAsDark": "{{value0}}을(를) 다크 테마로 설정함"
         },
         "pluginError": {
           "installManifestMissing": "읽을 수 있는 orca-plugin.json이 없습니다. 플러그인 루트 폴더를 선택하세요.",
@@ -12319,6 +12323,11 @@
             "title": "아이콘 테마",
             "description": "활성화된 플러그인의 파일 및 폴더 아이콘입니다.",
             "builtIn": "기본 제공"
+          },
+          "lightTheme": "라이트 테마",
+          "darkTheme": "다크 테마",
+          "themeSlot": {
+            "description": "이 모드의 앱 색상입니다."
           }
         },
         "PluginAddMenu": {

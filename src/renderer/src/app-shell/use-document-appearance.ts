@@ -13,42 +13,35 @@ import {
 import { usePluginIconThemeActivation } from '../store/plugin-icon-themes'
 import { scheduleRuntimeGraphSync } from '../runtime/sync-runtime-graph'
 import { useAppStore } from '../store'
+import { useDocumentDarkTheme } from '@/hooks/use-document-dark-theme'
 
 export function useDocumentAppearance(): void {
-  const selectedPluginTheme = useAppStore((s) => s.settings?.pluginAppTheme)
-  // Why find by id: a disabled or removed plugin drops out of the list, which restores built-in colors.
-  const pluginTheme = usePluginThemes().find((entry) => entry.id === selectedPluginTheme) ?? null
-  const pluginThemesLoaded = usePluginThemeStore((s) => s.loaded)
-  // Why settings.theme alone: choosing a plugin theme stores its base there, so every reader of
-  // the light/dark mode agrees with the painted colors.
   const theme = useAppStore((s) => s.settings?.theme)
+  const dark = useDocumentDarkTheme()
+  const selectedPluginTheme = useAppStore((s) =>
+    dark ? s.settings?.pluginAppThemeDark : s.settings?.pluginAppThemeLight
+  )
+  // Why find by id: a disabled or removed plugin drops out of the list, which restores built-in colors.
+  const pluginTheme =
+    usePluginThemes().find(
+      (entry) => entry.id === selectedPluginTheme && (entry.base === 'dark') === dark
+    ) ?? null
+  const pluginThemesLoaded = usePluginThemeStore((s) => s.loaded)
   usePluginTerminalPaletteRefresh()
   usePluginAppThemeSync()
   const appFontFamily = useAppStore((s) => s.settings?.appFontFamily)
   usePluginIconThemeActivation(useAppStore((s) => s.settings?.pluginIconTheme))
 
+  // Why `dark` too: a system theme repaints when the OS flips, before the slot paint below.
   useEffect(() => {
-    if (!theme) {
-      return
+    if (theme) {
+      applyDocumentTheme(theme)
     }
-
-    if (theme === 'dark') {
-      applyDocumentTheme('dark')
-      return undefined
-    } else if (theme === 'light') {
-      applyDocumentTheme('light')
-      return undefined
-    }
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    applyDocumentTheme('system')
-    const handler = (): void => {
-      applyDocumentTheme('system')
+    if (theme === 'system') {
       // System theme changes don't mutate the store, so mobile terminal colors need an explicit graph republish.
       scheduleRuntimeGraphSync()
     }
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [theme])
+  }, [theme, dark])
 
   useEffect(() => {
     // Why wait for the list: until it loads, the startup cache is still the right paint.
@@ -67,7 +60,7 @@ export function useDocumentAppearance(): void {
           : null
       })
     }
-  }, [pluginTheme, pluginThemesLoaded, theme])
+  }, [pluginTheme, pluginThemesLoaded, theme, dark])
 
   useEffect(() => {
     document.documentElement.style.setProperty(

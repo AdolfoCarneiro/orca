@@ -1,6 +1,6 @@
 /**
- * Invariant: a plugin app theme and icon theme apply live from Settings, and disabling the
- * plugin restores Orca's colors, the earlier Theme choice and the built-in icons.
+ * Invariant: a plugin app theme fills the Dark theme slot and an icon theme applies live from
+ * Settings, and disabling the plugin restores Orca's colors and the built-in icons.
  */
 
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -74,7 +74,11 @@ test('plugin themes apply live and fall back when the plugin goes away', async (
     await enableDevPlugins(orcaPage, [pluginRoot])
     await openAppearance(orcaPage)
 
-    await choose(orcaPage, 'Theme', 'Smoke Dusk')
+    await orcaPage
+      .getByRole('radiogroup', { name: 'Theme', exact: true })
+      .getByRole('radio', { name: 'Dark', exact: true })
+      .click()
+    await choose(orcaPage, 'Dark theme', 'Smoke Dusk')
     await expect.poll(() => background(orcaPage)).toBe('#1b1430')
     // The left sidebar's surface, its only edge against the canvas, follows the theme.
     await expect
@@ -85,8 +89,8 @@ test('plugin themes apply live and fall back when the plugin goes away', async (
       )
       .toBe('#271d45')
     await expect
-      .poll(() => orcaPage.evaluate(() => window.__store?.getState().settings?.theme))
-      .toBe('dark')
+      .poll(() => orcaPage.evaluate(() => window.__store?.getState().settings?.pluginAppThemeDark))
+      .toBe('plugin:samples.theme-smoke/dusk')
 
     await choose(orcaPage, 'Icon theme', 'Smoke Blocks')
     await orcaPage.evaluate(() => {
@@ -100,17 +104,13 @@ test('plugin themes apply live and fall back when the plugin goes away', async (
     await disablePluginSystem(orcaPage)
     await expect.poll(() => background(orcaPage)).toBe('')
     await expect.poll(() => orcaPage.locator('[data-plugin-icon]').count()).toBe(0)
-    await expect
-      .poll(() => orcaPage.evaluate(() => window.__store?.getState().settings?.theme))
-      .toBe(themeBefore)
   } finally {
     await disablePluginSystem(orcaPage).catch(() => undefined)
     await orcaPage.evaluate(
       (theme) =>
         window.api.settings.set({
           theme: theme ?? 'system',
-          pluginAppTheme: null,
-          themeBeforePlugin: null,
+          pluginAppThemeDark: null,
           pluginIconTheme: null
         }),
       themeBefore

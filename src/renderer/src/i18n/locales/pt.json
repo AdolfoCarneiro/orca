@@ -8772,6 +8772,21 @@
           "sourceMoved": "Nova fonte: {{value0}} (antes {{value1}})",
           "update": "Atualizar"
         },
+        "PluginThemeUseNow": {
+          "useForLight": "Usar no claro:",
+          "useForDark": "Usar no escuro:"
+        },
+        "pluginThemeApply": {
+          "setAsLight": "{{value0}} agora é seu tema claro",
+          "setAsDark": "{{value0}} agora é seu tema escuro"
+        },
+        "AppearanceInterfaceSection": {
+          "lightTheme": "Tema claro",
+          "darkTheme": "Tema escuro",
+          "themeSlot": {
+            "description": "Cores do app para este modo."
+          }
+        },
         "notification": {
           "settings": {
             "copy": {

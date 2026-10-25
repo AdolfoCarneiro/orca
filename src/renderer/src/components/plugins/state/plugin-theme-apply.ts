@@ -3,23 +3,12 @@ import type { GlobalSettings } from '../../../../../shared/global-settings-types
 import type { PluginThemeRegistration } from '../../../../../shared/plugins/artifacts/plugin-theme-artifact'
 import type { PluginTerminalThemeRegistration } from '../../../../../shared/plugins/artifacts/plugin-terminal-theme-artifact'
 import { translate } from '@/i18n/i18n'
-import { applyDocumentTheme, resolveDocumentTheme } from '@/lib/document-theme'
+import { resolveDocumentTheme } from '@/lib/document-theme'
+import { pluginAppThemeSlotUpdate } from '../../../../../shared/plugin-theme-settings'
 import { withTerminalPluginPalettes } from '@/lib/terminal-plugin-palettes'
 import { useAppStore } from '@/store'
 import { usePluginIconThemeStore } from '@/store/plugin-icon-themes'
 import { usePluginThemeStore, usePluginTerminalThemeStore } from '@/store/plugin-themes'
-
-export function appThemeUpdate(
-  settings: GlobalSettings,
-  theme: PluginThemeRegistration
-): Partial<GlobalSettings> {
-  return {
-    theme: theme.base,
-    pluginAppTheme: theme.id,
-    // Why keep the first one: switching between plugin themes must not lose it.
-    themeBeforePlugin: settings.themeBeforePlugin ?? settings.theme
-  }
-}
 
 export function terminalSlot(
   mode: PluginTerminalThemeRegistration['mode'],
@@ -41,7 +30,11 @@ export function terminalThemeUpdate(
     settings,
     {
       [slot]: theme.id,
-      ...(slot === 'terminalThemeLight' ? { terminalUseSeparateLightTheme: true } : {})
+      ...(slot === 'terminalThemeLight' ? { terminalUseSeparateLightTheme: true } : {}),
+      // A selected theme must replace overrides or they mask its palette.
+      ...(Object.keys(settings.terminalColorOverrides ?? {}).length > 0
+        ? { terminalColorOverrides: undefined }
+        : {})
     },
     terminalThemes
   )
@@ -50,6 +43,7 @@ export function terminalThemeUpdate(
 /**
  * Applies a plugin's themes right after the user installs or enables it, so the change is
  * visible at once, and offers one click back. Only for clicks; never updates or startup.
+ * A light and a dark theme fill both slots; a single theme fills its own mode's slot.
  */
 export async function applyPluginThemesNow(pluginKey: string): Promise<boolean> {
   const [apps, icons, terminals] = await Promise.all([
@@ -67,45 +61,61 @@ export async function applyPluginThemesNow(pluginKey: string): Promise<boolean> 
     return false
   }
   const currentlyDark = resolveDocumentTheme(settings.theme)
-  const app =
-    ownApps.find((theme) => (theme.base === 'dark') === currentlyDark) ?? ownApps[0] ?? null
-  const dark = app ? app.base === 'dark' : currentlyDark
-  const want = dark ? 'dark' : 'light'
-  const terminal =
-    ownTerminals.find((theme) => theme.mode === want) ??
-    ownTerminals.find((theme) => theme.mode === 'unknown') ??
-    ownTerminals[0] ??
-    null
+  const appFor = (base: 'light' | 'dark'): PluginThemeRegistration | undefined =>
+    ownApps.find((theme) => theme.base === base)
+  const appSlots = [appFor('light'), appFor('dark')].filter((theme) => theme !== undefined)
+  // Why: with one app theme, an unknown-mode terminal theme belongs to that theme's mode.
+  const dark = appSlots.length === 1 ? appSlots[0].base === 'dark' : currentlyDark
+  const terminalFor = (mode: 'light' | 'dark'): PluginTerminalThemeRegistration | undefined =>
+    ownTerminals.find((theme) => theme.mode === mode)
+  const terminalPicks = [terminalFor('light'), terminalFor('dark')].filter(
+    (theme) => theme !== undefined
+  )
+  if (terminalPicks.length === 0 && ownTerminals[0]) {
+    terminalPicks.push(ownTerminals[0])
+  }
   // Why null, not undefined: an absent key would not overwrite what this apply set.
   const previous: Partial<GlobalSettings> = {
-    theme: settings.theme,
-    pluginAppTheme: settings.pluginAppTheme ?? null,
-    themeBeforePlugin: settings.themeBeforePlugin ?? null,
+    pluginAppThemeLight: settings.pluginAppThemeLight ?? null,
+    pluginAppThemeDark: settings.pluginAppThemeDark ?? null,
     pluginIconTheme: settings.pluginIconTheme ?? null,
     terminalThemeDark: settings.terminalThemeDark,
     terminalThemeLight: settings.terminalThemeLight,
     terminalUseSeparateLightTheme: settings.terminalUseSeparateLightTheme,
     terminalPluginPalettes: settings.terminalPluginPalettes ?? []
   }
-  await updateSettings({
-    ...(app ? appThemeUpdate(settings, app) : {}),
-    ...(icon ? { pluginIconTheme: icon.id } : {}),
-    ...(terminal ? terminalThemeUpdate(settings, terminal, dark, terminals) : {})
-  })
-  if (app) {
-    applyDocumentTheme(app.base)
+  let next: Partial<GlobalSettings> = {}
+  for (const theme of appSlots) {
+    next = { ...next, ...pluginAppThemeSlotUpdate(theme.base, theme.id) }
   }
+  next = { ...next, ...(icon ? { pluginIconTheme: icon.id } : {}) }
+  for (const theme of terminalPicks) {
+    next = { ...next, ...terminalThemeUpdate({ ...settings, ...next }, theme, dark, terminals) }
+  }
+  await updateSettings(next)
+  const shown = appSlots.find((theme) => (theme.base === 'dark') === currentlyDark)
+  const offMode = appSlots.length === 1 && !shown ? appSlots[0] : null
+  const label = (shown ?? appSlots[0] ?? icon ?? terminalPicks[0])?.label ?? ''
   toast.success(
-    translate('auto.components.settings.pluginThemeApply.nowUsing', 'Now using {{value0}}', {
-      value0: (app ?? icon ?? terminal)?.label ?? ''
-    }),
+    offMode?.base === 'dark'
+      ? translate(
+          'auto.components.settings.pluginThemeApply.setAsDark',
+          '{{value0}} set as your dark theme',
+          { value0: label }
+        )
+      : offMode
+        ? translate(
+            'auto.components.settings.pluginThemeApply.setAsLight',
+            '{{value0}} set as your light theme',
+            { value0: label }
+          )
+        : translate('auto.components.settings.pluginThemeApply.nowUsing', 'Now using {{value0}}', {
+            value0: label
+          }),
     {
       action: {
         label: translate('auto.components.settings.pluginThemeApply.switchBack', 'Switch back'),
-        onClick: () => {
-          void useAppStore.getState().updateSettings(previous)
-          applyDocumentTheme(settings.theme)
-        }
+        onClick: () => void useAppStore.getState().updateSettings(previous)
       }
     }
   )

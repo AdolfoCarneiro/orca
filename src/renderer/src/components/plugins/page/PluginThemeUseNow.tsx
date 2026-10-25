@@ -1,11 +1,13 @@
 import { SquareTerminal } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 import { usePluginIconThemes } from '@/store/plugin-icon-themes'
-import { applyDocumentTheme, resolveDocumentTheme } from '@/lib/document-theme'
+import { resolveDocumentTheme } from '@/lib/document-theme'
+import { pluginAppThemeSlotUpdate } from '../../../../../shared/plugin-theme-settings'
 import { useAppStore } from '@/store'
 import { usePluginThemes, usePluginTerminalThemes } from '@/store/plugin-themes'
 import { Button } from '../../ui/button'
-import { appThemeUpdate, terminalSlot, terminalThemeUpdate } from '../state/plugin-theme-apply'
+import { terminalSlot, terminalThemeUpdate } from '../state/plugin-theme-apply'
+import { PluginThemeSwatch } from './PluginThemeSwatch'
 
 /** One-click "use it" for each theme a plugin adds, e.g. the other light/dark variant. */
 export function PluginThemeUseNow({
@@ -25,43 +27,40 @@ export function PluginThemeUseNow({
   if (themes.length + icons.length + terminals.length === 0 || !settings) {
     return <>{fallback}</>
   }
-  const use = (theme: (typeof themes)[number]): void => {
-    void updateSettings(appThemeUpdate(settings, theme))
-    applyDocumentTheme(theme.base)
-  }
   const dark = resolveDocumentTheme(settings.theme)
+  const mode = dark ? 'dark' : 'light'
+  const prefixes = {
+    now: translate('auto.components.settings.PluginThemeUseNow.label', 'Use now:'),
+    light: translate('auto.components.settings.PluginThemeUseNow.useForLight', 'Use for light:'),
+    dark: translate('auto.components.settings.PluginThemeUseNow.useForDark', 'Use for dark:')
+  }
+  const appChip = (theme: (typeof themes)[number]): React.JSX.Element => {
+    const selected =
+      (theme.base === 'dark' ? settings.pluginAppThemeDark : settings.pluginAppThemeLight) ===
+      theme.id
+    return (
+      <Button
+        key={theme.id}
+        variant={selected ? 'secondary' : 'default'}
+        size="xs"
+        aria-pressed={selected}
+        aria-label={`${theme.base === mode ? prefixes.now : prefixes[theme.base]} ${theme.label}`}
+        onClick={() => void updateSettings(pluginAppThemeSlotUpdate(theme.base, theme.id))}
+      >
+        <PluginThemeSwatch theme={theme} />
+        {theme.label}
+      </Button>
+    )
+  }
+  const otherMode = mode === 'dark' ? 'light' : 'dark'
+  const later = themes.filter((theme) => theme.base === otherMode)
+  const nowCount = themes.length - later.length + icons.length + terminals.length
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 text-xs text-muted-foreground">
-        {translate('auto.components.settings.PluginThemeUseNow.label', 'Use now:')}
-      </span>
-      {themes.map((theme) => (
-        <Button
-          key={theme.id}
-          variant={settings.pluginAppTheme === theme.id ? 'secondary' : 'default'}
-          size="xs"
-          aria-pressed={settings.pluginAppTheme === theme.id}
-          aria-label={translate(
-            'auto.components.settings.PluginThemeUseNow.useName',
-            'Use now: {{value0}}',
-            { value0: theme.label }
-          )}
-          onClick={() => use(theme)}
-        >
-          {/* Why inline colour: the swatch is the theme's own palette. */}
-          <span
-            aria-hidden="true"
-            className="flex size-3.5 overflow-hidden rounded-sm ring-1 ring-border"
-          >
-            <span className="flex-1" style={{ background: theme.tokens['--background'] }} />
-            <span
-              className="flex-1"
-              style={{ background: theme.tokens['--primary'] ?? theme.tokens['--foreground'] }}
-            />
-          </span>
-          {theme.label}
-        </Button>
-      ))}
+      {nowCount > 0 ? (
+        <span className="mr-1 text-xs text-muted-foreground">{prefixes.now}</span>
+      ) : null}
+      {themes.filter((theme) => theme.base === mode).map(appChip)}
       {icons.map((theme) => (
         <Button
           key={`icon:${theme.id}`}
@@ -104,6 +103,10 @@ export function PluginThemeUseNow({
           </Button>
         )
       })}
+      {later.length > 0 ? (
+        <span className="mx-1 text-xs text-muted-foreground">{prefixes[otherMode]}</span>
+      ) : null}
+      {later.map(appChip)}
     </div>
   )
 }

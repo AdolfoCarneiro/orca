@@ -4,16 +4,10 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../../shared/constants'
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
-import type * as DocumentTheme from '@/lib/document-theme'
 import { useAppStore } from '@/store'
 import { applyPluginThemesNow } from './plugin-theme-apply'
 
-const mocks = vi.hoisted(() => ({ applyDocumentTheme: vi.fn() }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
-vi.mock('@/lib/document-theme', async (original) => ({
-  ...(await original<typeof DocumentTheme>()),
-  applyDocumentTheme: mocks.applyDocumentTheme
-}))
 import { toast, type ExternalToast } from 'sonner'
 
 const pluginKey = 'acme.dusk'
@@ -63,7 +57,6 @@ function switchBack(): void {
 
 beforeEach(() => {
   vi.mocked(toast.success).mockClear()
-  mocks.applyDocumentTheme.mockClear()
   useAppStore.setState({
     settings: { ...getDefaultSettings('/tmp'), theme: 'light' },
     updateSettings: async (updates: Partial<GlobalSettings>) => {
@@ -75,15 +68,24 @@ beforeEach(() => {
 
 afterEach(() => useAppStore.setState(initialState, true))
 
-it('applies the app theme matching the current mode plus icon and terminal themes', async () => {
+const darkTerminal = {
+  id: `plugin:${pluginKey}/term`,
+  pluginKey,
+  pluginName: 'Dusk & Ember',
+  label: 'Dusk Terminal',
+  mode: 'dark',
+  terminal: { background: '#181818', foreground: '#eeeeee', red: '#ff0000' }
+}
+
+it('fills both slots from a light and dark pair, plus icon and terminal themes', async () => {
   installApi({
     themes: [appTheme('dusk', 'dark'), appTheme('ember', 'light')],
     icons: [{ id: `plugin:${pluginKey}/icons`, pluginKey, label: 'Dusk Icons' }],
     terminals: [
+      darkTerminal,
       {
-        id: `plugin:${pluginKey}/term`,
-        pluginKey,
-        pluginName: 'Dusk & Ember',
+        ...darkTerminal,
+        id: `plugin:${pluginKey}/term-light`,
         label: 'Ember Terminal',
         mode: 'light',
         terminal: { background: '#fafafa', foreground: '#181818', red: '#ff0000' }
@@ -94,42 +96,62 @@ it('applies the app theme matching the current mode plus icon and terminal theme
   const settings = useAppStore.getState().settings!
   expect(settings).toMatchObject({
     theme: 'light',
-    pluginAppTheme: `plugin:${pluginKey}/ember`,
-    themeBeforePlugin: 'light',
+    pluginAppThemeLight: `plugin:${pluginKey}/ember`,
+    pluginAppThemeDark: `plugin:${pluginKey}/dusk`,
     pluginIconTheme: `plugin:${pluginKey}/icons`,
-    terminalThemeLight: `plugin:${pluginKey}/term`,
+    terminalThemeLight: `plugin:${pluginKey}/term-light`,
+    terminalThemeDark: `plugin:${pluginKey}/term`,
     terminalUseSeparateLightTheme: true
   })
-  expect(mocks.applyDocumentTheme).toHaveBeenLastCalledWith('light')
+  expect(settings.terminalPluginPalettes).toHaveLength(2)
   expect(toast.success).toHaveBeenCalledWith('Now using Ember', {
     action: { label: 'Switch back', onClick: expect.any(Function) }
   })
 })
 
-it('Switch back restores the earlier app, icon and terminal choices exactly', async () => {
-  const before = useAppStore.getState().settings!
+it('fills only the matching slot of a single theme and says so when it is not showing', async () => {
+  installApi({ themes: [appTheme('dusk', 'dark')], terminals: [darkTerminal] })
+  await applyPluginThemesNow(pluginKey)
+  expect(useAppStore.getState().settings).toMatchObject({
+    theme: 'light',
+    pluginAppThemeLight: null,
+    pluginAppThemeDark: `plugin:${pluginKey}/dusk`,
+    terminalThemeDark: `plugin:${pluginKey}/term`
+  })
+  expect(vi.mocked(toast.success).mock.calls.at(-1)?.[0]).toBe('Dusk set as your dark theme')
+})
+
+it('keeps another pack in the other slot so packs mix', async () => {
+  const other = 'plugin:other.dawn/dawn'
+  useAppStore.setState({
+    settings: { ...useAppStore.getState().settings!, pluginAppThemeLight: other }
+  })
+  installApi({ themes: [appTheme('dusk', 'dark')] })
+  await applyPluginThemesNow(pluginKey)
+  expect(useAppStore.getState().settings).toMatchObject({
+    pluginAppThemeLight: other,
+    pluginAppThemeDark: `plugin:${pluginKey}/dusk`
+  })
+})
+
+it('Switch back restores every slot exactly', async () => {
+  const before = {
+    ...useAppStore.getState().settings!,
+    pluginAppThemeLight: 'plugin:other.dawn/dawn' as const
+  }
+  useAppStore.setState({ settings: before })
   installApi({
-    themes: [appTheme('dusk', 'dark')],
+    themes: [appTheme('dusk', 'dark'), appTheme('ember', 'light')],
     icons: [{ id: `plugin:${pluginKey}/icons`, pluginKey, label: 'Dusk Icons' }],
-    terminals: [
-      {
-        id: `plugin:${pluginKey}/term`,
-        pluginKey,
-        pluginName: 'Dusk & Ember',
-        label: 'Dusk Terminal',
-        mode: 'dark',
-        terminal: { background: '#181818', foreground: '#eeeeee', red: '#ff0000' }
-      }
-    ]
+    terminals: [darkTerminal]
   })
   await applyPluginThemesNow(pluginKey)
-  expect(useAppStore.getState().settings?.theme).toBe('dark')
   switchBack()
   await vi.waitFor(() =>
     expect(useAppStore.getState().settings).toMatchObject({
       theme: before.theme,
-      pluginAppTheme: null,
-      themeBeforePlugin: null,
+      pluginAppThemeLight: 'plugin:other.dawn/dawn',
+      pluginAppThemeDark: null,
       pluginIconTheme: null,
       terminalThemeDark: before.terminalThemeDark,
       terminalThemeLight: before.terminalThemeLight,
@@ -137,7 +159,6 @@ it('Switch back restores the earlier app, icon and terminal choices exactly', as
       terminalPluginPalettes: []
     })
   )
-  expect(mocks.applyDocumentTheme).toHaveBeenLastCalledWith(before.theme)
 })
 
 it('changes nothing for a plugin that adds no theme', async () => {
