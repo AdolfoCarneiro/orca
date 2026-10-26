@@ -20,6 +20,7 @@ import type { BrowserLoadFailureAutoRetry } from '../navigate/browser-load-failu
 import BrowserFind from './BrowserFind'
 import { BrowserNewTabPage } from '../new-tab/BrowserNewTabPage'
 import { BrowserGuestAnnotateOverlays } from '../annotate/browser-guest-annotate-overlays'
+import { BrowserPasswordFillDropdown } from '../passwords/BrowserPasswordFillDropdown'
 import type { MarkupModeController } from '../annotate/useMarkupMode'
 import type { GrabModeHook } from '../annotate/useGrabMode'
 import type { BrowserOverlayViewport } from '../describe-page/browser-annotation-geometry'
@@ -95,6 +96,11 @@ export function BrowserPageViewportOverlays({
         browserOverlayViewport={browserOverlayViewport}
         worktreeId={worktreeId}
         currentUrl={browserTab.url}
+      />
+      <BrowserPasswordFillDropdown
+        browserPageId={browserTab.id}
+        containerRef={containerRef}
+        webviewRef={webviewRef}
       />
       <BrowserPageZoomIndicator state={browserZoomIndicatorState} percent={browserZoomPercent} />
       <BrowserFind isOpen={findOpen} onClose={() => setFindOpen(false)} webviewRef={webviewRef} />

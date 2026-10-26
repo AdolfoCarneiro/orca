@@ -22,6 +22,8 @@ import { BrowserUserAgentSetting } from './BrowserUserAgentSetting'
 import { BrowserSitePermissionsSetting } from './BrowserSitePermissionsSetting'
 import { SettingsSubsectionHeader } from './SettingsFormControls'
 import { BrowserSessionCookiesSection } from './BrowserSessionCookiesSection'
+import { BrowserPasswordManagerSetting } from './BrowserPasswordManagerSetting'
+import { getBrowserPasswordsSearchEntry } from './browser-passwords-copy'
 import { BrowserNewProfileDialog } from './BrowserNewProfileDialog'
 import { BrowserExtensionsSection } from './BrowserExtensionsSection'
 import {
@@ -124,6 +126,7 @@ export function BrowserPane({
   const showSitePermissions = matchesSettingsSearch(searchQuery, [browserSearchEntries[11]])
   const showProfileScope = matchesSettingsSearch(searchQuery, [browserSearchEntries[12]])
   const showLinkRoutingBackground = matchesSettingsSearch(searchQuery, [browserSearchEntries[13]])
+  const showPasswords = matchesSettingsSearch(searchQuery, [getBrowserPasswordsSearchEntry()])
   const showBrowserUse = matchesSettingsSearch(searchQuery, getBrowserUsePaneSearchEntries())
   const isMac = isMacUserAgent()
   const linkRoutingDescription = getBrowserLinkRoutingDescription(
@@ -343,6 +346,17 @@ export function BrowserPane({
             browserSessionProfiles.find((profile) => profile.id === selectedProfileId)?.label ??
             selectedProfileId
           }
+        />
+      ) : null}
+
+      {/* The vault lives on this computer only, so it follows the local host's profiles. */}
+      {showPasswords &&
+      settings.experimentalBrowserPasswords === true &&
+      selectedBrowserSessionHostId === LOCAL_EXECUTION_HOST_ID ? (
+        <BrowserPasswordManagerSetting
+          settings={settings}
+          updateSettings={updateSettings}
+          profiles={browserSessionProfiles}
         />
       ) : null}
 

@@ -7,6 +7,7 @@ import type { BrowserReloadTrigger } from '../navigate/browser-reload-action'
 import BrowserAddressBar from './BrowserAddressBar'
 import { BrowserChromeToolbar } from './browser-chrome-toolbar'
 import { BrowserImportHintButton } from './BrowserImportHintButton'
+import { BrowserPasswordSaveButton } from '../passwords/BrowserPasswordSaveButton'
 import { BrowserReloadControl } from './browser-reload-control'
 import { BrowserToolbarMenu } from './BrowserToolbarMenu'
 import { BrowserExtensionToolbar } from './browser-extension-toolbar'
@@ -200,6 +201,7 @@ export function BrowserPageToolbar({
           onHardReload={() => runReloadTrigger('hard-reload')}
         />
       }
+      passwordControl={<BrowserPasswordSaveButton browserPageId={browserPageId} />}
       importControl={(compact) => (
         <BrowserImportHintButton profileId={sessionProfileId} compact={compact} />
       )}
