@@ -5955,26 +5955,11 @@
           "e4b5e909ff": "Quando desativado, os espaços de trabalho ocultos por uma opção Ocultar no menu Filtros da barra lateral não mostram o ponto de não lido nem enviam notificações para este computador ou seu celular."
         },
         "PluginConsentDialog": {
-          "workerTrust": "Worker em segundo plano — executa seu próprio processo",
-          "instructionalTrust": "Conteúdo instrucional — executa depois sob autoridade do usuário ou agente",
-          "declarativeTrust": "Conteúdo declarativo — sem código de plugin",
-          "panelTrust": "Painel ou conteúdo integrado ao host — sem processo worker",
-          "trustShortWorker": "Worker",
-          "trustShortInstructional": "Instrucional",
-          "trustShortPanel": "Painel",
-          "trustShortDeclarative": "Declarativo",
-          "reviewTitle": "Revisar plugin",
-          "title": "Revisar permissões",
-          "mixedTitle": "Revisar acesso e conteúdo",
-          "instructionalTitle": "Revisar conteúdo do plugin",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "As permissões, o nível de confiança do worker ou o conteúdo instrucional mudaram desde sua última revisão deste plugin. Revise-o novamente antes que ele possa ser executado.",
-          "capabilities": "Este plugin pode",
           "warning": "Estas permissões limitam como o plugin usa a API do Orca. Seu worker ainda é executado como um processo normal no seu computador, com acesso total aos seus arquivos, rede e outros processos.",
           "instructionalWarning": "Este plugin não tem processo worker. Seu conteúdo instrucional ainda pode causar ações quando você ou um agente o usam. Revise as instruções e comandos abaixo antes de ativá-lo.",
           "panelWarning": "Estas permissões limitam como o plugin usa a API do Orca. Este plugin não tem worker em segundo plano.",
           "declarativeWarning": "Este plugin contribui somente com conteúdo validado. Ele não executa um worker em segundo plano nem recebe acesso à API do Orca.",
-          "keepDisabled": "Manter Desativado",
           "enable": "Ativar plugin",
           "capability": {
             "workspaceRead": "Ler o nome, a branch e a lista de terminais da sua worktree em foco",
@@ -7855,7 +7840,6 @@
           }
         },
         "PluginMarketplaceListingRow": {
-          "noDescription": "Nenhuma descrição fornecida.",
           "blocked": "Bloqueado pela lista de segurança do Orca: {{value0}}",
           "install": "Instalar"
         },

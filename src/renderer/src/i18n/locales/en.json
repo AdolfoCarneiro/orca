@@ -11668,26 +11668,11 @@
           "leaveToTerminalLabel": "Leave to terminal"
         },
         "PluginConsentDialog": {
-          "workerTrust": "Background worker — runs its own process",
-          "instructionalTrust": "Instructional content — runs later under user or agent authority",
-          "declarativeTrust": "Declarative content — no plugin code",
-          "panelTrust": "Panel or host-integrated content — no worker process",
-          "trustShortWorker": "Worker",
-          "trustShortInstructional": "Instructional",
-          "trustShortPanel": "Panel",
-          "trustShortDeclarative": "Declarative",
-          "reviewTitle": "Review plugin",
-          "title": "Review permissions",
-          "mixedTitle": "Review access and content",
-          "instructionalTitle": "Review plugin content",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "This plugin changed since you approved it. Review it to run it again.",
-          "capabilities": "This plugin can",
           "warning": "Its worker runs as a normal process with full access to your files, network, and other processes.",
           "instructionalWarning": "Its commands and instructions can take actions when you or an agent use them.",
           "panelWarning": "No background worker. These permissions limit what it can do in Orca.",
           "declarativeWarning": "Content only: no code, no background worker, and no access to Orca's API.",
-          "keepDisabled": "Keep Disabled",
           "enable": "Enable plugin",
           "capability": {
             "workspaceRead": "Read the name, branch, and terminal list of your focused worktree",
@@ -11698,8 +11683,7 @@
             "eventsSubscribe": "Get notified when worktrees are created or removed and when agent status changes",
             "settingsOwn": "Read and change the plugin's own settings"
           },
-          "decisionFailed": "Could not save the permission decision. Try again.",
-          "whatChanged": "What changed"
+          "decisionFailed": "Could not save the permission decision. Try again."
         },
         "PluginConsentProvenance": {
           "official": "Official",
@@ -11766,7 +11750,6 @@
           "empty": "The configured marketplaces do not list any plugins."
         },
         "PluginMarketplaceListingRow": {
-          "noDescription": "No description provided.",
           "blocked": "Blocked by Orca's safety list: {{value0}}",
           "install": "Install"
         },
@@ -12847,7 +12830,6 @@
           "resultCount": "{{value0}} plugins match",
           "resultCountOne": "1 plugin matches",
           "updateAll": "Update all…",
-          "installedElsewhere": "Installed outside a catalog",
           "bundledAndLocal": "Bundled & local"
         },
         "PluginDetailPage": {
@@ -12857,11 +12839,9 @@
           "stoppedTitle": "Stopped after an error",
           "stoppedBody": "Its code kept crashing, so Orca stopped restarting it. It’s still switched on; Restart tries again.",
           "invalidTitle": "Orca can’t load this plugin",
-          "reviewBody": "Review what it adds and what it can reach, then enable it. Nothing runs before that.",
           "needsOrcaTitle": "Needs Orca {{value0}} or later",
           "needsOrcaBody": "You have Orca {{value0}}. Update Orca to install this plugin.",
           "back": "Plugins",
-          "install": "Install…",
           "info": "Info",
           "version": "Version",
           "latest": "Latest",
@@ -12869,7 +12849,6 @@
           "requiresValue": "Orca {{value0}} or later",
           "categories": "Categories",
           "pluginId": "Plugin ID",
-          "content": "Content",
           "repository": "Repository",
           "newerTitle": "Newer version available",
           "newerBody": "The catalog changed while this page was open. Show the newer version to review it.",
@@ -12892,7 +12871,6 @@
           "recipe": "Machine recipe",
           "access": "Can access",
           "accessLoading": "Reading the plugin…",
-          "noAccess": "Nothing outside its own files",
           "noAccessCode": "Its code runs in a sandbox with no extra access.",
           "noAccessContent": "Content only. It has no code that runs.",
           "logs": "Logs",
@@ -12931,9 +12909,7 @@
         },
         "PluginSettingsOverview": {
           "offTitle": "Plugins are off",
-          "offBody": "Nothing from your plugins runs. Turn them on to browse the catalog and use what you installed.",
           "turnOn": "Turn on plugins",
-          "systemDescription": "Turns every plugin off at once. Nothing runs until you review and enable it.",
           "pausedCount": "{{value0}} paused",
           "offShort": "Nothing from your plugins runs."
         },
@@ -12974,8 +12950,7 @@
           "homepage": "Homepage",
           "whatsNew": "What’s new",
           "hashCopied": "Content hash copied",
-          "hashCopyFailed": "Couldn't copy the hash.",
-          "copyHash": "Copy content hash {{value0}}"
+          "hashCopyFailed": "Couldn't copy the hash."
         },
         "PluginListEmptyStates": {
           "noFilterMatches": "No plugins match these filters",

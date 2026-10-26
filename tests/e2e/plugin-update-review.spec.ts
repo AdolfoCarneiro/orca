@@ -127,6 +127,7 @@ async function screenshot(page: Page, name: string): Promise<void> {
 
 // oxlint-disable-next-line no-empty-pattern -- Playwright passes fixtures before testInfo.
 test('confirms card removal and shares single/bulk update review without stranding the review queue', async ({}, testInfo) => {
+  // Why: one Electron launch drives two Git-backed installs and an update review.
   test.setTimeout(240_000)
   const root = await mkdtemp(join(tmpdir(), 'orca-update-review-'))
   const repositories = join(root, 'repositories')

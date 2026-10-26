@@ -11172,26 +11172,11 @@
           "description": "터미널, 채팅, 마크다운의 링크를 클릭한 위치에서 포커스를 옮기지 않고 브라우저에서 엽니다."
         },
         "PluginConsentDialog": {
-          "workerTrust": "백그라운드 워커 — 자체 프로세스 실행",
-          "instructionalTrust": "지시 내용 — 사용자 또는 에이전트 권한으로 나중에 실행",
-          "declarativeTrust": "선언적 내용 — 플러그인 코드 없음",
-          "panelTrust": "패널 또는 호스트 통합 내용 — 워커 프로세스 없음",
-          "trustShortWorker": "워커",
-          "trustShortInstructional": "지시",
-          "trustShortPanel": "패널",
-          "trustShortDeclarative": "선언적",
-          "reviewTitle": "플러그인 검토",
-          "title": "권한 검토",
-          "mixedTitle": "접근 및 내용 검토",
-          "instructionalTitle": "플러그인 내용 검토",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "승인한 후 이 플러그인이 변경되었습니다. 다시 실행하려면 검토하세요.",
-          "capabilities": "이 플러그인은 다음을 수행할 수 있습니다",
           "warning": "워커는 일반 프로세스로 실행되며 파일, 네트워크, 다른 프로세스에 대한 전체 접근 권한을 가집니다.",
           "instructionalWarning": "명령과 지침은 사용자나 에이전트가 사용할 때 작업을 수행할 수 있습니다.",
           "panelWarning": "백그라운드 워커가 없습니다. 이 권한은 Orca에서 할 수 있는 일을 제한합니다.",
           "declarativeWarning": "콘텐츠만 제공: 코드, 백그라운드 워커, Orca API 접근이 없습니다.",
-          "keepDisabled": "비활성화 유지",
           "enable": "플러그인 활성화",
           "capability": {
             "workspaceRead": "포커스된 워크트리의 이름, 브랜치 및 터미널 목록 읽기",
@@ -11202,8 +11187,7 @@
             "eventsSubscribe": "워크트리가 생성되거나 제거되고 에이전트 상태가 변경될 때 알림 받기",
             "settingsOwn": "플러그인 자체 설정 읽기 및 변경"
           },
-          "decisionFailed": "권한 결정을 저장할 수 없습니다. 다시 시도하세요.",
-          "whatChanged": "변경 사항"
+          "decisionFailed": "권한 결정을 저장할 수 없습니다. 다시 시도하세요."
         },
         "PluginConsentProvenance": {
           "official": "공식",
@@ -11269,7 +11253,6 @@
           "empty": "구성된 마켓플레이스에 플러그인이 나열되어 있지 않습니다."
         },
         "PluginMarketplaceListingRow": {
-          "noDescription": "설명이 제공되지 않았습니다.",
           "blocked": "Orca 안전 목록에 의해 차단됨: {{value0}}",
           "install": "설치"
         },
@@ -12378,11 +12361,9 @@
           "stoppedTitle": "오류로 인해 중지됨",
           "stoppedBody": "코드가 계속 충돌해서 Orca가 다시 시작을 멈췄습니다. 여전히 켜져 있으며, 다시 시작을 누르면 다시 시도합니다.",
           "invalidTitle": "Orca가 이 플러그인을 불러올 수 없습니다",
-          "reviewBody": "추가되는 내용과 접근할 수 있는 범위를 검토한 후 사용하도록 설정하세요. 그 전에는 아무것도 실행되지 않습니다.",
           "needsOrcaTitle": "Orca {{value0}} 이상이 필요합니다",
           "needsOrcaBody": "현재 Orca {{value0}}을(를) 사용 중입니다. 이 플러그인을 설치하려면 Orca를 업데이트하세요.",
           "back": "플러그인",
-          "install": "설치…",
           "info": "정보",
           "version": "버전",
           "latest": "최신",
@@ -12390,7 +12371,6 @@
           "requiresValue": "Orca {{value0}} 이상",
           "categories": "카테고리",
           "pluginId": "플러그인 ID",
-          "content": "콘텐츠",
           "repository": "저장소"
         },
         "PluginDetailSections": {
@@ -12410,7 +12390,6 @@
           "recipe": "머신 레시피",
           "access": "접근 가능 범위",
           "accessLoading": "플러그인을 읽는 중…",
-          "noAccess": "자체 파일 외에는 접근하지 않음",
           "noAccessCode": "코드는 추가 접근 권한이 없는 샌드박스에서 실행됩니다.",
           "noAccessContent": "콘텐츠 전용입니다. 실행되는 코드가 없습니다.",
           "logs": "로그",
@@ -12447,9 +12426,7 @@
         },
         "PluginSettingsOverview": {
           "offTitle": "플러그인이 꺼져 있습니다",
-          "offBody": "플러그인이 아무것도 실행되지 않습니다. 켜면 카탈로그를 둘러보고 설치한 항목을 사용할 수 있습니다.",
           "turnOn": "플러그인 켜기",
-          "systemDescription": "모든 플러그인을 한 번에 끕니다. 검토하고 사용하도록 설정하기 전에는 아무것도 실행되지 않습니다.",
           "pausedCount": "{{value0}}개 일시 중지됨"
         },
         "PluginFilterPopover": {
@@ -12489,8 +12466,7 @@
           "homepage": "홈페이지",
           "whatsNew": "새로운 기능",
           "hashCopied": "콘텐츠 해시를 복사했습니다",
-          "hashCopyFailed": "해시를 복사할 수 없습니다.",
-          "copyHash": "콘텐츠 해시 {{value0}} 복사"
+          "hashCopyFailed": "해시를 복사할 수 없습니다."
         },
         "PluginListEmptyStates": {
           "noFilterMatches": "이 필터와 일치하는 플러그인이 없습니다",

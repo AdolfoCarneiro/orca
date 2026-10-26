@@ -11446,26 +11446,11 @@
           "description": "Los enlaces de la terminal, el chat y markdown se abren en el navegador sin quitar el foco de donde hiciste clic."
         },
         "PluginConsentDialog": {
-          "workerTrust": "Proceso en segundo plano — se ejecuta en su propio proceso",
-          "instructionalTrust": "Contenido instructivo — se ejecuta más tarde con la autoridad del usuario o del agente",
-          "declarativeTrust": "Contenido declarativo: sin código de complemento",
-          "panelTrust": "Panel o contenido integrado con el host — sin proceso en segundo plano",
-          "trustShortWorker": "Worker",
-          "trustShortInstructional": "Instructional",
-          "trustShortPanel": "Panel",
-          "trustShortDeclarative": "Declarative",
-          "reviewTitle": "Review plugin",
-          "title": "Revisar permisos",
-          "mixedTitle": "Revisar acceso y contenido",
-          "instructionalTitle": "Revisar el contenido del plugin",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "Este plugin cambió desde que lo aprobaste. Revísalo para volver a ejecutarlo.",
-          "capabilities": "Este plugin puede",
           "warning": "Su proceso de trabajo se ejecuta como un proceso normal con acceso completo a tus archivos, la red y otros procesos.",
           "instructionalWarning": "Sus comandos e instrucciones pueden realizar acciones cuando tú o un agente los usan.",
           "panelWarning": "Sin proceso en segundo plano. Estos permisos limitan lo que puede hacer en Orca.",
           "declarativeWarning": "Solo contenido: sin código, sin proceso en segundo plano y sin acceso a la API de Orca.",
-          "keepDisabled": "Mantener desactivado",
           "enable": "Activar plugin",
           "capability": {
             "workspaceRead": "Leer el nombre, la rama y la lista de terminales del worktree seleccionado",
@@ -11476,8 +11461,7 @@
             "eventsSubscribe": "Recibir avisos cuando se creen o eliminen worktrees y cuando cambie el estado de un agente",
             "settingsOwn": "Leer y cambiar la configuración propia del plugin"
           },
-          "decisionFailed": "No se pudo guardar la decisión sobre los permisos. Inténtalo de nuevo.",
-          "whatChanged": "Qué cambió"
+          "decisionFailed": "No se pudo guardar la decisión sobre los permisos. Inténtalo de nuevo."
         },
         "PluginConsentProvenance": {
           "official": "Official",
@@ -11543,7 +11527,6 @@
           "empty": "Los marketplaces configurados no incluyen ningún plugin."
         },
         "PluginMarketplaceListingRow": {
-          "noDescription": "No description provided.",
           "blocked": "Bloqueado por la lista de seguridad de Orca: {{value0}}",
           "install": "Install"
         },
@@ -12655,11 +12638,9 @@
           "stoppedTitle": "Detenido tras un error",
           "stoppedBody": "Su código fallaba una y otra vez, así que Orca dejó de reiniciarlo. Sigue activado; Reiniciar lo vuelve a intentar.",
           "invalidTitle": "Orca no puede cargar este plugin",
-          "reviewBody": "Revisa lo que añade y a qué puede acceder, y luego actívalo. No se ejecuta nada antes.",
           "needsOrcaTitle": "Requiere Orca {{value0}} o posterior",
           "needsOrcaBody": "Tienes Orca {{value0}}. Actualiza Orca para instalar este plugin.",
           "back": "Plugins",
-          "install": "Instalar…",
           "info": "Información",
           "version": "Versión",
           "latest": "Más reciente",
@@ -12667,7 +12648,6 @@
           "requiresValue": "Orca {{value0}} o posterior",
           "categories": "Categorías",
           "pluginId": "ID del plugin",
-          "content": "Contenido",
           "repository": "Repositorio"
         },
         "PluginDetailSections": {
@@ -12687,7 +12667,6 @@
           "recipe": "Receta de máquina",
           "access": "Puede acceder a",
           "accessLoading": "Leyendo el plugin…",
-          "noAccess": "Nada fuera de sus propios archivos",
           "noAccessCode": "Su código se ejecuta en un entorno aislado sin acceso adicional.",
           "noAccessContent": "Solo contenido. No tiene código que se ejecute.",
           "logs": "Registros",
@@ -12724,9 +12703,7 @@
         },
         "PluginSettingsOverview": {
           "offTitle": "Los plugins están desactivados",
-          "offBody": "No se ejecuta nada de tus plugins. Actívalos para explorar el catálogo y usar lo que instalaste.",
           "turnOn": "Activar plugins",
-          "systemDescription": "Desactiva todos los plugins a la vez. No se ejecuta nada hasta que lo revises y lo actives.",
           "pausedCount": "{{value0}} en pausa"
         },
         "PluginFilterPopover": {
@@ -12766,8 +12743,7 @@
           "homepage": "Página web",
           "whatsNew": "Novedades",
           "hashCopied": "Hash de contenido copiado",
-          "hashCopyFailed": "No se pudo copiar el hash.",
-          "copyHash": "Copiar hash de contenido {{value0}}"
+          "hashCopyFailed": "No se pudo copiar el hash."
         },
         "PluginListEmptyStates": {
           "noFilterMatches": "Ningún plugin coincide con estos filtros",

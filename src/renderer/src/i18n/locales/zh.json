@@ -11172,26 +11172,11 @@
           "description": "终端、聊天和 Markdown 中的链接会在浏览器中打开，焦点仍停留在你点击的位置。"
         },
         "PluginConsentDialog": {
-          "workerTrust": "后台工作进程 — 运行自己的进程",
-          "instructionalTrust": "指令内容 — 在用户或智能体权限下运行",
-          "declarativeTrust": "声明式内容 — 无插件代码",
-          "panelTrust": "面板或主机集成内容 — 无工作进程",
-          "trustShortWorker": "工作进程",
-          "trustShortInstructional": "指令",
-          "trustShortPanel": "面板",
-          "trustShortDeclarative": "声明式",
-          "reviewTitle": "审查插件",
-          "title": "审查权限",
-          "mixedTitle": "审查访问和内容",
-          "instructionalTitle": "审查插件内容",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "此插件在你批准后已更改。请重新审查以再次运行。",
-          "capabilities": "此插件可以",
           "warning": "它的工作进程以普通进程运行，可完全访问你的文件、网络和其他进程。",
           "instructionalWarning": "当你或智能体使用它的命令和指令时，它们可以执行操作。",
           "panelWarning": "没有后台工作进程。这些权限限制它在 Orca 中能做的事。",
           "declarativeWarning": "仅内容：没有代码、没有后台工作进程，也无法访问 Orca 的 API。",
-          "keepDisabled": "保持禁用",
           "enable": "启用插件",
           "capability": {
             "workspaceRead": "读取您聚焦的工作树的名称、分支和终端列表",
@@ -11202,8 +11187,7 @@
             "eventsSubscribe": "在工作树创建或移除以及智能体状态更改时获得通知",
             "settingsOwn": "读取和更改插件自己的设置"
           },
-          "decisionFailed": "无法保存权限决定。请重试。",
-          "whatChanged": "变更内容"
+          "decisionFailed": "无法保存权限决定。请重试。"
         },
         "PluginConsentProvenance": {
           "official": "Official",
@@ -11269,7 +11253,6 @@
           "empty": "已配置的市场中没有任何插件。"
         },
         "PluginMarketplaceListingRow": {
-          "noDescription": "未提供描述。",
           "blocked": "已被 Orca 安全列表阻止：{{value0}}",
           "install": "Install"
         },
@@ -12411,11 +12394,9 @@
           "stoppedTitle": "因错误而停止",
           "stoppedBody": "其代码不断崩溃，因此 Orca 已停止重启它。它仍处于开启状态；点击“重新启动”可再次尝试。",
           "invalidTitle": "Orca 无法加载此插件",
-          "reviewBody": "请先查看它添加的内容和可访问的范围，然后再启用。在此之前不会运行任何内容。",
           "needsOrcaTitle": "需要 Orca {{value0}} 或更高版本",
           "needsOrcaBody": "你的 Orca 版本为 {{value0}}。请更新 Orca 以安装此插件。",
           "back": "插件",
-          "install": "安装…",
           "info": "信息",
           "version": "版本",
           "latest": "最新",
@@ -12423,7 +12404,6 @@
           "requiresValue": "Orca {{value0}} 或更高版本",
           "categories": "类别",
           "pluginId": "插件 ID",
-          "content": "内容",
           "repository": "仓库"
         },
         "PluginDetailSections": {
@@ -12443,7 +12423,6 @@
           "recipe": "机器配方",
           "access": "可访问",
           "accessLoading": "正在读取插件…",
-          "noAccess": "仅限自身文件",
           "noAccessCode": "其代码在沙盒中运行，没有额外的访问权限。",
           "noAccessContent": "仅包含内容，没有会运行的代码。",
           "logs": "日志",
@@ -12480,9 +12459,7 @@
         },
         "PluginSettingsOverview": {
           "offTitle": "插件已关闭",
-          "offBody": "你的插件都不会运行。开启后即可浏览目录并使用已安装的插件。",
           "turnOn": "开启插件",
-          "systemDescription": "一次性关闭所有插件。在你查看并启用之前，不会运行任何内容。",
           "pausedCount": "已暂停 {{value0}} 个"
         },
         "PluginFilterPopover": {
@@ -12522,8 +12499,7 @@
           "homepage": "主页",
           "whatsNew": "新功能",
           "hashCopied": "已复制内容哈希",
-          "hashCopyFailed": "无法复制哈希。",
-          "copyHash": "复制内容哈希 {{value0}}"
+          "hashCopyFailed": "无法复制哈希。"
         },
         "PluginListEmptyStates": {
           "noFilterMatches": "没有与这些筛选条件匹配的插件",
