@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getDefaultSettings } from '../../../../../shared/constants'
+import type { GlobalSettings } from '../../../../../shared/global-settings-types'
 import type { PluginThemeRegistration } from '../../../../../shared/plugins/artifacts/plugin-theme-artifact'
 import type { PluginLanguagePackRegistration } from '../../../../../shared/plugins/artifacts/plugin-language-pack-artifact'
 import { pluginInUse } from './use-plugin-in-use'
@@ -21,8 +22,10 @@ const pack: PluginLanguagePackRegistration = {
   catalog: {},
   coverage: 100
 }
-const settings = getDefaultSettings('/tmp')
-const registered = {
+const defaults = getDefaultSettings('/tmp')
+const at = (changes: Partial<GlobalSettings>): GlobalSettings => ({ ...defaults, ...changes })
+const settings = at({})
+const registered: Parameters<typeof pluginInUse>[2] = {
   appThemes: [theme('acme.pair', 'light'), theme('acme.pair', 'dark'), theme('acme.night', 'dark')],
   terminalThemes: [],
   iconThemes: [{ id: 'plugin:acme.icons/blocks', pluginKey: 'acme.icons', label: 'Blocks' }],
@@ -46,24 +49,22 @@ describe('pluginInUse', () => {
   })
 
   it('is in use without a slot when a pack fills both slots', () => {
-    const both = {
-      ...settings,
+    const both = at({
       pluginAppThemeLight: 'plugin:acme.pair/light',
       pluginAppThemeDark: 'plugin:acme.pair/dark'
-    }
+    })
     expect(pluginInUse('acme.pair', both, registered)).toEqual({ kind: 'in-use', slot: null })
   })
 
   it('names the one slot each pack fills when the slots mix two packs', () => {
-    const mixed = {
-      ...settings,
+    const mixed = at({
       pluginAppThemeLight: 'plugin:acme.pair/light',
       pluginAppThemeDark: 'plugin:acme.night/dark'
-    }
+    })
     expect(pluginInUse('acme.pair', mixed, registered)).toEqual({ kind: 'in-use', slot: 'light' })
     expect(pluginInUse('acme.night', mixed, registered)).toEqual({ kind: 'in-use', slot: 'dark' })
     // Why: the pair's terminal colours still filling both slots don't make its app theme active.
-    const withTerminals = {
+    const withTerminals: Parameters<typeof pluginInUse>[2] = {
       ...registered,
       terminalThemes: (['dark', 'light'] as const).map((mode) => ({
         id: `plugin:acme.pair/term-${mode}`,
@@ -82,18 +83,14 @@ describe('pluginInUse', () => {
           terminalThemeDark: 'plugin:acme.pair/term-dark',
           terminalThemeLight: 'plugin:acme.pair/term-light',
           terminalUseSeparateLightTheme: true
-        },
+        } satisfies GlobalSettings,
         withTerminals
       )
     ).toEqual({ kind: 'in-use', slot: 'light' })
   })
 
   it('is in use for the active icon theme and interface language', () => {
-    const active = {
-      ...settings,
-      pluginIconTheme: 'plugin:acme.icons/blocks',
-      uiLanguage: pack.id
-    }
+    const active = at({ pluginIconTheme: 'plugin:acme.icons/blocks', uiLanguage: pack.id })
     expect(pluginInUse('acme.icons', active, registered)).toEqual({ kind: 'in-use', slot: null })
     expect(pluginInUse('acme.xa', active, registered)).toEqual({ kind: 'in-use', slot: null })
   })

@@ -40,9 +40,17 @@ export function InstalledPluginCarousel({
   if (entries.length === 0) {
     return null
   }
+  // Why by card pitch: a page of whole cards keeps the next one on its snap point.
   const page = (direction: 1 | -1): void => {
     const list = listRef.current
-    list?.scrollBy({ left: direction * list.clientWidth })
+    const [first, second] = list ? Array.from(list.children) : []
+    if (!list || !(first instanceof HTMLElement)) {
+      return
+    }
+    const pitch =
+      second instanceof HTMLElement ? second.offsetLeft - first.offsetLeft : first.offsetWidth
+    const perPage = Math.max(1, Math.round(list.clientWidth / pitch))
+    list.scrollBy({ left: direction * pitch * perPage })
   }
   return (
     <section data-installed-carousel="" aria-labelledby={headingId}>

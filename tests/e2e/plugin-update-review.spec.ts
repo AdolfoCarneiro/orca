@@ -232,9 +232,10 @@ test('confirms card removal and shares single/bulk update review without strandi
         })
       )
     }
-    const notes = page.locator(`[data-plugin-key="stablyai.${PLUGINS[0]}"]`)
+    // Why first: the installed row at the top of All repeats the catalog card.
+    const notes = page.locator(`[data-plugin-key="stablyai.${PLUGINS[0]}"]`).first()
     await notes.getByRole('button', { name: 'More actions for Review Notes', exact: true }).click()
-    await page.getByRole('menuitem', { name: 'Remove', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Remove…', exact: true }).click()
     const confirmation = page.getByRole('dialog', { name: 'Remove Review Notes?' })
     await expect(confirmation).toContainText('Its data is removed too.')
     await screenshot(page, 'card-remove-confirm')
@@ -300,6 +301,7 @@ test('confirms card removal and shares single/bulk update review without strandi
     await page.getByRole('article').getByRole('button', { name: 'Plugins', exact: true }).click()
     await page
       .locator(`[data-plugin-key="stablyai.${PLUGINS[0]}"]`)
+      .first()
       .getByRole('button', { name: 'Review', exact: true })
       .click()
     await expect(page.locator('#plugin-detail-heading')).toHaveText('Review Notes')
@@ -307,6 +309,7 @@ test('confirms card removal and shares single/bulk update review without strandi
     await expect(page.getByRole('article')).toBeHidden()
     await page
       .locator(`[data-plugin-key="stablyai.${PLUGINS[0]}"]`)
+      .first()
       .getByRole('button', { name: 'Review', exact: true })
       .click()
     await page.getByRole('button', { name: 'Keep off', exact: true }).click()

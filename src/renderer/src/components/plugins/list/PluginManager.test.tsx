@@ -240,7 +240,7 @@ describe('PluginManager', () => {
 
   it('shows In use for the active theme slot and Use when it is installed but not active', async () => {
     const theme = {
-      id: 'plugin:local.dusk/dusk',
+      id: 'plugin:local.dusk/dusk' as const,
       pluginKey: 'local.dusk',
       pluginName: 'Dusk',
       label: 'Dusk',
