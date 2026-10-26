@@ -191,7 +191,7 @@ describe('PluginUpdateAllDialog', () => {
     worker.installed!.execution = 'trusted-worker'
     const container = await renderDialog([worker])
     expect(container.textContent).not.toContain('New:')
-    expect(container.querySelector('[data-plugin-update="a"]')?.textContent).toBe('Aa1.0.0 → 1.1.0')
+    expect(container.querySelector('[data-plugin-update="a"]')?.textContent).toBe('a1.0.0 → 1.1.0')
   })
 
   it('expands an update that adds a shortcut even with no new capability', async () => {
@@ -238,7 +238,7 @@ describe('PluginUpdateAllDialog', () => {
     })
     expect(container.querySelector('h2')?.textContent).toBe('Update 2 plugins')
     expect(container.textContent).toContain('New: Store its own encrypted secrets')
-    expect(container.querySelector('[data-plugin-update="b"]')?.textContent).toBe('Bb1.0.0 → 1.1.0')
+    expect(container.querySelector('[data-plugin-update="b"]')?.textContent).toBe('b1.0.0 → 1.1.0')
 
     const first = container.querySelector<HTMLButtonElement>('#plugin-update-a')
     await act(async () => first?.click())

@@ -34,7 +34,6 @@ export function PluginPageHero({
         />
       ) : (
         <PluginCardArt
-          name={entry.name}
           types={pluginArtTypes(entry)}
           shortcut={pluginArtShortcut(entry)}
           fileType={entry.listing?.release?.fileTypes?.[0] ?? null}

@@ -1,7 +1,6 @@
-import { Cpu, File, FileCode, FileJson, FileText, Folder, Image } from 'lucide-react'
+import { Cpu, File, FileCode, FileJson, FileText, Folder, Image, Puzzle } from 'lucide-react'
 import type { PluginCatalogType } from '../../../../../shared/plugins/catalog/plugin-catalog-release'
 import { formatKeybinding } from '../../../../../shared/keybindings/formatting'
-import { pluginMonogram } from './plugin-display-name'
 
 /** Colours a theme plugin paints with, read from its live registration or its catalog entry. */
 export type PluginArtPalette = {
@@ -210,10 +209,9 @@ function LanguageArt(): React.JSX.Element {
 
 /**
  * The 16:10 picture on a plugin's card and page. Until plugins ship images, it is drawn from what
- * the plugin is: its theme colours, a code sample, keycaps. A monogram is the last resort.
+ * the plugin is: its theme colours, a code sample, keycaps. A plugin glyph is the last resort.
  */
 export function PluginCardArt({
-  name,
   types,
   fileType,
   palettes,
@@ -221,7 +219,6 @@ export function PluginCardArt({
   shortcut = null,
   fill = false
 }: {
-  name: string
   types: readonly PluginCatalogType[]
   fileType: string | null
   palettes: readonly PluginArtPalette[]
@@ -249,10 +246,11 @@ export function PluginCardArt({
   } else if (types.includes('app-theme') || types.includes('terminal-theme')) {
     art = <ThemeOutlineArt />
   } else {
+    // Why a glyph, not initials: letters on a blank tile read as an empty listing.
     art = (
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="flex size-16 items-center justify-center rounded-2xl border border-border bg-background text-lg font-semibold tracking-wide text-muted-foreground shadow-xs">
-          {pluginMonogram(name)}
+        <span className="flex size-16 items-center justify-center rounded-2xl border border-border bg-background text-muted-foreground shadow-xs">
+          <Puzzle className="size-7" />
         </span>
       </div>
     )

@@ -35,10 +35,33 @@ const TYPE_ORDER: readonly PluginCatalogType[] = [
   'interface-language'
 ]
 
+// Why: format 1 catalogs list no types, only categories; art still shows what the plugin is.
+const ART_TYPE_BY_CATEGORY: Readonly<Record<string, PluginCatalogType>> = {
+  themes: 'app-theme',
+  'app-themes': 'app-theme',
+  'terminal-themes': 'terminal-theme',
+  icons: 'icon-theme',
+  'icon-themes': 'icon-theme',
+  syntax: 'syntax',
+  syntaxes: 'syntax',
+  languages: 'syntax',
+  'language-packs': 'interface-language',
+  localization: 'interface-language',
+  keybindings: 'instructions',
+  commands: 'instructions',
+  'vm-recipes': 'instructions',
+  recipes: 'instructions',
+  machines: 'instructions',
+  panels: 'panel'
+}
+
 /** What a plugin is, from its catalog types plus what an installed copy shows it carries. */
 export function pluginArtTypes(entry: PluginListEntry): PluginCatalogType[] {
   const installed = entry.installed
-  const types: PluginCatalogType[] = [...entry.types]
+  const types: PluginCatalogType[] =
+    entry.types.length > 0
+      ? [...entry.types]
+      : entry.categories.flatMap((category) => ART_TYPE_BY_CATEGORY[category] ?? [])
   if (installed?.hasWorker) {
     types.push('worker')
   }

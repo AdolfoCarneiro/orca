@@ -8,7 +8,7 @@ import {
 import type { PluginContributionPoint } from '../../../../../shared/plugins/plugin-contribution-points'
 import { translate } from '@/i18n/i18n'
 import type { PluginListEntry } from '../list/plugin-list-entries'
-import { PluginCatalogAvatar } from '../list/PluginCatalogAvatar'
+import { PluginRowArt } from '../list/PluginRowArt'
 import { Button } from '../../ui/button'
 import { Checkbox } from '../../ui/checkbox'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible'
@@ -252,7 +252,7 @@ export function CandidateRow({
   return (
     <li data-plugin-update={entry.pluginKey} className="py-2">
       <div className="flex items-center gap-3">
-        <PluginCatalogAvatar name={entry.name} className="size-7 rounded-md text-3xs" />
+        <PluginRowArt entry={entry} />
         <label htmlFor={checkboxId} className="min-w-0 flex-1 truncate text-sm font-medium">
           {entry.name}
           <span className="ml-1.5 text-xs font-normal text-muted-foreground">

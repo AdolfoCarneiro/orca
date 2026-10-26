@@ -99,11 +99,11 @@ export function InstalledPluginCarousel({
           </>
         )}
       </div>
-      {/* Why the cards' widths: the row matches the catalog grid below it, column for column. */}
+      {/* Why the cards' widths: the row matches the catalog grid below it, column for column. Why no scrollbar: the arrows page it; wheel, trackpad and focus still scroll. */}
       <ul
         ref={listRef}
         onScroll={measure}
-        className="flex snap-x snap-mandatory scroll-px-0.5 gap-4 overflow-x-auto p-0.5 pb-2 scrollbar-sleek motion-safe:scroll-smooth *:shrink-0 *:basis-full *:snap-start @min-[460px]/plugin-catalog:*:basis-[calc((100%-1rem)/2)] @min-[720px]/plugin-catalog:*:basis-[calc((100%-2rem)/3)]"
+        className="flex snap-x snap-mandatory scroll-px-0.5 gap-4 overflow-x-auto p-0.5 scrollbar-none motion-safe:scroll-smooth *:shrink-0 *:basis-full *:snap-start @min-[460px]/plugin-catalog:*:basis-[calc((100%-1rem)/2)] @min-[720px]/plugin-catalog:*:basis-[calc((100%-2rem)/3)]"
       >
         {entries.map((entry) => (
           <CatalogCard key={entry.pluginKey} entry={entry} handlers={handlers} />
