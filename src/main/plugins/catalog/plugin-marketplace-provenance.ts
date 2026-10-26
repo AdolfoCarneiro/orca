@@ -17,8 +17,17 @@ export function validateMarketplaceProvenance(
   ) {
     throw new Error('official marketplace metadata has an unexpected owner')
   }
+  const official = isOfficialMarketplaceGitSource(source.source.url)
   for (const entry of fetched.marketplace.plugins) {
-    if (isReservedPluginIdentity(entry.id) && !isOfficialOrganizationGitSource(entry.source.url)) {
+    if (!isReservedPluginIdentity(entry.id)) {
+      continue
+    }
+    if (!official) {
+      throw new Error(
+        `${entry.id} uses a name reserved for official Orca plugins; only Orca's official catalog may list it`
+      )
+    }
+    if (!isOfficialOrganizationGitSource(entry.source.url)) {
       throw new Error(
         `reserved plugin identity ${entry.id} must resolve to the stablyai organization`
       )

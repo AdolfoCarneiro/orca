@@ -20,6 +20,7 @@ const { hashPluginTree } = loadPluginSchemaModule('../../main/plugins/plugin-con
 const { gitExecFileAsync } = loadPluginSchemaModule('../../main/git/runner.ts')
 const { formatPluginSchemaIssues } = loadPluginSchemaModule('manifest/plugin-schema-issues.ts')
 const { isPluginRepositoryPath } = loadPluginSchemaModule('plugin-path-safety.ts')
+const { parseGitRepositoryIdentity } = loadPluginSchemaModule('catalog/plugin-marketplace.ts')
 const ARTIFACT_PARSERS = {
   themes: loadPluginSchemaModule('artifacts/plugin-theme-artifact.ts').parsePluginAppThemeArtifact,
   terminalThemes: loadPluginSchemaModule('artifacts/plugin-terminal-theme-artifact.ts')
@@ -111,6 +112,16 @@ async function catalogReleaseEntry(pluginDir) {
     rmSync(tree, { recursive: true, force: true })
   }
 }
+// Why a warning: only the official and community catalogs require it; a private catalog may not.
+async function publisherOwnerWarning(pluginDir) {
+  const remote = await git(pluginDir, ['remote', 'get-url', 'origin']).catch(() => '')
+  const owner = parseGitRepositoryIdentity(remote)?.owner
+  const { publisher } = JSON.parse(readFileSync(path.join(pluginDir, 'orca-plugin.json'), 'utf8'))
+  return owner && owner.toLowerCase() !== publisher.toLowerCase()
+    ? `warning: the official and community catalogs require publisher to match the repository owner "${owner}" (publisher is "${publisher}")`
+    : null
+}
+
 const targets = process.argv.slice(2)
 if (targets.length === 0) {
   console.error(
@@ -177,6 +188,10 @@ for (const target of targets) {
     }
     if (note) {
       console.log(`${target}: ${note}`)
+    }
+    const ownerWarning = await publisherOwnerWarning(target)
+    if (ownerWarning) {
+      console.warn(`${target}: ${ownerWarning}`)
     }
   }
 }

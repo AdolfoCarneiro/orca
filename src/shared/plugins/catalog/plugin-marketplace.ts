@@ -4,6 +4,7 @@ import { isQualifiedPluginKey } from '../manifest/plugin-manifest'
 import { pluginCatalogReleaseSchema } from './plugin-catalog-release'
 import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from '../manifest/plugin-schema-field-docs'
 import { isPluginRepositoryPath, PLUGIN_REPOSITORY_PATH_RE } from '../plugin-path-safety'
+import { isReservedPluginPublisher } from './plugin-publisher-reservation'
 
 const NEXT = PLUGIN_MANIFEST_V2_SINCE
 
@@ -244,22 +245,11 @@ export function splitQualifiedPluginKey(pluginKey: string): {
   }
 }
 
-// Why now: reserving a publisher after adoption would break existing installs under it.
-const RESERVED_PLUGIN_PUBLISHERS: readonly string[] = [
-  OFFICIAL_PLUGIN_PUBLISHER,
-  'orca',
-  'official',
-  'anthropic',
-  'openai',
-  'github'
-]
-
 export function isReservedPluginIdentity(pluginKey: string): boolean {
   const identity = splitQualifiedPluginKey(pluginKey)
   return (
     identity !== null &&
-    (RESERVED_PLUGIN_PUBLISHERS.includes(identity.publisher) ||
-      identity.publisher.startsWith(OFFICIAL_PLUGIN_ID_PREFIX) ||
+    (isReservedPluginPublisher(identity.publisher) ||
       identity.id.startsWith(OFFICIAL_PLUGIN_ID_PREFIX))
   )
 }
@@ -315,6 +305,12 @@ function repositoryIdentity(host: string, repositoryPath: string): GitRepository
   }
   const path = [...segments.slice(0, -1), repository].join('/').toLowerCase()
   return { host: host.toLowerCase(), owner: segments[0]!, repository, path }
+}
+
+/** `host/owner` of a repository, with every GitLab subgroup (`gitlab.com/acme/tools`). */
+export function gitRepositoryOwnerLabel(url: string): string | null {
+  const identity = parseGitRepositoryIdentity(url)
+  return identity ? [identity.host, ...identity.path.split('/').slice(0, -1)].join('/') : null
 }
 
 /** Same repository regardless of URL spelling (https vs scp, `.git`, case). */

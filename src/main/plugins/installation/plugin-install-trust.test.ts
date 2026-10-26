@@ -39,25 +39,45 @@ afterEach(async () => {
 })
 
 describe('plugin install trust', () => {
-  it.each<[PluginInstallSource, string | null]>([
+  const official = 'https://github.com/stablyai/orca-plugins.git'
+  const marketplace = (url: string, plugin: string): PluginInstallSource => ({
+    kind: 'marketplace',
+    marketplace: { url, ref: 'main', resolvedCommit: 'a'.repeat(40) },
+    plugin: { url: plugin, ref: 'main' }
+  })
+  const refused = (key: string): string =>
+    `${key} uses a name reserved for official Orca plugins; Orca installs it only from its official catalog`
+
+  it.each<[string, PluginInstallSource, boolean]>([
     [
-      {
-        kind: 'git',
-        url: 'https://github.com/attacker/orca-secrets.git',
-        ref: 'main'
-      },
-      'reserved plugin identity community.orca-secrets must resolve to the stablyai organization'
+      'stablyai.orca-secrets',
+      marketplace(official, 'git@github.com:stablyai/orca-secrets.git'),
+      true
+    ],
+    ['openai.tools', marketplace(official, 'https://github.com/stablyai/tools.git'), true],
+    ['stablyai.orca-secrets', marketplace(official, 'https://github.com/attacker/x.git'), false],
+    [
+      'stablyai.orca-secrets',
+      marketplace(
+        'https://github.com/acme/plugins.git',
+        'https://github.com/stablyai/orca-secrets.git'
+      ),
+      false
     ],
     [
-      {
-        kind: 'git',
-        url: 'git@github.com:stablyai/orca-secrets.git',
-        ref: 'main'
-      },
-      null
-    ]
-  ])('enforces reserved source organization', (source, expected) => {
-    expect(pluginInstallTrustError('community.orca-secrets', source)).toBe(expected)
+      'stablyai.tools',
+      { kind: 'git', url: 'https://github.com/stablyai/tools.git', ref: '' },
+      false
+    ],
+    [
+      'orca-team.tools',
+      marketplace('https://gitlab.com/acme/plugins.git', 'https://gitlab.com/acme/t.git'),
+      false
+    ],
+    ['github.tools', { kind: 'git', url: 'https://github.com/acme/t.git', ref: '' }, false],
+    ['acme.tools', { kind: 'git', url: 'https://github.com/acme/t.git', ref: '' }, true]
+  ])('accepts reserved %s only from the official catalog', (key, source, accepted) => {
+    expect(pluginInstallTrustError(key, source)).toBe(accepted ? null : refused(key))
   })
 
   it('rejects locally installed reserved identities before publication', async () => {
@@ -69,7 +89,7 @@ describe('plugin install trust', () => {
       installPluginFromLocalPath({ pluginsDir, sourcePath, hostVersion: '1.4.0' })
     ).resolves.toEqual({
       ok: false,
-      error: 'reserved plugin identity stablyai.orca-skills cannot be installed from a local path'
+      error: refused('stablyai.orca-skills')
     })
     await expect(readPluginLockfile(pluginsDir)).resolves.toEqual({ version: 1, plugins: {} })
   })

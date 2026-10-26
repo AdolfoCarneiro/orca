@@ -8,6 +8,7 @@ import {
   isOfficialOrganizationGitSource,
   isOfficialPluginIdentity,
   isReservedPluginIdentity,
+  gitRepositoryOwnerLabel,
   isSameGitRepository,
   parseGitRepositoryIdentity,
   pluginMarketplaceSchema,
@@ -134,7 +135,9 @@ describe('marketplace provenance contracts', () => {
     ['orca-labs.skills', true, false],
     ['openai.skills', true, false],
     ['github.skills', true, false],
-    ['orcas.skills', false, false],
+    ['orcas.skills', true, false],
+    ['orcalike.skills', true, false],
+    ['acme.skills', false, false],
     ['invalid', false, false]
   ])('classifies %s', (pluginKey, reserved, official) => {
     expect(isReservedPluginIdentity(pluginKey)).toBe(reserved)
@@ -178,6 +181,17 @@ describe('marketplace provenance contracts', () => {
       )
     ).toBe(true)
     expect(isOfficialMarketplaceGitSource('git@github.com:stablyai/plugins.git')).toBe(false)
+  })
+
+  it('labels the verified owner with every GitLab subgroup', () => {
+    expect(gitRepositoryOwnerLabel('https://gitlab.com/Team/SubGroup/plugins.git')).toBe(
+      'gitlab.com/team/subgroup'
+    )
+    expect(gitRepositoryOwnerLabel('git@git.example.com:platform/tools/plugins.git')).toBe(
+      'git.example.com/platform/tools'
+    )
+    expect(gitRepositoryOwnerLabel('https://github.com/acme/plugins')).toBe('github.com/acme')
+    expect(gitRepositoryOwnerLabel('not a url')).toBeNull()
   })
 
   it('parses nested repository paths without confusing the repository name', () => {

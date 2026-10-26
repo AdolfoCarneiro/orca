@@ -16,6 +16,11 @@ completion, or from one of:
 | `examples/plugins/orca-gleam-syntax` | `data`           | A syntax, no code                    |
 | `examples/plugins/hello-orca`        | `trusted-worker` | A panel, a worker command and events |
 
+Set `publisher` to the GitHub or GitLab user or organization that owns your repository (`acme`
+for `github.com/acme/gleam-syntax`), or the official and community catalogs reject the listing.
+When copying the Gleam example, also drop its `stablyai` publisher and `orca-` id prefix: both are
+reserved for Orca's own plugins.
+
 Pick the lowest `execution` profile that covers what you contribute; it decides what the user is
 asked to approve:
 
@@ -54,7 +59,8 @@ pnpm validate:plugin path/to/plugin
 
 This runs the manifest checks Orca runs, strictly: unknown keys, limits, contributions beyond the
 execution profile, and an `engines.orca` too low for the fields used. On a catalog it also
-checks that listed images exist and fit. Run it in CI for the plugin and catalog repositories.
+checks that listed images exist and fit. In a Git repository it warns when `publisher` is not the
+owner of the `origin` remote. Run it in CI for the plugin and catalog repositories.
 
 ## 4. Publish to a catalog
 

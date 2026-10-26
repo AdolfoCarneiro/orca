@@ -81,7 +81,7 @@ const pluginManifestFields = {
   // Why both ids: bare-id global uniqueness is unverifiable without a registry.
   publisher: pluginIdSchema.meta(
     pluginFieldDoc(
-      'Publisher slug, kebab-case, usually your GitHub user or organization. The reserved names `constructor` and `prototype` are refused. The publishers `stablyai`, `orca`, `orca-*`, `official`, `anthropic`, `openai` and `github`, and ids starting `orca-`, install only from the stablyai organization.',
+      "Publisher slug, kebab-case. Must be the GitHub or GitLab user or organization that owns the repository (`acme` for `github.com/acme/gleam-syntax`), or the official and community catalogs reject the listing. The reserved names `constructor` and `prototype` are refused. The publishers `stablyai`, `official`, `anthropic`, `openai`, `github` and any starting `orca` (any case), and ids starting `orca-`, install only from Orca's official catalog.",
       V1,
       ['acme']
     )

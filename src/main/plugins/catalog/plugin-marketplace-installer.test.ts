@@ -351,6 +351,30 @@ describe('PluginMarketplaceInstaller', () => {
     })
   })
 
+  it('keeps an install pinned to its catalog when a second catalog lists the same id', async () => {
+    const { root, marketplace, installer, sourceId } = await setup()
+    await installer.install(await installer.preview(sourceId, 'community.notes'))
+    const mirror = await marketplace.addSource({
+      kind: 'git',
+      url: 'https://gitlab.com/mirror/group/plugins.git',
+      ref: 'main'
+    })
+    git.commit = 'b'.repeat(40)
+    git.version = '2.0.0'
+
+    const switched = await installer.install(await installer.preview(mirror.id, 'community.notes'))
+
+    expect(switched).toMatchObject({ ok: false, error: expect.stringContaining('remove it first') })
+    const lock = await readPluginLockfile(join(root, 'plugins'))
+    expect(lock.plugins['community.notes']).toMatchObject({
+      version: '1.0.0',
+      source: { marketplace: { url: 'https://github.com/community/plugins.git' } }
+    })
+    await expect(installer.previewInstalledUpdate('community.notes')).resolves.toMatchObject({
+      marketplaceSourceId: sourceId
+    })
+  })
+
   it('lets a Remove that starts during an automatic update win', async () => {
     const { root, installer, sourceId } = await setup()
     await installer.install(await installer.preview(sourceId, 'community.notes'))

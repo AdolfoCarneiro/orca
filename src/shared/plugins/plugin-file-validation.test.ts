@@ -48,6 +48,21 @@ describe('validatePluginFile', () => {
     ])
   })
 
+  it('refuses publishers that are or imitate a reserved name', () => {
+    expect(
+      validatePluginFile('orca-plugin.json', v2ManifestFixture({ publisher: 'orca-team' }))
+    ).toEqual(['publisher: "orca-team" is reserved for official Orca plugins; use your own name'])
+    expect(
+      validatePluginFile('orca-plugin.json', v2ManifestFixture({ publisher: 'stablyai' }))
+    ).toEqual([])
+    expect(
+      validatePluginFile(
+        'orca-catalog.json',
+        catalogFixture([catalogEntryFixture({ id: 'openai.x' })])
+      )
+    ).toEqual([expect.stringContaining('plugins[0].id: publisher "openai" is reserved')])
+  })
+
   it('refuses a newer catalog format', () => {
     expect(
       validatePluginFile('orca-catalog.json', { ...catalogFixture([]), catalogVersion: 3 })

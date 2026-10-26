@@ -1,5 +1,6 @@
 import type { PluginInstallSource } from '../../../shared/plugins/plugin-install-lockfile'
 import {
+  isOfficialMarketplaceGitSource,
   isOfficialOrganizationGitSource,
   isOfficialPluginIdentity,
   isReservedPluginIdentity
@@ -17,11 +18,11 @@ export function pluginInstallTrustError(
   if (!isReservedPluginIdentity(pluginKey)) {
     return null
   }
-  if (source.kind === 'local-path') {
-    return `reserved plugin identity ${pluginKey} cannot be installed from a local path`
-  }
-  const url = source.kind === 'git' ? source.url : source.plugin.url
-  return isOfficialOrganizationGitSource(url)
+  // Why the catalog and not the repository: a direct Git URL or another catalog could point
+  // at any stablyai repository, including one never meant to ship.
+  return source.kind === 'marketplace' &&
+    isOfficialMarketplaceGitSource(source.marketplace.url) &&
+    isOfficialOrganizationGitSource(source.plugin.url)
     ? null
-    : `reserved plugin identity ${pluginKey} must resolve to the stablyai organization`
+    : `${pluginKey} uses a name reserved for official Orca plugins; Orca installs it only from its official catalog`
 }

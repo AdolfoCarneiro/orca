@@ -142,9 +142,21 @@ describe('PluginMarketplaceService', () => {
     })
 
     await expect(service.addSource(source())).rejects.toThrow(
-      'reserved plugin identity community.orca-secrets'
+      "community.orca-secrets uses a name reserved for official Orca plugins; only Orca's official catalog may list it"
     )
     await expect(service.listSources()).resolves.toEqual([])
+  })
+
+  it('refuses a third-party catalog that relists an official plugin', async () => {
+    const service = new PluginMarketplaceService({
+      pluginsDataDir: await tempRoot(),
+      fetcher: async () =>
+        fetched(
+          marketplace('Mirror', 'stablyai.orca-notes', 'https://github.com/stablyai/orca-notes.git')
+        )
+    })
+
+    await expect(service.addSource(source())).rejects.toThrow('reserved for official Orca plugins')
   })
 
   it('derives the Official badge only from the canonical marketplace and source organization', async () => {

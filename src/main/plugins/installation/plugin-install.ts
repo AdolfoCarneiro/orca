@@ -161,13 +161,19 @@ export async function installPluginFromMarketplace(input: {
     return { ok: false, error: 'invalid previewed plugin commit' }
   }
   return serializePluginMutation(input.pluginsDir, async () => {
-    if (input.requireInstalled) {
-      const entry = (await readPluginLockfile(input.pluginsDir)).plugins[input.expectedPluginKey]
-      if (
-        entry?.source.kind !== 'marketplace' ||
-        entry.source.marketplace.url !== input.marketplace.url
-      ) {
-        return { ok: false, error: 'plugin was removed before its update installed' }
+    const entry = (await readPluginLockfile(input.pluginsDir)).plugins[input.expectedPluginKey]
+    const installedFrom = entry?.source.kind === 'marketplace' ? entry.source.marketplace : null
+    if (input.requireInstalled && installedFrom?.url !== input.marketplace.url) {
+      return { ok: false, error: 'plugin was removed before its update installed' }
+    }
+    // Why: a second catalog listing the same id must never take over an install silently.
+    if (
+      installedFrom &&
+      (installedFrom.url !== input.marketplace.url || installedFrom.ref !== input.marketplace.ref)
+    ) {
+      return {
+        ok: false,
+        error: `${input.expectedPluginKey} is installed from ${installedFrom.url}; remove it first to install it from another catalog`
       }
     }
     const stagingDir = await mkdtemp(join(tmpdir(), 'orca-plugin-marketplace-install-'))

@@ -7,7 +7,12 @@ import {
 } from './catalog/plugin-catalog'
 import { PLUGIN_MANIFEST_FILENAME, parsePluginManifest } from './manifest/plugin-manifest'
 import { pluginCatalogReleaseSchema } from './catalog/plugin-catalog-release'
-import { PLUGIN_MARKETPLACE_ENTRY_LIMIT } from './catalog/plugin-marketplace'
+import {
+  OFFICIAL_PLUGIN_PUBLISHER,
+  PLUGIN_MARKETPLACE_ENTRY_LIMIT,
+  splitQualifiedPluginKey
+} from './catalog/plugin-marketplace'
+import { isReservedPluginPublisher } from './catalog/plugin-publisher-reservation'
 import { readPluginImageHeader } from './plugin-image-format'
 import {
   pluginImageRuleError,
@@ -31,7 +36,11 @@ export function validatePluginFile(
 ): string[] {
   if (fileName === PLUGIN_MANIFEST_FILENAME) {
     const parsed = parsePluginManifest(raw)
-    return parsed.ok ? [] : [parsed.error]
+    if (!parsed.ok) {
+      return [parsed.error]
+    }
+    const reserved = reservedPublisherError(parsed.manifest.publisher)
+    return reserved ? [`publisher: ${reserved}`] : []
   }
   if (fileName === PLUGIN_CATALOG_FILENAME) {
     return validatePluginCatalog(raw, readCatalogFile)
@@ -39,6 +48,13 @@ export function validatePluginFile(
   return [
     `unknown plugin file ${fileName}; expected ${PLUGIN_MANIFEST_FILENAME} or ${PLUGIN_CATALOG_FILENAME}`
   ]
+}
+
+// Why stablyai passes: install alone knows the catalog, and only the official one may use it.
+function reservedPublisherError(publisher: string): string | null {
+  return isReservedPluginPublisher(publisher) && publisher !== OFFICIAL_PLUGIN_PUBLISHER
+    ? `"${publisher}" is reserved for official Orca plugins; use your own name`
+    : null
 }
 
 function validatePluginCatalog(raw: unknown, readCatalogFile?: PluginCatalogFileReader): string[] {
@@ -70,6 +86,12 @@ function validatePluginCatalog(raw: unknown, readCatalogFile?: PluginCatalogFile
       errors.push(`${at}.id: duplicate plugin id ${result.data.id}`)
     }
     seen.add(result.data.id)
+    const reserved = reservedPublisherError(
+      splitQualifiedPluginKey(result.data.id)?.publisher ?? ''
+    )
+    if (reserved) {
+      errors.push(`${at}.id: publisher ${reserved}`)
+    }
     // Why compare counts: the entry schema silently drops what it cannot read.
     const rawEntry = typeof entry === 'object' && entry !== null ? entry : {}
     const rawReleases =
