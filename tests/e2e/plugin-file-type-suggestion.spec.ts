@@ -68,6 +68,7 @@ async function createCatalogFixture(root: string) {
 
 // oxlint-disable-next-line no-empty-pattern -- Playwright passes fixtures before testInfo.
 test('suggests a catalog plugin for an unknown file and never installs it', async ({}, testInfo) => {
+  // Why: one Electron launch plus a Git catalog fetch and a plugin page; slower than the 30s default on CI.
   test.setTimeout(180_000)
   const root = await mkdtemp(join(tmpdir(), 'orca-file-type-suggestion-e2e-'))
   const fixture = await createCatalogFixture(root)
