@@ -70,6 +70,7 @@ app.whenReady().then(async () => {
 // without will-frame-navigate, and Electron 43 has no per-frame WebRTC switch. When a fix
 // lands, flip the nested-frame assertion to expect no connection.
 describe('plugin panel WebRTC under Electron', () => {
+  // Why the 60s timeout: a real Electron window negotiates WebRTC against two local TURN relays.
   it('blocks the panel window but not a nested srcdoc frame', async () => {
     const root = mkdtempSync(join(tmpdir(), 'orca-panel-webrtc-'))
     roots.push(root)
