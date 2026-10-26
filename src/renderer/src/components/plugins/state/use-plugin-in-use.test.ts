@@ -62,6 +62,30 @@ describe('pluginInUse', () => {
     }
     expect(pluginInUse('acme.pair', mixed, registered)).toEqual({ kind: 'in-use', slot: 'light' })
     expect(pluginInUse('acme.night', mixed, registered)).toEqual({ kind: 'in-use', slot: 'dark' })
+    // Why: the pair's terminal colours still filling both slots don't make its app theme active.
+    const withTerminals = {
+      ...registered,
+      terminalThemes: (['dark', 'light'] as const).map((mode) => ({
+        id: `plugin:acme.pair/term-${mode}`,
+        pluginKey: 'acme.pair',
+        pluginName: 'acme.pair',
+        label: mode,
+        mode,
+        terminal: {}
+      }))
+    }
+    expect(
+      pluginInUse(
+        'acme.pair',
+        {
+          ...mixed,
+          terminalThemeDark: 'plugin:acme.pair/term-dark',
+          terminalThemeLight: 'plugin:acme.pair/term-light',
+          terminalUseSeparateLightTheme: true
+        },
+        withTerminals
+      )
+    ).toEqual({ kind: 'in-use', slot: 'light' })
   })
 
   it('is in use for the active icon theme and interface language', () => {

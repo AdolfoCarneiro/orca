@@ -129,7 +129,7 @@ test('runs hello-orca panel, command, and event behind visible consent', async (
       .getByRole('button', { name: 'Plugins', exact: true })
       .click()
     await orcaPage.getByRole('tab', { name: /^Installed/ }).click()
-    await expect(row).toContainText('On')
+    await expect(row).toContainText('Installed')
 
     const commandResults = await orcaPage.evaluate(async (pluginKey) => {
       const first = await window.api.plugins.invokeCommand({

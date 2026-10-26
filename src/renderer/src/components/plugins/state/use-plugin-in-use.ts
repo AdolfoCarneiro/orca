@@ -53,7 +53,8 @@ export function pluginInUse(
       slots.add(theme.base)
     }
   }
-  for (const theme of terminals) {
+  // Why app themes first: they name the slot; a pack's terminal colours just follow it.
+  for (const theme of apps.length > 0 ? [] : terminals) {
     if (settings.terminalThemeDark === theme.id) {
       slots.add('dark')
     }
