@@ -20,7 +20,7 @@ import {
   type ExecutionHostId
 } from '../../../../shared/execution-host'
 import { repoMatchesHostIdentity } from '@/store/slices/repo-host-identity'
-import type { RepoUpdate } from '@/store/repos/repo-state'
+import type { RepoSlice } from '@/store/repos/repo-state'
 import type { Repo } from '../../../../shared/repo-types'
 import {
   selectDetectedWorktreesByRepo,
@@ -103,7 +103,10 @@ function findProjectRepo(repoId: string, executionHostId?: ExecutionHostId): Rep
 }
 
 // Writes go to the row the update was derived from, so merged path lists never cross hosts.
-function updateProjectRepo(repo: Repo, updates: RepoUpdate): Promise<boolean> {
+function updateProjectRepo(
+  repo: Repo,
+  updates: Parameters<RepoSlice['updateRepo']>[1]
+): Promise<boolean> {
   return useAppStore
     .getState()
     .updateRepo(repo.id, updates, { hostId: getRepoExecutionHostId(repo) })
@@ -132,7 +135,9 @@ async function resolveInitialCheckout(
     anchorPaths
   )
   if (!target) {
-    return { worktree: null, reason: 'no_default_checkout' }
+    // The merged detection's authority may belong to another host after this owner's scan failed.
+    const worktree = getProjectInitialCheckout(loaded, anchorPaths)
+    return { worktree, reason: worktree ? 'loaded_default_checkout' : 'no_default_checkout' }
   }
   const loadedTarget = loaded.find((worktree) => worktree.id === target.id)
   if (loadedTarget) {
@@ -143,12 +148,12 @@ async function resolveInitialCheckout(
     const repo = findProjectRepo(repoId, executionHostId)
     const updated =
       repo !== null &&
-      (await updateProjectRepo(repo, {
+      (await updateProjectRepo(repo, (latestRepo) => ({
         importedExternalWorktreePaths: mergeExternalWorktreeInboxPaths(
-          repo.importedExternalWorktreePaths,
+          latestRepo.importedExternalWorktreePaths,
           [target.path]
         )
-      }))
+      })))
     if (!updated) {
       return { worktree: null, reason: 'show_detected_default_failed' }
     }

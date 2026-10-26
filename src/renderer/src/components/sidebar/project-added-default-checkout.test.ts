@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultOnboardingState } from '../../../../shared/onboarding-defaults'
+import { getRepoExecutionHostId } from '../../../../shared/execution-host'
+import { mergeDetectedWorktreesForHost } from '@/store/slices/worktrees/listing/detected-worktree-host-merge'
+import type { RepoSlice } from '@/store/repos/repo-state'
 import type { Repo } from '../../../../shared/repo-types'
 import type {
   DetectedWorktree,
@@ -146,7 +149,29 @@ describe('finishProjectAddWithDefaultCheckout', () => {
     mocks.state.repos = []
     mocks.state.worktreesByRepo = {}
     mocks.state.detectedWorktreesByRepo = {}
-    mocks.state.updateRepo.mockResolvedValue(true)
+    mocks.state.updateRepo.mockImplementation(
+      async (
+        repoId: string,
+        updates: Parameters<RepoSlice['updateRepo']>[1],
+        options?: Parameters<RepoSlice['updateRepo']>[2]
+      ) => {
+        mocks.state.repos = mocks.state.repos.map((repo) => {
+          if (repo.id !== repoId || getRepoExecutionHostId(repo) !== options?.hostId) {
+            return repo
+          }
+          const applied = typeof updates === 'function' ? updates(repo) : updates
+          return {
+            ...repo,
+            importedExternalWorktreePaths:
+              applied.importedExternalWorktreePaths ?? repo.importedExternalWorktreePaths,
+            externalWorktreeVisibilityPromptDismissedAt:
+              applied.externalWorktreeVisibilityPromptDismissedAt ??
+              repo.externalWorktreeVisibilityPromptDismissedAt
+          }
+        })
+        return true
+      }
+    )
     mocks.state.fetchWorktrees.mockResolvedValue(true)
     mocks.onboardingGet.mockResolvedValue(getDefaultOnboardingState())
     mocks.onboardingUpdate.mockResolvedValue(getDefaultOnboardingState())
@@ -235,6 +260,42 @@ describe('finishProjectAddWithDefaultCheckout', () => {
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith(runtimeMain.id, {
       executionHostId: 'runtime:env-1'
     })
+  })
+
+  it('opens the loaded owner checkout after another host makes merged detection authoritative', async () => {
+    const localMain = makeWorktree({ hostId: 'local' })
+    const sshMain = makeWorktree({ hostId: 'ssh:box', path: '/ssh/repo' })
+    const failedLocal = mergeDetectedWorktreesForHost(
+      makeDetectedLinkedWorktrees(localMain),
+      { repoId: 'repo-1', authoritative: false, source: 'git', worktrees: [] },
+      'local'
+    )
+    mocks.state.detectedWorktreesByRepo = {
+      'repo-1': mergeDetectedWorktreesForHost(
+        failedLocal,
+        {
+          repoId: 'repo-1',
+          authoritative: true,
+          source: 'git',
+          worktrees: [{ ...sshMain, ownership: 'external', selectedCheckout: true, visible: true }]
+        },
+        'ssh:box'
+      )
+    }
+    mocks.state.repos = [makeRepo(), makeRepo({ executionHostId: 'ssh:box', path: '/ssh/repo' })]
+    mocks.state.worktreesByRepo = { 'repo-1': [localMain] }
+
+    await openProjectDefaultCheckout({
+      repoId: 'repo-1',
+      source: 'local_folder_picker',
+      executionHostId: 'local',
+      setHideDefaultBranchWorkspace: vi.fn()
+    })
+
+    expect(mocks.activateAndRevealWorktree).toHaveBeenCalledExactlyOnceWith(localMain.id, {
+      executionHostId: 'local'
+    })
+    expect(mocks.state.updateRepo).not.toHaveBeenCalled()
   })
 
   it('activates a runtime-owned checkout even when its physical host is private SSH', async () => {
@@ -330,11 +391,13 @@ describe('finishProjectAddWithDefaultCheckout', () => {
       setHideDefaultBranchWorkspace: vi.fn()
     })
 
-    expect(mocks.state.updateRepo).toHaveBeenCalledExactlyOnceWith(
-      'repo-1',
-      { importedExternalWorktreePaths: ['/already-imported', '/repo'] },
-      { hostId: 'local' }
-    )
+    expect(mocks.state.updateRepo).toHaveBeenCalledExactlyOnceWith('repo-1', expect.any(Function), {
+      hostId: 'local'
+    })
+    expect(mocks.state.repos[0]?.importedExternalWorktreePaths).toEqual([
+      '/already-imported',
+      '/repo'
+    ])
     expect(mocks.state.fetchWorktrees).toHaveBeenCalledWith('repo-1', {
       requireAuthoritative: true
     })
@@ -384,11 +447,13 @@ describe('finishProjectAddWithDefaultCheckout', () => {
       setHideDefaultBranchWorkspace: vi.fn()
     })
 
-    expect(mocks.state.updateRepo).toHaveBeenCalledExactlyOnceWith(
-      'repo-1',
-      { importedExternalWorktreePaths: ['/ssh-only', '/repo'] },
-      { hostId: 'ssh:box' }
-    )
+    expect(mocks.state.updateRepo).toHaveBeenCalledExactlyOnceWith('repo-1', expect.any(Function), {
+      hostId: 'ssh:box'
+    })
+    expect(mocks.state.repos.map((repo) => repo.importedExternalWorktreePaths)).toEqual([
+      ['/local-only'],
+      ['/ssh-only', '/repo']
+    ])
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith(sshCheckout.id, {
       executionHostId: 'ssh:box'
     })
@@ -607,11 +672,10 @@ describe('finishProjectAddWithDefaultCheckout', () => {
       setHideDefaultBranchWorkspace: vi.fn()
     })
 
-    expect(mocks.state.updateRepo).toHaveBeenCalledExactlyOnceWith(
-      'repo-1',
-      { importedExternalWorktreePaths: ['/repo-feature'] },
-      { hostId: 'local' }
-    )
+    expect(mocks.state.updateRepo).toHaveBeenCalledExactlyOnceWith('repo-1', expect.any(Function), {
+      hostId: 'local'
+    })
+    expect(mocks.state.repos[0]?.importedExternalWorktreePaths).toEqual(['/repo-feature'])
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith(linked.id)
     expect(mocks.track).toHaveBeenCalledWith('add_repo_default_checkout_handoff', {
       source: 'local_folder_picker',
