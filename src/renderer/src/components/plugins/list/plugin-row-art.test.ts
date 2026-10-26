@@ -18,7 +18,9 @@ function entry(categories: string[], types: PluginListEntry['types'] = []): Plug
     updatable: false,
     autoUpdate: { updatedTo: null, needsReview: false },
     installed: null,
-    listing: null
+    listing: null,
+    verifiedSource: { kind: 'official' },
+    alsoListedBy: []
   }
 }
 
