@@ -31,6 +31,7 @@ import type { useBrowserPageGrabAnnotations } from '../annotate/use-browser-page
 
 export function BrowserPageViewportOverlays({
   markup,
+  isActive,
   browserZoomIndicatorState,
   browserZoomPercent,
   findOpen,
@@ -56,6 +57,7 @@ export function BrowserPageViewportOverlays({
   grabAnnotations
 }: {
   markup: MarkupModeController
+  isActive: boolean
   browserZoomIndicatorState: { ariaHidden: boolean; opacityClassName: string }
   browserZoomPercent: number
   findOpen: boolean
@@ -98,6 +100,7 @@ export function BrowserPageViewportOverlays({
         currentUrl={browserTab.url}
       />
       <BrowserPasswordFillDropdown
+        isActive={isActive}
         browserPageId={browserTab.id}
         containerRef={containerRef}
         webviewRef={webviewRef}
