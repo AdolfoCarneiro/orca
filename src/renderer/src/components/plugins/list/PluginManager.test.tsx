@@ -10,6 +10,9 @@ import type {
 } from '../../../../../preload/api-types'
 import { PLUGIN_GROUP_ROW_CAP, PluginManager } from './PluginManager'
 import { usePluginPageNavigation } from '../state/use-plugin-page-navigation'
+import { getDefaultSettings } from '../../../../../shared/constants'
+import { useAppStore } from '@/store'
+import { usePluginThemeStore } from '@/store/plugin-themes'
 
 vi.mock('../../ui/tooltip', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -172,17 +175,106 @@ afterEach(() => {
 })
 
 describe('PluginManager', () => {
-  it('lists each plugin once, in catalog order, capped with Show more', async () => {
+  it('lists each catalog plugin once, in catalog order, capped with Show more', async () => {
     const container = await render()
-    const rows = Array.from(container.querySelectorAll('[data-plugin-key]')).map((row) =>
-      row.getAttribute('data-plugin-key')
-    )
+    const catalogCards = (): Element[] =>
+      Array.from(container.querySelectorAll('[data-plugin-key]')).filter(
+        (card) => !card.closest('[data-installed-carousel]')
+      )
+    const rows = catalogCards().map((row) => row.getAttribute('data-plugin-key'))
     // Why one grid: an installed catalog plugin keeps its card, so installing never moves it.
     expect(rows.filter((key) => key === 'stablyai.orca-nord-theme')).toHaveLength(1)
     expect(rows).toHaveLength(PLUGIN_GROUP_ROW_CAP)
 
     await act(async () => buttonNamed(container, 'Show 3 more')?.click())
-    expect(container.querySelectorAll('[data-plugin-key]')).toHaveLength(PLUGIN_GROUP_ROW_CAP + 3)
+    expect(catalogCards()).toHaveLength(PLUGIN_GROUP_ROW_CAP + 3)
+  })
+
+  it('leads the All tab with installed plugins as cards, and See all opens Installed', async () => {
+    const local: PluginHostListEntry = {
+      ...installedPlugin,
+      pluginKey: 'local.dev-theme',
+      name: 'Dev Theme',
+      isDev: true,
+      official: false,
+      types: ['app-theme'],
+      source: undefined
+    }
+    const container = await render([installedPlugin, local])
+    const carousel = container.querySelector('[data-installed-carousel]')
+    expect(carousel?.querySelector('h3')?.textContent).toBe('Installed · 2')
+    expect(
+      Array.from(carousel?.querySelectorAll('[data-plugin-key]') ?? []).map((card) =>
+        card.getAttribute('data-plugin-key')
+      )
+    ).toEqual(['stablyai.orca-nord-theme', 'local.dev-theme'])
+    // Why: a dev plugin has no catalog category, so its contributed theme names its kind.
+    expect(carousel?.querySelector('[data-plugin-key="local.dev-theme"]')?.textContent).toContain(
+      'Themes'
+    )
+
+    await act(async () => buttonNamed(container, 'See all')?.click())
+    expect(container.querySelector('[data-installed-carousel]')).toBeNull()
+    expect(container.querySelectorAll('[data-plugin-key]')).toHaveLength(2)
+  })
+
+  it('labels cards by category with an icon, keeping a chip only for full access', async () => {
+    const worker: PluginHostListEntry = {
+      ...installedPlugin,
+      pluginKey: 'local.watcher',
+      name: 'Watcher',
+      execution: 'trusted-worker',
+      hasWorker: true,
+      types: ['worker'],
+      source: undefined
+    }
+    const container = await render([installedPlugin, worker])
+    const nord = container.querySelector('[data-plugin-key="stablyai.orca-nord-theme"]')
+    const watcher = container.querySelector('[data-plugin-key="local.watcher"]')
+    expect(nord?.textContent).toContain('Themes')
+    expect(nord?.querySelector('.lucide-palette')).not.toBeNull()
+    expect(nord?.textContent).not.toContain('Content only')
+    expect(watcher?.textContent).toContain('Commands & panels')
+    expect(watcher?.textContent).toContain('Full access')
+  })
+
+  it('shows In use for the active theme slot and Use when it is installed but not active', async () => {
+    const theme = {
+      id: 'plugin:local.dusk/dusk',
+      pluginKey: 'local.dusk',
+      pluginName: 'Dusk',
+      label: 'Dusk',
+      revision: 'r1',
+      base: 'dark' as const,
+      tokens: {}
+    }
+    const dusk: PluginHostListEntry = {
+      ...installedPlugin,
+      pluginKey: 'local.dusk',
+      name: 'Dusk',
+      types: ['app-theme'],
+      source: undefined
+    }
+    usePluginThemeStore.setState({ entries: [theme], loaded: true })
+    useAppStore.setState({ settings: getDefaultSettings('/tmp') })
+    const container = await render([dusk])
+    const card = (): Element | null => container.querySelector('[data-plugin-key="local.dusk"]')
+    expect(buttonNamed(container, 'Use Dusk')).toBeDefined()
+
+    await act(async () =>
+      useAppStore.setState({
+        settings: { ...getDefaultSettings('/tmp'), pluginAppThemeDark: theme.id }
+      })
+    )
+    expect(card()?.textContent).toContain('In use · Dark')
+    expect(buttonNamed(container, 'Use Dusk')).toBeUndefined()
+    usePluginThemeStore.setState({ entries: [], loaded: false })
+    useAppStore.setState({ settings: null })
+  })
+
+  it('hides the installed row when nothing is installed', async () => {
+    const container = await render([])
+    expect(container.querySelector('[data-installed-carousel]')).toBeNull()
   })
 
   it('offers a newer catalog version as the row action and counts it under Updates', async () => {

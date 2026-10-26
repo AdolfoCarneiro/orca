@@ -398,7 +398,7 @@ describe('PluginManager catalog', () => {
     )
     expect(more).toBeTruthy()
     expect(more?.closest('[data-plugin-row-name]')).toBeNull()
-    await act(async () => button('Remove').click())
+    await act(async () => button('Remove…').click())
 
     expect(onRemoveRequest).toHaveBeenCalledWith(listing.pluginKey)
   })
@@ -406,7 +406,8 @@ describe('PluginManager catalog', () => {
   it('offers Disable for one installed plugin, never the global Turn off wording', async () => {
     const onToggleEnabled = vi.fn()
     await render([installedPlugin(preview.contentHash)], undefined, undefined, onToggleEnabled)
-    expect(buttons('Disable')).toHaveLength(1)
+    // Why two: the installed row and the catalog grid both show the plugin's card.
+    expect(buttons('Disable')).toHaveLength(2)
     expect(buttons('Turn off')).toHaveLength(0)
     expect(buttons('Turn on')).toHaveLength(0)
     await act(async () => button('Disable').click())
@@ -416,7 +417,7 @@ describe('PluginManager catalog', () => {
 
   it('offers Enable for one disabled plugin', async () => {
     await render([{ ...installedPlugin(preview.contentHash), status: 'disabled' }])
-    expect(buttons('Enable')).toHaveLength(1)
+    expect(buttons('Enable')).toHaveLength(2)
     expect(buttons('Disable')).toHaveLength(0)
   })
 
@@ -450,7 +451,7 @@ describe('PluginManager catalog', () => {
       listMarketplacePlugins: vi.fn().mockResolvedValue([{ ...listing, version: '2.0.0' }])
     })
     const { container } = await render([{ ...installedPlugin(), status: 'errored' }])
-    expect(buttons('Restart')).toHaveLength(1)
+    expect(buttons('Restart')).toHaveLength(2)
     expect(buttons('Update 2.0.0')).toHaveLength(0)
     expect(container.querySelector('[data-plugin-row-name]')?.getAttribute('aria-label')).toContain(
       'Stopped'

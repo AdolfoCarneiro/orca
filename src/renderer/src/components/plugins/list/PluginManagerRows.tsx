@@ -1,9 +1,17 @@
-import { ArrowUpCircle, Copy, FileText, Hash, Loader2, RotateCcw, Trash2 } from 'lucide-react'
+import {
+  ArrowUpCircle,
+  Copy,
+  FileText,
+  Hash,
+  Loader2,
+  Power,
+  RotateCcw,
+  Trash2
+} from 'lucide-react'
 import type { PluginHostListEntry } from '../../../../../preload/api-types'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../../ui/button'
 import { DropdownMenuItem, DropdownMenuSeparator } from '../../ui/dropdown-menu'
-import { PluginListRow } from './PluginListRow'
 import type { PluginListEntry } from './plugin-list-entries'
 import { SettingsSwitch } from '../../settings/SettingsFormControls'
 import {
@@ -14,7 +22,6 @@ import {
 import { invalidPluginErrorMessage } from '../presentation/plugin-error-presentation'
 import { usePluginRollbackVersion } from '../state/use-plugin-rollback-version'
 import { copyContentHash, copyPluginId, DetailsItem, MoreButton } from './PluginRowMenu'
-import { PluginChips } from './PluginChips'
 import { StatusWord } from './PluginStatusWord'
 
 export type InstalledRowHandlers = {
@@ -47,13 +54,16 @@ export function installedPluginControls(
     busy,
     canCheckUpdate,
     handlers,
-    inPage = false
+    inPage = false,
+    toggleInMenu = false
   }: {
     busy: boolean
     canCheckUpdate: boolean
     handlers: InstalledRowHandlers
     /** On the plugin's own page, so "Details" would reopen it. */
     inPage?: boolean
+    /** A card has no room for the switch, so Enable and Disable move into its menu. */
+    toggleInMenu?: boolean
   }
 ): InstalledPluginControls {
   const { kind, enabled, statusText, removable, primary, switchable } = installedPluginPresentation(
@@ -197,6 +207,17 @@ export function installedPluginControls(
     ),
     more: (
       <MoreButton name={plugin.name}>
+        {toggleInMenu && kind !== 'review' && kind !== 'invalid' && kind !== 'blocked' ? (
+          <DropdownMenuItem
+            disabled={!switchable}
+            onSelect={() => handlers.onToggleEnabled(plugin.pluginKey)}
+          >
+            <Power />
+            {enabled && !needsReview
+              ? translate('auto.components.settings.PluginCardAction.disable', 'Disable')
+              : translate('auto.components.settings.PluginCardAction.enable', 'Enable')}
+          </DropdownMenuItem>
+        ) : null}
         {inPage ? null : <DetailsItem onSelect={() => handlers.onOpen(plugin.pluginKey)} />}
         {plugin.hasWorker && !inPage ? (
           <DropdownMenuItem onSelect={() => handlers.onViewLogs(plugin.pluginKey)}>
@@ -280,38 +301,5 @@ function RollbackItem({
         }
       )}
     </DropdownMenuItem>
-  )
-}
-
-export function InstalledPluginRow({
-  entry,
-  busy,
-  canCheckUpdate,
-  handlers
-}: {
-  entry: PluginListEntry
-  busy: boolean
-  canCheckUpdate: boolean
-  handlers: InstalledRowHandlers
-}): React.JSX.Element | null {
-  const plugin = entry.installed
-  if (!plugin) {
-    return null
-  }
-  const controls = installedPluginControls(plugin, entry, { busy, canCheckUpdate, handlers })
-  return (
-    <PluginListRow
-      entry={entry}
-      statusText={controls.statusText}
-      description={controls.description}
-      descriptionTone={controls.tone}
-      chips={<PluginChips entry={entry} />}
-      dimmed={controls.kind === 'disabled'}
-      status={controls.status}
-      action={controls.action}
-      toggle={controls.toggle}
-      more={controls.more}
-      onOpen={() => handlers.onOpen(plugin.pluginKey)}
-    />
   )
 }

@@ -11,12 +11,9 @@ import { PluginCard } from '../list/PluginCard'
 import { PluginChips } from '../list/PluginChips'
 import { PluginCardAction } from './PluginCardAction'
 import { Badge } from '../../ui/badge'
-import { PLUGIN_CONTRIBUTION_SUMMARY_LIMIT } from '../../../../../shared/plugins/plugin-contribution-summary'
-import { pluginPointsFromSummary, pluginTrust } from '../presentation/plugin-access-profile'
-import { pluginTrustLabel } from '../presentation/plugin-consent-copy'
-import { installedPluginPresentation } from '../presentation/plugin-status-presentation'
+import { PluginCategoryBadge } from '../list/PluginCategoryBadge'
 import { usePluginArtPalettes } from '../state/use-plugin-art-palettes'
-import type { InstalledRowHandlers } from '../list/PluginManagerRows'
+import { installedPluginControls, type InstalledRowHandlers } from '../list/PluginManagerRows'
 import type { usePluginCatalog } from '../state/use-plugin-catalog'
 import type { usePluginHoverPrefetch } from '../state/use-plugin-hover-prefetch'
 import type { usePluginInstallAction } from '../state/use-plugin-install-action'
@@ -74,13 +71,10 @@ export type CatalogCardHandlers = {
   orcaVersion: string | null
   /** A catalog refresh is in flight; installs wait for it. */
   refreshing: boolean
-  /** Requests confirmation before deleting plugin data. */
-  onRemove: (pluginKey: string) => void
-  onToggleEnabled: (pluginKey: string) => void
   onOpenFullAccessSetting: () => void
 }
 
-function CatalogCard({
+export function CatalogCard({
   entry,
   handlers
 }: {
@@ -94,27 +88,24 @@ function CatalogCard({
   const release = listing?.release
   const fullAccessEnabled = useAppStore((s) => s.settings?.pluginFullAccessEnabled === true)
   const fullAccessOff = !installed && release?.execution === 'trusted-worker' && !fullAccessEnabled
-  // Why the summary only below its cap: a capped list can't rule a command out.
-  // Why no "turned off" note: the card's button already says to turn it on.
-  const trustLabel = release
-    ? pluginTrustLabel(
-        pluginTrust({
-          execution: release.execution,
-          points:
-            release.contributes && release.contributes.length < PLUGIN_CONTRIBUTION_SUMMARY_LIMIT
-              ? pluginPointsFromSummary(release.contributes)
-              : null
-        })
-      )
+  // Why only full access: it is the one trust level worth a chip; the page's access section says the rest.
+  const fullAccess =
+    (installed?.execution ?? release?.execution) === 'trusted-worker' || installed?.hasWorker
+  const controls = installed
+    ? installedPluginControls(installed, entry, {
+        busy: handlers.busyPluginKeys.has(entry.pluginKey),
+        canCheckUpdate: entry.updatable,
+        handlers: handlers.installedHandlers
+      })
     : null
-  const statusText = installed
-    ? installedPluginPresentation(installed, entry.updateVersion, false, entry.autoUpdate)
-        .statusText
-    : undefined
+  const installError =
+    controls?.tone === 'destructive' && typeof controls.description === 'string'
+      ? controls.description
+      : null
   return (
     <PluginCard
       entry={entry}
-      statusText={statusText}
+      statusText={controls?.statusText}
       palettes={palettes}
       notice={
         phase?.kind === 'error'
@@ -128,11 +119,18 @@ function CatalogCard({
                 ),
                 tone: 'destructive'
               }
-            : undefined
+            : installError
+              ? { text: installError, tone: 'destructive' }
+              : undefined
       }
       chips={
         <>
-          {trustLabel ? <Badge variant="hostContext">{trustLabel}</Badge> : null}
+          <PluginCategoryBadge entry={entry} />
+          {fullAccess ? (
+            <Badge variant="hostContext">
+              {translate('auto.components.settings.pluginConsentCopy.fullAccess', 'Full access')}
+            </Badge>
+          ) : null}
           <PluginChips entry={entry} />
         </>
       }
@@ -154,11 +152,31 @@ function CatalogCard({
           onOpen={() => handlers.openEntry(entry.pluginKey)}
           busy={handlers.busyPluginKeys.has(entry.pluginKey)}
           installedHandlers={handlers.installedHandlers}
-          onRemove={() => handlers.onRemove(entry.pluginKey)}
-          onToggleEnabled={() => handlers.onToggleEnabled(entry.pluginKey)}
         />
       }
     />
+  )
+}
+
+/** Card placeholders with the real card geometry, so the grid doesn't jump when data lands. */
+export function PluginCardSkeletons(): React.JSX.Element {
+  return (
+    <>
+      {[0, 1, 2].map((index) => (
+        <li
+          key={index}
+          aria-hidden="true"
+          className="overflow-hidden rounded-xl border border-border/70 bg-card"
+        >
+          <div className="aspect-[16/10] border-b border-border/70 bg-muted/60" />
+          <div className="space-y-2 px-3.5 py-3">
+            <div className="h-3.5 w-1/2 rounded bg-muted" />
+            <div className="h-3 w-1/3 rounded bg-muted" />
+            <div className="h-9 rounded bg-muted/60" />
+          </div>
+        </li>
+      ))}
+    </>
   )
 }
 
@@ -208,20 +226,7 @@ export function PluginCatalogGroups({
       layout="grid"
       title={translate('auto.components.settings.PluginManager.catalogLoading', 'Catalog')}
     >
-      {[0, 1, 2].map((index) => (
-        <li
-          key={index}
-          aria-hidden="true"
-          className="overflow-hidden rounded-xl border border-border/70 bg-card"
-        >
-          <div className="aspect-[16/10] border-b border-border/70 bg-muted/60" />
-          <div className="space-y-2 px-3.5 py-3">
-            <div className="h-3.5 w-1/2 rounded bg-muted" />
-            <div className="h-3 w-1/3 rounded bg-muted" />
-            <div className="h-9 rounded bg-muted/60" />
-          </div>
-        </li>
-      ))}
+      <PluginCardSkeletons />
     </PluginListGroup>
   ) : catalog.error && catalog.sources.length === 0 ? (
     <PluginListGroup

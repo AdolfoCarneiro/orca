@@ -11589,10 +11589,8 @@
           "reviewLabel": "Revisar e instalar {{value0}}",
           "review": "Revisar e instalar",
           "retry": "Reintentar",
-          "moreLabel": "Más acciones para {{value0}}",
           "disable": "Desactivar",
-          "enable": "Activar",
-          "remove": "Eliminar"
+          "enable": "Activar"
         },
         "PluginSettingsRow": {
           "blocked": "Bloqueado",
@@ -12778,6 +12776,19 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "Solo vuelve a preguntar por accesos nuevos"
+        },
+        "InstalledPluginCarousel": {
+          "title": "Instalados · {{value0}}",
+          "seeAll": "Ver todos",
+          "previous": "Plugins instalados anteriores",
+          "next": "Siguientes plugins instalados"
+        },
+        "PluginInUseAction": {
+          "inUseDark": "En uso · Oscuro",
+          "inUseLight": "En uso · Claro",
+          "inUse": "En uso",
+          "useName": "Usar {{value0}}",
+          "use": "Usar"
         },
         "notification": {
           "settings": {

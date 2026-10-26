@@ -13,6 +13,10 @@ vi.mock('../plugins/state/plugin-theme-apply', () => ({
   applyPluginThemesNow: vi.fn().mockResolvedValue(false)
 }))
 
+// Why: cards read live theme stores, whose own change subscriptions aren't this section's.
+vi.mock('../plugins/state/use-plugin-in-use', () => ({ usePluginInUse: () => null }))
+vi.mock('../plugins/state/use-plugin-art-palettes', () => ({ usePluginArtPalettes: () => [] }))
+
 vi.mock('./SettingsSection', () => ({
   SettingsSection: ({
     children,
@@ -207,6 +211,17 @@ function installApi(overrides: Record<string, unknown> = {}): {
   return { unsubscribe }
 }
 
+/** A card's Enable or Disable menu item; cards carry no switch. */
+function toggleItem(container: HTMLElement, pluginKey: string): HTMLButtonElement {
+  const item = Array.from(
+    container.querySelectorAll<HTMLButtonElement>(`[data-plugin-key="${pluginKey}"] button`)
+  ).find((button) => ['Disable', 'Enable'].includes(button.textContent?.trim() ?? ''))
+  if (!item) {
+    throw new Error('missing plugin toggle')
+  }
+  return item
+}
+
 beforeEach(() => installApi())
 
 afterEach(() => {
@@ -321,20 +336,17 @@ describe('PluginsSettingsSection lifecycle', () => {
 
   it('routes enablement and confirmed removal through plugin IPC', async () => {
     const { container } = await renderSection()
-    const pluginSwitch = container.querySelector('[aria-label="Disable Notes"]')
-    if (!pluginSwitch) {
-      throw new Error('missing plugin switch')
-    }
+    expect(toggleItem(container, plugin.pluginKey).textContent).toBe('Disable')
 
     vi.mocked(applyPluginThemesNow).mockClear()
-    await act(async () => click(pluginSwitch))
+    await act(async () => click(toggleItem(container, plugin.pluginKey)))
     expect(window.api.plugins.setEnabled).toHaveBeenCalledWith({
       pluginKey: plugin.pluginKey,
       enabled: false
     })
     // Why: disabling falls back through the theme sync; only the Enable click applies themes.
     expect(applyPluginThemesNow).not.toHaveBeenCalled()
-    await act(async () => click(pluginSwitch))
+    await act(async () => click(toggleItem(container, plugin.pluginKey)))
     expect(window.api.plugins.setEnabled).toHaveBeenLastCalledWith({
       pluginKey: plugin.pluginKey,
       enabled: true
@@ -365,10 +377,8 @@ describe('PluginsSettingsSection lifecycle', () => {
       setEnabled: vi.fn().mockResolvedValue([{ ...plugin, status: 'pending' }])
     })
     const { container } = await renderSection()
-    const pluginSwitch = container.querySelector('[aria-label="Enable Notes"]')
-    if (!pluginSwitch) {
-      throw new Error('missing plugin switch')
-    }
+    const pluginSwitch = toggleItem(container, plugin.pluginKey)
+    expect(pluginSwitch.textContent).toBe('Enable')
 
     await act(async () => click(pluginSwitch))
 
@@ -422,7 +432,7 @@ describe('PluginsSettingsSection lifecycle', () => {
     await act(async () => click(restart))
 
     expect(list).toHaveBeenCalledTimes(2)
-    expect(container.querySelector('[aria-label="Enable Notes"]')).not.toBeNull()
+    expect(toggleItem(container, plugin.pluginKey).textContent).toBe('Enable')
   })
 
   it('confirms marketplace rollback before invoking plugin IPC', async () => {
@@ -498,30 +508,27 @@ describe('PluginsSettingsSection lifecycle', () => {
         .mockReturnValueOnce(secondToggle.promise)
     })
     const { container } = await renderSection()
-    const notesSwitch = container.querySelector<HTMLButtonElement>('[aria-label="Disable Notes"]')
-    const tasksSwitch = container.querySelector<HTMLButtonElement>('[aria-label="Disable Tasks"]')
-    if (!notesSwitch || !tasksSwitch) {
-      throw new Error('missing plugin switches')
-    }
+    const notes = (): HTMLButtonElement => toggleItem(container, plugin.pluginKey)
+    const tasks = (): HTMLButtonElement => toggleItem(container, secondPlugin.pluginKey)
 
-    act(() => click(notesSwitch))
-    act(() => click(tasksSwitch))
-    expect(notesSwitch.disabled).toBe(true)
-    expect(tasksSwitch.disabled).toBe(true)
+    act(() => click(notes()))
+    act(() => click(tasks()))
+    expect(notes().disabled).toBe(true)
+    expect(tasks().disabled).toBe(true)
 
     await act(async () => secondToggle.resolve([plugin, { ...secondPlugin, status: 'disabled' }]))
 
-    expect(notesSwitch.disabled).toBe(true)
-    expect(tasksSwitch.disabled).toBe(false)
+    expect(notes().disabled).toBe(true)
+    expect(tasks().disabled).toBe(false)
     await act(async () =>
       firstToggle.resolve([
         { ...plugin, status: 'disabled' },
         { ...secondPlugin, status: 'disabled' }
       ])
     )
-    expect(notesSwitch.disabled).toBe(false)
-    expect(notesSwitch.getAttribute('aria-checked')).toBe('false')
-    expect(tasksSwitch.getAttribute('aria-checked')).toBe('false')
+    expect(notes().disabled).toBe(false)
+    expect(notes().textContent).toBe('Enable')
+    expect(tasks().textContent).toBe('Enable')
   })
 
   it('fetches bounded logs only when their disclosure opens', async () => {
@@ -547,10 +554,9 @@ describe('PluginsSettingsSection lifecycle', () => {
       list: vi.fn().mockResolvedValue([{ ...plugin, status: 'restarting', restarts: 1 }])
     })
     const { container } = await renderSection()
-    const pluginSwitch = container.querySelector<HTMLButtonElement>('[aria-label="Disable Notes"]')
 
     expect(container.textContent).toContain('Restarting')
-    expect(pluginSwitch?.getAttribute('aria-checked')).toBe('true')
+    expect(toggleItem(container, plugin.pluginKey).textContent).toBe('Disable')
   })
 
   it('prunes dialogs and stale logs after external removal and same-key reinstall', async () => {

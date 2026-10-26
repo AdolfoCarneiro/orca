@@ -11315,10 +11315,8 @@
           "reviewLabel": "{{value0}} 검토 후 설치",
           "review": "검토 후 설치",
           "retry": "다시 시도",
-          "moreLabel": "{{value0}}에 대한 추가 작업",
           "disable": "비활성화",
-          "enable": "활성화",
-          "remove": "제거"
+          "enable": "활성화"
         },
         "PluginSettingsRow": {
           "blocked": "차단됨",
@@ -12501,6 +12499,19 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "새 접근 권한이 있을 때만 다시 묻습니다"
+        },
+        "InstalledPluginCarousel": {
+          "title": "설치됨 · {{value0}}",
+          "seeAll": "모두 보기",
+          "previous": "이전 설치된 플러그인",
+          "next": "다음 설치된 플러그인"
+        },
+        "PluginInUseAction": {
+          "inUseDark": "사용 중 · 다크",
+          "inUseLight": "사용 중 · 라이트",
+          "inUse": "사용 중",
+          "useName": "{{value0}} 사용",
+          "use": "사용"
         },
         "notification": {
           "settings": {

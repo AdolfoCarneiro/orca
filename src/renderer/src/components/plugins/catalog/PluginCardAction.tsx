@@ -1,18 +1,13 @@
-import { Check, Ellipsis, Loader2, Power, Trash2 } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { satisfiesOrcaEngineRange } from '../../../../../shared/plugins/manifest/plugin-manifest'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../../ui/button'
 import { StatusWord } from '../list/PluginStatusWord'
 import type { PluginListEntry } from '../list/plugin-list-entries'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '../../ui/dropdown-menu'
-import { installedPluginPresentation } from '../presentation/plugin-status-presentation'
 import { installedPluginControls, type InstalledRowHandlers } from '../list/PluginManagerRows'
 import type { PluginInstallPhase } from '../state/use-plugin-install-action'
+import { usePluginInUse } from '../state/use-plugin-in-use'
+import { PluginInUseAction } from './PluginInUseAction'
 
 export function needsNewerOrca(entry: PluginListEntry, orcaVersion: string | null): string | null {
   return entry.minimumOrca &&
@@ -27,66 +22,6 @@ export function installsInOneClick(entry: PluginListEntry): boolean {
   return entry.listing?.release?.execution === 'data'
 }
 
-/** Compact installed actions; removal uses the shared confirmation. */
-function InstalledCardMenu({
-  entry,
-  busy,
-  onRemove,
-  onToggleEnabled
-}: {
-  entry: PluginListEntry
-  busy: boolean
-  onRemove: () => void
-  onToggleEnabled: () => void
-}): React.JSX.Element | null {
-  const installed = entry.installed
-  if (!installed) {
-    return null
-  }
-  const { removable, switchable, enabled } = installedPluginPresentation(
-    installed,
-    entry.updateVersion,
-    busy
-  )
-  if (!removable && !switchable) {
-    return null
-  }
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          disabled={busy}
-          aria-label={translate(
-            'auto.components.settings.PluginCardAction.moreLabel',
-            'More actions for {{value0}}',
-            { value0: entry.name }
-          )}
-        >
-          {busy ? <Loader2 className="animate-spin" /> : <Ellipsis />}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        {switchable ? (
-          <DropdownMenuItem onSelect={onToggleEnabled}>
-            <Power />
-            {enabled
-              ? translate('auto.components.settings.PluginCardAction.disable', 'Disable')
-              : translate('auto.components.settings.PluginCardAction.enable', 'Enable')}
-          </DropdownMenuItem>
-        ) : null}
-        {removable ? (
-          <DropdownMenuItem variant="destructive" onSelect={onRemove}>
-            <Trash2 />
-            {translate('auto.components.settings.PluginCardAction.remove', 'Remove')}
-          </DropdownMenuItem>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 /** What a catalog card's single action slot offers, by state. */
 export function PluginCardAction({
   entry,
@@ -94,8 +29,6 @@ export function PluginCardAction({
   orcaVersion,
   onInstall,
   onOpen,
-  onRemove,
-  onToggleEnabled,
   installedHandlers,
   onOpenFullAccessSetting,
   busy = false,
@@ -109,34 +42,36 @@ export function PluginCardAction({
   orcaVersion: string | null
   onInstall: () => void
   onOpen: () => void
-  onRemove: () => void
-  onToggleEnabled: () => void
   installedHandlers: InstalledRowHandlers
   /** A remove or switch for this plugin is in flight. */
   busy?: boolean
 }): React.JSX.Element | null {
   const installed = entry.installed
+  const inUse = usePluginInUse(installed ? entry.pluginKey : null)
   if (installed) {
     const controls = installedPluginControls(installed, entry, {
       busy,
       canCheckUpdate: entry.updatable,
-      handlers: installedHandlers
+      handlers: installedHandlers,
+      toggleInMenu: true
     })
-    const status = controls.action ?? (
-      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-        <Check className="size-3.5" aria-hidden="true" />
-        {translate('auto.components.settings.PluginCardAction.installed', 'Installed')}
-      </span>
-    )
+    const healthy = controls.kind === 'enabled' || controls.kind === 'running'
+    const status =
+      controls.action ??
+      (!healthy ? (
+        controls.status
+      ) : inUse ? (
+        <PluginInUseAction pluginKey={entry.pluginKey} name={entry.name} inUse={inUse} />
+      ) : (
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <Check className="size-3.5 text-status-success" aria-hidden="true" />
+          {translate('auto.components.settings.PluginCardAction.installed', 'Installed')}
+        </span>
+      ))
     return (
       <>
         {status}
-        <InstalledCardMenu
-          entry={entry}
-          busy={busy}
-          onRemove={onRemove}
-          onToggleEnabled={onToggleEnabled}
-        />
+        {controls.more}
       </>
     )
   }

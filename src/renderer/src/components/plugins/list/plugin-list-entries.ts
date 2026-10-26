@@ -101,7 +101,7 @@ export function pluginListEntryFromInstalled(
     description: plugin.description ?? listing?.description ?? null,
     official: plugin.official,
     categories: listing?.categories ?? [],
-    types: listing?.release ? pluginCatalogReleaseTypes(listing.release) : [],
+    types: listing?.release ? pluginCatalogReleaseTypes(listing.release) : (plugin.types ?? []),
     minimumOrca: listing?.release?.minimumOrca ?? null,
     updateVersion,
     catalogIds,

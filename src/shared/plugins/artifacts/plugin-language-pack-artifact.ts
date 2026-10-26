@@ -1,3 +1,4 @@
+import type { PluginArtifactStrictness } from './plugin-theme-artifact'
 import {
   translatablePluginChrome,
   translatablePluginChromeContainer
@@ -138,18 +139,26 @@ function hasUnsafeCatalogKeyCharacter(key: string): boolean {
   return false
 }
 
-export function parsePluginLanguagePackArtifact(raw: string): PluginLanguagePackParseResult {
+// Why tolerant at load: Orca protects more copy over time, so a pack published before a path
+// was protected must still load, with that path left in English; validate:plugin is strict.
+export function parsePluginLanguagePackArtifact(
+  raw: string,
+  strictness: PluginArtifactStrictness = 'strict'
+): PluginLanguagePackParseResult {
   let json: unknown
   try {
     json = JSON.parse(raw)
   } catch {
     return { ok: false, error: 'language pack must contain one JSON object' }
   }
-  return validatePluginLanguagePackCatalog(json)
+  return validatePluginLanguagePackCatalog(json, strictness)
 }
 
-export function validatePluginLanguagePackCatalog(source: unknown): PluginLanguagePackParseResult {
-  const result = walkPluginLanguagePackCatalog(source, true)
+export function validatePluginLanguagePackCatalog(
+  source: unknown,
+  strictness: PluginArtifactStrictness = 'strict'
+): PluginLanguagePackParseResult {
+  const result = walkPluginLanguagePackCatalog(source, true, strictness)
   if (!result.ok) {
     return result
   }
@@ -159,13 +168,14 @@ export function validatePluginLanguagePackCatalog(source: unknown): PluginLangua
 export function checkPluginLanguagePackCatalog(
   source: unknown
 ): PluginLanguagePackValidationResult {
-  const result = walkPluginLanguagePackCatalog(source, false)
+  const result = walkPluginLanguagePackCatalog(source, false, 'strict')
   return result.ok ? { ok: true, entries: result.entries } : result
 }
 
 function walkPluginLanguagePackCatalog(
   source: unknown,
-  copyCatalog: boolean
+  copyCatalog: boolean,
+  strictness: PluginArtifactStrictness
 ): PluginLanguagePackWalkResult {
   if (!isCatalogObject(source)) {
     return { ok: false, error: 'language pack root must be an object' }
@@ -203,6 +213,9 @@ function walkPluginLanguagePackCatalog(
         isProtectedPluginTranslationPath(path) &&
         !(isCatalogObject(value) && translatablePluginChromeContainer(path))
       ) {
+        if (strictness === 'tolerant') {
+          continue
+        }
         return { ok: false, error: `catalog cannot replace protected security copy at ${path}` }
       }
       if (typeof value === 'string') {

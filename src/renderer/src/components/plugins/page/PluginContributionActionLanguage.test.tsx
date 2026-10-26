@@ -16,7 +16,9 @@ const state = vi.hoisted(
 )
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock('@/store', () => ({
-  useAppStore: (selector: (value: typeof state) => unknown) => selector(state)
+  useAppStore: Object.assign((selector: (value: typeof state) => unknown) => selector(state), {
+    getState: () => state
+  })
 }))
 vi.mock('sonner', () => ({ toast }))
 

@@ -17,6 +17,10 @@ import {
   isOfficialPluginIdentity,
   pluginSourceLabel
 } from '../../shared/plugins/catalog/plugin-marketplace'
+import {
+  pluginCatalogTypes,
+  type PluginCatalogType
+} from '../../shared/plugins/catalog/plugin-catalog-types'
 import { mapWithConcurrency } from '../../shared/map-with-concurrency'
 import {
   pluginExecutionProfile,
@@ -51,6 +55,8 @@ export type PluginListEntry = {
   description?: string
   /** Verified from the installed manifest, so the UI never infers authority from contents. */
   execution?: PluginExecutionProfile
+  /** What the installed manifest contributes, as catalog types. */
+  types?: PluginCatalogType[]
   /** Declared images, as orca-plugin-image URLs main serves after checking them. */
   images?: PluginHostImages
   license?: string
@@ -167,6 +173,7 @@ export async function buildPluginList(
         publisher: plugin.manifest.publisher,
         ...(plugin.manifest.description ? { description: plugin.manifest.description } : {}),
         execution: pluginExecutionProfile(plugin.manifest),
+        types: pluginCatalogTypes(plugin.manifest),
         ...withImages(
           pluginInstalledHostImages(plugin.pluginKey, plugin.contentHash, plugin.manifest)
         ),

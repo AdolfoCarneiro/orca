@@ -27,6 +27,9 @@ const ARTIFACT_PARSERS = {
   iconThemes: loadPluginSchemaModule('artifacts/plugin-icon-theme-artifact.ts')
     .parsePluginIconThemeArtifact
 }
+const { parsePluginLanguagePackArtifact } = loadPluginSchemaModule(
+  'artifacts/plugin-language-pack-artifact.ts'
+)
 
 // Why strict here: Orca skips unknown theme tokens and icon slots at runtime, so authors only
 // learn about a typo from this check.
@@ -46,6 +49,19 @@ function artifactErrors(pluginDir, manifest) {
       }
     })
   )
+}
+
+// Why: Orca drops protected security copy from a pack at load, which authors would never notice.
+function languagePackErrors(pluginDir, manifest) {
+  return manifest.contributes.languagePacks.flatMap((pack) => {
+    const file = path.join(pluginDir, ...pack.path.split('/'))
+    const parsed = existsSync(file)
+      ? parsePluginLanguagePackArtifact(readFileSync(file, 'utf8'), 'strict')
+      : { ok: false, error: 'file not found' }
+    return parsed.ok
+      ? []
+      : [`contributes.languagePacks "${pack.locale}" (${pack.path}): ${parsed.error}`]
+  })
 }
 
 async function git(cwd, args) {
@@ -135,7 +151,8 @@ for (const target of targets) {
     }
     const errors = validatePluginFile(path.basename(file), raw, readCatalogFile)
     if (errors.length === 0 && path.basename(file) === 'orca-plugin.json') {
-      errors.push(...artifactErrors(root, parsePluginManifest(raw).manifest))
+      const { manifest } = parsePluginManifest(raw)
+      errors.push(...artifactErrors(root, manifest), ...languagePackErrors(root, manifest))
     }
     for (const error of errors) {
       console.error(`${file}: ${error}`)

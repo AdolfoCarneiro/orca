@@ -6,18 +6,24 @@ import { Button } from '../../ui/button'
 import { PluginCatalogLayout, type PluginCatalogFilter } from './PluginCatalogLayout'
 import { PluginCatalogEmptyState } from './PluginCatalogEmptyState'
 import { PluginListGroup } from './PluginListGroup'
-import { PluginListSkeleton } from './PluginListSkeleton'
 import {
   buildPluginListEntries,
   matchesPluginSearch,
   type PluginListEntry
 } from './plugin-list-entries'
-import { InstalledPluginRow, type InstalledRowHandlers } from './PluginManagerRows'
+import type { InstalledRowHandlers } from './PluginManagerRows'
 import { PluginMarketplaceSourceDialog } from '../dialogs/PluginMarketplaceSourceDialog'
 import { usePluginCatalog } from '../state/use-plugin-catalog'
 import { usePluginHoverPrefetch } from '../state/use-plugin-hover-prefetch'
 import { usePluginInstallAction } from '../state/use-plugin-install-action'
-import { CatalogNotice, PluginCatalogGroups } from '../catalog/PluginCatalogGroups'
+import {
+  CatalogCard,
+  CatalogNotice,
+  PluginCardSkeletons,
+  PluginCatalogGroups,
+  type CatalogCardHandlers
+} from '../catalog/PluginCatalogGroups'
+import { InstalledPluginCarousel } from '../catalog/InstalledPluginCarousel'
 import { PluginListToolbar } from './PluginListToolbar'
 import { PluginNoMatches, PluginPageMissing } from './PluginListEmptyStates'
 import { sortByAttention } from '../presentation/plugin-status-presentation'
@@ -131,10 +137,7 @@ export function PluginManager({
   const narrowed = Boolean(query) || filterSize > 0
   const matches = (entry: PluginListEntry): boolean =>
     matchesPluginSearch(entry, query) && matchesPluginFilter(entry, listFilter)
-  // Why: on the All tab catalog plugins keep their card, so only the rest are listed above them.
-  const installed = entries.installed.filter(
-    (entry) => matches(entry) && (chosenTab !== 'all' || !entry.listing)
-  )
+  const installed = entries.installed.filter(matches)
   const updates = entries.installed.filter((entry) => entry.updateVersion)
   // Why: once the last update lands the Updates tab is gone, so the list falls back to Installed.
   const filter: PluginCatalogFilter =
@@ -157,24 +160,12 @@ export function PluginManager({
     onViewLogs: openEntry,
     onCheckUpdate: (entry) => openUpdates([entry])
   }
-  const installedRow = (entry: PluginListEntry) => (
-    <InstalledPluginRow
-      key={entry.pluginKey}
-      entry={entry}
-      busy={busyPluginKeys.has(entry.pluginKey)}
-      canCheckUpdate={entry.updatable}
-      handlers={rowHandlers}
-    />
-  )
-
-  const cardHandlers = {
+  const cardHandlers: CatalogCardHandlers = {
     install,
     prefetch,
     openEntry,
     orcaVersion,
     refreshing: catalog.refreshBusy,
-    onRemove: handlers.onRemoveRequest,
-    onToggleEnabled: handlers.onToggleEnabled,
     onOpenFullAccessSetting,
     installedHandlers: rowHandlers,
     busyPluginKeys
@@ -187,23 +178,24 @@ export function PluginManager({
       catalog.sources.some((source) => source.id === entry.listing?.marketplaceSourceId) &&
       matches(entry)
   ).length
-  const showInstalledGroup = filter !== 'all' || visibleInstalled.length > 0
   const nothingMatches =
     narrowed && visibleInstalled.length === 0 && (filter !== 'all' || visibleAvailableCount === 0)
 
   const installedGroup = pluginsLoading ? (
     <PluginListGroup
+      layout="grid"
       title={translate('auto.components.settings.PluginManager.installed', 'Installed')}
-      showHeading={filter === 'all'}
+      showHeading={false}
     >
-      <PluginListSkeleton rows={3} />
+      <PluginCardSkeletons />
     </PluginListGroup>
   ) : pluginsError ? (
     <PluginListGroup
       title={translate('auto.components.settings.PluginManager.installed', 'Installed')}
-      showHeading={filter === 'all'}
+      showHeading={false}
       notice={
         <CatalogNotice
+          standalone
           tone="error"
           title={translate(
             'auto.components.settings.PluginManager.installedFailedTitle',
@@ -218,23 +210,27 @@ export function PluginManager({
         />
       }
     />
-  ) : showInstalledGroup && visibleInstalled.length > 0 ? (
+  ) : filter === 'all' ? (
+    <InstalledPluginCarousel
+      entries={visibleInstalled}
+      handlers={cardHandlers}
+      onSeeAll={() => setTab('installed')}
+    />
+  ) : (
     <PluginListGroup
+      layout="grid"
       title={
         filter === 'updates'
           ? translate('auto.components.settings.PluginManager.updatesTitle', 'Updates')
-          : filter === 'all'
-            ? translate('auto.components.settings.PluginManager.bundledAndLocal', 'Bundled & local')
-            : translate('auto.components.settings.PluginManager.installed', 'Installed')
+          : translate('auto.components.settings.PluginManager.installed', 'Installed')
       }
-      showHeading={filter === 'all'}
-      aside={String(visibleInstalled.length)}
-      hiddenCount={visibleInstalled.length - capped('installed', visibleInstalled).length}
-      onShowAll={showAll('installed')}
+      showHeading={false}
     >
-      {capped('installed', visibleInstalled).map(installedRow)}
+      {visibleInstalled.map((entry) => (
+        <CatalogCard key={entry.pluginKey} entry={entry} handlers={cardHandlers} />
+      ))}
     </PluginListGroup>
-  ) : null
+  )
 
   const openedEntry = openKey
     ? ([...entries.installed, ...entries.available].find((entry) => entry.pluginKey === openKey) ??
@@ -358,11 +354,7 @@ export function PluginManager({
           />
         ) : filter === 'all' ? (
           <div className="@container/plugin-catalog space-y-8">
-            {installedGroup ? (
-              <div className="overflow-hidden rounded-xl border border-border/50 bg-card/50 shadow-xs">
-                {installedGroup}
-              </div>
-            ) : null}
+            {installedGroup}
             <PluginCatalogGroups
               catalog={catalog}
               available={entries.available}
@@ -377,9 +369,7 @@ export function PluginManager({
             />
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border/50 bg-card/50 shadow-xs">
-            {installedGroup}
-          </div>
+          <div className="@container/plugin-catalog">{installedGroup}</div>
         )}
         <p className="sr-only" aria-live="polite">
           {narrowed

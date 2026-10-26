@@ -11,6 +11,8 @@ import { PluginDetailAlert } from './PluginDetailAlert'
 import { PluginInstallConsent } from '../review/PluginInstallConsent'
 import { PluginThemeUseNow } from './PluginThemeUseNow'
 import type { usePluginInstallAction } from '../state/use-plugin-install-action'
+import { usePluginInUse } from '../state/use-plugin-in-use'
+import { PluginInUseAction } from '../catalog/PluginInUseAction'
 import type { usePluginPageModel } from '../state/use-plugin-page-model'
 
 type PluginPageActionProps = {
@@ -84,6 +86,7 @@ export function usePluginPageAction({
   const [consentError, setConsentError] = useState<string | null>(null)
   const fullAccessEnabled = useAppStore((s) => s.settings?.pluginFullAccessEnabled === true)
   const { plugin, listing, execution, preview, trust } = model
+  const inUse = usePluginInUse(plugin?.pluginKey ?? null)
   const phase = install.phaseOf(entry.pluginKey)
   const themed = entry.types.some(
     (type) => type === 'app-theme' || type === 'icon-theme' || type === 'terminal-theme'
@@ -141,6 +144,9 @@ export function usePluginPageAction({
   if (plugin) {
     return {
       ...none,
+      header: (
+        <PluginInUseAction pluginKey={plugin.pluginKey} name={name} inUse={inUse} size="sm" />
+      ),
       status: plugin.execution === 'data' ? <ContentOnlyNote /> : null,
       body: <UseNowLine pluginKey={plugin.pluginKey} reserved={themed} />
     }

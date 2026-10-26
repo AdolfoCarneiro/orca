@@ -1,7 +1,6 @@
 import { BadgeCheck } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 import { PluginCardArt, type PluginArtPalette } from './PluginCardArt'
-import { pluginCategoryLabel } from './plugin-category-label'
 import type { PluginListEntry } from './plugin-list-entries'
 import { pluginArtShortcut, pluginArtTypes } from './PluginRowArt'
 
@@ -34,7 +33,6 @@ export function PluginCard({
   onIntent,
   onIntentEnd
 }: PluginCardProps): React.JSX.Element {
-  const category = entry.categories[0]
   const cover = entry.installed?.images?.cover ?? entry.listing?.images?.cover
   return (
     <li
@@ -90,11 +88,7 @@ export function PluginCard({
             />
           ) : null}
         </div>
-        <p className="truncate text-xs text-muted-foreground">
-          {[entry.publisher, category ? pluginCategoryLabel(category) : null]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
+        <p className="h-4 truncate text-xs text-muted-foreground">{entry.publisher}</p>
         <p
           data-tone={notice?.tone}
           className="mt-0.5 line-clamp-2 h-9 text-xs leading-[18px] text-muted-foreground data-[tone=destructive]:text-destructive data-[tone=warning]:text-status-warning-text"

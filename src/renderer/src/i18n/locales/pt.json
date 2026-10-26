@@ -8787,6 +8787,19 @@
             "description": "Cores do app para este modo."
           }
         },
+        "InstalledPluginCarousel": {
+          "title": "Instalados · {{value0}}",
+          "seeAll": "Ver todos",
+          "previous": "Plugins instalados anteriores",
+          "next": "Próximos plugins instalados"
+        },
+        "PluginInUseAction": {
+          "inUseDark": "Em uso · Escuro",
+          "inUseLight": "Em uso · Claro",
+          "inUse": "Em uso",
+          "useName": "Usar {{value0}}",
+          "use": "Usar"
+        },
         "notification": {
           "settings": {
             "copy": {

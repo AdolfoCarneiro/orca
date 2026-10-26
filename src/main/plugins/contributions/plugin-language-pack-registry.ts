@@ -41,7 +41,7 @@ export class PluginLanguagePackRegistry extends PluginArtifactPackRegistry<
           contribution.path,
           PLUGIN_LANGUAGE_PACK_MAX_BYTES
         )
-        const parsed = parsePluginLanguagePackArtifact(text)
+        const parsed = parsePluginLanguagePackArtifact(text, 'tolerant')
         if (!parsed.ok) {
           throw new Error(`language pack "${contribution.locale}" ${parsed.error}`)
         }

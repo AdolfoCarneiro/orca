@@ -11315,10 +11315,8 @@
           "reviewLabel": "{{value0}} を確認してインストール",
           "review": "確認してインストール",
           "retry": "再試行",
-          "moreLabel": "{{value0}} のその他の操作",
           "disable": "無効にする",
-          "enable": "有効にする",
-          "remove": "削除"
+          "enable": "有効にする"
         },
         "PluginSettingsRow": {
           "blocked": "ブロック中",
@@ -12501,6 +12499,19 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "新しいアクセスがあるときだけ確認します"
+        },
+        "InstalledPluginCarousel": {
+          "title": "インストール済み · {{value0}}",
+          "seeAll": "すべて表示",
+          "previous": "前のインストール済みプラグイン",
+          "next": "次のインストール済みプラグイン"
+        },
+        "PluginInUseAction": {
+          "inUseDark": "使用中 · ダーク",
+          "inUseLight": "使用中 · ライト",
+          "inUse": "使用中",
+          "useName": "{{value0}} を使用",
+          "use": "使用"
         },
         "notification": {
           "settings": {

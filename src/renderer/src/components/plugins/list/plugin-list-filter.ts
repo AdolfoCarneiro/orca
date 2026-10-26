@@ -1,3 +1,4 @@
+import type { PluginCatalogType } from '../../../../../shared/plugins/catalog/plugin-catalog-types'
 import type { PluginListEntry } from './plugin-list-entries'
 
 /** Narrowing the list by kind and by catalog; empty sets mean "any". */
@@ -41,12 +42,31 @@ export function isPluginFilterKind(value: string): value is PluginFilterKind {
   return PLUGIN_FILTER_KINDS.some((kind) => kind === value)
 }
 
-/** The filter kinds one plugin belongs to: known kinds, or the raw category when unmapped. */
-export function pluginFilterKinds(entry: Pick<PluginListEntry, 'categories'>): Set<string> {
+const KIND_BY_TYPE: Readonly<Record<PluginCatalogType, PluginFilterKind>> = {
+  'app-theme': 'themes',
+  'terminal-theme': 'themes',
+  'icon-theme': 'icons',
+  syntax: 'languages',
+  'interface-language': 'languages',
+  instructions: 'commands',
+  panel: 'commands',
+  worker: 'commands'
+}
+
+/** The filter kinds one plugin belongs to: known kinds, or the raw category when unmapped.
+ *  Without catalog categories (local, dev, bundled) its contributed types decide. */
+export function pluginFilterKinds(
+  entry: Pick<PluginListEntry, 'categories'> & Partial<Pick<PluginListEntry, 'types'>>
+): Set<string> {
   const kinds = new Set<string>()
   for (const category of entry.categories) {
     if (!NON_KIND_CATEGORIES.has(category)) {
       kinds.add(KIND_BY_CATEGORY[category] ?? category)
+    }
+  }
+  if (kinds.size === 0) {
+    for (const type of entry.types ?? []) {
+      kinds.add(KIND_BY_TYPE[type])
     }
   }
   return kinds

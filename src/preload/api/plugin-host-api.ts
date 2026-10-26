@@ -25,6 +25,7 @@ import type {
   PluginMarketplaceGitSource
 } from '../../shared/plugins/catalog/plugin-marketplace'
 import type { PluginCatalogRelease } from '../../shared/plugins/catalog/plugin-catalog-release'
+import type { PluginCatalogType } from '../../shared/plugins/catalog/plugin-catalog-types'
 
 export type PluginHostPanel = {
   id: string
@@ -55,6 +56,8 @@ export type PluginHostListEntry = {
   /** The verified execution profile from the installed manifest; absent for invalid entries and
    *  on hosts that predate it. Never infer it from the plugin's contents. */
   execution?: PluginExecutionProfile
+  /** What the installed manifest contributes; absent on hosts that predate it. */
+  types?: readonly PluginCatalogType[]
   /** Declared images (format 2 manifests), as orca-plugin-image URLs main serves. */
   images?: PluginHostImages
   /** SPDX license expression from the manifest. */

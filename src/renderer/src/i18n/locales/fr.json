@@ -11766,10 +11766,8 @@
           "reviewLabel": "Vérifier et installer {{value0}}",
           "review": "Vérifier et installer",
           "retry": "Réessayer",
-          "moreLabel": "Plus d’actions pour {{value0}}",
           "disable": "Désactiver",
-          "enable": "Activer",
-          "remove": "Supprimer"
+          "enable": "Activer"
         },
         "PluginSettingsRow": {
           "blocked": "Bloquée",
@@ -12964,6 +12962,19 @@
         },
         "PluginSettingsMenu": {
           "autoUpdateHint": "Ne redemande que pour un nouvel accès"
+        },
+        "InstalledPluginCarousel": {
+          "title": "Installés · {{value0}}",
+          "seeAll": "Tout voir",
+          "previous": "Plugins installés précédents",
+          "next": "Plugins installés suivants"
+        },
+        "PluginInUseAction": {
+          "inUseDark": "Utilisé · Sombre",
+          "inUseLight": "Utilisé · Clair",
+          "inUse": "Utilisé",
+          "useName": "Utiliser {{value0}}",
+          "use": "Utiliser"
         },
         "notification": {
           "settings": {

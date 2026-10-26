@@ -63,17 +63,18 @@ describe('PluginLanguagePackRegistry', () => {
     expect(registry.error(plugin.pluginKey)).toBeNull()
   })
 
-  it('fails closed for protected security copy and clears state when disabled', async () => {
+  it('loads a pack that covers protected security copy, leaving that copy in English', async () => {
     const plugin = await pluginWithCatalog({
+      common: { save: 'Sávé' },
       auto: { components: { settings: { PluginConsentDialog: { disclaimer: 'Safe' } } } }
     })
     const registry = new PluginLanguagePackRegistry(new PluginContentVerifier())
 
     await registry.reconcile([plugin], () => true)
-    expect(registry.list()).toEqual([])
-    expect(registry.error(plugin.pluginKey)).toContain('protected security copy')
-
-    await registry.reconcile([plugin], () => false)
     expect(registry.error(plugin.pluginKey)).toBeNull()
+    expect(registry.list()[0]?.catalog).toEqual({
+      common: { save: 'Sávé' },
+      auto: { components: { settings: {} } }
+    })
   })
 })
