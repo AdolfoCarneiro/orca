@@ -304,25 +304,6 @@ describe('finishProjectAddWithDefaultCheckout', () => {
     })
   })
 
-  it.each(['ssh:box', 'runtime:env-1'] as const)(
-    'opens an older unstamped checkout belonging to the sole %s repo owner',
-    async (executionHostId) => {
-      mocks.state.repos = [makeRepo({ executionHostId })]
-      mocks.state.worktreesByRepo = { 'repo-1': [makeWorktree()] }
-
-      await openProjectDefaultCheckout({
-        repoId: 'repo-1',
-        source: 'project_added_compat',
-        executionHostId,
-        setHideDefaultBranchWorkspace: vi.fn()
-      })
-
-      expect(mocks.activateAndRevealWorktree).toHaveBeenCalledExactlyOnceWith('repo-1::/repo', {
-        executionHostId
-      })
-    }
-  )
-
   it('uses the sole repo owner for activation when the caller omits its host', async () => {
     mocks.state.repos = [makeRepo({ executionHostId: 'ssh:box' })]
     mocks.state.worktreesByRepo = { 'repo-1': [makeWorktree({ hostId: 'ssh:box' })] }

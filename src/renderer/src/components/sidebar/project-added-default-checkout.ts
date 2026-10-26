@@ -16,10 +16,7 @@ import { markOnboardingProjectAdded } from '@/lib/onboarding-project-checklist'
 import { finalizeImportedRepoAfterSkip } from './add-repo-skip-finalization'
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
 import { repoMatchesHostIdentity } from '@/store/slices/repo-host-identity'
-import {
-  worktreeHostMatchOptions,
-  worktreeMatchesHost
-} from '@/store/slices/worktrees/listing/worktree-host-ownership'
+import { worktreeMatchesHost } from '@/store/slices/worktrees/listing/worktree-host-ownership'
 import type { Repo } from '../../../../shared/repo-types'
 import {
   selectDetectedWorktreesByRepo,
@@ -53,20 +50,17 @@ function getProjectInitialCheckout<T extends Worktree>(
 }
 
 function getProjectWorktreesForHost<T extends Worktree>(
-  repoId: string,
   worktrees: readonly T[],
   executionHostId?: ExecutionHostId
 ): T[] {
   if (!executionHostId) {
     return [...worktrees]
   }
-  const options = worktreeHostMatchOptions(useAppStore.getState(), repoId, executionHostId)
-  return worktrees.filter((worktree) => worktreeMatchesHost(worktree, executionHostId, options))
+  return worktrees.filter((worktree) => worktreeMatchesHost(worktree, executionHostId))
 }
 
 function getLoadedProjectWorktrees(repoId: string, executionHostId?: ExecutionHostId): Worktree[] {
   return getProjectWorktreesForHost(
-    repoId,
     selectWorktreesByRepo(useAppStore.getState())[repoId] ?? [],
     executionHostId
   )
@@ -105,7 +99,7 @@ async function resolveInitialCheckout(
   const detected = selectDetectedWorktreesByRepo(useAppStore.getState())[repoId]
   const detectedForHost = detected && {
     ...detected,
-    worktrees: getProjectWorktreesForHost(repoId, detected.worktrees, executionHostId)
+    worktrees: getProjectWorktreesForHost(detected.worktrees, executionHostId)
   }
   // Detection includes hidden checkouts, so a picked hidden checkout wins over the visible primary.
   const target =
