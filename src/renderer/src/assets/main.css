@@ -89,6 +89,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-editor-surface: var(--editor-surface);
+  --color-floating-surface: var(--floating-surface);
+  --color-dialog-surface: var(--dialog-surface);
   --color-agent-question: var(--agent-question);
   --color-agent-working: var(--agent-working);
   --color-agent-question-text: var(--agent-question-text);
@@ -212,6 +214,9 @@
   --card-foreground: #0a0a0a;
   --popover: #fff;
   --popover-foreground: #0a0a0a;
+  /* Glass tints for menus and dialogs; a plugin theme replaces both with its --popover. */
+  --floating-surface: rgba(255, 255, 255, 0.82);
+  --dialog-surface: color-mix(in srgb, var(--background) 96%, transparent);
   --primary: #171717;
   --primary-foreground: #fafafa;
   --secondary: #f5f5f5;
@@ -324,6 +329,8 @@
   --card-foreground: #fafafa;
   --popover: #171717;
   --popover-foreground: #fafafa;
+  --floating-surface: rgba(0, 0, 0, 0.72);
+  --dialog-surface: rgba(23, 23, 23, 0.96);
   --primary: #e5e5e5;
   --primary-foreground: #171717;
   --secondary: #262626;

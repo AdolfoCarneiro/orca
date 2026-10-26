@@ -221,6 +221,17 @@ describe('applyPluginAppTheme', () => {
     expect(root.properties.size).toBe(0)
   })
 
+  it('paints menus and dialogs with the theme popover, and restores their glass on removal', () => {
+    const root = fakeRoot()
+    applyPluginAppTheme(theme({ '--background': '#000000', '--popover': '#000000' }), options(root))
+    expect(root.properties.get('--floating-surface')).toBe('#000000')
+    expect(root.properties.get('--dialog-surface')).toBe('#000000')
+    applyPluginAppTheme(theme({ '--background': '#000000' }), options(root))
+    expect(root.properties.has('--floating-surface')).toBe(false)
+    applyPluginAppTheme(null, options(root))
+    expect(root.properties.size).toBe(0)
+  })
+
   it('checks contrast on the effective set, so dropping one pair cannot expose another', () => {
     // White background passes with black text, but fails against muted text; dropping the
     // background leaves black text on the dark built-in background, so that drops too.
