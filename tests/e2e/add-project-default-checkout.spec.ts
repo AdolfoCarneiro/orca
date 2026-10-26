@@ -163,6 +163,9 @@ test.describe('Add project default checkout', () => {
         defaultCheckoutLooksCloned: true,
         oldSetupModalOpen: false
       })
+    await expect(
+      orcaPage.locator('[data-worktree-sidebar] [role="option"][aria-current="page"]')
+    ).toContainText('main')
   })
 
   test('keeps sibling git worktrees hidden behind a hint that opens the visibility dialog', async ({
@@ -210,5 +213,8 @@ test.describe('Add project default checkout', () => {
         visibilityPromptResolved: true,
         visibleBranches: ['refs/heads/feature']
       })
+    await expect(
+      orcaPage.locator('[data-worktree-sidebar] [role="option"][aria-current="page"]')
+    ).toContainText('feature')
   })
 })

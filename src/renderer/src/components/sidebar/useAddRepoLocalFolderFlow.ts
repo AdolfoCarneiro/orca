@@ -227,7 +227,7 @@ export function useAddRepoLocalFolderFlow({
 
   const handleAddLocalPaths = useCallback(
     async (paths: string[], source: AddRepoExistingWorkspaceSource, gen: number): Promise<void> => {
-      const gitRepos: { id: string; selectedPath: string }[] = []
+      let firstGitRepo: { id: string; selectedPath: string } | undefined
       const shouldDeferGitRepoReady = paths.length > 1
       let skippedCount = 0
       for (const path of paths) {
@@ -244,8 +244,8 @@ export function useAddRepoLocalFolderFlow({
         if (result.status !== 'completed') {
           return
         }
-        if (isGitRepoKind(result.repo)) {
-          gitRepos.push({ id: result.repo.id, selectedPath: path })
+        if (!firstGitRepo && isGitRepoKind(result.repo)) {
+          firstGitRepo = { id: result.repo.id, selectedPath: path }
         }
       }
       if (gen !== localAddGenRef.current) {
@@ -265,12 +265,12 @@ export function useAddRepoLocalFolderFlow({
           }
         )
       }
-      if (shouldDeferGitRepoReady && gitRepos.length > 0) {
+      if (shouldDeferGitRepoReady && firstGitRepo) {
         await onGitRepoReady(
-          gitRepos[0].id,
+          firstGitRepo.id,
           source,
           worktreeRefreshOptions(activeRuntimeEnvironmentId ?? null).executionHostId,
-          { selectedPath: gitRepos[0].selectedPath }
+          { selectedPath: firstGitRepo.selectedPath }
         )
       }
     },
