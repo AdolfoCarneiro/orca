@@ -16,6 +16,8 @@ import {
 } from './helpers/plugin-git-fixture'
 
 const PLUGINS = ['orca-review-notes', 'orca-review-tasks'] as const
+// Why: install and update review fetch Git; on a loaded runner that alone outlasts the 10s default.
+const GIT_STEP = { timeout: 60_000 }
 
 async function writePlugin(repository: string, id: string, version: string): Promise<void> {
   await mkdir(repository, { recursive: true })
@@ -176,7 +178,7 @@ test('confirms card removal and shares single/bulk update review without strandi
       await page.getByRole('button', { name: /^Install / }).click()
       const themeName = id === PLUGINS[0] ? 'Review Icons' : 'Review Terminal'
       const use = page.getByRole('button', { name: `Use now: ${themeName}`, exact: true })
-      await expect(use).toBeVisible()
+      await expect(use).toBeVisible(GIT_STEP)
       const afterInstall = await added.boundingBox()
       expect(afterInstall?.y).toBe(beforeInstall?.y)
       const chosen = (key: string) =>
@@ -283,7 +285,7 @@ test('confirms card removal and shares single/bulk update review without strandi
     await notes.getByRole('button', { name: 'Update Review Notes to 2.0.0', exact: true }).click()
     const update = page.getByRole('dialog', { name: /^Update \d plugins?$/ })
     await expect(update).toHaveAccessibleName('Update 1 plugin')
-    await expect(update.locator('[data-plugin-update]')).toHaveCount(1)
+    await expect(update.locator('[data-plugin-update]')).toHaveCount(1, GIT_STEP)
     // Only what's new shows; the rest of its access waits behind "See all access".
     await expect(update).toContainText('New: Full access to your files, network, and processes')
     await expect(update.getByRole('button', { name: 'See all access' })).toBeVisible()
@@ -291,12 +293,12 @@ test('confirms card removal and shares single/bulk update review without strandi
     await update.getByRole('button', { name: 'Cancel', exact: true }).click()
     await page.getByRole('tab', { name: /^Updates/ }).click()
     await page.getByRole('button', { name: 'Update all…', exact: true }).click()
-    await expect(update.locator('[data-plugin-update]')).toHaveCount(2)
+    await expect(update.locator('[data-plugin-update]')).toHaveCount(2, GIT_STEP)
     await expect(update).toHaveAccessibleName('Update 2 plugins')
     await expect(update.getByRole('button', { name: 'Update', exact: true })).toBeEnabled()
     await screenshot(page, 'update-all')
     await update.getByRole('button', { name: 'Update', exact: true }).click()
-    await expect(update).toBeHidden()
+    await expect(update).toBeHidden(GIT_STEP)
     await expect(page.locator('#plugin-detail-heading')).toHaveText('Review Notes')
     await page.getByRole('article').getByRole('button', { name: 'Plugins', exact: true }).click()
     await page
