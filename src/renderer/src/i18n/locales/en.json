@@ -12857,7 +12857,8 @@
           "newerTitle": "Newer version available",
           "newerBody": "The catalog changed while you were here.",
           "showNewer": "Show newer",
-          "stoppedDataBody": "Couldn’t load its files. Restart to try again."
+          "stoppedDataBody": "Couldn’t load its files. Restart to try again.",
+          "alsoListedBy": "Also listed by {{value0}}. Updates come only from the catalog it was installed from; to switch, remove it and install it again."
         },
         "PluginDetailSections": {
           "typeLanguagePack": "Interface language",
@@ -13068,7 +13069,8 @@
         },
         "PluginChips": {
           "updateNeedsReview": "Update needs review",
-          "updatedTo": "Updated to {{value0}}"
+          "updatedTo": "Updated to {{value0}}",
+          "devUnverified": "Dev · unverified"
         },
         "InstalledPluginCarousel": {
           "title": "Installed · {{value0}}",

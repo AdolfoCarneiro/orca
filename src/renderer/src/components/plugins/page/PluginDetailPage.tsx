@@ -241,6 +241,15 @@ export function PluginDetailPage({
               .filter(Boolean)
               .join(' · ')}
           </p>
+          {entry.alsoListedBy.length > 0 ? (
+            <p data-plugin-also-listed="" className="mt-1 text-xs text-muted-foreground">
+              {translate(
+                'auto.components.settings.PluginDetailPage.alsoListedBy',
+                'Also listed by {{value0}}. Updates come only from the catalog it was installed from; to switch, remove it and install it again.',
+                { value0: entry.alsoListedBy.join(', ') }
+              )}
+            </p>
+          ) : null}
           {/* Why always there: installing fills this line instead of pushing the page down. */}
           <div className="mt-2 flex h-5 items-center gap-3">
             {controls && controls.kind !== 'review' ? controls.status : null}

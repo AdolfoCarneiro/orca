@@ -34,7 +34,9 @@ function entry(
           official: false,
           bundled: false
         }
-      : null
+      : null,
+    verifiedSource: { kind: 'unverified' },
+    alsoListedBy: []
   }
 }
 

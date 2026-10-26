@@ -9,6 +9,7 @@ import {
   type PluginCatalogType
 } from '../../../../../shared/plugins/catalog/plugin-catalog-release'
 import { compareAppVersions } from '../../../../../shared/app-version'
+import { gitRepositoryOwnerLabel } from '../../../../../shared/plugins/catalog/plugin-marketplace'
 import { pluginDisplayNameFromKey } from './plugin-display-name'
 import type { PluginAutoUpdateState } from '../../../../../shared/plugins/catalog/plugin-update-policy'
 
@@ -35,6 +36,33 @@ export type PluginListEntry = {
   autoUpdate: PluginEntryAutoUpdate
   installed: PluginHostListEntry | null
   listing: PluginMarketplaceHostListing | null
+  /** Where trust comes from: the catalog's Git address, never the manifest's text. */
+  verifiedSource: PluginVerifiedSource
+  /** Other catalogs listing this installed plugin; none of them can update or replace it. */
+  alsoListedBy: readonly string[]
+}
+
+export type PluginVerifiedSource =
+  | { kind: 'official' | 'bundled' | 'dev' | 'unverified' }
+  | { kind: 'catalog'; catalog: string | null; owner: string | null }
+
+function installedVerifiedSource(
+  plugin: PluginHostListEntry,
+  catalog: string | null
+): PluginVerifiedSource {
+  if (plugin.bundled) {
+    return { kind: 'bundled' }
+  }
+  if (plugin.isDev) {
+    return { kind: 'dev' }
+  }
+  if (plugin.official) {
+    return { kind: 'official' }
+  }
+  const from = plugin.source?.marketplace
+  return from
+    ? { kind: 'catalog', catalog, owner: gitRepositoryOwnerLabel(from.reference) }
+    : { kind: 'unverified' }
 }
 
 export type PluginEntryAutoUpdate = { updatedTo: string | null; needsReview: boolean }
@@ -108,13 +136,16 @@ export function pluginListEntryFromInstalled(
     updatable: plugin.source?.kind === 'marketplace' && listing !== null,
     autoUpdate: entryAutoUpdate(plugin, updateVersion, autoUpdates),
     installed: plugin,
-    listing
+    listing,
+    verifiedSource: installedVerifiedSource(plugin, listing?.marketplaceName ?? null),
+    alsoListedBy: []
   }
 }
 
 export function pluginListEntryFromListing(
   listing: PluginMarketplaceHostListing,
-  catalogIds: readonly string[] = [listing.marketplaceSourceId]
+  catalogIds: readonly string[] = [listing.marketplaceSourceId],
+  catalogUrl: string | null = null
 ): PluginListEntry {
   return {
     pluginKey: listing.pluginKey,
@@ -132,7 +163,15 @@ export function pluginListEntryFromListing(
     updatable: false,
     autoUpdate: NO_AUTO_UPDATE,
     installed: null,
-    listing
+    listing,
+    verifiedSource: listing.official
+      ? { kind: 'official' }
+      : {
+          kind: 'catalog',
+          catalog: listing.marketplaceName || null,
+          owner: catalogUrl ? gitRepositoryOwnerLabel(catalogUrl) : null
+        },
+    alsoListedBy: []
   }
 }
 
@@ -200,6 +239,16 @@ export function buildPluginListEntries(
         orcaVersion,
         autoUpdates
       })
+      const own = ownCatalog && plugin.source?.marketplace ? listing : null
+      entry.alsoListedBy = (listingsByKey.get(plugin.pluginKey) ?? [])
+        .filter((candidate) => candidate !== own)
+        .map((candidate) => candidate.marketplaceName)
+      if (!own && entry.verifiedSource.kind === 'catalog') {
+        // Why: another catalog's listing must never lend the install its name.
+        const from = plugin.source?.marketplace?.reference
+        entry.verifiedSource.catalog =
+          sources.find((source) => source.source.url === from)?.marketplace?.name ?? null
+      }
       return ownCatalog
         ? entry
         : {
@@ -212,7 +261,11 @@ export function buildPluginListEntries(
     available: [...listingsByKey.entries()]
       .filter(([pluginKey]) => !installedKeys.has(pluginKey))
       .map(([pluginKey, candidates]) =>
-        pluginListEntryFromListing(candidates[0], catalogIdsOf(pluginKey))
+        pluginListEntryFromListing(
+          candidates[0],
+          catalogIdsOf(pluginKey),
+          catalogById.get(candidates[0].marketplaceSourceId)?.source.url ?? null
+        )
       )
   }
 }

@@ -1,16 +1,34 @@
 import { translate } from '@/i18n/i18n'
 import { Badge } from '../../ui/badge'
-import type { PluginListEntry } from './plugin-list-entries'
+import type { PluginListEntry, PluginVerifiedSource } from './plugin-list-entries'
 
-/** Dev, Bundled, auto-update and Unverified facts beside a plugin's name. */
+/** Where a plugin's trust comes from; null when the Official mark or Bundled chip already says it. */
+export function pluginVerifiedSourceLabel(source: PluginVerifiedSource): string | null {
+  switch (source.kind) {
+    case 'official':
+    case 'bundled':
+      return null
+    case 'dev':
+      return translate('auto.components.settings.PluginChips.devUnverified', 'Dev · unverified')
+    case 'unverified':
+      return translate('auto.components.settings.PluginManagerRows.unverified', 'Unverified')
+    case 'catalog':
+      return (
+        [source.catalog, source.owner].filter(Boolean).join(' · ') ||
+        translate('auto.components.settings.PluginManagerRows.unverified', 'Unverified')
+      )
+  }
+}
+
+/** Source, Bundled and auto-update facts beside a plugin's name. */
 export function PluginChips({ entry }: { entry: PluginListEntry }): React.JSX.Element {
   const installed = entry.installed
-  const unverified = !entry.official && !installed?.bundled
+  const source = pluginVerifiedSourceLabel(entry.verifiedSource)
   return (
     <>
-      {installed?.isDev ? (
-        <Badge variant="hostContext">
-          {translate('auto.components.settings.PluginSettingsRow.dev', 'Dev')}
+      {source ? (
+        <Badge variant="hostContext" data-plugin-verified-source={entry.verifiedSource.kind}>
+          {source}
         </Badge>
       ) : null}
       {installed?.bundled ? (
@@ -30,11 +48,6 @@ export function PluginChips({ entry }: { entry: PluginListEntry }): React.JSX.El
           {translate('auto.components.settings.PluginChips.updatedTo', 'Updated to {{value0}}', {
             value0: entry.autoUpdate.updatedTo
           })}
-        </Badge>
-      ) : null}
-      {unverified ? (
-        <Badge variant="hostContext">
-          {translate('auto.components.settings.PluginManagerRows.unverified', 'Unverified')}
         </Badge>
       ) : null}
     </>

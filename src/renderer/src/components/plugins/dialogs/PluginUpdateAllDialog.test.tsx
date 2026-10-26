@@ -60,7 +60,9 @@ function entry(pluginKey: string, kinds: string[]): PluginListEntry {
     updatable: true,
     updateVersion: '1.1.0',
     installed: plugin,
-    listing: null
+    listing: null,
+    verifiedSource: { kind: 'unverified' },
+    alsoListedBy: []
   }
 }
 

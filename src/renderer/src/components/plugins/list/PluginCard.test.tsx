@@ -21,7 +21,9 @@ const entry: PluginListEntry = {
   autoUpdate: { updatedTo: null, needsReview: false },
   updatable: false,
   installed: null,
-  listing: null
+  listing: null,
+  verifiedSource: { kind: 'unverified' },
+  alsoListedBy: []
 }
 
 describe('PluginCard', () => {

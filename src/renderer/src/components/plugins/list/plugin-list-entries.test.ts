@@ -95,6 +95,50 @@ describe('plugin list entries', () => {
     expect(orphan?.updatable).toBe(false)
   })
 
+  it('labels trust from the catalog address and names other catalogs without switching', () => {
+    const community = { ...installed('acme.notes', 'Notes'), official: false }
+    const plugin = fromCatalog(community, 'https://gitlab.com/acme/tools/catalog.git')
+    const sources = [
+      catalog('acme', 'https://gitlab.com/acme/tools/catalog.git'),
+      catalog('mirror', 'https://github.com/mirror/c.git')
+    ]
+    const listings = [
+      listing('acme.notes', {
+        marketplaceSourceId: 'mirror',
+        marketplaceName: 'Mirror',
+        official: false,
+        version: '9.0.0'
+      }),
+      listing('acme.notes', {
+        marketplaceSourceId: 'acme',
+        marketplaceName: 'Acme Plugins',
+        official: false
+      })
+    ]
+    const [joined] = buildPluginListEntries([plugin], listings, { sources }).installed
+    expect(joined?.verifiedSource).toEqual({
+      kind: 'catalog',
+      catalog: 'Acme Plugins',
+      owner: 'gitlab.com/acme/tools'
+    })
+    expect(joined?.alsoListedBy).toEqual(['Mirror'])
+    expect(joined?.listing?.marketplaceSourceId).toBe('acme')
+    expect(joined?.updateVersion).toBeNull()
+
+    const [available] = buildPluginListEntries([], [listings[0]!], { sources }).available
+    expect(available?.verifiedSource).toEqual({
+      kind: 'catalog',
+      catalog: 'Mirror',
+      owner: 'github.com/mirror'
+    })
+
+    const sourceOf = (entry: PluginHostListEntry) =>
+      buildPluginListEntries([entry], []).installed[0]?.verifiedSource
+    expect(sourceOf({ ...community, isDev: true })).toEqual({ kind: 'dev' })
+    expect(sourceOf(community)).toEqual({ kind: 'unverified' })
+    expect(sourceOf(installed('stablyai.orca-notes', 'Notes'))).toEqual({ kind: 'official' })
+  })
+
   it('shows what automatic updates did only while it still matches the installed version', () => {
     const plugin = fromCatalog(installed('acme.notes', 'Notes'), 'https://mirror.invalid/c.git')
     const sources = [catalog('mirror', 'https://mirror.invalid/c.git')]
