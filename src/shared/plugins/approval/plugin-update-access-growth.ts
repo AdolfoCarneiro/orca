@@ -39,16 +39,53 @@ function entryIdentity(point: PluginContributionPoint, entry: unknown): string {
   if (point === 'panels' && 'id' in entry) {
     return `id:${String(entry.id)}`
   }
-  // Why file types too: opening a new kind of file is more reach, unlike new editor code.
-  if (point === 'customEditors' && 'id' in entry) {
-    const fileTypes = Array.isArray(entry.fileTypes) ? entry.fileTypes.map(String).sort() : []
-    return JSON.stringify([String(entry.id), fileTypes])
-  }
   if (point === 'commands') {
     const field = (key: string): unknown => (key in entry ? entry[key] : null)
     return JSON.stringify([field('id'), field('action'), field('context') ?? 'global'])
   }
   return JSON.stringify(entry)
+}
+
+type CustomEditorReach = {
+  fileTypes: string[]
+  edits: boolean
+  takesDefault: boolean
+  contentKind: string
+}
+
+function customEditorReach(entry: unknown): [string, CustomEditorReach] | null {
+  if (!isPluginJsonObject(entry) || typeof entry.id !== 'string') {
+    return null
+  }
+  return [
+    entry.id,
+    {
+      fileTypes: Array.isArray(entry.fileTypes) ? entry.fileTypes.map(String) : [],
+      edits: entry.readonly !== true,
+      takesDefault: entry.priority !== 'option',
+      contentKind: typeof entry.contentKind === 'string' ? entry.contentKind : 'text'
+    }
+  ]
+}
+
+/** Why per field: new file types, editing a viewer's files, or taking over opening them is more
+ *  reach, while new editor code under the same id is not. */
+function customEditorsGrow(installed: readonly unknown[], next: readonly unknown[]): boolean {
+  const held = new Map(installed.map(customEditorReach).filter((reach) => reach !== null))
+  return next.some((entry) => {
+    const asked = customEditorReach(entry)
+    const before = asked ? held.get(asked[0]) : undefined
+    if (!asked || !before) {
+      return true
+    }
+    const after = asked[1]
+    return (
+      after.fileTypes.some((fileType) => !before.fileTypes.includes(fileType)) ||
+      (after.edits && !before.edits) ||
+      (after.takesDefault && !before.takesDefault) ||
+      after.contentKind !== before.contentKind
+    )
+  })
 }
 
 /** Each recipe's authority (id, checkout mode, commands) from its file; null when unreadable. */
@@ -73,6 +110,12 @@ export function pluginUpdateAccessGrowth(
     ? null
     : nextExecution
   const contributions = AUTHORITY_POINTS.filter((point) => {
+    if (point === 'customEditors') {
+      return customEditorsGrow(
+        installed.contributes.customEditors ?? [],
+        next.contributes.customEditors ?? []
+      )
+    }
     const before = new Set(
       (installed.contributes[point] ?? []).map((entry) => entryIdentity(point, entry))
     )

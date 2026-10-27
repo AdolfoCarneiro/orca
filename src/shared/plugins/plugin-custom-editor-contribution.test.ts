@@ -129,6 +129,24 @@ describe('contributes.customEditors', () => {
     expect(pluginUpdateAccessGrowth(plugin, wider).contributions).toEqual(['customEditors'])
     expect(pluginUpdateAccessGrowth(plugin, plugin).contributions).toEqual([])
   })
+
+  it('counts an editor that starts editing, takes over opening, or changes content kind', () => {
+    const editor = (fields: Record<string, unknown>) =>
+      parsed({ contributes: { customEditors: [{ ...excalidraw, ...fields }] } })
+    const viewer = editor({ readonly: true, priority: 'option' })
+    const growth = (next: ReturnType<typeof parsed>) =>
+      pluginUpdateAccessGrowth(viewer, next).contributions
+    expect(growth(editor({ priority: 'option' }))).toEqual(['customEditors'])
+    expect(growth(editor({ readonly: true }))).toEqual(['customEditors'])
+    expect(growth(editor({ readonly: true, priority: 'option', contentKind: 'bytes' }))).toEqual([
+      'customEditors'
+    ])
+    // Narrower reach keeps the approval.
+    expect(pluginUpdateAccessGrowth(editor({}), viewer).contributions).toEqual([])
+    expect(
+      growth(editor({ readonly: true, priority: 'option', fileTypes: ['excalidraw'] }))
+    ).toEqual([])
+  })
 })
 
 describe('matchCustomEditorFileType', () => {
