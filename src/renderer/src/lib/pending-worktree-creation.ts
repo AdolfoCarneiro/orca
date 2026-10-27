@@ -85,7 +85,7 @@ export type WorktreeCreationRequest = {
   linkedLinearIssueWorkspaceId?: string | null
   linkedLinearIssueOrganizationUrlKey?: string | null
   branchNameOverride?: string
-  branchIntent?: 'open-existing'
+  branchIntent?: 'open-existing' | 'create-new'
   /** Parent picked in the composer's Advanced drawer. Sidebar nesting only, no git effect. */
   parentWorktreeId?: string
   workspaceStatus?: WorkspaceStatus

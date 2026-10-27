@@ -1,5 +1,7 @@
 import React from 'react'
-import { AlertTriangle, Check } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
 import SmartWorkspaceNameField from '@/components/new-workspace/SmartWorkspaceNameField'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
@@ -39,6 +41,7 @@ type NewWorkspaceComposerNameSectionProps = Pick<
   | 'canReuseSelectedBranch'
   | 'reuseSelectedBranch'
   | 'onReuseSelectedBranchChange'
+  | 'onOpenSelectedBranchWorkspace'
   | 'baseBranch'
   | 'onBaseBranchChange'
   | 'startFromResetHint'
@@ -78,6 +81,7 @@ export function NewWorkspaceComposerNameSection({
   canReuseSelectedBranch,
   reuseSelectedBranch,
   onReuseSelectedBranchChange,
+  onOpenSelectedBranchWorkspace,
   baseBranch,
   onBaseBranchChange,
   startFromResetHint
@@ -154,7 +158,7 @@ export function NewWorkspaceComposerNameSection({
       ) : null}
       <div
         className={cn(
-          'grid overflow-hidden transition-[grid-template-rows] duration-200 ease-out',
+          'grid overflow-hidden transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none',
           canReuseSelectedBranch ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
         )}
         aria-hidden={!canReuseSelectedBranch}
@@ -162,27 +166,10 @@ export function NewWorkspaceComposerNameSection({
         <div className="min-h-0">
           <div className="space-y-1 pt-1">
             <label className="group flex w-fit items-center gap-2 text-xs text-foreground">
-              <span
-                className={cn(
-                  'flex size-4 items-center justify-center rounded-[3px] border shadow-sm transition',
-                  reuseSelectedBranch
-                    ? 'border-emerald-500/60 bg-emerald-500 text-white'
-                    : 'border-foreground/20 bg-background dark:border-white/20 dark:bg-muted/10'
-                )}
-              >
-                <Check
-                  className={cn(
-                    'size-3 transition-opacity',
-                    reuseSelectedBranch ? 'opacity-100' : 'opacity-0'
-                  )}
-                />
-              </span>
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={reuseSelectedBranch}
-                onChange={(event) => onReuseSelectedBranchChange(event.target.checked)}
+                onCheckedChange={(checked) => onReuseSelectedBranchChange(checked === true)}
                 disabled={!canReuseSelectedBranch}
-                className="sr-only"
               />
               <span>
                 {translate(
@@ -191,12 +178,25 @@ export function NewWorkspaceComposerNameSection({
                 )}
               </span>
             </label>
-            <p className="pl-6 text-[11px] text-muted-foreground">
+            <p className="pl-6 text-2xs text-muted-foreground">
               {translate(
                 'auto.components.NewWorkspaceComposerCard.reuseExistingBranchHint',
                 'Check out the existing branch instead of creating a new one from it.'
               )}
             </p>
+            {onOpenSelectedBranchWorkspace ? (
+              <Button
+                type="button"
+                variant="link"
+                size="xs"
+                onClick={onOpenSelectedBranchWorkspace}
+              >
+                {translate(
+                  'auto.components.NewWorkspaceComposerCard.openExistingWorkspace',
+                  'Open existing workspace'
+                )}
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>

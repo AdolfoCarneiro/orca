@@ -32,6 +32,8 @@ export type WorktreeRemovalPreflightOptions = GitWorktreeExecOptions & {
 
 export type AddWorktreeOptions = GitWorktreeExecOptions & {
   checkoutExistingBranch?: boolean
+  /** Materialize an explicitly reused remote branch with Git's upstream setup. */
+  trackRemoteBranch?: boolean
   /** Progress of the checkout `git worktree add` performs; never called for `--no-checkout`. */
   onCheckoutProgress?: WorktreeCheckoutProgressListener
   suggestLocalBaseRefUpdate?: boolean

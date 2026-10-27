@@ -83,6 +83,7 @@ export type ComposerCardActionProps = {
   onBaseBranchMrSelect?: ComposerModel['handleBaseBranchMrSelect']
   onClearSmartNameSelection: ComposerModel['handleClearSmartNameSelection']
   canReuseSelectedBranch: boolean
+  onOpenSelectedBranchWorkspace?: () => void
   onReuseSelectedBranchChange: ComposerModel['handleReuseSelectedBranchChange']
   showCreateMultiple: boolean
   onCreateMultipleChange: ComposerModel['setCreateMultiple']

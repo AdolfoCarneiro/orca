@@ -17,6 +17,7 @@ import {
 import { createWorktreeWithNameRetry, type WorktreeCreateResult } from './worktree-create-retry'
 import type { WorktreeCreateAgentLaunch } from './agent-launch-request'
 import type { WorktreeCreateIdempotencyProbe } from './worktree-create-idempotency-policy'
+import { getClientWorktreeCreateCandidate } from '../../../src/shared/new-workspace/worktree-create-retry-policy'
 
 // Host resolution applies agent permission flags and shell quoting.
 export type WorkspaceCreateAgentBundle = {
@@ -217,7 +218,8 @@ async function createBranchWorkspace(args: {
             : {}),
           setupDecision,
           baseBranch: selection.refName,
-          branchNameOverride: selection.localBranchName
+          branchNameOverride: selection.localBranchName,
+          branchIntent: 'open-existing'
         })
     })
   }
@@ -231,18 +233,22 @@ async function createBranchWorkspace(args: {
     baseName,
     worktreeCreateIdempotency: args.worktreeCreateIdempotency,
     ...(agentLaunch ? { agentLaunch } : {}),
-    buildParams: (candidate) => {
+    buildParams: (candidate, attempt) => {
       const params: WorkspaceCreateParams = {
         repo: `id:${targetRepoId}`,
         name: candidate,
         setupDecision,
+        branchIntent: 'create-new',
         baseBranch: selection.baseBranch,
         ...(manualDisplayName
           ? { displayName: manualDisplayName, displayNameKind: 'user' as const }
           : {})
       }
       if (selection.branchNameOverride) {
-        params.branchNameOverride = candidate
+        params.branchNameOverride = getClientWorktreeCreateCandidate(
+          selection.branchNameOverride,
+          attempt
+        )
       }
       return applyCommon(params)
     }

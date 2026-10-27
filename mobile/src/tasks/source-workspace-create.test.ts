@@ -18,6 +18,14 @@ function fakeClient(handle: (method: string, call: number) => unknown, calls: Ca
       ) {
         throw new Error('Expected object request params')
       }
+      if (method === 'status.get') {
+        return {
+          id: 'status',
+          ok: true,
+          result: { capabilities: ['worktree.open-existing-branch.v2'] },
+          _meta: { runtimeId: 'r' }
+        }
+      }
       calls.push({ method, params: Object.fromEntries(Object.entries(params ?? {})) })
       const result = handle(method, calls.length)
       if (result instanceof Error) {
@@ -49,6 +57,65 @@ const baseArgs = {
 }
 
 describe('createWorkspaceFromComposerSource', () => {
+  it.each([[], ['worktree.open-existing-branch.v1']])(
+    'refuses remote reuse on an older host before any write (%j)',
+    async (capabilities) => {
+      const methods: string[] = []
+      const client = {
+        ...createFakeRpcClient(),
+        sendRequest: async (method: string) => {
+          methods.push(method)
+          return {
+            id: 'status',
+            ok: true as const,
+            result: { capabilities },
+            _meta: { runtimeId: 'r' }
+          }
+        }
+      }
+      const result = await createWorkspaceFromComposerSource({
+        ...baseArgs,
+        client,
+        selection: {
+          kind: 'branch',
+          baseBranch: 'origin/topic',
+          refName: 'origin/topic',
+          localBranchName: 'topic',
+          reuse: true
+        }
+      })
+      expect(result).toEqual({
+        error: expect.stringContaining('Update Orca on the workspace host')
+      })
+      expect(methods).toEqual(['status.get'])
+    }
+  )
+
+  it('sends explicit remote reuse and a separate edited workspace label', async () => {
+    const calls: Call[] = []
+    const client = fakeClient(() => ({ worktree: { id: 'remote-feature' } }), calls)
+    await createWorkspaceFromComposerSource({
+      ...baseArgs,
+      client,
+      workspaceName: 'Review workspace',
+      nameIsAutoManaged: false,
+      selection: {
+        kind: 'branch',
+        baseBranch: 'refs/remotes/origin/feature/test',
+        refName: 'refs/remotes/origin/feature/test',
+        localBranchName: 'feature/test',
+        reuse: true
+      }
+    })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.params).toMatchObject({
+      branchIntent: 'open-existing',
+      branchNameOverride: 'feature/test',
+      baseBranch: 'refs/remotes/origin/feature/test',
+      displayName: 'Review workspace',
+      displayNameKind: 'user'
+    })
+  })
   it('creates a GitHub issue workspace linking the issue to its own repo', async () => {
     const calls: Call[] = []
     const client = fakeClient(() => ({ worktree: { id: 'wt-1' } }), calls)

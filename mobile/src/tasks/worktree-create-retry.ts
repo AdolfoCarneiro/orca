@@ -4,7 +4,8 @@ import type { RpcResponse } from '../transport/types'
 import {
   agentLaunchRun,
   agentLaunchReplayRun,
-  worktreeCreateRun
+  worktreeCreateRun,
+  worktreeCreateCapabilityRead
 } from './mobile-workspace-create-operations'
 import {
   CLIENT_WORKTREE_CREATE_MAX_ATTEMPTS,
@@ -30,6 +31,7 @@ import {
   sendReplayingAmbiguousDelivery,
   type AmbiguousDeliveryReplay
 } from './replay-on-ambiguous-delivery'
+import { WORKTREE_OPEN_EXISTING_BRANCH_V2_RUNTIME_CAPABILITY } from '../../../src/shared/worktree-runtime-capabilities'
 
 // Branches and remote PRs outlive worktrees and escape local preflight dedupe; retry host collision errors with numeric suffixes.
 export type WorktreeCreateResult =
@@ -40,7 +42,7 @@ export type CreateWorktreeWithNameRetryArgs = {
   client: RpcClient
   baseName: string
   nameWasGenerated?: boolean
-  buildParams: (name: string) => WorkspaceCreateParams
+  buildParams: (name: string, attempt: number) => WorkspaceCreateParams
   worktreeCreateIdempotency: WorktreeCreateIdempotencyProbe
   agentLaunch?: WorktreeCreateAgentLaunch
   maxAttempts?: number
@@ -64,7 +66,21 @@ export async function createWorktreeWithNameRetry(
     const candidateName = args.nameWasGenerated
       ? getGeneratedWorktreeCreateRetryCandidate(baseName, attempt)
       : getClientWorktreeCreateCandidate(baseName, attempt)
-    const candidateParams = buildParams(candidateName)
+    const candidateParams = buildParams(candidateName, attempt)
+    if (attempt === 0 && candidateParams.branchIntent) {
+      const status = worktreeCreateCapabilityRead.interpret(
+        await worktreeCreateCapabilityRead.request(client)
+      )
+      if (
+        !status.accepted ||
+        !status.value.capabilities?.includes(WORKTREE_OPEN_EXISTING_BRANCH_V2_RUNTIME_CAPABILITY)
+      ) {
+        return {
+          error:
+            'Update Orca on the workspace host to reuse a branch or explicitly create a separate branch.'
+        }
+      }
+    }
     // Only advertised idempotency permits replay; use one key per candidate and a new key for each collision suffix.
     const params = worktreeCreateIdempotency
       ? { ...candidateParams, clientMutationId: mintMutationId() }
@@ -106,7 +122,11 @@ export async function createWorktreeWithNameRetry(
       break
     }
     lastError = response.error.message
-    if (launch?.replay || !isRetryableWorktreeCreateConflict(lastError ?? '')) {
+    if (
+      candidateParams.branchIntent === 'open-existing' ||
+      launch?.replay ||
+      !isRetryableWorktreeCreateConflict(lastError ?? '')
+    ) {
       break
     }
   }

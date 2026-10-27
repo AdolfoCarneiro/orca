@@ -1,14 +1,15 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useWorkspaceIdentityState } from './workspace-identity-state'
 import { useWorkItemSourceActions } from './work-item-source-actions'
 import type { SmartSourceSelection } from './source-selection-decisions'
+import { resolveComposerBranchNameOverrideForCreate } from '../../../../shared/composer-branch-selection'
 
 afterEach(cleanup)
 
-it('records existing intent only for a remote picker selection and clears it on Advanced edits', () => {
+it('records reuse intent for remote and local selections and clears it on Advanced edits', () => {
   const { result } = renderHook(() => {
     const identity = useWorkspaceIdentityState({
       initialBaseBranch: undefined,
@@ -42,5 +43,61 @@ it('records existing intent only for a remote picker selection and clears it on 
   act(() => result.current.identity.setBranchNameOverride('feature/test'))
   expect(result.current.identity.branchIntent).toBeUndefined()
   act(() => result.current.actions.handleSmartBranchSelect('feature/test', 'feature/test'))
-  expect(result.current.identity.branchIntent).toBeUndefined()
+  expect(result.current.identity.branchIntent).toBe('open-existing')
+  act(() => result.current.actions.handleReuseSelectedBranchChange(false))
+  expect(result.current.identity.branchIntent).toBe('create-new')
+  expect(result.current.identity.branchNameOverride).toBeUndefined()
+  act(() => result.current.actions.handleReuseSelectedBranchChange(true))
+  expect(result.current.identity.branchIntent).toBe('open-existing')
+  expect(result.current.identity.branchNameOverride).toBe('feature/test')
+})
+
+it('preserves workspace-name edits while reuse pins a remote branch, including explicit opt-in after a custom label', () => {
+  const { result } = renderHook(() => {
+    const [name, setName] = useState('Review workspace')
+    const identity = useWorkspaceIdentityState({
+      initialBaseBranch: undefined,
+      initialLinearBranchName: undefined,
+      initialLinkedWorkItem: null,
+      linkedWorkItem: null,
+      linkedWorkItemSeedIdentity: null,
+      name,
+      newWorkspaceDraft: null,
+      persistDraft: false,
+      selectedRepoConnectionId: null,
+      selectedRepoRuntimeEnvironmentId: null,
+      settings: null
+    })
+    const actions = useWorkItemSourceActions({
+      ...identity,
+      branchAutoNameRef: useRef(''),
+      lastAutoNameRef: useRef(''),
+      smartSourceSelectionRef: useRef<SmartSourceSelection | null>(null),
+      name,
+      repoId: 'repo',
+      setName,
+      worktreesByRepo: {}
+    })
+    return { identity, actions, name, setName }
+  })
+  act(() =>
+    result.current.actions.handleSmartBranchSelect(
+      'refs/remotes/origin/feature/test',
+      'feature/test'
+    )
+  )
+  expect(result.current.name).toBe('Review workspace')
+  expect(result.current.identity.reuseSelectedBranch).toBe(false)
+  act(() => result.current.actions.handleReuseSelectedBranchChange(true))
+  act(() => result.current.setName('Renamed review workspace'))
+  expect(result.current.identity.baseBranch).toBe('refs/remotes/origin/feature/test')
+  expect(result.current.identity.branchIntent).toBe('open-existing')
+  expect(
+    resolveComposerBranchNameOverrideForCreate({
+      branchNameOverride: result.current.identity.branchNameOverride,
+      branchAutoName: 'feature/test',
+      workspaceName: result.current.name,
+      preserveWorkspaceNameEdits: result.current.identity.branchNameOverridePreservesNameEdits
+    })
+  ).toBe('feature/test')
 })

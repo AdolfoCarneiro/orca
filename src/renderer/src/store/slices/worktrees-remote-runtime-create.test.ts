@@ -36,12 +36,12 @@ beforeEach(resetWorktreeSliceModuleMemory)
 
 describe('worktree remote runtime mutations', () => {
   it.each([false, true])(
-    'gates existing-branch intent on host capability (%s), retaining legacy suffix retry only without it',
+    'requires strict reuse support before creating on a remote host (%s)',
     async (supported) => {
       const status = createCompatibleRuntimeStatusResponse('runtime-remote')
       if (status.ok && !supported) {
         status.result.capabilities = status.result.capabilities?.filter(
-          (cap) => cap !== 'worktree.open-existing-branch.v1'
+          (cap) => cap !== 'worktree.open-existing-branch.v2'
         )
       }
       runtimeEnvironmentTransportCall.mockImplementation((args: RuntimeEnvironmentCallRequest) =>
@@ -66,28 +66,22 @@ describe('worktree remote runtime mutations', () => {
         }
       })
 
-      await (supported
-        ? expect(create(...args)).rejects.toThrow('Branch already has PR #42')
-        : create(...args))
-      const first = runtimeEnvironmentCall.mock.calls[0][0].params
-      if (supported) {
-        expect(first).toMatchObject({
-          branchIntent: 'open-existing',
-          branchNameOverride: 'feature/test'
-        })
-        expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(1)
-      } else {
-        expect(first).not.toHaveProperty('branchIntent')
-        expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(2)
-        expect(runtimeEnvironmentCall.mock.calls[1][0].params).toMatchObject({
-          branchNameOverride: 'feature/test-2'
-        })
+      if (!supported) {
+        await expect(create(...args)).rejects.toThrow('Update Orca on the workspace host')
+        expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
+        return
       }
+      await expect(create(...args)).rejects.toThrow('Branch already has PR #42')
+      expect(runtimeEnvironmentCall.mock.calls[0][0].params).toMatchObject({
+        branchIntent: 'open-existing',
+        branchNameOverride: 'feature/test'
+      })
+      expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(1)
     }
   )
 
   it('sends picker intent through the capable local host without suffixing a Git failure', async () => {
-    setLocalRuntimeCapabilitiesForTests(['worktree.open-existing-branch.v1'])
+    setLocalRuntimeCapabilitiesForTests(['worktree.open-existing-branch.v2'])
     try {
       const store = createRepoTestStore()
       const create = store.getState().createWorktree
@@ -107,6 +101,29 @@ describe('worktree remote runtime mutations', () => {
       setLocalRuntimeCapabilitiesForTests(null)
     }
   })
+
+  it.each(['open-existing', 'create-new'] as const)(
+    'refuses %s on a V1-only local host before any mutation',
+    async (branchIntent) => {
+      setLocalRuntimeCapabilitiesForTests(['worktree.open-existing-branch.v1'])
+      try {
+        const store = createRepoTestStore()
+        const create = store.getState().createWorktree
+        const args: Parameters<typeof create> = [
+          'repo1',
+          'feature/test',
+          'origin/feature/test',
+          'skip'
+        ]
+        args[12] = 'feature/test'
+        args[25] = { branchIntent }
+        await expect(create(...args)).rejects.toThrow('Update Orca on the workspace host')
+        expect(mockApi.worktrees.create).not.toHaveBeenCalled()
+      } finally {
+        setLocalRuntimeCapabilitiesForTests(null)
+      }
+    }
+  )
 
   beforeEach(() => {
     vi.clearAllMocks()

@@ -230,7 +230,7 @@ async function performAddWorktree(
     args.push(worktreePath, branch)
   } else {
     // Avoid inheriting the base's upstream; same-name remote bases are tracked explicitly afterward.
-    args.push('--no-track', '-b', branch, worktreePath)
+    args.push(options.trackRemoteBranch ? '--track' : '--no-track', '-b', branch, worktreePath)
     if (baseBranch) {
       const baseContext = await resolveWorktreeAddBaseContext(
         repoPath,
@@ -240,6 +240,11 @@ async function performAddWorktree(
         branch
       )
       effectiveBase = baseContext.effectiveBase
+      if (options.trackRemoteBranch && !effectiveBase.startsWith('refs/remotes/')) {
+        throw new Error(
+          'Reuse branch requires a remote-tracking ref when the local branch is missing.'
+        )
+      }
       pendingLocalBaseRefRefresh = baseContext.pendingLocalBaseRefRefresh
       localBaseRefUpdateSuggestion = baseContext.localBaseRefUpdateSuggestion
       args.push(effectiveBase)
@@ -273,7 +278,9 @@ async function performAddWorktree(
 
   if (effectiveBase && baseBranch) {
     await persistWorktreeCreationBase(worktreePath, branch, effectiveBase, options)
-    await trackSameNameRemoteBase(worktreePath, branch, baseBranch, effectiveBase, options)
+    if (!options.trackRemoteBranch) {
+      await trackSameNameRemoteBase(worktreePath, branch, baseBranch, effectiveBase, options)
+    }
   }
 
   // Git >= 2.37 can set an upstream on first push; --local intentionally writes shared repo config.
