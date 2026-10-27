@@ -36,8 +36,16 @@ export const pluginContributionSummarySchema = z
           .meta(pluginFieldDoc('Extra context, such as file extensions.', NEXT))
       })
       .meta({ id: 'CatalogContribution', description: 'One thing the release adds to Orca.' })
+      // Why per item: a newer catalog's unknown kind must drop only that item, not the summary.
+      .optional()
+      .catch(undefined)
   )
   .max(PLUGIN_CONTRIBUTION_SUMMARY_LIMIT)
+  .transform((items) => {
+    const known = items.filter((item) => item !== undefined)
+    // Nothing readable is unknown, not "adds nothing".
+    return known.length === 0 && items.length > 0 ? undefined : known
+  })
 
 /** What a manifest adds, as catalogs list it. Catalog CI generates the summary with this, and
  *  install compares a catalog's summary against it, so a listing cannot misstate a plugin. */

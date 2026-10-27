@@ -106,6 +106,17 @@ describe('catalog releases', () => {
     expect(check(release({ types: undefined }))).toBeNull()
   })
 
+  it('drops only the summary items this client cannot read', () => {
+    const parsed = pluginCatalogReleaseSchema.parse({
+      ...release(),
+      contributes: [
+        { kind: 'panels', name: 'Dash' },
+        { kind: 'futureEditors', name: 'Canvas', detail: '.canvas' }
+      ]
+    })
+    expect(parsed.contributes).toEqual([{ kind: 'panels', name: 'Dash' }])
+  })
+
   it('strips unknown optional fields instead of rejecting the release', () => {
     expect(pluginCatalogReleaseSchema.parse({ ...release(), futureField: 1 })).toEqual(release())
   })
