@@ -35,6 +35,7 @@ export type CreateWorkspaceFromComposerArgs = {
   note: string | undefined
   worktreeCreateIdempotency: WorktreeCreateIdempotencyProbe
   agentLaunchSupported: WorktreeCreateAgentLaunch['supported']
+  branchIntentSupported?: boolean | Promise<boolean>
 }
 
 export async function createWorkspaceFromComposerSource(
@@ -174,6 +175,7 @@ async function createBranchWorkspace(args: {
   note: string | undefined
   worktreeCreateIdempotency: WorktreeCreateIdempotencyProbe
   agentLaunchSupported: WorktreeCreateAgentLaunch['supported']
+  branchIntentSupported?: boolean | Promise<boolean>
 }): Promise<WorktreeCreateResult> {
   const {
     client,
@@ -209,6 +211,7 @@ async function createBranchWorkspace(args: {
       worktreeCreateIdempotency: args.worktreeCreateIdempotency,
       ...(agentLaunch ? { agentLaunch } : {}),
       maxAttempts: 1,
+      branchIntentSupported: args.branchIntentSupported,
       buildParams: (name) =>
         applyCommon({
           repo: `id:${targetRepoId}`,
@@ -219,7 +222,7 @@ async function createBranchWorkspace(args: {
           setupDecision,
           baseBranch: selection.refName,
           branchNameOverride: selection.localBranchName,
-          branchIntent: 'open-existing'
+          branchIntent: 'open-existing-v2'
         })
     })
   }
@@ -232,6 +235,7 @@ async function createBranchWorkspace(args: {
     client,
     baseName,
     worktreeCreateIdempotency: args.worktreeCreateIdempotency,
+    branchIntentSupported: args.branchIntentSupported,
     ...(agentLaunch ? { agentLaunch } : {}),
     buildParams: (candidate, attempt) => {
       const params: WorkspaceCreateParams = {

@@ -122,7 +122,7 @@ export async function createRuntimeLocalGitWorktree(args: {
   const addOptions: AddWorktreeOptions = {
     ...preparedWorktreeOptions,
     ...(args.checkoutExistingBranch ? { checkoutExistingBranch: true } : {}),
-    ...(args.request.branchIntent === 'open-existing' && !args.checkoutExistingBranch
+    ...(args.request.branchIntent === 'open-existing-v2' && !args.checkoutExistingBranch
       ? { trackRemoteBranch: true }
       : {})
   }
@@ -136,7 +136,7 @@ export async function createRuntimeLocalGitWorktree(args: {
       if (
         sparseDirectories.length > 0 ||
         args.checkoutExistingBranch ||
-        args.request.branchIntent === 'open-existing'
+        args.request.branchIntent === 'open-existing-v2'
       ) {
         args.timing.recordPreparedCheckout({
           status: 'miss',

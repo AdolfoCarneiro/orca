@@ -157,9 +157,9 @@ export async function trackSameNameRemoteBase(
   baseBranch: string,
   effectiveBase: string,
   options: AddWorktreeOptions
-): Promise<void> {
+): Promise<boolean> {
   if (!effectiveBase.startsWith('refs/remotes/')) {
-    return
+    return false
   }
   const parsed = parseRemoteTrackingLocalBaseRef(
     baseBranch,
@@ -167,15 +167,17 @@ export async function trackSameNameRemoteBase(
     options.remoteTrackingBase
   )
   if (parsed?.localBranch !== branch) {
-    return
+    return false
   }
   try {
     // Git 1.8+ resolves slash-containing remote names via fetch refspecs without another probe.
     await gitExecFileAsync(['branch', '--set-upstream-to', effectiveBase, branch], {
       ...gitExecOptions(worktreePath, options)
     })
+    return true
   } catch (error) {
     console.warn(`addWorktree: failed to track ${effectiveBase} for ${branch}`, error)
+    return false
   }
 }
 
@@ -223,6 +225,9 @@ async function performAddWorktree(
   let localBaseRefUpdateSuggestion: LocalBaseRefUpdateSuggestion | undefined
   const args = [...windowsLongPathGitArgs(repoPath), 'worktree', 'add']
   let effectiveBase: string | undefined
+  if (options.trackRemoteBranch && !baseBranch) {
+    throw new Error('Reuse branch requires a remote-tracking ref when the local branch is missing.')
+  }
   if (noCheckout) {
     args.push('--no-checkout')
   }
@@ -230,7 +235,7 @@ async function performAddWorktree(
     args.push(worktreePath, branch)
   } else {
     // Avoid inheriting the base's upstream; same-name remote bases are tracked explicitly afterward.
-    args.push(options.trackRemoteBranch ? '--track' : '--no-track', '-b', branch, worktreePath)
+    args.push('--no-track', '-b', branch, worktreePath)
     if (baseBranch) {
       const baseContext = await resolveWorktreeAddBaseContext(
         repoPath,
@@ -276,10 +281,18 @@ async function performAddWorktree(
     return {}
   }
 
+  let upstreamWarning: string | undefined
   if (effectiveBase && baseBranch) {
     await persistWorktreeCreationBase(worktreePath, branch, effectiveBase, options)
-    if (!options.trackRemoteBranch) {
-      await trackSameNameRemoteBase(worktreePath, branch, baseBranch, effectiveBase, options)
+    const tracked = await trackSameNameRemoteBase(
+      worktreePath,
+      branch,
+      baseBranch,
+      effectiveBase,
+      options
+    )
+    if (options.trackRemoteBranch && !tracked) {
+      upstreamWarning = `Could not set ${effectiveBase} as the upstream of "${branch}". Check the push destination before pushing; Git may use a different remote.`
     }
   }
 
@@ -288,6 +301,7 @@ async function performAddWorktree(
   const localBaseRefRefresh = await pendingLocalBaseRefRefresh
   return {
     ...(localBaseRefRefresh ? { localBaseRefRefresh } : {}),
+    ...(upstreamWarning ? { upstreamWarning } : {}),
     ...(localBaseRefUpdateSuggestion ? { localBaseRefUpdateSuggestion } : {})
   }
 }

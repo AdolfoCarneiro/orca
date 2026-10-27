@@ -4,8 +4,7 @@ import type { RpcResponse } from '../transport/types'
 import {
   agentLaunchRun,
   agentLaunchReplayRun,
-  worktreeCreateRun,
-  worktreeCreateCapabilityRead
+  worktreeCreateRun
 } from './mobile-workspace-create-operations'
 import {
   CLIENT_WORKTREE_CREATE_MAX_ATTEMPTS,
@@ -31,7 +30,6 @@ import {
   sendReplayingAmbiguousDelivery,
   type AmbiguousDeliveryReplay
 } from './replay-on-ambiguous-delivery'
-import { WORKTREE_OPEN_EXISTING_BRANCH_V2_RUNTIME_CAPABILITY } from '../../../src/shared/worktree-runtime-capabilities'
 
 // Branches and remote PRs outlive worktrees and escape local preflight dedupe; retry host collision errors with numeric suffixes.
 export type WorktreeCreateResult =
@@ -44,6 +42,7 @@ export type CreateWorktreeWithNameRetryArgs = {
   nameWasGenerated?: boolean
   buildParams: (name: string, attempt: number) => WorkspaceCreateParams
   worktreeCreateIdempotency: WorktreeCreateIdempotencyProbe
+  branchIntentSupported?: boolean | Promise<boolean>
   agentLaunch?: WorktreeCreateAgentLaunch
   maxAttempts?: number
   mintMutationId?: () => string
@@ -68,13 +67,7 @@ export async function createWorktreeWithNameRetry(
       : getClientWorktreeCreateCandidate(baseName, attempt)
     const candidateParams = buildParams(candidateName, attempt)
     if (attempt === 0 && candidateParams.branchIntent) {
-      const status = worktreeCreateCapabilityRead.interpret(
-        await worktreeCreateCapabilityRead.request(client)
-      )
-      if (
-        !status.accepted ||
-        !status.value.capabilities?.includes(WORKTREE_OPEN_EXISTING_BRANCH_V2_RUNTIME_CAPABILITY)
-      ) {
+      if ((await args.branchIntentSupported) !== true) {
         return {
           error:
             'Update Orca on the workspace host to reuse a branch or explicitly create a separate branch.'
@@ -123,7 +116,7 @@ export async function createWorktreeWithNameRetry(
     }
     lastError = response.error.message
     if (
-      candidateParams.branchIntent === 'open-existing' ||
+      candidateParams.branchIntent === 'open-existing-v2' ||
       launch?.replay ||
       !isRetryableWorktreeCreateConflict(lastError ?? '')
     ) {

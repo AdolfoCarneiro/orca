@@ -4,6 +4,7 @@ import type { Repo } from '../../shared/repo-types'
 import { getPRForBranch } from '../github/client'
 import type { GitAdmissionTier } from '../../shared/rpc-contract/git-admission-tier-params'
 import { gitExecFileAsync } from '../git/runner'
+import { foldGitRefNameCase } from '../git/repo-branch-conflict'
 import { listWorktrees } from '../git/worktree'
 import { computeValidatedBranchName } from '../ipc/worktree-branch-name'
 import { getHostedReviewForBranch } from '../source-control/hosted-review'
@@ -63,6 +64,21 @@ export async function canCheckoutExistingLocalBranch(
   if (explicitReuse && !localHead) {
     return false
   }
+  const hasExactBranchRef = async (name: string): Promise<boolean> => {
+    // Loose refs can resolve aliases on case-insensitive filesystems; require Git's stored spelling.
+    const ref = `refs/heads/${name}`
+    const { stdout } = await gitExecFileAsync(['for-each-ref', '--format=%(refname)', ref], {
+      cwd: repoPath,
+      ...gitOptions,
+      captureWslLoginShellOutput: true
+    })
+    return stdout.split(/\r?\n/).includes(ref)
+  }
+  if (explicitReuse && !(await hasExactBranchRef(branchName))) {
+    throw new Error(
+      `Branch "${branchName}" resolves to a differently named ref. Select its exact branch name, or turn off Reuse branch.`
+    )
+  }
   if (!explicitReuse && normalizeLocalBranchName(baseBranch) !== branchName) {
     if (!localHead) {
       return false
@@ -80,9 +96,19 @@ export async function canCheckoutExistingLocalBranch(
     }
   }
   const worktrees = await listWorktrees(repoPath, gitOptions)
-  const busy = worktrees.find(
-    (worktree) => normalizeLocalBranchName(worktree.branch) === branchName
-  )
+  let busy = worktrees.find((worktree) => normalizeLocalBranchName(worktree.branch) === branchName)
+  if (explicitReuse && !busy) {
+    for (const worktree of worktrees) {
+      const checkedOutBranch = normalizeLocalBranchName(worktree.branch)
+      if (
+        foldGitRefNameCase(checkedOutBranch) === foldGitRefNameCase(branchName) &&
+        !(await hasExactBranchRef(checkedOutBranch))
+      ) {
+        busy = worktree
+        break
+      }
+    }
+  }
   if (explicitReuse && busy) {
     throw new Error(
       `Branch "${branchName}" is already checked out at "${busy.path}". Open that workspace, or turn off Reuse branch to create a separate branch.`

@@ -85,7 +85,7 @@ export async function materializeRuntimeLocalWorktree<T>(args: {
       orcaCreationWorkspaceLayout: getWorktreeCreationLayout(repo, settings),
       ...displayNameMeta,
       baseRef: metadataBaseRef,
-      ...(checkoutExistingBranch || request.branchIntent === 'open-existing'
+      ...(checkoutExistingBranch || request.branchIntent === 'open-existing-v2'
         ? { preserveBranchOnDelete: true }
         : {}),
       ...(configuredPushTarget ? { pushTarget: configuredPushTarget } : {}),

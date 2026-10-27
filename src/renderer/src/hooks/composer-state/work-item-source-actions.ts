@@ -81,7 +81,7 @@ export function useWorkItemSourceActions(input: WorkItemSourceActionsInput) {
         setBranchNameOverride(defaultReuse ? (nextReuseEligibleBranch ?? undefined) : undefined)
         branchAutoNameRef.current = selection.branchNameOverride ? selection.branchAutoName : ''
       }
-      setBranchIntent(defaultReuse ? 'open-existing' : 'create-new')
+      setBranchIntent(defaultReuse ? 'open-existing-v2' : 'create-new')
     },
     [
       name,
@@ -114,7 +114,7 @@ export function useWorkItemSourceActions(input: WorkItemSourceActionsInput) {
       // Reuse pins the branch across name edits; opting out restores fresh-branch creation from the ref (#5181).
       setBranchNameOverridePreservesNameEdits(next)
       setBranchNameOverride(next ? reuseEligibleBranch : undefined)
-      setBranchIntent(next ? 'open-existing' : 'create-new')
+      setBranchIntent(next ? 'open-existing-v2' : 'create-new')
       if (next) {
         branchAutoNameRef.current = reuseEligibleBranch
       }

@@ -38,17 +38,17 @@ it('records reuse intent for remote and local selections and clears it on Advanc
   })
 
   act(() => result.current.actions.handleSmartBranchSelect('origin/feature/test', 'feature/test'))
-  expect(result.current.identity.branchIntent).toBe('open-existing')
+  expect(result.current.identity.branchIntent).toBe('open-existing-v2')
   expect(result.current.identity.branchNameOverride).toBe('feature/test')
   act(() => result.current.identity.setBranchNameOverride('feature/test'))
   expect(result.current.identity.branchIntent).toBeUndefined()
   act(() => result.current.actions.handleSmartBranchSelect('feature/test', 'feature/test'))
-  expect(result.current.identity.branchIntent).toBe('open-existing')
+  expect(result.current.identity.branchIntent).toBe('open-existing-v2')
   act(() => result.current.actions.handleReuseSelectedBranchChange(false))
   expect(result.current.identity.branchIntent).toBe('create-new')
   expect(result.current.identity.branchNameOverride).toBeUndefined()
   act(() => result.current.actions.handleReuseSelectedBranchChange(true))
-  expect(result.current.identity.branchIntent).toBe('open-existing')
+  expect(result.current.identity.branchIntent).toBe('open-existing-v2')
   expect(result.current.identity.branchNameOverride).toBe('feature/test')
 })
 
@@ -91,7 +91,7 @@ it('preserves workspace-name edits while reuse pins a remote branch, including e
   act(() => result.current.actions.handleReuseSelectedBranchChange(true))
   act(() => result.current.setName('Renamed review workspace'))
   expect(result.current.identity.baseBranch).toBe('refs/remotes/origin/feature/test')
-  expect(result.current.identity.branchIntent).toBe('open-existing')
+  expect(result.current.identity.branchIntent).toBe('open-existing-v2')
   expect(
     resolveComposerBranchNameOverrideForCreate({
       branchNameOverride: result.current.identity.branchNameOverride,

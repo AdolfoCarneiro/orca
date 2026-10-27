@@ -26,7 +26,8 @@ beforeEach(() => {
 
 describe('explicit local branch reuse on the execution host', () => {
   it('routes all probes through the WSL distro and does not compare or reset the remote tip', async () => {
-    git.mockResolvedValue({ stdout: 'local-ahead\n' })
+    git.mockResolvedValueOnce({ stdout: 'local-ahead\n' })
+    git.mockResolvedValueOnce({ stdout: 'refs/heads/feature/test\n' })
     worktrees.mockResolvedValue([])
     await expect(
       canCheckoutExistingLocalBranch(
@@ -41,9 +42,48 @@ describe('explicit local branch reuse on the execution host', () => {
       [
         ['rev-parse', '--verify', '--quiet', 'refs/heads/feature/test^{commit}'],
         { cwd: '/repo', wslDistro: 'Ubuntu' }
+      ],
+      [
+        ['for-each-ref', '--format=%(refname)', 'refs/heads/feature/test'],
+        { cwd: '/repo', wslDistro: 'Ubuntu', captureWslLoginShellOutput: true }
       ]
     ])
     expect(worktrees).toHaveBeenCalledWith('/repo', { wslDistro: 'Ubuntu' })
+  })
+
+  it('rejects a filesystem alias before attempting checkout through WSL', async () => {
+    git.mockResolvedValueOnce({ stdout: 'local-ahead\n' })
+    git.mockResolvedValueOnce({ stdout: '' })
+    await expect(
+      canCheckoutExistingLocalBranch(
+        '/repo',
+        'feature/TEST',
+        'origin/feature/test',
+        { wslDistro: 'Ubuntu' },
+        true
+      )
+    ).rejects.toThrow('Select its exact branch name')
+    expect(worktrees).not.toHaveBeenCalled()
+  })
+
+  it('detects a busy alias recorded by an older checkout through WSL', async () => {
+    git.mockResolvedValueOnce({ stdout: 'local-ahead\n' })
+    git.mockResolvedValueOnce({ stdout: 'refs/heads/feature/test\n' })
+    git.mockResolvedValueOnce({ stdout: '' })
+    worktrees.mockResolvedValue([{ path: '/busy', branch: 'refs/heads/feature/TEST' }])
+    await expect(
+      canCheckoutExistingLocalBranch(
+        '/repo',
+        'feature/test',
+        'origin/feature/test',
+        { wslDistro: 'Ubuntu' },
+        true
+      )
+    ).rejects.toThrow('already checked out at "/busy"')
+    expect(git).toHaveBeenLastCalledWith(
+      ['for-each-ref', '--format=%(refname)', 'refs/heads/feature/TEST'],
+      { cwd: '/repo', wslDistro: 'Ubuntu', captureWslLoginShellOutput: true }
+    )
   })
 
   it('propagates an unreadable local ref instead of treating it as permission to create', async () => {

@@ -105,7 +105,7 @@ const worktreePath = resolve('/worktrees', 'app')
 const pickedBranch = {
   baseBranch: 'origin/main',
   branchNameOverride: 'main',
-  branchIntent: 'open-existing'
+  branchIntent: 'open-existing-v2'
 } as const
 
 const writtenMeta: Partial<WorktreeMeta>[] = []

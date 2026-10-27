@@ -11,6 +11,7 @@ import type { WorktreeCheckoutProgressListener } from './worktree-checkout-progr
 export type AddWorktreeResult = {
   localBaseRefRefresh?: LocalBaseRefRefreshResult
   localBaseRefUpdateSuggestion?: LocalBaseRefUpdateSuggestion
+  upstreamWarning?: string
 }
 
 export type SparseWorktreeCreateError = Error & {
@@ -32,7 +33,7 @@ export type WorktreeRemovalPreflightOptions = GitWorktreeExecOptions & {
 
 export type AddWorktreeOptions = GitWorktreeExecOptions & {
   checkoutExistingBranch?: boolean
-  /** Materialize an explicitly reused remote branch with Git's upstream setup. */
+  /** Require a remote-tracking start point; set its upstream after creation when Git permits it. */
   trackRemoteBranch?: boolean
   /** Progress of the checkout `git worktree add` performs; never called for `--no-checkout`. */
   onCheckoutProgress?: WorktreeCheckoutProgressListener

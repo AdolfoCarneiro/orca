@@ -5,6 +5,7 @@ import type { AgentLaunchResult } from '../../../src/shared/agent-launch-intent'
 import { createWorkspaceFromComposerSource } from './source-workspace-create'
 import type { MobileComposerCreateSelection } from './mobile-composer-source-types'
 import { WORKTREE_CREATE_DEDUPE_TTL_LEGACY_HOST_MS } from './worktree-create-idempotency-policy'
+import { readNewWorktreeRuntimeCapabilities } from './worktree-create-capability'
 
 type Call = { method: string; params: Record<string, unknown> }
 
@@ -17,14 +18,6 @@ function fakeClient(handle: (method: string, call: number) => unknown, calls: Ca
         (typeof params !== 'object' || params === null || Array.isArray(params))
       ) {
         throw new Error('Expected object request params')
-      }
-      if (method === 'status.get') {
-        return {
-          id: 'status',
-          ok: true,
-          result: { capabilities: ['worktree.open-existing-branch.v2'] },
-          _meta: { runtimeId: 'r' }
-        }
       }
       calls.push({ method, params: Object.fromEntries(Object.entries(params ?? {})) })
       const result = handle(method, calls.length)
@@ -53,43 +46,48 @@ const baseArgs = {
   workspaceName: undefined,
   note: undefined,
   worktreeCreateIdempotency: IDEMPOTENT_CREATE_SUPPORT,
+  branchIntentSupported: true,
   agentLaunchSupported: false as const
 }
 
 describe('createWorkspaceFromComposerSource', () => {
-  it.each([[], ['worktree.open-existing-branch.v1']])(
-    'refuses remote reuse on an older host before any write (%j)',
-    async (capabilities) => {
-      const methods: string[] = []
-      const client = {
-        ...createFakeRpcClient(),
-        sendRequest: async (method: string) => {
-          methods.push(method)
-          return {
-            id: 'status',
-            ok: true as const,
-            result: { capabilities },
-            _meta: { runtimeId: 'r' }
-          }
+  it.each([
+    { capabilities: [] },
+    { capabilities: ['worktree.open-existing-branch.v1'] },
+    { capabilities: ['worktree.open-existing-branch.v2'] }
+  ])('refuses remote reuse on an older host before any write (%j)', async ({ capabilities }) => {
+    const methods: string[] = []
+    const client = {
+      ...createFakeRpcClient(),
+      sendRequest: async (method: string) => {
+        methods.push(method)
+        return {
+          id: 'status',
+          ok: true as const,
+          result: { capabilities },
+          _meta: { runtimeId: 'r' }
         }
       }
-      const result = await createWorkspaceFromComposerSource({
-        ...baseArgs,
-        client,
-        selection: {
-          kind: 'branch',
-          baseBranch: 'origin/topic',
-          refName: 'origin/topic',
-          localBranchName: 'topic',
-          reuse: true
-        }
-      })
-      expect(result).toEqual({
-        error: expect.stringContaining('Update Orca on the workspace host')
-      })
-      expect(methods).toEqual(['status.get'])
     }
-  )
+    const result = await createWorkspaceFromComposerSource({
+      ...baseArgs,
+      client,
+      branchIntentSupported: readNewWorktreeRuntimeCapabilities(client).then(
+        (support) => support?.branchIntentV2Request === true
+      ),
+      selection: {
+        kind: 'branch',
+        baseBranch: 'origin/topic',
+        refName: 'origin/topic',
+        localBranchName: 'topic',
+        reuse: true
+      }
+    })
+    expect(result).toEqual({
+      error: expect.stringContaining('Update Orca on the workspace host')
+    })
+    expect(methods).toEqual(['status.get'])
+  })
 
   it('sends explicit remote reuse and a separate edited workspace label', async () => {
     const calls: Call[] = []
@@ -109,12 +107,32 @@ describe('createWorkspaceFromComposerSource', () => {
     })
     expect(calls).toHaveLength(1)
     expect(calls[0]?.params).toMatchObject({
-      branchIntent: 'open-existing',
+      branchIntent: 'open-existing-v2',
       branchNameOverride: 'feature/test',
       baseBranch: 'refs/remotes/origin/feature/test',
       displayName: 'Review workspace',
       displayNameKind: 'user'
     })
+  })
+
+  it('retains an upstream warning returned by the workspace host', async () => {
+    const calls: Call[] = []
+    const client = fakeClient(
+      () => ({ worktree: { id: 'remote-feature' }, warning: 'Check the push destination.' }),
+      calls
+    )
+    const result = await createWorkspaceFromComposerSource({
+      ...baseArgs,
+      client,
+      selection: {
+        kind: 'branch',
+        baseBranch: 'origin/topic',
+        refName: 'origin/topic',
+        localBranchName: 'topic',
+        reuse: true
+      }
+    })
+    expect(result).toMatchObject({ warning: 'Check the push destination.' })
   })
   it('creates a GitHub issue workspace linking the issue to its own repo', async () => {
     const calls: Call[] = []

@@ -38,6 +38,7 @@ import type { WorktreeCreatePathClaim } from '../worktree-create-in-flight'
 import type { RuntimeStore } from './runtime-store-contract'
 import type { HostedReviewExecutionOptions } from '../source-control/hosted-review-git-options'
 import type { RemoteTrackingBase } from './runtime-remote-fetch-controller'
+import { resolveLegacyRemoteBranch } from './runtime-local-worktree-create-legacy-branch'
 
 export type RuntimeLocalWorktreeCreateCandidate = {
   effectiveRequestedName: string
@@ -96,7 +97,11 @@ export async function resolveRuntimeLocalWorktreeCreateCandidate(args: {
         )
       : null
   const isRetiredName = retiredNameRegistry ? createRetiredNameLookup(retiredNameRegistry) : null
-  if (args.request.branchIntent === 'open-existing') {
+  selectedReuseBranchName = await resolveLegacyRemoteBranch({ ...args, sanitizedName })
+  if (selectedReuseBranchName) {
+    branchName = selectedReuseBranchName
+  }
+  if (args.request.branchIntent === 'open-existing-v2') {
     if (
       !args.request.branchNameOverride ||
       args.request.pushTarget ||
