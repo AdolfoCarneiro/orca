@@ -25,6 +25,10 @@ import {
 } from './file-preview-budget'
 import { readLocalFileRange } from '../../ipc/filesystem/local-file-range-read'
 import { windowsFsPath } from '../../wsl/wsl-unc-drive-fs-path'
+import { guardWslUncPathAccess } from '../../wsl/wsl-unc-access-gate'
+import { resolveLocalFileRequestPath } from '../../ipc/local-file-access-resolution'
+import type { LocalFileAccess } from '../../../shared/local-file-access'
+import { IMAGE_FILE_MIME_TYPES } from '../../../shared/image-file-extensions'
 import { resolveRuntimeAuthorizedPath } from './chat-scratch-file-root'
 import {
   NodeFileReadTooLargeError,
@@ -35,6 +39,8 @@ import type {
   DocPreviewFileAccessRequest,
   DocPreviewFileAccessResult
 } from '../../../shared/doc-preview-file-access'
+
+const CHAT_IMAGE_ACCESS: LocalFileAccess = { kind: 'chat-image' }
 
 type RuntimeFileReadHost = Pick<RuntimeFileCommandHost, 'requireStore' | 'resolveRuntimeFileTarget'>
 
@@ -168,6 +174,45 @@ export class RuntimeFileReads {
     requireLocalRuntimeFileRoute(target)
     const filePath = await resolveRuntimeAuthorizedPath(target.path, this.host.requireStore())
     return readLocalFileRange(filePath, offset, length)
+  }
+
+  /** A host image a chat names, under desktop's chat-image rule; the path must be on this machine. */
+  async readChatImagePreview(
+    worktreeSelector: string,
+    filePath: string,
+    maxContentBytes?: number
+  ): Promise<RuntimeFilePreviewResult> {
+    requireLocalRuntimeFileRoute(await this.host.resolveRuntimeFileTarget(worktreeSelector))
+    const store = this.host.requireStore()
+    // Automatic loads never wake a stopped WSL distro.
+    return guardWslUncPathAccess(filePath, async () => {
+      const imagePath = await resolveLocalFileRequestPath(filePath, CHAT_IMAGE_ACCESS, store)
+      const mimeType = IMAGE_FILE_MIME_TYPES[extname(imagePath).toLowerCase()]
+      if (!mimeType) {
+        throw new Error('not_an_image')
+      }
+      let buffer: Buffer
+      try {
+        buffer = (
+          await readNodeFileWithinLimit(
+            windowsFsPath(imagePath),
+            maxContentBytes === undefined
+              ? LOCAL_PREVIEWABLE_BINARY_MAX_BYTES
+              : previewableBinaryByteLimit(maxContentBytes),
+            { regularFileOnly: true }
+          )
+        ).buffer
+      } catch (error) {
+        if (error instanceof NodeFileReadTooLargeError) {
+          throw new Error('file_too_large')
+        }
+        throw error
+      }
+      return assertPreviewWithinTransportBudget(
+        { content: buffer.toString('base64'), isBinary: true, isImage: true, mimeType },
+        maxContentBytes
+      )
+    })
   }
 }
 
