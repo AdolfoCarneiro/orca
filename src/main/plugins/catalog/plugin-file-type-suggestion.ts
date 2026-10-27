@@ -4,7 +4,6 @@ import {
   type PluginFileTypeSuggestionPurpose,
   type PluginFileTypeSuggestionSettings
 } from '../../../shared/plugins/plugin-file-type'
-import type { PluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog-release'
 import { isInvalidDiscoveredPlugin, type DiscoveredPlugin } from '../plugin-discovery'
 import type { PluginMarketplaceListing } from './plugin-marketplace-projection'
 
@@ -58,7 +57,7 @@ export function findPluginFileTypeSuggestion(input: {
       !candidate.blockedByKillList &&
       !installedKeys.has(candidate.pluginKey) &&
       candidate.release?.fileTypes?.includes(fileType) &&
-      (!editorOnly || releaseEditorFileTypes(candidate.release).includes(fileType))
+      (!editorOnly || candidate.release?.editorFileTypes?.includes(fileType))
   )
   return listing
     ? {
@@ -68,13 +67,4 @@ export function findPluginFileTypeSuggestion(input: {
         ...(listing.release?.name ? { name: listing.release.name } : {})
       }
     : null
-}
-
-/** Editor types the listing names. `fileTypes`, which install verifies, is what proves the
- *  plugin really opens them; the summary only says which of those are editors. */
-function releaseEditorFileTypes(release: PluginCatalogRelease): string[] {
-  return (release.contributes ?? [])
-    .filter((item) => item.kind === 'customEditors')
-    .flatMap((item) => (item.detail ?? '').split(', '))
-    .map((suffix) => suffix.replace(/^\./, ''))
 }

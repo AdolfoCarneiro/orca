@@ -63,6 +63,7 @@ The exact release the catalog vouches for. Orca refuses bytes that differ.
 | `contributes` | [CatalogContribution](#catalogcontribution)[] | no | 1.4.244 | What the release adds, as the listing shows it. Generate it with the catalog tooling; Orca refuses an install whose manifest says otherwise. |
 | `capabilities` | (`"workspace:read"` \| `"agents:read"` \| `"terminal:send"` \| `"notifications:show"` \| `"storage:own"` \| `"secrets:own"` \| `"settings:own"`)[] | no | 1.4.244 | Every capability the release asks for. Orca refuses an install whose manifest asks for different ones. Example: `["notifications:show"]` |
 | `fileTypes` | string[] | no | 1.4.244 | Extensions, without the dot, that this release opens. Orca suggests the plugin when such a file has no viewer. |
+| `editorFileTypes` | string[] | no | 1.4.244 | The `fileTypes` this release opens in a custom editor. Orca suggests the plugin for such a file even when it already opens it as text. |
 
 ## CatalogImages
 

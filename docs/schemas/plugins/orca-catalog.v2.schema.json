@@ -352,6 +352,15 @@
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9+_-]{0,15}$"
           }
+        },
+        "editorFileTypes": {
+          "description": "The `fileTypes` this release opens in a custom editor. Orca suggests the plugin for such a file even when it already opens it as text.",
+          "x-orca-since": "1.4.244",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9+_-]{0,15}$"
+          }
         }
       },
       "required": [

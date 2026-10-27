@@ -13,7 +13,11 @@ import {
 } from '../plugin-contribution-summary'
 import { pluginCatalogReleaseDetailFields } from '../plugin-detail-fields'
 import { pluginCatalogImagesSchema } from '../plugin-image-fields'
-import { pluginFileTypeSchema, pluginHandledFileTypes } from '../plugin-file-type'
+import {
+  pluginEditorFileTypes,
+  pluginFileTypeSchema,
+  pluginHandledFileTypes
+} from '../plugin-file-type'
 import type { PluginManifest } from '../manifest/plugin-manifest'
 import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from '../manifest/plugin-schema-field-docs'
 
@@ -168,6 +172,20 @@ export const pluginCatalogReleaseSchema = z
           NEXT,
           [['gleam']]
         )
+      ),
+    /** Invalid entries are dropped, not fatal, so a newer catalog never hides the plugin. */
+    editorFileTypes: z
+      .array(pluginFileTypeSchema.optional().catch(undefined))
+      .transform((entries) =>
+        [...new Set(entries)].filter((entry): entry is string => entry !== undefined).slice(0, 32)
+      )
+      .optional()
+      .meta(
+        pluginFieldDoc(
+          'The `fileTypes` this release opens in a custom editor. Orca suggests the plugin for such a file even when it already opens it as text.',
+          NEXT,
+          [['excalidraw']]
+        )
       )
   })
   .superRefine((release, ctx) => {
@@ -199,6 +217,7 @@ export function pluginCatalogReleaseEntry(
     return null
   }
   const fileTypes = pluginHandledFileTypes(manifest.contributes)
+  const editorFileTypes = pluginEditorFileTypes(manifest.contributes)
   const capabilities = [...new Set(manifest.capabilities.map((capability) => capability.kind))]
   return {
     version: manifest.version,
@@ -209,7 +228,8 @@ export function pluginCatalogReleaseEntry(
     name: manifest.name,
     contributes: pluginContributionSummary(manifest),
     ...(capabilities.length > 0 ? { capabilities } : {}),
-    ...(fileTypes.length > 0 ? { fileTypes } : {})
+    ...(fileTypes.length > 0 ? { fileTypes } : {}),
+    ...(editorFileTypes.length > 0 ? { editorFileTypes } : {})
   }
 }
 
@@ -252,6 +272,10 @@ export function pluginCatalogReleaseError(input: {
   }
   if (release.fileTypes?.some((fileType) => !handled.has(fileType))) {
     return 'file types do not match the catalog release'
+  }
+  const editorTypes = new Set(pluginEditorFileTypes(manifest.contributes))
+  if (release.editorFileTypes?.some((fileType) => !editorTypes.has(fileType))) {
+    return 'editor file types do not match the catalog release'
   }
   if (
     release.contributes &&

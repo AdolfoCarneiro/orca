@@ -117,7 +117,7 @@ describe('contributes.customEditors', () => {
     ])
     expect(
       pluginCatalogReleaseEntry(plugin, { commit: 'a'.repeat(40), contentHash: 'h' })
-    ).toMatchObject({ fileTypes: ['excalidraw'] })
+    ).toMatchObject({ fileTypes: ['excalidraw'], editorFileTypes: ['excalidraw'] })
   })
 
   it('binds approval to the editor bytes and counts a new file type as more reach', () => {

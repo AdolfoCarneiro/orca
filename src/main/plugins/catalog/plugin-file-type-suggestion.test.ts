@@ -123,6 +123,7 @@ describe('editor suggestions for files Orca already opens as text', () => {
         execution: 'sandboxed-ui',
         minimumOrca: '1.4.0',
         fileTypes: ['excalidraw'],
+        editorFileTypes: ['excalidraw'],
         contributes: [
           { kind: 'customEditors', name: 'Excalidraw', detail: '.excalidraw, .excalidraw.json' }
         ]
@@ -163,6 +164,20 @@ describe('editor suggestions for files Orca already opens as text', () => {
         purpose: 'editor',
         settings,
         listings: [misstated],
+        installed: []
+      })
+    ).toBeNull()
+  })
+
+  it('reads editor types from structured release data, never the display summary', () => {
+    const summaryOnly = excalidraw()
+    delete summaryOnly.release.editorFileTypes
+    expect(
+      findPluginFileTypeSuggestion({
+        fileType: 'excalidraw',
+        purpose: 'editor',
+        settings,
+        listings: [summaryOnly],
         installed: []
       })
     ).toBeNull()
