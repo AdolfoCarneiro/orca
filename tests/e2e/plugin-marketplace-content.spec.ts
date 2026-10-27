@@ -1,4 +1,4 @@
-// Use production Git paths from a fresh profile for official marketplace discovery and Phase 1 language/VM/keybinding setup.
+// Use production Git paths from a fresh profile for official marketplace discovery and Phase 1 language and VM recipe setup.
 
 import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -15,8 +15,7 @@ import {
 const FIXTURE_REPOSITORIES = [
   'orca-plugins',
   FIXTURE_LANGUAGE_PLUGIN.repository,
-  'orca-multipass-recipes',
-  'orca-navigation-shortcuts'
+  'orca-multipass-recipes'
 ]
 
 type MarketplaceFixture = {
@@ -54,12 +53,6 @@ async function createMarketplaceFixture(): Promise<MarketplaceFixture> {
     'stablyai.orca-multipass-recipes',
     gitEnvironment
   )
-  await copyLaunchPlugin(
-    repositories,
-    'orca-navigation-shortcuts',
-    'stablyai.orca-navigation-shortcuts',
-    gitEnvironment
-  )
 
   const marketplaceRepository = join(repositories, 'orca-plugins.git')
   await mkdir(marketplaceRepository, { recursive: true })
@@ -71,8 +64,7 @@ async function createMarketplaceFixture(): Promise<MarketplaceFixture> {
         owner: 'stablyai',
         plugins: [
           [FIXTURE_LANGUAGE_PLUGIN.pluginKey, FIXTURE_LANGUAGE_PLUGIN.repository, 'languages'],
-          ['stablyai.orca-multipass-recipes', 'orca-multipass-recipes', 'vm-recipes'],
-          ['stablyai.orca-navigation-shortcuts', 'orca-navigation-shortcuts', 'keybindings']
+          ['stablyai.orca-multipass-recipes', 'orca-multipass-recipes', 'vm-recipes']
         ].map(([id, repository, category]) => ({
           id,
           source: {
@@ -152,25 +144,6 @@ async function installMarketplacePluginThroughUi(
   await backToPluginList(page)
 }
 
-async function enableInstalledPluginThroughUi(
-  page: Page,
-  pluginKey: string,
-  pluginName: string
-): Promise<void> {
-  await page.getByRole('tab', { name: /^Installed/ }).click()
-  const plugin = page.locator(`[data-plugin-key="${pluginKey}"]`)
-  await expect(plugin).toBeVisible()
-  await plugin.getByRole('button', { name: 'Review', exact: true }).click()
-  const consent = page.locator('[data-plugin-consent]')
-  await expect(consent).toBeVisible()
-  await expect(page.locator('#plugin-detail-heading')).toHaveText(pluginName)
-  await page
-    .getByRole('article')
-    .getByRole('button', { name: /^Enable plugin/ })
-    .click()
-  await expect(consent).toBeHidden()
-}
-
 async function applyInstalledLanguage(page: Page): Promise<void> {
   const languageId = `plugin:${FIXTURE_LANGUAGE_PLUGIN.pluginKey}/${FIXTURE_LANGUAGE_PLUGIN.locale}`
   await page.evaluate(() => {
@@ -213,11 +186,7 @@ async function runMarketplaceJourney(page: Page): Promise<void> {
       sources: [expect.objectContaining({ official: true, stale: false })],
       listings: expect.arrayContaining([
         expect.objectContaining({ pluginKey: FIXTURE_LANGUAGE_PLUGIN.pluginKey, official: true }),
-        expect.objectContaining({ pluginKey: 'stablyai.orca-multipass-recipes', official: true }),
-        expect.objectContaining({
-          pluginKey: 'stablyai.orca-navigation-shortcuts',
-          official: true
-        })
+        expect.objectContaining({ pluginKey: 'stablyai.orca-multipass-recipes', official: true })
       ])
     })
 
@@ -232,11 +201,6 @@ async function runMarketplaceJourney(page: Page): Promise<void> {
     'stablyai.orca-multipass-recipes',
     'Multipass VM Recipes',
     { runsInstructions: true }
-  )
-  await enableInstalledPluginThroughUi(
-    page,
-    'stablyai.orca-navigation-shortcuts',
-    'Orca Navigation Shortcuts'
   )
 
   await applyInstalledLanguage(page)

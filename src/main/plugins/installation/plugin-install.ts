@@ -1,7 +1,7 @@
-import { mkdtemp, realpath, rm } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { join } from 'node:path'
 import {
   PLUGIN_MANIFEST_FILENAME,
   isQualifiedPluginKey,
@@ -10,11 +10,11 @@ import {
 import {
   isAllowedPluginGitUrl,
   PLUGIN_COMMIT_PATTERN,
-  pluginInstallSourceSchema,
-  removePluginLock
+  pluginInstallSourceSchema
 } from '../../../shared/plugins/plugin-install-lockfile'
 import type { PluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog-release'
-import { readPluginLockfile, writePluginLockfile } from './plugin-install-lockfile-store'
+import { readPluginLockfile } from './plugin-install-lockfile-store'
+import { serializePluginMutation } from './plugin-mutation-queue'
 import {
   inspectPluginInstallTree,
   installStagedPluginTree,
@@ -27,6 +27,8 @@ import { publishPluginInstall } from './plugin-install-publication'
 
 export type { PluginInstallResult } from './plugin-install-staging'
 
+export { removeInstalledPlugin, retireBundledPlugin } from './plugin-removal'
+
 export {
   PLUGIN_LOCKFILE_MAX_BYTES,
   pluginLockfilePath,
@@ -34,28 +36,6 @@ export {
 } from './plugin-install-lockfile-store'
 
 // Use system Git credentials without install scripts; publish immutable trees atomically and retain one rollback.
-
-const pluginMutationChains = new Map<string, Promise<void>>()
-
-async function serializePluginMutation<T>(
-  pluginsDir: string,
-  operation: () => Promise<T>
-): Promise<T> {
-  const previous = pluginMutationChains.get(pluginsDir) ?? Promise.resolve()
-  const run = previous.catch(() => undefined).then(operation)
-  const settled = run.then(
-    () => undefined,
-    () => undefined
-  )
-  pluginMutationChains.set(pluginsDir, settled)
-  try {
-    return await run
-  } finally {
-    if (pluginMutationChains.get(pluginsDir) === settled) {
-      pluginMutationChains.delete(pluginsDir)
-    }
-  }
-}
 
 export async function installPluginFromLocalPath(input: {
   pluginsDir: string
@@ -261,57 +241,4 @@ export async function rollbackInstalledPlugin(input: {
       resolvedCommit: provenance.resolvedCommit
     }
   })
-}
-
-export async function removeInstalledPlugin(input: {
-  pluginsDir: string
-  pluginsDataDir: string
-  pluginKey: string
-}): Promise<void> {
-  await serializePluginMutation(input.pluginsDir, async () => {
-    if (!isQualifiedPluginKey(input.pluginKey)) {
-      throw new Error(`invalid qualified plugin key: ${input.pluginKey}`)
-    }
-    const lock = await readPluginLockfile(input.pluginsDir)
-    if (lock.plugins[input.pluginKey]?.source.kind === 'bundled') {
-      throw new Error(`cannot remove protected plugin ${input.pluginKey}`)
-    }
-    await removeResolvedPluginDirectory(input.pluginsDir, input.pluginKey)
-    await removeResolvedPluginDirectory(input.pluginsDataDir, input.pluginKey)
-    await writePluginLockfile(
-      input.pluginsDir,
-      removePluginLock(await readPluginLockfile(input.pluginsDir), input.pluginKey)
-    )
-  })
-}
-
-async function removeResolvedPluginDirectory(rootDir: string, pluginKey: string): Promise<void> {
-  let rootReal: string
-  let targetReal: string
-  try {
-    rootReal = await realpath(resolve(rootDir))
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return
-    }
-    throw error
-  }
-  try {
-    targetReal = await realpath(resolve(rootDir, pluginKey))
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return
-    }
-    throw error
-  }
-  const fromRoot = relative(rootReal, targetReal)
-  if (
-    fromRoot.length === 0 ||
-    isAbsolute(fromRoot) ||
-    fromRoot === '..' ||
-    fromRoot.startsWith(`..${sep}`)
-  ) {
-    throw new Error(`refusing to remove plugin path outside ${rootReal}`)
-  }
-  await rm(resolve(rootDir, pluginKey), { recursive: true, force: true })
 }
