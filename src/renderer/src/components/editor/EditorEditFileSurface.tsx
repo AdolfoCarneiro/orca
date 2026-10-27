@@ -278,7 +278,16 @@ export function EditorEditFileSurface({
     </RecoverableRenderErrorBoundary>
   )
 
-  const editorSurface = isMarkdown ? (
+  const editorSurface = customEditor ? (
+    <PluginCustomEditorFrame
+      key={`${activeFile.id}\u0000${customEditor.key}`}
+      editor={customEditor}
+      content={currentContent}
+      readOnly={activeFile.readOnly === true}
+      onContentChange={handleContentChange}
+      onSave={handleSave}
+    />
+  ) : isMarkdown ? (
     <EditorMarkdownFileSurface
       activeFile={activeFile}
       viewStateScopeId={viewStateScopeId}
@@ -315,15 +324,6 @@ export function EditorEditFileSurface({
       onDirtyStateHint={activeFile.readOnly ? undefined : handleDirtyStateHint}
       onContentChange={activeFile.readOnly ? undefined : handleContentChange}
       onSave={activeFile.readOnly ? undefined : handleSave}
-    />
-  ) : customEditor ? (
-    <PluginCustomEditorFrame
-      key={`${activeFile.id}\u0000${customEditor.key}`}
-      editor={customEditor}
-      content={currentContent}
-      readOnly={activeFile.readOnly === true}
-      onContentChange={handleContentChange}
-      onSave={handleSave}
     />
   ) : isNotebook && mdViewMode === 'rich' ? (
     <IpynbViewer

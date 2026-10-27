@@ -52,7 +52,10 @@ export function resolveCustomEditorToggle({
     active: resolveCustomEditorChoice(editors, choice),
     modes: [
       ...editors.map(customEditorToggleValue),
-      ...(sourceModes.includes('edit') ? sourceModes : ['edit' as const, ...sourceModes])
+      // Markdown, CSV and notebooks keep their own view modes as the non-plugin choices.
+      ...(sourceModes.some((mode) => mode !== 'changes')
+        ? sourceModes
+        : ['edit' as const, ...sourceModes])
     ]
   }
 }
@@ -68,11 +71,8 @@ export function applyCustomEditorToggle(
     setChoice(fileId, customEditorKeyOfToggle(next))
     return null
   }
-  if (next === 'edit') {
-    if (hasCustomEditors) {
-      setChoice(fileId, 'source')
-    }
-    return null
+  if (hasCustomEditors) {
+    setChoice(fileId, 'source')
   }
-  return next
+  return next === 'edit' ? null : next
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { create } from 'zustand'
 import type { PluginHostCustomEditor, PluginHostListEntry } from '../../../preload/api-types'
 import { matchCustomEditorFileType } from '../../../shared/plugins/plugin-custom-editor-contribution'
+import { customEditorMayOpenByDefault } from '../../../shared/plugins/plugin-custom-editor-core-file-types'
 import { ensurePluginPanelsLoaded, usePluginPanelsStore } from './plugin-panels'
 
 /** A custom editor from an enabled plugin. `key` is unique across plugins. */
@@ -35,16 +36,25 @@ export function collectActivePluginCustomEditors(
     )
 }
 
-/** Editors that open this file, `default` priority first, otherwise in plugin order. */
+/** Editors that open this file, `default` priority first. A plugin never opens an Orca-core file
+ *  type by default, so there its editors are only offered. Ties go by plugin key, not list order. */
 export function customEditorsForFile(
   filePath: string,
   editors: readonly ActivePluginCustomEditor[]
 ): ActivePluginCustomEditor[] {
-  const matching = editors.filter(
-    (editor) => matchCustomEditorFileType(filePath, editor.fileTypes) !== null
-  )
+  const matching = editors.flatMap((editor) => {
+    const fileType = matchCustomEditorFileType(filePath, editor.fileTypes)
+    if (fileType === null) {
+      return []
+    }
+    const takesDefault =
+      editor.priority === 'default' && customEditorMayOpenByDefault(filePath, fileType)
+    return [{ ...editor, priority: takesDefault ? ('default' as const) : ('option' as const) }]
+  })
+  const byPlugin = (a: ActivePluginCustomEditor, b: ActivePluginCustomEditor): number =>
+    a.pluginKey < b.pluginKey ? -1 : a.pluginKey > b.pluginKey ? 1 : 0
   return [
-    ...matching.filter((editor) => editor.priority === 'default'),
+    ...matching.filter((editor) => editor.priority === 'default').sort(byPlugin),
     ...matching.filter((editor) => editor.priority !== 'default')
   ]
 }

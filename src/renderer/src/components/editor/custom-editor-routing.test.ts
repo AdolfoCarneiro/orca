@@ -117,6 +117,65 @@ describe('custom editor routing', () => {
     expect(model({ editors, choice: 'acme.alt/alt' }).activeCustomEditor?.key).toBe('acme.alt/alt')
   })
 
+  it('never opens an Orca-core file type by default but still offers the editor', () => {
+    const editors = (filePath: string) =>
+      customEditorsForFile(
+        filePath,
+        collectActivePluginCustomEditors([
+          plugin({
+            pluginKey: 'acme.json',
+            customEditors: [
+              { id: 'json', title: 'Json', fileTypes: ['json', 'md'], priority: 'default' }
+            ]
+          })
+        ])
+      )
+    const config = file({ id: '/repo/config.json', filePath: '/repo/config.json' })
+    const json = model({ activeFile: config, editors: editors(config.filePath) })
+    expect(json.activeCustomEditor).toBeNull()
+    expect(json.availableEditorToggleModes[0]).toBe('plugin-editor:acme.json/json')
+    expect(
+      model({ activeFile: config, editors: editors(config.filePath), choice: 'acme.json/json' })
+        .activeCustomEditor?.key
+    ).toBe('acme.json/json')
+    expect(editors('/repo/package.json')[0]?.priority).toBe('option')
+    expect(editors('/repo/.env.local')).toEqual([])
+
+    const readme = file({
+      id: '/repo/README.md',
+      filePath: '/repo/README.md',
+      relativePath: 'README.md',
+      language: 'markdown'
+    })
+    const markdown = model({ activeFile: readme, editors: editors(readme.filePath) })
+    expect(markdown.activeCustomEditor).toBeNull()
+    expect(markdown.availableEditorToggleModes).toEqual([
+      'plugin-editor:acme.json/json',
+      'source',
+      'rich',
+      'changes'
+    ])
+    expect(
+      model({ activeFile: readme, editors: editors(readme.filePath), choice: 'acme.json/json' })
+        .effectiveToggleValue
+    ).toBe('plugin-editor:acme.json/json')
+  })
+
+  it('breaks a tie between two default editors by plugin key, not list order', () => {
+    const draw = (pluginKey: string) =>
+      plugin({
+        pluginKey,
+        customEditors: [
+          { id: 'd', title: pluginKey, fileTypes: ['excalidraw'], priority: 'default' }
+        ]
+      })
+    const editors = customEditorsForFile(
+      '/repo/diagram.excalidraw',
+      collectActivePluginCustomEditors([draw('zeta.draw'), draw('alpha.draw')])
+    )
+    expect(editors[0]?.pluginKey).toBe('alpha.draw')
+  })
+
   it('opens Source when only option editors match', () => {
     const editors = collectActivePluginCustomEditors([
       plugin({
