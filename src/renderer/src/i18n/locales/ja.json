@@ -12513,6 +12513,11 @@
           "useName": "{{value0}} を使用",
           "use": "使用"
         },
+        "PluginsAlphaNotice": {
+          "label": "アルファ版：",
+          "body": "プラグインのインターフェースは変更される可能性があります。細かな違いが生じることがあります。",
+          "dismiss": "アルファ版のお知らせを閉じる"
+        },
         "notification": {
           "settings": {
             "copy": {

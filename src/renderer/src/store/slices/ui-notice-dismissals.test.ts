@@ -382,3 +382,29 @@ describe('unexpected sign-out hydrated dismissal history', () => {
     }
   )
 })
+
+describe('createUISlice plugins alpha notice dismissal', () => {
+  it('persists the plugins alpha notice dismissal once', () => {
+    const setMock = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('window', { api: { ui: { set: setMock } } })
+    const store = createUIStore()
+
+    expect(store.getState().pluginsAlphaNoticeDismissed).toBe(false)
+    store.getState().dismissPluginsAlphaNotice()
+    store.getState().dismissPluginsAlphaNotice()
+
+    expect(store.getState().pluginsAlphaNoticeDismissed).toBe(true)
+    expect(setMock).toHaveBeenCalledTimes(1)
+    expect(setMock).toHaveBeenCalledWith({ pluginsAlphaNoticeDismissed: true })
+  })
+
+  it('hydrates only explicit plugins alpha notice dismissals', () => {
+    const store = createUIStore()
+
+    store.getState().hydratePersistedUI(makePersistedUI({ pluginsAlphaNoticeDismissed: true }))
+    expect(store.getState().pluginsAlphaNoticeDismissed).toBe(true)
+
+    store.getState().hydratePersistedUI(makePersistedUI({ pluginsAlphaNoticeDismissed: undefined }))
+    expect(store.getState().pluginsAlphaNoticeDismissed).toBe(false)
+  })
+})

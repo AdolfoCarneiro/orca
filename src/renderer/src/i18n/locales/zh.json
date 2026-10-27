@@ -12546,6 +12546,11 @@
           "useName": "使用 {{value0}}",
           "use": "使用"
         },
+        "PluginsAlphaNotice": {
+          "label": "Alpha 版：",
+          "body": "插件接口可能会变化，细节可能有所不同。",
+          "dismiss": "关闭 Alpha 版提示"
+        },
         "notification": {
           "settings": {
             "copy": {

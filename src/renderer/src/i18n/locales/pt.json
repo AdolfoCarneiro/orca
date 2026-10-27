@@ -8800,6 +8800,11 @@
           "useName": "Usar {{value0}}",
           "use": "Usar"
         },
+        "PluginsAlphaNotice": {
+          "label": "Alpha:",
+          "body": "A interface de plugins pode mudar. Espere nuances.",
+          "dismiss": "Dispensar aviso Alpha"
+        },
         "notification": {
           "settings": {
             "copy": {

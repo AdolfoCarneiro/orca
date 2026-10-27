@@ -12976,6 +12976,11 @@
           "useName": "Utiliser {{value0}}",
           "use": "Utiliser"
         },
+        "PluginsAlphaNotice": {
+          "label": "Alpha :",
+          "body": "L’interface des plugins peut changer. Attendez-vous à des nuances.",
+          "dismiss": "Ignorer l’avis Alpha"
+        },
         "notification": {
           "settings": {
             "copy": {

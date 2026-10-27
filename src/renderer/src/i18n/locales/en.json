@@ -13085,6 +13085,11 @@
           "useName": "Use {{value0}}",
           "use": "Use"
         },
+        "PluginsAlphaNotice": {
+          "label": "Alpha:",
+          "body": "The plugin interface may change. Expect nuances.",
+          "dismiss": "Dismiss Alpha notice"
+        },
         "notification": {
           "settings": {
             "copy": {

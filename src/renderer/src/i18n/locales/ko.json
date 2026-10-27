@@ -12513,6 +12513,11 @@
           "useName": "{{value0}} 사용",
           "use": "사용"
         },
+        "PluginsAlphaNotice": {
+          "label": "알파:",
+          "body": "플러그인 인터페이스는 변경될 수 있습니다. 세부 동작이 달라질 수 있습니다.",
+          "dismiss": "알파 안내 닫기"
+        },
         "notification": {
           "settings": {
             "copy": {
