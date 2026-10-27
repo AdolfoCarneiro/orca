@@ -57,7 +57,7 @@ function controllerFor(plugin: ValidDiscoveredPlugin | null, verify = vi.fn()) {
 }
 
 describe('PluginPanelController custom editor entries', () => {
-  it('wraps the editor in the panel CSP shell with the key forwarder, after verifying bytes', async () => {
+  it('wraps the editor in the panel CSP shell after verifying bytes, with its manifest access', async () => {
     const plugin = await createEditorPlugin()
     const verify = vi.fn().mockResolvedValue(undefined)
     const entry = await controllerFor(plugin, verify).readCustomEditorEntry(
@@ -69,7 +69,9 @@ describe('PluginPanelController custom editor entries', () => {
     // No network, no remote scripts: every fetch, socket and beacon is refused.
     expect(PLUGIN_PANEL_CSP).toContain("connect-src 'none'")
     expect(PLUGIN_PANEL_CSP).toContain("default-src 'none'")
-    expect(entry?.html).toContain("type: 'orca-editor-keydown'")
+    // Chords come from main's view of real input; the shell no longer forwards any.
+    expect(entry?.html).not.toContain('orca-editor-keydown')
+    expect(entry?.readonly).toBe(false)
     expect(entry?.html.endsWith('<main id="canvas"></main>')).toBe(true)
     // Why: the editor is told nothing about where the file lives or where the plugin is.
     expect(entry?.html).not.toContain(plugin.rootDir)

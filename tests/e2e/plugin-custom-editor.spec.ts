@@ -1,8 +1,8 @@
 /**
- * Invariant: a plugin custom editor opens matching files in the editor tab, edits flow into
- * Orca's buffer without dirtying it on open, the save shortcut pressed inside the frame saves
- * through Orca, Source shows the same buffer, the frame has no network, and turning plugins
- * off falls back to Source.
+ * Invariant: a plugin custom editor opens matching files in the editor tab as an isolated
+ * `<webview>` guest, edits flow into Orca's buffer without dirtying it on open, only a real save
+ * key press (never one the editor fakes) saves through Orca after flushing the editor, Source
+ * shows the same buffer, the guest has no network, and turning plugins off falls back to Source.
  */
 
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -15,7 +15,7 @@ import { expect, test } from './helpers/orca-app'
 import { disablePluginSystem, enableDevPlugins, openRepoFile } from './helpers/plugin-smoke'
 
 const FILE = 'custom-editor-smoke.sketch'
-const FRAME = 'iframe[title="Sketch Pad"]'
+const FRAME = 'webview[title="Sketch Pad"]'
 
 // A tiny protocol-complete editor: a textarea that posts debounced full-text edits.
 const EDITOR_HTML = `<textarea id="doc" style="width:100%;height:90vh"></textarea>
@@ -79,6 +79,33 @@ function activeFileDirty(page: Page): Promise<boolean | undefined> {
   }, FILE)
 }
 
+/** Runs a script in the editor guest; Playwright cannot enter a `<webview>` like a frame. */
+function inGuest<T>(page: Page, title: string, script: string): Promise<T> {
+  return page.evaluate(
+    ([guestTitle, source]) => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the selector matches only Orca's editor <webview>.
+      const guest = document.querySelector(
+        `webview[title="${guestTitle}"]`
+      ) as Electron.WebviewTag | null
+      return guest ? guest.executeJavaScript(source) : Promise.resolve(null)
+    },
+    [title, script] as const
+  )
+}
+
+/** A real key press delivered to the guest, the way main sees user input. */
+function pressSaveInGuest(page: Page, title: string): Promise<void> {
+  return page.evaluate(
+    ([guestTitle, modifier]) => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the selector matches only Orca's editor <webview>.
+      const guest = document.querySelector(`webview[title="${guestTitle}"]`) as Electron.WebviewTag
+      guest.sendInputEvent({ type: 'keyDown', keyCode: 's', modifiers: [modifier] })
+      guest.sendInputEvent({ type: 'keyUp', keyCode: 's', modifiers: [modifier] })
+    },
+    [title, process.platform === 'darwin' ? 'meta' : 'control'] as const
+  )
+}
+
 async function chooseView(page: Page, label: string): Promise<void> {
   await page.getByRole('radio', { name: label, exact: true }).click()
 }
@@ -101,31 +128,42 @@ test('plugin custom editor edits and saves through Orca', async ({ orcaPage, see
     await enableDevPlugins(orcaPage, [pluginRoot])
     await openRepoFile(orcaPage, seededRepoPath, FILE)
 
-    const frame = orcaPage.frameLocator(FRAME)
-    const textarea = frame.locator('#doc')
-    await expect(textarea).toHaveValue('first line\n', { timeout: 15_000 })
+    const value = () => inGuest<string | null>(orcaPage, 'Sketch Pad', 'doc.value')
+    const type = (text: string) =>
+      inGuest(
+        orcaPage,
+        'Sketch Pad',
+        `doc.value += ${JSON.stringify(text)}; doc.dispatchEvent(new Event('input'))`
+      )
+    await expect.poll(value, { timeout: 15_000 }).toBe('first line\n')
     // Opening a file in its custom editor must not dirty it.
     expect(await activeFileDirty(orcaPage)).toBe(false)
 
-    await textarea.click()
-    await textarea.press('End')
-    await textarea.pressSequentially('second line')
+    await type('second line')
     await expect.poll(() => activeFileDirty(orcaPage)).toBe(true)
 
-    // Saved inside the debounce window: Orca must flush the frame first.
-    await textarea.pressSequentially('!')
-    await textarea.press(process.platform === 'darwin' ? 'Meta+s' : 'Control+s')
+    // The editor cannot save by faking the shortcut or the old key message.
+    await inGuest(
+      orcaPage,
+      'Sketch Pad',
+      "window.parent.postMessage({ type: 'orca-editor-keydown', key: 's', code: 'KeyS', metaKey: true, ctrlKey: true }, '*');" +
+        "document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', code: 'KeyS', metaKey: true, ctrlKey: true, bubbles: true }))"
+    )
+    await orcaPage.waitForTimeout(1_500)
+    expect(await readFile(filePath, 'utf8')).toBe('first line\n')
+    expect(await activeFileDirty(orcaPage)).toBe(true)
+
+    // Saved inside the debounce window: Orca must flush the editor first.
+    await type('!')
+    await pressSaveInGuest(orcaPage, 'Sketch Pad')
     await expect.poll(() => readFile(filePath, 'utf8')).toBe('first line\nsecond line!')
     await expect.poll(() => activeFileDirty(orcaPage)).toBe(false)
 
-    // No network from the frame: CSP refuses the request before it leaves.
-    const network = await frame.locator('#probe').evaluate(
-      (_node, url) =>
-        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the fixture editor defines probeNetwork.
-        (window as unknown as { probeNetwork: (target: string) => Promise<string> }).probeNetwork(
-          url
-        ),
-      probeUrl
+    // No network from the guest: its session refuses the request before it leaves.
+    const network = await inGuest<string>(
+      orcaPage,
+      'Sketch Pad',
+      `probeNetwork(${JSON.stringify(probeUrl)})`
     )
     expect(network).toBe('blocked')
     expect(requests).toEqual([])
@@ -134,7 +172,7 @@ test('plugin custom editor edits and saves through Orca', async ({ orcaPage, see
     await expect(orcaPage.locator(FRAME)).toHaveCount(0)
     await expect(orcaPage.locator('.monaco-editor .view-lines')).toContainText('second line!')
     await chooseView(orcaPage, 'Sketch Pad')
-    await expect(textarea).toHaveValue('first line\nsecond line!')
+    await expect.poll(value, { timeout: 15_000 }).toBe('first line\nsecond line!')
 
     await disablePluginSystem(orcaPage)
     await expect(orcaPage.locator(FRAME)).toHaveCount(0, { timeout: 15_000 })
@@ -148,7 +186,7 @@ test('plugin custom editor edits and saves through Orca', async ({ orcaPage, see
 })
 
 const BYTES_FILE = 'custom-editor-smoke.hexbook'
-const BYTES_FRAME = 'iframe[title="Hex Book"]'
+const BYTES_FRAME = 'webview[title="Hex Book"]'
 
 // Reports what a bytes editor receives, and tries an edit Orca must ignore.
 const BYTES_EDITOR_HTML = `<output id="summary">waiting</output>
@@ -208,10 +246,9 @@ test('a bytes custom editor views a binary file read-only', async ({
     await enableDevPlugins(orcaPage, [pluginRoot])
     await openRepoFile(orcaPage, seededRepoPath, BYTES_FILE)
 
-    const summary = orcaPage.frameLocator(BYTES_FRAME).locator('#summary')
-    await expect(summary).toHaveText('v1 hexbook true 8:50 4b 3 4 name=opaque', {
-      timeout: 15_000
-    })
+    const summary = () =>
+      inGuest<string | null>(orcaPage, 'Hex Book', "document.getElementById('summary').textContent")
+    await expect.poll(summary, { timeout: 15_000 }).toBe('v1 hexbook true 8:50 4b 3 4 name=opaque')
     // The editor's edit is ignored: the file and the tab stay untouched.
     expect(await readFile(filePath)).toEqual(original)
     expect(
@@ -227,7 +264,7 @@ test('a bytes custom editor views a binary file read-only', async ({
     await expect(orcaPage.locator(BYTES_FRAME)).toHaveCount(0)
     await expect(orcaPage.getByText('Binary file — cannot display')).toBeVisible()
     await chooseView(orcaPage, 'Hex Book')
-    await expect(summary).toContainText('hexbook true 8:')
+    await expect.poll(summary, { timeout: 15_000 }).toContain('hexbook true 8:')
 
     await disablePluginSystem(orcaPage)
     await expect(orcaPage.locator(BYTES_FRAME)).toHaveCount(0, { timeout: 15_000 })

@@ -1,4 +1,8 @@
 import type { PluginHostImages } from '../../shared/plugins/plugin-image-url'
+import type {
+  PluginEditorGuestEvent,
+  PluginEditorGuestOpenResult
+} from '../../shared/plugins/plugin-editor-guest'
 import type { PluginUpdateAccessGrowth } from '../../shared/plugins/approval/plugin-update-access-growth'
 import type { PluginAutoUpdateState } from '../../shared/plugins/catalog/plugin-update-policy'
 import type { PluginExecutionProfile } from '../../shared/plugins/plugin-execution-profile'
@@ -226,11 +230,16 @@ export type PluginsApi = {
   setEnabled: (args: { pluginKey: string; enabled: boolean }) => Promise<PluginHostListEntry[]>
   /** CSP-wrapped HTML for a sandboxed iframe; null if missing or disabled. */
   readPanelEntry: (args: { pluginKey: string; panelId: string }) => Promise<PluginPanelEntry | null>
-  /** CSP-wrapped custom editor HTML; null if missing or disabled. Absent on older preloads. */
-  readCustomEditorEntry?: (args: {
+  /** A network-isolated guest for a custom editor; null if missing or disabled. */
+  openCustomEditorGuest?: (args: {
     pluginKey: string
     editorId: string
-  }) => Promise<{ html: string } | null>
+    colorScheme: 'light' | 'dark'
+    tokens: string
+  }) => Promise<PluginEditorGuestOpenResult | null>
+  closeCustomEditorGuest?: (token: string) => Promise<void>
+  /** Messages and real key chords from every editor guest of this window, by token. */
+  onCustomEditorGuestEvent?: (callback: (event: PluginEditorGuestEvent) => void) => () => void
   invokeCommand: (args: {
     pluginKey: string
     commandId: string

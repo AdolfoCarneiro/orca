@@ -9,8 +9,7 @@ import {
   customEditorConflict,
   customEditorTooLarge,
   type CustomEditorDocumentMessage,
-  type CustomEditorEditRejectedMessage,
-  type CustomEditorKeyChord
+  type CustomEditorEditRejectedMessage
 } from '../../../../shared/plugins/plugin-custom-editor-bridge'
 import { isPluginJsonObject } from '../../../../shared/plugins/manifest/plugin-json-object'
 import { readPanelPongId } from '../../../../shared/plugins/plugin-panel-bridge'
@@ -29,16 +28,18 @@ export type CustomEditorUnappliedEdit = 'held' | 'lost' | null
 export type CustomEditorBinaryDocument = { bytes: Uint8Array<ArrayBuffer>; fileType: string }
 
 export type CustomEditorHostOptions = {
-  getFrameWindow: () => Window | null
+  /** Delivers a message to the editor guest; `transfer` moves byte buffers instead of copying. */
+  post: (message: unknown, transfer: Transferable[]) => void
   /** The buffer as Orca holds it now. */
   getDocument: () => { text: string; readOnly: boolean }
+  /** A viewer per its installed manifest: its edits are refused even on a writable tab. */
+  editorReadOnly?: boolean
   /** Binary editors only: the file's bytes, or null while they load. Its edits are never applied. */
   getBinaryDocument?: () => CustomEditorBinaryDocument | null
   onEdit: (text: string) => void
   onEditRefused?: (reason: CustomEditorEditRefusal) => void
   /** The frame holds edits the buffer lacks, or caught up again. */
   onUnappliedEdit?: (state: CustomEditorUnappliedEdit) => void
-  onKeyChord?: (chord: CustomEditorKeyChord) => void
   onPong?: (pingId: number) => void
   budget?: PanelMessageBudget
   /** Meters non-edit messages, so chords and flush replies never spend the edit budget. */
@@ -48,7 +49,8 @@ export type CustomEditorHostOptions = {
 }
 
 export type CustomEditorHost = {
-  handleMessage: (event: MessageEvent) => void
+  /** A message the guest posted; main already routed it to this tab's guest. */
+  handleMessage: (data: unknown) => void
   /** Push the buffer when it changed outside the frame (reload, revert, Source edits). */
   syncDocument: () => void
   /** Waits for edits still in the frame's debounce window; false on timeout or when an edit
@@ -101,9 +103,9 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
       | { type: string; requestId: number },
     transfer: Transferable[] = []
   ) => {
-    // Opaque srcdoc origins require targetOrigin '*'.
-    options.getFrameWindow()?.postMessage(message, '*', transfer)
+    options.post(message, transfer)
   }
+  const readOnly = (): boolean => options.getDocument().readOnly
 
   const pushBinaryDocument = (force: boolean, binary: CustomEditorBinaryDocument | null): void => {
     if (!binary || (!force && binary === frameBinary)) {
@@ -133,24 +135,24 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
       pushBinaryDocument(force, options.getBinaryDocument())
       return
     }
-    const { text, readOnly } = options.getDocument()
-    if (!force && text === frameText && readOnly === frameReadOnly) {
+    const { text } = options.getDocument()
+    const documentReadOnly = readOnly()
+    if (!force && text === frameText && documentReadOnly === frameReadOnly) {
       return
     }
     frameText = text
-    frameReadOnly = readOnly
+    frameReadOnly = documentReadOnly
     version += 1
     post({
       type: CUSTOM_EDITOR_DOCUMENT_TYPE,
       version,
-      readOnly,
+      readOnly: documentReadOnly,
       content: { kind: 'text', text }
     })
   }
 
   const applyEdit = (text: string, baseVersion: number): void => {
-    const { readOnly } = options.getDocument()
-    if (!ready || readOnly || options.getBinaryDocument) {
+    if (!ready || readOnly() || options.getBinaryDocument) {
       return
     }
     if (baseVersion !== version) {
@@ -182,6 +184,9 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
   }
 
   const refuseEdit = (data: unknown, refusal: CustomEditorEditRefusal): void => {
+    if (readOnly() || options.getBinaryDocument) {
+      return
+    }
     options.onEditRefused?.(refusal)
     if (refusal === 'oversized') {
       heldEdit = null
@@ -203,30 +208,25 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
   }
 
   return {
-    handleMessage(event) {
-      const frameWindow = options.getFrameWindow()
-      // Sandboxed srcdoc has a null origin; trust the sending Window identity instead.
-      if (!frameWindow || event.source !== frameWindow) {
-        return
-      }
-      const pongId = readPanelPongId(event.data)
+    handleMessage(data) {
+      const pongId = readPanelPongId(data)
       if (pongId !== null) {
         options.onPong?.(pongId)
         return
       }
       // Budget before parsing so floods cannot spend unmetered validation work.
-      const isEdit = isCustomEditorEditAttempt(event.data)
+      const isEdit = isCustomEditorEditAttempt(data)
       const refusal = (isEdit ? budget : controlBudget).admit(
         now(),
-        structuredCloneMessageBytes(event.data, CUSTOM_EDITOR_DOCUMENT_MAX_BYTES)
+        structuredCloneMessageBytes(data, CUSTOM_EDITOR_DOCUMENT_MAX_BYTES)
       )
       if (refusal) {
         if (isEdit) {
-          refuseEdit(event.data, refusal)
+          refuseEdit(data, refusal)
         }
         return
       }
-      const message = readCustomEditorFrameMessage(event.data)
+      const message = readCustomEditorFrameMessage(data)
       if (!message) {
         return
       }
@@ -244,9 +244,6 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
         case 'orca-editor-flushed':
           pendingFlushes.get(message.requestId)?.()
           pendingFlushes.delete(message.requestId)
-          return
-        case 'orca-editor-keydown':
-          options.onKeyChord?.(message)
       }
     },
     syncDocument() {

@@ -5,6 +5,12 @@ import type {
 } from '../../shared/plugins/plugin-panel-bridge'
 import type { PluginConsentRequest } from '../../shared/plugins/approval/plugin-consent-request'
 import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
+import {
+  PLUGIN_EDITOR_CLOSE_GUEST_CHANNEL,
+  PLUGIN_EDITOR_GUEST_EVENT_CHANNEL,
+  PLUGIN_EDITOR_OPEN_GUEST_CHANNEL,
+  type PluginEditorGuestEvent
+} from '../../shared/plugins/plugin-editor-guest'
 import type {
   PluginAutoUpdateEvent,
   PluginHostInstallResult,
@@ -31,10 +37,16 @@ export const pluginsApi = {
     pluginKey: string
     panelId: string
   }): Promise<PluginPanelEntry | null> => ipcRenderer.invoke('plugins:readPanelEntry', args),
-  readCustomEditorEntry: (args: {
-    pluginKey: string
-    editorId: string
-  }): Promise<{ html: string } | null> => ipcRenderer.invoke('plugins:readCustomEditorEntry', args),
+  openCustomEditorGuest: (args) => ipcRenderer.invoke(PLUGIN_EDITOR_OPEN_GUEST_CHANNEL, args),
+  closeCustomEditorGuest: (token) => ipcRenderer.invoke(PLUGIN_EDITOR_CLOSE_GUEST_CHANNEL, token),
+  onCustomEditorGuestEvent: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, guestEvent: PluginEditorGuestEvent) =>
+      callback(guestEvent)
+    ipcRenderer.on(PLUGIN_EDITOR_GUEST_EVENT_CHANNEL, listener)
+    return () => {
+      ipcRenderer.removeListener(PLUGIN_EDITOR_GUEST_EVENT_CHANNEL, listener)
+    }
+  },
   invokeCommand: (args: { pluginKey: string; commandId: string; args?: unknown }) =>
     ipcRenderer.invoke('plugins:invokeCommand', args),
   panelAction: (args: {

@@ -1,17 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { translate } from '@/i18n/i18n'
-import { createBrowserUuid } from '@/lib/browser-uuid'
 import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
+import { moveFocusToRendererBeforeWebviewDetach } from '@/components/browser-pane/host-guest/webview-registry'
+import { PANEL_PING_TYPE } from '../../../../shared/plugins/plugin-panel-bridge'
 import {
-  PANEL_PING_TYPE,
-  PLUGIN_PANEL_FRAME_NAME_PREFIX
-} from '../../../../shared/plugins/plugin-panel-bridge'
+  PLUGIN_EDITOR_GUEST_DELIVER_CHANNEL,
+  PLUGIN_EDITOR_PARTITION,
+  type PluginEditorGuestOpenResult
+} from '../../../../shared/plugins/plugin-editor-guest'
 import {
-  fillPluginPanelShell,
-  postPluginFrameTheme
+  buildPanelDesignTokenCss,
+  currentPanelColorScheme,
+  pluginFrameThemeMessage
 } from '../right-sidebar/plugin-panel-design-token-css'
 import { createPanelWatchdog } from '../right-sidebar/plugin-panel-watchdog'
-import { usePluginFrameThemeSync } from '../right-sidebar/use-plugin-panel-theme-revision'
+import { usePluginPanelThemeRevision } from '../right-sidebar/use-plugin-panel-theme-revision'
 import { editorShortcutMatches } from './editor-shortcuts'
 import { registerEditorFrameFlush } from './editor-pending-flush'
 import {
@@ -34,11 +37,11 @@ type PluginCustomEditorFrameProps = {
   binaryDocument?: CustomEditorBinaryDocument | null
 }
 
-type EntryState =
+type GuestState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'unresponsive' }
-  | { status: 'ready'; html: string; revision: number }
+  | { status: 'ready'; ticket: PluginEditorGuestOpenResult }
 
 function FrameMessage({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
@@ -48,7 +51,10 @@ function FrameMessage({ children }: { children: React.ReactNode }): React.JSX.El
   )
 }
 
-/** A plugin's sandboxed editor for the open file. It only exchanges text with this tab. */
+/**
+ * A plugin's editor for the open file. It runs as a `<webview>` guest in a partition with no
+ * network, and only exchanges the document with this tab through main.
+ */
 export default function PluginCustomEditorFrame({
   editor,
   fileId,
@@ -59,17 +65,13 @@ export default function PluginCustomEditorFrame({
   onDirtyHint,
   binaryDocument
 }: PluginCustomEditorFrameProps): React.JSX.Element {
-  const [entry, setEntry] = useState<EntryState>({ status: 'loading' })
+  const [guest, setGuest] = useState<GuestState>({ status: 'loading' })
   const [refusal, setRefusal] = useState<CustomEditorEditRefusal | null>(null)
   const [saveBlocked, setSaveBlocked] = useState(false)
-  const [loadedFrameKey, setLoadedFrameKey] = useState<string | null>(null)
-  const iframeRef = useRef<HTMLIFrameElement | null>(null)
-  usePluginFrameThemeSync(iframeRef)
-  // Why random: window.name is readable inside the frame, so it must not carry the file's path.
-  const [frameName] = useState(
-    () => `${PLUGIN_PANEL_FRAME_NAME_PREFIX}editor:${createBrowserUuid()}`
-  )
-  // Why refs: the host is built once per frame; props change on every keystroke.
+  const [loadedToken, setLoadedToken] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const webviewRef = useRef<Electron.WebviewTag | null>(null)
+  // Why refs: the host is built once per guest; props change on every keystroke.
   const latestRef = useRef({
     content,
     readOnly,
@@ -80,41 +82,57 @@ export default function PluginCustomEditorFrame({
   })
   latestRef.current = { content, readOnly, onContentChange, onSave, onDirtyHint, binaryDocument }
   const isBinary = binaryDocument !== undefined
+  const ticket = guest.status === 'ready' ? guest.ticket : null
+  const token = ticket?.token ?? null
 
   const { pluginKey, id: editorId } = editor
   useEffect(() => {
     let cancelled = false
-    let currentHtml: string | null = null
-    let revision = 0
+    let current: PluginEditorGuestOpenResult | null = null
     const pluginsApi = window.api?.plugins
-    const readEntry = pluginsApi?.readCustomEditorEntry
-    if (!pluginsApi || !readEntry) {
-      setEntry({ status: 'error' })
+    const open = pluginsApi?.openCustomEditorGuest
+    if (!pluginsApi || !open) {
+      setGuest({ status: 'error' })
       return
     }
-    setEntry({ status: 'loading' })
+    setGuest({ status: 'loading' })
+    const close = (closing: PluginEditorGuestOpenResult | null): void => {
+      if (closing) {
+        void pluginsApi.closeCustomEditorGuest?.(closing.token)
+      }
+    }
     const load = (): void => {
-      readEntry({ pluginKey, editorId })
-        .then((result) => {
+      open({
+        pluginKey,
+        editorId,
+        colorScheme: currentPanelColorScheme(),
+        tokens: buildPanelDesignTokenCss()
+      })
+        .then((opened) => {
           if (cancelled) {
+            close(opened)
             return
           }
-          if (!result) {
-            currentHtml = null
-            setEntry({ status: 'error' })
+          if (!opened) {
+            close(current)
+            current = null
+            setGuest({ status: 'error' })
             return
           }
-          // Plugin list changes fire often; only new bytes remount the frame.
-          if (result.html !== currentHtml) {
-            currentHtml = result.html
-            revision += 1
-            setEntry({ status: 'ready', html: result.html, revision })
+          // Plugin list changes fire often; only new editor bytes remount the guest.
+          if (current && opened.revision === current.revision) {
+            close(opened)
+            return
           }
+          close(current)
+          current = opened
+          setGuest({ status: 'ready', ticket: opened })
         })
         .catch(() => {
           if (!cancelled) {
-            currentHtml = null
-            setEntry({ status: 'error' })
+            close(current)
+            current = null
+            setGuest({ status: 'error' })
           }
         })
     }
@@ -123,34 +141,41 @@ export default function PluginCustomEditorFrame({
     return () => {
       cancelled = true
       unsubscribe?.()
+      close(current)
     }
   }, [pluginKey, editorId])
 
-  const frameKey = entry.status === 'ready' ? `${editor.key}:${entry.revision}` : null
-  const entryHtml = entry.status === 'ready' ? entry.html : null
-  // Why memoized: a new srcdoc reloads the frame; theme changes arrive as messages instead.
-  const frameDocument = useMemo(
-    () => (entryHtml === null ? null : fillPluginPanelShell(entryHtml)),
-    [entryHtml]
+  const deliver = useMemo(
+    () =>
+      (message: unknown): void => {
+        // send throws until the guest attaches; the host only posts after the guest is ready.
+        try {
+          void webviewRef.current?.send(PLUGIN_EDITOR_GUEST_DELIVER_CHANNEL, message)
+        } catch {
+          // A detached guest has nothing to receive.
+        }
+      },
+    []
   )
 
   const watchdog = useMemo(
     () =>
       createPanelWatchdog({
-        sendPing: (pingId) =>
-          iframeRef.current?.contentWindow?.postMessage({ type: PANEL_PING_TYPE, pingId }, '*'),
-        onUnresponsive: () => setEntry({ status: 'unresponsive' })
+        sendPing: (pingId) => deliver({ type: PANEL_PING_TYPE, pingId }),
+        onUnresponsive: () => setGuest({ status: 'unresponsive' })
       }),
-    []
+    [deliver]
   )
 
+  const editorReadOnly = ticket?.readonly ?? true
   const host = useMemo(() => {
     const created = createCustomEditorHost({
-      getFrameWindow: () => iframeRef.current?.contentWindow ?? null,
+      post: (message) => deliver(message),
       getDocument: () => ({
         text: latestRef.current.content,
         readOnly: latestRef.current.readOnly
       }),
+      editorReadOnly,
       ...(isBinary ? { getBinaryDocument: () => latestRef.current.binaryDocument ?? null } : {}),
       onEdit: (text) => {
         setRefusal(null)
@@ -163,45 +188,85 @@ export default function PluginCustomEditorFrame({
           latestRef.current.onDirtyHint?.(true)
         }
       },
-      onPong: (pingId) => watchdog.handlePong(pingId),
-      onKeyChord: (chord) => {
-        const event = new KeyboardEvent('keydown', chord)
-        if (latestRef.current.readOnly || !editorShortcutMatches('editor.save', event)) {
-          return
-        }
-        // The save pipeline flushes this frame first; see registerEditorFrameFlush below.
-        void latestRef.current.onSave(created.currentText())
-      }
+      onPong: (pingId) => watchdog.handlePong(pingId)
     })
     return created
-  }, [watchdog, isBinary])
+  }, [watchdog, isBinary, editorReadOnly, deliver])
 
+  // The guest element is imperative: React must never recreate it on a render.
   useEffect(() => {
-    if (!frameKey) {
+    const container = containerRef.current
+    if (!ticket || !container) {
       return
     }
-    window.addEventListener('message', host.handleMessage)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: createElement('webview') makes Electron's WebviewTag in this renderer.
+    const webview = document.createElement('webview') as Electron.WebviewTag
+    webview.setAttribute('partition', PLUGIN_EDITOR_PARTITION)
+    webview.setAttribute('title', editor.title)
+    webview.className = 'flex min-h-0 w-full flex-1 border-0 bg-background'
+    const onDomReady = (): void => {
+      setLoadedToken(ticket.token)
+      // The theme may have changed between opening the guest and it loading.
+      deliver(pluginFrameThemeMessage())
+    }
+    webview.addEventListener('dom-ready', onDomReady)
+    container.appendChild(webview)
+    webview.setAttribute('src', ticket.src)
+    webviewRef.current = webview
     return () => {
-      window.removeEventListener('message', host.handleMessage)
+      webview.removeEventListener('dom-ready', onDomReady)
       host.reset()
+      webviewRef.current = null
+      moveFocusToRendererBeforeWebviewDetach(webview)
+      webview.remove()
     }
-  }, [frameKey, host])
+  }, [ticket, editor.title, host, deliver])
 
   useEffect(() => {
-    if (!frameKey || loadedFrameKey !== frameKey) {
+    const subscribe = window.api?.plugins?.onCustomEditorGuestEvent
+    if (!token || !subscribe) {
       return
     }
-    // Ping only once srcdoc (and its pong responder) has loaded.
+    return subscribe((event) => {
+      if (event.token !== token) {
+        return
+      }
+      if (event.kind === 'message') {
+        host.handleMessage(event.data)
+        return
+      }
+      // Real input only: main reads chords before the guest, so editor code cannot save.
+      const chord = new KeyboardEvent('keydown', event.chord)
+      if (latestRef.current.readOnly || !editorShortcutMatches('editor.save', chord)) {
+        return
+      }
+      // The save pipeline flushes this frame first; see registerEditorFrameFlush below.
+      void latestRef.current.onSave(host.currentText())
+    })
+  }, [token, host])
+
+  useEffect(() => {
+    if (!token || loadedToken !== token) {
+      return
+    }
+    // Ping only once the guest document (and its pong responder) has loaded.
     watchdog.start()
     return () => watchdog.stop()
-  }, [frameKey, loadedFrameKey, watchdog])
+  }, [token, loadedToken, watchdog])
+
+  const themeRevision = usePluginPanelThemeRevision()
+  useEffect(() => {
+    if (themeRevision > 0) {
+      deliver(pluginFrameThemeMessage())
+    }
+  }, [themeRevision, deliver])
 
   useEffect(() => {
     host.syncDocument()
   }, [content, readOnly, binaryDocument, host])
 
   useEffect(() => {
-    if (fileId === undefined) {
+    if (fileId === undefined || isBinary) {
       return
     }
     return registerEditorFrameFlush(fileId, async () => {
@@ -209,16 +274,16 @@ export default function PluginCustomEditorFrame({
       setSaveBlocked(!flushed)
       return flushed
     })
-  }, [fileId, host])
+  }, [fileId, isBinary, host])
 
-  if (entry.status === 'loading') {
+  if (guest.status === 'loading') {
     return (
       <FrameMessage>
         {translate('auto.components.editor.PluginCustomEditorFrame.loading', 'Loading editor…')}
       </FrameMessage>
     )
   }
-  if (entry.status === 'unresponsive') {
+  if (guest.status === 'unresponsive') {
     return (
       <FrameMessage>
         {translate(
@@ -229,7 +294,7 @@ export default function PluginCustomEditorFrame({
       </FrameMessage>
     )
   }
-  if (entry.status === 'error') {
+  if (guest.status === 'error') {
     return (
       <FrameMessage>
         {translate(
@@ -265,22 +330,7 @@ export default function PluginCustomEditorFrame({
               )}
         </div>
       ) : null}
-      <iframe
-        key={frameKey}
-        ref={iframeRef}
-        // SECURITY: never add allow-same-origin — the srcdoc frame must stay an opaque origin so
-        // plugin UI cannot reach the app DOM, storage, IPC or the file it edits.
-        sandbox="allow-scripts"
-        name={frameName}
-        srcDoc={frameDocument ?? ''}
-        onLoad={() => {
-          setLoadedFrameKey(frameKey)
-          // The theme may have changed between building srcdoc and the frame loading it.
-          postPluginFrameTheme(iframeRef.current?.contentWindow)
-        }}
-        title={editor.title}
-        className="min-h-0 w-full flex-1 border-0 bg-background"
-      />
+      <div ref={containerRef} className="flex min-h-0 flex-1" />
     </div>
   )
 }

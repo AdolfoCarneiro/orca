@@ -2,6 +2,8 @@ import { isPluginJsonObject } from './manifest/plugin-json-object'
 
 /**
  * postMessage protocol between a sandboxed custom editor frame and the editor tab hosting it.
+ * Key chords never travel this channel: main reads them from real input (see
+ * plugin-editor-guest-policy.ts), so editor code cannot trigger a save.
  * The frame only ever sees the document's text, or its bytes for a binary editor: Orca keeps the
  * buffer, dirty state, saving and the file's location, so the plugin never learns a path or
  * touches a file system.
@@ -14,8 +16,6 @@ export const CUSTOM_EDITOR_FLUSH_TYPE = 'orca-editor-flush'
 export const CUSTOM_EDITOR_FLUSHED_TYPE = 'orca-editor-flushed'
 /** Host reply to an edit made against a document version Orca has since replaced. */
 export const CUSTOM_EDITOR_EDIT_REJECTED_TYPE = 'orca-editor-edit-rejected'
-/** Sent by the host shell, not plugin code: frame keys never reach Orca's own shortcut handlers. */
-export const CUSTOM_EDITOR_KEYDOWN_TYPE = 'orca-editor-keydown'
 
 /** Why this cap: it bounds one structured-clone edit while fitting scenes with embedded images. */
 export const CUSTOM_EDITOR_DOCUMENT_MAX_BYTES = 16 * 1024 * 1024
@@ -75,24 +75,10 @@ export type CustomEditorFlushMessage = {
   requestId: number
 }
 
-export type CustomEditorKeyChord = {
-  key: string
-  code: string
-  metaKey: boolean
-  ctrlKey: boolean
-  altKey: boolean
-  shiftKey: boolean
-}
-
 export type CustomEditorFrameMessage =
   | { type: typeof CUSTOM_EDITOR_READY_TYPE }
   | { type: typeof CUSTOM_EDITOR_EDIT_TYPE; text: string; baseVersion: number }
   | { type: typeof CUSTOM_EDITOR_FLUSHED_TYPE; requestId: number }
-  | ({ type: typeof CUSTOM_EDITOR_KEYDOWN_TYPE } & CustomEditorKeyChord)
-
-function shortString(value: unknown): value is string {
-  return typeof value === 'string' && value.length <= 64
-}
 
 /** Whether a frame message claims to be an edit, read before it is admitted. */
 export function isCustomEditorEditAttempt(data: unknown): boolean {
@@ -128,30 +114,7 @@ export function readCustomEditorFrameMessage(data: unknown): CustomEditorFrameMe
       return Number.isSafeInteger(message.requestId)
         ? { type: CUSTOM_EDITOR_FLUSHED_TYPE, requestId: Number(message.requestId) }
         : null
-    case CUSTOM_EDITOR_KEYDOWN_TYPE:
-      return shortString(message.key) && shortString(message.code)
-        ? {
-            type: CUSTOM_EDITOR_KEYDOWN_TYPE,
-            key: message.key,
-            code: message.code,
-            metaKey: message.metaKey === true,
-            ctrlKey: message.ctrlKey === true,
-            altKey: message.altKey === true,
-            shiftKey: message.shiftKey === true
-          }
-        : null
     default:
       return null
   }
 }
-
-/** Shell script for custom editor frames: forwards modifier chords so Orca's save shortcut works. */
-export const CUSTOM_EDITOR_SHELL_SCRIPT =
-  "window.addEventListener('keydown', function (event) {\n" +
-  '  if (event.repeat || !(event.metaKey || event.ctrlKey)) return\n' +
-  '  window.parent.postMessage({\n' +
-  `    type: '${CUSTOM_EDITOR_KEYDOWN_TYPE}', key: String(event.key).slice(0, 64),\n` +
-  '    code: String(event.code).slice(0, 64), metaKey: event.metaKey, ctrlKey: event.ctrlKey,\n' +
-  '    altKey: event.altKey, shiftKey: event.shiftKey\n' +
-  "  }, '*')\n" +
-  '}, true)\n'

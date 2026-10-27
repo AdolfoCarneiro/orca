@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
+import type { PluginEditorGuestEvent } from '../../../../shared/plugins/plugin-editor-guest'
 
 vi.mock('@/i18n/i18n', () => ({
   translate: (_key: string, fallback: string, values?: Record<string, string>) =>
@@ -15,14 +16,27 @@ vi.mock('./editor-shortcuts', () => ({
     actionId === 'editor.save' && (event.metaKey || event.ctrlKey) && event.key === 's'
 }))
 
+vi.mock('@/components/browser-pane/host-guest/webview-registry', () => ({
+  moveFocusToRendererBeforeWebviewDetach: () => {}
+}))
+
 import PluginCustomEditorFrame from './PluginCustomEditorFrame'
 import { flushEditorFrames } from './editor-pending-flush'
-
-const FILE_ID = '/repo/diagram.excalidraw'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true
+
+const FILE_ID = '/repo/diagram.excalidraw'
+const TOKEN = 'a'.repeat(32)
+const SAVE_CHORD = {
+  key: 's',
+  code: 'KeyS',
+  metaKey: true,
+  ctrlKey: false,
+  altKey: false,
+  shiftKey: false
+}
 
 const editor: ActivePluginCustomEditor = {
   id: 'excalidraw',
@@ -36,23 +50,55 @@ const editor: ActivePluginCustomEditor = {
 
 let container: HTMLDivElement
 let root: Root
-const readCustomEditorEntry = vi.fn()
+let guestListener: ((event: PluginEditorGuestEvent) => void) | null = null
+let delivered: unknown[] = []
+const openCustomEditorGuest = vi.fn()
+const closeCustomEditorGuest = vi.fn()
+
+function ticket(fields: Partial<{ readonly: boolean; revision: string }> = {}) {
+  return {
+    token: TOKEN,
+    src: `orca-plugin-editor://${TOKEN}/`,
+    readonly: false,
+    revision: 'r1',
+    ...fields
+  }
+}
 
 beforeEach(() => {
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
-  readCustomEditorEntry.mockReset()
-  readCustomEditorEntry.mockResolvedValue({ html: '<main>editor</main>' })
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the frame reads only these two plugin bridge methods.
+  delivered = []
+  guestListener = null
+  openCustomEditorGuest.mockReset()
+  openCustomEditorGuest.mockResolvedValue(ticket())
+  closeCustomEditorGuest.mockReset()
+  // happy-dom has no <webview>; give every element the one guest method the frame calls.
+  Object.defineProperty(HTMLElement.prototype, 'send', {
+    configurable: true,
+    value: (_channel: string, message: unknown) => delivered.push(message)
+  })
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the frame reads only these plugin bridge methods.
   globalThis.window.api = {
-    plugins: { readCustomEditorEntry, onChanged: () => vi.fn() }
+    plugins: {
+      openCustomEditorGuest,
+      closeCustomEditorGuest,
+      onCustomEditorGuestEvent: (listener: (event: PluginEditorGuestEvent) => void) => {
+        guestListener = listener
+        return () => {
+          guestListener = null
+        }
+      },
+      onChanged: () => vi.fn()
+    }
   } as unknown as Window['api']
 })
 
 afterEach(async () => {
   await act(async () => root.unmount())
   container.remove()
+  Reflect.deleteProperty(HTMLElement.prototype, 'send')
 })
 
 async function renderFrame(props: {
@@ -68,7 +114,7 @@ async function renderFrame(props: {
     root.render(
       <PluginCustomEditorFrame
         editor={editor}
-        fileId={FILE_ID}
+        fileId={props.binaryDocument ? undefined : FILE_ID}
         content={props.content}
         readOnly={props.readOnly ?? false}
         onContentChange={onContentChange}
@@ -77,46 +123,53 @@ async function renderFrame(props: {
       />
     )
   })
-  const iframe = container.querySelector('iframe')!
-  const frameWindow = iframe.contentWindow!
-  const posted = vi.spyOn(frameWindow, 'postMessage')
-  const fromFrame = async (data: unknown) => {
+  const webview = container.querySelector('webview')
+  await act(async () => {
+    webview?.dispatchEvent(new Event('dom-ready'))
+  })
+  const fromGuest = async (event: PluginEditorGuestEvent) => {
     await act(async () => {
-      window.dispatchEvent(new MessageEvent('message', { data, source: frameWindow }))
+      guestListener?.(event)
     })
   }
-  return { iframe, posted, fromFrame, onContentChange, onSave }
+  const fromFrame = (data: unknown) => fromGuest({ token: TOKEN, kind: 'message', data })
+  return { webview, fromGuest, fromFrame, onContentChange, onSave }
 }
 
+const documentMessages = () =>
+  delivered.filter(
+    (message) =>
+      typeof message === 'object' &&
+      message !== null &&
+      'type' in message &&
+      message.type === 'orca-editor-document'
+  )
+
 describe('PluginCustomEditorFrame', () => {
-  it('renders the editor in a scripts-only sandbox with the no-network shell', async () => {
-    const { iframe } = await renderFrame({ content: '{}' })
-    expect(readCustomEditorEntry).toHaveBeenCalledWith({
+  it('runs the editor as a guest of the network-isolated editor partition', async () => {
+    const { webview } = await renderFrame({ content: '{}' })
+    expect(openCustomEditorGuest).toHaveBeenCalledWith({
       pluginKey: 'stablyai.excalidraw',
-      editorId: 'excalidraw'
+      editorId: 'excalidraw',
+      colorScheme: 'light',
+      tokens: expect.any(String)
     })
-    // allow-same-origin would expose app DOM, storage and IPC to the plugin.
-    expect(iframe.getAttribute('sandbox')).toBe('allow-scripts')
-    expect(iframe.getAttribute('name')?.startsWith('orca-plugin-panel:editor:')).toBe(true)
-    // window.name is readable in the frame, so it must not name the file.
-    expect(iframe.getAttribute('name')).not.toContain('diagram')
-    expect(iframe.getAttribute('name')).not.toContain('/repo')
-    expect(iframe.getAttribute('srcdoc')).toContain('<main>editor</main>')
+    expect(container.querySelector('iframe')).toBeNull()
+    expect(webview?.getAttribute('partition')).toBe('orca-plugin-editor')
+    expect(webview?.getAttribute('src')).toBe(`orca-plugin-editor://${TOKEN}/`)
   })
 
   it('sends the buffer on ready and applies edits without saving', async () => {
-    const { posted, fromFrame, onContentChange, onSave } = await renderFrame({ content: 'scene' })
+    const { fromFrame, onContentChange, onSave } = await renderFrame({ content: 'scene' })
     await fromFrame({ type: 'orca-editor-ready' })
-    expect(posted).toHaveBeenCalledWith(
+    expect(documentMessages()).toEqual([
       {
         type: 'orca-editor-document',
         version: 1,
         readOnly: false,
         content: { kind: 'text', text: 'scene' }
-      },
-      '*',
-      []
-    )
+      }
+    ])
     await fromFrame({
       type: 'orca-editor-edit',
       baseVersion: 1,
@@ -126,12 +179,22 @@ describe('PluginCustomEditorFrame', () => {
     expect(onSave).not.toHaveBeenCalled()
   })
 
+  it('saves only on a save chord main read from real input, never on one the editor posts', async () => {
+    const { fromGuest, fromFrame, onSave } = await renderFrame({ content: 'scene' })
+    await fromFrame({ type: 'orca-editor-ready' })
+    await fromFrame({ type: 'orca-editor-keydown', ...SAVE_CHORD })
+    await fromGuest({ token: 'b'.repeat(32), kind: 'keydown', chord: SAVE_CHORD })
+    expect(onSave).not.toHaveBeenCalled()
+    await fromGuest({ token: TOKEN, kind: 'keydown', chord: SAVE_CHORD })
+    expect(onSave).toHaveBeenCalledWith('scene')
+  })
+
   it('flushes the frame before any save of the file, and keeps the tab unsaved if it never answers', async () => {
-    const { posted, fromFrame } = await renderFrame({ content: 'scene' })
+    const { fromFrame } = await renderFrame({ content: 'scene' })
     await fromFrame({ type: 'orca-editor-ready' })
     const index = { editorBufferIdOf: {}, editorBufferViews: {} }
     const flushed = flushEditorFrames(index, FILE_ID)
-    expect(posted).toHaveBeenLastCalledWith({ type: 'orca-editor-flush', requestId: 0 }, '*', [])
+    expect(delivered.at(-1)).toEqual({ type: 'orca-editor-flush', requestId: 0 })
     await fromFrame({
       type: 'orca-editor-edit',
       baseVersion: 1,
@@ -150,62 +213,51 @@ describe('PluginCustomEditorFrame', () => {
   })
 
   it('never saves or edits a read-only document', async () => {
-    const { fromFrame, onContentChange, onSave, posted } = await renderFrame({
+    const { fromGuest, fromFrame, onContentChange, onSave } = await renderFrame({
       content: 'scene',
       readOnly: true
     })
     await fromFrame({ type: 'orca-editor-ready' })
-    expect(posted).toHaveBeenCalledWith(
-      {
-        type: 'orca-editor-document',
-        version: 1,
-        readOnly: true,
-        content: { kind: 'text', text: 'scene' }
-      },
-      '*',
-      []
-    )
+    expect(documentMessages()[0]).toMatchObject({ readOnly: true })
     await fromFrame({
       type: 'orca-editor-edit',
       baseVersion: 1,
       content: { kind: 'text', text: 'tampered' }
     })
-    await fromFrame({ type: 'orca-editor-keydown', key: 's', code: 'KeyS', metaKey: true })
+    await fromGuest({ token: TOKEN, kind: 'keydown', chord: SAVE_CHORD })
     expect(onContentChange).not.toHaveBeenCalled()
     expect(onSave).not.toHaveBeenCalled()
   })
 
   it('restyles in place on a theme change instead of remounting and losing editor state', async () => {
-    const { iframe, posted } = await renderFrame({ content: 'scene' })
+    const { webview } = await renderFrame({ content: 'scene' })
     await act(async () => {
       document.documentElement.classList.add('dark')
       await new Promise((resolve) => setTimeout(resolve, 0))
     })
-    expect(container.querySelector('iframe')).toBe(iframe)
-    expect(posted).toHaveBeenCalledWith(
-      { type: 'orca-panel-theme', colorScheme: 'dark', tokens: expect.any(String) },
-      '*'
-    )
+    expect(container.querySelector('webview')).toBe(webview)
+    expect(delivered).toContainEqual({
+      type: 'orca-panel-theme',
+      colorScheme: 'dark',
+      tokens: expect.any(String)
+    })
     document.documentElement.classList.remove('dark')
   })
 
-  it('sends a bytes document as a transferred ArrayBuffer and ignores edits', async () => {
-    const { posted, fromFrame, onContentChange } = await renderFrame({
+  it('sends a bytes document and ignores edits', async () => {
+    const { fromFrame, onContentChange } = await renderFrame({
       content: '',
       readOnly: true,
       binaryDocument: { bytes: new Uint8Array([1, 2, 3]), fileType: 'xlsx' }
     })
     await fromFrame({ type: 'orca-editor-ready' })
-    const [message, origin, transfer]: unknown[] = posted.mock.calls[0] ?? []
-    expect(message).toMatchObject({
+    expect(documentMessages()[0]).toMatchObject({
       type: 'orca-editor-document',
       version: 1,
       readOnly: true,
       fileType: 'xlsx',
       content: { kind: 'bytes' }
     })
-    expect(origin).toBe('*')
-    expect(transfer).toHaveLength(1)
     await fromFrame({
       type: 'orca-editor-edit',
       baseVersion: 1,
@@ -214,21 +266,17 @@ describe('PluginCustomEditorFrame', () => {
     expect(onContentChange).not.toHaveBeenCalled()
   })
 
+  it('closes its guest on unmount', async () => {
+    await renderFrame({ content: 'scene' })
+    await act(async () => root.unmount())
+    expect(closeCustomEditorGuest).toHaveBeenCalledWith(TOKEN)
+    root = createRoot(container)
+  })
+
   it('says so when the plugin can no longer serve its editor', async () => {
-    readCustomEditorEntry.mockResolvedValue(null)
-    await act(async () => {
-      root.render(
-        <PluginCustomEditorFrame
-          editor={editor}
-          fileId={FILE_ID}
-          content=""
-          readOnly={false}
-          onContentChange={vi.fn()}
-          onSave={vi.fn()}
-        />
-      )
-    })
-    expect(container.querySelector('iframe')).toBeNull()
+    openCustomEditorGuest.mockResolvedValue(null)
+    await renderFrame({ content: '' })
+    expect(container.querySelector('webview')).toBeNull()
     expect(container.textContent).toContain('Excalidraw could not be loaded')
   })
 })

@@ -31,8 +31,8 @@ asked to approve:
   "Panels: yes".
   Orca's colors reach panel CSS as `--orca-background`, `--orca-foreground`, `--orca-primary`
   and the rest of its panel token set, so they never collide with a panel's own variables.
-  Custom editors (`contributes.customEditors`) run in the same frame and get no host methods;
-  see [Custom editors](#custom-editors).
+  Custom editors (`contributes.customEditors`) get the same shell in an isolated guest and no
+  host methods; see [Custom editors](#custom-editors).
 - `trusted-worker`: `main` runs in a separate Node process and can call every host method its
   `capabilities` allow.
 
@@ -64,9 +64,22 @@ matched suffix as `fileType`. A bytes editor must set `"readonly": true`; Orca n
 edits, and Source shows the binary placeholder. Files over 16 MiB are not sent: Orca shows a
 "too large to open" message instead.
 
-`"readonly": true` on any editor makes Orca ignore its edits, and the install review then says
-the plugin opens rather than edits those files. Orca forwards save shortcuts pressed inside the
-frame itself. An edit may be at most 16 MiB; edits sent while read-only are ignored.
+`"readonly": true` on any editor makes Orca drop its edits before they reach the tab, and the
+install review then says the plugin opens rather than edits those files. Orca reads the save
+shortcut from the user's real key presses in the editor; posting a key message does nothing. Every
+save, from any menu or shortcut, first sends `orca-editor-flush` and waits up to a second; if the
+editor does not answer, the tab stays unsaved. An edit may be at most 16 MiB: a larger one gets
+`orca-editor-edit-rejected` with `error.code` `too_large`, and the tab will not save until a later
+edit fits. Treat any unknown `error.code` as a failed edit.
+
+A plugin never becomes the default editor for file types Orca opens itself (JSON, TypeScript and
+JavaScript, Markdown, CSV, YAML, TOML, notebooks, lockfiles, `.env` files and similar): there its
+editor is offered in the view toggle only.
+
+The editor runs in its own process and session with no network: requests, WebSockets, images
+from the network and WebRTC peer connections all fail, from the editor and from any frame it
+creates. One gap remains in Electron 43: a `<link rel="dns-prefetch">` host name is still looked
+up, so do not assume a file's contents can never leave as a DNS name.
 
 Theme changes do not reload the frame: Orca posts `{ type: 'orca-panel-theme', colorScheme }`,
 and the shell updates the `--orca-*` variables and the `light`/`dark` class on `<html>` in place.

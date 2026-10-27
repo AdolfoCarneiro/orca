@@ -915,14 +915,14 @@
           "minLength": 1,
           "maxLength": 1024,
           "pattern": "^[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ](?:[\\\\/][^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ])*$",
-          "description": "HTML file rendered inside a sandboxed editor frame. It receives the open document's text and posts full-text edits back; it never gets a file path, file system or network access. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
+          "description": "HTML file rendered in an isolated editor guest. It receives the open document and posts full-text edits back; it never gets a file path or file system. Its session refuses every request and peer connection, but Electron 43 still resolves `<link rel=\"dns-prefetch\">` host names, so treat a hostname as able to leave. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
           "x-orca-since": "1.4.244",
           "examples": [
             "editor/index.html"
           ]
         },
         "priority": {
-          "description": "`default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source.",
+          "description": "`default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. File types Orca opens itself (such as `json`, `ts`, `md`, `csv`, `yaml`, lockfiles and `.env` files) always behave as `option`.",
           "x-orca-since": "1.4.244",
           "examples": [
             "default"
@@ -946,7 +946,7 @@
           ]
         },
         "readonly": {
-          "description": "When true the editor only views files: Orca never applies its edits, and the install review says it opens rather than edits them.",
+          "description": "When true the editor only views files: Orca drops its edits before they reach the tab, and the install review says it opens rather than edits them. Turning it off in an update asks for approval again.",
           "x-orca-since": "1.4.244",
           "examples": [
             true

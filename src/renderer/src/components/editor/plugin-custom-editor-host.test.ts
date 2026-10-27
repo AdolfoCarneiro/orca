@@ -13,24 +13,26 @@ const edit = (text: string, baseVersion = 1) => ({
   content: { kind: 'text', text }
 })
 
-function setup(initial: { text: string; readOnly?: boolean; maxEdits?: number }) {
+function setup(initial: {
+  text: string
+  readOnly?: boolean
+  editorReadOnly?: boolean
+  maxEdits?: number
+}) {
   const posted: unknown[] = []
-  const frameWindow = { postMessage: (message: unknown) => posted.push(message) }
   const doc = { text: initial.text, readOnly: initial.readOnly ?? false }
   const onEdit = vi.fn((text: string) => {
     doc.text = text
   })
   const onEditRefused = vi.fn()
-  const onKeyChord = vi.fn()
   const onUnappliedEdit = vi.fn()
   const host = createCustomEditorHost({
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the host only calls postMessage and compares identity.
-    getFrameWindow: () => frameWindow as unknown as Window,
+    post: (message) => posted.push(message),
     getDocument: () => doc,
+    editorReadOnly: initial.editorReadOnly,
     onEdit,
     onEditRefused,
     onUnappliedEdit,
-    onKeyChord,
     flushTimeoutMs: 50,
     ...(initial.maxEdits === undefined
       ? {}
@@ -42,9 +44,7 @@ function setup(initial: { text: string; readOnly?: boolean; maxEdits?: number })
           })
         })
   })
-  const send = (data: unknown, source: unknown = frameWindow) =>
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: handleMessage reads only data and source.
-    host.handleMessage({ data, source } as MessageEvent)
+  const send = (data: unknown) => host.handleMessage(data)
   const answerFlushes = () => {
     for (const message of posted) {
       if (isPluginJsonObject(message) && message.type === 'orca-editor-flush') {
@@ -59,7 +59,6 @@ function setup(initial: { text: string; readOnly?: boolean; maxEdits?: number })
     onEdit,
     onEditRefused,
     onUnappliedEdit,
-    onKeyChord,
     send,
     answerFlushes
   }
@@ -67,22 +66,15 @@ function setup(initial: { text: string; readOnly?: boolean; maxEdits?: number })
 
 function setupBytes() {
   const posted: { message: unknown; transfer: unknown }[] = []
-  const frameWindow = {
-    postMessage: (message: unknown, _origin: string, transfer: unknown) =>
-      posted.push({ message, transfer })
-  }
   let binary: { bytes: Uint8Array<ArrayBuffer>; fileType: string } | null = null
   const onEdit = vi.fn()
   const host = createCustomEditorHost({
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the host only calls postMessage and compares identity.
-    getFrameWindow: () => frameWindow as unknown as Window,
+    post: (message, transfer) => posted.push({ message, transfer }),
     getDocument: () => ({ text: '', readOnly: true }),
     getBinaryDocument: () => binary,
     onEdit
   })
-  const send = (data: unknown) =>
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: handleMessage reads only data and source.
-    host.handleMessage({ data, source: frameWindow } as unknown as MessageEvent)
+  const send = (data: unknown) => host.handleMessage(data)
   return {
     host,
     posted,
@@ -224,14 +216,6 @@ describe('custom editor document channel', () => {
     expect(onEdit).not.toHaveBeenCalled()
   })
 
-  it('ignores messages from any window but the editor frame', () => {
-    const { onEdit, posted, send } = setup({ text: 'a' })
-    send({ type: 'orca-editor-ready' }, {})
-    send(edit('b'), null)
-    expect(posted).toEqual([])
-    expect(onEdit).not.toHaveBeenCalled()
-  })
-
   it('refuses an edit over the size cap, tells the frame, and blocks the save', async () => {
     const { host, posted, onEdit, onEditRefused, onUnappliedEdit, send } = setup({ text: 'a' })
     send({ type: 'orca-editor-ready' })
@@ -296,14 +280,6 @@ describe('custom editor document channel', () => {
     await expect(host.flush()).resolves.toBe(false)
   })
 
-  it('forwards key chords from the shell for Orca to match', () => {
-    const { onKeyChord, send } = setup({ text: 'a' })
-    send({ type: 'orca-editor-keydown', key: 's', code: 'KeyS', metaKey: true })
-    expect(onKeyChord).toHaveBeenCalledWith(
-      expect.objectContaining({ key: 's', metaKey: true, ctrlKey: false })
-    )
-  })
-
   it('a remounted frame must announce ready before it receives the document again', () => {
     const { host, posted, send } = setup({ text: 'a' })
     send({ type: 'orca-editor-ready' })
@@ -320,8 +296,9 @@ describe('readCustomEditorFrameMessage', () => {
     expect(readCustomEditorFrameMessage(null)).toBeNull()
     expect(readCustomEditorFrameMessage({ type: 'orca-editor-edit', text: 1 })).toBeNull()
     expect(readCustomEditorFrameMessage({ type: 'orca-panel-action' })).toBeNull()
+    // Chords come from main's view of real input, never from the editor.
     expect(
-      readCustomEditorFrameMessage({ type: 'orca-editor-keydown', key: 'x'.repeat(65), code: 'a' })
+      readCustomEditorFrameMessage({ type: 'orca-editor-keydown', key: 's', metaKey: true })
     ).toBeNull()
     expect(
       readCustomEditorFrameMessage({ type: 'orca-editor-edit', content: { kind: 'bytes' } })

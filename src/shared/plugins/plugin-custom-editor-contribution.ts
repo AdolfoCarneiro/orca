@@ -58,7 +58,7 @@ export const pluginCustomEditorContributionSchema = z
       ),
     entry: pluginRelativePathSchema.meta(
       pluginPathFieldDoc(
-        "HTML file rendered inside a sandboxed editor frame. It receives the open document's text and posts full-text edits back; it never gets a file path, file system or network access.",
+        "HTML file rendered in an isolated editor guest. It receives the open document and posts full-text edits back; it never gets a file path or file system. Its session refuses every request and peer connection, but Electron 43 still resolves `<link rel=\"dns-prefetch\">` host names, so treat a hostname as able to leave.",
         PLUGIN_MANIFEST_V2_SINCE,
         ['editor/index.html']
       )
@@ -68,7 +68,7 @@ export const pluginCustomEditorContributionSchema = z
       .optional()
       .meta(
         pluginFieldDoc(
-          '`default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source.',
+          '`default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. File types Orca opens itself (such as `json`, `ts`, `md`, `csv`, `yaml`, lockfiles and `.env` files) always behave as `option`.',
           PLUGIN_MANIFEST_V2_SINCE,
           ['default']
         )
@@ -88,7 +88,7 @@ export const pluginCustomEditorContributionSchema = z
       .optional()
       .meta(
         pluginFieldDoc(
-          'When true the editor only views files: Orca never applies its edits, and the install review says it opens rather than edits them.',
+          'When true the editor only views files: Orca drops its edits before they reach the tab, and the install review says it opens rather than edits them. Turning it off in an update asks for approval again.',
           PLUGIN_MANIFEST_V2_SINCE,
           [true]
         )

@@ -43,9 +43,11 @@ const readPanelEntryArgsSchema = z.object({
   panelId: z.string().min(1)
 })
 
-const readCustomEditorEntryArgsSchema = z.object({
+const openCustomEditorGuestArgsSchema = z.object({
   pluginKey: z.string().min(1),
-  editorId: z.string().min(1)
+  editorId: z.string().min(1),
+  colorScheme: z.enum(['light', 'dark']),
+  tokens: z.string().max(16_384)
 })
 
 const invokeCommandArgsSchema = z.object({
@@ -75,6 +77,15 @@ const logsArgsSchema = z.object({ pluginKey: z.string().min(1) })
 
 // Preserve import compatibility; runtime RPC uses the Electron-free client-list module.
 import { listPluginsForClients, readInstalledPluginManifest } from '../plugins/plugin-client-list'
+import {
+  closePluginEditorGuest,
+  openPluginEditorGuest
+} from '../plugins/custom-editors/plugin-editor-guests'
+import {
+  PLUGIN_EDITOR_CLOSE_GUEST_CHANNEL,
+  PLUGIN_EDITOR_OPEN_GUEST_CHANNEL,
+  type PluginEditorGuestOpenResult
+} from '../../shared/plugins/plugin-editor-guest'
 
 export function canRemoveInstalledPlugin(
   pluginService: PluginService,
@@ -196,13 +207,20 @@ export function registerPluginHandlers(
   )
 
   ipcMain.handle(
-    'plugins:readCustomEditorEntry',
-    async (_event, args: unknown): Promise<{ html: string } | null> => {
+    PLUGIN_EDITOR_OPEN_GUEST_CHANNEL,
+    async (event, args: unknown): Promise<PluginEditorGuestOpenResult | null> => {
       await pluginService.whenReady()
-      const parsed = readCustomEditorEntryArgsSchema.parse(args)
-      return pluginService.panels.readCustomEditorEntry(parsed.pluginKey, parsed.editorId)
+      const parsed = openCustomEditorGuestArgsSchema.parse(args)
+      const entry = await pluginService.panels.readCustomEditorEntry(
+        parsed.pluginKey,
+        parsed.editorId
+      )
+      return entry ? openPluginEditorGuest(event.sender, { ...entry, ...parsed }) : null
     }
   )
+  ipcMain.handle(PLUGIN_EDITOR_CLOSE_GUEST_CHANNEL, (event, token: unknown) => {
+    closePluginEditorGuest(event.sender, token)
+  })
 
   // Renderer forwards panel actions; main enforces capabilities.
   ipcMain.handle(
