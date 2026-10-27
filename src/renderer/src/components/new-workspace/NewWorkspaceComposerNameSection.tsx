@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ArrowRight } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import SmartWorkspaceNameField from '@/components/new-workspace/SmartWorkspaceNameField'
@@ -185,17 +185,20 @@ export function NewWorkspaceComposerNameSection({
               )}
             </p>
             {onOpenSelectedBranchWorkspace ? (
-              <Button
-                type="button"
-                variant="link"
-                size="xs"
-                onClick={onOpenSelectedBranchWorkspace}
-              >
-                {translate(
-                  'auto.components.NewWorkspaceComposerCard.openExistingWorkspace',
-                  'Open existing workspace'
-                )}
-              </Button>
+              <div className="pl-6 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={onOpenSelectedBranchWorkspace}
+                >
+                  {translate(
+                    'auto.components.NewWorkspaceComposerCard.openExistingWorkspace',
+                    'Open existing workspace'
+                  )}
+                  <ArrowRight aria-hidden="true" />
+                </Button>
+              </div>
             ) : null}
           </div>
         </div>
