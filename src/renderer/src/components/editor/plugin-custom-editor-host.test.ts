@@ -216,6 +216,16 @@ describe('custom editor document channel', () => {
     expect(onEdit).not.toHaveBeenCalled()
   })
 
+  it('refuses every edit from an editor its manifest marks read-only, on a writable tab', () => {
+    const { posted, onEdit, onUnappliedEdit, send } = setup({ text: 'a', editorReadOnly: true })
+    send({ type: 'orca-editor-ready' })
+    expect(posted[0]).toMatchObject({ type: 'orca-editor-document', readOnly: true })
+    send(edit('b'))
+    send(edit('x'.repeat(CUSTOM_EDITOR_DOCUMENT_MAX_BYTES + 1)))
+    expect(onEdit).not.toHaveBeenCalled()
+    expect(onUnappliedEdit).not.toHaveBeenCalled()
+  })
+
   it('refuses an edit over the size cap, tells the frame, and blocks the save', async () => {
     const { host, posted, onEdit, onEditRefused, onUnappliedEdit, send } = setup({ text: 'a' })
     send({ type: 'orca-editor-ready' })

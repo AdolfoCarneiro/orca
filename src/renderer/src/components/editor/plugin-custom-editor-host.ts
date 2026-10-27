@@ -105,7 +105,7 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
   ) => {
     options.post(message, transfer)
   }
-  const readOnly = (): boolean => options.getDocument().readOnly
+  const readOnly = (): boolean => options.editorReadOnly === true || options.getDocument().readOnly
 
   const pushBinaryDocument = (force: boolean, binary: CustomEditorBinaryDocument | null): void => {
     if (!binary || (!force && binary === frameBinary)) {

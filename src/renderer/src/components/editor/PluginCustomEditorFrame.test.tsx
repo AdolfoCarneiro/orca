@@ -212,6 +212,19 @@ describe('PluginCustomEditorFrame', () => {
     expect(container.textContent).toContain("Couldn't save the latest changes from Excalidraw")
   })
 
+  it('treats an editor its manifest marks read-only as a viewer even on a writable tab', async () => {
+    openCustomEditorGuest.mockResolvedValue(ticket({ readonly: true }))
+    const { fromFrame, onContentChange } = await renderFrame({ content: 'scene' })
+    await fromFrame({ type: 'orca-editor-ready' })
+    expect(documentMessages()[0]).toMatchObject({ readOnly: true })
+    await fromFrame({
+      type: 'orca-editor-edit',
+      baseVersion: 1,
+      content: { kind: 'text', text: 'tampered' }
+    })
+    expect(onContentChange).not.toHaveBeenCalled()
+  })
+
   it('never saves or edits a read-only document', async () => {
     const { fromGuest, fromFrame, onContentChange, onSave } = await renderFrame({
       content: 'scene',

@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { session, type Session, type WebContents } from 'electron'
+import { isCustomEditorEditAttempt } from '../../../shared/plugins/plugin-custom-editor-bridge'
 import {
   PLUGIN_EDITOR_GUEST_EVENT_CHANNEL,
   PLUGIN_EDITOR_GUEST_POST_CHANNEL,
@@ -133,7 +134,7 @@ export function attachPluginEditorGuest(guest: WebContents, host: WebContents): 
   })
   guest.ipc.on(PLUGIN_EDITOR_GUEST_POST_CHANNEL, (event, data: unknown) => {
     const found = event.sender === guest ? recordOf(guest, host) : null
-    if (!found) {
+    if (!found || (found[1].readonly && isCustomEditorEditAttempt(data))) {
       return
     }
     send(host, { token: found[0], kind: 'message', data })

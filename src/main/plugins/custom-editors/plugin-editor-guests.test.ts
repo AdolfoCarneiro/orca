@@ -136,6 +136,28 @@ describe('plugin editor guests', () => {
     ).toBe(false)
   })
 
+  it('relays guest messages to its host, and drops every edit from a read-only editor in main', async () => {
+    const host = contents()
+    const viewer = await open(host, true)
+    const editor = await open(host, false)
+    const viewerGuest = guestOf(host, viewer.src)
+    const editorGuest = guestOf(host, editor.src)
+    const edit = { type: 'orca-editor-edit', baseVersion: 1, content: { kind: 'text', text: 'x' } }
+    post(viewerGuest, edit)
+    post(viewerGuest, { type: 'orca-editor-ready' })
+    post(editorGuest, edit)
+    expect(host.sent).toEqual([
+      {
+        channel: PLUGIN_EDITOR_GUEST_EVENT_CHANNEL,
+        payload: { token: viewer.token, kind: 'message', data: { type: 'orca-editor-ready' } }
+      },
+      {
+        channel: PLUGIN_EDITOR_GUEST_EVENT_CHANNEL,
+        payload: { token: editor.token, kind: 'message', data: edit }
+      }
+    ])
+  })
+
   it('reports save chords only from real input, read before the page sees it', async () => {
     const host = contents()
     const ticket = await open(host, false)
