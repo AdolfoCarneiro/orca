@@ -11,6 +11,7 @@ import { resolvePtyOwnerBackend, type PtyOwnerBackend } from '../../../../shared
 import { isRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
 import { parseAppSshPtyId } from '../../../../shared/ssh-pty-id'
 import { windowsPtyForOwnerBackend } from '../../../../shared/xterm-conpty-options'
+import { AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS } from '../../orca-runtime-postlude'
 
 export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends OrcaRuntimeWithMaybeHydrateHeadlessFromRenderer {
   /** SSH and paired-runtime panes run on their host's PTY; every PTY this Windows process owns is ConPTY. */
@@ -41,6 +42,7 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
     const emulator = new HeadlessEmulator({
       cols: dims.cols,
       rows: dims.rows,
+      scrollback: this.headlessTerminalScrollbackRows,
       pathFlavor,
       remotePosixFileUriAuthority:
         !!this.ptysById.get(ptyId)?.connectionId && pathFlavor !== 'win32',
@@ -123,7 +125,12 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
         if (this.headlessTerminals.get(ptyId) !== state) {
           return
         }
-        const snapshot = await this.serializeProviderTerminalBuffer(ptyId)
+        // Why bounded: live bytes queue behind this seed, so a provider that never answers would retain them all.
+        const snapshot = await this.serializeProviderTerminalBuffer(
+          ptyId,
+          {},
+          { timeoutMs: AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS }
+        )
         if (this.headlessTerminals.get(ptyId) !== state || !snapshot) {
           return
         }
