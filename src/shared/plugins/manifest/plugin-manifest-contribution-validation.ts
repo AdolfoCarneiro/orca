@@ -19,6 +19,7 @@ type ContributionValidationManifest = {
     terminalThemes: IdentifiedContribution[]
     iconThemes: IdentifiedContribution[]
     syntaxes: (IdentifiedContribution & { scopeName: string })[]
+    customEditors: (IdentifiedContribution & { fileTypes: string[] })[]
   }
   capabilities: { kind: string }[]
 }
@@ -54,7 +55,8 @@ export function validatePluginManifestContributions(
     'themes',
     'terminalThemes',
     'iconThemes',
-    'syntaxes'
+    'syntaxes',
+    'customEditors'
   ] as const) {
     rejectDuplicateValues(
       manifest.contributes[path],
@@ -71,6 +73,15 @@ export function validatePluginManifestContributions(
     'syntax scope name',
     ctx
   )
+  for (const [index, editor] of manifest.contributes.customEditors.entries()) {
+    if (new Set(editor.fileTypes).size !== editor.fileTypes.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['contributes', 'customEditors', index, 'fileTypes'],
+        message: 'duplicate custom editor file type'
+      })
+    }
+  }
   rejectDuplicateValues(
     manifest.contributes.languagePacks,
     (entry) => (entry as { locale: string }).locale.toLowerCase(),

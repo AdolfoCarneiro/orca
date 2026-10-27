@@ -31,6 +31,10 @@ export const pluginsApi = {
     pluginKey: string
     panelId: string
   }): Promise<PluginPanelEntry | null> => ipcRenderer.invoke('plugins:readPanelEntry', args),
+  readCustomEditorEntry: (args: {
+    pluginKey: string
+    editorId: string
+  }): Promise<{ html: string } | null> => ipcRenderer.invoke('plugins:readCustomEditorEntry', args),
   invokeCommand: (args: { pluginKey: string; commandId: string; args?: unknown }) =>
     ipcRenderer.invoke('plugins:invokeCommand', args),
   panelAction: (args: {

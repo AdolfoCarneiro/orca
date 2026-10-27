@@ -1,0 +1,223 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { translate } from '@/i18n/i18n'
+import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
+import {
+  PANEL_PING_TYPE,
+  PLUGIN_PANEL_FRAME_NAME_PREFIX
+} from '../../../../shared/plugins/plugin-panel-bridge'
+import { fillPluginPanelShell } from '../right-sidebar/plugin-panel-design-token-css'
+import { createPanelWatchdog } from '../right-sidebar/plugin-panel-watchdog'
+import { usePluginPanelThemeRevision } from '../right-sidebar/use-plugin-panel-theme-revision'
+import { editorShortcutMatches } from './editor-shortcuts'
+import { createCustomEditorHost, type CustomEditorEditRefusal } from './plugin-custom-editor-host'
+
+type PluginCustomEditorFrameProps = {
+  editor: ActivePluginCustomEditor
+  fileId: string
+  content: string
+  readOnly: boolean
+  onContentChange: (content: string) => void
+  onSave: (content: string) => Promise<boolean>
+}
+
+type EntryState =
+  | { status: 'loading' }
+  | { status: 'error' }
+  | { status: 'unresponsive' }
+  | { status: 'ready'; html: string; revision: number }
+
+function FrameMessage({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
+      {children}
+    </div>
+  )
+}
+
+/** A plugin's sandboxed editor for the open file. It only exchanges text with this tab. */
+export default function PluginCustomEditorFrame({
+  editor,
+  fileId,
+  content,
+  readOnly,
+  onContentChange,
+  onSave
+}: PluginCustomEditorFrameProps): React.JSX.Element {
+  const [entry, setEntry] = useState<EntryState>({ status: 'loading' })
+  const [refusal, setRefusal] = useState<CustomEditorEditRefusal | null>(null)
+  const [loadedFrameKey, setLoadedFrameKey] = useState<string | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+  const themeRevision = usePluginPanelThemeRevision()
+  // Why refs: the host is built once per frame; props change on every keystroke.
+  const latestRef = useRef({ content, readOnly, onContentChange, onSave })
+  latestRef.current = { content, readOnly, onContentChange, onSave }
+
+  const { pluginKey, id: editorId } = editor
+  useEffect(() => {
+    let cancelled = false
+    let currentHtml: string | null = null
+    let revision = 0
+    const pluginsApi = window.api?.plugins
+    const readEntry = pluginsApi?.readCustomEditorEntry
+    if (!pluginsApi || !readEntry) {
+      setEntry({ status: 'error' })
+      return
+    }
+    setEntry({ status: 'loading' })
+    const load = (): void => {
+      readEntry({ pluginKey, editorId })
+        .then((result) => {
+          if (cancelled) {
+            return
+          }
+          if (!result) {
+            currentHtml = null
+            setEntry({ status: 'error' })
+            return
+          }
+          // Plugin list changes fire often; only new bytes remount the frame.
+          if (result.html !== currentHtml) {
+            currentHtml = result.html
+            revision += 1
+            setEntry({ status: 'ready', html: result.html, revision })
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            currentHtml = null
+            setEntry({ status: 'error' })
+          }
+        })
+    }
+    load()
+    const unsubscribe = pluginsApi.onChanged ? pluginsApi.onChanged(load) : null
+    return () => {
+      cancelled = true
+      unsubscribe?.()
+    }
+  }, [pluginKey, editorId])
+
+  const frameKey =
+    entry.status === 'ready' ? `${editor.key}:${entry.revision}:${themeRevision}` : null
+  const frameDocument = entry.status === 'ready' ? fillPluginPanelShell(entry.html) : null
+
+  const watchdog = useMemo(
+    () =>
+      createPanelWatchdog({
+        sendPing: (pingId) =>
+          iframeRef.current?.contentWindow?.postMessage({ type: PANEL_PING_TYPE, pingId }, '*'),
+        onUnresponsive: () => setEntry({ status: 'unresponsive' })
+      }),
+    []
+  )
+
+  const host = useMemo(() => {
+    const created = createCustomEditorHost({
+      getFrameWindow: () => iframeRef.current?.contentWindow ?? null,
+      getDocument: () => ({
+        text: latestRef.current.content,
+        readOnly: latestRef.current.readOnly
+      }),
+      onEdit: (text) => {
+        setRefusal(null)
+        latestRef.current.onContentChange(text)
+      },
+      onEditRefused: setRefusal,
+      onPong: (pingId) => watchdog.handlePong(pingId),
+      onKeyChord: (chord) => {
+        const event = new KeyboardEvent('keydown', chord)
+        if (latestRef.current.readOnly || !editorShortcutMatches('editor.save', event)) {
+          return
+        }
+        // Why flush first: the editor may still hold the last stroke in its debounce window.
+        void created.flush().then(() => latestRef.current.onSave(created.currentText()))
+      }
+    })
+    return created
+  }, [watchdog])
+
+  useEffect(() => {
+    if (!frameKey) {
+      return
+    }
+    window.addEventListener('message', host.handleMessage)
+    return () => {
+      window.removeEventListener('message', host.handleMessage)
+      host.reset()
+    }
+  }, [frameKey, host])
+
+  useEffect(() => {
+    if (!frameKey || loadedFrameKey !== frameKey) {
+      return
+    }
+    // Ping only once srcdoc (and its pong responder) has loaded.
+    watchdog.start()
+    return () => watchdog.stop()
+  }, [frameKey, loadedFrameKey, watchdog])
+
+  useEffect(() => {
+    host.syncDocument()
+  }, [content, readOnly, host])
+
+  if (entry.status === 'loading') {
+    return (
+      <FrameMessage>
+        {translate('auto.components.editor.PluginCustomEditorFrame.loading', 'Loading editor…')}
+      </FrameMessage>
+    )
+  }
+  if (entry.status === 'unresponsive') {
+    return (
+      <FrameMessage>
+        {translate(
+          'auto.components.editor.PluginCustomEditorFrame.unresponsive',
+          '{{value0}} stopped responding. Switch to Source to keep editing.',
+          { value0: editor.title }
+        )}
+      </FrameMessage>
+    )
+  }
+  if (entry.status === 'error') {
+    return (
+      <FrameMessage>
+        {translate(
+          'auto.components.editor.PluginCustomEditorFrame.loadFailed',
+          '{{value0}} could not be loaded. Switch to Source to edit this file.',
+          { value0: editor.title }
+        )}
+      </FrameMessage>
+    )
+  }
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      {refusal ? (
+        <div className="border-b border-border px-3 py-1.5 text-xs text-destructive">
+          {refusal === 'oversized'
+            ? translate(
+                'auto.components.editor.PluginCustomEditorFrame.editTooLarge',
+                'This file is too large for {{value0}} to save changes. Use Source instead.',
+                { value0: editor.title }
+              )
+            : translate(
+                'auto.components.editor.PluginCustomEditorFrame.editRateLimited',
+                '{{value0}} is sending changes too quickly; some were skipped.',
+                { value0: editor.title }
+              )}
+        </div>
+      ) : null}
+      <iframe
+        key={frameKey}
+        ref={iframeRef}
+        // SECURITY: never add allow-same-origin — the srcdoc frame must stay an opaque origin so
+        // plugin UI cannot reach the app DOM, storage, IPC or the file it edits.
+        sandbox="allow-scripts"
+        name={`${PLUGIN_PANEL_FRAME_NAME_PREFIX}editor:${editor.key}:${fileId}`}
+        srcDoc={frameDocument ?? ''}
+        onLoad={() => setLoadedFrameKey(frameKey)}
+        title={editor.title}
+        className="min-h-0 w-full flex-1 border-0 bg-background"
+      />
+    </div>
+  )
+}

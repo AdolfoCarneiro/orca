@@ -1,4 +1,5 @@
 import { PANEL_PING_TYPE, PANEL_PONG_TYPE } from './plugin-panel-bridge'
+import { CUSTOM_EDITOR_SHELL_SCRIPT } from './plugin-custom-editor-bridge'
 
 /** Prepend CSP before any untrusted panel HTML: opaque origins alone still permit CORS fetch/beacons. Parsed CSP survives
  * DOM removal and later CSP can only tighten it. Open head/html exposes design tokens to plugin CSS.
@@ -48,7 +49,13 @@ export const PANEL_DESIGN_TOKEN_ALLOWLIST = [
   '--radius'
 ] as const
 
-export function buildPluginPanelShellHtml(pluginHtml: string): string {
+/** `custom-editor` frames get the same shell plus the host-owned key forwarder. */
+export type PluginFrameSurface = 'panel' | 'custom-editor'
+
+export function buildPluginPanelShellHtml(
+  pluginHtml: string,
+  surface: PluginFrameSurface = 'panel'
+): string {
   // The inline ping responder proves the frame's event loop is alive; the
   // renderer watchdog demotes the panel when pongs stop arriving.
   const prelude =
@@ -93,8 +100,7 @@ export function buildPluginPanelShellHtml(pluginHtml: string): string {
     `  if (event.source === window.parent && data && data.type === '${PANEL_PING_TYPE}') {\n` +
     `    window.parent.postMessage({ type: '${PANEL_PONG_TYPE}', pingId: data.pingId }, '*')\n` +
     '  }\n' +
-    '})\n' +
-    '</script>\n' +
+    `})\n${surface === 'custom-editor' ? CUSTOM_EDITOR_SHELL_SCRIPT : ''}</script>\n` +
     '</head>\n'
   return prelude + pluginHtml
 }

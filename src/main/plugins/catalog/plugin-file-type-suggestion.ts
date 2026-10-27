@@ -1,4 +1,7 @@
-import type { PluginFileTypeSuggestionSettings } from '../../../shared/plugins/plugin-file-type'
+import {
+  pluginHandledFileTypes,
+  type PluginFileTypeSuggestionSettings
+} from '../../../shared/plugins/plugin-file-type'
 import { isInvalidDiscoveredPlugin, type DiscoveredPlugin } from '../plugin-discovery'
 import type { PluginMarketplaceListing } from './plugin-marketplace-projection'
 
@@ -36,10 +39,7 @@ export function findPluginFileTypeSuggestion(input: {
       continue
     }
     installedKeys.add(plugin.pluginKey)
-    const handles = plugin.manifest.contributes.syntaxes.some((syntax) =>
-      syntax.extensions.some((extension) => extension.slice(1).toLowerCase() === fileType)
-    )
-    if (handles) {
+    if (pluginHandledFileTypes(plugin.manifest.contributes).includes(fileType)) {
       return null
     }
   }

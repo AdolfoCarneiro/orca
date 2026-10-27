@@ -46,6 +46,9 @@ function declaredArtifactPaths(manifest: PluginManifest): DeclaredArtifact[] {
     ...c.panels.flatMap((panel) =>
       declaredFile(`panel "${panel.id}" entry`, panel.entry, PLUGIN_PANEL_ENTRY_MAX_BYTES)
     ),
+    ...c.customEditors.flatMap((editor) =>
+      declaredFile(`custom editor "${editor.id}" entry`, editor.entry, PLUGIN_PANEL_ENTRY_MAX_BYTES)
+    ),
     ...c.languagePacks.flatMap((pack) =>
       declaredFile(`language pack "${pack.locale}"`, pack.path, PLUGIN_LANGUAGE_PACK_MAX_BYTES)
     ),

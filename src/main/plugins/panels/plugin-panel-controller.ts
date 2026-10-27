@@ -8,7 +8,10 @@ import {
   createPluginPanelCallAdmission,
   type PluginPanelCallAdmission
 } from '../../../shared/plugins/plugin-panel-call-admission'
-import { buildPluginPanelShellHtml } from '../../../shared/plugins/plugin-panel-shell'
+import {
+  buildPluginPanelShellHtml,
+  type PluginFrameSurface
+} from '../../../shared/plugins/plugin-panel-shell'
 import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import type { PluginContentVerifier } from '../plugin-content-integrity'
 import {
@@ -45,6 +48,20 @@ export class PluginPanelController {
 
   async readEntry(pluginKey: string, panelId: string): Promise<{ html: string } | null> {
     return (await this.load(pluginKey, panelId))?.entry ?? null
+  }
+
+  /** Why no session: custom editors get no host actions, only the tab's document channel. */
+  async readCustomEditorEntry(
+    pluginKey: string,
+    editorId: string
+  ): Promise<{ html: string } | null> {
+    const plugin = this.options.resolveApprovedPlugin(pluginKey)
+    const editor = plugin?.manifest.contributes.customEditors.find((entry) => entry.id === editorId)
+    if (!plugin || !editor) {
+      return null
+    }
+    const html = await this.readShell(plugin, editor.entry, 'custom-editor')
+    return html === null ? null : { html }
   }
 
   async open(
@@ -141,32 +158,46 @@ export class PluginPanelController {
     if (!plugin || !panel) {
       return null
     }
+    const html = await this.readShell(plugin, panel.entry, 'panel')
+    if (html === null) {
+      return null
+    }
+    return {
+      entry: { html },
+      binding: {
+        pluginKey,
+        panelId,
+        rootDir: plugin.rootDir,
+        manifestRevision: JSON.stringify(plugin.manifest)
+      }
+    }
+  }
+
+  private async readShell(
+    plugin: ValidDiscoveredPlugin,
+    entryPath: string,
+    surface: PluginFrameSurface
+  ): Promise<string | null> {
+    const { pluginKey } = plugin
     const log = this.options.log(pluginKey)
     try {
       await this.options.contentVerifier.verify(plugin)
       const html = buildPluginPanelShellHtml(
         await readContainedPluginArtifactText(
           plugin.rootDir,
-          panel.entry,
+          entryPath,
           PLUGIN_PANEL_ENTRY_MAX_BYTES
-        )
+        ),
+        surface
       )
       const current = this.options.resolveApprovedPlugin(pluginKey)
       if (current !== plugin || current.rootDir !== plugin.rootDir) {
         return null
       }
-      return {
-        entry: { html },
-        binding: {
-          pluginKey,
-          panelId,
-          rootDir: plugin.rootDir,
-          manifestRevision: JSON.stringify(plugin.manifest)
-        }
-      }
+      return html
     } catch (error) {
       log(
-        `panel entry ${panel.entry} rejected: ${error instanceof Error ? error.message : String(error)}`
+        `${surface} entry ${entryPath} rejected: ${error instanceof Error ? error.message : String(error)}`
       )
       return null
     }

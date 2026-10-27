@@ -1,0 +1,102 @@
+import { useEffect, useMemo } from 'react'
+import { create } from 'zustand'
+import type { PluginHostCustomEditor, PluginHostListEntry } from '../../../preload/api-types'
+import { matchCustomEditorFileType } from '../../../shared/plugins/plugin-custom-editor-contribution'
+import { ensurePluginPanelsLoaded, usePluginPanelsStore } from './plugin-panels'
+
+/** A custom editor from an enabled plugin. `key` is unique across plugins. */
+export type ActivePluginCustomEditor = PluginHostCustomEditor & {
+  key: string
+  pluginKey: string
+  pluginName: string
+}
+
+/** The per-file view a user picked in the toggle: an editor key, or `source`. */
+export type CustomEditorViewChoice = string
+
+const SOURCE_CHOICE = 'source'
+
+/** Same liveness as panels: enabled and consented, whether or not a worker runs. */
+export function collectActivePluginCustomEditors(
+  plugins: readonly PluginHostListEntry[]
+): ActivePluginCustomEditor[] {
+  return plugins
+    .filter(
+      (plugin) =>
+        plugin.status === 'running' || plugin.status === 'restarting' || plugin.status === 'idle'
+    )
+    .flatMap((plugin) =>
+      (plugin.customEditors ?? []).map((editor) => ({
+        ...editor,
+        key: `${plugin.pluginKey}/${editor.id}`,
+        pluginKey: plugin.pluginKey,
+        pluginName: plugin.name
+      }))
+    )
+}
+
+/** Editors that open this file, `default` priority first, otherwise in plugin order. */
+export function customEditorsForFile(
+  filePath: string,
+  editors: readonly ActivePluginCustomEditor[]
+): ActivePluginCustomEditor[] {
+  const matching = editors.filter(
+    (editor) => matchCustomEditorFileType(filePath, editor.fileTypes) !== null
+  )
+  return [
+    ...matching.filter((editor) => editor.priority === 'default'),
+    ...matching.filter((editor) => editor.priority !== 'default')
+  ]
+}
+
+/** The editor a file shows: the user's pick while it still exists, else the first default one. */
+export function resolveCustomEditorChoice(
+  editors: readonly ActivePluginCustomEditor[],
+  choice: CustomEditorViewChoice | undefined
+): ActivePluginCustomEditor | null {
+  if (choice === SOURCE_CHOICE) {
+    return null
+  }
+  const picked = choice ? editors.find((editor) => editor.key === choice) : undefined
+  return picked ?? editors.find((editor) => editor.priority === 'default') ?? null
+}
+
+type CustomEditorViewState = {
+  choices: Record<string, CustomEditorViewChoice>
+  setChoice: (fileId: string, choice: CustomEditorViewChoice) => void
+}
+
+/** Why session-only: a pick names a plugin that may be gone next launch; defaults then apply. */
+export const useCustomEditorViewStore = create<CustomEditorViewState>()((set) => ({
+  choices: {},
+  setChoice: (fileId, choice) =>
+    set((state) => ({ choices: { ...state.choices, [fileId]: choice } }))
+}))
+
+/** Custom editors of enabled plugins, sharing the plugin-list refresh. */
+export function usePluginCustomEditors(): ActivePluginCustomEditor[] {
+  const plugins = usePluginPanelsStore((state) => state.plugins)
+  useEffect(() => {
+    ensurePluginPanelsLoaded()
+  }, [])
+  return useMemo(() => collectActivePluginCustomEditors(plugins), [plugins])
+}
+
+/** The enabled editors for one file and the user's pick among them. */
+export function useFileCustomEditors(
+  fileId: string | null,
+  filePath: string | undefined
+): {
+  customEditors: ActivePluginCustomEditor[]
+  customEditorChoice: CustomEditorViewChoice | undefined
+} {
+  const all = usePluginCustomEditors()
+  const customEditors = useMemo(
+    () => (filePath ? customEditorsForFile(filePath, all) : []),
+    [filePath, all]
+  )
+  const customEditorChoice = useCustomEditorViewStore((state) =>
+    fileId ? state.choices[fileId] : undefined
+  )
+  return { customEditors, customEditorChoice }
+}

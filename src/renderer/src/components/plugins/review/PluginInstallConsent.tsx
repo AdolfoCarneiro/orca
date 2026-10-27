@@ -23,6 +23,8 @@ type PluginInstallConsentProps = {
   capabilities: readonly { kind: string; description: string }[] | null
   /** Shortcuts it binds; any that replace one of yours are named before consent. */
   shortcuts: readonly PluginPageShortcut[] | null
+  /** Dotted file suffixes its custom editors open and edit. */
+  editorFileTypes?: readonly string[] | null
   /** Its files are still being read; says so beside the disabled button. */
   reading?: boolean
   /** Its files couldn't be read, so nothing is known about what it can do. */
@@ -45,6 +47,14 @@ function shortcutPlatform(): NodeJS.Platform {
   return navigator.userAgent.includes('Windows') ? 'win32' : 'linux'
 }
 
+function formatFileTypeList(fileTypes: readonly string[]): string {
+  try {
+    return new Intl.ListFormat(undefined, { type: 'conjunction' }).format(fileTypes)
+  } catch {
+    return fileTypes.join(', ')
+  }
+}
+
 /**
  * What a plugin that runs code or instructions may do, right under the name and the one button
  * that grants it. On the host's security surface so a plugin theme cannot restyle the decision.
@@ -53,6 +63,7 @@ export function PluginInstallConsent({
   trust,
   capabilities: requested,
   shortcuts,
+  editorFileTypes,
   reading = false,
   failed = false,
   onRetry,
@@ -103,6 +114,18 @@ export function PluginInstallConsent({
               <span>{warning}</span>
             </p>
           ))}
+          {editorFileTypes && editorFileTypes.length > 0 ? (
+            <p className="flex items-start gap-2">
+              <Check className="mt-1 size-4 shrink-0 text-muted-foreground" />
+              <span>
+                {translate(
+                  'auto.components.settings.PluginInstallConsent.editsFileTypes',
+                  'Opens and edits {{value0}} files in Orca',
+                  { value0: formatFileTypeList(editorFileTypes) }
+                )}
+              </span>
+            </p>
+          ) : null}
           {conflicts.map((conflict) => (
             <p key={conflict.key} className="flex items-start gap-2 text-status-warning-text">
               <AlertTriangle className="mt-1 size-4 shrink-0" />

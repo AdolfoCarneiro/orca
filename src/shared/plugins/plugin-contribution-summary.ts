@@ -75,6 +75,12 @@ export function pluginContributionSummary(
       c.syntaxes,
       (syntax) => syntax.label,
       (syntax) => syntax.extensions.join(', ') || undefined
+    ),
+    ...named(
+      'customEditors',
+      c.customEditors,
+      (editor) => editor.title,
+      (editor) => editor.fileTypes.map((fileType) => `.${fileType}`).join(', ')
     )
   ].slice(0, PLUGIN_CONTRIBUTION_SUMMARY_LIMIT)
 }

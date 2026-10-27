@@ -94,7 +94,10 @@ export function pluginTrust({
   const worker =
     execution === 'trusted-worker' || hasWorker || usesProfile(points, 'trusted-worker') === true
   const declarative = execution === 'declarative' || (usesProfile(points, 'declarative') ?? true)
-  const panel = execution === 'sandboxed-ui' || points?.has('panels') === true
+  const panel =
+    execution === 'sandboxed-ui' ||
+    points?.has('panels') === true ||
+    points?.has('customEditors') === true
   return { worker, declarative, panel }
 }
 

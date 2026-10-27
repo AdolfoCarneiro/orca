@@ -23,6 +23,10 @@ import {
   pluginEventContributionSchema
 } from './plugin-event-contribution'
 import type { PluginExecutionProfile } from './plugin-execution-profile'
+import {
+  PLUGIN_CUSTOM_EDITOR_LIMIT,
+  pluginCustomEditorContributionSchema
+} from './plugin-custom-editor-contribution'
 import { PLUGIN_PANEL_LIMIT, pluginPanelContributionSchema } from './plugin-panel-contribution'
 import {
   pluginFieldDoc,
@@ -41,7 +45,8 @@ export const PLUGIN_CONTRIBUTION_POINTS = [
   'themes',
   'terminalThemes',
   'iconThemes',
-  'syntaxes'
+  'syntaxes',
+  'customEditors'
 ] as const
 
 export type PluginContributionPoint = (typeof PLUGIN_CONTRIBUTION_POINTS)[number]
@@ -169,6 +174,12 @@ export const pluginContributesFields = {
     PLUGIN_SYNTAX_LIMIT,
     'Syntax highlighting for editor languages.',
     NEXT
+  ),
+  customEditors: contributionList(
+    pluginCustomEditorContributionSchema,
+    PLUGIN_CUSTOM_EDITOR_LIMIT,
+    'Editors that open files of given types in the editor tab.',
+    NEXT
   )
 } satisfies Record<PluginContributionPoint, z.ZodType>
 
@@ -208,5 +219,7 @@ export const PLUGIN_CONTRIBUTION_POINT_POLICY: Record<
   themes: { execution: 'data', catalogType: 'app-theme', bindsContent: false },
   terminalThemes: { execution: 'data', catalogType: 'terminal-theme', bindsContent: false },
   iconThemes: { execution: 'data', catalogType: 'icon-theme', bindsContent: false },
-  syntaxes: { execution: 'data', catalogType: 'syntax', bindsContent: false }
+  syntaxes: { execution: 'data', catalogType: 'syntax', bindsContent: false },
+  // Why panel: a custom editor is sandboxed plugin UI with one extra document channel.
+  customEditors: { execution: 'sandboxed-ui', catalogType: 'panel', bindsContent: false }
 }

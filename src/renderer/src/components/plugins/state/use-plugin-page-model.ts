@@ -162,6 +162,23 @@ export function usePluginPageModel({
         .map((item) => ({ key: item.name, command: item.detail ?? item.name })) ?? null
   }
 
+  // Dotted suffixes the plugin's custom editors open, named in the consent.
+  let editorFileTypes: string[] | null
+  if (plugin) {
+    editorFileTypes = (plugin.customEditors ?? []).flatMap((editor) =>
+      editor.fileTypes.map((fileType) => `.${fileType}`)
+    )
+  } else if (shownPreview) {
+    editorFileTypes = shownPreview.manifest.contributes.customEditors.flatMap((editor) =>
+      editor.fileTypes.map((fileType) => `.${fileType}`)
+    )
+  } else {
+    editorFileTypes =
+      summary
+        ?.filter((item) => item.kind === 'customEditors')
+        .flatMap((item) => (item.detail ? item.detail.split(', ') : [])) ?? null
+  }
+
   const images: PluginHostImages | undefined =
     plugin?.images ?? listing?.images ?? shownPreview?.images
   return {
@@ -178,6 +195,7 @@ export function usePluginPageModel({
     trust,
     capabilities,
     shortcuts,
+    editorFileTypes: editorFileTypes ? [...new Set(editorFileTypes)] : null,
     images,
     installedManifest
   }

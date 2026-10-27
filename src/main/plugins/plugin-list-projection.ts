@@ -70,6 +70,12 @@ export type PluginListEntry = {
   bundled: boolean
   capabilities: { kind: PluginCapabilityKind; description: string }[]
   panels: PluginListPanelEntry[]
+  customEditors: {
+    id: string
+    title: string
+    fileTypes: string[]
+    priority: 'default' | 'option'
+  }[]
   commands: {
     id: string
     title: string
@@ -127,6 +133,7 @@ export async function buildPluginList(
           bundled: false,
           capabilities: [],
           panels: [],
+          customEditors: [],
           commands: [],
           hasWorker: false,
           vmRecipes: [],
@@ -197,6 +204,12 @@ export async function buildPluginList(
           title: panel.title,
           ...(panel.icon ? { icon: panel.icon } : {}),
           tabKey: pluginPanelTabKey(plugin.pluginKey, panel.id)
+        })),
+        customEditors: plugin.manifest.contributes.customEditors.map((editor) => ({
+          id: editor.id,
+          title: editor.title,
+          fileTypes: editor.fileTypes,
+          priority: editor.priority ?? 'default'
         })),
         commands: service.contentPacks.commands.preview(plugin.pluginKey).map((command) => ({
           id: command.id,

@@ -1,4 +1,8 @@
-import { PANEL_DESIGN_TOKEN_ALLOWLIST } from '../../../../shared/plugins/plugin-panel-shell'
+import {
+  PANEL_DESIGN_TOKEN_ALLOWLIST,
+  PANEL_SHELL_COLOR_SCHEME_PLACEHOLDER,
+  PANEL_SHELL_TOKENS_PLACEHOLDER
+} from '../../../../shared/plugins/plugin-panel-shell'
 
 /** Snapshot trusted computed tokens for isolated panels; strip structural CSS characters before inserting into the shell style block. */
 export function buildPanelDesignTokenCss(): string {
@@ -16,4 +20,11 @@ export function buildPanelDesignTokenCss(): string {
 
 export function currentPanelColorScheme(): 'light' | 'dark' {
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+}
+
+/** Replace only the first shell placeholders, parsed before plugin content, so plugin echoes stay inert. */
+export function fillPluginPanelShell(html: string): string {
+  return html
+    .replace(PANEL_SHELL_COLOR_SCHEME_PLACEHOLDER, currentPanelColorScheme())
+    .replace(PANEL_SHELL_TOKENS_PLACEHOLDER, buildPanelDesignTokenCss())
 }

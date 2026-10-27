@@ -40,6 +40,7 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | `contributes.terminalThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | Terminal ANSI palettes. At most 64. |
 | `contributes.iconThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | File icon themes. At most 32. |
 | `contributes.syntaxes` | [SyntaxContribution](#syntaxcontribution)[] | no | 1.4.244 | Syntax highlighting for editor languages. At most 16. |
+| `contributes.customEditors` | [CustomEditorContribution](#customeditorcontribution)[] | no | 1.4.244 | Editors that open files of given types in the editor tab. At most 16. |
 | `contributes.agents` | any[] | no | 1.4.244 | Reserved for coding-agent definitions; must be empty until their format is defined. |
 | `contributes.skills` | any[] | no | 1.4.244 | Reserved for agent skills; must be empty until their format is defined. |
 | `contributes.mcpServers` | any[] | no | 1.4.244 | Reserved for MCP server definitions; must be empty until their format is defined. |
@@ -136,6 +137,18 @@ Syntax highlighting for one language.
 | `configuration` | string | no | 1.4.244 | Language configuration JSON file: comments, brackets and auto-closing pairs. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"syntaxes/language-configuration.json"` |
 | `extensions` | string[] | no | 1.4.244 | File extensions this language opens, with the dot. Example: `[".gleam"]` |
 | `filenames` | string[] | no | 1.4.244 | Exact file names this language opens. Names must be portable: no path separators, `.`, `..` or characters Windows forbids. Example: `["gleam.toml"]` |
+
+## CustomEditorContribution
+
+An editor for files of the listed types, shown in the editor tab beside Source. Requires the `sandboxed-ui` execution profile or higher.
+
+| Field | Type | Required | Since | Description |
+| --- | --- | --- | --- | --- |
+| `id` | string | yes | 1.4.244 | Editor id, unique among this plugin's custom editors. The reserved names `constructor` and `prototype` are refused. Example: `"excalidraw"` |
+| `title` | string | yes | 1.4.244 | Name shown in the editor's view toggle, beside Source. Example: `"Excalidraw"` |
+| `fileTypes` | string[] | yes | 1.4.244 | File-name suffixes, without the leading dot, this editor opens. A longer suffix such as `excalidraw.json` matches only files ending in it. At most 16. Example: `["excalidraw","excalidraw.json"]` |
+| `entry` | string | yes | 1.4.244 | HTML file rendered inside a sandboxed editor frame. It receives the open document's text and posts full-text edits back; it never gets a file path, file system or network access. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"editor/index.html"` |
+| `priority` | `"default"` \| `"option"` | no | 1.4.244 | `default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. Example: `"default"` |
 
 ## Capability
 

@@ -45,6 +45,13 @@ export type PluginHostStatus =
   | 'errored'
   | 'invalid'
 
+export type PluginHostCustomEditor = {
+  id: string
+  title: string
+  fileTypes: string[]
+  priority: 'default' | 'option'
+}
+
 // Keep assignable from main/plugins/plugin-list-projection.ts.
 export type PluginHostListEntry = {
   pluginKey: string
@@ -72,6 +79,8 @@ export type PluginHostListEntry = {
   bundled: boolean
   capabilities: { kind: string; description: string }[]
   panels: PluginHostPanel[]
+  /** Absent on hosts that predate custom editors. */
+  customEditors?: PluginHostCustomEditor[]
   commands: {
     id: string
     title: string
@@ -214,6 +223,11 @@ export type PluginsApi = {
   setEnabled: (args: { pluginKey: string; enabled: boolean }) => Promise<PluginHostListEntry[]>
   /** CSP-wrapped HTML for a sandboxed iframe; null if missing or disabled. */
   readPanelEntry: (args: { pluginKey: string; panelId: string }) => Promise<PluginPanelEntry | null>
+  /** CSP-wrapped custom editor HTML; null if missing or disabled. Absent on older preloads. */
+  readCustomEditorEntry?: (args: {
+    pluginKey: string
+    editorId: string
+  }) => Promise<{ html: string } | null>
   invokeCommand: (args: {
     pluginKey: string
     commandId: string

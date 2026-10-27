@@ -7,6 +7,24 @@ export const pluginFileTypeSchema = z
 
 const MAX_DISMISSED_FILE_TYPES = 256
 
+/** File types a plugin opens: syntax extensions, plus custom-editor suffixes that are one extension
+ *  (a file-type suggestion only ever sees a path's last extension). */
+export function pluginHandledFileTypes(contributes: {
+  syntaxes: readonly { extensions: readonly string[] }[]
+  customEditors: readonly { fileTypes: readonly string[] }[]
+}): string[] {
+  return [
+    ...new Set([
+      ...contributes.syntaxes.flatMap((syntax) =>
+        syntax.extensions.map((extension) => extension.slice(1).toLowerCase())
+      ),
+      ...contributes.customEditors.flatMap((editor) =>
+        editor.fileTypes.filter((fileType) => pluginFileTypeSchema.safeParse(fileType).success)
+      )
+    ])
+  ]
+}
+
 /** The last extension of a path, lowercased; null for dotfiles and names without one. */
 export function fileTypeOfPath(filePath: string): string | null {
   const name = filePath.split(/[\\/]/).at(-1) ?? ''

@@ -39,6 +39,11 @@ function entryIdentity(point: PluginContributionPoint, entry: unknown): string {
   if (point === 'panels' && 'id' in entry) {
     return `id:${String(entry.id)}`
   }
+  // Why file types too: opening a new kind of file is more reach, unlike new editor code.
+  if (point === 'customEditors' && 'id' in entry) {
+    const fileTypes = Array.isArray(entry.fileTypes) ? entry.fileTypes.map(String).sort() : []
+    return JSON.stringify([String(entry.id), fileTypes])
+  }
   if (point === 'commands') {
     const field = (key: string): unknown => (key in entry ? entry[key] : null)
     return JSON.stringify([field('id'), field('action'), field('context') ?? 'global'])

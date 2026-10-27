@@ -31,11 +31,30 @@ asked to approve:
   "Panels: yes".
   Orca's colors reach panel CSS as `--orca-background`, `--orca-foreground`, `--orca-primary`
   and the rest of its panel token set, so they never collide with a panel's own variables.
+  Custom editors (`contributes.customEditors`) run in the same frame and get no host methods;
+  see [Custom editors](#custom-editors).
 - `trusted-worker`: `main` runs in a separate Node process and can call every host method its
   `capabilities` allow.
 
 Set `engines.orca` to the newest `Since` of any field you use, and `pluginApi` (currently `1`)
 only when a panel or worker calls the host API.
+
+### Custom editors
+
+A custom editor opens files whose names end in one of its `fileTypes` in the editor tab, beside
+Source. Orca keeps the buffer, dirty state, saving, the external-change banner, read-only tabs
+and remote (SSH) files; the frame only exchanges the document's text, never a path. Messages
+(`postMessage` with `window.parent`; check `event.source === window.parent`):
+
+| Direction     | Message                                            | When                                                                                                |
+| ------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| editor → Orca | `{ type: 'orca-editor-ready' }`                    | Once listening. Orca answers with the document.                                                     |
+| Orca → editor | `{ type: 'orca-editor-document', text, readOnly }` | After ready, and whenever the buffer changes outside the editor.                                    |
+| editor → Orca | `{ type: 'orca-editor-edit', text }`               | The user changed the document: the full new text. Never on load.                                    |
+| Orca → editor | `{ type: 'orca-editor-flush', requestId }`         | Before a save: post any debounced edit, then reply `orca-editor-flushed` with the same `requestId`. |
+
+Orca forwards save shortcuts pressed inside the frame itself. An edit may be at most 16 MiB;
+edits sent while read-only are ignored.
 
 ## 2. Load it while you work
 
@@ -143,6 +162,8 @@ listed as experimental may change. These parts are stable and change only additi
 - host API 1 (`"pluginApi": 1`): method names, params and results;
 - the panel bridge message names (`orca-panel-action`, `-result`, `-ping`, `-pong`) and error
   codes;
+- the custom editor message names (`orca-editor-ready`, `-document`, `-edit`, `-flush`,
+  `-flushed`);
 - theme token names, and theme ids once published (users' settings store them);
 - catalog format 2 (`orca-catalog.json`).
 

@@ -130,6 +130,7 @@ export function usePluginPageAction({
           trust={trust ?? installedPluginTrust(plugin, null)}
           capabilities={plugin.capabilities}
           shortcuts={model.shortcuts}
+          editorFileTypes={model.editorFileTypes}
           installed={plugin}
           official={plugin.official}
           publisher={plugin.publisher}
@@ -244,6 +245,7 @@ export function usePluginPageAction({
           trust={trust ?? installedPluginTrust({ panels: [], hasWorker: false }, null)}
           capabilities={model.capabilities}
           shortcuts={model.shortcuts}
+          editorFileTypes={model.editorFileTypes}
           reading={preview === null && !model.stale}
           failed={model.previewFailed}
           onRetry={model.retryPreview}

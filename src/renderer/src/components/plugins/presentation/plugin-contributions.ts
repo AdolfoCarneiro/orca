@@ -11,6 +11,7 @@ export type PluginContributionKind =
   | 'syntax'
   | 'language'
   | 'panel'
+  | 'editor'
   | 'recipe'
 
 /** One named thing a plugin adds, ready to show as a row. */
@@ -37,6 +38,8 @@ export type PluginContributionSource = {
   /** Coverage is known only once a pack is installed. */
   languages: readonly { locale: string; coverage?: number }[]
   panels: readonly string[]
+  /** File types carry their leading dot, as the listing shows them. */
+  customEditors: readonly { title: string; fileTypes: readonly string[] }[]
   recipes: readonly string[]
 }
 
@@ -47,6 +50,7 @@ export const EMPTY_CONTRIBUTION_SOURCE: PluginContributionSource = {
   syntaxes: [],
   languages: [],
   panels: [],
+  customEditors: [],
   recipes: []
 }
 
@@ -79,6 +83,10 @@ export function manifestContributionSource(manifest: PluginManifest): PluginCont
     syntaxes: contributes.syntaxes,
     languages: contributes.languagePacks,
     panels: contributes.panels.map((panel) => panel.title),
+    customEditors: contributes.customEditors.map((editor) => ({
+      title: editor.title,
+      fileTypes: editor.fileTypes.map((fileType) => `.${fileType}`)
+    })),
     recipes: contributes.vmRecipes.map((recipe) => nameFromContributionPath(recipe.path))
   }
 }
@@ -111,6 +119,10 @@ export function summaryContributionSource(
     })),
     languages: of('languagePacks').map((item) => ({ locale: item.name })),
     panels: of('panels').map((item) => item.name),
+    customEditors: of('customEditors').map((item) => ({
+      title: item.name,
+      fileTypes: item.detail ? item.detail.split(', ') : []
+    })),
     recipes: of('vmRecipes').map((item) => nameFromContributionPath(item.name))
   }
 }
@@ -241,6 +253,17 @@ export function describePluginContributions(
       tone: 'default'
     })
   }
+  for (const [index, editor] of source.customEditors.entries()) {
+    const label = translate('auto.components.settings.PluginDetailSections.customEditor', 'Editor')
+    const files = fileList(editor.fileTypes, [])
+    rows.push({
+      key: `editor:${index}`,
+      kind: 'editor',
+      title: editor.title,
+      detail: files ? `${label} · ${files}` : label,
+      tone: 'default'
+    })
+  }
   for (const [index, title] of source.recipes.entries()) {
     rows.push({
       key: `recipe:${index}`,
@@ -260,6 +283,7 @@ const KIND_TYPE: Record<PluginContributionKind, PluginCatalogType> = {
   syntax: 'syntax',
   language: 'interface-language',
   panel: 'panel',
+  editor: 'panel',
   recipe: 'instructions'
 }
 

@@ -193,6 +193,7 @@ export type {
 } from './api/native-chat-api'
 export type {
   PluginAutoUpdateEvent,
+  PluginHostCustomEditor,
   PluginHostInstallResult,
   PluginHostInstallSource,
   PluginHostListEntry,

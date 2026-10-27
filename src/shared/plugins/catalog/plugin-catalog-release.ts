@@ -13,7 +13,7 @@ import {
 } from '../plugin-contribution-summary'
 import { pluginCatalogReleaseDetailFields } from '../plugin-detail-fields'
 import { pluginCatalogImagesSchema } from '../plugin-image-fields'
-import { pluginFileTypeSchema } from '../plugin-file-type'
+import { pluginFileTypeSchema, pluginHandledFileTypes } from '../plugin-file-type'
 import type { PluginManifest } from '../manifest/plugin-manifest'
 import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from '../manifest/plugin-schema-field-docs'
 
@@ -198,13 +198,7 @@ export function pluginCatalogReleaseEntry(
   if (manifest.manifestVersion !== 2) {
     return null
   }
-  const fileTypes = [
-    ...new Set(
-      manifest.contributes.syntaxes.flatMap((syntax) =>
-        syntax.extensions.map((extension) => extension.slice(1).toLowerCase())
-      )
-    )
-  ]
+  const fileTypes = pluginHandledFileTypes(manifest.contributes)
   const capabilities = [...new Set(manifest.capabilities.map((capability) => capability.kind))]
   return {
     version: manifest.version,
@@ -252,11 +246,7 @@ export function pluginCatalogReleaseError(input: {
     return 'contributions do not match the catalog release'
   }
   // Why: a suggestion must lead to a plugin that really handles the file.
-  const handled = new Set(
-    manifest.contributes.syntaxes.flatMap((syntax) =>
-      syntax.extensions.map((extension) => extension.slice(1).toLowerCase())
-    )
-  )
+  const handled = new Set(pluginHandledFileTypes(manifest.contributes))
   if (release.name !== undefined && release.name !== manifest.name) {
     return 'plugin name does not match the catalog release'
   }

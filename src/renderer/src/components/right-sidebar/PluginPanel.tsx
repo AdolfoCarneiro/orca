@@ -5,15 +5,11 @@ import {
   PLUGIN_PANEL_FRAME_NAME_PREFIX
 } from '../../../../shared/plugins/plugin-panel-bridge'
 import {
-  PANEL_SHELL_COLOR_SCHEME_PLACEHOLDER,
-  PANEL_SHELL_TOKENS_PLACEHOLDER
-} from '../../../../shared/plugins/plugin-panel-shell'
-import {
   callPanelActionViaPreload,
   createPanelBridgeMessageHandler
 } from './plugin-panel-bridge-host'
 import { createPanelWatchdog } from './plugin-panel-watchdog'
-import { buildPanelDesignTokenCss, currentPanelColorScheme } from './plugin-panel-design-token-css'
+import { fillPluginPanelShell } from './plugin-panel-design-token-css'
 import { usePluginPanelThemeRevision } from './use-plugin-panel-theme-revision'
 import { usePluginPanels, usePluginPanelsStore } from '@/store/plugin-panels'
 import { translate } from '@/i18n/i18n'
@@ -36,13 +32,6 @@ function PluginPanelMessage({ children }: { children: React.ReactNode }): React.
   )
 }
 
-/** Replace only the first shell placeholders, parsed before plugin content, so plugin echoes stay inert. */
-function fillPanelShell(html: string): string {
-  return html
-    .replace(PANEL_SHELL_COLOR_SCHEME_PLACEHOLDER, currentPanelColorScheme())
-    .replace(PANEL_SHELL_TOKENS_PLACEHOLDER, buildPanelDesignTokenCss())
-}
-
 function PluginPanel({ tabKey }: PluginPanelProps): React.JSX.Element {
   const panels = usePluginPanels()
   const setPanelHealth = usePluginPanelsStore((state) => state.setPanelHealth)
@@ -58,7 +47,7 @@ function PluginPanel({ tabKey }: PluginPanelProps): React.JSX.Element {
   const pluginKey = panel?.pluginKey ?? null
   const panelId = panel?.id ?? null
   const panelShell = entryState.status === 'ready' ? entryState.shellHtml : null
-  const panelDocument = panelShell ? fillPanelShell(panelShell) : null
+  const panelDocument = panelShell ? fillPluginPanelShell(panelShell) : null
   // Theme values are baked into srcdoc, so theme changes must rebuild the frame.
   const panelFrameKey =
     entryState.status === 'ready'

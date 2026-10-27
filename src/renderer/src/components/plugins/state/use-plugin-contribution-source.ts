@@ -47,6 +47,10 @@ export function useInstalledPluginContributionSource(
       })),
       languages: ours(languagePacks),
       panels: plugin.panels.map((panel) => panel.title),
+      customEditors: (plugin.customEditors ?? []).map((editor) => ({
+        title: editor.title,
+        fileTypes: editor.fileTypes.map((fileType) => `.${fileType}`)
+      })),
       recipes: plugin.vmRecipes?.map((recipe) => recipe.name) ?? []
     }
   }, [plugin, appThemes, terminalThemes, iconThemes, syntaxes, languagePacks, failures])

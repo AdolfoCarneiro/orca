@@ -7,6 +7,7 @@ import {
   Languages,
   Palette,
   PanelRight,
+  PenTool,
   Server,
   SquareTerminal
 } from 'lucide-react'
@@ -98,6 +99,7 @@ const CONTRIBUTION_ICON: Record<PluginContributionKind, React.ReactNode> = {
   syntax: <Highlighter />,
   language: <Languages />,
   panel: <PanelRight />,
+  editor: <PenTool />,
   recipe: <Server />
 }
 
@@ -220,6 +222,7 @@ function useContributionRowActions(
       case 'app-theme':
       case 'terminal-theme':
       case 'icon-theme':
+      case 'editor':
       case 'recipe':
         // Themes have "Use now" above the list; recipes have nothing to try here.
         return null

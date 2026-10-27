@@ -43,6 +43,11 @@ const readPanelEntryArgsSchema = z.object({
   panelId: z.string().min(1)
 })
 
+const readCustomEditorEntryArgsSchema = z.object({
+  pluginKey: z.string().min(1),
+  editorId: z.string().min(1)
+})
+
 const invokeCommandArgsSchema = z.object({
   pluginKey: z.string().min(1),
   commandId: z.string().min(1),
@@ -187,6 +192,15 @@ export function registerPluginHandlers(
         parsed.panelId,
         ownerLease.isCurrent
       )
+    }
+  )
+
+  ipcMain.handle(
+    'plugins:readCustomEditorEntry',
+    async (_event, args: unknown): Promise<{ html: string } | null> => {
+      await pluginService.whenReady()
+      const parsed = readCustomEditorEntryArgsSchema.parse(args)
+      return pluginService.panels.readCustomEditorEntry(parsed.pluginKey, parsed.editorId)
     }
   )
 
