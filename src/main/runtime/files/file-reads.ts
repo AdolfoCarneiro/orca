@@ -28,7 +28,7 @@ import { windowsFsPath } from '../../wsl/wsl-unc-drive-fs-path'
 import { guardWslUncPathAccess } from '../../wsl/wsl-unc-access-gate'
 import { resolveLocalFileRequestPath } from '../../ipc/local-file-access-resolution'
 import type { LocalFileAccess } from '../../../shared/local-file-access'
-import { IMAGE_FILE_MIME_TYPES } from '../../../shared/image-file-extensions'
+import { PREVIEWABLE_BINARY_MIME_TYPES } from '../../ipc/filesystem/filesystem-file-content-inspection'
 import { resolveRuntimeAuthorizedPath } from './chat-scratch-file-root'
 import {
   NodeFileReadTooLargeError,
@@ -187,8 +187,8 @@ export class RuntimeFileReads {
     // Automatic loads never wake a stopped WSL distro.
     return guardWslUncPathAccess(filePath, async () => {
       const imagePath = await resolveLocalFileRequestPath(filePath, CHAT_IMAGE_ACCESS, store)
-      const mimeType = IMAGE_FILE_MIME_TYPES[extname(imagePath).toLowerCase()]
-      if (!mimeType) {
+      const mimeType = PREVIEWABLE_BINARY_MIME_TYPES[extname(imagePath).toLowerCase()]
+      if (!mimeType?.startsWith('image/')) {
         throw new Error('not_an_image')
       }
       let buffer: Buffer
