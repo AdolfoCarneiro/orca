@@ -97,6 +97,30 @@ describe('a paired phone and the WSL host', () => {
     expect(made.gate.reach('wsl:ubuntu')).toBe('ready')
   })
 
+  it('drops a stopped read that a ready status overtook while it ran', async () => {
+    made.state.status = 'reconnecting'
+    let finish: (value: WslHostReachability) => void = () => {}
+    made.reachability.mockImplementationOnce(
+      () => new Promise<WslHostReachability>((resolve) => (finish = resolve))
+    )
+    const pending = made.gate.requireRunningWithoutStart('wsl:ubuntu')
+    await vi.waitFor(() => expect(made.reachability).toHaveBeenCalled())
+    made.publish('ready')
+    finish('stopped')
+    await expect(pending).rejects.toMatchObject({ message: NEUTRAL })
+    expect(made.gate.reach('wsl:ubuntu')).toBe('ready')
+  })
+
+  it('clears a recorded stop once a check finds the host answering', async () => {
+    made.state.status = 'reconnecting'
+    made.state.reachability = 'stopped'
+    await expect(made.gate.requireRunningWithoutStart('wsl:ubuntu')).rejects.toThrow()
+    expect(made.gate.reach('wsl:ubuntu')).toBe('stopped')
+    made.state.reachability = 'available'
+    await made.gate.requireRunningWithoutStart('wsl:ubuntu')
+    expect(made.gate.reach('wsl:ubuntu')).toBe('unavailable')
+  })
+
   it("takes liveness's own confirmed stop, over a stale ready", () => {
     made.publish('distro-stopped')
     expect(made.gate.reach('wsl:ubuntu')).toBe('stopped')
@@ -115,7 +139,8 @@ describe('a paired phone and the WSL host', () => {
     made.state.enabled = false
     expect(made.gate.reach('wsl:ubuntu')).toBe('hidden')
     await expect(made.gate.requireRunningWithoutStart('wsl:ubuntu')).rejects.toMatchObject({
-      code: 'remote_runtime_unavailable'
+      code: 'remote_runtime_unavailable',
+      message: 'The WSL host Ubuntu is turned off or being removed on your computer.'
     })
     made.state.enabled = true
     made.state.pendingStop = true

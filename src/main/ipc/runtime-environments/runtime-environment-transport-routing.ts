@@ -3,6 +3,7 @@ import { getPreferredPairedRuntimeConnection } from '../../../shared/runtime-env
 import { ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES } from '../../../shared/electron-remote-runtime-client-capabilities'
 import { resolveEnvironment, markEnvironmentUsed } from '../../../shared/runtime-environment-store'
 import {
+  requireWslHostWithoutStart,
   resolveManagedRuntimeEnvironment,
   type ManagedRuntimeCallPreparation
 } from './runtime-environment-managed-tunnel'
@@ -48,9 +49,12 @@ export async function callRuntimeEnvironment(
   }
 ): Promise<RuntimeRpcResponse<unknown>> {
   if (method === 'status.get') {
+    let statusOptions = options
     // Why: the status probe dials on its own, so a no-start caller's WSL host is checked first.
     if (options?.preparation) {
-      await resolveManagedRuntimeEnvironment(userDataPath, selector, options.preparation)
+      const { preparation, ...rest } = options
+      await requireWslHostWithoutStart(userDataPath, selector, preparation)
+      statusOptions = rest
     }
     const environment = resolveEnvironment(userDataPath, selector)
     const failure = runtimeEnvironmentRevisionFailure(
@@ -64,7 +68,7 @@ export async function callRuntimeEnvironment(
         userDataPath,
         selector,
         timeoutMs,
-        options,
+        statusOptions,
         expectedEnvironmentPairingRevision === undefined
       )
     )

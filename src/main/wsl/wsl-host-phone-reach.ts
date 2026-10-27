@@ -1,6 +1,7 @@
 import { RemoteRuntimeClientError } from '../../shared/remote-runtime/remote-runtime-client-error'
 import type { WslHostConnector, WslHostReachability } from './wsl-host-connector-contract'
 import {
+  wslHostHiddenFromPhoneMessage,
   wslHostStoppedForPhoneMessage,
   wslHostUnavailableForPhoneMessage,
   wslHostRunRefusal
@@ -36,7 +37,9 @@ export function wslHostPhoneRefusal(
     'remote_runtime_unavailable',
     reach === 'stopped'
       ? wslHostStoppedForPhoneMessage(distro)
-      : wslHostUnavailableForPhoneMessage(distro)
+      : reach === 'hidden'
+        ? wslHostHiddenFromPhoneMessage(distro)
+        : wslHostUnavailableForPhoneMessage(distro)
   )
 }
 
@@ -44,6 +47,8 @@ export function wslHostPhoneRefusal(
 export class WslHostPhoneGate {
   // Stops a phone's check confirmed; a ready status clears them.
   private readonly confirmedStopped = new Set<string>()
+  // Bumped per host on each ready status, so a running-list read that predates one is dropped.
+  private readonly readyGeneration = new Map<string, number>()
 
   constructor(
     private readonly host: {
@@ -63,6 +68,10 @@ export class WslHostPhoneGate {
       for (const status of host.service.getStatuses()) {
         if (status.state === 'ready') {
           this.confirmedStopped.delete(status.environmentId)
+          this.readyGeneration.set(
+            status.environmentId,
+            (this.readyGeneration.get(status.environmentId) ?? 0) + 1
+          )
         }
       }
     })
@@ -75,14 +84,16 @@ export class WslHostPhoneGate {
     if (refusal || record?.pendingStop) {
       throw wslHostPhoneRefusal('hidden', record?.distro ?? environmentId)
     }
+    const generation = this.readyGeneration.get(environmentId)
     // Why: no bridge in this process means nothing answers, so skip the running-list read.
     const reachability: WslHostReachability = record
       ? await focusReachability(this.host.connector, record)
       : 'unreachable'
     if (reachability === 'available') {
+      this.confirmedStopped.delete(environmentId)
       return
     }
-    if (reachability === 'stopped') {
+    if (reachability === 'stopped' && this.readyGeneration.get(environmentId) === generation) {
       this.confirmedStopped.add(environmentId)
     }
     throw wslHostPhoneRefusal(this.reach(environmentId), record?.distro ?? environmentId)

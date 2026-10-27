@@ -56,6 +56,19 @@ export async function resolveManagedRuntimeEnvironment(
   return resolveEnvironment(userDataPath, environment.id)
 }
 
+/** Check-only: a WSL host is held to the preparation; every other server is left untouched. */
+export async function requireWslHostWithoutStart(
+  userDataPath: string,
+  selector: string,
+  preparation: ManagedRuntimeCallPreparation
+): Promise<void> {
+  const environment = resolveEnvironment(userDataPath, selector)
+  if (classifyRuntimeEnvironmentHost(environment).kind === 'wsl') {
+    assertWslHostReachable(environment)
+    await prepareWslHostForCall(environment, preparation)
+  }
+}
+
 async function prepareWslHostForCall(
   environment: KnownRuntimeEnvironment,
   preparation: ManagedRuntimeCallPreparation | undefined

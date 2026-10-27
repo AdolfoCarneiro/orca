@@ -25,6 +25,11 @@ export function wslHostStoppedForPhoneMessage(distro: string): string {
   return `The WSL host ${distro} isn’t running. Open one of its projects on your computer to start it.`
 }
 
+/** Shown on a paired phone while WSL hosts are switched off, or this one is being removed. */
+export function wslHostHiddenFromPhoneMessage(distro: string): string {
+  return `The WSL host ${distro} is turned off or being removed on your computer.`
+}
+
 /** Shown on a paired phone while the desktop can't confirm the host runs (starting, reconnecting). */
 export function wslHostUnavailableForPhoneMessage(distro: string): string {
   return `The WSL host ${distro} isn’t available from your phone right now. Open one of its projects on your computer to connect it.`
