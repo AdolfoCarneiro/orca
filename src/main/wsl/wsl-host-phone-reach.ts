@@ -22,7 +22,6 @@ export function wslHostPhoneReach(host: {
   if (!host.mayRun) {
     return 'hidden'
   }
-  // A running list read after the last ready status outranks it.
   if (host.state === 'distro-stopped' || host.confirmedStopped) {
     return 'stopped'
   }
@@ -43,71 +42,87 @@ export function wslHostPhoneRefusal(
   )
 }
 
+type GateStatus = Pick<WslHostStatus, 'environmentId' | 'state'>
+type GateRecord = Pick<WslHostDeploymentRecord, 'distro' | 'environmentId' | 'pendingStop'>
+
 /** What a paired phone may reach through this desktop: a host that already runs, never a start. */
 export class WslHostPhoneGate {
-  // Stops a phone's check confirmed; a ready status clears them.
-  private readonly confirmedStopped = new Set<string>()
-  // Bumped per host on each ready status, so a running-list read that predates one is dropped.
-  private readonly readyGeneration = new Map<string, number>()
+  // A stop a phone's check confirmed, tied to the host's own status at the check (undefined: none
+  // yet). It holds only while that status is still the host's current one.
+  private readonly confirmedStops = new Map<string, GateStatus | undefined>()
 
   constructor(
     private readonly host: {
-      service: {
-        getStatuses(): readonly Pick<WslHostStatus, 'environmentId' | 'state'>[]
-        onStatusesChanged(listener: () => void): () => void
-        recordForEnvironment(
-          environmentId: string
-        ): Pick<WslHostDeploymentRecord, 'distro' | 'environmentId' | 'pendingStop'> | null
-      }
+      statuses(): readonly GateStatus[]
+      records(): readonly GateRecord[]
       connector: Pick<WslHostConnector, 'get' | 'reachability'>
       isEnabled: () => boolean
       hasServerFiles: () => boolean
     }
-  ) {
-    host.service.onStatusesChanged(() => {
-      for (const status of host.service.getStatuses()) {
-        if (status.state === 'ready') {
-          this.confirmedStopped.delete(status.environmentId)
-          this.readyGeneration.set(
-            status.environmentId,
-            (this.readyGeneration.get(status.environmentId) ?? 0) + 1
-          )
-        }
-      }
-    })
-  }
+  ) {}
 
   /** A paired phone's call: serve a host that already runs, never start its distro for it. */
   async requireRunningWithoutStart(environmentId: string): Promise<void> {
-    const refusal = wslHostRunRefusal(this.host)
-    const record = this.host.service.recordForEnvironment(environmentId)
-    if (refusal || record?.pendingStop) {
+    const record = this.host.records().find((entry) => entry.environmentId === environmentId)
+    if (wslHostRunRefusal(this.host) || !record || record.pendingStop) {
+      this.confirmedStops.delete(environmentId)
       throw wslHostPhoneRefusal('hidden', record?.distro ?? environmentId)
     }
-    const generation = this.readyGeneration.get(environmentId)
+    const before = this.statusOf(environmentId)
     // Why: no bridge in this process means nothing answers, so skip the running-list read.
-    const reachability: WslHostReachability = record
-      ? await focusReachability(this.host.connector, record)
-      : 'unreachable'
+    const reachability: WslHostReachability = await focusReachability(this.host.connector, record)
     if (reachability === 'available') {
-      this.confirmedStopped.delete(environmentId)
+      this.confirmedStops.delete(environmentId)
       return
     }
-    if (reachability === 'stopped' && this.readyGeneration.get(environmentId) === generation) {
-      this.confirmedStopped.add(environmentId)
+    // Why: a read can be shared with one begun before a ready status, so it never outranks ready.
+    if (
+      reachability === 'stopped' &&
+      before?.state !== 'ready' &&
+      this.statusOf(environmentId) === before
+    ) {
+      this.confirmedStops.set(environmentId, before)
     }
-    throw wslHostPhoneRefusal(this.reach(environmentId), record?.distro ?? environmentId)
+    throw wslHostPhoneRefusal(this.reach(environmentId), record.distro)
   }
 
   /** What a phone is told of this host; never probes or starts the distro. */
   reach(environmentId: string): WslHostPhoneReach {
-    const record = this.host.service.recordForEnvironment(environmentId)
-    return wslHostPhoneReach({
-      mayRun: wslHostRunRefusal(this.host) === null && !record?.pendingStop,
-      state: this.host.service
-        .getStatuses()
-        .find((status) => status.environmentId === environmentId)?.state,
-      confirmedStopped: this.confirmedStopped.has(environmentId)
-    })
+    return this.reachAll().get(environmentId) ?? 'hidden'
+  }
+
+  /** Every host's reach from one records read, for a list poll. */
+  reachAll(): ReadonlyMap<string, WslHostPhoneReach> {
+    const mayRun = wslHostRunRefusal(this.host) === null
+    const statuses = new Map(this.host.statuses().map((status) => [status.environmentId, status]))
+    const reaches = new Map<string, WslHostPhoneReach>()
+    for (const record of this.host.records()) {
+      const status = statuses.get(record.environmentId)
+      reaches.set(
+        record.environmentId,
+        wslHostPhoneReach({
+          mayRun: mayRun && !record.pendingStop,
+          state: status?.state,
+          confirmedStopped: this.isConfirmedStop(record.environmentId, status)
+        })
+      )
+    }
+    for (const environmentId of this.confirmedStops.keys()) {
+      if (!reaches.has(environmentId)) {
+        // Removed: its confirmation goes with it.
+        this.confirmedStops.delete(environmentId)
+      }
+    }
+    return reaches
+  }
+
+  private isConfirmedStop(environmentId: string, status: GateStatus | undefined): boolean {
+    return (
+      this.confirmedStops.has(environmentId) && this.confirmedStops.get(environmentId) === status
+    )
+  }
+
+  private statusOf(environmentId: string): GateStatus | undefined {
+    return this.host.statuses().find((status) => status.environmentId === environmentId)
   }
 }

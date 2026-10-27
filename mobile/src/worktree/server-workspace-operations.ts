@@ -34,7 +34,8 @@ const relayHostSchema = z.looseObject({
   label: z.string(),
   health: z.enum(HEALTH).catch('error'),
   relay: z.enum(RELAY).catch('unavailable'),
-  stoppedOnDesktop: z.literal(true).optional().catch(undefined)
+  stoppedOnDesktop: z.literal(true).optional().catch(undefined),
+  unavailableOnDesktop: z.literal(true).optional().catch(undefined)
 }) satisfies z.ZodType<MobileRelayHost>
 
 export const relayHostsListRead = bindDeferredRpcOperation(

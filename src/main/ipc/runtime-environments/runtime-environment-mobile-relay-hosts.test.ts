@@ -43,7 +43,8 @@ vi.mock('./runtime-environment-transport-routing', () => ({
 vi.mock('../../wsl/wsl-host-gate', () => ({ wslHostsGateOpen: () => mocks.wslGateOpen }))
 vi.mock('../../wsl/wsl-host-service-instance', () => ({
   getWslHostPhoneGate: () => ({
-    reach: (id: string) => mocks.wslReach.get(id) ?? 'unavailable'
+    // Every recorded host, as the gate lists them; one not set is unavailable.
+    reachAll: () => new Map([['wsl:ubuntu', mocks.wslReach.get('wsl:ubuntu') ?? 'unavailable']])
   })
 }))
 
@@ -118,10 +119,14 @@ describe('runtime environment mobile relay hosts', () => {
     mocks.wslGateOpen = true
     mocks.environments = [WSL_HOST]
     const hosts = createRuntimeEnvironmentMobileRelayHosts()
-    // Starting, reconnecting or unconfirmed: listed, with no stop claimed.
+    // Starting, reconnecting or unconfirmed: listed as not connected here, with no stop claimed.
+    expect(hosts.list().environments[0]).toMatchObject({ unavailableOnDesktop: true })
     expect(hosts.list().environments[0]).not.toHaveProperty('stoppedOnDesktop')
     mocks.wslReach.set('wsl:ubuntu', 'stopped')
     expect(hosts.list().environments[0]).toMatchObject({ stoppedOnDesktop: true })
+    expect(hosts.list().environments[0]).not.toHaveProperty('unavailableOnDesktop')
+    mocks.wslReach.set('wsl:ubuntu', 'ready')
+    expect(hosts.list().environments[0]).not.toHaveProperty('unavailableOnDesktop')
     // The Experimental switch is off: the gate alone does not list it.
     mocks.wslReach.set('wsl:ubuntu', 'hidden')
     expect(hosts.list().environments).toEqual([])

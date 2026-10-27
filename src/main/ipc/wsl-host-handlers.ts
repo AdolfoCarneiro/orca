@@ -30,6 +30,7 @@ import {
   setWslHostService
 } from '../wsl/wsl-host-service-instance'
 import { WslHostPhoneGate } from '../wsl/wsl-host-phone-reach'
+import { readWslHostRecordsQuietly } from '../wsl/wsl-host-connection-record'
 import { retireRemovedRuntimeEnvironment } from './runtime-environments/runtime-environment-removal-cleanup'
 import { getRuntimeEnvironmentStatus } from './runtime-environments/runtime-environment-status-probe'
 import { callRuntimeEnvironment } from './runtime-environments/runtime-environment-transport-routing'
@@ -178,7 +179,14 @@ function createService(args: WslHostHandlerArgs): WslHostService | null {
         runtime
       })
   created.attach(connector)
-  setWslHostPhoneGate(new WslHostPhoneGate({ service: created, connector, ...runGate }))
+  setWslHostPhoneGate(
+    new WslHostPhoneGate({
+      statuses: () => created.getStatuses(),
+      records: () => readWslHostRecordsQuietly(args.getUserDataPath()),
+      connector,
+      ...runGate
+    })
+  )
   automationWake = createWslHostAutomationWake(args.getUserDataPath, created)
   return created
 }

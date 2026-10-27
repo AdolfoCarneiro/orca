@@ -17,9 +17,12 @@ export function serverHostHealth(host: MobileRelayHost): ExecutionHostHealth {
   return host.relay === 'update-needed' ? 'blocked' : host.health
 }
 
-// Why: a phone never starts the desktop's own WSL distro, so a confirmed stop says where to start it.
+// Why: a phone never starts or connects the desktop's own WSL host, so the badge says where to.
 export function serverHostHealthLabel(host: MobileRelayHost): string | undefined {
-  return host.stoppedOnDesktop ? 'Start on computer' : undefined
+  if (host.stoppedOnDesktop) {
+    return 'Start on computer'
+  }
+  return host.unavailableOnDesktop ? 'Open on computer' : undefined
 }
 
 export function serverHostHealthLabels(

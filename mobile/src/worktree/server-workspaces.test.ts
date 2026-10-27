@@ -86,7 +86,7 @@ describe("the desktop's own WSL host", () => {
   it('reads the marker from a new desktop, and lists an older desktop’s hosts without it', () => {
     const listed = listReply([
       wslHost,
-      { ...host, stoppedOnDesktop: 'yes' },
+      { ...host, stoppedOnDesktop: 'yes', unavailableOnDesktop: 1 },
       {
         hostId: 'runtime:old',
         label: 'Old',
@@ -96,7 +96,7 @@ describe("the desktop's own WSL host", () => {
     ])
     expect(listed.accepted && listed.value).toEqual([
       wslHost,
-      { ...host, stoppedOnDesktop: undefined },
+      { ...host, stoppedOnDesktop: undefined, unavailableOnDesktop: undefined },
       {
         hostId: 'runtime:old',
         label: 'Old',
@@ -112,6 +112,14 @@ describe("the desktop's own WSL host", () => {
     const { stoppedOnDesktop: _marker, ...unconfirmed } = wslHost
     expect(serverHostHealthLabel(unconfirmed)).toBeUndefined()
     expect(serverHostHealthLabels([unconfirmed]).size).toBe(0)
+    // Not connected on the computer and not known stopped: say where to open it, not "Connecting".
+    expect(
+      serverHostHealthLabel({
+        ...unconfirmed,
+        health: 'connecting',
+        unavailableOnDesktop: true
+      })
+    ).toBe('Open on computer')
     // Any other server keeps its health word.
     expect(serverHostHealthLabel({ ...host, relay: 'unavailable' })).toBeUndefined()
   })

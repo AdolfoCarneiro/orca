@@ -42,12 +42,13 @@ export class MobileRelayHostCatalog {
   list(): MobileRelayHostsListResult {
     return {
       hosts: describeRelayHosts(this.options.hosts, this.options.hostLabelOverrides()).map(
-        ({ hostId, label, health, relay, stoppedOnDesktop }) => ({
+        ({ hostId, label, health, relay, stoppedOnDesktop, unavailableOnDesktop }) => ({
           hostId,
           label,
           health,
           relay,
-          ...(stoppedOnDesktop ? { stoppedOnDesktop } : {})
+          ...(stoppedOnDesktop ? { stoppedOnDesktop } : {}),
+          ...(unavailableOnDesktop ? { unavailableOnDesktop } : {})
         })
       )
     }

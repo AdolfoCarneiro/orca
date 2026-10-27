@@ -48,24 +48,34 @@ export function retireMobileDesktopRelayEnvironment(environmentId: string): void
 // Why: a WSL host is this desktop's own distro; a phone reaches it only while it already runs.
 const PHONE_CALL_PREPARATION: ManagedRuntimeCallPreparation = { wslStart: 'never' }
 
-/** Servers a phone may reach through this desktop; WSL hosts only while they may run at all. */
-function listRelayableEnvironments(userDataPath: string) {
-  return listEnvironments(userDataPath).filter(
-    (environment) => phoneReach(environment) !== 'hidden'
-  )
+/** Servers a phone may reach, each with its WSL host reach (null for any other server). */
+function listRelayableEnvironments(
+  userDataPath: string
+): { environment: KnownRuntimeEnvironment; reach: WslHostPhoneReach | null }[] {
+  // One records read per list: the phone polls it every few seconds.
+  const wslReaches = wslHostsGateOpen() ? getWslHostPhoneGate()?.reachAll() : undefined
+  const relayable: { environment: KnownRuntimeEnvironment; reach: WslHostPhoneReach | null }[] = []
+  for (const environment of listEnvironments(userDataPath)) {
+    const reach =
+      classifyRuntimeEnvironmentHost(environment).kind === 'wsl'
+        ? (wslReaches?.get(environment.id) ?? 'hidden')
+        : null
+    if (reach !== 'hidden') {
+      relayable.push({ environment, reach })
+    }
+  }
+  return relayable
 }
 
-/** Null for a server that is not this desktop's WSL host. */
-function phoneReach(environment: KnownRuntimeEnvironment): WslHostPhoneReach | null {
-  const host = classifyRuntimeEnvironmentHost(environment)
-  switch (host.kind) {
-    case 'network':
-      return null
-    case 'wsl':
-      return wslHostsGateOpen()
-        ? (getWslHostPhoneGate()?.reach(environment.id) ?? 'hidden')
-        : 'hidden'
+// Why: a phone never starts a WSL host, so a host not ready here says where it can be started.
+function desktopWslHostFlags(reach: WslHostPhoneReach | null): {
+  stoppedOnDesktop?: true
+  unavailableOnDesktop?: true
+} {
+  if (reach === 'stopped') {
+    return { stoppedOnDesktop: true }
   }
+  return reach === 'unavailable' ? { unavailableOnDesktop: true } : {}
 }
 
 /** Relay requests use exact saved environment IDs. */
@@ -73,10 +83,9 @@ export function createRuntimeEnvironmentMobileRelayHosts(): MobileDesktopRelayHo
   const userDataPath = getRuntimeEnvironmentRegistryRoot()
   return {
     list: () => {
-      const environments = listRelayableEnvironments(userDataPath)
-      const reachById = new Map(
-        environments.map((environment) => [environment.id, phoneReach(environment)])
-      )
+      const relayable = listRelayableEnvironments(userDataPath)
+      const environments = relayable.map(({ environment }) => environment)
+      const reachById = new Map(relayable.map(({ environment, reach }) => [environment.id, reach]))
       const statusByEnvironmentId = new Map<string, RuntimeEnvironmentStatus>()
       for (const snapshot of getRuntimeEnvironmentStatusSnapshots()) {
         const environment = environments.find((entry) => entry.id === snapshot.environmentId)
@@ -109,15 +118,17 @@ export function createRuntimeEnvironmentMobileRelayHosts(): MobileDesktopRelayHo
           pairingRevision: pairingRevision(environment),
           runtimeId: environment.runtimeId,
           ...(environment.pairedDeviceId ? { pairedDeviceId: environment.pairedDeviceId } : {}),
-          ...(reachById.get(environment.id) === 'stopped'
-            ? { stoppedOnDesktop: true as const }
-            : {})
+          ...desktopWslHostFlags(reachById.get(environment.id) ?? null)
         })),
         statusByEnvironmentId
       }
     },
     resolve: async (environmentId) => {
-      if (!listRelayableEnvironments(userDataPath).some((entry) => entry.id === environmentId)) {
+      if (
+        !listRelayableEnvironments(userDataPath).some(
+          ({ environment }) => environment.id === environmentId
+        )
+      ) {
         return null
       }
       const environment = await resolveManagedRuntimeEnvironment(
@@ -182,8 +193,8 @@ function watchRuntimeEnvironmentChanges(
     }
   }
   const environment = listRelayableEnvironments(userDataPath).find(
-    (entry) => entry.id === environmentId
-  )
+    (entry) => entry.environment.id === environmentId
+  )?.environment
   if (
     !environment ||
     isRuntimeEnvironmentManuallyDisconnected(environmentId) ||

@@ -63,6 +63,7 @@ function fakeHosts(
     runtimeId?: string | null
     pairedDeviceId?: string
     stoppedOnDesktop?: true
+    unavailableOnDesktop?: true
   }[]
 ) {
   const state = {
@@ -77,11 +78,20 @@ function fakeHosts(
   const hosts: MobileDesktopRelayHosts = {
     list: () => ({
       environments: state.environments.map(
-        ({ id, name, orcadDeployment, runtimeId, pairedDeviceId, stoppedOnDesktop }) => ({
+        ({
+          id,
+          name,
+          orcadDeployment,
+          runtimeId,
+          pairedDeviceId,
+          stoppedOnDesktop,
+          unavailableOnDesktop
+        }) => ({
           id,
           name,
           orcadDeployment,
           stoppedOnDesktop,
+          unavailableOnDesktop,
           pairingRevision: state.pairingRevision,
           runtimeId: runtimeId === undefined ? 'runtime-a' : runtimeId,
           pairedDeviceId
@@ -199,6 +209,10 @@ describe('mobile relay host catalog', () => {
     const stopped = fakeHosts([{ ...wsl, stoppedOnDesktop: true }]).hosts
     expect(catalog(stopped).catalog.list().hosts).toEqual([
       { ...unconfirmed, stoppedOnDesktop: true }
+    ])
+    const notConnected = fakeHosts([{ ...wsl, unavailableOnDesktop: true }]).hosts
+    expect(catalog(notConnected).catalog.list().hosts).toEqual([
+      { ...unconfirmed, unavailableOnDesktop: true }
     ])
   })
 
