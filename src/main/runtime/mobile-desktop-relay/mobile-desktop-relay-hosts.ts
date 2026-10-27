@@ -23,6 +23,8 @@ export type MobileDesktopRelayHostListing = {
   runtimeId: string | null
   /** The desktop's own device id on that server, as pairing recorded it. */
   pairedDeviceId?: string
+  /** This desktop's own WSL host, confirmed stopped: only the desktop may start it. */
+  stoppedOnDesktop?: true
 }
 
 /** Bound calls and reject stale pairing/runtime identity via expected. */

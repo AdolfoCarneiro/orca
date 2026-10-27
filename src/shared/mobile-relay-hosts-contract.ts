@@ -13,6 +13,8 @@ export type MobileRelayHost = {
   label: string
   health: ExecutionHostHealth
   relay: MobileRelayHostRelay
+  /** This desktop's own WSL host, confirmed stopped: a phone never starts it, only the desktop. */
+  stoppedOnDesktop?: true
 }
 
 export type MobileRelayHostsListResult = { hosts: MobileRelayHost[] }

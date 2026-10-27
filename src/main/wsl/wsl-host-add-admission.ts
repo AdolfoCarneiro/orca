@@ -20,6 +20,16 @@ export function wslHostStoppedMessage(distro: string): string {
   return `${distro} was stopped. Switch to one of its projects, or reconnect it in Settings → Remote Orca Servers, to start it again.`
 }
 
+/** Shown on a paired phone once a stop is confirmed: only the desktop starts a distro. */
+export function wslHostStoppedForPhoneMessage(distro: string): string {
+  return `The WSL host ${distro} isn’t running. Open one of its projects on your computer to start it.`
+}
+
+/** Shown on a paired phone while the desktop can't confirm the host runs (starting, reconnecting). */
+export function wslHostUnavailableForPhoneMessage(distro: string): string {
+  return `The WSL host ${distro} isn’t available from your phone right now. Open one of its projects on your computer to connect it.`
+}
+
 export function wslHostRemovalPendingMessage(distro: string): string {
   return `Orca didn’t finish removing the WSL host ${distro}. Remove it again in Settings → Remote Orca Servers, or connect it to keep it.`
 }

@@ -17,6 +17,22 @@ export function serverHostHealth(host: MobileRelayHost): ExecutionHostHealth {
   return host.relay === 'update-needed' ? 'blocked' : host.health
 }
 
+// Why: a phone never starts the desktop's own WSL distro, so a confirmed stop says where to start it.
+export function serverHostHealthLabel(host: MobileRelayHost): string | undefined {
+  return host.stoppedOnDesktop ? 'Start on computer' : undefined
+}
+
+export function serverHostHealthLabels(
+  hosts: readonly MobileRelayHost[]
+): ReadonlyMap<ExecutionHostId, string> {
+  return new Map(
+    hosts.flatMap((host) => {
+      const label = serverHostHealthLabel(host)
+      return label ? [[host.hostId, label] as const] : []
+    })
+  )
+}
+
 export function withServerHosts<Value>(
   desktop: ReadonlyMap<ExecutionHostId, Value>,
   hosts: readonly MobileRelayHost[],
