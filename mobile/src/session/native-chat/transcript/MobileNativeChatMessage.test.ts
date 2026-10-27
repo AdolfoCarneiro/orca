@@ -506,8 +506,11 @@ describe('MobileNativeChatMessage', () => {
   const IMAGE = {
     ok: true,
     result: { content: PNG, isBinary: true, isImage: true, mimeType: 'image/png' }
-  }
-  const REFUSED = { ok: false, error: { code: 'method_not_found', message: 'unknown method' } }
+  } as const
+  const REFUSED = {
+    ok: false,
+    error: { code: 'method_not_found', message: 'unknown method' }
+  } as const
   it.each([
     [
       STORED,

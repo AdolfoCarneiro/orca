@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import type * as FsPromises from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { resolveAuthorizedPathMock, statMock } from './orca-runtime-files-mock-registry'
@@ -107,8 +106,7 @@ describe('RuntimeFileCommands', () => {
       const dir = await previewFixture()
       await writeFile(join(dir, 'notes.txt'), 'secret')
       const { commands } = createRuntimeFileCommands()
-      const { stat } = await vi.importActual<typeof FsPromises>('fs/promises')
-      statMock.mockImplementation(stat)
+      statMock.mockResolvedValue({ isFile: () => true })
       resolveAuthorizedPathMock.mockRejectedValue(new Error('Access denied'))
 
       await expect(
