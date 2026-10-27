@@ -113,36 +113,43 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
     return state
   }
 
-  protected replaceHeadlessTerminalAfterExecutionContextChange(ptyId: string): void {
+  protected replaceHeadlessTerminalAfterExecutionContextChange(
+    ptyId: string,
+    retryLateSeed = true
+  ): void {
     this.disposeHeadlessTerminal(ptyId)
     this.providerSnapshotPreferredPtys.add(ptyId)
     const dims = this.getTerminalSize(ptyId) ?? { cols: 80, rows: 24 }
     const state = this.createPtyHeadlessTerminalState(ptyId, dims)
     this.headlessTerminals.set(ptyId, state)
+    const generation = this.getPtyLifecycleGeneration(ptyId)
     let seedTimedOut = false
     state.writeChain = state.writeChain
       .then(async () => {
         if (this.headlessTerminals.get(ptyId) !== state) {
           return
         }
-        const request = this.serializeProviderTerminalBuffer(ptyId)
-        const acquisition = this.providerBufferAcquisitionsByPtyId.get(ptyId)
-        const snapshot = await request
+        const { snapshot, late } = await this.awaitProviderTerminalBuffer(ptyId)
         if (this.headlessTerminals.get(ptyId) !== state) {
           return
         }
         if (!snapshot) {
-          // Still in flight means the wait timed out; reseed once it lands, as live bytes have since moved this model on.
-          seedTimedOut =
-            acquisition !== undefined &&
-            this.providerBufferAcquisitionsByPtyId.get(ptyId) === acquisition
-          if (seedTimedOut && acquisition) {
-            void acquisition.promise.then(() => {
-              if (this.headlessTerminals.get(ptyId) === state) {
-                this.replaceHeadlessTerminalAfterExecutionContextChange(ptyId)
-              }
-            })
-          }
+          seedTimedOut = late !== null
+          void late?.then((landed) => {
+            if (
+              this.headlessTerminals.get(ptyId) !== state ||
+              this.getPtyLifecycleGeneration(ptyId) !== generation
+            ) {
+              return
+            }
+            if (!landed) {
+              // The provider gave nothing, so trust the live model.
+              this.providerSnapshotPreferredPtys.delete(ptyId)
+            } else if (retryLateSeed) {
+              // Live bytes moved this model on, so the late image is stale; capture once more.
+              this.replaceHeadlessTerminalAfterExecutionContextChange(ptyId, false)
+            }
+          })
           return
         }
         const data = `${snapshot.scrollbackAnsi ?? ''}${snapshot.data}`

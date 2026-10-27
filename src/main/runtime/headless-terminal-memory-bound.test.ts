@@ -63,6 +63,22 @@ it('bounds a provider snapshot that does not answer, then reseeds once it lands'
   }
 })
 
+it('trusts the model when a timed-out capture lands with no snapshot', async () => {
+  vi.useFakeTimers()
+  try {
+    const { runtime, late, serializeProviderBuffer } = hangingProvider()
+    runtime.replaceExecutionContext()
+    const model = runtime.model()
+    await vi.advanceTimersByTimeAsync(AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS)
+    late.resolve(null)
+    await vi.waitFor(() => expect(runtime.retainedState().providerPreferred).toBe(false))
+    expect(runtime.model()).toBe(model)
+    expect(serializeProviderBuffer).toHaveBeenCalledOnce()
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
 it('bounds every reader of a provider snapshot that does not answer', async () => {
   vi.useFakeTimers()
   try {

@@ -1,6 +1,7 @@
 import { OrcaRuntimeWithCreatePtyHeadlessTerminalState } from './headless-terminal-state'
 import type { TerminalOscLinkRange } from '../../../../shared/terminal-osc-link-ranges'
 import type { PtyProviderBufferSnapshot } from '../../../providers/pty-provider-contract'
+import type { ProviderTerminalBufferWait } from '../../runtime-terminal-state-records'
 import { withTimeout } from '../../runtime-async-boundaries'
 import { AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS } from '../../orca-runtime-postlude'
 
@@ -125,11 +126,20 @@ export abstract class OrcaRuntimeWithSerializeTerminalBufferFromAvailableState e
     opts: { scrollbackRows?: number } = {},
     wait: { timeoutMs?: number; retireOnTimeout?: boolean } = {}
   ): Promise<PtyProviderBufferSnapshot | null> {
+    return (await this.awaitProviderTerminalBuffer(ptyId, opts, wait)).snapshot
+  }
+
+  /** `late` is the capture still running when the bounded wait gave up, so a caller can act once it lands. */
+  protected async awaitProviderTerminalBuffer(
+    ptyId: string,
+    opts: { scrollbackRows?: number } = {},
+    wait: { timeoutMs?: number; retireOnTimeout?: boolean } = {}
+  ): Promise<ProviderTerminalBufferWait> {
     const generation = this.getPtyLifecycleGeneration(ptyId)
     const scrollbackRows = Math.max(0, Math.floor(opts.scrollbackRows ?? 0))
     let acquisition = this.providerBufferAcquisitionsByPtyId.get(ptyId)
     if (acquisition?.generation === generation && acquisition.timedOut) {
-      return null
+      return { snapshot: null, late: acquisition.promise }
     }
     if (
       !acquisition ||
@@ -146,7 +156,7 @@ export abstract class OrcaRuntimeWithSerializeTerminalBufferFromAvailableState e
       })
     }
     if (acquisition.timedOut) {
-      return null
+      return { snapshot: null, late: acquisition.promise }
     }
     // Every reader shares this bound: a provider that never answers must not hold its caller.
     const result = await withTimeout<
@@ -160,8 +170,8 @@ export abstract class OrcaRuntimeWithSerializeTerminalBufferFromAvailableState e
       if (wait.retireOnTimeout) {
         acquisition.timedOut = true
       }
-      return null
+      return { snapshot: null, late: acquisition.promise }
     }
-    return result.value
+    return { snapshot: result.value, late: null }
   }
 }
