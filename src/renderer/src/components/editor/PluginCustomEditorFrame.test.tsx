@@ -16,6 +16,9 @@ vi.mock('./editor-shortcuts', () => ({
 }))
 
 import PluginCustomEditorFrame from './PluginCustomEditorFrame'
+import { flushEditorFrames } from './editor-pending-flush'
+
+const FILE_ID = '/repo/diagram.excalidraw'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -65,6 +68,7 @@ async function renderFrame(props: {
     root.render(
       <PluginCustomEditorFrame
         editor={editor}
+        fileId={FILE_ID}
         content={props.content}
         readOnly={props.readOnly ?? false}
         onContentChange={onContentChange}
@@ -122,16 +126,11 @@ describe('PluginCustomEditorFrame', () => {
     expect(onSave).not.toHaveBeenCalled()
   })
 
-  it('saves the flushed text on the save shortcut pressed inside the frame', async () => {
-    const { posted, fromFrame, onSave } = await renderFrame({ content: 'scene' })
+  it('flushes the frame before any save of the file, and keeps the tab unsaved if it never answers', async () => {
+    const { posted, fromFrame } = await renderFrame({ content: 'scene' })
     await fromFrame({ type: 'orca-editor-ready' })
-    await fromFrame({
-      type: 'orca-editor-keydown',
-      key: 's',
-      code: 'KeyS',
-      metaKey: true,
-      ctrlKey: false
-    })
+    const index = { editorBufferIdOf: {}, editorBufferViews: {} }
+    const flushed = flushEditorFrames(index, FILE_ID)
     expect(posted).toHaveBeenLastCalledWith({ type: 'orca-editor-flush', requestId: 0 }, '*', [])
     await fromFrame({
       type: 'orca-editor-edit',
@@ -139,7 +138,15 @@ describe('PluginCustomEditorFrame', () => {
       content: { kind: 'text', text: 'scene+late' }
     })
     await fromFrame({ type: 'orca-editor-flushed', requestId: 0 })
-    await vi.waitFor(() => expect(onSave).toHaveBeenCalledWith('scene+late'))
+    await expect(flushed).resolves.toBe(true)
+
+    let silent: Promise<boolean> | null = null
+    await act(async () => {
+      silent = flushEditorFrames(index, FILE_ID)
+      await silent
+    })
+    await expect(silent).resolves.toBe(false)
+    expect(container.textContent).toContain("Couldn't save the latest changes from Excalidraw")
   })
 
   it('never saves or edits a read-only document', async () => {
@@ -213,6 +220,7 @@ describe('PluginCustomEditorFrame', () => {
       root.render(
         <PluginCustomEditorFrame
           editor={editor}
+          fileId={FILE_ID}
           content=""
           readOnly={false}
           onContentChange={vi.fn()}

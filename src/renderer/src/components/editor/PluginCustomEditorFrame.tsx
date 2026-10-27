@@ -13,6 +13,7 @@ import {
 import { createPanelWatchdog } from '../right-sidebar/plugin-panel-watchdog'
 import { usePluginFrameThemeSync } from '../right-sidebar/use-plugin-panel-theme-revision'
 import { editorShortcutMatches } from './editor-shortcuts'
+import { registerEditorFrameFlush } from './editor-pending-flush'
 import {
   createCustomEditorHost,
   type CustomEditorBinaryDocument,
@@ -21,10 +22,14 @@ import {
 
 type PluginCustomEditorFrameProps = {
   editor: ActivePluginCustomEditor
+  /** Text editors: the tab's file id; every save of it first flushes this frame. */
+  fileId?: string
   content: string
   readOnly: boolean
   onContentChange: (content: string) => void
   onSave: (content: string) => Promise<boolean>
+  /** Marks the tab dirty while the frame holds edits the buffer lacks. */
+  onDirtyHint?: (dirty: boolean) => void
   /** Set for a binary editor: its bytes once loaded (null before). Text props are then unused. */
   binaryDocument?: CustomEditorBinaryDocument | null
 }
@@ -46,14 +51,17 @@ function FrameMessage({ children }: { children: React.ReactNode }): React.JSX.El
 /** A plugin's sandboxed editor for the open file. It only exchanges text with this tab. */
 export default function PluginCustomEditorFrame({
   editor,
+  fileId,
   content,
   readOnly,
   onContentChange,
   onSave,
+  onDirtyHint,
   binaryDocument
 }: PluginCustomEditorFrameProps): React.JSX.Element {
   const [entry, setEntry] = useState<EntryState>({ status: 'loading' })
   const [refusal, setRefusal] = useState<CustomEditorEditRefusal | null>(null)
+  const [saveBlocked, setSaveBlocked] = useState(false)
   const [loadedFrameKey, setLoadedFrameKey] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   usePluginFrameThemeSync(iframeRef)
@@ -62,8 +70,15 @@ export default function PluginCustomEditorFrame({
     () => `${PLUGIN_PANEL_FRAME_NAME_PREFIX}editor:${createBrowserUuid()}`
   )
   // Why refs: the host is built once per frame; props change on every keystroke.
-  const latestRef = useRef({ content, readOnly, onContentChange, onSave, binaryDocument })
-  latestRef.current = { content, readOnly, onContentChange, onSave, binaryDocument }
+  const latestRef = useRef({
+    content,
+    readOnly,
+    onContentChange,
+    onSave,
+    onDirtyHint,
+    binaryDocument
+  })
+  latestRef.current = { content, readOnly, onContentChange, onSave, onDirtyHint, binaryDocument }
   const isBinary = binaryDocument !== undefined
 
   const { pluginKey, id: editorId } = editor
@@ -139,17 +154,23 @@ export default function PluginCustomEditorFrame({
       ...(isBinary ? { getBinaryDocument: () => latestRef.current.binaryDocument ?? null } : {}),
       onEdit: (text) => {
         setRefusal(null)
+        setSaveBlocked(false)
         latestRef.current.onContentChange(text)
       },
       onEditRefused: setRefusal,
+      onUnappliedEdit: (state) => {
+        if (state !== null) {
+          latestRef.current.onDirtyHint?.(true)
+        }
+      },
       onPong: (pingId) => watchdog.handlePong(pingId),
       onKeyChord: (chord) => {
         const event = new KeyboardEvent('keydown', chord)
         if (latestRef.current.readOnly || !editorShortcutMatches('editor.save', event)) {
           return
         }
-        // Why flush first: the editor may still hold the last stroke in its debounce window.
-        void created.flush().then(() => latestRef.current.onSave(created.currentText()))
+        // The save pipeline flushes this frame first; see registerEditorFrameFlush below.
+        void latestRef.current.onSave(created.currentText())
       }
     })
     return created
@@ -178,6 +199,17 @@ export default function PluginCustomEditorFrame({
   useEffect(() => {
     host.syncDocument()
   }, [content, readOnly, binaryDocument, host])
+
+  useEffect(() => {
+    if (fileId === undefined) {
+      return
+    }
+    return registerEditorFrameFlush(fileId, async () => {
+      const flushed = await host.flush()
+      setSaveBlocked(!flushed)
+      return flushed
+    })
+  }, [fileId, host])
 
   if (entry.status === 'loading') {
     return (
@@ -210,7 +242,15 @@ export default function PluginCustomEditorFrame({
   }
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {refusal ? (
+      {saveBlocked ? (
+        <div className="border-b border-border px-3 py-1.5 text-xs text-destructive">
+          {translate(
+            'auto.components.editor.PluginCustomEditorFrame.saveBlocked',
+            "Couldn't save the latest changes from {{value0}}.",
+            { value0: editor.title }
+          )}
+        </div>
+      ) : refusal ? (
         <div className="border-b border-border px-3 py-1.5 text-xs text-destructive">
           {refusal === 'oversized'
             ? translate(
@@ -219,8 +259,8 @@ export default function PluginCustomEditorFrame({
                 { value0: editor.title }
               )
             : translate(
-                'auto.components.editor.PluginCustomEditorFrame.editRateLimited',
-                '{{value0}} is sending changes too quickly; some were skipped.',
+                'auto.components.editor.PluginCustomEditorFrame.editsHeld',
+                '{{value0}} is sending changes too quickly; Orca applies the latest one shortly.',
                 { value0: editor.title }
               )}
         </div>

@@ -16581,7 +16581,8 @@
           "unresponsive": "{{value0}} stopped responding. Switch to Source to keep editing.",
           "loadFailed": "{{value0}} could not be loaded. Switch to Source to edit this file.",
           "editTooLarge": "This file is too large for {{value0}} to save changes. Use Source instead.",
-          "editRateLimited": "{{value0}} is sending changes too quickly; some were skipped."
+          "saveBlocked": "Couldn't save the latest changes from {{value0}}.",
+          "editsHeld": "{{value0}} is sending changes too quickly; Orca applies the latest one shortly."
         },
         "PluginBytesCustomEditorSurface": {
           "retry": "Retry",

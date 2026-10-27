@@ -7,10 +7,12 @@ import {
   isCustomEditorEditAttempt,
   readCustomEditorFrameMessage,
   customEditorConflict,
+  customEditorTooLarge,
   type CustomEditorDocumentMessage,
   type CustomEditorEditRejectedMessage,
   type CustomEditorKeyChord
 } from '../../../../shared/plugins/plugin-custom-editor-bridge'
+import { isPluginJsonObject } from '../../../../shared/plugins/manifest/plugin-json-object'
 import { readPanelPongId } from '../../../../shared/plugins/plugin-panel-bridge'
 import {
   createPanelMessageBudget,
@@ -19,6 +21,9 @@ import {
 } from '../../../../shared/plugins/plugin-panel-message-budget'
 
 export type CustomEditorEditRefusal = 'oversized' | 'rate_limited'
+
+/** Why an edit has not reached the buffer: held for the rate limit, or lost for size. */
+export type CustomEditorUnappliedEdit = 'held' | 'lost' | null
 
 /** A binary editor's loaded file; a new object means new bytes to send. */
 export type CustomEditorBinaryDocument = { bytes: Uint8Array<ArrayBuffer>; fileType: string }
@@ -31,9 +36,13 @@ export type CustomEditorHostOptions = {
   getBinaryDocument?: () => CustomEditorBinaryDocument | null
   onEdit: (text: string) => void
   onEditRefused?: (reason: CustomEditorEditRefusal) => void
+  /** The frame holds edits the buffer lacks, or caught up again. */
+  onUnappliedEdit?: (state: CustomEditorUnappliedEdit) => void
   onKeyChord?: (chord: CustomEditorKeyChord) => void
   onPong?: (pingId: number) => void
   budget?: PanelMessageBudget
+  /** Meters non-edit messages, so chords and flush replies never spend the edit budget. */
+  controlBudget?: PanelMessageBudget
   now?: () => number
   flushTimeoutMs?: number
 }
@@ -42,8 +51,9 @@ export type CustomEditorHost = {
   handleMessage: (event: MessageEvent) => void
   /** Push the buffer when it changed outside the frame (reload, revert, Source edits). */
   syncDocument: () => void
-  /** Resolves once the frame posted edits still in its debounce window, or on timeout. */
-  flush: () => Promise<void>
+  /** Waits for edits still in the frame's debounce window; false on timeout or when an edit
+   *  never reached the buffer, so a save must not mark the tab clean. */
+  flush: () => Promise<boolean>
   /** The newest text either side holds: the frame's last edit or the buffer last sent. */
   currentText: () => string
   /** A new document mounted in the frame; it must announce ready again. */
@@ -58,6 +68,7 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
       maxBytes: CUSTOM_EDITOR_DOCUMENT_MAX_BYTES,
       ...CUSTOM_EDITOR_EDIT_RATE_LIMIT
     })
+  const controlBudget = options.controlBudget ?? createPanelMessageBudget()
   const now = options.now ?? (() => Date.now())
   const flushTimeoutMs = options.flushTimeoutMs ?? CUSTOM_EDITOR_FLUSH_TIMEOUT_MS
   let ready = false
@@ -69,6 +80,19 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
   let version = 0
   let nextFlushId = 0
   const pendingFlushes = new Map<number, () => void>()
+  // The newest edit refused for the rate limit, unparsed until applied; full-text, so it wins.
+  let heldEdit: unknown = null
+  let heldTimer: ReturnType<typeof setTimeout> | null = null
+  let lostEdit = false
+  let unapplied: CustomEditorUnappliedEdit = null
+
+  const reportUnapplied = (): void => {
+    const next = lostEdit ? 'lost' : heldEdit !== null ? 'held' : null
+    if (next !== unapplied) {
+      unapplied = next
+      options.onUnappliedEdit?.(next)
+    }
+  }
 
   const post = (
     message:
@@ -124,6 +148,53 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
     })
   }
 
+  const applyEdit = (text: string, baseVersion: number): void => {
+    const { readOnly } = options.getDocument()
+    if (!ready || readOnly || options.getBinaryDocument) {
+      return
+    }
+    if (baseVersion !== version) {
+      post(customEditorConflict(baseVersion))
+      return
+    }
+    // A newer full text supersedes anything held back or lost.
+    lostEdit = false
+    reportUnapplied()
+    if (text === frameText) {
+      return
+    }
+    frameText = text
+    options.onEdit(text)
+  }
+
+  const applyHeldEdit = (): void => {
+    if (heldTimer !== null) {
+      clearTimeout(heldTimer)
+      heldTimer = null
+    }
+    const held = heldEdit
+    heldEdit = null
+    const message = held === null ? null : readCustomEditorFrameMessage(held)
+    if (message?.type === 'orca-editor-edit') {
+      applyEdit(message.text, message.baseVersion)
+    }
+    reportUnapplied()
+  }
+
+  const refuseEdit = (data: unknown, refusal: CustomEditorEditRefusal): void => {
+    options.onEditRefused?.(refusal)
+    if (refusal === 'oversized') {
+      heldEdit = null
+      lostEdit = true
+      const baseVersion = isPluginJsonObject(data) ? data.baseVersion : undefined
+      post(customEditorTooLarge(Number.isSafeInteger(baseVersion) ? Number(baseVersion) : version))
+    } else {
+      heldEdit = data
+      heldTimer ??= setTimeout(applyHeldEdit, CUSTOM_EDITOR_EDIT_RATE_LIMIT.perMs)
+    }
+    reportUnapplied()
+  }
+
   const settleFlushes = (): void => {
     for (const settle of pendingFlushes.values()) {
       settle()
@@ -144,13 +215,14 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
         return
       }
       // Budget before parsing so floods cannot spend unmetered validation work.
-      const refusal = budget.admit(
+      const isEdit = isCustomEditorEditAttempt(event.data)
+      const refusal = (isEdit ? budget : controlBudget).admit(
         now(),
         structuredCloneMessageBytes(event.data, CUSTOM_EDITOR_DOCUMENT_MAX_BYTES)
       )
       if (refusal) {
-        if (isCustomEditorEditAttempt(event.data)) {
-          options.onEditRefused?.(refusal)
+        if (isEdit) {
+          refuseEdit(event.data, refusal)
         }
         return
       }
@@ -163,22 +235,12 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
           ready = true
           pushDocument(true)
           return
-        case 'orca-editor-edit': {
-          const { readOnly } = options.getDocument()
-          if (!ready || readOnly || options.getBinaryDocument) {
-            return
-          }
-          if (message.baseVersion !== version) {
-            post(customEditorConflict(message.baseVersion))
-            return
-          }
-          if (message.text === frameText) {
-            return
-          }
-          frameText = message.text
-          options.onEdit(message.text)
+        case 'orca-editor-edit':
+          // An admitted edit is newer than any held one.
+          heldEdit = null
+          applyEdit(message.text, message.baseVersion)
+          reportUnapplied()
           return
-        }
         case 'orca-editor-flushed':
           pendingFlushes.get(message.requestId)?.()
           pendingFlushes.delete(message.requestId)
@@ -192,17 +254,20 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
     },
     flush() {
       if (!ready) {
-        return Promise.resolve()
+        return Promise.resolve(!lostEdit)
       }
       const requestId = nextFlushId++
-      return new Promise<void>((resolve) => {
-        const timer = setTimeout(() => {
+      return new Promise<boolean>((resolve) => {
+        const settle = (answered: boolean): void => {
           pendingFlushes.delete(requestId)
-          resolve()
-        }, flushTimeoutMs)
+          // A save applies the newest held edit now instead of waiting out the rate limit.
+          applyHeldEdit()
+          resolve(answered && !lostEdit)
+        }
+        const timer = setTimeout(() => settle(false), flushTimeoutMs)
         pendingFlushes.set(requestId, () => {
           clearTimeout(timer)
-          resolve()
+          settle(true)
         })
         post({ type: CUSTOM_EDITOR_FLUSH_TYPE, requestId })
       })
@@ -215,6 +280,13 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
       frameText = null
       frameReadOnly = null
       frameBinary = null
+      heldEdit = null
+      lostEdit = false
+      if (heldTimer !== null) {
+        clearTimeout(heldTimer)
+        heldTimer = null
+      }
+      reportUnapplied()
       settleFlushes()
     }
   }

@@ -9,7 +9,7 @@ import {
   ORCA_EDITOR_FILE_SAVED_EVENT,
   type EditorFileSavedDetail
 } from './editor-autosave'
-import { flushPendingEditorBuffer, hasPendingEditorBufferChange } from './editor-pending-flush'
+import { flushEditorViewsForSave, hasPendingEditorBufferChange } from './editor-pending-flush'
 import { createAutoSaveHolds, editorPathHoldKey } from './editor-autosave-holds'
 import {
   editorBufferIdOfView,
@@ -131,7 +131,9 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
     if (discarded()) {
       return nothingToWrite
     }
-    flushPendingEditorBuffer(store.getState(), fileId, trigger === 'autosave')
+    if (!(await flushEditorViewsForSave(store.getState, fileId, trigger === 'autosave'))) {
+      return discarded() ? nothingToWrite : 'failed'
+    }
     // Earlier saves or reloads can leave a queued dirty request with nothing to write.
     const isDirty = store.getState().openFiles.find((file) => file.id === fileId)?.isDirty === true
     if (!isDirty && request.requestedDirty && trigger !== 'overwrite') {
@@ -272,7 +274,7 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
   const settleFileSaves = async (fileId: string, flush = true): Promise<void> => {
     // Flush debounced rich-text serialization before dropping its timer.
     if (flush) {
-      flushPendingEditorBuffer(store.getState(), fileId)
+      await flushEditorViewsForSave(store.getState, fileId)
     }
     const key = recordKeyOf(fileId)
     clearScheduledAutoSave(key)

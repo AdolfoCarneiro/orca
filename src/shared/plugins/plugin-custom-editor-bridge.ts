@@ -51,10 +51,23 @@ export function customEditorConflict(baseVersion: number): CustomEditorEditRejec
   }
 }
 
+export function customEditorTooLarge(baseVersion: number): CustomEditorEditRejectedMessage {
+  return {
+    type: CUSTOM_EDITOR_EDIT_REJECTED_TYPE,
+    baseVersion,
+    error: {
+      code: 'too_large',
+      message: 'The edit is larger than Orca accepts; the file keeps its last accepted text.',
+      retryable: false
+    }
+  }
+}
+
+/** `code` is open-ended: editors must treat an unknown code as a failed edit. */
 export type CustomEditorEditRejectedMessage = {
   type: typeof CUSTOM_EDITOR_EDIT_REJECTED_TYPE
   baseVersion: number
-  error: { code: 'conflict'; message: string; retryable: true }
+  error: { code: 'conflict' | 'too_large'; message: string; retryable: boolean }
 }
 
 export type CustomEditorFlushMessage = {
