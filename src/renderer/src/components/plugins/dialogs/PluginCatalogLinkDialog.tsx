@@ -70,14 +70,15 @@ export function PluginCatalogLinkDialog({
               { value0: gitRepositoryOwnerLabel(url) ?? url }
             )}
           </DialogTitle>
-          <DialogDescription className="break-all">
+          <DialogDescription>
             {translate(
-              'auto.components.plugins.PluginCatalogLinkDialog.description',
-              'A link asked to show {{value0}} from {{value1}}. Add catalogs only from people you trust.',
-              { value0: catalog?.pluginKey ?? '', value1: url }
+              'auto.components.plugins.PluginCatalogLinkDialog.body',
+              'A link asked to show {{value0}} from this catalog. Add catalogs only from people you trust.',
+              { value0: catalog?.pluginKey ?? '' }
             )}
           </DialogDescription>
         </DialogHeader>
+        <p className="break-all font-mono text-xs text-muted-foreground">{url}</p>
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
         <DialogFooter>
           <Button ref={cancelRef} variant="ghost" disabled={busy} onClick={onCancel}>
