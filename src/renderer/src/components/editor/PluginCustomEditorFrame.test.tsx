@@ -64,7 +64,6 @@ async function renderFrame(props: {
     root.render(
       <PluginCustomEditorFrame
         editor={editor}
-        fileId="/repo/diagram.excalidraw"
         content={props.content}
         readOnly={props.readOnly ?? false}
         onContentChange={onContentChange}
@@ -93,6 +92,9 @@ describe('PluginCustomEditorFrame', () => {
     // allow-same-origin would expose app DOM, storage and IPC to the plugin.
     expect(iframe.getAttribute('sandbox')).toBe('allow-scripts')
     expect(iframe.getAttribute('name')?.startsWith('orca-plugin-panel:editor:')).toBe(true)
+    // window.name is readable in the frame, so it must not name the file.
+    expect(iframe.getAttribute('name')).not.toContain('diagram')
+    expect(iframe.getAttribute('name')).not.toContain('/repo')
     expect(iframe.getAttribute('srcdoc')).toContain('<main>editor</main>')
   })
 
@@ -140,13 +142,26 @@ describe('PluginCustomEditorFrame', () => {
     expect(onSave).not.toHaveBeenCalled()
   })
 
+  it('restyles in place on a theme change instead of remounting and losing editor state', async () => {
+    const { iframe, posted } = await renderFrame({ content: 'scene' })
+    await act(async () => {
+      document.documentElement.classList.add('dark')
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+    expect(container.querySelector('iframe')).toBe(iframe)
+    expect(posted).toHaveBeenCalledWith(
+      { type: 'orca-panel-theme', colorScheme: 'dark', tokens: expect.any(String) },
+      '*'
+    )
+    document.documentElement.classList.remove('dark')
+  })
+
   it('says so when the plugin can no longer serve its editor', async () => {
     readCustomEditorEntry.mockResolvedValue(null)
     await act(async () => {
       root.render(
         <PluginCustomEditorFrame
           editor={editor}
-          fileId="f"
           content=""
           readOnly={false}
           onContentChange={vi.fn()}

@@ -1,4 +1,4 @@
-import { PANEL_PING_TYPE, PANEL_PONG_TYPE } from './plugin-panel-bridge'
+import { PANEL_PING_TYPE, PANEL_PONG_TYPE, PANEL_THEME_TYPE } from './plugin-panel-bridge'
 import { CUSTOM_EDITOR_SHELL_SCRIPT } from './plugin-custom-editor-bridge'
 
 /** Prepend CSP before any untrusted panel HTML: opaque origins alone still permit CORS fetch/beacons. Parsed CSP survives
@@ -21,6 +21,7 @@ export const PLUGIN_PANEL_CSP =
 /** Renderer fills theme/tokens before mounting srcdoc; main cannot know the active presentation values. */
 export const PANEL_SHELL_TOKENS_PLACEHOLDER = '/*__ORCA_PANEL_TOKENS__*/'
 export const PANEL_SHELL_COLOR_SCHEME_PLACEHOLDER = '__ORCA_COLOR_SCHEME__'
+const PANEL_SHELL_TOKENS_STYLE_ID = 'orca-design-tokens'
 
 /** Curated design-token subset injected into panel documents as `--orca-<name>`. Deliberately
  *  NOT all of main.css (~257 custom properties): freezing every token as
@@ -64,7 +65,7 @@ export function buildPluginPanelShellHtml(
     '<head>\n' +
     '<meta charset="utf-8">\n' +
     `<meta http-equiv="Content-Security-Policy" content="${PLUGIN_PANEL_CSP}">\n` +
-    `<style>:root{${PANEL_SHELL_TOKENS_PLACEHOLDER}}</style>\n` +
+    `<style id="${PANEL_SHELL_TOKENS_STYLE_ID}">:root{${PANEL_SHELL_TOKENS_PLACEHOLDER}}</style>\n` +
     '<script>\n' +
     "'use strict'\n" +
     '// Host policy: plugin panels are documents, never browsing contexts.\n' +
@@ -99,6 +100,13 @@ export function buildPluginPanelShellHtml(
     '  var data = event.data\n' +
     `  if (event.source === window.parent && data && data.type === '${PANEL_PING_TYPE}') {\n` +
     `    window.parent.postMessage({ type: '${PANEL_PONG_TYPE}', pingId: data.pingId }, '*')\n` +
+    '  }\n' +
+    `  if (event.source === window.parent && data && data.type === '${PANEL_THEME_TYPE}' &&\n` +
+    "    (data.colorScheme === 'light' || data.colorScheme === 'dark') && typeof data.tokens === 'string') {\n" +
+    "    document.documentElement.classList.remove('light', 'dark')\n" +
+    '    document.documentElement.classList.add(data.colorScheme)\n' +
+    `    var tokens = document.getElementById('${PANEL_SHELL_TOKENS_STYLE_ID}')\n` +
+    "    if (tokens) tokens.textContent = ':root{' + data.tokens.replace(/[{}<>]/g, '') + '}'\n" +
     '  }\n' +
     `})\n${surface === 'custom-editor' ? CUSTOM_EDITOR_SHELL_SCRIPT : ''}</script>\n` +
     '</head>\n'

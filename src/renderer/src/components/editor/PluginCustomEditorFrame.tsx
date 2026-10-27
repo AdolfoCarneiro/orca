@@ -1,19 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { translate } from '@/i18n/i18n'
+import { createBrowserUuid } from '@/lib/browser-uuid'
 import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
 import {
   PANEL_PING_TYPE,
   PLUGIN_PANEL_FRAME_NAME_PREFIX
 } from '../../../../shared/plugins/plugin-panel-bridge'
-import { fillPluginPanelShell } from '../right-sidebar/plugin-panel-design-token-css'
+import {
+  fillPluginPanelShell,
+  postPluginFrameTheme
+} from '../right-sidebar/plugin-panel-design-token-css'
 import { createPanelWatchdog } from '../right-sidebar/plugin-panel-watchdog'
-import { usePluginPanelThemeRevision } from '../right-sidebar/use-plugin-panel-theme-revision'
+import { usePluginFrameThemeSync } from '../right-sidebar/use-plugin-panel-theme-revision'
 import { editorShortcutMatches } from './editor-shortcuts'
 import { createCustomEditorHost, type CustomEditorEditRefusal } from './plugin-custom-editor-host'
 
 type PluginCustomEditorFrameProps = {
   editor: ActivePluginCustomEditor
-  fileId: string
   content: string
   readOnly: boolean
   onContentChange: (content: string) => void
@@ -37,7 +40,6 @@ function FrameMessage({ children }: { children: React.ReactNode }): React.JSX.El
 /** A plugin's sandboxed editor for the open file. It only exchanges text with this tab. */
 export default function PluginCustomEditorFrame({
   editor,
-  fileId,
   content,
   readOnly,
   onContentChange,
@@ -47,7 +49,11 @@ export default function PluginCustomEditorFrame({
   const [refusal, setRefusal] = useState<CustomEditorEditRefusal | null>(null)
   const [loadedFrameKey, setLoadedFrameKey] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
-  const themeRevision = usePluginPanelThemeRevision()
+  usePluginFrameThemeSync(iframeRef)
+  // Why random: window.name is readable inside the frame, so it must not carry the file's path.
+  const [frameName] = useState(
+    () => `${PLUGIN_PANEL_FRAME_NAME_PREFIX}editor:${createBrowserUuid()}`
+  )
   // Why refs: the host is built once per frame; props change on every keystroke.
   const latestRef = useRef({ content, readOnly, onContentChange, onSave })
   latestRef.current = { content, readOnly, onContentChange, onSave }
@@ -97,9 +103,13 @@ export default function PluginCustomEditorFrame({
     }
   }, [pluginKey, editorId])
 
-  const frameKey =
-    entry.status === 'ready' ? `${editor.key}:${entry.revision}:${themeRevision}` : null
-  const frameDocument = entry.status === 'ready' ? fillPluginPanelShell(entry.html) : null
+  const frameKey = entry.status === 'ready' ? `${editor.key}:${entry.revision}` : null
+  const entryHtml = entry.status === 'ready' ? entry.html : null
+  // Why memoized: a new srcdoc reloads the frame; theme changes arrive as messages instead.
+  const frameDocument = useMemo(
+    () => (entryHtml === null ? null : fillPluginPanelShell(entryHtml)),
+    [entryHtml]
+  )
 
   const watchdog = useMemo(
     () =>
@@ -212,9 +222,13 @@ export default function PluginCustomEditorFrame({
         // SECURITY: never add allow-same-origin — the srcdoc frame must stay an opaque origin so
         // plugin UI cannot reach the app DOM, storage, IPC or the file it edits.
         sandbox="allow-scripts"
-        name={`${PLUGIN_PANEL_FRAME_NAME_PREFIX}editor:${editor.key}:${fileId}`}
+        name={frameName}
         srcDoc={frameDocument ?? ''}
-        onLoad={() => setLoadedFrameKey(frameKey)}
+        onLoad={() => {
+          setLoadedFrameKey(frameKey)
+          // The theme may have changed between building srcdoc and the frame loading it.
+          postPluginFrameTheme(iframeRef.current?.contentWindow)
+        }}
         title={editor.title}
         className="min-h-0 w-full flex-1 border-0 bg-background"
       />

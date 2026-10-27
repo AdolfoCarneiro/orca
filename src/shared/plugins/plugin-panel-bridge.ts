@@ -15,6 +15,8 @@ export const PANEL_ACTION_REQUEST_TYPE = 'orca-panel-action'
 export const PANEL_ACTION_RESULT_TYPE = 'orca-panel-action-result'
 export const PANEL_PING_TYPE = 'orca-panel-ping'
 export const PANEL_PONG_TYPE = 'orca-panel-pong'
+/** Host → frame: `{ type, colorScheme, tokens }`; the shell restyles in place so frame state survives. */
+export const PANEL_THEME_TYPE = 'orca-panel-theme'
 export const PLUGIN_PANEL_FRAME_NAME_PREFIX = 'orca-plugin-panel:'
 
 /** Per-plugin bridge budgets, enforced host-side. */

@@ -9,8 +9,8 @@ import {
   createPanelBridgeMessageHandler
 } from './plugin-panel-bridge-host'
 import { createPanelWatchdog } from './plugin-panel-watchdog'
-import { fillPluginPanelShell } from './plugin-panel-design-token-css'
-import { usePluginPanelThemeRevision } from './use-plugin-panel-theme-revision'
+import { fillPluginPanelShell, postPluginFrameTheme } from './plugin-panel-design-token-css'
+import { usePluginFrameThemeSync } from './use-plugin-panel-theme-revision'
 import { usePluginPanels, usePluginPanelsStore } from '@/store/plugin-panels'
 import { translate } from '@/i18n/i18n'
 
@@ -42,17 +42,18 @@ function PluginPanel({ tabKey }: PluginPanelProps): React.JSX.Element {
   const [sessionToken, setSessionToken] = useState<string | null>(null)
   const [loadedFrameKey, setLoadedFrameKey] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
-  const themeRevision = usePluginPanelThemeRevision()
+  usePluginFrameThemeSync(iframeRef)
 
   const pluginKey = panel?.pluginKey ?? null
   const panelId = panel?.id ?? null
   const panelShell = entryState.status === 'ready' ? entryState.shellHtml : null
-  const panelDocument = panelShell ? fillPluginPanelShell(panelShell) : null
-  // Theme values are baked into srcdoc, so theme changes must rebuild the frame.
+  // Why memoized: a new srcdoc reloads the frame; theme changes arrive as messages instead.
+  const panelDocument = useMemo(
+    () => (panelShell ? fillPluginPanelShell(panelShell) : null),
+    [panelShell]
+  )
   const panelFrameKey =
-    entryState.status === 'ready'
-      ? `${tabKey}:${entryState.documentRevision}:${themeRevision}`
-      : null
+    entryState.status === 'ready' ? `${tabKey}:${entryState.documentRevision}` : null
   const watchdog = useMemo(
     () =>
       createPanelWatchdog({
@@ -209,7 +210,11 @@ function PluginPanel({ tabKey }: PluginPanelProps): React.JSX.Element {
       sandbox="allow-scripts"
       name={`${PLUGIN_PANEL_FRAME_NAME_PREFIX}${tabKey}`}
       srcDoc={panelDocument ?? ''}
-      onLoad={() => setLoadedFrameKey(panelFrameKey)}
+      onLoad={() => {
+        setLoadedFrameKey(panelFrameKey)
+        // The theme may have changed between building srcdoc and the frame loading it.
+        postPluginFrameTheme(iframeRef.current?.contentWindow)
+      }}
       title={panel.title}
       className="h-full w-full flex-1 border-0 bg-background"
     />
