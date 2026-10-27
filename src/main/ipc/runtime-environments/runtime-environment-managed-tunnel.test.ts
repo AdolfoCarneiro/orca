@@ -76,6 +76,7 @@ vi.mock('../../managed-server/lifecycle/orcad-managed-serving', async (importOri
 import { MANAGED_ORCAD_NOT_ACTIVATED_DETAIL } from '../../managed-server/lifecycle/orcad-managed-serving'
 import {
   installManagedOrcadStartStatus,
+  requireWslHostWithoutStart,
   resolveManagedRuntimeEnvironment
 } from './runtime-environment-managed-tunnel'
 import { WSL_HOSTS_GATED_OFF_MESSAGE } from '../../wsl/wsl-host-gate'
@@ -202,6 +203,22 @@ describe('resolving a runtime for a call, by host kind', () => {
     await expect(resolveManagedRuntimeEnvironment('/u', 'wsl:ubuntu', noStart)).rejects.toThrow(
       'The WSL host Ubuntu isn’t available from your phone right now. Open one of its projects on your computer to connect it.'
     )
+    expect(mocks.ensureForRuntimeCall).not.toHaveBeenCalled()
+  })
+
+  it("checks only a WSL host for a phone's status probe, leaving any other server untouched", async () => {
+    const noStart = { wslStart: 'never' } as const
+    // An unknown id resolves to an SSH-managed server; paired-1 has no deployment.
+    for (const id of ['ssh-managed', 'paired-1']) {
+      await requireWslHostWithoutStart('/u', id, noStart)
+    }
+    expect(mocks.ensureTunnel).not.toHaveBeenCalled()
+    expect(mocks.rebuildTunnel).not.toHaveBeenCalled()
+    expect(mocks.verify).not.toHaveBeenCalled()
+    expect(mocks.requireRunningWithoutStart).not.toHaveBeenCalled()
+
+    await requireWslHostWithoutStart('/u', 'wsl:ubuntu', noStart)
+    expect(mocks.requireRunningWithoutStart).toHaveBeenCalledWith('wsl:ubuntu')
     expect(mocks.ensureForRuntimeCall).not.toHaveBeenCalled()
   })
 
