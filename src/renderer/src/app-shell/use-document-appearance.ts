@@ -55,7 +55,8 @@ export function useDocumentAppearance(): void {
           ? derivePluginMonacoTheme({
               base: pluginTheme.base,
               read: (token) => computed.getPropertyValue(token),
-              probe: browserColorProbe
+              probe: browserColorProbe,
+              tokenColors: pluginTheme.tokenColors
             })
           : null
       })

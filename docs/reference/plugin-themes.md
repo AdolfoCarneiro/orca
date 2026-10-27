@@ -35,6 +35,40 @@ Each entry is `{ "id", "label", "path" }` pointing at a JSON file of at most 16 
 - `pnpm validate:plugin` refuses unknown keys, tokens and slots in every theme file. Orca itself
   skips them, so a theme that sets a token added in a newer release still loads on older ones.
 
+### Code colors
+
+An app theme also colors the code editor: its background, text, line numbers, cursor and
+selection follow the theme's tokens. To color code itself, add `tokenColors` (Orca 1.4.244 and
+later) in the same shape as a VS Code theme's, so most VS Code theme lists paste in unchanged (`validate:plugin` flags entries without a `scope` and any setting other than these two):
+
+```json
+{
+  "base": "dark",
+  "tokens": { "--background": "#1b1430", "--foreground": "#e8e0ff" },
+  "tokenColors": [
+    { "scope": "comment", "settings": { "foreground": "#8f84ad", "fontStyle": "italic" } },
+    { "scope": ["keyword", "storage"], "settings": { "foreground": "#ff7ad9" } },
+    { "scope": "string", "settings": { "foreground": "#a8e6a1" } },
+    { "scope": "constant.numeric", "settings": { "foreground": "#ffb86c" } },
+    { "scope": "entity.name.function", "settings": { "foreground": "#82cfff" } },
+    { "scope": "markup.heading", "settings": { "foreground": "#ff7ad9", "fontStyle": "bold" } }
+  ]
+}
+```
+
+- `scope` is a TextMate scope or a list of them (a comma-separated string works too). Scopes
+  follow the [TextMate naming convention](https://macromates.com/manual/en/language_grammars#naming_conventions):
+  `comment`, `string`, `constant.numeric`, `keyword.control`, `keyword.operator`,
+  `entity.name.function`, `entity.name.type`, `variable`, `punctuation`, `markup.heading`,
+  `markup.underline.link`, `invalid`, and so on. A scope also colors everything beneath it
+  (`keyword` covers `keyword.control.flow`); the longest match wins, then the later rule.
+- `settings.foreground` is a hex color; `settings.fontStyle` is `italic`, `bold`, `underline`,
+  `strikethrough`, a space-separated combination, or `""` for none. `name` is allowed and ignored.
+- Orca applies them to its built-in languages and to plugin syntaxes alike. Selectors with
+  spaces (descendant scopes) and `semanticTokenColors` are not read.
+- A color under 3:1 contrast with the editor background is dropped, and anything a theme leaves
+  out keeps the built-in light or dark code colors.
+
 ## Terminal themes
 
 ```json

@@ -1,6 +1,7 @@
-// Why these names: Orca's editors use Monaco's built-in light and dark themes, which style
-// Monaco's own token names (`type`, `number`, `keyword.flow`, …) rather than TextMate scopes, so
-// plugin grammars are mapped onto the names those themes color.
+// Why these names: Monaco themes style Monaco's own token names (`type`, `number`, `keyword.flow`,
+// …) rather than TextMate scopes, so plugin grammars are mapped onto them. Names the built-in
+// themes leave plain (`function`, `identifier`, `operator`) or style by parent (`keyword.heading`)
+// only take a color from a plugin theme's `tokenColors`.
 export const PLUGIN_SYNTAX_TOKEN_TYPES = [
   'comment',
   'string',
@@ -19,13 +20,19 @@ export const PLUGIN_SYNTAX_TOKEN_TYPES = [
   'annotation',
   'invalid',
   'emphasis',
-  'strong'
+  'strong',
+  'function',
+  'identifier',
+  'operator',
+  'keyword.heading',
+  'string.link',
+  'string.raw'
 ] as const
 
 type PluginSyntaxTokenType = (typeof PLUGIN_SYNTAX_TOKEN_TYPES)[number]
 
 // First matching prefix wins, so more specific scopes come before their parents. Scopes no rule
-// matches (function and variable names, meta containers) stay plain, as in Orca's own languages.
+// matches (meta containers) stay plain.
 const SCOPE_RULES: readonly (readonly [string, PluginSyntaxTokenType])[] = [
   ['comment', 'comment'],
   ['string.regexp', 'regexp'],
@@ -36,12 +43,15 @@ const SCOPE_RULES: readonly (readonly [string, PluginSyntaxTokenType])[] = [
   ['constant', 'constant'],
   ['support.constant', 'constant'],
   ['keyword.control', 'keyword.flow'],
-  ['keyword.operator', 'delimiter'],
+  ['keyword.operator', 'operator'],
   ['keyword', 'keyword'],
   ['storage', 'keyword'],
   ['variable.language', 'keyword'],
   ['variable.parameter', 'variable.parameter'],
   ['support.variable', 'variable.predefined'],
+  ['variable', 'identifier'],
+  ['entity.name.function', 'function'],
+  ['support.function', 'function'],
   ['entity.name.type', 'type'],
   ['entity.name.class', 'type'],
   ['entity.name.namespace', 'type'],
@@ -53,12 +63,12 @@ const SCOPE_RULES: readonly (readonly [string, PluginSyntaxTokenType])[] = [
   ['meta.attribute-value', 'attribute.value'],
   ['entity.name.decorator', 'annotation'],
   ['meta.decorator', 'annotation'],
-  ['markup.heading', 'keyword'],
+  ['markup.heading', 'keyword.heading'],
   ['markup.bold', 'strong'],
   ['markup.italic', 'emphasis'],
-  ['markup.raw', 'string'],
-  ['markup.inline.raw', 'string'],
-  ['markup.underline.link', 'string'],
+  ['markup.raw', 'string.raw'],
+  ['markup.inline.raw', 'string.raw'],
+  ['markup.underline.link', 'string.link'],
   ['invalid', 'invalid']
 ]
 

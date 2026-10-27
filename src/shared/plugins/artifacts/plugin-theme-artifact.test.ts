@@ -48,6 +48,30 @@ describe('plugin app theme artifacts', () => {
     expect(parseApp({ schemaVersion: 2, base: 'dark', tokens: {} })).toThrow()
   })
 
+  it('reads VS Code-shaped tokenColors, strict for authors and tolerant at runtime', () => {
+    const base = { base: 'dark', tokens: { '--background': '#000', '--foreground': '#fff' } }
+    const keyword = { name: 'Keywords', scope: ['keyword'], settings: { foreground: '#ff79c6' } }
+    expect(parseApp({ ...base, tokenColors: [keyword] })().tokenColors).toEqual([keyword])
+    expect(
+      parseApp({ ...base, tokenColors: [{ scope: 'x', settings: { foreground: 'red' } }] })
+    ).toThrow()
+    expect(
+      parseApp({ ...base, tokenColors: [{ scope: 'x', settings: { fontStyle: 'wavy' } }] })
+    ).toThrow()
+    expect(
+      parsePluginAppThemeArtifact(
+        JSON.stringify({
+          ...base,
+          tokenColors: [
+            { ...keyword, settings: { ...keyword.settings, background: '#000' } },
+            { scope: 'x', settings: { foreground: 'red' } },
+            'junk'
+          ]
+        })
+      ).tokenColors
+    ).toEqual([{ scope: ['keyword'], settings: { foreground: '#ff79c6' } }])
+  })
+
   it('validates registrations crossing IPC', () => {
     const registration = {
       id: 'plugin:samples.midnight/midnight',

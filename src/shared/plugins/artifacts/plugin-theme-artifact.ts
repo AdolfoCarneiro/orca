@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PLUGIN_MANIFEST_V2_SINCE, pluginFieldDoc } from '../manifest/plugin-schema-field-docs'
 
 // Why: this is a public, additive-only theme API. Exposing every main.css
 // variable would make internal renderer refactors plugin-breaking changes.
@@ -143,6 +144,54 @@ const themeFields = {
   )
 }
 
+// Why VS Code's shape: authors can paste a VS Code theme's `tokenColors` unchanged.
+const TOKEN_FONT_STYLE =
+  /^(?:(?:italic|bold|underline|strikethrough)(?: (?:italic|bold|underline|strikethrough))*)?$/
+const tokenColorScope = z.string().min(1).max(512)
+const tokenColorRuleFields = {
+  name: z.string().max(256).optional(),
+  scope: z.union([tokenColorScope, z.array(tokenColorScope).min(1).max(64)]),
+  settings: z.strictObject({
+    foreground: z
+      .string()
+      .regex(/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i, 'must be a hex color')
+      .optional(),
+    fontStyle: z
+      .string()
+      .regex(TOKEN_FONT_STYLE, 'must be italic, bold, underline or strikethrough')
+      .optional()
+  })
+}
+const tokenColorRuleSchema = z.strictObject(tokenColorRuleFields)
+const MAX_TOKEN_COLOR_RULES = 512
+const tokenColorsSchema = z
+  .array(tokenColorRuleSchema)
+  .max(MAX_TOKEN_COLOR_RULES)
+  .meta(
+    pluginFieldDoc(
+      "Code colors by TextMate scope, in VS Code's `tokenColors` shape.",
+      PLUGIN_MANIFEST_V2_SINCE
+    )
+  )
+export type PluginThemeTokenColorRule = z.infer<typeof tokenColorRuleSchema>
+
+/** Runtime keeps the rules it understands, so one malformed or newer rule never drops the theme. */
+function tolerantTokenColors(value: unknown): PluginThemeTokenColorRule[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+  const ruleSchema = z.object({
+    ...tokenColorRuleFields,
+    settings: z.object(tokenColorRuleFields.settings.shape)
+  })
+  return value.slice(0, MAX_TOKEN_COLOR_RULES).flatMap((rule) => {
+    const parsed = ruleSchema.safeParse(rule)
+    return parsed.success
+      ? [{ scope: parsed.data.scope, settings: { ...parsed.data.settings } }]
+      : []
+  })
+}
+
 const hasRequiredTokens = (theme: { tokens: Record<string, string> }): boolean =>
   PLUGIN_APP_THEME_REQUIRED_TOKENS.every((token) => theme.tokens[token])
 
@@ -165,7 +214,11 @@ function pluginAppThemeArtifactSchema(strictness: PluginArtifactStrictness) {
     tokens:
       strictness === 'strict'
         ? themeFields.tokens
-        : z.preprocess(pickKnownArtifactKeys(THEME_TOKEN_SET), themeFields.tokens)
+        : z.preprocess(pickKnownArtifactKeys(THEME_TOKEN_SET), themeFields.tokens),
+    tokenColors: (strictness === 'strict'
+      ? tokenColorsSchema
+      : z.unknown().transform(tolerantTokenColors)
+    ).optional()
   }
   return (strictness === 'strict' ? z.strictObject(fields) : z.object(fields)).refine(
     hasRequiredTokens,
@@ -190,6 +243,7 @@ const pluginThemeRegistrationSchema = z
       z.string().refine((token) => THEME_TOKEN_SET.has(token)),
       registrationTokenValueSchema
     ),
+    tokenColors: tokenColorsSchema.optional(),
     id: pluginContentIdSchema,
     /** Changes whenever the theme's content does, so a cached paint can be checked. */
     revision: z.string().max(128),
@@ -199,7 +253,10 @@ const pluginThemeRegistrationSchema = z
   })
   .refine(hasRequiredTokens)
 
-export type PluginAppThemeArtifact = Pick<PluginThemeRegistration, 'base' | 'tokens'>
+export type PluginAppThemeArtifact = Pick<
+  PluginThemeRegistration,
+  'base' | 'tokens' | 'tokenColors'
+>
 export type PluginThemeRegistration = z.infer<typeof pluginThemeRegistrationSchema>
 
 /** Parses a theme and fills its omitted tokens. */
@@ -208,7 +265,11 @@ export function parsePluginAppThemeArtifact(
   strictness: PluginArtifactStrictness = 'tolerant'
 ): PluginAppThemeArtifact {
   const theme = pluginAppThemeArtifactSchema(strictness).parse(JSON.parse(raw))
-  return { base: theme.base, tokens: completePluginAppThemeTokens(theme.tokens) }
+  return {
+    base: theme.base,
+    tokens: completePluginAppThemeTokens(theme.tokens),
+    ...(theme.tokenColors?.length ? { tokenColors: theme.tokenColors } : {})
+  }
 }
 
 export function isPluginThemeRegistration(value: unknown): value is PluginThemeRegistration {

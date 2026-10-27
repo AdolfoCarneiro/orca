@@ -15,8 +15,9 @@ describe('plugin syntax token legend', () => {
   it.each([
     ['light', vs],
     ['dark', vs_dark]
-  ])('names only tokens the built-in %s theme styles', (_label, theme) => {
-    for (const token of PLUGIN_SYNTAX_TOKEN_TYPES) {
+  ])('names only tokens the built-in %s theme styles, besides theme-only ones', (_label, theme) => {
+    const themeOnly = new Set(['function', 'identifier', 'operator'])
+    for (const token of PLUGIN_SYNTAX_TOKEN_TYPES.filter((type) => !themeOnly.has(type))) {
       // Monaco matches rules by dotted prefix, so a rule for the token or a parent styles it.
       const styled = theme.rules.some(
         (rule) =>
@@ -40,7 +41,9 @@ describe('plugin syntax token legend', () => {
     expect(name(['source.x', 'keyword.control.flow.x'])).toBe('keyword.flow')
     expect(name(['source.x', 'storage.type.x'])).toBe('keyword')
     expect(name(['source.x', 'meta.brace.x', 'punctuation.section.block.x'])).toBe('delimiter')
-    expect(name(['source.x', 'meta.function.x', 'entity.name.function.x'])).toBeNull()
+    expect(name(['source.x', 'meta.function.x', 'entity.name.function.x'])).toBe('function')
+    expect(name(['text.x', 'markup.heading.1.x'])).toBe('keyword.heading')
+    expect(name(['source.x', 'meta.block.x'])).toBeNull()
   })
 
   it('delta-encodes absolute quads as Monaco semantic tokens', () => {

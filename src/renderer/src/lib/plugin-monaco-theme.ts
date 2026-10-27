@@ -1,4 +1,6 @@
 import type * as Monaco from 'monaco-editor'
+import type { PluginThemeTokenColorRule } from '../../../shared/plugins/artifacts/plugin-theme-artifact'
+import { pluginMonacoTokenRules } from './plugin-monaco-token-rules'
 import { contrastRatio, type ColorProbe, type Rgba } from './plugin-theme-tokens'
 
 export type PluginMonacoTheme = { name: string; data: Monaco.editor.IStandaloneThemeData }
@@ -40,6 +42,7 @@ export function derivePluginMonacoTheme(input: {
   /** A document CSS variable's computed value. */
   read: (token: string) => string
   probe: ColorProbe
+  tokenColors?: readonly PluginThemeTokenColorRule[]
 }): PluginMonacoTheme | null {
   const color = (token: string): Rgba | null => {
     const value = input.read(token).trim()
@@ -88,7 +91,21 @@ export function derivePluginMonacoTheme(input: {
   const data: Monaco.editor.IStandaloneThemeData = {
     base: input.base === 'dark' ? 'vs-dark' : 'vs',
     inherit: true,
-    rules: [],
+    rules: pluginMonacoTokenRules(input.tokenColors ?? [], (value) => {
+      const parsed = input.probe(value)
+      if (!parsed) {
+        return null
+      }
+      // Why blend: Monaco token colors are opaque, so a translucent one is painted onto the editor.
+      const [r, g, b, a] = parsed
+      const opaque: Rgba = [
+        r * a + background[0] * (1 - a),
+        g * a + background[1] * (1 - a),
+        b * a + background[2] * (1 - a),
+        1
+      ]
+      return contrastRatio(opaque, background) >= MIN_SYNTAX_CONTRAST ? hex(opaque) : null
+    }),
     colors
   }
   return { name: `orca-plugin-${hashName(JSON.stringify(data))}`, data }

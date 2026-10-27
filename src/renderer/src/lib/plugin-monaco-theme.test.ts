@@ -69,4 +69,22 @@ describe('derivePluginMonacoTheme', () => {
     expect(derive({ ...dusk, '--editor-surface': '#1b143080' })).toBeNull()
     expect(derive({ ...dusk, '--editor-surface': 'not-a-color', '--background': '' })).toBeNull()
   })
+
+  it("paints the theme's tokenColors, blending translucent ones and dropping unreadable ones", () => {
+    const theme = derivePluginMonacoTheme({
+      base: 'dark',
+      read: (token) => dusk[token] ?? '',
+      probe,
+      tokenColors: [
+        { scope: 'keyword', settings: { foreground: '#ff2bd6' } },
+        { scope: 'string', settings: { foreground: '#ffffff80' } },
+        { scope: 'comment', settings: { foreground: '#241a3a', fontStyle: 'italic' } }
+      ]
+    })
+    const rules = theme?.data.rules ?? []
+    expect(rules).toContainEqual({ token: 'keyword', foreground: '#ff2bd6' })
+    expect(rules).toContainEqual({ token: 'string', foreground: '#8d8a98' })
+    expect(rules).toContainEqual({ token: 'comment', fontStyle: 'italic' })
+    expect(theme?.name).not.toBe(derive(dusk)?.name)
+  })
 })
