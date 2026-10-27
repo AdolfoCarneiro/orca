@@ -11822,7 +11822,6 @@
           "loadingLogs": "Loading logs…",
           "noLogs": "No logs yet",
           "logCount": "Last {{value0}} lines",
-          "dev": "Dev",
           "bundled": "Bundled",
           "killListMessage": "Orca's safety list disabled this plugin: {{value0}}",
           "moreActions": "More actions for {{value0}}",

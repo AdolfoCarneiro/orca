@@ -11604,7 +11604,6 @@
           "loadingLogs": "Cargando registros…",
           "noLogs": "Aún no hay registros",
           "logCount": "Últimas {{value0}} líneas",
-          "dev": "Desarrollo",
           "bundled": "Incluido",
           "killListMessage": "La lista de seguridad de Orca desactivó este plugin: {{value0}}",
           "moreActions": "Más acciones para {{value0}}",

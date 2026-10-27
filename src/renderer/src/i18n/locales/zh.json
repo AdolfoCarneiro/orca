@@ -11330,7 +11330,6 @@
           "loadingLogs": "正在加载日志…",
           "noLogs": "暂无日志",
           "logCount": "最近 {{value0}} 行",
-          "dev": "开发",
           "bundled": "内置",
           "killListMessage": "Orca 的安全列表禁用了此插件：{{value0}}",
           "moreActions": "{{value0}} 的更多操作",

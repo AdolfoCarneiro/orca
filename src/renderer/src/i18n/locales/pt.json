@@ -6097,7 +6097,6 @@
           "loadingLogs": "Carregando logs…",
           "noLogs": "Nenhum log ainda",
           "logCount": "Últimas {{value0}} linhas",
-          "dev": "Dev",
           "bundled": "Incluído",
           "killListMessage": "A lista de segurança do Orca desativou este plugin: {{value0}}",
           "moreActions": "Mais ações para {{value0}}",

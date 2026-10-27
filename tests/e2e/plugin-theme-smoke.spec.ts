@@ -8,7 +8,15 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Page } from '@stablyai/playwright-test'
 import { expect, test } from './helpers/orca-app'
-import { disablePluginSystem, enableDevPlugins } from './helpers/plugin-smoke'
+import {
+  disablePluginSystem,
+  editorTokenColor,
+  enableDevPlugins,
+  openRepoFile
+} from './helpers/plugin-smoke'
+
+const CODE_FILE = 'plugin-theme-smoke.ts'
+const THEME_KEYWORD = 'rgb(255, 122, 217)'
 
 async function writeThemePlugin(root: string): Promise<void> {
   await mkdir(join(root, 'icons'), { recursive: true })
@@ -33,7 +41,8 @@ async function writeThemePlugin(root: string): Promise<void> {
     JSON.stringify({
       base: 'dark',
       // Why --sidebar: the left sidebar is set off by its surface step, not a border line.
-      tokens: { '--background': '#1b1430', '--foreground': '#e8e0ff', '--sidebar': '#271d45' }
+      tokens: { '--background': '#1b1430', '--foreground': '#e8e0ff', '--sidebar': '#271d45' },
+      tokenColors: [{ scope: 'keyword', settings: { foreground: '#ff7ad9' } }]
     })
   )
   await writeFile(
@@ -66,7 +75,10 @@ async function choose(page: Page, select: string, option: string): Promise<void>
 const background = (page: Page): Promise<string> =>
   page.evaluate(() => document.documentElement.style.getPropertyValue('--background'))
 
-test('plugin themes apply live and fall back when the plugin goes away', async ({ orcaPage }) => {
+test('plugin themes apply live and fall back when the plugin goes away', async ({
+  orcaPage,
+  seededRepoPath
+}) => {
   const pluginRoot = await mkdtemp(join(tmpdir(), 'orca-theme-smoke-'))
   const themeBefore = await orcaPage.evaluate(() => window.__store?.getState().settings?.theme)
   try {
@@ -92,6 +104,15 @@ test('plugin themes apply live and fall back when the plugin goes away', async (
       .poll(() => orcaPage.evaluate(() => window.__store?.getState().settings?.pluginAppThemeDark))
       .toBe('plugin:samples.theme-smoke/dusk')
 
+    // The theme's tokenColors color code in the editor.
+    await writeFile(join(seededRepoPath, CODE_FILE), 'export const answer = 42\n')
+    await orcaPage.evaluate(() => window.__store?.getState().closeSettingsPage())
+    await openRepoFile(orcaPage, seededRepoPath, CODE_FILE)
+    await expect
+      .poll(() => editorTokenColor(orcaPage, 'export'), { timeout: 15_000 })
+      .toBe(THEME_KEYWORD)
+    await openAppearance(orcaPage)
+
     await choose(orcaPage, 'Icon theme', 'Smoke Blocks')
     await orcaPage.evaluate(() => {
       const state = window.__store?.getState()
@@ -104,6 +125,10 @@ test('plugin themes apply live and fall back when the plugin goes away', async (
     await disablePluginSystem(orcaPage)
     await expect.poll(() => background(orcaPage)).toBe('')
     await expect.poll(() => orcaPage.locator('[data-plugin-icon]').count()).toBe(0)
+    await openRepoFile(orcaPage, seededRepoPath, CODE_FILE)
+    await expect
+      .poll(() => editorTokenColor(orcaPage, 'export'), { timeout: 15_000 })
+      .not.toBe(THEME_KEYWORD)
   } finally {
     await disablePluginSystem(orcaPage).catch(() => undefined)
     await orcaPage.evaluate(
@@ -115,6 +140,7 @@ test('plugin themes apply live and fall back when the plugin goes away', async (
         }),
       themeBefore
     )
+    await rm(join(seededRepoPath, CODE_FILE), { force: true })
     await rm(pluginRoot, { recursive: true, force: true })
   }
 })

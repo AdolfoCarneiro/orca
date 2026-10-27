@@ -11781,7 +11781,6 @@
           "loadingLogs": "Chargement des logs…",
           "noLogs": "Aucun journal pour l'instant",
           "logCount": "{{value0}} dernières lignes",
-          "dev": "Dev",
           "bundled": "Intégré",
           "killListMessage": "La liste de sécurité d'Orca a désactivé ce plugin : {{value0}}",
           "moreActions": "Plus d'actions pour {{value0}}",
