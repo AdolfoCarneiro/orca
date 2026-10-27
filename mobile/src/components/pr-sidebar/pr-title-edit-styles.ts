@@ -1,24 +1,10 @@
-import { StyleSheet } from 'react-native'
 import { colors, radii, spacing, typography } from '../../theme/mobile-theme'
 import { themedStyleSheet } from '../../theme/themed-styles'
-import { TEXT_INPUT_FONT_SIZE } from '../../platform/text-input-font-size'
 
-export const prCommentComposerStyles = themedStyleSheet(() => ({
+export const prTitleEditStyles = themedStyleSheet(() => ({
   container: {
-    // Input → Cancel/Save needs clear separation (title edit was flush without this).
+    // Field → Cancel/Save needs clear separation.
     gap: spacing.md
-  },
-  input: {
-    minHeight: 64,
-    backgroundColor: colors.bgRaised,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
-    borderRadius: radii.input,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    color: colors.textPrimary,
-    fontSize: TEXT_INPUT_FONT_SIZE,
-    textAlignVertical: 'top'
   },
   actions: {
     flexDirection: 'row',
@@ -45,9 +31,6 @@ export const prCommentComposerStyles = themedStyleSheet(() => ({
     justifyContent: 'center',
     borderRadius: radii.button,
     backgroundColor: colors.textPrimary
-  },
-  submitDisabled: {
-    opacity: 0.45
   },
   submitText: {
     color: colors.bgBase,
