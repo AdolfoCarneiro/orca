@@ -2,6 +2,7 @@ import { OrcaRuntimeWithCreatePtyHeadlessTerminalState } from './headless-termin
 import type { TerminalOscLinkRange } from '../../../../shared/terminal-osc-link-ranges'
 import type { PtyProviderBufferSnapshot } from '../../../providers/pty-provider-contract'
 import { withTimeout } from '../../runtime-async-boundaries'
+import { AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS } from '../../orca-runtime-postlude'
 
 export abstract class OrcaRuntimeWithSerializeTerminalBufferFromAvailableState extends OrcaRuntimeWithCreatePtyHeadlessTerminalState {
   protected abstract captureProviderTerminalBuffer(
@@ -147,14 +148,12 @@ export abstract class OrcaRuntimeWithSerializeTerminalBufferFromAvailableState e
     if (acquisition.timedOut) {
       return null
     }
-    if (typeof wait.timeoutMs !== 'number') {
-      return acquisition.promise
-    }
+    // Every reader shares this bound: a provider that never answers must not hold its caller.
     const result = await withTimeout<
       { settled: true; value: PtyProviderBufferSnapshot | null } | { settled: false }
     >(
       acquisition.promise.then((value) => ({ settled: true as const, value })),
-      wait.timeoutMs,
+      wait.timeoutMs ?? AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS,
       { settled: false as const }
     )
     if (!result.settled) {

@@ -11,8 +11,6 @@ import { resolvePtyOwnerBackend, type PtyOwnerBackend } from '../../../../shared
 import { isRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
 import { parseAppSshPtyId } from '../../../../shared/ssh-pty-id'
 import { windowsPtyForOwnerBackend } from '../../../../shared/xterm-conpty-options'
-import { AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS } from '../../orca-runtime-postlude'
-import { withTimeoutResult } from '../../runtime-async-boundaries'
 
 export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends OrcaRuntimeWithMaybeHydrateHeadlessFromRenderer {
   /** SSH and paired-runtime panes run on their host's PTY; every PTY this Windows process owns is ConPTY. */
@@ -127,14 +125,24 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
         if (this.headlessTerminals.get(ptyId) !== state) {
           return
         }
-        // Why bounded: live bytes queue behind this seed, so a provider that never answers would retain them all.
-        const result = await withTimeoutResult(
-          this.serializeProviderTerminalBuffer(ptyId),
-          AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS
-        )
-        seedTimedOut = !result.ok
-        const snapshot = result.ok ? result.value : null
-        if (this.headlessTerminals.get(ptyId) !== state || !snapshot) {
+        const request = this.serializeProviderTerminalBuffer(ptyId)
+        const acquisition = this.providerBufferAcquisitionsByPtyId.get(ptyId)
+        const snapshot = await request
+        if (this.headlessTerminals.get(ptyId) !== state) {
+          return
+        }
+        if (!snapshot) {
+          // Still in flight means the wait timed out; reseed once it lands, as live bytes have since moved this model on.
+          seedTimedOut =
+            acquisition !== undefined &&
+            this.providerBufferAcquisitionsByPtyId.get(ptyId) === acquisition
+          if (seedTimedOut && acquisition) {
+            void acquisition.promise.then(() => {
+              if (this.headlessTerminals.get(ptyId) === state) {
+                this.replaceHeadlessTerminalAfterExecutionContextChange(ptyId)
+              }
+            })
+          }
           return
         }
         const data = `${snapshot.scrollbackAnsi ?? ''}${snapshot.data}`
