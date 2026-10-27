@@ -12,6 +12,7 @@ import { isRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-r
 import { parseAppSshPtyId } from '../../../../shared/ssh-pty-id'
 import { windowsPtyForOwnerBackend } from '../../../../shared/xterm-conpty-options'
 import { AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS } from '../../orca-runtime-postlude'
+import { withTimeoutResult } from '../../runtime-async-boundaries'
 
 export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends OrcaRuntimeWithMaybeHydrateHeadlessFromRenderer {
   /** SSH and paired-runtime panes run on their host's PTY; every PTY this Windows process owns is ConPTY. */
@@ -120,17 +121,19 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
     const dims = this.getTerminalSize(ptyId) ?? { cols: 80, rows: 24 }
     const state = this.createPtyHeadlessTerminalState(ptyId, dims)
     this.headlessTerminals.set(ptyId, state)
+    let seedTimedOut = false
     state.writeChain = state.writeChain
       .then(async () => {
         if (this.headlessTerminals.get(ptyId) !== state) {
           return
         }
         // Why bounded: live bytes queue behind this seed, so a provider that never answers would retain them all.
-        const snapshot = await this.serializeProviderTerminalBuffer(
-          ptyId,
-          {},
-          { timeoutMs: AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS }
+        const result = await withTimeoutResult(
+          this.serializeProviderTerminalBuffer(ptyId),
+          AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS
         )
+        seedTimedOut = !result.ok
+        const snapshot = result.ok ? result.value : null
         if (this.headlessTerminals.get(ptyId) !== state || !snapshot) {
           return
         }
@@ -162,7 +165,8 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
         // Best-effort: live bytes already chain behind this replacement state.
       })
       .finally(() => {
-        if (this.headlessTerminals.get(ptyId) === state) {
+        // An unseeded model stays partial, so readers keep preferring the provider.
+        if (this.headlessTerminals.get(ptyId) === state && !seedTimedOut) {
           this.providerSnapshotPreferredPtys.delete(ptyId)
         }
       })

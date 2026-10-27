@@ -212,7 +212,7 @@ async function startOrcadRuntime(
     canRecoverPersistentLocalPtys: () => daemonOwnsFreshPersistentPtys(),
     // Node hosts cannot promote into desktop windows; override the constructor’s openable default.
     getDesktopWindowStatus: () => 'blocked',
-    // No renderer reveals from this model, so it mirrors only the daemon's live window; deeper requests read the daemon.
+    // No renderer reveals from this model; it keeps the daemon's live window, which deeper snapshot reads ask first.
     headlessTerminalScrollbackRows: resolveDaemonSessionScrollbackRows(),
     // Unchanged settings would reconstruct a healthy search index; deduplicate before apply.
     applySessionSearchSettings: (before, after) => {

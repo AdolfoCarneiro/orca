@@ -32,6 +32,7 @@ it('releases live bytes queued behind a provider seed that never answers', async
     await vi.advanceTimersByTimeAsync(AUTHORITATIVE_TERMINAL_SNAPSHOT_TIMEOUT_MS)
     await runtime.model().writeChain
     expect(runtime.model().emulator.getVisibleLines().join('\n')).toContain('LIVE-AFTER-SEED')
+    expect(runtime.retainedState().providerPreferred).toBe(true)
   } finally {
     vi.useRealTimers()
   }
