@@ -33,7 +33,7 @@ const hostImageRead = bindDeferredRpcOperation(
   })
 )
 
-/** The chat's host and workspace; any other host path is read under desktop's chat-image rule. */
+/** The chat's host and workspace: store paths read from the attachment store, other host paths under desktop's chat-image rule. */
 export type MobileNativeChatImageSource = {
   client: RpcClient
   worktreeId: string

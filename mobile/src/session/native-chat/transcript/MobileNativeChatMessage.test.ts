@@ -501,20 +501,33 @@ describe('MobileNativeChatMessage', () => {
   })
 
   // An older host refuses the read; the row keeps today's placeholder.
+  const STORED = '/home/me/.orca/agent-session-attachments/6f1c2a4e/shot.png'
+  const GENERATED = '/home/me/.codex/generated_images/shot.png'
+  const IMAGE = {
+    ok: true,
+    result: { content: PNG, isBinary: true, isImage: true, mimeType: 'image/png' }
+  }
+  const REFUSED = { ok: false, error: { code: 'method_not_found', message: 'unknown method' } }
   it.each([
-    ['/home/me/.orca/agent-session-attachments/6f1c2a4e/shot.png', 'agentSessionAttachment.read'],
-    ['/home/me/.codex/generated_images/shot.png', 'files.readChatImage']
-  ] as const)('reads %s from the chat host with %s', async (path, method) => {
-    for (const [reply, thumbnails] of [
-      [
-        {
-          ok: true,
-          result: { content: PNG, isBinary: true, isImage: true, mimeType: 'image/png' }
-        },
-        [`data:image/png;base64,${PNG}`]
-      ],
-      [{ ok: false, error: { code: 'method_not_found', message: 'unknown method' } }, []]
-    ] as const) {
+    [
+      STORED,
+      'agentSessionAttachment.read',
+      { path: STORED },
+      IMAGE,
+      [`data:image/png;base64,${PNG}`]
+    ],
+    [STORED, 'agentSessionAttachment.read', { path: STORED }, REFUSED, []],
+    [
+      GENERATED,
+      'files.readChatImage',
+      { worktree: 'id:wt-1', path: GENERATED },
+      IMAGE,
+      [`data:image/png;base64,${PNG}`]
+    ],
+    [GENERATED, 'files.readChatImage', { worktree: 'id:wt-1', path: GENERATED }, REFUSED, []]
+  ] as const)(
+    'reads %s from the chat host with %s',
+    async (path, method, params, reply, thumbnails) => {
       const sendRequest = vi.fn(async () => ({ id: '1', ...reply }))
       await act(async () => {
         renderer = create(
@@ -533,18 +546,12 @@ describe('MobileNativeChatMessage', () => {
           )
         )
       })
-      expect(sendRequest).toHaveBeenCalledWith(
-        method,
-        method === 'files.readChatImage' ? { worktree: 'id:wt-1', path } : { path },
-        expect.anything()
-      )
+      expect(sendRequest).toHaveBeenCalledWith(method, params, expect.anything())
       expect(
         findAllByHostType(renderer!.root, 'Image').map((image) => image.props.source.uri)
       ).toEqual(thumbnails)
-      act(() => renderer!.unmount())
-      renderer = null
     }
-  })
+  )
 
   it('draws your message as selectable Markdown in the bubble’s text colour', () => {
     const tree = render(userMessage([{ type: 'text', text: '**Fix** `src/a.ts`' }]))
