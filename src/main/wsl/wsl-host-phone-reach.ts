@@ -75,15 +75,18 @@ export class WslHostPhoneGate {
       this.confirmedStops.delete(environmentId)
       return
     }
+    const current = this.statusOf(environmentId)
     // Why: a read can be shared with one begun before a ready status, so it never outranks ready.
-    if (
-      reachability === 'stopped' &&
-      before?.state !== 'ready' &&
-      this.statusOf(environmentId) === before
-    ) {
+    if (reachability === 'stopped' && before?.state !== 'ready' && current === before) {
       this.confirmedStops.set(environmentId, before)
     }
-    throw wslHostPhoneRefusal(this.reach(environmentId), record.distro)
+    // The record was read above; only the status can have moved during the read.
+    const reach = wslHostPhoneReach({
+      mayRun: true,
+      state: current?.state,
+      confirmedStopped: this.isConfirmedStop(environmentId, current)
+    })
+    throw wslHostPhoneRefusal(reach, record.distro)
   }
 
   /** What a phone is told of this host; never probes or starts the distro. */
@@ -116,6 +119,7 @@ export class WslHostPhoneGate {
     return reaches
   }
 
+  // Identity compare: the status board hands back the very objects it stores, new ones per publish.
   private isConfirmedStop(environmentId: string, status: GateStatus | undefined): boolean {
     return (
       this.confirmedStops.has(environmentId) && this.confirmedStops.get(environmentId) === status
