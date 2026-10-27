@@ -52,7 +52,8 @@ const ART_TYPE_BY_CATEGORY: Readonly<Record<string, PluginCatalogType>> = {
   'vm-recipes': 'instructions',
   recipes: 'instructions',
   machines: 'instructions',
-  panels: 'panel'
+  panels: 'panel',
+  editors: 'panel'
 }
 
 /** What a plugin is, from its catalog types plus what an installed copy shows it carries. */
@@ -65,7 +66,7 @@ export function pluginArtTypes(entry: PluginListEntry): PluginCatalogType[] {
   if (installed?.hasWorker) {
     types.push('worker')
   }
-  if (installed && installed.panels.length > 0) {
+  if (installed && (installed.panels.length > 0 || (installed.customEditors?.length ?? 0) > 0)) {
     types.push('panel')
   }
   if (installed && installed.commands.length > 0) {
