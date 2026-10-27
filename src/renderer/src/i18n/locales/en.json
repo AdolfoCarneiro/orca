@@ -13021,7 +13021,8 @@
           "addsCommands": "Adds commands",
           "addsPanel": "Adds a panel",
           "contentOnly": "Content only",
-          "fullAccess": "Full access"
+          "fullAccess": "Full access",
+          "addsEditor": "Adds an editor"
         },
         "PluginContributionActionCommand": {
           "run": "Run",

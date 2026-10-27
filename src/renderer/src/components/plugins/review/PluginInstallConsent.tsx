@@ -96,7 +96,9 @@ export function PluginInstallConsent({
             {translate('auto.components.settings.PluginDetailSections.access', 'Can access')}
           </h3>
           <span className="shrink-0 rounded-md border border-border px-1.5 py-px text-2xs font-medium text-muted-foreground">
-            {pluginTrustLabel(trust)}
+            {!trust.worker && !trust.declarative && (editorFileTypes?.length ?? 0) > 0
+              ? translate('auto.components.settings.pluginConsentCopy.addsEditor', 'Adds an editor')
+              : pluginTrustLabel(trust)}
           </span>
         </div>
         <div className="space-y-2 px-4 py-3 text-sm leading-6">
