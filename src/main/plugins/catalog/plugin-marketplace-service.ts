@@ -244,7 +244,14 @@ export class PluginMarketplaceService {
     validateMarketplaceProvenance(source, fetched)
     const cache = this.imageCache
     if (cache) {
-      await Promise.all((fetched.images ?? []).map((image) => cache.put(image)))
+      await Promise.all(
+        (fetched.images ?? []).map((image) =>
+          cache.put(image).catch((error: unknown) => {
+            console.warn('[plugins] could not cache marketplace image:', error)
+            return null
+          })
+        )
+      )
     }
     return fetched
   }

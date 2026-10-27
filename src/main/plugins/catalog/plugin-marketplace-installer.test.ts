@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog-release'
 import type { PluginMarketplace } from '../../../shared/plugins/catalog/plugin-marketplace'
 import { readPluginLockfile, removeInstalledPlugin } from '../installation/plugin-install'
+import { PluginImageCache } from '../plugin-image-cache'
 import { PluginMarketplaceInstaller } from './plugin-marketplace-installer'
 import { PluginMarketplaceService } from './plugin-marketplace-service'
 
@@ -25,6 +26,7 @@ const git = vi.hoisted(
     pluginUrl: string
     marketplaceCommit: string
     worker: boolean
+    icon: boolean
     /** Directories of one repository listed as separate plugins named after them. */
     paths: string[] | null
   } => ({
@@ -39,6 +41,7 @@ const git = vi.hoisted(
     pluginUrl: 'https://github.com/community/notes.git',
     marketplaceCommit: 'f'.repeat(40),
     worker: false,
+    icon: false,
     paths: null
   })
 )
@@ -103,16 +106,27 @@ async function writeCurrentPlugin(destination: string, path?: string): Promise<v
       name: 'Notes',
       version: git.version,
       capabilities: [],
-      ...(git.worker ? { main: 'worker.js' } : {})
+      ...(git.worker ? { main: 'worker.js' } : {}),
+      ...(git.icon ? { icon: 'icon.png' } : {})
     })
   )
+  if (git.icon) {
+    await writeFile(join(destination, 'icon.png'), squarePng(128))
+  }
   await writeFile(join(destination, 'payload.txt'), git.payload)
   if (git.worker) {
     await writeFile(join(destination, 'worker.js'), '')
   }
 }
 
-async function setup(): Promise<{
+function squarePng(side: number): Buffer {
+  const be32 = (n: number) => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]
+  const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+  const ihdr = [0, 0, 0, 13, ...Buffer.from('IHDR'), ...be32(side), ...be32(side), 8, 6, 0, 0, 0]
+  return Buffer.from([...signature, ...ihdr, 0, 0, 0, 0])
+}
+
+async function setup(imageCache?: PluginImageCache): Promise<{
   root: string
   marketplace: PluginMarketplaceService
   installer: PluginMarketplaceInstaller
@@ -134,7 +148,8 @@ async function setup(): Promise<{
     installer: new PluginMarketplaceInstaller({
       marketplace: service,
       userDataPath: root,
-      hostVersion: pluginHostVersion('1.4.0')
+      hostVersion: pluginHostVersion('1.4.0'),
+      ...(imageCache ? { imageCache } : {})
     }),
     sourceId: added.id
   }
@@ -151,6 +166,7 @@ beforeEach(() => {
   git.pluginUrl = 'https://github.com/community/notes.git'
   git.marketplaceCommit = 'f'.repeat(40)
   git.worker = false
+  git.icon = false
   git.paths = null
   git.checkout.mockReset()
   git.checkout.mockImplementation(
@@ -195,6 +211,23 @@ describe('PluginMarketplaceInstaller', () => {
         ref: 'stable'
       }
     })
+  })
+
+  it('previews without the image when the image cache cannot save it', async () => {
+    git.v2 = true
+    git.icon = true
+    const cache = new PluginImageCache(join(await tempRoot(), 'images'))
+    vi.spyOn(cache, 'put').mockRejectedValue(
+      Object.assign(new Error('rename failed'), { code: 'ENOENT' })
+    )
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const { installer, sourceId } = await setup(cache)
+
+    const preview = await installer.preview(sourceId, 'community.notes')
+    expect(preview.manifest.icon).toBe('icon.png')
+    expect(preview.images?.icon).toBeUndefined()
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
   })
 
   it('requires a fresh review when the plugin ref moves after preview', async () => {

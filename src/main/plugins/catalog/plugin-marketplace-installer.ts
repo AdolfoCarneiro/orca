@@ -270,7 +270,13 @@ export class PluginMarketplaceInstaller {
         image.path,
         PLUGIN_IMAGE_RULES[image.kind].maxBytes
       ).catch(() => null)
-      const sha256 = bytes ? await cache.put(bytes) : null
+      // A cache failure only costs the image; it must never fail the preview or update.
+      const sha256 = bytes
+        ? await cache.put(bytes).catch((error: unknown) => {
+            console.warn(`[plugins] could not cache image ${image.path}:`, error)
+            return null
+          })
+        : null
       if (sha256) {
         hashes.set(image.path, sha256)
       }

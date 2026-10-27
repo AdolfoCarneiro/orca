@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { createHash, randomUUID } from 'node:crypto'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { PLUGIN_IMAGE_MIME, readPluginImageHeader } from '../../shared/plugins/plugin-image-format'
 
@@ -23,10 +23,29 @@ export class PluginImageCache {
     const sha256 = sha256Hex(bytes)
     await mkdir(this.directory, { recursive: true })
     const target = join(this.directory, sha256)
-    const temporary = `${target}.${process.pid}.tmp`
-    await writeFile(temporary, bytes)
-    await rename(temporary, target)
+    if (await this.holds(target, sha256)) {
+      return sha256
+    }
+    // Unique per write: concurrent saves of the same image must not share a temp file.
+    const temporary = `${target}.${randomUUID()}.tmp`
+    try {
+      await writeFile(temporary, bytes)
+      await rename(temporary, target)
+    } catch (error) {
+      // Content-addressed: a concurrent writer that already produced the file is a success
+      // (Windows rejects renaming over a file another handle has open).
+      if (!(await this.holds(target, sha256))) {
+        throw error
+      }
+    } finally {
+      await rm(temporary, { force: true }).catch(() => undefined)
+    }
     return sha256
+  }
+
+  private async holds(target: string, sha256: string): Promise<boolean> {
+    const existing = await readFile(target).catch(() => null)
+    return existing !== null && sha256Hex(existing) === sha256
   }
 
   /** The bytes and MIME type for a hash, re-verified on every read. */
