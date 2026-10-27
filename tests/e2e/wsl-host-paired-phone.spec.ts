@@ -34,10 +34,21 @@ const HostsSchema = z.object({
     z.looseObject({
       hostId: z.string(),
       relay: z.string(),
-      stoppedOnDesktop: z.boolean().optional()
+      stoppedOnDesktop: z.boolean().optional(),
+      unavailableOnDesktop: z.boolean().optional()
     })
   )
 })
+// The host as the phone reads it; an absent flag reads false.
+function hostReach(host: z.infer<typeof HostsSchema>['hosts'][number] | undefined) {
+  return host
+    ? {
+        relay: host.relay,
+        stopped: host.stoppedOnDesktop === true,
+        unavailable: host.unavailableOnDesktop === true
+      }
+    : null
+}
 const HostWorktreesSchema = z.looseObject({
   worktrees: z
     .array(z.looseObject({ worktreeId: z.string(), path: z.string(), hostId: z.string() }))
@@ -116,16 +127,18 @@ test("a paired phone lists, opens, runs and launches on the desktop's WSL host, 
 
     const socket = await phone.openSocket()
     try {
-      // Listed beside the desktop's other servers, marked as one only the desktop starts.
+      // Listed beside the desktop's other servers, ready and with neither desktop-only flag.
       await expect
         .poll(
           async () =>
-            (await call(socket, 'mobileRelay.hosts.list', {}, HostsSchema)).hosts.find(
-              (host) => host.hostId === hostId
+            hostReach(
+              (await call(socket, 'mobileRelay.hosts.list', {}, HostsSchema)).hosts.find(
+                (host) => host.hostId === hostId
+              )
             ),
           { timeout: 90_000 }
         )
-        .toMatchObject({ relay: 'ready', stoppedOnDesktop: undefined })
+        .toEqual({ relay: 'ready', stopped: false, unavailable: false })
 
       let rows: z.infer<typeof HostWorktreesSchema>['worktrees'] = null
       await expect
@@ -198,12 +211,14 @@ test("a paired phone lists, opens, runs and launches on the desktop's WSL host, 
       await expect
         .poll(
           async () =>
-            (await call(stopped, 'mobileRelay.hosts.list', {}, HostsSchema)).hosts.find(
-              (host) => host.hostId === hostId
+            hostReach(
+              (await call(stopped, 'mobileRelay.hosts.list', {}, HostsSchema)).hosts.find(
+                (host) => host.hostId === hostId
+              )
             ),
           { timeout: 30_000 }
         )
-        .toMatchObject({ relay: 'unavailable', stoppedOnDesktop: true })
+        .toEqual({ relay: 'unavailable', stopped: true, unavailable: false })
       // A second refused call: anything a phone's call could start would have started by its answer.
       const refusedAgain = await send(stopped, 'worktree.ps', { limit: 100 }, hostId)
       expect(JSON.stringify(refusedAgain.error)).toContain('isn’t running')
