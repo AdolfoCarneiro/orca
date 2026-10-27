@@ -23,13 +23,19 @@ const EDITOR_HTML = `<textarea id="doc" style="width:100%;height:90vh"></textare
 <script>
 const doc = document.getElementById('doc')
 let timer = null
+let version = 0
 const post = (message) => window.parent.postMessage(message, '*')
-const flush = () => { clearTimeout(timer); timer = null; post({ type: 'orca-editor-edit', text: doc.value }) }
+const flush = () => {
+  clearTimeout(timer); timer = null
+  post({ type: 'orca-editor-edit', baseVersion: version, content: { kind: 'text', text: doc.value } })
+}
 doc.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(flush, 400) })
 window.addEventListener('message', (event) => {
   if (event.source !== window.parent) return
   const data = event.data
-  if (data.type === 'orca-editor-document') { doc.value = data.text; doc.readOnly = data.readOnly }
+  if (data.type === 'orca-editor-document') {
+    version = data.version; doc.value = data.content.text; doc.readOnly = data.readOnly
+  }
   if (data.type === 'orca-editor-flush') {
     if (timer) flush()
     post({ type: 'orca-editor-flushed', requestId: data.requestId })
@@ -156,7 +162,9 @@ window.addEventListener('message', (event) => {
     'v' + data.version + ' ' + data.fileType + ' ' + data.readOnly + ' ' + bytes.length + ':' +
     Array.from(bytes.slice(0, 4), (byte) => byte.toString(16)).join(' ') +
     ' name=' + (window.name.includes('hexbook') ? 'leaks' : 'opaque')
-  window.parent.postMessage({ type: 'orca-editor-edit', text: 'tampered' }, '*')
+  window.parent.postMessage({
+    type: 'orca-editor-edit', baseVersion: data.version, content: { kind: 'text', text: 'tampered' }
+  }, '*')
 })
 window.parent.postMessage({ type: 'orca-editor-ready' }, '*')
 </script>`

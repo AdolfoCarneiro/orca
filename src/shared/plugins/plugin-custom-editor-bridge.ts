@@ -37,8 +37,6 @@ export type CustomEditorDocumentMessage = {
   content: CustomEditorContent
   /** Bytes documents: the manifest suffix that matched, e.g. `xlsx`; never a path or file name. */
   fileType?: string
-  /** Text documents: `content.text` again, for editors written before `content`. */
-  text?: string
 }
 
 export function customEditorConflict(baseVersion: number): CustomEditorEditRejectedMessage {
@@ -75,8 +73,7 @@ export type CustomEditorKeyChord = {
 
 export type CustomEditorFrameMessage =
   | { type: typeof CUSTOM_EDITOR_READY_TYPE }
-  /** `baseVersion` is null for editors that predate versions; those edits always apply. */
-  | { type: typeof CUSTOM_EDITOR_EDIT_TYPE; text: string; baseVersion: number | null }
+  | { type: typeof CUSTOM_EDITOR_EDIT_TYPE; text: string; baseVersion: number }
   | { type: typeof CUSTOM_EDITOR_FLUSHED_TYPE; requestId: number }
   | ({ type: typeof CUSTOM_EDITOR_KEYDOWN_TYPE } & CustomEditorKeyChord)
 
@@ -99,16 +96,20 @@ export function readCustomEditorFrameMessage(data: unknown): CustomEditorFrameMe
     case CUSTOM_EDITOR_READY_TYPE:
       return { type: CUSTOM_EDITOR_READY_TYPE }
     case CUSTOM_EDITOR_EDIT_TYPE: {
+      // Why required: an edit that names no version could silently overwrite an outside change.
       const content = isPluginJsonObject(message.content) ? message.content : null
-      const text =
-        content === null ? message.text : content.kind === 'text' ? content.text : undefined
-      if (typeof text !== 'string') {
+      if (
+        content?.kind !== 'text' ||
+        typeof content.text !== 'string' ||
+        !Number.isSafeInteger(message.baseVersion)
+      ) {
         return null
       }
-      const baseVersion = Number.isSafeInteger(message.baseVersion)
-        ? Number(message.baseVersion)
-        : null
-      return { type: CUSTOM_EDITOR_EDIT_TYPE, text, baseVersion }
+      return {
+        type: CUSTOM_EDITOR_EDIT_TYPE,
+        text: content.text,
+        baseVersion: Number(message.baseVersion)
+      }
     }
     case CUSTOM_EDITOR_FLUSHED_TYPE:
       return Number.isSafeInteger(message.requestId)

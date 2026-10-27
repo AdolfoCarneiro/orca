@@ -54,9 +54,8 @@ and remote (SSH) files; the frame only gets the document, never a path. Messages
 | Orca → editor | `{ type: 'orca-editor-edit-rejected', baseVersion, error }`                  | The edit named an older version: `error.code` is `conflict`. Re-apply it to the latest document.    |
 | Orca → editor | `{ type: 'orca-editor-flush', requestId }`                                   | Before a save: post any debounced edit, then reply `orca-editor-flushed` with the same `requestId`. |
 
-`content` is `{ kind: 'text', text }` for a text editor (the default `contentKind`). Text
-documents also carry `text` beside `content`, and an edit without `baseVersion` (`{ type, text }`)
-still applies, for editors written before versions.
+`content` is `{ kind: 'text', text }` for a text editor (the default `contentKind`). Every edit
+must name the `baseVersion` it was made against; Orca drops an edit without one.
 
 Set `"contentKind": "bytes"` for a binary format such as a spreadsheet. Orca then reads the file
 itself (locally, over SSH or from a paired host) and sends

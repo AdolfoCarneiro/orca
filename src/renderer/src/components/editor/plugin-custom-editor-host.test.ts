@@ -5,6 +5,12 @@ import {
 } from '../../../../shared/plugins/plugin-custom-editor-bridge'
 import { createCustomEditorHost } from './plugin-custom-editor-host'
 
+const edit = (text: string, baseVersion = 1) => ({
+  type: 'orca-editor-edit',
+  baseVersion,
+  content: { kind: 'text', text }
+})
+
 function setup(initial: { text: string; readOnly?: boolean }) {
   const posted: unknown[] = []
   const frameWindow = { postMessage: (message: unknown) => posted.push(message) }
@@ -126,13 +132,12 @@ describe('custom editor document versions', () => {
     })
   })
 
-  it('still applies unversioned edits from editors written before versions', () => {
-    const { host, doc, onEdit, send } = setup({ text: 'a' })
+  it('drops an edit that names no version or uses the old top-level text', () => {
+    const { onEdit, send } = setup({ text: 'a' })
     send({ type: 'orca-editor-ready' })
-    doc.text = 'reloaded'
-    host.syncDocument()
     send({ type: 'orca-editor-edit', text: 'legacy' })
-    expect(onEdit).toHaveBeenCalledWith('legacy')
+    send({ type: 'orca-editor-edit', content: { kind: 'text', text: 'unversioned' } })
+    expect(onEdit).not.toHaveBeenCalled()
   })
 })
 
@@ -147,8 +152,7 @@ describe('custom editor document channel', () => {
         type: 'orca-editor-document',
         version: 1,
         readOnly: false,
-        content: { kind: 'text', text: '{"type":"excalidraw"}' },
-        text: '{"type":"excalidraw"}'
+        content: { kind: 'text', text: '{"type":"excalidraw"}' }
       }
     ])
   })
@@ -156,7 +160,7 @@ describe('custom editor document channel', () => {
   it('round-trips an edit into the buffer without echoing it back', () => {
     const { host, posted, onEdit, send } = setup({ text: 'a' })
     send({ type: 'orca-editor-ready' })
-    send({ type: 'orca-editor-edit', text: 'b' })
+    send(edit('b'))
     expect(onEdit).toHaveBeenCalledWith('b')
     host.syncDocument()
     expect(posted).toHaveLength(1)
@@ -165,7 +169,7 @@ describe('custom editor document channel', () => {
   it('does not dirty the buffer for an edit equal to what it already holds', () => {
     const { onEdit, send } = setup({ text: 'same' })
     send({ type: 'orca-editor-ready' })
-    send({ type: 'orca-editor-edit', text: 'same' })
+    send(edit('same'))
     expect(onEdit).not.toHaveBeenCalled()
   })
 
@@ -178,23 +182,22 @@ describe('custom editor document channel', () => {
       type: 'orca-editor-document',
       version: 2,
       readOnly: false,
-      content: { kind: 'text', text: 'reloaded' },
-      text: 'reloaded'
+      content: { kind: 'text', text: 'reloaded' }
     })
   })
 
   it('ignores edits for read-only documents and before ready', () => {
     const { onEdit, send } = setup({ text: 'a', readOnly: true })
-    send({ type: 'orca-editor-edit', text: 'early' })
+    send(edit('early'))
     send({ type: 'orca-editor-ready' })
-    send({ type: 'orca-editor-edit', text: 'b' })
+    send(edit('b'))
     expect(onEdit).not.toHaveBeenCalled()
   })
 
   it('ignores messages from any window but the editor frame', () => {
     const { onEdit, posted, send } = setup({ text: 'a' })
     send({ type: 'orca-editor-ready' }, {})
-    send({ type: 'orca-editor-edit', text: 'b' }, null)
+    send(edit('b'), null)
     expect(posted).toEqual([])
     expect(onEdit).not.toHaveBeenCalled()
   })
@@ -202,7 +205,7 @@ describe('custom editor document channel', () => {
   it('refuses an edit over the size cap and reports it', () => {
     const { onEdit, onEditRefused, send } = setup({ text: 'a' })
     send({ type: 'orca-editor-ready' })
-    send({ type: 'orca-editor-edit', text: 'x'.repeat(CUSTOM_EDITOR_DOCUMENT_MAX_BYTES + 1) })
+    send(edit('x'.repeat(CUSTOM_EDITOR_DOCUMENT_MAX_BYTES + 1)))
     expect(onEdit).not.toHaveBeenCalled()
     expect(onEditRefused).toHaveBeenCalledWith('oversized')
   })
@@ -212,7 +215,7 @@ describe('custom editor document channel', () => {
     send({ type: 'orca-editor-ready' })
     const flushed = host.flush()
     expect(posted.at(-1)).toEqual({ type: 'orca-editor-flush', requestId: 0 })
-    send({ type: 'orca-editor-edit', text: 'pending' })
+    send(edit('pending'))
     send({ type: 'orca-editor-flushed', requestId: 0 })
     await expect(flushed).resolves.toBeUndefined()
     await expect(host.flush()).resolves.toBeUndefined()
@@ -250,18 +253,12 @@ describe('readCustomEditorFrameMessage', () => {
     ).toBeNull()
   })
 
-  it('reads both the versioned content edit and the original text edit', () => {
-    expect(
-      readCustomEditorFrameMessage({
-        type: 'orca-editor-edit',
-        baseVersion: 3,
-        content: { kind: 'text', text: 'x' }
-      })
-    ).toEqual({ type: 'orca-editor-edit', text: 'x', baseVersion: 3 })
-    expect(readCustomEditorFrameMessage({ type: 'orca-editor-edit', text: 'y' })).toEqual({
+  it('reads only the versioned content edit', () => {
+    expect(readCustomEditorFrameMessage(edit('x', 3))).toEqual({
       type: 'orca-editor-edit',
-      text: 'y',
-      baseVersion: null
+      text: 'x',
+      baseVersion: 3
     })
+    expect(readCustomEditorFrameMessage({ type: 'orca-editor-edit', text: 'y' })).toBeNull()
   })
 })

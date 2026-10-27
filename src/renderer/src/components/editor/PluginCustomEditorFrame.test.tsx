@@ -108,13 +108,16 @@ describe('PluginCustomEditorFrame', () => {
         type: 'orca-editor-document',
         version: 1,
         readOnly: false,
-        content: { kind: 'text', text: 'scene' },
-        text: 'scene'
+        content: { kind: 'text', text: 'scene' }
       },
       '*',
       []
     )
-    await fromFrame({ type: 'orca-editor-edit', text: 'scene+rect' })
+    await fromFrame({
+      type: 'orca-editor-edit',
+      baseVersion: 1,
+      content: { kind: 'text', text: 'scene+rect' }
+    })
     expect(onContentChange).toHaveBeenCalledWith('scene+rect')
     expect(onSave).not.toHaveBeenCalled()
   })
@@ -130,7 +133,11 @@ describe('PluginCustomEditorFrame', () => {
       ctrlKey: false
     })
     expect(posted).toHaveBeenLastCalledWith({ type: 'orca-editor-flush', requestId: 0 }, '*', [])
-    await fromFrame({ type: 'orca-editor-edit', text: 'scene+late' })
+    await fromFrame({
+      type: 'orca-editor-edit',
+      baseVersion: 1,
+      content: { kind: 'text', text: 'scene+late' }
+    })
     await fromFrame({ type: 'orca-editor-flushed', requestId: 0 })
     await vi.waitFor(() => expect(onSave).toHaveBeenCalledWith('scene+late'))
   })
@@ -146,13 +153,16 @@ describe('PluginCustomEditorFrame', () => {
         type: 'orca-editor-document',
         version: 1,
         readOnly: true,
-        content: { kind: 'text', text: 'scene' },
-        text: 'scene'
+        content: { kind: 'text', text: 'scene' }
       },
       '*',
       []
     )
-    await fromFrame({ type: 'orca-editor-edit', text: 'tampered' })
+    await fromFrame({
+      type: 'orca-editor-edit',
+      baseVersion: 1,
+      content: { kind: 'text', text: 'tampered' }
+    })
     await fromFrame({ type: 'orca-editor-keydown', key: 's', code: 'KeyS', metaKey: true })
     expect(onContentChange).not.toHaveBeenCalled()
     expect(onSave).not.toHaveBeenCalled()
@@ -189,7 +199,11 @@ describe('PluginCustomEditorFrame', () => {
     })
     expect(origin).toBe('*')
     expect(transfer).toHaveLength(1)
-    await fromFrame({ type: 'orca-editor-edit', text: 'x' })
+    await fromFrame({
+      type: 'orca-editor-edit',
+      baseVersion: 1,
+      content: { kind: 'text', text: 'x' }
+    })
     expect(onContentChange).not.toHaveBeenCalled()
   })
 

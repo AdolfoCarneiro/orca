@@ -120,8 +120,7 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
       type: CUSTOM_EDITOR_DOCUMENT_TYPE,
       version,
       readOnly,
-      content: { kind: 'text', text },
-      text
+      content: { kind: 'text', text }
     })
   }
 
@@ -169,7 +168,7 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
           if (!ready || readOnly || options.getBinaryDocument) {
             return
           }
-          if (message.baseVersion !== null && message.baseVersion !== version) {
+          if (message.baseVersion !== version) {
             post(customEditorConflict(message.baseVersion))
             return
           }
