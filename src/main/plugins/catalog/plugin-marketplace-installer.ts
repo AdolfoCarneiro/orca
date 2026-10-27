@@ -8,6 +8,8 @@ import { readContainedPluginArtifactBytes } from '../plugin-artifact-validation'
 import { declaredPluginImages } from '../plugin-image-artifact-validation'
 import type { PluginImageCache } from '../plugin-image-cache'
 import { pluginManifestHostImages } from '../plugin-manifest-images'
+import { readPluginVmRecipeIdentities } from '../plugin-vm-recipe-identities'
+import type { PluginVmRecipeIdentities } from '../../../shared/plugins/approval/plugin-update-access-growth'
 import { pluginCatalogReleaseCompatibilityError } from '../../../shared/plugins/manifest/plugin-manifest-compatibility'
 import { isQualifiedPluginKey } from '../../../shared/plugins/manifest/plugin-manifest'
 import { getUserPluginsDir } from '../plugin-discovery'
@@ -44,6 +46,8 @@ export type PluginMarketplaceInstallPreview = {
   blockedByKillList?: { reason: string; advisoryUrl?: string }
   /** The manifest's images, verified at preview and cached by hash. */
   images?: PluginHostImages
+  /** What each recipe file can run, read before the staging tree is deleted; null if unreadable. */
+  vmRecipeIdentities?: PluginVmRecipeIdentities
   /** Update previews only: the catalog now points at a different repository than the install. */
   repositoryMoved?: true
 }
@@ -109,6 +113,10 @@ export class PluginMarketplaceInstaller {
         throw new Error(inspection.error)
       }
       const images = await this.cachePreviewImages(stagingDirectory, inspection.manifest)
+      const vmRecipeIdentities =
+        inspection.manifest.contributes.vmRecipes.length > 0
+          ? await readPluginVmRecipeIdentities(stagingDirectory, inspection.manifest)
+          : undefined
       return {
         marketplaceSourceId,
         marketplaceName: listing.marketplaceName,
@@ -123,7 +131,8 @@ export class PluginMarketplaceInstaller {
         official: listing.official,
         bundled: listing.bundled,
         ...(listing.blockedByKillList ? { blockedByKillList: listing.blockedByKillList } : {}),
-        ...(images ? { images } : {})
+        ...(images ? { images } : {}),
+        ...(vmRecipeIdentities !== undefined ? { vmRecipeIdentities } : {})
       }
     } finally {
       await rm(stagingDirectory, { recursive: true, force: true })

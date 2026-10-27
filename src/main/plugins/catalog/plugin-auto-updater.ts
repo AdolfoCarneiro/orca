@@ -14,6 +14,7 @@ import {
   readApprovedPredecessor,
   type PluginCatalogInstallOutcome
 } from './plugin-update-approval'
+import { readPluginVmRecipeIdentities } from '../plugin-vm-recipe-identities'
 import type { PluginPolicySource } from '../plugin-activation-policy'
 import type { PluginMarketplaceInstaller } from './plugin-marketplace-installer'
 import type { PluginReleaseFirstSeenStore } from './plugin-release-first-seen-store'
@@ -174,9 +175,15 @@ export class PluginAutoUpdater {
     ) {
       return null
     }
+    const vmRecipes = {
+      installed: await readPluginVmRecipeIdentities(plugin.rootDir, plugin.manifest),
+      next: preview.vmRecipeIdentities ?? null
+    }
     if (
       preview.repositoryMoved ||
-      pluginUpdateGrowsAccess(pluginUpdateAccessGrowth(plugin.manifest, preview.manifest))
+      pluginUpdateGrowsAccess(
+        pluginUpdateAccessGrowth(plugin.manifest, preview.manifest, vmRecipes)
+      )
     ) {
       return { kind: 'needs-review', version: preview.manifest.version }
     }

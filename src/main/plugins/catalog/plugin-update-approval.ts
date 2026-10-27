@@ -1,7 +1,9 @@
 import {
   pluginUpdateAccessGrowth,
-  pluginUpdateGrowsAccess
+  pluginUpdateGrowsAccess,
+  type PluginVmRecipeIdentities
 } from '../../../shared/plugins/approval/plugin-update-access-growth'
+import { readPluginVmRecipeIdentities } from '../plugin-vm-recipe-identities'
 import { livePluginActivationState, type PluginPolicySource } from '../plugin-activation-policy'
 import type { PluginMarketplaceInstallResult } from './plugin-marketplace-installer'
 import type { ValidDiscoveredPlugin } from '../plugin-discovery'
@@ -25,6 +27,8 @@ export function readApprovedPredecessor(
  */
 async function carryPluginApprovalAcrossUpdate(input: {
   previous: ValidDiscoveredPlugin | null
+  /** Read before the install, which may replace the previous version's files. */
+  previousVmRecipes: PluginVmRecipeIdentities
   installedFingerprint: string
   findValidPlugin: (pluginKey: string) => ValidDiscoveredPlugin | null
   approve: (pluginKey: string, reviewedFingerprint: string) => Promise<void>
@@ -40,7 +44,13 @@ async function carryPluginApprovalAcrossUpdate(input: {
   if (next.consentFingerprint === previous.consentFingerprint) {
     return true
   }
-  if (pluginUpdateGrowsAccess(pluginUpdateAccessGrowth(previous.manifest, next.manifest))) {
+  const vmRecipes = {
+    installed: input.previousVmRecipes,
+    next: await readPluginVmRecipeIdentities(next.rootDir, next.manifest)
+  }
+  if (
+    pluginUpdateGrowsAccess(pluginUpdateAccessGrowth(previous.manifest, next.manifest, vmRecipes))
+  ) {
     return false
   }
   try {
@@ -77,6 +87,9 @@ export async function installCatalogReleaseWithApproval(input: {
     pluginService.options,
     pluginService.findValidPlugin(input.pluginKey)
   )
+  const previousVmRecipes = predecessor
+    ? await readPluginVmRecipeIdentities(predecessor.rootDir, predecessor.manifest)
+    : null
   const result = await input.install()
   if (!result.ok) {
     return result
@@ -91,6 +104,7 @@ export async function installCatalogReleaseWithApproval(input: {
   if (
     await carryPluginApprovalAcrossUpdate({
       previous: predecessor,
+      previousVmRecipes,
       installedFingerprint: result.consentFingerprint,
       findValidPlugin,
       approve: input.approve

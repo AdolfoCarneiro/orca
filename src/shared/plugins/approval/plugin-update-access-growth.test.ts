@@ -54,4 +54,17 @@ describe('pluginUpdateAccessGrowth', () => {
     expect(pluginUpdateAccessGrowth(before, after).capabilities).toEqual(['notifications:show'])
     expect(pluginUpdateAccessGrowth(after, after).capabilities).toEqual([])
   })
+
+  it('counts recipes only when a recipe can run something the installed version could not', () => {
+    const before = declarative({ vmRecipes: [{ path: 'recipes/ubuntu.json' }] })
+    const after = declarative({ vmRecipes: [{ path: 'recipes/ubuntu-lts.json' }] })
+    const growth = (installed: readonly string[] | null, next: readonly string[] | null) =>
+      pluginUpdateAccessGrowth(before, after, { installed, next }).contributions
+    expect(growth(['a'], ['a'])).toEqual([])
+    expect(growth(['a', 'b'], ['b'])).toEqual([])
+    expect(growth(['a'], ['a', 'b'])).toEqual(['vmRecipes'])
+    expect(growth(null, ['a'])).toEqual(['vmRecipes'])
+    expect(growth(['a'], null)).toEqual(['vmRecipes'])
+    expect(pluginUpdateAccessGrowth(before, after).contributions).toEqual(['vmRecipes'])
+  })
 })

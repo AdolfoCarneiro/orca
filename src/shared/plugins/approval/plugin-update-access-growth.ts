@@ -46,9 +46,13 @@ function entryIdentity(point: PluginContributionPoint, entry: unknown): string {
   return JSON.stringify(entry)
 }
 
+/** Each recipe's authority (id, checkout mode, commands) from its file; null when unreadable. */
+export type PluginVmRecipeIdentities = readonly string[] | null
+
 export function pluginUpdateAccessGrowth(
   installed: GrowthSubject,
-  next: GrowthSubject
+  next: GrowthSubject,
+  vmRecipes?: { installed: PluginVmRecipeIdentities; next: PluginVmRecipeIdentities }
 ): PluginUpdateAccessGrowth {
   // Why whole entries: a same-kind grant with a wider scope is still more access.
   const held = new Set(installed.capabilities.map(canonicalizeCapability))
@@ -67,9 +71,11 @@ export function pluginUpdateAccessGrowth(
     const before = new Set(
       (installed.contributes[point] ?? []).map((entry) => entryIdentity(point, entry))
     )
-    // Why recipes always count: their command lines live in files, not the manifest.
+    // Why files: recipe command lines live there, not in the manifest; unread files always count.
     if (point === 'vmRecipes' && (next.contributes.vmRecipes?.length ?? 0) > 0) {
-      return true
+      const held = vmRecipes?.installed
+      const asked = vmRecipes?.next
+      return !held || !asked || asked.some((recipe) => !held.includes(recipe))
     }
     return (next.contributes[point] ?? []).some((entry) => !before.has(entryIdentity(point, entry)))
   })
