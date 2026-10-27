@@ -13,7 +13,11 @@ import {
 import { createPanelWatchdog } from '../right-sidebar/plugin-panel-watchdog'
 import { usePluginFrameThemeSync } from '../right-sidebar/use-plugin-panel-theme-revision'
 import { editorShortcutMatches } from './editor-shortcuts'
-import { createCustomEditorHost, type CustomEditorEditRefusal } from './plugin-custom-editor-host'
+import {
+  createCustomEditorHost,
+  type CustomEditorBinaryDocument,
+  type CustomEditorEditRefusal
+} from './plugin-custom-editor-host'
 
 type PluginCustomEditorFrameProps = {
   editor: ActivePluginCustomEditor
@@ -21,6 +25,8 @@ type PluginCustomEditorFrameProps = {
   readOnly: boolean
   onContentChange: (content: string) => void
   onSave: (content: string) => Promise<boolean>
+  /** Set for a binary editor: its bytes once loaded (null before). Text props are then unused. */
+  binaryDocument?: CustomEditorBinaryDocument | null
 }
 
 type EntryState =
@@ -43,7 +49,8 @@ export default function PluginCustomEditorFrame({
   content,
   readOnly,
   onContentChange,
-  onSave
+  onSave,
+  binaryDocument
 }: PluginCustomEditorFrameProps): React.JSX.Element {
   const [entry, setEntry] = useState<EntryState>({ status: 'loading' })
   const [refusal, setRefusal] = useState<CustomEditorEditRefusal | null>(null)
@@ -55,8 +62,9 @@ export default function PluginCustomEditorFrame({
     () => `${PLUGIN_PANEL_FRAME_NAME_PREFIX}editor:${createBrowserUuid()}`
   )
   // Why refs: the host is built once per frame; props change on every keystroke.
-  const latestRef = useRef({ content, readOnly, onContentChange, onSave })
-  latestRef.current = { content, readOnly, onContentChange, onSave }
+  const latestRef = useRef({ content, readOnly, onContentChange, onSave, binaryDocument })
+  latestRef.current = { content, readOnly, onContentChange, onSave, binaryDocument }
+  const isBinary = binaryDocument !== undefined
 
   const { pluginKey, id: editorId } = editor
   useEffect(() => {
@@ -128,6 +136,7 @@ export default function PluginCustomEditorFrame({
         text: latestRef.current.content,
         readOnly: latestRef.current.readOnly
       }),
+      ...(isBinary ? { getBinaryDocument: () => latestRef.current.binaryDocument ?? null } : {}),
       onEdit: (text) => {
         setRefusal(null)
         latestRef.current.onContentChange(text)
@@ -144,7 +153,7 @@ export default function PluginCustomEditorFrame({
       }
     })
     return created
-  }, [watchdog])
+  }, [watchdog, isBinary])
 
   useEffect(() => {
     if (!frameKey) {
@@ -168,7 +177,7 @@ export default function PluginCustomEditorFrame({
 
   useEffect(() => {
     host.syncDocument()
-  }, [content, readOnly, host])
+  }, [content, readOnly, binaryDocument, host])
 
   if (entry.status === 'loading') {
     return (

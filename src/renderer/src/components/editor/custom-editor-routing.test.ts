@@ -184,4 +184,85 @@ describe('custom editor routing', () => {
       'changes'
     ])
   })
+
+  describe('bytes editors', () => {
+    const sheet = file({
+      id: '/repo/book.xlsx',
+      filePath: '/repo/book.xlsx',
+      relativePath: 'book.xlsx',
+      language: 'plaintext'
+    })
+    const sheetEditors = customEditorsForFile(
+      sheet.filePath,
+      collectActivePluginCustomEditors([
+        plugin({
+          pluginKey: 'stablyai.spreadsheet',
+          customEditors: [
+            {
+              id: 'sheet',
+              title: 'Spreadsheet',
+              fileTypes: ['xlsx'],
+              priority: 'default',
+              contentKind: 'bytes',
+              readonly: true
+            }
+          ]
+        })
+      ])
+    )
+    const byteSource = { target: { kind: 'local' as const }, filePath: '/repo/book.xlsx' }
+
+    it('opens a binary file in its bytes editor, with Source but no Changes', () => {
+      const result = model({
+        activeFile: sheet,
+        editors: sheetEditors,
+        content: { content: '', isBinary: true, byteSource }
+      })
+      expect(result.activeCustomEditor?.key).toBe('stablyai.spreadsheet/sheet')
+      expect(result.availableEditorToggleModes).toEqual([
+        'plugin-editor:stablyai.spreadsheet/sheet',
+        'edit'
+      ])
+    })
+
+    it('views read-only tabs too, since it never edits', () => {
+      expect(
+        model({
+          activeFile: { ...sheet, readOnly: true },
+          editors: sheetEditors,
+          content: { content: '', isBinary: true, byteSource }
+        }).activeCustomEditor?.key
+      ).toBe('stablyai.spreadsheet/sheet')
+    })
+
+    it('needs a pageable route to the bytes, and no load error', () => {
+      expect(
+        model({ activeFile: sheet, editors: sheetEditors, content: { isBinary: true } })
+          .activeCustomEditor
+      ).toBeNull()
+      expect(
+        model({
+          activeFile: sheet,
+          editors: sheetEditors,
+          content: { isBinary: true, byteSource, loadError: 'gone' }
+        }).activeCustomEditor
+      ).toBeNull()
+    })
+
+    it('routes a remote workbook through the same route the editor loaded it on', () => {
+      const remoteSource = {
+        target: { kind: 'environment' as const, environmentId: 'env-ssh' },
+        filePath: '/home/me/book.xlsx',
+        relativePath: 'book.xlsx',
+        worktreeId: 'wt-remote'
+      }
+      expect(
+        model({
+          activeFile: { ...sheet, runtimeEnvironmentId: 'env-ssh' },
+          editors: sheetEditors,
+          content: { isBinary: true, byteSource: remoteSource }
+        }).activeCustomEditor?.key
+      ).toBe('stablyai.spreadsheet/sheet')
+    })
+  })
 })

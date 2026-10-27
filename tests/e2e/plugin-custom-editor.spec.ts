@@ -140,3 +140,93 @@ test('plugin custom editor edits and saves through Orca', async ({ orcaPage, see
     await rm(pluginRoot, { recursive: true, force: true })
   }
 })
+
+const BYTES_FILE = 'custom-editor-smoke.hexbook'
+const BYTES_FRAME = 'iframe[title="Hex Book"]'
+
+// Reports what a bytes editor receives, and tries an edit Orca must ignore.
+const BYTES_EDITOR_HTML = `<output id="summary">waiting</output>
+<script>
+window.addEventListener('message', (event) => {
+  if (event.source !== window.parent) return
+  const data = event.data
+  if (data.type !== 'orca-editor-document' || !data.content || data.content.kind !== 'bytes') return
+  const bytes = new Uint8Array(data.content.bytes)
+  document.getElementById('summary').textContent =
+    'v' + data.version + ' ' + data.fileType + ' ' + data.readOnly + ' ' + bytes.length + ':' +
+    Array.from(bytes.slice(0, 4), (byte) => byte.toString(16)).join(' ') +
+    ' name=' + (window.name.includes('hexbook') ? 'leaks' : 'opaque')
+  window.parent.postMessage({ type: 'orca-editor-edit', text: 'tampered' }, '*')
+})
+window.parent.postMessage({ type: 'orca-editor-ready' }, '*')
+</script>`
+
+test('a bytes custom editor views a binary file read-only', async ({
+  orcaPage,
+  seededRepoPath
+}) => {
+  const pluginRoot = await mkdtemp(join(tmpdir(), 'orca-bytes-editor-'))
+  const filePath = join(seededRepoPath, BYTES_FILE)
+  // NULs make Orca treat it as binary, like a zip-based workbook.
+  const original = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00, 0xff, 0x10])
+  try {
+    await mkdir(join(pluginRoot, 'editor'), { recursive: true })
+    await writeFile(join(pluginRoot, 'editor', 'index.html'), BYTES_EDITOR_HTML)
+    await writeFile(
+      join(pluginRoot, 'orca-plugin.json'),
+      JSON.stringify({
+        manifestVersion: 2,
+        execution: 'sandboxed-ui',
+        id: 'hex-book',
+        publisher: 'samples',
+        name: 'Hex Book',
+        version: '1.0.0',
+        engines: { orca: `>=${PLUGIN_MANIFEST_V2_SINCE}` },
+        contributes: {
+          customEditors: [
+            {
+              id: 'hex',
+              title: 'Hex Book',
+              fileTypes: ['hexbook'],
+              entry: 'editor/index.html',
+              contentKind: 'bytes',
+              readonly: true
+            }
+          ]
+        }
+      })
+    )
+    await writeFile(filePath, original)
+    await enableDevPlugins(orcaPage, [pluginRoot])
+    await openRepoFile(orcaPage, seededRepoPath, BYTES_FILE)
+
+    const summary = orcaPage.frameLocator(BYTES_FRAME).locator('#summary')
+    await expect(summary).toHaveText('v1 hexbook true 8:50 4b 3 4 name=opaque', {
+      timeout: 15_000
+    })
+    // The editor's edit is ignored: the file and the tab stay untouched.
+    expect(await readFile(filePath)).toEqual(original)
+    expect(
+      await orcaPage.evaluate(
+        (name) =>
+          window.__store?.getState().openFiles.find((file) => file.relativePath === name)?.isDirty,
+        BYTES_FILE
+      )
+    ).toBe(false)
+
+    // Source of a binary file is the binary placeholder, never decoded bytes.
+    await chooseView(orcaPage, 'Source')
+    await expect(orcaPage.locator(BYTES_FRAME)).toHaveCount(0)
+    await expect(orcaPage.getByText('Binary file — cannot display')).toBeVisible()
+    await chooseView(orcaPage, 'Hex Book')
+    await expect(summary).toContainText('hexbook true 8:')
+
+    await disablePluginSystem(orcaPage)
+    await expect(orcaPage.locator(BYTES_FRAME)).toHaveCount(0, { timeout: 15_000 })
+    await expect(orcaPage.getByText('Binary file — cannot display')).toBeVisible()
+  } finally {
+    await disablePluginSystem(orcaPage).catch(() => undefined)
+    await rm(filePath, { force: true })
+    await rm(pluginRoot, { recursive: true, force: true })
+  }
+})

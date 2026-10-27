@@ -22,6 +22,7 @@ import {
   type PluginCatalogType
 } from '../../shared/plugins/catalog/plugin-catalog-types'
 import { mapWithConcurrency } from '../../shared/map-with-concurrency'
+import { customEditorContentKind } from '../../shared/plugins/plugin-custom-editor-contribution'
 import {
   pluginExecutionProfile,
   type PluginExecutionProfile
@@ -75,6 +76,8 @@ export type PluginListEntry = {
     title: string
     fileTypes: string[]
     priority: 'default' | 'option'
+    contentKind: 'text' | 'bytes'
+    readonly: boolean
   }[]
   commands: {
     id: string
@@ -209,7 +212,9 @@ export async function buildPluginList(
           id: editor.id,
           title: editor.title,
           fileTypes: editor.fileTypes,
-          priority: editor.priority ?? 'default'
+          priority: editor.priority ?? 'default',
+          contentKind: customEditorContentKind(editor),
+          readonly: editor.readonly === true
         })),
         commands: service.contentPacks.commands.preview(plugin.pluginKey).map((command) => ({
           id: command.id,

@@ -42,6 +42,38 @@ describe('contributes.customEditors', () => {
     expect(parsed().contributes.customEditors).toEqual([excalidraw])
   })
 
+  it('accepts a read-only bytes editor', () => {
+    const spreadsheet = {
+      id: 'spreadsheet',
+      title: 'Spreadsheet',
+      fileTypes: ['xlsx'],
+      entry: 'editor/index.html',
+      contentKind: 'bytes',
+      readonly: true
+    }
+    expect(
+      parsed({ contributes: { customEditors: [spreadsheet] } }).contributes.customEditors
+    ).toEqual([spreadsheet])
+  })
+
+  it('refuses a bytes editor that does not declare readonly', () => {
+    const result = parsePluginManifest(
+      manifest({
+        contributes: { customEditors: [{ ...excalidraw, contentKind: 'bytes' }] }
+      })
+    )
+    expect(result).toMatchObject({ ok: false })
+    expect(result.ok ? '' : result.error).toContain('readonly')
+  })
+
+  it('refuses an unknown content kind', () => {
+    expect(
+      parsePluginManifest(
+        manifest({ contributes: { customEditors: [{ ...excalidraw, contentKind: 'binary' }] } })
+      )
+    ).toMatchObject({ ok: false })
+  })
+
   it('needs at least the sandboxed-ui profile', () => {
     const result = parsePluginManifest(manifest({ execution: 'declarative' }))
     expect(result.ok).toBe(false)

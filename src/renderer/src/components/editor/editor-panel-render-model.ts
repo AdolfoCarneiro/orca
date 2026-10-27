@@ -131,19 +131,26 @@ export function getEditorPanelRenderModel({
       ? editorToggleModes.filter((mode) => mode !== 'changes')
       : editorToggleModes
   const inlineFileContent = activeFile.mode === 'edit' ? fileContents[activeFile.id] : undefined
+  const customEditorContentReady =
+    activeFile.mode === 'edit' &&
+    !hasViewModeToggle &&
+    inlineFileContent !== undefined &&
+    !inlineFileContent.loadError &&
+    inlineFileContent.csvPreview === undefined &&
+    activeFile.conflict === undefined
+  // Read-only tabs keep raw source, as for every other rich view.
+  const textEditorEligible =
+    customEditorContentReady && !rawReadOnly && inlineFileContent?.isBinary !== true
+  // Bytes editors are read-only, so they also view read-only tabs; they need a pageable route.
+  const bytesEditorEligible =
+    customEditorContentReady && inlineFileContent?.byteSource !== undefined
+  const eligibleCustomEditors = customEditors.filter((editor) =>
+    editor.contentKind === 'bytes' ? bytesEditorEligible : textEditorEligible
+  )
   const customEditorToggle: CustomEditorToggle | null = resolveCustomEditorToggle({
-    editors: customEditors,
+    editors: eligibleCustomEditors,
     choice: customEditorChoice,
-    // Read-only tabs keep raw source, as for every other rich view.
-    eligible:
-      activeFile.mode === 'edit' &&
-      !rawReadOnly &&
-      !hasViewModeToggle &&
-      inlineFileContent !== undefined &&
-      inlineFileContent.isBinary !== true &&
-      !inlineFileContent.loadError &&
-      inlineFileContent.csvPreview === undefined &&
-      activeFile.conflict === undefined,
+    eligible: eligibleCustomEditors.length > 0,
     sourceModes: availableEditorToggleModes
   })
   const activeCustomEditor = isChangesMode ? null : (customEditorToggle?.active ?? null)

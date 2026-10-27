@@ -12,6 +12,10 @@ const PLUGIN_CUSTOM_EDITOR_FILE_TYPE_LIMIT = 16
 export const PLUGIN_CUSTOM_EDITOR_PRIORITIES = ['default', 'option'] as const
 export type PluginCustomEditorPriority = (typeof PLUGIN_CUSTOM_EDITOR_PRIORITIES)[number]
 
+/** What the editor frame receives: the file's text, or its raw bytes. */
+export const PLUGIN_CUSTOM_EDITOR_CONTENT_KINDS = ['text', 'bytes'] as const
+export type PluginCustomEditorContentKind = (typeof PLUGIN_CUSTOM_EDITOR_CONTENT_KINDS)[number]
+
 /** A file-name suffix without the leading dot: `excalidraw`, or a compound one like `excalidraw.json`. */
 export const pluginCustomEditorFileTypeSchema = z
   .string()
@@ -68,6 +72,26 @@ export const pluginCustomEditorContributionSchema = z
           PLUGIN_MANIFEST_V2_SINCE,
           ['default']
         )
+      ),
+    contentKind: z
+      .enum(PLUGIN_CUSTOM_EDITOR_CONTENT_KINDS)
+      .optional()
+      .meta(
+        pluginFieldDoc(
+          "`text` (the default) sends the file as text and accepts full-text edits. `bytes` sends the file's raw bytes, for binary formats such as spreadsheets; a `bytes` editor must also set `readonly`.",
+          PLUGIN_MANIFEST_V2_SINCE,
+          ['bytes']
+        )
+      ),
+    readonly: z
+      .boolean()
+      .optional()
+      .meta(
+        pluginFieldDoc(
+          'When true the editor only views files: Orca never applies its edits, and the install review says it opens rather than edits them.',
+          PLUGIN_MANIFEST_V2_SINCE,
+          [true]
+        )
       )
   })
   .strict()
@@ -78,6 +102,16 @@ export const pluginCustomEditorContributionSchema = z
   })
 
 export type PluginCustomEditorContribution = z.infer<typeof pluginCustomEditorContributionSchema>
+
+/** Why read-only: Orca's save pipeline is text-only; editable byte editors would need byte drafts. */
+export const PLUGIN_CUSTOM_EDITOR_BYTES_NEEDS_READONLY =
+  'a custom editor with contentKind "bytes" must set readonly'
+
+export function customEditorContentKind(editor: {
+  contentKind?: PluginCustomEditorContentKind
+}): PluginCustomEditorContentKind {
+  return editor.contentKind ?? 'text'
+}
 
 /** The longest listed suffix the file name ends with, or null; a bare `.excalidraw` name never matches. */
 export function matchCustomEditorFileType(

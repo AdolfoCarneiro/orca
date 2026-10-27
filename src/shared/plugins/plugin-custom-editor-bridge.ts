@@ -2,8 +2,9 @@ import { isPluginJsonObject } from './manifest/plugin-json-object'
 
 /**
  * postMessage protocol between a sandboxed custom editor frame and the editor tab hosting it.
- * The frame only ever sees the document's text: Orca keeps the buffer, dirty state, saving and
- * the file's location, so the plugin never learns a path or touches a file system.
+ * The frame only ever sees the document's text, or its bytes for a binary editor: Orca keeps the
+ * buffer, dirty state, saving and the file's location, so the plugin never learns a path or
+ * touches a file system.
  */
 
 export const CUSTOM_EDITOR_READY_TYPE = 'orca-editor-ready'
@@ -11,6 +12,8 @@ export const CUSTOM_EDITOR_DOCUMENT_TYPE = 'orca-editor-document'
 export const CUSTOM_EDITOR_EDIT_TYPE = 'orca-editor-edit'
 export const CUSTOM_EDITOR_FLUSH_TYPE = 'orca-editor-flush'
 export const CUSTOM_EDITOR_FLUSHED_TYPE = 'orca-editor-flushed'
+/** Host reply to an edit made against a document version Orca has since replaced. */
+export const CUSTOM_EDITOR_EDIT_REJECTED_TYPE = 'orca-editor-edit-rejected'
 /** Sent by the host shell, not plugin code: frame keys never reach Orca's own shortcut handlers. */
 export const CUSTOM_EDITOR_KEYDOWN_TYPE = 'orca-editor-keydown'
 
@@ -21,10 +24,39 @@ export const CUSTOM_EDITOR_EDIT_RATE_LIMIT = { maxMessages: 60, perMs: 10_000 }
 /** How long a save waits for the frame to post an edit still in its debounce window. */
 export const CUSTOM_EDITOR_FLUSH_TIMEOUT_MS = 1_000
 
+/** `bytes` is a transferred ArrayBuffer, never base64. */
+export type CustomEditorContent =
+  | { kind: 'text'; text: string }
+  | { kind: 'bytes'; bytes: ArrayBuffer }
+
 export type CustomEditorDocumentMessage = {
   type: typeof CUSTOM_EDITOR_DOCUMENT_TYPE
-  text: string
+  /** Rises each time Orca sends a document; an edit names the version it was made against. */
+  version: number
   readOnly: boolean
+  content: CustomEditorContent
+  /** Bytes documents: the manifest suffix that matched, e.g. `xlsx`; never a path or file name. */
+  fileType?: string
+  /** Text documents: `content.text` again, for editors written before `content`. */
+  text?: string
+}
+
+export function customEditorConflict(baseVersion: number): CustomEditorEditRejectedMessage {
+  return {
+    type: CUSTOM_EDITOR_EDIT_REJECTED_TYPE,
+    baseVersion,
+    error: {
+      code: 'conflict',
+      message: 'The file changed outside this editor; edit the latest document.',
+      retryable: true
+    }
+  }
+}
+
+export type CustomEditorEditRejectedMessage = {
+  type: typeof CUSTOM_EDITOR_EDIT_REJECTED_TYPE
+  baseVersion: number
+  error: { code: 'conflict'; message: string; retryable: true }
 }
 
 export type CustomEditorFlushMessage = {
@@ -43,7 +75,8 @@ export type CustomEditorKeyChord = {
 
 export type CustomEditorFrameMessage =
   | { type: typeof CUSTOM_EDITOR_READY_TYPE }
-  | { type: typeof CUSTOM_EDITOR_EDIT_TYPE; text: string }
+  /** `baseVersion` is null for editors that predate versions; those edits always apply. */
+  | { type: typeof CUSTOM_EDITOR_EDIT_TYPE; text: string; baseVersion: number | null }
   | { type: typeof CUSTOM_EDITOR_FLUSHED_TYPE; requestId: number }
   | ({ type: typeof CUSTOM_EDITOR_KEYDOWN_TYPE } & CustomEditorKeyChord)
 
@@ -65,10 +98,18 @@ export function readCustomEditorFrameMessage(data: unknown): CustomEditorFrameMe
   switch (message.type) {
     case CUSTOM_EDITOR_READY_TYPE:
       return { type: CUSTOM_EDITOR_READY_TYPE }
-    case CUSTOM_EDITOR_EDIT_TYPE:
-      return typeof message.text === 'string'
-        ? { type: CUSTOM_EDITOR_EDIT_TYPE, text: message.text }
+    case CUSTOM_EDITOR_EDIT_TYPE: {
+      const content = isPluginJsonObject(message.content) ? message.content : null
+      const text =
+        content === null ? message.text : content.kind === 'text' ? content.text : undefined
+      if (typeof text !== 'string') {
+        return null
+      }
+      const baseVersion = Number.isSafeInteger(message.baseVersion)
+        ? Number(message.baseVersion)
         : null
+      return { type: CUSTOM_EDITOR_EDIT_TYPE, text, baseVersion }
+    }
     case CUSTOM_EDITOR_FLUSHED_TYPE:
       return Number.isSafeInteger(message.requestId)
         ? { type: CUSTOM_EDITOR_FLUSHED_TYPE, requestId: Number(message.requestId) }

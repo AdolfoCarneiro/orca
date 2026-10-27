@@ -12990,7 +12990,8 @@
           "replacesShortcut": "{{value0}} ({{value1}}) replaces your shortcut for {{value2}}.",
           "updatesKeepApproval": "Updates ask again only for new access",
           "fullAccessUpdates": "Updates can change its code without asking",
-          "editsFileTypes": "Opens and edits {{value0}} files in Orca"
+          "editsFileTypes": "Opens and edits {{value0}} files in Orca",
+          "opensFileTypes": "Opens {{value0}} files in Orca"
         },
         "PluginPageAction": {
           "failedTitle": "Couldn’t install {{value0}}",
@@ -16580,6 +16581,12 @@
           "loadFailed": "{{value0}} could not be loaded. Switch to Source to edit this file.",
           "editTooLarge": "This file is too large for {{value0}} to save changes. Use Source instead.",
           "editRateLimited": "{{value0}} is sending changes too quickly; some were skipped."
+        },
+        "PluginBytesCustomEditorSurface": {
+          "retry": "Retry",
+          "tooLarge": "{{value0}} is too large to open in {{value1}} ({{value2}}; the limit is {{value3}}).",
+          "unsupported": "{{value0}} can't read this file from where it is stored. Update the Orca server that hosts it, or switch to Source.",
+          "readFailed": "{{value0}} couldn't be read for {{value1}}. {{value2}}"
         }
       },
       "diff": {

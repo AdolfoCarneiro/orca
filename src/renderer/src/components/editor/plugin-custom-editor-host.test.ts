@@ -29,6 +29,113 @@ function setup(initial: { text: string; readOnly?: boolean }) {
   return { host, posted, doc, onEdit, onEditRefused, onKeyChord, send }
 }
 
+function setupBytes() {
+  const posted: { message: unknown; transfer: unknown }[] = []
+  const frameWindow = {
+    postMessage: (message: unknown, _origin: string, transfer: unknown) =>
+      posted.push({ message, transfer })
+  }
+  let binary: { bytes: Uint8Array<ArrayBuffer>; fileType: string } | null = null
+  const onEdit = vi.fn()
+  const host = createCustomEditorHost({
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the host only calls postMessage and compares identity.
+    getFrameWindow: () => frameWindow as unknown as Window,
+    getDocument: () => ({ text: '', readOnly: true }),
+    getBinaryDocument: () => binary,
+    onEdit
+  })
+  const send = (data: unknown) =>
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: handleMessage reads only data and source.
+    host.handleMessage({ data, source: frameWindow } as unknown as MessageEvent)
+  return {
+    host,
+    posted,
+    onEdit,
+    send,
+    load: (bytes: number[]) => {
+      binary = { bytes: new Uint8Array(bytes), fileType: 'xlsx' }
+      return binary
+    }
+  }
+}
+
+describe('custom editor bytes documents', () => {
+  it('waits for the bytes, then transfers a copy so a remounted frame can get them again', () => {
+    const { host, posted, send, load } = setupBytes()
+    send({ type: 'orca-editor-ready' })
+    expect(posted).toEqual([])
+    const loaded = load([0x50, 0x4b, 3, 4])
+    host.syncDocument()
+    expect(posted).toHaveLength(1)
+    const [{ message, transfer }] = posted
+    expect(message).toMatchObject({
+      type: 'orca-editor-document',
+      version: 1,
+      readOnly: true,
+      fileType: 'xlsx',
+      content: { kind: 'bytes' }
+    })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: shape asserted just above.
+    const bytes = (message as { content: { bytes: ArrayBuffer } }).content.bytes
+    expect(bytes).toBeInstanceOf(ArrayBuffer)
+    expect([...new Uint8Array(bytes)]).toEqual([0x50, 0x4b, 3, 4])
+    expect(transfer).toEqual([bytes])
+    expect(bytes).not.toBe(loaded.bytes.buffer)
+    host.syncDocument()
+    expect(posted).toHaveLength(1)
+  })
+
+  it('sends new bytes with a higher version after an outside change', () => {
+    const { host, posted, send, load } = setupBytes()
+    load([1])
+    send({ type: 'orca-editor-ready' })
+    load([2])
+    host.syncDocument()
+    expect(posted.map(({ message }) => message)).toMatchObject([{ version: 1 }, { version: 2 }])
+  })
+
+  it('never applies an edit from a bytes editor', () => {
+    const { onEdit, send, load } = setupBytes()
+    load([1])
+    send({ type: 'orca-editor-ready' })
+    send({ type: 'orca-editor-edit', text: 'x' })
+    send({ type: 'orca-editor-edit', baseVersion: 1, content: { kind: 'text', text: 'x' } })
+    expect(onEdit).not.toHaveBeenCalled()
+  })
+})
+
+describe('custom editor document versions', () => {
+  it('applies an edit made against the current version', () => {
+    const { onEdit, send } = setup({ text: 'a' })
+    send({ type: 'orca-editor-ready' })
+    send({ type: 'orca-editor-edit', baseVersion: 1, content: { kind: 'text', text: 'b' } })
+    expect(onEdit).toHaveBeenCalledWith('b')
+  })
+
+  it('refuses a stale edit with a conflict instead of overwriting the outside change', () => {
+    const { host, posted, doc, onEdit, send } = setup({ text: 'a' })
+    send({ type: 'orca-editor-ready' })
+    doc.text = 'changed on disk'
+    host.syncDocument()
+    send({ type: 'orca-editor-edit', baseVersion: 1, content: { kind: 'text', text: 'mine' } })
+    expect(onEdit).not.toHaveBeenCalled()
+    expect(posted.at(-1)).toEqual({
+      type: 'orca-editor-edit-rejected',
+      baseVersion: 1,
+      error: { code: 'conflict', message: expect.any(String), retryable: true }
+    })
+  })
+
+  it('still applies unversioned edits from editors written before versions', () => {
+    const { host, doc, onEdit, send } = setup({ text: 'a' })
+    send({ type: 'orca-editor-ready' })
+    doc.text = 'reloaded'
+    host.syncDocument()
+    send({ type: 'orca-editor-edit', text: 'legacy' })
+    expect(onEdit).toHaveBeenCalledWith('legacy')
+  })
+})
+
 describe('custom editor document channel', () => {
   it('sends the buffer once the editor is ready, and nothing before', () => {
     const { host, posted, send } = setup({ text: '{"type":"excalidraw"}' })
@@ -36,7 +143,13 @@ describe('custom editor document channel', () => {
     expect(posted).toEqual([])
     send({ type: 'orca-editor-ready' })
     expect(posted).toEqual([
-      { type: 'orca-editor-document', text: '{"type":"excalidraw"}', readOnly: false }
+      {
+        type: 'orca-editor-document',
+        version: 1,
+        readOnly: false,
+        content: { kind: 'text', text: '{"type":"excalidraw"}' },
+        text: '{"type":"excalidraw"}'
+      }
     ])
   })
 
@@ -63,8 +176,10 @@ describe('custom editor document channel', () => {
     host.syncDocument()
     expect(posted.at(-1)).toEqual({
       type: 'orca-editor-document',
-      text: 'reloaded',
-      readOnly: false
+      version: 2,
+      readOnly: false,
+      content: { kind: 'text', text: 'reloaded' },
+      text: 'reloaded'
     })
   })
 
@@ -130,5 +245,23 @@ describe('readCustomEditorFrameMessage', () => {
     expect(
       readCustomEditorFrameMessage({ type: 'orca-editor-keydown', key: 'x'.repeat(65), code: 'a' })
     ).toBeNull()
+    expect(
+      readCustomEditorFrameMessage({ type: 'orca-editor-edit', content: { kind: 'bytes' } })
+    ).toBeNull()
+  })
+
+  it('reads both the versioned content edit and the original text edit', () => {
+    expect(
+      readCustomEditorFrameMessage({
+        type: 'orca-editor-edit',
+        baseVersion: 3,
+        content: { kind: 'text', text: 'x' }
+      })
+    ).toEqual({ type: 'orca-editor-edit', text: 'x', baseVersion: 3 })
+    expect(readCustomEditorFrameMessage({ type: 'orca-editor-edit', text: 'y' })).toEqual({
+      type: 'orca-editor-edit',
+      text: 'y',
+      baseVersion: null
+    })
   })
 })

@@ -57,6 +57,7 @@ async function renderFrame(props: {
   readOnly?: boolean
   onContentChange?: (content: string) => void
   onSave?: (content: string) => Promise<boolean>
+  binaryDocument?: { bytes: Uint8Array<ArrayBuffer>; fileType: string }
 }) {
   const onContentChange = props.onContentChange ?? vi.fn()
   const onSave = props.onSave ?? vi.fn().mockResolvedValue(true)
@@ -68,6 +69,7 @@ async function renderFrame(props: {
         readOnly={props.readOnly ?? false}
         onContentChange={onContentChange}
         onSave={onSave}
+        binaryDocument={props.binaryDocument}
       />
     )
   })
@@ -102,8 +104,15 @@ describe('PluginCustomEditorFrame', () => {
     const { posted, fromFrame, onContentChange, onSave } = await renderFrame({ content: 'scene' })
     await fromFrame({ type: 'orca-editor-ready' })
     expect(posted).toHaveBeenCalledWith(
-      { type: 'orca-editor-document', text: 'scene', readOnly: false },
-      '*'
+      {
+        type: 'orca-editor-document',
+        version: 1,
+        readOnly: false,
+        content: { kind: 'text', text: 'scene' },
+        text: 'scene'
+      },
+      '*',
+      []
     )
     await fromFrame({ type: 'orca-editor-edit', text: 'scene+rect' })
     expect(onContentChange).toHaveBeenCalledWith('scene+rect')
@@ -120,7 +129,7 @@ describe('PluginCustomEditorFrame', () => {
       metaKey: true,
       ctrlKey: false
     })
-    expect(posted).toHaveBeenLastCalledWith({ type: 'orca-editor-flush', requestId: 0 }, '*')
+    expect(posted).toHaveBeenLastCalledWith({ type: 'orca-editor-flush', requestId: 0 }, '*', [])
     await fromFrame({ type: 'orca-editor-edit', text: 'scene+late' })
     await fromFrame({ type: 'orca-editor-flushed', requestId: 0 })
     await vi.waitFor(() => expect(onSave).toHaveBeenCalledWith('scene+late'))
@@ -133,8 +142,15 @@ describe('PluginCustomEditorFrame', () => {
     })
     await fromFrame({ type: 'orca-editor-ready' })
     expect(posted).toHaveBeenCalledWith(
-      { type: 'orca-editor-document', text: 'scene', readOnly: true },
-      '*'
+      {
+        type: 'orca-editor-document',
+        version: 1,
+        readOnly: true,
+        content: { kind: 'text', text: 'scene' },
+        text: 'scene'
+      },
+      '*',
+      []
     )
     await fromFrame({ type: 'orca-editor-edit', text: 'tampered' })
     await fromFrame({ type: 'orca-editor-keydown', key: 's', code: 'KeyS', metaKey: true })
@@ -154,6 +170,27 @@ describe('PluginCustomEditorFrame', () => {
       '*'
     )
     document.documentElement.classList.remove('dark')
+  })
+
+  it('sends a bytes document as a transferred ArrayBuffer and ignores edits', async () => {
+    const { posted, fromFrame, onContentChange } = await renderFrame({
+      content: '',
+      readOnly: true,
+      binaryDocument: { bytes: new Uint8Array([1, 2, 3]), fileType: 'xlsx' }
+    })
+    await fromFrame({ type: 'orca-editor-ready' })
+    const [message, origin, transfer]: unknown[] = posted.mock.calls[0] ?? []
+    expect(message).toMatchObject({
+      type: 'orca-editor-document',
+      version: 1,
+      readOnly: true,
+      fileType: 'xlsx',
+      content: { kind: 'bytes' }
+    })
+    expect(origin).toBe('*')
+    expect(transfer).toHaveLength(1)
+    await fromFrame({ type: 'orca-editor-edit', text: 'x' })
+    expect(onContentChange).not.toHaveBeenCalled()
   })
 
   it('says so when the plugin can no longer serve its editor', async () => {

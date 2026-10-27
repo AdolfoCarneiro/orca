@@ -43,18 +43,35 @@ only when a panel or worker calls the host API.
 
 A custom editor opens files whose names end in one of its `fileTypes` in the editor tab, beside
 Source. Orca keeps the buffer, dirty state, saving, the external-change banner, read-only tabs
-and remote (SSH) files; the frame only exchanges the document's text, never a path. Messages
+and remote (SSH) files; the frame only gets the document, never a path. Messages
 (`postMessage` with `window.parent`; check `event.source === window.parent`):
 
-| Direction     | Message                                            | When                                                                                                |
-| ------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| editor → Orca | `{ type: 'orca-editor-ready' }`                    | Once listening. Orca answers with the document.                                                     |
-| Orca → editor | `{ type: 'orca-editor-document', text, readOnly }` | After ready, and whenever the buffer changes outside the editor.                                    |
-| editor → Orca | `{ type: 'orca-editor-edit', text }`               | The user changed the document: the full new text. Never on load.                                    |
-| Orca → editor | `{ type: 'orca-editor-flush', requestId }`         | Before a save: post any debounced edit, then reply `orca-editor-flushed` with the same `requestId`. |
+| Direction     | Message                                                                      | When                                                                                                |
+| ------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| editor → Orca | `{ type: 'orca-editor-ready' }`                                              | Once listening. Orca answers with the document.                                                     |
+| Orca → editor | `{ type: 'orca-editor-document', version, readOnly, content, fileType? }`    | After ready, and whenever the file changes outside the editor. `version` rises with each one.       |
+| editor → Orca | `{ type: 'orca-editor-edit', baseVersion, content: { kind: 'text', text } }` | The user changed the document: the full new text, against document `baseVersion`. Never on load.    |
+| Orca → editor | `{ type: 'orca-editor-edit-rejected', baseVersion, error }`                  | The edit named an older version: `error.code` is `conflict`. Re-apply it to the latest document.    |
+| Orca → editor | `{ type: 'orca-editor-flush', requestId }`                                   | Before a save: post any debounced edit, then reply `orca-editor-flushed` with the same `requestId`. |
 
-Orca forwards save shortcuts pressed inside the frame itself. An edit may be at most 16 MiB;
-edits sent while read-only are ignored.
+`content` is `{ kind: 'text', text }` for a text editor (the default `contentKind`). Text
+documents also carry `text` beside `content`, and an edit without `baseVersion` (`{ type, text }`)
+still applies, for editors written before versions.
+
+Set `"contentKind": "bytes"` for a binary format such as a spreadsheet. Orca then reads the file
+itself (locally, over SSH or from a paired host) and sends
+`content: { kind: 'bytes', bytes }`, where `bytes` is a transferred `ArrayBuffer`, plus the
+matched suffix as `fileType`. A bytes editor must set `"readonly": true`; Orca never applies its
+edits, and Source shows the binary placeholder. Files over 16 MiB are not sent: Orca shows a
+"too large to open" message instead.
+
+`"readonly": true` on any editor makes Orca ignore its edits, and the install review then says
+the plugin opens rather than edits those files. Orca forwards save shortcuts pressed inside the
+frame itself. An edit may be at most 16 MiB; edits sent while read-only are ignored.
+
+Theme changes do not reload the frame: Orca posts `{ type: 'orca-panel-theme', colorScheme }`,
+and the shell updates the `--orca-*` variables and the `light`/`dark` class on `<html>` in place.
+Restyle from the variables, or watch the class, to follow it.
 
 ## 2. Load it while you work
 
@@ -162,8 +179,8 @@ listed as experimental may change. These parts are stable and change only additi
 - host API 1 (`"pluginApi": 1`): method names, params and results;
 - the panel bridge message names (`orca-panel-action`, `-result`, `-ping`, `-pong`) and error
   codes;
-- the custom editor message names (`orca-editor-ready`, `-document`, `-edit`, `-flush`,
-  `-flushed`);
+- the custom editor message names (`orca-editor-ready`, `-document`, `-edit`,
+  `-edit-rejected`, `-flush`, `-flushed`) and the document `version`/`content` shape;
 - theme token names, and theme ids once published (users' settings store them);
 - catalog format 2 (`orca-catalog.json`).
 

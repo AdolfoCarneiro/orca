@@ -6,7 +6,9 @@ import {
   CUSTOM_EDITOR_FLUSH_TYPE,
   isCustomEditorEditAttempt,
   readCustomEditorFrameMessage,
+  customEditorConflict,
   type CustomEditorDocumentMessage,
+  type CustomEditorEditRejectedMessage,
   type CustomEditorKeyChord
 } from '../../../../shared/plugins/plugin-custom-editor-bridge'
 import { readPanelPongId } from '../../../../shared/plugins/plugin-panel-bridge'
@@ -18,10 +20,15 @@ import {
 
 export type CustomEditorEditRefusal = 'oversized' | 'rate_limited'
 
+/** A binary editor's loaded file; a new object means new bytes to send. */
+export type CustomEditorBinaryDocument = { bytes: Uint8Array<ArrayBuffer>; fileType: string }
+
 export type CustomEditorHostOptions = {
   getFrameWindow: () => Window | null
   /** The buffer as Orca holds it now. */
   getDocument: () => { text: string; readOnly: boolean }
+  /** Binary editors only: the file's bytes, or null while they load. Its edits are never applied. */
+  getBinaryDocument?: () => CustomEditorBinaryDocument | null
   onEdit: (text: string) => void
   onEditRefused?: (reason: CustomEditorEditRefusal) => void
   onKeyChord?: (chord: CustomEditorKeyChord) => void
@@ -57,16 +64,49 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
   // What the frame is known to hold, so its own edits are never echoed back.
   let frameText: string | null = null
   let frameReadOnly: boolean | null = null
+  let frameBinary: CustomEditorBinaryDocument | null = null
+  // The version of the last document sent; edits against an older one are refused.
+  let version = 0
   let nextFlushId = 0
   const pendingFlushes = new Map<number, () => void>()
 
-  const post = (message: CustomEditorDocumentMessage | { type: string; requestId: number }) => {
+  const post = (
+    message:
+      | CustomEditorDocumentMessage
+      | CustomEditorEditRejectedMessage
+      | { type: string; requestId: number },
+    transfer: Transferable[] = []
+  ) => {
     // Opaque srcdoc origins require targetOrigin '*'.
-    options.getFrameWindow()?.postMessage(message, '*')
+    options.getFrameWindow()?.postMessage(message, '*', transfer)
+  }
+
+  const pushBinaryDocument = (force: boolean, binary: CustomEditorBinaryDocument | null): void => {
+    if (!binary || (!force && binary === frameBinary)) {
+      return
+    }
+    frameBinary = binary
+    // Why a copy: transferring detaches the buffer, and a remounted frame needs the bytes again.
+    const bytes = binary.bytes.slice().buffer
+    version += 1
+    post(
+      {
+        type: CUSTOM_EDITOR_DOCUMENT_TYPE,
+        version,
+        readOnly: true,
+        fileType: binary.fileType,
+        content: { kind: 'bytes', bytes }
+      },
+      [bytes]
+    )
   }
 
   const pushDocument = (force: boolean): void => {
     if (!ready) {
+      return
+    }
+    if (options.getBinaryDocument) {
+      pushBinaryDocument(force, options.getBinaryDocument())
       return
     }
     const { text, readOnly } = options.getDocument()
@@ -75,7 +115,14 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
     }
     frameText = text
     frameReadOnly = readOnly
-    post({ type: CUSTOM_EDITOR_DOCUMENT_TYPE, text, readOnly })
+    version += 1
+    post({
+      type: CUSTOM_EDITOR_DOCUMENT_TYPE,
+      version,
+      readOnly,
+      content: { kind: 'text', text },
+      text
+    })
   }
 
   const settleFlushes = (): void => {
@@ -119,7 +166,14 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
           return
         case 'orca-editor-edit': {
           const { readOnly } = options.getDocument()
-          if (!ready || readOnly || message.text === frameText) {
+          if (!ready || readOnly || options.getBinaryDocument) {
+            return
+          }
+          if (message.baseVersion !== null && message.baseVersion !== version) {
+            post(customEditorConflict(message.baseVersion))
+            return
+          }
+          if (message.text === frameText) {
             return
           }
           frameText = message.text
@@ -161,6 +215,7 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
       ready = false
       frameText = null
       frameReadOnly = null
+      frameBinary = null
       settleFlushes()
     }
   }

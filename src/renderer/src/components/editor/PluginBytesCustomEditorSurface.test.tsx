@@ -1,0 +1,124 @@
+// @vitest-environment happy-dom
+
+import { act } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
+import type { FileContent } from './editor-panel-content-types'
+
+vi.mock('@/i18n/i18n', () => ({
+  translate: (_key: string, fallback: string, values?: Record<string, string>) =>
+    fallback.replace(/\{\{(value\d)\}\}/g, (_match, name: string) => values?.[name] ?? '')
+}))
+
+const readRuntimeFileBytes = vi.fn()
+vi.mock('@/runtime/runtime-paged-file-read', () => ({
+  readRuntimeFileBytes: (...args: unknown[]) => readRuntimeFileBytes(...args)
+}))
+
+const frameProps = vi.fn()
+vi.mock('./PluginCustomEditorFrame', () => ({
+  default: (props: Record<string, unknown>) => {
+    frameProps(props)
+    return <div data-testid="frame" />
+  }
+}))
+
+import PluginBytesCustomEditorSurface from './PluginBytesCustomEditorSurface'
+;(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true
+
+const editor: ActivePluginCustomEditor = {
+  id: 'sheet',
+  title: 'Spreadsheet',
+  fileTypes: ['xlsx', 'xls'],
+  priority: 'default',
+  contentKind: 'bytes',
+  readonly: true,
+  key: 'stablyai.spreadsheet/sheet',
+  pluginKey: 'stablyai.spreadsheet',
+  pluginName: 'Spreadsheet Viewer'
+}
+const byteSource = { target: { kind: 'local' as const }, filePath: '/repo/book.xlsx' }
+
+let container: HTMLDivElement
+let root: Root
+
+beforeEach(() => {
+  container = document.createElement('div')
+  document.body.appendChild(container)
+  root = createRoot(container)
+  readRuntimeFileBytes.mockReset()
+  frameProps.mockReset()
+})
+
+afterEach(async () => {
+  await act(async () => root.unmount())
+  container.remove()
+})
+
+async function render(fileContent: FileContent): Promise<void> {
+  await act(async () => {
+    root.render(
+      <PluginBytesCustomEditorSurface
+        editor={editor}
+        filePath="/repo/book.xlsx"
+        fileContent={fileContent}
+      />
+    )
+  })
+}
+
+function lastDocument(): unknown {
+  return frameProps.mock.calls.at(-1)?.[0].binaryDocument
+}
+
+describe('PluginBytesCustomEditorSurface', () => {
+  it('mounts the frame at once and hands it the bytes read on the same route, capped at 16 MiB', async () => {
+    const bytes = new Uint8Array([0x50, 0x4b])
+    readRuntimeFileBytes.mockResolvedValue({ kind: 'ok', bytes })
+    await render({ content: '', isBinary: true, byteSource })
+    expect(readRuntimeFileBytes).toHaveBeenCalledWith(byteSource, 16 * 1024 * 1024)
+    expect(frameProps.mock.calls[0][0]).toMatchObject({ readOnly: true, binaryDocument: null })
+    expect(lastDocument()).toEqual({ bytes, fileType: 'xlsx' })
+  })
+
+  it('names the file, its size and the limit when it is too large to open', async () => {
+    readRuntimeFileBytes.mockResolvedValue({ kind: 'too_large', size: 40 * 1024 * 1024 })
+    await render({ content: '', isBinary: true, byteSource })
+    expect(container.textContent).toContain(
+      'book.xlsx is too large to open in Spreadsheet (40.0 MB; the limit is 16.0 MB).'
+    )
+    expect(container.querySelector('[data-testid="frame"]')).toBeNull()
+  })
+
+  it('offers a retry when the read fails, and reads again', async () => {
+    readRuntimeFileBytes.mockRejectedValueOnce(new Error('File changed on disk'))
+    await render({ content: '', isBinary: true, byteSource })
+    expect(container.textContent).toContain("book.xlsx couldn't be read for Spreadsheet.")
+    readRuntimeFileBytes.mockResolvedValue({ kind: 'ok', bytes: new Uint8Array([1]) })
+    await act(async () => container.querySelector('button')?.click())
+    expect(readRuntimeFileBytes).toHaveBeenCalledTimes(2)
+    expect(lastDocument()).toMatchObject({ fileType: 'xlsx' })
+  })
+
+  it('reloads after an outside change but not while the old content is only marked stale', async () => {
+    readRuntimeFileBytes.mockResolvedValue({ kind: 'ok', bytes: new Uint8Array([1]) })
+    const first: FileContent = { content: '', isBinary: true, byteSource }
+    await render(first)
+    await render({ ...first, isStale: true })
+    expect(readRuntimeFileBytes).toHaveBeenCalledTimes(1)
+    const reloaded = new Uint8Array([2])
+    readRuntimeFileBytes.mockResolvedValue({ kind: 'ok', bytes: reloaded })
+    await render({ content: '', isBinary: true, byteSource })
+    expect(readRuntimeFileBytes).toHaveBeenCalledTimes(2)
+    expect(lastDocument()).toEqual({ bytes: reloaded, fileType: 'xlsx' })
+  })
+
+  it('explains when the host cannot page the file', async () => {
+    readRuntimeFileBytes.mockResolvedValue({ kind: 'unsupported' })
+    await render({ content: '', isBinary: true, byteSource })
+    expect(container.textContent).toContain("Spreadsheet can't read this file")
+  })
+})

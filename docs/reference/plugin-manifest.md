@@ -149,6 +149,8 @@ An editor for files of the listed types, shown in the editor tab beside Source. 
 | `fileTypes` | string[] | yes | 1.4.244 | File-name suffixes, without the leading dot, this editor opens. A longer suffix such as `excalidraw.json` matches only files ending in it. At most 16. Example: `["excalidraw","excalidraw.json"]` |
 | `entry` | string | yes | 1.4.244 | HTML file rendered inside a sandboxed editor frame. It receives the open document's text and posts full-text edits back; it never gets a file path, file system or network access. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"editor/index.html"` |
 | `priority` | `"default"` \| `"option"` | no | 1.4.244 | `default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. Example: `"default"` |
+| `contentKind` | `"text"` \| `"bytes"` | no | 1.4.244 | `text` (the default) sends the file as text and accepts full-text edits. `bytes` sends the file's raw bytes, for binary formats such as spreadsheets; a `bytes` editor must also set `readonly`. Example: `"bytes"` |
+| `readonly` | boolean | no | 1.4.244 | When true the editor only views files: Orca never applies its edits, and the install review says it opens rather than edits them. Example: `true` |
 
 ## Capability
 

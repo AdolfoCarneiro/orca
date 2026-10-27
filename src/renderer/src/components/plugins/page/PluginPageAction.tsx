@@ -131,6 +131,7 @@ export function usePluginPageAction({
           capabilities={plugin.capabilities}
           shortcuts={model.shortcuts}
           editorFileTypes={model.editorFileTypes}
+          viewerFileTypes={model.viewerFileTypes}
           installed={plugin}
           official={plugin.official}
           publisher={plugin.publisher}
@@ -246,6 +247,7 @@ export function usePluginPageAction({
           capabilities={model.capabilities}
           shortcuts={model.shortcuts}
           editorFileTypes={model.editorFileTypes}
+          viewerFileTypes={model.viewerFileTypes}
           reading={preview === null && !model.stale}
           failed={model.previewFailed}
           onRetry={model.retryPreview}

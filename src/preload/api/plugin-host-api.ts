@@ -50,6 +50,9 @@ export type PluginHostCustomEditor = {
   title: string
   fileTypes: string[]
   priority: 'default' | 'option'
+  /** Absent on hosts that predate byte editors: text. */
+  contentKind?: 'text' | 'bytes'
+  readonly?: boolean
 }
 
 // Keep assignable from main/plugins/plugin-list-projection.ts.

@@ -25,6 +25,7 @@ import { EditorMarkdownFileSurface } from './EditorMarkdownFileSurface'
 import type { MarkdownRenderState } from './markdown-render-mode'
 import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
 import PluginCustomEditorFrame from './PluginCustomEditorFrame'
+import PluginBytesCustomEditorSurface from './PluginBytesCustomEditorSurface'
 
 // Retry is a user act: it may start a stopped WSL distro.
 const USER_RETRY = { wakeWslDistro: true }
@@ -132,6 +133,16 @@ export function EditorEditFileSurface({
         message={fileContent.loadError}
         code={fileContent.loadErrorCode}
         onRetry={() => reloadContent(activeFile, USER_RETRY)}
+      />
+    )
+  }
+  if (customEditor?.contentKind === 'bytes') {
+    return (
+      <PluginBytesCustomEditorSurface
+        key={`${activeFile.id}\u0000${customEditor.key}`}
+        editor={customEditor}
+        filePath={activeFile.filePath}
+        fileContent={fileContent}
       />
     )
   }
