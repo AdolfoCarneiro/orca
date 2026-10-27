@@ -1112,6 +1112,9 @@
       "pluginNewFile": {
         "unavailable": "{{value0}} is no longer available. Turn its plugin back on.",
         "failed": "Couldn't create the file."
+      },
+      "pluginInstallLink": {
+        "invalid": "That plugin link isn’t valid."
       }
     },
     "lib": {
@@ -18605,6 +18608,15 @@
           "noTabGroup": "Can’t run “{{action}}” — no tab group is available.",
           "noMovableChat": "Can’t run “{{action}}” — no movable chat is active.",
           "clientUnsupported": "Can’t run “{{action}}” — this client and runtime do not support it."
+        }
+      },
+      "plugins": {
+        "PluginCatalogLinkDialog": {
+          "failed": "Couldn’t add this catalog.",
+          "title": "Add catalog {{value0}}?",
+          "description": "A link asked to show {{value0}} from {{value1}}. Add catalogs only from people you trust.",
+          "cancel": "Cancel",
+          "add": "Add catalog"
         }
       }
     },

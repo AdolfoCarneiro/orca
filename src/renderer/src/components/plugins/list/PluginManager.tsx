@@ -13,6 +13,8 @@ import {
 } from './plugin-list-entries'
 import type { InstalledRowHandlers } from './PluginManagerRows'
 import { PluginMarketplaceSourceDialog } from '../dialogs/PluginMarketplaceSourceDialog'
+import { PluginCatalogLinkDialog } from '../dialogs/PluginCatalogLinkDialog'
+import { usePluginInstallLink } from '../state/use-plugin-install-link'
 import { usePluginCatalog } from '../state/use-plugin-catalog'
 import { usePluginHoverPrefetch } from '../state/use-plugin-hover-prefetch'
 import { usePluginInstallAction } from '../state/use-plugin-install-action'
@@ -106,6 +108,12 @@ export function PluginManager({
   const catalog = usePluginCatalog({
     onRefreshInstalled,
     onOpenRequested: open
+  })
+  const installLink = usePluginInstallLink({
+    sources: catalog.sources,
+    loading: catalog.loading,
+    loadMarketplaceData: catalog.loadMarketplaceData,
+    open
   })
   const openEntry = (pluginKey: string): void => {
     open(pluginKey)
@@ -261,6 +269,11 @@ export function PluginManager({
         sources={catalog.sources}
         onOpenChange={setSourcesOpen}
         onChanged={catalog.loadMarketplaceData}
+      />
+      <PluginCatalogLinkDialog
+        catalog={installLink.catalogToAdd}
+        onCancel={installLink.cancelCatalog}
+        onConfirm={installLink.confirmCatalog}
       />
     </>
   )
