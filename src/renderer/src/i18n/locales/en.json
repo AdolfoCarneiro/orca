@@ -2219,8 +2219,10 @@
       },
       "NewWorkspaceComposerCard": {
         "openExistingWorkspace": "Open existing workspace",
-        "reuseExistingBranch": "Reuse branch",
-        "reuseExistingBranchHint": "Check out the existing branch instead of creating a new one from it.",
+        "checkoutSelectedBranch": "Check out this branch",
+        "workOnLocalBranchHint": "Check out the selected branch in the new worktree.",
+        "workOnRemoteBranchHint": "Check out the matching local branch, or create one that tracks this remote branch.",
+        "createBranchFromSelectionHint": "Create a new branch from the selected branch.",
         "createMultiple": "Create more",
         "cbb47ee0dc": "Only available for local Git projects.",
         "d861de981b": "Sparse checkout",

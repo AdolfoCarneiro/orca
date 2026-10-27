@@ -2102,8 +2102,10 @@
         "estimateValue": "Estimation {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Réutiliser la branche",
-        "reuseExistingBranchHint": "Faites un checkout de la branche existante au lieu d'en créer une nouvelle à partir de celle-ci.",
+        "checkoutSelectedBranch": "Basculer sur cette branche",
+        "workOnLocalBranchHint": "Utilisez la branche sélectionnée dans le nouvel arbre de travail.",
+        "workOnRemoteBranchHint": "Utilisez la branche locale correspondante ou créez-en une qui suit cette branche distante.",
+        "createBranchFromSelectionHint": "Créez une nouvelle branche à partir de la branche sélectionnée.",
         "createMultiple": "Créer plus",
         "cbb47ee0dc": "Disponible uniquement pour les projets Git locaux.",
         "d861de981b": "Sparse checkout",

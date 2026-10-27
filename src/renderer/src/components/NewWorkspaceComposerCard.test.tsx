@@ -441,7 +441,7 @@ describe('NewWorkspaceComposerCard folder task source mode', () => {
     // Reuse stays mounted for height animation; unavailable rows are collapsed and aria-hidden.
     current = renderCard({ canReuseSelectedBranch: false })
     const collapsedReuse = [...current.container.querySelectorAll('[aria-hidden="true"]')].find(
-      (el) => el.textContent?.includes('Reuse branch')
+      (el) => el.textContent?.includes('Check out this branch')
     )
     expect(collapsedReuse).toBeTruthy()
 
@@ -449,19 +449,19 @@ describe('NewWorkspaceComposerCard folder task source mode', () => {
 
     current = renderCard({ canReuseSelectedBranch: true, reuseSelectedBranch: true })
     const reuseLabel = [...current.container.querySelectorAll('label')].find((label) =>
-      label.textContent?.includes('Reuse branch')
+      label.textContent?.includes('Check out this branch')
     )
     expect(reuseLabel).toBeTruthy()
     expect(reuseLabel?.closest('[aria-hidden="true"]')).toBeNull()
     expect(current.container.textContent).toContain(
-      'Check out the existing branch instead of creating a new one from it.'
+      'Check out the selected branch in the new worktree.'
     )
   })
 
   it('emits the toggled value from the reuse checkbox in both directions', () => {
     const clickReuseCheckbox = (): void => {
       const reuseLabel = [...(current?.container.querySelectorAll('label') ?? [])].find((label) =>
-        label.textContent?.includes('Reuse branch')
+        label.textContent?.includes('Check out this branch')
       )
       const checkbox = reuseLabel?.querySelector<HTMLButtonElement>('[role="checkbox"]')
       expect(checkbox).toBeTruthy()

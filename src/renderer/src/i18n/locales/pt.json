@@ -16549,8 +16549,10 @@
         "typeHtml": "HTML"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Reutilizar branch",
-        "reuseExistingBranchHint": "Faça checkout da branch existente em vez de criar uma nova a partir dela.",
+        "checkoutSelectedBranch": "Fazer checkout desta branch",
+        "workOnLocalBranchHint": "Faça checkout da branch selecionada na nova árvore de trabalho.",
+        "workOnRemoteBranchHint": "Use a branch local correspondente ou crie uma que rastreie esta branch remota.",
+        "createBranchFromSelectionHint": "Crie uma nova branch a partir da branch selecionada.",
         "createMultiple": "Criar mais",
         "cbb47ee0dc": "Disponível apenas para projetos Git locais.",
         "d861de981b": "Checkout esparso",

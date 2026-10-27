@@ -173,16 +173,26 @@ export function NewWorkspaceComposerNameSection({
               />
               <span>
                 {translate(
-                  'auto.components.NewWorkspaceComposerCard.reuseExistingBranch',
-                  'Reuse branch'
+                  'auto.components.NewWorkspaceComposerCard.checkoutSelectedBranch',
+                  'Check out this branch'
                 )}
               </span>
             </label>
             <p className="pl-6 text-2xs text-muted-foreground">
-              {translate(
-                'auto.components.NewWorkspaceComposerCard.reuseExistingBranchHint',
-                'Check out the existing branch instead of creating a new one from it.'
-              )}
+              {!reuseSelectedBranch
+                ? translate(
+                    'auto.components.NewWorkspaceComposerCard.createBranchFromSelectionHint',
+                    'Create a new branch from the selected branch.'
+                  )
+                : baseBranch?.startsWith('refs/remotes/')
+                  ? translate(
+                      'auto.components.NewWorkspaceComposerCard.workOnRemoteBranchHint',
+                      'Check out the matching local branch, or create one that tracks this remote branch.'
+                    )
+                  : translate(
+                      'auto.components.NewWorkspaceComposerCard.workOnLocalBranchHint',
+                      'Check out the selected branch in the new worktree.'
+                    )}
             </p>
             {onOpenSelectedBranchWorkspace ? (
               <div className="pl-6 pt-1">
