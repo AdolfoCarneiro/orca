@@ -16573,7 +16573,8 @@
           "message": "A plugin can open .{{value0}} files: {{value1}}",
           "view": "View plugin",
           "notNow": "Not now",
-          "never": "Don't suggest for .{{value0}}"
+          "never": "Don't suggest for .{{value0}}",
+          "editorMessage": "A plugin adds an editor for .{{value0}} files: {{value1}}"
         },
         "PluginCustomEditorFrame": {
           "loading": "Loading editor…",

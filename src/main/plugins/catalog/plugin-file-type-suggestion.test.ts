@@ -112,3 +112,88 @@ describe('findPluginFileTypeSuggestion', () => {
     ).toBe('samples.second')
   })
 })
+
+describe('editor suggestions for files Orca already opens as text', () => {
+  const excalidraw = (pluginKey = 'stablyai.excalidraw') =>
+    listing(pluginKey, ['excalidraw'], {
+      release: {
+        version: '1.0.0',
+        commit: 'c'.repeat(40),
+        contentHash: 'f'.repeat(64),
+        execution: 'sandboxed-ui',
+        minimumOrca: '1.4.0',
+        fileTypes: ['excalidraw'],
+        contributes: [
+          { kind: 'customEditors', name: 'Excalidraw', detail: '.excalidraw, .excalidraw.json' }
+        ]
+      }
+    })
+  const settings = { pluginSystemEnabled: true }
+
+  it('suggests a catalog custom editor for the type', () => {
+    expect(
+      findPluginFileTypeSuggestion({
+        fileType: 'excalidraw',
+        purpose: 'editor',
+        settings,
+        listings: [excalidraw()],
+        installed: []
+      })
+    ).toMatchObject({ pluginKey: 'stablyai.excalidraw', fileType: 'excalidraw' })
+  })
+
+  it('never suggests a syntax plugin for a file that is already highlighted', () => {
+    expect(
+      findPluginFileTypeSuggestion({
+        fileType: 'gleam',
+        purpose: 'editor',
+        settings,
+        listings: [listing('stablyai.gleam', ['gleam'])],
+        installed: []
+      })
+    ).toBeNull()
+  })
+
+  it('trusts only verified file types, not the summary alone', () => {
+    const misstated = excalidraw()
+    misstated.release.fileTypes = []
+    expect(
+      findPluginFileTypeSuggestion({
+        fileType: 'excalidraw',
+        purpose: 'editor',
+        settings,
+        listings: [misstated],
+        installed: []
+      })
+    ).toBeNull()
+  })
+
+  it('stays quiet once dismissed for the type', () => {
+    expect(
+      findPluginFileTypeSuggestion({
+        fileType: 'excalidraw',
+        purpose: 'editor',
+        settings: { ...settings, pluginDismissedFileTypes: ['excalidraw'] },
+        listings: [excalidraw()],
+        installed: []
+      })
+    ).toBeNull()
+  })
+
+  it('suggests the same editor for a binary file Orca cannot open', () => {
+    const sheet = listing('stablyai.spreadsheet', ['xlsx'], {
+      release: {
+        version: '1.0.0',
+        commit: 'c'.repeat(40),
+        contentHash: 'f'.repeat(64),
+        execution: 'sandboxed-ui',
+        minimumOrca: '1.4.0',
+        fileTypes: ['xlsx'],
+        contributes: [{ kind: 'customEditors', name: 'Spreadsheet', detail: '.xlsx' }]
+      }
+    })
+    expect(
+      findPluginFileTypeSuggestion({ fileType: 'xlsx', settings, listings: [sheet], installed: [] })
+    ).toMatchObject({ pluginKey: 'stablyai.spreadsheet' })
+  })
+})

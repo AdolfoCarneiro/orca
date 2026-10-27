@@ -38,7 +38,7 @@ it('offers the catalog plugin and opens its preview without installing', async (
   render(<PluginFileTypeSuggestion filePath="docs/paper.typ" />)
   expect(await screen.findByText('A plugin can open .typ files: Typst')).toBeTruthy()
   expect(screen.getByRole('status')).toBeTruthy()
-  expect(suggestForFileType).toHaveBeenCalledWith('typ')
+  expect(suggestForFileType).toHaveBeenCalledWith('typ', 'open')
 
   fireEvent.click(screen.getByRole('button', { name: 'View plugin' }))
   expect(usePluginPreviewRequestStore.getState().request).toMatchObject({
@@ -46,6 +46,20 @@ it('offers the catalog plugin and opens its preview without installing', async (
     pluginKey: 'stablyai.orca-typst'
   })
   expect(openSettingsTarget).toHaveBeenCalledWith({ pane: 'plugins', repoId: null })
+})
+
+it('asks only for a custom editor for a file Orca already shows as text', async () => {
+  suggestForFileType.mockResolvedValue({
+    marketplaceSourceId: 'official',
+    pluginKey: 'stablyai.excalidraw',
+    fileType: 'excalidraw',
+    name: 'Excalidraw'
+  })
+  render(<PluginFileTypeSuggestion filePath="scene.excalidraw" purpose="editor" />)
+  expect(
+    await screen.findByText('A plugin adds an editor for .excalidraw files: Excalidraw')
+  ).toBeTruthy()
+  expect(suggestForFileType).toHaveBeenCalledWith('excalidraw', 'editor')
 })
 
 it('remembers "Don\'t suggest" in settings', async () => {

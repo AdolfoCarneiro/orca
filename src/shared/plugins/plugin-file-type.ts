@@ -25,6 +25,22 @@ export function pluginHandledFileTypes(contributes: {
   ]
 }
 
+/** Single-extension file types a plugin's custom editors open. */
+export function pluginEditorFileTypes(contributes: {
+  customEditors: readonly { fileTypes: readonly string[] }[]
+}): string[] {
+  return [
+    ...new Set(
+      contributes.customEditors.flatMap((editor) =>
+        editor.fileTypes.filter((fileType) => pluginFileTypeSchema.safeParse(fileType).success)
+      )
+    )
+  ]
+}
+
+/** Why a purpose: a file Orca already highlights only gets an editor suggestion, never a syntax one. */
+export type PluginFileTypeSuggestionPurpose = 'open' | 'editor'
+
 /** The last extension of a path, lowercased; null for dotfiles and names without one. */
 export function fileTypeOfPath(filePath: string): string | null {
   const name = filePath.split(/[\\/]/).at(-1) ?? ''

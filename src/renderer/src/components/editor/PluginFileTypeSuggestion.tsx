@@ -11,11 +11,14 @@ import { Button } from '../ui/button'
 // Why module scope: "Not now" lasts for the session, across tabs and remounts.
 const hiddenThisSession = new Set<string>()
 
-/** Offers a catalog plugin for a file type Orca can't open or highlight. Never installs. */
+/** Offers a catalog plugin for a file type Orca can't open or highlight, or (`editor`) a custom
+ *  editor for one it shows as text. Never installs. */
 export function PluginFileTypeSuggestion({
-  filePath
+  filePath,
+  purpose = 'open'
 }: {
   filePath: string
+  purpose?: 'open' | 'editor'
 }): React.JSX.Element | null {
   const fileType = fileTypeOfPath(filePath)
   const settings = useAppStore((state) => state.settings)
@@ -37,7 +40,7 @@ export function PluginFileTypeSuggestion({
     }
     let current = true
     void window.api.plugins
-      .suggestForFileType(fileType)
+      .suggestForFileType(fileType, purpose)
       .then((next) => {
         if (current) {
           setSuggestion(next)
@@ -47,7 +50,7 @@ export function PluginFileTypeSuggestion({
     return () => {
       current = false
     }
-  }, [active, fileType])
+  }, [active, fileType, purpose])
 
   if (!active || !fileType || hiddenFileType === fileType || !suggestion) {
     return null
@@ -61,11 +64,17 @@ export function PluginFileTypeSuggestion({
       <div className="flex min-w-0 items-center gap-2">
         <Puzzle className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="min-w-0 truncate text-foreground">
-          {translate(
-            'auto.components.editor.PluginFileTypeSuggestion.message',
-            'A plugin can open .{{value0}} files: {{value1}}',
-            { value0: fileType, value1: name }
-          )}
+          {purpose === 'editor'
+            ? translate(
+                'auto.components.editor.PluginFileTypeSuggestion.editorMessage',
+                'A plugin adds an editor for .{{value0}} files: {{value1}}',
+                { value0: fileType, value1: name }
+              )
+            : translate(
+                'auto.components.editor.PluginFileTypeSuggestion.message',
+                'A plugin can open .{{value0}} files: {{value1}}',
+                { value0: fileType, value1: name }
+              )}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-1">

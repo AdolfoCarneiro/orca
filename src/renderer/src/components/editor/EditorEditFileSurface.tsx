@@ -344,9 +344,12 @@ export function EditorEditFileSurface({
   return (
     <div className="flex flex-1 min-h-0 flex-col">
       {externalChangeBanner}
-      {monacoLanguage === 'plaintext' ? (
-        <PluginFileTypeSuggestion filePath={activeFile.filePath} />
-      ) : null}
+      {customEditor ? null : (
+        <PluginFileTypeSuggestion
+          filePath={activeFile.filePath}
+          purpose={monacoLanguage === 'plaintext' ? 'open' : 'editor'}
+        />
+      )}
       {activeFile.conflict && (
         <ConflictBanner
           file={activeFile}

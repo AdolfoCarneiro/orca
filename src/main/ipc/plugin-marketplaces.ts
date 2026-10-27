@@ -55,18 +55,22 @@ export function registerPluginMarketplaceHandlers(
   approveConsent: PluginApproveConsent
 ): void {
   // Why cached only: this runs on every file open, which must never wait on a catalog fetch.
-  ipcMain.handle('plugins:suggestForFileType', async (_event, fileType: unknown) => {
-    const parsed = pluginFileTypeSchema.safeParse(fileType)
-    if (!parsed.success) {
-      return null
+  ipcMain.handle(
+    'plugins:suggestForFileType',
+    async (_event, fileType: unknown, purpose: unknown) => {
+      const parsed = pluginFileTypeSchema.safeParse(fileType)
+      if (!parsed.success) {
+        return null
+      }
+      return findPluginFileTypeSuggestion({
+        fileType: parsed.data,
+        purpose: purpose === 'editor' ? 'editor' : 'open',
+        settings: getSettings(),
+        listings: await services.marketplace.listCachedPlugins(),
+        installed: pluginService.getDiscovered()
+      })
     }
-    return findPluginFileTypeSuggestion({
-      fileType: parsed.data,
-      settings: getSettings(),
-      listings: await services.marketplace.listCachedPlugins(),
-      installed: pluginService.getDiscovered()
-    })
-  })
+  )
   ipcMain.handle('plugins:listMarketplaces', () => services.marketplace.listSources())
   ipcMain.handle('plugins:addMarketplace', async (_event, args: unknown) => {
     const source = pluginMarketplaceGitSourceSchema.parse(args)
