@@ -200,14 +200,16 @@ test("a paired phone lists, opens, runs and launches on the desktop's WSL host, 
       socket.close()
     }
 
-    // The distro stops. A phone asking now is told to start it on the computer, and nothing starts.
+    // The distro stops. A phone asking now is refused, and nothing starts. The fake drops the bridge
+    // as `closed`, not liveness's `distro-stopped`, so the phone gets the neutral copy (the
+    // confirmed-stop copy is unit-tested in wsl-host-phone-reach.test.ts).
     writeFileSync(distrosFile, JSON.stringify([{ ...UBUNTU, state: 'stopped' }]))
     const connectsBeforeStop = fakeWslConnects(connectLogFile)
     const stopped = await phone.openSocket()
     try {
       const refused = await send(stopped, 'worktree.ps', { limit: 100 }, hostId)
       expect(refused.ok).toBe(false)
-      expect(JSON.stringify(refused.error)).toContain('isn’t running')
+      expect(JSON.stringify(refused.error)).toContain('isn’t available from your phone')
       await expect
         .poll(
           async () =>
@@ -218,10 +220,10 @@ test("a paired phone lists, opens, runs and launches on the desktop's WSL host, 
             ),
           { timeout: 30_000 }
         )
-        .toEqual({ relay: 'unavailable', stopped: true, unavailable: false })
+        .toEqual({ relay: 'unavailable', stopped: false, unavailable: true })
       // A second refused call: anything a phone's call could start would have started by its answer.
       const refusedAgain = await send(stopped, 'worktree.ps', { limit: 100 }, hostId)
-      expect(JSON.stringify(refusedAgain.error)).toContain('isn’t running')
+      expect(JSON.stringify(refusedAgain.error)).toContain('isn’t available from your phone')
       expect(fakeWslConnects(connectLogFile)).toEqual(connectsBeforeStop)
     } finally {
       stopped.close()
