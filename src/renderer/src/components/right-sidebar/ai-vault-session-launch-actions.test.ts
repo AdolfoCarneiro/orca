@@ -26,6 +26,9 @@ vi.mock('@/lib/ai-vault-session-fork-startup', async (importOriginal) => ({
   }),
   buildAiVaultForkStartupForWorktree: mocks.buildAiVaultForkStartupForWorktree
 }))
+vi.mock('@/lib/ai-vault-session-drag-startup', () => ({
+  buildAiVaultResumeDragStartupForWorktree: mocks.buildAiVaultResumeStartupForWorktree
+}))
 vi.mock('@/lib/ai-vault-resume-command', () => ({
   resolveAiVaultResumeHost: () => ({ platform: 'linux', codexHome: null, liveShell: undefined }),
   buildAiVaultResumeStartupForWorktree: mocks.buildAiVaultResumeStartupForWorktree,

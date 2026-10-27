@@ -175,6 +175,17 @@ export function buildAiVaultLocalResumeStartup(
     }
   }
 
+  return buildAiVaultLocalResumeFallback(args)
+}
+
+export function buildAiVaultLocalResumeFallback(
+  args: AiVaultResumeStartupArgs & { embedCwd: boolean; clearEnvNames?: readonly string[] }
+): AiVaultResumeStartup {
+  const { session, embedCwd, clearEnvNames } = args
+  const { platform, codexHome, liveShell } = args.host
+  const resumeFilePath = normalizeAiVaultResumeFilePath(session.filePath, platform)
+  const cwd = embedCwd ? session.cwd : null
+  const startupCwd = !embedCwd && session.cwd ? { cwd: session.cwd } : {}
   return {
     command: buildAiVaultResumeCommand({
       agent: session.agent,

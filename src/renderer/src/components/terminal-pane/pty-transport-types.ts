@@ -123,6 +123,7 @@ export type PtyConnectResult = TerminalLaunchResult & {
 }
 
 type PtyCallbacks = {
+  onStartupAccepted?: (result: PtyConnectResult) => void
   onLaunchResult?: (result: TerminalAttachmentLaunchResult) => void
   /** Called before an adopted PTY can publish buffered/live bytes. */
   onReattachDetermined?: () => void

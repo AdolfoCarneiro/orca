@@ -26,7 +26,17 @@ export function buildAgentTerminalResumePlan(args: {
 }) {
   const { recipe } = args.resume
   const shell = agentLaunchQuotingShell(args.runtime)
-  const settings = recipe.source === 'current-inputs' ? recipe.settings : args.settings
+  const selected = recipe.source === 'current-inputs' ? recipe.settings : args.settings
+  const settings =
+    recipe.source === 'current-inputs' && recipe.commandOverride?.trim()
+      ? {
+          ...selected,
+          agentCmdOverrides: {
+            ...selected.agentCmdOverrides,
+            [args.agent]: recipe.commandOverride
+          }
+        }
+      : selected
   const inputs =
     recipe.source === 'saved'
       ? resolveResumeLaunchRecipe(recipe.launchConfig)

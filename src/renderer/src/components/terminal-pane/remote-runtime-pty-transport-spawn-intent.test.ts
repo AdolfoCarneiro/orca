@@ -74,9 +74,7 @@ describe('createRemoteRuntimePtyTransport: restore spawn intent', () => {
       worktreeId: 'repo1::/remote/wt',
       launchAgent: 'claude',
       resumeProviderSession: RESUME,
-      ...(saved
-        ? { resumeOrigin: 'saved' as const, resume: { recipe: { source: 'saved' as const } } }
-        : {}),
+      ...(saved ? { resumeOrigin: 'saved' as const } : {}),
       tabId: 'tab-1',
       leafId: LEAF_ID
     })
@@ -112,7 +110,6 @@ describe('createRemoteRuntimePtyTransport: restore spawn intent', () => {
   it.each([false, true])(
     'keeps saved-origin negotiation stable through an unknown outcome (capability %s)',
     async (modern) => {
-      capabilities.push('agent-resume.host-plan.v1')
       if (modern) {
         capabilities.push('agent-session.saved-resume-origin.v1')
       }
@@ -143,10 +140,8 @@ describe('createRemoteRuntimePtyTransport: restore spawn intent', () => {
       expect(requests[0].params).toMatchObject({ kind: 'explicit', providerSession: RESUME })
       if (modern) {
         expect(requests[0].params).toHaveProperty('resumeOrigin', 'saved')
-        expect(requests[0].params).toHaveProperty('resume.recipe.source', 'saved')
       } else {
         expect(requests[0].params).not.toHaveProperty('resumeOrigin')
-        expect(requests[0].params).not.toHaveProperty('resume')
       }
       expect(onSpawnDeferred).toHaveBeenCalledWith('paused')
     }

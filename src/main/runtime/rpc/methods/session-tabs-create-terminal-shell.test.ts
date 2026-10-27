@@ -35,11 +35,11 @@ describe('session.tabs.createTerminal shell selection', () => {
   afterEach(() => setStructuredAgentSessionHost(null))
 
   it.each([
-    { agent: 'claude', proving: false, code: 'agent_session_conflict' },
-    { agent: 'codex', proving: true, code: 'agent_session_ownership_unknown' }
+    { agent: 'claude', proving: false, scoped: true, code: 'agent_session_conflict' },
+    { agent: 'codex', proving: true, scoped: false, code: 'agent_session_ownership_unknown' }
   ] as const)(
     'preserves the terminal.send writer refusal for typed $agent resume',
-    async ({ agent, proving, code }) => {
+    async ({ agent, proving, scoped, code }) => {
       const runtime = makeRuntime()
       vi.mocked(runtime.ensureStructuredAgentSessionHost).mockImplementation(async () => {
         installOwnership({
@@ -74,8 +74,11 @@ describe('session.tabs.createTerminal shell selection', () => {
           worktree: 'id:wt-1',
           clientMutationId: 'resume-1',
           launchAgent: agent,
-          resume: { recipe: { source: 'current-inputs', settings: {} } },
-          resumeProviderSession: { key: 'session_id', id: PROVIDER_SESSION }
+          resume: {
+            ...(scoped ? { providerSession: { key: 'session_id', id: PROVIDER_SESSION } } : {}),
+            recipe: { source: 'current-inputs', settings: {} }
+          },
+          ...(!scoped ? { resumeProviderSession: { key: 'session_id', id: PROVIDER_SESSION } } : {})
         })
       )
       expect(oldReply).toMatchObject({ ok: false, error: { code } })

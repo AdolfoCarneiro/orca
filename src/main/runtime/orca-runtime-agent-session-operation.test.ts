@@ -3,9 +3,6 @@ import {
   EnsureAgentSessionParams
 } from '../../shared/rpc-contract/agent-session-params'
 import { describe, expect, it, vi } from 'vitest'
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import type {
   RuntimeCreateAgentSessionRequest,
   RuntimeCreateAgentSessionResult
@@ -368,40 +365,6 @@ describe('agent-session create operation ledger', () => {
 
     expect(createTerminal).not.toHaveBeenCalled()
   })
-
-  it.skipIf(process.platform !== 'linux')(
-    'normalizes a typed Pi transcript before the execution host claims it',
-    async () => {
-      const folder = mkdtempSync(join(tmpdir(), 'conv-7r-pi-'))
-      try {
-        const transcript = join(folder, 'session.jsonl')
-        writeFileSync(transcript, '{}\n')
-        const runtime = createRuntime()
-        const createTerminal = vi.spyOn(runtime, 'createTerminal').mockResolvedValue(terminal())
-        await runtime.ensureAgentSession({
-          kind: 'explicit',
-          worktree: 'id:worktree-1',
-          agent: 'pi',
-          providerSession: {
-            key: 'session_id',
-            id: 'pi-recorded',
-            transcriptPath: `\\\\wsl$\\Ubuntu${transcript.replaceAll('/', '\\')}`
-          },
-          resume: { recipe: { source: 'saved' } }
-        })
-        expect(createTerminal).toHaveBeenCalledWith(
-          'id:worktree-1',
-          expect.objectContaining({
-            resumeProviderSession: expect.objectContaining({
-              transcriptPath: realpathSync(transcript)
-            })
-          })
-        )
-      } finally {
-        rmSync(folder, { recursive: true })
-      }
-    }
-  )
 
   it('replays the same completed operation without spawning again', async () => {
     const runtime = createRuntime()

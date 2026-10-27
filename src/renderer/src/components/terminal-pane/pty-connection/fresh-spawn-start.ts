@@ -24,7 +24,7 @@ import { findTerminalTabForPane } from './terminal-tab-id'
 
 export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
   session.startFreshSpawn = (
-    startupOverride?: PendingStartupCommand | ColdRestoreAgentResumeStartup | null,
+    startupOverride?: PendingStartupCommand | null,
     options: FreshSpawnOptions = {}
   ): Promise<string | null> => {
     const releaseDeferredCwdFence = (): void => {
@@ -64,7 +64,9 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
     session.writeInputModeGround(PROCESS_BOUNDARY_GROUND)
     session.prepareFreshShellViewportForSpawn(options)
     const coldRestoreOverride =
-      startupOverride && 'agent' in startupOverride ? startupOverride : null
+      startupOverride && 'launchConfig' in startupOverride
+        ? (startupOverride as ColdRestoreAgentResumeStartup)
+        : null
     // Declare before spawn to suppress daemon seeding; ordered Electron IPC needs no await, and the captured generation later settles/clears ownership (docs/mobile-prefer-renderer-scrollback.md).
     const preSignalPromise = session.runtimeEnvironmentId
       ? Promise.resolve(null)
@@ -94,7 +96,6 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
       url: '',
       cols: session.cols,
       rows: session.rows,
-      ...(startupOverride?.resume ? { resume: startupOverride.resume } : {}),
       ...(startupOverride?.command ? { command: startupOverride.command } : {}),
       ...(startupOverride?.env
         ? { env: session.mergeStartupEnvWithPaneIdentity(startupOverride.env) }
@@ -222,7 +223,7 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
           session.clearSleepingRecordAfterColdRestoreSpawn(coldRestore)
         } else if (
           session.paneStartup?.launchConfig ||
-          (startupOverride && 'agent' in startupOverride)
+          (startupOverride && 'launchConfig' in startupOverride)
         ) {
           // Unbound spawns are no delivery target; clear launch registration so delayed drafts cannot reach a future pane.
           session.clearRegisteredStartupLaunchConfig(coldRestoreOverride ?? effectiveStartup)
@@ -270,7 +271,10 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
         }
         releaseDeferredCwdFence()
         session.finishReattachLiveDataDeferral(false, outputCallbacks.generation)
-        if (session.paneStartup?.launchConfig || (startupOverride && 'agent' in startupOverride)) {
+        if (
+          session.paneStartup?.launchConfig ||
+          (startupOverride && 'launchConfig' in startupOverride)
+        ) {
           session.clearRegisteredStartupLaunchConfig(coldRestoreOverride ?? effectiveStartup)
         }
         clearPreSignaledSerializer()

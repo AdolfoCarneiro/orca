@@ -1,4 +1,8 @@
-import { prepareLegacyAgentTerminalResume } from '@/lib/legacy-agent-terminal-resume'
+import {
+  ResumePlanNotDispatchedError,
+  isAgentResumeNotDispatched,
+  isAgentResumeNotDispatchedResponse
+} from '../../../../shared/agent-terminal-resume-outcome'
 import type { IpcPtyTransportOptions, PtyConnectResult, PtyTransport } from './pty-transport-types'
 import type { RuntimeCreateAgentSessionResult } from '../../../../shared/agent-session-host-authority'
 import {
@@ -94,35 +98,12 @@ export async function spawnIpcPty(
     agentLaunch
   } = transportOptions
   const typedResume = connectOptions.resume ?? resume
-  if (typedResume && connectionId && !admittedSessionId) {
-    if (!worktreeId) {
-      throw new Error('agent_launch_request_invalid')
-    }
-    const legacy = prepareLegacyAgentTerminalResume({
-      worktreeId,
-      agent: connectOptions.launchAgent ?? launchAgent,
-      providerSession: connectOptions.resumeProviderSession ?? resumeProviderSession,
-      resume: typedResume,
-      cwd,
-      shellOverride
-    })
-    return spawnIpcPty(
-      { ...transportOptions, resume: undefined, ...legacy, env: { ...legacy.env, ...env } },
-      {
-        ...connectOptions,
-        resume: undefined,
-        ...legacy,
-        env: { ...legacy.env, ...(connectOptions.env ?? env) }
-      },
-      admittedSessionId
-    )
-  }
   const resumesAgent = Boolean(connectOptions.resumeProviderSession ?? resumeProviderSession)
   const spawnIntent =
     resumesAgent && !admittedSessionId ? connectOptions.resumeSpawnIntent : undefined
   // Why: a reattach under an admitted session id must never stop the PTY it is reattaching.
   const replacesPtyId = admittedSessionId ? null : (connectOptions.claimReplacedPtyId?.() ?? null)
-  return window.api.pty.spawn({
+  const request: Parameters<typeof window.api.pty.spawn>[0] = {
     ...(typedResume && !admittedSessionId ? { resume: typedResume } : {}),
     cols: connectOptions.cols ?? 80,
     rows: connectOptions.rows ?? 24,
@@ -131,11 +112,11 @@ export async function spawnIpcPty(
     ...((connectOptions.envToDelete ?? envToDelete)
       ? { envToDelete: connectOptions.envToDelete ?? envToDelete }
       : {}),
-    command: connectOptions.command ?? command,
+    command: typedResume && !admittedSessionId ? undefined : (connectOptions.command ?? command),
     ...((connectOptions.commandDelivery ?? commandDelivery)
       ? { commandDelivery: connectOptions.commandDelivery ?? commandDelivery }
       : {}),
-    ...((connectOptions.launchConfig ?? launchConfig)
+    ...(!typedResume && (connectOptions.launchConfig ?? launchConfig)
       ? { launchConfig: connectOptions.launchConfig ?? launchConfig }
       : {}),
     ...((connectOptions.resumeProviderSession ?? resumeProviderSession)
@@ -171,5 +152,33 @@ export async function spawnIpcPty(
     ...(terminalKittyKeyboardProtocol === true ? { terminalKittyKeyboardProtocol: true } : {}),
     ...(telemetry ? { telemetry } : {}),
     ...(agentLaunch && !admittedSessionId ? { agentLaunch } : {})
-  })
+  }
+  try {
+    const result = await window.api.pty.spawn(request)
+    if ('error' in result) {
+      if (isAgentResumeNotDispatchedResponse(result)) {
+        throw new ResumePlanNotDispatchedError(result.error.message)
+      }
+      throw new Error(result.error.message)
+    }
+    return result
+  } catch (error) {
+    const fallback = connectOptions.command ?? command
+    if (!typedResume || !fallback || !isAgentResumeNotDispatched(error)) {
+      throw error
+    }
+    if (connectOptions.shouldContinue && !connectOptions.shouldContinue()) {
+      throw error
+    }
+    return window.api.pty.spawn({
+      ...request,
+      resume: undefined,
+      command: fallback,
+      env: request.env,
+      launchConfig: undefined,
+      resumeProviderSession: connectOptions.resumeProviderSession ?? resumeProviderSession,
+      launchAgent: undefined,
+      launchToken: undefined
+    })
+  }
 }

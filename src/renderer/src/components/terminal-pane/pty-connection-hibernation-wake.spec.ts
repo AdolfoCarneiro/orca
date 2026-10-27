@@ -130,14 +130,11 @@ export function registerPtyConnectionHibernationWakeTests(): void {
         return
       }
       expect(transport.connect.mock.calls.length).toBeGreaterThan(connectCallsBeforeExit)
-      const resumeConnectOptions = transport.connect.mock.calls.at(-1)?.[0]
-      expect(resumeConnectOptions?.resume).toEqual({ recipe: { source: 'saved' } })
-      expect(resumeConnectOptions?.command).toBeUndefined()
-      expect(resumeConnectOptions).toMatchObject({
-        launchAgent: 'claude',
-        resumeOrigin: 'saved',
-        resumeProviderSession: { key: 'session_id', id: 'sess-hibernated-1' }
-      })
+      const resumeConnectOptions = transport.connect.mock.calls.at(-1)?.[0] as
+        | { command?: string }
+        | undefined
+      expect(resumeConnectOptions?.command).toContain('--resume')
+      expect(resumeConnectOptions?.command).toContain('sess-hibernated-1')
 
       const connectCallsAfterWake = transport.connect.mock.calls.length
       binding.noteVisibilityResume()
@@ -196,15 +193,10 @@ export function registerPtyConnectionHibernationWakeTests(): void {
         )
         return
       }
-      const resumeConnectOptions = transport.connect.mock.calls.at(-1)?.[0]
+      const resumeConnectOptions: { command?: string } | undefined =
+        transport.connect.mock.calls.at(-1)?.[0]
       expect(transport.connect.mock.calls.length).toBeGreaterThan(connectCallsBeforeExit)
-      expect(resumeConnectOptions?.resume).toEqual({ recipe: { source: 'saved' } })
-      expect(resumeConnectOptions?.command).toBeUndefined()
-      expect(resumeConnectOptions).toMatchObject({
-        launchAgent: 'claude',
-        resumeOrigin: 'saved',
-        resumeProviderSession: { key: 'session_id', id: 'sess-idle-anchor' }
-      })
+      expect(resumeConnectOptions?.command).toContain('sess-idle-anchor')
     })
 
     it('resumes a hibernated agent from a navigation-free wake without a visibility reveal', async () => {
@@ -272,14 +264,11 @@ export function registerPtyConnectionHibernationWakeTests(): void {
         return
       }
       expect(transport.connect.mock.calls.length).toBeGreaterThan(connectCallsBeforeExit)
-      const resumeConnectOptions = transport.connect.mock.calls.at(-1)?.[0]
-      expect(resumeConnectOptions?.resume).toEqual({ recipe: { source: 'saved' } })
-      expect(resumeConnectOptions?.command).toBeUndefined()
-      expect(resumeConnectOptions).toMatchObject({
-        launchAgent: 'claude',
-        resumeOrigin: 'saved',
-        resumeProviderSession: { key: 'session_id', id: 'sess-hibernated-bg' }
-      })
+      const resumeConnectOptions = transport.connect.mock.calls.at(-1)?.[0] as
+        | { command?: string }
+        | undefined
+      expect(resumeConnectOptions?.command).toContain('--resume')
+      expect(resumeConnectOptions?.command).toContain('sess-hibernated-bg')
 
       const connectCallsAfterWake = transport.connect.mock.calls.length
       binding.wakeHibernatedAgentIfArmed()
@@ -475,14 +464,11 @@ export function registerPtyConnectionHibernationWakeTests(): void {
       }
       // Arming consumed the latched wake — the --resume spawned with no reveal and no second wake event.
       expect(transport.connect.mock.calls.length).toBeGreaterThan(connectCallsBeforeExit)
-      const resumeConnectOptions = transport.connect.mock.calls.at(-1)?.[0]
-      expect(resumeConnectOptions?.resume).toEqual({ recipe: { source: 'saved' } })
-      expect(resumeConnectOptions?.command).toBeUndefined()
-      expect(resumeConnectOptions).toMatchObject({
-        launchAgent: 'claude',
-        resumeOrigin: 'saved',
-        resumeProviderSession: { key: 'session_id', id: 'sess-hibernated-race' }
-      })
+      const resumeConnectOptions = transport.connect.mock.calls.at(-1)?.[0] as
+        | { command?: string }
+        | undefined
+      expect(resumeConnectOptions?.command).toContain('--resume')
+      expect(resumeConnectOptions?.command).toContain('sess-hibernated-race')
     })
 
     it('keeps an in-place provider claim until the replacement PTY spawn settles', async () => {
@@ -687,14 +673,11 @@ export function registerPtyConnectionHibernationWakeTests(): void {
         return
       }
       expect(transport.connect.mock.calls.length).toBeGreaterThan(connectCallsBeforeExit)
-      const resumeConnectOptions = transport.connect.mock.calls.at(-1)?.[0]
-      expect(resumeConnectOptions?.resume).toEqual({ recipe: { source: 'saved' } })
-      expect(resumeConnectOptions?.command).toBeUndefined()
-      expect(resumeConnectOptions).toMatchObject({
-        launchAgent: 'claude',
-        resumeOrigin: 'saved',
-        resumeProviderSession: { key: 'session_id', id: 'sess-hibernated-2' }
-      })
+      const resumeConnectOptions = transport.connect.mock.calls.at(-1)?.[0] as
+        | { command?: string }
+        | undefined
+      expect(resumeConnectOptions?.command).toContain('--resume')
+      expect(resumeConnectOptions?.command).toContain('sess-hibernated-2')
 
       const connectCallsAfterWake = transport.connect.mock.calls.length
       binding.noteVisibilityResume()

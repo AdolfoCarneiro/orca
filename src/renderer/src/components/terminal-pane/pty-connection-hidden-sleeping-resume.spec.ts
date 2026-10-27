@@ -117,15 +117,8 @@ export function registerPtyConnectionHiddenSleepingResumeTests(): void {
     vi.mocked(window.api.pty.hasPty).mockResolvedValue(isLive)
   }
 
-  function expectResume(transport: MockTransport, index: number): void {
-    const options = transport.connect.mock.calls[index]?.[0]
-    expect(options?.resume).toEqual({ recipe: { source: 'saved' } })
-    expect(options?.command).toBeUndefined()
-    expect(options).toMatchObject({
-      resumeProviderSession: { key: 'session_id', id: 'codex-session-1' },
-      launchAgent: 'codex',
-      resumeOrigin: 'saved'
-    })
+  function resumeCommands(transport: MockTransport): (string | undefined)[] {
+    return transport.connect.mock.calls.map((call) => call[0]?.command)
   }
 
   async function expectAttachedToMainStart(transport: MockTransport): Promise<void> {
@@ -182,7 +175,7 @@ export function registerPtyConnectionHiddenSleepingResumeTests(): void {
         await expectAttachedToMainStart(transport)
         return
       }
-      expectResume(transport, 0)
+      expect(resumeCommands(transport)[0]).toContain("'resume' 'codex-session-1'")
     })
 
     it('holds a hidden reattach the host reports gone, then reattaches it on reveal', async () => {
@@ -205,7 +198,7 @@ export function registerPtyConnectionHiddenSleepingResumeTests(): void {
         expectNoWindowStart(transport, mockStoreState)
         return
       }
-      expectResume(transport, 0)
+      expect(resumeCommands(transport)[0]).toContain("'resume' 'codex-session-1'")
     })
 
     it.each([
@@ -233,7 +226,7 @@ export function registerPtyConnectionHiddenSleepingResumeTests(): void {
         await expectAttachedToMainStart(transport)
         return
       }
-      expectResume(transport, 0)
+      expect(resumeCommands(transport)[0]).toContain("'resume' 'codex-session-1'")
     })
 
     it('resumes a held hidden pane immediately on a phone wake', async () => {
@@ -288,7 +281,7 @@ export function registerPtyConnectionHiddenSleepingResumeTests(): void {
         await expectAttachedToMainStart(transport)
         return
       }
-      expectResume(transport, 1)
+      expect(resumeCommands(transport)[1]).toContain("'resume' 'codex-session-1'")
     })
 
     it('keeps owning its record while the woken resume is still starting', async () => {
@@ -374,7 +367,7 @@ export function registerPtyConnectionHiddenSleepingResumeTests(): void {
         await expectAttachedToMainStart(transport)
         return
       }
-      expectResume(transport, 0)
+      expect(resumeCommands(transport)[0]).toContain("'resume' 'codex-session-1'")
     })
 
     it('drops a held wake once the record names a different session', async () => {

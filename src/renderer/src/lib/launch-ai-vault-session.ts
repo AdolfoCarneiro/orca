@@ -1,4 +1,4 @@
-import type { TerminalStartupInput } from '../../../shared/agent-terminal-resume'
+import type { AgentTerminalResume } from '../../../shared/agent-terminal-resume'
 import { useAppStore } from '@/store'
 import { persistAgentLaunchTabOrder } from '@/lib/launch-agent-tab-order'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
@@ -17,19 +17,19 @@ export type LaunchAiVaultSessionInNewTabResult =
   | { tabId: string }
   | { tabId: null; runtimeLaunch: Promise<WebRuntimeTerminalCreateOutcome> }
 
-export function launchAiVaultSessionInNewTab(
-  args: {
-    agent: AiVaultAgent
-    worktreeId: string
-    cwd?: string
-    env?: Record<string, string>
-    envToDelete?: string[]
-    launchConfig?: SleepingAgentLaunchConfig
-    providerSession?: AgentProviderSessionMetadata
-    targetGroupId?: string
-    splitDirection?: TabSplitDirection
-  } & TerminalStartupInput
-): LaunchAiVaultSessionInNewTabResult {
+export function launchAiVaultSessionInNewTab(args: {
+  agent: AiVaultAgent
+  worktreeId: string
+  command: string
+  resume?: AgentTerminalResume
+  cwd?: string
+  env?: Record<string, string>
+  envToDelete?: string[]
+  launchConfig?: SleepingAgentLaunchConfig
+  providerSession?: AgentProviderSessionMetadata
+  targetGroupId?: string
+  splitDirection?: TabSplitDirection
+}): LaunchAiVaultSessionInNewTabResult {
   const store = useAppStore.getState()
   // Why both paths split: the runtime path used to return first and drop the split (#22791).
   const split =
@@ -50,7 +50,7 @@ export function launchAiVaultSessionInNewTab(
         ...(targetGroupId ? { targetGroupId } : {}),
         agentSessionKind: 'resume',
         launchAgent: args.agent,
-        ...(args.resume ? { resume: args.resume } : { command: args.command }),
+        command: args.command,
         ...(args.cwd ? { cwd: args.cwd } : {}),
         ...(args.env ? { env: args.env } : {}),
         ...(args.envToDelete ? { envToDelete: args.envToDelete } : {}),
@@ -77,7 +77,8 @@ export function launchAiVaultSessionInNewTab(
     ...(split ? { split } : {}),
     ...(args.cwd ? { startupCwd: args.cwd } : {}),
     pendingStartup: {
-      ...(args.resume ? { resume: args.resume } : { command: args.command }),
+      command: args.command,
+      ...(args.resume ? { resume: args.resume } : {}),
       ...(args.env ? { env: args.env } : {}),
       ...(args.envToDelete ? { envToDelete: args.envToDelete } : {}),
       ...(args.launchConfig ? { launchConfig: args.launchConfig } : {}),

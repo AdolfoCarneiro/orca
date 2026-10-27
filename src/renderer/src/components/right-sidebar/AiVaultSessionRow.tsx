@@ -6,11 +6,11 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/component
 import { cn } from '@/lib/utils'
 import {
   AI_VAULT_SESSION_DRAG_END_EVENT,
-  AI_VAULT_SESSION_DRAG_START_EVENT,
-  writeAiVaultSessionDragData
+  AI_VAULT_SESSION_DRAG_START_EVENT
 } from '@/lib/ai-vault-session-drag'
+import { writeAiVaultLocalDragData } from '@/lib/ai-vault-local-drag-data'
 import type { AiVaultScope, AiVaultSession } from '../../../../shared/ai-vault-types'
-import type { AiVaultResumeStartup } from '@/lib/ai-vault-resume-command'
+import type { AiVaultResumeDragStartup } from '@/lib/ai-vault-session-drag-startup'
 import { translate } from '@/i18n/i18n'
 import { SessionInlineDetails } from './AiVaultSessionDetails'
 import { latestSessionConversationTurn } from './ai-vault-session-display'
@@ -65,8 +65,8 @@ export function VaultSessionRow({
 }: {
   session: AiVaultSession
   liveState: AgentStatusState | null
-  resumeStartup: AiVaultResumeStartup
-  realHomeResumeStartup: AiVaultResumeStartup
+  resumeStartup: AiVaultResumeDragStartup
+  realHomeResumeStartup: AiVaultResumeDragStartup
   worktreeInfo: AiVaultSessionWorktreeInfo | null
   vaultScope: AiVaultScope
   detailsExpanded: boolean
@@ -125,12 +125,14 @@ export function VaultSessionRow({
         event.preventDefault()
         return
       }
-      writeAiVaultSessionDragData(event.dataTransfer, {
+      writeAiVaultLocalDragData(event.dataTransfer, {
         agent: session.agent,
         sessionId: session.sessionId,
         ...(session.structuredSession ? { structuredSession: session.structuredSession } : {}),
         title,
-        ...resumeStartup,
+        command: resumeStartup.command,
+        ...(resumeStartup.resume ? { resume: resumeStartup.resume } : {}),
+        ...(resumeStartup.localFallback ? { localFallback: resumeStartup.localFallback } : {}),
         sessionFilePath: session.filePath,
         sessionExecutionHostId: session.executionHostId,
         codexHome: session.codexHome,

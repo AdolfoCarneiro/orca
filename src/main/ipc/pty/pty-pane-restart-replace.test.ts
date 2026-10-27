@@ -1,3 +1,6 @@
+import { resolveAgentTerminalCreateOptions } from '../../runtime/runtime-agent-terminal-startup'
+import { partialRuntimeStore } from '../../runtime/runtime-store-partial-fixture'
+import { isAgentResumeNotDispatchedResponse } from '../../../shared/agent-terminal-resume-outcome'
 import { describe, expect, it, vi } from 'vitest'
 import { setupPtyIpcSuite } from '../pty-ipc-test-harness'
 import {
@@ -90,6 +93,64 @@ describe('pty:spawn replacing a pane owner', () => {
     expect(shutdown.mock.invocationCallOrder[0]).toBeLessThan(
       providerSpawn.mock.invocationCallOrder[0]!
     )
+  })
+
+  it('keeps the live original binding when typed planning refuses before replacement', async () => {
+    const { providerSpawn, shutdown, store, runtime } = installRestartHarness()
+    const plan = vi.fn(
+      (id: string, opts: Parameters<typeof resolveAgentTerminalCreateOptions>[1]) =>
+        resolveAgentTerminalCreateOptions(
+          { id, path: '/tmp/restart', repo: null, folderWorkspace: null, connectionId: null },
+          { ...opts, launchRuntime: { platform: 'linux', pty: {} } },
+          { store: partialRuntimeStore(), hostIdentity: 'local', toSessionOptions: () => undefined }
+        )
+    )
+    const reportAgentLaunchPaneVerdict = vi.fn()
+    registerWithFakes(
+      mainWindow,
+      Object.assign(runtime, {
+        planAgentPaneLaunch: plan,
+        reportAgentLaunchPaneVerdict
+      }),
+      store
+    )
+    const original = store.getWorkspaceSession()
+    const reply = await handlers.get('pty:spawn')!(null, {
+      ...restartSpawnArgs({ replacesPtyId: 'pty-old' }),
+      command: undefined,
+      launchConfig: undefined,
+      launchAgent: 'claude',
+      resumeProviderSession: { key: 'session_id', id: 'saved' },
+      resume: { recipe: { source: 'saved', launchConfig: { agentArgs: '"', agentEnv: {} } } }
+    })
+    expect(isAgentResumeNotDispatchedResponse(reply)).toBe(true)
+    expect(reportAgentLaunchPaneVerdict).not.toHaveBeenCalled()
+    expect(shutdown).not.toHaveBeenCalled()
+    expect(providerSpawn).not.toHaveBeenCalled()
+    expect(store.getWorkspaceSession()).toBe(original)
+    expect(exitPayloads('pty-old')).toEqual([])
+    const retry = await handlers.get('pty:spawn')!(null, restartSpawnArgs())
+    expect(retry).toMatchObject({ id: 'pty-old', isReattach: true })
+    const corrected = await handlers.get('pty:spawn')!(null, {
+      ...restartSpawnArgs({ replacesPtyId: 'pty-old' }),
+      command: undefined,
+      launchConfig: undefined,
+      launchAgent: 'claude',
+      resume: {
+        providerSession: { key: 'session_id', id: 'saved' },
+        recipe: { source: 'saved', launchConfig: { agentArgs: '', agentEnv: {} } }
+      }
+    })
+    expect(corrected).toMatchObject({ id: 'pty-new' })
+    expect(corrected).not.toHaveProperty('isReattach', true)
+    expect(reportAgentLaunchPaneVerdict).toHaveBeenCalledExactlyOnceWith(
+      { worktreeId, tabId, leafId },
+      { kind: 'proceed' }
+    )
+    expect(plan).toHaveBeenCalledTimes(2)
+    expect(shutdown).toHaveBeenCalledOnce()
+    expect(shutdown).toHaveBeenCalledWith('pty-old', expect.objectContaining({ immediate: true }))
+    expect(providerSpawn.mock.calls.filter(([options]) => !options.attachOnly)).toHaveLength(1)
   })
 
   it('labels the replaced owner exit so the renderer keeps the pane', async () => {

@@ -68,6 +68,7 @@ function fakeHosts(servers: { id: string; live: boolean }[]) {
     error: { code: 'method_not_found', message: method }
   }))
   const hosts: MobileDesktopRelayHosts = {
+    currentPairingRevision: () => state.pairingRevision,
     list: () => ({
       environments: state.servers.map(({ id }) => ({
         id,

@@ -84,7 +84,12 @@ export async function connectIpcPty(
     // Fence before spawning: redeployed relays recycle IDs, so earlier buffered state belongs to a previous PTY lifetime.
     const priorIncarnationFence = currentPreHandlerPtySequence()
     const spawnResult = await spawnIpcPty(transportOptions, options, admittedSessionId)
-    settleAgentLaunchPaneStart(transportOptions.tabId, transportOptions.leafId, spawnResult.id)
+    const typedLocalResume = Boolean(
+      (options.resume ?? transportOptions.resume) && !transportOptions.connectionId
+    )
+    if (!typedLocalResume) {
+      settleAgentLaunchPaneStart(transportOptions.tabId, transportOptions.leafId, spawnResult.id)
+    }
     const retireDisposedFreshSpawn = async (): Promise<void> => {
       if (context.handleExplicitlyClosedConnect?.(spawnResult.id)) {
         return
@@ -118,6 +123,10 @@ export async function connectIpcPty(
       discardPreHandlerPtyStateFromPriorIncarnation(spawnResult.id, priorIncarnationFence)
     }
     context.bind(spawnResult.id)
+    if (typedLocalResume) {
+      context.getCallbacks().onStartupAccepted?.(spawnResult)
+      settleAgentLaunchPaneStart(transportOptions.tabId, transportOptions.leafId, spawnResult.id)
+    }
     if (!spawnResult.isReattach && !spawnResult.coldRestore) {
       onPtySpawn?.(spawnResult.id)
       if (context.isDestroyed()) {

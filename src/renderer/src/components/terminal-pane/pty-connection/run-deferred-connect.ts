@@ -107,11 +107,7 @@ export function installRunDeferredConnect(session: ConnectPanePtySession): void 
     const fitCompleted = safeFit(session.pane)
     // Visible local startup commands need their first fitted grid before a TUI can paint.
     const waitForFit =
-      Boolean(
-        session.paneStartup?.command ||
-        session.paneStartup?.resume ||
-        session.paneStartup?.agentLaunch
-      ) &&
+      Boolean(session.paneStartup?.command || session.paneStartup?.agentLaunch) &&
       session.deps.isVisibleRef.current &&
       getWindowParkVisible() &&
       !session.unservedSshTargetId &&

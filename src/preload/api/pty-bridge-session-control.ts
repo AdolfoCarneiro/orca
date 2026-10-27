@@ -1,25 +1,16 @@
+import type { PtySpawnApi } from '../../shared/pty-spawn-invocation'
 import type { PaintedRestorePane } from '../../shared/painted-restore-ack'
 import type {
   PtyFencedTerminationRequest,
   PtyFencedTerminationOutcome
 } from '../../shared/pty-fenced-termination'
 import type { ResourceViewAdmission } from '../../shared/resource-view-admission'
-import type { SpawnIntent } from '../../shared/host-spawn-admission'
 import { ipcRenderer } from 'electron'
-import type { ProjectExecutionRuntimeResolution } from '../../shared/project-execution-runtime'
-import type { StartupCommandDelivery } from '../../shared/codex-startup-delivery'
 import type { TerminalInputKind } from '../../shared/terminal-input-kind'
 import type {
   TerminalLeafMoveRequest,
   TerminalLeafMoveResult
 } from '../../shared/terminal-leaf-move'
-import type {
-  SavedResumeDecision,
-  TerminalLaunchResult,
-  AgentProviderSessionMetadata,
-  SleepingAgentLaunchConfig
-} from '../../shared/agent-session-resume'
-import type { TuiAgent } from '../../shared/tui-agent'
 import type { PtyListedSession, PtySessionListScope } from '../../shared/pty-listed-session'
 import type {
   PtyRendererDeliveryHealthReply,
@@ -27,69 +18,12 @@ import type {
 } from '../../shared/pty-renderer-delivery-health'
 import type { TerminalViewAttributes } from '../../shared/terminal-view-attributes'
 import type { PtyMainDeliveryDiagnostics } from '../../shared/pty-delivery-diagnostics'
-import type { AgentKind, LaunchSource, RequestKind } from '../../shared/telemetry-events'
 import type { PreloadApi } from '../api-types'
-import type { TerminalPanePlacement } from '../../shared/terminal-pane-placement'
-import type { AgentPaneLaunchRequest } from '../../shared/agent-pane-launch-request'
+
+const spawnPty: PtySpawnApi = (opts) => ipcRenderer.invoke('pty:spawn', opts)
 
 export const ptySessionControlApi = {
-  spawn: (opts: {
-    cols: number
-    rows: number
-    cwd?: string
-    env?: Record<string, string>
-    envToDelete?: string[]
-    command?: string
-    commandDelivery?: 'renderer' | 'provider'
-    launchConfig?: SleepingAgentLaunchConfig
-    resumeProviderSession?: AgentProviderSessionMetadata
-    resumeOrigin?: 'saved'
-    launchToken?: string
-    launchAgent?: TuiAgent
-    startupCommandDelivery?: StartupCommandDelivery
-    connectionId?: string | null
-    worktreeId?: string
-    sessionId?: string
-    shellOverride?: string
-    projectRuntime?: ProjectExecutionRuntimeResolution
-    terminalKittyKeyboardProtocol?: boolean
-    terminalColorQueryReplies?: { foreground?: string; background?: string }
-    initiallyHidden?: boolean
-    tabId?: string
-    leafId?: string
-    replacesPtyId?: string
-    placement?: TerminalPanePlacement
-    spawnIntent?: SpawnIntent
-    agentLaunch?: AgentPaneLaunchRequest
-    telemetry?: { agent_kind: AgentKind; launch_source: LaunchSource; request_kind: RequestKind }
-  }): Promise<{
-    id: string
-    incarnationId?: string
-    launchConfig?: SleepingAgentLaunchConfig
-    launchAgent?: TuiAgent
-    snapshot?: string
-    snapshotCols?: number
-    snapshotRows?: number
-    snapshotPrefixAnsi?: string
-    snapshotFrameAnsi?: string
-    snapshotFrameRestoreAnsi?: string
-    snapshotKittyKeyboardFlags?: number
-    snapshotTerminalOwner?: 'shell'
-    snapshotSeq?: number
-    isReattach?: boolean
-    isAlternateScreen?: boolean
-    replay?: string
-    sessionExpired?: boolean
-    coldRestore?: { scrollback: string; cwd: string; cols?: number; rows?: number }
-    startupCwdFallback?: { kind: 'worktree'; cwd: string }
-    agentResumeUnavailable?: true
-    agentResumeRefused?: 'chat-home' | 'chat-writing' | 'unverifiable'
-    savedResumeDecision?: SavedResumeDecision
-    refusedResume?: TerminalLaunchResult['refusedResume']
-    launchToken?: string
-    resumeProviderSession?: TerminalLaunchResult['resumeProviderSession']
-    shellReadyArmed?: boolean
-  }> => ipcRenderer.invoke('pty:spawn', opts),
+  spawn: spawnPty,
   write: (id: string, data: string, inputKind: TerminalInputKind): void => {
     ipcRenderer.send('pty:write', { id, data, inputKind })
   },

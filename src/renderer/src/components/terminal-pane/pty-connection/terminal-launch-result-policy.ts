@@ -77,7 +77,6 @@ export function applyTerminalLaunchResult(
     if (!superseded && kind !== 'candidate') {
       session.registerEffectiveLaunchConfig(result.launchConfig, {
         launchToken: result.launchToken,
-        ...(startup?.resumeSource ? { resumeSource: startup.resumeSource } : {}),
         launchAgent:
           result.launchAgent ??
           (!rejected && !result.isReattach && startup && 'agent' in startup

@@ -53,6 +53,9 @@ function withPlannedLaunch(
   return {
     ...pane,
     command: planned.command,
+    ...(planned.resumeProviderSession
+      ? { resumeProviderSession: planned.resumeProviderSession }
+      : {}),
     ...(planned.envToDelete ? { envToDelete: planned.envToDelete } : {}),
     ...(planned.env || launchToken
       ? {
@@ -88,7 +91,9 @@ export async function planPaneAgentLaunch(ctx: PtyIpcSpawnState): Promise<void> 
       ? request.launch
       : undefined
   const resume = args.resume === undefined ? undefined : AgentTerminalResumeParam.parse(args.resume)
-  const providerSession = normalizeAgentProviderSession(args.resumeProviderSession)
+  const providerSession = normalizeAgentProviderSession(
+    resume?.providerSession ?? args.resumeProviderSession
+  )
   const resumeAgent =
     args.launchAgent && isResumableTuiAgent(args.launchAgent) ? args.launchAgent : null
   const params = AgentLaunch.safeParse({ ...launch, paneKey })
@@ -118,6 +123,7 @@ export async function planPaneAgentLaunch(ctx: PtyIpcSpawnState): Promise<void> 
     paneKey,
     running,
     dispatched: false,
+    ...(resume ? { typedResume: true } : {}),
     refuseIfClosed: () => {
       if (running.closedByUser() || closedInSession(deps.store, paneKey)) {
         throw new AgentLaunchTabClosedError()

@@ -1,12 +1,21 @@
 import type { AgentStartupSettings } from './agent-startup-plan-inputs'
-import type { SleepingAgentLaunchConfig } from './agent-session-resume'
+import type {
+  AgentProviderSessionMetadata,
+  SleepingAgentLaunchConfig
+} from './agent-session-resume'
 import type { TuiAgent } from './tui-agent'
 
 /** Recipe provenance survives transport until the execution host composes account env. */
 export type AgentTerminalResume = {
+  providerSession?: AgentProviderSessionMetadata
   recipe:
     | { source: 'host-defaults' }
-    | { source: 'current-inputs'; settings: AgentStartupSettings; agentArgs?: string | null }
+    | {
+        source: 'current-inputs'
+        settings: AgentStartupSettings
+        commandOverride?: string | null
+        agentArgs?: string | null
+      }
     | { source: 'saved'; launchConfig?: SleepingAgentLaunchConfig }
   ompResumeFilePath?: string
   resumeInLaunchCwd?: boolean
@@ -36,4 +45,4 @@ export function agentResumeCurrentInputs(
 
 export type TerminalStartupInput =
   | { command: string; resume?: never }
-  | { command?: never; resume: AgentTerminalResume }
+  | { command?: string; resume: AgentTerminalResume }

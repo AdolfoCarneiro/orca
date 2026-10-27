@@ -1,3 +1,4 @@
+import { settleAgentLaunchPaneStart } from '@/lib/agent-launch-pane-start'
 import {
   applyTerminalLaunchResult,
   captureTerminalLaunchContext
@@ -7,7 +8,11 @@ import type { TerminalAttachmentLaunchResult } from '../../../../../shared/termi
 import { isPaneOwnerRefusal } from './pane-owner-recovery'
 import type { SpawnDeferralReason } from '../../../../../shared/host-spawn-admission'
 import { createTerminalStartupTiming } from '../terminal-startup-timing'
-import type { PtyReplayDataMeta, PtyTransportRecoveryState } from '../pty-transport-types'
+import type {
+  PtyConnectResult,
+  PtyReplayDataMeta,
+  PtyTransportRecoveryState
+} from '../pty-transport-types'
 import type { PtyDataMeta } from '../pty-dispatcher'
 import type { PtyPaneStartup } from '../pty-connection-types'
 
@@ -48,6 +53,13 @@ export function bindCaptureTransportOutputCallbacks(session: ConnectPanePtySessi
       generation,
       launchContext,
       callbacks: {
+        onStartupAccepted: (result: PtyConnectResult): void => {
+          if (isCurrent()) {
+            session.remotePtyIncarnationId = result.incarnationId ?? null
+            settleAgentLaunchPaneStart(session.deps.tabId, session.pane.leafId, result.id)
+            applyTerminalLaunchResult(session, result, launchContext, 'creator')
+          }
+        },
         onLaunchResult: (result: TerminalAttachmentLaunchResult): void => {
           if (
             isCurrent() &&

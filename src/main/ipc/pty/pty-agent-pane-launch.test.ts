@@ -1,3 +1,7 @@
+import {
+  ResumePlanNotDispatchedError,
+  isAgentResumeNotDispatchedResponse
+} from '../../../shared/agent-terminal-resume-outcome'
 import { ptyIncarnationById, ptyOwnership } from './provider/ownership-state'
 import { createLaunchRaceRuntime } from '../pty-launch-race-test-fixture'
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
@@ -151,6 +155,53 @@ describe('a pane that starts its own agent launch', () => {
     expect(runtime.reportAgentLaunchPaneVerdict).toHaveBeenCalledWith(PANE_ADDRESS, {
       kind: 'proceed'
     })
+  })
+
+  it('returns typed C1 refusal on its originating invocation after exact acquisition cleanup', async () => {
+    const providerSpawn = vi.fn(async () => ({ id: 'pty-agent' }))
+    const runtime = register(providerSpawn, async () => {
+      throw new ResumePlanNotDispatchedError('Could not build resume command for claude.')
+    })
+    const response = await spawnPane(AI_BUTTON, {
+      agentLaunch: undefined,
+      command: undefined,
+      launchAgent: 'claude',
+      resume: { recipe: { source: 'saved' } },
+      resumeProviderSession: { key: 'session_id', id: 'contract' }
+    })
+    expect(isAgentResumeNotDispatchedResponse(response)).toBe(true)
+    expect(providerSpawn).not.toHaveBeenCalled()
+    expect(runtime.reportAgentLaunchPaneVerdict).not.toHaveBeenCalled()
+    expect(isAgentLaunchRunningIn(worktreeId, { kind: 'pane', tabId, leafId })).toBe(false)
+    await expect(
+      spawnPane(AI_BUTTON, {
+        agentLaunch: undefined,
+        command: "claude --resume 'contract'"
+      })
+    ).resolves.toMatchObject({ id: 'pty-agent' })
+    expect(providerSpawn).toHaveBeenCalledOnce()
+  })
+
+  it('returns an unclassified typed transport error without a sticky failed-pane verdict', async () => {
+    const providerSpawn = vi.fn(async (): Promise<{ id: string }> => {
+      throw new Error('daemon reply lost')
+    })
+    const runtime = register(providerSpawn)
+    const request = {
+      agentLaunch: undefined,
+      command: undefined,
+      resume: { recipe: { source: 'saved' as const } },
+      launchAgent: 'claude' as const,
+      resumeProviderSession: { key: 'session_id' as const, id: 'contract' }
+    }
+    await expect(spawnPane(AI_BUTTON, request)).rejects.toThrow('daemon reply lost')
+    expect(runtime.planAgentPaneLaunch).toHaveBeenCalledOnce()
+    expect(providerSpawn).toHaveBeenCalledOnce()
+    expect(isAgentLaunchRunningIn(worktreeId, { kind: 'pane', tabId, leafId })).toBe(false)
+    expect(runtime.reportAgentLaunchPaneVerdict).not.toHaveBeenCalled()
+    providerSpawn.mockResolvedValueOnce({ id: 'retry' })
+    await expect(spawnPane(AI_BUTTON, request)).resolves.toMatchObject({ id: 'retry' })
+    expect(providerSpawn).toHaveBeenCalledTimes(2)
   })
 
   // Why: the window submits a handoff into this pane, and Enter picks Codex's "Update now" (#18153).

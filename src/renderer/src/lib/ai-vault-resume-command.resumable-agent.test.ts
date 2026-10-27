@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { AppState } from '@/store/types'
 import {
   buildAiVaultResumeCopyCommandForWorktree,
-  buildAiVaultResumeStartupForWorktree
+  buildAiVaultResumeForWorktree
 } from './ai-vault-resume-command'
 
 vi.mock('@/lib/new-workspace', () => ({
@@ -69,8 +69,9 @@ describe('AI Vault resume for Kimi', () => {
         session: KIMI_SESSION
       })
     ).toMatchObject({
-      resume: { recipe: { source: 'current-inputs' } },
+      command: "kimi '--yolo' '--session' 'session_431324d7-2165-42f0-9ecd-9f93437b3201'",
       cwd: '/Users/ada/repo/packages/api',
+      launchConfig: { agentCommand: "kimi '--yolo'" },
       providerSession: {
         key: 'session_id',
         id: 'session_431324d7-2165-42f0-9ecd-9f93437b3201'
@@ -78,3 +79,9 @@ describe('AI Vault resume for Kimi', () => {
     })
   })
 })
+
+function buildAiVaultResumeStartupForWorktree(
+  args: Parameters<typeof buildAiVaultResumeForWorktree>[0]
+) {
+  return buildAiVaultResumeForWorktree(args, false)
+}

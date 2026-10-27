@@ -156,7 +156,7 @@ export abstract class OrcaRuntimeWithResumeAgentSessionInWorkspace extends OrcaR
       false,
       undefined,
       {
-        ...resume,
+        command: resume.command,
         env: resume.env,
         startupCommandDelivery: resume.startupCommandDelivery,
         launchConfig: resume.launchConfig,

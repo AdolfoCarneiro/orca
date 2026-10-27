@@ -71,20 +71,15 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
       vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
       const { connectPanePty } = await import('./pty-connection')
       const transport = createMockTransport('fresh-pty')
-      transport.connect.mockImplementation(
-        async ({ sessionId, launchToken }: { sessionId?: string; launchToken?: string }) => {
-          if (sessionId) {
-            return {
-              id: 'fresh-pty',
-              launchConfig,
-              launchToken,
-              launchAgent: 'codex',
-              coldRestore: { scrollback: 'cold-payload', cwd: '/tmp/wt-1' }
-            }
+      transport.connect.mockImplementation(async ({ sessionId }: { sessionId?: string }) => {
+        if (sessionId) {
+          return {
+            id: 'fresh-pty',
+            coldRestore: { scrollback: 'cold-payload', cwd: '/tmp/wt-1' }
           }
-          return 'fresh-pty'
         }
-      )
+        return 'fresh-pty'
+      })
       transportFactoryQueue.push(transport)
       const paneKey = makePaneKey('tab-1', LEAF_1)
       const launchConfig = {
@@ -157,12 +152,9 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
       expect(transport.connect).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionId: 'lost-pty',
-          resume: { recipe: { source: 'saved', launchConfig } },
-          resumeProviderSession: { key: 'session_id', id: 'codex-session-1' },
-          resumeOrigin: 'saved',
-          launchAgent: 'codex',
-
+          command: "codex '--model' 'gpt-5' '--reasoning-effort' 'high' 'resume' 'codex-session-1'",
           env: expect.objectContaining({
+            CODEX_PROFILE: 'captured',
             ORCA_PANE_KEY: paneKey,
             ORCA_TAB_ID: 'tab-1',
             ORCA_WORKTREE_ID: 'wt-1',
@@ -171,10 +163,6 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
           })
         })
       )
-      expect(transport.connect.mock.calls.at(-1)?.[0]?.resume).toEqual({
-        recipe: { source: 'saved', launchConfig }
-      })
-      expect(transport.connect.mock.calls.at(-1)?.[0]?.command).toBeUndefined()
       expect(mockStoreState.registerAgentLaunchConfig).toHaveBeenCalledWith(paneKey, launchConfig, {
         agentType: 'codex',
         launchToken,
@@ -297,20 +285,15 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
       vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
       const { connectPanePty } = await import('./pty-connection')
       const transport = createMockTransport('fresh-pty')
-      transport.connect.mockImplementation(
-        async ({ sessionId, launchToken }: { sessionId?: string; launchToken?: string }) => {
-          if (sessionId) {
-            return {
-              id: 'fresh-pty',
-              launchConfig,
-              launchToken,
-              launchAgent: 'codex',
-              coldRestore: { scrollback: 'cold-payload', cwd: '/tmp/wt-1' }
-            }
+      transport.connect.mockImplementation(async ({ sessionId }: { sessionId?: string }) => {
+        if (sessionId) {
+          return {
+            id: 'fresh-pty',
+            coldRestore: { scrollback: 'cold-payload', cwd: '/tmp/wt-1' }
           }
-          return 'fresh-pty'
         }
-      )
+        return 'fresh-pty'
+      })
       transportFactoryQueue.push(transport)
       const paneKey = makePaneKey('tab-1', LEAF_1)
       const launchConfig = {
@@ -367,20 +350,12 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
       expect(transport.connect).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionId: 'lost-pty',
-          resume: { recipe: { source: 'saved', launchConfig } },
-          resumeProviderSession: { key: 'session_id', id: 'codex-session-1' },
-          resumeOrigin: 'saved',
-          launchAgent: 'codex',
-
+          command: "codex '--model' 'gpt-5-mini' 'resume' 'codex-session-1'",
           env: expect.objectContaining({
             ORCA_AGENT_LAUNCH_TOKEN: expect.stringMatching(new RegExp(`^${UUID_RE}$`))
           })
         })
       )
-      expect(transport.connect.mock.calls.at(-1)?.[0]?.resume).toEqual({
-        recipe: { source: 'saved', launchConfig }
-      })
-      expect(transport.connect.mock.calls.at(-1)?.[0]?.command).toBeUndefined()
       expect(mockStoreState.registerAgentLaunchConfig).toHaveBeenCalledWith(paneKey, launchConfig, {
         agentType: 'codex',
         launchToken: expect.stringMatching(new RegExp(`^${UUID_RE}$`)),
@@ -466,16 +441,13 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
         }
         expect(transport.connect).toHaveBeenCalledTimes(1)
         expect(transport.attach).not.toHaveBeenCalled()
-        const options: {
+        const options = transport.connect.mock.calls[0]?.[0] as {
           sessionId?: string
-          resume?: unknown
           command?: string
-          resumeProviderSession?: unknown
-        } = transport.connect.mock.calls[0]?.[0]
+        }
         expect(options.sessionId).toBe(retainedPtyId)
-        expect(options.command).toBeUndefined()
-        expect(options.resume).toEqual({ recipe: { source: 'saved' } })
-        expect(options.resumeProviderSession).toMatchObject({ id: 'claude-session-1' })
+        expect(options.command).toContain('claude-session-1')
+        expect(options.command?.match(/--resume/g)).toHaveLength(1)
         expect(mockStoreState.tabsByWorktree['wt-1']).toHaveLength(1)
       }
     )
@@ -484,20 +456,15 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
       vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
       const { connectPanePty } = await import('./pty-connection')
       const transport = createMockTransport('fresh-pty')
-      transport.connect.mockImplementation(
-        async ({ sessionId, launchToken }: { sessionId?: string; launchToken?: string }) => {
-          if (sessionId) {
-            return {
-              id: 'fresh-pty',
-              launchConfig: { agentCommand: 'codex', agentArgs: '', agentEnv: {} },
-              launchToken,
-              launchAgent: 'codex',
-              coldRestore: { scrollback: 'cold-payload', cwd: '/tmp/wt-1' }
-            }
+      transport.connect.mockImplementation(async ({ sessionId }: { sessionId?: string }) => {
+        if (sessionId) {
+          return {
+            id: 'fresh-pty',
+            coldRestore: { scrollback: 'cold-payload', cwd: '/tmp/wt-1' }
           }
-          return 'fresh-pty'
         }
-      )
+        return 'fresh-pty'
+      })
       transportFactoryQueue.push(transport)
       const paneKey = makePaneKey('tab-1', LEAF_1)
       mockStoreState = {
@@ -575,16 +542,9 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
         expect.objectContaining({
           sessionId: 'lost-pty',
           // Neither stale recipe applies, and settings defaults never stand in for a recorded one.
-          resume: { recipe: { source: 'saved' } },
-          resumeProviderSession: { key: 'session_id', id: 'codex-session-1' },
-          resumeOrigin: 'saved',
-          launchAgent: 'codex'
+          command: "codex 'resume' 'codex-session-1'"
         })
       )
-      expect(transport.connect.mock.calls.at(-1)?.[0]?.resume).toEqual({
-        recipe: { source: 'saved' }
-      })
-      expect(transport.connect.mock.calls.at(-1)?.[0]?.command).toBeUndefined()
       expect(mockStoreState.registerAgentLaunchConfig).toHaveBeenCalledWith(
         paneKey,
         expect.objectContaining({

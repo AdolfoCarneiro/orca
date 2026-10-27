@@ -1,3 +1,8 @@
+import {
+  isLocalAiVaultDragTarget,
+  prepareAiVaultDroppedStartup
+} from '@/lib/ai-vault-session-drag-startup'
+import { readAiVaultLocalDragData } from '@/lib/ai-vault-local-drag-data'
 import { getAiVaultResumeWorkspaceWslDistro } from '@/lib/ai-vault-resume-shell'
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { toast } from 'sonner'
@@ -13,10 +18,7 @@ import {
   hasAiVaultSessionDragData,
   readAiVaultSessionDragData
 } from '@/lib/ai-vault-session-drag'
-import {
-  buildAiVaultDropRepinStartup,
-  getAiVaultAgentProviderSession
-} from '@/lib/ai-vault-resume-command'
+import { getAiVaultAgentProviderSession } from '@/lib/ai-vault-resume-command'
 import { launchAiVaultSessionInNewTab } from '@/lib/launch-ai-vault-session'
 import { prepareAiVaultTerminalResumeRequest } from '@/lib/ai-vault-session-resume-preparation'
 import { describeAiVaultResumeFailure } from '@/lib/ai-vault-resume-refusal'
@@ -230,6 +232,9 @@ export default function AiVaultSessionDropLayer({
         )
         return true
       }
+      const local = isLocalAiVaultDragTarget(state, worktreeId, payload.sessionExecutionHostId)
+        ? readAiVaultLocalDragData(dataTransfer, payload)
+        : null
       const preparation = prepareAiVaultTerminalResumeRequest({
         agent: payload.agent,
         sessionId: payload.sessionId,
@@ -239,17 +244,14 @@ export default function AiVaultSessionDropLayer({
       })
       void preparation
         .then((result) => {
-          const startup = result.useRealCodexHome
-            ? payload.realHomeStartup
-            : result.substituteCodexHome
-              ? buildAiVaultDropRepinStartup({
-                  state: useAppStore.getState(),
-                  payload,
-                  substituteCodexHome: result.substituteCodexHome,
-                  worktreeId
-                })
-              : payload
-          if (!startup) {
+          const startup = prepareAiVaultDroppedStartup(
+            useAppStore.getState(),
+            worktreeId,
+            payload,
+            result,
+            local
+          )
+          if (!startup || !startup.command) {
             // Refuse old payloads that cannot repin the startup command; silently using another account’s home is unsafe.
             throw new Error(
               result.substituteCodexHome
@@ -266,7 +268,7 @@ export default function AiVaultSessionDropLayer({
             agent: payload.agent,
             worktreeId,
             ...('resume' in startup && startup.resume
-              ? { resume: startup.resume }
+              ? { resume: startup.resume, command: startup.command }
               : { command: startup.command }),
             ...(payload.sessionCwd ? { cwd: payload.sessionCwd } : {}),
             ...(startup.env ? { env: startup.env } : {}),

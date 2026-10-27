@@ -1,3 +1,4 @@
+import { ResumeProviderSessionParam } from './resume-provider-session-param'
 import { z } from 'zod'
 import { AGENT_PERMISSION_CHOICES } from '../tui-agent-permission-choice'
 import type { AgentTerminalResume } from '../agent-terminal-resume'
@@ -15,12 +16,14 @@ const profile = z
 
 export const AgentTerminalResumeParam: z.ZodType<AgentTerminalResume> = z
   .object({
+    providerSession: ResumeProviderSessionParam.strict().optional(),
     recipe: z.discriminatedUnion('source', [
       z.object({ source: z.literal('host-defaults') }).strict(),
       z
         .object({
           source: z.literal('current-inputs'),
           settings: profile,
+          commandOverride: z.string().nullable().optional(),
           agentArgs: z.string().nullable().optional()
         })
         .strict(),

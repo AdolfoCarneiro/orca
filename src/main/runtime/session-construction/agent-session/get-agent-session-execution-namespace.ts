@@ -109,17 +109,18 @@ export abstract class OrcaRuntimeWithGetAgentSessionExecutionNamespace extends O
       throw new Error('agent_session_legacy_required')
     }
     // Choose SSH compatibility before canonicalizing paths that belong to the execution owner.
+    const providerSession = request.resume?.providerSession ?? request.providerSession
     const identity = canonicalizeAgentSessionIdentity(
       request.agent,
-      request.resume && request.providerSession.transcriptPath
+      request.resume && providerSession.transcriptPath
         ? {
-            ...request.providerSession,
+            ...providerSession,
             transcriptPath: normalizeAiVaultResumeFilePath(
-              request.providerSession.transcriptPath,
+              providerSession.transcriptPath,
               process.platform
             )
           }
-        : request.providerSession
+        : providerSession
     )
     const claim = this.agentSessionClaimSigner.createClaim({
       namespace,
@@ -135,10 +136,12 @@ export abstract class OrcaRuntimeWithGetAgentSessionExecutionNamespace extends O
     }
     const terminal = await this.createTerminal(`id:${workspace.id}`, {
       startupAgent: request.agent,
-      resume: request.resume ?? {
-        recipe: { source: 'host-defaults' },
-        ...(request.ompResumeFilePath ? { ompResumeFilePath: request.ompResumeFilePath } : {})
-      },
+      resume: request.resume
+        ? { ...request.resume, providerSession: identity.providerSession }
+        : {
+            recipe: { source: 'host-defaults' },
+            ...(request.ompResumeFilePath ? { ompResumeFilePath: request.ompResumeFilePath } : {})
+          },
       resumeProviderSession: identity.providerSession,
       env: request.env,
       accountEnv: request.accountEnv,

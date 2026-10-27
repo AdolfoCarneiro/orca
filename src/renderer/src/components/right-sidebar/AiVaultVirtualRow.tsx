@@ -1,7 +1,7 @@
 import type { AgentStatusState } from '../../../../shared/agent-status-types'
 import { isAntigravityReferenceSession } from '../../../../shared/antigravity-session-origin'
 import type { AiVaultScope, AiVaultSession } from '../../../../shared/ai-vault-types'
-import type { AiVaultResumeStartup } from '@/lib/ai-vault-resume-command'
+import type { AiVaultResumeDragStartup } from '@/lib/ai-vault-session-drag-startup'
 import { cn } from '@/lib/utils'
 import { VaultGroupHeader } from './AiVaultPanelControls'
 import { VaultSessionRow } from './AiVaultSessionRow'
@@ -78,7 +78,10 @@ export function AiVaultVirtualRow({
   collapsedGroups: ReadonlySet<string>
   expandedSessionIds: ReadonlySet<string>
   vaultScope: AiVaultScope
-  buildResumeStartup: (session: AiVaultSession, worktreeId?: string | null) => AiVaultResumeStartup
+  buildResumeStartup: (
+    session: AiVaultSession,
+    worktreeId?: string | null
+  ) => AiVaultResumeDragStartup
   getOriginalPaneTarget: (session: AiVaultSession) => AiVaultOriginalPaneTarget | null
   isStructuredSessionOpen: (session: AiVaultSession) => boolean
   getSessionLiveState: (session: AiVaultSession) => AgentStatusState | null

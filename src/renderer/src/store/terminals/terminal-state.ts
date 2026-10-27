@@ -1,4 +1,4 @@
-import type { TerminalStartupInput } from '../../../../shared/agent-terminal-resume'
+import type { AgentTerminalResume } from '../../../../shared/agent-terminal-resume'
 import type { ClosedTerminalTabTombstonesByTabId } from '../../../../shared/closed-terminal-tab-tombstones'
 import type { TerminalLayoutSnapshot, TerminalTab } from '../../../../shared/terminal-tab-types'
 import type {
@@ -58,6 +58,8 @@ export type TerminalState = {
   pendingStartupByTabId: Record<
     string,
     {
+      command: string
+      resume?: AgentTerminalResume
       delivery?: 'terminal-paste'
       startupCommandDelivery?: StartupCommandDelivery
       env?: Record<string, string>
@@ -79,7 +81,7 @@ export type TerminalState = {
       }
       showSessionRestoredBanner?: boolean
       telemetry?: AgentStartedTelemetry
-    } & TerminalStartupInput
+    }
   >
   pendingInitialCwdByTabId: Record<string, string>
   pendingIssueCommandSplitByTabId: Record<

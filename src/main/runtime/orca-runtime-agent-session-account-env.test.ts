@@ -127,7 +127,7 @@ describe('agent-session creates with a desktop-prepared accountEnv', () => {
         HostAccountLaunchEnvParams.parse({
           wslDistro: 'Ubuntu',
           claude: {},
-          terminal: { CODEX_HOME: ACCOUNT_ENV.CODEX_HOME }
+          terminal: { CODEX_HOME: ACCOUNT_ENV.CODEX_HOME, CLAUDE_CONFIG_DIR: '/host-claude' }
         })
       )
       const { planned } = planCreates(runtime)
@@ -140,7 +140,10 @@ describe('agent-session creates with a desktop-prepared accountEnv', () => {
         source === 'saved'
           ? {
               source,
-              launchConfig: { agentArgs: '', agentEnv: { KEEP: '1', CODEX_HOME: '/saved' } }
+              launchConfig: {
+                agentArgs: '',
+                agentEnv: { KEEP: '1', CODEX_HOME: '/saved', CLAUDE_CONFIG_DIR: '/saved-claude' }
+              }
             }
           : source === 'current-inputs'
             ? {
@@ -153,46 +156,32 @@ describe('agent-session creates with a desktop-prepared accountEnv', () => {
         worktree: 'id:worktree-1',
         agent: 'codex',
         providerSession: { key: 'session_id', id: 'provider-session-1' },
-        resume: { recipe }
+        resume: { recipe },
+        ...(source === 'saved'
+          ? {
+              env: {
+                CODEX_HOME: '/caller-home',
+                CLAUDE_CONFIG_DIR: '/caller-claude',
+                ORCA_PANE_KEY: 'restored-tab:restored-leaf',
+                ORCA_AGENT_LAUNCH_TOKEN: 'restore-token'
+              },
+              accountEnv: { CODEX_HOME: '/explicit-home' }
+            }
+          : {})
       })
-      expect(planned[1]?.env).toMatchObject({ KEEP: '1', CODEX_HOME: planned[0]?.env?.CODEX_HOME })
-      expect(planned[1]?.env?.CODEX_HOME).toBe(ACCOUNT_ENV.CODEX_HOME)
+      expect(planned[1]?.env).toMatchObject({
+        KEEP: '1',
+        CODEX_HOME: source === 'saved' ? '/explicit-home' : planned[0]?.env?.CODEX_HOME
+      })
+      if (source === 'saved') {
+        expect(planned[1]?.env).toMatchObject({
+          ORCA_PANE_KEY: 'restored-tab:restored-leaf',
+          ORCA_AGENT_LAUNCH_TOKEN: 'restore-token',
+          CLAUDE_CONFIG_DIR: '/caller-claude'
+        })
+      }
     }
   )
-
-  it('carries cold-restore identity and a History Windows account home through the host plan', async () => {
-    const runtime = createRuntime()
-    runtime.setHostAccountLaunchEnv(
-      HostAccountLaunchEnvParams.parse({
-        wslDistro: 'Ubuntu',
-        claude: {},
-        terminal: { CODEX_HOME: ACCOUNT_ENV.CODEX_HOME }
-      })
-    )
-    const { planned } = planCreates(runtime)
-    const env = {
-      ORCA_PANE_KEY: 'restored-tab:restored-leaf',
-      ORCA_AGENT_LAUNCH_TOKEN: 'restore-token',
-      CODEX_HOME: 'C:\\Users\\qa\\codex-accounts\\history'
-    }
-    await runtime.ensureAgentSession(
-      EnsureAgentSessionParams.parse({
-        kind: 'explicit',
-        worktree: 'id:worktree-1',
-        agent: 'codex',
-        providerSession: { key: 'session_id', id: 'history-session' },
-        resume: {
-          recipe: {
-            source: 'saved',
-            launchConfig: { agentArgs: '', agentEnv: { CODEX_HOME: '/saved' } }
-          }
-        },
-        env
-      })
-    )
-    expect(planned[0]?.env).toMatchObject(env)
-    expect(planned[0]?.command).toContain('history-session')
-  })
 
   it('carries it through a resumed (restored or sleeping) agent', async () => {
     const runtime = createRuntime()

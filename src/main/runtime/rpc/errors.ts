@@ -1,3 +1,7 @@
+import {
+  ResumePlanNotDispatchedError,
+  RESUME_LAUNCH_NOT_DISPATCHED
+} from '../../../shared/agent-terminal-resume-outcome'
 // Centralize the runtimeId envelope and error-code contracts that clients use for decisions and display.
 import { AGENT_LAUNCH_SURFACE_UNAVAILABLE_CODE } from '../../../shared/agent-launch-surface'
 import {
@@ -180,6 +184,9 @@ const STRUCTURED_RUNTIME_PASSTHROUGH_CODES: ReadonlySet<string> = new Set([
 
 export function mapRuntimeError(id: string, meta: RpcEnvelopeMeta, error: unknown): RpcFailure {
   const message = error instanceof Error ? error.message : String(error)
+  if (error instanceof ResumePlanNotDispatchedError) {
+    return errorResponse(id, meta, 'runtime_error', message, RESUME_LAUNCH_NOT_DISPATCHED)
+  }
   if (isAgentSessionRefusalError(error)) {
     return agentSessionRefusalErrorResponse(id, meta, error)
   }

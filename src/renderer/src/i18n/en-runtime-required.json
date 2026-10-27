@@ -2955,6 +2955,15 @@
         "symlink": "Symbolic links cannot be attached.",
         "unsupported": "Unsupported file type."
       },
+      "resume": {
+        "sleeping": {
+          "agent": {
+            "session": {
+              "f235f604fd": "This agent session cannot be resumed."
+            }
+          }
+        }
+      },
       "terminal": {
         "shortcut": {
           "capture": {

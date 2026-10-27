@@ -1,5 +1,3 @@
-import type { TerminalStartupInput } from '../../../shared/agent-terminal-resume'
-import { AgentTerminalResumeParam } from '../../../shared/rpc-contract/agent-terminal-resume-params'
 import { isAiVaultAgent, type AiVaultAgent } from '../../../shared/ai-vault-types'
 import type { SleepingAgentLaunchConfig } from '../../../shared/agent-session-resume'
 import { measureClipboardTextByteLength } from '../../../shared/clipboard-text'
@@ -10,11 +8,12 @@ export const AI_VAULT_SESSION_DRAG_START_EVENT = 'orca-ai-vault-session-drag-sta
 export const AI_VAULT_SESSION_DRAG_END_EVENT = 'orca-ai-vault-session-drag-end'
 export const AI_VAULT_SESSION_DRAG_PAYLOAD_MAX_BYTES = 16 * 1024
 
-export type AiVaultSessionDragPayload = TerminalStartupInput & {
+export type AiVaultSessionDragPayload = {
   agent: AiVaultAgent
   sessionId: string
   structuredSession?: { sessionId: string; workspaceId: string }
   title: string
+  command: string
   // Name the session filesystem so drop targets reject SSH panes that cannot reach it.
   sessionFilePath?: string
   sessionExecutionHostId?: ExecutionHostId
@@ -25,7 +24,8 @@ export type AiVaultSessionDragPayload = TerminalStartupInput & {
   env?: Record<string, string>
   envToDelete?: string[]
   launchConfig?: SleepingAgentLaunchConfig
-  realHomeStartup?: TerminalStartupInput & {
+  realHomeStartup?: {
+    command: string
     env?: Record<string, string>
     envToDelete?: string[]
     launchConfig?: SleepingAgentLaunchConfig
@@ -93,11 +93,9 @@ function isSerializedPayload(value: unknown): value is SerializedAiVaultSessionD
     isNonEmptyString(payload.sessionId) &&
     (payload.structuredSession === undefined || isStructuredSession(payload.structuredSession)) &&
     isNonEmptyString(payload.title) &&
-    (payload.resume !== undefined
-      ? payload.command === undefined && AgentTerminalResumeParam.safeParse(payload.resume).success
-      : payload.structuredSession
-        ? typeof payload.command === 'string'
-        : isNonEmptyString(payload.command)) &&
+    (payload.structuredSession
+      ? typeof payload.command === 'string'
+      : isNonEmptyString(payload.command)) &&
     (payload.sessionFilePath === undefined || isNonEmptyString(payload.sessionFilePath)) &&
     (payload.sessionExecutionHostId === undefined ||
       Boolean(normalizeExecutionHostId(payload.sessionExecutionHostId))) &&
@@ -122,9 +120,7 @@ function isResumeStartup(
   }
   const startup = value as NonNullable<AiVaultSessionDragPayload['realHomeStartup']>
   return (
-    (startup.resume !== undefined
-      ? startup.command === undefined && AgentTerminalResumeParam.safeParse(startup.resume).success
-      : isNonEmptyString(startup.command)) &&
+    isNonEmptyString(startup.command) &&
     (startup.env === undefined || isStringRecord(startup.env)) &&
     (startup.envToDelete === undefined || isEnvDeletionList(startup.envToDelete)) &&
     (startup.launchConfig === undefined || isLaunchConfig(startup.launchConfig))
@@ -178,7 +174,6 @@ export function readAiVaultSessionDragData(
       structuredSession,
       title,
       command,
-      resume,
       sessionFilePath,
       sessionExecutionHostId,
       codexHome,
@@ -193,7 +188,7 @@ export function readAiVaultSessionDragData(
       sessionId,
       ...(structuredSession ? { structuredSession } : {}),
       title,
-      ...(resume ? { resume } : { command: command! }),
+      command,
       ...(sessionFilePath ? { sessionFilePath } : {}),
       ...(sessionExecutionHostId ? { sessionExecutionHostId } : {}),
       ...(codexHome !== undefined ? { codexHome } : {}),

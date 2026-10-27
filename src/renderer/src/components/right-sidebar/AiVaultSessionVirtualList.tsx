@@ -3,7 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useCallback, useMemo, useRef, useState, type Ref } from 'react'
 import type { AgentStatusState } from '../../../../shared/agent-status-types'
 import type { AiVaultScope, AiVaultSession } from '../../../../shared/ai-vault-types'
-import type { AiVaultResumeStartup } from '@/lib/ai-vault-resume-command'
+import type { AiVaultResumeDragStartup } from '@/lib/ai-vault-session-drag-startup'
 import { translate } from '@/i18n/i18n'
 import { measureVirtualRowRetainingHiddenSize } from '@/hooks/virtualized-hidden-row-measurement'
 import { getActiveStickyHeaderIndexForScroll } from '../sidebar/worktree-list/viewport/virtual-rows'
@@ -85,7 +85,10 @@ export function AiVaultSessionVirtualList({
   noAgentsSelected: boolean
   error: string | null
   vaultScope: AiVaultScope
-  buildResumeStartup: (session: AiVaultSession, worktreeId?: string | null) => AiVaultResumeStartup
+  buildResumeStartup: (
+    session: AiVaultSession,
+    worktreeId?: string | null
+  ) => AiVaultResumeDragStartup
   getOriginalPaneTarget: (session: AiVaultSession) => AiVaultOriginalPaneTarget | null
   isStructuredSessionOpen: (session: AiVaultSession) => boolean
   getSessionLiveState: (session: AiVaultSession) => AgentStatusState | null

@@ -1,19 +1,10 @@
-import {
-  AGENT_RESUME_HOST_PLAN_CAPABILITY,
-  agentResumeCurrentInputs,
-  type TerminalStartupInput
-} from '../../../src/shared/agent-terminal-resume'
-import type { AgentStartupSettings } from '../../../src/shared/agent-startup-plan-inputs'
 import type { AiVaultSession } from '../../../src/shared/ai-vault-types'
 import {
   buildAiVaultResumeCommand,
   buildAiVaultResumeShellCommand,
   realHomeCodexResumeEnvDeletion
 } from '../../../src/shared/ai-vault-resume-command'
-import {
-  RESUME_RPC_TIMEOUT_MS,
-  normalizeMobileAiVaultResumeCommandOverrides
-} from './ai-vault-resume-preparation'
+import { RESUME_RPC_TIMEOUT_MS } from './ai-vault-resume-preparation'
 import { isResumableTuiAgent } from '../../../src/shared/agent-session-resume'
 import type {
   AgentProviderSessionMetadata,
@@ -74,12 +65,14 @@ export function buildMobileAiVaultResumeCommand(args: {
   })
 }
 
-export type MobileAiVaultResumeSettings = Omit<AgentStartupSettings, 'agentCmdOverrides'> & {
+export type MobileAiVaultResumeSettings = {
   agentCmdOverrides?: Partial<Record<TuiAgent, string | null>>
+  agentDefaultArgs?: Partial<Record<TuiAgent, string>>
+  agentDefaultEnv?: Partial<Record<TuiAgent, Record<string, string>>>
 }
 
-export type MobileAiVaultResumeLaunch = TerminalStartupInput & {
-  cwd?: string
+export type MobileAiVaultResumeLaunch = {
+  command: string
   env?: Record<string, string>
   envToDelete?: string[]
   launchConfig?: SleepingAgentLaunchConfig
@@ -93,7 +86,6 @@ export function buildMobileAiVaultResumeLaunch(args: {
   hostPlatform: NodeJS.Platform
   hostTerminalWindowsShell?: string | null
   settings?: MobileAiVaultResumeSettings | null
-  hostCapabilities?: readonly string[]
 }): MobileAiVaultResumeLaunch {
   const shell =
     args.hostPlatform === 'win32'
@@ -105,35 +97,6 @@ export function buildMobileAiVaultResumeLaunch(args: {
   )
   const commandOverride = cmdOverrides[args.session.agent] ?? null
   const resumeFilePath = normalizeAiVaultResumeFilePath(args.session.filePath, args.hostPlatform)
-  const providerSession = getAiVaultAgentProviderSession(args.session)
-  if (
-    providerSession &&
-    isResumableTuiAgent(args.session.agent) &&
-    args.hostCapabilities?.includes(AGENT_RESUME_HOST_PLAN_CAPABILITY)
-  ) {
-    return {
-      resume: {
-        recipe: {
-          source: 'current-inputs',
-          settings: agentResumeCurrentInputs(args.session.agent, {
-            ...args.settings,
-            agentCmdOverrides: cmdOverrides
-          })
-        },
-        ...(args.session.agent === 'omp' && args.session.filePath
-          ? { ompResumeFilePath: args.session.filePath }
-          : {}),
-        resumeInLaunchCwd: true,
-        ...(args.session.agent === 'codex' ? { codexHome: args.session.codexHome } : {})
-      },
-      ...(args.session.cwd ? { cwd: args.session.cwd } : {}),
-      env: managedDataAccountResumeEnv(args.session),
-      ...realHomeCodexResumeEnvDeletion(args.session),
-      launchAgent: args.session.agent,
-      resumeProviderSession: providerSession
-    }
-  }
-
   if (isResumableTuiAgent(args.session.agent)) {
     const startupPlan = buildAgentResumeStartupPlan({
       agent: args.session.agent,
@@ -195,6 +158,21 @@ export function buildMobileAiVaultResumeLaunch(args: {
   }
 }
 
+function normalizeMobileAiVaultResumeCommandOverrides(
+  overrides: Partial<Record<TuiAgent, string | null>> | null | undefined
+): Partial<Record<TuiAgent, string>> {
+  const normalized: Partial<Record<TuiAgent, string>> = {}
+  if (!overrides) {
+    return normalized
+  }
+  for (const [agent, command] of Object.entries(overrides) as [TuiAgent, string | null][]) {
+    if (typeof command === 'string' && command.trim()) {
+      normalized[agent] = command
+    }
+  }
+  return normalized
+}
+
 export async function resumeAiVaultSessionInTerminal(
   client: RpcOperationSender,
   worktreeId: string,
@@ -206,24 +184,16 @@ export async function resumeAiVaultSessionInTerminal(
 ): Promise<MobileReviewTerminalTab> {
   assertCurrentOwner?.()
   // Qoder's execution host must select its installed executable before the resume starts.
-  const plannedResume = Boolean(
-    launch.resume && launch.hostCapabilities?.includes(AGENT_RESUME_HOST_PLAN_CAPABILITY)
-  )
   const launchAtCreate =
-    plannedResume ||
-    (launch.launchAgent === 'qoder' &&
-      Boolean(launch.clientMutationId) &&
-      launch.hostCapabilities?.includes(QODER_OWNED_TERMINAL_CREATE_CAPABILITY) === true)
+    launch.launchAgent === 'qoder' &&
+    Boolean(launch.clientMutationId) &&
+    launch.hostCapabilities?.includes(QODER_OWNED_TERMINAL_CREATE_CAPABILITY) === true
   // Await requests outside refusal handling so transport errors keep their original delivery-unknown identity.
   const created = await reviewTerminalCreateRun.request(
     client,
     {
       worktree: `id:${worktreeId}`,
-      ...(plannedResume
-        ? { resume: launch.resume, ...(launch.cwd ? { cwd: launch.cwd } : {}) }
-        : launchAtCreate
-          ? { command: launch.command }
-          : {}),
+      ...(launchAtCreate ? { command: launch.command } : {}),
       ...(launch.env ? { env: launch.env } : {}),
       ...(launch.envToDelete ? { envToDelete: launch.envToDelete } : {}),
       ...(launch.launchConfig ? { launchConfig: launch.launchConfig } : {}),
@@ -248,9 +218,6 @@ export async function resumeAiVaultSessionInTerminal(
     return terminalTab
   }
   assertCurrentOwner?.()
-  if (!launch.command) {
-    throw new Error('Resume command unavailable')
-  }
   const sent = await reviewTerminalSendRun.request(
     client,
     {
@@ -271,10 +238,31 @@ export async function resumeAiVaultSessionInTerminal(
   return terminalTab
 }
 
-export {
-  createMobileAiVaultResumeMutationRegistry,
-  type MobileAiVaultResumeMutationRegistry
-} from './ai-vault-resume-preparation'
+export type MobileAiVaultResumeMutationRegistry = {
+  claim(sessionId: string): string
+  releaseOnSuccess(sessionId: string): void
+}
+
+// Reuse mutation ids after failed/interrupted resumes for deduplication; mint fresh only after success so deliberate forks remain possible.
+export function createMobileAiVaultResumeMutationRegistry(
+  mintId: (sessionId: string) => string
+): MobileAiVaultResumeMutationRegistry {
+  const bySessionId = new Map<string, string>()
+  return {
+    claim(sessionId: string): string {
+      const existing = bySessionId.get(sessionId)
+      if (existing) {
+        return existing
+      }
+      const minted = mintId(sessionId)
+      bySessionId.set(sessionId, minted)
+      return minted
+    },
+    releaseOnSuccess(sessionId: string): void {
+      bySessionId.delete(sessionId)
+    }
+  }
+}
 
 export function readMobileRuntimeTerminalWindowsShell(statusResult: unknown): string | null {
   if (!statusResult || typeof statusResult !== 'object') {

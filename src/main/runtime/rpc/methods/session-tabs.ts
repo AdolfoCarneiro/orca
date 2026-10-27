@@ -57,15 +57,16 @@ export const SESSION_TAB_METHODS = [
     params: CreateTerminalTab,
     handler: async (params, context) => {
       const { runtime, signal, clientKind, pairedDeviceId, clientCapabilities } = context
+      const resumeProviderSession = params.resume?.providerSession ?? params.resumeProviderSession
       if (params.command) {
         await assertLegacyAiVaultResumeCommandAllowed(params.command, () =>
           runtime.ensureStructuredAgentSessionHost()
         )
-      } else if (params.resume && params.launchAgent && params.resumeProviderSession) {
+      } else if (params.resume && params.launchAgent && resumeProviderSession) {
         await assertLegacyAiVaultResumeCommandAllowed(
           {
             agent: params.launchAgent,
-            providerSession: params.resumeProviderSession,
+            providerSession: resumeProviderSession,
             ompResumeFilePath:
               params.resume.ompResumeFilePath ??
               (params.resume.recipe.source === 'saved'

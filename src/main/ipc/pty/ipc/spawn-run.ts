@@ -97,6 +97,9 @@ export async function runPtyIpcSpawn(deps: PtySpawnIpcDeps, request: PtySpawnIpc
     ...(args.replacesPtyId !== undefined
       ? {
           replace: async () => {
+            if (ctx.args.resume !== undefined) {
+              await planPaneAgentLaunch(ctx)
+            }
             ctx.replacedPaneOwner = await stopReplacedPaneOwner(deps, {
               replacesPtyId: args.replacesPtyId!,
               paneKey: resolveEarlyPaneKey(args),

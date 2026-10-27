@@ -1,3 +1,4 @@
+import * as resume from '../../shared/agent-terminal-resume-outcome'
 import { buildAgentTerminalResumePlan } from '../../shared/agent-terminal-resume-plan'
 import { isResumableTuiAgent } from '../../shared/agent-session-resume'
 import type { SessionOptionValue } from '../../shared/native-chat-session-options'
@@ -44,7 +45,7 @@ import { resolveWslSessionContext } from '../daemon/wsl-session-context'
 import { isTuiAgentEnabled } from '../../shared/tui-agent-selection'
 
 /** No launch command could be built for a requested `startupAgent`. */
-export class AgentLaunchUnbuildableError extends Error {}
+export { AgentLaunchUnbuildableError } from '../../shared/agent-terminal-resume-outcome'
 
 type AgentTerminalPlanHost = {
   store: RuntimeStore | null | undefined
@@ -106,7 +107,8 @@ export async function resolveAgentTerminalCreateOptions(
       (!opts.resume && opts.startupCommandDelivery) ||
       opts.claudeAgentTeamsSourceCommand ||
       (opts.resume
-        ? !opts.resumeProviderSession || !isResumableTuiAgent(opts.startupAgent)
+        ? !(opts.resume.providerSession ?? opts.resumeProviderSession) ||
+          !isResumableTuiAgent(opts.startupAgent)
         : opts.env || opts.resumeProviderSession)
     ) {
       throw new Error(
@@ -149,25 +151,7 @@ export async function resolveAgentTerminalCreateOptions(
   return runtime ? { ...qoderLaunch, launchRuntime: runtime } : qoderLaunch
 }
 
-/** Desktop-selected account env overrides the launch plan; explicit caller env/accountEnv still wins. */
-export function withHostAccountLaunchEnv(
-  requested: Pick<TerminalCreateOptions, 'env' | 'accountEnv'>,
-  launch: TerminalCreateOptions,
-  accountEnv: Readonly<Record<string, string>>
-): TerminalCreateOptions {
-  if (Object.keys(accountEnv).length === 0) {
-    return launch
-  }
-  return {
-    ...launch,
-    env: {
-      ...launch.env,
-      ...accountEnv,
-      ...requested.env,
-      ...requested.accountEnv
-    }
-  }
-}
+export { withHostAccountLaunchEnv } from './runtime-agent-account-env'
 
 async function buildRuntimeAgentTerminalStartupOptions(
   workspace: TerminalWorkspaceLaunchScope,
@@ -179,10 +163,11 @@ async function buildRuntimeAgentTerminalStartupOptions(
 ): Promise<TerminalCreateOptions> {
   // Repo display metadata may belong to another host; use the already-resolved PTY route for launch.
   const isRemote = Boolean(workspace.connectionId)
-  if (opts.resume && opts.resumeProviderSession && isResumableTuiAgent(agent)) {
+  const providerSession = opts.resume?.providerSession ?? opts.resumeProviderSession
+  if (opts.resume && providerSession && isResumableTuiAgent(agent)) {
     const plan = buildAgentTerminalResumePlan({
       agent,
-      providerSession: opts.resumeProviderSession,
+      providerSession,
       resume: opts.resume,
       settings,
       runtime,
@@ -192,15 +177,16 @@ async function buildRuntimeAgentTerminalStartupOptions(
       sessionOptions: host.toSessionOptions(opts.launchPreferences)
     })
     if (!plan) {
-      throw new AgentLaunchUnbuildableError(`Could not build resume command for ${agent}.`)
+      throw new resume.ResumePlanNotDispatchedError(`Could not build resume command for ${agent}.`)
     }
     return {
       ...opts,
       command: plan.launchCommand,
+      resumeProviderSession: providerSession,
       env: { ...plan.env, ...opts.env, ...opts.accountEnv },
       envToDelete: mergeTerminalEnvDeletionKeys(
         opts.envToDelete,
-        opts.resume.codexHome !== undefined
+        agent === 'codex' && opts.resume.codexHome !== undefined
           ? realHomeCodexResumeEnvDeletion({ agent, codexHome: opts.resume.codexHome }).envToDelete
           : undefined
       ),
@@ -257,7 +243,7 @@ async function buildRuntimeAgentTerminalStartupOptions(
   if (!startupPlan) {
     // Explicit agents without plans must not become bare shells that never reach readiness.
     if (opts.startupAgent) {
-      throw new AgentLaunchUnbuildableError(
+      throw new resume.AgentLaunchUnbuildableError(
         `Could not build launch command for ${opts.startupAgent}.`
       )
     }

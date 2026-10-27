@@ -1,3 +1,4 @@
+import { AgentTerminalResumeParam } from './agent-terminal-resume-params'
 import { describe, expect, it } from 'vitest'
 import { CreateTerminalTab } from './session-tabs-schemas-params'
 
@@ -29,6 +30,15 @@ describe('session.tabs.createTerminal resumeProviderSession', () => {
       resumeProviderSession: SESSION
     }
     expect(CreateTerminalTab.parse(request)).toEqual(request)
+    expect(
+      AgentTerminalResumeParam.safeParse({ recipe: { source: 'saved', settings: {} } }).success
+    ).toBe(false)
+    expect(
+      AgentTerminalResumeParam.safeParse({
+        recipe: { source: 'current-inputs', settings: { agentPermissionDefault: 'accept-edits' } },
+        providerSession: SESSION
+      }).success
+    ).toBe(true)
     expect(
       CreateTerminalTab.safeParse({
         ...request,

@@ -19,6 +19,7 @@ export type PaneAgentLaunch = {
   launchRuntime?: AgentLaunchRuntime
   /** After provider dispatch, a failure cannot prove that nothing ran. */
   dispatched: boolean
+  typedResume?: boolean
   refuseIfClosed: () => void
 }
 
@@ -36,7 +37,11 @@ export function endPaneAgentLaunch(ctx: PtyIpcSpawnState, end: PaneAgentLaunchEn
     return null
   }
   if ('exitedDuringStart' in end) {
-    finish(launch, { kind: 'not-started', code: 'agent_session_exited_during_start' })
+    if (launch.typedResume) {
+      launch.running.finish({ kind: 'proceed' })
+    } else {
+      finish(launch, { kind: 'not-started', code: 'agent_session_exited_during_start' })
+    }
     return null
   }
   const closed = launch.running.closedByUser()
@@ -50,6 +55,11 @@ export function endPaneAgentLaunch(ctx: PtyIpcSpawnState, end: PaneAgentLaunchEn
   }
   if (closed || end.error instanceof AgentLaunchTabClosedError) {
     stopClosed(launch)
+    return toError(end.error)
+  }
+  if (launch.typedResume) {
+    // The originating invocation owns resume feedback; no pane failure cache owns a later retry.
+    launch.running.finish({ kind: 'proceed' })
     return toError(end.error)
   }
   finish(

@@ -1,3 +1,4 @@
+import { buildAiVaultResumeDragStartupForWorktree } from '@/lib/ai-vault-session-drag-startup'
 import {
   notifyAiVaultSessionPreparationFailure,
   resolveAiVaultSessionLaunchTargetOrNotify
@@ -65,6 +66,17 @@ export function useAiVaultSessionLaunchActions({
   const buildResumeStartup = useCallback(
     (session: AiVaultResumeCommandSession, worktreeId?: string | null) =>
       buildAiVaultResumeStartupForWorktree({
+        state: useAppStore.getState(),
+        worktreeId: worktreeId ?? activeWorktreeId ?? activeWorktree?.id ?? null,
+        session,
+        commandOverride: agentCmdOverrides?.[session.agent]
+      }),
+    [activeWorktree?.id, activeWorktreeId, agentCmdOverrides]
+  )
+
+  const buildResumeDragStartup = useCallback(
+    (session: AiVaultResumeCommandSession, worktreeId?: string | null) =>
+      buildAiVaultResumeDragStartupForWorktree({
         state: useAppStore.getState(),
         worktreeId: worktreeId ?? activeWorktreeId ?? activeWorktree?.id ?? null,
         session,
@@ -257,7 +269,7 @@ export function useAiVaultSessionLaunchActions({
   }, [])
 
   return {
-    buildResumeStartup,
+    buildResumeStartup: buildResumeDragStartup,
     copyResumeCommand,
     handleResume,
     handleResumeInNewCli,

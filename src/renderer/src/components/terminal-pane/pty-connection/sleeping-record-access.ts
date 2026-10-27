@@ -7,7 +7,6 @@ import { findLegacyNumericSleepingRecord } from '../../../../../shared/sleeping-
 import { neutralTerminalTitle } from '../../../../../shared/terminal-pane-title-reset'
 import {
   agentProviderSessionsEqual,
-  type SavedResumeStartupSource,
   type SleepingAgentSessionRecord
 } from '../../../../../shared/agent-session-resume'
 import { recognizeAgentProcessFromCommandLine } from '../../../../../shared/agent-process-recognition'
@@ -61,10 +60,9 @@ export function installSleepingRecordAccess(session: ConnectPanePtySession): voi
   session.savedStartupAutomaticClaim = session.paneStartup?.resumeSource
     ? useAppStore.getState().automaticAgentResumeClaimsByTabId[session.deps.tabId]
     : undefined
-  session.launchToken =
-    session.paneStartup?.launchConfig || session.paneStartup?.resume
-      ? (session.paneStartup.launchToken ?? createBrowserUuid())
-      : undefined
+  session.launchToken = session.paneStartup?.launchConfig
+    ? (session.paneStartup.launchToken ?? createBrowserUuid())
+    : undefined
   session.startupDraftAgent =
     session.paneStartup?.launchAgent ?? session.paneStartup?.initialAgentStatus?.agent
   session.startupDraftAgentConfig = session.startupDraftAgent
@@ -132,11 +130,7 @@ export function installSleepingRecordAccess(session: ConnectPanePtySession): voi
   }
   session.registerEffectiveLaunchConfig = (
     effectiveLaunchConfig: PtyConnectResult['launchConfig'] | undefined,
-    metadata?: {
-      launchToken?: string
-      launchAgent?: TuiAgent
-      resumeSource?: SavedResumeStartupSource
-    }
+    metadata?: { launchToken?: string; launchAgent?: TuiAgent }
   ): void => {
     if (!effectiveLaunchConfig) {
       if (metadata?.launchAgent) {
@@ -170,12 +164,6 @@ export function installSleepingRecordAccess(session: ConnectPanePtySession): voi
       tabId: session.deps.tabId,
       leafId: session.pane.leafId
     })
-    if (metadata?.resumeSource) {
-      session.savedStartupLaunchRegistration = {
-        source: metadata.resumeSource,
-        entry: useAppStore.getState().agentLaunchConfigByPaneKey[session.cacheKey]
-      }
-    }
   }
   session.clearRegisteredStartupLaunchConfig = (expected = session.paneStartup): void => {
     const state = useAppStore.getState()
@@ -184,17 +172,12 @@ export function installSleepingRecordAccess(session: ConnectPanePtySession): voi
     const ownsRegistration = expected?.resumeSource
       ? captured?.source === expected.resumeSource && captured.entry === installed
       : true
-    const expectedConfig =
-      expected?.launchConfig ??
-      (expected?.resumeSource && captured?.source === expected.resumeSource
-        ? captured.entry?.launchConfig
-        : undefined)
     if (
       ownsRegistration &&
       installed &&
-      expectedConfig &&
+      expected?.launchConfig &&
       installed.identity.launchToken === (expected.launchToken ?? session.launchToken) &&
-      launchConfigsEqual(installed.launchConfig, expectedConfig)
+      launchConfigsEqual(installed.launchConfig, expected.launchConfig)
     ) {
       state.clearAgentLaunchConfig(session.cacheKey)
     }

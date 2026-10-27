@@ -1,6 +1,8 @@
+import { getExecutionHostIdForWorktree } from './worktree-runtime-owner'
+import { resolveTerminalHostOwnership } from './terminal-worktree-route'
 import {
   agentResumeCurrentInputs,
-  type TerminalStartupInput
+  type AgentTerminalResume
 } from '../../../shared/agent-terminal-resume'
 import { isResumableTuiAgent } from '../../../shared/agent-session-resume'
 import {
@@ -19,17 +21,18 @@ import { resolveAiVaultResumeStartupShell } from '@/lib/ai-vault-resume-shell'
 import { getAiVaultResumePlatform } from '@/lib/ai-vault-resume-platform'
 import {
   buildAiVaultLocalResumeStartup,
+  buildAiVaultLocalResumeFallback,
   getAiVaultAgentProviderSession,
   getAiVaultResumeCodexHome,
   type AiVaultResumeCommandSession,
   type AiVaultResumeHostShell,
+  type AiVaultResumeLaunchSettings,
   type AiVaultResumeStartup as PreparedAiVaultResumeStartup
 } from '../../../shared/ai-vault-resume-startup'
 
 export type { AiVaultResumeCommandSession } from '../../../shared/ai-vault-resume-startup'
 export { getAiVaultAgentProviderSession }
-export type AiVaultResumeStartup = Omit<PreparedAiVaultResumeStartup, 'command'> &
-  TerminalStartupInput
+export type AiVaultResumeStartup = PreparedAiVaultResumeStartup & { resume?: AgentTerminalResume }
 
 export type AiVaultResumeWorktreeArgs = {
   state: Pick<
@@ -61,6 +64,12 @@ export function buildAiVaultResumeCopyCommandForWorktree(args: AiVaultResumeWork
 export function buildAiVaultResumeStartupForWorktree(
   args: AiVaultResumeWorktreeArgs
 ): AiVaultResumeStartup {
+  if (
+    getExecutionHostIdForWorktree(args.state, args.worktreeId) !== LOCAL_EXECUTION_HOST_ID ||
+    resolveTerminalHostOwnership(args.state, args.worktreeId, 'spawn').kind !== 'local-or-ssh'
+  ) {
+    return buildAiVaultResumeForWorktree(args, false)
+  }
   const providerSession = getAiVaultAgentProviderSession(args.session)
   const opaque =
     args.session.executionHostId &&
@@ -76,17 +85,27 @@ export function buildAiVaultResumeStartupForWorktree(
     !isAntigravityReferenceSession(args.session)
   ) {
     const settings = agentResumeCurrentInputs(args.session.agent, args.state.settings)
-    if (args.commandOverride?.trim()) {
-      settings.agentCmdOverrides = {
-        ...settings.agentCmdOverrides,
-        [args.session.agent]: args.commandOverride
+    const accountEnv = managedDataAccountResumeEnv(args.session)
+    if (Object.keys(accountEnv).length > 0) {
+      settings.agentDefaultEnv = {
+        ...settings.agentDefaultEnv,
+        [args.session.agent]: { ...settings.agentDefaultEnv?.[args.session.agent], ...accountEnv }
       }
     }
     return {
+      ...buildAiVaultLocalResumeFallback({
+        session: args.session,
+        settings: args.state.settings,
+        host: resolveAiVaultResumeHost(args),
+        commandOverride: args.commandOverride,
+        embedCwd: false
+      }),
       resume: {
+        providerSession,
         recipe: {
           source: 'current-inputs',
           settings,
+          ...(args.commandOverride !== undefined ? { commandOverride: args.commandOverride } : {}),
           ...(args.agentArgs !== undefined ? { agentArgs: args.agentArgs } : {})
         },
         ...(args.session.agent === 'omp' && args.session.filePath
@@ -95,9 +114,7 @@ export function buildAiVaultResumeStartupForWorktree(
         resumeInLaunchCwd: true,
         ...(args.session.agent === 'codex' ? { codexHome: args.session.codexHome } : {})
       },
-      providerSession,
       ...(args.session.cwd ? { cwd: args.session.cwd } : {}),
-      env: managedDataAccountResumeEnv(args.session),
       ...realHomeCodexResumeEnvDeletion(args.session)
     }
   }
@@ -132,11 +149,12 @@ export function buildAiVaultDropRepinStartup(args: {
   })
 }
 
-function buildAiVaultResumeForWorktree(
+export function buildAiVaultResumeForWorktree(
   args: AiVaultResumeWorktreeArgs,
   embedCwd: boolean,
   /** Copied lines strip env from the agent command; spawned startups use envToDelete. */
-  clearEnvNames?: readonly string[]
+  clearEnvNames?: readonly string[],
+  settings: AiVaultResumeLaunchSettings | null | undefined = args.state.settings
 ): PreparedAiVaultResumeStartup {
   assertAntigravityReferenceTarget(args)
   const providerSession = getAiVaultAgentProviderSession(args.session)
@@ -168,7 +186,7 @@ function buildAiVaultResumeForWorktree(
       platform: host.platform,
       shell: host.liveShell,
       commandOverride: args.commandOverride,
-      settings: args.state.settings
+      settings
     })
     if (reference) {
       return { ...reference, ...(!embedCwd && args.session.cwd ? { cwd: args.session.cwd } : {}) }
@@ -177,7 +195,7 @@ function buildAiVaultResumeForWorktree(
   return buildAiVaultLocalResumeStartup({
     session: args.session,
     host,
-    settings: args.state.settings,
+    settings,
     commandOverride: args.commandOverride,
     agentArgs: args.agentArgs,
     embedCwd,
