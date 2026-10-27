@@ -30,7 +30,6 @@ const KIND_BY_CATEGORY: Readonly<Record<string, PluginFilterKind>> = {
   keybindings: 'commands',
   commands: 'commands',
   panels: 'commands',
-  editors: 'commands',
   'vm-recipes': 'machines',
   machines: 'machines',
   recipes: 'machines'
