@@ -161,6 +161,7 @@ describe('main-i18n lazy locale loading', () => {
         id,
         resourceLanguage: pluginLanguageResourceId(id),
         pluginKey: 'orca-samples.russian',
+        coverage: 100,
         locale: 'ru-RU',
         catalog: {
           terminals_one: '{{count}} one',

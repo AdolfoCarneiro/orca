@@ -1,5 +1,5 @@
-import { isAllowedPluginGitUrl } from '../plugin-install-lockfile'
-import { isQualifiedPluginKey } from '../plugin-tab-key'
+import { isAllowedPluginGitUrl } from '../installation/plugin-install-lockfile'
+import { isQualifiedPluginKey } from '../frames/plugin-tab-key'
 import {
   isOfficialMarketplaceGitSource,
   isReservedPluginIdentity,

@@ -22,6 +22,7 @@ describe('desktop words for a write that did not happen', () => {
         id,
         resourceLanguage,
         pluginKey: 'example.older-french',
+        coverage: 100,
         locale: 'fr',
         catalog: {}
       }
