@@ -11637,16 +11637,13 @@
           "reconsent": "Seit der letzten Prüfung dieses Plugins haben sich Berechtigungen, die Vertrauensstufe des Hintergrundprozesses oder die enthaltenen Anweisungen geändert. Vor der Ausführung erneut prüfen.",
           "warning": "Diese Berechtigungen begrenzen die Nutzung der Orca-API durch das Plugin. Sein Hintergrundprozess läuft weiterhin als normaler Prozess auf diesem Computer mit uneingeschränktem Zugriff auf Dateien, Netzwerk und andere Prozesse.",
           "instructionalWarning": "Dieses Plugin hat keinen Hintergrundprozess. Seine Anweisungen können bei der Nutzung durch Benutzer oder Agenten dennoch Aktionen auslösen. Vor der Aktivierung die folgenden Anweisungen und Befehle prüfen.",
-          "panelWarning": "Diese Berechtigungen begrenzen die Nutzung der Orca-API durch das Plugin. Dieses Plugin hat keinen Hintergrundprozess.",
           "declarativeWarning": "Dieses Plugin stellt ausschließlich validierte Inhalte bereit. Es führt keinen Hintergrundprozess aus und erhält keinen Zugriff auf die Orca-API.",
           "enable": "Plugin aktivieren",
           "capability": {
             "workspaceRead": "Namen, Branch und Terminal-Liste des fokussierten Worktrees lesen",
-            "terminalSend": "Text in ein sichtbares Terminal eingeben (immer ein bestimmtes Terminal)",
             "notificationsShow": "Desktop-Benachrichtigungen mit dem Plugin-Namen anzeigen",
             "storage": "Daten im eigenen Speicherordner des Plugins speichern",
             "secrets": "Geheimnisse im eigenen verschlüsselten Tresor des Plugins speichern und lesen",
-            "eventsSubscribe": "Benachrichtigungen erhalten, wenn Worktrees erstellt oder entfernt werden und wenn sich der Agentenstatus ändert",
             "settingsOwn": "Die eigenen Einstellungen des Plugins lesen und ändern"
           },
           "decisionFailed": "Die Berechtigungsentscheidung konnte nicht gespeichert werden. Erneut versuchen."
@@ -11666,7 +11663,6 @@
           "saveFailed": "Pfade für Entwicklungs-Plugins konnten nicht gespeichert werden.",
           "pathRequired": "Einen Plugin-Ordnerpfad eingeben.",
           "title": "Entwicklung",
-          "help": "Plugins während der Entwicklung direkt aus Ordnern auf diesem Computer laden. Auch Entwicklungs-Plugins erfordern eine Prüfung der Berechtigungen. Hintergrundprozesse laufen auf diesem Desktop-Host; Aktionen für SSH-Arbeitsbereiche werden über Orca geleitet. Die hier angegebenen Pfade beziehen sich daher auf den Desktop.",
           "remove": "Entfernen",
           "pathLabel": "Ordnerpfad des Entwicklungs-Plugins",
           "placeholder": "/Users/you/plugins/my-plugin oder C:\\Users\\you\\plugins\\my-plugin",
@@ -11742,14 +11738,10 @@
           "done": "Abschließen"
         },
         "PluginRemoveDialog": {
-          "title": "Plugin entfernen?",
-          "description": "Dadurch werden {{value0}} und die gespeicherten Plugin-Daten von diesem Computer entfernt. Das Plugin kann später erneut installiert werden.",
           "cancel": "Abbrechen",
           "remove": "Plugin entfernen"
         },
         "PluginRollbackDialog": {
-          "title": "Plugin zurücksetzen?",
-          "description": "Dadurch wird {{value0}} deaktiviert und die vorherige unveränderliche Version wiederhergestellt. Wenn diese Version andere Zugriffsrechte anfordert oder andere Anweisungen enthält, ist in Orca eine erneute Prüfung erforderlich.",
           "cancel": "Abbrechen",
           "confirm": "Plugin zurücksetzen"
         },
@@ -11764,7 +11756,6 @@
           "settingsUpdateFailed": "Plugin-Einstellungen konnten nicht gespeichert werden.",
           "install": "Plugin installieren",
           "title": "Plugins",
-          "experimental": "Experimentell",
           "description": "Orca-Plugins installieren und verwalten. Plugins laufen auf diesem Computer, auch für SSH-Arbeitsbereiche.",
           "logsFailed": "Plugin-Protokolle konnten nicht geladen werden.",
           "rollbackFailed": "Dieses Plugin konnte nicht zurückgesetzt werden. Möglicherweise ist keine vorherige unveränderliche Version verfügbar."
@@ -11781,7 +11772,6 @@
           "loadingLogs": "Protokolle werden geladen…",
           "noLogs": "Keine Protokollzeilen aufgezeichnet.",
           "logCount": "Letzte {{value0}} von bis zu 200 gespeicherten Zeilen",
-          "dev": "Entwicklung",
           "bundled": "Mitgeliefert",
           "killListMessage": "Die Sicherheitsliste von Orca hat dieses Plugin deaktiviert: {{value0}}",
           "moreActions": "Weitere Aktionen für {{value0}}",

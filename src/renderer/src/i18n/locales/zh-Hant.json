@@ -11492,16 +11492,13 @@
           "reconsent": "權限、工作行程信任層級或指令內容自您上次審查此外掛以來已變更。在執行之前請再次審查。",
           "warning": "這些權限限制了外掛如何使用 Orca 的 API。其工作行程仍作為普通行程在您的電腦上執行，可以完全存取您的檔案、網路和其他行程。",
           "instructionalWarning": "此外掛沒有工作行程。其指令內容在您或代理程式使用時仍可能引發操作。在啟用之前，請審查以下指令和命令。",
-          "panelWarning": "這些權限限制了外掛如何使用 Orca 的 API。此外掛沒有背景工作行程。",
           "declarativeWarning": "此外掛僅貢獻經過驗證的內容。它不執行背景工作行程，也不接收對 Orca API 的存取。",
           "enable": "啟用外掛",
           "capability": {
             "workspaceRead": "讀取目前焦點所在工作樹的名稱、分支和終端機清單",
-            "terminalSend": "在您可見的終端機中輸入文字（始終是特定終端機）",
             "notificationsShow": "顯示標有外掛名稱的桌面通知",
             "storage": "在外掛自己的儲存資料夾中儲存資料",
             "secrets": "在外掛自己的加密保險庫中儲存和讀取機密資料",
-            "eventsSubscribe": "在工作樹建立或移除以及代理程式狀態變更時獲得通知",
             "settingsOwn": "讀取和變更外掛自己的設定"
           },
           "decisionFailed": "無法儲存權限決定。請重試。"
@@ -11521,7 +11518,6 @@
           "saveFailed": "無法儲存開發外掛路徑。",
           "pathRequired": "請輸入外掛資料夾路徑。",
           "title": "開發",
-          "help": "開發外掛時，可直接從此電腦上的資料夾載入。開發外掛仍需審查權限。工作行程在此桌面主機上執行；SSH 工作區操作透過 Orca 路由，因此此處需使用這臺電腦上的路徑。",
           "remove": "移除",
           "pathLabel": "開發外掛資料夾路徑",
           "placeholder": "/Users/you/plugins/my-plugin 或 C:\\Users\\you\\plugins\\my-plugin",
@@ -11597,14 +11593,10 @@
           "done": "完成"
         },
         "PluginRemoveDialog": {
-          "title": "移除外掛？",
-          "description": "這將從電腦中移除 {{value0}} 及其儲存的外掛資料。您可以稍後再次安裝。",
           "cancel": "取消",
           "remove": "移除外掛"
         },
         "PluginRollbackDialog": {
-          "title": "將外掛回復舊版？",
-          "description": "這將停用 {{value0}} 並恢復其之前的不可變版本。如果該版本請求不同的存取或指令內容，Orca 將要求再次審查。",
           "cancel": "取消",
           "confirm": "將外掛回復舊版"
         },
@@ -11619,7 +11611,6 @@
           "settingsUpdateFailed": "無法儲存外掛設定。",
           "install": "安裝外掛",
           "title": "外掛",
-          "experimental": "實驗性",
           "description": "安裝和管理 Orca 外掛。外掛在此電腦上執行，即使是 SSH 工作區也是如此。",
           "logsFailed": "無法載入外掛日誌。",
           "rollbackFailed": "無法將此外掛回復舊版。先前不可變更的版本可能無法取得。"
@@ -11636,7 +11627,6 @@
           "loadingLogs": "正在載入日誌…",
           "noLogs": "未記錄日誌行。",
           "logCount": "最近 {{value0}} 行（最多保留 200 行）",
-          "dev": "開發",
           "bundled": "內建",
           "killListMessage": "Orca 的安全清單停用了此外掛：{{value0}}",
           "moreActions": "{{value0}} 的更多操作",

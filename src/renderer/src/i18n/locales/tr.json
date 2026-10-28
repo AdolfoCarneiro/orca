@@ -11623,16 +11623,13 @@
           "reconsent": "Bu eklentiyi son incelemenizden bu yana izinler, işçi güven düzeyi veya talimat içeriği değişti. Çalışabilmesi için tekrar inceleyin.",
           "warning": "Bu izinler eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. İşçisi yine de bilgisayarınızda dosyalarınıza, ağınıza ve diğer işlemlere tam erişimi olan normal bir işlem olarak çalışmaya devam eder.",
           "instructionalWarning": "Bu eklentinin işçi işlemi yok. Talimat içeriği yine de siz veya bir ajan onu kullandığında eylemlere neden olabilir. Etkinleştirmeden önce aşağıdaki talimatları ve komutları inceleyin.",
-          "panelWarning": "Bu izinler eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. Bu eklentinin arka plan işçisi yok.",
           "declarativeWarning": "Bu eklenti yalnızca doğrulanmış içerik sağlar. Arka plan işçisi çalıştırmaz veya Orca'nın API'sine erişim almaz.",
           "enable": "Eklentiyi etkinleştir",
           "capability": {
             "workspaceRead": "Odaklanılan worktree'nizin adını, branch'ini ve terminal listesini okur",
-            "terminalSend": "Görebildiğiniz bir terminale metin yazar (her zaman belirli bir terminal)",
             "notificationsShow": "Eklenti adıyla etiketlenmiş masaüstü bildirimleri gösterir",
             "storage": "Eklentinin kendi depolama klasöründe veri saklar",
             "secrets": "Eklentinin kendi şifreli kasasında gizli bilgileri saklar ve okur",
-            "eventsSubscribe": "Worktree'ler oluşturulduğunda veya kaldırıldığında ve ajan durumu değiştiğinde bildirim alır",
             "settingsOwn": "Eklentinin kendi ayarlarını okur ve değiştirir"
           },
           "decisionFailed": "İzin kararı kaydedilemedi. Tekrar deneyin."
@@ -11652,7 +11649,6 @@
           "saveFailed": "Geliştirme eklentisi yolları kaydedilemedi.",
           "pathRequired": "Bir eklenti klasörü yolu girin.",
           "title": "Geliştirme",
-          "help": "Geliştirirken eklentileri doğrudan bu bilgisayardaki klasörlerden yükleyin. Geliştirme eklentileri yine de izin incelemesi gerektirir. İşçiler bu masaüstü host'unda çalışır; SSH çalışma alanı eylemleri Orca üzerinden yönlendirilir, bu yüzden buradaki yollar masaüstü yollarıdır.",
           "remove": "Kaldır",
           "pathLabel": "Geliştirme eklentisi klasör yolu",
           "placeholder": "/Users/you/plugins/my-plugin veya C:\\Users\\you\\plugins\\my-plugin",
@@ -11728,14 +11724,10 @@
           "done": "Tamam"
         },
         "PluginRemoveDialog": {
-          "title": "Eklenti kaldırılsın mı?",
-          "description": "Bu, {{value0}} eklentisini ve bu bilgisayarda saklanan eklenti verilerini kaldırır. Daha sonra tekrar yükleyebilirsiniz.",
           "cancel": "İptal",
           "remove": "Eklentiyi kaldır"
         },
         "PluginRollbackDialog": {
-          "title": "Eklenti geri alınsın mı?",
-          "description": "Bu, {{value0}} eklentisini devre dışı bırakır ve önceki değiştirilemez sürümünü geri yükler. O sürüm farklı bir erişim veya talimat içeriği istiyorsa Orca yeniden inceleme ister.",
           "cancel": "İptal",
           "confirm": "Eklentiyi geri al"
         },
@@ -11750,7 +11742,6 @@
           "settingsUpdateFailed": "Eklenti ayarları kaydedilemedi.",
           "install": "Eklenti yükle",
           "title": "Eklentiler",
-          "experimental": "Deneysel",
           "description": "Orca eklentilerini yükleyin ve yönetin. Eklentiler, SSH çalışma alanları için bile bu bilgisayarda çalışır.",
           "logsFailed": "Eklenti günlükleri yüklenemedi.",
           "rollbackFailed": "Bu eklenti geri alınamadı. Önceki değiştirilemez bir sürüm mevcut olmayabilir."
@@ -11767,7 +11758,6 @@
           "loadingLogs": "Günlükler yükleniyor…",
           "noLogs": "Kayıtlı günlük satırı yok.",
           "logCount": "En fazla 200 satırdan son {{value0}}",
-          "dev": "Geliştirici",
           "bundled": "Paket içinde",
           "killListMessage": "Orca'nın güvenlik listesi bu eklentiyi devre dışı bıraktı: {{value0}}",
           "moreActions": "{{value0}} için diğer işlemler",
