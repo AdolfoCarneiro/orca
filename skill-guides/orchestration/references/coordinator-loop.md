@@ -20,6 +20,9 @@ A later `run-create` keeps your earlier Runs: their mail still wakes you, but
 commands without `--run` use the newest Run, so pass `--run <id>` for an earlier
 one. `run-use` keeps only the Run it names.
 
+In a new terminal or after a restart, `run-use --id <run_id>` resumes your Run;
+do not create a new one.
+
 ## Reusing a worker
 
 To give a finished worker follow-up work, create the Task, then start it on the

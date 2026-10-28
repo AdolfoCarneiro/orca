@@ -1,5 +1,8 @@
 # Placement and remote execution
 
+Folder workspaces are valid. `new-child` and `new-top-level` make Git worktrees
+and do not apply to folders; never `git init` a user's folder.
+
 ```text
 # Child of the current worktree.
 ORCA orchestration worker-start --task <task_id> --worktree new-child --name <name> --agent codex --setup run --json

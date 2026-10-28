@@ -5,7 +5,7 @@ import { ORCA_SESSION_ADDRESS_PREFIX } from '../../../shared/orca-session-addres
 
 export type PreambleParams = {
   taskId: string
-  // Dispatch ids fence heartbeat/completion authority across retries of one Task.
+  // Dispatch ids fence completion authority across retries of one Task.
   dispatchId: string
   taskSpec: string
   /** A terminal handle, or a session's `orca_session_id:<id>`; each is labelled by its kind. */
@@ -60,24 +60,6 @@ export function buildDispatchPreamble(params: PreambleParams): string {
     chat
   })
 
-  const heartbeat =
-    params.heartbeatIntervalMinutes === null
-      ? ''
-      : `  # Send a heartbeat every ${params.heartbeatIntervalMinutes} minutes
-  # while actively working on the task. The coordinator uses this to
-  # distinguish "still thinking" from "hung / crashed." Skip heartbeats only
-  # while blocked inside \`check --wait\` or \`ask\` — those calls are
-  # themselves liveness signals. If a background loop sends them, restart
-  # it if it expires mid-task, and stop it before you send worker_done.
-  #
-  # Include BOTH taskId and dispatchId in the payload: the coordinator
-  # attributes the heartbeat to the specific dispatch context, not just
-  # the task, so a straggler heartbeat from a previously-failed dispatch
-  # cannot mask a hung retry.
-  ${cli} orchestration send --from ${params.workerHandle} --type heartbeat --subject "alive" --task-id ${params.taskId} --dispatch-id ${params.dispatchId} --phase "<short: investigating|implementing|reviewing|waiting>"
-
-`
-
   // Use one-line recipes across POSIX/PowerShell/cmd; fence comments and use plain reasons to avoid misleading Chat rendering (STA-8200).
   const header = `You are working inside Orca, a multi-agent IDE. You are a dispatched worker.
 ${dispatchIdentityLines(params)}
@@ -90,7 +72,7 @@ Do only this task, yourself: no subagents or helper workers unless the task asks
 === CLI COMMANDS ===
 
 \`\`\`sh
-${heartbeat}  # Ask the coordinator and wait for its answer. Never use a local question
+  # Ask the coordinator and wait for its answer. Never use a local question
   # prompt such as AskUserQuestion; the coordinator cannot see or answer it.
   # On a timeout, resume with the returned message ID; do not ask again.
   ${cli} orchestration ask --from ${params.workerHandle} --question "<your question>" --options "<optional,comma,separated>" --timeout-ms 600000

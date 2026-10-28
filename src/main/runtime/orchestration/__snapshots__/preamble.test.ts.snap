@@ -14,19 +14,6 @@ Do only this task, yourself: no subagents or helper workers unless the task asks
 === CLI COMMANDS ===
 
 \`\`\`sh
-  # Send a heartbeat every 5 minutes
-  # while actively working on the task. The coordinator uses this to
-  # distinguish "still thinking" from "hung / crashed." Skip heartbeats only
-  # while blocked inside \`check --wait\` or \`ask\` — those calls are
-  # themselves liveness signals. If a background loop sends them, restart
-  # it if it expires mid-task, and stop it before you send worker_done.
-  #
-  # Include BOTH taskId and dispatchId in the payload: the coordinator
-  # attributes the heartbeat to the specific dispatch context, not just
-  # the task, so a straggler heartbeat from a previously-failed dispatch
-  # cannot mask a hung retry.
-  orca orchestration send --from orca_session_id:WORKER --type heartbeat --subject "alive" --task-id task_SNAP --dispatch-id ctx_SNAP --phase "<short: investigating|implementing|reviewing|waiting>"
-
   # Ask the coordinator and wait for its answer. Never use a local question
   # prompt such as AskUserQuestion; the coordinator cannot see or answer it.
   # On a timeout, resume with the returned message ID; do not ask again.
@@ -82,19 +69,6 @@ Do only this task, yourself: no subagents or helper workers unless the task asks
 === CLI COMMANDS ===
 
 \`\`\`sh
-  # Send a heartbeat every 5 minutes
-  # while actively working on the task. The coordinator uses this to
-  # distinguish "still thinking" from "hung / crashed." Skip heartbeats only
-  # while blocked inside \`check --wait\` or \`ask\` — those calls are
-  # themselves liveness signals. If a background loop sends them, restart
-  # it if it expires mid-task, and stop it before you send worker_done.
-  #
-  # Include BOTH taskId and dispatchId in the payload: the coordinator
-  # attributes the heartbeat to the specific dispatch context, not just
-  # the task, so a straggler heartbeat from a previously-failed dispatch
-  # cannot mask a hung retry.
-  orca orchestration send --from term_WORKER --type heartbeat --subject "alive" --task-id task_SNAP --dispatch-id ctx_SNAP --phase "<short: investigating|implementing|reviewing|waiting>"
-
   # Ask the coordinator and wait for its answer. Never use a local question
   # prompt such as AskUserQuestion; the coordinator cannot see or answer it.
   # On a timeout, resume with the returned message ID; do not ask again.

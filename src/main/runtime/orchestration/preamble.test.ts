@@ -59,10 +59,9 @@ describe('buildDispatchPreamble', () => {
       .split('\n')
       .filter((line) => line.trimStart().startsWith('orca orchestration'))
 
-    expect(commandLines).toHaveLength(7)
+    expect(commandLines).toHaveLength(6)
     expect(result).not.toContain('\\\n')
     expect(commandLines.filter((line) => line.includes('--type worker_done'))).toHaveLength(1)
-    expect(commandLines.filter((line) => line.includes('--type heartbeat'))).toHaveLength(1)
     expect(commandLines.filter((line) => line.includes('orchestration ask'))).toHaveLength(2)
     expect(commandLines.filter((line) => line.includes('--type escalation'))).toHaveLength(1)
   })
@@ -150,13 +149,8 @@ describe('buildDispatchPreamble', () => {
     expect(result).not.toMatch(/(^|\s)orca orchestration/m)
   })
 
-  it('tells the worker the heartbeat interval the user chose', () => {
-    const result = buildDispatchPreamble(baseParams({ heartbeatIntervalMinutes: 15 }))
-    expect(result).toContain('# Send a heartbeat every 15 minutes')
-  })
-
-  it('never mentions heartbeats when the user turned them off', () => {
-    const result = buildDispatchPreamble(baseParams({ heartbeatIntervalMinutes: null }))
+  it('never mentions heartbeats', () => {
+    const result = buildDispatchPreamble(baseParams())
     expect(result).not.toMatch(/heartbeat/i)
     expect(cliFence(result)).toContain('orchestration ask')
   })
