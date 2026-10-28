@@ -101,12 +101,19 @@ export function useAutomationsPageSetupState({
     [repos, settings]
   )
   const loadAutomationYamlHooksForRepo = useCallback(
-    async (repoId: string, hostId?: ExecutionHostId): Promise<OrcaHooks | null> => {
+    async (
+      repoId: string,
+      hostId?: ExecutionHostId,
+      /** `background`: the draft's prefetch, refused rather than booting a stopped WSL distro. */
+      options: { background?: boolean } = {}
+    ): Promise<OrcaHooks | null> => {
       const key = getAutomationHooksCacheKey(repoId, hostId)
       if (Object.hasOwn(automationYamlHooksByRepoKey, key)) {
         return automationYamlHooksByRepoKey[key] ?? null
       }
-      const existingPromise = automationHookCheckPromisesRef.current.get(key)
+      // Save must not join the prefetch's stopped-distro refusal.
+      const promiseKey = options.background ? `${key}:background` : key
+      const existingPromise = automationHookCheckPromisesRef.current.get(promiseKey)
       if (existingPromise) {
         return (await existingPromise).hooks
       }
@@ -116,7 +123,7 @@ export function useAutomationsPageSetupState({
         hostId ?? (ownerRows.length === 1 ? getRepoExecutionHostId(ownerRows[0]) : null)
       const promise = (
         ownerHostId
-          ? checkRuntimeHooks(ownerHostId, repoId)
+          ? checkRuntimeHooks(ownerHostId, repoId, { background: options.background })
           : Promise.reject(new Error('The project host is unknown.'))
       )
         .then((result) => ({
@@ -124,9 +131,9 @@ export function useAutomationsPageSetupState({
           ok: result.status !== 'error'
         }))
         .catch(() => ({ hooks: null, ok: false }))
-      automationHookCheckPromisesRef.current.set(key, promise)
+      automationHookCheckPromisesRef.current.set(promiseKey, promise)
       const { hooks, ok } = await promise
-      automationHookCheckPromisesRef.current.delete(key)
+      automationHookCheckPromisesRef.current.delete(promiseKey)
       if (!ok) {
         return hooks
       }

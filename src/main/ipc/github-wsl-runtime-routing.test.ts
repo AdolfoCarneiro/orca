@@ -13,6 +13,11 @@ vi.mock('../github/pr-refresh-coordinator', () => mocks.prRefresh)
 vi.mock('../telemetry/client', () => mocks.telemetry)
 vi.mock('../telemetry/cohort-classifier', () => mocks.cohort)
 vi.mock('./ui', () => mocks.ui)
+// These cases route gh into a running distro; the stopped case lives in github-wsl-stopped-distro-reads.
+vi.mock('../wsl-background-distro-gate', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  readWslDistroRunningState: async () => 'running'
+}))
 
 import { registerGitHubHandlers } from './github'
 import { createGitHubIpcHarness, setPlatform } from './github-ipc-test-harness'

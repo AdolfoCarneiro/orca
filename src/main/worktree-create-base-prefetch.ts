@@ -4,6 +4,7 @@ import { isFullGitObjectId } from './git/commit-object-ref'
 import { hasLocalWorktreeBaseRef } from './git/worktree-base-ref-probe'
 import { getBaseRefDefault } from './git/repo'
 import { resolveWorktreeCreateBase } from './worktree-create-base'
+import { blockedWslDistroForPath } from './wsl/wsl-unc-access-gate'
 
 type WorktreeCreateBaseGitOptions = {
   wslDistro?: string
@@ -131,6 +132,10 @@ export async function prefetchWorktreeCreateBase(args: {
   }
   // An `ssh:` repo is not served here, so there is no ref store to warm.
   if (args.repo.connectionId) {
+    return undefined
+  }
+  // Composer and palette opens fire this speculatively; the create itself may start the distro (E9).
+  if (await blockedWslDistroForPath(args.repo.path, args.gitOptions.wslDistro)) {
     return undefined
   }
   const prepareCheckout = args.prepareCheckout

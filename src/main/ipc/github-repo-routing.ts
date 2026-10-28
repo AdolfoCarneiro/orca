@@ -15,6 +15,7 @@ import {
   getLocalProjectGhExecOptions,
   type LocalProjectGhExecOptions
 } from '../project-runtime-git-options'
+import { guardWslUncPathAccess } from '../wsl/wsl-unc-access-gate'
 
 export type GitHubRepoScopedArgs = {
   repoPath: string
@@ -143,6 +144,22 @@ export function getGitHubLocalGitOptionArgs(
 ): [] | [LocalProjectGhExecOptions] {
   const localGitOptions = getLocalProjectGhExecOptions(store, repo)
   return Object.keys(localGitOptions).length > 0 ? [localGitOptions] : []
+}
+
+/**
+ * gh (and its git remote probe) for a WSL repo runs in that distro, which boots it when stopped.
+ * A poll refuses instead (E9); `wake` marks a user act, e.g. Refresh, that may start it.
+ */
+export function readGitHubRepoUnlessWslStopped<T>(
+  store: Store,
+  repo: Repo,
+  read: () => Promise<T>,
+  options: { wake?: boolean } = {}
+): Promise<T> {
+  return guardWslUncPathAccess(repo.path, read, {
+    wake: options.wake,
+    wslDistro: getLocalProjectGhExecOptions(store, repo).wslDistro
+  })
 }
 
 export function applyRegisteredRepoToPRRefreshCandidate(

@@ -115,7 +115,7 @@ export function useChecksPanelEntryRefreshAndTitleActions(
           linkedGiteaPR
         })
         if (activeGitLabReview) {
-          void fetchGitLabDetails()
+          void fetchGitLabDetails({ background: true })
         }
         return
       }

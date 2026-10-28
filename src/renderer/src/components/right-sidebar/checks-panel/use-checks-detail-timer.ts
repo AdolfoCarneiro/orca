@@ -83,7 +83,7 @@ export function useChecksDetailTimer({
         const force = forceNextFetchRef.current
         forceNextFetchRef.current = false
         try {
-          await (isGitLabReview ? fetchGitLabDetails() : fetchChecks({ force }))
+          await (isGitLabReview ? fetchGitLabDetails({ background: true }) : fetchChecks({ force }))
         } finally {
           if (inFlightRef.current?.token === token) {
             inFlightRef.current = null

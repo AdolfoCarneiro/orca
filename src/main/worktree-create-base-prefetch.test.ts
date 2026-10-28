@@ -6,11 +6,15 @@ const mocks = vi.hoisted(() => ({
   resolveRemoteTrackingBase: vi.fn(),
   hasRemoteTrackingRef: vi.fn(),
   getOrStartRemoteTrackingBaseRefresh: vi.fn(),
-  fetchRemoteWithCache: vi.fn()
+  fetchRemoteWithCache: vi.fn(),
+  blockedWslDistroForPath: vi.fn()
 }))
 
 vi.mock('./git/repo', () => ({ getBaseRefDefault: mocks.getBaseRefDefault }))
 vi.mock('./git/runner', () => ({ gitExecFileAsync: mocks.gitExecFileAsync }))
+vi.mock('./wsl/wsl-unc-access-gate', () => ({
+  blockedWslDistroForPath: mocks.blockedWslDistroForPath
+}))
 
 import { prefetchWorktreeCreateBase } from './worktree-create-base-prefetch'
 
@@ -56,6 +60,7 @@ beforeEach(() => {
   mocks.hasRemoteTrackingRef.mockResolvedValue(false)
   mocks.getOrStartRemoteTrackingBaseRefresh.mockResolvedValue({ ok: true })
   mocks.fetchRemoteWithCache.mockResolvedValue(undefined)
+  mocks.blockedWslDistroForPath.mockResolvedValue(null)
 })
 
 describe('prefetchWorktreeCreateBase local git routing', () => {
@@ -148,6 +153,20 @@ describe('prefetchWorktreeCreateBase local git routing', () => {
     }
     expect(mocks.resolveRemoteTrackingBase).toHaveBeenCalledWith(repo.path, 'feature/topic')
     expect(mocks.fetchRemoteWithCache).toHaveBeenCalledWith(repo.path, 'origin')
+  })
+
+  it('never starts a stopped WSL distro for a speculative prefetch', async () => {
+    mocks.blockedWslDistroForPath.mockResolvedValue({ distro: 'Ubuntu', state: 'stopped' })
+
+    await expect(
+      prefetchWorktreeCreateBase({ repo, runtime: runtime(), gitOptions: WSL })
+    ).resolves.toBeUndefined()
+
+    expect(mocks.blockedWslDistroForPath).toHaveBeenCalledWith(repo.path, 'Ubuntu')
+    expect(mocks.getBaseRefDefault).not.toHaveBeenCalled()
+    expect(mocks.gitExecFileAsync).not.toHaveBeenCalled()
+    expect(mocks.getOrStartRemoteTrackingBaseRefresh).not.toHaveBeenCalled()
+    expect(mocks.fetchRemoteWithCache).not.toHaveBeenCalled()
   })
 
   it('does not resolve a local base for SSH repos', async () => {

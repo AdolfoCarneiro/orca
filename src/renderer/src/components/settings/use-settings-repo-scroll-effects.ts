@@ -80,12 +80,16 @@ export function useSettingsRepoScrollEffects(
         }
         try {
           const hostId = getRepoExecutionHostId(repo)
-          const result = await checkRuntimeHooks(hostId, repo.id)
+          // Opening Settings reads every repo; it must not boot their stopped WSL distros.
+          const result = await checkRuntimeHooks(hostId, repo.id, { background: true })
           if (stale || requestSeq !== repoHooksRequestSeqRef.current) {
             return
           }
           setRepoHooksMap((previous) => {
             if (!liveRepoHostIdentities.has(repoHostIdentity)) {
+              return previous
+            }
+            if (result.unavailable === 'wsl-distro-stopped' && previous[repoHostIdentity]) {
               return previous
             }
             return { ...previous, [repoHostIdentity]: result }

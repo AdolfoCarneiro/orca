@@ -65,7 +65,9 @@ export function useAutomationDraftEffects({
     if (!createOpen || draft.workspaceMode !== 'new_per_run' || !draft.projectId) {
       return
     }
-    void loadAutomationYamlHooksForRepo(draft.projectId, createDestinationHostId)
+    void loadAutomationYamlHooksForRepo(draft.projectId, createDestinationHostId, {
+      background: true
+    })
   }, [
     createOpen,
     createDestinationHostId,

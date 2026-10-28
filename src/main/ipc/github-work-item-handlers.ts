@@ -18,6 +18,7 @@ import {
   assertRegisteredGitHubRepo,
   getGitHubLocalGitOptionArgs,
   getGitHubRepoConnectionId,
+  readGitHubRepoUnlessWslStopped,
   type GitHubRepoScopedArgs
 } from './github-repo-routing'
 import { broadcastGitHubWorkItemMutation } from './github-work-item-mutation-events'
@@ -35,11 +36,14 @@ export function registerGitHubWorkItemHandlers(store: Store): void {
       }
     ) => {
       const repo = assertRegisteredGitHubRepo(args, store)
-      return getIssue(
-        repo.path,
-        args.number,
-        getGitHubRepoConnectionId(repo),
-        ...getGitHubLocalGitOptionArgs(store, repo)
+      // Polled per sidebar card with a linked issue.
+      return readGitHubRepoUnlessWslStopped(store, repo, () =>
+        getIssue(
+          repo.path,
+          args.number,
+          getGitHubRepoConnectionId(repo),
+          ...getGitHubLocalGitOptionArgs(store, repo)
+        )
       )
     }
   )
@@ -92,27 +96,32 @@ export function registerGitHubWorkItemHandlers(store: Store): void {
       }
     ) => {
       const repo = assertRegisteredGitHubRepo(args, store)
-      return listWorkItems(
-        repo.path,
-        args.limit,
-        args.query,
-        args.page,
-        repo.issueSourcePreference,
-        getGitHubRepoConnectionId(repo),
-        args.noCache,
-        ...getGitHubLocalGitOptionArgs(store, repo)
+      // Tasks and the composer fan out across every repo; none of that is a user act on this distro.
+      return readGitHubRepoUnlessWslStopped(store, repo, () =>
+        listWorkItems(
+          repo.path,
+          args.limit,
+          args.query,
+          args.page,
+          repo.issueSourcePreference,
+          getGitHubRepoConnectionId(repo),
+          args.noCache,
+          ...getGitHubLocalGitOptionArgs(store, repo)
+        )
       )
     }
   )
 
   ipcMain.handle('gh:countWorkItems', (_event, args: { repoPath: string; query?: string }) => {
     const repo = assertRegisteredGitHubRepo(args, store)
-    return countWorkItems(
-      repo.path,
-      args.query,
-      repo.issueSourcePreference,
-      getGitHubRepoConnectionId(repo),
-      ...getGitHubLocalGitOptionArgs(store, repo)
+    return readGitHubRepoUnlessWslStopped(store, repo, () =>
+      countWorkItems(
+        repo.path,
+        args.query,
+        repo.issueSourcePreference,
+        getGitHubRepoConnectionId(repo),
+        ...getGitHubLocalGitOptionArgs(store, repo)
+      )
     )
   })
 
