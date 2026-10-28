@@ -75,7 +75,7 @@ function routeInputOf(
   return key === 'worktreesByRepo' ? worktreeRouteTokenOf(selectWorktreesByRepo(state)) : state[key]
 }
 
-function routeInputsOf(state: EditorBufferRouteState): RouteInputs {
+export function editorBufferRouteInputsOf(state: EditorBufferRouteState): RouteInputs {
   return EDITOR_BUFFER_ROUTE_INPUT_KEYS.map((key) => routeInputOf(state, key))
 }
 
@@ -91,7 +91,7 @@ export function editorBufferRouteInputsEqual(
 
 /** One token per distinct set of route inputs, so a keystroke resolves no routes. */
 export function editorBufferRouteEpochOf(state: EditorBufferRouteState): object {
-  const inputs = routeInputsOf(state)
+  const inputs = editorBufferRouteInputsOf(state)
   if (
     inputs.length !== epochInputs.length ||
     inputs.some((input, index) => input !== epochInputs[index])

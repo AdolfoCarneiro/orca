@@ -1,10 +1,24 @@
+// @vitest-environment happy-dom
 import { createStore } from 'zustand/vanilla'
-import { expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import type { OpenFile } from '@/store/slices/editor'
 import type { EditorBufferRouteState } from '@/store/slices/editor/buffers/editor-buffer-identity-cache'
 import { createEditorModelRegistry } from '@/lib/editor-model-registry'
 import { attachClosedEditorTabCleanup } from './closed-editor-tab-controller'
 import { createEditorModelOwnerKeyCache } from './editor-model-owner-key-cache'
+import * as EditorModelOwner from './editor-model-owner'
+import {
+  createModelLifetimeFixture,
+  resetModelLifetimeFixtures,
+  modelLifetimeFile,
+  modelLifetimeEditorModel
+} from './editor-model-lifetime-fixture'
+
+vi.mock('sonner', () => ({ toast: { info: vi.fn(), error: vi.fn(), success: vi.fn() } }))
+afterEach(() => {
+  vi.restoreAllMocks()
+  resetModelLifetimeFixtures()
+})
 
 type EditorState = EditorBufferRouteState & {
   openFiles: OpenFile[]
@@ -106,3 +120,41 @@ it('resolves keys after collection and isolates subsequent host and buffer owner
     JSON.stringify(['detached', 'detached:private-record', remoteKey])
   )
 })
+
+it.each([20, 200])(
+  'reuses owner keys after unrelated state and GC with %s tabs',
+  async (tabCount) => {
+    const { store, attach } = createModelLifetimeFixture()
+    const files = Array.from({ length: tabCount }, (_, index) => modelLifetimeFile(`gc-${index}`))
+    const closedModel = modelLifetimeEditorModel(files[3].filePath)
+    const liveModel = modelLifetimeEditorModel(files[4].filePath)
+    store.setState({ openFiles: files })
+    attach()
+    const markDirty = (id: string): void =>
+      store.setState({
+        openFiles: store
+          .getState()
+          .openFiles.map((file) => (file.id === id ? { ...file, isDirty: !file.isDirty } : file))
+      })
+    const resolve = vi.spyOn(EditorModelOwner, 'getEditorModelOwnerKey')
+    markDirty(files[0].id)
+    resolve.mockClear()
+    markDirty(files[1].id)
+    expect(resolve).toHaveBeenCalledTimes(1)
+
+    const retired = new WeakRef(store.getState())
+    store.getState().setActiveFile(files[2].id)
+    resolve.mockClear()
+    await collectRetiredState()
+    expect(retired.deref()).toBeUndefined()
+
+    resolve.mockClear()
+    markDirty(files[2].id)
+    const afterGcCalls = resolve.mock.calls.length
+    store.getState().closeFile(files[3].id)
+    await Promise.resolve()
+    expect(closedModel.isDisposed()).toBe(true)
+    expect(liveModel.isDisposed()).toBe(false)
+    expect(afterGcCalls).toBe(1)
+  }
+)
