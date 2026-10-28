@@ -175,12 +175,22 @@ const DEFERRED_CALLEES = new Set([
 
 // Handlers, effects and async continuations run after render, reading the language current then.
 function runsAfterRender(fn) {
+  if (fn.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword)) {
+    return true
+  }
   const parent = fn.parent
   if (ts.isJsxExpression(parent) && ts.isJsxAttribute(parent.parent)) {
     return /^on[A-Z]/.test(parent.parent.name.getText())
   }
-  if (ts.isPropertyAssignment(parent) || ts.isVariableDeclaration(parent)) {
-    return ts.isIdentifier(parent.name) && /^(on|handle)[A-Z]/.test(parent.name.text)
+  // Named local functions are callbacks unless they are render helpers (`renderRow`).
+  const name = ts.isFunctionDeclaration(fn)
+    ? fn.name?.text
+    : (ts.isPropertyAssignment(parent) || ts.isVariableDeclaration(parent)) &&
+        ts.isIdentifier(parent.name)
+      ? parent.name.text
+      : undefined
+  if (name !== undefined) {
+    return !/^render/i.test(name)
   }
   if (ts.isCallExpression(parent) && parent.arguments.includes(fn)) {
     const callee = ts.isPropertyAccessExpression(parent.expression)
@@ -190,7 +200,7 @@ function runsAfterRender(fn) {
         : ''
     return DEFERRED_CALLEES.has(callee)
   }
-  return Boolean(fn.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword))
+  return false
 }
 
 // Render-time code inside a component or hook: walk out through nested callbacks (map, memo) until
