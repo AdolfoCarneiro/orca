@@ -27,7 +27,12 @@ it.each(['detached', 'reassigned', 'disposed'] as const)(
     const successorModel = monaco.editor.createModel('successor')
     let liveModel: editor.ITextModel | null = originalModel
     let focused = true
-    let selection = originalModel.getFullModelRange().collapseToEnd()
+    let selections = [
+      monaco.Selection.fromRange(
+        originalModel.getFullModelRange().collapseToEnd(),
+        monaco.SelectionDirection.LTR
+      )
+    ]
     const node = document.createElement('div')
     document.body.append(node)
     const getValue = vi.fn(() => liveModel?.getValue() ?? '')
@@ -37,12 +42,24 @@ it.each(['detached', 'reassigned', 'disposed'] as const)(
       getValue,
       getContainerDomNode: () => node,
       hasTextFocus: () => focused,
-      getSelection: () => selection,
+      getSelection: () => selections[0],
+      getSelections: () => selections,
       setSelection: (next: monaco.IRange) => {
-        selection = monaco.Range.lift(next)
+        selections = [
+          monaco.Selection.fromRange(monaco.Range.lift(next), monaco.SelectionDirection.LTR)
+        ]
       },
-      executeEdits: (_source: string, edits: editor.IIdentifiedSingleEditOperation[]) => {
-        liveModel?.pushEditOperations([], edits, () => null)
+      executeEdits: (
+        _source: string,
+        edits: editor.IIdentifiedSingleEditOperation[],
+        cursorState?: editor.ICursorStateComputer | monaco.Selection[]
+      ) => {
+        const next = liveModel?.pushEditOperations(selections, edits, (inverse) =>
+          typeof cursorState === 'function' ? cursorState(inverse) : (cursorState ?? null)
+        )
+        if (next) {
+          selections = next
+        }
         return true
       },
       pushUndoStop: () => {
