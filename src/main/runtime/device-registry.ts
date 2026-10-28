@@ -1,6 +1,5 @@
 // Per-device revocable tokens isolate compromises; persist with hardened metadata-style permissions.
 import { join } from 'node:path'
-import { writeDurableSecureJsonFile, writeSecureJsonFile } from '../../shared/secure-file'
 import type { DeviceScope } from '../../shared/runtime-types'
 import { removeStaleDurableWriteTempFiles } from '../durable-file-write'
 import { DEVICE_REGISTRY_FILENAME } from './mobile-pairing-files'
@@ -9,6 +8,7 @@ import { planDeviceKeyFork } from './device-key-fork'
 import { planIdleEphemeralPrune, withoutEphemeralRows } from './ephemeral-device-rows'
 import { quarantineCorruptRegistry } from './device-registry-corruption'
 import { readDeviceRegistryFile } from './device-registry-file-read'
+import { writeMergedDeviceRegistry } from './device-registry-disk-merge'
 import type { RelayDeviceBinding } from './mobile-cloud-relay/relay-revoke-outbox'
 import type { MobilePairingConnectionMode } from '../../shared/mobile-pairing-connection-mode'
 import type { RuntimePairingReach } from '../../shared/runtime-pairing-reach'
@@ -87,8 +87,7 @@ export class DeviceRegistry {
     }
     const nextDevices = [...existingDevices, entry]
     // Credentials become valid only after durable persistence.
-    this.save(nextDevices)
-    this.devices = nextDevices
+    this.devices = this.save(nextDevices)
     return entry
   }
 
@@ -145,8 +144,7 @@ export class DeviceRegistry {
   ): DelegatedMobileDeviceEntry[] {
     const { nextDevices, entries } = planDelegatedMobileDevices(this.devices, parent, phones)
     if (nextDevices !== this.devices) {
-      this.save(nextDevices)
-      this.devices = nextDevices
+      this.devices = this.save(nextDevices)
     }
     return entries
   }
@@ -157,8 +155,7 @@ export class DeviceRegistry {
       return false
     }
     // Persist before swapping memory so failure cannot revoke a device only until restart.
-    this.save(nextDevices)
-    this.devices = nextDevices
+    this.devices = this.save(nextDevices)
     return true
   }
 
@@ -236,8 +233,7 @@ export class DeviceRegistry {
       options
     )
     if (fork.created) {
-      this.save(fork.nextDevices, { durable: true })
-      this.devices = fork.nextDevices
+      this.devices = this.save(fork.nextDevices, { durable: true })
     }
     return fork.entry
   }
@@ -246,8 +242,7 @@ export class DeviceRegistry {
   pruneIdleEphemeralDevices(now: number, isLive: (deviceId: string) => boolean): string[] {
     const plan = planIdleEphemeralPrune(this.devices, now, isLive)
     if (plan.removed.length > 0) {
-      this.save(plan.nextDevices, { durable: true })
-      this.devices = plan.nextDevices
+      this.devices = this.save(plan.nextDevices, { durable: true })
     }
     return plan.removed
   }
@@ -293,9 +288,9 @@ export class DeviceRegistry {
     this.saveOrLog({}, 'persist device lastSeen')
   }
 
-  private saveOrLog(options: { durable?: boolean }, action: string): void {
+  private saveOrLog(options: { durable?: boolean }, action: string, before = this.devices): void {
     try {
-      this.save(this.devices, options)
+      this.devices = this.save(this.devices, options, before)
     } catch (error) {
       console.error(`[runtime] Failed to ${action}:`, error)
     }
@@ -316,7 +311,7 @@ export class DeviceRegistry {
     this.devices = withoutEphemeralRows(read.devices)
     // Session-only browser keys died with the prior host; remove their registry rows.
     if (this.devices.length !== read.devices.length) {
-      this.saveOrLog({ durable: true }, 'drop session-only devices after restart')
+      this.saveOrLog({ durable: true }, 'drop session-only devices after restart', read.devices)
     }
   }
 
@@ -329,8 +324,7 @@ export class DeviceRegistry {
     const nextDevices = this.devices.map((device, candidateIndex) =>
       candidateIndex === index ? update(device) : device
     )
-    this.save(nextDevices)
-    this.devices = nextDevices
+    this.devices = this.save(nextDevices)
     return true
   }
 
@@ -346,12 +340,16 @@ export class DeviceRegistry {
     }
   }
 
-  // Security transitions such as key forks require fsync durability.
-  private save(devices: DeviceEntry[], options: { durable?: boolean } = {}): void {
+  /** Writes `devices` merged over the file as it is now; memory takes the result. */
+  private save(
+    devices: readonly DeviceEntry[],
+    options: { durable?: boolean } = {},
+    before: readonly DeviceEntry[] = this.devices
+  ): DeviceEntry[] {
     this.assertReadable()
-    const write = options.durable ? writeDurableSecureJsonFile : writeSecureJsonFile
-    write(this.registryPath, devices)
+    const written = writeMergedDeviceRegistry(this.registryPath, before, devices, options)
     // Every save includes current timestamps, making a pending refresh redundant.
     this.cancelPendingLastSeenFlush()
+    return written
   }
 }
