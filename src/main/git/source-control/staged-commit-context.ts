@@ -9,11 +9,15 @@ export async function getStagedCommitContext(
   worktreePath: string,
   options: GitRuntimeOptions = {}
 ): Promise<CommitMessageDraftContext | null> {
+  const gitOptions = {
+    ...gitOptionsForWorktree(worktreePath, options),
+    captureWslLoginShellOutput: true
+  }
   const branchPromise = gitExecFileAsync(['branch', '--show-current'], {
-    ...gitOptionsForWorktree(worktreePath, options)
+    ...gitOptions
   }).catch(() => ({ stdout: '' }))
   const summaryPromise = gitExecFileAsync(['diff', '--cached', '--name-status'], {
-    ...gitOptionsForWorktree(worktreePath, options),
+    ...gitOptions,
     maxBuffer: MAX_STAGED_COMMIT_CONTEXT_BYTES
   })
 
@@ -28,7 +32,7 @@ export async function getStagedCommitContext(
     const patchResult = await gitExecFileAsync(
       ['diff', '--cached', '--patch', '--minimal', '--no-color', '--no-ext-diff'],
       {
-        ...gitOptionsForWorktree(worktreePath, options),
+        ...gitOptions,
         maxBuffer: MAX_STAGED_COMMIT_CONTEXT_BYTES
       }
     )
