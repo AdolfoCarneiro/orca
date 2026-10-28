@@ -67,6 +67,10 @@ describe('PluginsAlphaNotice', () => {
     launch()
     expect(container.textContent).toContain('Alpha:')
     expect(container.textContent).toContain('The plugin interface may change. Expect nuances.')
+    // Alpha is a caution, so it uses the shared warning banner tokens.
+    expect(container.querySelector('[role="note"]')?.className).toContain(
+      'bg-status-warning-background'
+    )
 
     const dismiss = container.querySelector<HTMLButtonElement>(
       'button[aria-label="Dismiss Alpha notice"]'
