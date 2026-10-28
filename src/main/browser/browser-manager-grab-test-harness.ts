@@ -11,6 +11,7 @@ export type GrabTestMocks = {
   guestOffMock: Mock
   guestSetBackgroundThrottlingMock: Mock
   guestSetWindowOpenHandlerMock: Mock
+  guestFrameExecuteJavaScriptMock: Mock
   guestExecuteJavaScriptMock: Mock
   guestExecuteJavaScriptInIsolatedWorldMock: Mock
   guestIsDestroyedMock: Mock<() => boolean>
@@ -31,6 +32,9 @@ export function makeGuest(id: number, mocks: GrabTestMocks): Electron.WebContent
     setBackgroundThrottling: mocks.guestSetBackgroundThrottlingMock,
     setWindowOpenHandler: mocks.guestSetWindowOpenHandlerMock,
     on: mocks.guestOnMock,
+    once: mocks.guestOnMock,
+    isLoadingMainFrame: vi.fn(() => false),
+    mainFrame: { executeJavaScript: mocks.guestFrameExecuteJavaScriptMock },
     off: mocks.guestOffMock,
     openDevTools: vi.fn(),
     executeJavaScript: mocks.guestExecuteJavaScriptMock,
@@ -66,6 +70,7 @@ export function resetGrabTestEnvironment(mocks: GrabTestMocks): Electron.WebCont
   vi.clearAllMocks()
   mocks.guestIsDestroyedMock.mockReturnValue(false)
   mocks.guestExecuteJavaScriptMock.mockResolvedValue(true)
+  mocks.guestFrameExecuteJavaScriptMock.mockResolvedValue({ ok: true, value: null })
   mocks.guestExecuteJavaScriptInIsolatedWorldMock.mockResolvedValue(true)
   browserManager.unregisterAll()
   browserManager.setSettingsResolver(() => ({}))

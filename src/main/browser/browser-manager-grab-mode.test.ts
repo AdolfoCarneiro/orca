@@ -7,6 +7,7 @@ const grabMocks = vi.hoisted(() => ({
   guestSetBackgroundThrottlingMock: vi.fn(),
   guestSetWindowOpenHandlerMock: vi.fn(),
   guestExecuteJavaScriptMock: vi.fn(),
+  guestFrameExecuteJavaScriptMock: vi.fn(),
   guestExecuteJavaScriptInIsolatedWorldMock: vi.fn(),
   guestIsDestroyedMock: vi.fn(() => false),
   guestGetZoomFactorMock: vi.fn(() => 1),

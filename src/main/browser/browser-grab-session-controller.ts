@@ -15,6 +15,30 @@ type ActiveGrabOp = {
 
 const GRAB_OP_TIMEOUT_MS = 120_000
 
+// Native frame replies need plain-data errors to preserve their messages.
+function buildGrabAwaitReplyScript(): string {
+  return `(async function() {
+    try {
+      return { ok: true, value: await ${buildGuestOverlayScript('awaitClick')} };
+    } catch (error) {
+      return { ok: false, message: error && typeof error === 'object' && typeof error.message === 'string' ? error.message : 'Selection failed' };
+    }
+  })()`
+}
+
+function readGrabAwaitReply(reply: unknown): unknown {
+  if (!reply || typeof reply !== 'object' || !('ok' in reply)) {
+    throw new Error('Selection failed')
+  }
+  if (reply.ok === false && 'message' in reply && typeof reply.message === 'string') {
+    throw new Error(reply.message)
+  }
+  if (reply.ok !== true) {
+    throw new Error('Selection failed')
+  }
+  return 'value' in reply ? reply.value : undefined
+}
+
 function isGuestCancellationPayload(rawPayload: unknown): boolean {
   if (!rawPayload || typeof rawPayload !== 'object') {
     return false
@@ -81,6 +105,7 @@ export class BrowserGrabSessionController {
     return new Promise<BrowserGrabResult>((resolve) => {
       const guestWebContentsId = guest.id
       let settled = false
+      let finishDocumentWait: ((ready: boolean) => void) | undefined
 
       const settleOnce = (result: BrowserGrabResult): void => {
         if (settled) {
@@ -96,7 +121,27 @@ export class BrowserGrabSessionController {
 
       const awaitGuestClick = async (): Promise<void> => {
         try {
-          const rawPayload = await guest.executeJavaScript(buildGuestOverlayScript('awaitClick'))
+          if (!guest.getURL() || guest.isLoadingMainFrame()) {
+            const ready = await new Promise<boolean>((resolveReady) => {
+              const onReady = (): void => finish(true)
+              const finish = (ready: boolean): void => {
+                guest.off('did-stop-loading', onReady)
+                finishDocumentWait = undefined
+                resolveReady(ready)
+              }
+              finishDocumentWait = finish
+              guest.once('did-stop-loading', onReady)
+            })
+            if (!ready || settled) {
+              return
+            }
+          }
+          if (settled) {
+            return
+          }
+          const rawPayload = readGrabAwaitReply(
+            await guest.mainFrame.executeJavaScript(buildGrabAwaitReplyScript())
+          )
           if (!rawPayload || typeof rawPayload !== 'object') {
             settleOnce({ opId, kind: 'cancelled', reason: 'user' })
             return
@@ -161,6 +206,7 @@ export class BrowserGrabSessionController {
       guest.on('destroyed', handleDestroyed)
 
       const cleanup = (preserveOverlay?: boolean): void => {
+        finishDocumentWait?.(false)
         try {
           guest.off('did-start-navigation', handleNavigation)
           guest.off('destroyed', handleDestroyed)
@@ -172,7 +218,9 @@ export class BrowserGrabSessionController {
         }
         try {
           if (!guest.isDestroyed()) {
-            void guest.executeJavaScript(buildGuestOverlayScript('teardown'))
+            void guest.mainFrame
+              .executeJavaScript(buildGuestOverlayScript('teardown'))
+              .catch(() => {})
           }
         } catch {
           // Best-effort overlay removal
