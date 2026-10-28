@@ -185,7 +185,7 @@ export function createRichMarkdownKeyHandler(
         ed &&
         !ctx.slashMenuRef.current &&
         !ctx.docLinkMenuRef.current &&
-        !isComposingMarkdownInput(event, ed) &&
+        !(event.shiftKey || mod) &&
         handleRichMarkdownTableEnter(ed)
       ) {
         event.preventDefault()

@@ -1,10 +1,13 @@
+// @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest'
-import { Editor, type JSONContent } from '@tiptap/core'
+import { Editor, isMacOS, type JSONContent } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { createIsolatedMarkdownExtensionForTests } from './isolated-markdown-extension-for-tests'
 import { createRichMarkdownKeyHandler, type KeyHandlerContext } from './rich-markdown-key-handler'
 import { createRichMarkdownExtensions } from './rich-markdown-extensions'
 import { createRichMarkdownEditorCodec } from './rich-markdown-source-transport'
+import { encodeRawMarkdownHtmlForRichEditor } from './raw-markdown-html'
+import { commitRichMarkdownSerialization } from './rich-markdown-serialization-commit'
 
 // Pin the shortcut platform because navigator.userAgent varies across test environments.
 vi.mock('@/lib/shortcut-platform', () => ({
@@ -422,6 +425,90 @@ describe('rich markdown key handler', () => {
       editor.destroy()
     }
   })
+
+  it.each([true, false])('leaves the primary-modifier table Enter to Tiptap (Mac: %s)', (isMac) => {
+    const editor = createTableEditor()
+    try {
+      editor.commands.setTextSelection(caretAtText(editor, 'a1') + 1)
+      const ctx = createContext(editor, false)
+      ctx.isMac = isMac
+      const event = keyEvent('Enter', isMac ? { metaKey: true } : { ctrlKey: true })
+      const before = editor.state
+
+      expect(createRichMarkdownKeyHandler(ctx)(null, event)).toBe(false)
+      expect(event.preventDefault).not.toHaveBeenCalled()
+      expect(editor.state).toBe(before)
+    } finally {
+      editor.destroy()
+    }
+  })
+
+  it.each(['Shift-Enter', 'Mod-Enter'])(
+    'preserves the table line break inserted by %s through save and reopen',
+    (shortcut) => {
+      const editor = createTableEditor()
+      const element = document.createElement('div')
+      document.body.append(element)
+      editor.mount(element)
+      try {
+        editor.commands.setTextSelection(caretAtText(editor, 'a1') + 1)
+        const ctx = createContext(editor, false)
+        ctx.isMac = isMacOS()
+        editor.setOptions({ editorProps: { handleKeyDown: createRichMarkdownKeyHandler(ctx) } })
+        const before = editor.getJSON()
+        const originalSourceRef = { current: TABLE_MARKDOWN }
+        const baseCanonicalRef = { current: editor.getMarkdown() }
+        const lastCommittedMarkdownRef = { current: TABLE_MARKDOWN }
+
+        expect(editor.commands.keyboardShortcut(shortcut)).toBe(true)
+        expect(editor.state.selection.$from.parent.child(1).type.name).toBe('hardBreak')
+        const edited = editor.getJSON()
+        expect(editor.commands.undo()).toBe(true)
+        expect(editor.getJSON()).toEqual(before)
+        expect(editor.commands.redo()).toBe(true)
+        expect(editor.getJSON()).toEqual(edited)
+
+        const reopen = (source: string): Editor => {
+          const codec = createRichMarkdownEditorCodec()
+          return new Editor({
+            element: null,
+            extensions: createRichMarkdownExtensions({ codec }),
+            content: encodeRawMarkdownHtmlForRichEditor(source, codec),
+            contentType: 'markdown'
+          })
+        }
+        const saved = commitRichMarkdownSerialization(
+          editor,
+          { originalSourceRef, baseCanonicalRef, lastCommittedMarkdownRef },
+          (source) => {
+            const check = reopen(source)
+            try {
+              return check.getMarkdown()
+            } finally {
+              check.destroy()
+            }
+          }
+        )
+        expect(saved.didSerialize).toBe(true)
+        expect(saved.markdown).toContain('a<br>1')
+        const reopened = reopen(saved.markdown)
+        try {
+          reopened.state.doc.check()
+          const rendered = document.createElement('div')
+          rendered.innerHTML = reopened.getHTML()
+          expect(rendered.querySelector('td')?.textContent).toBe('a1')
+          expect(rendered.querySelectorAll('td br')).toHaveLength(1)
+          expect(reopened.getText()).toContain('b1')
+          expect(reopened.getText()).toContain('a2')
+        } finally {
+          reopened.destroy()
+        }
+      } finally {
+        editor.destroy()
+        element.remove()
+      }
+    }
+  )
 
   it('dismisses the slash menu on Escape even when search has no matches', () => {
     const editor = createEditor({
