@@ -6506,7 +6506,7 @@
           "running": "Çalışıyor",
           "stopped": "Durduruldu",
           "title": "WSL dağıtımı ekle",
-          "description": "Orca sunucusunu dağıtım içinde çalıştırır; böylece git, dosyalar ve terminaller doğrudan Linux'ta çalışır. Yeni projeler için kullanın; \\\\wsl.localhost üzerinden açtığınız projeler mevcut hâliyle çalışmaya devam eder.",
+          "description": "Orca sunucusunu dağıtım içinde çalıştırır; böylece git, dosyalar ve terminaller doğrudan Linux'ta çalışır. \\\\wsl.localhost üzerinden açtığınız projeler, terminalleri boşta kaldığında otomatik olarak bu ana bilgisayara taşınır; bir projeyi kenar çubuğundan bu bilgisayara geri getirebilirsiniz.",
           "distro": "Dağıtım",
           "loading": "WSL dağıtımları aranıyor…",
           "placeholder": "Dağıtım seçin",

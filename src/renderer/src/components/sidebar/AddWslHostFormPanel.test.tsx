@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { WslHostDistro } from '../../../../shared/wsl-host-types'
@@ -14,6 +16,14 @@ const ubuntu: WslHostDistro = { name: 'Ubuntu', state: 'running', version: 2, en
 const debian: WslHostDistro = { name: 'Debian', state: 'stopped', version: 2, environmentId: null }
 const legacy: WslHostDistro = { name: 'Legacy', state: 'running', version: 1, environmentId: null }
 const added: WslHostDistro = { ...ubuntu, name: 'Arch', environmentId: 'wsl:arch' }
+
+const LOCALES_DIR = fileURLToPath(new URL('../../i18n/locales/', import.meta.url))
+const LOCALE_FILES = readdirSync(LOCALES_DIR).filter((file) => file.endsWith('.json'))
+
+function readLocaleDescription(file: string): string {
+  const catalog = JSON.parse(readFileSync(`${LOCALES_DIR}${file}`, 'utf8'))
+  return String(catalog.auto.components.sidebar.AddWslHostFormPanel.description)
+}
 
 function render(props: Partial<Parameters<typeof AddWslHostFormPanel>[0]> = {}): string {
   return renderToStaticMarkup(
@@ -43,11 +53,33 @@ describe('AddWslHostFormPanel', () => {
     expect([ubuntu, debian, legacy, added].map(canAddWslDistro)).toEqual([true, true, false, false])
   })
 
-  it('does not promise bridge projects stay put once they can move to the host', () => {
-    // "Use it for new projects; ... keep working as they are" contradicted the mover.
+  it('says bridge projects move to the host on their own, and how to bring one back', () => {
+    // Verify bug 9: "keep working as they are" and "until you move them" both contradicted the
+    // automatic mover, which moves them once their terminals are idle.
     const html = render()
     expect(html).not.toContain('Use it for new projects')
-    expect(html).toContain('until you move them to this host')
+    expect(html).not.toContain('until you move them')
+    expect(html).toContain('move to this host automatically once their terminals are idle')
+    expect(html).toContain('bring one back to this computer from the sidebar')
+  })
+
+  it('carries the same promise in every locale, none still saying projects stay put', () => {
+    const stale = [
+      'new projects',
+      'neue Projekte',
+      'novos projetos',
+      'новых проектов',
+      'Yeni projeler',
+      '新專案',
+      'until you move'
+    ]
+    for (const file of LOCALE_FILES) {
+      const description = readLocaleDescription(file)
+      expect(description).toContain('wsl.localhost')
+      for (const phrase of stale) {
+        expect(description).not.toContain(phrase)
+      }
+    }
   })
 
   it('spells out the WSL 2 conversion for a WSL 1 distro the list cannot offer', () => {
