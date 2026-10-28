@@ -11489,26 +11489,11 @@
           "leaveToTerminalLabel": "交由終端機處理"
         },
         "PluginConsentDialog": {
-          "workerTrust": "背景工作行程 — 執行自己的行程",
-          "instructionalTrust": "指令內容 — 稍後在使用者或代理程式權限下執行",
-          "declarativeTrust": "宣告式內容 — 無外掛程式碼",
-          "panelTrust": "面板或主機整合內容 — 無工作行程",
-          "trustShortWorker": "工作行程",
-          "trustShortInstructional": "指令",
-          "trustShortPanel": "面板",
-          "trustShortDeclarative": "宣告式",
-          "reviewTitle": "審查外掛",
-          "title": "審查權限",
-          "mixedTitle": "審查存取和內容",
-          "instructionalTitle": "審查外掛內容",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "權限、工作行程信任層級或指令內容自您上次審查此外掛以來已變更。在執行之前請再次審查。",
-          "capabilities": "此外掛可以",
           "warning": "這些權限限制了外掛如何使用 Orca 的 API。其工作行程仍作為普通行程在您的電腦上執行，可以完全存取您的檔案、網路和其他行程。",
           "instructionalWarning": "此外掛沒有工作行程。其指令內容在您或代理程式使用時仍可能引發操作。在啟用之前，請審查以下指令和命令。",
           "panelWarning": "這些權限限制了外掛如何使用 Orca 的 API。此外掛沒有背景工作行程。",
           "declarativeWarning": "此外掛僅貢獻經過驗證的內容。它不執行背景工作行程，也不接收對 Orca API 的存取。",
-          "keepDisabled": "保持停用",
           "enable": "啟用外掛",
           "capability": {
             "workspaceRead": "讀取目前焦點所在工作樹的名稱、分支和終端機清單",
@@ -11564,16 +11549,11 @@
           "installFailed": "外掛安裝失敗。請檢查來源後重試。"
         },
         "PluginKeybindingConsentPreview": {
-          "heading": "鍵盤快速鍵",
-          "worktree": "僅在工作區為作用中時執行。",
-          "global": "即使沒有作用中的工作區，也能在應用程式中執行。",
-          "shadows": "替代：{{value0}}"
+          "worktree": "僅在工作區為作用中時執行。"
         },
         "PluginMarketplaceBrowser": {
           "loadFailed": "無法載入外掛市場中的外掛。",
           "refreshFailed": "無法重新整理外掛市場。仍可使用快取的清單。",
-          "previewFailed": "無法準備此外掛以供審查。請重新整理外掛市場後重試。",
-          "installFailed": "無法安裝此外掛。審查過的來源可能已變更。",
           "manageSources": "管理來源",
           "refreshing": "正在重新整理…",
           "refresh": "重新整理",
@@ -11590,35 +11570,8 @@
           "empty": "已設定的市場中沒有任何外掛。"
         },
         "PluginMarketplaceListingRow": {
-          "noDescription": "未提供描述。",
           "blocked": "已被 Orca 安全清單阻止：{{value0}}",
           "install": "安裝"
-        },
-        "PluginMarketplacePreviewDialog": {
-          "languagePacksOne": "1 個語言套件",
-          "languagePacks": "{{value0}} 個語言套件",
-          "commandsOne": "1 個命令",
-          "commands": "{{value0}} 個命令",
-          "keybindingsOne": "1 個鍵盤快速鍵",
-          "keybindings": "{{value0}} 個鍵盤快速鍵",
-          "vmRecipesOne": "1 個 VM 配方",
-          "vmRecipes": "{{value0}} 個 VM 配方",
-          "panelsOne": "1 個面板",
-          "panels": "{{value0}} 個面板",
-          "eventsOne": "1 個事件訂閱",
-          "events": "{{value0}} 個事件訂閱",
-          "worker": "背景工作行程",
-          "versionLine": "v{{value0}} · {{value1}}",
-          "includes": "包含",
-          "noContributions": "僅清單後設資料",
-          "capabilities": "請求的存取權限",
-          "workerWarning": "能力限制了此外掛如何使用 Orca 的 API。其工作行程仍作為普通行程在此電腦上執行，可以完全存取您的檔案、網路和其他行程。",
-          "blocked": "Orca 的安全清單阻止了此外掛：{{value0}}",
-          "current": "此外掛內容已安裝。",
-          "close": "關閉",
-          "cancel": "取消",
-          "update": "更新外掛",
-          "install": "安裝外掛"
         },
         "PluginMarketplaceSourceDialog": {
           "addFailed": "無法新增此市場。請檢查 Git URL、引用和您的 Git 憑證。",

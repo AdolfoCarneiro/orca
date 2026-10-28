@@ -11620,26 +11620,11 @@
           "leaveToTerminalLabel": "Terminale bırak"
         },
         "PluginConsentDialog": {
-          "workerTrust": "Arka plan işçisi; kendi işlemini çalıştırır",
-          "instructionalTrust": "Talimat içeriği; daha sonra kullanıcı veya ajan yetkisiyle çalışır",
-          "declarativeTrust": "Bildirimsel içerik; eklenti kodu yok",
-          "panelTrust": "Panel veya host'a entegre içerik; işçi işlemi yok",
-          "trustShortWorker": "İşçi",
-          "trustShortInstructional": "Talimat",
-          "trustShortPanel": "Panel",
-          "trustShortDeclarative": "Bildirimsel",
-          "reviewTitle": "Eklentiyi incele",
-          "title": "İzinleri incele",
-          "mixedTitle": "Erişimi ve içeriği incele",
-          "instructionalTitle": "Eklenti içeriğini incele",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "Bu eklentiyi son incelemenizden bu yana izinler, işçi güven düzeyi veya talimat içeriği değişti. Çalışabilmesi için tekrar inceleyin.",
-          "capabilities": "Bu eklenti şunları yapabilir",
           "warning": "Bu izinler eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. İşçisi yine de bilgisayarınızda dosyalarınıza, ağınıza ve diğer işlemlere tam erişimi olan normal bir işlem olarak çalışmaya devam eder.",
           "instructionalWarning": "Bu eklentinin işçi işlemi yok. Talimat içeriği yine de siz veya bir ajan onu kullandığında eylemlere neden olabilir. Etkinleştirmeden önce aşağıdaki talimatları ve komutları inceleyin.",
           "panelWarning": "Bu izinler eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. Bu eklentinin arka plan işçisi yok.",
           "declarativeWarning": "Bu eklenti yalnızca doğrulanmış içerik sağlar. Arka plan işçisi çalıştırmaz veya Orca'nın API'sine erişim almaz.",
-          "keepDisabled": "Devre Dışı Bırak",
           "enable": "Eklentiyi etkinleştir",
           "capability": {
             "workspaceRead": "Odaklanılan worktree'nizin adını, branch'ini ve terminal listesini okur",
@@ -11695,16 +11680,11 @@
           "installFailed": "Eklenti yüklemesi başarısız oldu. Kaynağı kontrol edin ve tekrar deneyin."
         },
         "PluginKeybindingConsentPreview": {
-          "heading": "Klavye kısayolları",
-          "worktree": "Yalnızca bir çalışma alanı etkinken çalışır.",
-          "global": "Etkin bir çalışma alanı gerektirmeden uygulamada çalışır.",
-          "shadows": "Şunun yerini alır: {{value0}}"
+          "worktree": "Yalnızca bir çalışma alanı etkinken çalışır."
         },
         "PluginMarketplaceBrowser": {
           "loadFailed": "Marketplace eklentileri yüklenemedi.",
           "refreshFailed": "Marketplace'ler yenilenemedi. Önbelleğe alınmış listeler kullanılabilir durumda kalmaya devam ediyor.",
-          "previewFailed": "Bu eklenti inceleme için hazırlanamadı. Marketplace'i yenileyin ve tekrar deneyin.",
-          "installFailed": "Bu eklenti yüklenemedi. İncelenen kaynak değişmiş olabilir.",
           "manageSources": "Kaynakları yönet",
           "refreshing": "Yenileniyor…",
           "refresh": "Yenile",
@@ -11721,35 +11701,8 @@
           "empty": "Yapılandırılmış marketplace'ler herhangi bir eklenti listelemiyor."
         },
         "PluginMarketplaceListingRow": {
-          "noDescription": "Açıklama sağlanmadı.",
           "blocked": "Orca'nın güvenlik listesi tarafından engellendi: {{value0}}",
           "install": "Yükle"
-        },
-        "PluginMarketplacePreviewDialog": {
-          "languagePacksOne": "1 dil paketi",
-          "languagePacks": "{{value0}} dil paketi",
-          "commandsOne": "1 komut",
-          "commands": "{{value0}} komut",
-          "keybindingsOne": "1 klavye kısayolu",
-          "keybindings": "{{value0}} klavye kısayolu",
-          "vmRecipesOne": "1 VM tarifi",
-          "vmRecipes": "{{value0}} VM tarifi",
-          "panelsOne": "1 panel",
-          "panels": "{{value0}} panel",
-          "eventsOne": "1 olay aboneliği",
-          "events": "{{value0}} olay aboneliği",
-          "worker": "Arka plan işçisi",
-          "versionLine": "v{{value0}} · {{value1}}",
-          "includes": "İçerir",
-          "noContributions": "Yalnızca manifest meta verisi",
-          "capabilities": "İstenen erişim",
-          "workerWarning": "Yetkinlikler bu eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. İşçisi yine de bu bilgisayarda dosyalarınıza, ağınıza ve diğer işlemlere tam erişimi olan normal bir işlem olarak çalışmaya devam eder.",
-          "blocked": "Orca'nın güvenlik listesi bu eklentiyi engelliyor: {{value0}}",
-          "current": "Bu eklentinin tam olarak bu içeriği zaten yüklü.",
-          "close": "Kapat",
-          "cancel": "İptal",
-          "update": "Eklentiyi güncelle",
-          "install": "Eklentiyi yükle"
         },
         "PluginMarketplaceSourceDialog": {
           "addFailed": "Bu marketplace eklenemedi. Git URL'sini, ref'i ve Git kimlik bilgilerinizi kontrol edin.",

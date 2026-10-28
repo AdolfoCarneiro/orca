@@ -11634,26 +11634,11 @@
           "leaveToTerminalLabel": "Dem Terminal überlassen"
         },
         "PluginConsentDialog": {
-          "workerTrust": "Hintergrundprozess – läuft als eigener Prozess",
-          "instructionalTrust": "Anweisungen – werden später mit den Berechtigungen des Benutzers oder Agenten ausgeführt",
-          "declarativeTrust": "Deklarative Inhalte – kein Plugin-Code",
-          "panelTrust": "Panel oder in den Host integrierte Inhalte – kein Hintergrundprozess",
-          "trustShortWorker": "Hintergrundprozess",
-          "trustShortInstructional": "Anweisungen",
-          "trustShortPanel": "Panel",
-          "trustShortDeclarative": "Deklarativ",
-          "reviewTitle": "Plugin prüfen",
-          "title": "Berechtigungen prüfen",
-          "mixedTitle": "Zugriff und Inhalte prüfen",
-          "instructionalTitle": "Plugin-Inhalte prüfen",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "Seit der letzten Prüfung dieses Plugins haben sich Berechtigungen, die Vertrauensstufe des Hintergrundprozesses oder die enthaltenen Anweisungen geändert. Vor der Ausführung erneut prüfen.",
-          "capabilities": "Dieses Plugin kann",
           "warning": "Diese Berechtigungen begrenzen die Nutzung der Orca-API durch das Plugin. Sein Hintergrundprozess läuft weiterhin als normaler Prozess auf diesem Computer mit uneingeschränktem Zugriff auf Dateien, Netzwerk und andere Prozesse.",
           "instructionalWarning": "Dieses Plugin hat keinen Hintergrundprozess. Seine Anweisungen können bei der Nutzung durch Benutzer oder Agenten dennoch Aktionen auslösen. Vor der Aktivierung die folgenden Anweisungen und Befehle prüfen.",
           "panelWarning": "Diese Berechtigungen begrenzen die Nutzung der Orca-API durch das Plugin. Dieses Plugin hat keinen Hintergrundprozess.",
           "declarativeWarning": "Dieses Plugin stellt ausschließlich validierte Inhalte bereit. Es führt keinen Hintergrundprozess aus und erhält keinen Zugriff auf die Orca-API.",
-          "keepDisabled": "Deaktiviert lassen",
           "enable": "Plugin aktivieren",
           "capability": {
             "workspaceRead": "Namen, Branch und Terminal-Liste des fokussierten Worktrees lesen",
@@ -11709,16 +11694,11 @@
           "installFailed": "Plugin-Installation fehlgeschlagen. Die Quelle prüfen und erneut versuchen."
         },
         "PluginKeybindingConsentPreview": {
-          "heading": "Tastenkürzel",
-          "worktree": "Wird nur ausgeführt, wenn ein Arbeitsbereich aktiv ist.",
-          "global": "Wird in der App ausgeführt, ohne dass ein aktiver Arbeitsbereich erforderlich ist.",
-          "shadows": "Ersetzt: {{value0}}"
+          "worktree": "Wird nur ausgeführt, wenn ein Arbeitsbereich aktiv ist."
         },
         "PluginMarketplaceBrowser": {
           "loadFailed": "Marktplatz-Plugins konnten nicht geladen werden.",
           "refreshFailed": "Marktplätze konnten nicht aktualisiert werden. Zwischengespeicherte Einträge bleiben verfügbar.",
-          "previewFailed": "Dieses Plugin konnte nicht zur Prüfung vorbereitet werden. Den Marktplatz aktualisieren und erneut versuchen.",
-          "installFailed": "Dieses Plugin konnte nicht installiert werden. Die geprüfte Quelle hat sich möglicherweise geändert.",
           "manageSources": "Quellen verwalten",
           "refreshing": "Wird aktualisiert…",
           "refresh": "Aktualisieren",
@@ -11735,35 +11715,8 @@
           "empty": "Die konfigurierten Marktplätze enthalten keine Plugins."
         },
         "PluginMarketplaceListingRow": {
-          "noDescription": "Keine Beschreibung angegeben.",
           "blocked": "Durch die Sicherheitsliste von Orca blockiert: {{value0}}",
           "install": "Installieren"
-        },
-        "PluginMarketplacePreviewDialog": {
-          "languagePacksOne": "1 Sprachpaket",
-          "languagePacks": "{{value0}} Sprachpakete",
-          "commandsOne": "1 Befehl",
-          "commands": "{{value0}} Befehle",
-          "keybindingsOne": "1 Tastenkürzel",
-          "keybindings": "{{value0}} Tastenkürzel",
-          "vmRecipesOne": "1 VM-Rezept",
-          "vmRecipes": "{{value0}} VM-Rezepte",
-          "panelsOne": "1 Panel",
-          "panels": "{{value0}} Panels",
-          "eventsOne": "1 Ereignisabonnement",
-          "events": "{{value0}} Ereignisabonnements",
-          "worker": "Hintergrundprozess",
-          "versionLine": "v{{value0}} · {{value1}}",
-          "includes": "Enthält",
-          "noContributions": "Nur Manifest-Metadaten",
-          "capabilities": "Angeforderter Zugriff",
-          "workerWarning": "Berechtigungen begrenzen die Nutzung der Orca-API durch dieses Plugin. Sein Hintergrundprozess läuft weiterhin als normaler Prozess auf diesem Computer mit uneingeschränktem Zugriff auf Dateien, Netzwerk und andere Prozesse.",
-          "blocked": "Die Sicherheitsliste von Orca blockiert dieses Plugin: {{value0}}",
-          "current": "Genau dieser Plugin-Inhalt ist bereits installiert.",
-          "close": "Schließen",
-          "cancel": "Abbrechen",
-          "update": "Plugin aktualisieren",
-          "install": "Plugin installieren"
         },
         "PluginMarketplaceSourceDialog": {
           "addFailed": "Dieser Marktplatz konnte nicht hinzugefügt werden. Git-URL, Referenz und Git-Zugangsdaten prüfen.",
