@@ -58,7 +58,7 @@ export const pluginCustomEditorContributionSchema = z
       ),
     entry: pluginRelativePathSchema.meta(
       pluginPathFieldDoc(
-        "HTML file rendered in an isolated editor guest. It receives the open document and posts full-text edits back; it never gets a file path or file system. Its session refuses every request and peer connection, but Electron 43 still resolves `<link rel=\"dns-prefetch\">` host names, so treat a hostname as able to leave.",
+        'HTML file rendered inside a sandboxed editor frame, like a panel. It receives the open document and posts edits back; it never gets a file path or file system. It is trusted code: install editors you trust.',
         PLUGIN_MANIFEST_V2_SINCE,
         ['editor/index.html']
       )
@@ -78,19 +78,9 @@ export const pluginCustomEditorContributionSchema = z
       .optional()
       .meta(
         pluginFieldDoc(
-          "`text` (the default) sends the file as text and accepts full-text edits. `bytes` sends the file's raw bytes, for binary formats such as spreadsheets; a `bytes` editor must also set `readonly`.",
+          "`text` (the default) sends the file as text and accepts full-text edits. `bytes` sends the file's raw bytes, for binary formats such as spreadsheets, and accepts full-byte edits.",
           PLUGIN_MANIFEST_V2_SINCE,
           ['bytes']
-        )
-      ),
-    readonly: z
-      .boolean()
-      .optional()
-      .meta(
-        pluginFieldDoc(
-          'When true the editor only views files: Orca drops its edits before they reach the tab, and the install review says it opens rather than edits them. Turning it off in an update asks for approval again.',
-          PLUGIN_MANIFEST_V2_SINCE,
-          [true]
         )
       )
   })
@@ -102,10 +92,6 @@ export const pluginCustomEditorContributionSchema = z
   })
 
 export type PluginCustomEditorContribution = z.infer<typeof pluginCustomEditorContributionSchema>
-
-/** Why read-only: Orca's save pipeline is text-only; editable byte editors would need byte drafts. */
-export const PLUGIN_CUSTOM_EDITOR_BYTES_NEEDS_READONLY =
-  'a custom editor with contentKind "bytes" must set readonly'
 
 export function customEditorContentKind(editor: {
   contentKind?: PluginCustomEditorContentKind

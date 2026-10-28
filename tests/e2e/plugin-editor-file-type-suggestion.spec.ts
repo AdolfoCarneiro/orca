@@ -28,8 +28,7 @@ const EDITORS = [
       title: 'Spreadsheet',
       fileTypes: ['xlsx'],
       entry: 'editor/index.html',
-      contentKind: 'bytes',
-      readonly: true
+      contentKind: 'bytes'
     }
   },
   {

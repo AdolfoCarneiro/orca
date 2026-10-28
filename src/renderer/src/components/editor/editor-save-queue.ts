@@ -50,6 +50,7 @@ import { createEditorSaveSlots, type EditorSaveRequest } from './editor-save-slo
 import { EditorSaveDiscardedError, editorDiscardEpoch } from './editor-discard-epoch'
 import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 import { releaseNonUtf8PausesWithoutDirtyTab } from './editor-non-utf8-autosave-pause'
+import { hasEditorBytesDraft, saveEditorBytesDraft } from './editor-bytes-documents'
 
 export type AppStoreApi = Pick<StoreApi<AppState>, 'getState' | 'subscribe'>
 
@@ -152,6 +153,9 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
       : null
     const fileContext = getEditorFileOperationContext(state, liveFile, worktree?.path ?? null)
     const connectionId = fileContext.connectionId
+    if (hasEditorBytesDraft(fileId)) {
+      return saveEditorBytesDraft(store.getState, liveFile, fileContext, trigger, discarded)
+    }
     const precondition = editorSavePrecondition(liveFile, trigger)
     if (precondition.kind === 'blocked') {
       setModelExternalMutation(store.getState(), fileId, 'changed')
@@ -325,11 +329,5 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
     holds.dispose()
   }
 
-  return {
-    queueSave,
-    settleFileSaves,
-    holdAutoSave: holds.hold,
-    syncAutoSave,
-    dispose
-  }
+  return { queueSave, settleFileSaves, holdAutoSave: holds.hold, syncAutoSave, dispose }
 }

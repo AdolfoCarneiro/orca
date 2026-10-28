@@ -48,7 +48,6 @@ function entryIdentity(point: PluginContributionPoint, entry: unknown): string {
 
 type CustomEditorReach = {
   fileTypes: string[]
-  edits: boolean
   takesDefault: boolean
   contentKind: string
 }
@@ -61,15 +60,14 @@ function customEditorReach(entry: unknown): [string, CustomEditorReach] | null {
     entry.id,
     {
       fileTypes: Array.isArray(entry.fileTypes) ? entry.fileTypes.map(String) : [],
-      edits: entry.readonly !== true,
       takesDefault: entry.priority !== 'option',
       contentKind: typeof entry.contentKind === 'string' ? entry.contentKind : 'text'
     }
   ]
 }
 
-/** Why per field: new file types, editing a viewer's files, or taking over opening them is more
- *  reach, while new editor code under the same id is not. */
+/** Why per field: new file types or taking over opening them is more reach, while new editor
+ *  code under the same id is not. */
 function customEditorsGrow(installed: readonly unknown[], next: readonly unknown[]): boolean {
   const held = new Map(installed.map(customEditorReach).filter((reach) => reach !== null))
   return next.some((entry) => {
@@ -81,7 +79,6 @@ function customEditorsGrow(installed: readonly unknown[], next: readonly unknown
     const after = asked[1]
     return (
       after.fileTypes.some((fileType) => !before.fileTypes.includes(fileType)) ||
-      (after.edits && !before.edits) ||
       (after.takesDefault && !before.takesDefault) ||
       after.contentKind !== before.contentKind
     )

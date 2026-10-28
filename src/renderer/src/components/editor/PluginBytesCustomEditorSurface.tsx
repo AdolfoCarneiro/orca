@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { translate } from '@/i18n/i18n'
 import { basename } from '@/lib/path'
 import { readRuntimeFileBytes } from '@/runtime/runtime-paged-file-read'
@@ -7,19 +7,27 @@ import { CUSTOM_EDITOR_DOCUMENT_MAX_BYTES } from '../../../../shared/plugins/plu
 import { matchCustomEditorFileType } from '../../../../shared/plugins/plugin-custom-editor-contribution'
 import { formatBytes } from '../status-bar/workspace-space-format'
 import { Button } from '../ui/button'
+import type { OpenFile } from '@/store/slices/editor'
 import type { FileContent } from './editor-panel-content-types'
 import PluginCustomEditorFrame from './PluginCustomEditorFrame'
-import type { CustomEditorBinaryDocument } from './plugin-custom-editor-host'
+import { ExternalFileChangeBanner } from './ExternalFileChangeBanner'
+import {
+  editorBytesDocument,
+  hasEditorBytesDraft,
+  loadEditorBytes,
+  releaseEditorBytes,
+  setEditorBytesDraft,
+  sha256Hex,
+  subscribeEditorBytes
+} from './editor-bytes-documents'
 
 type BytesState =
-  | { status: 'loading'; document: CustomEditorBinaryDocument | null }
-  | { status: 'ready'; document: CustomEditorBinaryDocument }
+  | { status: 'ok' }
   | { status: 'too_large'; size: number }
   | { status: 'unsupported' }
   | { status: 'error'; message: string }
 
 const noopContentChange = (_content: string): void => {}
-const noopSave = async (_content: string): Promise<boolean> => false
 
 function SurfaceMessage({
   children,
@@ -41,27 +49,42 @@ function SurfaceMessage({
 }
 
 /**
- * A read-only bytes editor: Orca pages the file from the host that owns it (local, SSH or a
- * paired runtime), caps its size, and hands the frame only the bytes, never a path.
+ * A bytes editor: Orca pages the file from the host that owns it (local, SSH or a paired runtime),
+ * caps its size, and hands the frame only the bytes, never a path. Its edits replace the whole
+ * document and save through the tab's save pipeline.
  */
 export default function PluginBytesCustomEditorSurface({
   editor,
-  filePath,
-  fileContent
+  file,
+  fileContent,
+  onSave,
+  reloadContent
 }: {
   editor: ActivePluginCustomEditor
-  filePath: string
+  file: OpenFile
   fileContent: FileContent
+  onSave: (content: string) => Promise<boolean>
+  reloadContent: (file: OpenFile) => void
 }): React.JSX.Element {
-  const [state, setState] = useState<BytesState>({ status: 'loading', document: null })
+  const [state, setState] = useState<BytesState>({ status: 'ok' })
   const [attempt, setAttempt] = useState(0)
+  const { id: fileId, filePath } = file
   const fileType = matchCustomEditorFileType(filePath, editor.fileTypes) ?? ''
   const source = fileContent.byteSource
   // Why the object: every reload (an outside change included) lands as a new FileContent.
   const loadKey = fileContent.isStale ? null : fileContent
+  const bytesDocument = useSyncExternalStore(subscribeEditorBytes, () =>
+    editorBytesDocument(fileId)
+  )
+  const onBytesChange = useCallback(
+    (next: Parameters<typeof setEditorBytesDraft>[1]) => setEditorBytesDraft(fileId, next),
+    [fileId]
+  )
+  useEffect(() => () => releaseEditorBytes(fileId), [fileId])
 
   useEffect(() => {
-    if (!loadKey) {
+    // Unsaved bytes keep the baseline they were made against; rereading would hide a conflict.
+    if (!loadKey || hasEditorBytesDraft(fileId)) {
       return
     }
     if (!source) {
@@ -69,17 +92,17 @@ export default function PluginBytesCustomEditorSurface({
       return
     }
     let cancelled = false
-    // Keep the last bytes on screen while a reload runs.
-    setState((previous) =>
-      previous.status === 'ready' ? { status: 'loading', document: previous.document } : previous
-    )
     readRuntimeFileBytes(source, CUSTOM_EDITOR_DOCUMENT_MAX_BYTES)
-      .then((read) => {
+      .then(async (read) => {
         if (cancelled) {
           return
         }
         if (read.kind === 'ok') {
-          setState({ status: 'ready', document: { bytes: read.bytes, fileType } })
+          const sha256 = await sha256Hex(read.bytes)
+          if (!cancelled) {
+            loadEditorBytes(fileId, { bytes: read.bytes, fileType }, sha256)
+            setState({ status: 'ok' })
+          }
         } else if (read.kind === 'too_large') {
           setState({ status: 'too_large', size: read.size })
         } else {
@@ -94,7 +117,7 @@ export default function PluginBytesCustomEditorSurface({
     return () => {
       cancelled = true
     }
-  }, [loadKey, source, fileType, attempt])
+  }, [loadKey, source, fileType, attempt, fileId])
 
   const name = basename(filePath)
   if (state.status === 'too_large') {
@@ -136,13 +159,27 @@ export default function PluginBytesCustomEditorSurface({
     )
   }
   return (
-    <PluginCustomEditorFrame
-      editor={editor}
-      content=""
-      readOnly
-      onContentChange={noopContentChange}
-      onSave={noopSave}
-      binaryDocument={state.document}
-    />
+    <div className="flex h-full min-h-0 flex-col">
+      {file.externalMutation === 'changed' ? (
+        <ExternalFileChangeBanner
+          file={file}
+          currentContent=""
+          reloadContent={reloadContent}
+          binary
+        />
+      ) : null}
+      <div className="min-h-0 flex-1">
+        <PluginCustomEditorFrame
+          editor={editor}
+          fileId={fileId}
+          content=""
+          readOnly={file.readOnly === true}
+          onContentChange={noopContentChange}
+          onSave={onSave}
+          binaryDocument={bytesDocument}
+          onBytesChange={onBytesChange}
+        />
+      </div>
+    </div>
   )
 }

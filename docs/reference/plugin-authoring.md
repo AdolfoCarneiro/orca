@@ -31,8 +31,8 @@ asked to approve:
   "Panels: yes".
   Orca's colors reach panel CSS as `--orca-background`, `--orca-foreground`, `--orca-primary`
   and the rest of its panel token set, so they never collide with a panel's own variables.
-  Custom editors (`contributes.customEditors`) get the same shell in an isolated guest and no
-  host methods; see [Custom editors](#custom-editors).
+  Custom editors (`contributes.customEditors`) run in the same frame and get no host methods;
+  see [Custom editors](#custom-editors).
 - `trusted-worker`: `main` runs in a separate Node process and can call every host method its
   `capabilities` allow.
 
@@ -42,44 +42,37 @@ only when a panel or worker calls the host API.
 ### Custom editors
 
 A custom editor opens files whose names end in one of its `fileTypes` in the editor tab, beside
-Source. Orca keeps the buffer, dirty state, saving, the external-change banner, read-only tabs
-and remote (SSH) files; the frame only gets the document, never a path. Messages
-(`postMessage` with `window.parent`; check `event.source === window.parent`):
+Source. It runs in the same sandboxed frame as a panel (no Node, no file system), and Orca keeps
+the buffer, dirty state, saving, the external-change banner, read-only tabs and remote (SSH or
+paired host) files; the frame only gets the document, never a path. Editor and panel plugins are
+trusted code, and an editor can read every file it opens, so install ones you trust. Messages (`postMessage` with `window.parent`; check `event.source === window.parent`):
 
-| Direction     | Message                                                                      | When                                                                                                |
-| ------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| editor → Orca | `{ type: 'orca-editor-ready' }`                                              | Once listening. Orca answers with the document.                                                     |
-| Orca → editor | `{ type: 'orca-editor-document', version, readOnly, content, fileType? }`    | After ready, and whenever the file changes outside the editor. `version` rises with each one.       |
-| editor → Orca | `{ type: 'orca-editor-edit', baseVersion, content: { kind: 'text', text } }` | The user changed the document: the full new text, against document `baseVersion`. Never on load.    |
-| Orca → editor | `{ type: 'orca-editor-edit-rejected', baseVersion, error }`                  | The edit named an older version: `error.code` is `conflict`. Re-apply it to the latest document.    |
-| Orca → editor | `{ type: 'orca-editor-flush', requestId }`                                   | Before a save: post any debounced edit, then reply `orca-editor-flushed` with the same `requestId`. |
+| Direction     | Message                                                                   | When                                                                                                |
+| ------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| editor → Orca | `{ type: 'orca-editor-ready' }`                                           | Once listening. Orca answers with the document.                                                     |
+| Orca → editor | `{ type: 'orca-editor-document', version, readOnly, content, fileType? }` | After ready, and whenever the file changes outside the editor. `version` rises with each one.       |
+| editor → Orca | `{ type: 'orca-editor-edit', baseVersion, content }`                      | The user changed the document: the full new content, against document `baseVersion`. Never on load. |
+| Orca → editor | `{ type: 'orca-editor-edit-rejected', baseVersion, error }`               | The edit named an older version (`error.code` is `conflict`) or was too large (`too_large`).        |
+| Orca → editor | `{ type: 'orca-editor-flush', requestId }`                                | Before a save: post any debounced edit, then reply `orca-editor-flushed` with the same `requestId`. |
 
 `content` is `{ kind: 'text', text }` for a text editor (the default `contentKind`). Every edit
-must name the `baseVersion` it was made against; Orca drops an edit without one.
+must name the `baseVersion` it was made against; Orca drops an edit without one. Treat an unknown
+`error.code` as a failed edit. When `readOnly` is true (an agent transcript, say), Orca ignores
+edits; an editor that only views files simply never posts one.
 
-Set `"contentKind": "bytes"` for a binary format such as a spreadsheet. Orca then reads the file
-itself (locally, over SSH or from a paired host) and sends
-`content: { kind: 'bytes', bytes }`, where `bytes` is a transferred `ArrayBuffer`, plus the
-matched suffix as `fileType`. A bytes editor must set `"readonly": true`; Orca never applies its
-edits, and Source shows the binary placeholder. Files over 16 MiB are not sent: Orca shows a
-"too large to open" message instead.
+Set `"contentKind": "bytes"` for a binary format such as a spreadsheet. Orca reads the file
+itself (locally, over SSH or from a paired host) and sends `content: { kind: 'bytes', bytes }`,
+where `bytes` is a transferred `ArrayBuffer`, plus the matched suffix as `fileType`. An edit is
+the whole new file the same way: `content: { kind: 'bytes', bytes }` with a transferable
+`ArrayBuffer` (pass it in the `postMessage` transfer list). Orca marks the tab dirty and saves the
+bytes with the tab's normal save, replacing the file atomically; a save is refused if the file
+changed on disk since the document's version, and the banner offers Reload or Overwrite. Saving
+to a remote host needs an Orca server new enough to replace binary files. Source shows the binary
+placeholder, unsaved bytes are not kept across restarts, and bytes tabs don't autosave.
 
-`"readonly": true` on any editor makes Orca drop its edits before they reach the tab, and the
-install review then says the plugin opens rather than edits those files. Orca reads the save
-shortcut from the user's real key presses in the editor; posting a key message does nothing. Every
-save, from any menu or shortcut, first sends `orca-editor-flush` and waits up to a second; if the
-editor does not answer, the tab stays unsaved. An edit may be at most 16 MiB: a larger one gets
-`orca-editor-edit-rejected` with `error.code` `too_large`, and the tab will not save until a later
-edit fits. Treat any unknown `error.code` as a failed edit.
-
-A plugin never becomes the default editor for file types Orca opens itself (JSON, TypeScript and
-JavaScript, Markdown, CSV, YAML, TOML, notebooks, lockfiles, `.env` files and similar): there its
-editor is offered in the view toggle only.
-
-The editor runs in its own process and session with no network: requests, WebSockets, images
-from the network and WebRTC peer connections all fail, from the editor and from any frame it
-creates. One gap remains in Electron 43: a `<link rel="dns-prefetch">` host name is still looked
-up, so do not assume a file's contents can never leave as a DNS name.
+Documents and edits are capped at 16 MiB, text or bytes: a larger file shows "too large to open",
+and a larger edit is rejected with `too_large`. Orca saves on its own save shortcut pressed
+inside the frame, never on a message alone.
 
 Theme changes do not reload the frame: Orca posts `{ type: 'orca-panel-theme', colorScheme }`,
 and the shell updates the `--orca-*` variables and the `light`/`dark` class on `<html>` in place.

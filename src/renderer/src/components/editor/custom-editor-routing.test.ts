@@ -262,8 +262,7 @@ describe('custom editor routing', () => {
               title: 'Spreadsheet',
               fileTypes: ['xlsx'],
               priority: 'default',
-              contentKind: 'bytes',
-              readonly: true
+              contentKind: 'bytes'
             }
           ]
         })
@@ -284,7 +283,7 @@ describe('custom editor routing', () => {
       ])
     })
 
-    it('views read-only tabs too, since it never edits', () => {
+    it('opens read-only tabs too; the tab refuses its edits', () => {
       expect(
         model({
           activeFile: { ...sheet, readOnly: true },

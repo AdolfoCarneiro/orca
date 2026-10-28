@@ -238,6 +238,7 @@
         },
         "editor": {
           "save": {
+            "bytesUpdateRequired": "Saving binary files here requires a newer Orca server. Update the Orca server and try again.",
             "notUtf8": {
               "refused": "This file isn't UTF-8 text, so it wasn't saved."
             },

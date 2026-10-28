@@ -77,7 +77,6 @@ export type PluginListEntry = {
     fileTypes: string[]
     priority: 'default' | 'option'
     contentKind: 'text' | 'bytes'
-    readonly: boolean
   }[]
   commands: {
     id: string
@@ -213,8 +212,7 @@ export async function buildPluginList(
           title: editor.title,
           fileTypes: editor.fileTypes,
           priority: editor.priority ?? 'default',
-          contentKind: customEditorContentKind(editor),
-          readonly: editor.readonly === true
+          contentKind: customEditorContentKind(editor)
         })),
         commands: service.contentPacks.commands.preview(plugin.pluginKey).map((command) => ({
           id: command.id,

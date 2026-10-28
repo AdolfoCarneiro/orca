@@ -915,7 +915,7 @@
           "minLength": 1,
           "maxLength": 1024,
           "pattern": "^[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ](?:[\\\\/][^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ])*$",
-          "description": "HTML file rendered in an isolated editor guest. It receives the open document and posts full-text edits back; it never gets a file path or file system. Its session refuses every request and peer connection, but Electron 43 still resolves `<link rel=\"dns-prefetch\">` host names, so treat a hostname as able to leave. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
+          "description": "HTML file rendered inside a sandboxed editor frame, like a panel. It receives the open document and posts edits back; it never gets a file path or file system. It is trusted code: install editors you trust. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
           "x-orca-since": "1.4.244",
           "examples": [
             "editor/index.html"
@@ -934,7 +934,7 @@
           ]
         },
         "contentKind": {
-          "description": "`text` (the default) sends the file as text and accepts full-text edits. `bytes` sends the file's raw bytes, for binary formats such as spreadsheets; a `bytes` editor must also set `readonly`.",
+          "description": "`text` (the default) sends the file as text and accepts full-text edits. `bytes` sends the file's raw bytes, for binary formats such as spreadsheets, and accepts full-byte edits.",
           "x-orca-since": "1.4.244",
           "examples": [
             "bytes"
@@ -944,14 +944,6 @@
             "text",
             "bytes"
           ]
-        },
-        "readonly": {
-          "description": "When true the editor only views files: Orca drops its edits before they reach the tab, and the install review says it opens rather than edits them. Turning it off in an update asks for approval again.",
-          "x-orca-since": "1.4.244",
-          "examples": [
-            true
-          ],
-          "type": "boolean"
         }
       },
       "required": [

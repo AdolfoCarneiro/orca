@@ -1,8 +1,4 @@
 import type { PluginHostImages } from '../../shared/plugins/plugin-image-url'
-import type {
-  PluginEditorGuestEvent,
-  PluginEditorGuestOpenResult
-} from '../../shared/plugins/plugin-editor-guest'
 import type { PluginUpdateAccessGrowth } from '../../shared/plugins/approval/plugin-update-access-growth'
 import type { PluginAutoUpdateState } from '../../shared/plugins/catalog/plugin-update-policy'
 import type { PluginExecutionProfile } from '../../shared/plugins/plugin-execution-profile'
@@ -56,7 +52,6 @@ export type PluginHostCustomEditor = {
   priority: 'default' | 'option'
   /** Absent on hosts that predate byte editors: text. */
   contentKind?: 'text' | 'bytes'
-  readonly?: boolean
 }
 
 // Keep assignable from main/plugins/plugin-list-projection.ts.
@@ -230,16 +225,11 @@ export type PluginsApi = {
   setEnabled: (args: { pluginKey: string; enabled: boolean }) => Promise<PluginHostListEntry[]>
   /** CSP-wrapped HTML for a sandboxed iframe; null if missing or disabled. */
   readPanelEntry: (args: { pluginKey: string; panelId: string }) => Promise<PluginPanelEntry | null>
-  /** A network-isolated guest for a custom editor; null if missing or disabled. */
-  openCustomEditorGuest?: (args: {
+  /** CSP-wrapped custom editor HTML; null if missing or disabled. Absent on older preloads. */
+  readCustomEditorEntry?: (args: {
     pluginKey: string
     editorId: string
-    colorScheme: 'light' | 'dark'
-    tokens: string
-  }) => Promise<PluginEditorGuestOpenResult | null>
-  closeCustomEditorGuest?: (token: string) => Promise<void>
-  /** Messages and real key chords from every editor guest of this window, by token. */
-  onCustomEditorGuestEvent?: (callback: (event: PluginEditorGuestEvent) => void) => () => void
+  }) => Promise<{ html: string } | null>
   invokeCommand: (args: {
     pluginKey: string
     commandId: string

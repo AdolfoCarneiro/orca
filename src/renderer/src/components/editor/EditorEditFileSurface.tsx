@@ -141,8 +141,10 @@ export function EditorEditFileSurface({
       <PluginBytesCustomEditorSurface
         key={`${activeFile.id}\u0000${customEditor.key}`}
         editor={customEditor}
-        filePath={activeFile.filePath}
+        file={activeFile}
         fileContent={fileContent}
+        onSave={handleSave}
+        reloadContent={reloadContent}
       />
     )
   }

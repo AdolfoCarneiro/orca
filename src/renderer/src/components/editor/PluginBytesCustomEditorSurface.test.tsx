@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
+import type { OpenFile } from '@/store/slices/editor'
 import type { FileContent } from './editor-panel-content-types'
 
 vi.mock('@/i18n/i18n', () => ({
@@ -14,6 +15,24 @@ vi.mock('@/i18n/i18n', () => ({
 const readRuntimeFileBytes = vi.fn()
 vi.mock('@/runtime/runtime-paged-file-read', () => ({
   readRuntimeFileBytes: (...args: unknown[]) => readRuntimeFileBytes(...args)
+}))
+
+const store = vi.hoisted(() => ({
+  markFileDirty: vi.fn(),
+  openFiles: [{ id: 'book', isDirty: false }],
+  listeners: new Set<(state: unknown) => void>()
+}))
+vi.mock('@/store', () => ({
+  useAppStore: {
+    subscribe: (listener: (state: unknown) => void) => {
+      store.listeners.add(listener)
+      return () => store.listeners.delete(listener)
+    },
+    getState: () => store
+  }
+}))
+vi.mock('./ExternalFileChangeBanner', () => ({
+  ExternalFileChangeBanner: () => <div data-testid="banner" />
 }))
 
 const frameProps = vi.fn()
@@ -35,7 +54,6 @@ const editor: ActivePluginCustomEditor = {
   fileTypes: ['xlsx', 'xls'],
   priority: 'default',
   contentKind: 'bytes',
-  readonly: true,
   key: 'stablyai.spreadsheet/sheet',
   pluginKey: 'stablyai.spreadsheet',
   pluginName: 'Spreadsheet Viewer'
@@ -54,17 +72,27 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  // Closing the tab drops its bytes document.
+  for (const listener of store.listeners) {
+    listener({ openFiles: [] })
+  }
   await act(async () => root.unmount())
   container.remove()
 })
+
+// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the surface reads only these fields.
+const file = { id: 'book', filePath: '/repo/book.xlsx', readOnly: false } as OpenFile
+const onSave = vi.fn(async () => true)
 
 async function render(fileContent: FileContent): Promise<void> {
   await act(async () => {
     root.render(
       <PluginBytesCustomEditorSurface
         editor={editor}
-        filePath="/repo/book.xlsx"
+        file={file}
         fileContent={fileContent}
+        onSave={onSave}
+        reloadContent={() => {}}
       />
     )
   })
@@ -80,7 +108,11 @@ describe('PluginBytesCustomEditorSurface', () => {
     readRuntimeFileBytes.mockResolvedValue({ kind: 'ok', bytes })
     await render({ content: '', isBinary: true, byteSource })
     expect(readRuntimeFileBytes).toHaveBeenCalledWith(byteSource, 16 * 1024 * 1024)
-    expect(frameProps.mock.calls[0][0]).toMatchObject({ readOnly: true, binaryDocument: null })
+    expect(frameProps.mock.calls[0][0]).toMatchObject({
+      readOnly: false,
+      fileId: 'book',
+      binaryDocument: null
+    })
     expect(lastDocument()).toEqual({ bytes, fileType: 'xlsx' })
   })
 
@@ -114,6 +146,21 @@ describe('PluginBytesCustomEditorSurface', () => {
     await render({ content: '', isBinary: true, byteSource })
     expect(readRuntimeFileBytes).toHaveBeenCalledTimes(2)
     expect(lastDocument()).toEqual({ bytes: reloaded, fileType: 'xlsx' })
+  })
+
+  it('keeps an edit as the dirty draft across a remount and never rereads under it', async () => {
+    readRuntimeFileBytes.mockResolvedValue({ kind: 'ok', bytes: new Uint8Array([1]) })
+    await render({ content: '', isBinary: true, byteSource })
+    const edited = { bytes: new Uint8Array([9, 9]), fileType: 'xlsx' }
+    await act(async () => frameProps.mock.calls.at(-1)?.[0].onBytesChange(edited))
+    expect(store.markFileDirty).toHaveBeenCalledWith('book', true)
+    expect(lastDocument()).toBe(edited)
+    await act(async () => root.unmount())
+    root = createRoot(container)
+    await render({ content: '', isBinary: true, byteSource })
+    expect(readRuntimeFileBytes).toHaveBeenCalledTimes(1)
+    expect(lastDocument()).toBe(edited)
+    expect(frameProps.mock.calls.at(-1)?.[0].onSave).toBe(onSave)
   })
 
   it('explains when the host cannot page the file', async () => {

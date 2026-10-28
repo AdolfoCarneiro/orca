@@ -42,28 +42,25 @@ describe('contributes.customEditors', () => {
     expect(parsed().contributes.customEditors).toEqual([excalidraw])
   })
 
-  it('accepts a read-only bytes editor', () => {
+  it('accepts a bytes editor, which edits like a text one', () => {
     const spreadsheet = {
       id: 'spreadsheet',
       title: 'Spreadsheet',
       fileTypes: ['xlsx'],
       entry: 'editor/index.html',
-      contentKind: 'bytes',
-      readonly: true
+      contentKind: 'bytes'
     }
     expect(
       parsed({ contributes: { customEditors: [spreadsheet] } }).contributes.customEditors
     ).toEqual([spreadsheet])
   })
 
-  it('refuses a bytes editor that does not declare readonly', () => {
-    const result = parsePluginManifest(
-      manifest({
-        contributes: { customEditors: [{ ...excalidraw, contentKind: 'bytes' }] }
-      })
-    )
-    expect(result).toMatchObject({ ok: false })
-    expect(result.ok ? '' : result.error).toContain('readonly')
+  it('refuses the retired readonly field', () => {
+    expect(
+      parsePluginManifest(
+        manifest({ contributes: { customEditors: [{ ...excalidraw, readonly: true }] } })
+      )
+    ).toMatchObject({ ok: false })
   })
 
   it('refuses an unknown content kind', () => {
@@ -130,22 +127,17 @@ describe('contributes.customEditors', () => {
     expect(pluginUpdateAccessGrowth(plugin, plugin).contributions).toEqual([])
   })
 
-  it('counts an editor that starts editing, takes over opening, or changes content kind', () => {
+  it('counts an editor that takes over opening or changes content kind', () => {
     const editor = (fields: Record<string, unknown>) =>
       parsed({ contributes: { customEditors: [{ ...excalidraw, ...fields }] } })
-    const viewer = editor({ readonly: true, priority: 'option' })
+    const option = editor({ priority: 'option' })
     const growth = (next: ReturnType<typeof parsed>) =>
-      pluginUpdateAccessGrowth(viewer, next).contributions
-    expect(growth(editor({ priority: 'option' }))).toEqual(['customEditors'])
-    expect(growth(editor({ readonly: true }))).toEqual(['customEditors'])
-    expect(growth(editor({ readonly: true, priority: 'option', contentKind: 'bytes' }))).toEqual([
-      'customEditors'
-    ])
+      pluginUpdateAccessGrowth(option, next).contributions
+    expect(growth(editor({}))).toEqual(['customEditors'])
+    expect(growth(editor({ priority: 'option', contentKind: 'bytes' }))).toEqual(['customEditors'])
     // Narrower reach keeps the approval.
-    expect(pluginUpdateAccessGrowth(editor({}), viewer).contributions).toEqual([])
-    expect(
-      growth(editor({ readonly: true, priority: 'option', fileTypes: ['excalidraw'] }))
-    ).toEqual([])
+    expect(pluginUpdateAccessGrowth(editor({}), option).contributions).toEqual([])
+    expect(growth(editor({ priority: 'option', fileTypes: ['excalidraw'] }))).toEqual([])
   })
 })
 

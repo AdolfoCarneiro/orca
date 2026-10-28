@@ -50,21 +50,18 @@ export class PluginPanelController {
     return (await this.load(pluginKey, panelId))?.entry ?? null
   }
 
-  /** Why no session: custom editors get no host actions, only the tab's document channel.
-   *  `readonly` is the installed manifest's, which main enforces on the editor's edits. */
+  /** Why no session: custom editors get no host actions, only the tab's document channel. */
   async readCustomEditorEntry(
     pluginKey: string,
     editorId: string
-  ): Promise<{ html: string; readonly: boolean } | null> {
+  ): Promise<{ html: string } | null> {
     const plugin = this.options.resolveApprovedPlugin(pluginKey)
     const editor = plugin?.manifest.contributes.customEditors.find((entry) => entry.id === editorId)
     if (!plugin || !editor) {
       return null
     }
     const html = await this.readShell(plugin, editor.entry, 'custom-editor')
-    // Bytes editors are always read-only: Orca never saves their edits.
-    const readonly = editor.readonly === true || editor.contentKind === 'bytes'
-    return html === null ? null : { html, readonly }
+    return html === null ? null : { html }
   }
 
   async open(
@@ -190,7 +187,8 @@ export class PluginPanelController {
           plugin.rootDir,
           entryPath,
           PLUGIN_PANEL_ENTRY_MAX_BYTES
-        )
+        ),
+        surface
       )
       const current = this.options.resolveApprovedPlugin(pluginKey)
       if (current !== plugin || current.rootDir !== plugin.rootDir) {

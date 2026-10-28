@@ -1,4 +1,5 @@
 import { PANEL_PING_TYPE, PANEL_PONG_TYPE, PANEL_THEME_TYPE } from './plugin-panel-bridge'
+import { CUSTOM_EDITOR_SHELL_SCRIPT } from './plugin-custom-editor-bridge'
 
 /** Prepend CSP before any untrusted panel HTML: opaque origins alone still permit CORS fetch/beacons. Parsed CSP survives
  * DOM removal and later CSP can only tighten it. Open head/html exposes design tokens to plugin CSS.
@@ -49,22 +50,13 @@ export const PANEL_DESIGN_TOKEN_ALLOWLIST = [
   '--radius'
 ] as const
 
-/** Names the frame kind in logs; custom editors get the same shell, in an isolated guest. */
+/** `custom-editor` frames get the same shell plus the host-owned key forwarder. */
 export type PluginFrameSurface = 'panel' | 'custom-editor'
 
-/** Replace only the first shell placeholders, parsed before plugin content, so plugin echoes stay
- *  inert. `tokens` loses structural CSS characters, so it cannot close the style block. */
-export function fillPluginFrameShell(
-  html: string,
-  colorScheme: 'light' | 'dark',
-  tokens: string
+export function buildPluginPanelShellHtml(
+  pluginHtml: string,
+  surface: PluginFrameSurface = 'panel'
 ): string {
-  return html
-    .replace(PANEL_SHELL_COLOR_SCHEME_PLACEHOLDER, colorScheme)
-    .replace(PANEL_SHELL_TOKENS_PLACEHOLDER, () => tokens.replaceAll(/[{}<>]/g, ''))
-}
-
-export function buildPluginPanelShellHtml(pluginHtml: string): string {
   // The inline ping responder proves the frame's event loop is alive; the
   // renderer watchdog demotes the panel when pongs stop arriving.
   const prelude =
@@ -116,7 +108,7 @@ export function buildPluginPanelShellHtml(pluginHtml: string): string {
     `    var tokens = document.getElementById('${PANEL_SHELL_TOKENS_STYLE_ID}')\n` +
     "    if (tokens) tokens.textContent = ':root{' + data.tokens.replace(/[{}<>]/g, '') + '}'\n" +
     '  }\n' +
-    '})\n</script>\n' +
+    `})\n${surface === 'custom-editor' ? CUSTOM_EDITOR_SHELL_SCRIPT : ''}</script>\n` +
     '</head>\n'
   return prelude + pluginHtml
 }

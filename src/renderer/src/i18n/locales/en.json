@@ -12990,8 +12990,7 @@
           "replacesShortcut": "{{value0}} ({{value1}}) replaces your shortcut for {{value2}}.",
           "updatesKeepApproval": "Updates ask again only for new access",
           "fullAccessUpdates": "Updates can change its code without asking",
-          "editsFileTypes": "Opens and edits {{value0}} files in Orca",
-          "opensFileTypes": "Opens {{value0}} files in Orca"
+          "editsFileTypes": "Opens and edits {{value0}} files in Orca. It can read the files it opens."
         },
         "PluginPageAction": {
           "failedTitle": "Couldn’t install {{value0}}",
@@ -16449,6 +16448,7 @@
             "sectionStale": {
               "notice": "This file changed on disk since this section loaded."
             },
+            "bytesUpdateRequired": "Saving binary files here requires a newer Orca server. Update the Orca server and try again.",
             "notUtf8": {
               "notice": "Autosave is paused for {{name}} because it isn't UTF-8 text. Saving it yourself rewrites it as UTF-8 and replaces any characters that aren't valid UTF-8.",
               "refused": "This file isn't UTF-8 text, so it wasn't saved.",

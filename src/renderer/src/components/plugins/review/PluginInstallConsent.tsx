@@ -25,8 +25,6 @@ type PluginInstallConsentProps = {
   shortcuts: readonly PluginPageShortcut[] | null
   /** Dotted file suffixes its custom editors open and edit. */
   editorFileTypes?: readonly string[] | null
-  /** Dotted file suffixes its read-only custom editors open. */
-  viewerFileTypes?: readonly string[]
   /** Its files are still being read; says so beside the disabled button. */
   reading?: boolean
   /** Its files couldn't be read, so nothing is known about what it can do. */
@@ -49,8 +47,6 @@ function shortcutPlatform(): NodeJS.Platform {
   return navigator.userAgent.includes('Windows') ? 'win32' : 'linux'
 }
 
-const NO_FILE_TYPES: readonly string[] = []
-
 function formatFileTypeList(fileTypes: readonly string[]): string {
   try {
     return new Intl.ListFormat(undefined, { type: 'conjunction' }).format(fileTypes)
@@ -68,7 +64,6 @@ export function PluginInstallConsent({
   capabilities: requested,
   shortcuts,
   editorFileTypes,
-  viewerFileTypes = NO_FILE_TYPES,
   reading = false,
   failed = false,
   onRetry,
@@ -101,9 +96,7 @@ export function PluginInstallConsent({
             {translate('auto.components.settings.PluginDetailSections.access', 'Can access')}
           </h3>
           <span className="shrink-0 rounded-md border border-border px-1.5 py-px text-2xs font-medium text-muted-foreground">
-            {!trust.worker &&
-            !trust.declarative &&
-            (editorFileTypes?.length ?? 0) + viewerFileTypes.length > 0
+            {!trust.worker && !trust.declarative && (editorFileTypes?.length ?? 0) > 0
               ? translate('auto.components.settings.pluginConsentCopy.addsEditor', 'Adds an editor')
               : pluginTrustLabel(trust)}
           </span>
@@ -129,20 +122,8 @@ export function PluginInstallConsent({
               <span>
                 {translate(
                   'auto.components.settings.PluginInstallConsent.editsFileTypes',
-                  'Opens and edits {{value0}} files in Orca',
+                  'Opens and edits {{value0}} files in Orca. It can read the files it opens.',
                   { value0: formatFileTypeList(editorFileTypes) }
-                )}
-              </span>
-            </p>
-          ) : null}
-          {viewerFileTypes.length > 0 ? (
-            <p className="flex items-start gap-2">
-              <Check className="mt-1 size-4 shrink-0 text-muted-foreground" />
-              <span>
-                {translate(
-                  'auto.components.settings.PluginInstallConsent.opensFileTypes',
-                  'Opens {{value0}} files in Orca',
-                  { value0: formatFileTypeList(viewerFileTypes) }
                 )}
               </span>
             </p>

@@ -2,7 +2,6 @@ import type { RefinementCtx } from 'zod'
 import { isPluginCommandAliasActionId } from '../plugin-command-actions'
 import { getKeybindingConflictIdentity } from '../../keybindings'
 import { PLUGIN_EVENT_CAPABILITY, type PluginEventName } from '../plugin-event-contribution'
-import { PLUGIN_CUSTOM_EDITOR_BYTES_NEEDS_READONLY } from '../plugin-custom-editor-contribution'
 
 type IdentifiedContribution = { id: string }
 type PathContribution = { path: string }
@@ -22,8 +21,6 @@ type ContributionValidationManifest = {
     syntaxes: (IdentifiedContribution & { scopeName: string })[]
     customEditors: (IdentifiedContribution & {
       fileTypes: string[]
-      contentKind?: string
-      readonly?: boolean
     })[]
   }
   capabilities: { kind: string }[]
@@ -84,13 +81,6 @@ export function validatePluginManifestContributions(
         code: 'custom',
         path: ['contributes', 'customEditors', index, 'fileTypes'],
         message: 'duplicate custom editor file type'
-      })
-    }
-    if (editor.contentKind === 'bytes' && editor.readonly !== true) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['contributes', 'customEditors', index, 'readonly'],
-        message: PLUGIN_CUSTOM_EDITOR_BYTES_NEEDS_READONLY
       })
     }
   }

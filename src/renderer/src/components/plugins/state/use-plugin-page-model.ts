@@ -162,23 +162,15 @@ export function usePluginPageModel({
         .map((item) => ({ key: item.name, command: item.detail ?? item.name })) ?? null
   }
 
-  // Dotted suffixes the plugin's custom editors open (`viewer`) or open and edit, named in the consent.
-  let editorFileTypes: string[] | null
-  let viewerFileTypes: string[] = []
-  const customEditors: readonly { fileTypes: readonly string[]; readonly?: boolean }[] | undefined =
-    plugin ? (plugin.customEditors ?? []) : shownPreview?.manifest.contributes.customEditors
-  if (customEditors) {
-    const dotted = (editors: typeof customEditors): string[] =>
-      editors.flatMap((editor) => editor.fileTypes.map((fileType) => `.${fileType}`))
-    editorFileTypes = dotted(customEditors.filter((editor) => editor.readonly !== true))
-    viewerFileTypes = dotted(customEditors.filter((editor) => editor.readonly === true))
-  } else {
-    // Why edits: a summary cannot say read-only, and the consent must not understate access.
-    editorFileTypes =
-      summary
+  // Dotted suffixes the plugin's custom editors open and edit, named in the consent.
+  const customEditors: readonly { fileTypes: readonly string[] }[] | undefined = plugin
+    ? (plugin.customEditors ?? [])
+    : shownPreview?.manifest.contributes.customEditors
+  const editorFileTypes = customEditors
+    ? customEditors.flatMap((editor) => editor.fileTypes.map((fileType) => `.${fileType}`))
+    : (summary
         ?.filter((item) => item.kind === 'customEditors')
-        .flatMap((item) => (item.detail ? item.detail.split(', ') : [])) ?? null
-  }
+        .flatMap((item) => (item.detail ? item.detail.split(', ') : [])) ?? null)
 
   const images: PluginHostImages | undefined =
     plugin?.images ?? listing?.images ?? shownPreview?.images
@@ -197,7 +189,6 @@ export function usePluginPageModel({
     capabilities,
     shortcuts,
     editorFileTypes: editorFileTypes ? [...new Set(editorFileTypes)] : null,
-    viewerFileTypes: [...new Set(viewerFileTypes)],
     images,
     installedManifest
   }
