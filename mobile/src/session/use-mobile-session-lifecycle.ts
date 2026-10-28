@@ -8,7 +8,7 @@ import {
   recoverActiveTerminalAfterForeground,
   shouldRecoverTerminalOnAppStateChange
 } from '../terminal/terminal-foreground-recovery'
-import { loadCustomKeys } from '../terminal/terminal-custom-keys'
+import { loadCustomKeys, subscribeStoredCustomKeys } from '../terminal/terminal-custom-keys'
 import type { MobileSessionTabReconciliationModel } from './use-mobile-session-tab-reconciliation'
 
 export function useMobileSessionLifecycle(scope: MobileSessionTabReconciliationModel) {
@@ -71,6 +71,18 @@ export function useMobileSessionLifecycle(scope: MobileSessionTabReconciliationM
       }
     }
   }, [])
+
+  useEffect(
+    () =>
+      subscribeStoredCustomKeys((keys) => {
+        // An accepted write is at least as new as any read still in flight.
+        customKeysReadRevisionRef.current += 1
+        customKeysRef.current = keys
+        setCustomKeys(keys)
+        setCustomKeysLoaded(true)
+      }),
+    []
+  )
 
   const layoutReadRevisionRef = useRef(0)
   const refreshAccessoryLayout = useCallback(() => {
