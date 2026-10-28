@@ -114,27 +114,12 @@ export class RuntimeTerminalWait {
         }, effectiveTimeoutMs)
       }
       this.waiters.add(waiter)
-      if (condition === 'tui-idle') {
-        // PTY records mutate in place, so `pty` is still the live record.
-        const liveWaitText = buildTerminalWaitText(pty.tailBuffer, pty.tailPartialLine, pty.preview)
-        const liveVerdict = this.evaluate(pty, liveWaitText)
-        if (liveVerdict.kind === 'blocked') {
-          this.waiters.resolve(
-            waiter,
-            buildPtyTerminalWaitBlockedResult(handle, condition, pty, liveVerdict.reason)
-          )
-        } else if (liveVerdict.kind === 'ready-strong') {
-          // Status is retained evidence, not a consumable signal; clearing idle strands subsequent waiters.
-          this.waiters.resolve(waiter, buildPtyTerminalWaitResult(handle, condition, pty))
-        } else {
-          // Ready previews can precede idle OSC titles; keep polling both.
-          this.polls.start(waiter, pty, liveVerdict)
-          const paneAgent = this.deps.getPaneAgent(pty.ptyId)
-          if (
-            shouldProbeVisibleScreen(paneAgent, pty, outputClockOf(this.deps, pty), liveWaitText)
-          ) {
-            this.deps.startVisibleReadProbe(waiter, effectiveTimeoutMs, paneAgent)
-          }
+      if (verdict) {
+        // Ready previews can precede idle OSC titles; keep polling both.
+        this.polls.start(waiter, pty, verdict)
+        const paneAgent = this.deps.getPaneAgent(pty.ptyId)
+        if (shouldProbeVisibleScreen(paneAgent, pty, outputClockOf(this.deps, pty), waitText)) {
+          this.deps.startVisibleReadProbe(waiter, effectiveTimeoutMs, paneAgent)
         }
       }
     })
