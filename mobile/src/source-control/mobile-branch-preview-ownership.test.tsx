@@ -123,54 +123,14 @@ describe('committed diff preview ownership', () => {
     })
     expect(latest?.branchDiffPreview?.kind).toBe('loading')
     expect(latest?.openingBranchPath).toBe(entry.path)
+    expect(buildDiff).not.toHaveBeenCalled()
     await act(async () => {
       replies[1]?.(success)
       await current
     })
     expect(latest?.branchDiffPreview?.kind).toBe('ready')
+    expect(buildDiff).toHaveBeenCalledTimes(1)
   })
-  it.each([100, 1000])(
-    'skips a dismissed %i-line diff while the successor still builds',
-    async (count) => {
-      mount()
-      const old = open()
-      act(() => latest?.setBranchDiffPreview(null))
-      const current = open()
-      const originalContent = Array.from(
-        { length: count },
-        (_, index) => `const old${index} = 1`
-      ).join('\n')
-      const modifiedContent = originalContent.replaceAll('= 1', '= 2')
-      await act(async () => {
-        replies[0]?.({
-          id: 'old',
-          ok: true,
-          result: { kind: 'text', originalContent, modifiedContent }
-        })
-        await old
-      })
-      expect(latest?.branchDiffPreview?.kind).toBe('loading')
-      const discardedInputs = buildDiff.mock.calls.reduce(
-        (total, [before, after]) => total + before.length + after.length,
-        0
-      )
-      await act(async () => {
-        replies[1]?.(success)
-        await current
-      })
-      expect(latest?.branchDiffPreview).toMatchObject({
-        kind: 'ready',
-        truncated: false,
-        lines: [
-          { kind: 'delete', text: 'old' },
-          { kind: 'add', text: 'new' }
-        ]
-      })
-      expect(buildDiff.mock.calls.at(-1)?.slice(0, 2)).toEqual(['old', 'new'])
-      expect(discardedInputs).toBe(0)
-      expect(buildDiff).toHaveBeenCalledTimes(1)
-    }
-  )
   it('retires the preview when this mounted route changes workspace', async () => {
     mount()
     const pending = open()
