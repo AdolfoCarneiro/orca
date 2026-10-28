@@ -5,18 +5,6 @@ reconstructing flags. In particular, preserve the exact executable, worker
 handle, Task ID, and Dispatch ID, and keep any other flag it carries (an older
 Orca host adds `--dispatch-capability`).
 
-## Heartbeat
-
-Send heartbeats only at the cadence required by the live preamble. Skip them
-while blocked inside `ask` or `check --wait`; those calls are liveness signals.
-
-```text
-ORCA orchestration send --from <worker_handle> --type heartbeat --subject "alive" --task-id <task_id> --dispatch-id <dispatch_id> --phase "<investigating|implementing|reviewing|waiting>"
-```
-
-Use typed lifecycle flags, not a hand-written JSON payload. A heartbeat proves
-liveness, never completion.
-
 ## Ask and resume
 
 Use Orca `ask` whenever the coordinator must answer. Never open a local question

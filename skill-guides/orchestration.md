@@ -81,19 +81,16 @@ The injected preamble is authoritative. A dispatched worker must:
 1. Do only the current Task and use the preamble's `ask` command for a blocking
    coordinator question. Never open a local question TUI the coordinator cannot
    answer. Resume the same message ID after an ask timeout.
-2. Send heartbeats only at the cadence in the preamble. A heartbeat proves
-   liveness, not completion. If a background loop sends them, restart it if it
-   expires mid-task, and stop it before `worker_done`.
-3. Read coordinator follow-ups at each natural checkpoint — before starting a
+2. Read coordinator follow-ups at each natural checkpoint — before starting a
    new file, after a test run — and once more immediately before `worker_done`:
    `ORCA orchestration check --terminal <your_handle> --json`.
    After processing every message, ack the batch, which returns the next one, and
    repeat until `count` is 0; an unacked batch replays and hides newer mail:
    `ORCA orchestration check --terminal <your_handle> --ack <delivery_id> --json`.
-4. Send `worker_done` exactly once, from the dispatched terminal, with a
+3. Send `worker_done` exactly once, from the dispatched terminal, with a
    three-sentence executive summary, both lifecycle IDs, and explicit
    `--outcome succeeded` or `--outcome failed`. Never encode failure only in prose.
-5. Append `--files-modified` and `--report-path` only with real values when
+4. Append `--files-modified` and `--report-path` only with real values when
    applicable. After `worker_done`, end the dispatched turn and idle; do not poll
    or start new work.
 

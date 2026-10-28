@@ -27,7 +27,7 @@ that batch over unfiltered.
 coordinator inbox.
 
 An empty wait or timeout is a checkpoint. Continue rolling waits until every
-expected Dispatch settles. Heartbeat or visible activity means alive, not done.
+expected Dispatch settles. Visible activity means alive, not done.
 
 ## Addresses
 
@@ -52,7 +52,7 @@ A Run group excludes its owning coordinator; a worker raising a blocker sends
 to `run:<id>`. A worker that created its own Run addresses that Run's workers,
 not its siblings. `@worktree:<id>` reaches matching workspace terminals,
 including coordinators. Use groups only for intentional fan-out status or
-questions. `worker_done`, heartbeat, and other
+questions. `worker_done` and other
 Dispatch lifecycle messages never target groups.
 
 ## Questions and gates
