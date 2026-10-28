@@ -17,36 +17,39 @@ export async function archiveWorkerOutputBeforeStop(args: {
   attachedAt: string
 }): Promise<void> {
   const { db, dispatchId } = args
-  const resource = db.getWorkerTerminalResourceByOwner(dispatchId)
-  if (
-    !resource ||
-    resource.ownership_state !== 'owned' ||
-    db.getWorkerTerminalArchive(dispatchId)
-  ) {
-    return
-  }
   // Stopping matters more than the copy; on failure or timeout, release reports the archive unavailable.
-  const captured = await withTimeout(
-    captureWorkerOutputArchive({
-      runtime: args.runtime,
+  try {
+    const resource = db.getWorkerTerminalResourceByOwner(dispatchId)
+    if (
+      !resource ||
+      resource.ownership_state !== 'owned' ||
+      db.getWorkerTerminalArchive(dispatchId)
+    ) {
+      return
+    }
+    const captured = await withTimeout(
+      captureWorkerOutputArchive({
+        runtime: args.runtime,
+        dispatchId,
+        terminalHandle: args.terminalHandle,
+        attachedAtMs: orchestrationTimestampToMs(args.attachedAt),
+        structuredWorker: resolveStructuredWorkerForDispatch(db, dispatchId)
+      }),
+      STOP_ARCHIVE_TIMEOUT_MS,
+      null
+    )
+    if (!captured) {
+      throw new Error('capture failed or timed out')
+    }
+    db.storeWorkerTerminalArchiveBeforeStop({
       dispatchId,
-      terminalHandle: args.terminalHandle,
-      attachedAtMs: orchestrationTimestampToMs(args.attachedAt),
-      structuredWorker: resolveStructuredWorkerForDispatch(db, dispatchId)
-    }),
-    STOP_ARCHIVE_TIMEOUT_MS,
-    null
-  )
-  if (!captured) {
-    console.warn('[orchestration] worker output was not archived before stop', dispatchId)
-    return
+      resourceId: resource.id,
+      kind: captured.kind,
+      content: JSON.stringify(captured.content),
+      archiveSource: captured.kind === 'terminal_tail' ? 'terminal' : 'transcript',
+      archiveStatus: captured.status
+    })
+  } catch (error) {
+    console.warn('[orchestration] worker output was not archived before stop', dispatchId, error)
   }
-  db.storeWorkerTerminalArchiveBeforeStop({
-    dispatchId,
-    resourceId: resource.id,
-    kind: captured.kind,
-    content: JSON.stringify(captured.content),
-    archiveSource: captured.kind === 'terminal_tail' ? 'terminal' : 'transcript',
-    archiveStatus: captured.status
-  })
 }
