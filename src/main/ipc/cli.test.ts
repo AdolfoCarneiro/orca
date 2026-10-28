@@ -6,14 +6,16 @@ const {
   wslInstallerMock,
   recordInstalledMock,
   recordRemovedMock,
-  getDefaultWslDistroMock
+  getDefaultWslDistroMock,
+  blockedMock
 } = vi.hoisted(() => ({
   handlers: new Map<string, (...args: unknown[]) => unknown>(),
   ipcHandleMock: vi.fn(),
   wslInstallerMock: vi.fn(),
   recordInstalledMock: vi.fn(),
   recordRemovedMock: vi.fn(),
-  getDefaultWslDistroMock: vi.fn()
+  getDefaultWslDistroMock: vi.fn(),
+  blockedMock: vi.fn()
 }))
 
 vi.mock('electron', () => ({ ipcMain: { handle: ipcHandleMock } }))
@@ -29,6 +31,7 @@ vi.mock('../startup/hydrate-shell-path', () => ({
   mergePathSegments: vi.fn()
 }))
 vi.mock('../wsl', () => ({ getDefaultWslDistro: getDefaultWslDistroMock }))
+vi.mock('../wsl/wsl-unc-access-gate', () => ({ blockedWslDistroForPath: blockedMock }))
 
 import { registerCliHandlers } from './cli'
 import { WslCliUnreachableError } from '../cli/wsl-cli-status'
@@ -56,7 +59,20 @@ describe('WSL CLI registration IPC', () => {
     recordInstalledMock.mockReset().mockResolvedValue(undefined)
     recordRemovedMock.mockReset().mockResolvedValue(undefined)
     getDefaultWslDistroMock.mockReset().mockReturnValue('Ubuntu')
+    blockedMock.mockReset().mockResolvedValue(null)
     registerCliHandlers()
+  })
+
+  it('reports a stopped distro on a Settings status read instead of booting it (E9)', async () => {
+    blockedMock.mockResolvedValue({ distro: 'Ubuntu', state: 'stopped' })
+
+    await expect(getWslHandler('cli:getWslInstallStatus')({})).resolves.toMatchObject({
+      state: 'unsupported',
+      unsupportedReason: 'wsl_unreachable',
+      detail: expect.stringContaining('is not running')
+    })
+    expect(blockedMock).toHaveBeenCalledWith('', 'Ubuntu')
+    expect(wslInstallerMock).not.toHaveBeenCalled()
   })
 
   it('returns a retryable status instead of rejecting when the distro does not answer', async () => {

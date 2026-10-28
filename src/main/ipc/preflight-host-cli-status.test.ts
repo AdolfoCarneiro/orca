@@ -34,6 +34,10 @@ const {
   mergePersistedWindowsPathMock: vi.fn()
 }))
 
+// Gate behaviour has its own suite; these cases cover what preflight does once a distro runs.
+vi.mock('../preflight/preflight-wsl-running-gate', () => ({
+  assertPreflightWslDistroRunning: async () => {}
+}))
 vi.mock('electron', () => ({
   ipcMain: {
     handle: handleMock
@@ -510,6 +514,8 @@ describe('preflight', () => {
       })
 
       const stalePending = runPreflightCheck(false, { wslDistro: 'Ubuntu' })
+      // The running check comes first; flip only once the stale probes are actually in flight.
+      await vi.waitFor(() => expect(runWslProcessMock).toHaveBeenCalled())
       phase = 'fresh'
       const fresh = await runPreflightCheck(true, { wslDistro: 'Ubuntu' })
       expect(fresh.git).toEqual({ installed: true })

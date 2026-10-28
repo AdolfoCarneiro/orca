@@ -1,4 +1,5 @@
-import { listRunningWslDistrosAsync, listWslDistrosAsync } from '../wsl'
+import { listWslDistrosAsync } from '../wsl'
+import { listSettledRunningWslDistros } from '../wsl-background-distro-gate'
 import { onRunningWslDistrosStopped } from '../wsl-running-distro-cache'
 import { runWslProcess } from './wsl-runner'
 import {
@@ -84,8 +85,8 @@ export class WslInteropHealthMonitor {
     const runningKeys = new Set(running.map((name) => name.toLowerCase()))
     for (const [key, health] of this.distros) {
       if (runningKeys.has(key) && this.deps.now() - health.lastCheckAt >= STOP_CHECK_FLOOR_MS) {
-        // The confirmed list that reported the stop also proves this distro is up.
-        void this.check(health.name, { confirmRunning: false })
+        // That list may still name a distro that is itself stopping: confirm, settled (E9).
+        void this.check(health.name, { confirmRunning: true })
       }
     }
   }
@@ -200,7 +201,7 @@ export class WslInteropHealthMonitor {
 
 export const wslInteropHealthMonitor = new WslInteropHealthMonitor({
   platform: () => process.platform,
-  listRunningDistros: () => listRunningWslDistrosAsync({ requireConfirmed: true }),
+  listRunningDistros: listSettledRunningWslDistros,
   resolveDefaultDistro: async () => (await listWslDistrosAsync())[0] ?? null,
   runScript: (distro, script, user) =>
     runWslProcess({ distro, user, loginPath: 'none', script, timeoutMs: PROBE_TIMEOUT_MS }),

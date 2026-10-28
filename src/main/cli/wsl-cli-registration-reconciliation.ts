@@ -2,8 +2,12 @@ import type { CliInstallState, CliInstallStatus } from '../../shared/cli-install
 import { listWslDistrosAsync } from '../wsl'
 import {
   deferUntilWslDistroRunning,
-  listConfirmedRunningWslDistros
+  listSettledRunningWslDistros
 } from '../wsl-background-distro-gate'
+
+// A list still naming a stopping distro would let repair boot it again (E9).
+const listSettledRunningWslDistrosOrNone = (): Promise<string[]> =>
+  listSettledRunningWslDistros().catch(() => [])
 import { CliInstaller } from './cli-installer'
 import {
   getWslCliRegistrationCandidates,
@@ -115,7 +119,7 @@ export async function reconcileManagedWslCliRegistrations(
   }
   // Never boot stopped distros for background repair; defer until they run.
   const running = new Set(
-    (await (options.listRunningDistros ?? listConfirmedRunningWslDistros)()).map((distro) =>
+    (await (options.listRunningDistros ?? listSettledRunningWslDistrosOrNone)()).map((distro) =>
       distro.toLowerCase()
     )
   )

@@ -27,6 +27,10 @@ const { detectInstalledMock, refreshMock } = vi.hoisted(() => ({
   refreshMock: vi.fn()
 }))
 
+// Gate behaviour has its own suite; these cases cover detection once a distro runs.
+vi.mock('./preflight-wsl-running-gate', () => ({
+  assertPreflightWslDistroRunning: async () => {}
+}))
 vi.mock('./agent-detection', () => ({
   detectInstalledAgentsWithShellPathHydration: detectInstalledMock,
   refreshShellPathAndDetectAgents: refreshMock,

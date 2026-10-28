@@ -33,6 +33,10 @@ const {
 
 const runWslProcessMock = vi.hoisted(() => vi.fn())
 // WSL detection uses runWslProcess, so child_process mocks cannot observe it.
+// Gate behaviour has its own suite; these cases cover what preflight does once a distro runs.
+vi.mock('../preflight/preflight-wsl-running-gate', () => ({
+  assertPreflightWslDistroRunning: async () => {}
+}))
 vi.mock('../wsl/wsl-runner', () => ({ runWslProcess: runWslProcessMock }))
 
 vi.mock('electron', () => ({

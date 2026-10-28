@@ -33,6 +33,7 @@ import {
   type RefreshAgentsResult
 } from './agent-detection'
 import type { InstalledAgentDetectionOptions } from './installed-agent-detection'
+import { assertPreflightWslDistroRunning } from './preflight-wsl-running-gate'
 
 export type AgentDetectionHost =
   | { kind: 'local'; context?: PreflightRuntimeContext }
@@ -138,6 +139,11 @@ export async function detectAgentsOnHost(
   // Unserved hosts are unverifiable; [] would falsely cache no installed agents.
   if (host.kind === 'ssh') {
     throw new SshHostNotServedError(host.connectionId)
+  }
+  // Detection runs on mount: a stopped distro is unverifiable, never "no agents" and never booted.
+  const wsl = getPreflightWslTarget(host.context)
+  if (wsl) {
+    await assertPreflightWslDistroRunning(wsl)
   }
   return detectInstalledAgentsWithShellPathHydration(host.context, options)
 }

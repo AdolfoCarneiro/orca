@@ -1,4 +1,5 @@
 // Runtime preflight must stay independent of ipcMain registration.
+import { assertPreflightWslDistroRunning } from './preflight-wsl-running-gate'
 import type {
   PathSource,
   ShellHydrationFailureReason
@@ -255,6 +256,10 @@ async function executePreflightCheck(
   context: PreflightRuntimeContext | undefined,
   wslTarget: WslPreflightTarget | null
 ): Promise<PreflightStatus> {
+  if (wslTarget) {
+    // Even a forced (focus) re-check must not boot a stopped distro; the caller shows why.
+    await assertPreflightWslDistroRunning(wslTarget)
+  }
   if (process.platform === 'win32' && !wslTarget) {
     await mergePersistedWindowsPathAsync(process.env, { forceRefresh: force })
   } else if (process.platform !== 'win32') {

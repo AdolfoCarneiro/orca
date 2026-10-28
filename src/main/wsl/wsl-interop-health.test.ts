@@ -190,12 +190,27 @@ describe('WslInteropHealthMonitor triggers', () => {
     h.emitStop(['docker-desktop'], ['Ubuntu'])
     await flush()
     expect(h.deps.runScript).toHaveBeenCalledTimes(2)
-    // The confirmed list that reported the stop already proves Ubuntu is up.
-    expect(h.deps.listRunningDistros).toHaveBeenCalledTimes(1)
+    // The list that reported the stop may still name a stopping distro: it is confirmed, settled.
+    expect(h.deps.listRunningDistros).toHaveBeenCalledTimes(2)
     h.advance(10_000)
     h.emitStop(['Ubuntu'], [])
     await flush()
     expect(h.deps.runScript).toHaveBeenCalledTimes(2)
+  })
+
+  it('never probes a distro the stop list still names while the settled list does not (E9)', async () => {
+    const listRunningDistros = vi.fn(async () => ['Ubuntu'])
+    const h = harness({ listRunningDistros })
+    h.monitor.noteActivity('Ubuntu')
+    await flush()
+    h.runTimers()
+    await flush()
+    expect(h.deps.runScript).toHaveBeenCalledTimes(1)
+    h.advance(10_000)
+    listRunningDistros.mockResolvedValueOnce([])
+    h.emitStop(['docker-desktop'], ['Ubuntu'])
+    await flush()
+    expect(h.deps.runScript).toHaveBeenCalledTimes(1)
   })
 
   it('bounds probes under bursts of activity and stop events', async () => {

@@ -120,6 +120,14 @@ export function unsupportedWslCliStatus(
 }
 
 /** Settings shows this instead of a raw IPC timeout; the row stays refreshable. */
+/** Settings polls status on mount; a stopped distro is reported, not booted (E9). */
+export function stoppedWslCliStatus(distro: string): CliInstallStatus {
+  return unsupportedWslCliStatus(
+    'wsl_unreachable',
+    `WSL (${distro}) is not running. Open a terminal in it, then refresh.`
+  )
+}
+
 export function unreachableWslCliStatus(distro: string): CliInstallStatus {
   return unsupportedWslCliStatus(
     'wsl_unreachable',

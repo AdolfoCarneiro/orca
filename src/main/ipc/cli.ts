@@ -1,3 +1,4 @@
+import { blockedWslDistroForPath } from '../wsl/wsl-unc-access-gate'
 import { ipcMain } from 'electron'
 import type { CliInstallStatus } from '../../shared/cli-install-types'
 import { resolveAppImageCacheKey } from '../cli/appimage-extracted-root'
@@ -8,7 +9,11 @@ import {
   recordWslCliRegistrationRemoved
 } from '../cli/wsl-cli-registration-registry'
 import { WslCliInstaller } from '../cli/wsl-cli-installer'
-import { unreachableWslCliStatus, WslCliUnreachableError } from '../cli/wsl-cli-status'
+import {
+  stoppedWslCliStatus,
+  unreachableWslCliStatus,
+  WslCliUnreachableError
+} from '../cli/wsl-cli-status'
 import { runSerializedWslCliRegistrationOperation } from '../cli/wsl-cli-registration-operation'
 import { getCanonicalUserDataPath } from '../persistence'
 import { hydrateShellPath, mergePathSegments } from '../startup/hydrate-shell-path'
@@ -139,6 +144,9 @@ export function registerCliHandlers(): void {
     async (_event, args?: { distro?: string | null }): Promise<CliInstallStatus> => {
       // Keep status reads independent of long repairs; re-polling corrects transient state.
       const distro = resolveWslCliDistro(args)
+      if (distro && (await blockedWslDistroForPath('', distro))) {
+        return stoppedWslCliStatus(distro)
+      }
       try {
         return await new WslCliInstaller({ distro }).getStatus()
       } catch (error) {

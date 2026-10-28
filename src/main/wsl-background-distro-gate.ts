@@ -147,6 +147,12 @@ export async function isWslDistroRunning(
   return (await readWslDistroRunningState(distro, options)) === 'running'
 }
 
+/** A confirmed running list without any distro still inside its stop's settle window. */
+export async function listSettledRunningWslDistros(): Promise<string[]> {
+  const distros = await listRunningWslDistrosAsync({ requireConfirmed: true })
+  return distros.filter((distro) => wasWslDistroLastSeenRunningSettled(distro))
+}
+
 /** Missing distro selects the default, matching wsl.exe. */
 export async function isWslDistroRunningForBackgroundWork(
   distro: string | null | undefined
