@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
+import { entry, host, root, onUse } from './agent-launch-setup-panel-test-fixture'
 import { act } from 'react'
 import { fireEvent } from '@testing-library/react'
-import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AgentLaunchSetupPanel } from './AgentLaunchSetupPanel'
 import {
@@ -10,33 +10,6 @@ import {
   agentPickerLaunchInputs,
   type AgentPickerEntry
 } from '../../../../shared/agent-launch-picker'
-
-const entry: AgentPickerEntry = {
-  agent: 'claude',
-  label: 'Claude',
-  rows: [{ agent: 'claude', kind: 'terminal' }],
-  surfaces: ['chat', 'terminal'],
-  defaultSurface: 'terminal',
-  terminal: { permissionMode: 'ask' },
-  structured: { permissionMode: 'ask' },
-  arguments: '--permission-mode plan --add-dir docs',
-  catalog: { origin: 'unknown' }
-}
-let root: Root
-let host: HTMLDivElement
-const onUse = vi.fn()
-beforeEach(() => {
-  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-  onUse.mockClear()
-  host = document.createElement('div')
-  document.body.append(host)
-  root = createRoot(host)
-})
-afterEach(() => {
-  act(() => root.unmount())
-  host.remove()
-  vi.unstubAllGlobals()
-})
 
 it('shows a raw Arguments value in the shared Permissions menu; removing its chip selects own and preserves other text', () => {
   act(() =>

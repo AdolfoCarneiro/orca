@@ -1,12 +1,25 @@
 // @vitest-environment happy-dom
-import { act, cleanup, renderHook } from '@testing-library/react'
+import { createElement } from 'react'
+import { act, cleanup, fireEvent, render, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { AgentLaunchPickerMenu } from './AgentLaunchPickerMenu'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import {
+  buildNewTabAgentMenuRows,
+  type HostChatAnswer
+} from '../../../../shared/agent-launch-picker-rows'
 import * as picker from '../../../../shared/agent-launch-picker'
 import { projectAgentLaunchSettings } from '../../../../shared/agent-launch-settings'
 import type { AgentSessionModelCatalogResult } from '../../../../shared/agent-session-wire'
 import type { NewTabAgentMenuModel } from '../tab-bar/new-tab-agent-menu-model'
 import { useAgentLaunchPickerInventory } from './use-agent-launch-picker-inventory'
 
+vi.mock('@/hooks/useShortcutLabel', () => ({ useOptionalShortcutLabel: () => null }))
 const mocks = vi.hoisted(() => ({ settings: vi.fn(), rpc: vi.fn(), session: vi.fn() }))
 vi.mock('../settings/agent-launch-settings-transport', () => ({
   readHostAgentLaunchSettings: mocks.settings
@@ -514,3 +527,70 @@ it.each([3, 30])(
     fresh.unmount()
   }
 )
+
+it('updates a mounted setup from current host rows without making ordinary actions wait for unknown defaults', async () => {
+  mocks.settings.mockRejectedValue(new Error('offline'))
+  mocks.rpc.mockRejectedValue(new Error('offline'))
+  const optional = Promise.withResolvers<void>()
+  mocks.session.mockImplementation((_target, method) =>
+    optional.promise.then(() => (method === 'agentSession.modelCatalog' ? catalog : {}))
+  )
+  const launch = vi.fn()
+  let current: picker.AgentPickerEntry[] = []
+  function Menu({ answer }: { answer: HostChatAnswer }) {
+    const menu = model('late-offer')
+    menu.rows = buildNewTabAgentMenuRows({
+      settings: { experimentalNativeChat: true, nativeChatProviders: { codex: false } },
+      detectedOnHost: ['codex'],
+      chatAgents: ['codex'],
+      hostChatAnswer: () => answer,
+      chatProgram: () => 'available'
+    }).map((row) => ({ ...row, executionHostId: 'runtime:late-offer' as const }))
+    current = useAgentLaunchPickerInventory('wt', menu, true)
+    return createElement(
+      TooltipProvider,
+      null,
+      createElement(
+        DropdownMenu,
+        { defaultOpen: true, modal: false },
+        createElement(DropdownMenuTrigger, null, 'New tab'),
+        createElement(
+          DropdownMenuContent,
+          null,
+          createElement(AgentLaunchPickerMenu, { model: menu, entries: current, runLaunch: launch })
+        )
+      )
+    )
+  }
+  const view = render(createElement(Menu, { answer: 'not-yet-known' }))
+  await act(async () => {})
+  const configure = document.querySelector<HTMLButtonElement>(
+    'button[aria-label="Configure Codex"]'
+  )!
+  fireEvent.click(configure)
+  expect(document.body.textContent).toContain('Open terminal')
+  expect(document.body.textContent).not.toContain('Open chat')
+  for (const answer of ['yes', 'ssh', 'yes'] as const) {
+    view.rerender(createElement(Menu, { answer }))
+    await act(async () => {})
+    expect(current[0].defaultSurface).toBe('terminal')
+    expect(current[0].defaultsPending).toBe(true)
+    expect(current[0].surfaces).toEqual(answer === 'yes' ? ['chat', 'terminal'] : ['terminal'])
+    expect(document.body.textContent?.includes('Open chat')).toBe(answer === 'yes')
+    expect(document.querySelector('textarea')).toHaveProperty('disabled', true)
+    expect(
+      [...document.querySelectorAll('button')].find(
+        (button) => button.textContent === 'Open terminal'
+      )
+    ).toHaveProperty('disabled', false)
+  }
+  expect(launch).not.toHaveBeenCalled()
+  fireEvent.keyDown(document.querySelector('textarea')!, { key: 'Escape' })
+  fireEvent.keyDown(document.querySelector('[role="menuitem"]')!, { key: 'Enter' })
+  expect(launch).toHaveBeenCalledExactlyOnceWith(
+    { agent: 'codex', kind: 'cli', chat: true, executionHostId: 'runtime:late-offer' },
+    undefined
+  )
+  view.unmount()
+  await act(async () => optional.resolve())
+})

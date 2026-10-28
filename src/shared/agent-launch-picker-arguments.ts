@@ -163,18 +163,18 @@ export function editAgentPickerPanelText(
   }
   const view = agentPickerPanelArguments(entry, draft, model)
   const analysis = analyzeAgentChoiceArgs(entry.agent, text)
+  const composedKeys = new Set(
+    agentPickerEntryOptions(entry, model, 'terminal')
+      .filter((option) => option.apply.composedIntoModel)
+      .map((option) => option.id)
+  )
   const flags = view.chips.filter(
     (chip) =>
       !(entry.agent === 'claude' && chip.key === 'fastMode') &&
       (chip.key === 'permissionMode'
         ? !agentArgsSetPermission(entry.agent, text)
         : !analysis.occurrences.some(
-            (item) =>
-              item.key === chip.key ||
-              (item.key === 'model' &&
-                agentPickerEntryOptions(entry, model, 'terminal').find(
-                  (option) => option.id === chip.key
-                )?.apply.composedIntoModel)
+            (item) => item.key === chip.key || (item.key === 'model' && composedKeys.has(chip.key))
           ))
   )
   const next = editAgentPickerPanelArguments(

@@ -223,7 +223,8 @@ export function agentPickerEntriesFromRows(
 ): AgentPickerEntry[] {
   return [...new Set(rows.map((row) => row.agent))].map((agent) => {
     const own = rows.filter((row) => row.agent === agent)
-    const chat = own.some((row) => row.kind === 'chat')
+    const chatDefault = own.some((row) => row.kind === 'chat')
+    const chat = chatDefault || own.some((row) => row.kind === 'cli' && row.chat)
     return {
       agent,
       label: label(agent),
@@ -232,7 +233,7 @@ export function agentPickerEntriesFromRows(
         ...(chat ? ['chat' as const] : []),
         ...(detected.includes(agent) ? ['terminal' as const] : [])
       ],
-      defaultSurface: chat ? 'chat' : 'terminal',
+      defaultSurface: chatDefault ? 'chat' : 'terminal',
       ...seed(agent),
       catalog: { origin: 'unknown' }
     }

@@ -39,12 +39,18 @@ export function analyzeAgentChoiceArgs(agent: TuiAgent, text: string) {
   const occurrences: ChoiceOccurrence[] = []
   const seen = new Set<string>()
   const opaqueKeys = new Set<string>()
+  const effectiveSettings = new Map<
+    (typeof forms)[number]['form'],
+    ReturnType<typeof agentChoiceSettingsOccurrences>[number] | undefined
+  >()
   for (const { key, form } of forms) {
     if (form.kind !== 'settings') {
       continue
     }
-    const effective =
-      first && agentChoiceSettingsOccurrences(agent, form.names, first.parsed.tokens).at(-1)
+    const effective = first
+      ? agentChoiceSettingsOccurrences(agent, form.names, first.parsed.tokens).at(-1)
+      : undefined
+    effectiveSettings.set(form, effective)
     if (
       !first ||
       (effective &&
@@ -120,11 +126,7 @@ export function analyzeAgentChoiceArgs(agent: TuiAgent, text: string) {
             !!value &&
             !value.startsWith('-')
           if (form.kind === 'settings') {
-            const effective = agentChoiceSettingsOccurrences(
-              agent,
-              form.names,
-              first.parsed.tokens
-            ).at(-1)
+            const effective = effectiveSettings.get(form)
             if (effective?.index !== index || opaqueKeys.has(key)) {
               continue
             }

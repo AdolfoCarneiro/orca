@@ -1,8 +1,10 @@
+import { buildNewTabAgentMenuRows } from './agent-launch-picker-rows'
 import { readFileSync } from 'node:fs'
 import { z } from 'zod'
 import { describe, expect, it } from 'vitest'
 import {
   agentPickerLaunchInputs,
+  agentPickerEntriesFromRows,
   agentPickerChoiceSeeds,
   agentPickerDraft,
   agentPickerHydrationQueue,
@@ -393,4 +395,147 @@ it('retains a raw permission spelling even when its literal value happens to nam
   expect(view.permission).toBe('ask')
   expect(view.selectedPermission).toBeUndefined()
   expect(view.chips[0].flag).toBe('--permission-mode ask')
+})
+
+it('keeps offered host Chat independent of preference through the actual row builder and adapter', () => {
+  for (const scenario of [
+    {
+      enabled: true,
+      preferred: false,
+      answer: 'yes',
+      program: 'available',
+      detected: ['codex'],
+      surfaces: ['chat', 'terminal'],
+      defaultSurface: 'terminal'
+    },
+    {
+      enabled: true,
+      preferred: true,
+      answer: 'yes',
+      program: 'available',
+      detected: ['codex'],
+      surfaces: ['chat', 'terminal'],
+      defaultSurface: 'chat'
+    },
+    {
+      enabled: false,
+      preferred: false,
+      answer: 'yes',
+      program: 'available',
+      detected: ['codex'],
+      surfaces: ['terminal'],
+      defaultSurface: 'terminal'
+    },
+    {
+      enabled: true,
+      preferred: false,
+      answer: 'ssh',
+      program: 'available',
+      detected: ['codex'],
+      surfaces: ['terminal'],
+      defaultSurface: 'terminal'
+    },
+    {
+      enabled: true,
+      preferred: false,
+      answer: 'not-yet-known',
+      program: 'available',
+      detected: ['codex'],
+      surfaces: ['terminal'],
+      defaultSurface: 'terminal'
+    },
+    {
+      enabled: true,
+      preferred: false,
+      answer: 'yes',
+      program: 'installable',
+      detected: ['codex'],
+      surfaces: ['chat', 'terminal'],
+      defaultSurface: 'terminal'
+    },
+    {
+      enabled: true,
+      preferred: false,
+      answer: 'yes',
+      program: 'unknown',
+      detected: ['codex'],
+      surfaces: ['chat', 'terminal'],
+      defaultSurface: 'terminal'
+    },
+    {
+      enabled: true,
+      preferred: false,
+      answer: 'no-chats',
+      program: 'available',
+      detected: ['codex'],
+      surfaces: ['terminal'],
+      defaultSurface: 'terminal'
+    },
+    {
+      enabled: true,
+      preferred: false,
+      answer: 'yes',
+      program: 'missing',
+      detected: ['codex'],
+      surfaces: ['terminal'],
+      defaultSurface: 'terminal'
+    },
+    {
+      enabled: true,
+      preferred: true,
+      answer: 'yes',
+      program: 'available',
+      detected: [],
+      surfaces: ['chat'],
+      defaultSurface: 'chat'
+    }
+  ] as const) {
+    const rows = buildNewTabAgentMenuRows({
+      settings: {
+        experimentalNativeChat: scenario.enabled,
+        nativeChatProviders: { codex: scenario.preferred }
+      },
+      detectedOnHost: scenario.detected,
+      chatAgents: ['codex'],
+      hostChatAnswer: () => scenario.answer,
+      chatProgram: () => scenario.program
+    }).map((row) => ({ ...row, executionHostId: 'runtime:paired' as const }))
+    const [result] = agentPickerEntriesFromRows(
+      rows,
+      scenario.detected,
+      () => ({}),
+      (agent) => agent
+    )
+    expect(result.surfaces).toEqual(scenario.surfaces)
+    expect(result.defaultSurface).toBe(scenario.defaultSurface)
+    expect(result.rows.every((row) => row.executionHostId === 'runtime:paired')).toBe(true)
+  }
+  for (const answer of ['not-yet-known', 'ssh', 'wsl', 'subfolder', 'not-on-host'] as const) {
+    for (const detected of [[], ['codex']] as const) {
+      const rows = buildNewTabAgentMenuRows({
+        settings: { experimentalNativeChat: true },
+        detectedOnHost: detected,
+        chatAgents: ['codex'],
+        hostChatAnswer: () => answer,
+        chatProgram: () => 'available'
+      })
+      const [result] = agentPickerEntriesFromRows(
+        rows,
+        detected,
+        () => ({}),
+        (agent) => agent
+      )
+      expect(result.rows.some((row) => row.kind === 'chat-unavailable')).toBe(true)
+      expect(result.surfaces).toEqual(detected.length ? ['terminal'] : [])
+    }
+  }
+  expect(
+    buildNewTabAgentMenuRows({
+      settings: { experimentalNativeChat: true, disabledTuiAgents: ['codex'] },
+      detectedOnHost: ['codex'],
+      chatAgents: ['codex'],
+      hostChatAnswer: () => 'yes',
+      chatProgram: () => 'available'
+    })
+  ).toEqual([])
 })

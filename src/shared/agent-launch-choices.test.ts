@@ -710,3 +710,42 @@ it('bounds real raw-edit transport across invalid, divergent, exhausted and two-
     spy.mockRestore()
   }
 })
+
+it('keeps settings equals, operand and terminator ownership at the shared analyzer boundary', () => {
+  const text = `--settings='{"fastMode":true,"shadowed":1}' --settings='{"fastMode":false,"env":{"fastMode":true}}' --add-dir docs`
+  const analysis = choiceArgs.analyzeAgentChoiceArgs('claude', text)
+  const fast = analysis.occurrences.filter((item) => item.key === 'fastMode')
+  expect(fast).toMatchObject([{ value: 'false', owned: false, lift: false }])
+  expect(
+    reconcileAgentChoiceArgs({
+      agent: 'claude',
+      userArgs: text,
+      choices: {},
+      mode: 'arguments-edit',
+      keys: new Set(['fastMode'])
+    })
+  ).toEqual({ userArgs: text, choices: {} })
+  const cut = analysis.cut(fast)!
+  for (const shell of ['posix', 'powershell', 'cmd'] as const) {
+    const parsed = tokenizeStartupCommand(cut, shell)
+    expect(parsed).toMatchObject({
+      ok: true,
+      tokens: [
+        '--settings={"fastMode":true,"shadowed":1}',
+        '--settings',
+        '{"env":{"fastMode":true}}',
+        '--add-dir',
+        'docs'
+      ]
+    })
+  }
+  for (const raw of [
+    `-- --settings '{"fastMode":true}'`,
+    `--model --settings '{"fastMode":true}'`,
+    `--settings '{broken`
+  ]) {
+    const result = choiceArgs.analyzeAgentChoiceArgs('claude', raw)
+    expect(result.occurrences.filter((item) => item.key === 'fastMode')).toEqual([])
+    expect(result.cut([])).toBe(raw)
+  }
+})
