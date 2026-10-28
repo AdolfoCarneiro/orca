@@ -183,7 +183,12 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
     'git:appendGitignore',
     async (_event, args: { worktreePath: string; folderName: string }): Promise<boolean> => {
       const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
-      return appendFolderToGitignore(worktreePath, args.folderName)
+      const gitOptions = getLocalGitOptionsForRegisteredWorktree(
+        store,
+        args.worktreePath,
+        worktreePath
+      )
+      return appendFolderToGitignore(worktreePath, args.folderName, gitOptions)
     }
   )
 

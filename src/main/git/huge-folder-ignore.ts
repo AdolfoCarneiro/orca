@@ -33,7 +33,8 @@ export async function findKnownHugeFolderPathsToIgnore(
 /** Append an allowlisted folder pattern once; reject renderer input that could inject arbitrary ignore lines. */
 export async function appendFolderToGitignore(
   worktreePath: string,
-  folderName: string
+  folderName: string,
+  options: GitRuntimeOptions = {}
 ): Promise<boolean> {
   const safeFolderName = folderName.trim()
   if (!KNOWN_HUGE_FOLDER_NAMES.includes(safeFolderName) || /[\\/\r\n]/.test(safeFolderName)) {
@@ -49,7 +50,10 @@ export async function appendFolderToGitignore(
     .split(/\r?\n/)
     .map((l) => l.trim())
     .some((l) => l === safeFolderName || l === line)
-  if (alreadyListed) {
+  if (
+    alreadyListed &&
+    (await checkIgnoredPaths(worktreePath, [safeFolderName], options)).includes(safeFolderName)
+  ) {
     return false
   }
   const needsLeadingNewline = existingContent.length > 0 && !existingContent.endsWith('\n')

@@ -57,6 +57,7 @@ describe('appendFolderToGitignore', () => {
 
   beforeEach(() => {
     dir = mkdtempSync(path.join(tmpdir(), 'huge-folder-write-'))
+    checkIgnoredPathsMock.mockReset()
   })
 
   afterEach(async () => {
@@ -80,6 +81,7 @@ describe('appendFolderToGitignore', () => {
 
   it('is a no-op when the folder is already listed', async () => {
     await fs.writeFile(path.join(dir, '.gitignore'), 'node_modules/\n')
+    checkIgnoredPathsMock.mockResolvedValue(['node_modules'])
     const wrote = await appendFolderToGitignore(dir, 'node_modules')
     expect(wrote).toBe(false)
   })
