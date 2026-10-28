@@ -124,6 +124,7 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
     this.headlessTerminals.set(ptyId, state)
     const generation = this.getPtyLifecycleGeneration(ptyId)
     let seedTimedOut = false
+    let seeded = false
     state.writeChain = state.writeChain
       .then(async () => {
         if (this.headlessTerminals.get(ptyId) !== state) {
@@ -142,10 +143,13 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
             ) {
               return
             }
+            if (!retryLateSeed) {
+              return
+            }
             if (!landed) {
               // The provider gave nothing, so trust the live model.
               this.providerSnapshotPreferredPtys.delete(ptyId)
-            } else if (retryLateSeed) {
+            } else {
               // Live bytes moved this model on, so the late image is stale; capture once more.
               this.replaceHeadlessTerminalAfterExecutionContextChange(ptyId, false)
             }
@@ -175,13 +179,17 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
           alternateScreen: state.emulator.isAlternateScreen
         })
         state.outputSequence = snapshot.seq
+        seeded = true
       })
       .catch(() => {
         // Best-effort: live bytes already chain behind this replacement state.
       })
       .finally(() => {
-        // An unseeded model stays partial, so readers keep preferring the provider.
-        if (this.headlessTerminals.get(ptyId) === state && !seedTimedOut) {
+        // An unseeded model stays partial, so readers keep preferring the provider; a retry also dropped the bytes its predecessor held.
+        if (
+          this.headlessTerminals.get(ptyId) === state &&
+          (seeded || (retryLateSeed && !seedTimedOut))
+        ) {
           this.providerSnapshotPreferredPtys.delete(ptyId)
         }
       })
