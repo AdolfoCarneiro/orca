@@ -1,5 +1,11 @@
 import type { WebContents } from 'electron'
+import {
+  abortSignalReason,
+  throwIfSignalAborted,
+  waitForPromiseWithSignal
+} from '../../shared/abort-signal-reason'
 import { sendGuestCdpCommand } from './guest-cdp-command'
+import { encodeNativeImageScreenshot } from './cdp-screenshot-native-image'
 import { assertRemoteCliPageAccess, readRemoteCliAdmittedPage } from './remote-cli-page-admission'
 
 /** Draws a hidden guest while a capture or agent input needs its frames; returns its release. */
@@ -16,77 +22,6 @@ const FRAME_PROBE_PARAMS = {
 }
 const FALLBACK_CAPTURE_TIMEOUT_MS = 1000
 const SCREENSHOT_TIMEOUT_MESSAGE = 'Screenshot timed out — the browser page did not draw a frame.'
-
-function applyFallbackClip(
-  image: Electron.NativeImage,
-  params: Record<string, unknown> | undefined
-): Electron.NativeImage | null {
-  if (params?.captureBeyondViewport) {
-    // capturePage() only captures the painted viewport.
-    return null
-  }
-
-  const clip = params?.clip
-  if (!clip || typeof clip !== 'object') {
-    return image
-  }
-  const clipRect = clip as Record<string, unknown>
-
-  const x = typeof clipRect.x === 'number' ? clipRect.x : Number.NaN
-  const y = typeof clipRect.y === 'number' ? clipRect.y : Number.NaN
-  const width = typeof clipRect.width === 'number' ? clipRect.width : Number.NaN
-  const height = typeof clipRect.height === 'number' ? clipRect.height : Number.NaN
-  const scale =
-    typeof clipRect.scale === 'number' && Number.isFinite(clipRect.scale) && clipRect.scale > 0
-      ? clipRect.scale
-      : 1
-
-  if (![x, y, width, height].every(Number.isFinite) || width <= 0 || height <= 0) {
-    return null
-  }
-
-  const cropRect = {
-    x: Math.round(x * scale),
-    y: Math.round(y * scale),
-    width: Math.round(width * scale),
-    height: Math.round(height * scale)
-  }
-  const imageSize = image.getSize()
-  if (
-    cropRect.x < 0 ||
-    cropRect.y < 0 ||
-    cropRect.width <= 0 ||
-    cropRect.height <= 0 ||
-    cropRect.x + cropRect.width > imageSize.width ||
-    cropRect.y + cropRect.height > imageSize.height
-  ) {
-    return null
-  }
-
-  return image.crop(cropRect)
-}
-
-function encodeNativeImageScreenshot(
-  image: Electron.NativeImage,
-  params: Record<string, unknown> | undefined
-): { data: string } | null {
-  if (image.isEmpty()) {
-    return null
-  }
-
-  const clippedImage = applyFallbackClip(image, params)
-  if (!clippedImage || clippedImage.isEmpty()) {
-    return null
-  }
-
-  const format = params?.format === 'jpeg' ? 'jpeg' : 'png'
-  const quality =
-    typeof params?.quality === 'number' && Number.isFinite(params.quality)
-      ? Math.max(0, Math.min(100, Math.round(params.quality)))
-      : undefined
-  const buffer = format === 'jpeg' ? clippedImage.toJPEG(quality ?? 90) : clippedImage.toPNG()
-  return { data: buffer.toString('base64') }
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -119,14 +54,22 @@ function getLayoutClip(
   }
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+  signal?: AbortSignal
+): Promise<T> {
   let timer: NodeJS.Timeout | null = null
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(message)), timeoutMs)
-    })
-  ]).finally(() => {
+  return waitForPromiseWithSignal(
+    Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), timeoutMs)
+      })
+    ]),
+    signal
+  ).finally(() => {
     if (timer) {
       clearTimeout(timer)
     }
@@ -136,7 +79,8 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
 // Undrawn pages can leave captures pending; cheap probes trigger a frame for the original request.
 function captureUntilDrawn(
   webContents: WebContents,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<{ data: string } | null> {
   return new Promise((resolve, reject) => {
     let settled = false
@@ -147,7 +91,13 @@ function captureUntilDrawn(
       settled = true
       clearTimeout(deadline)
       probes.forEach(clearTimeout)
+      signal?.removeEventListener('abort', onAbort)
       settle()
+    }
+    const onAbort = (): void => {
+      if (signal) {
+        finish(() => reject(abortSignalReason(signal)))
+      }
     }
     const send = (
       requestParams: Record<string, unknown>
@@ -183,6 +133,11 @@ function captureUntilDrawn(
     const probes = FRAME_PROBE_OFFSETS_MS.map((offsetMs) =>
       setTimeout(() => send(FRAME_PROBE_PARAMS)?.catch(() => {}), offsetMs)
     )
+    signal?.addEventListener('abort', onAbort, { once: true })
+    if (signal?.aborted) {
+      onAbort()
+      return
+    }
     send(params)?.then(
       (result) => finish(() => resolve(result?.data ? { data: result.data } : null)),
       (error: unknown) =>
@@ -233,8 +188,10 @@ export async function captureFullPageScreenshot(
 export async function captureScreenshot(
   webContents: WebContents,
   params: Record<string, unknown> | undefined,
-  holdPaint: CapturePaintHold
+  holdPaint: CapturePaintHold,
+  signal?: AbortSignal
 ): Promise<{ data: string }> {
+  throwIfSignalAborted(signal)
   if (webContents.isDestroyed()) {
     throw new Error('WebContents destroyed')
   }
@@ -261,19 +218,28 @@ export async function captureScreenshot(
 
   const release = holdPaint()
   try {
-    const frame = await captureUntilDrawn(webContents, screenshotParams)
+    const frame = await captureUntilDrawn(webContents, screenshotParams, signal)
+    throwIfSignalAborted(signal)
     if (frame) {
       return frame
     }
     const fallback = await readRemoteCliAdmittedPage(webContents.id, () =>
       withTimeout(
-        Promise.resolve().then(() => webContents.capturePage()),
+        Promise.resolve().then(() => {
+          throwIfSignalAborted(signal)
+          return webContents.capturePage()
+        }),
         FALLBACK_CAPTURE_TIMEOUT_MS,
-        SCREENSHOT_TIMEOUT_MESSAGE
+        SCREENSHOT_TIMEOUT_MESSAGE,
+        signal
       )
-        .then((image) => encodeNativeImageScreenshot(image, params))
+        .then((image) => {
+          throwIfSignalAborted(signal)
+          return encodeNativeImageScreenshot(image, params)
+        })
         .catch(() => null)
     )
+    throwIfSignalAborted(signal)
     if (fallback) {
       return fallback
     }

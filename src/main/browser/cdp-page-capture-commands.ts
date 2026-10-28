@@ -7,6 +7,7 @@ import { readRemoteCliAdmittedPage } from './remote-cli-page-admission'
 
 export class CdpPageCaptureCommands {
   private readonly pdfStreams = new CdpPdfStreamStore()
+  private readonly pendingScreenshots = new Set<AbortController>()
 
   constructor(
     private readonly webContents: WebContents,
@@ -16,6 +17,10 @@ export class CdpPageCaptureCommands {
 
   clear(): void {
     this.pdfStreams.clear()
+    for (const controller of this.pendingScreenshots) {
+      controller.abort(new Error('Screenshot client disconnected'))
+    }
+    this.pendingScreenshots.clear()
   }
 
   ownsHandle(params: Record<string, unknown>): boolean {
@@ -74,11 +79,20 @@ export class CdpPageCaptureCommands {
     clientId: number,
     params?: Record<string, unknown>
   ): Promise<void> {
+    const controller = new AbortController()
+    this.pendingScreenshots.add(controller)
     try {
-      const result = await captureScreenshot(this.webContents, params, this.holdPaint)
+      const result = await captureScreenshot(
+        this.webContents,
+        params,
+        this.holdPaint,
+        controller.signal
+      )
       this.responder.sendResult(clientId, result, client)
     } catch (err) {
       this.responder.sendError(clientId, err instanceof Error ? err.message : String(err), client)
+    } finally {
+      this.pendingScreenshots.delete(controller)
     }
   }
 }
