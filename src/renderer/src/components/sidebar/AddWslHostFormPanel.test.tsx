@@ -74,7 +74,13 @@ describe('AddWslHostFormPanel', () => {
       'новых проектов',
       'Yeni projeler',
       '新專案',
-      'until you move'
+      // Each locale's old "until you move them", as the catalog carried it before verify bug 9.
+      'until you move',
+      'hasta que los muevas',
+      "jusqu'à ce que vous les déplaciez",
+      '移動するまで',
+      '옮기기 전까지',
+      '直到你将它们移到'
     ]
     for (const file of LOCALE_FILES) {
       const description = readLocaleDescription(file)
