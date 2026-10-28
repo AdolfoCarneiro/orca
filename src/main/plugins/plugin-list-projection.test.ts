@@ -67,6 +67,46 @@ function serviceWith(
   } as unknown as PluginService
 }
 
+describe('buildPluginList contribution icons', () => {
+  it('projects editor and new-file icons as installed image URLs, and new files without paths', async () => {
+    const drawManifest = pluginManifestSchema.parse({
+      manifestVersion: 2,
+      execution: 'sandboxed-ui',
+      id: 'draw',
+      publisher: 'samples',
+      name: 'Draw',
+      version: '1.0.0',
+      engines: { orca: '>=1.4.244' },
+      contributes: {
+        customEditors: [
+          { id: 'draw', title: 'Draw', extensions: ['.draw'], entry: 'e.html', icon: 'tab.png' }
+        ],
+        newFiles: [
+          { id: 'drawing', title: 'New drawing', extension: '.draw', template: 'empty.draw' }
+        ]
+      }
+    })
+    const hash = 'c'.repeat(64)
+    const [entry] = await buildPluginList(
+      serviceWith({
+        pluginKey: 'samples.draw',
+        rootDir: join(tmpdir(), 'plugins', 'draw'),
+        manifest: drawManifest,
+        consentFingerprint: 'sha256-current',
+        consentContentHash: hash,
+        contentHash: hash,
+        isDev: false
+      }),
+      emptyPluginLockfile()
+    )
+    expect(entry?.customEditors?.[0]?.icon).toBe(
+      `orca-plugin-image://installed/samples.draw/${hash}/editor-0`
+    )
+    // Why no template path: clients ask main for the text, never for a file.
+    expect(entry?.newFiles).toEqual([{ id: 'drawing', title: 'New drawing', extension: '.draw' }])
+  })
+})
+
 describe('buildPluginList consent identity', () => {
   it('projects the exact current fingerprint for an optimistic consent write', async () => {
     const plugin: ValidDiscoveredPlugin = {

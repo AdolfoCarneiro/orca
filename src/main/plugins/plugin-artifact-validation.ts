@@ -8,6 +8,7 @@ import {
 } from '../../shared/plugins/artifacts/plugin-syntax-artifact'
 import { parsePluginVmRecipeArtifact } from '../../shared/plugins/artifacts/plugin-vm-recipe-artifact'
 import { PLUGIN_IMAGE_RULES } from '../../shared/plugins/images/plugin-image-fields'
+import { PLUGIN_NEW_FILE_TEMPLATE_MAX_BYTES } from '../../shared/plugins/contributions/plugin-new-file-contribution'
 import { validatePluginImageArtifacts } from './plugin-image-artifact-validation'
 
 export type PluginArtifactValidationResult = { ok: true } | { ok: false; error: string }
@@ -46,9 +47,30 @@ function declaredArtifactPaths(manifest: PluginManifest): DeclaredArtifact[] {
     ...c.panels.flatMap((panel) =>
       declaredFile(`panel "${panel.id}" entry`, panel.entry, PLUGIN_PANEL_ENTRY_MAX_BYTES)
     ),
-    ...c.customEditors.flatMap((editor) =>
-      declaredFile(`custom editor "${editor.id}" entry`, editor.entry, PLUGIN_PANEL_ENTRY_MAX_BYTES)
-    ),
+    ...c.customEditors.flatMap((editor) => [
+      ...declaredFile(
+        `custom editor "${editor.id}" entry`,
+        editor.entry,
+        PLUGIN_PANEL_ENTRY_MAX_BYTES
+      ),
+      ...declaredFile(
+        `custom editor "${editor.id}" icon`,
+        editor.icon,
+        PLUGIN_IMAGE_RULES.icon.maxBytes
+      )
+    ]),
+    ...c.newFiles.flatMap((newFile) => [
+      ...declaredFile(
+        `new file "${newFile.id}" template`,
+        newFile.template,
+        PLUGIN_NEW_FILE_TEMPLATE_MAX_BYTES
+      ),
+      ...declaredFile(
+        `new file "${newFile.id}" icon`,
+        newFile.icon,
+        PLUGIN_IMAGE_RULES.icon.maxBytes
+      )
+    ]),
     ...c.languagePacks.flatMap((pack) =>
       declaredFile(`language pack "${pack.locale}"`, pack.path, PLUGIN_LANGUAGE_PACK_MAX_BYTES)
     ),
@@ -217,5 +239,35 @@ export async function validatePluginInstallContent(
       }
     }
   }
+  for (const newFile of manifest.contributes.newFiles) {
+    if (newFile.template === undefined) {
+      continue
+    }
+    try {
+      await readPluginNewFileTemplate(rootDir, newFile.template)
+    } catch (error) {
+      return {
+        ok: false,
+        error: `new file "${newFile.id}" template ${newFile.template}: ${error instanceof Error ? error.message : String(error)}`
+      }
+    }
+  }
   return { ok: true }
+}
+
+/** A new-file template's text; refuses bytes that are not UTF-8 so a file never starts garbled. */
+export async function readPluginNewFileTemplate(
+  rootDir: string,
+  relativePath: string
+): Promise<string> {
+  const bytes = await readContainedPluginArtifactBytes(
+    rootDir,
+    relativePath,
+    PLUGIN_NEW_FILE_TEMPLATE_MAX_BYTES
+  )
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+  } catch {
+    throw new Error('is not UTF-8 text')
+  }
 }

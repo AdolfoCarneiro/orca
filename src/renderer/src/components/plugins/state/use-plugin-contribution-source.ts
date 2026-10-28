@@ -48,7 +48,8 @@ function useInstalledPluginContributionSource(
       languagePacks: ours(languagePacks),
       panels: plugin.panels.map((panel) => panel.title),
       customEditors: plugin.customEditors ?? [],
-      vmRecipes: plugin.vmRecipes?.map((recipe) => recipe.name) ?? []
+      vmRecipes: plugin.vmRecipes?.map((recipe) => recipe.name) ?? [],
+      newFiles: plugin.newFiles ?? []
     }
   }, [plugin, appThemes, terminalThemes, iconThemes, syntaxes, languagePacks, failures])
 }

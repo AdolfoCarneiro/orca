@@ -294,6 +294,16 @@
             "$ref": "#/$defs/CustomEditorContribution"
           }
         },
+        "newFiles": {
+          "default": [],
+          "description": "Untitled files the user can create from the + menu and the command palette. At most 16.",
+          "x-orca-since": "1.4.244",
+          "maxItems": 16,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NewFileContribution"
+          }
+        },
         "agentHarnesses": {
           "description": "Reserved for coding-agent harness definitions; must be empty until their format is defined.",
           "x-orca-since": "1.4.244",
@@ -893,11 +903,22 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 64,
-          "description": "Name shown in the editor's view toggle, beside Source.",
+          "description": "Name shown in the editor's view toggle beside Source, and on the tab of a file it opens.",
           "x-orca-since": "1.4.244",
           "examples": [
             "Excalidraw"
           ]
+        },
+        "icon": {
+          "description": "Square image shown on the tab of a file this editor opens. Defaults to the plugin icon. PNG, WEBP, static, at least 128×128, square, at most 256 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
+          "x-orca-since": "1.4.244",
+          "examples": [
+            "images/editor-icon.png"
+          ],
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ](?:[\\\\/][^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ])*$"
         },
         "extensions": {
           "default": [],
@@ -975,6 +996,70 @@
       ],
       "additionalProperties": false,
       "description": "An editor for the listed files, shown in the editor tab beside Source. It must list at least one extension or file name. Requires the `sandboxed-ui` execution profile or higher."
+    },
+    "NewFileContribution": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "description": "New-file id, unique among this plugin's new files. The reserved names `constructor` and `prototype` are refused.",
+          "x-orca-since": "1.4.244",
+          "examples": [
+            "drawing"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Menu item shown in the tab bar + menu and the command palette.",
+          "x-orca-since": "1.4.244",
+          "examples": [
+            "New Excalidraw drawing"
+          ]
+        },
+        "extension": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^\\.[A-Za-z0-9_+-]+(?:\\.[A-Za-z0-9_+-]+)*$",
+          "description": "Suffix, with the dot, of the untitled file it creates. The file opens in whatever editor takes that suffix, such as a custom editor from this plugin.",
+          "x-orca-since": "1.4.244",
+          "examples": [
+            ".excalidraw"
+          ]
+        },
+        "template": {
+          "description": "UTF-8 file copied into the new file, at most 256 KB. Without one the file starts empty. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
+          "x-orca-since": "1.4.244",
+          "examples": [
+            "templates/empty.excalidraw"
+          ],
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ](?:[\\\\/][^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ])*$"
+        },
+        "icon": {
+          "description": "Square image shown beside the menu item. Defaults to the plugin icon. PNG, WEBP, static, at least 128×128, square, at most 256 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused.",
+          "x-orca-since": "1.4.244",
+          "examples": [
+            "images/editor-icon.png"
+          ],
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^[^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ](?:[\\\\/][^<>:\"|?*\\x00-\\x1f\\\\/]*[^<>:\"|?*\\x00-\\x1f\\\\/. ])*$"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "extension"
+      ],
+      "additionalProperties": false,
+      "description": "A kind of untitled file the user can create from the tab bar + menu or the command palette, in the active workspace."
     },
     "Capability": {
       "type": "object",

@@ -32,11 +32,7 @@ async function readInstalledImage(
   if (contentHash !== (plugin.isDev ? 'dev' : plugin.contentHash)) {
     return null
   }
-  const images = declaredPluginImages(plugin.manifest)
-  const screenshot = /^screenshot-(\d+)$/.exec(slot)
-  const image = screenshot
-    ? images.filter((candidate) => candidate.kind === 'screenshot')[Number(screenshot[1])]
-    : images.find((candidate) => candidate.kind === slot)
+  const image = declaredPluginImages(plugin.manifest).find((candidate) => candidate.slot === slot)
   if (!image) {
     return null
   }

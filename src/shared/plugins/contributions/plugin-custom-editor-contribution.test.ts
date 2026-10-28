@@ -55,6 +55,18 @@ describe('contributes.customEditors', () => {
     ).toEqual([{ ...spreadsheet, filenames: [] }])
   })
 
+  it('accepts an optional tab icon', () => {
+    const withIcon = { ...excalidraw, icon: 'images/tab.png' }
+    expect(
+      parsed({ contributes: { customEditors: [withIcon] } }).contributes.customEditors[0]?.icon
+    ).toBe('images/tab.png')
+    expect(
+      parsePluginManifest(
+        manifest({ contributes: { customEditors: [{ ...excalidraw, icon: '../tab.png' }] } })
+      )
+    ).toMatchObject({ ok: false })
+  })
+
   it('refuses the retired readonly field', () => {
     expect(
       parsePluginManifest(
@@ -179,5 +191,45 @@ describe('matchPluginFile', () => {
       pluginFileMatchRank(matchPluginFile('/repo/gleam.toml', match(['.toml'])))
     )
     expect(pluginFileMatchRank(null)).toBe(0)
+  })
+})
+
+describe('contributes.newFiles', () => {
+  const drawing = {
+    id: 'drawing',
+    title: 'New Excalidraw drawing',
+    extension: '.excalidraw',
+    template: 'templates/empty.excalidraw'
+  }
+
+  it('accepts a new-file type beside its editor and summarizes it for catalogs', () => {
+    const result = parsed({ contributes: { customEditors: [excalidraw], newFiles: [drawing] } })
+    expect(result.contributes.newFiles).toEqual([drawing])
+    expect(pluginContributionSummary(result)).toContainEqual({
+      kind: 'newFiles',
+      name: 'New Excalidraw drawing',
+      detail: '.excalidraw'
+    })
+    // Why unchanged: a template seeds a file; the editor that opens it carries the type.
+    expect(pluginCatalogTypes(result)).toEqual(['editor'])
+  })
+
+  it('is content only, so a data plugin may carry one', () => {
+    expect(
+      parsed({ execution: 'data', contributes: { newFiles: [drawing] } }).contributes.newFiles
+    ).toHaveLength(1)
+  })
+
+  it('refuses a bad extension, a duplicate id and unknown fields', () => {
+    for (const newFiles of [
+      [{ ...drawing, extension: 'excalidraw' }],
+      [drawing, { ...drawing, title: 'Again' }],
+      [{ ...drawing, content: '{}' }]
+    ]) {
+      expect(
+        parsePluginManifest(manifest({ contributes: { customEditors: [excalidraw], newFiles } })),
+        JSON.stringify(newFiles)
+      ).toMatchObject({ ok: false })
+    }
   })
 })

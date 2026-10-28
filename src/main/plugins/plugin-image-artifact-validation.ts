@@ -7,21 +7,33 @@ import {
   type PluginImageKind
 } from '../../shared/plugins/images/plugin-image-fields'
 
-/** The images a format 2 manifest declares, with the rules each must meet. */
+/** The images a format 2 manifest declares, each with the URL slot it is served under and the
+ *  rules it must meet. Editor and new-file icons follow the plugin icon's rules. */
 export function declaredPluginImages(
   manifest: PluginManifest
-): { kind: PluginImageKind; path: string }[] {
+): { kind: PluginImageKind; path: string; slot: string }[] {
   if (manifest.manifestVersion !== 2) {
     // Why: format 1 never limited image formats, and shipped plugins must keep loading.
     return []
   }
+  const icon = (slot: string, path: string | undefined) =>
+    path === undefined ? [] : [{ kind: 'icon' as const, path, slot }]
   return [
-    ...(manifest.icon ? [{ kind: 'icon' as const, path: manifest.icon }] : []),
-    ...(manifest.cover ? [{ kind: 'cover' as const, path: manifest.cover.path }] : []),
-    ...(manifest.screenshots ?? []).map((shot) => ({
+    ...icon('icon', manifest.icon),
+    ...(manifest.cover
+      ? [{ kind: 'cover' as const, path: manifest.cover.path, slot: 'cover' }]
+      : []),
+    ...(manifest.screenshots ?? []).map((shot, index) => ({
       kind: 'screenshot' as const,
-      path: shot.path
-    }))
+      path: shot.path,
+      slot: `screenshot-${index}`
+    })),
+    ...manifest.contributes.customEditors.flatMap((editor, index) =>
+      icon(`editor-${index}`, editor.icon)
+    ),
+    ...manifest.contributes.newFiles.flatMap((newFile, index) =>
+      icon(`new-file-${index}`, newFile.icon)
+    )
   ]
 }
 

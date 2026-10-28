@@ -26,6 +26,7 @@ import type { PluginCatalogRelease } from '../../shared/plugins/catalog/plugin-c
 export type {
   PluginHostCustomEditor,
   PluginHostListEntry,
+  PluginHostNewFile,
   PluginHostPanel,
   PluginHostStatus
 } from '../../shared/plugins/plugin-list-entry'
@@ -148,6 +149,8 @@ export type PluginsApi = {
     pluginKey: string
     editorId: string
   }) => Promise<PluginFrameEntry | null>
+  /** A new file's starting text (its template, or empty); null if the plugin is off or lacks it. */
+  readNewFileTemplate?: (args: { pluginKey: string; newFileId: string }) => Promise<string | null>
   invokeCommand: (args: {
     pluginKey: string
     commandId: string

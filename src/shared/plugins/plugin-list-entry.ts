@@ -31,6 +31,17 @@ export type PluginHostCustomEditor = {
   priority: 'default' | 'option'
   /** Absent on hosts that predate byte editors: text. */
   contentKind?: 'text' | 'bytes'
+  /** orca-plugin-image URL of the editor's tab icon; absent when it declares none. */
+  icon?: string
+}
+
+export type PluginHostNewFile = {
+  id: string
+  title: string
+  /** Suffix, with the dot, of the untitled file it creates. */
+  extension: string
+  /** orca-plugin-image URL; absent when it declares none. */
+  icon?: string
 }
 
 export type PluginHostListEntry = {
@@ -61,6 +72,8 @@ export type PluginHostListEntry = {
   panels: PluginHostPanel[]
   /** Absent on hosts that predate custom editors. */
   customEditors?: PluginHostCustomEditor[]
+  /** Absent on hosts that predate new-file templates. */
+  newFiles?: PluginHostNewFile[]
   commands: {
     id: string
     title: string

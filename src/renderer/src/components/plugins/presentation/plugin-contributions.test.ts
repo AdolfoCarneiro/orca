@@ -30,6 +30,18 @@ describe('plugin contributions', () => {
     ])
   })
 
+  it('says a new file joins the + menu', () => {
+    const [row] = describePluginContributions({
+      ...EMPTY_CONTRIBUTION_SOURCE,
+      newFiles: [{ title: 'New Excalidraw drawing', extension: '.excalidraw' }]
+    })
+    expect(row).toMatchObject({
+      kind: 'newFiles',
+      title: 'New Excalidraw drawing',
+      detail: 'Adds to the + menu · .excalidraw'
+    })
+  })
+
   it('says when a grammar failed instead of listing its files', () => {
     const [row] = describePluginContributions({
       ...EMPTY_CONTRIBUTION_SOURCE,

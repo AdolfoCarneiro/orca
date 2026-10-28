@@ -41,6 +41,7 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | `contributes.iconThemes` | [ThemeContribution](#themecontribution)[] | no | 1.4.244 | File icon themes. At most 32. |
 | `contributes.syntaxes` | [SyntaxContribution](#syntaxcontribution)[] | no | 1.4.244 | Syntax highlighting for editor languages. At most 16. |
 | `contributes.customEditors` | [CustomEditorContribution](#customeditorcontribution)[] | no | 1.4.244 | Editors that open files of given types in the editor tab. At most 16. |
+| `contributes.newFiles` | [NewFileContribution](#newfilecontribution)[] | no | 1.4.244 | Untitled files the user can create from the + menu and the command palette. At most 16. |
 | `contributes.agentHarnesses` | any[] | no | 1.4.244 | Reserved for coding-agent harness definitions; must be empty until their format is defined. |
 | `contributes.skills` | any[] | no | 1.4.244 | Reserved for agent skills; must be empty until their format is defined. |
 | `contributes.mcpServers` | any[] | no | 1.4.244 | Reserved for MCP server definitions; must be empty until their format is defined. |
@@ -146,12 +147,25 @@ An editor for the listed files, shown in the editor tab beside Source. It must l
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
 | `id` | string | yes | 1.4.244 | Editor id, unique among this plugin's custom editors. The reserved names `constructor` and `prototype` are refused. Example: `"excalidraw"` |
-| `title` | string | yes | 1.4.244 | Name shown in the editor's view toggle, beside Source. Example: `"Excalidraw"` |
+| `title` | string | yes | 1.4.244 | Name shown in the editor's view toggle beside Source, and on the tab of a file it opens. Example: `"Excalidraw"` |
+| `icon` | string | no | 1.4.244 | Square image shown on the tab of a file this editor opens. Defaults to the plugin icon. PNG, WEBP, static, at least 128×128, square, at most 256 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"images/editor-icon.png"` |
 | `extensions` | string[] | no | 1.4.244 | File-name suffixes, with the dot, this editor opens, ignoring case. A longer suffix such as `.excalidraw.json` wins over a shorter one, and a file named only the suffix never matches. At most 32. Example: `[".excalidraw",".excalidraw.json"]` |
 | `filenames` | string[] | no | 1.4.244 | Exact file names this editor opens, ignoring case; a name beats any extension. Names must be portable: no path separators, `.`, `..` or characters Windows forbids. At most 32. Example: `[]` |
 | `entry` | string | yes | 1.4.244 | HTML file rendered inside a sandboxed editor frame, like a panel. It receives the open document and posts edits back; it never gets a file path or file system. It is trusted code: install editors you trust. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"editor/index.html"` |
 | `priority` | `"default"` \| `"option"` | no | 1.4.244 | `default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. Files Orca opens itself (such as `.json`, `.ts`, `.md`, `.csv`, `.yaml`, lockfiles and `.env` files) always behave as `option`. Example: `"default"` |
 | `contentKind` | `"text"` \| `"bytes"` | no | 1.4.244 | `text` (the default) sends the file as text and accepts full-text edits. `bytes` sends the file's raw bytes, for binary formats such as spreadsheets, and accepts full-byte edits. Example: `"bytes"` |
+
+## NewFileContribution
+
+A kind of untitled file the user can create from the tab bar + menu or the command palette, in the active workspace.
+
+| Field | Type | Required | Since | Description |
+| --- | --- | --- | --- | --- |
+| `id` | string | yes | 1.4.244 | New-file id, unique among this plugin's new files. The reserved names `constructor` and `prototype` are refused. Example: `"drawing"` |
+| `title` | string | yes | 1.4.244 | Menu item shown in the tab bar + menu and the command palette. Example: `"New Excalidraw drawing"` |
+| `extension` | string | yes | 1.4.244 | Suffix, with the dot, of the untitled file it creates. The file opens in whatever editor takes that suffix, such as a custom editor from this plugin. Example: `".excalidraw"` |
+| `template` | string | no | 1.4.244 | UTF-8 file copied into the new file, at most 256 KB. Without one the file starts empty. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"templates/empty.excalidraw"` |
+| `icon` | string | no | 1.4.244 | Square image shown beside the menu item. Defaults to the plugin icon. PNG, WEBP, static, at least 128×128, square, at most 256 KB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"images/editor-icon.png"` |
 
 ## Capability
 

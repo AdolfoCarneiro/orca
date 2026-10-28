@@ -33,6 +33,8 @@ export const pluginsApi = {
     pluginKey: string
     editorId: string
   }): Promise<PluginFrameEntry | null> => ipcRenderer.invoke('plugins:readCustomEditorEntry', args),
+  readNewFileTemplate: (args: { pluginKey: string; newFileId: string }): Promise<string | null> =>
+    ipcRenderer.invoke('plugins:readNewFileTemplate', args),
   invokeCommand: (args: { pluginKey: string; commandId: string; args?: unknown }) =>
     ipcRenderer.invoke('plugins:invokeCommand', args),
   panelAction: (args: {

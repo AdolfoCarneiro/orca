@@ -27,6 +27,10 @@ import {
   PLUGIN_CUSTOM_EDITOR_LIMIT,
   pluginCustomEditorContributionSchema
 } from './plugin-custom-editor-contribution'
+import {
+  PLUGIN_NEW_FILE_LIMIT,
+  pluginNewFileContributionSchema
+} from './plugin-new-file-contribution'
 import { PLUGIN_PANEL_LIMIT, pluginPanelContributionSchema } from './plugin-panel-contribution'
 import {
   pluginFieldDoc,
@@ -46,7 +50,8 @@ export const PLUGIN_CONTRIBUTION_POINTS = [
   'terminalThemes',
   'iconThemes',
   'syntaxes',
-  'customEditors'
+  'customEditors',
+  'newFiles'
 ] as const
 
 export type PluginContributionPoint = (typeof PLUGIN_CONTRIBUTION_POINTS)[number]
@@ -186,6 +191,12 @@ export const pluginContributesFields = {
     PLUGIN_CUSTOM_EDITOR_LIMIT,
     'Editors that open files of given types in the editor tab.',
     NEXT
+  ),
+  newFiles: contributionList(
+    pluginNewFileContributionSchema,
+    PLUGIN_NEW_FILE_LIMIT,
+    'Untitled files the user can create from the + menu and the command palette.',
+    NEXT
   )
 } satisfies Record<PluginContributionPoint, z.ZodType>
 
@@ -227,5 +238,8 @@ export const PLUGIN_CONTRIBUTION_POINT_POLICY: Record<
   terminalThemes: { execution: 'data', catalogType: 'terminal-theme', bindsContent: false },
   iconThemes: { execution: 'data', catalogType: 'icon-theme', bindsContent: false },
   syntaxes: { execution: 'data', catalogType: 'syntax', bindsContent: false },
-  customEditors: { execution: 'sandboxed-ui', catalogType: 'editor', bindsContent: false }
+  customEditors: { execution: 'sandboxed-ui', catalogType: 'editor', bindsContent: false },
+  // Why data and no catalog type: a template is inert text that seeds a file the user asked for;
+  // whatever opens that file (a syntax, an editor) carries its own type.
+  newFiles: { execution: 'data', catalogType: null, bindsContent: false }
 }

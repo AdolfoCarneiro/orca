@@ -6,6 +6,7 @@ import {
   PLUGIN_MANIFEST_V2_SINCE
 } from '../manifest/plugin-schema-field-docs'
 import { pluginFileMatchFields } from './plugin-file-match'
+import { PLUGIN_ICON_RULE_TEXT } from '../images/plugin-image-fields'
 
 export const PLUGIN_CUSTOM_EDITOR_LIMIT = 16
 
@@ -31,9 +32,18 @@ export const pluginCustomEditorContributionSchema = z
       .max(64)
       .meta(
         pluginFieldDoc(
-          "Name shown in the editor's view toggle, beside Source.",
+          "Name shown in the editor's view toggle beside Source, and on the tab of a file it opens.",
           PLUGIN_MANIFEST_V2_SINCE,
           ['Excalidraw']
+        )
+      ),
+    icon: pluginRelativePathSchema
+      .optional()
+      .meta(
+        pluginPathFieldDoc(
+          `Square image shown on the tab of a file this editor opens. Defaults to the plugin icon. ${PLUGIN_ICON_RULE_TEXT}`,
+          PLUGIN_MANIFEST_V2_SINCE,
+          ['images/editor-icon.png']
         )
       ),
     ...pluginFileMatchFields('this editor', PLUGIN_MANIFEST_V2_SINCE, {

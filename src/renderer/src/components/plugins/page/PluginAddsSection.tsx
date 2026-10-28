@@ -3,6 +3,7 @@ import {
   Blocks,
   Command,
   FileCode,
+  FilePlus,
   Highlighter,
   Languages,
   Palette,
@@ -29,6 +30,8 @@ import { PluginContributionActionCommand } from './PluginContributionActionComma
 import { PluginContributionEventRow, usePluginWorkerEvents } from './PluginContributionActionEvents'
 import { PluginContributionActionLanguage } from './PluginContributionActionLanguage'
 import { PluginContributionActionPanel } from './PluginContributionActionPanel'
+import { PluginContributionActionNewFile } from './PluginContributionActionNewFile'
+import { collectActivePluginNewFiles } from '@/store/plugin-new-files'
 import { PluginContributionSyntaxHint } from './PluginContributionActionSyntax'
 import {
   isPluginContributionLive,
@@ -96,7 +99,8 @@ const CONTRIBUTION_ICON: Record<PluginContributionKind, React.ReactNode> = {
   languagePacks: <Languages />,
   panels: <PanelRight />,
   customEditors: <PenTool />,
-  vmRecipes: <Server />
+  vmRecipes: <Server />,
+  newFiles: <FilePlus />
 }
 
 type AddsCommand = {
@@ -215,12 +219,16 @@ function useContributionRowActions(
         const panel = plugin.panels[Number(id)]
         return panel ? <PluginContributionActionPanel panel={panel} /> : null
       }
+      case 'newFiles': {
+        const newFile = collectActivePluginNewFiles([plugin])[Number(id)]
+        return newFile ? <PluginContributionActionNewFile newFile={newFile} /> : null
+      }
       case 'themes':
       case 'terminalThemes':
       case 'iconThemes':
       case 'customEditors':
       case 'vmRecipes':
-        // Themes have "Use now" above the list; recipes have nothing to try here.
+        // Themes have "Use now" above the list; editors open from their new files; recipes have nothing to try here.
         return null
     }
   }

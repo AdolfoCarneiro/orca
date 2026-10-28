@@ -84,7 +84,13 @@ export function pluginContributionSummary(
     ...named('terminalThemes', c.terminalThemes, (theme) => theme.title),
     ...named('iconThemes', c.iconThemes, (theme) => theme.title),
     ...named('syntaxes', c.syntaxes, (syntax) => syntax.title, fileMatchDetail),
-    ...named('customEditors', c.customEditors, (editor) => editor.title, fileMatchDetail)
+    ...named('customEditors', c.customEditors, (editor) => editor.title, fileMatchDetail),
+    ...named(
+      'newFiles',
+      c.newFiles,
+      (newFile) => newFile.title,
+      (newFile) => newFile.extension
+    )
   ].slice(0, PLUGIN_CONTRIBUTION_SUMMARY_LIMIT)
 }
 

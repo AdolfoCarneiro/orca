@@ -24,6 +24,7 @@ type ContributionValidationManifest = {
     iconThemes: IdentifiedContribution[]
     syntaxes: (IdentifiedContribution & PluginFileMatch & { scopeName: string })[]
     customEditors: (IdentifiedContribution & PluginFileMatch)[]
+    newFiles: IdentifiedContribution[]
   }
   capabilities: { kind: string }[]
 }
@@ -60,7 +61,8 @@ export function validatePluginManifestContributions(
     'terminalThemes',
     'iconThemes',
     'syntaxes',
-    'customEditors'
+    'customEditors',
+    'newFiles'
   ] as const) {
     rejectDuplicateValues(
       manifest.contributes[path],

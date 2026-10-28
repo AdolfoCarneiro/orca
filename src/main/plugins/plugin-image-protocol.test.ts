@@ -70,7 +70,14 @@ describe('plugin image URLs', () => {
         slot: 'screenshot-2'
       }
     )
+    expect(parsePluginImageUrl(pluginInstalledImageUrl('acme.demo', hash, 'new-file-3'))).toEqual({
+      kind: 'installed',
+      pluginKey: 'acme.demo',
+      contentHash: hash,
+      slot: 'new-file-3'
+    })
     for (const url of [
+      `orca-plugin-image://installed/acme.demo/${hash}/editor-x`,
       'orca-plugin-image://sha/../etc',
       'orca-plugin-image://installed/acme.demo/abc/icon',
       'orca-plugin-image://installed/acme.demo/dev/main',
@@ -124,6 +131,52 @@ describe('plugin image protocol', () => {
     expect(stale.status).toBe(404)
     const missing = await handler(new Request(pluginShaImageUrl('d'.repeat(64))))
     expect(missing.status).toBe(404)
+  })
+
+  it('serves custom editor and new-file icons by slot, under the plugin icon rules', async () => {
+    const pluginRoot = await temp()
+    await mkdir(join(pluginRoot, 'images'), { recursive: true })
+    await writeFile(join(pluginRoot, 'images', 'tab.png'), png(128, 128))
+    await writeFile(join(pluginRoot, 'images', 'wide.png'), png(256, 128))
+    const manifest = pluginManifestSchema.parse({
+      manifestVersion: 2,
+      execution: 'sandboxed-ui',
+      id: 'draw',
+      publisher: 'acme',
+      name: 'Draw',
+      version: '1.0.0',
+      engines: { orca: `>=${PLUGIN_MANIFEST_V2_SINCE}` },
+      contributes: {
+        customEditors: [
+          {
+            id: 'draw',
+            title: 'Draw',
+            extensions: ['.draw'],
+            entry: 'e.html',
+            icon: 'images/tab.png'
+          }
+        ],
+        newFiles: [
+          { id: 'drawing', title: 'New drawing', extension: '.draw', icon: 'images/wide.png' }
+        ]
+      }
+    })
+    const handler = createPluginImageRequestHandler({
+      cache: new PluginImageCache(await temp()),
+      findValidPlugin: () => ({
+        pluginKey: 'acme.draw',
+        rootDir: pluginRoot,
+        manifest,
+        consentFingerprint: 'x',
+        contentHash: 'b'.repeat(64),
+        isDev: false
+      })
+    })
+    const url = (slot: string) => pluginInstalledImageUrl('acme.draw', 'b'.repeat(64), slot)
+    expect((await handler(new Request(url('editor-0')))).status).toBe(200)
+    // Not square, so refused like a plugin icon would be.
+    expect((await handler(new Request(url('new-file-0')))).status).toBe(404)
+    expect((await handler(new Request(url('editor-1')))).status).toBe(404)
   })
 
   it('refuses to cache anything that is not a static raster image', async () => {

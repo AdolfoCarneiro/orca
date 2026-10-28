@@ -194,6 +194,7 @@ export type {
 export type {
   PluginAutoUpdateEvent,
   PluginHostCustomEditor,
+  PluginHostNewFile,
   PluginHostInstallResult,
   PluginHostInstallSource,
   PluginHostListEntry,

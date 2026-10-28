@@ -44,6 +44,7 @@ export type PluginContributionSource = {
     filenames: readonly string[]
   }[]
   vmRecipes: readonly string[]
+  newFiles: readonly { title: string; extension: string }[]
 }
 
 export const EMPTY_CONTRIBUTION_SOURCE: PluginContributionSource = {
@@ -54,7 +55,8 @@ export const EMPTY_CONTRIBUTION_SOURCE: PluginContributionSource = {
   languagePacks: [],
   panels: [],
   customEditors: [],
-  vmRecipes: []
+  vmRecipes: [],
+  newFiles: []
 }
 
 const FILE_LIST_LIMIT = 4
@@ -92,7 +94,8 @@ export function manifestContributionSource(manifest: PluginManifest): PluginCont
     languagePacks: contributes.languagePacks,
     panels: contributes.panels.map((panel) => panel.title),
     customEditors: contributes.customEditors,
-    vmRecipes: contributes.vmRecipes.map((recipe) => nameFromContributionPath(recipe.path))
+    vmRecipes: contributes.vmRecipes.map((recipe) => nameFromContributionPath(recipe.path)),
+    newFiles: contributes.newFiles
   }
 }
 
@@ -129,7 +132,8 @@ export function summaryContributionSource(
       extensions: item.detail ? item.detail.split(', ') : [],
       filenames: []
     })),
-    vmRecipes: of('vmRecipes').map((item) => nameFromContributionPath(item.name))
+    vmRecipes: of('vmRecipes').map((item) => nameFromContributionPath(item.name)),
+    newFiles: of('newFiles').map((item) => ({ title: item.name, extension: item.detail ?? '' }))
   }
 }
 
@@ -267,6 +271,20 @@ export function describePluginContributions(
       kind: 'customEditors',
       title: editor.title,
       detail: files ? `${label} · ${files}` : label,
+      tone: 'default'
+    })
+  }
+  for (const [index, newFile] of source.newFiles.entries()) {
+    // Why no name: the row title is the menu item itself, so title and detail read as one line.
+    const label = translate(
+      'auto.components.settings.pluginContributions.newFileMenu',
+      'Adds to the + menu'
+    )
+    rows.push({
+      key: `newFiles:${index}`,
+      kind: 'newFiles',
+      title: newFile.title,
+      detail: newFile.extension ? `${label} · ${newFile.extension}` : label,
       tone: 'default'
     })
   }

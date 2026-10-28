@@ -82,7 +82,8 @@ describe('content-pack manifest contributions', () => {
       terminalThemes: [],
       iconThemes: [],
       syntaxes: [],
-      customEditors: []
+      customEditors: [],
+      newFiles: []
     })
   })
 

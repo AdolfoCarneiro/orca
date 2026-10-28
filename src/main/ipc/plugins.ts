@@ -13,6 +13,7 @@ import {
   removeInstalledPlugin
 } from '../plugins/installation/plugin-install'
 import { applyPluginConsent, applyPluginEnablement } from '../plugins/plugin-enablement'
+import { readApprovedPluginNewFileTemplate } from '../plugins/plugin-new-file-template'
 import type { PluginService } from '../plugins/plugin-service'
 import { bindPluginPanelOwnerLifecycle } from '../plugins/panels/plugin-panel-owner-lifecycle'
 import { isQualifiedPluginKey } from '../../shared/plugins/manifest/plugin-manifest'
@@ -44,6 +45,11 @@ const readPanelEntryArgsSchema = z.object({
 const readCustomEditorEntryArgsSchema = z.object({
   pluginKey: z.string().min(1),
   editorId: z.string().min(1)
+})
+
+const readNewFileTemplateArgsSchema = z.object({
+  pluginKey: z.string().min(1),
+  newFileId: z.string().min(1)
 })
 
 const invokeCommandArgsSchema = z.object({
@@ -190,6 +196,12 @@ export function registerPluginHandlers(
     return openFrameEntry(event.sender, (ownerKey, isCurrent) =>
       pluginService.panels.openCustomEditor(ownerKey, parsed.pluginKey, parsed.editorId, isCurrent)
     )
+  })
+
+  ipcMain.handle('plugins:readNewFileTemplate', async (_event, args: unknown) => {
+    const parsed = readNewFileTemplateArgsSchema.parse(args)
+    await pluginService.whenReady()
+    return readApprovedPluginNewFileTemplate(pluginService, parsed.pluginKey, parsed.newFileId)
   })
 
   // Renderer forwards frame host calls; main enforces capabilities and surfaces.

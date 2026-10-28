@@ -28,6 +28,11 @@ import { PluginListToolbar } from './PluginListToolbar'
 import { PluginNoMatches, PluginPageMissing } from './PluginListEmptyStates'
 import { sortByAttention } from '../presentation/plugin-status-presentation'
 import { usePluginAutoUpdatesStore } from '@/store/plugin-auto-updates'
+import { useAppStore } from '@/store'
+import { usePluginPanelsStore } from '@/store/plugin-panels'
+import { collectActivePluginNewFiles } from '@/store/plugin-new-files'
+import { openPluginNewFileFromSettings } from '../page/PluginContributionActionNewFile'
+import { pluginPanelUnavailableReason } from '../page/plugin-contribution-action-availability'
 import { PluginUpdateAllDialog } from '../dialogs/PluginUpdateAllDialog'
 import {
   matchesPluginFilter,
@@ -111,10 +116,22 @@ export function PluginManager({
       onShowLogs(pluginKey)
     }
   }
+  // Why a new file: an editor plugin is tried by drawing in it, and its page is already open.
+  const tryPlugin = (pluginKey: string): void => {
+    const installed = usePluginPanelsStore
+      .getState()
+      .plugins.filter((plugin) => plugin.pluginKey === pluginKey)
+    const newFile = collectActivePluginNewFiles(installed)[0]
+    if (newFile && !pluginPanelUnavailableReason(useAppStore.getState())) {
+      openPluginNewFileFromSettings(newFile)
+      return
+    }
+    openEntry(pluginKey)
+  }
   const install = usePluginInstallAction({
     fetchPreview: catalog.fetchPreview,
     onInstalled,
-    onTryPlugin: openEntry
+    onTryPlugin: tryPlugin
   })
   const prefetch = usePluginHoverPrefetch(catalog.fetchPreview)
   const orcaVersion = useOrcaVersion()

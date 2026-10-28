@@ -3,7 +3,10 @@ import { needsReconsent } from '../../shared/plugins/approval/plugin-consent-sta
 import { pluginPanelTabKey } from '../../shared/plugins/manifest/plugin-manifest'
 import type { PluginLockfile } from '../../shared/plugins/installation/plugin-install-lockfile'
 import { isInvalidDiscoveredPlugin, type DiscoveredPlugin } from './plugin-discovery'
-import type { PluginHostImages } from '../../shared/plugins/images/plugin-image-url'
+import {
+  pluginInstalledImageUrl,
+  type PluginHostImages
+} from '../../shared/plugins/images/plugin-image-url'
 import { pluginInstalledHostImages } from './plugin-manifest-images'
 import type { PluginService } from './plugin-service'
 import { listPluginVmRecipeCommands } from '../../shared/plugins/artifacts/plugin-vm-recipe-artifact'
@@ -53,6 +56,7 @@ export async function buildPluginList(
           capabilities: [],
           panels: [],
           customEditors: [],
+          newFiles: [],
           commands: [],
           hasWorker: false,
           vmRecipes: [],
@@ -84,6 +88,11 @@ export async function buildPluginList(
         candidateLockEntry.contentHash === plugin.contentHash
           ? candidateLockEntry
           : undefined
+      // Why format 2 only: the image protocol serves no format 1 image, so a URL would 404.
+      const contributionIcon = (slot: string, path: string | undefined) =>
+        path !== undefined && plugin.manifest.manifestVersion === 2
+          ? { icon: pluginInstalledImageUrl(plugin.pluginKey, plugin.contentHash ?? 'dev', slot) }
+          : {}
       const bundled = lockEntry?.source.kind === 'bundled'
       const official =
         bundled ||
@@ -123,13 +132,20 @@ export async function buildPluginList(
           ...(panel.icon ? { icon: panel.icon } : {}),
           tabKey: pluginPanelTabKey(plugin.pluginKey, panel.id)
         })),
-        customEditors: plugin.manifest.contributes.customEditors.map((editor) => ({
+        customEditors: plugin.manifest.contributes.customEditors.map((editor, index) => ({
           id: editor.id,
           title: editor.title,
           extensions: editor.extensions,
           filenames: editor.filenames,
           priority: editor.priority ?? 'default',
-          contentKind: customEditorContentKind(editor)
+          contentKind: customEditorContentKind(editor),
+          ...contributionIcon(`editor-${index}`, editor.icon)
+        })),
+        newFiles: plugin.manifest.contributes.newFiles.map((newFile, index) => ({
+          id: newFile.id,
+          title: newFile.title,
+          extension: newFile.extension,
+          ...contributionIcon(`new-file-${index}`, newFile.icon)
         })),
         commands: service.contentPacks.commands.preview(plugin.pluginKey).map((command) => ({
           id: command.id,

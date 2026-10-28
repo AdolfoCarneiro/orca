@@ -1108,6 +1108,10 @@
       "pluginAutoUpdates": {
         "one": "{{value0}} updated to {{value1}}",
         "many": "{{value0}} plugins updated"
+      },
+      "pluginNewFile": {
+        "unavailable": "{{value0}} is no longer available. Turn its plugin back on.",
+        "failed": "Couldn't create the file."
       }
     },
     "lib": {
@@ -12959,7 +12963,8 @@
           "dark": "Dark",
           "light": "Light",
           "languageIncomplete": "{{value0}}% translated, too incomplete to use as Orca’s language",
-          "languageCoverage": "Interface language · {{value0}}% translated"
+          "languageCoverage": "Interface language · {{value0}}% translated",
+          "newFileMenu": "Adds to the + menu"
         },
         "PluginCardAction": {
           "installed": "Installed",
@@ -13099,6 +13104,9 @@
               "windowsFailureDescription": "Enable notifications for Orca in Windows Settings."
             }
           }
+        },
+        "PluginContributionActionNewFile": {
+          "create": "Create"
         }
       },
       "right": {
@@ -16913,7 +16921,8 @@
           },
           "pluginQuickActions": {
             "description": "{{value0}} plugin command",
-            "keyword": "plugin command"
+            "keyword": "plugin command",
+            "newFileDescription": "Create an untitled {{value0}} file in the active workspace."
           }
         }
       },

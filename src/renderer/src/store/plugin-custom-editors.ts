@@ -5,11 +5,13 @@ import { matchPluginFile } from '../../../shared/plugins/contributions/plugin-fi
 import { customEditorMayOpenByDefault } from '../../../shared/plugins/contributions/plugin-custom-editor-core-file-types'
 import { ensurePluginPanelsLoaded, usePluginPanelsStore } from './plugin-panels'
 
-/** A custom editor from an enabled plugin. `key` is unique across plugins. */
+/** A custom editor from an enabled plugin. `key` is unique across plugins; `iconUrl` is its own
+ *  tab icon, else the plugin's. */
 export type ActivePluginCustomEditor = PluginHostCustomEditor & {
   key: string
   pluginKey: string
   pluginName: string
+  iconUrl?: string
 }
 
 /** The per-file view a user picked in the toggle: an editor key, or `source`. */
@@ -27,12 +29,16 @@ export function collectActivePluginCustomEditors(
         plugin.status === 'running' || plugin.status === 'restarting' || plugin.status === 'idle'
     )
     .flatMap((plugin) =>
-      (plugin.customEditors ?? []).map((editor) => ({
-        ...editor,
-        key: `${plugin.pluginKey}/${editor.id}`,
-        pluginKey: plugin.pluginKey,
-        pluginName: plugin.name
-      }))
+      (plugin.customEditors ?? []).map((editor) => {
+        const iconUrl = editor.icon ?? plugin.images?.icon?.url
+        return {
+          ...editor,
+          key: `${plugin.pluginKey}/${editor.id}`,
+          pluginKey: plugin.pluginKey,
+          pluginName: plugin.name,
+          ...(iconUrl ? { iconUrl } : {})
+        }
+      })
     )
 }
 
@@ -109,4 +115,18 @@ export function useFileCustomEditors(
     fileId ? state.choices[fileId] : undefined
   )
   return { customEditors, customEditorChoice }
+}
+
+/** The plugin editor an editor tab shows its file in, or null for Source and non-edit views. */
+export function useTabCustomEditor(file: {
+  id: string
+  filePath: string
+  mode: string
+}): ActivePluginCustomEditor | null {
+  const isEdit = file.mode === 'edit'
+  const { customEditors, customEditorChoice } = useFileCustomEditors(
+    isEdit ? file.id : null,
+    isEdit ? file.filePath : undefined
+  )
+  return resolveCustomEditorChoice(customEditors, customEditorChoice)
 }

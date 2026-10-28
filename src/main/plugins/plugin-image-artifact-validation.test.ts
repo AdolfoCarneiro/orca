@@ -4,7 +4,10 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { pluginManifestSchema } from '../../shared/plugins/manifest/plugin-manifest'
 import { PLUGIN_MANIFEST_V2_SINCE } from '../../shared/plugins/manifest/plugin-schema-field-docs'
-import { validatePluginInstallContent } from './plugin-artifact-validation'
+import {
+  readPluginNewFileTemplate,
+  validatePluginInstallContent
+} from './plugin-artifact-validation'
 
 const roots: string[] = []
 const be32 = (n: number) => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]
@@ -130,5 +133,33 @@ describe('plugin image artifacts', () => {
         screenshots: Array.from({ length: 7 }, (_, i) => ({ path: `s${i}.png`, alt: 'x' }))
       }).success
     ).toBe(false)
+  })
+})
+
+describe('new-file and editor artifacts', () => {
+  it('holds editor and new-file icons to the plugin icon rules', async () => {
+    const { root, manifest } = await pluginWith(
+      { 'tab.png': png(256, 128) },
+      { contributes: { newFiles: [{ id: 'a', title: 'New A', extension: '.a', icon: 'tab.png' }] } }
+    )
+    expect(await validatePluginInstallContent(root, manifest)).toEqual({
+      ok: false,
+      error: 'icon tab.png: icon must be square'
+    })
+  })
+
+  it('reads a UTF-8 template verbatim and refuses other bytes', async () => {
+    const scene = '{"type":"excalidraw","elements":[]}\n'
+    const { root, manifest } = await pluginWith(
+      { 'empty.a': Buffer.from(scene), 'bad.a': Buffer.from([0xff, 0xfe, 0x00]) },
+      {
+        contributes: {
+          newFiles: [{ id: 'a', title: 'New A', extension: '.a', template: 'empty.a' }]
+        }
+      }
+    )
+    expect(await validatePluginInstallContent(root, manifest)).toEqual({ ok: true })
+    await expect(readPluginNewFileTemplate(root, 'empty.a')).resolves.toBe(scene)
+    await expect(readPluginNewFileTemplate(root, 'bad.a')).rejects.toThrow('is not UTF-8 text')
   })
 })
