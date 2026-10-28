@@ -50,7 +50,7 @@ export function createMobileWorkspaceReviewStatus() {
               const row = cachedWorkspaceReviewSchema.safeParse(raw)
               if (row.success && row.data.worktreeId === worktreeId) {
                 const review = row.data.linkedPR
-                publish(reviewStatusPresentation({ ...review, hasReview: review !== null }))
+                publish(review ? reviewStatusPresentation(review) : UNKNOWN_STATUS)
                 break
               }
             }

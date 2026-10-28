@@ -1,4 +1,5 @@
 import { createElement, memo, useEffect } from 'react'
+import type { LucideProps } from 'lucide-react-native'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { WorktreeReviewStatus } from '../../../src/shared/worktree-review-status'
@@ -59,7 +60,7 @@ vi.mock('lucide-react-native', async () => {
     ['GitBranch', 'GitMerge', 'GitPullRequest', 'GitPullRequestClosed', 'GitPullRequestDraft'].map(
       (name) => [
         name,
-        (props: object) => {
+        (props: LucideProps) => {
           lifecycle.iconRenders++
           return createElement(name, props)
         }
@@ -391,10 +392,18 @@ describe('mobile source-control review status', () => {
     expect(sendRequest).toHaveBeenCalledTimes(1)
     expect(sendRequest).toHaveBeenCalledWith('worktree.ps', {})
     connect('disconnected')
+    sendRequest.mockResolvedValueOnce({
+      id: 'empty-cache',
+      ok: true,
+      result: {
+        worktrees: [{ worktreeId: 'repo::/worktree', linkedPR: null }]
+      }
+    })
     await act(async () => {
       connect('connected')
     })
     expect(sendRequest).toHaveBeenCalledTimes(2)
+    expect(button().props.accessibilityLabel).toContain('unknown')
     expect(subscribe).not.toHaveBeenCalled()
   })
 
