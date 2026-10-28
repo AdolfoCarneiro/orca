@@ -149,10 +149,10 @@ export async function readCheckedOutBranchRef(
   options: GitWorktreeExecOptions = {}
 ): Promise<string | undefined> {
   try {
-    const { stdout } = await gitExecFileAsync(
-      ['symbolic-ref', '--quiet', 'HEAD'],
-      gitExecOptions(worktreePath, options)
-    )
+    const { stdout } = await gitExecFileAsync(['symbolic-ref', '--quiet', 'HEAD'], {
+      ...gitExecOptions(worktreePath, options),
+      captureWslLoginShellOutput: true
+    })
     return stdout.trim() || undefined
   } catch {
     return undefined
@@ -164,10 +164,10 @@ export async function readWorktreeHeadOid(
   options: GitWorktreeExecOptions = {}
 ): Promise<string> {
   try {
-    const { stdout } = await gitExecFileAsync(
-      ['rev-parse', 'HEAD'],
-      gitExecOptions(worktreePath, options)
-    )
+    const { stdout } = await gitExecFileAsync(['rev-parse', 'HEAD'], {
+      ...gitExecOptions(worktreePath, options),
+      captureWslLoginShellOutput: true
+    })
     return stdout.trim()
   } catch {
     return ''
@@ -213,6 +213,7 @@ export async function readWorktreeList(
   const execOptions = {
     cwd: repoPath,
     ...options,
+    captureWslLoginShellOutput: true,
     timeout: options.timeout ?? WORKTREE_LIST_TIMEOUT_MS
   }
   return withLocalGitCapabilityCacheForExecution(

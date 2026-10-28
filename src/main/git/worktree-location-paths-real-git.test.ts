@@ -1,4 +1,5 @@
 import type * as ChildProcess from 'node:child_process'
+import { EventEmitter } from 'node:events'
 import { mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
@@ -40,12 +41,20 @@ vi.mock('../observability/tracer', () => ({
 }))
 vi.mock('../diagnostics/main-thread-churn-probe', () => ({ recordSubprocessSpawn: vi.fn() }))
 
-import { readRepoLocation } from './worktree-list-reader'
+import {
+  readCheckedOutBranchRef,
+  readRepoLocation,
+  readWorktreeHeadOid
+} from './worktree-list-reader'
 import { describeCreatedWorktree, listWorktreesStrict } from './worktree-listing'
+import { resolveCreatedWorktree } from '../ipc/created-worktree-reconciliation'
 import { gitExecFileAsync } from './runner'
 import { clearGitCapabilityStateForTests } from './git-capability-state'
 import { disposeLocalRepoRefMaintenance } from './local-repo-ref-maintenance'
 import { _resetGitAdmissionForTests } from './command-runner/git-subprocess-admission'
+import { resetWslGitReadEnvironmentForTests } from './wsl-git-read-environment'
+import { quotePosixShell } from '../../shared/shell-argument-quoting'
+import { toWindowsWslUncPath } from '../../shared/wsl-paths'
 
 const names = [
   'ordinary',
@@ -218,6 +227,77 @@ describe.skipIf(process.platform === 'win32')('worktree location paths with real
     expect(rows.find((row) => row.isMainWorktree)?.path).toBe(fixture.main)
     expect(await snapshot(fixture)).toEqual(before)
   })
+
+  it.each(['clean', 'banner'])(
+    'preserves listings and direct created-worktree reads through WSL %s output',
+    async (mode) => {
+      const fixture = fixtureFor('main', 'ordinary')
+      const before = await snapshot(fixture)
+      const nativePlatform = process.platform
+      const options = { wslDistro: 'Ubuntu' }
+      const nativeTransport = execFileMock.getMockImplementation()
+      if (!nativeTransport) {
+        throw new Error('native Git transport missing')
+      }
+      execFileMock.mockImplementation(
+        (native: typeof ChildProcess.execFile, command, args, execOptions, callback) => {
+          expect(command).toBe('wsl.exe')
+          const script = String(args.at(-1))
+          if (script.includes('_orca_git_path=')) {
+            const child = Object.assign(new EventEmitter(), {
+              stdout: new EventEmitter(),
+              stderr: new EventEmitter()
+            })
+            queueMicrotask(() => {
+              callback(Object.assign(new Error('profile requires login'), { code: 78 }), '', '')
+              child.emit('close', 78)
+            })
+            return child
+          }
+          expect(args).toContain('--exec')
+          expect(args).toContain('-lc')
+          const nestedGit = quotePosixShell(quotePosixShell('git')).slice(1, -1)
+          const nestedBinary = quotePosixShell(quotePosixShell(gitBinary)).slice(1, -1)
+          const routed = script.replaceAll(nestedGit, nestedBinary)
+          expect(routed).not.toBe(script)
+          const banner = 'To run a command as administrator, use sudo.\n\n'
+          const prefix = mode === 'banner' ? `printf %s ${quotePosixShell(banner)}; ` : ''
+          return native('/bin/sh', ['-c', prefix + routed], { ...execOptions, cwd: root }, callback)
+        }
+      )
+      resetWslGitReadEnvironmentForTests()
+      Object.defineProperty(process, 'platform', { configurable: true, value: 'win32' })
+      try {
+        expect(await readCheckedOutBranchRef(fixture.linked, options)).toBe('refs/heads/feature')
+        expect(await readWorktreeHeadOid(fixture.linked, options)).toBe(fixture.head)
+        const rows = await listWorktreesStrict(fixture.main, options)
+        expect(rows).toHaveLength(2)
+        expect(rows.find((row) => row.isMainWorktree)?.path).toBe(
+          toWindowsWslUncPath(fixture.main, 'Ubuntu')
+        )
+        observeRunner.mockClear()
+        const resolution = await resolveCreatedWorktree(
+          fixture.main,
+          fixture.linked,
+          'feature',
+          options
+        )
+        expect(resolution.created).toMatchObject({
+          path: toWindowsWslUncPath(fixture.linked, 'Ubuntu'),
+          head: fixture.head,
+          branch: 'refs/heads/feature'
+        })
+        expect(resolution.listingComplete).toBe(false)
+        expect(resolution.worktrees).toEqual([])
+        expect(calls().some((args) => args.includes('list'))).toBe(false)
+      } finally {
+        Object.defineProperty(process, 'platform', { configurable: true, value: nativePlatform })
+        resetWslGitReadEnvironmentForTests()
+        execFileMock.mockImplementation(nativeTransport)
+      }
+      expect(await snapshot(fixture)).toEqual(before)
+    }
+  )
 
   it('stops individual reads when the first pathname command fails', async () => {
     const fixture = fixtureFor('main', 'line\nbreak')
