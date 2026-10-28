@@ -1469,9 +1469,6 @@
         "3fdf777817": "GitHub에서 열기",
         "c43fe79ee0": "GitHub 링크 복사",
         "0caac1a18f": "PR에서 워크스페이스 시작",
-        "8223320f8d": "업데이트됨",
-        "10ef1afb8e": "· 업데이트됨",
-        "55962099bc": "이 이슈를 열었습니다",
         "0ab4664a8b": "이슈에서 워크스페이스 시작",
         "36182aa57f": "새 워크스페이스 시작",
         "fe6ff12dc2": "추가 이슈 워크스페이스 작업",
@@ -1544,8 +1541,6 @@
         "52b20b56f7": "설명",
         "4d555d3796": "설명 수정",
         "9df4e74bdf": "저장",
-        "0ae387d8ca": "작성자",
-        "228e2f59d3": "해결됨",
         "a154ec5224": "GitHub에서 댓글 열기",
         "bca8eb39ac": "댓글에 답장하기",
         "68cb993d61": "해결됨",
@@ -1561,7 +1556,6 @@
         "d43736d09c": "코드 컨텍스트 컨트롤",
         "bd7be7b1fd": "댓글 L",
         "db61d76cd5": "코드 컨텍스트 로드 중…",
-        "f2d02cdf8c": "본 파일",
         "1257d1435d": "파일 트리 표시",
         "a341343303": "리뷰 댓글이 추가되었습니다.",
         "d1fa2cf888": "PR 헤드 SHA가 없으면 댓글을 달 수 없습니다.",
@@ -1602,8 +1596,6 @@
         "ec5c4b3ab2": "PR 다시 열기",
         "21860b58d0": "PR 닫기",
         "5932578f51": "병합하려면 등록된 로컬 repo가 필요합니다.",
-        "e2bf3e41a9": "댓글",
-        "28d0d3374f": "스레드",
         "080d071d48": "@{{value0}}에 답장",
         "86f809e2ce": "이 리뷰 스레드에 답변하기",
         "136542c9ba": ":L{{value0}}",
@@ -1633,7 +1625,9 @@
           "from": "from",
           "to": "to",
           "activity": "활동",
-          "noActivity": "아직 활동이 없습니다."
+          "noActivity": "아직 활동이 없습니다.",
+          "pullRequestReference": "PR #{{number}}",
+          "issueReference": "이슈 #{{number}}"
         },
         "checkActionRequiredHint": "머지 차단을 해제하려면 GitHub에서 수동 작업(예: 실행 승인)이 필요합니다.",
         "e15a8b77ef": "이 검사에는 인라인 세부정보가 없습니다.",
@@ -1647,8 +1641,13 @@
         "09d67a0f9b": "PR을 닫지 못했습니다.",
         "88809e79db": "PR을 다시 열지 못했습니다.",
         "00f55cc17b": "이 PR에는 저장소 액세스를 사용할 수 없습니다.",
-        "reactionCountSingular": "{{reaction}} 반응 {{count}}개",
-        "reactionCountPlural": "{{reaction}} 반응 {{count}}개"
+        "reactionCount_other": "{{reaction}} 반응 {{count}}개",
+        "filesViewed_other": "파일 {{viewed}} / {{count}}개 확인",
+        "updatedRelativeTime": "{{time}} 업데이트됨",
+        "authorOpenedThisIssue": "<author/> 님이 이 이슈를 열었습니다",
+        "middotUpdatedRelativeTime": "· {{time}} 업데이트됨",
+        "resolvedThreadBy": "{{author}} 님의 해결된 스레드",
+        "resolvedCommentBy": "{{author}} 님의 해결된 댓글"
       },
       "GitLabItemDialog": {
         "65e784c1f1": "다시 열기",
@@ -1704,14 +1703,13 @@
         "f23ea85341": "해결됨",
         "6de8ce0cc6": "{{value0}} 필요",
         "22511537d2": "승인됨",
-        "00f3bab87b": " / 총 {{value0}}개 필요",
         "3a051b8ade": "작업 항목",
         "32f8bef818": "로그 출력이 없습니다.",
         "4168eb2c51": "해결",
         "commentTooLarge": "댓글이 너무 길어 안전하게 제출할 수 없습니다.",
         "gitlabActionFailed": "GitLab 작업이 실패했습니다.",
-        "approvalsRemainingSingular": "승인 {{count}}개 남음",
-        "approvalsRemainingPlural": "승인 {{count}}개 남음"
+        "approvalsRemainingOfRequired_other": "필요한 승인 {{required}}개 중 {{count}}개 남음",
+        "approvalsRemaining_other": "승인 {{count}}개 남음"
       },
       "JiraIssueWorkspace": {
         "b0b92666c9": "댓글",
@@ -2018,9 +2016,6 @@
         "778683ec84": "설명",
         "da9aaa8bcf": "설명 수정",
         "4a337ac05f": "저장",
-        "169a93b29a": "업데이트됨",
-        "3c891789f6": "작성자",
-        "f4fe47c2bb": "해결됨",
         "0ac19bb52e": "GitHub에서 댓글 열기",
         "d6c6679de7": "댓글에 답장하기",
         "76b2a0ac5b": "해결됨",
@@ -2028,7 +2023,6 @@
         "6885c619e7": "repos 경로가 없으면 답글을 달 수 없습니다.",
         "d94810f652": "설명을 업데이트하지 못했습니다.",
         "9b4190dc98": "설명이 업데이트되었습니다.",
-        "89e80af1c7": "본 파일",
         "319cf2d54b": "파일 트리 표시",
         "eff839f438": "리뷰 댓글이 추가되었습니다.",
         "d8c3ba91c4": "PR 헤드 SHA가 없으면 댓글을 달 수 없습니다.",
@@ -2066,8 +2060,6 @@
         "9d5425918e": "PR 다시 열기",
         "96d013ed28": "PR 닫기",
         "eca289e593": "병합하려면 등록된 로컬 repo가 필요합니다.",
-        "e01e34f5fa": "댓글",
-        "345b68254c": "스레드",
         "31a7b202f2": "@{{value0}}에 답장",
         "408e634fbb": "이 리뷰 스레드에 답변하기",
         "34b9f7c264": ":L{{value0}}",
@@ -2093,7 +2085,18 @@
         "diffLoadTimedOut": "이 diff를 불러오는 데 시간이 초과되었습니다.",
         "6b1d5ee3e4": "이 검사에는 인라인 세부정보가 없습니다.",
         "e04c027d98": "검사 세부정보를 로드하지 못했습니다.",
-        "5df7c41d2a": "다시 시도"
+        "5df7c41d2a": "다시 시도",
+        "filesViewed_other": "파일 {{viewed}} / {{count}}개 확인",
+        "updatedRelativeTime": "{{time}} 업데이트됨",
+        "resolvedThreadBy": "{{author}} 님의 해결된 스레드",
+        "resolvedCommentBy": "{{author}} 님의 해결된 댓글",
+        "mentionSource": {
+          "prAuthor": "PR 작성자",
+          "issueAuthor": "이슈 작성자",
+          "commenter": "댓글 작성자",
+          "participant": "참여자",
+          "teamMember": "팀원"
+        }
       },
       "QuickOpen": {
         "1dbd3f59ff": "이동",
@@ -2583,7 +2586,8 @@
               "8f6cb3772f": "요구 사항이 충족되면 이 PR을 자동으로 병합합니다",
               "def355ff38": "병합 가능",
               "e42c5bae67": "GitHub에서는 이 PR을 병합할 수 있으며 체크를 통과했다고 합니다",
-              "cbf0113af6": "GitHub에서는 이 PR을 병합할 수 있다고 합니다"
+              "cbf0113af6": "GitHub에서는 이 PR을 병합할 수 있다고 합니다",
+              "autoMergeOn": "자동 병합 켜짐"
             }
           }
         },
@@ -2757,10 +2761,10 @@
           "imageUrlTooLarge": "이미지 URL이 너무 큽니다."
         },
         "IssueSourceSelector": {
-          "d6aeb2012b": "다음에서 이슈 표시",
           "787c970baf": "이슈 소스",
           "51d1608920": "origin",
-          "30b2c9df91": "업스트림"
+          "30b2c9df91": "업스트림",
+          "showingIssuesFromRepo": "<repo/>의 이슈 표시 중"
         },
         "PRFilterDropdowns": {
           "979be3cf6b": "담당자",
@@ -2770,12 +2774,18 @@
           "01f3f3d161": "작성자",
           "13b3ac0a84": "상태",
           "79c54552f7": "필터",
-          "8a2ffbf9b3": "{{value0}} 필터 제거"
+          "8a2ffbf9b3": "{{value0}} 필터 제거",
+          "anyState": "상관없음",
+          "currentUser": "현재 사용자"
         },
         "PRFilterPickers": {
-          "fdf387297c": "지우기 (",
           "472c12ae03": "지우기",
-          "2d1f58eda6": "사용"
+          "pressEnterToUseValue": "입력한 값을 사용하려면 Enter를 누르세요.",
+          "useTypedValue": "<value/> 사용",
+          "clearSelected": "지우기 ({{count}})",
+          "loading": "로드 중…",
+          "searchTextTooLarge": "검색 텍스트가 너무 큽니다.",
+          "noMatches": "일치하는 항목 없음"
         },
         "PRFilterSections": {
           "a00830d3f7": "사용자 없음",
@@ -2785,7 +2795,6 @@
           "458ea3602b": "작성자 없음",
           "b69fa4fa20": "뒤로",
           "30ebb6ca44": "모든 필터 지우기",
-          "8177eda37e": "필터",
           "ea3416d646": "담당자",
           "b1d9fdea08": "라벨",
           "24754c44ad": "작성자",
@@ -2797,7 +2806,14 @@
           "2b2f019091": "모든 상태",
           "0fd3249e2e": "닫힘",
           "d78b60b5c2": "열림",
-          "bd162b7d5a": "병합됨"
+          "bd162b7d5a": "병합됨",
+          "draft": "초안",
+          "labelCount_other": "라벨 {{count}}개",
+          "allStates": "모두",
+          "filterPullRequests": "PR 필터링",
+          "filterIssues": "이슈 필터링",
+          "filterOrTypeLogin": "필터링하거나 로그인 이름 입력...",
+          "filterLabels": "라벨 필터링..."
         },
         "github": {
           "rate": {
@@ -2808,15 +2824,14 @@
                 "d12d3d6f33": "GitHub API 예산 새로 고침",
                 "d5e5de9070": "Orca는 GitHub CLI를 통해 REST, 검색 및 GraphQL을 사용합니다.",
                 "58c5f88216": "GitHub API 예산",
-                "6da1858354": "남음 · 재설정까지",
-                "f42790d150": "/",
                 "01f7323e58": "GraphQL API",
                 "1daf0f22a9": "GraphQL",
                 "1f2f28a4de": "검색 API",
                 "c377a4f06a": "검색",
                 "c392c749a6": "REST API",
                 "bb227706a6": "REST",
-                "budget_scope_prefix": "예산 범위"
+                "budget_scope_prefix": "예산 범위",
+                "remainingOfLimitResetsIn": "{{limit}}개 중 {{remaining}}개 남음 · 재설정까지 {{reset}}"
               }
             }
           }
@@ -2824,7 +2839,29 @@
         "CommentReactions": {
           "addReaction": "반응 추가",
           "removeNamedReaction": "{{value0}} 반응 제거",
-          "addNamedReaction": "{{value0}} 반응 추가"
+          "addNamedReaction": "{{value0}} 반응 추가",
+          "reaction": {
+            "thumbsUp": "좋아요",
+            "thumbsDown": "싫어요",
+            "laugh": "웃음",
+            "confused": "혼란",
+            "heart": "하트",
+            "hooray": "만세",
+            "rocket": "로켓",
+            "eyes": "눈"
+          }
+        },
+        "CommentCodeContext": {
+          "showSurroundingCodeBlock": "주변 코드 블록 표시",
+          "showNearbyCodeContext": "인접 코드 컨텍스트 표시"
+        },
+        "prCheckPresentation": {
+          "successful": "성공",
+          "inProgress": "진행 중"
+        },
+        "IssueSourceIndicator": {
+          "issueFromRepo": "<repo/>의 이슈",
+          "issuesFromRepo": "<repo/>의 이슈"
         }
       },
       "linear": {
@@ -12109,15 +12146,9 @@
       },
       "right": {
         "sidebar": {
-          "BulkActionBar": {
-            "79a9f5f712": "언스테이지(",
-            "ef5f5bd06e": "스테이지에 올리기 (",
-            "60ed678138": "선택됨"
-          },
           "ChecksPanel": {
             "2ef90c9819": "실패한 검사에 대한 AI agent를 시작했습니다.",
             "a0181a8d76": "충돌에 대한 AI agent를 시작했습니다.",
-            "34464d00b9": "업데이트됨",
             "058039787c": "취소",
             "2ab7fd4b6d": "저장",
             "dda5924a40": "체크를 보려면 Git 브랜치와 호스팅 리뷰 컨텍스트가 필요합니다.",
@@ -12163,7 +12194,8 @@
             "430f1a62d4": "선택한 스레드를 호스트에서 해결하지 못했습니다.",
             "updateReactionFailed": "반응을 업데이트하지 못했습니다.",
             "gitlabMoreActions": "더 많은 MR 작업",
-            "gitlabLinkAnother": "다른 MR 연결"
+            "gitlabLinkAnother": "다른 MR 연결",
+            "reviewUpdatedAt": "{{review}} {{time}} 업데이트됨"
           },
           "CreateHostedReviewComposer": {
             "741ff8a0d2": "푸시 및 생성 {{value0}}"
@@ -12320,7 +12352,14 @@
             "740aca88ab": "워크스페이스 포트 스캔에 실패했습니다.",
             "5be4f7f727": "포트 {{value0}} 메뉴",
             "1004af16ab": "{{value0}} 복사",
-            "153d3a8026": "워크스페이스 호스트를 알 수 없음"
+            "153d3a8026": "워크스페이스 호스트를 알 수 없음",
+            "unknownProcess": "알 수 없는 프로세스",
+            "containerOrForwardedService": "컨테이너 또는 포워딩된 서비스",
+            "unassigned": "할당되지 않음",
+            "remotePortOutOfRange": "원격 포트는 1–65535 범위여야 합니다",
+            "localPortOutOfRange": "로컬 포트는 1–65535 범위여야 합니다",
+            "localPortInUse": "포트 {{port}}은(는) 이미 사용 중입니다. 다른 로컬 포트를 선택하세요.",
+            "localPortRequiresPrivileges": "포트 {{port}}에는 관리자 권한이 필요합니다. 로컬 포트 ≥ 1024를 사용하세요."
           },
           "Search": {
             "1abfb25a66": "파일에서 검색하려면 입력하세요.",
@@ -12377,7 +12416,6 @@
             "476b77745b": "기본 참조 변경",
             "ed34038d0d": "브랜치 비교 새로 고침",
             "493f963029": "기본 참조 변경",
-            "3278b2767b": "앞섬",
             "11b5dd8e41": "비교 대상",
             "a9bf7c171a": "Commit 실패",
             "011f9713fc": "Commit이 차단되었습니다.",
@@ -12422,7 +12460,6 @@
             "574d2f4413": "메모 지우기",
             "05bb8f4a48": "취소",
             "48db37cca9": "모두 보기",
-            "78ce2d37ac": "포크로 푸시",
             "c05fe04839": "{{value0}}의 포크로 푸시됩니다(origin 아님).",
             "c35baf2f1e": "파일 필터링…",
             "2fe2a67580": "더 많은 메모 작업",
@@ -12430,14 +12467,12 @@
             "cc474e0b8c": "메모",
             "e131cd7128": "소스 제어는 Git 리포지토리에서만 사용할 수 있습니다.",
             "c07b236287": "변경사항을 보려면 워크스페이스를 선택하세요.",
-            "dc5a6465fc": "{{value0}}(예: {{value1}}{{value2}})",
             "a5e5a11090": "모든 변경 사항 취소 실패 — 취소 전에 파일의 스테이징을 해제하지 못했습니다.",
             "8a5ba6a988": "commit 차이점을 로드하지 못했습니다.",
             "fe5bd1a610": "{{value0}} 생성 중...",
             "812cb992ee": "{{value0}}에서 열기",
             "eef5446523": "{{value0}} #{{value1}}은(는) 이미 열려 있습니다.",
             "0453ca3a9a": "{{value0}}이(가) 생성되었지만 Orca가 아직 새로 고칠 수 없습니다.",
-            "f99560ab29": "중단 {{value0}} 실패",
             "eae7a1da5f": "메모를 지우지 못했습니다.",
             "df5040e3c3": "언스테이지",
             "8cde1a2fb0": "스테이지",
@@ -12465,8 +12500,6 @@
             "aaf1451654": "초안 {{value0}} 만들기",
             "26511c22b4": "만드는 중...",
             "d7ae61269b": "브랜치에 Commit 됨",
-            "branchFilesChangedVsBaseOne": "{{ref}} 대비 파일 1개 변경됨",
-            "branchFilesChangedVsBaseOther": "{{ref}} 대비 파일 {{count}}개 변경됨",
             "48a003c1b1": "스테이징된 변경 사항",
             "d4ef4bafc5": "변경 사항",
             "9339382454": "모두 언스테이징",
@@ -12476,7 +12509,6 @@
             "72f2bea3f4": "메모 펼치기",
             "d13edef890": "메모 접기",
             "d6fb1df5fe": "{{value0}}이(가) 이미 열려 있습니다",
-            "05838cfdeb": "{{value0}} 충돌",
             "0b5b8c234c": "{{value0}} ({{value1}}) 열기",
             "d97ef8f221": "{{value0}}-{{value1}}줄",
             "6f8bfa0eb9": "{{value0}}줄",
@@ -12489,7 +12521,6 @@
             "5b176fa431": "양쪽에서 삭제됨",
             "31f6d46278": "미해결",
             "2c417432b7": "로컬에서 해결됨",
-            "d206117f90": "{{value0}} 충돌 ({{value1}})",
             "f3a8b2c1d0e5": "{{value0}} 제목을 입력하세요.",
             "e2b7a1c0d9f4": "{{value0}} 생성에 실패했습니다",
             "hugeRepoIgnorePrompt": "이 repos에 활성 변경 사항이 너무 많습니다. \"{{value0}}\"을(를) .gitignore에 추가하시겠습니까?",
@@ -12530,10 +12561,6 @@
             "b3c8f1a902": "파일 이름으로 필터링",
             "d4f8c2a901": "필터 지우고 닫기",
             "e8a1c4b203": "vs",
-            "compareBaseCommitsAheadOne": "{{ref}}보다 커밋 1개 앞서 있음",
-            "compareBaseCommitsAheadOther": "{{ref}}보다 커밋 {{count}}개 앞서 있음",
-            "compareBaseCommitsBehindOne": "{{ref}}보다 커밋 1개 뒤처짐",
-            "compareBaseCommitsBehindOther": "{{ref}}보다 커밋 {{count}}개 뒤처짐",
             "4b4a7de138": "브라우저에서 검토 페이지 열기",
             "createPrIntentCommitBlockedSummary": "커밋이 차단됨: {{value0}} 이슈를 수정한 후 PR 만들기를 다시 시도하세요.",
             "pushRecovery": {
@@ -12564,17 +12591,41 @@
             "diffCommentNotesCopyFailed": "메모를 복사하지 못했습니다.",
             "conflictCount_one": "충돌 {{count}}개",
             "conflictCount_other": "충돌 {{count}}개",
-            "discardFailedSingular": "파일 {{count}}개의 변경 사항을 버리지 못했습니다.",
-            "discardFailedPlural": "파일 {{count}}개의 변경 사항을 버리지 못했습니다.",
-            "noteCountSingular": "메모 {{count}}개",
-            "noteCountPlural": "메모 {{count}}개"
+            "discardFailedSampleMore_other": "{{paths}}, +{{count}}개 더",
+            "discardFailed_other": "파일 {{count}}개의 변경 사항을 버리지 못했습니다",
+            "discardFailedWithSample": "{{error}} (예: {{paths}})",
+            "compareBaseCommitsAhead_other": "{{ref}}보다 커밋 {{count}}개 앞서 있음",
+            "compareBaseCommitsBehind_other": "{{ref}}보다 커밋 {{count}}개 뒤처짐",
+            "branchFilesChangedVsBase_other": "{{ref}} 대비 파일 {{count}}개 변경됨",
+            "noteCount_other": "메모 {{count}}개",
+            "comparingAgainstRef": "{{ref}}와 비교 중",
+            "commitsAheadShort_other": "{{count}}개 앞섬",
+            "unresolvedConflictOfKind": "해결되지 않은 충돌 ({{kind}})",
+            "unresolvedConflict": "해결되지 않은 충돌",
+            "locallyResolvedConflictOfKind": "로컬에서 해결된 충돌 ({{kind}})",
+            "locallyResolvedConflict": "로컬에서 해결된 충돌",
+            "pushesToForkTarget": "포크 {{target}}에 푸시",
+            "abortRebaseConfirmTitle": "리베이스를 중단할까요?",
+            "abortMergeConfirmTitle": "병합을 중단할까요?",
+            "abortRebaseConfirmDescription": "진행 중인 리베이스를 취소하며, 이번 리베이스에서 수행한 충돌 해결 작업이 삭제될 수 있습니다.",
+            "abortMergeConfirmDescription": "진행 중인 병합을 취소하며, 이번 병합에서 수행한 충돌 해결 작업이 삭제될 수 있습니다.",
+            "abortRebaseFailedFallback": "리베이스를 중단하지 못했습니다",
+            "abortMergeFailedFallback": "병합을 중단하지 못했습니다",
+            "abortRebaseFailed": "리베이스 중단 실패",
+            "abortMergeFailed": "병합 중단 실패",
+            "clearNotesFromWorkspace_other": "이 워크스페이스에서 메모 {{count}}개를 지울까요?",
+            "clearNotesFromFile_other": "{{path}}에서 메모 {{count}}개를 지울까요?"
           },
           "SourceControlAgentActionDialog": {
             "8e856842d1": "선택한 agent를 시작할 수 없습니다.",
             "c075d00de1": "워크스페이스 연결을 확인할 수 없습니다.",
             "808cfe0a3b": "이 repos",
             "994cddd1f7": "저장하지 않음",
-            "38b899cc02": "모든 리포지토리"
+            "38b899cc02": "모든 리포지토리",
+            "agentNotEnabledOrDetected": "{{agent}}: 이 워크스페이스 호스트에서 활성화되지 않았거나 감지되지 않았습니다.",
+            "workspaceConnectionUnresolved": "워크스페이스 연결을 확인할 수 없습니다.",
+            "noEnabledAgentsDetected": "이 워크스페이스 호스트에서 활성화된 에이전트가 감지되지 않았습니다.",
+            "startAgent": "에이전트 시작"
           },
           "SourceControlAgentActionDialogForm": {
             "7ec6abbf2a": "재설정",
@@ -12639,9 +12690,6 @@
                 "cbcc4ab3db": "처음 100개 검사 표시",
                 "0dca6bfab5": "검사 세부 정보 열기",
                 "991f50c7e4": "아직 보고된 체크가 없습니다.",
-                "9ad98f2a17": "보류 중",
-                "5e52f4ef7f": "실패",
-                "02ca4f9074": "통과",
                 "e15a8b77ef": "이 검사에는 인라인 세부정보가 없습니다.",
                 "679bf2093c": "로그 테일 복사",
                 "d713f500b2": "로그 테일(마지막 200줄)",
@@ -12658,7 +12706,6 @@
                 "1f2b980522": "검사 세부 정보 로드 중…",
                 "0c96cd25e5": "해결",
                 "3a71a6ed0b": "체크와 병합을 완료하려면 먼저 충돌을 해결하세요.",
-                "60186d8498": "충돌로 인해 차단됨",
                 "c16762ac8c": "아래 체크와 댓글은 현재 가져온 컨텍스트를 보여줍니다.",
                 "9d0e7bcefc": "차단 PR 조치 없음",
                 "5856874b59": "Orca는 이 패널이 열려 있는 동안 검사를 새로 고칩니다.",
@@ -12683,7 +12730,6 @@
                 "084c516efb": "Copy commands",
                 "5dc3af25c0": "댓글 선택",
                 "d7a2f9c401": "해결되지 않은 댓글 {{value0}}개 보내기",
-                "d91f2a6c39": "대기 중인 댓글 {{value0}}개를 AI로 보내기",
                 "a6de3e5a20": "대기 중인 댓글 지우기",
                 "f8a2c91d04": "에이전트 대기열에 추가",
                 "b4e8a1c902": "Queued",
@@ -12698,7 +12744,6 @@
                 "b3195cba33": "작성자의 봇 지정 해제",
                 "f588b46a6c": "작성자를 봇으로 지정",
                 "e45324fbed": "체크 세부 정보를 불러오지 못했습니다.",
-                "checksUnresolvedChip": "해결되지 않은",
                 "checksUnresolvedStripHint": "이러한 검사는 통과 또는 실패 판정 없이 완료되었습니다.",
                 "dcb3c546fe": "다시 시도",
                 "commitsBehind_one": "커밋 {{count}}개 뒤처짐",
@@ -12709,7 +12754,23 @@
                 "pendingChecks_one": "대기 중인 검사 {{count}}개",
                 "pendingChecks_other": "대기 중인 검사 {{count}}개",
                 "unresolvedChecks_one": "미해결 검사 {{count}}개",
-                "unresolvedChecks_other": "미해결 검사 {{count}}개"
+                "unresolvedChecks_other": "미해결 검사 {{count}}개",
+                "passingCount_other": "{{count}}개 통과",
+                "failingCount_other": "{{count}}개 실패",
+                "pendingCount_other": "{{count}}개 대기 중",
+                "unresolvedCount_other": "{{count}}개 미해결",
+                "sendQueuedCommentsToAi_other": "대기 중인 댓글 {{count}}개를 AI로 보내기",
+                "conflictsBlockThisMr": "충돌로 인해 이 MR이 차단됨",
+                "conflictsBlockThisPr": "충돌로 인해 이 PR이 차단됨",
+                "copyComment": "댓글 복사",
+                "sendComment": "보내기",
+                "commentingRequiresGitHubPrTarget": "댓글을 작성하려면 GitHub PR의 대상 저장소가 필요합니다.",
+                "selectWorkspaceBeforeAiAction": "AI 작업을 실행하기 전에 워크스페이스를 선택하세요.",
+                "operation": {
+                  "rebase": "리베이스",
+                  "merge": "병합",
+                  "cherryPick": "체리픽"
+                }
               },
               "empty": {
                 "state": {
@@ -13114,12 +13175,6 @@
                   }
                 }
               },
-              "compare": {
-                "summary": {
-                  "commitsAheadSingular": "{{ref}}보다 커밋 {{count}}개 앞서 있음",
-                  "commitsAheadPlural": "{{ref}}보다 커밋 {{count}}개 앞서 있음"
-                }
-              },
               "conflict": {
                 "status": {
                   "cards": {
@@ -13160,6 +13215,11 @@
                   "0904be2505": "다시 생성하려면 메시지를 지웁니다.",
                   "1ea9ba37aa": "설정 -> Git -> 소스 제어 AI에서 에이전트를 선택합니다."
                 }
+              },
+              "compare": {
+                "summary": {
+                  "commitsAhead_other": "{{ref}}보다 커밋 {{count}}개 앞서 있음"
+                }
               }
             }
           },
@@ -13196,10 +13256,6 @@
             "32cd9fd991": "심볼릭 링크 대상을 열 수 없습니다",
             "folderLinksOutsideProject": "이 폴더는 프로젝트 외부로 연결되어 있어 여기에서 열 수 없습니다."
           },
-          "useFileExplorerImport": {
-            "25919b2050": "{{value0}} {{value1}}을(를) 건너뛰었습니다.",
-            "132fd0e1e9": "{{value0}} {{value1}}을(를) 가져오지 못했습니다."
-          },
           "useFileExplorerKeys": {
             "8adb953095": "작업 실패"
           },
@@ -13235,7 +13291,6 @@
             "refreshSessionHistory": "세션 기록 새로고침",
             "searchSessions": "세션 검색",
             "clearSearch": "검색 지우기",
-            "transcriptsSkipped": "대화 기록 {{count}}개 건너뜀",
             "noAgentSessionsFound": "agent 세션을 찾을 수 없습니다",
             "noSessionsMatchFilters": "현재 필터와 일치하는 세션이 없습니다",
             "noAgentsSelected": "선택된 에이전트가 없습니다",
@@ -13255,7 +13310,8 @@
             "resumeInChatFailed": "새 채팅에서 이 세션을 재개할 수 없습니다.",
             "resumeInNewCliUnavailable": "이 세션은 CLI에서 열 수 없습니다.",
             "resumeInNewCliHostTooOld": "이 채팅을 새 CLI에서 재개하려면 채팅을 실행하는 호스트의 Orca를 업데이트하세요.",
-            "folderWorkspaceUnavailable": "폴더 워크스페이스는 더 이상 사용할 수 없습니다."
+            "folderWorkspaceUnavailable": "폴더 워크스페이스는 더 이상 사용할 수 없습니다.",
+            "transcriptsSkippedCount_other": "대화 기록 {{count}}개 건너뜀"
           },
           "AiVaultPanelControls": {
             "scanningSessions": "세션 스캔 중",
@@ -13301,11 +13357,8 @@
             "sessionRole": "세션",
             "worktree": "작업 트리",
             "conversationNotSaved": "대화가 저장되지 않음",
-            "recoverableEmptyDetail": "이 세션에는 저장된 대화가 없지만 복구 가능한 항목이 {{value0}}개 남아 있습니다.",
             "recoverableEmptyOpenLogHint": "로그를 열어 복구하세요.",
             "emptyConversationDetail": "이 세션에는 저장된 대화가 없어 재개할 수 없습니다.",
-            "queuedMessages": "대기 중인 메시지 {{value0}}개",
-            "subagentTranscripts": "서브에이전트 대화 기록 {{value0}}개",
             "prompt": "프롬프트",
             "firstPrompt": "첫 프롬프트",
             "recentPrompt": "최근 프롬프트",
@@ -13319,7 +13372,10 @@
             "noFirstPromptAvailable": "첫 프롬프트를 사용할 수 없습니다",
             "loadingFirstPrompt": "첫 프롬프트를 불러오는 중…",
             "folder": "폴더",
-            "resumeInFolder": "폴더에서 재개"
+            "resumeInFolder": "폴더에서 재개",
+            "recoverableEmptyDetailCount_other": "이 세션에는 저장된 대화가 없지만 복구 가능한 항목이 {{count}}개 남아 있습니다.",
+            "queuedMessageCount_other": "대기 중인 메시지 {{count}}개",
+            "subagentTranscriptCount_other": "서브에이전트 대화 기록 {{count}}개"
           },
           "AiVaultSessionRow": {
             "resumeInNewTab": "새 탭에서 재개",
@@ -13453,26 +13509,21 @@
                 "confirmation": {
                   "84f6f5b9eb": "포함됨: {{numbers}}.",
                   "541984b2eb": "#{{pr}}을(를) 통해 대기열에 등록하시겠습니까?",
-                  "4809f55cdb": "{{included}}GitHub는 병합 대기열에 {{count}} PR을 함께 추가합니다. 대기열은 병합 방법을 선택하고 이를 별도의 그룹으로 병합할 수 있습니다.",
-                  "be8f2621be": "{{included}}GitHub는 병합 대기열에 {{count}} PR을 함께 추가합니다. 대기열은 병합 방법을 선택하고 이를 별도의 그룹으로 병합할 수 있습니다.",
-                  "92ca033e72": "대기열 {{count}} PR",
-                  "478a527b15": "대기열 {{count}} PR",
                   "1feef35ca4": "#{{pr}}을(를) 통해 병합하시겠습니까?",
-                  "c3e036c99f": "{{included}}GitHub는 {{method}}를 사용하여 {{count}} PR을 원자적으로 병합합니다. 병합할 수 없으면 아무것도 병합되지 않습니다.",
-                  "369aba4b32": "{{included}}GitHub는 {{method}}를 사용하여 {{count}} PR을 원자적으로 병합합니다. 병합할 수 없는 경우에는 병합할 수 없습니다.",
-                  "493c78f521": "{{count}} PR 병합",
-                  "eb7051d268": "{{count}} PR 병합"
+                  "queueDescription_other": "{{included}}GitHub는 PR {{count}}개를 병합 대기열에 함께 추가합니다. 대기열은 병합 방법을 선택하며 여러 그룹으로 나누어 병합할 수 있습니다.",
+                  "queueConfirm_other": "PR {{count}}개를 대기열에 추가",
+                  "mergeDescription_other": "{{included}}GitHub는 {{method}}를 사용하여 PR {{count}}개를 원자적으로 병합합니다. 하나라도 병합할 수 없으면 아무것도 병합되지 않습니다.",
+                  "mergeConfirm_other": "PR {{count}}개 병합"
                 },
                 "merge": {
-                  "55ae29b907": "#{{pr}} · {{count}} PR을 통해 병합",
-                  "b8446f6ec2": "#{{pr}} · {{count}} PR을 통해 병합",
                   "189d0ec614": "#{{pr}}은 아직 초안입니다.",
                   "640fb50d9c": "#{{pr}}이(가) 닫혔습니다.",
                   "46ffcbda75": "#{{pr}}에 병합 충돌이 있습니다.",
                   "6dabefd63e": "#{{pr}}님이 변경 사항을 요청했습니다.",
                   "2bb21fc326": "#{{pr}}에는 아직 검토 승인이 필요합니다.",
                   "c23faf74df": "#{{pr}}을(를) 업데이트해야 합니다.",
-                  "f561e80968": "#{{pr}}이(가) 차단되었습니다."
+                  "f561e80968": "#{{pr}}이(가) 차단되었습니다.",
+                  "mergeThroughLabel_other": "#{{pr}}까지 포함하여 병합 · PR {{count}}개"
                 }
               }
             }
@@ -13529,14 +13580,14 @@
             "sourceActionsUnavailable": "스크립트 소스를 사용할 수 없습니다."
           },
           "AiVaultScanProgressStrip": {
-            "agentChecked": "{{agent}}: 기록 후보 {{total}}개 중 {{settled}}개 확인됨",
             "fileCount_one": "파일 {{value0}}개",
             "fileCount_other": "파일 {{value0}}개",
             "databaseCount_one": "데이터베이스 {{value0}}개",
             "databaseCount_other": "데이터베이스 {{value0}}개",
             "scanning": "{{value0}} 스캔 중",
             "checking": "{{value0}} 확인 중",
-            "scanned": "{{value0}} 스캔함"
+            "scanned": "{{value0}} 스캔함",
+            "agentCheckedCount_other": "{{agent}}: 기록 후보 {{total}}개 중 {{settled}}개 확인됨"
           },
           "run": {
             "source": {
@@ -13565,6 +13616,24 @@
                 }
               }
             }
+          },
+          "BulkActionBar": {
+            "selectedCount_other": "{{count}}개 선택됨",
+            "stageCount": "스테이지에 올리기 ({{count}})",
+            "unstageCount": "언스테이지 ({{count}})"
+          },
+          "useFileExplorerImport": {
+            "importFailedCount_other": "파일 {{count}}개를 가져오지 못했습니다.",
+            "importSkippedCount_other": "파일 {{count}}개를 건너뛰었습니다.",
+            "importFailed": "파일을 가져오지 못했습니다."
+          },
+          "fileExplorerMultiDrag": {
+            "moreItems_other": "+{{count}}개 더"
+          },
+          "CreatePullRequest": {
+            "createInProgress": "PR 생성 중...",
+            "workspaceHostUnresolved": "워크스페이스 호스트를 확인할 수 없습니다. 워크스페이스를 새로 고친 후 다시 시도하세요.",
+            "branchDiscoveryFailed": "브랜치를 감지하지 못했습니다."
           }
         }
       },
@@ -15418,7 +15487,9 @@
             "6978871a3d": "열기",
             "cce596969e": "메모 삭제",
             "cad3384faa": "메모 수정",
-            "508ee678a5": "브라우저에서 열기"
+            "508ee678a5": "브라우저에서 열기",
+            "noteAuthorFallback": "메모",
+            "sentMeta": "전송됨"
           },
           "DiffCommentPopover": {
             "2b3ce6d394": "취소",
@@ -15431,6 +15502,9 @@
           },
           "useDiffCommentDecorator": {
             "995fa28b50": "이 메모"
+          },
+          "diffCommentZoneCard": {
+            "noteAlreadySent": "이미 보낸 메모"
           }
         }
       },
@@ -16607,10 +16681,9 @@
       "rightSidebar": {
         "FolderWorkspaceWorktreesPanel": {
           "unavailable": "폴더 워크스페이스에서만 워크스페이스가 표시됩니다.",
-          "countOne": "연결된 워크트리 1개",
-          "countMany": "연결된 워크트리 {{value0}}개",
           "emptyTitle": "아직 연결된 워크트리가 없습니다",
-          "emptyCopy": "이 워크스페이스에서 만든 워크트리가 여기에 표시됩니다."
+          "emptyCopy": "이 워크스페이스에서 만든 워크트리가 여기에 표시됩니다.",
+          "attachedCount_other": "연결된 워크트리 {{count}}개"
         },
         "FolderWorkspacePrChecksPanel": {
           "unavailable": "PR 검사는 폴더 워크스페이스에서만 표시됩니다.",
@@ -16622,12 +16695,9 @@
           "hideDetails": "{{value0}} PR 검사 세부 정보 숨기기",
           "reviewChecks": "리뷰 검사",
           "allChecksPassing": "모든 검사 통과",
-          "oneWorktree": "워크트리 1개",
-          "worktreeCount": "워크트리 {{value0}}개",
-          "oneFailing": "1개 실패",
-          "failingCount": "{{value0}}개 실패",
-          "onePending": "1개 대기 중",
-          "pendingCount": "{{value0}}개 대기 중"
+          "worktreeCountLabel_other": "워크트리 {{count}}개",
+          "failingCountLabel_other": "{{count}}개 실패",
+          "pendingCountLabel_other": "{{count}}개 대기 중"
         },
         "parentPrChecks": {
           "rowSummary": {
@@ -19302,8 +19372,6 @@
   },
   "sessionSearch": {
     "panel": {
-      "resultsOne": "{{count}} 결과",
-      "resultsOther": "{{count}} 결과",
       "noMatches": "색인화된 기록에 일치하는 세션이 없습니다. 다른 쿼리나 범위를 시도해 보세요.",
       "loadMore": "더 많은 경기 로드",
       "indexedHistory": "색인된 기록",
@@ -19324,12 +19392,21 @@
       "retry": "다시 시도하세요",
       "scopeUnknown": "이 컴퓨터에는 이 워크스페이스가나 프로젝트가 없습니다. 모든 항목을 검색하려면 범위를 모두로 전환하세요.",
       "sortSessionsAriaLabel": "세션 정렬: {{value0}}",
-      "sessionsOne": "{{count}} 세션",
-      "sessionsOther": "{{count}} 세션",
-      "sessionsOfLoaded": "{{value1}} 세션 중 {{value0}}",
       "showMoreSessions": "더 많은 세션 보기",
       "loadingMoreSessions": "추가 세션 로드 중…",
-      "unsupportedAgent": "이 컴퓨터는 선택한 에이전트에 대한 이력 검색을 지원하지 않습니다. 해당 컴퓨터에서 ORCA를 업데이트하거나 다른 에이전트를 선택하십시오."
+      "unsupportedAgent": "이 컴퓨터는 선택한 에이전트에 대한 이력 검색을 지원하지 않습니다. 해당 컴퓨터에서 ORCA를 업데이트하거나 다른 에이전트를 선택하십시오.",
+      "resultCount_other": "결과 {{count}}개",
+      "sessionCount_other": "세션 {{count}}개",
+      "sessionsShownOfLoaded_other": "세션 {{count}}개 중 {{shown}}개",
+      "hostSkipReason": {
+        "indexChanged": "인덱스 변경됨",
+        "searchOff": "검색 꺼짐",
+        "notReady": "준비되지 않음",
+        "unavailable": "사용할 수 없음",
+        "unreachable": "연결할 수 없음",
+        "scopeNotFound": "해당 호스트에서 검색 범위를 찾을 수 없음",
+        "agentNotSupported": "지원되지 않는 에이전트"
+      }
     }
   },
   "sessionHistory": {
@@ -19844,8 +19921,8 @@
       "rateLimited": "GitHub 속도 제한에 도달했습니다. 몇 분 후 다시 시도하세요.",
       "network": "네트워크 오류 — 연결을 확인하세요.",
       "tooLargeUnknownCount": "이 보기는 항목이 너무 많아 Orca에서 렌더링할 수 없습니다. GitHub에서 보기 필터를 좁히세요.",
-      "tooLarge": "이 보기에는 항목이 {{itemCount}}개 있어 Orca에서 렌더링하기에는 너무 많습니다. GitHub에서 보기 필터를 좁히세요.",
-      "schemaDriftDetail": "이 프로젝트 보기를 읽을 수 없습니다: {{detail}}."
+      "schemaDriftDetail": "이 프로젝트 보기를 읽을 수 없습니다: {{detail}}.",
+      "tooLargeCount_other": "이 보기에는 항목이 {{count}}개 있어 Orca에서 표시하기에는 너무 많습니다. GitHub에서 보기 필터를 좁히세요."
     }
   },
   "projectField": {

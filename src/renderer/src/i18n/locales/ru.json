@@ -1727,9 +1727,6 @@
         "3fdf777817": "Открыть на GitHub",
         "c43fe79ee0": "Скопировать ссылку GitHub",
         "0caac1a18f": "Создать рабочее пространство из пул-реквеста",
-        "8223320f8d": "обновлено",
-        "10ef1afb8e": "· обновлено",
-        "55962099bc": "открыл задачу",
         "0ab4664a8b": "Создать рабочее пространство для задачи",
         "36182aa57f": "Создать рабочее пространство",
         "fe6ff12dc2": "Другие действия с рабочим пространством задачи",
@@ -1802,8 +1799,6 @@
         "52b20b56f7": "Описание",
         "4d555d3796": "Изменить описание",
         "9df4e74bdf": "Сохранить",
-        "0ae387d8ca": "автор:",
-        "228e2f59d3": "Решено",
         "a154ec5224": "Открыть комментарий на GitHub",
         "bca8eb39ac": "Ответить на комментарий",
         "68cb993d61": "решено",
@@ -1818,7 +1813,6 @@
         "d43736d09c": "Управление контекстом кода",
         "bd7be7b1fd": "комментарий к строке",
         "db61d76cd5": "Загрузка контекста кода…",
-        "f2d02cdf8c": "файлов просмотрено",
         "1257d1435d": "Показать дерево файлов",
         "a341343303": "Комментарий к проверке добавлен.",
         "d1fa2cf888": "Нельзя добавить комментарий без SHA последнего коммита пул-реквеста.",
@@ -1859,8 +1853,6 @@
         "ec5c4b3ab2": "Открыть пул-реквест снова",
         "21860b58d0": "Закрыть пул-реквест",
         "5932578f51": "Для слияния нужен зарегистрированный локальный репозиторий",
-        "e2bf3e41a9": "комментарий",
-        "28d0d3374f": "обсуждение",
         "080d071d48": "Ответить @{{value0}}",
         "86f809e2ce": "Ответить в обсуждении проверки",
         "136542c9ba": ":L{{value0}}",
@@ -1890,7 +1882,9 @@
           "from": "из",
           "to": "в",
           "activity": "События",
-          "noActivity": "Пока нет событий."
+          "noActivity": "Пока нет событий.",
+          "pullRequestReference": "PR #{{number}}",
+          "issueReference": "задача #{{number}}"
         },
         "e15a8b77ef": "Для этой проверки нет подробностей в интерфейсе.",
         "e45324fbed": "Не удалось загрузить сведения о проверке.",
@@ -1904,9 +1898,20 @@
         "88809e79db": "Не удалось снова открыть пул-реквест",
         "00f55cc17b": "Доступ к репозиторию этого пул-реквеста недоступен.",
         "checkActionRequiredHint": "Чтобы разблокировать слияние, нужно выполнить действие вручную на GitHub (например, одобрить запуск).",
-        "reactionCountPlural": "Реакции {{reaction}}: {{count}}",
-        "reactionCountSingular": "{{count}} реакция {{reaction}}",
-        "showMoreLinesBelow": "Показать дополнительные строки ниже: {{value0}}"
+        "showMoreLinesBelow": "Показать дополнительные строки ниже: {{value0}}",
+        "reactionCount_one": "{{count}} реакция «{{reaction}}»",
+        "reactionCount_few": "{{count}} реакции «{{reaction}}»",
+        "reactionCount_many": "{{count}} реакций «{{reaction}}»",
+        "reactionCount_other": "{{count}} реакции «{{reaction}}»",
+        "filesViewed_one": "Просмотрено файлов: {{viewed}} / {{count}}",
+        "filesViewed_few": "Просмотрено файлов: {{viewed}} / {{count}}",
+        "filesViewed_many": "Просмотрено файлов: {{viewed}} / {{count}}",
+        "filesViewed_other": "Просмотрено файлов: {{viewed}} / {{count}}",
+        "updatedRelativeTime": "обновлено {{time}}",
+        "authorOpenedThisIssue": "Эта задача открыта пользователем <author/>",
+        "middotUpdatedRelativeTime": "· обновлено {{time}}",
+        "resolvedThreadBy": "Решённое обсуждение от {{author}}",
+        "resolvedCommentBy": "Решённый комментарий от {{author}}"
       },
       "GitLabItemDialog": {
         "65e784c1f1": "Открыть снова",
@@ -1962,14 +1967,19 @@
         "f23ea85341": "решено",
         "6de8ce0cc6": "Требуется: {{value0}}",
         "22511537d2": "Одобрено",
-        "00f3bab87b": " из {{value0}} необходимых",
         "3a051b8ade": "Задача",
         "32f8bef818": "Журнал пуст.",
         "4168eb2c51": "Решить",
         "commentTooLarge": "Комментарий слишком большой для безопасной отправки.",
         "gitlabActionFailed": "Не удалось выполнить действие GitLab.",
-        "approvalsRemainingPlural": "Осталось одобрений: {{count}}",
-        "approvalsRemainingSingular": "Осталось {{count}} одобрение"
+        "approvalsRemainingOfRequired_one": "Осталось {{count}} одобрение (требуется {{required}})",
+        "approvalsRemainingOfRequired_few": "Осталось {{count}} одобрения (требуется {{required}})",
+        "approvalsRemainingOfRequired_many": "Осталось {{count}} одобрений (требуется {{required}})",
+        "approvalsRemainingOfRequired_other": "Осталось {{count}} одобрения (требуется {{required}})",
+        "approvalsRemaining_one": "Осталось {{count}} одобрение",
+        "approvalsRemaining_few": "Осталось {{count}} одобрения",
+        "approvalsRemaining_many": "Осталось {{count}} одобрений",
+        "approvalsRemaining_other": "Осталось {{count}} одобрения"
       },
       "JiraIssueWorkspace": {
         "b0b92666c9": "Комментарий",
@@ -2280,9 +2290,6 @@
         "778683ec84": "Описание",
         "da9aaa8bcf": "Изменить описание",
         "4a337ac05f": "Сохранить",
-        "169a93b29a": "обновлено",
-        "3c891789f6": "автор:",
-        "f4fe47c2bb": "Решено",
         "0ac19bb52e": "Открыть комментарий на GitHub",
         "d6c6679de7": "Ответить на комментарий",
         "76b2a0ac5b": "обсуждение закрыто",
@@ -2290,7 +2297,6 @@
         "6885c619e7": "Невозможно ответить без пути к репозиторию.",
         "d94810f652": "Не удалось обновить описание.",
         "9b4190dc98": "Описание обновлено.",
-        "89e80af1c7": "файлов просмотрено",
         "319cf2d54b": "Показать дерево файлов",
         "eff839f438": "Комментарий к ревью добавлен.",
         "d8c3ba91c4": "Невозможно добавить комментарий без SHA исходного коммита PR.",
@@ -2328,8 +2334,6 @@
         "9d5425918e": "Открыть PR заново",
         "96d013ed28": "Закрыть PR",
         "eca289e593": "Для слияния нужен зарегистрированный локальный репозиторий",
-        "e01e34f5fa": "комментарий",
-        "345b68254c": "обсуждение",
         "31a7b202f2": "Ответить @{{value0}}",
         "408e634fbb": "Ответить в этом обсуждении ревью",
         "34b9f7c264": ":L{{value0}}",
@@ -2351,7 +2355,21 @@
         "closePullRequestFailed": "Не удалось закрыть PR",
         "reopenPullRequestFailed": "Не удалось заново открыть PR",
         "diffLoadTimedOut": "Время ожидания загрузки различий истекло.",
-        "checkActionRequiredHint": "Чтобы разблокировать слияние, нужно выполнить действие вручную на GitHub (например, одобрить запуск)."
+        "checkActionRequiredHint": "Чтобы разблокировать слияние, нужно выполнить действие вручную на GitHub (например, одобрить запуск).",
+        "filesViewed_one": "Просмотрено файлов: {{viewed}} / {{count}}",
+        "filesViewed_few": "Просмотрено файлов: {{viewed}} / {{count}}",
+        "filesViewed_many": "Просмотрено файлов: {{viewed}} / {{count}}",
+        "filesViewed_other": "Просмотрено файлов: {{viewed}} / {{count}}",
+        "updatedRelativeTime": "обновлено {{time}}",
+        "resolvedThreadBy": "Решённое обсуждение от {{author}}",
+        "resolvedCommentBy": "Решённый комментарий от {{author}}",
+        "mentionSource": {
+          "prAuthor": "Автор PR",
+          "issueAuthor": "Автор задачи",
+          "commenter": "Автор комментария",
+          "participant": "Участник",
+          "teamMember": "Участник команды"
+        }
       },
       "QuickOpen": {
         "1dbd3f59ff": "Перемещение",
@@ -2891,7 +2909,8 @@
               "8f6cb3772f": "Автоматически слить этот пул-реквест после выполнения требований",
               "def355ff38": "Можно слить",
               "e42c5bae67": "По данным GitHub, PR можно слить и проверки пройдены",
-              "cbf0113af6": "По данным GitHub, PR можно слить"
+              "cbf0113af6": "По данным GitHub, PR можно слить",
+              "autoMergeOn": "Автослияние включено"
             }
           }
         },
@@ -3065,10 +3084,10 @@
           "imageUrlTooLarge": "URL изображения слишком велик."
         },
         "IssueSourceSelector": {
-          "d6aeb2012b": "Показывать задачи из",
           "787c970baf": "Источник задач",
           "51d1608920": "Исходный репозиторий",
-          "30b2c9df91": "Вышестоящий репозиторий"
+          "30b2c9df91": "Вышестоящий репозиторий",
+          "showingIssuesFromRepo": "Показаны задачи из <repo/>"
         },
         "PRFilterDropdowns": {
           "979be3cf6b": "Исполнитель",
@@ -3078,12 +3097,18 @@
           "01f3f3d161": "Автор",
           "13b3ac0a84": "Статус",
           "79c54552f7": "Фильтры",
-          "8a2ffbf9b3": "Убрать фильтр {{value0}}"
+          "8a2ffbf9b3": "Убрать фильтр {{value0}}",
+          "anyState": "Любое",
+          "currentUser": "Текущий пользователь"
         },
         "PRFilterPickers": {
-          "fdf387297c": "Очистить (",
           "472c12ae03": "Очистить",
-          "2d1f58eda6": "Использовать"
+          "pressEnterToUseValue": "Нажмите Enter, чтобы использовать введённое значение.",
+          "useTypedValue": "Использовать <value/>",
+          "clearSelected": "Очистить ({{count}})",
+          "loading": "Загрузка…",
+          "searchTextTooLarge": "Поисковый текст слишком велик.",
+          "noMatches": "Совпадений нет"
         },
         "PRFilterSections": {
           "a00830d3f7": "Нет пользователей",
@@ -3093,7 +3118,6 @@
           "458ea3602b": "Нет авторов",
           "b69fa4fa20": "Назад",
           "30ebb6ca44": "Очистить все фильтры",
-          "8177eda37e": "Фильтр",
           "ea3416d646": "Исполнитель",
           "b1d9fdea08": "Метка",
           "24754c44ad": "Автор",
@@ -3105,7 +3129,17 @@
           "2b2f019091": "Любой статус",
           "0fd3249e2e": "Закрыто",
           "d78b60b5c2": "Открытые",
-          "bd162b7d5a": "Слит"
+          "bd162b7d5a": "Слит",
+          "draft": "Черновик",
+          "labelCount_one": "{{count}} метка",
+          "labelCount_few": "{{count}} метки",
+          "labelCount_many": "{{count}} меток",
+          "labelCount_other": "{{count}} метки",
+          "allStates": "Все",
+          "filterPullRequests": "Фильтр пул-реквестов",
+          "filterIssues": "Фильтр задач",
+          "filterOrTypeLogin": "Отфильтруйте или введите логин...",
+          "filterLabels": "Фильтр меток..."
         },
         "github": {
           "rate": {
@@ -3116,15 +3150,14 @@
                 "d12d3d6f33": "Обновить лимиты API GitHub",
                 "d5e5de9070": "Orca использует REST, Search и GraphQL через GitHub CLI.",
                 "58c5f88216": "Лимиты API GitHub",
-                "6da1858354": "осталось · сброс через",
-                "f42790d150": "из",
                 "01f7323e58": "GraphQL API",
                 "1daf0f22a9": "GraphQL",
                 "1f2f28a4de": "Search API",
                 "c377a4f06a": "Поиск",
                 "c392c749a6": "REST API",
                 "bb227706a6": "REST",
-                "budget_scope_prefix": "Область действия лимита"
+                "budget_scope_prefix": "Область действия лимита",
+                "remainingOfLimitResetsIn": "Осталось {{remaining}} из {{limit}} · сброс через {{reset}}"
               }
             }
           }
@@ -3132,7 +3165,29 @@
         "CommentReactions": {
           "addReaction": "Добавить реакцию",
           "removeNamedReaction": "Убрать реакцию «{{value0}}»",
-          "addNamedReaction": "Добавить реакцию «{{value0}}»"
+          "addNamedReaction": "Добавить реакцию «{{value0}}»",
+          "reaction": {
+            "thumbsUp": "палец вверх",
+            "thumbsDown": "палец вниз",
+            "laugh": "смех",
+            "confused": "замешательство",
+            "heart": "сердце",
+            "hooray": "ура",
+            "rocket": "ракета",
+            "eyes": "глаза"
+          }
+        },
+        "CommentCodeContext": {
+          "showSurroundingCodeBlock": "Показать окружающий блок кода",
+          "showNearbyCodeContext": "Показать соседние строки кода"
+        },
+        "prCheckPresentation": {
+          "successful": "Успешно",
+          "inProgress": "В работе"
+        },
+        "IssueSourceIndicator": {
+          "issueFromRepo": "Задача из <repo/>",
+          "issuesFromRepo": "Задачи из <repo/>"
         }
       },
       "linear": {
@@ -12482,15 +12537,9 @@
       },
       "right": {
         "sidebar": {
-          "BulkActionBar": {
-            "79a9f5f712": "Убрать из индекса (",
-            "ef5f5bd06e": "Добавить в индекс (",
-            "60ed678138": "выбрано"
-          },
           "ChecksPanel": {
             "2ef90c9819": "ИИ-агент запущен для исправления ошибок проверок.",
             "a0181a8d76": "ИИ-агент запущен для разрешения конфликтов.",
-            "34464d00b9": "обновлено",
             "058039787c": "Отмена",
             "2ab7fd4b6d": "Сохранить",
             "dda5924a40": "Для проверок нужна ветка Git и контекст ревью на хостинге",
@@ -12536,7 +12585,8 @@
             "updateReactionFailed": "Не удалось обновить реакцию.",
             "gitlabMoreActions": "Другие действия с MR",
             "gitlabLinkAnother": "Связать другой MR",
-            "abf59262fb": "Перед запуском агента проверьте и отредактируйте полный текст команды."
+            "abf59262fb": "Перед запуском агента проверьте и отредактируйте полный текст команды.",
+            "reviewUpdatedAt": "{{review}} — обновлено {{time}}"
           },
           "CreateHostedReviewComposer": {
             "741ff8a0d2": "Отправить и создать {{value0}}"
@@ -12693,7 +12743,14 @@
             "740aca88ab": "Не удалось просканировать порты рабочего пространства.",
             "5be4f7f727": "Меню порта {{value0}}",
             "1004af16ab": "Копировать {{value0}}",
-            "153d3a8026": "Хост рабочего пространства неизвестен"
+            "153d3a8026": "Хост рабочего пространства неизвестен",
+            "unknownProcess": "Неизвестный процесс",
+            "containerOrForwardedService": "Контейнер или перенаправленный сервис",
+            "unassigned": "Не назначено",
+            "remotePortOutOfRange": "Удалённый порт должен быть в диапазоне 1–65535",
+            "localPortOutOfRange": "Локальный порт должен быть в диапазоне 1–65535",
+            "localPortInUse": "Порт {{port}} уже используется. Выберите другой локальный порт.",
+            "localPortRequiresPrivileges": "Порт {{port}} требует повышенных прав. Используйте локальный порт ≥ 1024."
           },
           "Search": {
             "1abfb25a66": "Введите текст для поиска в файлах",
@@ -12754,7 +12811,6 @@
             "476b77745b": "Изменить базовую ссылку",
             "ed34038d0d": "Обновить сравнение веток",
             "493f963029": "Изменить базовую ссылку",
-            "3278b2767b": "впереди",
             "11b5dd8e41": "Сравнение с",
             "a9bf7c171a": "Не удалось создать коммит",
             "011f9713fc": "Создание коммита заблокировано",
@@ -12797,7 +12853,6 @@
             "574d2f4413": "Удалить заметки",
             "05bb8f4a48": "Отмена",
             "48db37cca9": "Просмотреть всё",
-            "78ce2d37ac": "Отправка в форк",
             "c05fe04839": "Отправка в форк по адресу {{value0}} (не в origin)",
             "c35baf2f1e": "Фильтр файлов…",
             "2fe2a67580": "Другие действия с заметками",
@@ -12805,14 +12860,12 @@
             "cc474e0b8c": "Заметки",
             "e131cd7128": "Управление версиями доступно только для репозиториев Git",
             "c07b236287": "Выберите рабочее пространство для просмотра изменений",
-            "dc5a6465fc": "{{value0}} (например, {{value1}}{{value2}})",
             "a5e5a11090": "Не удалось отменить все изменения — невозможно предварительно убрать файлы из индекса",
             "8a5ba6a988": "Не удалось загрузить различия коммита",
             "fe5bd1a610": "Создание {{value0}}…",
             "812cb992ee": "Открыть на {{value0}}",
             "eef5446523": "{{value0}} №{{value1}} уже открыт",
             "0453ca3a9a": "{{value0}} создан, но Orca пока не смогла обновить сведения о нём.",
-            "f99560ab29": "Не удалось прервать {{value0}}",
             "eae7a1da5f": "Не удалось удалить заметки.",
             "df5040e3c3": "Убрать из индекса",
             "8cde1a2fb0": "Добавить в индекс",
@@ -12840,8 +12893,6 @@
             "aaf1451654": "Создать черновик {{value0}}",
             "26511c22b4": "Создание…",
             "d7ae61269b": "Закоммичено в ветке",
-            "branchFilesChangedVsBaseOne": "Изменён 1 файл относительно {{ref}}",
-            "branchFilesChangedVsBaseOther": "Изменено файлов относительно {{ref}}: {{count}}",
             "48a003c1b1": "Изменения в индексе",
             "d4ef4bafc5": "Изменения",
             "9339382454": "Убрать всё из индекса",
@@ -12851,8 +12902,6 @@
             "72f2bea3f4": "Развернуть заметки",
             "d13edef890": "Свернуть заметки",
             "d6fb1df5fe": "{{value0}} уже открыт",
-            "05838cfdeb": "Конфликт {{value0}}",
-            "d206117f90": "Конфликт {{value0}} ({{value1}})",
             "0b5b8c234c": "Открыть {{value0}} ({{value1}})",
             "d97ef8f221": "строки {{value0}}–{{value1}}",
             "6f8bfa0eb9": "строка {{value0}}",
@@ -12905,10 +12954,6 @@
             "b3c8f1a902": "Фильтр файлов по имени",
             "d4f8c2a901": "Очистить и закрыть фильтр",
             "e8a1c4b203": "относительно",
-            "compareBaseCommitsAheadOne": "На 1 коммит впереди {{ref}}",
-            "compareBaseCommitsAheadOther": "Опережение {{ref}} в коммитах: {{count}}",
-            "compareBaseCommitsBehindOne": "На 1 коммит позади {{ref}}",
-            "compareBaseCommitsBehindOther": "Отставание от {{ref}} в коммитах: {{count}}",
             "4b4a7de138": "Открыть страницу ревью в браузере",
             "createPrIntentCommitBlockedSummary": "Создание коммита заблокировано: {{value0}} Устраните проблему и повторите «Создать PR».",
             "pushRecovery": {
@@ -12943,17 +12988,68 @@
             "conflictCount_other": "{{count}} конфликта",
             "15b7f210d7": "Выберите агента и отредактируйте полный текст команды перед запуском.",
             "901140f47d": "Перед запуском агента проверьте и отредактируйте полный текст команды.",
-            "discardFailedPlural": "Не удалось отменить изменения в файлах: {{count}}",
-            "discardFailedSingular": "Не удалось отменить изменения в {{count}} файле",
-            "noteCountPlural": "Заметки: {{count}}",
-            "noteCountSingular": "{{count}} заметка"
+            "discardFailedSampleMore_one": "{{paths}}, ещё +{{count}}",
+            "discardFailedSampleMore_few": "{{paths}}, ещё +{{count}}",
+            "discardFailedSampleMore_many": "{{paths}}, ещё +{{count}}",
+            "discardFailedSampleMore_other": "{{paths}}, ещё +{{count}}",
+            "discardFailed_one": "Не удалось отменить изменения в {{count}} файле",
+            "discardFailed_few": "Не удалось отменить изменения в {{count}} файлах",
+            "discardFailed_many": "Не удалось отменить изменения в {{count}} файлах",
+            "discardFailed_other": "Не удалось отменить изменения в файлах: {{count}}",
+            "discardFailedWithSample": "{{error}} (например, {{paths}})",
+            "compareBaseCommitsAhead_one": "На {{count}} коммит впереди {{ref}}",
+            "compareBaseCommitsAhead_few": "На {{count}} коммита впереди {{ref}}",
+            "compareBaseCommitsAhead_many": "На {{count}} коммитов впереди {{ref}}",
+            "compareBaseCommitsAhead_other": "На {{count}} коммита впереди {{ref}}",
+            "compareBaseCommitsBehind_one": "На {{count}} коммит позади {{ref}}",
+            "compareBaseCommitsBehind_few": "На {{count}} коммита позади {{ref}}",
+            "compareBaseCommitsBehind_many": "На {{count}} коммитов позади {{ref}}",
+            "compareBaseCommitsBehind_other": "На {{count}} коммита позади {{ref}}",
+            "branchFilesChangedVsBase_one": "Изменён {{count}} файл относительно {{ref}}",
+            "branchFilesChangedVsBase_few": "Изменено {{count}} файла относительно {{ref}}",
+            "branchFilesChangedVsBase_many": "Изменено {{count}} файлов относительно {{ref}}",
+            "branchFilesChangedVsBase_other": "Изменено {{count}} файла относительно {{ref}}",
+            "noteCount_one": "{{count}} заметка",
+            "noteCount_few": "{{count}} заметки",
+            "noteCount_many": "{{count}} заметок",
+            "noteCount_other": "{{count}} заметки",
+            "comparingAgainstRef": "Сравнение с {{ref}}",
+            "commitsAheadShort_one": "на {{count}} впереди",
+            "commitsAheadShort_few": "на {{count}} впереди",
+            "commitsAheadShort_many": "на {{count}} впереди",
+            "commitsAheadShort_other": "на {{count}} впереди",
+            "unresolvedConflictOfKind": "Неразрешённый конфликт ({{kind}})",
+            "unresolvedConflict": "Неразрешённый конфликт",
+            "locallyResolvedConflictOfKind": "Конфликт разрешён локально ({{kind}})",
+            "locallyResolvedConflict": "Конфликт разрешён локально",
+            "pushesToForkTarget": "Отправка в форк {{target}}",
+            "abortRebaseConfirmTitle": "Прервать перебазирование?",
+            "abortMergeConfirmTitle": "Прервать слияние?",
+            "abortRebaseConfirmDescription": "Это отменит текущее перебазирование и может привести к потере результатов разрешения конфликтов, полученных во время этого перебазирования.",
+            "abortMergeConfirmDescription": "Это отменит текущее слияние и может привести к потере результатов разрешения конфликтов, полученных во время этого слияния.",
+            "abortRebaseFailedFallback": "Не удалось прервать перебазирование",
+            "abortMergeFailedFallback": "Не удалось прервать слияние",
+            "abortRebaseFailed": "Не удалось прервать перебазирование",
+            "abortMergeFailed": "Не удалось прервать слияние",
+            "clearNotesFromWorkspace_one": "Удалить {{count}} заметку из этого рабочего пространства?",
+            "clearNotesFromWorkspace_few": "Удалить {{count}} заметки из этого рабочего пространства?",
+            "clearNotesFromWorkspace_many": "Удалить {{count}} заметок из этого рабочего пространства?",
+            "clearNotesFromWorkspace_other": "Удалить {{count}} заметки из этого рабочего пространства?",
+            "clearNotesFromFile_one": "Удалить {{count}} заметку из {{path}}?",
+            "clearNotesFromFile_few": "Удалить {{count}} заметки из {{path}}?",
+            "clearNotesFromFile_many": "Удалить {{count}} заметок из {{path}}?",
+            "clearNotesFromFile_other": "Удалить {{count}} заметки из {{path}}?"
           },
           "SourceControlAgentActionDialog": {
             "8e856842d1": "Не удалось запустить выбранного агента.",
             "c075d00de1": "Не удалось определить подключение рабочего пространства.",
             "38b899cc02": "Все репозитории",
             "808cfe0a3b": "Этот репозиторий",
-            "994cddd1f7": "Не сохранять"
+            "994cddd1f7": "Не сохранять",
+            "agentNotEnabledOrDetected": "{{agent}} не включён или не обнаружен на сервере этого рабочего пространства.",
+            "workspaceConnectionUnresolved": "Не удалось определить подключение рабочего пространства.",
+            "noEnabledAgentsDetected": "На сервере этого рабочего пространства не обнаружено включённых агентов.",
+            "startAgent": "Запустить агента"
           },
           "SourceControlAgentActionDialogForm": {
             "013c9ac04a": "Сохранить для",
@@ -13019,10 +13115,6 @@
                 "cbcc4ab3db": "Показаны первые 100 проверок",
                 "0dca6bfab5": "Открыть сведения о проверке",
                 "991f50c7e4": "Проверки не настроены",
-                "9ad98f2a17": "ожидание",
-                "5e52f4ef7f": "ошибки",
-                "02ca4f9074": "пройдены",
-                "checksUnresolvedChip": "без результата",
                 "checksUnresolvedStripHint": "Эти проверки завершились без итогового результата: успешно или с ошибкой.",
                 "e15a8b77ef": "Для этой проверки нет встроенных сведений.",
                 "dcb3c546fe": "Повторить",
@@ -13041,7 +13133,6 @@
                 "1f2b980522": "Загрузка сведений о проверке…",
                 "0c96cd25e5": "Разрешить",
                 "3a71a6ed0b": "Разрешите конфликты, чтобы проверки и слияние могли завершиться.",
-                "60186d8498": "Операция заблокирована конфликтами",
                 "c16762ac8c": "Ниже показаны последние полученные сведения о проверках и комментариях.",
                 "9d0e7bcefc": "Нет действий с PR, блокирующих слияние",
                 "5856874b59": "Orca будет обновлять проверки, пока эта панель открыта.",
@@ -13066,7 +13157,6 @@
                 "084c516efb": "Скопировать команды",
                 "5dc3af25c0": "Выбрать комментарий",
                 "d7a2f9c401": "Отправить неразрешённые комментарии {{value0}}",
-                "d91f2a6c39": "Отправить ИИ комментарии из очереди: {{value0}}",
                 "a6de3e5a20": "Очистить очередь комментариев",
                 "f8a2c91d04": "Добавить в очередь агента",
                 "b4e8a1c902": "В очереди",
@@ -13097,7 +13187,38 @@
                 "unresolvedChecks_few": "{{count}} непройденные проверки",
                 "unresolvedChecks_many": "{{count}} непройденных проверок",
                 "unresolvedChecks_one": "{{count}} непройденная проверка",
-                "unresolvedChecks_other": "{{count}} непройденной проверки"
+                "unresolvedChecks_other": "{{count}} непройденной проверки",
+                "passingCount_one": "пройдено: {{count}}",
+                "passingCount_few": "пройдено: {{count}}",
+                "passingCount_many": "пройдено: {{count}}",
+                "passingCount_other": "пройдено: {{count}}",
+                "failingCount_one": "с ошибками: {{count}}",
+                "failingCount_few": "с ошибками: {{count}}",
+                "failingCount_many": "с ошибками: {{count}}",
+                "failingCount_other": "с ошибками: {{count}}",
+                "pendingCount_one": "в ожидании: {{count}}",
+                "pendingCount_few": "в ожидании: {{count}}",
+                "pendingCount_many": "в ожидании: {{count}}",
+                "pendingCount_other": "в ожидании: {{count}}",
+                "unresolvedCount_one": "не решено: {{count}}",
+                "unresolvedCount_few": "не решено: {{count}}",
+                "unresolvedCount_many": "не решено: {{count}}",
+                "unresolvedCount_other": "не решено: {{count}}",
+                "sendQueuedCommentsToAi_one": "Отправить ИИ {{count}} комментарий из очереди",
+                "sendQueuedCommentsToAi_few": "Отправить ИИ {{count}} комментария из очереди",
+                "sendQueuedCommentsToAi_many": "Отправить ИИ {{count}} комментариев из очереди",
+                "sendQueuedCommentsToAi_other": "Отправить ИИ {{count}} комментария из очереди",
+                "conflictsBlockThisMr": "Конфликты блокируют этот MR",
+                "conflictsBlockThisPr": "Конфликты блокируют этот PR",
+                "copyComment": "Копировать комментарий",
+                "sendComment": "Отправить",
+                "commentingRequiresGitHubPrTarget": "Для комментирования нужен целевой репозиторий PR на GitHub.",
+                "selectWorkspaceBeforeAiAction": "Выберите рабочее пространство перед запуском действия ИИ.",
+                "operation": {
+                  "rebase": "Перебазирование",
+                  "merge": "Слияние",
+                  "cherryPick": "Cherry-pick"
+                }
               },
               "empty": {
                 "state": {
@@ -13558,8 +13679,10 @@
               },
               "compare": {
                 "summary": {
-                  "commitsAheadPlural": "Коммитов впереди {{ref}}: {{count}}",
-                  "commitsAheadSingular": "На {{count}} коммит впереди {{ref}}"
+                  "commitsAhead_one": "На {{count}} коммит впереди {{ref}}",
+                  "commitsAhead_few": "На {{count}} коммита впереди {{ref}}",
+                  "commitsAhead_many": "На {{count}} коммитов впереди {{ref}}",
+                  "commitsAhead_other": "На {{count}} коммита впереди {{ref}}"
                 }
               }
             }
@@ -13597,10 +13720,6 @@
             "32cd9fd991": "Не удалось открыть цель символической ссылки",
             "folderLinksOutsideProject": "Эта папка ссылается за пределы проекта, поэтому её нельзя открыть здесь."
           },
-          "useFileExplorerImport": {
-            "25919b2050": "Пропущено: {{value0}} {{value1}}.",
-            "132fd0e1e9": "Не удалось импортировать: {{value0}} {{value1}}."
-          },
           "useFileExplorerKeys": {
             "8adb953095": "Не удалось выполнить операцию"
           },
@@ -13637,7 +13756,6 @@
             "refreshSessionHistory": "Обновить историю сессий",
             "searchSessions": "Поиск сессий",
             "clearSearch": "Очистить поиск",
-            "transcriptsSkipped": "Пропущено историй: {{count}}",
             "noAgentSessionsFound": "Сессии агентов не найдены",
             "noSessionsMatchFilters": "Нет сессий, подходящих под выбранные фильтры",
             "noAgentsSelected": "Агенты не выбраны",
@@ -13656,7 +13774,11 @@
             "resumeInChatFailed": "Не удалось продолжить сессию в новом чате.",
             "resumeInNewCliUnavailable": "Эту сессию нельзя открыть в CLI.",
             "resumeInNewCliHostTooOld": "Обновите Orca на сервере этого чата, чтобы продолжить его в новом CLI.",
-            "folderWorkspaceUnavailable": "Рабочее пространство папки больше недоступно."
+            "folderWorkspaceUnavailable": "Рабочее пространство папки больше недоступно.",
+            "transcriptsSkippedCount_one": "Пропущена {{count}} история",
+            "transcriptsSkippedCount_few": "Пропущено {{count}} истории",
+            "transcriptsSkippedCount_many": "Пропущено {{count}} историй",
+            "transcriptsSkippedCount_other": "Пропущено {{count}} истории"
           },
           "AiVaultPanelControls": {
             "scanningSessions": "Сканирование сессий",
@@ -13687,11 +13809,8 @@
             "latestTurns": "Последние сообщения",
             "noPreviewAvailable": "Предпросмотр чата недоступен",
             "conversationNotSaved": "Переписка не сохранена",
-            "recoverableEmptyDetail": "В этой сессии нет сохранённой переписки, но остались элементы для восстановления: {{value0}}.",
             "recoverableEmptyOpenLogHint": "Откройте журнал, чтобы восстановить их.",
             "emptyConversationDetail": "В этой сессии нет сохранённой переписки; продолжить её нельзя.",
-            "queuedMessages": "Сообщений в очереди: {{value0}}",
-            "subagentTranscripts": "Историй субагентов: {{value0}}",
             "resumeInWorktree": "Продолжить в рабочем дереве",
             "viewLog": "Открыть журнал",
             "unknownTime": "Время неизвестно",
@@ -13720,7 +13839,19 @@
             "noFirstPromptAvailable": "Первый запрос недоступен",
             "loadingFirstPrompt": "Загрузка первого запроса…",
             "folder": "Папка",
-            "resumeInFolder": "Продолжить в папке"
+            "resumeInFolder": "Продолжить в папке",
+            "recoverableEmptyDetailCount_one": "В этой сессии нет сохранённой переписки, но сохранился {{count}} элемент для восстановления.",
+            "recoverableEmptyDetailCount_few": "В этой сессии нет сохранённой переписки, но сохранилось {{count}} элемента для восстановления.",
+            "recoverableEmptyDetailCount_many": "В этой сессии нет сохранённой переписки, но сохранилось {{count}} элементов для восстановления.",
+            "recoverableEmptyDetailCount_other": "В этой сессии нет сохранённой переписки, но сохранилось {{count}} элемента для восстановления.",
+            "queuedMessageCount_one": "{{count}} сообщение в очереди",
+            "queuedMessageCount_few": "{{count}} сообщения в очереди",
+            "queuedMessageCount_many": "{{count}} сообщений в очереди",
+            "queuedMessageCount_other": "{{count}} сообщения в очереди",
+            "subagentTranscriptCount_one": "{{count}} история субагента",
+            "subagentTranscriptCount_few": "{{count}} истории субагентов",
+            "subagentTranscriptCount_many": "{{count}} историй субагентов",
+            "subagentTranscriptCount_other": "{{count}} истории субагентов"
           },
           "AiVaultSessionRow": {
             "noPreviewAvailable": "Предпросмотр разговора недоступен",
@@ -13854,26 +13985,36 @@
                 "confirmation": {
                   "84f6f5b9eb": "Включены: {{numbers}}. ",
                   "541984b2eb": "Добавить в очередь по №{{pr}} включительно?",
-                  "4809f55cdb": "{{included}}GitHub добавит в очередь слияния PR: {{count}}. Очередь выбирает способ слияния и может выполнять его отдельными группами.",
-                  "be8f2621be": "{{included}}GitHub добавит {{count}} PR в очередь слияния вместе. Очередь выбирает способ слияния и может сливать их отдельными группами.",
-                  "92ca033e72": "Добавить PR в очередь ({{count}})",
-                  "478a527b15": "Добавить PR в очередь ({{count}})",
                   "1feef35ca4": "Слить по №{{pr}} включительно?",
-                  "c3e036c99f": "{{included}}GitHub выполнит атомарное слияние PR ({{count}}) способом {{method}}. Если слияние невозможно, не будет слит ни один PR.",
-                  "369aba4b32": "{{included}}GitHub выполнит атомарное слияние PR ({{count}}) способом {{method}}. Если хотя бы один PR нельзя слить, не будет слит ни один.",
-                  "493c78f521": "Слить PR ({{count}})",
-                  "eb7051d268": "Слить PR ({{count}})"
+                  "queueDescription_one": "{{included}}GitHub добавит {{count}} пул-реквест в очередь слияния одним действием. Очередь выбирает способ слияния и может выполнять его отдельными группами.",
+                  "queueDescription_few": "{{included}}GitHub добавит {{count}} пул-реквеста в очередь слияния вместе. Очередь выбирает способ слияния и может сливать их отдельными группами.",
+                  "queueDescription_many": "{{included}}GitHub добавит {{count}} пул-реквестов в очередь слияния вместе. Очередь выбирает способ слияния и может сливать их отдельными группами.",
+                  "queueDescription_other": "{{included}}GitHub добавит {{count}} пул-реквеста в очередь слияния вместе. Очередь выбирает способ слияния и может сливать их отдельными группами.",
+                  "queueConfirm_one": "Добавить {{count}} PR в очередь",
+                  "queueConfirm_few": "Добавить {{count}} PR в очередь",
+                  "queueConfirm_many": "Добавить {{count}} PR в очередь",
+                  "queueConfirm_other": "Добавить {{count}} PR в очередь",
+                  "mergeDescription_one": "{{included}}GitHub атомарно сольёт {{count}} пул-реквест способом {{method}}. Если слияние невозможно, ничего не будет слито.",
+                  "mergeDescription_few": "{{included}}GitHub атомарно сольёт {{count}} пул-реквеста способом {{method}}. Если хотя бы один нельзя слить, ни один не будет слит.",
+                  "mergeDescription_many": "{{included}}GitHub атомарно сольёт {{count}} пул-реквестов способом {{method}}. Если хотя бы один нельзя слить, ни один не будет слит.",
+                  "mergeDescription_other": "{{included}}GitHub атомарно сольёт {{count}} пул-реквеста способом {{method}}. Если хотя бы один нельзя слить, ни один не будет слит.",
+                  "mergeConfirm_one": "Слить {{count}} PR",
+                  "mergeConfirm_few": "Слить {{count}} PR",
+                  "mergeConfirm_many": "Слить {{count}} PR",
+                  "mergeConfirm_other": "Слить {{count}} PR"
                 },
                 "merge": {
-                  "55ae29b907": "Слить по №{{pr}} включительно · PR: {{count}}",
-                  "b8446f6ec2": "Слить по №{{pr}} включительно · PR: {{count}}",
                   "189d0ec614": "№{{pr}} ещё в черновике.",
                   "640fb50d9c": "№{{pr}} закрыт.",
                   "46ffcbda75": "У №{{pr}} есть конфликты слияния.",
                   "6dabefd63e": "В №{{pr}} запрошены изменения.",
                   "2bb21fc326": "Для PR №{{pr}} ещё требуется одобрение.",
                   "c23faf74df": "№{{pr}} нужно обновить.",
-                  "f561e80968": "№{{pr}} заблокирован."
+                  "f561e80968": "№{{pr}} заблокирован.",
+                  "mergeThroughLabel_one": "Слить по #{{pr}} включительно · {{count}} PR",
+                  "mergeThroughLabel_few": "Слить по #{{pr}} включительно · {{count}} PR",
+                  "mergeThroughLabel_many": "Слить по #{{pr}} включительно · {{count}} PR",
+                  "mergeThroughLabel_other": "Слить по #{{pr}} включительно · {{count}} PR"
                 }
               }
             }
@@ -13930,7 +14071,6 @@
             "sourceActionsUnavailable": "Источник истории недоступен."
           },
           "AiVaultScanProgressStrip": {
-            "agentChecked": "{{agent}}: проверено записей истории — {{settled}} из {{total}}",
             "fileCount_one": "{{value0}} файл",
             "fileCount_few": "{{value0}} файла",
             "fileCount_many": "{{value0}} файлов",
@@ -13941,7 +14081,11 @@
             "databaseCount_other": "{{value0}} базы данных",
             "scanning": "Сканирование ({{value0}})",
             "checking": "Проверка ({{value0}})",
-            "scanned": "Просканировано ({{value0}})"
+            "scanned": "Просканировано ({{value0}})",
+            "agentCheckedCount_one": "{{agent}}: проверено {{settled}} из {{total}} возможной записи истории",
+            "agentCheckedCount_few": "{{agent}}: проверено {{settled}} из {{total}} возможных записей истории",
+            "agentCheckedCount_many": "{{agent}}: проверено {{settled}} из {{total}} возможных записей истории",
+            "agentCheckedCount_other": "{{agent}}: проверено {{settled}} из {{total}} возможной записи истории"
           },
           "run": {
             "source": {
@@ -13970,6 +14114,36 @@
                 }
               }
             }
+          },
+          "BulkActionBar": {
+            "selectedCount_one": "выбрано: {{count}}",
+            "selectedCount_few": "выбрано: {{count}}",
+            "selectedCount_many": "выбрано: {{count}}",
+            "selectedCount_other": "выбрано: {{count}}",
+            "stageCount": "Добавить в индекс ({{count}})",
+            "unstageCount": "Убрать из индекса ({{count}})"
+          },
+          "useFileExplorerImport": {
+            "importFailedCount_one": "Не удалось импортировать {{count}} файл.",
+            "importFailedCount_few": "Не удалось импортировать {{count}} файла.",
+            "importFailedCount_many": "Не удалось импортировать {{count}} файлов.",
+            "importFailedCount_other": "Не удалось импортировать {{count}} файла.",
+            "importSkippedCount_one": "Пропущен {{count}} файл.",
+            "importSkippedCount_few": "Пропущено {{count}} файла.",
+            "importSkippedCount_many": "Пропущено {{count}} файлов.",
+            "importSkippedCount_other": "Пропущено {{count}} файла.",
+            "importFailed": "Не удалось импортировать файлы."
+          },
+          "fileExplorerMultiDrag": {
+            "moreItems_one": "ещё +{{count}}",
+            "moreItems_few": "ещё +{{count}}",
+            "moreItems_many": "ещё +{{count}}",
+            "moreItems_other": "ещё +{{count}}"
+          },
+          "CreatePullRequest": {
+            "createInProgress": "Создание PR...",
+            "workspaceHostUnresolved": "Не удалось определить сервер рабочего пространства. Обновите рабочее пространство и повторите попытку.",
+            "branchDiscoveryFailed": "Не удалось обнаружить ветки."
           }
         }
       },
@@ -15827,7 +16001,9 @@
             "6978871a3d": "Открыть",
             "cce596969e": "Удалить заметку",
             "cad3384faa": "Изменить заметку",
-            "508ee678a5": "Открыть в браузере"
+            "508ee678a5": "Открыть в браузере",
+            "noteAuthorFallback": "Заметка",
+            "sentMeta": "отправлено"
           },
           "DiffCommentPopover": {
             "2b3ce6d394": "Отмена",
@@ -15840,6 +16016,9 @@
           },
           "useDiffCommentDecorator": {
             "995fa28b50": "Эта заметка"
+          },
+          "diffCommentZoneCard": {
+            "noteAlreadySent": "Заметка уже отправлена"
           }
         }
       },
@@ -17022,10 +17201,12 @@
       "rightSidebar": {
         "FolderWorkspaceWorktreesPanel": {
           "unavailable": "Рабочие пространства показаны только для пространств на основе папок.",
-          "countOne": "Прикреплено 1 рабочее дерево",
-          "countMany": "Прикреплено рабочих деревьев: {{value0}}",
           "emptyTitle": "Прикреплённых рабочих деревьев пока нет",
-          "emptyCopy": "Здесь появятся рабочие деревья, созданные из этого рабочего пространства."
+          "emptyCopy": "Здесь появятся рабочие деревья, созданные из этого рабочего пространства.",
+          "attachedCount_one": "{{count}} прикреплённое рабочее дерево",
+          "attachedCount_few": "{{count}} прикреплённых рабочих дерева",
+          "attachedCount_many": "{{count}} прикреплённых рабочих деревьев",
+          "attachedCount_other": "{{count}} прикреплённого рабочего дерева"
         },
         "FolderWorkspacePrChecksPanel": {
           "unavailable": "Проверки PR показаны только для рабочих пространств на основе папок.",
@@ -17037,12 +17218,18 @@
           "hideDetails": "Скрыть сведения о проверках PR для {{value0}}",
           "reviewChecks": "Просмотреть проверки",
           "allChecksPassing": "все проверки пройдены",
-          "oneWorktree": "1 рабочее дерево",
-          "worktreeCount": "Рабочих деревьев: {{value0}}",
-          "oneFailing": "С ошибкой: 1",
-          "failingCount": "С ошибками: {{value0}}",
-          "onePending": "Ожидает: 1",
-          "pendingCount": "Ожидают: {{value0}}"
+          "worktreeCountLabel_one": "{{count}} рабочее дерево",
+          "worktreeCountLabel_few": "{{count}} рабочих дерева",
+          "worktreeCountLabel_many": "{{count}} рабочих деревьев",
+          "worktreeCountLabel_other": "{{count}} рабочего дерева",
+          "failingCountLabel_one": "с ошибками: {{count}}",
+          "failingCountLabel_few": "с ошибками: {{count}}",
+          "failingCountLabel_many": "с ошибками: {{count}}",
+          "failingCountLabel_other": "с ошибками: {{count}}",
+          "pendingCountLabel_one": "в ожидании: {{count}}",
+          "pendingCountLabel_few": "в ожидании: {{count}}",
+          "pendingCountLabel_many": "в ожидании: {{count}}",
+          "pendingCountLabel_other": "в ожидании: {{count}}"
         },
         "parentPrChecks": {
           "rowSummary": {
@@ -19453,8 +19640,6 @@
   },
   "sessionSearch": {
     "panel": {
-      "resultsOne": "{{count}} результат",
-      "resultsOther": "Результатов: {{count}}",
       "noMatches": "В индексе истории нет подходящих сессий. Измените запрос или область поиска.",
       "loadMore": "Загрузить ещё совпадения",
       "indexedHistory": "Индексированная история",
@@ -19476,11 +19661,29 @@
       "retry": "Повторить попытку",
       "scopeUnknown": "На этом компьютере нет выбранного рабочего пространства или проекта. Выберите область «Все» для поиска во всех его сессиях.",
       "sortSessionsAriaLabel": "Сортировка сессий: {{value0}}",
-      "sessionsOne": "{{count}} сессия",
-      "sessionsOther": "Сессий: {{count}}",
-      "sessionsOfLoaded": "Сессий: {{value0}} из {{value1}}",
       "showMoreSessions": "Показать ещё сессии",
-      "loadingMoreSessions": "Загрузка других сессий…"
+      "loadingMoreSessions": "Загрузка других сессий…",
+      "resultCount_one": "{{count}} результат",
+      "resultCount_few": "{{count}} результата",
+      "resultCount_many": "{{count}} результатов",
+      "resultCount_other": "{{count}} результата",
+      "sessionCount_one": "{{count}} сессия",
+      "sessionCount_few": "{{count}} сессии",
+      "sessionCount_many": "{{count}} сессий",
+      "sessionCount_other": "{{count}} сессии",
+      "sessionsShownOfLoaded_one": "{{shown}} из {{count}} сессии",
+      "sessionsShownOfLoaded_few": "{{shown}} из {{count}} сессий",
+      "sessionsShownOfLoaded_many": "{{shown}} из {{count}} сессий",
+      "sessionsShownOfLoaded_other": "{{shown}} из {{count}} сессии",
+      "hostSkipReason": {
+        "indexChanged": "индекс изменился",
+        "searchOff": "поиск отключён",
+        "notReady": "не готов",
+        "unavailable": "недоступен",
+        "unreachable": "нет соединения",
+        "scopeNotFound": "область поиска там не найдена",
+        "agentNotSupported": "агент не поддерживается"
+      }
     }
   },
   "sessionHistory": {
@@ -19943,11 +20146,14 @@
       "requestInvalid": "Недопустимый запрос — {{detail}}",
       "schemaDriftDetail": "Не удалось прочитать это представление проекта: {{detail}}.",
       "scopeMissing": "Для доступа к проекту GitHub нужны дополнительные области доступа. Выполните `{{command}}`.",
-      "tooLarge": "В этом представлении слишком много элементов для отображения в Orca: {{itemCount}}. Сузьте фильтр представления на GitHub.",
       "tooLargeUnknownCount": "В этом представлении слишком много элементов для отображения в Orca. Сузьте фильтр представления на GitHub.",
       "unexpectedRestResponse": "Неожиданный ответ REST: {{detail}}",
       "updatesRequired": "Необходимо указать изменения.",
-      "viewNotFound": "Не удалось найти выбранное представление."
+      "viewNotFound": "Не удалось найти выбранное представление.",
+      "tooLargeCount_one": "В этом представлении {{count}} элемент — слишком много для отображения в Orca. Сузьте фильтр представления на GitHub.",
+      "tooLargeCount_few": "В этом представлении {{count}} элемента — слишком много для отображения в Orca. Сузьте фильтр представления на GitHub.",
+      "tooLargeCount_many": "В этом представлении {{count}} элементов — слишком много для отображения в Orca. Сузьте фильтр представления на GitHub.",
+      "tooLargeCount_other": "В этом представлении {{count}} элемента — слишком много для отображения в Orca. Сузьте фильтр представления на GitHub."
     },
     "authHelp": {
       "accessDeniedDetail": "Ваш токен имеет необходимые области доступа, но GitHub всё равно отказал в доступе. Если проект находится в организации с SAML SSO, разрешите использование этого токена в организации в разделе «Настройки → Настройки разработчика → Персональные токены доступа → Настроить SSO».",

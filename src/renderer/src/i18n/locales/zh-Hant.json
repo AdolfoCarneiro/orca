@@ -1715,9 +1715,6 @@
         "3fdf777817": "在 GitHub 上開啟",
         "c43fe79ee0": "複製 GitHub 連結",
         "0caac1a18f": "從 PR 啟動工作區",
-        "8223320f8d": "已更新",
-        "10ef1afb8e": "· 已更新",
-        "55962099bc": "建立了此議題",
         "0ab4664a8b": "從議題啟動工作區",
         "36182aa57f": "啟動新工作區",
         "fe6ff12dc2": "更多議題工作區操作",
@@ -1790,8 +1787,6 @@
         "52b20b56f7": "描述",
         "4d555d3796": "編輯描述",
         "9df4e74bdf": "儲存",
-        "0ae387d8ca": "由",
-        "228e2f59d3": "已解決",
         "a154ec5224": "在 GitHub 上開啟留言",
         "bca8eb39ac": "回覆留言",
         "68cb993d61": "已解決",
@@ -1807,7 +1802,6 @@
         "d43736d09c": "程式碼上下文控制",
         "bd7be7b1fd": "留言 L",
         "db61d76cd5": "正在載入程式碼上下文…",
-        "f2d02cdf8c": "已檢視檔案",
         "1257d1435d": "顯示檔案樹",
         "a341343303": "已新增審查留言。",
         "d1fa2cf888": "缺少 PR 來源分支最新提交的 SHA，無法發表留言。",
@@ -1848,8 +1842,6 @@
         "ec5c4b3ab2": "重新開啟 PR",
         "21860b58d0": "關閉 PR",
         "5932578f51": "合併需要註冊本機存放庫",
-        "e2bf3e41a9": "評論",
-        "28d0d3374f": "討論串",
         "080d071d48": "回覆@{{value0}}",
         "86f809e2ce": "在此審查討論串中回覆",
         "136542c9ba": ":L{{value0}}",
@@ -1879,7 +1871,9 @@
           "from": "從",
           "to": "到",
           "activity": "活動",
-          "noActivity": "暫無活動。"
+          "noActivity": "暫無活動。",
+          "pullRequestReference": "PR #{{number}}",
+          "issueReference": "議題 #{{number}}"
         },
         "checkActionRequiredHint": "需要在 GitHub 上手動操作（例如核准工作流程執行），才能進行合併。",
         "e15a8b77ef": "此檢查沒有可用的行內詳細資訊。",
@@ -1893,8 +1887,13 @@
         "09d67a0f9b": "無法關閉 PR",
         "88809e79db": "無法重新開啟 PR",
         "00f55cc17b": "此 PR 無法存取存放庫。",
-        "reactionCountSingular": "{{count}} 個 {{reaction}} 反應",
-        "reactionCountPlural": "{{count}} 個 {{reaction}} 反應"
+        "reactionCount_other": "{{count}} 個「{{reaction}}」反應",
+        "filesViewed_other": "已檢視 {{viewed}} / {{count}} 個檔案",
+        "updatedRelativeTime": "更新於 {{time}}",
+        "authorOpenedThisIssue": "<author/> 建立了此議題",
+        "middotUpdatedRelativeTime": "· 更新於 {{time}}",
+        "resolvedThreadBy": "{{author}} 發起的已解決討論串",
+        "resolvedCommentBy": "{{author}} 發表的已解決評論"
       },
       "GitLabItemDialog": {
         "65e784c1f1": "重新開啟",
@@ -1950,14 +1949,13 @@
         "f23ea85341": "已解決",
         "6de8ce0cc6": "需要 {{value0}}",
         "22511537d2": "已核准",
-        "00f3bab87b": "，共需 {{value0}}",
         "3a051b8ade": "工作項目",
         "32f8bef818": "無日誌輸出。",
         "4168eb2c51": "解決",
         "commentTooLarge": "評論過長，無法安全提交。",
         "gitlabActionFailed": "GitLab 操作失敗。",
-        "approvalsRemainingSingular": "還需 {{count}} 次核准",
-        "approvalsRemainingPlural": "還需 {{count}} 次核准"
+        "approvalsRemainingOfRequired_other": "共需 {{required}} 次核准，還差 {{count}} 次",
+        "approvalsRemaining_other": "還需 {{count}} 次核准"
       },
       "JiraIssueWorkspace": {
         "b0b92666c9": "評論",
@@ -2268,9 +2266,6 @@
         "778683ec84": "描述",
         "da9aaa8bcf": "編輯描述",
         "4a337ac05f": "儲存",
-        "169a93b29a": "已更新",
-        "3c891789f6": "由",
-        "f4fe47c2bb": "已解決",
         "0ac19bb52e": "在 GitHub 上開啟評論",
         "d6c6679de7": "回覆評論",
         "76b2a0ac5b": "已解決",
@@ -2278,7 +2273,6 @@
         "6885c619e7": "如果沒有存放庫路徑，則無法回覆。",
         "d94810f652": "無法更新描述。",
         "9b4190dc98": "描述已更新。",
-        "89e80af1c7": "已檢視檔案",
         "319cf2d54b": "顯示檔案樹",
         "eff839f438": "已新增審查評論。",
         "d8c3ba91c4": "沒有 PR 最新提交的 SHA 就無法發表評論。",
@@ -2316,8 +2310,6 @@
         "9d5425918e": "重新開啟 PR",
         "96d013ed28": "關閉 PR",
         "eca289e593": "合併需要註冊本機存放庫",
-        "e01e34f5fa": "評論",
-        "345b68254c": "討論串",
         "31a7b202f2": "回覆 @{{value0}}",
         "408e634fbb": "在此審查討論串中回覆",
         "34b9f7c264": ":L{{value0}}",
@@ -2339,7 +2331,18 @@
         "4b8ae7303f": "無法載入差異。",
         "closePullRequestFailed": "無法關閉 PR",
         "reopenPullRequestFailed": "無法重新開啟 PR",
-        "diffLoadTimedOut": "載入此差異逾時。"
+        "diffLoadTimedOut": "載入此差異逾時。",
+        "filesViewed_other": "已檢視 {{viewed}} / {{count}} 個檔案",
+        "updatedRelativeTime": "更新於 {{time}}",
+        "resolvedThreadBy": "{{author}} 發起的已解決討論串",
+        "resolvedCommentBy": "{{author}} 發表的已解決評論",
+        "mentionSource": {
+          "prAuthor": "PR 作者",
+          "issueAuthor": "議題作者",
+          "commenter": "評論者",
+          "participant": "參與者",
+          "teamMember": "團隊成員"
+        }
       },
       "QuickOpen": {
         "1dbd3f59ff": "移動",
@@ -2879,7 +2882,8 @@
               "8f6cb3772f": "滿足要求後自動合併此 PR",
               "def355ff38": "可以合併",
               "e42c5bae67": "GitHub 表示此 PR 可以合併，且檢查已通過",
-              "cbf0113af6": "GitHub 表示此 PR 可以合併"
+              "cbf0113af6": "GitHub 表示此 PR 可以合併",
+              "autoMergeOn": "自動合併已開啟"
             }
           }
         },
@@ -3053,10 +3057,10 @@
           "imageUrlTooLarge": "圖片 URL 過長。"
         },
         "IssueSourceSelector": {
-          "d6aeb2012b": "議題來源：",
           "787c970baf": "議題來源",
           "51d1608920": "origin",
-          "30b2c9df91": "上游"
+          "30b2c9df91": "上游",
+          "showingIssuesFromRepo": "正在顯示來自 <repo/> 的議題"
         },
         "PRFilterDropdowns": {
           "979be3cf6b": "負責人",
@@ -3066,12 +3070,18 @@
           "01f3f3d161": "作者",
           "13b3ac0a84": "狀態",
           "79c54552f7": "篩選條件",
-          "8a2ffbf9b3": "刪除 {{value0}} 篩選條件"
+          "8a2ffbf9b3": "刪除 {{value0}} 篩選條件",
+          "anyState": "任意",
+          "currentUser": "目前使用者"
         },
         "PRFilterPickers": {
-          "fdf387297c": "清除 （",
           "472c12ae03": "清除",
-          "2d1f58eda6": "使用"
+          "pressEnterToUseValue": "按 Enter 使用輸入的值。",
+          "useTypedValue": "使用 <value/>",
+          "clearSelected": "清除（{{count}}）",
+          "loading": "載入中…",
+          "searchTextTooLarge": "搜尋文字過長。",
+          "noMatches": "沒有符合項目"
         },
         "PRFilterSections": {
           "a00830d3f7": "沒有使用者",
@@ -3081,7 +3091,6 @@
           "458ea3602b": "沒有作者",
           "b69fa4fa20": "返回",
           "30ebb6ca44": "清除所有篩選條件",
-          "8177eda37e": "篩選",
           "ea3416d646": "負責人",
           "b1d9fdea08": "標籤",
           "24754c44ad": "作者",
@@ -3093,7 +3102,14 @@
           "2b2f019091": "任意狀態",
           "0fd3249e2e": "已關閉",
           "d78b60b5c2": "開放",
-          "bd162b7d5a": "已合併"
+          "bd162b7d5a": "已合併",
+          "draft": "草稿",
+          "labelCount_other": "{{count}} 個標籤",
+          "allStates": "全部",
+          "filterPullRequests": "篩選 PR",
+          "filterIssues": "篩選議題",
+          "filterOrTypeLogin": "篩選或輸入登入名稱...",
+          "filterLabels": "篩選標籤..."
         },
         "github": {
           "rate": {
@@ -3104,15 +3120,14 @@
                 "d12d3d6f33": "重新整理 GitHub API 預算",
                 "d5e5de9070": "Orca 透過 GitHub CLI 使用 REST、搜尋和 GraphQL。",
                 "58c5f88216": "GitHub API 預算",
-                "6da1858354": "剩餘 · 重設於",
-                "f42790d150": "/",
                 "01f7323e58": "GraphQL API",
                 "1daf0f22a9": "GraphQL",
                 "1f2f28a4de": "搜尋 API",
                 "c377a4f06a": "搜尋",
                 "c392c749a6": "REST API",
                 "bb227706a6": "REST",
-                "budget_scope_prefix": "預算範圍"
+                "budget_scope_prefix": "預算範圍",
+                "remainingOfLimitResetsIn": "剩餘 {{remaining}} / {{limit}} · {{reset}} 後重設"
               }
             }
           }
@@ -3120,7 +3135,29 @@
         "CommentReactions": {
           "addReaction": "新增反應",
           "removeNamedReaction": "移除 {{value0}} 表情回應",
-          "addNamedReaction": "新增 {{value0}} 反應"
+          "addNamedReaction": "新增 {{value0}} 反應",
+          "reaction": {
+            "thumbsUp": "讚",
+            "thumbsDown": "倒讚",
+            "laugh": "大笑",
+            "confused": "困惑",
+            "heart": "愛心",
+            "hooray": "歡呼",
+            "rocket": "火箭",
+            "eyes": "眼睛"
+          }
+        },
+        "CommentCodeContext": {
+          "showSurroundingCodeBlock": "顯示周圍程式碼區塊",
+          "showNearbyCodeContext": "顯示附近程式碼上下文"
+        },
+        "prCheckPresentation": {
+          "successful": "成功",
+          "inProgress": "進行中"
+        },
+        "IssueSourceIndicator": {
+          "issueFromRepo": "來自 <repo/> 的議題",
+          "issuesFromRepo": "來自 <repo/> 的議題"
         }
       },
       "linear": {
@@ -12403,15 +12440,9 @@
       },
       "right": {
         "sidebar": {
-          "BulkActionBar": {
-            "79a9f5f712": "取消暫存（",
-            "ef5f5bd06e": "暫存（",
-            "60ed678138": "已選擇"
-          },
           "ChecksPanel": {
             "2ef90c9819": "已啟動 AI 代理程式處理失敗的檢查。",
             "a0181a8d76": "已啟動 AI 代理程式處理衝突。",
-            "34464d00b9": "已更新",
             "058039787c": "取消",
             "2ab7fd4b6d": "儲存",
             "dda5924a40": "檢查需要 Git 分支和代管審查的上下文資訊",
@@ -12457,7 +12488,8 @@
             "430f1a62d4": "無法在主機上解決選取的討論串。",
             "updateReactionFailed": "無法更新反應。",
             "gitlabMoreActions": "更多 MR 動作",
-            "gitlabLinkAnother": "連結另一個 MR"
+            "gitlabLinkAnother": "連結另一個 MR",
+            "reviewUpdatedAt": "{{review}} 更新於 {{time}}"
           },
           "CreateHostedReviewComposer": {
             "741ff8a0d2": "推送並建立 {{value0}}"
@@ -12614,7 +12646,14 @@
             "740aca88ab": "工作區連接埠掃描失敗。",
             "5be4f7f727": "連接埠 {{value0}} 選單",
             "1004af16ab": "複製 {{value0}}",
-            "153d3a8026": "工作區主機未知"
+            "153d3a8026": "工作區主機未知",
+            "unknownProcess": "未知行程",
+            "containerOrForwardedService": "容器或轉送的服務",
+            "unassigned": "未指派",
+            "remotePortOutOfRange": "遠端連接埠必須在 1–65535 範圍內",
+            "localPortOutOfRange": "本機連接埠必須在 1–65535 範圍內",
+            "localPortInUse": "連接埠 {{port}} 已被使用。請選擇其他本機連接埠。",
+            "localPortRequiresPrivileges": "連接埠 {{port}} 需要提升權限。請使用本機連接埠 ≥ 1024。"
           },
           "Search": {
             "1abfb25a66": "輸入要在檔案中搜尋的內容",
@@ -12671,7 +12710,6 @@
             "476b77745b": "變更基礎參考",
             "ed34038d0d": "重新整理分支比較",
             "493f963029": "變更基準參照",
-            "3278b2767b": "領先",
             "11b5dd8e41": "比較",
             "a9bf7c171a": "提交失敗",
             "011f9713fc": "提交被阻止",
@@ -12716,7 +12754,6 @@
             "574d2f4413": "清除筆記",
             "05bb8f4a48": "取消",
             "48db37cca9": "檢視全部",
-            "78ce2d37ac": "推送到 fork",
             "c05fe04839": "推送到 {{value0}} 的 fork（非 origin）",
             "c35baf2f1e": "篩選檔案…",
             "2fe2a67580": "更多筆記動作",
@@ -12724,14 +12761,12 @@
             "cc474e0b8c": "筆記",
             "e131cd7128": "原始碼控制僅適用於 Git 存放庫",
             "c07b236287": "選擇一個工作區以檢視變更",
-            "dc5a6465fc": "{{value0}}（例如 {{value1}}{{value2}}）",
             "a5e5a11090": "放棄全部變更失敗 — 無法在放棄前取消暫存檔案",
             "8a5ba6a988": "無法載入提交差異",
             "fe5bd1a610": "建立 {{value0}}...",
             "812cb992ee": "開啟於 {{value0}}",
             "eef5446523": "{{value0}} #{{value1}} 已開啟",
             "0453ca3a9a": "{{value0}} 已建立，但 Orca 尚無法重新整理它。",
-            "f99560ab29": "中止 {{value0}} 失敗",
             "eae7a1da5f": "無法清除筆記。",
             "df5040e3c3": "取消暫存",
             "8cde1a2fb0": "暫存",
@@ -12759,8 +12794,6 @@
             "aaf1451654": "建立草稿 {{value0}}",
             "26511c22b4": "建立中...",
             "d7ae61269b": "已在分支上提交",
-            "branchFilesChangedVsBaseOne": "與 {{ref}} 相比，1 個檔案已變更",
-            "branchFilesChangedVsBaseOther": "與 {{ref}} 相比，{{count}} 個檔案已變更",
             "48a003c1b1": "已暫存的變更",
             "d4ef4bafc5": "變更",
             "9339382454": "全部取消暫存",
@@ -12770,8 +12803,6 @@
             "72f2bea3f4": "展開筆記",
             "d13edef890": "摺疊筆記",
             "d6fb1df5fe": "{{value0}} 已開啟",
-            "05838cfdeb": "{{value0}} 衝突",
-            "d206117f90": "{{value0}} 衝突 ({{value1}})",
             "0b5b8c234c": "開啟 {{value0}} ({{value1}})",
             "d97ef8f221": "第 {{value0}}-{{value1}} 行",
             "6f8bfa0eb9": "第 {{value0}} 行",
@@ -12824,10 +12855,6 @@
             "b3c8f1a902": "按檔名篩選",
             "d4f8c2a901": "清除並關閉篩選器",
             "e8a1c4b203": "vs",
-            "compareBaseCommitsAheadOne": "領先 {{ref}} 1 個提交",
-            "compareBaseCommitsAheadOther": "領先 {{ref}} {{count}} 個提交",
-            "compareBaseCommitsBehindOne": "落後 {{ref}} 1 個提交",
-            "compareBaseCommitsBehindOther": "落後 {{ref}} {{count}} 個提交",
             "4b4a7de138": "在瀏覽器中開啟審查頁面",
             "createPrIntentCommitBlockedSummary": "提交被阻止：{{value0}} 修復問題後重試建立 PR。",
             "pushRecovery": {
@@ -12858,17 +12885,41 @@
             "diffCommentNotesCopyFailed": "複製筆記失敗",
             "conflictCount_one": "{{count}} 個衝突",
             "conflictCount_other": "{{count}} 個衝突",
-            "discardFailedSingular": "無法捨棄 {{count}} 個檔案的變更",
-            "discardFailedPlural": "無法捨棄 {{count}} 個檔案的變更",
-            "noteCountSingular": "{{count}} 則筆記",
-            "noteCountPlural": "{{count}} 則筆記"
+            "discardFailedSampleMore_other": "{{paths}}，另有 +{{count}} 個",
+            "discardFailed_other": "無法捨棄 {{count}} 個檔案的變更",
+            "discardFailedWithSample": "{{error}}（例如 {{paths}}）",
+            "compareBaseCommitsAhead_other": "領先 {{ref}} {{count}} 個提交",
+            "compareBaseCommitsBehind_other": "落後 {{ref}} {{count}} 個提交",
+            "branchFilesChangedVsBase_other": "與 {{ref}} 相比，{{count}} 個檔案已變更",
+            "noteCount_other": "{{count}} 則筆記",
+            "comparingAgainstRef": "正在與 {{ref}} 比較",
+            "commitsAheadShort_other": "領先 {{count}} 個",
+            "unresolvedConflictOfKind": "未解決的衝突（{{kind}}）",
+            "unresolvedConflict": "未解決的衝突",
+            "locallyResolvedConflictOfKind": "已在本機解決的衝突（{{kind}}）",
+            "locallyResolvedConflict": "已在本機解決的衝突",
+            "pushesToForkTarget": "推送到 fork {{target}}",
+            "abortRebaseConfirmTitle": "中止變基？",
+            "abortMergeConfirmTitle": "中止合併？",
+            "abortRebaseConfirmDescription": "這將取消正在進行的變基，並可能捨棄此次變基期間的衝突解決結果。",
+            "abortMergeConfirmDescription": "這將取消正在進行的合併，並可能捨棄此次合併期間的衝突解決結果。",
+            "abortRebaseFailedFallback": "無法中止變基",
+            "abortMergeFailedFallback": "無法中止合併",
+            "abortRebaseFailed": "中止變基失敗",
+            "abortMergeFailed": "中止合併失敗",
+            "clearNotesFromWorkspace_other": "清除此工作區中的 {{count}} 則筆記？",
+            "clearNotesFromFile_other": "清除 {{path}} 中的 {{count}} 則筆記？"
           },
           "SourceControlAgentActionDialog": {
             "8e856842d1": "無法啟動選定的代理程式。",
             "c075d00de1": "無法解析工作區連線。",
             "38b899cc02": "所有存放庫",
             "808cfe0a3b": "此存放庫",
-            "994cddd1f7": "不儲存"
+            "994cddd1f7": "不儲存",
+            "agentNotEnabledOrDetected": "{{agent}} 未在此工作區主機上啟用或未被偵測到。",
+            "workspaceConnectionUnresolved": "無法解析工作區連線。",
+            "noEnabledAgentsDetected": "未在此工作區主機上偵測到已啟用的代理程式。",
+            "startAgent": "啟動代理程式"
           },
           "SourceControlAgentActionDialogForm": {
             "013c9ac04a": "儲存範圍",
@@ -12934,10 +12985,6 @@
                 "cbcc4ab3db": "顯示前 100 項檢查",
                 "0dca6bfab5": "開啟檢查詳細資訊",
                 "991f50c7e4": "尚未設定任何檢查",
-                "9ad98f2a17": "待處理",
-                "5e52f4ef7f": "失敗",
-                "02ca4f9074": "通過",
-                "checksUnresolvedChip": "未解決的",
                 "checksUnresolvedStripHint": "這些檢查完成後沒有得出通過或失敗的結論。",
                 "e15a8b77ef": "此檢查沒有可用的行內詳細資訊。",
                 "dcb3c546fe": "重試",
@@ -12956,7 +13003,6 @@
                 "1f2b980522": "正在載入檢查詳細資訊...",
                 "0c96cd25e5": "解決",
                 "3a71a6ed0b": "在檢查和合併完成之前解決衝突。",
-                "60186d8498": "此操作因衝突而受阻",
                 "c16762ac8c": "下方的檢查和評論顯示目前擷取的上下文。",
                 "9d0e7bcefc": "沒有會造成阻礙的 PR 操作",
                 "5856874b59": "當該面板保持開啟狀態時，Orca 將重新整理檢查。",
@@ -12981,7 +13027,6 @@
                 "084c516efb": "複製命令",
                 "5dc3af25c0": "選擇評論",
                 "d7a2f9c401": "傳送未解決的 {{value0}} 評論",
-                "d91f2a6c39": "傳送 {{value0}} 則已排隊評論給 AI",
                 "a6de3e5a20": "清除已排隊評論",
                 "f8a2c91d04": "加入代理程式佇列",
                 "b4e8a1c902": "已加入佇列",
@@ -13004,7 +13049,23 @@
                 "pendingChecks_one": "{{count}} 項檢查待處理",
                 "pendingChecks_other": "{{count}} 項檢查待處理",
                 "unresolvedChecks_one": "{{count}} 項檢查尚未解決",
-                "unresolvedChecks_other": "{{count}} 項檢查尚未解決"
+                "unresolvedChecks_other": "{{count}} 項檢查尚未解決",
+                "passingCount_other": "{{count}} 個通過",
+                "failingCount_other": "{{count}} 個失敗",
+                "pendingCount_other": "{{count}} 個等待中",
+                "unresolvedCount_other": "{{count}} 個未解決",
+                "sendQueuedCommentsToAi_other": "傳送 {{count}} 則佇列中的評論給 AI",
+                "conflictsBlockThisMr": "衝突阻擋了此 MR",
+                "conflictsBlockThisPr": "衝突阻擋了此 PR",
+                "copyComment": "複製評論",
+                "sendComment": "傳送",
+                "commentingRequiresGitHubPrTarget": "發表評論需要指定 GitHub PR 的目標存放庫。",
+                "selectWorkspaceBeforeAiAction": "啟動 AI 操作前請選擇工作區。",
+                "operation": {
+                  "rebase": "變基",
+                  "merge": "合併",
+                  "cherryPick": "挑選"
+                }
               },
               "empty": {
                 "state": {
@@ -13408,12 +13469,6 @@
                   }
                 }
               },
-              "compare": {
-                "summary": {
-                  "commitsAheadSingular": "比 {{ref}} 領先 {{count}} 筆提交",
-                  "commitsAheadPlural": "比 {{ref}} 領先 {{count}} 筆提交"
-                }
-              },
               "conflict": {
                 "status": {
                   "cards": {
@@ -13454,6 +13509,11 @@
                   "0904be2505": "清除訊息以重新產生。",
                   "1ea9ba37aa": "在「設定」->「Git」->「原始碼控制 AI」中選擇一個代理程式。"
                 }
+              },
+              "compare": {
+                "summary": {
+                  "commitsAhead_other": "領先 {{ref}} {{count}} 個提交"
+                }
               }
             }
           },
@@ -13489,10 +13549,6 @@
           "useFileExplorerHandlers": {
             "32cd9fd991": "無法開啟符號連結目標",
             "folderLinksOutsideProject": "此資料夾連結到專案之外，無法在此開啟。"
-          },
-          "useFileExplorerImport": {
-            "25919b2050": "跳過 {{value0}} {{value1}}。",
-            "132fd0e1e9": "無法匯入 {{value0}} {{value1}}。"
           },
           "useFileExplorerKeys": {
             "8adb953095": "操作失敗"
@@ -13530,7 +13586,6 @@
             "refreshSessionHistory": "重新整理工作階段歷史",
             "searchSessions": "搜尋工作階段",
             "clearSearch": "清除搜尋",
-            "transcriptsSkipped": "跳過了 {{count}} 個記錄",
             "noAgentSessionsFound": "未找到代理程式工作階段",
             "noSessionsMatchFilters": "沒有工作階段符合目前篩選條件",
             "noAgentsSelected": "未選擇任何代理程式",
@@ -13549,7 +13604,8 @@
             "resumeInChatFailed": "無法在新聊天中恢復此工作階段。",
             "resumeInNewCliUnavailable": "無法在 CLI 中開啟此工作階段。",
             "resumeInNewCliHostTooOld": "請更新執行此聊天的主機上的 Orca，才能在新的 CLI 中恢復它。",
-            "folderWorkspaceUnavailable": "資料夾工作區不再可用。"
+            "folderWorkspaceUnavailable": "資料夾工作區不再可用。",
+            "transcriptsSkippedCount_other": "已略過 {{count}} 份對話記錄"
           },
           "AiVaultPanelControls": {
             "scanningSessions": "正在掃描工作階段",
@@ -13580,11 +13636,8 @@
             "latestTurns": "最近輪次",
             "noPreviewAvailable": "沒有可用的對話預覽",
             "conversationNotSaved": "對話未儲存",
-            "recoverableEmptyDetail": "此工作階段沒有已儲存的對話，但仍有 {{value0}} 個可恢復項。",
             "recoverableEmptyOpenLogHint": "開啟日誌以恢復它們。",
             "emptyConversationDetail": "此工作階段沒有已儲存的對話，無法恢復。",
-            "queuedMessages": "{{value0}} 則排隊訊息",
-            "subagentTranscripts": "{{value0}} 個子代理程式記錄",
             "resumeInWorktree": "在工作樹中恢復",
             "viewLog": "檢視日誌",
             "unknownTime": "未知時間",
@@ -13613,7 +13666,10 @@
             "noFirstPromptAvailable": "沒有可用的首次提示詞",
             "loadingFirstPrompt": "正在載入首次提示詞…",
             "folder": "資料夾",
-            "resumeInFolder": "在資料夾中恢復"
+            "resumeInFolder": "在資料夾中恢復",
+            "recoverableEmptyDetailCount_other": "此工作階段沒有已儲存的對話，但仍有 {{count}} 個可復原項目。",
+            "queuedMessageCount_other": "{{count}} 則佇列中的訊息",
+            "subagentTranscriptCount_other": "{{count}} 份子代理程式對話記錄"
           },
           "AiVaultSessionRow": {
             "noPreviewAvailable": "沒有可用的對話預覽",
@@ -13747,26 +13803,21 @@
                 "confirmation": {
                   "84f6f5b9eb": "包括：{{numbers}}。",
                   "541984b2eb": "將截至 #{{pr}} 的 PR 加入佇列？",
-                  "4809f55cdb": "{{included}}GitHub 會將 {{count}} PR 一起加入到合併佇列。佇列選擇合併方法，並可能分成不同群組合併。",
-                  "be8f2621be": "{{included}}GitHub 會將 {{count}} PR 一起加入到合併佇列。佇列選擇合併方法，並可能分成不同群組合併。",
-                  "92ca033e72": "將 {{count}} 個 PR 加入佇列",
-                  "478a527b15": "將 {{count}} 個 PR 加入佇列",
                   "1feef35ca4": "合併至 #{{pr}} 為止？",
-                  "c3e036c99f": "{{included}}GitHub 將使用 {{method}} 以原子方式合併 {{count}} PR。如果無法合併，則不會合併任何內容。",
-                  "369aba4b32": "{{included}}GitHub 將使用 {{method}} 以原子方式合併 {{count}} PR。如果有一個無法合併，那就沒有一個會合併。",
-                  "493c78f521": "合併 {{count}} PR",
-                  "eb7051d268": "合併 {{count}} PR"
+                  "queueDescription_other": "{{included}}GitHub 會將 {{count}} 個 PR 一起加入合併佇列。佇列會選擇合併方法，並可能分成不同群組合併。",
+                  "queueConfirm_other": "將 {{count}} 個 PR 加入佇列",
+                  "mergeDescription_other": "{{included}}GitHub 將使用 {{method}} 以原子方式合併 {{count}} 個 PR。如果其中任何一個無法合併，所有 PR 都不會合併。",
+                  "mergeConfirm_other": "合併 {{count}} 個 PR"
                 },
                 "merge": {
-                  "55ae29b907": "合併至 #{{pr}} 為止 · {{count}} PR",
-                  "b8446f6ec2": "合併至 #{{pr}} 為止 · {{count}} PR",
                   "189d0ec614": "#{{pr}} 仍是草稿。",
                   "640fb50d9c": "#{{pr}} 已關閉。",
                   "46ffcbda75": "#{{pr}} 有合併衝突。",
                   "6dabefd63e": "#{{pr}} 已要求變更。",
                   "2bb21fc326": "#{{pr}} 仍需審查核准。",
                   "c23faf74df": "#{{pr}} 必須更新。",
-                  "f561e80968": "#{{pr}} 被阻止。"
+                  "f561e80968": "#{{pr}} 被阻止。",
+                  "mergeThroughLabel_other": "合併至 #{{pr}} 為止（含）· {{count}} 個 PR"
                 }
               }
             }
@@ -13823,14 +13874,14 @@
             "sourceActionsUnavailable": "對話記錄來源不可用。"
           },
           "AiVaultScanProgressStrip": {
-            "agentChecked": "{{agent}}：已檢查 {{settled}} / {{total}} 筆候選歷史紀錄",
             "fileCount_one": "{{value0}} 個檔案",
             "fileCount_other": "{{value0}} 個檔案",
             "databaseCount_one": "{{value0}} 個資料庫",
             "databaseCount_other": "{{value0}} 個資料庫",
             "scanning": "正在掃描 {{value0}}",
             "checking": "正在檢查 {{value0}}",
-            "scanned": "已掃描 {{value0}}"
+            "scanned": "已掃描 {{value0}}",
+            "agentCheckedCount_other": "{{agent}}：已檢查 {{settled}} / {{total}} 筆候選歷史記錄"
           },
           "run": {
             "source": {
@@ -13859,6 +13910,24 @@
                 }
               }
             }
+          },
+          "BulkActionBar": {
+            "selectedCount_other": "已選取 {{count}} 項",
+            "stageCount": "暫存（{{count}}）",
+            "unstageCount": "取消暫存（{{count}}）"
+          },
+          "useFileExplorerImport": {
+            "importFailedCount_other": "無法匯入 {{count}} 個檔案。",
+            "importSkippedCount_other": "已略過 {{count}} 個檔案。",
+            "importFailed": "無法匯入檔案。"
+          },
+          "fileExplorerMultiDrag": {
+            "moreItems_other": "另有 +{{count}} 項"
+          },
+          "CreatePullRequest": {
+            "createInProgress": "正在建立 PR...",
+            "workspaceHostUnresolved": "無法解析工作區主機。請重新整理工作區後再試。",
+            "branchDiscoveryFailed": "分支偵測失敗。"
           }
         }
       },
@@ -15712,7 +15781,9 @@
             "6978871a3d": "開啟",
             "cce596969e": "刪除備註",
             "cad3384faa": "編輯備註",
-            "508ee678a5": "在瀏覽器中開啟"
+            "508ee678a5": "在瀏覽器中開啟",
+            "noteAuthorFallback": "筆記",
+            "sentMeta": "已傳送"
           },
           "DiffCommentPopover": {
             "2b3ce6d394": "取消",
@@ -15725,6 +15796,9 @@
           },
           "useDiffCommentDecorator": {
             "995fa28b50": "此備註"
+          },
+          "diffCommentZoneCard": {
+            "noteAlreadySent": "筆記已傳送"
           }
         }
       },
@@ -16901,10 +16975,9 @@
       "rightSidebar": {
         "FolderWorkspaceWorktreesPanel": {
           "unavailable": "僅在資料夾工作區中顯示工作區。",
-          "countOne": "1 個附加的工作樹",
-          "countMany": "{{value0}} 個附加的工作樹",
           "emptyTitle": "還沒有附加的工作樹",
-          "emptyCopy": "從此工作區建立的工作樹將顯示在這裡。"
+          "emptyCopy": "從此工作區建立的工作樹將顯示在這裡。",
+          "attachedCount_other": "{{count}} 個附加的工作樹"
         },
         "FolderWorkspacePrChecksPanel": {
           "unavailable": "PR 檢查僅在資料夾工作區中顯示。",
@@ -16916,12 +16989,9 @@
           "hideDetails": "隱藏 {{value0}} 的 PR 檢查詳情",
           "reviewChecks": "審查檢查",
           "allChecksPassing": "所有檢查均通過",
-          "oneWorktree": "1 個工作樹",
-          "worktreeCount": "{{value0}} 個工作樹",
-          "oneFailing": "1 個失敗",
-          "failingCount": "{{value0}} 個失敗",
-          "onePending": "1 個等待中",
-          "pendingCount": "{{value0}} 個等待中"
+          "worktreeCountLabel_other": "{{count}} 個工作樹",
+          "failingCountLabel_other": "{{count}} 個失敗",
+          "pendingCountLabel_other": "{{count}} 個等待中"
         },
         "parentPrChecks": {
           "rowSummary": {
@@ -19322,8 +19392,6 @@
   },
   "sessionSearch": {
     "panel": {
-      "resultsOne": "{{count}} 筆結果",
-      "resultsOther": "{{count}} 筆結果",
       "noMatches": "已建立索引的歷史記錄中沒有符合的工作階段。請改用其他查詢或範圍。",
       "loadMore": "載入更多符合項目",
       "indexedHistory": "已建立索引的歷史記錄",
@@ -19345,11 +19413,20 @@
       "retry": "重試",
       "scopeUnknown": "此電腦沒有此工作區或專案。請將搜尋範圍切換為「全部」。",
       "sortSessionsAriaLabel": "排序工作階段：{{value0}}",
-      "sessionsOne": "{{count}} 個工作階段",
-      "sessionsOther": "{{count}} 個工作階段",
-      "sessionsOfLoaded": "顯示 {{value1}} 個工作階段中的 {{value0}} 個",
       "showMoreSessions": "顯示更多工作階段",
-      "loadingMoreSessions": "正在載入更多工作階段…"
+      "loadingMoreSessions": "正在載入更多工作階段…",
+      "resultCount_other": "{{count}} 筆結果",
+      "sessionCount_other": "{{count}} 個工作階段",
+      "sessionsShownOfLoaded_other": "{{shown}} / {{count}} 個工作階段",
+      "hostSkipReason": {
+        "indexChanged": "索引已變更",
+        "searchOff": "搜尋已關閉",
+        "notReady": "尚未就緒",
+        "unavailable": "無法使用",
+        "unreachable": "無法連線",
+        "scopeNotFound": "該主機上找不到搜尋範圍",
+        "agentNotSupported": "不支援此代理程式"
+      }
     }
   },
   "sessionHistory": {
@@ -19832,8 +19909,8 @@
       "rateLimited": "已達 GitHub 速率限制。請稍候幾分鐘再試。",
       "network": "網路錯誤，請檢查連線。",
       "tooLargeUnknownCount": "此檢視的條目過多，無法在 Orca 中呈現。請在 GitHub 上縮小檢視的篩選範圍。",
-      "tooLarge": "此檢視有 {{itemCount}} 個條目，超過 Orca 可呈現的數量。請在 GitHub 上縮小檢視的篩選範圍。",
-      "schemaDriftDetail": "無法讀取此專案檢視：{{detail}}。"
+      "schemaDriftDetail": "無法讀取此專案檢視：{{detail}}。",
+      "tooLargeCount_other": "此檢視有 {{count}} 個項目，超過 Orca 可呈現的數量。請在 GitHub 上縮小檢視的篩選範圍。"
     }
   },
   "projectField": {

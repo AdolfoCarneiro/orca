@@ -1761,9 +1761,6 @@
         "3fdf777817": "Open on GitHub",
         "c43fe79ee0": "Copy GitHub link",
         "0caac1a18f": "Start workspace from PR",
-        "8223320f8d": "updated",
-        "10ef1afb8e": "· updated",
-        "55962099bc": "opened this issue",
         "0ab4664a8b": "Start workspace from issue",
         "36182aa57f": "Start new workspace",
         "fe6ff12dc2": "More issue workspace actions",
@@ -1836,8 +1833,6 @@
         "52b20b56f7": "Description",
         "4d555d3796": "Edit description",
         "9df4e74bdf": "Save",
-        "0ae387d8ca": "by",
-        "228e2f59d3": "Resolved",
         "a154ec5224": "Open comment on GitHub",
         "bca8eb39ac": "Reply to comment",
         "68cb993d61": "resolved",
@@ -1853,7 +1848,6 @@
         "d43736d09c": "Code context controls",
         "bd7be7b1fd": "comment L",
         "db61d76cd5": "Loading code context…",
-        "f2d02cdf8c": "files viewed",
         "1257d1435d": "Show file tree",
         "a341343303": "Review comment added.",
         "d1fa2cf888": "Unable to comment without the PR head SHA.",
@@ -1894,8 +1888,6 @@
         "ec5c4b3ab2": "Reopen PR",
         "21860b58d0": "Close pull request",
         "5932578f51": "Merge requires a registered local repo",
-        "e2bf3e41a9": "comment",
-        "28d0d3374f": "thread",
         "080d071d48": "Reply to @{{value0}}",
         "86f809e2ce": "Reply in this review thread",
         "136542c9ba": ":L{{value0}}",
@@ -1925,7 +1917,9 @@
           "from": "from",
           "to": "to",
           "activity": "Activity",
-          "noActivity": "No activity yet."
+          "noActivity": "No activity yet.",
+          "pullRequestReference": "PR #{{number}}",
+          "issueReference": "issue #{{number}}"
         },
         "checkActionRequiredHint": "Needs a manual action on GitHub (e.g. approving the run) to unblock merging.",
         "e15a8b77ef": "No inline details are available for this check.",
@@ -1939,8 +1933,15 @@
         "09d67a0f9b": "Failed to close pull request",
         "88809e79db": "Failed to reopen pull request",
         "00f55cc17b": "Repository access is unavailable for this pull request.",
-        "reactionCountSingular": "{{count}} {{reaction}} reaction",
-        "reactionCountPlural": "{{count}} {{reaction}} reactions"
+        "reactionCount_one": "{{count}} {{reaction}} reaction",
+        "reactionCount_other": "{{count}} {{reaction}} reactions",
+        "filesViewed_one": "{{viewed}} / {{count}} file viewed",
+        "filesViewed_other": "{{viewed}} / {{count}} files viewed",
+        "updatedRelativeTime": "updated {{time}}",
+        "authorOpenedThisIssue": "<author/> opened this issue",
+        "middotUpdatedRelativeTime": "· updated {{time}}",
+        "resolvedThreadBy": "Resolved thread by {{author}}",
+        "resolvedCommentBy": "Resolved comment by {{author}}"
       },
       "GitLabItemDialog": {
         "65e784c1f1": "Reopen",
@@ -1996,14 +1997,15 @@
         "f23ea85341": "resolved",
         "6de8ce0cc6": "{{value0}} required",
         "22511537d2": "Approved",
-        "00f3bab87b": " of {{value0}} required",
         "3a051b8ade": "Work item",
         "32f8bef818": "No log output.",
         "4168eb2c51": "Resolve",
         "commentTooLarge": "Comment is too large to submit safely.",
         "gitlabActionFailed": "GitLab action failed.",
-        "approvalsRemainingSingular": "{{count}} approval remaining",
-        "approvalsRemainingPlural": "{{count}} approvals remaining"
+        "approvalsRemainingOfRequired_one": "{{count}} approval remaining of {{required}} required",
+        "approvalsRemainingOfRequired_other": "{{count}} approvals remaining of {{required}} required",
+        "approvalsRemaining_one": "{{count}} approval remaining",
+        "approvalsRemaining_other": "{{count}} approvals remaining"
       },
       "JiraIssueWorkspace": {
         "b0b92666c9": "Comment",
@@ -2314,9 +2316,6 @@
         "778683ec84": "Description",
         "da9aaa8bcf": "Edit description",
         "4a337ac05f": "Save",
-        "169a93b29a": "updated",
-        "3c891789f6": "by",
-        "f4fe47c2bb": "Resolved",
         "0ac19bb52e": "Open comment on GitHub",
         "d6c6679de7": "Reply to comment",
         "76b2a0ac5b": "resolved",
@@ -2324,7 +2323,6 @@
         "6885c619e7": "Unable to reply without a repository path.",
         "d94810f652": "Failed to update description.",
         "9b4190dc98": "Description updated.",
-        "89e80af1c7": "files viewed",
         "319cf2d54b": "Show file tree",
         "eff839f438": "Review comment added.",
         "d8c3ba91c4": "Unable to comment without the PR head SHA.",
@@ -2362,8 +2360,6 @@
         "9d5425918e": "Reopen PR",
         "96d013ed28": "Close pull request",
         "eca289e593": "Merge requires a registered local repo",
-        "e01e34f5fa": "comment",
-        "345b68254c": "thread",
         "31a7b202f2": "Reply to @{{value0}}",
         "408e634fbb": "Reply in this review thread",
         "34b9f7c264": ":L{{value0}}",
@@ -2385,7 +2381,19 @@
         "4b8ae7303f": "Failed to load diff.",
         "closePullRequestFailed": "Failed to close pull request",
         "reopenPullRequestFailed": "Failed to reopen pull request",
-        "diffLoadTimedOut": "Timed out loading this diff."
+        "diffLoadTimedOut": "Timed out loading this diff.",
+        "filesViewed_one": "{{viewed}} / {{count}} file viewed",
+        "filesViewed_other": "{{viewed}} / {{count}} files viewed",
+        "updatedRelativeTime": "updated {{time}}",
+        "resolvedThreadBy": "Resolved thread by {{author}}",
+        "resolvedCommentBy": "Resolved comment by {{author}}",
+        "mentionSource": {
+          "prAuthor": "PR author",
+          "issueAuthor": "Issue author",
+          "commenter": "Commenter",
+          "participant": "Participant",
+          "teamMember": "Team member"
+        }
       },
       "QuickOpen": {
         "1dbd3f59ff": "Move",
@@ -2925,7 +2933,8 @@
               "8f6cb3772f": "Merge this pull request automatically once requirements are met",
               "def355ff38": "Able to merge",
               "e42c5bae67": "GitHub says this PR can merge and checks passed",
-              "cbf0113af6": "GitHub says this PR can merge"
+              "cbf0113af6": "GitHub says this PR can merge",
+              "autoMergeOn": "Auto-merge on"
             }
           }
         },
@@ -3099,10 +3108,10 @@
           "imageUrlTooLarge": "Image URL is too large."
         },
         "IssueSourceSelector": {
-          "d6aeb2012b": "Showing issues from",
           "787c970baf": "Issue source",
           "51d1608920": "Origin",
-          "30b2c9df91": "Upstream"
+          "30b2c9df91": "Upstream",
+          "showingIssuesFromRepo": "Showing issues from <repo/>"
         },
         "PRFilterDropdowns": {
           "979be3cf6b": "Assignee",
@@ -3112,12 +3121,18 @@
           "01f3f3d161": "Author",
           "13b3ac0a84": "Status",
           "79c54552f7": "Filters",
-          "8a2ffbf9b3": "Remove {{value0}} filter"
+          "8a2ffbf9b3": "Remove {{value0}} filter",
+          "anyState": "Any",
+          "currentUser": "Current user"
         },
         "PRFilterPickers": {
-          "fdf387297c": "Clear (",
           "472c12ae03": "Clear",
-          "2d1f58eda6": "Use"
+          "pressEnterToUseValue": "Press Enter to use the typed value.",
+          "useTypedValue": "Use <value/>",
+          "clearSelected": "Clear ({{count}})",
+          "loading": "Loading…",
+          "searchTextTooLarge": "Search text is too large.",
+          "noMatches": "No matches"
         },
         "PRFilterSections": {
           "a00830d3f7": "No users",
@@ -3127,7 +3142,6 @@
           "458ea3602b": "No authors",
           "b69fa4fa20": "Back",
           "30ebb6ca44": "Clear all filters",
-          "8177eda37e": "Filter",
           "ea3416d646": "Assignee",
           "b1d9fdea08": "Label",
           "24754c44ad": "Author",
@@ -3139,7 +3153,15 @@
           "2b2f019091": "Any state",
           "0fd3249e2e": "Closed",
           "d78b60b5c2": "Open",
-          "bd162b7d5a": "Merged"
+          "bd162b7d5a": "Merged",
+          "draft": "Draft",
+          "labelCount_one": "{{count}} label",
+          "labelCount_other": "{{count}} labels",
+          "allStates": "All",
+          "filterPullRequests": "Filter pull requests",
+          "filterIssues": "Filter issues",
+          "filterOrTypeLogin": "Filter or type a login...",
+          "filterLabels": "Filter labels..."
         },
         "github": {
           "rate": {
@@ -3150,15 +3172,14 @@
                 "d12d3d6f33": "Refresh GitHub API budget",
                 "d5e5de9070": "Orca uses REST, Search, and GraphQL through the GitHub CLI.",
                 "58c5f88216": "GitHub API Budget",
-                "6da1858354": "left · resets in",
-                "f42790d150": "of",
                 "01f7323e58": "GraphQL API",
                 "1daf0f22a9": "GraphQL",
                 "1f2f28a4de": "Search API",
                 "c377a4f06a": "Search",
                 "c392c749a6": "REST API",
                 "bb227706a6": "REST",
-                "budget_scope_prefix": "Budget scope"
+                "budget_scope_prefix": "Budget scope",
+                "remainingOfLimitResetsIn": "{{remaining}} of {{limit}} left · resets in {{reset}}"
               }
             }
           }
@@ -3166,7 +3187,29 @@
         "CommentReactions": {
           "addReaction": "Add reaction",
           "removeNamedReaction": "Remove {{value0}} reaction",
-          "addNamedReaction": "Add {{value0}} reaction"
+          "addNamedReaction": "Add {{value0}} reaction",
+          "reaction": {
+            "thumbsUp": "thumbs up",
+            "thumbsDown": "thumbs down",
+            "laugh": "laugh",
+            "confused": "confused",
+            "heart": "heart",
+            "hooray": "hooray",
+            "rocket": "rocket",
+            "eyes": "eyes"
+          }
+        },
+        "CommentCodeContext": {
+          "showSurroundingCodeBlock": "Show surrounding code block",
+          "showNearbyCodeContext": "Show nearby code context"
+        },
+        "prCheckPresentation": {
+          "successful": "Successful",
+          "inProgress": "In progress"
+        },
+        "IssueSourceIndicator": {
+          "issueFromRepo": "Issue from <repo/>",
+          "issuesFromRepo": "Issues from <repo/>"
         }
       },
       "linear": {
@@ -12472,14 +12515,14 @@
       "right": {
         "sidebar": {
           "BulkActionBar": {
-            "79a9f5f712": "Unstage (",
-            "ef5f5bd06e": "Stage (",
-            "60ed678138": "selected"
+            "selectedCount_one": "{{count}} selected",
+            "selectedCount_other": "{{count}} selected",
+            "stageCount": "Stage ({{count}})",
+            "unstageCount": "Unstage ({{count}})"
           },
           "ChecksPanel": {
             "2ef90c9819": "Started an AI agent for the broken checks.",
             "a0181a8d76": "Started an AI agent for the conflicts.",
-            "34464d00b9": "updated",
             "058039787c": "Cancel",
             "2ab7fd4b6d": "Save",
             "dda5924a40": "Checks require a Git branch and hosted review context",
@@ -12525,7 +12568,8 @@
             "430f1a62d4": "Could not resolve the selected thread on the host.",
             "updateReactionFailed": "Failed to update reaction.",
             "gitlabMoreActions": "More MR actions",
-            "gitlabLinkAnother": "Link another MR"
+            "gitlabLinkAnother": "Link another MR",
+            "reviewUpdatedAt": "{{review}} updated {{time}}"
           },
           "CreateHostedReviewComposer": {
             "741ff8a0d2": "Push & Create {{value0}}"
@@ -12682,7 +12726,14 @@
             "740aca88ab": "Workspace port scan failed.",
             "5be4f7f727": "Port {{value0}} menu",
             "1004af16ab": "Copy {{value0}}",
-            "153d3a8026": "Workspace host unknown"
+            "153d3a8026": "Workspace host unknown",
+            "unknownProcess": "Unknown process",
+            "containerOrForwardedService": "Container or forwarded service",
+            "unassigned": "Unassigned",
+            "remotePortOutOfRange": "Remote port must be 1–65535",
+            "localPortOutOfRange": "Local port must be 1–65535",
+            "localPortInUse": "Port {{port}} is already in use. Choose a different local port.",
+            "localPortRequiresPrivileges": "Port {{port}} requires elevated privileges. Use a local port ≥ 1024."
           },
           "Search": {
             "1abfb25a66": "Type to search in files",
@@ -12739,7 +12790,6 @@
             "476b77745b": "Change Base Ref",
             "ed34038d0d": "Refresh branch compare",
             "493f963029": "Change base ref",
-            "3278b2767b": "ahead",
             "11b5dd8e41": "Comparing against",
             "a9bf7c171a": "Commit Failed",
             "011f9713fc": "Commit blocked",
@@ -12784,7 +12834,6 @@
             "574d2f4413": "Clear Notes",
             "05bb8f4a48": "Cancel",
             "48db37cca9": "View all",
-            "78ce2d37ac": "Pushes to fork",
             "c05fe04839": "Pushes to the fork at {{value0}} (not origin)",
             "c35baf2f1e": "Filter files…",
             "2fe2a67580": "More note actions",
@@ -12792,14 +12841,12 @@
             "cc474e0b8c": "Notes",
             "e131cd7128": "Source Control is only available for Git repositories",
             "c07b236287": "Select a workspace to view changes",
-            "dc5a6465fc": "{{value0}} (e.g. {{value1}}{{value2}})",
             "a5e5a11090": "Discard all failed — unable to unstage files before discard",
             "8a5ba6a988": "Failed to load commit diff",
             "fe5bd1a610": "Creating {{value0}}...",
             "812cb992ee": "Open on {{value0}}",
             "eef5446523": "{{value0}} #{{value1}} is already open",
             "0453ca3a9a": "{{value0}} created, but Orca could not refresh it yet.",
-            "f99560ab29": "Abort {{value0}} failed",
             "eae7a1da5f": "Failed to clear notes.",
             "df5040e3c3": "Unstage",
             "8cde1a2fb0": "Stage",
@@ -12827,8 +12874,6 @@
             "aaf1451654": "Create draft {{value0}}",
             "26511c22b4": "Creating...",
             "d7ae61269b": "Committed on Branch",
-            "branchFilesChangedVsBaseOne": "1 file changed vs {{ref}}",
-            "branchFilesChangedVsBaseOther": "{{count}} files changed vs {{ref}}",
             "48a003c1b1": "Staged Changes",
             "d4ef4bafc5": "Changes",
             "9339382454": "Unstage all",
@@ -12838,8 +12883,6 @@
             "72f2bea3f4": "Expand notes",
             "d13edef890": "Collapse notes",
             "d6fb1df5fe": "{{value0}} is already open",
-            "05838cfdeb": "{{value0}} conflict",
-            "d206117f90": "{{value0}} conflict ({{value1}})",
             "0b5b8c234c": "Open {{value0}} ({{value1}})",
             "d97ef8f221": "lines {{value0}}-{{value1}}",
             "6f8bfa0eb9": "line {{value0}}",
@@ -12892,10 +12935,6 @@
             "b3c8f1a902": "Filter files by name",
             "d4f8c2a901": "Clear and close filter",
             "e8a1c4b203": "vs",
-            "compareBaseCommitsAheadOne": "1 commit ahead of {{ref}}",
-            "compareBaseCommitsAheadOther": "{{count}} commits ahead of {{ref}}",
-            "compareBaseCommitsBehindOne": "1 commit behind {{ref}}",
-            "compareBaseCommitsBehindOther": "{{count}} commits behind {{ref}}",
             "4b4a7de138": "Open review page in browser",
             "createPrIntentCommitBlockedSummary": "Commit blocked: {{value0}} Fix the issue, then retry Create PR.",
             "pushRecovery": {
@@ -12926,18 +12965,51 @@
             "diffCommentNotesCopyFailed": "Failed to copy notes",
             "conflictCount_one": "{{count}} conflict",
             "conflictCount_other": "{{count}} conflicts",
-            "discardFailedSingular": "Failed to discard {{count}} file",
-            "discardFailedPlural": "Failed to discard {{count}} files",
-            "noteCountSingular": "{{count}} note",
-            "noteCountPlural": "{{count}} notes",
-            "statusReadFailed": "Git could not read this workspace. Changes shown may be out of date."
+            "statusReadFailed": "Git could not read this workspace. Changes shown may be out of date.",
+            "discardFailedSampleMore_one": "{{paths}}, +{{count}} more",
+            "discardFailedSampleMore_other": "{{paths}}, +{{count}} more",
+            "discardFailed_one": "Failed to discard {{count}} file",
+            "discardFailed_other": "Failed to discard {{count}} files",
+            "discardFailedWithSample": "{{error}} (e.g. {{paths}})",
+            "compareBaseCommitsAhead_one": "{{count}} commit ahead of {{ref}}",
+            "compareBaseCommitsAhead_other": "{{count}} commits ahead of {{ref}}",
+            "compareBaseCommitsBehind_one": "{{count}} commit behind {{ref}}",
+            "compareBaseCommitsBehind_other": "{{count}} commits behind {{ref}}",
+            "branchFilesChangedVsBase_one": "{{count}} file changed vs {{ref}}",
+            "branchFilesChangedVsBase_other": "{{count}} files changed vs {{ref}}",
+            "noteCount_one": "{{count}} note",
+            "noteCount_other": "{{count}} notes",
+            "comparingAgainstRef": "Comparing against {{ref}}",
+            "commitsAheadShort_one": "{{count}} ahead",
+            "commitsAheadShort_other": "{{count}} ahead",
+            "unresolvedConflictOfKind": "Unresolved conflict ({{kind}})",
+            "unresolvedConflict": "Unresolved conflict",
+            "locallyResolvedConflictOfKind": "Conflict resolved locally ({{kind}})",
+            "locallyResolvedConflict": "Conflict resolved locally",
+            "pushesToForkTarget": "Pushes to fork {{target}}",
+            "abortRebaseConfirmTitle": "Abort rebase?",
+            "abortMergeConfirmTitle": "Abort merge?",
+            "abortRebaseConfirmDescription": "This cancels the rebase in progress and can discard conflict resolutions made during this rebase.",
+            "abortMergeConfirmDescription": "This cancels the merge in progress and can discard conflict resolutions made during this merge.",
+            "abortRebaseFailedFallback": "Failed to abort rebase",
+            "abortMergeFailedFallback": "Failed to abort merge",
+            "abortRebaseFailed": "Abort rebase failed",
+            "abortMergeFailed": "Abort merge failed",
+            "clearNotesFromWorkspace_one": "Clear {{count}} note from this workspace?",
+            "clearNotesFromWorkspace_other": "Clear {{count}} notes from this workspace?",
+            "clearNotesFromFile_one": "Clear {{count}} note from {{path}}?",
+            "clearNotesFromFile_other": "Clear {{count}} notes from {{path}}?"
           },
           "SourceControlAgentActionDialog": {
             "8e856842d1": "Could not start the selected agent.",
             "c075d00de1": "Unable to resolve the workspace connection.",
             "38b899cc02": "All repositories",
             "808cfe0a3b": "This repository",
-            "994cddd1f7": "Don't save"
+            "994cddd1f7": "Don't save",
+            "agentNotEnabledOrDetected": "{{agent}} is not enabled or was not detected on this workspace host.",
+            "workspaceConnectionUnresolved": "Unable to resolve the workspace connection.",
+            "noEnabledAgentsDetected": "No enabled agents were detected on this workspace host.",
+            "startAgent": "Start agent"
           },
           "SourceControlAgentActionDialogForm": {
             "013c9ac04a": "Save for",
@@ -13003,10 +13075,6 @@
                 "cbcc4ab3db": "Showing first 100 checks",
                 "0dca6bfab5": "Open check details",
                 "991f50c7e4": "No checks configured",
-                "9ad98f2a17": "pending",
-                "5e52f4ef7f": "failing",
-                "02ca4f9074": "passing",
-                "checksUnresolvedChip": "unresolved",
                 "checksUnresolvedStripHint": "These checks finished without a pass or fail verdict.",
                 "e15a8b77ef": "No inline details are available for this check.",
                 "dcb3c546fe": "Retry",
@@ -13025,7 +13093,6 @@
                 "1f2b980522": "Loading check details…",
                 "0c96cd25e5": "Resolve",
                 "3a71a6ed0b": "Resolve conflicts before checks and merge can complete.",
-                "60186d8498": "Conflicts block this",
                 "c16762ac8c": "Checks and comments below show the current fetched context.",
                 "9d0e7bcefc": "No blocking PR action",
                 "5856874b59": "Orca will refresh checks while this panel stays open.",
@@ -13050,7 +13117,6 @@
                 "084c516efb": "Copy commands",
                 "5dc3af25c0": "Select comment",
                 "d7a2f9c401": "Send unresolved {{value0}} comments",
-                "d91f2a6c39": "Send {{value0}} queued comments to AI",
                 "a6de3e5a20": "Clear queued comments",
                 "f8a2c91d04": "Queue for agent",
                 "b4e8a1c902": "Queued",
@@ -13073,7 +13139,28 @@
                 "pendingChecks_one": "{{count}} check pending",
                 "pendingChecks_other": "{{count}} checks pending",
                 "unresolvedChecks_one": "{{count}} check unresolved",
-                "unresolvedChecks_other": "{{count}} checks unresolved"
+                "unresolvedChecks_other": "{{count}} checks unresolved",
+                "passingCount_one": "{{count}} passing",
+                "passingCount_other": "{{count}} passing",
+                "failingCount_one": "{{count}} failing",
+                "failingCount_other": "{{count}} failing",
+                "pendingCount_one": "{{count}} pending",
+                "pendingCount_other": "{{count}} pending",
+                "unresolvedCount_one": "{{count}} unresolved",
+                "unresolvedCount_other": "{{count}} unresolved",
+                "sendQueuedCommentsToAi_one": "Send {{count}} queued comment to AI",
+                "sendQueuedCommentsToAi_other": "Send {{count}} queued comments to AI",
+                "conflictsBlockThisMr": "Conflicts block this MR",
+                "conflictsBlockThisPr": "Conflicts block this PR",
+                "copyComment": "Copy comment",
+                "sendComment": "Send",
+                "commentingRequiresGitHubPrTarget": "Commenting requires a GitHub PR repository target.",
+                "selectWorkspaceBeforeAiAction": "Select a workspace before launching an AI action.",
+                "operation": {
+                  "rebase": "Rebase",
+                  "merge": "Merge",
+                  "cherryPick": "Cherry-pick"
+                }
               },
               "empty": {
                 "state": {
@@ -13479,8 +13566,8 @@
               },
               "compare": {
                 "summary": {
-                  "commitsAheadSingular": "{{count}} commit ahead of {{ref}}",
-                  "commitsAheadPlural": "{{count}} commits ahead of {{ref}}"
+                  "commitsAhead_one": "{{count}} commit ahead of {{ref}}",
+                  "commitsAhead_other": "{{count}} commits ahead of {{ref}}"
                 }
               },
               "conflict": {
@@ -13560,8 +13647,11 @@
             "folderLinksOutsideProject": "This folder links outside the project, so it can't be opened here."
           },
           "useFileExplorerImport": {
-            "25919b2050": "Skipped {{value0}} {{value1}}.",
-            "132fd0e1e9": "Failed to import {{value0}} {{value1}}."
+            "importFailedCount_one": "Failed to import {{count}} file.",
+            "importFailedCount_other": "Failed to import {{count}} files.",
+            "importSkippedCount_one": "Skipped {{count}} file.",
+            "importSkippedCount_other": "Skipped {{count}} files.",
+            "importFailed": "Failed to import files."
           },
           "useFileExplorerKeys": {
             "8adb953095": "Operation failed"
@@ -13599,7 +13689,6 @@
             "refreshSessionHistory": "Refresh Session History",
             "searchSessions": "Search sessions",
             "clearSearch": "Clear search",
-            "transcriptsSkipped": "{{count}} transcript skipped",
             "noAgentSessionsFound": "No agent sessions found",
             "noSessionsMatchFilters": "No sessions match the current filters",
             "noAgentsSelected": "No agents selected",
@@ -13618,7 +13707,9 @@
             "resumeInChatFailed": "Could not resume this session in a new chat.",
             "resumeInNewCliUnavailable": "This session cannot be opened in the CLI.",
             "resumeInNewCliHostTooOld": "Update Orca on the host that runs this chat to resume it in a new CLI.",
-            "folderWorkspaceUnavailable": "Folder workspace is no longer available."
+            "folderWorkspaceUnavailable": "Folder workspace is no longer available.",
+            "transcriptsSkippedCount_one": "{{count}} transcript skipped",
+            "transcriptsSkippedCount_other": "{{count}} transcripts skipped"
           },
           "AiVaultPanelControls": {
             "scanningSessions": "Scanning sessions",
@@ -13649,11 +13740,8 @@
             "latestTurns": "Latest turns",
             "noPreviewAvailable": "No conversation preview available",
             "conversationNotSaved": "Conversation not saved",
-            "recoverableEmptyDetail": "This session has no saved conversation, but {{value0}} recoverable item(s) survive.",
             "recoverableEmptyOpenLogHint": "Open the log to recover them.",
             "emptyConversationDetail": "This session has no saved conversation and cannot be resumed.",
-            "queuedMessages": "{{value0}} queued message(s)",
-            "subagentTranscripts": "{{value0}} subagent transcript(s)",
             "resumeInWorktree": "Resume in Worktree",
             "viewLog": "View Log",
             "unknownTime": "Unknown time",
@@ -13682,7 +13770,13 @@
             "noFirstPromptAvailable": "No first prompt available",
             "loadingFirstPrompt": "Loading first prompt…",
             "folder": "Folder",
-            "resumeInFolder": "Resume in Folder"
+            "resumeInFolder": "Resume in Folder",
+            "recoverableEmptyDetailCount_one": "This session has no saved conversation, but {{count}} recoverable item survives.",
+            "recoverableEmptyDetailCount_other": "This session has no saved conversation, but {{count}} recoverable items survive.",
+            "queuedMessageCount_one": "{{count}} queued message",
+            "queuedMessageCount_other": "{{count}} queued messages",
+            "subagentTranscriptCount_one": "{{count}} subagent transcript",
+            "subagentTranscriptCount_other": "{{count}} subagent transcripts"
           },
           "AiVaultSessionRow": {
             "noPreviewAvailable": "No conversation preview available",
@@ -13816,26 +13910,26 @@
                 "confirmation": {
                   "84f6f5b9eb": "Included: {{numbers}}. ",
                   "541984b2eb": "Queue through #{{pr}}?",
-                  "4809f55cdb": "{{included}}GitHub will add {{count}} pull request to the merge queue together. The queue chooses the merge method and may merge them in separate groups.",
-                  "be8f2621be": "{{included}}GitHub will add {{count}} pull requests to the merge queue together. The queue chooses the merge method and may merge them in separate groups.",
-                  "92ca033e72": "Queue {{count}} PR",
-                  "478a527b15": "Queue {{count}} PRs",
                   "1feef35ca4": "Merge through #{{pr}}?",
-                  "c3e036c99f": "{{included}}GitHub will merge {{count}} pull request atomically using {{method}}. If it cannot merge, nothing will be merged.",
-                  "369aba4b32": "{{included}}GitHub will merge {{count}} pull requests atomically using {{method}}. If any cannot merge, none will.",
-                  "493c78f521": "Merge {{count}} PR",
-                  "eb7051d268": "Merge {{count}} PRs"
+                  "queueDescription_one": "{{included}}GitHub will add {{count}} pull request to the merge queue together. The queue chooses the merge method and may merge them in separate groups.",
+                  "queueDescription_other": "{{included}}GitHub will add {{count}} pull requests to the merge queue together. The queue chooses the merge method and may merge them in separate groups.",
+                  "queueConfirm_one": "Queue {{count}} PR",
+                  "queueConfirm_other": "Queue {{count}} PRs",
+                  "mergeDescription_one": "{{included}}GitHub will merge {{count}} pull request atomically using {{method}}. If it cannot merge, nothing will be merged.",
+                  "mergeDescription_other": "{{included}}GitHub will merge {{count}} pull requests atomically using {{method}}. If any cannot merge, none will.",
+                  "mergeConfirm_one": "Merge {{count}} PR",
+                  "mergeConfirm_other": "Merge {{count}} PRs"
                 },
                 "merge": {
-                  "55ae29b907": "Merge through #{{pr}} · {{count}} PR",
-                  "b8446f6ec2": "Merge through #{{pr}} · {{count}} PRs",
                   "189d0ec614": "#{{pr}} is still a draft.",
                   "640fb50d9c": "#{{pr}} is closed.",
                   "46ffcbda75": "#{{pr}} has merge conflicts.",
                   "6dabefd63e": "#{{pr}} has requested changes.",
                   "2bb21fc326": "#{{pr}} still needs review approval.",
                   "c23faf74df": "#{{pr}} must be updated.",
-                  "f561e80968": "#{{pr}} is blocked."
+                  "f561e80968": "#{{pr}} is blocked.",
+                  "mergeThroughLabel_one": "Merge through #{{pr}} · {{count}} PR",
+                  "mergeThroughLabel_other": "Merge through #{{pr}} · {{count}} PRs"
                 }
               }
             }
@@ -13892,14 +13986,15 @@
             "sourceActionsUnavailable": "The transcript source is unavailable."
           },
           "AiVaultScanProgressStrip": {
-            "agentChecked": "{{agent}}: {{settled}} of {{total}} history candidates checked",
             "fileCount_one": "{{value0}} file",
             "fileCount_other": "{{value0}} files",
             "databaseCount_one": "{{value0}} database",
             "databaseCount_other": "{{value0}} databases",
             "scanning": "Scanning {{value0}}",
             "checking": "Checking {{value0}}",
-            "scanned": "Scanned {{value0}}"
+            "scanned": "Scanned {{value0}}",
+            "agentCheckedCount_one": "{{agent}}: {{settled}} of {{total}} history candidate checked",
+            "agentCheckedCount_other": "{{agent}}: {{settled}} of {{total}} history candidates checked"
           },
           "run": {
             "source": {
@@ -13928,6 +14023,15 @@
                 }
               }
             }
+          },
+          "fileExplorerMultiDrag": {
+            "moreItems_one": "+{{count}} more",
+            "moreItems_other": "+{{count}} more"
+          },
+          "CreatePullRequest": {
+            "createInProgress": "Create PR in progress...",
+            "workspaceHostUnresolved": "The workspace host is unresolved. Refresh the workspace and retry.",
+            "branchDiscoveryFailed": "Branch discovery failed."
           }
         }
       },
@@ -15781,7 +15885,9 @@
             "6978871a3d": "Open",
             "cce596969e": "Delete note",
             "cad3384faa": "Edit note",
-            "508ee678a5": "Open in browser"
+            "508ee678a5": "Open in browser",
+            "noteAuthorFallback": "Note",
+            "sentMeta": "sent"
           },
           "DiffCommentPopover": {
             "2b3ce6d394": "Cancel",
@@ -15794,6 +15900,9 @@
           },
           "useDiffCommentDecorator": {
             "995fa28b50": "This note"
+          },
+          "diffCommentZoneCard": {
+            "noteAlreadySent": "Note already sent"
           }
         }
       },
@@ -16970,10 +17079,10 @@
       "rightSidebar": {
         "FolderWorkspaceWorktreesPanel": {
           "unavailable": "Workspaces are only shown for folder workspaces.",
-          "countOne": "1 attached worktree",
-          "countMany": "{{value0}} attached worktrees",
           "emptyTitle": "No attached worktrees yet",
-          "emptyCopy": "Worktrees created from this workspace will show up here."
+          "emptyCopy": "Worktrees created from this workspace will show up here.",
+          "attachedCount_one": "{{count}} attached worktree",
+          "attachedCount_other": "{{count}} attached worktrees"
         },
         "FolderWorkspacePrChecksPanel": {
           "unavailable": "PR checks are only shown for folder workspaces.",
@@ -16985,12 +17094,12 @@
           "hideDetails": "Hide {{value0}} PR check details",
           "reviewChecks": "Review checks",
           "allChecksPassing": "all checks passing",
-          "oneWorktree": "1 worktree",
-          "worktreeCount": "{{value0}} worktrees",
-          "oneFailing": "1 failing",
-          "failingCount": "{{value0}} failing",
-          "onePending": "1 pending",
-          "pendingCount": "{{value0}} pending"
+          "worktreeCountLabel_one": "{{count}} worktree",
+          "worktreeCountLabel_other": "{{count}} worktrees",
+          "failingCountLabel_one": "{{count}} failing",
+          "failingCountLabel_other": "{{count}} failing",
+          "pendingCountLabel_one": "{{count}} pending",
+          "pendingCountLabel_other": "{{count}} pending"
         },
         "parentPrChecks": {
           "rowSummary": {
@@ -19397,8 +19506,6 @@
   },
   "sessionSearch": {
     "panel": {
-      "resultsOne": "{{count}} result",
-      "resultsOther": "{{count}} results",
       "noMatches": "No matching sessions in the indexed history. Try another query or scope.",
       "loadMore": "Load more matches",
       "indexedHistory": "Indexed history",
@@ -19420,11 +19527,23 @@
       "retry": "Try again",
       "scopeUnknown": "This computer does not have this workspace or project. Switch the scope to All to search everything on it.",
       "sortSessionsAriaLabel": "Sort sessions: {{value0}}",
-      "sessionsOne": "{{count}} session",
-      "sessionsOther": "{{count}} sessions",
-      "sessionsOfLoaded": "{{value0}} of {{value1}} sessions",
       "showMoreSessions": "Show more sessions",
-      "loadingMoreSessions": "Loading more sessions…"
+      "loadingMoreSessions": "Loading more sessions…",
+      "resultCount_one": "{{count}} result",
+      "resultCount_other": "{{count}} results",
+      "sessionCount_one": "{{count}} session",
+      "sessionCount_other": "{{count}} sessions",
+      "sessionsShownOfLoaded_one": "{{shown}} of {{count}} session",
+      "sessionsShownOfLoaded_other": "{{shown}} of {{count}} sessions",
+      "hostSkipReason": {
+        "indexChanged": "index changed",
+        "searchOff": "search off",
+        "notReady": "not ready",
+        "unavailable": "unavailable",
+        "unreachable": "unreachable",
+        "scopeNotFound": "scope not found there",
+        "agentNotSupported": "agent not supported"
+      }
     }
   },
   "sessionHistory": {
@@ -19907,8 +20026,9 @@
       "rateLimited": "GitHub rate limit hit. Try again in a few minutes.",
       "network": "Network error — check your connection.",
       "tooLargeUnknownCount": "This view has too many items to render in Orca. Narrow the view's filter on GitHub.",
-      "tooLarge": "This view has {{itemCount}} items — too large to render in Orca. Narrow the view's filter on GitHub.",
-      "schemaDriftDetail": "Could not read this project view: {{detail}}."
+      "schemaDriftDetail": "Could not read this project view: {{detail}}.",
+      "tooLargeCount_one": "This view has {{count}} item — too large to render in Orca. Narrow the view's filter on GitHub.",
+      "tooLargeCount_other": "This view has {{count}} items — too large to render in Orca. Narrow the view's filter on GitHub."
     }
   },
   "projectField": {
