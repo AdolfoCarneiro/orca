@@ -2,7 +2,10 @@ import {
   AGENT_JOURNAL_THREAD_SCOPE,
   type AgentJournalRowAttribution
 } from '../../shared/agent-session-journal-types'
-import { createAgentSessionDeltaCoalescer } from '../native-chat/agent-session-wire/agent-session-delta-coalescer'
+import {
+  AGENT_SESSION_TEXT_CHECKPOINT_MS,
+  createAgentSessionDeltaCoalescer
+} from '../native-chat/agent-session-wire/agent-session-delta-coalescer'
 import { CodexItemStreamRetention } from './codex-item-stream-retention'
 import { appendCodexItemAndPublish } from './codex-structured-journal-sink'
 import { codexJournalItem, codexStreamingJournalItem } from './codex-structured-item-translation'
@@ -115,7 +118,15 @@ export function createCodexStructuredItemStreams(
     }).accepted
   }
 
+  const isText = (key: string): boolean => {
+    const type = states.get(key)?.item.type
+    return type === 'agentMessage' || type === 'reasoning'
+  }
+
   const shouldPersist = (key: string, textLength: number): boolean => {
+    if (isText(key)) {
+      return true
+    }
     const checkpointLength = checkpointLengths.get(key) ?? 0
     const nextLength = Math.max(checkpointLength + 32, Math.ceil(checkpointLength * 1.125))
     return !(checkpointLength > 0 && textLength < nextLength)
@@ -136,6 +147,7 @@ export function createCodexStructuredItemStreams(
 
   const coalescer = createAgentSessionDeltaCoalescer({
     windowMs: deps.coalesceMs,
+    checkpointMs: (key) => (isText(key) ? AGENT_SESSION_TEXT_CHECKPOINT_MS : undefined),
     maxRetainedBytes: deps.maxRetainedBytes,
     maxTotalRetainedBytes: deps.maxTotalRetainedBytes,
     isProtected: (key) => states.isPersistent(key),
@@ -167,7 +179,9 @@ export function createCodexStructuredItemStreams(
   }
 
   const flush = (threadId?: string): boolean => {
-    let flushed = coalescer.flushAll()
+    let flushed = coalescer.flushAll(
+      (key) => !isText(key) || threadId === undefined || producers.get(key)?.threadId === threadId
+    )
     for (const key of pendingCheckpoints) {
       // flushAll already placed every stream's first row; re-saving other threads would bypass their cadence.
       if (threadId !== undefined && producers.get(key)?.threadId !== threadId) {

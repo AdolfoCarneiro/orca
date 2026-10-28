@@ -1,5 +1,6 @@
 import type Database from '../../sqlite/sync-database'
 import { insertJournalRow } from './journal-row-table'
+import { JournalTextPredecessors } from './journal-text-predecessors'
 import type { JournalHostDatabase } from './journal-host-database'
 import type { AgentJournalCursor } from '../../../shared/agent-session-journal-types'
 import type { JournalRow } from './journal-row-schema'
@@ -49,7 +50,11 @@ export type JournalRowWriterDeps = {
 }
 
 export class JournalRowWriter {
-  constructor(private readonly deps: JournalRowWriterDeps) {}
+  private readonly textPredecessors: JournalTextPredecessors
+
+  constructor(private readonly deps: JournalRowWriterDeps) {
+    this.textPredecessors = new JournalTextPredecessors(deps.sessionId)
+  }
 
   enqueue(
     build: (seq: number, ts: number) => JournalRow,
@@ -60,13 +65,15 @@ export class JournalRowWriter {
       const savedAt = this.deps.now()
       const row = build(this.deps.nextSequence(), savedAt)
       assertJournalFence(row.fence, this.deps.highestFence())
-      this.deps.database().transaction(
+      const staged = this.deps.database().transaction(
         (db) => {
           insertJournalRow(db, this.deps.sessionId, row, savedAt)
           receipt?.write(db, row)
+          return this.textPredecessors.stage(db, [row])
         },
         !receipt && this.streamed([row])
       )
+      this.textPredecessors.committed(staged)
       // Adopt durable sequence state before fallible work: nonthrowing receipt ledger, then fold.
       receipt?.committed()
       this.deps.commit([row], savedAt)
@@ -99,15 +106,17 @@ export class JournalRowWriter {
     for (const row of rows) {
       assertJournalFence(row.fence, this.deps.highestFence())
     }
-    this.deps.database().transaction(
+    const staged = this.deps.database().transaction(
       (db) => {
         for (const row of rows) {
           insertJournalRow(db, this.deps.sessionId, row, ts)
         }
         receipt?.write(db, receiptRow?.(rows))
+        return this.textPredecessors.stage(db, rows)
       },
       !receipt && this.streamed(rows)
     )
+    this.textPredecessors.committed(staged)
     receipt?.committed()
     this.deps.commit(rows, ts)
     return rows

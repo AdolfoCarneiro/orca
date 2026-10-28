@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseAgentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
 import { agentJournalTurnBody } from '../../../shared/agent-session-turn-record'
 import {
@@ -10,9 +10,46 @@ import {
   providerTurnItemId
 } from './provider-timeline-assembler-test-support'
 
-afterEach(closeProviderTimelineRigs)
+afterEach(async () => {
+  await closeProviderTimelineRigs()
+  vi.useRealTimers()
+})
 
 describe("a stream writes only while its row's turn runs", () => {
+  it('saves a paused tail at its deadline and closes without losing the next tail', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+    vi.setSystemTime(0)
+    const rig = await openProviderTimelineRig({
+      schedule: (run, ms) => {
+        const timer = setTimeout(run, ms)
+        return () => clearTimeout(timer)
+      }
+    })
+    const delta = (text: string) =>
+      rig.assembler.apply({
+        type: 'text.delta',
+        item: { id: 'm' },
+        channel: 'reasoning',
+        text
+      })
+    delta('first')
+    vi.advanceTimersByTime(59)
+    expect(await rig.row(providerItemId('item', 'm'))).toBeUndefined()
+    vi.advanceTimersByTime(1)
+    expect(messageText((await rig.row(providerItemId('item', 'm')))?.body)).toBe('first')
+    delta(' tail')
+    vi.advanceTimersByTime(399)
+    expect(messageText((await rig.row(providerItemId('item', 'm')))?.body)).toBe('first')
+    vi.advanceTimersByTime(1)
+    expect(messageText((await rig.row(providerItemId('item', 'm')))?.body)).toBe('first tail')
+    delta(' close')
+    rig.assembler.apply({ type: 'text.close', item: { id: 'm' } })
+    expect(messageText((await rig.row(providerItemId('item', 'm')))?.body)).toBe('first tail close')
+    const revision = (await rig.row(providerItemId('item', 'm')))?.revision
+    vi.advanceTimersByTime(1_000)
+    expect((await rig.row(providerItemId('item', 'm')))?.revision).toBe(revision)
+  })
+
   it('stops at the end of its turn, though its next delta was admitted before the end was written', async () => {
     const rig = await openProviderTimelineRig()
     const { assembler, bind, drained } = openUnboundProviderTimelineAssembler(rig.journal)

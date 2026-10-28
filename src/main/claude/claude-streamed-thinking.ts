@@ -1,3 +1,4 @@
+import { appendAgentSessionItemAndPublish } from '../native-chat/agent-session-wire/structured-agent-session-item-publication'
 import type {
   AgentJournalItemIdentity,
   AgentJournalMessageItem,
@@ -62,15 +63,15 @@ export function createClaudeStreamedThinking(deps: {
       )
       if (body) {
         const startedAt = open.get(agentJournalItemKey(identity))?.startedAt
-        deps.sink.appendItem(identity, body, {
+        const attribution = {
           ...options,
           turnScope: deps.turnScope(),
           // Preserve block start time despite delayed text or writes.
           ...(startedAt === undefined ? {} : { observedAt: startedAt }),
           // Preserve terminal writes under pressure so reasoning cannot remain open.
           ...(ended ? { lifecycle: true } : {})
-        })
-        deps.sink.publish()
+        }
+        return appendAgentSessionItemAndPublish(deps.sink, identity, body, attribution).accepted
       }
     }
   })

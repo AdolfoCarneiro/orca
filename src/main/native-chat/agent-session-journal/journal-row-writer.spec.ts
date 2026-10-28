@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AGENT_SESSION_JOURNAL_SCHEMA_VERSION } from '../../../shared/agent-session-journal-types'
 import type { JournalHostDatabase } from './journal-host-database'
 import type { JournalRow } from './journal-row-schema'
@@ -46,6 +46,7 @@ export function registerJournalRowWriterTests(): void {
     })
 
     afterEach(async () => {
+      vi.restoreAllMocks()
       try {
         database.close()
       } catch {}
@@ -71,6 +72,95 @@ export function registerJournalRowWriterTests(): void {
       })
       return { writer, committedRows }
     }
+
+    function textRow(seq: number, itemId = 'text', revision = seq): JournalRow {
+      return {
+        ...row(seq, 0),
+        v: 2,
+        kind: 'item',
+        itemId,
+        revision,
+        body: {
+          kind: 'message',
+          role: 'reasoning',
+          state: 'running',
+          blocks: [{ type: 'text', text: 'saved text' }]
+        }
+      }
+    }
+
+    it.each(['single', 'batch'] as const)(
+      'blanks only the previous text in a %s write',
+      async (kind) => {
+        const { writer } = writerHarness()
+        const write = (build: (seq: number) => JournalRow) =>
+          kind === 'single' ? writer.enqueue(build) : writer.enqueueRows(() => [build])
+        await write((seq) => textRow(seq))
+        const before = readJournalRowsAfter(database.db, SESSION_ID, EPOCH, 0)[0]
+        await write((seq) => textRow(seq))
+        if (kind === 'batch') {
+          await writer.enqueueRows(() => [(seq) => textRow(seq), (seq) => textRow(seq)])
+        }
+        const saved = readJournalRowsAfter(database.db, SESSION_ID, EPOCH, 0)
+        const blanked = JSON.parse(before.rowJson)
+        blanked.body.blocks[0].text = ''
+        expect(saved[0]).toEqual({ ...before, rowJson: JSON.stringify(blanked) })
+        expect(
+          saved.slice(0, -1).every((entry) => JSON.parse(entry.rowJson).body.blocks[0].text === '')
+        ).toBe(true)
+        expect(JSON.parse(saved.at(-1)!.rowJson).body.blocks[0].text).toBe('saved text')
+      }
+    )
+
+    it('does not publish rolled-back predecessors when their sequence is reused', async () => {
+      const { writer } = writerHarness()
+      await writer.enqueue((seq) => textRow(seq))
+      const exec = database.db.exec.bind(database.db)
+      const spy = vi.spyOn(database.db, 'exec').mockImplementationOnce((sql) => exec(sql))
+      spy.mockImplementation((sql) => {
+        if (sql === 'COMMIT') {
+          throw new Error('commit failed')
+        }
+        exec(sql)
+      })
+      await expect(writer.enqueue((seq) => textRow(seq))).rejects.toThrow('commit failed')
+      spy.mockRestore()
+      await writer.enqueue((seq) => textRow(seq, 'other'))
+      await writer.enqueue((seq) => textRow(seq))
+      const saved = readJournalRowsAfter(database.db, SESSION_ID, EPOCH, 0).map((entry) =>
+        JSON.parse(entry.rowJson)
+      )
+      expect(saved.map((entry) => entry.body.blocks[0].text)).toEqual([
+        '',
+        'saved text',
+        'saved text'
+      ])
+      expect(saved[1].itemId).toBe('other')
+    })
+
+    it('skips mismatched or refused rewrites and never targets a retired epoch', async () => {
+      const { writer } = writerHarness()
+      await writer.enqueue((seq) => textRow(seq))
+      database.db
+        .prepare(
+          "UPDATE journal_rows SET row_json = json_set(row_json, '$.itemId', 'other') WHERE seq = 1"
+        )
+        .run()
+      await writer.enqueue((seq) => textRow(seq))
+      database.db.exec(
+        "CREATE TRIGGER refuse_blanking BEFORE UPDATE ON journal_rows BEGIN SELECT RAISE(ABORT, 'refused'); END"
+      )
+      await writer.enqueue((seq) => textRow(seq))
+      expect(readJournalRowsAfter(database.db, SESSION_ID, EPOCH, 0)).toHaveLength(3)
+      database.db.exec('DROP TRIGGER refuse_blanking')
+      await writer.enqueue((seq) => ({ ...textRow(seq), epoch: 'epoch-2' }))
+      expect(
+        readJournalRowsAfter(database.db, SESSION_ID, EPOCH, 0).map(
+          (entry) => JSON.parse(entry.rowJson).body.blocks[0].text
+        )
+      ).toEqual(['saved text', 'saved text', 'saved text'])
+      expect(readJournalRowsAfter(database.db, SESSION_ID, 'epoch-2', 0)).toHaveLength(1)
+    })
 
     it('rolls the transaction back and sets no latch when the insert fails', async () => {
       const { writer, committedRows } = writerHarness()

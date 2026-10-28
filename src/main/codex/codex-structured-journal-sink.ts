@@ -4,7 +4,6 @@ import type {
   AgentJournalRowAttribution
 } from '../../shared/agent-session-journal-types'
 import type {
-  StructuredAgentSessionItemAppendOptions,
   StructuredAgentSessionEventSink,
   StructuredAgentSessionIdentityResolver,
   StructuredAgentSessionSinkAdmission
@@ -88,20 +87,7 @@ export function appendCodexLifecycleMutations(
     : (sink.publish({ lifecycle: true }), ADMITTED)
 }
 
-export function appendCodexItemAndPublish(
-  sink: StructuredAgentSessionEventSink,
-  identity: AgentJournalItemIdentity,
-  body: AgentJournalItemBody,
-  options: StructuredAgentSessionItemAppendOptions
-): StructuredAgentSessionSinkAdmission {
-  const admission = sink.tryAppendItem
-    ? sink.tryAppendItem(identity, body, options)
-    : (sink.appendItem(identity, body, options), ADMITTED)
-  if (!admission.accepted) {
-    return admission
-  }
-  return sink.tryPublish ? sink.tryPublish() : (sink.publish(), ADMITTED)
-}
+export { appendAgentSessionItemAndPublish as appendCodexItemAndPublish } from '../native-chat/agent-session-wire/structured-agent-session-item-publication'
 
 function criticalAdmission(
   admission: StructuredAgentSessionSinkAdmission

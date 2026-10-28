@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+afterEach(() => vi.useRealTimers())
 import type {
   AgentJournalItemIdentity,
   AgentJournalProducerLinkage
@@ -77,6 +79,49 @@ function checkpoints(producer: ClaudeSubagentLinkageSource = unconsultedProducer
 }
 
 describe('claude streamed text checkpoints', () => {
+  it('saves at 60 ms, retains a paused tail until 400 ms, and forces the Stop tail', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(0)
+    const rows: { at: number; text: string; ended: boolean }[] = []
+    let refuse = false
+    const store = createClaudeStreamedTextCheckpoints({
+      producer: unconsultedProducer,
+      persist: (_identity, text, _options, ended) => {
+        if (refuse) {
+          return false
+        }
+        rows.push({ at: Date.now(), text, ended: ended !== undefined })
+        return true
+      }
+    })
+    store.append(identityOf('block'), 'hello')
+    vi.advanceTimersByTime(59)
+    expect(rows).toHaveLength(0)
+    vi.advanceTimersByTime(1)
+    store.append(identityOf('block'), ' tail')
+    vi.advanceTimersByTime(399)
+    expect(rows.map((row) => row.at)).toEqual([60])
+    refuse = true
+    vi.advanceTimersByTime(1)
+    refuse = false
+    vi.advanceTimersByTime(60)
+    expect(rows.map((row) => row.at)).toEqual([60, 520])
+    store.append(identityOf('block'), '!')
+    vi.advanceTimersByTime(399)
+    expect(rows).toHaveLength(2)
+    vi.advanceTimersByTime(1)
+    expect(rows.at(-1)).toEqual({ at: 920, text: 'hello tail!', ended: false })
+    store.append(identityOf('block'), ' stop')
+    store.finish({ completedAt: 920 })
+    expect(rows.at(-1)).toEqual({ at: 920, text: 'hello tail! stop', ended: true })
+    vi.advanceTimersByTime(1_000)
+    expect(rows).toHaveLength(5)
+    store.append(identityOf('discard'), 'never saved')
+    store.settle()
+    vi.advanceTimersByTime(1_000)
+    expect(rows).toHaveLength(5)
+  })
+
   it('rewrites a block row with the full text accumulated so far', () => {
     const { store, rows, runWindow } = checkpoints()
 
@@ -112,7 +157,7 @@ describe('claude streamed text checkpoints', () => {
     expect(store.pending).toBe(0)
   })
 
-  it('flushes text the widening checkpoint interval has not written yet', () => {
+  it('flushes text before its checkpoint deadline', () => {
     const { store, rows } = checkpoints()
 
     store.append(identityOf('block-1'), 'x')

@@ -281,3 +281,36 @@ describe('snapshot admission before assembly', () => {
     instance.dispose()
   })
 })
+
+it('keeps per-item deadlines while a newly arriving item gets its first 60 ms window', () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(0)
+  try {
+    const emitted: [string, number, string][] = []
+    const coalescer = createAgentSessionDeltaCoalescer({
+      checkpointMs: () => 400,
+      emit: (key, text) => emitted.push([key, Date.now(), text])
+    })
+    coalescer.append('first', 'a')
+    vi.advanceTimersByTime(60)
+    coalescer.append('first', 'b')
+    vi.advanceTimersByTime(130)
+    coalescer.append('second', 'x')
+    vi.advanceTimersByTime(60)
+    expect(emitted).toEqual([
+      ['first', 60, 'a'],
+      ['second', 250, 'x']
+    ])
+    vi.advanceTimersByTime(210)
+    expect(emitted.at(-1)).toEqual(['first', 460, 'ab'])
+    coalescer.append('first', 'forgotten')
+    coalescer.forget('first')
+    coalescer.append('second', 'disposed')
+    coalescer.dispose()
+    vi.advanceTimersByTime(1_000)
+    expect(emitted).toHaveLength(3)
+    expect(vi.getTimerCount()).toBe(0)
+  } finally {
+    vi.useRealTimers()
+  }
+})

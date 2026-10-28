@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+afterEach(() => vi.useRealTimers())
 import type {
   AgentJournalItemBody,
   AgentJournalItemIdentity
@@ -732,7 +734,7 @@ describe('notice journal pipeline', () => {
 })
 
 describe('Codex streamed checkpoint admission', () => {
-  it('skips joining a below-threshold prefix and still writes its final text', () => {
+  it('keeps a deferred prefix unassembled until the deadline and flushes a final tail', () => {
     const { translator, tap, window } = translatorWith()
     const prefix = 'checkpoint '.repeat(12)
     translator.handle(notification('item/agentMessage/delta', { itemId: 'reply', delta: prefix }))
@@ -751,7 +753,7 @@ describe('Codex streamed checkpoint admission', () => {
       expect(prefixJoins()).toHaveLength(0)
       expect(tap.rows).toHaveLength(rows)
       expect(tap.publishes()).toBe(publications)
-      expect(window.idle()).toBe(true)
+      expect(window.idle()).toBe(false)
 
       translator.flush()
       expect(prefixJoins()).toHaveLength(1)
@@ -766,8 +768,11 @@ describe('Codex streamed checkpoint admission', () => {
     }
   })
 
-  it('retries a refused checkpoint before forcing a smaller final increment', () => {
-    const { translator, tap, window } = translatorWith()
+  it('retries refusal and starts the next deadline from the accepted save', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(0)
+    const tap = recorder()
+    const translator = createCodexJournalTranslator({ sink: tap.sink })
     let reject = false
     tap.sink.tryAppendItem = (identity, body, options) => {
       if (reject) {
@@ -779,27 +784,33 @@ describe('Codex streamed checkpoint admission', () => {
     const delta = (text: string) =>
       translator.handle(notification('item/agentMessage/delta', { itemId: 'reply', delta: text }))
     delta('a'.repeat(128))
-    window.fire()
+    vi.advanceTimersByTime(60)
     const rows = tap.rows.length
     reject = true
-    delta('b'.repeat(32))
-    window.fire()
-    window.fire()
+    delta('b')
+    vi.advanceTimersByTime(400)
     expect(tap.rows).toHaveLength(rows)
-    expect(window.idle()).toBe(false)
-
     reject = false
-    window.fire()
-    expect(window.idle()).toBe(true)
-    expect(tap.rows.at(-1)?.body).toMatchObject({
-      blocks: [{ type: 'text', text: `${'a'.repeat(128)}${'b'.repeat(32)}` }]
-    })
-    delta('x')
-    window.fire()
+    vi.advanceTimersByTime(60)
     expect(tap.rows).toHaveLength(rows + 1)
-    translator.flush()
+    delta('x')
+    vi.advanceTimersByTime(399)
+    expect(tap.rows).toHaveLength(rows + 1)
+    vi.advanceTimersByTime(1)
     expect(tap.rows.at(-1)?.body).toMatchObject({
-      blocks: [{ type: 'text', text: `${'a'.repeat(128)}${'b'.repeat(32)}x` }]
+      blocks: [{ type: 'text', text: `${'a'.repeat(128)}bx` }]
+    })
+    delta(' superseded')
+    translator.handle(
+      notification('item/completed', {
+        item: { type: 'agentMessage', id: 'reply', text: 'authoritative final' }
+      })
+    )
+    const completed = tap.rows.length
+    vi.advanceTimersByTime(1_000)
+    expect(tap.rows).toHaveLength(completed)
+    expect(tap.rows.at(-1)?.body).toMatchObject({
+      blocks: [{ type: 'text', text: 'authoritative final' }]
     })
     translator.dispose()
   })

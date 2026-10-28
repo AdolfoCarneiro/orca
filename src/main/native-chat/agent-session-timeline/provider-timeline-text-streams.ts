@@ -9,6 +9,7 @@ import {
   type AgentJournalTurnScope
 } from '../../../shared/agent-session-journal-types'
 import {
+  AGENT_SESSION_TEXT_CHECKPOINT_MS,
   createAgentSessionDeltaCoalescer,
   type AgentSessionDeltaCoalescerDeps
 } from '../agent-session-wire/agent-session-delta-coalescer'
@@ -74,6 +75,7 @@ export class ProviderTimelineTextStreams {
       ...(deps.schedule ? { schedule: deps.schedule } : {}),
       // The assembler’s shared budget already counts these protected streams.
       isProtected: () => true,
+      checkpointMs: () => AGENT_SESSION_TEXT_CHECKPOINT_MS,
       emit: (id, text) => this.flushOnWindow(id, text)
     })
   }

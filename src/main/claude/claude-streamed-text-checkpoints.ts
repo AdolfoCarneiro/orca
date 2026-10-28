@@ -3,6 +3,7 @@ import type { AgentJournalItemIdentity } from '../../shared/agent-session-journa
 import { agentJournalItemKey } from '../../shared/agent-session-journal-item-key'
 import type { StructuredAgentSessionAppendOptions } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
 import {
+  AGENT_SESSION_TEXT_CHECKPOINT_MS,
   createAgentSessionDeltaCoalescer,
   type AgentSessionDeltaCoalescerDeps
 } from '../native-chat/agent-session-wire/agent-session-delta-coalescer'
@@ -15,7 +16,7 @@ export type ClaudeStreamedTextCheckpointDeps = {
     text: string,
     options: StructuredAgentSessionAppendOptions,
     ended?: ClaudeStreamedBlockEnd
-  ) => void
+  ) => boolean | void
   producer: ClaudeSubagentLinkageSource
   coalesceMs?: number
   schedule?: AgentSessionDeltaCoalescerDeps['schedule']
@@ -25,7 +26,7 @@ export type ClaudeStreamedTextCheckpointDeps = {
 export type ClaudeStreamedBlockEnd = { completedAt?: number }
 
 export type ClaudeStreamedTextCheckpoints = {
-  /** Coalesce deltas and widen checkpoint intervals to avoid per-token journal rewrites. */
+  /** Coalesce deltas on a fixed checkpoint interval to avoid per-token journal rewrites. */
   append: (
     identity: AgentJournalItemIdentity,
     text: string,
@@ -65,8 +66,6 @@ export function createClaudeStreamedTextCheckpoints(
   const scopes = new Map<string, string | null>()
   /** Last written linkage, used only to skip revisions that change nothing. */
   const writtenLinkage = new Map<string, StructuredAgentSessionAppendOptions>()
-  const latestText = new Map<string, string>()
-  const checkpointLengths = new Map<string, number>()
 
   /** Resolve each checkpoint afresh; later announcements revise provisional producers on the same row. */
   const producerOptions = (key: string): StructuredAgentSessionAppendOptions => {
@@ -77,27 +76,24 @@ export function createClaudeStreamedTextCheckpoints(
     return agentJournalLinkageFields(deps.producer.settledLinkageFor(scope).linkage)
   }
 
-  const persist = (key: string, text: string, force: boolean): void => {
-    latestText.set(key, text)
-    const checkpointLength = checkpointLengths.get(key) ?? 0
-    const nextLength = Math.max(checkpointLength + 32, Math.ceil(checkpointLength * 1.125))
-    if (!force && checkpointLength > 0 && text.length < nextLength) {
-      return
-    }
+  const persist = (key: string, text: string): boolean => {
     const identity = identities.get(key)
     if (!identity) {
-      return
+      return true
     }
     const options = producerOptions(key)
-    checkpointLengths.set(key, text.length)
+    if (deps.persist(identity, text, options) === false) {
+      return false
+    }
     writtenLinkage.set(key, options)
-    deps.persist(identity, text, options)
+    return true
   }
 
   const coalescer = createAgentSessionDeltaCoalescer({
     ...(deps.coalesceMs === undefined ? {} : { windowMs: deps.coalesceMs }),
     ...(deps.schedule ? { schedule: deps.schedule } : {}),
-    emit: (key, text) => persist(key, text, false)
+    checkpointMs: () => AGENT_SESSION_TEXT_CHECKPOINT_MS,
+    emit: persist
   })
 
   const drop = (key: string): void => {
@@ -105,8 +101,6 @@ export function createClaudeStreamedTextCheckpoints(
     identities.delete(key)
     scopes.delete(key)
     writtenLinkage.delete(key)
-    latestText.delete(key)
-    checkpointLengths.delete(key)
   }
 
   return {
@@ -118,15 +112,10 @@ export function createClaudeStreamedTextCheckpoints(
     },
     flush: () => {
       coalescer.flushAll()
-      for (const [key, text] of latestText) {
-        if (checkpointLengths.get(key) !== text.length) {
-          persist(key, text, true)
-        }
-      }
     },
     reattribute: () => {
       for (const [key, identity] of identities) {
-        const text = latestText.get(key)
+        const text = coalescer.snapshot(key)?.text
         if (text === undefined) {
           continue
         }
@@ -135,19 +124,21 @@ export function createClaudeStreamedTextCheckpoints(
         if (written && sameLinkage(written, options)) {
           continue
         }
-        writtenLinkage.set(key, options)
-        deps.persist(identity, text, options)
+        if (deps.persist(identity, text, options) !== false) {
+          writtenLinkage.set(key, options)
+          coalescer.markFlushed(key)
+        }
       }
     },
     forget: drop,
-    latest: (key) => coalescer.snapshot(key)?.text ?? latestText.get(key),
+    latest: (key) => coalescer.snapshot(key)?.text,
     finish: (ended, only) => {
       for (const [key, identity] of identities) {
         if (only && !only(key)) {
           continue
         }
         coalescer.flush(key)
-        const text = latestText.get(key)
+        const text = coalescer.snapshot(key)?.text
         if (text !== undefined) {
           deps.persist(identity, text, producerOptions(key), ended)
         }
@@ -167,8 +158,6 @@ export function createClaudeStreamedTextCheckpoints(
       identities.clear()
       scopes.clear()
       writtenLinkage.clear()
-      latestText.clear()
-      checkpointLengths.clear()
     }
   }
 }

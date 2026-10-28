@@ -1,3 +1,4 @@
+import { appendAgentSessionItemAndPublish } from '../native-chat/agent-session-wire/structured-agent-session-item-publication'
 import type {
   ClaudeJournalTranslator,
   ClaudeJournalTranslatorDeps
@@ -103,17 +104,16 @@ export function createClaudeJournalTranslator(
       : {})
   })
   const streamedText = createClaudeStreamedTextCheckpoints({
-    ...(deps.coalesceMs === undefined ? {} : { coalesceMs: deps.coalesceMs }),
-    ...(deps.schedule ? { schedule: deps.schedule } : {}),
+    ...deps,
     producer: subagents.linkage,
     persist: (identity, text, options, ended) => {
       const body = claudeStreamingMessageBody(text)
-      deps.sink.appendItem(identity, body, {
+      const attribution = {
         ...options,
         turnScope: turnScope(),
         ...(ended ? { lifecycle: true } : {})
-      })
-      deps.sink.publish()
+      }
+      return appendAgentSessionItemAndPublish(deps.sink, identity, body, attribution).accepted
     }
   })
   const streamedThinking = createClaudeStreamedThinking({

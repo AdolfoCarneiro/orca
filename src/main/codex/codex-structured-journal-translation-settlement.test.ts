@@ -726,7 +726,7 @@ describe('codex journal translation', () => {
     ])
   })
 
-  it('checkpoints long streams geometrically and flushes the final snapshot', () => {
+  it('keeps long text behind the time deadline and flushes the final snapshot', () => {
     const { translator, tap, window } = translatorWith()
     translator.handle(TURN_STARTED)
     translator.handle(
