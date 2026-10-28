@@ -89,7 +89,11 @@ export function EditorEditFileSurface({
   markdownAnnotationsEnabled: boolean
   pendingEditorReveal: PendingEditorReveal | null
   markdownDocuments: MarkdownDocumentsController
-  getConflictNavigation: (file: OpenFile, content: string) => EditorConflictNavigation | undefined
+  getConflictNavigation: (
+    file: OpenFile,
+    content: string,
+    viewStateId: string
+  ) => EditorConflictNavigation | undefined
   getMarkdownSourceLineOffset: (frontMatterRaw: string) => number
   handleContentChange: (content: string) => void
   handleDirtyStateHint: (dirty: boolean) => void
@@ -316,7 +320,7 @@ export function EditorEditFileSurface({
         <ConflictBanner
           file={activeFile}
           entry={activeConflictEntry}
-          conflictNavigation={getConflictNavigation(activeFile, currentContent)}
+          conflictNavigation={getConflictNavigation(activeFile, currentContent, viewStateScopeId)}
         />
       )}
       <div className="min-h-0 flex-1 relative">{editorSurface}</div>
