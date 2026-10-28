@@ -52,6 +52,7 @@ describe('mobile dictation across a phone reconnect', () => {
 
     await vi.advanceTimersByTimeAsync(MOBILE_DICTATION_RECONNECT_GRACE_MS - 1)
     expect(controller.feed(chunk)).toEqual({ dictationId: 'd-1', text: 'before the drop' })
+    expect(controller.feed(chunk)).toEqual({ dictationId: 'd-1' })
     await vi.advanceTimersByTimeAsync(MOBILE_DICTATION_RECONNECT_GRACE_MS - 1)
     sink({ type: 'final', text: 'after it' })
 

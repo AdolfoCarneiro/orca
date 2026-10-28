@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useDictationCapture } from '../platform/dictation-capture'
+import { MobileDictationPendingAudioBudget } from './mobile-dictation-pending-audio-budget'
 import {
-  MOBILE_DICTATION_CONNECTION_SLOW_ERROR_MESSAGE,
-  MobileDictationPendingAudioBudget
-} from './mobile-dictation-pending-audio-budget'
-import { enqueueMobileDictationAudioChunk } from './mobile-dictation-audio-chunk'
+  MobileDictationTranscriptSoFar,
+  sendAcrossConnectionMove,
+  subscribeMobileDictationAudioChunks
+} from './mobile-dictation-audio-chunk'
 import {
   DICTATION_FINISH_TIMEOUT_MS,
   MOBILE_DICTATION_INPUT_CLOSED_ERROR_MESSAGE,
@@ -43,7 +44,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
   const pendingAudioBudgetRef = useRef(new MobileDictationPendingAudioBudget())
   const acceptingChunksRef = useRef(false)
   const generationRef = useRef(0)
-  const transcriptSoFarRef = useRef<{ dictationId: string; text: string } | null>(null)
+  const transcriptSoFarRef = useRef(new MobileDictationTranscriptSoFar())
 
   useLayoutEffect(() => {
     // Native audio events can arrive before passive Effects flush, but refs
@@ -92,10 +93,9 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
       if (client && dictationId) {
         void dictationSessionCancel.request(client, { dictationId }).catch(() => undefined)
       }
-      // Keep what the host transcribed before the failure instead of dropping it with the error.
-      const kept = transcriptSoFarRef.current
-      if (kept?.dictationId === dictationId && kept.text) {
-        onTranscriptRef.current(kept.text)
+      const kept = transcriptSoFarRef.current.take(dictationId)
+      if (kept) {
+        onTranscriptRef.current(kept)
       }
       reportError(err)
     },
@@ -103,31 +103,19 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
   )
 
   useEffect(() => {
-    // Reuse wiring on the microphone hot path instead of allocating per chunk.
-    const audioChunkQueue = {
+    const source = {
+      getClient: () => clientRef.current,
+      getActiveId: () => activeIdRef.current,
+      isAccepting: () => enabledRef.current && acceptingChunksRef.current
+    }
+    const sub = subscribeMobileDictationAudioChunks(capture, source, {
       pendingChunks: pendingChunksRef.current,
       pendingAudioBudget: pendingAudioBudgetRef.current,
-      shouldReleaseBudget: (id: string) => activeIdRef.current === id,
       failActiveDictation,
-      noteTranscriptSoFar: (dictationId: string, text: string) => {
-        transcriptSoFarRef.current = { dictationId, text }
-      }
-    }
-    const sub = capture.onChunk((chunk) => {
-      const client = clientRef.current
-      const dictationId = activeIdRef.current
-      if (!client || !dictationId || !enabledRef.current || !acceptingChunksRef.current) {
-        return
-      }
-      if (chunk.droppedBytes > 0) {
-        // Page capture loss and budget overflow both mean the page fell behind the microphone; report the same error. Native capture never drops here.
-        failActiveDictation(dictationId, new Error(MOBILE_DICTATION_CONNECTION_SLOW_ERROR_MESSAGE))
-        return
-      }
-      enqueueMobileDictationAudioChunk(client, dictationId, chunk, audioChunkQueue)
+      transcriptSoFar: transcriptSoFarRef.current
     })
     return () => sub.remove()
-  }, [capture, failActiveDictation, reportError])
+  }, [capture, failActiveDictation])
 
   const start = useCallback(async () => {
     const client = clientRef.current
@@ -230,10 +218,12 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
           return
         }
         const finished = dictationSessionFinish.interpret(
-          await dictationSessionFinish.request(
-            client,
-            { dictationId },
-            { timeoutMs: DICTATION_FINISH_TIMEOUT_MS }
+          await sendAcrossConnectionMove(() =>
+            dictationSessionFinish.request(
+              client,
+              { dictationId },
+              { timeoutMs: DICTATION_FINISH_TIMEOUT_MS }
+            )
           )
         )
         if (

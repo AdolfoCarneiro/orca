@@ -16,6 +16,7 @@ type MobileDictationSession = {
   partialText: string
   finalTexts: string[]
   errors: string[]
+  reportedText: string
   abandonTimer?: ReturnType<typeof setTimeout>
 }
 
@@ -65,7 +66,8 @@ export class RuntimeMobileDictationController {
       state: 'starting',
       partialText: '',
       finalTexts: [],
-      errors: []
+      errors: [],
+      reportedText: ''
     }
     try {
       await getSpeechSttService(store).startDictation(
@@ -93,7 +95,7 @@ export class RuntimeMobileDictationController {
     audioBase64: string
     sampleRate: number
     clientId?: string
-  }): { dictationId: string; text: string } {
+  }): { dictationId: string; text?: string } {
     const session = this.requireOwnedSession(params)
     if (session.state !== 'active') {
       throw new Error('dictation_stream_closing')
@@ -107,8 +109,13 @@ export class RuntimeMobileDictationController {
       samples[i] = pcm.readInt16LE(i * 2) / 32768
     }
     getSpeechSttService(this.requireStore()).feedAudio(samples, params.sampleRate, session.owner)
-    // The text so far lets the phone keep it if the connection never comes back.
-    return { dictationId: params.dictationId, text: transcriptOf(session) }
+    // The text so far lets the phone keep it if the connection never comes back; only changes are sent, as chunks arrive every few ms.
+    const text = transcriptOf(session)
+    if (text === session.reportedText) {
+      return { dictationId: params.dictationId }
+    }
+    session.reportedText = text
+    return { dictationId: params.dictationId, text }
   }
 
   async finish(params: {

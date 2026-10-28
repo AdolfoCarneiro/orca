@@ -66,8 +66,13 @@ function dictation(): UseMobileDictationResult {
   return held.dictation
 }
 
-// Answer each chunk with the next scripted reply and everything else with success.
-async function pump(rpc: FakeRpcClient, sent: SentRequest[], chunkReplies: Reply[]): Promise<void> {
+// Answer chunks and finishes with the next scripted reply, and everything else with success.
+async function pump(
+  rpc: FakeRpcClient,
+  sent: SentRequest[],
+  chunkReplies: Reply[],
+  finishReplies: Reply[] = []
+): Promise<void> {
   for (let round = 0; round < 8; round += 1) {
     for (const request of rpc.requests.splice(0)) {
       sent.push(request)
@@ -75,7 +80,7 @@ async function pump(rpc: FakeRpcClient, sent: SentRequest[], chunkReplies: Reply
         request.method === 'speech.dictation.chunk'
           ? (chunkReplies.shift() ?? {})
           : request.method === 'speech.dictation.finish'
-            ? { text: 'hello world' }
+            ? (finishReplies.shift() ?? { text: 'hello world' })
             : {}
       if (reply instanceof Error) {
         request.reject(reply)
@@ -112,7 +117,7 @@ beforeEach(() => {
 })
 
 describe('dictation through a reconnect', () => {
-  it('keeps recording past chunks the drop lost, and resends ones that never left', async () => {
+  it('keeps recording past chunks the drop lost, and resends requests that never left', async () => {
     const rpc = createFakeRpcClient()
     const sent: SentRequest[] = []
     const transcripts: string[] = []
@@ -130,9 +135,10 @@ describe('dictation through a reconnect', () => {
     expect(methodsOf(sent).filter((m) => m === 'speech.dictation.chunk')).toHaveLength(4)
     await act(async () => {
       const stopped = dictation().stop()
-      await pump(rpc, sent, [])
+      await pump(rpc, sent, [], [new LogicalClientCutoverError(new Error('Connection closed'))])
       await stopped
     })
+    expect(methodsOf(sent).filter((m) => m === 'speech.dictation.finish')).toHaveLength(2)
     expect(methodsOf(sent)).not.toContain('speech.dictation.cancel')
     expect(transcripts).toEqual(['hello world'])
     expect(errors).toEqual([])
