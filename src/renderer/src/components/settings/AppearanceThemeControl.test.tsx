@@ -57,7 +57,8 @@ it('lists plugin themes in the one Theme select and offers the plugin terminal c
       settings={{
         ...getDefaultSettings('/tmp'),
         theme: 'dark',
-        pluginAppTheme: 'plugin:samples.dusk/dusk'
+        pluginAppTheme: 'plugin:samples.dusk/dusk',
+        terminalColorOverrides: { red: '#123456' }
       }}
       updateSettings={updateSettings}
       applyTheme={vi.fn()}
@@ -74,6 +75,8 @@ it('lists plugin themes in the one Theme select and offers the plugin terminal c
       }
     ]
   })
+  // Overrides would otherwise mask the palette the user just chose.
+  expect(updateSettings.mock.calls[0]?.[0]).toHaveProperty('terminalColorOverrides', undefined)
 })
 
 it('remembers the built-in choice and names the publisher when theme names collide', async () => {

@@ -123,9 +123,13 @@ export function AppearanceThemeControl({
             updateSettings(
               withTerminalPluginPalettes(
                 settings,
-                terminalSlot === 'terminalThemeLight'
-                  ? { terminalThemeLight: matchingTerminal.id }
-                  : { terminalThemeDark: matchingTerminal.id },
+                {
+                  [terminalSlot]: matchingTerminal.id,
+                  // A selected theme must replace overrides or they mask its palette.
+                  ...(Object.keys(settings.terminalColorOverrides ?? {}).length > 0
+                    ? { terminalColorOverrides: undefined }
+                    : {})
+                },
                 pluginTerminalThemes
               )
             )

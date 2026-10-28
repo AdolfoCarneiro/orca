@@ -6,6 +6,9 @@ type Rgba = readonly [number, number, number, number]
 const CONTRAST_PAIRS: readonly (readonly [string, string])[] = [
   ['--background', '--foreground'],
   ['--background', '--muted-foreground'],
+  // Notebook markdown renders directly on the editor surface.
+  ['--editor-surface', '--foreground'],
+  ['--editor-surface', '--muted-foreground'],
   ['--card', '--card-foreground'],
   ['--popover', '--popover-foreground'],
   ['--primary', '--primary-foreground'],

@@ -239,6 +239,17 @@ describe('applyPluginAppTheme', () => {
     expect(painted({ '--background': '#151520' })).toEqual({ '--background': '#151520' })
   })
 
+  it('keeps text readable on the editor surface notebooks paint on', () => {
+    const tokens = { '--background': '#000000', '--foreground': '#ffffff' }
+    expect(painted({ ...tokens, '--editor-surface': '#ffffff' })).not.toHaveProperty(
+      '--editor-surface'
+    )
+    expect(painted({ ...tokens, '--editor-surface': '#111111' })).toHaveProperty(
+      '--editor-surface',
+      '#111111'
+    )
+  })
+
   it('rejects invisible rings and borders in any spelling', () => {
     expect(
       painted({ '--ring': '#0a0a0a', '--border': '#00000000', '--input': '#ffffff03' })
