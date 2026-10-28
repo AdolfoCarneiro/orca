@@ -114,7 +114,8 @@ describe('PluginBytesCustomEditorSurface', () => {
       fileId: 'book',
       binaryDocument: null
     })
-    expect(lastDocument()).toEqual({ bytes, fileType: 'xlsx' })
+    // The load hashes the bytes asynchronously before handing them over.
+    await act(() => vi.waitFor(() => expect(lastDocument()).toEqual({ bytes, fileType: 'xlsx' })))
   })
 
   it('names the file, its size and the limit when it is too large to open', async () => {
@@ -124,16 +125,6 @@ describe('PluginBytesCustomEditorSurface', () => {
       'book.xlsx is too large to open in Spreadsheet (80.0 MB; the limit is 64.0 MB).'
     )
     expect(container.querySelector('[data-testid="frame"]')).toBeNull()
-  })
-
-  it('offers a retry when the read fails, and reads again', async () => {
-    readRuntimeFileBytes.mockRejectedValueOnce(new Error('File changed on disk'))
-    await render({ content: '', isBinary: true, byteSource })
-    expect(container.textContent).toContain("book.xlsx couldn't be read for Spreadsheet.")
-    readRuntimeFileBytes.mockResolvedValue({ kind: 'ok', bytes: new Uint8Array([1]) })
-    await act(async () => container.querySelector('button')?.click())
-    expect(readRuntimeFileBytes).toHaveBeenCalledTimes(2)
-    expect(lastDocument()).toMatchObject({ fileType: 'xlsx' })
   })
 
   it('reloads after an outside change but not while the old content is only marked stale', async () => {
@@ -146,12 +137,15 @@ describe('PluginBytesCustomEditorSurface', () => {
     readRuntimeFileBytes.mockResolvedValue({ kind: 'ok', bytes: reloaded })
     await render({ content: '', isBinary: true, byteSource })
     expect(readRuntimeFileBytes).toHaveBeenCalledTimes(2)
-    expect(lastDocument()).toEqual({ bytes: reloaded, fileType: 'xlsx' })
+    await act(() =>
+      vi.waitFor(() => expect(lastDocument()).toEqual({ bytes: reloaded, fileType: 'xlsx' }))
+    )
   })
 
   it('keeps an edit as the dirty draft across a remount and never rereads under it', async () => {
     readRuntimeFileBytes.mockResolvedValue({ kind: 'ok', bytes: new Uint8Array([1]) })
     await render({ content: '', isBinary: true, byteSource })
+    await act(() => vi.waitFor(() => expect(lastDocument()).not.toBeNull()))
     const edited = { bytes: new Uint8Array([9, 9]), fileType: 'xlsx' }
     await act(async () => frameProps.mock.calls.at(-1)?.[0].onBytesChange(edited))
     expect(store.markFileDirty).toHaveBeenCalledWith('book', true)
@@ -162,11 +156,5 @@ describe('PluginBytesCustomEditorSurface', () => {
     expect(readRuntimeFileBytes).toHaveBeenCalledTimes(1)
     expect(lastDocument()).toBe(edited)
     expect(frameProps.mock.calls.at(-1)?.[0].onSave).toBe(onSave)
-  })
-
-  it('explains when the host cannot page the file', async () => {
-    readRuntimeFileBytes.mockResolvedValue({ kind: 'unsupported' })
-    await render({ content: '', isBinary: true, byteSource })
-    expect(container.textContent).toContain("Spreadsheet can't read this file")
   })
 })

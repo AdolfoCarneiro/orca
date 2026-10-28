@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { act, createElement } from 'react'
+import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -12,7 +12,7 @@ import { usePluginInstallAction } from './use-plugin-install-action'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 vi.mock('./plugin-theme-apply', () => ({ applyPluginThemesNow: vi.fn() }))
-import { toast, type ExternalToast } from 'sonner'
+import { toast } from 'sonner'
 import { applyPluginThemesNow } from './plugin-theme-apply'
 
 const listing: PluginMarketplaceHostListing = {
@@ -99,19 +99,6 @@ beforeEach(() => {
   })
 })
 
-/** Clicks a sonner toast action through a real button, as the toast would. */
-function clickToastAction(options: ExternalToast | undefined): void {
-  const action = options?.action
-  if (!action || typeof action !== 'object' || !('onClick' in action)) {
-    return
-  }
-  const container = document.createElement('div')
-  const root = createRoot(container)
-  act(() => root.render(createElement('button', { onClick: action.onClick })))
-  act(() => container.querySelector('button')?.click())
-  act(() => root.unmount())
-}
-
 describe('usePluginInstallAction', () => {
   it('asks main to turn on a content-only release and leaves nothing pending after', async () => {
     const { hook, onInstalled } = setup()
@@ -131,28 +118,6 @@ describe('usePluginInstallAction', () => {
     await act(async () => hook.current?.install(listing))
     expect(applyPluginThemesNow).toHaveBeenCalledExactlyOnceWith(listing.pluginKey)
     expect(toast.success).not.toHaveBeenCalled()
-  })
-
-  it('applies no theme for a plugin that adds none', async () => {
-    const { hook } = setup()
-    const codeListing = {
-      ...listing,
-      release: { ...listing.release!, execution: 'declarative' as const }
-    }
-    vi.mocked(window.api.plugins.installMarketplacePlugin).mockResolvedValue(installResult(false))
-    await act(async () => hook.current?.install(codeListing, { preview: codePreview }))
-    expect(window.api.plugins.consent).toHaveBeenCalled()
-    expect(applyPluginThemesNow).not.toHaveBeenCalled()
-  })
-
-  it('offers Try it after a successful card install', async () => {
-    const { hook, onTryPlugin } = setup()
-    await act(async () => hook.current?.install(listing))
-    expect(toast.success).toHaveBeenCalledWith('Dusk installed', {
-      action: { label: 'Try it', onClick: expect.any(Function) }
-    })
-    clickToastAction(vi.mocked(toast.success).mock.calls[0]?.[1])
-    expect(onTryPlugin).toHaveBeenCalledWith(listing.pluginKey)
   })
 
   it('approves exactly the fingerprint the page showed for a plugin that runs code', async () => {

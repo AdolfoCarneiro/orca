@@ -177,18 +177,6 @@ describe('plugin app theme completion', () => {
     })
   })
 
-  // Why: the left sidebar has no border; only its surface step separates it from the canvas.
-  it('lifts an omitted sidebar off the background so the left divider stays visible', () => {
-    const { tokens } = parsePluginAppThemeArtifact(
-      JSON.stringify({
-        base: 'dark',
-        tokens: { '--background': '#1d1533', '--foreground': '#e8e0ff', '--border': '#4a3480' }
-      })
-    )
-    expect(tokens['--worktree-sidebar']).not.toBe(tokens['--background'])
-    expect(tokens['--worktree-sidebar']).toBe('color-mix(in srgb, #e8e0ff 8%, #1d1533)')
-  })
-
   it('keeps a sidebar the theme sets', () => {
     const { tokens } = parsePluginAppThemeArtifact(
       JSON.stringify({

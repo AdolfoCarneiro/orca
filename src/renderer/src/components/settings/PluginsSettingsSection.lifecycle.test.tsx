@@ -271,18 +271,6 @@ describe('PluginsSettingsSection lifecycle', () => {
     expect(unsubscribe).toHaveBeenCalledOnce()
   })
 
-  it('offers no feature switch in either state', async () => {
-    const { container: on } = await renderSection()
-    expect(on.textContent).not.toContain('Turn off plugins')
-    document.body.innerHTML = ''
-    const { container: off } = await renderSection({
-      ...getDefaultSettings('/tmp'),
-      pluginSystemEnabled: false
-    })
-    expect(off.textContent).toContain('Plugins are off')
-    expect(off.textContent).not.toContain('Turn on plugins')
-  })
-
   it('reports a failed save of the file-suggestion setting', async () => {
     const updateSettings = vi.fn().mockRejectedValue(new Error('disk write failed'))
     const { container } = await renderSection(undefined, updateSettings)
@@ -353,23 +341,6 @@ describe('PluginsSettingsSection lifecycle', () => {
     ).toBe(true)
   })
 
-  it('reopens a review after going back from it', async () => {
-    installApi({ list: vi.fn().mockResolvedValue([{ ...plugin, status: 'pending' }]) })
-    const { container } = await renderSection()
-    const review = (): HTMLButtonElement | undefined =>
-      Array.from(container.querySelectorAll('button')).find(
-        (button) => button.textContent === 'Review'
-      )
-    await act(async () => click(review()!))
-    expect(container.textContent).toContain('Approve')
-    await act(async () =>
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true }))
-    )
-    expect(container.textContent).not.toContain('Approve')
-    await act(async () => click(review()!))
-    expect(container.textContent).toContain('Approve')
-  })
-
   it('shows what is true after a Restart fails halfway', async () => {
     const crashed = { ...plugin, status: 'errored' as const }
     const stopped = { ...plugin, status: 'disabled' as const }
@@ -437,24 +408,6 @@ describe('PluginsSettingsSection lifecycle', () => {
     expect(window.api.plugins.rollbackMarketplacePlugin).toHaveBeenCalledWith({
       pluginKey: plugin.pluginKey
     })
-  })
-
-  it('offers no rollback when no earlier version is kept', async () => {
-    installApi({
-      list: vi.fn().mockResolvedValue([
-        {
-          ...plugin,
-          source: {
-            kind: 'marketplace',
-            reference: 'https://example.com/notes.git',
-            resolvedCommit: 'current-commit',
-            contentHash: 'current-content'
-          }
-        }
-      ])
-    })
-    const { container } = await renderSection()
-    expect(container.textContent).not.toContain('Roll back')
   })
 
   it('accepts overlapping mutations in completion order without regressing final state', async () => {

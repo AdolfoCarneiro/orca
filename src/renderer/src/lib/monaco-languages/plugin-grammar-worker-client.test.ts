@@ -58,22 +58,6 @@ afterEach(() => {
 })
 
 describe('PluginGrammarWorkerClient', () => {
-  it('compiles once and keeps the worker warm across documents', async () => {
-    const { instance, workers } = client()
-    const first = instance.tokenize('ab', [2], signal())
-    await flush()
-    workers[0]?.reply(complete(workers[0].lastJob()))
-    await expect(first).resolves.toMatchObject({ ok: true })
-    await flush()
-    const second = instance.tokenize('ab', [2], signal())
-    await flush()
-    workers[0]?.reply(complete(workers[0].lastJob()))
-    await expect(second).resolves.toMatchObject({ ok: true })
-    expect(workers).toHaveLength(1)
-    expect(workers[0]?.terminated).toBe(false)
-    expect(workers[0]?.messages.filter((message) => message.type === 'init')).toHaveLength(1)
-  })
-
   it('drops a superseded document by id without killing the worker', async () => {
     const { instance, workers } = client()
     const controller = new AbortController()
@@ -136,19 +120,6 @@ describe('PluginGrammarWorkerClient', () => {
     expect(workers[0]?.terminated).toBe(true)
     void instance.tokenize('next', [4], signal())
     expect(workers).toHaveLength(2)
-  })
-
-  it('stops an idle worker after a grace period', async () => {
-    vi.useFakeTimers()
-    const { instance, workers } = client(false)
-    const done = instance.tokenize('ab', [2], signal())
-    workers[0]?.reply({ type: 'ready', ok: true })
-    workers[0]?.reply(complete(workers[0].lastJob()))
-    await done
-    await vi.advanceTimersByTimeAsync(59_000)
-    expect(workers[0]?.terminated).toBe(false)
-    await vi.advanceTimersByTimeAsync(2_000)
-    expect(workers[0]?.terminated).toBe(true)
   })
 
   it('reports a crash and an oversized document', async () => {

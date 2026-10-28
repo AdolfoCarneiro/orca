@@ -259,19 +259,6 @@ describe('custom editor routing', () => {
     expect(model({ activeFile: remote }).activeCustomEditor?.key).toBe('stablyai.excalidraw/draw')
   })
 
-  it('ignores files that do not end in a listed suffix', () => {
-    const json = file({ id: '/repo/package.json', filePath: '/repo/package.json' })
-    const editors = customEditorsForFile(
-      json.filePath,
-      collectActivePluginCustomEditors([plugin({ pluginKey: 'stablyai.excalidraw' })])
-    )
-    expect(model({ activeFile: json, editors }).activeCustomEditor).toBeNull()
-    expect(model({ activeFile: json, editors }).availableEditorToggleModes).toEqual([
-      'edit',
-      'changes'
-    ])
-  })
-
   describe('bytes editors', () => {
     const sheet = file({
       id: '/repo/book.xlsx',

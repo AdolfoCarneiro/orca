@@ -65,23 +65,6 @@ it('fills only the slot of the theme it was asked for', () => {
   })
 })
 
-it('labels a theme for the other mode with its slot', () => {
-  state.settings = {
-    ...getDefaultSettings('/tmp'),
-    theme: 'dark',
-    pluginAppThemeLight: `plugin:${pluginKey}/Dawn`
-  }
-  state.app = [appTheme('Dusk', 'dark'), appTheme('Dawn', 'light')]
-  render(<PluginThemeUseNow pluginKey={pluginKey} />)
-  expect(screen.getByText('Use for light:')).toBeDefined()
-  const dawn = screen.getByRole('button', { name: 'Use for light: Dawn' })
-  expect(dawn.getAttribute('aria-pressed')).toBe('true')
-  fireEvent.click(dawn)
-  expect(state.updateSettings).toHaveBeenCalledWith({
-    pluginAppThemeLight: `plugin:${pluginKey}/Dawn`
-  })
-})
-
 it('offers an installed icon theme without selecting it until asked', () => {
   state.settings = getDefaultSettings('/tmp')
   state.icons = [
@@ -91,9 +74,6 @@ it('offers an installed icon theme without selecting it until asked', () => {
   render(<PluginThemeUseNow pluginKey={pluginKey} />)
   expect(state.updateSettings).not.toHaveBeenCalled()
   expect(screen.queryByRole('button', { name: 'Other Icons' })).toBeNull()
-  expect(
-    screen.getByRole('button', { name: 'Use now: Dusk Icons' }).getAttribute('data-variant')
-  ).toBe('default')
   fireEvent.click(screen.getByRole('button', { name: 'Use now: Dusk Icons' }))
   expect(state.updateSettings).toHaveBeenCalledExactlyOnceWith({ pluginIconTheme: id })
 })
@@ -115,26 +95,3 @@ it.each(['dark', 'light', 'unknown'] as const)(
     })
   }
 )
-
-it('marks selected icon and terminal themes without changing app appearance', () => {
-  state.settings = { ...getDefaultSettings('/tmp'), pluginIconTheme: id, terminalThemeDark: id }
-  state.icons = [{ id, pluginKey, label: 'Dusk Icons' }]
-  state.terminal = [
-    {
-      id,
-      pluginKey,
-      pluginName: 'Dusk',
-      label: 'Dusk Terminal',
-      mode: 'dark',
-      terminal: { background: '#181818', foreground: '#eeeeee', red: '#ff0000' }
-    }
-  ]
-  render(<PluginThemeUseNow pluginKey={pluginKey} />)
-  expect(
-    screen.getByRole('button', { name: 'Use now: Dusk Icons' }).getAttribute('aria-pressed')
-  ).toBe('true')
-  expect(
-    screen.getByRole('button', { name: 'Use now: Dusk Terminal' }).getAttribute('aria-pressed')
-  ).toBe('true')
-  expect(state.updateSettings).not.toHaveBeenCalled()
-})

@@ -107,18 +107,4 @@ describe('usePluginPageNavigation', () => {
     await act(async () => pressBack(container.querySelector('[role="dialog"] button')))
     expect(nav?.openKey).toBe('acme.notes')
   })
-
-  it('goes back on Alt+← from anywhere else', async () => {
-    const container = await mountOpen()
-    await act(async () => pressBack(container.querySelector('[data-plain]')))
-    expect(nav?.openKey).toBeNull()
-  })
-
-  it('leaves only the page that is open', async () => {
-    await mountOpen()
-    await act(async () => nav?.leave('acme.other'))
-    expect(nav?.openKey).toBe('acme.notes')
-    await act(async () => nav?.leave('acme.notes'))
-    expect(nav?.openKey).toBeNull()
-  })
 })

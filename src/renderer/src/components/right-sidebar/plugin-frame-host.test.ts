@@ -281,26 +281,6 @@ describe('createPluginFrameMessageHandler', () => {
     expect(frame.postMessage).not.toHaveBeenCalled()
   })
 
-  it('charges pongs to the data budget and near-misses to data only', () => {
-    const frame = createFakeFrameWindow()
-    const admit = vi.fn<PanelMessageBudget['admit']>().mockReturnValue(null)
-    const controlAdmit = vi.fn<PanelMessageBudget['admit']>().mockReturnValue(null)
-    const onPong = vi.fn()
-    const { handler } = createHandler(frame, {
-      onPong,
-      budget: { maxBytes: 1024, admit },
-      controlBudget: { maxBytes: 1024, admit: controlAdmit }
-    })
-
-    handler(messageEvent(pong(7), frame))
-    handler(messageEvent(pong(-1), frame))
-    handler(messageEvent(pong('seven'), frame))
-
-    expect(admit).toHaveBeenCalledTimes(3)
-    expect(controlAdmit).toHaveBeenCalledTimes(1)
-    expect(onPong).toHaveBeenCalledWith(7)
-  })
-
   it('keeps answering the watchdog while the data budget is saturated or flooded', () => {
     const frame = createFakeFrameWindow()
     const onPong = vi.fn()

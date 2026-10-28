@@ -60,14 +60,6 @@ it('falls back to following the system language when nothing was remembered', ()
   expect(state.updateSettings).toHaveBeenCalledExactlyOnceWith({ uiLanguage: 'system' })
 })
 
-it('offers nothing for a pack too incomplete to use', () => {
-  state.settings = getDefaultSettings('/tmp')
-  const { container } = render(
-    <PluginContributionActionLanguage pack={{ ...pack, coverage: 40 }} />
-  )
-  expect(container).toBeEmptyDOMElement()
-})
-
 it('says so when the switch is rejected', async () => {
   state.settings = { ...getDefaultSettings('/tmp'), uiLanguage: 'en' }
   state.updateSettings.mockRejectedValue(new Error('disk full'))

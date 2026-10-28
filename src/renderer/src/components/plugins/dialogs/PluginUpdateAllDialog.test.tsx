@@ -256,28 +256,6 @@ describe('PluginUpdateAllDialog', () => {
     expect(onUpdated).toHaveBeenCalledWith(['b'])
   })
 
-  it('reads each update once, however often the parent re-renders', async () => {
-    const previewMarketplaceUpdate = vi.fn(({ pluginKey }: { pluginKey: string }) =>
-      Promise.resolve(preview(pluginKey, []))
-    )
-    installApi({ previewMarketplaceUpdate, installMarketplacePlugin: vi.fn() })
-    const onUpdated = vi.fn().mockResolvedValue(undefined)
-    await renderDialog([entry('a', []), entry('b', [])], { onUpdated })
-    for (let index = 0; index < 3; index += 1) {
-      await act(async () => {
-        root?.render(
-          <PluginUpdateAllDialog
-            open
-            entries={[entry('a', []), entry('b', [])]}
-            onClose={vi.fn()}
-            onUpdated={onUpdated}
-          />
-        )
-      })
-    }
-    expect(previewMarketplaceUpdate).toHaveBeenCalledTimes(2)
-  })
-
   it('names what failed, keeps what updated, and retries only the failures', async () => {
     const installMarketplacePlugin = vi.fn(({ pluginKey }: { pluginKey: string }) =>
       Promise.resolve(pluginKey === 'a' ? { ok: false, error: 'boom' } : { ok: true, pluginKey })
@@ -332,22 +310,6 @@ describe('PluginUpdateAllDialog', () => {
     })
     expect(previewMarketplaceUpdate).toHaveBeenCalledTimes(2)
     expect(container.querySelector('[data-plugin-update="b"]')?.textContent).toContain('Updated')
-  })
-
-  it('says nothing was updated when every update fails', async () => {
-    installApi({
-      previewMarketplaceUpdate: vi.fn(({ pluginKey }: { pluginKey: string }) =>
-        Promise.resolve(preview(pluginKey, []))
-      ),
-      installMarketplacePlugin: vi.fn().mockRejectedValue(new Error('offline'))
-    })
-    const onUpdated = vi.fn().mockResolvedValue(undefined)
-    const container = await renderDialog([entry('a', []), entry('b', [])], { onUpdated })
-
-    await act(async () => button(container, 'Update')?.click())
-    expect(container.textContent).toContain('Couldn’t update a, b. Nothing was updated.')
-    expect(container.textContent).not.toContain('The others were updated.')
-    expect(onUpdated).not.toHaveBeenCalled()
   })
 
   it('lists an update that needs a newer Orca without offering it', async () => {

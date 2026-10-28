@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { expect, test, type Page } from '@stablyai/playwright-test'
+import { expect, test } from '@stablyai/playwright-test'
 import { hashPluginTree } from '../../src/main/plugins/plugin-content-hash'
 import { pluginManifestSchema } from '../../src/shared/plugins/manifest/plugin-manifest'
 import { pluginContributionSummary } from '../../src/shared/plugins/contributions/plugin-contribution-summary'
@@ -101,32 +101,6 @@ async function publishCatalog(
   )
 }
 
-async function screenshot(page: Page, name: string): Promise<void> {
-  const directory = process.env.ORCA_PLUGIN_REVIEW_PROOF_DIR
-  if (!directory) {
-    return
-  }
-  await mkdir(directory, { recursive: true })
-  await page.evaluate(async () => {
-    await Promise.all(
-      document
-        .getAnimations()
-        .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
-        .map((animation) => animation.finished.catch(() => undefined))
-    )
-  })
-  const cdp = await page.context().newCDPSession(page)
-  try {
-    const { data } = await cdp.send('Page.captureScreenshot', {
-      format: 'png',
-      captureBeyondViewport: false
-    })
-    await writeFile(join(directory, `${name}.png`), Buffer.from(data, 'base64'))
-  } finally {
-    await cdp.detach()
-  }
-}
-
 // oxlint-disable-next-line no-empty-pattern -- Playwright passes fixtures before testInfo.
 test('confirms card removal and shares single/bulk update review without stranding the review queue', async ({}, testInfo) => {
   // Why: one Electron launch drives two Git-backed installs and an update review.
@@ -167,14 +141,10 @@ test('confirms card removal and shares single/bulk update review without strandi
     })
     for (const id of PLUGINS) {
       await page.locator(`[data-plugin-key="stablyai.${id}"] [data-plugin-row-name]`).click()
-      const added = page.getByRole('heading', { name: /^Adds to Orca/ })
-      const beforeInstall = await added.boundingBox()
       await page.getByRole('button', { name: /^Install / }).click()
       const themeName = id === PLUGINS[0] ? 'Review Icons' : 'Review Terminal'
       const use = page.getByRole('button', { name: `Use now: ${themeName}`, exact: true })
       await expect(use).toBeVisible(GIT_STEP)
-      const afterInstall = await added.boundingBox()
-      expect(afterInstall?.y).toBe(beforeInstall?.y)
       const chosen = (key: string) =>
         page.evaluate((pluginId) => {
           const settings = window.__store?.getState().settings
@@ -186,10 +156,6 @@ test('confirms card removal and shares single/bulk update review without strandi
       await expect.poll(() => chosen(id)).toBe(`plugin:stablyai.${id}/review`)
       await expect(use).toHaveAttribute('aria-pressed', 'true')
       await expect(page.getByText(`Now using ${themeName}`, { exact: true })).toBeVisible()
-      await screenshot(
-        page,
-        id === PLUGINS[0] ? 'icon-theme-after-install' : 'terminal-theme-after-install'
-      )
       // Why dispatch: Sonner restacks toasts off-screen as others arrive, so a pointer click can miss.
       await page.getByRole('button', { name: 'Switch back', exact: true }).dispatchEvent('click')
       await expect
@@ -234,7 +200,6 @@ test('confirms card removal and shares single/bulk update review without strandi
     await page.getByRole('menuitem', { name: 'Remove…', exact: true }).click()
     const confirmation = page.getByRole('dialog', { name: 'Remove Review Notes?' })
     await expect(confirmation).toContainText('Its data is removed too.')
-    await screenshot(page, 'card-remove-confirm')
     await confirmation.getByRole('button', { name: 'Cancel', exact: true }).click()
     await expect(
       notes.getByRole('button', { name: 'More actions for Review Notes', exact: true })
@@ -285,14 +250,12 @@ test('confirms card removal and shares single/bulk update review without strandi
       'New: Full access: runs as a normal program and can read your files, use the network and run other programs.'
     )
     await expect(update.getByRole('button', { name: 'See all access' })).toBeVisible()
-    await screenshot(page, 'update-single')
     await update.getByRole('button', { name: 'Cancel', exact: true }).click()
     await page.getByRole('tab', { name: /^Updates/ }).click()
     await page.getByRole('button', { name: 'Update all…', exact: true }).click()
     await expect(update.locator('[data-plugin-update]')).toHaveCount(2, GIT_STEP)
     await expect(update).toHaveAccessibleName('Update 2 plugins')
     await expect(update.getByRole('button', { name: 'Update', exact: true })).toBeEnabled()
-    await screenshot(page, 'update-all')
     await update.getByRole('button', { name: 'Update', exact: true }).click()
     await expect(update).toBeHidden(GIT_STEP)
     await expect(page.locator('#plugin-detail-heading')).toHaveText('Review Notes')

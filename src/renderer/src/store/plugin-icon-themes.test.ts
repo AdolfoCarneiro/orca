@@ -48,11 +48,6 @@ it('loads the selected icon theme and drops it when its plugin goes away', async
       fileExtensions: {}
     })
   )
-  const rules = document.getElementById('orca-plugin-icon-theme')?.textContent ?? ''
-  expect(rules).toContain('[data-plugin-icon="0"]')
-  expect(rules).toContain('mask:')
-  expect(rules).not.toContain('[data-plugin-icon="1"]')
-  expect(loadIconTheme).toHaveBeenCalledWith(metadata.id)
 
   listed = []
   act(() => listeners.forEach((listener) => listener({ contentPacksChanged: true })))

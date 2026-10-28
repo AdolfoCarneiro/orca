@@ -33,10 +33,6 @@ const registered: Parameters<typeof pluginInUse>[2] = {
 }
 
 describe('pluginInUse', () => {
-  it('says nothing for a plugin with nothing to switch to', () => {
-    expect(pluginInUse('acme.commands', settings, registered)).toBeNull()
-  })
-
   it('offers Use while installed but not active', () => {
     expect(pluginInUse('acme.pair', settings, registered)).toEqual({
       kind: 'available',

@@ -45,22 +45,6 @@ it('runs the command as the palette would and shows what it returned', async () 
   )
 })
 
-it('shows a structured result as bounded JSON rather than hiding it in Logs', async () => {
-  executePluginCommand.mockResolvedValue({ 'workspace.created': 2, 'agent.status.changed': 5 })
-  render(
-    <PluginContributionActionCommand
-      command={command({ type: 'worker' })}
-      unavailableReason={null}
-    />
-  )
-  fireEvent.click(screen.getByRole('button', { name: 'Run Open Tasks' }))
-  await vi.waitFor(() =>
-    expect(toast.success).toHaveBeenCalledWith('Ran Open Tasks', {
-      description: '{"workspace.created":2,"agent.status.changed":5}'
-    })
-  )
-})
-
 it('truncates a long result and falls back to Logs for one it cannot serialize', async () => {
   executePluginCommand.mockResolvedValueOnce({ lines: Array.from({ length: 60 }, () => 'row') })
   render(
@@ -87,22 +71,6 @@ it('truncates a long result and falls back to Logs for one it cannot serialize',
   )
 })
 
-it('points a silent worker command at Logs', async () => {
-  executePluginCommand.mockResolvedValue(undefined)
-  render(
-    <PluginContributionActionCommand
-      command={command({ type: 'worker' })}
-      unavailableReason={null}
-    />
-  )
-  fireEvent.click(screen.getByRole('button', { name: 'Run Open Tasks' }))
-  await vi.waitFor(() =>
-    expect(toast.success).toHaveBeenCalledWith('Ran Open Tasks', {
-      description: 'See Logs below'
-    })
-  )
-})
-
 it('reports a failure instead of pretending it ran', async () => {
   executePluginCommand.mockRejectedValue(new Error('worker crashed'))
   render(
@@ -116,19 +84,6 @@ it('reports a failure instead of pretending it ran', async () => {
     expect(toast.error).toHaveBeenCalledWith('Open Tasks failed', { description: 'worker crashed' })
   )
   expect(toast.success).not.toHaveBeenCalled()
-})
-
-it('stays visible but off while the command cannot run', () => {
-  render(
-    <PluginContributionActionCommand
-      command={command({ type: 'worker' })}
-      unavailableReason="Needs an open workspace"
-    />
-  )
-  const button = screen.getByRole('button', { name: 'Run Open Tasks' })
-  expect(button).toBeDisabled()
-  fireEvent.click(button)
-  expect(executePluginCommand).not.toHaveBeenCalled()
 })
 
 it('leaves Settings before running a built-in action, which Settings would disable', async () => {

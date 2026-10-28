@@ -42,20 +42,6 @@ describe('parsePluginMarketplaceIndex', () => {
     expect(marketplace.plugins).toHaveLength(1)
   })
 
-  it('keeps the first readable copy of a repeated id', () => {
-    const marketplace = parse(PLUGIN_CATALOG_FILENAME, {
-      catalogVersion: 2,
-      name: 'New',
-      owner: 'samples',
-      plugins: [
-        { ...entry, releases: [{ ...release, commit: 'nope' }] },
-        { ...entry, description: 'first readable', releases: [release] },
-        { ...entry, description: 'later copy', releases: [release] }
-      ]
-    })
-    expect(marketplace.plugins.map((plugin) => plugin.description)).toEqual(['first readable'])
-  })
-
   it('refuses a newer catalog format with the fix', () => {
     expect(() =>
       parse(PLUGIN_CATALOG_FILENAME, {

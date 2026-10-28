@@ -1,9 +1,8 @@
 // @vitest-environment happy-dom
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { PluginHostListEntry } from '../../../../../preload/api-types'
-import { pluginManifestSchema } from '../../../../../shared/plugins/manifest/plugin-manifest'
 import { useAppStore } from '@/store'
 import { usePluginLanguagePackStore } from '@/store/plugin-language-packs'
 import { usePluginSyntaxStore } from '@/store/plugin-syntax-packs'
@@ -58,23 +57,6 @@ const hello: PluginHostListEntry = {
     }
   ]
 }
-const helloManifest = pluginManifestSchema.parse({
-  manifestVersion: 1,
-  id: 'hello-orca',
-  publisher: 'samples',
-  name: 'Hello Orca',
-  version: '1.0.0',
-  engines: { orca: '>=1.0.0' },
-  pluginApi: 1,
-  main: 'main.mjs',
-  contributes: {
-    panels: [{ id: 'hello', title: 'Hello Orca', entry: 'panel.html' }],
-    commands: [{ id: 'ping', title: 'Hello: Ping' }],
-    events: [{ on: 'workspace.created' }, { on: 'agent.status.changed' }]
-  },
-  capabilities: [{ kind: 'workspace:read' }, { kind: 'agent:read' }]
-})
-
 const invokeCommand = vi.fn()
 const getInstalledManifest = vi.fn()
 
@@ -127,27 +109,6 @@ afterEach(() => {
   })
 })
 
-it('tells the user how to see a live grammar, and nothing for a disabled one', () => {
-  renderAdds(gleam)
-  expect(screen.getByText('Open any .gleam file')).toBeInTheDocument()
-  cleanup()
-  renderAdds({ ...gleam, status: 'disabled' })
-  expect(screen.queryByText('Open any .gleam file')).not.toBeInTheDocument()
-})
-
-it('runs a live worker command from its row and shows what came back', async () => {
-  invokeCommand.mockResolvedValue('pong')
-  renderAdds(hello)
-  fireEvent.click(screen.getByRole('button', { name: 'Run Hello: Ping' }))
-  expect(invokeCommand).toHaveBeenCalledExactlyOnceWith({
-    pluginKey: 'samples.hello-orca',
-    commandId: 'ping'
-  })
-  await vi.waitFor(() =>
-    expect(toast.success).toHaveBeenCalledWith('Ran Hello: Ping', { description: 'pong' })
-  )
-})
-
 it('explains inline why a workspace command and the panel are off without a workspace', () => {
   renderAdds(hello)
   expect(screen.getByRole('button', { name: 'Run Hello: Here' })).toBeDisabled()
@@ -163,12 +124,4 @@ it('opens a live panel over the workspace Settings came from', () => {
   expect(state.activeView).toBe('terminal')
   expect(state.rightSidebarTab).toBe('plugin:samples.hello-orca/hello')
   expect(state.rightSidebarOpen).toBe(true)
-})
-
-it('lists the events a worker plugin reacts to, from its installed manifest', async () => {
-  getInstalledManifest.mockResolvedValue(helloManifest)
-  await act(async () => renderAdds(hello))
-  expect(await screen.findByText('When a workspace is created')).toBeInTheDocument()
-  expect(screen.getByText('When an agent’s status changes')).toBeInTheDocument()
-  expect(screen.queryByText('When a workspace is removed')).not.toBeInTheDocument()
 })

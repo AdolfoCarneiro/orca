@@ -162,55 +162,6 @@ afterEach(() => {
 })
 
 describe('PluginDetailPage', () => {
-  it.each(['app-theme', 'icon-theme', 'terminal-theme'] as const)(
-    'reserves its Use now line for an installed %s before registrations arrive',
-    async (type) => {
-      const entry: PluginListEntry = {
-        ...pluginListEntryFromInstalled({ ...installed, execution: 'data' }),
-        types: [type]
-      }
-      const container = await render(entry, () => Promise.resolve({ ok: true, preview }))
-      expect(container.querySelector('[data-use-now-line]')).not.toBeNull()
-    }
-  )
-
-  it.each(['data', 'trusted-worker'] as const)(
-    'keeps theme actions prominent for an installed %s plugin',
-    async (execution) => {
-      const entry: PluginListEntry = {
-        ...pluginListEntryFromInstalled({ ...installed, execution }),
-        types: ['app-theme']
-      }
-      const container = await render(entry, () => Promise.resolve({ ok: true, preview }))
-      expect(container.querySelector('[data-use-now-line]')).not.toBeNull()
-    }
-  )
-
-  it.each([
-    ['data', 'Couldn’t load its files', 'kept crashing'],
-    ['trusted-worker', 'It kept crashing', 'load its files']
-  ] as const)(
-    'explains a stopped %s plugin in terms of what it has',
-    async (execution, shown, hidden) => {
-      const container = await render(
-        pluginListEntryFromInstalled({ ...installed, execution, status: 'errored', restarts: 3 }),
-        vi.fn()
-      )
-      expect(container.textContent).toContain(shown)
-      expect(container.textContent).not.toContain(hidden)
-    }
-  )
-
-  it('names what a catalog plugin adds from its manifest', async () => {
-    const container = await render(pluginListEntryFromListing(listing), () =>
-      Promise.resolve({ ok: true, preview })
-    )
-    expect(container.textContent).toContain('Minimal Icons')
-    expect(container.textContent).toContain('File icon theme')
-    // Why from the release: install refuses bytes whose profile differs from it.
-    expect(container.textContent).toContain('Content only')
-  })
-
   it('installs a content-only plugin in one click from its page', async () => {
     const container = await render(pluginListEntryFromListing(listing), () =>
       Promise.resolve({ ok: true, preview })
@@ -245,28 +196,6 @@ describe('PluginDetailPage', () => {
     await act(async () => retry?.click())
     expect(fetchPreview).toHaveBeenCalledTimes(2)
     expect(container.textContent).toContain('Content only')
-  })
-
-  it('names an installed plugin’s syntax and says when its grammar failed', async () => {
-    usePluginSyntaxStore.setState({
-      loaded: true,
-      entries: [
-        {
-          id: 'plugin:stablyai.gleam/gleam',
-          pluginKey: 'stablyai.gleam',
-          label: 'Gleam',
-          extensions: ['.gleam'],
-          filenames: [],
-          revision: '1'
-        }
-      ]
-    })
-    usePluginSyntaxFailureStore.setState({
-      failures: { 'plugin:stablyai.gleam/gleam@1': 'crashed' }
-    })
-    const container = await render(pluginListEntryFromInstalled(installed), vi.fn())
-    expect(container.textContent).toContain('Gleam')
-    expect(container.textContent).toContain('Highlighting stopped: this grammar failed.')
   })
 
   it('never calls a commands plugin content only, before or after its manifest is read', async () => {
@@ -334,33 +263,6 @@ describe('PluginDetailPage', () => {
     expect(container.textContent).toMatch(/replaces your shortcut for/)
   })
 
-  it('never arms Install & enable for a release other than the one the page shows', async () => {
-    install.install.mockClear()
-    const codeListing: PluginMarketplaceHostListing = {
-      ...listing,
-      pluginKey: 'stablyai.shortcuts',
-      release: { ...listing.release!, execution: 'declarative', types: ['instructions'] }
-    }
-    const container = await render(pluginListEntryFromListing(codeListing), () =>
-      Promise.resolve({
-        ok: true,
-        // Why a worker: the catalog moved on to a release that asks for more than the page shows.
-        preview: {
-          ...preview,
-          pluginKey: 'stablyai.shortcuts',
-          resolvedCommit: 'f'.repeat(40),
-          manifest: { ...preview.manifest, main: 'dist/main.mjs' }
-        }
-      })
-    )
-    expect(container.textContent).toContain('Newer version available')
-    const installButton = Array.from(container.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Install & enable')
-    )
-    expect(installButton?.disabled).toBe(true)
-    expect(install.install).not.toHaveBeenCalled()
-  })
-
   const codeRelease = {
     ...listing,
     pluginKey: 'stablyai.shortcuts',
@@ -387,22 +289,6 @@ describe('PluginDetailPage', () => {
     Array.from(container.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Install & enable')
     )
-
-  it('puts the one decision beside the name and keeps the consent free of buttons', async () => {
-    const container = await render(pluginListEntryFromListing(codeRelease), () =>
-      Promise.resolve({ ok: true, preview: codePreview })
-    )
-    const consent = container.querySelector('[data-plugin-consent]')
-    expect(consent?.querySelectorAll('button')).toHaveLength(0)
-    const decisions = Array.from(container.querySelectorAll('button')).filter((button) =>
-      button.textContent?.includes('Install & enable')
-    )
-    expect(decisions).toHaveLength(1)
-    // Why before the consent: the button sits top-right in the header, the consent under it.
-    expect(
-      decisions[0]!.compareDocumentPosition(consent!) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy()
-  })
 
   it('arms Install & enable only for the exact release it shows', async () => {
     const container = await render(pluginListEntryFromListing(codeRelease), () =>

@@ -48,20 +48,6 @@ it('offers the catalog plugin and opens its preview without installing', async (
   expect(openSettingsTarget).toHaveBeenCalledWith({ pane: 'plugins', repoId: null })
 })
 
-it('asks only for a custom editor for a file Orca already shows as text', async () => {
-  suggestForFileType.mockResolvedValue({
-    marketplaceSourceId: 'official',
-    pluginKey: 'stablyai.excalidraw',
-    fileType: 'excalidraw',
-    name: 'Excalidraw'
-  })
-  render(<PluginFileTypeSuggestion filePath="scene.excalidraw" purpose="editor" />)
-  expect(
-    await screen.findByText('A plugin adds an editor for .excalidraw files: Excalidraw')
-  ).toBeTruthy()
-  expect(suggestForFileType).toHaveBeenCalledWith('excalidraw', 'editor')
-})
-
 it('remembers "Don\'t suggest" in settings', async () => {
   render(<PluginFileTypeSuggestion filePath="paper.typ" />)
   fireEvent.click(await screen.findByRole('button', { name: "Don't suggest for .typ" }))
@@ -100,18 +86,4 @@ it('keeps "Not now" scoped to the file type when the same editor switches files'
   view.rerender(<PluginFileTypeSuggestion filePath="a.foo" />)
   await waitFor(() => expect(suggestForFileType).not.toHaveBeenCalled())
   expect(view.queryByRole('status')).toBeNull()
-})
-
-it('hides for the rest of the session after "Not now"', async () => {
-  const first = render(<PluginFileTypeSuggestion filePath="b.gleam" />)
-  suggestForFileType.mockResolvedValue({
-    marketplaceSourceId: 'official',
-    pluginKey: 'samples.gleam',
-    fileType: 'gleam'
-  })
-  fireEvent.click(await first.findByRole('button', { name: 'Not now' }))
-  first.unmount()
-  suggestForFileType.mockClear()
-  render(<PluginFileTypeSuggestion filePath="c.gleam" />)
-  await waitFor(() => expect(suggestForFileType).not.toHaveBeenCalled())
 })

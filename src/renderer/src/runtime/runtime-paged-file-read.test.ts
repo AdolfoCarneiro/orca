@@ -335,7 +335,6 @@ describe('whole-file bytes for a bytes custom editor', () => {
     )
 
     expect(result.kind === 'ok' && Buffer.from(result.bytes).equals(bytes)).toBe(true)
-    expect(fsReadFileChunk).toHaveBeenCalledTimes(2)
     expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
   })
 })

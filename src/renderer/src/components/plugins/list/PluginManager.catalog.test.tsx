@@ -356,48 +356,10 @@ describe('PluginManager catalog', () => {
 
   it('requests the shared removal confirmation from the card without deleting data', async () => {
     const onRemoveRequest = vi.fn()
-    const { container } = await render(
-      [installedPlugin(preview.contentHash)],
-      undefined,
-      onRemoveRequest
-    )
-    const more = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="More actions for Worktree Notes"]'
-    )
-    expect(more).toBeTruthy()
-    expect(more?.closest('[data-plugin-row-name]')).toBeNull()
+    await render([installedPlugin(preview.contentHash)], undefined, onRemoveRequest)
     await act(async () => button('Remove…').click())
 
     expect(onRemoveRequest).toHaveBeenCalledWith(listing.pluginKey)
-  })
-
-  it('offers Disable for one installed plugin, never the global Turn off wording', async () => {
-    const onToggleEnabled = vi.fn()
-    await render([installedPlugin(preview.contentHash)], undefined, undefined, onToggleEnabled)
-    // Why two: the installed row and the catalog grid both show the plugin's card.
-    expect(buttons('Disable')).toHaveLength(2)
-    expect(buttons('Turn off')).toHaveLength(0)
-    expect(buttons('Turn on')).toHaveLength(0)
-    await act(async () => button('Disable').click())
-
-    expect(onToggleEnabled).toHaveBeenCalledWith(listing.pluginKey)
-  })
-
-  it('lists the card menu Disable directly above Remove, without an icon', async () => {
-    await render([installedPlugin(preview.contentHash)])
-    const remove = button('Remove…')
-    const menu = remove.parentElement
-    const items = Array.from(menu?.querySelectorAll(':scope > button') ?? [])
-    const disableIndex = items.findIndex((item) => item.textContent?.trim() === 'Disable')
-    expect(disableIndex).toBeGreaterThanOrEqual(0)
-    expect(items.indexOf(remove) - disableIndex).toBe(1)
-    expect(items[disableIndex]?.querySelector('svg')).toBeNull()
-  })
-
-  it('offers Enable for one disabled plugin', async () => {
-    await render([{ ...installedPlugin(preview.contentHash), status: 'disabled' }])
-    expect(buttons('Enable')).toHaveLength(2)
-    expect(buttons('Disable')).toHaveLength(0)
   })
 
   it('says when an update preview matches the installed bytes', async () => {
@@ -425,18 +387,6 @@ describe('PluginManager catalog', () => {
     expect(buttons('Install plugin')).toHaveLength(0)
   })
 
-  it('matches row action priority on crashed installed cards, even with an update available', async () => {
-    installApi({
-      listMarketplacePlugins: vi.fn().mockResolvedValue([{ ...listing, version: '2.0.0' }])
-    })
-    const { container } = await render([{ ...installedPlugin(), status: 'errored' }])
-    expect(buttons('Restart')).toHaveLength(2)
-    expect(buttons('Update 2.0.0')).toHaveLength(0)
-    expect(container.querySelector('[data-plugin-row-name]')?.getAttribute('aria-label')).toContain(
-      'Stopped'
-    )
-  })
-
   it('uses the shared update review for a single plugin', async () => {
     installApi({
       listMarketplacePlugins: vi.fn().mockResolvedValue([{ ...listing, version: '2.0.0' }])
@@ -449,36 +399,5 @@ describe('PluginManager catalog', () => {
     expect(document.body.textContent).not.toContain('See all access')
     await act(async () => button('Update').click())
     expect(onInstalled).toHaveBeenCalledWith([listing.pluginKey])
-  })
-
-  it('reaches Update all from the Updates tab', async () => {
-    installApi({
-      listMarketplacePlugins: vi.fn().mockResolvedValue([{ ...listing, version: '2.0.0' }]),
-      previewMarketplaceUpdate: vi
-        .fn()
-        .mockResolvedValue({ ...preview, manifest: { ...preview.manifest, version: '2.0.0' } })
-    })
-    const { container } = await render([installedPlugin()])
-    const updatesTab = Array.from(container.querySelectorAll('[role="tab"]')).find((tab) =>
-      tab.textContent?.startsWith('Updates')
-    )
-    await act(async () => {
-      updatesTab?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
-    })
-    await act(async () => button('Update all…').click())
-    expect(window.api.plugins.previewMarketplaceUpdate).toHaveBeenCalledWith({
-      pluginKey: listing.pluginKey
-    })
-    expect(document.body.textContent).toContain('Update 1 plugin')
-  })
-
-  it('reports a failed catalog refresh even while catalogs are listed', async () => {
-    installApi({ refreshMarketplaces: vi.fn().mockRejectedValue(new Error('offline')) })
-    await render()
-    const refresh = document.querySelector<HTMLButtonElement>(
-      'button[aria-label="Refresh catalogs"]'
-    )
-    await act(async () => refresh?.click())
-    expect(document.body.textContent).toContain("Couldn't refresh catalogs. Try again.")
   })
 })

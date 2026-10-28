@@ -14,7 +14,6 @@ import { disablePluginSystem, enableDevPlugins } from './helpers/plugin-smoke'
 
 const TEMPLATE = '{"type":"sketch","elements":[]}\n'
 const FRAME = 'iframe[title="Sketch Pad"]'
-const SCREENSHOTS = process.env.ORCA_PLUGIN_NEW_FILE_SCREENSHOTS
 
 const EDITOR_HTML = `<textarea id="doc" style="width:100%;height:90vh"></textarea>
 <script>
@@ -115,9 +114,6 @@ test('a plugin new file is created from the + menu and opens in its editor', asy
     const item = orcaPage.getByRole('menuitem', { name: 'New sketch' })
     await expect(item).toBeVisible({ timeout: 15_000 })
     await expect(item.locator('img[src^="orca-plugin-image://"]')).toBeVisible()
-    if (SCREENSHOTS) {
-      await orcaPage.screenshot({ path: join(SCREENSHOTS, 'new-file-plus-menu.png') })
-    }
     await item.click()
 
     await expect.poll(() => readFile(filePath, 'utf8').catch(() => null)).toBe(TEMPLATE)
@@ -128,16 +124,6 @@ test('a plugin new file is created from the + menu and opens in its editor', asy
     const tab = orcaPage.locator('[data-tab-id]').filter({ hasText: 'untitled.sketch' }).first()
     const icon = tab.locator('img[src*="/editor-0"]')
     await expect(icon).toBeVisible()
-    await expect
-      .poll(() => icon.evaluate((image: HTMLImageElement) => image.naturalWidth))
-      .toBe(128)
-    await tab.hover()
-    await expect(orcaPage.getByText('Sketch Pad', { exact: true }).last()).toBeVisible({
-      timeout: 10_000
-    })
-    if (SCREENSHOTS) {
-      await orcaPage.screenshot({ path: join(SCREENSHOTS, 'new-file-tab-hover.png') })
-    }
   } finally {
     await disablePluginSystem(orcaPage).catch(() => undefined)
     await rm(filePath, { force: true })

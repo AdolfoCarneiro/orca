@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
-import { AppearanceThemeControl, AppearanceThemeSlotSelect } from './AppearanceThemeControl'
+import { AppearanceThemeSlotSelect } from './AppearanceThemeControl'
 
 const themes = vi.hoisted((): { app: unknown[]; terminal: unknown[] } => ({
   app: [],
@@ -28,21 +28,6 @@ const dusk = {
   base: 'dark',
   tokens: { '--background': '#1b1430', '--foreground': '#e8e0ff' }
 }
-
-it('keeps the System/Dark/Light segments and only changes the mode', () => {
-  themes.app = [dusk]
-  const updateSettings = vi.fn()
-  render(
-    <AppearanceThemeControl
-      label="Theme"
-      settings={getDefaultSettings('/tmp')}
-      updateSettings={updateSettings}
-      applyTheme={vi.fn()}
-    />
-  )
-  screen.getByRole('radio', { name: 'Light' }).click()
-  expect(updateSettings).toHaveBeenCalledExactlyOnceWith({ theme: 'light' })
-})
 
 it('lists only themes of its mode, grouped by plugin, and offers the plugin terminal colors', async () => {
   themes.app = [

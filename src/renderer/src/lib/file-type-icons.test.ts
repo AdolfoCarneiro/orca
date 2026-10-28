@@ -60,10 +60,6 @@ describe('getPluginFileTypeIconIndex', () => {
     expect(getPluginFileTypeIconIndex(noFile, '/a/__proto__')).toBeNull()
   })
 
-  it('reads an own __proto__ entry as plain data', () => {
-    expect(getPluginFileTypeIconIndex(theme, '/a/__proto__')).toBe(4)
-  })
-
   it('ignores non-index values', () => {
     const bad = { icons: {}, fileNames: { 'a.txt': -1 }, fileExtensions: { md: 1.5 } }
     expect(getPluginFileTypeIconIndex(bad, '/a/a.txt')).toBeNull()

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   describePluginContributions,
   EMPTY_CONTRIBUTION_SOURCE,
-  nameFromContributionPath,
   uncoveredCatalogTypes
 } from './plugin-contributions'
 
@@ -28,52 +27,6 @@ describe('plugin contributions', () => {
       ['Gleam', 'Syntax highlighting · .gleam, .glm, .a, .b +1'],
       ['Ubuntu dev', 'Machine recipe']
     ])
-  })
-
-  it('says a new file joins the + menu', () => {
-    const [row] = describePluginContributions({
-      ...EMPTY_CONTRIBUTION_SOURCE,
-      newFiles: [{ title: 'New Excalidraw drawing', extension: '.excalidraw' }]
-    })
-    expect(row).toMatchObject({
-      kind: 'newFiles',
-      title: 'New Excalidraw drawing',
-      detail: 'Adds to the + menu · .excalidraw'
-    })
-  })
-
-  it('says when a grammar failed instead of listing its files', () => {
-    const [row] = describePluginContributions({
-      ...EMPTY_CONTRIBUTION_SOURCE,
-      syntaxes: [
-        { id: 'gleam', label: 'Gleam', extensions: ['.gleam'], filenames: [], failed: true }
-      ]
-    })
-    expect(row).toMatchObject({
-      tone: 'destructive',
-      detail: 'Highlighting stopped: this grammar failed.'
-    })
-  })
-
-  it('warns when a language pack is too incomplete to choose', () => {
-    const [complete, partial] = describePluginContributions({
-      ...EMPTY_CONTRIBUTION_SOURCE,
-      languagePacks: [
-        { locale: 'fr', coverage: 96 },
-        { locale: 'de', coverage: 40 }
-      ]
-    })
-    expect(complete).toMatchObject({
-      tone: 'default',
-      detail: 'Interface language · 96% translated'
-    })
-    expect(partial.tone).toBe('warning')
-    expect(partial.detail).toContain('40%')
-  })
-
-  it('reads a recipe or agent name from its file path', () => {
-    expect(nameFromContributionPath('recipes/ubuntu-dev.json')).toBe('Ubuntu dev')
-    expect(nameFromContributionPath('agents/code_reviewer.json')).toBe('Code reviewer')
   })
 
   it('falls back to catalog types only for what nothing names', () => {

@@ -131,68 +131,36 @@ describe('editor suggestions for files Orca already opens as text', () => {
     })
   const settings = { pluginSystemEnabled: true }
 
-  it('suggests a catalog custom editor for the type', () => {
+  const suggest = (fileType: string, listing: PluginMarketplaceListing, extra = {}) =>
+    findPluginFileTypeSuggestion({
+      fileType,
+      purpose: 'editor',
+      settings: { ...settings, ...extra },
+      listings: [listing],
+      installed: []
+    })
+
+  it('suggests a catalog custom editor for the type until dismissed', () => {
+    expect(suggest('excalidraw', excalidraw())).toMatchObject({
+      pluginKey: 'stablyai.excalidraw',
+      fileType: 'excalidraw'
+    })
     expect(
-      findPluginFileTypeSuggestion({
-        fileType: 'excalidraw',
-        purpose: 'editor',
-        settings,
-        listings: [excalidraw()],
-        installed: []
-      })
-    ).toMatchObject({ pluginKey: 'stablyai.excalidraw', fileType: 'excalidraw' })
+      suggest('excalidraw', excalidraw(), { pluginDismissedFileTypes: ['excalidraw'] })
+    ).toBeNull()
   })
 
   it('never suggests a syntax plugin for a file that is already highlighted', () => {
-    expect(
-      findPluginFileTypeSuggestion({
-        fileType: 'gleam',
-        purpose: 'editor',
-        settings,
-        listings: [listing('stablyai.gleam', ['gleam'])],
-        installed: []
-      })
-    ).toBeNull()
+    expect(suggest('gleam', listing('stablyai.gleam', ['gleam']))).toBeNull()
   })
 
-  it('trusts only verified file types, not the summary alone', () => {
+  it('trusts only verified, structured file types, never the display summary', () => {
     const misstated = excalidraw()
     misstated.release.fileTypes = []
-    expect(
-      findPluginFileTypeSuggestion({
-        fileType: 'excalidraw',
-        purpose: 'editor',
-        settings,
-        listings: [misstated],
-        installed: []
-      })
-    ).toBeNull()
-  })
-
-  it('reads editor types from structured release data, never the display summary', () => {
     const summaryOnly = excalidraw()
     delete summaryOnly.release.editorFileTypes
-    expect(
-      findPluginFileTypeSuggestion({
-        fileType: 'excalidraw',
-        purpose: 'editor',
-        settings,
-        listings: [summaryOnly],
-        installed: []
-      })
-    ).toBeNull()
-  })
-
-  it('stays quiet once dismissed for the type', () => {
-    expect(
-      findPluginFileTypeSuggestion({
-        fileType: 'excalidraw',
-        purpose: 'editor',
-        settings: { ...settings, pluginDismissedFileTypes: ['excalidraw'] },
-        listings: [excalidraw()],
-        installed: []
-      })
-    ).toBeNull()
+    expect(suggest('excalidraw', misstated)).toBeNull()
+    expect(suggest('excalidraw', summaryOnly)).toBeNull()
   })
 
   it('suggests the same editor for a binary file Orca cannot open', () => {
