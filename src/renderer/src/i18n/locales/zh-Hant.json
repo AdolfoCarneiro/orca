@@ -1813,7 +1813,6 @@
         "d1fa2cf888": "缺少 PR 來源分支最新提交的 SHA，無法發表留言。",
         "829674460a": "缺少 PR 提交的 SHA，因此無法顯示差異。",
         "af924014f8": "已檢視",
-        "2d89a38d9d": "{{value0}} {{value1}} 為已檢視",
         "70e84e3d0b": "沒有符合的審查人。",
         "1ffce94a8b": "其他人",
         "c2b21818e1": "建議",
@@ -2353,10 +2352,6 @@
         "9e97f08d0f": "搜尋要開啟的檔案",
         "ec31e058f7": "轉到檔案",
         "73b44e7bde": "複製安裝命令",
-        "1cf8561ab4": "在遠端啟用快速且遵循 gitignore 規則的清單功能：",
-        "5d80dc39bb": "ripgrep",
-        "2ca749c15d": "安裝",
-        "4725b0e931": "「快速開啟」的掃描範圍過大（",
         "b227d88520": "找到 {{value0}} 個檔案",
         "995be8ea22": "複製",
         "cf144856dc": "已複製"
@@ -4698,10 +4693,7 @@
         },
         "UsageBreakdownSection": {
           "7765a4c3e1": "不適用",
-          "247c93ca92": "• 推估價格",
-          "32176e1d44": "輪次",
-          "79a69522a5": "事件",
-          "02a046792e": "工作階段 •"
+          "247c93ca92": "• 推估價格"
         },
         "GrokUsagePane": {
           "g8h9i0j1k2": "Grok 用量",
@@ -15006,17 +14998,14 @@
         "ConflictComponents": {
           "f338288514": "正在載入衝突內容...",
           "90d576adb2": "重新整理",
-          "a1ce36f77d": "快照擷取於",
           "c8ca989aea": "顯示檔案樹",
           "58ad5ad431": "關閉",
           "28e7db4a90": "原始碼控制",
           "31931dec46": "此審查快照已無目前仍未解決的衝突。",
           "992145ff5a": "所有衝突均已解決",
-          "d5edd81755": "重新命名自",
           "6e459867ad": "僅限此工作階段的延續狀態。Git 不再將此檔案回報為未合併。",
           "9c2901ef8a": "下一個衝突",
           "41d9af2e7a": "上一個衝突",
-          "55d61a0ccd": "衝突 ·",
           "da539359b6": "對於此衝突，沒有可編輯的工作樹檔案。",
           "unresolvedConflicts_one": "{{count}} 個未解決的衝突",
           "unresolvedConflicts_other": "{{count}} 個未解決的衝突"
@@ -19206,7 +19195,9 @@
   },
   "quickOpen": {
     "moreMatchesAvailable": "可能還有更多符合項目。請縮小搜尋範圍。",
-    "recentValidationFailed": "無法檢查最近的檔案：{{error}}"
+    "recentValidationFailed": "無法檢查最近的檔案：{{error}}",
+    "installRipgrepOnRemote": "在遠端主機上安裝 <code>ripgrep</code>，即可快速列出檔案，並遵循 gitignore 規則：",
+    "scanTooLarge": "「快速開啟」的掃描範圍過大（{{reason}}）。"
   },
   "checksPanel": {
     "unlinked": {
@@ -20471,5 +20462,45 @@
   },
   "startupFailure": {
     "title": "Orca 無法啟動"
+  },
+  "editorConflicts": {
+    "hint": {
+      "addedByThem": "保留前請先審查新增的檔案",
+      "addedByUs": "審查新增的檔案，決定是否保留",
+      "bothAdded": "選擇要保留的版本，或合併兩個版本",
+      "bothDeleted": "編輯前，請先在 Git 中解決衝突，或還原其中一方的版本",
+      "bothModified": "處理衝突標記",
+      "deletedByThem": "決定要保留檔案，還是接受刪除",
+      "deletedByUs": "決定是否還原檔案"
+    },
+    "kind": {
+      "addedByThem": "對方新增",
+      "addedByUs": "我們新增",
+      "bothAdded": "雙方都新增",
+      "bothDeleted": "雙方都刪除",
+      "bothModified": "雙方都修改",
+      "deletedByThem": "對方刪除",
+      "deletedByUs": "我們刪除"
+    },
+    "renamedFrom": "原名為 {{path}}",
+    "resolvedBanner": "衝突已在本機解決 · {{kind}}",
+    "snapshotCapturedAt": "已於 {{time}} 擷取快照。",
+    "unresolvedBanner": "未解決的衝突 · {{kind}}"
+  },
+  "github": {
+    "viewed": {
+      "markFile": "將 {{path}} 標記為「已檢視」",
+      "unmarkFile": "取消 {{path}} 的「已檢視」標記"
+    }
+  },
+  "stats": {
+    "usageBreakdown": {
+      "events_one": "{{count}} 個事件",
+      "events_other": "{{count}} 個事件",
+      "sessions_one": "{{count}} 個工作階段",
+      "sessions_other": "{{count}} 個工作階段",
+      "turns_one": "{{count}} 輪",
+      "turns_other": "{{count}} 輪"
+    }
   }
 }

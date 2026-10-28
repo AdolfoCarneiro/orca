@@ -1759,7 +1759,6 @@
         "d1fa2cf888": "Impossible de commenter sans le SHA head de la PR.",
         "829674460a": "Diff indisponible car les SHA des commits de la PR manquent.",
         "af924014f8": "Consulté",
-        "2d89a38d9d": "{{value0}} {{value1}} comme consultés",
         "70e84e3d0b": "Aucun reviewer correspondant.",
         "1ffce94a8b": "Tous les autres",
         "c2b21818e1": "Suggestions",
@@ -2299,10 +2298,6 @@
         "9e97f08d0f": "Rechercher un fichier à ouvrir",
         "ec31e058f7": "Accéder au fichier",
         "73b44e7bde": "Copier la commande d'installation",
-        "1cf8561ab4": "sur le remote pour activer un listage rapide respectant .gitignore :",
-        "5d80dc39bb": "ripgrep",
-        "2ca749c15d": "Installer",
-        "4725b0e931": "Scan Quick Open trop volumineux (",
         "b227d88520": "{{value0}} fichiers trouvés",
         "995be8ea22": "Copier",
         "cf144856dc": "Copied"
@@ -4594,10 +4589,7 @@
         },
         "UsageBreakdownSection": {
           "7765a4c3e1": "n/d",
-          "247c93ca92": "• tarification déduite",
-          "32176e1d44": "tours",
-          "79a69522a5": "événements",
-          "02a046792e": "sessions •"
+          "247c93ca92": "• tarification déduite"
         },
         "GrokUsagePane": {
           "g8h9i0j1k2": "Utilisation Grok",
@@ -14905,17 +14897,14 @@
         "ConflictComponents": {
           "f338288514": "Chargement du contenu des conflits...",
           "90d576adb2": "Actualiser",
-          "a1ce36f77d": "Instantané capturé le",
           "c8ca989aea": "Afficher l'arborescence des fichiers",
           "58ad5ad431": "Ignorer",
           "28e7db4a90": "Contrôle de code source",
           "31931dec46": "Cet instantané de revue ne contient plus aucun conflit non résolu actif.",
           "992145ff5a": "Tous les conflits sont résolus",
-          "d5edd81755": "Renommé depuis",
           "6e459867ad": "État de continuité valable pour la session. Git ne signale plus ce fichier comme non fusionné.",
           "9c2901ef8a": "Conflit suivant",
           "41d9af2e7a": "Conflit précédent",
-          "55d61a0ccd": "conflit ·",
           "da539359b6": "Aucun fichier de l'arbre de travail n'est modifiable pour ce conflit.",
           "unresolvedConflicts_one": "{{count}} conflit non résolu",
           "unresolvedConflicts_other": "{{count}} conflits non résolus"
@@ -19139,7 +19128,9 @@
   },
   "quickOpen": {
     "moreMatchesAvailable": "D'autres correspondances sont peut-être disponibles. Affinez votre recherche pour réduire les résultats.",
-    "recentValidationFailed": "Impossible de vérifier les fichiers récents : {{error}}"
+    "recentValidationFailed": "Impossible de vérifier les fichiers récents : {{error}}",
+    "installRipgrepOnRemote": "Installez <code>ripgrep</code> sur l'hôte distant pour lister rapidement les fichiers en respectant les règles de .gitignore :",
+    "scanTooLarge": "L'analyse de l'ouverture rapide est trop volumineuse ({{reason}})."
   },
   "notifications": {
     "agentStatus": {
@@ -20487,6 +20478,46 @@
   "nativeChat": {
     "math": {
       "scrollDisplayEquation": "Faire défiler l'équation affichée"
+    }
+  },
+  "editorConflicts": {
+    "hint": {
+      "addedByThem": "Examinez le fichier ajouté avant de le conserver",
+      "addedByUs": "Vérifiez s'il faut conserver le fichier ajouté",
+      "bothAdded": "Choisissez la version à conserver ou combinez les deux",
+      "bothDeleted": "Résolvez le conflit dans Git ou restaurez l'une des versions avant de modifier le fichier",
+      "bothModified": "Résolvez les conflits signalés par les marqueurs",
+      "deletedByThem": "Décidez s'il faut conserver le fichier ou accepter sa suppression",
+      "deletedByUs": "Décidez s'il faut restaurer le fichier"
+    },
+    "kind": {
+      "addedByThem": "Ajouté chez eux",
+      "addedByUs": "Ajouté chez nous",
+      "bothAdded": "Ajouté des deux côtés",
+      "bothDeleted": "Supprimé des deux côtés",
+      "bothModified": "Modifié des deux côtés",
+      "deletedByThem": "Supprimé chez eux",
+      "deletedByUs": "Supprimé chez nous"
+    },
+    "renamedFrom": "Ancien nom : {{path}}",
+    "resolvedBanner": "Conflit résolu localement · {{kind}}",
+    "snapshotCapturedAt": "Instantané capturé à {{time}}.",
+    "unresolvedBanner": "Conflit non résolu · {{kind}}"
+  },
+  "github": {
+    "viewed": {
+      "markFile": "Marquer {{path}} comme consulté",
+      "unmarkFile": "Ne plus marquer {{path}} comme consulté"
+    }
+  },
+  "stats": {
+    "usageBreakdown": {
+      "events_one": "{{count}} événement",
+      "events_other": "{{count}} événements",
+      "sessions_one": "{{count}} session",
+      "sessions_other": "{{count}} sessions",
+      "turns_one": "{{count}} tour",
+      "turns_other": "{{count}} tours"
     }
   }
 }

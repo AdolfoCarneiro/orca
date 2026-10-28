@@ -12,7 +12,9 @@
   },
   "quickOpen": {
     "moreMatchesAvailable": "Mais resultados podem estar disponíveis. Refine sua busca para reduzir os resultados.",
-    "recentValidationFailed": "Não foi possível verificar os arquivos recentes: {{error}}"
+    "recentValidationFailed": "Não foi possível verificar os arquivos recentes: {{error}}",
+    "installRipgrepOnRemote": "Instale <code>ripgrep</code> no host remoto para listar arquivos rapidamente, respeitando as regras do .gitignore:",
+    "scanTooLarge": "A varredura da Abertura rápida é grande demais ({{reason}})."
   },
   "sourceControl": {
     "unlinkedPr": {
@@ -11736,17 +11738,14 @@
         "ConflictComponents": {
           "f338288514": "Carregando conteúdo do conflito...",
           "90d576adb2": "Atualizar",
-          "a1ce36f77d": "Snapshot capturado em",
           "c8ca989aea": "Mostrar árvore de arquivos",
           "58ad5ad431": "Descartar",
           "28e7db4a90": "Controle de Código-Fonte",
           "31931dec46": "Este snapshot de revisão não tem mais conflitos não resolvidos ativos.",
           "992145ff5a": "Todos os conflitos resolvidos",
-          "d5edd81755": "Renomeado de",
           "6e459867ad": "Estado de continuidade local da sessão. O Git não está mais reportando este arquivo como não mesclado.",
           "9c2901ef8a": "Próximo conflito",
           "41d9af2e7a": "Conflito anterior",
-          "55d61a0ccd": "conflito ·",
           "da539359b6": "Nenhum arquivo da working tree está disponível para edição neste conflito.",
           "unresolvedConflicts_one": "{{count}} conflito não resolvido",
           "unresolvedConflicts_other": "{{count}} conflitos não resolvidos"
@@ -14068,10 +14067,7 @@
         },
         "UsageBreakdownSection": {
           "7765a4c3e1": "n/d",
-          "247c93ca92": "• preço inferido",
-          "32176e1d44": "turnos",
-          "79a69522a5": "eventos",
-          "02a046792e": "sessões •"
+          "247c93ca92": "• preço inferido"
         },
         "MuseUsagePane": {
           "title": "Acompanhamento de uso do Muse",
@@ -14476,7 +14472,6 @@
         "d1fa2cf888": "Não é possível comentar sem o SHA head do PR.",
         "829674460a": "O diff não está disponível porque os SHAs de commit do PR estão faltando.",
         "af924014f8": "Visualizado",
-        "2d89a38d9d": "{{value0}} {{value1}} como visualizado",
         "70e84e3d0b": "Nenhum revisor correspondente.",
         "1ffce94a8b": "Todos os outros",
         "c2b21818e1": "Sugestões",
@@ -17148,10 +17143,6 @@
         "9e97f08d0f": "Busque um arquivo para abrir",
         "ec31e058f7": "Ir para o arquivo",
         "73b44e7bde": "Copiar comando de instalação",
-        "1cf8561ab4": "no remoto para ativar a listagem rápida com reconhecimento de gitignore:",
-        "5d80dc39bb": "ripgrep",
-        "2ca749c15d": "Instalar",
-        "4725b0e931": "Varredura do Quick Open muito grande (",
         "b227d88520": "{{value0}} arquivos encontrados",
         "995be8ea22": "Copiar",
         "cf144856dc": "Copiado"
@@ -20482,6 +20473,46 @@
   "nativeChat": {
     "math": {
       "scrollDisplayEquation": "Rolar equação em bloco"
+    }
+  },
+  "editorConflicts": {
+    "hint": {
+      "addedByThem": "Revise o arquivo adicionado antes de mantê-lo",
+      "addedByUs": "Avalie se deve manter o arquivo adicionado",
+      "bothAdded": "Escolha qual versão manter ou combine as duas",
+      "bothDeleted": "Resolva o conflito no Git ou restaure uma das versões antes de editar",
+      "bothModified": "Resolva os conflitos indicados pelos marcadores",
+      "deletedByThem": "Decida se deve manter o arquivo ou aceitar a exclusão",
+      "deletedByUs": "Decida se deve restaurar o arquivo"
+    },
+    "kind": {
+      "addedByThem": "Adicionado por eles",
+      "addedByUs": "Adicionado por nós",
+      "bothAdded": "Adicionado por ambos",
+      "bothDeleted": "Excluído por ambos",
+      "bothModified": "Modificado por ambos",
+      "deletedByThem": "Excluído por eles",
+      "deletedByUs": "Excluído por nós"
+    },
+    "renamedFrom": "Renomeado de {{path}}",
+    "resolvedBanner": "Conflito resolvido localmente · {{kind}}",
+    "snapshotCapturedAt": "Snapshot capturado às {{time}}.",
+    "unresolvedBanner": "Conflito não resolvido · {{kind}}"
+  },
+  "github": {
+    "viewed": {
+      "markFile": "Marcar {{path}} como visualizado",
+      "unmarkFile": "Desmarcar {{path}} como visualizado"
+    }
+  },
+  "stats": {
+    "usageBreakdown": {
+      "events_one": "{{count}} evento",
+      "events_other": "{{count}} eventos",
+      "sessions_one": "{{count}} sessão",
+      "sessions_other": "{{count}} sessões",
+      "turns_one": "{{count}} turno",
+      "turns_other": "{{count}} turnos"
     }
   }
 }

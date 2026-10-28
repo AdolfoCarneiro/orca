@@ -1859,7 +1859,6 @@
         "d1fa2cf888": "Unable to comment without the PR head SHA.",
         "829674460a": "Diff unavailable because the PR commit SHAs are missing.",
         "af924014f8": "Viewed",
-        "2d89a38d9d": "{{value0}} {{value1}} as viewed",
         "70e84e3d0b": "No matching reviewers.",
         "1ffce94a8b": "Everyone else",
         "c2b21818e1": "Suggestions",
@@ -2399,10 +2398,6 @@
         "9e97f08d0f": "Search for a file to open",
         "ec31e058f7": "Go to file",
         "73b44e7bde": "Copy install command",
-        "1cf8561ab4": "on the remote to enable fast, gitignore-aware listing:",
-        "5d80dc39bb": "ripgrep",
-        "2ca749c15d": "Install",
-        "4725b0e931": "Quick Open scan too large (",
         "b227d88520": "{{value0}} files found",
         "995be8ea22": "Copy",
         "cf144856dc": "Copied"
@@ -4758,10 +4753,7 @@
         },
         "UsageBreakdownSection": {
           "7765a4c3e1": "n/a",
-          "247c93ca92": "• inferred pricing",
-          "32176e1d44": "turns",
-          "79a69522a5": "events",
-          "02a046792e": "sessions •"
+          "247c93ca92": "• inferred pricing"
         },
         "GrokUsagePane": {
           "g8h9i0j1k2": "Grok usage",
@@ -15075,17 +15067,14 @@
         "ConflictComponents": {
           "f338288514": "Loading conflict contents...",
           "90d576adb2": "Refresh",
-          "a1ce36f77d": "Snapshot captured at",
           "c8ca989aea": "Show file tree",
           "58ad5ad431": "Dismiss",
           "28e7db4a90": "Source Control",
           "31931dec46": "This review snapshot no longer has any live unresolved conflicts.",
           "992145ff5a": "All conflicts resolved",
-          "d5edd81755": "Renamed from",
           "6e459867ad": "Session-local continuity state. Git is no longer reporting this file as unmerged.",
           "9c2901ef8a": "Next conflict",
           "41d9af2e7a": "Previous conflict",
-          "55d61a0ccd": "conflict ·",
           "da539359b6": "No working-tree file is available to edit for this conflict.",
           "unresolvedConflicts_one": "{{count}} unresolved conflict",
           "unresolvedConflicts_other": "{{count}} unresolved conflicts"
@@ -19281,7 +19270,9 @@
   },
   "quickOpen": {
     "moreMatchesAvailable": "More matches may be available. Refine your search to narrow the results.",
-    "recentValidationFailed": "Recent files could not be checked: {{error}}"
+    "recentValidationFailed": "Recent files could not be checked: {{error}}",
+    "scanTooLarge": "Quick Open scan too large ({{reason}}).",
+    "installRipgrepOnRemote": "Install <code>ripgrep</code> on the remote to enable fast, gitignore-aware listing:"
   },
   "checksPanel": {
     "unlinked": {
@@ -20701,5 +20692,45 @@
   },
   "startupFailure": {
     "title": "Orca could not start"
+  },
+  "editorConflicts": {
+    "kind": {
+      "bothModified": "Both modified",
+      "bothAdded": "Both added",
+      "deletedByUs": "Deleted by us",
+      "deletedByThem": "Deleted by them",
+      "addedByUs": "Added by us",
+      "addedByThem": "Added by them",
+      "bothDeleted": "Both deleted"
+    },
+    "hint": {
+      "bothModified": "Resolve the conflict markers",
+      "bothAdded": "Choose which version to keep, or combine them",
+      "deletedByUs": "Decide whether to restore the file",
+      "deletedByThem": "Decide whether to keep the file or accept deletion",
+      "addedByUs": "Review whether to keep the added file",
+      "addedByThem": "Review the added file before keeping it",
+      "bothDeleted": "Resolve in Git or restore one side before editing"
+    },
+    "unresolvedBanner": "Unresolved conflict · {{kind}}",
+    "resolvedBanner": "Conflict resolved locally · {{kind}}",
+    "renamedFrom": "Renamed from {{path}}",
+    "snapshotCapturedAt": "Snapshot captured at {{time}}."
+  },
+  "github": {
+    "viewed": {
+      "unmarkFile": "Unmark {{path}} as viewed",
+      "markFile": "Mark {{path}} as viewed"
+    }
+  },
+  "stats": {
+    "usageBreakdown": {
+      "sessions_one": "{{count}} session",
+      "sessions_other": "{{count}} sessions",
+      "turns_one": "{{count}} turn",
+      "turns_other": "{{count}} turns",
+      "events_one": "{{count}} event",
+      "events_other": "{{count}} events"
+    }
   }
 }

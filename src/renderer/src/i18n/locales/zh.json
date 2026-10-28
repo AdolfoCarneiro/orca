@@ -1567,7 +1567,6 @@
         "d1fa2cf888": "没有 PR head SHA 就无法发表评论。",
         "829674460a": "Diff 不可用，因为 PR commit SHA 丢失。",
         "af924014f8": "已查看",
-        "2d89a38d9d": "{{value0}} {{value1}} 为已查看",
         "70e84e3d0b": "没有匹配的评审人。",
         "1ffce94a8b": "其他人",
         "c2b21818e1": "建议",
@@ -2107,10 +2106,6 @@
         "9e97f08d0f": "搜索要打开的文件",
         "ec31e058f7": "转到文件",
         "73b44e7bde": "复制安装命令",
-        "1cf8561ab4": "在远程启用快速、gitignore 感知列表：",
-        "5d80dc39bb": "ripgrep",
-        "2ca749c15d": "安装",
-        "4725b0e931": "快速打开扫描太大（",
         "b227d88520": "找到 {{value0}} 文件",
         "995be8ea22": "复制",
         "cf144856dc": "已复制"
@@ -4402,10 +4397,7 @@
         },
         "UsageBreakdownSection": {
           "7765a4c3e1": "n/a",
-          "247c93ca92": "• 推理价格",
-          "32176e1d44": "轮次",
-          "79a69522a5": "事件",
-          "02a046792e": "会话 •"
+          "247c93ca92": "• 推理价格"
         },
         "GrokUsagePane": {
           "g8h9i0j1k2": "Grok 使用量",
@@ -14712,17 +14704,14 @@
         "ConflictComponents": {
           "f338288514": "正在加载冲突内容...",
           "90d576adb2": "刷新",
-          "a1ce36f77d": "快照拍摄于",
           "c8ca989aea": "显示文件树",
           "58ad5ad431": "关闭",
           "28e7db4a90": "源代码控制",
           "31931dec46": "此评审快照不再有任何未解决的实时冲突。",
           "992145ff5a": "所有冲突均已解决",
-          "d5edd81755": "重命名自",
           "6e459867ad": "会话本地连续性状态。 Git 不再将此文件报告为未合并。",
           "9c2901ef8a": "下一次冲突",
           "41d9af2e7a": "上一个冲突",
-          "55d61a0ccd": "冲突 ·",
           "da539359b6": "对于此冲突，没有可编辑的工作树文件。",
           "unresolvedConflicts_one": "{{count}} 个未解决的冲突",
           "unresolvedConflicts_other": "{{count}} 个未解决的冲突"
@@ -19228,7 +19217,9 @@
   },
   "quickOpen": {
     "moreMatchesAvailable": "可能还有更多匹配结果。请细化搜索以缩小范围。",
-    "recentValidationFailed": "无法检查最近的文件：{{error}}"
+    "recentValidationFailed": "无法检查最近的文件：{{error}}",
+    "installRipgrepOnRemote": "在远程主机上安装 <code>ripgrep</code>，即可按 .gitignore 规则快速列出文件：",
+    "scanTooLarge": "“快速打开”的扫描范围过大（{{reason}}）。"
   },
   "checksPanel": {
     "unlinked": {
@@ -20488,5 +20479,45 @@
     "signatureRequirement": "该构建必须具有与 Orca 相同的有效代码签名，否则安装将停止。",
     "useButton": "使用本地构建",
     "cancelButton": "取消"
+  },
+  "editorConflicts": {
+    "hint": {
+      "addedByThem": "保留前先检查添加的文件",
+      "addedByUs": "检查添加的文件，决定是否保留",
+      "bothAdded": "选择要保留的版本，或将两者合并",
+      "bothDeleted": "在 Git 中解决冲突，或先恢复其中一方的版本再编辑",
+      "bothModified": "处理冲突标记",
+      "deletedByThem": "决定是保留文件还是接受删除",
+      "deletedByUs": "决定是否恢复文件"
+    },
+    "kind": {
+      "addedByThem": "对方添加",
+      "addedByUs": "我们添加",
+      "bothAdded": "双方都添加",
+      "bothDeleted": "双方都删除",
+      "bothModified": "双方都修改",
+      "deletedByThem": "对方删除",
+      "deletedByUs": "我们删除"
+    },
+    "renamedFrom": "由 {{path}} 重命名而来",
+    "resolvedBanner": "冲突已在本地解决 · {{kind}}",
+    "snapshotCapturedAt": "快照创建于 {{time}}。",
+    "unresolvedBanner": "未解决的冲突 · {{kind}}"
+  },
+  "github": {
+    "viewed": {
+      "markFile": "将 {{path}} 标记为已查看",
+      "unmarkFile": "取消 {{path}} 的已查看标记"
+    }
+  },
+  "stats": {
+    "usageBreakdown": {
+      "events_one": "{{count}} 个事件",
+      "events_other": "{{count}} 个事件",
+      "sessions_one": "{{count}} 个会话",
+      "sessions_other": "{{count}} 个会话",
+      "turns_one": "{{count}} 轮",
+      "turns_other": "{{count}} 轮"
+    }
   }
 }

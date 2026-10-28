@@ -1856,7 +1856,6 @@
         "d1fa2cf888": "Ohne PR-Head-SHA ist kein Kommentar möglich.",
         "829674460a": "Der Diff ist nicht verfügbar, da die Commit-SHAs des PRs fehlen.",
         "af924014f8": "Angesehen",
-        "2d89a38d9d": "Markierung „Angesehen“ für {{value1}} ändern ({{value0}})",
         "70e84e3d0b": "Keine passenden Prüfer.",
         "1ffce94a8b": "Alle anderen",
         "c2b21818e1": "Vorschläge",
@@ -2396,10 +2395,6 @@
         "9e97f08d0f": "Nach einer Datei zum Öffnen suchen",
         "ec31e058f7": "Zu Datei wechseln",
         "73b44e7bde": "Installationsbefehl kopieren",
-        "1cf8561ab4": "auf dem Remote-Host, um eine schnelle Dateiauflistung unter Berücksichtigung von gitignore zu ermöglichen:",
-        "5d80dc39bb": "ripgrep",
-        "2ca749c15d": "Installiere",
-        "4725b0e931": "Schnellöffnen-Suche zu umfangreich (",
         "b227d88520": "{{value0}} Dateien gefunden",
         "995be8ea22": "Kopieren",
         "cf144856dc": "Kopiert"
@@ -4744,10 +4739,7 @@
         },
         "UsageBreakdownSection": {
           "7765a4c3e1": "k. A.",
-          "247c93ca92": "• abgeleitete Preise",
-          "32176e1d44": "Dialogschritte",
-          "79a69522a5": "Ereignisse",
-          "02a046792e": "Sitzungen •"
+          "247c93ca92": "• abgeleitete Preise"
         },
         "GrokUsagePane": {
           "g8h9i0j1k2": "Grok-Nutzung",
@@ -15053,17 +15045,14 @@
         "ConflictComponents": {
           "f338288514": "Konfliktinhalte werden geladen…",
           "90d576adb2": "Aktualisieren",
-          "a1ce36f77d": "Momentaufnahme vom",
           "c8ca989aea": "Dateibaum anzeigen",
           "58ad5ad431": "Schließen",
           "28e7db4a90": "Quellcodeverwaltung",
           "31931dec46": "Diese Review-Momentaufnahme enthält keine aktuell ungelösten Konflikte mehr.",
           "992145ff5a": "Alle Konflikte gelöst",
-          "d5edd81755": "Umbenannt von",
           "6e459867ad": "Sitzungslokaler Zustand zur nahtlosen Fortsetzung. Git meldet diese Datei nicht mehr als ungemergt.",
           "9c2901ef8a": "Nächster Konflikt",
           "41d9af2e7a": "Vorheriger Konflikt",
-          "55d61a0ccd": "Konflikt ·",
           "da539359b6": "Für diesen Konflikt steht keine bearbeitbare Worktree-Datei zur Verfügung.",
           "unresolvedConflicts_one": "{{count}} ungelöster Konflikt",
           "unresolvedConflicts_other": "{{count}} ungelöste Konflikte"
@@ -19258,7 +19247,9 @@
   },
   "quickOpen": {
     "moreMatchesAvailable": "Möglicherweise sind weitere Treffer verfügbar. Die Suche verfeinern, um die Ergebnisse einzugrenzen.",
-    "recentValidationFailed": "Zuletzt verwendete Dateien konnten nicht überprüft werden: {{error}}"
+    "recentValidationFailed": "Zuletzt verwendete Dateien konnten nicht überprüft werden: {{error}}",
+    "installRipgrepOnRemote": "<code>ripgrep</code> auf dem Remote-Host installieren, um Dateien schnell unter Beachtung der .gitignore-Regeln aufzulisten:",
+    "scanTooLarge": "Suchlauf für „Schnellöffnen“ zu umfangreich ({{reason}})."
   },
   "checksPanel": {
     "unlinked": {
@@ -20678,5 +20669,45 @@
   },
   "startupFailure": {
     "title": "Orca konnte nicht gestartet werden"
+  },
+  "editorConflicts": {
+    "hint": {
+      "addedByThem": "Die hinzugefügte Datei prüfen, bevor sie beibehalten wird",
+      "addedByUs": "Prüfen, ob die hinzugefügte Datei beibehalten werden soll",
+      "bothAdded": "Auswählen, welche Version beibehalten werden soll, oder beide kombinieren",
+      "bothDeleted": "Den Konflikt in Git lösen oder vor dem Bearbeiten eine Seite wiederherstellen",
+      "bothModified": "Konfliktmarkierungen auflösen",
+      "deletedByThem": "Entscheiden, ob die Datei beibehalten oder die Löschung akzeptiert werden soll",
+      "deletedByUs": "Entscheiden, ob die Datei wiederhergestellt werden soll"
+    },
+    "kind": {
+      "addedByThem": "Auf der Gegenseite hinzugefügt",
+      "addedByUs": "Auf eigener Seite hinzugefügt",
+      "bothAdded": "Beidseitig hinzugefügt",
+      "bothDeleted": "Beidseitig gelöscht",
+      "bothModified": "Beidseitig geändert",
+      "deletedByThem": "Auf der Gegenseite gelöscht",
+      "deletedByUs": "Auf eigener Seite gelöscht"
+    },
+    "renamedFrom": "Umbenannt von {{path}}",
+    "resolvedBanner": "Konflikt lokal gelöst · {{kind}}",
+    "snapshotCapturedAt": "Momentaufnahme um {{time}} erstellt",
+    "unresolvedBanner": "Ungelöster Konflikt · {{kind}}"
+  },
+  "github": {
+    "viewed": {
+      "markFile": "{{path}} als angesehen markieren",
+      "unmarkFile": "Markierung „Angesehen“ für {{path}} aufheben"
+    }
+  },
+  "stats": {
+    "usageBreakdown": {
+      "events_one": "{{count}} Ereignis",
+      "events_other": "{{count}} Ereignisse",
+      "sessions_one": "{{count}} Sitzung",
+      "sessions_other": "{{count}} Sitzungen",
+      "turns_one": "{{count}} Dialogschritt",
+      "turns_other": "{{count}} Dialogschritte"
+    }
   }
 }

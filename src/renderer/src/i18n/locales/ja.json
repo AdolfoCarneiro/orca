@@ -1567,7 +1567,6 @@
         "d1fa2cf888": "PR ヘッドの SHA がないとコメントできません。",
         "829674460a": "PR commit SHA が欠落しているため、差分は利用できません。",
         "af924014f8": "閲覧済み",
-        "2d89a38d9d": "{{value0}} {{value1}} 表示",
         "70e84e3d0b": "一致するレビュアーがいません。",
         "1ffce94a8b": "他のみんな",
         "c2b21818e1": "提案",
@@ -2107,10 +2106,6 @@
         "9e97f08d0f": "開くファイルを検索する",
         "ec31e058f7": "ファイルに移動",
         "73b44e7bde": "インストールコマンドのコピー",
-        "1cf8561ab4": "リモートで、gitignore 対応の高速リストを有効にします。",
-        "5d80dc39bb": "ripgrep",
-        "2ca749c15d": "インストール",
-        "4725b0e931": "クイックオープンスキャンが大きすぎます (",
         "b227d88520": "{{value0}} ファイルが見つかりました",
         "995be8ea22": "コピー",
         "cf144856dc": "コピーしました"
@@ -4402,10 +4397,7 @@
         },
         "UsageBreakdownSection": {
           "7765a4c3e1": "該当なし",
-          "247c93ca92": "• 推定価格",
-          "32176e1d44": "ターン",
-          "79a69522a5": "イベント",
-          "02a046792e": "セッション •"
+          "247c93ca92": "• 推定価格"
         },
         "GrokUsagePane": {
           "g8h9i0j1k2": "Grok の使用状況",
@@ -14712,17 +14704,14 @@
         "ConflictComponents": {
           "f338288514": "競合するコンテンツを読み込んでいます…",
           "90d576adb2": "更新",
-          "a1ce36f77d": "スナップショットがキャプチャされた場所",
           "c8ca989aea": "ファイルツリーを表示",
           "58ad5ad431": "閉じる",
           "28e7db4a90": "ソース管理",
           "31931dec46": "このレビュースナップショットには、未解決のライブ競合はなくなりました。",
           "992145ff5a": "すべての競合が解決されました",
-          "d5edd81755": "から改名",
           "6e459867ad": "セッションローカルの継続状態。 Git は、このファイルがマージされていないと報告しなくなりました。",
           "9c2901ef8a": "次の競合",
           "41d9af2e7a": "前の競合",
-          "55d61a0ccd": "競合 ·",
           "da539359b6": "この競合に対して編集できる作業ツリーファイルはありません。",
           "unresolvedConflicts_one": "未解決の競合 {{count}} 件",
           "unresolvedConflicts_other": "未解決の競合 {{count}} 件"
@@ -19227,7 +19216,9 @@
   },
   "quickOpen": {
     "moreMatchesAvailable": "さらに多くの一致が利用可能になる可能性があります。検索を絞り込んで結果を絞り込みます。",
-    "recentValidationFailed": "最近のファイルを確認できませんでした: {{error}}"
+    "recentValidationFailed": "最近のファイルを確認できませんでした: {{error}}",
+    "installRipgrepOnRemote": ".gitignore の設定に従ってファイルを高速に一覧表示するには、リモートホストに <code>ripgrep</code> をインストールしてください：",
+    "scanTooLarge": "クイックオープンのスキャン対象が大きすぎます（{{reason}}）。"
   },
   "checksPanel": {
     "unlinked": {
@@ -20486,6 +20477,46 @@
   "nativeChat": {
     "math": {
       "scrollDisplayEquation": "数式ブロックをスクロール"
+    }
+  },
+  "editorConflicts": {
+    "hint": {
+      "addedByThem": "保持する前に、追加されたファイルの内容を確認してください",
+      "addedByUs": "追加されたファイルを保持するかどうか検討してください",
+      "bothAdded": "保持するバージョンを選択するか、統合してください",
+      "bothDeleted": "編集する前に、Git で競合を解決するか、どちらか一方のファイルを復元してください",
+      "bothModified": "競合マーカーがある箇所を修正してください",
+      "deletedByThem": "ファイルを保持するか、削除を受け入れるか判断してください",
+      "deletedByUs": "ファイルを復元するかどうか判断してください"
+    },
+    "kind": {
+      "addedByThem": "相手側で追加",
+      "addedByUs": "こちらで追加",
+      "bothAdded": "双方で追加",
+      "bothDeleted": "双方で削除",
+      "bothModified": "双方で変更",
+      "deletedByThem": "相手側で削除",
+      "deletedByUs": "こちらで削除"
+    },
+    "renamedFrom": "{{path}} から名前を変更",
+    "resolvedBanner": "ローカルで解決済みの競合 · {{kind}}",
+    "snapshotCapturedAt": "{{time}} にスナップショットを取得しました。",
+    "unresolvedBanner": "未解決の競合 · {{kind}}"
+  },
+  "github": {
+    "viewed": {
+      "markFile": "{{path}} を閲覧済みとしてマークする",
+      "unmarkFile": "{{path}} の閲覧済みのマークを外す"
+    }
+  },
+  "stats": {
+    "usageBreakdown": {
+      "events_one": "{{count}} イベント",
+      "events_other": "{{count}} イベント",
+      "sessions_one": "{{count}} セッション",
+      "sessions_other": "{{count}} セッション",
+      "turns_one": "{{count}} ターン",
+      "turns_other": "{{count}} ターン"
     }
   }
 }

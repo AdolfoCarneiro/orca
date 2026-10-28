@@ -1582,7 +1582,6 @@
         "d1fa2cf888": "No se puede comentar sin el SHA del head del PR.",
         "829674460a": "El diff no está disponible porque faltan los SHA de commits del PR.",
         "af924014f8": "Visto",
-        "2d89a38d9d": "Cambiar estado de visto de {{value1}} ({{value0}})",
         "70e84e3d0b": "No hay revisores que coincidan.",
         "1ffce94a8b": "Todos los demás",
         "c2b21818e1": "Sugerencias",
@@ -2122,10 +2121,6 @@
         "9e97f08d0f": "Buscar un archivo para abrir",
         "ec31e058f7": "Ir al archivo",
         "73b44e7bde": "Copiar comando de instalación",
-        "1cf8561ab4": "en el remoto para habilitar un listado rápido y compatible con gitignore:",
-        "5d80dc39bb": "ripgrep",
-        "2ca749c15d": "Instalar",
-        "4725b0e931": "El escaneo de apertura rápida es demasiado grande (",
         "b227d88520": "{{value0}} archivos encontrados",
         "995be8ea22": "Copiar",
         "cf144856dc": "Copiado"
@@ -4417,10 +4412,7 @@
         },
         "UsageBreakdownSection": {
           "7765a4c3e1": "n/a",
-          "247c93ca92": "• precios inferidos",
-          "32176e1d44": "vueltas",
-          "79a69522a5": "eventos",
-          "02a046792e": "sesiones •"
+          "247c93ca92": "• precios inferidos"
         },
         "GrokUsagePane": {
           "g8h9i0j1k2": "Uso de Grok",
@@ -14728,17 +14720,14 @@
         "ConflictComponents": {
           "f338288514": "Cargando contenido del conflicto…",
           "90d576adb2": "Actualizar",
-          "a1ce36f77d": "Instantánea capturada a las ",
           "c8ca989aea": "Mostrar árbol de archivos",
           "58ad5ad431": "Descartar",
           "28e7db4a90": "Control de código fuente",
           "31931dec46": "Esta instantánea de revisión ya no tiene conflictos activos sin resolver.",
           "992145ff5a": "Todos los conflictos resueltos",
-          "d5edd81755": "Renombrado desde ",
           "6e459867ad": "Estado de continuidad local de la sesión. Git ya no informa que este archivo está sin merge.",
           "9c2901ef8a": "Siguiente conflicto",
           "41d9af2e7a": "Conflicto anterior",
-          "55d61a0ccd": "conflicto ·",
           "da539359b6": "No hay ningún archivo del worktree disponible para editar este conflicto.",
           "unresolvedConflicts_one": "{{count}} conflicto no resuelto",
           "unresolvedConflicts_other": "{{count}} conflictos no resueltos"
@@ -19643,7 +19632,9 @@
   },
   "quickOpen": {
     "moreMatchesAvailable": "Puede haber más coincidencias disponibles. Refina tu búsqueda para acotar los resultados.",
-    "recentValidationFailed": "No se pudieron comprobar los archivos recientes: {{error}}"
+    "recentValidationFailed": "No se pudieron comprobar los archivos recientes: {{error}}",
+    "installRipgrepOnRemote": "Instala <code>ripgrep</code> en el host remoto para listar archivos rápidamente respetando .gitignore:",
+    "scanTooLarge": "El escaneo de Apertura rápida es demasiado amplio ({{reason}})."
   },
   "checksPanel": {
     "unlinked": {
@@ -20487,6 +20478,46 @@
   "nativeChat": {
     "math": {
       "scrollDisplayEquation": "Desplazar ecuación en bloque"
+    }
+  },
+  "editorConflicts": {
+    "hint": {
+      "addedByThem": "Revisa el archivo añadido antes de conservarlo",
+      "addedByUs": "Evalúa si conservar el archivo añadido",
+      "bothAdded": "Elige qué versión conservar o combínalas",
+      "bothDeleted": "Resuelve el conflicto en Git o restaura una de las versiones antes de editar",
+      "bothModified": "Resuelve los conflictos señalados por los marcadores",
+      "deletedByThem": "Decide si conservar el archivo o aceptar su eliminación",
+      "deletedByUs": "Decide si restaurar el archivo"
+    },
+    "kind": {
+      "addedByThem": "Añadido por ellos",
+      "addedByUs": "Añadido por nosotros",
+      "bothAdded": "Añadido por ambos",
+      "bothDeleted": "Eliminado por ambos",
+      "bothModified": "Modificado por ambos",
+      "deletedByThem": "Eliminado por ellos",
+      "deletedByUs": "Eliminado por nosotros"
+    },
+    "renamedFrom": "Nombre anterior: {{path}}",
+    "resolvedBanner": "Conflicto resuelto localmente · {{kind}}",
+    "snapshotCapturedAt": "Instantánea capturada a las {{time}}.",
+    "unresolvedBanner": "Conflicto sin resolver · {{kind}}"
+  },
+  "github": {
+    "viewed": {
+      "markFile": "Marcar {{path}} como visto",
+      "unmarkFile": "Desmarcar {{path}} como visto"
+    }
+  },
+  "stats": {
+    "usageBreakdown": {
+      "events_one": "{{count}} evento",
+      "events_other": "{{count}} eventos",
+      "sessions_one": "{{count}} sesión",
+      "sessions_other": "{{count}} sesiones",
+      "turns_one": "{{count}} turno",
+      "turns_other": "{{count}} turnos"
     }
   }
 }

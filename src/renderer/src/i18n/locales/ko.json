@@ -1567,7 +1567,6 @@
         "d1fa2cf888": "PR 헤드 SHA가 없으면 댓글을 달 수 없습니다.",
         "829674460a": "PR commit SHA가 누락되어 diff를 사용할 수 없습니다.",
         "af924014f8": "봤음",
-        "2d89a38d9d": "{{value0}} {{value1}}을(를) 본 것으로 표시",
         "70e84e3d0b": "일치하는 리뷰어가 없습니다.",
         "1ffce94a8b": "다른 사람들",
         "c2b21818e1": "제안",
@@ -2107,10 +2106,6 @@
         "9e97f08d0f": "열 파일 검색",
         "ec31e058f7": "파일로 이동",
         "73b44e7bde": "설치 명령 복사",
-        "1cf8561ab4": "빠르고 gitignore를 인식하는 목록을 활성화하려면 원격 호스트에서 다음을 수행하세요:",
-        "5d80dc39bb": "ripgrep",
-        "2ca749c15d": "설치",
-        "4725b0e931": "Quick Open 스캔이 너무 큼(",
         "b227d88520": "{{value0}} 파일을 찾았습니다.",
         "995be8ea22": "복사",
         "cf144856dc": "복사됨"
@@ -4402,10 +4397,7 @@
         },
         "UsageBreakdownSection": {
           "7765a4c3e1": "n/a",
-          "247c93ca92": "• 추정 가격",
-          "32176e1d44": "회전",
-          "79a69522a5": "이벤트",
-          "02a046792e": "세션 •"
+          "247c93ca92": "• 추정 가격"
         },
         "GrokUsagePane": {
           "g8h9i0j1k2": "Grok 사용량",
@@ -14712,17 +14704,14 @@
         "ConflictComponents": {
           "f338288514": "충돌 콘텐츠 로드 중...",
           "90d576adb2": "새로고침",
-          "a1ce36f77d": "스냅샷 캡처 시간:",
           "c8ca989aea": "파일 트리 표시",
           "58ad5ad431": "닫기",
           "28e7db4a90": "소스 제어",
           "31931dec46": "이 리뷰 스냅샷에는 더 이상 실시간으로 해결되지 않은 충돌이 없습니다.",
           "992145ff5a": "모든 충돌이 해결되었습니다.",
-          "d5edd81755": "다음에서 이름 변경됨",
           "6e459867ad": "세션-로컬 연속성 상태. Git은 더 이상 이 파일을 병합되지 않은 것으로 보고하지 않습니다.",
           "9c2901ef8a": "다음 충돌",
           "41d9af2e7a": "이전 충돌",
-          "55d61a0ccd": "충돌 ·",
           "da539359b6": "이 충돌에 대해 편집할 수 있는 작업 트리 파일이 없습니다.",
           "unresolvedConflicts_one": "미해결 충돌 {{count}}개",
           "unresolvedConflicts_other": "미해결 충돌 {{count}}개"
@@ -19227,7 +19216,9 @@
   },
   "quickOpen": {
     "moreMatchesAvailable": "더 많은 일치 항목을 사용할 수 있습니다. 검색 결과를 좁히려면 검색을 구체화하세요.",
-    "recentValidationFailed": "최근 파일을 확인할 수 없습니다: {{error}}"
+    "recentValidationFailed": "최근 파일을 확인할 수 없습니다: {{error}}",
+    "installRipgrepOnRemote": "gitignore 규칙을 반영한 파일 목록을 빠르게 표시하려면 원격 호스트에 <code>ripgrep</code>을 설치하세요:",
+    "scanTooLarge": "Quick Open 스캔 범위가 너무 큽니다({{reason}})."
   },
   "checksPanel": {
     "unlinked": {
@@ -20486,6 +20477,46 @@
   "nativeChat": {
     "math": {
       "scrollDisplayEquation": "수식 블록 스크롤"
+    }
+  },
+  "editorConflicts": {
+    "hint": {
+      "addedByThem": "추가된 파일을 유지하기 전에 검토하세요",
+      "addedByUs": "추가된 파일을 유지할지 검토하세요",
+      "bothAdded": "유지할 버전을 선택하거나 두 버전을 합치세요",
+      "bothDeleted": "편집하기 전에 Git에서 충돌을 해결하거나 한쪽 버전의 파일을 복원하세요",
+      "bothModified": "충돌 마커가 있는 부분을 수정해 충돌을 해결하세요",
+      "deletedByThem": "파일을 유지할지 삭제를 받아들일지 결정하세요",
+      "deletedByUs": "파일을 복원할지 결정하세요"
+    },
+    "kind": {
+      "addedByThem": "상대 쪽에서 추가됨",
+      "addedByUs": "우리 쪽에서 추가됨",
+      "bothAdded": "양쪽에서 추가됨",
+      "bothDeleted": "양쪽에서 삭제됨",
+      "bothModified": "양쪽에서 수정됨",
+      "deletedByThem": "상대 쪽에서 삭제됨",
+      "deletedByUs": "우리 쪽에서 삭제됨"
+    },
+    "renamedFrom": "이름 변경 전: {{path}}",
+    "resolvedBanner": "로컬에서 충돌 해결됨 · {{kind}}",
+    "snapshotCapturedAt": "{{time}}에 스냅샷을 캡처했습니다.",
+    "unresolvedBanner": "해결되지 않은 충돌 · {{kind}}"
+  },
+  "github": {
+    "viewed": {
+      "markFile": "{{path}}을(를) 본 것으로 표시",
+      "unmarkFile": "{{path}}을(를) 본 것으로 표시 해제"
+    }
+  },
+  "stats": {
+    "usageBreakdown": {
+      "events_one": "이벤트 {{count}}개",
+      "events_other": "이벤트 {{count}}개",
+      "sessions_one": "세션 {{count}}개",
+      "sessions_other": "세션 {{count}}개",
+      "turns_one": "{{count}}턴",
+      "turns_other": "{{count}}턴"
     }
   }
 }
