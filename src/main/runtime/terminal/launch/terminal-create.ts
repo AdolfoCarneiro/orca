@@ -30,11 +30,10 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
     if (opts.startupAgent && selector === undefined) {
       throw new Error(`startupAgent ${opts.startupAgent} requires a workspace selector.`)
     }
-    const callerColors = dependencies.normalizeColorQueryReplyColors(opts.terminalColorQueryReplies)
-    // Older paired clients report their theme only at creation.
-    if (callerColors) {
-      dependencies.setPairedViewerColors(callerColors)
-    }
+    const launcherSpawnArgs = dependencies.admitPairedCreateColors(
+      opts.terminalColorQueryReplies,
+      opts.terminalViewAttributes
+    )
     const presentation = dependencies.resolveTerminalPresentation(opts)
     // Why: this process starts every terminal it can place, so a slow window only delays showing
     // it; a window-made create that timed out here still ran later, and a retry duplicated it.
@@ -143,6 +142,7 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
             leafId,
             ...dependencies.spawnShellInputs(launchOpts),
             ...(terminalColorQueryReplies ? { terminalColorQueryReplies } : {}),
+            ...launcherSpawnArgs,
             terminalKittyKeyboardProtocol: launchOpts.terminalKittyKeyboardProtocol,
             ...(launchOpts.agentSessionClaim
               ? {

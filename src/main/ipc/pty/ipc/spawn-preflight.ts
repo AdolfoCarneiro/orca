@@ -9,6 +9,7 @@ import {
 import { getProvider } from '../provider/registry'
 import { resolvePtySpawnStartupTarget } from '../spawn-startup-target'
 import type { PtyIpcSpawnState } from './spawn-state'
+import { localPtySpawnCwd } from '../host-env/spawn-cwd'
 import { getConnectionExecutionHostId } from '../../../../shared/execution-host'
 
 export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promise<void> {
@@ -33,6 +34,7 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
     const admission = ctx.deps.assertWorkspaceAcceptsNewPty(
       args.worktreeId,
       args.sessionId,
+      localPtySpawnCwd(args),
       args.connectionId
     )
     if (admission) {
@@ -46,6 +48,7 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
     const admission = ctx.deps.assertWorkspaceAcceptsNewPty(
       args.worktreeId,
       args.sessionId,
+      localPtySpawnCwd(args),
       args.connectionId
     )
     if (admission) {

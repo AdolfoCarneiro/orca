@@ -43,7 +43,8 @@ export abstract class RuntimeWorkspaceSelectors extends OrcaRuntimeWithResolveBr
     ...args: Parameters<RuntimeWorkspaceCatalog['listResolvedWorktrees']>
   ): ReturnType<RuntimeWorkspaceCatalog['listResolvedWorktrees']>
 
-  protected async resolveWorktreeSelector(
+  /** The repo-backed catalog only: project-group folder workspaces never match. Resolve a workspace with resolveWorkspaceSelector. */
+  protected async resolveGitWorktreeSelector(
     selector: string,
     requiredHostId?: ExecutionHostId
   ): Promise<ResolvedWorktree> {

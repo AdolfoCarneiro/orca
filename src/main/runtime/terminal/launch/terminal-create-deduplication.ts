@@ -163,9 +163,8 @@ export abstract class OrcaRuntimeWithTerminalCreateDeduplication extends OrcaRun
     resolvedTarget?: { worktree: ResolvedWorktree; repo: Repo; folderWorkspace?: FolderWorkspace }
   ): Promise<RuntimeTerminalCreate> {
     const worktree =
-      resolvedTarget?.worktree ?? (await this.resolveWorktreeSelector(worktreeSelector))
-    // Why: `getRepo(id)` is host-blind; the same repo id on two hosts must build the launch for the
-    // host that owns this worktree (#11163).
+      resolvedTarget?.worktree ?? (await this.resolveGitWorktreeSelector(worktreeSelector))
+    // Repo ids are host-blind; resolve against the worktree owner before quoting its launch (#11163).
     const resolution = resolveWorktreeLaunchHost(this.store?.getRepos() ?? [], worktree)
     if (resolution.kind === 'ambiguous') {
       throw new Error('worktree_execution_host_unresolved')

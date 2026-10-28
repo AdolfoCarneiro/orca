@@ -374,7 +374,7 @@ describe('mounted folder plain-shell project runtime', () => {
       folderWorkspaces: [folder, { ...folder, executionHostId: 'ssh:prod' }],
       repos: [{ ...repo, executionHostId: 'ssh:prod' }, repo],
       projectGroups: [MIXED_GROUP],
-      endpointProjects: [
+      projects: [
         {
           id: 'project',
           displayName: 'Project',
@@ -407,7 +407,7 @@ describe('mounted folder plain-shell project runtime', () => {
     const providerSpawn = installDaemonTestProvider()
     const store = {
       getRepos: () => renderer.getState().repos,
-      getProjects: () => renderer.getState().endpointProjects,
+      getProjects: () => renderer.getState().projects,
       getSettings: () => settings,
       getProjectGroups: () => [MIXED_GROUP],
       getFolderWorkspaces: () => renderer.getState().folderWorkspaces,
@@ -514,8 +514,8 @@ describe('mounted folder plain-shell project runtime', () => {
         repos: reverse ? [remoteRepo, localRepo] : [localRepo, remoteRepo],
         folderWorkspaces: reverse ? [remoteFolder, localFolder] : [localFolder, remoteFolder],
         projectGroups: [MIXED_GROUP],
-        endpointProjects: [project],
-        endpointProjectHostSetups: reverse ? [remoteSetup, localSetup] : [localSetup, remoteSetup],
+        projects: [project],
+        projectHostSetups: reverse ? [remoteSetup, localSetup] : [localSetup, remoteSetup],
         settings,
         unifiedTabsByWorktree: {
           'folder:copied': [
@@ -552,8 +552,8 @@ describe('mounted folder plain-shell project runtime', () => {
         }
         if (mode === 'no-project') {
           Object.assign(state.tabsByWorktree['folder:copied'][0], { forceHostRuntime: false })
-          state.endpointProjects = []
-          state.endpointProjectHostSetups = []
+          state.projects = []
+          state.projectHostSetups = []
           state.repos = []
         }
         const pane = createPane(1)

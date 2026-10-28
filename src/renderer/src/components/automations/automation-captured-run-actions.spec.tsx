@@ -139,8 +139,9 @@ export function registerCapturedAutomationRunActionTests({
         repos,
         worktreesByRepo: { 'repo-1': worktrees },
         folderWorkspaces: [],
+        wslMovedProjects: [],
         projectGroups: [],
-        endpointProjects: [
+        projects: [
           {
             id: 'project-1',
             displayName: 'Repo',
@@ -150,7 +151,7 @@ export function registerCapturedAutomationRunActionTests({
             updatedAt: 1
           }
         ],
-        endpointProjectHostSetups: [
+        projectHostSetups: [
           makeProjectHostSetup({ hostId: 'local' }),
           makeProjectHostSetup({ hostId: 'ssh:box' }),
           ...(['local', 'ssh:box'] as const).map((hostId) =>

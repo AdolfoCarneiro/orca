@@ -59,7 +59,7 @@ describe('AutomationsPage save visibility', () => {
   it('keeps the editor and explains an unavailable target without writing', async () => {
     desktopStoreHolds([])
     mocks.state.automationHostFilter = DESKTOP_SELF_FILTER
-    mocks.state.endpointProjectHostSetups = mocks.state.endpointProjectHostSetups.map((setup) => ({
+    mocks.state.projectHostSetups = mocks.state.projectHostSetups.map((setup) => ({
       ...setup,
       setupState: 'error'
     }))

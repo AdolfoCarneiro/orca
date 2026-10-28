@@ -25,6 +25,7 @@ export type PtyRuntimeControllerDeps = PtySpawnCodexResumeDeps & {
   assertWorkspaceAcceptsNewPty: (
     worktreeId: string | undefined,
     sessionId?: string,
+    cwd?: string,
     connectionId?: string | null
   ) => Promise<void> | void
   resolvePtySpawnStartupCwd: (

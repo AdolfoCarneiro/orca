@@ -72,7 +72,7 @@ describe('setActiveWorktree', () => {
           repos: reverse ? [remoteRepo, localRepo] : [localRepo, remoteRepo],
           folderWorkspaces: reverse ? [remoteFolder, localFolder] : [localFolder, remoteFolder],
           projectGroups: [MIXED_GROUP],
-          endpointProjectHostSetups: [localRepo, remoteRepo].map((repo) => ({
+          projectHostSetups: [localRepo, remoteRepo].map((repo) => ({
             id: `setup-${repo.executionHostId}`,
             projectId: 'project',
             repoId: repo.id,
@@ -84,7 +84,7 @@ describe('setActiveWorktree', () => {
             createdAt: 0,
             updatedAt: 0
           })),
-          endpointProjects: [
+          projects: [
             {
               id: 'project',
               displayName: 'Project',
@@ -359,21 +359,7 @@ describe('setActiveWorktree', () => {
           terminalWindowsShell: 'wsl.exe',
           terminalWindowsWslDistro: 'Debian'
         },
-        endpointProjectHostSetups: [
-          {
-            id: 'setup-project-1',
-            projectId: 'project-1',
-            repoId: 'repo1',
-            hostId: 'local',
-            path: '/repo1',
-            displayName: 'Repo 1',
-            setupState: 'ready',
-            setupMethod: 'legacy-repo',
-            createdAt: 0,
-            updatedAt: 0
-          }
-        ],
-        endpointProjects: [
+        projects: [
           {
             id: 'project-1',
             displayName: 'Project',
@@ -418,21 +404,7 @@ describe('setActiveWorktree', () => {
 
       seedStore(store, {
         settings: { ...getDefaultSettings('/tmp'), terminalWindowsShell: 'powershell.exe' },
-        endpointProjectHostSetups: [
-          {
-            id: 'setup-project-1',
-            projectId: 'project-1',
-            repoId: 'repo1',
-            hostId: 'local',
-            path: '/repo1',
-            displayName: 'Repo 1',
-            setupState: 'ready',
-            setupMethod: 'legacy-repo',
-            createdAt: 0,
-            updatedAt: 0
-          }
-        ],
-        endpointProjects: [
+        projects: [
           {
             id: 'project-1',
             displayName: 'Project',

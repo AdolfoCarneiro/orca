@@ -15,7 +15,7 @@ import { OrcaRuntimeService } from './orca-runtime'
 const REMOTE_PATH = '/srv/app-feature'
 
 type RuntimeInternals = {
-  resolveWorktreeSelector: (selector: string) => Promise<unknown>
+  resolveGitWorktreeSelector: (selector: string) => Promise<unknown>
   buildStartupForAgent: (
     repo: unknown,
     agent: unknown,
@@ -43,7 +43,7 @@ function makeRuntime(
   }
   const runtime = new OrcaRuntimeService(store as never)
   const internals = runtime as unknown as RuntimeInternals
-  vi.spyOn(internals, 'resolveWorktreeSelector').mockResolvedValue({
+  vi.spyOn(internals, 'resolveGitWorktreeSelector').mockResolvedValue({
     id: 'repo-shared::/srv/app-feature',
     repoId: 'repo-shared',
     path: REMOTE_PATH,
@@ -79,7 +79,7 @@ describe('launchAgentTerminal execution host', () => {
     }
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the private selector is replaced solely to prove the internal evidence prevents another lookup.
     const internals = runtime as unknown as RuntimeInternals
-    vi.spyOn(internals, 'resolveWorktreeSelector').mockRejectedValue(
+    vi.spyOn(internals, 'resolveGitWorktreeSelector').mockRejectedValue(
       new Error('bare selector was repeated')
     )
     await runtime.launchAgentTerminal(

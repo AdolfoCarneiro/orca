@@ -1,4 +1,3 @@
-import { selectCanonicalProjectHostSetups } from '@/store/project-host-setup-selector'
 import { useCallback } from 'react'
 import { filterEnabledTuiAgents, isTuiAgentEnabled } from '../../../../shared/tui-agent-selection'
 import type { Repo } from '../../../../shared/repo-types'
@@ -20,7 +19,7 @@ const AGENTS = getAgentCatalog().map((agent) => agent.id)
 export function useAutomationsPageStoreState() {
   const repos = useAppStore((s) => s.repos)
   const projectGroups = useAppStore((s) => s.projectGroups)
-  const projectHostSetups = useAppStore((s) => selectCanonicalProjectHostSetups(s))
+  const projectHostSetups = useAppStore((s) => s.projectHostSetups)
   const worktreesByRepo = useAppStore((s) => selectWorktreesByRepo(s))
   const folderWorkspaces = useAppStore((s) => selectFolderWorkspaces(s))
   const unifiedTabsByWorktree = useAppStore((s) => s.unifiedTabsByWorktree)

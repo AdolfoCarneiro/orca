@@ -348,13 +348,13 @@ describe('row 5: desktop automation pty:spawn request', () => {
         catalog.setups.filter((setup) => setup.hostId === 'local').map((setup) => setup.projectId)
       )
       store.setState({
-        endpointProjects: catalog.projects.map((project) => ({
+        projects: catalog.projects.map((project) => ({
           ...project,
           ...(localProjectIds.has(project.id)
             ? { localWindowsRuntimePreference: { kind: 'wsl' as const, distro: 'ProjectDistro' } }
             : {})
         })),
-        endpointProjectHostSetups: catalog.setups,
+        projectHostSetups: catalog.setups,
         repos: reverse ? [twinRepo, repo] : [repo, twinRepo],
         worktreesByRepo: {
           [repo.id]: reverse ? [twinWorktree, worktree] : [worktree, twinWorktree]

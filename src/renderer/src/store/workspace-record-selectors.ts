@@ -9,7 +9,6 @@ import type { HostWorktreeTarget } from '../../../shared/worktree/host-qualified
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import { findIndexedWorktreeOwnerForHost } from '@/lib/worktree-runtime-owner-index'
 import type { AppState } from './types'
-import type { WorktreeRuntimeOwnerState } from '@/lib/worktree-runtime-owner-state'
 import { folderWorkspaceToWorktree } from '../../../shared/folder-workspace-worktree'
 import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
 
@@ -19,22 +18,22 @@ export type WorkspaceRecordState = Pick<AppState, 'worktreesByRepo' | 'folderWor
   Partial<Pick<AppState, 'repos' | 'projectGroups'>>
 
 /** Git worktrees per repo id, in listing order. */
-export function selectWorktreesByRepo<T extends Pick<WorktreeRuntimeOwnerState, 'worktreesByRepo'>>(
-  state: T
-): T['worktreesByRepo'] {
+export function selectWorktreesByRepo<TState extends { worktreesByRepo?: unknown }>(
+  state: TState
+): TState['worktreesByRepo'] {
   return state.worktreesByRepo
 }
 
-export function selectFolderWorkspaces<
-  T extends Pick<WorktreeRuntimeOwnerState, 'folderWorkspaces'>
->(state: T): T['folderWorkspaces'] {
+export function selectFolderWorkspaces<TState extends { folderWorkspaces?: unknown }>(
+  state: TState
+): TState['folderWorkspaces'] {
   return state.folderWorkspaces
 }
 
 /** Checkouts git reports that Orca does not track, per repo id. */
-export function selectDetectedWorktreesByRepo<
-  T extends Pick<WorktreeRuntimeOwnerState, 'detectedWorktreesByRepo'>
->(state: T): T['detectedWorktreesByRepo'] {
+export function selectDetectedWorktreesByRepo<TState extends { detectedWorktreesByRepo?: unknown }>(
+  state: TState
+): TState['detectedWorktreesByRepo'] {
   return state.detectedWorktreesByRepo
 }
 

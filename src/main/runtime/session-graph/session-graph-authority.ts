@@ -185,22 +185,27 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
     }
   }
 
-  protected async resolveEmulatorWorkspaceId(selector: string): Promise<string> {
-    const parsed = parseWorkspaceKey(selector.startsWith('id:') ? selector.slice(3) : selector)
-    if (parsed?.type === 'folder') {
-      if (!this.store?.getFolderWorkspaces?.().some((row) => row.id === parsed.folderWorkspaceId)) {
-        throw new Error('selector_not_found')
-      }
-      return folderWorkspaceKey(parsed.folderWorkspaceId)
-    }
-    return (await this.resolveWorktreeSelector(selector)).id
+  /** Folder workspaces first, then Git worktrees; project-group folders have no repo row (STA-12562). Launching needs the folder on disk; teardown must not. */
+  protected async resolveWorkspaceSelector(
+    selector: string,
+    options: { requireUsableFolderPath?: boolean; requiredHostId?: ExecutionHostId } = {}
+  ): Promise<ResolvedWorktree> {
+    const selectedFolder = this.resolveFolderWorkspaceSelector(selector, options.requiredHostId)
+    const folderWorkspace = options.requireUsableFolderPath
+      ? (await this.resolveFolderWorkspaceLaunchScope(selector, selectedFolder ?? undefined))
+          ?.folderWorkspace
+      : selectedFolder
+    return folderWorkspace
+      ? this.folderWorkspaceToResolvedWorktree(folderWorkspace)
+      : this.resolveGitWorktreeSelector(selector, options.requiredHostId)
   }
 
-  protected async resolveBrowserWorkspace(selector: string): Promise<ResolvedWorktree> {
-    const folderScope = await this.resolveFolderWorkspaceLaunchScope(selector)
-    return folderScope?.folderWorkspace
-      ? this.folderWorkspaceToResolvedWorktree(folderScope.folderWorkspace)
-      : this.resolveWorktreeSelector(selector)
+  protected async resolveEmulatorWorkspaceId(selector: string): Promise<string> {
+    return (await this.resolveWorkspaceSelector(selector)).id
+  }
+
+  protected resolveBrowserWorkspace(selector: string): Promise<ResolvedWorktree> {
+    return this.resolveWorkspaceSelector(selector, { requireUsableFolderPath: true })
   }
 
   /** Reconcile client-hosted pages per paired device; one attached client cannot account for another's pages. */
