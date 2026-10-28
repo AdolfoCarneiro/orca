@@ -13,18 +13,17 @@ import { getWorkItemParticipants } from './work-item-participants'
 
 function detailContextQuery(includeContext: boolean): string {
   const context = includeContext
-    ? `body
-      headRefOid
-      baseRefOid
+    ? `pullRequest(number: $number) {
       participants(first: 100) {
         nodes { login avatarUrl(size: 48) ... on User { name } }
-      }`
+      }
+    }`
     : ''
   return `query($owner: String!, $repo: String!, $number: Int!, $after: String) {
   repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
+    ${context}
+    viewedPullRequest: pullRequest(number: $number) {
       id
-      ${context}
       files(first: 100, after: $after) {
         pageInfo { hasNextPage endCursor }
         nodes { path viewerViewedState }
@@ -37,17 +36,17 @@ function detailContextQuery(includeContext: boolean): string {
 const envelopeSchema = z.object({
   data: z
     .object({
-      repository: z.object({ pullRequest: z.record(z.string(), z.unknown()).nullish() }).nullish()
+      repository: z
+        .object({
+          pullRequest: z.record(z.string(), z.unknown()).nullish(),
+          viewedPullRequest: z.record(z.string(), z.unknown()).nullish()
+        })
+        .nullish()
     })
     .nullish(),
   errors: z
     .array(z.object({ path: z.array(z.union([z.string(), z.number()])).optional() }))
     .optional()
-})
-const metadataSchema = z.object({
-  body: z.string().nullable(),
-  headRefOid: z.string().nullable(),
-  baseRefOid: z.string().nullable()
 })
 const participantsSchema = z.object({
   nodes: z.array(
@@ -80,15 +79,18 @@ type PRDetailContext = {
   viewedStates: PRFileViewedStatesResult | null
 }
 
-function sourceFailed(envelope: z.infer<typeof envelopeSchema>, source: string): boolean {
+function sourceFailed(
+  envelope: z.infer<typeof envelopeSchema>,
+  source: string,
+  alias = 'pullRequest'
+): boolean {
   return Boolean(
     envelope.errors?.some(
       ({ path }) =>
         !path?.length ||
         path[0] !== 'repository' ||
-        path[1] !== 'pullRequest' ||
-        path.length < 3 ||
-        path[2] === source
+        (path[1] !== 'pullRequest' && path[1] !== 'viewedPullRequest') ||
+        (path[1] === alias && (path.length < 3 || path[2] === source))
     )
   )
 }
@@ -99,7 +101,7 @@ async function readPRDetailContext(
   repository: GitHubApiRepository | null,
   connectionId: string | null | undefined,
   localGitOptions: LocalGitExecOptions
-): Promise<Partial<PRDetailContext>> {
+): Promise<Partial<Omit<PRDetailContext, 'metadata'>>> {
   if (!repository) {
     return {}
   }
@@ -107,7 +109,7 @@ async function readPRDetailContext(
     ...ghRepoExecOptions(githubRepoContext(repoPath, connectionId, localGitOptions)),
     ...githubHostExecOptions(repository)
   }
-  const result: Partial<PRDetailContext> = {}
+  const result: Partial<Omit<PRDetailContext, 'metadata'>> = {}
   const viewedStates = new Map<string, GitHubPRFileViewedState>()
   let after: string | null = null
   try {
@@ -145,17 +147,6 @@ async function readPRDetailContext(
       const envelope = envelopeSchema.parse(JSON.parse(stdout))
       const pr = envelope.data?.repository?.pullRequest
       if (firstPage) {
-        const metadata = metadataSchema.safeParse(pr)
-        if (
-          metadata.success &&
-          ['body', 'headRefOid', 'baseRefOid'].every((field) => !sourceFailed(envelope, field))
-        ) {
-          result.metadata = {
-            body: metadata.data.body ?? '',
-            ...(metadata.data.headRefOid ? { headSha: metadata.data.headRefOid } : {}),
-            ...(metadata.data.baseRefOid ? { baseSha: metadata.data.baseRefOid } : {})
-          }
-        }
         const participants = participantsSchema.safeParse(pr?.participants)
         if (participants.success && !sourceFailed(envelope, 'participants')) {
           result.participants = participants.data.nodes.flatMap((user) =>
@@ -163,8 +154,12 @@ async function readPRDetailContext(
           )
         }
       }
-      const files = filesSchema.safeParse(pr)
-      if (!files.success || sourceFailed(envelope, 'files') || sourceFailed(envelope, 'id')) {
+      const files = filesSchema.safeParse(envelope.data?.repository?.viewedPullRequest)
+      if (
+        !files.success ||
+        sourceFailed(envelope, 'files', 'viewedPullRequest') ||
+        sourceFailed(envelope, 'id', 'viewedPullRequest')
+      ) {
         break
       }
       for (const file of files.data.files.nodes) {
@@ -183,7 +178,7 @@ async function readPRDetailContext(
       after = page.endCursor
     }
   } catch {
-    // A failed file page must not discard metadata and participants from the first page.
+    // A failed file page must not discard participants from the first page.
   }
   return result
 }
@@ -195,24 +190,18 @@ export async function getPRDetailContext(
   connectionId?: string | null,
   localGitOptions: LocalGitExecOptions = {}
 ): Promise<PRDetailContext> {
-  const context = await readPRDetailContext(
-    repoPath,
-    prNumber,
-    repository,
-    connectionId,
-    localGitOptions
-  )
-  const [metadata, participants] = await Promise.all([
-    context.metadata ??
-      getPRMetadata(repoPath, prNumber, repository, connectionId, localGitOptions),
-    context.participants ??
-      getWorkItemParticipants(
-        repoPath,
-        { number: prNumber, type: 'pr' },
-        repository,
-        connectionId,
-        localGitOptions
-      )
+  const [context, metadata] = await Promise.all([
+    readPRDetailContext(repoPath, prNumber, repository, connectionId, localGitOptions),
+    getPRMetadata(repoPath, prNumber, repository, connectionId, localGitOptions)
   ])
+  const participants =
+    context.participants ??
+    (await getWorkItemParticipants(
+      repoPath,
+      { number: prNumber, type: 'pr' },
+      repository,
+      connectionId,
+      localGitOptions
+    ))
   return { metadata, participants, viewedStates: context.viewedStates ?? null }
 }

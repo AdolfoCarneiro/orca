@@ -1,23 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LocalGitExecOptions } from './gh-utils'
 
-const { exec, guard, spend } = vi.hoisted(() => ({
-  exec: vi.fn(),
-  guard: vi.fn(),
-  spend: vi.fn()
-}))
-
+const { exec, guard, spend } = vi.hoisted(() => ({ exec: vi.fn(), guard: vi.fn(), spend: vi.fn() }))
 vi.mock('./gh-utils', () => ({
   ghExecFileAsync: exec,
   githubRepoContext: (
     repoPath: string,
     connectionId: string | null,
     options: LocalGitExecOptions
-  ) => ({
-    repoPath,
-    connectionId,
-    ...options
-  }),
+  ) => ({ repoPath, connectionId, ...options }),
   ghRepoExecOptions: ({ repoPath, ...options }: { repoPath: string }) => ({
     cwd: repoPath,
     ...options
@@ -32,17 +23,44 @@ import { getPRDetailContext } from './pull-request-detail-context'
 
 const repository = { owner: 'acme', repo: 'widgets', host: 'github.com' }
 const participant = { login: 'reviewer', name: null, avatarUrl: 'https://avatars/reviewer' }
-const metadata = { body: 'PR body', headRefOid: 'head-sha', baseRefOid: 'base-sha' }
 const files = {
   pageInfo: { hasNextPage: false, endCursor: null },
   nodes: [{ path: 'src/changed.ts', viewerViewedState: 'VIEWED' }]
 }
+const metadata = {
+  body: 'Cached PR body',
+  head: { sha: 'cached-head' },
+  base: { sha: 'cached-base' }
+}
 
 function response(
-  pr: Record<string, unknown>,
+  pullRequest: Record<string, unknown> | null = { participants: { nodes: [participant] } },
+  viewedPullRequest: Record<string, unknown> | null = { id: 'PR_42', files },
   errors?: Record<string, unknown>[]
-): { stdout: string } {
-  return { stdout: JSON.stringify({ data: { repository: { pullRequest: pr } }, errors }) }
+) {
+  return {
+    stdout: JSON.stringify({ data: { repository: { pullRequest, viewedPullRequest } }, errors })
+  }
+}
+
+function mockReads(reads: ({ stdout: string } | Error | { code: number; stdout: string })[]) {
+  exec.mockImplementation(async (args: string[]) => {
+    if (args.includes('graphql')) {
+      const next = reads.shift()
+      if (!next) {
+        throw new Error('Unexpected GraphQL read')
+      }
+      if (next instanceof Error || 'code' in next) {
+        throw next
+      }
+      return next
+    }
+    return { stdout: JSON.stringify(metadata) }
+  })
+}
+
+function graphqlCalls(): string[][] {
+  return exec.mock.calls.flatMap(([args]) => (args.includes('graphql') ? [args] : []))
 }
 
 beforeEach(() => {
@@ -51,193 +69,135 @@ beforeEach(() => {
 })
 
 describe('PR detail context requests', () => {
-  it('returns metadata, participants and viewed files in one authenticated request', async () => {
-    exec.mockResolvedValueOnce(
-      response({ id: 'PR_42', ...metadata, participants: { nodes: [participant, null] }, files })
-    )
-
+  it('reads participants and viewed state together while keeping the existing metadata cache', async () => {
+    mockReads([response()])
     const result = await getPRDetailContext('/folder-workspace', 42, repository)
-
-    expect(result.metadata).toEqual({ body: 'PR body', headSha: 'head-sha', baseSha: 'base-sha' })
+    expect(result.metadata).toEqual({
+      body: 'Cached PR body',
+      headSha: 'cached-head',
+      baseSha: 'cached-base'
+    })
     expect(result.participants).toEqual([participant])
     expect(result.viewedStates).toEqual({
       pullRequestId: 'PR_42',
       viewedStates: new Map([['src/changed.ts', 'VIEWED']])
     })
-    expect(exec).toHaveBeenCalledTimes(1)
+    expect(exec).toHaveBeenCalledTimes(2)
+    expect(graphqlCalls()).toHaveLength(1)
+    expect(graphqlCalls()[0].join(' ')).not.toMatch(/headRefOid|baseRefOid|\bbody\b/)
+    expect(exec.mock.calls.find(([args]) => !args.includes('graphql'))?.[0]).toEqual([
+      'api',
+      '--cache',
+      '60s',
+      'repos/acme/widgets/pulls/42'
+    ])
     expect(exec.mock.calls[0][1]).toMatchObject({ cwd: '/folder-workspace', host: 'github.com' })
-    expect(spend).toHaveBeenCalledTimes(1)
-    expect(spend).toHaveBeenCalledWith(repository, 'graphql', 1, expect.anything())
   })
 
   it('paginates only files after the first page and retains nullable viewer states', async () => {
-    exec
-      .mockResolvedValueOnce(
-        response({
-          id: 'PR_42',
-          ...metadata,
-          participants: { nodes: [] },
-          files: { ...files, pageInfo: { hasNextPage: true, endCursor: 'cursor-1' } }
-        })
-      )
-      .mockResolvedValueOnce(
-        response({
-          id: 'PR_42',
-          files: {
-            ...files,
-            nodes: [null, { path: 'src/unknown.ts', viewerViewedState: null }]
-          }
-        })
-      )
-
-    const result = await getPRDetailContext('/repo', 42, repository)
-
-    expect(result.metadata.body).toBe('PR body')
-    expect(result.viewedStates?.viewedStates).toEqual(new Map([['src/changed.ts', 'VIEWED']]))
-    expect(exec).toHaveBeenCalledTimes(2)
-    const nextArgs: string[] = exec.mock.calls[1][0]
-    expect(nextArgs).toContain('after=cursor-1')
-    expect(nextArgs.find((arg) => arg.startsWith('query='))).not.toMatch(/participants|headRefOid/)
-  })
-
-  it('accepts successful empty sources without issuing recovery requests', async () => {
-    exec.mockResolvedValueOnce(
-      response({
+    mockReads([
+      response(undefined, {
         id: 'PR_42',
-        body: '',
-        headRefOid: null,
-        baseRefOid: null,
-        participants: { nodes: [] },
-        files: { ...files, nodes: [] }
+        files: { ...files, pageInfo: { hasNextPage: true, endCursor: 'cursor-1' } }
+      }),
+      response(null, {
+        id: 'PR_42',
+        files: { ...files, nodes: [null, { path: 'src/unknown.ts', viewerViewedState: null }] }
       })
-    )
-
+    ])
     const result = await getPRDetailContext('/repo', 42, repository)
-
-    expect(result).toEqual({
-      metadata: { body: '' },
-      participants: [],
-      viewedStates: { pullRequestId: 'PR_42', viewedStates: new Map() }
-    })
-    expect(exec).toHaveBeenCalledTimes(1)
-  })
-
-  it('recovers only failed metadata from a nonzero partial GraphQL response', async () => {
-    exec
-      .mockRejectedValueOnce({
-        code: 1,
-        ...response({ id: 'PR_42', ...metadata, participants: { nodes: [participant] }, files }, [
-          { path: ['repository', 'pullRequest', 'headRefOid'] }
-        ])
-      })
-      .mockResolvedValueOnce({
-        stdout: JSON.stringify({ body: 'Recovered body', head: { sha: 'new-head' } })
-      })
-
-    const result = await getPRDetailContext('/repo', 42, repository)
-
-    expect(result.metadata).toEqual({ body: 'Recovered body', headSha: 'new-head' })
+    expect(result.viewedStates?.viewedStates).toEqual(new Map([['src/changed.ts', 'VIEWED']]))
     expect(result.participants).toEqual([participant])
-    expect(result.viewedStates?.viewedStates.get('src/changed.ts')).toBe('VIEWED')
-    expect(exec).toHaveBeenCalledTimes(2)
-    expect(exec.mock.calls[1][0]).toContain('repos/acme/widgets/pulls/42')
+    expect(graphqlCalls()).toHaveLength(2)
+    expect(graphqlCalls()[1]).toContain('after=cursor-1')
+    expect(graphqlCalls()[1].join(' ')).not.toContain('participants')
   })
 
-  it('recovers participants without repeating successful metadata or file reads', async () => {
-    exec
-      .mockResolvedValueOnce(
-        response({ id: 'PR_42', ...metadata, participants: null, files }, [
-          { path: ['repository', 'pullRequest', 'participants'] }
-        ])
-      )
-      .mockResolvedValueOnce(response({ participants: { nodes: [participant] } }))
-
+  it('accepts successful empty sources without recovery requests', async () => {
+    mockReads([
+      response({ participants: { nodes: [] } }, { id: 'PR_42', files: { ...files, nodes: [] } })
+    ])
     const result = await getPRDetailContext('/repo', 42, repository)
+    expect(result.participants).toEqual([])
+    expect(result.viewedStates).toEqual({ pullRequestId: 'PR_42', viewedStates: new Map() })
+    expect(graphqlCalls()).toHaveLength(1)
+  })
 
-    expect(result.metadata.body).toBe('PR body')
+  it.each([
+    { path: ['repository', 'pullRequest', 'participants'] },
+    { path: ['repository', 'pullRequest'] }
+  ])('retains viewed files when an error nulls the participant PR at $path', async ({ path }) => {
+    mockReads([{ code: 1, ...response(null, { id: 'PR_42', files }, [{ path }]) }, response()])
+    const result = await getPRDetailContext('/repo', 42, repository)
     expect(result.participants).toEqual([participant])
     expect(result.viewedStates?.pullRequestId).toBe('PR_42')
-    expect(exec).toHaveBeenCalledTimes(2)
-    expect(exec.mock.calls[1][0].join(' ')).not.toContain('viewerViewedState')
+    expect(result.viewedStates?.viewedStates.get('src/changed.ts')).toBe('VIEWED')
+    expect(result.metadata.headSha).toBe('cached-head')
+    expect(graphqlCalls()).toHaveLength(2)
+    expect(graphqlCalls()[1].join(' ')).not.toContain('viewerViewedState')
+  })
+
+  it('retains participants when the viewed PR alias is nulled', async () => {
+    mockReads([
+      {
+        code: 1,
+        ...response(undefined, null, [{ path: ['repository', 'viewedPullRequest', 'id'] }])
+      }
+    ])
+    const result = await getPRDetailContext('/repo', 42, repository)
+    expect(result.participants).toEqual([participant])
+    expect(result.viewedStates).toBeNull()
+    expect(graphqlCalls()).toHaveLength(1)
   })
 
   it('does not publish partially paginated viewed files after a later page fails', async () => {
-    exec
-      .mockResolvedValueOnce(
-        response({
+    mockReads([
+      response(undefined, {
+        id: 'PR_42',
+        files: { ...files, pageInfo: { hasNextPage: true, endCursor: 'next' } }
+      }),
+      new Error('file page unavailable')
+    ])
+    const result = await getPRDetailContext('/repo', 42, repository)
+    expect(result.participants).toEqual([participant])
+    expect(result.viewedStates).toBeNull()
+    expect(graphqlCalls()).toHaveLength(2)
+  })
+
+  it('keeps the three-page file bound without resending participants', async () => {
+    mockReads(
+      [1, 2, 3].map((page) =>
+        response(undefined, {
           id: 'PR_42',
-          ...metadata,
-          participants: { nodes: [participant] },
-          files: { ...files, pageInfo: { hasNextPage: true, endCursor: 'next' } }
+          files: { ...files, pageInfo: { hasNextPage: true, endCursor: `cursor-${page}` } }
         })
       )
-      .mockRejectedValueOnce(new Error('file page unavailable'))
-
-    const result = await getPRDetailContext('/repo', 42, repository)
-
-    expect(result.metadata.body).toBe('PR body')
-    expect(result.participants).toEqual([participant])
-    expect(result.viewedStates).toBeNull()
-    expect(exec).toHaveBeenCalledTimes(2)
-  })
-
-  it('keeps the three-page file bound without resending context fields', async () => {
-    exec.mockImplementation(async () =>
-      response({
-        id: 'PR_42',
-        ...metadata,
-        participants: { nodes: [] },
-        files: {
-          nodes: files.nodes,
-          pageInfo: { hasNextPage: true, endCursor: `cursor-${exec.mock.calls.length}` }
-        }
-      })
     )
-
     const result = await getPRDetailContext('/repo', 42, repository)
-
     expect(result.viewedStates?.pullRequestId).toBe('PR_42')
-    expect(exec).toHaveBeenCalledTimes(3)
+    expect(graphqlCalls()).toHaveLength(3)
   })
 
-  it('recovers metadata and participants after a failed query without retrying file state', async () => {
-    exec.mockImplementation(async (args: string[]) => {
-      const query = args.find((arg) => arg.startsWith('query=')) ?? ''
-      if (query.includes('headRefOid')) {
-        throw new Error('GraphQL request failed')
-      }
-      if (query.includes('participants')) {
-        return response({ participants: { nodes: [participant] } })
-      }
-      return { stdout: JSON.stringify({ body: 'REST body', head: { sha: 'rest-head' } }) }
-    })
-
+  it('recovers participants after a failed query without retrying unavailable viewed state', async () => {
+    mockReads([new Error('Query failed'), response()])
     const result = await getPRDetailContext('/repo', 42, repository)
-
-    expect(result.metadata).toEqual({ body: 'REST body', headSha: 'rest-head' })
     expect(result.participants).toEqual([participant])
     expect(result.viewedStates).toBeNull()
-    expect(exec).toHaveBeenCalledTimes(3)
+    expect(result.metadata.headSha).toBe('cached-head')
+    expect(graphqlCalls()).toHaveLength(2)
   })
 
-  it('can load all context with no remaining REST quota', async () => {
+  it('loads GraphQL context with no remaining REST quota', async () => {
     guard.mockImplementation((_, bucket: string) => ({ blocked: bucket === 'core' }))
-    exec.mockResolvedValueOnce(
-      response({ id: 'PR_42', ...metadata, participants: { nodes: [] }, files })
-    )
-
+    mockReads([response()])
     const result = await getPRDetailContext('/repo', 42, repository)
-
-    expect(result.metadata.headSha).toBe('head-sha')
+    expect(result.metadata).toEqual({ body: '' })
     expect(result.viewedStates?.pullRequestId).toBe('PR_42')
     expect(exec).toHaveBeenCalledTimes(1)
   })
 
   it.each([{ wslDistro: 'Ubuntu' }, {}])('keeps host and execution routing %j', async (options) => {
-    exec.mockResolvedValueOnce(
-      response({ id: 'PR_42', ...metadata, participants: { nodes: [] }, files })
-    )
-
+    mockReads([response()])
     await getPRDetailContext(
       '/remote/repo',
       42,
@@ -245,13 +205,13 @@ describe('PR detail context requests', () => {
       'ssh-1',
       options
     )
-
-    expect(exec).toHaveBeenCalledTimes(1)
-    expect(exec.mock.calls[0][1]).toMatchObject({
-      cwd: '/remote/repo',
-      connectionId: 'ssh-1',
-      host: 'ghe.example.com',
-      ...options
-    })
+    for (const [, execution] of exec.mock.calls) {
+      expect(execution).toMatchObject({
+        cwd: '/remote/repo',
+        connectionId: 'ssh-1',
+        host: 'ghe.example.com',
+        ...options
+      })
+    }
   })
 })

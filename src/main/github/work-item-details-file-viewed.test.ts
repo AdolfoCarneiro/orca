@@ -127,11 +127,13 @@ describe('getWorkItemDetails PR file viewed state', () => {
             data: {
               repository: {
                 pullRequest: {
-                  id: 'PR_kwDO123',
                   body: 'PR body',
                   headRefOid: 'head-sha',
                   baseRefOid: 'base-sha',
-                  participants: { nodes: [] },
+                  participants: { nodes: [] }
+                },
+                viewedPullRequest: {
+                  id: 'PR_kwDO123',
                   files: {
                     pageInfo: { hasNextPage: false, endCursor: null },
                     nodes: [
@@ -189,7 +191,7 @@ describe('getWorkItemDetails PR file viewed state', () => {
 
     const details = await getWorkItemDetails('/repo-root', 42, 'pr')
 
-    expect(ghExecFileAsyncMock).toHaveBeenCalledTimes(2)
+    expect(ghExecFileAsyncMock).toHaveBeenCalledTimes(3)
     expect(details?.body).toBe('PR body')
     expect(details?.pullRequestId).toBe('PR_kwDO123')
     expect(details?.headSha).toBe('head-sha')
