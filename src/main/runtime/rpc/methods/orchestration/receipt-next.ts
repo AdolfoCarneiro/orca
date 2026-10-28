@@ -43,6 +43,17 @@ export async function withRunCheckNext(
     : result
 }
 
+/** An answered question unblocks its worker, so the coordinator waits for that worker's report. */
+export async function withAnswerNext<T extends object>(
+  runtime: OrcaRuntimeService,
+  runId: string,
+  receipt: T
+): Promise<T & { next?: string }> {
+  return (await awaitsWorkerReports(runtime, runId))
+    ? { ...receipt, next: AWAIT_WORKER_REPORTS }
+    : receipt
+}
+
 /** A worker still runs, worker-list owes no action, and every running worker's failure wakes the coordinator. */
 async function awaitsWorkerReports(runtime: OrcaRuntimeService, runId: string): Promise<boolean> {
   const rows = runtime.getOrchestrationDb().listWorkerTerminalResources({ runId })
