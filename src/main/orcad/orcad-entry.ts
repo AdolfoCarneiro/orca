@@ -68,7 +68,18 @@ async function startOrcadRuntime(
   const { time: timed, report: reportStartupTiming } = createOrcadStartupTiming()
   // Overlap login-shell probing with imports and store startup.
   const loginEnvironment = adoptWslHostLoginEnvironmentLogged()
+  const { startOrcadDaemon, stopOrcadDaemon } = await import('./orcad-daemon-supervision')
+  // The daemon and its PTYs inherit the adopted login env and nothing later startup writes, so it
+  // spawns as soon as that lands, in parallel with the imports, stores and hook server. Never rejects.
+  const daemonStartup = loginEnvironment.then(() => timed('daemon', () => startOrcadDaemon()))
+  // Observed now: an early abort may never reach the await below.
+  void daemonStartup.catch(() => {})
+  // Bundled imports resolve as microtasks; a turn of the loop lets a finished login env spawn the
+  // daemon (a separate process) while the runtime graph evaluates.
+  const yieldToLoop = () => new Promise<void>((resolve) => setImmediate(resolve))
+  await yieldToLoop()
   const { OrcaRuntimeService } = await import('../runtime/orca-runtime')
+  await yieldToLoop()
   const { OrcaRuntimeRpcServer } = await import('../runtime/runtime-rpc')
   const { registerHeadlessPtyRuntime } = await import('../ipc/pty/register-headless-runtime')
   const { getLocalPtyProvider } = await import('../ipc/pty/provider/registry')
@@ -78,12 +89,6 @@ async function startOrcadRuntime(
   const { servePublishMode } = await import('../server/serve-pairing-readiness')
   const { buildOrcadServeReadiness } = await import('./orcad-serve-readiness')
   const { createOrcadProfileStateStartup } = await import('./orcad-profile-state-startup')
-  const { startOrcadDaemon, stopOrcadDaemon } = await import('./orcad-daemon-supervision')
-  // The daemon and its PTYs inherit the adopted login env and nothing later startup writes, so it
-  // spawns as soon as that lands, in parallel with the stores and the hook server. Never rejects.
-  const daemonStartup = loginEnvironment.then(() => timed('daemon', () => startOrcadDaemon()))
-  // Observed now: an early abort may never reach the await below.
-  void daemonStartup.catch(() => {})
   const { daemonOwnsFreshPersistentPtys } = await import('../daemon/daemon-provider-state')
   const { collectOrcadHealth } = await import('./orcad-health')
   const { agentHookServer } = await import('../agent-hooks/server')
