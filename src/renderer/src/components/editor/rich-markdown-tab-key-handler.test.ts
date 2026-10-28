@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, it, vi } from 'vitest'
 import { Editor, type JSONContent } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -23,14 +24,16 @@ function createEditor(content: JSONContent): Editor {
 
 /** Mixed task/bullet nesting and code indentation require the production extensions. */
 function createMarkdownEditor(markdown: string): Editor {
-  return new Editor({
-    element: null,
+  const editor = new Editor({
+    element: document.createElement('div'),
     extensions: createRichMarkdownExtensions({
       codec: createRichMarkdownEditorCodec()
     }),
     content: markdown,
     contentType: 'markdown'
   })
+  vi.spyOn(editor.view, 'coordsAtPos').mockReturnValue({ top: 0, bottom: 20, left: 0, right: 0 })
+  return editor
 }
 
 /** Use the node shapes HTML paste produces because this DOM-less fixture cannot parse the reported pasted HTML. */
@@ -438,6 +441,109 @@ describe('rich markdown Tab key handler', () => {
     }
   })
 
+  it('indents selected code lines without replacing their text', () => {
+    const editor = createMarkdownEditor('```js\nconst a = 1\nconst b = 2\nconst c = 3\n```')
+
+    try {
+      editor.commands.setTextSelection({
+        from: codeBlockPosition(editor, 'const a'),
+        to: codeBlockPosition(editor, 'const b') + 'const b = 2'.length
+      })
+
+      expect(createRichMarkdownKeyHandler(createContext(editor))(null, keyEvent('Tab'))).toBe(true)
+      expect(editor.getMarkdown()).toBe('```js\n  const a = 1\n  const b = 2\nconst c = 3\n```')
+      expect(editor.commands.undo()).toBe(true)
+      expect(editor.getMarkdown()).toBe('```js\nconst a = 1\nconst b = 2\nconst c = 3\n```')
+      expect(editor.commands.redo()).toBe(true)
+      expect(editor.getMarkdown()).toBe('```js\n  const a = 1\n  const b = 2\nconst c = 3\n```')
+    } finally {
+      editor.destroy()
+    }
+  })
+
+  it('keeps the line at the exclusive selection end untouched when indenting code', () => {
+    const editor = createMarkdownEditor('```js\none\ntwo\nthree\n```')
+
+    try {
+      editor.commands.setTextSelection({
+        from: codeBlockPosition(editor, 'one') + 1,
+        to: codeBlockPosition(editor, 'three')
+      })
+
+      expect(createRichMarkdownKeyHandler(createContext(editor))(null, keyEvent('Tab'))).toBe(true)
+      expect(editor.getMarkdown()).toBe('```js\n  one\n  two\nthree\n```')
+    } finally {
+      editor.destroy()
+    }
+  })
+
+  it('keeps the line at the exclusive selection end untouched when outdenting code', () => {
+    const editor = createMarkdownEditor('```js\n  one\n  two\n  three\n```')
+
+    try {
+      editor.commands.setTextSelection({
+        from: codeBlockPosition(editor, 'one'),
+        to: codeBlockPosition(editor, 'three') - 2
+      })
+
+      expect(
+        createRichMarkdownKeyHandler(createContext(editor))(
+          null,
+          keyEvent('Tab', { shiftKey: true })
+        )
+      ).toBe(true)
+      expect(editor.getMarkdown()).toBe('```js\none\ntwo\n  three\n```')
+    } finally {
+      editor.destroy()
+    }
+  })
+
+  it('indents a selected fragment of one code line without deleting it', () => {
+    const editor = createMarkdownEditor('```js\nconst value = 1\n```')
+
+    try {
+      const from = codeBlockPosition(editor, 'value')
+      editor.commands.setTextSelection({ from, to: from + 'value'.length })
+
+      expect(createRichMarkdownKeyHandler(createContext(editor))(null, keyEvent('Tab'))).toBe(true)
+      expect(editor.getMarkdown()).toBe('```js\n  const value = 1\n```')
+      expect(
+        editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to)
+      ).toBe('value')
+    } finally {
+      editor.destroy()
+    }
+  })
+
+  it('outdents a selection spanning adjacent code blocks in one transaction', () => {
+    const editor = createMarkdownEditor('```ts\n  first\n```\n\n```sh\n  second\n```')
+    try {
+      const from = codeBlockPosition(editor, '  first')
+      const to = codeBlockPosition(editor, '  second') + '  second'.length
+      editor.commands.setTextSelection({ from, to })
+      const handler = createRichMarkdownKeyHandler(createContext(editor))
+
+      expect(handler(null, keyEvent('Tab', { shiftKey: true }))).toBe(true)
+      const blocks: string[] = []
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'codeBlock') {
+          blocks.push(node.textContent)
+        }
+      })
+      expect(blocks).toEqual(['first', 'second'])
+      expect(editor.commands.undo()).toBe(true)
+      const restored: string[] = []
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'codeBlock') {
+          restored.push(node.textContent)
+        }
+      })
+      expect(restored).toEqual(['  first', '  second'])
+    } finally {
+      editor.destroy()
+    }
+  })
+
   it('leaves an unindented code block untouched on Shift-Tab', () => {
     const editor = createMarkdownEditor('```js\nconst x = 1\n```')
 
@@ -453,21 +559,15 @@ describe('rich markdown Tab key handler', () => {
   })
 
   it('inserts spaces for Tab in code blocks', () => {
-    const insertContent = vi.fn()
-    const editor = {
-      view: { composing: false },
-      state: { selection: { $from: { depth: 0 } } },
-      commands: {
-        sinkListItem: vi.fn(),
-        liftListItem: vi.fn(),
-        insertContent
-      },
-      isActive: vi.fn((name) => name === 'codeBlock')
-    } as unknown as Editor
-    const event = keyEvent('Tab')
+    const editor = createMarkdownEditor('```js\nconst x = 1\n```')
 
-    expect(createRichMarkdownKeyHandler(createContext(editor))(null, event)).toBe(true)
-    expect(insertContent).toHaveBeenCalledWith('  ')
+    try {
+      editor.commands.setTextSelection(codeBlockPosition(editor, 'x'))
+      expect(createRichMarkdownKeyHandler(createContext(editor))(null, keyEvent('Tab'))).toBe(true)
+      expect(editor.getMarkdown()).toBe('```js\nconst   x = 1\n```')
+    } finally {
+      editor.destroy()
+    }
   })
 
   it('outdents a nested bullet that arrived as a pasted list node tree', () => {
