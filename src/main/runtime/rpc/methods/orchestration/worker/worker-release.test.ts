@@ -210,19 +210,25 @@ describe('orchestration worker release', () => {
     }
   )
 
-  it('keeps the output of a worker stopped before release', async () => {
-    h.setup()
-    const { dispatchId } = await h.startWorker()
-    await expect(
-      h.call('orchestration.workerStop', { dispatch: dispatchId })
-    ).resolves.toMatchObject({ state: 'stopped' })
-    h.inspectProcessLiveness.mockResolvedValue('exited')
+  it.each([false, true])(
+    'keeps the output of a stopped worker (retained first: %s)',
+    async (retain) => {
+      h.setup()
+      const { dispatchId } = await h.startWorker()
+      await expect(
+        h.call('orchestration.workerStop', { dispatch: dispatchId })
+      ).resolves.toMatchObject({ state: 'stopped' })
+      if (retain) {
+        await h.call('orchestration.workerRetain', { dispatch: dispatchId })
+      }
+      h.inspectProcessLiveness.mockResolvedValue('exited')
 
-    await expect(
-      h.call('orchestration.workerRelease', { dispatch: dispatchId })
-    ).resolves.toMatchObject({ state: 'released', archive: { status: 'captured' } })
-    expect(h.db.getWorkerTerminalArchive(dispatchId)?.kind).toBe('terminal_tail')
-  })
+      await expect(
+        h.call('orchestration.workerRelease', { dispatch: dispatchId })
+      ).resolves.toMatchObject({ state: 'released', archive: { status: 'captured' } })
+      expect(h.db.getWorkerTerminalArchive(dispatchId)?.kind).toBe('terminal_tail')
+    }
+  )
 
   it.each(['stopped', 'abandoned'] as const)(
     'keeps a dead %s worker retained while its process is still unproven',

@@ -102,7 +102,7 @@ describe('terminal worker turn stops', () => {
     expect(message.body).toContain(`worker-read --dispatch ${ctx.dispatch.id}`)
     expect(ctx.notify).toHaveBeenCalledWith(message.to_handle, 'escalation')
     // The open attempt now asks for action until the coordinator writes to the worker.
-    const outcome = () => ctx.db.getWorkerAttentionFacts(ctx.dispatch.id, Date.now()).outcome
+    const outcome = () => ctx.db.getWorkerAttentionFacts(ctx.dispatch.id, 1).outcome
     expect(outcome()).toBe('finished_unverified')
     ctx.db.insertMessage({
       from: 'term_coordinator',

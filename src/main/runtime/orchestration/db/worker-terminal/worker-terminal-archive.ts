@@ -188,9 +188,20 @@ export function retainTerminalResourceInTransaction(
     )
     .run(resourceId)
   if (changes > 0) {
-    database.db
-      .prepare('DELETE FROM worker_terminal_archives WHERE dispatch_id = ?')
-      .run(dispatchId)
+    // A stopped worker's terminal is closed; the archive taken before stop is its only output.
+    const dropped = database.db
+      .prepare(
+        `DELETE FROM worker_terminal_archives WHERE dispatch_id = ? AND NOT EXISTS (
+           SELECT 1 FROM worker_dispatches WHERE dispatch_id = ? AND state = 'stopped')`
+      )
+      .run(dispatchId, dispatchId)
+    if (dropped.changes > 0) {
+      database.db
+        .prepare(
+          'UPDATE worker_terminal_resources SET archive_source = NULL, archive_status = NULL WHERE id = ?'
+        )
+        .run(resourceId)
+    }
   }
   return changes > 0
 }
