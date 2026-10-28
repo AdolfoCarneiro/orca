@@ -139,22 +139,24 @@ export function openBrowserExtensionPopup(options: BrowserExtensionPopupOptions)
 
   // Why measure in the page: preferred-size-changed only reports while the window paints, and its
   // height never drops below the viewport, so a hidden or late-rendering popup kept its first size.
-  let watchGeneration = 0
+  let readyToShow = false
+  let sizeReady = false
   let presented = false
-  const watchSize = (): Promise<void> => {
-    const generation = ++watchGeneration
-    return watchBrowserExtensionPopupSize(
-      contents,
-      () => generation === watchGeneration && !window.isDestroyed(),
-      (size) =>
-        window.setBounds(
-          placeBrowserExtensionPopup(anchor, clampBrowserExtensionPopupSize(size), workArea)
-        )
-    )
+  const presentWhenReady = (): void => {
+    if (presented || !readyToShow || !sizeReady || current !== popup || window.isDestroyed()) {
+      return
+    }
+    presented = true
+    presentBrowserExtensionWindow(window, true)
   }
-  contents.on('did-navigate', () => {
-    if (presented) {
-      void watchSize()
+  const stopSizing = watchBrowserExtensionPopupSize(contents, {
+    apply: (size) =>
+      window.setBounds(
+        placeBrowserExtensionPopup(anchor, clampBrowserExtensionPopupSize(size), workArea)
+      ),
+    setReady: (ready) => {
+      sizeReady = ready
+      presentWhenReady()
     }
   })
   contents.on('before-input-event', (event, input) => {
@@ -179,17 +181,14 @@ export function openBrowserExtensionPopup(options: BrowserExtensionPopupOptions)
     }
   })
   window.once('closed', () => {
+    stopSizing()
     if (current === popup) {
       current = null
     }
   })
   window.once('ready-to-show', () => {
-    void watchSize().then(() => {
-      if (!window.isDestroyed()) {
-        presented = true
-        presentBrowserExtensionWindow(window, true)
-      }
-    })
+    readyToShow = true
+    presentWhenReady()
   })
   window.loadURL(url).catch((error: unknown) => {
     console.warn('[browser-extensions] Popup failed to load:', error)

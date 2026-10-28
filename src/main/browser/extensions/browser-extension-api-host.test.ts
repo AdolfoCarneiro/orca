@@ -69,7 +69,8 @@ mocks.userData = mkdtempSync(join(tmpdir(), 'orca-extension-api-host-'))
 const {
   BROWSER_EXTENSION_EVENT_CHANNEL,
   BROWSER_EXTENSION_INVOKE_CHANNEL,
-  BROWSER_EXTENSION_FRAME_LIFETIME_CHANNEL
+  BROWSER_EXTENSION_FRAME_LIFETIME_CHANNEL,
+  BROWSER_EXTENSION_POPUP_SIZE_CHANNEL
 } = await import('../../../shared/browser-extension-channels')
 const surface = await import('../../../preload/browser-extension-api-surface')
 const registry = await import('./browser-extension-namespace-registry')
@@ -164,6 +165,9 @@ describe('preload API surface', () => {
     expect(surface.PRELOAD_BROWSER_EXTENSION_EVENT_CHANNEL).toBe(BROWSER_EXTENSION_EVENT_CHANNEL)
     expect(surface.PRELOAD_BROWSER_EXTENSION_FRAME_LIFETIME_CHANNEL).toBe(
       BROWSER_EXTENSION_FRAME_LIFETIME_CHANNEL
+    )
+    expect(surface.PRELOAD_BROWSER_EXTENSION_POPUP_SIZE_CHANNEL).toBe(
+      BROWSER_EXTENSION_POPUP_SIZE_CHANNEL
     )
   })
 

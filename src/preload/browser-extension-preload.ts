@@ -18,6 +18,7 @@ import { installBrowserExtensionInertApis } from './browser-extension-inert-apis
 import { installContentScriptRelayFilter } from './browser-extension-content-script-relay'
 import { installBrowserExtensionNativeMessaging } from './browser-extension-native-messaging'
 import { installBrowserExtensionFrameLifetime } from './browser-extension-frame-lifetime'
+import { installBrowserExtensionPopupSize } from './browser-extension-popup-size'
 import { installBrowserExtensionStorageRelay } from './browser-extension-storage-relay'
 import {
   installBrowserExtensionStorageSync,
@@ -135,6 +136,9 @@ function readOrigin(href: string): string | null {
 if (process.contextIsolated) {
   const href = readContextHref()
   if (href.startsWith('chrome-extension://')) {
+    if (process.isMainFrame) {
+      installBrowserExtensionPopupSize(ipcRenderer)
+    }
     // A document marker survives Chromium reusing an existing extension renderer process.
     // Why origin: a manifest sandbox page keeps its extension URL but runs with an opaque origin.
     if (!href.endsWith('/manifest.json?orca-native-page=1') && globalThis.origin !== 'null') {

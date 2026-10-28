@@ -1,74 +1,9 @@
+import { MessageChannelMain } from 'electron'
+import { BROWSER_EXTENSION_POPUP_SIZE_CHANNEL } from '../../../shared/browser-extension-channels'
+import { abortWhenRendererGone } from '../../ipc/renderer-lifetime-abort'
 import { BROWSER_EXTENSION_POPUP_MAX } from './browser-extension-popup-geometry'
 
 type Size = { width: number; height: number }
-
-// Why its own world: the popup page never sees Orca's observers or the state they keep.
-const POPUP_SIZE_WORLD_ID = 1_999
-
-/**
- * Runs in the popup's isolated world and resolves with the page's size the next time it differs
- * from the last one it resolved with. Chrome sizes a popup to the document's min-content width and
- * its height at that width; a constructed stylesheet applies that width just long enough to read
- * the root box, without touching the DOM the page observes. A page without a doctype (quirks mode)
- * stretches html and body to the window, so the sheet also sizes them to their content there.
- * Mutations (which still fire in a hidden window) and resizes re-measure, debounced, so
- * late-rendering popups grow and shrink.
- */
-const WATCH_SIZE_SCRIPT = `(() => {
-  const MAX_WIDTH = ${BROWSER_EXTENSION_POPUP_MAX.width}
-  let state = window.__orcaPopupSize
-  const deliver = () => {
-    if (!state.resolve || !state.pending) return
-    const resolve = state.resolve
-    const size = state.pending
-    state.resolve = null
-    state.pending = null
-    state.reported = size.width + 'x' + size.height
-    resolve(size)
-  }
-  if (!state) {
-    state = window.__orcaPopupSize = { reported: '', pending: null, resolve: null, timer: 0 }
-    const measureAt = (width) => {
-      const sheet = new CSSStyleSheet()
-      const quirks = document.compatMode === 'BackCompat'
-      sheet.replaceSync('html{box-sizing:border-box!important;min-width:0!important;max-width:none!important;width:' + width + '!important}' +
-        (quirks ? 'html,body{height:fit-content!important}' : ''))
-      const sheets = document.adoptedStyleSheets
-      sheets.push(sheet)
-      try {
-        return document.documentElement.getBoundingClientRect()
-      } finally {
-        sheets.splice(sheets.indexOf(sheet), 1)
-      }
-    }
-    const update = () => {
-      state.timer = 0
-      if (!document.documentElement) return
-      const fit = measureAt('min-content')
-      const width = Math.ceil(fit.width)
-      const rect = width > MAX_WIDTH ? measureAt(MAX_WIDTH + 'px') : fit
-      const size = { width, height: Math.ceil(rect.height) }
-      state.pending = size.width + 'x' + size.height === state.reported ? null : size
-      deliver()
-    }
-    const schedule = () => {
-      if (!state.timer) state.timer = setTimeout(update, 50)
-    }
-    new MutationObserver(schedule).observe(document, {
-      subtree: true, childList: true, attributes: true, characterData: true
-    })
-    const resizes = new ResizeObserver(schedule)
-    resizes.observe(document.documentElement)
-    if (document.body) resizes.observe(document.body)
-    window.addEventListener('load', schedule)
-    if (document.fonts) document.fonts.ready.then(schedule)
-    update()
-  }
-  return new Promise((resolve) => {
-    state.resolve = resolve
-    deliver()
-  })
-})()`
 
 export function parseBrowserExtensionPopupSize(value: unknown): Size | null {
   if (typeof value !== 'object' || value === null || !('width' in value) || !('height' in value)) {
@@ -83,30 +18,128 @@ export function parseBrowserExtensionPopupSize(value: unknown): Size | null {
     : null
 }
 
-/**
- * Hands `apply` every new size of the popup's current document until `isCurrent` turns false or
- * the document goes away. Resolves once the first size was applied (or none could be measured).
- */
 export function watchBrowserExtensionPopupSize(
   contents: Electron.WebContents,
-  isCurrent: () => boolean,
-  apply: (size: Size) => void
-): Promise<void> {
-  return new Promise((firstApplied) => {
-    const poll = async (): Promise<void> => {
-      for (;;) {
-        const measured: unknown = await contents
-          .executeJavaScriptInIsolatedWorld(POPUP_SIZE_WORLD_ID, [{ code: WATCH_SIZE_SCRIPT }])
-          .catch(() => null)
-        const size = parseBrowserExtensionPopupSize(measured)
-        if (!size || contents.isDestroyed() || !isCurrent()) {
-          break
-        }
-        apply(size)
-        firstApplied()
-      }
-      firstApplied()
+  options: {
+    apply: (size: Size) => void
+    setReady: (ready: boolean) => void
+  }
+): () => void {
+  let current: { dispose: () => void } | undefined
+  let generation = 0
+  let disposed = false
+
+  const stopDocument = (): void => {
+    const previous = current
+    current = undefined
+    options.setReady(false)
+    previous?.dispose()
+  }
+  const dispose = (): void => {
+    if (disposed) {
+      return
     }
-    void poll()
-  })
+    disposed = true
+    contents.removeListener('dom-ready', startDocument)
+    contents.removeListener('did-navigate', stopDocument)
+    contents.removeListener('destroyed', dispose)
+    contents.removeListener('render-process-gone', stopDocument)
+    stopDocument()
+  }
+  const startDocument = (): void => {
+    stopDocument()
+    if (disposed || contents.isDestroyed()) {
+      return
+    }
+    const token = ++generation
+    let retired = false
+    let release = (): void => {}
+    const owner = {
+      dispose: (): void => {
+        if (retired) {
+          return
+        }
+        retired = true
+        release()
+      }
+    }
+    current = owner
+    try {
+      const { port1, port2 } = new MessageChannelMain()
+      release = () => {
+        port1.close()
+        port2.close()
+      }
+      const lifetime = abortWhenRendererGone(contents)
+      let transferred = false
+      const retire = (): void => {
+        if (current === owner) {
+          stopDocument()
+        }
+      }
+      const onMessage = ({ data }: Electron.MessageEvent): void => {
+        if (retired || current !== owner || contents.isDestroyed()) {
+          return
+        }
+        if (data === null) {
+          options.setReady(true)
+          return
+        }
+        const size = parseBrowserExtensionPopupSize(data)
+        if (!size) {
+          return
+        }
+        options.apply(size)
+        if (!retired && current === owner) {
+          options.setReady(true)
+        }
+      }
+      release = () => {
+        lifetime.signal.removeEventListener('abort', retire)
+        lifetime.dispose()
+        port1.removeListener('message', onMessage)
+        port1.removeListener('close', retire)
+        if (!contents.isDestroyed()) {
+          try {
+            contents.send(BROWSER_EXTENSION_POPUP_SIZE_CHANNEL, { generation: token })
+          } catch {
+            // The renderer may have exited before its destruction event.
+          }
+        }
+        port1.close()
+        if (!transferred) {
+          port2.close()
+        }
+      }
+      lifetime.signal.addEventListener('abort', retire, { once: true })
+      port1.on('message', onMessage)
+      port1.once('close', retire)
+      port1.start()
+      contents.mainFrame.postMessage(
+        BROWSER_EXTENSION_POPUP_SIZE_CHANNEL,
+        { generation: token, maxWidth: BROWSER_EXTENSION_POPUP_MAX.width },
+        [port2]
+      )
+      transferred = true
+    } catch {
+      if (current !== owner) {
+        owner.dispose()
+        return
+      }
+      stopDocument()
+      // Preserve the initial-bounds fallback when this document cannot be measured.
+      if (!disposed && !contents.isDestroyed()) {
+        options.setReady(true)
+      }
+    }
+  }
+
+  if (contents.isDestroyed()) {
+    return dispose
+  }
+  contents.on('dom-ready', startDocument)
+  contents.on('did-navigate', stopDocument)
+  contents.once('destroyed', dispose)
+  contents.on('render-process-gone', stopDocument)
+  return dispose
 }

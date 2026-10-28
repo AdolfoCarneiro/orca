@@ -10,6 +10,7 @@
 export const PRELOAD_BROWSER_EXTENSION_INVOKE_CHANNEL = 'browserExtension:invoke'
 export const PRELOAD_BROWSER_EXTENSION_EVENT_CHANNEL = 'browserExtension:event'
 export const PRELOAD_BROWSER_EXTENSION_FRAME_LIFETIME_CHANNEL = 'browserExtension:frameLifetime'
+export const PRELOAD_BROWSER_EXTENSION_POPUP_SIZE_CHANNEL = 'browserExtension:popupSize'
 
 export type BrowserExtensionSurfaceMethod = {
   /**

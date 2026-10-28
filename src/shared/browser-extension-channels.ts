@@ -15,6 +15,9 @@ export const BROWSER_EXTENSION_EVENT_CHANNEL = 'browserExtension:event'
 /** Main → listening frame. The transferred port owns the frame's listener registrations. */
 export const BROWSER_EXTENSION_FRAME_LIFETIME_CHANNEL = 'browserExtension:frameLifetime'
 
+/** Main → popup preload. The transferred port carries sizes until its document retires. */
+export const BROWSER_EXTENSION_POPUP_SIZE_CHANNEL = 'browserExtension:popupSize'
+
 export type BrowserExtensionInvokeRequest =
   | { type: 'call'; namespace: string; method: string; args: unknown[] }
   // Why: lets main skip contexts with no listener and restart a stopped worker only when it listens.
