@@ -359,7 +359,8 @@
         "french": "Français",
         "portuguese": "Português (Brasil)",
         "russian": "Русский",
-        "turkish": "Türkçe"
+        "turkish": "Türkçe",
+        "german": "Deutsch"
       },
       "statusBar": {
         "claudeToggleDescription": "Etkin çalışma alanı için Claude token ve maliyet kullanımını göster.",
@@ -6182,7 +6183,7 @@
           "advanced": "Gelişmiş",
           "alsoDeleteRemoteHint": "Uzak Git worktree'lerini ve branch'lerini kalıcı olarak siler. Geri alınamaz.",
           "alsoForgetLocalHint": "Yalnızca Orca'dan temizler. Uzak dosyalar, worktree'ler ve branch'ler dokunulmadan bırakılır.",
-          "wslHostEndsTerminals": "{{value0}} öğesini Orca'dan kaldırır, açık terminallerini sonlandırır ve bu dağıtımdaki Orca sunucusunu durdurur. Dağıtımdaki dosyalar değiştirilmez."
+          "wslHostEndsTerminalsUnlessShared": "{{value0}} öğesini Orca'dan kaldırır. Bu bilgisayarda açık olan başka bir Orca onu kullanmıyorsa açık terminallerini de sonlandırır ve bu dağıtımdaki Orca sunucusunu durdurur. Dağıtımdaki dosyalar değiştirilmez."
         },
         "HostRenameDialog": {
           "1a2b3c4d5e": "Host'u yeniden adlandır",
@@ -6539,6 +6540,7 @@
           "removalPending": "Kaldırma tamamlanamadı"
         },
         "wslHostRemoval": {
+          "keptForOthers": "Bu Orca’dan kaldırıldı. Ana bilgisayar {{value0}} için çalışmaya devam ediyor.",
           "partial": "Ana makine kaldırıldı ancak dağıtım içinde hâlâ çalışan bir şey var: {{value0}}",
           "pending": "Orca ana makineyi henüz kaldırmadı: {{value0}} Tekrar denemek için yeniden kaldırın veya tutmak için bağlanın."
         },
@@ -17728,6 +17730,7 @@
         "agentCommandNotRunnable": "Ayarlar → Ajanlar bölümündeki {{agent}} Komut ayarı, Orca'nın bulabileceği bir program yolu veya adı olmalı; argüman ya da değişken içermemelidir. Değiştirin veya sıfırlayın.",
         "runtimeNotInstalled": "Bu sohbetin çalıştığı bilgisayarda {{agent}} yüklü değil. Orca'nın güncel bir sürümünde sohbet içinden yükleyin.",
         "fullAccessAsRoot": "{{agent}}, root olarak çalışırken Tam erişim iznini kullanmaz. Bu sohbeti çalıştıran bilgisayarda Ayarlar → Ajanlar bölümünden {{agent}} için başka bir izin seçin, ardından yeni bir sohbet başlatın.",
+        "launchPreparationFailed": "Orca, bu sohbeti çalıştıran bilgisayarda {{agent}} başlatmayı hazırlayamadı.",
         "conversationOpenElsewhere": "Codex bu sohbeti hâlâ açık tutuyor. Biraz sonra yeniden deneyin veya diğer Codex terminallerini kapatın.",
         "conversationOpenInTerminal": "{{agent}} bu sohbeti zaten başka bir terminalde yürütüyor. Burada devam etmek için o terminalde {{agent}} uygulamasından çıkın veya terminali kapatın.",
         "chooseClaudeAccount": "Claude Hesapları ayarlarında bir hesap seçin veya ekleyin.",

@@ -73,11 +73,6 @@ function createRuntimeFileCommands(rootPath: string) {
   const commands = new RuntimeFileCommands({
     getRuntimeId: () => 'runtime-1',
     requireStore: () => store,
-    resolveWorktreeSelector: vi.fn(async () => ({
-      id: 'wt-1',
-      repoId: 'repo-1',
-      path: rootPath
-    })),
     resolveRuntimeFileTarget: vi.fn(async () => ({
       worktree: {
         id: 'wt-1',

@@ -60,6 +60,7 @@
       "useHereRefusedOk": "OK",
       "useHereSupersededBy": "{{names}} moved to the {{distro}} host after this project. Use those on this computer again first, then this project.",
       "useHereMoveRunning": "A move to the {{distro}} host is still running. Try again once it ends.",
+      "useHereHostKeptForPeers": "{{project}} moved to the {{distro}} host, which is still running for another Orca. Re-add the host to use it here again.",
       "useHereHostUnreachable": "The {{distro}} host isn't answering, so Orca can't stop its copy of this project, and its agents may still be running there. Connect the host in Settings, or remove it, then try again.",
       "useHereHostStillRunning": "The {{distro}} host's copy of this project is still running terminals, so its agents could run twice. Wait a moment, then try again.",
       "useHereFailed": "Could not bring this project back to this computer.",
@@ -67,7 +68,10 @@
       "useHereHostAutomations": "Orca couldn't turn off this project's automations on the {{distro}} host, so they could run twice. Connect the host in Settings, then try again.",
       "useHereUnsavedTitle": "Save your files first",
       "useHereUnsavedDescription": "Bringing {{name}} back reloads this window. Save or close these files first: {{files}}",
-      "automationRunsOnHost": "Runs on the {{distro}} host"
+      "automationRunsOnHost": "Runs on the {{distro}} host",
+      "quitDuringMoveTitle": "Quit while a project is moving?",
+      "quitDuringMoveDescription": "A project is moving to its WSL host. Quit anyway? The move will be undone at next launch.",
+      "quitDuringMoveConfirm": "Quit anyway"
     },
     "startupWorktreeRefresh": {
       "loading": "Discovering workspaces…",
@@ -387,7 +391,8 @@
         "french": "Français",
         "portuguese": "Português (Brasil)",
         "russian": "Русский",
-        "turkish": "Türkçe"
+        "turkish": "Türkçe",
+        "german": "Deutsch"
       },
       "statusBar": {
         "claudeToggleDescription": "Show Claude token and cost usage for the active workspace.",
@@ -6229,7 +6234,7 @@
           "advanced": "Advanced",
           "alsoDeleteRemoteHint": "Permanently deletes the remote Git worktrees and their branches. Cannot be undone.",
           "alsoForgetLocalHint": "Clears them from Orca only. Remote files, worktrees, and branches are left untouched.",
-          "wslHostEndsTerminals": "Removes {{value0}} from Orca, ends its open terminals and stops Orca’s server in that distro. Files in the distro are untouched."
+          "wslHostEndsTerminalsUnlessShared": "Removes {{value0}} from Orca. Unless another Orca that’s open on this computer is using it, this also ends its open terminals and stops Orca’s server in that distro. Files in the distro are untouched."
         },
         "HostRenameDialog": {
           "1a2b3c4d5e": "Rename host",
@@ -6569,7 +6574,8 @@
           "adding": "Setting up…",
           "startAndAdd": "Start and add",
           "add": "Add host",
-          "refresh": "Refresh"
+          "refresh": "Refresh",
+          "wsl1Hint": "WSL 1 distros can’t be hosts. Convert one in a Windows terminal with: wsl --set-version {{value0}} 2"
         },
         "wslHostRowStatus": {
           "connecting": "Starting",
@@ -6583,9 +6589,12 @@
           "turnedOffShort": "Turned off in Settings → Experimental",
           "serverFilesMissing": "This build of Orca can’t run WSL hosts (server files missing).",
           "serverFilesMissingShort": "This build can’t run WSL hosts",
-          "removalPending": "Removal didn’t finish"
+          "removalPending": "Removal didn’t finish",
+          "paused": "WSL hosts are paused in this build. Your saved hosts and their projects keep working; adding hosts and moving projects onto them is paused.",
+          "pausedShort": "Adding WSL distros is paused in this build."
         },
         "wslHostRemoval": {
+          "keptForOthers": "Removed from this Orca. The host keeps running for {{value0}}.",
           "partial": "The host was removed, but something in the distro is still running: {{value0}}",
           "pending": "Orca didn’t remove the host yet: {{value0}} Remove it again to retry, or connect it to keep it."
         },
@@ -12925,7 +12934,8 @@
             "discardFailedSingular": "Failed to discard {{count}} file",
             "discardFailedPlural": "Failed to discard {{count}} files",
             "noteCountSingular": "{{count}} note",
-            "noteCountPlural": "{{count}} notes"
+            "noteCountPlural": "{{count}} notes",
+            "statusReadFailed": "Git could not read this workspace. Changes shown may be out of date."
           },
           "SourceControlAgentActionDialog": {
             "8e856842d1": "Could not start the selected agent.",
@@ -17776,6 +17786,7 @@
         "agentCommandNotRunnable": "{{agent}}'s Command in Settings → Agents must be a program path or name Orca can find, with no arguments or variables. Change it or reset it.",
         "runtimeNotInstalled": "{{agent}} isn't installed on the computer running this chat. Install it from the chat in a current version of Orca.",
         "fullAccessAsRoot": "{{agent}} won't use Full access while it runs as root. Choose another permission for {{agent}} in Settings → Agents for the computer running this chat, then start a new chat.",
+        "launchPreparationFailed": "Orca couldn't prepare {{agent}} to start on the computer running this chat.",
         "conversationOpenElsewhere": "Codex is still holding this conversation open. Try again in a moment, or close other Codex terminals.",
         "conversationOpenInTerminal": "{{agent}} is already running this conversation in another terminal. Quit {{agent}} there or close that terminal to continue here.",
         "chooseClaudeAccount": "Choose or add one in Claude Accounts settings.",

@@ -596,6 +596,7 @@ test('with the internal gate closed and no saved WSL work, no WSL host surface s
     await expect(page.getByText(WSL_HOST_LABEL)).toHaveCount(0)
 
     expect(fakeWslConnects(connectLogFile)).toEqual([])
+    await expect(page.getByText(/WSL hosts are paused/)).toHaveCount(0)
     expect(findWslHostDeployment(userDataDir, WSL_ENVIRONMENT_ID)).toBeNull()
     await page.screenshot({ path: testInfo.outputPath('wsl-hosts-gated-off-settings.png') })
   } finally {
@@ -669,8 +670,17 @@ test('with the internal gate closed, a saved WSL host stays reachable but nothin
     await page.locator('[cmdk-item]').filter({ hasText: 'Add remote host' }).click()
     await expect(page.getByRole('button', { name: /Add SSH host/ })).toBeVisible()
     await expect(page.getByRole('button', { name: /Add WSL distro/ })).toHaveCount(0)
-    await page.keyboard.press('Escape')
-    await page.keyboard.press('Escape')
+    await expect(page.getByText('Adding WSL distros is paused in this build.')).toBeVisible()
+    await settleAnimations(page)
+    await page.screenshot({ path: testInfo.outputPath('wsl-hosts-paused-add-host-menu.png') })
+    // Two menus and the dialog: close them all so the Settings screenshot shows the section.
+    const addProject = page.getByRole('dialog', { name: /Add a project/i })
+    await expect
+      .poll(async () => {
+        await page.keyboard.press('Escape')
+        return addProject.count()
+      })
+      .toBe(0)
 
     await page.evaluate(() => {
       const state = window.__store?.getState()
@@ -679,6 +689,8 @@ test('with the internal gate closed, a saved WSL host stays reachable but nothin
     })
     await expect(page.getByText(WSL_HOST_LABEL).first()).toBeVisible({ timeout: 30_000 })
     await expect(page.getByRole('button', { name: 'Add WSL distro' })).toHaveCount(0)
+    await expect(page.getByText(/WSL hosts are paused in this build/)).toBeVisible()
+    await settleAnimations(page)
     expect(findWslHostDeployment(userDataDir, WSL_ENVIRONMENT_ID)).not.toBeNull()
     await page.screenshot({ path: testInfo.outputPath('wsl-hosts-serve-only-settings.png') })
   } finally {

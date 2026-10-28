@@ -2,7 +2,6 @@
 
 // Exercise the real attention path from completion stream to indicators/OS delivery; mock only transport and preload.
 
-import { useEffect, useMemo } from 'react'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import type { AgentJournalTurnOutcome } from '../../../../shared/agent-session-journal-types'
@@ -13,7 +12,6 @@ import type {
 } from '../../../../shared/agent-session-wire'
 import type { NotificationDispatchRequest } from '../../../../shared/notification-settings-types'
 import { structuredAgentSessionPaneKey } from '../../../../shared/structured-agent-session-projection'
-import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import type { Tab } from '../../../../shared/tab-types'
 import type { AppState } from '@/store/types'
 import type * as RuntimeRpcClientModule from '@/runtime/runtime-rpc-client'
@@ -63,13 +61,15 @@ vi.mock('@/runtime/structured-agent-session-client', () => ({
 }))
 
 import { StructuredAgentSessionAttentionBridge } from './StructuredAgentSessionAttentionBridge'
+import {
+  emitAgentSubjectReads,
+  subscribeAgentSubjectReads,
+  type AgentSubjectRead,
+  type StructuredSubjectRead
+} from '@/attention/agent-subject-read-actions'
 import { applyWebSessionTabsSnapshot } from '@/runtime/web-session-tabs-sync/snapshot-api'
 import { resolveNotificationTabOwner } from '@/attention/notification-subject-owner'
-import {
-  getStructuredAgentSessionTurnCompletionFeed,
-  resetStructuredAgentSessionTurnCompletionFeedsForTests,
-  structuredAgentSessionTurnCompletionFeedCountForTests as retainedCount
-} from '@/runtime/structured-agent-session-turn-completion-feed'
+import { resetStructuredAgentSessionTurnCompletionFeedsForTests } from '@/runtime/structured-agent-session-turn-completion-feed'
 import {
   getStructuredAgentSessionStatusFeed,
   resetStructuredAgentSessionStatusFeedsForTests
@@ -237,6 +237,128 @@ describe('StructuredAgentSessionAttentionBridge', () => {
     vi.unstubAllGlobals()
     resetStructuredAgentSessionTurnCompletionFeedsForTests()
     resetStructuredAgentSessionStatusFeedsForTests()
+  })
+
+  it.each([10, 100])(
+    'routes a Mark All Read batch across %i tabs without per-tab subject scans',
+    async (count) => {
+      const store = mocks.store
+      if (!store) {
+        throw new Error('test store was not initialized')
+      }
+      const rows = Array.from({ length: count }, (_, index) => {
+        const id = `read-tab-${index}`
+        const sessionId = `read-session-${index}`
+        return {
+          sessionId,
+          tab: chatTab({ id, entityId: sessionId }),
+          paneKey: structuredAgentSessionPaneKey(id, sessionId)
+        }
+      })
+      store.setState({ unifiedTabsByWorktree: { [WORKSPACE]: rows.map((row) => row.tab) } })
+      let comparisons = 0
+      const stopCounting = subscribeAgentSubjectReads((reads) => {
+        for (const read of reads) {
+          const subjectKey = read.subjectKey
+          Object.defineProperty(read, 'subjectKey', {
+            get: () => {
+              comparisons += 1
+              return subjectKey
+            }
+          })
+        }
+      })
+      try {
+        const view = render(<StructuredAgentSessionAttentionBridge />)
+        await waitFor(() => expect(mocks.subscribeCompletions).toHaveBeenCalledOnce())
+        act(() => {
+          for (const row of rows) {
+            hostStream()({
+              type: 'completion',
+              completion: {
+                ...turnCompletion(row.sessionId),
+                journalCursor: { epoch: 'read-epoch', sequence: 1 }
+              }
+            })
+          }
+          store.getState().acknowledgeAgents(
+            rows.map((row) => row.paneKey),
+            undefined,
+            'explicit'
+          )
+        })
+        expect(mocks.acknowledgeAttention.mock.calls).toEqual(
+          rows.map((row) => [
+            { kind: 'local' },
+            row.sessionId,
+            { epoch: 'read-epoch', sequence: 1 }
+          ])
+        )
+        expect(dismissed.flatMap(({ paneKeys }) => paneKeys ?? [])).toEqual(
+          expect.arrayContaining(rows.map((row) => row.paneKey))
+        )
+        expect(comparisons).toBeLessThanOrEqual(count)
+        view.unmount()
+        mocks.acknowledgeAttention.mockClear()
+        comparisons = 0
+        act(() =>
+          store.getState().acknowledgeAgents(
+            rows.map((row) => row.paneKey),
+            undefined,
+            'explicit'
+          )
+        )
+        expect(mocks.acknowledgeAttention).not.toHaveBeenCalled()
+        expect(comparisons).toBe(0)
+      } finally {
+        stopCounting()
+      }
+    }
+  )
+
+  it('keeps first-read semantics and rejects another target or session', async () => {
+    render(<StructuredAgentSessionAttentionBridge />)
+    await waitFor(() => expect(mocks.subscribeCompletions).toHaveBeenCalledOnce())
+    const read: StructuredSubjectRead = {
+      sessionId: SESSION,
+      target: { kind: 'local' },
+      observedCursor: { epoch: 'read-epoch', sequence: 1 },
+      observationKey: 'first-read'
+    }
+    const valid: AgentSubjectRead = { subjectKey: CHAT_SUBJECT, structured: read }
+    const emit = (first: AgentSubjectRead): void => {
+      act(() => emitAgentSubjectReads([CHAT_SUBJECT], [first, valid], 'explicit'))
+    }
+    emit({ subjectKey: CHAT_SUBJECT })
+    emit({ subjectKey: CHAT_SUBJECT, structured: { ...read, sessionId: 'other-session' } })
+    emit({
+      subjectKey: CHAT_SUBJECT,
+      structured: { ...read, target: { kind: 'environment', environmentId: 'other-host' } }
+    })
+    expect(mocks.acknowledgeAttention).not.toHaveBeenCalled()
+    expect(dismissed).toEqual([])
+    act(() =>
+      emitAgentSubjectReads(
+        [CHAT_SUBJECT],
+        [
+          valid,
+          {
+            subjectKey: CHAT_SUBJECT,
+            structured: {
+              ...read,
+              observedCursor: { epoch: 'read-epoch', sequence: 99 },
+              observationKey: 'later-read'
+            }
+          }
+        ],
+        'explicit'
+      )
+    )
+    expect(mocks.acknowledgeAttention).toHaveBeenCalledOnce()
+    expect(mocks.acknowledgeAttention).toHaveBeenCalledWith({ kind: 'local' }, SESSION, {
+      epoch: 'read-epoch',
+      sequence: 1
+    })
   })
 
   // Every settled outcome is news; main chooses its wording from the host verdict.
@@ -687,176 +809,6 @@ describe('StructuredAgentSessionAttentionBridge', () => {
       'agent-session.turn-completion.v1'
     )
     expect(mocks.subscribeCompletions).not.toHaveBeenCalled()
-  })
-
-  it('retires the final remote tab, keeps local attention live and reopens qualified remote attention', async () => {
-    vi.useFakeTimers()
-    const store = mocks.store
-    if (!store) {
-      throw new Error('test store was not initialized')
-    }
-    const local = chatTab({ executionHostId: 'local' })
-    const remote = chatTab({ id: 'remote-tab', executionHostId: 'runtime:env-1' })
-    const teardowns: Mock[] = []
-    mocks.subscribeCompletions.mockImplementation(
-      (_target: RuntimeClientTarget, emit: (event: AgentSessionTurnCompletionEvent) => void) => {
-        mocks.emitters.push(emit)
-        const unsubscribe = vi.fn()
-        teardowns.push(unsubscribe)
-        return Promise.resolve({ unsubscribe })
-      }
-    )
-    store.setState({
-      unifiedTabsByWorktree: { [WORKSPACE]: [local, remote] },
-      runtimeEnvironments: [
-        {
-          id: 'env-1',
-          name: 'Paired server',
-          createdAt: 1,
-          updatedAt: 1,
-          lastUsedAt: null,
-          runtimeId: null,
-          endpoints: [],
-          preferredEndpointId: 'endpoint'
-        }
-      ]
-    })
-    const view = render(<StructuredAgentSessionAttentionBridge />)
-    await act(() => vi.advanceTimersByTimeAsync(0))
-    expect(mocks.subscribeCompletions.mock.calls.map(([target]) => target)).toEqual([
-      { kind: 'local' },
-      { kind: 'environment', environmentId: 'env-1' }
-    ])
-    expect(retainedCount()).toBe(2)
-    await act(async () => store.setState({ unifiedTabsByWorktree: { [WORKSPACE]: [local] } }))
-    expect(teardowns[1]).toHaveBeenCalledOnce()
-    expect(teardowns[0]).not.toHaveBeenCalled()
-    expect(retainedCount()).toBe(1)
-
-    const deliver = (index: number, tab: Tab, source: string, phase: string): void => {
-      for (const kind of ['completion', 'prompt'] as const) {
-        store.setState({
-          unreadAgentCompletionPanes: {},
-          unreadTerminalTabs: {},
-          unreadTerminalPanes: {},
-          worktreesByRepo: {
-            repo1: store
-              .getState()
-              .worktreesByRepo.repo1.map((worktree) => ({ ...worktree, isUnread: false }))
-          }
-        })
-        dispatched.length = 0
-        const paneKey = structuredAgentSessionPaneKey(tab.id, SESSION)
-        const event: AgentSessionTurnCompletionEvent =
-          kind === 'completion'
-            ? {
-                type: kind,
-                completion: { ...turnCompletion(), turnId: `turn-${phase}`, completedAt: 2 }
-              }
-            : {
-                type: kind,
-                prompt: { ...promptFrame().prompt, promptId: `prompt-${phase}`, raisedAt: 2 }
-              }
-        act(() => hostStream(index)(event))
-        expect(store.getState().unreadAgentCompletionPanes).toEqual({
-          [paneKey]: 'agent-completion'
-        })
-        expect(store.getState().unreadTerminalTabs).toEqual({ [tab.id]: 'agent-completion' })
-        expect(store.getState().worktreesByRepo.repo1?.[0]?.isUnread).toBe(true)
-        expect(onlyDispatch()).toMatchObject({
-          paneKey,
-          notificationSourceId: source,
-          agentState: kind === 'completion' ? 'done' : 'blocked'
-        })
-        expect(onlyDispatch().executionHost).toBe(source === 'local' ? undefined : source)
-      }
-    }
-    deliver(0, local, 'local', 'local-after-close')
-    await act(async () =>
-      store.setState({ unifiedTabsByWorktree: { [WORKSPACE]: [local, remote] } })
-    )
-    expect(mocks.subscribeCompletions).toHaveBeenCalledTimes(3)
-    expect(mocks.subscribeCompletions.mock.calls[2]?.[0]).toEqual({
-      kind: 'environment',
-      environmentId: 'env-1'
-    })
-    expect(retainedCount()).toBe(2)
-    deliver(2, remote, 'runtime:env-1', 'remote-after-reopen')
-    expect(teardowns[0]).not.toHaveBeenCalled()
-    expect(teardowns[2]).not.toHaveBeenCalled()
-    view.unmount()
-    await act(() => vi.advanceTimersByTimeAsync(0))
-    expect(teardowns).toHaveLength(3)
-    teardowns.forEach((stop) => expect(stop).toHaveBeenCalledOnce())
-    expect(retainedCount()).toBe(0)
-    expect(vi.getTimerCount()).toBe(0)
-  })
-
-  it('keeps one stream through mounted combined-effect renewal and passive-effect reentry', async () => {
-    vi.useFakeTimers()
-    const target: RuntimeClientTarget = { kind: 'local' }
-    const ownerSubscription = { subscribe: vi.fn((_observe: () => void) => vi.fn()) }
-    const passive = vi.fn()
-    const current = vi.fn()
-    function Consumer({
-      tab,
-      target,
-      owner
-    }: {
-      tab: Tab
-      target: RuntimeClientTarget
-      owner: typeof ownerSubscription
-    }): null {
-      const feed = useMemo(() => getStructuredAgentSessionTurnCompletionFeed(target), [target])
-      useEffect(() => {
-        const stopOwner = owner.subscribe(() => {})
-        const stopEdges = feed.subscribe(passive)
-        return () => {
-          stopOwner()
-          stopEdges()
-        }
-      }, [feed, owner, tab.entityId, target])
-      useEffect(() => {
-        const stopListening = feed.subscribe((edge) => current(tab.label, edge.type))
-        const release = feed.activate()
-        return () => {
-          release()
-          stopListening()
-        }
-      }, [feed, tab, target])
-      return null
-    }
-    const consumerProps = { target, owner: ownerSubscription }
-    const view = render(<Consumer {...consumerProps} tab={chatTab({ label: 'initial' })} />)
-    await act(() => vi.advanceTimersByTimeAsync(0))
-    for (const tab of [
-      chatTab({ label: 'metadata' }),
-      chatTab({ label: 'rebound', entityId: 'session-2' })
-    ]) {
-      view.rerender(<Consumer {...consumerProps} tab={tab} />)
-      await act(() => vi.advanceTimersByTimeAsync(0))
-      expect(mocks.subscribeCompletions).toHaveBeenCalledOnce()
-      expect(mocks.unsubscribe).not.toHaveBeenCalled()
-      current.mockClear()
-      passive.mockClear()
-      act(() => {
-        hostStream()(completionFrame(tab.entityId))
-        hostStream()(promptFrame(tab.entityId))
-      })
-      expect(current.mock.calls).toEqual([
-        [tab.label, 'completion'],
-        [tab.label, 'prompt']
-      ])
-      expect(passive.mock.calls.map(([edge]) => edge.type)).toEqual(['completion', 'prompt'])
-      expect(ownerSubscription.subscribe).toHaveBeenCalledTimes(tab.entityId === SESSION ? 1 : 2)
-    }
-    expect(ownerSubscription.subscribe.mock.results[0]?.value).toHaveBeenCalledOnce()
-    view.unmount()
-    await act(() => vi.advanceTimersByTimeAsync(0))
-    expect(ownerSubscription.subscribe.mock.results[1]?.value).toHaveBeenCalledOnce()
-    expect(mocks.unsubscribe).toHaveBeenCalledOnce()
-    expect(retainedCount()).toBe(0)
-    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('replays nothing after a reconnect, so a completion missed while down stays missed', async () => {

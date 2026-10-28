@@ -16,6 +16,9 @@ const env = vi.hoisted(() => ({
   refuseRead: false
 }))
 
+vi.mock('../platform/clipboard', () => ({
+  useClipboardWriter: () => ({ writeText: async () => {} })
+}))
 vi.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void | (() => void)) => {
     useEffect(() => (env.focused ? effect() : undefined), [effect, env.focused])
