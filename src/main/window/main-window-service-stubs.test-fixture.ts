@@ -8,12 +8,14 @@ export type MainWindowStub = {
   isDestroyed?: MockFn
   on: MockFn
   once: MockFn
+  removeListener: MockFn
   webContents: {
     id?: number
     getURL: MockFn
     isDestroyed?: MockFn
     isLoadingMainFrame: MockFn
     on: MockFn
+    removeListener: MockFn
     send?: MockFn
     reload?: MockFn
     session: {
@@ -44,12 +46,14 @@ export function createMainWindowServiceStub(
     isDestroyed: vi.fn(() => false),
     on: vi.fn(),
     once: vi.fn(),
+    removeListener: vi.fn(),
     webContents: {
       id: 1,
       getURL: vi.fn(() => 'file:///opt/orca/renderer/index.html'),
       isDestroyed: vi.fn(() => false),
       isLoadingMainFrame: vi.fn(() => true),
       on: vi.fn(),
+      removeListener: vi.fn(),
       reload: vi.fn(),
       session: {
         setPermissionRequestHandler: permissionHandlers.setPermissionRequestHandler,

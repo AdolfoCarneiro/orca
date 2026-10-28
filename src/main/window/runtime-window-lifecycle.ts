@@ -7,6 +7,8 @@ import type { WorktreeStartupLaunch } from '../../shared/worktree/launch-types'
 import type { RuntimeMobileSessionTabMove } from '../../shared/runtime-types'
 import type { TerminalTabCreateReply } from '../../shared/terminal-reveal-identity'
 import { runWorktreeChangeInvalidators } from '../ipc/worktree-change-invalidators'
+import { addFanoutListener } from '../event-listener-fanout'
+import { abortWhenRendererGone } from '../ipc/renderer-lifetime-abort'
 import { requestAgentLaunchTabPublishFromRenderer } from './agent-launch-tab-publish-relay'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import { registerRendererDocumentNavigation } from './renderer-document-navigation'
@@ -84,8 +86,15 @@ export function registerRuntimeWindowLifecycle(
           reject(new Error('terminal_reveal_identity_required'))
           return
         }
+        const releases: (() => void)[] = []
+        const cleanup = (): void => {
+          clearTimeout(timer)
+          for (const release of releases) {
+            release()
+          }
+        }
         const timer = setTimeout(() => {
-          ipcMain.removeListener('terminal:tabCreateReply', handler)
+          cleanup()
           reject(new Error('Terminal reveal timed out'))
         }, 10_000)
         const handler = (event: Electron.IpcMainEvent, reply: TerminalTabCreateReply): void => {
@@ -93,8 +102,7 @@ export function registerRuntimeWindowLifecycle(
           if (event.sender !== mainWebContents || reply.requestId !== requestId) {
             return
           }
-          clearTimeout(timer)
-          ipcMain.removeListener('terminal:tabCreateReply', handler)
+          cleanup()
           if (reply.error) {
             reject(new Error(reply.error))
             return
@@ -116,7 +124,18 @@ export function registerRuntimeWindowLifecycle(
             ...(reply.identity ? { identity: reply.identity } : {})
           })
         }
-        ipcMain.on('terminal:tabCreateReply', handler)
+        const lifetime = abortWhenRendererGone(mainWebContents)
+        const onUnavailable = (): void => {
+          cleanup()
+          reject(new Error('runtime_unavailable'))
+        }
+        lifetime.signal.addEventListener('abort', onUnavailable, { once: true })
+        releases.push(
+          lifetime.dispose,
+          () => lifetime.signal.removeEventListener('abort', onUnavailable),
+          addFanoutListener(mainWindow, 'closed', onUnavailable),
+          addFanoutListener(ipcMain, 'terminal:tabCreateReply', handler)
+        )
         const sent = send('ui:createTerminal', {
           requestId,
           worktreeId,
@@ -145,8 +164,7 @@ export function registerRuntimeWindowLifecycle(
           ...(opts.focus !== undefined ? { focus: opts.focus } : {})
         })
         if (!sent) {
-          clearTimeout(timer)
-          ipcMain.removeListener('terminal:tabCreateReply', handler)
+          cleanup()
           reject(new Error('runtime_unavailable'))
         }
       }),
