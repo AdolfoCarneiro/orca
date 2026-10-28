@@ -70,7 +70,7 @@ export function AddWslHostFormPanel({
         <DialogDescription>
           {translate(
             'auto.components.sidebar.AddWslHostFormPanel.description',
-            'Orca runs its server inside the distro, so git, files and terminals run natively in Linux. Projects you opened through \\\\wsl.localhost move to this host automatically once their terminals are idle; you can bring one back to this computer from the sidebar.'
+            'Orca runs its server inside the distro, so git, files and terminals run natively in Linux. Projects in this distro that you opened through \\\\wsl.localhost move to this host automatically once their terminals are idle; projects on a Windows drive (/mnt/…) stay on this computer. You can bring a moved project back from the sidebar.'
           )}
         </DialogDescription>
       </DialogHeader>

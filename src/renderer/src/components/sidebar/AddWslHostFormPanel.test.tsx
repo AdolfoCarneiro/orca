@@ -60,7 +60,10 @@ describe('AddWslHostFormPanel', () => {
     expect(html).not.toContain('Use it for new projects')
     expect(html).not.toContain('until you move them')
     expect(html).toContain('move to this host automatically once their terminals are idle')
-    expect(html).toContain('bring one back to this computer from the sidebar')
+    // Only this distro's projects move; Windows-drive ones never do (move scope refuses /mnt).
+    expect(html).toContain('Projects in this distro that you opened through')
+    expect(html).toContain('projects on a Windows drive (/mnt/…) stay on this computer')
+    expect(html).toContain('bring a moved project back from the sidebar')
   })
 
   it('carries the same promise in every locale, none still saying projects stay put', () => {
@@ -76,6 +79,7 @@ describe('AddWslHostFormPanel', () => {
     for (const file of LOCALE_FILES) {
       const description = readLocaleDescription(file)
       expect(description).toContain('wsl.localhost')
+      expect(description).toContain('/mnt/…')
       for (const phrase of stale) {
         expect(description).not.toContain(phrase)
       }

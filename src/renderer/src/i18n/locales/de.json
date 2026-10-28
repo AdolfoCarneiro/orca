@@ -6541,7 +6541,7 @@
           "running": "Läuft",
           "stopped": "Gestoppt",
           "title": "WSL-Distribution hinzufügen",
-          "description": "Orca führt seinen Server innerhalb der Distribution aus, sodass git, Dateien und Terminals nativ unter Linux laufen. Über \\\\wsl.localhost geöffnete Projekte werden automatisch auf diesen Host verschoben, sobald ihre Terminals untätig sind; über die Seitenleiste lässt sich ein Projekt wieder auf diesen Computer zurückholen.",
+          "description": "Orca führt seinen Server innerhalb der Distribution aus, sodass git, Dateien und Terminals nativ unter Linux laufen. Projekte in dieser Distribution, die über \\\\wsl.localhost geöffnet wurden, werden automatisch auf diesen Host verschoben, sobald ihre Terminals inaktiv sind; Projekte auf einem Windows-Laufwerk (/mnt/…) bleiben auf diesem Computer. Ein verschobenes Projekt lässt sich über die Seitenleiste auf diesen Computer zurückholen.",
           "distro": "Distribution",
           "loading": "WSL-Distributionen werden gesucht…",
           "placeholder": "Distribution auswählen",
