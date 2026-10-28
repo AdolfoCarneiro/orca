@@ -346,3 +346,13 @@ it('keeps the headless publication epoch while serve browser pages change', asyn
   expect(second.publicationEpoch).toBe(first.publicationEpoch)
   expect(second.snapshotVersion).toBeGreaterThan(first.snapshotVersion)
 })
+
+it('lists a runtime page once when its id collides with a renderer row', async () => {
+  const { runtime, sync, addPage, list } = browserRuntime()
+  sync([publication()])
+  addPage(rendererTab.id)
+  runtime.notifyMobileSessionTabsChanged(TEST_WORKTREE_ID)
+
+  const ids = (await list()).tabs.map((tab) => tab.id)
+  expect(ids.filter((id) => id === rendererTab.id)).toHaveLength(1)
+})

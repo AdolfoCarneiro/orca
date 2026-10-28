@@ -121,8 +121,9 @@ export abstract class OrcaRuntimeWithReconcileHeadlessMobileSessionBrowserTabs e
     existing: RuntimeMobileSessionTabsSnapshot,
     existingBrowserTabs: RuntimeMobileSessionBrowserTab[]
   ): void {
-    // An unaccepted renderer epoch cannot acquire offscreen rows.
+    // An attached renderer's unaccepted epoch cannot acquire offscreen rows.
     if (
+      this.getAvailableAuthoritativeWindow() &&
       !this.isHeadlessBuiltMobileSessionPublicationBase(existing.publicationEpoch) &&
       !this.getAcceptedRendererIdentityKeysForMobileSessionSnapshot(existing)
     ) {
@@ -131,19 +132,30 @@ export abstract class OrcaRuntimeWithReconcileHeadlessMobileSessionBrowserTabs e
     const existingHeadlessBrowserTabs = existingBrowserTabs.filter(
       (tab) => !this.isRendererOwnedMobileBrowserTab(existing, tab)
     )
-    const liveBrowserTabs = this.buildHeadlessMobileSessionBrowserTabs(worktreeId)
+    const builtById = new Map(
+      this.buildHeadlessMobileSessionBrowserTabs(worktreeId).map((tab) => [tab.id, tab])
+    )
+    // Preserve snapshot order so index-based equality does not republish a pure reordering.
+    const retainedInOrder = existingHeadlessBrowserTabs.flatMap((tab) => {
+      const live = builtById.get(tab.id)
+      return live && builtById.delete(tab.id) ? [live] : []
+    })
+    const liveBrowserTabs = [...retainedInOrder, ...builtById.values()]
     const existingHeadlessBrowserIds = new Set(
       existingHeadlessBrowserTabs.flatMap((tab) => [tab.id, tab.browserWorkspaceId])
     )
     if (headlessBrowserTabsUnchanged(liveBrowserTabs, existingHeadlessBrowserTabs)) {
       return
     }
-    const retainedTabs = existing.tabs.filter(
-      (tab) => tab.type !== 'browser' || !existingHeadlessBrowserIds.has(tab.id)
-    )
-    const nextTabs: RuntimeMobileSessionSnapshotTab[] = [...retainedTabs, ...liveBrowserTabs]
     const liveIds = liveBrowserTabs.map((tab) => tab.id)
     const liveIdSet = new Set(liveIds)
+    // Newly built rows replace a retained row with the same id.
+    const retainedTabs = existing.tabs.filter(
+      (tab) =>
+        tab.type !== 'browser' ||
+        (!existingHeadlessBrowserIds.has(tab.id) && !liveIdSet.has(tab.id))
+    )
+    const nextTabs: RuntimeMobileSessionSnapshotTab[] = [...retainedTabs, ...liveBrowserTabs]
     const tabGroups = appendBrowserTabOrder(
       (existing.tabGroups ?? []).map((group) => ({
         ...group,

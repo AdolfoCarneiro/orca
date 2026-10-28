@@ -203,6 +203,14 @@ it('drops renderer browser rows once the serve desktop window closes', async () 
     expect.objectContaining({ id: 'browser-unified-1' })
   ])
 
+  const pushed: RuntimeMobileSessionTabsSnapshot[] = []
+  runtime.onMobileSessionTabsChanged((snapshot) => {
+    if ('tabs' in snapshot) {
+      pushed.push(snapshot)
+    }
+  })
+
   runtime.markGraphUnavailable(1)
+  await vi.waitFor(() => expect(pushed.at(-1)?.tabs).toEqual([]))
   expect((await runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)).tabs).toEqual([])
 })
