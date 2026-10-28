@@ -404,8 +404,8 @@
       "httpServer": "Servidor HTTP",
       "stdioServer": "Servidor stdio",
       "invalidServer": "Servidor no válido",
-      "serverCountOne": "{{count}} servidor",
-      "serverCountMany": "{{count}} servidores",
+      "serverCount_one": "{{count}} servidor",
+      "serverCount_other": "{{count}} servidores",
       "claudeWorkspace": "Espacio de trabajo de Claude"
     },
     "shortcuts": {
@@ -1828,7 +1828,6 @@
       "LinearIssueTextEditor": {
         "947ba2d6f4": "guardar",
         "04d73b72dc": "Título del issue",
-        "e8ff595db3": "No se pudo actualizar {{value0}}",
         "1e08a1ec80": "El título es obligatorio"
       },
       "LinearIssueWorkspace": {
@@ -2225,9 +2224,6 @@
         "7f3f7b4c18": "Descripción (opcional, markdown)",
         "9f2b4c03a6": "Creando en",
         "d3d0998b7d": "Nuevo issue de GitHub",
-        "d1e243795c": "issues",
-        "be8cf68d9f": "ver issues",
-        "67662ade50": "issues del proyecto",
         "6244a02f46": "Abrir en Linear",
         "606a85c774": "Abierto",
         "5e8061b088": "Iniciar espacio de trabajo desde {{value0}} {{value1}}",
@@ -2247,11 +2243,9 @@
         "af377b13b1": "Vista {{value0}}",
         "d47248df4d": "Modo de vista de Linear",
         "f397d513e3": "Atrás",
-        "b39fe6511d": "proyectos",
         "8675cd6188": "Linear",
         "733b8f2421": "Linear / Vistas",
         "bc06ed0fb0": "Volver a vistas",
-        "3cb855080f": "vistas",
         "b4e10f096e": "Propietario",
         "a04fe7ba73": "Visibilidad",
         "0aa8525950": "Modelo",
@@ -2922,8 +2916,6 @@
               "7616c986c6": "Abrir issues de {{value0}}",
               "openInLinear": "Abrir {{value0}} en Linear",
               "93e1f6bfca": "Cargando",
-              "98730088a6": ". Busca o abre Linear para ver el conjunto completo.",
-              "06b887d622": "Mostrando primero",
               "linearLoginUnreadable": "No se puede leer el inicio de sesión guardado de Linear. Vuelve a conectarlo en Configuración.",
               "f2cc1e0ff6": "Linear / Proyectos",
               "906b5e4cb8": "Linear / Proyectos / {{value0}}",
@@ -5944,7 +5936,9 @@
         },
         "sidebarHostOptions": {
           "3e102f111c": "Todos los hosts",
-          "visibleHostsCount": "{{value0}} hosts"
+          "hosts": "Hosts",
+          "visibleHosts_one": "{{count}} host",
+          "visibleHosts_other": "{{count}} hosts"
         },
         "HostRemoveDialog": {
           "1a2b3c4d5e": "Se quitó {{value0}}",
@@ -13013,10 +13007,10 @@
                 "dialog": {
                   "3bc61dc989": "Cancelar",
                   "15efa778e3": "Descartar",
-                  "42f89dd030": "archivos",
-                  "e7611dca35": "archivo",
                   "0d2d88cba5": "Esto no se puede deshacer.",
-                  "1551c14668": "¿Descartar cambios?"
+                  "1551c14668": "¿Descartar cambios?",
+                  "fileCount_one": "{{count}} archivo",
+                  "fileCount_other": "{{count}} archivos"
                 }
               },
               "dropdown": {
@@ -13243,16 +13237,21 @@
             "unresolved": "No se pudo determinar qué host posee este espacio de trabajo. Comprueba la conexión e inténtalo de nuevo."
           },
           "useFileDeletion": {
-            "72691dfebc": "No se pudo {{value0}} '{{value1}}'.",
             "d979a4fbb5": "¿Eliminar '{{value0}}' permanentemente?",
             "92276aceb7": "Eliminar",
             "7fb9435c86": "Esto elimina permanentemente el directorio y su contenido en el host remoto. Esto no se puede deshacer.",
             "23e98f192f": "Esto elimina permanentemente el archivo en el host remoto. Esto no se puede deshacer.",
             "8b8ee9d22f": "No se pudo determinar qué host posee este archivo. Comprueba la conexión del espacio de trabajo e inténtalo de nuevo.",
-            "af1270b90d": "¿Eliminar {{count}} elementos permanentemente?",
             "dd029aa5cd": "Esto elimina permanentemente los elementos seleccionados y el contenido de cualquier directorio en el host remoto. Esto no se puede deshacer.",
-            "77fdc36183": "Delete {{count}} items?",
-            "fca915a67a": "Los elementos remotos se eliminan permanentemente y esta acción no se puede deshacer. Los elementos locales se mueven a {{value0}}."
+            "deleteFailed": "No se pudo eliminar '{{name}}'.",
+            "deleteItems_one": "¿Eliminar {{count}} elemento?",
+            "deleteItems_other": "¿Eliminar {{count}} elementos?",
+            "mixedRecycleBin": "Los elementos remotos se eliminan permanentemente y esta acción no se puede deshacer. Los elementos locales se mueven a la Papelera de reciclaje.",
+            "mixedTrash": "Los elementos remotos se eliminan permanentemente y esta acción no se puede deshacer. Los elementos locales se mueven a la Papelera.",
+            "permanentlyDeleteItems_one": "¿Eliminar {{count}} elemento permanentemente?",
+            "permanentlyDeleteItems_other": "¿Eliminar {{count}} elementos permanentemente?",
+            "recycleBinFailed": "No se pudo mover '{{name}}' a la Papelera de reciclaje.",
+            "trashFailed": "No se pudo mover '{{name}}' a la Papelera."
           },
           "useFileExplorerHandlers": {
             "32cd9fd991": "No se puede abrir el destino del enlace simbólico",
@@ -14210,13 +14209,13 @@
             "9ee54037a4": "Comando personalizado",
             "4b2fc4b80c": "Esfuerzo de razonamiento",
             "be8917699e": "Modelo",
-            "4d9b6d84df": "no compatible. Elige Claude, Codex o Personalizado.",
             "560d4feb00": "Personalizado",
             "29d119fe95": "Agente",
             "f9382b48a1": "Habilitar autor de IA",
             "1c0cb4fabb": "Autor de IA",
             "bd14e9c42a": "No configurado",
-            "1f9468c5c9": "{{value0}} no compatible"
+            "1f9468c5c9": "{{value0}} no compatible",
+            "unsupportedAgent": "{{agent}} no es compatible. Elige Claude, Codex o Personalizado."
           },
           "BrowserAnimatedVisual": {
             "46df009982": "Comienza tu prueba gratuita",
@@ -17065,8 +17064,6 @@
         "continuedOne": "Se reanudó 1 chat",
         "continuedMany": "Se reanudaron {{value0}} chats",
         "selectAgent": "Reanudar {{value0}} chat \"{{value1}}\" en {{value2}}",
-        "resumeSelected": "Reanudar {{value0}} chats",
-        "resumeSelectedOne": "Reanudar 1 chat",
         "dismissAll": "Descartar todo",
         "selectWorkspace": "Seleccionar todos los chats en {{value0}}",
         "workspaceSelectedCount": "{{value0}} de {{value1}}",
@@ -17085,7 +17082,9 @@
         "serverDismiss": "Descartar",
         "serverResumeAll": "Reanudar los {{count}} en {{machine}}",
         "serverResumeHereOne": "Reanudar 1 chat iniciado aquí",
-        "serverResumeHere": "Reanudar {{count}} chats iniciados aquí"
+        "serverResumeHere": "Reanudar {{count}} chats iniciados aquí",
+        "resumeChats_one": "Reanudar {{count}} chat",
+        "resumeChats_other": "Reanudar {{count}} chats"
       },
       "NativeChatResumeOutcomeRow": {
         "openChat": "Abrir chat",
@@ -19706,18 +19705,20 @@
     "actionSaveFailed": "No se pudo guardar esta acción. Intenta guardarla de nuevo en Ajustes.",
     "discard": {
       "deleteUntrackedFileDescription": "Esto eliminará permanentemente este archivo sin seguimiento. No se puede deshacer.",
-      "deleteUntrackedFilesDescription": "Esto eliminará permanentemente estos {{count}} archivos sin seguimiento. No se puede deshacer.",
+      "deleteUntrackedFilesDescription_other": "Esto eliminará permanentemente estos {{count}} archivos sin seguimiento. No se puede deshacer.",
       "restoreStagedVersionDescription": "Esto restaurará la última versión preparada y descartará la eliminación. No se puede deshacer.",
       "unstagedChangesDescription": "Esto revertirá los cambios no preparados de este archivo. No se puede deshacer.",
       "unstagedSelectionIncludingUntrackedDescription": "Esto revertirá los cambios no preparados y eliminará permanentemente cualquier archivo sin seguimiento de esta selección. No se puede deshacer.",
-      "unstagedFilesIncludingUntrackedDescription": "Esto revertirá los cambios no preparados y eliminará permanentemente cualquier archivo sin seguimiento entre estos {{count}} archivos. No se puede deshacer.",
+      "unstagedFilesIncludingUntrackedDescription_other": "Esto revertirá los cambios no preparados y eliminará permanentemente cualquier archivo sin seguimiento entre estos {{count}} archivos. No se puede deshacer.",
       "delete": "Eliminar",
       "restore": "Restaurar",
       "discard": "Descartar",
       "discardAll": "Descartar todo",
-      "deleteUntrackedTitleOne": "¿Eliminar {{count}} archivo sin seguimiento?",
-      "deleteUntrackedTitleMany": "¿Eliminar {{count}} archivos sin seguimiento?",
-      "deleteCount": "Eliminar {{count}}"
+      "deleteUntrackedTitle_one": "¿Eliminar {{count}} archivo sin seguimiento?",
+      "deleteUntrackedTitle_other": "¿Eliminar {{count}} archivos sin seguimiento?",
+      "deleteCount": "Eliminar {{count}}",
+      "deleteUntrackedFilesDescription_one": "Esto eliminará permanentemente {{count}} archivo sin seguimiento. No se puede deshacer.",
+      "unstagedFilesIncludingUntrackedDescription_one": "Esto revertirá los cambios no preparados de {{count}} archivo y lo eliminará permanentemente si no tiene seguimiento. No se puede deshacer."
     },
     "unlinkedPr": {
       "status": "PR #{{number}} desvinculada"
@@ -20095,6 +20096,15 @@
       "inactive": "Inactivo",
       "permission": "Necesita permiso",
       "unreadLabel": "{{status}} · Sin leer"
+    },
+    "reviewStatus": {
+      "checksFailed": "Checks de {{review}}: Fallidos",
+      "checksPassing": "Checks de {{review}}: Correctos",
+      "checksPending": "Checks de {{review}}: Pendientes",
+      "closed": "{{review}}: Cerrada",
+      "draft": "{{review}}: Borrador",
+      "merged": "{{review}}: Fusionada",
+      "open": "{{review}}: Abierta"
     }
   },
   "tabHoverCard": {
@@ -20659,7 +20669,22 @@
       "localKeyStorage": "Las claves del entorno de ejecución local se guardan en este dispositivo con el almacenamiento cifrado de Electron cuando está disponible.",
       "commentsLoadFailed": "No se pudieron cargar los comentarios.",
       "updateWorkspaceAccess": "Actualizar el acceso a Linear para {{workspace}}",
-      "workspaceApiKeyHint": "Pega una clave API personal de {{workspace}}. Si ya está conectado, Orca sustituirá la clave guardada."
+      "workspaceApiKeyHint": "Pega una clave API personal de {{workspace}}. Si ya está conectado, Orca sustituirá la clave guardada.",
+      "connect": "Conectar",
+      "descriptionUpdateFailed": "No se pudo actualizar la descripción",
+      "titleUpdateFailed": "No se pudo actualizar el título",
+      "truncated": {
+        "issues_one": "Se muestra {{count}} issue, el primero de la lista. Busca o abre Linear para ver la lista completa.",
+        "issues_other": "Se muestran los primeros {{count}} issues. Busca o abre Linear para ver la lista completa.",
+        "projectIssues_one": "Se muestra {{count}} issue del proyecto, el primero de la lista. Busca o abre Linear para ver la lista completa.",
+        "projectIssues_other": "Se muestran los primeros {{count}} issues del proyecto. Busca o abre Linear para ver la lista completa.",
+        "projects_one": "Se muestra {{count}} proyecto, el primero de la lista. Busca o abre Linear para ver la lista completa.",
+        "projects_other": "Se muestran los primeros {{count}} proyectos. Busca o abre Linear para ver la lista completa.",
+        "viewIssues_one": "Se muestra {{count}} issue de la vista, el primero de la lista. Busca o abre Linear para ver la lista completa.",
+        "viewIssues_other": "Se muestran los primeros {{count}} issues de la vista. Busca o abre Linear para ver la lista completa.",
+        "views_one": "Se muestra {{count}} vista, la primera de la lista. Busca o abre Linear para ver la lista completa.",
+        "views_other": "Se muestran las primeras {{count}} vistas. Busca o abre Linear para ver la lista completa."
+      }
     },
     "jira": {
       "connectionFailed": "La conexión falló",
@@ -20714,8 +20739,8 @@
       }
     }
   },
-  "files": {
-    "recycleBin": "Papelera de reciclaje",
-    "trash": "Papelera"
+  "workspaceOptions": {
+    "activeFilterCount_one": "{{count}} filtro",
+    "activeFilterCount_other": "{{count}} filtros"
   }
 }

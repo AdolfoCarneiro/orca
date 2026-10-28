@@ -117,10 +117,10 @@ export function AiCommitPrSettingsFields({
         </Select>
         {unsupportedAgentLabel ? (
           <p className="col-start-2 text-[11px] leading-snug text-muted-foreground">
-            {unsupportedAgentLabel}{' '}
             {translate(
-              'auto.components.feature.wall.AiCommitPrSettingsCard.4d9b6d84df',
-              'unsupported. Choose Claude, Codex, or Custom.'
+              'auto.components.feature.wall.AiCommitPrSettingsCard.unsupportedAgent',
+              '{{agent}} is not supported. Choose Claude, Codex, or Custom.',
+              { agent: unsupportedAgentLabel }
             )}
           </p>
         ) : null}

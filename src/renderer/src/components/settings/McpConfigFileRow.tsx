@@ -27,8 +27,10 @@ function statusLabel(config: LoadedMcpConfigInspection): string {
     return translate('settings.mcp.noServers', 'No servers')
   }
   return config.servers.length === 1
-    ? translate('settings.mcp.serverCountOne', '{{count}} server', { count: config.servers.length })
-    : translate('settings.mcp.serverCountMany', '{{count}} servers', {
+    ? translate('settings.mcp.serverCount_one', '{{count}} server', {
+        count: config.servers.length
+      })
+    : translate('settings.mcp.serverCount_other', '{{count}} servers', {
         count: config.servers.length
       })
 }

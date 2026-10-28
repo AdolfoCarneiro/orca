@@ -77,12 +77,12 @@ export function getDiscardAreaConfirmationCopy(
         title:
           count === 1
             ? translate(
-                'sourceControl.discard.deleteUntrackedTitleOne',
+                'sourceControl.discard.deleteUntrackedTitle_one',
                 'Delete {{count}} untracked file?',
                 { count }
               )
             : translate(
-                'sourceControl.discard.deleteUntrackedTitleMany',
+                'sourceControl.discard.deleteUntrackedTitle_other',
                 'Delete {{count}} untracked files?',
                 { count }
               ),
@@ -93,7 +93,7 @@ export function getDiscardAreaConfirmationCopy(
                 'This will permanently delete this untracked file. This cannot be undone.'
               )
             : translate(
-                'sourceControl.discard.deleteUntrackedFilesDescription',
+                'sourceControl.discard.deleteUntrackedFilesDescription_other',
                 'This will permanently delete these {{count}} untracked files. This cannot be undone.',
                 { count }
               ),
@@ -129,7 +129,7 @@ export function getDiscardAreaConfirmationCopy(
                 'This will revert unstaged changes and permanently delete any untracked files in this selection. This cannot be undone.'
               )
             : translate(
-                'sourceControl.discard.unstagedFilesIncludingUntrackedDescription',
+                'sourceControl.discard.unstagedFilesIncludingUntrackedDescription_other',
                 'This will revert unstaged changes and permanently delete any untracked files among these {{count}} files. This cannot be undone.',
                 { count }
               ),

@@ -388,13 +388,14 @@ export function NativeChatResumeOccurrenceModal({
                     )
                   : chosen.length === 1
                     ? translate(
-                        'auto.components.NativeChatResumeOnRestartModal.resumeSelectedOne',
-                        'Resume 1 chat'
+                        'auto.components.NativeChatResumeOnRestartModal.resumeChats_one',
+                        'Resume {{count}} chat',
+                        { count: chosen.length }
                       )
                     : translate(
-                        'auto.components.NativeChatResumeOnRestartModal.resumeSelected',
-                        'Resume {{value0}} chats',
-                        { value0: chosen.length }
+                        'auto.components.NativeChatResumeOnRestartModal.resumeChats_other',
+                        'Resume {{count}} chats',
+                        { count: chosen.length }
                       )}
               </Button>
             </>

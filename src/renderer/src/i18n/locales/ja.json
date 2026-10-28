@@ -404,8 +404,8 @@
       "httpServer": "HTTP サーバー",
       "stdioServer": "stdio サーバー",
       "invalidServer": "無効なサーバー",
-      "serverCountOne": "サーバー {{count}} 件",
-      "serverCountMany": "サーバー {{count}} 件",
+      "serverCount_one": "サーバー {{count}} 件",
+      "serverCount_other": "サーバー {{count}} 件",
       "claudeWorkspace": "Claude ワークスペース"
     },
     "shortcuts": {
@@ -1813,7 +1813,6 @@
       "LinearIssueTextEditor": {
         "947ba2d6f4": "保存する",
         "04d73b72dc": "Issue のタイトル",
-        "e8ff595db3": "{{value0}} を更新できませんでした",
         "1e08a1ec80": "タイトルは必須です"
       },
       "LinearIssueWorkspace": {
@@ -2210,9 +2209,6 @@
         "7f3f7b4c18": "説明 (オプション、markdown)",
         "9f2b4c03a6": "提出する",
         "d3d0998b7d": "GitHub の新規 Issue",
-        "d1e243795c": "Issue",
-        "be8cf68d9f": "Issue を表示",
-        "67662ade50": "プロジェクトの Issue",
         "6244a02f46": "Linear で開く",
         "606a85c774": "オープン",
         "5e8061b088": "{{value0}} {{value1}} からワークスペースを開始します",
@@ -2232,11 +2228,9 @@
         "af377b13b1": "{{value0}} ビュー",
         "d47248df4d": "Linear ビューモード",
         "f397d513e3": "戻る",
-        "b39fe6511d": "プロジェクト",
         "8675cd6188": "Linear",
         "733b8f2421": "Linear / ビュー",
         "bc06ed0fb0": "ビューに戻る",
-        "3cb855080f": "ビュー",
         "b4e10f096e": "オーナー",
         "a04fe7ba73": "可視性",
         "0aa8525950": "モデル",
@@ -2907,8 +2901,6 @@
               "7616c986c6": "{{value0}} Issue を開く",
               "openInLinear": "Linear で {{value0}} を開く",
               "93e1f6bfca": "読み込み中",
-              "98730088a6": "。フルセットについては、Linear を検索するか開きます。",
-              "06b887d622": "最初に表示しています",
               "linearLoginUnreadable": "保存された Linear のログイン情報を読み取れません。設定で再接続してください。",
               "f2cc1e0ff6": "Linear / プロジェクト",
               "906b5e4cb8": "Linear / プロジェクト / {{value0}}",
@@ -5942,7 +5934,8 @@
         },
         "sidebarHostOptions": {
           "3e102f111c": "すべてのホスト",
-          "visibleHostsCount": "{{value0}} 台のホスト"
+          "hosts": "ホスト",
+          "visibleHosts_other": "{{count}} 台のホスト"
         },
         "HostRemoveDialog": {
           "1a2b3c4d5e": "{{value0}} を削除しました",
@@ -12980,10 +12973,10 @@
                 "dialog": {
                   "3bc61dc989": "キャンセル",
                   "15efa778e3": "破棄",
-                  "42f89dd030": "ファイル",
-                  "e7611dca35": "ファイル",
                   "0d2d88cba5": "これを元に戻すことはできません。",
-                  "1551c14668": "変更を破棄しますか?"
+                  "1551c14668": "変更を破棄しますか?",
+                  "fileCount_one": "{{count}} 個のファイル",
+                  "fileCount_other": "{{count}} 個のファイル"
                 }
               },
               "dropdown": {
@@ -13210,16 +13203,19 @@
             "unresolved": "このワークスペースを所有しているホストを特定できませんでした。接続を確認して、もう一度お試しください。"
           },
           "useFileDeletion": {
-            "72691dfebc": "{{value0}} '{{value1}}' に失敗しました。",
             "d979a4fbb5": "「{{value0}}」を完全に削除しますか?",
             "92276aceb7": "削除",
             "7fb9435c86": "リモートホスト上のディレクトリとその内容を完全に削除します。この操作は取り消せません。",
             "23e98f192f": "リモートホスト上のファイルを完全に削除します。この操作は取り消せません。",
             "8b8ee9d22f": "このファイルを所有しているホストを特定できませんでした。ワークスペースの接続を確認して、もう一度お試しください。",
-            "af1270b90d": "{{count}}個の項目を完全に削除しますか?",
             "dd029aa5cd": "選択した項目とディレクトリの内容がリモートホスト上で完全に削除されます。この操作は元に戻せません。",
-            "77fdc36183": "{{count}} 個の項目を削除しますか？",
-            "fca915a67a": "リモートの項目は完全に削除され、取り消せません。ローカルの項目は {{value0}} に移動します。"
+            "deleteFailed": "「{{name}}」を削除できませんでした。",
+            "deleteItems_other": "{{count}} 件の項目を削除しますか？",
+            "mixedRecycleBin": "リモートの項目は完全に削除され、元に戻せません。ローカルの項目はごみ箱に移動します。",
+            "mixedTrash": "リモートの項目は完全に削除され、元に戻せません。ローカルの項目はごみ箱に移動します。",
+            "permanentlyDeleteItems_other": "{{count}} 件の項目を完全に削除しますか？",
+            "recycleBinFailed": "「{{name}}」をごみ箱に移動できませんでした。",
+            "trashFailed": "「{{name}}」をごみ箱に移動できませんでした。"
           },
           "useFileExplorerHandlers": {
             "32cd9fd991": "シンボリックリンクターゲットを開けません",
@@ -14194,13 +14190,13 @@
             "9ee54037a4": "カスタムコマンド",
             "4b2fc4b80c": "考える努力",
             "be8917699e": "モデル",
-            "4d9b6d84df": "サポートされていません。Claude、Codex、またはカスタムを選択します。",
             "560d4feb00": "カスタム",
             "29d119fe95": "Agent",
             "f9382b48a1": "AI 著者を有効にする",
             "1c0cb4fabb": "AI作者",
             "bd14e9c42a": "未設定",
-            "1f9468c5c9": "{{value0}} はサポートされていません"
+            "1f9468c5c9": "{{value0}} はサポートされていません",
+            "unsupportedAgent": "{{agent}} はサポートされていません。Claude、Codex、カスタムのいずれかを選択してください。"
           },
           "BrowserAnimatedVisual": {
             "46df009982": "無料トライアルを開始する",
@@ -17037,8 +17033,6 @@
         "continuedOne": "1 件のチャットを再開しました",
         "continuedMany": "{{value0}} 件のチャットを再開しました",
         "selectAgent": "{{value0}} チャット「{{value1}}」を {{value2}} で再開します",
-        "resumeSelected": "{{value0}} チャットを再開",
-        "resumeSelectedOne": "1 チャットを再開",
         "dismissAll": "すべて閉じる",
         "notContinuedOne": "1 件のチャットを再開できませんでした",
         "notContinuedMany": "{{value0}} 件のチャットを再開できませんでした",
@@ -17073,7 +17067,9 @@
         "serverDismiss": "閉じる",
         "serverResumeAll": "{{machine}} の {{count}} 件をすべて再開",
         "serverResumeHereOne": "ここで開始したチャット 1 件を再開",
-        "serverResumeHere": "ここで開始したチャット {{count}} 件を再開"
+        "serverResumeHere": "ここで開始したチャット {{count}} 件を再開",
+        "resumeChats_one": "{{count}} 件のチャットを再開",
+        "resumeChats_other": "{{count}} 件のチャットを再開"
       },
       "linear-issue-attribute-filter-coverage-notice": {
         "statusPartialTeamCoverage": "{{value0}}/{{value1}} チームステータスをフィルタリングしています。残りのチームからの問題は含まれません。",
@@ -19291,17 +19287,17 @@
     },
     "discard": {
       "deleteUntrackedFileDescription": "この未追跡ファイルは完全に削除されます。この操作は元に戻せません。",
-      "deleteUntrackedFilesDescription": "これらの {{count}} 個の未追跡ファイルは完全に削除されます。この操作は元に戻せません。",
+      "deleteUntrackedFilesDescription_other": "これらの {{count}} 個の未追跡ファイルは完全に削除されます。この操作は元に戻せません。",
       "restoreStagedVersionDescription": "これにより、最後にステージングされたバージョンが復元され、削除が破棄されます。これを元に戻すことはできません。",
       "unstagedChangesDescription": "これにより、このファイルに対するステージングされていない変更が元に戻ります。これを元に戻すことはできません。",
       "unstagedSelectionIncludingUntrackedDescription": "ステージングされていない変更を元に戻し、この選択内の未追跡ファイルを完全に削除します。この操作は元に戻せません。",
-      "unstagedFilesIncludingUntrackedDescription": "ステージングされていない変更を元に戻し、これらの {{count}} 個のファイルに含まれる未追跡ファイルを完全に削除します。この操作は元に戻せません。",
+      "unstagedFilesIncludingUntrackedDescription_other": "ステージングされていない変更を元に戻し、これらの {{count}} 個のファイルに含まれる未追跡ファイルを完全に削除します。この操作は元に戻せません。",
       "delete": "削除",
       "restore": "復元",
       "discard": "破棄",
       "discardAll": "すべて破棄",
-      "deleteUntrackedTitleOne": "未追跡のファイル {{count}} 個を削除しますか？",
-      "deleteUntrackedTitleMany": "未追跡のファイル {{count}} 個を削除しますか？",
+      "deleteUntrackedTitle_one": "未追跡のファイル {{count}} 個を削除しますか？",
+      "deleteUntrackedTitle_other": "未追跡のファイル {{count}} 個を削除しますか？",
       "deleteCount": "{{count}} 個を削除"
     },
     "createReviewFailure": {
@@ -20036,6 +20032,15 @@
       "inactive": "非アクティブ",
       "permission": "許可が必要",
       "unreadLabel": "{{status}} · 未読"
+    },
+    "reviewStatus": {
+      "checksFailed": "{{review}} のチェック: 失敗",
+      "checksPassing": "{{review}} のチェック: 成功",
+      "checksPending": "{{review}} のチェック: 保留中",
+      "closed": "{{review}}: クローズ",
+      "draft": "{{review}}: 下書き",
+      "merged": "{{review}}: マージ済み",
+      "open": "{{review}}: オープン"
     }
   },
   "tabHoverCard": {
@@ -20658,7 +20663,22 @@
       "localKeyStorage": "ローカルランタイムのキーはこのデバイスに保存され、利用可能な場合は Electron の暗号化ストレージを使います。",
       "commentsLoadFailed": "コメントを読み込めませんでした。",
       "updateWorkspaceAccess": "{{workspace}} の Linear アクセスを更新",
-      "workspaceApiKeyHint": "{{workspace}} の個人 API キーを貼り付けてください。すでに接続済みの場合、保存されたキーを置き換えます。"
+      "workspaceApiKeyHint": "{{workspace}} の個人 API キーを貼り付けてください。すでに接続済みの場合、保存されたキーを置き換えます。",
+      "connect": "接続",
+      "descriptionUpdateFailed": "説明の更新に失敗しました。",
+      "titleUpdateFailed": "タイトルの更新に失敗しました。",
+      "truncated": {
+        "issues_one": "最初の {{count}} 件の Issue を表示しています。全件を確認するには、検索するか Linear を開いてください。",
+        "issues_other": "最初の {{count}} 件の Issue を表示しています。全件を確認するには、検索するか Linear を開いてください。",
+        "projectIssues_one": "プロジェクトの Issue を最初の {{count}} 件表示しています。全件を確認するには、検索するか Linear を開いてください。",
+        "projectIssues_other": "プロジェクトの Issue を最初の {{count}} 件表示しています。全件を確認するには、検索するか Linear を開いてください。",
+        "projects_one": "最初の {{count}} 件のプロジェクトを表示しています。全件を確認するには、検索するか Linear を開いてください。",
+        "projects_other": "最初の {{count}} 件のプロジェクトを表示しています。全件を確認するには、検索するか Linear を開いてください。",
+        "viewIssues_one": "ビューの Issue を最初の {{count}} 件表示しています。全件を確認するには、検索するか Linear を開いてください。",
+        "viewIssues_other": "ビューの Issue を最初の {{count}} 件表示しています。全件を確認するには、検索するか Linear を開いてください。",
+        "views_one": "最初の {{count}} 件のビューを表示しています。全件を確認するには、検索するか Linear を開いてください。",
+        "views_other": "最初の {{count}} 件のビューを表示しています。全件を確認するには、検索するか Linear を開いてください。"
+      }
     },
     "jira": {
       "connectionFailed": "接続に失敗しました",
@@ -20713,8 +20733,8 @@
       }
     }
   },
-  "files": {
-    "recycleBin": "ごみ箱",
-    "trash": "ゴミ箱"
+  "workspaceOptions": {
+    "activeFilterCount_one": "{{count}} 件のフィルター",
+    "activeFilterCount_other": "{{count}} 件のフィルター"
   }
 }

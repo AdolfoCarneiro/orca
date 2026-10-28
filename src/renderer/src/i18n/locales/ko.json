@@ -404,8 +404,8 @@
       "httpServer": "HTTP 서버",
       "stdioServer": "stdio 서버",
       "invalidServer": "잘못된 서버",
-      "serverCountOne": "서버 {{count}}개",
-      "serverCountMany": "서버 {{count}}개",
+      "serverCount_one": "서버 {{count}}개",
+      "serverCount_other": "서버 {{count}}개",
       "claudeWorkspace": "Claude 워크스페이스"
     },
     "shortcuts": {
@@ -1813,7 +1813,6 @@
       "LinearIssueTextEditor": {
         "947ba2d6f4": "저장",
         "04d73b72dc": "이슈 제목",
-        "e8ff595db3": "{{value0}}을(를) 업데이트하지 못했습니다.",
         "1e08a1ec80": "제목은 필수 항목입니다."
       },
       "LinearIssueWorkspace": {
@@ -2210,9 +2209,6 @@
         "7f3f7b4c18": "설명(선택사항, markdown)",
         "9f2b4c03a6": "등록 위치: ",
         "d3d0998b7d": "새 GitHub 이슈",
-        "d1e243795c": "이슈",
-        "be8cf68d9f": "이슈 보기",
-        "67662ade50": "프로젝트 이슈",
         "6244a02f46": "Linear에서 열기",
         "606a85c774": "열기",
         "5e8061b088": "{{value0}} {{value1}}에서 워크스페이스 시작",
@@ -2232,11 +2228,9 @@
         "af377b13b1": "{{value0}} 보기",
         "d47248df4d": "Linear 보기 모드",
         "f397d513e3": "뒤로",
-        "b39fe6511d": "프로젝트",
         "8675cd6188": "Linear",
         "733b8f2421": "Linear / 보기",
         "bc06ed0fb0": "보기로 돌아가기",
-        "3cb855080f": "보기",
         "b4e10f096e": "소유자",
         "a04fe7ba73": "공개 범위",
         "0aa8525950": "모델",
@@ -2907,8 +2901,6 @@
               "7616c986c6": "열린 이슈 {{value0}}개",
               "openInLinear": "Linear에서 {{value0}} 열기",
               "93e1f6bfca": "로드 중",
-              "98730088a6": ". 전체 세트를 보려면 Linear를 검색하거나 엽니다.",
-              "06b887d622": "처음 표시",
               "linearLoginUnreadable": "저장된 Linear 로그인을 읽을 수 없습니다. 설정에서 다시 연결하세요.",
               "f2cc1e0ff6": "Linear / 프로젝트",
               "906b5e4cb8": "Linear / 프로젝트 / {{value0}}",
@@ -5942,7 +5934,8 @@
         },
         "sidebarHostOptions": {
           "3e102f111c": "모든 호스트",
-          "visibleHostsCount": "호스트 {{value0}}개"
+          "hosts": "호스트",
+          "visibleHosts_other": "호스트 {{count}}개"
         },
         "HostRemoveDialog": {
           "1a2b3c4d5e": "{{value0}} 제거됨",
@@ -12980,10 +12973,10 @@
                 "dialog": {
                   "3bc61dc989": "취소",
                   "15efa778e3": "버리기",
-                  "42f89dd030": "파일",
-                  "e7611dca35": "파일",
                   "0d2d88cba5": "이 작업은 취소할 수 없습니다.",
-                  "1551c14668": "변경사항을 삭제하시겠습니까?"
+                  "1551c14668": "변경사항을 삭제하시겠습니까?",
+                  "fileCount_one": "파일 {{count}}개",
+                  "fileCount_other": "파일 {{count}}개"
                 }
               },
               "dropdown": {
@@ -13210,16 +13203,19 @@
             "unresolved": "이 워크스페이스를 소유한 호스트를 확인할 수 없습니다. 연결을 확인한 후 다시 시도하세요."
           },
           "useFileDeletion": {
-            "72691dfebc": "{{value0}} '{{value1}}'에 실패했습니다.",
             "d979a4fbb5": "'{{value0}}'을(를) 영구적으로 삭제하시겠습니까?",
             "92276aceb7": "삭제",
             "7fb9435c86": "원격 호스트의 디렉터리와 그 안의 내용을 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
             "23e98f192f": "원격 호스트의 파일을 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
             "8b8ee9d22f": "이 파일을 소유한 호스트를 확인할 수 없습니다. 워크스페이스 연결을 확인한 후 다시 시도하세요.",
-            "af1270b90d": "{{count}}개 항목을 영구적으로 삭제하시겠습니까?",
             "dd029aa5cd": "원격 호스트의 선택한 항목과 디렉터리 내용을 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
-            "77fdc36183": "{{count}}개 항목을 삭제하시겠습니까?",
-            "fca915a67a": "원격 항목은 영구적으로 삭제되며 되돌릴 수 없습니다. 로컬 항목은 {{value0}}(으)로 이동합니다."
+            "deleteFailed": "'{{name}}'을(를) 삭제하지 못했습니다.",
+            "deleteItems_other": "항목 {{count}}개를 삭제하시겠습니까?",
+            "mixedRecycleBin": "원격 항목은 영구적으로 삭제되며 되돌릴 수 없습니다. 로컬 항목은 휴지통으로 이동합니다.",
+            "mixedTrash": "원격 항목은 영구적으로 삭제되며 되돌릴 수 없습니다. 로컬 항목은 휴지통으로 이동합니다.",
+            "permanentlyDeleteItems_other": "항목 {{count}}개를 영구적으로 삭제하시겠습니까?",
+            "recycleBinFailed": "'{{name}}'을(를) 휴지통으로 이동하지 못했습니다.",
+            "trashFailed": "'{{name}}'을(를) 휴지통으로 이동하지 못했습니다."
           },
           "useFileExplorerHandlers": {
             "32cd9fd991": "심볼릭 링크 대상을 열 수 없습니다",
@@ -14194,13 +14190,13 @@
             "9ee54037a4": "사용자 지정 명령",
             "4b2fc4b80c": "사고 강도",
             "be8917699e": "모델",
-            "4d9b6d84df": "지원되지 않습니다. Claude, Codex 또는 Custom을 선택하세요.",
             "560d4feb00": "사용자 정의",
             "29d119fe95": "에이전트",
             "f9382b48a1": "AI author 활성화",
             "1c0cb4fabb": "AI 작성자",
             "bd14e9c42a": "구성되지 않음",
-            "1f9468c5c9": "{{value0}} 지원되지 않음"
+            "1f9468c5c9": "{{value0}} 지원되지 않음",
+            "unsupportedAgent": "{{agent}}은(는) 지원되지 않습니다. Claude, Codex 또는 사용자 정의를 선택하세요."
           },
           "BrowserAnimatedVisual": {
             "46df009982": "무료 평가판을 시작하세요",
@@ -17037,8 +17033,6 @@
         "continuedOne": "채팅 1개를 재개했습니다",
         "continuedMany": "{{value0}}개의 채팅을 재개했습니다",
         "selectAgent": "{{value2}}에서 {{value0}} 채팅 \"{{value1}}\" 재개",
-        "resumeSelected": "{{value0}} 채팅 재개",
-        "resumeSelectedOne": "채팅 1개 재개",
         "dismissAll": "모두 닫기",
         "notContinuedOne": "채팅 1개를 재개하지 못했습니다",
         "notContinuedMany": "{{value0}}개의 채팅을 재개하지 못했습니다",
@@ -17073,7 +17067,9 @@
         "serverDismiss": "닫기",
         "serverResumeAll": "{{machine}}에서 {{count}}개 모두 재개",
         "serverResumeHereOne": "여기에서 시작한 채팅 1개 재개",
-        "serverResumeHere": "여기에서 시작한 채팅 {{count}}개 재개"
+        "serverResumeHere": "여기에서 시작한 채팅 {{count}}개 재개",
+        "resumeChats_one": "채팅 {{count}}개 재개",
+        "resumeChats_other": "채팅 {{count}}개 재개"
       },
       "linear-issue-attribute-filter-coverage-notice": {
         "statusPartialTeamCoverage": "{{value1}} 팀 상태 중 {{value0}} 필터링 중 - 나머지 팀의 문제는 포함되지 않습니다.",
@@ -19291,17 +19287,17 @@
     },
     "discard": {
       "deleteUntrackedFileDescription": "이 추적되지 않은 파일은 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.",
-      "deleteUntrackedFilesDescription": "이 {{count}}개의 추적되지 않은 파일은 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.",
+      "deleteUntrackedFilesDescription_other": "이 {{count}}개의 추적되지 않은 파일은 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.",
       "restoreStagedVersionDescription": "이렇게 하면 마지막 단계 버전이 복원되고 삭제가 취소됩니다. 이 작업은 취소할 수 없습니다.",
       "unstagedChangesDescription": "이렇게 하면 단계가 지정되지 않은 변경 사항이 이 파일로 되돌아갑니다. 이 작업은 취소할 수 없습니다.",
       "unstagedSelectionIncludingUntrackedDescription": "스테이징되지 않은 변경 사항을 되돌리고 이 선택 항목의 추적되지 않은 파일을 영구적으로 삭제합니다. 이 작업은 취소할 수 없습니다.",
-      "unstagedFilesIncludingUntrackedDescription": "스테이징되지 않은 변경 사항을 되돌리고 이 {{count}}개 파일 중 추적되지 않은 파일을 영구적으로 삭제합니다. 이 작업은 취소할 수 없습니다.",
+      "unstagedFilesIncludingUntrackedDescription_other": "스테이징되지 않은 변경 사항을 되돌리고 이 {{count}}개 파일 중 추적되지 않은 파일을 영구적으로 삭제합니다. 이 작업은 취소할 수 없습니다.",
       "delete": "삭제",
       "restore": "복원",
       "discard": "버리기",
       "discardAll": "모두 폐기",
-      "deleteUntrackedTitleOne": "추적되지 않은 파일 {{count}}개를 삭제할까요?",
-      "deleteUntrackedTitleMany": "추적되지 않은 파일 {{count}}개를 삭제할까요?",
+      "deleteUntrackedTitle_one": "추적되지 않은 파일 {{count}}개를 삭제할까요?",
+      "deleteUntrackedTitle_other": "추적되지 않은 파일 {{count}}개를 삭제할까요?",
       "deleteCount": "{{count}}개 삭제"
     },
     "createReviewFailure": {
@@ -20036,6 +20032,15 @@
       "inactive": "비활성",
       "permission": "권한 필요",
       "unreadLabel": "{{status}} · 읽지 않음"
+    },
+    "reviewStatus": {
+      "checksFailed": "{{review}} 체크: 실패",
+      "checksPassing": "{{review}} 체크: 통과",
+      "checksPending": "{{review}} 체크: 대기 중",
+      "closed": "{{review}}: 닫힘",
+      "draft": "{{review}}: 초안",
+      "merged": "{{review}}: 병합됨",
+      "open": "{{review}}: 열림"
     }
   },
   "tabHoverCard": {
@@ -20658,7 +20663,22 @@
       "localKeyStorage": "로컬 런타임 키는 이 기기에 저장되며, 사용 가능한 경우 Electron 암호화 저장소를 사용합니다.",
       "commentsLoadFailed": "댓글을 불러오지 못했습니다.",
       "updateWorkspaceAccess": "{{workspace}}의 Linear 액세스 업데이트",
-      "workspaceApiKeyHint": "{{workspace}}의 개인 API 키를 붙여넣으세요. 이미 연결된 워크스페이스라면 저장된 키가 교체됩니다."
+      "workspaceApiKeyHint": "{{workspace}}의 개인 API 키를 붙여넣으세요. 이미 연결된 워크스페이스라면 저장된 키가 교체됩니다.",
+      "connect": "연결",
+      "descriptionUpdateFailed": "설명을 업데이트하지 못했습니다.",
+      "titleUpdateFailed": "제목을 업데이트하지 못했습니다.",
+      "truncated": {
+        "issues_one": "처음 {{count}}개의 이슈를 표시합니다. 전체 목록을 보려면 검색하거나 Linear를 여세요.",
+        "issues_other": "처음 {{count}}개의 이슈를 표시합니다. 전체 목록을 보려면 검색하거나 Linear를 여세요.",
+        "projectIssues_one": "프로젝트의 이슈 중 처음 {{count}}개를 표시합니다. 전체 목록을 보려면 검색하거나 Linear를 여세요.",
+        "projectIssues_other": "프로젝트의 이슈 중 처음 {{count}}개를 표시합니다. 전체 목록을 보려면 검색하거나 Linear를 여세요.",
+        "projects_one": "처음 {{count}}개의 프로젝트를 표시합니다. 전체 목록을 보려면 검색하거나 Linear를 여세요.",
+        "projects_other": "처음 {{count}}개의 프로젝트를 표시합니다. 전체 목록을 보려면 검색하거나 Linear를 여세요.",
+        "viewIssues_one": "보기에 포함된 이슈 중 처음 {{count}}개를 표시합니다. 전체 목록을 보려면 검색하거나 Linear를 여세요.",
+        "viewIssues_other": "보기에 포함된 이슈 중 처음 {{count}}개를 표시합니다. 전체 목록을 보려면 검색하거나 Linear를 여세요.",
+        "views_one": "처음 {{count}}개의 보기를 표시합니다. 전체 목록을 보려면 검색하거나 Linear를 여세요.",
+        "views_other": "처음 {{count}}개의 보기를 표시합니다. 전체 목록을 보려면 검색하거나 Linear를 여세요."
+      }
     },
     "jira": {
       "connectionFailed": "연결 실패",
@@ -20713,8 +20733,8 @@
       }
     }
   },
-  "files": {
-    "recycleBin": "휴지통",
-    "trash": "휴지통"
+  "workspaceOptions": {
+    "activeFilterCount_one": "필터 {{count}}개",
+    "activeFilterCount_other": "필터 {{count}}개"
   }
 }

@@ -586,8 +586,8 @@
       "httpServer": "Serveur HTTP",
       "stdioServer": "Serveur stdio",
       "invalidServer": "Serveur invalide",
-      "serverCountOne": "{{count}} serveur",
-      "serverCountMany": "{{count}} serveurs",
+      "serverCount_one": "{{count}} serveur",
+      "serverCount_other": "{{count}} serveurs",
       "claudeWorkspace": "Espace de travail Claude"
     },
     "shortcuts": {
@@ -2014,7 +2014,6 @@
       "LinearIssueTextEditor": {
         "947ba2d6f4": "pour enregistrer",
         "04d73b72dc": "Titre du ticket",
-        "e8ff595db3": "Échec de la mise à jour de {{value0}}",
         "1e08a1ec80": "Le titre est obligatoire"
       },
       "LinearIssueWorkspace": {
@@ -2411,9 +2410,6 @@
         "7f3f7b4c18": "Description (facultatif, markdown)",
         "9f2b4c03a6": "Création dans",
         "d3d0998b7d": "Nouveau ticket GitHub",
-        "d1e243795c": "tickets",
-        "be8cf68d9f": "voir les tickets",
-        "67662ade50": "tickets du projet",
         "6244a02f46": "Ouvrir dans Linear",
         "606a85c774": "Ouvert",
         "5e8061b088": "Démarrer un espace de travail depuis {{value0}} {{value1}}",
@@ -2433,11 +2429,9 @@
         "af377b13b1": "Vue {{value0}}",
         "d47248df4d": "Mode d'affichage Linear",
         "f397d513e3": "Retour",
-        "b39fe6511d": "projets",
         "8675cd6188": "Linear",
         "733b8f2421": "Linear / Vues",
         "bc06ed0fb0": "Retour aux vues",
-        "3cb855080f": "vues",
         "b4e10f096e": "Propriétaire",
         "a04fe7ba73": "Visibilité",
         "0aa8525950": "Modèle",
@@ -3108,8 +3102,6 @@
               "7616c986c6": "Ouvrir {{value0}} issues",
               "openInLinear": "Ouvrir {{value0}} dans Linear",
               "93e1f6bfca": "Chargement",
-              "98730088a6": ". Recherchez ou ouvrez Linear pour voir l'ensemble complet.",
-              "06b887d622": "Affichage des premières",
               "linearLoginUnreadable": "Impossible de lire la connexion Linear enregistrée. Reconnectez-la dans les réglages.",
               "f2cc1e0ff6": "Linear / Projets",
               "906b5e4cb8": "Linear / Projets / {{value0}}",
@@ -5564,7 +5556,9 @@
         },
         "sidebarHostOptions": {
           "3e102f111c": "Tous les hôtes",
-          "visibleHostsCount": "{{value0}} hôtes"
+          "hosts": "Hôtes",
+          "visibleHosts_one": "{{count}} hôte",
+          "visibleHosts_other": "{{count}} hôtes"
         },
         "SidebarWorkspaceOptionsMenu": {
           "hosts": "Hôtes",
@@ -13199,10 +13193,10 @@
                 "dialog": {
                   "3bc61dc989": "Annuler",
                   "15efa778e3": "Abandonner",
-                  "42f89dd030": "fichiers",
-                  "e7611dca35": "fichier",
                   "0d2d88cba5": "Cette action est irréversible.",
-                  "1551c14668": "Abandonner les modifications ?"
+                  "1551c14668": "Abandonner les modifications ?",
+                  "fileCount_one": "{{count}} fichier",
+                  "fileCount_other": "{{count}} fichiers"
                 }
               },
               "dropdown": {
@@ -13429,16 +13423,21 @@
             "unresolved": "Impossible de déterminer quel hôte possède cet espace de travail. Vérifiez la connexion et réessayez."
           },
           "useFileDeletion": {
-            "72691dfebc": "Échec : {{value0}} « {{value1}} ».",
             "d979a4fbb5": "Supprimer définitivement « {{value0}} » ?",
             "92276aceb7": "Supprimer",
             "7fb9435c86": "Cette action supprime définitivement le répertoire et son contenu sur l'hôte distant. Elle est irréversible.",
             "23e98f192f": "Cette action supprime définitivement le fichier sur l'hôte distant. Elle est irréversible.",
             "8b8ee9d22f": "Impossible de déterminer quel hôte possède ce fichier. Vérifiez la connexion de l'espace de travail et réessayez.",
-            "af1270b90d": "Supprimer définitivement {{count}} éléments ?",
             "dd029aa5cd": "Cette action supprime définitivement les éléments sélectionnés ainsi que le contenu des répertoires sur l'hôte distant. Elle est irréversible.",
-            "77fdc36183": "Supprimer {{count}} éléments ?",
-            "fca915a67a": "Les éléments distants sont définitivement supprimés, sans retour arrière. Les éléments locaux sont déplacés dans {{value0}}."
+            "deleteFailed": "Impossible de supprimer « {{name}} ».",
+            "deleteItems_one": "Supprimer {{count}} élément ?",
+            "deleteItems_other": "Supprimer {{count}} éléments ?",
+            "mixedRecycleBin": "Les éléments distants sont supprimés définitivement. Cette action est irréversible. Les éléments locaux sont déplacés vers la Corbeille.",
+            "mixedTrash": "Les éléments distants sont supprimés définitivement. Cette action est irréversible. Les éléments locaux sont déplacés vers la Corbeille.",
+            "permanentlyDeleteItems_one": "Supprimer définitivement {{count}} élément ?",
+            "permanentlyDeleteItems_other": "Supprimer définitivement {{count}} éléments ?",
+            "recycleBinFailed": "Impossible de déplacer « {{name}} » vers la Corbeille.",
+            "trashFailed": "Impossible de déplacer « {{name}} » vers la Corbeille."
           },
           "useFileExplorerHandlers": {
             "32cd9fd991": "Impossible d'ouvrir la cible du symlink",
@@ -14396,13 +14395,13 @@
             "9ee54037a4": "Commande personnalisée",
             "4b2fc4b80c": "Effort de réflexion",
             "be8917699e": "Modèle",
-            "4d9b6d84df": "non pris en charge. Choisissez Claude, Codex ou Personnalisé.",
             "560d4feb00": "Personnalisé",
             "29d119fe95": "Agent",
             "f9382b48a1": "Activer l'auteur IA",
             "1c0cb4fabb": "Auteur IA",
             "bd14e9c42a": "Non configuré",
-            "1f9468c5c9": "{{value0}} non pris en charge"
+            "1f9468c5c9": "{{value0}} non pris en charge",
+            "unsupportedAgent": "{{agent}} n'est pas pris en charge. Choisissez Claude, Codex ou Personnalisé."
           },
           "BrowserAnimatedVisual": {
             "46df009982": "Démarrer l'essai gratuit",
@@ -17251,8 +17250,6 @@
         "continuedOne": "1 chat a été repris",
         "continuedMany": "{{value0}} chats ont été repris",
         "selectAgent": "Reprendre le chat {{value0}} \"{{value1}}\" dans {{value2}}",
-        "resumeSelected": "Reprendre les discussions {{value0}}",
-        "resumeSelectedOne": "Reprendre 1 discussion",
         "dismissAll": "Tout rejeter",
         "notContinuedOne": "1 chat n'a pas pu reprendre",
         "notContinuedMany": "{{value0}} chats n'ont pas pu reprendre",
@@ -17287,7 +17284,9 @@
         "serverDismiss": "Ignorer",
         "serverResumeAll": "Reprendre les {{count}} sur {{machine}}",
         "serverResumeHereOne": "Reprendre 1 chat démarré ici",
-        "serverResumeHere": "Reprendre {{count}} chats démarrés ici"
+        "serverResumeHere": "Reprendre {{count}} chats démarrés ici",
+        "resumeChats_one": "Reprendre {{count}} discussion",
+        "resumeChats_other": "Reprendre {{count}} discussions"
       },
       "linear-issue-attribute-filter-coverage-notice": {
         "statusPartialTeamCoverage": "Filtrage des statuts des équipes {{value0}} sur {{value1}} : les problèmes des équipes restantes ne sont pas inclus.",
@@ -19285,18 +19284,20 @@
     },
     "discard": {
       "deleteUntrackedFileDescription": "Cela supprimera définitivement ce fichier non suivi. Cette action est irréversible.",
-      "deleteUntrackedFilesDescription": "Cela supprimera définitivement ces {{count}} fichiers non suivis. Cette action est irréversible.",
+      "deleteUntrackedFilesDescription_other": "Cela supprimera définitivement ces {{count}} fichiers non suivis. Cette action est irréversible.",
       "restoreStagedVersionDescription": "Cela restaurera la dernière version intermédiaire et annulera la suppression. Cela ne peut pas être annulé.",
       "unstagedChangesDescription": "Cela annulera les modifications non planifiées apportées à ce fichier. Cela ne peut pas être annulé.",
       "unstagedSelectionIncludingUntrackedDescription": "Cela annulera les modifications non indexées et supprimera définitivement tous les fichiers non suivis de cette sélection. Cette action est irréversible.",
-      "unstagedFilesIncludingUntrackedDescription": "Cela annulera les modifications non indexées et supprimera définitivement tous les fichiers non suivis parmi ces {{count}} fichiers. Cette action est irréversible.",
+      "unstagedFilesIncludingUntrackedDescription_other": "Cela annulera les modifications non indexées et supprimera définitivement tous les fichiers non suivis parmi ces {{count}} fichiers. Cette action est irréversible.",
       "delete": "Supprimer",
       "restore": "Restaurer",
       "discard": "Abandonner",
       "discardAll": "Tout abandonner",
-      "deleteUntrackedTitleOne": "Supprimer {{count}} fichier non suivi ?",
-      "deleteUntrackedTitleMany": "Supprimer {{count}} fichiers non suivis ?",
-      "deleteCount": "Supprimer {{count}}"
+      "deleteUntrackedTitle_one": "Supprimer {{count}} fichier non suivi ?",
+      "deleteUntrackedTitle_other": "Supprimer {{count}} fichiers non suivis ?",
+      "deleteCount": "Supprimer {{count}}",
+      "deleteUntrackedFilesDescription_one": "Cela supprimera définitivement {{count}} fichier non suivi. Cette action est irréversible.",
+      "unstagedFilesIncludingUntrackedDescription_one": "Cela annulera les modifications non indexées apportées à {{count}} fichier et le supprimera définitivement s'il n'est pas suivi. Cette action est irréversible."
     },
     "createReviewFailure": {
       "authRequiredCommand": "{{providerName}} n'est pas authentifié. Étape suivante : exécutez {{command}} dans cet environnement.",
@@ -20095,6 +20096,15 @@
       "inactive": "Inactif",
       "permission": "Autorisation requise",
       "unreadLabel": "{{status}} · Non lu"
+    },
+    "reviewStatus": {
+      "checksFailed": "{{review}} : vérifications en échec",
+      "checksPassing": "{{review}} : vérifications réussies",
+      "checksPending": "{{review}} : vérifications en attente",
+      "closed": "{{review}} : fermée",
+      "draft": "{{review}} : brouillon",
+      "merged": "{{review}} : fusionnée",
+      "open": "{{review}} : ouverte"
     }
   },
   "tabHoverCard": {
@@ -20659,7 +20669,22 @@
       "localKeyStorage": "Les clés de l’environnement d’exécution local sont stockées sur cet appareil avec le stockage chiffré d’Electron lorsqu’il est disponible.",
       "commentsLoadFailed": "Impossible de charger les commentaires.",
       "updateWorkspaceAccess": "Mettre à jour l’accès Linear pour {{workspace}}",
-      "workspaceApiKeyHint": "Collez une clé API personnelle pour {{workspace}}. Si cet espace est déjà connecté, Orca remplace la clé enregistrée."
+      "workspaceApiKeyHint": "Collez une clé API personnelle pour {{workspace}}. Si cet espace est déjà connecté, Orca remplace la clé enregistrée.",
+      "connect": "Se connecter",
+      "descriptionUpdateFailed": "Échec de la mise à jour de la description",
+      "titleUpdateFailed": "Échec de la mise à jour du titre",
+      "truncated": {
+        "issues_one": "Affichage de {{count}} issue en tête de liste. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "issues_other": "Affichage des {{count}} premières issues. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "projectIssues_one": "Affichage de {{count}} issue du projet en tête de liste. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "projectIssues_other": "Affichage des {{count}} premières issues du projet. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "projects_one": "Affichage de {{count}} projet en tête de liste. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "projects_other": "Affichage des {{count}} premiers projets. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "viewIssues_one": "Affichage de {{count}} issue de la vue en tête de liste. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "viewIssues_other": "Affichage des {{count}} premières issues de la vue. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "views_one": "Affichage de {{count}} vue en tête de liste. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "views_other": "Affichage des {{count}} premières vues. Faites une recherche ou ouvrez Linear pour consulter la liste complète."
+      }
     },
     "jira": {
       "connectionFailed": "Échec de la connexion",
@@ -20714,8 +20739,8 @@
       }
     }
   },
-  "files": {
-    "recycleBin": "Corbeille",
-    "trash": "Corbeille"
+  "workspaceOptions": {
+    "activeFilterCount_one": "{{count}} filtre",
+    "activeFilterCount_other": "{{count}} filtres"
   }
 }

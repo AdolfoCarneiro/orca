@@ -125,11 +125,12 @@ export function LinearIssueTextEditor({
         toast.error(
           error instanceof Error
             ? error.message
-            : translate(
-                'auto.components.LinearIssueTextEditor.e8ff595db3',
-                'Failed to update {{value0}}',
-                { value0: field }
-              )
+            : field === 'title'
+              ? translate('taskProviders.linear.titleUpdateFailed', 'Failed to update title')
+              : translate(
+                  'taskProviders.linear.descriptionUpdateFailed',
+                  'Failed to update description'
+                )
         )
       } finally {
         if (mountedRef.current && lastIssueIdRef.current === issue.id) {

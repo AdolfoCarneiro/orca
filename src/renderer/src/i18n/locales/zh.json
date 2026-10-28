@@ -404,8 +404,8 @@
       "httpServer": "HTTP 服务器",
       "stdioServer": "stdio 服务器",
       "invalidServer": "无效的服务器",
-      "serverCountOne": "{{count}} 个服务器",
-      "serverCountMany": "{{count}} 个服务器",
+      "serverCount_one": "{{count}} 个服务器",
+      "serverCount_other": "{{count}} 个服务器",
       "claudeWorkspace": "Claude 工作区"
     },
     "shortcuts": {
@@ -1813,7 +1813,6 @@
       "LinearIssueTextEditor": {
         "947ba2d6f4": "保存",
         "04d73b72dc": "议题标题",
-        "e8ff595db3": "更新 {{value0}} 失败",
         "1e08a1ec80": "标题为必填项"
       },
       "LinearIssueWorkspace": {
@@ -2210,9 +2209,6 @@
         "7f3f7b4c18": "描述（可选，markdown）",
         "9f2b4c03a6": "提交",
         "d3d0998b7d": "新的 GitHub 议题",
-        "d1e243795c": "议题",
-        "be8cf68d9f": "查看议题",
-        "67662ade50": "项目议题",
         "6244a02f46": "在 Linear 中打开",
         "606a85c774": "开放",
         "5e8061b088": "从 {{value0}} {{value1}} 开始工作区",
@@ -2232,11 +2228,9 @@
         "af377b13b1": "{{value0}} 视图",
         "d47248df4d": "Linear 视图模式",
         "f397d513e3": "返回",
-        "b39fe6511d": "项目",
         "8675cd6188": "Linear",
         "733b8f2421": "Linear/视图",
         "bc06ed0fb0": "返回视图",
-        "3cb855080f": "视图",
         "b4e10f096e": "所有者",
         "a04fe7ba73": "可见性",
         "0aa8525950": "模型",
@@ -2907,8 +2901,6 @@
               "7616c986c6": "打开 {{value0}} 议题",
               "openInLinear": "在 Linear 中打开 {{value0}}",
               "93e1f6bfca": "加载中",
-              "98730088a6": "。在 Linear 中搜索或打开以查看完整列表。",
-              "06b887d622": "首先显示",
               "linearLoginUnreadable": "无法读取已保存的 Linear 登录信息。请在设置中重新连接。",
               "f2cc1e0ff6": "Linear/项目",
               "906b5e4cb8": "Linear/项目/{{value0}}",
@@ -5942,7 +5934,8 @@
         },
         "sidebarHostOptions": {
           "3e102f111c": "所有主机",
-          "visibleHostsCount": "{{value0}} 个主机"
+          "hosts": "主机",
+          "visibleHosts_other": "{{count}} 个主机"
         },
         "HostRemoveDialog": {
           "1a2b3c4d5e": "已移除 {{value0}}",
@@ -12980,10 +12973,10 @@
                 "dialog": {
                   "3bc61dc989": "取消",
                   "15efa778e3": "放弃",
-                  "42f89dd030": "文件",
-                  "e7611dca35": "文件",
                   "0d2d88cba5": "此操作无法撤销。",
-                  "1551c14668": "放弃更改？"
+                  "1551c14668": "放弃更改？",
+                  "fileCount_one": "{{count}} 个文件",
+                  "fileCount_other": "{{count}} 个文件"
                 }
               },
               "dropdown": {
@@ -13210,16 +13203,19 @@
             "unresolved": "无法确定哪个主机拥有此工作区。请检查连接后重试。"
           },
           "useFileDeletion": {
-            "72691dfebc": "无法 {{value0}}“{{value1}}”。",
             "d979a4fbb5": "永久删除“{{value0}}”？",
             "92276aceb7": "删除",
             "7fb9435c86": "这会永久删除远程主机上的目录及其内容。此操作无法撤销。",
             "23e98f192f": "这会永久删除远程主机上的文件。此操作无法撤销。",
             "8b8ee9d22f": "无法确定哪个主机拥有此文件。请检查工作区连接后重试。",
-            "af1270b90d": "永久删除 {{count}} 项？",
             "dd029aa5cd": "这会永久删除远程主机上所选的各项及任何目录内容。此操作无法撤销。",
-            "77fdc36183": "删除 {{count}} 个项目？",
-            "fca915a67a": "远程项目将永久删除且无法撤销。本地项目将移至 {{value0}}。"
+            "deleteFailed": "删除“{{name}}”失败。",
+            "deleteItems_other": "删除 {{count}} 项内容？",
+            "mixedRecycleBin": "远程内容将被永久删除，此操作无法撤销。本地内容将移到回收站。",
+            "mixedTrash": "远程内容将被永久删除，此操作无法撤销。本地内容将移到废纸篓。",
+            "permanentlyDeleteItems_other": "永久删除 {{count}} 项内容？",
+            "recycleBinFailed": "无法将“{{name}}”移到回收站。",
+            "trashFailed": "无法将“{{name}}”移到废纸篓。"
           },
           "useFileExplorerHandlers": {
             "32cd9fd991": "无法打开符号链接目标",
@@ -14194,13 +14190,13 @@
             "9ee54037a4": "自定义命令",
             "4b2fc4b80c": "思考努力",
             "be8917699e": "模型",
-            "4d9b6d84df": "不支持。选择 Claude、Codex 或 Custom。",
             "560d4feb00": "自定义",
             "29d119fe95": "智能体",
             "f9382b48a1": "启用AI作者",
             "1c0cb4fabb": "AI 作者",
             "bd14e9c42a": "未配置",
-            "1f9468c5c9": "{{value0}} 不支持"
+            "1f9468c5c9": "{{value0}} 不支持",
+            "unsupportedAgent": "不支持 {{agent}}。请选择 Claude、Codex 或自定义。"
           },
           "BrowserAnimatedVisual": {
             "46df009982": "开始免费试用",
@@ -17043,8 +17039,6 @@
         "continuedOne": "已恢复 1 个聊天",
         "continuedMany": "已恢复 {{value0}} 个聊天",
         "selectAgent": "在 {{value2}} 中恢复 {{value0}} 聊天“{{value1}}”",
-        "resumeSelected": "恢复 {{value0}} 聊天",
-        "resumeSelectedOne": "恢复 1 次聊天",
         "dismissAll": "全部关闭",
         "notContinuedOne": "1 个聊天无法恢复",
         "notContinuedMany": "{{value0}} 个聊天无法恢复",
@@ -17073,7 +17067,9 @@
         "selectMachine": "选择 {{value0}} 上的全部聊天",
         "sshHost": "SSH",
         "done": "完成",
-        "resultListLabel": "本次恢复的聊天"
+        "resultListLabel": "本次恢复的聊天",
+        "resumeChats_one": "恢复 {{count}} 个聊天",
+        "resumeChats_other": "恢复 {{count}} 个聊天"
       },
       "linear-issue-attribute-filter-coverage-notice": {
         "statusPartialTeamCoverage": "过滤 {{value1}} 团队状态中的 {{value0}} — 不包括其余团队的问题。",
@@ -19291,17 +19287,17 @@
     },
     "discard": {
       "deleteUntrackedFileDescription": "这将永久删除此未跟踪文件。此操作无法撤销。",
-      "deleteUntrackedFilesDescription": "这将永久删除这 {{count}} 个未跟踪文件。此操作无法撤销。",
+      "deleteUntrackedFilesDescription_other": "这将永久删除这 {{count}} 个未跟踪文件。此操作无法撤销。",
       "restoreStagedVersionDescription": "这将恢复最后一个暂存版本并放弃删除。此操作无法撤消。",
       "unstagedChangesDescription": "这将恢复对此文件的未暂存更改。此操作无法撤消。",
       "unstagedSelectionIncludingUntrackedDescription": "这将还原未暂存的更改，并永久删除此选择中的任何未跟踪文件。此操作无法撤销。",
-      "unstagedFilesIncludingUntrackedDescription": "这将还原未暂存的更改，并永久删除这 {{count}} 个文件中的任何未跟踪文件。此操作无法撤销。",
+      "unstagedFilesIncludingUntrackedDescription_other": "这将还原未暂存的更改，并永久删除这 {{count}} 个文件中的任何未跟踪文件。此操作无法撤销。",
       "delete": "删除",
       "restore": "恢复",
       "discard": "放弃",
       "discardAll": "全部丢弃",
-      "deleteUntrackedTitleOne": "删除 {{count}} 个未跟踪文件？",
-      "deleteUntrackedTitleMany": "删除 {{count}} 个未跟踪文件？",
+      "deleteUntrackedTitle_one": "删除 {{count}} 个未跟踪文件？",
+      "deleteUntrackedTitle_other": "删除 {{count}} 个未跟踪文件？",
       "deleteCount": "删除 {{count}} 个"
     },
     "createReviewFailure": {
@@ -20036,6 +20032,15 @@
       "inactive": "未生效",
       "permission": "需要授权",
       "unreadLabel": "{{status}} · 未读"
+    },
+    "reviewStatus": {
+      "checksFailed": "{{review}} 检查：失败",
+      "checksPassing": "{{review}} 检查：通过",
+      "checksPending": "{{review}} 检查：待处理",
+      "closed": "{{review}}：已关闭",
+      "draft": "{{review}}：草稿",
+      "merged": "{{review}}：已合并",
+      "open": "{{review}}：开放"
     }
   },
   "tabHoverCard": {
@@ -20658,7 +20663,22 @@
       "localKeyStorage": "本地运行时的密钥存储在此设备上，并在可用时使用 Electron 加密存储。",
       "commentsLoadFailed": "无法加载评论。",
       "updateWorkspaceAccess": "更新 {{workspace}} 的 Linear 访问权限",
-      "workspaceApiKeyHint": "粘贴 {{workspace}} 的个人 API 密钥。如果此工作区已连接，Orca 会替换其已存储的密钥。"
+      "workspaceApiKeyHint": "粘贴 {{workspace}} 的个人 API 密钥。如果此工作区已连接，Orca 会替换其已存储的密钥。",
+      "connect": "连接",
+      "descriptionUpdateFailed": "无法更新描述",
+      "titleUpdateFailed": "无法更新标题",
+      "truncated": {
+        "issues_one": "仅显示前 {{count}} 个议题。请搜索或打开 Linear 查看完整列表。",
+        "issues_other": "仅显示前 {{count}} 个议题。请搜索或打开 Linear 查看完整列表。",
+        "projectIssues_one": "仅显示项目中的前 {{count}} 个议题。请搜索或打开 Linear 查看完整列表。",
+        "projectIssues_other": "仅显示项目中的前 {{count}} 个议题。请搜索或打开 Linear 查看完整列表。",
+        "projects_one": "仅显示前 {{count}} 个项目。请搜索或打开 Linear 查看完整列表。",
+        "projects_other": "仅显示前 {{count}} 个项目。请搜索或打开 Linear 查看完整列表。",
+        "viewIssues_one": "仅显示视图中的前 {{count}} 个议题。请搜索或打开 Linear 查看完整列表。",
+        "viewIssues_other": "仅显示视图中的前 {{count}} 个议题。请搜索或打开 Linear 查看完整列表。",
+        "views_one": "仅显示前 {{count}} 个视图。请搜索或打开 Linear 查看完整列表。",
+        "views_other": "仅显示前 {{count}} 个视图。请搜索或打开 Linear 查看完整列表。"
+      }
     },
     "jira": {
       "connectionFailed": "连接失败",
@@ -20713,8 +20733,8 @@
       }
     }
   },
-  "files": {
-    "recycleBin": "回收站",
-    "trash": "废纸篓"
+  "workspaceOptions": {
+    "activeFilterCount_one": "{{count}} 个筛选条件",
+    "activeFilterCount_other": "{{count}} 个筛选条件"
   }
 }
