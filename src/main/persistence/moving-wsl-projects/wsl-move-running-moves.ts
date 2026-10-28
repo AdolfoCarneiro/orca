@@ -60,6 +60,28 @@ export function isWslMoveUnderwayOnHost(userDataPath: string, distro: string): b
   )
 }
 
+let undoRuns = 0
+
+/**
+ * Marks "Use on this computer again" (or Restore) as running until the returned end runs. Kept out
+ * of the move registry: the driver, the quit prompt and Cancel must not read an undo as a move.
+ */
+export function beginWslMoveUndoRun(): () => void {
+  undoRuns += 1
+  let ended = false
+  return () => {
+    if (!ended) {
+      ended = true
+      undoRuns -= 1
+    }
+  }
+}
+
+/** True while this process brings a moved project back. */
+export function isWslMoveUndoRunning(): boolean {
+  return undoRuns > 0
+}
+
 /** Cancels a run that has not asked the host to commit yet; true when one was running. */
 export function cancelWslMove(distro: string): boolean {
   const running = runningMoves.get(wslMoveJournalKey(distro))

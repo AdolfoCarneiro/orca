@@ -23,6 +23,7 @@ import {
   reloadWslMoveWindowWithWritesHeld
 } from '../persistence/moving-wsl-projects/wsl-move-window-write-hold'
 import type { WslMoveUndoPorts } from './wsl-move-undo-wiring'
+import { beginWslMoveUndoRun } from '../persistence/moving-wsl-projects/wsl-move-running-moves'
 import { runWslMoveHostAutomationsExclusive } from '../persistence/moving-wsl-projects/wsl-move-undo-host-automations'
 import { listEnvironments } from '../../shared/runtime-environment-store'
 import { wasWslHostKeptForPeers } from '../wsl/wsl-host-kept-for-peers'
@@ -78,6 +79,26 @@ export async function releaseWslMoveChainHere(
 }
 
 async function releaseWslMovesHere(
+  userDataPath: string,
+  newestFirst: readonly WslMoveCutover[],
+  unsavedWorkspaceIdsAsked: readonly string[],
+  createUndoPorts: () => WslMoveUndoPorts
+): Promise<WslMoveUseLocallyResult> {
+  // An update install quits the app; it waits until this undo returns (updater-wsl-move-install-hold).
+  const endUndoRun = beginWslMoveUndoRun()
+  try {
+    return await releaseWslMovesHereNow(
+      userDataPath,
+      newestFirst,
+      unsavedWorkspaceIdsAsked,
+      createUndoPorts
+    )
+  } finally {
+    endUndoRun()
+  }
+}
+
+async function releaseWslMovesHereNow(
   userDataPath: string,
   newestFirst: readonly WslMoveCutover[],
   unsavedWorkspaceIdsAsked: readonly string[],
