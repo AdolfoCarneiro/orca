@@ -7389,7 +7389,7 @@
     "kind": "user-visible-call",
     "text": "Couldn't clear terminal",
     "dynamic": false,
-    "count": 1
+    "count": 2
   },
   {
     "filePath": "mobile/src/session/use-mobile-session-terminal-input.ts",
