@@ -1,8 +1,599 @@
 {
+  "accounts": {
+    "screen": {
+      "agentLogin": "使用智能体自身的登录信息",
+      "connecting": "正在连接到主机…",
+      "connectingTo": "正在连接到 {{name}}…",
+      "default": "系统默认",
+      "hostNotFound": "未找到主机",
+      "invalidSnapshot": "主机返回的账户快照无效",
+      "loadingAccounts": "正在加载账户…",
+      "manageAccountsHint": "请在桌面的“设置 → 账户”中添加账户或重新进行账户身份验证。",
+      "refreshAccounts": "刷新账户",
+      "sessionWindow": "5小时",
+      "switchFailed": "无法切换账户",
+      "title": "账户",
+      "useReset": "使用重置机会",
+      "weeklyWindow": "7天"
+    }
+  },
+  "agentHistory": {
+    "panel": {
+      "all": "全部",
+      "emptyScope": "此范围内暂无历史智能体会话。",
+      "loadFailed": "无法加载",
+      "missingResumeId": "此会话缺少恢复 ID。",
+      "noSearchResults": "没有符合搜索条件的会话。",
+      "noSessions": "暂无智能体会话",
+      "placeholder": "搜索会话，repo:、path:",
+      "project": "项目",
+      "refreshSessions": "刷新智能体会话",
+      "resumeFailed": "恢复会话失败。",
+      "sessionQueued": "智能体会话已加入队列。",
+      "skipped_one": "跳过了 {{count}} 个记录",
+      "skipped_other": "跳过了 {{count}} 个记录",
+      "title": "智能体会话历史",
+      "unavailable": "智能体会话历史不可用",
+      "unknownHostPlatform": "无法确定主机平台。",
+      "updateHost": "请更新此主机上的 Orca，以浏览智能体会话历史。",
+      "waitingForHost": "正在等待主机…",
+      "workspace": "工作区"
+    },
+    "resumeTarget": {
+      "differentHost": "此会话属于其他主机。请打开同一主机上的工作区以恢复它。",
+      "openWorkspace": "恢复会话前请先打开一个工作区。",
+      "runtimeUnavailable": "由运行时托管的工作区不支持从历史记录恢复会话。"
+    },
+    "sessionCard": {
+      "untitledSession": "无标题会话"
+    },
+    "sessionHistoryList": {
+      "assistantRole": "助手",
+      "currentWorktree": "当前工作树",
+      "messages_one": "{{count}} 条消息",
+      "messages_other": "{{count}} 条消息",
+      "resumeSession": "恢复智能体会话",
+      "userRole": "用户"
+    },
+    "useAgentHistoryState": {
+      "hostUnreachable": "无法连接到主机",
+      "loadFailed": "无法加载智能体会话",
+      "waitingForHost": "正在等待主机…"
+    },
+    "worktreeNavigationActions": {
+      "agentSessionHistory": "智能体会话历史",
+      "sourceControl": "源代码控制"
+    }
+  },
+  "app": {
+    "mobileOnboarding": {
+      "notificationSettingsFailed": "无法更新通知设置。请重试。",
+      "progress": "入门引导进度",
+      "saveChoiceFailed": "无法保存选择。请重试。",
+      "stepProgress": "第 {{step}} 步，共 {{total}} 步"
+    },
+    "notifications": {
+      "description": "即使应用已关闭，也能收到智能体提醒。提醒通过 Orca 的推送服务及 Apple 或 Google 送达。"
+    },
+    "pair": {
+      "backToHome": "返回首页",
+      "missingCode": "缺少配对码"
+    },
+    "pairConfirm": {
+      "backToHome": "返回首页",
+      "connectTimedOut": "未能在 {{seconds}} 秒内连接，请查看下方日志，了解连接停在哪一步",
+      "connecting": "正在连接…",
+      "description": "已打开来自桌面的配对链接。确认后将此桌面添加到主机列表。",
+      "pairButton": "配对",
+      "pairingFailed": "配对失败：{{error}}",
+      "pairingLog": "配对日志",
+      "title": "要与此桌面配对吗？"
+    },
+    "pairScan": {
+      "cameraDisabledDescription": "请在“设置”中启用相机访问权限，或粘贴配对码。",
+      "cameraDisabledTitle": "相机访问已禁用",
+      "cameraPermissionDescription": "扫描桌面上 Orca 显示的二维码，或粘贴配对码。",
+      "connectTimedOut": "未能在 {{seconds}} 秒内连接，请查看下方日志，了解连接停在哪一步",
+      "connecting": "正在连接…",
+      "invalidPairingCode": "配对码无效，请从电脑上复制后重新粘贴",
+      "invalidQrCode": "无效的 Orca 二维码",
+      "openDesktopStep": "在电脑上打开 Orca",
+      "openMobileSettingsStep": "前往“设置” → “移动端”",
+      "openSettings": "打开设置",
+      "pairingFailed": "配对失败：{{error}}",
+      "pairingLog": "配对日志",
+      "pasteCodeMessage": "复制电脑上二维码下方显示的配对码。",
+      "pasteCodePlaceholder": "orca://pair?code=... 或粘贴配对码",
+      "pasteCodeTitle": "粘贴配对码",
+      "pasteInstead": "改为粘贴配对码",
+      "pastePairingCode": "或粘贴配对码",
+      "scanCodeStep": "扫描二维码",
+      "title": "与桌面配对",
+      "tryAgain": "重试"
+    },
+    "terminalSettings": {
+      "autocomplete": "自动补全与自动纠正",
+      "autocompleteOff": "关闭",
+      "autocompleteOn": "开启",
+      "defaultText": "默认（100%）",
+      "keepPhoneSize": "保持手机尺寸（默认）",
+      "keyboardInputDescription": "自动补全、自动纠正和拼写建议仅适用于缓冲命令输入。点击键盘上方的双箭头按钮，从实时输入切换到缓冲输入，即可先编辑命令，再点击“发送”。默认关闭，以免改写命令、选项或路径。",
+      "keyboardInputHeading": "键盘输入",
+      "largeText": "大（125%）",
+      "largerText": "更大（150%）",
+      "largestText": "最大（200%）",
+      "leaveAppDescription": "在手机上使用终端时，Orca 会缩小终端尺寸以适应屏幕。关闭应用或切换到其他应用时，此设置决定终端是保持手机尺寸（避免交互式 CLI 工具的界面重新排版），还是恢复为桌面尺寸。您随时可以点击桌面横幅中的“恢复”手动调整尺寸。",
+      "leaveAppHeading": "离开应用时",
+      "noPairedDesktops": "尚未配对桌面。配对后即可设置终端行为。",
+      "restoreAfterMinutes_one": "{{count}} 分钟后",
+      "restoreAfterMinutes_other": "{{count}} 分钟后",
+      "restoreAfterSeconds_one": "{{count}} 秒后",
+      "restoreAfterSeconds_other": "{{count}} 秒后",
+      "restoreHost": "恢复 {{name}}",
+      "smallerText": "较小（75%）",
+      "smallestText": "最小（50%）",
+      "textSize": "文字大小",
+      "textSizeDescription": "调整终端文字大小。文字较小时可显示更多列，两侧留有边距；文字较大时显示的列数较少，可横向拖动查看。也可以直接在终端中双指缩放，此设置会随之更新。仅影响当前设备的显示，不会改变桌面终端。",
+      "textSizeHeading": "文字大小",
+      "textSizePickerTitle": "终端文字大小",
+      "title": "终端"
+    }
+  },
   "common": {
-    "back": "返回"
+    "back": "返回",
+    "cancel": "取消",
+    "continue": "继续",
+    "copied": "已复制",
+    "delete": "删除",
+    "ok": "确定",
+    "remove": "移除",
+    "retry": "重试",
+    "save": "保存",
+    "settings": "设置",
+    "unknown": "未知"
+  },
+  "connection": {
+    "connectionHealth": {
+      "checkConnection": "请检查网络连接",
+      "connectFailed": "无法连接",
+      "connected": "已连接",
+      "connecting": "正在连接…",
+      "connectingViaRelay": "正在通过 Relay 连接…",
+      "desktopUnreachable": "无法连接到桌面",
+      "disconnected": "已断开连接",
+      "hostFallback": "主机",
+      "hostOffline": "{{host}} 已离线",
+      "hostOfflineDetail": "请确认电脑已唤醒、Orca 正在运行且已登录",
+      "labelWithHint": "{{label}} — {{hint}}",
+      "pairingInvalid": "配对无效，请重新与桌面配对",
+      "rePairDetail": "请重新与桌面配对",
+      "reconnecting": "正在重新连接…",
+      "relayAccessExpired": "{{host}} 的 Relay 访问权限已过期",
+      "relayConnectFailed": "无法通过 Relay 连接",
+      "relayUnreachable": "无法访问 Relay",
+      "signInDetail": "请在桌面上登录 Orca 以重新连接",
+      "signInRequired": "需要在 {{host}} 上登录",
+      "tailscaleHint": "检查 Tailscale"
+    },
+    "connectionPathLabel": {
+      "directLan": "直连 · LAN",
+      "directTailscale": "直连 · Tailscale",
+      "directViaLan": "通过 LAN 直连",
+      "directViaTailscale": "通过 Tailscale 直连"
+    },
+    "hostEndpoint": {
+      "addressRequired": "请输入主机地址。",
+      "hostnameRequired": "缺少主机名。",
+      "invalidAddress": "地址无效。",
+      "invalidHostname": "主机名无效。",
+      "invalidPort": "端口号必须为 1–65535。",
+      "invalidScheme": "请使用 ws:// 或 wss://（或 host:port）。",
+      "pathOrQueryNotAllowed": "主机地址不得包含路径或查询参数。"
+    },
+    "pairConfirmState": {
+      "invalidCode": "配对码无效",
+      "missingCode": "缺少配对码"
+    },
+    "rpcClientStreamRegistry": {
+      "endedBeforeReady": "流式请求尚未就绪便已结束。",
+      "interrupted": "连接中断"
+    },
+    "rpcClientTerminalBinaryFrame": {
+      "unsupportedFrame": "不支持的终端流帧（操作码 {{opcode}}）。"
+    }
+  },
+  "diagnostics": {
+    "connectionDiagnosticsView": {
+      "authFailed": "身份验证失败",
+      "connected": "已连接",
+      "connecting": "连接中",
+      "copyReport": "复制报告",
+      "diagnosisHeading": "可能的原因",
+      "disconnected": "已断开连接",
+      "handshaking": "握手中",
+      "noEvents": "暂无连接事件。应用尝试连接此主机时，会显示相关事件。",
+      "noHosts": "没有已配对的主机。",
+      "privacyHint": "发送一份经过脱敏且大小受限的报告，包含主机名、端点、版本、连接状态和事件，绝不包含终端内容或凭据。",
+      "reconnecting": "重新连接中",
+      "retrySending": "重试发送",
+      "sendDiagnostics": "向 Orca 发送诊断信息",
+      "sending": "正在发送…",
+      "sent": "诊断信息已发送",
+      "stateWithAttempt": "{{state}} · 第 {{attempts}} 次尝试",
+      "title": "网络诊断"
+    },
+    "mobileWebBundleProbeRow": {
+      "assets": "资源",
+      "build": "构建版本",
+      "bundle": "资源包",
+      "bytes": "字节数",
+      "connecting": "正在连接…",
+      "elapsed": "耗时",
+      "elapsedMilliseconds": "{{elapsedMs}} 毫秒",
+      "fetchBundle": "获取移动端网页资源包",
+      "fetching": "正在获取资源包…",
+      "host": "主机",
+      "unknownHost": "未知主机"
+    },
+    "mobileWebShellUpdateFailureRow": {
+      "title": "工作区更新"
+    },
+    "troubleshootCommonIssues": {
+      "allowNotifications": "检查系统设置是否允许 Orca 发送通知，并确认专注模式或勿扰模式已关闭。",
+      "checkTailnet": "确认桌面未休眠，并在 tailnet 中显示为已连接。",
+      "desktopTitle": "桌面应用未运行",
+      "disableVpn": "关闭该 VPN，或启用分流功能／“允许 LAN”选项。",
+      "firewallTitle": "防火墙拦截端口 6768",
+      "keepTailscaleOn": "100.x.x.x 或 *.ts.net 等主机地址通过 Tailscale 连接，请保持 Tailscale 开启。",
+      "macosFirewall": "macOS：系统设置 → 网络 → 防火墙，允许 Orca 通过。",
+      "notificationNetwork": "尝试切换到蜂窝网络或其他 Wi-Fi 网络。如果切换后能收到通知，则原网络可能导致通知延迟。",
+      "notificationsTitle": "推送通知",
+      "openDesktop": "桌面上的 Orca 必须保持运行才能接受连接。",
+      "pairAfterUpdate": "更新后可能需要重新扫描二维码配对。",
+      "reconnectWifi": "尝试在两台设备上重新连接 WiFi。",
+      "restartBothApps": "如果持续超时，请重启手机端和桌面端应用。",
+      "restartDesktop": "尝试重启 Orca，移动端连接服务会随应用启动。",
+      "restartTailscale": "iOS/Android 可能在无提示的情况下导致隧道卡住：请在 Tailscale 应用中关闭 Tailscale 后再重新开启。",
+      "restrictedNetwork": "公司或学校网络可能阻止 P2P 连接，请尝试使用个人热点。",
+      "retryHost": "返回主机列表，点按要连接的主机以重试。",
+      "sameNetwork": "两台设备必须处于同一 LAN（通过 Tailscale 连接时除外）。",
+      "sameSubnet": "以太网和 WiFi 必须位于同一子网。",
+      "tailscaleTitle": "无法访问 Tailscale 主机",
+      "timeoutTitle": "连接超时",
+      "updateTailscale": "请更新 Tailscale 应用，近期版本修复了重新连接时的问题。",
+      "vpnRouting": "Tailscale 以外的 VPN 可能会将本地流量经由远程服务器转发。",
+      "vpnTitle": "其他 VPN 干扰",
+      "wifiSignal": "检查手机的 WiFi 信号强度。",
+      "wifiTitle": "WiFi 网络不同",
+      "windowsFirewall": "Windows：Defender 防火墙 → 允许应用，允许 Orca 通过专用网络。"
+    },
+    "troubleshootView": {
+      "commonIssues": "常见问题",
+      "runAgain": "重新运行",
+      "runDiagnostics": "运行诊断",
+      "running": "运行中…",
+      "title": "故障排查",
+      "viewNetworkDiagnostics": "查看网络诊断"
+    },
+    "useTroubleshootDiagnostics": {
+      "connected": "已连接",
+      "hostDataFailed": "无法读取主机数据",
+      "hostTestFailed": "无法测试",
+      "hosts": "主机",
+      "internet": "互联网",
+      "noConnection": "未连接",
+      "noPairedHosts": "尚未配对，扫描二维码即可配对",
+      "pairedCount": "已配对 {{count}} 台",
+      "pairedHosts": "已配对的主机",
+      "platform": "平台",
+      "reachable": "可通过 {{endpoint}} 访问",
+      "unexpectedResponse": "响应异常"
+    },
+    "webShellUpdateFailureCopy": {
+      "failedAgo": "来自 {{hostName}} 的上次更新于 {{time}} 前失败：{{reason}}{{offered}}。{{outcome}}",
+      "failedJustNow": "来自 {{hostName}} 的上次更新刚刚失败：{{reason}}{{offered}}。{{outcome}}"
+    }
+  },
+  "dictation": {
+    "setup": {
+      "alreadyActive": "电脑或另一部手机正在使用听写。",
+      "cloudModelNeedsKey": "需要 OpenAI 密钥",
+      "deleteFailed": "删除模型失败",
+      "desktopUpdateRequired": "请更新已配对的 Orca 桌面应用，以使用移动端语音设置。",
+      "downloadFailed": "启动下载失败",
+      "loadFailed": "加载听写模型失败",
+      "repairRequired": "请将此手机与电脑重新配对，以使用听写。",
+      "serverUpdateRequired": "请更新此服务器上的 Orca，以使用语音听写。",
+      "sessionLost": "听写与电脑的连接已断开。请重试。",
+      "updateFailed": "更新听写设置失败"
+    }
+  },
+  "home": {
+    "accountUsageCards": {
+      "sectionHeading": "账户使用情况",
+      "sessionWindow": "5小时",
+      "systemDefault": "系统默认",
+      "weeklyWindow": "7天"
+    },
+    "appUpdateCard": {
+      "dismissAccessibilityLabel": "关闭 Orca {{version}} 更新提示",
+      "title": "Orca {{version}} 已可用",
+      "updateAccessibilityLabel": "Orca {{version}} 已可用，点按更新",
+      "updateHint": "点按更新"
+    },
+    "emptyState": {
+      "connectedDescription": "桌面将显示在这里。所有数据均采用端到端加密。",
+      "connectedTitle": "已连接",
+      "description": "与电脑上的 Orca 配对，即可在手机上查看智能体、进入任意终端并推进工作。",
+      "openDesktopDescription": "前往“设置” → “移动端”，生成配对二维码。",
+      "openDesktopTitle": "打开 Orca 桌面应用",
+      "pairDesktop": "配对桌面",
+      "scanCodeDescription": "点按上方按钮打开扫码器，然后对准屏幕上的二维码。",
+      "scanCodeTitle": "扫描二维码",
+      "stepsHeading": "使用方法",
+      "title": "连接桌面"
+    },
+    "listFooter": {
+      "hostPickerTitle": "选择打开任务的主机",
+      "resumeHeading": "继续",
+      "tasksHeading": "任务"
+    },
+    "listHeader": {
+      "agentTime": "智能体时间",
+      "agentsSpawned": "已启动智能体",
+      "daysHours": "{{days}} 天 {{hours}} 小时",
+      "desktopsHeading": "台式机",
+      "hoursMinutes": "{{hours}} 小时 {{minutes}} 分钟",
+      "minutes": "{{minutes}} 分钟",
+      "prsCreated": "已创建 PR",
+      "title": "欢迎回来"
+    },
+    "screen": {
+      "pairingCheckFailed": "无法检查配对状态",
+      "removeHostFailed": "无法移除主机",
+      "removeHostMessage": "要移除“{{name}}”吗？之后可重新配对。",
+      "removeHostTitle": "移除主机",
+      "tryAgain": "请重试。"
+    },
+    "tasksCard": {
+      "noSources": "未连接任务来源",
+      "openProviderTasks": "打开 {{provider}} 任务",
+      "title": "任务"
+    }
+  },
+  "hooks": {
+    "dictationDesktopStart": {
+      "recordingFailed": "麦克风录音启动失败"
+    },
+    "useMobileDictation": {
+      "inputClosed": "此会话已不再接受输入，语音听写已停止。请重试。",
+      "microphoneInitFailed": "麦克风初始化失败",
+      "microphoneInterrupted": "麦克风录音中断，语音听写已停止。请重试。",
+      "microphonePermissionDenied": "麦克风权限被拒绝",
+      "noSpeech": "未检测到语音。"
+    }
+  },
+  "host": {
+    "edit": {
+      "address": "地址",
+      "addressHint": "支持 IP、host:port 或 ws:// / wss://。wss:// URL 未指定端口时使用 443。仅输入地址时保留当前端口（或使用 6768）。",
+      "connectionPreview": "连接到 {{endpoint}}",
+      "goBack": "返回",
+      "help": "更改显示名称或连接地址。名称留空时，将使用桌面提供的名称。更改地址只会切换此手机的连接地址，不会重新配对。当同一桌面可通过不同 IP 访问时（例如家庭局域网与 Tailscale），可使用此功能。",
+      "hostNamePlaceholder": "主机名",
+      "hostRemoved": "此主机已从这部手机上移除。",
+      "loadFailed": "加载主机失败。",
+      "missingHost": "缺少主机信息。",
+      "name": "名称",
+      "saveFailed": "保存主机失败。",
+      "saveHost": "保存主机",
+      "title": "编辑主机"
+    }
+  },
+  "hostScreen": {
+    "hostListActionSheetActions": {
+      "connect": "连接",
+      "disconnect": "断开连接",
+      "editHost": "编辑主机",
+      "networkDiagnostics": "网络诊断",
+      "reconnect": "重新连接"
+    },
+    "hostPendingCreationRow": {
+      "creatingWorkspace": "正在创建工作区…"
+    },
+    "hostRailActions": {
+      "accounts": "账户",
+      "closeSearch": "关闭搜索",
+      "floatingWorkspace": "浮动工作区",
+      "newWorkspace": "新工作区",
+      "searchWorkspaces": "搜索工作区",
+      "tasks": "任务"
+    },
+    "hostScreenHeader": {
+      "accounts": "账户",
+      "activeFilters_one": "工作区选项（已启用 {{count}} 个筛选条件）",
+      "activeFilters_other": "工作区选项（已启用 {{count}} 个筛选条件）",
+      "backToHosts": "返回主机列表",
+      "closeSearch": "关闭搜索",
+      "floatingWorkspace": "浮动工作区",
+      "hideSidebar": "隐藏侧边栏",
+      "reconnect": "重新连接",
+      "searchWorkspaces": "搜索工作区",
+      "tasks": "任务",
+      "workspaceOptions": "工作区选项"
+    },
+    "hostScreenOverlays": {
+      "deleteConfirmMessage": "要删除“{{name}}”（{{branch}}）吗？",
+      "deleteWorktree": "删除工作树",
+      "pin": "固定",
+      "primaryWorktreeDeleteHint": "主工作树不能删除。请改为移除项目。",
+      "removeHost": "移除主机",
+      "removeHostMessage": "要移除“{{name}}”吗？之后可重新配对。",
+      "sleep": "休眠",
+      "unpin": "取消固定"
+    },
+    "hostWorkspaceList": {
+      "searchPlaceholder": "搜索工作区…",
+      "searchWorkspaces": "搜索工作区"
+    },
+    "workspaceDetailsSheet": {
+      "checksFailing": "检查项：未通过",
+      "checksPassing": "检查项：已通过",
+      "checksPending": "检查项：等待中",
+      "closed": "已关闭",
+      "createdByAutomation": "由自动化创建",
+      "createdByNamedAutomation": "由自动化“{{name}}”创建",
+      "createdFromCli": "通过 Orca CLI 创建",
+      "draft": "草稿",
+      "merged": "已合并",
+      "openLink": "打开 {{label}}",
+      "openLinkWithTitle": "打开 {{label}}，{{title}}",
+      "prOpen": "开放"
+    },
+    "workspaceOptionControls": {
+      "agentActivity": "智能体活动",
+      "agentActivityLayout": "智能体活动布局",
+      "agentActivitySort": "智能体活动",
+      "agentActivitySortDescription": "需要关注的智能体，然后是最近的活动。",
+      "agentStatuses": "智能体状态",
+      "allHosts": "所有主机",
+      "allProjects": "所有项目",
+      "automation": "自动化",
+      "branchFolderPath": "分支 / 文件夹路径",
+      "branchName": "分支名称",
+      "compact": "紧凑",
+      "detailed": "详细的",
+      "fullList": "完整列表",
+      "githubIssues": "GitHub 议题",
+      "githubTicket": "GitHub 票证",
+      "host": "主机",
+      "hover": "悬停",
+      "jiraIssue": "Jira 议题",
+      "jiraIssues": "Jira 议题",
+      "linearIssue": "Linear 议题",
+      "linearIssues": "Linear 议题",
+      "manual": "手动的",
+      "manualProjectOrderDescription": "拖动项目进行排列",
+      "manualWorkspaceOrderDescription": "拖动工作区以将它们排列在每个组中。",
+      "name": "名称",
+      "none": "无",
+      "notes": "笔记",
+      "ports": "端口",
+      "pr": "PR",
+      "prMrLink": "PR/MR链接",
+      "project": "项目",
+      "recent": "最近的",
+      "recentProjectOrderDescription": "最近的工作区活动",
+      "searchProjects": "搜索项目",
+      "searchProjectsPlaceholder": "搜索项目…",
+      "selectedCount": "{{count}} / {{total}}",
+      "status": "状态"
+    },
+    "workspaceOptionsSheet": {
+      "backToOptions": "返回工作区选项",
+      "cardDisplay": "卡片显示",
+      "cardLayout": "卡片布局",
+      "clearFilters": "清除筛选",
+      "exceptDefaultBranch": "默认分支除外",
+      "filters": "筛选条件",
+      "groupBy": "分组依据",
+      "hideAutomationCreated": "隐藏自动化创建的工作区",
+      "hideCliCreated": "隐藏 CLI 创建的工作区",
+      "hideDefaultBranch": "隐藏默认分支",
+      "hideDetachedHead": "隐藏分离 HEAD",
+      "hideOtherClientWorkspaces": "隐藏其他客户端工作区",
+      "hideSleeping": "隐藏休眠项",
+      "hosts": "主机",
+      "localLinux": "本地 Linux",
+      "localMac": "本地 Mac",
+      "localWindows": "本地 Windows",
+      "projectOrder": "项目排序",
+      "projects": "项目",
+      "savingToDesktop": "正在保存到桌面",
+      "show": "显示",
+      "showProperties": "显示属性",
+      "sortBy": "排序方式",
+      "syncedAcrossDevices": "已在各设备间同步",
+      "thisComputer": "本机",
+      "waitingForDesktop": "仍在等待桌面响应",
+      "workspaceOptions": "工作区选项"
+    }
+  },
+  "navigation": {
+    "hostStackScreens": {
+      "accounts": "账户",
+      "agentSessionHistory": "智能体会话历史",
+      "changes": "更改",
+      "editHost": "编辑主机",
+      "host": "主机",
+      "pullRequest": "PR",
+      "sourceControl": "源代码控制",
+      "tasks": "任务",
+      "terminal": "终端",
+      "workspace": "工作区"
+    }
+  },
+  "notifications": {
+    "notificationDeliverySection": {
+      "footer": "提醒类型遵循各个已配对桌面的通知设置。连续 7 天未使用此应用后，通知将暂停；打开应用并重新连接即可恢复。",
+      "onlyWhenAway": "仅在离开桌面时",
+      "onlyWhenAwayHint": "键盘和鼠标均无操作达 3 分钟后，或锁屏时。",
+      "sound": "通知声音",
+      "suppressWhileFocused": "查看时不提醒",
+      "suppressWhileFocusedHint": "不发送此手机上当前打开的工作区的提醒。"
+    }
+  },
+  "onboarding": {
+    "notificationOnboardingPreview": {
+      "claudeNeedsInput": "Claude 需要输入",
+      "codexFinished": "Codex 已完成",
+      "now": "现在",
+      "testsPassing": "测试已通过。",
+      "waitingOnYou": "等待您的回应。"
+    },
+    "onboardingPage": {
+      "enableAgentNotifications": "启用智能体通知",
+      "enableNotifications": "启用通知",
+      "keepTerminal": "继续使用终端",
+      "notNow": "暂不",
+      "notificationsDescription": "智能体完成任务或等待响应时，即使未使用应用，此手机也会收到通知。",
+      "notificationsDisclosure": "桌面空闲 3 分钟后，通过 Orca 的推送服务发送通知。可随时在“设置”中更改。",
+      "notificationsTitle": "智能体需要您时，及时收到提醒",
+      "openInChatUi": "在聊天界面中打开会话",
+      "openInTerminal": "在终端中打开会话",
+      "sessionViewDescription": "选择在此设备上以终端还是聊天界面打开受支持的智能体会话。长按会话标签页可切换视图，也可稍后在“设置”中更改默认方式。",
+      "sessionViewTitle": "以何种方式打开会话？",
+      "skipNotifications": "暂不启用通知",
+      "useChatUi": "使用聊天界面"
+    }
   },
   "settings": {
+    "aboutScreen": {
+      "openLinkFailed": "无法打开链接。请重试。",
+      "socialProfile": "Orca 的 X 主页",
+      "sourceCode": "Orca 源代码",
+      "tagline": "助力开发者百倍提效的开源智能体 IDE",
+      "title": "关于",
+      "website": "Orca 网站"
+    },
+    "appUpdateSettingsRows": {
+      "checkFailed": "检查失败",
+      "checkUpdates": "检查更新",
+      "checkUpdatesStatus": "检查更新，{{status}}",
+      "checking": "检查中…",
+      "installedVersion": "版本 {{version}}",
+      "lastCheckedDays_one": "上次检查：{{count}} 天前",
+      "lastCheckedDays_other": "上次检查：{{count}} 天前",
+      "lastCheckedHours_one": "上次检查：{{count}} 小时前",
+      "lastCheckedHours_other": "上次检查：{{count}} 小时前",
+      "lastCheckedJustNow": "上次检查：刚刚",
+      "lastCheckedMinutes_one": "上次检查：{{count}} 分钟前",
+      "lastCheckedMinutes_other": "上次检查：{{count}} 分钟前",
+      "neverChecked": "从未",
+      "upToDate": "已是最新",
+      "update": "更新",
+      "updateToVersion": "更新至 Orca {{version}}"
+    },
     "appearance": {
       "language": {
         "description": "选择“系统”时，将跟随此设备的语言。权限提示始终使用设备语言。",
@@ -17,6 +608,157 @@
         "system": "系统"
       },
       "title": "外观"
+    },
+    "browserSettingsScreen": {
+      "desktopBrowser": "桌面 Orca 浏览器",
+      "desktopBrowserDescription": "在已配对桌面通过串流提供的浏览器中打开。",
+      "linksDescription": "选择点按终端输出中的 HTTP(S) 链接时使用的浏览器。",
+      "linksHeading": "链接",
+      "loadFailed": "无法加载浏览器偏好设置。请重试。",
+      "openTerminalLinks": "打开终端链接",
+      "phoneBrowser": "手机浏览器",
+      "phoneBrowserDescription": "在此手机的 Safari、Chrome 或其他浏览器中打开。",
+      "saveFailed": "无法保存浏览器偏好设置。请重试。",
+      "title": "浏览器"
+    },
+    "menuItems": {
+      "about": "关于",
+      "appearance": "外观",
+      "browser": "浏览器",
+      "chatUi": "聊天界面",
+      "notifications": "通知",
+      "terminal": "终端",
+      "troubleshooting": "故障排查",
+      "voice": "语音"
+    },
+    "menuScreen": {
+      "privacyPolicy": "隐私政策",
+      "support": "支持"
+    },
+    "nativeChatSettingsScreen": {
+      "defaultViewDescription": "选择受支持的智能体会话（Claude、Codex 及其他支持聊天的智能体）在此设备上的打开方式。终端显示原始 CLI；聊天界面则显示与桌面应用类似的聊天界面。您仍可通过长按菜单切换单个会话的视图。",
+      "defaultViewHeading": "默认视图",
+      "off": "关闭",
+      "on": "开启",
+      "openInChatUi": "在聊天界面中打开会话",
+      "title": "聊天界面"
+    },
+    "nativeNotificationDeliverySettings": {
+      "loadFailed": "无法加载通知投递设置。请重新打开此页面重试。",
+      "saveFailed": "无法保存通知投递设置。请重试。",
+      "updateDesktopHint": "配对已更新的桌面，即可在此手机上接收通知。"
+    },
+    "notificationDisplayTest": {
+      "accepted": "Orca 推送服务已接受请求。请查看通知。",
+      "connectDesktop": "请先连接桌面，然后重试。",
+      "description": "通过 Orca 推送服务发送测试通知。",
+      "desktopUnreachable": "无法连接到桌面。请重试。",
+      "loadFailed": "无法加载已配对的桌面。",
+      "pairDesktop": "请先配对桌面，然后重试。",
+      "pushServiceFailed": "无法通过 Orca 推送服务发送。请重试。",
+      "rateLimited": "通知发送过于频繁。请稍后重试。",
+      "reconnectPhone": "请重新连接，将此手机注册为通知接收设备。",
+      "sendButton": "发送测试通知",
+      "sendFailed": "无法发送测试推送。",
+      "sending": "正在发送…",
+      "troubleReceivingAlerts": "接收提醒遇到问题？",
+      "troubleshooting": "故障排查",
+      "updateDesktop": "请更新桌面以运行此测试。"
+    },
+    "notificationSettingsScreen": {
+      "description": "智能体需要您提供输入或已完成任务时，在此设备上接收通知。",
+      "enableNotifications": "启用通知",
+      "loadFailed": "无法加载通知设置。请重试。",
+      "notificationsBlocked": "系统设置中已禁用通知。",
+      "openSettings": "打开设置",
+      "openSettingsFailed": "无法打开系统设置。请重试。",
+      "saveFailed": "无法保存通知设置。请重试。",
+      "title": "通知"
+    },
+    "pendingCredentialCleanupCard": {
+      "cleanupUnconfirmed_one": "无法确认此设备上的 {{count}} 个凭据是否已清理。",
+      "cleanupUnconfirmed_other": "无法确认此设备上的 {{count}} 个凭据是否已清理。",
+      "retryCleanup": "重试清除配对凭据",
+      "retryFailed": "仍无法确认清理结果。请稍后重试。",
+      "statusCheckFailed": "无法检查此设备上的清理状态。为确保安全，请重试。",
+      "title": "配对凭据清理"
+    },
+    "uiLanguageSettingsSection": {
+      "pseudoLanguage": "伪本地化（en-XA）"
+    },
+    "voiceSettingsScreen": {
+      "connectDesktop": "连接到桌面后即可管理语音设置。",
+      "deleteFailed": "删除失败",
+      "dictationDescription": "通过听写向桌面上任意获得焦点的窗格输入文本。",
+      "dictationHeading": "听写",
+      "dictationMode": "听写模式",
+      "dictationModeDescription": "切换：按一次开始，再按一次停止。按住：按住期间进行听写。",
+      "downloadFailed": "下载失败",
+      "enableDictation": "启用语音听写",
+      "holdMode": "按住",
+      "loadFailed": "加载语音设置失败",
+      "loadFailedMessage": "加载语音设置失败。",
+      "noneSelected": "未选择",
+      "selectModelFailed": "无法选择模型",
+      "speechModel": "语音模型",
+      "speechModelHeading": "语音模型",
+      "title": "语音",
+      "toggleMode": "切换",
+      "updateFailed": "无法更新"
+    }
+  },
+  "webShell": {
+    "shellStateScreen": {
+      "checkingHost": "正在检查主机",
+      "connectToDownload": "连接到此主机以下载最新版本的应用",
+      "documentLoadFailed": "无法打开已下载的应用。",
+      "downloadFailed": "无法从此主机下载最新版本的应用。",
+      "hostProfileUnreadable": "无法在此设备上读取此主机的信息。请重试。",
+      "isolationUnavailable": "此设备的 WebView 版本过旧，无法安全打开工作区。",
+      "openingWorkspace": "正在打开工作区",
+      "renderProcessGone": "工作区已停止响应。",
+      "statusUnreadable": "无法读取此主机的状态。请返回后重新打开。",
+      "tryAgain": "重试"
+    }
+  },
+  "worktree": {
+    "agentRowDisplay": {
+      "blocked": "已阻塞",
+      "days_one": "{{count}} 天",
+      "days_other": "{{count}} 天",
+      "done": "已完成",
+      "failed": "失败",
+      "hours_one": "{{count}} 小时",
+      "hours_other": "{{count}} 小时",
+      "idle": "空闲",
+      "interrupted": "已中断",
+      "justNow": "刚刚",
+      "minutes_one": "{{count}} 分钟",
+      "minutes_other": "{{count}} 分钟",
+      "monitoring": "监控后台任务",
+      "stopping": "正在停止…",
+      "unconfirmed": "无法确认",
+      "unverifiable": "暂无近期更新",
+      "waiting": "等待输入",
+      "working": "工作中"
+    },
+    "hostWorkspaceListStates": {
+      "checkHost": "请确认电脑已唤醒且 Orca 正在运行",
+      "empty": "暂无工作区",
+      "loadFailed": "无法从此主机加载工作区",
+      "noFilterMatches": "没有符合筛选条件的工作区",
+      "noMatches": "没有匹配的工作区",
+      "reopen": "重新打开以更新",
+      "reopenDetail": "此页面尚无法识别此主机的工作区列表格式。",
+      "retrying": "worktree.ps 失败（{{error}}），正在自动重试"
+    },
+    "workspaceListSections": {
+      "all": "全部",
+      "closed": "已关闭",
+      "done": "已完成",
+      "inProgress": "进行中",
+      "inReview": "评审中",
+      "pinned": "已固定"
     }
   }
 }

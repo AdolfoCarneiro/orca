@@ -1,8 +1,599 @@
 {
+  "accounts": {
+    "screen": {
+      "agentLogin": "Agenteneigene Anmeldung verwenden",
+      "connecting": "Verbindung zum Host wird hergestellt…",
+      "connectingTo": "Verbindung zu {{name}} wird hergestellt…",
+      "default": "Systemstandard",
+      "hostNotFound": "Host nicht gefunden",
+      "invalidSnapshot": "Ungültiger Kontodaten-Snapshot vom Host",
+      "loadingAccounts": "Konten werden geladen…",
+      "manageAccountsHint": "Konten auf dem Desktop unter Einstellungen → Konten hinzufügen oder erneut authentifizieren.",
+      "refreshAccounts": "Konten aktualisieren",
+      "sessionWindow": "5 h",
+      "switchFailed": "Konto konnte nicht gewechselt werden",
+      "title": "Konten",
+      "useReset": "Jetzt zurücksetzen",
+      "weeklyWindow": "7 Tage"
+    }
+  },
+  "agentHistory": {
+    "panel": {
+      "all": "Alle",
+      "emptyScope": "Keine früheren Agentensitzungen in diesem Bereich.",
+      "loadFailed": "Laden fehlgeschlagen",
+      "missingResumeId": "Dieser Sitzung fehlt eine ID zum Fortsetzen.",
+      "noSearchResults": "Keine Sitzungen entsprechen der Suche.",
+      "noSessions": "Keine Agentensitzungen",
+      "placeholder": "Sitzungen suchen, repo:, path:",
+      "project": "Projekt",
+      "refreshSessions": "Agentensitzungen aktualisieren",
+      "resumeFailed": "Sitzung konnte nicht fortgesetzt werden.",
+      "sessionQueued": "Agentensitzung eingereiht.",
+      "skipped_one": "{{count}} Transkript übersprungen",
+      "skipped_other": "{{count}} Transkripte übersprungen",
+      "title": "Verlauf der Agentensitzungen",
+      "unavailable": "Verlauf der Agentensitzungen nicht verfügbar",
+      "unknownHostPlatform": "Die Host-Plattform konnte nicht ermittelt werden.",
+      "updateHost": "Orca auf diesem Host aktualisieren, um den Verlauf der Agentensitzungen anzuzeigen.",
+      "waitingForHost": "Warten auf Host…",
+      "workspace": "Arbeitsbereich"
+    },
+    "resumeTarget": {
+      "differentHost": "Diese Sitzung gehört zu einem anderen Host. Zum Fortsetzen einen Arbeitsbereich auf demselben Host öffnen.",
+      "openWorkspace": "Vor dem Fortsetzen einer Sitzung einen Arbeitsbereich öffnen.",
+      "runtimeUnavailable": "Bei Arbeitsbereichen, die in einer Laufzeitumgebung gehostet werden, ist das Fortsetzen aus dem Verlauf nicht verfügbar."
+    },
+    "sessionCard": {
+      "untitledSession": "Sitzung ohne Titel"
+    },
+    "sessionHistoryList": {
+      "assistantRole": "Assistent",
+      "currentWorktree": "Aktueller Worktree",
+      "messages_one": "{{count}} Nachricht",
+      "messages_other": "{{count}} Nachrichten",
+      "resumeSession": "Agentensitzung fortsetzen",
+      "userRole": "Benutzer"
+    },
+    "useAgentHistoryState": {
+      "hostUnreachable": "Host nicht erreichbar",
+      "loadFailed": "Agentensitzungen konnten nicht geladen werden",
+      "waitingForHost": "Warten auf Host…"
+    },
+    "worktreeNavigationActions": {
+      "agentSessionHistory": "Verlauf der Agentensitzungen",
+      "sourceControl": "Quellcodeverwaltung"
+    }
+  },
+  "app": {
+    "mobileOnboarding": {
+      "notificationSettingsFailed": "Die Benachrichtigungseinstellungen konnten nicht aktualisiert werden. Erneut versuchen.",
+      "progress": "Einrichtungsfortschritt",
+      "saveChoiceFailed": "Die Auswahl konnte nicht gespeichert werden. Erneut versuchen.",
+      "stepProgress": "Schritt {{step}} von {{total}}"
+    },
+    "notifications": {
+      "description": "Benachrichtigungen von Agenten auch bei geschlossener App erhalten. Die Zustellung erfolgt über den Push-Dienst von Orca und Apple oder Google."
+    },
+    "pair": {
+      "backToHome": "Zurück zur Startseite",
+      "missingCode": "Kopplungscode fehlt"
+    },
+    "pairConfirm": {
+      "backToHome": "Zurück zur Startseite",
+      "connectTimedOut": "Verbindung konnte nicht innerhalb von {{seconds}} s hergestellt werden – das Protokoll unten zeigt, wo der Vorgang hängen blieb",
+      "connecting": "Verbindung wird hergestellt…",
+      "description": "Ein Kopplungslink vom Desktop wurde geöffnet. Bestätigen, um diesen Desktop zu den Hosts hinzuzufügen.",
+      "pairButton": "Koppeln",
+      "pairingFailed": "Kopplung fehlgeschlagen: {{error}}",
+      "pairingLog": "Kopplungsprotokoll",
+      "title": "Mit diesem Desktop koppeln?"
+    },
+    "pairScan": {
+      "cameraDisabledDescription": "Den Kamerazugriff in den Einstellungen aktivieren oder stattdessen den Kopplungscode einfügen.",
+      "cameraDisabledTitle": "Kamerazugriff deaktiviert",
+      "cameraPermissionDescription": "Den QR-Code in Orca auf dem Desktop scannen oder stattdessen den Kopplungscode einfügen.",
+      "connectTimedOut": "Verbindung konnte nicht innerhalb von {{seconds}} s hergestellt werden – das Protokoll unten zeigt, wo der Vorgang hängen blieb",
+      "connecting": "Verbindung wird hergestellt…",
+      "invalidPairingCode": "Kein gültiger Kopplungscode – vom Computer kopieren und erneut einfügen",
+      "invalidQrCode": "Kein gültiger Orca-QR-Code",
+      "openDesktopStep": "Orca auf dem Computer öffnen",
+      "openMobileSettingsStep": "Einstellungen → Mobil öffnen",
+      "openSettings": "Einstellungen öffnen",
+      "pairingFailed": "Kopplung fehlgeschlagen: {{error}}",
+      "pairingLog": "Kopplungsprotokoll",
+      "pasteCodeMessage": "Den Code kopieren, der auf dem Computer unter dem QR-Code angezeigt wird.",
+      "pasteCodePlaceholder": "orca://pair?code=... oder den Code einfügen",
+      "pasteCodeTitle": "Kopplungscode einfügen",
+      "pasteInstead": "Stattdessen Code einfügen",
+      "pastePairingCode": "Oder Kopplungscode einfügen",
+      "scanCodeStep": "QR-Code scannen",
+      "title": "Mit Desktop koppeln",
+      "tryAgain": "Erneut versuchen"
+    },
+    "terminalSettings": {
+      "autocomplete": "Autovervollständigung & Autokorrektur",
+      "autocompleteOff": "Aus",
+      "autocompleteOn": "Ein",
+      "defaultText": "Standard (100 %)",
+      "keepPhoneSize": "Smartphone-Größe beibehalten (Standard)",
+      "keyboardInputDescription": "Autovervollständigung, Autokorrektur und Rechtschreibvorschläge gelten nur für die gepufferte Befehlseingabe. Mit der Doppelpfeil-Schaltfläche über der Tastatur von der direkten zur gepufferten Eingabe wechseln und den Befehl vor dem Tippen auf „Senden“ bearbeiten. Standardmäßig deaktiviert, damit Befehle, Flags und Pfade nicht verändert werden.",
+      "keyboardInputHeading": "TASTATUREINGABE",
+      "largeText": "Groß (125 %)",
+      "largerText": "Größer (150 %)",
+      "largestText": "Am größten (200 %)",
+      "leaveAppDescription": "Während ein Terminal auf dem Smartphone verwendet wird, verkleinert Orca es auf die Bildschirmgröße des Smartphones. Diese Einstellung legt fest, ob es beim Schließen oder Verlassen der App in Smartphone-Größe bleibt (damit interaktive CLI-Tools ihr Layout beibehalten) oder wieder an den Desktop angepasst wird. Über „Wiederherstellen“ im Desktop-Banner lässt sich die Größe jederzeit manuell anpassen.",
+      "leaveAppHeading": "BEIM VERLASSEN DER APP",
+      "noPairedDesktops": "Noch keine Desktops gekoppelt. Einen Desktop koppeln, um das Terminalverhalten festzulegen.",
+      "restoreAfterMinutes_one": "Nach {{count}} Minute",
+      "restoreAfterMinutes_other": "Nach {{count}} Minuten",
+      "restoreAfterSeconds_one": "Nach {{count}} s",
+      "restoreAfterSeconds_other": "Nach {{count}} s",
+      "restoreHost": "{{name}} wiederherstellen",
+      "smallerText": "Kleiner (75 %)",
+      "smallestText": "Am kleinsten (50 %)",
+      "textSize": "Textgröße",
+      "textSizeDescription": "Die Textgröße im Terminal anpassen. Bei kleinerer Schrift passen mehr Spalten mit Seitenrändern auf den Bildschirm; größere Schrift zeigt weniger Spalten – zum Verschieben seitlich ziehen. Die Größe lässt sich auch direkt im Terminal durch Zusammenziehen oder Spreizen zweier Finger ändern; dabei wird diese Einstellung aktualisiert. Gilt nur für die Anzeige auf diesem Gerät und ändert das Desktop-Terminal nicht.",
+      "textSizeHeading": "TEXTGRÖSSE",
+      "textSizePickerTitle": "Textgröße im Terminal",
+      "title": "Terminal"
+    }
+  },
   "common": {
-    "back": "Zurück"
+    "back": "Zurück",
+    "cancel": "Abbrechen",
+    "continue": "Fortfahren",
+    "copied": "Kopiert",
+    "delete": "Löschen",
+    "ok": "OK",
+    "remove": "Entfernen",
+    "retry": "Erneut versuchen",
+    "save": "Speichern",
+    "settings": "Einstellungen",
+    "unknown": "Unbekannt"
+  },
+  "connection": {
+    "connectionHealth": {
+      "checkConnection": "Verbindung prüfen",
+      "connectFailed": "Verbindung fehlgeschlagen",
+      "connected": "Verbunden",
+      "connecting": "Verbindung wird hergestellt…",
+      "connectingViaRelay": "Verbindung über Relay wird hergestellt…",
+      "desktopUnreachable": "Computer nicht erreichbar",
+      "disconnected": "Getrennt",
+      "hostFallback": "Host",
+      "hostOffline": "{{host}} ist offline",
+      "hostOfflineDetail": "Prüfen, ob der Computer wach ist, Orca läuft und du angemeldet bist",
+      "labelWithHint": "{{label}} – {{hint}}",
+      "pairingInvalid": "Kopplung ungültig – erneut mit dem Computer koppeln",
+      "rePairDetail": "Erneut mit dem Computer koppeln",
+      "reconnecting": "Verbindung wird wiederhergestellt…",
+      "relayAccessExpired": "Relay-Zugriff für {{host}} abgelaufen",
+      "relayConnectFailed": "Verbindung über Relay fehlgeschlagen",
+      "relayUnreachable": "Relay nicht erreichbar",
+      "signInDetail": "Auf dem Computer bei Orca anmelden, um die Verbindung wiederherzustellen",
+      "signInRequired": "Anmeldung auf {{host}} erforderlich",
+      "tailscaleHint": "Tailscale prüfen"
+    },
+    "connectionPathLabel": {
+      "directLan": "Direkt · LAN",
+      "directTailscale": "Direkt · Tailscale",
+      "directViaLan": "Direkt über LAN",
+      "directViaTailscale": "Direkt über Tailscale"
+    },
+    "hostEndpoint": {
+      "addressRequired": "Host-Adresse eingeben.",
+      "hostnameRequired": "Hostname fehlt.",
+      "invalidAddress": "Keine gültige Adresse.",
+      "invalidHostname": "Kein gültiger Hostname.",
+      "invalidPort": "Port muss zwischen 1 und 65535 liegen.",
+      "invalidScheme": "ws:// oder wss:// (oder host:port) verwenden.",
+      "pathOrQueryNotAllowed": "Die Host-Adresse darf keinen Pfad und keine Abfrage enthalten."
+    },
+    "pairConfirmState": {
+      "invalidCode": "Kein gültiger Kopplungscode",
+      "missingCode": "Kopplungscode fehlt"
+    },
+    "rpcClientStreamRegistry": {
+      "endedBeforeReady": "Streaming-Anfrage wurde vor Abschluss der Initialisierung beendet.",
+      "interrupted": "Verbindung unterbrochen"
+    },
+    "rpcClientTerminalBinaryFrame": {
+      "unsupportedFrame": "Nicht unterstützter Terminal-Stream-Frame (Opcode {{opcode}})."
+    }
+  },
+  "diagnostics": {
+    "connectionDiagnosticsView": {
+      "authFailed": "Authentifizierung fehlgeschlagen",
+      "connected": "Verbunden",
+      "connecting": "Verbindung wird hergestellt",
+      "copyReport": "Bericht kopieren",
+      "diagnosisHeading": "Mögliche Ursache",
+      "disconnected": "Getrennt",
+      "handshaking": "Verbindung wird ausgehandelt",
+      "noEvents": "Noch keine Verbindungsereignisse. Sie erscheinen, wenn die App versucht, diesen Host zu erreichen.",
+      "noHosts": "Keine gekoppelten Hosts.",
+      "privacyHint": "Sendet einen um sensible Daten bereinigten Bericht mit begrenzter Größe. Er enthält Host-Name, Endpunkt, Versionen, Verbindungsstatus und Ereignisse, niemals Terminalinhalte oder Zugangsdaten.",
+      "reconnecting": "Verbindung wird wiederhergestellt",
+      "retrySending": "Erneut senden",
+      "sendDiagnostics": "Diagnosedaten an Orca senden",
+      "sending": "Wird gesendet…",
+      "sent": "Diagnosedaten gesendet",
+      "stateWithAttempt": "{{state}} · Versuch {{attempts}}",
+      "title": "Netzwerkdiagnose"
+    },
+    "mobileWebBundleProbeRow": {
+      "assets": "Ressourcen",
+      "build": "Build",
+      "bundle": "Paket",
+      "bytes": "Bytes",
+      "connecting": "Verbindung wird hergestellt…",
+      "elapsed": "Verstrichene Zeit",
+      "elapsedMilliseconds": "{{elapsedMs}} ms",
+      "fetchBundle": "Mobiles Webpaket abrufen",
+      "fetching": "Paket wird abgerufen…",
+      "host": "Host",
+      "unknownHost": "Unbekannter Host"
+    },
+    "mobileWebShellUpdateFailureRow": {
+      "title": "Arbeitsbereichsaktualisierungen"
+    },
+    "troubleshootCommonIssues": {
+      "allowNotifications": "Prüfen, ob Orca-Benachrichtigungen in den Systemeinstellungen erlaubt sind und „Focus“ oder „Do Not Disturb“ deaktiviert ist.",
+      "checkTailnet": "Prüfen, ob der Computer nicht im Ruhezustand ist und im Tailnet als verbunden angezeigt wird.",
+      "desktopTitle": "Desktop-App läuft nicht",
+      "disableVpn": "Dieses VPN deaktivieren oder Split-Tunneling / „Allow LAN“ aktivieren.",
+      "firewallTitle": "Firewall blockiert Port 6768",
+      "keepTailscaleOn": "Host-Adressen wie 100.x.x.x oder *.ts.net nutzen Tailscale – Tailscale eingeschaltet lassen.",
+      "macosFirewall": "macOS: System Settings → Network → Firewall – Orca zulassen.",
+      "notificationNetwork": "Mobilfunk oder ein anderes WLAN ausprobieren. Treffen Benachrichtigungen nach dem Wechsel ein, verzögert das ursprüngliche Netzwerk möglicherweise die Zustellung.",
+      "notificationsTitle": "Push-Benachrichtigungen",
+      "openDesktop": "Orca muss auf dem Computer geöffnet sein, um Verbindungen anzunehmen.",
+      "pairAfterUpdate": "Nach einem Update ist möglicherweise eine erneute Kopplung per QR-Code nötig.",
+      "reconnectWifi": "Die WLAN-Verbindung auf beiden Geräten erneut herstellen.",
+      "restartBothApps": "Bei anhaltenden Zeitüberschreitungen beide Apps neu starten.",
+      "restartDesktop": "Orca neu starten – der Server für die mobile App startet mit Orca.",
+      "restartTailscale": "Unter iOS/Android kann der Tunnel unbemerkt hängen bleiben: Tailscale in der Tailscale-App aus- und wieder einschalten.",
+      "restrictedNetwork": "Firmen- und Schulnetzwerke können P2P blockieren – einen persönlichen Hotspot ausprobieren.",
+      "retryHost": "Zur Host-Liste zurückkehren und den Host antippen, um es erneut zu versuchen.",
+      "sameNetwork": "Beide Geräte müssen sich im selben LAN befinden (außer bei einer Verbindung über Tailscale).",
+      "sameSubnet": "Ethernet und WLAN müssen dasselbe Subnetz nutzen.",
+      "tailscaleTitle": "Tailscale-Host nicht erreichbar",
+      "timeoutTitle": "Zeitüberschreitung beim Verbinden",
+      "updateTailscale": "Die Tailscale-App aktualisieren – neuere Versionen beheben Fehler beim Wiederverbinden.",
+      "vpnRouting": "Andere VPNs als Tailscale können lokalen Datenverkehr über einen entfernten Server leiten.",
+      "vpnTitle": "Störungen durch andere VPNs",
+      "wifiSignal": "Die WLAN-Signalstärke auf dem Smartphone prüfen.",
+      "wifiTitle": "Unterschiedliche WLANs",
+      "windowsFirewall": "Windows: Defender Firewall → Allow app – Orca für Private networks aktivieren."
+    },
+    "troubleshootView": {
+      "commonIssues": "Häufige Probleme",
+      "runAgain": "Erneut ausführen",
+      "runDiagnostics": "Diagnose ausführen",
+      "running": "Läuft…",
+      "title": "Fehlerbehebung",
+      "viewNetworkDiagnostics": "Netzwerkdiagnose anzeigen"
+    },
+    "useTroubleshootDiagnostics": {
+      "connected": "Verbunden",
+      "hostDataFailed": "Host-Daten konnten nicht gelesen werden",
+      "hostTestFailed": "Test nicht möglich",
+      "hosts": "Hosts",
+      "internet": "Internet",
+      "noConnection": "Keine Verbindung",
+      "noPairedHosts": "Keine – zum Koppeln einen QR-Code scannen",
+      "pairedCount": "{{count}} gekoppelt",
+      "pairedHosts": "Gekoppelte Hosts",
+      "platform": "Plattform",
+      "reachable": "Unter {{endpoint}} erreichbar",
+      "unexpectedResponse": "Unerwartete Antwort"
+    },
+    "webShellUpdateFailureCopy": {
+      "failedAgo": "Das letzte Update von {{hostName}} ist vor {{time}} fehlgeschlagen: {{reason}}{{offered}}. {{outcome}}",
+      "failedJustNow": "Das letzte Update von {{hostName}} ist soeben fehlgeschlagen: {{reason}}{{offered}}. {{outcome}}"
+    }
+  },
+  "dictation": {
+    "setup": {
+      "alreadyActive": "Auf dem Computer oder einem anderen Smartphone wird bereits diktiert.",
+      "cloudModelNeedsKey": "OpenAI-Schlüssel erforderlich",
+      "deleteFailed": "Modell konnte nicht gelöscht werden",
+      "desktopUpdateRequired": "Die gekoppelte Orca-Desktop-App aktualisieren, um die Spracheingabeeinstellungen auf dem Smartphone zu nutzen.",
+      "downloadFailed": "Download konnte nicht gestartet werden",
+      "loadFailed": "Diktatmodelle konnten nicht geladen werden",
+      "repairRequired": "Dieses Smartphone erneut mit dem Computer koppeln, um das Diktat zu nutzen.",
+      "serverUpdateRequired": "Orca auf diesem Server aktualisieren, um das Diktat zu nutzen.",
+      "sessionLost": "Die Verbindung zum Computer wurde beim Diktat unterbrochen. Erneut versuchen.",
+      "updateFailed": "Diktateinstellungen konnten nicht aktualisiert werden"
+    }
+  },
+  "home": {
+    "accountUsageCards": {
+      "sectionHeading": "Kontonutzung",
+      "sessionWindow": "5 h",
+      "systemDefault": "Systemstandard",
+      "weeklyWindow": "7 Tage"
+    },
+    "appUpdateCard": {
+      "dismissAccessibilityLabel": "Update-Hinweis für Orca {{version}} ausblenden",
+      "title": "Orca {{version}} ist verfügbar",
+      "updateAccessibilityLabel": "Orca {{version}} ist verfügbar, zum Aktualisieren antippen",
+      "updateHint": "Zum Aktualisieren antippen"
+    },
+    "emptyState": {
+      "connectedDescription": "Der Desktop erscheint hier. Alles ist Ende-zu-Ende-verschlüsselt.",
+      "connectedTitle": "Verbunden",
+      "description": "Mit Orca auf dem Computer koppeln, um Agenten im Blick zu behalten, beliebige Terminals zu öffnen und die Arbeit vom Smartphone aus zu steuern.",
+      "openDesktopDescription": "Einstellungen → Mobil öffnen und einen QR-Code zum Koppeln erstellen.",
+      "openDesktopTitle": "Orca-Desktop-App öffnen",
+      "pairDesktop": "Desktop koppeln",
+      "scanCodeDescription": "Die Schaltfläche oben antippen, um den Scanner zu öffnen. Die Kamera auf den QR-Code auf dem Bildschirm richten.",
+      "scanCodeTitle": "Code scannen",
+      "stepsHeading": "So funktioniert’s",
+      "title": "Desktop verbinden"
+    },
+    "listFooter": {
+      "hostPickerTitle": "Aufgaben auf Host öffnen",
+      "resumeHeading": "Fortsetzen",
+      "tasksHeading": "Aufgaben"
+    },
+    "listHeader": {
+      "agentTime": "Agentenzeit",
+      "agentsSpawned": "Gestartete Agenten",
+      "daysHours": "{{days}} T {{hours}} Std.",
+      "desktopsHeading": "Desktop-Computer",
+      "hoursMinutes": "{{hours}} Std. {{minutes}} Min.",
+      "minutes": "{{minutes}} Min.",
+      "prsCreated": "Erstellte PRs",
+      "title": "Willkommen zurück"
+    },
+    "screen": {
+      "pairingCheckFailed": "Kopplung konnte nicht geprüft werden",
+      "removeHostFailed": "Host konnte nicht entfernt werden",
+      "removeHostMessage": "„{{name}}“ entfernen? Eine erneute Kopplung ist später möglich.",
+      "removeHostTitle": "Host entfernen",
+      "tryAgain": "Bitte erneut versuchen."
+    },
+    "tasksCard": {
+      "noSources": "Keine Aufgabenquellen verbunden",
+      "openProviderTasks": "{{provider}}-Aufgaben öffnen",
+      "title": "Aufgaben"
+    }
+  },
+  "hooks": {
+    "dictationDesktopStart": {
+      "recordingFailed": "Mikrofonaufnahme konnte nicht gestartet werden."
+    },
+    "useMobileDictation": {
+      "inputClosed": "Das Diktat wurde beendet, weil diese Sitzung keine Eingaben mehr annimmt. Erneut versuchen.",
+      "microphoneInitFailed": "Mikrofon konnte nicht initialisiert werden.",
+      "microphoneInterrupted": "Das Diktat wurde beendet, weil die Mikrofonaufnahme unterbrochen wurde. Erneut versuchen.",
+      "microphonePermissionDenied": "Mikrofonzugriff verweigert",
+      "noSpeech": "Keine Sprache erkannt."
+    }
+  },
+  "host": {
+    "edit": {
+      "address": "Adresse",
+      "addressHint": "Akzeptiert IP-Adressen, host:port oder ws:// / wss://. Eine URL mit wss:// verwendet ohne Portangabe 443. Bei Adressen ohne Protokoll- und Portangabe bleibt der aktuelle Port erhalten (oder 6768).",
+      "connectionPreview": "Verbindet mit {{endpoint}}",
+      "goBack": "Zurück navigieren",
+      "help": "Anzeigenamen oder Verbindungsadresse ändern. Das Namensfeld leer lassen, um den vom Desktop gemeldeten Namen zu verwenden. Eine Adressänderung ändert nur das Verbindungsziel dieses Smartphones – es wird keine neue Kopplung hergestellt. Nützlich, wenn derselbe Desktop unter einer anderen IP-Adresse erreichbar ist (z. B. im Heim-LAN statt über Tailscale).",
+      "hostNamePlaceholder": "Host-Name",
+      "hostRemoved": "Dieser Host wurde von diesem Smartphone entfernt.",
+      "loadFailed": "Host konnte nicht geladen werden.",
+      "missingHost": "Host fehlt.",
+      "name": "Name",
+      "saveFailed": "Host konnte nicht gespeichert werden.",
+      "saveHost": "Host speichern",
+      "title": "Host bearbeiten"
+    }
+  },
+  "hostScreen": {
+    "hostListActionSheetActions": {
+      "connect": "Verbinden",
+      "disconnect": "Verbindung trennen",
+      "editHost": "Host bearbeiten",
+      "networkDiagnostics": "Netzwerkdiagnose",
+      "reconnect": "Erneut verbinden"
+    },
+    "hostPendingCreationRow": {
+      "creatingWorkspace": "Arbeitsbereich wird erstellt…"
+    },
+    "hostRailActions": {
+      "accounts": "Konten",
+      "closeSearch": "Suche schließen",
+      "floatingWorkspace": "Schwebender Arbeitsbereich",
+      "newWorkspace": "Neuer Arbeitsbereich",
+      "searchWorkspaces": "Arbeitsbereiche durchsuchen",
+      "tasks": "Aufgaben"
+    },
+    "hostScreenHeader": {
+      "accounts": "Konten",
+      "activeFilters_one": "Arbeitsbereichsoptionen ({{count}} Filter aktiv)",
+      "activeFilters_other": "Arbeitsbereichsoptionen ({{count}} Filter aktiv)",
+      "backToHosts": "Zurück zu den Hosts",
+      "closeSearch": "Suche schließen",
+      "floatingWorkspace": "Schwebender Arbeitsbereich",
+      "hideSidebar": "Seitenleiste ausblenden",
+      "reconnect": "Erneut verbinden",
+      "searchWorkspaces": "Arbeitsbereiche durchsuchen",
+      "tasks": "Aufgaben",
+      "workspaceOptions": "Arbeitsbereichsoptionen"
+    },
+    "hostScreenOverlays": {
+      "deleteConfirmMessage": "„{{name}}“ ({{branch}}) löschen?",
+      "deleteWorktree": "Worktree löschen",
+      "pin": "Anheften",
+      "primaryWorktreeDeleteHint": "Primärer Worktree — kann nicht gelöscht werden. Stattdessen das Projekt entfernen.",
+      "removeHost": "Host entfernen",
+      "removeHostMessage": "„{{name}}“ entfernen? Eine erneute Kopplung ist später möglich.",
+      "sleep": "In Ruhezustand versetzen",
+      "unpin": "Anheftung aufheben"
+    },
+    "hostWorkspaceList": {
+      "searchPlaceholder": "Arbeitsbereiche durchsuchen…",
+      "searchWorkspaces": "Arbeitsbereiche durchsuchen"
+    },
+    "workspaceDetailsSheet": {
+      "checksFailing": "Checks: fehlgeschlagen",
+      "checksPassing": "Checks: erfolgreich",
+      "checksPending": "Checks: ausstehend",
+      "closed": "Geschlossen",
+      "createdByAutomation": "Durch Automatisierung erstellt",
+      "createdByNamedAutomation": "Durch die Automatisierung „{{name}}“ erstellt",
+      "createdFromCli": "Über die Orca CLI erstellt",
+      "draft": "Entwurf",
+      "merged": "Gemergt",
+      "openLink": "{{label}} öffnen",
+      "openLinkWithTitle": "{{label}} öffnen, {{title}}",
+      "prOpen": "Offen"
+    },
+    "workspaceOptionControls": {
+      "agentActivity": "Agentenaktivität",
+      "agentActivityLayout": "Layout der Agentenaktivität",
+      "agentActivitySort": "Agentenaktivität",
+      "agentActivitySortDescription": "Zuerst Agenten, die Aufmerksamkeit erfordern, dann nach letzter Aktivität.",
+      "agentStatuses": "Agentenstatus",
+      "allHosts": "Alle Hosts",
+      "allProjects": "Alle Projekte",
+      "automation": "Automatisierung",
+      "branchFolderPath": "Branch / Ordnerpfad",
+      "branchName": "Branch-Name",
+      "compact": "Kompakt",
+      "detailed": "Detailliert",
+      "fullList": "Vollständige Liste",
+      "githubIssues": "GitHub-Issues",
+      "githubTicket": "GitHub-Ticket",
+      "host": "Host",
+      "hover": "Bei Mauszeigerkontakt",
+      "jiraIssue": "Jira-Issue",
+      "jiraIssues": "Jira-Issues",
+      "linearIssue": "Linear-Issue",
+      "linearIssues": "Linear-Issues",
+      "manual": "Manuell",
+      "manualProjectOrderDescription": "Projekte zum Anordnen ziehen",
+      "manualWorkspaceOrderDescription": "Arbeitsbereiche ziehen, um sie innerhalb der jeweiligen Gruppe anzuordnen.",
+      "name": "Name",
+      "none": "Keine",
+      "notes": "Notizen",
+      "ports": "Ports",
+      "pr": "PR",
+      "prMrLink": "PR/MR-Link",
+      "project": "Projekt",
+      "recent": "Zuletzt aktiv",
+      "recentProjectOrderDescription": "Letzte Arbeitsbereichsaktivität",
+      "searchProjects": "Projekte suchen",
+      "searchProjectsPlaceholder": "Projekte suchen…",
+      "selectedCount": "{{count}} von {{total}}",
+      "status": "Status"
+    },
+    "workspaceOptionsSheet": {
+      "backToOptions": "Zurück zu den Arbeitsbereichsoptionen",
+      "cardDisplay": "Kartendarstellung",
+      "cardLayout": "Kartenlayout",
+      "clearFilters": "Filter zurücksetzen",
+      "exceptDefaultBranch": "Außer Standard-Branch",
+      "filters": "Filter",
+      "groupBy": "Gruppieren nach",
+      "hideAutomationCreated": "Durch Automatisierungen erstellte ausblenden",
+      "hideCliCreated": "Per CLI erstellte ausblenden",
+      "hideDefaultBranch": "Standard-Branch ausblenden",
+      "hideDetachedHead": "Losgelösten HEAD ausblenden",
+      "hideOtherClientWorkspaces": "Arbeitsbereiche anderer Clients ausblenden",
+      "hideSleeping": "Ruhende Arbeitsbereiche ausblenden",
+      "hosts": "Hosts",
+      "localLinux": "Lokales Linux",
+      "localMac": "Lokaler Mac",
+      "localWindows": "Lokales Windows",
+      "projectOrder": "Projektreihenfolge",
+      "projects": "Projekte",
+      "savingToDesktop": "Wird in der Desktop-App gespeichert",
+      "show": "Anzeigen",
+      "showProperties": "Eigenschaften anzeigen",
+      "sortBy": "Sortieren nach",
+      "syncedAcrossDevices": "Geräteübergreifend synchronisiert",
+      "thisComputer": "Dieser Computer",
+      "waitingForDesktop": "Es wird noch auf den Desktop gewartet",
+      "workspaceOptions": "Arbeitsbereichsoptionen"
+    }
+  },
+  "navigation": {
+    "hostStackScreens": {
+      "accounts": "Konten",
+      "agentSessionHistory": "Verlauf der Agentensitzungen",
+      "changes": "Änderungen",
+      "editHost": "Host bearbeiten",
+      "host": "Host",
+      "pullRequest": "Pull Request",
+      "sourceControl": "Quellcodeverwaltung",
+      "tasks": "Aufgaben",
+      "terminal": "Terminal",
+      "workspace": "Arbeitsbereich"
+    }
+  },
+  "notifications": {
+    "notificationDeliverySection": {
+      "footer": "Die Benachrichtigungsarten richten sich nach den Benachrichtigungseinstellungen des jeweiligen gekoppelten Computers. Nach 7 Tagen ohne Nutzung dieser App werden Benachrichtigungen pausiert; zum Fortsetzen die App öffnen und erneut verbinden.",
+      "onlyWhenAway": "Nur bei Abwesenheit vom Computer",
+      "onlyWhenAwayHint": "Nach 3 Minuten ohne Tastatur- oder Mausaktivität oder bei gesperrtem Computer.",
+      "sound": "Benachrichtigungston",
+      "suppressWhileFocused": "Geöffneten Arbeitsbereich ausnehmen",
+      "suppressWhileFocusedHint": "Für den auf diesem Smartphone geöffneten Arbeitsbereich keine Benachrichtigungen senden."
+    }
+  },
+  "onboarding": {
+    "notificationOnboardingPreview": {
+      "claudeNeedsInput": "Claude benötigt eine Eingabe",
+      "codexFinished": "Codex ist fertig",
+      "now": "jetzt",
+      "testsPassing": "Tests bestanden.",
+      "waitingOnYou": "Wartet auf dich."
+    },
+    "onboardingPage": {
+      "enableAgentNotifications": "Agenten-Benachrichtigungen aktivieren",
+      "enableNotifications": "Benachrichtigungen aktivieren",
+      "keepTerminal": "Terminal beibehalten",
+      "notNow": "Jetzt nicht",
+      "notificationsDescription": "Auf diesem Smartphone benachrichtigt werden, wenn ein Agent fertig ist oder wartet – auch wenn die App gerade nicht genutzt wird.",
+      "notificationsDisclosure": "Zustellung über den Push-Dienst von Orca, sobald der Computer 3 Minuten lang inaktiv ist. Jederzeit in den Einstellungen änderbar.",
+      "notificationsTitle": "Nicht verpassen, wenn ein Agent dich braucht",
+      "openInChatUi": "Sitzungen in der Chat-Oberfläche öffnen",
+      "openInTerminal": "Sitzungen im Terminal öffnen",
+      "sessionViewDescription": "Festlegen, ob unterstützte Agenten-Sitzungen auf diesem Gerät im Terminal oder in der Chat-Oberfläche geöffnet werden. Einen Sitzungs-Tab gedrückt halten, um die Ansicht zu wechseln, oder den Standard später in den Einstellungen ändern.",
+      "sessionViewTitle": "Wie sollen Sitzungen geöffnet werden?",
+      "skipNotifications": "Benachrichtigungen vorerst überspringen",
+      "useChatUi": "Chat-Oberfläche verwenden"
+    }
   },
   "settings": {
+    "aboutScreen": {
+      "openLinkFailed": "Der Link konnte nicht geöffnet werden. Erneut versuchen.",
+      "socialProfile": "Orca auf X",
+      "sourceCode": "Orca-Quellcode",
+      "tagline": "Open-Source-Agenten-IDE für 100-mal produktivere Entwickler",
+      "title": "Über Orca",
+      "website": "Orca-Website"
+    },
+    "appUpdateSettingsRows": {
+      "checkFailed": "Prüfung fehlgeschlagen",
+      "checkUpdates": "Nach Updates suchen",
+      "checkUpdatesStatus": "Nach Updates suchen, {{status}}",
+      "checking": "Wird geprüft…",
+      "installedVersion": "Version {{version}}",
+      "lastCheckedDays_one": "Zuletzt vor {{count}} Tag geprüft",
+      "lastCheckedDays_other": "Zuletzt vor {{count}} Tagen geprüft",
+      "lastCheckedHours_one": "Zuletzt vor {{count}} Std. geprüft",
+      "lastCheckedHours_other": "Zuletzt vor {{count}} Std. geprüft",
+      "lastCheckedJustNow": "Zuletzt geprüft: gerade eben",
+      "lastCheckedMinutes_one": "Zuletzt vor {{count}} Min. geprüft",
+      "lastCheckedMinutes_other": "Zuletzt vor {{count}} Min. geprüft",
+      "neverChecked": "Nie",
+      "upToDate": "Aktuell",
+      "update": "Aktualisieren",
+      "updateToVersion": "Auf Orca {{version}} aktualisieren"
+    },
     "appearance": {
       "language": {
         "description": "„System“ übernimmt die Gerätesprache. Berechtigungsabfragen verwenden immer die Gerätesprache.",
@@ -17,6 +608,157 @@
         "system": "System"
       },
       "title": "Darstellung"
+    },
+    "browserSettingsScreen": {
+      "desktopBrowser": "Orca-Browser auf dem Desktop",
+      "desktopBrowserDescription": "Im gestreamten Browser des gekoppelten Desktops öffnen.",
+      "linksDescription": "Auswählen, wo HTTP(S)-Links aus der Terminalausgabe beim Antippen geöffnet werden.",
+      "linksHeading": "LINKS",
+      "loadFailed": "Browser-Einstellungen konnten nicht geladen werden. Erneut versuchen.",
+      "openTerminalLinks": "Terminal-Links öffnen",
+      "phoneBrowser": "Browser auf dem Smartphone",
+      "phoneBrowserDescription": "In Safari, Chrome oder einem anderen Browser auf diesem Smartphone öffnen.",
+      "saveFailed": "Browser-Einstellungen konnten nicht gespeichert werden. Erneut versuchen.",
+      "title": "Browser"
+    },
+    "menuItems": {
+      "about": "Über Orca",
+      "appearance": "Darstellung",
+      "browser": "Browser",
+      "chatUi": "Chat-Oberfläche",
+      "notifications": "Benachrichtigungen",
+      "terminal": "Terminal",
+      "troubleshooting": "Fehlerbehebung",
+      "voice": "Spracheingabe"
+    },
+    "menuScreen": {
+      "privacyPolicy": "Datenschutzerklärung",
+      "support": "Hilfe"
+    },
+    "nativeChatSettingsScreen": {
+      "defaultViewDescription": "Festlegen, wie Sitzungen unterstützter Agenten (Claude, Codex und anderer chatfähiger Agenten) auf diesem Gerät geöffnet werden. Das Terminal zeigt die CLI direkt an; die Chat-Oberfläche zeigt eine Chatansicht wie in der Desktop-App. Die Ansicht jeder Sitzung lässt sich weiterhin über das Menü wechseln, das durch langes Drücken geöffnet wird.",
+      "defaultViewHeading": "STANDARDANSICHT",
+      "off": "Aus",
+      "on": "Ein",
+      "openInChatUi": "Sitzungen in der Chat-Oberfläche öffnen",
+      "title": "Chat-Oberfläche"
+    },
+    "nativeNotificationDeliverySettings": {
+      "loadFailed": "Zustellungseinstellungen konnten nicht geladen werden. Für einen neuen Versuch diese Ansicht erneut öffnen.",
+      "saveFailed": "Zustellungseinstellungen konnten nicht gespeichert werden. Erneut versuchen.",
+      "updateDesktopHint": "Einen Desktop mit aktueller Orca-Version koppeln, um auf diesem Smartphone Benachrichtigungen zu erhalten."
+    },
+    "notificationDisplayTest": {
+      "accepted": "Vom Push-Dienst von Orca angenommen. Prüfen, ob die Benachrichtigung angekommen ist.",
+      "connectDesktop": "Eine Verbindung zum Desktop herstellen und erneut versuchen.",
+      "description": "Eine Testbenachrichtigung über den Push-Dienst von Orca senden.",
+      "desktopUnreachable": "Der Desktop konnte nicht erreicht werden. Erneut versuchen.",
+      "loadFailed": "Die gekoppelten Desktops konnten nicht geladen werden.",
+      "pairDesktop": "Einen Desktop koppeln und erneut versuchen.",
+      "pushServiceFailed": "Die Benachrichtigung konnte nicht über den Push-Dienst von Orca gesendet werden. Erneut versuchen.",
+      "rateLimited": "Zu viele Benachrichtigungen. Später erneut versuchen.",
+      "reconnectPhone": "Erneut verbinden, um dieses Smartphone für Benachrichtigungen zu registrieren.",
+      "sendButton": "Testbenachrichtigung senden",
+      "sendFailed": "Die Push-Testbenachrichtigung konnte nicht gesendet werden.",
+      "sending": "Wird gesendet…",
+      "troubleReceivingAlerts": "Probleme beim Empfang von Benachrichtigungen?",
+      "troubleshooting": "Fehlerbehebung",
+      "updateDesktop": "Orca auf dem Desktop aktualisieren, um diesen Test auszuführen."
+    },
+    "notificationSettingsScreen": {
+      "description": "Auf diesem Gerät Benachrichtigungen erhalten, wenn ein Agent eine Eingabe benötigt oder eine Aufgabe abschließt.",
+      "enableNotifications": "Benachrichtigungen aktivieren",
+      "loadFailed": "Benachrichtigungseinstellungen konnten nicht geladen werden. Erneut versuchen.",
+      "notificationsBlocked": "Benachrichtigungen sind in den Systemeinstellungen deaktiviert.",
+      "openSettings": "Einstellungen öffnen",
+      "openSettingsFailed": "Die Systemeinstellungen konnten nicht geöffnet werden. Erneut versuchen.",
+      "saveFailed": "Benachrichtigungseinstellungen konnten nicht gespeichert werden. Erneut versuchen.",
+      "title": "Benachrichtigungen"
+    },
+    "pendingCredentialCleanupCard": {
+      "cleanupUnconfirmed_one": "Die Bereinigung von {{count}} Zugangsdaten-Eintrag auf diesem Gerät konnte nicht bestätigt werden.",
+      "cleanupUnconfirmed_other": "Die Bereinigung von {{count}} Zugangsdaten-Einträgen auf diesem Gerät konnte nicht bestätigt werden.",
+      "retryCleanup": "Löschen der Kopplungszugangsdaten erneut versuchen",
+      "retryFailed": "Die Bereinigung konnte weiterhin nicht bestätigt werden. Später erneut versuchen.",
+      "statusCheckFailed": "Der Bereinigungsstatus auf diesem Gerät konnte nicht geprüft werden. Zur Sicherheit erneut versuchen.",
+      "title": "Kopplungszugangsdaten bereinigen"
+    },
+    "uiLanguageSettingsSection": {
+      "pseudoLanguage": "Pseudosprache (en-XA)"
+    },
+    "voiceSettingsScreen": {
+      "connectDesktop": "Mit einem Desktop verbinden, um die Einstellungen für die Spracheingabe zu verwalten.",
+      "deleteFailed": "Löschen fehlgeschlagen",
+      "dictationDescription": "Text in jeden fokussierten Bereich auf dem Desktop diktieren.",
+      "dictationHeading": "DIKTAT",
+      "dictationMode": "Diktatmodus",
+      "dictationModeDescription": "Umschalten: einmal zum Starten und erneut zum Stoppen drücken. Gedrückt halten: währenddessen diktieren.",
+      "downloadFailed": "Download fehlgeschlagen",
+      "enableDictation": "Diktat aktivieren",
+      "holdMode": "Gedrückt halten",
+      "loadFailed": "Einstellungen für die Spracheingabe konnten nicht geladen werden.",
+      "loadFailedMessage": "Die Einstellungen für die Spracheingabe konnten nicht geladen werden.",
+      "noneSelected": "Keines ausgewählt",
+      "selectModelFailed": "Modell konnte nicht ausgewählt werden",
+      "speechModel": "Spracherkennungsmodell",
+      "speechModelHeading": "SPRACHERKENNUNGSMODELL",
+      "title": "Spracheingabe",
+      "toggleMode": "Umschalten",
+      "updateFailed": "Aktualisierung fehlgeschlagen"
+    }
+  },
+  "webShell": {
+    "shellStateScreen": {
+      "checkingHost": "Host wird geprüft",
+      "connectToDownload": "Mit diesem Host verbinden, um die neueste App-Version herunterzuladen",
+      "documentLoadFailed": "Die heruntergeladene App konnte nicht geöffnet werden.",
+      "downloadFailed": "Die neueste App-Version konnte von diesem Host nicht heruntergeladen werden.",
+      "hostProfileUnreadable": "Die Daten dieses Hosts konnten auf dem Gerät nicht gelesen werden. Erneut versuchen.",
+      "isolationUnavailable": "Die WebView dieses Geräts ist zu alt, um den Arbeitsbereich sicher zu öffnen.",
+      "openingWorkspace": "Arbeitsbereich wird geöffnet",
+      "renderProcessGone": "Der Arbeitsbereich reagiert nicht mehr.",
+      "statusUnreadable": "Der Status dieses Hosts konnte nicht gelesen werden. Zurückgehen und den Host erneut öffnen.",
+      "tryAgain": "Erneut versuchen"
+    }
+  },
+  "worktree": {
+    "agentRowDisplay": {
+      "blocked": "Blockiert",
+      "days_one": "{{count}} T.",
+      "days_other": "{{count}} T.",
+      "done": "Erledigt",
+      "failed": "Fehlgeschlagen",
+      "hours_one": "{{count}} Std.",
+      "hours_other": "{{count}} Std.",
+      "idle": "Inaktiv",
+      "interrupted": "Unterbrochen",
+      "justNow": "gerade eben",
+      "minutes_one": "{{count}} Min.",
+      "minutes_other": "{{count}} Min.",
+      "monitoring": "Hintergrundaufgaben werden überwacht",
+      "stopping": "Wird gestoppt…",
+      "unconfirmed": "Bestätigung nicht möglich",
+      "unverifiable": "Keine aktuelle Meldung",
+      "waiting": "Wartet auf Eingabe",
+      "working": "In Arbeit"
+    },
+    "hostWorkspaceListStates": {
+      "checkHost": "Prüfen, ob der Computer wach ist und Orca läuft",
+      "empty": "Keine Arbeitsbereiche",
+      "loadFailed": "Arbeitsbereiche von diesem Host konnten nicht geladen werden.",
+      "noFilterMatches": "Keine Arbeitsbereiche entsprechen den Filtern",
+      "noMatches": "Keine passenden Arbeitsbereiche",
+      "reopen": "Zum Aktualisieren erneut öffnen",
+      "reopenDetail": "Dieser Host listet Arbeitsbereiche in einem Format auf, das diese Seite noch nicht unterstützt.",
+      "retrying": "worktree.ps fehlgeschlagen ({{error}}) – wird automatisch erneut versucht"
+    },
+    "workspaceListSections": {
+      "all": "Alle",
+      "closed": "Geschlossen",
+      "done": "Erledigt",
+      "inProgress": "In Bearbeitung",
+      "inReview": "Im Review",
+      "pinned": "Angeheftet"
     }
   }
 }

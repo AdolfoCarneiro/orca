@@ -2,7 +2,10 @@ import { Monitor, MoreVertical } from 'lucide-react-native'
 import { Pressable, Text, View } from 'react-native'
 import type { ConnectionVerdict } from '../transport/connection-health'
 import { verdictDisplayLabel } from '../transport/connection-health'
-import { mobileConnectionPathLabel } from '../transport/mobile-connection-path-label'
+import {
+  mobileConnectionPathAccessibilityLabel,
+  mobileConnectionPathLabel
+} from '../transport/mobile-connection-path-label'
 import { useHostDisplay } from '../transport/use-host-display'
 import type { MobileConnectionPath } from '../transport/stable-logical-rpc-client'
 import type { ConnectionState, HostCatalogEntry, HostProfile } from '../transport/types'
@@ -63,7 +66,7 @@ export function MobileHostCard(props: {
     `Open ${display.title}`,
     descriptorText,
     statusLabel,
-    connectionPathLabel?.replace(' · ', ' via '),
+    connectionPathLabel ? mobileConnectionPathAccessibilityLabel(props.path) : null,
     connected ? worktreeSummary?.replace(' · ', ', ') : null,
     discoveryHint,
     credentialHint,
