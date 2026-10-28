@@ -155,8 +155,12 @@ describe('window.orca.document', () => {
     await expect(first).resolves.toMatchObject({ version: 1, content: { text: 'a' } })
     const changes = vi.fn()
     document.onDidChange(changes)
+    // A late subscriber gets the document already in, then every later one.
+    await flush()
+    expect(changes).toHaveBeenCalledWith(expect.objectContaining({ version: 1 }))
     fromHost(doc(2, 'b'))
-    expect(changes).toHaveBeenCalledWith(expect.objectContaining({ version: 2 }))
+    expect(changes).toHaveBeenLastCalledWith(expect.objectContaining({ version: 2 }))
+    expect(changes).toHaveBeenCalledTimes(2)
     await expect(document.get()).resolves.toMatchObject({ version: 2 })
 
     const applied = document.applyEdit({ baseVersion: 2, content: { kind: 'text', text: 'c' } })

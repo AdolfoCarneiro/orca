@@ -168,7 +168,13 @@ function frameApiScript(surface: PluginFrameSurface): string {
       get: function () {
         return latest ? Promise.resolve(latest) : new Promise(function (resolve) { waiting.push(resolve) })
       },
-      onDidChange: function (fn) { return on(E.editorDocument, fn) },
+      // Why replay: editors often subscribe after their bundle loads, when the first document is in.
+      onDidChange: function (fn) {
+        var subscription = on(E.editorDocument, fn)
+        var current = latest
+        if (current) Promise.resolve().then(function () { if (latest === current) fn(current) })
+        return subscription
+      },
       applyEdit: function (edit) { return call(C.editor.applyEdit, edit) }
     })
     window.addEventListener('keydown', function (event) {

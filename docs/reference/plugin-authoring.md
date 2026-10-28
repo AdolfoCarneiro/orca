@@ -83,7 +83,8 @@ An editor's `window.orca` adds `document`:
 
 ```js
 const doc = await orca.document.get() // { version, readOnly, content, fileType? }
-orca.document.onDidChange((doc) => render(doc)) // the file changed outside the editor
+// The current document right away, then each one Orca sends when the file changes outside the editor.
+orca.document.onDidChange((doc) => render(doc))
 await orca.document.applyEdit({ baseVersion: doc.version, content: { kind: 'text', text } })
 orca.on('editor.flush', () => sendPendingEdit()) // before a save; Orca waits for the promise
 ```
