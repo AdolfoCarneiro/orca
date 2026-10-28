@@ -82,6 +82,8 @@ async function startOrcadRuntime(
   // The daemon and its PTYs inherit the adopted login env and nothing later startup writes, so it
   // spawns as soon as that lands, in parallel with the stores and the hook server. Never rejects.
   const daemonStartup = loginEnvironment.then(() => timed('daemon', () => startOrcadDaemon()))
+  // Observed now: an early abort may never reach the await below.
+  void daemonStartup.catch(() => {})
   const { daemonOwnsFreshPersistentPtys } = await import('../daemon/daemon-provider-state')
   const { collectOrcadHealth } = await import('./orcad-health')
   const { agentHookServer } = await import('../agent-hooks/server')
