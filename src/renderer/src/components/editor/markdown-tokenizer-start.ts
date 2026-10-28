@@ -20,27 +20,9 @@ export function createMarkdownTokenizerStart(marker: string, lineStart = false) 
   if (lineStart && /[\n\r\u2028\u2029]/.test(marker)) {
     return registerMarkdownTokenizerStart(marker, start)
   }
-  startCursorFactories.set(start, () => {
-    let firstLength: number | undefined
-    let nextPosition: number | undefined
-    return (source) => {
-      firstLength ??= source.length
-      const position = firstLength - source.length
-      // A suffix can begin at a marker an earlier line-start search skipped.
-      if (lineStart && source.startsWith(marker)) {
-        return 0
-      }
-      if (nextPosition === -1) {
-        return -1
-      }
-      if (nextPosition !== undefined && nextPosition >= position) {
-        return nextPosition - position
-      }
-      const match = start(source)
-      nextPosition = match === -1 ? -1 : position + match
-      return match
-    }
-  })
+  startCursorFactories.set(start, () =>
+    createMarkdownTokenizerStartSearchCursor(start, 0, lineStart ? marker : undefined)
+  )
   return registerMarkdownTokenizerStart(marker, start)
 }
 
@@ -53,4 +35,42 @@ export function createMarkdownTokenizerStartCursor(
   start: MarkdownTokenizerStart
 ): MarkdownTokenizerStart {
   return startCursorFactories.get(start)?.() ?? start
+}
+
+/** Removing a prefix must only remove matches; each match needs at most lookbehindLength preceding units. */
+export function registerMarkdownLookbehindTokenizerStart(
+  marker: string,
+  start: (source: string) => number,
+  lookbehindLength: number
+) {
+  startCursorFactories.set(start, () =>
+    createMarkdownTokenizerStartSearchCursor(start, lookbehindLength)
+  )
+  return registerMarkdownTokenizerStart(marker, start)
+}
+
+function createMarkdownTokenizerStartSearchCursor(
+  start: (source: string) => number,
+  lookbehindLength: number,
+  suffixStartMarker?: string
+): MarkdownTokenizerStart {
+  let firstLength: number | undefined
+  let nextPosition: number | undefined
+  return (source) => {
+    firstLength ??= source.length
+    const position = firstLength - source.length
+    // A suffix can begin at a marker an earlier line-start search skipped.
+    if (suffixStartMarker !== undefined && source.startsWith(suffixStartMarker)) {
+      return 0
+    }
+    if (nextPosition === -1) {
+      return -1
+    }
+    if (nextPosition !== undefined && nextPosition >= position + lookbehindLength) {
+      return nextPosition - position
+    }
+    const match = start(source)
+    nextPosition = match === -1 ? -1 : position + match
+    return match
+  }
 }
