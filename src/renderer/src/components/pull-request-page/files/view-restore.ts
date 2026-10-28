@@ -1,7 +1,12 @@
 import { useEffect, useLayoutEffect, type MutableRefObject, type RefObject } from 'react'
 import { setWithLRU } from '@/lib/scroll-cache'
 import type { DiffSection } from '@/components/editor/diff-section-types'
-import { prFilesDiffScrollTopCache, prFilesDiffViewStateCache } from '../cache/files-diff-view'
+import {
+  prFilesDiffScrollTopCache,
+  prFilesDiffViewStateCache,
+  rememberPRFilesDiffView,
+  retainPRFilesDiffView
+} from '../cache/files-diff-view'
 
 export function usePRFilesDiffViewPersistence(args: {
   sections: DiffSection[]
@@ -16,6 +21,8 @@ export function usePRFilesDiffViewPersistence(args: {
   scrollContainerRef: RefObject<HTMLDivElement | null>
   pendingRestoreScrollTopRef: MutableRefObject<number | null>
 }): void {
+  useLayoutEffect(() => retainPRFilesDiffView(args.viewStateKey), [args.viewStateKey])
+
   useEffect(() => {
     if (args.sections.length === 0 && args.entriesLength > 0) {
       return
@@ -24,7 +31,7 @@ export function usePRFilesDiffViewPersistence(args: {
       prFilesDiffScrollTopCache.get(args.viewStateKey) ??
       args.scrollContainerRef.current?.scrollTop ??
       0
-    setWithLRU(prFilesDiffViewStateCache, args.viewStateKey, {
+    rememberPRFilesDiffView(args.viewStateKey, {
       entrySignature: args.entrySignature,
       sections: args.sections,
       sectionHeights: args.sectionHeights,
@@ -61,7 +68,7 @@ export function usePRFilesDiffViewPersistence(args: {
       if (!existing || existing.entrySignature !== args.entrySignature) {
         return
       }
-      setWithLRU(prFilesDiffViewStateCache, args.viewStateKey, { ...existing, scrollTop })
+      rememberPRFilesDiffView(args.viewStateKey, { ...existing, scrollTop })
     }
 
     const cacheScrollPositionOnScroll = (): void => {
