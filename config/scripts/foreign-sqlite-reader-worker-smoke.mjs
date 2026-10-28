@@ -13,6 +13,13 @@ const [entry, dbPath, missingPath] = process.argv.slice(2)
 const db = new DatabaseSync(dbPath)
 db.exec('CREATE TABLE session (id TEXT PRIMARY KEY, directory TEXT NOT NULL, time_created INTEGER NOT NULL, parent_id TEXT)')
 db.prepare('INSERT INTO session VALUES (?, ?, ?, ?)').run('ses_smoke', '/smoke', 100, null)
+db.exec('CREATE TABLE journal_rows (session_id TEXT, epoch TEXT, seq INTEGER, row_json TEXT)')
+const journalRow = JSON.stringify({
+  v: 5, kind: 'item', epoch: 'smoke', seq: 1, fence: 1, ts: 1,
+  itemId: 'reply', revision: 1, turnScope: { kind: 'thread' },
+  body: { kind: 'message', role: 'assistant', blocks: [{ type: 'text', text: 'x'.repeat(300000) }] }
+})
+db.prepare('INSERT INTO journal_rows VALUES (?, ?, ?, ?)').run('chat', 'smoke', 1, journalRow)
 db.close()
 const steps = [
   {
@@ -21,7 +28,18 @@ const steps = [
   },
   { request: { id: 2, kind: 'cursorProfile', dbPath: missingPath }, expected: { status: 'missing' } },
   // The OpenCode history scanner's kinds share this entry.
-  { request: { id: 3, kind: 'list', dbPaths: [], limit: null }, expected: { candidates: [], issues: [] } }
+  { request: { id: 3, kind: 'list', dbPaths: [], limit: null }, expected: { candidates: [], issues: [] } },
+  {
+    request: {
+      id: 4, kind: 'journalTextValidation', dbPath,
+      query: { sessionId: 'chat', epoch: 'smoke', seq: 1, itemId: 'reply', field: 0, revision: 1 }
+    },
+    expected: {
+      kind: 'item', v: 5, boundary: true, itemRevision: 1, hasField: true,
+      settlementMatches: true, deltaRevision: null, deltaMatches: false
+    },
+    bytes: Buffer.byteLength(journalRow)
+  }
 ]
 const worker = new Worker(entry, { execArgv: [] })
 const fail = (code, message) => {
@@ -33,9 +51,10 @@ worker.on('error', (error) => fail(4, String(error && error.stack || error)))
 worker.on('exit', (code) => fail(5, 'foreign SQLite reader worker exited with ' + code))
 let step = 0
 worker.on('message', (response) => {
-  const { request, expected } = steps[step]
+  const { request, expected, bytes } = steps[step]
   if (!response || response.id !== request.id || response.ok !== true ||
-      JSON.stringify(response.value) !== JSON.stringify(expected)) {
+      JSON.stringify(bytes === undefined ? response.value : response.proof) !== JSON.stringify(expected) ||
+      (bytes !== undefined && response.bytes !== bytes)) {
     fail(6, request.kind + ' answered ' + JSON.stringify(response))
   }
   step += 1
