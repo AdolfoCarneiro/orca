@@ -23,6 +23,7 @@ type MonacoGutterContextMenuProps = {
   point: { x: number; y: number }
   line: number
   selection: IRange | null
+  fileId: string
   filePath: string
   relativePath: string
 }
@@ -33,6 +34,7 @@ export function MonacoGutterContextMenu({
   point,
   line,
   selection,
+  fileId,
   filePath,
   relativePath
 }: MonacoGutterContextMenuProps): React.JSX.Element {
@@ -70,7 +72,7 @@ export function MonacoGutterContextMenu({
         <DropdownMenuItem
           onSelect={async () => {
             const state = useAppStore.getState()
-            const activeFile = state.openFiles.find((f) => f.filePath === filePath)
+            const activeFile = state.openFiles.find((file) => file.id === fileId)
             if (!activeFile) {
               return
             }
