@@ -24,7 +24,9 @@ import type {
 import type { NativeChatTurnJournal } from '../../../src/shared/native-chat-turn-membership'
 import type { NativeChatResolvedPrompt } from '../../../src/shared/native-chat-resolution-receipt'
 import { colors } from '../theme/mobile-theme'
+import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { styles } from './mobile-native-chat-view-styles'
+import { MobileNativeChatEmptyStateView } from './MobileNativeChatEmptyStateView'
 import { mobileNativeChatListFooter } from './mobile-native-chat-list-footer'
 import { mobileNativeChatListHeader } from './mobile-native-chat-list-header'
 import {
@@ -50,6 +52,7 @@ import {
   type MobileNativeChatStructuredComposer
 } from './native-chat/composer/MobileNativeChatComposer'
 import { MobileNativeChatPromptCard } from './native-chat/input/MobileNativeChatPromptCard'
+import type { MobileNativeChatMicProps } from './native-chat/composer/MobileNativeChatComposerMic'
 import {
   NO_COMPOSER_TRAY,
   type ComposerTrayProps
@@ -65,7 +68,9 @@ import type { OlderPagePhase } from './use-mobile-older-page-loader'
 
 export type MobileNativeChatInputLockReason = 'disconnected' | 'waiting'
 
-type Props = ComposerTrayProps & {
+type Props = ComposerTrayProps & MobileNativeChatMicProps & ChatViewProps
+
+type ChatViewProps = {
   // Keep raw messages to distinguish loading from a loaded transcript filtered to empty.
   messages: NativeChatMessage[]
   folded: NativeChatMessage[]
@@ -74,6 +79,7 @@ type Props = ComposerTrayProps & {
   // Permanent read failure replaces the pane because further chat actions cannot succeed.
   readFailedFinally?: boolean
   agent?: string | null
+  sessionLive?: boolean
   /** The turn is live: working, or waiting on the reader. */
   agentWorking?: boolean
   canStop?: boolean
@@ -99,17 +105,13 @@ type Props = ComposerTrayProps & {
   pending: MobileNativeChatPendingItem[]
   // Retain local preview URIs after authoritative image messages replace optimistic rows.
   imagePreviewsByMessageId?: Record<string, string[]>
+  composerScopeKey?: string | null
   draftKey: string | null
   onComposerTextChange: (text: string) => void
   onAttachImage?: () => void
   attachments?: PendingNativeChatImage[]
   onRemoveAttachment?: (id: string) => void
   isAttaching?: boolean
-  onMicPress?: () => void
-  micActive?: boolean
-  dictationMode?: string
-  onMicPressIn?: () => void
-  onMicPressOut?: () => void
   inputLockReason?: MobileNativeChatInputLockReason | null
   // Report send failures here only while mounted; the route uses a toast otherwise.
   sendErrorMessage?: string | null
@@ -148,6 +150,7 @@ export function MobileNativeChatView({
   error,
   readFailedFinally = false,
   agent,
+  sessionLive,
   agentWorking,
   canStop = agentWorking,
   awaitingInput = null,
@@ -170,6 +173,7 @@ export function MobileNativeChatView({
   pending,
   imagePreviewsByMessageId,
   draftKey,
+  composerScopeKey,
   onComposerTextChange,
   onAttachImage,
   attachments,
@@ -177,6 +181,7 @@ export function MobileNativeChatView({
   isAttaching,
   onMicPress,
   micActive,
+  micProcessing,
   dictationMode,
   onMicPressIn,
   onMicPressOut,
@@ -209,6 +214,7 @@ export function MobileNativeChatView({
   onOpenFile,
   keyboardInset = 0
 }: Props): React.JSX.Element {
+  useMobileColorScheme()
   const insets = useSafeAreaInsets()
   const bottomPad = keyboardInset > 0 ? keyboardInset + insets.bottom : insets.bottom
   const { fontScale, pinchGesture } = useMobileNativeChatPinchGesture()
@@ -306,7 +312,7 @@ export function MobileNativeChatView({
   // Changing text scale relays out every row, so preserve the page’s reading anchor.
   const layoutKey = `${fontScale}`
   const footer = mobileNativeChatListFooter(liveStatus, turns.waitingRows, renderItem)
-  const emptyState = mobileNativeChatEmptyState(status, agent ?? null, error)
+  const emptyState = mobileNativeChatEmptyState(status, agent ?? null, error, sessionLive)
 
   const lockReason = useSettledMobileNativeChatInputLock(inputLockReason)
   const composerPlaceholder = mobileNativeChatComposerPlaceholder(
@@ -316,12 +322,7 @@ export function MobileNativeChatView({
   // Lock only terminal-backed Send: it can answer an agent prompt, while drafting is harmless and structured sends queue.
   const expandedPromptOwnsSend =
     !structuredActivityUi && !collapsedPrompt && (ask ?? permission ?? question) != null
-  const emptyStateView = emptyState ? (
-    <View style={styles.center}>
-      <Text style={styles.emptyTitle}>{emptyState.title}</Text>
-      <Text style={styles.emptySubtitle}>{emptyState.subtitle}</Text>
-    </View>
-  ) : null
+  const emptyStateView = emptyState ? <MobileNativeChatEmptyStateView copy={emptyState} /> : null
 
   if (readFailedFinally && emptyStateView) {
     return <View style={[styles.root, { paddingBottom: bottomPad }]}>{emptyStateView}</View>
@@ -386,6 +387,7 @@ export function MobileNativeChatView({
       {}
       {trayContent}
       <MobileNativeChatDraftComposer
+        draftScopeKey={composerScopeKey}
         structured={structuredActivityUi ? structuredComposer : null}
         draftKey={draftKey}
         onChangeText={onComposerTextChange}
@@ -400,6 +402,7 @@ export function MobileNativeChatView({
         isAttaching={isAttaching}
         onMicPress={onMicPress}
         micActive={micActive}
+        micProcessing={micProcessing}
         dictationMode={dictationMode}
         onMicPressIn={onMicPressIn}
         onMicPressOut={onMicPressOut}

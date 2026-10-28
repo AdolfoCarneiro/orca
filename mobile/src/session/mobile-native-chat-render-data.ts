@@ -2,7 +2,7 @@ import { formatAgentTypeLabel } from '../../../src/shared/agent-type-label'
 import {
   formatNativeChatEmptyStateCopy,
   type NativeChatEmptyStateCopy
-} from '../../../src/shared/native-chat-empty-state'
+} from '../../../src/shared/native-chat/native-chat-empty-state'
 import { isRootAgentJournalItem } from '../../../src/shared/agent-session-journal-producer'
 import { stripNoiseMessages } from '../../../src/shared/native-chat-noise'
 import { nativeChatStreamingMessage } from '../../../src/shared/native-chat/native-chat-streaming'
@@ -12,8 +12,8 @@ import {
   isUndrawnProviderFrameMessage
 } from '../../../src/shared/native-chat/tools/native-chat-tool-fold'
 import { projectNativeChatTaskListFrames } from '../../../src/shared/native-chat/input/native-chat-task-list-frames'
-import { foldSubagentItems } from '../../../src/shared/native-chat-subagent-items'
-import { prepareNativeChatMessages } from '../../../src/shared/native-chat-message-preparation'
+import { foldSubagentItems } from '../../../src/shared/native-chat/transcript/native-chat-subagent-items'
+import { prepareNativeChatMessages } from '../../../src/shared/native-chat/transcript/native-chat-message-preparation'
 import {
   isImageRefBlock,
   type AgentType,
@@ -24,14 +24,17 @@ import type { MobileNativeChatStatus } from './use-mobile-native-chat-session'
 export function mobileNativeChatEmptyState(
   status: MobileNativeChatStatus,
   agent: string | null,
-  error?: string
+  error?: string,
+  sessionLive = false
 ): NativeChatEmptyStateCopy | null {
   const agentLabel = agent ? formatAgentTypeLabel(agent) : 'the agent'
   switch (status) {
     // Missing history may mean new or unreadable; promise neither in the waiting copy.
     case 'waiting-session':
-    case 'awaiting-transcript':
       return formatNativeChatEmptyStateCopy('notFound', agentLabel)
+    // A session the running agent just reported has no file until its first prompt.
+    case 'awaiting-transcript':
+      return formatNativeChatEmptyStateCopy(sessionLive ? 'empty' : 'notFound', agentLabel)
     case 'ready':
       return formatNativeChatEmptyStateCopy('empty', agentLabel)
     case 'error': {

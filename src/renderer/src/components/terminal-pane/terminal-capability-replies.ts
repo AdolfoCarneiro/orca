@@ -10,7 +10,6 @@ import { guardParserHandler } from './terminal-parser-handler-guard'
 import { installProgramStatusQueryResponder } from '../../../../shared/program-status/query-responder'
 
 export const DEFAULT_DA1_RESPONSE = '\x1b[?1;2c'
-export const CONPTY_DA1_RESPONSE = '\x1b[?61;4c'
 
 // DEC DA1 "Sixel graphics" capability code; image tools feature-detect on it.
 const SIXEL_DA1_ATTRIBUTE = '4'
@@ -144,7 +143,12 @@ export function createTerminalPixelSizeQueryResponder(
 
 export function installTerminalCapabilityReplyHandlers(
   deps: TerminalCapabilityRepliesDeps
-): IDisposable {
+): IDisposable & { replyPrimaryDeviceAttributesQuery: () => boolean } {
+  const replyPrimaryDeviceAttributesQuery = (): boolean => {
+    const response = typeof deps.da1Response === 'function' ? deps.da1Response() : deps.da1Response
+    const base = response ?? DEFAULT_DA1_RESPONSE
+    return deps.sendInput(deps.sixelSupported?.() ? withSixelDa1Attribute(base) : base) !== false
+  }
   const disposables = [
     registerTerminalDa1Owner(deps.terminal, () =>
       deps.parser.registerCsiHandler(
@@ -155,10 +159,7 @@ export function installTerminalCapabilityReplyHandlers(
           }
           // Never answer replayed queries into the fresh shell; that recreates stray input.
           if (!deps.isReplaying()) {
-            const response =
-              typeof deps.da1Response === 'function' ? deps.da1Response() : deps.da1Response
-            const base = response ?? DEFAULT_DA1_RESPONSE
-            deps.sendInput(deps.sixelSupported?.() ? withSixelDa1Attribute(base) : base)
+            replyPrimaryDeviceAttributesQuery()
           }
           return true
         })
@@ -198,6 +199,7 @@ export function installTerminalCapabilityReplyHandlers(
   ]
 
   return {
-    dispose: () => disposeAll(disposables)
+    dispose: () => disposeAll(disposables),
+    replyPrimaryDeviceAttributesQuery
   }
 }
