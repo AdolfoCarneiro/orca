@@ -11,6 +11,7 @@ export type TerminalLiveSpecialKeyDecisionInput = {
   readonly key: string
   readonly heldText: string
   readonly sentText: string
+  readonly caretAtFieldEnd?: boolean
 }
 
 export type TerminalLiveAccessoryLocalEdit = 'backspace' | 'delete'
@@ -29,18 +30,27 @@ export type TerminalLiveAccessoryBytesDecisionInput = {
   readonly sentText: string
 }
 
+const FIELD_LOCAL_KEYS = new Set(['Backspace', 'Delete', 'ArrowLeft', 'Home'])
+// At the field end these still reach the PTY, where shells accept an autosuggestion.
+const FIELD_FORWARD_KEYS = new Set(['ArrowRight', 'End'])
+
 export function getTerminalLiveSpecialKeyDecision({
   key,
   heldText,
-  sentText
+  sentText,
+  caretAtFieldEnd = true
 }: TerminalLiveSpecialKeyDecisionInput): TerminalLiveSpecialKeyDecision {
   const bytes = getTerminalLiveSpecialKeyBytes(key)
   if (bytes === null) {
     return { kind: 'ignore' }
   }
 
-  // Native edits already emit mirror-diff erase bytes; raw DEL here would erase twice.
-  if ((key === 'Backspace' || key === 'Delete') && (heldText.length > 0 || sentText.length > 0)) {
+  // The field edits and moves its own caret and the mirror diff keeps the PTY cursor at its end;
+  // raw bytes here would erase twice or move the PTY cursor away from the mirror.
+  if (
+    (heldText.length > 0 || sentText.length > 0) &&
+    (FIELD_LOCAL_KEYS.has(key) || (FIELD_FORWARD_KEYS.has(key) && !caretAtFieldEnd))
+  ) {
     return { kind: 'local-edit' }
   }
 

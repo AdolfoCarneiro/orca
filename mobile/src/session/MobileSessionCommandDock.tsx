@@ -68,13 +68,8 @@ export function MobileSessionCommandDock({
         {keysInRail ? null : <MobileSessionAccessoryKeys controller={controller} />}
         {}
         {liveInputEnabled ? (
-          <View style={[styles.inputBar, styles.liveInputBar]}>
-            <MobileTerminalLiveInputStatus
-              dictation={dictation}
-              dictationMode={dictationMode}
-              isAttaching={isAttaching}
-            />
-            <View style={styles.liveInputRow}>
+          <View style={styles.inputBar}>
+            <View style={styles.liveInputField}>
               <TextInput
                 ref={bindLiveInputField}
                 style={[
@@ -104,23 +99,28 @@ export function MobileSessionCommandDock({
                 editable={canSend}
                 importantForAutofill="no"
               />
-              <MobileTerminalInputActions
-                canSend={canSend}
-                isAttaching={isAttaching}
+              <MobileTerminalLiveInputStatus
                 dictation={dictation}
                 dictationMode={dictationMode}
-                dictationEnabled={dictationEnabled}
-                buttonStyle={styles.dictationButton}
-                activeButtonStyle={styles.dictationButtonActive}
-                disabledButtonStyle={styles.sendButtonDisabled}
-                onAttachImage={() => void attachImage('library')}
-                onAttachFile={() => void attachImage('files')}
-                onDictationToggle={handleDictationToggle}
-                onDictationPressIn={handleDictationPressIn}
-                onDictationPressOut={handleDictationPressOut}
-                onDictationCancel={cancelDictation}
+                isAttaching={isAttaching}
               />
             </View>
+            <MobileTerminalInputActions
+              canSend={canSend}
+              isAttaching={isAttaching}
+              dictation={dictation}
+              dictationMode={dictationMode}
+              dictationEnabled={dictationEnabled}
+              buttonStyle={styles.dictationButton}
+              activeButtonStyle={styles.dictationButtonActive}
+              disabledButtonStyle={styles.sendButtonDisabled}
+              onAttachImage={() => void attachImage('library')}
+              onAttachFile={() => void attachImage('files')}
+              onDictationToggle={handleDictationToggle}
+              onDictationPressIn={handleDictationPressIn}
+              onDictationPressOut={handleDictationPressOut}
+              onDictationCancel={cancelDictation}
+            />
           </View>
         ) : (
           <View style={styles.inputBar}>

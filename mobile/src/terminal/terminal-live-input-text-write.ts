@@ -4,7 +4,7 @@ import type { TerminalLiveInputSelection } from './terminal-live-text-commit'
 
 // Unchanged controlled values need an imperative IME repair; RN Web refs are DOM nodes and require the platform sibling.
 export function writeTerminalLiveInputText(
-  ref: RefObject<Pick<TextInput, 'setNativeProps' | 'setSelection'> | null>,
+  ref: RefObject<TextInput | null>,
   text: string,
   selection?: TerminalLiveInputSelection
 ): void {

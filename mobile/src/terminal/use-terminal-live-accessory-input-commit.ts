@@ -45,7 +45,7 @@ type TerminalLiveAccessoryInputCommitOptions = {
 
 // The RN-Web ref is the field itself, so its caret is current even when an edit kept the offsets
 // and fired no selection event; native refs expose no caret, so edit at the end.
-function readLiveInputSelection(
+export function readLiveInputSelection(
   node: TextInput | null,
   fieldText: string
 ): TerminalLiveInputSelection | null {

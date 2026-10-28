@@ -193,15 +193,9 @@ export const mobileSessionCommandInputStyles = themedStyleSheet(() => ({
     fontFamily: typography.monoFamily,
     marginRight: spacing.sm
   },
-  liveInputBar: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    gap: spacing.xs
-  },
-  liveInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm
+  liveInputField: {
+    flex: 1,
+    marginRight: spacing.sm
   },
   liveInputCapture: {
     minWidth: 0,

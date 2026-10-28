@@ -21,6 +21,32 @@ describe('terminal live special key decision', () => {
     ).toEqual({ kind: 'local-edit' })
   })
 
+  it.each(['ArrowLeft', 'ArrowRight', 'Home', 'End'])(
+    'Given %s with field text Then moves only the field caret, keeping the PTY cursor at the mirror end',
+    (key) => {
+      expect(
+        getTerminalLiveSpecialKeyDecision({
+          key,
+          heldText: '',
+          sentText: 'abc',
+          caretAtFieldEnd: false
+        })
+      ).toEqual({ kind: 'local-edit' })
+      expect(getTerminalLiveSpecialKeyDecision({ key, heldText: '', sentText: '' }).kind).toBe(
+        'send-now'
+      )
+    }
+  )
+
+  it.each(['ArrowRight', 'End'])(
+    'Given %s with the caret at the field end Then sends it so shells can accept an autosuggestion',
+    (key) => {
+      expect(
+        getTerminalLiveSpecialKeyDecision({ key, heldText: '', sentText: 'git ch' }).kind
+      ).toBe('send-now')
+    }
+  )
+
   it('Given Backspace with an empty field Then sends terminal backspace bytes', () => {
     const decision = getTerminalLiveSpecialKeyDecision({
       key: 'Backspace',
