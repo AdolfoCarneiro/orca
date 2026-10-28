@@ -5,6 +5,7 @@ import type { ZCodeInteractiveCapability } from '../../shared/zcode-missing-tui'
 export const preflightApi = {
   check: (args?: {
     force?: boolean
+    wakeWslDistro?: boolean
   }): Promise<{
     git: { installed: boolean }
     gh: { installed: boolean; authenticated: boolean }
@@ -31,7 +32,7 @@ export const preflightApi = {
   zcodeInteractiveCapability: (): Promise<ZCodeInteractiveCapability> =>
     ipcRenderer.invoke('preflight:zcodeInteractiveCapability'),
   refreshAgents: (
-    args?: PreflightRuntimeContext & { enabledOnly?: boolean }
+    args?: PreflightRuntimeContext & { enabledOnly?: boolean; wakeWslDistro?: boolean }
   ): Promise<RefreshAgentsResult> => ipcRenderer.invoke('preflight:refreshAgents', args),
   detectRemoteAgents: (args: { connectionId: string }): Promise<string[]> =>
     ipcRenderer.invoke('preflight:detectRemoteAgents', args),

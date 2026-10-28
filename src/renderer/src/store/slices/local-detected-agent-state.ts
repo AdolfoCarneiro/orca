@@ -12,9 +12,12 @@ import {
   refreshLocalAgentInventory,
   type LocalAgentInventoryLifecycle
 } from './local-agent-inventory-refresh'
-import { createEmptyLocalDetectedAgentState } from './local-detected-agent-store-state'
+import {
+  createEmptyLocalDetectedAgentState,
+  type LocalAgentRefreshOptions,
+  type LocalDetectedAgentState
+} from './local-detected-agent-store-state'
 import { readLocalAgentInventoryOutcome } from './local-agent-inventory-outcome'
-import type { LocalDetectedAgentState } from './local-detected-agent-store-state'
 
 type LocalDetectedAgentStateCreator = StateCreator<AppState, [], [], LocalDetectedAgentState>
 
@@ -177,10 +180,13 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
       return pending
     },
 
-    refreshAllDetectedAgents: (worktreeId?: string | null): Promise<TuiAgent[]> =>
-      actions.refreshDetectedAgents(worktreeId, true),
-    refreshDetectedAgents: (worktreeId?: string | null, includeDisabled = false) =>
-      refreshLocalAgentInventory(set, get, lifecycle, worktreeId, includeDisabled),
+    refreshAllDetectedAgents: (
+      worktreeId?: string | null,
+      options?: LocalAgentRefreshOptions
+    ): Promise<TuiAgent[]> =>
+      refreshLocalAgentInventory(set, get, lifecycle, worktreeId, true, options),
+    refreshDetectedAgents: (worktreeId?: string | null, options?: LocalAgentRefreshOptions) =>
+      refreshLocalAgentInventory(set, get, lifecycle, worktreeId, false, options),
 
     clearLocalDetectedAgentContextsForProjects: (projectIds: readonly string[]) => {
       const eviction = contextEviction.getLocalAgentContextEviction({

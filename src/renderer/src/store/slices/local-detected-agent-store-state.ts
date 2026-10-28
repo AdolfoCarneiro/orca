@@ -5,6 +5,9 @@ import type {
 } from '../../../../shared/shell-path-hydration-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 
+/** `wakeWslDistro`: a user act (a click, a runtime choice) that may start a stopped WSL distro. */
+export type LocalAgentRefreshOptions = { wakeWslDistro?: boolean }
+
 export type LocalDetectedAgentState = {
   readLocalAgentInventory: (worktreeId?: string | null) => {
     ids: TuiAgent[] | null
@@ -19,10 +22,16 @@ export type LocalDetectedAgentState = {
   pathSource: PathSource | null
   pathFailureReason: ShellHydrationFailureReason | null
   ensureAllDetectedAgents: (worktreeId?: string | null) => Promise<TuiAgent[]>
-  refreshAllDetectedAgents: (worktreeId?: string | null) => Promise<TuiAgent[]>
+  refreshAllDetectedAgents: (
+    worktreeId?: string | null,
+    options?: LocalAgentRefreshOptions
+  ) => Promise<TuiAgent[]>
   ensureNativeDetectedAgents: () => Promise<TuiAgent[]>
   ensureDetectedAgents: (worktreeId?: string | null) => Promise<TuiAgent[]>
-  refreshDetectedAgents: (worktreeId?: string | null) => Promise<TuiAgent[]>
+  refreshDetectedAgents: (
+    worktreeId?: string | null,
+    options?: LocalAgentRefreshOptions
+  ) => Promise<TuiAgent[]>
   clearLocalDetectedAgentContextsForProjects: (projectIds: readonly string[]) => void
   clearLocalDetectedAgents: () => void
 }

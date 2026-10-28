@@ -43,13 +43,16 @@ export type PreflightRuntimeContext = {
 }
 
 export type PreflightApi = {
-  check: (args?: PreflightRuntimeContext & { force?: boolean }) => Promise<PreflightStatus>
+  check: (
+    args?: PreflightRuntimeContext & { force?: boolean; wakeWslDistro?: boolean }
+  ) => Promise<PreflightStatus>
   /** Complete by default; background callers opt into host-owned enabled preferences. */
   detectAgents: (args?: PreflightRuntimeContext & { enabledOnly?: boolean }) => Promise<string[]>
   /** Cached in main for the process lifetime. */
   zcodeInteractiveCapability: () => Promise<ZCodeInteractiveCapability>
+  /** `wakeWslDistro`: a user act that may start a stopped WSL distro; background refreshes omit it. */
   refreshAgents: (
-    args?: PreflightRuntimeContext & { enabledOnly?: boolean }
+    args?: PreflightRuntimeContext & { enabledOnly?: boolean; wakeWslDistro?: boolean }
   ) => Promise<RefreshAgentsResult>
   detectRemoteAgents: (args: { connectionId: string }) => Promise<string[]>
   detectRemoteWindowsTerminalCapabilities: (args: { connectionId: string }) => Promise<{

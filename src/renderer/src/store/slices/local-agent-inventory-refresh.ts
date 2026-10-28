@@ -8,6 +8,7 @@ import { getLocalAgentPreflightContext } from '@/lib/local-preflight-context'
 import { localAgentInventoryContextKey } from '@/lib/local-preflight-context-key'
 import * as contextEviction from './local-agent-context-eviction'
 import { getLegacyLoadingPatch, getSupersededDetectPatch } from './local-agent-legacy-loading'
+import type { LocalAgentRefreshOptions } from './local-detected-agent-store-state'
 
 export type LocalAgentInventoryLifecycle = {
   detectPromises: Map<string, Promise<TuiAgent[]>>
@@ -25,7 +26,8 @@ export function refreshLocalAgentInventory(
   get: StoreApi<AppState>['getState'],
   lifecycle: LocalAgentInventoryLifecycle,
   worktreeId?: string | null,
-  includeDisabled = false
+  includeDisabled = false,
+  options: LocalAgentRefreshOptions = {}
 ): Promise<TuiAgent[]> {
   const isolatedInventory = worktreeId === FLOATING_TERMINAL_WORKTREE_ID
   const context = getLocalAgentPreflightContext(get(), undefined, undefined, worktreeId)
@@ -89,8 +91,9 @@ export function refreshLocalAgentInventory(
       [publishedContextKey]: true
     }
   }))
+  const refreshArgs = includeDisabled ? context : { ...context, enabledOnly: true }
   const pending = window.api.preflight
-    .refreshAgents(includeDisabled ? context : { ...context, enabledOnly: true })
+    .refreshAgents(options.wakeWslDistro ? { ...refreshArgs, wakeWslDistro: true } : refreshArgs)
     .then((result) => {
       const typed = result.agents.filter(isTuiAgent)
       const published = includeDisabled
