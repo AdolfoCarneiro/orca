@@ -150,7 +150,12 @@
     "remove": "Remove",
     "settings": "Settings",
     "delete": "Delete",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "confirm": "Confirm",
+    "copy": "Copy",
+    "done": "Done",
+    "close": "Close",
+    "edit": "Edit"
   },
   "host": {
     "edit": {
@@ -759,6 +764,733 @@
       "inProgress": "In progress",
       "closed": "Closed",
       "done": "Done"
+    }
+  },
+  "components": {
+    "agentLaunchNotice": {
+      "updateRequired": "Update Orca on your computer to start an agent from your phone.",
+      "statusUnreadable": "Could not read this host's status. Retrying…",
+      "copyFailed": "Couldn't copy",
+      "copyPrompt": "Copy prompt"
+    },
+    "agentSpinner": {
+      "monitoring": "Monitoring background tasks",
+      "unconfirmed": "Couldn’t confirm"
+    },
+    "agentStateDot": {
+      "monitoring": "Monitoring background tasks",
+      "unverifiable": "No recent update"
+    },
+    "authFailedBanner": {
+      "message": "Authentication failed — try reconnecting first; if it keeps failing, re-pair from desktop."
+    },
+    "authFailedBannerActions": {
+      "repair": "Re-pair",
+      "webNote": "Reconnect or remove this host from the Orca app."
+    },
+    "codexResetCreditAction": {
+      "earnedReset": "Earned Codex rate-limit reset",
+      "resettingLabel": "Resetting Codex rate limits",
+      "useResetLabel": "Use Codex rate-limit reset",
+      "scopedHint": "Uses one earned reset for {{scopeLabel}}",
+      "activeAccountHint": "Uses one earned reset for the active Codex account",
+      "resetting": "Resetting…",
+      "useReset": "Use reset"
+    },
+    "customKeyModal": {
+      "editing": "Editing",
+      "navigation": "Navigation",
+      "function": "Function",
+      "addShortcut": "Add Shortcut",
+      "shortcutCombo": "Shortcut Combo",
+      "pickKey": "Pick a key",
+      "textMacro": "Text Macro",
+      "shortcutComboHint": "Build Ctrl, Alt, and Shift key chords",
+      "textMacroHint": "Send custom text command",
+      "manageShortcuts": "Manage Shortcuts",
+      "manageShortcutsHint": "Show, hide, or reorder shortcut keys",
+      "modifiers": "Modifiers",
+      "key": "Key",
+      "moreKeys": "More keys — Tab, arrows, F1–F12…",
+      "add": "Add",
+      "label": "Label",
+      "labelPlaceholder": "e.g. Build",
+      "command": "Command",
+      "commandPlaceholder": "e.g. pnpm build",
+      "pressEnter": "Press Enter"
+    },
+    "dragReorderRow": {
+      "dragToReorder": "Drag to reorder",
+      "reorderHint": "Use the move up and move down actions to reorder without dragging",
+      "moveUp": "Move up",
+      "moveDown": "Move down"
+    },
+    "hostDiagnosticsLink": {
+      "viewDiagnostics": "View network diagnostics"
+    },
+    "hostProtocolGate": {
+      "checkingCompatibility": "Checking host compatibility"
+    },
+    "hostRouteNoticeBanner": {
+      "dismissNotice": "Dismiss notice"
+    },
+    "jiraConnectPrompt": {
+      "updateDesktop": "Update Orca desktop",
+      "connectOnDesktop": "Connect Jira on your desktop",
+      "credentialUnreadable": "Jira is saved but unreadable: {{credentialError}}",
+      "connectHint": "Add your Jira site in Orca desktop under Settings → Integrations, then check again.",
+      "checkAgain": "Check again"
+    },
+    "dictationSetupSheet": {
+      "loadFailed": "Failed to load",
+      "downloadFailed": "Download failed",
+      "selectFailed": "Could not select model",
+      "updateFailed": "Could not update",
+      "modelSize": "{{size}} MB",
+      "modelProgress": "{{details}} · {{progress}}%",
+      "modelExtracting": "{{details}} · extracting…",
+      "title": "Set up voice dictation",
+      "description": "Download or pick a model and enable dictation on the paired computer — all from here.",
+      "enabled": "Dictation enabled",
+      "recommended": "Recommended",
+      "inUse": "In use",
+      "useModel": "Use {{model}}",
+      "use": "Use",
+      "downloadModel": "Download {{model}}",
+      "download": "Download"
+    },
+    "diffReviewBody": {
+      "loadingReview": "Loading review...",
+      "reviewUnavailable": "Review Unavailable",
+      "loadFailed": "Unable to Load Review",
+      "noReviewableChanges": "No Reviewable Changes",
+      "tryDifferentFilter": "Try a different review filter.",
+      "loadingDiff": "Loading diff...",
+      "diffTruncated": "Diff truncated for mobile preview.",
+      "binaryDiff": "Binary Diff",
+      "diffTooLarge": "Diff Too Large",
+      "deletedFile": "Deleted File",
+      "diffUnavailable": "Diff Unavailable",
+      "binaryMessage": "This file cannot be rendered as text on mobile.",
+      "tooLargeMessage": "This diff is too large for the mobile preview.",
+      "deletedMessage": "This file was deleted. Add a file note or mark it reviewed.",
+      "selectFile": "Select a file to review.",
+      "retryLabel": "Retry loading review"
+    },
+    "diffReviewDrawers": {
+      "discardTitle": "Discard File",
+      "discardMessage": "Discard changes to \"{{filePath}}\"? This cannot be undone.",
+      "discard": "Discard",
+      "actionsTitle": "Review Actions",
+      "stageableFiles_one": "{{count}} reviewed unstaged files can be staged",
+      "stageableFiles_other": "{{count}} reviewed unstaged files can be staged",
+      "sendNotes": "Send Notes",
+      "terminalLabel": "{{title}} ({{id}})",
+      "terminal": "Terminal",
+      "newAgentSession": "New Agent Session",
+      "updateRequired": "Update Orca on your computer",
+      "statusUnreadable": "Could not read this host's status. Retrying…",
+      "copyNotes": "Copy Notes",
+      "sendUnsentNotes": "Send Unsent Notes",
+      "clearSentNotes": "Clear Sent Notes",
+      "stageReviewedFiles": "Stage Reviewed Files",
+      "markUnreviewed": "Mark Unreviewed",
+      "openInSession": "Open in Session",
+      "loadingSessions": "Loading agent sessions...",
+      "unsentNotes_one": "{{count}} unsent notes",
+      "unsentNotes_other": "{{count}} unsent notes",
+      "editNote": "Edit Note",
+      "addNote": "Add Note",
+      "lineNumber": "Line {{lineNumber}}",
+      "fileNote": "File note",
+      "cancelNote": "Cancel note",
+      "reviewNote": "Review note",
+      "saveLineNote": "Save note on line {{lineNumber}}",
+      "deleteNote": "Delete note",
+      "completeTitle": "Review Complete",
+      "fileSummary_one": "{{fileCount}} file reviewed, {{count}} note",
+      "fileSummary_other": "{{fileCount}} file reviewed, {{count}} notes",
+      "filesSummary_one": "{{fileCount}} files reviewed, {{count}} note",
+      "filesSummary_other": "{{fileCount}} files reviewed, {{count}} notes",
+      "stageReviewedLabel": "Stage reviewed files",
+      "stageReviewed": "Stage Reviewed",
+      "sendNotesLabel": "Send notes to agent"
+    },
+    "diffReviewFileSummary": {
+      "branchFrom": "Branch from {{oldPath}}",
+      "stagedFrom": "Staged from {{oldPath}}",
+      "unstagedFrom": "Unstaged from {{oldPath}}",
+      "branch": "Branch",
+      "staged": "Staged",
+      "unstaged": "Unstaged",
+      "reviewed": "Reviewed",
+      "changed": "Changed",
+      "notes_one": "{{count}} note",
+      "notes_other": "{{count}} notes",
+      "staleCount": "{{count}} stale",
+      "editFileNote": "Edit file note",
+      "stale": "Stale",
+      "previousHunk": "Previous hunk",
+      "hunk": "Hunk",
+      "nextHunk": "Next hunk"
+    },
+    "diffReviewFooter": {
+      "stageFile": "Stage file",
+      "stage": "Stage",
+      "unstageFile": "Unstage file",
+      "unstage": "Unstage",
+      "discardFile": "Discard file",
+      "discard": "Discard",
+      "previousFile": "Previous file",
+      "addFileNote": "Add file note",
+      "note": "Note",
+      "markFileReviewed": "Mark file reviewed",
+      "reviewed": "Reviewed",
+      "markReviewed": "Mark Reviewed",
+      "nextFile": "Next file"
+    },
+    "diffReviewHeader": {
+      "filterAll": "All",
+      "showAllFiles": "Show all review files",
+      "filterUnreviewed": "Unreviewed",
+      "showUnreviewedFiles": "Show unreviewed review files",
+      "filterNotes": "Notes",
+      "showNotesFiles": "Show notes review files",
+      "filterUnstaged": "Unstaged",
+      "showUnstagedFiles": "Show unstaged review files",
+      "filterStaged": "Staged",
+      "showStagedFiles": "Show staged review files",
+      "filterBranch": "Branch",
+      "showBranchFiles": "Show branch review files",
+      "title": "Changes",
+      "openPullRequestSidebar": "Open pull request sidebar",
+      "openReviewActions": "Open review actions",
+      "reviewedProgress": "{{reviewedCount}}/{{queueLength}} reviewed",
+      "unsentNotes_one": "{{count}} unsent note",
+      "unsentNotes_other": "{{count}} unsent notes"
+    },
+    "diffReviewLine": {
+      "addedLineNumber": "Added line {{number}}",
+      "addedLine": "Added line",
+      "deletedLineNumber": "Deleted line {{number}}",
+      "deletedLine": "Deleted line",
+      "contextLineNumber": "Context line {{number}}",
+      "contextLine": "Context line",
+      "addNoteOnLine": "Add note on line {{number}}",
+      "editNoteOnLine": "Edit note on line {{number}}"
+    },
+    "homeQuickActions": {
+      "title": "Quick Actions",
+      "pairDesktop": "Pair Desktop",
+      "newWorkspace": "New Workspace"
+    },
+    "hostCard": {
+      "worktreeAccessibilitySummary": "{{summary}}, {{activeCount}} active",
+      "pairingInvalid": "Pairing invalid",
+      "pairingTemporarilyUnavailable": "Pairing temporarily unavailable",
+      "updateDesktopHint": "Update desktop Orca and sign in to connect from anywhere",
+      "repairHint": "Tap to re-pair with your desktop",
+      "unlockHint": "Unlock your phone, then tap to retry",
+      "openHost": "Open {{title}}",
+      "hostActions": "Actions for {{title}}"
+    },
+    "htmlPreview": {
+      "previewRenderedHtml": "Preview rendered HTML",
+      "preview": "Preview",
+      "viewHtmlSource": "View HTML source",
+      "source": "Source",
+      "title": "HTML preview"
+    },
+    "prSidebar": {
+      "loading": "Loading pull request…",
+      "loadFailed": "Something went wrong.",
+      "retryLoading": "Retry loading pull request",
+      "notPermitted": "Not permitted — your GitHub account is not connected."
+    },
+    "richMarkdownEditor": {
+      "linkUrl": "Link URL",
+      "imageUrl": "Image URL",
+      "insert": "Insert"
+    },
+    "richMarkdownToolbar": {
+      "body": "Body",
+      "heading1": "H1",
+      "heading2": "H2",
+      "heading3": "H3",
+      "bold": "Bold",
+      "italic": "Italic",
+      "strike": "Strike",
+      "bulletList": "Bullet list",
+      "numberedList": "Numbered list",
+      "checklist": "Checklist",
+      "quote": "Quote",
+      "link": "Link",
+      "image": "Image",
+      "inlineCode": "Inline code",
+      "codeBlock": "Code block"
+    },
+    "searchField": {
+      "clearSearch": "Clear search"
+    },
+    "sourceCopyButton": {
+      "copyFailed": "Copy failed",
+      "clipboardRejected": "The clipboard rejected the text.",
+      "failed": "Failed",
+      "copiedLoaded": "Copied loaded",
+      "copyLoaded": "Copy loaded",
+      "couldNotCopy": "Couldn't copy"
+    },
+    "workspaceNameInput": {
+      "placeholder": "Workspace name"
+    },
+    "newWorkspaceFab": {
+      "newWorkspace": "New workspace"
+    },
+    "newWorkspaceSetupScriptField": {
+      "label": "Setup script",
+      "hooks": "HOOKS",
+      "run": "Run",
+      "skip": "Skip",
+      "runSetupCommand": "Run setup command"
+    },
+    "newWorkspaceSshConnectionField": {
+      "label": "SSH Connection",
+      "connecting": "Connecting...",
+      "connect": "Connect",
+      "serverRecovery": "Its server needs recovering from the desktop: Settings → SSH hosts → Recover server."
+    },
+    "newWorktreeFormSheet": {
+      "createWorktree": "Create worktree",
+      "noProjectsFound": "No projects found",
+      "nameOrCreateFrom": "Name or 'Create From'",
+      "workspaceName": "Workspace name",
+      "agent": "Agent",
+      "connectTargetFirst": "Connect target first",
+      "advanced": "Advanced",
+      "note": "Note",
+      "notePlaceholder": "Write a note",
+      "connectTarget": "Connect target"
+    },
+    "newWorktreeModal": {
+      "remoteRepository": "Remote repository"
+    },
+    "newWorktreeModalDrawers": {
+      "project": "Project",
+      "runOn": "Run on",
+      "agent": "Agent"
+    },
+    "newWorktreeProjectTargetFields": {
+      "project": "Project",
+      "selectProject": "Select a project",
+      "runOn": "Run on",
+      "selectRunTarget": "Select a run target"
+    },
+    "protocolBlockScreen": {
+      "updateMobileTitle": "Update Orca Mobile",
+      "updateDesktopTitle": "Update Orca on your computer",
+      "refreshWorkspaceTitle": "Refresh the mobile workspace",
+      "refreshWorkspaceBody": "The workspace cached for this host is older than the desktop expects. Reconnect to this host to download the current one.",
+      "mobileTooOldAppStore": "This desktop needs a newer Orca Mobile app. Update Orca Mobile from the App Store, then try this host again.",
+      "mobileTooOldGitHubReleases": "This desktop needs a newer Orca Mobile app. Update Orca Mobile from GitHub Releases, then try this host again.",
+      "workspaceNeedsUpdateAppStore": "This desktop's mobile workspace needs a newer Orca Mobile app. Update Orca Mobile from the App Store, then try this host again.",
+      "workspaceNeedsUpdateGitHubReleases": "This desktop's mobile workspace needs a newer Orca Mobile app. Update Orca Mobile from GitHub Releases, then try this host again.",
+      "desktopTooOldBody": "This paired desktop app is too old for your current Orca Mobile app. Update Orca on your computer, then try this host again.",
+      "openAppStore": "Open App Store",
+      "openGitHubReleases": "Open GitHub Releases",
+      "getVersion": "Get Orca {{version}}",
+      "refreshRecoveryNote": "If this message stays, remove this host and pair it again.",
+      "updateRecoveryNote": "Already updated? Go back to Hosts and refresh the connection. If this message stays, remove this host and pair it again.",
+      "backToHosts": "Back to hosts"
+    },
+    "setupHookTrustDrawer": {
+      "scriptChangedTitle": "{{repoName}}'s setup script changed",
+      "runSetupTitle": "Run setup from {{repoName}}?",
+      "description": "This repository's orca.yaml runs before the workspace starts. Only run it if you trust this repository.",
+      "newScriptLabel": "New setup script",
+      "scriptLabel": "Setup script",
+      "runHooks": "Run hooks",
+      "alwaysTrustAndRun": "Always trust and run",
+      "dontRun": "Don't run"
+    },
+    "smartWorkspaceAdvancedFields": {
+      "name": "Name",
+      "workspaceName": "Workspace name",
+      "branchName": "Branch name",
+      "derivedFromName": "Derived from name",
+      "reuseBranch": "Reuse branch “{{branch}}”"
+    },
+    "smartWorkspaceSourceDrawer": {
+      "title": "Name or 'Create From'",
+      "crossRepoMessage": "This item lives in {{owner}}/{{repo}}.",
+      "switchRepo": "Switch to {{repoName}}",
+      "connectRepository": "Connect the repository to search sources.",
+      "gitHubRemoteRequired": "This SSH repo needs a GitHub remote to list issues and PRs.",
+      "noResults": "No results found.",
+      "typeWorkspaceName": "Type a workspace name in the field below.",
+      "searchPlaceholder": "Type a name or search a source"
+    },
+    "smartWorkspaceSourceField": {
+      "optional": "[Optional]",
+      "openSelectedSource": "Open selected source",
+      "searchPlaceholder": "Type a name or search a source"
+    },
+    "smartWorkspaceSourceRow": {
+      "useName": "Use \"{{name}}\"",
+      "nameWorkspace": "Name this workspace",
+      "createBranch": "Create branch \"{{name}}\"",
+      "newBranch": "New branch",
+      "pullRequest": "PR #{{number}}",
+      "issue": "Issue #{{number}}",
+      "mergeRequest": "MR !{{number}}"
+    },
+    "terminalShortcutSettings": {
+      "shortcutBar": "SHORTCUT BAR",
+      "shortcutBarDescription": "Toggle keys to show or hide them, and hold the grip to drag a key into the order you want on the terminal shortcut bar.",
+      "resetDefaults": "Reset Defaults",
+      "resetDescription": "Show every built-in shortcut key in the original order",
+      "customShortcuts": "CUSTOM SHORTCUTS",
+      "empty": "No custom shortcuts defined yet.",
+      "removeShortcut": "Remove {{label}}",
+      "addShortcut": "Add Custom Shortcut…",
+      "addDescription": "Create key combo or text macro"
+    },
+    "voiceModelList": {
+      "modelSize": "{{size}} MB",
+      "modelProgress": "{{size}} · {{progress}}%",
+      "modelExtracting": "{{size}} · extracting…",
+      "recommended": "Recommended",
+      "inUse": "In use",
+      "useModel": "Use {{label}}",
+      "use": "Use",
+      "deleteModel": "Delete {{label}}",
+      "downloadModel": "Download {{label}}"
+    },
+    "workspaceDetailPlaceholder": {
+      "title": "No workspace open",
+      "description": "Pick a workspace from the sidebar to open its terminal here."
+    },
+    "worktreeListRow": {
+      "folder": "Folder",
+      "remoteHost": "Remote host",
+      "project": "Project {{repo}}",
+      "child": "Child",
+      "children_one": "{{count}} child",
+      "children_other": "{{count}} children"
+    },
+    "accountsSnapshot": {
+      "invalidSnapshot": "Invalid accounts snapshot from host"
+    },
+    "codexResetCredit": {
+      "available_one": "{{count}} reset available",
+      "available_other": "{{count}} resets available",
+      "resetTitle": "Rate limits reset",
+      "alreadyAppliedTitle": "Reset already applied",
+      "refresh": "Codex usage has been refreshed.",
+      "nothingToResetTitle": "Nothing to reset",
+      "nothingToResetMessage": "No eligible Codex rate-limit window is exhausted.",
+      "noResetTitle": "No reset available",
+      "noResetMessage": "This account has no earned reset credits available.",
+      "invalidResponse": "Invalid reset response from host",
+      "expiryNowSingle": "Expires now",
+      "expiryNowMultiple": "Next expires now",
+      "expiryMinutesSingle": "Expires in {{minutes}}m",
+      "expiryMinutesMultiple": "Next expires in {{minutes}}m",
+      "expiryHoursMinutesSingle": "Expires in {{hours}}h {{minutes}}m",
+      "expiryHoursMinutesMultiple": "Next expires in {{hours}}h {{minutes}}m",
+      "expiryHoursSingle": "Expires in {{hours}}h",
+      "expiryHoursMultiple": "Next expires in {{hours}}h",
+      "expiryDaysHoursSingle": "Expires in {{days}}d {{hours}}h",
+      "expiryDaysHoursMultiple": "Next expires in {{days}}d {{hours}}h",
+      "expiryDaysSingle": "Expires in {{days}}d",
+      "expiryDaysMultiple": "Next expires in {{days}}d"
+    },
+    "markdownBlocks": {
+      "copyCode": "Copy code",
+      "openImage": "Open image"
+    },
+    "mountedBottomDrawer": {
+      "dismissDrawer": "Dismiss drawer"
+    },
+    "newWorktreeAgentSelection": {
+      "blankTerminal": "Blank Terminal"
+    },
+    "useCodexResetCreditAction": {
+      "hostAccount": "{{identity}} on the host",
+      "hostAccountConfirmMessage": "This spends one earned reset for {{identity}} on the host and immediately resets eligible rate-limit windows.",
+      "hostSelectedAccount": "the selected managed account on the host",
+      "hostSelectedAccountConfirmMessage": "This spends one earned reset for the selected managed account on the host and immediately resets eligible rate-limit windows.",
+      "wslAccount": "{{identity}} on WSL {{distro}}",
+      "wslAccountConfirmMessage": "This spends one earned reset for {{identity}} on WSL {{distro}} and immediately resets eligible rate-limit windows.",
+      "wslSelectedAccount": "the selected managed account on WSL {{distro}}",
+      "wslSelectedAccountConfirmMessage": "This spends one earned reset for the selected managed account on WSL {{distro}} and immediately resets eligible rate-limit windows.",
+      "detailsChanged": "Reset details changed",
+      "detailsChangedMessage": "The account or reset offer changed before the host contacted Codex. Review the updated details, then confirm again.",
+      "resetFailed": "Could not reset rate limits",
+      "confirmTitle": "Use a rate-limit reset?"
+    }
+  },
+  "pullRequest": {
+    "linkPrForm": {
+      "title": "Link existing pull request",
+      "referenceLabel": "PR number or GitHub URL",
+      "referencePlaceholder": "#123 or https://github.com/owner/repo/pull/123",
+      "linkNumber": "Link #{{number}}",
+      "linkButton": "Link pull request"
+    },
+    "prViewPanel": {
+      "providerUnavailable": "Hosted review panel unavailable for this provider.",
+      "branchUnavailable": "Current branch unavailable."
+    },
+    "prActionsSection": {
+      "unlinkFailed": "Failed to unlink pull request.",
+      "mergeConfirmTitle": "Merge pull request?",
+      "mergeButton": "Merge",
+      "closeConfirmTitle": "Close pull request?",
+      "closeConfirmMessage": "#{{number}} will be closed without merging.",
+      "reopenConfirmTitle": "Reopen pull request?",
+      "reopenConfirmMessage": "#{{number}} will be reopened.",
+      "reopenButton": "Reopen",
+      "mergeAccessibilityLabel": "Merge pull request",
+      "recheckAccessibilityLabel": "Recheck merge status",
+      "recheckButton": "Recheck",
+      "markReadyAccessibilityLabel": "Mark pull request ready for review",
+      "markReadyButton": "Ready for review",
+      "autoMergeLabel": "Auto-merge when ready",
+      "autoMergeAccessibilityLabel": "Toggle auto-merge",
+      "autoMergeOn": "On",
+      "autoMergeOff": "Off",
+      "closeAccessibilityLabel": "Close pull request",
+      "reopenAccessibilityLabel": "Reopen pull request",
+      "unlinkAccessibilityLabel": "Unlink pull request",
+      "unlinkButton": "Unlink"
+    },
+    "prCheckDetail": {
+      "noDetails": "No details available.",
+      "annotations": "Annotations",
+      "annotationsTruncated": "Showing first 20 annotations",
+      "jobsTruncated": "Showing first 100 jobs"
+    },
+    "checksSection": {
+      "unavailable": "Checks unavailable",
+      "noChecks": "No checks",
+      "failing": "{{count}} failing",
+      "pendingCount": "{{count}} pending",
+      "passed": "{{count}} passed",
+      "neutralCount": "{{count}} neutral",
+      "successful": "Successful",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "timedOut": "Timed out",
+      "actionRequired": "Action required",
+      "neutral": "Neutral",
+      "skipped": "Skipped",
+      "queued": "Queued",
+      "inProgress": "In progress",
+      "pending": "Pending",
+      "loadDetailsFailed": "Failed to load check details",
+      "title": "Checks",
+      "rerunFailing": "Rerun failing checks",
+      "failingChecks_one": "{{count}} failing check",
+      "failingChecks_other": "{{count}} failing checks",
+      "inspectOrFix": "Inspect details or start an AI fix pass.",
+      "fixFailing": "Fix failing checks with AI",
+      "fix": "Fix",
+      "checkDetails": "{{name}} check details",
+      "openOnWeb": "Open {{name}} on the web"
+    },
+    "commentCard": {
+      "justNow": "just now",
+      "minutesAgo_one": "{{count}}m ago",
+      "minutesAgo_other": "{{count}}m ago",
+      "hoursAgo_one": "{{count}}h ago",
+      "hoursAgo_other": "{{count}}h ago",
+      "daysAgo_one": "{{count}}d ago",
+      "daysAgo_other": "{{count}}d ago",
+      "monthsAgo_one": "{{count}}mo ago",
+      "monthsAgo_other": "{{count}}mo ago",
+      "yearsAgo_one": "{{count}}y ago",
+      "yearsAgo_other": "{{count}}y ago",
+      "resolved": "resolved",
+      "openOnGitHub": "Open comment on GitHub",
+      "editPlaceholder": "Edit comment…",
+      "replyToComment": "Reply to comment",
+      "reply": "Reply",
+      "editComment": "Edit comment",
+      "deleteComment": "Delete comment",
+      "unresolveThread": "Unresolve thread",
+      "resolveThread": "Resolve thread",
+      "unresolve": "Unresolve",
+      "resolve": "Resolve",
+      "replyPlaceholder": "Write a reply…",
+      "deleteConfirmTitle": "Delete comment?",
+      "deleteConfirmMessage": "This permanently deletes the comment on GitHub."
+    },
+    "commentsSection": {
+      "all": "All",
+      "humans": "Humans",
+      "bots": "Bots",
+      "noBotComments": "No bot comments.",
+      "noHumanComments": "No human comments.",
+      "noComments": "No comments yet.",
+      "description": "Description",
+      "descriptionLoadFailed": "Could not load description. Tap refresh to try again.",
+      "noDescription": "No description provided.",
+      "title": "Comments",
+      "commentsLoadFailed": "Could not load comments. Tap refresh to try again.",
+      "showMoreOf": "Show {{count}} more of {{remaining}}",
+      "showMore": "Show {{count}} more",
+      "addCommentPlaceholder": "Add a comment…",
+      "comment": "Comment",
+      "resolvedThread_one": "Resolved thread by {{author}}",
+      "resolvedThread_other": "Resolved thread by {{author}} ({{count}})",
+      "resolvedComment_one": "Resolved comment by {{author}}",
+      "resolvedComment_other": "Resolved comment by {{author}} ({{count}})"
+    },
+    "conflictingFilesSection": {
+      "detailsUnavailable": "Conflict file details are unavailable",
+      "refreshing": "Refreshing conflict details…",
+      "localMergeClean": "GitHub reports conflicts, but local Git did not reproduce them. Refresh the PR or push the branch to recalculate mergeability.",
+      "copyFailed": "Failed to copy text",
+      "copyCommands": "Copy commands",
+      "commitsBehind_one": "{{count}} commit behind (base commit: {{baseCommit}})",
+      "commitsBehind_other": "{{count}} commits behind (base commit: {{baseCommit}})",
+      "title": "Conflicts",
+      "mustResolve": "This branch has conflicts that must be resolved",
+      "runFromWorktree": "Run from this worktree",
+      "copyRefreshCommands": "Copy mergeability refresh commands",
+      "filesHeading": "Conflicting files",
+      "resolveWithAi": "Resolve conflicts with AI"
+    },
+    "reviewersSection": {
+      "requested": "Requested",
+      "approved": "Approved",
+      "changesRequested": "Changes requested",
+      "commented": "Commented",
+      "dismissed": "Dismissed",
+      "pending": "Pending",
+      "reviewed": "Reviewed",
+      "addOrRemove": "Add or remove reviewers",
+      "title": "Reviewers",
+      "loading": "Loading reviewers…",
+      "loadFailed": "Could not load reviewers. Tap refresh to try again.",
+      "noReviewers": "No reviewers requested",
+      "removeReviewer": "Remove {{login}}"
+    },
+    "prSidebarHeader": {
+      "openOnWeb": "Open pull request #{{number}} on the web",
+      "openInBrowser": "Open pull request #{{number}} in browser",
+      "cancelEditingTitle": "Cancel editing title",
+      "saveTitle": "Save title",
+      "editTitle": "Edit pull request title"
+    },
+    "prSidebarCreateEmptyState": {
+      "branchRequired": "Check out a branch before creating a pull request.",
+      "createFailed": "Failed to create pull request.",
+      "title": "Pull request",
+      "refreshPullRequest": "Refresh pull request",
+      "createPullRequest": "Create pull request",
+      "createPr": "Create PR",
+      "linkedPrUnavailable": "Linked PR #{{number}} unavailable",
+      "noOpenPullRequest": "No open pull request",
+      "refreshOrCreate": "Refresh to check again, or create a new PR for this branch.",
+      "branchNotLinked": "{{branch}} is not linked to an open PR.",
+      "currentBranchNotLinked": "The current branch is not linked to an open PR.",
+      "linkExistingPullRequest": "Link an existing pull request",
+      "linkExistingPr": "Link an existing PR"
+    },
+    "reviewerPickerDrawer": {
+      "title": "Reviewers",
+      "searchPeople": "Search people",
+      "loadFailed": "Failed to load people",
+      "noMatches": "No matching people",
+      "removeReviewer": "Remove {{login}}",
+      "requestReviewer": "Request {{login}}"
+    },
+    "markdownBlocks": {
+      "details": "Details"
+    },
+    "prActionsState": {
+      "mergedLabel": "Merged",
+      "mergedHint": "This pull request is already merged",
+      "closedLabel": "Closed",
+      "closedHint": "This pull request is closed",
+      "draftLabel": "Draft",
+      "draftHint": "This pull request is still a draft",
+      "reviewRequiredLabel": "Approval required",
+      "reviewRequiredHint": "GitHub requires review approval before this pull request can merge",
+      "changesRequestedLabel": "Changes requested",
+      "changesRequestedHint": "GitHub reports requested changes on this pull request",
+      "conflictsLabel": "Conflicts",
+      "conflictsHint": "GitHub reports merge conflicts",
+      "mergeQueueLabel": "Merge when ready",
+      "mergeQueueHint": "This base branch uses GitHub merge queue",
+      "mergeQueueAutoMergeOnLabel": "Auto-merge on",
+      "mergeQueueAutoMergeOnHint": "This base branch uses GitHub merge queue",
+      "mergeStatusUnavailableLabel": "Merge",
+      "mergeStatusUnavailableHint": "Merge status is unavailable for this PR",
+      "behindLabel": "Behind",
+      "behindHint": "Update the branch before merging",
+      "blockedLabel": "Blocked",
+      "blockedHint": "GitHub reports this pull request is blocked",
+      "mergeableChecksFailedLabel": "Checks failed",
+      "mergeableChecksFailedHint": "GitHub says this PR can merge, but some checks failed",
+      "mergeableChecksPendingLabel": "Checks pending",
+      "mergeableChecksPendingHint": "GitHub says this PR can merge, but checks are still running",
+      "mergeableChecksPassedLabel": "Able to merge",
+      "mergeableChecksPassedHint": "GitHub says this PR can merge and checks passed",
+      "mergeableLabel": "Able to merge",
+      "mergeableHint": "GitHub says this PR can merge",
+      "checksPassedLabel": "Checks passed",
+      "checksPassedHint": "Checks passed. Merge eligibility will be checked again before merging.",
+      "checkingLabel": "Checking",
+      "checkingHint": "GitHub is still computing this pull request merge status",
+      "stackDraft": "#{{number}} is still a draft.",
+      "stackClosed": "#{{number}} is closed.",
+      "stackConflicts": "#{{number}} has merge conflicts.",
+      "stackChangesRequested": "#{{number}} has requested changes.",
+      "stackReviewRequired": "#{{number}} still needs review approval.",
+      "stackBehind": "#{{number}} must be updated.",
+      "stackBlocked": "#{{number}} is blocked.",
+      "methodMerge": "Create merge commit",
+      "methodSquash": "Squash and merge",
+      "methodRebase": "Rebase and merge",
+      "mergeConfirmMessage": "This will merge #{{number}} into its base branch.",
+      "queueThrough_one": "Queue through #{{number}} · {{count}} PR",
+      "queueThrough_other": "Queue through #{{number}} · {{count}} PRs",
+      "mergeThrough_one": "Merge through #{{number}} · {{count}} PR",
+      "mergeThrough_other": "Merge through #{{number}} · {{count}} PRs",
+      "queueStackMessage": "GitHub will add this pull request and every pull request below it to the merge queue.",
+      "mergeStackMessage": "GitHub will merge this pull request and every pull request below it in the stack."
+    },
+    "prCheckDetailContent": {
+      "annotation": "Annotation",
+      "unknown": "unknown",
+      "failedJobs": "Failed jobs",
+      "jobs": "Jobs"
+    },
+    "prChecksPresentation": {
+      "noChecks": "No checks",
+      "failing_one": "{{count}} failing",
+      "failing_other": "{{count}} failing",
+      "pending_one": "{{count}} pending",
+      "pending_other": "{{count}} pending",
+      "passed_one": "{{count}} passed",
+      "passed_other": "{{count}} passed",
+      "neutral_one": "{{count}} neutral",
+      "neutral_other": "{{count}} neutral",
+      "unavailable": "Checks unavailable",
+      "stateOpen": "Open",
+      "stateMerged": "Merged",
+      "stateDraft": "Draft",
+      "stateClosed": "Closed"
+    },
+    "prCommentAudienceLabels": {
+      "all": "All",
+      "humans": "Humans",
+      "bots": "Bots",
+      "noBotComments": "No bot comments.",
+      "noHumanComments": "No human comments.",
+      "noComments": "No comments yet."
     }
   }
 }
