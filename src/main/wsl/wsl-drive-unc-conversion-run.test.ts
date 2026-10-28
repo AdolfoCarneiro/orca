@@ -255,10 +255,12 @@ describe('startWslDriveUncConversion', () => {
       deps({ profileId: 'profile-2', newMigrationId: () => 'conv-2' }),
       REQUEST
     )
-    expect(listWslDriveUncConversions(root).map((record) => record.profileId)).toEqual([
-      'profile-1',
-      'profile-2'
-    ])
+    // The journal lists in directory order, which differs between filesystems.
+    expect(
+      listWslDriveUncConversions(root)
+        .map((record) => record.profileId)
+        .sort()
+    ).toEqual(['profile-1', 'profile-2'])
   })
 
   it('fences the projects until the startup rewrite, and not after', async () => {
