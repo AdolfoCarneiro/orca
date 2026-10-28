@@ -277,10 +277,6 @@
       "failures": ["Unknown method"],
       "pending": 0
     },
-    "28366801162a": {
-      "failures": ["transport failure"],
-      "pending": 0
-    },
     "88a268fa1b7b": {
       "name": "speech.dictation.chunk#1",
       "ordinal": 1,
@@ -565,8 +561,8 @@
           "settlements": {
             "chunk": "bc459c132276"
           },
-          "state": "28366801162a",
-          "effects": ["19c961e90970"]
+          "state": "02cebe6f0062",
+          "effects": []
         }
       },
       {
@@ -577,8 +573,8 @@
           "settlements": {
             "chunk": "bc459c132276"
           },
-          "state": "b5157118341f",
-          "effects": ["19c961e90970"]
+          "state": "02cebe6f0062",
+          "effects": []
         }
       }
     ]

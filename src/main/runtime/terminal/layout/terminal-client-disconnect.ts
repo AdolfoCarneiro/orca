@@ -15,7 +15,7 @@ export abstract class OrcaRuntimeWithOnClientDisconnected extends OrcaRuntimeWit
 
   onClientDisconnected(clientId: string): void {
     this.revokeTerminalFileGrantsForClient(clientId)
-    this.mobileDictation.cancelForClient(clientId)
+    this.mobileDictation.cancelAfterClientDisconnectGrace(clientId)
 
     for (const [ptyId, entry] of this.pendingRestoreTimers) {
       if (entry.clientId === clientId) {

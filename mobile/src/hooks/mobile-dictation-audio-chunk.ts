@@ -4,6 +4,9 @@ import {
 } from './mobile-dictation-pending-audio-budget'
 import { bytesToBase64 } from './mobile-dictation-session-state'
 import { dictationAudioChunkSend } from '../dictation/mobile-dictation-operations'
+import { isRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
+import { rpcPayloadMember } from '../transport/rpc-reader-payload'
+import { isLogicalClientCutoverError } from '../transport/stable-logical-rpc-client'
 import type { DictationCaptureChunk } from '../platform/dictation-capture-contract'
 import type { MobileDictationPendingAudioBudget } from './mobile-dictation-pending-audio-budget'
 import type { RpcClient } from '../transport/rpc-client'
@@ -13,6 +16,7 @@ type MobileDictationAudioChunkQueue = {
   pendingAudioBudget: MobileDictationPendingAudioBudget
   shouldReleaseBudget: (dictationId: string) => boolean
   failActiveDictation: (dictationId: string, err: unknown) => void
+  noteTranscriptSoFar: (dictationId: string, text: string) => void
 }
 
 export function enqueueMobileDictationAudioChunk(
@@ -30,16 +34,33 @@ export function enqueueMobileDictationAudioChunk(
     )
     return
   }
+  const params = {
+    dictationId,
+    audioBase64: bytesToBase64(bytes),
+    sampleRate: MOBILE_DICTATION_PCM_SAMPLE_RATE
+  }
   const sendChunk = dictationAudioChunkSend
-    .request(client, {
-      dictationId,
-      audioBase64: bytesToBase64(bytes),
-      sampleRate: MOBILE_DICTATION_PCM_SAMPLE_RATE
-    })
+    .request(client, params)
+    .catch((err: unknown) =>
+      // A chunk still waiting when the connection moved never reached the host; send it on the new one.
+      isLogicalClientCutoverError(err) && !isRpcDeliveryUnknown(err)
+        ? dictationAudioChunkSend.request(client, params)
+        : Promise.reject(err)
+    )
     .then((reply) => {
-      dictationAudioChunkSend.interpret(reply)
+      // Only newer hosts send the text so far; any other result still acknowledges the chunk.
+      const result = dictationAudioChunkSend.interpret(reply)
+      const text = result == null ? undefined : rpcPayloadMember(result, 'text')
+      if (typeof text === 'string') {
+        queue.noteTranscriptSoFar(dictationId, text)
+      }
     })
-    .catch((err) => queue.failActiveDictation(dictationId, err))
+    .catch((err) => {
+      // The host keeps the session through a reconnect; only audio in flight at the drop is lost.
+      if (!isRpcDeliveryUnknown(err)) {
+        queue.failActiveDictation(dictationId, err)
+      }
+    })
     .finally(() => {
       if (queue.shouldReleaseBudget(dictationId)) {
         queue.pendingAudioBudget.release(byteLength)

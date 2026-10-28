@@ -43,6 +43,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
   const pendingAudioBudgetRef = useRef(new MobileDictationPendingAudioBudget())
   const acceptingChunksRef = useRef(false)
   const generationRef = useRef(0)
+  const transcriptSoFarRef = useRef<{ dictationId: string; text: string } | null>(null)
 
   useLayoutEffect(() => {
     // Native audio events can arrive before passive Effects flush, but refs
@@ -91,6 +92,11 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
       if (client && dictationId) {
         void dictationSessionCancel.request(client, { dictationId }).catch(() => undefined)
       }
+      // Keep what the host transcribed before the failure instead of dropping it with the error.
+      const kept = transcriptSoFarRef.current
+      if (kept?.dictationId === dictationId && kept.text) {
+        onTranscriptRef.current(kept.text)
+      }
       reportError(err)
     },
     [closeDictationAudio, reportError]
@@ -102,7 +108,10 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
       pendingChunks: pendingChunksRef.current,
       pendingAudioBudget: pendingAudioBudgetRef.current,
       shouldReleaseBudget: (id: string) => activeIdRef.current === id,
-      failActiveDictation
+      failActiveDictation,
+      noteTranscriptSoFar: (dictationId: string, text: string) => {
+        transcriptSoFarRef.current = { dictationId, text }
+      }
     }
     const sub = capture.onChunk((chunk) => {
       const client = clientRef.current
