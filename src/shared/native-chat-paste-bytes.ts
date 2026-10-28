@@ -22,11 +22,15 @@ export const NATIVE_CHAT_SUBMIT = SUBMIT
  * Agent TUIs treat CR in the same PTY write as pasted body, leaving text unsent. Write NATIVE_CHAT_SUBMIT separately after a short delay,
  * matching orca-runtime writeTerminalAction Enter handling. */
 export function buildNativeChatPasteBytes(text: string): string {
-  if (isMultilineDraft(text) || getTerminalInputByteLength(text) > UNFRAMED_AGENT_INPUT_MAX_BYTES) {
+  // Sanitize unframed text too so pasted scrollback cannot inject terminal escapes.
+  const sanitized = sanitizeBracketedPasteText(text)
+  if (
+    isMultilineDraft(text) ||
+    getTerminalInputByteLength(sanitized) > UNFRAMED_AGENT_INPUT_MAX_BYTES
+  ) {
     return wrapTerminalBracketedPasteText(text)
   }
-  // Sanitize unframed text too so pasted scrollback cannot inject terminal escapes.
-  return sanitizeBracketedPasteText(text)
+  return sanitized
 }
 
 /** Image attachments must look like a real terminal image paste to Claude/Codex

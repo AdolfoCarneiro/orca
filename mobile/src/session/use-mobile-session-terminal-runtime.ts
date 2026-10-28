@@ -10,7 +10,6 @@ import { useTerminalLiveInputFocus } from '../terminal/use-terminal-live-input-f
 import { reopensFocusedInputWhenKeyboardHidden } from '../terminal/terminal-live-input-keyboard-reopen'
 import type { TerminalLiveInputSender } from '../terminal/terminal-live-input-sender'
 import { useTerminalLiveInputCommit } from '../terminal/use-terminal-live-input-commit'
-import { buildMobileTerminalPasteText } from '../terminal/mobile-terminal-paste-text'
 import { resolveMobileTerminalInputGate } from '../terminal/terminal-input-connection-gate'
 import { createInitialSessionAutoCreateState } from './use-initial-session-terminal-autocreate'
 import { TerminalViewportResubscribeBudget } from './mobile-terminal-viewport-resubscribe'
@@ -116,9 +115,8 @@ export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateM
   // Fit the unrounded measured frame; window height can exceed visible area.
   const terminalFrameRef = useRef<TerminalFrame | null>(null)
   const activeSessionTab = sessionTabs.find((tab) => tab.id === activeSessionTabId) ?? null
-  const buildLivePasteText = useCallback(
-    (handle: string, text: string): string =>
-      buildMobileTerminalPasteText(text, ptyModesRef.current.get(handle)),
+  const framesLivePaste = useCallback(
+    (handle: string): boolean => ptyModesRef.current.get(handle)?.bracketedPasteMode === true,
     []
   )
   const {
@@ -135,7 +133,7 @@ export function useMobileSessionTerminalRuntime(scope: MobileSessionScreenStateM
     activeHandleRef,
     activeSessionTabType: activeSessionTab?.type,
     activeSessionTabTypeRef,
-    buildLivePasteText,
+    framesLivePaste,
     connected: connState === 'connected',
     liveInputRef,
     liveInputTerminalHandles,

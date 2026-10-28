@@ -41,6 +41,8 @@ describe('buildNativeChatPasteBytes', () => {
     const overBoundary = `${atBoundary}x`
     expect(buildNativeChatPasteBytes(atBoundary)).toBe(atBoundary)
     expect(buildNativeChatPasteBytes(overBoundary)).toBe(`${BEGIN}${overBoundary}${END}`)
+    // Each ESC becomes a 3-byte ␛, so the sent length, not the typed one, decides.
+    expect(buildNativeChatPasteBytes('\x1b'.repeat(400))).toBe(`${BEGIN}${'␛'.repeat(400)}${END}`)
   })
 })
 
