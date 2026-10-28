@@ -204,6 +204,30 @@
     "startupWorktreeRefresh": {
       "loading": "Descobrindo espaços de trabalho…",
       "description": "Mais espaços de trabalho podem aparecer enquanto os projetos locais e remotos são carregados."
+    },
+    "wslMoved": {
+      "movedToHost": "Movido para o host {{distro}}",
+      "useHere": "Usar novamente neste computador",
+      "useHereTitle": "Usar {{name}} novamente neste computador?",
+      "useHereDescription": "O Orca vai abrir este projeto aqui como ele estava antes da movimentação. Seu código não é afetado: ele nunca foi movido. As alterações feitas no host {{distro}} desde a movimentação, como novas abas e chats, ficam no host e não voltam. Os projetos movidos junto com este também voltam. O projeto também continua no host {{distro}} até você removê-lo de lá. Esta janela será recarregada.",
+      "useHereConfirm": "Usar neste computador",
+      "useHereSuperseded": "Uma movimentação posterior para o host {{distro}} inclui este projeto. Traga aquela de volta primeiro.",
+      "useHereRefusedTitle": "Ainda não é possível usar {{name}} aqui",
+      "useHereRefusedOk": "OK",
+      "useHereSupersededBy": "{{names}} foram movidos para o host {{distro}} depois deste projeto. Use-os novamente neste computador primeiro e depois este projeto.",
+      "useHereMoveRunning": "Uma movimentação para o host {{distro}} ainda está em andamento. Tente novamente quando ela terminar.",
+      "useHereHostKeptForPeers": "{{project}} foi movido para o host {{distro}}, que continua em execução para outro Orca. Adicione o host novamente para usá-lo aqui de novo.",
+      "useHereHostUnreachable": "O host {{distro}} não está respondendo, então o Orca não consegue parar a cópia deste projeto lá, e os agentes dele ainda podem estar em execução. Conecte o host em Configurações, ou remova-o, e tente novamente.",
+      "useHereHostStillRunning": "A cópia deste projeto no host {{distro}} ainda tem terminais em execução, então os agentes dele podem ser executados duas vezes. Aguarde um momento e tente novamente.",
+      "useHereFailed": "Não foi possível trazer este projeto de volta para este computador.",
+      "useHereHostRemovalPending": "O host {{distro}} ainda está sendo removido, então o Orca não mexe nele. Conclua a remoção em Configurações e tente novamente.",
+      "useHereHostAutomations": "O Orca não conseguiu desativar as automações deste projeto no host {{distro}}, então elas podem ser executadas duas vezes. Conecte o host em Configurações e tente novamente.",
+      "useHereUnsavedTitle": "Salve seus arquivos primeiro",
+      "useHereUnsavedDescription": "Trazer {{name}} de volta recarrega esta janela. Salve ou feche estes arquivos primeiro: {{files}}",
+      "automationRunsOnHost": "É executada no host {{distro}}",
+      "quitDuringMoveTitle": "Sair enquanto um projeto está sendo movido?",
+      "quitDuringMoveDescription": "Um projeto está sendo movido para o host WSL dele. Sair mesmo assim? A movimentação será desfeita na próxima inicialização.",
+      "quitDuringMoveConfirm": "Sair mesmo assim"
     }
   },
   "tray": {
@@ -8213,7 +8237,8 @@
             "migration": "Não concluído: há uma movimentação para este servidor pendente. Retome-a primeiro.",
             "deferred": "Ainda não concluído: o servidor não está pronto para isso. Tente novamente mais tarde.",
             "failed": "O Orca não conseguiu concluir esta ação no servidor. Tente novamente.",
-            "defaultServer": "Não concluído: este servidor é o host padrão para novos projetos. Escolha outro em Novos projetos são abertos em antes de pará-lo."
+            "defaultServer": "Não concluído: este servidor é o host padrão para novos projetos. Escolha outro em Novos projetos são abertos em antes de pará-lo.",
+            "wslMoveRunning": "Não concluído: um projeto está sendo movido para este servidor. O Orca o atualiza quando a movimentação terminar."
           },
           "reassurance": "É executado em cada host, acessado pela sua própria conexão SSH. Seu código e seus arquivos permanecem onde estão. Apenas a lista de projetos, abas e terminais do Orca é movida para o host."
         },
@@ -20769,6 +20794,161 @@
     "viewed": {
       "markFile": "Marcar {{path}} como visualizado",
       "unmarkFile": "Desmarcar {{path}} como visualizado"
+    }
+  },
+  "wslMove": {
+    "entry": {
+      "hostRow": "Mover projetos desta distro…",
+      "projectMenu": "Mover para o host {{distro}}…"
+    },
+    "blockers": {
+      "title": "Antes que estes projetos possam ser movidos",
+      "inProjects": "Em {{names}}",
+      "skipOne": "Deixar {{name}} fora desta movimentação",
+      "skipMany": "Deixar estes {{n}} projetos fora desta movimentação"
+    },
+    "title": "Mover projetos para o host {{distro}}",
+    "loading": "Verificando os projetos em {{distro}}…",
+    "runningTitle": "Movendo para o host {{distro}}",
+    "preview": {
+      "counts": "Projetos: {{projects}} · Espaços de trabalho: {{workspaces}} · Terminais: {{terminals}} · Chats: {{chats}}",
+      "whatHappens": "Seus arquivos permanecem onde estão. Os terminais reiniciam na mesma pasta; a saída, o histórico do shell e as conversas com agentes são mantidos.",
+      "projects": "Projetos em {{distro}}",
+      "folderBadge": "Pasta",
+      "notMoving": "Não será movido",
+      "checking": "Verificando os projetos selecionados…",
+      "checkAgain": "Verificar novamente",
+      "moveOne": "Mover 1 projeto",
+      "moveMany": "Mover {{n}} projetos",
+      "heldByHost": "Já está no host {{distro}}.",
+      "changed": "Foi movido antes e depois alterado aqui por uma versão anterior do Orca. Não será movido novamente.",
+      "chatsStay": "Os chats existentes ficam neste computador. Novos chats neste projeto começam no host WSL.",
+      "browserLoginsConflict": "Os logins do navegador não serão levados, porque o perfil do navegador do host já está em uso. Entre novamente nas abas do navegador do host após a movimentação.",
+      "browserLoginsNotCarried": "Os logins do navegador não serão levados para este host. Entre novamente nas abas do navegador dele após a movimentação."
+    },
+    "cancel": "Cancelar",
+    "progress": {
+      "bytes": "{{sent}} de {{total}}",
+      "tooLate": "Tarde demais para cancelar: o host já está fazendo a troca. Mantenha o Orca aberto até terminar.",
+      "switching": "A troca não pode ser cancelada. Mantenha o Orca aberto até terminar.",
+      "readOnly": "Estes projetos ficam somente leitura enquanto são movidos. Você pode cancelar até a troca começar.",
+      "cancelUntilSwitch": "Você pode cancelar até a troca começar.",
+      "closeKeepsGoing": "Fechar esta caixa de diálogo não interrompe a movimentação; ela abre de novo quando a movimentação terminar.",
+      "cancelling": "Cancelando…",
+      "cancel": "Cancelar movimentação"
+    },
+    "result": {
+      "movedTitle": "Movido para o host {{distro}}",
+      "resetTitle": "Nada foi movido",
+      "waitingTitle": "Aguardando o host {{distro}}",
+      "earlierMoveTitle": "Uma movimentação anterior terminou primeiro",
+      "refusedTitle": "Projetos não movidos",
+      "reloadCheckpointRefused": "O Orca não conseguiu fazer backup dos arquivos não salvos, então a janela não foi recarregada. Feche esta caixa de diálogo, salve ou feche esses arquivos e use Recarregar agora no aviso que continua aberto.",
+      "reloadVetoed": "Algo impediu a janela de recarregar. Feche esta caixa de diálogo, salve seu trabalho e use Recarregar agora no aviso que continua aberto.",
+      "reloadFailed": "A janela não foi recarregada. Tente novamente.",
+      "moved": "Recarregue esta janela para ver os projetos no host {{distro}}. O Orca faz backup dos arquivos não salvos antes de recarregar.",
+      "automationsPendingOne": "Uma automação está desativada no host por enquanto. O Orca continua pedindo ao host para reativá-la.",
+      "automationsPendingMany": "{{n}} automações estão desativadas no host por enquanto. O Orca continua pedindo ao host para reativá-las.",
+      "undoHint": "Mudou de ideia? Depois de recarregar, a barra lateral mostra estes projetos como “Movido para o host {{distro}}”. Escolha “Usar novamente neste computador” ali para trazê-los de volta como estavam antes da movimentação.",
+      "reset": "A movimentação parou e tudo foi restaurado. Os projetos funcionam neste computador como antes; os terminais pausados reiniciam quando você os abre.",
+      "resetReason": "Por que parou: {{detail}}",
+      "waiting": "A movimentação pode ter chegado ao host {{distro}}, mas o host não está respondendo. Estes projetos ficam somente leitura aqui até ele responder. Conecte o host em Configurações, abra esta caixa de diálogo novamente e inicie uma movimentação: o Orca conclui ou desfaz esta primeiro.",
+      "reloading": "Recarregando…",
+      "reload": "Recarregar agora",
+      "close": "Fechar",
+      "review": "Voltar aos projetos",
+      "browserLoginsHostUnknown": "Os logins do navegador não foram copiados, porque o Orca não conseguiu identificar o perfil do navegador do host. Entre novamente nas abas do navegador do host.",
+      "browserLoginsConflict": "Os logins do navegador não foram copiados, porque o perfil do navegador do host já está em uso. Entre novamente nas abas do navegador do host.",
+      "browserLoginsNotCopied": "Os logins do navegador não foram copiados para o host. Entre novamente nas abas do navegador do host."
+    },
+    "runtime": {
+      "label": "Ambiente de execução do projeto",
+      "description": "Este projeto é executado em {{distro}} por meio deste computador. Mova-o para o host {{distro}} para executá-lo lá.",
+      "move": "Mover projeto"
+    },
+    "unfinished": {
+      "one": "Uma automação movida para o host {{distro}} ainda está desativada. O Orca continua pedindo ao host para reativá-la.",
+      "many": "{{n}} automações movidas para o host {{distro}} ainda estão desativadas. O Orca continua pedindo ao host para reativá-las."
+    },
+    "refusal": {
+      "previewFailed": "O Orca não conseguiu verificar estes projetos. Tente novamente.",
+      "startFailed": "O Orca perdeu o contato com a movimentação. Abra esta caixa de diálogo novamente para ver em que ponto ela está.",
+      "unavailable": "Mover projetos para um host WSL não está disponível nesta janela.",
+      "alreadyRunning": "Uma movimentação para {{distro}} já está em andamento. Aguarde até que termine e tente novamente.",
+      "alreadyInFlightPreview": "Uma movimentação de {{distro}} ainda está terminando. Ao iniciar esta movimentação, o Orca primeiro conclui ou desfaz aquela, quando possível.",
+      "alreadyInFlight": "Uma movimentação de {{distro}} ainda está terminando, então esta não foi iniciada. Mantenha o host {{distro}} conectado e tente novamente mais tarde.",
+      "nothingNew": "Estes projetos já estão no host {{distro}}.",
+      "destinationChanged": "Projetos anteriores de {{distro}} foram movidos para outro host WSL. Conecte esse host para mover mais.",
+      "hostUnavailable": "O host {{distro}} não está conectado. Conecte-o em Configurações e tente novamente.",
+      "hostUpdateRequired": "O host {{distro}} usa uma versão anterior do Orca. Atualize-o em Configurações e tente novamente.",
+      "terminalsBlocked": "Alguns terminais, agentes ou automações nestes projetos estão ocupados. Nada foi movido.",
+      "exportIncomplete": "Parte do estado salvo destes projetos ainda não pode ser movida, então nada foi movido:",
+      "exportIncompletePreview": "Parte do estado salvo destes projetos ainda não pode ser movida:",
+      "tooLarge": "Estes projetos têm estado salvo demais para mover de uma vez. Mova menos projetos por vez.",
+      "pauseFailed": "O Orca não conseguiu pausar os terminais destes projetos, então nada foi movido. Os terminais pausados reiniciam quando você os abre. Tente novamente.",
+      "scopeChanged": "Um projeto mudou enquanto a movimentação era preparada, então nada foi movido. Confira os projetos e tente novamente.",
+      "cancelled": "Movimentação cancelada. Nada foi movido.",
+      "finishedEarlierMove": "O Orca concluiu primeiro uma movimentação anterior para {{distro}}. Recarregue a janela e inicie esta movimentação novamente."
+    },
+    "step": {
+      "preparing": "Preparando",
+      "pausingTerminals": "Pausando terminais",
+      "copying": "Copiando",
+      "switching": "Trocando",
+      "finishing": "Finalizando",
+      "done": "Concluído"
+    },
+    "blocker": {
+      "agentWorkingOne": "Um agente está trabalhando ou aguardando uma resposta",
+      "agentWorkingMany": "{{n}} agentes estão trabalhando ou aguardando uma resposta",
+      "processRunningOne": "Um terminal está executando um programa",
+      "processRunningMany": "{{n}} terminais estão executando um programa",
+      "agentNotResumableOne": "Um agente não poderá ser retomado após a movimentação",
+      "agentNotResumableMany": "{{n}} agentes não poderão ser retomados após a movimentação",
+      "unverifiableOne": "O Orca não consegue verificar um terminal agora",
+      "unverifiableMany": "O Orca não consegue verificar {{n}} terminais agora",
+      "automationRunningOne": "Uma execução de automação está ativa",
+      "automationRunningMany": "{{n}} execuções de automação estão ativas",
+      "dispatchRunningOne": "Uma tarefa de agente está em andamento",
+      "dispatchRunningMany": "{{n}} tarefas de agente estão em andamento",
+      "scrollbackTooLargeOne": "Um terminal tem histórico de saída demais para ser movido",
+      "scrollbackTooLargeMany": "{{n}} terminais têm histórico de saída demais para serem movidos"
+    },
+    "blockerHint": {
+      "agentWorking": "Deixe-o terminar, ou pare-o no terminal dele, e verifique novamente.",
+      "processRunning": "Pare o programa (por exemplo, um servidor de desenvolvimento ou editor) e verifique novamente.",
+      "agentNotResumable": "Saia do agente no terminal dele e verifique novamente.",
+      "unverifiable": "Aguarde um momento e verifique novamente. Nada é interrompido para que a movimentação aconteça.",
+      "wait": "Aguarde até que termine e verifique novamente.",
+      "scrollbackTooLarge": "Limpe a saída desses terminais e verifique novamente."
+    },
+    "scopeRefused": {
+      "windowsDrive": "A pasta dele está em uma unidade do Windows, então ele fica neste computador.",
+      "mixedLocations": "Algumas das pastas dele estão fora desta distro, então ele fica neste computador.",
+      "notLocal": "Ele já é executado em outro host.",
+      "other": "Ele não pode ser movido."
+    },
+    "reloadToast": {
+      "title": "Recarregue para concluir a movimentação"
+    },
+    "orchestrator": {
+      "showTerminal": "Mostrar terminal",
+      "moveAgain": "Mover novamente",
+      "checkAgain": "Verificar novamente",
+      "deferred": "Concluindo sua movimentação para o host {{distro}}: alguns terminais ainda estão ocupados.",
+      "stuck": "Uma movimentação anterior para o host {{distro}} ainda não terminou de se acomodar.",
+      "declined": "A movimentação está pausada porque você trouxe estes projetos de volta para este computador.",
+      "doneToast": "Projetos movidos para o host {{distro}}",
+      "terminalGone": "Esse terminal não está mais aberto nesta janela. Verifique novamente para atualizar.",
+      "blocker": "{{title}}. {{hint}}",
+      "paused": "A movimentação de projetos para o host {{distro}} está pausada: {{reason}}.",
+      "pausedReason": {
+        "exportIncomplete": "parte do estado salvo ainda não pode ser levada",
+        "manifestTooLarge": "há mais estado salvo do que uma movimentação comporta",
+        "hostUpdate": "o host precisa ser atualizado primeiro",
+        "attemptsExhausted": "ela não foi concluída após várias tentativas"
+      },
+      "finishPending": "Uma movimentação anterior para o host {{distro}} já foi concluída lá. O Orca a conclui aqui quando reiniciar, ou agora com Verificar novamente."
     }
   }
 }

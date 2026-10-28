@@ -11942,7 +11942,8 @@
             "migration": "Non effectué : un déplacement vers ce serveur est inachevé. Reprenez-le d'abord.",
             "deferred": "Pas encore effectué : le serveur n'est pas prêt pour cela. Réessayez plus tard.",
             "failed": "Orca n'a pas pu terminer cette action sur le serveur. Réessayez.",
-            "defaultServer": "Non effectué : ce serveur est l’hôte par défaut des nouveaux projets. Choisissez-en un autre dans « Les nouveaux projets s’ouvrent sur » avant de l’arrêter."
+            "defaultServer": "Non effectué : ce serveur est l’hôte par défaut des nouveaux projets. Choisissez-en un autre dans « Les nouveaux projets s’ouvrent sur » avant de l’arrêter.",
+            "wslMoveRunning": "Non effectué : un projet est en cours de déplacement vers ce serveur. Orca le mettra à jour une fois le déplacement terminé."
           },
           "reassurance": "S’exécute sur chaque hôte, accessible via votre propre connexion SSH. Votre code et vos fichiers restent où ils sont. Seule la liste des projets, onglets et terminaux d’Orca passe sur l’hôte."
         },
@@ -19227,13 +19228,22 @@
       "useHereDescription": "Orca ouvrira ce projet ici tel qu'il était avant le déplacement. Votre code n'est pas concerné : il n'a jamais été déplacé. Les modifications faites sur l'hôte {{distro}} depuis le déplacement, comme de nouveaux onglets et chats, restent sur l'hôte et ne reviennent pas. Les projets déplacés avec celui-ci reviennent aussi. Le projet reste également sur l'hôte {{distro}} jusqu'à ce que vous l'y supprimiez. Cette fenêtre va se recharger.",
       "useHereConfirm": "Utiliser sur cet ordinateur",
       "useHereSuperseded": "Un déplacement ultérieur vers l'hôte {{distro}} inclut ce projet. Ramenez d'abord celui-là.",
+      "useHereRefusedTitle": "Impossible d'utiliser {{name}} ici pour le moment",
+      "useHereRefusedOk": "OK",
+      "useHereSupersededBy": "Ces projets ont été déplacés vers l'hôte {{distro}} après celui-ci : {{names}}. Ramenez-les d'abord sur cet ordinateur, puis ce projet.",
       "useHereMoveRunning": "Un déplacement vers l'hôte {{distro}} est encore en cours. Réessayez une fois terminé.",
       "useHereHostKeptForPeers": "{{project}} a été déplacé vers l'hôte {{distro}}, qui reste actif pour un autre Orca. Ajoutez de nouveau l'hôte pour l'utiliser ici.",
-      "useHereHostUnreachable": "L'hôte {{distro}} ne répond pas : Orca ne peut pas arrêter sa copie de ce projet, et ses agents y tournent peut-être encore. Connectez l'hôte dans les Réglages, ou supprimez-le, puis réessayez.",
+      "useHereHostUnreachable": "L'hôte {{distro}} ne répond pas : Orca ne peut pas arrêter sa copie de ce projet, et ses agents y tournent peut-être encore. Connectez l'hôte dans les Paramètres, ou supprimez-le, puis réessayez.",
       "useHereHostStillRunning": "La copie de ce projet sur l'hôte {{distro}} a encore des terminaux en cours : ses agents pourraient tourner deux fois. Patientez un instant, puis réessayez.",
       "useHereFailed": "Impossible de ramener ce projet sur cet ordinateur.",
+      "useHereHostRemovalPending": "L'hôte {{distro}} est encore en cours de suppression, Orca n'y touche donc pas. Terminez sa suppression dans les Paramètres, puis réessayez.",
+      "useHereHostAutomations": "Orca n'a pas pu désactiver les automatisations de ce projet sur l'hôte {{distro}} : elles pourraient s'exécuter deux fois. Connectez l'hôte dans les Paramètres, puis réessayez.",
       "useHereUnsavedTitle": "Enregistrez d'abord vos fichiers",
-      "useHereUnsavedDescription": "Récupérer {{name}} recharge cette fenêtre. Enregistrez ou fermez d'abord ces fichiers : {{files}}"
+      "useHereUnsavedDescription": "Récupérer {{name}} recharge cette fenêtre. Enregistrez ou fermez d'abord ces fichiers : {{files}}",
+      "automationRunsOnHost": "S'exécute sur l'hôte {{distro}}",
+      "quitDuringMoveTitle": "Quitter pendant le déplacement d'un projet ?",
+      "quitDuringMoveDescription": "Un projet est en cours de déplacement vers son hôte WSL. Quitter quand même ? Le déplacement sera annulé au prochain lancement.",
+      "quitDuringMoveConfirm": "Quitter quand même"
     },
     "startupWorktreeRefresh": {
       "loading": "Recherche des espaces de travail…",
@@ -20774,6 +20784,161 @@
     "viewed": {
       "markFile": "Marquer {{path}} comme consulté",
       "unmarkFile": "Ne plus marquer {{path}} comme consulté"
+    }
+  },
+  "wslMove": {
+    "entry": {
+      "hostRow": "Déplacer des projets depuis cette distro…",
+      "projectMenu": "Déplacer vers l'hôte {{distro}}…"
+    },
+    "blockers": {
+      "title": "Avant que ces projets puissent être déplacés",
+      "inProjects": "Dans {{names}}",
+      "skipOne": "Exclure {{name}} de ce déplacement",
+      "skipMany": "Exclure ces {{n}} projets de ce déplacement"
+    },
+    "title": "Déplacer des projets vers l'hôte {{distro}}",
+    "loading": "Vérification des projets dans {{distro}}…",
+    "runningTitle": "Déplacement vers l'hôte {{distro}}",
+    "preview": {
+      "counts": "Projets : {{projects}} · Espaces de travail : {{workspaces}} · Terminaux : {{terminals}} · Chats : {{chats}}",
+      "whatHappens": "Vos fichiers restent où ils sont. Les terminaux redémarrent dans le même dossier ; leur sortie, l'historique du shell et les conversations des agents sont conservés.",
+      "projects": "Projets dans {{distro}}",
+      "folderBadge": "Dossier",
+      "notMoving": "Non déplacé",
+      "checking": "Vérification des projets sélectionnés…",
+      "checkAgain": "Revérifier",
+      "moveOne": "Déplacer 1 projet",
+      "moveMany": "Déplacer {{n}} projets",
+      "heldByHost": "Déjà sur l'hôte {{distro}}.",
+      "changed": "Déplacé auparavant, puis modifié ici par une version plus ancienne d'Orca. Il n'est pas déplacé à nouveau.",
+      "chatsStay": "Les chats existants restent sur cet ordinateur. Les nouveaux chats de ce projet démarrent sur l'hôte WSL.",
+      "browserLoginsConflict": "Les connexions du navigateur ne seront pas transférées, car le profil de navigateur de l'hôte est déjà utilisé. Reconnectez-vous dans les onglets de navigateur de l'hôte après le déplacement.",
+      "browserLoginsNotCarried": "Les connexions du navigateur ne seront pas transférées vers cet hôte. Reconnectez-vous dans ses onglets de navigateur après le déplacement."
+    },
+    "cancel": "Annuler",
+    "progress": {
+      "bytes": "{{sent}} sur {{total}}",
+      "tooLate": "Trop tard pour annuler : l'hôte est déjà en train de basculer. Gardez Orca ouvert jusqu'à la fin.",
+      "switching": "La bascule ne peut pas être annulée. Gardez Orca ouvert jusqu'à la fin.",
+      "readOnly": "Ces projets sont en lecture seule pendant leur déplacement. Vous pouvez annuler jusqu'au début de la bascule.",
+      "cancelUntilSwitch": "Vous pouvez annuler jusqu'au début de la bascule.",
+      "closeKeepsGoing": "Fermer cette boîte de dialogue n'arrête pas le déplacement ; elle se rouvre à la fin du déplacement.",
+      "cancelling": "Annulation…",
+      "cancel": "Annuler le déplacement"
+    },
+    "result": {
+      "movedTitle": "Projets déplacés vers l'hôte {{distro}}",
+      "resetTitle": "Rien n'a été déplacé",
+      "waitingTitle": "En attente de l'hôte {{distro}}",
+      "earlierMoveTitle": "Un déplacement précédent s'est terminé d'abord",
+      "refusedTitle": "Projets non déplacés",
+      "reloadCheckpointRefused": "Orca n'a pas pu sauvegarder les fichiers non enregistrés : la fenêtre ne s'est donc pas rechargée. Fermez cette boîte de dialogue, enregistrez ou fermez ces fichiers, puis utilisez Recharger maintenant dans la notification qui reste ouverte.",
+      "reloadVetoed": "Quelque chose a empêché le rechargement de la fenêtre. Fermez cette boîte de dialogue, enregistrez votre travail, puis utilisez Recharger maintenant dans la notification qui reste ouverte.",
+      "reloadFailed": "La fenêtre ne s'est pas rechargée. Réessayez.",
+      "moved": "Rechargez cette fenêtre pour voir les projets sous l'hôte {{distro}}. Orca sauvegarde les fichiers non enregistrés avant de recharger.",
+      "automationsPendingOne": "Une automatisation est désactivée sur l'hôte pour l'instant. Orca continue de demander à l'hôte de la réactiver.",
+      "automationsPendingMany": "{{n}} automatisations sont désactivées sur l'hôte pour l'instant. Orca continue de demander à l'hôte de les réactiver.",
+      "undoHint": "Vous avez changé d'avis ? Après le rechargement, la barre latérale affiche ces projets comme « Déplacé vers l'hôte {{distro}} ». Choisissez-y « Utiliser à nouveau sur cet ordinateur » pour les ramener tels qu'ils étaient avant le déplacement.",
+      "reset": "Le déplacement s'est arrêté et tout a été remis en place. Les projets fonctionnent sur cet ordinateur comme avant ; les terminaux en pause redémarrent quand vous les ouvrez.",
+      "resetReason": "Raison de l'arrêt : {{detail}}",
+      "waiting": "Le déplacement a peut-être atteint l'hôte {{distro}}, mais l'hôte ne répond pas. Ces projets restent en lecture seule ici jusqu'à ce qu'il réponde. Connectez l'hôte dans les Paramètres, puis rouvrez cette boîte de dialogue et lancez un déplacement : Orca termine ou annule d'abord celui-ci.",
+      "reloading": "Rechargement…",
+      "reload": "Recharger maintenant",
+      "close": "Fermer",
+      "review": "Retour aux projets",
+      "browserLoginsHostUnknown": "Les connexions du navigateur n'ont pas été copiées, car Orca n'a pas pu identifier le profil de navigateur de l'hôte. Reconnectez-vous dans les onglets de navigateur de l'hôte.",
+      "browserLoginsConflict": "Les connexions du navigateur n'ont pas été copiées, car le profil de navigateur de l'hôte est déjà utilisé. Reconnectez-vous dans les onglets de navigateur de l'hôte.",
+      "browserLoginsNotCopied": "Les connexions du navigateur n'ont pas été copiées vers l'hôte. Reconnectez-vous dans les onglets de navigateur de l'hôte."
+    },
+    "runtime": {
+      "label": "Runtime du projet",
+      "description": "Ce projet s'exécute dans {{distro}} via cet ordinateur. Déplacez-le vers l'hôte {{distro}} pour l'y exécuter.",
+      "move": "Déplacer le projet"
+    },
+    "unfinished": {
+      "one": "Une automatisation déplacée vers l'hôte {{distro}} est toujours désactivée. Orca continue de demander à l'hôte de la réactiver.",
+      "many": "{{n}} automatisations déplacées vers l'hôte {{distro}} sont toujours désactivées. Orca continue de demander à l'hôte de les réactiver."
+    },
+    "refusal": {
+      "previewFailed": "Orca n'a pas pu vérifier ces projets. Réessayez.",
+      "startFailed": "Orca a perdu le contact avec le déplacement. Rouvrez cette boîte de dialogue pour voir où il en est.",
+      "unavailable": "Le déplacement de projets vers un hôte WSL n'est pas disponible dans cette fenêtre.",
+      "alreadyRunning": "Un déplacement vers {{distro}} est déjà en cours. Attendez qu'il se termine, puis réessayez.",
+      "alreadyInFlightPreview": "Un déplacement de {{distro}} est encore en cours de finalisation. Lancer ce déplacement le termine ou l'annule d'abord, là où Orca le peut.",
+      "alreadyInFlight": "Un déplacement de {{distro}} est encore en cours de finalisation : celui-ci n'a donc pas démarré. Gardez l'hôte {{distro}} connecté et réessayez plus tard.",
+      "nothingNew": "Ces projets sont déjà sur l'hôte {{distro}}.",
+      "destinationChanged": "Des projets de {{distro}} ont déjà été déplacés vers un autre hôte WSL. Connectez cet hôte pour en déplacer d'autres.",
+      "hostUnavailable": "L'hôte {{distro}} n'est pas connecté. Connectez-le dans les Paramètres, puis réessayez.",
+      "hostUpdateRequired": "L'hôte {{distro}} exécute une version plus ancienne d'Orca. Mettez-le à jour dans les Paramètres, puis réessayez.",
+      "terminalsBlocked": "Des terminaux, agents ou automatisations de ces projets sont occupés. Rien n'a été déplacé.",
+      "exportIncomplete": "Rien n'a été déplacé, car certaines données enregistrées de ces projets ne peuvent pas encore l'être :",
+      "exportIncompletePreview": "Certaines données enregistrées de ces projets ne peuvent pas encore être déplacées :",
+      "tooLarge": "Ces projets contiennent trop de données enregistrées pour être déplacés en une seule fois. Déplacez moins de projets à la fois.",
+      "pauseFailed": "Orca n'a pas pu mettre en pause les terminaux de ces projets : rien n'a donc été déplacé. Les terminaux en pause redémarrent quand vous les ouvrez. Réessayez.",
+      "scopeChanged": "Un projet a changé pendant la préparation du déplacement : rien n'a donc été déplacé. Vérifiez les projets et réessayez.",
+      "cancelled": "Déplacement annulé. Rien n'a été déplacé.",
+      "finishedEarlierMove": "Orca a d'abord terminé un déplacement précédent vers {{distro}}. Rechargez la fenêtre, puis relancez ce déplacement."
+    },
+    "step": {
+      "preparing": "Préparation",
+      "pausingTerminals": "Mise en pause des terminaux",
+      "copying": "Copie",
+      "switching": "Bascule",
+      "finishing": "Finalisation",
+      "done": "Terminé"
+    },
+    "blocker": {
+      "agentWorkingOne": "Un agent travaille ou attend une réponse",
+      "agentWorkingMany": "{{n}} agents travaillent ou attendent une réponse",
+      "processRunningOne": "Un terminal exécute un programme",
+      "processRunningMany": "{{n}} terminaux exécutent un programme",
+      "agentNotResumableOne": "Un agent ne pourra pas reprendre après le déplacement",
+      "agentNotResumableMany": "{{n}} agents ne pourront pas reprendre après le déplacement",
+      "unverifiableOne": "Orca ne peut pas vérifier un terminal pour le moment",
+      "unverifiableMany": "Orca ne peut pas vérifier {{n}} terminaux pour le moment",
+      "automationRunningOne": "Une exécution d'automatisation est en cours",
+      "automationRunningMany": "{{n}} exécutions d'automatisation sont en cours",
+      "dispatchRunningOne": "Une tâche d'agent est en cours",
+      "dispatchRunningMany": "{{n}} tâches d'agent sont en cours",
+      "scrollbackTooLargeOne": "Un terminal a un historique de sortie trop volumineux pour être déplacé",
+      "scrollbackTooLargeMany": "{{n}} terminaux ont un historique de sortie trop volumineux pour être déplacés"
+    },
+    "blockerHint": {
+      "agentWorking": "Laissez-le terminer, ou arrêtez-le dans son terminal, puis revérifiez.",
+      "processRunning": "Arrêtez le programme (par exemple un serveur de développement ou un éditeur), puis revérifiez.",
+      "agentNotResumable": "Quittez l'agent dans son terminal, puis revérifiez.",
+      "unverifiable": "Patientez un instant, puis revérifiez. Rien n'est arrêté pour permettre le déplacement.",
+      "wait": "Attendez la fin, puis revérifiez.",
+      "scrollbackTooLarge": "Effacez la sortie de ces terminaux, puis revérifiez."
+    },
+    "scopeRefused": {
+      "windowsDrive": "Son dossier se trouve sur un lecteur Windows : il reste donc sur cet ordinateur.",
+      "mixedLocations": "Certains de ses dossiers se trouvent hors de cette distro : il reste donc sur cet ordinateur.",
+      "notLocal": "Il s'exécute déjà sur un autre hôte.",
+      "other": "Il ne peut pas être déplacé."
+    },
+    "reloadToast": {
+      "title": "Rechargez pour terminer le déplacement"
+    },
+    "orchestrator": {
+      "showTerminal": "Afficher le terminal",
+      "moveAgain": "Relancer le déplacement",
+      "checkAgain": "Revérifier",
+      "deferred": "Finalisation de votre déplacement vers l'hôte {{distro}} : certains terminaux sont encore occupés.",
+      "stuck": "Un déplacement précédent vers l'hôte {{distro}} n'est pas encore entièrement finalisé.",
+      "declined": "Le déplacement est en pause, car vous avez ramené ces projets sur cet ordinateur.",
+      "doneToast": "Projets déplacés vers l'hôte {{distro}}",
+      "terminalGone": "Ce terminal n'est plus ouvert dans cette fenêtre. Revérifiez pour actualiser.",
+      "blocker": "{{title}}. {{hint}}",
+      "paused": "Le déplacement des projets vers l'hôte {{distro}} est en pause : {{reason}}.",
+      "pausedReason": {
+        "exportIncomplete": "certaines données enregistrées ne peuvent pas encore être transférées",
+        "manifestTooLarge": "il y a plus de données enregistrées qu'un seul déplacement ne peut en transférer",
+        "hostUpdate": "l'hôte doit d'abord être mis à jour",
+        "attemptsExhausted": "il n'a pas abouti après plusieurs tentatives"
+      },
+      "finishPending": "Un déplacement précédent vers l'hôte {{distro}} est terminé là-bas. Orca le finalise ici au redémarrage, ou dès maintenant avec Revérifier."
     }
   }
 }

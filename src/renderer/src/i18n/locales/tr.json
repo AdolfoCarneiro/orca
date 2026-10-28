@@ -52,6 +52,30 @@
     "startupWorktreeRefresh": {
       "loading": "Çalışma alanları bulunuyor…",
       "description": "Yerel ve uzak projeler yüklenirken daha fazla çalışma alanı görünebilir."
+    },
+    "wslMoved": {
+      "movedToHost": "{{distro}} ana makinesine taşındı",
+      "useHere": "Bu bilgisayarda yeniden kullan",
+      "useHereTitle": "{{name}} bu bilgisayarda yeniden kullanılsın mı?",
+      "useHereDescription": "Orca bu projeyi burada, taşımadan önceki hâliyle açar. Kodunuz etkilenmez: hiç taşınmadı. Taşımadan bu yana {{distro}} ana makinesinde yapılan yeni sekmeler ve sohbetler gibi değişiklikler ana makinede kalır ve geri gelmez. Bu projeyle birlikte taşınan projeler de geri gelir. Proje, siz oradan kaldırana kadar {{distro}} ana makinesinde de kalır. Bu pencere yeniden yüklenir.",
+      "useHereConfirm": "Bu bilgisayarda kullan",
+      "useHereSuperseded": "{{distro}} ana makinesine daha sonra yapılan bir taşıma bu projeyi de içeriyor. Önce o taşımayı geri getirin.",
+      "useHereRefusedTitle": "{{name}} henüz burada kullanılamıyor",
+      "useHereRefusedOk": "Tamam",
+      "useHereSupersededBy": "Şu projeler bu projeden sonra {{distro}} ana makinesine taşındı: {{names}}. Önce onları, ardından bu projeyi bu bilgisayarda yeniden kullanın.",
+      "useHereMoveRunning": "{{distro}} ana makinesine yapılan bir taşıma hâlâ sürüyor. Bittiğinde tekrar deneyin.",
+      "useHereHostKeptForPeers": "{{project}} projesi, başka bir Orca için hâlâ çalışan {{distro}} ana makinesine taşındı. Burada yeniden kullanmak için ana makineyi tekrar ekleyin.",
+      "useHereHostUnreachable": "{{distro}} ana makinesi yanıt vermiyor; bu nedenle Orca bu projenin oradaki kopyasını durduramıyor ve kopyadaki ajanlar hâlâ çalışıyor olabilir. Ana makineyi Ayarlar'dan bağlayın veya kaldırın, ardından tekrar deneyin.",
+      "useHereHostStillRunning": "Bu projenin {{distro}} ana makinesindeki kopyasında hâlâ terminaller çalışıyor; bu yüzden oradaki ajanlar iki kez çalışabilir. Biraz bekleyip tekrar deneyin.",
+      "useHereFailed": "Bu proje bu bilgisayara geri getirilemedi.",
+      "useHereHostRemovalPending": "{{distro}} ana makinesi hâlâ kaldırılıyor, bu yüzden Orca ona dokunmuyor. Kaldırma işlemini Ayarlar'da tamamlayın, ardından tekrar deneyin.",
+      "useHereHostAutomations": "Orca bu projenin {{distro}} ana makinesindeki otomasyonlarını kapatamadı; bu yüzden otomasyonlar iki kez çalışabilir. Ana makineyi Ayarlar'dan bağlayın, ardından tekrar deneyin.",
+      "useHereUnsavedTitle": "Önce dosyalarınızı kaydedin",
+      "useHereUnsavedDescription": "{{name}} projesini geri getirmek bu pencereyi yeniden yükler. Önce şu dosyaları kaydedin veya kapatın: {{files}}",
+      "automationRunsOnHost": "{{distro}} ana makinesinde çalışır",
+      "quitDuringMoveTitle": "Bir proje taşınırken çıkılsın mı?",
+      "quitDuringMoveDescription": "Bir proje WSL ana makinesine taşınıyor. Yine de çıkılsın mı? Taşıma bir sonraki açılışta geri alınır.",
+      "quitDuringMoveConfirm": "Yine de çık"
     }
   },
   "app": {
@@ -12010,7 +12034,8 @@
             "migration": "Tamamlanamadı: bu sunucuya taşıma işlemi henüz bitmedi. Önce bu işlemi sürdürün.",
             "deferred": "Henüz tamamlanamadı: sunucu bu işleme hazır değil. Daha sonra yeniden deneyin.",
             "failed": "Orca bu işlemi sunucuda tamamlayamadı. Yeniden deneyin.",
-            "defaultServer": "Tamamlanamadı: bu sunucu yeni projeler için varsayılan ana makine. Durdurmadan önce Yeni projelerin açılacağı yer bölümünden başka bir ana makine seçin."
+            "defaultServer": "Tamamlanamadı: bu sunucu yeni projeler için varsayılan ana makine. Durdurmadan önce Yeni projelerin açılacağı yer bölümünden başka bir ana makine seçin.",
+            "wslMoveRunning": "Tamamlanamadı: bu sunucuya bir proje taşınıyor. Taşıma bittiğinde Orca sunucuyu günceller."
           },
           "reassurance": "Her ana makinede çalışır ve kendi SSH bağlantınız üzerinden erişilir. Kodunuz ve dosyalarınız bulundukları yerde kalır. Ana makineye yalnızca Orca'nın proje, sekme ve terminal listesi taşınır."
         },
@@ -20081,8 +20106,8 @@
       "preparingLabel": "Güncelleme hazırlanıyor",
       "preparingAriaLabel": "Güncelleme hazırlanıyor. Genişletmek için tıklayın."
     },
-    "wslMoveInstallHeld": "Bir proje WSL ana bilgisayarına taşınıyor. Taşıma bittiğinde güncellemeyi yükleyin.",
-    "wslMoveUndoInstallHeld": "Bir proje WSL ana bilgisayarından geri getiriliyor. Bu bittiğinde güncellemeyi yükleyin."
+    "wslMoveInstallHeld": "Bir proje WSL ana makinesine taşınıyor. Taşıma bittiğinde güncellemeyi yükleyin.",
+    "wslMoveUndoInstallHeld": "Bir proje WSL ana makinesinden geri getiriliyor. Bu bittiğinde güncellemeyi yükleyin."
   },
   "jira": {
     "connect": {
@@ -20767,6 +20792,161 @@
     "viewed": {
       "markFile": "{{path}} dosyasını görüldü olarak işaretle",
       "unmarkFile": "{{path}} dosyasının görüldü işaretini kaldır"
+    }
+  },
+  "wslMove": {
+    "entry": {
+      "hostRow": "Bu dağıtımdaki projeleri taşı…",
+      "projectMenu": "{{distro}} ana makinesine taşı…"
+    },
+    "blockers": {
+      "title": "Bu projeler taşınmadan önce",
+      "inProjects": "Şu projelerde: {{names}}",
+      "skipOne": "{{name}} projesini bu taşımanın dışında bırak",
+      "skipMany": "Bu {{n}} projeyi bu taşımanın dışında bırak"
+    },
+    "title": "Projeleri {{distro}} ana makinesine taşı",
+    "loading": "{{distro}} içindeki projeler kontrol ediliyor…",
+    "runningTitle": "{{distro}} ana makinesine taşınıyor",
+    "preview": {
+      "counts": "Projeler: {{projects}} · Çalışma alanları: {{workspaces}} · Terminaller: {{terminals}} · Sohbetler: {{chats}}",
+      "whatHappens": "Dosyalarınız olduğu yerde kalır. Terminaller aynı klasörde yeniden başlar; çıktıları, kabuk geçmişi ve ajan konuşmaları korunur.",
+      "projects": "{{distro}} içindeki projeler",
+      "folderBadge": "Klasör",
+      "notMoving": "Taşınmıyor",
+      "checking": "Seçili projeler kontrol ediliyor…",
+      "checkAgain": "Yeniden kontrol et",
+      "moveOne": "1 projeyi taşı",
+      "moveMany": "{{n}} projeyi taşı",
+      "heldByHost": "Zaten {{distro}} ana makinesinde.",
+      "changed": "Daha önce taşındı, ardından burada Orca'nın eski bir sürümü tarafından değiştirildi. Yeniden taşınmaz.",
+      "chatsStay": "Mevcut sohbetler bu bilgisayarda kalır. Bu projedeki yeni sohbetler WSL ana makinesinde başlar.",
+      "browserLoginsConflict": "Ana makinenin tarayıcı profili zaten kullanımda olduğundan tarayıcı oturumları aktarılmayacak. Taşımadan sonra ana makinenin tarayıcı sekmelerinde yeniden oturum açın.",
+      "browserLoginsNotCarried": "Tarayıcı oturumları bu ana makineye aktarılmayacak. Taşımadan sonra ana makinenin tarayıcı sekmelerinde yeniden oturum açın."
+    },
+    "cancel": "İptal",
+    "progress": {
+      "bytes": "{{sent}} / {{total}}",
+      "tooLate": "İptal etmek için çok geç: ana makine geçişe başladı bile. İşlem bitene kadar Orca'yı açık tutun.",
+      "switching": "Geçiş iptal edilemez. İşlem bitene kadar Orca'yı açık tutun.",
+      "readOnly": "Bu projeler taşınırken salt okunurdur. Geçiş başlayana kadar iptal edebilirsiniz.",
+      "cancelUntilSwitch": "Geçiş başlayana kadar iptal edebilirsiniz.",
+      "closeKeepsGoing": "Bu iletişim kutusunu kapatmak taşımayı durdurmaz; taşıma bittiğinde iletişim kutusu yeniden açılır.",
+      "cancelling": "İptal ediliyor…",
+      "cancel": "Taşımayı iptal et"
+    },
+    "result": {
+      "movedTitle": "{{distro}} ana makinesine taşındı",
+      "resetTitle": "Hiçbir şey taşınmadı",
+      "waitingTitle": "{{distro}} ana makinesi bekleniyor",
+      "earlierMoveTitle": "Önceki bir taşıma önce tamamlandı",
+      "refusedTitle": "Projeler taşınmadı",
+      "reloadCheckpointRefused": "Orca kaydedilmemiş dosyaları yedekleyemediği için pencere yeniden yüklenmedi. Bu iletişim kutusunu kapatın, o dosyaları kaydedin veya kapatın, ardından açık kalan bildirimdeki Şimdi yeniden yükle düğmesini kullanın.",
+      "reloadVetoed": "Bir şey pencerenin yeniden yüklenmesini engelledi. Bu iletişim kutusunu kapatın, çalışmanızı kaydedin, ardından açık kalan bildirimdeki Şimdi yeniden yükle düğmesini kullanın.",
+      "reloadFailed": "Pencere yeniden yüklenmedi. Tekrar deneyin.",
+      "moved": "Projeleri {{distro}} ana makinesi altında görmek için bu pencereyi yeniden yükleyin. Orca, yeniden yüklemeden önce kaydedilmemiş dosyaları yedekler.",
+      "automationsPendingOne": "Bir otomasyon şimdilik ana makinede kapalı. Orca, ana makineden otomasyonu yeniden açmasını istemeye devam ediyor.",
+      "automationsPendingMany": "{{n}} otomasyon şimdilik ana makinede kapalı. Orca, ana makineden bunları yeniden açmasını istemeye devam ediyor.",
+      "undoHint": "Fikrinizi mi değiştirdiniz? Yeniden yüklemeden sonra kenar çubuğu bu projeleri “{{distro}} ana makinesine taşındı” olarak listeler. Projeleri taşımadan önceki hâlleriyle geri getirmek için orada “Bu bilgisayarda yeniden kullan” seçeneğini belirleyin.",
+      "reset": "Taşıma durdu ve her şey eski hâline getirildi. Projeler bu bilgisayarda eskisi gibi çalışır; duraklatılan terminaller onları açtığınızda yeniden başlar.",
+      "resetReason": "Durma nedeni: {{detail}}",
+      "waiting": "Taşıma {{distro}} ana makinesine ulaşmış olabilir, ancak ana makine yanıt vermiyor. Bu projeler, ana makine yanıt verene kadar burada salt okunur kalır. Ana makineyi Ayarlar'dan bağlayın, ardından bu iletişim kutusunu yeniden açıp bir taşıma başlatın: Orca önce bu taşımayı tamamlar veya geri alır.",
+      "reloading": "Yeniden yükleniyor…",
+      "reload": "Şimdi yeniden yükle",
+      "close": "Kapat",
+      "review": "Projelere dön",
+      "browserLoginsHostUnknown": "Orca ana makinenin tarayıcı profilini belirleyemediği için tarayıcı oturumları kopyalanmadı. Ana makinenin tarayıcı sekmelerinde yeniden oturum açın.",
+      "browserLoginsConflict": "Ana makinenin tarayıcı profili zaten kullanımda olduğundan tarayıcı oturumları kopyalanmadı. Ana makinenin tarayıcı sekmelerinde yeniden oturum açın.",
+      "browserLoginsNotCopied": "Tarayıcı oturumları ana makineye kopyalanmadı. Ana makinenin tarayıcı sekmelerinde yeniden oturum açın."
+    },
+    "runtime": {
+      "label": "Proje çalışma zamanı",
+      "description": "Bu proje, bu bilgisayar üzerinden {{distro}} içinde çalışıyor. Orada çalıştırmak için projeyi {{distro}} ana makinesine taşıyın.",
+      "move": "Projeyi taşı"
+    },
+    "unfinished": {
+      "one": "{{distro}} ana makinesine taşınan bir otomasyon hâlâ kapalı. Orca, ana makineden otomasyonu yeniden açmasını istemeye devam ediyor.",
+      "many": "{{distro}} ana makinesine taşınan {{n}} otomasyon hâlâ kapalı. Orca, ana makineden bunları yeniden açmasını istemeye devam ediyor."
+    },
+    "refusal": {
+      "previewFailed": "Orca bu projeleri kontrol edemedi. Tekrar deneyin.",
+      "startFailed": "Orca'nın taşımayla bağlantısı koptu. Durumu görmek için bu iletişim kutusunu yeniden açın.",
+      "unavailable": "Projeleri bir WSL ana makinesine taşıma bu pencerede kullanılamıyor.",
+      "alreadyRunning": "{{distro}} içine bir taşıma zaten sürüyor. Bitmesini bekleyin, ardından tekrar deneyin.",
+      "alreadyInFlightPreview": "{{distro}} için bir taşıma hâlâ tamamlanıyor. Bu taşımayı başlatırsanız Orca, mümkün olduğu yerde önce o taşımayı tamamlar veya geri alır.",
+      "alreadyInFlight": "{{distro}} için bir taşıma hâlâ tamamlanıyor, bu yüzden bu taşıma başlamadı. {{distro}} ana makinesini bağlı tutun ve daha sonra tekrar deneyin.",
+      "nothingNew": "Bu projeler zaten {{distro}} ana makinesinde.",
+      "destinationChanged": "{{distro}} içindeki önceki projeler farklı bir WSL ana makinesine taşındı. Daha fazlasını taşımak için o ana makineyi bağlayın.",
+      "hostUnavailable": "{{distro}} ana makinesi bağlı değil. Ayarlar'dan bağlayın, ardından tekrar deneyin.",
+      "hostUpdateRequired": "{{distro}} ana makinesi Orca'nın eski bir sürümünü çalıştırıyor. Ayarlar'dan güncelleyin, ardından tekrar deneyin.",
+      "terminalsBlocked": "Bu projelerdeki bazı terminaller, ajanlar veya otomasyonlar meşgul. Hiçbir şey taşınmadı.",
+      "exportIncomplete": "Bu projelerdeki bazı kaydedilmiş veriler henüz taşınamadığı için hiçbir şey taşınmadı:",
+      "exportIncompletePreview": "Bu projelerdeki bazı kaydedilmiş veriler henüz taşınamıyor:",
+      "tooLarge": "Bu projelerde tek seferde taşınamayacak kadar çok kaydedilmiş veri var. Bir seferde daha az proje taşıyın.",
+      "pauseFailed": "Orca bu projelerdeki terminalleri duraklatamadığı için hiçbir şey taşınmadı. Duraklatılan terminaller onları açtığınızda yeniden başlar. Tekrar deneyin.",
+      "scopeChanged": "Taşıma hazırlanırken bir proje değiştiği için hiçbir şey taşınmadı. Projeleri kontrol edip tekrar deneyin.",
+      "cancelled": "Taşıma iptal edildi. Hiçbir şey taşınmadı.",
+      "finishedEarlierMove": "Orca önce {{distro}} içine yapılan önceki bir taşımayı tamamladı. Pencereyi yeniden yükleyin, ardından bu taşımayı yeniden başlatın."
+    },
+    "step": {
+      "preparing": "Hazırlanıyor",
+      "pausingTerminals": "Terminaller duraklatılıyor",
+      "copying": "Kopyalanıyor",
+      "switching": "Geçiş yapılıyor",
+      "finishing": "Tamamlanıyor",
+      "done": "Bitti"
+    },
+    "blocker": {
+      "agentWorkingOne": "Bir ajan çalışıyor veya yanıt bekliyor",
+      "agentWorkingMany": "{{n}} ajan çalışıyor veya yanıt bekliyor",
+      "processRunningOne": "Bir terminalde program çalışıyor",
+      "processRunningMany": "{{n}} terminalde program çalışıyor",
+      "agentNotResumableOne": "Bir ajan taşımadan sonra sürdürülemez",
+      "agentNotResumableMany": "{{n}} ajan taşımadan sonra sürdürülemez",
+      "unverifiableOne": "Orca şu anda bir terminali kontrol edemiyor",
+      "unverifiableMany": "Orca şu anda {{n}} terminali kontrol edemiyor",
+      "automationRunningOne": "Bir otomasyon çalıştırması etkin",
+      "automationRunningMany": "{{n}} otomasyon çalıştırması etkin",
+      "dispatchRunningOne": "Bir ajan görevi devam ediyor",
+      "dispatchRunningMany": "{{n}} ajan görevi devam ediyor",
+      "scrollbackTooLargeOne": "Bir terminalin çıktı geçmişi taşınamayacak kadar büyük",
+      "scrollbackTooLargeMany": "{{n}} terminalin çıktı geçmişi taşınamayacak kadar büyük"
+    },
+    "blockerHint": {
+      "agentWorking": "Bitmesini bekleyin veya ajanı terminalinde durdurun, ardından yeniden kontrol edin.",
+      "processRunning": "Programı (örneğin bir geliştirme sunucusunu veya düzenleyiciyi) durdurun, ardından yeniden kontrol edin.",
+      "agentNotResumable": "Ajandan kendi terminalinde çıkın, ardından yeniden kontrol edin.",
+      "unverifiable": "Biraz bekleyin, ardından yeniden kontrol edin. Taşıma için hiçbir şey durdurulmaz.",
+      "wait": "Bitmesini bekleyin, ardından yeniden kontrol edin.",
+      "scrollbackTooLarge": "O terminallerdeki çıktıyı temizleyin, ardından yeniden kontrol edin."
+    },
+    "scopeRefused": {
+      "windowsDrive": "Klasörü bir Windows sürücüsünde olduğu için bu bilgisayarda kalır.",
+      "mixedLocations": "Klasörlerinden bazıları bu dağıtımın dışında olduğu için bu bilgisayarda kalır.",
+      "notLocal": "Zaten başka bir ana makinede çalışıyor.",
+      "other": "Taşınamaz."
+    },
+    "reloadToast": {
+      "title": "Taşımayı tamamlamak için yeniden yükleyin"
+    },
+    "orchestrator": {
+      "showTerminal": "Terminali göster",
+      "moveAgain": "Yeniden taşı",
+      "checkAgain": "Yeniden kontrol et",
+      "deferred": "{{distro}} ana makinesine taşıma tamamlanıyor: bazı terminaller hâlâ meşgul.",
+      "stuck": "{{distro}} ana makinesine yapılan önceki bir taşıma henüz tamamen sonuçlanmadı.",
+      "declined": "Bu projeleri bu bilgisayara geri getirdiğiniz için taşıma duraklatıldı.",
+      "doneToast": "Projeler {{distro}} ana makinesine taşındı",
+      "terminalGone": "Bu terminal artık bu pencerede açık değil. Yenilemek için yeniden kontrol edin.",
+      "blocker": "{{title}}. {{hint}}",
+      "paused": "Projelerin {{distro}} ana makinesine taşınması duraklatıldı: {{reason}}.",
+      "pausedReason": {
+        "exportIncomplete": "bazı kaydedilmiş veriler henüz aktarılamıyor",
+        "manifestTooLarge": "kaydedilmiş veri, tek bir taşımanın aktarabileceğinden fazla",
+        "hostUpdate": "ana makinenin önce güncellenmesi gerekiyor",
+        "attemptsExhausted": "birkaç denemeden sonra tamamlanamadı"
+      },
+      "finishPending": "{{distro}} ana makinesine yapılan önceki bir taşıma orada tamamlandı. Orca bu taşımayı burada yeniden başladığında ya da şimdi Yeniden kontrol et ile tamamlar."
     }
   }
 }
