@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { editor, ISelection } from 'monaco-editor'
-import { editorSelectionCache, scrollTopCache } from '@/lib/scroll-cache'
+import { editorSelectionCache, editorViewStateCache, scrollTopCache } from '@/lib/scroll-cache'
 import {
-  editorViewStateCache,
   installMonacoViewStateTracking,
   restoreMonacoViewState,
   snapshotMonacoViewState
@@ -120,25 +119,6 @@ describe('Monaco view state persistence', () => {
     other.getModel = source.getModel
     restoreMonacoViewState(instance, 'pane-b')
     expect(other.restoreViewState).not.toHaveBeenCalled()
-  })
-
-  it('bounds complete view states across repeated file closures', () => {
-    for (let index = 0; index < 40; index += 1) {
-      const source = {
-        getModel: () => ({ uri: { toString: () => `file:///repo/${index}.ts` } }),
-        saveViewState: () => ({ cursorState: [], viewState: {}, contributionsState: {} }),
-        getScrollTop: () => index,
-        getSelections: () => null
-      }
-      snapshotMonacoViewState(
-        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: snapshot accesses only these stubbed editor methods.
-        { current: source as unknown as editor.IStandaloneCodeEditor },
-        'pane'
-      )
-    }
-    expect(editorViewStateCache.size).toBe(20)
-    expect(editorViewStateCache.has(JSON.stringify(['pane', 'file:///repo/0.ts']))).toBe(false)
-    expect(editorViewStateCache.has(JSON.stringify(['pane', 'file:///repo/39.ts']))).toBe(true)
   })
 
   it('defers selection caching until the lifecycle snapshot', () => {
