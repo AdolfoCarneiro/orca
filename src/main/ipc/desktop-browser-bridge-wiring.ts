@@ -145,12 +145,16 @@ export function installDesktopBrowserBridge(options: {
         {
           environmentId: candidate.environmentId,
           hostLabel: candidate.hostLabel,
-          resolveWorkspace: (scope) =>
-            rendererResolveRemoteCliWorkspace(getMainWindow, {
-              environmentId: candidate.environmentId,
-              ...(scope.workspaceId ? { workspaceId: scope.workspaceId } : {}),
-              ...(scope.page ? { pageId: scope.page } : {})
-            }),
+          resolveWorkspace: (scope, signal) =>
+            rendererResolveRemoteCliWorkspace(
+              getMainWindow,
+              {
+                environmentId: candidate.environmentId,
+                ...(scope.workspaceId ? { workspaceId: scope.workspaceId } : {}),
+                ...(scope.page ? { pageId: scope.page } : {})
+              },
+              signal
+            ),
           markWorkspaceDriven: markRemoteCliDrivenWorkspace,
           isHostBrowsingRouted: () => isSshTargetBrowsingRouted(candidate.targetId),
           isGuestRoutedThroughHost: (webContentsId) => {

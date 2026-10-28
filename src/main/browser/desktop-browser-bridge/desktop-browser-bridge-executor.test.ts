@@ -285,7 +285,10 @@ describe('executeDesktopBrowserBridgeRequest', () => {
       value
     )
 
-    expect(resolveWorkspace).toHaveBeenCalledWith({ workspaceId: HOST_WORKSPACE, page: null })
+    expect(resolveWorkspace).toHaveBeenCalledWith(
+      { workspaceId: HOST_WORKSPACE, page: null },
+      undefined
+    )
     expect(dispatched).toEqual([])
   })
 
@@ -439,6 +442,51 @@ describe('executeDesktopBrowserBridgeRequest', () => {
       ok: false,
       error: { code: 'desktop_browser_bridge_unavailable' }
     })
+    expect(dispatched).toEqual([])
+  })
+
+  it('passes command cancellation to the scope check and preserves cancellation refusal', async () => {
+    const cancelled = new AbortController()
+    let scopeSignal: AbortSignal | undefined
+    const { value, dispatched } = deps({
+      resolveWorkspace: async (_scope, signal) => {
+        scopeSignal = signal
+        cancelled.abort()
+        return null
+      }
+    })
+
+    const outcome = await executeDesktopBrowserBridgeRequest(
+      request({ workspaceId: HOST_WORKSPACE }),
+      value,
+      cancelled.signal
+    )
+
+    expect(scopeSignal).toBe(cancelled.signal)
+    expect(outcome).toMatchObject({
+      ok: false,
+      error: { code: 'desktop_browser_bridge_unavailable' }
+    })
+    expect(dispatched).toEqual([])
+  })
+
+  it('does not request renderer scope for an already cancelled command', async () => {
+    const cancelled = new AbortController()
+    cancelled.abort()
+    const resolveWorkspace = vi.fn(rendererScope)
+    const { value, dispatched } = deps({ resolveWorkspace })
+
+    const outcome = await executeDesktopBrowserBridgeRequest(
+      request({ workspaceId: HOST_WORKSPACE }),
+      value,
+      cancelled.signal
+    )
+
+    expect(outcome).toMatchObject({
+      ok: false,
+      error: { code: 'desktop_browser_bridge_unavailable' }
+    })
+    expect(resolveWorkspace).not.toHaveBeenCalled()
     expect(dispatched).toEqual([])
   })
 

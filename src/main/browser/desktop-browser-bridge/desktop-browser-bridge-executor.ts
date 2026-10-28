@@ -32,10 +32,10 @@ export type DesktopBrowserBridgeExecutorDeps = {
   environmentId: string
   hostLabel: string
   /** Resolve host ownership via the renderer, which also knows unmounted pages. */
-  resolveWorkspace(scope: {
-    workspaceId: string | null
-    page: string | null
-  }): Promise<string | null>
+  resolveWorkspace(
+    scope: { workspaceId: string | null; page: string | null },
+    signal?: AbortSignal
+  ): Promise<string | null>
   worktreeIdForPage(browserPageId: string): string | null
   /** Host-driven workspaces lose programmatic clipboard reads. */
   markWorkspaceDriven(workspaceId: string): void
@@ -82,15 +82,10 @@ export async function executeDesktopBrowserBridgeRequest(
     urlOrigin: urlOrigin(request.params.url)
   }
   try {
-    const { params, workspaceId, page } = await scopeRequest(request, deps)
+    const { params, workspaceId, page } = await scopeRequest(request, deps, signal)
     audit.workspaceId = workspaceId
     audit.page = page
-    if (signal?.aborted) {
-      throw new BridgeRefusal(
-        DESKTOP_BROWSER_BRIDGE_UNAVAILABLE_CODE,
-        'The Orca desktop stopped sharing its browser before this command ran.'
-      )
-    }
+    assertBridgeCommandActive(signal)
     deps.markWorkspaceDriven(workspaceId)
     const response = await runInRemoteCliBrowserScope(
       workspaceId,
@@ -119,7 +114,8 @@ export async function executeDesktopBrowserBridgeRequest(
 
 async function scopeRequest(
   request: DesktopBrowserBridgeRequest,
-  deps: DesktopBrowserBridgeExecutorDeps
+  deps: DesktopBrowserBridgeExecutorDeps,
+  signal?: AbortSignal
 ): Promise<{ params: Record<string, unknown>; workspaceId: string; page: string | null }> {
   // Enforce the method allowlist on the desktop rather than trusting the host.
   if (!isDesktopBrowserBridgeMethod(request.method)) {
@@ -171,7 +167,12 @@ async function scopeRequest(
       'Run this command inside a workspace on this host, or pass --worktree, so Orca knows which workspace’s browser tabs it may use.'
     )
   }
-  const workspaceId = await deps.resolveWorkspace({ workspaceId: requestedWorkspaceId, page })
+  assertBridgeCommandActive(signal)
+  const workspaceId = await deps.resolveWorkspace(
+    { workspaceId: requestedWorkspaceId, page },
+    signal
+  )
+  assertBridgeCommandActive(signal)
   const mountedWorkspaceId = page ? deps.worktreeIdForPage(page) : null
   if (!workspaceId || (mountedWorkspaceId && mountedWorkspaceId !== workspaceId)) {
     // Do not reveal whether a forbidden page exists.
@@ -181,6 +182,15 @@ async function scopeRequest(
   }
   params.worktree = `id:${workspaceId}`
   return { params, workspaceId, page }
+}
+
+function assertBridgeCommandActive(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) {
+    throw new BridgeRefusal(
+      DESKTOP_BROWSER_BRIDGE_UNAVAILABLE_CODE,
+      'The Orca desktop stopped sharing its browser before this command ran.'
+    )
+  }
 }
 
 function isWebNavigationUrl(value: unknown, optional: boolean): boolean {
