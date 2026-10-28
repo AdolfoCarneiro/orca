@@ -11490,7 +11490,6 @@
         },
         "PluginConsentDialog": {
           "reconsent": "權限、工作行程信任層級或指令內容自您上次審查此外掛以來已變更。在執行之前請再次審查。",
-          "warning": "這些權限限制了外掛如何使用 Orca 的 API。其工作行程仍作為普通行程在您的電腦上執行，可以完全存取您的檔案、網路和其他行程。",
           "instructionalWarning": "此外掛沒有工作行程。其指令內容在您或代理程式使用時仍可能引發操作。在啟用之前，請審查以下指令和命令。",
           "declarativeWarning": "此外掛僅貢獻經過驗證的內容。它不執行背景工作行程，也不接收對 Orca API 的存取。",
           "enable": "啟用外掛",
@@ -11616,14 +11615,6 @@
           "rollbackFailed": "無法將此外掛回復舊版。先前不可變更的版本可能無法取得。"
         },
         "PluginSettingsRow": {
-          "blocked": "已阻止",
-          "needsReview": "需要審查",
-          "restarting": "正在重新啟動",
-          "invalid": "無效",
-          "error": "錯誤",
-          "disabled": "已停用",
-          "running": "執行中",
-          "enabled": "已啟用",
           "loadingLogs": "正在載入日誌…",
           "noLogs": "未記錄日誌行。",
           "logCount": "最近 {{value0}} 行（最多保留 200 行）",

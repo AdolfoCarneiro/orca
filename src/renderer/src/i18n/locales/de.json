@@ -11635,7 +11635,6 @@
         },
         "PluginConsentDialog": {
           "reconsent": "Seit der letzten Prüfung dieses Plugins haben sich Berechtigungen, die Vertrauensstufe des Hintergrundprozesses oder die enthaltenen Anweisungen geändert. Vor der Ausführung erneut prüfen.",
-          "warning": "Diese Berechtigungen begrenzen die Nutzung der Orca-API durch das Plugin. Sein Hintergrundprozess läuft weiterhin als normaler Prozess auf diesem Computer mit uneingeschränktem Zugriff auf Dateien, Netzwerk und andere Prozesse.",
           "instructionalWarning": "Dieses Plugin hat keinen Hintergrundprozess. Seine Anweisungen können bei der Nutzung durch Benutzer oder Agenten dennoch Aktionen auslösen. Vor der Aktivierung die folgenden Anweisungen und Befehle prüfen.",
           "declarativeWarning": "Dieses Plugin stellt ausschließlich validierte Inhalte bereit. Es führt keinen Hintergrundprozess aus und erhält keinen Zugriff auf die Orca-API.",
           "enable": "Plugin aktivieren",
@@ -11761,14 +11760,6 @@
           "rollbackFailed": "Dieses Plugin konnte nicht zurückgesetzt werden. Möglicherweise ist keine vorherige unveränderliche Version verfügbar."
         },
         "PluginSettingsRow": {
-          "blocked": "Blockiert",
-          "needsReview": "Prüfung erforderlich",
-          "restarting": "Wird neu gestartet",
-          "invalid": "Ungültig",
-          "error": "Fehler",
-          "disabled": "Deaktiviert",
-          "running": "Wird ausgeführt",
-          "enabled": "Aktiviert",
           "loadingLogs": "Protokolle werden geladen…",
           "noLogs": "Keine Protokollzeilen aufgezeichnet.",
           "logCount": "Letzte {{value0}} von bis zu 200 gespeicherten Zeilen",

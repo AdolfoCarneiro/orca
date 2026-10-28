@@ -11621,7 +11621,6 @@
         },
         "PluginConsentDialog": {
           "reconsent": "Bu eklentiyi son incelemenizden bu yana izinler, işçi güven düzeyi veya talimat içeriği değişti. Çalışabilmesi için tekrar inceleyin.",
-          "warning": "Bu izinler eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. İşçisi yine de bilgisayarınızda dosyalarınıza, ağınıza ve diğer işlemlere tam erişimi olan normal bir işlem olarak çalışmaya devam eder.",
           "instructionalWarning": "Bu eklentinin işçi işlemi yok. Talimat içeriği yine de siz veya bir ajan onu kullandığında eylemlere neden olabilir. Etkinleştirmeden önce aşağıdaki talimatları ve komutları inceleyin.",
           "declarativeWarning": "Bu eklenti yalnızca doğrulanmış içerik sağlar. Arka plan işçisi çalıştırmaz veya Orca'nın API'sine erişim almaz.",
           "enable": "Eklentiyi etkinleştir",
@@ -11747,14 +11746,6 @@
           "rollbackFailed": "Bu eklenti geri alınamadı. Önceki değiştirilemez bir sürüm mevcut olmayabilir."
         },
         "PluginSettingsRow": {
-          "blocked": "Engellendi",
-          "needsReview": "İnceleme gerekiyor",
-          "restarting": "Yeniden başlatılıyor",
-          "invalid": "Geçersiz",
-          "error": "Hata",
-          "disabled": "Devre dışı",
-          "running": "Çalışıyor",
-          "enabled": "Etkin",
           "loadingLogs": "Günlükler yükleniyor…",
           "noLogs": "Kayıtlı günlük satırı yok.",
           "logCount": "En fazla 200 satırdan son {{value0}}",
