@@ -48,6 +48,7 @@ vi.mock('../transport/host-client-hooks', () => ({
 
 import { MobileFilePreviewScreen } from './MobileFilePreviewScreen'
 import { WorkspaceExecutionHostContext } from '../navigation/workspace-execution-host'
+import type { ExecutionHostId } from '../../../src/shared/execution-host'
 
 let tree: ReactTestRenderer | null = null
 
@@ -175,7 +176,7 @@ function pendingPreviewReply() {
   }
 }
 
-function serveReads(sendRequest: (method: string) => Promise<unknown>) {
+function serveReads(sendRequest: (method: unknown) => Promise<unknown>) {
   transport.connection = { state: 'connected', client: { sendRequest } }
 }
 
@@ -284,7 +285,7 @@ it.each(['host', 'executionHost'] as const)(
   async (authority) => {
     serveReads(async () => previewReply('Original'))
     const withExecutionHost =
-      (value: string | undefined) => (screen: ReturnType<typeof createElement>) =>
+      (value: ExecutionHostId | undefined) => (screen: ReturnType<typeof createElement>) =>
         createElement(WorkspaceExecutionHostContext.Provider, { value }, screen)
     const { rendered, editor, save } = await mountArtifact(withExecutionHost(undefined))
     await act(async () => editor().props.onChangeText('My unsaved changes'))
