@@ -206,6 +206,14 @@ describe('MobileNativeChatView: composer lock and prompt cards', () => {
       expect(composer()).toBe(mounted)
     })
 
+    it('keeps the composer for an approval this build cannot draw, so a turn can cancel it', async () => {
+      await render({
+        permission: { ...permission, subject: { kind: 'diff' } },
+        structuredActivityUi: true
+      })
+      expect(composerHidden()).toBe(false)
+    })
+
     it('shows the composer for a collapsed card and while dictation runs', async () => {
       await render({ permission, collapsedPrompt: { title: 'Approve?', expand: () => {} } })
       expect(composerHidden()).toBe(false)

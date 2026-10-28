@@ -1,5 +1,5 @@
 import type { NativeChatSkillDiscoverySnapshot } from '../../../src/shared/native-chat/input/native-chat-picker-items'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { nativeChatTaskListPredecessors } from '../../../src/shared/native-chat/input/native-chat-task-list-history'
 import {
   MobileNativeChatDisclosureContext,
@@ -53,6 +53,7 @@ import {
 } from './native-chat/composer/MobileNativeChatComposer'
 import { MobileNativeChatPromptCard } from './native-chat/input/MobileNativeChatPromptCard'
 import type { MobileNativeChatMicProps } from './native-chat/composer/MobileNativeChatComposerMic'
+import { useMobileNativeChatPromptInputOwner } from './native-chat/input/use-mobile-native-chat-prompt-input-owner'
 import {
   NO_COMPOSER_TRAY,
   type ComposerTrayProps
@@ -323,13 +324,10 @@ export function MobileNativeChatView({
   // Lock only terminal-backed Send: it can answer an agent prompt, while drafting is harmless and structured sends queue.
   const promptShown = !collapsedPrompt && (ask ?? permission ?? question) != null
   const expandedPromptOwnsSend = !structuredActivityUi && promptShown
-  // As on desktop, a shown card replaces the composer, which stays mounted to keep its draft; active dictation keeps its Stop.
-  const promptOwnsInput = promptShown && !micActive
-  useEffect(() => {
-    if (promptOwnsInput) {
-      inputRef?.current?.blur()
-    }
-  }, [promptOwnsInput, inputRef])
+  const promptOwnsInput = useMobileNativeChatPromptInputOwner(
+    { promptShown, ask, permission, micActive },
+    inputRef
+  )
   const emptyStateView = emptyState ? <MobileNativeChatEmptyStateView copy={emptyState} /> : null
 
   if (readFailedFinally && emptyStateView) {
