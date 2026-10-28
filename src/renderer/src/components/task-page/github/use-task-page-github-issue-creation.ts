@@ -1,6 +1,7 @@
 import type { TaskPageWorkspaceActionsModel } from '../use-task-page-workspace-actions'
 import { useCallback } from 'react'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
+import { useAppStore } from '@/store/index'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
@@ -125,6 +126,7 @@ export function useTaskPageGitHubIssueCreation(model: TaskPageWorkspaceActionsMo
         author: null
       }
       openGitHubDetailPage(stub)
+      setDialogWorkItem(stub)
       const stubRepoId = newIssueTargetRepo.id
       const fullIssuePromise = newIssueRuntimeTarget
         ? callRuntimeRpc<Awaited<ReturnType<typeof window.api.gh.workItem>>>(
@@ -151,7 +153,13 @@ export function useTaskPageGitHubIssueCreation(model: TaskPageWorkspaceActionsMo
           })
       void fullIssuePromise
         .then((full) => {
-          if (full) {
+          const state = useAppStore.getState()
+          if (
+            full &&
+            state.activeView === 'tasks' &&
+            state.taskPageData.openGitHubWorkItem === stub &&
+            state.githubTaskDrawerWorkItem === stub
+          ) {
             // Why: cast through unknown — spreading the discriminated union loses the discriminant, so { ...full, repoId } won't typecheck.
             const withRepoId = {
               ...full,
