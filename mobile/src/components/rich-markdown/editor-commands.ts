@@ -64,7 +64,13 @@ const COMMANDS: Record<
   taskList: (scope) => exec(scope, 'insertHTML', TASK_LIST_HTML),
   quote: (scope) => exec(scope, 'formatBlock', 'blockquote'),
   inlineCode: (scope) => wrapSelection(scope, 'code'),
-  codeBlock: (scope) => exec(scope, 'insertHTML', CODE_BLOCK_HTML),
+  codeBlock: (scope) => {
+    const selection = scope.getSelection()
+    const anchor = selection?.anchorNode
+    const element = anchor instanceof Element ? anchor : anchor?.parentElement
+    const boundary = selection?.isCollapsed === true && !element?.closest('table')
+    exec(scope, 'insertHTML', boundary ? `<br>${CODE_BLOCK_HTML}` : CODE_BLOCK_HTML)
+  },
   link: (scope) => insertUrl(scope, 'link', 'createLink'),
   image: (scope) => insertUrl(scope, 'image', 'insertImage')
 }

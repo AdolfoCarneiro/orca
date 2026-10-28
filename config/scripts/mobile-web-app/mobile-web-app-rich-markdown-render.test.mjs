@@ -2,6 +2,7 @@
 // Native WebView postMessage/injectJavaScript are replaced by direct module calls; execCommand behavior requires real engines.
 import { Buffer } from 'node:buffer'
 import { proseFidelityTest } from './mobile-web-app-prose-fidelity.mjs'
+import { collapsedCodeBlockTest } from './mobile-web-app-collapsed-code-block.mjs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -553,6 +554,7 @@ describeEditor(
         }, 600_000)
 
         proseFidelityTest(() => browser, openPage, setContent, press)
+        collapsedCodeBlockTest(() => browser, openPage, press, readSurface)
 
         it('opens a link through the host rather than navigating the page', async () => {
           const { page } = await openPage(browser)
