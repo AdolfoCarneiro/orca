@@ -272,10 +272,7 @@
         },
         "OrchestrationPane": {
           "chatErrorEscalationKeywordChat": "chat",
-          "chatErrorEscalationKeywordError": "error",
-          "heartbeatKeywordHeartbeat": "heartbeat",
-          "heartbeatKeywordInterval": "interval",
-          "heartbeatKeywordStalled": "stalled"
+          "chatErrorEscalationKeywordError": "error"
         },
         "OrchestrationSkillAgentCoverage": {
           "fullCoverage_one": "All 1 detected agent has the skill.",
