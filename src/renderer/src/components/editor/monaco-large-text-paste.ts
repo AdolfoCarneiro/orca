@@ -152,7 +152,11 @@ async function insertMonacoTextInChunks(
       return { status: 'cancelled', reason: 'target-unavailable', byteLength, chunksWritten }
     }
 
-    const nextIndex = getUtf8ChunkEndIndex(text, textIndex, chunkMaxBytes)
+    let nextIndex = getUtf8ChunkEndIndex(text, textIndex, chunkMaxBytes)
+    // Monaco normalizes chunks separately, so a CRLF pair must stay in one edit.
+    if (text.charCodeAt(nextIndex - 1) === 13 && text.charCodeAt(nextIndex) === 10) {
+      nextIndex += nextIndex - textIndex === 1 ? 1 : -1
+    }
     const chunk = text.slice(textIndex, nextIndex)
     const endPosition = getEndPositionAfterInsert(
       { lineNumber: selection.startLineNumber, column: selection.startColumn },
