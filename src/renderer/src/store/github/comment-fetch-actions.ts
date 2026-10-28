@@ -74,8 +74,8 @@ export const createCommentFetchActions = (
               })) as PRComment[])
         // A comment posted during this read owns the newer snapshot and the caller's displayed list.
         const current = get().commentsCache[cacheKey]
-        if (current !== cached) {
-          return current?.data ?? []
+        if (current !== undefined && current !== cached) {
+          return current.data ?? []
         }
         set((s) => ({
           commentsCache: withBoundedCacheEntry(s.commentsCache, cacheKey, {

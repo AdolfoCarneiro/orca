@@ -115,6 +115,32 @@ it('accepts a read when a different PR receives a comment', async () => {
   expect(store.getState().commentsCache[cacheKey]?.data).toEqual([original, posted])
 })
 
+it('accepts a pending read after bounded publications evict its starting entry', async () => {
+  const store = makeStore()
+  const oldRead = Promise.withResolvers<PRComment[]>()
+  mockApi.gh.prComments.mockReturnValueOnce(oldRead.promise)
+  const reading = store.getState().fetchPRComments(repoPath, 12, { ...options, force: true })
+  for (let prNumber = 13; prNumber < 513; prNumber += 1) {
+    await store.getState().addPRConversationComment(repoPath, prNumber, posted.body, options)
+  }
+  expect(store.getState().commentsCache[cacheKey]).toBeUndefined()
+  oldRead.resolve([original, posted])
+  await expect(reading).resolves.toEqual([original, posted])
+  expect(store.getState().commentsCache[cacheKey]?.data).toEqual([original, posted])
+})
+
+it('accepts a pending read after a refresh sweep clears its starting entry', async () => {
+  const store = makeStore()
+  const oldRead = Promise.withResolvers<PRComment[]>()
+  mockApi.gh.prComments.mockReturnValueOnce(oldRead.promise)
+  const reading = store.getState().fetchPRComments(repoPath, 12, { ...options, force: true })
+  store.getState().refreshAllGitHub()
+  expect(store.getState().commentsCache[cacheKey]).toBeUndefined()
+  oldRead.resolve([original, posted])
+  await expect(reading).resolves.toEqual([original, posted])
+  expect(store.getState().commentsCache[cacheKey]?.data).toEqual([original, posted])
+})
+
 it('preserves posts for an explicit paired source while its old read finishes', async () => {
   const store = makeStore()
   const sourceContext = githubSourceContext('runtime:source-runtime', 'source-repo')
