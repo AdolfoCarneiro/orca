@@ -7,7 +7,7 @@ vi.mock('./rate-limit', () => ({
   repositoryRateLimitGuard: () => ({ blocked: false })
 }))
 
-import { getPRByNumber } from './client/lookup/pr-number-lookup'
+import { getPRByNumber, lookupPRByNumber } from './client/lookup/pr-number-lookup'
 import { derivePRRefreshData } from './client/lookup/branch-lookup-derived-data'
 import { _resetPRStackSummaryCacheForTests } from './client/lookup/pr-stack-summary-cache'
 import { _resetMergeQueueCacheForTests } from './client/detect/repository-merge-metadata-cache'
@@ -95,7 +95,11 @@ describe('sidebar PR query', () => {
         }
         return restResponse()
       })
-      await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toMatchObject({
+      await expect(
+        getPRByNumber(repository, 42, options, 'local:host', undefined, {
+          includeStackSummary: true
+        })
+      ).resolves.toMatchObject({
         number: 42
       })
       expect(exec).toHaveBeenCalledTimes(2)
@@ -118,7 +122,11 @@ describe('sidebar PR query', () => {
       } else {
         exec.mockResolvedValueOnce(missing)
       }
-      await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toBeNull()
+      await expect(
+        getPRByNumber(repository, 42, options, 'local:host', undefined, {
+          includeStackSummary: true
+        })
+      ).resolves.toBeNull()
       expect(exec).toHaveBeenCalledTimes(1)
       expect(spend).toHaveBeenCalledTimes(1)
     }
@@ -129,7 +137,9 @@ describe('sidebar PR query', () => {
       .mockResolvedValueOnce(response({ ...fields, commits: commits([successCheck], 'next') }))
       .mockRejectedValueOnce(new Error('ETIMEDOUT'))
       .mockResolvedValueOnce(restResponse())
-    await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toMatchObject({
+    await expect(
+      getPRByNumber(repository, 42, options, 'local:host', undefined, { includeStackSummary: true })
+    ).resolves.toMatchObject({
       number: 42
     })
     expect(exec).toHaveBeenCalledTimes(3)
@@ -153,7 +163,9 @@ describe('sidebar PR query', () => {
           }
         })
       })
-    await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toMatchObject({
+    await expect(
+      getPRByNumber(repository, 42, options, 'local:host', undefined, { includeStackSummary: true })
+    ).resolves.toMatchObject({
       autoMergeAllowed: true,
       stack: { baseRefName: 'release', position: 2 }
     })
@@ -176,7 +188,12 @@ describe('sidebar PR query', () => {
       throw new Error(`Unexpected request: ${args.join(' ')}`)
     })
 
-    const data = await getPRByNumber(repository, 42, options, 'local:host')
+    const { data } = await lookupPRByNumber({
+      candidates: [repository],
+      number: 42,
+      ghOptions: options,
+      executionScope: 'local:host'
+    })
     if (!data) {
       throw new Error('Expected linked PR')
     }
@@ -208,8 +225,12 @@ describe('sidebar PR query', () => {
     exec
       .mockResolvedValueOnce(response())
       .mockResolvedValueOnce(response({ ...fields, title: 'Updated' }))
-    await getPRByNumber(repository, 42, options, 'local:host')
-    await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toMatchObject({
+    await getPRByNumber(repository, 42, options, 'local:host', undefined, {
+      includeStackSummary: true
+    })
+    await expect(
+      getPRByNumber(repository, 42, options, 'local:host', undefined, { includeStackSummary: true })
+    ).resolves.toMatchObject({
       title: 'Updated'
     })
     expect(exec).toHaveBeenCalledTimes(2)
@@ -223,7 +244,9 @@ describe('sidebar PR query', () => {
         stackEntry: { position: 2 }
       })
     )
-    await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toMatchObject({
+    await expect(
+      getPRByNumber(repository, 42, options, 'local:host', undefined, { includeStackSummary: true })
+    ).resolves.toMatchObject({
       baseRefName: 'main',
       stackMetadataChecked: true,
       stack: { number: 12, size: 3, position: 2, baseRefName: 'release' }
@@ -244,7 +267,9 @@ describe('sidebar PR query', () => {
         })
       )
       .mockResolvedValueOnce(response({ number: 42, commits: commits([null, failingCheck]) }))
-    const data = await getPRByNumber(repository, 42, options, 'local:host')
+    const data = await getPRByNumber(repository, 42, options, 'local:host', undefined, {
+      includeStackSummary: true
+    })
     expect(data?.statusCheckRollup).toHaveLength(101)
     expect(deriveCheckStatus(data?.statusCheckRollup)).toBe('failure')
     expect(exec).toHaveBeenCalledTimes(2)
@@ -262,7 +287,9 @@ describe('sidebar PR query', () => {
         .mockResolvedValueOnce(response({ ...fields, commits: commits([successCheck], 'next') }))
         .mockResolvedValueOnce(response(nextPage))
         .mockResolvedValueOnce(legacyResponse())
-      const data = await getPRByNumber(repository, 42, options, 'local:host')
+      const data = await getPRByNumber(repository, 42, options, 'local:host', undefined, {
+        includeStackSummary: true
+      })
       expect(deriveCheckStatus(data?.statusCheckRollup)).toBe('success')
       expect(exec).toHaveBeenCalledTimes(3)
       expect(exec.mock.calls[2][0].slice(0, 2)).toEqual(['pr', 'view'])
@@ -293,7 +320,9 @@ describe('sidebar PR query', () => {
       exec
         .mockResolvedValueOnce(response({ ...fields, ...stackFields }))
         .mockResolvedValueOnce(restResponse())
-      const data = await getPRByNumber(repository, 42, options, 'local:host')
+      const data = await getPRByNumber(repository, 42, options, 'local:host', undefined, {
+        includeStackSummary: true
+      })
       if (!data) {
         throw new Error('Expected linked PR')
       }
@@ -319,7 +348,9 @@ describe('sidebar PR query', () => {
         response(fields, [{ path: ['repository', 'pullRequest', 'stack'], message: 'Unavailable' }])
       )
     )
-    await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toMatchObject({
+    await expect(
+      getPRByNumber(repository, 42, options, 'local:host', undefined, { includeStackSummary: true })
+    ).resolves.toMatchObject({
       title: fields.title,
       stackMetadataChecked: false
     })
@@ -337,7 +368,9 @@ describe('sidebar PR query', () => {
     exec.mockResolvedValueOnce({ stdout: JSON.stringify(envelope) }).mockResolvedValueOnce({
       stdout: JSON.stringify({ ...fields, title: 'CLI fallback', statusCheckRollup: [] })
     })
-    await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toMatchObject({
+    await expect(
+      getPRByNumber(repository, 42, options, 'local:host', undefined, { includeStackSummary: true })
+    ).resolves.toMatchObject({
       title: 'CLI fallback'
     })
     expect(exec).toHaveBeenCalledTimes(2)
@@ -349,7 +382,9 @@ describe('sidebar PR query', () => {
     async (host) => {
       exec.mockResolvedValueOnce({ stdout: JSON.stringify({ ...fields, statusCheckRollup: [] }) })
       await expect(
-        getPRByNumber({ ...repository, host }, 42, options, 'local:host')
+        getPRByNumber({ ...repository, host }, 42, options, 'local:host', undefined, {
+          includeStackSummary: true
+        })
       ).resolves.toMatchObject({ number: 42 })
       expect(exec).toHaveBeenCalledTimes(1)
       expect(exec.mock.calls[0][0].slice(0, 2)).toEqual(['pr', 'view'])

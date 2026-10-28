@@ -57,11 +57,12 @@ export async function getPRByNumber(
   number: number,
   ghOptions: ReturnType<typeof ghRepoExecOptions>,
   executionScope: string,
-  knownPullRequestData?: PullRequestLookupData | null
+  knownPullRequestData?: PullRequestLookupData | null,
+  options: { includeStackSummary?: boolean } = {}
 ): Promise<PullRequestLookupData | null> {
   try {
     const sidebarData =
-      knownPullRequestData === undefined
+      options.includeStackSummary && knownPullRequestData === undefined
         ? await readPullRequestSidebarQuery(ownerRepo, number, ghOptions)
         : undefined
     if (sidebarData === null) {
@@ -142,7 +143,9 @@ export async function lookupPRByNumber(args: {
         candidate,
         args.number,
         args.ghOptions,
-        args.executionScope
+        args.executionScope,
+        undefined,
+        { includeStackSummary: true }
       )
       if (!linkedData || (args.policy && !(await args.policy.accepts(linkedData, candidate)))) {
         continue
