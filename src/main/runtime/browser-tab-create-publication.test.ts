@@ -1,5 +1,9 @@
 // Centralize placement bookkeeping so client-created pages retain targetGroupId.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  createBrowserTabRendererContents,
+  createBrowserTabRendererWindow
+} from './browser/browser-tab-renderer-window.test-fixture'
 import type { AgentBrowserBridge } from '../browser/agent-browser-bridge'
 import type { RuntimeBrowserCommandHost } from './browser/browser-command-contracts'
 import { RuntimeBrowserPageRegistry } from './runtime-browser-page-registry'
@@ -365,7 +369,7 @@ describe('browser tab-create placement census', () => {
 
     it('leaves renderer tab focus to the create IPC instead of the session-tab marker', async () => {
       const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
-      const webContents = { send: vi.fn() }
+      const webContents = createBrowserTabRendererContents()
       webContents.send = vi.fn((_channel: string, data: { requestId: string }) => {
         const handler = ipcMainOnMock.mock.calls.find(
           ([eventName]) => eventName === 'browser:tabCreateReply'
@@ -381,7 +385,7 @@ describe('browser tab-create placement census', () => {
       const commands = new RuntimeBrowserCommands(
         createCommandHost({
           getAvailableAuthoritativeWindow: vi.fn(() => ({}) as never),
-          getAuthoritativeWindow: vi.fn(() => ({ webContents }) as never),
+          getAuthoritativeWindow: vi.fn(() => createBrowserTabRendererWindow(webContents)),
           markHeadlessBrowserSessionTabActive
         })
       )
@@ -402,7 +406,7 @@ describe('browser tab-create placement census', () => {
 
     it('does not focus the host renderer for a create addressed to the caller', async () => {
       const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
-      const webContents = { send: vi.fn() }
+      const webContents = createBrowserTabRendererContents()
       webContents.send = vi.fn((_channel: string, data: { requestId: string }) => {
         const handler = ipcMainOnMock.mock.calls.find(
           ([eventName]) => eventName === 'browser:tabCreateReply'
@@ -417,7 +421,7 @@ describe('browser tab-create placement census', () => {
       const commands = new RuntimeBrowserCommands(
         createCommandHost({
           getAvailableAuthoritativeWindow: vi.fn(() => ({}) as never),
-          getAuthoritativeWindow: vi.fn(() => ({ webContents }) as never)
+          getAuthoritativeWindow: vi.fn(() => createBrowserTabRendererWindow(webContents))
         })
       )
 

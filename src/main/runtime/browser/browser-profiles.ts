@@ -14,8 +14,7 @@ import type {
 import { BrowserError } from '../../browser/browser-error'
 import { browserSessionRegistry } from '../../browser/browser-session-registry'
 import { browserManager } from '../../browser/browser-manager'
-import { randomUUID } from 'node:crypto'
-import { ipcMain } from 'electron'
+import { requestBrowserTabRendererReply } from './browser-tab-renderer-reply'
 import { waitForTabRegistration } from '../../ipc/browser-tab-registration-wait'
 import {
   detectInstalledBrowsers,
@@ -121,36 +120,22 @@ export class RuntimeBrowserProfiles {
     }
 
     const win = this.host.getAuthoritativeWindow()
-    const requestId = randomUUID()
-    await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        ipcMain.removeListener('browser:tabSetProfileReply', handler)
-        reject(new Error('Tab profile update timed out'))
-      }, 10_000)
-
-      const handler = (
-        _event: Electron.IpcMainEvent,
-        reply: { requestId: string; error?: string }
-      ): void => {
-        if (reply.requestId !== requestId) {
-          return
-        }
-        clearTimeout(timer)
-        ipcMain.removeListener('browser:tabSetProfileReply', handler)
-        if (reply.error) {
-          reject(new Error(reply.error))
-        } else {
-          resolve()
-        }
-      }
-      ipcMain.on('browser:tabSetProfileReply', handler)
-      win.webContents.send('browser:requestTabSetProfile', {
-        requestId,
-        browserPageId,
-        profileId: profile.id,
-        sessionPartition: profile.partition
-      })
-    })
+    const reply = await requestBrowserTabRendererReply<{ requestId: string; error?: string }>(
+      win,
+      'browser:tabSetProfileReply',
+      (requestId) => {
+        win.webContents.send('browser:requestTabSetProfile', {
+          requestId,
+          browserPageId,
+          profileId: profile.id,
+          sessionPartition: profile.partition
+        })
+      },
+      'Tab profile update timed out'
+    )
+    if (reply.error) {
+      throw new Error(reply.error)
+    }
 
     // Profile changes remount the guest; wait until follow-up commands can use it.
     try {

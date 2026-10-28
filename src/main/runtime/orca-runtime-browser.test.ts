@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  createBrowserTabRendererContents as createRendererContents,
+  createBrowserTabRendererWindow as createRendererWindow
+} from './browser/browser-tab-renderer-window.test-fixture'
 import type { AgentBrowserBridge } from '../browser/agent-browser-bridge'
 import { REMOTE_RUNTIME_MAX_OUTBOUND_BINARY_FRAME_BYTES } from '../../shared/remote-runtime/remote-runtime-memory-limits'
 import type { RuntimeBrowserCommandHost } from './browser/browser-command-contracts'
@@ -139,6 +143,56 @@ describe('RuntimeBrowserCommands browser screencast', () => {
     browserSessionRegistryMock.createProfile.mockReset()
   })
 
+  it.each(['create', 'close', 'profile'] as const)(
+    'settles a pending browser %s when its renderer document retires',
+    async (operation) => {
+      vi.useFakeTimers()
+      const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
+      const webContents = createRendererContents()
+      const win = createRendererWindow(webContents)
+      const commands = new RuntimeBrowserCommands(
+        createHost({
+          getAuthoritativeWindow: () => win,
+          getAvailableAuthoritativeWindow: () => win
+        })
+      )
+      const request =
+        operation === 'create'
+          ? commands.browserTabCreate({ worktree: 'id:folder:owned', waitForRegistration: false })
+          : operation === 'close'
+            ? commands.browserTabClose({ worktree: 'id:folder:owned', page: 'page-1' })
+            : commands.browserTabSetProfile({
+                worktree: 'id:folder:owned',
+                profileId: 'profile-isolated'
+              })
+      let completion: string | null = null
+      const pending = request.then(
+        () => {
+          completion = 'resolved'
+        },
+        (error: Error) => {
+          completion = error.message
+        }
+      )
+      try {
+        for (let step = 0; step < 20; step++) {
+          await Promise.resolve()
+        }
+        expect(webContents.send).toHaveBeenCalled()
+        webContents.emit('did-navigate')
+        for (let step = 0; step < 20; step++) {
+          await Promise.resolve()
+        }
+        expect(completion).toBe('Browser tab renderer went away')
+        expect(vi.getTimerCount()).toBe(0)
+      } finally {
+        await vi.advanceTimersByTimeAsync(10_000)
+        await pending
+        vi.useRealTimers()
+      }
+    }
+  )
+
   it('creates profiles with the requested scope and label', async () => {
     const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
     const profile = {
@@ -223,7 +277,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
 
   it('creates the first explicit-worktree browser tab without waiting for an existing registration', async () => {
     const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
-    const webContents = { send: vi.fn() }
+    const webContents = createRendererContents()
     const send = vi.fn((channel: string, data: { requestId: string }) => {
       expect(channel).toBe('browser:requestTabCreate')
       const handler = ipcMainOnMock.mock.calls.find(
@@ -254,7 +308,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
       createHost({
         getAgentBrowserBridge: () => bridge,
         getAvailableAuthoritativeWindow: vi.fn(() => ({}) as never),
-        getAuthoritativeWindow: vi.fn(() => ({ webContents }) as never)
+        getAuthoritativeWindow: vi.fn(() => createRendererWindow(webContents))
       })
     )
 
@@ -279,7 +333,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
 
   it('sends the resolved isolated profile partition when creating a renderer tab', async () => {
     const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
-    const webContents = { send: vi.fn() }
+    const webContents = createRendererContents()
     const send = vi.fn((channel: string, data: { requestId: string }) => {
       expect(channel).toBe('browser:requestTabCreate')
       const handler = ipcMainOnMock.mock.calls.find(
@@ -303,7 +357,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
       createHost({
         getAgentBrowserBridge: () => bridge,
         getAvailableAuthoritativeWindow: vi.fn(() => ({}) as never),
-        getAuthoritativeWindow: vi.fn(() => ({ webContents }) as never)
+        getAuthoritativeWindow: vi.fn(() => createRendererWindow(webContents))
       })
     )
 
@@ -327,7 +381,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
   it('returns the renderer page identity before navigation settles', async () => {
     const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
     const navigation = deferred<{ title: string; url: string }>()
-    const webContents = { send: vi.fn() }
+    const webContents = createRendererContents()
     webContents.send = vi.fn((_channel: string, data: { requestId: string }) => {
       const handler = ipcMainOnMock.mock.calls.find(
         ([eventName]) => eventName === 'browser:tabCreateReply'
@@ -348,7 +402,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
       createHost({
         getAgentBrowserBridge: () => bridge,
         getAvailableAuthoritativeWindow: vi.fn(() => ({}) as never),
-        getAuthoritativeWindow: vi.fn(() => ({ webContents }) as never)
+        getAuthoritativeWindow: vi.fn(() => createRendererWindow(webContents))
       })
     )
 
@@ -397,7 +451,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
 
   it('sends the resolved partition when switching a renderer tab profile', async () => {
     const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
-    const webContents = { send: vi.fn() }
+    const webContents = createRendererContents()
     const send = vi.fn((channel: string, data: { requestId: string }) => {
       expect(channel).toBe('browser:requestTabSetProfile')
       const handler = ipcMainOnMock.mock.calls.find(
@@ -414,7 +468,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
       createHost({
         getAgentBrowserBridge: () => bridge,
         getAvailableAuthoritativeWindow: vi.fn(() => ({}) as never),
-        getAuthoritativeWindow: vi.fn(() => ({ webContents }) as never)
+        getAuthoritativeWindow: vi.fn(() => createRendererWindow(webContents))
       })
     )
 
@@ -557,6 +611,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
   it('closes the requested renderer page without waiting for guest registration', async () => {
     const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
     webContentsFromIdMock.mockReturnValue({ isDestroyed: () => true })
+    const webContents = createRendererContents()
     const send = vi.fn((channel: string, data: { requestId?: string }) => {
       if (channel !== 'browser:requestTabClose') {
         return
@@ -564,8 +619,9 @@ describe('RuntimeBrowserCommands browser screencast', () => {
       const handler = ipcMainOnMock.mock.calls.find(
         ([eventName]) => eventName === 'browser:tabCloseReply'
       )?.[1] as ((event: unknown, reply: { requestId: string; error?: string }) => void) | undefined
-      handler?.({} as never, { requestId: data.requestId ?? '' })
+      handler?.({ sender: webContents }, { requestId: data.requestId ?? '' })
     })
+    webContents.send = send
     const bridge = {
       getRegisteredTabs: vi.fn(() => new Map([['page-target', 101]])),
       getActivePageId: vi.fn(() => 'page-other'),
@@ -574,7 +630,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
     const commands = new RuntimeBrowserCommands(
       createHost({
         getAgentBrowserBridge: () => bridge,
-        getAuthoritativeWindow: vi.fn(() => ({ webContents: { send } }) as never)
+        getAuthoritativeWindow: vi.fn(() => createRendererWindow(webContents))
       })
     )
 
@@ -593,6 +649,7 @@ describe('RuntimeBrowserCommands browser screencast', () => {
 
   it('lets the renderer close an acknowledged page whose guest never registered', async () => {
     const { RuntimeBrowserCommands } = await import('./browser/browser-commands')
+    const webContents = createRendererContents()
     const send = vi.fn((channel: string, data: { requestId?: string }) => {
       if (channel !== 'browser:requestTabClose') {
         return
@@ -600,14 +657,15 @@ describe('RuntimeBrowserCommands browser screencast', () => {
       const handler = ipcMainOnMock.mock.calls.find(
         ([eventName]) => eventName === 'browser:tabCloseReply'
       )?.[1] as ((event: unknown, reply: { requestId: string }) => void) | undefined
-      handler?.({} as never, { requestId: data.requestId ?? '' })
+      handler?.({ sender: webContents }, { requestId: data.requestId ?? '' })
     })
+    webContents.send = send
     const bridge = {
       getRegisteredTabs: vi.fn(() => new Map()),
       getActivePageId: vi.fn(() => null),
       getActiveWebContentsId: vi.fn(() => null)
     } as unknown as AgentBrowserBridge
-    const authoritativeWindow = { webContents: { send } } as never
+    const authoritativeWindow = createRendererWindow(webContents)
     const commands = new RuntimeBrowserCommands(
       createHost({
         getAgentBrowserBridge: () => bridge,
