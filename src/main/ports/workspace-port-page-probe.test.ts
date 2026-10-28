@@ -1,5 +1,5 @@
 import http from 'node:http'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { probeWorkspacePortPage } from './workspace-port-page-probe'
 
 const ICON = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>')
@@ -58,6 +58,58 @@ describe('probeWorkspacePortPage', () => {
       probeWorkspacePortPage({ host: '127.0.0.1', port, protocol: 'http' })
     ).resolves.toMatchObject({ kind: 'page', title: 'Sign in', faviconDataUrl: null })
   })
+
+  it.each(['html', 'sse', 'favicon'] as const)(
+    'closes a streaming %s response at its absolute deadline',
+    async (kind) => {
+      const deadline = new AbortController()
+      const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal)
+      let begin: ((response: http.ServerResponse) => void) | undefined
+      const started = new Promise<http.ServerResponse>((resolve) => {
+        begin = resolve
+      })
+      const port = await serve((request, response) => {
+        if (kind === 'favicon' && request.url === '/') {
+          response.writeHead(200, { 'content-type': 'text/html' }).end('<title>Ready</title>')
+          return
+        }
+        if (kind !== 'favicon' && request.url !== '/') {
+          response.writeHead(404).end()
+          return
+        }
+        response.writeHead(200, {
+          'content-type':
+            kind === 'html' ? 'text/html' : kind === 'sse' ? 'text/event-stream' : 'image/png'
+        })
+        response.write(kind === 'html' ? '<title>Ready</title>' : 'data')
+        begin?.(response)
+      })
+      let result: Awaited<ReturnType<typeof probeWorkspacePortPage>> | undefined
+      const pending = probeWorkspacePortPage({ host: '127.0.0.1', port, protocol: 'http' }).then(
+        (value) => {
+          result = value
+        }
+      )
+      const response = await started
+      const closed = new Promise<void>((resolve) => response.once('close', resolve))
+      try {
+        deadline.abort()
+        await new Promise<void>((resolve) => setImmediate(resolve))
+        expect(result).toEqual(
+          kind === 'favicon'
+            ? { kind: 'page', title: 'Ready', faviconDataUrl: null }
+            : { kind: 'not-page' }
+        )
+        await closed
+        expect(response.destroyed).toBe(true)
+        expect(timeout).toHaveBeenCalledWith(1500)
+      } finally {
+        response.end()
+        await pending
+        timeout.mockRestore()
+      }
+    }
+  )
 
   it.each([
     ['unclosed links', `<title>ok</title>${'<link '.repeat(32_000)}`, 'ok'],

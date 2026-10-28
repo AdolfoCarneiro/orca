@@ -81,6 +81,7 @@ function fetchLoopback(url: URL, maxBytes: number): Promise<ProbeResponse | null
         headers: { accept: 'text/html,image/*;q=0.9,*/*;q=0.8' },
         // Loopback development TLS may be self-signed; return only title/icon metadata.
         rejectUnauthorized: false,
+        signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
         timeout: PROBE_TIMEOUT_MS
       },
       (response) => {
