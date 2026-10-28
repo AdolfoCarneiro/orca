@@ -11,6 +11,8 @@ import {
 } from '../terminal/terminal-live-dictation-routing'
 import {
   dictationFailureMessage,
+  dictationMicHidden,
+  dictationNeedsSetup,
   fetchDictationSetup,
   isDictationSetupRequiredError
 } from '../dictation/mobile-dictation-setup'
@@ -179,7 +181,15 @@ export function useMobileSessionNativeChatDictation(
     }
   })
 
+  // Only a host setup read sets this; while false, the host's start refusal decides (older hosts, first tap before the read).
+  const dictationNeedsSetupRef = useRef(false)
+
   const startDictation = useCallback(() => {
+    if (dictationNeedsSetupRef.current) {
+      // Explain setup before the OS microphone prompt: mic access cannot help until the host can transcribe.
+      setShowDictationSetup(true)
+      return
+    }
     chatDictationDestination.current = captureMobileNativeChatTextDestination()
     const routeContext = activeHandle
       ? { handle: activeHandle, liveInputEnabled: liveInputTerminalHandles.has(activeHandle) }
@@ -191,7 +201,13 @@ export function useMobileSessionNativeChatDictation(
       }
       reportDictationFailure(err)
     })
-  }, [activeHandle, dictation, liveInputTerminalHandles, reportDictationFailure])
+  }, [
+    activeHandle,
+    dictation,
+    liveInputTerminalHandles,
+    reportDictationFailure,
+    setShowDictationSetup
+  ])
 
   const cancelDictation = useCallback(() => {
     dictationRouteContextRef.current = null
@@ -233,12 +249,20 @@ export function useMobileSessionNativeChatDictation(
       const setup = await fetchDictationSetup(client)
       if (read === dictationSettingsReadRef.current) {
         setDictationMode(setup.dictationMode)
-        setDictationEnabled(setup.enabled !== false)
+        setDictationEnabled(!dictationMicHidden(setup))
+        dictationNeedsSetupRef.current = dictationNeedsSetup(setup)
       }
     } catch {
       // Keep the last settings when an older host cannot report them.
     }
   }, [client, connState, setDictationEnabled, setDictationMode])
+
+  // The sheet may have changed host setup: let the host judge taps until the fresh read lands.
+  const closeDictationSetup = useCallback(() => {
+    setShowDictationSetup(false)
+    dictationNeedsSetupRef.current = false
+    void refreshDictationMode()
+  }, [refreshDictationMode, setShowDictationSetup])
 
   useFocusEffect(
     useCallback(() => {
@@ -280,6 +304,7 @@ export function useMobileSessionNativeChatDictation(
     handleDictationToggle,
     handleDictationPressIn,
     handleDictationPressOut,
+    closeDictationSetup,
     refreshDictationMode
   }
 }

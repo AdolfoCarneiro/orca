@@ -118,12 +118,18 @@ export function isModelInFlight(model: MobileSpeechModel): boolean {
   return model.status === 'downloading' || model.status === 'extracting'
 }
 
-export function isDictationReady(setup: MobileSpeechSetup): boolean {
-  if (!setup.enabled || !setup.selectedModelId) {
-    return false
+// Hide the mic only when dictation was turned off with a model chosen; with none chosen a tap explains setup.
+export function dictationMicHidden(setup: MobileSpeechSetup): boolean {
+  return setup.enabled === false && setup.selectedModelId !== ''
+}
+
+// Mirror the host's start refusals on what it reported; absent fields or an uncatalogued (user) model stay the host's call.
+export function dictationNeedsSetup(setup: MobileSpeechSetup): boolean {
+  if (setup.enabled === false || setup.selectedModelId === '') {
+    return true
   }
-  const selected = setup.models.find((m) => m.id === setup.selectedModelId)
-  return selected?.status === 'ready'
+  const status = setup.models.find((m) => m.id === setup.selectedModelId)?.status
+  return status !== undefined && status !== 'ready'
 }
 
 // Keep copy short and host-neutral: the paired computer may be a headless server.

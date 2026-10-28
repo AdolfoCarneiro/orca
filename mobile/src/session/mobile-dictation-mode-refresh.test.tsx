@@ -331,6 +331,18 @@ describe('the mic follows the host dictation mode', () => {
     expect(env.captureEnabled).toBe(false)
   })
 
+  it('offers the mic on a host that never had a speech model selected', async () => {
+    env.connected = true
+    env.deferReply = true
+    env.slowReply = Promise.resolve({
+      id: 'first-run',
+      ok: true,
+      result: { enabled: false, selectedModelId: '', dictationMode: 'toggle', models: [] }
+    })
+    await render()
+    expect(micBinding()).toBe('toggle')
+  })
+
   it('keeps legacy controls when the host omits the enabled field', async () => {
     env.connected = true
     env.deferReply = true
