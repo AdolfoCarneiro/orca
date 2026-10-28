@@ -4,9 +4,87 @@ const NON_WHITESPACE = /\S/
 
 type MarkdownClosingDelimiter = '*' | '_' | '~'
 
+type ClosingCapacity = { starts: number[]; capacities: number[] }
+
 export class MarkdownClosingDelimiterBounds {
   private maskedSource: string | undefined
   private readonly lastClosingDelimiters = new Map<MarkdownClosingDelimiter, number>()
+  private closingCapacities:
+    | Map<MarkdownClosingDelimiter, ClosingCapacity | null | undefined>
+    | undefined
+
+  recordUnmatchedDelimiter(maskedSource: string, marker: MarkdownClosingDelimiter): void {
+    if (this.maskedSource === maskedSource && !this.closingCapacities?.has(marker)) {
+      const capacities = (this.closingCapacities ??= new Map())
+      capacities.set(marker, undefined)
+    }
+  }
+
+  private hasClosingCapacity(
+    maskedSource: string,
+    marker: MarkdownClosingDelimiter,
+    clipStart: number,
+    openingLength: number
+  ): boolean {
+    const closingCapacities = this.closingCapacities
+    if (!closingCapacities?.has(marker)) {
+      return true
+    }
+    let bound = closingCapacities.get(marker)
+    if (bound === undefined) {
+      // Opposite emphasis markers can activate stock's orphan-skipping alternative.
+      if (marker !== '~' && maskedSource.includes(marker === '*' ? '_' : '*')) {
+        closingCapacities.set(marker, null)
+        return true
+      }
+      const starts: number[] = []
+      const capacities: number[] = []
+      for (let start = maskedSource.indexOf(marker); start >= 0;) {
+        let end = start + 1
+        while (maskedSource[end] === marker) {
+          end++
+        }
+        const length = end - start
+        // Stock strike ignores runs whose length differs from the opener.
+        if (marker === '~' && length !== openingLength) {
+          closingCapacities.set(marker, null)
+          return true
+        }
+        const preceding = maskedSource[start - 1]
+        const following = maskedSource[end]
+        let capacity = 0
+        if (preceding && NON_WHITESPACE.test(preceding)) {
+          capacity = length
+        } else if (preceding && following && NON_WHITESPACE.test(following)) {
+          capacity = -length
+        }
+        starts.push(start)
+        capacities.push(capacity)
+        start = maskedSource.indexOf(marker, end)
+      }
+      let capacity = 0
+      for (let i = capacities.length - 1; i >= 0; i--) {
+        capacity = Math.max(0, capacity + capacities[i])
+        capacities[i] = capacity
+      }
+      bound = { starts, capacities }
+      closingCapacities.set(marker, bound)
+    }
+    if (bound === null) {
+      return true
+    }
+    let low = 0
+    let high = bound.starts.length
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2)
+      if (bound.starts[middle] <= clipStart) {
+        low = middle + 1
+      } else {
+        high = middle
+      }
+    }
+    return (bound.capacities[low] ?? 0) >= openingLength
+  }
 
   hasPossibleClosingDelimiter(
     source: string,
@@ -16,6 +94,7 @@ export class MarkdownClosingDelimiterBounds {
     if (this.maskedSource !== maskedSource) {
       this.maskedSource = maskedSource
       this.lastClosingDelimiters.clear()
+      this.closingCapacities?.clear()
     }
     let lastClosingDelimiter = this.lastClosingDelimiters.get(marker)
     if (lastClosingDelimiter === undefined) {
@@ -40,7 +119,11 @@ export class MarkdownClosingDelimiterBounds {
     while (source[openingLength] === marker) {
       openingLength++
     }
-    return lastClosingDelimiter >= Math.max(0, maskedSource.length - source.length + openingLength)
+    const clipStart = Math.max(0, maskedSource.length - source.length + openingLength)
+    return (
+      lastClosingDelimiter >= clipStart &&
+      this.hasClosingCapacity(maskedSource, marker, clipStart, openingLength)
+    )
   }
 }
 
@@ -110,15 +193,17 @@ export class MarkdownClosingDelimiterTokenizer extends Tokenizer {
       ) &&
       (marker === '*' ? DEFAULT_ASTERISK_RULES : DEFAULT_UNDERSCORE_RULES).has(
         marker === '*' ? this.rules.inline.emStrongRDelimAst : this.rules.inline.emStrongRDelimUnd
-      ) &&
-      !(this.inlineDelimiterBounds ??=
-        new MarkdownClosingDelimiterBounds()).hasPossibleClosingDelimiter(
-        source,
-        maskedSource,
-        marker
       )
     ) {
-      return super.emStrong(source, '', previousCharacter)
+      const bounds = (this.inlineDelimiterBounds ??= new MarkdownClosingDelimiterBounds())
+      if (!bounds.hasPossibleClosingDelimiter(source, maskedSource, marker)) {
+        return super.emStrong(source, '', previousCharacter)
+      }
+      const token = super.emStrong(source, maskedSource, previousCharacter)
+      if (!token) {
+        bounds.recordUnmatchedDelimiter(maskedSource, marker)
+      }
+      return token
     }
     return super.emStrong(source, maskedSource, previousCharacter)
   }
@@ -130,11 +215,17 @@ export class MarkdownClosingDelimiterTokenizer extends Tokenizer {
       DEFAULT_LEFT_STRIKE_RULES.has(this.rules.inline.delLDelim) &&
       isUnchangedDelimiterRule(this.rules.inline.delLDelim) &&
       isUnchangedDelimiterRule(this.rules.inline.delRDelim) &&
-      DEFAULT_STRIKE_RULES.has(this.rules.inline.delRDelim) &&
-      !(this.inlineDelimiterBounds ??=
-        new MarkdownClosingDelimiterBounds()).hasPossibleClosingDelimiter(source, maskedSource, '~')
+      DEFAULT_STRIKE_RULES.has(this.rules.inline.delRDelim)
     ) {
-      return super.del(source, '', previousCharacter)
+      const bounds = (this.inlineDelimiterBounds ??= new MarkdownClosingDelimiterBounds())
+      if (!bounds.hasPossibleClosingDelimiter(source, maskedSource, '~')) {
+        return super.del(source, '', previousCharacter)
+      }
+      const token = super.del(source, maskedSource, previousCharacter)
+      if (!token) {
+        bounds.recordUnmatchedDelimiter(maskedSource, '~')
+      }
+      return token
     }
     return super.del(source, maskedSource, previousCharacter)
   }
