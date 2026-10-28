@@ -3,7 +3,8 @@ import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-p
 import { parseWslUncPath } from '../../shared/wsl-paths'
 import { runWslProcess } from '../wsl/wsl-runner'
 import { assertWslUncPathRunning } from '../wsl/wsl-unc-access-gate'
-import { onRunningWslDistrosStopped } from '../wsl-running-distro-cache'
+import type { onRunningWslDistrosStopped } from '../wsl-running-distro-cache'
+import { onWslDistroGateNote } from '../wsl-background-distro-gate'
 import { isCodexAccountSessionBridgeStopping } from './codex-account-session-bridge'
 import { runCodexAppServerSession } from './codex-app-server-session'
 import {
@@ -69,7 +70,13 @@ const defaultWslBridgeDependencies: WslBridgeDependencies = {
   openStateDb: createCodexAccountStateDb,
   healPending: healPendingCodexAccountThreads,
   requireRunning: (distro) => assertWslUncPathRunning('', distro),
-  subscribeStops: onRunningWslDistrosStopped
+  // Gate notes carry running-list stops and explicit ones (a relay or watcher exit) no list saw yet.
+  subscribeStops: (listener) =>
+    onWslDistroGateNote((note) => {
+      if (note.kind === 'stopped') {
+        listener([note.distro], [])
+      }
+    })
 }
 
 const emptySummary: WslCodexSessionBridgeSummary = {

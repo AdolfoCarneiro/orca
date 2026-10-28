@@ -26,6 +26,7 @@ vi.mock('./codex-account-session-bridge', () => ({
 }))
 
 import { _internals, startWslCodexSessionBridgeInBackground } from './wsl-codex-session-bridge'
+import { noteWslDistroMayHaveStopped } from '../wsl-background-distro-gate'
 
 const MANAGED_HOME =
   '\\\\wsl.localhost\\Ubuntu\\home\\alice\\.local\\share\\orca\\codex-accounts\\a1\\home'
@@ -359,6 +360,34 @@ describe('startWslCodexSessionBridgeInBackground', () => {
 
     expect(runCodexAppServerSessionMock).toHaveBeenCalledTimes(1)
     await expect(secondBatch).rejects.toThrow('is not running')
+    expect(stopped).toBe(true)
+  })
+
+  it('ends the index heal on a may-have-stopped note no running list has seen yet (E9)', async () => {
+    runWslProcessMock
+      .mockResolvedValueOnce(bridgeResult([NEWER]))
+      .mockResolvedValue(markerClearResult)
+    let stopped: boolean | undefined
+    const healPending = vi.fn<typeof healPendingCodexAccountThreads>(
+      async (_home, _pending, options = {}) => {
+        // e.g. the hook relay or a watcher into the distro exited.
+        noteWslDistroMayHaveStopped('ubuntu')
+        stopped = options.shouldStop?.()
+        return {
+          outcome: 'stopped' as const,
+          healedThreads: 0,
+          missingThreads: 0,
+          failedThreads: 0
+        }
+      }
+    )
+
+    await startWslCodexSessionBridgeInBackground(TARGET, {
+      openStateDb: vi.fn(async () => true),
+      healPending,
+      requireRunning: async () => {}
+    })
+
     expect(stopped).toBe(true)
   })
 })
