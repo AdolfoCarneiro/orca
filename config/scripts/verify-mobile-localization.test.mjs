@@ -9,25 +9,25 @@ describe('verify-mobile-localization', () => {
   it('rejects translations that cannot follow a live language switch', () => {
     const source = [
       "const LABELS = [translate('a.b', 'Module scope')]",
-      'export function Row() {',
-      "  return <Text>{translate('a.c', 'Global in component')}</Text>",
-      '}',
-      'export const Memoized = memo(() => {',
+      'export function Row({ items }) {',
       "  const onPress = () => Alert.alert(translate('a.d', 'Handler runs at press time'))",
+      "  useEffect(() => setTitle(translate('a.h', 'Effect')), [])",
       "  const label = useMemo(() => translate('a.g', 'Memo'), [])",
-      '  return null',
-      '})',
+      "  return items.map((item) => <Text key={item}>{translate('a.c', 'Render callback')}</Text>)",
+      '}',
       'export function Subscribed() {',
       '  const t = useMobileTranslation()',
-      "  return <Text>{t('a.e', 'Hook translator')}</Text>",
+      "  return <Pressable onPress={() => translate('a.i', 'Pressed')}>{t('a.e', 'Hook')}</Pressable>",
       '}',
-      "export function rowLabel() { return translate('a.f', 'Helper') }"
+      "export function rowLabel() { return translate('a.f', 'Helper') }",
+      "export default function () { return <Text>{translate('a.j', 'Screen')}</Text> }"
     ].join('\n')
 
     expect(collectLiveSwitchViolations('mobile/src/row.tsx', source)).toEqual([
       'mobile/src/row.tsx:1 translates at module scope; translate when rendering instead',
-      'mobile/src/row.tsx:3 calls translate() in a component or hook; use `const t = useMobileTranslation()`',
-      'mobile/src/row.tsx:7 calls translate() in a component or hook; use `const t = useMobileTranslation()`'
+      'mobile/src/row.tsx:5 calls translate() in a component or hook; use `const t = useMobileTranslation()`',
+      'mobile/src/row.tsx:6 calls translate() in a component or hook; use `const t = useMobileTranslation()`',
+      'mobile/src/row.tsx:13 calls translate() in a component or hook; use `const t = useMobileTranslation()`'
     ])
   })
 

@@ -122,8 +122,11 @@ export function collectIncompletePluralFamilies(englishEntries, localeEntries, l
   }
   const incomplete = []
   for (const family of families) {
+    const supplied = [...localeEntries.keys()].some(
+      (key) => PLURAL_SUFFIX_RE.exec(key)?.[1] === family
+    )
     const translated = categories.filter((category) => localeEntries.has(`${family}_${category}`))
-    if (translated.length > 0 && translated.length < categories.length) {
+    if (supplied && translated.length < categories.length) {
       const missing = categories.filter((category) => !localeEntries.has(`${family}_${category}`))
       incomplete.push(`${family}: missing ${missing.map((category) => `_${category}`).join(', ')}`)
     }
@@ -134,6 +137,13 @@ export function collectIncompletePluralFamilies(englishEntries, localeEntries, l
 function functionName(node) {
   if (node.name && ts.isIdentifier(node.name)) {
     return node.name.text
+  }
+  const isDefaultExport =
+    ts.isExportAssignment(node.parent) ||
+    (node.modifiers ?? []).some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)
+  if (isDefaultExport) {
+    // `export default function () {}` in a .tsx file is a screen component.
+    return 'DefaultExport'
   }
   let current = node.parent
   // Unwrap memo(...)/forwardRef(...) so `const Row = memo(() => ...)` is still the component Row.
@@ -150,14 +160,51 @@ function isComponentOrHook(name, isTsx) {
   return name !== undefined && (/^use[A-Z0-9]/.test(name) || (isTsx && /^[A-Z]/.test(name)))
 }
 
-function isMemoCallback(fn) {
-  const call = fn.parent
-  return (
-    ts.isCallExpression(call) &&
-    call.arguments[0] === fn &&
-    ts.isIdentifier(call.expression) &&
-    call.expression.text === 'useMemo'
-  )
+const DEFERRED_CALLEES = new Set([
+  'useCallback',
+  'useEffect',
+  'useLayoutEffect',
+  'useInsertionEffect',
+  'setTimeout',
+  'requestAnimationFrame',
+  'queueMicrotask',
+  'then',
+  'catch',
+  'finally'
+])
+
+// Handlers, effects and async continuations run after render, reading the language current then.
+function runsAfterRender(fn) {
+  const parent = fn.parent
+  if (ts.isJsxExpression(parent) && ts.isJsxAttribute(parent.parent)) {
+    return /^on[A-Z]/.test(parent.parent.name.getText())
+  }
+  if (ts.isPropertyAssignment(parent) || ts.isVariableDeclaration(parent)) {
+    return ts.isIdentifier(parent.name) && /^(on|handle)[A-Z]/.test(parent.name.text)
+  }
+  if (ts.isCallExpression(parent) && parent.arguments.includes(fn)) {
+    const callee = ts.isPropertyAccessExpression(parent.expression)
+      ? parent.expression.name.text
+      : ts.isIdentifier(parent.expression)
+        ? parent.expression.text
+        : ''
+    return DEFERRED_CALLEES.has(callee)
+  }
+  return Boolean(fn.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword))
+}
+
+// Render-time code inside a component or hook: walk out through nested callbacks (map, memo) until
+// a handler/effect boundary or the component itself.
+function rendersInComponentOrHook(functions, isTsx) {
+  for (const fn of functions) {
+    if (isComponentOrHook(functionName(fn), isTsx)) {
+      return true
+    }
+    if (runsAfterRender(fn)) {
+      return false
+    }
+  }
+  return false
 }
 
 // Live switching needs subscribed renders: render bodies and memos of components and hooks take `t`
@@ -193,7 +240,7 @@ export function collectLiveSwitchViolations(filePath, sourceText) {
         } else if (
           callee === 'translate' &&
           !filePath.startsWith(I18N_RUNTIME_DIR) &&
-          (isComponentOrHook(functionName(functions[0]), isTsx) || isMemoCallback(functions[0]))
+          rendersInComponentOrHook(functions, isTsx)
         ) {
           violations.push(
             `${location} calls translate() in a component or hook; use \`const t = useMobileTranslation()\``
@@ -253,9 +300,19 @@ async function collectPolyfillProblems(root, supportedLocales) {
 
 // --fix drops keys no code names any more from every catalog, plural siblings included.
 async function pruneCatalogKeys(root, keys) {
-  // Locale-only plural forms (few, many) go with their family's English `_other`.
+  // Locale-only plural forms (few, many) go only when no English form of the family is still used.
+  const english = flattenCatalog(
+    JSON.parse(await fs.readFile(path.join(root, SURFACE.localesDir, 'en.json'), 'utf8'))
+  )
+  const familyOf = (key) => PLURAL_SUFFIX_RE.exec(key)?.[1]
   const families = new Set(
-    keys.filter((key) => key.endsWith('_other')).map((key) => key.slice(0, -'_other'.length))
+    keys
+      .map(familyOf)
+      .filter(
+        (family) =>
+          family &&
+          [...english.keys()].every((key) => familyOf(key) !== family || keys.includes(key))
+      )
   )
   const doomed = (key) =>
     keys.includes(key) || families.has(PLURAL_SUFFIX_RE.exec(key)?.[1] ?? '\0')
