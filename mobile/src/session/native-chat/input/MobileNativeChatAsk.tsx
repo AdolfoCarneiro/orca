@@ -55,6 +55,11 @@ export function MobileNativeChatAsk({
   const [submitting, setSubmitting] = useState(false)
   const submittingRef = useRef(false)
   const autoAdvance = useMobileNativeChatAskAutoAdvance()
+  // Open each step at its question, not at the previous step's scroll offset.
+  const showStep = (next: (current: number) => number): void => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false })
+    setIndex(next)
+  }
 
   // A question with no options is answered by typing alone.
   const typesOnly = (qi: number): boolean =>
@@ -123,7 +128,7 @@ export function MobileNativeChatAsk({
     if (isLast) {
       await submit(sel)
     } else {
-      setIndex((i) => Math.min(i + 1, total - 1))
+      showStep((i) => Math.min(i + 1, total - 1))
     }
   }
 
@@ -174,7 +179,7 @@ export function MobileNativeChatAsk({
               disabled={submitting}
               onPress={() => {
                 autoAdvance.cancel()
-                setIndex(i)
+                showStep(() => i)
               }}
             >
               <Text style={[styles.tabText, i === index && styles.tabTextActive]} numberOfLines={1}>
