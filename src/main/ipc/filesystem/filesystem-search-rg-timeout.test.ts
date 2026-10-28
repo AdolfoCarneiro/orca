@@ -158,8 +158,11 @@ describe('filesystem rg search timeout', () => {
       expect(child.kill).toHaveBeenCalled()
       expect((child.stdout as unknown as EventEmitter).listenerCount('data')).toBe(0)
       expect((child.stderr as unknown as EventEmitter).listenerCount('data')).toBe(0)
+      expect(child.listenerCount('error')).toBe(1)
+      expect(() => child.emit('error', new Error('late advisory kill error'))).not.toThrow()
       expect(child.listenerCount('error')).toBe(0)
       expect(child.listenerCount('close')).toBe(0)
+      expect(vi.getTimerCount()).toBe(0)
     } finally {
       vi.useRealTimers()
     }
