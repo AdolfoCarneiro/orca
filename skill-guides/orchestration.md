@@ -65,10 +65,14 @@ ORCA orchestration check --run <run_id> --json
 - A `worker_done` is that worker's result. If a worker stopped without one,
   Orca tells you and includes its last output; steer it with `send`, stop and
   retry it, or tell the user.
-- Repeat `check` until `count` is 0, then follow its `next`: end your turn while
-  workers still run, or report to the user when all have settled, per Task:
-  outcome, evidence, open blockers. With no `next`, follow each row's
-  `nextAction` in `worker-list --run <run_id> --include-remote --json`.
+- Repeat `check` until `count` is 0. In a Task DAG, start newly ready Tasks
+  (`references/coordinator-loop.md`).
+- Then follow `next`: end your turn while workers still run, or report to the
+  user when all have settled, per Task: outcome, evidence, open blockers. With
+  no `next`, follow each row's `nextAction` in
+  `worker-list --run <run_id> --include-remote --json`; if none needs action,
+  Orca may not wake you on a failure, so block (below) instead of ending your
+  turn.
 
 Finished terminal workers close about 2 minutes after reporting (`autoReleaseAt`
 in `worker-list`). Release a chat worker, or a finished one with no
@@ -76,8 +80,9 @@ in `worker-list`). Release a chat worker, or a finished one with no
 follow-up, run `ORCA orchestration worker-retain --dispatch <dispatch_id> --json`
 first (`references/coordinator-loop.md`).
 
-Block with `check --run <run_id> --wait --timeout-ms 540000` only outside an
-Orca terminal or chat, or if the user says not to end your turn.
+Block with `check --run <run_id> --wait --timeout-ms 540000`, repeating as
+needed, only then, outside an Orca terminal or chat, or if the user says not to
+end your turn.
 
 ## Task spec
 

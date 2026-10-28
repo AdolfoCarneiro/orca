@@ -26,8 +26,7 @@ Omit `--from` as a coordinator; a worker copies the `--from` in its preamble.
 Groups reach the live workers of your own Run: `@all`, `@idle`, and one per
 agent (`@claude`, `@codex`, `@opencode`, `@gemini`, `@droid`, `@grok`,
 `@cursor`). `@worktree:<id>` reaches every Orca terminal in that workspace,
-coordinators included. Use groups only for deliberate fan-out; `worker_done`
-and other lifecycle messages never go to a group. A worker raising a blocker
+coordinators included. Use groups only for deliberate fan-out. A worker raising a blocker
 sends to `run:<id>`.
 
 ## Questions and gates

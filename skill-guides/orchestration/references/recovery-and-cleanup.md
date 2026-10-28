@@ -27,8 +27,7 @@ terminal can hold a dead agent. But when the list row is `unverifiable` with
 `missing_status`, `host_unavailable`, or `capability_unsupported`, a
 `worker-show` verdict from the execution host is better evidence.
 
-`worker-read` continues with its cursor; on `source_changed`, start over
-without it, and check `contentComplete` before assuming older output exists.
+Continue `worker-read` with its cursor; on `source_changed`, drop the cursor.
 Never guess a session ID, transcript path, or remote terminal handle.
 
 ## Proof that a worker stopped

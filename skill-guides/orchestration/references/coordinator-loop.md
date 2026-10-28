@@ -13,7 +13,7 @@ ORCA orchestration task-list --ready --brief --json
 ORCA orchestration worker-start --task <task_id> --worktree current --agent codex --json
 ```
 
-`--brief` shortens long specs (`spec_truncated` marks them); omit it when you
+On every wake, start the Tasks `task-list --ready` shows. `--brief` shortens long specs (`spec_truncated` marks them); omit it when you
 need the full text. Pass `json_array` with the quoting rules of your shell.
 
 ## Several Runs

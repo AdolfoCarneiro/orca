@@ -10,8 +10,8 @@ ORCA orchestration dispatch --task <task_id> --to <handle> --inject --json
 ```
 
 Wait for `tui-idle` only when startup could drop injected input. If a
-`terminal send` submit is unconfirmed, use `--wait-submit <seconds>`; it never
-resends.
+`terminal send` submit is unconfirmed, rerun the same send with its receipt's
+`--retry-request <id>` and `--wait-submit <seconds>`; that never sends twice.
 
 `dispatch --inject` records the Task and Dispatch but does not supervise the
 process: worker commands report it `unsupervised`, `worker-stop` and
