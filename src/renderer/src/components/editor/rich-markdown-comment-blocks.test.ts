@@ -136,7 +136,7 @@ describe('Markdown review source block reuse', () => {
 
     expect(getRichMarkdownAnnotationHighlightRanges(editor, [note], 20)).toEqual(expected)
     expect(serialize).toHaveBeenCalledTimes(2 * editor.state.doc.childCount - 1)
-    expect(json).toHaveBeenCalledTimes(1)
+    expect(json).not.toHaveBeenCalled()
     serialize.mockClear()
     json.mockClear()
 
@@ -186,6 +186,8 @@ describe('Markdown review source block reuse', () => {
     selectLastParagraph(editor)
     expect(getRichMarkdownAnnotationTarget(editor, root)?.lineNumber).toBe(9)
     const serialize = vi.spyOn(editor.markdown!, 'serialize')
+    getRichMarkdownCommentBlocks(editor)
+    serialize.mockClear()
     let codeFrom: number | undefined
     editor.state.doc.forEach((node, offset) => {
       if (node.type.name === 'codeBlock') {
@@ -198,17 +200,17 @@ describe('Markdown review source block reuse', () => {
     editor.view.dispatch(editor.state.tr.insertText('new\n', codeFrom))
     selectLastParagraph(editor)
     expect(getRichMarkdownAnnotationTarget(editor, root)?.lineNumber).toBe(10)
-    expect(serialize).toHaveBeenCalledTimes(2 * editor.state.doc.childCount - 1)
+    expect(serialize).toHaveBeenCalledTimes(3)
     expect(
       getRichMarkdownCommentAtPos(editor, [comment(30)], 20, editor.state.selection.from)
     ).toEqual(comment(30))
-    expect(serialize).toHaveBeenCalledTimes(2 * editor.state.doc.childCount - 1)
+    expect(serialize).toHaveBeenCalledTimes(3)
     serialize.mockClear()
 
     expect(editor.commands.undo()).toBe(true)
     selectLastParagraph(editor)
     expect(getRichMarkdownAnnotationTarget(editor, root)?.lineNumber).toBe(9)
-    expect(serialize).toHaveBeenCalledTimes(2 * editor.state.doc.childCount - 1)
+    expect(serialize).toHaveBeenCalledTimes(3)
     serialize.mockClear()
     expect(getRichMarkdownAnnotationTarget(editor, root)?.lineNumber).toBe(9)
     expect(serialize).not.toHaveBeenCalled()
