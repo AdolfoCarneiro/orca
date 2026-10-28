@@ -46,11 +46,21 @@ export function registerWslMoveBrowserCookieStore(
   dependencies: WslMoveBrowserCookieCopyDependencies
 ): void {
   let unflushed: string[] = []
+  const copiesInFlight = new Map<string, Promise<string[]>>()
   registerWslMoveDesktopRewriteStore({
     id: WSL_MOVE_BROWSER_COOKIES_STORE_ID,
     side: 'main',
     run: async (context) => {
-      unflushed = await runWslMoveBrowserCookieCopy(dependencies, context)
+      const migrationId = context.cutover.migrationId
+      let pending = copiesInFlight.get(migrationId)
+      if (!pending) {
+        // A store timeout leaves the finite copy running; retries must join it.
+        pending = runWslMoveBrowserCookieCopy(dependencies, context).finally(() =>
+          copiesInFlight.delete(migrationId)
+        )
+        copiesInFlight.set(migrationId, pending)
+      }
+      unflushed = await pending
     },
     flush: async () => {
       await Promise.all(unflushed.map((partition) => dependencies.flushCookies(partition)))
