@@ -249,6 +249,18 @@ describe('startWslDriveUncConversion', () => {
     })
   })
 
+  it("lets another profile convert while this profile's conversion waits for its restart", async () => {
+    await startWslDriveUncConversion(deps(), REQUEST)
+    await startWslDriveUncConversion(
+      deps({ profileId: 'profile-2', newMigrationId: () => 'conv-2' }),
+      REQUEST
+    )
+    expect(listWslDriveUncConversions(root).map((record) => record.profileId)).toEqual([
+      'profile-1',
+      'profile-2'
+    ])
+  })
+
   it('fences the projects until the startup rewrite, and not after', async () => {
     await startWslDriveUncConversion(deps(), REQUEST)
     const [record] = listWslDriveUncConversions(root)

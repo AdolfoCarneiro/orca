@@ -14,7 +14,7 @@ import {
 } from '../orca-profiles/profile-project-domain-state'
 import { migrateProfileProjectTransferParticipant } from '../orca-profiles/profile-project-transfer-migration'
 import {
-  listWslDriveUncConversions,
+  listWslDriveUncConversionsForProfile,
   removeWslDriveUncConversion,
   writeWslDriveUncConversion,
   type WslDriveUncConversion
@@ -51,10 +51,10 @@ export function runWslDriveUncConversionsAtStartup(
   deps: WslDriveUncConversionStartupDeps
 ): WslDriveUncConversionOutcome[] {
   return (
-    listWslDriveUncConversions(deps.userDataPath)
-      // Another profile's conversion waits, journaled, until that profile starts.
-      .filter((record) => record.profileId === null || record.profileId === deps.profileId)
-      .map((record) => runOne(deps, record))
+    // Another profile's conversion waits, journaled, until that profile starts.
+    listWslDriveUncConversionsForProfile(deps.userDataPath, deps.profileId).map((record) =>
+      runOne(deps, record)
+    )
   )
 }
 

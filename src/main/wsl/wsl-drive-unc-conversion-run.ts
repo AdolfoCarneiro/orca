@@ -15,7 +15,7 @@ import type { WslMoveRefusal } from '../../shared/wsl-move/wsl-move-driver-types
 import type { WslMoveTerminalScope } from '../persistence/moving-wsl-projects/wsl-move-driver-ports'
 import { wslMoveRepoPaths } from '../persistence/moving-wsl-projects/wsl-move-scope'
 import {
-  listWslDriveUncConversions,
+  listWslDriveUncConversionsForProfile,
   writeWslDriveUncConversion
 } from './wsl-drive-unc-conversion-journal'
 import {
@@ -49,7 +49,7 @@ export async function startWslDriveUncConversion(
   deps: WslDriveUncConversionRunDeps,
   request: WslDriveUncConversionRequest
 ): Promise<WslDriveUncConversionResult> {
-  if (listWslDriveUncConversions(deps.userDataPath).length > 0) {
+  if (listWslDriveUncConversionsForProfile(deps.userDataPath, deps.profileId).length > 0) {
     return refused([{ kind: 'conversion-pending' }])
   }
   const state = await deps.readProfileState()

@@ -65,6 +65,16 @@ export function listWslDriveUncConversions(userDataPath: string): WslDriveUncCon
   return journals.list(userDataPath).map((record) => structuredClone(record))
 }
 
+/** A profile's conversions; one journaled before profiles were recorded counts for every profile. */
+export function listWslDriveUncConversionsForProfile(
+  userDataPath: string,
+  profileId: string
+): WslDriveUncConversion[] {
+  return listWslDriveUncConversions(userDataPath).filter(
+    (record) => record.profileId === null || record.profileId === profileId
+  )
+}
+
 export function writeWslDriveUncConversion(
   userDataPath: string,
   record: WslDriveUncConversion
