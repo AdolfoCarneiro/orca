@@ -4,7 +4,7 @@
  * distro's orcad behind a fake WSL transport; the oracle is the phone's wire.
  */
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { z } from 'zod'
@@ -200,16 +200,14 @@ test("a paired phone lists, opens, runs and launches on the desktop's WSL host, 
       socket.close()
     }
 
-    // The distro stops. A phone asking now is refused, and nothing starts. The fake drops the bridge
-    // as `closed`, not liveness's `distro-stopped`, so the phone gets the neutral copy (the
-    // confirmed-stop copy is unit-tested in wsl-host-phone-reach.test.ts).
+    // The distro stops. A phone asking now is told to start it on the computer, and nothing starts.
     writeFileSync(distrosFile, JSON.stringify([{ ...UBUNTU, state: 'stopped' }]))
     const connectsBeforeStop = fakeWslConnects(connectLogFile)
     const stopped = await phone.openSocket()
     try {
       const refused = await send(stopped, 'worktree.ps', { limit: 100 }, hostId)
       expect(refused.ok).toBe(false)
-      expect(JSON.stringify(refused.error)).toContain('isn’t available from your phone')
+      expect(JSON.stringify(refused.error)).toContain('isn’t running')
       await expect
         .poll(
           async () =>
@@ -220,11 +218,18 @@ test("a paired phone lists, opens, runs and launches on the desktop's WSL host, 
             ),
           { timeout: 30_000 }
         )
-        .toEqual({ relay: 'unavailable', stopped: false, unavailable: true })
+        .toEqual({ relay: 'unavailable', stopped: true, unavailable: false })
       // A second refused call: anything a phone's call could start would have started by its answer.
       const refusedAgain = await send(stopped, 'worktree.ps', { limit: 100 }, hostId)
-      expect(JSON.stringify(refusedAgain.error)).toContain('isn’t available from your phone')
+      expect(JSON.stringify(refusedAgain.error)).toContain('isn’t running')
       expect(fakeWslConnects(connectLogFile)).toEqual(connectsBeforeStop)
+      // The fake boots a distro by rewriting this file, so it still reading stopped means nothing booted it.
+      expect(
+        z
+          .array(z.looseObject({ name: z.string(), state: z.string() }))
+          .parse(JSON.parse(readFileSync(distrosFile, 'utf8')))
+          .find((entry) => entry.name === UBUNTU.name)?.state
+      ).toBe('stopped')
     } finally {
       stopped.close()
     }
