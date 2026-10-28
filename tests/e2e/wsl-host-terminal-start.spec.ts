@@ -74,9 +74,13 @@ test('a stopped WSL distro boots only for Start or New Terminal, never for a ter
           : null
       })
     await expect.poll(activeGroupId, { timeout: 60_000 }).not.toBeNull()
+    const groupId = await activeGroupId()
+    if (!groupId) {
+      throw new Error('The WSL workspace has no tab group to open a terminal in')
+    }
     await page.evaluate(
-      (groupId) => window.__store?.getState().openNewTerminalTabInActiveWorkspace(groupId),
-      await activeGroupId()
+      (id) => window.__store?.getState().openNewTerminalTabInActiveWorkspace(id),
+      groupId
     )
     await expect(page.locator('.xterm:visible')).toBeVisible({ timeout: 60_000 })
 
