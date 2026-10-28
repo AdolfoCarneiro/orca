@@ -1,4 +1,7 @@
 import { defineMethod } from '../../../core'
+import type { OrcaRuntimeService } from '../../../../orca-runtime'
+import type { OrchestrationCompatibilityEvidence } from '../../../../../../shared/orchestration-compatibility-evidence'
+import { evidenceCallerTerminal, liveTerminal } from './evidence-caller-terminal'
 import { OrchestrationError } from '../../../../orchestration/orchestration-error'
 import { CheckParams } from '../schemas'
 import { parseMessageTypes } from '../routing'
@@ -34,6 +37,10 @@ export const ORCHESTRATION_CHECK_METHODS = [
       const db = runtime.getOrchestrationDb()
       const handle = params.terminal ?? 'unknown'
       const typeFilter = parseMessageTypes(params.types)
+      const consumingCheck = params.peek !== true && params.all !== true && params.unread !== false
+      if ((consumingCheck || params.ack !== undefined) && !orchestrationCaller) {
+        assertCallerOwnsMailbox(runtime, handle, orchestrationCompatibilityEvidence)
+      }
 
       const caller = orchestrationCallerIdentity(runtime, {
         handle,
@@ -94,7 +101,6 @@ export const ORCHESTRATION_CHECK_METHODS = [
           recordMutationReceipt
         })
       }
-      const consumingCheck = params.peek !== true && params.all !== true && params.unread !== false
       // A superseded Attempt must receive a stop signal, not an empty checkpoint; this outranks pane rebind advice.
       const settledDispatch = consumingCheck ? db.getLatestDispatchForTerminal(handle) : undefined
       if (settledDispatch && isSupersededDispatch(settledDispatch)) {
@@ -112,3 +118,23 @@ export const ORCHESTRATION_CHECK_METHODS = [
     }
   })
 ]
+
+/** Guards against accidental consumption, not a proof of ownership: a request that opens, consumes or acks mail
+ * is refused only when the caller's env names a live terminal other than the mailbox's live terminal.
+ * Absent, stale, scrubbed or foreign evidence and an exited mailbox keep the old behaviour.
+ * Accepted limit: tmux inherits its starting pane's env, so a worker in another terminal's tmux server must peek. */
+function assertCallerOwnsMailbox(
+  runtime: OrcaRuntimeService,
+  handle: string,
+  evidence: OrchestrationCompatibilityEvidence | undefined
+): void {
+  const caller = evidenceCallerTerminal(runtime, evidence)
+  const mailbox = liveTerminal(runtime, handle)?.processIncarnation
+  if (caller?.processIncarnation && mailbox && caller.processIncarnation !== mailbox) {
+    throw new OrchestrationError(
+      'consumer_fenced',
+      `This terminal is ${caller.handle} and cannot consume or acknowledge the mail of ${handle}. Read it with --peek or --all, which leave it unread. No effects were applied.`,
+      { effectsApplied: false }
+    )
+  }
+}
