@@ -184,7 +184,18 @@ beforeEach(() => {
         }
       }
     },
-    { get: (target, key) => (key in target ? Reflect.get(target, key) : () => () => {}) }
+    {
+      get: (target, key) => {
+        if (
+          key === 'set' ||
+          key === 'recordFeatureInteraction' ||
+          key === 'onJumpToWorktreeIndex'
+        ) {
+          return target[key]
+        }
+        return () => () => {}
+      }
+    }
   )
   Object.defineProperty(window, 'api', {
     configurable: true,
