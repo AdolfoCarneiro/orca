@@ -162,15 +162,19 @@ async function enrichRepoGitRemoteIdentity(store: RepoIdentityStore, repo: Repo)
     : NO_IDENTITY_RETRY_TTL_MS
   const controller = new AbortController()
   const promise = (async () => {
+    // A local project's runtime may run its Git in a distro, whatever its path.
+    const git = getProjectRuntimeReadGitOptions(store, repo)
     // E9: git on a stopped distro's repo boots it; no deadline, so the next sweep retries once it runs.
     // Checked synchronously first so host repos keep probing without an extra await.
-    if (wslDistroForPath(repo.path) && (await blockedWslDistroForPath(repo.path))) {
+    if (
+      wslDistroForPath(repo.path, git.wslDistro) &&
+      (await blockedWslDistroForPath(repo.path, git.wslDistro))
+    ) {
       return false
     }
     const result = await probeGitRemoteIdentity(repo.path, hostId, {
       signal: controller.signal,
-      // A local project's runtime may run its Git in a distro, whatever its path.
-      ...getProjectRuntimeReadGitOptions(store, repo)
+      ...git
     })
     // Aborted probes resolve as unavailable; prevent retired probes from re-seeding deadlines.
     if (controller.signal.aborted) {
