@@ -1,6 +1,7 @@
 /** Poll inside WSL so distro shutdown kills the watcher instead of Windows UNC polling repeatedly waking it. */
 import type { PipedChildProcess } from '@orca/process-host/process-spec'
 import { StringDecoder } from 'node:string_decoder'
+import { createWslSnapshotStream, type WslSnapshot } from './wsl-watcher-snapshot-stream'
 import type { WebContents } from 'electron'
 import type { Event as WatcherEvent } from '@parcel/watcher'
 import { queueWatcherEvents } from './filesystem-watcher-event-batch'
@@ -33,20 +34,6 @@ export type WslWatcherDeps = {
 const POLL_INTERVAL_SECONDS = 2
 const STARTUP_TIMEOUT_MS = 10_000
 const [SNAPSHOT_START, SNAPSHOT_END] = ['\x1e', '\x1f']
-const MAX_STREAM_BUFFER_CHARS = 10 * 1024 * 1024
-
-type WslSnapshotEntry = {
-  path: string
-  type: string
-  mtime: string
-}
-
-type WslSnapshot = Map<string, WslSnapshotEntry>
-
-function toWslUncPath(linuxPath: string, distro: string): string {
-  return `\\\\wsl.localhost\\${distro}${linuxPath.replace(/\//g, '\\')}`
-}
-
 function quoteSafeFindName(name: string): string {
   if (!/^[A-Za-z0-9_.-]+$/.test(name)) {
     throw new Error(`Unsupported WSL watcher ignore name: ${name}`)
@@ -76,31 +63,6 @@ function buildSnapshotScript(ignoreDirs: readonly string[]): string {
     `  sleep ${POLL_INTERVAL_SECONDS} || exit 0`,
     'done'
   ].join('\n')
-}
-
-function parseSnapshotFrame(frame: string, distro: string): WslSnapshot {
-  const snapshot: WslSnapshot = new Map()
-  for (const rawEntry of frame.split('\0')) {
-    if (!rawEntry) {
-      continue
-    }
-    const firstTab = rawEntry.indexOf('\t')
-    const secondTab = firstTab === -1 ? -1 : rawEntry.indexOf('\t', firstTab + 1)
-    if (firstTab <= 0 || secondTab <= firstTab + 1) {
-      continue
-    }
-    const linuxPath = rawEntry.slice(secondTab + 1)
-    if (!linuxPath.startsWith('/')) {
-      continue
-    }
-    const entry: WslSnapshotEntry = {
-      type: rawEntry.slice(0, firstTab),
-      mtime: rawEntry.slice(firstTab + 1, secondTab),
-      path: toWslUncPath(linuxPath, distro)
-    }
-    snapshot.set(entry.path, entry)
-  }
-  return snapshot
 }
 
 function diffSnapshots(prev: WslSnapshot, next: WslSnapshot): WatcherEvent[] {
@@ -166,7 +128,6 @@ export async function createWslWatcher(
   let disposed = false
   let prevSnapshot: WslSnapshot | null = null
   let stopped = false
-  let streamBuffer = ''
   const stdoutDecoder = new StringDecoder('utf8')
   const stderrDecoder = new StringDecoder('utf8')
   let stderrTail = ''
@@ -181,6 +142,7 @@ export async function createWslWatcher(
       return
     }
     stopped = true
+    snapshotStream.dispose()
     // First: the overflow refresh below reads the root, which would boot a just-stopped distro.
     deps.onUnexpectedStop?.(root, distro)
     markOverflowWithoutUncStat(root)
@@ -188,11 +150,10 @@ export async function createWslWatcher(
     deps.watchedRoots.delete(rootKey)
   }
 
-  function ingestFrame(frame: string): void {
+  function ingestSnapshot(nextSnapshot: WslSnapshot): void {
     if (root.batch.cancelled) {
       return
     }
-    const nextSnapshot = parseSnapshotFrame(frame, distro)
     if (!prevSnapshot) {
       prevSnapshot = nextSnapshot
       startup.settle()
@@ -207,30 +168,16 @@ export async function createWslWatcher(
     }
   }
 
-  function drainFrames(): void {
-    while (true) {
-      const start = streamBuffer.indexOf(SNAPSHOT_START)
-      if (start === -1) {
-        streamBuffer = streamBuffer.slice(-1)
-        return
-      }
-      if (start > 0) {
-        streamBuffer = streamBuffer.slice(start)
-      }
-      const end = streamBuffer.indexOf(SNAPSHOT_END, 1)
-      if (end === -1) {
-        if (streamBuffer.length > MAX_STREAM_BUFFER_CHARS) {
-          streamBuffer = ''
-          markOverflowWithoutUncStat(root)
-          deps.scheduleBatchFlush(root)
-        }
-        return
-      }
-      const frame = streamBuffer.slice(1, end)
-      streamBuffer = streamBuffer.slice(end + 1)
-      ingestFrame(frame)
+  const snapshotStream = createWslSnapshotStream(
+    distro,
+    SNAPSHOT_START,
+    SNAPSHOT_END,
+    ingestSnapshot,
+    () => {
+      markOverflowWithoutUncStat(root)
+      deps.scheduleBatchFlush(root)
     }
-  }
+  )
 
   let child: PipedChildProcess
   const releaseChildReservation = watcherChildRegistry.reserveWatcherChild()
@@ -248,12 +195,14 @@ export async function createWslWatcher(
   const processExit = createWslWatcherProcessExit(child, worktreePath, releaseChildReservation)
 
   const onAbort = (): void => {
+    snapshotStream.dispose()
     startup.settle(new DOMException('WSL watcher subscription aborted', 'AbortError'))
     processExit.requestStopBestEffort()
   }
   signal?.addEventListener('abort', onAbort, { once: true })
 
   const startupTimer = setTimeout(() => {
+    snapshotStream.dispose()
     startup.settle(new Error(`Timed out starting WSL watcher for ${worktreePath}`))
     processExit.requestStopBestEffort()
   }, STARTUP_TIMEOUT_MS)
@@ -269,8 +218,7 @@ export async function createWslWatcher(
     if (disposed) {
       return
     }
-    streamBuffer += stdoutDecoder.write(chunk)
-    drainFrames()
+    snapshotStream.write(stdoutDecoder.write(chunk))
   })
 
   child.stderr.on('data', (chunk: Buffer) => {
@@ -306,6 +254,7 @@ export async function createWslWatcher(
   })
 
   child.once('close', (code, signal) => {
+    snapshotStream.dispose()
     processExit.markPhysicalExit()
     if (!startup.settled) {
       const suffix = stderrTail.trim() ? `: ${stderrTail.trim()}` : ''
@@ -323,6 +272,7 @@ export async function createWslWatcher(
     child.stdin.end(buildSnapshotScript(deps.ignoreDirs))
     await startup.ready
   } catch (error) {
+    snapshotStream.dispose()
     // Destructive cancellation must retain ownership until WSL confirms physical exit.
     startup.settle(error instanceof Error ? error : new Error(String(error)))
     await startup.ready.catch(() => undefined)
@@ -336,6 +286,7 @@ export async function createWslWatcher(
   root.subscription = {
     unsubscribe: async () => {
       disposed = true
+      snapshotStream.dispose()
       await processExit.stopAndWait()
     }
   }
