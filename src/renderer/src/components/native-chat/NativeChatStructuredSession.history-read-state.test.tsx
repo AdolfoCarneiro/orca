@@ -9,7 +9,7 @@ import { makeTabGroup } from '@/store/slices/store-test-helpers'
 import * as cliFork from '../tab-bar/native-chat-cli-fork-run'
 // @vitest-environment happy-dom
 
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import type { AgentJournalRenderItem } from '../../../../shared/agent-session-journal-types'
@@ -299,9 +299,7 @@ it('keeps the recorded OMP reply readable with its CLI switch unavailable', () =
     />,
     { wrapper: TooltipProvider }
   )
-  const button = screen.getByRole('button', { name: 'Switch to CLI' })
-  expect(button.hasAttribute('disabled')).toBe(true)
-  fireEvent.click(button)
+  expect(screen.queryByRole('button', { name: 'Switch to CLI' })).toBeNull()
   expect(invoke).not.toHaveBeenCalled()
   expect(mocks.messageListProps?.session).toMatchObject({ sessionId, messages: mocks.messages })
 })
@@ -401,11 +399,14 @@ it('gates eligible native header hover and menu switches through capability hydr
     throw new Error('Expected status fixture')
   }
   await act(async () => {
-    answer({ ...response.result, capabilities: ['agent-session.structured.switch.v1:codex'] })
+    answer({
+      ...response.result,
+      capabilities: ['agent-session.structured.switch.creation-settlement-v1:codex']
+    })
     await status
   })
   expect(readLocalRuntimeCapabilitiesOrUnknown()).toContain(
-    'agent-session.structured.switch.v1:codex'
+    'agent-session.structured.switch.creation-settlement-v1:codex'
   )
   const buttons = screen.getAllByRole('button', { name: 'Switch to CLI', hidden: true })
   expect(buttons).toHaveLength(2)
@@ -432,14 +433,31 @@ it('gates eligible native header hover and menu switches through capability hydr
   await act(async () => {
     await refreshLocalRuntimeCapabilities()
   })
-  expect(screen.queryAllByRole('button', { name: 'Switch to CLI', hidden: true })).toHaveLength(0)
-  expect(screen.queryByRole('menuitem', { name: 'Switch to CLI' })).toBeNull()
-  expect(screen.getAllByRole('button', { name: legacyName, hidden: true })).toHaveLength(1)
-  expect(screen.getByRole('menuitem', { name: 'Resume in New Terminal' })).toBeTruthy()
+  const oldPeerButtons = screen.getAllByRole('button', { name: 'Switch to CLI', hidden: true })
+  expect(oldPeerButtons).toHaveLength(2)
+  for (const button of oldPeerButtons) {
+    expect(button.hasAttribute('disabled')).toBe(false)
+  }
+  expect(
+    screen.getByRole('menuitem', { name: 'Switch to CLI' }).getAttribute('data-disabled')
+  ).toBeNull()
+  expect(screen.queryByRole('button', { name: legacyName, hidden: true })).toBeNull()
+  expect(screen.queryByRole('menuitem', { name: 'Resume in New Terminal' })).toBeNull()
   expect(screen.getByRole('separator')).toBeTruthy()
   expect(screen.getByTestId('message-list')).toBe(transcript)
   expect(readLocalRuntimeCapabilitiesOrUnknown()).toEqual([])
   expect(getStatus).toHaveBeenCalledTimes(2)
   expect(forkToCli).not.toHaveBeenCalled()
   expect(switchToCli).not.toHaveBeenCalled()
+  act(() => {
+    useAppStore.setState({
+      settings: createGlobalSettingsFixture({ experimentalNativeChat: false })
+    })
+  })
+  expectHidden()
 })
+
+vi.mock('@/components/confirmation-dialog-context', async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  useConfirmationDialog: () => vi.fn(async () => false)
+}))

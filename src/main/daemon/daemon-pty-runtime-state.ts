@@ -1,3 +1,9 @@
+import type {
+  PendingDaemonSpawnOperation,
+  DaemonPtyAdapterOptions,
+  DaemonIdentityChangeEvent,
+  DaemonIdleRetirementResult
+} from './daemon-pty-operation-state'
 import { DaemonClient } from './client'
 import { DaemonPtyInputClosedIncarnations } from './daemon-pty-input-closed-incarnations'
 import { createDaemonAuditEligibilityTracker } from './daemon-audit-eligibility-event'
@@ -19,74 +25,24 @@ import {
   GIT_CREDENTIAL_GUARD_HOST_PROTOCOL_VERSION,
   PROTOCOL_VERSION,
   supportsMode2031UnsubscribeFact,
-  supportsPtyStartupIngress,
-  type TakePendingOutputResult
+  supportsPtyStartupIngress
 } from './types'
 import { ColdRestorePayloadCache } from './cold-restore-payload-cache'
-import {
-  HistoryManager,
-  type HistoryCheckpointResult,
-  type HistoryRecoveryFreeze
-} from './history-manager'
+import { HistoryManager } from './history-manager'
 import { HistoryReader } from './history-reader'
 import type { PtyBackgroundStreamEvent } from '../providers/pty-provider-contract'
 import type { DaemonPtyRouterDataEvent, DaemonPtyRouterExitEvent } from './daemon-pty-router-events'
 import type { ReadRunningWslDistros } from './daemon-wsl-bridge-exit'
-
-export type PendingDaemonSpawnOperation = {
-  exitsBySessionId: Map<string, { code: number; incarnationId?: string }[]>
-  ignoredExitIncarnationIds: Set<string>
-  ignoreNextExit: boolean
-}
-
-export type HistoryRecoveryContext = {
-  freeze: HistoryRecoveryFreeze | null
-  unreadableSessionId: string | null
-  identityChanged: boolean
-}
-
-export type SnapshotCheckpointResult = {
-  checkpoint: HistoryCheckpointResult
-  snapshot: NonNullable<TakePendingOutputResult['snapshot']> | null
-}
-
-export type DaemonPtyShutdownOptions = {
-  immediate?: boolean
-  keepHistory?: boolean
-  deadlineMs?: number
-  expectedIncarnationId?: string
-}
-
-export type DaemonPtyAdapterOptions = {
-  socketPath: string
-  tokenPath: string
-  pidPath?: string
-  profileScope?: string
-  protocolVersion?: number
-  historyPath?: string
-  runtimeDir?: string
-  packagedAppVersion?: string | null
-  respawn?: (reason: DaemonRespawnReason) => Promise<void | (() => void)>
-  /** Test seam; production reads the shared, coalesced `wsl --list --running`. */
-  readRunningWslDistros?: ReadRunningWslDistros
-}
-
-export type DaemonRespawnReason =
-  | 'daemon_died'
-  | 'unhealthy_resolver'
-  | 'stale_bundle'
-  | 'severed_tcc_attribution'
-
-export type DaemonIdentityChangeEvent = {
-  previous: DaemonEndpointIdentity
-  current: DaemonEndpointIdentity
-}
-
-export type DaemonIdleRetirementResult =
-  | { state: 'retiring' }
-  | { state: 'busy'; liveSessions: number | null; admissionReopened?: true }
-  | { state: 'unsupported' }
-  | { state: 'unverifiable' }
+export {
+  type PendingDaemonSpawnOperation,
+  type HistoryRecoveryContext,
+  type SnapshotCheckpointResult,
+  type DaemonPtyShutdownOptions,
+  type DaemonPtyAdapterOptions,
+  type DaemonRespawnReason,
+  type DaemonIdentityChangeEvent,
+  type DaemonIdleRetirementResult
+} from './daemon-pty-operation-state'
 
 export abstract class DaemonPtyRuntimeState {
   protected readonly readRunningWslDistros: ReadRunningWslDistros | undefined
@@ -121,6 +77,7 @@ export abstract class DaemonPtyRuntimeState {
   protected exitListeners: ((payload: DaemonPtyRouterExitEvent) => void)[] = []
   protected backgroundStreamListeners: ((payload: PtyBackgroundStreamEvent) => void)[] = []
   protected writeUnavailableListeners: ((payload: { id: string }) => void)[] = []
+  protected readonly disconnectedListenerCleanups: (() => void)[] = []
   protected removeEventListener: (() => void) | null = null
   protected initialCwds = new Map<string, string>()
   protected wslDistrosBySessionId = new Map<string, string>()
@@ -254,19 +211,21 @@ export abstract class DaemonPtyRuntimeState {
     this.supportsAuthoritativeBufferSnapshots =
       this.protocolVersion >= SNAPSHOT_SERIALIZER_FIDELITY_DAEMON_PROTOCOL_VERSION
     this.supportsStartupIngress = supportsPtyStartupIngress(this.protocolVersion)
-    this.client.onDisconnected(() => {
-      if (!this.respawnAdoptionClosed) {
-        this.writeRecoveryAttempted = false
-        for (const id of this.activeSessionIds) {
-          this.sessionsAwaitingDaemonRecovery.add(id)
+    this.disconnectedListenerCleanups.push(
+      this.client.onDisconnected(() => {
+        if (!this.respawnAdoptionClosed) {
+          this.writeRecoveryAttempted = false
+          for (const id of this.activeSessionIds) {
+            this.sessionsAwaitingDaemonRecovery.add(id)
+          }
         }
-      }
-      for (const id of this.pausedProducerSessionIds) {
-        this.producerResumesOwedOnReconnect.add(id)
-      }
-      this.pausedProducerSessionIds.clear()
-      this.observeAuditFailure('transport_closed')
-    })
+        for (const id of this.pausedProducerSessionIds) {
+          this.producerResumesOwedOnReconnect.add(id)
+        }
+        this.pausedProducerSessionIds.clear()
+        this.observeAuditFailure('transport_closed')
+      })
+    )
   }
 
   supportsGitCredentialGuardHost(): boolean {

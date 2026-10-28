@@ -1,3 +1,4 @@
+import { registerDaemonSwitchCompatibilityTests } from './daemon-pty-adapter-switch-compatibility.test-fixture'
 import './mock-descendant-sweep'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { rmSync } from 'node:fs'
@@ -14,7 +15,6 @@ import type { DaemonServer } from './daemon-server'
 import { createMockSubprocess, startDaemonAdapterHarness } from './daemon-pty-adapter-test-harness'
 import type * as DaemonHealthModule from './daemon-health'
 import type * as DaemonTccAttributionModule from './daemon-tcc-attribution'
-
 const { getMacDaemonSystemResolverHealthMock, getMacDaemonTccAttributionHealthMock } = vi.hoisted(
   () => ({
     getMacDaemonSystemResolverHealthMock: vi.fn(
@@ -475,11 +475,9 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
       request: ReturnType<typeof vi.fn>
     ): DaemonPtyAdapter {
       const probeAdapter = new DaemonPtyAdapter({ socketPath, tokenPath, protocolVersion })
-      ;(
-        probeAdapter as unknown as {
-          client: { request: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }
-        }
-      ).client = { request, disconnect: vi.fn() }
+      // SAFETY: stub external RPC answers while keeping the actual client's transport lifetime.
+      const client = (probeAdapter as unknown as { client: DaemonClient }).client
+      vi.spyOn(client, 'request').mockImplementation(request)
       return probeAdapter
     }
 
@@ -681,10 +679,6 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
   })
 
   describe('inspectProcess on pre-inspection daemon protocols', () => {
-    type ClientInternals = {
-      client: { request: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }
-    }
-
     function createInspectionAdapter(
       protocolVersion: number,
       request: ReturnType<typeof vi.fn>
@@ -694,10 +688,9 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
         tokenPath,
         protocolVersion
       })
-      ;(inspectionAdapter as unknown as ClientInternals).client = {
-        request,
-        disconnect: vi.fn()
-      }
+      // SAFETY: stub external RPC answers while keeping the actual client's transport lifetime.
+      const client = (inspectionAdapter as unknown as { client: DaemonClient }).client
+      vi.spyOn(client, 'request').mockImplementation(request)
       return inspectionAdapter
     }
 
@@ -803,5 +796,31 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
       })
       current.dispose()
     })
+  })
+  registerDaemonSwitchCompatibilityTests({
+    get server() {
+      return server
+    },
+    set server(value) {
+      server = value
+    },
+    get adapter() {
+      return adapter
+    },
+    set adapter(value) {
+      adapter = value
+    },
+    get socketPath() {
+      return socketPath
+    },
+    set socketPath(value) {
+      socketPath = value
+    },
+    get tokenPath() {
+      return tokenPath
+    },
+    set tokenPath(value) {
+      tokenPath = value
+    }
   })
 })

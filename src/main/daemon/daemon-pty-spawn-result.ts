@@ -1,5 +1,5 @@
+import { daemonPtyReattachResult } from './daemon-pty-reattach-result'
 import { isAgentSessionClaimedSpawnResult } from '../../shared/agent-session-host-authority'
-import { parseTerminalKittyKeyboardFlags } from '../../shared/terminal-kitty-keyboard-flags'
 import { daemonSpawnResultIdentity } from './daemon-spawn-result-identity'
 import { retireUnexpectedAttachOnlySpawn } from './daemon-attach-only-retirement'
 import { DaemonPtySpawnRequest, type DaemonPtySpawnContext } from './daemon-pty-spawn-request'
@@ -8,7 +8,6 @@ import { takeHistoryRecoveryFreeze } from './daemon-history-recovery-freeze'
 import { getRecoveredHistorySeedSegments } from './terminal-history-seed-segments'
 import { SessionNotFoundError, type CreateOrAttachResult } from './types'
 import type { PtySpawnResult } from '../providers/pty-provider-contract'
-
 export abstract class DaemonPtySpawnResult extends DaemonPtySpawnRequest {
   protected async finishSpawn(
     context: DaemonPtySpawnContext,
@@ -31,14 +30,28 @@ export abstract class DaemonPtySpawnResult extends DaemonPtySpawnRequest {
       return created
     }
     let result = initialResult
-    const finalizeSpawnResult = (spawnResult: PtySpawnResult): PtySpawnResult =>
-      this.resultForExitBeforeSpawnReply(sessionId, result, operation) ??
-      (result.isNew && !historyRecovery.identityChanged
-        ? {
-            ...spawnResult,
-            startupCwdSource: effectiveCwd === opts.cwd ? 'request' : 'recovered-history'
+    const finalizeSpawnResult = (spawnResult: PtySpawnResult): PtySpawnResult => {
+      const exited = this.resultForExitBeforeSpawnReply(sessionId, result, operation)
+      if (!result.switchOutcomeUnknown && result.incarnationId) {
+        operation.switchSettlement?.consume(exited ? 'exited' : 'adopted', result.incarnationId)
+      }
+      if (!result.switchOutcomeUnknown && result.incarnationId) {
+        for (const pending of this.pendingSpawnOperationsBySessionId.get(sessionId) ?? []) {
+          if (pending !== operation) {
+            pending.switchSettlement?.adopt?.(result.incarnationId)
           }
-        : spawnResult)
+        }
+      }
+      return (
+        exited ??
+        (result.isNew && !historyRecovery.identityChanged
+          ? {
+              ...spawnResult,
+              startupCwdSource: effectiveCwd === opts.cwd ? 'request' : 'recovered-history'
+            }
+          : spawnResult)
+      )
+    }
     let historySeedSegments = restoreInfo ? getRecoveredHistorySeedSegments(restoreInfo) : null
     const adoptSpawnResultSession = async (spawnResult: CreateOrAttachResult): Promise<void> => {
       const requestedSessionId = sessionId
@@ -77,6 +90,7 @@ export abstract class DaemonPtySpawnResult extends DaemonPtySpawnRequest {
     this.clearSessionAwaitingDaemonRecovery(sessionId)
     const exitedResult = this.resultForExitBeforeSpawnReply(sessionId, result, operation)
     if (exitedResult) {
+      operation.switchSettlement?.consume('exited')
       return exitedResult
     }
     if (result.incarnationId) {
@@ -150,6 +164,7 @@ export abstract class DaemonPtySpawnResult extends DaemonPtySpawnRequest {
         await adoptSpawnResultSession(result)
         const exitedRetryResult = this.resultForExitBeforeSpawnReply(sessionId, result, operation)
         if (exitedRetryResult) {
+          operation.switchSettlement?.consume('exited')
           return exitedRetryResult
         }
         if (result.incarnationId) {
@@ -280,49 +295,15 @@ export abstract class DaemonPtySpawnResult extends DaemonPtySpawnRequest {
     }
 
     const reattachSnapshot = await this.overlayDurableRestoreSnapshot(sessionId, result.snapshot)
-    const reattachProviderSequence =
-      typeof reattachSnapshot.outputSequence === 'number'
-        ? { value: reattachSnapshot.outputSequence, generation: 'continued' as const }
-        : providerSequence
-    const isAltScreen = reattachSnapshot.modes.alternateScreen
-    const snapshotPrefix = reattachSnapshot.scrollbackAnsi + reattachSnapshot.rehydrateSequences
-    const snapshotFrame = reattachSnapshot.snapshotAnsi
-    const snapshotPayload = snapshotPrefix + snapshotFrame
-    // Reassert kitty flags after payload screen switches; carry known zero separately from unknown.
-    const kittyKeyboardFlags = parseTerminalKittyKeyboardFlags(
-      reattachSnapshot.modes.kittyKeyboardFlags
+    return finalizeSpawnResult(
+      daemonPtyReattachResult(
+        sessionId,
+        result,
+        pid,
+        providerWslDistro,
+        reattachSnapshot,
+        providerSequence
+      )
     )
-    return finalizeSpawnResult({
-      id: sessionId,
-      ...daemonSpawnResultIdentity(result),
-      pid,
-      ...(providerWslDistro !== undefined ? { wslDistro: providerWslDistro } : {}),
-      snapshot: snapshotPayload,
-      snapshotCols: reattachSnapshot.cols,
-      snapshotRows: reattachSnapshot.rows,
-      // Only alt frames need a separate restore; normal history can replay at its captured grid.
-      ...(isAltScreen && snapshotFrame && reattachSnapshot.frameRestoreAnsi
-        ? {
-            snapshotPrefixAnsi: snapshotPrefix,
-            snapshotFrameAnsi: snapshotFrame,
-            snapshotFrameRestoreAnsi: reattachSnapshot.frameRestoreAnsi
-          }
-        : {}),
-      ...(reattachProviderSequence ? { providerSequence: reattachProviderSequence } : {}),
-      ...(kittyKeyboardFlags !== undefined
-        ? { snapshotKittyKeyboardFlags: kittyKeyboardFlags }
-        : {}),
-      ...(reattachSnapshot.terminalOwner
-        ? { snapshotTerminalOwner: reattachSnapshot.terminalOwner }
-        : {}),
-      isReattach: true,
-      isAlternateScreen: isAltScreen,
-      // Snapshot ANSI lacks title frames; carry the title separately across relaunch.
-      ...(reattachSnapshot.lastTitle ? { lastTitle: reattachSnapshot.lastTitle } : {}),
-      // Replay the mid-escape tail after renderer reset so split escapes do not render literally.
-      ...(reattachSnapshot.pendingEscapeTailAnsi
-        ? { pendingEscapeTailAnsi: reattachSnapshot.pendingEscapeTailAnsi }
-        : {})
-    })
   }
 }

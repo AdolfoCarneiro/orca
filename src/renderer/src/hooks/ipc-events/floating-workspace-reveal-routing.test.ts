@@ -1,3 +1,4 @@
+import { captureConversationSwitchViewerSelection } from '@/lib/conversation-switch-selection'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FLOATING_TERMINAL_WORKTREE_ID, getDefaultSettings } from '../../../../shared/constants'
 import { TOGGLE_FLOATING_TERMINAL_EVENT } from '@/lib/floating-terminal'
@@ -282,3 +283,34 @@ describe('taking the user to a folder workspace terminal', () => {
     expect(panelToggles(dispatchEvent)).toBe(0)
   })
 })
+
+it.each(['unchanged', 'navigate'] as const)(
+  'checks original viewer at the editor focus event writer: %s',
+  async (action) => {
+    const { emit } = setup()
+    const state = testStore().getState()
+    const source = state.createUnifiedTab(MAIN, 'agent-session', {
+      entityId: 'source',
+      agentSessionAgent: 'codex'
+    })
+    const destination = state.createUnifiedTab(MAIN, 'agent-session', {
+      entityId: 'canonical-C',
+      agentSessionAgent: 'codex',
+      activate: false
+    })
+    const other = state.createUnifiedTab(MAIN, 'agent-session', {
+      entityId: 'other',
+      activate: false
+    })
+    state.activateTab(source.id)
+    const viewerSelection = captureConversationSwitchViewerSelection()
+    if (action === 'navigate') {
+      state.activateTab(other.id)
+    }
+    emit('onFocusEditorTab', { tabId: destination.id, worktreeId: MAIN, viewerSelection })
+    expect(testStore().getState().getActiveTab(MAIN)?.id).toBe(
+      action === 'unchanged' ? destination.id : other.id
+    )
+    expect(testStore().getState().getTab(destination.id)?.entityId).toBe('canonical-C')
+  }
+)

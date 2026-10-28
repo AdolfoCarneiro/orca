@@ -33,7 +33,9 @@ export class DaemonPtyAdapter extends DaemonPtyDaemonRecovery implements IPtyPro
   constructor(opts: DaemonPtyAdapterOptions) {
     super(opts)
     // Registered after the base listener, which marks the sessions awaiting recovery first.
-    this.client.onDisconnected(() => this.recoverAfterEndpointLoss())
+    this.disconnectedListenerCleanups.push(
+      this.client.onDisconnected(() => this.recoverAfterEndpointLoss())
+    )
   }
 
   supportsFencedTermination(_id: string): boolean {
@@ -232,6 +234,7 @@ export class DaemonPtyAdapter extends DaemonPtyDaemonRecovery implements IPtyPro
           return
         }
         this.finishExit(event.sessionId, event.payload)
+        void this.reconcileSwitchSpawns().catch(() => {})
       }
     })
   }

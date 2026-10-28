@@ -154,11 +154,12 @@ export function openStructuredAgentSessionProvisionalTab(args: {
   /** The tab the chat opens right after, in that tab's group. */
   afterTabId?: string
   activate?: boolean
+  canActivate?: () => boolean
 }): OpenedAgentSessionTab {
   const state = useAppStore.getState()
   const existing = findStructuredLaunchTab(args)
   if (existing) {
-    if (args.activate !== false) {
+    if (args.activate !== false && args.canActivate?.() !== false) {
       state.focusGroup(args.worktreeId, existing.groupId)
       state.activateTab(existing.id, { worktreeId: args.worktreeId })
       state.setActiveTabType('agent-session', args.worktreeId)
@@ -176,6 +177,7 @@ export function openStructuredAgentSessionProvisionalTab(args: {
     group?.id ??
     (address?.worktreeId === args.worktreeId ? address.targetGroupId : args.targetGroupId)
   const drawHere = (): Tab => {
+    const activate = args.activate !== false && args.canActivate?.() !== false
     const tab = state.createUnifiedTab(args.worktreeId, 'agent-session', {
       id: tabId,
       entityId: args.sessionId,
@@ -184,11 +186,11 @@ export function openStructuredAgentSessionProvisionalTab(args: {
       label: defaultAgentChatLabel(args.agent),
       targetGroupId,
       ...(args.afterTabId ? { afterTabId: args.afterTabId } : {}),
-      activate: args.activate !== false
+      activate
     })
     const target = structuredAgentSessionTargetForHost(args.executionHostId)
     holdFrameDrawnProvisionalChatTab(target, args.worktreeId, tab.id)
-    if (args.activate !== false) {
+    if (activate) {
       state.setActiveTabType('agent-session', args.worktreeId)
     }
     return tab
@@ -206,6 +208,7 @@ export function openStructuredAgentSessionProvisionalTab(args: {
           ? { afterTabId: args.afterTabId }
           : slotAnchor(address, args.worktreeId)),
         activate: args.activate !== false,
+        canActivate: args.canActivate,
         drawHere
       })
     : null

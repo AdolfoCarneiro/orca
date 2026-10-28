@@ -1,3 +1,5 @@
+import { createAdmissionStreamClient } from './daemon-terminal-stream-client'
+import type { PtyCreationDisposition } from '../../shared/claimed-agent-pty-owner'
 import { performance } from 'node:perf_hooks'
 import type { BackgroundTransientFactRelay } from './daemon-background-transient-facts'
 import type { DaemonClientConnections } from './daemon-client-connections'
@@ -9,10 +11,9 @@ import type {
   PendingPtySpawnPreparation
 } from './daemon-pty-spawn-preparations'
 import type { DaemonSessionAttachments } from './daemon-session-attachments'
-import { recordDaemonStreamBacklogEvent } from './daemon-stream-backlog-probe'
 import type { DaemonStreamDataBatcher } from './daemon-stream-data-batcher'
 import type { TerminalHistorySeedTransferRegistry } from './terminal-history-seed-transfer-registry'
-import type { CreateOrAttachOptions, CreateOrAttachResult, TerminalHost } from './terminal-host'
+import type { CreateOrAttachResult, TerminalHost } from './terminal-host'
 import { isTuiAgent } from '../../shared/tui-agent-config'
 import { isSpawnIntent } from '../../shared/host-spawn-admission'
 import { parsePtyStartupIngressIntent } from '../../shared/pty-startup-ingress'
@@ -21,7 +22,6 @@ import {
   isAgentSessionSurfaceBinding
 } from '../../shared/agent-session-host-authority'
 import { type DaemonRequest, TerminalAttachCanceledError } from './types'
-
 type CreateOrAttachRequest = Extract<DaemonRequest, { type: 'createOrAttach' }>
 
 const MAX_SPAWN_ADMISSION_WINDOW_MS = 12_000
@@ -35,7 +35,7 @@ function resolveSpawnAdmissionDeadline(cancelAfterMs: unknown): number {
   return Date.now() + windowMs
 }
 
-type DaemonTerminalAdmissionOptions = {
+export type DaemonTerminalAdmissionOptions = {
   host: TerminalHost
   connections: DaemonClientConnections
   endpoint: DaemonEndpointLifecycle
@@ -51,8 +51,6 @@ type DaemonTerminalAdmissionOptions = {
 }
 
 export class DaemonTerminalAdmission {
-  private static readonly INTERACTIVE_OUTPUT_WINDOW_MS = 100
-  private static readonly INTERACTIVE_OUTPUT_MAX_CHARS = 1024
   private createOrAttachInFlight = 0
 
   constructor(private readonly options: DaemonTerminalAdmissionOptions) {}
@@ -89,6 +87,9 @@ export class DaemonTerminalAdmission {
     let routedSessionId = payload.sessionId
     let result: CreateOrAttachResult
     let spawnPreparation: PendingPtySpawnPreparation | null = null
+    let hostDisposition: PtyCreationDisposition = {
+      kind: 'no-fork'
+    }
     try {
       if (
         payload.agentSessionEnsure !== undefined &&
@@ -122,6 +123,7 @@ export class DaemonTerminalAdmission {
           : payload.historySeed !== undefined
             ? [payload.historySeed]
             : undefined
+      hostDisposition = { kind: 'unknown' }
       result = await this.options.host.createOrAttach({
         sessionId: payload.sessionId,
         cols: payload.cols,
@@ -150,17 +152,68 @@ export class DaemonTerminalAdmission {
           deadlineAt: resolveSpawnAdmissionDeadline(payload.cancelAfterMs)
         },
         retainCanceledChild: Boolean(payload.switchExecution),
+        onCreationDisposition: (disposition) => {
+          hostDisposition = disposition
+        },
         isCanceled: () =>
           spawnPreparation !== null && this.options.preparations.isCanceled(spawnPreparation),
         cancelSignal: spawnPreparation.controller.signal,
         onSessionResolved: (sessionId) => {
           routedSessionId = sessionId
         },
-        streamClient: this.createStreamClient(clientId, () => routedSessionId)
+        streamClient: createAdmissionStreamClient(this.options, clientId, () => routedSessionId)
       })
+      if (spawnPreparation.settlement) {
+        const { attachToken: _attachToken, ...wireResult } = result
+        spawnPreparation.settlement.result = wireResult
+        const sessionId = result.agentSessionEnsure?.owner.ptyId ?? payload.sessionId
+        const anchor = spawnPreparation.switchAnchor
+        if (result.isNew && result.switchCleanupWitness && anchor) {
+          const token = result.switchCleanupWitness
+          spawnPreparation.settlement.reconcile = async () => {
+            const close = this.options.host.beginFencedTermination({
+              id: sessionId,
+              expectedIncarnationId: result.incarnationId,
+              requireNoAgentOwner: !result.agentSessionEnsure,
+              requireUnattached: true,
+              switchCondition: {
+                token,
+                remainingMs: Math.max(0, anchor.deadline - performance.now()),
+                ownedSpawn: true,
+                ...(result.agentSessionEnsure
+                  ? { claimGeneration: result.agentSessionEnsure.owner.generation }
+                  : {})
+              }
+            })
+            if (close.accepted) {
+              await close.completion
+            }
+          }
+        }
+      }
     } finally {
       if (spawnPreparation) {
-        this.options.preparations.finish(payload.sessionId, spawnPreparation)
+        const preparation = spawnPreparation
+        const settlement = preparation.settlement
+        if (settlement) {
+          if (hostDisposition.kind === 'unknown' && settlement.result) {
+            settlement.result.switchOutcomeUnknown = true
+            result!.switchOutcomeUnknown = true
+          }
+          settlement.noChild = hostDisposition.kind === 'no-fork'
+          if (!settlement.result && hostDisposition.kind !== 'no-fork') {
+            settlement.reconcile = hostDisposition.recover
+          }
+          if (hostDisposition.kind === 'physical' || hostDisposition.kind === 'failed') {
+            this.options.preparations.trackPhysical(
+              payload.sessionId,
+              preparation,
+              hostDisposition.completion,
+              hostDisposition.kind === 'physical' ? hostDisposition.exitCode : undefined
+            )
+          }
+        }
+        this.options.preparations.finish(payload.sessionId, preparation)
       }
       this.createOrAttachInFlight--
       this.options.reevaluateIdleShutdown()
@@ -214,62 +267,6 @@ export class DaemonTerminalAdmission {
         ? { cwdReadableByDaemon: result.cwdReadableByDaemon }
         : {}),
       ...(result.inputClosed ? { inputClosed: true as const } : {})
-    }
-  }
-
-  private createStreamClient(
-    clientId: string,
-    sessionId: () => string
-  ): CreateOrAttachOptions['streamClient'] {
-    return {
-      onData: (data, rawLength = data.length, transformed = false, seq) => {
-        const routedSessionId = sessionId()
-        this.options.transientFactRelay.onSessionData(routedSessionId, data)
-        const lastInputAt = this.options.attachments.lastInputAt(routedSessionId)
-        const isInteractiveOutput =
-          data.length <= DaemonTerminalAdmission.INTERACTIVE_OUTPUT_MAX_CHARS &&
-          lastInputAt !== undefined &&
-          performance.now() - lastInputAt <= DaemonTerminalAdmission.INTERACTIVE_OUTPUT_WINDOW_MS
-        this.options.streamDataBatcher.enqueue(clientId, routedSessionId, data, {
-          flushImmediately: isInteractiveOutput,
-          flushMaxChars: DaemonTerminalAdmission.INTERACTIVE_OUTPUT_MAX_CHARS,
-          rawLength,
-          transformed,
-          seq
-        })
-      },
-      onInputClosed: (incarnationId) => {
-        const routedSessionId = sessionId()
-        this.options.streamDataBatcher.enqueueControlEvent(clientId, routedSessionId, {
-          type: 'event',
-          event: 'inputClosed',
-          sessionId: routedSessionId,
-          payload: { incarnationId }
-        })
-        this.options.streamDataBatcher.flush(clientId)
-      },
-      onExit: (code, incarnationId, cause) => {
-        const routedSessionId = sessionId()
-        this.options.log.log('session-exited', {
-          sessionId: routedSessionId,
-          code,
-          cause: cause?.kind
-        })
-        this.options.streamDataBatcher.enqueueControlEvent(clientId, routedSessionId, {
-          type: 'event',
-          event: 'exit',
-          sessionId: routedSessionId,
-          payload: { code, incarnationId, ...(cause ? { cause } : {}) }
-        })
-        this.options.streamDataBatcher.flush(clientId)
-        recordDaemonStreamBacklogEvent('sessionExit', {
-          sessionIdSuffix: routedSessionId.slice(-10)
-        })
-        this.options.transientFactRelay.onSessionExit(routedSessionId)
-        this.options.streamDataBatcher.refreshSessionDroppability(routedSessionId)
-        this.options.attachments.release(routedSessionId)
-        this.options.reevaluateIdleShutdown()
-      }
     }
   }
 }

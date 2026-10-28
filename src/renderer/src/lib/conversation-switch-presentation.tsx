@@ -4,35 +4,33 @@ import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { executionHostIdForStructuredTarget } from '@/runtime/structured-agent-session-owner'
 
 export type SwitchPresentationVisit = {
+  subscribe: (listener: () => void) => () => void
+  changed: () => void
   stopObserving?: () => void
-  captureVisible?: () => void
+  observeRows?: () => void
   itemVisible?: (id: string) => boolean
   presentedItems: Set<string>
-  readable: boolean
   settled: boolean
   failureItemId?: string
   reporter?: 'inline' | 'clicked'
-  shown: Promise<boolean>
-  show: (shown: boolean) => void
   mounted: boolean
   visible: boolean
   release: () => void
 }
 const visits = new Map<string, SwitchPresentationVisit>()
-const listeners = new Set<() => void>()
-let revision = 0
-const changed = () => {
-  revision++
-  for (const listener of listeners) {
-    listener()
-  }
-}
-const subscribe = (listener: () => void) => {
-  listeners.add(listener)
+const listeners = new Map<string, Set<() => void>>()
+const subscribe = (key: string, listener: () => void) => {
+  const rows = listeners.get(key) ?? new Set<() => void>()
+  rows.add(listener)
+  listeners.set(key, rows)
   return () => {
-    listeners.delete(listener)
+    rows.delete(listener)
+    if (!rows.size) {
+      listeners.delete(key)
+    }
   }
 }
+const changed = (key: string) => listeners.get(key)?.forEach((listener) => listener())
 const keyFor = (target: RuntimeClientTarget, id: string) =>
   `${executionHostIdForStructuredTarget(target)}\0${id}`
 export const SwitchPresentationContext = createContext<SwitchPresentationVisit | undefined>(
@@ -46,29 +44,23 @@ export function beginSwitchPresentation(
 ): SwitchPresentationVisit {
   const key = keyFor(target, id)
   visits.get(key)?.release()
-  let show!: (shown: boolean) => void
-  const shown = new Promise<boolean>((resolve) => {
-    show = resolve
-  })
   const visit: SwitchPresentationVisit = {
-    shown,
-    show,
+    subscribe: (listener) => subscribe(key, listener),
+    changed: () => changed(key),
     presentedItems: new Set(),
-    readable: false,
     settled: false,
     mounted: false,
     visible: false,
     release: () => {
       if (visits.get(key) === visit) {
-        visit.show(false)
         visit.stopObserving?.()
         visits.delete(key)
-        changed()
+        changed(key)
       }
     }
   }
   visits.set(key, visit)
-  changed()
+  changed(key)
   return visit
 }
 export function reportSwitchPresentationFailure(
@@ -93,28 +85,26 @@ export function settleSwitchPresentation(visit: SwitchPresentationVisit | undefi
   visit.settled = true
   visit.stopObserving?.()
   visit.presentedItems.clear()
-  visit.captureVisible = undefined
   visit.itemVisible = undefined
-  changed()
+  if (!visit.mounted && !visit.reporter) {
+    visit.release()
+  }
+  visit.changed()
 }
-export function useSwitchPresentation(
-  target: RuntimeClientTarget,
-  id: string,
-  visible: boolean,
-  transcript: 'pending' | 'readable' | 'empty' | 'failed' = 'readable'
-) {
-  useSyncExternalStore(
-    subscribe,
-    () => revision,
-    () => revision
+export function useSwitchPresentation(target: RuntimeClientTarget, id: string, visible: boolean) {
+  const key = keyFor(target, id)
+  const visit = useSyncExternalStore(
+    (listener) => subscribe(key, listener),
+    () => visits.get(key),
+    () => undefined
   )
-  const visit = visits.get(keyFor(target, id))
   useLayoutEffect(() => {
     if (!visit) {
       return
     }
     visit.mounted = true
     visit.visible = visible
+    visit.observeRows?.()
 
     if (!visible) {
       visit.release()
@@ -124,19 +114,6 @@ export function useSwitchPresentation(
       visit.release()
     }
   }, [visit, visible])
-  useLayoutEffect(() => {
-    if (!visit || !visible) {
-      return
-    }
-    visit.readable = transcript === 'readable'
-    if (transcript === 'empty') {
-      visit.show(true)
-    } else if (transcript === 'readable') {
-      visit.captureVisible?.()
-    } else if (transcript === 'failed') {
-      visit.show(false)
-    }
-  }, [visit, visible, transcript])
   return visit
 }
 export function useSwitchPresentationRows(root: RefObject<HTMLDivElement | null>): void {
@@ -177,20 +154,14 @@ export function useSwitchPresentationRows(root: RefObject<HTMLDivElement | null>
       if (!visit.visible || visit.settled) {
         return
       }
-      let shown = false
       for (const row of root.current?.querySelectorAll<HTMLElement>('[data-switch-item-id]') ??
         []) {
         const id = row.dataset.switchItemId
         if (id && rowVisible(row)) {
           visit.presentedItems.add(id)
-          shown = true
         }
       }
-      if (shown && visit.readable) {
-        visit.show(true)
-      }
     }
-    visit.captureVisible = observe
     observe()
     const element = root.current
     element?.addEventListener('scroll', observe, { passive: true })
@@ -199,14 +170,15 @@ export function useSwitchPresentationRows(root: RefObject<HTMLDivElement | null>
       if (visit.itemVisible === itemVisible) {
         visit.itemVisible = undefined
       }
-      if (visit.captureVisible === observe) {
-        visit.captureVisible = undefined
-      }
       if (visit.stopObserving === stop) {
         visit.stopObserving = undefined
       }
+      if (visit.observeRows === observe) {
+        visit.observeRows = undefined
+      }
     }
     visit.stopObserving = stop
+    visit.observeRows = observe
     return () => {
       observe()
       stop()
@@ -215,10 +187,9 @@ export function useSwitchPresentationRows(root: RefObject<HTMLDivElement | null>
 }
 export function useSwitchFailureSuppressed(itemId: string | undefined): boolean {
   const visit = useContext(SwitchPresentationContext)
-  useSyncExternalStore(
-    subscribe,
-    () => revision,
-    () => revision
+  return useSyncExternalStore(
+    visit?.subscribe ?? (() => () => {}),
+    () => Boolean(itemId && visit?.failureItemId === itemId && visit.reporter === 'clicked'),
+    () => false
   )
-  return Boolean(itemId && visit?.failureItemId === itemId && visit.reporter === 'clicked')
 }

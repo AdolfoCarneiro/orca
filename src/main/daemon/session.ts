@@ -19,7 +19,6 @@ import type {
 } from './types'
 import type { TerminalExitCause } from '../../shared/terminal-exit-cause'
 import { SessionProcessInspection } from './session-process-inspection'
-
 export class Session extends SessionProcessInspection {
   readonly sessionId: string
   readonly incarnationId = randomUUID()
@@ -37,7 +36,7 @@ export class Session extends SessionProcessInspection {
   protected readonly output: SessionOutputPlane
   private readonly producerPause: SessionProducerPause
   protected readonly shellReady: SessionShellReadyBarrier
-  private readonly termination: SessionTerminationController
+  protected readonly termination: SessionTerminationController
   readonly startupIngress: PtyStartupIngress
   protected readonly recoveryBarrier: TerminalShellRecoveryBarrier
 
@@ -102,12 +101,20 @@ export class Session extends SessionProcessInspection {
       },
       onEmission: (emission) => this.recoveryBarrier.accept(emission)
     })
-    this.subprocess.onData((data) => {
-      if (!this._disposed) {
-        this.shellReady.ingestSubprocessData(data)
-      }
-    })
-    this.subprocess.onExit((code, cause) => this.handleSubprocessExit(code, cause))
+    try {
+      this.subprocess.onData((data) => {
+        if (!this._disposed) {
+          this.shellReady.ingestSubprocessData(data)
+        }
+      })
+      this.subprocess.onExit((code, cause) => this.handleSubprocessExit(code, cause))
+    } catch (error) {
+      this._disposed = true
+      this.shellReady.dispose()
+      this.recoveryBarrier.dispose()
+      this.output.disposeEmulator()
+      throw error
+    }
   }
 
   get state(): SessionState {
@@ -132,6 +139,10 @@ export class Session extends SessionProcessInspection {
 
   get hasAttachedClients(): boolean {
     return this.output.hasAttachedClients
+  }
+
+  get physicalCompletion(): Promise<void> {
+    return this.termination.physicalCompletion
   }
 
   get isTerminating(): boolean {
@@ -195,22 +206,8 @@ export class Session extends SessionProcessInspection {
   }
 
   /** Signal the root only after its descendant snapshot has completed. */
-  signalTerminationRoot(): void {
-    this.termination.signalTerminationRoot()
-  }
 
   /** Arm escalation after a coordinator begins snapshot-first teardown. */
-  scheduleForceDisposeFallback(): void {
-    this.termination.scheduleForceDisposeFallback()
-  }
-
-  async forceKillAndWaitForExit(timeoutMs?: number): Promise<void> {
-    await this.termination.forceKillAndWaitForExit(timeoutMs)
-  }
-
-  signal(sig: string): void {
-    this.termination.signal(sig)
-  }
 
   attachClient(client: Omit<AttachedClient, 'token'>): symbol {
     if (this.switchClosing) {

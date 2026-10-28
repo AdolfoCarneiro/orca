@@ -1,3 +1,4 @@
+import { captureConversationSwitchViewerSelection } from './conversation-switch-selection'
 import type { AppState } from '@/store/types'
 import {
   acceptAgentLaunchPaneAttempt,
@@ -452,3 +453,27 @@ describe('the ordinary window actual verdict producer', () => {
     expect(store.getState().tabsByWorktree[WT]?.some((row) => row.id === TAB_ID)).toBe(true)
   })
 })
+
+it.each(['unchanged', 'navigate', 'close'] as const)(
+  'conditions ordinary terminal creation and presentation on the original viewer: %s',
+  (action) => {
+    const source = store.getState().createTab(WT)
+    const other = store.getState().createTab(WT)
+    store.getState().setActiveTab(source.id)
+    const viewerSelection = captureConversationSwitchViewerSelection()
+    if (action === 'navigate') {
+      store.getState().setActiveTab(other.id)
+    }
+    if (action === 'close') {
+      store.getState().closeTab(source.id)
+    }
+    const selected = store.getState().getActiveTab(WT)?.id
+    const published = publishAgentLaunchTab(
+      request({ viewer: 'focus-in-workspace', viewerSelection })
+    )
+    expect(published.created).toBe(true)
+    expect(launchTab()?.entityId).toBe(TAB_ID)
+    expect(store.getState().getActiveTab(WT)?.id).toBe(action === 'unchanged' ? TAB_ID : selected)
+    expect(focusTerminalInitiatedTab).toHaveBeenCalledTimes(action === 'unchanged' ? 1 : 0)
+  }
+)

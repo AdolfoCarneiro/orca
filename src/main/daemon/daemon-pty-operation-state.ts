@@ -1,0 +1,64 @@
+import type { DaemonEndpointIdentity } from './daemon-hello-protocol'
+import type { TakePendingOutputResult } from './types'
+import type { HistoryCheckpointResult, HistoryRecoveryFreeze } from './history-manager'
+import type { ReadRunningWslDistros } from './daemon-wsl-bridge-exit'
+export type PendingDaemonSpawnOperation = {
+  switchSettlement?: {
+    adopt?: (incarnationId: string) => void
+    completion: Promise<void>
+    recover: () => Promise<void>
+    consume: (outcome: 'exited' | 'adopted' | 'failed', incarnationId?: string) => void
+  }
+  exitsBySessionId: Map<string, { code: number; incarnationId?: string }[]>
+  ignoredExitIncarnationIds: Set<string>
+  ignoreNextExit: boolean
+}
+
+export type HistoryRecoveryContext = {
+  freeze: HistoryRecoveryFreeze | null
+  unreadableSessionId: string | null
+  identityChanged: boolean
+}
+
+export type SnapshotCheckpointResult = {
+  checkpoint: HistoryCheckpointResult
+  snapshot: NonNullable<TakePendingOutputResult['snapshot']> | null
+}
+
+export type DaemonPtyShutdownOptions = {
+  immediate?: boolean
+  keepHistory?: boolean
+  deadlineMs?: number
+  expectedIncarnationId?: string
+}
+
+export type DaemonPtyAdapterOptions = {
+  socketPath: string
+  tokenPath: string
+  pidPath?: string
+  profileScope?: string
+  protocolVersion?: number
+  historyPath?: string
+  runtimeDir?: string
+  packagedAppVersion?: string | null
+  respawn?: (reason: DaemonRespawnReason) => Promise<void | (() => void)>
+  /** Test seam; production reads the shared, coalesced `wsl --list --running`. */
+  readRunningWslDistros?: ReadRunningWslDistros
+}
+
+export type DaemonRespawnReason =
+  | 'daemon_died'
+  | 'unhealthy_resolver'
+  | 'stale_bundle'
+  | 'severed_tcc_attribution'
+
+export type DaemonIdentityChangeEvent = {
+  previous: DaemonEndpointIdentity
+  current: DaemonEndpointIdentity
+}
+
+export type DaemonIdleRetirementResult =
+  | { state: 'retiring' }
+  | { state: 'busy'; liveSessions: number | null; admissionReopened?: true }
+  | { state: 'unsupported' }
+  | { state: 'unverifiable' }

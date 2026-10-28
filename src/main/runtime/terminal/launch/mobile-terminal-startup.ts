@@ -74,6 +74,7 @@ export abstract class OrcaRuntimeWithResolveMobileSessionTerminalCommand extends
     workspaceId: string,
     args: {
       source?: AiVaultChatForkSource
+      agent: TuiAgent
       options?: Record<string, string>
       commandOverride?: string
       invocationId: string
@@ -86,7 +87,7 @@ export abstract class OrcaRuntimeWithResolveMobileSessionTerminalCommand extends
     const workspace = await this.resolveTerminalWorkspaceLaunchScope(`id:${workspaceId}`)
     args.execution.check()
     const source = args.source
-    const runtime = this.resolveAgentLaunchRuntime(workspace, 'codex')
+    const runtime = this.resolveAgentLaunchRuntime(workspace, args.agent)
     const startup = source
       ? buildAiVaultLocalResumeStartup({
           session: source,
@@ -108,10 +109,10 @@ export abstract class OrcaRuntimeWithResolveMobileSessionTerminalCommand extends
             launchRuntime: runtime,
             resumeProviderSession: startup.providerSession,
             resumeOrigin: 'switch' as const,
-            launchAgent: 'codex' as const
+            launchAgent: args.agent
           }
         : {
-            agent: 'codex' as const,
+            agent: args.agent,
             commandOverride: args.commandOverride,
             sessionOptions: args.options
           }),

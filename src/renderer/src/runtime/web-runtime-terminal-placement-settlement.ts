@@ -54,6 +54,7 @@ export async function settleWebRuntimeTerminalPlacement(
     groupId?: string
     afterTabId?: string
     activate: boolean
+    canActivate?: () => boolean
     captured?: CapturedSessionTabPlacement
   }
 ): Promise<void> {
@@ -88,7 +89,7 @@ export async function settleWebRuntimeTerminalPlacement(
     if (tab.groupId !== targetGroup.id) {
       // Snapshot may beat placement recording; repair through the same client-owned move as user drags.
       state.moveUnifiedTabToGroup(unifiedTabId, targetGroup.id, {
-        activate: placement.activate,
+        activate: placement.activate && placement.canActivate?.() !== false,
         recordInteraction: false
       })
     }

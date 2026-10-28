@@ -18914,6 +18914,12 @@
           "switchToTerminalView": "Alternar para visualização de terminal",
           "switchToChatView": "Alternar para visualização de chat"
         },
+        "switch": {
+          "stopAndSwitchTitle": "{{agent}} está respondendo. Interromper e alternar?",
+          "stopAndSwitch": "Interromper e alternar",
+          "stopUnknown": "O Orca não pôde confirmar que {{agent}} parou. Verifique os chats e terminais abertos e tente alternar novamente.",
+          "sourceStopUnknown": "O Orca não pôde confirmar que {{agent}} parou. Verifique {{agent}} no terminal original e tente alternar novamente."
+        },
         "BrowserTab": {
           "closeOthers": "Fechar Outras",
           "muteTab": "Silenciar Aba",

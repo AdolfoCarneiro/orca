@@ -1,3 +1,4 @@
+import { conversationSwitchViewerSelectionCurrent } from '@/lib/conversation-switch-selection'
 import { conversationSwitchFailureText } from '@/lib/conversation-switch-feedback'
 import { useAppStore } from '@/store'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
@@ -25,11 +26,12 @@ import type { CliChatResumeSource } from './cli-chat-resume-source'
 export async function reportCliChatResumeFailure(
   source: CliChatResumeSource,
   error: unknown,
-  target: RuntimeClientTarget
+  target: RuntimeClientTarget,
+  viewerSelection?: string
 ): Promise<boolean> {
   const owner = structuredLaunchFailure(error)?.owner
   if (owner) {
-    return switchIntoOwnerLegacy(source, owner, target)
+    return switchIntoOwnerLegacy(source, owner, target, viewerSelection)
   }
   toastCliChatResumeFailure(source, error)
   return false
@@ -38,11 +40,17 @@ export async function reportCliChatResumeFailure(
 export async function switchIntoOwnerLegacy(
   source: Pick<AiVaultSession, 'agent'> & Pick<CliChatResumeSource, 'tabId' | 'workspaceId'>,
   structuredSession: NonNullable<AiVaultSession['structuredSession']>,
-  target: RuntimeClientTarget
+  target: RuntimeClientTarget,
+  viewerSelection?: string
 ): Promise<boolean> {
   // A host without the switch keeps the earlier behaviour: the chat is shown, the terminal stays.
   if (!(await supportsInPlaceSwitch(target, source.agent))) {
-    await activateAiVaultStructuredSession({ structuredSession }, undefined, target)
+    await activateAiVaultStructuredSession(
+      { structuredSession },
+      undefined,
+      target,
+      viewerSelection
+    )
     return false
   }
   if (!(await startCliChatReturn(source, structuredSession.sessionId, target))) {
@@ -51,7 +59,8 @@ export async function switchIntoOwnerLegacy(
   const shown = await activateAiVaultStructuredSessionVerified(
     { structuredSession },
     undefined,
-    target
+    target,
+    viewerSelection
   )
   if (shown !== 'activated') {
     return false
@@ -95,7 +104,10 @@ export async function switchIntoOwnerLegacy(
         order.splice(index, 0, chat.id)
         state.reorderUnifiedTabs(group.id, order)
       } else {
-        state.moveUnifiedTabToGroup(chat.id, group.id, { index, activate: true })
+        state.moveUnifiedTabToGroup(chat.id, group.id, {
+          index,
+          activate: conversationSwitchViewerSelectionCurrent(viewerSelection)
+        })
       }
     }
   }

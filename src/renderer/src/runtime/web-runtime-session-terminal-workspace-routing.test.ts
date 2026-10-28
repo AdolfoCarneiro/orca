@@ -1,3 +1,15 @@
+import { createTestStore } from '../store/slices/store-test-helpers'
+import {
+  captureConversationSwitchViewerSelection,
+  conversationSwitchViewerSelectionCurrent
+} from '../lib/conversation-switch-selection'
+import { structuredAgentSessionTabId } from '../../../shared/structured-agent-session-projection'
+import { toWebTerminalSurfaceTabId } from '../../../shared/terminal-surface-id'
+import type * as SnapshotApi from './web-session-tabs-sync/snapshot-api'
+import type * as StorePatch from './web-session-tabs-sync/store-patch'
+import type * as TrackingMappings from './web-session-tabs-sync/tracking-mappings'
+import type * as TrackingDecisions from './web-session-tabs-sync/tracking-decisions'
+import type * as TrackingLifecycle from './web-session-tabs-sync/tracking-lifecycle'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import { createWebRuntimeSessionTerminal } from './web-runtime-terminal-creation'
@@ -13,6 +25,7 @@ import {
 import { stubRuntimeEnvironmentBridge } from './runtime-environment-bridge-fixture'
 
 const mocks = vi.hoisted(() => ({
+  realStore: false,
   getState: vi.fn(),
   setState: vi.fn(),
   subscribe: vi.fn(),
@@ -23,7 +36,9 @@ const mocks = vi.hoisted(() => ({
   setRemoteBrowserPageHandle: vi.fn(),
   focusBrowserTabInWorktree: vi.fn(),
   applyWebSessionTabsSnapshot: vi.fn(),
-  decideWebSessionTabsSnapshot: vi.fn(() => ({ apply: true, settlesHostMirror: true })),
+  decideWebSessionTabsSnapshot: vi.fn<typeof TrackingDecisions.decideWebSessionTabsSnapshot>(
+    () => ({ apply: true, settlesHostMirror: true })
+  ),
   acceptReplayedWebSessionTabsSnapshot: vi.fn(),
   resolveHostSessionTabIdForWebSessionTab: vi.fn(),
   trackTerminalPaneSplit: vi.fn(),
@@ -40,24 +55,61 @@ vi.mock('../store', () => ({
   }
 }))
 
-vi.mock('./web-session-tabs-sync/tracking-lifecycle', () => ({
-  acceptReplayedWebSessionTabsSnapshot: mocks.acceptReplayedWebSessionTabsSnapshot
-}))
-vi.mock('./web-session-tabs-sync/snapshot-api', () => ({
+vi.mock('./web-session-tabs-sync/tracking-lifecycle', async (original) => {
+  const actual = await original<typeof TrackingLifecycle>()
+  return {
+    ...actual,
+    acceptReplayedWebSessionTabsSnapshot: (
+      ...args: Parameters<typeof actual.acceptReplayedWebSessionTabsSnapshot>
+    ) =>
+      mocks.realStore
+        ? actual.acceptReplayedWebSessionTabsSnapshot(...args)
+        : mocks.acceptReplayedWebSessionTabsSnapshot(...args)
+  }
+})
+vi.mock('./web-session-tabs-sync/snapshot-api', async (original) => ({
+  ...(await original<object>()),
   applyWebSessionTabsSnapshot: mocks.applyWebSessionTabsSnapshot
 }))
-vi.mock('./web-session-tabs-sync/tracking-decisions', () => ({
-  decideWebSessionTabsSnapshot: mocks.decideWebSessionTabsSnapshot
-}))
-vi.mock('./web-session-tabs-sync/store-patch', () => ({
-  applyWebSessionTabsStorePatch: (buildPatch: (state: unknown) => unknown) => {
-    mocks.setState(buildPatch)
-    return () => {}
+vi.mock('./web-session-tabs-sync/tracking-decisions', async (original) => {
+  const actual = await original<typeof TrackingDecisions>()
+  return {
+    ...actual,
+    decideWebSessionTabsSnapshot: (
+      ...args: Parameters<typeof actual.decideWebSessionTabsSnapshot>
+    ) =>
+      mocks.realStore
+        ? actual.decideWebSessionTabsSnapshot(...args)
+        : mocks.decideWebSessionTabsSnapshot(...args)
   }
-}))
-vi.mock('./web-session-tabs-sync/tracking-mappings', () => ({
-  resolveHostSessionTabIdForWebSessionTab: mocks.resolveHostSessionTabIdForWebSessionTab
-}))
+})
+vi.mock('./web-session-tabs-sync/store-patch', async (original) => {
+  const actual = await original<typeof StorePatch>()
+  return {
+    ...actual,
+    applyWebSessionTabsStorePatch: (
+      ...args: Parameters<typeof actual.applyWebSessionTabsStorePatch>
+    ) => {
+      if (mocks.realStore) {
+        return actual.applyWebSessionTabsStorePatch(...args)
+      }
+      mocks.setState(args[0])
+      return () => {}
+    }
+  }
+})
+vi.mock('./web-session-tabs-sync/tracking-mappings', async (original) => {
+  const actual = await original<typeof TrackingMappings>()
+  return {
+    ...actual,
+    resolveHostSessionTabIdForWebSessionTab: (
+      ...args: Parameters<typeof actual.resolveHostSessionTabIdForWebSessionTab>
+    ) =>
+      mocks.realStore
+        ? actual.resolveHostSessionTabIdForWebSessionTab(...args)
+        : mocks.resolveHostSessionTabIdForWebSessionTab(...args)
+  }
+})
 
 vi.mock('@/lib/feature-education-telemetry', () => ({
   trackTerminalPaneSplit: mocks.trackTerminalPaneSplit
@@ -95,7 +147,12 @@ function stubSelectableWorkspaceStore(selection: MutableSelection): void {
 afterEach(() => resetWebSessionCloseIntentForTests())
 
 describe('web-runtime-session terminal workspace routing', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    const tracking = await vi.importActual<typeof TrackingLifecycle>(
+      './web-session-tabs-sync/tracking-lifecycle'
+    )
+    tracking.resetWebSessionTabsSnapshotFreshnessForTests()
+    mocks.realStore = false
     stubTerminalCreateEnvironment(mocks)
   })
 
@@ -276,4 +333,136 @@ describe('web-runtime-session terminal workspace routing', () => {
     expect(selection.activeWorktreeId).toBe('repo::/other')
     expect(selection.activeWorkspaceExecutionHostId).toBe('local')
   })
+  it.each(['unchanged', 'create-navigation', 'list-navigation'] as const)(
+    'strict paired ordinary create/list/placement respects original caller selection: %s',
+    async (action) => {
+      mocks.realStore = true
+      const api = await vi.importActual<typeof SnapshotApi>('./web-session-tabs-sync/snapshot-api')
+      const store = createTestStore()
+      mocks.getState.mockImplementation(store.getState)
+      mocks.setState.mockImplementation(store.setState)
+      mocks.subscribe.mockImplementation(store.subscribe)
+      mocks.applyWebSessionTabsSnapshot.mockImplementation(api.applyWebSessionTabsSnapshot)
+      store.setState({
+        activeWorktreeId: WORKTREE_ID,
+        activeWorkspaceExecutionHostId: RUNTIME_EXECUTION_HOST_ID
+      })
+      const sourceId = structuredAgentSessionTabId('codex_source')
+      const otherId = structuredAgentSessionTabId('codex_D')
+      const destId = toWebTerminalSurfaceTabId('host-destination')
+      const leaf = '11111111-1111-4111-8111-111111111111'
+      const source = {
+        type: 'agent-session' as const,
+        id: 'agent-session:codex_source',
+        sessionId: 'codex_source',
+        agent: 'codex' as const,
+        title: 'Source',
+        isActive: true
+      }
+      const other = {
+        type: 'agent-session' as const,
+        id: 'agent-session:codex_D',
+        sessionId: 'codex_D',
+        agent: 'codex' as const,
+        title: 'D',
+        isActive: false
+      }
+      const destination = {
+        type: 'terminal' as const,
+        id: `host-destination::${leaf}`,
+        parentTabId: 'host-destination',
+        leafId: leaf,
+        terminal: 'destination-process',
+        title: 'Destination',
+        status: 'ready' as const,
+        isActive: false
+      }
+      const snapshot = (created: boolean) => ({
+        ...makeSnapshot(),
+        snapshotVersion: created ? 2 : 1,
+        activeTabId: source.id,
+        activeTabType: 'agent-session' as const,
+        tabs: created ? [source, destination, other] : [source, other],
+        tabGroups: [
+          {
+            id: 'group-1',
+            activeTabId: source.id,
+            tabOrder: created ? [source.id, 'host-destination', other.id] : [source.id, other.id]
+          }
+        ]
+      })
+      store.setState((state) =>
+        api.applyWebSessionTabsSnapshot(state, snapshot(false), ENVIRONMENT_ID)
+      )
+      store.getState().activateTab(sourceId)
+      const original = captureConversationSwitchViewerSelection()
+      const created = Promise.withResolvers<void>()
+      const listed = Promise.withResolvers<void>()
+      const runtimeCall = vi.fn(async (request: { method: string }) => {
+        if (request.method === 'session.tabs.createTerminal') {
+          await created.promise
+          return {
+            id: 'create',
+            ok: true,
+            result: { tab: { id: 'host-destination', leafId: leaf } }
+          }
+        }
+        if (request.method === 'session.tabs.list') {
+          await listed.promise
+          return { id: 'list', ok: true, result: snapshot(true) }
+        }
+        throw new Error(`Unexpected external method ${request.method}`)
+      })
+      stubRuntimeEnvironmentBridge({ call: runtimeCall })
+      const running = createWebRuntimeSessionTerminal(
+        {
+          worktreeId: WORKTREE_ID,
+          environmentId: ENVIRONMENT_ID,
+          agentSessionKind: 'resume',
+          launchAgent: 'codex',
+          resumeOrigin: 'switch',
+          command: 'codex resume saved',
+          providerSession: { key: 'session_id', id: 'saved' },
+          afterTabId: sourceId,
+          targetGroupId: 'group-1',
+          activate: true
+        },
+        {
+          notifyFailure: false,
+          canActivate: () => conversationSwitchViewerSelectionCurrent(original)
+        }
+      )
+      await vi.waitFor(() =>
+        expect(runtimeCall).toHaveBeenCalledWith(
+          expect.objectContaining({
+            method: 'session.tabs.createTerminal',
+            params: expect.objectContaining({
+              activate: false,
+              select: false,
+              navigation: 'caller'
+            })
+          })
+        )
+      )
+      if (action === 'create-navigation') {
+        store.getState().activateTab(otherId)
+      }
+      created.resolve()
+      await vi.waitFor(() =>
+        expect(runtimeCall).toHaveBeenCalledWith(
+          expect.objectContaining({ method: 'session.tabs.list' })
+        )
+      )
+      if (action === 'list-navigation') {
+        store.getState().activateTab(otherId)
+      }
+      listed.resolve()
+      expect(await running).toEqual({ status: 'created' })
+      expect(store.getState().getActiveTab(WORKTREE_ID)?.id).toBe(
+        action === 'unchanged' ? destId : otherId
+      )
+      expect(store.getState().getTab(destId)?.contentType).toBe('terminal')
+      expect(store.getState().getTab(sourceId)?.entityId).toBe('codex_source')
+    }
+  )
 })

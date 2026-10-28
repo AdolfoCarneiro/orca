@@ -1,6 +1,11 @@
+import {
+  agentSessionVisibleTabIndex,
+  listVisibleAgentSessionIds,
+  setAgentSessionTabVisibility,
+  showAgentSessionTabs
+} from './agent-session/agent-session-tab-table'
 import type { AgentSessionStoreState } from './agent-session-store-state'
 import type { AgentSessionStoreTransactions } from './agent-session-store-transactions'
-
 export abstract class AgentSessionRecordPublication {
   constructor(protected readonly transactions: AgentSessionStoreTransactions) {}
   abstract holdsRecords(): boolean
@@ -48,5 +53,53 @@ export abstract class AgentSessionRecordPublication {
       this.firstRecordListeners.forEach((listener) => listener())
     }
     return result
+  }
+
+  protected get state(): AgentSessionStoreState {
+    return this.transactions.state
+  }
+
+  listVisibleSessionIds = (): string[] => listVisibleAgentSessionIds(this.state)
+
+  getVisibleSessionTabIndex = (): { present: boolean; sessionIds: string[] } =>
+    agentSessionVisibleTabIndex(this.state)
+
+  getSessionTabId = (sessionId: string): string | null =>
+    this.state.sessionTabs?.tabIdFor(sessionId) ?? null
+
+  setSessionTabVisibility(
+    sessionId: string,
+    visible: boolean,
+    tabId?: string,
+    check?: () => void
+  ): Promise<void> {
+    return this.transact((draft) => {
+      check?.()
+      return setAgentSessionTabVisibility(draft, sessionId, visible, tabId)
+    })
+  }
+
+  setSwitchedSessionTabVisibility(
+    sessionId: string,
+    tabId: string,
+    visible: boolean,
+    admit: () => boolean
+  ): Promise<boolean> {
+    return this.transact((draft) => {
+      if (
+        (visible
+          ? draft.sessionTabs?.tabIdFor(sessionId) !== undefined
+          : draft.sessionTabs?.tabIdFor(sessionId) !== tabId) ||
+        !admit()
+      ) {
+        return false
+      }
+      setAgentSessionTabVisibility(draft, sessionId, visible, tabId)
+      return true
+    })
+  }
+
+  showSessionTabs(sessionIds: readonly string[]): Promise<void> {
+    return this.transact((draft) => showAgentSessionTabs(draft, sessionIds))
   }
 }

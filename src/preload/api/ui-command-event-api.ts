@@ -259,6 +259,7 @@ export type UiCommandEventApi = {
     callback: (data: {
       tabId: string
       worktreeId: string
+      viewerSelection?: string
       /** A notification click authorizes revealing the tab. */
       userInitiated?: boolean
     }) => void

@@ -1,11 +1,8 @@
+import type { SessionTerminationController } from './session-termination-controller'
 import type { SessionOutputPlane } from './session-output-plane'
-
 import type { TerminalShellRecoveryBarrier } from './terminal-shell-recovery-barrier'
-
 import type { SubprocessHandle, ChildProcessVerdictRead } from './session-subprocess-handle'
-
 import { SessionSwitchUse } from './session-switch-use'
-
 export abstract class SessionProcessInspection extends SessionSwitchUse {
   protected abstract subprocess: SubprocessHandle
   protected abstract readonly output: SessionOutputPlane
@@ -44,5 +41,23 @@ export abstract class SessionProcessInspection extends SessionSwitchUse {
 
   getCwd(): string | null {
     return this.output.getCwd()
+  }
+
+  protected abstract readonly termination: SessionTerminationController
+
+  signalTerminationRoot(): void {
+    this.termination.signalTerminationRoot()
+  }
+
+  scheduleForceDisposeFallback(): void {
+    this.termination.scheduleForceDisposeFallback()
+  }
+
+  async forceKillAndWaitForExit(timeoutMs?: number): Promise<void> {
+    await this.termination.forceKillAndWaitForExit(timeoutMs)
+  }
+
+  signal(sig: string): void {
+    this.termination.signal(sig)
   }
 }

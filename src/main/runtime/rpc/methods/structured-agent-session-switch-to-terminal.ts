@@ -14,7 +14,7 @@ import {
 } from './structured-agent-session-gate'
 import { SwitchToTerminalParams } from './structured-agent-session-schemas'
 
-// Prepare the ordinary same-id resume recipe before the ordered idle-only, proven-exit stop.
+// Prepare the ordinary same-id resume recipe, then join Stop and positive physical exit.
 
 export const STRUCTURED_AGENT_SESSION_SWITCH_TO_TERMINAL_METHODS = [
   defineMethod({

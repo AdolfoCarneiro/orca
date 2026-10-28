@@ -22,16 +22,17 @@ export async function executeStructuredSessionTerminalSwitch(
   host: StructuredAgentSessionHost,
   sessionId: string,
   deadline: ReturnType<typeof agentSessionSwitchDeadline>,
-  workCurrent: () => boolean,
-  execution: NonNullable<z.infer<typeof SwitchToTerminalParams>['execution']>
+  execution: NonNullable<z.infer<typeof SwitchToTerminalParams>['execution']>,
+  selectionCurrent: () => boolean
 ): Promise<AgentSessionSwitchResult> {
   const terminalExecution = SwitchToTerminalParams.parse(params).execution
   const sourceTabId = terminalExecution?.sourceTabId
+  let workCurrent = () => false
   const retire = ctx.runtime.captureSessionSwitchRetirement(
     record.location.workspaceId,
     sessionId,
     sourceTabId,
-    workCurrent,
+    () => workCurrent(),
     () => host.retainSwitch(sessionId),
     {
       invocationId: execution.invocationId,
@@ -41,6 +42,12 @@ export async function executeStructuredSessionTerminalSwitch(
       phase: 'prepare'
     }
   )
+  workCurrent = await host.stopForSwitch(
+    sessionId,
+    { callerKey: 'trusted-local:session-switch' },
+    deadline
+  )
+  host.guardSwitchWork(sessionId, workCurrent)
   const snapshot = await host.journalSnapshot(sessionId)
   deadline.check()
   const content = nativeConversationContent(snapshot)
@@ -66,11 +73,11 @@ export async function executeStructuredSessionTerminalSwitch(
       reason: 'transcriptNotFound'
     })
   }
-  await host.switchToTerminal(sessionId, deadline)
   deadline.check()
   const terminal = await ctx.runtime.createSessionSwitchTerminal(record.location.workspaceId, {
     invocationId: execution.invocationId,
     sessionId,
+    agent: record.provider,
     source: prepared?.cliForkSource,
     commandOverride: terminalExecution?.commandOverride,
     options: record.options,
@@ -79,7 +86,7 @@ export async function executeStructuredSessionTerminalSwitch(
     execution: {
       invocationId: execution.invocationId,
       signal: deadline.signal,
-      trackPhysical: (work) => host.trackSwitchPhysical(sessionId, work),
+      trackPhysical: (work, recover) => host.trackSwitchPhysical(sessionId, work, recover),
       remaining: deadline.remaining,
       check: () => {
         deadline.check()
@@ -89,14 +96,9 @@ export async function executeStructuredSessionTerminalSwitch(
           })
         }
       },
-      viewer: agentLaunchTabViewerRule(ctx, 'focused'),
-      shown: (pane) =>
-        host.presentSwitch(sessionId, {
-          ...pane,
-          surface: 'terminal',
-          sessionId,
-          agent: 'codex'
-        })
+      selectionCurrent,
+      viewerSelection: execution.viewerSelection,
+      viewer: agentLaunchTabViewerRule(ctx, 'focused')
     }
   })
   if (terminal.agentResumeRefused || terminal.agentResumeUnavailable) {

@@ -1,4 +1,3 @@
-import { inspectLocalPtyChildProcesses } from './local-pty-foreground-inspection'
 import type * as pty from 'node-pty'
 import { killWithDescendantSweep } from '../pty-descendant-termination'
 import { terminateShutdownDescendants } from '../daemon/terminal-descendant-shutdown'
@@ -204,10 +203,7 @@ async function shutdownTrackedPty(
               if (!switchCheck()) {
                 return false
               }
-              const evidence = switchOwnedSpawn
-                ? 'no-children'
-                : await inspectLocalPtyChildProcesses(id, true, false, true)
-              if (evidence !== 'no-children' || !switchCheck()) {
+              if (!switchOwnedSpawn || !switchCheck()) {
                 return false
               }
               const owner = ptyPhysicalExits.get(id)
@@ -220,8 +216,7 @@ async function shutdownTrackedPty(
           }
         : {}),
       terminateOwnedTree: () => terminatePtyJob(proc),
-      terminateDescendants:
-        switchCheck && !switchOwnedSpawn ? () => {} : terminateShutdownDescendants,
+      terminateDescendants: terminateShutdownDescendants,
       // Group SIGKILL must wait out the SIGTERM grace so agents can run exit hooks (Claude SessionEnd).
       awaitEscalation: () => operation.immediate
     })

@@ -25,8 +25,6 @@ import { deferredStructuredAgentSessionLogger } from './structured-agent-session
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import * as sleep from './structured-agent-session-workspace-sleep-stop'
 import type { StructuredAgentSessionExpiredStartup } from './structured-agent-session-startup-attempt'
-import * as switchAdmission from './structured-agent-session-switch-admission'
-import type { AgentSessionSwitchDeadline } from '../../../shared/agent-session-switch-execution'
 import { settleStructuredAgentSessionFailedStart } from './structured-agent-session-failed-start-settlement'
 import { createStructuredAgentSessionSwitchCommands } from './structured-agent-session-switch-commands'
 
@@ -268,34 +266,6 @@ export function createStructuredAgentSessionConversationLifetime(
         }
         await holdStopClose(sessionId, () => stopAgent(sessionId, { cause }))
       })
-    },
-    /** Idle admission and proven-exit stop share the session queue. */
-    switchToTerminal: (id: string, deadline?: AgentSessionSwitchDeadline): Promise<void> =>
-      serialize(id, () =>
-        switchAdmission.stopIdleStructuredAgentSessionForSwitch({
-          session: sessions.get(id),
-          delivering: host.deliveryActive(id),
-          idleSweep,
-          stop: async () => {
-            if (!deadline) {
-              return holdStopClose(id, () => stopAgent(id, { cause: 'user-close' }))
-            }
-            deadline.check()
-            await stopStructuredAgentSessionAgentUnderSerialize(
-              host.context(),
-              id,
-              { cause: 'user-close' },
-              deadline.check
-            )
-            deadline.check()
-            await closeConversation(id, false, true)
-          },
-          deps: deps(),
-          sessionId: id,
-          check: deadline?.check,
-          background: host.childWorkOpen(id),
-          ownCommand: deadline !== undefined
-        })
-      )
+    }
   }
 }

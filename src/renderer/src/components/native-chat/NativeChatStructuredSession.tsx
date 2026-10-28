@@ -23,11 +23,7 @@ import { useStructuredNativeChatSubmitReveal } from './use-structured-native-cha
 import { useStructuredPromptResponseHold } from './use-structured-prompt-response-hold'
 import { NativeChatStructuredQuestionCard } from './NativeChatStructuredQuestionCard'
 import { NativeChatStructuredAsyncQuestion } from './NativeChatStructuredAsyncQuestion'
-import {
-  selectNativeChatViewState,
-  structuredChatHistoryPhase,
-  structuredChatSwitchTranscriptState
-} from './native-chat-view-state'
+import { selectNativeChatViewState, structuredChatHistoryPhase } from './native-chat-view-state'
 import { useNativeChatRootInputRouting } from './use-native-chat-root-input-routing'
 import { useNativeChatFontSize } from './use-native-chat-font-size'
 import { useNativeChatFind } from './use-native-chat-find'
@@ -144,12 +140,7 @@ export function NativeChatStructuredSession(
   // Final read refusal replaces the pane because no existing action can succeed.
   const readFailedFinally = readFailure?.final === true
   const viewState = selectNativeChatViewState(session, { readRetries: !readFailedFinally })
-  const switchPresentation = useSwitchPresentation(
-    props.target,
-    props.sessionId,
-    props.isVisible,
-    structuredChatSwitchTranscriptState(controller, provisionalLaunch, viewState)
-  )
+  const switchPresentation = useSwitchPresentation(props.target, props.sessionId, props.isVisible)
   const paneActive = props.isVisible && props.isFocusedGroup
   useNativeChatFontSize(viewState.kind === 'ready' && paneActive, rootRef)
   const find = useNativeChatFind(paneActive, rootRef, composerRef, submits.messageListRef)

@@ -1,5 +1,12 @@
+import {
+  captureTerminalSurfaceIdentity,
+  isRetainedTerminalSurfaceIdentity
+} from '../../../../shared/terminal-tab-close'
 import { toast } from 'sonner'
-import { conversationSwitchSourceKept } from '@/lib/conversation-switch-feedback'
+import {
+  conversationSwitchFailureText,
+  conversationSwitchSourceKept
+} from '@/lib/conversation-switch-feedback'
 import {
   conversationSwitchChanged,
   isCliChatResumePending,
@@ -9,211 +16,160 @@ import { useAppStore } from '@/store'
 import { newAgentLaunchRequestId } from '@/lib/agent-launch-request-id'
 import { adoptAgentSessionLaunchVerdict } from '@/lib/agent-session-launch-plan'
 import { beginStructuredAgentSessionProvisionalLaunch } from '@/lib/agent-session/structured-agent-session-provisional-tab'
-import {
-  supportsInPlaceSwitch,
-  supportsStructuredAgentSessionCliSource
-} from '@/runtime/structured-agent-session-client'
 import { structuredAgentSessionTargetForHost } from '@/runtime/structured-agent-session-owner'
-import { waitForPromiseWithSignal } from '../../../../shared/abort-signal-reason'
-import { CLI_CONVERSATION_ADOPTING_AGENTS } from '../../../../shared/structured-agent-cli-conversation-adoption'
-import { toHostSessionPaneKey } from '../../../../shared/terminal-surface-id'
 import { resolveCliChatResumeSource, type CliChatResumeSource } from './cli-chat-resume-source'
-import { reportCliChatResumeFailure, startCliChatReturn } from './cli-chat-resume-feedback'
+import { reportCliChatResumeFailure } from './cli-chat-resume-feedback'
 import { adoptingAgentOnHost } from '../right-sidebar/ai-vault-session-resume-in-chat-launch'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import { captureSourceTerminal } from './cli-chat-resume-terminal-capture'
+import { agentSessionRefusalError } from '../../../../shared/agent-session-wire-refusals'
+import { captureConversationSwitchSelection } from '@/lib/conversation-switch-state'
 
-/** The execution host closes only the captured shell; refused or unknown closes leave it alone. */
-async function retireSwitchedTerminalPane(
-  expected: ReturnType<typeof captureSourceTerminal>
+/** Old peers stop the addressed PTY before ordinary adoption; a kill acknowledgement is never exit proof. */
+export async function runLegacyCliChatResume(
+  source: CliChatResumeSource,
+  viewerSelection?: string
 ): Promise<void> {
-  const captured = await expected
-  if (!captured?.presentation) {
-    throw new Error('terminal_close_unverifiable')
-  }
-  await callRuntimeRpc(captured.target, 'terminal.close', {
-    terminal: captured.handle,
-    expectedIncarnationId: captured.incarnationId,
-    originalPresentation: captured.presentation
-  })
-}
-
-const changed = conversationSwitchChanged
-const keyFor = (source: CliChatResumeSource) =>
-  [
-    source.executionHostId,
-    CLI_CONVERSATION_ADOPTING_AGENTS[source.agent],
-    source.providerSessionId
-  ].join('\0')
-/** Switches a terminal's conversation into a chat in the terminal's slot: a new chat, or the chat
- *  that already holds it, revealed. The terminal pane closes once the chat has it. */
-export async function runLegacyCliChatResume(source: CliChatResumeSource): Promise<void> {
-  const key = keyFor(source)
-  if (isCliChatResumePending(key) || source.hostUpdateRequired) {
-    return
-  }
+  const key = `${source.executionHostId}\0${source.agent}\0${source.providerSessionId}`
   const target = structuredAgentSessionTargetForHost(source.executionHostId)
-  if (!target) {
+  if (!target || source.hostUpdateRequired || isCliChatResumePending(key)) {
     return
+  }
+  const stillSelected = captureConversationSwitchSelection(viewerSelection)
+  const leafId = source.paneKey.slice(source.tabId.length + 1)
+  const rendererIdentity = captureTerminalSurfaceIdentity(
+    useAppStore.getState(),
+    source.workspaceId,
+    source.tabId,
+    leafId
+  )
+  const stillCaptured = () => {
+    const current = captureTerminalSurfaceIdentity(
+      useAppStore.getState(),
+      source.workspaceId,
+      source.tabId,
+      leafId
+    )
+    return (
+      rendererIdentity !== null &&
+      current !== null &&
+      isRetainedTerminalSurfaceIdentity(rendererIdentity, current)
+    )
   }
   const controller = new AbortController()
   const isCurrent = () => {
-    if (controller.signal.aborted) {
-      return false
-    }
     const current = resolveCliChatResumeSource(useAppStore.getState(), {
       tab: { id: source.tabId, worktreeId: source.workspaceId },
       paneKey: source.paneKey
     })
     return (
-      !!current &&
-      current.ptyId === source.ptyId &&
-      current.executionHostId === source.executionHostId &&
-      current.providerSessionId === source.providerSessionId &&
-      CLI_CONVERSATION_ADOPTING_AGENTS[current.agent] ===
-        CLI_CONVERSATION_ADOPTING_AGENTS[source.agent]
+      current?.ptyId === source.ptyId &&
+      current?.executionHostId === source.executionHostId &&
+      current?.providerSessionId === source.providerSessionId &&
+      current?.agent === source.agent
     )
-  }
-  if (!isCurrent()) {
-    return
-  }
-  const release = () => {
-    const operation = pending.get(controller)
-    if (operation?.key === key) {
-      operation.key = null
-      changed()
-    }
   }
   pending.set(controller, { key, source })
-  let stopSource = () => {}
-  let timer: ReturnType<typeof setTimeout> | undefined
-  let dispatched = false
-  const handoff = () => {
-    if (dispatched) {
-      return true
-    }
-    if (!isCurrent()) {
-      return false
-    }
-    dispatched = true
-    stopSource()
-    clearTimeout(timer)
-    return true
-  }
-  let inPlace = false
+  conversationSwitchChanged()
   try {
-    changed()
-    const sourceIncarnation = captureSourceTerminal(source)
-    stopSource = useAppStore.subscribe(() => {
-      if (!isCurrent()) {
-        controller.abort()
-        release()
-      }
-    })
-    timer = setTimeout(
-      () => controller.abort(new Error('Conversation preparation timed out.')),
-      30_000
+    const captured = await captureSourceTerminal(source)
+    const ptyId = captured?.presentation.identity.ptyId
+    if (!captured || !ptyId || !isCurrent()) {
+      throw stopUnknown()
+    }
+    if (!stillCaptured() || !stillSelected()) {
+      return
+    }
+    const agent = await adoptingAgentOnHost(
+      source.agent,
+      source.workspaceId,
+      source.executionHostId
     )
-    let retireSource = false
-    try {
-      await waitForPromiseWithSignal(sourceIncarnation, controller.signal)
-      if (!isCurrent()) {
-        return
-      }
-      inPlace = await waitForPromiseWithSignal(
-        supportsInPlaceSwitch(target, source.agent),
-        controller.signal
-      )
-      const cliSourceSupported = await waitForPromiseWithSignal(
-        supportsStructuredAgentSessionCliSource(target),
-        controller.signal
-      )
-      if (!isCurrent()) {
-        return
-      }
-      const agent = await waitForPromiseWithSignal(
-        adoptingAgentOnHost(source.agent, source.workspaceId, source.executionHostId),
-        controller.signal
-      )
-      if (!isCurrent()) {
-        return
-      }
-      const plan = adoptAgentSessionLaunchVerdict({
-        route: 'structured-native-chat',
-        requestId: newAgentLaunchRequestId(),
-        agent,
-        worktreeId: source.workspaceId,
-        executionHostId: source.executionHostId,
-        resumeFrom: {
-          providerSessionId: source.providerSessionId,
-          ...(cliSourceSupported
-            ? {
-                cliSource: {
-                  workspaceId: source.workspaceId,
-                  paneKey: toHostSessionPaneKey(source.paneKey)
-                }
-              }
-            : {})
-        }
-      })
-      const state = useAppStore.getState()
-      const group = state.groupsByWorktree[source.workspaceId]?.find((g) =>
-        g.tabOrder.includes(source.tabId)
-      )
-      const launch = beginStructuredAgentSessionProvisionalLaunch({
-        plan,
-        hooks: { beforeCreate: handoff },
-        afterTabId: source.tabId,
-        target: group
-          ? {
-              surfaceAddress: {
-                worktreeId: source.workspaceId,
-                targetGroupId: group.id,
-                precedingTabIds: group.tabOrder.slice(0, group.tabOrder.indexOf(source.tabId) + 1)
-              }
+    if (!isCurrent() || !stillCaptured() || !stillSelected()) {
+      return
+    }
+    const stopped = await callRuntimeRpc<{
+      stoppedPtyIds?: string[]
+      postStopVerified?: boolean
+      remainingLivePtyIds?: string[]
+    }>(captured.target, 'terminal.stopExact', {
+      worktree: `id:${source.workspaceId}`,
+      expectedPtyIds: [ptyId],
+      targetOnly: true,
+      keepHistory: true
+    }).catch(() => {
+      throw stopUnknown()
+    })
+    if (
+      !stopped ||
+      stopped.postStopVerified !== true ||
+      !Array.isArray(stopped.stoppedPtyIds) ||
+      stopped.stoppedPtyIds.length !== 1 ||
+      stopped.stoppedPtyIds[0] !== ptyId ||
+      (stopped.remainingLivePtyIds !== undefined &&
+        (!Array.isArray(stopped.remainingLivePtyIds) ||
+          stopped.remainingLivePtyIds.includes(ptyId)))
+    ) {
+      throw stopUnknown()
+    }
+    const current = resolveCliChatResumeSource(useAppStore.getState(), {
+      tab: { id: source.tabId, worktreeId: source.workspaceId },
+      paneKey: source.paneKey
+    })
+    if (current && !isCurrent()) {
+      return
+    }
+    const state = useAppStore.getState()
+    if (!stillCaptured() || !stillSelected()) {
+      return
+    }
+    const group = state.groupsByWorktree[source.workspaceId]?.find((row) =>
+      row.tabOrder.includes(source.tabId)
+    )
+    const plan = adoptAgentSessionLaunchVerdict({
+      route: 'structured-native-chat',
+      requestId: newAgentLaunchRequestId(),
+      agent,
+      worktreeId: source.workspaceId,
+      executionHostId: source.executionHostId,
+      resumeFrom: { providerSessionId: source.providerSessionId }
+    })
+    const launch = beginStructuredAgentSessionProvisionalLaunch({
+      plan,
+      hooks: { beforeCreate: stillCaptured },
+      canActivate: stillSelected,
+      afterTabId: source.tabId,
+      target: group
+        ? {
+            surfaceAddress: {
+              worktreeId: source.workspaceId,
+              targetGroupId: group.id,
+              precedingTabIds: group.tabOrder.slice(0, group.tabOrder.indexOf(source.tabId) + 1)
             }
-          : undefined,
-        deferPublication: true
-      })
-      if (!launch) {
-        return
-      }
-      const result = await waitForPromiseWithSignal(launch.settlement, controller.signal)
-      if (result.kind === 'structured' && inPlace) {
-        retireSource = await startCliChatReturn(source, result.sessionId, target)
-      } else if (
-        result.kind === 'failed' &&
-        !result.notified &&
-        pending.get(controller)?.key === key &&
-        (await reportCliChatResumeFailure(source, result.error, target))
-      ) {
-        retireSource = inPlace
-      }
-    } catch (error) {
-      if (
-        pending.get(controller)?.key === key &&
-        (await reportCliChatResumeFailure(source, error, target))
-      ) {
-        retireSource = inPlace
-      }
+          }
+        : undefined
+    })
+    if (!launch) {
+      return
     }
-    if (retireSource) {
-      try {
-        await retireSwitchedTerminalPane(sourceIncarnation)
-      } catch {
-        toast.info(conversationSwitchSourceKept(source.agent))
-      }
+    const result = await launch.settlement
+    if (result.kind === 'structured') {
+      // Old close envelopes cannot condition retirement on this captured incarnation after adoption.
+      toast.info(conversationSwitchSourceKept(source.agent))
+    } else if (result.kind === 'failed' && !result.notified) {
+      await reportCliChatResumeFailure(source, result.error, target, viewerSelection)
     }
+  } catch (error) {
+    // A stopped shell can cease being busy or disappear; that never turns proven Stop into a failure.
+    toast.error(
+      conversationSwitchFailureText(error, { agent: source.agent, direction: 'chat', source })
+    )
   } finally {
-    clearTimeout(timer)
-    stopSource()
-    try {
-      release()
-    } finally {
-      pending.delete(controller)
-      useAppStore.setState((state) => ({
-        agentConversationsByPaneKey: state.agentConversationsByPaneKey
-      }))
-    }
+    pending.delete(controller)
+    conversationSwitchChanged()
   }
+}
+
+function stopUnknown() {
+  return agentSessionRefusalError('agent_session_ownership_unknown', { reason: 'ownerUnproven' })
 }

@@ -1,8 +1,6 @@
-import type { SessionShellReadyBarrier } from './session-shell-ready-barrier'
 import { randomUUID } from 'node:crypto'
 
 export abstract class SessionSwitchUse {
-  protected abstract readonly shellReady: SessionShellReadyBarrier
   abstract get isTerminating(): boolean
   abstract beginTermination(): boolean
   private useRevision = 0
@@ -34,12 +32,12 @@ export abstract class SessionSwitchUse {
     const deadline = (witness?.anchor ?? -Infinity) + Math.max(0, condition.remainingMs)
     return () =>
       Boolean(
+        condition.ownedSpawn &&
         witness &&
         this.switchWitness === witness &&
         witness.token === condition.token &&
         witness.revision === this.useRevision &&
         performance.now() < deadline &&
-        (condition.ownedSpawn || !this.shellReady.hasPendingWrites) &&
         !this.isTerminating
       )
   }

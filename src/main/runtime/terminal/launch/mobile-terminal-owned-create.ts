@@ -225,6 +225,7 @@ export abstract class OrcaRuntimeWithCreateRuntimeOwnedMobileSessionTerminal ext
       existingSurface?.customTitle !== undefined
         ? existingSurface.customTitle
         : this.getPtyManualTitle(livePty.pty, false) || undefined
+    activate = activate && (opts.switchExecution?.selectionCurrent?.() ?? true)
     const tab: RuntimeMobileSessionTerminalTab = {
       type: 'terminal',
       id: `${parentTabId}::${leafId}`,

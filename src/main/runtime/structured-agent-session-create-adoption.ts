@@ -19,10 +19,10 @@ import type { StructuredAgentSessionHost } from '../native-chat/agent-session-wi
 import { listStructuredProviderSessionOwnership } from '../native-chat/agent-session-wire/structured-provider-session-ownership'
 import {
   findCommittedStructuredAgentSessionAdoptionReplay,
-  findConflictingStructuredAdoption,
   resolveStructuredAgentSessionAdoption,
   structuredAdoptionConflictError
 } from '../native-chat/structured-agent-session-history-adoption'
+import { keysMayMatch, terminalConversationKey } from '../native-chat/structured-conversation-key'
 import { structuredAgentRuntimeMetadata } from './structured-agent-runtime-metadata'
 import type {
   StructuredAgentTranscriptImport,
@@ -86,13 +86,33 @@ export function requireUnownedStructuredAgentSessionAdoption(input: {
   agent: StructuredAgentId
   providerSessionId: string
   selfSessionId: string
+  identity?: AgentSessionAttachParams
 }): void {
-  const conflict = input.host
-    ? findConflictingStructuredAdoption({
-        ...input,
-        ownership: listStructuredProviderSessionOwnership(input.host.deps.store.listConversations())
-      })
-    : null
+  const key = input.identity && {
+    ...terminalConversationKey(input.agent, input.providerSessionId),
+    home: input.identity.accountHome
+  }
+  const conflict =
+    input.host &&
+    listStructuredProviderSessionOwnership(input.host.deps.store.listConversations()).find(
+      (owner) => {
+        if (owner.sessionId === input.selfSessionId || owner.role !== 'head') {
+          return false
+        }
+        if (key && input.identity) {
+          const record = input.host?.deps.store.getRecord(owner.sessionId)
+          return (
+            keysMayMatch(owner.key, key) &&
+            record?.location.executionHostId === input.identity.location.executionHostId &&
+            record?.location.wslDistro === input.identity.location.wslDistro
+          )
+        }
+        return keysMayMatch(
+          owner.key,
+          terminalConversationKey(input.agent, input.providerSessionId)
+        )
+      }
+    )
   if (conflict) {
     throw structuredAdoptionConflictError(conflict)
   }

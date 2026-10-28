@@ -27,7 +27,7 @@ vi.mock('@/runtime/local-runtime-capabilities', () => ({
 }))
 afterEach(cleanup)
 it.each(['foreground', 'suspended'] as const)(
-  'keeps the real Claude legacy header/menu disabled for held %s work and available after exit',
+  'keeps the real Claude header/menu switchable during held %s work and after exit',
   (job) => {
     useAppStore.setState(useAppStore.getInitialState(), true)
     const paneKey = 'shell:3f2504e0-4f89-41d3-9a0c-0305e82c3301'
@@ -78,17 +78,17 @@ it.each(['foreground', 'suspended'] as const)(
         </DropdownMenu>
       </TooltipProvider>
     )
-    const header = screen.getByRole('button', { name: 'Resume in New Chat', hidden: true })
-    expect(header.hasAttribute('disabled')).toBe(true)
+    const header = screen.getByRole('button', { name: 'Switch to native chat', hidden: true })
+    expect(header.hasAttribute('disabled')).toBe(false)
     expect(
-      screen.getByRole('menuitem', { name: 'Resume in New Chat' }).getAttribute('aria-disabled')
-    ).toBe('true')
+      screen.getByRole('menuitem', { name: 'Switch to native chat' }).getAttribute('aria-disabled')
+    ).not.toBe('true')
     act(() =>
       useAppStore.getState().setPaneForegroundAgent(paneKey, { agent: null, shellForeground: true })
     )
     expect(header.hasAttribute('disabled')).toBe(false)
     expect(
-      screen.getByRole('menuitem', { name: 'Resume in New Chat' }).getAttribute('aria-disabled')
+      screen.getByRole('menuitem', { name: 'Switch to native chat' }).getAttribute('aria-disabled')
     ).not.toBe('true')
     expect(
       resolveCliChatResumeSource(useAppStore.getState(), {
@@ -126,3 +126,8 @@ it.each(['foreground', 'suspended'] as const)(
     ).toBe('Claude is open in another chat or terminal. Continue there, then try switching again.')
   }
 )
+
+vi.mock('@/components/confirmation-dialog-context', async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  useConfirmationDialog: () => vi.fn(async () => false)
+}))

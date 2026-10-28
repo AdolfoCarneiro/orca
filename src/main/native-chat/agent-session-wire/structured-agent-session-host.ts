@@ -1,4 +1,4 @@
-import { catchUpStructuredSessionAtRest } from './structured-agent-session-at-rest-catch-up'
+import { structuredAgentSessionSwitchSource } from './structured-agent-session-switch-source'
 import { continuationContextReader as contextReader } from './structured-agent-session-continuation-context'
 import type { AgentSessionRewindParams } from '../../../shared/agent-session-rewind'
 import { rewindStructuredAgentSession } from './structured-agent-session-rewind'
@@ -28,8 +28,10 @@ import * as conversation from './structured-agent-session-host-delivery'
 import { wireStructuredAgentSessionQueuedMessages as wireQueuedMessages } from './structured-agent-session-queued-wiring'
 import * as sessionLogger from './structured-agent-session-logger'
 import { StructuredAgentSessionHostContexts } from './structured-agent-session-host-contexts'
-import type { AgentSessionSwitchDeadline } from '../../../shared/agent-session-switch-execution'
-
+import {
+  agentSessionSwitchDeadline,
+  type AgentSessionSwitchDeadline
+} from '../../../shared/agent-session-switch-execution'
 // Serialize durable mutations per conversation; open at rest and start a child only when work needs it.
 
 export type { StructuredAgentSessionHostDeps } from './structured-agent-session-host-types'
@@ -176,30 +178,50 @@ export class StructuredAgentSessionHost extends StructuredAgentSessionHostContex
   /** Release resources; user-close cancels cut turns, while eviction leaves their failure reportable. */
   close: lifetime.StructuredAgentSessionConversationLifetime['close'] = (sessionId, cause) =>
     this.lifetime.close(sessionId, cause)
-  switchToTerminal: lifetime.StructuredAgentSessionConversationLifetime['switchToTerminal'] = (
-    ...args
-  ) => this.lifetime.switchToTerminal(...args)
+  switchToTerminal = async (sessionId: string, deadline?: AgentSessionSwitchDeadline) => {
+    const budget = deadline ?? agentSessionSwitchDeadline()
+    try {
+      await this.stopForSwitch(sessionId, { callerKey: 'trusted-local:session-switch' }, budget)
+    } finally {
+      if (!deadline) {
+        budget.dispose()
+      }
+    }
+  }
   runSwitch: lifetime.StructuredAgentSessionConversationLifetime['runSwitch'] = (...args) =>
     this.lifetime.runSwitch(...args)
   adoptSwitch = (from: string, to: string) => this.lifetime.adoptSwitch(from, to)
   switchGeneration = (id: string) => this.lifetime.switchGeneration(id)
   retainSwitch = (id: string) => this.lifetime.retainSwitch(id)
-  trackSwitchPhysical = <T>(id: string, work: Promise<T>) =>
-    this.lifetime.trackSwitchPhysical(id, work)
-  presentSwitch: lifetime.StructuredAgentSessionConversationLifetime['presentSwitch'] = (...args) =>
-    this.lifetime.presentSwitch(...args)
-  openedSwitch: lifetime.StructuredAgentSessionConversationLifetime['openedSwitch'] = (...args) =>
-    this.lifetime.openedSwitch(...args)
-  captureSwitchWork = (id: string, deadline: AgentSessionSwitchDeadline) => {
-    const count = this.deps.store.admittedSendCount(id)
-    return () =>
-      !deadline.signal.aborted &&
-      deadline.remaining() > 0 &&
-      this.deps.store.admittedSendCount(id) === count &&
-      !this.sessions.get(id)?.child &&
-      !this.conversationDelivery.loop.isRunning(id) &&
-      !this.runtimeState.startFlights.has(id)
-  }
+  guardSwitchWork = (id: string, current: () => boolean) =>
+    this.lifetime.guardSwitchWork(id, current)
+  trackSwitchPhysical = <T>(id: string, work: Promise<T>, recover?: () => Promise<void>) =>
+    this.lifetime.trackSwitchPhysical(id, work, recover)
+
+  /** Ordinary Stop owns interruption; only its captured child may be physically closed. */
+
+  private switchSource = () =>
+    structuredAgentSessionSwitchSource({
+      deps: this.deps,
+      cancel: this.cancel,
+      switchGeneration: this.switchGeneration,
+      now: this.now,
+      lifetime: this.lifetime,
+      sessions: this.sessions,
+      serialize: this.serialize,
+      subscribers: this.subscribers
+    })
+  stopForSwitch = (
+    ...args: Parameters<ReturnType<typeof structuredAgentSessionSwitchSource>['stopForSwitch']>
+  ) => this.switchSource().stopForSwitch(...args)
+  refreshSwitchTranscript = (
+    ...args: Parameters<
+      ReturnType<typeof structuredAgentSessionSwitchSource>['refreshSwitchTranscript']
+    >
+  ) => this.switchSource().refreshSwitchTranscript(...args)
+  captureSwitchWork = (
+    ...args: Parameters<ReturnType<typeof structuredAgentSessionSwitchSource>['captureSwitchWork']>
+  ) => this.switchSource().captureSwitchWork(...args)
   switchExecuting = (id: string) => this.lifetime.switchExecuting(id)
 
   supportsCreate = (location: AgentSessionExecutionLocation, agent: string): boolean =>
@@ -272,6 +294,7 @@ export class StructuredAgentSessionHost extends StructuredAgentSessionHostContex
   readOptions = this.mutations.readOptions
   /** A terminal's conversation moves into this chat: its agent starts and is ready, or why not. */
   switchToChat = this.mutations.switchToChat
+  openSwitchToChat = this.mutations.openSwitchToChat
 
   rewind = (caller: HostTypes.StructuredAgentSessionCaller, params: AgentSessionRewindParams) =>
     rewindStructuredAgentSession(this.mutationContext(), this.attachContext(), caller, params)
@@ -293,22 +316,6 @@ export class StructuredAgentSessionHost extends StructuredAgentSessionHostContex
   /** Full reduction: absence from a bounded page cannot prove a revised/tombstoned item is absent. */
   journalSnapshot = async (sessionId: string) =>
     (await this.lifetime.conversation(sessionId)).journal.snapshot()
-
-  refreshSwitchTranscript = async (
-    sessionId: string,
-    source: { sessionId: string; filePath: string },
-    deadline: AgentSessionSwitchDeadline
-  ) => {
-    const session = await this.lifetime.conversation(sessionId)
-    await catchUpStructuredSessionAtRest({
-      journal: session.journal,
-      threadId: source.sessionId,
-      filePath: source.filePath,
-      fence: this.deps.store.getRecord(sessionId)?.lease.runtimeFence ?? 0,
-      deadline
-    })
-    this.subscribers.publish(sessionId, session.journal)
-  }
 
   currentWork = this.clientDelivery.readCurrentWork
   readCurrentRequests: StructuredAgentSessionBackgroundTaskChannel['currentRequests'] = (...args) =>

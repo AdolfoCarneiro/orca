@@ -18,6 +18,7 @@ export type AgentSessionTabOpen = {
   targetGroupId?: string
   afterTabId?: string
   activate: boolean
+  canActivate?: () => boolean
   /** Today's draw, for a twin main may route to a paired server. */
   drawHere: () => Tab
 }
@@ -52,7 +53,7 @@ export function openAgentSessionTabThroughLayoutOwner(
     command: { type: 'openAgentSessionTab', tabId, sessionId, agent: open.agent, ...placement },
     facts: { label },
     shown: (shownId) => {
-      if (!open.activate) {
+      if (!open.activate || open.canActivate?.() === false) {
         return
       }
       // As the window's own open: the chat is selected in its group; the focused group stays.

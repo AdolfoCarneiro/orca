@@ -53,8 +53,9 @@ export function withAgentConversationRetention(
           write((state) => {
             const requested = typeof partial === 'function' ? partial(state) : partial
             if (
-              !Object.hasOwn(requested, 'agentConversationsByPaneKey') &&
-              !Object.hasOwn(requested, 'terminalLayoutsByTabId')
+              requested === state ||
+              (!Object.hasOwn(requested, 'agentConversationsByPaneKey') &&
+                !Object.hasOwn(requested, 'terminalLayoutsByTabId'))
             ) {
               return requested
             }

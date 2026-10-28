@@ -1,10 +1,6 @@
-import { windowListsTab } from '../terminal/surface/main-terminal-surfaces'
-import { isOriginalTerminalHandle } from '../workspace-session-terminal-tab-retirement-identity'
+import { OrcaRuntimeWithTerminalSwitchCloseCapture } from './terminal-switch-close-capture'
 import { NO_STOP } from './explicit-terminal-close-pty-stops'
-import {
-  matchesTerminalSurfaceCapture,
-  type TerminalSurfaceCloseCapture
-} from '../../../shared/terminal-tab-close'
+import type { TerminalSurfaceCloseCapture } from '../../../shared/terminal-tab-close'
 import type { WorktreePtyHostFence } from '../worktree-pty-host-fence'
 import type { RuntimeTerminalClose } from '../../../shared/runtime-types'
 import type { RuntimePtyTabCloseAuthority } from '../runtime-terminal-state-records'
@@ -14,14 +10,12 @@ import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import type { LayoutApplyReply } from '../../../shared/workspace-layout/workspace-layout-command-types'
 import type { WindowLayoutCommand } from '../runtime-layout-apply'
 import { closeMainOwnedPaneByHandle } from './main-handle-close'
-import { OrcaRuntimeWithExplicitTerminalTabClose } from './explicit-terminal-tab-close'
 import {
   closeTerminalOnPairedHost,
   getPairedHostTerminal,
   isTerminalTabPinnedInSession
 } from './paired-host-terminal-close'
-
-export abstract class OrcaRuntimeWithStopExplicitlyClosedTabPtys extends OrcaRuntimeWithExplicitTerminalTabClose {
+export abstract class OrcaRuntimeWithStopExplicitlyClosedTabPtys extends OrcaRuntimeWithTerminalSwitchCloseCapture {
   protected abstract getResolvedWorktreeMap(): Promise<Map<string, ResolvedWorktree>>
   abstract applyLayoutCommand(command: WindowLayoutCommand): Promise<LayoutApplyReply>
   protected abstract refreshPtyWorktreeRecordsFromController(
@@ -75,63 +69,36 @@ export abstract class OrcaRuntimeWithStopExplicitlyClosedTabPtys extends OrcaRun
         )
         return { handle, tabId: leaf.tabId, ...close }
       }
-      const source = originalPresentation.identity
-      const record = this.handles.get(handle)
-      const currentPty = source.ptyId ? this.ptysById.get(source.ptyId) : null
-      const leaf = this.leaves.get(this.getLeafKey(source.tabId, source.leafId))
-      if (
-        !source.ptyId ||
-        !incarnation ||
-        !isOriginalTerminalHandle({
-          runtimeId: this.runtimeId,
-          record,
-          currentPty,
-          paneOfPty: (current) => this.paneOfPty(current),
-          leaf,
-          source,
-          incarnation
-        }) ||
-        !matchesTerminalSurfaceCapture(
-          originalPresentation,
-          this.getWorkspaceSessionHostIdsForTab(source.worktreeId, source.tabId),
-          (hostId) => this.store?.getWorkspaceSession?.(hostId)
-        )
-      ) {
-        throw new Error('terminal_handle_stale')
-      }
-      const target = { kind: 'pane' as const, tabId: source.tabId, leafId: source.leafId }
-      const rendererOwnsPresentation = windowListsTab(this, this.tabs, source.tabId)
-      const proof = {
-        parentTabId: source.tabId,
-        leafId: source.leafId,
-        ptyId: source.ptyId,
-        terminal: handle,
-        incarnationId: incarnation
+      const captured = this.captureTerminalSwitchClose(
+        handle,
+        incarnation ?? '',
+        originalPresentation,
+        false
+      )
+      const target = {
+        kind: 'pane' as const,
+        tabId: originalPresentation.identity.tabId,
+        leafId: originalPresentation.identity.leafId
       }
       if (
-        this.resolveTerminalCloseTarget(source.worktreeId, target) === 'last-pane' &&
-        this.getWorkspaceSessionHostIdsForTab(source.worktreeId, source.tabId).some((hostId) =>
-          isTerminalTabPinnedInSession(this.store?.getWorkspaceSession?.(hostId), source)
+        this.resolveTerminalCloseTarget(originalPresentation.identity.worktreeId, target) ===
+          'last-pane' &&
+        this.getWorkspaceSessionHostIdsForTab(
+          originalPresentation.identity.worktreeId,
+          target.tabId
+        ).some((id) =>
+          isTerminalTabPinnedInSession(
+            this.store?.getWorkspaceSession?.(id),
+            originalPresentation.identity
+          )
         )
       ) {
         throw new Error('terminal_tab_pinned')
       }
-      const stop = await this.stopExplicitlyClosedTabPtys([source.ptyId], source.ptyId, incarnation)
-      if (!stop.stopped) {
-        throw new Error('terminal_close_unverifiable')
-      }
-      const outcome = await this.closeMobileSessionTab(`id:${source.worktreeId}`, source.tabId, {
-        originalPresentation,
-        rendererOwnsPresentation,
-        localPtyTeardownOwnedExternally: true,
-        retirementProofs: [proof]
-      })
-      if (outcome.refused) {
-        throw new Error('terminal_pane_close_failed')
-      }
-      this.claudeAgentTeams.removeTeamForLeaderHandle(handle)
-      return this.describeTerminalClose(handle, source.tabId, source.ptyId, stop)
+      await captured.stop()
+      return captured.retire()
     }
+
     if (incarnation && pty?.pty.incarnationId !== incarnation) {
       throw new Error('terminal_handle_stale')
     }

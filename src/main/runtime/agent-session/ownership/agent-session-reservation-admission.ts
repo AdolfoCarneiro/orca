@@ -4,6 +4,10 @@ import { agentSessionRefusalError } from '../../../../shared/agent-session-wire-
 import { assertAgentSessionOptionsAdmitted } from '../../agent-session-record-options'
 import { chatAgentsShareConversations } from '../../../../shared/structured-agent-cli-conversation-adoption'
 import {
+  keysMayMatch,
+  recordConversationKey
+} from '../../../native-chat/structured-conversation-key'
+import {
   agentSessionOperationKey,
   evaluateAgentSessionOperation,
   pendingAgentSessionOperationRow,
@@ -228,19 +232,25 @@ export function assertAdoptedConversationUnowned(
     return
   }
   const root = agentSessionProviderHandleRoot(adopted.handle)
+  const key = recordConversationKey(request, adopted)
   for (const record of listAgentSessionConversations(state)) {
     if (record.sessionId === request.sessionId) {
       continue
     }
     // Only the conversation a chat continues now: an earlier link no longer holds anything.
     const head = record.providerHandleChain.at(-1)
+    const headKey = head ? recordConversationKey(record, head) : null
     const holdsSameConversation =
       !!head &&
-      (agentSessionProviderHandleRoot(head.handle) === root ||
-        // One id from two chat agents that open the same conversations (`opencode`, `opencode2`).
-        (head.handle.transport === adopted.handle.transport &&
-          head.handle.nativeId === adopted.handle.nativeId &&
-          chatAgentsShareConversations(head.handle.agent, adopted.handle.agent)))
+      record.location.executionHostId === request.location.executionHostId &&
+      record.location.wslDistro === request.location.wslDistro &&
+      agentSessionAccountHomesEqual(record.accountHome, request.accountHome) &&
+      (key && headKey
+        ? keysMayMatch(headKey, key)
+        : agentSessionProviderHandleRoot(head.handle) === root ||
+          (head.handle.transport === adopted.handle.transport &&
+            head.handle.nativeId === adopted.handle.nativeId &&
+            chatAgentsShareConversations(head.handle.agent, adopted.handle.agent)))
     if (holdsSameConversation) {
       throw agentSessionRefusalError('agent_session_conflict', {
         reason: 'conversationHeldElsewhere',

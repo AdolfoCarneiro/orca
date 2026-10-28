@@ -132,7 +132,7 @@ export type RuntimeNotifier = {
   focusTerminal(tabId: string, worktreeId: string, leafId?: string | null): void
   /** Raises the window onto a pane it shows; resolves false when the window does not know the worktree. */
   revealTerminalPane?(target: TerminalPaneRevealTarget): Promise<boolean>
-  focusEditorTab?(tabId: string, worktreeId: string): void
+  focusEditorTab?(tabId: string, worktreeId: string, viewerSelection?: string): void
   closeSessionTab?(
     tabId: string,
     worktreeId: string,

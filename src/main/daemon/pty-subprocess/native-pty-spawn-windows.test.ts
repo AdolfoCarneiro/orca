@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { spawnNativeDaemonPty } from './native-pty-spawn'
+import { TerminalCreationWork } from '../terminal-creation-work'
 import {
   _resetConptyStartupTrustForTest,
   CONPTY_NO_INPUT_READER_NOTICE,
@@ -42,7 +43,13 @@ function fakePane(pid: number, chunks: string[], exitCode?: number) {
   const pane = {
     pid,
     kill: vi.fn(),
+    resume: vi.fn(),
     write: vi.fn(),
+    exit: (code: number) => {
+      for (const listener of exitListeners) {
+        listener({ exitCode: code })
+      }
+    },
     onData: (listener: (data: string) => void) => {
       dataListeners.add(listener)
       return { dispose: () => dataListeners.delete(listener) }
@@ -88,8 +95,10 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
 
   it('checks operation authority after loading the native module, before physical spawn', async () => {
     let allowed = true
+    const creationWork = new TerminalCreationWork()
     const starting = spawnNativeDaemonPty({
       ...args,
+      creationWork,
       assertCreateAllowed: () => {
         if (!allowed) {
           throw new Error('expired')
@@ -99,6 +108,8 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
     allowed = false
     await expect(starting).rejects.toThrow('expired')
     expect(nodePty.spawn).not.toHaveBeenCalled()
+    await creationWork.finish()
+    expect(await creationWork.completion).toEqual({ kind: 'no-fork' })
   })
 
   it('does not dispatch a fallback shell after the operation loses authority', async () => {
@@ -119,6 +130,68 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
     ).rejects.toThrow('primary refused')
     expect(nodePty.spawn).toHaveBeenCalledOnce()
   })
+
+  it('settles exact no-export native failure without trying another switch shell', async () => {
+    const creationWork = new TerminalCreationWork()
+    nodePty.spawn.mockImplementation(() => {
+      throw new Error('opaque native dispatch failure')
+    })
+    await expect(
+      spawnNativeDaemonPty({ ...args, creationWork, retainCanceledChild: true })
+    ).rejects.toThrow('opaque native dispatch failure')
+    await creationWork.finish()
+    expect(await creationWork.completion).toMatchObject({ kind: 'failed' })
+    expect(nodePty.spawn).toHaveBeenCalledOnce()
+  })
+
+  it.each(['physical', 'exited', 'unknown'] as const)(
+    'keeps every %s predecessor when a later native invocation fails',
+    async (predecessor) => {
+      const creationWork = new TerminalCreationWork()
+      const pane = healthyPane(999_999_999)
+      if (predecessor === 'unknown') {
+        pane.onExit = () => {
+          throw new Error('external listener failure')
+        }
+      }
+      nodePty.spawn.mockReturnValueOnce(pane)
+      await (predecessor !== 'unknown'
+        ? spawnNativeDaemonPty({ ...args, creationWork })
+        : expect(
+            spawnNativeDaemonPty({ ...args, windowsFallbackAttempts: [attempts[0]!], creationWork })
+          ).rejects.toThrow('external listener failure'))
+      if (predecessor === 'exited') {
+        pane.exit(0)
+      }
+      nodePty.spawn.mockImplementation(() => {
+        throw new Error('later no-export failure')
+      })
+      await expect(
+        spawnNativeDaemonPty({ ...args, creationWork, retainCanceledChild: true })
+      ).rejects.toThrow('later no-export failure')
+      await creationWork.finish()
+      const disposition = await creationWork.completion
+      if (predecessor === 'unknown') {
+        expect(disposition.kind).toBe('unknown')
+        return
+      }
+      if (disposition.kind !== 'failed') {
+        throw new Error('failed aggregate was collapsed')
+      }
+      let completed = false
+      void disposition.completion.then(() => {
+        completed = true
+      })
+      await Promise.resolve()
+      if (predecessor === 'physical') {
+        expect(completed).toBe(false)
+      }
+      expect(disposition.recover).toBeTypeOf('function')
+      pane.exit(0)
+      await disposition.completion
+      expect((await creationWork.completion).kind).toBe('failed')
+    }
+  )
 
   it('keeps a WSL pane out of a distro the internal allowlist excludes, falling back past it', async () => {
     vi.stubEnv('ORCA_INTERNAL_WSL_DISTRO_ALLOWLIST', 'orca-test-a')
@@ -163,7 +236,12 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
       }
       return proc
     })
-    const result = await spawnNativeDaemonPty(args)
+    const creationWork = new TerminalCreationWork()
+    const result = await spawnNativeDaemonPty({ ...args, creationWork })
+    await creationWork.finish()
+    // Ordinary fallback keeps the actual returned owner and earlier failed physical-unknown fact.
+    expect(await creationWork.completion).toMatchObject({ kind: 'failed' })
+    proc.exit(0)
     expect(nodePty.spawn.mock.calls.map(([file]) => file)).toEqual([
       'pwsh.exe',
       'powershell.exe',
@@ -179,9 +257,23 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
     // Measured on CI: such a pane prints its banner and prompt, then ignores every keystroke.
     const broken = fakePane(990001, ['Microsoft Windows [Version 10.0.20348]\r\n'])
     const healthy = fakePane(990002, ['\x1b[1t', '\x1b[c\x1b[?1004h', 'Microsoft Windows'])
+    broken.kill.mockImplementation(() => broken.exit(137))
     nodePty.spawn.mockReturnValueOnce(broken).mockReturnValueOnce(healthy)
-
-    const result = await spawnNativeDaemonPty(args)
+    const creationWork = new TerminalCreationWork()
+    const result = await spawnNativeDaemonPty({ ...args, creationWork, retainCanceledChild: true })
+    await creationWork.finish()
+    const disposition = await creationWork.completion
+    if (disposition.kind !== 'physical') {
+      throw new Error('native attempts lost their owners')
+    }
+    let completed = false
+    void disposition.completion.then(() => {
+      completed = true
+    })
+    await Promise.resolve()
+    expect(completed).toBe(false)
+    healthy.exit(0)
+    await disposition.completion
 
     expect(nodePty.spawn.mock.calls.map(([file]) => file)).toEqual(['pwsh.exe', 'pwsh.exe'])
     expect(ptyJob.terminatePtyJob).toHaveBeenCalledWith(broken)
@@ -191,6 +283,27 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
     expect(result.shellPath).toBe('pwsh.exe')
     expect(healthy.write).toHaveBeenCalledExactlyOnceWith('\x1b[?61;4c')
     expect(result.claimStartupEvents?.().data).toEqual(['\x1b[1t\x1b[?1004h'])
+  })
+
+  it('keeps failed after a retained ConPTY predecessor really exits before the native retry throws', async () => {
+    const creationWork = new TerminalCreationWork()
+    const broken = deadPane(999_999_999)
+    broken.kill.mockImplementation(() => broken.exit(137))
+    nodePty.spawn.mockReturnValueOnce(broken).mockImplementationOnce(() => {
+      throw new Error('retry exported no handle')
+    })
+    await expect(
+      spawnNativeDaemonPty({ ...args, creationWork, retainCanceledChild: true })
+    ).rejects.toThrow('retry exported no handle')
+    await creationWork.finish()
+    const disposition = await creationWork.completion
+    if (disposition.kind !== 'failed') {
+      throw new Error('failed retry was collapsed into exit')
+    }
+    await disposition.completion
+    expect(nodePty.spawn.mock.calls.map(([file]) => file)).toEqual(['pwsh.exe', 'pwsh.exe'])
+    expect(broken.kill).toHaveBeenCalledOnce()
+    expect(broken.write).not.toHaveBeenCalled()
   })
 
   it('respawns only once, then says so in the pane', async () => {

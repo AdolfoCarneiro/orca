@@ -9,6 +9,7 @@ it('anchors the commit on receiver preparation, so network and queued delay cons
   const receipt = preparations.prepareSwitch('pane', 'connection', 'prepare', 'click')
   now = 20
   const commit = preparations.commitSwitch('pane', 'connection', 'commit', {
+    contract: 'creation-settlement-v1',
     invocationId: 'click',
     anchor: receipt.anchor,
     remainingMs: 100
@@ -22,10 +23,33 @@ it('anchors the commit on receiver preparation, so network and queued delay cons
 it('rejects another connection and a reused anchor while the actual selected preparation remains owned', () => {
   const preparations = new DaemonPtySpawnPreparations(async () => {})
   const receipt = preparations.prepareSwitch('pane', 'connection', 'prepare', 'click')
-  const execution = { invocationId: 'click', anchor: receipt.anchor, remainingMs: 1000 }
+  const execution = {
+    contract: 'creation-settlement-v1',
+    invocationId: 'click',
+    anchor: receipt.anchor,
+    remainingMs: 1000
+  }
   expect(() => preparations.commitSwitch('pane', 'different', 'commit', execution)).toThrow()
   const selected = preparations.commitSwitch('pane', 'connection', 'commit', execution)
   expect(() => preparations.commitSwitch('pane', 'connection', 'duplicate', execution)).toThrow()
   expect(preparations.isCanceled(selected)).toBe(false)
   preparations.finish('pane', selected)
+})
+
+it('proves no fork by fencing its exact uncommitted anchor, never from a missing preparation', async () => {
+  const preparations = new DaemonPtySpawnPreparations(async () => {})
+  const identity = { invocationId: 'click', anchor: 'prepare' }
+  expect(await preparations.settle('pane', 'connection', 'commit', identity)).toEqual({
+    outcome: 'unknown'
+  })
+  preparations.prepareSwitch('pane', 'connection', 'prepare', 'click')
+  expect(await preparations.settle('pane', 'connection', 'commit', identity)).toEqual({
+    outcome: 'exited'
+  })
+  expect(() =>
+    preparations.commitSwitch('pane', 'connection', 'late-commit', {
+      ...identity,
+      remainingMs: 1000
+    })
+  ).toThrow()
 })

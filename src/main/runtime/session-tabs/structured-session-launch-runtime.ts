@@ -23,25 +23,6 @@ import type {
 } from '../../providers/pty-process-inspection'
 
 export abstract class OrcaRuntimeWithStructuredSessionLaunchRuntime extends OrcaRuntimeWithGetStructuredAgentSessionCreateSupport {
-  async closeSwitchedSourceTerminal(
-    terminal: string,
-    expectedIncarnationId: string,
-    condition: { token: string; remainingMs: number }
-  ): Promise<boolean> {
-    const leaf = this.resolveLiveLeafForHandle(terminal)
-    if (!leaf?.ptyId || !this.ptyController?.killFenced) {
-      return false
-    }
-    const result = await this.ptyController.killFenced({
-      id: leaf.ptyId,
-      expectedIncarnationId,
-      requireNoAgentOwner: true,
-      requireUnattached: false,
-      switchCondition: condition
-    })
-    return result.outcome === 'ended' || result.outcome === 'already_exited'
-  }
-
   async inspectTerminalProcess(
     terminalSelector: string,
     options?: PtyProcessInspectionOptions

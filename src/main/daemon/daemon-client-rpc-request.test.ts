@@ -167,7 +167,7 @@ describe('requestDaemonRpc', () => {
       onCreateCancellationFailure: vi.fn(),
       settleCreateCancellation: vi.fn(async () => ({ canceled: true }))
     })
-    await vi.advanceTimersByTimeAsync(6_000)
+    await vi.advanceTimersByTimeAsync(10)
     expect(pendingRequests.size).toBe(1)
     const actual = { isNew: true, switchOutcomeUnknown: true, incarnationId: 'actual-incarnation' }
     pendingRequests.settle({ id: 'switch-commit', ok: true, payload: actual })

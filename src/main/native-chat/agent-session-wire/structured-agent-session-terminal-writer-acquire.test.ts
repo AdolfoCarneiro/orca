@@ -2,6 +2,8 @@ import {
   assertCliConversationWritersExited,
   posixCliWriterShellAlone
 } from '../../runtime/structured-agent-cli-writers'
+import { appendAgentSessionProviderHandleLink } from '../../../shared/agent-session-provider-handle'
+import { agentSessionSwitchDeadline } from '../../../shared/agent-session-switch-execution'
 import type { AgentSessionRecord } from '../../../shared/agent-session-record'
 import type { SleepingAgentSessionRecord } from '../../../shared/agent-session-resume'
 const physicalSnapshot = vi.hoisted(() => vi.fn())
@@ -20,7 +22,10 @@ import { agentSessionRefusalError } from '../../../shared/agent-session-wire-ref
 import { agentSessionLeaseOwnerVerdict } from '../../../shared/agent-session-lease-adjudication'
 import { codexProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
 import type { AgentSessionRecordStore } from '../../runtime/agent-session-record-store'
-import { openTestAgentSessionRecordStore } from '../../runtime/agent-session-record-store-test-harness'
+import {
+  seedTestAgentSessionRecordStore,
+  openTestAgentSessionRecordStore
+} from '../../runtime/agent-session-record-store-test-harness'
 import {
   closeTestJournalHostDatabase,
   openTestJournalHostDatabase
@@ -203,7 +208,7 @@ it('switches an idle chat to its terminal and a racing send starts no second wri
   expect(acquire.mock.calls.length).toBe(spawnsBefore)
 })
 
-it('refuses a switch while the chat is starting, without aborting that start', async () => {
+it('stops a starting chat without granting an unproven terminal handoff', async () => {
   await host.close(SESSION, 'evict')
   let release = (): void => undefined
   const started = new Promise<void>((resolve) => {
@@ -217,11 +222,14 @@ it('refuses a switch while the chat is starting, without aborting that start', a
   })
   await send('starts the agent')
   await vi.waitFor(() => expect(signal).toBeDefined())
-  await expect(host.switchToTerminal(SESSION)).rejects.toMatchObject({
-    refusal: { details: { reason: 'turnActive' } }
-  })
-  expect(signal?.aborted).toBe(false)
-  release()
+  try {
+    await expect(host.switchToTerminal(SESSION)).rejects.toMatchObject({
+      refusal: { details: { reason: 'ownerUnproven' } }
+    })
+    expect(signal?.aborted).toBe(true)
+  } finally {
+    release()
+  }
 })
 
 // Terminal to chat: the chat's agent starts with no send, and only its ready provider is success.
@@ -284,6 +292,105 @@ it('retires only after an explicit admitted launch without stopping a later nati
   expect(host.collaboratorsForTests().sessions.get(SESSION)?.child).toBe(laterChild)
   expect(closeSession).toHaveBeenCalledTimes(closes)
 })
+
+it.each([10, 100])(
+  'retires distinct holders once despite %i matching resumed links',
+  async (count) => {
+    await host.switchToTerminal(SESSION)
+    await store.transitionHandoff(SESSION, (record) => {
+      let chain = record.providerHandleChain
+      for (let fence = 2; fence <= count; fence += 1) {
+        chain = appendAgentSessionProviderHandleLink(chain, {
+          ...chain.at(-1)!,
+          linkId: `retirement-link-${fence}`,
+          mintedAtFence: fence,
+          origin: 'resumed'
+        })
+      }
+      return {
+        ...record,
+        providerHandleChain: chain,
+        lease: { ...record.lease, runtimeFence: count }
+      }
+    })
+    const record = store.getRecord(SESSION)!
+    await seedTestAgentSessionRecordStore(root, {
+      records: [
+        record,
+        {
+          ...record,
+          sessionId: 'distinct-holder',
+          lease: { ...record.lease, sessionId: 'distinct-holder' }
+        },
+        {
+          ...record,
+          sessionId: 'wrong-workspace',
+          lease: { ...record.lease, sessionId: 'wrong-workspace' },
+          location: { ...record.location, workspaceId: 'another-workspace' }
+        },
+        {
+          ...record,
+          sessionId: 'wrong-host',
+          lease: { ...record.lease, sessionId: 'wrong-host' },
+          location: { ...record.location, executionHostId: 'ssh:another-host' }
+        },
+        {
+          ...record,
+          sessionId: 'strong-holder',
+          lease: { ...record.lease, sessionId: 'strong-holder' }
+        }
+      ]
+    })
+    store = await openTestAgentSessionRecordStore(root)
+    Object.assign(host.deps, { store })
+    setStructuredAgentSessionHost(host)
+    const held = Promise.withResolvers<void>()
+    const started = Promise.withResolvers<void>()
+    const deadline = agentSessionSwitchDeadline()
+    const strong = host.runSwitch(
+      'strong-holder',
+      'retirement-command',
+      deadline,
+      async () => {
+        started.resolve()
+        await held.promise
+        return { status: 'completed', sessionId: 'strong-holder' }
+      },
+      { direction: 'terminal' }
+    )
+    const visibility = vi.spyOn(host, 'setSessionTabVisibility')
+    const dismiss = vi.spyOn(host.restartResume, 'dismiss')
+    const runtime = { retireStructuredAgentSessionTabFromSnapshot: vi.fn(() => true) }
+    try {
+      await Promise.race([started.promise, strong])
+      await retireChatForAdmittedTerminalLaunch(
+        runtime,
+        {
+          resumeOrigin: 'switch',
+          worktreeId: record.location.workspaceId
+        },
+        {
+          savedResumeDecision: {
+            agent: 'codex',
+            providerSession: { key: 'session_id', id: THREAD },
+            verdict: 'admitted'
+          }
+        }
+      )
+      expect(visibility.mock.calls.map(([id]) => id)).toEqual([SESSION, 'distinct-holder'])
+      expect(dismiss.mock.calls).toEqual([[[SESSION]], [['distinct-holder']]])
+      expect(runtime.retireStructuredAgentSessionTabFromSnapshot.mock.calls).toEqual([
+        [SESSION],
+        ['distinct-holder']
+      ])
+      expect(closeSession).toHaveBeenCalledOnce()
+    } finally {
+      held.resolve()
+      await strong
+      deadline.dispose()
+    }
+  }
+)
 
 it.each(['ready', 'failed', 'closed', 'replaced'] as const)(
   'awaits provider open for the selected child, whose result is %s',

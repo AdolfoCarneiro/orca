@@ -1,3 +1,4 @@
+import { withSelectedChatTab } from '../agent-session/agent-session-tab-layout'
 import type { OrcaRuntimeWithScheduleMobileSessionTabsChanged as ScheduleMobileSessionTabsChangedMethods } from './session-tabs-change-publication'
 import { defaultAgentChatLabel } from '../../../shared/agent-session/agent-session-chat-label'
 import { getStructuredAgentSessionHost } from '../../native-chat/agent-session-wire/structured-agent-session-registry'
@@ -76,12 +77,48 @@ export abstract class OrcaRuntimeWithRestoreStructuredAgentSessionTabsOnce exten
     }
   }
 
+  captureSessionSwitchSelection(worktreeId?: string): () => boolean {
+    const worktrees = worktreeId
+      ? [worktreeId]
+      : [
+          ...new Set([
+            ...this.getKnownWorkspaceSessionWorktreeIds(),
+            ...this.mobileSessionTabsByWorktree.keys()
+          ])
+        ].sort()
+    for (const id of worktrees) {
+      this.hydrateHeadlessMobileSessionTabsFromWorkspaceSession(id)
+    }
+    const read = () => {
+      return JSON.stringify(
+        worktrees.map((id) => {
+          const snapshot = this.mobileSessionTabsByWorktree.get(id)
+          const session = this.getWorkspaceSessionForWorktree(id)
+          return [
+            snapshot?.activeTabId,
+            snapshot?.activeGroupId,
+            session?.activeTabIdByWorktree?.[id],
+            session?.activeGroupIdByWorktree?.[id],
+            session?.tabGroups?.[id]
+              ?.filter((group) => group.activeTabId != null)
+              .map((group) => [group.id, group.activeTabId]) ?? []
+          ]
+        })
+      )
+    }
+    const captured = read()
+    return () => captured === read()
+  }
+
   async publishStructuredAgentSessionTab(input: {
     workspaceId: string
     sessionId: string
     agent: StructuredAgentId
     activate: boolean
     check?: () => void
+    selectionCurrent?: () => boolean
+    viewerSelection?: string
+    focusWindow?: boolean
     notify?: boolean
     /** The host tab id a create reserved; a session that already has a tab keeps its own. */
     tabId?: string
@@ -89,7 +126,7 @@ export abstract class OrcaRuntimeWithRestoreStructuredAgentSessionTabsOnce exten
     placedByWindow?: boolean
     /** Where the creating paired client opens the chat. */
     /** A ChatTabPlacement, typed in place: this file is at its line limit. */
-    placement?: { groupId?: string; afterTabId?: string }
+    placement?: { groupId?: string; afterTabId?: string; index?: number }
   }): Promise<void> {
     const host = getStructuredAgentSessionHost()
     input.check?.()
@@ -130,7 +167,34 @@ export abstract class OrcaRuntimeWithRestoreStructuredAgentSessionTabsOnce exten
       this.saveWindowlessAgentSessionTab(input.workspaceId, input)
     }
     input.check?.()
-    this.projectStructuredAgentSessionTab(input)
+    const activate = input.activate && (input.selectionCurrent?.() ?? true)
+    this.projectStructuredAgentSessionTab({ ...input, activate })
+    if (activate) {
+      input.check?.()
+      if (!this.getAvailableAuthoritativeWindow()) {
+        const session = this.getWorkspaceSessionForWorktree(input.workspaceId)
+        const next =
+          session &&
+          withSelectedChatTab(
+            this.getWorkspaceSessionHostIdForWorktree(input.workspaceId),
+            session,
+            input.workspaceId,
+            input.sessionId
+          )
+        if (next) {
+          this.setWorkspaceSessionForWorktree(input.workspaceId, next)
+        }
+      }
+      if (input.focusWindow !== false) {
+        this.notifier?.focusEditorTab?.(
+          input.tabId ??
+            host?.getSessionTabId(input.sessionId) ??
+            `agent-session:${input.sessionId}`,
+          input.workspaceId,
+          input.viewerSelection
+        )
+      }
+    }
   }
 
   /** The runtime's own snapshot of a chat tab. Records nothing: the caller owns the store write. */

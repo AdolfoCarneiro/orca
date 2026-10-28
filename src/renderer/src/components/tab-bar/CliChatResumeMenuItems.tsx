@@ -1,3 +1,4 @@
+import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
 import { useConversationSwitchReadiness, runCliChatResume } from '@/lib/conversation-surface-switch'
 import { isNativeChatEnabled } from '../../../../shared/structured-native-chat-launch-route'
 import { useShallow } from 'zustand/react/shallow'
@@ -5,7 +6,7 @@ import { useAppStore } from '@/store'
 import { DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import { AiVaultSessionSurfaceSwitchMenuItems } from '../right-sidebar/AiVaultSessionSurfaceSwitchMenuItems'
-import { resolveCliChatResumeSource, useCliChatResumeCapability } from './cli-chat-resume-source'
+import { resolveCliChatResumeSource } from './cli-chat-resume-source'
 
 export function CliChatResumeMenuItems({
   tab,
@@ -17,7 +18,7 @@ export function CliChatResumeMenuItems({
   onComplete?: () => void
 }): React.JSX.Element | null {
   const source = useAppStore(useShallow((state) => resolveCliChatResumeSource(state, { tab })))
-  const capability = useCliChatResumeCapability(tab.worktreeId, source?.agent)
+  const confirm = useConfirmationDialog()
   const readiness = useConversationSwitchReadiness(
     source ? { direction: 'chat', ...source, source } : null
   )
@@ -29,7 +30,7 @@ export function CliChatResumeMenuItems({
     <>
       {leadingSeparator ? <DropdownMenuSeparator /> : null}
       <AiVaultSessionSurfaceSwitchMenuItems
-        action={capability === false ? 'resume' : 'switch'}
+        action="switch"
         switchLoading={!readiness.ready}
         switchExplanation={readiness.explanation}
         menuKind="dropdown"
@@ -37,7 +38,7 @@ export function CliChatResumeMenuItems({
         chatPending={readiness.pending}
         onResumeInNewChat={(event) => {
           event.preventDefault()
-          void runCliChatResume(source).finally(() => onComplete?.())
+          void runCliChatResume(source, confirm).finally(() => onComplete?.())
         }}
       />
     </>

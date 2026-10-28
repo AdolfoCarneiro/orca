@@ -1,6 +1,19 @@
+import { structuredAgentSessionTabId } from '../../../shared/structured-agent-session-projection'
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { applyWebSessionTabsSnapshot } from '@/runtime/web-session-tabs-sync/snapshot-api'
+import {
+  makeSnapshot,
+  resetWebSessionTabsSyncTestState
+} from '@/runtime/web-session-tabs-sync-test-harness'
+import { toWebTerminalSurfaceTabId } from '../../../shared/terminal-surface-id'
+import { createTabsSliceMockApi } from '../store/slices/tabs-slice-test-harness'
+import { captureConversationSwitchViewerSelection } from './conversation-switch-selection'
+import { publishAgentLaunchTab } from './agent-launch-tab-publication'
+import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
+import type { CliChatResumeSource } from '@/components/tab-bar/cli-chat-resume-source'
+import type * as SessionOwner from '@/runtime/structured-agent-session-owner'
 import { useAppStore } from '@/store'
 import { EMPTY_STRUCTURED_AGENT_SESSION } from '../../../shared/structured-agent-session-reducer'
 import type { StructuredAgentSessionReadSnapshot } from '@/components/native-chat/structured-agent-session-read-owner-contract'
@@ -11,32 +24,54 @@ import {
 } from './conversation-surface-switch'
 import { pendingNativeChatCliSwitches } from './pending-conversation-surface-switches'
 
-const mocks = vi.hoisted(() => ({
-  support: vi.fn(),
-  call: vi.fn(),
-  legacy: vi.fn(async () => {}),
-  refresh: vi.fn(async () => {}),
-  error: vi.fn(),
-  info: vi.fn(),
-  reader: vi.fn(),
-  listeners: new Set<() => void>(),
-  subscribe: (listener: () => void) => {
-    mocks.listeners.add(listener)
-    return () => mocks.listeners.delete(listener)
+const mocks = vi.hoisted(() => {
+  function makeTarget(): { current: RuntimeClientTarget } {
+    return { current: { kind: 'local' } }
   }
-}))
+  return {
+    target: makeTarget(),
+    support: vi.fn(),
+    rpc: vi.fn(),
+    capture: vi.fn(),
+    prepare: vi.fn(),
+    pairedRefresh: vi.fn(),
+    call: vi.fn(),
+    legacy: vi.fn(async () => {}),
+    refresh: vi.fn(async () => {}),
+    error: vi.fn(),
+    info: vi.fn(),
+    reader: vi.fn(),
+    listeners: new Set<() => void>(),
+    subscribe: (listener: () => void) => {
+      mocks.listeners.add(listener)
+      return () => mocks.listeners.delete(listener)
+    }
+  }
+})
 vi.mock('sonner', () => ({ toast: { error: mocks.error, info: mocks.info } }))
 vi.mock('@/runtime/structured-agent-session-client', () => ({
   supportsInPlaceSwitch: mocks.support,
   callStructuredAgentSession: mocks.call
 }))
-vi.mock('@/runtime/structured-agent-session-owner', () => ({
-  structuredAgentSessionTargetForHost: () => ({ kind: 'local' }),
-  executionHostIdForStructuredTarget: () => 'local'
+vi.mock('@/runtime/structured-agent-session-owner', async (original) => ({
+  ...(await original<typeof SessionOwner>()),
+  structuredAgentSessionTargetForHost: () => mocks.target.current
+}))
+vi.mock('@/runtime/runtime-rpc-client', async (original) => ({
+  ...(await original<object>()),
+  callRuntimeRpc: mocks.rpc
+}))
+vi.mock('@/components/tab-bar/cli-chat-resume-terminal-capture', () => ({
+  captureSourceTerminal: mocks.capture
+}))
+vi.mock('./ai-vault-session-resume-preparation', () => ({
+  prepareAiVaultSessionForResume: mocks.prepare
+}))
+vi.mock('@/runtime/web-runtime-session-snapshot', () => ({
+  refreshWebRuntimeSessionTabsSnapshot: mocks.pairedRefresh
 }))
 vi.mock('./in-place-switch-support', () => ({
-  useInPlaceSwitchRevision: () => 0,
-  inPlaceSwitchCapabilityNow: () => true
+  useInPlaceSwitchCapability: () => true
 }))
 vi.mock('@/runtime/structured-agent-session-status-feed', () => ({
   getStructuredAgentSessionStatusFeed: () => ({
@@ -60,7 +95,8 @@ vi.mock('@/runtime/local-structured-session-tabs-sync/inventory-refresh', () => 
   refreshLocalStructuredSessionWorktreeTabs: mocks.refresh
 }))
 vi.mock('@/components/right-sidebar/ai-vault-session-resume-in-chat-launch', () => ({
-  resumeAiVaultSessionInNewChat: mocks.legacy
+  resumeAiVaultSessionInNewChat: mocks.legacy,
+  adoptingAgentOnHost: async (agent: string) => agent
 }))
 
 const subject = {
@@ -73,10 +109,23 @@ const subject = {
 }
 beforeEach(() => {
   vi.clearAllMocks()
+  createTabsSliceMockApi()
+  resetWebSessionTabsSyncTestState()
+  mocks.target.current = { kind: 'local' }
+  mocks.rpc.mockResolvedValue({})
+  mocks.pairedRefresh.mockResolvedValue(undefined)
+  mocks.capture.mockResolvedValue({
+    handle: 'terminal-source',
+    incarnationId: 'incarnation',
+    presentation: {}
+  })
   mocks.reader.mockReturnValue(undefined)
   mocks.support.mockResolvedValue(true)
   mocks.call.mockResolvedValue({ status: 'completed', sessionId: subject.sessionId })
   useAppStore.setState(useAppStore.getInitialState(), true)
+  useAppStore.setState({
+    settings: { ...useAppStore.getState().settings!, experimentalNativeChat: true }
+  })
 })
 afterEach(() => {
   cleanup()
@@ -187,8 +236,8 @@ it.each(['chat', 'terminal'] as const)(
       }
       mocks.listeners.forEach((listener) => listener())
     })
-    expect(result.current.ready).toBe(false)
-    expect(result.current.explanation).toContain('Codex is replying')
+    expect(result.current.ready).toBe(true)
+    expect(result.current.explanation).toBeUndefined()
     act(() => {
       held = { ...held, current: false }
       mocks.listeners.forEach((listener) => listener())
@@ -198,7 +247,7 @@ it.each(['chat', 'terminal'] as const)(
   }
 )
 
-it('keeps suspended and live jobs disabled, with fg guidance only for suspension', () => {
+it('keeps suspended and live jobs available for Stop and switch', () => {
   const paneKey = 'terminal:leaf'
   const source = {
     tabId: 'terminal',
@@ -217,30 +266,363 @@ it('keeps suspended and live jobs disabled, with fg guidance only for suspension
   const { result } = renderHook(() =>
     useConversationSwitchReadiness({ ...subject, direction: 'chat', source })
   )
-  expect(result.current.ready).toBe(false)
-  expect(result.current.explanation).toContain('If you suspended a job, run fg and exit it')
+  expect(result.current.ready).toBe(true)
+  expect(result.current.explanation).toBeUndefined()
   act(() => {
     useAppStore.getState().setPaneForegroundAgent(paneKey, {
       agent: 'codex',
       shellForeground: false
     })
   })
-  expect(result.current.ready).toBe(false)
-  expect(result.current.explanation).toContain('Exit the job, then switch.')
-  expect(result.current.explanation).not.toContain('fg')
+  expect(result.current.ready).toBe(true)
+  expect(result.current.explanation).toBeUndefined()
 })
 
 it('formats real refusal categories once, with agent and next step, never raw errors or platform-wrong job control', async () => {
   const text = (reason: string, platform = 'darwin') =>
     conversationSwitchFailureText(null, { ...subject, platform }, reason)
-  expect(text('messagesUnsettled')).toContain('work waiting')
-  expect(text('ownerUnproven')).toContain('Restart Orca')
+  expect(text('ownerUnproven')).toContain('Check its open chats and terminals')
   expect(text('previousExitUnverifiable')).not.toContain('Restart')
-  expect(text('conversationOpenInTerminal')).toContain('If you suspended a job, run fg')
-  expect(text('conversationOpenInTerminal', 'win32')).not.toContain('fg')
   mocks.call.mockRejectedValue(new Error('secret raw transport/provider failure'))
   await runConversationSwitch({ ...subject, direction: 'chat' })
   expect(mocks.error).toHaveBeenCalledExactlyOnceWith(
     'Codex could not start in chat. Check its setup and try again.'
   )
 })
+
+it.each([false, true])(
+  'asks once for a live reply; consent=%s has only the authorized effects',
+  async (yes) => {
+    mocks.reader.mockReturnValue({
+      getSnapshot: () => ({
+        current: true,
+        state: {
+          ...EMPTY_STRUCTURED_AGENT_SESSION,
+          working: true,
+          latestTurn: { itemId: 'turn', observedAt: 1, turn: { turnId: 'turn', state: 'running' } }
+        }
+      })
+    })
+    const answer = Promise.withResolvers<boolean>()
+    const confirm = vi.fn(() => answer.promise)
+    const first = runConversationSwitch({ ...subject, confirm })
+    expect(await runConversationSwitch({ ...subject, confirm })).toBe(false)
+    expect(confirm).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        title: 'Codex is replying. Stop it and switch?',
+        compact: true
+      })
+    )
+    expect(mocks.support).not.toHaveBeenCalled()
+    expect(mocks.call).not.toHaveBeenCalled()
+    answer.resolve(yes)
+    expect(await first).toBe(yes)
+    expect(mocks.call).toHaveBeenCalledTimes(yes ? 1 : 0)
+    expect(mocks.refresh).toHaveBeenCalledTimes(yes ? 1 : 0)
+  }
+)
+
+it('does nothing with Chat UI off, including History and direct action dispatch', async () => {
+  useAppStore.setState({
+    settings: { ...useAppStore.getState().settings!, experimentalNativeChat: false }
+  })
+  expect(await runConversationSwitch(subject)).toBe(false)
+  expect(mocks.support).not.toHaveBeenCalled()
+  expect(mocks.call).not.toHaveBeenCalled()
+  expect(mocks.refresh).not.toHaveBeenCalled()
+})
+
+it.each(['claude', 'codex', 'grok', 'opencode', 'opencode2', 'pi'] as const)(
+  'dispatches idle %s once through the common host command, preserving configured commands',
+  async (agent) => {
+    const confirm = vi.fn()
+    useAppStore.setState({
+      settings: {
+        ...useAppStore.getState().settings!,
+        agentCmdOverrides: { [agent]: 'my-alias --option' }
+      }
+    })
+    expect(await runConversationSwitch({ ...subject, agent, confirm })).toBe(true)
+    expect(confirm).not.toHaveBeenCalled()
+    expect(mocks.call).toHaveBeenCalledExactlyOnceWith(
+      { kind: 'local' },
+      'agentSession.switchToTerminal',
+      expect.objectContaining({
+        sessionId: subject.sessionId,
+        execution: expect.objectContaining({ commandOverride: 'my-alias --option' })
+      }),
+      expect.any(Object)
+    )
+  }
+)
+it('keeps the disabled agent out of the switch contract', async () => {
+  expect(await runConversationSwitch({ ...subject, agent: 'omp' })).toBe(false)
+  expect(mocks.call).not.toHaveBeenCalled()
+})
+
+it.each(['support', 'Stop'] as const)(
+  'uses the original viewer through native %s and real terminal publication',
+  async (heldAt) => {
+    const source = useAppStore.getState().createUnifiedTab('workspace', 'agent-session', {
+      id: 'source',
+      entityId: subject.sessionId,
+      agentSessionAgent: 'codex'
+    })
+    const other = useAppStore.getState().createTab('workspace')
+    useAppStore.setState({ activeWorktreeId: 'workspace' })
+    useAppStore.getState().activateTab(source.id)
+    const original = captureConversationSwitchViewerSelection()
+    const held = Promise.withResolvers<void>()
+    if (heldAt === 'support') {
+      mocks.support.mockImplementation(async () => {
+        await held.promise
+        return true
+      })
+    }
+    mocks.call.mockImplementation(async (_target, _method, request) => {
+      if (heldAt === 'Stop') {
+        await held.promise
+      }
+      publishAgentLaunchTab({
+        requestId: 'publication',
+        tabId: 'destination-terminal',
+        leafId: 'destination-leaf',
+        worktreeId: 'workspace',
+        launchAgent: 'codex',
+        viewer: 'focus-in-workspace',
+        viewerSelection: request.execution.viewerSelection
+      })
+      return { status: 'completed', sessionId: subject.sessionId, terminal: 'destination-terminal' }
+    })
+    const running = runConversationSwitch(subject)
+    if (heldAt === 'Stop') {
+      await vi.waitFor(() => expect(mocks.call).toHaveBeenCalledOnce())
+    }
+    useAppStore.getState().setActiveTab(other.id)
+    held.resolve()
+    expect(await running).toBe(true)
+    expect(mocks.call.mock.calls[0][2].execution.viewerSelection).toBe(original)
+    expect(useAppStore.getState().getActiveTab('workspace')?.id).toBe(other.id)
+    expect(
+      useAppStore
+        .getState()
+        .tabsByWorktree.workspace.some((tab) => tab.id === 'destination-terminal')
+    ).toBe(true)
+  }
+)
+
+it.each(['unchanged', 'unchanged-retained', 'prepare-navigation', 'result-navigation'] as const)(
+  'paired generated chat request consumes canonical C at the real selection writer: %s',
+  async (action) => {
+    mocks.target.current = { kind: 'environment', environmentId: 'paired' }
+    const host = 'runtime:paired' as const
+    const leaf = '11111111-1111-4111-8111-111111111111'
+    const source = { id: toWebTerminalSurfaceTabId('host-source') }
+    const canonical = {
+      id: structuredAgentSessionTabId('codex_canonical-C'),
+      entityId: 'codex_canonical-C'
+    }
+    const other = { id: structuredAgentSessionTabId('codex_D') }
+    const canonicalRow = {
+      type: 'agent-session' as const,
+      id: `agent-session:${canonical.entityId}`,
+      sessionId: canonical.entityId,
+      agent: 'codex' as const,
+      title: 'Canonical',
+      isActive: false
+    }
+    const otherRow = {
+      type: 'agent-session' as const,
+      id: 'agent-session:codex_D',
+      sessionId: 'codex_D',
+      agent: 'codex' as const,
+      title: 'D',
+      isActive: false
+    }
+    const sourceRow = {
+      type: 'terminal' as const,
+      id: `host-source::${leaf}`,
+      parentTabId: 'host-source',
+      leafId: leaf,
+      terminal: 'source-process',
+      title: 'Source',
+      status: 'ready' as const,
+      isActive: true
+    }
+    const snapshot = (retired: boolean) =>
+      makeSnapshot(retired ? [canonicalRow, otherRow] : [sourceRow, canonicalRow, otherRow], {
+        worktree: 'workspace',
+        snapshotVersion: retired ? 2 : 1,
+        activeTabId: retired ? canonicalRow.id : sourceRow.id,
+        activeTabType: retired ? 'agent-session' : 'terminal',
+        tabGroups: [
+          {
+            id: 'host-group-1',
+            activeTabId: retired ? canonicalRow.id : 'host-source',
+            tabOrder: retired
+              ? [canonicalRow.id, otherRow.id]
+              : ['host-source', canonicalRow.id, otherRow.id]
+          }
+        ]
+      })
+    useAppStore.setState({ activeWorktreeId: 'workspace', activeWorkspaceExecutionHostId: host })
+    useAppStore.setState((state) => applyWebSessionTabsSnapshot(state, snapshot(false), 'paired'))
+    useAppStore.getState().activateTab(source.id)
+    const original = captureConversationSwitchViewerSelection()
+    const preparing = Promise.withResolvers<{
+      handle: string
+      incarnationId: string
+      presentation: object
+    }>()
+    mocks.capture.mockReturnValue(preparing.promise)
+    const listing = Promise.withResolvers<void>()
+    mocks.pairedRefresh.mockImplementation(async () => {
+      await listing.promise
+      useAppStore.setState((state) =>
+        applyWebSessionTabsSnapshot(state, snapshot(action !== 'unchanged-retained'), 'paired')
+      )
+    })
+    mocks.call.mockResolvedValue({ status: 'completed', sessionId: canonical.entityId })
+    const cli: CliChatResumeSource = {
+      agent: 'codex',
+      executionHostId: host,
+      workspaceId: 'workspace',
+      tabId: source.id,
+      paneKey: `${source.id}:leaf`,
+      ptyId: 'pty',
+      providerSessionId: 'saved-conversation'
+    }
+    const running = runConversationSwitch({
+      direction: 'chat',
+      executionHostId: host,
+      workspaceId: 'workspace',
+      agent: 'codex',
+      source: cli
+    })
+    await vi.waitFor(() => expect(mocks.capture).toHaveBeenCalledOnce())
+    if (action === 'prepare-navigation') {
+      useAppStore.getState().activateTab(other.id)
+    }
+    preparing.resolve({
+      handle: 'original-source',
+      incarnationId: 'original-incarnation',
+      presentation: {}
+    })
+    await vi.waitFor(() => expect(mocks.call).toHaveBeenCalledOnce())
+    const request = mocks.call.mock.calls[0][2]
+    expect(request.sessionId).not.toBe(canonical.entityId)
+    expect(request.execution.create.envelope.sessionId).toBe(request.sessionId)
+    expect(request.execution.create.resumeFrom.providerSessionId).toBe(cli.providerSessionId)
+    expect(request.execution.viewerSelection).toBe(original)
+    await vi.waitFor(() => expect(mocks.pairedRefresh).toHaveBeenCalledOnce())
+    if (action === 'result-navigation') {
+      useAppStore.getState().activateTab(other.id)
+    }
+    listing.resolve()
+    expect(await running).toBe(true)
+    expect(useAppStore.getState().getActiveTab('workspace')?.id).toBe(
+      action.startsWith('unchanged') ? canonical.id : other.id
+    )
+    expect(useAppStore.getState().getTab(canonical.id)?.entityId).toBe(canonical.entityId)
+    expect(mocks.rpc).toHaveBeenCalledTimes(action === 'unchanged-retained' ? 1 : 0)
+    if (action === 'unchanged-retained') {
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        mocks.target.current,
+        'session.tabs.activate',
+        expect.objectContaining({
+          tabId: `agent-session:${canonical.entityId}`,
+          navigation: 'caller',
+          notifyClients: false
+        })
+      )
+    }
+  }
+)
+
+it.each(['unchanged', 'result-navigation'] as const)(
+  'paired terminal result preserves caller selection and readable membership: %s',
+  async (action) => {
+    mocks.target.current = { kind: 'environment', environmentId: 'paired' }
+    const leaf = '11111111-1111-4111-8111-111111111111'
+    const sourceId = structuredAgentSessionTabId(subject.sessionId)
+    const destination = toWebTerminalSurfaceTabId('host-terminal')
+    const other = structuredAgentSessionTabId('codex_D')
+    const sourceRow = {
+      type: 'agent-session' as const,
+      id: `agent-session:${subject.sessionId}`,
+      sessionId: subject.sessionId,
+      agent: 'codex' as const,
+      title: 'Source',
+      isActive: true
+    }
+    const otherRow = {
+      type: 'agent-session' as const,
+      id: 'agent-session:codex_D',
+      sessionId: 'codex_D',
+      agent: 'codex' as const,
+      title: 'D',
+      isActive: false
+    }
+    const terminalRow = {
+      type: 'terminal' as const,
+      id: `host-terminal::${leaf}`,
+      parentTabId: 'host-terminal',
+      leafId: leaf,
+      terminal: 'new-process',
+      title: 'Destination',
+      status: 'ready' as const,
+      isActive: false
+    }
+    const snapshot = (published: boolean) =>
+      makeSnapshot(published ? [sourceRow, terminalRow, otherRow] : [sourceRow, otherRow], {
+        worktree: 'workspace',
+        snapshotVersion: published ? 2 : 1,
+        activeTabId: sourceRow.id,
+        activeTabType: 'agent-session',
+        tabGroups: [
+          {
+            id: 'host-group-1',
+            activeTabId: sourceRow.id,
+            tabOrder: published
+              ? [sourceRow.id, 'host-terminal', otherRow.id]
+              : [sourceRow.id, otherRow.id]
+          }
+        ]
+      })
+    useAppStore.setState({
+      activeWorktreeId: 'workspace',
+      activeWorkspaceExecutionHostId: 'runtime:paired'
+    })
+    useAppStore.setState((state) => applyWebSessionTabsSnapshot(state, snapshot(false), 'paired'))
+    useAppStore.getState().activateTab(sourceId)
+    const listed = Promise.withResolvers<void>()
+    mocks.pairedRefresh.mockImplementation(async () => {
+      await listed.promise
+      useAppStore.setState((state) => applyWebSessionTabsSnapshot(state, snapshot(true), 'paired'))
+    })
+    mocks.call.mockResolvedValue({
+      status: 'completed',
+      sessionId: subject.sessionId,
+      terminal: 'host-terminal',
+      sourceRetained: true
+    })
+    const running = runConversationSwitch({
+      ...subject,
+      executionHostId: 'runtime:paired',
+      chatTabId: sourceId
+    })
+    await vi.waitFor(() => expect(mocks.pairedRefresh).toHaveBeenCalledOnce())
+    if (action === 'result-navigation') {
+      useAppStore.getState().activateTab(other)
+    }
+    listed.resolve()
+    expect(await running).toBe(true)
+    expect(useAppStore.getState().getActiveTab('workspace')?.id).toBe(
+      action === 'unchanged' ? destination : other
+    )
+    expect(
+      useAppStore.getState().tabsByWorktree.workspace.some((tab) => tab.id === destination)
+    ).toBe(true)
+    expect(mocks.error).not.toHaveBeenCalled()
+  }
+)

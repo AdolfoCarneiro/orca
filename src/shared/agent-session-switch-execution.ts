@@ -11,18 +11,6 @@ export type AgentSessionSwitchResult =
       sessionId: string
       terminal?: string
       sourceRetained?: boolean
-      startupPending?: boolean
-    }
-  | {
-      status: 'present'
-      surface?: 'terminal'
-      leafId?: string
-      sessionId: string
-      generation: string
-      workspaceId: string
-      tabId: string
-      agent: 'codex'
-      placement?: { groupId?: string; afterTabId?: string }
     }
   | {
       status: 'refused' | 'uncertain'
@@ -30,13 +18,6 @@ export type AgentSessionSwitchResult =
       sessionId: string
       failureItemId?: string
     }
-
-export type AgentSessionSwitchReceipt = {
-  generation: string
-  shown: boolean
-  retained?: boolean
-  converged?: boolean
-}
 
 /** Expiry revokes new effects; already dispatched owners still reconcile their real outcome. */
 export function agentSessionSwitchDeadline(
@@ -110,11 +91,13 @@ export type AgentSessionSwitchDeadline = ReturnType<typeof agentSessionSwitchDea
 /** In-process authority; never serialize the callbacks as a transport permit. */
 export type AgentSessionSwitchAuthority = {
   invocationId: string
+  /** View freshness is independent of process authority. */
+  selectionCurrent?: () => boolean
   check: () => void
   remaining: () => number
   signal: AbortSignal
-  /** Existing physical acquisition only, excluding placement and presentation. */
-  trackPhysical?: <T>(work: Promise<T>) => Promise<T>
+  /** Existing acquisition/creation settlement only; logical failure never proves source exit. */
+  trackPhysical?: <T>(work: Promise<T>, recover?: () => Promise<void>) => Promise<T>
 }
 
 export type SessionSwitchProjection = {

@@ -32,6 +32,7 @@ export function launchAiVaultSessionInNewTab(args: {
   afterTabId?: string
   /** A chat's switch, whose ordinary spawn admits the resume; set only for a capable host. */
   resumeOrigin?: 'switch'
+  canActivate?: () => boolean
 }): LaunchAiVaultSessionInNewTabResult {
   const store = useAppStore.getState()
   const slot = args.afterTabId
@@ -69,11 +70,13 @@ export function launchAiVaultSessionInNewTab(args: {
         ...(args.launchConfig ? { agentArgs: args.launchConfig.agentArgs } : {}),
         activate: true
       },
-      { notifyFailure: false }
+      { notifyFailure: false, canActivate: args.canActivate }
     )
     const observedRuntimeLaunch = runtimeLaunch.then((outcome) => {
       if (outcome.status === 'created') {
-        useAppStore.getState().setActiveTabType('terminal', args.worktreeId)
+        if (args.canActivate?.() !== false) {
+          useAppStore.getState().setActiveTabType('terminal', args.worktreeId)
+        }
       } else if (splitGroupId) {
         // A refused or failed drop must not leave a blank pane behind.
         useAppStore.getState().closeEmptyGroup(args.worktreeId, splitGroupId)
@@ -83,8 +86,10 @@ export function launchAiVaultSessionInNewTab(args: {
     return { tabId: null, runtimeLaunch: observedRuntimeLaunch }
   }
 
+  const activate = args.canActivate?.() !== false
   const tab = store.createTab(args.worktreeId, sourceGroupId, undefined, {
     ...(split ? { split } : {}),
+    ...(activate ? {} : { activate: false, recordInteraction: false }),
     ...(args.cwd ? { startupCwd: args.cwd } : {}),
     pendingStartup: {
       command: args.command,
@@ -100,7 +105,9 @@ export function launchAiVaultSessionInNewTab(args: {
       }
     }
   })
-  store.setActiveTabType('terminal', args.worktreeId)
+  if (activate) {
+    store.setActiveTabType('terminal', args.worktreeId)
+  }
 
   persistAgentLaunchTabOrder(args.worktreeId, tab.id)
   if (slot && !split && (!args.targetGroupId || args.targetGroupId === slot.groupId)) {

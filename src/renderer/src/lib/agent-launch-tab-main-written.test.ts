@@ -1,3 +1,5 @@
+import { _resetLayoutFramePositionForTests } from '@/runtime/layout-frame-position'
+import { captureConversationSwitchViewerSelection } from './conversation-switch-selection'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as AgentStatusModule from '@/lib/agent-status'
 import type { AgentLaunchTabPublishRequest } from '../../../shared/agent-launch-tab-publication'
@@ -24,6 +26,8 @@ vi.mock('@/store', () => {
   return {
     useAppStore: {
       getState: () => current().getState(),
+      setState: (...args: Parameters<ReturnType<typeof createTestStore>['setState']>) =>
+        current().setState(...args),
       subscribe: (listener: () => void) => current().subscribe(listener)
     }
   }
@@ -87,6 +91,7 @@ const launchPane = () =>
   store.getState().tabsByWorktree[WT]?.find((tab) => tab.id === TAB_ID)?.agentLaunchPane
 
 beforeEach(() => {
+  _resetLayoutFramePositionForTests()
   store = createTestStore()
   testStore.current = store
   focusTerminalInitiatedTab.mockClear()
@@ -131,6 +136,7 @@ describe("a launch tab main wrote, in a layout-owner build's window", () => {
       worktreeId: WT,
       tabId: TAB_ID,
       leafId: LEAF_ID,
+      operationId: 'op-1',
       verdict: { kind: 'not-started', code: 'boom' }
     })
 
@@ -147,6 +153,7 @@ describe("a launch tab main wrote, in a layout-owner build's window", () => {
       worktreeId: WT,
       tabId: TAB_ID,
       leafId: LEAF_ID,
+      operationId: 'op-1',
       verdict: { kind: 'unconfirmed' }
     })
 
@@ -165,6 +172,7 @@ describe("a launch tab main wrote, in a layout-owner build's window", () => {
       worktreeId: WT,
       tabId: TAB_ID,
       leafId: LEAF_ID,
+      operationId: 'op-1',
       verdict: { kind: 'proceed' }
     })
 
@@ -174,7 +182,7 @@ describe("a launch tab main wrote, in a layout-owner build's window", () => {
     expect(agentLaunchPanePrompt(TAB_ID)).toBeNull()
   })
 
-  it('leaves the close of a withdrawn tab to main, and drops what it kept', () => {
+  it('withdraws an unused main-written projection and drops what it kept', () => {
     drawMainTab()
     keepAgentLaunchTabMainWrote(request({ prompt: 'fix the build' }))
 
@@ -182,10 +190,11 @@ describe("a launch tab main wrote, in a layout-owner build's window", () => {
       worktreeId: WT,
       tabId: TAB_ID,
       leafId: LEAF_ID,
+      operationId: 'op-1',
       verdict: { kind: 'withdrawn' }
     })
 
-    expect(store.getState().tabsByWorktree[WT]?.map((tab) => tab.id)).toEqual([TAB_ID])
+    expect(store.getState().tabsByWorktree[WT]?.map((tab) => tab.id)).toEqual([])
     expect(launchPane()).toBeUndefined()
     expect(agentLaunchPanePrompt(TAB_ID)).toBeNull()
   })
@@ -212,3 +221,21 @@ describe("a launch tab main wrote, in a layout-owner build's window", () => {
     expect(agentLaunchPanePrompt(TAB_ID)).toBeNull()
   })
 })
+
+it.each(['unchanged', 'navigate'] as const)(
+  'checks original viewer when main-written publication finally draws: %s',
+  (action) => {
+    const source = store.getState().createTab(WT)
+    const other = store.getState().createTab(WT)
+    store.getState().setActiveTab(source.id)
+    const viewerSelection = captureConversationSwitchViewerSelection()
+    keepAgentLaunchTabMainWrote(request({ viewer: 'focus-in-workspace', viewerSelection }))
+    if (action === 'navigate') {
+      store.getState().setActiveTab(other.id)
+    }
+    drawMainTab()
+    expect(launchPane()).toEqual({ leafId: LEAF_ID, operationId: 'op-1' })
+    expect(store.getState().getActiveTab(WT)?.id).toBe(action === 'unchanged' ? TAB_ID : other.id)
+    expect(focusTerminalInitiatedTab).toHaveBeenCalledTimes(action === 'unchanged' ? 1 : 0)
+  }
+)

@@ -62,6 +62,7 @@ const AGENT_START_CALLER_KEY = 'trusted-local:agent-start'
 
 export type StructuredAgentSessionStartClaim = {
   outcome: Promise<StructuredAgentSessionResumeOutcome>
+  ownsStart?: true
 }
 
 /** Claim under the ordered decision; wait outside its lane. */
@@ -69,7 +70,8 @@ export function claimStructuredAgentSessionAgent(
   context: StructuredAgentSessionAttachContext,
   sessionId: string,
   startedFor?: string,
-  check?: () => void
+  check?: () => void,
+  switchStart = false
 ): StructuredAgentSessionStartClaim {
   try {
     context.deps.store.requireWritableRecord(sessionId)
@@ -92,11 +94,14 @@ export function claimStructuredAgentSessionAgent(
     return { outcome: Promise.resolve({ ok: true }) }
   }
   return {
+    ownsStart: true,
     outcome: registerStructuredAgentSessionStart(
       context,
       sessionId,
       startedFor,
-      (lock, attemptId) => runStart(context, sessionId, startedFor, lock, attemptId, check)
+      (lock, attemptId) =>
+        runStart(context, sessionId, startedFor, lock, attemptId, check, switchStart),
+      switchStart
     )
   }
 }
@@ -124,11 +129,13 @@ export function startStructuredAgentSessionAgentForOperation(
 export function claimOperationStart(
   context: StructuredAgentSessionAttachContext,
   sessionId: string,
-  check?: () => void
+  check?: () => void,
+  switchStart = false
 ): StructuredAgentSessionStartClaim {
   check?.()
-  const claim = claimStructuredAgentSessionAgent(context, sessionId, undefined, check)
+  const claim = claimStructuredAgentSessionAgent(context, sessionId, undefined, check, switchStart)
   return {
+    ...claim,
     outcome: claim.outcome.catch((error: unknown) => {
       context.deps.logger.warn('starting the agent for an operation failed', {
         scope: 'operation-agent-start',
@@ -146,9 +153,10 @@ async function runStart(
   startedFor: string | undefined,
   lock: StructuredAgentSessionAttachLock,
   attemptId: string,
-  check?: () => void
+  check?: () => void,
+  switchStart = false
 ): Promise<StructuredAgentSessionResumeOutcome> {
-  if (context.waitSwitchPhysical) {
+  if (!switchStart && context.waitSwitchPhysical) {
     await lock.wait(context.waitSwitchPhysical(sessionId))
   }
   // Never start beside a closing child; unverifiable exit refuses the restart.

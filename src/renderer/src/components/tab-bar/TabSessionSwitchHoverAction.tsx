@@ -1,3 +1,4 @@
+import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
 import {
   useConversationSwitchReadiness,
   runCliChatResume,
@@ -9,9 +10,9 @@ import { MessagesSquare, SquareTerminal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
-import { useInPlaceSwitchCapability } from '@/lib/in-place-switch-support'
+import { inPlaceSwitchEnabled } from '../../../../shared/structured-agent-cli-conversation-adoption'
 import { AI_VAULT_AGENTS } from '../../../../shared/ai-vault-types'
-import { resolveCliChatResumeSource, useCliChatResumeCapability } from './cli-chat-resume-source'
+import { resolveCliChatResumeSource } from './cli-chat-resume-source'
 import {
   resolveNativeChatCliForkIdentity,
   type NativeChatTabSession
@@ -47,7 +48,7 @@ function ChatSwitchAction({
     useShallow((state) => resolveNativeChatCliForkIdentity(state, { tab, nativeChat }))
   )
   const agent = AI_VAULT_AGENTS.find((candidate) => candidate === nativeChat.agent)
-  const inPlace = useInPlaceSwitchCapability(chat?.executionHostScope, agent)
+  const confirm = useConfirmationDialog()
   const readiness = useConversationSwitchReadiness(
     chat && agent
       ? {
@@ -60,7 +61,7 @@ function ChatSwitchAction({
         }
       : null
   )
-  if (!chat || !agent || inPlace === false) {
+  if (!chat || !agent || !inPlaceSwitchEnabled(agent)) {
     return null
   }
   return (
@@ -71,6 +72,7 @@ function ChatSwitchAction({
       title={readiness.explanation}
       onClick={() =>
         void runNativeChatCliSwitch({
+          confirm,
           sessionId: chat.sessionId,
           workspaceId: chat.workspaceId,
           executionHostId: chat.executionHostScope,
@@ -91,11 +93,11 @@ function TerminalSwitchAction({
   tab: { id: string; worktreeId: string }
 }): React.JSX.Element | null {
   const source = useAppStore(useShallow((state) => resolveCliChatResumeSource(state, { tab })))
-  const capability = useCliChatResumeCapability(tab.worktreeId, source?.agent)
+  const confirm = useConfirmationDialog()
   const readiness = useConversationSwitchReadiness(
     source ? { direction: 'chat', ...source, source } : null
   )
-  if (!source || capability === false) {
+  if (!source || !inPlaceSwitchEnabled(source.agent)) {
     return null
   }
   return (
@@ -104,7 +106,7 @@ function TerminalSwitchAction({
       size="xs"
       disabled={!readiness.ready}
       title={readiness.explanation}
-      onClick={() => void runCliChatResume(source)}
+      onClick={() => void runCliChatResume(source, confirm)}
     >
       <MessagesSquare />
       {translate('components.tab.bar.switch.toNativeChat', 'Switch to native chat')}

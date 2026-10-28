@@ -90,6 +90,8 @@ async function runRestartDaemon(
     (legacy) => !legacy.hasRetiredForIdle()
   )
 
+  await currentOnly.settleSwitchWorkForReplacement()
+
   // Fan out exits before teardown: daemon shutdown does not deliver session exits to the renderer.
   const fallbackKilledCount =
     currentAdapter instanceof DegradedDaemonPtyProvider
@@ -183,8 +185,11 @@ async function runRestartDaemon(
     throw error
   }
 
+  newCurrent.inheritSwitchReleaseCleanup(currentOnly)
+
   // Dispose only old subscriptions after adoption; full disposal would kill shared legacy adapters.
   disposeProviderSubscriptionsOnly(currentAdapter)
+  currentOnly.dispose()
 
   replaceDaemonProvider(newProvider)
 

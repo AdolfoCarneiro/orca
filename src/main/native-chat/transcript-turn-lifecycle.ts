@@ -22,14 +22,15 @@ export type NativeChatTurnLifecycleDecoder = (
 ) => NativeChatTurnLifecycle | null
 
 export function nativeChatTurnLifecycleDecoderForAgent(
-  agent: AgentType
+  agent: AgentType,
+  explicitOnly = false
 ): NativeChatTurnLifecycleDecoder | null {
   const transcriptAgent = resolveNativeChatTranscriptAgent(agent)
   if (transcriptAgent === 'codex') {
     return decodeCodexTurnLifecycle
   }
   if (transcriptAgent === 'claude') {
-    return decodeClaudeTurnLifecycle
+    return (line, fallbackId) => decodeClaudeTurnLifecycle(line, fallbackId, explicitOnly)
   }
   return null
 }
@@ -71,7 +72,8 @@ function isClaudeTerminalStopReason(value: unknown): boolean {
 
 export function decodeClaudeTurnLifecycle(
   line: string,
-  fallbackId: string
+  fallbackId: string,
+  explicitOnly = false
 ): NativeChatTurnLifecycle | null {
   const record = parseJsonObject(line)
   if (!record) {
@@ -89,7 +91,8 @@ export function decodeClaudeTurnLifecycle(
     // Legacy rows may omit stop_reason; only complete prose without tool_use can supply that fallback.
     const isTerminal =
       isClaudeTerminalStopReason(stopReason) ||
-      (stopReason == null &&
+      (!explicitOnly &&
+        stopReason == null &&
         assistantHasRenderableContent(message) &&
         !assistantHasToolUse(message))
     if (isTerminal) {
@@ -166,4 +169,33 @@ function assistantHasToolUse(message: Record<string, unknown> | null): boolean {
     return false
   }
   return content.some((block) => asRecord(block)?.type === 'tool_use')
+}
+
+/** Pi persists explicit assistant stop reasons on the selected session branch. */
+export function decodePiTurnLifecycle(
+  line: string,
+  fallbackId: string
+): NativeChatTurnLifecycle | null {
+  const record = parseJsonObject(line)
+  const message = asRecord(record?.message)
+  if (record?.type !== 'message' || !message) {
+    return null
+  }
+  const turnId = extractString(record.id) ?? fallbackId
+  const timestamp = lifecycleTimestamp(record.timestamp)
+  if (message.role === 'user') {
+    return { state: 'working', turnId, timestamp }
+  }
+  if (message.role !== 'assistant') {
+    return null
+  }
+  const state =
+    message.stopReason === 'aborted'
+      ? 'interrupted'
+      : message.stopReason === 'error'
+        ? 'failed'
+        : message.stopReason === 'stop' || message.stopReason === 'length'
+          ? 'completed'
+          : null
+  return state ? { state, turnId, timestamp } : null
 }

@@ -572,33 +572,32 @@ describe('Session', () => {
     })
   })
 
-  describe('switch-only conditional ordinary close', () => {
-    it.each(['input', 'attachment', 'suspended child', 'unknown'] as const)(
-      'refuses without a signal when %s arrives during the final idle probe',
+  describe('unused owned-spawn conditional close', () => {
+    it.each(['input', 'attachment'] as const)(
+      'refuses without a signal when %s arrives during descendant capture',
       async (change) => {
         createSession()
         const witness = session.captureSwitchWitness()
-        const check = session.switchCloseCondition({ token: witness, remainingMs: 10_000 })
+        const check = session.switchCloseCondition({
+          token: witness,
+          remainingMs: 10_000,
+          ownedSpawn: true
+        })
         const entered = Promise.withResolvers<void>()
         const release = Promise.withResolvers<void>()
-        subprocess.inspectChildProcesses.mockImplementation(async () => {
-          entered.resolve()
-          await release.promise
-          return change === 'suspended child'
-            ? 'children'
-            : change === 'unknown'
-              ? 'unverifiable'
-              : 'no-children'
-        })
         killWithDescendantSweepMock.mockImplementation((pid, killRoot, options) =>
           sweep.killWithDescendantSweep(pid, killRoot, {
             ...options,
             platform: 'linux',
-            readTable: async () => ({ rows: [], capturedAtMs: Date.now() })
+            readTable: async () => {
+              entered.resolve()
+              await release.promise
+              return { rows: [], capturedAtMs: Date.now() }
+            }
           })
         )
         const teardown = new TerminalSessionTeardown(new Map([['test-session', session]]))
-        const closing = teardown.killSession('test-session', session, true, check)
+        const closing = teardown.killSession('test-session', session, true, check, true)
         await entered.promise
         if (change === 'input') {
           session.write('codex\r')
@@ -618,7 +617,11 @@ describe('Session', () => {
     it('seals accepted input only after its actual close is admitted', async () => {
       createSession()
       const witness = session.captureSwitchWitness()
-      const check = session.switchCloseCondition({ token: witness, remainingMs: 10_000 })
+      const check = session.switchCloseCondition({
+        token: witness,
+        remainingMs: 10_000,
+        ownedSpawn: true
+      })
       killWithDescendantSweepMock.mockImplementation((pid, killRoot, options) =>
         sweep.killWithDescendantSweep(pid, killRoot, {
           ...options,
@@ -634,7 +637,8 @@ describe('Session', () => {
         'test-session',
         session,
         true,
-        check
+        check,
+        true
       )
       expect(subprocess.written).not.toContain('must not reach a closing shell\r')
       expect(session.isAlive).toBe(false)

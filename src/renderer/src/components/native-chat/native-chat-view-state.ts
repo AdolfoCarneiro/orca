@@ -61,18 +61,3 @@ export function structuredChatHistoryPhase(
     ? 'unread'
     : 'known'
 }
-
-export function structuredChatSwitchTranscriptState(
-  controller: { readCurrent: boolean; status: 'idle' | 'loading' | 'ready' | 'error' },
-  provisionalLaunch: { launch: { kind: 'new' | 'resume' } | undefined },
-  viewState: NativeChatViewState
-): 'pending' | 'readable' | 'empty' | 'failed' {
-  return (controller.readCurrent || provisionalLaunch.launch?.kind === 'new') &&
-    (viewState.kind === 'ready' || viewState.kind === 'empty')
-    ? viewState.kind === 'empty'
-      ? 'empty'
-      : 'readable'
-    : controller.status === 'error'
-      ? 'failed'
-      : 'pending'
-}

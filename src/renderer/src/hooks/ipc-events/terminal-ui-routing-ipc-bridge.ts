@@ -1,3 +1,4 @@
+import { conversationSwitchViewerSelectionCurrent } from '@/lib/conversation-switch-selection'
 import type { SplitTerminalPaneDetail } from '@/constants/terminal'
 import { requestBackgroundTerminalWorktreeMount } from '@/components/terminal/background-terminal-worktree-mount'
 import {
@@ -150,7 +151,10 @@ export function registerTerminalUiRoutingIpcBridge(unsubs: (() => void)[]): void
   )
 
   unsubs.push(
-    window.api.ui.onFocusEditorTab(({ tabId, worktreeId, userInitiated }) => {
+    window.api.ui.onFocusEditorTab(({ tabId, worktreeId, userInitiated, viewerSelection }) => {
+      if (!conversationSwitchViewerSelectionCurrent(viewerSelection)) {
+        return
+      }
       const localTabId = resolveWindowTabIdForHostTab(worktreeId, tabId)
       const store = useAppStore.getState()
       const tab = (store.unifiedTabsByWorktree[worktreeId] ?? []).find(

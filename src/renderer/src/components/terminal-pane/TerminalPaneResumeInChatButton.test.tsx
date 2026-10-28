@@ -50,7 +50,7 @@ beforeEach(() => {
 })
 
 it.each([
-  ['claude', 'Resume in New Chat'],
+  ['claude', 'Switch to native chat'],
   ['codex', 'Switch to native chat']
 ] as const)('offers the %s action for the exact pane and shares pending', (agent, label) => {
   mocks.source.agent = agent
@@ -67,7 +67,7 @@ it.each([
     tab: { id: 'tab-1', worktreeId: 'wt-1' },
     paneKey: 'tab-1:leaf'
   })
-  expect(mocks.run).toHaveBeenCalledWith(mocks.source)
+  expect(mocks.run).toHaveBeenCalledWith(mocks.source, expect.any(Function))
   mocks.pending = true
   rerender(
     <TooltipProvider>
@@ -131,7 +131,7 @@ it('keeps an older host visible but disabled, telling the user to update it', as
     </TooltipProvider>
   )
   const button = screen.getByRole('button', {
-    name: 'Resume in New Chat. Update Orca on this host to continue in Chat UI.'
+    name: 'Switch to native chat. Update Orca on this host to continue in Chat UI.'
   })
   expect(button.hasAttribute('disabled')).toBe(true)
   const trigger = button.parentElement
@@ -143,3 +143,8 @@ it('keeps an older host visible but disabled, telling the user to update it', as
   ).toBeGreaterThan(0)
   expect(mocks.run).not.toHaveBeenCalled()
 })
+
+vi.mock('@/components/confirmation-dialog-context', async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  useConfirmationDialog: () => vi.fn(async () => false)
+}))

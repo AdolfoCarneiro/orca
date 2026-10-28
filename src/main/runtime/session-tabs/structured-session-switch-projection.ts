@@ -161,17 +161,13 @@ export abstract class OrcaRuntimeWithStructuredSessionSwitchProjection extends O
         await restore()
         return false
       }
-      if (
-        !snapshot?.tabs.some((tab) => tab.type === 'agent-session' && tab.sessionId === sessionId)
-      ) {
-        return false
-      }
-      const next = retireStructuredAgentSessionTabFrom(snapshot, sessionId)
+      const next = snapshot && retireStructuredAgentSessionTabFrom(snapshot, sessionId)
       if (next) {
         this.storeMobileSessionSnapshot(worktreeId, next)
         this.emitMobileSessionTabsSnapshot(next)
       }
       announce('retire')
+      host.notifySessionTabHidden(sessionId)
       return true
     }
   }

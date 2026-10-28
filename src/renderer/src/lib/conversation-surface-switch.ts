@@ -1,3 +1,12 @@
+import { adoptingAgentOnHost } from '@/components/right-sidebar/ai-vault-session-resume-in-chat-launch'
+import { translate } from '@/i18n/i18n'
+import { agentLabel } from '../../../shared/ai-vault-session-filters'
+import type { ConfirmationDialogContextValue } from '@/components/confirmation-dialog-context'
+import { isNativeChatEnabled } from '../../../shared/structured-native-chat-launch-route'
+import {
+  inPlaceSwitchEnabled,
+  adoptsCliConversations
+} from '../../../shared/structured-agent-cli-conversation-adoption'
 import { toHostSessionPaneKey } from '../../../shared/terminal-surface-id'
 import {
   captureSwitchProjection,
@@ -9,10 +18,6 @@ import {
   settleSwitchPresentation,
   type SwitchPresentationVisit
 } from './conversation-switch-presentation'
-import { publishAgentLaunchTab } from './agent-launch-tab-publication'
-import { openStructuredAgentSessionProvisionalTab } from './structured-agent-session-launch-surface'
-import { activateAndRevealWorkspace } from './worktree-activation'
-import { afterPendingTab } from '@/runtime/layout-owner-pending-tabs'
 import { parseExecutionHostId } from '../../../shared/execution-host'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
@@ -41,18 +46,26 @@ import {
 import { AgentSessionRefusalError } from '../../../shared/agent-session-wire-refusals'
 import { prepareAiVaultSessionForResume } from './ai-vault-session-resume-preparation'
 import type { CliChatResumeSource } from '@/components/tab-bar/cli-chat-resume-source'
+import { captureConversationSwitchViewerSelection } from './conversation-switch-selection'
+import { presentConversationSwitchResult } from './conversation-switch-result-selection'
 import { runLegacyConversationSwitch } from './conversation-switch-legacy'
 import {
   type ConversationSwitch,
   keyFor,
   pendingNow,
-  rederiveConversationSwitch
+  rederiveConversationSwitch,
+  conversationSwitchReplying
 } from './conversation-switch-state'
 
 export { conversationSwitchFailureText } from './conversation-switch-feedback'
 
-export function runCliChatResume(source: CliChatResumeSource): Promise<void> {
-  return runConversationSwitch({ direction: 'chat', ...source, source }).then(() => undefined)
+export function runCliChatResume(
+  source: CliChatResumeSource,
+  confirm?: ConfirmationDialogContextValue
+): Promise<void> {
+  return runConversationSwitch({ direction: 'chat', ...source, source, confirm }).then(
+    () => undefined
+  )
 }
 export function runNativeChatCliSwitch(
   args: Omit<ConversationSwitch, 'direction'> & { onComplete?: () => void }
@@ -63,9 +76,14 @@ export function runNativeChatCliSwitch(
 }
 
 export async function runConversationSwitch(args: ConversationSwitch): Promise<boolean> {
-  if (pendingNow(args)) {
+  if (
+    !isNativeChatEnabled(useAppStore.getState().settings) ||
+    !inPlaceSwitchEnabled(args.agent) ||
+    pendingNow(args)
+  ) {
     return false
   }
+  const viewerSelection = captureConversationSwitchViewerSelection()
   const platform = resolveWorktreeExecutionHostPlatform(
     useAppStore.getState(),
     args.workspaceId,
@@ -91,30 +109,47 @@ export async function runConversationSwitch(args: ConversationSwitch): Promise<b
   })
   conversationSwitchChanged()
   const invocationId = createBrowserUuid()
-  if (args.direction === 'terminal' && args.sessionId && args.chatTabId) {
-    captureSwitchProjection(
-      useAppStore.getState(),
-      args.workspaceId,
-      {
-        invocationId,
-        generation: invocationId,
-        sessionId: args.sessionId,
-        tabId: args.chatTabId,
-        phase: 'prepare'
-      },
-      () => {}
-    )
-  }
+  let consented = false
   let sent = false
-  let observing = false
   let presentation: SwitchPresentationVisit | undefined
   try {
+    if (conversationSwitchReplying(args)) {
+      const confirmed = await args.confirm?.({
+        title: translate(
+          'components.tab.bar.switch.stopAndSwitchTitle',
+          '{{agent}} is replying. Stop it and switch?',
+          { agent: agentLabel(args.agent) }
+        ),
+        confirmLabel: translate('components.tab.bar.switch.stopAndSwitch', 'Stop and switch'),
+        cancelLabel: translate('common.cancel', 'Cancel'),
+        compact: true,
+        ignoresOpeningGesture: true
+      })
+      if (!confirmed) {
+        return false
+      }
+    }
+    consented = true
+    if (args.direction === 'terminal' && args.sessionId && args.chatTabId) {
+      captureSwitchProjection(
+        useAppStore.getState(),
+        args.workspaceId,
+        {
+          invocationId,
+          generation: invocationId,
+          sessionId: args.sessionId,
+          tabId: args.chatTabId,
+          phase: 'prepare'
+        },
+        () => {}
+      )
+    }
     if (!(await deadline.wait(supportsInPlaceSwitch(target, args.agent, true)))) {
-      await runLegacyConversationSwitch(args, target)
+      await runLegacyConversationSwitch(args, target, viewerSelection)
       return false
     }
     let sessionId = args.sessionId
-    let execution: Record<string, unknown> = { invocationId }
+    let execution: Record<string, unknown> = { invocationId, viewerSelection }
     if (args.direction === 'chat' && args.source) {
       const captured = await deadline.wait(captureSourceTerminal(args.source))
       if (!captured) {
@@ -122,7 +157,9 @@ export async function runConversationSwitch(args: ConversationSwitch): Promise<b
       }
       const intent = createStructuredAgentSessionLaunchIntent(
         args.workspaceId,
-        'codex',
+        await deadline.wait(
+          adoptingAgentOnHost(args.source.agent, args.workspaceId, args.source.executionHostId)
+        ),
         args.source.executionHostId,
         {
           providerSessionId: args.source.providerSessionId,
@@ -130,7 +167,9 @@ export async function runConversationSwitch(args: ConversationSwitch): Promise<b
             workspaceId: args.workspaceId,
             paneKey: toHostSessionPaneKey(args.source.paneKey)
           }
-        }
+        },
+        undefined,
+        false
       )
       sessionId = intent.sessionId
       const group = useAppStore
@@ -150,11 +189,23 @@ export async function runConversationSwitch(args: ConversationSwitch): Promise<b
           originalPresentation: captured.presentation
         }
       }
-    } else if (args.direction === 'chat' && !sessionId && args.history) {
+    } else if (
+      args.direction === 'chat' &&
+      !sessionId &&
+      args.history &&
+      adoptsCliConversations(args.history.agent)
+    ) {
       const prepared = await deadline.wait(prepareAiVaultSessionForResume(args.history))
-      const intent = createStructuredAgentSessionLaunchIntent(args.workspaceId, 'codex', hostId, {
-        providerSessionId: prepared.sessionId
-      })
+      const intent = createStructuredAgentSessionLaunchIntent(
+        args.workspaceId,
+        await deadline.wait(adoptingAgentOnHost(args.history.agent, args.workspaceId, hostId)),
+        hostId,
+        {
+          providerSessionId: prepared.sessionId
+        },
+        undefined,
+        false
+      )
       sessionId = intent.sessionId
       execution = { ...execution, create: intent.params }
     } else if (args.direction === 'terminal') {
@@ -170,12 +221,12 @@ export async function runConversationSwitch(args: ConversationSwitch): Promise<b
     }
     const method =
       args.direction === 'chat' ? 'agentSession.switchToChat' : 'agentSession.switchToTerminal'
-    const invoke = (extra: Record<string, unknown> = {}) =>
+    const invoke = () =>
       deadline.wait(
         callStructuredAgentSession<AgentSessionSwitchResult>(
           target,
           method,
-          { sessionId, execution: { ...execution, ...extra } },
+          { sessionId, execution },
           {
             signal: deadline.signal,
             dispatchObservation: deadline.delegateSend,
@@ -186,55 +237,15 @@ export async function runConversationSwitch(args: ConversationSwitch): Promise<b
           }
         )
       )
-    let answer = await invoke()
-    if (answer.status === 'present') {
-      const view = answer
-      sessionId = answer.sessionId
-      if (view.surface !== 'terminal') {
-        presentation = beginSwitchPresentation(target, sessionId)
-      }
-      const opened =
-        view.surface === 'terminal' && view.leafId
-          ? {
-              id: publishAgentLaunchTab({
-                requestId: invocationId,
-                operationId: invocationId,
-                worktreeId: view.workspaceId,
-                tabId: view.tabId,
-                leafId: view.leafId,
-                launchAgent: view.agent,
-                viewMode: 'terminal',
-                placement: view.placement,
-                viewer: 'focus-window'
-              }).tabId
-            }
-          : openStructuredAgentSessionProvisionalTab({
-              worktreeId: answer.workspaceId,
-              executionHostId: hostId,
-              sessionId,
-              agent: answer.agent,
-              targetGroupId: answer.placement?.groupId,
-              afterTabId: answer.placement?.afterTabId,
-              activate: true
-            })
-      await deadline.wait(
-        new Promise<void>((resolve, reject) =>
-          afterPendingTab(opened.id, (id) => {
-            if (!id || activateAndRevealWorkspace(view.workspaceId) === false) {
-              reject(new Error('chat unavailable'))
-            } else {
-              resolve()
-            }
-          })
-        )
-      )
-      const shown = presentation ? await deadline.wait(presentation.shown) : true
-      answer = await invoke({ receipt: { generation: answer.generation, shown } })
+    if (args.direction === 'chat' && sessionId) {
+      presentation = beginSwitchPresentation(target, sessionId)
+    }
+    const answer = await invoke()
+    if (args.direction === 'chat' && answer.sessionId !== sessionId) {
+      presentation?.release()
+      presentation = beginSwitchPresentation(target, answer.sessionId)
     }
     if (answer.status !== 'completed') {
-      if (answer.status === 'present') {
-        throw new Error('chat unavailable')
-      }
       if (!presentation || reportSwitchPresentationFailure(presentation, answer.failureItemId)) {
         feedback(
           conversationSwitchFailureText(new AgentSessionRefusalError(answer.refusal), args),
@@ -243,56 +254,29 @@ export async function runConversationSwitch(args: ConversationSwitch): Promise<b
       }
       return false
     }
+    if (target.kind === 'environment') {
+      await presentConversationSwitchResult(args, target, answer, viewerSelection)
+    }
     if (answer.sourceRetained) {
       feedback(conversationSwitchSourceKept(args.agent), 'info')
     }
-    if (answer.startupPending) {
-      observing = true
-      const selectedVisit = presentation
-      void invoke({ observe: true })
-        .then((settled) => {
-          if (settled.status === 'completed' && settled.sourceRetained) {
-            feedback(conversationSwitchSourceKept(args.agent), 'info')
-          }
-          if (
-            (settled.status === 'refused' || settled.status === 'uncertain') &&
-            (!selectedVisit ||
-              reportSwitchPresentationFailure(selectedVisit, settled.failureItemId))
-          ) {
-            feedback(
-              conversationSwitchFailureText(new AgentSessionRefusalError(settled.refusal), args),
-              'error'
-            )
-          }
-        })
-        .catch((error: unknown) => {
-          if (deadline.signal.aborted) {
-            rederiveConversationSwitch({ ...args, sessionId })
-          }
-          if (!selectedVisit || reportSwitchPresentationFailure(selectedVisit)) {
-            feedback(conversationSwitchFailureText(error, args), 'error')
-          }
-        })
-        .finally(() => {
-          settleSwitchPresentation(selectedVisit)
-          deadline.dispose()
-        })
-    }
     return true
   } catch (error) {
-    feedback(conversationSwitchFailureText(error, args), 'error')
+    if (!presentation || reportSwitchPresentationFailure(presentation)) {
+      feedback(conversationSwitchFailureText(error, args), 'error')
+    }
     return false
   } finally {
     if (!sent) {
       releaseUnsentSwitchProjection(invocationId)
     }
-    if (!observing) {
-      settleSwitchPresentation(presentation)
-      deadline.dispose()
-    }
+    settleSwitchPresentation(presentation)
+    deadline.dispose()
     pending.delete(key)
     conversationSwitchChanged()
-    rederiveConversationSwitch(args)
+    if (consented) {
+      rederiveConversationSwitch(args)
+    }
   }
 }
 

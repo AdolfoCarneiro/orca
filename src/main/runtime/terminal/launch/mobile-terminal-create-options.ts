@@ -37,12 +37,7 @@ export type MobileTerminalCreateOptions = {
   signal?: AbortSignal
   switchExecution?: AgentSessionSwitchAuthority & {
     afterTabId?: string
-    shown?: (pane: {
-      workspaceId: string
-      tabId: string
-      leafId: string
-      placement?: { groupId?: string; afterTabId?: string }
-    }) => Promise<void>
     viewer: AgentLaunchTabViewerRule
+    viewerSelection?: string
   }
 }

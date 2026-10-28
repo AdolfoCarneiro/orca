@@ -13,7 +13,7 @@ export function beginTerminalHostFencedTermination(
   request: PtyFencedTerminationRequest,
   deps: {
     sessions: ReadonlyMap<string, Session>
-    pendingCreations: ReadonlyMap<string, Promise<void>>
+    pendingCreations: ReadonlyMap<string, unknown>
     owners: ClaimedAgentPtyOwnerRegistry
     kill: (
       id: string,
@@ -39,7 +39,7 @@ export function beginTerminalHostFencedTermination(
   if (request.requireUnattached && session.hasAttachedClients) {
     return { accepted: false, result: { outcome: 'refused', reason: 'attached' } }
   }
-  if (request.switchCondition && !request.switchCondition.ownedSpawn && session.wslDistro) {
+  if (request.switchCondition && !request.switchCondition.ownedSpawn) {
     return { accepted: false, result: { outcome: 'refused', reason: 'unsupported' } }
   }
   const physicalCheck = request.switchCondition

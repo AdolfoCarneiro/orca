@@ -47,6 +47,7 @@ export abstract class OrcaRuntimeWithWorktreePsDependencies extends OrcaRuntimeW
     record: AgentSessionRecord
   ): Promise<void>
   abstract isChatWorkerErrorEscalationEnabled(): boolean
+  abstract captureSessionSwitchStop: OrcaRuntimeWithGetPtyRecordForPaneKey['captureSessionSwitchStop']
   abstract onStructuredSessionTabHidden(
     ...args: Parameters<OrcaRuntimeWithGetPtyRecordForPaneKey['onStructuredSessionTabHidden']>
   ): ReturnType<OrcaRuntimeWithGetPtyRecordForPaneKey['onStructuredSessionTabHidden']>

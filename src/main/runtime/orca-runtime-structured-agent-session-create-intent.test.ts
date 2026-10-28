@@ -1,4 +1,3 @@
-import { agentSessionConversationView } from '../../shared/agent-session-conversation-view'
 import { prepareAdoptedTranscript } from '../native-chat/agent-session-wire/structured-agent-session-adopted-import'
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -10,8 +9,6 @@ vi.mock('../agent-workspace-trust', () => ({ applyAgentWorkspaceTrust }))
 
 import { OrcaRuntimeService } from './orca-runtime'
 import { setStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
-import type { StructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-host'
-import { agentSessionRecordFixture } from '../../shared/agent-session-record.test-fixture'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../shared/constants'
 import { attachFingerprintFields } from '../native-chat/agent-session-wire/structured-agent-session-attach'
 
@@ -103,72 +100,6 @@ describe('structured Codex folder trust', () => {
 })
 
 describe('structured agent-session create intent', () => {
-  it('returns the recorded owner, once no terminal still runs it, before launch support or account preparation', async () => {
-    const record = agentSessionRecordFixture()
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: early ownership admission only reads the host's record list.
-    setStructuredAgentSessionHost({
-      deps: { store: { listConversations: () => [agentSessionConversationView(record)] } }
-    } as unknown as StructuredAgentSessionHost)
-    const runtime = new OrcaRuntimeService()
-    const support = vi
-      .spyOn(runtime, 'getStructuredAgentSessionCreateSupport')
-      .mockRejectedValue(new Error('fresh launch is unavailable'))
-    const writers = vi
-      .spyOn(runtime, 'assertStructuredAdoptionTerminalWritersExited')
-      .mockResolvedValue()
-    await expect(
-      runtime.resolveStructuredAgentSessionCreateIntent({
-        envelope: { sessionId: 'new-chat', clientOperationId: 'operation-1' },
-        worktree: 'id:another-workspace',
-        agent: 'claude',
-        resumeFrom: { providerSessionId: 'provider-session-alpha-1' }
-      })
-    ).rejects.toMatchObject({
-      refusal: {
-        code: 'agent_session_conflict',
-        details: {
-          reason: 'conversationHeldElsewhere',
-          owner: { sessionId: record.sessionId, workspaceId: record.location.workspaceId }
-        }
-      }
-    })
-    expect(support).not.toHaveBeenCalled()
-    expect(writers).toHaveBeenCalledWith('claude', 'provider-session-alpha-1', undefined)
-  })
-
-  it('refuses a switch out of a live terminal before naming the chat that owns the conversation', async () => {
-    const record = agentSessionRecordFixture()
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: early ownership admission only reads the host's record list.
-    setStructuredAgentSessionHost({
-      deps: { store: { listConversations: () => [agentSessionConversationView(record)] } }
-    } as unknown as StructuredAgentSessionHost)
-    const runtime = new OrcaRuntimeService()
-    const writers = vi.spyOn(runtime, 'assertStructuredAdoptionTerminalWritersExited')
-    const intent = () =>
-      runtime.resolveStructuredAgentSessionCreateIntent({
-        envelope: { sessionId: 'new-chat', clientOperationId: 'operation-1' },
-        worktree: 'id:another-workspace',
-        agent: 'claude',
-        resumeFrom: {
-          providerSessionId: 'provider-session-alpha-1',
-          cliSource: { workspaceId: 'another-workspace', paneKey: 'pane-1' }
-        }
-      })
-    const liveWriter = Object.assign(new Error('live'), {
-      refusal: { code: 'agent_session_conflict', details: { reason: 'conversationHeldElsewhere' } }
-    })
-    writers.mockRejectedValueOnce(liveWriter)
-    await expect(intent()).rejects.toBe(liveWriter)
-    writers.mockResolvedValueOnce()
-    await expect(intent()).rejects.toMatchObject({
-      refusal: { details: { owner: { sessionId: record.sessionId } } }
-    })
-    expect(writers).toHaveBeenCalledWith('claude', 'provider-session-alpha-1', {
-      workspaceId: 'another-workspace',
-      paneKey: 'pane-1'
-    })
-  })
-
   it('pins the selected Codex launch home after normal launch preparation', async () => {
     const prepareCodexStructuredLaunch = vi.fn(() => '/accounts/selected/home')
     const runtime = new OrcaRuntimeService(
@@ -525,7 +456,8 @@ describe('adopting a conversation recorded outside Orca', () => {
         transcriptPath: file,
         source: {
           providerSessionId: '0198c2a4-7d1e-7c3a-9a4b-1f2e3d4c5b6a',
-          workspaceCwd: '/repos/workspace-1'
+          workspaceCwd: '/repos/workspace-1',
+          conversationStore: accountHome
         }
       })
 

@@ -63,7 +63,8 @@ export abstract class OrcaRuntimeWithMainLayoutAgentLaunchTabs extends OrcaRunti
   /** The launch's tab in main's layout; null for a workspace main does not own (today's path). */
   publishAgentLaunchTabInMainLayout(
     request: Omit<AgentLaunchTabPublishRequest, 'requestId'>,
-    check?: () => void
+    check?: () => void,
+    selectionCurrent?: () => boolean
   ): Promise<AgentLaunchTabPublished> | null {
     const { worktreeId, tabId, leafId, placement } = request
     if (!this.ownsLaunchTab(worktreeId, tabId)) {
@@ -103,7 +104,10 @@ export abstract class OrcaRuntimeWithMainLayoutAgentLaunchTabs extends OrcaRunti
       if (!landed) {
         throw new Error('agent_launch_tab_unplaced')
       }
-      this.showLaunchTabInWindow(request, { frameSeq: reply.frameSeq, created: !existed })
+      this.showLaunchTabInWindow(
+        { ...request, viewer: (selectionCurrent?.() ?? true) ? request.viewer : 'none' },
+        { frameSeq: reply.frameSeq, created: !existed }
+      )
       // A retry naming the same tab finds it: the launch made no tab, so it takes none back.
       if (existed) {
         return { tabId, created: false, placement: { groupId: landed } }

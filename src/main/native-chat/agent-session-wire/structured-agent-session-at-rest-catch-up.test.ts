@@ -6,6 +6,10 @@ import { agentSessionSwitchDeadline } from '../../../shared/agent-session-switch
 import { codexProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
 import { createTrackedJournalOpener } from '../agent-session-journal/journal-host-database-test-support'
 import { readCodexHistoryJournalView } from '../../codex/codex-history-journal-view'
+import {
+  captureSwitchStoppedCliTurn,
+  catchUpSwitchedCliTranscript
+} from './structured-agent-session-switch-import'
 import { catchUpStructuredSessionAtRest } from './structured-agent-session-at-rest-catch-up'
 
 const journals = createTrackedJournalOpener()
@@ -138,5 +142,45 @@ it.each([100, 1000])(
         elapsedMs: performance.now() - started
       })
     )
+  }
+)
+
+it.each([false, true])(
+  'commits explicit stopped-turn evidence through import, preserving a terminal verdict=%s',
+  async (completedBeforeExit) => {
+    let journal = await journals.open(options())
+    const filePath = join(root, 'stopped.jsonl')
+    const source = { agent: 'codex' as const, sessionId: threadId, filePath }
+    const deadline = agentSessionSwitchDeadline()
+    deadlines.push(deadline)
+    await writeFile(filePath, transcript(false))
+    const stopped = await captureSwitchStoppedCliTurn(source, true, deadline)
+    expect(stopped?.turnId).toBe('turn-cli-1')
+    if (completedBeforeExit) {
+      await writeFile(filePath, transcript(true))
+    }
+    await catchUpStructuredSessionAtRest({
+      journal,
+      threadId,
+      filePath,
+      fence: 1,
+      deadline,
+      stoppedTurnId: stopped?.turnId
+    })
+    await catchUpSwitchedCliTranscript({ journal, source, fence: 1, deadline, stopped })
+    const snapshot = journal.snapshot()
+    expect(
+      snapshot.items.filter((item) => item.body.kind === 'turn').map((item) => item.body)
+    ).toEqual([
+      expect.objectContaining({
+        turnId: 'turn-cli-1',
+        state: completedBeforeExit ? 'completed' : 'interrupted'
+      })
+    ])
+    expect(snapshot.items.filter((item) => item.body.kind === 'message')).toHaveLength(2)
+    await journal.close()
+    journal = await journals.open(options())
+    await catchUpSwitchedCliTranscript({ journal, source, fence: 1, deadline, stopped })
+    expect(journal.snapshot()).toEqual(snapshot)
   }
 )

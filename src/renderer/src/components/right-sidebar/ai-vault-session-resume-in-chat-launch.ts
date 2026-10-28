@@ -1,3 +1,4 @@
+import { conversationSwitchViewerSelectionCurrent } from '@/lib/conversation-switch-selection'
 import { toast } from 'sonner'
 import {
   parseRoutableExecutionHostId,
@@ -55,7 +56,8 @@ export async function resumeAiVaultSessionInNewChat(
   rowAgent: CliConversationRowAgent,
   worktreeId: string,
   requestId: AgentLaunchRequestId,
-  replacing?: AiVaultChatReplacement
+  replacing?: AiVaultChatReplacement,
+  viewerSelection?: string
 ): Promise<void> {
   try {
     const recordingHost = parseRoutableExecutionHostId(session.executionHostId)
@@ -86,12 +88,18 @@ export async function resumeAiVaultSessionInNewChat(
     const launch = beginStructuredAgentSessionProvisionalLaunch({
       plan,
       hooks: {},
+      ...(viewerSelection !== undefined
+        ? { canActivate: () => conversationSwitchViewerSelectionCurrent(viewerSelection) }
+        : {}),
       ...(replacing
         ? { afterTabId: replacing.afterTabId, focusIntent: replacing.focusIntent }
         : {}),
       beforeOpen: waitForCreate
         ? undefined
         : () => {
+            if (!conversationSwitchViewerSelectionCurrent(viewerSelection)) {
+              return true
+            }
             if (
               useAppStore.getState().activeWorktreeId !== worktreeId ||
               structuredLaunchOwner({ route: 'structured-native-chat' }, worktreeId)
@@ -109,6 +117,7 @@ export async function resumeAiVaultSessionInNewChat(
     void launch.settlement.then((settlement) => {
       const state = useAppStore.getState()
       if (
+        conversationSwitchViewerSelectionCurrent(viewerSelection) &&
         waitForCreate &&
         settlement.kind === 'structured' &&
         state.activeWorktreeId !== worktreeId &&

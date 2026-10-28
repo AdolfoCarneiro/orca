@@ -77,6 +77,14 @@ export class DaemonClientConnections {
     socket.on('data', (chunk) => parser.feed(decoder.write(chunk)))
   }
 
+  matchesEndpoint(identity: { pid: number; startedAtMs: number; launchNonce: string }): boolean {
+    return (
+      identity.pid === process.pid &&
+      identity.startedAtMs === this.options.identity.startedAtMs &&
+      identity.launchNonce === this.options.identity.launchNonce
+    )
+  }
+
   get(clientId: string): ConnectedDaemonClient | undefined {
     return this.clients.get(clientId)
   }

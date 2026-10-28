@@ -86,7 +86,10 @@ export abstract class OrcaRuntimeWithRunCreateMobileSessionTerminal extends Orca
     let destinationCurrent = () => {}
     let dispatched = false
     let targetGroupId = opts.targetGroupId
-    const createOwned = (identity?: { tabId: string; leafId: string }) =>
+    const createOwned = (
+      identity?: { tabId: string; leafId: string },
+      trackPhysical = opts.switchExecution?.trackPhysical
+    ) =>
       this.createRuntimeOwnedMobileSessionTerminal(
         worktreeId,
         opts.activate !== false,
@@ -130,6 +133,7 @@ export abstract class OrcaRuntimeWithRunCreateMobileSessionTerminal extends Orca
           switchExecution: opts.switchExecution
             ? {
                 ...opts.switchExecution,
+                trackPhysical,
                 check: () => {
                   opts.switchExecution?.check()
                   destinationCurrent()

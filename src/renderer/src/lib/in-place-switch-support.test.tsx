@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+import { useConversationSwitchReadiness } from './conversation-surface-switch'
+import { supportsInPlaceSwitch } from '@/runtime/structured-agent-session-client'
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
@@ -10,7 +12,7 @@ import { createCompatibleRuntimeStatusResponse } from '@/runtime/runtime-compati
 import type { RuntimeHostStatusSnapshot } from '../../../shared/runtime-host-status'
 import { inPlaceSwitchCapabilityNow, useInPlaceSwitchCapability } from './in-place-switch-support'
 
-const SWITCH = 'agent-session.structured.switch.v1:codex'
+const SWITCH = 'agent-session.structured.switch.creation-settlement-v1:codex'
 const environment = {
   id: 'paired',
   name: 'Host',
@@ -119,5 +121,71 @@ it('derives only the addressed catalog owner across publication, lost contact, r
       .applyRuntimeHostStatusSnapshot(snapshot(13, { pairingRevision: 2, retired: true }))
   )
   expect(screen.getByRole('button').textContent).toBe('undefined')
+  expect(getStatus).not.toHaveBeenCalled()
+})
+
+it.each([10, 100])(
+  'keeps %i production switch controls idle for unrelated host updates',
+  async (count) => {
+    setLocalRuntimeCapabilitiesForTests([SWITCH])
+    useAppStore.getState().setRuntimeEnvironments([environment])
+    useAppStore.getState().applyRuntimeHostStatusSnapshot(snapshot(1))
+    const renders = new Map<string, number>()
+    function Control({ host }: { host: string }) {
+      renders.set(host, (renders.get(host) ?? 0) + 1)
+      const state = useConversationSwitchReadiness({
+        executionHostId: host,
+        workspaceId: 'workspace',
+        direction: 'terminal',
+        agent: 'codex',
+        sessionId: host
+      })
+      return <button>{String(state.ready)}</button>
+    }
+    render(
+      <>
+        {Array.from({ length: count }, (_, i) => (
+          <Control key={i} host="local" />
+        ))}
+        <Control host="runtime:paired" />
+      </>
+    )
+    await act(async () => {})
+    renders.clear()
+    act(() => useAppStore.getState().applyRuntimeHostStatusSnapshot(snapshot(2)))
+    expect([...renders.values()]).toEqual([])
+    act(() =>
+      useAppStore
+        .getState()
+        .applyRuntimeHostStatusSnapshot(snapshot(3, { verification: 'blocked' }))
+    )
+    expect(renders.get('local')).toBeUndefined()
+    expect(renders.get('runtime:paired')).toBe(1)
+    renders.clear()
+    act(() => useAppStore.setState({ activeWorktreeId: 'unrelated' }))
+    expect([...renders.values()]).toEqual([])
+    expect(getStatus).not.toHaveBeenCalled()
+  }
+)
+
+it('uses the same complete capability for learned readiness and strong dispatch, rejecting stale development support', async () => {
+  useAppStore.getState().setRuntimeEnvironments([environment])
+  const stale = 'agent-session.structured.switch.v2:codex'
+  setLocalRuntimeCapabilitiesForTests([stale])
+  expect(inPlaceSwitchCapabilityNow('local', 'codex')).toBe(false)
+  expect(inPlaceSwitchCapabilityNow('local', 'codex', true)).toBe(false)
+  expect(await supportsInPlaceSwitch({ kind: 'local' }, 'codex', true)).toBe(false)
+  setLocalRuntimeCapabilitiesForTests([SWITCH])
+  expect(inPlaceSwitchCapabilityNow('local', 'codex')).toBe(true)
+  expect(await supportsInPlaceSwitch({ kind: 'local' }, 'codex', true)).toBe(true)
+  const old = snapshot(1)
+  if (!old.status) {
+    throw new Error('Expected status')
+  }
+  old.status.capabilities = [stale]
+  useAppStore.getState().applyRuntimeHostStatusSnapshot(old)
+  expect(inPlaceSwitchCapabilityNow('runtime:paired', 'codex', true)).toBe(false)
+  useAppStore.getState().applyRuntimeHostStatusSnapshot(snapshot(2))
+  expect(inPlaceSwitchCapabilityNow('runtime:paired', 'codex', true)).toBe(true)
   expect(getStatus).not.toHaveBeenCalled()
 })

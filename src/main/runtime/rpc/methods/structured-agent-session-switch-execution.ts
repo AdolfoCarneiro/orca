@@ -1,7 +1,9 @@
+import { requireStructuredSwitchRecord } from './structured-agent-session-switch-preparation'
+import { retainStructuredSwitchSource } from './structured-agent-session-switch-retention'
+import { structuredSessionSwitchFailure } from './structured-agent-session-switch-failure'
+import { prepareStructuredSessionSwitch } from './structured-agent-session-switch-preparation'
 import type { z } from 'zod'
 import type { RpcContext } from '../core'
-import { DaemonConnectionLostError, DaemonRequestTimeoutError } from '../../../daemon/daemon-errors'
-import { isAgentSessionOperationOutcomeUnknown } from '../../runtime-agent-launch-resolution'
 import type { SwitchToChatParams, SwitchToTerminalParams } from './structured-agent-session-schemas'
 import {
   agentSessionSwitchDeadline,
@@ -10,32 +12,24 @@ import {
 import {
   AgentSessionRefusalError,
   agentSessionRefusalError,
-  isAgentSessionRefusalError,
-  refuseUnclassified
+  isAgentSessionRefusalError
 } from '../../../../shared/agent-session-wire-refusals'
 import {
   nativeConversationContent,
   prepareStructuredChatCliTranscript,
   resolveStructuredChatCliSource
 } from '../../../ai-vault/structured-chat-cli-fork'
-import {
-  ensureStructuredHostInstalled,
-  requireStructuredSessionHost,
-  requireStructuredHost,
-  structuredCallerFor
-} from './structured-agent-session-gate'
+import { structuredCallerFor } from './structured-agent-session-gate'
 import {
   prepareStructuredAgentSessionCreateForWorktree,
   commitStructuredAgentSessionCreate
 } from './structured-agent-session-create'
-import { inPlaceSwitchEnabled } from '../../../../shared/structured-agent-cli-conversation-adoption'
-import {
-  cleanupSwitchedSourceShell,
-  recordWorkspace,
-  switchRetainedOwner
-} from './structured-agent-session-switch-source'
+import { recordWorkspace, switchRetainedOwner } from './structured-agent-session-switch-source'
 import { executeStructuredSessionTerminalSwitch } from './structured-agent-session-switch-terminal-execution'
-
+import { agentLaunchMovesHostWindow } from './agent-launch-tab-publication'
+import { interruptWorkingAgent } from '../../terminal-agent-interrupt'
+import { mainAgentState } from '../../../../shared/main-agent-status'
+import { captureSwitchStoppedCliTurn } from '../../../native-chat/agent-session-wire/structured-agent-session-switch-import'
 export async function executeStructuredSessionSwitch(
   params: z.infer<typeof SwitchToChatParams> | z.infer<typeof SwitchToTerminalParams>,
   ctx: RpcContext,
@@ -43,194 +37,249 @@ export async function executeStructuredSessionSwitch(
 ): Promise<AgentSessionSwitchResult> {
   const deadline = agentSessionSwitchDeadline()
   let sessionId = params.sessionId
+  const selectionCurrent = ctx.runtime.captureSessionSwitchSelection()
   let commandOwned = false
   const operation = (async (): Promise<AgentSessionSwitchResult> => {
-    await ensureStructuredHostInstalled(ctx)
-    deadline.check()
-    const execution = params.execution
-    if (!execution) {
-      throw agentSessionRefusalError('agent_session_operation_invalid', {
-        reason: 'requestMalformed'
-      })
-    }
-    const create = 'create' in execution ? execution.create : undefined
-    const host = create
-      ? requireStructuredHost(ctx, create.agent)
-      : requireStructuredSessionHost(ctx, sessionId)
+    const prepared = await prepareStructuredSessionSwitch(params, ctx, sessionId, deadline)
+    const {
+      host,
+      execution,
+      create,
+      sourceEvidence,
+      createIdentity,
+      providerSessionId,
+      conversation
+    } = prepared
+    sessionId = prepared.sessionId
     commandOwned = true
     return host.runSwitch(
       sessionId,
       execution.invocationId,
       deadline,
       async () => {
-        if (create && !execution.receipt && !execution.observe) {
-          if (
-            direction !== 'chat' ||
-            create.envelope.sessionId !== sessionId ||
-            create.agent !== 'codex'
-          ) {
-            throw agentSessionRefusalError('agent_session_operation_invalid', {
-              reason: 'requestMalformed'
+        if (direction === 'terminal') {
+          const record = requireStructuredSwitchRecord(host, sessionId)
+          return executeStructuredSessionTerminalSwitch(
+            params,
+            record,
+            ctx,
+            host,
+            sessionId,
+            deadline,
+            execution,
+            selectionCurrent
+          )
+        }
+        deadline.check()
+        const source = 'source' in execution ? execution.source : undefined
+        const close = source
+          ? (() => {
+              try {
+                return ctx.runtime.captureTerminalSwitchClose(
+                  source.terminal,
+                  source.expectedIncarnationId,
+                  source.originalPresentation
+                )
+              } catch {
+                host.deps.logger.warn('switch source owner was not confirmed', {
+                  scope: 'session-switch',
+                  sessionId,
+                  direction,
+                  source: 'terminal',
+                  exactIncarnation: false
+                })
+                throw agentSessionRefusalError('agent_session_ownership_unknown', {
+                  reason: 'ownerUnproven'
+                })
+              }
+            })()
+          : undefined
+        const paneKey = close ? `${close.source.tabId}:${close.source.leafId}` : undefined
+        const row = paneKey ? ctx.runtime.agentTransitions.latestRow(paneKey) : null
+        const adopt = createIdentity?.adopt
+        const retainedSource =
+          !adopt && source
+            ? await prepareStructuredChatCliTranscript(
+                await resolveStructuredChatCliSource(
+                  { sessionId, workspaceId: recordWorkspace(host, sessionId) },
+                  false
+                ),
+                (args) => ctx.runtime.prepareAiVaultSessionResume(args),
+                false
+              )
+            : undefined
+        const before = adopt?.transcriptPath
+          ? {
+              agent: create!.agent,
+              sessionId: adopt.providerHandle.nativeId,
+              filePath: adopt.transcriptPath
+            }
+          : retainedSource?.cliForkSource
+        const stopped = before
+          ? await captureSwitchStoppedCliTurn(
+              before,
+              Boolean(row && mainAgentState(row) === 'working'),
+              deadline
+            )
+          : undefined
+        deadline.check()
+        if (close) {
+          if (paneKey) {
+            await interruptWorkingAgent(
+              ctx.runtime,
+              (key) => ctx.runtime.agentTransitions.latestRow(key),
+              paneKey,
+              {
+                signal: deadline.signal,
+                beforeWrite: async () => {
+                  deadline.check()
+                }
+              }
+            )
+          }
+          // Shutdown already accepted must finish even when the observing request expires.
+          try {
+            await host.trackSwitchPhysical(sessionId, close.stop())
+          } catch {
+            host.deps.logger.warn('switch source exit was not confirmed', {
+              scope: 'session-switch',
+              sessionId,
+              direction,
+              source: 'terminal',
+              exactIncarnation: true
+            })
+            throw agentSessionRefusalError('agent_session_ownership_unknown', {
+              reason: 'ownerUnproven'
             })
           }
+        }
+        deadline.check()
+        if (create) {
           try {
-            const prepared = await prepareStructuredAgentSessionCreateForWorktree({
+            const preparedCreate = await prepareStructuredAgentSessionCreateForWorktree({
               ...create,
               runtime: ctx.runtime,
               caller: structuredCallerFor(ctx),
               atRest: true,
-              ensureHost: async () => requireStructuredHost(ctx, create.agent),
-              structuredAgentCliSourceEvidence: ctx.structuredAgentCliSourceEvidence
+              ensureHost: async () => host,
+              structuredAgentCliSourceEvidence: sourceEvidence
             })
             deadline.check()
             const created = await commitStructuredAgentSessionCreate({
               runtime: ctx.runtime,
               caller: structuredCallerFor(ctx),
-              prepared,
-              activate: true,
-              tabPlacement: create.tabPlacement,
+              prepared: { ...preparedCreate, tab: null },
+              activate: false,
               check: deadline.check
             })
             if (!created.ok) {
-              const owner = switchRetainedOwner(host, create, created.refusal)
-              if (!owner) {
-                return { status: 'refused', sessionId, refusal: created.refusal }
-              }
-              sessionId = owner
+              throw new AgentSessionRefusalError(created.refusal)
             }
+            sessionId = created.value.sessionId
           } catch (error) {
-            const owner = isAgentSessionRefusalError(error)
-              ? switchRetainedOwner(host, create, error.refusal)
-              : null
-            if (!owner) {
+            const owner =
+              isAgentSessionRefusalError(error) &&
+              (error.refusal.code === 'agent_session_conflict' ||
+                error.refusal.code === 'agent_session_ownership_unknown') &&
+              createIdentity &&
+              providerSessionId &&
+              switchRetainedOwner(host, createIdentity, providerSessionId)
+            if (
+              !owner ||
+              !isAgentSessionRefusalError(error) ||
+              error.refusal.details?.owner?.sessionId !== owner
+            ) {
               throw error
             }
             sessionId = owner
           }
-          if (sessionId !== params.sessionId) {
-            await host.adoptSwitch(params.sessionId, sessionId)
-          }
+          await host.adoptSwitch(conversation?.commandKey ?? params.sessionId, sessionId)
         }
-        const record = host.deps.store.getRecord(sessionId)
-        if (!record || !inPlaceSwitchEnabled(record.provider)) {
-          throw agentSessionRefusalError('structured_agent_session_unsupported', {
-            reason: 'hostUnsupported'
-          })
-        }
+        const record = requireStructuredSwitchRecord(host, sessionId)
         const workCurrent = host.captureSwitchWork(sessionId, deadline)
-        if (direction === 'chat') {
-          const source = 'source' in execution ? execution.source : undefined
-          let switchWitness: string | undefined
-          let witnessBudget = 0
-          if (source) {
-            const inspection = await ctx.runtime.inspectTerminalProcess(source.terminal, {
-              expectedIncarnationId: source.expectedIncarnationId,
-              scanChildProcesses: true,
-              captureSwitchWitness: execution.invocationId
-            })
-            deadline.check()
-            switchWitness = 'switchWitness' in inspection ? inspection.switchWitness : undefined
-            witnessBudget = deadline.remaining()
-            if (inspection.childProcessEvidence !== 'no-children') {
-              throw inspection.childProcessEvidence === 'children'
-                ? agentSessionRefusalError('agent_session_operation_invalid', {
-                    reason: 'conversationOpenInTerminal'
-                  })
-                : agentSessionRefusalError('agent_session_operation_unknown', {
-                    reason: 'outcomeUnknown'
-                  })
-            }
-          }
-          // Initial creation already imported this source before committing its record.
-          if (
-            (!create || sessionId !== params.sessionId) &&
-            (source || nativeConversationContent(await host.journalSnapshot(sessionId)) === 'saved')
-          ) {
-            const prepared = await prepareStructuredChatCliTranscript(
-              await resolveStructuredChatCliSource(
-                { sessionId, workspaceId: record.location.workspaceId },
-                false
-              ),
-              (args) => ctx.runtime.prepareAiVaultSessionResume(args),
-              false
-            )
-            deadline.check()
-            if (!prepared.cliForkSource) {
-              throw agentSessionRefusalError('agent_session_identity_required', {
-                reason: 'transcriptUnreadable'
-              })
-            }
-            await host.refreshSwitchTranscript(sessionId, prepared.cliForkSource, deadline)
-          }
-          const revealed = await host.revealSession(sessionId)
+        const check = () => {
           deadline.check()
-          if (!revealed.readable && revealed.openRefusal) {
-            throw new AgentSessionRefusalError(revealed.openRefusal)
-          }
-          await ctx.runtime.publishStructuredAgentSessionTab({
-            ...revealed,
-            activate: true,
-            check: deadline.check
-          })
-          deadline.check()
-          await host.presentSwitch(sessionId, {
-            sessionId,
-            workspaceId: revealed.workspaceId,
-            agent: 'codex',
-            tabId: host.getSessionTabId(sessionId) ?? `agent-session:${sessionId}`,
-            ...(create?.tabPlacement ? { placement: create.tabPlacement } : {})
-          })
-          const starting = host.switchToChat(sessionId, deadline)
-          host.openedSwitch(sessionId, {
-            status: 'completed',
-            sessionId,
-            startupPending: true
-          })
-          const started = await starting
-          if (!started.ok) {
-            return {
-              status: 'refused',
+          if (!workCurrent()) {
+            host.deps.logger.warn('switch destination was superseded by newer work', {
+              scope: 'session-switch',
               sessionId,
-              refusal: started.refusal,
-              ...(started.failureItemId ? { failureItemId: started.failureItemId } : {})
-            }
+              direction
+            })
+            throw agentSessionRefusalError('agent_session_operation_invalid', {
+              reason: 'messagesUnsettled'
+            })
           }
-          const cleanup = source
-            ? cleanupSwitchedSourceShell(ctx, source, switchWitness, witnessBudget, deadline)
-            : Promise.resolve(true)
-          return { status: 'completed', sessionId, sourceRetained: !(await cleanup) }
         }
-        return executeStructuredSessionTerminalSwitch(
-          params,
-          record,
-          ctx,
-          host,
-          sessionId,
-          deadline,
-          workCurrent,
-          execution
-        )
-      },
-      direction === 'terminal',
-      execution,
-      async (check) => {
-        check()
+        if (
+          source ||
+          nativeConversationContent(await host.journalSnapshot(sessionId)) === 'saved'
+        ) {
+          const transcript = await prepareStructuredChatCliTranscript(
+            await resolveStructuredChatCliSource(
+              { sessionId, workspaceId: record.location.workspaceId },
+              false
+            ),
+            (args) => ctx.runtime.prepareAiVaultSessionResume(args),
+            false
+          )
+          check()
+          if (!transcript.cliForkSource) {
+            throw agentSessionRefusalError('agent_session_identity_required', {
+              reason: 'transcriptUnreadable'
+            })
+          }
+          await host.refreshSwitchTranscript(
+            sessionId,
+            transcript.cliForkSource,
+            deadline,
+            stopped,
+            check
+          )
+        }
         const revealed = await host.revealSession(sessionId)
         check()
-        await ctx.runtime.publishStructuredAgentSessionTab({ ...revealed, activate: false, check })
-        check()
-        ctx.runtime.retainSessionSwitchProjection(
-          recordWorkspace(host, sessionId),
-          sessionId,
-          execution.invocationId,
-          host.switchGeneration(sessionId) ??
-            execution.receipt?.generation ??
-            execution.invocationId
-        )
+        if (!revealed.readable && revealed.openRefusal) {
+          throw new AgentSessionRefusalError(revealed.openRefusal)
+        }
+        await ctx.runtime.publishStructuredAgentSessionTab({
+          ...revealed,
+          activate: true,
+          check,
+          selectionCurrent,
+          viewerSelection: execution.viewerSelection,
+          focusWindow: agentLaunchMovesHostWindow(ctx),
+          placement: close?.placement() ?? create?.tabPlacement
+        })
+        deadline.check()
+        if (close) {
+          await close.retire()
+        }
+        deadline.check()
+        // Publication is complete; a first new send may already own the ordinary start.
+        const starting = await host.openSwitchToChat(sessionId, deadline)
+        if (starting.owned) {
+          void host.trackSwitchPhysical(sessionId, starting.outcome).catch(() => {})
+        } else {
+          void starting.outcome.catch(() => {})
+        }
+        return { status: 'completed', sessionId }
       },
-      Boolean(create),
-      (generation) =>
-        ctx.runtime.convergeSessionSwitchProjection(recordWorkspace(host, sessionId), generation)
+      {
+        direction,
+        conversationKey: conversation?.commandKey,
+        allowUncreated: Boolean(create),
+        onRetained:
+          direction === 'terminal'
+            ? (check) =>
+                retainStructuredSwitchSource(
+                  ctx.runtime,
+                  host,
+                  sessionId,
+                  execution.invocationId,
+                  check
+                )
+            : undefined
+      }
     )
   })()
   void operation
@@ -243,25 +292,6 @@ export async function executeStructuredSessionSwitch(
   try {
     return await deadline.wait(operation)
   } catch (error) {
-    const refusal = isAgentSessionRefusalError(error)
-      ? error.refusal
-      : isAgentSessionOperationOutcomeUnknown(error) ||
-          error instanceof DaemonConnectionLostError ||
-          error instanceof DaemonRequestTimeoutError
-        ? agentSessionRefusalError('agent_session_operation_unknown', { reason: 'outcomeUnknown' })
-            .refusal
-        : refuseUnclassified(
-            'agent_session_owner_restart_failed',
-            'The agent could not switch. Try again.'
-          )
-    return {
-      status:
-        refusal.code === 'agent_session_operation_expired' ||
-        refusal.code === 'agent_session_operation_unknown'
-          ? 'uncertain'
-          : 'refused',
-      sessionId,
-      refusal
-    }
+    return structuredSessionSwitchFailure(error, sessionId)
   }
 }

@@ -1,3 +1,4 @@
+import { conversationSwitchViewerSelectionCurrent } from './conversation-switch-selection'
 import { toast } from 'sonner'
 import type { AiVaultSession } from '../../../shared/ai-vault-types'
 import { translate } from '@/i18n/i18n'
@@ -79,9 +80,13 @@ const defaultDeps: StructuredSessionActivationDeps = {
 export async function activateAiVaultStructuredSession(
   session: Pick<AiVaultSession, 'structuredSession'>,
   deps: StructuredSessionActivationDeps = defaultDeps,
-  target?: RuntimeClientTarget
+  target?: RuntimeClientTarget,
+  viewerSelection?: string
 ): Promise<boolean> {
-  return (await activateAiVaultStructuredSessionVerified(session, deps, target)) !== 'none'
+  return (
+    (await activateAiVaultStructuredSessionVerified(session, deps, target, viewerSelection)) !==
+    'none'
+  )
 }
 
 /** `activated` only when the chat's tab is really active; `reported` means the click's toast said why
@@ -89,7 +94,8 @@ export async function activateAiVaultStructuredSession(
 export async function activateAiVaultStructuredSessionVerified(
   session: Pick<AiVaultSession, 'structuredSession'>,
   deps: StructuredSessionActivationDeps = defaultDeps,
-  target?: RuntimeClientTarget
+  target?: RuntimeClientTarget,
+  viewerSelection?: string
 ): Promise<'activated' | 'reported' | 'none'> {
   const structured = session.structuredSession
   if (!structured) {
@@ -102,12 +108,12 @@ export async function activateAiVaultStructuredSessionVerified(
         runtimeEnvironmentIdOrLocalUnlessTwin(useAppStore.getState(), structured.workspaceId)
       )
   )
-  const key = `${hostKey}\0${structured.workspaceId}\0${structured.sessionId}`
+  const key = `${hostKey}\0${structured.workspaceId}\0${structured.sessionId}\0${viewerSelection ?? ''}`
   const inFlight = activationsInFlight.get(key)
   if (inFlight) {
     return inFlight
   }
-  const activation = activateStructuredSession(structured, deps, target)
+  const activation = activateStructuredSession(structured, deps, target, viewerSelection)
   activationsInFlight.set(key, activation)
   try {
     return await activation
@@ -116,22 +122,28 @@ export async function activateAiVaultStructuredSessionVerified(
   }
 }
 
-const activationsInFlight = new Map<string, Promise<'activated' | 'reported'>>()
+const activationsInFlight = new Map<string, Promise<'activated' | 'reported' | 'none'>>()
 
 async function activateStructuredSession(
   structured: NonNullable<AiVaultSession['structuredSession']>,
   deps: StructuredSessionActivationDeps,
-  host?: RuntimeClientTarget
-): Promise<'activated' | 'reported'> {
+  host?: RuntimeClientTarget,
+  viewerSelection?: string
+): Promise<'activated' | 'reported' | 'none'> {
   const target = {
     worktreeId: structured.workspaceId,
     sessionId: structured.sessionId,
     ...(host ? { target: host } : {})
   }
-  if (!deps.activate(target)) {
+  const activate = () =>
+    conversationSwitchViewerSelectionCurrent(viewerSelection) && deps.activate(target)
+  if (!activate()) {
     // Refresh can avoid reveal, but failure must fall through: host republication is the actual repair.
     const refreshed = await refreshedWithoutThrowing(deps, structured.workspaceId, host)
-    if (!refreshed || !deps.activate(target)) {
+    if (!refreshed || !activate()) {
+      if (!conversationSwitchViewerSelectionCurrent(viewerSelection)) {
+        return 'none'
+      }
       // Ask the host to republish a closed or unpublished tab from its persisted record.
       const revealed = await deps.reveal(target)
       if (revealed !== 'revealed') {
@@ -145,7 +157,10 @@ async function activateStructuredSession(
         return 'reported'
       }
       await refreshedWithoutThrowing(deps, structured.workspaceId, host)
-      if (!deps.activate(target)) {
+      if (!activate()) {
+        if (!conversationSwitchViewerSelectionCurrent(viewerSelection)) {
+          return 'none'
+        }
         deps.unavailable()
         return 'reported'
       }

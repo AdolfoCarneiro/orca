@@ -22,9 +22,7 @@ import {
 import type { AiVaultAgent } from '../../../shared/ai-vault-types'
 
 const listeners = new Set<() => void>()
-let revision = 0
 const changed = () => {
-  revision += 1
   listeners.forEach((listener) => listener())
 }
 onRuntimeEnvironmentRevisionsChanged(changed)
@@ -54,14 +52,6 @@ const subscribe = (listener: () => void) => {
       stopStatusSubscription = undefined
     }
   }
-}
-
-export function useInPlaceSwitchRevision(): number {
-  return useSyncExternalStore(
-    subscribe,
-    () => revision,
-    () => 0
-  )
 }
 
 /** The addressed runtime owner's learned answer; reading never starts a probe. */
@@ -123,8 +113,6 @@ export function useAiVaultInPlaceAgent(session: {
   agent: AiVaultAgent
   executionHostId?: string | null
 }): AiVaultAgent | undefined {
-  return useInPlaceSwitchCapability(session.executionHostId, session.agent) !== false &&
-    inPlaceSwitchEnabled(session.agent)
-    ? session.agent
-    : undefined
+  useInPlaceSwitchCapability(session.executionHostId, session.agent)
+  return inPlaceSwitchEnabled(session.agent) ? session.agent : undefined
 }

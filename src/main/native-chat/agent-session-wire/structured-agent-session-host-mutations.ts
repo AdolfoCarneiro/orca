@@ -2,7 +2,10 @@ import { latestNativeChatUsageLimitCut } from '../../../shared/native-chat/nativ
 import { refuse } from '../../../shared/agent-session-wire'
 import { contextStructuredAgentSessionCurrentWork } from './structured-agent-session-current-work'
 import { shouldQueueStructuredAgentSessionSend } from './structured-agent-session-queued-messages'
-import { startStructuredAgentSessionForSwitch } from './structured-agent-session-switch-to-chat'
+import {
+  startStructuredAgentSessionForSwitch,
+  openStructuredAgentSessionForSwitch
+} from './structured-agent-session-switch-to-chat'
 import type { AgentJournalMessageItem } from '../../../shared/agent-session-journal-types'
 import type {
   AgentSessionCancelResult,
@@ -131,6 +134,8 @@ export function cancelStructuredAgentSessionTurn(
     scope?: 'background-tasks'
     taskId?: string
     prompt?: { itemId: string; expectedRevision: number }
+    onAccepted?: Parameters<typeof mutateWithChatStop>[2]['onAccepted']
+    waitForShutdown?: boolean
   }
 ): Promise<AgentSessionMutationResult<AgentSessionCancelResult>> {
   if (params.scope) {
@@ -296,6 +301,8 @@ export function structuredAgentSessionMutationDelegates(
     ) => readStructuredAgentSessionOptions(context(), sessionId, reader),
     settleLateDispatch: (input: Parameters<typeof settleStructuredAgentSessionLateDispatch>[1]) =>
       settleStructuredAgentSessionLateDispatch(context(), input),
+    openSwitchToChat: (sessionId: string, deadline?: AgentSessionSwitchDeadline) =>
+      openStructuredAgentSessionForSwitch(context(), sessionId, deadline),
     switchToChat: (sessionId: string, deadline?: AgentSessionSwitchDeadline) =>
       startStructuredAgentSessionForSwitch(context(), sessionId, deadline)
   }

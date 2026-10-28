@@ -1,3 +1,4 @@
+import { cancelDaemonCreateOrAttach } from './daemon-create-or-attach-cancellation'
 import { handleDaemonTerminalKill } from './daemon-terminal-kill'
 import { handleDaemonFencedTermination } from './daemon-fenced-termination'
 import { performance } from 'node:perf_hooks'
@@ -15,8 +16,7 @@ import { DaemonHealthRequests } from './daemon-health-requests'
 import type { TerminalHistorySeedTransferRegistry } from './terminal-history-seed-transfer-registry'
 import type { TerminalHost } from './terminal-host'
 import { SessionNotFoundError, type DaemonRequest } from './types'
-
-type DaemonRequestRouterOptions = {
+export type DaemonRequestRouterOptions = {
   host: TerminalHost
   connections: DaemonClientConnections
   lifecycle: DaemonServerLifecycle
@@ -65,14 +65,7 @@ export class DaemonRequestRouter {
       case 'createOrAttach':
         return this.options.admission.createOrAttach(clientId, request)
       case 'cancelCreateOrAttach':
-        return {
-          canceled: this.options.preparations.cancel(request.payload.sessionId, {
-            clientId,
-            ...(typeof request.payload.requestId === 'string'
-              ? { requestId: request.payload.requestId }
-              : {})
-          })
-        }
+        return cancelDaemonCreateOrAttach(this.options, clientId, request)
       case 'closeStartupQueryAuthority':
         return {
           appliedSeq: this.options.host.closeStartupQueryAuthority(request.payload.sessionId)
@@ -221,6 +214,7 @@ export class DaemonRequestRouter {
       client.streamSocket !== null &&
       this.options.connections.size === 1 &&
       this.options.admission.inFlight === 0 &&
+      !this.options.preparations.hasOwedOutcomes() &&
       this.options.host.listSessions().length === 0 &&
       this.options.connections.hasOnlyTransportsFor(client)
     if (retiring) {

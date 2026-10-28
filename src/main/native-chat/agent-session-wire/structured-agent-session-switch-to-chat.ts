@@ -1,8 +1,7 @@
 import {
   agentSessionRefusalFromReference,
   refuse,
-  refuseUnclassified,
-  agentSessionRefusalError
+  refuseUnclassified
 } from '../../../shared/agent-session-wire-refusals'
 import type { AgentSessionWireRefusal } from '../../../shared/agent-session-wire'
 import type { StructuredAgentSessionResumeOutcome } from './structured-agent-session-agent-start'
@@ -12,7 +11,6 @@ import {
   operationDidNotRun,
   selectStructuredAgentSessionOperationChild
 } from './structured-agent-session-operation-child'
-import { structuredAgentSessionSwitchBlocked } from './structured-agent-session-switch-admission'
 import { sameProviderChild } from './structured-agent-session-provider-child'
 import { recordStructuredAgentSessionStartFailure } from './structured-agent-session-start-failure-row'
 import { structuredAgentSessionEndedChildFailure } from './structured-agent-session-ended-child-failure'
@@ -34,41 +32,50 @@ export type StructuredAgentSessionSwitchToChatOutcome =
   | { ok: true }
   | { ok: false; refusal: AgentSessionWireRefusal; failureItemId?: string }
 
-export async function startStructuredAgentSessionForSwitch(
+async function selectSwitchStart(
   context: StructuredAgentSessionMutationContext,
   sessionId: string,
   deadline?: AgentSessionSwitchDeadline
-): Promise<StructuredAgentSessionSwitchToChatOutcome> {
-  const selected = await context.serialize(sessionId, async () => {
+) {
+  return context.serialize(sessionId, async () => {
     deadline?.check()
     if (!(await context.openConversation(sessionId))) {
       return operationDidNotRun()
     }
     deadline?.check()
-    if (deadline) {
-      const reason = structuredAgentSessionSwitchBlocked({
-        session: context.sessions.get(sessionId),
-        deps: context.deps,
-        sessionId,
-        delivering: context.deliveryOrder.hasActiveSend(sessionId),
-        background: context.childWorkOpen(sessionId),
-        ownCommand: true,
-        joinStart: true
-      })
-      if (reason) {
-        throw agentSessionRefusalError(
-          reason === 'previousExitUnverifiable'
-            ? 'agent_session_ownership_unknown'
-            : 'agent_session_operation_invalid',
-          { reason }
-        )
-      }
-    }
     const selection = selectStructuredAgentSessionOperationChild(context, sessionId)
     return selection.ok && !selection.child
-      ? { ...selection, start: context.claimAgent(sessionId, deadline?.check) }
+      ? { ...selection, start: context.claimAgent(sessionId, deadline?.check, true) }
       : { ...selection, start: null }
   })
+}
+
+export async function openStructuredAgentSessionForSwitch(
+  context: StructuredAgentSessionMutationContext,
+  sessionId: string,
+  deadline?: AgentSessionSwitchDeadline
+) {
+  const selected = await selectSwitchStart(context, sessionId, deadline)
+  return {
+    owned: selected.ok && Boolean(selected.start?.ownsStart),
+    outcome: finishSwitchStart(context, sessionId, selected, deadline)
+  }
+}
+
+export async function startStructuredAgentSessionForSwitch(
+  context: StructuredAgentSessionMutationContext,
+  sessionId: string,
+  deadline?: AgentSessionSwitchDeadline
+): Promise<StructuredAgentSessionSwitchToChatOutcome> {
+  return (await openStructuredAgentSessionForSwitch(context, sessionId, deadline)).outcome
+}
+
+async function finishSwitchStart(
+  context: StructuredAgentSessionMutationContext,
+  sessionId: string,
+  selected: Awaited<ReturnType<typeof selectSwitchStart>>,
+  deadline?: AgentSessionSwitchDeadline
+): Promise<StructuredAgentSessionSwitchToChatOutcome> {
   if (!selected.ok) {
     return { ok: false, refusal: selected.refusal }
   }

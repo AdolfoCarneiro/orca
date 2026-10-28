@@ -14,7 +14,7 @@ import { getStructuredAgentSessionHost } from '../../native-chat/agent-session-w
 import { structuredAgentSessionTabId } from '../../../shared/structured-agent-session-projection'
 
 /** Placement in the creating client's host-owned group/tab ids. */
-export type ChatTabPlacement = { groupId?: string; afterTabId?: string }
+export type ChatTabPlacement = { groupId?: string; afterTabId?: string; index?: number }
 
 export type ChatTabChange =
   | { open: { sessionId: string; agent: AgentType; tabId: string; placement?: ChatTabPlacement } }
@@ -34,11 +34,12 @@ export function chatTabLayoutCommand(
   const placement = 'open' in change ? change.open.placement : undefined
   const holds = (id: string | undefined) => workspace?.groups.some((group) => group.id === id)
   // Prefer an existing client group, then the active group; otherwise open creates one.
+  const afterGroupId = workspace?.groups.find((group) =>
+    group.tabOrder.includes(placement?.afterTabId ?? '')
+  )?.id
   const groupId = holds(placement?.groupId)
     ? placement?.groupId
-    : holds(activeGroupId)
-      ? activeGroupId
-      : undefined
+    : (afterGroupId ?? (holds(activeGroupId) ? activeGroupId : undefined))
   const after = placement?.afterTabId
   const afterTabId =
     after &&
@@ -63,7 +64,11 @@ export function chatTabLayoutCommand(
     agent,
     tabId: openedTabId,
     ...(groupId ? { groupId } : {}),
-    ...(afterTabId ? { afterTabId } : {})
+    ...(afterTabId
+      ? { afterTabId }
+      : placement?.index !== undefined
+        ? { index: placement.index }
+        : {})
   }
 }
 
@@ -110,4 +115,42 @@ export function chatTabId(sessionId: string): string {
     getStructuredAgentSessionHost()?.getSessionTabId?.(sessionId) ??
     structuredAgentSessionTabId(sessionId)
   )
+}
+
+/** Select in the existing view without rebuilding membership from a partial runtime snapshot. */
+export function withSelectedChatTab(
+  hostId: ExecutionHostId,
+  session: WorkspaceSessionState,
+  worktreeId: string,
+  sessionId: string
+): WorkspaceSessionState | null {
+  const { loaded } = loadChatTabLayout(hostId, session, worktreeId)
+  const workspace = loaded.layout.workspaces[worktreeId]
+  const tab = workspace?.tabs.find(
+    (row) => row.kind === 'agent-session' && row.entityId === sessionId
+  )
+  const group = tab && workspace?.groups.find((row) => row.tabOrder.includes(tab.id))
+  if (!tab || !group) {
+    return null
+  }
+  const view = loaded.desktopView
+  return saveWorkspaceLayout({
+    ...loaded,
+    desktopView: {
+      ...view,
+      activeTabTypeByWorktree: { ...view.activeTabTypeByWorktree, [worktreeId]: 'agent-session' },
+      activeFileIdByWorktree: { ...view.activeFileIdByWorktree, [worktreeId]: tab.id },
+      activeGroupIdByWorktree: { ...view.activeGroupIdByWorktree, [worktreeId]: group.id },
+      groups: {
+        ...view.groups,
+        [worktreeId]: {
+          ...view.groups[worktreeId],
+          [group.id]: {
+            ...view.groups[worktreeId]?.[group.id],
+            activeTabId: tab.id
+          }
+        }
+      }
+    }
+  })
 }

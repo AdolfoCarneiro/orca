@@ -2,7 +2,6 @@ import { afterEach, expect, it, vi } from 'vitest'
 import type { UseBoundStore, StoreApi } from 'zustand'
 import type { AppState } from '../store/types'
 import type { AgentStatusIpcPayload } from '../../../shared/agent-status-types'
-import { agentSessionRefusalError } from '../../../shared/agent-session-wire-refusals'
 import type { AgentStatusSetData } from './ipc-events-agent-status-store-test-fixtures'
 import {
   createTestStore,
@@ -12,7 +11,6 @@ import {
 } from '../store/slices/store-test-helpers'
 import { buildWindowApi } from './ipc-events-agent-status-window-test-fixtures'
 import { collectLeafIds } from '../../../shared/terminal-pane-layout-tree'
-import { captureTerminalSurfaceIdentity } from '../../../shared/terminal-tab-close'
 import { adoptsCliConversations } from '../../../shared/structured-agent-cli-conversation-adoption'
 import {
   collectAgentPaneConversations,
@@ -66,13 +64,11 @@ vi.mock('./agent-hook-completion-notifications', () => ({
 }))
 vi.mock('sonner', () => ({ toast: { error: mocks.toast } }))
 const cleanup: (() => void)[] = []
-const running: Promise<void>[] = []
 afterEach(async () => {
   cleanup
     .splice(0)
     .toReversed()
     .forEach((close) => close())
-  await Promise.allSettled(running.splice(0))
   resetAgentPaneAuthorityAliasesForTests()
   vi.restoreAllMocks()
   vi.useRealTimers()
@@ -120,12 +116,8 @@ it.each([600, 6000])(
       })
     )
     const { registerAgentStatusIpcBridge } = await import('./ipc-events/agent-status-ipc-bridge')
-    const { runLegacyCliChatResume: runCliChatResume } =
-      await import('../components/tab-bar/cli-chat-resume-run')
     const { resolveCliChatResumeSource } =
       await import('../components/tab-bar/cli-chat-resume-source')
-    const { runLegacyNativeChatCliSwitch: runNativeChatCliSwitch } =
-      await import('../components/tab-bar/native-chat-cli-switch-run')
     const unsubs: (() => void)[] = []
     const bridge = registerAgentStatusIpcBridge(unsubs)
     cleanup.push(bridge.disposeAsyncState, bridge.unsubscribeStore, ...unsubs)
@@ -175,65 +167,26 @@ it.each([600, 6000])(
     })!
     expect(first.providerSessionId).toBe('conversation')
     expect(retry.providerSessionId).toBe('conversation')
-    mocks.rpc.mockImplementation(async (_target, method, args) => {
-      expect(method).toBe('terminal.resolvePane')
-      const tabId = args.paneKey.split(':')[0]
-      const identity = captureTerminalSurfaceIdentity(store.getState(), 'wt', tabId, leaf(1))!
-      return {
-        terminal: {
-          handle: `handle-${tabId}`,
-          ptyId: identity.ptyId,
-          incarnationId: 'incarnation',
-          presentation: { identity: { ...identity, incarnationId: 'incarnation' }, holders: [] }
-        }
-      }
-    })
-    const refusal = {
-      ok: false as const,
-      refusal: { code: 'agent_session_operation_invalid', message: 'Not admitted' }
-    }
-    const oldAnswer = Promise.withResolvers<typeof refusal>()
-    const newAnswer = Promise.withResolvers<typeof refusal>()
-    const nativeAnswer = Promise.withResolvers<{ source: unknown }>()
-    const nativeLaunch = Promise.withResolvers<{ status: 'created' }>()
-    cleanup.push(() => {
-      oldAnswer.resolve(refusal)
-      newAnswer.resolve(refusal)
-      nativeAnswer.resolve({ source: null })
-      nativeLaunch.resolve({ status: 'created' })
-    })
-    const returns = [oldAnswer, newAnswer]
-    mocks.call.mockImplementation((_target, method) =>
-      method === 'agentSession.switchToChat' ? returns.shift()!.promise : nativeAnswer.promise
-    )
-    mocks.launch.mockReturnValue({ tabId: null, runtimeLaunch: nativeLaunch.promise })
-    const ownerRefusal = agentSessionRefusalError('agent_session_conflict', {
-      reason: 'conversationHeldElsewhere',
-      owner: { sessionId: 'existing', workspaceId: 'wt' }
-    })
-    mocks.support.mockRejectedValueOnce(ownerRefusal)
-    const old = runCliChatResume(first)
-    running.push(old)
-    await vi.waitFor(() => expect(mocks.call).toHaveBeenCalledTimes(1))
-    const native = runNativeChatCliSwitch({
-      sessionId: 'native-session',
+    const firstController = new AbortController()
+    const retryController = new AbortController()
+    switches.pendingCliChatResumes.set(firstController, { key: null, source: first })
+    switches.pendingNativeChatCliSwitches.set('native', {
+      chatTabId: 'native',
       workspaceId: 'wt',
-      executionHostId: 'local',
-      agent: 'codex',
-      chatTabId: 'native'
+      executionHostId: 'local'
     })
-    running.push(native)
-    await vi.waitFor(() => expect(mocks.call).toHaveBeenCalledTimes(2))
+    cleanup.push(() => {
+      switches.pendingCliChatResumes.delete(firstController)
+      switches.pendingCliChatResumes.delete(retryController)
+      switches.pendingNativeChatCliSwitches.delete('native')
+    })
     transferAgentPaneAuthorityAlias({ fromPaneKey: first.paneKey, toPaneKey: pane('alias-old') })
     const { cli: _removed, ...withoutCli } = store.getState().terminalLayoutsByTabId
     store.setState({
       terminalLayoutsByTabId: withoutCli,
       tabsByWorktree: { wt: tabs.filter((tab) => tab.id !== 'cli') }
     })
-    mocks.support.mockRejectedValueOnce(ownerRefusal)
-    const newer = runCliChatResume(retry)
-    running.push(newer)
-    await vi.waitFor(() => expect(mocks.call).toHaveBeenCalledTimes(3))
+    switches.pendingCliChatResumes.set(retryController, { key: 'retry', source: retry })
     transferAgentPaneAuthorityAlias({ fromPaneKey: retry.paneKey, toPaneKey: pane('alias-new') })
     let protectedKeys = [
       first.paneKey,
@@ -319,31 +272,18 @@ it.each([600, 6000])(
     stopNested()
     expect(nestedWrites).toBe(2)
     protectedKeys = [retry.paneKey, pane('retry', 2), pane('alias-new'), pane('native')]
-    oldAnswer.resolve(refusal)
-    await old
+    switches.pendingCliChatResumes.delete(firstController)
+    store.setState((state) => ({ agentConversationsByPaneKey: state.agentConversationsByPaneKey }))
     expect(Object.keys(store.getState().agentConversationsByPaneKey)).toHaveLength(506)
     expect(store.getState().agentConversationsByPaneKey[pane('alias-new')]).toBeDefined()
-    expect(mocks.call).toHaveBeenCalledTimes(3)
     protectedKeys = [pane('native')]
-    newAnswer.resolve(refusal)
-    await newer
+    switches.pendingCliChatResumes.delete(retryController)
+    store.setState((state) => ({ agentConversationsByPaneKey: state.agentConversationsByPaneKey }))
     expect(Object.keys(store.getState().agentConversationsByPaneKey)).toHaveLength(504)
-    nativeAnswer.resolve({
-      source: {
-        agent: 'codex',
-        sourceAgent: 'codex',
-        sessionId: 'native-provider',
-        filePath: '/repo/rollout.jsonl',
-        cwd: '/repo',
-        codexHome: null,
-        executionHostPlatform: 'darwin'
-      }
-    })
-    await vi.waitFor(() => expect(mocks.launch).toHaveBeenCalledOnce())
     await emit(pane('pressure-after-native-receipt', n + 11))
     protectedKeys = []
-    nativeLaunch.resolve({ status: 'created' })
-    await native
+    switches.pendingNativeChatCliSwitches.delete('native')
+    store.setState((state) => ({ agentConversationsByPaneKey: state.agentConversationsByPaneKey }))
     expect(Object.keys(store.getState().agentConversationsByPaneKey)).toHaveLength(503)
     for (const key of roots) {
       expect(
@@ -374,4 +314,123 @@ it.each([600, 6000])(
     })
   },
   120_000
+)
+
+it.each([600, 6000])(
+  'skips retention reconstruction for unchanged identities among %i rooted conversations',
+  async (n) => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_800_000_000_000)
+    const store = createTestStore()
+    mocks.store.current = store
+    vi.stubGlobal('window', { api: { gh: { enqueuePRRefresh: vi.fn(async () => true) } } })
+    const identities = Object.fromEntries(
+      Array.from({ length: n }, (_, index) => {
+        const paneKey = pane(`root-${index}`)
+        return [
+          paneKey,
+          {
+            paneKey,
+            worktreeId: 'wt',
+            executionHostId: 'local' as const,
+            connectionId: null,
+            agent: 'codex' as const,
+            providerSession: { key: 'session_id' as const, id: `conversation-${index}` }
+          }
+        ]
+      })
+    )
+    store.setState({
+      repos: [TEST_REPO],
+      worktreesByRepo: { [TEST_REPO.id]: [makeWorktree({ id: 'wt', repoId: TEST_REPO.id })] },
+      tabsByWorktree: { wt: [makeTab({ id: 'root-0', worktreeId: 'wt' })] },
+      terminalLayoutsByTabId: Object.fromEntries(
+        Array.from({ length: n }, (_, index) => [`root-${index}`, layout(1)])
+      ),
+      agentConversationsByPaneKey: identities
+    })
+    const key = pane('root-0')
+    let updatedAt = Date.now()
+    const status = (state: 'working' | 'done') =>
+      store
+        .getState()
+        .setAgentStatus(
+          key,
+          { state, agentType: 'codex', prompt: 'Existing conversation' },
+          undefined,
+          { updatedAt: ++updatedAt },
+          { worktreeId: 'wt', connectionId: null },
+          { providerSession: identities[key].providerSession }
+        )
+    status('working')
+    const keys = vi.spyOn(Object, 'keys')
+    const classifier = vi.spyOn(capacity, 'classifyPaneKeyLiveness')
+    const protection = vi.spyOn(switches, 'protectedConversationPaneKeys')
+    status('done')
+    expect(store.getState().agentStatusByPaneKey[key].state).toBe('done')
+    store
+      .getState()
+      .recordAgentProviderSession(
+        key,
+        'codex',
+        identities[key].providerSession,
+        { updatedAt: ++updatedAt },
+        { worktreeId: 'wt', connectionId: null }
+      )
+    expect(store.getState().agentStatusByPaneKey[key]).toBeUndefined()
+    store.getState().setAgentStatuses([
+      {
+        paneKey: key,
+        payload: { state: 'working', agentType: 'codex', prompt: 'Next turn' },
+        timing: { updatedAt: ++updatedAt },
+        routing: { worktreeId: 'wt', connectionId: null },
+        metadata: { providerSession: identities[key].providerSession }
+      }
+    ])
+    expect(store.getState().agentStatusByPaneKey[key].state).toBe('working')
+    expect(store.getState().agentConversationsByPaneKey).toBe(identities)
+    const unchangedEnumerations = keys.mock.calls.filter(([map]) => map === identities).length
+    expect(unchangedEnumerations).toBe(0)
+    expect(classifier).not.toHaveBeenCalled()
+    expect(protection).not.toHaveBeenCalled()
+    store
+      .getState()
+      .recordAgentProviderSession(
+        key,
+        'codex',
+        { key: 'session_id', id: 'replacement' },
+        { updatedAt: ++updatedAt },
+        { worktreeId: 'wt', connectionId: null }
+      )
+    expect(store.getState().agentConversationsByPaneKey[key].providerSession.id).toBe('replacement')
+    expect(classifier).toHaveBeenCalledTimes(1)
+    expect(protection).toHaveBeenCalledTimes(1)
+    switches.pendingNativeChatCliSwitches.set('retention-test', {
+      chatTabId: 'root-0',
+      workspaceId: 'wt',
+      executionHostId: 'local'
+    })
+    cleanup.push(() => switches.pendingNativeChatCliSwitches.delete('retention-test'))
+    store.setState({
+      terminalLayoutsByTabId: Object.fromEntries(
+        Object.entries(store.getState().terminalLayoutsByTabId).slice(501)
+      )
+    })
+    expect(classifier).toHaveBeenCalledTimes(2)
+    expect(store.getState().agentConversationsByPaneKey[key]).toBeDefined()
+    expect(Object.keys(store.getState().agentConversationsByPaneKey)).toHaveLength(n)
+    switches.pendingNativeChatCliSwitches.delete('retention-test')
+    store.setState((state) => ({ agentConversationsByPaneKey: state.agentConversationsByPaneKey }))
+    expect(classifier).toHaveBeenCalledTimes(3)
+    expect(store.getState().agentConversationsByPaneKey[key]).toBeUndefined()
+    expect(Object.keys(store.getState().agentConversationsByPaneKey)).toHaveLength(n - 1)
+    expect(store.getState().agentConversationsByPaneKey[pane('root-501')]).toBeDefined()
+    console.info('UNCHANGED_RETENTION_COUNTS', {
+      n,
+      acceptedUpdates: 3,
+      unchangedEnumerations,
+      changedInputRebuilds: classifier.mock.calls.length
+    })
+    await Promise.resolve()
+  }
 )

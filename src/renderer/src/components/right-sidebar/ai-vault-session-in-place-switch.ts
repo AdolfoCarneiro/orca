@@ -1,10 +1,11 @@
+import type { ConfirmationDialogContextValue } from '@/components/confirmation-dialog-context'
 import type { AiVaultOriginalPaneTarget } from './ai-vault-original-pane'
 import {
   cliConversationRowsShareAgent,
   adoptsCliConversations
 } from '../../../../shared/structured-agent-cli-conversation-adoption'
 import { useAppStore } from '@/store'
-import { inPlaceSwitchSupportedNow } from '@/lib/in-place-switch-support'
+import { inPlaceSwitchEnabled } from '../../../../shared/structured-agent-cli-conversation-adoption'
 import type { AiVaultSession } from '../../../../shared/ai-vault-types'
 import { resolveCliChatResumeSource } from '../tab-bar/cli-chat-resume-source'
 import {
@@ -15,9 +16,12 @@ import {
 
 /** History's "Switch to CLI": in the chat tab's slot when that tab is open in this window, else a
  *  new tab. False when the row's host doesn't switch this agent in place, so the row forks. */
-export function switchAiVaultSessionToCli(session: AiVaultSession): boolean {
+export function switchAiVaultSessionToCli(
+  session: AiVaultSession,
+  confirm?: ConfirmationDialogContextValue
+): boolean {
   const chat = session.structuredSession
-  if (!chat || !inPlaceSwitchSupportedNow(session.executionHostId, session.agent)) {
+  if (!chat || !inPlaceSwitchEnabled(session.agent)) {
     return false
   }
   const chatTab = useAppStore
@@ -26,6 +30,7 @@ export function switchAiVaultSessionToCli(session: AiVaultSession): boolean {
       (tab) => tab.contentType === 'agent-session' && tab.entityId === chat.sessionId
     )
   void runNativeChatCliSwitch({
+    confirm,
     sessionId: chat.sessionId,
     workspaceId: chat.workspaceId,
     executionHostId: session.executionHostId,
@@ -41,12 +46,10 @@ export function switchAiVaultSessionToCli(session: AiVaultSession): boolean {
 export function switchAiVaultSessionToNativeChat(
   session: AiVaultSession,
   workspaceId?: string,
-  originalPaneTarget?: AiVaultOriginalPaneTarget | null
+  originalPaneTarget?: AiVaultOriginalPaneTarget | null,
+  confirm?: ConfirmationDialogContextValue
 ): boolean {
-  if (
-    !adoptsCliConversations(session.agent) ||
-    !inPlaceSwitchSupportedNow(session.executionHostId, session.agent)
-  ) {
+  if (!adoptsCliConversations(session.agent) || !inPlaceSwitchEnabled(session.agent)) {
     return false
   }
   const source = historyPaneSource(session, originalPaneTarget)
@@ -55,10 +58,10 @@ export function switchAiVaultSessionToNativeChat(
     if (!subject) {
       return false
     }
-    void runConversationSwitch(subject)
+    void runConversationSwitch({ ...subject, confirm })
     return true
   }
-  void runConversationSwitch({ direction: 'chat', ...source, source, history: session })
+  void runConversationSwitch({ direction: 'chat', ...source, source, history: session, confirm })
   return true
 }
 

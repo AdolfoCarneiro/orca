@@ -1,3 +1,4 @@
+import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
 import { useConversationSwitchReadiness, runCliChatResume } from '@/lib/conversation-surface-switch'
 import { isNativeChatEnabled } from '../../../../shared/structured-native-chat-launch-route'
 import { useShallow } from 'zustand/react/shallow'
@@ -26,6 +27,7 @@ export function TerminalPaneResumeInChatButton({
     )
   )
   const capability = useCliChatResumeCapability(worktreeId, source?.agent)
+  const confirm = useConfirmationDialog()
   const readiness = useConversationSwitchReadiness(
     source ? { direction: 'chat', ...source, source } : null
   )
@@ -33,13 +35,7 @@ export function TerminalPaneResumeInChatButton({
   if (!enabled) {
     return null
   }
-  const label =
-    capability === false
-      ? translate(
-          'auto.components.right.sidebar.AiVaultSessionRow.resumeInNewNativeChat',
-          'Resume in New Chat'
-        )
-      : translate('components.tab.bar.switch.toNativeChat', 'Switch to native chat')
+  const label = translate('components.tab.bar.switch.toNativeChat', 'Switch to native chat')
   const updateRequired = source?.hostUpdateRequired === true
   const tooltip = updateRequired
     ? translate(
@@ -75,7 +71,7 @@ export function TerminalPaneResumeInChatButton({
             onClick={(event) => {
               event.stopPropagation()
               if (source && readiness.ready) {
-                void runCliChatResume(source)
+                void runCliChatResume(source, confirm)
               }
             }}
           >

@@ -63,7 +63,7 @@ vi.mock('@/lib/ai-vault-tab-title-requests', async (original) => ({
   collectAgentPaneConversations: mocks.panes
 }))
 
-const SWITCH = 'agent-session.structured.switch.v1:codex'
+const SWITCH = 'agent-session.structured.switch.creation-settlement-v1:codex'
 const paired = {
   id: 'paired',
   name: 'Paired',
@@ -214,7 +214,9 @@ it.each(['local', 'runtime:paired'] as const)(
     })
     const session = { ...row, executionHostId: host }
     render(<History session={session} />)
-    expect(screen.queryByRole('button', { name: 'Switch to native chat' })).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Switch to native chat' }).hasAttribute('disabled')
+    ).toBe(true)
     await act(async () => {
       answer({ capabilities: [HISTORY, SWITCH] })
       if (host !== 'local') {
@@ -300,11 +302,6 @@ it('routes a capable paired unowned row with a matching terminal through the sam
 })
 
 it.each([
-  {
-    executionHostId: 'runtime:paired' as const,
-    agent: 'codex' as const,
-    filePath: '/rollout.jsonl'
-  },
   { executionHostId: 'ssh:box' as const, agent: 'codex' as const, filePath: '/rollout.jsonl' },
   {
     executionHostId: 'local' as const,
@@ -326,28 +323,28 @@ it.each([
   expect(mocks.startOwner).not.toHaveBeenCalled()
 })
 
-it.each(['codex', 'claude', 'grok', 'omp', 'opencode', 'opencode2', 'pi'] as const)(
-  'keeps ordinary local History resume and owned fork usable for %s',
+it.each(['codex', 'claude', 'grok', 'opencode', 'opencode2', 'pi'] as const)(
+  'routes the %s History action through the common switch on supported older hosts',
   async (agent) => {
     setLocalRuntimeCapabilitiesForTests([HISTORY])
     mocks.probe.mockResolvedValue(false)
     const session = { ...row, agent, structuredSession: undefined }
-    const view = render(<History session={session} />)
-    const resume = await screen.findByRole('button', { name: 'Resume in New Chat' })
-    await userEvent.setup().click(resume)
-    expect(mocks.newChat).toHaveBeenCalledExactlyOnceWith(
-      session,
-      agent,
-      'workspace',
-      expect.any(String)
-    )
-    expect(mocks.run).not.toHaveBeenCalled()
-    expect(mocks.startOwner).not.toHaveBeenCalled()
-    view.rerender(<History session={{ ...session, structuredSession: row.structuredSession }} />)
+    render(<History session={session} />)
     await userEvent
       .setup()
-      .click(await screen.findByRole('button', { name: 'Resume in New Terminal' }))
-    expect(mocks.fork).toHaveBeenCalledOnce()
-    expect(screen.queryByRole('button', { name: 'Switch to CLI' })).toBeNull()
+      .click(await screen.findByRole('button', { name: 'Switch to native chat' }))
+    expect(mocks.startOwner).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        direction: 'chat',
+        agent,
+        history: session
+      })
+    )
+    expect(mocks.newChat).not.toHaveBeenCalled()
   }
 )
+
+vi.mock('@/components/confirmation-dialog-context', async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  useConfirmationDialog: () => vi.fn(async () => false)
+}))

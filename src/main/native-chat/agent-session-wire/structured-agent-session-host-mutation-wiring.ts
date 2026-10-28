@@ -47,8 +47,8 @@ export function createStructuredAgentSessionHostMutationContext(
     childWorkIncomplete: input.clientDelivery.childWorkIncomplete,
     serialize: input.serialize,
     openConversation: input.conversationDelivery.open,
-    claimAgent: (sessionId, check) =>
-      agentStart.claimOperationStart(input.attachContext(), sessionId, check),
+    claimAgent: (sessionId, check, switchStart) =>
+      agentStart.claimOperationStart(input.attachContext(), sessionId, check, switchStart),
     startFlights: input.runtimeState.startFlights,
     startupAttempts: input.runtimeState.startupAttempts,
     deliveryOrder: input.runtimeState.deliveryOrder,

@@ -1,3 +1,5 @@
+import type { DaemonPtySpawnContext } from './daemon-pty-spawn-context'
+import { DaemonPtySpawnSettlement } from './daemon-pty-spawn-settlement'
 import {
   SESSION_SWITCH_PHYSICAL_PROTOCOL_VERSION,
   HISTORY_SEED_TRANSFER_PROTOCOL_VERSION
@@ -5,12 +7,11 @@ import {
 import type { SpawnIntent } from '../../shared/host-spawn-admission'
 import type { ColdRestorePayload } from './cold-restore-payload-cache'
 import type { DaemonAuditObservation } from './daemon-audit-classifier'
-import {
-  DaemonPtyRuntimeState,
-  type HistoryRecoveryContext,
-  type PendingDaemonSpawnOperation,
-  type SnapshotCheckpointResult
+import type {
+  PendingDaemonSpawnOperation,
+  SnapshotCheckpointResult
 } from './daemon-pty-runtime-state'
+import type { DaemonClient } from './client'
 import { isDaemonGoneError } from './daemon-endpoint-errors'
 import type { ColdRestoreInfo } from './history-reader'
 import { NdjsonLineTooLongError } from './ndjson'
@@ -20,36 +21,17 @@ import {
   TERMINAL_HISTORY_INLINE_SEED_CODE_UNITS
 } from './terminal-history-seed-chunks'
 import type { CreateOrAttachResult, GetSnapshotResult } from './types'
-import type { PtySpawnOptions, PtySpawnResult } from '../providers/pty-provider-contract'
+import type { PtySpawnResult } from '../providers/pty-provider-contract'
 import { resolveSafePtyDefaultCwd } from '../providers/pty-default-cwd'
 import { isMissingWorkingDirectoryError } from '../providers/working-directory-validation'
+export { type DaemonPtySpawnContext } from './daemon-pty-spawn-context'
 
 /** A daemon kept running across an update trusts `interactive` even for a claimed resume. */
 function forwardedSpawnIntent(intent: SpawnIntent, claim: unknown): SpawnIntent {
   return intent === 'interactive' && claim !== undefined ? 'automatic-restore' : intent
 }
 
-export type DaemonPtySpawnContext = {
-  opts: PtySpawnOptions
-  operation: PendingDaemonSpawnOperation
-  historyRecovery: HistoryRecoveryContext
-  requestedSessionId: string
-  attachOnly: boolean
-  emulateLegacyAttachOnly: boolean
-  sessionId: string
-  wslDistro: string | undefined
-  restoreInfo: ColdRestoreInfo | null
-  restoreSkippedForLiveSession: boolean
-  effectiveCwd: string | undefined
-  effectiveCols: number
-  effectiveRows: number
-  shellReadySupported: boolean
-  shellReadyTimeoutMs: number | undefined
-  historySeedSegments: readonly string[] | null
-  detectColdRestore(options?: { ignoreCleanEnd?: boolean }): Promise<ColdRestoreInfo | null>
-}
-
-export abstract class DaemonPtySpawnRequest extends DaemonPtyRuntimeState {
+export abstract class DaemonPtySpawnRequest extends DaemonPtySpawnSettlement {
   protected abstract takeSnapshotAndCheckpoint(
     sessionId: string,
     opts: {
@@ -115,79 +97,131 @@ export abstract class DaemonPtySpawnRequest extends DaemonPtyRuntimeState {
       historySeedTransferId: string | undefined
     ) => {
       const { opts } = context
-      if (opts.signal?.aborted) {
-        throw new Error('client_disconnected')
-      }
-      opts.switchExecution?.check()
-      if (opts.switchExecution && this.protocolVersion < SESSION_SWITCH_PHYSICAL_PROTOCOL_VERSION) {
-        throw new Error('Session switch is unavailable for this terminal owner')
-      }
-      if (opts.switchExecution && !anchor) {
-        const prepared = await this.client.request<{ anchor: string }>(
-          'createOrAttach',
-          {
-            sessionId: context.sessionId,
-            cols: context.effectiveCols,
-            rows: context.effectiveRows,
-            switchExecution: { phase: 'prepare', invocationId: opts.switchExecution.invocationId }
-          },
-          Math.max(1, opts.switchExecution.remaining()),
-          opts.signal
-        )
-        opts.switchExecution.check()
-        anchor = prepared.anchor
-      }
-      const payload = {
-        ...(opts.switchExecution
-          ? {
-              switchExecution: {
-                phase: 'commit' as const,
-                invocationId: opts.switchExecution.invocationId,
-                anchor,
-                remainingMs: opts.switchExecution.remaining()
-              }
-            }
-          : {}),
-        sessionId: context.sessionId,
-        cols: context.effectiveCols,
-        rows: context.effectiveRows,
-        cwd: context.attachOnly ? undefined : context.effectiveCwd,
-        env: context.attachOnly ? undefined : opts.env,
-        envToDelete: context.attachOnly ? undefined : opts.envToDelete,
-        command: context.attachOnly ? undefined : opts.command,
-        startupCommandDelivery: context.attachOnly ? undefined : opts.startupCommandDelivery,
-        launchAgent: context.attachOnly ? undefined : opts.launchAgent,
-        ...(context.attachOnly && !context.emulateLegacyAttachOnly ? { attachOnly: true } : {}),
-        shellOverride: context.attachOnly ? undefined : opts.shellOverride,
-        terminalShellArgs: context.attachOnly ? undefined : opts.terminalShellArgs,
-        terminalWindowsWslDistro: context.attachOnly ? undefined : opts.terminalWindowsWslDistro,
-        terminalWindowsPowerShellImplementation: context.attachOnly
-          ? undefined
-          : opts.terminalWindowsPowerShellImplementation,
-        shellReadySupported: context.attachOnly ? false : context.shellReadySupported,
-        ...(!context.attachOnly && context.shellReadyTimeoutMs !== undefined
-          ? { shellReadyTimeoutMs: context.shellReadyTimeoutMs }
-          : {}),
-        ...(historySeed ? { historySeed } : {}),
-        ...(historySeedTransferId ? { historySeedTransferId } : {}),
-        ...(this.supportsStartupIngress && !context.attachOnly && opts.startupIngress
-          ? { startupIngress: opts.startupIngress }
-          : {}),
-        ...(!context.attachOnly && opts.spawnIntent
-          ? { spawnIntent: forwardedSpawnIntent(opts.spawnIntent, opts.agentSessionEnsure) }
-          : {}),
-        ...(!context.attachOnly && opts.agentSessionEnsure
-          ? { agentSessionEnsure: opts.agentSessionEnsure }
-          : {})
-      }
-      return opts.signal
-        ? this.client.request<CreateOrAttachResult>(
+      let strong = Boolean(
+        opts.switchExecution && this.protocolVersion >= SESSION_SWITCH_PHYSICAL_PROTOCOL_VERSION
+      )
+      let preparedEndpoint: ReturnType<DaemonClient['getDaemonIdentity']> = null
+      const observeDispatch = (requestId: string, contract = 'creation-settlement-v1') =>
+        this.observeSwitchSpawn(context, requestId, anchor, preparedEndpoint, contract)
+
+      try {
+        if (context.operation.switchSettlement) {
+          throw new Error('Terminal creation was interrupted; try again')
+        }
+        if (opts.signal?.aborted) {
+          throw new Error('client_disconnected')
+        }
+        opts.switchExecution?.check()
+        if (opts.switchExecution && strong && !anchor) {
+          preparedEndpoint = this.client.getDaemonIdentity()
+          const prepared = await this.client.request<{ anchor: string; retention?: string }>(
             'createOrAttach',
-            payload,
-            opts.switchExecution ? Math.max(1, opts.switchExecution.remaining()) : undefined,
+            {
+              sessionId: context.sessionId,
+              cols: context.effectiveCols,
+              rows: context.effectiveRows,
+              switchExecution: { phase: 'prepare', invocationId: opts.switchExecution.invocationId }
+            },
+            Math.max(1, opts.switchExecution.remaining()),
             opts.signal
           )
-        : this.client.request<CreateOrAttachResult>('createOrAttach', payload)
+          if (
+            prepared.retention !== 'creation-settlement-v1' ||
+            typeof prepared.anchor !== 'string' ||
+            !prepared.anchor
+          ) {
+            // Negotiate before destination dispatch; an unaware peer keeps its ordinary route.
+            if (typeof prepared.anchor === 'string' && prepared.anchor) {
+              if (prepared.retention === 'consumer-release-v1' && preparedEndpoint) {
+                // Known old prepared-only cleanup uses the same exact owner, never a strong commit.
+                anchor = prepared.anchor
+                observeDispatch(anchor, 'consumer-release-v1')
+                await context.operation.switchSettlement!.recover()
+                context.operation.switchSettlement = undefined
+                anchor = undefined
+              } else {
+                await this.client.request(
+                  'cancelCreateOrAttach',
+                  { sessionId: context.sessionId, requestId: prepared.anchor },
+                  Math.max(1, opts.switchExecution.remaining())
+                )
+              }
+            }
+            strong = false
+          }
+          if (strong) {
+            anchor = prepared.anchor
+          }
+          opts.switchExecution.check()
+        }
+        const payload = {
+          ...(opts.switchExecution && strong
+            ? {
+                switchExecution: {
+                  phase: 'commit' as const,
+                  contract: 'creation-settlement-v1' as const,
+                  invocationId: opts.switchExecution.invocationId,
+                  anchor,
+                  remainingMs: opts.switchExecution.remaining()
+                }
+              }
+            : {}),
+          sessionId: context.sessionId,
+          cols: context.effectiveCols,
+          rows: context.effectiveRows,
+          cwd: context.attachOnly ? undefined : context.effectiveCwd,
+          env: context.attachOnly ? undefined : opts.env,
+          envToDelete: context.attachOnly ? undefined : opts.envToDelete,
+          command: context.attachOnly ? undefined : opts.command,
+          startupCommandDelivery: context.attachOnly ? undefined : opts.startupCommandDelivery,
+          launchAgent: context.attachOnly ? undefined : opts.launchAgent,
+          ...(context.attachOnly && !context.emulateLegacyAttachOnly ? { attachOnly: true } : {}),
+          shellOverride: context.attachOnly ? undefined : opts.shellOverride,
+          terminalShellArgs: context.attachOnly ? undefined : opts.terminalShellArgs,
+          terminalWindowsWslDistro: context.attachOnly ? undefined : opts.terminalWindowsWslDistro,
+          terminalWindowsPowerShellImplementation: context.attachOnly
+            ? undefined
+            : opts.terminalWindowsPowerShellImplementation,
+          shellReadySupported: context.attachOnly ? false : context.shellReadySupported,
+          ...(!context.attachOnly && context.shellReadyTimeoutMs !== undefined
+            ? { shellReadyTimeoutMs: context.shellReadyTimeoutMs }
+            : {}),
+          ...(historySeed ? { historySeed } : {}),
+          ...(historySeedTransferId ? { historySeedTransferId } : {}),
+          ...(this.supportsStartupIngress && !context.attachOnly && opts.startupIngress
+            ? { startupIngress: opts.startupIngress }
+            : {}),
+          ...(!context.attachOnly && opts.spawnIntent
+            ? { spawnIntent: forwardedSpawnIntent(opts.spawnIntent, opts.agentSessionEnsure) }
+            : {}),
+          ...(!context.attachOnly && opts.agentSessionEnsure
+            ? { agentSessionEnsure: opts.agentSessionEnsure }
+            : {})
+        }
+        const result = await (opts.switchExecution
+          ? this.client.request<CreateOrAttachResult>(
+              'createOrAttach',
+              payload,
+              Math.max(1, opts.switchExecution.remaining()),
+              opts.signal,
+              (requestId) =>
+                observeDispatch(requestId, strong ? 'creation-settlement-v1' : 'ordinary')
+            )
+          : opts.signal
+            ? this.client.request<CreateOrAttachResult>(
+                'createOrAttach',
+                payload,
+                undefined,
+                opts.signal
+              )
+            : this.client.request<CreateOrAttachResult>('createOrAttach', payload))
+        return result
+      } catch (error) {
+        if (anchor && !context.operation.switchSettlement) {
+          observeDispatch(anchor)
+        }
+        throw error
+      }
     }
 
     let historySeedUnavailable = false

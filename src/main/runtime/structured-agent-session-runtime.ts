@@ -66,12 +66,12 @@ export type StructuredAgentSessionRuntimeDeps = StructuredAgentSessionTransportO
   conversationNaming?: StructuredAgentSessionHostDeps['conversationNaming']
   /** See `StructuredAgentSessionHostDeps.hasOpenDispatch`. */
   hasOpenDispatch?: StructuredAgentSessionHostDeps['hasOpenDispatch']
-  hasOwedSwitchWork?: StructuredAgentSessionHostDeps['hasOwedSwitchWork']
   resolveCodexAccountKind?: (home: string) => AgentSessionAccountKind | undefined
   /** Launch prep's sync for a probed home; see `CodexModelCatalogProbeDeps.prepareHome`. */
   prepareCodexCatalogProbeHome?: (homePath: string) => void
   /** See `StructuredAgentSessionHostDeps.onSessionTabHidden`. */
   onSessionTabHidden?: StructuredAgentSessionHostDeps['onSessionTabHidden']
+  captureSessionSwitchStop?: StructuredAgentSessionHostDeps['captureSessionSwitchStop']
   /** See `StructuredAgentSessionHostDeps.assertNoTerminalWriter`. */
   assertNoTerminalWriter?: StructuredAgentSessionHostDeps['assertNoTerminalWriter']
   /** Host-owned phone delivery and reconciliation from the current journal projection. */

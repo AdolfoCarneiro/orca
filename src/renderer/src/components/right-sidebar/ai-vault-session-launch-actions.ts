@@ -1,3 +1,4 @@
+import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
 import type { AiVaultOriginalPaneTarget } from './ai-vault-original-pane'
 import {
   notifyAiVaultSessionPreparationFailure,
@@ -53,6 +54,7 @@ export function useAiVaultSessionLaunchActions({
   targetState: AiVaultSessionResumeTargetState
   agentCmdOverrides?: Partial<Record<AiVaultAgent, string | null>>
 }) {
+  const confirm = useConfirmationDialog()
   const [continuationRequest, setContinuationRequest] =
     useState<AgentSessionContinuationRequest | null>(null)
 
@@ -149,10 +151,10 @@ export function useAiVaultSessionLaunchActions({
     [buildResumeStartup, launchInTerminal]
   )
 
-  // Native chat keeps the conversation it owns; the terminal gets a copy (see the fork builder).
+  // Supported chats transfer the same conversation; other history rows keep their ordinary resume.
   const handleResumeInNewCli = useCallback(
     (session: AiVaultSession, targetWorktreeId: string): void => {
-      if (switchAiVaultSessionToCli(session)) {
+      if (switchAiVaultSessionToCli(session, confirm)) {
         return
       }
       const prepareStartup = async (worktreeId: string): Promise<AiVaultResumeStartup> => {
@@ -193,7 +195,7 @@ export function useAiVaultSessionLaunchActions({
       }
       launchInTerminal(session, targetWorktreeId, prepareStartup, describeAiVaultCliForkFailure)
     },
-    [agentCmdOverrides, launchInTerminal]
+    [agentCmdOverrides, launchInTerminal, confirm]
   )
 
   const handleResumeInNewChat = useCallback(
@@ -207,7 +209,8 @@ export function useAiVaultSessionLaunchActions({
         switchAiVaultSessionToNativeChat(
           session,
           targetWorktreeId ?? activeWorktreeId ?? activeWorktree?.id,
-          pane
+          pane,
+          confirm
         )
       ) {
         return
@@ -229,7 +232,7 @@ export function useAiVaultSessionLaunchActions({
         newAgentLaunchRequestId()
       )
     },
-    [activeWorktree?.id, activeWorktreeId]
+    [activeWorktree?.id, activeWorktreeId, confirm]
   )
 
   const handleContinueInNewSession = useCallback(

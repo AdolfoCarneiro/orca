@@ -22,7 +22,6 @@ import {
 } from '../structured-agent-launch-support'
 import { structuredAgentRuntimeMetadata } from '../structured-agent-runtime-metadata'
 import { structuredAgentChatProgramNeedsInstall } from '../structured-agent-availability'
-import { structuredLaunchSeedOptions } from '../../../shared/native-chat/input/native-chat-session-option-defaults'
 import { hasPersistedStructuredAgentSessionStore as hasPersistedStructuredAgentSessionStoreOnDisk } from '../structured-agent-session-runtime'
 import { ensureStructuredAgentSessionHostUnlessRefused } from '../structured-agent-session-host-refusal'
 import { getProfileUserDataPath } from '../../orca-profiles/profile-storage-paths'
@@ -34,7 +33,6 @@ import {
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import type { AgentSessionAccountHome } from '../../../shared/agent-session-account-home'
 import type { StructuredAgentId } from '../../../shared/agent-session-provider-handle'
-
 export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport extends OrcaRuntimeWithStructuredSessionAccountHome {
   protected abstract restoreStructuredAgentSessionTabsOnce(
     ...args: Parameters<
@@ -67,22 +65,8 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
   }
 
   /** Use this runtime's registered definition to pin account home; reads/create must not install the host just to inspect it. */
-  protected requireRegisteredStructuredAgent(agent: StructuredAgentId) {
-    const definition = structuredAgentRuntimeMetadata(agent)?.definition
-    if (!definition) {
-      throw agentSessionRefusalError('structured_agent_session_unsupported', {
-        reason: 'hostUnsupported'
-      })
-    }
-    return definition
-  }
 
   /** Share new-chat selection between create and createSupport so client pickers show what create will run. */
-  structuredAgentSessionLaunchSeedOptions(
-    agent: StructuredAgentId
-  ): Record<string, string> | undefined {
-    return structuredLaunchSeedOptions(this.requireStore().getSettings(), agent)
-  }
 
   protected async resolveStructuredAgentSessionLocation(worktreeSelector: string) {
     const target = await this.resolveRuntimeFileTarget(worktreeSelector)
@@ -123,25 +107,29 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
   async resolveStructuredAgentSessionCreateIntent(
     input: StructuredAgentSessionCreateIntentInput
   ): Promise<AgentSessionAttachParams & { hostLaunchDirectory?: string }> {
-    if (input.resumeFrom) {
-      const { providerSessionId, cliSource } = input.resumeFrom
-      try {
-        requireUnownedStructuredAgentSessionAdoption({
-          host: getStructuredAgentSessionHost(),
-          agent: input.agent,
-          providerSessionId,
-          selfSessionId: input.envelope.sessionId
-        })
-      } catch (ownerConflict) {
-        // Refuse transfer from a live terminal or the chat's first send starts a second writer.
-        await this.assertStructuredAdoptionTerminalWritersExited(
-          input.agent,
-          providerSessionId,
-          cliSource
-        )
-        throw ownerConflict
-      }
+    const resolved = await this.resolveStructuredAgentSessionCreateIdentity(input, 'launch')
+    const replay = resolveCommittedStructuredAgentSessionAdoptionIntent({
+      host: getStructuredAgentSessionHost(),
+      ...input,
+      location: resolved.location
+    })
+    if (input.resumeFrom && !replay) {
+      requireUnownedStructuredAgentSessionAdoption({
+        host: getStructuredAgentSessionHost(),
+        agent: input.agent,
+        providerSessionId: input.resumeFrom.providerSessionId,
+        selfSessionId: input.envelope.sessionId,
+        identity: resolved
+      })
     }
+    return resolved
+  }
+
+  /** Resolve registered account/transcript identity without acquiring or admitting a writer. */
+  async resolveStructuredAgentSessionCreateIdentity(
+    input: StructuredAgentSessionCreateIntentInput,
+    purpose: 'read' | 'launch' = 'read'
+  ): Promise<AgentSessionAttachParams & { hostLaunchDirectory?: string }> {
     const structuredAgentCliSourceEvidence =
       input.structuredAgentCliSourceEvidence ??
       (input.resumeFrom?.cliSource
@@ -153,7 +141,7 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
     const resolveAccountHome = this.structuredAgentAccountHomeResolver(
       input.agent,
       input.worktree,
-      'launch',
+      purpose,
       hostLaunchDirectory
     )
     if (!resolveAccountHome) {
@@ -163,7 +151,8 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
     }
     const resolved = await this.resolveStructuredAgentSessionIntent(
       { ...input, structuredAgentCliSourceEvidence },
-      resolveAccountHome
+      resolveAccountHome,
+      purpose
     )
     return hostLaunchDirectory ? { ...resolved, hostLaunchDirectory } : resolved
   }
@@ -192,7 +181,8 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
         workspaceId: string
         workspaceKind: 'folder' | 'git-worktree'
       }
-    }) => AgentSessionAccountHome | Promise<AgentSessionAccountHome>
+    }) => AgentSessionAccountHome | Promise<AgentSessionAccountHome>,
+    purpose: 'read' | 'launch' = 'launch'
   ): Promise<AgentSessionAttachParams> {
     const support = await this.getStructuredAgentSessionCreateSupport(input.worktree, input.agent)
     // Adopting a conversation reads the agent's own transcript, so only an agent registered with an
@@ -219,7 +209,7 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
       return committedReplay
     }
     const resumeFrom = input.resumeFrom
-    if (resumeFrom) {
+    if (purpose === 'launch' && resumeFrom) {
       await this.assertStructuredAdoptionTerminalWritersExited(
         input.agent,
         resumeFrom.providerSessionId,
@@ -245,7 +235,8 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
                 workspaceId: location.workspaceId,
                 evidence: input.structuredAgentCliSourceEvidence
               }),
-            prepareCodexResume: this.prepareAiVaultSessionResumeFn ?? undefined,
+            prepareCodexResume:
+              purpose === 'launch' ? (this.prepareAiVaultSessionResumeFn ?? undefined) : undefined,
             selectedAccountHome,
             launchEnv: await resolveHostStructuredAgentLaunchEnvironment(input.agent, settings),
             workspaceCwd: workspaceCwd

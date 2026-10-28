@@ -8,8 +8,7 @@ import {
   ptyShellPath,
   ptyPhysicalExits,
   LocalPtyPhysicalExit,
-  clearPtyState,
-  ptyWslDistroById
+  clearPtyState
 } from './local-pty-provider-state'
 import type * as PtyDescendantTerminationModule from '../pty-descendant-termination'
 import type * as ProcessTableSnapshotReaderModule from '../../shared/process-table-snapshot-reader'
@@ -21,7 +20,8 @@ vi.mock('../../shared/process-table-snapshot-reader', async (importOriginal) => 
   getStrictProcessTableSnapshotWithAge: () => table()
 }))
 vi.mock('../pty/posix-pty-process-groups', () => ({
-  forceKillPosixPtyProcessGroups: (_pid: number, killRoot: () => void) => killRoot()
+  forceKillPosixPtyProcessGroups: (_pid: number, killRoot: () => void) => killRoot(),
+  forceKillPosixPtyProcessGroupsSync: (_pid: number, killRoot: () => void) => killRoot()
 }))
 vi.mock('../pty-descendant-termination', async (importOriginal) => {
   const sweep = await importOriginal<typeof PtyDescendantTerminationModule>()
@@ -35,7 +35,10 @@ vi.mock('../pty-descendant-termination', async (importOriginal) => {
       sweep.killWithDescendantSweep(pid, killRoot, {
         ...options,
         platform: 'linux',
-        readTable: async () => ({ rows: [], capturedAtMs: 0 })
+        readTable: async () => {
+          await table()
+          return { rows: [], capturedAtMs: 0 }
+        }
       })
   }
 })
@@ -94,10 +97,14 @@ const request = () => ({
   expectedIncarnationId: incarnation,
   requireNoAgentOwner: true,
   requireUnattached: false,
-  switchCondition: { token: 'captured-before-probe', remainingMs: 10_000 }
+  switchCondition: {
+    token: 'captured-before-probe',
+    remainingMs: 10_000,
+    ownedSpawn: true as const
+  }
 })
 
-it.each(['input', 'attachment', 'preparing launch', 'suspended child', 'unknown'] as const)(
+it.each(['input', 'attachment', 'preparing launch'] as const)(
   'keeps the real local owner usable when %s races the final probe',
   async (change) => {
     const { provider, proc, kill } = setup()
@@ -106,24 +113,7 @@ it.each(['input', 'attachment', 'preparing launch', 'suspended child', 'unknown'
     table.mockImplementation(async () => {
       entered.resolve()
       await release.promise
-      if (change === 'unknown') {
-        throw new Error('unreadable table')
-      }
-      return snapshot(
-        change === 'suspended child'
-          ? [
-              shell,
-              {
-                ...shell,
-                pid: 12001,
-                ppid: shell.pid,
-                pgid: 12001,
-                stat: 'T',
-                command: 'codex resume 019aef12-1234-7000-8000-123456789abc'
-              }
-            ]
-          : [shell]
-      )
+      return snapshot([shell])
     })
     const closing = provider.killFenced(request())
     await entered.promise
@@ -150,16 +140,17 @@ it.each(['input', 'attachment', 'preparing launch', 'suspended child', 'unknown'
     await launching
   }
 )
-it('closes indistinguishable pre-capture builtin work, while a Windows WSL wrapper is not Linux job proof', async () => {
+it('cleans up only a captured unused new spawn; obsolete source-shell witnesses never authorize it', async () => {
   const { provider, kill } = setup()
-  // No post-capture input, child or pending emission is observable in this authorized boundary case.
-  ptyWslDistroById.set(id, 'Ubuntu')
-  expect(await provider.killFenced(request())).toMatchObject({
+  const sourceRequest = {
+    ...request(),
+    switchCondition: { token: 'captured-before-probe', remainingMs: 10_000 }
+  }
+  expect(await provider.killFenced(sourceRequest)).toEqual({
     outcome: 'refused',
     reason: 'unsupported'
   })
   expect(kill).not.toHaveBeenCalled()
-  ptyWslDistroById.delete(id)
   expect(await provider.killFenced(request())).toEqual({ outcome: 'ended' })
   expect(kill).toHaveBeenCalledOnce()
 })

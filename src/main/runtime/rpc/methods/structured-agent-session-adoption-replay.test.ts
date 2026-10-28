@@ -380,13 +380,18 @@ describe('committed adopting create RPC replay', () => {
     expect(sessionAdapter.acquire).toHaveBeenCalledTimes(1)
     expect(internal.publishStructuredAgentSessionTab).toHaveBeenCalledTimes(2)
     expect(selectAccountHome).toHaveBeenCalledTimes(1)
-    // The switched-out terminal is checked before the owner is named; an unavailable scan refuses.
+    // A new adopter needs readable account-qualified identity; an unavailable writer scan still refuses first.
     const another = await call(dispatcher, createParams(OPERATION, 'another-chat'))
     expect(another).toMatchObject({
       ok: true,
-      result: { ok: false, refusal: { details: { reason: 'conversationHeldElsewhere' } } }
+      result: {
+        ok: false,
+        refusal: unary
+          ? { code: 'agent_session_identity_required' }
+          : { code: 'agent_session_conflict', details: { reason: 'conversationHeldElsewhere' } }
+      }
     })
-    expect(JSON.stringify(another).includes(`"owner"`)).toBe(unary)
+    expect(JSON.stringify(another).includes(`"owner"`)).toBe(false)
 
     // Only an exact committed replay bypasses an unavailable writer scan.
     const freshRefusal = unary

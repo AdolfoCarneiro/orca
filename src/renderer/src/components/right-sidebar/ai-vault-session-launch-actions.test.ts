@@ -1,7 +1,8 @@
 import type * as ForkStartup from '@/lib/ai-vault-session-fork-startup'
 // @vitest-environment happy-dom
 import { renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as sessionSwitch from './ai-vault-session-in-place-switch'
 import type { AiVaultSession } from '../../../../shared/ai-vault-types'
 import type { WebRuntimeTerminalCreateOutcome } from '@/runtime/web-runtime-session-types'
 
@@ -14,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   prepareAiVaultSessionForTerminalResume: vi.fn(),
   launchAiVaultSessionInNewTab: vi.fn(),
   activateAiVaultResumeWorkspace: vi.fn(),
+  switchToCli: vi.fn(async () => {}),
+  confirm: vi.fn(async () => false),
   toastError: vi.fn(),
   toastSuccess: vi.fn()
 }))
@@ -41,6 +44,10 @@ vi.mock('@/lib/ai-vault-session-resume-preparation', () => ({
 }))
 vi.mock('@/lib/launch-ai-vault-session', () => ({
   launchAiVaultSessionInNewTab: mocks.launchAiVaultSessionInNewTab
+}))
+vi.mock('@/lib/conversation-surface-switch', () => ({
+  runNativeChatCliSwitch: mocks.switchToCli,
+  runConversationSwitch: vi.fn(async () => false)
 }))
 vi.mock('./ai-vault-session-launch-target', () => ({
   resolveAiVaultSessionLaunchTarget: (args: { targetWorktreeId?: string }) => ({
@@ -99,10 +106,17 @@ function renderActions(agentCmdOverrides?: { opencode?: string }) {
   ).result.current
 }
 
-describe('Switch to Terminal launch', () => {
+afterEach(() => vi.restoreAllMocks())
+
+describe('ordinary CLI copy launch when the switch action does not apply', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.getState.mockReturnValue({ activeWorktreeId: 'worktree-1', settings: {} })
+    vi.spyOn(sessionSwitch, 'switchAiVaultSessionToCli').mockReturnValue(false)
+    mocks.getState.mockReturnValue({
+      activeWorktreeId: 'worktree-1',
+      settings: {},
+      unifiedTabsByWorktree: {}
+    })
     mocks.prepareAiVaultSessionForFork.mockImplementation(async (session) => ({
       session,
       copied: false
@@ -229,6 +243,35 @@ describe('Switch to Terminal launch', () => {
   })
 })
 
+it.each(['claude', 'codex', 'grok', 'opencode', 'opencode2', 'pi'] as const)(
+  'routes supported %s History chats through the common same-conversation switch',
+  (agent) => {
+    vi.clearAllMocks()
+    const chat = { ...owned, agent }
+    mocks.getState.mockReturnValue({
+      activeWorktreeId: 'worktree-1',
+      settings: {},
+      unifiedTabsByWorktree: {
+        'worktree-1': [{ id: 'chat-tab', contentType: 'agent-session', entityId: 'chat-1' }]
+      }
+    })
+    renderActions().handleResumeInNewCli(chat, 'worktree-2')
+    expect(mocks.switchToCli).toHaveBeenCalledExactlyOnceWith({
+      confirm: mocks.confirm,
+      sessionId: 'chat-1',
+      workspaceId: 'worktree-1',
+      executionHostId: 'local',
+      agent,
+      chatTabId: 'chat-tab',
+      history: chat
+    })
+    expect(mocks.prepareAiVaultSessionForFork).not.toHaveBeenCalled()
+    expect(mocks.buildAiVaultForkStartupForWorktree).not.toHaveBeenCalled()
+    expect(mocks.launchAiVaultSessionInNewTab).not.toHaveBeenCalled()
+    expect(mocks.toastError).not.toHaveBeenCalled()
+  }
+)
+
 it('refuses the stale OMP row before creating a second terminal writer', async () => {
   vi.clearAllMocks()
   mocks.prepareAiVaultSessionForTerminalResume.mockRejectedValue(
@@ -246,3 +289,8 @@ it('refuses the stale OMP row before creating a second terminal writer', async (
   )
   expect(mocks.launchAiVaultSessionInNewTab).not.toHaveBeenCalled()
 })
+
+vi.mock('@/components/confirmation-dialog-context', async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  useConfirmationDialog: () => mocks.confirm
+}))

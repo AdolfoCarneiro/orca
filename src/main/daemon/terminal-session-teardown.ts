@@ -84,22 +84,13 @@ export class TerminalSessionTeardown {
             if (!switchCheck()) {
               return false
             }
-            const children = ownedSpawn
-              ? 'no-children'
-              : await session.inspectChildProcesses(true, false)
-            if (
-              children !== 'no-children' ||
-              !switchCheck() ||
-              this.sessions.get(sessionId) !== session
-            ) {
+            if (!ownedSpawn || !switchCheck() || this.sessions.get(sessionId) !== session) {
               return false
             }
             committed = session.commitSwitchClose(switchCheck)
             return committed
           },
           terminateOwnedTree: () => session.terminateOwnedTree(),
-          // No child is ever an automatic-cleanup target. Recheck occurs after this sweep's census.
-          ...(ownedSpawn ? {} : { terminateDescendants: () => {} }),
           awaitEscalation: true
         })
         if (committed && this.sessions.get(sessionId) === session && session.isAlive) {

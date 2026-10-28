@@ -1,3 +1,4 @@
+import { conversationSwitchViewerSelectionCurrent } from '@/lib/conversation-switch-selection'
 import type { AgentLaunchTabViewerRule } from '../../../shared/agent-launch-tab-publication'
 import { focusTerminalInitiatedTab } from '../hooks/ipc-events/terminal-command-state'
 import { useAppStore } from '../store'
@@ -8,8 +9,12 @@ export function presentAgentLaunchTab(
   viewer: AgentLaunchTabViewerRule,
   worktreeId: string,
   tabId: string,
-  leafId?: string
+  leafId?: string,
+  viewerSelection?: string
 ): void {
+  if (!conversationSwitchViewerSelectionCurrent(viewerSelection)) {
+    return
+  }
   if (viewer === 'focus-window') {
     revealWorkspaceSurface(useAppStore.getState(), worktreeId, [tabId])
   }

@@ -1,3 +1,4 @@
+import { conversationSwitchViewerSelectionCurrent } from '@/lib/conversation-switch-selection'
 import { applyAgentLaunchPaneVerdict } from './agent-launch-pane-verdict-application'
 import { launchTabWithdrawalIdentity } from '../../../shared/agent-launch-tab-publication'
 import { agentLaunchPaneAttemptCurrent } from './agent-launch-pane-start'
@@ -105,14 +106,18 @@ export function publishAgentLaunchTab(
         ...(selectFolderWorkspaces(store) ?? []).map(folderWorkspaceToWorktree)
       ].filter((worktree) => worktree.id === worktreeId)
   })
-  const focuses = request.viewer === 'focus-window' || request.viewer === 'focus-in-workspace'
+  const focuses =
+    (request.viewer === 'focus-window' || request.viewer === 'focus-in-workspace') &&
+    conversationSwitchViewerSelectionCurrent(request.viewerSelection)
   const tab = store.createTab(worktreeId, placement.groupId, undefined, {
     id: tabId,
     initialLeafId: leafId,
     agentLaunchPane: launchPaneFor(request),
     launchAgent: request.launchAgent,
     viewMode: request.viewMode,
-    ...(focuses ? {} : { activate: false, recordInteraction: false })
+    ...(focuses && request.viewerSelection === undefined
+      ? {}
+      : { activate: false, recordInteraction: false })
   })
   if (request.prompt) {
     rememberAgentLaunchPanePrompt(tabId, request.prompt)
@@ -125,7 +130,7 @@ export function publishAgentLaunchTab(
       insertUnifiedTabAfterAnchor(worktreeId, unifiedTabId, placement.anchorTabId)
     }
   }
-  presentAgentLaunchTab(request.viewer, worktreeId, tab.id, leafId)
+  presentAgentLaunchTab(request.viewer, worktreeId, tab.id, leafId, request.viewerSelection)
   const landed = landedGroupId(worktreeId, tab.id) ?? placement.groupId ?? ''
   const fallback = placementFallback(request, landed, placement.anchorTabId !== undefined)
   return {

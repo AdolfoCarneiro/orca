@@ -1,3 +1,5 @@
+import { inPlaceSwitchEnabled } from '../../../../shared/structured-agent-cli-conversation-adoption'
+import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
 import {
   useConversationSwitchReadiness,
   runNativeChatCliSwitch
@@ -8,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
-import { useInPlaceSwitchCapability } from '@/lib/in-place-switch-support'
 import { AI_VAULT_AGENTS } from '../../../../shared/ai-vault-types'
 import { SwitchToCliTooltipText } from '../right-sidebar/ai-vault-session-cli-fork-copy'
 import { resolveTabSessionHistorySubject } from '../tab-bar/tab-session-history-switch'
@@ -40,7 +41,7 @@ export function NativeChatTopRightControls({
     return subject?.kind === 'chat' ? subject.request.executionHostScope : null
   })
   const agent = AI_VAULT_AGENTS.find((candidate) => candidate === session.agent)
-  const inPlace = useInPlaceSwitchCapability(hostId, agent)
+  const confirm = useConfirmationDialog()
   const readiness = useConversationSwitchReadiness(
     worktreeId && hostId && agent
       ? {
@@ -57,7 +58,7 @@ export function NativeChatTopRightControls({
   if (find.isOpen) {
     return <NativeChatFindBar find={find} isVisible={session.isVisible} />
   }
-  if (!enabled || !worktreeId || !hostId || !agent || (inPlace === false && agent !== 'omp')) {
+  if (!enabled || !worktreeId || !hostId || !agent || !inPlaceSwitchEnabled(agent)) {
     return null
   }
   const label = translate('components.tab.bar.switch.toCli', 'Switch to CLI')
@@ -71,10 +72,11 @@ export function NativeChatTopRightControls({
             size="icon-xs"
             aria-label={label}
             aria-disabled={!readiness.ready || undefined}
-            disabled={!readiness.ready || inPlace !== true}
+            disabled={!readiness.ready}
             onClick={() => {
-              if (readiness.ready && inPlace === true) {
+              if (readiness.ready) {
                 void runNativeChatCliSwitch({
+                  confirm,
                   sessionId: session.sessionId,
                   workspaceId: worktreeId,
                   executionHostId: hostId,
@@ -88,17 +90,7 @@ export function NativeChatTopRightControls({
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom" sideOffset={4}>
-          {inPlace === false ? (
-            translate(
-              'components.tab.bar.switch.unavailable',
-              'Switching {{agent}} is not available yet.',
-              { agent: session.agent }
-            )
-          ) : readiness.explanation ? (
-            readiness.explanation
-          ) : (
-            <SwitchToCliTooltipText agent={agent} />
-          )}
+          {readiness.explanation ?? <SwitchToCliTooltipText agent={agent} />}
         </TooltipContent>
       </Tooltip>
     </div>

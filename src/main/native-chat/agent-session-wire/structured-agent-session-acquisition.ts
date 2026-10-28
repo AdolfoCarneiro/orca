@@ -97,12 +97,15 @@ export async function acquireOwner(
     } else if (!sameOwnerProcess(record.lease.ownerProcess, acquired.process)) {
       throw new Error('agent_session_ownership_unknown')
     }
-    const proved = await input.store.proveOwner({
-      sessionId: record.sessionId,
-      fence,
-      ...(acquired.link ? { link: acquired.link } : {}),
-      now: input.now()
-    })
+    const proved = await input.store.proveOwner(
+      {
+        sessionId: record.sessionId,
+        fence,
+        ...(acquired.link ? { link: acquired.link } : {}),
+        now: input.now()
+      },
+      input.checkBeforeAcquire
+    )
     return { record: proved, acquisitionGeneration: acquired.acquisitionGeneration }
   } catch (error) {
     if (isAgentSessionPreSpawnError(error)) {

@@ -1,3 +1,4 @@
+import type { PtyCreationDisposition } from '../../shared/claimed-agent-pty-owner'
 import type { StartupCommandDelivery } from '../../shared/codex-startup-delivery'
 import type { TuiAgent } from '../../shared/tui-agent'
 import type { SubprocessHandle } from './session-subprocess-handle'
@@ -19,6 +20,7 @@ export type TerminalHostOptions = {
     terminalShellArgs?: string[]
     terminalWindowsWslDistro?: string | null
     terminalWindowsPowerShellImplementation?: 'auto' | 'powershell.exe' | 'pwsh.exe'
+    onCreationDisposition?: (disposition: PtyCreationDisposition) => void
     assertCreateAllowed?: () => void
     retainCanceledChild?: boolean
     isCanceled?: () => boolean

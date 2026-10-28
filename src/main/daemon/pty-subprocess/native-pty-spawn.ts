@@ -1,3 +1,6 @@
+import type { PtyCreationDisposition } from '../../../shared/claimed-agent-pty-owner'
+import type { TerminalCreationWork } from '../terminal-creation-work'
+import { createDaemonPtyPhysicalOwner, type DaemonPtyPhysicalOwner } from './subprocess-handle'
 import { assertWslDistroAllowed } from '@orca/process-host/wsl-distro-allowlist'
 import type * as pty from 'node-pty'
 import {
@@ -24,6 +27,7 @@ export type DisposableNativePty = pty.IPty & {
 
 export type SpawnedDaemonPty = {
   process: pty.IPty
+  physicalOwner?: DaemonPtyPhysicalOwner
   shellPath: string
   spawnCwd: string
   startupCommandDeliveredInShellArgs?: boolean
@@ -36,6 +40,7 @@ export type SpawnedDaemonPty = {
 type SpawnedNativePty = { proc: pty.IPty; claimStartupEvents?: () => ConptyStartupEvents }
 
 export async function spawnNativeDaemonPty(args: {
+  creationWork?: TerminalCreationWork
   shellPath: string
   shellArgs: string[]
   spawnCwd: string
@@ -51,6 +56,8 @@ export async function spawnNativeDaemonPty(args: {
   onMacosTccSpawnStrategy?: (strategy: 'wrapped' | 'direct') => void
 }): Promise<SpawnedDaemonPty> {
   let reportsChildExitStatus = true
+  let lastAttempt: Promise<PtyCreationDisposition> | undefined
+  const physicalOwners = new WeakMap<pty.IPty, DaemonPtyPhysicalOwner>()
   const spawnOnce = async (
     shellPath: string,
     shellArgs: string[],
@@ -67,17 +74,43 @@ export async function spawnNativeDaemonPty(args: {
     }
     args.signal?.throwIfAborted()
     args.assertCreateAllowed?.()
-    const proc = nodePty.spawn(wrapped.file, wrapped.args, {
-      name: args.env.TERM ?? 'xterm-256color',
-      cols: args.cols,
-      rows: args.rows,
-      cwd,
-      env: wrapped.env,
-      // Bundled ConPTY provides the wrap-marker behavior xterm expects.
-      ...(process.platform === 'win32' ? { useConptyDll: true } : {})
-    })
+    const attempt = Promise.withResolvers<PtyCreationDisposition>()
+    lastAttempt = attempt.promise
+    args.creationWork?.join(attempt.promise)
+    let proc: pty.IPty
+    try {
+      proc = nodePty.spawn(wrapped.file, wrapped.args, {
+        name: args.env.TERM ?? 'xterm-256color',
+        cols: args.cols,
+        rows: args.rows,
+        cwd,
+        env: wrapped.env,
+        // Bundled ConPTY provides the wrap-marker behavior xterm expects.
+        ...(process.platform === 'win32' ? { useConptyDll: true } : {})
+      })
+    } catch (error) {
+      attempt.resolve({ kind: 'failed', completion: Promise.resolve() })
+      throw error
+    }
+    try {
+      const physical = createDaemonPtyPhysicalOwner(proc)
+      physicalOwners.set(proc, physical)
+      attempt.resolve({
+        kind: 'physical',
+        completion: physical.completion,
+        exitCode: physical.exitCode,
+        recover: physical.recover
+      })
+    } catch (error) {
+      attempt.resolve({ kind: 'unknown' })
+      throw error
+    }
     reportsChildExitStatus = hostReportsChildExitStatus(tcc.file)
-    args.onMacosTccSpawnStrategy?.(tcc.file === shellPath ? 'direct' : 'wrapped')
+    try {
+      args.onMacosTccSpawnStrategy?.(tcc.file === shellPath ? 'direct' : 'wrapped')
+    } catch {
+      /* Diagnostics cannot revoke an owned child. */
+    }
     return proc
   }
   const spawnAt = async (
@@ -106,6 +139,7 @@ export async function spawnNativeDaemonPty(args: {
     )
     return {
       process: spawned.proc,
+      physicalOwner: physicalOwners.get(spawned.proc),
       shellPath: args.shellPath,
       spawnCwd: args.spawnCwd,
       reportsChildExitStatus,
@@ -113,7 +147,10 @@ export async function spawnNativeDaemonPty(args: {
     }
   } catch (primaryErr) {
     args.signal?.throwIfAborted()
-    if (process.platform !== 'win32') {
+    if (
+      process.platform !== 'win32' ||
+      (args.retainCanceledChild && ['unknown', 'failed'].includes((await lastAttempt)?.kind ?? ''))
+    ) {
       throw primaryErr
     }
     for (const attempt of args.windowsFallbackAttempts.slice(1)) {
@@ -130,14 +167,21 @@ export async function spawnNativeDaemonPty(args: {
         )
         return {
           process: spawned.proc,
+          physicalOwner: physicalOwners.get(spawned.proc),
           shellPath: attempt.shellPath,
           spawnCwd: attempt.effectiveCwd,
           startupCommandDeliveredInShellArgs: attempt.startupCommandDeliveredInShellArgs,
           reportsChildExitStatus,
           ...(spawned.claimStartupEvents ? { claimStartupEvents: spawned.claimStartupEvents } : {})
         }
-      } catch {
+      } catch (error) {
         args.signal?.throwIfAborted()
+        if (
+          args.retainCanceledChild &&
+          ['unknown', 'failed'].includes((await lastAttempt)?.kind ?? '')
+        ) {
+          throw error
+        }
       }
     }
     throw primaryErr

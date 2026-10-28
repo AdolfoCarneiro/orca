@@ -73,8 +73,10 @@ export async function installOnJournal(
     ...(deps.statusSink ? { statusSink: deps.statusSink } : {}),
     ...(deps.conversationNaming ? { conversationNaming: deps.conversationNaming } : {}),
     ...(deps.hasOpenDispatch ? { hasOpenDispatch: deps.hasOpenDispatch } : {}),
-    ...(deps.hasOwedSwitchWork ? { hasOwedSwitchWork: deps.hasOwedSwitchWork } : {}),
     ...(deps.startupLimits ? { startupLimits: deps.startupLimits } : {}),
+    ...(deps.captureSessionSwitchStop
+      ? { captureSessionSwitchStop: deps.captureSessionSwitchStop }
+      : {}),
     ...(deps.onSessionTabHidden ? { onSessionTabHidden: deps.onSessionTabHidden } : {}),
     ...(deps.assertNoTerminalWriter ? { assertNoTerminalWriter: deps.assertNoTerminalWriter } : {}),
     ...(await modelCatalogHostDeps({

@@ -31,11 +31,11 @@ export async function retireChatForAdmittedTerminalLaunch(
   const holders = listStructuredProviderSessionOwnership(
     host.deps.store.listConversations()
   ).filter((holding) => holding.role === 'head' && keysMayMatch(holding.key, key))
-  for (const holding of holders) {
-    if (host.switchExecuting(holding.sessionId)) {
+  for (const sessionId of new Set(holders.map((holding) => holding.sessionId))) {
+    if (host.switchExecuting(sessionId)) {
       continue
     }
-    const record = host.deps.store.getRecord(holding.sessionId)
+    const record = host.deps.store.getRecord(sessionId)
     if (
       record?.location.executionHostId !== LOCAL_EXECUTION_HOST_ID ||
       record.location.workspaceId !== args.worktreeId
@@ -43,21 +43,21 @@ export async function retireChatForAdmittedTerminalLaunch(
       continue
     }
     try {
-      await host.setSessionTabVisibility(holding.sessionId, false)
+      await host.setSessionTabVisibility(sessionId, false)
     } catch (error) {
       // The terminal is admitted regardless of a failed visibility write; never stop another child.
       host.deps.logger.warn('recording a switched chat tab retirement failed', {
         scope: 'switch-tab-retirement',
-        sessionId: holding.sessionId,
+        sessionId: sessionId,
         error
       })
     }
     try {
-      runtime?.retireStructuredAgentSessionTabFromSnapshot(holding.sessionId)
+      runtime?.retireStructuredAgentSessionTabFromSnapshot(sessionId)
     } catch (error) {
       host.deps.logger.warn('publishing a switched chat tab retirement failed', {
         scope: 'switch-tab-retirement',
-        sessionId: holding.sessionId,
+        sessionId: sessionId,
         error
       })
     }

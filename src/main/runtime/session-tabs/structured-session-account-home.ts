@@ -1,8 +1,9 @@
+import { agentSessionRefusalError } from '../../../shared/agent-session-wire-refusals'
+import { structuredLaunchSeedOptions } from '../../../shared/native-chat/input/native-chat-session-option-defaults'
 import type { StructuredAgentId } from '../../../shared/agent-session-provider-handle'
 import { structuredAgentRuntimeMetadata } from '../structured-agent-runtime-metadata'
 import { getProfileUserDataPath } from '../../orca-profiles/profile-storage-paths'
 import { OrcaRuntimeWithStructuredSessionCliWriterHost } from './structured-session-cli-writer-host'
-
 export abstract class OrcaRuntimeWithStructuredSessionAccountHome extends OrcaRuntimeWithStructuredSessionCliWriterHost {
   /** Resolve account home through this host's agent registration; null means unregistered and create refuses. */
   protected structuredAgentAccountHomeResolver(
@@ -37,5 +38,21 @@ export abstract class OrcaRuntimeWithStructuredSessionAccountHome extends OrcaRu
           stateDirectory: getProfileUserDataPath()
         }
       )
+  }
+
+  protected requireRegisteredStructuredAgent(agent: StructuredAgentId) {
+    const definition = structuredAgentRuntimeMetadata(agent)?.definition
+    if (!definition) {
+      throw agentSessionRefusalError('structured_agent_session_unsupported', {
+        reason: 'hostUnsupported'
+      })
+    }
+    return definition
+  }
+
+  structuredAgentSessionLaunchSeedOptions(
+    agent: StructuredAgentId
+  ): Record<string, string> | undefined {
+    return structuredLaunchSeedOptions(this.requireStore().getSettings(), agent)
   }
 }

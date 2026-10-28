@@ -29,6 +29,8 @@ export type AgentLaunchTabPublishRequest = {
   viewMode: 'terminal' | 'chat'
   placement?: AgentLaunchPlacement
   viewer: AgentLaunchTabViewerRule
+  /** Original caller navigation, compared by the addressed viewer at its final selection writer. */
+  viewerSelection?: string
   /** The launch's prompt, so a pane whose agent did not start can offer to copy it. */
   prompt?: string
   /** Which launch this is: a retry of the same one never resets what the tab keeps about it. */

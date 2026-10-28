@@ -1,12 +1,17 @@
 import { translate } from '@/i18n/i18n'
-import { useMemo, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 import { useAppStore } from '@/store'
-import { conversationSwitchFailureText } from './conversation-switch-feedback'
+import type { ConfirmationDialogContextValue } from '@/components/confirmation-dialog-context'
+import { getStructuredAgentSessionStatusFeed } from '@/runtime/structured-agent-session-status-feed'
 import { findStructuredAgentSessionReadOwner } from '@/components/native-chat/structured-agent-session-read-owner-registry'
 import { runningStructuredAgentSessionTurnId } from '../../../shared/structured-agent-session-live-turn'
-import { inPlaceSwitchCapabilityNow, useInPlaceSwitchRevision } from './in-place-switch-support'
+import { useInPlaceSwitchCapability } from './in-place-switch-support'
 import { structuredAgentSessionTargetForHost } from '@/runtime/structured-agent-session-owner'
 import { refreshLocalStructuredSessionWorktreeTabs } from '@/runtime/local-structured-session-tabs-sync/inventory-refresh'
+import {
+  captureConversationSwitchViewerSelection,
+  conversationSwitchViewerSelectionCurrent
+} from './conversation-switch-selection'
 import {
   pendingNativeChatCliSwitches as pending,
   pendingCliChatResumes,
@@ -16,6 +21,7 @@ import type { AiVaultSession, AiVaultAgent } from '../../../shared/ai-vault-type
 import type { CliChatResumeSource } from '@/components/tab-bar/cli-chat-resume-source'
 
 export type ConversationSwitch = {
+  confirm?: ConfirmationDialogContextValue
   direction: 'chat' | 'terminal'
   executionHostId: string
   workspaceId: string
@@ -51,49 +57,37 @@ export function useConversationSwitchPending(args: ConversationSwitch | null): b
   )
 }
 
+/** Live facts choose consent only; never open a reader to classify saved work. */
+export function conversationSwitchReplying(args: ConversationSwitch): boolean {
+  const state = useAppStore.getState()
+  if (args.source) {
+    return state.agentStatusByPaneKey[args.source.paneKey]?.state === 'working'
+  }
+  const target = structuredAgentSessionTargetForHost(args.executionHostId)
+  if (!args.sessionId || !target) {
+    return false
+  }
+  const held = findStructuredAgentSessionReadOwner(args.sessionId, target)?.getSnapshot()
+  return Boolean(
+    (held?.current &&
+      held.state.working !== false &&
+      runningStructuredAgentSessionTurnId(held.state)) ||
+    getStructuredAgentSessionStatusFeed(target).getSnapshot().get(args.sessionId)?.status ===
+      'working'
+  )
+}
+
 export function useConversationSwitchReadiness(args: ConversationSwitch | null) {
-  useInPlaceSwitchRevision()
-  const target = useMemo(
-    () => structuredAgentSessionTargetForHost(args?.executionHostId),
-    [args?.executionHostId]
-  )
-  const reader =
-    args?.sessionId && target
-      ? findStructuredAgentSessionReadOwner(args.sessionId, target)
-      : undefined
-  const held = useSyncExternalStore(
-    reader?.subscribe ?? subscribe,
-    () => reader?.getSnapshot(),
-    () => undefined
-  )
-  const runningTurn = useMemo(
-    () =>
-      Boolean(
-        held?.current &&
-        held.state.working !== false &&
-        runningStructuredAgentSessionTurnId(held.state)
-      ),
-    [held]
-  )
-  const terminalJob = useAppStore((state) => {
-    const key = args?.source?.paneKey
-    if (!key) {
-      return false
-    }
-    const foreground = state.paneForegroundAgentByPaneKey[key]
-    return foreground?.suspendedAgent
-      ? 'suspended'
-      : foreground?.agent && !foreground.shellForeground
-        ? 'live'
-        : false
-  })
+  const capability = useInPlaceSwitchCapability(args?.executionHostId, args?.agent)
   const pending = useConversationSwitchPending(args)
-  const capability = args ? inPlaceSwitchCapabilityNow(args.executionHostId, args.agent) : undefined
   const updateRequired = args?.source?.hostUpdateRequired === true
-  const reason = terminalJob ? 'conversationOpenInTerminal' : runningTurn ? 'turnActive' : undefined
   return {
     ready: Boolean(
-      args && target && capability !== undefined && !pending && !reason && !updateRequired
+      args &&
+      structuredAgentSessionTargetForHost(args.executionHostId) &&
+      capability !== undefined &&
+      !pending &&
+      !updateRequired
     ),
     pending,
     explanation: updateRequired
@@ -101,12 +95,14 @@ export function useConversationSwitchReadiness(args: ConversationSwitch | null) 
           'components.native-chat.resumeInNewChat.hostUpdateRequired',
           'Update Orca on this host to continue in Chat UI.'
         )
-      : args && reason
-        ? conversationSwitchFailureText(null, args, reason, {
-            suspended: terminalJob === 'suspended'
-          })
-        : undefined
+      : undefined
   }
+}
+
+export function captureConversationSwitchSelection(
+  selection = captureConversationSwitchViewerSelection()
+): () => boolean {
+  return () => conversationSwitchViewerSelectionCurrent(selection)
 }
 
 export function rederiveConversationSwitch(args: ConversationSwitch): void {

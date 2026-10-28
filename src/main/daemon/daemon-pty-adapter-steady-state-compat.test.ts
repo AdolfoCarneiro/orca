@@ -15,7 +15,8 @@ function createAdapter(
     tokenPath: '/tmp/orca-steady-state-compat.token',
     protocolVersion
   })
-  ;(adapter as unknown as ClientInternals).client = { request, disconnect: vi.fn() }
+  // SAFETY: replace only external RPC answers; preserve the actual client lifetime.
+  ;(adapter as unknown as ClientInternals).client.request = request
   return adapter
 }
 

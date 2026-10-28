@@ -15,6 +15,7 @@ type DaemonRpcRequestOptions = {
   type: string
   payload: unknown
   timeoutMs: number
+  onSent?: (requestId: string) => void
   signal?: AbortSignal
   /** Bound late-response waits after unmatched cancellation, including attach-only requests with no reply coming. */
   unmatchedCancelGraceMs: number
@@ -120,6 +121,7 @@ export function requestDaemonRpc<T>(opts: DaemonRpcRequestOptions): Promise<T> {
         .then((result) => {
           // The acknowledged revocation is not proof that a dispatched child exited.
           if (retainSwitchOutcome) {
+            awaitLateResponseThenReject(error)
             return
           }
           if (result.canceled) {
@@ -135,9 +137,6 @@ export function requestDaemonRpc<T>(opts: DaemonRpcRequestOptions): Promise<T> {
           // Refused, timed-out or unknown cancel failures must leave sibling sessions on the connection intact.
           if (cancelError instanceof DaemonConnectionLostError) {
             opts.onCreateCancellationFailure()
-            return
-          }
-          if (retainSwitchOutcome) {
             return
           }
           awaitLateResponseThenReject(wedgedDaemonError(error, cancelError) ?? error)
@@ -185,6 +184,7 @@ export function requestDaemonRpc<T>(opts: DaemonRpcRequestOptions): Promise<T> {
       return
     }
     try {
+      opts.onSent?.(opts.id)
       opts.socket.write(encoded)
       sent = true
     } catch (err) {

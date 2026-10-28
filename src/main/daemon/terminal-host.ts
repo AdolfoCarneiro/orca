@@ -1,12 +1,8 @@
+import { TerminalCreationWork, type PendingTerminalCreation } from './terminal-creation-work'
 import { beginTerminalHostFencedTermination } from './terminal-host-fenced-termination'
 import type { PtyFencedTerminationRequest } from '../../shared/pty-fenced-termination'
 import type { Session } from './session'
-import {
-  SessionNotFoundError,
-  type SessionInfo,
-  type TakePendingOutputResult,
-  type TerminalSnapshot
-} from './types'
+import { SessionNotFoundError, type SessionInfo } from './types'
 import type { CreateOrAttachResult } from './terminal-host-create-contract'
 import type { TerminalHostOptions } from './terminal-host-options'
 import { disposeTerminalHostSessions, killLiveSessionGroupsSync } from './terminal-host-disposal'
@@ -18,24 +14,13 @@ import { createOrAttachClaimedAgentSession } from './terminal-host-agent-session
 import type { InternalCreateOrAttachOptions } from './terminal-host-agent-session-claim'
 import { TerminalHostAgentSessionGenerations } from './terminal-host-agent-session-generations'
 import { TerminalHostTombstones } from './terminal-host-tombstones'
-import {
-  listLiveTerminalHostSessions,
-  hasLiveTerminalHostSessions
-} from './terminal-host-session-listing'
+import { listLiveTerminalHostSessions } from './terminal-host-session-listing'
 import { createOrAttachTerminalSession } from './terminal-host-session-create'
 import { TerminalAttachCanceledError } from './daemon-errors'
 import { waitForTerminalAttachOperation } from './terminal-attach-cancellation'
 import { randomUUID } from 'node:crypto'
 import { pruneRetiredPtyIncarnations } from '../../shared/retired-pty-incarnations'
-import {
-  getSettledTerminalHostSnapshot,
-  getTerminalHostAppliedSize,
-  getTerminalHostPartialEscapeTail,
-  getTerminalHostSnapshot,
-  takeTerminalHostPendingOutput
-} from './terminal-host-session-inspection-operations'
 import { TerminalHostInspection } from './terminal-host-inspection'
-
 export type { CreateOrAttachOptions, CreateOrAttachResult } from './terminal-host-create-contract'
 
 export type { TerminalHostOptions } from './terminal-host-options'
@@ -46,7 +31,7 @@ const REMOTE_FOREGROUND_TOMBSTONE_RETENTION_MS = 2_000
 export class TerminalHost extends TerminalHostInspection {
   protected sessions = new Map<string, Session>()
   // Serializes creates for one id across async spawn validation.
-  private pendingCreations = new Map<string, Promise<void>>()
+  private pendingCreations = new Map<string, PendingTerminalCreation>()
   private sessionTeardown = new TerminalSessionTeardown(this.sessions)
   private killedTombstones: TerminalHostTombstones
   private readonly spawnOptions: Pick<TerminalHostOptions, 'spawnSubprocess' | 'spawnGate'>
@@ -82,64 +67,125 @@ export class TerminalHost extends TerminalHostInspection {
   }
 
   async createOrAttach(opts: InternalCreateOrAttachOptions): Promise<CreateOrAttachResult> {
-    this.assertCreateOrAttachAllowed(opts)
-    for (
-      let inFlight = this.pendingCreations.get(opts.sessionId);
-      inFlight !== undefined;
-      inFlight = this.pendingCreations.get(opts.sessionId)
-    ) {
-      // Let canceled callers leave rather than wait behind a cwd probe stuck on an unreachable share.
-      await waitForTerminalAttachOperation(inFlight, opts.cancelSignal, opts.sessionId)
-      this.assertCreateOrAttachAllowed(opts)
+    const creation = new TerminalCreationWork()
+    const original = opts
+    opts = {
+      ...opts,
+      creationWork: creation,
+      onPhysicalOwner: (completion, exitCode) => {
+        creation.owner(completion, exitCode)
+        original.onPhysicalOwner?.(completion, exitCode)
+      }
     }
-    this.assertCreateOrAttachAllowed(opts)
-
-    this.sessions.get(opts.sessionId)?.noteUse()
-    let settleCreation: () => void = () => {}
-    this.pendingCreations.set(
-      opts.sessionId,
-      new Promise<void>((resolve) => {
-        settleCreation = resolve
-      })
-    )
     try {
-      return await createOrAttachClaimedAgentSession({
-        options: opts,
-        owners: this.agentSessionOwners,
-        check: opts.retainCanceledChild ? () => this.assertCreateOrAttachAllowed(opts) : undefined,
-        isLive: (owner) =>
-          this.agentSessionGenerations.isCurrent(
-            owner,
-            Boolean(
-              this.sessions.get(owner.ptyId)?.isAlive &&
-              !this.sessions.get(owner.ptyId)?.isTerminating
-            )
-          ),
-        createOrAttach: async (options) => {
-          this.assertCreateOrAttachAllowed(options)
-          if (options.agentSessionGeneration && this.sessions.get(options.sessionId)?.isAlive) {
-            throw new Error('agent_session_claim_unavailable')
+      this.assertCreateOrAttachAllowed(opts)
+      for (
+        let inFlight = this.pendingCreations.get(opts.sessionId);
+        inFlight !== undefined;
+        inFlight = this.pendingCreations.get(opts.sessionId)
+      ) {
+        // Let canceled callers leave rather than wait behind a cwd probe stuck on an unreachable share.
+        const pending = inFlight
+        await waitForTerminalAttachOperation(
+          pending.recover().then(() => pending.completion),
+          opts.cancelSignal,
+          opts.sessionId
+        )
+        this.assertCreateOrAttachAllowed(opts)
+      }
+      this.assertCreateOrAttachAllowed(opts)
+
+      this.sessions.get(opts.sessionId)?.noteUse()
+      let settleCreation: () => void = () => {}
+      const pending: PendingTerminalCreation = {
+        completion: new Promise<void>((resolve) => {
+          settleCreation = resolve
+        }),
+        recover: async () => {
+          const disposition = await creation.completion
+          if (disposition.kind !== 'no-fork') {
+            await disposition.recover?.()
           }
-          return await createOrAttachTerminalSession(options, {
-            sessions: this.sessions,
-            assertCreateAllowed: () => this.assertCreateOrAttachAllowed(options),
-            sessionTeardown: this.sessionTeardown,
-            killedTombstones: this.killedTombstones,
-            spawnSubprocess: this.spawnOptions.spawnSubprocess,
-            spawnGate: this.spawnOptions.spawnGate,
-            onDeadSessionRemoved: (sessionId) => this.agentSessionGenerations.forget(sessionId),
-            onSessionCreated: (sessionId, generation, isAlive) =>
-              this.agentSessionGenerations.remember(sessionId, generation, isAlive),
-            ...(this.reportReadinessEvent
-              ? { reportReadinessEvent: this.reportReadinessEvent }
-              : {}),
-            onSessionExit: this.handleSessionExit.bind(this)
+        }
+      }
+      this.pendingCreations.set(opts.sessionId, pending)
+      let published = false
+      try {
+        const result = await createOrAttachClaimedAgentSession({
+          options: opts,
+          owners: this.agentSessionOwners,
+          check: opts.retainCanceledChild
+            ? () => this.assertCreateOrAttachAllowed(opts)
+            : undefined,
+          isLive: (owner) => {
+            const session = this.sessions.get(owner.ptyId)
+            const live = this.agentSessionGenerations.isCurrent(
+              owner,
+              Boolean(session?.isAlive && !session.isTerminating)
+            )
+            if (live && session) {
+              creation.owner(session.physicalCompletion, () => session.exitCode)
+            }
+            return live
+          },
+          createOrAttach: async (options) => {
+            this.assertCreateOrAttachAllowed(options)
+            if (options.agentSessionGeneration && this.sessions.get(options.sessionId)?.isAlive) {
+              throw new Error('agent_session_claim_unavailable')
+            }
+            return await createOrAttachTerminalSession(options, {
+              sessions: this.sessions,
+              assertCreateAllowed: () => this.assertCreateOrAttachAllowed(options),
+              sessionTeardown: this.sessionTeardown,
+              killedTombstones: this.killedTombstones,
+              spawnSubprocess: this.spawnOptions.spawnSubprocess,
+              spawnGate: this.spawnOptions.spawnGate,
+              onDeadSessionRemoved: (sessionId) => this.agentSessionGenerations.forget(sessionId),
+              onSessionCreated: (sessionId, generation, isAlive) =>
+                this.agentSessionGenerations.remember(sessionId, generation, isAlive),
+              ...(this.reportReadinessEvent
+                ? { reportReadinessEvent: this.reportReadinessEvent }
+                : {}),
+              onSessionExit: this.handleSessionExit.bind(this)
+            })
+          }
+        })
+        published = true
+        return result
+      } finally {
+        const finish = () => {
+          if (this.pendingCreations.get(opts.sessionId) === pending) {
+            this.pendingCreations.delete(opts.sessionId)
+          }
+          settleCreation()
+        }
+        if (published || this.sessions.has(opts.sessionId)) {
+          finish()
+        } else {
+          void creation.completion.then(async (disposition) => {
+            if (disposition.kind === 'unknown') {
+              return
+            }
+            if (disposition.kind === 'physical' || disposition.kind === 'failed') {
+              await disposition.completion
+            }
+            finish()
           })
         }
-      })
+      }
     } finally {
-      this.pendingCreations.delete(opts.sessionId)
-      settleCreation()
+      await creation.finish(async (release) => {
+        // Registered Sessions retain their ordinary current/use-fenced close authority.
+        if (!this.sessions.has(opts.sessionId)) {
+          await release()
+        }
+      })
+      const disposition = await creation.completion
+      original.onCreationDisposition?.(disposition)
+      if (!this.sessions.has(opts.sessionId) && disposition.kind !== 'no-fork') {
+        // Failed unpublished resources keep the same ordinary cleanup owner across Retry/disposal.
+        void disposition.recover?.().catch(() => {})
+      }
     }
   }
 
@@ -243,67 +289,18 @@ export class TerminalHost extends TerminalHostInspection {
     this.onSessionReaped?.(sessionId)
   }
 
-  signal(sessionId: string, sig: string): void {
-    getAliveTerminalHostSession(this.sessions, sessionId).signal(sig)
-  }
-
-  detach(sessionId: string, token: symbol): void {
-    this.detachClients([{ sessionId, token }])
-  }
-
-  detachClients(attachments: readonly { sessionId: string; token: symbol }[]): void {
-    for (const { sessionId, token } of attachments) {
-      this.sessions.get(sessionId)?.detachClient(token)
-    }
-  }
-
-  clearScrollback(sessionId: string): void {
-    getAliveTerminalHostSession(this.sessions, sessionId).clearScrollback()
-  }
-
-  resetInputModes(sessionId: string): void {
-    getAliveTerminalHostSession(this.sessions, sessionId).resetInputModes()
-  }
-
   // Checkpoint reads tolerate sessions that have just exited.
-  getSnapshot(sessionId: string, opts: { scrollbackRows?: number } = {}): TerminalSnapshot | null {
-    return getTerminalHostSnapshot(this.sessions.get(sessionId), opts)
-  }
-
-  async getSettledSnapshot(
-    sessionId: string,
-    opts: { scrollbackRows?: number } = {}
-  ): Promise<TerminalSnapshot | null> {
-    return getSettledTerminalHostSnapshot(this.sessions.get(sessionId), opts)
-  }
 
   // Seed scan-authority handoff with the incomplete escape at the current stream position.
-  getPartialEscapeTailAnsi(sessionId: string): string {
-    return getTerminalHostPartialEscapeTail(this.sessions.get(sessionId))
-  }
 
   // Let the renderer detect dropped or coerced resizes from the applied dimensions.
-  getAppliedSize(sessionId: string): { cols: number; rows: number } | null {
-    return getTerminalHostAppliedSize(this.sessions.get(sessionId))
-  }
 
-  takePendingOutput(
-    sessionId: string,
-    includeSnapshot: boolean,
-    opts: { teardownSnapshot?: boolean } = {}
-  ): TakePendingOutputResult | null {
-    return takeTerminalHostPendingOutput(this.sessions.get(sessionId), includeSnapshot, opts)
-  }
   isKilled(sessionId: string): boolean {
     return this.killedTombstones.has(sessionId)
   }
 
   listSessions(): SessionInfo[] {
     return listLiveTerminalHostSessions(this.sessions, this.agentSessionOwners)
-  }
-
-  hasLiveSessions(): boolean {
-    return hasLiveTerminalHostSessions(this.sessions)
   }
 
   /** Last resort when shutdown overruns its deadline: an async group sweep may not have signalled yet. */

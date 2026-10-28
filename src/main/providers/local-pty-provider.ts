@@ -30,7 +30,6 @@ import {
 } from '../../shared/pty-owner-color-query-colors'
 import {
   ptyPhysicalExits,
-  ptyWslDistroById,
   noteLocalPtyUse,
   advanceLoadGeneration,
   clearPtyState,
@@ -229,7 +228,7 @@ export class LocalPtyProvider implements IPtyProvider {
     if (!condition || !witness || condition.token !== witness.token) {
       return { outcome: 'refused', reason: 'unsupported' }
     }
-    if (!condition.ownedSpawn && ptyWslDistroById.get(request.id)) {
+    if (!condition.ownedSpawn) {
       return { outcome: 'refused', reason: 'unsupported' }
     }
     const deadline = witness.at + condition.remainingMs
@@ -238,7 +237,6 @@ export class LocalPtyProvider implements IPtyProvider {
       ptyPhysicalExits.get(request.id) === owner &&
       owner?.useRevision === witness.revision &&
       !owner?.closing &&
-      (condition.ownedSpawn || !owner?.pendingCommand) &&
       !pendingLocalPtySpawns.has(request.id) &&
       performance.now() < deadline
     if (!current()) {

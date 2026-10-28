@@ -1,3 +1,4 @@
+import { conversationSwitchViewerSelectionCurrent } from '@/lib/conversation-switch-selection'
 import { agentLaunchPaneAttemptCurrent } from './agent-launch-pane-start'
 import { afterLayoutFrame, layoutFramesFlowing } from '@/runtime/layout-frame-position'
 import type { AgentLaunchPaneVerdictEvent } from '../../../shared/agent-launch-pane-verdict'
@@ -78,9 +79,18 @@ function keepWhenDrawn(request: AgentLaunchTabPublishRequest, present: () => voi
   const { worktreeId, tabId } = request
   undrawn.get(tabId)?.stop()
 
+  const forgetIfGone = () => {
+    if (
+      undrawn.get(tabId)?.pane.operationId === request.operationId &&
+      goneFromFrames(worktreeId, tabId)
+    ) {
+      dropUndrawn(tabId)
+    }
+  }
   const stop = useAppStore.subscribe(() => {
     const tab = drawnTab(worktreeId, tabId)
     if (!tab) {
+      afterLayoutFrame(request.shownByMain?.frameSeq, forgetIfGone)
       return
     }
     const entry = undrawn.get(tabId)
@@ -93,16 +103,9 @@ function keepWhenDrawn(request: AgentLaunchTabPublishRequest, present: () => voi
   })
   undrawn.set(tabId, { pane: launchPaneOf(request), present, stop })
   if (request.shownByMain) {
-    afterLayoutFrame(request.shownByMain.frameSeq, () => {
-      if (
-        undrawn.get(tabId)?.pane.operationId === request.operationId &&
-        goneFromFrames(worktreeId, tabId)
-      ) {
-        dropUndrawn(tabId)
-      }
-    })
+    afterLayoutFrame(request.shownByMain.frameSeq, forgetIfGone)
   }
-  return true
+  return undrawn.has(tabId)
 }
 
 export function keepAgentLaunchTabMainWrote(
@@ -120,21 +123,27 @@ export function keepAgentLaunchTabMainWrote(
   // Only the launch that made the tab moves anyone, as the window's own publication.
   const present = (): void => {
     if (created) {
-      presentAgentLaunchTab(viewer, worktreeId, tabId, leafId)
+      presentAgentLaunchTab(viewer, worktreeId, tabId, leafId, request.viewerSelection)
     }
   }
   const tab = drawnTab(worktreeId, tabId)
   if (tab) {
     keepLaunchPane(tabId, tab, launchPaneOf(request))
     present()
-  } else if (created && viewer === 'focus-window') {
+  } else if (
+    created &&
+    viewer === 'focus-window' &&
+    conversationSwitchViewerSelectionCurrent(request.viewerSelection)
+  ) {
     // Reveal the workspace while awaiting its tab frame, unless main already closed the tab.
     if (keepWhenDrawn(request, present)) {
-      revealWorkspaceSurface(useAppStore.getState(), worktreeId, [tabId])
+      if (request.viewerSelection === undefined) {
+        revealWorkspaceSurface(useAppStore.getState(), worktreeId, [tabId])
+      }
     }
   } else {
     // Nobody is moved to an undrawn workspace; its tab keeps the launch when it draws.
-    keepWhenDrawn(request, () => {})
+    keepWhenDrawn(request, present)
   }
   const groupId =
     useAppStore

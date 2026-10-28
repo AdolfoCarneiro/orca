@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import { useInPlaceSwitchRevision } from '@/lib/in-place-switch-support'
 import type { AiVaultSession } from '../../../../shared/ai-vault-types'
 import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
@@ -26,7 +25,6 @@ export function useAiVaultPanelSessionResume(args: {
   settings: AppState['settings']
 }) {
   const { sessions, repos, allWorktrees, workspaceId, resumeTargetState, settings } = args
-  useInPlaceSwitchRevision()
   // Folder workspaces own their sessions by cwd too, so they resume and jump like a worktree.
   const ownerWorkspaces = useAiVaultSessionOwnerWorkspaces(allWorktrees, resumeTargetState)
   const sessionWorktreeById = useAiVaultSessionWorktreeMap({
@@ -69,7 +67,6 @@ export function useAiVaultPanelSessionResume(args: {
   // workspace host a PTY" but "will the provider still find this conversation from the workspace we
   // would run it in". The workspace it targets is the session's own when that is open, because
   // Claude looks its transcript up under a directory derived from the launch cwd.
-  // Capability updates rerender this hook and refresh memoized row readers.
   const getSessionResumeInChat = (session: AiVaultSession): AiVaultResumeInChatEligibility =>
     resolveAiVaultHistoryRowResume({ ...getSessionRowResumeArgs(session), settings }).resumeInChat
   return {

@@ -30,6 +30,8 @@ export async function catchUpStructuredSessionAtRest(input: {
   filePath: string
   fence: number
   deadline: AgentSessionSwitchDeadline
+  stoppedTurnId?: string
+  check?: () => void
 }): Promise<void> {
   const { journal, threadId, deadline } = input
   const view = readCodexHistoryJournalView(journal, threadId)
@@ -146,7 +148,7 @@ export async function catchUpStructuredSessionAtRest(input: {
     })
   }
   // Incomplete source turns must remain retryable rather than being declared covered.
-  if (include) {
+  if (include && turn !== input.stoppedTurnId) {
     throw agentSessionRefusalError('agent_session_operation_invalid', {
       reason: 'messagesUnsettled'
     })
@@ -160,6 +162,7 @@ export async function catchUpStructuredSessionAtRest(input: {
     fence: input.fence,
     plan: () => {
       deadline.check()
+      input.check?.()
       if (!sameCodexHistoryJournalView(view, readCodexHistoryJournalView(journal, threadId))) {
         throw agentSessionRefusalError('agent_session_operation_invalid', {
           reason: 'messagesUnsettled'

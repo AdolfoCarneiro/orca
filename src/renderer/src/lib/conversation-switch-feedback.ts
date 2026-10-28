@@ -12,40 +12,11 @@ export function conversationSwitchFailureText(
     history?: unknown
     platform?: string
   },
-  reasonOverride?: string,
-  context?: { suspended: boolean }
+  reasonOverride?: string
 ): string {
   const failure = structuredLaunchFailure(error)
   const reason = reasonOverride ?? failure?.details?.reason
   const values = { agent: agentLabel(args.agent) }
-  if (reason === 'turnActive') {
-    return translate(
-      'components.tab.bar.switch.replyBusy',
-      '{{agent}} is replying. Wait for the reply or stop it, then switch.',
-      values
-    )
-  }
-  if (reason === 'handoffInFlight') {
-    return translate(
-      'components.tab.bar.switch.switchBusy',
-      '{{agent}} is already switching. Wait, then try again.',
-      values
-    )
-  }
-  if (reason === 'providerStarting') {
-    return translate(
-      'components.tab.bar.switch.startBusy',
-      '{{agent}} is starting. Wait, then switch.',
-      values
-    )
-  }
-  if (reason === 'messagesUnsettled' || reason === 'backgroundTasksRunning') {
-    return translate(
-      'components.tab.bar.switch.workBusy',
-      '{{agent}} still has work waiting. Finish or cancel it, then switch.',
-      values
-    )
-  }
   if (reason === 'conversationHeldElsewhere') {
     return failure?.source
       ? translate(
@@ -65,30 +36,14 @@ export function conversationSwitchFailureText(
             values
           )
   }
-  if (reason === 'conversationOpenInTerminal') {
-    const suspended =
-      context?.suspended ?? (args.platform === 'darwin' || args.platform === 'linux')
+  if (reason === 'ownerUnproven' || reason === 'previousExitUnverifiable') {
     return translate(
-      suspended
-        ? 'components.tab.bar.switch.terminalBusyPosix'
-        : 'components.tab.bar.switch.terminalBusy',
-      suspended
-        ? '{{agent}} cannot switch while this terminal has a running job. If you suspended a job, run fg and exit it, then switch.'
-        : '{{agent}} cannot switch while this terminal has a running job. Exit the job, then switch.',
-      values
-    )
-  }
-  if (reason === 'previousExitUnverifiable') {
-    return translate(
-      'components.tab.bar.switch.unavailableNow',
-      'Switching {{agent}} is unavailable for this chat now. You can keep using chat.',
-      values
-    )
-  }
-  if (reason === 'ownerUnproven') {
-    return translate(
-      'components.tab.bar.switch.stopUnknown',
-      'Orca could not confirm {{agent}} stopped. Restart Orca, then check this chat before trying again. Switching may remain unavailable.',
+      args.source
+        ? 'components.tab.bar.switch.sourceStopUnknown'
+        : 'components.tab.bar.switch.stopUnknown',
+      args.source
+        ? 'Orca could not confirm {{agent}} stopped. Check {{agent}} in the original terminal, then try switching again.'
+        : 'Orca could not confirm {{agent}} stopped. Check its open chats and terminals, then try switching again.',
       values
     )
   }

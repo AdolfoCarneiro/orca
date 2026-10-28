@@ -1,3 +1,4 @@
+import { useInPlaceSwitchCapability } from '@/lib/in-place-switch-support'
 import type { AgentStatusState } from '../../../../shared/agent-status-types'
 import { isAntigravityReferenceSession } from '../../../../shared/antigravity-session-origin'
 import type { AiVaultScope, AiVaultSession } from '../../../../shared/ai-vault-types'
@@ -113,6 +114,10 @@ export function AiVaultVirtualRow({
   /** Set in `/resume`'s picker; see VaultSessionRow's `onPick`. */
   onPickSession?: (session: AiVaultSession) => void
 }): React.JSX.Element | null {
+  useInPlaceSwitchCapability(
+    row?.type === 'session' ? row.session.executionHostId : undefined,
+    row?.type === 'session' ? row.session.agent : undefined
+  )
   if (!row) {
     return null
   }

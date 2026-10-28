@@ -14,9 +14,9 @@ import type {
 /** Toast host failure here because no mirrored pane can show it; callers reporting themselves use notifyFailure:false. */
 export async function createWebRuntimeSessionTerminal(
   args: CreateWebRuntimeSessionTerminalArgs,
-  options: { notifyFailure?: boolean } = {}
+  options: { notifyFailure?: boolean; canActivate?: () => boolean } = {}
 ): Promise<WebRuntimeTerminalCreateOutcome> {
-  const created = await createWebRuntimeSessionTerminalResult(args)
+  const created = await createWebRuntimeSessionTerminalResult(args, options.canActivate)
   if (
     created.hostFailed &&
     created.outcome.status === 'failed' &&
