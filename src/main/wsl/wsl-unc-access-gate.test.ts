@@ -273,6 +273,11 @@ describe('a poller recognizes the refusal however it arrives', () => {
     ['over RPC', (error: Error) => new Error(error.message)]
   ])('%s', (_transport, deliver) => {
     expect(isWslDistroNotRunningRefusal(deliver(new WslDistroStoppedError('Ubuntu')))).toBe(true)
+    expect(
+      isWslDistroNotRunningRefusal(
+        deliver(new WslDistroStoppedError('Ubuntu', { retryStartsIt: false }))
+      )
+    ).toBe(true)
     expect(isWslDistroNotRunningRefusal(deliver(new WslDistroUnverifiableError('Ubuntu')))).toBe(
       true
     )

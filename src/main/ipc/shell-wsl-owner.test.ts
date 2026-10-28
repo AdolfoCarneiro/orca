@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as WindowsPathAccessHost from '../windows-path-access-host'
 import type * as ExternalEditorLaunch from '../external-editor-launch'
 
@@ -15,14 +15,6 @@ vi.mock('electron', () => ({
   ipcMain: { handle: handleMock },
   shell: { showItemInFolder: showItemInFolderMock, openExternal: vi.fn(), openPath: vi.fn() },
   dialog: { showOpenDialog: vi.fn() }
-}))
-
-const runningStateMock = vi.hoisted(() =>
-  vi.fn(async (_distro: string, _options?: unknown) => 'stopped')
-)
-vi.mock('../wsl-background-distro-gate', async (importOriginal) => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  readWslDistroRunningState: runningStateMock
 }))
 
 vi.mock('node:fs/promises', () => ({
@@ -154,40 +146,5 @@ describe('shell handlers for a WSL-owned path', () => {
       false
     )
     expect(statMock).not.toHaveBeenCalled()
-  })
-})
-
-// G3: chat links check existence on render and on retry timers; a stat must not boot a stopped distro.
-describe('link existence checks for a stopped WSL distro', () => {
-  const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')
-
-  beforeEach(() => {
-    handleMock.mockReset()
-    statMock.mockReset().mockResolvedValue({ isDirectory: () => false })
-    runningStateMock.mockReset().mockResolvedValue('stopped')
-    Object.defineProperty(process, 'platform', { configurable: true, value: 'win32' })
-  })
-
-  afterEach(() => {
-    if (originalPlatform) {
-      Object.defineProperty(process, 'platform', originalPlatform)
-    }
-  })
-
-  it('answers false without a stat while the distro is stopped', async () => {
-    await expect(getHandler('shell:pathsExist')({}, [UNC, 'C:\\repo\\a.ts'])).resolves.toEqual([
-      false,
-      true
-    ])
-    await expect(getHandler('shell:pathExists')({}, UNC)).resolves.toBe(false)
-    expect(runningStateMock).toHaveBeenCalledWith('Ubuntu', expect.anything())
-    expect(statMock).toHaveBeenCalledTimes(1)
-    expect(statMock).not.toHaveBeenCalledWith(UNC)
-  })
-
-  it('stats the path once the distro runs', async () => {
-    runningStateMock.mockResolvedValue('running')
-    await expect(getHandler('shell:pathExists')({}, UNC)).resolves.toBe(true)
-    expect(statMock).toHaveBeenCalledWith(UNC)
   })
 })

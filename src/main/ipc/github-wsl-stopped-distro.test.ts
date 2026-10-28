@@ -69,6 +69,16 @@ describe('background GitHub reads for a stopped WSL distro', () => {
     expect(getPRChecksMock).not.toHaveBeenCalled()
   })
 
+  it.each([
+    ['gh:issue', { repoPath: '/workspace/repo', number: 7 }, 'Open a terminal in it to start it.'],
+    ['gh:listWorkItems', { repoPath: '/workspace/repo', limit: 10 }, 'Open a terminal in it'],
+    ['gh:countWorkItems', { repoPath: '/workspace/repo' }, 'Open a terminal in it'],
+    // The checks panel's Refresh is a user act, so its refusal may offer Retry.
+    ['gh:prChecks', { repoPath: '/workspace/repo', prNumber: 3 }, 'Retry, or open a terminal']
+  ])('%s words the refusal for what its Retry can do', async (channel, args, wording) => {
+    await expect(handlers[channel](null, args)).rejects.toThrow(wording)
+  })
+
   it('runs gh once the distro is running', async () => {
     runningStateMock.mockResolvedValue('running')
     getIssueMock.mockResolvedValue(null)

@@ -116,7 +116,7 @@ export function useHostRuntimeEffects(input: HostRuntimeEffectsInput) {
     // Opening the composer is not a user act on the repo's WSL distro; Create checks again.
     void loadHookCheckForRepo(repoId, { background: true })
       .then((result) => {
-        if (!cancelled && result.unavailable !== 'wsl-distro-stopped') {
+        if (!cancelled && !result.unavailable) {
           commitHookCheckIfCurrent(selectedRepoHookContextKey, result.hooks)
         }
       })

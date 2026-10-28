@@ -25,7 +25,7 @@ import {
 } from './shell-editor-ssh-host'
 import {
   isLocallyOwned,
-  pathExistsUnlessDistroStopped,
+  pathExists,
   resolveOwnedPathTarget,
   validateLocalPathTarget
 } from './shell-owned-path-target'
@@ -196,11 +196,11 @@ export function registerShellHandlers(
 
   ipcMain.handle('shell:pathsExist', async (_event, paths: string[]): Promise<boolean[]> => {
     validatePathExistenceBatch(paths)
-    return Promise.all(paths.map(pathExistsUnlessDistroStopped))
+    return Promise.all(paths.map(pathExists))
   })
 
   ipcMain.handle('shell:pathExists', async (_event, filePath: string): Promise<boolean> => {
-    return pathExistsUnlessDistroStopped(filePath)
+    return pathExists(filePath)
   })
 
   ipcMain.handle(

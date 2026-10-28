@@ -29,8 +29,11 @@ export function runAsWslUserAct<T>(distro: string | null, act: () => Promise<T>)
 export class WslDistroStoppedError extends Error {
   readonly code = 'WSL_DISTRO_STOPPED'
 
-  constructor(readonly distro: string) {
-    super(wslDistroStoppedMessage(distro))
+  constructor(
+    readonly distro: string,
+    options: { retryStartsIt?: boolean } = {}
+  ) {
+    super(wslDistroStoppedMessage(distro, options.retryStartsIt))
     this.name = 'WslDistroStoppedError'
   }
 }
