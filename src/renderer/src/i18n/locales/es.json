@@ -20724,7 +20724,6 @@
       "title": "Rama para este árbol de trabajo",
       "existing": "Rama existente",
       "existingHint": "Los nuevos commits se añaden a esta rama.",
-      "alreadyOpen": "Ya está abierta en otro árbol de trabajo.",
       "new": "Nueva rama",
       "newHint": "Crear una nueva rama local",
       "newName": "Nombre de la nueva rama",

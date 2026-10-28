@@ -20725,7 +20725,6 @@
       "title": "Branch for this worktree",
       "existing": "Existing branch",
       "existingHint": "New commits go on this branch.",
-      "alreadyOpen": "Already open in another worktree.",
       "new": "New branch",
       "newHint": "Create a new local branch",
       "newName": "New branch name",

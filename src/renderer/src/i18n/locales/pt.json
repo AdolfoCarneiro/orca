@@ -20671,7 +20671,6 @@
       "title": "Branch para esta árvore de trabalho",
       "existing": "Branch existente",
       "existingHint": "Novos commits são adicionados a esta branch.",
-      "alreadyOpen": "Já está aberta em outra árvore de trabalho.",
       "new": "Nova branch",
       "newHint": "Criar uma nova branch local",
       "newName": "Nome da nova branch",

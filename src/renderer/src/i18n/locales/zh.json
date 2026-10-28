@@ -20437,7 +20437,6 @@
       "title": "此工作树使用的分支",
       "existing": "现有分支",
       "existingHint": "新提交将添加到此分支。",
-      "alreadyOpen": "已在另一个工作树中打开。",
       "new": "新分支",
       "newHint": "创建新的本地分支",
       "newName": "新分支名称",
