@@ -1,190 +1,111 @@
 # Recovery and cleanup
 
-Load this reference only after a failed/stopped/unknown attempt, explicit retry
-decision, stop/abandon request, retention request, or uncertain release.
+Act only on proof. When you cannot tell, keep the work and report it as
+unknown.
 
-When evidence is missing, preserve work and authority and report the state as
-unknown or `unverifiable`.
+| What you can prove         | Do this                                                 |
+| -------------------------- | ------------------------------------------------------- |
+| Running, or `unverifiable` | Wait or inspect; never stop, retry, abandon, or release |
+| `failed` or `stopped`      | Retry with `--retry-of`, placement stated again         |
+| `outcome_unknown`          | Inspect, then choose `worker-stop` or `worker-abandon`  |
+| `exited` agent             | Follow the row's `nextAction` in `worker-list`          |
 
-| Proven state            | Safe action                                                        |
-| ----------------------- | ------------------------------------------------------------------ |
-| `ready` or active       | Keep waiting; optionally read bounded output                       |
-| `failed` or `stopped`   | Start a replacement with `--retry-of`; repeat placement explicitly |
-| `outcome_unknown`       | Inspect, then choose `worker-stop` or explicit `worker-abandon`    |
-| Accepted `worker_done`  | Reuse, retain, or release                                          |
-| Remote contact lost     | Preserve `unverifiable`; do not stop or retry from absence alone   |
-| `unverifiable` liveness | Keep waiting or inspect; never stop, abandon, retry, or release    |
-| Proven `exited` agent   | Enumerate with `worker-list`; follow its `nextAction`              |
-
-## Inspect before acting
+## Inspect
 
 ```text
-ORCA orchestration worker-list --run <run_id> --json
 ORCA orchestration worker-list --run <run_id> --include-remote --json
 ORCA orchestration worker-show --dispatch <dispatch_id> --json
 ORCA orchestration worker-read --dispatch <dispatch_id> --limit 50 --json
 ```
 
-`worker-list` is the enumerating command and the authority on agent liveness:
-each row carries `projection.liveness`, `projection.attention.categories`,
-`projection.attention.requiresAction`, and a literal `projection.nextAction`
-argv to run. Always scope it with `--run <run_id>`. Without it, the CLI uses the
-caller's bound Run, or all Runs if no binding resolves; read `scope` in the
-receipt.
-`worker-show`'s `observation.status` is PTY liveness only, so a `live` terminal
-whose agent died at a trust prompt still reads `live` there.
+`worker-list` decides whether an agent is alive (`projection.liveness`) and
+what to do (`projection.nextAction`). Without `--include-remote`, remote rows
+read `unverifiable`. Past 100 rows, page with `--cursor <page.nextCursor>`.
 
-When the two disagree, the fleet verdict decides — unless the fleet row is
-`unverifiable` for a reason that names a gap on this client rather than a fact
-about the worker. `missing_status`, `host_unavailable`, and
-`capability_unsupported` are such gaps: the first means this runtime holds no
-status row, the second that it could not ask the execution host at all, and the
-third that a stale peer answered but lacks the fleet-snapshot capability.
-Against any of them, a `worker-show` verdict sourced from the execution host is
-the better evidence and outranks the row. Only `host_unavailable` is contact
-loss; the other two mean the host was never asked or answered without the
-capability.
+`worker-show`'s `observation.status` covers only the terminal, so a `live`
+terminal can hold a dead agent. But when the list row is `unverifiable` with
+`missing_status`, `host_unavailable`, or `capability_unsupported`, a
+`worker-show` verdict from the execution host is better evidence.
 
-This never promotes absence. `unverifiable` from either command still authorizes
-nothing — only a positive `live` or `exited` verdict does.
+`worker-read` continues with its cursor; on `source_changed`, start over
+without it, and check `contentComplete` before assuming older output exists.
+Never guess a session ID, transcript path, or remote terminal handle.
 
-A worker started with `--on <environment>` reads `unverifiable` until you
-enumerate with `--include-remote`, which asks its execution host for the
-verdict. Rows come newest first and past 100 the response pages, so follow
-`page.nextCursor` with `--cursor <value>` until `page.hasMore` is false.
+## Proof that a worker stopped
 
-## Stall needs positive evidence
-
-Choose `worker-stop` or `worker-abandon` only on positive proof the agent
-stopped: `exited` liveness, the worker's own observation of process exit, or a
-transcript whose final agent turn sent no `worker_done`.
-
-`unverifiable` is always absence — `missing_status`, `stale_status`,
-`restored_unconfirmed`, or a remote worker with no connection — and a null
-`agentWait` or an unchanged `worker-read` tail is that same absence seen again.
-Absence never authorizes stop, abandon, retry, or release: keep waiting, or
-inspect until you hold one of the positive signals above. A `nextAction` that
-names an inspecting command is asking for evidence, not for cleanup.
-
-`worker-read --source auto` uses a proven provider transcript when available and
-otherwise returns bounded terminal output with a typed `fallbackReason`.
-Continue with its top-level cursor, which is pinned to that source. If Orca
-reports `source_changed`, restart without the old cursor. A bounded initial
-transcript tail can return an EOF cursor that follows only newly appended records;
-read `contentComplete`, `clipping`, and `warnings` before assuming omitted older
-records are pageable. Never guess a provider session ID, transcript path, or
-remote terminal handle.
+An `escalation` with `stopReason` means Orca saw the worker end its turn, or
+stop at a prompt, without `worker_done`; it carries the last output and the
+Dispatch stays open. Answer with `send --to dispatch:<id>`, retry, or
+`worker-stop`. `exited` liveness is also proof. Silence, an unchanged
+`worker-read`, and `unverifiable` prove nothing.
 
 ## Was the mutation applied?
 
-When a mutation's response was lost and named no Dispatch, do not replay blind.
-Every orchestration mutation accepts `--retry-request <id>`, which reuses one
-operation identity so Orca can replay, join, or recover it instead of starting a
-duplicate. Ask what happened first:
+If a mutation's reply was lost, ask before rerunning:
 
 ```text
 ORCA orchestration request-show --request <request_id> --json
 ```
 
-`completed` means the mutation already took effect; read its recorded receipt
-instead of rerunning. `pending` means the original mutation is still running or
-Orca restarted before recording its outcome; replay the original command with
-`--retry-request <request_id>`. `absent` means this runtime holds no receipt
-under your caller identity — that is not proof nothing happened, so inspect the
-affected Task, Dispatch, and terminal before deciding whether to retry.
+`completed`: it took effect; use its receipt. `pending`: rerun the same command
+with `--retry-request <request_id>`. `absent`: unknown; inspect the Task,
+Dispatch, and terminal before retrying.
 
-When a worker's terminal accepted input but the submit is unconfirmed, use
-`terminal send --wait-submit <seconds>`: it observes the accepted prompt for that
-long and, on timeout, returns the input-accepted receipt without resending.
+If a terminal took input but the submit is unconfirmed, use
+`terminal send --wait-submit <seconds>`; it never resends.
 
 ## Refused starts
 
-`dispatch` and `worker-start` refuse the following preflight cases with a stable
-`error.code`; read it before choosing a recovery, and treat `error.data.nextSteps`
-as the exact recovery text. Older hosts may omit `data`, so treat every field as
-optional.
+Read `error.code`; `error.data.nextSteps`, when present, is the exact fix.
 
-| Code                 | Meaning                                                                                                               | Recovery                                                                                                             |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `task_not_found`     | No Task with that id, or not in the bound Run (`data.taskId`, `data.runId`)                                           | Check `task-list --json`; create the Task with `task-create` if it does not exist                                    |
-| `task_not_startable` | Task cannot start now: not `ready`, or invalid `--retry-of` (`data.status`, `data.unmetDependencies`, `data.retryOf`) | Wait for running dependencies to report; retry or unblock failed ones; inspect `dispatch-show` if already dispatched |
-| `inject_rejected`    | `--inject` refused because no recognized agent runs in the target (`data.terminal`, `data.reason`)                    | Start a recognized agent there or pick another terminal; or dispatch without `--inject` and use `terminal send`      |
-| `runtime_error`      | Any other failure, including a target terminal that already owns an active Dispatch                                   | Read the message, inspect state, and do not retry unchanged                                                          |
+| Code                 | Fix                                                                         |
+| -------------------- | --------------------------------------------------------------------------- |
+| `task_not_found`     | Check `task-list --json`; create the Task if missing                        |
+| `task_not_startable` | Wait for dependencies, or fix the failed one; a bad `--retry-of` lands here |
+| `inject_rejected`    | Start a known agent in that terminal, or skip `--inject`                    |
+| `runtime_error`      | Read the message and inspect; never rerun unchanged                         |
 
-## Retry, stop, and abandon
+A start that failed before its agent was ready still owns its terminal; release
+it with the `worker-release` its receipt names, never `terminal close`.
 
-Retry only a positively proven failed or stopped attempt. Name the failed Task
-with `--task`, since `--spec` creates a new one. Placement is never silently
+## Retry, stop, abandon
+
+Retry by naming the Task (`--spec` would create a new one). Placement is not
 inherited:
 
 ```text
-ORCA orchestration worker-start --task <task_id> --retry-of <dispatch_id> --worktree <explicit_placement> --agent <agent> --json
+ORCA orchestration worker-start --task <task_id> --retry-of <dispatch_id> --worktree <placement> --agent <agent> --json
 ```
 
-After three consecutive failures for one Task, its dispatch context
-circuit-breaks and the Task is failed. Failed `worker-start` attempts count
-across `--retry-of`; a worker's own `failed` report does not. `--retry-of` a
-circuit-broken Dispatch is refused with `task_not_startable`: report the failure
-to the user instead. Do not route around that boundary with a new Run, Task, or
-unrelated Dispatch.
-
-For `outcome_unknown`, inspect first, then make an explicit choice:
+Three failed starts fail the Task and refuse further retries; tell the user
+rather than working around it with a new Run or Task.
 
 ```text
 ORCA orchestration worker-stop --dispatch <dispatch_id> --json
 ORCA orchestration worker-abandon --dispatch <dispatch_id> --json
 ```
 
-`worker-stop` closes only the exact proven supervised agent terminal. It never
-deletes the worktree, setup terminal, configured tabs, or unrelated processes.
-Its receipt's `processAction` reports what it did:
+`worker-stop` closes only that worker's agent terminal, never the workspace or
+other terminals. Its `processAction` is `closed_agent_terminal` (do not also
+`terminal close`), `none`, or `unknown`. `stop_unknown` exits 1; check
+`worker-show` before acting again. `worker-abandon` only ends Orca's tracking;
+it touches no process or file and keeps the terminal open.
 
-- `closed_agent_terminal`: Orca issued that close; do not follow it with
-  `terminal close`.
-- `none`: this call issued no close (for example, already settled or
-  unsupervised).
-- `unknown`: Orca could not attempt or confirm a close.
-
-`stop_unknown` exits 1 and can still report `closed_agent_terminal` when the
-agent's exit was not proven; inspect `worker-show` before acting further.
-
-`worker-abandon` fences orchestration while accepting that resources may remain
-live; it performs no remote, process, or filesystem action. When it settles a
-worker, it retains an owned terminal by the same rule as `worker-retain`, so Orca
-stops owing its release; a release already committed (`releasing`,
-`release_unknown`) is left as it is. An already-settled worker is left untouched.
-
-To cancel a Task, settle its worker with `worker-stop` or `worker-abandon`, then
-record the reason. A cancelled Task is `failed`, so its dependents stay blocked
-until a `--retry-of` replacement completes it:
+To cancel a Task, stop or abandon its worker, then:
 
 ```text
 ORCA orchestration task-update --id <task_id> --status failed --result cancelled --json
 ```
 
+Its dependents stay blocked until a `--retry-of` replacement succeeds.
+
 ## Retain and release
 
-```text
-ORCA orchestration worker-retain --dispatch <dispatch_id> --json
-ORCA orchestration worker-release --dispatch <dispatch_id> --json
-```
+Finished terminal workers close themselves about 2 minutes after `worker_done`;
+Orca saves their output first. `worker-retain` keeps one open; `worker-release`
+closes a chat worker or closes one early. Neither touches reused, pre-existing,
+setup, coordinator, active, or user-typed-in terminals. If a receipt says
+`release_pending` or `release_unknown`, follow its recovery.
 
-Retain only when the user explicitly wants the settled terminal kept live.
-Release works after succeeded and failed reports, archives readable output, and
-closes only the exact terminal owned by that settled Dispatch. Replays may call
-release again safely. Reused, pre-existing, setup, coordinator, active,
-user-taken-over, and unproven terminals are retained.
-
-A `worker-start` that failed before its agent was ready still owns the terminal
-it created. Its receipt names `worker-release`, and `worker-list` reports that
-row as `reclaimable`; release it there rather than closing the terminal by hand.
-A `--retry-of` replacement for a `failed` worker releases the terminal that
-worker still owns the same way.
-
-Never release because of timeout, TUI idle, heartbeat, status, question,
-escalation, or stale/rejected completion. If the receipt says `release_pending`
-or `release_unknown`, follow its exact recovery action. Never substitute
-`terminal close`.
-
-`orchestration reset` is destructive recovery. Do not run it during active
-coordination unless the user explicitly abandons that state.
+`orchestration reset` deletes coordination state; run it only when the user
+gives that state up.

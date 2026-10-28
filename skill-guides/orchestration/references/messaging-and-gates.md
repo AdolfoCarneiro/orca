@@ -1,75 +1,41 @@
 # Messaging and gates
 
-Load this reference for inbox recovery, attempt-specific guidance, group
-addresses, blocking questions, or coordinator-managed DAG decisions.
+## Reading mail
 
-A successful `send` proves durable enqueue. Wake and nudge are best-effort
-attention only: neither proves the recipient read the message, began a turn, or
-accepted steering.
+`check --run <run_id>` returns your Run's oldest batch of mail (up to 50
+messages) and marks it handled; handle all of it before the next `check`.
+`--peek` only looks; scripts that watch the inbox must use it. `check` takes
+`--terminal <handle>`, never `--from`; an Orca terminal fills it in.
 
-## Coordinator delivery loop
-
-`check` names its caller with `--terminal <handle>` and is the only verb that
-rejects `--from`. Omit `--terminal` inside an Orca terminal, where Orca resolves
-the caller; pass it explicitly from anywhere else, including a dispatched
-worker reading coordinator follow-ups.
-
-A consuming coordinator `check` returns the bound Run's oldest FIFO Delivery,
-up to 50 messages, and marks it handled; `--ack` is still accepted but not
-needed. Waits woken by the same message share one batch. Process every row and
-required terminal ownership decision before the next `check`. If a reply was
-lost, rerun with its `--retry-request <id>`; after lost context, read handled
-mail with `ORCA orchestration inbox --terminal run:<run_id> --limit 50 --full --json`.
-Type filters decide when a waiter wakes; they do not
-authorize skipping older actionable mail. A Delivery therefore always carries
-the whole FIFO batch whatever its types, and a `check` without `--wait` hands
-that batch over unfiltered.
-`--peek` and `--all` are read-only inspection, not progress through the
-coordinator inbox. Scripts that only watch the inbox must use `--peek`.
-
-Inside an Orca terminal or chat, new Run mail normally wakes the coordinator
-with a pointer to `check --run <run_id>`, so it may end its turn between
-batches. The wake may arrive mid-turn as queued input. It is held while a
-dialog, permission prompt, or unsent draft is open, and an open `check --wait`
-suppresses it for the types it waits on. A caller that waits instead treats an empty wait or timeout as a checkpoint and
-keeps each wait under its tool-call limit. Heartbeat or visible activity means
-alive, not done.
+- **Lost reply.** If a `check` or other mutation's reply was lost, rerun the
+  same command with the `--retry-request <id>` it printed.
+- **Lost context.** Reread handled mail:
+  `ORCA orchestration inbox --terminal run:<run_id> --limit 50 --full --json`
+  (a worker uses `dispatch:<dispatch_id>`).
 
 ## Addresses
 
-Use a stable Dispatch address for attempt-specific coordinator guidance:
+Steer one worker by its Dispatch, never by a terminal handle:
 
 ```text
 ORCA orchestration send --to dispatch:<dispatch_id> --subject "Follow-up" --body "<guidance>" --json
 ```
 
-Do not substitute a remote terminal handle. `ORCA status --json` shows your
-own Orca session ID as `caller.orcaSessionId` when you have one. Omit `--from`
-for ordinary coordinator calls; a dispatched worker instead copies the exact
-`--from` and other arguments in its preamble. `check` is the exception: it identifies
-its caller with `--terminal`, never `--from`.
+Omit `--from` as a coordinator; a worker copies the `--from` in its preamble.
 
-Group addresses include `@all`, `@idle`, `@claude`, `@codex`, `@opencode`,
-`@gemini`, `@droid`, `@grok`, `@cursor`, and `@worktree:<id>`. Every group but
-`@worktree:<id>` means the live Dispatches of the sender's own Run. Mail goes
-to each `dispatch:<id>` mailbox, except a worker coordinating a child Run
-receives it in that `run:<id>` mailbox. A sender bound to no Run is refused;
-`--run` must match the group audience and never grants membership.
-A Run group excludes its owning coordinator; a worker raising a blocker sends
-to `run:<id>`. A worker that created its own Run addresses that Run's workers,
-not its siblings. `@worktree:<id>` reaches matching workspace terminals,
-including coordinators. Use groups only for intentional fan-out status or
-questions. `worker_done`, heartbeat, and other
-Dispatch lifecycle messages never target groups.
+Groups reach the live workers of your own Run: `@all`, `@idle`, and one per
+agent (`@claude`, `@codex`, `@opencode`, `@gemini`, `@droid`, `@grok`,
+`@cursor`). `@worktree:<id>` reaches every Orca terminal in that workspace,
+coordinators included. Use groups only for deliberate fan-out; `worker_done`
+and other lifecycle messages never go to a group. A worker raising a blocker
+sends to `run:<id>`.
 
 ## Questions and gates
 
-A worker uses `ask`; its timeout leaves one durable question pending, which the
-worker resumes by message ID. The coordinator answers that message with `reply`;
-a helper's question goes to the worker that started it, which answers it the
-same way.
+A worker asks with `ask`; you answer with `reply --id <message_id>`. If its
+wait times out, the question stays pending and the worker resumes it.
 
-Use a gate only for a coordinator-owned Task-DAG decision:
+Use a gate only for a decision in your own Task DAG, never to answer an `ask`:
 
 ```text
 ORCA orchestration gate-create --task <task_id> --question "<decision>" --options <json_array> --json
@@ -77,7 +43,12 @@ ORCA orchestration gate-resolve --id <gate_id> --resolution "<choice>" --json
 ORCA orchestration gate-list --task <task_id> --json
 ```
 
-Pass `json_array` using the quoting rules of the active shell; do not copy POSIX
-single-quote syntax into PowerShell or `cmd.exe`.
+## Older Orca
 
-Do not create a gate merely to answer a worker's `ask`.
+- A `check` batch without `"deliveryAcknowledged": true` is not marked handled;
+  ack it with `check --ack <delivery_id>` or it comes back.
+- A receipt without `next` means act on the result yourself; outside a wake,
+  wait with `check --run <run_id> --wait --timeout-ms 540000`.
+- If `worker-start --spec` fails with `run_required`, run
+  `ORCA orchestration run-create --objective "<goal>" --json` first, then
+  `task-create`, then `worker-start --task`.

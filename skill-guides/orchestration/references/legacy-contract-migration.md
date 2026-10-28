@@ -1,90 +1,57 @@
 # Legacy contract migration
 
-Load this reference only for an authority label, adopted Run, compatibility or
-recovery receipt, or explicit legacy takeover. A newly created attempt always
-uses the current grammar.
+Use this only for a legacy label, an adopted Run, a compatibility or recovery
+receipt, or a legacy takeover. New work always uses the current commands.
 
-## Authority labels
+## Labels
 
-- `[LEGACY COMPATIBILITY]` is live and attested. Run only the exact supported
-  command printed with the message, using the same selected executable and
-  arguments supplied by the original prompt.
-- `[LEGACY RECOVERY REPLAY — MAY HAVE BEEN SEEN]` is one bounded,
-  at-least-once cutover replay. Process it idempotently and acknowledge only
-  through the exact displayed guidance.
-- `[LEGACY READ-ONLY]` is inspection-only. It has no reply, acknowledgment, or
-  lifecycle mutation.
-- An unlabeled current message uses the current guide and grammar.
+- `[LEGACY COMPATIBILITY]`: live. Run only the exact command printed with it,
+  with the same executable.
+- `[LEGACY RECOVERY REPLAY — MAY HAVE BEEN SEEN]`: a one-time replay. Handle it
+  so a repeat does no harm, and acknowledge only as it says.
+- `[LEGACY READ-ONLY]`: look only; no reply, ack, or lifecycle change.
+- No label: current rules.
 
-An explicitly selected current Run, attested current binding, current Dispatch,
-or federated attachment takes precedence over legacy fallback. A retained
-adoption record alone does not grant mutation authority. If liveness, principal
-ownership, capability, or the exact legacy contract is unproven, degrade to
-read-only inspection and never fall back to local execution.
+A current Run, binding, or Dispatch wins over legacy fallback. An adoption
+record alone grants nothing. If ownership or the exact legacy contract is
+unproven, only inspect; never fall back to doing the work locally.
 
-Adoption preserves the live agent process, PTY/session, terminal handle,
-tab/pane, worktree or folder workspace, Task, and Dispatch. It never restarts or
-replaces the worker and never revives the retired scheduler. Loss of lifecycle
-authority does not invalidate the existing process, assignment, or filesystem
-work. Exact recovery may restore the same PTY once in its original inactive
-background tab; it must not spawn, write, signal, stop, switch, focus, split, or
-inject a terminal.
+Adoption keeps the live worker, terminal, workspace, Task, and Dispatch; it
+never restarts, replaces, or writes to them.
 
-## Compatibility recovery
+## Compatibility receipts
 
-When a compatibility response returns structured next-step arguments, execute
-those exact arguments with the same selected CLI executable. Do not translate
-from memory, broaden the recipient, or retry as a current mutation unless the
-receipt explicitly authorizes it.
+Run a receipt's next-step arguments exactly, with the same executable. If an
+`ask` may already be answered, run the recovery `check` Orca printed before
+asking again.
 
-A pending ask, reply, final Dispatch settlement, and consuming check have
-durable recovery identities. Heartbeat and escalation remain at-least-once
-across a manual contract-boundary retry. If an ask may already have been
-answered, run the exact non-consuming recovery check printed by Orca before
-creating any new question. Never guess among identical question threads.
+On packaged Windows a legacy `ask` commits the question, prints an exact
+`ask --resume <message_id>` command, and exits with status `75`; run that
+command after the update. For WSL, keep the printed `orca-ide` executable.
 
-On packaged Windows, a legacy ask uses a two-step commit/resume protocol. The
-initial command commits the question, prints its exact
-`ask --resume <message_id>` command, and exits with launcher status `75`. Run
-that exact resume after the launcher or update boundary. For an attested WSL
-launch, preserve the printed `orca-ide` executable and distro route. Older WSL
-workers without launch proof remain lifecycle read-only even while their
-terminal and filesystem work continue.
+## Inspect and take over
 
-## Read-only inspection and takeover
-
-Read-only inspection does not consume mail:
+These only read:
 
 ```text
 ORCA orchestration run-list --json
-ORCA orchestration run-show --id run_legacy_local --json
 ORCA orchestration run-show --id <adopted_run_id> --json
 ORCA orchestration task-list --run <adopted_run_id> --json
-ORCA orchestration inbox --full --json
-ORCA orchestration check --terminal <legacy_handle> --peek --format --json
+ORCA orchestration check --terminal <legacy_handle> --peek --json
 ORCA terminal read --terminal <legacy_handle> --json
-ORCA terminal wait --terminal <legacy_handle> --for tui-idle --timeout-ms 60000 --json
 ```
 
-`run_legacy_local` is an empty audit tombstone after adoption. Find the ordinary
-Run whose objective is `Recovered orchestration work from a contract update`.
+`run_legacy_local` is an empty record after adoption; the work lives in the Run
+whose objective is `Recovered orchestration work from a contract update`.
 
-Only when the original coordinator is unavailable or cannot prove retained
-authority may a new live coordinator take over from its own terminal:
+Only if the original coordinator is gone or cannot prove ownership, take over
+from your own terminal:
 
 ```text
 ORCA orchestration run-use --id <adopted_run_id> --takeover-legacy --json
 ORCA orchestration check --run <adopted_run_id> --json
 ```
 
-Takeover binds the authenticated invoking terminal; `--from` cannot nominate
-another coordinator. It fences only the old coordinator and moves pending mail
-into current Run delivery. It preserves live workers, Tasks, Dispatches, processes, and files.
-Never take over while the original coordinator is actively coordinating.
-
-Do not launch a replacement editor merely because Orca updated or authority is
-unclear. Keep the original worker as the only editor until a stable handoff
-point, then use a fresh current Dispatch in a conflict-free placement.
-
-Retired scheduler commands are not aliases for Run creation. Recovery commands
-must provide their exact next action; follow it with the same executable.
+Takeover fences only the old coordinator and keeps every worker and file.
+Never take over from an active coordinator, and never start a second editor
+just because Orca updated.

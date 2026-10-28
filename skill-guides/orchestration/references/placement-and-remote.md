@@ -1,94 +1,55 @@
 # Placement and remote execution
 
-Load this reference before creating a new worktree or placing work through SSH,
-WSL, or another connected Orca server.
+## Placement
 
-## Placement choices
-
-A fresh worker means a fresh agent terminal, not a new Git worktree. Use the
-current or an exact existing workspace by default. Create a worktree only when
-the user requested one or a concrete checkout or filesystem conflict makes
-sharing unsafe.
+A new worker is a new agent terminal, not a new worktree. Use the current or an
+existing workspace unless the user asked for a new one or sharing would
+conflict.
 
 ```text
-# Current workspace; setup is not rerun.
+# Current workspace; setup does not rerun.
 ORCA orchestration worker-start --task <task_id> --worktree current --agent codex --json
 
-# Stacked child of the current worktree.
+# Child of the current worktree.
 ORCA orchestration worker-start --task <task_id> --worktree new-child --name <name> --agent codex --setup run --json
 
-# Independent top-level worktree. --repo is required when you are not inside that project.
+# New top-level worktree; --repo is needed outside that project.
 ORCA orchestration worker-start --task <task_id> --worktree new-top-level --repo id:<repoId> --name <name> --agent codex --setup run --json
 ```
 
-`--worktree` takes workspace placement on `worker-start` only; `run-create`
-takes no placement. `new-child`, and `new-top-level` without `--repo`, need the
-caller to be inside a Git worktree Orca manages.
+`new-child`, and `new-top-level` without `--repo`, need you inside an Orca
+worktree. New worktrees run setup and follow the repository's startup policy.
+For an existing worktree, pass the full ID Orca returned as
+`id:<repo-id>::<path>`; a repo ID is not a worktree ID.
 
-Current and exact existing workspaces create a fresh terminal unless
-`--terminal` is explicit. Folder workspaces are first-class; do not invoke Git
-or require worktree lineage when the selected workspace is a folder.
+## Folder workspaces
 
-Register a folder workspace through project setup. `repo add --path <dir>`
-requires a valid Git repository and rejects a plain directory:
+Folders are first-class: never run Git or require a worktree for one. `repo add`
+rejects a plain folder; register it with:
 
 ```text
 ORCA project setup-existing-folder --project <project_id> --host <host_id> --path <abs_path> --kind folder --json
 ```
 
-Then place work on the returned workspace with an exact selector. A worktree
-selector needs the full `<repo-id>::<path>` value Orca returned, passed as
-`id:<newFullWorktreeId>`; a bare repo id is not a worktree id. `new-child` and
-`new-top-level` are worktree creation and do not apply to a folder.
-
-New worktrees use agent-first creation and run setup by default. Preserve the
-repository's startup policy: `start-immediately` can report setup as `running`,
-while `wait-for-setup` gates prompt delivery on success. Orca lineage, Git base,
-filesystem isolation, coordination parentage, UI grouping, and execution host
-are separate decisions.
+Then place work there with its exact selector. `new-child` and `new-top-level`
+do not apply to folders.
 
 ## Connected servers
 
-The Run and Tasks remain authoritative on the current server. `--on` selects
-only the worker's execution server and appears only on `worker-start`:
+The Run stays on your server; `--on` picks only where the worker runs:
 
 ```text
 ORCA orchestration worker-start --task <task_id> --on <environment> --worktree new-top-level --repo <exact_remote_repo_selector> --name <name> --agent codex --setup run --json
 ```
 
-Remote `current` and `new-child` are invalid because they are ambiguous across
-servers. Use an exact discovered remote workspace, or `new-top-level` with an
-exact remote repository selector. After start, route every follow-up, read,
-stop, and cleanup by Dispatch ID; never repeat `--on` or substitute a remote
-terminal handle.
+`current` and `new-child` are invalid with `--on`; use an exact remote
+workspace or `new-top-level` with an exact remote repo. After start, do
+everything by Dispatch ID (`send --to dispatch:<id>`, `worker-show`,
+`worker-read`, `worker-stop`); never repeat `--on` or use a remote terminal
+handle. List remote workers with `worker-list --run <run_id> --include-remote`.
 
-```text
-ORCA orchestration worker-show --dispatch <dispatch_id> --json
-ORCA orchestration worker-read --dispatch <dispatch_id> --limit 50 --json
-ORCA orchestration send --to dispatch:<dispatch_id> --subject "Follow-up" --body "<guidance>" --json
-ORCA orchestration worker-list --run <run_id> --include-remote --json
-```
+The execution host owns process, file, and cleanup facts; lost contact reads
+`unverifiable`, never `exited`. Servers update separately, so optional fields
+may be missing.
 
-`worker-list` reads local fleet state only; enumerate remote workers with
-`--include-remote` or every one of them reads `unverifiable`. Scope every list
-with `--run <run_id>`. Without it, the CLI uses the caller's bound Run, or all
-Runs if no binding resolves; read `scope` in the receipt.
-
-## Execution-host and mixed-version floor
-
-The execution host owns process, filesystem, transcript, stop, and cleanup
-facts. Render only `live`, `unverifiable`, or `exited`. Connection loss, relay
-absence, missing client inventory, or timeout yields `unverifiable`, never
-synthetic exit and never a client-local substitute action.
-
-Clients and servers update independently. Optional response fields may be
-absent. Forward model/effort, transcript reads, cleanup, or another new remote
-operation only when the peer advertises the relevant capability; unknown stream
-opcodes can be silently dropped. A narrow unsupported response may degrade to a
-documented older path, but must not broaden the target or cross the execution
-boundary. Changing host-published content reaches old clients even without a
-wire-shape change, so preserve established semantics or negotiate the behavior.
-
-For WSL, use the exact executable and arguments returned by Orca so the distro
-and packaged launcher remain bound. Do not translate a printed `orca-ide`
-recovery command into a PATH-resolved local command.
+For WSL, run the exact executable Orca prints (such as `orca-ide`).
