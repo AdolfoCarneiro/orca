@@ -1,5 +1,3 @@
-// ─── Stats ──────────────────────────────────────────────────────────
-
 export type StatsSummary = {
   totalAgentsSpawned: number
   totalPRsCreated: number
@@ -8,15 +6,20 @@ export type StatsSummary = {
   firstEventAt: number | null // timestamp of first-ever event, for "tracking since..."
 }
 
-// ─── Memory dashboard ──────────────────────────────────────────────
-
 /** cpu is percent of a single core — can exceed 100 on multi-core. memory is in bytes. */
 export type UsageValues = {
   cpu: number
   memory: number
+  /** Separate committed bytes, never a replacement for memory; absent means unknown, not zero. */
+  privateMemory?: number
 }
 
-export type ProcessMemoryMetric = 'rss' | 'working-set'
+/** `footprint` is macOS phys_footprint (Activity Monitor's Memory): private pages plus GPU memory, shared pages excluded. */
+export type ProcessMemoryMetric = 'rss' | 'working-set' | 'footprint'
+
+/** Windows private commit charge (PageFileUsage/Private Bytes) includes paged-out memory, unlike working set.
+ * It can reveal paging pressure even as resident memory shrinks. Unix snapshots omit this metric. */
+export type ProcessCommitMetric = 'private-bytes'
 
 export type HostAvailableMemorySource = 'memory-pressure' | 'proc-meminfo' | 'free-memory'
 
@@ -66,9 +69,13 @@ export type MemorySnapshot = {
   host: HostMemory
   /** Per-process byte metric used by app, session, worktree, history, and totalMemory values. */
   processMemoryMetric: ProcessMemoryMetric
+  /** Committed-byte metric; absent on older hosts or unsupported captures means unknown, never zero. */
+  processCommitMetric?: ProcessCommitMetric
   /** Sum of app + all tracked worktree sessions. Percent of a single core, so may exceed 100 on multi-core machines. */
   totalCpu: number
-  /** Sum of per-process samples. Shared pages may repeat, so this can exceed host.totalMemory. */
+  /** Sum of per-process samples. With rss/working-set, shared pages may repeat, so this can exceed host.totalMemory. */
   totalMemory: number
+  /** App plus tracked-worktree committed bytes, present exactly with processCommitMetric; exceeding physical RAM is meaningful. */
+  totalPrivateMemory?: number
   collectedAt: number
 }

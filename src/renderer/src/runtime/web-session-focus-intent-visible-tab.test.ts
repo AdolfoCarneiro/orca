@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { resolveWebSessionVisibleTabId } from './web-session-focus-intent'
+import {
+  resolveWebSessionSiblingVisibleTabId,
+  resolveWebSessionVisibleTabId
+} from './web-session-focus-intent'
 import {
   toVisibleTabType,
   type Tab,
@@ -71,8 +74,7 @@ describe('resolveWebSessionVisibleTabId — grouped state is authoritative', () 
     expect(resolveWebSessionVisibleTabId(state, WT)).toBe('tab-shown')
   })
 
-  // Why: copyUnifiedTabToGroup duplicates contentType + entityId into another group, so a plain
-  // array scan can return the background copy and drag group focus to it.
+  // Duplicate file copies across splits must resolve within the focused group, not array order.
   it('prefers the active group copy when one entity exists in two split groups', () => {
     const background = tab({
       id: 'tab-bg',
@@ -99,8 +101,7 @@ describe('resolveWebSessionVisibleTabId — grouped state is authoritative', () 
     expect(resolveWebSessionVisibleTabId(state, WT)).toBe('tab-fg')
   })
 
-  // Why: a focused empty split must not resolve into some other group. This pins the contract
-  // only — it does NOT claim empty-split focus survives reconciliation (see plan scope boundary).
+  // Pin empty-group resolution only; reconciliation’s empty-split focus survival is outside this contract.
   it('returns null for a focused empty split rather than a background tab', () => {
     const background = tab({
       id: 'tab-bg',
@@ -144,8 +145,7 @@ describe('resolveWebSessionVisibleTabId — grouped state is authoritative', () 
     expect(resolveWebSessionVisibleTabId(state, WT)).toBeNull()
   })
 
-  // Why: reconcile replaces a local tab with a mirrored one under a new id; focus must follow the
-  // entity instead of being dropped (which would hand activation to the snapshot).
+  // Local-to-mirrored rekeys must preserve focus by entity or snapshot activation takes over.
   it('follows the entity when the visible tab is rematerialized under a new id', () => {
     const local = tab({ id: 'local-editor', entityId: '/repo/index.html', contentType: 'editor' })
     const mirrored = tab({ id: 'host-editor', entityId: '/repo/index.html', contentType: 'editor' })
@@ -232,6 +232,33 @@ describe('resolveWebSessionVisibleTabId — no-group compatibility path', () => 
     })
 
     expect(resolveWebSessionVisibleTabId(state, WT)).toBeNull()
+  })
+})
+
+describe('resolveWebSessionSiblingVisibleTabId', () => {
+  it('returns the sibling whose active tab matches the remembered visible type', () => {
+    const editor = tab({ id: 'tab-editor', entityId: 'file-1', contentType: 'editor' })
+    const terminal = tab({
+      id: 'tab-terminal',
+      entityId: 'term-1',
+      contentType: 'terminal',
+      groupId: GROUP_B
+    })
+    const state = makeState({
+      unifiedTabsByWorktree: { [WT]: [editor, terminal] },
+      groupsByWorktree: {
+        [WT]: [
+          group({ id: GROUP_A, activeTabId: editor.id, tabOrder: [editor.id] }),
+          group({ id: GROUP_B, activeTabId: null, tabOrder: [] })
+        ]
+      },
+      activeGroupIdByWorktree: { [WT]: GROUP_B },
+      activeTabType: 'editor',
+      activeTabTypeByWorktree: { [WT]: 'editor' }
+    })
+
+    expect(resolveWebSessionVisibleTabId(state, WT)).toBeNull()
+    expect(resolveWebSessionSiblingVisibleTabId(state, WT)).toBe(editor.id)
   })
 })
 

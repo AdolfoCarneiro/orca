@@ -15,22 +15,19 @@ export type FsPromisesMocks = {
   readFileMock: MockFn
   statMock: MockFn
   rmMock: MockFn
+  /** Optional: defaults to "nothing exists", which is what most git-read tests assume. */
+  accessMock?: MockFn
 }
 
 export function createGitRunnerModuleMock(mocks: GitRunnerMocks): Record<string, unknown> {
   return {
     gitExecFileAsync: mocks.gitExecFileAsyncMock,
     gitExecFileAsyncBuffer: mocks.gitExecFileAsyncBufferMock,
-    // Why: getStatus streams status output. The mock pulls the next queued
-    // stdout from gitExecFileAsyncMock and feeds it to onStdout, so tests that
-    // seed the status call via `gitExecFileAsyncMock.mockResolvedValueOnce`
-    // keep working and call ordering (status, then numstat) is preserved.
+    // Feed queued exec responses into the status stream, preserving existing argv-based mocks.
     gitStreamStdout: async (
       args: string[],
       options: { signal?: AbortSignal; onStdout: (chunk: string) => boolean | void }
     ) => {
-      // Forward args so arg-routing mock implementations (e.g. `args.includes`)
-      // still match the status read.
       mocks.gitStreamOptionsMock(options)
       const { stdout } = await mocks.gitExecFileAsyncMock(args)
       const stoppedEarly = options.onStdout(stdout ?? '') === true
@@ -49,7 +46,12 @@ export function createFsPromisesModuleMock(mocks: FsPromisesMocks): Record<strin
     realpath: mocks.realpathMock,
     readFile: mocks.readFileMock,
     stat: mocks.statMock,
-    rm: mocks.rmMock
+    rm: mocks.rmMock,
+    access:
+      mocks.accessMock ??
+      (async (target: string) => {
+        throw Object.assign(new Error(`ENOENT: ${target}`), { code: 'ENOENT' })
+      })
   }
 }
 

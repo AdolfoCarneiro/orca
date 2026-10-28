@@ -11,15 +11,16 @@ import {
 } from 'lucide-react'
 import { AgentIcon } from '@/lib/agent-catalog'
 import { cn } from '@/lib/utils'
-import { FilePathCursorTooltip, splitTrailingSegment } from '@/components/file-path-cursor-tooltip'
+import { FilePathCursorTooltip, FilenameFirstPath } from '@/components/file-path-cursor-tooltip'
 import { translate } from '@/i18n/i18n'
 import { SEARCH_ENGINE_LABELS } from '../../../../shared/browser-url'
+import { formatBrowserHistoryUrl } from '@/lib/browser-history-match'
 import type { ActiveOption } from './tab-create-entry-active-option'
+import { BrowserFavicon } from '@/components/browser-favicon'
 
 export const RESULT_LISTBOX_ID = 'tab-create-entry-results'
 
-// Index-based (not the option id, which may contain spaces/slashes from file
-// paths) so it is always a valid aria-activedescendant IDREF.
+// Use index-based DOM IDs because option paths can contain spaces invalid in aria-activedescendant references.
 export function resultOptionDomId(index: number): string {
   return `tab-create-entry-result-${index}`
 }
@@ -42,6 +43,7 @@ export function EntryStatusRow({
 export function EntryActionRow({
   disabled = false,
   id,
+  labelOverride,
   loading = false,
   onClick,
   option,
@@ -49,12 +51,13 @@ export function EntryActionRow({
 }: {
   disabled?: boolean
   id: string
+  labelOverride?: string
   loading?: boolean
   onClick: () => void
   option: ActiveOption
   selected: boolean
 }): React.JSX.Element {
-  const presentation = getActionPresentation(option)
+  const presentation = getActionPresentation(option, labelOverride)
 
   const row = (
     <button
@@ -97,27 +100,12 @@ export function EntryActionRow({
   )
 
   // Only the filename-first rows hide information. Every other row already shows
-  // its detail in full, and STYLEGUIDE.md:162 rules out labelling those.
+  // its detail in full, and the STYLEGUIDE tooltip rule rules out labelling those.
   if (!presentation.prioritizeFilename) {
     return row
   }
 
   return <FilePathCursorTooltip path={presentation.detail}>{row}</FilePathCursorTooltip>
-}
-
-function FilenameFirstPath({ path }: { path: string }): React.JSX.Element {
-  const { directory, filename } = splitTrailingSegment(path)
-
-  return (
-    <span className="flex min-w-0 flex-1 items-center gap-1">
-      {/* shrink-0 + max-w-full: the directory gives up all of its width before
-          the filename loses a character. */}
-      <span className="min-w-0 max-w-full shrink-0 truncate">{filename}</span>
-      {directory ? (
-        <span className="min-w-0 truncate text-muted-foreground/70">{directory}</span>
-      ) : null}
-    </span>
-  )
 }
 
 function getOpenTabIcon(option: Extract<ActiveOption, { kind: 'tab' }>['option']): React.ReactNode {
@@ -137,7 +125,7 @@ function getOpenTabIcon(option: Extract<ActiveOption, { kind: 'tab' }>['option']
     return <TerminalSquare className="size-3.5 shrink-0" aria-hidden="true" />
   }
   if (contentType === 'browser') {
-    return <Globe className="size-3.5 shrink-0" aria-hidden="true" />
+    return <BrowserFavicon faviconUrl={option.faviconUrl} className="size-3.5" />
   }
   if (contentType === 'simulator') {
     return <Smartphone className="size-3.5 shrink-0" aria-hidden="true" />
@@ -148,7 +136,10 @@ function getOpenTabIcon(option: Extract<ActiveOption, { kind: 'tab' }>['option']
   return <GitCompare className="size-3.5 shrink-0" aria-hidden="true" />
 }
 
-function getActionPresentation(option: ActiveOption): {
+function getActionPresentation(
+  option: ActiveOption,
+  labelOverride?: string
+): {
   detail: string
   icon: React.ReactNode
   label: string
@@ -177,17 +168,32 @@ function getActionPresentation(option: ActiveOption): {
   }
   if (option.kind === 'tab') {
     return {
-      detail: option.option.matchedText ?? option.option.title,
+      detail: option.option.matchedTexts?.length
+        ? option.option.matchedTexts.join(' · ')
+        : (option.option.matchedText ?? option.option.title),
       icon: getOpenTabIcon(option.option),
       label: translate('auto.components.tab.bar.TabBarCreateEntry.8f0a1c4d92', 'Switch to tab'),
       showDetail: true
     }
   }
+  if (option.kind === 'history') {
+    const { entry } = option.option
+    const url = formatBrowserHistoryUrl(entry.url)
+    return {
+      // Put variable titles in the truncating detail slot; labels with detail cannot shrink.
+      detail: entry.title ? `${entry.title} · ${url}` : url,
+      icon: <BrowserFavicon faviconUrl={entry.faviconUrl} className="size-3.5" />,
+      label: translate('auto.components.tab.bar.TabBarCreateEntry.openPage', 'Open page'),
+      showDetail: true
+    }
+  }
   if (option.kind === 'agent') {
     return {
-      detail: option.option.label,
+      detail: [option.option.label, option.option.reason].filter(Boolean).join(' · '),
       icon: <AgentIcon agent={option.option.agent} size={14} />,
-      label: translate('auto.components.tab.bar.TabBarCreateEntry.b27864279e', 'Launch agent'),
+      label:
+        labelOverride ??
+        translate('auto.components.tab.bar.TabBarCreateEntry.b27864279e', 'Launch agent'),
       showDetail: true
     }
   }
@@ -213,12 +219,16 @@ function getActionPresentation(option: ActiveOption): {
       showDetail: true
     }
   }
-  if (classification.kind === 'existing-file' || classification.kind === 'absolute-file') {
+  if (
+    classification.kind === 'existing-file' ||
+    classification.kind === 'absolute-file' ||
+    classification.kind === 'html-file-url'
+  ) {
     return {
       detail:
-        classification.kind === 'absolute-file'
-          ? classification.filePath
-          : classification.relativePath,
+        classification.kind === 'existing-file'
+          ? classification.relativePath
+          : classification.filePath,
       icon: <FileText className="size-3.5 shrink-0" aria-hidden="true" />,
       label: translate('auto.components.tab.bar.TabBarCreateEntry.25dc1cd653', 'Open file'),
       prioritizeFilename: true,

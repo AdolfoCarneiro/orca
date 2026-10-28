@@ -34,18 +34,24 @@ function getProjectFilterVisibilityLabel({
 
 type SidebarRepositoryFilterSectionProps = {
   preserveWorkspaceBoardOpen?: boolean
+  // Agents inject their own persisted filter; workspace navigation supplies the defaults.
+  filterRepoIds?: readonly string[]
+  setFilterRepoIds?: (ids: string[]) => void
 }
 
 const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilterSection({
-  preserveWorkspaceBoardOpen = false
+  preserveWorkspaceBoardOpen = false,
+  filterRepoIds: filterRepoIdsProp,
+  setFilterRepoIds: setFilterRepoIdsProp
 }: SidebarRepositoryFilterSectionProps) {
-  const filterRepoIds = useAppStore((s) => s.filterRepoIds)
-  const setFilterRepoIds = useAppStore((s) => s.setFilterRepoIds)
+  const workspaceFilterRepoIds = useAppStore((s) => s.filterRepoIds)
+  const setWorkspaceFilterRepoIds = useAppStore((s) => s.setFilterRepoIds)
   const repos = useAppStore((s) => s.repos)
+  const filterRepoIds = filterRepoIdsProp ?? workspaceFilterRepoIds
+  const setFilterRepoIds = setFilterRepoIdsProp ?? setWorkspaceFilterRepoIds
 
   const canFilterRepos = repos.length > 1
-  // Why: derive from current repos so stale ids (e.g. lingering after a repo
-  // is removed) don't inflate counts or falsely signal an applied filter.
+  // Ignore removed repo IDs so counts cannot imply a stale active filter.
   const selectedRepoIdSet = useMemo(() => {
     const set = new Set<string>()
     for (const repo of repos) {
@@ -73,8 +79,6 @@ const SidebarRepositoryFilterSection = React.memo(function SidebarRepositoryFilt
     return null
   }
 
-  // Why: same Sort-by-style single row as Hosts — label left, current value
-  // right; search/selection lives in the nested panel only.
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>

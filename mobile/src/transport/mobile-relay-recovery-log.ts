@@ -1,20 +1,33 @@
-import type { ConnectionLogSink } from './types'
+import type { ConnectionDiagnosticCode, ConnectionLogLevel, ConnectionLogSink } from './types'
 
-export type RelayRecoveryLog = (message: string, detail?: string) => void
+export type RelayRecoveryLog = (
+  message: string,
+  detail?: string,
+  evidence?: {
+    level?: ConnectionLogLevel
+    code?: ConnectionDiagnosticCode
+    relayCloseCode?: number
+  }
+) => void
 
-// Why: relay recovery failed silently in production for weeks; every decision
-// must reach logcat and the in-app connection log.
+let relayLoggerInstanceSequence = 0
+
+// Log every recovery decision to native and in-app diagnostics so relay failures remain inspectable.
 export function createRelayRecoveryLog(
   now: () => number,
   onLog?: ConnectionLogSink
 ): RelayRecoveryLog {
   let sequence = 0
-  return (message, detail) => {
+  const instanceId = `${Date.now().toString(36)}-${(++relayLoggerInstanceSequence).toString(36)}`
+  return (message, detail, evidence) => {
     console.log(`[relay] ${message}`, detail ?? '')
     onLog?.({
-      id: `relay-${++sequence}`,
+      id: `relay-${instanceId}-${++sequence}`,
       ts: now(),
-      level: 'info',
+      level: evidence?.level ?? 'info',
+      path: 'relay',
+      ...(evidence?.code ? { code: evidence.code } : {}),
+      ...(evidence?.relayCloseCode ? { relayCloseCode: evidence.relayCloseCode } : {}),
       message: `Relay: ${message}`,
       ...(detail ? { detail } : {})
     })

@@ -2,16 +2,16 @@ import { buildPosixCommandPathLookupScript } from '../../shared/posix-command-pa
 import {
   buildWslCapturedLoginShellCommand,
   buildWslExecArgs,
-  buildWslLoginShellCommand,
-  quotePosixShell
+  buildWslLoginShellCommand
 } from '../../shared/wsl-login-shell-command'
+import { quotePosixShell } from '../../shared/shell-argument-quoting'
 
 export const WSL_CODEX_AVAILABILITY_TIMEOUT_MS = 5_000
 export const WSL_CODEX_NOT_FOUND_MESSAGE = 'Codex CLI not found in the WSL login-shell PATH.'
 
-export function buildWslCodexAvailabilityArgs(distro: string): string[] {
-  const command = [buildCodexPathLookup(), '[ -n "$resolved" ]'].join('\n')
-  return buildWslCodexShellArgs(distro, command)
+/** Exits 0 only when `codex` resolves on the login PATH the runner supplies. */
+export function buildWslCodexAvailabilityScript(): string {
+  return [buildCodexPathLookup(), '[ -n "$resolved" ]'].join('\n')
 }
 
 export type WslCodexIdentityProbe = {
@@ -20,15 +20,7 @@ export type WslCodexIdentityProbe = {
   readStdout: (stdout: string) => string | null
 }
 
-/**
- * Probe the distro's Codex path and version.
- *
- * Why fenced: this reads the login shell's stdout positionally (path before the
- * first newline, version after), and an interactive login shell prints the
- * distro rc/motd to stdout ahead of it — which silently moves that split into
- * the banner. The payload ends in `exec`, so no closing fence is ever written;
- * `readStdout` returns everything after the opening one.
- */
+/** Fence off login banners; exec leaves no closing fence after the path/version payload. */
 export function buildWslCodexIdentityProbe(distro: string): WslCodexIdentityProbe {
   const command = [
     buildCodexPathLookup(),
@@ -46,7 +38,11 @@ export function buildWslCodexIdentityProbe(distro: string): WslCodexIdentityProb
   }
 }
 
-export function buildWslCodexAppServerArgs(distro: string, linuxHomePath: string): string[] {
+export function buildWslCodexAppServerArgs(
+  distro: string,
+  linuxHomePath: string,
+  appServerArgs: readonly string[] = ['app-server']
+): string[] {
   const command = [
     buildCodexPathLookup(),
     'if [ -z "$resolved" ]; then',
@@ -54,12 +50,16 @@ export function buildWslCodexAppServerArgs(distro: string, linuxHomePath: string
     '  exit 127',
     'fi',
     `export CODEX_HOME=${quotePosixShell(linuxHomePath)}`,
-    'exec "$resolved" app-server'
+    `exec "$resolved" ${appServerArgs.map(quotePosixShell).join(' ')}`
   ].join('\n')
   return buildWslCodexShellArgs(distro, command)
 }
 
-export function buildWslCodexLoginArgs(distro: string, linuxHomePath: string): string[] {
+export function buildWslCodexLoginArgs(
+  distro: string,
+  linuxHomePath: string,
+  options: { orcaOpensSignInLink?: boolean } = {}
+): string[] {
   const command = [
     buildCodexPathLookup(),
     'if [ -z "$resolved" ]; then',
@@ -67,17 +67,22 @@ export function buildWslCodexLoginArgs(distro: string, linuxHomePath: string): s
     '  exit 127',
     'fi',
     `export CODEX_HOME=${quotePosixShell(linuxHomePath)}`,
+    // Avoid a second tab when Orca opens the link.
+    ...(options.orcaOpensSignInLink ? ['export BROWSER=true'] : []),
     'exec "$resolved" login'
   ].join('\n')
   return buildWslCodexShellArgs(distro, command)
 }
 
 function buildCodexPathLookup(): string {
-  return buildPosixCommandPathLookupScript({ kind: 'literal', value: 'codex' })
+  // Match detection by skipping Windows mount directories when resolving the guest CLI.
+  return buildPosixCommandPathLookupScript(
+    { kind: 'literal', value: 'codex' },
+    { skipWindowsMountDirs: true }
+  )
 }
 
 function buildWslCodexShellArgs(distro: string, command: string): string[] {
-  // Why: Codex must use the distro user's configured login shell, whose PATH
-  // can differ from a hard-coded non-login bash invocation.
+  // Use the configured login shell so CLI launches inherit the user's PATH.
   return buildWslExecArgs(distro, ['sh', '-c', buildWslLoginShellCommand(command)])
 }

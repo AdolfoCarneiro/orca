@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { createReadStream, type Stats } from 'node:fs'
+import type { Stats } from 'node:fs'
 import { appendFile, mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import { createInterface } from 'node:readline'
 import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-path'
+import { streamCodexSessionLedgerRecords } from './codex-session-ledger-stream'
 import type { CodexSessionBackfillSummary } from './codex-session-backfill-types'
 
 export type CodexSessionBackfillAuditWriter = (record: Record<string, unknown>) => Promise<boolean>
@@ -32,28 +32,24 @@ export function createCodexSessionBackfillAuditWriter(
     await appendFile(auditLogPath, serializedRecord, { encoding: 'utf-8' })
   }
   return async (record): Promise<boolean> => {
-    // Why: a crash can leave a partial final JSON object. A leading newline
-    // quarantines that torn tail so this recovery record remains parseable.
+    // A leading newline isolates torn JSON tails left by crashes.
     const serializedRecord = `\n${JSON.stringify({
       at: new Date().toISOString(),
       ...record,
-      // Why: a later managed-lane pass can recreate the same thread id, so a
-      // terminal heal outcome must identify this particular publication event.
+      // Thread IDs can recur; healing must identify this publication event.
       recordId: randomUUID()
     })}\n`
     try {
       await appendRecord(serializedRecord)
       return true
     } catch {
-      // Why: the heal consumes this ledger as its work queue. Retry the same
-      // record once so a transient mkdir/write failure cannot omit a session.
+      // This ledger queues healing; retry transient writes so sessions are not omitted.
     }
     try {
       await appendRecord(serializedRecord)
       return true
     } catch (error) {
-      // Why: a published hardlink/copy may already be in use, so persistent
-      // ledger failure is reported but cannot safely roll back the backfill.
+      // Published files may already be in use, so ledger failures cannot roll them back.
       console.warn('[codex-session-backfill] Failed to append audit record:', error)
       return false
     }
@@ -68,38 +64,23 @@ export async function readCodexSessionBackfillAuditCoverage(
     diagnosticEventIds: new Set<string>(),
     hasRunSummary: false
   }
-  const input = createReadStream(auditLogPath, { encoding: 'utf-8' })
-  const lines = createInterface({ input, crlfDelay: Infinity })
-  try {
-    for await (const raw of lines) {
-      try {
-        const parsed: unknown = JSON.parse(raw)
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-          continue
-        }
-        const record = parsed as Record<string, unknown>
-        coverage.hasRunSummary ||= record.action === 'run-summary'
-        if (
-          typeof record.action === 'string' &&
-          HEAL_AUDIT_ACTIONS.has(record.action) &&
-          typeof record.fileEventId === 'string'
-        ) {
-          coverage.fileEventIds.add(record.fileEventId)
-        }
-        if (
-          typeof record.action === 'string' &&
-          DIAGNOSTIC_AUDIT_ACTIONS.has(record.action) &&
-          typeof record.diagnosticEventId === 'string'
-        ) {
-          coverage.diagnosticEventIds.add(record.diagnosticEventId)
-        }
-      } catch {
-        // Torn audit tails are quarantined by the writer's leading newline.
-      }
+  for await (const record of streamCodexSessionLedgerRecords(auditLogPath, {
+    throwOnReadFailure: true
+  })) {
+    coverage.hasRunSummary ||= record.action === 'run-summary'
+    if (
+      typeof record.action === 'string' &&
+      HEAL_AUDIT_ACTIONS.has(record.action) &&
+      typeof record.fileEventId === 'string'
+    ) {
+      coverage.fileEventIds.add(record.fileEventId)
     }
-  } catch (error) {
-    if (!isNotFoundError(error)) {
-      throw error
+    if (
+      typeof record.action === 'string' &&
+      DIAGNOSTIC_AUDIT_ACTIONS.has(record.action) &&
+      typeof record.diagnosticEventId === 'string'
+    ) {
+      coverage.diagnosticEventIds.add(record.diagnosticEventId)
     }
   }
   return coverage
@@ -183,16 +164,11 @@ export async function recordExistingCodexSessionForHeal(
   fileEventId?: string
 ): Promise<boolean> {
   summary.skippedExistingFiles += 1
-  // Why: this also recovers a rollout installed before a crash or audit
-  // failure; thread/read is idempotent for a pre-existing real-home file.
+  // Re-enqueue existing rollouts to recover publication crashes; thread/read is idempotent.
   return appendCodexSessionHealAuditRecord(writer, summary, {
     action: 'existing',
     source,
     target,
     ...(fileEventId ? { fileEventId } : {})
   })
-}
-
-function isNotFoundError(error: unknown): boolean {
-  return (error as NodeJS.ErrnoException | null)?.code === 'ENOENT'
 }

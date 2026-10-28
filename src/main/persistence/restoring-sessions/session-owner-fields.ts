@@ -1,6 +1,18 @@
 import type { TerminalTab } from '../../../shared/terminal-tab-types'
 import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
+import {
+  getWorktreeIdFromHostIdentity,
+  isWorktreeHostIdentity
+} from '../../../shared/worktree/host-qualified-identity'
+import { worktreeWorkspaceKey } from '../../../shared/workspace-scope'
+import { SESSION_FIELDS_PRUNED_BY_OWNER_KEY } from '../../orca-profiles/profile-project-session-field-disposition'
+
+// Repo-keyed topology revisions advance rather than delete; host-qualified recency keys need a scan.
+export const OWNER_KEYED_SESSION_FIELDS_DELETED_WITH_THEIR_OWNER =
+  SESSION_FIELDS_PRUNED_BY_OWNER_KEY.filter(
+    (field) => field !== 'terminalTopologyRevisionByRepoId' && field !== 'lastVisitedAtByWorktreeId'
+  )
 
 export function createMinimalPersistedTerminalTab(args: {
   worktreeId: string
@@ -21,8 +33,7 @@ export function createMinimalPersistedTerminalTab(args: {
     color: null,
     sortOrder: args.existingTabCount,
     createdAt: Date.now(),
-    ...(args.startupCwd ? { startupCwd: args.startupCwd } : {}),
-    pendingActivationSpawn: true
+    ...(args.startupCwd ? { startupCwd: args.startupCwd } : {})
   }
 }
 
@@ -30,7 +41,7 @@ export function cloneWorkspaceSessionState(session: WorkspaceSessionState): Work
   return structuredClone(session)
 }
 
-// Owner-keyed deletes only; pane-key-scanned collections live in deleteScannedSessionFieldsForOwners so a batch prune scans each once.
+// Keep owner-indexed deletion separate so batch pruning scans pane-keyed collections only once.
 export function deleteOwnerKeyedSessionFields(
   next: WorkspaceSessionState,
   ownerKey: string,
@@ -56,12 +67,6 @@ export function deleteOwnerKeyedSessionFields(
       [repoId]: previousTopologyRevision + 1
     }
   }
-  if (next.openFilesByWorktree) {
-    delete next.openFilesByWorktree[ownerKey]
-  }
-  if (next.activeFileIdByWorktree) {
-    delete next.activeFileIdByWorktree[ownerKey]
-  }
   const browserWorkspaces = next.browserTabsByWorktree?.[ownerKey] ?? []
   if (next.browserTabsByWorktree) {
     delete next.browserTabsByWorktree[ownerKey]
@@ -71,34 +76,27 @@ export function deleteOwnerKeyedSessionFields(
       delete next.browserPagesByWorkspace[workspace.id]
     }
   }
-  if (next.activeBrowserTabIdByWorktree) {
-    delete next.activeBrowserTabIdByWorktree[ownerKey]
+  // Share the removal census so new fields cannot be pruned on only one path.
+  for (const field of OWNER_KEYED_SESSION_FIELDS_DELETED_WITH_THEIR_OWNER) {
+    const record = next[field] as Record<string, unknown> | undefined
+    if (record) {
+      delete record[ownerKey]
+    }
   }
-  if (next.activeTabTypeByWorktree) {
-    delete next.activeTabTypeByWorktree[ownerKey]
-  }
-  if (next.activeTabIdByWorktree) {
-    delete next.activeTabIdByWorktree[ownerKey]
-  }
-  if (next.unifiedTabs) {
-    delete next.unifiedTabs[ownerKey]
-  }
-  if (next.tabGroups) {
-    delete next.tabGroups[ownerKey]
-  }
-  if (next.tabGroupLayouts) {
-    delete next.tabGroupLayouts[ownerKey]
-  }
-  if (next.activeGroupIdByWorktree) {
-    delete next.activeGroupIdByWorktree[ownerKey]
-  }
+  // Include host-qualified executionHostId|worktreeId keys.
   if (next.lastVisitedAtByWorktreeId) {
-    delete next.lastVisitedAtByWorktreeId[ownerKey]
+    for (const key of Object.keys(next.lastVisitedAtByWorktreeId)) {
+      const rawId = isWorktreeHostIdentity(key) ? getWorktreeIdFromHostIdentity(key) : key
+      if (key === ownerKey || rawId === ownerKey) {
+        delete next.lastVisitedAtByWorktreeId[key]
+      }
+    }
   }
-  if (next.defaultTerminalTabsAppliedByWorktreeId) {
-    delete next.defaultTerminalTabsAppliedByWorktreeId[ownerKey]
-  }
-  if (next.activeWorkspaceKey === ownerKey) {
+  // Worktree owners are raw ids, but the active key stores their canonical worktree: form.
+  if (
+    next.activeWorkspaceKey === ownerKey ||
+    next.activeWorkspaceKey === worktreeWorkspaceKey(ownerKey)
+  ) {
     next.activeWorkspaceKey = null
   }
   if (next.activeWorktreeId === ownerKey) {

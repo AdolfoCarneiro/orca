@@ -1,3 +1,4 @@
+import './rpc/unused-default-rpc-methods.test-fixture'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -6,7 +7,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { OrcaRuntimeService } from './orca-runtime'
 import { OrchestrationDb } from './orchestration/db'
 import { readRuntimeMetadata } from './runtime-metadata'
-import { OrcaRuntimeRpcServer } from './runtime-rpc'
+import { classifyRuntimeLongPoll } from './runtime-rpc/runtime-rpc-long-poll'
+import { createLongPollServer as createServer } from './runtime-rpc-long-poll-server.test-fixture'
 import {
   sendRequest,
   openFramedSession,
@@ -14,6 +16,7 @@ import {
   waitFor,
   seedSupervisedAskWorkers
 } from './runtime-rpc-test-harness'
+import { createRootDispatch } from './orchestration/db/root-dispatch-test-fixture'
 
 vi.mock('../git/worktree', () => {
   const worktrees = [
@@ -32,10 +35,83 @@ vi.mock('../git/worktree', () => {
 })
 
 describe('OrcaRuntimeRpcServer', () => {
+  it('classifies worker-start as a keepalive-backed long poll', () => {
+    expect(
+      classifyRuntimeLongPoll({
+        id: 'req_worker_start',
+        authToken: 'token',
+        method: 'orchestration.workerStart',
+        params: { task: 'task_1', timeoutMs: 60_000 }
+      })
+    ).toBe('wait')
+  })
+
+  it.each(['agent.launch', 'agent.launchReplay'])(
+    'keeps a prompted %s alive while it waits for the agent to be ready',
+    (method) => {
+      const prompt = { text: 'fix the build', delivery: 'submit' }
+      expect(
+        classifyRuntimeLongPoll({
+          id: 'req_launch',
+          authToken: 'token',
+          method,
+          params: { prompt }
+        })
+      ).toBe('wait')
+      // An existing workspace without a prompt remains a short call.
+      expect(
+        classifyRuntimeLongPoll({ id: 'req_launch', authToken: 'token', method, params: {} })
+      ).toBeNull()
+    }
+  )
+
+  it.each(['agent.launch', 'agent.launchReplay'])(
+    'keeps unprompted %s workspace setup alive',
+    (method) => {
+      expect(
+        classifyRuntimeLongPoll({
+          id: 'req_setup',
+          authToken: 'token',
+          method,
+          params: {
+            target: { kind: 'create-worktree', create: { repo: 'id:repo-1', name: 'task' } }
+          }
+        })
+      ).toBe('wait')
+      expect(
+        classifyRuntimeLongPoll({
+          id: 'req_existing',
+          authToken: 'token',
+          method,
+          params: { target: { kind: 'existing', worktree: 'id:wt-7' } }
+        })
+      ).toBeNull()
+    }
+  )
+
+  it('keeps agent-prompt submission sockets alive during verification', () => {
+    expect(
+      classifyRuntimeLongPoll({
+        id: 'req_prompt',
+        authToken: 'token',
+        method: 'terminal.send',
+        params: { agentPrompt: true }
+      })
+    ).toBe('wait')
+    expect(
+      classifyRuntimeLongPoll({
+        id: 'req_direct',
+        authToken: 'token',
+        method: 'terminal.send',
+        params: { agentPrompt: false }
+      })
+    ).toBeNull()
+  })
+
   it('rejects oversized RPC frames instead of buffering them indefinitely', async () => {
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
     const runtime = new OrcaRuntimeService()
-    const server = new OrcaRuntimeRpcServer({ runtime, userDataPath })
+    const server = createServer({ runtime, userDataPath })
 
     await server.start()
 
@@ -69,18 +145,93 @@ describe('OrcaRuntimeRpcServer', () => {
     await server.stop()
   })
 
-  // Why: §6 tests for the transport keepalive + long-poll counter path in §3.1.
-  // Exercise the real socket (not a mock) so we catch buffer/flush regressions
-  // that a unit-level test would miss.
+  // Use real socket keepalives/admission to catch flush/buffer regressions mocks miss (design §§3.1, 6).
   describe('long-poll transport (§3.1)', () => {
+    it.each(['agent.launch', 'agent.launchReplay'])(
+      'emits keepalives over the socket while unprompted %s setup blocks',
+      async (method) => {
+        const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
+        const runtime = new OrcaRuntimeService()
+        const server = createServer({ runtime, userDataPath, keepaliveIntervalMs: 30 })
+        vi.spyOn(server['dispatcher'], 'dispatch').mockImplementation(async (request) => {
+          await sleep(120)
+          return {
+            id: request.id,
+            ok: true,
+            result: {},
+            _meta: { runtimeId: runtime.getRuntimeId() }
+          }
+        })
+        await server.start()
+        try {
+          const metadata = readRuntimeMetadata(userDataPath)
+          const session = openFramedSession(metadata!.transports[0]!.endpoint, {
+            id: 'req_setup',
+            authToken: metadata!.authToken,
+            method,
+            params: {
+              target: { kind: 'create-worktree', create: { repo: 'id:repo-1', name: 'task' } }
+            }
+          })
+          await session.done
+          expect(
+            session.frames.filter((frame) => frame._keepalive === true).length
+          ).toBeGreaterThanOrEqual(2)
+          expect(session.frames.filter((frame) => frame.ok !== undefined)).toHaveLength(1)
+        } finally {
+          await server.stop()
+        }
+      }
+    )
+
+    it('emits keepalives while orchestration.workerStart blocks', async () => {
+      const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
+      const runtime = new OrcaRuntimeService()
+      const server = createServer({
+        runtime,
+        userDataPath,
+        keepaliveIntervalMs: 30
+      })
+      const dispatch = server['dispatcher']
+      vi.spyOn(dispatch, 'dispatch').mockImplementation(async (request) => {
+        await sleep(120)
+        return {
+          id: request.id,
+          ok: true,
+          result: { dispatch: { id: 'dispatch_1' } },
+          _meta: { runtimeId: runtime.getRuntimeId() }
+        }
+      })
+      await server.start()
+
+      try {
+        const metadata = readRuntimeMetadata(userDataPath)
+        const session = openFramedSession(metadata!.transports[0]!.endpoint, {
+          id: 'req_worker_start',
+          authToken: metadata!.authToken,
+          method: 'orchestration.workerStart',
+          params: { task: 'task_1', timeoutMs: 60_000 }
+        })
+        await session.done
+
+        expect(
+          session.frames.filter((frame) => frame._keepalive === true).length
+        ).toBeGreaterThanOrEqual(2)
+        expect(session.frames.filter((frame) => frame.ok !== undefined)).toHaveLength(1)
+      } finally {
+        await server.stop()
+      }
+    })
+
     it('emits keepalive frames while a check --wait handler blocks', async () => {
       const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
       const runtime = new OrcaRuntimeService()
       const db = new OrchestrationDb(':memory:')
       runtime.setOrchestrationDb(db)
-      // Why: 50ms keepalive lets us collect ≥3 frames within a 300ms wait
-      // window without slowing the suite.
-      const server = new OrcaRuntimeRpcServer({
+      // A consuming check now requires a live pane; these transport tests only need it to block.
+      vi.spyOn(runtime, 'getTerminalPaneKey').mockImplementation((handle) => `tab_${handle}:leaf`)
+      // Use 50ms keepalive to observe several frames during a 300ms wait.
+      const server = createServer({
         runtime,
         userDataPath,
         keepaliveIntervalMs: 50
@@ -105,8 +256,7 @@ describe('OrcaRuntimeRpcServer', () => {
         const terminals = session.frames.filter((f) => f.ok !== undefined)
         expect(terminals).toHaveLength(1)
         expect(terminals[0]).toMatchObject({ id: 'req_wait', ok: true })
-        // Why: 300ms wait with 50ms keepalive → expect roughly 5 keepalives;
-        // assert ≥3 to tolerate scheduler jitter without flaking.
+        // Expect at least three 50ms frames in 300ms, leaving scheduler slack.
         expect(keepalives.length).toBeGreaterThanOrEqual(3)
       } finally {
         db.close()
@@ -119,6 +269,8 @@ describe('OrcaRuntimeRpcServer', () => {
       const runtime = new OrcaRuntimeService()
       const db = new OrchestrationDb(':memory:')
       runtime.setOrchestrationDb(db)
+      // A consuming check now requires a live pane; these transport tests only need it to block.
+      vi.spyOn(runtime, 'getTerminalPaneKey').mockImplementation((handle) => `tab_${handle}:leaf`)
       const askerPaneKey = 'tab_asker:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
       vi.spyOn(runtime, 'getTerminalPaneKey').mockImplementation((handle) =>
         handle === 'term_asker' ? askerPaneKey : null
@@ -129,8 +281,8 @@ describe('OrcaRuntimeRpcServer', () => {
         coordinatorPaneKey: 'tab_coord:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
       })
       const task = db.createTask({ spec: 'Wait for an answer', runId: run.id })
-      db.createDispatchContext(task.id, 'term_asker', askerPaneKey)
-      const server = new OrcaRuntimeRpcServer({
+      createRootDispatch(db, task.id, 'term_asker', askerPaneKey)
+      const server = createServer({
         runtime,
         userDataPath,
         keepaliveIntervalMs: 50
@@ -139,9 +291,7 @@ describe('OrcaRuntimeRpcServer', () => {
 
       try {
         const metadata = readRuntimeMetadata(userDataPath)
-        // Why: no reply is ever sent, so ask blocks the full window on the same
-        // hold-the-socket path check --wait uses. Without ask in the long-poll
-        // set the 30s idle timer would tear this down before it keepalives.
+        // Unanswered ask must keepalive like check --wait; otherwise idle timeout kills the long poll.
         const session = openFramedSession(metadata!.transports[0]!.endpoint, {
           id: 'req_ask',
           authToken: metadata!.authToken,
@@ -173,7 +323,7 @@ describe('OrcaRuntimeRpcServer', () => {
     it('emits keepalive frames while terminal.wait blocks and returns its structured timeout', async () => {
       const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
       const runtime = new OrcaRuntimeService()
-      const server = new OrcaRuntimeRpcServer({
+      const server = createServer({
         runtime,
         userDataPath,
         keepaliveIntervalMs: 30
@@ -241,10 +391,49 @@ describe('OrcaRuntimeRpcServer', () => {
       }
     })
 
+    it('emits keepalive frames while agent-prompt verification blocks', async () => {
+      const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
+      const runtime = new OrcaRuntimeService()
+      const server = createServer({
+        runtime,
+        userDataPath,
+        keepaliveIntervalMs: 30
+      })
+      const dispatch = server['dispatcher']
+      vi.spyOn(dispatch, 'dispatch').mockImplementation(async (request) => {
+        await sleep(120)
+        return {
+          id: request.id,
+          ok: true,
+          result: { send: { accepted: true } },
+          _meta: { runtimeId: runtime.getRuntimeId() }
+        }
+      })
+      await server.start()
+
+      try {
+        const metadata = readRuntimeMetadata(userDataPath)
+        const session = openFramedSession(metadata!.transports[0]!.endpoint, {
+          id: 'req_prompt',
+          authToken: metadata!.authToken,
+          method: 'terminal.send',
+          params: { agentPrompt: true }
+        })
+        await session.done
+
+        expect(
+          session.frames.filter((frame) => frame._keepalive === true).length
+        ).toBeGreaterThanOrEqual(2)
+        expect(session.frames.filter((frame) => frame.ok !== undefined)).toHaveLength(1)
+      } finally {
+        await server.stop()
+      }
+    })
+
     it('releases terminal.wait long-poll slot when the client closes mid-wait', async () => {
       const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
       const runtime = new OrcaRuntimeService()
-      const server = new OrcaRuntimeRpcServer({
+      const server = createServer({
         runtime,
         userDataPath,
         keepaliveIntervalMs: 1000,
@@ -316,12 +505,19 @@ describe('OrcaRuntimeRpcServer', () => {
       }
     })
 
-    it('releases long-poll slot when client closes mid-wait', async () => {
+    it('releases one same-Run wait slot when its client closes and keeps its sibling live', async () => {
       const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
       const runtime = new OrcaRuntimeService()
       const db = new OrchestrationDb(':memory:')
       runtime.setOrchestrationDb(db)
-      const server = new OrcaRuntimeRpcServer({
+      // A consuming check now requires a live pane; these transport tests only need it to block.
+      vi.spyOn(runtime, 'getTerminalPaneKey').mockImplementation((handle) => `tab_${handle}:leaf`)
+      const run = db.createRun({
+        objective: 'Concurrent Run waits',
+        coordinatorHandle: 'term_coord',
+        coordinatorPaneKey: 'tab_term_coord:leaf'
+      })
+      const server = createServer({
         runtime,
         userDataPath,
         keepaliveIntervalMs: 1000,
@@ -332,44 +528,35 @@ describe('OrcaRuntimeRpcServer', () => {
       try {
         const metadata = readRuntimeMetadata(userDataPath)
         const endpoint = metadata!.transports[0]!.endpoint
+        const openRunWait = (id: string) =>
+          openFramedSession(endpoint, {
+            id,
+            authToken: metadata!.authToken,
+            method: 'orchestration.check',
+            params: { terminal: 'term_coord', run: run.id, wait: true, timeoutMs: 10_000 }
+          })
 
-        // Fill the cap with two long waits (10s each — we'll kill them).
-        const a = openFramedSession(endpoint, {
-          id: 'req_a',
-          authToken: metadata!.authToken,
-          method: 'orchestration.check',
-          params: { terminal: 'term_a', wait: true, timeoutMs: 10_000 }
-        })
-        const b = openFramedSession(endpoint, {
-          id: 'req_b',
-          authToken: metadata!.authToken,
-          method: 'orchestration.check',
-          params: { terminal: 'term_b', wait: true, timeoutMs: 10_000 }
-        })
-        // Let the two waits land in the handler and increment the counter.
-        await sleep(100)
-        expect(server['activeLongPolls']).toBe(2)
+        // Fill the cap with two waits on the same Run inbox.
+        const a = openRunWait('req_a')
+        const b = openRunWait('req_b')
+        await waitFor(() => server['activeLongPolls'] === 2)
 
-        // Kill one client mid-wait; counter must drop to 1.
         a.socket.destroy()
         await a.done
-        // Give Node one tick to fire the close event on the server socket.
-        await sleep(50)
-        expect(server['activeLongPolls']).toBe(1)
+        await waitFor(() => server['activeLongPolls'] === 1)
 
-        // The freed slot must admit a new long-poll immediately.
-        const c = openFramedSession(endpoint, {
-          id: 'req_c',
-          authToken: metadata!.authToken,
-          method: 'orchestration.check',
-          params: { terminal: 'term_c', wait: true, timeoutMs: 100 }
-        })
-        await c.done
-        const cTerminal = c.frames.find((f) => f.ok !== undefined)
-        expect(cTerminal).toMatchObject({ ok: true, id: 'req_c' })
-
-        b.socket.destroy()
-        await b.done
+        // The freed slot must admit another wait on the same inbox.
+        const c = openRunWait('req_c')
+        await waitFor(() => server['activeLongPolls'] === 2)
+        db.insertMessage({ from: 'term_worker', to: `run:${run.id}`, subject: 'go', runId: run.id })
+        runtime.notifyMessageArrived(`run:${run.id}`)
+        await Promise.all([b.done, c.done])
+        const consumerGeneration = run.consumer_generation
+        const deliveryId = db.getOrCreateRunDelivery({ runId: run.id, consumerGeneration })
+          ?.delivery.id
+        const results = [b, c].map((s) => s.frames.find((f) => f.ok !== undefined)?.result)
+        expect(results).toMatchObject([{ deliveryId }, { deliveryId }])
+        await waitFor(() => server['activeLongPolls'] === 0)
       } finally {
         db.close()
         await server.stop()
@@ -381,7 +568,9 @@ describe('OrcaRuntimeRpcServer', () => {
       const runtime = new OrcaRuntimeService()
       const db = new OrchestrationDb(':memory:')
       runtime.setOrchestrationDb(db)
-      const server = new OrcaRuntimeRpcServer({
+      // A consuming check now requires a live pane; these transport tests only need it to block.
+      vi.spyOn(runtime, 'getTerminalPaneKey').mockImplementation((handle) => `tab_${handle}:leaf`)
+      const server = createServer({
         runtime,
         userDataPath,
         keepaliveIntervalMs: 1000,
@@ -421,7 +610,9 @@ describe('OrcaRuntimeRpcServer', () => {
       const runtime = new OrcaRuntimeService()
       const db = new OrchestrationDb(':memory:')
       runtime.setOrchestrationDb(db)
-      const server = new OrcaRuntimeRpcServer({
+      // A consuming check now requires a live pane; these transport tests only need it to block.
+      vi.spyOn(runtime, 'getTerminalPaneKey').mockImplementation((handle) => `tab_${handle}:leaf`)
+      const server = createServer({
         runtime,
         userDataPath,
         keepaliveIntervalMs: 1000,
@@ -442,7 +633,6 @@ describe('OrcaRuntimeRpcServer', () => {
         await sleep(100)
         expect(server['activeLongPolls']).toBe(1)
 
-        // Second long-poll overflows the cap → runtime_busy.
         const overflow = await sendRequest(endpoint, {
           id: 'req_overflow',
           authToken: metadata!.authToken,
@@ -454,10 +644,8 @@ describe('OrcaRuntimeRpcServer', () => {
           ok: false,
           error: { code: 'runtime_busy' }
         })
-        // The failing request must not have counted against the cap.
         expect(server['activeLongPolls']).toBe(1)
 
-        // Short RPCs still succeed even when the long-poll cap is full.
         const short = await sendRequest(endpoint, {
           id: 'req_short',
           authToken: metadata!.authToken,
@@ -478,9 +666,11 @@ describe('OrcaRuntimeRpcServer', () => {
       const runtime = new OrcaRuntimeService()
       const db = new OrchestrationDb(':memory:')
       runtime.setOrchestrationDb(db)
+      // A consuming check now requires a live pane; these transport tests only need it to block.
+      vi.spyOn(runtime, 'getTerminalPaneKey').mockImplementation((handle) => `tab_${handle}:leaf`)
       seedSupervisedAskWorkers(db, ['term_w0', 'term_w1', 'term_w2', 'term_w3'])
-      // Why: cap 4 → ask sub-cap 2, so 4 concurrent asks can only take half the budget.
-      const server = new OrcaRuntimeRpcServer({
+      // Ask sub-cap is half the total: cap 4 admits only two asks.
+      const server = createServer({
         runtime,
         userDataPath,
         keepaliveIntervalMs: 1000,
@@ -521,7 +711,7 @@ describe('OrcaRuntimeRpcServer', () => {
         const handle = (listResponse.result as { terminals: { handle: string }[] }).terminals[0]!
           .handle
 
-        // Four workers block in ask; distinct `from` handles so no reply wakes another.
+        // Distinct senders keep four pending asks from waking each other.
         for (let i = 0; i < 4; i++) {
           asks.push(
             openFramedSession(endpoint, {
@@ -590,7 +780,9 @@ describe('OrcaRuntimeRpcServer', () => {
       const runtime = new OrcaRuntimeService()
       const db = new OrchestrationDb(':memory:')
       runtime.setOrchestrationDb(db)
-      const server = new OrcaRuntimeRpcServer({
+      // A consuming check now requires a live pane; these transport tests only need it to block.
+      vi.spyOn(runtime, 'getTerminalPaneKey').mockImplementation((handle) => `tab_${handle}:leaf`)
+      const server = createServer({
         runtime,
         userDataPath,
         keepaliveIntervalMs: 1000,
@@ -637,14 +829,12 @@ describe('OrcaRuntimeRpcServer', () => {
     it('does not emit keepalive frames for short RPCs', async () => {
       const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
       const runtime = new OrcaRuntimeService()
-      // Why: a 10ms interval means any frame in the first ~100ms of a short
-      // RPC would show up; `status.get` returns in <10ms so no keepalive
-      // should ever fire. Locks in the "keepalive is long-poll-only" invariant
-      // so a future refactor can't silently re-broaden the timer.
-      const server = new OrcaRuntimeRpcServer({
-        runtime,
-        userDataPath,
-        keepaliveIntervalMs: 10
+      const server = createServer({ runtime, userDataPath, keepaliveIntervalMs: 10 })
+      const originalDispatch = server['dispatcher'].dispatch.bind(server['dispatcher'])
+      vi.spyOn(server['dispatcher'], 'dispatch').mockImplementation(async (request, context) => {
+        // Keep the real response pending long enough to expose an incorrectly armed timer.
+        await sleep(50)
+        return originalDispatch(request, context)
       })
       await server.start()
 
@@ -657,26 +847,20 @@ describe('OrcaRuntimeRpcServer', () => {
         })
         await session.done
 
-        const keepalives = session.frames.filter((f) => f._keepalive === true)
         const terminals = session.frames.filter((f) => f.ok !== undefined)
         expect(terminals).toHaveLength(1)
         expect(terminals[0]).toMatchObject({ id: 'req_short', ok: true })
-        expect(keepalives).toHaveLength(0)
+        expect(session.frames.filter((f) => f._keepalive === true)).toHaveLength(0)
       } finally {
         await server.stop()
       }
     })
 
     it('returns an internal_error envelope when the dispatcher throws', async () => {
-      // Why: handlers are designed to return error envelopes, never to throw,
-      // but a bug somewhere in the RPC stack (e.g. JSON.stringify choking on
-      // a response with circular refs) must still produce a terminal frame.
-      // Without the `.catch` on handleMessage's promise, a throw would leave
-      // the client hanging until the 30s idle timer and leak the dispatch's
-      // AbortController in the transport's in-flight set.
+      // Unexpected non-envelope throws still need a terminal error frame and dispatch cleanup; otherwise clients hang until idle timeout.
       const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
       const runtime = new OrcaRuntimeService()
-      const server = new OrcaRuntimeRpcServer({ runtime, userDataPath })
+      const server = createServer({ runtime, userDataPath })
       await server.start()
 
       // Force the dispatcher to throw a non-envelope error.

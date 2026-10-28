@@ -1,39 +1,34 @@
 import { describe, expect, it } from 'vitest'
 import { getKeybindingDefinition } from '../../../../shared/keybindings'
-import type { ShortcutGroup } from './shortcut-groups'
+
 import { buildShortcutRowVisibility } from './shortcut-row-visibility'
 
-function creationGroup(): ShortcutGroup {
-  const items = (
-    ['tab.newTerminal', 'tab.newBrowser', 'tab.newMarkdown', 'tab.newSimulator'] as const
-  ).map((actionId) => {
-    const definition = getKeybindingDefinition(actionId)
-    if (!definition) {
-      throw new Error(`Missing keybinding definition: ${actionId}`)
-    }
-    return definition
-  })
-  return { title: 'Tabs', items }
-}
+const baseOptions = {
+  keybindings: {},
+  conflictByAction: new Map(),
+  terminalShortcutPolicy: 'orca-first',
+  platform: 'darwin',
+  managedBrowserCreationEnabled: false,
+  mobileEmulatorCreationEnabled: false,
+  agentDashboardEnabled: false,
+  settingsSearchQuery: '',
+  shortcutQuery: '',
+  shortcutFilter: 'all'
+} as const
 
 describe('buildShortcutRowVisibility', () => {
-  it('hides client-impossible creation shortcuts without hiding terminal or markdown', () => {
+  it('shows a suppressed implicit toggle as unassigned without a modified/reset obligation', () => {
+    const item = getKeybindingDefinition('terminal.toggleNativeChat')
+    if (!item) {
+      throw new Error('Missing toggle definition')
+    }
     const result = buildShortcutRowVisibility({
-      groups: [creationGroup()],
-      keybindings: {},
-      conflictByAction: new Map(),
-      terminalShortcutPolicy: 'orca-first',
-      platform: 'darwin',
-      managedBrowserCreationEnabled: false,
-      mobileEmulatorCreationEnabled: false,
-      settingsSearchQuery: '',
-      shortcutQuery: '',
-      shortcutFilter: 'all'
+      ...baseOptions,
+      groups: [{ title: 'Chat', items: [item] }],
+      keybindings: { 'worktree.navigateDown': ['Mod+Shift+J'] }
     })
-
-    expect(result.shortcutRows.map((row) => row.item.id)).toEqual([
-      'tab.newTerminal',
-      'tab.newMarkdown'
-    ])
+    expect(result.shortcutRows[0]).toMatchObject({ effective: [], modified: false })
+    expect(result.filterCounts.modified).toBe(0)
+    expect(result.filterCounts.unassigned).toBe(1)
   })
 })

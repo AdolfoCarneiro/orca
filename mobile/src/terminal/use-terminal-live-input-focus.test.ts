@@ -15,6 +15,7 @@ type HarnessProps = {
   readonly lifecycleIdentity: object | null
   readonly lifecycleKey: string
   readonly liveInputEnabled: boolean
+  readonly reopenFocusedInputWhenKeyboardHidden: boolean
   readonly timerRef: TerminalLiveInputFocusTimerRef
 }
 
@@ -92,6 +93,7 @@ function connectedProps(
     lifecycleIdentity: null,
     lifecycleKey: 'host-a:worktree-a:connected',
     liveInputEnabled: true,
+    reopenFocusedInputWhenKeyboardHidden: true,
     timerRef
   }
 }
@@ -114,7 +116,7 @@ describe('terminal live input focus hook', () => {
     harness.unmount()
   })
 
-  it('reacquires focus for mouse-aware and non-mouse terminal tap notifications', () => {
+  it('reacquires focus after successive terminal tap notifications', () => {
     vi.useFakeTimers()
     const input = createFocusTarget()
     const harness = createHarness(connectedProps({ current: input }))
@@ -126,6 +128,22 @@ describe('terminal live input focus hook', () => {
 
     expect(input.blur).toHaveBeenCalledTimes(1)
     expect(input.focus).toHaveBeenCalledTimes(2)
+    harness.unmount()
+  })
+  it('preserves the focused iPad responder when a hardware keyboard keeps keyboard height at zero', () => {
+    vi.useFakeTimers()
+    const input = createFocusTarget(true)
+    const inputRef = { current: input }
+    const harness = createHarness({
+      ...connectedProps(inputRef),
+      reopenFocusedInputWhenKeyboardHidden: false
+    })
+
+    harness.handlers().handleTerminalTap('terminal-a')
+    vi.runAllTimers()
+
+    expect(input.blur).not.toHaveBeenCalled()
+    expect(input.focus).toHaveBeenCalledTimes(1)
     harness.unmount()
   })
 

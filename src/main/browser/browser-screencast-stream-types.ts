@@ -19,7 +19,24 @@ export type BrowserScreencastOptions = {
   onError?: (message: string) => void
 }
 
-export type BrowserScreencastSession = { stop: () => void; done: Promise<void> }
+export type BrowserScreencastViewport = Pick<
+  BrowserScreencastOptions,
+  'viewportWidth' | 'viewportHeight' | 'deviceScaleFactor' | 'mobile'
+>
+
+export type BrowserScreencastFrameBudget = Pick<
+  BrowserScreencastOptions,
+  'quality' | 'maxWidth' | 'maxHeight' | 'everyNthFrame' | 'minFrameIntervalMs'
+>
+
+export type BrowserScreencastSession = {
+  stop: () => void
+  done: Promise<void>
+  updateViewport: (viewport: BrowserScreencastViewport) => Promise<void>
+  updateFrameBudget: (budget: BrowserScreencastFrameBudget) => Promise<void>
+  /** Answers on the reporting CDP session; returns false if no dialog is open. */
+  settleDialog: (accept: boolean, promptText?: string) => Promise<boolean>
+}
 
 export type BrowserScreencastEvent =
   | { type: 'dialog'; dialogType: string; message: string }

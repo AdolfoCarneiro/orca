@@ -39,15 +39,13 @@ export type WorkspaceCleanupDismissal = {
   dismissedAt: number
   fingerprint: string
   classifierVersion: number
-  // Why (STA-4343): `repoId::path` ids repeat across hosts, so ignoring one
-  // host's row must not hide another host's. Optional: a dismissal persisted
-  // before this field keeps its legacy id-only match.
+  // Host-qualify repeating repoId::path identities; old dismissals retain their legacy id-only match (STA-4343).
   executionHostId?: ExecutionHostId
 }
 
 export type WorkspaceCleanupUIState = {
   dismissals: Record<string, WorkspaceCleanupDismissal>
-  // Why optional: a host that predates the flat list still writes dismissals-only state.
+  // Optional for older hosts that publish dismissals only.
   browse?: WorkspaceCleanupBrowseState
 }
 
@@ -60,7 +58,9 @@ export type WorkspaceCleanupCandidate = {
   displayName: string
   branch: string
   path: string
+  /** @deprecated Current renderers ignore this legacy verdict; retained for older paired clients. */
   tier: WorkspaceCleanupTier
+  /** @deprecated Current renderers ignore this legacy verdict; retained for older paired clients. */
   selectedByDefault: boolean
   reasons: WorkspaceCleanupReason[]
   blockers: WorkspaceCleanupBlocker[]
@@ -89,20 +89,13 @@ export type WorkspaceCleanupScanArgs = {
   worktreeIds?: string[]
   skipGitWorktreeIds?: string[]
   scanId?: string
-  // Why: optional so an older client still receives the legacy suggestion-only
-  // broad scan; only a client that renders the full list asks for every row.
+  // Old clients retain suggestion-only broad scans; full-list clients explicitly opt into every row.
   includeAllWorkspaces?: boolean
   /** Re-stat activity for targeted rows; removal preflight needs fresh, batched evidence scans do not. */
   refreshActivity?: boolean
 }
 
 export const WORKSPACE_CLEANUP_TARGET_BATCH_LIMIT = 500
-
-export type WorkspaceCleanupLocalProcessArgs = {
-  worktreeId: string
-  connectionId?: string | null
-  worktreePath?: string
-}
 
 export type WorkspaceCleanupSnapshotPruneBatchArgs = {
   batchId: string
@@ -117,6 +110,8 @@ export type WorkspaceCleanupScanError = {
   repoId: string
   repoName: string
   message: string
+  /** Optional for compatibility with older hosts that did not qualify scan errors. */
+  executionHostId?: ExecutionHostId
 }
 
 export type WorkspaceCleanupScanResult = {
@@ -132,8 +127,12 @@ export type WorkspaceCleanupScanProgress = WorkspaceCleanupScanResult & {
   candidateMode?: 'append' | 'snapshot'
 }
 
-export type WorkspaceCleanupLocalProcessResult = {
-  hasKillableProcesses: boolean | null
+/** One-shot consent to remove a workspace whose git status could not be read. */
+export type WorkspaceCleanupUnverifiedRemovalConsent = {
+  /** Host-qualified candidate identity, never a bare worktree id. */
+  identity: string
+  /** Minted for one removal call and released when that call settles. */
+  attemptId: string
 }
 
 export type WorkspaceCleanupDismissArgs = {
@@ -142,7 +141,7 @@ export type WorkspaceCleanupDismissArgs = {
   removedWorktreeIds?: string[]
 }
 
-export const WORKSPACE_CLEANUP_HARD_BLOCKERS: ReadonlySet<WorkspaceCleanupBlocker> = new Set([
+const LEGACY_WORKSPACE_CLEANUP_HARD_BLOCKERS: ReadonlySet<WorkspaceCleanupBlocker> = new Set([
   'main-worktree',
   'folder-repo',
   'pinned',
@@ -164,23 +163,20 @@ export const WORKSPACE_CLEANUP_HARD_BLOCKERS: ReadonlySet<WorkspaceCleanupBlocke
 const WORKSPACE_CLEANUP_QUEUE_BLOCKERS: ReadonlySet<WorkspaceCleanupBlocker> = new Set([
   'main-worktree',
   'folder-repo',
-  'dismissed'
+  'ssh-disconnected'
 ])
 
 export const WORKSPACE_CLEANUP_FORCE_REMOVE_BLOCKERS: ReadonlySet<WorkspaceCleanupBlocker> =
-  new Set(['dirty-files', 'unpushed-commits', 'unknown-base', 'git-status-error'])
+  new Set(['dirty-files', 'unpushed-commits', 'unknown-base'])
 
-export function isWorkspaceCleanupHardBlocker(blocker: WorkspaceCleanupBlocker): boolean {
-  return WORKSPACE_CLEANUP_HARD_BLOCKERS.has(blocker)
-}
+// Active deletion uses sidebar-style focus handoff; live agents require stop confirmation at deletion, so neither blocks bulk selection (STA-4686).
+export const WORKSPACE_CLEANUP_BULK_SELECT_EXCLUSIONS: ReadonlySet<WorkspaceCleanupBlocker> =
+  new Set(['dismissed'])
 
 export function canQueueWorkspaceCleanupCandidate(
-  candidate: Pick<WorkspaceCleanupCandidate, 'blockers' | 'reasons'>
+  candidate: Pick<WorkspaceCleanupCandidate, 'blockers'>
 ): boolean {
-  return (
-    candidate.reasons.length > 0 &&
-    !candidate.blockers.some((blocker) => WORKSPACE_CLEANUP_QUEUE_BLOCKERS.has(blocker))
-  )
+  return !candidate.blockers.some((blocker) => WORKSPACE_CLEANUP_QUEUE_BLOCKERS.has(blocker))
 }
 
 export function shouldForceWorkspaceCleanupRemoval(
@@ -193,22 +189,27 @@ export function shouldForceWorkspaceCleanupRemoval(
   )
 }
 
-export function canSelectWorkspaceCleanupCandidate(
+function canSelectWorkspaceCleanupCandidate(
   candidate: Pick<WorkspaceCleanupCandidate, 'blockers' | 'git' | 'reasons'>
 ): boolean {
   return (
     candidate.reasons.length > 0 &&
     candidate.git.clean === true &&
     candidate.git.checkedAt !== null &&
-    !candidate.blockers.some(isWorkspaceCleanupHardBlocker)
+    !candidate.blockers.some((blocker) => LEGACY_WORKSPACE_CLEANUP_HARD_BLOCKERS.has(blocker))
   )
 }
 
+type WorkspaceCleanupPolicyInput = Omit<WorkspaceCleanupCandidate, 'tier' | 'selectedByDefault'> &
+  Partial<Pick<WorkspaceCleanupCandidate, 'tier' | 'selectedByDefault'>>
+
 export function applyWorkspaceCleanupPolicy(
-  candidate: WorkspaceCleanupCandidate
+  candidate: WorkspaceCleanupPolicyInput
 ): WorkspaceCleanupCandidate {
   const canSelect = canSelectWorkspaceCleanupCandidate(candidate)
-  const hasHardBlocker = candidate.blockers.some(isWorkspaceCleanupHardBlocker)
+  const hasHardBlocker = candidate.blockers.some((blocker) =>
+    LEGACY_WORKSPACE_CLEANUP_HARD_BLOCKERS.has(blocker)
+  )
   const tier: WorkspaceCleanupTier = hasHardBlocker ? 'protected' : canSelect ? 'ready' : 'review'
 
   return {
@@ -257,10 +258,15 @@ export function getWorkspaceCleanupInactivityReasons(
 export function getPersistedWorkspaceCleanupActivityAt(workspace: {
   createdAt?: number
   lastActivityAt: number
+  lastTerminalUseAt?: number
 }): number {
   const lastActivityAt = Number.isFinite(workspace.lastActivityAt) ? workspace.lastActivityAt : 0
   const createdAt = Number.isFinite(workspace.createdAt) ? (workspace.createdAt ?? 0) : 0
-  return Math.max(lastActivityAt, createdAt)
+  // Written only by a sidebar-inputs host; absent on every other build.
+  const terminalUseAt = Number.isFinite(workspace.lastTerminalUseAt)
+    ? (workspace.lastTerminalUseAt ?? 0)
+    : 0
+  return Math.max(lastActivityAt, createdAt, terminalUseAt)
 }
 
 export function isWorkspaceOldForCleanup(
@@ -281,8 +287,7 @@ export function shouldHideWorkspaceCleanupCandidate(
     dismissal?.worktreeId === candidate.worktreeId &&
     dismissal.fingerprint === candidate.fingerprint &&
     dismissal.classifierVersion === WORKSPACE_CLEANUP_CLASSIFIER_VERSION &&
-    // A host-qualified dismissal hides only its own host's row; a legacy one
-    // (no host recorded) keeps hiding every row that matches the fingerprint.
+    // New dismissals hide only their host’s row; legacy unqualified ones retain fingerprint-only matching.
     (dismissal.executionHostId === undefined ||
       dismissal.executionHostId === getWorkspaceCleanupCandidateHostId(candidate))
   )

@@ -14,6 +14,10 @@ import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { SetupDecision } from '../../../../shared/worktree/create-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { closeUnfocusedMonacoFindOrPreventDialogDismiss } from '@/components/editor/monaco-find-widget'
+import { AutomationOwnerConflictNotice } from './AutomationOwnerConflictNotice'
+import type { AutomationActionNotice } from './automation-row-action-dispatch'
+import type { AutomationHostRecoveryAction } from './automation-host-status-descriptors'
+import type { AutomationCreateDestinationControl } from './use-automation-create-destination'
 import { AutomationEditorDialogFooter } from './AutomationEditorDialogFooter'
 import { AutomationEditorDialogHeader } from './AutomationEditorDialogHeader'
 import { getAutomationPromptEditorRoot } from './AutomationEditorPromptEditor'
@@ -34,6 +38,8 @@ export type AutomationDraft = {
   name: string
   prompt: string
   agentId: TuiAgent
+  /** Saved as-is; empty means none. */
+  extraAgentArgs: string
   projectId: string
   workspaceMode: AutomationWorkspaceMode
   workspaceId: string
@@ -46,19 +52,17 @@ export type AutomationDraft = {
   time: string
   dayOfWeek: string
   customSchedule: string
+  // Validate new input strictly; do not re-judge a saved cadence that still runs.
+  savedSchedule: string | null
   missedRunGraceMinutes: string
   scheduleWarning: string | null
 }
 
-export type AutomationCreateTarget = 'orca' | 'hermes'
-
 type AutomationEditorDialogProps = {
   open: boolean
   isEditing: boolean
-  isEditingExternal: boolean
   isSaving: boolean
   canSave: boolean
-  createTarget: AutomationCreateTarget
   repos: readonly Repo[]
   projectHostSetups: readonly ProjectHostSetup[]
   automationYamlHooksByRepoKey: Record<string, OrcaHooks | null>
@@ -67,9 +71,17 @@ type AutomationEditorDialogProps = {
   worktrees: Worktree[]
   settings: GlobalSettings | null
   draft: AutomationDraft
+  /** Present only while creating an Orca automation. */
+  createDestination?: AutomationCreateDestinationControl
+  /** Present only while editing an Orca automation; selecting another host moves the record. */
+  editDestination?: AutomationCreateDestinationControl
+  /** Why a save was refused. Belongs here rather than on the page: this dialog covers it. */
+  notice?: AutomationActionNotice | null
+  onNoticeRecover?: (action: AutomationHostRecoveryAction) => void
+  onNoticeDismiss?: () => void
   onProjectChange: (projectId: string) => void
   getRepoHostLabel?: (repo: Repo) => string | null | undefined
-  onCreateTargetChange: (target: AutomationCreateTarget) => void
+  allowAddProject?: boolean
   onOpenChange: (open: boolean) => void
   onDraftChange: (updater: (current: AutomationDraft) => AutomationDraft) => void
   onSetupDecisionTouched: () => void
@@ -80,10 +92,8 @@ type AutomationEditorDialogProps = {
 export function AutomationEditorDialog({
   open,
   isEditing,
-  isEditingExternal,
   isSaving,
   canSave,
-  createTarget,
   repos,
   projectHostSetups,
   automationYamlHooksByRepoKey,
@@ -92,9 +102,14 @@ export function AutomationEditorDialog({
   worktrees,
   settings,
   draft,
+  createDestination,
+  editDestination,
+  notice,
+  onNoticeRecover,
+  onNoticeDismiss,
   onProjectChange,
   getRepoHostLabel,
-  onCreateTargetChange,
+  allowAddProject,
   onOpenChange,
   onDraftChange,
   onSetupDecisionTouched,
@@ -103,9 +118,8 @@ export function AutomationEditorDialog({
 }: AutomationEditorDialogProps): React.JSX.Element {
   const [templateOpen, setTemplateOpen] = React.useState(false)
   const dialogContentRef = React.useRef<HTMLDivElement>(null)
-  const isHermesTarget = createTarget === 'hermes'
-  const isCreateMode = !isEditing && !isEditingExternal
-  const isHermesCreate = isCreateMode && isHermesTarget
+  const isCreateMode = !isEditing
+  const destination = isCreateMode ? createDestination : editDestination
   const visibleAgents = React.useMemo(() => {
     const enabledIds = new Set(
       filterEnabledTuiAgents(
@@ -128,8 +142,7 @@ export function AutomationEditorDialog({
           event.preventDefault()
         }}
         onEscapeKeyDown={(event) => {
-          // Why: Radix listens on document, so currentTarget is not the
-          // dialog. Use the content ref to scope find to this prompt editor.
+          // Radix listens on document; scope editor lookup through the dialog ref rather than currentTarget.
           const dialog =
             dialogContentRef.current ??
             (event.target instanceof Element
@@ -147,15 +160,9 @@ export function AutomationEditorDialog({
       >
         <AutomationEditorDialogHeader
           isEditing={isEditing}
-          isEditingExternal={isEditingExternal}
-          isHermesCreate={isHermesCreate}
           isCreateMode={isCreateMode}
-          createTarget={createTarget}
           templateOpen={templateOpen}
           templates={getAutomationTemplates()}
-          segmentedGroupClassName={AUTOMATION_EDITOR_SEGMENTED_GROUP_CLASS}
-          segmentedItemClassName={AUTOMATION_EDITOR_SEGMENTED_ITEM_CLASS}
-          onCreateTargetChange={onCreateTargetChange}
           onTemplateOpenChange={setTemplateOpen}
           onApplyTemplate={(template) => {
             onApplyTemplate(template)
@@ -170,8 +177,7 @@ export function AutomationEditorDialog({
             onDismiss={() => onOpenChange(false)}
           />
           <AutomationEditorSettingsSidebar
-            isHermesTarget={isHermesTarget}
-            isHermesCreate={isHermesCreate}
+            destination={destination}
             repos={repos}
             projectHostSetups={projectHostSetups}
             automationYamlHooksByRepoKey={automationYamlHooksByRepoKey}
@@ -186,15 +192,21 @@ export function AutomationEditorDialog({
             segmentedItemClassName={AUTOMATION_EDITOR_SEGMENTED_ITEM_CLASS}
             onProjectChange={onProjectChange}
             getRepoHostLabel={getRepoHostLabel}
+            allowAddProject={allowAddProject}
             onDraftChange={onDraftChange}
             onSetupDecisionTouched={onSetupDecisionTouched}
           />
         </div>
 
+        <AutomationOwnerConflictNotice
+          notice={notice ?? null}
+          className="mx-5 mb-1"
+          onRecover={onNoticeRecover}
+          onDismiss={onNoticeDismiss}
+        />
+
         <AutomationEditorDialogFooter
           isEditing={isEditing}
-          isEditingExternal={isEditingExternal}
-          isHermesCreate={isHermesCreate}
           isSaving={isSaving}
           canSave={canSave}
           hasProjects={repos.length > 0}

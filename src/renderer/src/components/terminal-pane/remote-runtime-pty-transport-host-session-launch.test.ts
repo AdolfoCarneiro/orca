@@ -1,4 +1,17 @@
+import { ExplicitEnsure } from '../../../../shared/rpc-contract/agent-session-params'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+const appStore = vi.hoisted(() => ({
+  getState: vi.fn(() => {
+    throw new Error('These transport fixtures must not read app-store ownership')
+  })
+}))
+
+vi.mock('@/store', () => ({ useAppStore: { getState: appStore.getState } }))
+
+afterEach(() => {
+  expect(appStore.getState).not.toHaveBeenCalled()
+})
+
 import {
   TerminalStreamOpcode,
   decodeTerminalStreamFrame,
@@ -114,6 +127,63 @@ describe('createRemoteRuntimePtyTransport', () => {
     return payload
   }
 
+  it('round-trips a strict saved ensure and its actual refused shell result', async () => {
+    const providerSession = { key: 'session_id' as const, id: 'C' }
+    const decision = { agent: 'codex' as const, providerSession, verdict: 'chat-home' as const }
+    runtimeCall.mockImplementation(async (args: { method?: string; params?: unknown }) => {
+      if (args.method === 'status.get') {
+        return {
+          ok: true,
+          result: {
+            runtimeProtocolVersion: 3,
+            minCompatibleRuntimeClientVersion: 2,
+            capabilities: [
+              'agent-session.host-authority.v1',
+              'agent-session.saved-resume-origin.v1'
+            ]
+          }
+        }
+      }
+      expect(args.method).toBe('terminal.ensureAgentSession')
+      expect(ExplicitEnsure.parse(args.params)).toMatchObject({
+        resumeOrigin: 'saved',
+        providerSession
+      })
+      return {
+        ok: true,
+        result: {
+          disposition: 'created',
+          terminal: {
+            handle: 'term-remote',
+            worktreeId: 'repo1::/remote/wt',
+            title: null,
+            savedResumeDecision: decision,
+            agentResumeRefused: 'chat-home',
+            agentResumeUnavailable: true
+          }
+        }
+      }
+    })
+    const { createRemoteRuntimePtyTransport } = await import('./remote-runtime-pty-transport')
+    const transport = createRemoteRuntimePtyTransport('env-1', {
+      worktreeId: 'repo1::/remote/wt',
+      launchAgent: 'codex',
+      resumeOrigin: 'saved',
+      resumeProviderSession: providerSession,
+      tabId: 'tab-1',
+      leafId: '11111111-1111-4111-8111-111111111111'
+    })
+    const result = await transport.connect({ url: '', callbacks: {} })
+    expect(result).toMatchObject({
+      id: 'remote:env-1@@term-remote',
+      savedResumeDecision: decision,
+      agentResumeRefused: 'chat-home',
+      agentResumeUnavailable: true
+    })
+    expect(result).not.toHaveProperty('launchAgent')
+    transport.disconnect()
+  })
+
   it('creates and subscribes to a terminal on the active remote runtime', async () => {
     const { createRemoteRuntimePtyTransport } = await import('./remote-runtime-pty-transport')
     const onReplayData = vi.fn()
@@ -191,7 +261,7 @@ describe('createRemoteRuntimePtyTransport', () => {
       })
     )
 
-    expect(onReplayData).toHaveBeenCalledWith('hello')
+    expect(onReplayData).toHaveBeenCalledWith('hello', { carriesNormalBuffer: true })
     expect(onConnect).toHaveBeenCalled()
     expect(onData).toHaveBeenCalledWith(' world', expect.objectContaining({ seq: 4 }))
   })
@@ -348,6 +418,87 @@ describe('createRemoteRuntimePtyTransport', () => {
     )
   })
 
+  it('degrades a Kimi resume to a legacy launch when the host predates the resume capability', async () => {
+    const { createRemoteRuntimePtyTransport } = await import('./remote-runtime-pty-transport')
+    const transport = createRemoteRuntimePtyTransport('env-1', {
+      worktreeId: 'repo1::/remote/wt',
+      command: "kimi '--session' 'session_431324d7'",
+      launchAgent: 'kimi',
+      resumeProviderSession: { key: 'session_id', id: 'session_431324d7' },
+      tabId: 'tab-1',
+      leafId: '11111111-1111-4111-8111-111111111111'
+    })
+
+    await transport.connect({ url: '', callbacks: {} })
+
+    // Baseline host authority lacks Kimi enum support; only the per-agent probe avoids fatal invalid_argument.
+    expect(runtimeCall).not.toHaveBeenCalledWith(
+      expect.objectContaining({ method: 'terminal.ensureAgentSession' })
+    )
+    expect(runtimeCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'terminal.create',
+        params: expect.objectContaining({ command: "kimi '--session' 'session_431324d7'" })
+      })
+    )
+  })
+
+  it('claims the Kimi provider session on a host that advertises the resume capability', async () => {
+    runtimeCall.mockImplementation(async (args: { method?: string }) =>
+      args.method === 'status.get'
+        ? {
+            id: 'rpc-status',
+            ok: true,
+            result: {
+              runtimeProtocolVersion: 3,
+              minCompatibleRuntimeClientVersion: 2,
+              capabilities: ['agent-session.host-authority.v1', 'agent-session.kimi-resume.v1']
+            },
+            _meta: { runtimeId: 'runtime-remote' }
+          }
+        : {
+            id: 'rpc-create',
+            ok: true,
+            result: {
+              terminal: {
+                handle: 'term-remote',
+                worktreeId: 'repo1::/remote/wt',
+                title: null,
+                surface: 'background'
+              }
+            },
+            _meta: { runtimeId: 'runtime-remote' }
+          }
+    )
+    const { createRemoteRuntimePtyTransport } = await import('./remote-runtime-pty-transport')
+    const transport = createRemoteRuntimePtyTransport('env-1', {
+      worktreeId: 'repo1::/remote/wt',
+      command: "kimi '--session' 'session_431324d7'",
+      launchAgent: 'kimi',
+      resumeProviderSession: { key: 'session_id', id: 'session_431324d7' },
+      tabId: 'tab-1',
+      leafId: '11111111-1111-4111-8111-111111111111'
+    })
+
+    await transport.connect({ url: '', callbacks: {} })
+
+    expect(runtimeCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'terminal.ensureAgentSession',
+        params: expect.objectContaining({
+          agent: 'kimi',
+          providerSession: { key: 'session_id', id: 'session_431324d7' }
+        })
+      })
+    )
+    expect(runtimeCall).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'terminal.create',
+        params: expect.objectContaining({ command: expect.any(String) })
+      })
+    )
+  })
+
   it('treats an explicitly killed remote session as normal retirement', async () => {
     runtimeCall.mockImplementation(async (args: { method?: string }) =>
       args.method === 'terminal.create'
@@ -440,7 +591,7 @@ describe('createRemoteRuntimePtyTransport', () => {
       }
       send.mockClear()
 
-      expect(transport.sendInput('ls\r')).toBe(true)
+      expect(transport.sendInput('ls\r', 'driving')).toBe(true)
       await vi.runOnlyPendingTimersAsync()
       expect(runtimeCall).not.toHaveBeenCalled()
       const inputFrame = decodeTerminalStreamFrame(send.mock.calls[0][0])

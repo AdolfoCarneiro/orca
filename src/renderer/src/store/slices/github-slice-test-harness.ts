@@ -11,6 +11,7 @@ import {
 } from '../../runtime/runtime-compatibility-test-fixture'
 import { clearRuntimeCompatibilityCacheForTests } from '../../runtime/runtime-rpc-client'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
+import { normalizeWorkspaceAttachmentUpdate } from '../../../../shared/workspace-attachments'
 import type {
   GitHubPRRefreshCandidate,
   GitHubPRRefreshReason
@@ -40,7 +41,8 @@ export const runtimeEnvironmentSubscribe: Mock<
 export const mockApi = {
   gh: {
     prForBranch: stubMock().mockResolvedValue(null),
-    refreshPRNow: stubMock<[{ candidate: GitHubPRRefreshCandidate }]>(),
+    refreshPRNow:
+      stubMock<[{ candidate: GitHubPRRefreshCandidate; reason?: GitHubPRRefreshReason }]>(),
     enqueuePRRefresh:
       stubMock<
         [{ candidate: GitHubPRRefreshCandidate; reason: GitHubPRRefreshReason; priority?: number }]
@@ -63,6 +65,9 @@ export const mockApi = {
     updatePullRequestBySlug: stubMock(),
     updateIssueTypeBySlug: stubMock()
   },
+  repos: {
+    update: stubMock().mockResolvedValue(undefined)
+  },
   hostedReview: {
     forBranch: stubMock().mockResolvedValue(null),
     getCreationEligibility: stubMock(),
@@ -70,7 +75,8 @@ export const mockApi = {
   },
   runtimeEnvironments: {
     call: runtimeEnvironmentTransportCall,
-    subscribe: runtimeEnvironmentSubscribe
+    subscribe: runtimeEnvironmentSubscribe,
+    cancelSubscription: stubMock<[{ subscriptionId: string }]>().mockResolvedValue(undefined)
   },
   cache: {
     getGitHub: stubMock().mockResolvedValue(null),
@@ -184,7 +190,9 @@ export function installLinkedPRClearStub(
         const nextWorktrees = {
           ...state.worktreesByRepo,
           [args.repoId]: (state.worktreesByRepo[args.repoId] ?? []).map((worktree) =>
-            worktree.id === worktreeId ? { ...worktree, ...updates } : worktree
+            worktree.id === worktreeId
+              ? { ...worktree, ...normalizeWorkspaceAttachmentUpdate(worktree, updates) }
+              : worktree
           )
         }
         const nextPRCache = { ...state.prCache }

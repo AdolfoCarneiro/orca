@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useRef } from 'react'
 import type React from 'react'
 import type { WorkspaceStatus } from '../../../../../../shared/worktree/types'
-import type { HostSectionRow } from '../../host-section-rows'
-import { PINNED_GROUP_KEY } from '../grouping/group-keys'
+import type { HostSectionRow } from '../../../../../../shared/sidebar-list/host-section-rows'
+import { PINNED_GROUP_KEY } from '../../../../../../shared/sidebar-list/group-keys'
 import { WORKTREE_SIDEBAR_VIRTUAL_ROW_GAP } from '../viewport/virtual-rows'
 import { getWorkspaceStatusGroupKey } from '../../workspace-status'
 import { expandDraggedWorktreeIdsForVisibleLineage } from '../../worktree-manual-order'
@@ -24,6 +24,13 @@ import {
 } from '../../worktree-sidebar-drop-preview'
 import { getWorktreeDragGroups, getWorktreeDragIndexes } from './groups'
 import type { WorktreeItemRow } from '../listing/renderable-rows'
+import { getNaturalWorktreeIds } from '../../natural-worktree-ids'
+import {
+  composeWorktreeHostIdentity,
+  getExecutionHostIdFromWorktreeHostIdentity,
+  getWorktreeIdFromHostIdentity
+} from '../../../../../../shared/worktree/host-qualified-identity'
+import type { DraggedWorktreeCopies } from './dragged-worktree-copies'
 
 export type WorktreeStatusDropRequest = {
   pointerY: number
@@ -33,30 +40,18 @@ export type WorktreeStatusDropRequest = {
 
 export type WorktreeDragSession = ReturnType<typeof useWorktreeDragSession>
 
-// Owns the geometry side of a sidebar row drag: which groups exist, which ids travel
-// together, and where the insertion line lands for a given pointer position.
 export function useWorktreeDragSession(args: {
   rows: HostSectionRow[]
   scrollRef: React.RefObject<HTMLDivElement | null>
 }) {
   const { rows, scrollRef } = args
   const worktreeDragSessionRef = useRef<WorktreeSidebarDragSession | null>(null)
-  // Why: cross-group hovers hit-test a group the session never captured, so hold
-  // that group's drop decision separately or a card expanding in the target group
-  // moves the insertion line under a still pointer.
+  // Hold cross-group drop anchors separately so expanding target cards cannot move the line under a still pointer.
   const statusDropAnchorsRef = useRef<Map<string, WorktreeSidebarDropAnchor>>(new Map())
 
   const worktreeDragGroups = useMemo(() => getWorktreeDragGroups(rows), [rows])
   const worktreeDragUnitGroups = useMemo(() => getWorktreeDragUnitGroups(rows), [rows])
-  const naturalDragWorktreeIds = useMemo(
-    () =>
-      new Set(
-        rows.flatMap((row) =>
-          row.type === 'item' && row.sectionKey !== PINNED_GROUP_KEY ? [row.worktree.id] : []
-        )
-      ),
-    [rows]
-  )
+  const naturalDragWorktreeIds = useMemo(() => getNaturalWorktreeIds(rows), [rows])
   const worktreeLineageDragRows = useMemo(
     () =>
       rows
@@ -65,12 +60,31 @@ export function useWorktreeDragSession(args: {
           (row) =>
             row.sectionKey !== PINNED_GROUP_KEY || !naturalDragWorktreeIds.has(row.worktree.id)
         )
-        .map((row) => ({ worktreeId: row.worktree.id, depth: row.depth })),
+        .map((row) => ({
+          worktreeId: row.worktree.id,
+          hostId: row.worktree.hostId,
+          depth: row.depth
+        })),
     [naturalDragWorktreeIds, rows]
   )
   const getReorderDraggedIds = useCallback(
     (draggedIds: readonly string[]) =>
       expandDraggedWorktreeIdsForVisibleLineage(worktreeLineageDragRows, draggedIds),
+    [worktreeLineageDragRows]
+  )
+  // Why by identity: by id, a dragged twin would also pull in its other-host copy's children.
+  const getReorderDraggedCopies = useCallback(
+    (copies: DraggedWorktreeCopies): DraggedWorktreeCopies =>
+      expandDraggedWorktreeIdsForVisibleLineage(
+        worktreeLineageDragRows.map((row) => ({
+          worktreeId: composeWorktreeHostIdentity(row.hostId, row.worktreeId),
+          depth: row.depth
+        })),
+        copies.map((copy) => composeWorktreeHostIdentity(copy.hostId, copy.id))
+      ).map((identity) => ({
+        id: getWorktreeIdFromHostIdentity(identity),
+        hostId: getExecutionHostIdFromWorktreeHostIdentity(identity)
+      })),
     [worktreeLineageDragRows]
   )
   const getReorderUnitDraggedIds = useCallback(
@@ -147,8 +161,7 @@ export function useWorktreeDragSession(args: {
         return null
       }
       const scrollTop = container.scrollTop
-      // Why: only real pointer or scroll movement should re-decide the slot; a
-      // card growing under a still pointer must not move it.
+      // Reevaluate only on pointer/scroll movement so card growth cannot change a stationary drop target.
       const anchor = shouldReevaluateWorktreeSidebarDropAnchor({
         anchor: session.anchor,
         pointerY,
@@ -213,8 +226,7 @@ export function useWorktreeDragSession(args: {
     [computeWorktreeDropForGroup, scrollRef]
   )
 
-  // Why: consumers pass session-derived callbacks into memoised cards; a fresh object every
-  // render would defeat those bail-outs.
+  // Keep session callback identity stable for memoized cards.
   return useMemo(
     () => ({
       worktreeDragSessionRef,
@@ -224,6 +236,7 @@ export function useWorktreeDragSession(args: {
       groupKeyByRowKey,
       groupIndexByRowKey,
       getReorderDraggedIds,
+      getReorderDraggedCopies,
       getReorderUnitDraggedIds,
       refreshWorktreeDragSession,
       computeWorktreeDrop,
@@ -232,6 +245,7 @@ export function useWorktreeDragSession(args: {
     [
       computeWorktreeDrop,
       computeWorktreeStatusDrop,
+      getReorderDraggedCopies,
       getReorderDraggedIds,
       getReorderUnitDraggedIds,
       groupIndexByRowKey,

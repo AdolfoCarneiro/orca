@@ -37,7 +37,13 @@ const RELOCALIZED_GENERIC_TERMS = [
 
 export const JA_PHRASE_FIXES = [
   ...RELOCALIZED_GENERIC_TERMS,
-  { pattern: /エージェント/g, replacement: 'Agent', whenEnIncludes: 'agent' },
+  {
+    pattern: /エージェント/g,
+    replacement: 'Agent',
+    whenEnIncludes: 'agent',
+    // Skills filters and metadata are Japanese UI labels, not agent product prose.
+    skipKeyPrefixes: ['auto.components.skills.', 'components.native-chat.tool.row.subagent']
+  },
   { pattern: /解雇/g, replacement: '閉じる', whenEnIncludes: 'Dismiss' },
   { pattern: /却下/g, replacement: '閉じる', whenEnIncludes: 'Dismiss' },
   { pattern: /代理人/g, replacement: 'Agent', whenEnIncludes: 'agent' },
@@ -246,7 +252,6 @@ export const JA_PHRASE_FIXES = [
     replacement: 'レビュー依頼済み',
     whenEnIncludes: 'Review requested'
   },
-  // Round 5: inline/launch/action homographs, MR phrases, concise UI prompts.
   { pattern: /列をなして/g, replacement: 'インライン', whenEnIncludes: 'Inline' },
   { pattern: /列をなして/g, replacement: 'インライン', whenEnIncludes: 'inline' },
   { pattern: /打ち上げ/g, replacement: '起動', whenEnIncludes: 'Launch' },

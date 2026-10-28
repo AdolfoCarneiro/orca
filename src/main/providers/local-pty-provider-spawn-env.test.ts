@@ -12,10 +12,10 @@ const {
   spawnMock,
   prepareMacosTccLoginShellMock,
   resolveAgentForegroundProcessMock,
-  readWindowsConptyProcessIdsMock,
+  readWindowsPtyJobProcessIdsMock,
   killWithDescendantSweepMock,
   isWslAvailableAsyncMock,
-  wslUncDirectoryExistsMock,
+  wslUncDirectoryExistsAsyncMock,
   createShellPromptReadinessProbeMock
 } = vi.hoisted(() => ({
   existsSyncMock: vi.fn(),
@@ -26,10 +26,10 @@ const {
   spawnMock: vi.fn(),
   prepareMacosTccLoginShellMock: vi.fn(),
   resolveAgentForegroundProcessMock: vi.fn(),
-  readWindowsConptyProcessIdsMock: vi.fn(),
+  readWindowsPtyJobProcessIdsMock: vi.fn(),
   killWithDescendantSweepMock: vi.fn(),
   isWslAvailableAsyncMock: vi.fn(),
-  wslUncDirectoryExistsMock: vi.fn(),
+  wslUncDirectoryExistsAsyncMock: vi.fn(),
   createShellPromptReadinessProbeMock: vi.fn()
 }))
 
@@ -64,10 +64,7 @@ vi.mock('../pty-descendant-termination', () => ({
   killWithDescendantSweep: killWithDescendantSweepMock
 }))
 
-// Resolve PowerShell family names to deterministic absolute paths (the fs mock
-// above otherwise makes every probe miss). The real resolver — which skips the
-// Store App Execution Alias stub — is covered in
-// windows-powershell-executable.test.ts.
+// The fs mock misses executable probes; pin paths here and leave Store-alias coverage to the resolver tests.
 const WINDOWS_POWERSHELL_ABS = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
 const PWSH7_ABS = 'C:\\Program Files\\PowerShell\\7\\pwsh.exe'
 const CMD_ABS = 'C:\\Windows\\System32\\cmd.exe'
@@ -86,8 +83,9 @@ vi.mock('./agent-foreground-process', () => ({
     resolveAgentForegroundProcessMock(...args)
 }))
 
-vi.mock('./windows-conpty-process-membership', () => ({
-  readWindowsConptyProcessIds: (...args: unknown[]) => readWindowsConptyProcessIdsMock(...args)
+vi.mock('./windows-pty-job-membership', () => ({
+  readWindowsPtyJobProcessIds: (...args: unknown[]) => readWindowsPtyJobProcessIdsMock(...args),
+  isWindowsPtyJobReadable: () => true
 }))
 
 vi.mock('../wsl', () => ({
@@ -106,9 +104,8 @@ vi.mock('../wsl', () => ({
     `\\\\wsl.localhost\\${distro}${path.replace(/\//g, '\\')}`,
   getDefaultWslDistro: () => 'Ubuntu',
   isWslAvailableAsync: () => isWslAvailableAsyncMock(),
-  // Why: WSL worktree validation now asks the distro; these tests use WSL UNC
-  // cwds that are meant to exist, so report them present without spawning wsl.exe.
-  wslUncDirectoryExists: (...args: unknown[]) => wslUncDirectoryExistsMock(...args)
+  // Fixture WSL UNC directories exist; avoid launching wsl.exe to validate them.
+  wslUncDirectoryExistsAsync: (...args: unknown[]) => wslUncDirectoryExistsAsyncMock(...args)
 }))
 
 vi.mock('../shell-prompt-readiness-probe', () => ({
@@ -139,10 +136,10 @@ describe('LocalPtyProvider', () => {
       writeFileSyncMock,
       prepareMacosTccLoginShellMock,
       resolveAgentForegroundProcessMock,
-      readWindowsConptyProcessIdsMock,
+      readWindowsPtyJobProcessIdsMock,
       killWithDescendantSweepMock,
       isWslAvailableAsyncMock,
-      wslUncDirectoryExistsMock,
+      wslUncDirectoryExistsAsyncMock,
       createShellPromptReadinessProbeMock
     })
 
@@ -178,6 +175,18 @@ describe('LocalPtyProvider', () => {
       )
     })
 
+    it('passes explicit pane environment separately from inherited process values', async () => {
+      const buildSpawnEnv = vi.fn((_id: string, env: Record<string, string>) => env)
+      provider.configure({ buildSpawnEnv })
+      const env = { XDG_DATA_HOME: '/pane/data' }
+      await provider.spawn({ cols: 80, rows: 24, env })
+      expect(buildSpawnEnv).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        expect.objectContaining({ explicitEnv: env })
+      )
+    })
+
     it('invokes buildSpawnEnv callback to customize environment', async () => {
       const buildSpawnEnv = vi.fn((_id: string, env: Record<string, string>) => {
         env.CUSTOM_VAR = 'custom-value'
@@ -190,16 +199,31 @@ describe('LocalPtyProvider', () => {
       expect(spawnCall[2].env.CUSTOM_VAR).toBe('custom-value')
     })
 
+    it('re-reads buildSpawnEnv after a reentrant configuration change', async () => {
+      const initialBuildSpawnEnv = vi.fn((_id: string, env: Record<string, string>) => env)
+      const configuredBuildSpawnEnv = vi.fn((_id: string, env: Record<string, string>) => env)
+      provider.configure({
+        get buildSpawnEnv() {
+          provider.configure({ buildSpawnEnv: configuredBuildSpawnEnv })
+          return initialBuildSpawnEnv
+        }
+      })
+
+      await provider.spawn({ cols: 80, rows: 24 })
+
+      expect(initialBuildSpawnEnv).not.toHaveBeenCalled()
+      expect(configuredBuildSpawnEnv).toHaveBeenCalledOnce()
+    })
+
     it.each([
-      // fish EXPORTS fish_history, so an Orca launched from a fish pane hands every
-      // pane the LAUNCHING worktree's session — even with isolation off (STA-4682).
+      // Exported fish_history can leak the launching workspace session even when isolation is off (STA-4682).
       ['an inherited Orca session', 'orca_abc123', undefined],
       ['a user value', 'mine', 'mine']
     ])('history isolation off: %s', async (_kind, inherited, expected) => {
       const previous = process.env.fish_history
       process.env.fish_history = inherited
       try {
-        // No worktreeId: the history-disabled branch of spawn.
+        // Missing workspace id exercises history-off cleanup.
         await provider.spawn({ cols: 80, rows: 24 })
       } finally {
         if (previous === undefined) {
@@ -213,8 +237,7 @@ describe('LocalPtyProvider', () => {
     })
 
     it.each([
-      // HISTFILE is exported, so an Orca launched from a pane in another worktree
-      // hands every pane that worktree's history file — isolation off included.
+      // Exported HISTFILE can leak the launching workspace history even with isolation off.
       [
         'an inherited Orca path',
         '/fake/userData/terminal-history/aabbccddeeff0011/zsh_history',
@@ -225,7 +248,7 @@ describe('LocalPtyProvider', () => {
       const previous = process.env.HISTFILE
       process.env.HISTFILE = inherited
       try {
-        // No worktreeId: the history-disabled branch of spawn.
+        // Missing workspace id exercises history-off cleanup.
         await provider.spawn({ cols: 80, rows: 24 })
       } finally {
         if (previous === undefined) {
@@ -239,8 +262,7 @@ describe('LocalPtyProvider', () => {
     })
 
     it('does not inherit NODE_ENV from the Orca process env', async () => {
-      // Why: NODE_ENV in Orca's process is Orca's build mode (electron-vite sets
-      // `development` in dev runs); leaking it breaks `next build` and Vitest.
+      // Ambient NODE_ENV belongs to the Orca build and can break terminal next build/Vitest.
       const previous = process.env.NODE_ENV
       process.env.NODE_ENV = 'development'
       try {
@@ -261,7 +283,6 @@ describe('LocalPtyProvider', () => {
     })
 
     it('keeps an explicitly requested NODE_ENV for spawned terminals', async () => {
-      // Why: only the ambient value is stripped; a caller-supplied NODE_ENV still wins.
       const previous = process.env.NODE_ENV
       process.env.NODE_ENV = 'development'
       try {
@@ -435,11 +456,74 @@ describe('LocalPtyProvider', () => {
       expect(env.LD_LIBRARY_PATH).toBe('/opt/audio/lib')
     })
 
+    it('does not forward a half-activated conda env into the shell', async () => {
+      // CONDA_SHLVL without CONDA_PREFIX breaks user conda hooks (#14195).
+      const saved = {
+        CONDA_SHLVL: process.env.CONDA_SHLVL,
+        CONDA_PREFIX: process.env.CONDA_PREFIX,
+        CONDA_DEFAULT_ENV: process.env.CONDA_DEFAULT_ENV,
+        CONDA_PROMPT_MODIFIER: process.env.CONDA_PROMPT_MODIFIER,
+        CONDA_EXE: process.env.CONDA_EXE
+      }
+      delete process.env.CONDA_PREFIX
+      process.env.CONDA_SHLVL = '1'
+      process.env.CONDA_DEFAULT_ENV = 'base'
+      process.env.CONDA_PROMPT_MODIFIER = '(base) '
+      process.env.CONDA_EXE = '/opt/miniconda3/bin/conda'
+
+      try {
+        await provider.spawn({ cols: 80, rows: 24 })
+      } finally {
+        for (const [key, value] of Object.entries(saved)) {
+          if (value === undefined) {
+            delete process.env[key]
+          } else {
+            process.env[key] = value
+          }
+        }
+      }
+
+      const env = spawnMock.mock.calls.at(-1)?.[2].env
+      expect(env.CONDA_SHLVL).toBeUndefined()
+      expect(env.CONDA_DEFAULT_ENV).toBeUndefined()
+      expect(env.CONDA_PROMPT_MODIFIER).toBeUndefined()
+      expect(env.CONDA_EXE).toBe('/opt/miniconda3/bin/conda')
+    })
+
+    it('drops the conda sentinel when the client asks to delete CONDA_PREFIX', async () => {
+      // envToDelete runs after the scrub, so coherence repair must run last.
+      const saved = {
+        CONDA_SHLVL: process.env.CONDA_SHLVL,
+        CONDA_PREFIX: process.env.CONDA_PREFIX,
+        CONDA_DEFAULT_ENV: process.env.CONDA_DEFAULT_ENV
+      }
+      process.env.CONDA_SHLVL = '1'
+      process.env.CONDA_PREFIX = '/opt/miniconda3'
+      process.env.CONDA_DEFAULT_ENV = 'base'
+
+      try {
+        await provider.spawn({ cols: 80, rows: 24, envToDelete: ['CONDA_PREFIX'] })
+      } finally {
+        for (const [key, value] of Object.entries(saved)) {
+          if (value === undefined) {
+            delete process.env[key]
+          } else {
+            process.env[key] = value
+          }
+        }
+      }
+
+      const env = spawnMock.mock.calls.at(-1)?.[2].env
+      expect(env.CONDA_PREFIX).toBeUndefined()
+      expect(env.CONDA_SHLVL).toBeUndefined()
+      expect(env.CONDA_DEFAULT_ENV).toBeUndefined()
+    })
+
     it('uses shell wrapper when MiMo home must survive shell startup', async () => {
       provider.configure({
         buildSpawnEnv: (_id, env) => {
-          env.MIMOCODE_HOME = '/tmp/orca-mimocode-overlay'
-          env.ORCA_MIMOCODE_HOME = '/tmp/orca-mimocode-overlay'
+          env.MIMOCODE_CONFIG_DIR = '/tmp/orca-mimocode-overlay'
+          env.ORCA_MIMOCODE_CONFIG_DIR = '/tmp/orca-mimocode-overlay'
           return env
         }
       })
@@ -481,8 +565,12 @@ describe('LocalPtyProvider', () => {
       const saved = {
         ORCA_PANE_KEY: process.env.ORCA_PANE_KEY,
         ORCA_TAB_ID: process.env.ORCA_TAB_ID,
-        ORCA_WORKTREE_ID: process.env.ORCA_WORKTREE_ID
+        ORCA_WORKTREE_ID: process.env.ORCA_WORKTREE_ID,
+        ORCA_ORCAD_MANAGED_ACTIVATION_ROOT: process.env.ORCA_ORCAD_MANAGED_ACTIVATION_ROOT,
+        ORCA_REMOTE_VIEWER_CLIPBOARD: process.env.ORCA_REMOTE_VIEWER_CLIPBOARD
       }
+      process.env.ORCA_ORCAD_MANAGED_ACTIVATION_ROOT = '/home/u/.orca-remote/.activation'
+      process.env.ORCA_REMOTE_VIEWER_CLIPBOARD = '1'
       process.env.ORCA_PANE_KEY = 'parent-tab:parent-leaf'
       process.env.ORCA_TAB_ID = 'parent-tab'
       process.env.ORCA_WORKTREE_ID = 'parent-worktree'
@@ -503,6 +591,8 @@ describe('LocalPtyProvider', () => {
       expect(spawnCall[2].env.ORCA_PANE_KEY).toBeUndefined()
       expect(spawnCall[2].env.ORCA_TAB_ID).toBeUndefined()
       expect(spawnCall[2].env.ORCA_WORKTREE_ID).toBeUndefined()
+      expect(spawnCall[2].env.ORCA_ORCAD_MANAGED_ACTIVATION_ROOT).toBeUndefined()
+      expect(spawnCall[2].env.ORCA_REMOTE_VIEWER_CLIPBOARD).toBeUndefined()
     })
 
     it('preserves explicit child Orca pane identity over parent env', async () => {

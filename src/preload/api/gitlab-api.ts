@@ -27,10 +27,10 @@ export type GitLabRepoSelectorArgs = {
   repoPath: string
   repoId?: string | null
   sourceContext?: TaskSourceContext | null
+  /** Desktop IPC-only owner guard; web adapters remove it before runtime RPC. */
+  repoOwnerExecutionHostId?: string
 }
 
-// ── GitLab — parallel to gh, MR/issue surface only in v1 ────────
-// Shapes mirror gh.* except where GitLab's API differs (MR states, host-qualified project path, `glab api -i` paging).
 export type GitLabApi = {
   viewer: () => Promise<GitLabViewer | null>
   diagnoseAuth: () => Promise<GitLabAuthDiagnostic>
@@ -51,8 +51,7 @@ export type GitLabApi = {
       query?: string
     }
   ) => Promise<ListMergeRequestsResult>
-  /** Combined MR + issue list filtered by state. Issues are skipped
-   *  when state is 'merged' (issues don't merge). */
+  /** The merged filter excludes issues. */
   listWorkItems: (
     args: GitLabRepoSelectorArgs & {
       state?: MRListState
@@ -67,8 +66,14 @@ export type GitLabApi = {
       state?: 'opened' | 'closed' | 'all'
       assignee?: string
       limit?: number
+      page?: number
     }
-  ) => Promise<{ items: GitLabWorkItem[]; error?: ClassifiedError }>
+  ) => Promise<{
+    items: GitLabWorkItem[]
+    /** Optional while paired with a host older than issue pagination. */
+    totalPages?: number
+    error?: ClassifiedError
+  }>
   createIssue: (
     args: GitLabRepoSelectorArgs & {
       title: string
@@ -91,11 +96,11 @@ export type GitLabApi = {
   listAssignableUsers: (args: GitLabRepoSelectorArgs) => Promise<GitLabAssignableUser[]>
   /** Cross-project user-scoped todos (gitlab.com/dashboard/todos). */
   todos: (args: GitLabRepoSelectorArgs) => Promise<GitLabTodo[]>
-  /** Aggregated dialog payload — body + discussions + pipeline jobs. */
   workItemDetails: (
     args: GitLabRepoSelectorArgs & {
       iid: number
       type: 'issue' | 'mr'
+      includeReviewDetails?: boolean
     }
   ) => Promise<GitLabWorkItemDetails | null>
   closeMR: (
@@ -151,7 +156,6 @@ export type GitLabApi = {
     args: GitLabRepoSelectorArgs & {
       jobId: number
       projectRef?: GitLabProjectRef | null
-      /** Bound the trace in main to a readable excerpt (see gitLabJobTraceToLogExcerpt). */
       logExcerpt?: boolean
     }
   ) => Promise<GitLabJobTraceResult>

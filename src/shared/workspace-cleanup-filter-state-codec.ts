@@ -11,7 +11,6 @@ import {
   WORKSPACE_CLEANUP_SORT_DIRECTION_VALUES,
   WORKSPACE_CLEANUP_SORT_FIELD_VALUES,
   WORKSPACE_CLEANUP_TICKET_SOURCE_VALUES,
-  WORKSPACE_CLEANUP_TIER_VALUES,
   WORKSPACE_CLEANUP_TRI_STATE_VALUES
 } from './workspace-cleanup-facet-rankings'
 import {
@@ -21,7 +20,6 @@ import {
   type WorkspaceCleanupSortState
 } from './workspace-cleanup-filter-model'
 
-// Provider-general: every hosted-review provider is selectable, never a GitHub special case.
 const REVIEW_PROVIDER_VALUES: HostedReviewProvider[] = [
   'github',
   'gitlab',
@@ -31,11 +29,7 @@ const REVIEW_PROVIDER_VALUES: HostedReviewProvider[] = [
   'unsupported'
 ]
 
-/**
- * Tolerant by design: this reads user data written by older (and newer) Orca
- * builds, so anything unrecognized falls back to the default rather than
- * throwing away the whole persisted filter state.
- */
+/** Default unknown fields independently when reading older/newer settings instead of discarding the entire filter state. */
 export function normalizeWorkspaceCleanupFilterState(value: unknown): WorkspaceCleanupFilterState {
   const base = createDefaultWorkspaceCleanupFilterState()
   const raw = asRecord(value)
@@ -110,9 +104,7 @@ export function normalizeWorkspaceCleanupFilterState(value: unknown): WorkspaceC
         WORKSPACE_CLEANUP_BLOCKER_MODE_VALUES,
         base.safety.blockerMode
       ),
-      tiers: asEnumList(safety.tiers, WORKSPACE_CLEANUP_TIER_VALUES),
-      dismissed: asTriState(safety.dismissed, base.safety.dismissed),
-      selectableOnly: asBoolean(safety.selectableOnly, base.safety.selectableOnly)
+      dismissed: asTriState(safety.dismissed, base.safety.dismissed)
     }
   }
 }

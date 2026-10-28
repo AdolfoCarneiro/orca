@@ -10,12 +10,14 @@ import type { SourceControlTreeNode } from '../../source-control-tree'
 import type { SourceControlRowOpenEvent } from './split-open'
 import { BranchEntryRow } from './branch-entry-row'
 import { SectionHeader } from './section-header'
+import { formatSourceControlRefLabel } from '../panel/branch-context-stats'
 import { SourceControlBranchTreeDirectoryRow } from './tree-directory-rows'
-import { SourceControlVirtualFileList } from './virtual-file-list'
+import { VirtualizedList } from '../../../virtualized-list'
 
 export function SourceControlBranchSection({
   branchSummary,
   filteredBranchEntries,
+  totalBranchEntryCount,
   collapsedSections,
   toggleSection,
   sourceControlViewMode,
@@ -33,10 +35,11 @@ export function SourceControlBranchSection({
 }: {
   branchSummary: GitBranchCompareSummary
   filteredBranchEntries: GitBranchChangeEntry[]
+  totalBranchEntryCount: number
   collapsedSections: Set<string>
   toggleSection: (section: string) => void
   sourceControlViewMode: SourceControlViewMode
-  visibleBranchTreeRows: SourceControlTreeNode<GitBranchChangeEntry, 'branch'>[]
+  visibleBranchTreeRows: readonly SourceControlTreeNode<GitBranchChangeEntry, 'branch'>[]
   fileListScrollElement: HTMLDivElement | null
   collapsedTreeDirs: Set<string>
   toggleTreeDir: (key: string) => void
@@ -52,6 +55,24 @@ export function SourceControlBranchSection({
   ) => void
   diffCommentCountByPath: Map<string, number>
 }): React.JSX.Element {
+  const baseRef = branchSummary.baseRef?.trim()
+  const fileCount = filteredBranchEntries.length
+  // Counts measure current base differences, not historical touches; omit the total label when filters narrow the list.
+  const countTitle =
+    baseRef && fileCount === totalBranchEntryCount
+      ? fileCount === 1
+        ? translate(
+            'auto.components.right.sidebar.SourceControl.branchFilesChangedVsBaseOne',
+            '1 file changed vs {{ref}}',
+            { ref: formatSourceControlRefLabel(baseRef) }
+          )
+        : translate(
+            'auto.components.right.sidebar.SourceControl.branchFilesChangedVsBaseOther',
+            '{{count}} files changed vs {{ref}}',
+            { count: fileCount, ref: formatSourceControlRefLabel(baseRef) }
+          )
+      : undefined
+
   return (
     <div>
       <SectionHeader
@@ -59,15 +80,16 @@ export function SourceControlBranchSection({
           'auto.components.right.sidebar.SourceControl.d7ae61269b',
           'Committed on Branch'
         )}
-        count={filteredBranchEntries.length}
+        count={fileCount}
+        countTitle={countTitle}
         isCollapsed={collapsedSections.has('branch')}
         onToggle={() => toggleSection('branch')}
         actions={
           <Button
             type="button"
             variant="ghost"
-            size="sm"
-            className="h-auto px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+            size="xs"
+            className="px-1.5 text-muted-foreground hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation()
               if (currentWorktreeId && worktreePath && branchSummary) {
@@ -81,7 +103,7 @@ export function SourceControlBranchSection({
       />
       {!collapsedSections.has('branch') &&
         (sourceControlViewMode === 'tree' ? (
-          <SourceControlVirtualFileList
+          <VirtualizedList
             rows={visibleBranchTreeRows}
             scrollElement={fileListScrollElement}
             getRowKey={(node) => node.key}
@@ -113,7 +135,7 @@ export function SourceControlBranchSection({
             }}
           />
         ) : (
-          <SourceControlVirtualFileList
+          <VirtualizedList
             rows={filteredBranchEntries}
             scrollElement={fileListScrollElement}
             getRowKey={(entry) => `branch:${entry.path}`}

@@ -13,10 +13,13 @@ type UseFileExplorerRowScrollingParams = {
   inlineInputIndex: number
   rowProjection: FileExplorerRowProjection
   scrollRef: RefObject<HTMLDivElement | null>
+  onRevealOutsideRoot?: () => void
   activeWorktreeId: string | null
   worktreePath: string | null
+  displayRootPath?: string | null
   expanded: Set<string>
   dirCache: Record<string, DirCache>
+  loadingDirPaths: ReadonlySet<string>
   rootCache: DirCache | undefined
   loadDir: (dirPath: string, depth: number, options?: { force?: boolean }) => Promise<boolean>
   setSelectedPath: (path: string | null) => void
@@ -28,20 +31,23 @@ type UseFileExplorerRowScrollingResult = {
   virtualizer: Virtualizer<HTMLDivElement, Element>
   scrollToIndex: (index: number) => void
   flashingPath: string | null
+  cancelRevealTimers: () => void
   explorerShellRef: RefObject<HTMLDivElement | null>
   setExplorerShellRef: (node: HTMLDivElement | null) => void
 }
 
-/** Decides which explorer row is measured and scrolled into view. */
 export function useFileExplorerRowScrolling({
+  onRevealOutsideRoot,
   visibleRowCount,
   inlineInputIndex,
   rowProjection,
   scrollRef,
   activeWorktreeId,
   worktreePath,
+  displayRootPath = worktreePath,
   expanded,
   dirCache,
+  loadingDirPaths,
   rootCache,
   loadDir,
   setSelectedPath,
@@ -51,7 +57,7 @@ export function useFileExplorerRowScrolling({
   const pendingExplorerReveal = useAppStore((s) => s.pendingExplorerReveal)
   const clearPendingExplorerReveal = useAppStore((s) => s.clearPendingExplorerReveal)
   const [flashingPath, setFlashingPath] = useState<string | null>(null)
-  /** Includes Radix scroll viewport + scrollbar (scrollbar is not a child of the viewport). */
+  /** Include the scrollbar, which is outside Radix’s viewport. */
   const explorerShellRef = useRef<HTMLDivElement | null>(null)
   const flashTimeoutRef = useRef<number | null>(null)
 
@@ -75,13 +81,16 @@ export function useFileExplorerRowScrolling({
   })
 
   const cancelRevealTimers = useFileExplorerReveal({
+    onRevealOutsideRoot,
     activeWorktreeId,
     worktreePath,
+    displayRootPath,
     pendingExplorerReveal,
     clearPendingExplorerReveal,
     expanded,
     dirCache,
-    rootCache,
+    loadingDirPaths,
+    rootCache: displayRootPath ? dirCache[displayRootPath] : rootCache,
     rowProjection,
     loadDir,
     setSelectedPath,
@@ -95,8 +104,7 @@ export function useFileExplorerRowScrolling({
       if (node !== null) {
         return
       }
-      // Why: reveal flash/scroll timers target the explorer shell; clear them
-      // when that owner detaches instead of keeping a passive unmount Effect.
+      // Cancel shell-owned reveal timers on detach rather than passive unmount cleanup.
       cancelRevealTimers()
     },
     [cancelRevealTimers]
@@ -106,6 +114,7 @@ export function useFileExplorerRowScrolling({
     activeFileId,
     activeWorktreeId,
     worktreePath,
+    displayRootPath,
     pendingExplorerReveal,
     openFiles,
     rowProjection,
@@ -126,5 +135,12 @@ export function useFileExplorerRowScrolling({
     [virtualizer]
   )
 
-  return { virtualizer, scrollToIndex, flashingPath, explorerShellRef, setExplorerShellRef }
+  return {
+    virtualizer,
+    scrollToIndex,
+    flashingPath,
+    explorerShellRef,
+    setExplorerShellRef,
+    cancelRevealTimers
+  }
 }

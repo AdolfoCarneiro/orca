@@ -2,7 +2,7 @@ import React from 'react'
 import { GitMerge, GitPullRequestClosed, GitPullRequestDraft } from 'lucide-react'
 import type { HostedReviewInfo } from '../../../../../../shared/hosted-review'
 import { cn } from '@/lib/utils'
-import { PullRequestIcon } from '../../checks-panel-content'
+import { PullRequestIcon } from '../../checks-panel/check-presentation'
 
 function hostedReviewStateClass(review: HostedReviewInfo): string {
   if (review.state === 'merged') {
@@ -17,8 +17,7 @@ function hostedReviewStateClass(review: HostedReviewInfo): string {
   return 'text-muted-foreground/50'
 }
 
-// Why: draft and closed only differed by a near-identical muted tone on the same
-// glyph, so a draft review read as closed.
+// Distinct glyphs keep muted draft reviews from looking closed.
 function hostedReviewStateIcon(
   review: HostedReviewInfo
 ): React.ComponentType<{ className?: string }> | null {
@@ -43,7 +42,7 @@ export function HostedReviewIcon({
 }): React.JSX.Element {
   const providerIcon = review.provider === 'gitlab' ? GitMerge : PullRequestIcon
   const Icon = hostedReviewStateIcon(review) ?? providerIcon
-  return <Icon className={cn(className, hostedReviewStateClass(review))} />
+  return React.createElement(Icon, { className: cn(className, hostedReviewStateClass(review)) })
 }
 
 function hostedReviewLabel(review: HostedReviewInfo): string {
@@ -68,8 +67,7 @@ export function HostedReviewHeaderLink({
         className={className}
         onClick={(e) => {
           e.stopPropagation()
-          // Why: GitHub PR and GitLab MR details live in Orca's Checks tab; keep
-          // the sidebar workflow in-app instead of opening the browser.
+          // Keep review details in Orca’s Checks tab.
           onOpenHostedReviewInChecks()
         }}
       >

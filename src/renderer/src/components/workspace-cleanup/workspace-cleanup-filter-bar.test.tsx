@@ -2,15 +2,24 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createDefaultWorkspaceCleanupFilterState } from '../../../../shared/workspace-cleanup-filter-model'
+import type { WorkspaceCleanupAppliedFilter } from '../../../../shared/workspace-cleanup-applied-filters'
 import { WorkspaceCleanupFilterBar } from './workspace-cleanup-filter-bar'
 
 afterEach(cleanup)
 
-function renderFilterBar(facetPanelOpen = false): void {
+function renderFilterBar(
+  facetPanelOpen = false,
+  overrides: {
+    filters?: ReturnType<typeof createDefaultWorkspaceCleanupFilterState>
+    hasActiveFilters?: boolean
+    onClearAppliedFilter?: (filter: WorkspaceCleanupAppliedFilter) => void
+    onClearFilters?: () => void
+  } = {}
+): void {
   render(
     <WorkspaceCleanupFilterBar
       facetProps={{
-        filters: createDefaultWorkspaceCleanupFilterState(),
+        filters: overrides.filters ?? createDefaultWorkspaceCleanupFilterState(),
         counts: {
           activity: 0,
           size: 0,
@@ -31,29 +40,25 @@ function renderFilterBar(facetPanelOpen = false): void {
       onFacetPanelOpenChange={vi.fn()}
       activeFacetGroupCount={0}
       matchedCount={100}
-      hasActiveFilters={false}
+      hasActiveFilters={overrides.hasActiveFilters ?? false}
       gitEvidence={{ pendingCount: 0, totalCount: 0 }}
       onQueryChange={vi.fn()}
-      onClearFilters={vi.fn()}
+      onClearFilters={overrides.onClearFilters ?? vi.fn()}
+      onClearAppliedFilter={overrides.onClearAppliedFilter ?? vi.fn()}
     />
   )
 }
 
 describe('WorkspaceCleanupFilterBar', () => {
-  it('keeps size measurement out of the browse controls', () => {
-    renderFilterBar()
+  it('clears one named filter from its chip', () => {
+    const filters = createDefaultWorkspaceCleanupFilterState()
+    filters.activity.idleMinDays = 20
+    const onClearAppliedFilter = vi.fn()
+    renderFilterBar(false, { filters, hasActiveFilters: true, onClearAppliedFilter })
 
-    expect(screen.queryByRole('button', { name: 'Scan' })).toBeNull()
-  })
+    screen.getByRole('button', { name: 'Remove filter Idle 20d+' }).click()
 
-  it('keeps the footer visible while the facet panel scrolls', () => {
-    renderFilterBar(true)
-
-    const content = document.querySelector('[data-slot="popover-content"]')
-    const root = document.querySelector('[data-slot="scroll-area"]')
-    expect(content?.className).toContain(
-      'h-[min(471px,var(--radix-popover-content-available-height))]'
-    )
-    expect(root?.className).toContain('min-h-0 flex-1')
+    expect(onClearAppliedFilter).toHaveBeenCalledTimes(1)
+    expect(onClearAppliedFilter.mock.calls[0][0].id).toBe('activity.idleMinDays')
   })
 })

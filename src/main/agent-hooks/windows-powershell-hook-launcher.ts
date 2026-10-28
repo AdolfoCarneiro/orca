@@ -1,6 +1,4 @@
-// Why: centralizing the launcher keeps window suppression consistent across installers (#14815).
-
-// Why: an absolute forward-slash path avoids PATH hijacking and survives cmd.exe and Git Bash.
+// Absolute forward-slash paths prevent PATH hijacking and survive cmd.exe and Git Bash.
 export function getWindowsSystem32Path(relativePath: string): string {
   const systemRoot = process.env.SystemRoot || 'C:\\Windows'
   return `${systemRoot.replaceAll('\\', '/')}/System32/${relativePath}`
@@ -10,18 +8,33 @@ export function getWindowsPowerShellExecutablePath(): string {
   return getWindowsSystem32Path('WindowsPowerShell/v1.0/powershell.exe')
 }
 
-// Why: unlike conhost, hidden PowerShell relays hook output and exit status (#14818).
-export const WINDOWS_POWERSHELL_HOOK_SWITCHES =
-  '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden'
+/** AV blocks WindowStyle Hidden with EncodedCommand (#16003); omit it and use direct launchers where possible. */
+export const WINDOWS_POWERSHELL_HOOK_SWITCHES = '-NoProfile'
 
-// Why: redirected PowerShell progress becomes CLIXML that can corrupt merged JSON output.
+// Suppress progress before Set-ExecutionPolicy autoloads modules or CLIXML can corrupt merged JSON output.
 const HOOK_PROGRESS_SILENCER = "$ProgressPreference='SilentlyContinue'; "
 
-// Why: encoding shields paths and switches from cmd.exe and MSYS rewriting (#6078, #14815).
-export function encodeWindowsPowerShellHookCommand(command: string): string {
-  return Buffer.from(`${HOOK_PROGRESS_SILENCER}${command}`, 'utf16le').toString('base64')
+/** Process-scope bypass preserves .ps1 hooks; swallow GPO failures to keep stderr clear for JSON consumers. */
+const HOOK_EXECUTION_POLICY_BYPASS =
+  'try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}; '
+
+export type WindowsPowerShellHookOptions = { useProcessPolicyEnvironment?: boolean }
+
+// Encoding prevents cmd.exe and MSYS from rewriting paths and switches.
+export function encodeWindowsPowerShellHookCommand(
+  command: string,
+  options: WindowsPowerShellHookOptions = {}
+): string {
+  // Process scope uses this variable; Group Policy still takes precedence.
+  const policy = options.useProcessPolicyEnvironment
+    ? "$env:PSExecutionPolicyPreference='Bypass'; "
+    : HOOK_EXECUTION_POLICY_BYPASS
+  return Buffer.from(`${HOOK_PROGRESS_SILENCER}${policy}${command}`, 'utf16le').toString('base64')
 }
 
-export function wrapWindowsPowerShellEncodedCommand(command: string): string {
-  return `${getWindowsPowerShellExecutablePath()} ${WINDOWS_POWERSHELL_HOOK_SWITCHES} -EncodedCommand ${encodeWindowsPowerShellHookCommand(command)}`
+export function wrapWindowsPowerShellEncodedCommand(
+  command: string,
+  options: WindowsPowerShellHookOptions = {}
+): string {
+  return `${getWindowsPowerShellExecutablePath()} ${WINDOWS_POWERSHELL_HOOK_SWITCHES} -EncodedCommand ${encodeWindowsPowerShellHookCommand(command, options)}`
 }

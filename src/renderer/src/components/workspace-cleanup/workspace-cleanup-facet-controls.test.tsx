@@ -108,9 +108,29 @@ describe('workspace cleanup facet controls', () => {
     renderFacets(createDefaultWorkspaceCleanupFilterState(), onPatch)
 
     const input = control('Idle for at least') as HTMLInputElement | null
-    expect(input?.type).toBe('number')
     act(() => typeInto(input, '17'))
     expect(onPatch).toHaveBeenCalledWith('activity', { idleMinDays: 17 })
+  })
+
+  it('keeps every numeric threshold off type=number so a wheel tick cannot set it', () => {
+    // Assert input type because happy-dom cannot reproduce Chromium’s wheel-driven numeric changes.
+    renderFacets(createDefaultWorkspaceCleanupFilterState(), createPatchMock())
+
+    const numericFacets = [
+      'Idle for at least',
+      'At least',
+      'At most',
+      'Commits ahead ≥',
+      'Commits behind ≥'
+    ]
+    const found = numericFacets
+      .map((label) => control(label) as HTMLInputElement | null)
+      .filter((input): input is HTMLInputElement => input !== null)
+    expect(found).toHaveLength(numericFacets.length)
+    for (const input of found) {
+      expect(input.type).toBe('text')
+      expect(input.inputMode).toBe('numeric')
+    }
   })
 
   it('multi-selects git states', () => {

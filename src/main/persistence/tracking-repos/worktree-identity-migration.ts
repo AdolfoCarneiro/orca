@@ -1,15 +1,19 @@
 import type { WorkspaceKey } from '../../../shared/folder-workspace-types'
+import type { BrowserPage, BrowserWorkspace } from '../../../shared/browser-workspace-types'
+import { remapBrowserPageDocLocation } from '../../../shared/browser-page-doc-location'
 import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
 import { worktreeWorkspaceKey } from '../../../shared/workspace-scope'
-import type { StoreOwnedPersistedState } from '../loading-store/store-owned-state'
+import type { PersistedState } from '../../../shared/persisted-state-types'
+import {
+  getWorktreeIdFromHostIdentity,
+  isWorktreeHostIdentity
+} from '../../../shared/worktree/host-qualified-identity'
+import { splitWorktreeIdForFilesystem } from '../../../shared/worktree/id'
+import { repointRowArrays, repointRowRecord } from './worktree-identity-row-repoint'
 
-/**
- * Re-keys every worktreeId-keyed record in `state` from `oldWorktreeId` to `newWorktreeId`. Mutates `state` in place;
- * returns whether anything changed so the caller can gate its save. No-op when the ids match.
- * See `Store.migrateWorktreeIdentity` for why the rename happens.
- */
+/** Mutate worktree references in place; return whether anything changed so callers can gate persistence. */
 export function migrateWorktreeIdentity(
-  state: StoreOwnedPersistedState,
+  state: PersistedState,
   oldWorktreeId: string,
   newWorktreeId: string
 ): boolean {
@@ -31,11 +35,29 @@ export function migrateWorktreeIdentity(
   }
   const withNewWorktreeId = <T extends { worktreeId: string }>(value: T): T =>
     value.worktreeId === oldWorktreeId ? { ...value, worktreeId: newWorktreeId } : value
+  const oldWorktreePath = splitWorktreeIdForFilesystem(oldWorktreeId)?.worktreePath
+  const newWorktreePath = splitWorktreeIdForFilesystem(newWorktreeId)?.worktreePath
+  const withNewBrowserWorktreeId = <T extends BrowserPage | BrowserWorkspace>(value: T): T => {
+    const renamedValue = withNewWorktreeId(value)
+    return value.docLocation?.worktreeId === oldWorktreeId
+      ? {
+          ...renamedValue,
+          docLocation: remapBrowserPageDocLocation(
+            value.docLocation,
+            oldWorktreeId,
+            newWorktreeId,
+            oldWorktreePath,
+            newWorktreePath
+          )
+        }
+      : renamedValue
+  }
   const migrateSession = (session: WorkspaceSessionState | undefined): boolean => {
     if (!session) {
       return false
     }
     let sessionChanged = false
+    /** Known collision: source overwrites existing target on partial/repeated moves; no revision proves which is newer. */
     const moveSessionKey = <T>(
       record: Record<string, T> | undefined,
       mapValue: (value: T) => T = (value) => value
@@ -68,16 +90,21 @@ export function migrateWorktreeIdentity(
     sessionChanged = moveSessionKey(session.activeFileIdByWorktree) || sessionChanged
     sessionChanged =
       moveSessionKey(session.browserTabsByWorktree, (workspaces) =>
-        workspaces.map(withNewWorktreeId)
+        workspaces.map(withNewBrowserWorktreeId)
       ) || sessionChanged
     if (session.browserPagesByWorkspace) {
       let pagesChanged = false
       const nextPagesByWorkspace = { ...session.browserPagesByWorkspace }
       for (const [workspaceId, pages] of Object.entries(nextPagesByWorkspace)) {
-        if (!pages.some((page) => page.worktreeId === oldWorktreeId)) {
+        if (
+          !pages.some(
+            (page) =>
+              page.worktreeId === oldWorktreeId || page.docLocation?.worktreeId === oldWorktreeId
+          )
+        ) {
           continue
         }
-        nextPagesByWorkspace[workspaceId] = pages.map(withNewWorktreeId)
+        nextPagesByWorkspace[workspaceId] = pages.map(withNewBrowserWorktreeId)
         pagesChanged = true
       }
       if (pagesChanged) {
@@ -85,6 +112,13 @@ export function migrateWorktreeIdentity(
         sessionChanged = true
       }
     }
+    // Rehydration requires workspaceId to match its map key; rekeying alone would strand pages.
+    sessionChanged =
+      moveSessionKey(session.clientHostedBrowserPagesByWorktree, (rows) =>
+        rows.map((row) =>
+          row.workspaceId === oldWorktreeId ? { ...row, workspaceId: newWorktreeId } : row
+        )
+      ) || sessionChanged
     sessionChanged = moveSessionKey(session.activeBrowserTabIdByWorktree) || sessionChanged
     sessionChanged = moveSessionKey(session.activeTabTypeByWorktree) || sessionChanged
     sessionChanged = moveSessionKey(session.activeTabIdByWorktree) || sessionChanged
@@ -94,7 +128,28 @@ export function migrateWorktreeIdentity(
       moveSessionKey(session.tabGroups, (groups) => groups.map(withNewWorktreeId)) || sessionChanged
     sessionChanged = moveSessionKey(session.tabGroupLayouts) || sessionChanged
     sessionChanged = moveSessionKey(session.activeGroupIdByWorktree) || sessionChanged
-    sessionChanged = moveSessionKey(session.lastVisitedAtByWorktreeId) || sessionChanged
+    if (session.lastVisitedAtByWorktreeId) {
+      const nextRecency = { ...session.lastVisitedAtByWorktreeId }
+      let recencyChanged = false
+      for (const [key, value] of Object.entries(session.lastVisitedAtByWorktreeId)) {
+        const rawId = isWorktreeHostIdentity(key) ? getWorktreeIdFromHostIdentity(key) : key
+        if (rawId !== oldWorktreeId) {
+          continue
+        }
+        const nextKey = isWorktreeHostIdentity(key)
+          ? `${key.slice(0, key.length - rawId.length)}${newWorktreeId}`
+          : newWorktreeId
+        // Partial migrations can retain both IDs; max prevents recency regression.
+        const existing = nextRecency[nextKey]
+        nextRecency[nextKey] = existing === undefined ? value : Math.max(existing, value)
+        delete nextRecency[key]
+        recencyChanged = true
+      }
+      if (recencyChanged) {
+        session.lastVisitedAtByWorktreeId = nextRecency
+        sessionChanged = true
+      }
+    }
     sessionChanged =
       moveSessionKey(session.defaultTerminalTabsAppliedByWorktreeId) || sessionChanged
     if (session.activeWorktreeIdsOnShutdown?.includes(oldWorktreeId)) {
@@ -111,41 +166,66 @@ export function migrateWorktreeIdentity(
       session.activeWorkspaceKey = newWorkspaceKey
       sessionChanged = true
     }
-    if (session.sleepingAgentSessionsByPaneKey) {
-      let sleepingChanged = false
-      const nextSleeping = { ...session.sleepingAgentSessionsByPaneKey }
-      for (const [paneKey, record] of Object.entries(nextSleeping)) {
-        if (record.worktreeId !== oldWorktreeId) {
-          continue
-        }
-        nextSleeping[paneKey] = { ...record, worktreeId: newWorktreeId }
-        sleepingChanged = true
-      }
-      if (sleepingChanged) {
-        session.sleepingAgentSessionsByPaneKey = nextSleeping
-        sessionChanged = true
-      }
+    // Pane/tab/environment-keyed rows still carry worktree IDs in values; explicit typed fields retain census coverage.
+    const nextSleeping = repointRowRecord(
+      session.sleepingAgentSessionsByPaneKey,
+      oldWorktreeId,
+      newWorktreeId
+    )
+    if (nextSleeping) {
+      session.sleepingAgentSessionsByPaneKey = nextSleeping
+      sessionChanged = true
     }
-    if (session.terminalSurfaceTombstonesByPaneKey) {
-      let tombstonesChanged = false
-      const nextTombstones = { ...session.terminalSurfaceTombstonesByPaneKey }
-      for (const [paneKey, tombstone] of Object.entries(nextTombstones)) {
-        if (tombstone.worktreeId !== oldWorktreeId) {
-          continue
-        }
-        nextTombstones[paneKey] = { ...tombstone, worktreeId: newWorktreeId }
-        tombstonesChanged = true
-      }
-      if (tombstonesChanged) {
-        session.terminalSurfaceTombstonesByPaneKey = nextTombstones
-        sessionChanged = true
-      }
+    const nextSurfaceTombstones = repointRowRecord(
+      session.terminalSurfaceTombstonesByPaneKey,
+      oldWorktreeId,
+      newWorktreeId
+    )
+    if (nextSurfaceTombstones) {
+      session.terminalSurfaceTombstonesByPaneKey = nextSurfaceTombstones
+      sessionChanged = true
+    }
+    const nextClosedTombstones = repointRowRecord(
+      session.closedTerminalTabTombstonesByTabId,
+      oldWorktreeId,
+      newWorktreeId
+    )
+    if (nextClosedTombstones) {
+      session.closedTerminalTabTombstonesByTabId = nextClosedTombstones
+      sessionChanged = true
+    }
+    const nextClosedPanes = repointRowRecord(
+      session.closedTerminalPanesByPaneKey,
+      oldWorktreeId,
+      newWorktreeId
+    )
+    if (nextClosedPanes) {
+      session.closedTerminalPanesByPaneKey = nextClosedPanes
+      sessionChanged = true
+    }
+    const nextCloseIntents = repointRowArrays(
+      session.clientHostedBrowserCloseIntentsByEnvironment,
+      oldWorktreeId,
+      newWorktreeId
+    )
+    if (nextCloseIntents) {
+      session.clientHostedBrowserCloseIntentsByEnvironment = nextCloseIntents
+      sessionChanged = true
+    }
+    const nextPairedTabCloseIntents = repointRowArrays(
+      session.pairedTerminalTabCloseIntentsByEnvironment,
+      oldWorktreeId,
+      newWorktreeId
+    )
+    if (nextPairedTabCloseIntents) {
+      session.pairedTerminalTabCloseIntentsByEnvironment = nextPairedTabCloseIntents
+      sessionChanged = true
     }
     return sessionChanged
   }
 
   let changed = moveKey(state.worktreeMeta)
-  // Record the prior id so a session minted under it isn't reaped as an orphan.
+  // Retain the prior ID so existing terminal sessions do not become orphans.
   const newMeta = state.worktreeMeta[newWorktreeId]
   if (newMeta) {
     const prior = newMeta.priorWorktreeIds ?? []
@@ -159,11 +239,10 @@ export function migrateWorktreeIdentity(
   const movedLineage = state.worktreeLineageById[newWorktreeId]
   if (movedLineage && movedLineage.worktreeId === oldWorktreeId) {
     movedLineage.worktreeId = newWorktreeId
-    // Why: moveKey reports nothing when the record already sat under the new key, so flag the repair
-    // ourselves or the caller skips the save and the stale id comes back on reload.
+    // Repairing an already-rekeyed row still needs a save.
     changed = true
   }
-  // Why: children carry this as parentWorktreeId; keep the denormalized path-derived id consistent (parentWorktreeInstanceId is stable).
+  // Keep children's path-derived parent IDs consistent; parent instance identity stays stable.
   for (const lineage of Object.values(state.worktreeLineageById)) {
     if (lineage.parentWorktreeId === oldWorktreeId) {
       lineage.parentWorktreeId = newWorktreeId
@@ -198,6 +277,9 @@ export function migrateWorktreeIdentity(
     state.mobileClientTabSelectionsByDeviceId ?? {}
   )) {
     changed = moveKey(selectionsByWorktree) || changed
+  }
+  if (state.ui?.explorerDisplayRootByWorktree) {
+    changed = moveKey(state.ui.explorerDisplayRootByWorktree) || changed
   }
   const showDotfiles = state.ui?.showDotfilesByWorktree
   if (showDotfiles) {

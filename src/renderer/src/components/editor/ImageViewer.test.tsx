@@ -1,3 +1,4 @@
+import type * as ReactModule from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const reactHookRuntime = vi.hoisted(() => ({
@@ -6,7 +7,7 @@ const reactHookRuntime = vi.hoisted(() => ({
 }))
 
 vi.mock('react', async () => {
-  const actual = await vi.importActual<typeof import('react')>('react') // eslint-disable-line @typescript-eslint/consistent-type-imports -- vi.importActual requires inline import()
+  const actual = await vi.importActual<typeof ReactModule>('react')
   return {
     ...actual,
     useMemo<T>(factory: () => T) {
@@ -17,6 +18,9 @@ vi.mock('react', async () => {
     },
     useEffect() {
       return undefined
+    },
+    useContext() {
+      return false
     },
     useRef<T>(initial: T) {
       return { current: initial }
@@ -181,8 +185,6 @@ describe('ImageViewer PDF scroll cache key', () => {
     vi.clearAllMocks()
   })
 
-  // Why: nothing else pins the wiring, so a dropped prop anywhere between
-  // EditorContent and PdfViewer would ship as silently amnesiac scrolling.
   it('forwards the scroll cache key to PdfViewer', async () => {
     expect(await renderPdfViewerProps('/repo/report.pdf::tab-2:pdf')).toMatchObject({
       filePath: '/repo/report.pdf',
@@ -237,5 +239,27 @@ describe('ImageViewer preview source retry', () => {
 
     expect(findElementsByType(rendered, 'Image')).toHaveLength(1)
     expect(findElementsByType(rendered, 'img')).toHaveLength(0)
+  })
+})
+
+describe('ImageViewer pre-load layout box', () => {
+  beforeEach(() => {
+    reactHookRuntime.states = []
+    reactHookRuntime.index = 0
+    vi.clearAllMocks()
+  })
+
+  // The w-max/h-max scroll box makes percentage maxima ineffective before image load; viewport units must bound natural dimensions.
+  it('bounds both scroll surfaces with viewport units before the image loads', async () => {
+    const images = findElementsByType(await renderExpandedImageViewer(pngBase64(1)), 'img')
+
+    expect(images).toHaveLength(2)
+    for (const image of images) {
+      const className = String(image.props.className)
+      expect(className).toContain('max-h-[100vh]')
+      expect(className).toContain('max-w-[100vw]')
+      expect(className).not.toContain('max-h-full')
+      expect(className).not.toContain('max-w-full')
+    }
   })
 })

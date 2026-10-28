@@ -1,29 +1,98 @@
+import { unwrapClaudePastedContent } from './claude-pasted-content'
+import {
+  stripAnsiEscapeSequences,
+  TERMINAL_CONTROL_CHARACTER_PATTERN
+} from './ansi-escape-sequences'
 import { isTextBlock, type NativeChatBlock, type NativeChatMessage } from './native-chat-types'
+import { imageReferenceToken, replaceImageReferences } from './native-chat-image-reference'
+import { NATIVE_CHAT_QUOTED_FILE_REFERENCE } from './agent-image-paste'
 
 const IMAGE_SOURCE_MARKER = /^\[Image:\s*source:\s*(.+?)\]\s*$/
 const IMAGE_PROMPT_MARKER = /\[Image #\d+\]/
 const IMAGE_PROMPT_MARKERS = /\[Image #\d+\]/g
+// A quoted file reference is matched whole, so a path that reads like a marker is left as typed.
+const IMAGE_PROMPT_MARKER_NUMBERS_OUTSIDE_FILE_REFERENCES = new RegExp(
+  `(${NATIVE_CHAT_QUOTED_FILE_REFERENCE.source})|\\[Image #(\\d+)\\]`,
+  'g'
+)
 const IMAGE_PROMPT_MARKER_AT_START = /^[^\S\r\n]*\[Image #\d+\]/
 const IMAGE_PROMPT_MARKER_AT_END = /\[Image #\d+\][^\S\r\n]*$/
 const HORIZONTAL_WHITESPACE_START = /^[^\S\r\n]+/
 const HORIZONTAL_WHITESPACE_END = /[^\S\r\n]+$/
 
-function soleText(message: NativeChatMessage): string | null {
-  return message.blocks.length === 1 && isTextBlock(message.blocks[0])
-    ? message.blocks[0].text
-    : null
-}
-
 export function imageSourcePathFromText(text: string): string | null {
   return text.match(IMAGE_SOURCE_MARKER)?.[1]?.trim() ?? null
 }
 
+/** Source paths only from all-text turns whose every block is an image-source marker. Claude groups multi-image pastes into one turn;
+ * requiring one block misses them, while accepting mixed blocks would hide real prompts. */
+export function imageSourcePathsFromMessage(message: NativeChatMessage): string[] {
+  if (message.role !== 'user' || message.blocks.length === 0) {
+    return []
+  }
+  const paths: string[] = []
+  for (const block of message.blocks) {
+    if (!isTextBlock(block)) {
+      return []
+    }
+    const path = imageSourcePathFromText(block.text)
+    if (path === null) {
+      return []
+    }
+    paths.push(path)
+  }
+  return paths
+}
+
 export function isImageSourceUserTurn(message: NativeChatMessage): boolean {
-  return message.role === 'user' && imageSourcePathFromText(soleText(message) ?? '') !== null
+  return imageSourcePathsFromMessage(message).length > 0
+}
+
+/** Map chips to sent-image [Image #N] positions, matching Claude/Codex TUIs; drop chips whose images were not sent. */
+export function imageReferencesToPromptMarkers(
+  text: string,
+  sentImageIds: readonly string[]
+): string {
+  return replaceImageReferences(text, (attachmentId) => {
+    const index = sentImageIds.indexOf(attachmentId)
+    return index === -1 ? '' : `[Image #${index + 1}]`
+  })
+}
+
+function replaceSentImagePromptMarkers(
+  text: string,
+  replace: (number: number, marker: string) => string
+): string {
+  return text.replace(
+    IMAGE_PROMPT_MARKER_NUMBERS_OUTSIDE_FILE_REFERENCES,
+    (match, fileReference: string | undefined, number: string) =>
+      fileReference === undefined ? replace(Number(number), match) : match
+  )
+}
+
+/** Restore sent markers as image chips; leave out-of-range numbers literal. */
+export function promptMarkersToImageReferences(text: string, imageIds: readonly string[]): string {
+  return replaceSentImagePromptMarkers(text, (number, marker) => {
+    const attachmentId = imageIds[number - 1]
+    return attachmentId === undefined ? marker : imageReferenceToken(attachmentId)
+  })
+}
+
+/** Remove only markers belonging to this structured send’s imageCount; leave out-of-range numbers literal. */
+export function stripSentImagePromptMarkers(text: string, imageCount: number): string {
+  return withoutStrippedMarkerSpace(
+    text,
+    replaceSentImagePromptMarkers(text, (number, marker) =>
+      number >= 1 && number <= imageCount ? '' : marker
+    )
+  )
 }
 
 export function stripImagePromptMarker(text: string): string {
-  const stripped = text.replace(IMAGE_PROMPT_MARKERS, '')
+  return withoutStrippedMarkerSpace(text, text.replace(IMAGE_PROMPT_MARKERS, ''))
+}
+
+function withoutStrippedMarkerSpace(text: string, stripped: string): string {
   if (stripped === text) {
     return text
   }
@@ -36,8 +105,17 @@ export function stripImagePromptMarker(text: string): string {
   return result
 }
 
+/** Normalizes PTY-backed user text into the pending-echo comparison key. */
 export function normalizeNativeChatUserText(text: string): string {
-  return stripImagePromptMarker(text).trim().replace(/\s+/g, ' ')
+  // Strip sequences first so their printable tails cannot survive a lone-control pass.
+  return stripImagePromptMarker(
+    stripAnsiEscapeSequences(unwrapClaudePastedContent(text)).replace(
+      TERMINAL_CONTROL_CHARACTER_PATTERN,
+      ''
+    )
+  )
+    .trim()
+    .replace(/\s+/g, ' ')
 }
 
 export function normalizedNativeChatUserMessageText(message: NativeChatMessage): string | null {
@@ -47,7 +125,7 @@ export function normalizedNativeChatUserMessageText(message: NativeChatMessage):
   const normalized = normalizeNativeChatUserText(
     message.blocks
       .filter(isTextBlock)
-      .map((block) => block.text)
+      .map((block) => unwrapClaudePastedContent(block.text))
       .join(' ')
   )
   return normalized || null
@@ -97,18 +175,22 @@ export function normalizeImageTranscriptMessages(
       normalized?.push(message)
       continue
     }
-    const imagePath = imageSourcePathFromText(soleText(message) ?? '')
-    if (imagePath) {
+    const messageImagePaths = imageSourcePathsFromMessage(message)
+    if (messageImagePaths.length > 0) {
       normalized ??= messages.slice(0, index)
-      const imagePaths = [imagePath]
+      const imagePaths = [...messageImagePaths]
       let nextIndex = index + 1
       while (nextIndex < messages.length) {
         const candidate = messages[nextIndex]!
-        const candidatePath = imageSourcePathFromText(soleText(candidate) ?? '')
-        if (candidate.role !== 'user' || candidate.source !== message.source || !candidatePath) {
+        const candidatePaths = imageSourcePathsFromMessage(candidate)
+        if (
+          candidate.role !== 'user' ||
+          candidate.source !== message.source ||
+          candidatePaths.length === 0
+        ) {
           break
         }
-        imagePaths.push(candidatePath)
+        imagePaths.push(...candidatePaths)
         nextIndex += 1
       }
       const prompt = messages[nextIndex]
@@ -127,9 +209,10 @@ export function normalizeImageTranscriptMessages(
         index = nextIndex
         continue
       }
+      // Without a following prompt, keep only this turn’s paths; later scanned source turns remain separate.
       normalized.push({
         ...message,
-        blocks: [{ type: 'image-ref', path: imagePath }]
+        blocks: messageImagePaths.map((path) => ({ type: 'image-ref' as const, path }))
       })
       continue
     }

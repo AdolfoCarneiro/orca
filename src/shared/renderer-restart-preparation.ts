@@ -2,7 +2,11 @@ import {
   ORCA_EDITOR_PREPARE_HOT_EXIT_EVENT,
   type EditorPrepareHotExitDetail
 } from './editor-save-events'
-import { ORCA_RENDERER_SHUTDOWN_CHECKPOINT_FAILED_EVENT } from './renderer-shutdown-events'
+import {
+  consumeShutdownCheckpointFailureReason,
+  ORCA_RENDERER_SHUTDOWN_CHECKPOINT_ABORTED_EVENT,
+  ORCA_RENDERER_SHUTDOWN_CHECKPOINT_FAILED_EVENT
+} from './renderer-shutdown-events'
 import type { UpdateStatus } from './update-status-types'
 
 export type AppRestartPrepOptions = {
@@ -29,8 +33,7 @@ function requestEditorHotExitBackup(eventTarget: EventTarget): Promise<void> {
       })
     )
 
-    // Why: restart paths can run before the editor autosave controller mounts.
-    // With no claimant, there are no renderer-owned dirty buffers to back up.
+    // Before autosave mounts, no claimant means no renderer-owned dirty buffers to back up.
     if (!claimed) {
       resolve()
     }
@@ -42,10 +45,10 @@ export async function prepareRendererForAppRestart(
   { startedEventName, abortedEventName, awaitCheckpoint }: AppRestartPrepOptions
 ): Promise<void> {
   eventTarget.dispatchEvent(new Event(startedEventName))
+  let checkpointFailed = false
 
   try {
     await requestEditorHotExitBackup(eventTarget)
-    let checkpointFailed = false
     const markCheckpointFailed = (): void => {
       checkpointFailed = true
     }
@@ -63,13 +66,23 @@ export async function prepareRendererForAppRestart(
       )
     }
     if (checkpointFailed) {
-      throw new Error('Renderer shutdown checkpoint was not completed.')
+      // The guard swallows persist errors; its out-of-band reason gives the update dialog the actual cause.
+      const reason = consumeShutdownCheckpointFailureReason()
+      throw new Error(
+        reason
+          ? `Renderer shutdown checkpoint was not completed: ${reason}`
+          : 'Renderer shutdown checkpoint was not completed.'
+      )
     }
-    // Why: the checkpoint only stages synchronously. Navigating before that
-    // write lands loses the session snapshot to a crash or power loss.
+    // Await durability: synchronous checkpoint staging alone cannot survive a crash or power loss.
     await awaitCheckpoint()
   } catch (error) {
-    eventTarget.dispatchEvent(new Event(abortedEventName))
+    // Preserve the retry-then-degrade budget for the next user restart attempt.
+    eventTarget.dispatchEvent(
+      new Event(
+        checkpointFailed ? ORCA_RENDERER_SHUTDOWN_CHECKPOINT_ABORTED_EVENT : abortedEventName
+      )
+    )
     throw error
   }
 }
@@ -99,8 +112,7 @@ export function createUpdaterQuitAbortRelay(
     },
     abort,
     handleStatus(status): void {
-      // Why: quitAndInstall IPC resolves after scheduling; a later updater
-      // error is the authoritative signal that the app will remain open.
+      // quitAndInstall only schedules work; a later updater error means the app remains open.
       if (status.state === 'error') {
         abort()
       }

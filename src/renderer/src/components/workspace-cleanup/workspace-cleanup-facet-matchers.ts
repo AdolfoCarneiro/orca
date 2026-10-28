@@ -42,8 +42,7 @@ export function matchesWorkspaceCleanupActivity(
     return true
   }
   const signalAt = getIdleSignalAt(facets, filter)
-  // Why: a missing signal means Orca has no evidence of recent use, so it
-  // reads as maximally idle rather than being filtered out.
+  // Missing activity evidence means maximally idle, not excluded.
   return signalAt === null || now - signalAt >= filter.idleMinDays * WORKSPACE_CLEANUP_DAY_MS
 }
 
@@ -170,13 +169,7 @@ export function matchesWorkspaceCleanupSafety(
   facets: WorkspaceCleanupFacets,
   filter: WorkspaceCleanupSafetyFilter
 ): boolean {
-  if (filter.tiers.length > 0 && !filter.tiers.includes(facets.tier)) {
-    return false
-  }
   if (!matchesWorkspaceCleanupTriState(filter.dismissed, facets.isDismissed)) {
-    return false
-  }
-  if (filter.selectableOnly && !facets.isSelectable) {
     return false
   }
   if (filter.blockers.length === 0) {

@@ -1,17 +1,49 @@
 import { execFile } from 'node:child_process'
+import { assertWslDistroAllowed } from '@orca/process-host/wsl-distro-allowlist'
 import {
   buildWslCapturedLoginShellCommand,
   buildWslExecArgs
 } from '../../shared/wsl-login-shell-command'
+import { resolveWslInteropSpawnCwd } from '../wsl-interop-spawn-directory'
 
 export type WslGitReadEnvironment = { gitPath: string; home: string; path: string }
 
 const PROBE_TIMEOUT_MS = 10_000
+/** Bound cold-probe waits; reads fall back to the login shell while a wedged distro remains unresolved. */
+export const WSL_GIT_READ_ENVIRONMENT_WAIT_MS = 1_500
 const PROBE_MAX_BUFFER = 64 * 1024
 const TRANSIENT_PROBE_RETRY_MS = 30_000
+const MAX_WSL_GIT_READ_ENVIRONMENT_DISTROS = 128
 const environmentByDistro = new Map<string, Promise<WslGitReadEnvironment | null>>()
-const resolvedEnvironmentByDistro = new Map<string, WslGitReadEnvironment>()
+// Cache settled nulls so later reads skip the probe wait.
+const settledEnvironmentByDistro = new Map<string, WslGitReadEnvironment | null>()
 const transientRetryAfterByDistro = new Map<string, number>()
+
+function touchDistroState(distro: string): void {
+  const settled = settledEnvironmentByDistro.get(distro)
+  if (settledEnvironmentByDistro.has(distro)) {
+    settledEnvironmentByDistro.delete(distro)
+    settledEnvironmentByDistro.set(distro, settled ?? null)
+  }
+  while (settledEnvironmentByDistro.size > MAX_WSL_GIT_READ_ENVIRONMENT_DISTROS) {
+    const oldest = settledEnvironmentByDistro.keys().next().value
+    if (oldest === undefined) {
+      break
+    }
+    settledEnvironmentByDistro.delete(oldest)
+    environmentByDistro.delete(oldest)
+    transientRetryAfterByDistro.delete(oldest)
+  }
+  while (environmentByDistro.size > MAX_WSL_GIT_READ_ENVIRONMENT_DISTROS) {
+    const oldest = environmentByDistro.keys().next().value
+    if (oldest === undefined) {
+      break
+    }
+    environmentByDistro.delete(oldest)
+    settledEnvironmentByDistro.delete(oldest)
+    transientRetryAfterByDistro.delete(oldest)
+  }
+}
 
 type ProbeOutcome =
   | { kind: 'resolved'; environment: WslGitReadEnvironment }
@@ -49,15 +81,23 @@ function probeWslGitReadEnvironment(distro: string): Promise<ProbeOutcome> {
     `printf '%s\\0%s\\0%s' "$PATH" "$_orca_git_path" "$HOME"`
   ].join('\n')
   const captured = buildWslCapturedLoginShellCommand(probeCommand)
+  const args = buildWslExecArgs(distro, ['sh', '-lc', captured.command])
   return new Promise((resolve) => {
+    try {
+      assertWslDistroAllowed('wsl.exe', args)
+    } catch {
+      resolve({ kind: 'rejected' })
+      return
+    }
     execFile(
       'wsl.exe',
-      buildWslExecArgs(distro, ['sh', '-lc', captured.command]),
+      args,
       {
         encoding: 'utf8',
         maxBuffer: PROBE_MAX_BUFFER,
         timeout: PROBE_TIMEOUT_MS,
-        windowsHide: true
+        windowsHide: true,
+        cwd: resolveWslInteropSpawnCwd()
       },
       (error, stdout) => {
         if (error) {
@@ -76,6 +116,7 @@ export function getWslGitReadEnvironment(distro: string): Promise<WslGitReadEnvi
   const retryAfter = transientRetryAfterByDistro.get(distro)
   if (retryAfter !== undefined && Date.now() >= retryAfter) {
     environmentByDistro.delete(distro)
+    settledEnvironmentByDistro.delete(distro)
     transientRetryAfterByDistro.delete(distro)
   }
   let environment = environmentByDistro.get(distro)
@@ -85,39 +126,52 @@ export function getWslGitReadEnvironment(distro: string): Promise<WslGitReadEnvi
         return outcome.kind === 'resolved' ? outcome.environment : null
       }
       if (outcome.kind === 'resolved') {
-        resolvedEnvironmentByDistro.set(distro, outcome.environment)
+        settledEnvironmentByDistro.set(distro, outcome.environment)
+        touchDistroState(distro)
         transientRetryAfterByDistro.delete(distro)
         return outcome.environment
       }
+      settledEnvironmentByDistro.set(distro, null)
+      touchDistroState(distro)
       if (outcome.kind === 'transient') {
         transientRetryAfterByDistro.set(distro, Date.now() + TRANSIENT_PROBE_RETRY_MS)
       }
       return null
     })
     environmentByDistro.set(distro, environment)
+    touchDistroState(distro)
   }
+  touchDistroState(distro)
   return environment
 }
 
-export function peekWslGitReadEnvironment(distro: string): WslGitReadEnvironment | undefined {
-  return resolvedEnvironmentByDistro.get(distro)
+/** null means no direct route; undefined means the probe has not settled. */
+export function peekWslGitReadEnvironment(
+  distro: string
+): WslGitReadEnvironment | null | undefined {
+  return settledEnvironmentByDistro.get(distro)
+}
+
+export function isWslGitReadEnvironmentSettled(distro: string): boolean {
+  return settledEnvironmentByDistro.has(distro)
 }
 
 export function invalidateWslGitReadEnvironment(distro: string): void {
   environmentByDistro.delete(distro)
-  resolvedEnvironmentByDistro.delete(distro)
+  settledEnvironmentByDistro.delete(distro)
   transientRetryAfterByDistro.delete(distro)
 }
 
 export function disableWslGitReadEnvironment(distro: string): void {
   environmentByDistro.set(distro, Promise.resolve(null))
-  resolvedEnvironmentByDistro.delete(distro)
+  settledEnvironmentByDistro.set(distro, null)
+  touchDistroState(distro)
   transientRetryAfterByDistro.delete(distro)
 }
 
 export function resetWslGitReadEnvironmentForTests(): void {
   environmentByDistro.clear()
-  resolvedEnvironmentByDistro.clear()
+  settledEnvironmentByDistro.clear()
   transientRetryAfterByDistro.clear()
 }
 
@@ -126,6 +180,7 @@ export function seedWslGitReadEnvironmentForTests(
   environment: WslGitReadEnvironment
 ): void {
   environmentByDistro.set(distro, Promise.resolve(environment))
-  resolvedEnvironmentByDistro.set(distro, environment)
+  settledEnvironmentByDistro.set(distro, environment)
+  touchDistroState(distro)
   transientRetryAfterByDistro.delete(distro)
 }

@@ -1,5 +1,6 @@
+import type { BrowserScreencastFrameMetadata } from '../../../../../shared/browser-screencast-protocol'
 import type { BrowserTabInfo } from '../../../../../shared/runtime-types'
-import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
+import type { RuntimeClientTarget } from '../../../../../shared/runtime-client-target'
 import type {
   RemoteBrowserOperationToken,
   RemoteBrowserStreamToken,
@@ -29,7 +30,11 @@ export type RemoteBrowserContextMenu = {
   selectionText: string
 }
 
+export const REMOTE_BROWSER_FIND_UNAVAILABLE_NOTICE_ID = 'remote-browser-find-unavailable'
+
 export type RemoteBrowserPaneNotice = {
+  // An ID lets the owner deduplicate and retract its notice.
+  id?: string
   kind: 'direct' | 'consequence'
   text: string
 }
@@ -51,8 +56,6 @@ export type PendingRemoteBrowserWheel = {
 export const WHEEL_DELTA_LINE = 1
 export const WHEEL_DELTA_PAGE = 2
 
-// The pane-owned effects the stream lifecycle calls back into: frame paint, viewport measurement,
-// and the store/tab-close decision for a page that is gone.
 export type RemoteBrowserStreamBridge = {
   applyTabInfo: (tab: Pick<BrowserTabInfo, 'url' | 'title'>) => void
   clearFrame: () => void
@@ -82,6 +85,13 @@ export function getRemoteBrowserMouseButton(button: number): 'left' | 'middle' |
     return 'right'
   }
   return null
+}
+
+/** Mouse back/forward buttons (DOM buttons 3 and 4) step the streamed page's history. */
+export function getRemoteBrowserHistoryMethod(
+  button: number
+): 'browser.back' | 'browser.forward' | null {
+  return button === 3 ? 'browser.back' : button === 4 ? 'browser.forward' : null
 }
 
 export function buildRemoteContextMenuExpression(x: number, y: number): string {
@@ -142,6 +152,64 @@ export function readRemoteCssViewportSize(result: unknown): RemoteBrowserViewpor
     return width && height ? { width, height } : null
   } catch {
     return null
+  }
+}
+
+// A later screencast subscriber can resize the shared page; trust per-frame dimensions once they diverge from our requested viewport, including during resize.
+export function resolveRemoteBrowserCssViewport(input: {
+  cssViewportSize: RemoteBrowserViewportSize | null
+  requestedViewportSize: RemoteBrowserViewportSize | null
+  frameMetadata: BrowserScreencastFrameMetadata | null
+  naturalSize: RemoteBrowserViewportSize
+}): RemoteBrowserViewportSize {
+  const deviceWidth = getPositiveFiniteNumber(input.frameMetadata?.deviceWidth)
+  const deviceHeight = getPositiveFiniteNumber(input.frameMetadata?.deviceHeight)
+  const requestedWidth = getPositiveFiniteNumber(input.requestedViewportSize?.width)
+  const requestedHeight = getPositiveFiniteNumber(input.requestedViewportSize?.height)
+  const framesMatchRequest =
+    (deviceWidth === null || requestedWidth === null || deviceWidth === requestedWidth) &&
+    (deviceHeight === null || requestedHeight === null || deviceHeight === requestedHeight)
+  if (!framesMatchRequest) {
+    return {
+      width: deviceWidth ?? input.naturalSize.width,
+      height: deviceHeight ?? input.naturalSize.height
+    }
+  }
+  return {
+    width:
+      getPositiveFiniteNumber(input.cssViewportSize?.width) ??
+      requestedWidth ??
+      deviceWidth ??
+      input.naturalSize.width,
+    height:
+      getPositiveFiniteNumber(input.cssViewportSize?.height) ??
+      requestedHeight ??
+      deviceHeight ??
+      input.naturalSize.height
+  }
+}
+
+// Map through the letterboxed image rect; pane coordinates do not identify the drawn page pixel.
+export function mapRemoteBrowserClientPoint(input: {
+  clientX: number
+  clientY: number
+  frameRect: Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>
+  cssViewport: RemoteBrowserViewportSize
+}): RemoteBrowserImagePoint | null {
+  const { frameRect, cssViewport } = input
+  if (
+    frameRect.width <= 0 ||
+    frameRect.height <= 0 ||
+    cssViewport.width <= 0 ||
+    cssViewport.height <= 0
+  ) {
+    return null
+  }
+  const x = ((input.clientX - frameRect.left) / frameRect.width) * cssViewport.width
+  const y = ((input.clientY - frameRect.top) / frameRect.height) * cssViewport.height
+  return {
+    x: Math.round(Math.min(cssViewport.width, Math.max(0, x))),
+    y: Math.round(Math.min(cssViewport.height, Math.max(0, y)))
   }
 }
 

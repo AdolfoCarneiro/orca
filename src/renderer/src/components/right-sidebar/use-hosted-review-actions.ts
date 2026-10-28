@@ -1,3 +1,5 @@
+import { gitLabApiFor } from '@/runtime/gitlab-owner-api'
+import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
@@ -12,6 +14,7 @@ import {
 } from './hosted-review-github-actions'
 import { translate } from '@/i18n/i18n'
 import { buildGitHubPRStackMergeConfirmation } from './github-pr-stack-confirmation'
+import { useReadyHostedReviewAction } from './use-ready-hosted-review-action'
 
 export type HostedReviewActionInfo = Pick<
   HostedReviewInfo,
@@ -50,10 +53,12 @@ export function useHostedReviewActions({
   onRefreshReview: () => Promise<void>
 }): {
   merging: boolean
+  readying: boolean
   stateUpdating: 'open' | 'closed' | null
   actionError: string | null
   handleMerge: (method?: GitHubPRMergeMethod) => Promise<void>
   handleAutoMerge: () => Promise<void>
+  handleMarkReadyForReview: () => Promise<void>
   handleCloseReview: () => Promise<void>
   handleReopenReview: () => Promise<void>
 } {
@@ -61,6 +66,16 @@ export function useHostedReviewActions({
   const [merging, setMerging] = useState(false)
   const [stateUpdating, setStateUpdating] = useState<'open' | 'closed' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const { readying, handleMarkReadyForReview } = useReadyHostedReviewAction({
+    reviewNumber: review.number,
+    githubPR,
+    repo,
+    isGitLab,
+    shortLabel,
+    reviewLabel,
+    onRefreshReview,
+    setActionError
+  })
 
   const handleMerge = useCallback(
     async (method: GitHubPRMergeMethod = defaultMergeMethod) => {
@@ -83,7 +98,10 @@ export function useHostedReviewActions({
       setActionError(null)
       try {
         const result = isGitLab
-          ? await window.api.gl.mergeMR({
+          ? await gitLabApiFor({
+              repoPath: repo.path,
+              repoOwnerExecutionHostId: getRepoExecutionHostId(repo)
+            }).mergeMR({
               repoPath: repo.path,
               repoId: repo.id,
               iid: review.number,
@@ -137,6 +155,8 @@ export function useHostedReviewActions({
       })
       if (!result.ok) {
         setActionError(result.error)
+        // Refresh stale eligibility without replacing the provider's mutation error.
+        await onRefreshReview().catch(() => {})
       } else {
         await onRefreshReview()
       }
@@ -186,12 +206,18 @@ export function useHostedReviewActions({
       try {
         const result = isGitLab
           ? isClosing
-            ? await window.api.gl.closeMR({
+            ? await gitLabApiFor({
+                repoPath: repo.path,
+                repoOwnerExecutionHostId: getRepoExecutionHostId(repo)
+              }).closeMR({
                 repoPath: repo.path,
                 repoId: repo.id,
                 iid: review.number
               })
-            : await window.api.gl.reopenMR({
+            : await gitLabApiFor({
+                repoPath: repo.path,
+                repoOwnerExecutionHostId: getRepoExecutionHostId(repo)
+              }).reopenMR({
                 repoPath: repo.path,
                 repoId: repo.id,
                 iid: review.number
@@ -253,10 +279,12 @@ export function useHostedReviewActions({
 
   return {
     merging,
+    readying,
     stateUpdating,
     actionError,
     handleMerge,
     handleAutoMerge,
+    handleMarkReadyForReview,
     handleCloseReview,
     handleReopenReview
   }

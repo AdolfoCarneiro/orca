@@ -38,8 +38,7 @@ export function WorkspaceCleanupBrowseToolbar({
   onRunSpaceScan: () => void
   onToggleSelectAll: (selectAll: boolean) => void
 }): React.JSX.Element {
-  // Why: this toolbar re-renders per keystroke and per streaming tick; the
-  // group comparisons must not rerun unless the filter state itself changed.
+  // Filter-group comparisons must ignore keystroke/stream rerenders until filters themselves change.
   const activeFacetGroupCount = React.useMemo(
     () => listActiveWorkspaceCleanupFacetGroups(browse.filters).length,
     [browse.filters]
@@ -71,6 +70,7 @@ export function WorkspaceCleanupBrowseToolbar({
         gitEvidence={{ pendingCount: gitPendingCount, totalCount: gitCheckedTotal }}
         onQueryChange={(query) => browse.patchFilters('query', query)}
         onClearFilters={browse.clearFilters}
+        onClearAppliedFilter={(filter) => browse.replaceFilters(filter.clear)}
       />
       <WorkspaceCleanupSortHeader
         sort={browse.sort}

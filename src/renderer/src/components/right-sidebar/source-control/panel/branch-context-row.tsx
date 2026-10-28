@@ -1,21 +1,19 @@
 import React from 'react'
 import { ExternalLink, Loader2, RefreshCw } from 'lucide-react'
 import type { GitBranchCompareSummary } from '../../../../../../shared/git-diff-compare-types'
-import type {
-  GitBranchLineTotal,
-  GitUpstreamStatus
-} from '../../../../../../shared/git-status-types'
+import type { GitBranchLineTotal } from '../../../../../../shared/git-status-types'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { DetachedHeadBadge } from '@/components/DetachedHeadBadge'
-import type { WorktreeGitIdentityDisplay } from '@/lib/worktree-git-identity-display'
+import type { WorktreeGitIdentityDisplay } from '../../../../../../shared/worktree/git-identity-display'
 import { SourceControlHeaderIconButton } from './header-icon-button'
 import { SourceControlBranchLineTotalChip } from './branch-line-total-chip'
 import {
-  buildSourceControlBranchContextStats,
+  buildSourceControlCompareBaseStats,
   formatSourceControlRefLabel,
-  resolveSourceControlDisplayedBaseRef
+  resolveSourceControlDisplayedBaseRef,
+  type SourceControlBranchContextStat
 } from './branch-context-stats'
 
 function BaseRefButton({
@@ -47,24 +45,18 @@ function BaseRefButton({
   )
 }
 
-function ContextStat({
-  stat
-}: {
-  stat: ReturnType<typeof buildSourceControlBranchContextStats>[number]
-}): React.JSX.Element {
-  const className = cn(
-    'shrink-0 tabular-nums text-muted-foreground',
-    stat.tone === 'muted' && 'text-muted-foreground/70'
-  )
-
-  if (!stat.title) {
-    return <span className={className}>{stat.label}</span>
-  }
-
+function ContextStat({ stat }: { stat: SourceControlBranchContextStat }): React.JSX.Element {
+  // Make stats focusable so screen readers announce their base and keyboard users can open the tooltip.
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={className}>{stat.label}</span>
+        <span
+          className="shrink-0 rounded-sm tabular-nums text-muted-foreground/70 outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          tabIndex={0}
+          aria-label={stat.title}
+        >
+          {stat.label}
+        </span>
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6}>
         {stat.title}
@@ -126,10 +118,7 @@ function HeadIdentity({ display }: { display: WorktreeGitIdentityDisplay }): Rea
     { value0: display.branchName }
   )
 
-  // Why: focusable + tooltip so truncated long branch names stay discoverable.
-  // Native title omitted — Radix Tooltip already surfaces the full name on hover.
-  // `block` is load-bearing: `truncate` clips nothing on an inline box, so an
-  // inline span here let long names run under the line-total chip.
+  // Keep full refs keyboard-discoverable; block layout lets truncate clip long names before they overlap totals.
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -214,8 +203,7 @@ function BaseLine({
   )
 }
 
-// Why: stacked head / → base (option B) so long branch names fit narrow sidebars
-// without truncating both sides of a single-line head→base pair.
+// Stack head and base so narrow sidebars do not truncate both refs on one line.
 function StackedCompareFlow({
   headDisplay,
   baseRef,
@@ -244,8 +232,7 @@ function StackedCompareFlow({
         changeBaseTitle={changeBaseTitle}
         showArrow={false}
         leading={leading}
-        // Why: no head line exists to host it, so fold it onto the base line
-        // rather than dropping it.
+        // Without a head line, retain its trailing content on the base line.
         trailing={
           <>
             {headTrailing}
@@ -258,10 +245,8 @@ function StackedCompareFlow({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-      {/* Why: the line total belongs beside HEAD — it measures this branch's work.
-          The base line keeps the commit count, which measures the comparison. */}
-      {/* Why: gap-2 (not gap-1.5) — an ellipsis butting against the colored
-          counts reads as part of the branch name. */}
+      {/* Place branch line totals beside HEAD; base-line commit counts measure comparison state. */}
+      {/* Use gap-2 so colored counts do not read as part of an ellipsized branch name. */}
       <div className="flex min-w-0 items-center gap-2">
         <span className="flex min-w-0 flex-1 items-center">
           <HeadIdentity display={headDisplay} />
@@ -286,7 +271,6 @@ export function SourceControlBranchContextRow({
   summary,
   compareBaseRef,
   headDisplay = null,
-  upstreamStatus,
   manualReviewUrl,
   branchLineTotal,
   onChangeBaseRef,
@@ -295,7 +279,6 @@ export function SourceControlBranchContextRow({
   summary: GitBranchCompareSummary | null
   compareBaseRef: string | null
   headDisplay?: WorktreeGitIdentityDisplay | null
-  upstreamStatus?: GitUpstreamStatus
   manualReviewUrl?: string | null
   branchLineTotal?: GitBranchLineTotal | null
   onChangeBaseRef: () => void
@@ -303,8 +286,7 @@ export function SourceControlBranchContextRow({
 }): React.JSX.Element | null {
   const displayedBaseRef = resolveSourceControlDisplayedBaseRef(summary, compareBaseRef)
 
-  // Why: no base → still show HEAD identity so branch/detached never vanish when
-  // compare isn't configured (replaces the separate identity row from #10215).
+  // Retain head/detached identity without a compare base, replacing the separate identity row (#10215).
   if (!displayedBaseRef) {
     if (!headDisplay) {
       return null
@@ -392,23 +374,8 @@ export function SourceControlBranchContextRow({
     )
   }
 
-  const stats = buildSourceControlBranchContextStats({
-    summary,
-    baseRef: displayedBaseRef,
-    upstreamStatus
-  })
-
-  const trailing = (
-    <>
-      {stats.length > 0 ? (
-        <span className="inline-flex shrink-0 items-center gap-1.5">
-          {stats.map((stat) => (
-            <ContextStat key={stat.key} stat={stat} />
-          ))}
-        </span>
-      ) : null}
-      <ManualReviewLinkButton url={manualReviewUrl} />
-    </>
+  const compareStatNodes = buildSourceControlCompareBaseStats(summary, displayedBaseRef).map(
+    (stat) => <ContextStat key={stat.key} stat={stat} />
   )
 
   return (
@@ -419,7 +386,12 @@ export function SourceControlBranchContextRow({
         baseLabel={baseLabel}
         onChangeBaseRef={onChangeBaseRef}
         changeBaseTitle={changeBaseTitle}
-        trailing={trailing}
+        trailing={
+          <>
+            {compareStatNodes}
+            <ManualReviewLinkButton url={manualReviewUrl} />
+          </>
+        }
         headTrailing={<SourceControlBranchLineTotalChip branchLineTotal={branchLineTotal} />}
       />
     </CompareFlowGroup>

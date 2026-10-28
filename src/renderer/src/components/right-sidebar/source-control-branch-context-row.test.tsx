@@ -39,7 +39,6 @@ describe('SourceControlBranchContextRow', () => {
       />
     )
 
-    // Display drops refs/remotes/; full ref stays in the title attribute.
     expect(markup).toContain('origin/FRONT-192-ZisVoucherStrip')
     expect(markup).toContain('refs/remotes/origin/FRONT-192-ZisVoucherStrip')
     expect(markup).toContain('max-w-full')
@@ -63,7 +62,6 @@ describe('SourceControlBranchContextRow', () => {
     expect(headIndex).toBeGreaterThan(-1)
     expect(arrowIndex).toBeGreaterThan(headIndex)
     expect(baseIndex).toBeGreaterThan(arrowIndex)
-    // Stacked column, not a single-line head→base pair.
     expect(markup).toContain('flex-col')
     expect(markup).not.toContain('>vs<')
     expect(markup).toContain(
@@ -208,6 +206,40 @@ describe('SourceControlBranchContextRow', () => {
     expect(markup).toContain('Retry')
   })
 
+  // Post-rebase upstream may still name the old branch; this count must measure and label the compare base.
+  it('counts commits against the compare base, on the base line', () => {
+    const markup = renderToStaticMarkup(
+      <SourceControlBranchContextRow
+        summary={{ ...readySummary, baseRef: 'refs/remotes/origin/main', commitsAhead: 5 }}
+        compareBaseRef={null}
+        headDisplay={{ kind: 'branch', branchName: 'feature/rebased' }}
+        onChangeBaseRef={vi.fn()}
+        onRetry={vi.fn()}
+      />
+    )
+
+    // Anchor on the base button because the earlier group aria-label repeats the ref.
+    const baseIndex = markup.indexOf('aria-label="Change base ref:')
+    expect(markup.indexOf('↑5')).toBeGreaterThan(baseIndex)
+    expect(markup).toContain('aria-label="5 commits ahead of origin/main"')
+    expect(markup).not.toContain('↓')
+  })
+
+  it('shows the count on the base line when there is no head identity', () => {
+    const markup = renderToStaticMarkup(
+      <SourceControlBranchContextRow
+        summary={{ ...readySummary, commitsAhead: 3 }}
+        compareBaseRef={null}
+        headDisplay={null}
+        onChangeBaseRef={vi.fn()}
+        onRetry={vi.fn()}
+      />
+    )
+
+    expect(markup).toContain('↑3')
+    expect(markup).toContain('aria-label="3 commits ahead of origin/FRONT-192-ZisVoucherStrip"')
+  })
+
   it('renders a compact external review link when a manual URL is available', () => {
     const markup = renderToStaticMarkup(
       <SourceControlBranchContextRow
@@ -246,17 +278,15 @@ describe('SourceControlBranchContextRow branch line total', () => {
 
     expect(markup).toContain('+8,259')
     expect(markup).toContain('-670')
-    // Label reads raw digits; the grouped spans are decoration.
     expect(markup).toContain('aria-label="8259 lines added, 670 lines deleted"')
     expect(markup).toContain('tabular-nums')
     expect(markup).toContain('text-[color:var(--git-decoration-added)]')
     expect(markup).toContain('text-[color:var(--git-decoration-deleted)]')
-    // Not clickable in v1 — the chip's scope differs from openBranchAllDiffs.
+    // The chip's scope differs from openBranchAllDiffs, so it has no click action.
     expect(markup).not.toContain('<button type="button" data-testid="source-control-branch')
   })
 
-  // `truncate` clips nothing on an inline box, so an inline head identity let a
-  // long branch name overflow its flex item and run under the chip.
+  // Truncate needs a block box; inline branch names would overflow beneath the chip.
   it('gives the head identity a block box so long names ellipsize instead of overlapping', () => {
     const markup = renderToStaticMarkup(
       <SourceControlBranchContextRow
@@ -309,8 +339,7 @@ describe('SourceControlBranchContextRow branch line total', () => {
   })
 
   it('renders nothing at all when the total is absent', () => {
-    // Why: a null total is equally "still computing" and "this host will never
-    // send one", so there is no placeholder to show — the slot stays empty.
+    // Absent totals may never arrive from older hosts; leave no indefinite pending placeholder.
     for (const total of [null, undefined]) {
       const markup = renderWithLineTotal(total)
       expect(markup).not.toContain('data-testid="source-control-branch-line-total"')
@@ -319,35 +348,32 @@ describe('SourceControlBranchContextRow branch line total', () => {
     }
   })
 
-  // Lines measure the branch's work, commits measure the comparison, so each sits
-  // on the line that names its subject. Adjacency is what made them read as one
-  // number in the first place.
-  it('puts the chip on the head line, ahead of the base line and its commit count', () => {
-    const markup = renderWithLineTotal(
-      { added: 8259, removed: 670, mergeBase: 'base' },
-      {
-        ...readySummary,
-        commitsAhead: 2
-      }
-    )
-    const headIndex = markup.indexOf('data-testid="source-control-head-identity"')
-    const chipIndex = markup.indexOf('data-testid="source-control-branch-line-total"')
-    const aheadIndex = markup.indexOf('↑2')
-    const reviewIndex = markup.indexOf('aria-label="Open review page in browser"')
-
-    expect(headIndex).toBeGreaterThan(-1)
-    expect(chipIndex).toBeGreaterThan(headIndex)
-    expect(aheadIndex).toBeGreaterThan(chipIndex)
-    expect(reviewIndex).toBeGreaterThan(aheadIndex)
-  })
-
-  it('keeps the ahead count out of the line-total colors', () => {
+  // Without upstream divergence, this is the only remaining count for a pushed rebased branch.
+  it('counts commits against the compare base on the base line', () => {
     const markup = renderWithLineTotal(
       { added: 8259, removed: 670, mergeBase: 'base' },
       { ...readySummary, commitsAhead: 2 }
     )
-    // The `↑2` span must carry the muted class, not added-green — two adjacent
-    // green numbers counting different units is the bug this guards.
+
+    expect(markup).toContain('↑2')
+    expect(markup).toContain('2 commits ahead of origin/FRONT-192-ZisVoucherStrip')
+    expect(markup.indexOf('↑2')).toBeGreaterThan(markup.indexOf('aria-label="Change base ref:'))
+    expect(markup).not.toContain('↓')
+  })
+
+  it('keeps the commit count out of the line-total colors', () => {
+    const markup = renderToStaticMarkup(
+      <SourceControlBranchContextRow
+        summary={{ ...readySummary, commitsAhead: 2 }}
+        compareBaseRef={null}
+        headDisplay={{ kind: 'branch', branchName: 'feature/line-total' }}
+        branchLineTotal={{ added: 8259, removed: 670, mergeBase: 'base' }}
+        onChangeBaseRef={vi.fn()}
+        onRetry={vi.fn()}
+      />
+    )
+
+    // Two adjacent green numbers counting different units is the bug this guards.
     const aheadSpan = markup.slice(
       markup.lastIndexOf('<span', markup.indexOf('↑2')),
       markup.indexOf('↑2')
@@ -392,8 +418,7 @@ describe('SourceControlBranchContextRow branch line total', () => {
   })
 })
 
-// The hover-card mock at the top renders content inline, so these assert the
-// breakdown copy without driving a real hover.
+// The hover-card mock renders inline, allowing copy assertions without hover events.
 describe('SourceControlBranchContextRow line total test split', () => {
   it('breaks the panel down into test and non-test halves', () => {
     const markup = renderWithLineTotal({
@@ -412,7 +437,6 @@ describe('SourceControlBranchContextRow line total test split', () => {
     expect(markup).toContain('Tests')
     expect(markup).toContain('>+120<')
     expect(markup).toContain('>-40<')
-    // Non-test first so the primary share leads the panel.
     expect(markup.indexOf('Non-test')).toBeLessThan(markup.indexOf('Tests'))
   })
 
@@ -446,8 +470,7 @@ describe('SourceControlBranchContextRow line total test split', () => {
     expect(markup).not.toContain('test code:')
   })
 
-  // A host predating the split omits the field; inventing a 0% test share there
-  // would be a confidently wrong claim.
+  // Older hosts omit the split; absence must not imply a measured zero-percent test share.
   it('renders exactly as before when the host reported no split', () => {
     const withoutSplit = renderWithLineTotal({ added: 243, removed: 149, mergeBase: 'base' })
 
@@ -468,8 +491,8 @@ describe('SourceControlBranchContextRow line total test split', () => {
     expect(markup).toContain('Source')
     expect(markup).not.toContain('Non-test')
     expect(markup).toContain('Generated')
-    expect(markup).toContain('>+123<') // 243-20-100
-    expect(markup).toContain('>-89<') // 149-10-50
+    expect(markup).toContain('>+123<')
+    expect(markup).toContain('>-89<')
     expect(markup).toContain('>+100<')
     expect(markup).toContain('>-50<')
     expect(markup).toContain(
@@ -477,8 +500,7 @@ describe('SourceControlBranchContextRow line total test split', () => {
     )
   })
 
-  // The remainder here still contains tests, so calling it "Source" would claim
-  // a split the host never sent.
+  // Without a test split, the remainder may include tests and cannot be called Source.
   it('labels the remainder Non-generated when the host omitted the test field', () => {
     const markup = renderWithLineTotal({
       added: 243,
@@ -491,12 +513,11 @@ describe('SourceControlBranchContextRow line total test split', () => {
     expect(markup).toContain('>Generated<')
     expect(markup).not.toContain('>Source<')
     expect(markup).not.toContain('Tests')
-    expect(markup).toContain('>+143<') // 243-100
-    expect(markup).toContain('>-99<') // 149-50
+    expect(markup).toContain('>+143<')
+    expect(markup).toContain('>-99<')
   })
 
-  // "No tests in this branch" is worth stating; "nothing was generated" is the
-  // normal case, so that row is dropped rather than shown as +0 -0.
+  // Keep measured zero-test rows; omit zero-generated rows, which are the normal case.
   it('drops the generated row and its announcement when nothing was generated', () => {
     const markup = renderWithLineTotal({
       added: 243,
@@ -508,7 +529,6 @@ describe('SourceControlBranchContextRow line total test split', () => {
 
     expect(markup).not.toContain('Generated')
     expect(markup).not.toContain('generated:')
-    // The host did classify and found nothing, so the remainder is still Source.
     expect(markup).toContain('Source')
     expect(markup).toContain('Tests')
     expect(markup).toContain('>+123<')
@@ -528,7 +548,6 @@ describe('SourceControlBranchContextRow line total test split', () => {
     expect(markup).toContain('>+1,000<')
   })
 
-  // The three rows must account for every line, or the panel contradicts the chip.
   it('keeps the three rows summing back to the chip total', () => {
     const markup = renderWithLineTotal({
       added: 500,
@@ -538,8 +557,8 @@ describe('SourceControlBranchContextRow line total test split', () => {
       generated: { added: 300, removed: 100 }
     })
 
-    expect(markup).toContain('>+50<') // 500-150-300
-    expect(markup).toContain('>-40<') // 200-60-100
+    expect(markup).toContain('>+50<')
+    expect(markup).toContain('>-40<')
     expect(markup).toContain('>+150<')
     expect(markup).toContain('>+300<')
   })

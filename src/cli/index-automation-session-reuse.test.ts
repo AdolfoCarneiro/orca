@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const {
   callMock,
@@ -41,10 +41,22 @@ vi.mock('child_process', async () => {
 })
 
 import { main } from './index'
-import { buildWorktree, okFixture, queueFixtures, worktreeListFixture } from './test-fixtures'
+import {
+  buildWorktree,
+  okFixture,
+  queueFixtures,
+  workspaceDestinationFixtures,
+  worktreeListFixture
+} from './test-fixtures'
 import { useWorktreeAwarenessEnvironment } from './index-test-harness'
 
 describe('orca cli worktree awareness', () => {
+  const originalExitCode = process.exitCode
+
+  afterEach(() => {
+    process.exitCode = originalExitCode
+  })
+
   useWorktreeAwarenessEnvironment({
     callMock,
     serveOrcaAppMock,
@@ -58,9 +70,11 @@ describe('orca cli worktree awareness', () => {
     queueFixtures(
       callMock,
       worktreeListFixture([buildWorktree('/tmp/repo/feature', 'feature/foo', 'abc', 'repo-1')]),
+      ...workspaceDestinationFixtures(),
       okFixture('req_create', {
         automation: { id: 'auto-1', name: 'Daily review' }
       }),
+      okFixture('req_edit_owner', { automation: { id: 'auto-1', name: 'Daily review' } }),
       okFixture('req_edit', {
         automation: { id: 'auto-1', name: 'Daily review' }
       })
@@ -92,7 +106,7 @@ describe('orca cli worktree awareness', () => {
       limit: 10_000
     })
     expect(callMock).toHaveBeenNthCalledWith(
-      2,
+      4,
       'automation.create',
       expect.objectContaining({
         workspace: 'id:repo-1::/tmp/repo/feature',
@@ -100,7 +114,8 @@ describe('orca cli worktree awareness', () => {
         reuseSession: true
       })
     )
-    expect(callMock).toHaveBeenNthCalledWith(3, 'automation.update', {
+    expect(callMock).toHaveBeenNthCalledWith(5, 'automation.show', { id: 'auto-1' })
+    expect(callMock).toHaveBeenNthCalledWith(6, 'automation.update', {
       id: 'auto-1',
       updates: expect.objectContaining({ reuseSession: false })
     })
@@ -108,8 +123,6 @@ describe('orca cli worktree awareness', () => {
 
   it('rejects conflicting automation session reuse flags', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const priorExitCode = process.exitCode
 
     await main(
       ['automations', 'edit', 'auto-1', '--reuse-session', '--fresh-session', '--json'],
@@ -117,11 +130,14 @@ describe('orca cli worktree awareness', () => {
     )
 
     expect(callMock).not.toHaveBeenCalled()
-    expect([...logSpy.mock.calls, ...errSpy.mock.calls].flat().join('\n')).toContain(
-      'Use either --reuse-session or --fresh-session, not both.'
-    )
+    expect(logSpy).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(String(logSpy.mock.calls[0]?.[0]))).toMatchObject({
+      ok: false,
+      error: {
+        code: 'invalid_argument',
+        message: expect.stringContaining('Use either --reuse-session or --fresh-session, not both.')
+      }
+    })
     expect(process.exitCode).toBe(1)
-
-    process.exitCode = priorExitCode
   })
 })

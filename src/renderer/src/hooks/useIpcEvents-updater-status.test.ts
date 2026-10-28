@@ -54,6 +54,7 @@ describe('useIpcEvents updater integration', () => {
           setSshConnectionState: vi.fn(),
           setSshTargetLabels: vi.fn(),
           setPortForwards: vi.fn(),
+          setUnrestoredPortForwards: vi.fn(),
           clearPortForwards: vi.fn(),
           setDetectedPorts: vi.fn(),
           enqueueSshCredentialRequest: vi.fn(),
@@ -89,6 +90,7 @@ describe('useIpcEvents updater integration', () => {
     vi.stubGlobal('window', {
       api: {
         repos: { onChanged: () => () => {} },
+        automations: { onChanged: () => () => {} },
         worktrees: {
           onChanged: () => () => {},
           onBaseStatus: () => () => {},
@@ -113,6 +115,10 @@ describe('useIpcEvents updater integration', () => {
           onActivateWorktree: () => () => {},
           onCreateTerminal: () => () => {},
           onRequestTerminalCreate: () => () => {},
+          onPublishAgentLaunchTab: () => () => {},
+          onRevealTerminalPane: () => () => {},
+          onAgentLaunchPaneVerdict: () => () => {},
+          onLaunchRecipe: () => () => {},
           onRequestTerminalTabMount: () => () => {},
           replyTerminalCreate: () => {},
           onSplitTerminal: () => () => {},
@@ -126,24 +132,20 @@ describe('useIpcEvents updater integration', () => {
           onOpenFileFromMobile: () => () => {},
           onOpenDiffFromMobile: () => () => {},
           onCloseTerminal: () => () => {},
-          onSleepWorktree: () => () => {},
+          onWorkspaceSleep: () => () => {},
           onResumeSleepingAgents: () => () => {},
-          onNewBrowserTab: () => () => {},
-          onNewMarkdownTab: () => () => {},
           onRequestTabCreate: () => () => {},
+          onRequestRemoteCliBrowserScope: () => () => {},
           replyTabCreate: () => {},
           onRequestTabClose: () => () => {},
           replyTabClose: () => {},
           onRequestTabSetProfile: () => () => {},
           replyTabSetProfile: () => {},
-          onNewTerminalTab: () => () => {},
           onCloseActiveTab: () => () => {},
           onCloseFloatingItem: () => () => {},
           onSelectFloatingIndex: () => () => {},
-          onSwitchTab: () => () => {},
-          onSwitchTabAcrossAllTypes: () => () => {},
+          onBrowserPageTabShortcut: () => () => {},
           onSwitchRecentTab: () => () => {},
-          onSwitchTerminalTab: () => () => {},
           onToggleStatusBar: () => () => {},
           onFullscreenChanged: () => () => {},
           onTerminalZoom: () => () => {},
@@ -164,6 +166,7 @@ describe('useIpcEvents updater integration', () => {
         browser: {
           onGuestLoadFailed: () => () => {},
           onOpenLinkInOrcaTab: () => () => {},
+          onSessionProfilesChanged: () => () => {},
           onNavigationUpdate: () => () => {},
           onActivateView: () => () => {},
           onPaneFocus: () => () => {}
@@ -178,11 +181,14 @@ describe('useIpcEvents updater integration', () => {
           getBrowserDrivers: () => Promise.resolve([]),
           onTerminalFitOverrideChanged: () => () => {},
           onTerminalDriverChanged: () => () => {},
-          onBrowserDriverChanged: () => () => {}
+          onBrowserDriverChanged: () => () => {},
+          onClientHostedBrowserRowsChanged: () => () => {},
+          getClientHostedBrowserRows: async () => []
         },
         ssh: {
           listTargets: () => Promise.resolve([]),
           listPortForwards: () => Promise.resolve([]),
+          listUnrestoredPortForwards: () => Promise.resolve([]),
           listDetectedPorts: () => Promise.resolve([]),
           getState: () => Promise.resolve(null),
           onStateChanged: () => () => {},
@@ -278,15 +284,17 @@ describe('useIpcEvents updater integration', () => {
     }))
     vi.doMock('@/lib/zoom-events', () => ({ dispatchZoomLevelChanged: vi.fn() }))
 
-    const makeEvents = (target: Record<string, unknown> = {}): Record<string, unknown> =>
+    const makeEvents = (
+      target: Record<string | symbol, unknown> = {}
+    ): Record<string | symbol, unknown> =>
       new Proxy(target, {
-        get: (namespace, prop) =>
-          prop in namespace ? Reflect.get(namespace, prop) : () => () => {}
+        get: (namespace, prop) => (prop in namespace ? namespace[prop] : () => () => {})
       })
 
     vi.stubGlobal('window', {
       api: {
         repos: makeEvents(),
+        automations: makeEvents(),
         worktrees: makeEvents(),
         keybindings: makeEvents(),
         settings: makeEvents(),
@@ -306,11 +314,14 @@ describe('useIpcEvents updater integration', () => {
           getBrowserDrivers: () => Promise.resolve([]),
           onTerminalFitOverrideChanged: () => () => {},
           onTerminalDriverChanged: () => () => {},
-          onBrowserDriverChanged: () => () => {}
+          onBrowserDriverChanged: () => () => {},
+          onClientHostedBrowserRowsChanged: () => () => {},
+          getClientHostedBrowserRows: async () => []
         },
         ssh: {
           listTargets: () => Promise.resolve([]),
           listPortForwards: () => Promise.resolve([]),
+          listUnrestoredPortForwards: () => Promise.resolve([]),
           listDetectedPorts: () => Promise.resolve([]),
           getState: () => Promise.resolve(null),
           onStateChanged: () => () => {},
@@ -325,8 +336,7 @@ describe('useIpcEvents updater integration', () => {
             onOpenSettingsRegistered = true
             return () => {}
           },
-          // Why: exercise the positive branch — an intent queued before mount is
-          // pulled once the renderer's onOpenSettings listener is attached.
+          // Consume Settings intent queued before listener attachment once mount registers it.
           consumePendingOpenSettings: () => Promise.resolve(true),
           getZoomLevel: () => 0,
           set: vi.fn()
@@ -337,7 +347,6 @@ describe('useIpcEvents updater integration', () => {
     const { useIpcEvents } = await import('./useIpcEvents')
 
     useIpcEvents()
-    // Why: the pending-intent pull is a Promise; flush microtasks before asserting.
     await Promise.resolve()
     await Promise.resolve()
 

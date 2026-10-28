@@ -22,17 +22,15 @@ export type CodexSessionBackfillPaths = {
 }
 
 export type CodexSessionBackfillOptions = CodexSessionBridgeIncrementalOptions & {
-  /** Polled before each target mutation; true stops with progress preserved. */
+  /** Polled between file mutations, preserving progress on opt-out. */
   shouldStop?: () => boolean
-  /** Limits a launch-triggered pass to the date directories that can contain its rollouts. */
   scanDates?: readonly CodexSessionBackfillDate[]
-  /** A scheduled launch pass must not be suppressed by a marker it just invalidated. */
+  fullScanRequired?: boolean
+  /** Scheduled launch passes still publish new rollouts when nothing is pending. */
   ignoreCompletionMarker?: boolean
-  /** Active launch passes defer global completion until their final exit scan. */
-  writeCompletionMarker?: boolean
-  /** Final launch scans can extend a previously certified full-tree baseline. */
-  writeBoundedCompletionMarker?: boolean
-  /** Rechecks launch scheduling state immediately before marker publication. */
+  /** Keep dates pending while a live pane can still write into them. */
+  retainPendingScanDates?: boolean
+  /** Recheck scheduling after async writes, before certifying completion. */
   canWriteCompletionMarker?: () => boolean
 }
 

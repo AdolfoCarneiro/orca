@@ -12,11 +12,10 @@ function scheduleNextFrame(callback: () => void): void {
 
 function resetAtlasesAndRefreshPanes(reason: string): void {
   try {
-    // Why: the glyph atlas is shared across same-config terminals, so the
-    // recovery reset must be followed by repainting each rebuilt render model.
+    // Shared atlas reset requires repainting every rebuilt render model.
     resetAndRefreshAllTerminalWebglAtlases(reason)
   } catch {
-    /* ignore - terminal pane may have unmounted after scheduling recovery */
+    // Scheduled recovery may outlive the pane.
   }
 }
 
@@ -28,14 +27,6 @@ function scheduleAtlasRecoveryBurst(reason: string): void {
 }
 
 export function scheduleImagePasteWebglAtlasRecovery(): void {
-  // Why: image chips can redraw after bracketed paste parsing, so cover the
-  // short post-paste paint window with a few cheap atlas rebuilds. Paste is a
-  // one-shot event, so recover immediately rather than debouncing.
+  // Image chips can repaint after paste parsing; cover that short window with bounded immediate atlas recovery.
   scheduleAtlasRecoveryBurst('image-paste')
-}
-
-export function scheduleTabRevealWebglAtlasRecovery(): void {
-  // Why: a tab reveal is an explicit renderer lifecycle boundary where hidden
-  // GPU state can be stale; ordinary PTY output must not clear the shared atlas.
-  scheduleAtlasRecoveryBurst('tab-reveal')
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const {
   callMock,
@@ -41,10 +41,23 @@ vi.mock('child_process', async () => {
 })
 
 import { main } from './index'
-import { buildWorktree, okFixture, queueFixtures, worktreeListFixture } from './test-fixtures'
+import {
+  buildWorktree,
+  localRepoDestinationFixtures,
+  okFixture,
+  queueFixtures,
+  workspaceDestinationFixtures,
+  worktreeListFixture
+} from './test-fixtures'
 import { pairRuntimeEnvironment, useWorktreeAwarenessEnvironment } from './index-test-harness'
 
 describe('orca cli worktree awareness', () => {
+  const originalExitCode = process.exitCode
+
+  afterEach(() => {
+    process.exitCode = originalExitCode
+  })
+
   useWorktreeAwarenessEnvironment({
     callMock,
     serveOrcaAppMock,
@@ -58,6 +71,7 @@ describe('orca cli worktree awareness', () => {
     queueFixtures(
       callMock,
       worktreeListFixture([buildWorktree('/tmp/repo/feature', 'feature/foo', 'abc', 'repo-1')]),
+      ...workspaceDestinationFixtures(),
       okFixture('req_automation_create', {
         automation: {
           id: 'auto-1',
@@ -105,9 +119,10 @@ describe('orca cli worktree awareness', () => {
     expect(callMock).toHaveBeenNthCalledWith(1, 'worktree.list', {
       limit: 10_000
     })
-    expect(callMock).toHaveBeenNthCalledWith(2, 'automation.create', {
+    expect(callMock).toHaveBeenNthCalledWith(4, 'automation.create', {
       name: 'Daily review',
       prompt: 'Review open changes',
+      precheck: undefined,
       agentId: 'codex',
       repo: undefined,
       workspace: 'id:repo-1::/tmp/repo/feature',
@@ -118,7 +133,8 @@ describe('orca cli worktree awareness', () => {
       enabled: undefined,
       missedRunGraceMinutes: undefined,
       rrule: 'FREQ=DAILY;BYHOUR=9;BYMINUTE=0',
-      dtstart: expect.any(Number)
+      dtstart: expect.any(Number),
+      destination: { selector: { kind: 'self' } }
     })
   })
 
@@ -154,6 +170,7 @@ describe('orca cli worktree awareness', () => {
           }
         ]
       }),
+      ...localRepoDestinationFixtures('repo-gpu'),
       okFixture('req_automation_create', {
         automation: { id: 'auto-1', name: 'GPU review' }
       })
@@ -184,7 +201,7 @@ describe('orca cli worktree awareness', () => {
     expect(runtimeClientConstructorMock).toHaveBeenCalledWith(null, 'gpu')
     expect(callMock).toHaveBeenNthCalledWith(1, 'projectHostSetup.list')
     expect(callMock).toHaveBeenNthCalledWith(
-      2,
+      3,
       'automation.create',
       expect.objectContaining({
         repo: 'id:repo-gpu',
@@ -221,6 +238,8 @@ describe('orca cli worktree awareness', () => {
           }
         ]
       }),
+      okFixture('req_edit_owner', { automation: { id: 'auto-1', name: 'GPU review' } }),
+      ...localRepoDestinationFixtures('repo-gpu'),
       okFixture('req_edit', {
         automation: { id: 'auto-1', name: 'GPU review' }
       })
@@ -234,7 +253,7 @@ describe('orca cli worktree awareness', () => {
 
     expect(callMock).toHaveBeenNthCalledWith(1, 'projectHostSetup.list')
     expect(callMock).toHaveBeenNthCalledWith(
-      2,
+      4,
       'automation.update',
       expect.objectContaining({
         id: 'auto-1',
@@ -255,8 +274,6 @@ describe('orca cli worktree awareness', () => {
 
   it('rejects automation create with both repo and workspace targets', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const priorExitCode = process.exitCode
 
     await main(
       [
@@ -280,18 +297,19 @@ describe('orca cli worktree awareness', () => {
     )
 
     expect(callMock).not.toHaveBeenCalled()
-    expect([...logSpy.mock.calls, ...errSpy.mock.calls].flat().join('\n')).toContain(
-      'Use either --repo or --workspace, not both.'
-    )
+    expect(logSpy).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(String(logSpy.mock.calls[0]?.[0]))).toMatchObject({
+      ok: false,
+      error: {
+        code: 'invalid_argument',
+        message: expect.stringContaining('Use either --repo or --workspace, not both.')
+      }
+    })
     expect(process.exitCode).toBe(1)
-
-    process.exitCode = priorExitCode
   })
 
   it('rejects automation edit with both repo and workspace targets', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const priorExitCode = process.exitCode
 
     await main(
       [
@@ -308,12 +326,15 @@ describe('orca cli worktree awareness', () => {
     )
 
     expect(callMock).not.toHaveBeenCalled()
-    expect([...logSpy.mock.calls, ...errSpy.mock.calls].flat().join('\n')).toContain(
-      'Use either --repo or --workspace, not both.'
-    )
+    expect(logSpy).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(String(logSpy.mock.calls[0]?.[0]))).toMatchObject({
+      ok: false,
+      error: {
+        code: 'invalid_argument',
+        message: expect.stringContaining('Use either --repo or --workspace, not both.')
+      }
+    })
     expect(process.exitCode).toBe(1)
-
-    process.exitCode = priorExitCode
   })
 
   it.each([
@@ -329,8 +350,6 @@ describe('orca cli worktree awareness', () => {
     }
   ])('rejects automation create --$flag with a string value', async ({ flag, value, message }) => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const priorExitCode = process.exitCode
 
     await main(
       [
@@ -354,16 +373,19 @@ describe('orca cli worktree awareness', () => {
     )
 
     expect(callMock).not.toHaveBeenCalled()
-    expect([...logSpy.mock.calls, ...errSpy.mock.calls].flat().join('\n')).toContain(message)
+    expect(logSpy).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(String(logSpy.mock.calls[0]?.[0]))).toMatchObject({
+      ok: false,
+      error: { code: 'invalid_argument', message: expect.stringContaining(message) }
+    })
     expect(process.exitCode).toBe(1)
-
-    process.exitCode = priorExitCode
   })
 
   it('resolves explicit automation create workspace active from cwd', async () => {
     queueFixtures(
       callMock,
       worktreeListFixture([buildWorktree('/tmp/repo/feature', 'feature/foo', 'abc', 'repo-1')]),
+      ...workspaceDestinationFixtures(),
       okFixture('req_automation_create', {
         automation: { id: 'auto-1', name: 'Daily review' }
       })
@@ -392,9 +414,10 @@ describe('orca cli worktree awareness', () => {
     expect(callMock).toHaveBeenNthCalledWith(1, 'worktree.list', {
       limit: 10_000
     })
-    expect(callMock).toHaveBeenNthCalledWith(2, 'automation.create', {
+    expect(callMock).toHaveBeenNthCalledWith(4, 'automation.create', {
       name: 'Daily review',
       prompt: 'Review open changes',
+      precheck: undefined,
       agentId: 'codex',
       repo: undefined,
       workspace: 'id:repo-1::/tmp/repo/feature',
@@ -404,7 +427,9 @@ describe('orca cli worktree awareness', () => {
       enabled: undefined,
       missedRunGraceMinutes: undefined,
       rrule: 'FREQ=DAILY;BYHOUR=9;BYMINUTE=0',
-      dtstart: expect.any(Number)
+      dtstart: expect.any(Number),
+      reuseSession: undefined,
+      destination: { selector: { kind: 'self' } }
     })
   })
 
@@ -412,6 +437,8 @@ describe('orca cli worktree awareness', () => {
     queueFixtures(
       callMock,
       worktreeListFixture([buildWorktree('/tmp/repo/feature', 'feature/foo', 'abc', 'repo-1')]),
+      okFixture('req_edit_owner', { automation: { id: 'auto-1', name: 'Daily review' } }),
+      ...workspaceDestinationFixtures(),
       okFixture('req_edit', {
         automation: { id: 'auto-1', name: 'Daily review' }
       })
@@ -426,11 +453,12 @@ describe('orca cli worktree awareness', () => {
     expect(callMock).toHaveBeenNthCalledWith(1, 'worktree.list', {
       limit: 10_000
     })
-    expect(callMock).toHaveBeenNthCalledWith(2, 'automation.update', {
+    expect(callMock).toHaveBeenNthCalledWith(5, 'automation.update', {
       id: 'auto-1',
       updates: {
         name: undefined,
         prompt: undefined,
+        precheck: undefined,
         agentId: undefined,
         repo: undefined,
         workspace: 'id:repo-1::/tmp/repo/feature',
@@ -440,7 +468,8 @@ describe('orca cli worktree awareness', () => {
         timezone: undefined,
         enabled: true,
         missedRunGraceMinutes: undefined
-      }
+      },
+      destination: { selector: { kind: 'self' } }
     })
   })
 })

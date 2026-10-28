@@ -6,17 +6,14 @@ import { useAppStore } from '@/store'
 
 function cacheWithChildren(paths: string[]): DirCache {
   return {
-    children: paths.map(
-      (path): TreeNode => ({
-        name: path.split(/[\\/]/).at(-1) ?? path,
-        path,
-        relativePath: path,
-        isDirectory: false,
-        depth: 0,
-        operationOwner: { kind: 'local' }
-      })
-    ),
-    loading: false,
+    children: paths.map((path): TreeNode => ({
+      name: path.split(/[\\/]/).at(-1) ?? path,
+      path,
+      relativePath: path,
+      isDirectory: false,
+      depth: 0,
+      operationOwner: { kind: 'local' }
+    })),
     operationOwner: { kind: 'local' }
   }
 }
@@ -58,83 +55,6 @@ function processUpdate(args: {
   return refreshDir
 }
 
-function processEvent(args: {
-  root: string
-  event: {
-    kind: 'create' | 'update' | 'delete' | 'rename' | 'overflow'
-    absolutePath: string
-    oldAbsolutePath?: string
-    isDirectory?: boolean
-  }
-  cache: Record<string, DirCache>
-}): ReturnType<typeof vi.fn> {
-  const refreshDir = vi.fn()
-  processFileExplorerFsPayload({
-    payload: {
-      worktreePath: args.root,
-      events: [args.event]
-    },
-    currentWorktreePath: args.root,
-    worktreeId: 'wt-1',
-    cache: args.cache,
-    expanded: new Set(),
-    setDirCache: vi.fn(),
-    setSelectedPath: vi.fn(),
-    refreshDir,
-    refreshTree: vi.fn()
-  })
-  return refreshDir
-}
-
-describe('processFileExplorerFsPayload create/delete reconciliation', () => {
-  it('refreshes a cached parent when an external process creates a file', () => {
-    const root = '/repo'
-    const refreshDir = processEvent({
-      root,
-      event: { kind: 'create', absolutePath: `${root}/new.ts`, isDirectory: false },
-      cache: { [root]: cacheWithChildren([`${root}/existing.ts`]) }
-    })
-
-    expect(refreshDir).toHaveBeenCalledOnce()
-    expect(refreshDir).toHaveBeenCalledWith(root)
-  })
-
-  it('refreshes a cached Windows parent when create casing differs from the worktree key', () => {
-    const root = 'C:\\Repo'
-    const refreshDir = processEvent({
-      root,
-      event: { kind: 'create', absolutePath: 'c:\\repo\\new.ts', isDirectory: false },
-      cache: { [root]: cacheWithChildren([`${root}\\existing.ts`]) }
-    })
-
-    expect(refreshDir).toHaveBeenCalledOnce()
-    expect(refreshDir).toHaveBeenCalledWith(root)
-  })
-
-  it('refreshes a cached parent when an external process deletes a file', () => {
-    const root = '/repo'
-    const refreshDir = processEvent({
-      root,
-      event: { kind: 'delete', absolutePath: `${root}/existing.ts` },
-      cache: { [root]: cacheWithChildren([`${root}/existing.ts`]) }
-    })
-
-    expect(refreshDir).toHaveBeenCalledOnce()
-    expect(refreshDir).toHaveBeenCalledWith(root)
-  })
-
-  it('does not reread a directory for an existing file content modify', () => {
-    const root = '/repo'
-    const refreshDir = processEvent({
-      root,
-      event: { kind: 'update', absolutePath: `${root}/existing.ts`, isDirectory: false },
-      cache: { [root]: cacheWithChildren([`${root}/existing.ts`]) }
-    })
-
-    expect(refreshDir).not.toHaveBeenCalled()
-  })
-})
-
 describe('processFileExplorerFsPayload update reconciliation', () => {
   it('purges Windows descendants case-insensitively without folding remote POSIX paths', () => {
     let cache: Record<string, DirCache> = {
@@ -153,6 +73,89 @@ describe('processFileExplorerFsPayload update reconciliation', () => {
     purgeDirCacheSubtrees(setDirCache, new Set(['C:\\repo\\old', '/srv/repo/Old']))
 
     expect(Object.keys(cache)).toEqual(['C:\\Repo\\Keep', '/srv/repo/old/keep'])
+  })
+
+  it('purges every Windows cache key even when the normalized path index collapses aliases', () => {
+    const root = 'C:\\Repo'
+    let cache: Record<string, DirCache> = {
+      [root]: cacheWithChildren([]),
+      'C:\\Repo\\Old': cacheWithChildren([]),
+      'c:\\repo\\OLD': cacheWithChildren([]),
+      'C:\\Repo\\New': cacheWithChildren([]),
+      'c:\\repo\\NEW': cacheWithChildren([]),
+      'C:\\Repo\\Keep': cacheWithChildren([])
+    }
+    type DirCacheUpdate = Parameters<Parameters<typeof purgeDirCacheSubtrees>[0]>[0]
+    processFileExplorerFsPayload({
+      payload: {
+        worktreePath: root,
+        events: [
+          {
+            kind: 'rename',
+            oldAbsolutePath: 'c:\\repo\\old',
+            absolutePath: 'c:\\repo\\new',
+            isDirectory: true
+          }
+        ]
+      },
+      currentWorktreePath: root,
+      worktreeId: 'wt-1',
+      cache,
+      expanded: new Set(),
+      setDirCache: (update: DirCacheUpdate) => {
+        cache = typeof update === 'function' ? update(cache) : update
+      },
+      setSelectedPath: vi.fn(),
+      refreshDir: vi.fn(),
+      refreshTree: vi.fn()
+    })
+    expect(Object.keys(cache)).toEqual([root, 'C:\\Repo\\Keep'])
+  })
+
+  it('uses the newer cache when the functional purge runs after another update', () => {
+    const root = '/repo'
+    const cache: Record<string, DirCache> = {
+      [root]: cacheWithChildren([]),
+      '/repo/old': cacheWithChildren([]),
+      '/repo/new': cacheWithChildren([])
+    }
+    type DirCacheUpdate = Parameters<Parameters<typeof purgeDirCacheSubtrees>[0]>[0]
+    let pending: DirCacheUpdate | undefined
+    processFileExplorerFsPayload({
+      payload: {
+        worktreePath: root,
+        events: [
+          {
+            kind: 'rename',
+            oldAbsolutePath: '/repo/old',
+            absolutePath: '/repo/new',
+            isDirectory: true
+          }
+        ]
+      },
+      currentWorktreePath: root,
+      worktreeId: 'wt-1',
+      cache,
+      expanded: new Set(),
+      setDirCache: (update) => {
+        pending = update
+      },
+      setSelectedPath: vi.fn(),
+      refreshDir: vi.fn(),
+      refreshTree: vi.fn()
+    })
+    expect(typeof pending).toBe('function')
+    const newer = {
+      ...cache,
+      '/repo/added': cacheWithChildren([]),
+      '/repo/old/added-child': cacheWithChildren([])
+    }
+    if (typeof pending !== 'function') {
+      throw new Error('Expected a queued functional cache purge')
+    }
+    const result = pending(newer)
+    expect(Object.keys(result)).toEqual([root, '/repo/added'])
+    expect(result['/repo/added']).toBe(newer['/repo/added'])
   })
 
   it('refreshes a cached parent when Windows reports a new file as update', () => {
@@ -445,7 +448,7 @@ describe('processFileExplorerFsPayload update reconciliation', () => {
     expect(refreshDir).toHaveBeenCalledTimes(2)
   })
 
-  it('purges distinct cached directory renames with one bounded cache scan', () => {
+  it('purges distinct cached directory renames with bounded batch cache scans', () => {
     const root = '/repo'
     const worktreeId = 'watch-reconcile-perf'
     const entries: Record<string, DirCache> = { [root]: cacheWithChildren([]) }
@@ -511,7 +514,8 @@ describe('processFileExplorerFsPayload update reconciliation', () => {
     }
 
     expect(setDirCache).toHaveBeenCalledOnce()
-    expect(keyVisits).toBe(entryCount * 2)
+    // The alias index and purge share one unchanged-cache key snapshot.
+    expect(keyVisits).toBe(entryCount)
     expect(expandedPathReads).toBe(expandedPaths.length)
     expect(remainingExpanded).toEqual(new Set())
   })

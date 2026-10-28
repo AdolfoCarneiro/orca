@@ -1,13 +1,19 @@
+import { legacyChatPermissionWrite } from './legacy-chat-permission-write'
+import { normalizeNativeChatAppearanceSettings } from '../../../shared/native-chat/native-chat-appearance-settings'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
+import { retireAtRestCommandSettings } from '../../native-chat/agent-session-wire/at-rest-command-context'
 import { normalizeDisabledTuiAgents } from '../../../shared/tui-agent-selection'
-import {
-  normalizeTuiAgentArgsRecord,
-  normalizeTuiAgentEnvRecord
-} from '../../../shared/tui-agent-launch-defaults'
+import { normalizeNativeChatProviderChoices } from '../../../shared/native-chat/native-chat-providers'
+import { resolveNestedWorkerMaxDepth } from '../../../shared/nested-worker-depth'
+import { resolveOrchestrationHeartbeatInterval } from '../../../shared/orchestration-heartbeat'
+import { sanitizeAgentLaunchProfileUpdates } from '../../../shared/tui-agent-launch-defaults'
 import { normalizeTerminalQuickCommands } from '../../../shared/terminal-quick-commands'
+import { assertTerminalQuickCommandsStorable } from '../../../shared/terminal-quick-command-prompt-limit'
 import { normalizeTerminalCustomThemes } from '../../../shared/terminal-custom-themes'
+import { normalizeTerminalDefaultShell } from '../../../shared/terminal-default-shell'
 import { normalizeTerminalCursorStyleDefault } from '../../../shared/terminal-cursor-style-settings'
 import { normalizeDesktopTerminalScrollbackRows } from '../../../shared/terminal-scrollback-policy'
+import { normalizeTerminalMinimumContrastRatio } from '../../../shared/terminal-minimum-contrast-settings'
 import { normalizeTaskProviderSettings } from '../../../shared/task-providers'
 import { normalizeOpenInApplications } from '../../../shared/open-in-applications'
 import { normalizeTerminalShortcutPolicy } from '../../../shared/keybindings'
@@ -16,7 +22,8 @@ import { normalizeAppIconId } from '../../../shared/app-icon'
 import { normalizeUiLanguage } from '../../../shared/ui-language'
 import { normalizeWorktreeVisibilityDefaults } from '../../../shared/external-worktree-visibility'
 import { normalizePRBotAuthorOverrides } from '../../../shared/pr-bot-author-overrides'
-import type { StoreOwnedPersistedState } from '../loading-store/store-owned-state'
+import { normalizeMachineName } from '../../../shared/machine-name'
+import type { PersistedState } from '../../../shared/persisted-state-types'
 import {
   addMobilePairingCustomAddress,
   normalizeMobilePairingCustomAddress,
@@ -39,10 +46,9 @@ import {
 } from './terminal-settings-migrations'
 
 export type SettingsMutationOperations = {
-  state: StoreOwnedPersistedState
-  removeRetainedBlob: (
-    slot: Parameters<ProtectedSecretPersistence['removeRetainedBlob']>[0]
-  ) => void
+  state: PersistedState
+  bumpLocalWorktreeScanGeneration: (repoId: string) => void
+  removeRetainedBlob: ProtectedSecretPersistence['removeRetainedBlob']
   scheduleSave: () => void
   notifySettingsChanged: (updates: Partial<GlobalSettings>, originWebContentsId?: number) => void
 }
@@ -53,28 +59,46 @@ export function updateSettings(
   options: { notifyListeners?: boolean; originWebContentsId?: number } = {}
 ): GlobalSettings {
   const sanitizedUpdates = stripRetiredGlobalSettings(updates)
-  if ('opencodeSessionCookie' in updates && !updates.opencodeSessionCookie) {
-    operations.removeRetainedBlob(PROTECTED_SECRET_SLOT.opencodeSessionCookie)
+  const linkBehavior = updates.terminalLinkClickBehavior
+  if (linkBehavior === 'actions' || linkBehavior === 'open' || linkBehavior === 'none') {
+    // Loaded defaults are ambiguous; synchronize the legacy switch only on an explicit write.
+    sanitizedUpdates.terminalLinkActionPopoverEnabled = linkBehavior === 'actions'
   }
-  if ('httpProxyUrl' in updates && !updates.httpProxyUrl) {
-    operations.removeRetainedBlob(PROTECTED_SECRET_SLOT.httpProxyUrl)
-  }
-  // Why: coerce to boolean here (not the IPC edge) so every write path is covered and a truthy non-bool can't persist as "tray-minimize on".
+  // Normalize at the store boundary so every writer rejects truthy non-booleans.
   if ('minimizeToTrayOnClose' in updates) {
     sanitizedUpdates.minimizeToTrayOnClose = updates.minimizeToTrayOnClose === true
   }
   if ('showMenuBarIcon' in updates) {
     sanitizedUpdates.showMenuBarIcon = updates.showMenuBarIcon === true
   }
-  // Why: the artifact publish capability must be an exact boolean on disk; no truthy value grants it.
   if ('artifactSharingEnabled' in updates) {
     sanitizedUpdates.artifactSharingEnabled = updates.artifactSharingEnabled === true
   }
   if ('agentSkillSharingEnabled' in updates) {
     sanitizedUpdates.agentSkillSharingEnabled = updates.agentSkillSharingEnabled === true
   }
+  if ('nestedWorkerMaxDepth' in updates) {
+    sanitizedUpdates.nestedWorkerMaxDepth = resolveNestedWorkerMaxDepth({
+      nestedWorkerMaxDepth: updates.nestedWorkerMaxDepth
+    })
+  }
+  if ('orchestrationHeartbeatIntervalMinutes' in updates) {
+    sanitizedUpdates.orchestrationHeartbeatIntervalMinutes = resolveOrchestrationHeartbeatInterval({
+      orchestrationHeartbeatIntervalMinutes: updates.orchestrationHeartbeatIntervalMinutes
+    })
+  }
+  if ('nativeChatAppearance' in updates) {
+    sanitizedUpdates.nativeChatAppearance = normalizeNativeChatAppearanceSettings(
+      updates.nativeChatAppearance
+    )
+  }
   if ('disabledTuiAgents' in updates) {
     sanitizedUpdates.disabledTuiAgents = normalizeDisabledTuiAgents(updates.disabledTuiAgents)
+  }
+  if ('nativeChatProviders' in updates) {
+    sanitizedUpdates.nativeChatProviders = normalizeNativeChatProviderChoices(
+      updates.nativeChatProviders
+    )
   }
   if ('worktreeVisibilityDefaults' in updates) {
     sanitizedUpdates.worktreeVisibilityDefaults = {
@@ -84,17 +108,21 @@ export function updateSettings(
       })
     }
   }
-  if ('agentDefaultArgs' in updates) {
-    sanitizedUpdates.agentDefaultArgs = normalizeTuiAgentArgsRecord(updates.agentDefaultArgs)
-    sanitizedUpdates.agentYoloDefaultsMigrated = true
-  }
-  if ('agentDefaultEnv' in updates) {
-    sanitizedUpdates.agentDefaultEnv = normalizeTuiAgentEnvRecord(updates.agentDefaultEnv)
-    sanitizedUpdates.agentYoloDefaultsMigrated = true
+  sanitizeAgentLaunchProfileUpdates(sanitizedUpdates, updates)
+  if ('nativeChatPermissionMode' in updates || 'agentPermissionDefault' in updates) {
+    Object.assign(
+      sanitizedUpdates,
+      legacyChatPermissionWrite(operations.state.settings, sanitizedUpdates)
+    )
   }
   if ('terminalQuickCommands' in updates) {
-    sanitizedUpdates.terminalQuickCommands = normalizeTerminalQuickCommands(
-      updates.terminalQuickCommands
+    const terminalQuickCommands = normalizeTerminalQuickCommands(updates.terminalQuickCommands)
+    assertTerminalQuickCommandsStorable(terminalQuickCommands)
+    sanitizedUpdates.terminalQuickCommands = terminalQuickCommands
+  }
+  if ('terminalDefaultShell' in updates) {
+    sanitizedUpdates.terminalDefaultShell = normalizeTerminalDefaultShell(
+      updates.terminalDefaultShell
     )
   }
   if ('terminalCustomThemes' in updates) {
@@ -114,6 +142,12 @@ export function updateSettings(
   if ('terminalScrollbackRows' in updates) {
     sanitizedUpdates.terminalScrollbackRows = normalizeDesktopTerminalScrollbackRows(
       updates.terminalScrollbackRows
+    )
+  }
+  // All writers pass here; preserve undefined as automatic and bound explicit xterm ratios.
+  if ('terminalMinimumContrastRatio' in updates) {
+    sanitizedUpdates.terminalMinimumContrastRatio = normalizeTerminalMinimumContrastRatio(
+      updates.terminalMinimumContrastRatio
     )
   }
   if (
@@ -162,10 +196,12 @@ export function updateSettings(
     sanitizedUpdates.uiLanguage = normalizeUiLanguage(updates.uiLanguage)
   }
   if ('prBotAuthorOverrides' in updates) {
-    // Why: every writer (desktop IPC, web RPC, migrations) hits this boundary, so the persisted list stays bounded and well-formed.
     sanitizedUpdates.prBotAuthorOverrides = normalizePRBotAuthorOverrides(
       updates.prBotAuthorOverrides
     )
+  }
+  if ('machineName' in updates) {
+    sanitizedUpdates.machineName = normalizeMachineName(updates.machineName)
   }
   if ('mobilePairingCustomAddress' in updates) {
     sanitizedUpdates.mobilePairingCustomAddress = normalizeMobilePairingCustomAddress(
@@ -201,7 +237,7 @@ export function updateSettings(
   if (historyWithPreviousLayout) {
     sanitizedUpdates.workspaceDirHistory = historyWithPreviousLayout
   }
-  // Why deep-merge telemetry: a partial update (e.g. flipping only `optedIn`) must not clobber siblings like `installId`.
+  // Partial telemetry updates must preserve siblings such as installId.
   const mergedTelemetry =
     sanitizedUpdates.telemetry !== undefined
       ? { ...operations.state.settings.telemetry, ...sanitizedUpdates.telemetry }
@@ -236,6 +272,22 @@ export function updateSettings(
     }),
     ...(mergedTelemetry !== undefined ? { telemetry: mergedTelemetry } : {})
   }
+  if ('opencodeSessionCookie' in updates && !updates.opencodeSessionCookie) {
+    operations.removeRetainedBlob(PROTECTED_SECRET_SLOT.opencodeSessionCookie)
+  }
+  if ('httpProxyUrl' in updates && !updates.httpProxyUrl) {
+    operations.removeRetainedBlob(PROTECTED_SECRET_SLOT.httpProxyUrl)
+  }
+  if (
+    !Object.is(
+      previousSettings.localWindowsRuntimeDefault,
+      operations.state.settings.localWindowsRuntimeDefault
+    )
+  ) {
+    for (const repoId of new Set(operations.state.repos.map(({ id }) => id))) {
+      operations.bumpLocalWorktreeScanGeneration(repoId)
+    }
+  }
   operations.scheduleSave()
   const changedUpdates = {} as Partial<GlobalSettings> & Record<string, unknown>
   for (const key of Object.keys(sanitizedUpdates) as (keyof GlobalSettings)[]) {
@@ -243,6 +295,7 @@ export function updateSettings(
       changedUpdates[String(key)] = operations.state.settings[key]
     }
   }
+  retireAtRestCommandSettings(Object.keys(changedUpdates))
   if (options.notifyListeners === true && Object.keys(changedUpdates).length > 0) {
     operations.notifySettingsChanged(changedUpdates, options.originWebContentsId)
   }

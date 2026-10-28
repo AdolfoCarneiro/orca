@@ -6,7 +6,7 @@ const fakes = vi.hoisted(() => ({
     onText(value: string): void
     onBinary(value: Uint8Array): void
   },
-  sendText: vi.fn(() => true),
+  sendText: vi.fn((_frame: string) => true),
   close: vi.fn()
 }))
 
@@ -21,6 +21,7 @@ vi.mock('./mobile-relay-e2ee-link', () => ({
 }))
 
 import { connectMobileRelayRpcSession } from './mobile-relay-rpc-session'
+import type { ConnectionLogSink } from './types'
 
 const relay = {
   v: 1 as const,
@@ -31,7 +32,7 @@ const relay = {
   e2eeFraming: 2 as const
 }
 
-async function authenticateSession() {
+async function authenticateSession(onLog?: ConnectionLogSink) {
   const session = connectMobileRelayRpcSession({
     relay,
     resumeToken: 'resume-secret',
@@ -39,7 +40,8 @@ async function authenticateSession() {
     resumeConfirmReqId: 'confirm-1',
     deviceToken: 'device-token',
     desktopPublicKeyB64: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
-    requestTimeoutMs: 30_000
+    requestTimeoutMs: 30_000,
+    onLog
   })
   fakes.linkOptions!.onHello({
     type: 'relay-hello',
@@ -53,6 +55,11 @@ async function authenticateSession() {
   fakes.linkOptions!.onAuthenticated()
   await vi.waitFor(() => expect(fakes.sendText).toHaveBeenCalledOnce())
   const confirmation = sentRequests()[0]!
+  expect(confirmation).toMatchObject({
+    method: 'pairing.getEndpoints',
+    params: { resumeConfirmReqId: 'confirm-1' },
+    deviceToken: 'device-token'
+  })
   fakes.linkOptions!.onText(
     JSON.stringify({
       id: confirmation.id,
@@ -72,15 +79,41 @@ async function authenticateSession() {
       _meta: { runtimeId: 'runtime-1' }
     })
   )
+  await vi.waitFor(() => expect(fakes.sendText).toHaveBeenCalledTimes(2))
+  const capabilities = sentRequests()[1]!
+  expect(capabilities).toMatchObject({
+    method: 'runtime.clientCapabilities.update',
+    params: { clientCapabilities: expect.arrayContaining(['agent-session.structured.v1']) },
+    deviceToken: 'device-token'
+  })
+  fakes.linkOptions!.onText(
+    JSON.stringify({
+      id: capabilities.id,
+      ok: true,
+      result: {},
+      _meta: { runtimeId: 'runtime-1' }
+    })
+  )
   await vi.waitFor(() => expect(session.getState()).toBe('connected'))
   fakes.sendText.mockClear()
   return session
 }
 
-function sentRequests(): Array<{ id: string; method: string }> {
-  return fakes.sendText.mock.calls.map(
-    ([value]) => JSON.parse(value as string) as { id: string; method: string }
-  )
+function sentRequests() {
+  return fakes.sendText.mock.calls.map(([value]) => {
+    const request: unknown = JSON.parse(value)
+    if (
+      !request ||
+      typeof request !== 'object' ||
+      !('id' in request) ||
+      typeof request.id !== 'string' ||
+      !('method' in request) ||
+      typeof request.method !== 'string'
+    ) {
+      throw new Error('Expected a serialized RPC request')
+    }
+    return request
+  })
 }
 
 describe('mobile relay RPC session liveness', () => {
@@ -103,7 +136,8 @@ describe('mobile relay RPC session liveness', () => {
   })
 
   it('disconnects after two fair foreground misses', async () => {
-    const session = await authenticateSession()
+    const onLog = vi.fn<ConnectionLogSink>()
+    const session = await authenticateSession(onLog)
 
     session.notifyForeground('focus')
     expect(sentRequests().map(({ method }) => method)).toEqual(['status.get'])
@@ -114,6 +148,38 @@ describe('mobile relay RPC session liveness', () => {
 
     expect(session.getState()).toBe('disconnected')
     expect(fakes.close).toHaveBeenCalledOnce()
+    expect(onLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'liveness-timeout',
+        path: 'relay',
+        message: 'Relay health check failed',
+        detail: expect.stringMatching(
+          /^probe-timeout; 2\/2 probes missed; last authenticated activity \d+ms ago$/
+        )
+      })
+    )
+  })
+
+  it('uses distinct liveness evidence IDs for sessions created in the same millisecond', async () => {
+    vi.setSystemTime(1_000)
+    const firstLog = vi.fn<ConnectionLogSink>()
+    const first = await authenticateSession(firstLog)
+    first.notifyForeground('focus')
+    await vi.advanceTimersByTimeAsync(8_000)
+    const firstId = firstLog.mock.calls[0]?.[0].id
+
+    vi.clearAllMocks()
+    fakes.sendText.mockReturnValue(true)
+    vi.setSystemTime(1_000)
+    const secondLog = vi.fn<ConnectionLogSink>()
+    const second = await authenticateSession(secondLog)
+    second.notifyForeground('focus')
+    await vi.advanceTimersByTimeAsync(8_000)
+    const secondId = secondLog.mock.calls[0]?.[0].id
+
+    expect(firstId).toBeTruthy()
+    expect(secondId).toBeTruthy()
+    expect(secondId).not.toBe(firstId)
   })
 
   it('rate-limits foreground sequences without suppressing a retry', async () => {
@@ -169,5 +235,50 @@ describe('mobile relay RPC session liveness', () => {
 
     expect(session.getState()).toBe('disconnected')
     expect(fakes.close).toHaveBeenCalledOnce()
+  })
+
+  it('redials after one 4s miss when a retained relay returns from the background', async () => {
+    const onLog = vi.fn<ConnectionLogSink>()
+    const session = await authenticateSession(onLog)
+
+    session.probeAfterBackground()
+    expect(sentRequests().map(({ method }) => method)).toEqual(['status.get'])
+    await vi.advanceTimersByTimeAsync(3_999)
+    expect(session.getState()).toBe('connected')
+    await vi.advanceTimersByTimeAsync(1)
+
+    expect(session.getState()).toBe('disconnected')
+    expect(fakes.sendText).toHaveBeenCalledOnce()
+    expect(onLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'liveness-timeout',
+        detail: expect.stringMatching(/^probe-timeout; 1\/1 probes missed;/)
+      })
+    )
+  })
+
+  it('keeps two 4s misses for an app-resume nudge without a background stay', async () => {
+    const session = await authenticateSession()
+
+    session.notifyForeground('app-resume')
+    await vi.advanceTimersByTimeAsync(4_000)
+    expect(session.getState()).toBe('connected')
+    await vi.advanceTimersByTimeAsync(4_000)
+
+    expect(session.getState()).toBe('disconnected')
+  })
+
+  it('keeps a relay that answers the background-return probe', async () => {
+    const session = await authenticateSession()
+
+    session.probeAfterBackground()
+    const probe = sentRequests()[0]!
+    fakes.linkOptions!.onText(
+      JSON.stringify({ id: probe.id, ok: true, result: {}, _meta: { runtimeId: 'r1' } })
+    )
+    await vi.advanceTimersByTimeAsync(60_000)
+
+    expect(session.getState()).toBe('connected')
+    session.close()
   })
 })

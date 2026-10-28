@@ -1,9 +1,13 @@
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$OperationPath
+    [Parameter(Position = 0)]
+    [string]$OperationPath,
+    # Serve mode emits the Add-Type P/Invoke assembly once per session, avoiding per-operation compilation.
+    [switch]$Serve
 )
 
 $ErrorActionPreference = "Stop"
+# Progress records would corrupt the one-JSON-response-per-line serve pipe.
+$ProgressPreference = "SilentlyContinue"
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 [Console]::InputEncoding = $utf8NoBom
 [Console]::OutputEncoding = $utf8NoBom
@@ -1098,18 +1102,25 @@ function Get-OrcaClickModifierVirtualKeys([string]$Modifiers) {
     @($parts | ForEach-Object { Get-OrcaModifierVirtualKey $_ })
 }
 
-function Send-OrcaHotkey([IntPtr]$WindowHandle, [string]$KeySpec) {
+function ConvertTo-OrcaSendKeysHotkey([string]$KeySpec) {
     $parts = @($KeySpec.Split("+") | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     if ($parts.Count -eq 0) { throw "Unsupported key: $KeySpec" }
     $key = $parts[$parts.Count - 1]
     $prefix = ""
     if ($parts.Count -gt 1) {
+        # SendKeys adds Shift for an uppercase letter, turning Ctrl+A into Ctrl+Shift+A.
+        if ($key.Length -eq 1) { $key = $key.ToLowerInvariant() }
         foreach ($modifier in $parts[0..($parts.Count - 2)]) {
             $prefix += ConvertTo-OrcaSendKeysModifier $modifier
         }
     }
+    $prefix + (ConvertTo-OrcaSendKeysKey $key)
+}
+
+function Send-OrcaHotkey([IntPtr]$WindowHandle, [string]$KeySpec) {
+    $keys = ConvertTo-OrcaSendKeysHotkey $KeySpec
     [void][OrcaDesktopWin32]::SetForegroundWindow($WindowHandle)
-    [System.Windows.Forms.SendKeys]::SendWait($prefix + (ConvertTo-OrcaSendKeysKey $key))
+    [System.Windows.Forms.SendKeys]::SendWait($keys)
 }
 
 function ConvertTo-OrcaSendKeysText([string]$Text) {
@@ -1313,9 +1324,47 @@ function Invoke-OrcaOperation($Operation) {
     [pscustomobject]@{ ok = $true; action = $action; snapshot = $snapshot }
 }
 
-try {
-    $operation = Read-OrcaOperation $OperationPath
-    Write-OrcaJson (Invoke-OrcaOperation $operation)
-} catch {
-    Write-OrcaJson ([pscustomobject]@{ ok = $false; error = [string]$_.Exception.Message })
+function Invoke-OrcaServeLoop {
+    # Announce readiness after Add-Type and before reading: absence proves no request ran and permits safe replay.
+    # A missing response cannot prove that; replay could duplicate input.
+    [Console]::Out.WriteLine('{"ready":true}')
+    [Console]::Out.Flush()
+    # NDJSON request/response lines may exceed 1 MiB with screenshots; console line IO is memory-bounded.
+    while ($true) {
+        $line = [Console]::In.ReadLine()
+        if ($null -eq $line) { break }
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        $requestId = $null
+        try {
+            $operation = $line | ConvertFrom-Json
+            $requestId = $operation.requestId
+            $response = Invoke-OrcaOperation $operation
+        } catch {
+            $response = [pscustomobject]@{ ok = $false; error = [string]$_.Exception.Message }
+            # ConvertFrom-Json can fail before reading id; recover it from raw input so the error reaches its request
+            # instead of tripping desync cleanup/cooldown and hiding the parse failure.
+            if ($null -eq $requestId -and $line -match '"requestId"\s*:\s*(\d+)') {
+                $requestId = [long]$Matches[1]
+            }
+        }
+        # Echo id to bind the response; unmatched replies indicate stream desynchronization.
+        if ($null -ne $requestId) {
+            $response | Add-Member -NotePropertyName requestId -NotePropertyValue $requestId -Force
+        }
+        [Console]::Out.WriteLine((ConvertTo-Json $response -Depth 100 -Compress))
+        [Console]::Out.Flush()
+    }
+}
+
+if ($Serve) {
+    Invoke-OrcaServeLoop
+} elseif ([string]::IsNullOrWhiteSpace($OperationPath)) {
+    Write-OrcaJson ([pscustomobject]@{ ok = $false; error = "runtime.ps1 requires an operation path or -Serve" })
+} else {
+    try {
+        $operation = Read-OrcaOperation $OperationPath
+        Write-OrcaJson (Invoke-OrcaOperation $operation)
+    } catch {
+        Write-OrcaJson ([pscustomobject]@{ ok = $false; error = [string]$_.Exception.Message })
+    }
 }

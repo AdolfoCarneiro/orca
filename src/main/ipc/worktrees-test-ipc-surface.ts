@@ -1,13 +1,17 @@
+import { EventEmitter } from 'node:events'
 import { type Mock, vi } from 'vitest'
+import type { WorktreeMeta } from '../../shared/worktree/meta-types'
+import type { HostWorktreeTarget } from '../../shared/worktree/host-qualified-identity'
 
 export type HandlerMap = Record<string, (_event: unknown, args: unknown) => unknown>
 
-/** Loose signature: one mock stands in for many unrelated store methods. */
+/** One loose mock type covers unrelated store methods. */
 type StoreMock = Mock<(...args: unknown[]) => unknown>
-/** Store lookups tests re-implement per id, so the first arg stays narrowed. */
 type KeyedStoreMock = Mock<(id: string, ...rest: unknown[]) => unknown>
-/** Store writers tests re-implement by merging the patch they receive. */
-type KeyedStoreWriteMock = Mock<(id: string, patch: object) => unknown>
+type KeyedStoreWriteMock = Mock<
+  (target: HostWorktreeTarget, patch: Partial<WorktreeMeta>) => unknown
+>
+type TargetStoreMock = Mock<(target: HostWorktreeTarget) => unknown>
 
 export type TestMainWindow = {
   isDestroyed: () => boolean
@@ -22,13 +26,18 @@ export type TestStore = {
   getSparsePresets: StoreMock
   getSettings: StoreMock
   getWorktreeMeta: KeyedStoreMock
+  getWorktreeMetaForHost: StoreMock
   getAllWorktreeMeta: StoreMock
+  captureNativeLocalWorktreeMetadataScanExpectation: StoreMock
   setWorktreeMeta: KeyedStoreWriteMock
   getProjectHostSetups: StoreMock
-  removeWorktreeMeta: KeyedStoreMock
+  removeWorktreeMeta: TargetStoreMock
+  pruneSessionlessMissingLocalWorktreeMetadataForRepo: StoreMock
   removeWorkspaceSessionStateForWorktree: KeyedStoreMock
+  getWorkspaceSessionHostIds: StoreMock
+  getWorkspaceSession: StoreMock
   getAllWorktreeLineage: StoreMock
-  removeWorktreeLineage: KeyedStoreMock
+  removeWorktreeLineage: TargetStoreMock
   getAllWorkspaceLineage: StoreMock
   getFolderWorkspaces: StoreMock
   getProjectGroups: StoreMock
@@ -37,7 +46,6 @@ export type TestStore = {
   mergeRetiredWorktreeNames: StoreMock
 }
 
-/** Channel handlers captured from the mocked ipcMain.handle during registration. */
 export const handlers: HandlerMap = {}
 export const mainWindow: TestMainWindow = {
   isDestroyed: () => false,
@@ -45,7 +53,7 @@ export const mainWindow: TestMainWindow = {
     send: vi.fn()
   }
 }
-export const ipcEvent = { sender: { id: 1 } }
+export const ipcEvent = { sender: Object.assign(new EventEmitter(), { id: 1 }) }
 export const store: TestStore = {
   getProfileStorageDirectory: vi.fn(() => '/profile-a'),
   getRepos: vi.fn(),
@@ -54,11 +62,16 @@ export const store: TestStore = {
   getSparsePresets: vi.fn(),
   getSettings: vi.fn(),
   getWorktreeMeta: vi.fn(),
+  getWorktreeMetaForHost: vi.fn(),
   getAllWorktreeMeta: vi.fn(),
+  captureNativeLocalWorktreeMetadataScanExpectation: vi.fn(),
   setWorktreeMeta: vi.fn(),
   getProjectHostSetups: vi.fn(),
   removeWorktreeMeta: vi.fn(),
+  pruneSessionlessMissingLocalWorktreeMetadataForRepo: vi.fn(),
   removeWorkspaceSessionStateForWorktree: vi.fn(),
+  getWorkspaceSessionHostIds: vi.fn(),
+  getWorkspaceSession: vi.fn(),
   getAllWorktreeLineage: vi.fn(),
   removeWorktreeLineage: vi.fn(),
   getAllWorkspaceLineage: vi.fn(),

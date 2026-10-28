@@ -76,12 +76,9 @@ describe('submodule diff routing', () => {
     statMock.mockReset()
     existsSyncMock.mockReset()
     statMock.mockResolvedValue({ isFile: () => true, size: 12 })
-    // Route git invocations by argv/cwd so the routing logic can resolve the
-    // gitlink oids without touching a real repo.
     gitExecFileAsyncMock.mockImplementation((args: string[], options?: { cwd?: string }) => {
       if (args[0] === 'config' && args.includes('.gitmodules')) {
-        // Only the parent worktree declares the submodule; the recursion into the
-        // submodule worktree must see no nested submodules.
+        // Declare the submodule only in its parent so recursion terminates.
         return Promise.resolve({
           stdout: options?.cwd === PARENT ? 'submodule.flutter_mine.path flutter_mine\n' : ''
         })
@@ -123,11 +120,11 @@ describe('submodule diff routing', () => {
 
     expect(gitExecFileAsyncBufferMock).toHaveBeenCalledWith(
       ['show', '--end-of-options', `${OLD_OID}:lib/main.dart`],
-      { cwd: SUBMODULE, maxBuffer: 10 * 1024 * 1024 }
+      { cwd: SUBMODULE, maxBuffer: 10 * 1024 * 1024, preferWslDirectGit: true }
     )
     expect(gitExecFileAsyncBufferMock).toHaveBeenCalledWith(
       ['show', '--end-of-options', `${NEW_OID}:lib/main.dart`],
-      { cwd: SUBMODULE, maxBuffer: 10 * 1024 * 1024 }
+      { cwd: SUBMODULE, maxBuffer: 10 * 1024 * 1024, preferWslDirectGit: true }
     )
     expect(result.kind).toBe('text')
     expect(result.originalContent).toBe('v1\n')
@@ -167,11 +164,11 @@ describe('submodule diff routing', () => {
 
     expect(gitExecFileAsyncBufferMock).toHaveBeenCalledWith(
       ['show', '--end-of-options', `${OLD_OID}:lib/main.dart`],
-      { cwd: SUBMODULE, maxBuffer: 10 * 1024 * 1024 }
+      { cwd: SUBMODULE, maxBuffer: 10 * 1024 * 1024, preferWslDirectGit: true }
     )
     expect(gitExecFileAsyncBufferMock).toHaveBeenCalledWith(
       ['show', '--end-of-options', `${NEW_OID}:lib/main.dart`],
-      { cwd: SUBMODULE, maxBuffer: 10 * 1024 * 1024 }
+      { cwd: SUBMODULE, maxBuffer: 10 * 1024 * 1024, preferWslDirectGit: true }
     )
     expect(result.kind).toBe('text')
     expect(result.originalContent).toBe('v1\n')
@@ -179,8 +176,6 @@ describe('submodule diff routing', () => {
   })
 
   it('reads inner files from the working tree when the commit is unchanged', async () => {
-    // Override the gitlink oids so recorded == checked-out (no pointer move),
-    // routing the inner diff back to the index/working-tree blob read.
     gitExecFileAsyncMock.mockImplementation((args: string[], options?: { cwd?: string }) => {
       if (args[0] === 'config' && args.includes('.gitmodules')) {
         return Promise.resolve({
@@ -202,7 +197,8 @@ describe('submodule diff routing', () => {
 
     expect(gitExecFileAsyncBufferMock).toHaveBeenCalledWith(['show', ':lib/main.dart'], {
       cwd: SUBMODULE,
-      maxBuffer: 10 * 1024 * 1024
+      maxBuffer: 10 * 1024 * 1024,
+      preferWslDirectGit: true
     })
     expect(readFileMock).toHaveBeenCalledWith(path.join(SUBMODULE, 'lib/main.dart'))
     expect(result.kind).toBe('text')
@@ -211,8 +207,6 @@ describe('submodule diff routing', () => {
   })
 
   it('rejects inner submodule diffs whose .gitmodules path escapes the worktree', async () => {
-    // A crafted .gitmodules path must not let the inner diff read escape the
-    // selected worktree; loadDiff routes through resolveSubmoduleWorktreePath.
     gitExecFileAsyncMock.mockImplementation((args: string[], options?: { cwd?: string }) => {
       if (args[0] === 'config' && args.includes('.gitmodules')) {
         return Promise.resolve({
@@ -317,9 +311,8 @@ describe('getSubmoduleStatus', () => {
     existsSyncMock.mockReturnValue(false)
     gitExecFileAsyncMock.mockReset()
     gitExecFileAsyncMock.mockImplementation((args: string[]) => {
-      // Clean worktree: the inner status stream returns nothing.
-      if (args.includes('--name-status')) {
-        return Promise.resolve({ stdout: 'M\tlib/main.dart\n' })
+      if (args.includes('--raw')) {
+        return Promise.resolve({ stdout: ':100644 100644 a b M\0lib/main.dart\0' })
       }
       if (args[0] === 'ls-files') {
         return Promise.resolve({ stdout: `160000 ${OLD_OID} 0\tflutter_mine\n` })
@@ -344,9 +337,8 @@ describe('getSubmoduleStatus', () => {
     existsSyncMock.mockReturnValue(false)
     gitExecFileAsyncMock.mockReset()
     gitExecFileAsyncMock.mockImplementation((args: string[]) => {
-      // Clean submodule worktree: the staged parent gitlink still has files to show.
-      if (args.includes('--name-status')) {
-        return Promise.resolve({ stdout: 'M\tlib/main.dart\n' })
+      if (args.includes('--raw')) {
+        return Promise.resolve({ stdout: ':100644 100644 a b M\0lib/main.dart\0' })
       }
       if (args[0] === 'ls-files') {
         return Promise.resolve({ stdout: `160000 ${NEW_OID} 0\tflutter_mine\n` })
@@ -373,8 +365,10 @@ describe('getSubmoduleStatus', () => {
     const NEW_OID = 'b'.repeat(40)
     gitExecFileAsyncMock.mockReset()
     gitExecFileAsyncMock.mockImplementation((args: string[]) => {
-      if (args.includes('--name-status')) {
-        return Promise.resolve({ stdout: 'M\tlib/a.dart\nM\tlib/b.dart\n' })
+      if (args.includes('--raw')) {
+        return Promise.resolve({
+          stdout: ':100644 100644 a b M\0lib/a.dart\0:100644 100644 a b M\0lib/b.dart\0'
+        })
       }
       if (args[0] === 'ls-files') {
         return Promise.resolve({ stdout: `160000 ${NEW_OID} 0\tflutter_mine\n` })
@@ -393,5 +387,35 @@ describe('getSubmoduleStatus', () => {
     expect(result.entries).toHaveLength(1)
     expect(result.didHitLimit).toBe(true)
     expect(result.statusLength).toBe(2)
+  })
+
+  it('overlaps the inner status, index and HEAD reads instead of serializing them', async () => {
+    const OLD_OID = 'a'.repeat(40)
+    const NEW_OID = 'b'.repeat(40)
+    readFileMock.mockResolvedValue('gitdir: /repo/flutter_mine/.git\n')
+    existsSyncMock.mockReturnValue(false)
+    const events: string[] = []
+    gitExecFileAsyncMock.mockReset()
+    gitExecFileAsyncMock.mockImplementation(async (args: string[]) => {
+      const name = args.includes('status') ? 'status' : args[0]
+      events.push(`start:${name}`)
+      if (name === 'status') {
+        // Hold status open so the assertion detects serialization of the independent OID reads.
+        await new Promise((resolve) => setTimeout(resolve, 5))
+      }
+      events.push(`end:${name}`)
+      if (name === 'ls-files') {
+        return { stdout: `160000 ${OLD_OID} 0\tflutter_mine\n` }
+      }
+      if (name === 'rev-parse') {
+        return { stdout: `${NEW_OID}\n` }
+      }
+      return { stdout: '' }
+    })
+
+    await getSubmoduleStatus('/repo', 'flutter_mine')
+
+    expect(events.indexOf('start:ls-files')).toBeLessThan(events.indexOf('end:status'))
+    expect(events.indexOf('start:rev-parse')).toBeLessThan(events.indexOf('end:status'))
   })
 })

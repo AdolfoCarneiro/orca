@@ -1,4 +1,3 @@
-import type { IGitProvider } from '../providers/types'
 import { isFolderRepo } from '../../shared/repo-kind'
 import type { Repo } from '../../shared/repo-types'
 import type { Worktree } from '../../shared/worktree/types'
@@ -17,17 +16,18 @@ import {
   readWorkspaceCleanupGitEvidence
 } from './workspace-cleanup-git-evidence'
 import { appendWorkspaceCleanupItems } from './workspace-cleanup-scan-primitives'
+import type { WorkspaceCleanupGitRoute } from './workspace-cleanup-git-route'
 
 export async function buildWorkspaceCleanupCandidate(args: {
   repo: Repo
   worktree: Worktree
   scannedAt: number
-  provider: IGitProvider | null
+  route: WorkspaceCleanupGitRoute
   skipGit: boolean
   forceGitCheck: boolean
   signal?: AbortSignal
 }): Promise<WorkspaceCleanupCandidate> {
-  const { repo, worktree, scannedAt, provider, skipGit, forceGitCheck, signal } = args
+  const { repo, worktree, scannedAt, route, skipGit, forceGitCheck, signal } = args
   const blockers: WorkspaceCleanupBlocker[] = []
   const reasons = getWorkspaceCleanupInactivityReasonsForWorkspace(worktree, scannedAt)
   const repoIsFolder = isFolderRepo(repo)
@@ -53,7 +53,7 @@ export async function buildWorkspaceCleanupCandidate(args: {
 
   const gitEvidence = !shouldReadGit
     ? createEmptyWorkspaceCleanupGitEvidence()
-    : await readWorkspaceCleanupGitEvidence(worktree, repo, provider, signal)
+    : await readWorkspaceCleanupGitEvidence(worktree, repo, route, signal)
   appendWorkspaceCleanupItems(blockers, gitEvidence.blockers)
 
   const candidateWithoutFingerprint: WorkspaceCleanupCandidate = {
@@ -151,8 +151,7 @@ export function getNewestWorkspaceCleanupDiffCommentAt(
   if (!diffComments || diffComments.length === 0) {
     return null
   }
-  // Why: persisted diff notes can grow large enough for spread-based Math.max
-  // to exceed the JavaScript argument limit during cleanup scans.
+  // Large persisted note arrays can exceed JavaScript's spread argument limit.
   let newest = diffComments[0]?.createdAt ?? null
   for (let index = 1; index < diffComments.length; index += 1) {
     const createdAt = diffComments[index]?.createdAt
@@ -192,16 +191,15 @@ function shouldReadWorkspaceCleanupGitEvidence(args: {
   if ((skipGit && !forceGitCheck) || repoIsFolder || worktree.isMainWorktree) {
     return false
   }
-  if (
-    blockers.includes('pinned') ||
-    blockers.includes('main-worktree') ||
-    blockers.includes('folder-repo')
-  ) {
+  // Pinned rows remain removable: defer broad-scan Git work, but require forced confirmation-time evidence.
+  if (blockers.includes('pinned') && !forceGitCheck) {
+    return false
+  }
+  if (blockers.includes('main-worktree') || blockers.includes('folder-repo')) {
     return false
   }
 
-  // Why: inactivity is the only recommendation signal now. Git is read only
-  // to keep the destructive path from deleting dirty or local-only branch work.
+  // Inactivity drives recommendations; Git evidence guards dirty and local-only work during removal.
   return true
 }
 

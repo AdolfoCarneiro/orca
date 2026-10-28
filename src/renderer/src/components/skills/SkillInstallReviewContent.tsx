@@ -15,8 +15,7 @@ import { skillInstallResultLabel } from './skill-install-result-label'
 import type { ResolvedSkillShare } from './skill-share-version-summary'
 import { translate } from '@/i18n/i18n'
 
-/** Why: the submit lives in the dialog footer beside Close, so this is only the
- *  field; Enter still submits through the form. */
+/** Submit stays in the footer; Enter in this field still submits its form. */
 export function SkillShareLinkInputForm({
   link,
   onLinkChange,
@@ -79,10 +78,17 @@ export function SkillInstallOutcome({ result }: { result: SkillInstallResult }):
         <div>
           <p className="text-sm font-medium">{skillInstallResultLabel(result)}</p>
           <p className="text-xs text-muted-foreground">
-            {result.placements.length}{' '}
-            {translate('auto.components.skills.SkillInstallReviewContent.3fc62a61eb', 'placement')}
-            {result.placements.length === 1 ? '' : 's'}{' '}
-            {translate('auto.components.skills.SkillInstallReviewContent.1b6ad2ca5c', 'checked.')}
+            {result.placements.length === 1
+              ? translate(
+                  'auto.components.skills.SkillInstallReviewContent.placementsChecked_one',
+                  '{{count}} placement checked.',
+                  { count: result.placements.length }
+                )
+              : translate(
+                  'auto.components.skills.SkillInstallReviewContent.placementsChecked_other',
+                  '{{count}} placements checked.',
+                  { count: result.placements.length }
+                )}
           </p>
         </div>
       </div>
@@ -137,32 +143,44 @@ export function SkillInstallReview({
         destinationPreview.currentState
       ))
   return (
-    <div className="space-y-5">
-      <section className="space-y-2">
+    <div className="space-y-4">
+      <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 p-3.5">
         <SkillPackageChecklist
           items={checklistItemsFromVersion(version)}
           selectedIds={null}
           busy={busy}
         />
         {version.releaseNotes.trim() ? (
-          <p className="break-words whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
-            {translate(
-              'auto.components.skills.SkillInstallReviewContent.releaseNotes',
-              'Release notes:'
-            )}{' '}
+          <p className="break-words whitespace-pre-wrap rounded-lg border border-border/40 bg-muted/40 p-3 text-xs leading-5 text-muted-foreground">
+            <span className="font-semibold text-foreground">
+              {translate(
+                'auto.components.skills.SkillInstallReviewContent.releaseNotes',
+                'Release notes:'
+              )}
+            </span>{' '}
             {version.releaseNotes}
           </p>
         ) : null}
-      </section>
+        <SkillInstallRiskNotice summary={riskSummary} />
+      </div>
 
-      <SkillInstallRiskNotice summary={riskSummary} />
-
-      {children}
+      <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 p-3.5">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {translate(
+            'auto.components.skills.SkillInstallReviewContent.targetHeader',
+            'Installation Target'
+          )}
+        </div>
+        {children}
+      </div>
 
       {hasConflict ? (
-        <section className="space-y-2 rounded-md border border-border p-3" role="alert">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <AlertTriangle className="size-4" />{' '}
+        <section
+          className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3.5"
+          role="alert"
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-destructive">
+            <AlertTriangle className="size-4 shrink-0" />{' '}
             {translate(
               'auto.components.skills.SkillInstallReviewContent.651b7d8a57',
               'Local copy needs a decision'

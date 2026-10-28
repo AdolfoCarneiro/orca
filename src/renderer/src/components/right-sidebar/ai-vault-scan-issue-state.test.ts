@@ -78,6 +78,22 @@ describe('aiVaultScanNoticeIssues', () => {
     expect(skippedAiVaultTranscriptCount(partial)).toBe(1)
   })
 
+  // An unreadable OpenCode database hides every session; report the source failure, not one skipped transcript (#15036).
+  it('gives an unreadable OpenCode database its own row instead of a skipped count', () => {
+    const sourceIssue = {
+      agent: 'opencode' as const,
+      kind: 'scope' as const,
+      path: '\\\\wsl.localhost\\Ubuntu\\home\\ada\\.local\\share\\opencode\\opencode.db',
+      message:
+        'OpenCode is writing to opencode.db right now, so its history was skipped. It is read again on the next refresh.'
+    }
+    const empty = result([], [sourceIssue])
+
+    expect(skippedAiVaultTranscriptCount(empty)).toBe(0)
+    expect(skippedAiVaultTranscriptReasons(empty)).toEqual([])
+    expect(aiVaultScanNoticeIssues(empty)).toEqual([sourceIssue])
+  })
+
   it('does not repeat the blocking issue as a notice row', () => {
     const hostIssue = {
       executionHostId: 'ssh:dev-box' as const,

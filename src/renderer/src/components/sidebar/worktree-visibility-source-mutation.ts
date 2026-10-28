@@ -9,7 +9,7 @@ import {
   effectiveCustomWorktreeSourceVisibility
 } from '../../../../shared/worktree/visibility-sources'
 import { buildWorktreeSourcePreferenceUpdate } from '../../../../shared/worktree/visibility-source-preferences'
-import type { RepoUpdate } from '@/store/slices/repos'
+import type { RepoUpdate } from '@/store/repos/repo-state'
 import type { WorktreeVisibilitySourceRow } from './WorktreeVisibilitySourceList'
 
 export type WorktreeVisibilitySourceMutation = {
@@ -17,7 +17,6 @@ export type WorktreeVisibilitySourceMutation = {
   isAccepted: (latestRepo: Repo) => boolean
 }
 
-/** Pins this project's own visibility for a source, overriding whatever Global Settings holds. */
 export function createWorktreeVisibilitySourceMutation(
   repo: Repo,
   source: WorktreeVisibilitySourceRow,

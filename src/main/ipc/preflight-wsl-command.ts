@@ -1,12 +1,6 @@
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-import {
-  buildWslCapturedLoginShellCommand,
-  buildWslExecArgs
-} from '../../shared/wsl-login-shell-command'
+import { buildPosixFallbackPathPrelude } from '../../shared/posix-version-manager-bin-dirs'
+import { runWslProcess } from '../wsl/wsl-runner'
 import type { WslPreflightTarget } from './preflight-wsl-agent-detection'
-
-const execFileAsync = promisify(execFile)
 
 export type PreflightWslCommandResult = { stdout: string; stderr: string }
 
@@ -15,17 +9,22 @@ export async function runPreflightCommandInWsl(
   command: string,
   timeoutMs: number
 ): Promise<PreflightWslCommandResult> {
-  // Why: callers match this stdout against version and auth-status patterns; a
-  // distro rc banner ahead of the real output makes a working CLI look missing.
-  const captured = buildWslCapturedLoginShellCommand(command)
-  const result = (await execFileAsync(
-    'wsl.exe',
-    buildWslExecArgs(target.distro, ['sh', '-c', captured.command]),
-    {
-      encoding: 'utf-8',
-      timeout: timeoutMs
-    }
-  )) as PreflightWslCommandResult
-  const payload = captured.readStdout(result.stdout)
-  return payload === null ? result : { ...result, stdout: payload }
+  // Use cached login PATH without shell startup banners.
+  const result = await runWslProcess({
+    distro: target.distro,
+    loginPath: 'preferred',
+    // Append version-manager fallback directories while keeping resolved login PATH authoritative (#9725).
+    script: `${buildPosixFallbackPathPrelude()}\n${command}`,
+    timeoutMs
+  })
+  // Match execFile rejection semantics so callers retain captured output for auth-success fallback.
+  if (result.timedOut || result.code !== 0) {
+    throw Object.assign(new Error(`WSL command failed: ${command}`), {
+      code: result.code,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      timedOut: result.timedOut
+    })
+  }
+  return { stdout: result.stdout, stderr: result.stderr }
 }

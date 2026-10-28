@@ -1,6 +1,6 @@
 import type { ExecutionHostId } from './execution-host'
 import type { HostedReviewProvider } from './hosted-review'
-import type { WorkspaceCleanupBlocker, WorkspaceCleanupTier } from './workspace-cleanup'
+import type { WorkspaceCleanupBlocker } from './workspace-cleanup'
 
 /** `any` leaves the facet unconstrained; `only`/`exclude` narrow to rows with/without the trait. */
 export type WorkspaceCleanupTriState = 'any' | 'only' | 'exclude'
@@ -8,11 +8,7 @@ export type WorkspaceCleanupTriState = 'any' | 'only' | 'exclude'
 /** `some`/`none` require presence/absence; `any` is unconstrained. */
 export type WorkspaceCleanupPresence = 'any' | 'some' | 'none'
 
-/**
- * Which timestamp the idle threshold reads. `last-visited` is the honest
- * "the user actually opened this" signal; `last-activity` is a background
- * signal that ambient PTY/agent churn can bump without any human involvement.
- */
+/** last-visited records user presence; background PTY/agent churn can advance last-activity without a visit. */
 export type WorkspaceCleanupIdleSignal = 'last-visited' | 'last-activity' | 'created'
 
 export type WorkspaceCleanupGitState = 'clean' | 'dirty' | 'unpushed' | 'unknown'
@@ -40,7 +36,6 @@ export type WorkspaceCleanupSortField =
   | 'review'
   | 'ticket'
   | 'local-context'
-  | 'tier'
   | 'blocker-count'
 
 export type WorkspaceCleanupSortDirectionState = 'asc' | 'desc'
@@ -93,7 +88,6 @@ export type WorkspaceCleanupGitFilterState = {
 export type WorkspaceCleanupReviewFilterState = {
   presence: WorkspaceCleanupPresence
   states: WorkspaceCleanupReviewState[]
-  /** Provider-general: github/gitlab/bitbucket/azure-devops/gitea all land here. */
   providers: HostedReviewProvider[]
 }
 
@@ -117,10 +111,7 @@ export type WorkspaceCleanupLocationFilter = {
 export type WorkspaceCleanupSafetyFilter = {
   blockers: WorkspaceCleanupBlocker[]
   blockerMode: WorkspaceCleanupBlockerMode
-  tiers: WorkspaceCleanupTier[]
   dismissed: WorkspaceCleanupTriState
-  /** Only rows the cleanup policy would actually let the user delete. */
-  selectableOnly: boolean
 }
 
 export type WorkspaceCleanupFilterState = {
@@ -141,7 +132,11 @@ export type WorkspaceCleanupFilterState = {
 export function createDefaultWorkspaceCleanupFilterState(): WorkspaceCleanupFilterState {
   return {
     query: '',
-    activity: { idleSignal: 'last-visited', idleMinDays: null, neverVisited: false },
+    activity: {
+      idleSignal: 'last-visited',
+      idleMinDays: null,
+      neverVisited: false
+    },
     size: { minBytes: null, maxBytes: null, includeUnsized: true },
     status: {
       workspaceStatuses: [],
@@ -167,9 +162,7 @@ export function createDefaultWorkspaceCleanupFilterState(): WorkspaceCleanupFilt
     safety: {
       blockers: [],
       blockerMode: 'none-of',
-      tiers: [],
-      dismissed: 'any',
-      selectableOnly: false
+      dismissed: 'any'
     }
   }
 }

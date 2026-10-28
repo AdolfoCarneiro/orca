@@ -8,9 +8,11 @@ import { UntitledFileRenameDialog } from './UntitledFileRenameDialog'
 import type { getEditorPanelRenderModel } from './editor-panel-render-model'
 import type { DiffContent, FileContent } from './editor-panel-content-types'
 import type { EditorToggleValue } from './EditorViewToggle'
+import { shouldShowEditorPanelHeader } from './editor-header'
 import { getUntitledFileRoot } from './untitled-file-rename-path'
 import { translate } from '@/i18n/i18n'
 import type { ArtifactWriteRequest } from '../../../../shared/artifacts'
+import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 
 type EditorPanelRenderModel = ReturnType<typeof getEditorPanelRenderModel>
 
@@ -36,13 +38,12 @@ type EditorPanelShellProps = {
   onOpenDiffTargetFile: (preferredMarkdownViewMode?: 'rich') => void
   onOpenPreviewToSide: () => void
   onOpenMarkdownPreview: () => void
-  onOpenContainingFolder: () => void
   onToggleSideBySide: () => void
   onEditorToggleChange: (next: EditorToggleValue) => void
   onToggleMarkdownTableOfContents: () => void
   onToggleMarkdownFrontmatter: () => void
   onExportMarkdownToPdf: () => void
-  createMarkdownArtifactRequest?: () => Promise<ArtifactWriteRequest>
+  createArtifactRequest?: () => Promise<ArtifactWriteRequest>
   onContentChange: (content: string) => void
   onContentChangeForFile: (file: OpenFile, content: string) => void
   onDirtyStateHint: (dirty: boolean) => void
@@ -77,13 +78,12 @@ export function EditorPanelShell({
   onOpenDiffTargetFile,
   onOpenPreviewToSide,
   onOpenMarkdownPreview,
-  onOpenContainingFolder,
   onToggleSideBySide,
   onEditorToggleChange,
   onToggleMarkdownTableOfContents,
   onToggleMarkdownFrontmatter,
   onExportMarkdownToPdf,
-  createMarkdownArtifactRequest,
+  createArtifactRequest,
   onContentChange,
   onContentChangeForFile,
   onDirtyStateHint,
@@ -97,7 +97,7 @@ export function EditorPanelShell({
 }: EditorPanelShellProps): JSX.Element {
   return (
     <div ref={panelRef} className="flex flex-col flex-1 min-w-0 min-h-0">
-      {!model.isCombinedDiff && activeFile.mode !== 'check-details' && (
+      {shouldShowEditorPanelHeader(activeFile, model.isCombinedDiff) && (
         <EditorPanelHeader
           activeFile={activeFile}
           copiedPathVisible={copiedPathVisible}
@@ -124,13 +124,12 @@ export function EditorPanelShell({
           onOpenDiffTargetFile={onOpenDiffTargetFile}
           onOpenPreviewToSide={onOpenPreviewToSide}
           onOpenMarkdownPreview={onOpenMarkdownPreview}
-          onOpenContainingFolder={onOpenContainingFolder}
           onToggleSideBySide={onToggleSideBySide}
           onEditorToggleChange={onEditorToggleChange}
           onToggleMarkdownTableOfContents={onToggleMarkdownTableOfContents}
           onToggleMarkdownFrontmatter={onToggleMarkdownFrontmatter}
           onExportMarkdownToPdf={onExportMarkdownToPdf}
-          createMarkdownArtifactRequest={createMarkdownArtifactRequest}
+          createArtifactRequest={createArtifactRequest}
         />
       )}
       <Suspense fallback={<EditorLoadingFallback />}>
@@ -148,6 +147,7 @@ export function EditorPanelShell({
           isCsv={model.isCsv}
           isNotebook={model.isNotebook}
           mdViewMode={model.mdViewMode}
+          inlineMarkdownRenderState={model.inlineMarkdownRenderState}
           isChangesMode={model.isDiffSurface && !model.isSingleDiff}
           sideBySide={sideBySide}
           pendingEditorReveal={pendingEditorReveal}
@@ -171,7 +171,7 @@ export function EditorPanelShell({
             ? getUntitledFileRoot(
                 renameDialogFile,
                 findWorktreeById(
-                  useAppStore.getState().worktreesByRepo,
+                  selectWorktreesByRepo(useAppStore.getState()),
                   renameDialogFile.worktreeId
                 )?.path
               )

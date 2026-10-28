@@ -7,13 +7,40 @@ import {
   getCodexExplicitHomeHookSourcePath,
   normalizeCodexHookSourcePath
 } from './config-toml-trust'
+import { _internals as grantInternals } from './codex-hook-trust-grant'
+import { _internals as lookupInternals } from './codex-hook-hash-lookup'
+import { computeOrcaCodexHookHashes } from './codex-hook-definition'
+import type { CodexHookAnswer } from './codex-hook-trust-derivation'
+import { CODEX_VERSION_FOR_TESTS } from './codex-hook-trust-derivation.test-fixture'
+
+// Exercise fallback trust without launching the developer's real Codex binary.
+function stubMissingCodexBinary(): never {
+  throw Object.assign(new Error('spawn codex ENOENT'), { code: 'ENOENT' })
+}
 
 export type CodexHookHomes = {
   tmpHome: string
   userDataDir: string
 }
 
-/** Mutable holder: fields are re-pointed at fresh temp dirs by the registered beforeEach. */
+export function codexHookAnswerForTests(): CodexHookAnswer {
+  return {
+    kind: 'hashes',
+    codexVersion: CODEX_VERSION_FOR_TESTS,
+    hashes: computeOrcaCodexHookHashes()
+  }
+}
+
+export function stubCodexTrustSessionsForTests(): void {
+  grantInternals.setGrantSessionRunner(stubMissingCodexBinary)
+}
+
+export function restoreCodexTrustSessionsForTests(): void {
+  grantInternals.setGrantSessionRunner(null)
+  grantInternals.resetDiagnostics()
+  lookupInternals.resetForTesting()
+}
+
 export function setupCodexHookHomes(
   homedirMock: Mock<() => string>,
   getPathMock: Mock<(name: string) => string>
@@ -27,6 +54,7 @@ export function setupCodexHookHomes(
     previousUserDataPath = process.env.ORCA_USER_DATA_PATH
     process.env.ORCA_USER_DATA_PATH = homes.userDataDir
     homedirMock.mockReturnValue(homes.tmpHome)
+    stubCodexTrustSessionsForTests()
     getPathMock.mockImplementation((name: string) => {
       if (name === 'userData') {
         return homes.userDataDir
@@ -36,6 +64,7 @@ export function setupCodexHookHomes(
   })
 
   afterEach(() => {
+    restoreCodexTrustSessionsForTests()
     rmSync(homes.tmpHome, { recursive: true, force: true })
     rmSync(homes.userDataDir, { recursive: true, force: true })
     if (previousUserDataPath === undefined) {

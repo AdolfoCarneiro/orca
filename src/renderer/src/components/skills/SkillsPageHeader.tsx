@@ -1,4 +1,4 @@
-import { BookOpen, Download, History, Link2, MoreHorizontal, Share2, X } from 'lucide-react'
+import { BookOpen, Download, History, Link2, MoreHorizontal, Share2, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -21,6 +21,9 @@ export function SkillsPageHeader({
   hostLabel,
   onClose,
   onStartShare,
+  deleteSupported,
+  deleteUnsupportedReason,
+  onStartDelete,
   onInstallFromLink,
   onManageInstalls,
   onOpenSharedLinks
@@ -31,6 +34,10 @@ export function SkillsPageHeader({
   hostLabel: string | null
   onClose: () => void
   onStartShare: () => void
+  /** Disable deletion with a reason until the target and host capability are known. */
+  deleteSupported: boolean
+  deleteUnsupportedReason: string | null
+  onStartDelete: () => void
   onInstallFromLink: () => void
   onManageInstalls: () => void
   onOpenSharedLinks: () => void
@@ -113,6 +120,25 @@ export function SkillsPageHeader({
               <Link2 />
               {translate('auto.components.skills.SkillsPage.sharedLinks', 'Shared links')}
             </DropdownMenuItem>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="pointer-events-auto block">
+                  <DropdownMenuItem
+                    variant="destructive"
+                    disabled={!deleteSupported}
+                    onSelect={onStartDelete}
+                  >
+                    <Trash2 />
+                    {translate('auto.components.skills.SkillsPage.deleteSkills', 'Delete skills…')}
+                  </DropdownMenuItem>
+                </span>
+              </TooltipTrigger>
+              {deleteSupported || !deleteUnsupportedReason ? null : (
+                <TooltipContent side="left" sideOffset={4}>
+                  {deleteUnsupportedReason}
+                </TooltipContent>
+              )}
+            </Tooltip>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

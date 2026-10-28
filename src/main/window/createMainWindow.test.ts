@@ -3,9 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('electron', async () =>
   (await import('./createMainWindow-test-harness')).electronModuleMock()
 )
-vi.mock('@electron-toolkit/utils', async () =>
-  (await import('./createMainWindow-test-harness')).electronToolkitUtilsMock()
-)
 vi.mock('./macos-tahoe-release', async () =>
   (await import('./createMainWindow-test-harness')).macosTahoeReleaseMock()
 )
@@ -13,17 +10,39 @@ vi.mock('../app-icon', async () => (await import('./createMainWindow-test-harnes
 vi.mock('../browser/browser-manager', async () =>
   (await import('./createMainWindow-test-harness')).browserManagerMock()
 )
+vi.mock('../browser/browser-route-session-runtime', async () => ({
+  browserRouteSessionRegistry: {
+    isAllowedPartition: (await import('./createMainWindow-test-harness')).routePartitionAllowedMock
+  },
+  browserRouteWebContentsRegistry: {
+    attachGuest: (await import('./createMainWindow-test-harness')).attachRouteGuestMock
+  }
+}))
+vi.mock('../browser/browser-client-page-renderer-runtime', async () => {
+  const harness = await import('./createMainWindow-test-harness')
+  return {
+    attachBrowserClientPageRenderer: harness.attachClientPageRendererMock,
+    retireBrowserClientPageRenderer: harness.retireClientPageRendererMock
+  }
+})
 
 import { createMainWindow, loadMainWindow } from './createMainWindow'
 import { ipcMain } from 'electron'
+import { getBrowserClientHostId } from '../browser/browser-client-host-id'
+import {
+  formatBrowserClientHostIdArgument,
+  readBrowserClientHostIdArgument
+} from '../../shared/browser-client-host-id-argument'
 import { resetExpectedTeardownStateForTest } from '../crash-reporting/expected-teardown-state'
 import {
   attachGuestPoliciesMock,
+  attachRouteGuestMock,
   browserWindowMock,
   macosTahoeMock,
   openExternalMock,
   powerMonitorOnMock,
   resetMainWindowMocks,
+  routePartitionAllowedMock,
   withPlatform
 } from './createMainWindow-test-harness'
 
@@ -56,8 +75,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     browserWindowMock.mockImplementation(function () {
       return browserWindowInstance
@@ -75,19 +94,32 @@ describe('createMainWindow', () => {
   })
 
   it('enables renderer sandboxing and opens external links safely', () => {
-    const windowHandlers: Record<string, (...args: any[]) => void> = {}
+    // Retain all will-navigate listeners; one slot per event lets registration order hide a missing guard.
+    const windowHandlers: Record<string, ((...args: any[]) => void)[]> = {}
+    const fire = (event: string, ...args: any[]): void => {
+      for (const handler of windowHandlers[event] ?? []) {
+        handler(...args)
+      }
+    }
+    let windowOpenHandler: (...args: any[]) => unknown = () => undefined
+    const record = (event: string, handler: (...args: any[]) => void): void => {
+      ;(windowHandlers[event] ??= []).push(handler)
+    }
     const webContents = {
+      getURL: vi.fn(() => 'file:///opt/orca/renderer/index.html'),
+      isDestroyed: vi.fn(() => false),
+      mainFrame: {},
       on: vi.fn((event, handler) => {
-        windowHandlers[event] = handler
+        record(event, handler)
       }),
       once: vi.fn((event, handler) => {
-        windowHandlers[event] = handler
+        record(event, handler)
       }),
       setZoomLevel: vi.fn(),
       setBackgroundThrottling: vi.fn(),
       invalidate: vi.fn(),
       setWindowOpenHandler: vi.fn((handler) => {
-        windowHandlers.windowOpen = handler
+        windowOpenHandler = handler
       }),
       send: vi.fn(),
       isDevToolsOpened: vi.fn(),
@@ -104,8 +136,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     browserWindowMock.mockImplementation(function () {
       return browserWindowInstance
@@ -119,8 +151,7 @@ describe('createMainWindow', () => {
       })
     )
     const browserWindowOptions = browserWindowMock.mock.calls[0]?.[0]
-    // Why: macOS swallows the app-activating click unless the window accepts
-    // first mouse, forcing a second click to focus the floating workspace.
+    // acceptFirstMouse lets the app-activating click focus the floating workspace without a second click.
     expect(browserWindowOptions.acceptFirstMouse).toBe(true)
     if (process.platform === 'darwin') {
       expect(browserWindowOptions).toMatchObject({
@@ -131,38 +162,35 @@ describe('createMainWindow', () => {
         titleBarStyle: 'hidden'
       })
     } else {
-      // Linux: native frame is dropped so the renderer titlebar isn't stacked
-      // under the WM title bar (double title bar). titleBarStyle stays unset.
+      // Linux frame:false avoids stacking native and renderer titlebars.
       expect(browserWindowOptions.titleBarStyle).toBeUndefined()
       expect(browserWindowOptions.frame).toBe(false)
     }
 
-    expect(windowHandlers.windowOpen({ url: 'https://example.com' })).toEqual({ action: 'deny' })
-    expect(windowHandlers.windowOpen({ url: 'localhost:3000' })).toEqual({ action: 'deny' })
-    expect(windowHandlers.windowOpen({ url: 'file:///etc/passwd' })).toEqual({ action: 'deny' })
-    expect(windowHandlers.windowOpen({ url: 'not a url' })).toEqual({ action: 'deny' })
+    expect(windowOpenHandler({ url: 'https://example.com' })).toEqual({ action: 'deny' })
+    expect(windowOpenHandler({ url: 'localhost:3000' })).toEqual({ action: 'deny' })
+    expect(windowOpenHandler({ url: 'file:///etc/passwd' })).toEqual({ action: 'deny' })
+    expect(windowOpenHandler({ url: 'not a url' })).toEqual({ action: 'deny' })
 
     expect(openExternalMock).toHaveBeenCalledTimes(2)
     expect(openExternalMock).toHaveBeenCalledWith('https://example.com/')
     expect(openExternalMock).toHaveBeenCalledWith('http://localhost:3000/')
 
     const preventDefault = vi.fn()
-    windowHandlers['will-navigate']({ preventDefault } as never, 'https://example.com/docs')
+    fire('will-navigate', { preventDefault } as never, 'https://example.com/docs')
     expect(preventDefault).toHaveBeenCalledTimes(1)
     expect(openExternalMock).toHaveBeenCalledTimes(3)
     expect(openExternalMock).toHaveBeenLastCalledWith('https://example.com/docs')
 
     const localhostPreventDefault = vi.fn()
-    windowHandlers['will-navigate'](
-      { preventDefault: localhostPreventDefault } as never,
-      'localhost:3000'
-    )
+    fire('will-navigate', { preventDefault: localhostPreventDefault } as never, 'localhost:3000')
     expect(localhostPreventDefault).toHaveBeenCalledTimes(1)
     expect(openExternalMock).toHaveBeenCalledTimes(4)
     expect(openExternalMock).toHaveBeenLastCalledWith('http://localhost:3000/')
 
     const fileNavigationPreventDefault = vi.fn()
-    windowHandlers['will-navigate'](
+    fire(
+      'will-navigate',
       { preventDefault: fileNavigationPreventDefault } as never,
       'file:///etc/passwd'
     )
@@ -171,7 +199,8 @@ describe('createMainWindow', () => {
 
     const allowBlankEvent = { preventDefault: vi.fn() }
     const allowBlankPrefs = { partition: 'persist:orca-browser' }
-    windowHandlers['will-attach-webview'](
+    fire(
+      'will-attach-webview',
       allowBlankEvent as never,
       allowBlankPrefs as never,
       { src: 'data:text/html,' } as never
@@ -184,8 +213,34 @@ describe('createMainWindow', () => {
       sandbox: true
     })
 
+    routePartitionAllowedMock.mockImplementation(
+      (partition) => partition === 'persist:orca-browser-v1-route-partition'
+    )
+    const allowRouteEvent = { preventDefault: vi.fn() }
+    const allowRoutePrefs = { partition: 'persist:orca-browser-v1-route-partition' }
+    fire(
+      'will-attach-webview',
+      allowRouteEvent as never,
+      allowRoutePrefs as never,
+      { src: 'about:blank' } as never
+    )
+    expect(allowRouteEvent.preventDefault).not.toHaveBeenCalled()
+    expect(allowRoutePrefs).toMatchObject({
+      partition: 'persist:orca-browser-v1-route-partition',
+      sandbox: true
+    })
+    const denyRouteNavigationEvent = { preventDefault: vi.fn() }
+    fire(
+      'will-attach-webview',
+      denyRouteNavigationEvent as never,
+      { partition: 'persist:orca-browser-v1-route-partition' } as never,
+      { src: 'https://example.com/' } as never
+    )
+    expect(denyRouteNavigationEvent.preventDefault).toHaveBeenCalledOnce()
+
     const denyInlineHtmlEvent = { preventDefault: vi.fn() }
-    windowHandlers['will-attach-webview'](
+    fire(
+      'will-attach-webview',
       denyInlineHtmlEvent as never,
       { partition: 'persist:orca-browser' } as never,
       { src: 'data:text/html,<script>alert(1)</script>' } as never
@@ -193,8 +248,12 @@ describe('createMainWindow', () => {
     expect(denyInlineHtmlEvent.preventDefault).toHaveBeenCalledTimes(1)
 
     const guest = { marker: 'guest' }
-    windowHandlers['did-attach-webview']({} as never, guest as never)
+    fire('did-attach-webview', {} as never, guest as never)
     expect(attachGuestPoliciesMock).toHaveBeenCalledWith(guest)
+    expect(attachRouteGuestMock).toHaveBeenCalledWith(guest)
+    expect(attachGuestPoliciesMock.mock.invocationCallOrder[0]).toBeLessThan(
+      attachRouteGuestMock.mock.invocationCallOrder[0]
+    )
 
     const untrustedPreloadParams = {
       src: 'data:text/html,',
@@ -204,7 +263,8 @@ describe('createMainWindow', () => {
       partition: 'persist:orca-browser',
       preload: '/tmp/untrusted-preload.js'
     }
-    windowHandlers['will-attach-webview'](
+    fire(
+      'will-attach-webview',
       { preventDefault: vi.fn() } as never,
       hardenedPrefs as never,
       untrustedPreloadParams as never
@@ -214,8 +274,67 @@ describe('createMainWindow', () => {
     expect(hardenedPrefs.preload).not.toContain('untrusted-preload')
 
     const secondGuest = { marker: 'second-guest' }
-    windowHandlers['did-attach-webview']({} as never, secondGuest as never)
+    fire('did-attach-webview', {} as never, secondGuest as never)
     expect(attachGuestPoliciesMock).toHaveBeenLastCalledWith(secondGuest)
+    expect(attachRouteGuestMock).toHaveBeenLastCalledWith(secondGuest)
+  })
+
+  // Stamp host identity before the first session snapshot; sendSync cannot answer before listener registration.
+  it('stamps the browser host id into the renderer that owns the guests, and strips it from a guest that carries one', () => {
+    const windowHandlers: Record<string, (...args: any[]) => void> = {}
+    const webContents = {
+      getURL: vi.fn(() => 'file:///opt/orca/renderer/index.html'),
+      isDestroyed: vi.fn(() => false),
+      mainFrame: {},
+      on: vi.fn((event, handler) => {
+        windowHandlers[event] = handler
+      }),
+      once: vi.fn((event, handler) => {
+        windowHandlers[event] = handler
+      }),
+      setZoomLevel: vi.fn(),
+      setBackgroundThrottling: vi.fn(),
+      invalidate: vi.fn(),
+      setWindowOpenHandler: vi.fn(),
+      send: vi.fn(),
+      isDevToolsOpened: vi.fn(),
+      openDevTools: vi.fn(),
+      closeDevTools: vi.fn()
+    }
+    browserWindowMock.mockImplementation(function () {
+      return {
+        webContents,
+        on: vi.fn(),
+        isDestroyed: vi.fn(() => false),
+        isMaximized: vi.fn(() => true),
+        isFullScreen: vi.fn(() => false),
+        getSize: vi.fn(() => [1200, 800]),
+        setSize: vi.fn(),
+        maximize: vi.fn(),
+        show: vi.fn(),
+        loadFile: vi.fn(() => Promise.resolve()),
+        loadURL: vi.fn(() => Promise.resolve())
+      }
+    })
+
+    createMainWindow(null)
+
+    const stamped = browserWindowMock.mock.calls[0]?.[0].webPreferences?.additionalArguments
+    expect(stamped).toEqual([formatBrowserClientHostIdArgument(getBrowserClientHostId())])
+    expect(readBrowserClientHostIdArgument(stamped ?? [])).toBe(getBrowserClientHostId())
+
+    // Electron 43 does not inherit embedder arguments; inject a hostile stamp to prove the handler strips it.
+    const guestPreferences = {
+      partition: 'persist:orca-browser',
+      additionalArguments: [...(stamped ?? [])]
+    }
+    windowHandlers['will-attach-webview'](
+      { preventDefault: vi.fn() } as never,
+      guestPreferences as never,
+      { src: 'data:text/html,' } as never
+    )
+
+    expect(guestPreferences.additionalArguments).toBeUndefined()
   })
 
   it('sets platform-specific titlebar and frame options for every desktop platform', () => {
@@ -250,8 +369,8 @@ describe('createMainWindow', () => {
         setWindowButtonPosition: vi.fn(),
         maximize: vi.fn(),
         show: vi.fn(),
-        loadFile: vi.fn(),
-        loadURL: vi.fn()
+        loadFile: vi.fn(() => Promise.resolve()),
+        loadURL: vi.fn(() => Promise.resolve())
       }
       browserWindowMock.mockImplementation(function () {
         return browserWindowInstance
@@ -295,8 +414,8 @@ describe('createMainWindow', () => {
         setWindowButtonPosition: vi.fn(),
         maximize: vi.fn(),
         show: vi.fn(),
-        loadFile: vi.fn(),
-        loadURL: vi.fn()
+        loadFile: vi.fn(() => Promise.resolve()),
+        loadURL: vi.fn(() => Promise.resolve())
       }
       browserWindowMock.mockImplementation(function () {
         return browserWindowInstance
@@ -350,8 +469,8 @@ describe('createMainWindow', () => {
       }),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     browserWindowMock.mockImplementation(function () {
       return browserWindowInstance
@@ -369,7 +488,7 @@ describe('createMainWindow', () => {
     windowHandlers.get('restore')?.[0]?.()
 
     expect(webContents.invalidate).toHaveBeenCalledTimes(2)
-    // Why: the size nudge must never run inside the show/restore dispatch itself.
+    // Defer size nudges outside show/restore dispatch.
     expect(browserWindowInstance.setSize).not.toHaveBeenCalled()
 
     vi.advanceTimersByTime(0)
@@ -385,8 +504,7 @@ describe('createMainWindow', () => {
     vi.advanceTimersByTime(1)
     expect(webContents.invalidate).toHaveBeenCalledTimes(3)
 
-    // Why: focus covers occlusion-uncover with invalidate only — no setSize
-    // jiggle that would resize terminals on every window focus.
+    // Focus only invalidates; size jiggles would resize terminals on every focus.
     const setSizeCalls = browserWindowInstance.setSize.mock.calls.length
     windowHandlers.get('focus')?.[0]?.()
     expect(webContents.invalidate).toHaveBeenCalledTimes(4)
@@ -425,8 +543,8 @@ describe('createMainWindow', () => {
       }),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     browserWindowMock.mockImplementation(function () {
       return browserWindowInstance
@@ -439,22 +557,22 @@ describe('createMainWindow', () => {
       .mock.calls.find(([channel]) => channel === 'ui:window-revealed')?.[1]
     expect(revealHandler).toBeTypeOf('function')
 
-    // Why: a reveal relayed by another window's webContents must not repaint this one.
+    // A reveal from another WebContents must not repaint this window.
     revealHandler?.({ sender: {} } as never)
     expect(browserWindowInstance.setSize).not.toHaveBeenCalled()
     expect(webContents.invalidate).not.toHaveBeenCalled()
 
-    // The genuine reveal runs the pre-Tahoe compositor jiggle that bare focus avoids.
+    // Genuine reveal uses the pre-Tahoe jiggle that bare focus avoids.
     revealHandler?.({ sender: webContents } as never)
     expect(webContents.invalidate).toHaveBeenCalledTimes(1)
-    // Why: the nudge is deferred off the event dispatch turn.
+    // Defer compositor nudge outside event dispatch.
     expect(browserWindowInstance.setSize).not.toHaveBeenCalled()
     vi.advanceTimersByTime(0)
     expect(browserWindowInstance.setSize).toHaveBeenNthCalledWith(1, 1201, 800)
     vi.advanceTimersByTime(32)
     expect(browserWindowInstance.setSize).toHaveBeenNthCalledWith(2, 1200, 800)
 
-    // Repeated reveal signals while a jiggle is active repaint but do not multiply terminal resizes.
+    // Coalesce reveal jiggles so repeated signals do not multiply terminal resizes.
     revealHandler?.({ sender: webContents } as never)
     revealHandler?.({ sender: webContents } as never)
     expect(webContents.invalidate).toHaveBeenCalledTimes(3)
@@ -462,7 +580,7 @@ describe('createMainWindow', () => {
     expect(browserWindowInstance.setSize).toHaveBeenNthCalledWith(3, 1201, 800)
     expect(browserWindowInstance.setSize).toHaveBeenCalledTimes(3)
 
-    // A user resize that lands during the jiggle must not be rolled back to stale bounds.
+    // Never restore stale bounds over a concurrent user resize.
     windowSize = [1400, 900]
     vi.advanceTimersByTime(32)
     expect(browserWindowInstance.setSize).toHaveBeenCalledTimes(3)
@@ -501,8 +619,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     browserWindowMock.mockImplementation(function () {
       return browserWindowInstance
@@ -513,7 +631,7 @@ describe('createMainWindow', () => {
     windowHandlers.get('show')?.[0]?.()
     expect(webContents.invalidate).toHaveBeenCalledTimes(1)
 
-    // Why: the delayed second repaint must also stay setSize-free on Tahoe.
+    // Tahoe's delayed repaint must also avoid setSize.
     vi.advanceTimersByTime(300)
     expect(webContents.invalidate).toHaveBeenCalledTimes(2)
     expect(browserWindowInstance.setSize).not.toHaveBeenCalled()
@@ -549,8 +667,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     browserWindowMock.mockImplementation(function () {
       return browserWindowInstance
@@ -597,8 +715,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     browserWindowMock.mockImplementation(function () {
       return browserWindowInstance

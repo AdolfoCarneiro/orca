@@ -7,6 +7,25 @@ vi.mock('./local-workspace-port-scanner', () => ({
   scanWorkspacePorts: scanWorkspacePortsMock
 }))
 
+function workspacePortScan(pid: number, port: number) {
+  return {
+    platform: 'win32' as const,
+    scannedAt: 0,
+    ports: [
+      {
+        id: `127.0.0.1:${port}:${pid}`,
+        bindHost: '127.0.0.1',
+        connectHost: '127.0.0.1',
+        port,
+        pid,
+        protocol: 'http' as const,
+        kind: 'workspace' as const,
+        worktreeId: worktrees[0]!.id
+      }
+    ]
+  }
+}
+
 const worktrees = [{ id: 'repo::/repo', repoId: 'repo', displayName: 'main', path: '/repo' }]
 
 describe('killWorkspacePort', () => {
@@ -15,9 +34,37 @@ describe('killWorkspacePort', () => {
     vi.restoreAllMocks()
   })
 
-  // Regression for #11161 review: on an EDR-hooked host the background poller
-  // alternates the metadata skip, so an unscoped skip would fail Stop with
-  // "Only workspace-owned local processes can be stopped here" every other try.
+  it('reports success when the listener exited before the signal landed', async () => {
+    // ESRCH after authorization means the listener exited before SIGTERM arrived.
+    vi.spyOn(process, 'kill').mockImplementation(() => {
+      throw Object.assign(new Error('kill ESRCH'), { code: 'ESRCH' })
+    })
+    scanWorkspacePortsMock.mockResolvedValue(workspacePortScan(123, 5173))
+
+    expect(await killWorkspacePort(worktrees, { pid: 123, port: 5173 })).toEqual({ ok: true })
+  })
+
+  it('still reports a real failure to stop', async () => {
+    vi.spyOn(process, 'kill').mockImplementation(() => {
+      throw Object.assign(new Error('kill EPERM'), { code: 'EPERM' })
+    })
+    scanWorkspacePortsMock.mockResolvedValue(workspacePortScan(123, 5173))
+
+    expect(await killWorkspacePort(worktrees, { pid: 123, port: 5173 })).toEqual({
+      ok: false,
+      reason: 'kill EPERM'
+    })
+  })
+
+  it('signals the pid the socket scan named, which is the listener itself', async () => {
+    // Socket scans name the listener itself; tree kill would reach unrelated descendants.
+    const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true)
+    scanWorkspacePortsMock.mockResolvedValue(workspacePortScan(123, 5173))
+
+    expect(await killWorkspacePort(worktrees, { pid: 123, port: 5173 })).toEqual({ ok: true })
+    expect(killSpy).toHaveBeenCalledExactlyOnceWith(123, 'SIGTERM')
+  })
+
   it('requires owner metadata from the authorizing re-scan', async () => {
     scanWorkspacePortsMock.mockResolvedValue({ platform: 'darwin', scannedAt: 0, ports: [] })
 

@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
+import { isDefinitiveAbsence } from '../../shared/definitive-filesystem-absence'
 import type { HooksConfig } from './installer-utils'
 
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -12,7 +13,7 @@ export type HooksJsonSnapshot = {
 }
 
 export function parseHooksJsonText(raw: string): HooksConfig | null {
-  // Why: JSON.parse rejects a decoded UTF-8 BOM; strip only the leading marker.
+  // JSON.parse rejects a decoded UTF-8 BOM.
   const content = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw
   try {
     const parsed = JSON.parse(content)
@@ -22,20 +23,15 @@ export function parseHooksJsonText(raw: string): HooksConfig | null {
   }
 }
 
-// Why: generation guards abort a mutation when the file no longer matches the
-// bytes it was derived from; the raw snapshot and the parse must come from one
-// read or a concurrent save can slip between them unnoticed.
+// Generation guards need raw bytes and parsed config from the same read to detect concurrent saves.
 export function readHooksJsonWithRaw(configPath: string): HooksJsonSnapshot {
-  if (!existsSync(configPath)) {
-    return { raw: null, config: {} }
-  }
-  let raw: string
+  // Only confirmed absence permits an empty config; unreadable files must not be overwritten.
   try {
-    raw = readFileSync(configPath, 'utf-8')
-  } catch {
-    return { raw: null, config: null }
+    const raw = readFileSync(configPath, 'utf-8')
+    return { raw, config: parseHooksJsonText(raw) }
+  } catch (error) {
+    return isDefinitiveAbsence(error) ? { raw: null, config: {} } : { raw: null, config: null }
   }
-  return { raw, config: parseHooksJsonText(raw) }
 }
 
 export function readHooksJson(configPath: string): HooksConfig | null {

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useRef } from 'react'
 import { useAppStore } from '@/store'
-import {
-  normalizeBrowserNavigationUrl,
-  redactKagiSessionToken
-} from '../../../../../shared/browser-url'
-import { keybindingMatchesAction } from '../../../../../shared/keybindings'
+import { redactKagiSessionToken } from '../../../../../shared/browser-url'
+import { normalizeBrowserHistoryUrl } from '../../../../../shared/workspace-session-browser-history'
+import { resolveBrowserAddressBarSubmission } from '../navigate/browser-address-bar-navigation'
+import { routeWorkspaceDocAddressSubmission } from '../navigate/workspace-doc-address-submission'
+import { deferBrowserPageNavigation } from '../navigate/browser-page-deferred-navigation'
 import type {
   BrowserBackResult,
   BrowserGotoResult,
@@ -12,16 +12,10 @@ import type {
   BrowserTabInfo
 } from '../../../../../shared/runtime-types'
 import type { BrowserPage as BrowserPageState } from '../../../../../shared/browser-workspace-types'
-import { getShortcutPlatform } from '@/hooks/useShortcutLabel'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import { isRemoteBrowserPageMissingError } from './remote-browser-stream-errors'
 import type { RemoteBrowserOperationToken } from './remote-browser-stream-tokens'
 import type { RemoteBrowserStreamLifecycle } from './remote-browser-stream-lifecycle'
-import {
-  consumeBrowserFocusRequest,
-  ORCA_BROWSER_FOCUS_REQUEST_EVENT,
-  type BrowserFocusRequestDetail
-} from '../host-guest/browser-focus'
 import type { BrowserPageUrlSetter, BrowserTabPageState } from '../describe-page/browser-page-types'
 import { getBrowserDisplayTitle, toDisplayUrl } from '../describe-page/browser-page-url-display'
 import type {
@@ -31,10 +25,9 @@ import type {
 
 export function useRemoteBrowserPageNavigation({
   browserTab,
-  isActive,
-  addressBarInputRef,
-  imageRef,
-  remoteViewportRef,
+  stagedPage,
+  addressBarValue,
+  setAddressBarValueFromPage,
   lifecycle,
   runtimeWorktree,
   runtimeTarget,
@@ -47,10 +40,10 @@ export function useRemoteBrowserPageNavigation({
   setPaneBusy
 }: {
   browserTab: BrowserPageState
-  isActive: boolean
-  addressBarInputRef: React.RefObject<HTMLInputElement | null>
-  imageRef: React.RefObject<HTMLImageElement | null>
-  remoteViewportRef: React.RefObject<HTMLDivElement | null>
+  /** The host has not minted this page yet, so nothing here may be sent to the runtime. */
+  stagedPage: boolean
+  addressBarValue: string
+  setAddressBarValueFromPage: (value: string) => void
   lifecycle: RemoteBrowserStreamLifecycle
   runtimeWorktree: string
   runtimeTarget: () => RemoteBrowserRuntimeTarget | null
@@ -62,8 +55,6 @@ export function useRemoteBrowserPageNavigation({
   setPaneNotice: (notice: RemoteBrowserPaneNotice | null) => void
   setPaneBusy: (busy: boolean) => void
 }): {
-  addressBarValue: string
-  setAddressBarValue: (value: string) => void
   applyRemoteTabInfo: (tab: Pick<BrowserTabInfo, 'url' | 'title'>) => void
   scheduleRemoteTabInfoRefresh: (token: RemoteBrowserOperationToken, delayMs?: number) => void
   runRemoteNavigation: (
@@ -73,30 +64,28 @@ export function useRemoteBrowserPageNavigation({
   navigateToUrl: (url: string) => void
   submitAddressBar: () => void
 } {
-  const [addressBarValue, setAddressBarValue] = useState(toDisplayUrl(browserTab.url))
-  const keybindings = useAppStore((state) => state.keybindings)
-
-  useEffect(() => {
-    if (document.activeElement === addressBarInputRef.current) {
-      return
-    }
-    setAddressBarValue(toDisplayUrl(browserTab.url))
-  }, [addressBarInputRef, browserTab.url])
+  const addBrowserHistoryEntry = useAppStore((state) => state.addBrowserHistoryEntry)
+  const lastFiledHistoryRef = useRef<string | null>(null)
 
   const applyRemoteTabInfo = useCallback(
     (tab: Pick<BrowserTabInfo, 'url' | 'title'>): void => {
       const safeUrl = redactKagiSessionToken(tab.url || 'about:blank')
+      const title = getBrowserDisplayTitle(tab.title, safeUrl)
       onSetUrl(browserTab.id, safeUrl)
       onUpdatePageState(browserTab.id, {
-        title: getBrowserDisplayTitle(tab.title, safeUrl),
+        title,
         loading: false,
         loadError: null
       })
-      if (document.activeElement !== addressBarInputRef.current) {
-        setAddressBarValue(toDisplayUrl(safeUrl))
+      // File remote navigations in client suggestion history only when URL/title changes; post-input tab reads must not rewrite the store.
+      const filing = `${normalizeBrowserHistoryUrl(safeUrl)}\n${title}`
+      if (filing !== lastFiledHistoryRef.current) {
+        lastFiledHistoryRef.current = filing
+        addBrowserHistoryEntry(safeUrl, title)
       }
+      setAddressBarValueFromPage(toDisplayUrl(safeUrl))
     },
-    [addressBarInputRef, browserTab.id, onSetUrl, onUpdatePageState]
+    [addBrowserHistoryEntry, browserTab.id, onSetUrl, onUpdatePageState, setAddressBarValueFromPage]
   )
 
   const scheduleRemoteTabInfoRefresh = useCallback(
@@ -106,42 +95,6 @@ export function useRemoteBrowserPageNavigation({
     [lifecycle]
   )
 
-  useEffect(() => {
-    if (!isActive) {
-      return
-    }
-    return window.api.ui.onFocusBrowserAddressBar(() => {
-      addressBarInputRef.current?.focus()
-      addressBarInputRef.current?.select()
-    })
-  }, [addressBarInputRef, isActive])
-
-  useEffect(() => {
-    if (!isActive) {
-      return
-    }
-    const handleBrowserFocusRequest = (event: Event): void => {
-      const detail = (event as CustomEvent<BrowserFocusRequestDetail>).detail
-      if (!detail || detail.pageId !== browserTab.id) {
-        return
-      }
-      const focusTarget = consumeBrowserFocusRequest(browserTab.id)
-      if (!focusTarget) {
-        return
-      }
-      if (focusTarget === 'address-bar') {
-        addressBarInputRef.current?.focus()
-        addressBarInputRef.current?.select()
-        return
-      }
-      const target = imageRef.current ?? remoteViewportRef.current
-      target?.focus()
-    }
-    window.addEventListener(ORCA_BROWSER_FOCUS_REQUEST_EVENT, handleBrowserFocusRequest)
-    return () =>
-      window.removeEventListener(ORCA_BROWSER_FOCUS_REQUEST_EVENT, handleBrowserFocusRequest)
-  }, [addressBarInputRef, browserTab.id, imageRef, isActive, remoteViewportRef])
-
   const runRemoteNavigation = useCallback(
     async (
       method: 'browser.goto' | 'browser.back' | 'browser.forward' | 'browser.reload',
@@ -149,6 +102,14 @@ export function useRemoteBrowserPageNavigation({
     ) => {
       const target = runtimeTarget()
       if (!target) {
+        return
+      }
+      if (stagedPage) {
+        // No staged host page exists yet: park goto until adoption; history/reload cannot replay against an uncreated page.
+        if (method === 'browser.goto' && url) {
+          deferBrowserPageNavigation(browserTab.id, url)
+          onUpdatePageState(browserTab.id, { loading: true, loadError: null })
+        }
         return
       }
       const operationToken = createRemoteOperationToken()
@@ -165,7 +126,8 @@ export function useRemoteBrowserPageNavigation({
       }
       setPaneBusy(true)
       setPaneNotice(null)
-      onUpdatePageState(browserTab.id, { loading: true, loadError: null })
+      // Why: a standing failure (and its auto-retry) stays up until a load succeeds or fails anew.
+      onUpdatePageState(browserTab.id, { loading: true })
       try {
         const params =
           method === 'browser.goto'
@@ -187,12 +149,14 @@ export function useRemoteBrowserPageNavigation({
         }
         const message = error instanceof Error ? error.message : 'Remote browser command failed.'
         setPaneNotice({ kind: 'consequence', text: message })
+        // Why: goto results carry no load error, but the rejection keeps Electron's "ERR_NAME (-code)" text.
+        const netError = /\b(ERR_[A-Z_]+) \((-\d+)\)/.exec(message)
         onUpdatePageState(browserTab.id, {
           loading: false,
           // Why: validatedUrl is persisted, so redact the Kagi session token like the main-process failure path does.
           loadError: {
-            code: 0,
-            description: message,
+            code: netError ? Number(netError[2]) : 0,
+            description: netError ? netError[1] : message,
             validatedUrl: redactKagiSessionToken(url ?? browserTab.url)
           }
         })
@@ -214,7 +178,8 @@ export function useRemoteBrowserPageNavigation({
       runtimeTarget,
       runtimeWorktree,
       setPaneBusy,
-      setPaneNotice
+      setPaneNotice,
+      stagedPage
     ]
   )
 
@@ -225,56 +190,31 @@ export function useRemoteBrowserPageNavigation({
     [runRemoteNavigation]
   )
 
-  // Browser history shortcuts for SSH/runtime browsers.
-  // Why: remote panes have no local webview ref, so route history through runtime RPC instead of WebContents.
-  useEffect(() => {
-    if (!isActive) {
-      return
-    }
-    const shortcutPlatform = getShortcutPlatform()
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      const method = keybindingMatchesAction('browser.back', e, shortcutPlatform, keybindings)
-        ? 'browser.back'
-        : keybindingMatchesAction('browser.forward', e, shortcutPlatform, keybindings)
-          ? 'browser.forward'
-          : null
-      if (method === null) {
-        return
-      }
-      e.preventDefault()
-      e.stopPropagation()
-      void runRemoteNavigation(method)
-    }
-    window.addEventListener('keydown', handleKeyDown, true)
-    return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [isActive, keybindings, runRemoteNavigation])
-
   const submitAddressBar = (): void => {
-    const searchEngine = useAppStore.getState().browserDefaultSearchEngine
-    const kagiSessionLink = useAppStore.getState().browserKagiSessionLink
-    const nextUrl = normalizeBrowserNavigationUrl(addressBarValue, searchEngine, {
-      kagiSessionLink
+    // Typed workspace paths convert the local preview rather than navigating the runtime guest.
+    const consumedAsWorkspaceDoc = routeWorkspaceDocAddressSubmission({
+      worktreeId: browserTab.worktreeId,
+      pageId: browserTab.id,
+      value: addressBarValue,
+      onLoadError: (loadError) => {
+        setPaneNotice({ kind: 'direct', text: loadError.description })
+        onUpdatePageState(browserTab.id, { loadError })
+      }
     })
-    if (!nextUrl) {
-      const message = 'Enter a valid http(s) or localhost URL.'
-      // 'direct': the only response to what the user just typed. With an empty address bar no
-      // load-error overlay renders either, so outranking this would make Enter do nothing visible.
-      setPaneNotice({ kind: 'direct', text: message })
-      onUpdatePageState(browserTab.id, {
-        loadError: {
-          code: 0,
-          description: message,
-          validatedUrl: redactKagiSessionToken(addressBarValue.trim()) || 'about:blank'
-        }
-      })
+    if (consumedAsWorkspaceDoc) {
       return
     }
-    navigateToUrl(nextUrl)
+    const submission = resolveBrowserAddressBarSubmission(addressBarValue, { allowFileUrls: false })
+    if (submission.status === 'invalid') {
+      // Direct validation is the only visible response to an empty submission, so it must outrank stream failures.
+      setPaneNotice({ kind: 'direct', text: submission.loadError.description })
+      onUpdatePageState(browserTab.id, { loadError: submission.loadError })
+      return
+    }
+    navigateToUrl(submission.url)
   }
 
   return {
-    addressBarValue,
-    setAddressBarValue,
     applyRemoteTabInfo,
     scheduleRemoteTabInfoRefresh,
     runRemoteNavigation,

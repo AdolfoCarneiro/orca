@@ -8,8 +8,12 @@ import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } fro
 import { RuntimeClient } from '../../src/cli/runtime-client'
 import Database from '../../src/main/sqlite/sync-database'
 import type { RuntimeTerminalListResult, RuntimeTerminalRead } from '../../src/shared/runtime-types'
-import { buildFakeAgentCommandOverride } from './helpers/fake-agent-command-override'
+import {
+  buildFakeAgentCommandOverride,
+  FAKE_AGENT_WINDOWS_SHELL
+} from './helpers/fake-agent-command-override'
 import { FAKE_AGENT_PASTE_END_SCANNER_SOURCE } from './helpers/fake-agent-paste-end-scanner'
+import { FAKE_CODEX_LAUNCH_PROBES_SOURCE } from './helpers/fake-codex-launch-probes'
 
 const fakeCliDir = mkdtempSync(path.join(os.tmpdir(), 'orca-e2e-settlement-release-'))
 const cliLedgerPath = path.join(fakeCliDir, 'cli.jsonl')
@@ -20,36 +24,31 @@ const fakeCodexCommand = buildFakeAgentCommandOverride(
 const fakeCodexSource = `
 const { appendFileSync } = require('node:fs')
 const { spawnSync } = require('node:child_process')
-if (process.argv.slice(2).includes('app-server')) {
-  process.stderr.write("error: unrecognized subcommand 'app-server'\\n")
-  process.exit(2)
-}
-let capability = null
+${FAKE_CODEX_LAUNCH_PROBES_SOURCE}
 let acknowledged = false
 ${FAKE_AGENT_PASTE_END_SCANNER_SOURCE}
-let pasteEnded = false
 process.stdout.write('\\u001b]0;Codex Ready\\u0007OpenAI Codex\\nmodel: e2e\\ndirectory: e2e\\n')
 process.stdin.on('data', (chunk) => {
   const input = chunk.toString()
   const pasteEndScan = scanFakeAgentPasteEnd(fakeAgentPasteEndTail, input)
   fakeAgentPasteEndTail = pasteEndScan.tail
-  if (pasteEndScan.ended) {
-    pasteEnded = true
+  if (pasteEndScan.pasteEndOffset !== null) {
     process.stdout.write('\\x1b[?25h')
   }
-  capability ||= input.match(/--dispatch-capability (dcap_[A-Za-z0-9_-]+)/)?.[1] || null
-  if (!acknowledged && pasteEnded && input.includes('\\r')) {
-    acknowledged = true
-    process.stdout.write('\\u001b]0;Codex Working\\u0007ACK\\n')
-    setTimeout(() => process.stdout.write('\\u001b]0;Codex Ready\\u0007'), 10)
+  if (!acknowledged) {
+    fakeAgentMaybeAck(pasteEndScan, input, (mode) => {
+      acknowledged = true
+      const message = mode === 'bracketed' ? 'ACK' : 'PASTE_PROTOCOL_ERROR'
+      process.stdout.write('\\u001b]0;Codex Working\\u0007' + message + '\\n')
+      setTimeout(() => process.stdout.write('\\u001b]0;Codex Ready\\u0007'), 10)
+    })
   }
   const encoded = input.match(/ORCA_E2E_WORKER_DONE:([A-Za-z0-9+/=]+)/)?.[1]
-  if (!encoded || !capability) return
+  if (!encoded) return
   const request = JSON.parse(Buffer.from(encoded, 'base64').toString('utf8'))
   const args = [
     'orchestration', 'send',
     '--from', request.mismatch ? 'term_foreign' : process.env.ORCA_TERMINAL_HANDLE,
-    '--dispatch-capability', capability,
     '--to', request.coordinator,
     '--type', 'worker_done',
     '--subject', request.mismatch ? 'wrong sender' : 'completed',
@@ -86,14 +85,11 @@ if (process.platform === 'win32') {
 }
 
 const test = base.extend({
-  launchEnv: [
-    {
-      PATH: `${fakeCliDir}${path.delimiter}${process.env.PATH ?? ''}`,
-      ORCA_E2E_CLI_ENTRY: cliEntry,
-      ORCA_E2E_CLI_LEDGER: cliLedgerPath
-    },
-    { option: true }
-  ]
+  launchEnv: {
+    PATH: `${fakeCliDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    ORCA_E2E_CLI_ENTRY: cliEntry,
+    ORCA_E2E_CLI_LEDGER: cliLedgerPath
+  }
 })
 
 type CliLedgerEntry = {
@@ -140,11 +136,15 @@ test('compiled CLI rejects false completion then reconciles the dead retained wo
   test.setTimeout(180_000)
   rmSync(cliLedgerPath, { force: true })
   await waitForSessionReady(orcaPage)
-  await orcaPage.evaluate(async (agentCommand) => {
-    await window.__store?.getState().updateSettings({
-      agentCmdOverrides: { codex: agentCommand }
-    })
-  }, fakeCodexCommand)
+  await orcaPage.evaluate(
+    async ({ agentCommand, terminalWindowsShell }) => {
+      await window.__store?.getState().updateSettings({
+        agentCmdOverrides: { codex: agentCommand },
+        terminalWindowsShell
+      })
+    },
+    { agentCommand: fakeCodexCommand, terminalWindowsShell: FAKE_AGENT_WINDOWS_SHELL }
+  )
   const worktreeId = await waitForActiveWorktree(orcaPage)
   await ensureTerminalVisible(orcaPage)
   await waitForActivePanePtyId(orcaPage)
@@ -227,7 +227,7 @@ test('compiled CLI rejects false completion then reconciles the dead retained wo
   expect.soft(rejected.status).not.toBe(0)
   expect.soft(JSON.parse(rejected.stdout)).toMatchObject({
     ok: false,
-    error: { code: 'dispatch_capability_invalid' }
+    error: { code: 'consumer_fenced' }
   })
   const stillDispatched = await client.call<{ dispatch: { status: string } | null }>(
     'orchestration.dispatchShow',
@@ -274,6 +274,42 @@ test('compiled CLI rejects false completion then reconciles the dead retained wo
     ).run(dispatch.result.dispatch!.id)
   } finally {
     db.close()
+  }
+
+  const retained = invokeCompiledCli(userDataDir, [
+    'orchestration',
+    'worker-release',
+    '--dispatch',
+    dispatch.result.dispatch!.id,
+    '--json'
+  ])
+  expect(retained.status).toBe(0)
+  expect(JSON.parse(retained.stdout)).toMatchObject({
+    ok: true,
+    result: { state: 'retained', reason: 'external_terminal', processAction: 'none' }
+  })
+  const recovery = new Database(path.join(userDataDir, 'orchestration.db'))
+  try {
+    expect(
+      recovery
+        .prepare(
+          'SELECT ownership_state, release_state FROM worker_terminal_resources WHERE owner_dispatch_id = ?'
+        )
+        .get(dispatch.result.dispatch!.id)
+    ).toEqual({ ownership_state: 'external', release_state: 'retained' })
+    // Seed the owned, abandoned recovery state after separately proving completion and external retention.
+    recovery
+      .prepare(
+        "UPDATE worker_terminal_resources SET ownership_state = 'owned', retained_reason = 'user_requested' WHERE owner_dispatch_id = ?"
+      )
+      .run(dispatch.result.dispatch!.id)
+    recovery
+      .prepare(
+        "UPDATE worker_dispatches SET state = 'abandoned', stage = 'abandoned' WHERE dispatch_id = ?"
+      )
+      .run(dispatch.result.dispatch!.id)
+  } finally {
+    recovery.close()
   }
 
   const released = invokeCompiledCli(userDataDir, [

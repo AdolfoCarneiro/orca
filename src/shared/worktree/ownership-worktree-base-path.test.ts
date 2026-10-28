@@ -61,19 +61,26 @@ describe('repo-specific worktree ownership layouts', () => {
     ).toBe('external')
   })
 
-  it('uses repo-specific nested layouts for Windows-style paths', () => {
+  it('classifies worktrees under a dotted Linux base exactly where creation collapses it', () => {
     const repo = makeRepo({
-      path: 'C:\\projects\\App\\repo',
-      worktreeBasePath: '..\\worktrees'
+      path: '\\\\wsl.localhost\\Ubuntu-24.04\\home\\jin\\src\\repo',
+      worktreeBasePath: '/home/jin/src/../.orca-worktrees'
     })
-    const settings = makeSettings({ workspaceDir: 'D:\\global' })
+    const settings = makeSettings({ workspaceDir: 'C:\\global' })
+    const layouts = buildKnownOrcaWorkspaceLayouts(settings, repo)
 
+    expect(layouts[0]).toEqual({
+      path: '//wsl.localhost/Ubuntu-24.04/home/jin/.orca-worktrees',
+      nestWorkspaces: true
+    })
     expect(
       classifyWorktreeOwnership({
         repo,
         settings,
-        worktree: makeWorktree('C:\\projects\\App\\worktrees\\repo\\Feature'),
-        knownOrcaLayouts: buildKnownOrcaWorkspaceLayouts(settings, repo)
+        worktree: makeWorktree(
+          '\\\\wsl.localhost\\Ubuntu-24.04\\home\\jin\\.orca-worktrees\\repo\\feature'
+        ),
+        knownOrcaLayouts: layouts
       })
     ).toBe('external')
   })

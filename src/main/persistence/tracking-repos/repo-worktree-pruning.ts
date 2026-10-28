@@ -1,17 +1,27 @@
 import type { WorkspaceKey } from '../../../shared/folder-workspace-types'
 import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../shared/execution-host'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
-import type { StoreOwnedPersistedState } from '../loading-store/store-owned-state'
-import { removeWorkspaceSessionOwners } from '../restoring-sessions/session-owner-removal'
+import type { PersistedState } from '../../../shared/persisted-state-types'
+import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
+import {
+  removeWorkspaceSessionOwners,
+  withoutWslMoveFrozenOwners
+} from '../restoring-sessions/session-owner-removal'
+import {
+  getExecutionHostIdFromWorktreeHostIdentity,
+  getWorktreeIdFromHostIdentity,
+  isWorktreeHostIdentity
+} from '../../../shared/worktree/host-qualified-identity'
+import { pruneUnreferencedWorktreeIdentityMeta } from '../loading-store/worktree-identity-metadata'
 
 export function pruneWorktreeStateForRepo(
-  state: StoreOwnedPersistedState,
+  state: PersistedState,
   id: string,
   hostId: ExecutionHostId | null,
   pruneMobileClientTabSelections: (matchesWorktreeId: (worktreeId: string) => boolean) => void
 ): void {
   const prefix = `${id}::`
-  // Why snapshot up front: the first loop deletes metas, so reading meta.hostId live later would misclassify an SSH worktree as local.
+  // Capture host stamps before deletion or later checks could misclassify SSH rows as local.
   const hostMembership = new Map<string, boolean>()
   const belongsToHost = (key: string): boolean => {
     if (!key.startsWith(prefix)) {
@@ -24,27 +34,53 @@ export function pruneWorktreeStateForRepo(
     if (cached !== undefined) {
       return cached
     }
-    // Why default to local: metas without hostId predate host stamping, so a host-scoped prune skips them rather than risk deleting another host's live meta.
+    // Unstamped legacy metadata defaults local; remote pruning cannot claim it safely.
     const metaHostId = state.worktreeMeta[key]?.hostId ?? LOCAL_EXECUTION_HOST_ID
     const result = metaHostId === hostId
     hostMembership.set(key, result)
     return result
   }
-  // Why: leftover session owner keys re-materialize into worktreeMeta next launch as orphaned
-  // "unknown" workspaces. Owner keys carry no host and can repeat across partitions, so collect every
-  // prefix match (before the worktreeMeta deletes below) and let the per-partition gating decide.
+  // Collect owner keys before deleting metadata; per-partition gates prevent orphan resurrection across hosts.
   const ownerKeysToPrune = new Set<string>()
   const collectPrefixedKeys = (keys: Iterable<string>): void => {
     for (const key of keys) {
-      if (key.startsWith(prefix)) {
+      const rawKey = isWorktreeHostIdentity(key) ? getWorktreeIdFromHostIdentity(key) : key
+      const keyHost = isWorktreeHostIdentity(key) ? key.slice(0, key.indexOf('|')) : null
+      // Bare keys defer host proof to partitions; qualified keys require matching hosts here.
+      // Empty qualifiers live in local and must be claimed by local pruning to prevent resurrection.
+      const belongsToPrunedHost =
+        hostId === null ||
+        keyHost === null ||
+        keyHost === hostId ||
+        (keyHost === '' && hostId === LOCAL_EXECUTION_HOST_ID)
+      if (belongsToPrunedHost && rawKey.startsWith(prefix)) {
         ownerKeysToPrune.add(key)
       }
     }
   }
-  collectPrefixedKeys(Object.keys(state.worktreeMeta))
-  collectPrefixedKeys(Object.keys(state.workspaceSession?.lastVisitedAtByWorktreeId ?? {}))
-  for (const session of Object.values(state.workspaceSessionsByHostId ?? {})) {
+  // Pane-keyed evidence can own workspaces with no metadata/visit rows; collect it to avoid permanent orphans.
+  const collectScannedRecordOwners = (session: WorkspaceSessionState | undefined): void => {
     collectPrefixedKeys(Object.keys(session?.lastVisitedAtByWorktreeId ?? {}))
+    collectPrefixedKeys(
+      Object.values(session?.sleepingAgentSessionsByPaneKey ?? {}).map(
+        (record) => record.worktreeId
+      )
+    )
+    collectPrefixedKeys(
+      Object.values(session?.terminalSurfaceTombstonesByPaneKey ?? {}).map(
+        (tombstone) => tombstone.worktreeId
+      )
+    )
+    collectPrefixedKeys(
+      Object.values(session?.closedTerminalTabTombstonesByTabId ?? {}).map(
+        (record) => record.worktreeId
+      )
+    )
+  }
+  collectPrefixedKeys(Object.keys(state.worktreeMeta))
+  collectScannedRecordOwners(state.workspaceSession)
+  for (const session of Object.values(state.workspaceSessionsByHostId ?? {})) {
+    collectScannedRecordOwners(session)
   }
 
   for (const key of Object.keys(state.worktreeMeta)) {
@@ -52,13 +88,22 @@ export function pruneWorktreeStateForRepo(
       delete state.worktreeMeta[key]
     }
   }
-  // Why: a host-scoped prune must touch only that host's session (legacy blob = local, one partition
-  // per remote host); pruning every partition would wipe a surviving host's tabs and sleeping agents
-  // for a shared repo id/path. A full removal (hostId === null) still clears every host.
+  for (const alias of Object.keys(state.worktreeIdentityAliases ?? {})) {
+    const rawId = getWorktreeIdFromHostIdentity(alias)
+    const aliasHost = getExecutionHostIdFromWorktreeHostIdentity(alias)
+    if (rawId.startsWith(prefix) && (hostId === null || aliasHost === hostId)) {
+      delete state.worktreeIdentityAliases?.[alias]
+    }
+  }
+  pruneUnreferencedWorktreeIdentityMeta(state)
+  // Host-scoped removal preserves sibling sessions; only full removal may clear all partitions.
   const pruneLegacyLocalSession = hostId === null || hostId === LOCAL_EXECUTION_HOST_ID
   const pruneAllHostPartitions = hostId === null
   if (pruneLegacyLocalSession) {
-    state.workspaceSession = removeWorkspaceSessionOwners(state.workspaceSession, ownerKeysToPrune)!
+    state.workspaceSession = removeWorkspaceSessionOwners(
+      state.workspaceSession,
+      withoutWslMoveFrozenOwners(ownerKeysToPrune)
+    )!
   }
   if (state.workspaceSessionsByHostId) {
     for (const [partitionHostId, session] of Object.entries(state.workspaceSessionsByHostId)) {

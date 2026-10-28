@@ -1,12 +1,9 @@
-/** Single-quote a value for safe interpolation into a Bash command line. */
-export function quoteBashString(value: string): string {
-  return `'${value.replace(/'/g, "'\\''")}'`
-}
+import { quotePosixShell } from '../shared/shell-argument-quoting'
+
+export { quotePosixShell as quoteBashString }
 
 export function buildEncodedWslBashCommand(command: string): string {
-  // Why: keeps a multi-line validation script intact as a single argument, and
-  // keeps quoting out of the caller's hands. (argv itself now survives verbatim
-  // via --exec; this is about the payload, not the wsl.exe boundary.)
+  // Encode multiline payloads intact; --exec separately preserves the wsl.exe argument boundary.
   const encoded = Buffer.from(command, 'utf8').toString('base64')
-  return `set -o pipefail; printf %s ${quoteBashString(encoded)} | base64 -d | bash`
+  return `set -o pipefail; printf %s ${quotePosixShell(encoded)} | base64 -d | bash`
 }

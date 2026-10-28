@@ -8,12 +8,10 @@ import {
   WORKSPACE_CLEANUP_PRESENCE_VALUES,
   WORKSPACE_CLEANUP_REVIEW_STATE_VALUES,
   WORKSPACE_CLEANUP_TICKET_SOURCE_VALUES,
-  WORKSPACE_CLEANUP_TIER_VALUES,
   WORKSPACE_CLEANUP_TRI_STATE_VALUES
 } from '../../../../shared/workspace-cleanup-facet-rankings'
 import { getWorkspaceCleanupBlockerLabel } from './workspace-cleanup-candidate-labels'
 import {
-  FacetCheckbox,
   FacetChoice,
   FacetNumberField,
   FacetSection,
@@ -27,12 +25,10 @@ import {
   getWorkspaceCleanupReviewProviderLabel,
   getWorkspaceCleanupReviewStateLabel,
   getWorkspaceCleanupTicketSourceLabel,
-  getWorkspaceCleanupTierLabel,
   getWorkspaceCleanupTriStateLabel
 } from './workspace-cleanup-facet-labels'
 import type { WorkspaceCleanupFacetGroupProps } from './workspace-cleanup-facet-panel-model'
 
-/** Git, review/PR, tickets, location/host, and safety blockers. */
 export function WorkspaceCleanupGitReviewFacets({
   filters,
   counts,
@@ -166,13 +162,6 @@ export function WorkspaceCleanupGitReviewFacets({
         matchCount={counts.safety}
         totalCount={totalCount}
       >
-        <FacetToggleList
-          label={translate('components.workspace.cleanup.browse.tierField', 'Cleanup tier')}
-          values={WORKSPACE_CLEANUP_TIER_VALUES}
-          selected={filters.safety.tiers}
-          getLabel={getWorkspaceCleanupTierLabel}
-          onChange={(tiers) => onPatch('safety', { tiers })}
-        />
         <FacetChoice
           label={translate('components.workspace.cleanup.browse.blockerMode', 'Blocker match')}
           value={filters.safety.blockerMode}
@@ -193,15 +182,6 @@ export function WorkspaceCleanupGitReviewFacets({
           options={WORKSPACE_CLEANUP_TRI_STATE_VALUES}
           getLabel={getWorkspaceCleanupTriStateLabel}
           onChange={(dismissed) => onPatch('safety', { dismissed })}
-        />
-        <FacetCheckbox
-          id="safety-selectable-only"
-          label={translate(
-            'components.workspace.cleanup.browse.selectableOnly',
-            'Only workspaces I can delete now'
-          )}
-          checked={filters.safety.selectableOnly}
-          onChange={(selectableOnly) => onPatch('safety', { selectableOnly })}
         />
       </FacetSection>
     </>

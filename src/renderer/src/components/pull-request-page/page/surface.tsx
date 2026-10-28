@@ -10,11 +10,9 @@ import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { useAllWorktrees } from '@/store/selectors'
 import { canUseGitHubRepoContext } from '@/lib/github-source-runtime-context'
-import {
-  findGithubPrWorkspaceAttachment,
-  getGithubPrWorkspaceAttachmentLabel
-} from '@/lib/github-work-item-workspace-attachment'
+import { findGithubPrWorkspaceAttachment } from '@/lib/github-work-item-workspace-attachment'
 import { activateAndRevealWorktree } from '@/lib/worktree-activation'
+import { getWorktreeAttachmentLabel } from '@/lib/worktree-attachment-label'
 import {
   clearGitHubLinkCopied,
   createGitHubLinkCopyState,
@@ -47,7 +45,6 @@ export default function PullRequestPage({
   onReviewRequestsChange,
   onClose
 }: PullRequestPageProps): React.JSX.Element {
-  // Why: this component is page-only — the sheet variant lives in GitHubItemDialog.
   const workItemId = workItem?.id
   const [tab, setTab] = useState(() => normalizeItemDialogTab(workItem, initialTab))
   const [localState, setLocalState] = useState<GitHubWorkItem['state']>(workItem?.state ?? 'open')
@@ -67,12 +64,17 @@ export default function PullRequestPage({
   const attachedWorkspace = useMemo(
     () =>
       workItem?.type === 'pr'
-        ? findGithubPrWorkspaceAttachment(allWorktrees, effectiveRepoId, workItem.number)
+        ? findGithubPrWorkspaceAttachment(
+            allWorktrees,
+            effectiveRepoId,
+            workItem.number,
+            workItem.url
+          )
         : null,
     [allWorktrees, effectiveRepoId, workItem]
   )
   const attachedWorkspaceLabel = attachedWorkspace
-    ? getGithubPrWorkspaceAttachmentLabel(attachedWorkspace)
+    ? getWorktreeAttachmentLabel(attachedWorkspace)
     : null
 
   // Why: key must include issue source preference so origin/upstream toggles for the same issue number don't read back the wrong repo's details.
@@ -127,14 +129,17 @@ export default function PullRequestPage({
     const currentAttached = findGithubPrWorkspaceAttachment(
       useAppStore.getState().allWorktrees(),
       targetRepoId,
-      workItem.number
+      workItem.number,
+      workItem.url
     )
     if (!currentAttached) {
       handleUseWorkItem()
       return
     }
 
-    const result = activateAndRevealWorktree(currentAttached.id)
+    const result = activateAndRevealWorktree(currentAttached.id, {
+      navigationIntent: 'user-open'
+    })
     if (result === false) {
       toast.error(
         translate(
@@ -174,7 +179,6 @@ export default function PullRequestPage({
     }
   }, [workItem])
 
-  // Why: icon must track resolved state so a merged PR reads as merged, not as the open-PR glyph.
   const Icon =
     workItem?.type === 'pr'
       ? localState === 'merged'
@@ -204,8 +208,7 @@ export default function PullRequestPage({
     ) {
       return
     }
-    // Why: PR details can carry fresher reviewer metadata than the list row; push it back so the Tasks review chip isn't stale.
-    // Why: keyed on identity, not the whole item, so replacing the same PR object doesn't repush unchanged reviewers.
+    // Propagate fresher reviewer metadata to Tasks; identity keys prevent unchanged same-PR objects from repushing it.
     onReviewRequestsChange?.(
       { id: workItemId, repoId: workItemRepoId },
       details.item.reviewRequests
@@ -232,7 +235,6 @@ export default function PullRequestPage({
     (node: HTMLButtonElement | null) => {
       linkCopyMountedRef.current = node !== null
       if (node === null) {
-        // Why: clear the copied-state timer on ref detach instead of via a passive cleanup Effect.
         clearLinkCopiedResetTimer()
       }
     },

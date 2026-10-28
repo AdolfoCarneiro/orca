@@ -1,33 +1,32 @@
 import type {
   EnrichedDetectedPort,
   PortForwardEntry,
+  UnrestoredPortForward,
   SshConfigHostListArgs,
   SshConfigHostListResult,
   SshConfigHostResolution,
   SshConfigImportResult,
   SshConnectionState,
   SshTarget,
-  SshTargetAddResult
+  SshTargetAddResult,
+  SshTargetCreateInput,
+  SshTargetUpdateInput
 } from '../../shared/ssh-types'
 import type { FilesystemPathFlavor } from '../../shared/filesystem-entry-types'
 
 export type SshApi = {
   listTargets: () => Promise<SshTarget[]>
-  // Removed-target id → last known label, for a friendly host name on workspaces still pinned to a removed target.
+  // Last known labels keyed by removed target ID, for workspaces still pinned to them.
   listRemovedTargetLabels: () => Promise<Record<string, string>>
-  addTarget: (args: { target: Omit<SshTarget, 'id'> }) => Promise<SshTargetAddResult>
-  updateTarget: (args: {
-    id: string
-    updates: Partial<Omit<SshTarget, 'id'>>
-  }) => Promise<SshTarget>
+  addTarget: (args: { target: SshTargetCreateInput }) => Promise<SshTargetAddResult>
+  updateTarget: (args: { id: string; updates: SshTargetUpdateInput }) => Promise<SshTarget>
   removeTarget: (args: { id: string }) => Promise<void>
   importConfig: (args?: { reAdopt?: boolean }) => Promise<SshConfigImportResult>
   listConfigHosts: (args?: SshConfigHostListArgs) => Promise<SshConfigHostListResult>
   resolveConfigHost: (args: { alias: string }) => Promise<SshConfigHostResolution | null>
-  connect: (args: { targetId: string }) => Promise<SshConnectionState | null>
+  /** `automatic`: a connect no user asked for; it never lifts a cancelled sign-in. */
+  connect: (args: { targetId: string; automatic?: boolean }) => Promise<SshConnectionState | null>
   disconnect: (args: { targetId: string }) => Promise<void>
-  terminateSessions: (args: { targetId: string }) => Promise<void>
-  resetRelay: (args: { targetId: string }) => Promise<void>
   getState: (args: { targetId: string }) => Promise<SshConnectionState | null>
   needsPassphrasePrompt: (args: { targetId: string }) => Promise<boolean>
   testConnection: (args: {
@@ -53,9 +52,20 @@ export type SshApi = {
   }) => Promise<PortForwardEntry>
   removePortForward: (args: { id: string }) => Promise<PortForwardEntry | null>
   listPortForwards: (args?: { targetId?: string }) => Promise<PortForwardEntry[]>
+  listUnrestoredPortForwards: (args: { targetId: string }) => Promise<UnrestoredPortForward[]>
+  removeSavedPortForward: (args: {
+    targetId: string
+    localPort: number
+    remoteHost: string
+    remotePort: number
+  }) => Promise<void>
   listDetectedPorts: (args: { targetId: string }) => Promise<EnrichedDetectedPort[]>
   onPortForwardsChanged: (
-    callback: (data: { targetId: string; forwards: PortForwardEntry[] }) => void
+    callback: (data: {
+      targetId: string
+      forwards: PortForwardEntry[]
+      unrestored?: UnrestoredPortForward[]
+    }) => void
   ) => () => void
   onDetectedPortsChanged: (
     callback: (data: { targetId: string; ports: EnrichedDetectedPort[] }) => void
@@ -69,8 +79,9 @@ export type SshApi = {
     callback: (data: {
       requestId: string
       targetId: string
-      kind: 'passphrase' | 'password'
+      kind: 'passphrase' | 'password' | 'keyboard-interactive'
       detail: string
+      echo?: boolean
     }) => void
   ) => () => void
   onCredentialResolved: (callback: (data: { requestId: string }) => void) => () => void

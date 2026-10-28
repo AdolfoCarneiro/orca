@@ -11,17 +11,21 @@ import {
 import { findWorktreeById, getRepoIdFromWorktreeId } from '../../worktree-helpers'
 import { findRepoForHost } from '../../repo-host-identity'
 import { reuseEqualRecordMap } from '../../repo-identity-reconcile'
+import {
+  selectDetectedWorktreesByRepo,
+  selectWorktreesByRepo
+} from '../../../workspace-record-selectors'
 
 export function getWorktreeHostId(
   state: Pick<AppState, 'repos' | 'settings' | 'worktreesByRepo' | 'detectedWorktreesByRepo'>,
   worktreeId: string
 ): ExecutionHostId | null {
-  const worktree = findWorktreeById(state.worktreesByRepo, worktreeId)
+  const worktree = findWorktreeById(selectWorktreesByRepo(state), worktreeId)
   if (worktree?.hostId) {
     return worktree.hostId
   }
   const repoId = getRepoIdFromWorktreeId(worktreeId)
-  const detected = state.detectedWorktreesByRepo[repoId]?.worktrees.find(
+  const detected = selectDetectedWorktreesByRepo(state)[repoId]?.worktrees.find(
     (entry) => entry.id === worktreeId
   )
   if (detected?.hostId) {
@@ -37,16 +41,23 @@ export function mergeLineageForHost(
     'repos' | 'settings' | 'worktreesByRepo' | 'detectedWorktreesByRepo' | 'worktreeLineageById'
   >,
   hostId: ExecutionHostId,
-  lineage: Readonly<Record<string, WorktreeLineage>>
+  lineage: Readonly<Record<string, WorktreeLineage>>,
+  lineageAtRequestStart?: Readonly<Record<string, WorktreeLineage>>
 ): Readonly<Record<string, WorktreeLineage>> {
+  // Any per-row write since request start wins, including creates, reassignment and deletes the reply would undo.
+  const writtenSinceRequestStart = (worktreeId: string): boolean =>
+    lineageAtRequestStart !== undefined &&
+    lineageAtRequestStart[worktreeId] !== state.worktreeLineageById[worktreeId]
   const next: Record<string, WorktreeLineage> = {}
   for (const [worktreeId, existing] of Object.entries(state.worktreeLineageById)) {
-    if (getWorktreeHostId(state, worktreeId) !== hostId) {
+    if (getWorktreeHostId(state, worktreeId) !== hostId || writtenSinceRequestStart(worktreeId)) {
       next[worktreeId] = existing
     }
   }
   for (const [worktreeId, incoming] of Object.entries(lineage)) {
-    next[worktreeId] = incoming
+    if (!writtenSinceRequestStart(worktreeId)) {
+      next[worktreeId] = incoming
+    }
   }
   return reuseEqualRecordMap(state.worktreeLineageById, next)
 }
@@ -61,20 +72,30 @@ export function mergeWorkspaceLineageForHost(
     | 'workspaceLineageByChildKey'
   >,
   hostId: ExecutionHostId,
-  lineage: Readonly<Record<string, WorkspaceLineage>>
+  lineage: Readonly<Record<string, WorkspaceLineage>>,
+  lineageAtRequestStart?: Readonly<Record<string, WorkspaceLineage>>
 ): Readonly<Record<string, WorkspaceLineage>> {
+  const writtenSinceRequestStart = (childKey: string): boolean =>
+    lineageAtRequestStart !== undefined &&
+    lineageAtRequestStart[childKey] !== state.workspaceLineageByChildKey[childKey]
   const next: Record<string, WorkspaceLineage> = {}
   for (const [childKey, existing] of Object.entries(state.workspaceLineageByChildKey)) {
     const childScope = parseWorkspaceKey(existing.childWorkspaceKey)
     const childHostId =
       childScope?.type === 'worktree' ? getWorktreeHostId(state, childScope.worktreeId) : null
     // A focused host refresh can no longer prove unknown-host child rows are current.
-    if (childScope?.type !== 'worktree' || (childHostId !== null && childHostId !== hostId)) {
+    if (
+      childScope?.type !== 'worktree' ||
+      (childHostId !== null && childHostId !== hostId) ||
+      writtenSinceRequestStart(childKey)
+    ) {
       next[childKey] = existing
     }
   }
   for (const [childKey, incoming] of Object.entries(lineage)) {
-    next[childKey] = incoming
+    if (!writtenSinceRequestStart(childKey)) {
+      next[childKey] = incoming
+    }
   }
   return reuseEqualRecordMap(state.workspaceLineageByChildKey, next)
 }

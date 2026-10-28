@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 
 import { decodeBrowserScreencastFrame } from '../../../../../shared/browser-screencast-protocol'
@@ -12,7 +12,6 @@ import type {
 import { useRemoteBrowserStreamActivation } from './use-remote-browser-stream-activation'
 import {
   decodeRemoteBrowserFrameUrl,
-  getRemoteBrowserDeviceScaleFactor,
   readRemoteCssViewportSize,
   type RemoteBrowserPaneNotice,
   type RemoteBrowserRuntimeTarget,
@@ -24,6 +23,7 @@ export function useRemoteBrowserPageStream({
   browserPageId,
   isActive,
   lifecycle,
+  stagedPage,
   runtimeWorktree,
   runtimeTarget,
   remoteViewportRef,
@@ -47,6 +47,7 @@ export function useRemoteBrowserPageStream({
   browserPageId: string
   isActive: boolean
   lifecycle: RemoteBrowserStreamLifecycle
+  stagedPage: boolean
   runtimeWorktree: string
   runtimeTarget: () => RemoteBrowserRuntimeTarget | null
   remoteViewportRef: React.RefObject<HTMLDivElement | null>
@@ -68,8 +69,8 @@ export function useRemoteBrowserPageStream({
 }): {
   reconnectRemoteStream: () => void
 } {
-  // Bumped by Reconnect to re-run the open effect from scratch. See reconnectRemoteStream.
   const [reopenNonce, setReopenNonce] = useState(0)
+  const lastFrameDeviceSizeRef = useRef<string | null>(null)
 
   const rememberRemoteViewportSize = useCallback(
     (next: RemoteBrowserViewportSize): RemoteBrowserViewportSize => {
@@ -128,19 +129,7 @@ export function useRemoteBrowserPageStream({
       if (!target || !size) {
         return
       }
-      await callRuntimeRpc(
-        target,
-        'browser.viewport',
-        {
-          worktree: runtimeWorktree,
-          page: pageId,
-          width: size.width,
-          height: size.height,
-          deviceScaleFactor: getRemoteBrowserDeviceScaleFactor(),
-          mobile: false
-        },
-        { timeoutMs: 15_000, suppressFeatureInteraction: true }
-      )
+      // The stream owns fitted emulation; an unowned browser.viewport would overwrite it with a size the host cannot paint.
       try {
         // Why: the streamed bitmap can include the host compositor surface, but CDP input wants the guest page's CSS viewport coords.
         const viewport = await callRuntimeRpc(
@@ -153,9 +142,10 @@ export function useRemoteBrowserPageStream({
           },
           { timeoutMs: 15_000, suppressFeatureInteraction: true }
         )
-        remoteCssViewportSizeRef.current = readRemoteCssViewportSize(viewport) ?? size
+        remoteCssViewportSizeRef.current = readRemoteCssViewportSize(viewport)
       } catch {
-        remoteCssViewportSizeRef.current = size
+        // Unknown: pointer mapping falls back to the requested and per-frame sizes.
+        remoteCssViewportSizeRef.current = null
       }
     },
     [readRemoteViewportSize, remoteCssViewportSizeRef, runtimeTarget, runtimeWorktree]
@@ -180,9 +170,12 @@ export function useRemoteBrowserPageStream({
         if (!pageId || !isActiveRef.current) {
           return
         }
-        void syncRemoteViewport(pageId)
-          .then(() => lifecycle.restartForViewport(pageId))
-          .catch(() => {})
+        // Restart applies emulation before ready re-reads CSS size; reading now sees the old viewport.
+        if (lifecycle.restartForViewport(pageId)) {
+          remoteCssViewportSizeRef.current = null
+        } else {
+          void syncRemoteViewport(pageId).catch(() => {})
+        }
       }, 150)
     }
     scheduleSync()
@@ -200,6 +193,7 @@ export function useRemoteBrowserPageStream({
     isActiveRef,
     lifecycle,
     readRemoteViewportSize,
+    remoteCssViewportSizeRef,
     remoteViewportRef,
     remoteViewportTimerRef,
     syncRemoteViewport
@@ -234,6 +228,17 @@ export function useRemoteBrowserPageStream({
           }
           const prevUrl = streamFrameUrlRef.current
           streamFrameUrlRef.current = nextUrl
+          // The host can refit its painted viewport independently, invalidating cached CSS size.
+          const deviceSize = `${frame.metadata.deviceWidth}x${frame.metadata.deviceHeight}`
+          const previousDeviceSize = lastFrameDeviceSizeRef.current
+          lastFrameDeviceSizeRef.current = deviceSize
+          if (previousDeviceSize !== null && previousDeviceSize !== deviceSize) {
+            remoteCssViewportSizeRef.current = null
+            const pageId = lifecycle.tokens.remotePage
+            if (pageId) {
+              void syncRemoteViewport(pageId).catch(() => {})
+            }
+          }
           setFrameMetadata(frame.metadata)
           setFrameUrl(nextUrl)
           setPaneBusy(false)
@@ -248,7 +253,9 @@ export function useRemoteBrowserPageStream({
     [
       lifecycle,
       pendingFrameDecodeRef,
+      remoteCssViewportSizeRef,
       setFrameMetadata,
+      syncRemoteViewport,
       setFrameUrl,
       setPaneBusy,
       streamFrameUrlRef
@@ -276,12 +283,8 @@ export function useRemoteBrowserPageStream({
   ])
 
   const reconnectRemoteStream = useCallback((): void => {
-    // No status write here: bumping the nonce re-runs the open effect, and open() publishes
-    // 'opening'. Setting it from two places is how the old three-variable version drifted.
+    // open() owns status; re-running its effect also recovers failed initial creation when no stream exists to resume.
     setPaneNotice(null)
-    // Why re-run the whole open effect rather than resume the stream: reconnect has to work in the
-    // cases where there is nothing to resume — the remote page was never created, or the very first
-    // open failed. Resuming a token only covers a stream that once existed.
     setReopenNonce((nonce) => nonce + 1)
   }, [setPaneNotice])
 
@@ -292,7 +295,8 @@ export function useRemoteBrowserPageStream({
     isActive,
     lifecycle,
     reopenNonce,
-    runtimeWorktree
+    runtimeWorktree,
+    stagedPage
   })
 
   return { reconnectRemoteStream }

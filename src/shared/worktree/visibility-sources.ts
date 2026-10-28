@@ -128,15 +128,28 @@ function createDescendantMatcher(rootPath: string): (normalizedCandidate: string
     normalizedCandidate !== normalizedRoot && matchesInsideOrEqual(normalizedCandidate)
 }
 
+/** Resolve configured bases through resolveConfiguredWorktreeBasePaths first; raw dot segments would prevent an explicit base superseding a scratch root. */
 export function createWorktreeVisibilitySourceMatcher(
   checkoutPaths: readonly string[],
-  customSources: readonly CustomWorktreeVisibilitySource[] = []
+  customSources: readonly CustomWorktreeVisibilitySource[],
+  configuredWorktreeBasePaths: readonly string[]
 ): WorktreeVisibilitySourceMatcher {
   const checkoutPathKeys = new Set(checkoutPaths.map(normalizeRuntimePathForComparison))
   const customMatchers = customSources.map(({ id, rootPath }) => ({
     id,
     matches: createDescendantMatcher(rootPath)
   }))
+  const configuredBases = configuredWorktreeBasePaths.map((basePath) => ({
+    key: normalizeRuntimePathForComparison(basePath),
+    contains: createNormalizedPathInsideOrEqualMatcher(basePath)
+  }))
+  // Only a base at/inside the matched root exempts it; an ancestor such as . or .. does not (#9388).
+  const isSupersededByConfiguredBase = (sourceRootKey: string, candidateKey: string): boolean =>
+    configuredBases.some(
+      (base) =>
+        base.contains(candidateKey) &&
+        (base.key === sourceRootKey || base.key.startsWith(`${sourceRootKey}/`))
+    )
   return (worktreePath) => {
     const normalizedCandidate = normalizeRuntimePathForComparison(worktreePath)
     const segments = normalizedCandidate.split('/')
@@ -150,7 +163,13 @@ export function createWorktreeVisibilitySourceMatcher(
         const checkoutPathKey = /^[a-z]:$/i.test(checkoutPath)
           ? `${checkoutPath}/`
           : checkoutPath || '/'
-        if (checkoutPathKeys.has(checkoutPathKey)) {
+        if (
+          checkoutPathKeys.has(checkoutPathKey) &&
+          !isSupersededByConfiguredBase(
+            segments.slice(0, index + prefix.length).join('/'),
+            normalizedCandidate
+          )
+        ) {
           return { kind: 'built-in', id: source.id }
         }
       }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { useAppStore } from '@/store'
-import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
+import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
+import { isClientHostedBrowserPageHandle } from '@/store/slices/browser'
 import type { BrowserWorkspace as BrowserWorkspaceState } from '../../../../../shared/browser-workspace-types'
 import { destroyPersistentWebview } from '../host-guest/webview-registry'
 import { useBrowserAutomationVisiblePageIds } from '../host-guest/browser-automation-visibility'
@@ -11,24 +12,40 @@ import {
   useBrowserDriverForPage,
   useBrowserMobileDrivenPageIds
 } from '@/lib/pane-manager/browser-mobile-driver-state'
+import { useBrowserRemotelyViewedPageIds } from '@/lib/pane-manager/browser-remote-viewer-state'
 import { useContextualTour } from '@/components/contextual-tours/use-contextual-tour'
 import { getBrowserPageRuntimeEnvironmentId } from '../describe-page/browser-page-url-display'
-import type { BrowserFindShortcutScope } from '../describe-page/browser-page-types'
+import type { BrowserChromeShortcutScope } from '../describe-page/browser-page-types'
 import { RemoteBrowserPagePane } from '../stream-remote/remote-browser-page-pane'
+import { ClientHostedBrowserPagePane } from '../ClientHostedBrowserPagePane'
 import { BrowserPagePane } from './browser-page-pane'
+import { WorkspaceDocPagePane } from '../workspace-doc/workspace-doc-page-pane'
+import { DeferredBrowserContent } from './DeferredBrowserContent'
+import { isBrowserPagePanePaintable } from '../host-guest/browser-page-paintability'
+import { SshRoutedBrowserPageGate } from './ssh-routed-browser-page-gate'
+import {
+  ManagedBrowserProfileHold,
+  useManagedBrowserProfileStatus
+} from './managed-browser-profile-hold'
+import {
+  isBrowserPageMountAdmitted,
+  useAnyBrowserPageMountAdmission
+} from '../host-guest/browser-page-mount-admission'
 
 export default function BrowserPane({
   browserTab,
   isActive,
-  findShortcutScope
+  isWorktreeActive = true,
+  chromeShortcutScope
 }: {
   browserTab: BrowserWorkspaceState
   isActive: boolean
-  findShortcutScope?: BrowserFindShortcutScope
+  isWorktreeActive?: boolean
+  chromeShortcutScope?: BrowserChromeShortcutScope
 }): React.JSX.Element {
-  const resolvedFindShortcutScope = findShortcutScope ?? (isActive ? 'focused' : 'inactive')
+  const resolvedChromeShortcutScope = chromeShortcutScope ?? (isActive ? 'focused' : 'inactive')
   const activeRuntimeEnvironmentId = useAppStore((s) =>
-    getRuntimeEnvironmentIdForWorktree(s, browserTab.worktreeId)
+    runtimeEnvironmentIdOrLocalUnlessTwin(s, browserTab.worktreeId)
   )
   const browserPages = useAppStore((s) =>
     getBrowserPagesForWorkspace(s.browserPagesByWorkspace, browserTab.id)
@@ -42,13 +59,29 @@ export default function BrowserPane({
     : null
   const runtimeEnvironmentActive = Boolean(activeBrowserRuntimeEnvironmentId)
   const activeBrowserPageId = activeBrowserPage?.id ?? null
+  const activeRemotePageHandle = useAppStore((state) =>
+    activeBrowserPageId
+      ? (state.remoteBrowserPageHandlesByPageId[activeBrowserPageId] ?? null)
+      : null
+  )
   const browserPageIds = useMemo(() => browserPages.map((page) => page.id), [browserPages])
   const automationVisiblePageIds = useBrowserAutomationVisiblePageIds(browserPageIds)
   const mobileDrivenPageIds = useBrowserMobileDrivenPageIds(browserPageIds)
-  // Why: inactive webviews must stay mounted in their original DOM parent; unmounting/reparenting loses form text and SPA state.
-  const renderedBrowserPages = browserPages.filter(
-    (page) => !getBrowserPageRuntimeEnvironmentId(page, activeRuntimeEnvironmentId)
+  const remotelyViewedPageIds = useBrowserRemotelyViewedPageIds(browserPageIds)
+  const localBrowserPages = useMemo(
+    () =>
+      browserPages.filter(
+        (page) => !getBrowserPageRuntimeEnvironmentId(page, activeRuntimeEnvironmentId)
+      ),
+    [browserPages, activeRuntimeEnvironmentId]
   )
+  // Routing guards every local guest, including pages hidden after their first activation.
+  const localBrowserPageIds = useMemo(
+    () => localBrowserPages.map((page) => page.id),
+    [localBrowserPages]
+  )
+  const hasAdmittedPage = useAnyBrowserPageMountAdmission(localBrowserPageIds)
+  const managedProfileStatus = useManagedBrowserProfileStatus(browserTab.sessionProfileId)
   const pageDriver = useBrowserDriverForPage(activeBrowserPageId)
   // Why: a runtime-backed page is streamed, never locally driven, so its driver must read idle.
   const activeBrowserDriver = runtimeEnvironmentActive ? IDLE_BROWSER_DRIVER : pageDriver
@@ -81,49 +114,109 @@ export default function BrowserPane({
   }, [activeBrowserPageId])
 
   if (activeBrowserRuntimeEnvironmentId) {
+    const environmentHandle =
+      activeRemotePageHandle?.environmentId === activeBrowserRuntimeEnvironmentId
+        ? activeRemotePageHandle
+        : null
+    const clientPlacement =
+      environmentHandle?.placement?.kind === 'client' ? environmentHandle.placement : null
+    // Mount expected client-hosted pages before placement arrives to preserve chrome; restored client pages must also wait here because the host refuses server screencasts for them.
+    const clientHosted = environmentHandle
+      ? isClientHostedBrowserPageHandle(environmentHandle)
+      : false
     return activeBrowserPage ? (
-      <RemoteBrowserPagePane
-        key={`${activeBrowserRuntimeEnvironmentId ?? ''}:${activeBrowserPage.id}`}
-        browserTab={activeBrowserPage}
-        runtimeEnvironmentId={activeBrowserRuntimeEnvironmentId}
-        worktreeId={browserTab.worktreeId}
-        isActive={isActive}
-        onUpdatePageState={updateBrowserPageState}
-        onSetUrl={setBrowserPageUrl}
-      />
+      clientHosted ? (
+        <ClientHostedBrowserPagePane
+          key={`${activeBrowserRuntimeEnvironmentId}:${activeBrowserPage.id}`}
+          browserTab={activeBrowserPage}
+          workspaceId={browserTab.id}
+          runtimeEnvironmentId={activeBrowserRuntimeEnvironmentId}
+          worktreeId={browserTab.worktreeId}
+          placement={clientPlacement}
+          isActive={isActive}
+          chromeShortcutScope={resolvedChromeShortcutScope}
+          onUpdatePageState={updateBrowserPageState}
+          onSetUrl={setBrowserPageUrl}
+        />
+      ) : (
+        <RemoteBrowserPagePane
+          key={`${activeBrowserRuntimeEnvironmentId}:${activeBrowserPage.id}`}
+          browserTab={activeBrowserPage}
+          workspaceId={browserTab.id}
+          runtimeEnvironmentId={activeBrowserRuntimeEnvironmentId}
+          worktreeId={browserTab.worktreeId}
+          isActive={isActive}
+          chromeShortcutScope={resolvedChromeShortcutScope}
+          onUpdatePageState={updateBrowserPageState}
+          onSetUrl={setBrowserPageUrl}
+        />
+      )
     ) : (
       <div className="flex h-full min-h-0 flex-1 bg-background" />
     )
   }
 
+  // Why: until main has the workspace's profile, a webview would load on another partition or be refused.
+  if (localBrowserPages.length > 0 && managedProfileStatus) {
+    return <ManagedBrowserProfileHold status={managedProfileStatus} />
+  }
+
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col">
-      {renderedBrowserPages.length > 0 ? (
-        <div className="relative flex min-h-0 flex-1">
-          {renderedBrowserPages.map((page) => (
-            <BrowserPagePane
-              key={page.id}
-              browserTab={page}
-              workspaceId={browserTab.id}
-              worktreeId={browserTab.worktreeId}
-              sessionProfileId={browserTab.sessionProfileId ?? null}
-              sessionPartition={browserTab.sessionPartition ?? null}
-              isActive={isActive && page.id === activeBrowserPage?.id}
-              findShortcutScope={
-                page.id === activeBrowserPage?.id ? resolvedFindShortcutScope : 'inactive'
-              }
-              isAutomationVisible={automationVisiblePageIds.has(page.id)}
-              isMobileDriven={mobileDrivenPageIds.has(page.id)}
-              inputLocked={activeBrowserDriver.kind === 'mobile'}
-              onUpdatePageState={updateBrowserPageState}
-              onSetUrl={setBrowserPageUrl}
-            />
-          ))}
-          <BrowserMobileDriverOverlay
-            driver={activeBrowserDriver}
-            onTakeBack={reclaimActiveBrowserForDesktop}
-          />
-        </div>
+      {localBrowserPages.length > 0 ? (
+        <SshRoutedBrowserPageGate
+          worktreeId={browserTab.worktreeId}
+          sessionProfileId={browserTab.sessionProfileId ?? null}
+          pageIds={localBrowserPageIds}
+        >
+          {(routedPartition) => (
+            <div className="relative flex min-h-0 flex-1">
+              {localBrowserPages.map((page) => (
+                <DeferredBrowserContent
+                  key={page.id}
+                  retainMounted={isWorktreeActive}
+                  mountEligible={isBrowserPagePanePaintable({
+                    isActive:
+                      (isActive && page.id === activeBrowserPageId) ||
+                      (hasAdmittedPage && isBrowserPageMountAdmitted(page.id)),
+                    isAutomationVisible: automationVisiblePageIds.has(page.id),
+                    isMobileDriven: mobileDrivenPageIds.has(page.id),
+                    hasRemoteViewer: remotelyViewedPageIds.has(page.id)
+                  })}
+                >
+                  {page.docLocation ? (
+                    <WorkspaceDocPagePane
+                      page={page}
+                      isActive={isActive && page.id === activeBrowserPage?.id}
+                    />
+                  ) : (
+                    <BrowserPagePane
+                      browserTab={page}
+                      workspaceId={browserTab.id}
+                      worktreeId={browserTab.worktreeId}
+                      sessionProfileId={browserTab.sessionProfileId ?? null}
+                      sessionPartition={routedPartition ?? browserTab.sessionPartition ?? null}
+                      isActive={isActive && page.id === activeBrowserPage?.id}
+                      chromeShortcutScope={
+                        page.id === activeBrowserPage?.id ? resolvedChromeShortcutScope : 'inactive'
+                      }
+                      isAutomationVisible={automationVisiblePageIds.has(page.id)}
+                      isMobileDriven={mobileDrivenPageIds.has(page.id)}
+                      isRemotelyViewed={remotelyViewedPageIds.has(page.id)}
+                      inputLocked={activeBrowserDriver.kind === 'mobile'}
+                      onUpdatePageState={updateBrowserPageState}
+                      onSetUrl={setBrowserPageUrl}
+                    />
+                  )}
+                </DeferredBrowserContent>
+              ))}
+              <BrowserMobileDriverOverlay
+                driver={activeBrowserDriver}
+                onTakeBack={reclaimActiveBrowserForDesktop}
+              />
+            </div>
+          )}
+        </SshRoutedBrowserPageGate>
       ) : null}
     </div>
   )

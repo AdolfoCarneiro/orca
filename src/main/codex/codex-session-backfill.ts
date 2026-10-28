@@ -17,10 +17,16 @@ import {
 } from './codex-session-backfill-date'
 import {
   captureCodexSessionBackfillMarkerGeneration,
-  hasCompletedCodexSessionBackfillMarker,
-  writeCodexSessionBackfillMarker as writeBackfillMarker
+  readCodexSessionBackfillBaseline,
+  writeCodexSessionBackfillMarker as writeBackfillMarker,
+  type CodexSessionBackfillBaseline
 } from './codex-session-backfill-marker'
+import {
+  getCodexSessionBackfillDate,
+  mergeCodexSessionBackfillDates
+} from './codex-session-backfill-scan-dates'
 import type {
+  CodexSessionBackfillDate,
   CodexSessionBackfillOptions,
   CodexSessionBackfillPaths,
   CodexSessionBackfillSummary
@@ -34,13 +40,7 @@ export type {
 
 let backgroundBackfillTask: Promise<CodexSessionBackfillSummary | null> | null = null
 
-/**
- * Resolves the production source/target/state paths for the session backfill.
- *
- * `systemCodexHomePathOverride` mirrors the session bridge: users who run
- * Codex with a custom CODEX_HOME need their history placed where their own
- * `codex resume` actually looks.
- */
+/** Custom CODEX_HOME users need history where their own codex resume looks. */
 export function resolveCodexSessionBackfillPaths(
   systemCodexHomePathOverride?: string
 ): CodexSessionBackfillPaths {
@@ -53,13 +53,6 @@ export function resolveCodexSessionBackfillPaths(
   }
 }
 
-/**
- * Starts the once-per-host background backfill of managed-home session files
- * into the user's real Codex home.
- *
- * Concurrent callers share one in-flight task; a completed-marker host resolves
- * to null without walking the sessions tree.
- */
 export function startCodexSessionBackfillInBackground(
   options: CodexSessionBackfillOptions = {},
   systemCodexHomePathOverride?: string
@@ -88,37 +81,54 @@ async function runCodexSessionBackfillOncePerHost(
 ): Promise<CodexSessionBackfillSummary | null> {
   const paths = resolveCodexSessionBackfillPaths(systemCodexHomePathOverride)
   const markerGeneration = captureCodexSessionBackfillMarkerGeneration()
-  if (
-    !options.ignoreCompletionMarker &&
-    hasCompletedCodexSessionBackfillMarker(paths.markerPath, paths.systemSessionsRoot)
-  ) {
+  const baseline = readCodexSessionBackfillBaseline(paths.markerPath, paths.systemSessionsRoot)
+  const scanPlan = resolveCodexSessionBackfillScanPlan(baseline, options)
+  if (!scanPlan) {
     return null
   }
-  const summary = await backfillManagedCodexSessionsIntoSystemHome(paths, options)
-  // Why: file or heal-queue failures leave the marker unset so the next
-  // startup retries; skip-existing keeps those retries cheap.
+  const summary = await backfillManagedCodexSessionsIntoSystemHome(paths, {
+    ...options,
+    scanDates: scanPlan.scanDates
+  })
+  // Leave failed passes uncertified so the next startup retries without overwriting published files.
   if (
     !summary.stopped &&
     options.shouldStop?.() !== true &&
-    options.writeCompletionMarker !== false &&
     options.canWriteCompletionMarker?.() !== false &&
-    (options.scanDates === undefined || options.writeBoundedCompletionMarker === true) &&
     summary.failedFiles === 0 &&
     summary.failedDirectories === 0 &&
     summary.failedHealAuditRecords === 0
   ) {
-    writeBackfillMarker(paths.markerPath, paths.systemSessionsRoot, summary, markerGeneration)
+    writeBackfillMarker(paths.markerPath, paths.systemSessionsRoot, summary, markerGeneration, {
+      coverage: scanPlan.scanDates ? 'bounded' : 'full',
+      coveredScanDates: scanPlan.scanDates ?? [],
+      retainPendingScanDates: options.retainPendingScanDates === true
+    })
   }
   return summary
 }
 
-/**
- * Backfills managed-home session rollout files into the real Codex home.
- *
- * Non-destructive by contract: existing target files are always skipped, and
- * nothing in either home is deleted or moved. A hardlink keeps mutable rollout
- * contents coherent; cross-volume snapshots are skipped as unsupported.
- */
+// Missing scanDates requests a full walk; null skips an already-covered baseline.
+function resolveCodexSessionBackfillScanPlan(
+  baseline: CodexSessionBackfillBaseline | null,
+  options: CodexSessionBackfillOptions
+): { scanDates?: readonly CodexSessionBackfillDate[] } | null {
+  const requestedScanDates = options.scanDates?.length ? options.scanDates : undefined
+  if (options.fullScanRequired) {
+    return {}
+  }
+  if (!baseline) {
+    return { scanDates: requestedScanDates }
+  }
+  const scanDates = mergeCodexSessionBackfillDates(baseline.pendingScanDates, requestedScanDates)
+  if (scanDates.length > 0) {
+    return { scanDates }
+  }
+  // With certified history, a launch pass only needs the date receiving new rollouts.
+  return options.ignoreCompletionMarker ? { scanDates: [getCodexSessionBackfillDate()] } : null
+}
+
+/** Hardlink mutable rollouts without replacing existing targets; cross-volume snapshots cannot stay coherent. */
 export async function backfillManagedCodexSessionsIntoSystemHome(
   paths: CodexSessionBackfillPaths,
   options: CodexSessionBackfillOptions = {}
@@ -144,8 +154,7 @@ export async function backfillManagedCodexSessionsIntoSystemHome(
       paths.managedSessionsRoot,
       options,
       async (directoryPath, error) => {
-        // Why: a partial walk must remain retryable; otherwise an unreadable
-        // date directory would be silently omitted behind a completion marker.
+        // Incomplete walks must remain retryable instead of certifying unreadable dates.
         summary.failedDirectories += 1
         await auditPass.appendRecord({
           action: 'scan-failed',
@@ -155,8 +164,7 @@ export async function backfillManagedCodexSessionsIntoSystemHome(
       }
     )) {
       if (options.shouldStop?.()) {
-        // Why: disabling the real-home lane must bound further writes to at
-        // most the single file mutation already in flight.
+        // Opt-out permits at most the file mutation already in flight.
         summary.stopped = true
         break
       }
@@ -165,8 +173,7 @@ export async function backfillManagedCodexSessionsIntoSystemHome(
         summary.skippedUnexpectedFiles += 1
         continue
       }
-      // Why: sequential async mutations bound disk pressure while keeping the
-      // Electron main thread available for UI and PTY work.
+      // Sequential async writes bound disk pressure without blocking UI or PTY work.
       await backfillOneManagedSessionFile(
         paths,
         managedSessionFilePath,
@@ -178,8 +185,7 @@ export async function backfillManagedCodexSessionsIntoSystemHome(
   }
   summary.stopped ||= options.shouldStop?.() === true
   await auditPass.finish(summary)
-  // Why: opt-out can land while the async summary append is pending; carry it
-  // back to the marker gate so a managed launch cannot be hidden by stale completion.
+  // Recheck opt-out after the async append so a stopped pass cannot certify completion.
   summary.stopped ||= options.shouldStop?.() === true
   return summary
 }
@@ -196,8 +202,7 @@ async function checkManagedSessionsRoot(
     if (isNotFoundError(error)) {
       return false
     }
-    // Why: existsSync collapses access failures into "missing," which could
-    // permanently hide sessions behind an incorrect completion marker.
+    // Access failures cannot count as absence and incorrectly certify completion.
     summary.failedDirectories += 1
     await auditPass.appendRecord({
       action: 'scan-failed',
@@ -216,8 +221,7 @@ async function backfillOneManagedSessionFile(
   auditPass: CodexSessionBackfillAuditPass
 ): Promise<void> {
   if (await isSymbolicLink(managedSessionFilePath)) {
-    // Why: bridge-created symlinks already point at a file in the user's own
-    // home; materializing them here could duplicate a foreign tree.
+    // Bridge symlinks already point into the system home; materializing them could duplicate history.
     summary.skippedSymlinkFiles += 1
     return
   }
@@ -238,8 +242,6 @@ async function backfillOneManagedSessionFile(
   try {
     const targetDirectory = dirname(systemSessionFilePath)
     if (!ensuredTargetDirectories.has(targetDirectory)) {
-      // Why: one date directory can contain thousands of rollouts; avoid a
-      // redundant filesystem round trip before every hardlink.
       await mkdir(targetDirectory, { recursive: true })
       ensuredTargetDirectories.add(targetDirectory)
     }
@@ -254,8 +256,7 @@ async function backfillOneManagedSessionFile(
     )
   } catch (linkError) {
     if (linkAttempted && isExistsError(linkError)) {
-      // Why: another window can publish the target after our existence probe;
-      // enqueue it here too in case that writer died before its audit append.
+      // A concurrent publisher may have died before auditing; enqueue its existing target for healing.
       await auditPass.recordExisting(
         summary,
         managedSessionFilePath,
@@ -269,7 +270,6 @@ async function backfillOneManagedSessionFile(
     }
     const sourceStat = await readCodexSessionTargetStat(managedSessionFilePath)
     if (linkAttempted && isUnsupportedHardlinkError(linkError)) {
-      // Why: a mutable rollout cannot be kept coherent by a cross-volume snapshot.
       summary.skippedUnsupportedFilesystemFiles += 1
       await auditPass.recordDiagnostic(
         {

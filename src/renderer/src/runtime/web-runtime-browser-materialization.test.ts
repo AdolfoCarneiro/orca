@@ -61,4 +61,21 @@ describe('hasMaterializedWebRuntimeBrowserPage', () => {
       hasMaterializedWebRuntimeBrowserPage(materialized, 'env-2', 'wt-1', 'remote-page-1')
     ).toBe(false)
   })
+
+  it('does not accept this client’s own staged handle as materialization', () => {
+    // Optimistic rows cannot prove materialization or a silently failed create confirms itself.
+    expect(
+      hasMaterializedWebRuntimeBrowserPage(
+        state({
+          remoteBrowserPageHandlesByPageId: {
+            'page-1': { environmentId: 'env-1', remotePageId: 'remote-page-1', staged: true }
+          }
+        }),
+        'env-1',
+        'wt-1',
+        'remote-page-1',
+        'group-1'
+      )
+    ).toBe(false)
+  })
 })

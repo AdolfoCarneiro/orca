@@ -33,19 +33,25 @@ import {
   formatBranchSafetyDetails,
   formatContextDetails,
   formatGitStatus,
-  getCandidateFactStatus,
+  getCandidateFactStatuses,
   getContextCount,
   getDirtyGitLabel,
-  getReviewPillTone,
   getWorkspaceCleanupBlockerLabels,
   shouldShowGitMetadataChip
 } from './workspace-cleanup-candidate-row-data'
+import {
+  getReviewStateIcon,
+  getReviewStateTone
+} from '@/components/github/review-state-presentation'
 import { StatusPill } from './workspace-cleanup-status-pill'
 import { WorkspaceCleanupMetadataChip } from './workspace-cleanup-metadata-chip'
+import { WorkspaceCleanupForgetLocallyButton } from './workspace-cleanup-forget-locally-button'
 import {
   getWorkspaceCleanupCandidateAccessibleName,
   getWorkspaceCleanupCandidateHostLabel
 } from './workspace-cleanup-host-label'
+import { formatCompactActivityLabel, getReviewTooltip } from './workspace-cleanup-row-labels'
+import type { WorkspaceCleanupFailure } from '@/store/slices/workspace-cleanup'
 
 export type WorkspaceCleanupDeletionPhase = 'deleting' | 'queued'
 
@@ -55,7 +61,7 @@ type CandidateRowProps = {
   identity: string
   deletionPhase?: WorkspaceCleanupDeletionPhase
   expanded: boolean
-  failure?: string
+  failure?: WorkspaceCleanupFailure
   /** A focused git re-scan is in flight, so "Not checked" is provisional. */
   gitEvidencePending?: boolean
   last: boolean
@@ -69,16 +75,14 @@ type CandidateRowProps = {
   selected: boolean
   onIgnore: (candidate: WorkspaceCleanupCandidate) => void
   onRemove: (candidate: WorkspaceCleanupCandidate) => void
+  onForgetLocally?: (candidate: WorkspaceCleanupCandidate) => void
+  onDeleteAnyway?: (candidate: WorkspaceCleanupCandidate) => void
   onToggleExpanded: (identity: string) => void
   onToggleSelected: (identity: string) => void
   onView: (candidate: WorkspaceCleanupCandidate) => void
 }
 
-// Why: the cleanup list re-renders on every checkbox/expand/search keystroke;
-// memo keeps each unchanged row from re-rendering. Effective only while the
-// parent passes stable (useCallback) handlers — see WorkspaceCleanupDialog.
-// Scan stream-in still re-renders rows (candidates change, so the reviewInfo
-// prop identity changes); virtualization, not memo, bounds that cost.
+// Memoize unchanged rows with stable parent handlers; streaming candidate changes still render, so virtualization bounds that cost.
 export const CandidateRow = React.memo(function CandidateRow({
   candidate,
   identity,
@@ -95,19 +99,20 @@ export const CandidateRow = React.memo(function CandidateRow({
   selected,
   onIgnore,
   onRemove,
+  onForgetLocally,
+  onDeleteAnyway,
   onToggleExpanded,
   onToggleSelected,
   onView
 }: CandidateRowProps): React.JSX.Element {
   const deleting = deletionPhase !== undefined
-  // Why: derive from `deleting` too, so the row never offers a checkbox or
-  // Remove button while it is queuing/deleting, even if `removing` was omitted.
+  // Queued/deleting state must disable row actions even when removing was omitted.
   const selectable = canQueueWorkspaceCleanupCandidate(candidate) && !removing && !deleting
   const ignored = candidate.blockers.includes('dismissed')
   const blockers = getWorkspaceCleanupBlockerLabels(candidate)
   const contextDetails = formatContextDetails(candidate)
   const branchSafetyDetails = formatBranchSafetyDetails(candidate)
-  const factStatus = getCandidateFactStatus(candidate)
+  const factStatuses = getCandidateFactStatuses(candidate)
   const dirtyLabel = getDirtyGitLabel(candidate)
   const gitLabel = getWorkspaceCleanupGitLabel(candidate)
   const showGitMetadataChip = shouldShowGitMetadataChip(candidate)
@@ -178,9 +183,13 @@ export const CandidateRow = React.memo(function CandidateRow({
                       'Deleting…'
                     )}
               </StatusPill>
-            ) : factStatus ? (
-              <StatusPill tone={factStatus.tone}>{factStatus.label}</StatusPill>
-            ) : null}
+            ) : (
+              factStatuses.map((status) => (
+                <StatusPill key={status.label} tone={status.tone}>
+                  {status.label}
+                </StatusPill>
+              ))
+            )}
             {workspaceStatusLabel ? (
               <WorkspaceCleanupMetadataChip
                 icon={CircleDot}
@@ -244,10 +253,10 @@ export const CandidateRow = React.memo(function CandidateRow({
             ) : null}
             {reviewInfo.label ? (
               <WorkspaceCleanupMetadataChip
-                icon={GitPullRequest}
+                icon={getReviewStateIcon(reviewInfo.state) ?? GitPullRequest}
                 label={getReviewTooltip(reviewInfo)}
                 value={reviewInfo.label}
-                tone={getReviewPillTone(reviewInfo)}
+                toneClassName={getReviewStateTone(reviewInfo.state)}
               />
             ) : null}
           </div>
@@ -255,7 +264,17 @@ export const CandidateRow = React.memo(function CandidateRow({
           {failure ? (
             <div className="mt-2 flex items-center gap-1.5 text-xs text-destructive">
               <AlertTriangle className="size-3.5" />
-              {failure}
+              <span>{failure.message}</span>
+              {failure.canDeleteAnyway && onDeleteAnyway ? (
+                <Button
+                  variant="link"
+                  size="xs"
+                  className="h-auto px-1 text-destructive"
+                  onClick={() => onDeleteAnyway(candidate)}
+                >
+                  {translate('components.workspace.cleanup.browse.deleteAnyway', 'Delete anyway')}
+                </Button>
+              ) : null}
             </div>
           ) : null}
 
@@ -377,26 +396,11 @@ export const CandidateRow = React.memo(function CandidateRow({
               </TooltipContent>
             </Tooltip>
           ) : null}
+          {candidate.blockers.includes('ssh-disconnected') && onForgetLocally ? (
+            <WorkspaceCleanupForgetLocallyButton candidate={candidate} onForget={onForgetLocally} />
+          ) : null}
         </div>
       </div>
     </div>
   )
 })
-
-function formatCompactActivityLabel(label: string): string {
-  if (label === 'Just now') {
-    return 'now'
-  }
-  return label.replace(/ ago$/, '')
-}
-
-function getReviewTooltip(reviewInfo: WorkspaceCleanupReviewInfo): string {
-  const parts = [reviewInfo.label]
-  if (reviewInfo.state) {
-    parts.push(reviewInfo.state)
-  }
-  if (reviewInfo.title) {
-    parts.push(reviewInfo.title)
-  }
-  return parts.filter(Boolean).join(' · ')
-}

@@ -17,7 +17,8 @@ import {
   createTestStore,
   mockApi,
   resetRemoteRuntimeMocks,
-  resetWorktreeSliceModuleMemory
+  resetWorktreeSliceModuleMemory,
+  worktreeListMock
 } from './worktrees-slice-test-harness'
 
 const requestWorktreeBaseFallbackNotice = vi.hoisted(() => vi.fn())
@@ -74,8 +75,32 @@ describe('migrateWorktreeIdentity', () => {
         [OLD]: { resultOwner: { worktreeId: OLD, runtimeEnvironmentId: 'runtime-a' } }
       },
       activeTabIdByWorktree: { [OLD]: 'tab1' },
-      browserTabsByWorktree: { [OLD]: [{ id: 'browser1', worktreeId: OLD }] },
-      browserPagesByWorkspace: { browser1: [{ id: 'page1', worktreeId: OLD }] },
+      browserTabsByWorktree: {
+        [OLD]: [
+          {
+            id: 'browser1',
+            worktreeId: OLD,
+            docLocation: {
+              kind: 'workspace-doc',
+              worktreeId: OLD,
+              filePath: '/ws/cunner/docs/report.html'
+            }
+          }
+        ]
+      },
+      browserPagesByWorkspace: {
+        browser1: [
+          {
+            id: 'page1',
+            worktreeId: OLD,
+            docLocation: {
+              kind: 'workspace-doc',
+              worktreeId: OLD,
+              filePath: '/ws/cunner/docs/report.html'
+            }
+          }
+        ]
+      },
       recentlyClosedBrowserTabsByWorktree: {
         [OLD]: [
           { workspace: { id: 'closed-browser', worktreeId: OLD }, pages: [{ worktreeId: OLD }] }
@@ -127,6 +152,16 @@ describe('migrateWorktreeIdentity', () => {
     expect(s.activeTabIdByWorktree[NEW]).toBe('tab1')
     expect(s.browserTabsByWorktree[NEW]?.[0]?.worktreeId).toBe(NEW)
     expect(s.browserPagesByWorkspace.browser1?.[0]?.worktreeId).toBe(NEW)
+    expect(s.browserTabsByWorktree[NEW]?.[0]?.docLocation).toEqual({
+      kind: 'workspace-doc',
+      worktreeId: NEW,
+      filePath: '/ws/worktree-creation-spinner/docs/report.html'
+    })
+    expect(s.browserPagesByWorkspace.browser1?.[0]?.docLocation).toEqual({
+      kind: 'workspace-doc',
+      worktreeId: NEW,
+      filePath: '/ws/worktree-creation-spinner/docs/report.html'
+    })
     expect(s.recentlyClosedBrowserTabsByWorktree[NEW]?.[0]?.workspace.worktreeId).toBe(NEW)
     expect(s.recentlyClosedBrowserTabsByWorktree[NEW]?.[0]?.pages[0]?.worktreeId).toBe(NEW)
     expect(s.recentlyClosedBrowserPagesByWorkspace.browser1?.[0]?.worktreeId).toBe(NEW)
@@ -216,7 +251,7 @@ describe('migrateWorktreeIdentity', () => {
     })
 
     store.setState({ worktreesByRepo: { repo1: [oldWorktree] } } as Partial<AppState>)
-    store.getState().updateWorktreeGitIdentity(OLD, { branch: 'refs/heads/stack/two' })
+    store.getState().updateWorktreeGitIdentity(OLD, { branch: 'refs/heads/stack/two' }, null)
     await vi.waitFor(() => {
       expect(getHostedReviewLinkMutationGenerationForTests(OLD)).toBe(0)
       expect(mockApi.worktrees.updateMeta).toHaveBeenCalledWith({
@@ -235,7 +270,7 @@ describe('migrateWorktreeIdentity', () => {
     const switched = store.getState().worktreesByRepo.repo1[0]
     store.setState({ worktreesByRepo: { repo1: [{ ...switched, id: NEW }] } } as Partial<AppState>)
     store.getState().migrateWorktreeIdentity(OLD, NEW)
-    mockApi.worktrees.list.mockResolvedValue([
+    worktreeListMock.mockResolvedValue([
       {
         ...switched,
         id: NEW,
@@ -268,10 +303,14 @@ describe('migrateWorktreeIdentity', () => {
     })
 
     store.setState({ worktreesByRepo: { repo1: [oldWorktree] } } as Partial<AppState>)
-    store.getState().updateWorktreeGitIdentity(OLD, {
-      head: 'new-head',
-      branch: 'refs/heads/stack/two'
-    })
+    store.getState().updateWorktreeGitIdentity(
+      OLD,
+      {
+        head: 'new-head',
+        branch: 'refs/heads/stack/two'
+      },
+      null
+    )
     await vi.waitFor(() => {
       expect(mockApi.worktrees.updateMeta).toHaveBeenCalledWith({
         worktreeId: OLD,
@@ -282,7 +321,7 @@ describe('migrateWorktreeIdentity', () => {
     const switched = store.getState().worktreesByRepo.repo1[0]
     store.setState({ worktreesByRepo: { repo1: [{ ...switched, id: NEW }] } } as Partial<AppState>)
     store.getState().migrateWorktreeIdentity(OLD, NEW)
-    mockApi.worktrees.list.mockResolvedValue([
+    worktreeListMock.mockResolvedValue([
       {
         ...oldWorktree,
         head: 'old-head',
@@ -313,7 +352,7 @@ describe('migrateWorktreeIdentity', () => {
     })
 
     store.setState({ worktreesByRepo: { repo1: [oldWorktree] } } as Partial<AppState>)
-    store.getState().updateWorktreeGitIdentity(OLD, { branch: 'refs/heads/stack/two' })
+    store.getState().updateWorktreeGitIdentity(OLD, { branch: 'refs/heads/stack/two' }, null)
     await vi.waitFor(() => {
       expect(mockApi.worktrees.updateMeta).toHaveBeenCalledWith({
         worktreeId: OLD,
@@ -342,7 +381,7 @@ describe('migrateWorktreeIdentity', () => {
     })
 
     store.setState({ worktreesByRepo: { repo1: [oldWorktree] } } as Partial<AppState>)
-    store.getState().updateWorktreeGitIdentity(OLD, { branch: 'refs/heads/stack/two' })
+    store.getState().updateWorktreeGitIdentity(OLD, { branch: 'refs/heads/stack/two' }, null)
     const switched = store.getState().worktreesByRepo.repo1[0]
     store.setState({
       worktreesByRepo: {
@@ -398,7 +437,7 @@ describe('migrateWorktreeIdentity', () => {
     })
 
     store.setState({ worktreesByRepo: { repo1: [oldWorktree] } } as Partial<AppState>)
-    store.getState().updateWorktreeGitIdentity(OLD, { branch: 'refs/heads/stack/two' })
+    store.getState().updateWorktreeGitIdentity(OLD, { branch: 'refs/heads/stack/two' }, null)
     await oldPersistStartedPromise
     const switched = store.getState().worktreesByRepo.repo1[0]
     store.setState({

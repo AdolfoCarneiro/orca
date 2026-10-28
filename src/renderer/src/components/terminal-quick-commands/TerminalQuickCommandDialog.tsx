@@ -11,6 +11,7 @@ import {
   isTerminalAgentQuickCommand,
   supportsTerminalAgentQuickCommand
 } from '../../../../shared/terminal-quick-commands'
+import { getTerminalQuickCommandBodySize } from '../../../../shared/terminal-quick-command-prompt-limit'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import {
   Dialog,
@@ -22,6 +23,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { getAgentCatalog } from '@/lib/agent-catalog'
 import { getScreenSubmitShortcutLabel, isScreenSubmitShortcut } from '@/lib/screen-submit-shortcut'
+import { isSelectAllShortcut } from '@/lib/editable-target'
 import { TerminalQuickCommandActionToggle } from './TerminalQuickCommandActionToggle'
 import { TerminalQuickCommandAdvancedSection } from './TerminalQuickCommandAdvancedSection'
 import { TerminalQuickCommandContentSection } from './TerminalQuickCommandContentSection'
@@ -43,8 +45,11 @@ type TerminalQuickCommandDialogProps = {
   /** Settings has no ambient workspace to imply scope from, so it opens the
    *  Advanced section up front. In-workspace entry points leave it collapsed. */
   defaultAdvancedOpen?: boolean
+  /** An older target host's agent-prompt character cap; `null` (the default) means none. */
+  agentPromptMaxLength?: number | null
   onOpenChange: (open: boolean) => void
-  onSave: (command: TerminalQuickCommand) => void
+  /** Resolves whether the save landed; the dialog closes only then, so a refusal keeps the text. */
+  onSave: (command: TerminalQuickCommand) => Promise<boolean> | boolean
 }
 
 const EMPTY_REPOS: Pick<Repo, 'id' | 'displayName' | 'path' | 'badgeColor'>[] = []
@@ -67,6 +72,7 @@ export function TerminalQuickCommandDialog({
   command,
   repos = EMPTY_REPOS,
   defaultAdvancedOpen = false,
+  agentPromptMaxLength = null,
   onOpenChange,
   onSave
 }: TerminalQuickCommandDialogProps): React.JSX.Element {
@@ -74,8 +80,13 @@ export function TerminalQuickCommandDialog({
     getAgentCatalog().find((entry) => supportsTerminalAgentQuickCommand(entry.id))?.id ?? 'claude'
   const [draft, setDraft] = useState<TerminalQuickCommand>(command)
   const wasOpenRef = useRef(open)
+  const savingRef = useRef(false)
+  const [saving, setSaving] = useState(false)
   const syncedCommandRef = useRef(command)
-  const draftMemoryRef = useRef(createTerminalQuickCommandDialogDraftMemory(command, fallbackAgent))
+  const draftMemoryRef = useRef<ReturnType<typeof createTerminalQuickCommandDialogDraftMemory>>(
+    undefined!
+  )
+  draftMemoryRef.current ??= createTerminalQuickCommandDialogDraftMemory(command, fallbackAgent)
   const initialScope = getTerminalQuickCommandScope(command)
   const lastRepoScopeIdRef = useRef<string | null>(
     initialScope.type === 'repo' ? initialScope.repoId : null
@@ -105,6 +116,13 @@ export function TerminalQuickCommandDialog({
 
   const selectedAgent =
     isAgentAction && supportsTerminalAgentQuickCommand(draft.agent) ? draft.agent : fallbackAgent
+  const bodySize = getTerminalQuickCommandBodySize(
+    selectedAction,
+    isAgentAction ? draft.prompt : draft.command,
+    agentPromptMaxLength
+  )
+  // Why: past the limit the host refuses the save, so block it instead of losing the text.
+  const bodyTooLong = bodySize.used > bodySize.max
 
   const setAction = (action: 'terminal-command' | 'agent-prompt'): void => {
     setDraft((current) => {
@@ -129,7 +147,10 @@ export function TerminalQuickCommandDialog({
     )
   }
 
-  const saveDraft = (): void => {
+  const saveDraft = async (): Promise<void> => {
+    if (savingRef.current) {
+      return
+    }
     const next: TerminalQuickCommand = isTerminalAgentQuickCommand(draft)
       ? {
           id: draft.id,
@@ -149,25 +170,42 @@ export function TerminalQuickCommandDialog({
         }
     if (
       !next.label ||
+      bodyTooLong ||
       (isTerminalAgentQuickCommand(next)
         ? !next.prompt.trim() || !supportsTerminalAgentQuickCommand(next.agent)
         : !next.command.trim())
     ) {
       return
     }
-    onSave(next)
-    onOpenChange(false)
+    savingRef.current = true
+    setSaving(true)
+    try {
+      if (await onSave(next)) {
+        onOpenChange(false)
+      }
+    } finally {
+      savingRef.current = false
+      setSaving(false)
+    }
+  }
+
+  const changeOpen = (nextOpen: boolean): void => {
+    if (!savingRef.current) {
+      onOpenChange(nextOpen)
+    }
   }
 
   const canSave =
+    !saving &&
     draft.label.trim().length > 0 &&
+    !bodyTooLong &&
     (isAgentAction
       ? draft.prompt.trimEnd().length > 0 && supportsTerminalAgentQuickCommand(draft.agent)
       : draft.command.trimEnd().length > 0)
   const submitShortcutLabel = getScreenSubmitShortcutLabel()
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={changeOpen}>
       {/* Why: fixed large width so Terminal ↔ Agent content swaps never reflow the shell. */}
       <DialogContent
         className="flex max-h-[min(90vh,52rem)] w-full max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl"
@@ -193,12 +231,30 @@ export function TerminalQuickCommandDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div
-          className="scrollbar-sleek flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5"
+        <fieldset
+          disabled={saving}
+          className="scrollbar-sleek flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5"
           onKeyDown={(event) => {
+            if (
+              event.defaultPrevented ||
+              !(event.target instanceof Node) ||
+              !event.currentTarget.contains(event.target)
+            ) {
+              return
+            }
+            if (
+              isSelectAllShortcut(event) &&
+              (event.target instanceof HTMLInputElement ||
+                event.target instanceof HTMLTextAreaElement)
+            ) {
+              event.preventDefault()
+              event.stopPropagation()
+              event.target.select()
+              return
+            }
             if (isScreenSubmitShortcut(event) && canSave) {
               event.preventDefault()
-              saveDraft()
+              void saveDraft()
             }
           }}
         >
@@ -219,15 +275,18 @@ export function TerminalQuickCommandDialog({
           </div>
 
           <TerminalQuickCommandContentSection
+            disabled={saving}
             draft={draft}
             isAgentAction={isAgentAction}
             selectedAgent={selectedAgent}
+            bodySize={bodySize}
             draftMemoryRef={draftMemoryRef}
             setDraft={setDraft}
             toggleAppendEnter={toggleAppendEnter}
           />
 
           <TerminalQuickCommandAdvancedSection
+            disabled={saving}
             repos={repos}
             advancedOpen={advancedOpen}
             selectedScope={selectedScope}
@@ -238,13 +297,14 @@ export function TerminalQuickCommandDialog({
             setAdvancedOpen={setAdvancedOpen}
             setDraft={setDraft}
           />
-        </div>
+        </fieldset>
 
         <TerminalQuickCommandDialogFooter
           canSave={canSave}
+          saving={saving}
           submitShortcutLabel={submitShortcutLabel}
-          onCancel={() => onOpenChange(false)}
-          onSave={saveDraft}
+          onCancel={() => changeOpen(false)}
+          onSave={() => void saveDraft()}
         />
       </DialogContent>
     </Dialog>

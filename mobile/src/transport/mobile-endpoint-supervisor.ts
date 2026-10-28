@@ -4,7 +4,7 @@ import { RelayReconnectController } from './mobile-relay-reconnect-controller'
 import { RelayLeaseRotationTimer } from './mobile-relay-lease-rotation-timer'
 import { MobileEndpointHysteresis } from './mobile-endpoint-hysteresis'
 import {
-  persistRelayHost,
+  liveRelayLeaseExpiry,
   suspendRelayIfStillConnected
 } from './mobile-endpoint-supervisor-support'
 import { selectDialableRelayCredentials } from './mobile-relay-credential-selection'
@@ -19,7 +19,14 @@ import { MobileRelayDirectGraceTimer } from './mobile-relay-direct-grace-timer'
 import { MobileRelaySessionEstablisher } from './mobile-relay-session-establisher'
 import * as recoveryPresentation from './mobile-relay-recovery-presentation'
 import type { StableLogicalRpcClient } from './stable-logical-rpc-client'
-import type { ForegroundNudgeReason, HostProfile } from './types'
+import type { ForegroundNudgeReason } from './types'
+import type { MobileRelayEndpoint } from '../../../src/shared/mobile-relay-credential-contract'
+import { MobileRelayBackgroundGrace } from './mobile-relay-background-grace'
+import {
+  logRelayConnected,
+  logRelayCredentialUnavailable,
+  logRelayDialFailure
+} from './mobile-relay-diagnostic-log'
 
 export type { MobileEndpointSupervisorDependencies } from './mobile-endpoint-supervisor-contract'
 
@@ -30,7 +37,6 @@ const FAILURE_COOLDOWN_MS = 60_000
 export class MobileEndpointSupervisor {
   private bundle: MobileRelayCredentialBundle | null = null
   private stopped = false
-  private foreground = true
   private operationInFlight = false
   private pendingReplace = false
   private readonly nudgeRouter: MobileEndpointNudgeRouter
@@ -43,11 +49,13 @@ export class MobileEndpointSupervisor {
   private readonly logRelay: RelayRecoveryLog
   private readonly directProbe: DirectReturnProbe
   private readonly directGrace: MobileRelayDirectGraceTimer
+  private readonly backgroundGrace: MobileRelayBackgroundGrace
   private readonly sessionEstablisher: MobileRelaySessionEstablisher
 
   constructor(
     private readonly logical: StableLogicalRpcClient,
-    private host: HostProfile,
+    private readonly hostId: string,
+    relay: MobileRelayEndpoint,
     private readonly dependencies: MobileEndpointSupervisorDependencies
   ) {
     this.hysteresis = new MobileEndpointHysteresis(dependencies.now(), {
@@ -63,7 +71,7 @@ export class MobileEndpointSupervisor {
       logical,
       controller: this.relayReconnect,
       isStopped: () => this.stopped,
-      isForeground: () => this.foreground,
+      isForeground: () => this.backgroundGrace.isForeground(),
       setForeground: (foreground) => this.setForeground(foreground),
       replaceRelay: () => void this.recoverRelay(true, true),
       scheduleDirectProbe: () => this.directProbe.schedule(0)
@@ -72,9 +80,7 @@ export class MobileEndpointSupervisor {
       this.relayRotationPending = true
       void this.recoverRelay(true)
     })
-    // Why: the race owns recovery exactly like a network-change replacement — its
-    // failure must book the shared cooldown. recoverRelay's own guards already
-    // cover stopped/background/no-relay, so the timer needs no scope check.
+    // The race owns recovery and must book shared cooldown on failure; recoverRelay already guards stopped/background state.
     this.directGrace = new MobileRelayDirectGraceTimer(dependencies, logical, () => {
       void this.recoverRelay(true, true)
     })
@@ -84,40 +90,35 @@ export class MobileEndpointSupervisor {
       openRelay: dependencies.openRelay,
       randomBytes: dependencies.randomBytes,
       writeBundle: dependencies.writeBundle,
-      isActive: () => !this.stopped && this.foreground,
-      isForeground: () => this.foreground,
-      relay: () => this.host.relay,
+      isActive: () => this.isActive(),
+      isForeground: () => this.backgroundGrace.isForeground(),
+      isStopped: () => this.stopped,
+      hostId,
+      relay,
       resolveRelay: dependencies.resolveRelay,
-      persistResolvedRelay: async (resolved) => {
-        this.host = await persistRelayHost(this.host, resolved, dependencies.saveHost)
-      },
+      setRelayRouting: dependencies.setRelayRouting,
       bundle: () => this.bundle,
-      adoptBundle: (bundle) => {
-        this.bundle = bundle
-      },
+      adoptBundle: (bundle) => (this.bundle = bundle),
       recordMigration: () => {
         this.relayRotationPending = false
         this.hysteresis.recordMigration(dependencies.now())
-        this.logRelay('runtime channel migrated to relay')
+        logRelayConnected(this.logRelay)
       },
       scheduleLease: (expiry) =>
-        this.leaseRotation.scheduleFromLease(this.stopped || !this.foreground ? null : expiry),
+        this.leaseRotation.scheduleFromLease(
+          liveRelayLeaseExpiry(this.logical, this.stopped, expiry)
+        ),
       scheduleDirectProbe: () => this.directProbe.schedule(),
       onBookkeepingError: (error) =>
         this.logRelay('relay bookkeeping failed after migration', error.message.slice(0, 80)),
-      onDialFailure: (error) =>
-        this.logRelay('relay dial failed', `${error.name}: ${String(error.message).slice(0, 80)}`)
+      onDialFailure: (error) => logRelayDialFailure(this.logRelay, error)
     })
     this.directProbe = new DirectReturnProbe(dependencies, {
       hysteresis: this.hysteresis,
-      host: () => this.host,
-      canSchedule: () =>
-        !this.stopped && this.foreground && this.logical.getActivePath() === 'relay',
-      canAttempt: () => !this.stopped && this.foreground && !this.operationInFlight,
-      beginOperation: () => {
-        this.operationInFlight = true
-      },
-      migrate: (client, path) => this.logical.migrateTo(client, path),
+      canSchedule: () => this.isActive() && this.logical.getActivePath() === 'relay',
+      canAttempt: () => this.isActive() && !this.operationInFlight,
+      beginOperation: () => (this.operationInFlight = true),
+      migrate: (client, path, abort) => this.logical.migrateTo(client, path, undefined, abort),
       onDirectMigrated: async () => {
         this.leaseRotation.clear()
         this.relayRotationPending = false
@@ -134,16 +135,23 @@ export class MobileEndpointSupervisor {
         }
       }
     })
+    this.backgroundGrace = new MobileRelayBackgroundGrace(
+      dependencies,
+      logical,
+      this.relayReconnect,
+      this.leaseRotation,
+      this.directProbe,
+      this.directGrace
+    )
   }
 
   async start(): Promise<void> {
-    this.bundle = await this.dependencies.readBundle(this.host.id).catch(() => null)
-    if (this.stopped || !this.host.relay) {
+    this.bundle = await this.dependencies.readBundle(this.hostId).catch(() => null)
+    if (this.stopped) {
       return
     }
     if (!this.bundle) {
-      // Why: a Keychain race at open must not kill relay recovery for the whole
-      // process lifetime; each recovery attempt re-reads the durable bundle.
+      // Re-read durable credentials each recovery attempt so an opening keychain race cannot disable relay for the process lifetime.
       this.logRelay('credential bundle unavailable at start; recovery will re-read')
     }
     this.unsubscribeState = this.logical.onStateChange((state) => {
@@ -153,11 +161,14 @@ export class MobileEndpointSupervisor {
           void this.rotateCredentialIfNeeded(this.relayReconnect.resetForDirectConnection())
         }
         this.directProbe.schedule()
+      } else if (!this.backgroundGrace.isForeground()) {
+        this.backgroundGrace.handleStateFailure()
       } else {
         // Why: the direct client enters reconnecting after its first failed
         // dial and may never publish disconnected while its retry loop lives.
         recoveryPresentation.onActiveFailure(this.logical, this.relayReconnect, state, this.bundle)
-        this.relayReconnect.handleStateFailure(this.logical, state)
+        const relayFailure = this.relayReconnect.handleStateFailure(this.logical, state)
+        logRelayDialFailure(this.logRelay, relayFailure, 'active-session')
       }
     })
     if (this.relayReconnect.needsRecovery(this.logical.getState())) {
@@ -171,16 +182,9 @@ export class MobileEndpointSupervisor {
   }
 
   setForeground(foreground: boolean): void {
-    const wasForeground = this.foreground
-    this.foreground = foreground
-    if (foreground) {
-      this.relayReconnect.handleForeground(this.logical, wasForeground)
-      this.directProbe.schedule(0)
-      this.directGrace.arm()
-    } else {
-      // Why: background phones must not hold billed relay data splices.
-      this.relayReconnect.suspendActiveRelay(this.logical)
-      this.clearScheduledRecovery()
+    this.backgroundGrace.setForeground(foreground)
+    if (foreground && this.relayRotationPending) {
+      void this.recoverRelay(true)
     }
   }
 
@@ -188,31 +192,24 @@ export class MobileEndpointSupervisor {
 
   stop(): void {
     this.stopped = true
+    this.directProbe.stop()
     this.unsubscribeState?.()
     this.unsubscribeState = null
-    this.clearScheduledRecovery()
+    this.backgroundGrace.stop()
   }
 
-  private clearScheduledRecovery(): void {
-    this.directProbe.clear()
-    this.relayReconnect.clear()
-    this.leaseRotation.clear()
-    this.directGrace.clear()
-    this.logical.setRecoveryPath(null)
+  private isActive(): boolean {
+    return !this.stopped && this.backgroundGrace.isForeground()
   }
 
-  // forceReplacement: dial past the "direct still looks live" guard — a lease
-  // rotation, a network-change replacement, or the happy-eyeballs grace race.
-  // ownsRecovery: this dial is the connection's only hope, so a failure books the
-  // shared cooldown and any session left stale-'connected' by a half-open socket
-  // comes down; lease rotation clears it because armRetry owns its own retry.
+  // forceReplacement bypasses live-direct guards; ownsRecovery books cooldown and retires stale sessions on failure.
+  // Lease rotation leaves retry ownership to its timer.
   private async recoverRelay(forceReplacement = false, ownsRecovery = false): Promise<void> {
-    if (this.stopped || !this.foreground || !this.host.relay) {
+    if (!this.isActive()) {
       return
     }
     if (this.operationInFlight) {
-      // Why: a 12s direct probe can own the mutex when a network handoff lands;
-      // afterProbe replays the queued replacement so the signal is never lost.
+      // Queue handoff intent while a direct probe holds the mutex; afterProbe replays it.
       this.pendingReplace ||= forceReplacement && ownsRecovery
       return
     }
@@ -221,17 +218,14 @@ export class MobileEndpointSupervisor {
       forceReplacement = true
       ownsRecovery = true
     }
-    // Why: connecting/handshaking is live direct progress; an unforced relay dial
-    // would race it before the grace timer has given direct its head start.
+    // Give connecting/handshaking direct its grace period before unforced relay recovery.
     if (!forceReplacement && !this.relayReconnect.needsRecovery(this.logical.getState())) {
       return
     }
-    // Why: revival and lease timers can overlap resume failures; one shared cooldown
-    // prevents PEER_DROPPED/LIMIT_EXCEEDED reconnect churn.
+    // Share cooldown across overlapping resume, revival and lease failures to prevent reconnect churn.
     if (this.relayReconnect.shouldDefer()) {
       if (ownsRecovery) {
-        // Why: never tear down a session no dial has disproven — the intent stays
-        // queued so the armed retry runs forced once the cooldown lapses.
+        // Without a dial, no session was disproven; keep intent queued for forced recovery after cooldown.
         this.pendingReplace = true
       }
       this.logRelay('recovery deferred by cooldown or gate')
@@ -243,30 +237,24 @@ export class MobileEndpointSupervisor {
       const selection = await selectDialableRelayCredentials({
         bundle: this.bundle,
         controller: this.relayReconnect,
-        readBundle: () => this.dependencies.readBundle(this.host.id),
+        readBundle: () => this.dependencies.readBundle(this.hostId),
         onAdoptedFresherBundle: () => this.logRelay('adopted fresher durable credential bundle')
       })
       this.bundle = selection.bundle
       if (selection.credentials.length === 0) {
         this.logical.setRecoveryPath(null)
-        // Why: "expired" vs "missing" separates a sleep-past-expiry phone
-        // (needs re-pair or LAN) from a Keychain failure in field reports.
-        this.logRelay(
-          selection.bundle
-            ? 'relay credential expired or rejected; slow reprobe armed'
-            : 'no relay credential bundle; slow reprobe armed'
-        )
+        // Distinguish expired credentials from missing keychain data in diagnostics.
+        logRelayCredentialUnavailable(this.logRelay, selection.bundle !== null)
         this.relayReconnect.armCredentialReprobe()
         if (ownsRecovery) {
-          // Why: no dial happened — keep the session and the intent; the reprobe
-          // runs forced and replaces make-before-break once a credential exists.
+          // Preserve session/intent until credentials return; reprobe will replace without breaking the live session.
           this.pendingReplace = true
         }
         return
       }
       const recoveryNeeded =
         forceReplacement || this.relayReconnect.needsRecovery(this.logical.getState())
-      if (this.stopped || !this.foreground || !recoveryNeeded) {
+      if (!this.isActive() || !recoveryNeeded) {
         return
       }
       this.logical.setRecoveryPath('relay', this.relayReconnect.getFailureCount())
@@ -279,13 +267,11 @@ export class MobileEndpointSupervisor {
       }
       if (dialed.outcome === 'aborted') {
         this.logical.setRecoveryPath(null)
-        // Why: direct won the race or the supervisor went inactive — not a
-        // failure; booking backoff would delay the next genuine recovery.
+        // Withdrawal is not failure; booking cooldown would delay genuine later recovery.
         return
       }
-      // Why: cleanup may happen while a relay dial is awaiting the network;
-      // record its outcome without recreating a foreground retry timer.
-      const scheduleRetry = (!forceReplacement || ownsRecovery) && this.foreground && !this.stopped
+      // Record a dial completing after cleanup without recreating foreground timers.
+      const scheduleRetry = (!forceReplacement || ownsRecovery) && this.isActive()
       this.relayReconnect.registerFailure(dialed.error, scheduleRetry)
       recoveryPresentation.clearIfCredentialBlocked(this.logical, this.relayReconnect)
       if (ownsRecovery) {
@@ -293,11 +279,11 @@ export class MobileEndpointSupervisor {
       }
     } finally {
       this.operationInFlight = false
-      if (forceReplacement && this.relayRotationPending && !this.stopped && this.foreground) {
+      if (forceReplacement && this.relayRotationPending && this.isActive()) {
         this.leaseRotation.armRetry(this.relayReconnect.retryDelayMs(5000))
       }
       // Why: the active relay can drop while migration follow-up still owns the mutex.
-      if (retryAfterOperation && !this.stopped && this.foreground) {
+      if (retryAfterOperation && this.isActive()) {
         void this.recoverRelay()
       }
     }
@@ -325,10 +311,9 @@ export class MobileEndpointSupervisor {
       this.bundle = result.bundle
       // Why: a scheduled rotation can finish after the old credential enters the rejection gate.
       credentialRefreshed = true
-      this.host = await persistRelayHost(this.host, result.relay, this.dependencies.saveHost)
+      await this.sessionEstablisher.adoptRelay(result.relay)
     } catch {
-      // Why: pending material remains durable; the next authenticated direct
-      // opportunity must reconcile it before creating another install key.
+      // Retain pending material for direct reconciliation before generating another install key.
     } finally {
       if (credentialRefreshed) {
         this.relayReconnect.completeCredentialRefresh()
@@ -336,8 +321,7 @@ export class MobileEndpointSupervisor {
       this.credentialRotationInFlight = false
       if (
         credentialRefreshed &&
-        !this.stopped &&
-        this.foreground &&
+        this.isActive() &&
         this.relayReconnect.needsRecovery(this.logical.getState())
       ) {
         void this.recoverRelay()

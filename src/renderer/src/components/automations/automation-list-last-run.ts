@@ -68,6 +68,22 @@ export function getToneForAutomationRunStatus(status: AutomationRunStatus): Auto
   return 'unknown'
 }
 
+/** Use the authority-projected newest retained run without fetching history; legacy servers fall back to stored lastRunAt alone. */
+export function getAutomationRowLastRunSnapshot(row: {
+  automation: Automation
+  usageSummary: { lastRunStatus?: AutomationRunStatus | null; lastRunAt?: number | null } | null
+}): AutomationLastRunSnapshot {
+  const status = row.usageSummary?.lastRunStatus
+  if (status) {
+    return {
+      at: row.usageSummary?.lastRunAt ?? row.automation.lastRunAt ?? null,
+      tone: getToneForAutomationRunStatus(status),
+      statusLabel: getAutomationRunStatusLabel(status)
+    }
+  }
+  return getLocalAutomationLastRunSnapshot(row.automation, undefined)
+}
+
 export function getLocalAutomationLastRunSnapshot(
   automation: Automation,
   lastRun: AutomationRun | undefined

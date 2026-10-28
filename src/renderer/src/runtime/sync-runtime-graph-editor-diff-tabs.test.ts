@@ -1,7 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { buildMobileSessionTabSnapshots } from './sync-runtime-graph'
+import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
+import { buildMobileSessionTabSnapshots } from './sync-runtime-graph/mobile-session-snapshots'
 import { makeState } from './sync-runtime-graph-test-harness'
 import type { AppState } from '../store/types'
+
+function collectLayoutGroupIds(node: unknown, into: string[] = []): string[] {
+  if (!node || typeof node !== 'object') {
+    return into
+  }
+  const candidate = node as { type?: string; groupId?: string; first?: unknown; second?: unknown }
+  if (candidate.type === 'leaf' && candidate.groupId) {
+    into.push(candidate.groupId)
+    return into
+  }
+  collectLayoutGroupIds(candidate.first, into)
+  collectLayoutGroupIds(candidate.second, into)
+  return into
+}
 
 describe('buildMobileSessionTabSnapshots', () => {
   it('preserves source-control diff metadata for mobile file tabs', () => {
@@ -94,6 +109,162 @@ describe('buildMobileSessionTabSnapshots', () => {
     expect(snapshot?.tabs).toEqual([])
     expect(snapshot?.activeTabId).toBeNull()
     expect(snapshot?.activeTabType).toBeNull()
+  })
+
+  // Desktop-only document grants and missing wire kind prevent mobile rendering; old clients would mistake it for a navigable URL browser.
+  it('omits a browser tab located by a workspace document from mobile snapshots', () => {
+    const docWorkspaceId = 'browser-doc'
+    const urlWorkspaceId = 'browser-url'
+    const state = makeState({
+      tabBarOrderByWorktree: { 'wt-1': [docWorkspaceId, urlWorkspaceId] },
+      browserTabsByWorktree: {
+        'wt-1': [
+          {
+            id: docWorkspaceId,
+            worktreeId: 'wt-1',
+            activePageId: 'page-doc',
+            pageIds: ['page-doc'],
+            url: 'data:text/html,',
+            title: 'report.html',
+            loading: false,
+            faviconUrl: null,
+            canGoBack: false,
+            canGoForward: false,
+            loadError: null,
+            createdAt: 1,
+            docLocation: {
+              kind: 'workspace-doc',
+              worktreeId: 'wt-1',
+              filePath: '/repo/docs/report.html'
+            }
+          },
+          {
+            id: urlWorkspaceId,
+            worktreeId: 'wt-1',
+            activePageId: 'page-url',
+            pageIds: ['page-url'],
+            url: 'https://example.com/',
+            title: 'Example',
+            loading: false,
+            faviconUrl: null,
+            canGoBack: false,
+            canGoForward: false,
+            loadError: null,
+            createdAt: 2
+          }
+        ]
+      }
+    } as unknown as Parameters<typeof makeState>[0])
+
+    const snapshot = buildMobileSessionTabSnapshots(state)[0]
+
+    // Require adjacent URL tab so dropping all browser output cannot pass.
+    expect(snapshot?.tabs).toMatchObject([{ type: 'browser', browserWorkspaceId: urlWorkspaceId }])
+  })
+
+  // Legacy navigation tests only per-tab guards; grouped projection must also remove metadata referencing withheld document tabs.
+  it('keeps a workspace document out of published tab groups as well as the tab list', () => {
+    const docWorkspaceId = 'browser-doc'
+    const urlWorkspaceId = 'browser-url'
+    const state = makeState({
+      // The document's group is the active one: if it survived anywhere, this is where it shows.
+      activeGroupIdByWorktree: { 'wt-1': 'group-left' },
+      groupsByWorktree: {
+        'wt-1': [
+          {
+            id: 'group-left',
+            activeTabId: 'unified-doc',
+            tabOrder: ['unified-doc'],
+            recentTabIds: ['unified-doc']
+          },
+          {
+            id: 'group-right',
+            activeTabId: 'unified-url',
+            tabOrder: ['unified-url'],
+            recentTabIds: ['unified-url']
+          }
+        ]
+      } as unknown as AppState['groupsByWorktree'],
+      layoutByWorktree: {
+        'wt-1': {
+          type: 'split',
+          direction: 'horizontal',
+          first: { type: 'leaf', groupId: 'group-left' },
+          second: { type: 'leaf', groupId: 'group-right' }
+        }
+      } as unknown as AppState['layoutByWorktree'],
+      unifiedTabsByWorktree: {
+        'wt-1': [
+          {
+            id: 'unified-doc',
+            groupId: 'group-left',
+            contentType: 'browser',
+            entityId: docWorkspaceId,
+            title: 'report.html'
+          },
+          {
+            id: 'unified-url',
+            groupId: 'group-right',
+            contentType: 'browser',
+            entityId: urlWorkspaceId,
+            title: 'Example'
+          }
+        ]
+      } as unknown as AppState['unifiedTabsByWorktree'],
+      browserTabsByWorktree: {
+        'wt-1': [
+          {
+            id: docWorkspaceId,
+            worktreeId: 'wt-1',
+            activePageId: 'page-doc',
+            pageIds: ['page-doc'],
+            url: 'data:text/html,',
+            title: 'report.html',
+            loading: false,
+            faviconUrl: null,
+            canGoBack: false,
+            canGoForward: false,
+            loadError: null,
+            createdAt: 1,
+            docLocation: {
+              kind: 'workspace-doc',
+              worktreeId: 'wt-1',
+              filePath: '/repo/docs/report.html'
+            }
+          },
+          {
+            id: urlWorkspaceId,
+            worktreeId: 'wt-1',
+            activePageId: 'page-url',
+            pageIds: ['page-url'],
+            url: 'https://example.com/',
+            title: 'Example',
+            loading: false,
+            faviconUrl: null,
+            canGoBack: false,
+            canGoForward: false,
+            loadError: null,
+            createdAt: 2
+          }
+        ]
+      }
+    } as unknown as Parameters<typeof makeState>[0])
+
+    const snapshot = buildMobileSessionTabSnapshots(state)[0]
+
+    // Require grouped URL output so broken browser/group publishing cannot pass vacuously.
+    expect(snapshot?.tabs).toMatchObject([{ type: 'browser', browserWorkspaceId: urlWorkspaceId }])
+    expect(snapshot?.tabGroups).toMatchObject([{ id: 'group-right', tabOrder: ['unified-url'] }])
+    // Every published group reference must exist in published tab list, whatever caused exclusion.
+    const publishedTabIds = new Set(snapshot?.tabs.map((tab) => tab.id) ?? [])
+    for (const group of snapshot?.tabGroups ?? []) {
+      expect(group.tabOrder.filter((tabId) => !publishedTabIds.has(tabId))).toEqual([])
+      expect((group.recentTabIds ?? []).filter((tabId) => !publishedTabIds.has(tabId))).toEqual([])
+      expect(group.activeTabId === null || publishedTabIds.has(group.activeTabId)).toBe(true)
+    }
+    expect(snapshot?.activeTabId === null || publishedTabIds.has(snapshot.activeTabId)).toBe(true)
+    // Withheld groups must also leave layout tree or mobile renders empty splits.
+    expect(collectLayoutGroupIds(snapshot?.tabGroupLayout)).toEqual(['group-right'])
   })
 
   it('does not recover unsupported combined diff tabs through split-group fallback', () => {
@@ -318,15 +489,28 @@ describe('buildMobileSessionTabSnapshots', () => {
 
     const snapshot = buildMobileSessionTabSnapshots(state)[0]
 
+    // Layout-owner build (L280): a row goes out under its tab id only, so a diff no group shows
+    // gets no row; the same-path edit tab keeps its own.
+    const diffRows = ORCA_LAYOUT_OWNER_IS_MAIN
+      ? []
+      : [
+          {
+            type: 'file',
+            id: diffId,
+            mode: 'diff',
+            diffSource: 'unstaged',
+            relativePath: 'src/app.ts'
+          }
+        ]
     expect(snapshot?.tabs).toMatchObject([
       { type: 'file', id: 'editor-tab-1', mode: 'edit', relativePath: 'src/app.ts' },
-      { type: 'file', id: diffId, mode: 'diff', diffSource: 'unstaged', relativePath: 'src/app.ts' }
+      ...diffRows
     ])
     expect(snapshot?.tabGroups).toEqual([
       {
         id: 'group-1',
         activeTabId: 'editor-tab-1',
-        tabOrder: ['editor-tab-1', diffId],
+        tabOrder: ['editor-tab-1', ...(ORCA_LAYOUT_OWNER_IS_MAIN ? [] : [diffId])],
         recentTabIds: ['editor-tab-1']
       }
     ])
@@ -571,6 +755,12 @@ describe('buildMobileSessionTabSnapshots', () => {
       })
     )[0]
 
+    if (ORCA_LAYOUT_OWNER_IS_MAIN) {
+      // Layout-owner build (L280): a file no group shows as a tab gets no row.
+      expect(terminalSnapshot?.tabs ?? []).toEqual([])
+      expect(editorSnapshot?.tabs ?? []).toEqual([])
+      return
+    }
     expect(terminalSnapshot?.tabs).toMatchObject([
       { type: 'file', id: fileId, relativePath: 'src/app.ts', isActive: false }
     ])

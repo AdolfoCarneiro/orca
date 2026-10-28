@@ -1,10 +1,21 @@
 import { useShallow } from 'zustand/react/shallow'
 import { canShowRightSidebarForView } from '@/lib/right-sidebar-visibility'
 import { isFloatingWorkspacePanelFocused } from '@/lib/floating-workspace-terminal-actions'
+import { hasVisibleOverlay } from '@/lib/visible-overlay'
 import { requestScrollToCurrentWorkspaceRevealAndRename } from '@/lib/scroll-to-current-workspace-status'
+import { requestVirtualizedScrollAnchorRecord } from '@/hooks/requestVirtualizedScrollAnchorRecord'
 import { showTerminalShortcutCaptureNotification } from '@/lib/terminal-shortcut-capture-notification'
 import { shouldShowWorktreeHistoryControls } from '../lib/titlebar-worktree-history-controls'
 import { TOGGLE_WORKSPACE_BOARD_EVENT } from '../components/sidebar/useWorkspaceBoardPanel'
+import {
+  getRenderedLineageChipKeys,
+  resolveChildWorkspacesToggleGroupKey
+} from '../components/sidebar/child-workspaces-toggle-target'
+import { requestTerminalTabRename } from '../components/tab-bar/terminal-tab-rename-request'
+import {
+  deleteHoveredWorkspaceImmediately,
+  resolveHoveredWorkspaceDeleteTarget
+} from '../components/sidebar/hovered-workspace-delete'
 import { useAppStore } from '../store'
 import type { usePluginCommands } from '@/store/plugin-panels'
 import { isGitRepoKind } from '../../../shared/repo-kind'
@@ -17,8 +28,10 @@ import { shortcutPlatform } from './app-window-chrome'
 
 type AppStoreState = ReturnType<typeof useAppStore.getState>
 
-// Abstraction over a real KeyboardEvent and a synthetic double-tap gesture so one dispatch path serves both; KeybindingInput-compatible.
+// Share dispatch between KeyboardEvent and synthetic double-tap input.
 export type ShortcutDispatchInput = {
+  isComposing?: boolean
+  altGraph?: boolean
   key?: string
   code?: string
   altKey?: boolean
@@ -50,7 +63,7 @@ export type AppShortcutState = {
 }
 
 export function useAppShortcutActions() {
-  // Why: consolidate action refs into one useShallow subscription so React runs one equality check per store mutation instead of one per action.
+  // One shallow action subscription avoids an equality check per action on every store mutation.
   return useAppStore(
     useShallow((s) => ({
       toggleSidebar: s.toggleSidebar,
@@ -70,13 +83,20 @@ export function getKeybindingContext(target: EventTarget | null): KeybindingCont
     : 'app'
 }
 
-/**
- * Builds the app-level handlers for every keybindable action. Each returns whether it claimed
- * the chord, so an unavailable surface (settings view, closed floating panel) falls through to
- * the terminal or the next handler instead of silently no-opping.
- *
- * `input` is absent when a command is invoked from the palette/menu rather than a key event.
- */
+/** Terminal rename uses its backing entity ID; structured chat uses its unified tab ID. activeTabId stays on the last terminal, matching TabGroupPanel resolution. */
+function resolveRenameTargetTabId(activeWorktreeId: string | null): string | null {
+  const store = useAppStore.getState()
+  if (store.activeTabType === 'terminal') {
+    return store.activeTabId
+  }
+  if (store.activeTabType !== 'agent-session' || !activeWorktreeId) {
+    return null
+  }
+  const activeTab = store.getActiveTab(activeWorktreeId)
+  return activeTab?.contentType === 'agent-session' ? activeTab.id : null
+}
+
+/** Return whether each action claimed the chord so unavailable surfaces fall through. Palette/menu invocations omit input. */
 export function createAppCommandHandlers(
   state: AppShortcutState,
   input?: ShortcutDispatchInput,
@@ -156,6 +176,36 @@ export function createAppCommandHandlers(
         })
     ],
     [
+      'sidebar.childWorkspaces.toggle',
+      () => {
+        const store = useAppStore.getState()
+        // Locally controlled dialogs do not set activeModal.
+        if (
+          store.activeModal !== 'none' ||
+          floatingWorkspaceFocused ||
+          hasVisibleOverlay({ ignoreMatches: '[role="listbox"], [role="menu"]' })
+        ) {
+          return false
+        }
+        const groupKey = resolveChildWorkspacesToggleGroupKey(
+          store,
+          getRenderedLineageChipKeys(store)
+        )
+        if (!groupKey) {
+          return false
+        }
+        return claim('sidebar.childWorkspaces.toggle', () => {
+          const expanding = store.collapsedGroups.has(groupKey)
+          // Match chip-click scroll anchoring to avoid viewport jumps.
+          requestVirtualizedScrollAnchorRecord('[data-worktree-sidebar]')
+          store.toggleCollapsedGroup(groupKey)
+          if (expanding) {
+            store.setSidebarOpen(true)
+          }
+        })
+      }
+    ],
+    [
       'floatingWorkspace.maximize',
       () => {
         if (floatingTerminalOpen || !floatingTerminalEnabled) {
@@ -167,16 +217,15 @@ export function createAppCommandHandlers(
     [
       'tab.rename',
       () => {
-        const store = useAppStore.getState()
-        if (
-          !workspaceChromeActive ||
-          floatingWorkspaceFocused ||
-          store.activeTabType !== 'terminal' ||
-          !store.activeTabId
-        ) {
+        if (!workspaceChromeActive || floatingWorkspaceFocused) {
           return false
         }
-        return claim('tab.rename', () => store.setRenamingTabId(store.activeTabId!))
+        // Resolve both terminal and structured-chat rename targets; a terminal-only gate silently ignores chat.
+        const tabId = resolveRenameTargetTabId(activeWorktreeId)
+        if (!tabId) {
+          return false
+        }
+        return claim('tab.rename', () => requestTerminalTabRename(tabId))
       }
     ],
     [
@@ -188,6 +237,22 @@ export function createAppCommandHandlers(
         return claim('workspace.rename', () => {
           useAppStore.getState().setSidebarOpen(true)
           requestScrollToCurrentWorkspaceRevealAndRename()
+        })
+      }
+    ],
+    [
+      'workspace.delete',
+      () => {
+        if (floatingWorkspaceFocused) {
+          return false
+        }
+        const store = useAppStore.getState()
+        const target = resolveHoveredWorkspaceDeleteTarget(store)
+        if (!target) {
+          return false
+        }
+        return claim('workspace.delete', () => {
+          deleteHoveredWorkspaceImmediately(store, target)
         })
       }
     ],

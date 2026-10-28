@@ -3,8 +3,8 @@ import { PLUGIN_WORKSPACE_TERMINAL_LIMIT } from '../../shared/plugins/plugin-hos
 import type { PluginHostServices } from './plugin-host-methods'
 import { PluginSecretsStore } from './plugin-secrets-store'
 import { PluginKvStore } from './plugin-storage-store'
+import type { TerminalInputKind } from '../../shared/terminal-input-kind'
 
-/** Structural subset of OrcaRuntimeService exposed to plugin facade bindings. */
 export type PluginRuntimeDelegate = {
   resolveActiveWorktreeContext(): Promise<{
     worktreeId: string
@@ -19,7 +19,8 @@ export type PluginRuntimeDelegate = {
   ): Promise<{ terminals: { handle: string; title: string | null }[] }>
   sendTerminal(
     handle: string,
-    action: { text?: string; enter?: boolean }
+    action: { text?: string; enter?: boolean },
+    options: { inputKind: TerminalInputKind }
   ): Promise<{ accepted: boolean }>
   dispatchPluginNotification(input: {
     pluginId: string
@@ -40,8 +41,7 @@ export function bindPluginHostServices(input: {
       if (!context) {
         return null
       }
-      // Why: retain the internal id only for host-side terminal membership;
-      // the public handler projects it out because it embeds provider paths.
+      // Retain path-bearing worktree IDs for host membership checks; public projections exclude them.
       return {
         worktreeId: context.worktreeId,
         branch: context.branch,
@@ -59,7 +59,7 @@ export function bindPluginHostServices(input: {
         .map((terminal) => ({ id: terminal.handle }))
     },
     sendTerminalText: async (terminalId, action) => {
-      const result = await delegate.sendTerminal(terminalId, action)
+      const result = await delegate.sendTerminal(terminalId, action, { inputKind: 'driving' })
       return { accepted: result.accepted }
     },
     dispatchPluginNotification: (notification) => delegate.dispatchPluginNotification(notification),

@@ -7,8 +7,13 @@ import {
   type PairedElectronClient
 } from './helpers/paired-electron-client'
 import { createPairedQuickOpenLargeTreeFixture } from './helpers/paired-quick-open-large-tree-fixture'
+import type { RuntimeFileListResult } from '../../src/shared/runtime-file-contracts'
+import type { RuntimeWorktreeListResult } from '../../src/shared/runtime-worktree-contracts'
 import type { PairedQuickOpenLargeTreeFixture } from './helpers/paired-quick-open-large-tree-fixture'
 import { waitForSessionReady } from './helpers/store'
+import { callPairedRuntime } from './helpers/paired-client-host-session'
+
+const QUICK_OPEN_SEARCH_DEBOUNCE_MS = 120
 
 async function activateWorktree(page: Page, repoPath: string, timeout = 60_000): Promise<string> {
   await expect
@@ -57,47 +62,8 @@ async function expectQuickOpenAndRuntimeHealthy(
 ): Promise<void> {
   const dialog = client.page.getByRole('dialog', { name: 'Go to file' })
   const input = dialog.getByPlaceholder('Go to file...')
-  for (const targetPath of [fixture.gitIgnoredTargetPath, fixture.orcaIgnoredTargetPath]) {
-    const filename = targetPath.split('/').at(-1)!
-    const stat = await client.page.evaluate(
-      async ({ environmentId, worktreeId, targetPath }) => {
-        const response = await window.api.runtimeEnvironments.call({
-          selector: environmentId,
-          method: 'files.stat',
-          params: { worktree: `id:${worktreeId}`, relativePath: targetPath }
-        })
-        if (!response.ok) {
-          throw new Error(`files.stat oracle failed: ${JSON.stringify(response)}`)
-        }
-        return response.result
-      },
-      { environmentId: client.environmentId, worktreeId, targetPath }
-    )
-    expect(stat.isDirectory).toBe(false)
-    expect(stat.size).toBeGreaterThanOrEqual(0)
-    await input.fill(filename.slice(0, 8))
-    await input.fill(filename.slice(0, 18))
-    await input.fill(filename)
-    await expect(dialog.getByText('Loading files...')).toHaveCount(0, { timeout: 60_000 })
-    await expect(dialog.getByRole('option').filter({ hasText: filename })).toHaveCount(1)
-    await expect(dialog).not.toContainText('Outbound reply buffer overflow')
-    await expect(dialog).not.toContainText('Remote Orca runtime closed the connection')
-  }
-
-  const response = await client.page.evaluate(
-    async ({ environmentId }) =>
-      window.api.runtimeEnvironments.call({
-        selector: environmentId,
-        method: 'worktree.list',
-        params: { limit: 10_000 }
-      }),
-    { environmentId: client.environmentId }
-  )
-  expect(response.ok).toBe(true)
-  if (response.ok) {
-    expect(response.result.worktrees.some((worktree) => worktree.id === worktreeId)).toBe(true)
-  }
-
+  const loading = dialog.getByText('Loading files...')
+  await client.page.clock.install()
   const queryOracle = async (targetPath: string) =>
     client.page.evaluate(
       async ({ environmentId, worktreeId, targetPath }) => {
@@ -110,10 +76,12 @@ async function expectQuickOpenAndRuntimeHealthy(
         if (!response.ok) {
           throw new Error(`files.searchPaths oracle failed: ${JSON.stringify(response)}`)
         }
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: runtimeEnvironments.call is untyped at the IPC boundary; files.searchPaths answers RuntimeFileListResult.
+        const result = response.result as RuntimeFileListResult
         const oracle = {
-          files: response.result.files.map((file) => file.relativePath),
-          totalCount: response.result.totalCount,
-          truncated: response.result.truncated
+          files: result.files.map((file) => file.relativePath),
+          totalCount: result.totalCount,
+          truncated: result.truncated
         }
         const encodedOracle = new TextEncoder().encode(JSON.stringify(oracle))
         const digest = await crypto.subtle.digest('SHA-256', encodedOracle)
@@ -129,10 +97,20 @@ async function expectQuickOpenAndRuntimeHealthy(
       { environmentId: client.environmentId, worktreeId, targetPath }
     )
   for (const targetPath of [fixture.gitIgnoredTargetPath, fixture.orcaIgnoredTargetPath]) {
+    const filename = targetPath.split('/').at(-1)!
+    const stat = await callPairedRuntime<{ size: number; isDirectory: boolean }>(
+      client.page,
+      client.environmentId,
+      'files.stat',
+      { worktree: `id:${worktreeId}`, relativePath: targetPath }
+    )
+    expect(stat.isDirectory).toBe(false)
+    expect(stat.size).toBeGreaterThanOrEqual(0)
+
     const queryResult = await queryOracle(targetPath)
     const repeatedResult = await queryOracle(targetPath)
     console.log(
-      `[STA-4354] query=${targetPath} oracle=${JSON.stringify(queryResult)} repeated=${JSON.stringify(repeatedResult)}`
+      `[STA-5209] query=${targetPath} oracle=${JSON.stringify(queryResult)} repeated=${JSON.stringify(repeatedResult)}`
     )
     expect(queryResult).toEqual(repeatedResult)
     expect(queryResult.files).toEqual([targetPath])
@@ -150,7 +128,31 @@ async function expectQuickOpenAndRuntimeHealthy(
             sha256: '9e7399e32001d443105e0f612f0eb2eee88fba50902dc75c926c547538e93eb5'
           }
     )
+
+    // Why: control only the debounce; RPC deadlines and socket liveness stay on real time.
+    const pauseAt = await client.page.evaluate(() => Date.now() + 1_000)
+    await client.page.clock.pauseAt(pauseAt)
+    await input.fill(filename.slice(0, 8))
+    await input.fill(filename.slice(0, 18))
+    await input.fill(filename)
+    await expect(loading).toBeVisible()
+    await client.page.clock.runFor(QUICK_OPEN_SEARCH_DEBOUNCE_MS)
+    await client.page.clock.resume()
+    await expect(dialog.getByRole('option').filter({ hasText: filename })).toHaveCount(1, {
+      timeout: 60_000
+    })
+    await expect(loading).toHaveCount(0)
+    await expect(dialog).not.toContainText('Outbound reply buffer overflow')
+    await expect(dialog).not.toContainText('Remote Orca runtime closed the connection')
   }
+
+  const { worktrees } = await callPairedRuntime<RuntimeWorktreeListResult>(
+    client.page,
+    client.environmentId,
+    'worktree.list',
+    { limit: 10_000 }
+  )
+  expect(worktrees.some((worktree) => worktree.id === worktreeId)).toBe(true)
 }
 
 test('finds paths beyond the old prefix on a headed paired runtime @headful', async ({

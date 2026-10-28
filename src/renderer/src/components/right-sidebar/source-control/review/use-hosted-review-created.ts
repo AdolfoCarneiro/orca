@@ -15,10 +15,6 @@ import type {
   HostedReviewCreatedContext
 } from './hosted-review-creation-state'
 
-/**
- * Settles a freshly created hosted review: pins the link onto the worktree, force-refreshes the
- * review caches, and (unless suppressed) reveals it in the Checks tab.
- */
 export function useSourceControlHostedReviewCreated({
   activeRepo,
   activeWorktreeId,
@@ -109,7 +105,8 @@ export function useSourceControlHostedReviewCreated({
             force: true,
             repoId,
             worktreeId: worktreeId ?? undefined,
-            linkedPRNumber: result.number
+            linkedPRNumber: result.number,
+            reason: 'post-push'
           })
         ])
       } catch {
@@ -156,7 +153,7 @@ export function useSourceControlHostedReviewCreated({
   }, [setRightSidebarOpen, setRightSidebarTab])
 
   const handleBranchChangedByPullRequestGeneration = useCallback(async (): Promise<void> => {
-    // Why: AI PR detail generation may rebase before summarizing, so refresh status if HEAD moved before the user submits the draft.
+    // AI detail generation may rebase; refresh moved HEAD before the user submits.
     await refreshActiveGitStatusAfterMutation()
   }, [refreshActiveGitStatusAfterMutation])
 

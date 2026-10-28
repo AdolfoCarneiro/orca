@@ -2,17 +2,25 @@ import { formatAgentTypeLabel } from '../../../src/shared/agent-type-label'
 import {
   formatNativeChatEmptyStateCopy,
   type NativeChatEmptyStateCopy
-} from '../../../src/shared/native-chat-empty-state'
+} from '../../../src/shared/native-chat/native-chat-empty-state'
+import { isRootAgentJournalItem } from '../../../src/shared/agent-session-journal-producer'
 import { stripNoiseMessages } from '../../../src/shared/native-chat-noise'
-import { foldToolMessages } from '../../../src/shared/native-chat-tool-fold'
-import { isImageRefBlock, type NativeChatMessage } from '../../../src/shared/native-chat-types'
-import { normalizeImageTranscriptMessages } from './mobile-native-chat-image-transcript-markers'
+import { nativeChatStreamingMessage } from '../../../src/shared/native-chat/native-chat-streaming'
+import { isWordlessProviderFrameMessage } from '../../../src/shared/native-chat/native-chat-provider-frame-summary'
+import {
+  foldToolMessages,
+  isUndrawnProviderFrameMessage
+} from '../../../src/shared/native-chat/tools/native-chat-tool-fold'
+import { projectNativeChatTaskListFrames } from '../../../src/shared/native-chat/input/native-chat-task-list-frames'
+import { foldSubagentItems } from '../../../src/shared/native-chat-subagent-items'
+import { prepareNativeChatMessages } from '../../../src/shared/native-chat-message-preparation'
+import {
+  isImageRefBlock,
+  type AgentType,
+  type NativeChatMessage
+} from '../../../src/shared/native-chat-types'
 import type { MobileNativeChatStatus } from './use-mobile-native-chat-session'
 
-/** The centered empty-state copy for a chat with no messages, mirroring the
- *  desktop `NativeChatEmptyState` (shared copy + agent label) so the two surfaces
- *  stay in lockstep. Returns null when the list should stay bare (idle, or the
- *  loading spinner owns the view). */
 export function mobileNativeChatEmptyState(
   status: MobileNativeChatStatus,
   agent: string | null,
@@ -20,10 +28,10 @@ export function mobileNativeChatEmptyState(
 ): NativeChatEmptyStateCopy | null {
   const agentLabel = agent ? formatAgentTypeLabel(agent) : 'the agent'
   switch (status) {
-    // A live agent with no transcript yet — and a loaded-but-empty transcript —
-    // are both "start a chat"; invite the first message instead of implying the
-    // agent is still starting up.
+    // Missing history may mean new or unreadable; promise neither in the waiting copy.
     case 'waiting-session':
+    case 'awaiting-transcript':
+      return formatNativeChatEmptyStateCopy('notFound', agentLabel)
     case 'ready':
       return formatNativeChatEmptyStateCopy('empty', agentLabel)
     case 'error': {
@@ -35,23 +43,35 @@ export function mobileNativeChatEmptyState(
   }
 }
 
-/** An optimistic user echo: the text and/or the local preview URIs of any images
- *  ridden along on the send, shown until the transcript catches up. */
 export type MobileNativeChatPendingItem = {
   id: string
   text: string
   images?: string[]
+  sentAt?: number
 }
 
-export function foldMobileNativeChatMessages(messages: NativeChatMessage[]): NativeChatMessage[] {
-  // Normalize first (desktop assembler parity): image marker turns fold into
-  // image-ref blocks instead of rendering as raw `[Image: …]` text.
-  return foldToolMessages(stripNoiseMessages(normalizeImageTranscriptMessages(messages)))
+export function foldMobileNativeChatMessages(
+  messages: readonly NativeChatMessage[],
+  agent: AgentType
+): NativeChatMessage[] {
+  // Filter child/noise rows before folding so they cannot split tool runs; project plan updates afterward so they cannot consume another call’s result.
+  return projectNativeChatTaskListFrames(
+    stripNoiseMessages(
+      foldToolMessages(
+        foldSubagentItems(
+          prepareNativeChatMessages(
+            messages.filter(
+              (message) =>
+                isRootAgentJournalItem(message) && !isUndrawnProviderFrameMessage(message)
+            ),
+            agent
+          )
+        )
+      )
+    )
+  ).filter((message) => !isWordlessProviderFrameMessage(message))
 }
 
-/** Assemble the list data the chat renders: the folded transcript, then a
- *  synthetic bubble for the streaming text the gate let through, then the
- *  route-owned accepted optimistic messages at the tail. */
 export function buildMobileNativeChatTransientData({
   folded,
   streaming,
@@ -59,7 +79,6 @@ export function buildMobileNativeChatTransientData({
   imagePreviewsByMessageId
 }: {
   folded: NativeChatMessage[]
-  /** Streaming bubble text, already gated by `deriveMobileNativeChatStreaming`. */
   streaming: string | null
   pending: MobileNativeChatPendingItem[]
   imagePreviewsByMessageId?: Record<string, string[]>
@@ -84,31 +103,22 @@ export function buildMobileNativeChatTransientData({
     }
     return { ...message, blocks }
   })
-  const data: NativeChatMessage[] = [
-    ...renderedFolded,
-    ...(streaming
-      ? [
-          {
-            id: 'streaming',
-            role: 'assistant' as const,
-            blocks: [{ type: 'text' as const, text: streaming }],
-            timestamp: null,
-            source: 'hook' as const
-          }
-        ]
-      : []),
-    ...pending.map((p) => ({
-      id: p.id,
-      role: 'user' as const,
-      // Text first (when present), then a thumbnail per ridden-along image so the
-      // sent photo shows immediately, before the transcript echo lands.
+  // Desktop order: transcript rows, then the streaming preview, then unmatched echoes in send order.
+  const data: NativeChatMessage[] = [...renderedFolded]
+  if (streaming) {
+    data.push(nativeChatStreamingMessage(streaming))
+  }
+  for (const item of pending) {
+    data.push({
+      id: item.id,
+      role: 'user',
       blocks: [
-        ...(p.text ? [{ type: 'text' as const, text: p.text }] : []),
-        ...(p.images ?? []).map((uri) => ({ type: 'image-ref' as const, url: uri }))
+        ...(item.text ? [{ type: 'text' as const, text: item.text }] : []),
+        ...(item.images ?? []).map((uri) => ({ type: 'image-ref' as const, url: uri }))
       ],
-      timestamp: null,
-      source: 'transcript' as const
-    }))
-  ]
+      timestamp: item.sentAt ?? null,
+      source: 'transcript'
+    })
+  }
   return { folded: renderedFolded, streaming, data }
 }

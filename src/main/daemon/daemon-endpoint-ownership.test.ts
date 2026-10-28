@@ -1,3 +1,4 @@
+import './mock-descendant-sweep'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   existsSync,
@@ -40,6 +41,7 @@ function createMockSubprocess(): SubprocessHandle {
     write() {},
     resize() {},
     kill() {},
+    terminateOwnedTree: () => 'unavailable' as const,
     forceKill() {},
     signal() {},
     onData() {},
@@ -52,7 +54,6 @@ describe('endpoint ownership identity rules', () => {
   it.skipIf(process.platform === 'win32')(
     'reports lost when the name resolves to a different inode',
     async () => {
-      // The loss that is real: another daemon's socket now holds the name.
       const dir = mkdtempSync(join(tmpdir(), 'endpoint-identity-lost-'))
       const socketPath = join(dir, 'daemon.sock')
       const ours = createServer((socket) => socket.end())
@@ -204,15 +205,13 @@ describe('daemon endpoint ownership publication', () => {
       await server.start()
 
       const daemon = server as unknown as {
-        checkEndpointOwnership: () => void
-        retirementRequested: boolean
+        endpoint: { checkOwnership: () => void }
+        lifecycle: { retirementRequested: boolean }
       }
-      // An inconclusive or matching probe must never retire a healthy daemon, however often it runs.
-      daemon.checkEndpointOwnership()
-      daemon.checkEndpointOwnership()
-      expect(daemon.retirementRequested).toBe(false)
+      daemon.endpoint.checkOwnership()
+      daemon.endpoint.checkOwnership()
+      expect(daemon.lifecycle.retirementRequested).toBe(false)
 
-      // Another daemon takes the endpoint name.
       unlinkSync(socketPath)
       const usurper = createServer()
       const usurperBind = join(dir, '.usurper')
@@ -221,15 +220,13 @@ describe('daemon endpoint ownership publication', () => {
       unlinkSync(usurperBind)
 
       try {
-        // A single observation can land inside a replacement's unlink-then-link gap, so the
-        // first one must not retire anything.
-        daemon.checkEndpointOwnership()
-        expect(daemon.retirementRequested).toBe(false)
+        // Require confirmation because a legacy unlink-then-link replacement can expose a transient gap.
+        daemon.endpoint.checkOwnership()
+        expect(daemon.lifecycle.retirementRequested).toBe(false)
 
-        daemon.checkEndpointOwnership()
-        // Why: retirement drains rather than kills — an orphaned daemon stops being a
-        // permanent unreachable host without tearing live sessions out from under the user.
-        expect(daemon.retirementRequested).toBe(true)
+        daemon.endpoint.checkOwnership()
+        // Retirement drains existing sessions instead of killing them.
+        expect(daemon.lifecycle.retirementRequested).toBe(true)
       } finally {
         await new Promise<void>((resolve) => usurper.close(() => resolve()))
         try {
@@ -244,9 +241,7 @@ describe('daemon endpoint ownership publication', () => {
   it.skipIf(process.platform === 'win32')(
     'refuses a duplicate launch through the exclusive PID record',
     async () => {
-      // Why the PID record and not the socket: this asserts the ownership record is exclusive,
-      // which is what rejects here. It does not prove a second listener was never transiently
-      // published — endpoint exclusivity is covered in daemon-endpoint-publish.test.ts.
+      // This checks PID-record exclusivity; daemon-endpoint-publish.test.ts covers endpoint exclusivity.
       const pidPath = join(dir, 'daemon.pid')
       server = new DaemonServer({
         socketPath,

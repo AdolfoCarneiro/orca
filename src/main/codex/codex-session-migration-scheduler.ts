@@ -1,4 +1,9 @@
-import { getCodexSessionBackfillDate } from './codex-session-backfill-date'
+import {
+  compareCodexSessionBackfillDates,
+  getCodexSessionBackfillDate,
+  getCodexSessionBackfillDatesBetween,
+  toCodexSessionBackfillDateKey
+} from './codex-session-backfill-scan-dates'
 import { CodexSessionMigrationIgnoredLaunches } from './codex-session-migration-ignored-launches'
 import { CodexSessionMigrationRecentExits } from './codex-session-migration-recent-exits'
 import type {
@@ -29,7 +34,7 @@ export function createCodexSessionMigrationScheduler(args: {
   isEligible: () => boolean
   isQuitting: () => boolean
   resolveSystemCodexHomePathOverride: () => string | undefined
-  prepareScheduledRun?: () => boolean | void
+  prepareScheduledRun?: (scanDates: readonly CodexSessionBackfillDate[]) => boolean | void
   finishScheduledRun?: () => void
   startBackfill: MigrationRun
   startIndexHeal: MigrationRun
@@ -44,7 +49,7 @@ export function createCodexSessionMigrationScheduler(args: {
   let pendingFullScan = false
   let migrationTask: Promise<void> | null = null
   const activeLaunches = new Map<string, Date>()
-  // Why: non-shared reattach exits must not masquerade as exit-before-begin races for a reused id.
+  // Keep non-shared reattach exits out of exit-before-begin recovery for reused IDs.
   const ignoredLaunches = new CodexSessionMigrationIgnoredLaunches()
   const ignoredPtyExits = new CodexSessionMigrationRecentExits()
   const earlyPtyExits = new CodexSessionMigrationRecentExits()
@@ -63,7 +68,7 @@ export function createCodexSessionMigrationScheduler(args: {
         pendingScheduledRunGeneration ?? requestedGeneration
       )
       for (const scanDate of requestedScanDates) {
-        pendingScanDates.set(scanDate.join('-'), scanDate)
+        pendingScanDates.set(toCodexSessionBackfillDateKey(scanDate), scanDate)
       }
       pendingFullScan ||= requestedFullScan
     }
@@ -71,23 +76,21 @@ export function createCodexSessionMigrationScheduler(args: {
       return
     }
     if (migrationTask) {
-      // Why: delayed launches and resumed account transitions must survive an older active pass.
+      // Preserve delayed launches and resumed account transitions across an older active pass.
       rerunRequested ||= rerunIfActive || activeRunStopObserved
       return
     }
     const isScheduledRun = pendingScheduledRunGeneration !== null
     const activeScheduledRunGeneration = pendingScheduledRunGeneration
+    const runScanDates = [...pendingScanDates.values()].sort(compareCodexSessionBackfillDates)
     let preparationNeedsFullScan = false
     if (isScheduledRun) {
       pendingScheduledRunGeneration = null
-      // Why: an older active pass can rewrite the marker after launch invalidates it.
-      preparationNeedsFullScan = args.prepareScheduledRun?.() === true
+      // Persist dates so abnormal exits recover with a bounded scan.
+      preparationNeedsFullScan = args.prepareScheduledRun?.(runScanDates) === true
     }
     const fullScanRequired = pendingFullScan || preparationNeedsFullScan
-    const scanDates =
-      !fullScanRequired && pendingScanDates.size > 0
-        ? [...pendingScanDates.values()].sort(compareBackfillDates)
-        : undefined
+    const scanDates = !fullScanRequired && runScanDates.length > 0 ? runScanDates : undefined
     pendingScanDates.clear()
     pendingFullScan = false
     activeRunStopObserved = false
@@ -105,12 +108,11 @@ export function createCodexSessionMigrationScheduler(args: {
         {
           shouldStop,
           scanDates,
+          fullScanRequired,
           ignoreCompletionMarker: isScheduledRun,
-          writeCompletionMarker: activeLaunches.size === 0,
-          writeBoundedCompletionMarker:
-            isScheduledRun && activeLaunches.size === 0 && !fullScanRequired,
+          // Live panes keep their dates pending while historical dates can be certified.
+          retainPendingScanDates: activeLaunches.size > 0,
           canWriteCompletionMarker: () =>
-            activeLaunches.size === 0 &&
             scheduledTimer === null &&
             pendingScheduledRunGeneration === null &&
             (!isScheduledRun || activeScheduledRunGeneration === scheduledRunGeneration)
@@ -144,7 +146,7 @@ export function createCodexSessionMigrationScheduler(args: {
           )
           pendingFullScan ||= fullScanRequired
           for (const scanDate of scanDates ?? []) {
-            pendingScanDates.set(scanDate.join('-'), scanDate)
+            pendingScanDates.set(toCodexSessionBackfillDateKey(scanDate), scanDate)
           }
         }
         if (
@@ -168,13 +170,13 @@ export function createCodexSessionMigrationScheduler(args: {
       scheduledTimer = null
       if (generation !== undefined) {
         const currentDate = getCodexSessionBackfillDate()
-        scheduledScanDates.set(currentDate.join('-'), currentDate)
+        scheduledScanDates.set(toCodexSessionBackfillDateKey(currentDate), currentDate)
       }
-      const scanDates = [...scheduledScanDates.values()].sort(compareBackfillDates)
+      const scanDates = [...scheduledScanDates.values()].sort(compareCodexSessionBackfillDates)
       scheduledScanDates.clear()
       const fullScanRequired = scheduledFullScan
       scheduledFullScan = false
-      // Why: a launch can invalidate the marker while a long index-heal pass is active.
+      // A launch can invalidate the marker while index healing is still active.
       requestRun(true, generation, scanDates, fullScanRequired)
     }, args.initialDelayMs ?? 15_000)
   }
@@ -186,7 +188,7 @@ export function createCodexSessionMigrationScheduler(args: {
     scheduledRunGeneration += 1
     scheduledFullScan ||= fullScanRequired
     const launchDate = getCodexSessionBackfillDate()
-    scheduledScanDates.set(launchDate.join('-'), launchDate)
+    scheduledScanDates.set(toCodexSessionBackfillDateKey(launchDate), launchDate)
     armScheduledRun(scheduledRunGeneration)
   }
 
@@ -235,7 +237,7 @@ export function createCodexSessionMigrationScheduler(args: {
         return
       }
       for (const scanDate of getCodexSessionBackfillDatesBetween(startedAt, new Date())) {
-        scheduledScanDates.set(scanDate.join('-'), scanDate)
+        scheduledScanDates.set(toCodexSessionBackfillDateKey(scanDate), scanDate)
       }
       scheduleRun()
     },
@@ -249,29 +251,12 @@ export function createCodexSessionMigrationScheduler(args: {
   }
 }
 
-function getCodexSessionBackfillDatesBetween(
-  startedAt: Date,
-  finishedAt: Date
-): CodexSessionBackfillDate[] {
-  const dates: CodexSessionBackfillDate[] = []
-  const cursor = new Date(
-    Date.UTC(startedAt.getUTCFullYear(), startedAt.getUTCMonth(), startedAt.getUTCDate())
-  )
-  const last = new Date(
-    Date.UTC(finishedAt.getUTCFullYear(), finishedAt.getUTCMonth(), finishedAt.getUTCDate())
-  )
-  while (cursor <= last) {
-    dates.push(getCodexSessionBackfillDate(cursor))
-    cursor.setUTCDate(cursor.getUTCDate() + 1)
-  }
-  return dates
-}
+type MigrationFailureCountKey = 'failedDirectories' | 'failedFiles' | 'failedHealAuditRecords'
 
-function compareBackfillDates(
-  left: CodexSessionBackfillDate,
-  right: CodexSessionBackfillDate
-): number {
-  return left.join('-').localeCompare(right.join('-'))
+type MigrationResultFields = Partial<Record<MigrationFailureCountKey, unknown>>
+
+function isMigrationResultFields(result: unknown): result is MigrationResultFields {
+  return typeof result === 'object' && result !== null
 }
 
 function isStoppedMigrationResult(result: unknown): boolean {
@@ -279,7 +264,7 @@ function isStoppedMigrationResult(result: unknown): boolean {
 }
 
 function isIncompleteBackfillResult(result: unknown): boolean {
-  if (!result || typeof result !== 'object') {
+  if (!isMigrationResultFields(result)) {
     return true
   }
   return (
@@ -290,7 +275,10 @@ function isIncompleteBackfillResult(result: unknown): boolean {
   )
 }
 
-function readPositiveResultCount(result: object, key: string): boolean {
-  const value = key in result ? (result as Record<string, unknown>)[key] : undefined
+function readPositiveResultCount(
+  result: MigrationResultFields,
+  key: MigrationFailureCountKey
+): boolean {
+  const value = result[key]
   return typeof value === 'number' && value > 0
 }

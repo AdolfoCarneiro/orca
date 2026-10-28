@@ -25,20 +25,34 @@ vi.mock('@/runtime/runtime-linear-client', async (importOriginal) => {
     linearConnect: (...args: unknown[]) => linearConnect(...args),
     linearDisconnect: (...args: unknown[]) => linearDisconnect(...args),
     linearDisconnectWorkspace: vi.fn(),
-    linearGetCustomView: (...args: unknown[]) => linearGetCustomView(...args),
-    linearGetProject: (...args: unknown[]) => linearGetProject(...args),
-    linearGetIssue: (...args: unknown[]) => linearGetIssue(...args),
-    linearListCustomViewIssues: (...args: unknown[]) => linearListCustomViewIssues(...args),
-    linearListCustomViewProjects: (...args: unknown[]) => linearListCustomViewProjects(...args),
-    linearListCustomViews: (...args: unknown[]) => linearListCustomViews(...args),
     linearListIssues: (...args: unknown[]) => linearListIssues(...args),
-    linearListProjectIssues: (...args: unknown[]) => linearListProjectIssues(...args),
-    linearListProjects: (...args: unknown[]) => linearListProjects(...args),
-    linearListTeams: (...args: unknown[]) => linearListTeams(...args),
     linearSearchIssues: (...args: unknown[]) => linearSearchIssues(...args),
     linearSelectWorkspace: vi.fn(),
     linearStatus: (...args: unknown[]) => linearStatus(...args),
     linearTestConnection: (...args: unknown[]) => linearTestConnection(...args)
+  }
+})
+
+vi.mock('@/runtime/runtime-linear-issue-mutations', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  return {
+    ...actual,
+    linearGetIssue: (...args: unknown[]) => linearGetIssue(...args)
+  }
+})
+
+vi.mock('@/runtime/runtime-linear-project-client', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  return {
+    ...actual,
+    linearGetCustomView: (...args: unknown[]) => linearGetCustomView(...args),
+    linearGetProject: (...args: unknown[]) => linearGetProject(...args),
+    linearListCustomViewIssues: (...args: unknown[]) => linearListCustomViewIssues(...args),
+    linearListCustomViewProjects: (...args: unknown[]) => linearListCustomViewProjects(...args),
+    linearListCustomViews: (...args: unknown[]) => linearListCustomViews(...args),
+    linearListProjectIssues: (...args: unknown[]) => linearListProjectIssues(...args),
+    linearListProjects: (...args: unknown[]) => linearListProjects(...args),
+    linearListTeams: (...args: unknown[]) => linearListTeams(...args)
   }
 })
 
@@ -51,42 +65,25 @@ describe('createLinearSlice caching', () => {
     vi.clearAllMocks()
   })
 
-  it('returns an empty list and refreshes status on Linear decrypt errors during list reads', async () => {
+  it('rejects Linear search and list reads with the plain decrypt message and refreshes status', async () => {
     const store = createTestStore()
-    const error = new Error(credentialDecryptionMessage('Linear'))
+    const message = credentialDecryptionMessage('Linear')
+    // Local reads arrive through IPC, which prefixes the main-process message.
+    const error = new Error(`Error invoking remote method 'linear:searchIssues': Error: ${message}`)
     store.setState({
       linearStatus: { connected: true, viewer: null, selectedWorkspaceId: 'workspace-1' },
       linearListCache: {
         'workspace-1::list::all::36::': { data: { items: [issue('LIN-CACHED')] }, fetchedAt: 1 }
       }
     })
-    linearStatus.mockResolvedValue({
-      connected: true,
-      viewer: null,
-      credentialError: error.message
-    })
+    linearStatus.mockResolvedValue({ connected: true, viewer: null, credentialError: message })
+    linearSearchIssues.mockRejectedValueOnce(error)
     linearListIssues.mockRejectedValueOnce(error)
 
+    await expect(store.getState().searchLinearIssues('bug', 36)).rejects.toThrow(new Error(message))
     await expect(
       store.getState().listLinearIssues({ kind: 'list', filter: 'all', limit: 36 }, { force: true })
-    ).resolves.toMatchObject({ items: [] })
-    expect(linearStatus).toHaveBeenCalled()
-  })
-
-  it('returns an empty list and refreshes status on Linear decrypt errors during searches', async () => {
-    const store = createTestStore()
-    const error = new Error(credentialDecryptionMessage('Linear'))
-    store.setState({
-      linearStatus: { connected: true, viewer: null, selectedWorkspaceId: 'workspace-1' }
-    })
-    linearStatus.mockResolvedValue({
-      connected: true,
-      viewer: null,
-      credentialError: error.message
-    })
-    linearSearchIssues.mockRejectedValueOnce(error)
-
-    await expect(store.getState().searchLinearIssues('bug', 36)).resolves.toEqual([])
+    ).rejects.toThrow(new Error(message))
     expect(linearStatus).toHaveBeenCalled()
   })
 

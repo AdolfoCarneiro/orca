@@ -14,13 +14,13 @@ function setDocumentVisibility(state: 'visible' | 'hidden'): void {
   document.dispatchEvent(new Event('visibilitychange'))
 }
 
-function renderActivation(isActive = true) {
+function renderActivation(isActive = true, stagedPage = false) {
   const closeStream = vi.fn()
   const open = vi.fn(() => closeStream)
   const lifecycle = { open }
   const clearPendingRemoteWheel = vi.fn()
   const hook = renderHook(
-    ({ active }) =>
+    ({ active, staged }) =>
       useRemoteBrowserStreamActivation({
         activeRuntimeEnvironmentId: 'env-1',
         browserPageId: 'page-1',
@@ -28,9 +28,10 @@ function renderActivation(isActive = true) {
         isActive: active,
         lifecycle,
         reopenNonce: 0,
-        runtimeWorktree: 'worktree:one'
+        runtimeWorktree: 'worktree:one',
+        stagedPage: staged
       }),
-    { initialProps: { active: isActive } }
+    { initialProps: { active: isActive, staged: stagedPage } }
   )
   return { ...hook, clearPendingRemoteWheel, closeStream, open }
 }
@@ -93,16 +94,24 @@ describe('useRemoteBrowserStreamActivation', () => {
   it('parks immediately when its pane becomes inactive', async () => {
     const harness = renderActivation()
 
-    await act(async () => harness.rerender({ active: false }))
+    await act(async () => harness.rerender({ active: false, staged: false }))
     expect(harness.closeStream).toHaveBeenCalledTimes(1)
     expect(harness.clearPendingRemoteWheel).toHaveBeenCalledTimes(1)
 
-    await act(async () => harness.rerender({ active: true }))
+    await act(async () => harness.rerender({ active: true, staged: false }))
     expect(harness.open).toHaveBeenCalledTimes(2)
   })
 
-  // Closing a tab while parked leaves no effect cleanup to run, so unmount must not resurrect the
-  // stream when the window comes back — the pane's lifecycle is already disposed by then.
+  // Opening a staged page would race its pending create and could close the optimistic tab on failure.
+  it('does not open a stream for an optimistically staged page', async () => {
+    const harness = renderActivation(true, true)
+    expect(harness.open).not.toHaveBeenCalled()
+
+    await act(async () => harness.rerender({ active: true, staged: false }))
+    expect(harness.open).toHaveBeenCalledTimes(1)
+  })
+
+  // Parked unmount has no stream cleanup left; disposed lifecycles must not reopen on window return.
   it('stays closed when its tab is closed while the stream is parked', async () => {
     const harness = renderActivation()
 

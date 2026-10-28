@@ -1,3 +1,4 @@
+import { highestUsageKey } from '../usage/highest-usage-key'
 import type {
   ClaudeUsageBreakdownKind,
   ClaudeUsageBreakdownRow,
@@ -8,6 +9,7 @@ import type {
 } from '../../shared/claude-usage-types'
 import type { ClaudeUsagePersistedState } from './types'
 import { estimateCostUsd } from './claude-model-pricing'
+import { addBillableTokens, NO_TOKENS, type ClaudeBillableTokens } from './claude-billable-tokens'
 import { getFilteredDaily, getFilteredSessions } from './claude-usage-scope-filters'
 
 export function buildSummary(
@@ -28,6 +30,7 @@ export function buildSummary(
   const byProject = new Map<string, number>()
   let estimatedCostUsd = 0
   let hasAnyBillableCost = false
+  let hasUnpricedModels = false
 
   for (const row of filteredDaily) {
     inputTokens += row.inputTokens
@@ -42,22 +45,17 @@ export function buildSummary(
       row.projectLabel,
       (byProject.get(row.projectLabel) ?? 0) + row.inputTokens + row.outputTokens
     )
-    const cost = estimateCostUsd(
-      row.model,
-      row.inputTokens,
-      row.outputTokens,
-      row.cacheReadTokens,
-      row.cacheWriteTokens
-    )
+    const cost = estimateCostUsd(row.model, row)
     if (cost !== null) {
       hasAnyBillableCost = true
       estimatedCostUsd += cost
+    } else if (row.model !== null) {
+      hasUnpricedModels = true
     }
   }
 
-  const topModel = [...byModel.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
-  const topProject =
-    [...byProject.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
+  const topModel = highestUsageKey(byModel)
+  const topProject = highestUsageKey(byProject)
 
   return {
     scope,
@@ -72,11 +70,10 @@ export function buildSummary(
     cacheReuseRate:
       inputTokens + cacheReadTokens > 0 ? cacheReadTokens / (inputTokens + cacheReadTokens) : null,
     estimatedCostUsd: hasAnyBillableCost ? estimatedCostUsd : null,
+    hasUnpricedModels,
     topModel,
     topProject,
-    // Why: the empty-state UX is scope/range specific. Using global persisted
-    // data here makes the Orca-only view render empty charts instead of the
-    // intended "no usage for this scope" message when only off-Orca logs exist.
+    // Scope the empty state to the selected filters, not all persisted usage.
     hasAnyClaudeData: filteredSessions.length > 0 || filteredDaily.length > 0
   }
 }
@@ -111,6 +108,8 @@ export function buildBreakdown(
   kind: ClaudeUsageBreakdownKind
 ): ClaudeUsageBreakdownRow[] {
   const rows = new Map<string, ClaudeUsageBreakdownRow>()
+  // Keep pricing-only token splits separate from renderer rows.
+  const billableByKey = new Map<string, ClaudeBillableTokens>()
   const filteredDaily = getFilteredDaily(state, scope, range)
   const filteredSessions = getFilteredSessions(state, scope, range)
 
@@ -133,6 +132,7 @@ export function buildBreakdown(
     existing.outputTokens += daily.outputTokens
     existing.cacheReadTokens += daily.cacheReadTokens
     existing.cacheWriteTokens += daily.cacheWriteTokens
+    billableByKey.set(key, addBillableTokens(billableByKey.get(key) ?? NO_TOKENS, daily))
     rows.set(key, existing)
   }
 
@@ -163,13 +163,7 @@ export function buildBreakdown(
 
   for (const row of rows.values()) {
     if (kind === 'model') {
-      row.estimatedCostUsd = estimateCostUsd(
-        row.key,
-        row.inputTokens,
-        row.outputTokens,
-        row.cacheReadTokens,
-        row.cacheWriteTokens
-      )
+      row.estimatedCostUsd = estimateCostUsd(row.key, billableByKey.get(row.key) ?? NO_TOKENS)
     }
   }
 

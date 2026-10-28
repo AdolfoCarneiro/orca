@@ -1,3 +1,6 @@
+import type { ManagedOrcadPreloadApi } from './managed-orcad-api'
+import type { WslHostsPreloadApi } from './wsl-hosts-api'
+import type { RuntimeHostStatusSnapshot } from '../../shared/runtime-host-status'
 import type {
   RuntimeBrowserDriverState,
   RuntimeRendererSyncWindowGraph,
@@ -6,8 +9,19 @@ import type {
   RuntimeTerminalDriverState
 } from '../../shared/runtime-types'
 import type { RuntimeRpcResponse } from '../../shared/runtime-rpc-envelope'
-import type { PublicKnownRuntimeEnvironment } from '../../shared/runtime-environments'
+import type { ClientHostedBrowserRowsEvent } from '../../shared/client-hosted-browser-rows'
+import type { SidebarInputsChangedEvent } from '../../shared/sidebar-list/sidebar-inputs-feed-contract'
+import type {
+  PublicKnownRuntimeEnvironment,
+  RuntimeEnvironmentRemoval
+} from '../../shared/runtime-environments'
 import type { VerifyAndAddRuntimeEnvironmentResult } from '../../shared/remote-pairing-verification'
+import type {
+  BrowserClientHostPlacementPreparationRequest,
+  BrowserPageCreationPlacement
+} from '../../shared/browser-client-host-placement'
+import type { RemoteRuntimeSharedConnectionDiagnostics } from '../../shared/remote-runtime/control/remote-runtime-shared-control-types'
+import type { WslOrcadAccountNotAppliedEvent } from '../../shared/wsl-orcad-account-notice'
 
 export type RuntimeEnvironmentSubscriptionHandle = {
   unsubscribe: () => void
@@ -21,6 +35,10 @@ export type RuntimeApi = {
     ) => Promise<RuntimeSyncWindowGraphResult>
     getStatus: () => Promise<RuntimeStatus>
     call: (args: { method: string; params?: unknown }) => Promise<RuntimeRpcResponse<unknown>>
+    subscribe: (
+      args: { method: string; params?: unknown },
+      callback: (response: RuntimeRpcResponse<unknown>) => void
+    ) => Promise<RuntimeEnvironmentSubscriptionHandle>
     getTerminalFitOverrides: () => Promise<
       { ptyId: string; mode: 'mobile-fit' | 'remote-desktop-fit'; cols: number; rows: number }[]
     >
@@ -36,6 +54,8 @@ export type RuntimeApi = {
         driver: RuntimeBrowserDriverState
       }[]
     >
+    getBrowserRemoteViewerPages?: () => Promise<string[]>
+    getClientHostedBrowserRows: () => Promise<ClientHostedBrowserRowsEvent[]>
     restoreTerminalFit: (ptyId: string) => Promise<{ restored: boolean }>
     reclaimBrowserForDesktop: (browserPageId: string) => Promise<{ reclaimed: boolean }>
     onTerminalFitOverrideChanged: (
@@ -55,8 +75,21 @@ export type RuntimeApi = {
     onBrowserDriverChanged: (
       callback: (event: { browserPageId: string; driver: RuntimeBrowserDriverState }) => void
     ) => () => void
+    // Older preloads lack this signal.
+    onBrowserRemoteViewersChanged?: (
+      callback: (event: { browserPageId: string; hasRemoteViewers: boolean }) => void
+    ) => () => void
+    onClientHostedBrowserRowsChanged: (
+      callback: (event: ClientHostedBrowserRowsEvent) => void
+    ) => () => void
+    onSidebarInputsChanged: (callback: (event: SidebarInputsChangedEvent) => void) => () => void
   }
   runtimeEnvironments: {
+    desktopCreatedChatIds?: () => Promise<string[]>
+    getStatusSnapshots: () => Promise<RuntimeHostStatusSnapshot[]>
+    onStatusChanged: (callback: (snapshot: RuntimeHostStatusSnapshot) => void) => () => void
+    // Absent in the web client, whose catalog lives in the browser rather than a CLI-editable file.
+    onCatalogChanged?: (callback: () => void) => () => void
     list: () => Promise<PublicKnownRuntimeEnvironment[]>
     addFromPairingCode: (args: {
       name: string
@@ -67,8 +100,13 @@ export type RuntimeApi = {
       pairingCode: string
       allowLoopback?: boolean
     }) => Promise<VerifyAndAddRuntimeEnvironmentResult>
+    /** Replaces a revoked pairing in place; refuses a link for a different server. */
+    repairFromPairingCode: (args: {
+      selector: string
+      pairingCode: string
+    }) => Promise<VerifyAndAddRuntimeEnvironmentResult>
     resolve: (args: { selector: string }) => Promise<PublicKnownRuntimeEnvironment>
-    remove: (args: { selector: string }) => Promise<{ removed: PublicKnownRuntimeEnvironment }>
+    remove: (args: { selector: string }) => Promise<RuntimeEnvironmentRemoval>
     disconnect: (args: {
       selector: string
     }) => Promise<{ disconnected: PublicKnownRuntimeEnvironment }>
@@ -79,8 +117,23 @@ export type RuntimeApi = {
     getStatus: (args: {
       selector: string
       timeoutMs?: number
+      observeOnly?: true
     }) => Promise<RuntimeRpcResponse<RuntimeStatus>>
-    // Why: system resume / browser online advance pending shared-control reconnect timers only.
+    onSharedControlDiagnostics?: (
+      callback: (event: {
+        environmentId: string
+        transportGeneration: number
+        diagnostics: RemoteRuntimeSharedConnectionDiagnostics
+      }) => void
+    ) => () => void
+    // Absent in the web client, which has no desktop account shim.
+    onWslAccountNotApplied?: (
+      callback: (event: WslOrcadAccountNotAppliedEvent) => void
+    ) => () => void
+    prepareBrowserClientHostPlacement: (
+      args: BrowserClientHostPlacementPreparationRequest
+    ) => Promise<BrowserPageCreationPlacement>
+    // Resume/online events advance only pending shared-control reconnect timers.
     retryConnectionsNow?: () => Promise<void>
     call: (args: {
       selector: string
@@ -88,14 +141,18 @@ export type RuntimeApi = {
       params?: unknown
       timeoutMs?: number
       expectedEnvironmentPairingRevision?: number
+      expectedEnvironmentRuntimeId?: string
     }) => Promise<RuntimeRpcResponse<unknown>>
+    cancelSubscription: (args: { subscriptionId: string }) => Promise<void>
     subscribe: (
       args: {
+        subscriptionId?: string
         selector: string
         method: string
         params?: unknown
         timeoutMs?: number
         expectedEnvironmentPairingRevision?: number
+        expectedEnvironmentRuntimeId?: string
       },
       callbacks: {
         onResponse: (response: RuntimeRpcResponse<unknown>) => void
@@ -104,6 +161,10 @@ export type RuntimeApi = {
         onClose?: () => void
       }
     ) => Promise<RuntimeEnvironmentSubscriptionHandle>
+    // Only desktop clients deploy servers over SSH.
+    managedOrcad?: ManagedOrcadPreloadApi
+    // Only Windows desktops (or e2e fakes) host WSL distros.
+    wslHosts?: WslHostsPreloadApi
   }
   wsl: {
     isAvailable: () => Promise<boolean>

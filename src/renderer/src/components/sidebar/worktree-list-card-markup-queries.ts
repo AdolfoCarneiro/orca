@@ -1,18 +1,18 @@
+import { escapeRegex } from '../../../../shared/string-utils'
+
 export function getCardOpeningTag(markup: string, worktreeId: string): string {
   return (
     markup.match(
-      new RegExp(`<section[^>]*data-worktree-card-id="${escapeRegExp(worktreeId)}"[^>]*>`)
+      new RegExp(`<section[^>]*data-worktree-card-id="${escapeRegex(worktreeId)}"[^>]*>`)
     )?.[0] ?? ''
   )
 }
 
 export function getOptionOpeningTag(markup: string, worktreeId: string): string {
-  // Why: option ids are keyed by the row's rowKey, which is
-  // `<section>:<host>|<worktreeId>` once URI-encoded (e.g. all%3Alocal%7Cchild).
-  // The worktree id is the suffix after the encoded host separator (STA-4343).
+  // Option IDs encode section:host|worktreeId; match the workspace suffix after the encoded host separator.
   return (
     markup.match(
-      new RegExp(`<div[^>]*id="worktree-list-option-[^"]*%7C${escapeRegExp(worktreeId)}"[^>]*>`)
+      new RegExp(`<div[^>]*id="worktree-list-option-[^"]*%7C${escapeRegex(worktreeId)}"[^>]*>`)
     )?.[0] ?? ''
   )
 }
@@ -24,7 +24,7 @@ export function getFolderWorkspaceSurfaceOpeningTag(
   return (
     markup.match(
       new RegExp(
-        `<div[^>]*id="worktree-list-option-[^"]*%3A${escapeRegExp(folderWorkspaceId)}"[^>]*>` +
+        `<div[^>]*id="worktree-list-option-[^"]*%3A${escapeRegex(folderWorkspaceId)}"[^>]*>` +
           `[\\s\\S]*?<div class="relative"[^>]*>`
       )
     )?.[0] ?? ''
@@ -52,8 +52,4 @@ export function getFlushCardContentStart(args: {
     flushCardMargin +
     Math.max(flushCardMinimumInset, args.cardContentIndent - flushCardPullback)
   )
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }

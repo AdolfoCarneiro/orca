@@ -51,6 +51,33 @@ describe('Copilot hook normalization', () => {
     expect(result?.payload.prompt).toBe('camel event')
   })
 
+  it('captures the Copilot provider session from SessionStart and Stop', () => {
+    const sessionId = '940237d9-c712-48e8-bca1-fd75fc4a8d4b'
+    const started = _internals.normalizeHookPayload(
+      'copilot',
+      buildBody({ hook_event_name: 'SessionStart', session_id: sessionId }),
+      'production'
+    )
+    expect(started?.providerSession).toEqual({ key: 'session_id', id: sessionId })
+
+    const stopped = _internals.normalizeHookPayload(
+      'copilot',
+      buildBody({ hook_event_name: 'Stop', session_id: sessionId }),
+      'production'
+    )
+    expect(stopped?.payload.state).toBe('done')
+    expect(stopped?.providerSession).toEqual({ key: 'session_id', id: sessionId })
+  })
+
+  it('captures the Copilot provider session from a camelCase sessionId', () => {
+    const result = _internals.normalizeHookPayload(
+      'copilot',
+      buildBody({ hookEventName: 'agentStop', sessionId: 'copilot-camel' }),
+      'production'
+    )
+    expect(result?.providerSession).toEqual({ key: 'session_id', id: 'copilot-camel' })
+  })
+
   it('infers Copilot user prompt payloads that omit hook_event_name', () => {
     const result = _internals.normalizeHookPayload(
       'copilot',
@@ -61,7 +88,7 @@ describe('Copilot hook normalization', () => {
     expect(result?.payload.prompt).toBe('raw prompt payload')
   })
 
-  it('captures initialPrompt from Copilot sessionStart payloads', () => {
+  it('infers a prompt from initialPrompt without an event name', () => {
     const result = _internals.normalizeHookPayload(
       'copilot',
       buildBody({ initialPrompt: 'first prompt' }),
@@ -106,7 +133,7 @@ describe('Copilot hook normalization', () => {
       }),
       'production'
     )
-    // Why: keeping toolName would let the compact sidebar show the tool instead of the failure text, hiding the error.
+    // A retained tool name would hide the failure text in compact status cards.
     expect(failed?.payload).toMatchObject({
       state: 'working',
       lastAssistantMessage: 'command not found'
@@ -205,30 +232,19 @@ describe('Copilot hook normalization', () => {
     expect(result?.hasExplicitPrompt).toBe(false)
   })
 
-  it('Notification(elicitation_dialog) accepts camelCase type and surfaces the question', () => {
-    const result = _internals.normalizeHookPayload(
+  it('later progress clears a prior blocked state for the same pane', () => {
+    const blocked = _internals.normalizeHookPayload(
       'copilot',
       buildBody({
         hook_event_name: 'Notification',
-        notificationType: 'elicitation_dialog',
-        message: 'Which deployment target should I use?'
-      }),
-      'production'
-    )
-    expect(result?.payload.state).toBe('blocked')
-    expect(result?.payload.lastAssistantMessage).toBe('Which deployment target should I use?')
-  })
-
-  it('later progress clears a prior blocked state for the same pane', () => {
-    _internals.normalizeHookPayload(
-      'copilot',
-      buildBody({
-        hook_event_name: 'PermissionRequest',
+        notification_type: 'permission_prompt',
+        message: 'Allow Bash to run?',
         tool_name: 'bash',
         tool_input: { command: 'pnpm build' }
       }),
       'production'
     )
+    expect(blocked?.payload.state).toBe('blocked')
     const result = _internals.normalizeHookPayload(
       'copilot',
       buildBody({

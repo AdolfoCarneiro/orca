@@ -5,8 +5,7 @@ import {
 } from '@/lib/pane-manager/pane-manager-registry'
 import * as terminalWebglAtlasRecovery from './terminal-webgl-atlas-recovery'
 
-const { scheduleImagePasteWebglAtlasRecovery, scheduleTabRevealWebglAtlasRecovery } =
-  terminalWebglAtlasRecovery
+const { scheduleImagePasteWebglAtlasRecovery } = terminalWebglAtlasRecovery
 
 describe('terminal WebGL atlas recovery', () => {
   const registeredManagers: { resetWebglTextureAtlases(): void }[] = []
@@ -49,8 +48,7 @@ describe('terminal WebGL atlas recovery', () => {
         return rafCallbacks.length
       })
     )
-    // Why: resets go through the live-manager registry so every terminal
-    // sharing the glyph atlas rebuilds and repaints, not just the paste target.
+    // Repaint every manager sharing the reset atlas, not just the paste target.
     const manager = registerManager()
     const otherManager = registerManager()
 
@@ -150,27 +148,5 @@ describe('terminal WebGL atlas recovery', () => {
     expect(healthyManager.resetWebglTextureAtlases).toHaveBeenCalledTimes(3)
     expect(healthyManager.refreshAllPanes).toHaveBeenCalledTimes(3)
     expect(manager.refreshAllPanes).not.toHaveBeenCalled()
-  })
-
-  it('recovers immediately on a tab reveal', () => {
-    vi.useFakeTimers()
-    const rafCallbacks: FrameRequestCallback[] = []
-    vi.stubGlobal(
-      'requestAnimationFrame',
-      vi.fn((callback: FrameRequestCallback) => {
-        rafCallbacks.push(callback)
-        return rafCallbacks.length
-      })
-    )
-    const manager = registerManager()
-
-    scheduleTabRevealWebglAtlasRecovery()
-    rafCallbacks[0]?.(0)
-    expect(manager.resetWebglTextureAtlases).toHaveBeenCalledTimes(1)
-    expect(manager.refreshAllPanes).toHaveBeenCalledTimes(1)
-    vi.advanceTimersByTime(120)
-    vi.advanceTimersByTime(380)
-    expect(manager.resetWebglTextureAtlases).toHaveBeenCalledTimes(3)
-    expect(manager.refreshAllPanes).toHaveBeenCalledTimes(3)
   })
 })

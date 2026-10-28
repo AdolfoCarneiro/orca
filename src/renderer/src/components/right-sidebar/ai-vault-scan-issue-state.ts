@@ -9,10 +9,7 @@ export function blockingAiVaultScanIssue(
   return result.issues.find((issue) => issue.kind === 'host') ?? null
 }
 
-// Host and scope issues carry their own scanner-authored copy, so they get their
-// own rows instead of being counted as skipped transcripts — a partial scan
-// (one SSH host down, rest fine) must not report a connectivity failure as a
-// skipped transcript file.
+// Host/scope failures need their own rows: one unreachable host or locked database can hide many transcripts.
 export function aiVaultScanNoticeIssues(result: AiVaultListResult | null): AiVaultScanIssue[] {
   if (!result) {
     return []
@@ -27,9 +24,7 @@ export function skippedAiVaultTranscriptCount(result: AiVaultListResult | null):
 
 const SKIPPED_TRANSCRIPT_REASON_LIMIT = 3
 
-// Why: a bare "3 transcripts skipped" hides the actionable part (a 10 MiB cap
-// hit, an unreadable transcript). Surface the distinct scanner-authored reasons,
-// capped so a 500-issue scan can't turn the panel into a wall of text.
+// Expose distinct scanner reasons, capped so large issue sets cannot overwhelm the panel.
 export function skippedAiVaultTranscriptReasons(result: AiVaultListResult | null): string[] {
   const reasons = new Set<string>()
   for (const issue of result?.issues ?? []) {

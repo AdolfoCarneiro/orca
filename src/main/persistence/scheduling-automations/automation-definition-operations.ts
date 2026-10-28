@@ -1,24 +1,50 @@
 import { randomUUID } from 'node:crypto'
+import { invalidateLocalWorktreeMetadataPruneInputs } from '../../local-worktree-metadata-prune-gate'
 import type {
   Automation,
   AutomationCreateInput,
+  AutomationRun,
   AutomationUpdateInput
 } from '../../../shared/automations-types'
 import type { PersistedState } from '../../../shared/persisted-state-types'
+import type { WorkspaceRunContext } from '../../../shared/task-source-context'
 import { normalizeAutomationPrecheck } from '../../../shared/automation-precheck'
-import { nextAutomationOccurrenceAfter } from '../../../shared/automation-schedules'
-import type { StoreOwnedPersistedState } from '../loading-store/store-owned-state'
+import {
+  assertAutomationExtraAgentArgs,
+  storedExtraAgentArgs
+} from '../../../shared/automation-extra-agent-args-record'
+import { nextAutomationOccurrenceAfter } from '../../../shared/automation-schedule-occurrences'
+import {
+  applyAutomationExecutionTarget,
+  deriveAutomationExecutionTargetForCreate,
+  deriveAutomationExecutionTargetForUpdate
+} from '../../../shared/automation-execution-target'
+import {
+  assertAutomationDestination,
+  assertAutomationOwnerFence,
+  assertExecutionTargetMatchesDestination,
+  type AutomationDestination,
+  type AutomationOwnerPrecondition
+} from '../../../shared/automation-owner-precondition'
 import {
   getAutomationContextsForRepo,
   getAutomationSchedulerOwner,
   normalizeAutomationSessionReuse,
   normalizeAutomationSetupDecisionForWorkspaceMode
 } from './automation-context-migration'
+import {
+  automationProjectionContext,
+  automationWorkspaceSshPin,
+  sshTargetGenerationForConnection,
+  type AutomationStorageAuthority
+} from './automation-owner-projection'
 
 export type AutomationDefinitionOperations = {
-  state: StoreOwnedPersistedState
+  state: PersistedState
+  storageAuthority: AutomationStorageAuthority
   flush: () => void
   recordCreated: () => void
+  recordAutomationRunsMutation?: (runs: readonly AutomationRun[]) => void
 }
 
 export function listAutomations(state: PersistedState): Automation[] {
@@ -29,27 +55,54 @@ export function listAutomations(state: PersistedState): Automation[] {
 
 export function createAutomation(
   operations: AutomationDefinitionOperations,
-  input: AutomationCreateInput
+  input: AutomationCreateInput,
+  options?: { destination?: AutomationDestination }
 ): Automation {
+  if (input.creationKey) {
+    const existing = (operations.state.automations ?? []).find(
+      (automation) => automation.creationKey === input.creationKey
+    )
+    if (existing) {
+      return existing
+    }
+  }
   const repo = operations.state.repos.find((entry) => entry.id === input.projectId)
   const now = Date.now()
-  const executionTargetType = repo?.connectionId ? 'ssh' : 'local'
+  const workspaceId = input.workspaceMode === 'existing' ? (input.workspaceId ?? null) : null
+  const workspaceSshPin = automationWorkspaceSshPin(operations.state, workspaceId)
+  const executionTarget = deriveAutomationExecutionTargetForCreate({
+    repo,
+    sshTargetGeneration: sshTargetGenerationForConnection(operations.state, repo?.connectionId),
+    workspaceSshPin
+  })
+  if (options?.destination) {
+    const context = automationProjectionContext(
+      operations.state,
+      operations.storageAuthority,
+      false
+    )
+    assertAutomationDestination(options.destination, context)
+    assertExecutionTargetMatchesDestination(executionTarget, options.destination, workspaceSshPin)
+  }
   const schedulerOwner = getAutomationSchedulerOwner(repo)
   const contexts = getAutomationContextsForRepo(repo, operations.state.projectHostSetups ?? [])
+  const extraAgentArgs = storedExtraAgentArgs(input.extraAgentArgs)
   const automation: Automation = {
     id: randomUUID(),
+    ...(input.creationKey ? { creationKey: input.creationKey } : {}),
     name: input.name.trim() || 'Untitled automation',
     prompt: input.prompt,
     precheck: normalizeAutomationPrecheck(input.precheck),
     agentId: input.agentId,
-    runContext: input.runContext ?? contexts.runContext,
-    sourceContext: input.sourceContext ?? contexts.sourceContext,
+    ...(extraAgentArgs !== undefined ? { extraAgentArgs } : {}),
+    // Prefer authority-local contexts; client-assigned runtime IDs cannot identify this store's host.
+    runContext: contexts.runContext ?? input.runContext ?? null,
+    sourceContext: contexts.sourceContext ?? input.sourceContext ?? null,
     projectId: input.projectId,
-    executionTargetType,
-    executionTargetId: executionTargetType === 'ssh' ? (repo?.connectionId ?? '') : 'local',
+    ...executionTarget,
     schedulerOwner,
     workspaceMode: input.workspaceMode,
-    workspaceId: input.workspaceMode === 'existing' ? (input.workspaceId ?? null) : null,
+    workspaceId,
     baseBranch: input.workspaceMode === 'new_per_run' ? (input.baseBranch ?? null) : null,
     setupDecision: normalizeAutomationSetupDecisionForWorkspaceMode(
       input.workspaceMode,
@@ -66,6 +119,7 @@ export function createAutomation(
     createdAt: now,
     updatedAt: now
   }
+  assertAutomationExtraAgentArgs(automation)
   operations.state.automations = [...(operations.state.automations ?? []), automation]
   operations.recordCreated()
   operations.flush()
@@ -75,28 +129,48 @@ export function createAutomation(
 export function updateAutomation(
   operations: AutomationDefinitionOperations,
   id: string,
-  updates: AutomationUpdateInput
+  updates: AutomationUpdateInput,
+  options?: { expectedOwner?: AutomationOwnerPrecondition; destination?: AutomationDestination }
 ): Automation {
   const index = (operations.state.automations ?? []).findIndex((entry) => entry.id === id)
   if (index === -1) {
     throw new Error('Automation not found.')
   }
   const current = operations.state.automations[index]
-  // Why: the renderer forwards a Partial verbatim, so `{ enabled: undefined }` survives structuredClone
-  // and would blank the stored value in the spread below. Explicit clears go through the `null` branches.
+  const projectionContext = automationProjectionContext(
+    operations.state,
+    operations.storageAuthority,
+    false
+  )
+  assertAutomationOwnerFence({
+    automation: current,
+    expectedOwner: options?.expectedOwner,
+    operation: 'mutate',
+    context: projectionContext
+  })
+  if (options?.destination) {
+    assertAutomationDestination(options.destination, projectionContext)
+  }
+  // Ignore undefined values preserved by structuredClone; explicit clears use null.
   const definedUpdates = Object.fromEntries(
     Object.entries(updates).filter(([, value]) => value !== undefined)
   ) as AutomationUpdateInput
   const repoId = updates.projectId ?? current.projectId
   const repo = operations.state.repos.find((entry) => entry.id === repoId)
-  const executionTargetType = repo?.connectionId ? 'ssh' : 'local'
-  const schedulerOwner = getAutomationSchedulerOwner(repo)
+  const selectorMoveRequested =
+    updates.projectId !== undefined || options?.destination !== undefined
+  const schedulerOwner =
+    selectorMoveRequested && repo ? getAutomationSchedulerOwner(repo) : current.schedulerOwner
   const contexts = getAutomationContextsForRepo(repo, operations.state.projectHostSetups ?? [])
   const rrule = updates.rrule ?? current.rrule
   const dtstart = updates.dtstart ?? current.dtstart
   const scheduleChanged = updates.rrule !== undefined || updates.dtstart !== undefined
   const workspaceMode = updates.workspaceMode ?? current.workspaceMode
-  const updated: Automation = {
+  // Omitted preserves; empty or whitespace clears.
+  const extraAgentArgs = Object.hasOwn(definedUpdates, 'extraAgentArgs')
+    ? storedExtraAgentArgs(definedUpdates.extraAgentArgs)
+    : storedExtraAgentArgs(current.extraAgentArgs)
+  const merged: Automation = {
     ...current,
     ...definedUpdates,
     name: updates.name !== undefined ? updates.name.trim() || 'Untitled automation' : current.name,
@@ -104,18 +178,19 @@ export function updateAutomation(
       ? normalizeAutomationPrecheck(definedUpdates.precheck)
       : normalizeAutomationPrecheck(current.precheck),
     projectId: repoId,
-    runContext: Object.hasOwn(definedUpdates, 'runContext')
-      ? (definedUpdates.runContext ?? null)
-      : updates.projectId !== undefined
-        ? contexts.runContext
-        : (current.runContext ?? contexts.runContext),
-    sourceContext: Object.hasOwn(definedUpdates, 'sourceContext')
-      ? (definedUpdates.sourceContext ?? null)
-      : updates.projectId !== undefined
-        ? contexts.sourceContext
-        : (current.sourceContext ?? contexts.sourceContext),
-    executionTargetType,
-    executionTargetId: executionTargetType === 'ssh' ? (repo?.connectionId ?? '') : 'local',
+    // Rebuild moved contexts from this authority's registry; otherwise preserve stored values or explicit null.
+    runContext:
+      definedUpdates.runContext === null
+        ? null
+        : selectorMoveRequested
+          ? (contexts.runContext ?? definedUpdates.runContext ?? null)
+          : (current.runContext ?? contexts.runContext),
+    sourceContext:
+      definedUpdates.sourceContext === null
+        ? null
+        : selectorMoveRequested
+          ? (contexts.sourceContext ?? definedUpdates.sourceContext ?? null)
+          : (current.sourceContext ?? contexts.sourceContext),
     schedulerOwner,
     workspaceMode,
     workspaceId:
@@ -150,17 +225,79 @@ export function updateAutomation(
       : current.nextRunAt,
     updatedAt: Date.now()
   }
-  operations.state.automations[index] = updated
+  if (extraAgentArgs === undefined) {
+    delete merged.extraAgentArgs
+  } else {
+    merged.extraAgentArgs = extraAgentArgs
+  }
+  assertAutomationExtraAgentArgs(merged)
+  const previousPin = automationWorkspaceSshPin(operations.state, current.workspaceId)
+  const workspaceSshPin = automationWorkspaceSshPin(operations.state, merged.workspaceId)
+  const workspaceSshPinMoved = previousPin?.targetId !== workspaceSshPin?.targetId
+  const executionTarget = deriveAutomationExecutionTargetForUpdate({
+    current,
+    repo,
+    selectorMoveRequested,
+    sshTargetGeneration: sshTargetGenerationForConnection(operations.state, repo?.connectionId),
+    workspaceSshPin,
+    workspaceSshPinMoved
+  })
+  if (options?.destination) {
+    assertExecutionTargetMatchesDestination(executionTarget, options.destination, workspaceSshPin)
+  }
+  const updated = applyAutomationExecutionTarget(
+    merged,
+    executionTarget,
+    workspaceSshPinMoved ? undefined : workspaceSshPin
+  )
+  // Replace the array to invalidate identity-keyed list projections.
+  operations.state.automations = operations.state.automations.map((entry) =>
+    entry.id === id ? updated : entry
+  )
   operations.flush()
   return updated
 }
 
-export function deleteAutomation(operations: AutomationDefinitionOperations, id: string): void {
+/** Stamp legacy targets once without retargeting user- or migration-owned contexts. */
+export function stampLegacyAutomationRunContext(
+  operations: AutomationDefinitionOperations,
+  id: string,
+  runContext: WorkspaceRunContext
+): boolean {
+  const current = (operations.state.automations ?? []).find((entry) => entry.id === id)
+  if (!current || current.runContext) {
+    return false
+  }
+  // Replace the array to invalidate identity-keyed list projections.
+  operations.state.automations = operations.state.automations.map((entry) =>
+    entry.id === id ? { ...entry, runContext } : entry
+  )
+  operations.flush()
+  return true
+}
+
+export function deleteAutomation(
+  operations: AutomationDefinitionOperations,
+  id: string,
+  options?: { expectedOwner?: AutomationOwnerPrecondition }
+): void {
+  const automation = (operations.state.automations ?? []).find((entry) => entry.id === id)
+  if (automation) {
+    assertAutomationOwnerFence({
+      automation,
+      expectedOwner: options?.expectedOwner,
+      operation: 'mutate',
+      context: automationProjectionContext(operations.state, operations.storageAuthority, false)
+    })
+  }
   operations.state.automations = (operations.state.automations ?? []).filter(
     (entry) => entry.id !== id
   )
   operations.state.automationRuns = (operations.state.automationRuns ?? []).filter(
     (entry) => entry.automationId !== id
   )
+  operations.recordAutomationRunsMutation?.(operations.state.automationRuns)
+  // Removing definitions and unfinished runs releases their workspace claims (#17775).
+  invalidateLocalWorktreeMetadataPruneInputs()
   operations.flush()
 }

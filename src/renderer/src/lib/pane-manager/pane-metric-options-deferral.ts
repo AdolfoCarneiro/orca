@@ -12,30 +12,22 @@ export type PaneMetricOptions = {
 
 type PaneTerminal = ManagedPane['terminal']
 
-// Why keyed on the terminal, not the pane: getPanes() hands out a fresh
-// toPublicPane() wrapper per call, so a pane-keyed entry could never be found
-// again. `terminal` is carried by reference and dies with the pane.
+// Key by terminal: fresh getPanes wrappers cannot retrieve pane-identity entries; the terminal survives every view.
 const deferredMetricOptions = new WeakMap<PaneTerminal, PaneMetricOptions>()
 
-/**
- * Why deferred: writing one of these makes xterm clear the renderer, re-resize
- * to the current grid and full-refresh. On a pane with no usable box that
- * repaint is wasted — it lands in the DOM-renderer fallback while WebGL is
- * suspended — and the cols/rows re-fit that has to follow the write cannot run.
- * So the values park here and land once the pane can actually be fitted.
- */
+/** Metric writes clear/resize/refresh xterm. Defer while unmeasurable: repaint would be wasted on DOM fallback and its required refit cannot run until a usable box returns. */
 export function applyOrDeferPaneMetricOptions(
   pane: ManagedPane,
   options: PaneMetricOptions,
-  measurable: boolean
+  measurable: boolean,
+  reason = 'appearance'
 ): 'applied' | 'deferred' {
   if (!measurable) {
-    // Latest wins: a newer settings change while hidden supersedes the pending one.
     deferredMetricOptions.set(pane.terminal, options)
     return 'deferred'
   }
   deferredMetricOptions.delete(pane.terminal)
-  writePaneMetricOptions(pane, options)
+  writePaneMetricOptions(pane, options, reason)
   return 'applied'
 }
 
@@ -46,7 +38,7 @@ export function flushDeferredPaneMetricOptions(pane: ManagedPane): boolean {
     return false
   }
   deferredMetricOptions.delete(pane.terminal)
-  writePaneMetricOptions(pane, pending)
+  writePaneMetricOptions(pane, pending, 'deferred-flush')
   recordTerminalWebglDiagnostic('metric-options-deferred-flush', { paneId: pane.id })
   return true
 }
@@ -55,12 +47,7 @@ export function hasDeferredPaneMetricOptions(pane: ManagedPane): boolean {
   return deferredMetricOptions.has(pane.terminal)
 }
 
-/**
- * True when every value is already live and nothing is parked, so the caller can
- * skip the apply. Why it matters: any settings write re-runs the appearance pass
- * over every mounted pane, and arming a no-op deferral would make the next
- * reveal refit for nothing.
- */
+/** Skip only when values are live and nothing is parked; every settings change visits all panes, so no-op deferrals would trigger needless reveal fits. */
 export function paneMetricOptionsAlreadySettled(
   pane: ManagedPane,
   options: PaneMetricOptions
@@ -78,10 +65,7 @@ export function paneMetricOptionsAlreadySettled(
   )
 }
 
-/**
- * Folds a directly-applied metric write into any pending deferral so a later
- * flush cannot clobber it with the parked value. No-op when nothing is parked.
- */
+/** Fold direct metric writes into parked values so a later flush cannot overwrite them; no-op without deferral. */
 export function overridePendingPaneMetricOptions(
   pane: ManagedPane,
   options: PaneMetricOptions
@@ -93,7 +77,11 @@ export function overridePendingPaneMetricOptions(
   deferredMetricOptions.set(pane.terminal, { ...pending, ...options })
 }
 
-function writePaneMetricOptions(pane: ManagedPane, options: PaneMetricOptions): void {
+function writePaneMetricOptions(
+  pane: ManagedPane,
+  options: PaneMetricOptions,
+  reason: string
+): void {
   const target = pane.terminal.options
   if (options.fontSize !== undefined) {
     target.fontSize = options.fontSize
@@ -102,12 +90,40 @@ function writePaneMetricOptions(pane: ManagedPane, options: PaneMetricOptions): 
     target.fontFamily = options.fontFamily
   }
   if (options.fontWeight !== undefined) {
+    recordMetricWeightChange(pane, 'fontWeight', target.fontWeight, options.fontWeight, reason)
     target.fontWeight = options.fontWeight as typeof target.fontWeight
   }
   if (options.fontWeightBold !== undefined) {
+    recordMetricWeightChange(
+      pane,
+      'fontWeightBold',
+      target.fontWeightBold,
+      options.fontWeightBold,
+      reason
+    )
     target.fontWeightBold = options.fontWeightBold as typeof target.fontWeightBold
   }
   if (options.lineHeight !== undefined) {
     target.lineHeight = options.lineHeight
   }
+}
+
+/** Record actual weight transitions before writing so prev identifies bold-collapse poisoning/healing (STA-4042). */
+function recordMetricWeightChange(
+  pane: ManagedPane,
+  key: 'fontWeight' | 'fontWeightBold',
+  prev: string | number | undefined,
+  next: string | number,
+  reason: string
+): void {
+  if (prev === next) {
+    return
+  }
+  recordTerminalWebglDiagnostic('metric-weight-change', {
+    paneId: pane.id,
+    key,
+    prev: prev === undefined ? null : String(prev),
+    next: String(next),
+    reason
+  })
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const {
   callMock,
@@ -41,10 +41,16 @@ vi.mock('child_process', async () => {
 })
 
 import { main } from './index'
-import { okFixture, queueFixtures } from './test-fixtures'
+import { localRepoDestinationFixtures, okFixture, queueFixtures } from './test-fixtures'
 import { useWorktreeAwarenessEnvironment } from './index-test-harness'
 
 describe('orca cli worktree awareness', () => {
+  const originalExitCode = process.exitCode
+
+  afterEach(() => {
+    process.exitCode = originalExitCode
+  })
+
   useWorktreeAwarenessEnvironment({
     callMock,
     serveOrcaAppMock,
@@ -67,6 +73,7 @@ describe('orca cli worktree awareness', () => {
     }
     queueFixtures(
       callMock,
+      ...localRepoDestinationFixtures('repo-gpu'),
       okFixture('req_automation_create', {
         automation: { id: 'auto-1', name: 'GPU task review' }
       })
@@ -95,7 +102,7 @@ describe('orca cli worktree awareness', () => {
     )
 
     expect(callMock).toHaveBeenNthCalledWith(
-      1,
+      2,
       'automation.create',
       expect.objectContaining({
         repo: 'id:repo-gpu',
@@ -107,6 +114,7 @@ describe('orca cli worktree awareness', () => {
   it('clears automation source context on edit with null', async () => {
     queueFixtures(
       callMock,
+      okFixture('req_edit_owner', { automation: { id: 'auto-1', name: 'GPU task review' } }),
       okFixture('req_edit', {
         automation: { id: 'auto-1', name: 'GPU task review' }
       })
@@ -116,7 +124,7 @@ describe('orca cli worktree awareness', () => {
     await main(['automations', 'edit', 'auto-1', '--source-context', 'null', '--json'], '/tmp/repo')
 
     expect(callMock).toHaveBeenNthCalledWith(
-      1,
+      2,
       'automation.update',
       expect.objectContaining({
         id: 'auto-1',
@@ -129,8 +137,6 @@ describe('orca cli worktree awareness', () => {
 
   it('rejects invalid automation source context JSON before calling the runtime', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const priorExitCode = process.exitCode
 
     await main(
       [
@@ -154,11 +160,14 @@ describe('orca cli worktree awareness', () => {
     )
 
     expect(callMock).not.toHaveBeenCalled()
-    expect([...logSpy.mock.calls, ...errSpy.mock.calls].flat().join('\n')).toContain(
-      '--source-context must be valid JSON'
-    )
+    expect(logSpy).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(String(logSpy.mock.calls[0]?.[0]))).toMatchObject({
+      ok: false,
+      error: {
+        code: 'invalid_argument',
+        message: expect.stringContaining('--source-context must be valid JSON')
+      }
+    })
     expect(process.exitCode).toBe(1)
-
-    process.exitCode = priorExitCode
   })
 })

@@ -1,11 +1,10 @@
-import type { StoreOwnedPersistedState } from '../loading-store/store-owned-state'
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import type { ProjectHostSetup, ProjectHostSetupUpdateArgs } from '../../../shared/project-types'
 import type { Repo } from '../../../shared/repo-types'
 import type { RepoUpdatePersistenceOperations } from './repo-update-operations'
 
 export type ProjectHostSetupUpdateOperations = {
-  state: StoreOwnedPersistedState
+  state: PersistedState
   updateRepo: RepoUpdatePersistenceOperations['updateRepo']
   scheduleSave: () => void
 }
@@ -57,12 +56,15 @@ export class ProjectHostSetupPersistenceOperations {
       repoUpdates.projectHostSetupMethod = updates.setupMethod
     }
     const updatedRepo =
-      Object.keys(repoUpdates).length > 0 ? this.updateRepo(repo.id, repoUpdates) : repo
+      Object.keys(repoUpdates).length > 0 ? this.updateRepo(repo, repoUpdates) : repo
     if (!updatedRepo) {
       return null
     }
     return {
-      setup: this.state.projectHostSetups.find((entry) => entry.id === setup.id) ?? setup,
+      setup:
+        this.state.projectHostSetups.find(
+          (entry) => entry.id === setup.id && entry.hostId === setup.hostId
+        ) ?? setup,
       repo: updatedRepo
     }
   }

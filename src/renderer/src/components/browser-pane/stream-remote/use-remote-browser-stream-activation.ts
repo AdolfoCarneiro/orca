@@ -10,6 +10,8 @@ type RemoteBrowserStreamActivationOptions = {
   lifecycle: Pick<RemoteBrowserStreamLifecycle, 'open'>
   reopenNonce: number
   runtimeWorktree: string
+  /** The page is an optimistic stage; the host has not published it, so there is nothing to open. */
+  stagedPage?: boolean
 }
 
 export function useRemoteBrowserStreamActivation({
@@ -19,12 +21,14 @@ export function useRemoteBrowserStreamActivation({
   isActive,
   lifecycle,
   reopenNonce,
-  runtimeWorktree
+  runtimeWorktree,
+  stagedPage = false
 }: RemoteBrowserStreamActivationOptions): void {
   const windowVisibleForStream = useWindowStreamVisible()
 
   useEffect(() => {
-    if (!isActive || !windowVisibleForStream) {
+    // Staged pages have a pending create; opening another host page would race it and risk closing the optimistic tab.
+    if (!isActive || !windowVisibleForStream || stagedPage) {
       return
     }
     const closeStream = lifecycle.open()
@@ -41,6 +45,7 @@ export function useRemoteBrowserStreamActivation({
     lifecycle,
     reopenNonce,
     runtimeWorktree,
+    stagedPage,
     windowVisibleForStream
   ])
 }

@@ -1,25 +1,20 @@
+import { posixCurlCommand } from '../agent-hooks/hook-post-command'
 import {
   buildPosixHookPayloadCapture,
-  buildWindowsHookEnvironmentGuardLines,
-  buildWindowsHookStdinDrainEpilogue,
-  WINDOWS_HOOK_STDIN_DRAIN_COMMAND
+  POSIX_HOOK_JSON_STDIN,
+  buildPosixHookSpoolLines,
+  buildWindowsHookEnvironmentGuardLines
 } from '../agent-hooks/hook-stdin-contract'
-import { buildWindowsAgentHookPostCommand } from '../agent-hooks/installer-utils'
 import { ANTIGRAVITY_PRE_TOOL_USE_DECISION } from './hook-events'
 
-// Why (#15117): PowerShell cost ~300ms of startup per event, which is what made the console
-// the agent allocates for each hook last long enough to see.
-const WINDOWS_ANTIGRAVITY_HOOK_POST_COMMAND = buildWindowsAgentHookPostCommand('antigravity', [
-  // Why: Antigravity alone takes its event name from the wrapper's env, not the piped payload.
-  '  --data-urlencode "hook_event_name=%ORCA_ANTIGRAVITY_EVENT%" ^'
-])
-
-export function getManagedScript(target: 'local' | 'posix' = 'local'): string {
+export function getManagedScript(
+  target: 'local' | 'posix' = 'local',
+  windowsRuntimePath = process.execPath
+): string {
   if (target === 'local' && process.platform === 'win32') {
     return [
       '@echo off',
-      // Why (#9358/#9941): inherited delayed expansion eats `!` out of the percent-expanded
-      // curl args, mangling paneKey and dropping worktreeId. `!` is legal in a Windows path.
+      // Delayed expansion corrupts literal ! characters in paths and hook coordinates.
       'setlocal DisableDelayedExpansion',
       'if /I "%ORCA_ANTIGRAVITY_EVENT%"=="Stop" (',
       '  echo {"decision":""}',
@@ -30,9 +25,10 @@ export function getManagedScript(target: 'local' | 'posix' = 'local'): string {
       ')',
       'if defined ORCA_AGENT_HOOK_ENDPOINT if exist "%ORCA_AGENT_HOOK_ENDPOINT%" call "%ORCA_AGENT_HOOK_ENDPOINT%" 2>nul',
       ...buildWindowsHookEnvironmentGuardLines(),
-      WINDOWS_ANTIGRAVITY_HOOK_POST_COMMAND,
+      'set "ELECTRON_RUN_AS_NODE=1"',
+      `if not defined ORCA_AGENT_HOOK_NODE set "ORCA_AGENT_HOOK_NODE=${windowsRuntimePath.replaceAll('%', '%%')}"`,
+      '"%ORCA_AGENT_HOOK_NODE%" "%~dp0antigravity-hook-post.cjs" >nul 2>nul',
       'exit /b 0',
-      ...buildWindowsHookStdinDrainEpilogue(),
       ''
     ].join('\r\n')
   }
@@ -47,25 +43,21 @@ export function getManagedScript(target: 'local' | 'posix' = 'local'): string {
     `    printf '${ANTIGRAVITY_PRE_TOOL_USE_DECISION}\\n'`,
     '    ;;',
     '  *)',
-    // Why: Antigravity accepts an empty JSON object for passive status hooks;
-    // only the PreToolUse gate rejects it, and that branch answers above.
     '    printf "{}\\n"',
     '    ;;',
     'esac',
-    // Why: some Antigravity events arrive without stdin but still need a
-    // status post, so the shared capture maps empty input to an object.
-    ...buildPosixHookPayloadCapture('empty-object'),
+    // Events without stdin still need a status post.
+    ...buildPosixHookPayloadCapture('empty-object', POSIX_HOOK_JSON_STDIN),
+    ...buildPosixHookSpoolLines('antigravity', 'ORCA_ANTIGRAVITY_EVENT'),
     'if [ -n "$ORCA_AGENT_HOOK_ENDPOINT" ] && [ -r "$ORCA_AGENT_HOOK_ENDPOINT" ]; then',
     '  . "$ORCA_AGENT_HOOK_ENDPOINT" 2>/dev/null || :',
     'fi',
     'if [ -z "$ORCA_AGENT_HOOK_PORT" ] || [ -z "$ORCA_AGENT_HOOK_TOKEN" ] || [ -z "$ORCA_PANE_KEY" ]; then',
+    '  spool_hook_event',
     '  exit 0',
     'fi',
-    // Timeout caps best-effort hook posts if the local listener stalls.
-    // Why: pipe payload to curl's stdin (`payload@-`) instead of an inline
-    // `payload=$VALUE` arg, so tens-of-KB tool output stays off the curl
-    // command line (EDR command-line false positives). Wire body is identical.
-    'printf \'%s\' "$payload" | curl -sS -X POST "http://127.0.0.1:${ORCA_AGENT_HOOK_PORT}/hook/antigravity" \\',
+    // Keep large payloads off command lines to avoid EDR false positives.
+    `printf '%s' "$payload" | ${posixCurlCommand()} -sS -X POST "http://127.0.0.1:\${ORCA_AGENT_HOOK_PORT}/hook/antigravity" \\`,
     '  --connect-timeout 0.5 --max-time 1.5 \\',
     '  -H "Content-Type: application/x-www-form-urlencoded" \\',
     '  -H "X-Orca-Agent-Hook-Token: ${ORCA_AGENT_HOOK_TOKEN}" \\',
@@ -76,7 +68,7 @@ export function getManagedScript(target: 'local' | 'posix' = 'local'): string {
     '  --data-urlencode "env=${ORCA_AGENT_HOOK_ENV}" \\',
     '  --data-urlencode "version=${ORCA_AGENT_HOOK_VERSION}" \\',
     '  --data-urlencode "hook_event_name=${ORCA_ANTIGRAVITY_EVENT}" \\',
-    '  --data-urlencode "payload@-" >/dev/null 2>&1 || true',
+    '  --data-urlencode "payload@-" >/dev/null 2>&1 || spool_hook_event',
     'exit 0',
     ''
   ].join('\n')
@@ -85,7 +77,8 @@ export function getManagedScript(target: 'local' | 'posix' = 'local'): string {
 export function getWindowsWrapperScript(eventName: string): string {
   return [
     '@echo off',
-    'setlocal',
+    // Preserve literal ! characters in the percent-expanded hooks path.
+    'setlocal DisableDelayedExpansion',
     `set "ORCA_ANTIGRAVITY_EVENT=${eventName}"`,
     'set "ORCA_ANTIGRAVITY_CORE=%~dp0antigravity-hook.cmd"',
     'if exist "%ORCA_ANTIGRAVITY_CORE%" (',
@@ -99,9 +92,7 @@ export function getWindowsWrapperScript(eventName: string): string {
     ') else (',
     '  echo {}',
     ')',
-    // Why: when the shared core script is missing, this wrapper becomes the
-    // stdin owner and must finish the agent's payload write before returning.
-    WINDOWS_HOOK_STDIN_DRAIN_COMMAND,
+    ...buildWindowsHookEnvironmentGuardLines(),
     'exit /b 0',
     ''
   ].join('\r\n')

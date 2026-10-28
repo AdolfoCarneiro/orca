@@ -1,9 +1,12 @@
+import type * as ExecCommandModule from './remote-exec/remote-exec-command'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { SshConnection } from './ssh-connection'
+import type { SshConnection } from './connection/ssh-connection'
+import { SSH_EXEC_TIMEOUT_CODE } from './remote-exec/remote-exec-command'
 
 const execCommandMock = vi.hoisted(() => vi.fn())
 
-vi.mock('./ssh-relay-deploy-helpers', () => ({
+vi.mock('./remote-exec/remote-exec-command', async (importOriginal) => ({
+  ...(await importOriginal<typeof ExecCommandModule>()),
   execCommand: execCommandMock
 }))
 
@@ -224,6 +227,31 @@ describe('detectRemoteHostPlatform failure reporting', () => {
     expect((error as Error).message).toMatch(/open failed/iu)
     expect((error as Error).message).not.toMatch(/unsupported/iu)
     expect((error as Error).cause).toMatchObject({ reason: 2 })
+  })
+
+  it('does not call an unmappable uname unsupported when the PowerShell probe timed out', async () => {
+    // Prefer typed exec timeout evidence; matching wording could misclassify unrelated errors.
+    execCommandMock
+      .mockResolvedValueOnce('__ORCA_REMOTE_PLATFORM__ CYGWIN_NT-10.0 x86_64\n')
+      .mockRejectedValueOnce(
+        Object.assign(new Error('Command "pwsh" timed out after 30s'), {
+          code: SSH_EXEC_TIMEOUT_CODE
+        })
+      )
+
+    const error = await detectRemoteHostPlatform(conn).catch((err: unknown) => err)
+
+    expect(error).toBeInstanceOf(Error)
+    expect((error as Error).message).not.toMatch(/unsupported/iu)
+    expect((error as Error).cause).toMatchObject({ code: SSH_EXEC_TIMEOUT_CODE })
+  })
+
+  it('does not read a look-alike timeout message as a timed-out channel', async () => {
+    execCommandMock
+      .mockResolvedValueOnce('__ORCA_REMOTE_PLATFORM__ FreeBSD x86_64\n')
+      .mockRejectedValueOnce(new Error('the agent it launched timed out after 30s'))
+
+    await expect(detectRemoteHostPlatform(conn)).resolves.toBeNull()
   })
 
   it('falls through to PowerShell for a Cygwin uname it cannot map', async () => {

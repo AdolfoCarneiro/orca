@@ -6,6 +6,7 @@ import type {
   LinearIssueTaskUpdateRequest
 } from './agent-access'
 import type { LinearInlineMedia } from './inline-media'
+import type { LinearPriorityLabel } from './priority-label'
 import type { LinearIssueActivityEntry } from './issue-activity'
 
 export type LinearIssueSummary = {
@@ -21,6 +22,7 @@ export type LinearIssueSummary = {
   assignee?: LinearUserSummary | null
   labels: LinearNamedEntity[]
   priority?: number | null
+  priorityLabel?: LinearPriorityLabel
   estimate?: number | null
   dueDate?: string | null
   branchName?: string | null
@@ -45,8 +47,7 @@ export type LinearIssueCommentNode = {
   id: string
   body: string
   bodyTruncated: boolean
-  // Extracted from the full comment body before truncation so media past the
-  // body cap is not lost.
+  // Extract before truncation so media beyond the body cap survives.
   inlineMedia?: LinearInlineMedia[]
   createdAt?: string | null
   updatedAt?: string | null
@@ -130,6 +131,7 @@ export type LinearSearchIssueSummary = Pick<
   | 'project'
   | 'assignee'
   | 'priority'
+  | 'priorityLabel'
   | 'estimate'
   | 'dueDate'
   | 'updatedAt'
@@ -142,6 +144,7 @@ export type LinearSearchIssueSummary = Pick<
 
 export type LinearSearchResult = {
   issues: LinearSearchIssueSummary[]
+  truncated?: boolean
   meta: {
     query: string
     workspaceId?: (string & {}) | 'all'
@@ -149,16 +152,18 @@ export type LinearSearchResult = {
     returned: number
     limitReached: boolean
     partial: boolean
-    workspaceErrors: {
-      workspace: LinearWorkspaceCandidate
-      code: LinearErrorCode
-      message: string
-    }[]
+    workspaceErrors: LinearWorkspaceReadError[]
   }
 }
 export type LinearWorkspaceCandidate = {
   id: string
   name: string
+}
+
+export type LinearWorkspaceReadError = {
+  workspace: LinearWorkspaceCandidate
+  code: LinearErrorCode
+  message: string
 }
 
 export type LinearWriteIssueRef = {
@@ -181,11 +186,7 @@ export type LinearTeamListResult = {
     workspaceId?: (string & {}) | 'all'
     returned: number
     partial: boolean
-    workspaceErrors: {
-      workspace: LinearWorkspaceCandidate
-      code: LinearErrorCode
-      message: string
-    }[]
+    workspaceErrors: LinearWorkspaceReadError[]
   }
 }
 
@@ -209,6 +210,7 @@ export type LinearTeamLabelsResult = {
 
 export type LinearIssueListResult = {
   issues: LinearSearchIssueSummary[]
+  truncated?: boolean
   meta: {
     filter: LinearIssueListFilter
     workspaceId?: (string & {}) | 'all'
@@ -217,11 +219,7 @@ export type LinearIssueListResult = {
     returned: number
     hasMore: boolean
     partial: boolean
-    workspaceErrors: {
-      workspace: LinearWorkspaceCandidate
-      code: LinearErrorCode
-      message: string
-    }[]
+    workspaceErrors: LinearWorkspaceReadError[]
   }
 }
 
@@ -240,6 +238,7 @@ export type LinearAgentProjectSummary = {
 
 export type LinearProjectListResult = {
   projects: LinearAgentProjectSummary[]
+  truncated?: boolean
   meta: {
     query?: string
     workspaceId?: (string & {}) | 'all'
@@ -247,11 +246,7 @@ export type LinearProjectListResult = {
     returned: number
     hasMore: boolean
     partial: boolean
-    workspaceErrors: {
-      workspace: LinearWorkspaceCandidate
-      code: LinearErrorCode
-      message: string
-    }[]
+    workspaceErrors: LinearWorkspaceReadError[]
   }
 }
 

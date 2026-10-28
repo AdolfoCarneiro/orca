@@ -45,7 +45,18 @@ describe('fetchWorktrees', () => {
     clearHugeRepoWarningDismissalsForTests()
   })
 
-  it('fetches worktrees from the active remote runtime environment', async () => {
+  it('lists a repo with no row from this app, never the focused server', async () => {
+    const store = createTestStore()
+    store.setState({ settings: { activeRuntimeEnvironmentId: 'env-1' } as never })
+    mockApi.worktrees.listDetected.mockResolvedValue(makeDetectedResult('repo1', []))
+
+    await store.getState().fetchWorktrees('repo1')
+
+    expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
+    expect(mockApi.worktrees.listDetected).toHaveBeenCalled()
+  })
+
+  it('stamps ownerless worktrees from a named remote runtime before repos hydrate', async () => {
     const store = createTestStore()
     const remote = makeWorktree({
       id: 'repo1::/remote/wt1',
@@ -61,9 +72,17 @@ describe('fetchWorktrees', () => {
       _meta: { runtimeId: 'runtime-remote' }
     })
 
-    await store.getState().fetchWorktrees('repo1')
+    await store.getState().fetchWorktrees('repo1', { executionHostId: 'runtime:env-1' })
 
-    expect(store.getState().worktreesByRepo.repo1).toEqual([remote])
+    const expected = {
+      ...remote,
+      hostId: 'runtime:env-1',
+      runtimeOwnerEnvironmentId: 'env-1'
+    }
+    expect(store.getState().worktreesByRepo.repo1).toEqual([expected])
+    expect(store.getState().detectedWorktreesByRepo.repo1?.worktrees).toEqual([
+      expect.objectContaining(expected)
+    ])
     expect(runtimeEnvironmentCall).toHaveBeenCalledWith({
       selector: 'env-1',
       method: 'worktree.detectedList',
@@ -74,10 +93,7 @@ describe('fetchWorktrees', () => {
   })
 
   it('pins the list fetch to the local host when forceLocalOwner is set', async () => {
-    // Regression: a local `worktrees:changed` event for an unbound
-    // repo while a remote runtime is active must refresh against the local
-    // host, not the runtime — otherwise CLI-created local worktrees stay
-    // invisible in the sidebar until an app restart.
+    // Local change events for unbound repos must stay local despite runtime focus or CLI-created worktrees remain invisible until restart.
     const store = createTestStore()
     const local = makeWorktree({
       id: 'repo1::/local/wt1',
@@ -250,7 +266,7 @@ describe('fetchWorktrees', () => {
     store.setState({
       settings: { activeRuntimeEnvironmentId: null } as never,
       repos: []
-    } as Partial<AppState>)
+    })
     runtimeEnvironmentCall.mockResolvedValue({
       id: 'rpc-missing-repo',
       ok: true,
@@ -408,7 +424,7 @@ describe('fetchWorktrees', () => {
           executionHostId: 'runtime:env-1'
         }
       ]
-    } as Partial<AppState>)
+    })
     runtimeEnvironmentCall.mockResolvedValue({
       id: 'rpc-1',
       ok: true,
@@ -519,7 +535,7 @@ describe('fetchWorktrees', () => {
           updatedAt: 1
         }
       ]
-    } as Partial<AppState>)
+    })
     runtimeEnvironmentCall.mockResolvedValue({
       id: 'rpc-runtime-worktree',
       ok: true,
@@ -579,14 +595,28 @@ describe('fetchWorktrees', () => {
       )
     )
 
-    await store.getState().fetchWorktrees('repo1')
+    await store.getState().fetchWorktrees('repo1', { executionHostId: 'runtime:env-1' })
 
-    expect(store.getState().worktreesByRepo.repo1).toEqual([remote])
+    expect(store.getState().worktreesByRepo.repo1).toEqual([
+      {
+        ...remote,
+        hostId: 'runtime:env-1',
+        runtimeOwnerEnvironmentId: 'env-1'
+      }
+    ])
     expect(store.getState().detectedWorktreesByRepo.repo1).toMatchObject({
       repoId: 'repo1',
       authoritative: true,
       source: 'session-fallback',
-      worktrees: [{ id: remote.id, ownership: 'orca-managed', visible: true }]
+      worktrees: [
+        {
+          id: remote.id,
+          ownership: 'orca-managed',
+          visible: true,
+          hostId: 'runtime:env-1',
+          runtimeOwnerEnvironmentId: 'env-1'
+        }
+      ]
     })
     expect(runtimeEnvironmentCall).toHaveBeenCalledWith({
       selector: 'env-1',
@@ -611,6 +641,10 @@ describe('fetchWorktrees', () => {
         { id: 'repo2', path: '/r2', displayName: 'R2', badgeColor: '#000', addedAt: 0 }
       ]
     } as Partial<AppState>)
+    // Ingest stamps server rows; the listing follows the row's host.
+    store.setState({
+      repos: store.getState().repos.map((repo) => ({ ...repo, executionHostId: 'runtime:env-1' }))
+    })
     // Why: a mobile-scope device token is denied non-allowlisted runtime RPCs.
     runtimeEnvironmentCall.mockResolvedValue({
       id: 'rpc-1',

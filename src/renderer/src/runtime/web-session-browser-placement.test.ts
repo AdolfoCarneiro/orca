@@ -5,6 +5,8 @@ import {
   clearWebSessionBrowserPlacementsForWorktree,
   forgetWebSessionBrowserPlacement,
   isWebSessionBrowserPlacementGroupReserved,
+  markWebSessionBrowserPlacementAdopted,
+  moveWebSessionBrowserPlacement,
   peekWebSessionBrowserPlacementGroup,
   recordWebSessionBrowserPlacement,
   releaseWebSessionBrowserPlacementGroup,
@@ -324,6 +326,94 @@ describe('web session browser placement', () => {
         remotePageId: 'page-0'
       })
     ).toBe('group-0')
+  })
+
+  // Spent intents must survive both re-record and ID-move paths while group reservations remain; current caller order does not exercise both, but the module guarantees all three states.
+  describe('a create intent the host already spent', () => {
+    function recordAdoptedPage(remotePageId: string): void {
+      recordWebSessionBrowserPlacement({
+        environmentId: ENVIRONMENT_ID,
+        worktreeId: WORKTREE_ID,
+        remotePageId,
+        groupId: 'preview-group',
+        callerCreatedGroup: true
+      })
+      markWebSessionBrowserPlacementAdopted({
+        environmentId: ENVIRONMENT_ID,
+        worktreeId: WORKTREE_ID,
+        remotePageId
+      })
+    }
+
+    it('stays spent when the create rehomes onto a host-minted page id', () => {
+      recordAdoptedPage('provisional-page')
+
+      moveWebSessionBrowserPlacement({
+        environmentId: ENVIRONMENT_ID,
+        worktreeId: WORKTREE_ID,
+        fromRemotePageId: 'provisional-page',
+        toRemotePageId: 'host-page'
+      })
+
+      expect(
+        peekWebSessionBrowserPlacementGroup({
+          environmentId: ENVIRONMENT_ID,
+          worktreeId: WORKTREE_ID,
+          remotePageId: 'host-page'
+        })
+      ).toBeUndefined()
+      expect(
+        isWebSessionBrowserPlacementGroupReserved({
+          worktreeId: WORKTREE_ID,
+          groupId: 'preview-group'
+        })
+      ).toBe(true)
+    })
+
+    it('stays spent when the same page is recorded again', () => {
+      recordAdoptedPage('page-1')
+
+      recordWebSessionBrowserPlacement({
+        environmentId: ENVIRONMENT_ID,
+        worktreeId: WORKTREE_ID,
+        remotePageId: 'page-1',
+        groupId: 'preview-group'
+      })
+
+      expect(
+        peekWebSessionBrowserPlacementGroup({
+          environmentId: ENVIRONMENT_ID,
+          worktreeId: WORKTREE_ID,
+          remotePageId: 'page-1'
+        })
+      ).toBeUndefined()
+    })
+
+    // Every snapshot remarks published pages; repeated marking must retain the reserved group.
+    it('keeps its group and its cleanup claim when a later snapshot marks it again', () => {
+      recordAdoptedPage('page-1')
+      markWebSessionBrowserPlacementAdopted({
+        environmentId: ENVIRONMENT_ID,
+        worktreeId: WORKTREE_ID,
+        remotePageId: 'page-1'
+      })
+
+      expect(
+        isWebSessionBrowserPlacementGroupReserved({
+          worktreeId: WORKTREE_ID,
+          groupId: 'preview-group'
+        })
+      ).toBe(true)
+      expect(
+        releaseWebSessionBrowserPlacementGroup({
+          environmentId: ENVIRONMENT_ID,
+          worktreeId: WORKTREE_ID,
+          remotePageId: 'page-1',
+          groupId: 'preview-group',
+          callerCreatedGroup: false
+        })
+      ).toBe(true)
+    })
   })
 
   it('clears only the requested worktree or environment', () => {

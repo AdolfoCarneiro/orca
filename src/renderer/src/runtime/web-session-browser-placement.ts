@@ -1,6 +1,8 @@
 type PendingBrowserPlacement = {
   groupId: string
   ownsGroupCleanup: boolean
+  /** The host has published this page, so the create's group intent has been spent. */
+  adopted?: boolean
 }
 
 const placementByPendingPage = new Map<string, PendingBrowserPlacement>()
@@ -51,7 +53,9 @@ export function recordWebSessionBrowserPlacement(args: {
   }
   placementByPendingPage.set(key, {
     groupId: args.groupId,
-    ownsGroupCleanup: args.callerCreatedGroup === true || existing?.ownsGroupCleanup === true
+    ownsGroupCleanup: args.callerCreatedGroup === true || existing?.ownsGroupCleanup === true,
+    // Preserve spent intent like cleanup state; re-recording must not revive it.
+    ...(existing?.adopted ? { adopted: true } : {})
   })
 }
 
@@ -72,6 +76,13 @@ export function moveWebSessionBrowserPlacement(args: {
       groupId: placement.groupId,
       callerCreatedGroup: placement.ownsGroupCleanup
     })
+    if (placement.adopted) {
+      markWebSessionBrowserPlacementAdopted({
+        environmentId: args.environmentId,
+        worktreeId: args.worktreeId,
+        remotePageId: args.toRemotePageId
+      })
+    }
   }
 }
 
@@ -102,13 +113,28 @@ export function takeWebSessionBrowserPlacementGroup(args: {
   return placement?.groupId
 }
 
+// Publication spends group intent; local placement now wins so user moves stick. Retain the entry’s group reservation until its create releases it.
+export function markWebSessionBrowserPlacementAdopted(args: {
+  environmentId: string
+  worktreeId: string
+  remotePageId: string
+}): void {
+  const key = pageKey(args.environmentId, args.worktreeId, args.remotePageId)
+  const placement = placementByPendingPage.get(key)
+  if (placement && !placement.adopted) {
+    placementByPendingPage.set(key, { ...placement, adopted: true })
+  }
+}
+
 export function peekWebSessionBrowserPlacementGroup(args: {
   environmentId: string
   worktreeId: string
   remotePageId: string
 }): string | undefined {
-  return placementByPendingPage.get(pageKey(args.environmentId, args.worktreeId, args.remotePageId))
-    ?.groupId
+  const placement = placementByPendingPage.get(
+    pageKey(args.environmentId, args.worktreeId, args.remotePageId)
+  )
+  return placement?.adopted ? undefined : placement?.groupId
 }
 
 export function isWebSessionBrowserPlacementGroupReserved(args: {

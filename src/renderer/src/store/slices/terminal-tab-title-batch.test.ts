@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
+import { layoutApplyTestDouble } from '@/runtime/layout-apply-test-double'
 
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }))
 vi.mock('@/runtime/sync-runtime-graph', () => ({ scheduleRuntimeGraphSync: vi.fn() }))
-vi.mock('@/components/terminal-pane/pty-transport', () => ({
+vi.mock('@/components/terminal-pane/pty-dispatcher', () => ({
   registerEagerPtyBuffer: vi.fn(),
   ensurePtyDispatcher: vi.fn(),
   unregisterPtyDataHandlers: vi.fn()
@@ -13,8 +15,9 @@ vi.mock('@/components/terminal-pane/shutdown-buffer-captures', () => ({
   shutdownBufferCaptures: vi.fn()
 }))
 
+const main = layoutApplyTestDouble()
 // @ts-expect-error -- minimal preload API stub for the slice's IPC writes
-globalThis.window = { api: {} }
+globalThis.window = { api: { runtime: { call: main.call } } }
 
 import {
   createTestStore,
@@ -24,6 +27,7 @@ import {
   seedStore
 } from './store-test-helpers'
 import type { GeneratedTabTitleUpdate } from './terminal-tab-title-batch'
+import { adoptTerminalTabOwnerMetadataOnlyBuckets } from './terminal-tab-owner-index'
 
 const LEAF_ID = '11111111-1111-4111-8111-111111111111'
 
@@ -100,6 +104,65 @@ describe('terminal tab title batches', () => {
     }
   })
 
+  it('inspects only the changed bucket for a warm title change across 300 worktrees', () => {
+    const store = createTestStore()
+    const fixture = makeScaleState(300)
+    seedStore(store, {
+      worktreesByRepo: { repo1: fixture.worktrees },
+      tabsByWorktree: fixture.tabsByWorktree,
+      unifiedTabsByWorktree: fixture.unifiedTabsByWorktree
+    })
+    store.getState().updateTabTitle('tab-299', 'First warm title')
+
+    const idReadsByWorktree = Array.from({ length: 300 }, () => 0)
+    for (let index = 0; index < 300; index += 1) {
+      const tab = store.getState().tabsByWorktree[`wt-${index}`]?.[0]
+      if (!tab) {
+        throw new Error(`missing scale tab ${index}`)
+      }
+      const id = tab.id
+      Object.defineProperty(tab, 'id', {
+        configurable: true,
+        enumerable: true,
+        get() {
+          idReadsByWorktree[index] += 1
+          return id
+        }
+      })
+    }
+
+    let outerKeyVisits = 0
+    let bucketVisits = 0
+    const currentTabsByWorktree = store.getState().tabsByWorktree
+    const observedTabsByWorktree = new Proxy(currentTabsByWorktree, {
+      ownKeys(target) {
+        outerKeyVisits += 1
+        return Reflect.ownKeys(target)
+      },
+      get(target, property, receiver) {
+        if (typeof property === 'string' && property.startsWith('wt-')) {
+          bucketVisits += 1
+        }
+        // oxlint-disable-next-line anti-slop/no-reflect-get -- Proxy `get` trap: only Reflect.get forwards a raw string|symbol key with the proxy receiver.
+        return Reflect.get(target, property, receiver)
+      }
+    })
+    adoptTerminalTabOwnerMetadataOnlyBuckets(currentTabsByWorktree, observedTabsByWorktree, [])
+    store.setState({ tabsByWorktree: observedTabsByWorktree })
+    outerKeyVisits = 0
+    bucketVisits = 0
+
+    store.getState().updateTabTitle('tab-299', 'Second warm title')
+
+    expect(idReadsByWorktree[299]).toBeGreaterThan(0)
+    expect(idReadsByWorktree.slice(0, 299).reduce((sum, count) => sum + count, 0)).toBe(0)
+    expect(outerKeyVisits).toBe(1)
+    // The unavoidable outer-map copy reads 300 buckets; staging and cache adoption
+    // read the changed owner twice. A second fleet traversal would add 300 more.
+    expect(bucketVisits).toBe(302)
+    expect(store.getState().tabsByWorktree['wt-299']?.[0]?.title).toBe('Second warm title')
+  })
+
   it('preserves ordered duplicate updates and last-owner duplicate-id routing', () => {
     const store = createTestStore()
     seedStore(store, {
@@ -118,7 +181,7 @@ describe('terminal tab title batches', () => {
     expect(store.getState().tabsByWorktree.second?.[0]?.title).toBe('Final')
   })
 
-  it('updates every same-owner backing duplicate but only the first unified row', () => {
+  it('updates every same-owner backing duplicate but only the first unified row', async () => {
     const store = createTestStore()
     seedStore(store, {
       settings: { ...getDefaultSettings('/tmp'), tabAutoGenerateTitle: true },
@@ -158,13 +221,28 @@ describe('terminal tab title batches', () => {
       'Final live title',
       'Final live title'
     ])
-    expect(store.getState().tabsByWorktree.owner?.map((tab) => tab.generatedTitle)).toEqual([
-      'Generated duplicate title for remote',
-      'Generated duplicate title for remote'
-    ])
+    // The live title is the window's own write in both builds.
     expect(store.getState().unifiedTabsByWorktree.owner?.map((tab) => tab.label)).toEqual([
       'Final live title',
       'Second visible'
+    ])
+    if (ORCA_LAYOUT_OWNER_IS_MAIN) {
+      // Main derives the generated title from its own agent status and its frame draws it: the
+      // window sends and writes none.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0))
+      expect(main.commands).toEqual([])
+      expect(store.getState().tabsByWorktree.owner?.map((tab) => tab.generatedTitle)).toEqual([
+        undefined,
+        undefined
+      ])
+      expect(
+        store.getState().unifiedTabsByWorktree.owner?.map((tab) => tab.generatedLabel)
+      ).toEqual([undefined, undefined])
+      return
+    }
+    expect(store.getState().tabsByWorktree.owner?.map((tab) => tab.generatedTitle)).toEqual([
+      'Generated duplicate title for remote',
+      'Generated duplicate title for remote'
     ])
     expect(store.getState().unifiedTabsByWorktree.owner?.map((tab) => tab.generatedLabel)).toEqual([
       'Generated duplicate title for remote',
@@ -221,7 +299,7 @@ describe('terminal tab title batches', () => {
     expect(batchStore.getState().sortEpoch).toBe(sequentialStore.getState().sortEpoch)
   })
 
-  it('coalesces generated titles while preserving first-write and replacement semantics', () => {
+  it('coalesces generated titles while preserving first-write and replacement semantics', async () => {
     const store = createTestStore()
     const fixture = makeScaleState(100)
     seedStore(store, {
@@ -251,16 +329,24 @@ describe('terminal tab title batches', () => {
       }
     )
 
+    main.commands.length = 0
     store.getState().setGeneratedTabTitlesFromAgentPrompts(updates)
 
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
     unsubscribe()
+    if (ORCA_LAYOUT_OWNER_IS_MAIN) {
+      // Main derives batch titles from agent status; first-write/replacement coverage is in agent-generated-tab-titles.test.ts, with no window writes.
+      expect(main.commands).toEqual([])
+      expect(publications).toBe(0)
+      expect(store.getState().tabsByWorktree['wt-0']?.[0]?.generatedTitle).toBeUndefined()
+      return
+    }
+    expect(main.commands).toEqual([])
     expect(publications).toBe(1)
     expect(fixture.getIdReads()).toBeLessThanOrEqual(305)
-    expect(store.getState().tabsByWorktree['wt-0']?.[0]?.generatedTitle).toBe(
-      'Replacement title for a newer dispatch'
-    )
-    expect(store.getState().tabsByWorktree['wt-99']?.[0]?.generatedTitle).toBe(
-      'Refactor remote module 99 for startup'
-    )
+    const titleOf = (worktreeId: string): string | null | undefined =>
+      store.getState().tabsByWorktree[worktreeId]?.[0]?.generatedTitle
+    expect(titleOf('wt-0')).toBe('Replacement title for a newer dispatch')
+    expect(titleOf('wt-99')).toBe('Refactor remote module 99 for startup')
   })
 })

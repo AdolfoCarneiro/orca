@@ -10,10 +10,10 @@ import { folderWorkspaceKey } from '../../../shared/workspace-scope'
 import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
 
-const mocks = vi.hoisted(() => ({ activateAndRevealWorktree: vi.fn() }))
+const mocks = vi.hoisted(() => ({ activateAndRevealWorkspace: vi.fn() }))
 
 vi.mock('./worktree-activation', () => ({
-  activateAndRevealWorktree: mocks.activateAndRevealWorktree
+  activateAndRevealWorkspace: mocks.activateAndRevealWorkspace
 }))
 
 import { activateBrowserPagePaletteResult } from './browser-page-palette-activation'
@@ -145,7 +145,7 @@ const target = { pageId: 'page-1', workspaceId: 'ws-1', worktreeId: 'wt-1' }
 describe('activateBrowserPagePaletteResult', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.activateAndRevealWorktree.mockReturnValue(true)
+    mocks.activateAndRevealWorkspace.mockReturnValue(true)
     seedStore()
   })
 
@@ -157,7 +157,7 @@ describe('activateBrowserPagePaletteResult', () => {
     })
 
     const state = useAppStore.getState()
-    expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {})
+    expect(mocks.activateAndRevealWorkspace).toHaveBeenCalledWith('wt-1', {})
     expect(state.activeBrowserTabId).toBe('ws-1')
     expect(state.activeTabType).toBe('browser')
     expect(state.browserTabsByWorktree['wt-1'][0].activePageId).toBe('page-1')
@@ -170,9 +170,70 @@ describe('activateBrowserPagePaletteResult', () => {
 
     activateBrowserPagePaletteResult(target)
 
-    expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {
+    expect(mocks.activateAndRevealWorkspace).toHaveBeenCalledWith('wt-1', {
       executionHostId: 'ssh:host-1'
     })
+  })
+
+  it('activates an SSH worktree through its paired-runtime owner alias', () => {
+    seedStore({
+      worktreesByRepo: {
+        'repo-1': [
+          makeWorktree({
+            hostId: 'ssh:private-target',
+            runtimeOwnerEnvironmentId: 'paired-host'
+          })
+        ]
+      }
+    })
+
+    expect(
+      activateBrowserPagePaletteResult({ ...target, executionHostId: 'runtime:paired-host' }).status
+    ).toBe('activated')
+    expect(mocks.activateAndRevealWorkspace).toHaveBeenCalledWith('wt-1', {
+      executionHostId: 'runtime:paired-host'
+    })
+  })
+
+  it('rejects colliding child ids before mutating either host', () => {
+    seedStore({
+      worktreesByRepo: {
+        'repo-1': [makeWorktree({ hostId: 'ssh:host-1' })],
+        'repo-2': [makeWorktree({ repoId: 'repo-2', hostId: 'ssh:host-2' })]
+      },
+      unifiedTabsByWorktree: {
+        'wt-1': [
+          makeBrowserTab({ executionHostId: 'ssh:host-1', groupId: 'group-host-1' }),
+          makeBrowserTab({ executionHostId: 'ssh:host-2', groupId: 'group-host-2' })
+        ]
+      },
+      groupsByWorktree: {
+        'wt-1': [makeGroup({ id: 'group-host-1' }), makeGroup({ id: 'group-host-2' })]
+      }
+    })
+
+    const before = useAppStore.getState()
+    expect(activateBrowserPagePaletteResult({ ...target, executionHostId: 'ssh:host-2' })).toEqual({
+      status: 'failed',
+      reason: 'missing-tab'
+    })
+    expect(useAppStore.getState()).toBe(before)
+    expect(mocks.activateAndRevealWorkspace).not.toHaveBeenCalled()
+  })
+
+  it('keeps browser workspaces with distinct unified tabs in multiple groups activatable', () => {
+    seedStore({
+      unifiedTabsByWorktree: {
+        'wt-1': [makeBrowserTab(), makeBrowserTab({ id: 'second-view', groupId: 'group-2' })]
+      },
+      groupsByWorktree: {
+        'wt-1': [
+          makeGroup(),
+          makeGroup({ id: 'group-2', activeTabId: 'second-view', tabOrder: ['second-view'] })
+        ]
+      }
+    })
+    expect(activateBrowserPagePaletteResult(target).status).toBe('activated')
   })
 
   it('activates pages in remote folder workspaces', () => {
@@ -181,13 +242,16 @@ describe('activateBrowserPagePaletteResult', () => {
       worktreesByRepo: {},
       folderWorkspaces: [makeFolderWorkspace({ executionHostId: 'ssh:host-1' })],
       browserTabsByWorktree: { [worktreeId]: [makeWorkspace({ worktreeId })] },
-      browserPagesByWorkspace: { 'ws-1': [makePage({ worktreeId })] }
+      browserPagesByWorkspace: { 'ws-1': [makePage({ worktreeId })] },
+      unifiedTabsByWorktree: { [worktreeId]: [makeBrowserTab({ worktreeId })] },
+      groupsByWorktree: { [worktreeId]: [makeGroup({ worktreeId })] },
+      activeGroupIdByWorktree: { [worktreeId]: 'group-1' }
     })
 
     expect(
       activateBrowserPagePaletteResult({ pageId: 'page-1', workspaceId: 'ws-1', worktreeId })
     ).toMatchObject({ status: 'activated' })
-    expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith(worktreeId, {
+    expect(mocks.activateAndRevealWorkspace).toHaveBeenCalledWith(worktreeId, {
       executionHostId: 'ssh:host-1'
     })
   })
@@ -198,9 +262,8 @@ describe('activateBrowserPagePaletteResult', () => {
         'ws-1': [makePage({ url: ORCA_BROWSER_BLANK_URL })]
       }
     })
-    // Why: the real activation drops the page, so a post-activation lookup would
-    // resolve the wrong target — the pre-capture is what keeps this correct.
-    mocks.activateAndRevealWorktree.mockImplementation(() => {
+    // Capture the focus target before activation deletes the original page.
+    mocks.activateAndRevealWorkspace.mockImplementation(() => {
       useAppStore.setState({ browserPagesByWorkspace: {} })
       return true
     })
@@ -224,7 +287,7 @@ describe('activateBrowserPagePaletteResult', () => {
       reason: 'missing-page'
     })
 
-    expect(mocks.activateAndRevealWorktree).not.toHaveBeenCalled()
+    expect(mocks.activateAndRevealWorkspace).not.toHaveBeenCalled()
   })
 
   // A live page in a dead workspace is a different story than a dead page.
@@ -235,11 +298,10 @@ describe('activateBrowserPagePaletteResult', () => {
       status: 'failed',
       reason: 'missing-worktree'
     })
-    expect(mocks.activateAndRevealWorktree).not.toHaveBeenCalled()
+    expect(mocks.activateAndRevealWorkspace).not.toHaveBeenCalled()
   })
 
-  // Deleting a worktree purges its browser workspaces and pages too, so the
-  // worktree check must win or a dead workspace reads as a stale page.
+  // Workspace removal also purges pages; check it first to report the actual missing owner.
   it('reports a deleted worktree as a missing workspace once its pages are purged', () => {
     seedStore({
       worktreesByRepo: {},
@@ -251,26 +313,22 @@ describe('activateBrowserPagePaletteResult', () => {
       status: 'failed',
       reason: 'missing-worktree'
     })
-    expect(mocks.activateAndRevealWorktree).not.toHaveBeenCalled()
+    expect(mocks.activateAndRevealWorkspace).not.toHaveBeenCalled()
   })
 
-  it('reports a failed worktree activation distinguishably from a stale page', () => {
-    mocks.activateAndRevealWorktree.mockReturnValue(false)
+  it('reports blocked activation without claiming the workspace disappeared', () => {
+    mocks.activateAndRevealWorkspace.mockReturnValue(false)
 
-    expect(activateBrowserPagePaletteResult(target)).toEqual({
-      status: 'failed',
-      reason: 'missing-worktree'
-    })
+    expect(activateBrowserPagePaletteResult(target)).toEqual({ status: 'blocked' })
     expect(useAppStore.getState().activeBrowserTabId).toBeNull()
   })
 })
 
-// U3: group focus already rides on setActiveBrowserTab → activateTab. These pin
-// it so the extraction above cannot quietly lose cross-column jumping.
+// Preserve cross-column focus through setActiveBrowserTab → activateTab.
 describe('activateBrowserPagePaletteResult group focus', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.activateAndRevealWorktree.mockReturnValue(true)
+    mocks.activateAndRevealWorkspace.mockReturnValue(true)
     seedStore()
   })
 
@@ -315,12 +373,14 @@ describe('activateBrowserPagePaletteResult group focus', () => {
     expect(useAppStore.getState().activeGroupIdByWorktree['wt-1']).toBe('group-1')
   })
 
-  it('still activates the page when no unified tab backs the browser workspace', () => {
+  // Without a unified tab, success would leave the previous tab visible.
+  it('fails instead of activating when no unified tab backs the browser workspace', () => {
     seedStore({ unifiedTabsByWorktree: {}, groupsByWorktree: { 'wt-1': [] } })
 
-    expect(activateBrowserPagePaletteResult(target)).toMatchObject({
-      status: 'activated'
+    expect(activateBrowserPagePaletteResult(target)).toEqual({
+      status: 'failed',
+      reason: 'missing-tab'
     })
-    expect(useAppStore.getState().activeBrowserTabId).toBe('ws-1')
+    expect(useAppStore.getState().activeBrowserTabId).toBeNull()
   })
 })

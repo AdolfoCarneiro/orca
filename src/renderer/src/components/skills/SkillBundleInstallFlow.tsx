@@ -24,6 +24,8 @@ import { translate } from '@/i18n/i18n'
 import { checklistItemsFromVersion } from './skill-package-checklist-items'
 import { summarizeSkillInstallRisk } from './skill-package-install-risk'
 import { retryableSkillIds } from './skill-bundle-retry-selection'
+import { createBrowserUuid } from '@/lib/browser-uuid'
+import { selectFolderWorkspaces, selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 
 type BundleVersion = SkillCloudVersion & {
   manifest: Extract<SkillCloudVersion['manifest'], { skills: unknown }>
@@ -46,9 +48,9 @@ export function SkillBundleInstallFlow(props: {
 }): React.JSX.Element {
   const runtimeEnvironments = useAppStore((state) => state.runtimeEnvironments)
   const runtimeStatus = useAppStore((state) => state.runtimeStatusByEnvironmentId)
-  const worktreesByRepo = useAppStore((state) => state.worktreesByRepo)
+  const worktreesByRepo = useAppStore((state) => selectWorktreesByRepo(state))
   const repos = useAppStore((state) => state.repos)
-  const folderWorkspaces = useAppStore((state) => state.folderWorkspaces)
+  const folderWorkspaces = useAppStore((state) => selectFolderWorkspaces(state))
   const sshConnectionStates = useAppStore((state) => state.sshConnectionStates)
   const sshTargetLabels = useAppStore((state) => state.sshTargetLabels)
   const allSkillIds = useMemo(
@@ -63,8 +65,7 @@ export function SkillBundleInstallFlow(props: {
   const [result, setResult] = useState<SkillBundleInstallResult | null>(null)
   const [environmentId, setEnvironmentId] = useState('local')
   const [scope, setScope] = useState<'global' | 'workspace'>('global')
-  // Why: null means "follow detection"; storing the derived default instead
-  // would freeze the picker on whichever machine was selected first.
+  // Null follows detection as targets change; storing the derived default would freeze the first machine’s choice.
   const [providerChoice, setProviderChoice] = useState<Set<SkillInstallProviderId> | null>(null)
   const [workspace, setWorkspace] = useState('')
   const [executionTarget, setExecutionTarget] = useState<{ kind: 'wsl'; distro: string } | null>(
@@ -126,7 +127,11 @@ export function SkillBundleInstallFlow(props: {
   ): Promise<void> => {
     const target = destination()
     if (!target || requestedIds.size === 0) {
-      setError(target ? 'Select at least one skill.' : 'Choose a workspace.')
+      setError(
+        target
+          ? translate('auto.components.skills.install.selectSkill', 'Select at least one skill.')
+          : translate('auto.components.skills.install.chooseWorkspace', 'Choose a workspace.')
+      )
       return
     }
     setBusy(true)
@@ -165,7 +170,7 @@ export function SkillBundleInstallFlow(props: {
           return
         }
       }
-      const operationId = crypto.randomUUID()
+      const operationId = createBrowserUuid()
       installProgress.begin(operationId)
       const operation = await window.api.skills.installBundleShare({
         shareId: props.shareId,
@@ -189,7 +194,10 @@ export function SkillBundleInstallFlow(props: {
       } else if (operation.status !== 'ok') {
         setError(
           operation.status === 'reconnect-required'
-            ? 'Reconnect your Orca account before installing.'
+            ? translate(
+                'auto.components.skills.install.reconnectBeforeInstalling',
+                'Reconnect your Orca account before installing.'
+              )
             : operation.message
         )
       } else {
@@ -204,7 +212,12 @@ export function SkillBundleInstallFlow(props: {
       }
     } catch (cause) {
       console.warn('[skills] bundle install failed:', cause)
-      setError('Installation failed before Orca could verify the requested bundle.')
+      setError(
+        translate(
+          'auto.components.skills.install.bundleVerificationFailed',
+          'Installation failed before Orca could verify the requested bundle.'
+        )
+      )
     } finally {
       installProgress.finish()
       setBusy(false)
@@ -221,7 +234,12 @@ export function SkillBundleInstallFlow(props: {
       ...(environmentId === 'local' || environmentId.startsWith('ssh:') ? {} : { environmentId })
     })
     if (!cancelled.cancelled) {
-      setError('The destination had already finished this installation.')
+      setError(
+        translate(
+          'auto.components.skills.install.destinationAlreadyFinished',
+          'The destination had already finished this installation.'
+        )
+      )
     }
   }
 

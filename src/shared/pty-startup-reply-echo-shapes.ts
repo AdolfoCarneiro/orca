@@ -1,19 +1,9 @@
 import type { PtyOwnerBackend } from './pty-owner-backend'
 
-// The shapes a reply written to the PTY master can come back as, and how one is located
-// inside a coalesced read. Split from the write path: what an echo LOOKS like is
-// independent of who writes it (#12112, #13137).
+// Echo shapes are independent of the writer; match them within coalesced output (#12112, #13137).
 
-/**
- * One echo shape to watch for.
- *
- * `holdPartial` is the safety bit. A shape that does NOT start with ESC can be held as a
- * partial candidate across reads, because no terminal query can share a prefix with it —
- * holding it steals nothing. A shape that DOES start with ESC must never be held: a read
- * ending on a bare ESC is a strict prefix of it, the hold would take that ESC away from
- * the query parser, and an expired hold releases it raw — so a query torn at its own ESC
- * would never be answered. Such a shape is matched only when it arrives complete.
- */
+/** Hold only non-ESC partials, which cannot steal terminal-query prefixes. ESC-led shapes require complete matches:
+ * holding bare ESC takes it from the parser and later releases a torn query raw/unanswered. */
 export type EchoProjection = { needle: string; holdPartial: boolean }
 
 export type PtyStartupReplyEchoMatch =
@@ -21,29 +11,62 @@ export type PtyStartupReplyEchoMatch =
   | { kind: 'partial'; offset: number }
   | { kind: 'none' }
 
+/* oxlint-disable-next-line no-control-regex -- terminal reply grammars are control sequences */
+const PRIVATE_DSR_RE = new RegExp('^\\u001b\\[\\?[0-9][0-9;]*n$')
+
+/** Reject tiny peer-supplied DSR needles: empty params could arm BEL+n and delete ordinary output. */
+const MIN_READLINE_NEEDLE_LENGTH = 4
+
+/** Kernel ECHOCTL encodes all controls (BEL→^G), except literal TAB/LF/CR; live bash/zsh/sh PTYs agree.
+ * ST-terminated in-tree OSC replies match the old ESC-only form, but foreign/older BEL replies require full encoding. */
+function caretEncodeControls(reply: string): string {
+  let out = ''
+  for (const ch of reply) {
+    const code = ch.charCodeAt(0)
+    if (code === 0x09 || code === 0x0a || code === 0x0d) {
+      out += ch
+    } else if (code < 0x20) {
+      out += `^${String.fromCharCode(code + 0x40)}`
+    } else {
+      out += code === 0x7f ? '^?' : ch
+    }
+  }
+  return out
+}
+
+/** Readline rings BEL for OSC/private-DSR introducers and echoes the residue, even while kernel ECHO is clear. */
+function readlineEchoProjection(reply: string): string | null {
+  if (reply.includes('\x1b]')) {
+    return reply.replaceAll('\x1b]', '\x07').replaceAll('\x1b\\', '')
+  }
+  // Match full private-DSR grammar so caller widening cannot accidentally arm DA1’s shared-prefix needle.
+  if (!PRIVATE_DSR_RE.test(reply)) {
+    return null
+  }
+  const needle = `\x07${reply.slice(3)}`
+  return needle.length >= MIN_READLINE_NEEDLE_LENGTH ? needle : null
+}
+
 export function replyEchoProjections(
   reply: string,
   ownerBackend: PtyOwnerBackend
 ): readonly EchoProjection[] {
   if (ownerBackend === 'windows-conpty') {
-    // Why: ConPTY's projection is the documented, deterministic ESC-stripped form.
+    // Only ST-terminated ConPTY echoes are measured (#9651); BEL behavior remains unknown. Preserve rather than generalize
+    // without evidence, per #9500 Decision 3; the required harness does not exist yet.
     return [{ needle: reply.replaceAll('\x1b', ''), holdPartial: true }]
   }
   if (ownerBackend !== 'posix-pty') {
     // wsl.exe is ConPTY-hosted but its echo shape is unverified; suppress nothing.
     return []
   }
+  const readline = readlineEchoProjection(reply)
   return [
     // The kernel's ECHOCTL caret form — the POSIX default.
-    { needle: reply.replaceAll('\x1b', '^['), holdPartial: true },
-    // Readline rewrites OSC, and echoes it even while the kernel reports ECHO clear.
-    ...(reply.includes('\x1b]')
-      ? [{ needle: reply.replaceAll('\x1b]', '\x07').replaceAll('\x1b\\', ''), holdPartial: true }]
-      : []),
-    // A `stty -echoctl` tty echoes the reply verbatim. Complete-match-only, because it
-    // starts with ESC — see `holdPartial`. We just wrote these exact bytes, and we are
-    // the terminal, so a child emitting the identical span in the same window is not a
-    // case worth trading a stolen query for.
+    { needle: caretEncodeControls(reply), holdPartial: true },
+    // Readline rewrites the reply, and echoes it even while the kernel reports ECHO clear.
+    ...(readline === null ? [] : [{ needle: readline, holdPartial: true }]),
+    // Verbatim stty -echoctl echoes match only complete spans: holding ESC could steal a query. We just wrote these exact bytes.
     { needle: reply, holdPartial: false }
   ]
 }
@@ -62,8 +85,7 @@ function suffixPrefixOffset(needle: string, data: string): number {
   return -1
 }
 
-// Why search the whole span: the tty coalesces its echo with whatever the shell and the
-// program wrote around it, so anchoring at offset 0 recognizes almost no real echo.
+// Search all output: PTYs coalesce echo with preceding shell/program bytes.
 export function locateEcho(
   projections: readonly EchoProjection[],
   data: string

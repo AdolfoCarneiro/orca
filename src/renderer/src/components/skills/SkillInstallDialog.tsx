@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Download, Loader2, ShieldCheck } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog'
+import { Loader2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useAppStore } from '@/store'
 import type {
   SkillInstallDestination,
@@ -32,6 +25,9 @@ import { useSkillInstallProgress } from './skill-install-progress-state'
 import { translate } from '@/i18n/i18n'
 import { resolveSkillShareForInstall } from './skill-warning-preview-gate'
 import { useSkillInstallRisk } from './use-skill-install-risk'
+import { SkillInstallDialogFooter } from './SkillInstallDialogFooter'
+import { createBrowserUuid } from '@/lib/browser-uuid'
+import { selectFolderWorkspaces, selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 
 export function SkillInstallDialog({
   open,
@@ -44,17 +40,16 @@ export function SkillInstallDialog({
 }): React.JSX.Element {
   const runtimeEnvironments = useAppStore((state) => state.runtimeEnvironments)
   const runtimeStatus = useAppStore((state) => state.runtimeStatusByEnvironmentId)
-  const worktreesByRepo = useAppStore((state) => state.worktreesByRepo)
+  const worktreesByRepo = useAppStore((state) => selectWorktreesByRepo(state))
   const repos = useAppStore((state) => state.repos)
-  const folderWorkspaces = useAppStore((state) => state.folderWorkspaces)
+  const folderWorkspaces = useAppStore((state) => selectFolderWorkspaces(state))
   const sshConnectionStates = useAppStore((state) => state.sshConnectionStates)
   const sshTargetLabels = useAppStore((state) => state.sshTargetLabels)
   const [link, setLink] = useState(initialLink)
   const [preview, setPreview] = useState<ResolvedSkillShare | null>(null)
   const [environmentId, setEnvironmentId] = useState<string>('local')
   const [scope, setScope] = useState<'global' | 'workspace'>('global')
-  // Why: null means "follow detection"; storing the derived default instead
-  // would freeze the picker on whichever machine was selected first.
+  // Null follows detection across target changes instead of freezing the first machine’s default.
   const [providerChoice, setProviderChoice] = useState<Set<SkillInstallProviderId> | null>(null)
   const [workspace, setWorkspace] = useState<string>('')
   const [executionTarget, setExecutionTarget] = useState<{ kind: 'wsl'; distro: string } | null>(
@@ -91,7 +86,12 @@ export function SkillInstallDialog({
   const resolveLink = useCallback(async (value: string): Promise<void> => {
     const shareId = parseSkillShareId(value)
     if (!shareId) {
-      setError('Enter an Orca skill share link.')
+      setError(
+        translate(
+          'auto.components.skills.install.enterShareLink',
+          'Enter an Orca skill share link.'
+        )
+      )
       return
     }
     setBusy(true)
@@ -103,14 +103,22 @@ export function SkillInstallDialog({
         setError(
           operation.status === 'unconfigured'
             ? operation.message
-            : 'This share is unavailable. The link may be invalid, expired, or revoked.'
+            : translate(
+                'auto.components.skills.install.shareUnavailable',
+                'This share is unavailable. The link may be invalid, expired, or revoked.'
+              )
         )
         return
       }
       setPreview({ shareId, version: operation.value.version })
     } catch (cause) {
       console.warn('[skills] share resolution failed:', cause)
-      setError('This share is unavailable. The link may be invalid, expired, or revoked.')
+      setError(
+        translate(
+          'auto.components.skills.install.shareUnavailable',
+          'This share is unavailable. The link may be invalid, expired, or revoked.'
+        )
+      )
     } finally {
       setBusy(false)
     }
@@ -118,12 +126,10 @@ export function SkillInstallDialog({
 
   const inspect = (): Promise<void> => resolveLink(link)
 
-  /** True from the moment a prefilled link opens the dialog until it resolves
-   *  or fails, so the paste step never appears for a caller-supplied link. */
+  /** Skip the paste step while a caller-supplied link resolves, until preview or error arrives. */
   const resolvingInitialLink = Boolean(initialLink) && !preview && !error
 
-  // Why: arriving with a link already in hand means the paste step is busywork,
-  // so the dialog opens on the review screen instead of asking for a click.
+  // A supplied link opens directly on review rather than asking the user to paste it again.
   useEffect(() => {
     if (!open || !initialLink || autoResolved.current) {
       return
@@ -138,7 +144,7 @@ export function SkillInstallDialog({
     }
     const choice = workspaceChoices.find((candidate) => candidate.id === workspace)
     if (scope === 'workspace' && !choice) {
-      setError('Choose a workspace.')
+      setError(translate('auto.components.skills.install.chooseWorkspace', 'Choose a workspace.'))
       return
     }
     setBusy(true)
@@ -186,7 +192,7 @@ export function SkillInstallDialog({
           return
         }
       }
-      const operationId = crypto.randomUUID()
+      const operationId = createBrowserUuid()
       installProgress.begin(operationId)
       const operation = await window.api.skills.installShare({
         shareId: preview.shareId,
@@ -204,7 +210,10 @@ export function SkillInstallDialog({
       if (operation.status !== 'ok') {
         setError(
           operation.status === 'reconnect-required'
-            ? 'Reconnect your Orca account before installing.'
+            ? translate(
+                'auto.components.skills.install.reconnectBeforeInstalling',
+                'Reconnect your Orca account before installing.'
+              )
             : operation.message
         )
         return
@@ -215,7 +224,12 @@ export function SkillInstallDialog({
       }
     } catch (cause) {
       console.warn('[skills] install failed:', cause)
-      setError('Installation failed before Orca could verify the requested version.')
+      setError(
+        translate(
+          'auto.components.skills.install.requestedVersionVerificationFailed',
+          'Installation failed before Orca could verify the requested version.'
+        )
+      )
     } finally {
       installProgress.finish()
       setBusy(false)
@@ -231,7 +245,12 @@ export function SkillInstallDialog({
       ...(environmentId === 'local' || environmentId.startsWith('ssh:') ? {} : { environmentId })
     })
     if (!cancelled.cancelled) {
-      setError('The destination had already finished this installation.')
+      setError(
+        translate(
+          'auto.components.skills.install.destinationAlreadyFinished',
+          'The destination had already finished this installation.'
+        )
+      )
     }
   }
 
@@ -251,11 +270,7 @@ export function SkillInstallDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && !busy && !bundleBusy && close()}>
-      {/* Why: DialogContent is a grid, so a child that cannot wrap (a digest, a
-          path, a long name) raises the grid's minimum width and the whole dialog
-          scrolls sideways with its content clipped. min-w-0 lets children reflow
-          at the dialog width; overflow-x-hidden makes sideways scroll impossible
-          even if some future child still refuses to shrink. */}
+      {/* Grid children need min-w-0 to wrap long paths/names; clip residual horizontal overflow. */}
       <DialogContent
         className="max-h-[calc(100vh-3rem)] overflow-x-hidden overflow-y-auto scrollbar-sleek sm:max-w-xl [&>*]:min-w-0"
         aria-describedby={undefined}
@@ -275,8 +290,7 @@ export function SkillInstallDialog({
         </DialogHeader>
 
         {resolvingInitialLink ? (
-          // Why: the paste form would flash for the length of the round-trip
-          // before being replaced by a review the caller already asked for.
+          // Avoid flashing the paste form while the supplied link’s review loads.
           <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
             {translate('auto.components.skills.SkillInstallDialog.opening', 'Opening this link…')}
@@ -348,65 +362,21 @@ export function SkillInstallDialog({
             {installProgress.phaseLabel}
           </p>
         ) : null}
-        {!bundleVersion ? (
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={close} disabled={busy}>
-              {translate('auto.components.skills.SkillInstallDialog.d198ec91e5', 'Close')}
-            </Button>
-            {!preview && !resolvingInitialLink ? (
-              <Button type="button" disabled={busy || !link.trim()} onClick={() => void inspect()}>
-                {busy ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <ShieldCheck className="size-4" />
-                )}
-                {busy
-                  ? translate(
-                      'auto.components.skills.SkillInstallReviewContent.69236de8d6',
-                      'Checking…'
-                    )
-                  : translate(
-                      'auto.components.skills.SkillInstallReviewContent.157de228b4',
-                      'Inspect skill'
-                    )}
-              </Button>
-            ) : null}
-            {busy && installProgress.activeOperationId ? (
-              <Button type="button" variant="secondary" onClick={() => void cancelInstall()}>
-                {translate(
-                  'auto.components.skills.SkillInstallDialog.05588076a9',
-                  'Cancel installation'
-                )}
-              </Button>
-            ) : null}
-            {preview &&
-            (!result || ['conflict', 'partial', 'failed', 'cancelled'].includes(result.status)) ? (
-              <Button
-                type="button"
-                disabled={busy || (scope === 'workspace' && !workspace)}
-                onClick={() => void install()}
-                className="w-32"
-              >
-                {busy ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Download className="size-4" />
-                )}
-                {busy
-                  ? translate('auto.components.skills.SkillInstallDialog.241e72f9d6', 'Installing…')
-                  : result
-                    ? translate(
-                        'auto.components.skills.SkillInstallDialog.59c3b76cdd',
-                        'Retry install'
-                      )
-                    : translate(
-                        'auto.components.skills.SkillInstallDialog.39acb9e8f4',
-                        'Install skill'
-                      )}
-              </Button>
-            ) : null}
-          </DialogFooter>
-        ) : null}
+        <SkillInstallDialogFooter
+          activeOperationId={installProgress.activeOperationId}
+          busy={busy}
+          hasBundleVersion={Boolean(bundleVersion)}
+          hasPreview={Boolean(preview)}
+          link={link}
+          resolvingInitialLink={resolvingInitialLink}
+          result={result}
+          scope={scope}
+          workspace={workspace}
+          onCancelInstall={() => void cancelInstall()}
+          onClose={close}
+          onInspect={() => void inspect()}
+          onInstall={(discardLocal) => void install(discardLocal)}
+        />
       </DialogContent>
     </Dialog>
   )

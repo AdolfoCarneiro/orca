@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { RpcContext } from '../core'
+import { eraseRpcMethods, type RpcContext } from '../core'
 
 vi.mock('electron', () => ({
   app: { getPath: () => '/orca-state', isPackaged: true }
@@ -29,19 +29,22 @@ const WSL_RUNTIME = {
 
 function makeContext(overrides: {
   resolveProjectRuntimeForWorktree?: (worktreeId: string | null | undefined) => unknown
+  resolveRuntimeFileTarget?: (selector: string) => Promise<unknown>
 }): RpcContext {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: skills.discover reads only these runtime members.
   return {
     runtime: {
       listRepos: () => [],
       resolveSkillDiscoveryProviderRoots: async () => ({}),
       resolveProjectRuntimeForWorktree:
-        overrides.resolveProjectRuntimeForWorktree ?? (() => undefined)
+        overrides.resolveProjectRuntimeForWorktree ?? (() => undefined),
+      resolveRuntimeFileTarget: overrides.resolveRuntimeFileTarget
     }
   } as unknown as RpcContext
 }
 
 function discoverMethod() {
-  const method = SKILL_METHODS.find((entry) => entry.name === 'skills.discover')
+  const method = eraseRpcMethods(SKILL_METHODS).find((entry) => entry.name === 'skills.discover')
   if (!method) {
     throw new Error('skills.discover method not registered')
   }
@@ -49,7 +52,7 @@ function discoverMethod() {
 }
 
 function installMethod() {
-  const method = SKILL_METHODS.find((entry) => entry.name === 'skills.install')
+  const method = eraseRpcMethods(SKILL_METHODS).find((entry) => entry.name === 'skills.install')
   if (!method) {
     throw new Error('skills.install method not registered')
   }
@@ -57,7 +60,7 @@ function installMethod() {
 }
 
 function method(name: string) {
-  const value = SKILL_METHODS.find((entry) => entry.name === name)
+  const value = eraseRpcMethods(SKILL_METHODS).find((entry) => entry.name === name)
   if (!value) {
     throw new Error(`${name} method not registered`)
   }
@@ -73,8 +76,39 @@ describe('skills.discover RPC', () => {
     )
     expect(resolveProjectRuntimeForWorktree).toHaveBeenCalledWith('worktree-1')
     expect(vi.mocked(resolveSkillDiscoveryTarget)).toHaveBeenLastCalledWith(
-      expect.objectContaining({ projectRuntime: WSL_RUNTIME })
+      expect.objectContaining({ projectRuntime: WSL_RUNTIME }),
+      { refuseStoppedWslDistro: true }
     )
+  })
+
+  it('scans a workspace named only by id in its folder, and refuses SSH workspaces', async () => {
+    const resolveRuntimeFileTarget = vi.fn(async () => ({
+      worktree: { path: '/repo/feature' },
+      executionHostId: 'local'
+    }))
+    await discoverMethod().handler(
+      { worktreeId: 'repo::/repo/feature' },
+      makeContext({ resolveRuntimeFileTarget })
+    )
+    expect(resolveRuntimeFileTarget).toHaveBeenCalledWith('id:repo::/repo/feature')
+    expect(vi.mocked(resolveSkillDiscoveryTarget)).toHaveBeenLastCalledWith(
+      expect.objectContaining({ cwd: '/repo/feature' }),
+      { refuseStoppedWslDistro: true }
+    )
+
+    const discoveries = vi.mocked(discoverSkillsOnTarget).mock.calls.length
+    await expect(
+      discoverMethod().handler(
+        { worktreeId: 'remote::/srv/app' },
+        makeContext({
+          resolveRuntimeFileTarget: async () => ({
+            worktree: { path: '/srv/app' },
+            executionHostId: 'ssh:box'
+          })
+        })
+      )
+    ).rejects.toThrow('unavailable for SSH hosts')
+    expect(vi.mocked(discoverSkillsOnTarget).mock.calls).toHaveLength(discoveries)
   })
 
   it('prefers a caller-supplied project runtime over store resolution', async () => {
@@ -85,7 +119,8 @@ describe('skills.discover RPC', () => {
     )
     expect(resolveProjectRuntimeForWorktree).not.toHaveBeenCalled()
     expect(vi.mocked(resolveSkillDiscoveryTarget)).toHaveBeenLastCalledWith(
-      expect.objectContaining({ projectRuntime: WSL_RUNTIME })
+      expect.objectContaining({ projectRuntime: WSL_RUNTIME }),
+      { refuseStoppedWslDistro: true }
     )
   })
 
@@ -105,6 +140,27 @@ describe('skills.discover RPC', () => {
 
   it('accepts a params payload from an older client that cannot send refresh', () => {
     expect(discoverMethod().params?.parse({ cwd: '/repo' })).toEqual({ cwd: '/repo' })
+  })
+
+  it('preserves portable filters through the server RPC boundary', async () => {
+    await discoverMethod().handler(
+      { names: ['orchestration'], sourceKinds: ['home'] },
+      makeContext({})
+    )
+
+    expect(vi.mocked(resolveSkillDiscoveryTarget)).toHaveBeenLastCalledWith(
+      expect.objectContaining({ names: ['orchestration'], sourceKinds: ['home'] }),
+      { refuseStoppedWslDistro: true }
+    )
+  })
+
+  it('accepts empty portable filters as an unbounded request', async () => {
+    await discoverMethod().handler({ names: [], sourceKinds: [] }, makeContext({}))
+
+    expect(vi.mocked(resolveSkillDiscoveryTarget)).toHaveBeenLastCalledWith(
+      expect.objectContaining({ names: [], sourceKinds: [] }),
+      { refuseStoppedWslDistro: true }
+    )
   })
 })
 
@@ -240,7 +296,7 @@ describe('skills.share RPC', () => {
 
   beforeEach(() => {
     vi.mocked(discoverSkillsOnTarget).mockClear()
-    vi.mocked(resolveSkillDiscoveryTarget).mockImplementation((target) => ({
+    vi.mocked(resolveSkillDiscoveryTarget).mockImplementation(async (target) => ({
       kind: 'native-host',
       cwd: target?.cwd ?? undefined
     }))
@@ -282,13 +338,13 @@ describe('skills.share RPC', () => {
     expect(discoverSkillsOnTarget).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'native-host', cwd: '/repo' }),
       [],
-      { providerRootOverrides: {}, refresh: true }
+      { providerRootOverrides: {}, refresh: true, gateStoppedWslDistros: false }
     )
     expect(publishDiscoveredSkillsFromAgent).toHaveBeenCalledWith(request, discoveredSkills, signal)
   })
 
   it('rejects WSL before attempting to read Linux paths with native fs', async () => {
-    vi.mocked(resolveSkillDiscoveryTarget).mockReturnValueOnce({
+    vi.mocked(resolveSkillDiscoveryTarget).mockResolvedValueOnce({
       kind: 'wsl',
       distro: 'Ubuntu',
       homeDir: '/home/alice',

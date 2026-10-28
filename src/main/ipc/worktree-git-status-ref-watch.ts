@@ -6,10 +6,7 @@ import {
   type WorktreeBaseWatchTarget
 } from './worktree-base-directory-event-filter'
 
-export type GitStatusRefWatchTarget = Pick<
-  WorktreeBaseWatchTarget,
-  'kind' | 'connectionId' | 'repos' | 'path'
-> & {
+export type GitStatusRefWatchTarget = Pick<WorktreeBaseWatchTarget, 'kind' | 'repos' | 'path'> & {
   gitStatusRefPaths: Set<string>
 }
 
@@ -35,7 +32,6 @@ export type GitStatusRefBindingRequest = {
   worktreePath: string
   executionHostId: string
   connectionId?: string
-  providerGeneration?: number
   branch?: string
   upstreamName?: string
 }
@@ -51,7 +47,7 @@ function watchMatchesBinding(
 ): boolean {
   return (
     watch.kind === 'git-common' &&
-    watch.connectionId === binding.connectionId &&
+    binding.connectionId === undefined &&
     watch.repos.has(binding.repoId)
   )
 }
@@ -62,7 +58,7 @@ function watchMatchesResolution(
 ): boolean {
   return (
     watch.kind === 'git-common' &&
-    watch.connectionId === resolution.connectionId &&
+    resolution.connectionId === undefined &&
     watch.repos.has(resolution.repoId)
   )
 }
@@ -74,9 +70,24 @@ export function applyActiveGitStatusRefBinding(watch: GitStatusRefWatchTarget): 
   }
 }
 
+// Only the selected upstream needs polling; binding events schedule it immediately without idle per-repo timers.
+const bindingChangeListeners = new Set<() => void>()
+
+export function onActiveGitStatusRefBindingChanged(listener: () => void): () => void {
+  bindingChangeListeners.add(listener)
+  return () => {
+    bindingChangeListeners.delete(listener)
+  }
+}
+
 function applyBindingToWatches(watches: Iterable<GitStatusRefWatchTarget>): void {
   for (const watch of watches) {
     applyActiveGitStatusRefBinding(watch)
+  }
+  // Snapshot first: a listener may unsubscribe while being notified.
+  const listeners = Array.from(bindingChangeListeners)
+  for (const listener of listeners) {
+    listener()
   }
 }
 
@@ -97,7 +108,6 @@ function resolutionKey(args: GitStatusRefBindingRequest): string {
   return [
     args.executionHostId,
     args.connectionId ?? '',
-    args.providerGeneration ?? 0,
     args.worktreeId,
     args.worktreePath,
     args.branch,

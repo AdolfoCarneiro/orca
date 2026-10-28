@@ -24,8 +24,11 @@ export type LinearMcpIssueListRequest = {
 
 export type LinearMcpIssueListResult = {
   issues: (LinearIssueSummary & { workspace: LinearWorkspaceCandidate })[]
+  // Older hosts omit truncated; fall back to metadata rather than assume completeness.
+  truncated?: boolean
   meta: {
-    limit: number
+    // null when the caller set no --limit, i.e. every matching issue was read.
+    limit: number | null
     returned: number
     hasMore: boolean
     nextCursor?: string

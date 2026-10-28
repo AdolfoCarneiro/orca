@@ -1,21 +1,13 @@
-/**
- * Host-qualified removal identity for workspace cleanup (STA-4343).
- *
- * A cleanup row's `worktreeId` is `repoId::path`, which two execution hosts can
- * both own. Selection, confirmation, preflight and removal therefore travel as
- * a (worktreeId, executionHostId) pair. Where the owner cannot be pinned — an
- * id-only row that the store knows on several hosts, a confirmation naming two
- * hosts at once, or a refreshed scan that no longer shows the row on the
- * confirmed host — the target resolves to a failure instead of a best guess:
- * deleting the wrong host's workspace destroys uncommitted work.
- */
+/** Carry confirmed (worktreeId, executionHostId) through cleanup; IDs repeat across hosts. Refuse ambiguous/hostless/missing refreshed owners rather than risk deleting another host’s uncommitted work (STA-4343). */
 import type { AppState } from '../types'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 import {
   canQueueWorkspaceCleanupCandidate,
   shouldForceWorkspaceCleanupRemoval,
   WORKSPACE_CLEANUP_TARGET_BATCH_LIMIT,
-  type WorkspaceCleanupCandidate
+  type WorkspaceCleanupCandidate,
+  type WorkspaceCleanupScanError,
+  type WorkspaceCleanupUnverifiedRemovalConsent
 } from '../../../../shared/workspace-cleanup'
 import {
   getWorkspaceCleanupCandidateIdentity,
@@ -25,6 +17,14 @@ import {
 import { getWorktreeOperationOwnerHostIds } from '@/lib/worktree-operation-route'
 import { translate } from '@/i18n/i18n'
 import type { WorkspaceCleanupFailure } from './workspace-cleanup'
+import {
+  getWorkspaceCleanupGitUnavailableFailure,
+  getWorkspaceCleanupMissingFailure,
+  getWorkspaceCleanupRepoScanFailure,
+  hasValidWorkspaceCleanupUnverifiedConsent,
+  hasWorkspaceCleanupRiskEscalated
+} from './workspace-cleanup-preflight-failures'
+import { createBrowserUuid } from '@/lib/browser-uuid'
 
 /** Distinct from every ExecutionHostId, so a hostless row cannot alias one. */
 const UNQUALIFIED_HOST_BUCKET = Symbol('unqualified-cleanup-host')
@@ -32,10 +32,7 @@ const UNQUALIFIED_HOST_BUCKET = Symbol('unqualified-cleanup-host')
 export type WorkspaceCleanupRemovalTarget = {
   kind: 'target'
   worktreeId: string
-  /**
-   * The host the user confirmed. Null is reserved for legacy internal callers
-   * that did not supply confirmation candidates.
-   */
+  /** Confirmed owner; null only for legacy internal callers without confirmation candidates. */
   executionHostId: ExecutionHostId | null
   displayName: string
   approvedCandidate?: WorkspaceCleanupCandidate
@@ -108,13 +105,7 @@ export function resolveWorkspaceCleanupRemovalTargets(
     const requestedEveryApprovedRow = requestedCountByWorktreeId.get(worktreeId) === approved.length
     const confirmedCandidate = approved.length > 1 ? approved[cursor] : approved[0]
     const displayName = confirmedCandidate?.displayName ?? approved[0]?.displayName ?? worktreeId
-    // Why: one id with two confirmed hosts is ambiguous unless the caller also
-    // supplies two id occurrences, one for each explicitly approved row.
-    //
-    // Why the STRICT resolver: the display identity defaults a hostless row to
-    // `local`, so a hostless row and a genuine local row for the same id share an
-    // identity and this gate would not fire. Destructive code may not guess a
-    // host — an unqualified row is its own bucket here.
+    // Two confirmed hosts need two ID occurrences. Use strict owner buckets: display identity maps hostless to local and would hide destructive ambiguity.
     if (
       !requestedEveryApprovedRow &&
       new Set(
@@ -142,9 +133,7 @@ export function resolveWorkspaceCleanupRemovalTargets(
     if (confirmedCandidate) {
       return ambiguousHostFailure(worktreeId, displayName)
     }
-    // No host evidence on the row: accept it only while the store itself knows
-    // a single owner. This compatibility path is reachable only by internal
-    // callers that did not provide a confirmed candidate.
+    // Legacy internal callers without confirmation may proceed only with one known owner.
     const ownerHostIds = getWorktreeOperationOwnerHostIds(state, worktreeId)
     if (ownerHostIds.length > 1) {
       return ambiguousHostFailure(worktreeId, displayName)
@@ -165,21 +154,26 @@ export async function preflightWorkspaceCleanupCandidates(
   enrich: (
     candidates: readonly WorkspaceCleanupCandidate[],
     state: AppState
-  ) => Promise<WorkspaceCleanupCandidate[]>
+  ) => Promise<WorkspaceCleanupCandidate[]>,
+  options: {
+    unverifiedRemovalConsent?: WorkspaceCleanupUnverifiedRemovalConsent
+    getConsentAttemptId?: (identity: string) => string | undefined
+  } = {}
 ): Promise<WorkspaceCleanupPreflightResult[]> {
-  // Why: one batched scan per chunk replaces a git worktree-list + activity
-  // read per row; chunks stay under main's silent target truncation limit.
+  // Batch scans avoid per-row git/activity reads; chunk below main’s target truncation limit.
   const candidatesByIdentity = new Map<string, WorkspaceCleanupCandidate>()
   const identitiesByWorktreeId = new Map<string, Set<string>>()
+  const scanErrors: WorkspaceCleanupScanError[] = []
   const worktreeIds = targets.map((target) => target.worktreeId)
   for (let start = 0; start < worktreeIds.length; start += WORKSPACE_CLEANUP_TARGET_BATCH_LIMIT) {
     const chunk = worktreeIds.slice(start, start + WORKSPACE_CLEANUP_TARGET_BATCH_LIMIT)
     const scan = await window.api.workspaceCleanup.scan({
       worktreeIds: [...chunk],
-      scanId: crypto.randomUUID(),
+      scanId: createBrowserUuid(),
       refreshActivity: true
     })
     const enriched = await enrich(scan.candidates, getState())
+    scanErrors.push(...scan.errors)
     for (const candidate of enriched) {
       const identity = getWorkspaceCleanupCandidateIdentity(candidate)
       candidatesByIdentity.set(identity, candidate)
@@ -189,7 +183,13 @@ export async function preflightWorkspaceCleanupCandidates(
     }
   }
   return targets.map((target) =>
-    evaluateWorkspaceCleanupPreflight(target, candidatesByIdentity, identitiesByWorktreeId)
+    evaluateWorkspaceCleanupPreflight(
+      target,
+      candidatesByIdentity,
+      identitiesByWorktreeId,
+      scanErrors,
+      options
+    )
   )
 }
 
@@ -214,13 +214,21 @@ function resolvePreflightCandidate(
     return { ok: false }
   }
   const identity = identities?.values().next().value
-  return { ok: true, candidate: identity ? candidatesByIdentity.get(identity) : undefined }
+  return {
+    ok: true,
+    candidate: identity ? candidatesByIdentity.get(identity) : undefined
+  }
 }
 
 export function evaluateWorkspaceCleanupPreflight(
   target: WorkspaceCleanupRemovalTarget,
   candidatesByIdentity: ReadonlyMap<string, WorkspaceCleanupCandidate>,
-  identitiesByWorktreeId: ReadonlyMap<string, ReadonlySet<string>>
+  identitiesByWorktreeId: ReadonlyMap<string, ReadonlySet<string>>,
+  scanErrors: readonly WorkspaceCleanupScanError[] = [],
+  options: {
+    unverifiedRemovalConsent?: WorkspaceCleanupUnverifiedRemovalConsent
+    getConsentAttemptId?: (identity: string) => string | undefined
+  } = {}
 ): WorkspaceCleanupPreflightResult {
   const resolved = resolvePreflightCandidate(target, candidatesByIdentity, identitiesByWorktreeId)
   if (!resolved.ok) {
@@ -229,20 +237,21 @@ export function evaluateWorkspaceCleanupPreflight(
       failure: ambiguousHostFailure(target.worktreeId, target.displayName).failure
     }
   }
-  const candidate = resolved.candidate
+  const repoScanFailure = getWorkspaceCleanupRepoScanFailure(target, scanErrors)
+  const consentReference = resolved.candidate ?? target.approvedCandidate
+  const hasUnverifiedRemovalConsent = hasValidWorkspaceCleanupUnverifiedConsent(
+    consentReference ? getWorkspaceCleanupCandidateIdentity(consentReference) : '',
+    options.unverifiedRemovalConsent,
+    options.getConsentAttemptId
+  )
+  if (repoScanFailure && !hasUnverifiedRemovalConsent) {
+    return { ok: false, failure: repoScanFailure }
+  }
+  const candidate =
+    resolved.candidate ??
+    (repoScanFailure && hasUnverifiedRemovalConsent ? target.approvedCandidate : undefined)
   if (!candidate) {
-    return {
-      ok: false,
-      failure: {
-        worktreeId: target.worktreeId,
-        ...(target.executionHostId ? { executionHostId: target.executionHostId } : {}),
-        displayName: target.displayName,
-        message: translate(
-          'auto.store.slices.workspace.cleanup.9d6e531da6',
-          'Workspace no longer exists.'
-        )
-      }
-    }
+    return { ok: false, failure: getWorkspaceCleanupMissingFailure(target) }
   }
   const failure = (message: string): WorkspaceCleanupPreflightResult => ({
     ok: false,
@@ -260,21 +269,30 @@ export function evaluateWorkspaceCleanupPreflight(
         : 'Workspace needs another look before removal.'
     )
   }
-  // Why: this row may be removed minutes after the confirm click. If it now
-  // needs a force removal the user never approved (new dirt, unpushed work,
-  // or a git error since confirmation), fail it instead of force-deleting.
+  const candidateIdentity = getWorkspaceCleanupCandidateIdentity(candidate)
+  if (
+    target.approvedCandidate &&
+    candidateIdentity !== getWorkspaceCleanupCandidateIdentity(target.approvedCandidate)
+  ) {
+    return { ok: false, failure: getWorkspaceCleanupMissingFailure(target) }
+  }
+  if (candidate.blockers.includes('git-status-error') && !hasUnverifiedRemovalConsent) {
+    return {
+      ok: false,
+      failure: getWorkspaceCleanupGitUnavailableFailure(target, candidate)
+    }
+  }
+  if (!target.approvedCandidate && shouldForceWorkspaceCleanupRemoval(candidate)) {
+    return failure(
+      translate(
+        'auto.store.slices.workspace.cleanup.forceNeedsApproval',
+        'Review and confirm this workspace before force deleting it.'
+      )
+    )
+  }
   const approvedCandidate = target.approvedCandidate
   if (approvedCandidate) {
-    const escalatedToForce =
-      shouldForceWorkspaceCleanupRemoval(candidate) &&
-      !shouldForceWorkspaceCleanupRemoval(approvedCandidate)
-    // Why: an approved row that was already force-flagged for an unverifiable
-    // reason must still fail when real dirt/unpushed work is now visible.
-    const revealedConcreteRisk = WORKSPACE_CLEANUP_CONCRETE_RISK_BLOCKERS.some(
-      (blocker) =>
-        candidate.blockers.includes(blocker) && !approvedCandidate.blockers.includes(blocker)
-    )
-    if (escalatedToForce || revealedConcreteRisk) {
+    if (hasWorkspaceCleanupRiskEscalated(candidate, approvedCandidate)) {
       return failure(
         translate(
           'auto.store.slices.workspace.cleanup.changedSinceConfirmation',
@@ -283,9 +301,8 @@ export function evaluateWorkspaceCleanupPreflight(
       )
     }
   }
-  const removedIdentity = getWorkspaceCleanupCandidateIdentity(candidate)
   const sameIdSurvivingHostId = [...(identitiesByWorktreeId.get(target.worktreeId) ?? [])]
-    .filter((identity) => identity !== removedIdentity)
+    .filter((identity) => identity !== candidateIdentity)
     .map((identity) => candidatesByIdentity.get(identity))
     .map((otherCandidate) =>
       otherCandidate ? resolveWorkspaceCleanupRemovalHostId(otherCandidate) : null
@@ -298,8 +315,3 @@ export function evaluateWorkspaceCleanupPreflight(
     ...(sameIdSurvivingHostId ? { sameIdSurvivingHostId } : {})
   }
 }
-
-// Why: dirty-files/unpushed-commits are concrete known work at risk; unknown-base
-// and git-status-error only mean "couldn't verify". A row approved while
-// unverifiable must still fail if real work becomes visible before removal.
-const WORKSPACE_CLEANUP_CONCRETE_RISK_BLOCKERS = ['dirty-files', 'unpushed-commits'] as const

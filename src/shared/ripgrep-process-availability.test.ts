@@ -1,16 +1,16 @@
-import { spawn, type ChildProcess } from 'node:child_process'
-import { EventEmitter } from 'node:events'
+import { spawn, ChildProcess } from 'node:child_process'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   absorbPendingRipgrepSpawnError,
   isRipgrepUnavailableExit,
   isRipgrepSpawnCwdUsable,
+  isTransientRipgrepSpawnError,
   killSpawnedRipgrepProcess
 } from './ripgrep-process-availability'
 
 function createChild(pid: number | undefined): ChildProcess {
-  const child = new EventEmitter() as ChildProcess
+  const child = new ChildProcess()
   Object.defineProperty(child, 'pid', { value: pid })
   return child
 }
@@ -50,8 +50,14 @@ describe('ripgrep process availability', () => {
     const error = new Promise<void>((resolve) => child.once('error', () => resolve()))
     const close = new Promise<void>((resolve) => child.once('close', () => resolve()))
 
-    expect(killSpawnedRipgrepProcess(child)).toBe(false)
-    await Promise.all([error, close])
+    const kill = vi.spyOn(child, 'kill')
+    try {
+      expect(killSpawnedRipgrepProcess(child)).toBe(false)
+      expect(kill).not.toHaveBeenCalled()
+    } finally {
+      await Promise.all([error, close])
+      kill.mockRestore()
+    }
   })
 
   it('distinguishes a usable root from a missing spawn cwd', async () => {
@@ -86,5 +92,21 @@ describe('ripgrep process availability', () => {
 
     expect(started.listenerCount('error')).toBe(0)
     expect(observed.listenerCount('error')).toBe(0)
+  })
+
+  it('separates transient fork/exec pressure from a missing ripgrep binary', () => {
+    for (const code of ['EAGAIN', 'EMFILE', 'ENFILE', 'ENOMEM', 'ETXTBSY']) {
+      expect(isTransientRipgrepSpawnError(Object.assign(new Error('spawn rg'), { code }))).toBe(
+        true
+      )
+    }
+    for (const error of [
+      Object.assign(new Error('spawn rg ENOENT'), { code: 'ENOENT' }),
+      Object.assign(new Error('spawn rg EACCES'), { code: 'EACCES' }),
+      new Error('spawn rg'),
+      null
+    ]) {
+      expect(isTransientRipgrepSpawnError(error)).toBe(false)
+    }
   })
 })

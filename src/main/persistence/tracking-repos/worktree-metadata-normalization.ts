@@ -14,16 +14,22 @@ import {
   normalizeWorkspaceLinkedItem
 } from '../../../shared/workspace-linked-item'
 import { isWorkspaceLinkedItemSourceContextMatch } from '../../../shared/workspace-linked-item-source-context'
-import type { StoreOwnedPersistedState } from '../loading-store/store-owned-state'
+import type { PersistedState } from '../../../shared/persisted-state-types'
+import {
+  pruneUnreferencedWorktreeIdentityMeta,
+  removeWorktreeMetadataForHost
+} from '../loading-store/worktree-identity-metadata'
+import type { WorktreeMeta } from '../../../shared/worktree/meta-types'
+import { fillDefaultWorktreeMetaFields } from '../../../shared/worktree/meta-persisted-defaults'
+import { getWorkspaceAttachments } from '../../../shared/workspace-attachments'
+import { rehomeLocalOnlyWorktreeMetadata } from '../loading-store/local-only-worktree-meta-rehoming'
 
-// Why: worktrees deleted outside Orca orphan their worktreeMeta, so the map grew monotonically (63% dead on a heavy install).
-// GC stays narrow: local-host entries only (a local existsSync would falsely condemn SSH/WSL remote paths) and only after a 30-day idle grace.
+// Reclaim externally deleted local checkouts after idle grace; local stat cannot judge remote/WSL paths.
 export const WORKTREE_META_GC_GRACE_MS = 30 * 24 * 60 * 60 * 1000
 export const STALE_DURABLE_WRITE_TEMP_AGE_MS = 24 * 60 * 60 * 1000
 
-export function gcStaleWorktreeMeta(state: StoreOwnedPersistedState): number {
-  // Why: a hand-corrupted "worktreeMeta": null overrides the defaults merge; normalize here instead of throwing.
-  // Companion lineage maps get the same guard because the deletes below index them directly.
+export function gcStaleWorktreeMeta(state: PersistedState): number {
+  // Corrupt null maps override merged defaults and would throw during companion deletion.
   state.worktreeMeta ??= {}
   state.worktreeLineageById ??= {}
   state.workspaceLineageByChildKey ??= {}
@@ -32,7 +38,7 @@ export function gcStaleWorktreeMeta(state: StoreOwnedPersistedState): number {
   const now = Date.now()
   let removed = 0
   for (const key of Object.keys(state.worktreeMeta)) {
-    // Why: folder-project workspace instances (keyed repoId::path::workspace:<uuid>) ARE the workspace record, not a checkout row; skip them.
+    // Folder-workspace instance keys are workspace records, not checkout metadata.
     if (key.includes(FOLDER_WORKSPACE_INSTANCE_SEPARATOR)) {
       continue
     }
@@ -49,22 +55,19 @@ export function gcStaleWorktreeMeta(state: StoreOwnedPersistedState): number {
         continue
       }
     } else if (projectIds.has(ownerId)) {
-      // Project-owned metas keep their own project/host lifecycle; leave them alone.
       continue
     }
-    // Unowned entries (repo removed before metas were pruned) fall through to the same missing-path + idle-grace gate.
     if (meta?.hostId && meta.hostId !== LOCAL_EXECUTION_HOST_ID) {
       continue
     }
     if (!isAbsolute(worktreePath) || isWslUncPath(worktreePath)) {
       continue
     }
-    // Why: WSL worktrees on Windows carry Linux-style paths that Windows existsSync can't probe and would falsely condemn.
+    // Windows cannot probe Linux-spelled WSL paths with existsSync.
     if (process.platform === 'win32' && !isWindowsAbsolutePathLike(worktreePath)) {
       continue
     }
-    // Why keep timestamp-less entries: without timestamps we can't prove the 30-day grace elapsed (measured dead entries all had them).
-    // Grace is checked before existsSync so active entries skip the stat fan-out (and its slow-NFS tail).
+    // Missing timestamps cannot prove grace elapsed; check age before expensive/NFS stats.
     const newestTouch = Math.max(meta?.lastActivityAt ?? 0, meta?.createdAt ?? 0)
     if (newestTouch === 0 || now - newestTouch < WORKTREE_META_GC_GRACE_MS) {
       continue
@@ -75,14 +78,44 @@ export function gcStaleWorktreeMeta(state: StoreOwnedPersistedState): number {
     delete state.worktreeMeta[key]
     delete state.worktreeLineageById[key]
     delete state.workspaceLineageByChildKey[worktreeWorkspaceKey(key)]
+    // Remove identity aliases too or future worktrees at the same path could inherit dead metadata.
+    removeWorktreeMetadataForHost(state, key, LOCAL_EXECUTION_HOST_ID)
     removed++
   }
   return removed
 }
 
-export function normalizeWorktreeLinkedItemMetadata(state: StoreOwnedPersistedState): boolean {
-  // Why: a hand-corrupted null lineage map would throw on the companion deletes below. The repair
-  // itself is dirty state — without it the map stays null on disk and is repaired again every load.
+function normalizeLinkedMetadata(meta: WorktreeMeta): boolean {
+  const linkedWorkItem = normalizeWorkspaceLinkedItem(meta.linkedWorkItem)
+  const sourceContext = normalizeStoredTaskSourceContext(meta.linkedTaskSourceContext)
+  const linkedTaskSourceContext = isWorkspaceLinkedItemSourceContextMatch(
+    linkedWorkItem,
+    sourceContext
+  )
+    ? sourceContext
+    : null
+  let changed = false
+  const linkedItems = getWorkspaceAttachments(meta)
+  if (
+    meta.linkedItems !== undefined &&
+    JSON.stringify(meta.linkedItems) !== JSON.stringify(linkedItems)
+  ) {
+    meta.linkedItems = linkedItems
+    changed = true
+  }
+  if (!areWorkspaceLinkedItemsEqual(meta.linkedWorkItem, linkedWorkItem)) {
+    meta.linkedWorkItem = linkedWorkItem
+    changed = true
+  }
+  if (!areTaskSourceContextsEqual(meta.linkedTaskSourceContext, linkedTaskSourceContext)) {
+    meta.linkedTaskSourceContext = linkedTaskSourceContext
+    changed = true
+  }
+  return changed
+}
+
+export function normalizeWorktreeLinkedItemMetadata(state: PersistedState): boolean {
+  // Mark null-map repairs dirty or they recur on every load.
   let changed =
     (state.worktreeLineageById as unknown) === null ||
     (state.workspaceLineageByChildKey as unknown) === null
@@ -98,40 +131,86 @@ export function normalizeWorktreeLinkedItemMetadata(state: StoreOwnedPersistedSt
       Object.keys(state.worktreeLineageById).length > 0 ||
       Object.keys(state.workspaceLineageByChildKey).length > 0
     state.worktreeMeta = {}
-    // Companions go with the discarded map; a stranded lineage row would otherwise re-attach to a
-    // worktree recreated at the same repoId::path.
+    // Legacy lineage belongs to the discarded locator projection; canonical host state does not.
     state.worktreeLineageById = {}
     state.workspaceLineageByChildKey = {}
     changed ||= rawWorktreeMeta !== undefined || hadLineage
   }
   for (const [key, meta] of Object.entries(state.worktreeMeta)) {
-    // Why: hand-corrupted non-object entries are a real input class; drop them here because gcStaleWorktreeMeta
-    // keeps timestamp-less keys forever and every downstream consumer trusts the Record<string, WorktreeMeta> type.
+    // Drop corrupt rows; GC retains timestamp-less entries and typed consumers assume metadata objects.
     if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) {
       delete state.worktreeMeta[key]
-      // Companions go with it, matching gcStaleWorktreeMeta/removeWorktreeMeta; a stranded lineage row would
-      // otherwise re-attach to a worktree recreated at the same repoId::path.
+      // Legacy lineage belongs to this corrupt locator row; canonical host state is independent.
       delete state.worktreeLineageById[key]
       delete state.workspaceLineageByChildKey[worktreeWorkspaceKey(key)]
       changed = true
       continue
     }
-    const linkedWorkItem = normalizeWorkspaceLinkedItem(meta.linkedWorkItem)
-    const sourceContext = normalizeStoredTaskSourceContext(meta.linkedTaskSourceContext)
-    const linkedTaskSourceContext = isWorkspaceLinkedItemSourceContextMatch(
-      linkedWorkItem,
-      sourceContext
-    )
-      ? sourceContext
-      : null
-    if (!areWorkspaceLinkedItemsEqual(meta.linkedWorkItem, linkedWorkItem)) {
-      meta.linkedWorkItem = linkedWorkItem
+    // Restoring serializer-omitted defaults is canonical, so it must not trigger a full rewrite.
+    fillDefaultWorktreeMetaFields(meta)
+    changed = normalizeLinkedMetadata(meta) || changed
+  }
+  const rawIdentityMetadata = state.worktreeMetaByIdentity as unknown
+  if (
+    rawIdentityMetadata !== undefined &&
+    (typeof rawIdentityMetadata !== 'object' ||
+      rawIdentityMetadata === null ||
+      Array.isArray(rawIdentityMetadata))
+  ) {
+    state.worktreeMetaByIdentity = {}
+    changed = true
+  }
+  for (const [identityKey, meta] of Object.entries(state.worktreeMetaByIdentity ?? {})) {
+    if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) {
+      delete state.worktreeMetaByIdentity?.[identityKey]
+      changed = true
+      continue
+    }
+    fillDefaultWorktreeMetaFields(meta)
+    changed = normalizeLinkedMetadata(meta) || changed
+  }
+
+  const rawAliases = state.worktreeIdentityAliases as unknown
+  const aliasesAreObject =
+    typeof rawAliases === 'object' && rawAliases !== null && !Array.isArray(rawAliases)
+  const aliasesAreMalformed = rawAliases !== undefined && !aliasesAreObject
+  const aliasesCanProveReachability = aliasesAreObject && Object.keys(rawAliases).length > 0
+  if (aliasesAreMalformed) {
+    state.worktreeIdentityAliases = {}
+    changed = true
+  }
+  for (const [alias, rawIdentityKeys] of Object.entries(state.worktreeIdentityAliases ?? {})) {
+    if (!Array.isArray(rawIdentityKeys)) {
+      delete state.worktreeIdentityAliases?.[alias]
+      changed = true
+      continue
+    }
+    // Dangling aliases cannot resolve and would make the next write ambiguous.
+    const identityKeys = [
+      ...new Set(
+        rawIdentityKeys.filter(
+          (key): key is string =>
+            typeof key === 'string' &&
+            key.length > 0 &&
+            Boolean(state.worktreeMetaByIdentity?.[key])
+        )
+      )
+    ]
+    if (identityKeys.length === 0) {
+      delete state.worktreeIdentityAliases?.[alias]
+      changed = true
+    } else if (
+      identityKeys.length !== rawIdentityKeys.length ||
+      identityKeys.some((key, index) => key !== rawIdentityKeys[index])
+    ) {
+      state.worktreeIdentityAliases ??= {}
+      state.worktreeIdentityAliases[alias] = identityKeys
       changed = true
     }
-    if (!areTaskSourceContextsEqual(meta.linkedTaskSourceContext, linkedTaskSourceContext)) {
-      meta.linkedTaskSourceContext = linkedTaskSourceContext
-      changed = true
-    }
+  }
+  changed = rehomeLocalOnlyWorktreeMetadata(state) || changed
+  if (aliasesCanProveReachability) {
+    changed = pruneUnreferencedWorktreeIdentityMeta(state) || changed
   }
   return changed
 }

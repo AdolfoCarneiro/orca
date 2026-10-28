@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const {
   callMock,
@@ -45,6 +45,12 @@ import { okFixture, queueFixtures } from './test-fixtures'
 import { useWorktreeAwarenessEnvironment } from './index-test-harness'
 
 describe('orca cli worktree awareness', () => {
+  const originalExitCode = process.exitCode
+
+  afterEach(() => {
+    process.exitCode = originalExitCode
+  })
+
   useWorktreeAwarenessEnvironment({
     callMock,
     serveOrcaAppMock,
@@ -57,8 +63,11 @@ describe('orca cli worktree awareness', () => {
   it('passes positional automation ids to edit, remove, run, and show', async () => {
     queueFixtures(
       callMock,
+      okFixture('req_edit_owner', { automation: { id: 'auto-1', name: 'Paused' } }),
       okFixture('req_edit', { automation: { id: 'auto-1', name: 'Paused' } }),
+      okFixture('req_remove_owner', { automation: { id: 'auto-1', name: 'Paused' } }),
       okFixture('req_remove', { removed: true, id: 'auto-1' }),
+      okFixture('req_run_owner', { automation: { id: 'auto-1', name: 'Paused' } }),
       okFixture('req_run', {
         run: {
           id: 'run-1',
@@ -88,7 +97,8 @@ describe('orca cli worktree awareness', () => {
     await main(['automations', 'run', 'auto-1', '--json'], '/tmp/repo')
     await main(['automations', 'show', 'auto-1', '--json'], '/tmp/repo')
 
-    expect(callMock).toHaveBeenNthCalledWith(1, 'automation.update', {
+    expect(callMock).toHaveBeenNthCalledWith(1, 'automation.show', { id: 'auto-1' })
+    expect(callMock).toHaveBeenNthCalledWith(2, 'automation.update', {
       id: 'auto-1',
       updates: {
         name: undefined,
@@ -103,20 +113,21 @@ describe('orca cli worktree awareness', () => {
         missedRunGraceMinutes: undefined
       }
     })
-    expect(callMock).toHaveBeenNthCalledWith(2, 'automation.delete', {
+    expect(callMock).toHaveBeenNthCalledWith(3, 'automation.show', { id: 'auto-1' })
+    expect(callMock).toHaveBeenNthCalledWith(4, 'automation.delete', {
       id: 'auto-1'
     })
-    expect(callMock).toHaveBeenNthCalledWith(3, 'automation.runNow', {
+    expect(callMock).toHaveBeenNthCalledWith(5, 'automation.show', { id: 'auto-1' })
+    expect(callMock).toHaveBeenNthCalledWith(6, 'automation.runNow', {
       id: 'auto-1'
     })
-    expect(callMock).toHaveBeenNthCalledWith(4, 'automation.show', {
+    expect(callMock).toHaveBeenNthCalledWith(7, 'automation.show', {
       id: 'auto-1'
     })
   })
 
   it('rejects ambiguous positional and flag automation ids before dispatch', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const priorExitCode = process.exitCode
 
     await main(['automations', 'show', 'auto-1', '--id', 'auto-2', '--json'], '/tmp/repo')
 
@@ -130,7 +141,5 @@ describe('orca cli worktree awareness', () => {
       }
     })
     expect(process.exitCode).toBe(1)
-
-    process.exitCode = priorExitCode
   })
 })

@@ -1,6 +1,7 @@
 import { createConnection, type Socket } from 'node:net'
 import type { OrchestrationDb } from './orchestration/db'
 import { ORCHESTRATION_CONTRACT_VERSION } from '../../shared/protocol-version'
+import { createRootDispatch } from './orchestration/db/root-dispatch-test-fixture'
 
 export async function sendRequest(
   endpoint: string,
@@ -27,10 +28,7 @@ export async function sendRequest(
   })
 }
 
-// Why: long-poll keepalive tests need every frame, not just the first, because
-// we need to count `_keepalive` frames before the terminal success/failure.
-// Also exposes the socket so tests can close it mid-wait to exercise the
-// long-poll counter decrement path.
+// Retain all keepalive/terminal frames and expose the socket for disconnect/admission-counter tests.
 export type FramedSession = {
   socket: Socket
   frames: Record<string, unknown>[]
@@ -47,8 +45,7 @@ export function openFramedSession(
   socket.setEncoding('utf8')
   const done = new Promise<void>((resolve, reject) => {
     socket.once('error', (err) => {
-      // Why: ECONNRESET is expected when we deliberately destroy the socket
-      // mid-wait to probe the counter decrement; surface other errors.
+      // Mid-wait disconnect deliberately produces ECONNRESET; surface other errors.
       if ((err as NodeJS.ErrnoException).code === 'ECONNRESET') {
         resolve()
         return
@@ -65,9 +62,7 @@ export function openFramedSession(
         if (raw) {
           const frame = JSON.parse(raw) as Record<string, unknown>
           frames.push(frame)
-          // Why: the server leaves the socket open after writing the terminal
-          // frame (short RPCs expect the client to close); close the client
-          // side so `done` resolves once we've captured the response.
+          // Server leaves short-RPC sockets open; close client after terminal frame so done resolves.
           if (frame._keepalive !== true) {
             socket.end()
           }
@@ -112,6 +107,6 @@ export function seedSupervisedAskWorkers(db: OrchestrationDb, workerHandles: str
   })
   for (const workerHandle of workerHandles) {
     const task = db.createTask({ spec: 'Wait for coordinator input', runId: run.id })
-    db.createDispatchContext(task.id, workerHandle)
+    createRootDispatch(db, task.id, workerHandle)
   }
 }

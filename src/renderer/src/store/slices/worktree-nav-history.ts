@@ -2,7 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import { findWorktreeById } from './worktree-helpers'
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
-import type { JiraIssue } from '../../../../shared/jira-types'
+import type { JiraIssue } from '../../../../shared/jira/jira-types'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { GitLabWorkItem } from '../../../../shared/gitlab-types'
 import {
@@ -10,12 +10,19 @@ import {
   type TaskSourceContext
 } from '../../../../shared/task-source-context'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
+import { selectFolderWorkspaces, selectWorktreesByRepo } from '../workspace-record-selectors'
 
 // Why: bound per-session history growth; 50 keeps goBack/goForward's linear scans cheap yet is never hit in normal use.
 const MAX_HISTORY = 50
 
 // Why: entries may be page sentinels, not just worktree IDs; names keep the "worktree" prefix for call-site stability.
-export type WorktreeNavHistorySimpleViewEntry = 'tasks' | 'automations'
+export type WorktreeNavHistorySimpleViewEntry = 'tasks' | 'automations' | 'artifacts' | 'skills'
+const SIMPLE_VIEW_ENTRIES: readonly WorktreeNavHistorySimpleViewEntry[] = [
+  'tasks',
+  'automations',
+  'artifacts',
+  'skills'
+]
 export type WorktreeNavHistoryTaskDetailEntry =
   | {
       kind: 'task-detail'
@@ -77,9 +84,18 @@ export function setWorktreeNavViewActivator(fn: ViewActivateFn | null): void {
   viewActivator = fn
 }
 
+function isSimpleViewEntry(
+  entry: WorktreeNavHistoryEntry
+): entry is WorktreeNavHistorySimpleViewEntry {
+  return (
+    typeof entry === 'string' &&
+    SIMPLE_VIEW_ENTRIES.includes(entry as WorktreeNavHistorySimpleViewEntry)
+  )
+}
+
 // Why: view entries count as live unconditionally — findWorktreeById can't resolve page sentinels.
-function isViewEntry(entry: WorktreeNavHistoryEntry): entry is WorktreeNavHistoryViewEntry {
-  return entry === 'tasks' || entry === 'automations' || typeof entry === 'object'
+export function isViewEntry(entry: WorktreeNavHistoryEntry): entry is WorktreeNavHistoryViewEntry {
+  return isSimpleViewEntry(entry) || typeof entry === 'object'
 }
 
 function isTaskStackEntry(entry: WorktreeNavHistoryEntry): boolean {
@@ -88,7 +104,7 @@ function isTaskStackEntry(entry: WorktreeNavHistoryEntry): boolean {
 
 function getHistoryEntryKey(entry: WorktreeNavHistoryEntry): string {
   if (typeof entry === 'string') {
-    return entry === 'tasks' || entry === 'automations' ? `view:${entry}` : `worktree:${entry}`
+    return isSimpleViewEntry(entry) ? `view:${entry}` : `worktree:${entry}`
   }
   if (entry.source === 'github') {
     const sourceScope =
@@ -124,11 +140,11 @@ function isLiveEntry(entry: WorktreeNavHistoryEntry, state: AppState): boolean {
   }
   const workspaceScope = parseWorkspaceKey(entry)
   if (workspaceScope?.type === 'folder') {
-    return state.folderWorkspaces.some(
+    return selectFolderWorkspaces(state).some(
       (workspace) => workspace.id === workspaceScope.folderWorkspaceId
     )
   }
-  return findWorktreeById(state.worktreesByRepo, entry) !== undefined
+  return findWorktreeById(selectWorktreesByRepo(state), entry) !== undefined
 }
 
 function appendHistoryEntry(
@@ -185,6 +201,17 @@ export function findNextLiveWorktreeHistoryIndex(state: AppState): number | null
     }
   }
   return null
+}
+
+/** Index to park on after closing `view`'s page: the nearest live prior entry, or the current index when there is none. */
+export function rewindHistoryIndexPastView(
+  state: AppState,
+  view: WorktreeNavHistorySimpleViewEntry
+): number {
+  if (state.worktreeNavHistory[state.worktreeNavHistoryIndex] !== view) {
+    return state.worktreeNavHistoryIndex
+  }
+  return findPrevLiveWorktreeHistoryIndex(state) ?? state.worktreeNavHistoryIndex
 }
 
 export function canGoBackWorktreeHistory(state: AppState): boolean {

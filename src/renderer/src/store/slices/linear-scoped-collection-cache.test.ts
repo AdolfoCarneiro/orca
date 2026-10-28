@@ -26,20 +26,34 @@ vi.mock('@/runtime/runtime-linear-client', async (importOriginal) => {
     linearConnect: (...args: unknown[]) => linearConnect(...args),
     linearDisconnect: (...args: unknown[]) => linearDisconnect(...args),
     linearDisconnectWorkspace: vi.fn(),
-    linearGetCustomView: (...args: unknown[]) => linearGetCustomView(...args),
-    linearGetProject: (...args: unknown[]) => linearGetProject(...args),
-    linearGetIssue: (...args: unknown[]) => linearGetIssue(...args),
-    linearListCustomViewIssues: (...args: unknown[]) => linearListCustomViewIssues(...args),
-    linearListCustomViewProjects: (...args: unknown[]) => linearListCustomViewProjects(...args),
-    linearListCustomViews: (...args: unknown[]) => linearListCustomViews(...args),
     linearListIssues: (...args: unknown[]) => linearListIssues(...args),
-    linearListProjectIssues: (...args: unknown[]) => linearListProjectIssues(...args),
-    linearListProjects: (...args: unknown[]) => linearListProjects(...args),
-    linearListTeams: (...args: unknown[]) => linearListTeams(...args),
     linearSearchIssues: (...args: unknown[]) => linearSearchIssues(...args),
     linearSelectWorkspace: vi.fn(),
     linearStatus: (...args: unknown[]) => linearStatus(...args),
     linearTestConnection: (...args: unknown[]) => linearTestConnection(...args)
+  }
+})
+
+vi.mock('@/runtime/runtime-linear-issue-mutations', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  return {
+    ...actual,
+    linearGetIssue: (...args: unknown[]) => linearGetIssue(...args)
+  }
+})
+
+vi.mock('@/runtime/runtime-linear-project-client', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  return {
+    ...actual,
+    linearGetCustomView: (...args: unknown[]) => linearGetCustomView(...args),
+    linearGetProject: (...args: unknown[]) => linearGetProject(...args),
+    linearListCustomViewIssues: (...args: unknown[]) => linearListCustomViewIssues(...args),
+    linearListCustomViewProjects: (...args: unknown[]) => linearListCustomViewProjects(...args),
+    linearListCustomViews: (...args: unknown[]) => linearListCustomViews(...args),
+    linearListProjectIssues: (...args: unknown[]) => linearListProjectIssues(...args),
+    linearListProjects: (...args: unknown[]) => linearListProjects(...args),
+    linearListTeams: (...args: unknown[]) => linearListTeams(...args)
   }
 })
 
@@ -119,9 +133,15 @@ describe('createLinearSlice caching', () => {
       hasMore: true
     })
 
-    expect(linearListProjectIssues).toHaveBeenCalledWith(null, 'project-1', 120, 'workspace-1', {
-      force: undefined
-    })
+    expect(linearListProjectIssues).toHaveBeenCalledWith(
+      { kind: 'default-scope', settings: null },
+      'project-1',
+      120,
+      'workspace-1',
+      {
+        force: undefined
+      }
+    )
     expect(
       store.getState().linearProjectIssueCache['workspace-1::project-issues::project-1::120']?.data
     ).toMatchObject({ items: [{ id: 'LIN-120' }] })
@@ -220,9 +240,15 @@ describe('createLinearSlice caching', () => {
       hasMore: true
     })
 
-    expect(linearListCustomViewIssues).toHaveBeenCalledWith(null, 'view-1', 120, 'workspace-1', {
-      force: undefined
-    })
+    expect(linearListCustomViewIssues).toHaveBeenCalledWith(
+      { kind: 'default-scope', settings: null },
+      'view-1',
+      120,
+      'workspace-1',
+      {
+        force: undefined
+      }
+    )
     expect(
       store.getState().linearCustomViewIssueCache['workspace-1::custom-view-issues::view-1::120']
         ?.data
@@ -301,9 +327,15 @@ describe('createLinearSlice caching', () => {
       store.getState().fetchLinearCustomView('view-1', 'workspace-1', 'project', { force: true })
     ).resolves.toMatchObject({ id: 'view-1' })
 
-    expect(linearGetCustomView).toHaveBeenCalledWith(null, 'view-1', 'project', 'workspace-1', {
-      force: true
-    })
+    expect(linearGetCustomView).toHaveBeenCalledWith(
+      { kind: 'default-scope', settings: null },
+      'view-1',
+      'project',
+      'workspace-1',
+      {
+        force: true
+      }
+    )
     await vi.waitFor(() => {
       expect(store.getState().linearStatus.credentialError).toBeUndefined()
     })

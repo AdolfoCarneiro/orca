@@ -423,7 +423,9 @@ describe('worktree lineage state', () => {
     const child = makeWorktree({
       id: lineage.worktreeId,
       repoId: 'repo1',
-      path: '/remote/child'
+      path: '/remote/child',
+      // Why: ingest stamps a server's rows; routing follows the stamp, not focus.
+      hostId: 'runtime:env-1'
     })
     const updatedChild = { ...child, lineage }
     runtimeEnvironmentCall.mockResolvedValue({
@@ -453,7 +455,11 @@ describe('worktree lineage state', () => {
     })
     expect(mockApi.worktrees.updateLineage).not.toHaveBeenCalled()
     expect(store.getState().worktreeLineageById).toEqual({ [lineage.worktreeId]: lineage })
-    expect(store.getState().worktreesByRepo.repo1?.[0]).toEqual(updatedChild)
+    expect(store.getState().worktreesByRepo.repo1?.[0]).toEqual({
+      ...updatedChild,
+      hostId: 'runtime:env-1',
+      runtimeOwnerEnvironmentId: 'env-1'
+    })
     expect(store.getState().sortEpoch).toBe(4)
   })
 
@@ -507,7 +513,9 @@ describe('worktree lineage state', () => {
     const child = makeWorktree({
       id: lineage.worktreeId,
       repoId: 'repo1',
-      path: '/remote/child'
+      path: '/remote/child',
+      // Why: ingest stamps a server's rows; routing follows the stamp, not focus.
+      hostId: 'runtime:env-1'
     })
     const updatedChild = { ...child, lineage }
     runtimeEnvironmentCall.mockResolvedValueOnce({
@@ -537,7 +545,11 @@ describe('worktree lineage state', () => {
     })
     expect(mockApi.worktrees.updateLineage).not.toHaveBeenCalled()
     expect(store.getState().worktreeLineageById).toEqual({ [lineage.worktreeId]: lineage })
-    expect(store.getState().worktreesByRepo.repo1?.[0]).toEqual(updatedChild)
+    expect(store.getState().worktreesByRepo.repo1?.[0]).toEqual({
+      ...updatedChild,
+      hostId: 'runtime:env-1',
+      runtimeOwnerEnvironmentId: 'env-1'
+    })
     expect(store.getState().sortEpoch).toBe(4)
 
     runtimeEnvironmentCall
@@ -678,6 +690,8 @@ describe('worktree lineage state', () => {
       path: '/remote/child',
       lineage
     } as Partial<Worktree> & { id: string; repoId: string })
+    // Why: ingest stamps a server's rows; routing follows the stamp, not focus.
+    child.hostId = 'runtime:env-1'
     const updatedChild = { ...child, lineage: null }
     runtimeEnvironmentCall.mockResolvedValue({
       id: 'rpc-clear-lineage',
@@ -701,11 +715,14 @@ describe('worktree lineage state', () => {
       timeoutMs: 15_000
     })
     expect(store.getState().worktreeLineageById).toEqual({})
-    expect(store.getState().worktreesByRepo.repo1?.[0]).toEqual(updatedChild)
+    expect(store.getState().worktreesByRepo.repo1?.[0]).toEqual({
+      ...updatedChild,
+      hostId: 'runtime:env-1',
+      runtimeOwnerEnvironmentId: 'env-1'
+    })
   })
 
-  // An unresolvable owner route must reach the caller so the sidebar can toast it, rather than
-  // becoming a silent no-op. Both callers catch; see WorktreeContextMenu.handleRemoveParentLink.
+  // Reject unresolved lineage routes so sidebar callers can toast them (WorktreeContextMenu.handleRemoveParentLink).
   it('rejects the lineage update when the owner route cannot be resolved', async () => {
     const store = createTestStore()
     const worktreeId = 'repo-shared::/same/path'

@@ -1,5 +1,8 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import { browserSessionRegistry } from '../browser/browser-session-registry'
+import { importCookiesIntoClientRoutePartition } from '../browser/browser-client-route-cookie-import'
+import { clientRouteCookieImportSources } from '../browser/client-route-cookie-import-source-store'
+import { getPairedRuntimeBrowserClientRouteIdentity } from '../browser/paired-runtime-browser-client-host-runtime'
 import { isTrustedBrowserRenderer } from './browser-renderer-trust'
 import {
   pickCookieFile,
@@ -7,20 +10,39 @@ import {
   detectInstalledBrowsers,
   selectBrowserProfile,
   importCookiesFromBrowser
-} from '../browser/browser-cookie-import'
+} from '../browser/cookies/browser-cookie-import'
 import type {
   BrowserCookieImportResult,
   BrowserSessionProfile,
-  BrowserSessionProfileCreateOptions,
   BrowserSessionProfileScope
 } from '../../shared/browser-workspace-types'
+import type { ManagedBrowserProfileOwner } from '../../shared/browser-profile-scope'
+import { ensureManagedBrowserProfile } from '../browser/browser-managed-session-profiles'
+import {
+  getBrowserIdentityModeStatus,
+  setBrowserIdentityMode
+} from '../browser/browser-identity-mode-store'
+import {
+  listBrowserSitePermissions,
+  setBrowserSitePermissionDecisions
+} from '../browser/browser-site-permission-store'
+import {
+  isBrowserSitePermission,
+  isBrowserSitePermissionDecision,
+  type BrowserSitePermissionEntry
+} from '../../shared/browser-site-permission'
 
 export function registerBrowserSessionProfileHandlers(): void {
   ipcMain.removeHandler('browser:session:listProfiles')
   ipcMain.removeHandler('browser:session:createProfile')
   ipcMain.removeHandler('browser:session:deleteProfile')
+  ipcMain.removeHandler('browser:session:ensureManagedProfile')
+  ipcMain.removeHandler('browser:identity:get')
+  ipcMain.removeHandler('browser:identity:set')
   ipcMain.removeHandler('browser:session:importCookies')
   ipcMain.removeHandler('browser:session:resolvePartition')
+  ipcMain.removeHandler('browser:sitePermissions:list')
+  ipcMain.removeHandler('browser:sitePermissions:set')
 
   ipcMain.handle('browser:session:listProfiles', (event): BrowserSessionProfile[] => {
     if (!isTrustedBrowserRenderer(event.sender)) {
@@ -31,21 +53,42 @@ export function registerBrowserSessionProfileHandlers(): void {
 
   ipcMain.handle(
     'browser:session:createProfile',
-    (
+    async (
       event,
-      args: {
-        scope: BrowserSessionProfileScope
-        label: string
-      } & BrowserSessionProfileCreateOptions
-    ): BrowserSessionProfile | null => {
+      args: { scope: BrowserSessionProfileScope; label: string }
+    ): Promise<BrowserSessionProfile | null> => {
       if (!isTrustedBrowserRenderer(event.sender)) {
         return null
       }
-      return browserSessionRegistry.createProfile(args.scope, args.label, {
-        userAgentMode: args.userAgentMode
-      })
+      return await browserSessionRegistry.createProfile(args.scope, args.label)
     }
   )
+
+  ipcMain.handle(
+    'browser:session:ensureManagedProfile',
+    (event, args: { owner: ManagedBrowserProfileOwner; label: string }) =>
+      isTrustedBrowserRenderer(event.sender)
+        ? ensureManagedBrowserProfile(args?.owner, args?.label)
+        : null
+  )
+
+  ipcMain.handle('browser:identity:get', (event) => {
+    if (!isTrustedBrowserRenderer(event.sender)) {
+      return null
+    }
+    return getBrowserIdentityModeStatus()
+  })
+
+  ipcMain.handle('browser:identity:set', async (event, mode: unknown) => {
+    if (!isTrustedBrowserRenderer(event.sender)) {
+      return null
+    }
+    // Match RPC rejection: silently coercing future modes would report false success.
+    if (mode !== 'clean' && mode !== 'native') {
+      throw new Error(`Unsupported browser identity mode: ${String(mode)}`)
+    }
+    return setBrowserIdentityMode(mode)
+  })
 
   ipcMain.handle(
     'browser:session:deleteProfile',
@@ -96,6 +139,47 @@ export function registerBrowserSessionProfileHandlers(): void {
     }
   )
 
+  ipcMain.handle(
+    'browser:sitePermissions:list',
+    (event, args: { profileId: string }): BrowserSitePermissionEntry[] => {
+      if (
+        !isTrustedBrowserRenderer(event.sender) ||
+        !browserSessionRegistry.getProfile(args.profileId)
+      ) {
+        return []
+      }
+      return listBrowserSitePermissions(args.profileId)
+    }
+  )
+
+  ipcMain.handle(
+    'browser:sitePermissions:set',
+    (
+      event,
+      args: { profileId: string; origin: string; permission: unknown; decision: unknown }
+    ): BrowserSitePermissionEntry[] => {
+      if (
+        !isTrustedBrowserRenderer(event.sender) ||
+        !browserSessionRegistry.getProfile(args.profileId)
+      ) {
+        return []
+      }
+      if (
+        !isBrowserSitePermission(args.permission) ||
+        (args.decision !== null && !isBrowserSitePermissionDecision(args.decision))
+      ) {
+        throw new Error('Unsupported site permission change')
+      }
+      setBrowserSitePermissionDecisions(
+        args.profileId,
+        args.origin,
+        [args.permission],
+        args.decision
+      )
+      return listBrowserSitePermissions(args.profileId)
+    }
+  )
+
   ipcMain.removeHandler('browser:session:clearDefaultCookies')
 
   ipcMain.handle('browser:session:clearDefaultCookies', async (event): Promise<boolean> => {
@@ -106,30 +190,65 @@ export function registerBrowserSessionProfileHandlers(): void {
   })
 
   ipcMain.removeHandler('browser:session:detectBrowsers')
+  ipcMain.removeHandler('browser:session:detectBrowsersForClientHost')
   ipcMain.removeHandler('browser:session:importFromBrowser')
+  ipcMain.removeHandler('browser:session:importFromBrowserForClientHost')
 
+  // Client-hosted pages import this desktop's logins; the remote runtime is usually headless.
   ipcMain.handle(
-    'browser:session:detectBrowsers',
-    (
-      event
-    ): {
-      family: string
-      label: string
-      profiles: { name: string; directory: string }[]
-      selectedProfile: string
-    }[] => {
+    'browser:session:importFromBrowserForClientHost',
+    async (
+      event,
+      args: {
+        environmentId: string
+        profileId: string
+        browserFamily: string
+        browserProfile?: string
+      }
+    ): Promise<BrowserCookieImportResult | null> => {
+      if (!isTrustedBrowserRenderer(event.sender)) {
+        return { ok: false, reason: 'Not authorized' }
+      }
+      return importCookiesIntoClientRoutePartition({
+        environmentId: args.environmentId,
+        browserProfileId: args.profileId,
+        browserFamily: args.browserFamily,
+        browserProfile: args.browserProfile
+      })
+    }
+  )
+
+  ipcMain.removeHandler('browser:session:clientRouteImportSources')
+
+  // Overlay desktop imports unavailable to the server's profile records.
+  ipcMain.handle(
+    'browser:session:clientRouteImportSources',
+    (event, args: { environmentId: string }) => {
+      if (!isTrustedBrowserRenderer(event.sender) || typeof args?.environmentId !== 'string') {
+        return {}
+      }
+      return clientRouteCookieImportSources(args.environmentId)
+    }
+  )
+
+  ipcMain.handle('browser:session:detectBrowsers', (event): DetectedBrowserPickerEntry[] => {
+    if (!isTrustedBrowserRenderer(event.sender)) {
+      return []
+    }
+    return detectedBrowserPickerEntries()
+  })
+
+  // List browsers on the machine whose cookie store import will read.
+  ipcMain.handle(
+    'browser:session:detectBrowsersForClientHost',
+    (event, args: { environmentId: string }): DetectedBrowserPickerEntry[] | null => {
       if (!isTrustedBrowserRenderer(event.sender)) {
         return []
       }
-      // Why: the renderer only needs family/label/profiles for the UI picker.
-      // Strip cookiesPath, keychainService, and keychainAccount to avoid
-      // exposing filesystem paths and credential store identifiers to the renderer.
-      return detectInstalledBrowsers().map((b) => ({
-        family: b.family,
-        label: b.label,
-        profiles: b.profiles,
-        selectedProfile: b.selectedProfile
-      }))
+      if (!getPairedRuntimeBrowserClientRouteIdentity(args.environmentId)) {
+        return null
+      }
+      return detectedBrowserPickerEntries()
     }
   )
 
@@ -147,9 +266,7 @@ export function registerBrowserSessionProfileHandlers(): void {
         return { ok: false, reason: 'Session profile not found.' }
       }
 
-      // Why: browserProfile comes from the renderer and is used to construct
-      // a filesystem path. Reject traversal characters to prevent a compromised
-      // renderer from reading arbitrary files via the cookie import pipeline.
+      // Renderer profile names become paths; reject traversal before cookie import.
       if (
         args.browserProfile &&
         (/[/\\]/.test(args.browserProfile) || args.browserProfile.includes('..'))
@@ -163,8 +280,6 @@ export function registerBrowserSessionProfileHandlers(): void {
         return { ok: false, reason: 'Browser not found on this system.' }
       }
 
-      // Why: if the user selected a non-default profile from the picker,
-      // resolve the cookies path for that specific profile.
       if (args.browserProfile && args.browserProfile !== browser.selectedProfile) {
         const reselected = selectBrowserProfile(browser, args.browserProfile)
         if (!reselected) {
@@ -191,4 +306,21 @@ export function registerBrowserSessionProfileHandlers(): void {
       return result
     }
   )
+}
+
+type DetectedBrowserPickerEntry = {
+  family: string
+  label: string
+  profiles: { name: string; directory: string }[]
+  selectedProfile: string
+}
+
+// Return picker metadata only; keep cookie paths and keychain identifiers in main.
+function detectedBrowserPickerEntries(): DetectedBrowserPickerEntry[] {
+  return detectInstalledBrowsers().map((browser) => ({
+    family: browser.family,
+    label: browser.label,
+    profiles: browser.profiles,
+    selectedProfile: browser.selectedProfile
+  }))
 }

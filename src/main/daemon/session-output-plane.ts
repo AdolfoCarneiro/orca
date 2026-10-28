@@ -1,12 +1,15 @@
 import { resolveProcessExitCause, type TerminalExitCause } from '../../shared/terminal-exit-cause'
+import type { XtermConptyOptions } from '../../shared/xterm-conpty-options'
 import { HeadlessEmulator } from './headless-emulator'
 import { StartupDeviceAttributesQueryFilter } from './startup-device-attributes-responder'
 import { normalizePtySize } from './daemon-pty-size'
 import type { PtyIngressEmission } from '../../shared/pty-startup-ingress'
 import type { PendingOutputRecord, TakePendingOutputResult, TerminalSnapshot } from './types'
+import type { TerminalOwner } from '../../shared/terminal-owner'
+import type { SubprocessHandle } from './session-subprocess-handle'
+import { nudgePowerShellPromptRepaint } from './session-powershell-prompt-repaint'
 
-// Why: bounds in-memory pending output when no client drains it; past the cap we drop records and flag
-// overflow so the next take falls back to one full snapshot. UTF-16 units; worst-case wire is ~6x, under NDJSON_MAX_LINE_BYTES (16MB).
+// Count UTF-16 units; even JSON escape expansion stays below the NDJSON line cap.
 const PENDING_OUTPUT_MAX_BYTES = 2 * 1024 * 1024
 
 export type AttachedClient = {
@@ -21,13 +24,15 @@ export type SessionOutputPlaneOptions = {
   scrollback?: number | undefined
   wslDistro?: string | undefined
   historySeedChunks?: readonly string[] | undefined
+  windowsPty?: XtermConptyOptions | undefined
+  /** Read ownership after the barrier scans bytes, keeping snapshot metadata aligned with the emulator. */
+  getTerminalOwner?: (() => TerminalOwner | undefined) | undefined
 }
 
-/** Everything downstream of the PTY: the scrollback emulator, the pending-output record buffer that
- *  feeds reattach/cold-restore, and fan-out to attached clients. */
 export class SessionOutputPlane {
   readonly historySeeded: boolean | undefined
   private readonly emulator: HeadlessEmulator
+  private readonly readTerminalOwner: (() => TerminalOwner | undefined) | undefined
   private attachedClients: AttachedClient[] = []
   private pendingOutputRecords: PendingOutputRecord[] = []
   private pendingOutputBytes = 0
@@ -43,19 +48,16 @@ export class SessionOutputPlane {
       cols: size.cols,
       rows: size.rows,
       scrollback: opts.scrollback,
-      wslDistro: opts.wslDistro
-      // No onData: the daemon emulator must never reply to query sequences — the renderer's xterm is
-      // the authoritative responder and a daemon reply would race ahead and clobber it. See HeadlessEmulator.
-      // The one exception is DA1 while the shell-ready barrier holds (below): the renderer's reply
-      // would be queued behind the marker it is needed to produce, so it cannot be authoritative there.
+      wslDistro: opts.wslDistro,
+      ...(opts.windowsPty ? { windowsPty: opts.windowsPty } : {})
+      // Keep the emulator silent; the shell-ready barrier separately owns startup DA1 replies.
     })
-    // Why: seed recovery must precede listener registration; shells can emit their prompt synchronously once onData subscribes.
-    // Why the every() short-circuit is safe: writeSync only fails emulator-wide (disposed / no sync write API), so later
-    // chunks could not land either — and writing them past a dropped chunk would seed a torn stream.
+    // Seed before subscribing to synchronous shell output; stop at any failed chunk to avoid a torn stream.
     this.historySeeded =
       opts.historySeedChunks === undefined
         ? undefined
         : opts.historySeedChunks.every((chunk) => this.emulator.writeSync(chunk))
+    this.readTerminalOwner = opts.getTerminalOwner
   }
 
   get responderParser(): HeadlessEmulator['responderParser'] {
@@ -79,7 +81,7 @@ export class SessionOutputPlane {
     }
   }
 
-  /** Drops every client WITHOUT touching producer flow control; the caller owns that ordering. */
+  /** The caller must release producer flow control separately. */
   clearClients(): void {
     this.attachedClients = []
   }
@@ -89,8 +91,7 @@ export class SessionOutputPlane {
   }
 
   broadcastExit(code: number, incarnationId: string, cause?: TerminalExitCause): void {
-    // Why the fallback here: a handle that predates exit causes still reports a
-    // code, and every client deserves the same shape.
+    // Older subprocess handles may report an exit code without a cause.
     const resolved = cause ?? resolveProcessExitCause({ exitCode: code })
     for (const client of this.attachedClients) {
       client.onExit(code, incarnationId, resolved)
@@ -99,13 +100,31 @@ export class SessionOutputPlane {
 
   resize(cols: number, rows: number): void {
     this.emulator.resize(cols, rows)
-    // Why: the record stream must mirror the emulator's apply order, or cold-restore replay reflows at the wrong point.
+    // Preserve emulator apply order so recovery reflows at the same stream position.
     this.record({ kind: 'resize', cols, rows })
   }
 
-  clearScrollback(): void {
+  clearScrollback(subprocess: SubprocessHandle, isGatingWrites: boolean): void {
+    if (this.disposed) {
+      return
+    }
     this.emulator.clearScrollback()
     this.record({ kind: 'clear' })
+    subprocess.clear?.()
+    nudgePowerShellPromptRepaint({
+      subprocess,
+      isGatingWrites,
+      isCursorOnEmptyPromptLine: () => this.isCursorOnEmptyPromptLine()
+    })
+  }
+
+  /** Ground emulator and recovery records only; attached renderers perform their own reset. */
+  applyInputModeGround(ground: string): void {
+    if (this.disposed) {
+      return
+    }
+    this.emulator.write(ground)
+    this.record({ kind: 'output', data: ground })
   }
 
   isCursorOnEmptyPromptLine(): boolean {
@@ -116,11 +135,28 @@ export class SessionOutputPlane {
     return this.emulator.getCwd()
   }
 
+  getTerminalOwner(): TerminalOwner | undefined {
+    return this.readTerminalOwner?.()
+  }
+
+  /** Fence prior async writes before taking a snapshot of the model. */
+  flushParsedWrites(): Promise<void> {
+    if (this.disposed) {
+      return Promise.resolve()
+    }
+    return this.emulator.write('')
+  }
+
   getSnapshot(opts: { scrollbackRows?: number } = {}): TerminalSnapshot | null {
     if (this.disposed) {
       return null
     }
-    return { ...this.emulator.getSnapshot(opts), outputSequence: this._outputSequence }
+    const terminalOwner = this.readTerminalOwner?.()
+    return {
+      ...this.emulator.getSnapshot(opts),
+      ...(terminalOwner ? { terminalOwner } : {}),
+      outputSequence: this._outputSequence
+    }
   }
 
   getPartialEscapeTailAnsi(): string {
@@ -130,8 +166,7 @@ export class SessionOutputPlane {
     return this.emulator.partialEscapeTailAnsi
   }
 
-  // Why: returns the size the PTY actually applied (emulator dims) so the renderer can detect a
-  // resize dropped here (exited/disposed/invalid) instead of trusting its last-requested size.
+  // Report applied dimensions so the renderer can detect dropped resizes.
   getAppliedSize(): { cols: number; rows: number } | null {
     if (this.disposed) {
       return null
@@ -139,12 +174,12 @@ export class SessionOutputPlane {
     return this.emulator.getAppliedSize()
   }
 
-  /** Holds back DA1 replies the child emits while the shell-ready barrier owns query authority. */
+  /** Filter startup DA1 queries already answered by the shell-ready barrier. */
   installDeviceAttributesFilter(): void {
     this.deviceAttributesQueryFilter = new StartupDeviceAttributesQueryFilter()
   }
 
-  /** Hands DA1 back to the renderer once the barrier is done, however it ended. */
+  /** Return query authority and any held partial query to the renderer. */
   releaseDeviceAttributesFilter(): void {
     const pending = this.deviceAttributesQueryFilter?.release() ?? ''
     this.deviceAttributesQueryFilter = null
@@ -160,7 +195,7 @@ export class SessionOutputPlane {
   emit(emission: PtyIngressEmission): void {
     let { data } = emission
     const rawLength = emission.rawEndSeq - emission.rawStartSeq
-    // Why: absolute raw count (daemon stream thinning can drop bytes) lets a snapshot cover the gaps while the renderer dedups the tail.
+    // Count raw input even when thinning drops bytes so snapshots and renderer tail deduplication align.
     this._outputSequence += rawLength
     if (data.length > 0) {
       this.emulator.write(data)
@@ -170,7 +205,6 @@ export class SessionOutputPlane {
       this.record({ kind: 'output', data })
     }
 
-    // Broadcast to attached clients
     for (const client of this.attachedClients) {
       if (emission.transformed || rawLength !== data.length) {
         client.onData(data, rawLength, true, this._outputSequence)
@@ -191,7 +225,7 @@ export class SessionOutputPlane {
       this.pendingOutputOverflowed = true
       return
     }
-    // Why: coalesce the thousands of tiny TUI chunks per tick to keep take RPC/log frames compact; 64KB cap bounds append cost.
+    // Coalesce small adjacent output records to reduce RPC and log-frame overhead.
     const last = this.pendingOutputRecords.at(-1)
     if (record.kind === 'output' && last?.kind === 'output' && last.data.length < 64 * 1024) {
       last.data += record.data
@@ -201,8 +235,7 @@ export class SessionOutputPlane {
     this.pendingOutputBytes += bytes
   }
 
-  /** Drains records accumulated since the last take. `takeSnapshot` runs after the drain so no PTY
-   *  data lands between the two (which would replay twice on cold restore). */
+  /** Drain and snapshot in one synchronous turn so no PTY bytes can be replayed twice. */
   takePendingOutput(
     includeSnapshot: boolean,
     releasedHeldBytes: string,
@@ -230,8 +263,7 @@ export class SessionOutputPlane {
     }
   }
 
-  /** Marks the plane's read surface dead (mirrors Session's `_disposed`) without freeing the emulator,
-   *  which outlives fd teardown so an already-exited session can still be snapshotted. */
+  /** Invalidate the read surface without freeing the emulator yet. */
   markDisposed(): void {
     this.disposed = true
   }

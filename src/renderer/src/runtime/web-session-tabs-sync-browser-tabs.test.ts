@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { recordWebSessionFocusIntent } from './web-session-focus-intent'
+import { buildOwnedEditorFileId } from '../store/slices/editor/file-ids/editor-file-ids'
 import type { BrowserPage, BrowserWorkspace } from '../../../shared/browser-workspace-types'
 import type { Tab, TabGroupLayoutNode } from '../../../shared/tab-types'
 import {
@@ -7,13 +8,13 @@ import {
   recordWebSessionBrowserPlacement,
   takeWebSessionBrowserPlacementGroup
 } from './web-session-browser-placement'
+import { acceptReplayedWebSessionTabsSnapshot } from './web-session-tabs-sync/tracking-lifecycle'
 import {
-  acceptReplayedWebSessionTabsSnapshot,
   applyFreshWebSessionTabsSnapshot,
-  applyWebSessionTabsSnapshot,
-  resolveHostSessionTabIdForWebSessionTab,
-  type WebSessionTabsSyncState
-} from './web-session-tabs-sync'
+  applyWebSessionTabsSnapshot
+} from './web-session-tabs-sync/snapshot-api'
+import { resolveHostSessionTabIdForWebSessionTab } from './web-session-tabs-sync/tracking-mappings'
+import type { WebSessionTabsSyncState } from './web-session-tabs-sync/state'
 import {
   ENV,
   HOST_SURFACE_ID,
@@ -60,20 +61,11 @@ describe('applyWebSessionTabsSnapshot', () => {
             loading: false,
             canGoBack: true,
             canGoForward: false,
-            loadError: {
-              code: -202,
-              description: 'ERR_CERT_AUTHORITY_INVALID',
-              validatedUrl: 'https://localhost:3443/'
-            },
-            certificateFailure: {
-              challengeId: 'challenge-1',
-              browserPageId: 'host-browser-page',
-              errorCode: -202,
-              error: 'ERR_CERT_AUTHORITY_INVALID',
-              origin: 'https://localhost:3443',
-              displayHost: 'localhost:3443',
-              canProceed: true,
-              observedAt: 123
+            placement: {
+              kind: 'client',
+              browserHostClientId: 'host-a',
+              browserHostGeneration: 3,
+              pageHostGeneration: 9
             },
             color: '#3b82f6',
             isPinned: true,
@@ -107,27 +99,21 @@ describe('applyWebSessionTabsSnapshot', () => {
         url: 'https://example.com/',
         title: 'Example Domain',
         loading: false,
-        loadError: {
-          code: -202,
-          description: 'ERR_CERT_AUTHORITY_INVALID',
-          validatedUrl: 'https://localhost:3443/'
-        }
+        loadError: null
       }
     ])
     expect(patch.remoteBrowserPageHandlesByPageId?.['host-browser-page']).toEqual({
       environmentId: ENV,
-      remotePageId: 'host-browser-page'
+      remotePageId: 'host-browser-page',
+      placement: {
+        kind: 'client',
+        browserHostClientId: 'host-a',
+        browserHostGeneration: 3,
+        pageHostGeneration: 9
+      }
     })
-    expect(patch.browserCertificateFailuresByPageId?.['host-browser-page']).toEqual({
-      challengeId: 'challenge-1',
-      browserPageId: 'host-browser-page',
-      errorCode: -202,
-      error: 'ERR_CERT_AUTHORITY_INVALID',
-      origin: 'https://localhost:3443',
-      displayHost: 'localhost:3443',
-      canProceed: true,
-      observedAt: 123
-    })
+    // Client-hosted load/certificate errors belong to the guest; host snapshots omit them (mirror-identity tests).
+    expect(patch.browserCertificateFailuresByPageId?.['host-browser-page']).toBeUndefined()
     expect(patch.unifiedTabsByWorktree?.[WT]).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -156,6 +142,62 @@ describe('applyWebSessionTabsSnapshot', () => {
     expect(patch.activeTabIdByWorktree?.[WT]).toBe(terminalId)
     expect(patch.activeTabType).toBe('browser')
     expect(patch.activeTabTypeByWorktree?.[WT]).toBe('browser')
+  })
+
+  it('hydrates host-published failure state for a server-hosted browser tab', () => {
+    const patch = applyWebSessionTabsSnapshot(
+      makeState(),
+      makeSnapshot(
+        [
+          {
+            type: 'browser',
+            id: 'host-browser-unified',
+            title: 'Example Domain',
+            browserWorkspaceId: 'host-browser-workspace',
+            browserPageId: 'host-browser-page',
+            url: 'https://example.com/',
+            loading: false,
+            canGoBack: false,
+            canGoForward: false,
+            loadError: {
+              code: -202,
+              description: 'ERR_CERT_AUTHORITY_INVALID',
+              validatedUrl: 'https://localhost:3443/'
+            },
+            certificateFailure: {
+              challengeId: 'challenge-1',
+              browserPageId: 'host-browser-page',
+              errorCode: -202,
+              error: 'ERR_CERT_AUTHORITY_INVALID',
+              origin: 'https://localhost:3443',
+              displayHost: 'localhost:3443',
+              canProceed: true,
+              observedAt: 123
+            },
+            isActive: true
+          }
+        ],
+        { activeTabId: 'host-browser-unified', activeTabType: 'browser' }
+      ),
+      ENV,
+      NOW
+    ) as Partial<WebSessionTabsSyncState>
+
+    expect(patch.browserPagesByWorkspace?.['host-browser-workspace']?.[0]?.loadError).toEqual({
+      code: -202,
+      description: 'ERR_CERT_AUTHORITY_INVALID',
+      validatedUrl: 'https://localhost:3443/'
+    })
+    expect(patch.browserCertificateFailuresByPageId?.['host-browser-page']).toEqual({
+      challengeId: 'challenge-1',
+      browserPageId: 'host-browser-page',
+      errorCode: -202,
+      error: 'ERR_CERT_AUTHORITY_INVALID',
+      origin: 'https://localhost:3443',
+      displayHost: 'localhost:3443',
+      canProceed: true,
+      observedAt: 123
+    })
   })
 
   it('keeps mirrored browser tabs in a rendered web layout group', () => {
@@ -309,7 +351,9 @@ describe('applyWebSessionTabsSnapshot', () => {
   it('replays a pre-response browser snapshot after canonical placement and focus are known', () => {
     const editorGroupId = 'client-editor-group'
     const previewGroupId = 'client-preview-group'
-    const editorFileId = '/srv/repo/example.html'
+    const editorFilePath = '/srv/repo/example.html'
+    // A server's file is named by its owned id from the first open.
+    const editorFileId = buildOwnedEditorFileId(editorFilePath, WT, ENV)
     const editorTab: Tab = {
       id: 'host-editor',
       worktreeId: WT,
@@ -363,7 +407,7 @@ describe('applyWebSessionTabsSnapshot', () => {
           type: 'file',
           id: 'host-editor',
           title: 'example.html',
-          filePath: editorFileId,
+          filePath: editorFilePath,
           relativePath: 'example.html',
           language: 'html',
           isDirty: false,
@@ -451,44 +495,45 @@ describe('applyWebSessionTabsSnapshot', () => {
       groupId: previewGroupId
     })
 
+    const state = makeState({
+      groupsByWorktree: {
+        [WT]: [
+          {
+            id: editorGroupId,
+            worktreeId: WT,
+            activeTabId: 'local-editor',
+            tabOrder: ['local-editor']
+          },
+          {
+            id: previewGroupId,
+            worktreeId: WT,
+            activeTabId: null,
+            tabOrder: []
+          }
+        ]
+      },
+      layoutByWorktree: { [WT]: initialLayout },
+      unifiedTabsByWorktree: {
+        [WT]: [
+          {
+            id: 'local-editor',
+            worktreeId: WT,
+            groupId: editorGroupId,
+            contentType: 'editor',
+            entityId: 'local-file',
+            label: 'example.html',
+            sortOrder: 0,
+            createdAt: NOW,
+            isPreview: false,
+            isPinned: false,
+            customLabel: null,
+            color: null
+          }
+        ]
+      }
+    })
     const patch = applyWebSessionTabsSnapshot(
-      makeState({
-        groupsByWorktree: {
-          [WT]: [
-            {
-              id: editorGroupId,
-              worktreeId: WT,
-              activeTabId: 'local-editor',
-              tabOrder: ['local-editor']
-            },
-            {
-              id: previewGroupId,
-              worktreeId: WT,
-              activeTabId: null,
-              tabOrder: []
-            }
-          ]
-        },
-        layoutByWorktree: { [WT]: initialLayout },
-        unifiedTabsByWorktree: {
-          [WT]: [
-            {
-              id: 'local-editor',
-              worktreeId: WT,
-              groupId: editorGroupId,
-              contentType: 'editor',
-              entityId: 'local-file',
-              label: 'example.html',
-              sortOrder: 0,
-              createdAt: NOW,
-              isPreview: false,
-              isPinned: false,
-              customLabel: null,
-              color: null
-            }
-          ]
-        }
-      }),
+      state,
       makeSnapshot([], {
         activeTabType: null,
         tabGroups: [{ id: editorGroupId, activeTabId: null, tabOrder: [], recentTabIds: [] }],
@@ -496,9 +541,11 @@ describe('applyWebSessionTabsSnapshot', () => {
       }),
       ENV,
       NOW
-    ) as Partial<WebSessionTabsSyncState>
+    )
+    // An omitted groups patch means the snapshot left every group as it was.
+    const groups = patch.groupsByWorktree?.[WT] ?? state.groupsByWorktree[WT]
 
-    expect(patch.groupsByWorktree?.[WT]?.map((group) => group.id)).toContain(previewGroupId)
+    expect(groups?.map((group) => group.id)).toContain(previewGroupId)
     expect(layoutHasGroup(patch.layoutByWorktree?.[WT] ?? initialLayout, previewGroupId)).toBe(true)
   })
 

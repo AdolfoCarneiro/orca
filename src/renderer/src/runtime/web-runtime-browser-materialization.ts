@@ -18,7 +18,12 @@ export function hasMaterializedWebRuntimeBrowserPage(
   return (state.browserTabsByWorktree[worktreeId] ?? []).some((workspace) => {
     const hasRemotePage = (state.browserPagesByWorkspace[workspace.id] ?? []).some((page) => {
       const handle = state.remoteBrowserPageHandlesByPageId[page.id]
-      return handle?.environmentId === environmentId && handle.remotePageId === remotePageId
+      // Staged handles are optimistic guesses, not proof the host published the page.
+      return (
+        handle?.environmentId === environmentId &&
+        handle.remotePageId === remotePageId &&
+        handle.staged !== true
+      )
     })
     if (!hasRemotePage) {
       return false

@@ -1,24 +1,32 @@
-/** Picking worker terminals, sending a task's dispatch preamble, and warning about hung dispatches. */
 import type { OrchestrationDb } from './db'
 import type { TaskRow } from './types'
 import { buildDispatchPreamble } from './preamble'
+import { sendAgentTurn } from './send-agent-turn'
 import type { CoordinatorRuntime, WorktreeDrift } from './coordinator-runtime-contract'
 import {
   DISPATCH_STALE_THRESHOLD,
   parseAllowStaleBaseFromSpec
 } from './coordinator-stale-base-flag'
+import { isAgentPromptStalledError } from '../agent-prompt-submission-verification'
 
-export type TaskDispatchResult = 'dispatched' | 'stale-base-refused'
+/** `dispatched-unobserved`: the preamble landed but the worker's turn start was never observed. */
+export type TaskDispatchResult = 'dispatched' | 'dispatched-unobserved' | 'stale-base-refused'
 
-// Why: 10 min = documented heartbeat cadence (5 min) × 2, so one missed heartbeat is the earliest a dispatch can look stale.
-const HUNG_THRESHOLD_MS = 10 * 60 * 1000
-
-// Why: warn only, never auto-fail — a false positive (slow but correct worker) costs more than a false negative (hung worker holding a slot); see R6 of DESIGN_DOC_PREAMBLE_FIX.md.
-export function warnStaleDispatches(db: OrchestrationDb, onLog: (msg: string) => void): void {
-  const thresholdIso = new Date(Date.now() - HUNG_THRESHOLD_MS).toISOString()
+// Warn only: automatically failing a slow but healthy worker is worse than retaining a hung slot.
+export function warnStaleDispatches(
+  db: OrchestrationDb,
+  onLog: (msg: string) => void,
+  heartbeatIntervalMinutes: number | null
+): void {
+  // Workers told not to send heartbeats cannot miss one.
+  if (heartbeatIntervalMinutes === null) {
+    return
+  }
+  // Warn after two missed heartbeat periods.
+  const minutes = heartbeatIntervalMinutes * 2
+  const thresholdIso = new Date(Date.now() - minutes * 60 * 1000).toISOString()
   const stale = db.getStaleDispatches(thresholdIso)
   for (const ctx of stale) {
-    const minutes = Math.round(HUNG_THRESHOLD_MS / 60000)
     onLog(
       `Warning: worker ${ctx.assignee_handle ?? '<unknown>'} on task ${ctx.task_id} has not sent a heartbeat in ~${minutes} min (dispatch ${ctx.id})`
     )
@@ -30,7 +38,7 @@ export async function listAvailableWorkerTerminals(
   runtime: CoordinatorRuntime,
   coordinatorHandle: string,
   worktree: string | undefined
-): Promise<string[]> {
+): Promise<string[] | null> {
   try {
     const result = await runtime.listTerminals(worktree, undefined, {
       includeVisualLayouts: false
@@ -45,7 +53,7 @@ export async function listAvailableWorkerTerminals(
       }
     }
 
-    // Why: createDispatchContext's dispatch-lock guarantees correctness; this filter is only an optimization to skip busy/disconnected terminals.
+    // The dispatch lock enforces correctness; filtering merely skips busy or disconnected terminals.
     return result.terminals
       .filter(
         (t) =>
@@ -53,7 +61,8 @@ export async function listAvailableWorkerTerminals(
       )
       .map((t) => t.handle)
   } catch {
-    return []
+    // A failed census cannot authorize creating another worker.
+    return null
   }
 }
 
@@ -66,18 +75,19 @@ export async function dispatchTaskToWorker(params: {
   coordinatorHandle: string
   worktree: string | undefined
   onLog: (msg: string) => void
-  // Why: the coordinator owns the failed-task list, so a circuit break is reported back instead of mutated here.
+  // Return circuit breaks to the coordinator that owns the failed-task list.
   onCircuitBroken: (taskId: string) => void
+  nestedWorkerMaxDepth: number
+  heartbeatIntervalMinutes: number | null
 }): Promise<TaskDispatchResult> {
   const { db, runtime, task, targetHandle, baseDrift, onLog } = params
-  // Why (§3.1): drift check runs before createDispatchContext so a refusal doesn't bump failure_count (carried forward as MAX in db.ts:301-306) and burn the circuit-breaker budget; the task stays `ready` and retries next tick.
+  // Refuse stale bases before creating dispatch context so recoverable drift cannot consume circuit-breaker budget.
   const { allowStale, strippedSpec } = parseAllowStaleBaseFromSpec(task.spec)
 
   if (!params.worktree) {
-    // Why (§7.4): worktree is optional; with none we can't probe drift, so log that the guard is inert and proceed.
+    // Without a worktree selector, drift cannot be probed.
     onLog(`stale-base guard inert for ${task.id}: coordinator has no worktree selector`)
   } else if (baseDrift && baseDrift.behind > DISPATCH_STALE_THRESHOLD && !allowStale) {
-    // Why (§3.1): silent-return, not failDispatch — failing a recoverable stale-base here would burn the circuit-breaker budget.
     onLog(
       `Skipping dispatch of ${task.id}: worktree is ${baseDrift.behind} commits ` +
         `behind ${baseDrift.base}. Pull/rebase the worktree, recreate it with ` +
@@ -95,19 +105,23 @@ export async function dispatchTaskToWorker(params: {
     dispatchAuthority?.paneKey && dispatchAuthority.processIncarnation
       ? dispatchAuthority.processIncarnation
       : undefined
-  const dispatch = db.createDispatchContext(
-    task.id,
-    targetHandle,
+  const dispatch = db.createDispatchContext({
+    taskId: task.id,
+    assigneeHandle: targetHandle,
     assigneePaneKey,
-    dispatchAuthority?.launchTokenHash ?? undefined,
-    processIncarnation
-  )
+    launchTokenHash: dispatchAuthority?.launchTokenHash ?? undefined,
+    processIncarnation,
+    // This authenticated host-local loop is a system root, independent of CLI callers.
+    creator: { kind: 'system' },
+    maxDepth: params.nestedWorkerMaxDepth
+  })
 
-  // Why: dispatched agents use orca-dev in dev mode to reach the dev runtime's socket, not production (Section 6.4).
+  // Dev workers need orca-dev to reach the dev socket.
   const preamble = buildDispatchPreamble({
     taskId: task.id,
     dispatchId: dispatch.id,
-    // Why (§3.4): strippedSpec drops the allow-stale-base line so the worker doesn't read the infra flag as an instruction.
+    canDispatchSubWorkers: dispatch.depth < params.nestedWorkerMaxDepth,
+    heartbeatIntervalMinutes: params.heartbeatIntervalMinutes,
     taskSpec: strippedSpec,
     coordinatorHandle: params.coordinatorHandle,
     workerHandle: targetHandle,
@@ -115,21 +129,32 @@ export async function dispatchTaskToWorker(params: {
     ...(runtime.getTerminalOrchestrationCliCommand
       ? { cliCommand: runtime.getTerminalOrchestrationCliCommand(targetHandle) }
       : {}),
-    // Why (§3.2): pass baseDrift unconditionally — the preamble builder itself gates the drift section on behind > 0.
     ...(baseDrift ? { baseDrift } : {})
   })
 
-  // Why: surface a since-resolved decision gate's outcome to the worker via the preamble.
   const gates = db.listGates({ taskId: task.id, status: 'resolved' })
   let gateContext = ''
   if (gates.length > 0) {
     const latest = gates.at(-1)!
-    gateContext = `\n\n--- DECISION GATE RESOLVED ---\nQuestion: ${latest.question}\nResolution: ${latest.resolution}\n---\n`
+    gateContext = `\n\n--- DECISION GATE RESOLVED ---\nQuestion: ${latest.question}\nResolution: ${latest.resolution}\n\n---\n`
   }
 
   try {
-    await runtime.sendTerminalAgentPrompt(targetHandle, preamble + gateContext)
+    await sendAgentTurn({
+      kind: 'terminal',
+      runtime,
+      handle: targetHandle,
+      turn: { purpose: 'dispatch-preamble', body: preamble + gateContext, operationId: dispatch.id }
+    })
   } catch (err) {
+    // Enter may already have landed; an unobserved turn must not requeue the preamble or revoke worker_done authority (#16095).
+    if (isAgentPromptStalledError(err)) {
+      onLog(
+        `Dispatched task ${task.id} to ${targetHandle}; turn start was not observed. ` +
+          `The preamble is already in the pane, so the dispatch stays active instead of being resent.`
+      )
+      return 'dispatched-unobserved'
+    }
     const updated = db.failDispatch(dispatch.id, err instanceof Error ? err.message : String(err))
     if (updated?.status === 'circuit_broken') {
       params.onCircuitBroken(task.id)

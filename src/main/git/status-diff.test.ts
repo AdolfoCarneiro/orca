@@ -102,7 +102,8 @@ describe('getDiff', () => {
 
     expect(gitExecFileAsyncBufferMock).toHaveBeenCalledWith(['show', ':src/file.ts'], {
       cwd: '/repo',
-      maxBuffer: 10 * 1024 * 1024
+      maxBuffer: 10 * 1024 * 1024,
+      preferWslDirectGit: true
     })
     expect(readFileMock).toHaveBeenCalledWith(path.join('/repo', 'src/file.ts'))
     expect(result).toEqual({
@@ -122,13 +123,19 @@ describe('getDiff', () => {
 
     expect(gitExecFileAsyncBufferMock).toHaveBeenCalledWith(['show', ':src/file.ts'], {
       cwd: '/repo',
-      maxBuffer: 10 * 1024 * 1024
+      maxBuffer: 10 * 1024 * 1024,
+      preferWslDirectGit: true
     })
   })
 
   it('falls back to HEAD for unstaged diffs when the file is not in the index', async () => {
     gitExecFileAsyncBufferMock
-      .mockRejectedValueOnce(new Error('missing index'))
+      .mockRejectedValueOnce(
+        Object.assign(new Error("fatal: path 'src/file.ts' exists on disk, but not in the index"), {
+          code: 128,
+          stderr: "fatal: path 'src/file.ts' exists on disk, but not in the index"
+        })
+      )
       .mockResolvedValueOnce({ stdout: Buffer.from('head-content\n') })
     readFileMock.mockResolvedValue(Buffer.from('working-tree-content'))
 
@@ -139,7 +146,8 @@ describe('getDiff', () => {
       ['show', '--end-of-options', 'HEAD:src/file.ts'],
       {
         cwd: '/repo',
-        maxBuffer: 10 * 1024 * 1024
+        maxBuffer: 10 * 1024 * 1024,
+        preferWslDirectGit: true
       }
     )
     expect(result.originalContent).toBe('head-content\n')
@@ -158,15 +166,18 @@ describe('getDiff', () => {
   })
 
   it('does not read oversized working-tree files into memory', async () => {
+    const workingTreePath = path.join('/repo', 'dist/large.log')
     gitExecFileAsyncBufferMock.mockResolvedValueOnce({ stdout: Buffer.from('index-content\n') })
-    statMock.mockResolvedValueOnce({
-      isFile: () => true,
-      size: 10 * 1024 * 1024 + 1
-    })
+    // Route stats by path so stamp reads cannot consume the oversized-file response.
+    statMock.mockImplementation(async (target: string) =>
+      target === workingTreePath
+        ? { isFile: () => true, size: 10 * 1024 * 1024 + 1 }
+        : { isFile: () => true, size: 12 }
+    )
 
     const result = await getDiff('/repo', 'dist/large.log', false)
 
-    expect(readFileMock).not.toHaveBeenCalled()
+    expect(readFileMock).not.toHaveBeenCalledWith(workingTreePath)
     expect(result.kind).toBe('binary')
     expect(result.modifiedIsBinary).toBe(true)
     expect(result.modifiedContent).toBe('')
@@ -259,8 +270,14 @@ describe('getDiff', () => {
 
   it('flags a deleted image so previewers can fall back to the original bytes', async () => {
     const pngBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00])
+    const workingTreePath = path.join('/repo', 'assets/deleted.png')
     gitExecFileAsyncBufferMock.mockResolvedValueOnce({ stdout: pngBuffer })
-    statMock.mockRejectedValueOnce(Object.assign(new Error('missing'), { code: 'ENOENT' }))
+    statMock.mockImplementation(async (target: string) => {
+      if (target === workingTreePath) {
+        throw Object.assign(new Error('missing'), { code: 'ENOENT' })
+      }
+      return { isFile: () => true, size: 12 }
+    })
 
     const result = await getDiff('/repo', 'assets/deleted.png', false)
 
@@ -275,9 +292,15 @@ describe('getDiff', () => {
 
   it('does not treat an unreadable working-tree image as a deletion', async () => {
     const pngBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00])
+    const workingTreePath = path.join('/repo', 'assets/unreadable.png')
     gitExecFileAsyncBufferMock.mockResolvedValueOnce({ stdout: pngBuffer })
-    statMock.mockResolvedValueOnce({ isFile: () => true, size: 5 })
-    readFileMock.mockRejectedValueOnce(new Error('EIO'))
+    statMock.mockImplementation(async () => ({ isFile: () => true, size: 5 }))
+    readFileMock.mockImplementation(async (target: string) => {
+      if (target === workingTreePath) {
+        throw new Error('EIO')
+      }
+      return Buffer.from('')
+    })
 
     const result = await getDiff('/repo', 'assets/unreadable.png', false)
 
@@ -296,8 +319,7 @@ describe('getDiff', () => {
 
     const reads = Array.from({ length: 8 }, () => getDiff('/repo', 'src/file.ts', true))
 
-    // Why both up front: the two sides are independent spawns issued concurrently,
-    // so 8 identical reads still collapse to exactly 2 — one per side, not per read.
+    // Eight coalesced reads should spawn only once for each independent side.
     await waitForMockCalls(gitExecFileAsyncBufferMock, 2)
     expect(gitExecFileAsyncBufferMock).toHaveBeenCalledTimes(2)
 

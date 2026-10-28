@@ -3,9 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('electron', async () =>
   (await import('./createMainWindow-test-harness')).electronModuleMock()
 )
-vi.mock('@electron-toolkit/utils', async () =>
-  (await import('./createMainWindow-test-harness')).electronToolkitUtilsMock()
-)
 vi.mock('./macos-tahoe-release', async () =>
   (await import('./createMainWindow-test-harness')).macosTahoeReleaseMock()
 )
@@ -13,11 +10,34 @@ vi.mock('../app-icon', async () => (await import('./createMainWindow-test-harnes
 vi.mock('../browser/browser-manager', async () =>
   (await import('./createMainWindow-test-harness')).browserManagerMock()
 )
+vi.mock('../browser/browser-route-session-runtime', async () => {
+  const harness = await import('./createMainWindow-test-harness')
+  return {
+    browserRouteSessionRegistry: { isAllowedPartition: harness.routePartitionAllowedMock },
+    browserRouteWebContentsRegistry: {
+      attachGuest: harness.attachRouteGuestMock,
+      retireRenderer: harness.retireRouteRendererMock
+    }
+  }
+})
+vi.mock('../browser/browser-client-page-renderer-runtime', async () => {
+  const harness = await import('./createMainWindow-test-harness')
+  return {
+    attachBrowserClientPageRenderer: harness.attachClientPageRendererMock,
+    retireBrowserClientPageRenderer: harness.retireClientPageRendererMock
+  }
+})
 
 import { createMainWindow, WINDOW_QUIT_RENDERER_ACK_TIMEOUT_MS } from './createMainWindow'
 import { ipcMain } from 'electron'
 import { resetExpectedTeardownStateForTest } from '../crash-reporting/expected-teardown-state'
-import { browserWindowMock, resetMainWindowMocks } from './createMainWindow-test-harness'
+import {
+  attachClientPageRendererMock,
+  browserWindowMock,
+  resetMainWindowMocks,
+  retireClientPageRendererMock,
+  retireRouteRendererMock
+} from './createMainWindow-test-harness'
 
 describe('createMainWindow', () => {
   beforeEach(() => {
@@ -50,8 +70,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     const onQuitAborted = vi.fn()
     browserWindowMock.mockImplementation(function () {
@@ -76,6 +96,7 @@ describe('createMainWindow', () => {
   it('allows close after the renderer process is gone', () => {
     const windowHandlers: Record<string, (...args: any[]) => void> = {}
     const webContents = {
+      id: 71,
       on: vi.fn((event, handler) => {
         windowHandlers[event] = handler
       }),
@@ -98,8 +119,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     browserWindowMock.mockImplementation(function () {
@@ -115,6 +136,7 @@ describe('createMainWindow', () => {
         exitCode: 5
       } as never
     )
+    expect(retireRouteRendererMock).toHaveBeenCalledWith(71)
     const preventDefault = vi.fn()
     windowHandlers.close({ preventDefault } as never)
 
@@ -153,8 +175,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn(),
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve()),
       close: vi.fn(() => {
         windowHandlers.close({} as never)
       })
@@ -213,8 +235,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     const updateUI = vi.fn()
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -271,8 +293,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     browserWindowMock.mockImplementation(function () {
@@ -293,6 +315,8 @@ describe('createMainWindow', () => {
     windowHandlers.close({ preventDefault } as never)
 
     expect(preventDefault).toHaveBeenCalledTimes(1)
+    expect(retireClientPageRendererMock).toHaveBeenCalledWith(webContents)
+    expect(attachClientPageRendererMock).toHaveBeenCalledWith(webContents)
     expect(webContents.send).toHaveBeenCalledWith('window:close-requested', {
       isQuitting: true,
       requestId: expect.any(Number)
@@ -326,8 +350,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     browserWindowMock.mockImplementation(function () {
       return browserWindowInstance
@@ -345,10 +369,7 @@ describe('createMainWindow', () => {
     )
   })
 
-  // Why (#5787): a hung-but-ALIVE renderer (never gone, never crashed) must NOT
-  // silently bypass the close guard — force-killing it that way is what destroyed
-  // other sessions. It must route through window:close-requested so the
-  // save/running-process confirmation runs.
+  // #5787: hung-but-live renderers still need save/process confirmation; bypassing close guards destroys other sessions.
   it('requests confirmation for a hung-but-alive renderer instead of bypassing', () => {
     const windowHandlers: Record<string, (...args: any[]) => void> = {}
     const webContents = {
@@ -374,8 +395,8 @@ describe('createMainWindow', () => {
       setSize: vi.fn(),
       maximize: vi.fn(),
       show: vi.fn(),
-      loadFile: vi.fn(),
-      loadURL: vi.fn()
+      loadFile: vi.fn(() => Promise.resolve()),
+      loadURL: vi.fn(() => Promise.resolve())
     }
     browserWindowMock.mockImplementation(function () {
       return browserWindowInstance
@@ -383,7 +404,6 @@ describe('createMainWindow', () => {
 
     createMainWindow(null)
 
-    // No render-process-gone and isCrashed() === false: the renderer is alive.
     const preventDefault = vi.fn()
     windowHandlers.close({ preventDefault } as never)
 
@@ -424,8 +444,8 @@ describe('createMainWindow', () => {
         maximize: vi.fn(),
         show: vi.fn(),
         destroy,
-        loadFile: vi.fn(),
-        loadURL: vi.fn()
+        loadFile: vi.fn(() => Promise.resolve()),
+        loadURL: vi.fn(() => Promise.resolve())
       }
     })
     createMainWindow(null, { getIsQuitting: () => true })
@@ -473,8 +493,8 @@ describe('createMainWindow', () => {
         maximize: vi.fn(),
         show: vi.fn(),
         destroy,
-        loadFile: vi.fn(),
-        loadURL: vi.fn()
+        loadFile: vi.fn(() => Promise.resolve()),
+        loadURL: vi.fn(() => Promise.resolve())
       }
     })
     createMainWindow(null, { getIsQuitting: () => true })
