@@ -195,24 +195,21 @@ export function activateLocalPtySession(args: {
     const notice = startupStagingFailureNotice(staging)
     if (notice) {
       startupIngress.accept(notice)
-      console.warn(`[pty] Could not stage startup command for ${id}`, {
-        delivery: staging.delivery,
+      console.warn(`[pty] Could not stage startup command for ${id}; typing it in full`, {
         reason: staging.failure
       })
     }
-    if (staging.delivery !== 'refused-after-stage-failed') {
-      writeStartupCommandWhenShellReady(
-        readiness.shellReadyPromise,
-        proc,
-        staging.command,
-        (cleanup) => {
-          readiness.setStartupCommandCleanup(cleanup)
-        },
-        {
-          bracketedPasteSafe
-        }
-      )
-    }
+    writeStartupCommandWhenShellReady(
+      readiness.shellReadyPromise,
+      proc,
+      staging.command,
+      (cleanup) => {
+        readiness.setStartupCommandCleanup(cleanup)
+      },
+      {
+        bracketedPasteSafe
+      }
+    )
   }
 
   // Memory collection needs a proven positive OS PID; node-pty can briefly publish zero during spawn.
