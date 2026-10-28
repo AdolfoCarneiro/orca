@@ -86,14 +86,23 @@ function retypeListAtCursor(editor: Editor, target: ListItemTypeName): void {
 
   // Replace the subtree atomically because separately retyping list/items creates schema-invalid intermediate states.
   const itemType = state.schema.nodes[target]
-  const items = list.children.map((item) => itemType.create(null, item.content, item.marks))
+  const range = state.selection.$from.blockRange(state.selection.$to, (node) => node === list)
+  const selectedEnd = range?.endIndex ?? list.childCount
+  const trailing = Fragment.fromArray(list.children.slice(selectedEnd))
+  const items = list.children.slice(0, selectedEnd).map((item, index) => {
+    const content =
+      index === selectedEnd - 1 && trailing.size > 0
+        ? item.content.append(Fragment.from(list.copy(trailing)))
+        : item.content
+    return itemType.create(null, content, item.marks)
+  })
   const retyped = state.schema.nodes[LIST_TYPE_FOR_ITEM[target]].create(
     null,
     Fragment.from(items),
     list.marks
   )
   const tr = state.tr.replaceWith(listPos, listPos + list.nodeSize, retyped)
-  // Size-preserving retyping deletes/reinserts the subtree; restore selection rather than keeping replaceWith’s collapsed cursor.
+  // Retyping replaces the subtree; keep the selected text instead of the replacement cursor.
   tr.setSelection(TextSelection.create(tr.doc, from, to))
   editor.view.dispatch(tr)
 }
