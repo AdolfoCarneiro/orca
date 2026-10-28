@@ -11319,14 +11319,6 @@
           "enable": "有効にする"
         },
         "PluginSettingsRow": {
-          "blocked": "ブロック中",
-          "needsReview": "レビュー待ち",
-          "restarting": "再起動中",
-          "invalid": "無効",
-          "error": "エラー",
-          "disabled": "無効",
-          "running": "実行中",
-          "enabled": "有効",
           "loadingLogs": "ログを読み込み中…",
           "noLogs": "ログはまだありません",
           "logCount": "直近 {{value0}} 行",
@@ -12415,9 +12407,6 @@
           "installName": "{{value0}} をインストール",
           "copied": "プラグイン ID をコピーしました",
           "copyFailed": "プラグイン ID をコピーできませんでした。",
-          "stopped": "停止",
-          "cantLoad": "読み込めません",
-          "on": "オン",
           "details": "詳細",
           "unverified": "未検証",
           "crashedOnce": "1 回クラッシュしました",
@@ -12425,7 +12414,6 @@
           "updateLabel": "{{value0}} を {{value1}} にアップデート",
           "update": "{{value0}} にアップデート",
           "needsOrca": "Orca {{value0}} が必要",
-          "off": "オフ",
           "rollbackTo": "{{value0}} に戻す…",
           "dataLoadFailed": "ファイルを読み込めませんでした"
         },
@@ -12516,6 +12504,16 @@
           "label": "アルファ版：",
           "body": "プラグインのインターフェースは変更される可能性があります。細かな違いが生じることがあります。",
           "dismiss": "アルファ版のお知らせを閉じる"
+        },
+        "PluginStatus": {
+          "needsReview": "レビュー待ち",
+          "restarting": "再起動中",
+          "stopped": "停止",
+          "cantLoad": "読み込めません",
+          "off": "オフ",
+          "running": "実行中",
+          "on": "オン",
+          "blocked": "ブロック中"
         },
         "notification": {
           "settings": {

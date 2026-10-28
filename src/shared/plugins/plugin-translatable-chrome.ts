@@ -13,7 +13,7 @@
 // whether to trust a plugin. That rules out, and this list therefore omits:
 //
 //   - trust badges and safety status — `PluginMarketplaceListingRow.official`,
-//     `.blocked`, `PluginSettingsRow.blocked`;
+//     `.blocked`, `PluginStatus.blocked`;
 //   - promises about what plugins may do — `PluginsSettingsSection.description`
 //     ("Plugins run on this computer"), `.systemDescription` ("Nothing runs
 //     until you review and enable it"), and `PluginDevelopmentSection.help`.

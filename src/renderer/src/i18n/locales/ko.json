@@ -11319,14 +11319,6 @@
           "enable": "활성화"
         },
         "PluginSettingsRow": {
-          "blocked": "차단됨",
-          "needsReview": "검토 필요",
-          "restarting": "재시작 중",
-          "invalid": "유효하지 않음",
-          "error": "오류",
-          "disabled": "비활성화됨",
-          "running": "실행 중",
-          "enabled": "활성화됨",
           "loadingLogs": "로그 로딩 중…",
           "noLogs": "아직 로그가 없습니다",
           "logCount": "최근 {{value0}}줄",
@@ -12415,9 +12407,6 @@
           "installName": "{{value0}} 설치",
           "copied": "플러그인 ID를 복사했습니다",
           "copyFailed": "플러그인 ID를 복사할 수 없습니다.",
-          "stopped": "중지됨",
-          "cantLoad": "불러올 수 없음",
-          "on": "켜짐",
           "details": "세부 정보",
           "unverified": "확인되지 않음",
           "crashedOnce": "한 번 충돌함",
@@ -12425,7 +12414,6 @@
           "updateLabel": "{{value0}}을(를) {{value1}}(으)로 업데이트",
           "update": "{{value0}}(으)로 업데이트",
           "needsOrca": "Orca {{value0}} 필요",
-          "off": "꺼짐",
           "rollbackTo": "{{value0}}(으)로 되돌리기…",
           "dataLoadFailed": "파일을 불러오지 못했습니다"
         },
@@ -12516,6 +12504,16 @@
           "label": "알파:",
           "body": "플러그인 인터페이스는 변경될 수 있습니다. 세부 동작이 달라질 수 있습니다.",
           "dismiss": "알파 안내 닫기"
+        },
+        "PluginStatus": {
+          "needsReview": "검토 필요",
+          "restarting": "재시작 중",
+          "stopped": "중지됨",
+          "cantLoad": "불러올 수 없음",
+          "off": "꺼짐",
+          "running": "실행 중",
+          "on": "켜짐",
+          "blocked": "차단됨"
         },
         "notification": {
           "settings": {

@@ -53,25 +53,20 @@ export function pluginStatusKind(plugin: PluginStatusFields): PluginStatusKind {
   return plugin.status === 'running' ? 'running' : 'enabled'
 }
 
-export function pluginStatusLabel(kind: PluginStatusKind): string {
-  switch (kind) {
-    case 'blocked':
-      return translate('auto.components.settings.PluginSettingsRow.blocked', 'Blocked')
-    case 'review':
-      return translate('auto.components.settings.PluginSettingsRow.needsReview', 'Needs review')
-    case 'restarting':
-      return translate('auto.components.settings.PluginSettingsRow.restarting', 'Restarting')
-    case 'error':
-      return translate('auto.components.settings.PluginSettingsRow.error', 'Error')
-    case 'invalid':
-      return translate('auto.components.settings.PluginSettingsRow.invalid', 'Invalid')
-    case 'disabled':
-      return translate('auto.components.settings.PluginSettingsRow.disabled', 'Disabled')
-    case 'running':
-      return translate('auto.components.settings.PluginSettingsRow.running', 'Running')
-    case 'enabled':
-      return translate('auto.components.settings.PluginSettingsRow.enabled', 'Enabled')
-  }
+const STATUS_WORDS: Record<PluginStatusKind, () => string> = {
+  blocked: () => translate('auto.components.settings.PluginStatus.blocked', 'Blocked'),
+  review: () => translate('auto.components.settings.PluginStatus.needsReview', 'Needs review'),
+  restarting: () => translate('auto.components.settings.PluginStatus.restarting', 'Restarting'),
+  error: () => translate('auto.components.settings.PluginStatus.stopped', 'Stopped'),
+  invalid: () => translate('auto.components.settings.PluginStatus.cantLoad', 'Can’t load'),
+  disabled: () => translate('auto.components.settings.PluginStatus.off', 'Off'),
+  running: () => translate('auto.components.settings.PluginStatus.running', 'Running'),
+  enabled: () => translate('auto.components.settings.PluginStatus.on', 'On')
+}
+
+/** The one word every surface shows for a status. */
+export function pluginStatusWord(kind: PluginStatusKind): string {
+  return STATUS_WORDS[kind]()
 }
 
 const NEEDS_ATTENTION: ReadonlySet<PluginStatusKind> = new Set([
@@ -107,19 +102,16 @@ export function installedPluginPresentation(
 ) {
   const kind = pluginStatusKind(plugin)
   const removable = !plugin.bundled && !plugin.isDev
-  const primary = busy
-    ? 'busy'
-    : plugin.blockedByKillList && removable
-      ? 'remove'
-      : pluginNeedsReview(plugin)
-        ? 'review'
-        : kind === 'error'
-          ? 'restart'
-          : updateVersion
-            ? 'update'
-            : kind === 'invalid'
-              ? 'error'
-              : null
+  // First match wins: each earlier state blocks the later actions from doing anything useful.
+  const primaryRules = [
+    [busy, 'busy'],
+    [Boolean(plugin.blockedByKillList) && removable, 'remove'],
+    [pluginNeedsReview(plugin), 'review'],
+    [kind === 'error', 'restart'],
+    [Boolean(updateVersion), 'update'],
+    [kind === 'invalid', 'error']
+  ] as const
+  const primary = primaryRules.find(([applies]) => applies)?.[1] ?? null
   const fact =
     updateVersion && autoUpdate.needsReview
       ? translate(
@@ -146,22 +138,6 @@ export function installedPluginPresentation(
     primary,
     enabled: isPluginEnabled(plugin),
     switchable: !busy && kind !== 'review' && kind !== 'invalid' && kind !== 'blocked',
-    statusText: fact ? `${statusWordFor(kind)}, ${fact}` : statusWordFor(kind)
+    statusText: fact ? `${pluginStatusWord(kind)}, ${fact}` : pluginStatusWord(kind)
   }
-}
-
-export function statusWordFor(kind: PluginStatusKind): string {
-  if (kind === 'error') {
-    return translate('auto.components.settings.PluginManagerRows.stopped', 'Stopped')
-  }
-  if (kind === 'invalid') {
-    return translate('auto.components.settings.PluginManagerRows.cantLoad', 'Can’t load')
-  }
-  if (kind === 'enabled') {
-    return translate('auto.components.settings.PluginManagerRows.on', 'On')
-  }
-  if (kind === 'disabled') {
-    return translate('auto.components.settings.PluginManagerRows.off', 'Off')
-  }
-  return pluginStatusLabel(kind)
 }

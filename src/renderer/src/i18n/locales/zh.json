@@ -11319,14 +11319,6 @@
           "enable": "启用"
         },
         "PluginSettingsRow": {
-          "blocked": "已阻止",
-          "needsReview": "需要审查",
-          "restarting": "正在重启",
-          "invalid": "无效",
-          "error": "错误",
-          "disabled": "已禁用",
-          "running": "运行中",
-          "enabled": "已启用",
           "loadingLogs": "正在加载日志…",
           "noLogs": "暂无日志",
           "logCount": "最近 {{value0}} 行",
@@ -12448,9 +12440,6 @@
           "installName": "安装 {{value0}}",
           "copied": "已复制插件 ID",
           "copyFailed": "无法复制插件 ID。",
-          "stopped": "已停止",
-          "cantLoad": "无法加载",
-          "on": "已开启",
           "details": "详情",
           "unverified": "未验证",
           "crashedOnce": "崩溃一次",
@@ -12458,7 +12447,6 @@
           "updateLabel": "将 {{value0}} 更新到 {{value1}}",
           "update": "更新到 {{value0}}",
           "needsOrca": "需要 Orca {{value0}}",
-          "off": "已关闭",
           "rollbackTo": "回滚到 {{value0}}…",
           "dataLoadFailed": "无法加载其文件"
         },
@@ -12549,6 +12537,16 @@
           "label": "Alpha 版：",
           "body": "插件接口可能会变化，细节可能有所不同。",
           "dismiss": "关闭 Alpha 版提示"
+        },
+        "PluginStatus": {
+          "needsReview": "需要审查",
+          "restarting": "正在重启",
+          "stopped": "已停止",
+          "cantLoad": "无法加载",
+          "off": "已关闭",
+          "running": "运行中",
+          "on": "已开启",
+          "blocked": "已阻止"
         },
         "notification": {
           "settings": {

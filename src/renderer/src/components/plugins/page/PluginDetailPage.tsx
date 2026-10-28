@@ -104,7 +104,7 @@ export function PluginDetailPage({
     alert = (
       <Alert
         tone="destructive"
-        title={translate('auto.components.settings.PluginSettingsRow.blocked', 'Blocked')}
+        title={translate('auto.components.settings.PluginStatus.blocked', 'Blocked')}
         body={translate(
           'auto.components.settings.PluginSettingsRow.killListMessage',
           "Orca's safety list disabled this plugin: {{value0}}",
@@ -149,7 +149,7 @@ export function PluginDetailPage({
     alert = (
       <Alert
         tone="destructive"
-        title={translate('auto.components.settings.PluginSettingsRow.blocked', 'Blocked')}
+        title={translate('auto.components.settings.PluginStatus.blocked', 'Blocked')}
         body={translate(
           'auto.components.settings.PluginMarketplaceListingRow.blocked',
           "Blocked by Orca's safety list: {{value0}}",

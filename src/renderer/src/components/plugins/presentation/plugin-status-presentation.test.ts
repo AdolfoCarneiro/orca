@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  installedPluginPresentation,
   isPluginEnabled,
   pluginNeedsReview,
   pluginStatusKind,
-  pluginStatusLabel,
+  pluginStatusWord,
   sortByAttention
 } from './plugin-status-presentation'
 import type { PluginHostListEntry } from '../../../../../preload/api-types'
@@ -29,6 +30,7 @@ function host(pluginKey: string, extra: Partial<PluginHostListEntry> = {}): Plug
   }
 }
 
+const idle = { updatedTo: null, needsReview: false }
 const base = { status: 'running' as const, needsReconsent: false, blockedByKillList: undefined }
 
 describe('plugin status presentation', () => {
@@ -38,7 +40,14 @@ describe('plugin status presentation', () => {
     expect(pluginStatusKind({ ...base, status: 'pending' })).toBe('review')
     expect(pluginStatusKind({ ...base, status: 'errored' })).toBe('error')
     expect(pluginStatusKind({ ...base, status: 'idle' })).toBe('enabled')
-    expect(pluginStatusLabel(pluginStatusKind(base))).toBe('Running')
+    expect(pluginStatusWord(pluginStatusKind(base))).toBe('Running')
+  })
+
+  it('names a crashed plugin Stopped everywhere, never Error', () => {
+    expect(pluginStatusWord('error')).toBe('Stopped')
+    expect(
+      installedPluginPresentation(host('a', { status: 'errored' }), null, false, idle)
+    ).toMatchObject({ primary: 'restart', statusText: 'Stopped' })
   })
 
   it('counts a crashed plugin as switched on, and a pending one as needing review', () => {

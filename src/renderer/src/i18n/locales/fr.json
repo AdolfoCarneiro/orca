@@ -11770,14 +11770,6 @@
           "enable": "Activer"
         },
         "PluginSettingsRow": {
-          "blocked": "Bloquée",
-          "needsReview": "En attente de relecture",
-          "restarting": "Redémarrage",
-          "invalid": "Non valide",
-          "error": "Erreur",
-          "disabled": "Désactivé",
-          "running": "En cours",
-          "enabled": "Activé",
           "loadingLogs": "Chargement des logs…",
           "noLogs": "Aucun journal pour l'instant",
           "logCount": "{{value0}} dernières lignes",
@@ -12878,9 +12870,6 @@
           "installName": "Installer {{value0}}",
           "copied": "ID du plugin copié",
           "copyFailed": "Impossible de copier l’ID du plugin.",
-          "stopped": "Arrêté",
-          "cantLoad": "Chargement impossible",
-          "on": "Activé",
           "details": "Détails",
           "unverified": "Non vérifié",
           "crashedOnce": "Un plantage",
@@ -12888,7 +12877,6 @@
           "updateLabel": "Mettre à jour {{value0}} vers {{value1}}",
           "update": "Mettre à jour vers {{value0}}",
           "needsOrca": "Nécessite Orca {{value0}}",
-          "off": "Désactivé",
           "rollbackTo": "Revenir à {{value0}}…",
           "dataLoadFailed": "Impossible de charger ses fichiers"
         },
@@ -12979,6 +12967,16 @@
           "label": "Alpha :",
           "body": "L’interface des plugins peut changer. Attendez-vous à des nuances.",
           "dismiss": "Ignorer l’avis Alpha"
+        },
+        "PluginStatus": {
+          "needsReview": "En attente de relecture",
+          "restarting": "Redémarrage",
+          "stopped": "Arrêté",
+          "cantLoad": "Chargement impossible",
+          "off": "Désactivé",
+          "running": "En cours",
+          "on": "Activé",
+          "blocked": "Bloquée"
         },
         "notification": {
           "settings": {

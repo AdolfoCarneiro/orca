@@ -6086,14 +6086,6 @@
           }
         },
         "PluginSettingsRow": {
-          "blocked": "Bloqueado",
-          "needsReview": "Precisa de revisão",
-          "restarting": "Reiniciando",
-          "invalid": "Inválido",
-          "error": "Erro",
-          "disabled": "Desativado",
-          "running": "Em execução",
-          "enabled": "Ativado",
           "loadingLogs": "Carregando logs…",
           "noLogs": "Nenhum log ainda",
           "logCount": "Últimas {{value0}} linhas",
@@ -8803,6 +8795,12 @@
           "label": "Alpha:",
           "body": "A interface de plugins pode mudar. Espere nuances.",
           "dismiss": "Dispensar aviso Alpha"
+        },
+        "PluginStatus": {
+          "needsReview": "Precisa de revisão",
+          "restarting": "Reiniciando",
+          "running": "Em execução",
+          "blocked": "Bloqueado"
         },
         "notification": {
           "settings": {

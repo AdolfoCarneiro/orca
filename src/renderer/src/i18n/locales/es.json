@@ -11593,14 +11593,6 @@
           "enable": "Activar"
         },
         "PluginSettingsRow": {
-          "blocked": "Bloqueado",
-          "needsReview": "Requiere revisión",
-          "restarting": "Reiniciando",
-          "invalid": "No válido",
-          "error": "Error",
-          "disabled": "Desactivado",
-          "running": "En ejecución",
-          "enabled": "Activado",
           "loadingLogs": "Cargando registros…",
           "noLogs": "Aún no hay registros",
           "logCount": "Últimas {{value0}} líneas",
@@ -12692,9 +12684,6 @@
           "installName": "Instalar {{value0}}",
           "copied": "ID del plugin copiado",
           "copyFailed": "No se pudo copiar el ID del plugin.",
-          "stopped": "Detenido",
-          "cantLoad": "No se puede cargar",
-          "on": "Activado",
           "details": "Detalles",
           "unverified": "Sin verificar",
           "crashedOnce": "Falló una vez",
@@ -12702,7 +12691,6 @@
           "updateLabel": "Actualizar {{value0}} a {{value1}}",
           "update": "Actualizar a {{value0}}",
           "needsOrca": "Requiere Orca {{value0}}",
-          "off": "Desactivado",
           "rollbackTo": "Volver a {{value0}}…",
           "dataLoadFailed": "No se pudieron cargar sus archivos"
         },
@@ -12793,6 +12781,16 @@
           "label": "Alpha:",
           "body": "La interfaz de plugins puede cambiar. Espera matices.",
           "dismiss": "Descartar aviso Alpha"
+        },
+        "PluginStatus": {
+          "needsReview": "Requiere revisión",
+          "restarting": "Reiniciando",
+          "stopped": "Detenido",
+          "cantLoad": "No se puede cargar",
+          "off": "Desactivado",
+          "running": "En ejecución",
+          "on": "Activado",
+          "blocked": "Bloqueado"
         },
         "notification": {
           "settings": {
