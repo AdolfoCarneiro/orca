@@ -111,7 +111,10 @@ export function isForeignLink(link: string, runsInWsl: boolean): boolean {
 
 /** `<common dir>/worktrees` as this process can read it, also for bare or linked checkouts. */
 async function worktreeAdminRoot(options: GitExecOptions, distro: string | null): Promise<string> {
-  const { stdout } = await gitExecFileAsync(['rev-parse', '--git-common-dir'], options)
+  const { stdout } = await gitExecFileAsync(['rev-parse', '--git-common-dir'], {
+    ...options,
+    captureWslLoginShellOutput: true
+  })
   const commonDir = stdout.trim()
   const readable = !commonDir.startsWith('/')
     ? isAbsolute(commonDir)
