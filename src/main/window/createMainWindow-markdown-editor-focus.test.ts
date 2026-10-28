@@ -531,7 +531,12 @@ describe('createMainWindow', () => {
         expect.objectContaining({ label: 'Table' })
       ])
     )
-    expect(menuPopupMock).toHaveBeenCalledWith({ window: browserWindowInstance, x: 42, y: 84 })
+    expect(menuPopupMock).toHaveBeenCalledWith({
+      window: browserWindowInstance,
+      x: 42,
+      y: 84,
+      callback: expect.any(Function)
+    })
   })
 
   it('builds the plain edit menu for the one right-click the renderer marks as plain text', () => {
