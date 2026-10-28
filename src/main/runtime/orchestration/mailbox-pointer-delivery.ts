@@ -37,15 +37,18 @@ export class OrchestrationMailboxPointerDelivery<TWaiter extends OrchestrationMe
     if (!terminalHandle) {
       return
     }
-    const terminal = this.deps.getTerminalForHandle(terminalHandle)
-    // Skip ownership resolution, and the reconciliation it schedules, for a terminal deliver() would
-    // refuse; persisted mail stays available to an explicit check or the terminal's next input edge.
-    if (!terminal || !isMailboxTerminalTakingInput(terminal)) {
-      return
-    }
-    const mailboxHandle = this.deps.mailboxOwner.resolve(terminal, handle)
-    if (mailboxHandle) {
-      this.deliver(terminal, { mailboxHandle, reservedTypes })
+    try {
+      const terminal = this.deps.getTerminalForHandle(terminalHandle)
+      // Skip ownership resolution, and the reconciliation it schedules, for a terminal deliver() would refuse.
+      if (!terminal || !isMailboxTerminalTakingInput(terminal)) {
+        return
+      }
+      const mailboxHandle = this.deps.mailboxOwner.resolve(terminal, handle)
+      if (mailboxHandle) {
+        this.deliver(terminal, { mailboxHandle, reservedTypes })
+      }
+    } catch {
+      // Persisted mail remains available to explicit check or the terminal's next input edge.
     }
   }
 

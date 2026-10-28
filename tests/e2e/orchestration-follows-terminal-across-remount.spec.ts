@@ -99,13 +99,33 @@ test.describe('orchestration across a worker pane remount', () => {
       objective: 'Mail across a remount',
       from: worker.handle
     })
-    const sent = await worker.client.call<{ message: { id: string } }>('orchestration.send', {
-      to: `run:${run.result.run.id}`,
-      from: 'e2e-sender',
-      subject: 'Mail across a remount',
-      body: 'e2e body',
-      type: 'status'
-    })
+    const runId = run.result.run.id
+    const sendMail = (subject: string) =>
+      worker.client.call<{ message: { id: string } }>('orchestration.send', {
+        to: `run:${runId}`,
+        from: 'e2e-sender',
+        subject,
+        body: 'e2e body',
+        type: 'status'
+      })
+    const pointerCount = () => worker.agent.readStdin().split(POINTER_COMMAND).length - 1
+    const expectPushed = async (messageId: string, pointersBefore: number) => {
+      await expect
+        .poll(pointerCount, {
+          timeout: DELIVERY_TIMEOUT_MS,
+          message: 'mail pointer never reached the worker'
+        })
+        .toBeGreaterThan(pointersBefore)
+      await expect
+        .poll(() => mailDisposition(readMailRow(worker.userDataDir, messageId)), {
+          timeout: DELIVERY_TIMEOUT_MS
+        })
+        .toBe('pushed')
+    }
+
+    // Mid-turn mail reaches the terminal before its workspace opens.
+    const beforeOpen = await sendMail('Mail before the workspace opens')
+    await expectPushed(beforeOpen.result.message.id, 0)
 
     const wait = worker.client.call<{ wait: RuntimeTerminalWait }>(
       'terminal.wait',
@@ -131,16 +151,10 @@ test.describe('orchestration across a worker pane remount', () => {
     expect(outcome).toMatchObject({ ok: true, wait: { handle: worker.handle, satisfied: true } })
     // The worker keeps its name: the pane that now shows it does not mint a new handle.
     expect(await readSummary(worker)).toMatchObject({ orphaned: false, connected: true })
-    await expect
-      .poll(() => worker.agent.readStdin(), {
-        timeout: DELIVERY_TIMEOUT_MS,
-        message: 'mail pointer never reached the worker'
-      })
-      .toContain(POINTER_COMMAND)
-    await expect
-      .poll(() => mailDisposition(readMailRow(worker.userDataDir, sent.result.message.id)), {
-        timeout: DELIVERY_TIMEOUT_MS
-      })
-      .toBe('pushed')
+
+    // Mail after the remount still reaches the same terminal.
+    const pointersBeforeSecond = pointerCount()
+    const afterOpen = await sendMail('Mail after the workspace opens')
+    await expectPushed(afterOpen.result.message.id, pointersBeforeSecond)
   })
 })
