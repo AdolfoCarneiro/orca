@@ -30,6 +30,7 @@ export const PREFLIGHT_METHODS = [
     // Only the host knows the workspace's actual project runtime, including WSL.
     handler: async (params, { runtime }) => {
       if (params.project) {
+        // Ungated: it serves a workspace create in that project, which boots the distro anyway.
         return runtime.detectProjectLaunchContext(params.project.repo)
       }
       const host = await runtime.resolveAgentDetectionHost(params.worktreeId, params.repoId)

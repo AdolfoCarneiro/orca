@@ -101,6 +101,26 @@ describe('local detected agent context lifecycle', () => {
     expect(store.getState().detectedAgentIds).toEqual(['codex'])
   })
 
+  it('sends a refresh click as a wake instead of joining a background refresh', async () => {
+    const store = createTestStore([makeRepo('repo-1')])
+    let finishBackground: (value: unknown) => void = () => {}
+    refreshAgents.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishBackground = resolve
+      })
+    )
+
+    const background = store.getState().refreshDetectedAgents()
+    // The background call may be refused for a stopped WSL distro; the click must reach main itself.
+    const click = store.getState().refreshDetectedAgents(undefined, { wakeWslDistro: true })
+    const again = store.getState().refreshDetectedAgents()
+
+    expect(refreshAgents).toHaveBeenCalledTimes(2)
+    expect(refreshAgents).toHaveBeenLastCalledWith(expect.objectContaining({ wakeWslDistro: true }))
+    finishBackground({ agents: ['claude'], pathSource: 'process_env', pathFailureReason: 'none' })
+    await Promise.all([background, click, again])
+  })
+
   it('re-detects re-enabled agents and prevents pre-change requests from restoring caches', async () => {
     const store = createTestStore([])
     let finishOld: (ids: string[]) => void = () => {}

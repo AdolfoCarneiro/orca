@@ -26,6 +26,7 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
   const lifecycle: LocalAgentInventoryLifecycle = {
     detectPromises: new Map(),
     refreshPromises: new Map(),
+    wakeRefreshes: new WeakSet(),
     keptThroughFailure: new WeakSet(),
     failedDetectContextKeys: new Set(),
     detectedContextKey: null,

@@ -13,6 +13,8 @@ import type { LocalAgentRefreshOptions } from './local-detected-agent-store-stat
 export type LocalAgentInventoryLifecycle = {
   detectPromises: Map<string, Promise<TuiAgent[]>>
   refreshPromises: Map<string, Promise<TuiAgent[]>>
+  /** Refreshes sent as a user act; a background one may be refused for a stopped WSL distro. */
+  wakeRefreshes: WeakSet<Promise<TuiAgent[]>>
   keptThroughFailure: WeakSet<TuiAgent[]>
   failedDetectContextKeys: Set<string>
   detectedContextKey: string | null
@@ -58,7 +60,8 @@ export function refreshLocalAgentInventory(
     }
   }
   const inflight = lifecycle.refreshPromises.get(contextKey)
-  if (inflight) {
+  // A refresh click must reach main as a wake, not ride a background refresh it would refuse.
+  if (inflight && (!options.wakeWslDistro || lifecycle.wakeRefreshes.has(inflight))) {
     exposeInflightToLegacy()
     return inflight
   }
@@ -188,6 +191,10 @@ export function refreshLocalAgentInventory(
         lifecycle.refreshPromises.delete(publishedContextKey)
       }
     })
+  }
+  if (options.wakeWslDistro) {
+    lifecycle.wakeRefreshes.add(pending)
+    lifecycle.wakeRefreshes.add(publishedPending)
   }
   lifecycle.refreshPromises.set(contextKey, pending)
   return pending
