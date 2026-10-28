@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as MiniMaxCookieStore from './minimax-cookie-store'
+import { setSecretStore } from '../../shared/secret-store'
 
 const safeStorageMock = vi.hoisted(() => ({
   isEncryptionAvailable: vi.fn(() => true),
@@ -7,23 +8,16 @@ const safeStorageMock = vi.hoisted(() => ({
   decryptString: vi.fn((value: Buffer) => value.toString('utf8'))
 }))
 
-const electronMock = vi.hoisted(() => ({
-  safeStorage: safeStorageMock
-}))
-
-vi.mock('electron', () => electronMock)
-
-const readFileMock = vi.fn()
-const hardenExistingSecureFileMock = vi.fn()
-const homedirMock = vi.fn(() => '/home/test')
-const writeSecureFileMock = vi.fn()
+const existsSyncMock = vi.fn()
+const readFileSyncMock = vi.fn()
 const rmSyncMock = vi.fn()
-
-vi.mock('node:fs/promises', () => ({
-  readFile: readFileMock
-}))
+const hardenExistingSecureFileMock = vi.fn()
+const writeSecureFileMock = vi.fn()
+const homedirMock = vi.fn(() => '/home/test')
 
 vi.mock('node:fs', () => ({
+  existsSync: existsSyncMock,
+  readFileSync: readFileSyncMock,
   rmSync: rmSyncMock
 }))
 
@@ -50,58 +44,70 @@ async function loadStore(): Promise<typeof MiniMaxCookieStore> {
 
 describe('minimax-cookie-store', () => {
   beforeEach(() => {
-    readFileMock.mockReset()
+    existsSyncMock.mockReset()
+    readFileSyncMock.mockReset()
+    rmSyncMock.mockReset()
     hardenExistingSecureFileMock.mockReset()
     writeSecureFileMock.mockReset()
-    rmSyncMock.mockReset()
     safeStorageMock.isEncryptionAvailable.mockReset()
     safeStorageMock.encryptString.mockReset()
     safeStorageMock.decryptString.mockReset()
     safeStorageMock.isEncryptionAvailable.mockReturnValue(true)
     safeStorageMock.encryptString.mockImplementation((value: string) => Buffer.from(value))
     safeStorageMock.decryptString.mockImplementation((value: Buffer) => value.toString('utf8'))
+    setSecretStore({ ...safeStorageMock, describeProtectionGap: () => null })
   })
 
   afterEach(() => {
     vi.resetModules()
   })
 
-  it('publishes a fresh missing snapshot when no file exists yet', async () => {
-    readFileMock.mockRejectedValue(Object.assign(new Error('missing'), { code: 'ENOENT' }))
+  it('returns false when no file exists yet', async () => {
+    existsSyncMock.mockReturnValue(false)
     const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
     expect(store.hasMiniMaxSessionCookie()).toBe(false)
-    expect(store.getMiniMaxCredentialSnapshot()).toMatchObject({
-      value: null,
-      stale: false,
-      availability: 'missing'
-    })
-  })
-
-  it('keeps read-time hardening out of the main-process hydration path', async () => {
-    readFileMock.mockResolvedValue(Buffer.from(envelope('encrypted', 'encrypted-payload')))
-    const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
-    expect(store.hasMiniMaxSessionCookie()).toBe(true)
     expect(hardenExistingSecureFileMock).not.toHaveBeenCalled()
   })
 
-  it('writes the cookie using safeStorage when encryption is available', async () => {
+  it('hardens the cookie file when checking status for an existing cookie', async () => {
+    existsSyncMock.mockReturnValue(true)
     const store = await loadStore()
-    await store.saveMiniMaxSessionCookie('_token=abc; minimax_group_id_v2=42')
+    expect(store.hasMiniMaxSessionCookie()).toBe(true)
+    expect(hardenExistingSecureFileMock).toHaveBeenCalledWith(storePath)
+  })
+
+  it('still reports an existing cookie when status-path hardening fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    existsSyncMock.mockReturnValue(true)
+    hardenExistingSecureFileMock.mockImplementation(() => {
+      throw new Error('permission denied')
+    })
+    const store = await loadStore()
+    expect(store.hasMiniMaxSessionCookie()).toBe(true)
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to harden MiniMax cookie file'),
+      expect.any(Error)
+    )
+    warn.mockRestore()
+  })
+
+  it('writes the cookie using safeStorage when encryption is available', async () => {
+    existsSyncMock.mockReturnValue(false)
+    const store = await loadStore()
+    store.saveMiniMaxSessionCookie('_token=abc; minimax_group_id_v2=42')
     expect(safeStorageMock.encryptString).toHaveBeenCalledWith('_token=abc; minimax_group_id_v2=42')
     expect(writeSecureFileMock).toHaveBeenCalledWith(
       storePath,
       envelope('encrypted', '_token=abc; minimax_group_id_v2=42')
     )
-    expect(safeStorageMock.encryptString).toHaveBeenCalledTimes(1)
   })
 
   it('warns and writes plaintext when safeStorage is unavailable', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     safeStorageMock.isEncryptionAvailable.mockReturnValue(false)
+    existsSyncMock.mockReturnValue(false)
     const store = await loadStore()
-    await store.saveMiniMaxSessionCookie('_token=abc')
+    store.saveMiniMaxSessionCookie('_token=abc')
     expect(writeSecureFileMock).toHaveBeenCalledWith(storePath, envelope('plaintext', '_token=abc'))
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('safeStorage encryption unavailable'))
     warn.mockRestore()
@@ -112,143 +118,131 @@ describe('minimax-cookie-store', () => {
     expect(() => store.saveMiniMaxSessionCookie('   ')).toThrow(/required/)
   })
 
-  it('hydrates a decrypted cookie and serves later reads from memory', async () => {
-    readFileMock.mockResolvedValue(Buffer.from(envelope('encrypted', 'encrypted-payload')))
+  it('reads decrypted cookie from disk and caches it', async () => {
+    existsSyncMock.mockReturnValue(true)
+    readFileSyncMock.mockReturnValue(Buffer.from(envelope('encrypted', 'encrypted-payload')))
     safeStorageMock.decryptString.mockReturnValue('_token=cached; minimax_group_id_v2=9')
     const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
     const first = store.readMiniMaxSessionCookie()
     const second = store.readMiniMaxSessionCookie()
     expect(first).toBe('_token=cached; minimax_group_id_v2=9')
     expect(second).toBe(first)
-    expect(hardenExistingSecureFileMock).not.toHaveBeenCalled()
+    expect(hardenExistingSecureFileMock).toHaveBeenCalledTimes(1)
+    expect(hardenExistingSecureFileMock).toHaveBeenCalledWith(storePath)
     expect(safeStorageMock.decryptString).toHaveBeenCalledTimes(1)
     expect(safeStorageMock.decryptString).toHaveBeenCalledWith(Buffer.from('encrypted-payload'))
   })
 
-  it('returns null before hydration', async () => {
+  it('returns null when no file exists', async () => {
+    existsSyncMock.mockReturnValue(false)
     const store = await loadStore()
     expect(store.readMiniMaxSessionCookie()).toBeNull()
   })
 
   it('returns enveloped plaintext when safeStorage is unavailable and reads succeed', async () => {
     safeStorageMock.isEncryptionAvailable.mockReturnValue(false)
-    readFileMock.mockResolvedValue(Buffer.from(envelope('plaintext', '_token=plaintext')))
+    existsSyncMock.mockReturnValue(true)
+    readFileSyncMock.mockReturnValue(Buffer.from(envelope('plaintext', '_token=plaintext')))
     const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
     expect(store.readMiniMaxSessionCookie()).toBe('_token=plaintext')
   })
 
   it('reads legacy plaintext cookies when decrypting is unavailable', async () => {
     safeStorageMock.isEncryptionAvailable.mockReturnValue(false)
-    readFileMock.mockResolvedValue(Buffer.from('_token=legacy'))
+    existsSyncMock.mockReturnValue(true)
+    readFileSyncMock.mockReturnValue(Buffer.from('_token=legacy'))
     const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
     expect(store.readMiniMaxSessionCookie()).toBe('_token=legacy')
   })
 
   it('reads legacy plaintext cookies when decrypting fails', async () => {
-    readFileMock.mockResolvedValue(Buffer.from('_token=legacy'))
+    existsSyncMock.mockReturnValue(true)
+    readFileSyncMock.mockReturnValue(Buffer.from('_token=legacy'))
     safeStorageMock.decryptString.mockImplementation(() => {
       throw new Error('boom')
     })
     const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
     expect(store.readMiniMaxSessionCookie()).toBe('_token=legacy')
   })
 
-  it('marks encrypted legacy bytes unavailable when safeStorage is unavailable', async () => {
+  it('does not treat encrypted legacy bytes as plaintext when safeStorage is unavailable', async () => {
     safeStorageMock.isEncryptionAvailable.mockReturnValue(false)
-    readFileMock.mockResolvedValue(Buffer.from('encrypted-payload'))
+    existsSyncMock.mockReturnValue(true)
+    readFileSyncMock.mockReturnValue(Buffer.from('encrypted-payload'))
     const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
-    expect(store.getMiniMaxCredentialSnapshot()).toMatchObject({
-      value: null,
-      stale: true,
-      availability: 'unavailable'
-    })
+    expect(() => store.readMiniMaxSessionCookie()).toThrow(/could not be decrypted/)
   })
 
-  it('marks encrypted envelopes unavailable when safeStorage is unavailable', async () => {
+  it('throws for encrypted envelopes when safeStorage is unavailable', async () => {
     safeStorageMock.isEncryptionAvailable.mockReturnValue(false)
-    readFileMock.mockResolvedValue(Buffer.from(envelope('encrypted', 'encrypted-payload')))
+    existsSyncMock.mockReturnValue(true)
+    readFileSyncMock.mockReturnValue(Buffer.from(envelope('encrypted', 'encrypted-payload')))
     const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
-    expect(store.getMiniMaxCredentialSnapshot().availability).toBe('unavailable')
+    expect(() => store.readMiniMaxSessionCookie()).toThrow(/could not be decrypted/)
   })
 
-  it('marks the snapshot unavailable when decryption fails', async () => {
-    readFileMock.mockResolvedValue(Buffer.from(envelope('encrypted', 'encrypted-payload')))
+  it('throws when decryption fails', async () => {
+    existsSyncMock.mockReturnValue(true)
+    readFileSyncMock.mockReturnValue(Buffer.from(envelope('encrypted', 'encrypted-payload')))
     safeStorageMock.decryptString.mockImplementation(() => {
       throw new Error('boom')
     })
     const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
-    expect(store.getMiniMaxCredentialSnapshot().availability).toBe('unavailable')
+    expect(() => store.readMiniMaxSessionCookie()).toThrow(/could not be decrypted/)
   })
 
   it('clears the cached cookie and removes the file', async () => {
-    readFileMock.mockResolvedValueOnce(Buffer.from(envelope('encrypted', 'encrypted-payload')))
+    existsSyncMock.mockReturnValueOnce(true)
+    readFileSyncMock.mockReturnValueOnce(Buffer.from(envelope('encrypted', 'encrypted-payload')))
     safeStorageMock.decryptString.mockReturnValueOnce('_token=preclear')
     const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
     expect(store.readMiniMaxSessionCookie()).toBe('_token=preclear')
-    await store.clearMiniMaxSessionCookie()
+    store.clearMiniMaxSessionCookie()
     expect(rmSyncMock).toHaveBeenCalledWith(storePath, { force: true })
     expect(store.readMiniMaxSessionCookie()).toBeNull()
   })
 
-  it('does not decrypt or publish a read that completes after clear', async () => {
-    let resolveRead!: (value: Buffer) => void
-    readFileMock.mockReturnValue(
-      new Promise<Buffer>((resolve) => {
-        resolveRead = resolve
-      })
-    )
-    const store = await loadStore()
-    const hydration = store.hydrateMiniMaxSessionCookie()
-
-    await store.clearMiniMaxSessionCookie()
-    resolveRead(Buffer.from(envelope('encrypted', 'revoked-payload')))
-    await hydration
-
-    expect(safeStorageMock.decryptString).not.toHaveBeenCalled()
-    expect(store.readMiniMaxSessionCookie()).toBeNull()
-    expect(store.getMiniMaxCredentialSnapshot()).toMatchObject({
-      value: null,
-      stale: false,
-      availability: 'missing'
-    })
-  })
-
-  it('does not publish a save whose write failed', async () => {
-    writeSecureFileMock.mockImplementationOnce(() => {
-      throw new Error('contended')
-    })
-    const store = await loadStore()
-
-    expect(() => store.saveMiniMaxSessionCookie('_token=blocked')).toThrow('contended')
-
-    expect(store.getMiniMaxCredentialSnapshot()).toMatchObject({
-      value: null,
-      stale: true,
-      availability: 'unavailable'
-    })
-  })
-
-  it('keeps the cached cookie when file removal fails', async () => {
-    readFileMock.mockResolvedValueOnce(Buffer.from(envelope('encrypted', 'encrypted-payload')))
-    safeStorageMock.decryptString.mockReturnValueOnce('_token=preclear')
-    const store = await loadStore()
-    await store.hydrateMiniMaxSessionCookie()
-    rmSyncMock.mockImplementationOnce(() => {
-      throw new Error('contended')
+  describe('getMiniMaxSessionCookieProtection', () => {
+    it('reports null when nothing is stored', async () => {
+      existsSyncMock.mockReturnValue(false)
+      const store = await loadStore()
+      expect(store.getMiniMaxSessionCookieProtection()).toBeNull()
     })
 
-    expect(() => store.clearMiniMaxSessionCookie()).toThrow('contended')
+    it('reports plaintext for a plaintext envelope', async () => {
+      existsSyncMock.mockReturnValue(true)
+      readFileSyncMock.mockReturnValue(Buffer.from(envelope('plaintext', 'sessionId=abc123')))
+      const store = await loadStore()
+      expect(store.getMiniMaxSessionCookieProtection()).toBe('plaintext')
+    })
 
-    expect(rmSyncMock).toHaveBeenCalledTimes(1)
-    expect(store.readMiniMaxSessionCookie()).toBe('_token=preclear')
-    expect(store.getMiniMaxCredentialSnapshot().availability).toBe('ready')
+    it('reports sealed for an encrypted envelope', async () => {
+      existsSyncMock.mockReturnValue(true)
+      readFileSyncMock.mockReturnValue(Buffer.from(envelope('encrypted', 'sessionId=abc123')))
+      const store = await loadStore()
+      expect(store.getMiniMaxSessionCookieProtection()).toBe('sealed')
+    })
+
+    it('reports a legacy pre-envelope cookie header as plaintext', async () => {
+      existsSyncMock.mockReturnValue(true)
+      readFileSyncMock.mockReturnValue(Buffer.from('sessionId=abc123; other=1', 'utf8'))
+      const store = await loadStore()
+      expect(store.getMiniMaxSessionCookieProtection()).toBe('plaintext')
+    })
+
+    it('reports legacy sealed bytes as sealed', async () => {
+      existsSyncMock.mockReturnValue(true)
+      readFileSyncMock.mockReturnValue(Buffer.from([0x76, 0x31, 0x30, 0x00, 0x8f, 0x02, 0x1c]))
+      const store = await loadStore()
+      expect(store.getMiniMaxSessionCookieProtection()).toBe('sealed')
+    })
+
+    it('does not decrypt, so opening Settings cannot trigger a keychain prompt', async () => {
+      existsSyncMock.mockReturnValue(true)
+      readFileSyncMock.mockReturnValue(Buffer.from(envelope('encrypted', 'sessionId=abc123')))
+      const store = await loadStore()
+      store.getMiniMaxSessionCookieProtection()
+      expect(safeStorageMock.decryptString).not.toHaveBeenCalled()
+    })
   })
 })

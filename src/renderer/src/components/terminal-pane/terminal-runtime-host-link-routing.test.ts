@@ -1,6 +1,9 @@
 import type { IBufferLine, Terminal } from '@xterm/xterm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { registerHttpLinkStoreAccessor } from '@/lib/http-link-routing'
+import {
+  registerHttpLinkStoreAccessor,
+  registerWorkspaceHttpLinkBrowserOpener
+} from '@/lib/http-link-routing'
 import { handleOscLink } from './terminal-osc-link-routing'
 import { handleTerminalWebLinkClick } from './terminal-web-link-click'
 import { installHttpLinkClickFallback } from './terminal-url-link-hit-testing'
@@ -12,6 +15,7 @@ const ROWS = 24
 const openUrlMock = vi.fn()
 const setActiveWorktreeMock = vi.fn()
 const createBrowserTabMock = vi.fn()
+const openRuntimeBrowserTabMock = vi.fn((): Promise<string | null> => Promise.resolve(null))
 const runtimeSourceOwner = { kind: 'runtime', runtimeEnvironmentId: 'env-1' } as const
 const sshSourceOwner = { kind: 'ssh', connectionId: 'ssh-1' } as const
 
@@ -93,8 +97,7 @@ function clickEvent(): MouseEvent {
   } as unknown as MouseEvent
 }
 
-// Why: runtimes bind per workspace, so the global activeRuntimeEnvironmentId is
-// null even while the clicked pane lives on a remote host.
+// Workspace runtimes can own the clicked pane while the global active runtime is null.
 beforeEach(() => {
   vi.clearAllMocks()
   vi.stubGlobal('navigator', { userAgent: 'Macintosh' })
@@ -104,26 +107,35 @@ beforeEach(() => {
     setActiveWorktree: setActiveWorktreeMock,
     createBrowserTab: createBrowserTabMock
   }))
+  registerWorkspaceHttpLinkBrowserOpener(openRuntimeBrowserTabMock)
 })
 
 afterEach(() => {
+  registerWorkspaceHttpLinkBrowserOpener(null)
   vi.unstubAllGlobals()
 })
 
 describe('terminal HTTP links on a runtime-hosted pane', () => {
   const baseDeps = { worktreeId: 'wt-1', worktreePath: '/tmp', startupCwd: '/tmp' }
 
-  it('sends an OSC 8 hyperlink to the system browser', () => {
+  it('opens an OSC 8 hyperlink on the owning runtime', () => {
     expect(handleOscLink(URL, clickEvent(), { ...baseDeps, sourceOwner: runtimeSourceOwner })).toBe(
       true
     )
 
-    expect(openUrlMock).toHaveBeenCalledWith(URL)
+    expect(openRuntimeBrowserTabMock).toHaveBeenCalledWith({
+      workspaceId: 'wt-1',
+      url: URL,
+      intent: { kind: 'url' },
+      linkContext: { linkIntent: null, canReveal: expect.any(Function) },
+      expectedRuntimeEnvironmentId: 'env-1'
+    })
+    expect(openUrlMock).not.toHaveBeenCalled()
     expect(createBrowserTabMock).not.toHaveBeenCalled()
     expect(setActiveWorktreeMock).not.toHaveBeenCalled()
   })
 
-  it('sends a WebLinksAddon click to the system browser', () => {
+  it('opens a WebLinksAddon click on the owning runtime', () => {
     const { terminal } = makeTerminal()
 
     expect(
@@ -134,11 +146,14 @@ describe('terminal HTTP links on a runtime-hosted pane', () => {
       })
     ).toBe(true)
 
-    expect(openUrlMock).toHaveBeenCalledWith(URL)
+    expect(openRuntimeBrowserTabMock).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedRuntimeEnvironmentId: 'env-1', url: URL })
+    )
+    expect(openUrlMock).not.toHaveBeenCalled()
     expect(createBrowserTabMock).not.toHaveBeenCalled()
   })
 
-  it('sends a click-fallback activation to the system browser', () => {
+  it('opens a click-fallback activation on the owning runtime', () => {
     const { terminal, registrations } = makeTerminal()
     const disposable = installHttpLinkClickFallback(terminal, {
       worktreeId: 'wt-1',
@@ -149,12 +164,15 @@ describe('terminal HTTP links on a runtime-hosted pane', () => {
       ([name, _listener, options]) => name === 'mouseup' && options === undefined
     )?.[1](clickEvent())
 
-    expect(openUrlMock).toHaveBeenCalledWith(URL)
+    expect(openRuntimeBrowserTabMock).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedRuntimeEnvironmentId: 'env-1', url: URL })
+    )
+    expect(openUrlMock).not.toHaveBeenCalled()
     expect(createBrowserTabMock).not.toHaveBeenCalled()
     disposable.dispose()
   })
 
-  it('never prompts for the in-app routing preference it could not honor', () => {
+  it('uses the persisted routing preference without prompting again', () => {
     const requestOpenLinksInAppPreference = vi.fn(() => Promise.resolve(true))
 
     handleOscLink(URL, clickEvent(), {
@@ -164,24 +182,32 @@ describe('terminal HTTP links on a runtime-hosted pane', () => {
     })
 
     expect(requestOpenLinksInAppPreference).not.toHaveBeenCalled()
-    expect(openUrlMock).toHaveBeenCalledWith(URL)
+    expect(openRuntimeBrowserTabMock).toHaveBeenCalledOnce()
+    expect(openUrlMock).not.toHaveBeenCalled()
   })
 })
 
 describe('terminal HTTP links on a direct SSH pane', () => {
   const baseDeps = { worktreeId: 'wt-1', worktreePath: '/tmp', startupCwd: '/tmp' }
 
-  it('sends an OSC 8 hyperlink to the system browser', () => {
+  it('opens an OSC 8 hyperlink through the owning SSH workspace', () => {
     expect(handleOscLink(URL, clickEvent(), { ...baseDeps, sourceOwner: sshSourceOwner })).toBe(
       true
     )
 
-    expect(openUrlMock).toHaveBeenCalledWith(URL)
+    expect(openRuntimeBrowserTabMock).toHaveBeenCalledWith({
+      workspaceId: 'wt-1',
+      url: URL,
+      intent: { kind: 'url' },
+      linkContext: { linkIntent: null, canReveal: expect.any(Function) },
+      expectedSshConnectionId: 'ssh-1'
+    })
+    expect(openUrlMock).not.toHaveBeenCalled()
     expect(createBrowserTabMock).not.toHaveBeenCalled()
     expect(setActiveWorktreeMock).not.toHaveBeenCalled()
   })
 
-  it('sends a WebLinksAddon click to the system browser', () => {
+  it('opens a WebLinksAddon click through the owning SSH workspace', () => {
     const { terminal } = makeTerminal()
 
     expect(
@@ -192,11 +218,14 @@ describe('terminal HTTP links on a direct SSH pane', () => {
       })
     ).toBe(true)
 
-    expect(openUrlMock).toHaveBeenCalledWith(URL)
+    expect(openRuntimeBrowserTabMock).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedSshConnectionId: 'ssh-1', url: URL })
+    )
+    expect(openUrlMock).not.toHaveBeenCalled()
     expect(createBrowserTabMock).not.toHaveBeenCalled()
   })
 
-  it('sends a click-fallback activation to the system browser', () => {
+  it('opens a click-fallback activation through the owning SSH workspace', () => {
     const { terminal, registrations } = makeTerminal()
     const disposable = installHttpLinkClickFallback(terminal, {
       worktreeId: 'wt-1',
@@ -207,7 +236,10 @@ describe('terminal HTTP links on a direct SSH pane', () => {
       ([name, _listener, options]) => name === 'mouseup' && options === undefined
     )?.[1](clickEvent())
 
-    expect(openUrlMock).toHaveBeenCalledWith(URL)
+    expect(openRuntimeBrowserTabMock).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedSshConnectionId: 'ssh-1', url: URL })
+    )
+    expect(openUrlMock).not.toHaveBeenCalled()
     expect(createBrowserTabMock).not.toHaveBeenCalled()
     disposable.dispose()
   })
@@ -219,7 +251,12 @@ describe('terminal HTTP links on a local pane', () => {
   it('still opens an OSC 8 hyperlink in an Orca browser tab', () => {
     expect(handleOscLink(URL, clickEvent(), { ...baseDeps, runtimeEnvironmentId: null })).toBe(true)
 
-    expect(createBrowserTabMock).toHaveBeenCalledWith('wt-1', URL, { activate: true })
+    expect(openRuntimeBrowserTabMock).toHaveBeenCalledWith({
+      workspaceId: 'wt-1',
+      url: URL,
+      intent: { kind: 'url' },
+      linkContext: { linkIntent: null, canReveal: expect.any(Function) }
+    })
     expect(openUrlMock).not.toHaveBeenCalled()
   })
 
@@ -231,7 +268,12 @@ describe('terminal HTTP links on a local pane', () => {
       ([name, _listener, options]) => name === 'mouseup' && options === undefined
     )?.[1](clickEvent())
 
-    expect(createBrowserTabMock).toHaveBeenCalledWith('wt-1', URL, { activate: true })
+    expect(openRuntimeBrowserTabMock).toHaveBeenCalledWith({
+      workspaceId: 'wt-1',
+      url: URL,
+      intent: { kind: 'url' },
+      linkContext: { linkIntent: null, canReveal: expect.any(Function) }
+    })
     expect(openUrlMock).not.toHaveBeenCalled()
     disposable.dispose()
   })

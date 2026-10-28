@@ -29,6 +29,12 @@ export const filesystemSnapshotFileKindSchema = z.enum([
 
 export const filesystemHostOperationSchema = z.discriminatedUnion('kind', [
   z.object({
+    kind: z.literal('discover-gemini-oauth'),
+    path: filesystemPathSchema,
+    pathEnvironment: filesystemPathEnvironmentSchema
+  }),
+  z.object({ kind: z.literal('is-symlink'), path: filesystemPathSchema }),
+  z.object({
     kind: z.literal('canonicalize-path'),
     path: filesystemPathSchema
   }),
@@ -51,7 +57,14 @@ export const filesystemHostOperationSchema = z.discriminatedUnion('kind', [
     path: filesystemPathSchema,
     platform: z.enum(['darwin', 'linux', 'win32']),
     legacyOverrides: keybindingOverridesSchema.optional(),
-    seedLegacyTabSwitchBindings: z.boolean()
+    seedLegacyTabSwitchBindings: z.boolean(),
+    ensure: z.boolean().optional(),
+    mutation: z
+      .object({
+        actionId: z.string().max(256),
+        bindings: z.array(z.string().max(512)).max(16).nullable()
+      })
+      .optional()
   }),
   z.object({
     kind: z.literal('read-snapshot-file'),
@@ -88,6 +101,11 @@ const filesystemHostReadParentMessageSchema = z.discriminatedUnion('type', [
 export const filesystemHostParentMessageSchema = filesystemHostReadParentMessageSchema
 
 const filesystemHostResultSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('discover-gemini-oauth'),
+    credentials: z.object({ clientId: z.string(), clientSecret: z.string() }).nullable()
+  }),
+  z.object({ kind: z.literal('is-symlink'), value: z.boolean() }),
   z.object({ kind: z.literal('canonicalize-path'), canonicalPath: filesystemPathSchema }),
   z.object({ kind: z.literal('classify-path'), deviceId: z.string().min(1).max(256) }),
   z.object({

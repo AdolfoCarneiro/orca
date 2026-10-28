@@ -1,7 +1,7 @@
+import { readSnapshotFileThroughFilesystemHost } from '../filesystem-host/filesystem-host-read-client'
 import { join } from 'node:path'
 import { resolveGrokHomeDir } from '../../shared/grok-session-paths'
 
-// Why: when GROK_HOME is set, auth.json must be the same path Grok CLI uses.
 export function getGrokHome(): string {
   return resolveGrokHomeDir()
 }
@@ -35,6 +35,14 @@ export type GrokAuthReadResult =
   | { status: 'error'; error: string }
   | { status: 'ok'; session: GrokAuthSession }
 
+function getGrokAuthReadError(err: unknown): string {
+  if (err instanceof SyntaxError) {
+    return 'Grok auth file is invalid'
+  }
+  // Keep filesystem paths/usernames out of renderer and mobile account state.
+  return 'Unable to read Grok auth file'
+}
+
 function parseAuthEntry(value: unknown): TokenizedGrokAuthEntry | null {
   if (typeof value !== 'object' || value === null) {
     return null
@@ -54,7 +62,7 @@ function parseExpiresAtMs(iso: string | undefined): number | null {
   return Number.isFinite(ms) ? ms : null
 }
 
-// Why: stale alternate issuers can precede the default xAI OAuth session in auth.json.
+// Prefer default xAI OAuth over stale alternate issuers.
 const PREFERRED_GROK_AUTH_ISSUER = 'https://auth.x.ai'
 
 function sessionFromAuthEntry(authEntry: TokenizedGrokAuthEntry): GrokAuthSession {
@@ -70,6 +78,20 @@ function sessionFromAuthEntry(authEntry: TokenizedGrokAuthEntry): GrokAuthSessio
 
 function isPreferredGrokAuthKey(key: string): boolean {
   return key === PREFERRED_GROK_AUTH_ISSUER || key.startsWith(`${PREFERRED_GROK_AUTH_ISSUER}::`)
+}
+
+export async function readGrokAuthSession(): Promise<GrokAuthReadResult> {
+  const path = getGrokAuthPath()
+  try {
+    return parseGrokAuthSession(
+      (await readSnapshotFileThroughFilesystemHost(path, 'grok-auth')).toString('utf8')
+    )
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code === 'ENOENT') {
+      return { status: 'missing' }
+    }
+    return { status: 'error', error: getGrokAuthReadError(err) }
+  }
 }
 
 export function parseGrokAuthSession(contents: string): GrokAuthReadResult {
@@ -100,18 +122,17 @@ export function parseGrokAuthSession(contents: string): GrokAuthReadResult {
         fallback = session
       }
     }
-    // Why: alternate issuers are compatibility fallbacks only when no default entry exists.
+    // Alternate issuers are fallback only when no default entry exists.
     const selectedSession = expiredPreferred ?? (preferredKeySeen ? null : fallback)
     if (selectedSession) {
       return { status: 'ok', session: selectedSession }
     }
-    // Why: a token-less file (e.g. after grok logout) means signed out, not a
-    // failure — 'error' would keep a status-bar alert visible for that user.
+    // A tokenless logout is missing auth, not a persistent status-bar error.
     return { status: 'missing' }
-  } catch {
+  } catch (err) {
     return {
       status: 'error',
-      error: 'Grok auth file is invalid'
+      error: getGrokAuthReadError(err)
     }
   }
 }
@@ -120,7 +141,7 @@ const TOKEN_SKEW_MS = 5 * 60 * 1000
 
 export function isGrokAccessTokenFresh(session: GrokAuthSession): boolean {
   if (session.expiresAtMs === null) {
-    // Why: auth.json may lack expiry; a bad token still surfaces as billing HTTP 401.
+    // Missing expiry is inconclusive; the billing endpoint can still reject the token.
     return true
   }
   return session.expiresAtMs - Date.now() > TOKEN_SKEW_MS

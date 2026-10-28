@@ -1,3 +1,4 @@
+import { extractOAuthClientCredentials } from './gemini-install-discovery'
 import { randomUUID } from 'node:crypto'
 import {
   FILESYSTEM_HOST_PROTOCOL_VERSION,
@@ -37,7 +38,7 @@ function main(): void {
   process.on('disconnect', () => {
     process.exit(0)
   })
-  process.on('message', (raw) => {
+  process.on('message', async (raw) => {
     const parsed = filesystemHostParentMessageSchema.safeParse(raw)
     if (!parsed.success) {
       return
@@ -55,7 +56,16 @@ function main(): void {
         type: 'result',
         requestId: message.requestId,
         ok: true,
-        result: executeFilesystemHostOperation(message.operation)
+        result:
+          message.operation.kind === 'discover-gemini-oauth'
+            ? {
+                kind: 'discover-gemini-oauth',
+                credentials: await extractOAuthClientCredentials(
+                  message.operation.path,
+                  message.operation.pathEnvironment
+                )
+              }
+            : executeFilesystemHostOperation(message.operation)
       })
     } catch (error) {
       const failure =

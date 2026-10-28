@@ -19,6 +19,7 @@ export type FilesystemHostProcessOptions = {
   exitDeadlineMs?: number
   hardKillDelayMs?: number
   spawn?: (entryPath: string, args: string[], options: ForkOptions) => ChildProcess
+  onSpawn?: (host: FilesystemHostProcess) => void
   onPhysicalExit?: () => void
 }
 
@@ -58,6 +59,7 @@ export class FilesystemHostProcess {
       hardKillDelayMs: options.hardKillDelayMs ?? 1_000
     })
     host.bindLifecycle(options.onPhysicalExit)
+    options.onSpawn?.(host)
     return host.awaitReady(options.readyTimeoutMs ?? 5_000)
   }
 

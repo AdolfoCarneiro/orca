@@ -1,17 +1,15 @@
+import { execFileSync } from 'node:child_process'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   __resetMacTailscaleDnsDiagnosticCacheForTests,
-  hydrateMacTailscaleDnsDiagnostic,
   parseMacTailscaleDnsDiagnostic,
   withMacTailscaleDnsHint,
   withMacTailscaleDnsHintForDiagnostic
 } from './macos-tailscale-dns-diagnostic'
 
-const execFileMock = vi.hoisted(() => vi.fn())
-
-vi.mock('node:child_process', () => ({ execFile: execFileMock }))
-
-type ScutilCallback = (error: Error | null, stdout: string, stderr: string) => void
+vi.mock('node:child_process', () => ({
+  execFileSync: vi.fn()
+}))
 
 const MAGIC_DNS_ONLY_SCUTIL = `
 DNS configuration
@@ -96,56 +94,25 @@ describe('withMacTailscaleDnsHint', () => {
 
   afterEach(() => {
     Object.defineProperty(process, 'platform', { configurable: true, value: originalPlatform })
-    execFileMock.mockReset()
+    vi.mocked(execFileSync).mockReset()
     __resetMacTailscaleDnsDiagnosticCacheForTests()
   })
 
-  it('hydrates macOS DNS state asynchronously through the system scutil path', async () => {
+  it('reads macOS DNS state through the system scutil path', () => {
     Object.defineProperty(process, 'platform', { configurable: true, value: 'darwin' })
-    execFileMock.mockImplementation(
-      (_file: string, _args: string[], _options: unknown, callback: ScutilCallback) => {
-        callback(null, MAGIC_DNS_ONLY_SCUTIL, '')
-        return {}
-      }
-    )
-
-    await hydrateMacTailscaleDnsDiagnostic()
+    vi.mocked(execFileSync).mockReturnValue(MAGIC_DNS_ONLY_SCUTIL)
 
     const result = withMacTailscaleDnsHint('Codex failed.', 'dns lookup failed')
 
     expect(result).toContain('Tailscale MagicDNS (100.100.100.100)')
-    expect(execFileMock).toHaveBeenCalledWith(
+    expect(execFileSync).toHaveBeenCalledWith(
       '/usr/sbin/scutil',
       ['--dns'],
       expect.objectContaining({
         encoding: 'utf8',
-        timeout: 1500
-      }),
-      expect.any(Function)
-    )
-  })
-
-  it('returns from memory while one background hydration is pending', async () => {
-    Object.defineProperty(process, 'platform', { configurable: true, value: 'darwin' })
-    let finish = (): void => {
-      throw new Error('scutil callback was not captured')
-    }
-    execFileMock.mockImplementation(
-      (_file: string, _args: string[], _options: unknown, callback: ScutilCallback) => {
-        finish = () => callback(null, MAGIC_DNS_ONLY_SCUTIL, '')
-        return {}
-      }
-    )
-
-    expect(withMacTailscaleDnsHint('Codex failed.', 'dns lookup failed')).toBe('Codex failed.')
-    const hydration = hydrateMacTailscaleDnsDiagnostic()
-    expect(withMacTailscaleDnsHint('Codex failed.', 'dns lookup failed')).toBe('Codex failed.')
-    expect(execFileMock).toHaveBeenCalledOnce()
-
-    finish()
-    await hydration
-    expect(withMacTailscaleDnsHint('Codex failed.', 'dns lookup failed')).toContain(
-      'Tailscale MagicDNS'
+        timeout: 1500,
+        stdio: ['ignore', 'pipe', 'ignore']
+      })
     )
   })
 })

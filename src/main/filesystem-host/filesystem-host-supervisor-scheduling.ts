@@ -21,6 +21,7 @@ export type FilesystemHostProcessHandle = Pick<FilesystemHostProcess, 'invoke' |
 
 export type FilesystemHostQueuedDispatch = {
   input: FilesystemHostDispatch
+  expiresAt?: number
   resolve: (result: FilesystemHostResult) => void
   reject: (error: unknown) => void
 }

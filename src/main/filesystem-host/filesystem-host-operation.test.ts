@@ -1,12 +1,4 @@
-import {
-  chmodSync,
-  mkdtempSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  statSync,
-  writeFileSync
-} from 'node:fs'
+import { mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -200,25 +192,23 @@ describe('executeFilesystemHostOperation', () => {
     }
   })
 
-  it('hardens an OpenCode credential without changing its third-party directory mode', () => {
-    const root = createRoot()
-    const path = join(root, 'auth.json')
-    if (process.platform !== 'win32') {
-      chmodSync(root, 0o755)
+  it.each([{ google: { access: 'login-B' } }, { other: { access: 'keep' } }])(
+    'rejects OpenCode credential writes without changing an external login or logout (%j)',
+    (latest) => {
+      const root = createRoot()
+      const authPath = join(root, 'auth.json')
+      writeFileSync(authPath, JSON.stringify(latest))
+      expect(() =>
+        executeFilesystemHostOperation({
+          kind: 'write-rate-limit-credential',
+          path: authPath,
+          fileKind: 'opencode-auth',
+          contents: JSON.stringify({ google: { access: 'refresh-A' } })
+        })
+      ).toThrow('OpenCode owns its credential lifecycle')
+      expect(JSON.parse(readFileSync(authPath, 'utf8'))).toEqual(latest)
     }
-
-    executeFilesystemHostOperation({
-      kind: 'write-rate-limit-credential',
-      path,
-      fileKind: 'opencode-auth',
-      contents: '{"google":{"type":"oauth"}}'
-    })
-
-    if (process.platform !== 'win32') {
-      expect(statSync(root).mode & 0o777).toBe(0o755)
-      expect(statSync(path).mode & 0o777).toBe(0o600)
-    }
-  })
+  )
 
   it('rejects malformed or misrouted rate-limit credential writes', () => {
     const root = createRoot()

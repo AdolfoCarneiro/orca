@@ -14,8 +14,6 @@ export function getGrokAccountStatus(): GrokAccountStatus {
       }
     : null
   return {
-    ...snapshot,
-    value,
     signedIn: value?.signedIn ?? false,
     email: value?.email ?? null,
     teamId: value?.teamId ?? null,

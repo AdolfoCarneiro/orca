@@ -5,13 +5,12 @@ import { dirname, join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SPEECH_MODEL_CATALOG } from './model-catalog'
 import { ModelManager } from './model-manager'
+import { openElectronSpeechDownloadRequest } from '../host/electron-speech-services'
 
-const { getOpenAiSpeechApiKeySnapshotMock, hydrateOpenAiSpeechApiKeySnapshotMock, netRequestMock } =
-  vi.hoisted(() => ({
-    getOpenAiSpeechApiKeySnapshotMock: vi.fn(),
-    hydrateOpenAiSpeechApiKeySnapshotMock: vi.fn(),
-    netRequestMock: vi.fn()
-  }))
+const { hasOpenAiSpeechApiKeyMock, netRequestMock } = vi.hoisted(() => ({
+  hasOpenAiSpeechApiKeyMock: vi.fn(),
+  netRequestMock: vi.fn()
+}))
 
 vi.mock('electron', () => ({
   app: {
@@ -23,8 +22,7 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('./openai-api-key-store', () => ({
-  getOpenAiSpeechApiKeySnapshot: getOpenAiSpeechApiKeySnapshotMock,
-  hydrateOpenAiSpeechApiKeySnapshot: hydrateOpenAiSpeechApiKeySnapshotMock
+  hasOpenAiSpeechApiKey: hasOpenAiSpeechApiKeyMock
 }))
 
 type ModelManagerInternals = {
@@ -49,12 +47,19 @@ type ModelManagerInternals = {
   ) => Promise<void>
 }
 
+function managerInternals(dir: string): ModelManagerInternals {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the tests drive the download hooks the class keeps protected.
+  return new ModelManager(
+    dir,
+    openElectronSpeechDownloadRequest
+  ) as unknown as ModelManagerInternals
+}
+
 describe('ModelManager', () => {
   beforeEach(() => {
     netRequestMock.mockReset()
-    getOpenAiSpeechApiKeySnapshotMock.mockReset()
-    hydrateOpenAiSpeechApiKeySnapshotMock.mockReset()
-    getOpenAiSpeechApiKeySnapshotMock.mockReturnValue({ value: false, stale: false })
+    hasOpenAiSpeechApiKeyMock.mockReset()
+    hasOpenAiSpeechApiKeyMock.mockReturnValue(false)
   })
 
   it('requires pinned, internally consistent metadata for every model file', () => {
@@ -83,7 +88,7 @@ describe('ModelManager', () => {
       const filePath = join(dir, 'model.onnx')
       writeFileSync(filePath, 'known model bytes')
       const expected = createHash('sha256').update('known model bytes').digest('hex')
-      const manager = new ModelManager(dir) as unknown as ModelManagerInternals
+      const manager = managerInternals(dir)
 
       await expect(manager.verifyFileSha256(filePath, expected)).resolves.toBeUndefined()
       await expect(manager.verifyFileSha256(filePath, '0'.repeat(64))).rejects.toThrow(
@@ -97,7 +102,7 @@ describe('ModelManager', () => {
   it('rejects non-HTTPS model downloads', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'orca-model-manager-'))
     try {
-      const manager = new ModelManager(dir) as unknown as ModelManagerInternals
+      const manager = managerInternals(dir)
 
       await expect(
         manager.downloadFile(
@@ -119,7 +124,7 @@ describe('ModelManager', () => {
       const manifest = SPEECH_MODEL_CATALOG.find(
         (model) => model.id === 'zipformer-streaming-zh-14m'
       )!
-      const manager = new ModelManager(dir)
+      const manager = new ModelManager(dir, openElectronSpeechDownloadRequest)
       const internals = manager as unknown as ModelManagerInternals
       const downloadMock = vi
         .spyOn(internals, 'downloadFileWithRetry')
@@ -156,36 +161,19 @@ describe('ModelManager', () => {
   it('marks OpenAI transcription models ready only when an API key is configured', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'orca-model-manager-'))
     try {
-      const manager = new ModelManager(dir)
+      const manager = new ModelManager(dir, openElectronSpeechDownloadRequest)
 
       await expect(manager.getModelState('openai-gpt-4o-mini-transcribe')).resolves.toEqual({
         id: 'openai-gpt-4o-mini-transcribe',
         status: 'not-downloaded'
       })
 
-      getOpenAiSpeechApiKeySnapshotMock.mockReturnValue({ value: true, stale: false })
+      hasOpenAiSpeechApiKeyMock.mockReturnValue(true)
 
       await expect(manager.getModelState('openai-gpt-4o-mini-transcribe')).resolves.toEqual({
         id: 'openai-gpt-4o-mini-transcribe',
         status: 'ready'
       })
-    } finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
-  })
-
-  it('retries a stale OpenAI key snapshot before reporting cloud model readiness', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'orca-model-manager-'))
-    try {
-      getOpenAiSpeechApiKeySnapshotMock.mockReturnValue({ value: false, stale: true })
-      hydrateOpenAiSpeechApiKeySnapshotMock.mockResolvedValue({ value: true, stale: false })
-      const manager = new ModelManager(dir)
-
-      await expect(manager.getModelState('openai-gpt-4o-mini-transcribe')).resolves.toEqual({
-        id: 'openai-gpt-4o-mini-transcribe',
-        status: 'ready'
-      })
-      expect(hydrateOpenAiSpeechApiKeySnapshotMock).toHaveBeenCalledOnce()
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -198,7 +186,7 @@ describe('ModelManager', () => {
         (model) => model.id === 'zipformer-streaming-zh-14m'
       )
       expect(manifest?.files).toBeDefined()
-      const manager = new ModelManager(dir)
+      const manager = new ModelManager(dir, openElectronSpeechDownloadRequest)
       const modelDir = manager.getModelDir(manifest!.id)
       for (const file of manifest!.downloadFiles ?? []) {
         const path = join(modelDir, file.name)
@@ -281,7 +269,7 @@ describe('ModelManager', () => {
         end: vi.fn(() => request)
       }
       netRequestMock.mockReturnValue(request)
-      const manager = new ModelManager(dir)
+      const manager = new ModelManager(dir, openElectronSpeechDownloadRequest)
 
       const download = manager.downloadModel(manifest.id)
       manager.cancelDownload(manifest.id)
@@ -357,7 +345,7 @@ describe('ModelManager', () => {
       }
       netRequestMock.mockReturnValue(request)
       const controller = new AbortController()
-      const manager = new ModelManager(dir) as unknown as ModelManagerInternals
+      const manager = managerInternals(dir)
 
       const download = manager.downloadFile(
         'https://example.com/model.bin',
@@ -439,7 +427,7 @@ describe('ModelManager', () => {
         end: vi.fn(() => request)
       }
       netRequestMock.mockReturnValue(request)
-      const manager = new ModelManager(dir) as unknown as ModelManagerInternals
+      const manager = managerInternals(dir)
 
       const download = manager.downloadFile(
         'https://example.com/model.bin',

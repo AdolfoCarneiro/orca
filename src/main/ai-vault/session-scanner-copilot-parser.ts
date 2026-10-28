@@ -1,4 +1,4 @@
-import { createReadStream } from 'node:fs'
+import { openTranscriptReadStream } from '../native-chat/wsl-transcript-fs-access'
 import { createInterface } from 'node:readline'
 import type { AiVaultSession } from '../../shared/ai-vault-types'
 import type { ExecutionHostId } from '../../shared/execution-host'
@@ -7,13 +7,14 @@ import type {
   ResumableSessionParseState,
   SessionAccumulator
 } from './session-scanner-types'
+import type { TranscriptMessageSink } from './session-transcript-consumers'
 import {
   accumulatorFoldResumeState,
-  addPreviewMessage,
   createAccumulator,
   sessionIdFromFileName,
   updateTimeline
 } from './session-scanner-accumulator'
+import { addSessionText } from './session-scanner-messages'
 import {
   asRecord,
   copilotModelMetricsTotal,
@@ -31,27 +32,14 @@ type ParserSessionOptions = {
 
 export async function parseCopilotSessionFile(
   file: FileWithMtime,
-  platform: NodeJS.Platform = process.platform
+  platform: NodeJS.Platform = process.platform,
+  messages?: TranscriptMessageSink
 ): Promise<AiVaultSession | null> {
   const lines = createInterface({
-    input: createReadStream(file.path, { encoding: 'utf-8' }),
+    input: openTranscriptReadStream(file.path, { encoding: 'utf-8' }, 'scan'),
     crlfDelay: Infinity
   })
-  return parseCopilotSessionLines({ file, lines, platform })
-}
-
-export async function parseCopilotSessionContent(
-  file: FileWithMtime,
-  content: string,
-  platform: NodeJS.Platform = process.platform,
-  options: ParserSessionOptions = {}
-): Promise<AiVaultSession | null> {
-  return parseCopilotSessionLines({
-    file,
-    lines: content.split(/\r?\n/),
-    platform,
-    options
-  })
+  return parseCopilotSessionLines({ file, lines, platform, messages })
 }
 
 function consumeCopilotRecordLine(accumulator: SessionAccumulator, line: string): void {
@@ -67,6 +55,12 @@ function consumeCopilotRecordLine(accumulator: SessionAccumulator, line: string)
       accumulator.sessionId = sessionId
     }
     updateTimeline(accumulator, extractString(data.startTime))
+    // Folder-trust notices are optional; session.start records the launch directory.
+    const context = asRecord(data.context)
+    if (context) {
+      accumulator.cwd ??= extractString(context.cwd) ?? extractString(context.gitRoot)
+      accumulator.branch ??= extractString(context.branch)
+    }
     return
   }
   if (record.type === 'session.model_change' && data) {
@@ -74,24 +68,20 @@ function consumeCopilotRecordLine(accumulator: SessionAccumulator, line: string)
     return
   }
   if (record.type === 'session.info' && data) {
-    accumulator.cwd = extractTrustedFolder(data.message) ?? accumulator.cwd
+    accumulator.cwd ??= extractTrustedFolder(data.message)
     return
   }
   if (record.type === 'user.message' && data) {
     accumulator.messageCount++
-    accumulator.title ??= normalizeTitleText(
-      extractString(data.transformedContent) ?? extractString(data.content) ?? ''
-    )
-    addPreviewMessage(accumulator, {
-      role: 'user',
-      text: extractString(data.transformedContent) ?? extractString(data.content),
-      timestamp: record.timestamp
-    })
+    // Why: transformedContent is the prompt plus context Copilot injects (`<current_datetime>`).
+    const text = extractString(data.content) ?? extractString(data.transformedContent)
+    accumulator.title ??= normalizeTitleText(text ?? '')
+    addSessionText(accumulator, { role: 'user', text, timestamp: record.timestamp })
     return
   }
   if (record.type === 'assistant.message' && data) {
     accumulator.messageCount++
-    addPreviewMessage(accumulator, {
+    addSessionText(accumulator, {
       role: 'assistant',
       text: extractString(data.content),
       timestamp: record.timestamp
@@ -105,9 +95,17 @@ function consumeCopilotRecordLine(accumulator: SessionAccumulator, line: string)
   }
 }
 
-export function createCopilotSessionResumeState(file: FileWithMtime): ResumableSessionParseState {
+export function createCopilotSessionResumeState(
+  file: FileWithMtime,
+  messages?: TranscriptMessageSink
+): ResumableSessionParseState {
   return accumulatorFoldResumeState(
-    createAccumulator({ agent: 'copilot', file, sessionId: sessionIdFromFileName(file.path) }),
+    createAccumulator({
+      agent: 'copilot',
+      file,
+      sessionId: sessionIdFromFileName(file.path),
+      messages
+    }),
     consumeCopilotRecordLine
   )
 }
@@ -117,8 +115,9 @@ async function parseCopilotSessionLines(args: {
   lines: AsyncIterable<string> | Iterable<string>
   platform: NodeJS.Platform
   options?: ParserSessionOptions
+  messages?: TranscriptMessageSink
 }): Promise<AiVaultSession | null> {
-  const state = createCopilotSessionResumeState(args.file)
+  const state = createCopilotSessionResumeState(args.file, args.messages)
   for await (const line of args.lines) {
     state.consumeLine(line)
   }

@@ -16,12 +16,12 @@ import {
 import { getPrCommentCodeContext } from '@/components/github/pr-comment-code-context'
 import { getPRFileContentsRenderLimit } from '@/components/github/pr-file-diff-mapping'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
+import type { PRComment } from '../../../../shared/github/comment-types'
 import type {
   GitHubOwnerRepo,
   GitHubPRFile,
-  GitHubPRFileContents,
-  PRComment
-} from '../../../../shared/types'
+  GitHubPRFileContents
+} from '../../../../shared/github/pull-request-types'
 
 const MonacoCodeExcerpt = lazy(() => import('@/components/editor/MonacoCodeExcerpt'))
 
@@ -295,7 +295,7 @@ export function CommentCodeContext({
                   )
                 }
                 aria-label={translate(
-                  'auto.components.GitHubItemDialog.307c98e8e3',
+                  'auto.components.GitHubItemDialog.showMoreLinesBelow',
                   'Show {{value0}} more lines below',
                   { value0: CODE_CONTEXT_EXPAND_STEP }
                 )}

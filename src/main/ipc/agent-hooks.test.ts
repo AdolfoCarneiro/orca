@@ -3,34 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as AgentHookServerModule from '../agent-hooks/server'
 import { makePaneKey } from '../../shared/stable-pane-id'
 
-// Why: cover the agentStatus:drop IPC handler — it must propagate the
-// renderer dismissal to dropStatusEntry so the on-disk last-status file
-// evicts the entry.
+// Renderer dismissals must evict persisted status as well as the live row.
 
 const dropStatusEntry = vi.fn()
+const dropPersistedStatusEntry = vi.fn()
+const dropPersistedStatusEntries = vi.fn(() => [] as string[])
 const dropStatusEntriesByTabPrefix = vi.fn()
 const retirePaneAuthority = vi.fn()
 const transferPaneAuthority = vi.fn()
 const canTransferPaneAuthority = vi.fn(() => true)
 const getStatusSnapshot = vi.fn()
 const inferInterrupt = vi.fn()
-const readInstallStatusSnapshot = vi.fn((agent: string) => {
-  const value = {
-    agent,
-    state: 'not_installed',
-    configPath: `/config/${agent}`,
-    managedHooksPresent: false,
-    detail: null
-  }
-  return {
-    ...value,
-    value,
-    stale: false,
-    age: 0,
-    availability: 'missing',
-    lastError: null
-  }
-})
 const clearMigrationUnsupportedPtysByTabPrefix = vi.fn()
 const clearMigrationUnsupportedPtysForPaneKey = vi.fn()
 const onHandlers = new Map<string, (event: unknown, ...args: unknown[]) => void>()
@@ -54,13 +37,14 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('../agent-hooks/server', async () => {
-  // Why: import the real isValidPaneKey so this test stays in sync with any
-  // tightening of the validator (length cap, character allow-list, etc).
+  // Use the real pane-key validator so invalid-input coverage tracks its constraints.
   const actual = await vi.importActual<typeof AgentHookServerModule>('../agent-hooks/server')
   return {
     ...actual,
     agentHookServer: {
       dropStatusEntry,
+      dropPersistedStatusEntry,
+      dropPersistedStatusEntries,
       dropStatusEntriesByTabPrefix,
       retirePaneAuthority,
       transferPaneAuthority,
@@ -75,10 +59,6 @@ vi.mock('../agent-hooks/migration-unsupported-pty-state', () => ({
   clearMigrationUnsupportedPtysByTabPrefix,
   clearMigrationUnsupportedPtysForPaneKey,
   getMigrationUnsupportedPtySnapshot: vi.fn(() => [])
-}))
-
-vi.mock('../agent-hooks/install-status-snapshot-store', () => ({
-  agentHookInstallStatusSnapshots: { read: readInstallStatusSnapshot }
 }))
 
 vi.mock('../claude/hook-service', () => ({
@@ -126,6 +106,9 @@ vi.mock('../kimi/hook-service', () => ({
 
 beforeEach(() => {
   dropStatusEntry.mockReset()
+  dropPersistedStatusEntry.mockReset()
+  dropPersistedStatusEntries.mockReset()
+  dropPersistedStatusEntries.mockReturnValue([])
   dropStatusEntriesByTabPrefix.mockReset()
   retirePaneAuthority.mockReset()
   transferPaneAuthority.mockReset()
@@ -133,7 +116,6 @@ beforeEach(() => {
   canTransferPaneAuthority.mockReturnValue(true)
   getStatusSnapshot.mockReset()
   inferInterrupt.mockReset()
-  readInstallStatusSnapshot.mockClear()
   clearMigrationUnsupportedPtysByTabPrefix.mockReset()
   clearMigrationUnsupportedPtysForPaneKey.mockReset()
   onHandlers.clear()
@@ -165,6 +147,36 @@ describe('agentStatus:getSnapshot IPC', () => {
     const handler = handleHandlers.get('agentStatus:getSnapshot')
     expect(handler).toBeDefined()
     expect(handler!({})).toEqual(snapshot)
+  })
+
+  // Keep one writer per pane while the renderer feed bridge owns structured rows.
+  it('omits structured rows the renderer feed bridge still owns', async () => {
+    getStatusSnapshot.mockReturnValue([
+      {
+        paneKey: PANE_KEY,
+        state: 'done',
+        prompt: 'hook row',
+        agentType: 'claude',
+        connectionId: null,
+        receivedAt: 1_700_000_000_000,
+        stateStartedAt: 1_699_999_999_000
+      },
+      {
+        paneKey: CHILD_PANE_KEY,
+        state: 'working',
+        prompt: 'native chat row',
+        agentType: 'codex',
+        connectionId: null,
+        structuredHost: 'owned',
+        receivedAt: 1_700_000_001_000,
+        stateStartedAt: 1_700_000_000_500
+      }
+    ])
+    const { registerAgentHookHandlers } = await import('./agent-hooks')
+    registerAgentHookHandlers()
+
+    const rows = handleHandlers.get('agentStatus:getSnapshot')!({}) as { paneKey: string }[]
+    expect(rows.map((row) => row.paneKey)).toEqual([PANE_KEY])
   })
 
   it('enriches the hook cache snapshot with runtime lineage metadata', async () => {
@@ -203,7 +215,8 @@ describe('agentStatus:getSnapshot IPC', () => {
               coordinatorHandle: 'term-parent'
             }
           : undefined
-      )
+      ),
+      getTerminalProcessIncarnation: vi.fn(() => 'pty-1:inc-1')
     }
     const { registerAgentHookHandlers } = await import('./agent-hooks')
     registerAgentHookHandlers(runtime)
@@ -227,97 +240,6 @@ describe('agentStatus:getSnapshot IPC', () => {
         }
       }
     ])
-  })
-})
-
-describe('agentHooks:antigravityStatus IPC', () => {
-  it('returns Antigravity hook installation status', async () => {
-    const { registerAgentHookHandlers } = await import('./agent-hooks')
-    registerAgentHookHandlers()
-
-    const handler = handleHandlers.get('agentHooks:antigravityStatus')
-    expect(handler).toBeDefined()
-    expect(handler!({})).toMatchObject({
-      agent: 'antigravity',
-      state: 'not_installed',
-      availability: 'missing'
-    })
-    expect(readInstallStatusSnapshot).toHaveBeenCalledWith('antigravity')
-  })
-})
-
-describe('agentHooks:ampStatus IPC', () => {
-  it('returns Amp hook installation status', async () => {
-    const { registerAgentHookHandlers } = await import('./agent-hooks')
-    registerAgentHookHandlers()
-
-    const handler = handleHandlers.get('agentHooks:ampStatus')
-    expect(handler).toBeDefined()
-    expect(handler!({})).toMatchObject({
-      agent: 'amp',
-      state: 'not_installed',
-      availability: 'missing'
-    })
-  })
-})
-
-describe('agentHooks:openClaudeStatus IPC', () => {
-  it('returns OpenClaude hook installation status', async () => {
-    const { registerAgentHookHandlers } = await import('./agent-hooks')
-    registerAgentHookHandlers()
-
-    const handler = handleHandlers.get('agentHooks:openClaudeStatus')
-    expect(handler).toBeDefined()
-    expect(handler!({})).toMatchObject({
-      agent: 'openclaude',
-      state: 'not_installed',
-      availability: 'missing'
-    })
-  })
-})
-
-describe('agentHooks:commandCodeStatus IPC', () => {
-  it('returns Command Code hook installation status', async () => {
-    const { registerAgentHookHandlers } = await import('./agent-hooks')
-    registerAgentHookHandlers()
-
-    const handler = handleHandlers.get('agentHooks:commandCodeStatus')
-    expect(handler).toBeDefined()
-    expect(handler!({})).toMatchObject({
-      agent: 'command-code',
-      state: 'not_installed',
-      availability: 'missing'
-    })
-  })
-})
-
-describe('agentHooks:devinStatus IPC', () => {
-  it('returns Devin hook installation status', async () => {
-    const { registerAgentHookHandlers } = await import('./agent-hooks')
-    registerAgentHookHandlers()
-
-    const handler = handleHandlers.get('agentHooks:devinStatus')
-    expect(handler).toBeDefined()
-    expect(handler!({})).toMatchObject({
-      agent: 'devin',
-      state: 'not_installed',
-      availability: 'missing'
-    })
-  })
-})
-
-describe('agentHooks:kimiStatus IPC', () => {
-  it('returns Kimi hook installation status', async () => {
-    const { registerAgentHookHandlers } = await import('./agent-hooks')
-    registerAgentHookHandlers()
-
-    const handler = handleHandlers.get('agentHooks:kimiStatus')
-    expect(handler).toBeDefined()
-    expect(handler!({})).toMatchObject({
-      agent: 'kimi',
-      state: 'not_installed',
-      availability: 'missing'
-    })
   })
 })
 
@@ -367,6 +289,17 @@ describe('agentStatus:drop IPC', () => {
     expect(clearMigrationUnsupportedPtysForPaneKey).toHaveBeenCalledWith(PANE_KEY)
   })
 
+  it('forwards a runtime-owned legacy numeric row dismissal', async () => {
+    const { registerAgentHookHandlers } = await import('./agent-hooks')
+    registerAgentHookHandlers()
+
+    const handler = onHandlers.get('agentStatus:drop')!
+    handler!({}, 'tab-1:0')
+
+    expect(dropStatusEntry).toHaveBeenCalledWith('tab-1:0')
+    expect(clearMigrationUnsupportedPtysForPaneKey).toHaveBeenCalledWith('tab-1:0')
+  })
+
   it('rejects non-string paneKey (defensive against a malformed renderer message)', async () => {
     const { registerAgentHookHandlers } = await import('./agent-hooks')
     registerAgentHookHandlers()
@@ -379,7 +312,6 @@ describe('agentStatus:drop IPC', () => {
       null,
       {},
       [],
-      'tab-1:0', // legacy numeric pane-key suffix
       'no-colon', // missing colon — rejected by isValidPaneKey
       ':leading', // empty tabId half
       'trailing:', // empty leafId half
@@ -389,6 +321,71 @@ describe('agentStatus:drop IPC', () => {
       expect(() => handler({}, value)).not.toThrow()
     }
     expect(dropStatusEntry).not.toHaveBeenCalled()
+  })
+})
+
+describe('agentStatus:dropPersisted IPC', () => {
+  it('forwards a validated cache identity without clearing pane state', async () => {
+    const { registerAgentHookHandlers } = await import('./agent-hooks')
+    registerAgentHookHandlers()
+
+    const handler = onHandlers.get('agentStatus:dropPersisted')
+    expect(handler).toBeDefined()
+    const identity = {
+      paneKey: PANE_KEY,
+      receivedAt: 2_000,
+      stateStartedAt: 1_000
+    }
+    handler!({}, identity)
+    expect(dropPersistedStatusEntry).toHaveBeenCalledWith(identity)
+    expect(dropStatusEntry).not.toHaveBeenCalled()
+  })
+
+  it('forwards a batch, keeping only valid identities, and clears migration state per evicted pane', async () => {
+    const { registerAgentHookHandlers } = await import('./agent-hooks')
+    registerAgentHookHandlers()
+
+    const handler = onHandlers.get('agentStatus:dropPersistedBatch')
+    expect(handler).toBeDefined()
+    const good = { paneKey: PANE_KEY, receivedAt: 2_000, stateStartedAt: 1_000 }
+    const alsoGood = { paneKey: CHILD_PANE_KEY, receivedAt: 3_000, stateStartedAt: 2_500 }
+    dropPersistedStatusEntries.mockReturnValue([PANE_KEY])
+    handler!({}, [good, { paneKey: 'not-a-pane-key', receivedAt: 1, stateStartedAt: 1 }, alsoGood])
+    expect(dropPersistedStatusEntries).toHaveBeenCalledWith([good, alsoGood])
+    expect(clearMigrationUnsupportedPtysForPaneKey).toHaveBeenCalledWith(PANE_KEY)
+    expect(clearMigrationUnsupportedPtysForPaneKey).not.toHaveBeenCalledWith(CHILD_PANE_KEY)
+    expect(dropPersistedStatusEntry).not.toHaveBeenCalled()
+  })
+
+  it('ignores a batch that is not an array or is empty after validation', async () => {
+    const { registerAgentHookHandlers } = await import('./agent-hooks')
+    registerAgentHookHandlers()
+
+    const handler = onHandlers.get('agentStatus:dropPersistedBatch')!
+    for (const value of [null, {}, 'x', [], [{ paneKey: PANE_KEY }]]) {
+      expect(() => handler({}, value)).not.toThrow()
+    }
+    expect(dropPersistedStatusEntries).not.toHaveBeenCalled()
+  })
+
+  it('rejects malformed cache identities', async () => {
+    const { registerAgentHookHandlers } = await import('./agent-hooks')
+    registerAgentHookHandlers()
+
+    const handler = onHandlers.get('agentStatus:dropPersisted')!
+    for (const value of [
+      null,
+      undefined,
+      {},
+      { paneKey: PANE_KEY },
+      { paneKey: PANE_KEY, receivedAt: Number.NaN, stateStartedAt: 1 },
+      { paneKey: PANE_KEY, receivedAt: 2, stateStartedAt: Number.POSITIVE_INFINITY },
+      { paneKey: 'not-a-pane-key', receivedAt: 2, stateStartedAt: 1 },
+      { paneKey: PANE_KEY, receivedAt: '2', stateStartedAt: 1 }
+    ]) {
+      expect(() => handler({}, value)).not.toThrow()
+    }
+    expect(dropPersistedStatusEntry).not.toHaveBeenCalled()
   })
 })
 
@@ -443,7 +440,7 @@ describe('agent pane authority IPC', () => {
 
     onHandlers.get('agentStatus:retirePaneAuthority')!({}, PANE_KEY)
 
-    expect(retirePaneAuthority).toHaveBeenCalledWith(PANE_KEY)
+    expect(retirePaneAuthority).toHaveBeenCalledWith(PANE_KEY, undefined)
     expect(clearMigrationUnsupportedPtysForPaneKey).toHaveBeenCalledWith(PANE_KEY)
   })
 

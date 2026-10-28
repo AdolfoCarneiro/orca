@@ -23,7 +23,7 @@ import type {
   FilesystemHostProcessHandle
 } from './filesystem-host-supervisor-scheduling'
 import { recordFilesystemHostSupervisorTelemetry } from './filesystem-host-supervisor-telemetry'
-import { reclaimIdleFilesystemHostProcess } from './filesystem-host-idle-process-reclamation'
+import { launchFilesystemHostProcess } from './filesystem-host-supervisor-launch'
 import { FilesystemHostProcessRetirement } from './filesystem-host-process-retirement'
 import type {
   FilesystemHostProcessFactory,
@@ -100,13 +100,16 @@ export class FilesystemHostSupervisor {
       )
     }
     const normalizedInput = { ...input, operation: parsedOperation.data }
-    const retireWhenIdle = normalizedInput.operation.kind === 'classify-path'
-    const laneKey = retireWhenIdle
-      ? this.domains.classificationLane(
-          normalizedInput.executionHost,
-          normalizedInput.operation.path
-        )
-      : this.domains.resolve(normalizedInput.executionHost, normalizedInput.operation.path)
+    const discovery = normalizedInput.operation.kind === 'discover-gemini-oauth'
+    const retireWhenIdle = discovery || normalizedInput.operation.kind === 'classify-path'
+    const laneKey = discovery
+      ? `discovery:${normalizedInput.executionHost}`
+      : retireWhenIdle
+        ? this.domains.classificationLane(
+            normalizedInput.executionHost,
+            normalizedInput.operation.path
+          )
+        : this.domains.resolve(normalizedInput.executionHost, normalizedInput.operation.path)
     const lane = this.getLane(laneKey, retireWhenIdle)
     // Why: mirrors the physical-slot reservation — a background burst (startup repo
     // reconcile) must not fill the queue and strand the fs IPC gate every handler awaits.
@@ -121,7 +124,29 @@ export class FilesystemHostSupervisor {
     }
     lane.pending++
     return new Promise((resolve, reject) => {
-      lane[normalizedInput.admission].push({ input: normalizedInput, resolve, reject })
+      const queue = lane[normalizedInput.admission]
+      const job = {
+        input: normalizedInput,
+        expiresAt: this.now() + input.deadlineMs,
+        resolve: (value: FilesystemHostResult) => {
+          clearTimeout(timer)
+          resolve(value)
+        },
+        reject: (error: unknown) => {
+          clearTimeout(timer)
+          reject(error)
+        }
+      }
+      const timer = setTimeout(() => {
+        const index = queue.indexOf(job)
+        if (index !== -1) {
+          queue.splice(index, 1)
+          lane.pending--
+        }
+        reject(new FilesystemHostSupervisorError('deadline', 'Filesystem request timed out'))
+      }, input.deadlineMs)
+      timer.unref?.()
+      queue.push(job)
       this.pump(lane)
     })
   }
@@ -217,15 +242,6 @@ export class FilesystemHostSupervisor {
       })
   }
 
-  private hasUnreapedChild(laneKey: string): boolean {
-    for (const domain of this.retirement.didNotExitDomainByChild.values()) {
-      if (domain === laneKey) {
-        return true
-      }
-    }
-    return false
-  }
-
   private launch(
     lane: FilesystemHostLane,
     admission: FilesystemHostAdmissionClass
@@ -239,62 +255,21 @@ export class FilesystemHostSupervisor {
     return launch
   }
 
-  private async launchProcess(
+  private launchProcess(
     lane: FilesystemHostLane,
     admission: FilesystemHostAdmissionClass
   ): Promise<FilesystemHostProcessHandle> {
-    // Why: a child wedged in an uninterruptible syscall ignores SIGKILL and never
-    // releases its slot, so one dead mount would drain the process-wide budget a
-    // child per breaker probe. Its physical exit clears this and reopens the lane.
-    if (this.hasUnreapedChild(lane.key)) {
-      throw new FilesystemHostSupervisorError(
-        'unreaped',
-        'Filesystem failure domain still holds an unreaped child'
-      )
-    }
-    let release = this.capacity.reserve(admission)
-    if (!release) {
-      await reclaimIdleFilesystemHostProcess({
-        lanes: this.lanes.values(),
-        excludedLane: lane,
-        retire: async (idleLane, process) =>
-          await this.retirement.retire(idleLane.key, idleLane, process)
-      })
-      release = this.capacity.reserve(admission)
-    }
-    while (!release) {
-      const retirement = this.retirement.waitForRetirement()
-      if (!retirement) {
-        break
-      }
-      await retirement
-      release = this.capacity.reserve(admission)
-    }
-    if (!release) {
-      throw new FilesystemHostSupervisorError(
-        'capacity',
-        'Physical filesystem host capacity is exhausted'
-      )
-    }
-    let process: FilesystemHostProcessHandle | null = null
-    process = await this.startProcess({
-      entryPath: this.options.entryPath,
-      onPhysicalExit: () => {
-        release()
-        if (process) {
-          this.retirement.physicalExit(lane, process)
-        }
-      }
-    })
-    this.retirement.track(process, release)
-    lane.process = process
-    if (this.disposed) {
-      await this.retirement.retire(lane.key, lane, process)
-      throw new FilesystemHostSupervisorError(
-        'unavailable',
-        'Filesystem host supervisor is disposed'
-      )
-    }
-    return process
+    return launchFilesystemHostProcess(
+      {
+        capacity: this.capacity,
+        retirement: this.retirement,
+        lanes: this.lanes,
+        options: this.options,
+        startProcess: this.startProcess,
+        isDisposed: () => this.disposed
+      },
+      lane,
+      admission
+    )
   }
 }

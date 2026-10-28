@@ -26,13 +26,16 @@ describe('AI Vault view option persistence', () => {
         disabledAgents: ['codex', 'unknown', 'codex', 7],
         sort: 'invalid',
         group: 'agent',
-        hideEmptySessions: 'yes'
+        hideEmptySessions: 'yes',
+        sessionLimit: 999
       })
     ).toEqual({
       disabledAgents: ['codex'],
       sort: 'updated',
+      searchSort: 'relevance',
       group: 'agent',
-      hideEmptySessions: false
+      hideEmptySessions: false,
+      sessionLimit: 250
     })
   })
 
@@ -42,28 +45,39 @@ describe('AI Vault view option persistence', () => {
         disabledAgents: [],
         sort: 'updated',
         group: 'project',
-        hideEmptySessions: false
+        hideEmptySessions: false,
+        sessionLimit: 250
       })
     ).toEqual({
       disabledAgents: [],
       sort: 'updated',
+      searchSort: 'relevance',
       group: 'project',
-      hideEmptySessions: false
+      hideEmptySessions: false,
+      sessionLimit: 250
     })
     expect(
       normalizeAiVaultViewOptions({
         disabledAgents: [],
         sort: 'created',
+        searchSort: 'newest',
         group: 'folder',
-        hideEmptySessions: true
+        hideEmptySessions: true,
+        sessionLimit: 1000
       })
     ).toEqual({
       disabledAgents: [],
       sort: 'created',
+      searchSort: 'newest',
       group: 'folder',
-      hideEmptySessions: true
+      hideEmptySessions: true,
+      sessionLimit: 1000
     })
     expect(normalizeAiVaultViewOptions({ group: 'agent' }).group).toBe('agent')
+    expect(normalizeAiVaultViewOptions({ searchSort: 'oldest' }).searchSort).toBe('relevance')
+    expect(normalizeAiVaultViewOptions({ sessionLimit: 'unlimited' }).sessionLimit).toBe(
+      'unlimited'
+    )
   })
 
   it('preserves a fully cleared agent selection', () => {
@@ -113,8 +127,10 @@ describe('AI Vault view option persistence', () => {
         {
           disabledAgents: ['codex'],
           sort: 'created',
+          searchSort: 'newest',
           group: 'folder',
-          hideEmptySessions: true
+          hideEmptySessions: true,
+          sessionLimit: 500
         },
         storage
       )
@@ -124,8 +140,10 @@ describe('AI Vault view option persistence', () => {
       JSON.stringify({
         disabledAgents: ['codex'],
         sort: 'created',
+        searchSort: 'newest',
         group: 'folder',
-        hideEmptySessions: true
+        hideEmptySessions: true,
+        sessionLimit: 500
       })
     )
   })

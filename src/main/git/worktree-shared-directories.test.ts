@@ -1,15 +1,15 @@
 import { execFileSync } from 'node:child_process'
 import { lstatSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { readFile, realpath } from 'node:fs/promises'
-import { devNull, tmpdir } from 'node:os'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearConfiguredWorktreeSharedDirectoriesCacheForTests,
   getConfiguredWorktreeSharedDirectories,
+  getConfiguredWorktreeSharedDirectoriesCacheSizeForTests,
+  MAX_CONFIGURED_SHARED_DIRECTORIES_CACHE_ENTRIES,
   getWorktreeSharedLinkPaths,
-  resolveWorktreeSharedDirectories,
-  resolveWorktreeSharedLinkPaths
+  resolveWorktreeSharedDirectories
 } from './worktree-shared-directories'
 import {
   createWorktreeSharedPaths,
@@ -17,35 +17,41 @@ import {
 } from '../ipc/worktree-symlinks'
 import { assertWorktreeCleanForRemoval } from './worktree'
 import { getStatus } from './status'
-import { refreshLocalOrcaYamlSnapshot } from './orca-yaml-snapshot-store'
-import { setFilesystemHostReadClientForTests } from '../filesystem-host/filesystem-host-read-authority'
 
-beforeEach(() => {
-  setFilesystemHostReadClientForTests({
-    canonicalizePath: (path) => realpath(path),
-    readOrcaYaml: (path) => readFile(path, 'utf8'),
-    readKeybindings: async () => {
-      throw new Error('unused')
-    },
-    readSnapshotFile: async () => Buffer.from(''),
-    prepareRateLimitPtyCwd: async (path) => path
-  })
+// An empty config file works with Windows Git (os.devNull does not) and isolates the production runner too.
+let gitConfigRoot: string
+let previousGitConfigGlobal: string | undefined
+let previousGitConfigNosystem: string | undefined
+
+beforeAll(() => {
+  gitConfigRoot = mkdtempSync(join(tmpdir(), 'orca-shared-dirs-gitconfig-'))
+  const emptyGlobalGitConfig = join(gitConfigRoot, 'global.gitconfig')
+  writeFileSync(emptyGlobalGitConfig, '')
+  previousGitConfigGlobal = process.env.GIT_CONFIG_GLOBAL
+  previousGitConfigNosystem = process.env.GIT_CONFIG_NOSYSTEM
+  process.env.GIT_CONFIG_GLOBAL = emptyGlobalGitConfig
+  process.env.GIT_CONFIG_NOSYSTEM = '1'
 })
 
-afterEach(() => {
-  setFilesystemHostReadClientForTests(null)
+afterAll(() => {
+  restoreGitEnv('GIT_CONFIG_GLOBAL', previousGitConfigGlobal)
+  restoreGitEnv('GIT_CONFIG_NOSYSTEM', previousGitConfigNosystem)
+  rmSync(gitConfigRoot, { recursive: true, force: true })
 })
+
+function restoreGitEnv(
+  name: 'GIT_CONFIG_GLOBAL' | 'GIT_CONFIG_NOSYSTEM',
+  value: string | undefined
+): void {
+  if (value === undefined) {
+    delete process.env[name]
+    return
+  }
+  process.env[name] = value
+}
 
 const git = (args: string[], cwd: string): void => {
-  execFileSync('git', args, {
-    cwd,
-    stdio: 'ignore',
-    env: {
-      ...process.env,
-      GIT_CONFIG_GLOBAL: devNull,
-      GIT_CONFIG_SYSTEM: devNull
-    }
-  })
+  execFileSync('git', args, { cwd, stdio: 'ignore' })
 }
 
 describe('resolveWorktreeSharedDirectories', () => {
@@ -161,6 +167,15 @@ describe('resolveWorktreeSharedDirectories', () => {
 })
 
 describe('getConfiguredWorktreeSharedDirectories', () => {
+  it('bounds cache growth when repository paths churn', () => {
+    for (let index = 0; index < MAX_CONFIGURED_SHARED_DIRECTORIES_CACHE_ENTRIES + 4; index += 1) {
+      getConfiguredWorktreeSharedDirectories(`/repo-${index}`)
+    }
+
+    expect(getConfiguredWorktreeSharedDirectoriesCacheSizeForTests()).toBe(
+      MAX_CONFIGURED_SHARED_DIRECTORIES_CACHE_ENTRIES
+    )
+  })
   let repo: string
 
   beforeEach(() => {
@@ -172,21 +187,18 @@ describe('getConfiguredWorktreeSharedDirectories', () => {
     rmSync(repo, { recursive: true, force: true })
   })
 
-  it('returns the configured names without existence or gitignore filtering', async () => {
-    // Why: neither directory exists, yet removal still needs both names to
-    // recognize and unlink the symlinks a previous creation left behind.
+  it('returns the configured names without existence or gitignore filtering', () => {
+    // Removal needs configured names even after the primary directory disappears.
     writeFileSync(
       join(repo, 'orca.yaml'),
       'worktree:\n  sharedDirectories:\n    - node_modules\n    - .cache\n'
     )
-    await refreshLocalOrcaYamlSnapshot(repo)
 
     expect(getConfiguredWorktreeSharedDirectories(repo)).toEqual(['node_modules', '.cache'])
   })
 
-  it('combines live per-user paths with cached repo configuration', async () => {
+  it('combines live per-user paths with cached repo configuration', () => {
     writeFileSync(join(repo, 'orca.yaml'), 'worktree:\n  sharedDirectories:\n    - node_modules\n')
-    await refreshLocalOrcaYamlSnapshot(repo)
 
     expect(getWorktreeSharedLinkPaths({ path: repo, symlinkPaths: ['.cache'] })).toEqual([
       '.cache',
@@ -194,42 +206,35 @@ describe('getConfiguredWorktreeSharedDirectories', () => {
     ])
   })
 
-  it('refreshes repo configuration before resolving destructive-cleanup paths', async () => {
-    writeFileSync(join(repo, 'orca.yaml'), 'worktree:\n  sharedDirectories:\n    - old-cache\n')
-    await refreshLocalOrcaYamlSnapshot(repo)
-    writeFileSync(join(repo, 'orca.yaml'), 'worktree:\n  sharedDirectories:\n    - current-cache\n')
-
-    await expect(
-      resolveWorktreeSharedLinkPaths({ path: repo, symlinkPaths: ['user-cache'] })
-    ).resolves.toEqual(['user-cache', 'old-cache', 'current-cache'])
-  })
-
-  it('returns [] when orca.yaml is absent or has no worktree key', async () => {
-    await refreshLocalOrcaYamlSnapshot(repo)
+  it('returns [] when orca.yaml is absent or has no worktree key', () => {
     expect(getConfiguredWorktreeSharedDirectories(repo)).toEqual([])
 
     writeFileSync(join(repo, 'orca.yaml'), 'scripts:\n  setup: pnpm install\n')
-    await refreshLocalOrcaYamlSnapshot(repo)
+    clearConfiguredWorktreeSharedDirectoriesCacheForTests()
     expect(getConfiguredWorktreeSharedDirectories(repo)).toEqual([])
   })
 
-  it('keeps status reads memory-only until an explicit refresh', async () => {
-    writeFileSync(join(repo, 'orca.yaml'), 'worktree:\n  sharedDirectories:\n    - node_modules\n')
-    await refreshLocalOrcaYamlSnapshot(repo)
-    expect(getConfiguredWorktreeSharedDirectories(repo)).toEqual(['node_modules'])
+  it('caches repeated status polls but refreshes changed configuration', () => {
+    vi.useFakeTimers()
+    try {
+      writeFileSync(
+        join(repo, 'orca.yaml'),
+        'worktree:\n  sharedDirectories:\n    - node_modules\n'
+      )
+      expect(getConfiguredWorktreeSharedDirectories(repo)).toEqual(['node_modules'])
 
-    writeFileSync(join(repo, 'orca.yaml'), 'worktree:\n  sharedDirectories:\n    - .cache\n')
+      writeFileSync(join(repo, 'orca.yaml'), 'worktree:\n  sharedDirectories:\n    - .cache\n')
 
-    expect(getConfiguredWorktreeSharedDirectories(repo)).toEqual(['node_modules'])
-    await refreshLocalOrcaYamlSnapshot(repo)
-    expect(getConfiguredWorktreeSharedDirectories(repo)).toEqual(['.cache'])
+      expect(getConfiguredWorktreeSharedDirectories(repo)).toEqual(['node_modules'])
+      vi.advanceTimersByTime(30_001)
+      expect(getConfiguredWorktreeSharedDirectories(repo)).toEqual(['.cache'])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
-// Why: `node_modules/` is a directory-only ignore rule. It matches the primary's
-// real directory, so the shared directory resolves, but never the worktree's
-// symlink — Git reports that link as untracked and refuses a non-force removal
-// unless deletion is told to tolerate it.
+// Directory-only ignore rules hide the primary directory, but not its worktree symlink.
 describe('shared directories and worktree removal', () => {
   let root: string
   let primary: string
@@ -277,10 +282,7 @@ describe('shared directories and worktree removal', () => {
     ).resolves.toBeUndefined()
   })
 
-  // Why: the halves are tested apart — resolver output here, a hardcoded
-  // `['node_modules']` in the status tests. This pins the seam between them, so a
-  // resolver that ever returns a differently-spelled path can't leave the link
-  // showing as a phantom untracked row.
+  // Pass actual resolver output to status so path spelling cannot drift across the seam.
   it('leaves status clean when the resolved directory is fed back as a shared link', async () => {
     await createWorktreeSharedPaths(
       primary,
@@ -295,10 +297,6 @@ describe('shared directories and worktree removal', () => {
     expect(status.entries).toEqual([])
   })
 
-  // Why: `-z` output is NUL-delimited and `.trim()` leaves interior NULs, so the
-  // raw stdout reached the user as `?? node_modules<NUL>?? precious.txt<NUL>` —
-  // raw control bytes in a message, listing the very link this feature exists to
-  // suppress. The error must name only what the user can actually act on.
   it('reports only genuine blockers in the removal error, with no NUL bytes', async () => {
     await createWorktreeSharedPaths(
       primary,
@@ -315,15 +313,10 @@ describe('shared directories and worktree removal', () => {
     })
 
     await expect(removal).rejects.toThrow('uncommitted or untracked')
-    // Why an exact match: it proves both halves at once — no interior NUL, and
-    // the tolerated `node_modules` link absent from what the user is told to fix.
     await expect(removal).rejects.toMatchObject({ stdout: '?? precious.txt' })
   })
 
-  // Why `-z` is used at all: Git C-quotes non-ASCII paths under `--porcelain`,
-  // so a byte-for-byte comparison against the configured entry would miss and the
-  // link would read as a blocker. A space alone is not quoted but is the case a
-  // naive whitespace split would break.
+  // NUL records preserve C-quoted Unicode names and names with spaces for exact matching.
   it('tolerates shared directories whose names have a space or non-ASCII characters', async () => {
     const names = ['my shared dir', 'ライブラリ']
     for (const name of names) {

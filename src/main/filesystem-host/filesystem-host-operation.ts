@@ -1,5 +1,8 @@
+import { classifyError, FilesystemHostOperationError } from './filesystem-host-operation-error'
+export { FilesystemHostOperationError } from './filesystem-host-operation-error'
 import {
   closeSync,
+  lstatSync,
   constants,
   existsSync,
   fstatSync,
@@ -10,10 +13,10 @@ import {
   statSync
 } from 'node:fs'
 import { basename } from 'node:path'
-import { hardenExistingSecureFile, writeSecureFile } from '../../shared/secure-file'
+import { hardenExistingSecureFile } from '../../shared/secure-file'
+import { writeCredentialFileAtomic } from '../integration-credential-file'
 import { resolveCliCommand } from '../../shared/node-cli-command-resolution'
 import type {
-  FilesystemHostErrorCode,
   FilesystemHostOperation,
   FilesystemHostResult,
   FilesystemSnapshotFileKind
@@ -21,19 +24,11 @@ import type {
 import { FILESYSTEM_HOST_MAX_TEXT_BYTES } from '../../shared/filesystem-host-protocol'
 import { LEGACY_TAB_SWITCH_BINDINGS, type KeybindingOverrides } from '../../shared/keybindings'
 import {
+  ensureKeybindingFile,
+  writeKeybindingOverride,
   migrateLegacyKeybindings,
   seedLegacyTabSwitchBindings
 } from '../keybindings/keybinding-file'
-
-export class FilesystemHostOperationError extends Error {
-  constructor(
-    readonly code: FilesystemHostErrorCode,
-    message: string
-  ) {
-    super(message)
-    this.name = 'FilesystemHostOperationError'
-  }
-}
 
 function prepareRateLimitPtyCwd(path: string): FilesystemHostResult {
   if (basename(path) !== 'rate-limit-pty-cwd') {
@@ -52,24 +47,6 @@ function prepareRateLimitPtyCwd(path: string): FilesystemHostResult {
     }
     throw classifyError(error)
   }
-}
-
-function classifyError(error: unknown): FilesystemHostOperationError {
-  const code = (error as NodeJS.ErrnoException | null)?.code
-  const classified: FilesystemHostErrorCode =
-    code === 'ENOENT'
-      ? 'missing'
-      : code === 'EACCES' || code === 'EPERM'
-        ? 'denied'
-        : code === 'ENOTDIR' || code === 'EISDIR'
-          ? 'not-directory'
-          : code === 'EINVAL'
-            ? 'invalid'
-            : 'io'
-  return new FilesystemHostOperationError(
-    classified,
-    `Filesystem operation failed${code ? ` (${code})` : ''}`
-  )
 }
 
 function readBoundedTextFile(
@@ -127,6 +104,17 @@ function prepareKeybindings(
   )
   if (operation.seedLegacyTabSwitchBindings) {
     seedLegacyTabSwitchBindings(operation.path, operation.platform, LEGACY_TAB_SWITCH_BINDINGS)
+  }
+  if (operation.ensure) {
+    ensureKeybindingFile(operation.path)
+  }
+  if (operation.mutation) {
+    writeKeybindingOverride(
+      operation.path,
+      operation.platform,
+      operation.mutation.actionId,
+      operation.mutation.bindings
+    )
   }
   if (!existsSync(operation.path)) {
     return {
@@ -240,10 +228,10 @@ function writeRateLimitCredential(
       throw new FilesystemHostOperationError('invalid', 'Invalid Gemini OAuth credentials')
     }
   }
-  writeSecureFile(operation.path, operation.contents, {
-    // Why: OpenCode owns this shared provider directory; only Orca's credential file is ours to harden.
-    hardenParentDirectory: operation.fileKind !== 'opencode-auth'
-  })
+  if (operation.fileKind === 'opencode-auth') {
+    throw new FilesystemHostOperationError('denied', 'OpenCode owns its credential lifecycle')
+  }
+  writeCredentialFileAtomic(operation.path, Buffer.from(operation.contents, 'utf8'))
   return { kind: 'write-rate-limit-credential' }
 }
 
@@ -252,6 +240,10 @@ export function executeFilesystemHostOperation(
 ): FilesystemHostResult {
   try {
     switch (operation.kind) {
+      case 'is-symlink':
+        return { kind: 'is-symlink', value: lstatSync(operation.path).isSymbolicLink() }
+      case 'discover-gemini-oauth':
+        throw new FilesystemHostOperationError('invalid', 'Discovery requires async dispatch')
       case 'canonicalize-path':
         // Why not realpathSync.native: every caller moved in here compared the result against
         // textually-recorded roots. `.native` folds Windows casing and rewrites a mapped drive

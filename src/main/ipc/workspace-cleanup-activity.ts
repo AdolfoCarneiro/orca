@@ -1,12 +1,15 @@
-import { lstat, readFile } from 'node:fs/promises'
+import { lstat, open, readFile } from 'node:fs/promises'
 import path from 'node:path'
-import type { Repo, Worktree } from '../../shared/types'
+import type { Worktree } from '../../shared/worktree/types'
+import { resolveGitMetadataPath } from '../../shared/git-metadata-path'
 import { getPersistedWorkspaceCleanupActivityAt } from '../../shared/workspace-cleanup'
-import { parseWslUncPath } from '../../shared/wsl-paths'
-import { toWindowsWslPath } from '../wsl'
+import type { WorkspaceCleanupGitRoute } from './workspace-cleanup-git-route'
 
 type StatPath = (targetPath: string) => Promise<{ mtimeMs: number }>
-type ReadTextFile = (targetPath: string) => Promise<string>
+type ReadTextFile = (targetPath: string, options?: { tailBytes?: number }) => Promise<string>
+
+// Read only the newest reflog entry; full histories can span megabytes per checkout.
+const REFLOG_TAIL_BYTES = 8192
 
 export function resolvePersistedWorkspaceCleanupActivityWorktree(worktree: Worktree): Worktree {
   const persistedActivityAt = getPersistedWorkspaceCleanupActivityAt(worktree)
@@ -16,13 +19,23 @@ export function resolvePersistedWorkspaceCleanupActivityWorktree(worktree: Workt
   return { ...worktree, lastActivityAt: persistedActivityAt }
 }
 
+export type WorkspaceCleanupFsActivityCache = Map<string, Promise<number>>
+
 export async function resolveWorkspaceCleanupActivityWorktree(
-  repo: Repo,
+  route: WorkspaceCleanupGitRoute,
   worktree: Worktree,
   statPath: StatPath = statLocalPath,
-  readTextFile: ReadTextFile = readLocalTextFile
+  readTextFile: ReadTextFile = readLocalTextFile,
+  // Folder workspace instances share filesystem probes; cache by path for this scan.
+  fsActivityCache?: WorkspaceCleanupFsActivityCache
 ): Promise<Worktree> {
-  const activityAt = await resolveWorkspaceCleanupActivityAt(repo, worktree, statPath, readTextFile)
+  const activityAt = await resolveWorkspaceCleanupActivityAt(
+    route,
+    worktree,
+    statPath,
+    readTextFile,
+    fsActivityCache
+  )
   if (activityAt <= worktree.lastActivityAt) {
     return worktree
   }
@@ -34,32 +47,52 @@ async function statLocalPath(targetPath: string): Promise<{ mtimeMs: number }> {
   return { mtimeMs: Number(stats.mtimeMs) }
 }
 
-async function readLocalTextFile(targetPath: string): Promise<string> {
-  return readFile(targetPath, 'utf8')
+async function readLocalTextFile(
+  targetPath: string,
+  options?: { tailBytes?: number }
+): Promise<string> {
+  if (options?.tailBytes === undefined) {
+    return readFile(targetPath, 'utf8')
+  }
+  const handle = await open(targetPath, 'r')
+  try {
+    const { size } = await handle.stat()
+    const length = Math.min(options.tailBytes, size)
+    if (length === 0) {
+      return ''
+    }
+    const { buffer, bytesRead } = await handle.read({
+      buffer: Buffer.alloc(length),
+      position: size - length
+    })
+    return buffer.toString('utf8', 0, bytesRead)
+  } finally {
+    await handle.close()
+  }
 }
 
 async function resolveWorkspaceCleanupActivityAt(
-  repo: Repo,
+  route: WorkspaceCleanupGitRoute,
   worktree: Worktree,
   statPath: StatPath,
-  readTextFile: ReadTextFile
+  readTextFile: ReadTextFile,
+  fsActivityCache?: WorkspaceCleanupFsActivityCache
 ): Promise<number> {
   const persistedActivityAt = getPersistedWorkspaceCleanupActivityAt(worktree)
-  if (repo.connectionId) {
+  // Remote paths cannot establish activity through this client's local filesystem.
+  if (route.kind !== 'local') {
     return persistedActivityAt
   }
 
-  const filesystemActivityAt = await getNewestLocalWorktreeActivityAt(
-    worktree.path,
-    statPath,
-    readTextFile
-  )
-  return Math.max(persistedActivityAt, filesystemActivityAt)
+  let filesystemActivity = fsActivityCache?.get(worktree.path)
+  if (!filesystemActivity) {
+    filesystemActivity = getNewestLocalWorktreeActivityAt(worktree.path, statPath, readTextFile)
+    fsActivityCache?.set(worktree.path, filesystemActivity)
+  }
+  return Math.max(persistedActivityAt, await filesystemActivity)
 }
 
-// Why: best-effort only. Win32 stat over \\wsl.localhost (9P) can falsely
-// report ENOENT (see wslUncDirectoryExists), so a failed stat degrades to the
-// persisted activity timestamp instead of blocking or mislabeling the row.
+// WSL UNC stat can falsely return ENOENT; retain persisted activity when filesystem probes fail.
 async function getNewestLocalWorktreeActivityAt(
   worktreePath: string,
   statPath: StatPath,
@@ -67,11 +100,7 @@ async function getNewestLocalWorktreeActivityAt(
 ): Promise<number> {
   const gitPath = path.join(worktreePath, '.git')
   const gitDirPath = await readLocalWorktreeGitDir(worktreePath, gitPath, readTextFile)
-  // Why: every entry here must move only on a user action. Excluded on purpose:
-  // the gitdir directory and logs/HEAD (restamped for every linked worktree at
-  // once by `git gc` / `git reflog expire`, which made one maintenance run look
-  // like activity everywhere), and index (rewritten by `git status` — this scan
-  // runs one per candidate, so it would erase the evidence it just read).
+  // Exclude gitdir/log mtimes touched by maintenance and index rewritten by this scan's own git status.
   const gitDirProbes = gitDirPath
     ? [
         readMtime(path.join(gitDirPath, 'HEAD'), statPath),
@@ -88,26 +117,36 @@ async function getNewestLocalWorktreeActivityAt(
   return Math.max(0, ...timestamps)
 }
 
-// Why: the reflog records when HEAD actually moved, so it survives the mtime
-// churn that makes logs/HEAD itself unreadable as a signal. Expired reflogs are
-// truncated to an empty file, which degrades to the other probes.
+// Reflog entry times survive metadata churn; empty expired logs fall back to other probes.
 async function readNewestReflogEntryAt(
   reflogPath: string,
   readTextFile: ReadTextFile
 ): Promise<number> {
   try {
-    const lines = (await readTextFile(reflogPath)).split('\n')
-    for (let index = lines.length - 1; index >= 0; index -= 1) {
-      // The trailing timezone + tab anchors the capture, so no digit-count floor is needed.
-      const seconds = /\s(\d{1,11})\s[-+]\d{4}\t/.exec(lines[index] ?? '')?.[1]
-      if (seconds) {
-        return Number(seconds) * 1000
-      }
+    // A tail cut can start mid-line; scanning backward for the last parseable
+    // entry tolerates that.
+    const tail = await readTextFile(reflogPath, { tailBytes: REFLOG_TAIL_BYTES })
+    const newestFromTail = parseNewestReflogEntryAt(tail)
+    if (newestFromTail !== 0 || tail.length === 0) {
+      return newestFromTail
     }
-    return 0
+    // Oversized entries can place their timestamp before the tail window.
+    return parseNewestReflogEntryAt(await readTextFile(reflogPath))
   } catch {
     return 0
   }
+}
+
+function parseNewestReflogEntryAt(reflog: string): number {
+  const lines = reflog.split('\n')
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    // The trailing timezone + tab anchors the capture, so no digit-count floor is needed.
+    const seconds = /\s(\d{1,11})\s[-+]\d{4}\t/.exec(lines[index] ?? '')?.[1]
+    if (seconds) {
+      return Number(seconds) * 1000
+    }
+  }
+  return 0
 }
 
 async function readLocalWorktreeGitDir(
@@ -125,13 +164,8 @@ async function readLocalWorktreeGitDir(
     if (!gitDir) {
       return null
     }
-    // Why: linked worktrees keep mutable git state outside the worktree; the
-    // pointer file mtime alone can miss recent external commits.
-    const wslWorktree = parseWslUncPath(worktreePath)
-    if (wslWorktree && gitDir.startsWith('/')) {
-      return toWindowsWslPath(gitDir, wslWorktree.distro)
-    }
-    return path.isAbsolute(gitDir) ? gitDir : path.resolve(worktreePath, gitDir)
+    // Linked Git metadata is external; resolve pointers in the writing Git's namespace, including WSL guest paths.
+    return resolveGitMetadataPath(worktreePath, gitDir)
   } catch {
     return null
   }

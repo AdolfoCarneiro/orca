@@ -1,9 +1,11 @@
+import {
+  readSnapshotFileThroughFilesystemHost,
+  requireFilesystemHostReadClient
+} from '../filesystem-host/filesystem-host-read-client'
 import { homedir } from 'node:os'
 import path from 'node:path'
-import { net } from 'electron'
+import { getMainHttpClient } from '../network/http-client'
 import { extractOAuthClientCredentials } from './gemini-cli-oauth-extractor'
-import { readSnapshotFileThroughFilesystemHost } from '../filesystem-host/filesystem-host-read-authority'
-import { writeRateLimitCredentialThroughFilesystemHost } from '../filesystem-host/filesystem-host-rate-limit-client'
 
 const API_TIMEOUT_MS = 10_000
 const OAUTH_CREDS_PATH = path.join(homedir(), '.gemini', 'oauth_creds.json')
@@ -23,14 +25,12 @@ export type GoogleAuthEntry = {
   refresh: string
 }
 
-export type AuthJson = {
+type AuthJson = {
   google?: GoogleAuthEntry
   'opencode-go'?: { type: 'api'; key: string }
 }
 
-export type AuthJsonSource = { path: string; value: AuthJson }
-
-export async function readAuthJsonSource(): Promise<AuthJsonSource | null> {
+export async function readAuthJson(): Promise<AuthJson | null> {
   const candidates = [
     process.env.APPDATA ? path.join(process.env.APPDATA, 'opencode', 'auth.json') : null,
     process.env.XDG_DATA_HOME
@@ -45,11 +45,7 @@ export async function readAuthJsonSource(): Promise<AuthJsonSource | null> {
       const raw = (await readSnapshotFileThroughFilesystemHost(candidate, 'gemini-auth')).toString(
         'utf8'
       )
-      const parsed = JSON.parse(raw) as unknown
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        return null
-      }
-      return { path: candidate, value: parsed as AuthJson }
+      return JSON.parse(raw) as AuthJson
     } catch (err) {
       if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
         continue
@@ -88,24 +84,16 @@ export async function readGeminiCredentials(): Promise<GeminiCredentials | null>
   }
 }
 
+// Atomic replacement must preserve owner-only credentials despite orcad's login umask (#31125).
 export async function saveGeminiCredentials(creds: GeminiCredentials): Promise<void> {
-  await writeRateLimitCredentialThroughFilesystemHost(
+  const client = requireFilesystemHostReadClient()
+  if (!client.writeRateLimitCredential) {
+    throw new Error('Credential persistence is unavailable')
+  }
+  await client.writeRateLimitCredential(
     OAUTH_CREDS_PATH,
     'gemini-oauth-credentials',
     JSON.stringify(creds, null, 2)
-  )
-}
-
-export async function saveAuthJsonSource(source: AuthJsonSource): Promise<void> {
-  const raw = await readSnapshotFileThroughFilesystemHost(source.path, 'gemini-auth')
-  const latest = JSON.parse(raw.toString('utf8')) as unknown
-  if (!latest || typeof latest !== 'object' || Array.isArray(latest)) {
-    throw new Error('OpenCode auth.json must contain a JSON object')
-  }
-  await writeRateLimitCredentialThroughFilesystemHost(
-    source.path,
-    'opencode-auth',
-    JSON.stringify({ ...(latest as AuthJson), google: source.value.google }, null, 2)
   )
 }
 
@@ -120,7 +108,7 @@ export async function refreshAccessToken(
   clientId: string,
   clientSecret: string
 ): Promise<RefreshTokenResult> {
-  const res = await net.fetch(GOOGLE_TOKEN_URL, {
+  const res = await getMainHttpClient().fetch(GOOGLE_TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -149,7 +137,7 @@ export async function refreshAccessToken(
 }
 
 export async function loadProjectId(accessToken: string): Promise<string> {
-  const res = await net.fetch(LOAD_CODE_ASSIST_URL, {
+  const res = await getMainHttpClient().fetch(LOAD_CODE_ASSIST_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -170,9 +158,7 @@ export async function loadProjectId(accessToken: string): Promise<string> {
   return data.cloudaicompanionProject
 }
 
-// Why: accepts a plain refresh token string so both the oauth_creds.json path
-// (GeminiCredentials) and the auth.json path (pipe-split string) can share
-// the same bundle credential extraction without coupling to either struct.
+// A plain refresh token lets both credential-file formats share bundle extraction.
 export async function tryRefreshTokenFromBundle(
   refreshToken: string,
   allowCliOAuth = true

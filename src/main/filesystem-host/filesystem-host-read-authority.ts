@@ -49,25 +49,8 @@ const BACKGROUND_OPERATION_CONCURRENCY = 4
 type Dispatch = FilesystemHostSupervisor['dispatch']
 type PublishFailureDomain = FilesystemHostSupervisor['publishFailureDomain']
 
-export type FilesystemHostReadClient = {
-  canonicalizePath(path: string, storageClass?: FilesystemStorageClass): Promise<string>
-  readOrcaYaml(path: string): Promise<string>
-  readKeybindings(path: string): Promise<string>
-  prepareKeybindings?(
-    path: string,
-    platform: NodeJS.Platform,
-    legacyOverrides: KeybindingOverrides | undefined,
-    seedLegacyTabSwitchBindings: boolean
-  ): Promise<{ contents: string | null; seedCompleted: boolean }>
-  readSnapshotFile(path: string, fileKind: FilesystemSnapshotFileKind): Promise<Buffer>
-  prepareRateLimitPtyCwd(path: string): Promise<string>
-  resolveCliCommand?(commandName: FilesystemCliCommandName): Promise<string>
-  writeRateLimitCredential?(
-    path: string,
-    fileKind: RateLimitCredentialFileKind,
-    contents: string
-  ): Promise<void>
-}
+export type { FilesystemHostReadClient } from './filesystem-host-read-contract'
+import type { FilesystemHostReadClient } from './filesystem-host-read-contract'
 
 export type FilesystemHostReadAuthorityOptions = {
   entryPath: string
@@ -103,6 +86,36 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
       (path) => routeFilesystemHostPath(path, 'workspace', this.platform),
       BACKGROUND_READ_DEADLINE_MS
     )
+  }
+
+  async discoverGeminiOAuth(): Promise<{ clientId: string; clientSecret: string } | null> {
+    const result = await this.supervisor.dispatch({
+      operationId: randomUUID(),
+      operation: {
+        kind: 'discover-gemini-oauth',
+        path: homedir(),
+        pathEnvironment: process.env.PATH ?? process.env.Path ?? ''
+      },
+      ...routeFilesystemHostPath(homedir(), 'home', this.platform),
+      admission: 'background',
+      deadlineMs: BACKGROUND_READ_DEADLINE_MS
+    })
+    return requireFilesystemHostResult(result, 'discover-gemini-oauth').credentials
+  }
+
+  async isSymlink(path: string): Promise<boolean> {
+    try {
+      const result = await this.supervisor.dispatch({
+        operationId: randomUUID(),
+        operation: { kind: 'is-symlink', path },
+        ...routeFilesystemHostPath(path, 'workspace', this.platform),
+        admission: 'foreground',
+        deadlineMs: AUTHORIZATION_DEADLINE_MS
+      })
+      return requireFilesystemHostResult(result, 'is-symlink').value
+    } catch (error) {
+      throw new FilesystemHostReadError(filesystemHostReadFailureReason(error))
+    }
   }
 
   async canonicalizePath(
@@ -167,7 +180,8 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
     path: string,
     platform: NodeJS.Platform,
     legacyOverrides: KeybindingOverrides | undefined,
-    seedLegacyTabSwitchBindings: boolean
+    seedLegacyTabSwitchBindings: boolean,
+    change?: { ensure?: boolean; mutation?: { actionId: string; bindings: string[] | null } }
   ): Promise<{ contents: string | null; seedCompleted: boolean }> {
     const route = routeFilesystemHostPath(path, 'home', this.platform)
     try {
@@ -184,7 +198,8 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
                 )
               )
             : undefined,
-          seedLegacyTabSwitchBindings
+          seedLegacyTabSwitchBindings,
+          ...change
         },
         ...route,
         admission: 'foreground',

@@ -20,6 +20,9 @@ export class FilesystemHostBackgroundQueue {
     if (this.disposed) {
       return Promise.reject(new Error('Filesystem host background queue is disposed'))
     }
+    if (this.pending.length >= 128) {
+      return Promise.reject(new Error('Filesystem host background queue is full'))
+    }
     return new Promise<T>((resolve, reject) => {
       this.pending.push({ key, run: task, resolve, reject } as QueuedTask<unknown>)
       this.pump()

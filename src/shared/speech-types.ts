@@ -1,5 +1,3 @@
-import type { MemorySnapshot } from './memory-snapshot'
-
 export type SpeechModelType =
   | 'transducer'
   | 'paraformer'
@@ -41,10 +39,6 @@ export type SpeechModelState = {
   status: SpeechModelStatus
   progress?: number
   error?: string
-}
-
-export type OpenAiSpeechApiKeyStatus = MemorySnapshot<boolean> & {
-  configured: boolean
 }
 
 export type SpeechTranscriptEvent = {

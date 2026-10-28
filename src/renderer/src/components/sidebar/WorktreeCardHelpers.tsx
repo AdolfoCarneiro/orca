@@ -1,7 +1,7 @@
 import React from 'react'
-import type { CheckStatus, GitConflictOperation, TerminalTab } from '../../../../shared/types'
-
-// ── Pure helper functions ────────────────────────────────────────────
+import type { GitConflictOperation } from '../../../../shared/git-status-types'
+import type { CheckStatus } from '../../../../shared/github/pull-request-types'
+import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 
 export function branchDisplayName(branch: string): string {
   return branch.replace(/^refs\/heads\//, '')
@@ -26,12 +26,8 @@ export const CONFLICT_OPERATION_LABELS: Record<Exclude<GitConflictOperation, 'un
   'cherry-pick': 'Cherry-picking'
 }
 
-// ── Stable empty arrays for tabs fallback ────────────────────────────
-
 export const EMPTY_TABS: TerminalTab[] = []
 export const EMPTY_BROWSER_TABS: { id: string }[] = []
-
-// ── SVG icon components ──────────────────────────────────────────────
 
 export function FilledBellIcon({ className }: { className?: string }): React.JSX.Element {
   return (

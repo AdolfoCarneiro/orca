@@ -1,9 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { CodexManagedAccount, GlobalSettings } from '../../shared/types'
+import type { GlobalSettings } from '../../shared/global-settings-types'
+import type { CodexManagedAccount } from '../../shared/managed-account-types'
 import {
   readStoredCodexCredentialState,
   waitForManagedCodexAuthReady
@@ -208,20 +209,16 @@ describe('waitForManagedCodexAuthReady', () => {
     )
   })
 
-  it('does not gate system, WSL, or unmanaged custom homes', async () => {
+  it('separates an absent credential from one that cannot be read', () => {
     const fixture = createFixture()
-    await waitForManagedCodexAuthReady({
-      ...fixture.args,
-      codexHomePath: join(fixture.root, 'custom-home')
-    })
-    await waitForManagedCodexAuthReady({
-      ...fixture.args,
-      target: { runtime: 'wsl', wslDistro: 'Ubuntu' }
-    })
-    await waitForManagedCodexAuthReady({
-      ...fixture.args,
-      codexHomePath: null
-    })
+    expect(readStoredCodexCredentialState(join(fixture.home, 'auth.json'))).toBe('missing')
+
+    if (process.platform === 'win32' || process.getuid?.() === 0) {
+      return
+    }
+    writeAuth(fixture.home, testChatGptAuth)
+    chmodSync(join(fixture.home, 'auth.json'), 0o000)
+    expect(readStoredCodexCredentialState(join(fixture.home, 'auth.json'))).toBe('unreadable')
   })
 })
 
@@ -250,6 +247,6 @@ function createFixture(): {
   }
 }
 
-function writeAuth(home: string, auth: object): void {
+function writeAuth(home: string, auth: Record<string, unknown>): void {
   writeFileSync(join(home, 'auth.json'), JSON.stringify(auth), { mode: 0o600 })
 }

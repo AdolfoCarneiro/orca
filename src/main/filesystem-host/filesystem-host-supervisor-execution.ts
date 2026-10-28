@@ -42,7 +42,11 @@ export async function executeFilesystemHostDispatch(
   let process = lane.process
   try {
     process ??= await context.launch(lane, input.admission)
-    const result = await process.invoke(input.operation, input.deadlineMs, input.operationId)
+    const remaining = job.expiresAt === undefined ? input.deadlineMs : job.expiresAt - context.now()
+    if (remaining <= 0) {
+      throw new FilesystemHostProcessError('deadline', 'Filesystem request timed out')
+    }
+    const result = await process.invoke(input.operation, remaining, input.operationId)
     lane.breaker.recordSuccess(admission.probe)
     context.recordTelemetry(input, lane, startedAt, 'success')
     return result

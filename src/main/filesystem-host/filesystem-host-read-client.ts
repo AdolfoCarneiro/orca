@@ -71,7 +71,8 @@ export async function prepareKeybindingsThroughFilesystemHost(
   path: string,
   platform: NodeJS.Platform,
   legacyOverrides: KeybindingOverrides | undefined,
-  seedLegacyTabSwitchBindings: boolean
+  seedLegacyTabSwitchBindings: boolean,
+  change?: { ensure?: boolean; mutation?: { actionId: string; bindings: string[] | null } }
 ): Promise<{ contents: string | null; seedCompleted: boolean }> {
   const client = requireFilesystemHostReadClient()
   if (client.prepareKeybindings) {
@@ -79,8 +80,12 @@ export async function prepareKeybindingsThroughFilesystemHost(
       path,
       platform,
       legacyOverrides,
-      seedLegacyTabSwitchBindings
+      seedLegacyTabSwitchBindings,
+      change
     )
+  }
+  if (change || legacyOverrides || seedLegacyTabSwitchBindings) {
+    throw new FilesystemHostReadError('unavailable')
   }
   try {
     return { contents: await client.readKeybindings(path), seedCompleted: false }

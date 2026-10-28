@@ -1,9 +1,12 @@
-import { safeStorage } from 'electron'
+import { getSecretStore } from '../../shared/secret-store'
+import { readCredentialFileProtection } from '../credential-file-protection'
+import {
+  classifyUnenvelopedCredential,
+  type SecretAtRestProtection
+} from '../../shared/secret-at-rest-protection'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import type { MemorySnapshot, SnapshotAvailability } from '../../shared/memory-snapshot'
-import { readSnapshotFileThroughFilesystemHost } from '../filesystem-host/filesystem-host-read-authority'
 
 type StoredOpenAiKey = {
   encryptedKeyBase64: string
@@ -11,19 +14,9 @@ type StoredOpenAiKey = {
 
 const OPENAI_SPEECH_TOKEN_FILE = 'openai-speech-token.enc'
 let cachedOpenAiSpeechApiKey: string | null = null
-let apiKeyStatusGeneration = 0
-let apiKeyStatusObservedAt: number | null = null
-let apiKeyStatusValue = false
-let apiKeyStatusAvailability: SnapshotAvailability = 'unavailable'
-let apiKeyStatusStale = true
-let apiKeyStatusHydration: Promise<MemorySnapshot<boolean>> | null = null
 
 function getOrcaDir(): string {
   return join(homedir(), '.orca')
-}
-
-function getOpenAiKeyPath(): string {
-  return join(getOrcaDir(), OPENAI_SPEECH_TOKEN_FILE)
 }
 
 function ensureOrcaDir(): void {
@@ -33,59 +26,8 @@ function ensureOrcaDir(): void {
   }
 }
 
-function publishApiKeyStatus(configured: boolean, availability: SnapshotAvailability): void {
-  apiKeyStatusValue = configured
-  apiKeyStatusAvailability = availability
-  apiKeyStatusObservedAt = Date.now()
-  apiKeyStatusStale = false
-}
-
-function markApiKeyStatusUnavailable(): void {
-  apiKeyStatusAvailability = 'unavailable'
-  apiKeyStatusStale = true
-}
-
-export function getOpenAiSpeechApiKeySnapshot(): MemorySnapshot<boolean> {
-  return {
-    value: apiKeyStatusValue,
-    stale: apiKeyStatusStale,
-    age: apiKeyStatusObservedAt === null ? null : Math.max(0, Date.now() - apiKeyStatusObservedAt),
-    availability: apiKeyStatusAvailability
-  }
-}
-
-export async function hydrateOpenAiSpeechApiKeySnapshot(): Promise<MemorySnapshot<boolean>> {
-  if (apiKeyStatusHydration) {
-    return await apiKeyStatusHydration
-  }
-  const hydration = hydrateOpenAiSpeechApiKeySnapshotNow().finally(() => {
-    if (apiKeyStatusHydration === hydration) {
-      apiKeyStatusHydration = null
-    }
-  })
-  apiKeyStatusHydration = hydration
-  return await hydration
-}
-
-async function hydrateOpenAiSpeechApiKeySnapshotNow(): Promise<MemorySnapshot<boolean>> {
-  const generation = apiKeyStatusGeneration
-  try {
-    await readSnapshotFileThroughFilesystemHost(getOpenAiKeyPath(), 'openai-speech-key')
-    if (generation === apiKeyStatusGeneration) {
-      publishApiKeyStatus(true, 'ready')
-    }
-  } catch (error) {
-    if (generation === apiKeyStatusGeneration) {
-      const code = (error as NodeJS.ErrnoException | null)?.code
-      if (code === 'ENOENT' || code === 'ENOTDIR') {
-        publishApiKeyStatus(false, 'missing')
-      } else {
-        apiKeyStatusAvailability = code === 'EACCES' || code === 'EPERM' ? 'denied' : 'unavailable'
-        apiKeyStatusStale = true
-      }
-    }
-  }
-  return getOpenAiSpeechApiKeySnapshot()
+export function getOpenAiKeyPath(): string {
+  return join(getOrcaDir(), OPENAI_SPEECH_TOKEN_FILE)
 }
 
 function readLegacyJsonStoredOpenAiKey(): StoredOpenAiKey | null {
@@ -105,7 +47,30 @@ function readLegacyJsonStoredOpenAiKey(): StoredOpenAiKey | null {
 }
 
 export function hasOpenAiSpeechApiKey(): boolean {
-  return getOpenAiSpeechApiKeySnapshot().value === true
+  // Existence checks avoid macOS keychain prompts during startup/settings refresh.
+  return existsSync(getOpenAiKeyPath())
+}
+
+/** Check host decryption: orcad may not open a desktop safeStorage key even when its file exists. */
+export function canReadOpenAiSpeechApiKey(): boolean {
+  if (!hasOpenAiSpeechApiKey()) {
+    return false
+  }
+  try {
+    readOpenAiSpeechApiKey()
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Stored protection, or null when no key exists. */
+export function getOpenAiSpeechApiKeyProtection(): SecretAtRestProtection | null {
+  // The legacy JSON wrapper only ever held base64 ciphertext, so it is sealed by shape.
+  if (readLegacyJsonStoredOpenAiKey()) {
+    return 'sealed'
+  }
+  return readCredentialFileProtection(getOpenAiKeyPath())
 }
 
 export function saveOpenAiSpeechApiKey(apiKey: string): void {
@@ -113,25 +78,16 @@ export function saveOpenAiSpeechApiKey(apiKey: string): void {
   if (!trimmed) {
     throw new Error('OpenAI API key is required')
   }
-  apiKeyStatusGeneration += 1
-  let contents: Buffer
-  if (safeStorage.isEncryptionAvailable()) {
-    contents = safeStorage.encryptString(trimmed)
-  } else {
-    console.warn(
-      '[speech] safeStorage encryption unavailable — storing OpenAI speech key in plaintext'
-    )
-    contents = Buffer.from(trimmed, 'utf8')
-  }
-  try {
-    ensureOrcaDir()
-    writeFileSync(getOpenAiKeyPath(), contents, { mode: 0o600 })
+  ensureOrcaDir()
+  if (getSecretStore().isEncryptionAvailable()) {
+    writeFileSync(getOpenAiKeyPath(), getSecretStore().encryptString(trimmed), { mode: 0o600 })
     cachedOpenAiSpeechApiKey = trimmed
-    publishApiKeyStatus(true, 'ready')
-  } catch (error) {
-    markApiKeyStatusUnavailable()
-    throw error
+    return
   }
+
+  console.warn('[speech] secret encryption unavailable — storing OpenAI speech key in plaintext')
+  writeFileSync(getOpenAiKeyPath(), trimmed, { encoding: 'utf8', mode: 0o600 })
+  cachedOpenAiSpeechApiKey = trimmed
 }
 
 export function readOpenAiSpeechApiKey(): string {
@@ -147,30 +103,41 @@ export function readOpenAiSpeechApiKey(): string {
     const raw = readFileSync(keyPath)
     const legacyJson = readLegacyJsonStoredOpenAiKey()
     if (legacyJson) {
-      cachedOpenAiSpeechApiKey = safeStorage.decryptString(
+      cachedOpenAiSpeechApiKey = getSecretStore().decryptString(
         Buffer.from(legacyJson.encryptedKeyBase64, 'base64')
       )
-      publishApiKeyStatus(true, 'ready')
       return cachedOpenAiSpeechApiKey
     }
-    cachedOpenAiSpeechApiKey = safeStorage.isEncryptionAvailable()
-      ? safeStorage.decryptString(raw)
-      : raw.toString('utf8')
-    publishApiKeyStatus(true, 'ready')
+    cachedOpenAiSpeechApiKey = getSecretStore().isEncryptionAvailable()
+      ? decryptOrLegacyPlaintext(raw)
+      : plaintextOnly(raw)
     return cachedOpenAiSpeechApiKey
   } catch {
     throw new Error('OpenAI API key could not be decrypted')
   }
 }
 
-export function clearOpenAiSpeechApiKey(): void {
+// Without sealing, another store's ciphertext cannot be a usable key.
+function plaintextOnly(raw: Buffer): string {
+  if (classifyUnenvelopedCredential(raw) !== 'plaintext') {
+    throw new Error('sealed by another secret store')
+  }
+  return raw.toString('utf8')
+}
+
+// Keys saved before sealing remain plaintext until migration or re-save.
+function decryptOrLegacyPlaintext(raw: Buffer): string {
   try {
-    rmSync(getOpenAiKeyPath(), { force: true })
+    return getSecretStore().decryptString(raw)
   } catch (error) {
-    markApiKeyStatusUnavailable()
+    if (classifyUnenvelopedCredential(raw) === 'plaintext') {
+      return raw.toString('utf8')
+    }
     throw error
   }
-  apiKeyStatusGeneration += 1
+}
+
+export function clearOpenAiSpeechApiKey(): void {
   cachedOpenAiSpeechApiKey = null
-  publishApiKeyStatus(false, 'missing')
+  rmSync(getOpenAiKeyPath(), { force: true })
 }
