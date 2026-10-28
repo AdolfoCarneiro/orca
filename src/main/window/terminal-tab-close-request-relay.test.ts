@@ -137,4 +137,65 @@ describe('requestTerminalTabCloseFromRenderer', () => {
     expect(webContents.eventNames()).toEqual([])
     expect(ipcEmitter.listenerCount('ui:terminalTabCloseResponse')).toBe(0)
   })
+
+  it.each([1, 10, 100])(
+    'retires %i requests with a replaced document while another window can acknowledge',
+    async (count) => {
+      vi.useFakeTimers()
+      try {
+        const { requestTerminalTabCloseFromRenderer } =
+          await import('./terminal-tab-close-request-relay')
+        const contents = () =>
+          Object.assign(new EventEmitter(), {
+            isDestroyed: () => false,
+            send: vi.fn((_channel: string, _request: { requestId: string }) => {})
+          })
+        const first = contents()
+        const sibling = contents()
+        const firstWindow = Object.assign(new EventEmitter(), {
+          isDestroyed: () => false,
+          webContents: first
+        })
+        const siblingWindow = Object.assign(new EventEmitter(), {
+          isDestroyed: () => false,
+          webContents: sibling
+        })
+        const pending = Array.from({ length: count }, (_, index) =>
+          // SAFETY: the EventEmitter double supplies the BrowserWindow members used by the relay.
+          requestTerminalTabCloseFromRenderer(firstWindow as never, `tab-${index}`).catch(
+            (error: unknown) => (error instanceof Error ? error.message : String(error))
+          )
+        )
+        // SAFETY: the EventEmitter double supplies the BrowserWindow members used by the relay.
+        const survivor = requestTerminalTabCloseFromRenderer(siblingWindow as never, 'sibling')
+        expect(vi.getTimerCount()).toBe(count + 1)
+        first.emit('did-start-navigation', { isMainFrame: true, isSameDocument: false })
+        first.emit('did-navigate-in-page', {}, 'https://orca.test/#fragment', true)
+        first.emit('did-frame-navigate', {}, 'https://orca.test/frame', 200, 'OK', false)
+        expect(vi.getTimerCount()).toBe(count + 1)
+
+        first.emit('did-navigate', {}, 'https://orca.test/replaced', 200, 'OK')
+        expect(vi.getTimerCount()).toBe(1)
+        await expect(Promise.all(pending)).resolves.toEqual(
+          Array(count).fill('renderer_unavailable')
+        )
+        expect(first.eventNames()).toEqual([])
+        expect(firstWindow.eventNames()).toEqual([])
+        expect(vi.getTimerCount()).toBe(1)
+        const request = sibling.send.mock.calls[0][1]
+        ipcEmitter.emit(
+          'ui:terminalTabCloseResponse',
+          { sender: sibling },
+          { requestId: request.requestId }
+        )
+        await expect(survivor).resolves.toBeUndefined()
+        expect(sibling.eventNames()).toEqual([])
+        expect(siblingWindow.eventNames()).toEqual([])
+        expect(ipcEmitter.listenerCount('ui:terminalTabCloseResponse')).toBe(0)
+        expect(vi.getTimerCount()).toBe(0)
+      } finally {
+        vi.useRealTimers()
+      }
+    }
+  )
 })

@@ -64,7 +64,11 @@ export async function requestTerminalTabCloseFromRenderer(
     }
     if (typeof webContents.on === 'function') {
       releaseListeners.push(
-        addFanoutListeners(webContents, ['destroyed', 'render-process-gone'], onRendererUnavailable)
+        addFanoutListeners(
+          webContents,
+          ['destroyed', 'render-process-gone', 'did-navigate'],
+          onRendererUnavailable
+        )
       )
     }
     const request: TerminalTabCloseRequest = { requestId, tabId, ...options }
