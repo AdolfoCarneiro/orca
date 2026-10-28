@@ -85,12 +85,22 @@ describe('dotenv tokenization', () => {
   })
 
   it('colours whole-value numbers and booleans, but not inside text', () => {
-    const [port, debug, version] = tokenizeDotenv('PORT=3000\nDEBUG=true # on\nNAME=v1 true')
+    const [port, debug, version, label] = tokenizeDotenv(
+      'PORT=3000\nDEBUG=true # on\nNAME=v1 true\nLABEL=red true'
+    )
 
     expect(tokenTypeAt(port, 5)).toBe('number')
     expect(tokenTypeAt(debug, 6)).toBe('keyword')
     expect(tokenTypeAt(debug, 11)).toBe('comment')
     expect(tokenTypeAt(version, 5)).toBe('string')
+    expect(tokenTypeAt(label, 10)).toBe('string')
+  })
+
+  it('keeps a quote after the first value character literal', () => {
+    const [password, next] = tokenizeDotenv('PASSWORD=abc"def\nNEXT=1')
+
+    expect(tokenTypeAt(password, 12)).toBe('string')
+    expect(tokenTypeAt(next, 0)).toBe('type.identifier')
   })
 
   it('keeps a # without leading space inside the value', () => {

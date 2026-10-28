@@ -39,16 +39,24 @@ export const dotenvMonarchLanguage: Monaco.languages.IMonarchLanguage = {
       [/\s+/, 'white']
     ],
 
-    // Unquoted values end at the line; only quoted values may span lines.
+    // Quotes open a string only as the first character; later quotes are literal.
     value: [
       [/^/, '', '@pop'],
       [/\s+#.*$/, 'comment'],
-      [/"/, 'string', '@doubleQuoted'],
-      [/'/, 'string', '@singleQuoted'],
+      [/"/, { token: 'string', switchTo: '@doubleQuoted' }],
+      [/'/, { token: 'string', switchTo: '@singleQuoted' }],
+      [/(?:true|false)(?=\s+#|\s*$)/, { token: 'keyword', switchTo: '@unquoted' }],
+      [/-?\d+(?:\.\d+)?(?=\s+#|\s*$)/, { token: 'number', switchTo: '@unquoted' }],
+      [/(?=\S)/, { token: '', switchTo: '@unquoted' }],
+      [/\s+/, 'string']
+    ],
+
+    // Unquoted values end at the line; only quoted values may span lines.
+    unquoted: [
+      [/^/, '', '@pop'],
+      [/\s+#.*$/, 'comment'],
       [INTERPOLATION, 'variable'],
-      [/(?:true|false)(?=\s+#|\s*$)/, 'keyword'],
-      [/-?\d+(?:\.\d+)?(?=\s+#|\s*$)/, 'number'],
-      [/[^\s#"'$]+|[#$]/, 'string'],
+      [/[^\s#$]+|[#$]/, 'string'],
       [/\s+/, 'string']
     ],
 
@@ -57,13 +65,13 @@ export const dotenvMonarchLanguage: Monaco.languages.IMonarchLanguage = {
       [/\\./, 'string.escape'],
       [INTERPOLATION, 'variable'],
       [/[\\$]/, 'string'],
-      [/"/, 'string', '@pop']
+      [/"/, { token: 'string', switchTo: '@unquoted' }]
     ],
 
     // Single quotes are literal: no escapes or interpolation.
     singleQuoted: [
       [/[^']+/, 'string'],
-      [/'/, 'string', '@pop']
+      [/'/, { token: 'string', switchTo: '@unquoted' }]
     ]
   }
 }
