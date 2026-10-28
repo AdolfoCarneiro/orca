@@ -11770,7 +11770,8 @@
             "migration": "未完成：迁移到此服务器的操作尚未完成。请先继续该操作。",
             "deferred": "尚未完成：服务器尚未准备好执行此操作。请稍后重试。",
             "failed": "Orca 无法在服务器上完成此操作。请重试。",
-            "defaultServer": "未执行：此服务器是新项目的默认主机。停止前请在“新项目打开位置”中选择其他主机。"
+            "defaultServer": "未执行：此服务器是新项目的默认主机。停止前请在“新项目打开位置”中选择其他主机。",
+            "wslMoveRunning": "未完成：有项目正在移到此服务器上。移动完成后，Orca 会更新它。"
           },
           "reassurance": "在各个主机上运行，通过你自己的 SSH 连接访问。你的代码和文件留在原处。只有 Orca 的项目、标签页和终端列表会移到该主机。"
         },
@@ -19257,13 +19258,22 @@
       "useHereDescription": "Orca 会按移动前的状态在这里打开此项目。你的代码不受影响：它从未移动。移动后在 {{distro}} 主机上所做的更改（例如新标签页和聊天）会留在主机上，不会回来。与它一起移动的项目也会一起回来。在你于 {{distro}} 主机上将其移除之前，项目也会一直保留在那里。此窗口将重新加载。",
       "useHereConfirm": "在此电脑上使用",
       "useHereSuperseded": "之后一次移动到 {{distro}} 主机的操作包含此项目。请先将那次移动恢复。",
+      "useHereRefusedTitle": "暂时无法在此处使用 {{name}}",
+      "useHereRefusedOk": "确定",
+      "useHereSupersededBy": "{{names}} 在此项目之后移到了 {{distro}} 主机。请先重新在此电脑上使用它们，再处理此项目。",
       "useHereMoveRunning": "移动到 {{distro}} 主机的操作仍在进行。请在其结束后重试。",
       "useHereHostKeptForPeers": "{{project}} 已移到 {{distro}} 主机，该主机仍在为另一个 Orca 运行。重新添加该主机即可在此处再次使用它。",
-      "useHereHostUnreachable": "{{distro}} 主机没有响应，Orca 无法停止它上面的此项目副本，其代理可能仍在运行。请在设置中连接或移除该主机，然后重试。",
-      "useHereHostStillRunning": "{{distro}} 主机上的此项目副本仍有终端在运行，其代理可能会运行两次。请稍候再试。",
+      "useHereHostUnreachable": "{{distro}} 主机没有响应，Orca 无法停止它上面的此项目副本，其智能体可能仍在运行。请在设置中连接或移除该主机，然后重试。",
+      "useHereHostStillRunning": "{{distro}} 主机上的此项目副本仍有终端在运行，其智能体可能会运行两次。请稍候再试。",
       "useHereFailed": "无法将此项目恢复到此电脑。",
+      "useHereHostRemovalPending": "{{distro}} 主机仍在移除中，因此 Orca 不会改动它。请在设置中完成移除，然后重试。",
+      "useHereHostAutomations": "Orca 无法关闭此项目在 {{distro}} 主机上的自动化，它们可能会运行两次。请在设置中连接该主机，然后重试。",
       "useHereUnsavedTitle": "请先保存文件",
-      "useHereUnsavedDescription": "将 {{name}} 恢复到此电脑会重新加载此窗口。请先保存或关闭以下文件：{{files}}"
+      "useHereUnsavedDescription": "将 {{name}} 恢复到此电脑会重新加载此窗口。请先保存或关闭以下文件：{{files}}",
+      "automationRunsOnHost": "在 {{distro}} 主机上运行",
+      "quitDuringMoveTitle": "要在项目移动期间退出吗？",
+      "quitDuringMoveDescription": "有项目正在移到其 WSL 主机。仍要退出吗？下次启动时将撤销此次移动。",
+      "quitDuringMoveConfirm": "仍要退出"
     },
     "startupWorktreeRefresh": {
       "loading": "正在发现工作区…",
@@ -20869,6 +20879,161 @@
     "viewed": {
       "markFile": "将 {{path}} 标记为已查看",
       "unmarkFile": "取消 {{path}} 的已查看标记"
+    }
+  },
+  "wslMove": {
+    "entry": {
+      "hostRow": "从此发行版移动项目…",
+      "projectMenu": "移到 {{distro}} 主机…"
+    },
+    "blockers": {
+      "title": "这些项目移动前需要处理",
+      "inProjects": "位于 {{names}}",
+      "skipOne": "此次移动不包括 {{name}}",
+      "skipMany": "此次移动不包括这 {{n}} 个项目"
+    },
+    "title": "将项目移到 {{distro}} 主机",
+    "loading": "正在检查 {{distro}} 中的项目…",
+    "runningTitle": "正在移到 {{distro}} 主机",
+    "preview": {
+      "counts": "项目：{{projects}} · 工作区：{{workspaces}} · 终端：{{terminals}} · 聊天：{{chats}}",
+      "whatHappens": "你的文件保留在原处。终端会在同一文件夹中重新启动；其输出、Shell 历史记录和智能体对话都会保留。",
+      "projects": "{{distro}} 中的项目",
+      "folderBadge": "文件夹",
+      "notMoving": "不移动",
+      "checking": "正在检查所选项目…",
+      "checkAgain": "重新检查",
+      "moveOne": "移动 1 个项目",
+      "moveMany": "移动 {{n}} 个项目",
+      "heldByHost": "已在 {{distro}} 主机上。",
+      "changed": "之前已移动，之后又被旧版 Orca 在此处更改。不会再次移动。",
+      "chatsStay": "现有聊天保留在此电脑上。此项目中的新聊天将在 WSL 主机上开始。",
+      "browserLoginsConflict": "浏览器登录状态不会迁移，因为主机的浏览器配置文件已在使用中。移动后，请在主机的浏览器标签页中重新登录。",
+      "browserLoginsNotCarried": "浏览器登录状态不会迁移到此主机。移动后，请在其浏览器标签页中重新登录。"
+    },
+    "cancel": "取消",
+    "progress": {
+      "bytes": "{{sent}} / {{total}}",
+      "tooLate": "已无法取消：主机正在切换。请保持 Orca 打开，直到切换完成。",
+      "switching": "切换无法取消。请保持 Orca 打开，直到切换完成。",
+      "readOnly": "这些项目在移动期间为只读。切换开始前你都可以取消。",
+      "cancelUntilSwitch": "切换开始前你都可以取消。",
+      "closeKeepsGoing": "关闭此对话框不会停止移动；移动结束时它会重新打开。",
+      "cancelling": "正在取消…",
+      "cancel": "取消移动"
+    },
+    "result": {
+      "movedTitle": "已移到 {{distro}} 主机",
+      "resetTitle": "未移动任何内容",
+      "waitingTitle": "正在等待 {{distro}} 主机",
+      "earlierMoveTitle": "之前的一次移动先完成了",
+      "refusedTitle": "项目未移动",
+      "reloadCheckpointRefused": "Orca 无法备份未保存的文件，因此窗口未重新加载。请关闭此对话框，保存或关闭这些文件，然后在保持显示的通知中点击“立即重新加载”。",
+      "reloadVetoed": "有内容阻止了窗口重新加载。请关闭此对话框，保存你的工作，然后在保持显示的通知中点击“立即重新加载”。",
+      "reloadFailed": "窗口未重新加载。请重试。",
+      "moved": "重新加载此窗口，即可在 {{distro}} 主机下看到这些项目。Orca 会在重新加载前备份未保存的文件。",
+      "automationsPendingOne": "主机上有一个自动化暂时处于关闭状态。Orca 会持续请求主机将其重新开启。",
+      "automationsPendingMany": "主机上有 {{n}} 个自动化暂时处于关闭状态。Orca 会持续请求主机将其重新开启。",
+      "undoHint": "改变主意了？重新加载后，侧边栏会将这些项目显示为“已移至 {{distro}} 主机”。在那里选择“重新在此电脑上使用”，即可将它们恢复到移动前的状态。",
+      "reset": "移动已停止，所有内容均已还原。这些项目会像之前一样在此电脑上工作；已暂停的终端会在你打开时重新启动。",
+      "resetReason": "停止原因：{{detail}}",
+      "waiting": "此次移动可能已到达 {{distro}} 主机，但主机没有响应。在主机响应之前，这些项目在此处保持只读。请在设置中连接该主机，然后再次打开此对话框并开始移动：Orca 会先完成或撤销这次移动。",
+      "reloading": "正在重新加载…",
+      "reload": "立即重新加载",
+      "close": "关闭",
+      "review": "返回项目",
+      "browserLoginsHostUnknown": "浏览器登录状态未复制，因为 Orca 无法识别主机的浏览器配置文件。请在主机的浏览器标签页中重新登录。",
+      "browserLoginsConflict": "浏览器登录状态未复制，因为主机的浏览器配置文件已在使用中。请在主机的浏览器标签页中重新登录。",
+      "browserLoginsNotCopied": "浏览器登录状态未复制到主机。请在主机的浏览器标签页中重新登录。"
+    },
+    "runtime": {
+      "label": "项目运行环境",
+      "description": "此项目通过此电脑在 {{distro}} 中运行。将其移到 {{distro}} 主机即可在那里运行。",
+      "move": "移动项目"
+    },
+    "unfinished": {
+      "one": "已移到 {{distro}} 主机的一个自动化仍处于关闭状态。Orca 会持续请求主机将其重新开启。",
+      "many": "已移到 {{distro}} 主机的 {{n}} 个自动化仍处于关闭状态。Orca 会持续请求主机将其重新开启。"
+    },
+    "refusal": {
+      "previewFailed": "Orca 无法检查这些项目。请重试。",
+      "startFailed": "Orca 与此次移动失去了联系。请重新打开此对话框查看其进展。",
+      "unavailable": "此窗口无法将项目移到 WSL 主机。",
+      "alreadyRunning": "移到 {{distro}} 的操作已在进行中。请等待其完成，然后重试。",
+      "alreadyInFlightPreview": "{{distro}} 的一次移动仍在收尾。开始此次移动时，Orca 会尽可能先完成或撤销那次移动。",
+      "alreadyInFlight": "{{distro}} 的一次移动仍在收尾，因此此次移动未开始。请保持 {{distro}} 主机连接，稍后重试。",
+      "nothingNew": "这些项目已在 {{distro}} 主机上。",
+      "destinationChanged": "之前来自 {{distro}} 的项目已移到另一个 WSL 主机。请连接该主机以移动更多项目。",
+      "hostUnavailable": "{{distro}} 主机未连接。请在设置中连接它，然后重试。",
+      "hostUpdateRequired": "{{distro}} 主机运行的是旧版 Orca。请在设置中更新它，然后重试。",
+      "terminalsBlocked": "这些项目中的部分终端、智能体或自动化正忙。未移动任何内容。",
+      "exportIncomplete": "这些项目中的部分已保存状态暂时无法移动，因此未移动任何内容：",
+      "exportIncompletePreview": "这些项目中的部分已保存状态暂时无法移动：",
+      "tooLarge": "这些项目的已保存状态过多，无法一次移动。请每次少移动一些项目。",
+      "pauseFailed": "Orca 无法暂停这些项目中的终端，因此未移动任何内容。已暂停的终端会在你打开时重新启动。请重试。",
+      "scopeChanged": "移动准备期间有项目发生了更改，因此未移动任何内容。请检查项目后重试。",
+      "cancelled": "移动已取消。未移动任何内容。",
+      "finishedEarlierMove": "Orca 先完成了之前一次移到 {{distro}} 的操作。请重新加载窗口，然后重新开始此次移动。"
+    },
+    "step": {
+      "preparing": "准备中",
+      "pausingTerminals": "正在暂停终端",
+      "copying": "正在复制",
+      "switching": "正在切换",
+      "finishing": "正在收尾",
+      "done": "完成"
+    },
+    "blocker": {
+      "agentWorkingOne": "有一个智能体正在工作或等待回复",
+      "agentWorkingMany": "有 {{n}} 个智能体正在工作或等待回复",
+      "processRunningOne": "有一个终端正在运行程序",
+      "processRunningMany": "有 {{n}} 个终端正在运行程序",
+      "agentNotResumableOne": "有一个智能体在移动后无法恢复",
+      "agentNotResumableMany": "有 {{n}} 个智能体在移动后无法恢复",
+      "unverifiableOne": "Orca 目前无法检查一个终端",
+      "unverifiableMany": "Orca 目前无法检查 {{n}} 个终端",
+      "automationRunningOne": "有一个自动化运行正在进行",
+      "automationRunningMany": "有 {{n}} 个自动化运行正在进行",
+      "dispatchRunningOne": "有一个智能体任务正在进行",
+      "dispatchRunningMany": "有 {{n}} 个智能体任务正在进行",
+      "scrollbackTooLargeOne": "有一个终端的输出历史记录过多，无法移动",
+      "scrollbackTooLargeMany": "有 {{n}} 个终端的输出历史记录过多，无法移动"
+    },
+    "blockerHint": {
+      "agentWorking": "等待它完成，或在其终端中停止它，然后重新检查。",
+      "processRunning": "停止该程序（例如开发服务器或编辑器），然后重新检查。",
+      "agentNotResumable": "在其终端中退出该智能体，然后重新检查。",
+      "unverifiable": "请稍候，然后重新检查。Orca 不会为了移动而停止任何内容。",
+      "wait": "等待其完成，然后重新检查。",
+      "scrollbackTooLarge": "清除这些终端中的输出，然后重新检查。"
+    },
+    "scopeRefused": {
+      "windowsDrive": "其文件夹位于 Windows 驱动器上，因此保留在此电脑上。",
+      "mixedLocations": "其部分文件夹不在此发行版中，因此保留在此电脑上。",
+      "notLocal": "它已在另一台主机上运行。",
+      "other": "它无法移动。"
+    },
+    "reloadToast": {
+      "title": "重新加载以完成移动"
+    },
+    "orchestrator": {
+      "showTerminal": "显示终端",
+      "moveAgain": "再次移动",
+      "checkAgain": "重新检查",
+      "deferred": "正在完成到 {{distro}} 主机的移动：部分终端仍在忙碌。",
+      "stuck": "之前一次到 {{distro}} 主机的移动尚未完全结束。",
+      "declined": "移动已暂停，因为你已将这些项目恢复到此电脑。",
+      "doneToast": "项目已移到 {{distro}} 主机",
+      "terminalGone": "该终端已不在此窗口中打开。请重新检查以刷新。",
+      "blocker": "{{title}}。{{hint}}",
+      "paused": "将项目移到 {{distro}} 主机的操作已暂停：{{reason}}。",
+      "pausedReason": {
+        "exportIncomplete": "部分已保存状态暂时无法迁移",
+        "manifestTooLarge": "已保存状态超出了一次移动的容量",
+        "hostUpdate": "需要先更新主机",
+        "attemptsExhausted": "多次尝试后仍未完成"
+      },
+      "finishPending": "之前一次到 {{distro}} 主机的移动已在主机上完成。Orca 会在重启时在此处完成它，也可以点击“重新检查”立即完成。"
     }
   }
 }
