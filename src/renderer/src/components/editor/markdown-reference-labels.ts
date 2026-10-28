@@ -83,24 +83,24 @@ export function createReferenceTextDefinitionLookup<T>(
   markdown: string,
   definitions: Map<string, T>
 ): (text: string, start: number, end: number) => T | undefined {
-  let definitionBracketCounts: Set<number> | undefined
+  let definitionMaximumLengths: Map<number, number> | undefined
   let previousStart = 0
   let previousEnd = -1
   let textCounts: ReferenceTextCharacterCounts | null = null
-  let maximumDefinitionLength = 0
   let foldedText: string | null = null
   let foldedStart = 0
   return (text, start, end) => {
     const lastStart = previousStart
     previousStart = start
     if (end === previousEnd) {
-      if (!definitionBracketCounts) {
-        definitionBracketCounts = new Set<number>()
+      if (!definitionMaximumLengths) {
+        definitionMaximumLengths = new Map<number, number>()
         for (const label of definitions.keys()) {
-          definitionBracketCounts.add(
-            countReferenceTextCharacters(label, 0, label.length).openingBrackets
+          const count = countReferenceTextCharacters(label, 0, label.length).openingBrackets
+          definitionMaximumLengths.set(
+            count,
+            Math.max(definitionMaximumLengths.get(count) ?? 0, label.length)
           )
-          maximumDefinitionLength = Math.max(maximumDefinitionLength, label.length)
         }
       }
       if (textCounts === null) {
@@ -115,10 +115,8 @@ export function createReferenceTextDefinitionLookup<T>(
           foldedStart += removed.foldedCodeUnits
         }
       }
-      if (
-        !definitionBracketCounts.has(textCounts.openingBrackets) ||
-        textCounts.nonWhitespaceCodePoints > maximumDefinitionLength
-      ) {
+      const maximumLength = definitionMaximumLengths.get(textCounts.openingBrackets)
+      if (maximumLength === undefined || textCounts.nonWhitespaceCodePoints > maximumLength) {
         return undefined
       }
       if (foldedText === null) {

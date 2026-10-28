@@ -207,3 +207,20 @@ it.each([' ', '\uFEFF'])(
     expect(normalized).toBe(`${prefix}\n\n`)
   }
 )
+
+it('keeps unrelated long definitions from admitting impossible nested labels', () => {
+  const count = 400_000
+  const prefix = `${'['.repeat(count)}${'界'.repeat(count)}]`
+  const definitions = Array.from(
+    { length: Math.floor(Math.sqrt(count)) },
+    (_, index) => `[${'['.repeat(index)}missing]: url`
+  )
+  definitions.push(`[${'Q'.repeat(count * 2)}]: unrelated`)
+  const source = `${prefix}\n\n${definitions.join('\n')}\n`
+  const normalized = runInNewContext(
+    'normalize(source)',
+    { normalize: normalizeMarkdownReferenceLinks, source },
+    { timeout: 1500 }
+  )
+  expect(normalized).toBe(`${prefix}\n\n`)
+})
