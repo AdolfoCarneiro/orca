@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from 'react'
+import React, { useCallback, useLayoutEffect, useRef } from 'react'
 import { scrollTopCache, setWithLRU } from '@/lib/scroll-cache'
 import MermaidBlock from './MermaidBlock'
 import { useDocumentDarkTheme } from '@/hooks/use-document-dark-theme'
@@ -14,7 +14,20 @@ export default function MermaidViewer({
   scrollCacheKey
 }: MermaidViewerProps): React.JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null)
+  const pendingScrollTopRef = useRef<number | undefined>(undefined)
   const isDark = useDocumentDarkTheme()
+
+  const restorePendingScroll = useCallback(() => {
+    const container = rootRef.current
+    const targetScrollTop = pendingScrollTopRef.current
+    if (container && targetScrollTop !== undefined) {
+      container.scrollTop = Math.min(
+        targetScrollTop,
+        Math.max(0, container.scrollHeight - container.clientHeight)
+      )
+      pendingScrollTopRef.current = undefined
+    }
+  }, [])
 
   useLayoutEffect(() => {
     const container = rootRef.current
@@ -50,38 +63,29 @@ export default function MermaidViewer({
   useLayoutEffect(() => {
     const container = rootRef.current
     const targetScrollTop = scrollTopCache.get(scrollCacheKey)
-    if (!container || targetScrollTop === undefined) {
-      return
+    pendingScrollTopRef.current = targetScrollTop
+    if (
+      container &&
+      targetScrollTop !== undefined &&
+      container.scrollHeight - container.clientHeight >= targetScrollTop
+    ) {
+      restorePendingScroll()
     }
-
-    let frameId = 0
-    let attempts = 0
-
-    // Async SVG may miss the first frame; bound restoration retries as MarkdownPreview does.
-    const tryRestore = (): void => {
-      const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
-      const nextScrollTop = Math.min(targetScrollTop, maxScrollTop)
-      container.scrollTop = nextScrollTop
-
-      if (Math.abs(container.scrollTop - targetScrollTop) <= 1 || maxScrollTop >= targetScrollTop) {
-        return
-      }
-
-      attempts += 1
-      if (attempts < 30) {
-        frameId = window.requestAnimationFrame(tryRestore)
-      }
+    return () => {
+      pendingScrollTopRef.current = undefined
     }
-
-    tryRestore()
-    return () => window.cancelAnimationFrame(frameId)
-  }, [scrollCacheKey, content])
+  }, [scrollCacheKey, content, restorePendingScroll])
 
   return (
     <div ref={rootRef} className="mermaid-viewer h-full min-h-0 overflow-auto scrollbar-editor">
       <div className="mermaid-viewer-canvas">
         {/* DOMPurify strips foreignObject HTML labels; request native SVG text so labels survive sanitization. */}
-        <MermaidBlock content={content.trim()} isDark={isDark} htmlLabels={false} />
+        <MermaidBlock
+          content={content.trim()}
+          isDark={isDark}
+          htmlLabels={false}
+          onRenderComplete={restorePendingScroll}
+        />
       </div>
     </div>
   )
