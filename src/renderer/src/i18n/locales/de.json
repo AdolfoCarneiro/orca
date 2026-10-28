@@ -20017,7 +20017,9 @@
       "waitingAriaLabel": "Das Update wartet auf andere Orca-Instanzen. Zum Aufklappen klicken.",
       "preparingLabel": "Update wird vorbereitet",
       "preparingAriaLabel": "Das Update wird vorbereitet. Zum Aufklappen klicken."
-    }
+    },
+    "wslMoveInstallHeld": "Ein Projekt wird auf seinen WSL-Host verschoben. Das Update nach Abschluss des Verschiebens installieren.",
+    "wslMoveUndoInstallHeld": "Ein Projekt wird von seinem WSL-Host zurückgeholt. Das Update danach installieren."
   },
   "jira": {
     "connect": {

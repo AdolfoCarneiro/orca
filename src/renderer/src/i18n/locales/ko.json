@@ -20074,7 +20074,9 @@
       "preparingAriaLabel": "업데이트 준비 중입니다. 클릭하여 펼치세요.",
       "browserSummary": "백그라운드 Orca 서버의 브라우저가 아직 이 앱을 사용하고 있습니다.",
       "browserGuidance": "아래 프로세스를 종료한 후 다시 시도하세요. 서버는 브라우저 없이 계속 실행됩니다. 다른 컴퓨터가 이 Mac을 SSH 호스트로 사용하는 경우 해당 컴퓨터의 Orca를 업데이트하면 업데이트 시 브라우저가 자동으로 일시 중지됩니다."
-    }
+    },
+    "wslMoveInstallHeld": "프로젝트를 WSL 호스트로 옮기는 중입니다. 이동이 끝난 후 업데이트를 설치하세요.",
+    "wslMoveUndoInstallHeld": "프로젝트를 WSL 호스트에서 다시 가져오는 중입니다. 완료된 후 업데이트를 설치하세요."
   },
   "onboarding": {
     "language": {

@@ -19977,7 +19977,9 @@
       "waitingAriaLabel": "Atualização aguardando outras instâncias do Orca. Clique para expandir.",
       "preparingLabel": "Preparando atualização",
       "preparingAriaLabel": "Preparando atualização. Clique para expandir."
-    }
+    },
+    "wslMoveInstallHeld": "Um projeto está sendo movido para o host WSL dele. Instale a atualização quando a movimentação terminar.",
+    "wslMoveUndoInstallHeld": "Um projeto está voltando do host WSL dele. Instale a atualização quando isso terminar."
   },
   "jira": {
     "connect": {

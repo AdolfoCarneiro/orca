@@ -20133,7 +20133,9 @@
       "preparingAriaLabel": "Préparation de la mise à jour. Cliquez pour développer.",
       "browserSummary": "Le navigateur d'un serveur Orca en arrière-plan utilise toujours cette application.",
       "browserGuidance": "Terminez le processus ci-dessous, puis réessayez : son serveur continue de fonctionner sans navigateur. Si un autre ordinateur utilise ce Mac comme hôte SSH, la mise à jour d’Orca sur cet ordinateur permet au navigateur de se mettre automatiquement en pause lors des mises à jour."
-    }
+    },
+    "wslMoveInstallHeld": "Un projet est en cours de déplacement vers son hôte WSL. Installez la mise à jour une fois le déplacement terminé.",
+    "wslMoveUndoInstallHeld": "Un projet est en train de revenir de son hôte WSL. Installez la mise à jour une fois l'opération terminée."
   },
   "onboarding": {
     "language": {

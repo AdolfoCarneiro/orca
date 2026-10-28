@@ -19965,7 +19965,9 @@
       "waitingAriaLabel": "更新正在等待其他 Orca 執行個體。點選展開。",
       "preparingLabel": "正在準備更新",
       "preparingAriaLabel": "正在準備更新。點選展開。"
-    }
+    },
+    "wslMoveInstallHeld": "專案正在移到其 WSL 主機。移動完成後再安裝更新。",
+    "wslMoveUndoInstallHeld": "專案正在從其 WSL 主機移回。完成後再安裝更新。"
   },
   "jira": {
     "connect": {

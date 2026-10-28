@@ -20040,7 +20040,9 @@
       "preparingAriaLabel": "Preparando actualización. Haz clic para expandir.",
       "browserSummary": "El navegador de un servidor Orca en segundo plano todavía usa esta aplicación.",
       "browserGuidance": "Finaliza el proceso que aparece abajo y vuelve a intentarlo: su servidor seguirá funcionando sin navegador. Si otro equipo usa este Mac como host SSH, actualiza Orca en ese equipo para que el navegador pueda pausarse automáticamente durante las actualizaciones."
-    }
+    },
+    "wslMoveInstallHeld": "Un proyecto se está moviendo a su host WSL. Instala la actualización cuando termine el movimiento.",
+    "wslMoveUndoInstallHeld": "Un proyecto está volviendo desde su host WSL. Instala la actualización cuando termine."
   },
   "jira": {
     "savedFilters": {

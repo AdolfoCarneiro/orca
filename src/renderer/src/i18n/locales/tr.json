@@ -19976,7 +19976,9 @@
       "waitingAriaLabel": "Güncelleme diğer Orca örneklerini bekliyor. Genişletmek için tıklayın.",
       "preparingLabel": "Güncelleme hazırlanıyor",
       "preparingAriaLabel": "Güncelleme hazırlanıyor. Genişletmek için tıklayın."
-    }
+    },
+    "wslMoveInstallHeld": "Bir proje WSL ana bilgisayarına taşınıyor. Taşıma bittiğinde güncellemeyi yükleyin.",
+    "wslMoveUndoInstallHeld": "Bir proje WSL ana bilgisayarından geri getiriliyor. Bu bittiğinde güncellemeyi yükleyin."
   },
   "jira": {
     "connect": {
