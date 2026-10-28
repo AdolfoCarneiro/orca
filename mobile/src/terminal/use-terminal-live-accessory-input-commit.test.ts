@@ -74,8 +74,10 @@ function createAccessoryInputCommitHarness({
         setSelection: vi.fn()
       }
     : null
-  // SAFETY: RN-Web hands the hook the DOM input as its TextInput ref; this models its caret fields.
-  const liveInputRef = { current: webField as unknown as TextInput | null }
+  const liveInputRef = {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: RN-Web hands the hook the DOM input as its TextInput ref; this models its caret fields.
+    current: webField as unknown as TextInput | null
+  }
   const liveInputTerminalHandles = new Set([activeHandle])
   const applyLiveInputMirror = vi.fn(
     async (_handle: string, _fieldText: string, _composing?: boolean) => true
