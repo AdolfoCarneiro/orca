@@ -1,4 +1,4 @@
-import { escapeAttr, escapeHtml } from './markdown-escaping'
+import { escapeAttr, escapeHtml, escapeLiteralHtml } from './markdown-escaping'
 import { renderInline } from './markdown-inline-render'
 import { renderListItems } from './markdown-list-render'
 import { parseListTree } from './markdown-list-parse'
@@ -12,7 +12,11 @@ export function isBlockStart(line: string): boolean {
 }
 
 // Read fenced/table/list blocks by their own consumed line runs, not flat replacements; empty source still needs paragraph for placeholder.
-export function markdownToHtml(scope: RichMarkdownEditorScope, markdown: string): string {
+export function markdownToHtml(
+  scope: RichMarkdownEditorScope,
+  markdown: string,
+  listLineBreaks = false
+): string {
   const lines = markdown.replace(/\r\n?/g, '\n').split('\n')
   const html: string[] = []
   let index = 0
@@ -34,7 +38,7 @@ export function markdownToHtml(scope: RichMarkdownEditorScope, markdown: string)
         index += 1
       }
       html.push(
-        `<pre data-language="${escapeAttr(fence.language)}"><code>${escapeHtml(code.join('\n'))}</code></pre>`
+        `<pre data-language="${escapeAttr(fence.language)}"><code>${listLineBreaks ? escapeLiteralHtml(code.join('\n')) : escapeHtml(code.join('\n'))}</code></pre>`
       )
       continue
     }
@@ -91,7 +95,9 @@ export function markdownToHtml(scope: RichMarkdownEditorScope, markdown: string)
       const list = parseListTree(lines, index)
       // Empty marker produces no list item and no index progress; fall through as text instead of continuing forever.
       if (list.nextIndex > index) {
-        html.push(renderListItems(scope, list.items))
+        html.push(
+          renderListItems(scope, list.items, (content) => markdownToHtml(scope, content, true))
+        )
         index = list.nextIndex
         continue
       }
@@ -115,7 +121,9 @@ export function markdownToHtml(scope: RichMarkdownEditorScope, markdown: string)
       paragraph.push(lines[index] ?? '')
       index += 1
     }
-    html.push(`<p>${renderInline(paragraph.join('\n')).replace(/\n/g, '<br />')}</p>`)
+    html.push(
+      `<p>${renderInline(paragraph.join('\n'), listLineBreaks).replace(/\n/g, '<br />')}</p>`
+    )
   }
   return html.join('\n') || '<p class="is-empty"><br /></p>'
 }

@@ -51,7 +51,11 @@ export function escapeMarkdownText(value: string): string {
 }
 
 export function escapeHtml(value: string): string {
-  return decodeMarkdownEntities(value).replace(/[&<>"']/g, (char) => HTML_ESCAPES[char] ?? char)
+  return escapeLiteralHtml(decodeMarkdownEntities(value))
+}
+
+export function escapeLiteralHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => HTML_ESCAPES[char] ?? char)
 }
 
 /** An attribute value cannot carry a newline, which would end it in the markup being built. */

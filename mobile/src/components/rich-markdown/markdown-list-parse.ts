@@ -1,3 +1,5 @@
+import { closesFence, openingFence } from './markdown-code-fence'
+
 /** One list line, with its marker read and its nesting resolved against the lines around it. */
 export type ParsedListItem = {
   indent: number
@@ -6,6 +8,7 @@ export type ParsedListItem = {
   /** Whether the item's checkbox is ticked, or null when it is not a task at all. */
   task: boolean | null
   text: string
+  blockSource?: string
   children: ParsedListItem[]
 }
 
@@ -41,6 +44,81 @@ export function listKind(item: ParsedListItem): 'task' | 'ol' | 'ul' {
   return item.ordered ? 'ol' : 'ul'
 }
 
+function removeIndentation(line: string, width: number): string {
+  let index = 0
+  let removed = 0
+  while (index < line.length && removed < width) {
+    if (line[index] === ' ') {
+      removed += 1
+    } else if (line[index] === '\t') {
+      removed += 4
+    } else {
+      break
+    }
+    index += 1
+  }
+  return ' '.repeat(Math.max(0, removed - width)) + line.slice(index)
+}
+
+function listItemBlocks(
+  lines: string[],
+  startIndex: number,
+  item: ParsedListItem
+): { source: string; nextIndex: number } | null {
+  if (
+    /^\[[ xX]\]$/.test(item.text) ||
+    (item.task !== null && (!item.text.trim() || openingFence(item.text)))
+  ) {
+    return null
+  }
+  const marker = (lines[startIndex] ?? '').match(/^(\s*)(?:[-*+]|\d+[.)])([ \t]+)/)
+  if (!marker) {
+    return null
+  }
+  const width = indentationWidth(marker[0])
+  const body = [item.text]
+  let fence = openingFence(item.text)
+  let hasCode = fence !== null
+  let index = startIndex + 1
+  let end = index
+  while (index < lines.length) {
+    const line = lines[index] ?? ''
+    if (!line.trim()) {
+      body.push(fence ? removeIndentation(line, width) : '')
+      index += 1
+      if (fence) {
+        end = index
+      }
+      continue
+    }
+    if (indentationWidth(line.match(/^[ \t]*/)?.[0] ?? '') < width) {
+      break
+    }
+    if (!fence && parseListLine(line)) {
+      break
+    }
+    const content = removeIndentation(line, width)
+    body.push(content)
+    if (fence) {
+      if (closesFence(content, fence.fence)) {
+        fence = null
+      }
+    } else {
+      fence = openingFence(content)
+      hasCode ||= fence !== null
+    }
+    index += 1
+    end = index
+  }
+  if (!hasCode) {
+    return null
+  }
+  return {
+    source: body.slice(0, end - startIndex).join('\n'),
+    nextIndex: parseListLine(lines[index] ?? '') ? index : end
+  }
+}
+
 // Parse contiguous list run with stack: indent can drop several levels and caller needs end index to resume block parsing.
 export function parseListTree(
   lines: string[],
@@ -60,7 +138,11 @@ export function parseListTree(
     }
     stack[stack.length - 1]!.children.push(item)
     stack.push(item)
-    index += 1
+    const blocks = listItemBlocks(lines, index, item)
+    if (blocks) {
+      item.blockSource = blocks.source
+    }
+    index = blocks?.nextIndex ?? index + 1
   }
   return { items: root.children, nextIndex: index }
 }

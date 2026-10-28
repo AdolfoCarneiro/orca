@@ -3,7 +3,11 @@ import { listKind, type ParsedListItem } from './markdown-list-parse'
 import type { RichMarkdownEditorScope } from './document-scope'
 
 // Render one list per same-kind run; disable task checkboxes under read-only surface or user toggles would go unrecorded.
-export function renderListItems(scope: RichMarkdownEditorScope, items: ParsedListItem[]): string {
+export function renderListItems(
+  scope: RichMarkdownEditorScope,
+  items: ParsedListItem[],
+  renderBlocks: (markdown: string) => string
+): string {
   const html: string[] = []
   let index = 0
   while (index < items.length) {
@@ -22,20 +26,23 @@ export function renderListItems(scope: RichMarkdownEditorScope, items: ParsedLis
           : ''
     const rendered = group
       .map((item) => {
-        const children = item.children.length ? renderListItems(scope, item.children) : ''
+        const children = item.children.length
+          ? renderListItems(scope, item.children, renderBlocks)
+          : ''
+        const content = item.blockSource === undefined ? null : renderBlocks(item.blockSource)
         if (kind === 'task') {
           const checked = item.task === true
           return (
             `<li data-checked="${String(checked)}"><label contenteditable="false">` +
             `<input type="checkbox" ${checked ? 'checked ' : ''}${scope.editable ? '' : 'disabled '}/>` +
-            `</label><div><p>${renderInline(item.text, true)}</p>${children}</div></li>`
+            `</label><div>${content ?? `<p>${renderInline(item.text, true)}</p>`}${children}</div></li>`
           )
         }
         const orderedAttrs =
           kind === 'ol' && item.orderedNumber !== null
             ? ` value="${item.orderedNumber}" data-list-number="${item.orderedNumber}"`
             : ''
-        return `<li${orderedAttrs}><p>${renderInline(item.text, true)}</p>${children}</li>`
+        return `<li${orderedAttrs}>${content ?? `<p>${renderInline(item.text, true)}</p>`}${children}</li>`
       })
       .join('')
     html.push(`<${tag}${attrs}>${rendered}</${tag}>`)
