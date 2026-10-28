@@ -1,7 +1,4 @@
-import {
-  PLUGIN_CAPABILITY_DESCRIPTIONS,
-  type PluginCapabilityKind
-} from '../../shared/plugins/plugin-capabilities'
+import { PLUGIN_CAPABILITY_DESCRIPTIONS } from '../../shared/plugins/plugin-capabilities'
 import { needsReconsent } from '../../shared/plugins/approval/plugin-consent-state'
 import { pluginPanelTabKey } from '../../shared/plugins/manifest/plugin-manifest'
 import type { PluginLockfile } from '../../shared/plugins/plugin-install-lockfile'
@@ -10,98 +7,18 @@ import type { PluginHostImages } from '../../shared/plugins/plugin-image-url'
 import { pluginInstalledHostImages } from './plugin-manifest-images'
 import type { PluginService } from './plugin-service'
 import { listPluginVmRecipeCommands } from '../../shared/plugins/artifacts/plugin-vm-recipe-artifact'
-import type { PluginCommandAliasActionId } from '../../shared/plugins/plugin-command-actions'
 import {
   isOfficialMarketplaceGitSource,
   isOfficialOrganizationGitSource,
   pluginSourceLabel
 } from '../../shared/plugins/catalog/plugin-marketplace'
-import {
-  pluginCatalogTypes,
-  type PluginCatalogType
-} from '../../shared/plugins/catalog/plugin-catalog-types'
+import { pluginCatalogTypes } from '../../shared/plugins/catalog/plugin-catalog-types'
 import { mapWithConcurrency } from '../../shared/map-with-concurrency'
+import type { PluginHostListEntry, PluginHostStatus } from '../../shared/plugins/plugin-list-entry'
 import { customEditorContentKind } from '../../shared/plugins/plugin-custom-editor-contribution'
-import {
-  pluginExecutionProfile,
-  type PluginExecutionProfile
-} from '../../shared/plugins/plugin-execution-profile'
+import { pluginExecutionProfile } from '../../shared/plugins/plugin-execution-profile'
 
 const PLUGIN_LIST_PROJECTION_CONCURRENCY = 4
-
-export type PluginListPanelEntry = {
-  id: string
-  title: string
-  icon?: string
-  tabKey: `plugin:${string}`
-}
-
-export type PluginListStatus =
-  | 'running'
-  | 'restarting'
-  | 'idle'
-  | 'pending'
-  | 'disabled'
-  | 'errored'
-  | 'invalid'
-
-export type PluginListEntry = {
-  pluginKey: string
-  /** Opaque identity of the exact capabilities and worker tier shown for review. */
-  consentFingerprint: string | null
-  name: string
-  version: string
-  publisher: string
-  description?: string
-  /** Verified from the installed manifest, so the UI never infers authority from contents. */
-  execution?: PluginExecutionProfile
-  /** What the installed manifest contributes, as catalog types. */
-  types?: PluginCatalogType[]
-  /** Declared images, as orca-plugin-image URLs main serves after checking them. */
-  images?: PluginHostImages
-  license?: string
-  homepage?: string
-  repository?: string
-  status: PluginListStatus
-  needsReconsent: boolean
-  error?: string
-  isDev: boolean
-  official: boolean
-  bundled: boolean
-  capabilities: { kind: PluginCapabilityKind; description: string }[]
-  panels: PluginListPanelEntry[]
-  customEditors: {
-    id: string
-    title: string
-    extensions: string[]
-    filenames: string[]
-    priority: 'default' | 'option'
-    contentKind: 'text' | 'bytes'
-  }[]
-  commands: {
-    id: string
-    title: string
-    context: 'global' | 'workspace'
-    handler: { type: 'built-in'; action: PluginCommandAliasActionId } | { type: 'worker' }
-    keybindings: { key: string; when: 'global' | 'workspace' }[]
-  }[]
-  hasWorker: boolean
-  vmRecipes: {
-    id: string
-    name: string
-    description?: string
-    commands: { phase: 'create' | 'suspend' | 'resume' | 'destroy'; command: string }[]
-  }[]
-  restarts: number
-  blockedByKillList?: { reason: string; advisoryUrl?: string }
-  source?: {
-    kind: 'local-path' | 'git' | 'marketplace' | 'bundled'
-    reference: string
-    resolvedCommit: string | null
-    contentHash: string
-    marketplace?: { reference: string; ref: string; resolvedCommit: string }
-  }
-}
 
 const withImages = (images: PluginHostImages | undefined) => (images ? { images } : {})
 
@@ -109,7 +26,7 @@ export async function buildPluginList(
   service: PluginService,
   lock: PluginLockfile,
   discovered: readonly DiscoveredPlugin[] = service.getDiscovered()
-): Promise<PluginListEntry[]> {
+): Promise<PluginHostListEntry[]> {
   const consents = {
     pluginConsents: service.options.getPluginConsents(),
     disabledPlugins: service.options.getDisabledPlugins()
@@ -117,7 +34,7 @@ export async function buildPluginList(
   return mapWithConcurrency(
     discovered,
     PLUGIN_LIST_PROJECTION_CONCURRENCY,
-    async (plugin, index): Promise<PluginListEntry> => {
+    async (plugin, index): Promise<PluginHostListEntry> => {
       if (isInvalidDiscoveredPlugin(plugin)) {
         // Invalid dev paths may expose private absolute paths; use opaque identities for clients.
         const fallbackKey = plugin.pluginKey ?? `invalid-development-plugin-${index + 1}`
@@ -146,7 +63,7 @@ export async function buildPluginList(
       const worker = service.workerState(plugin.pluginKey)
       const activationError = service.activationError(plugin.pluginKey)
       const killListEntry = service.options.getPluginKillListEntry?.(plugin.pluginKey) ?? null
-      let status: PluginListStatus
+      let status: PluginHostStatus
       if (activation === 'disabled') {
         status = 'disabled'
       } else if (activation === 'pending') {

@@ -1,5 +1,6 @@
-import { getPluginHostMethodSpec, isPluginPanelAction } from './workers/plugin-host-api'
+import { getPluginHostMethodSpec } from './workers/plugin-host-api'
 import type { PluginCapabilityKind } from './plugin-capabilities'
+import type { PluginSurface } from './plugin-protocol'
 
 /**
  * The capability gate — pure, electron-free, shared by the Electron main
@@ -16,7 +17,7 @@ export type PluginGateErrorCode =
   | 'unknown_method'
   | 'capability_denied'
   | 'consent_required'
-  | 'panel_forbidden'
+  | 'not_permitted'
 
 export type PluginGateDecision =
   | { granted: true }
@@ -25,8 +26,8 @@ export type PluginGateDecision =
 export type PluginGateSubject = {
   /** Null for unknown/invalid/disabled plugins or missing/stale consent. */
   grantedCapabilities: readonly PluginCapabilityKind[] | null
-  /** Sandboxed panels have fewer callable methods than trusted workers. */
-  viaPanel: boolean
+  /** Frames (panels, editors) have fewer callable methods than workers. */
+  surface: PluginSurface
 }
 
 export function gatePluginHostCall(subject: PluginGateSubject, method: string): PluginGateDecision {
@@ -34,11 +35,11 @@ export function gatePluginHostCall(subject: PluginGateSubject, method: string): 
   if (!spec) {
     return { granted: false, code: 'unknown_method', error: `unknown host method: ${method}` }
   }
-  if (subject.viaPanel && !isPluginPanelAction(method)) {
+  if (!spec.surfaces.includes(subject.surface)) {
     return {
       granted: false,
-      code: 'panel_forbidden',
-      error: `method ${method} is not available to sandboxed panels`
+      code: 'not_permitted',
+      error: `method ${method} is not available to plugin ${subject.surface}s`
     }
   }
   // Unknown, disabled and stale-consent plugins must be indistinguishable from ungranted capabilities.

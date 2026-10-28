@@ -6,7 +6,8 @@ import {
   type DiscoveredPlugin
 } from './plugin-discovery'
 import { readPluginLockfile } from './installation/plugin-install'
-import { buildPluginList, type PluginListEntry } from './plugin-list-projection'
+import { buildPluginList } from './plugin-list-projection'
+import type { PluginHostListEntry } from '../../shared/plugins/plugin-list-entry'
 import type { PluginService } from './plugin-service'
 
 /** Installed plugins as clients see them. With the plugin system off the service discovers
@@ -32,7 +33,7 @@ async function discoveredForClients(
  */
 export async function listPluginsForClients(
   pluginService: PluginService
-): Promise<PluginListEntry[]> {
+): Promise<PluginHostListEntry[]> {
   await pluginService.whenReady()
   const lock = await readPluginLockfile(getUserPluginsDir(pluginService.options.userDataPath))
   return buildPluginList(pluginService, lock, await discoveredForClients(pluginService))

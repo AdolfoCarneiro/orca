@@ -3,7 +3,7 @@ import {
   structuredCloneMessageBytes,
   type PanelMessageBudget
 } from './plugin-panel-message-budget'
-import type { PluginPanelActionOutcome } from './plugin-panel-bridge'
+import type { PluginHostCallOutcome } from './plugin-protocol'
 
 export type PluginPanelCallRefusal = 'oversized' | 'rate_limited'
 
@@ -16,10 +16,10 @@ export function admitPluginPanelCall(
   admission: PluginPanelCallAdmission,
   pluginKey: string,
   message: unknown
-): PluginPanelActionOutcome | null {
+): PluginHostCallOutcome | null {
   const refusal = admission.admit(pluginKey, message)
   if (refusal === 'oversized') {
-    return { ok: false, code: 'invalid_request', error: 'panel message exceeds the size limit' }
+    return { ok: false, code: 'too_large', error: 'panel message exceeds the size limit' }
   }
   if (refusal === 'rate_limited') {
     return { ok: false, code: 'rate_limited', error: 'too many panel requests' }

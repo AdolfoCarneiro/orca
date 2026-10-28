@@ -36,7 +36,7 @@ describe('executePluginHostCall mutation auditing', () => {
       pluginId: 'samples.demo',
       method: 'storage.set',
       params: { key: '__proto__', value: 42 },
-      viaPanel: false,
+      surface: 'worker',
       grantedCapabilities: ['storage:own'],
       services: createServices(storageSet),
       audit: { record: vi.fn().mockResolvedValue(undefined) }
@@ -52,7 +52,7 @@ describe('executePluginHostCall mutation auditing', () => {
       pluginId: 'samples.demo',
       method: 'storage.set',
       params: { key: 'created', value: new Date() },
-      viaPanel: false,
+      surface: 'worker',
       grantedCapabilities: ['storage:own'],
       services: createServices(storageSet),
       audit: { record: vi.fn().mockResolvedValue(undefined) }
@@ -68,7 +68,7 @@ describe('executePluginHostCall mutation auditing', () => {
       pluginId: 'samples.demo',
       method: 'storage.set',
       params: { key: 'answer', value: 42 },
-      viaPanel: false,
+      surface: 'worker',
       grantedCapabilities: ['storage:own'],
       services: createServices(storageSet),
       audit: { record: vi.fn().mockRejectedValue(new Error('disk full')) }
@@ -92,7 +92,7 @@ describe('executePluginHostCall mutation auditing', () => {
       pluginId: 'samples.demo',
       method: 'storage.set',
       params: { key: 'answer', value: 42 },
-      viaPanel: false,
+      surface: 'worker',
       grantedCapabilities: ['storage:own'],
       services: createServices(storageSet),
       audit: { record }
@@ -108,7 +108,7 @@ describe('executePluginHostCall mutation auditing', () => {
       pluginId: 'samples.demo',
       method: 'storage.set',
       params: { key: 'answer', value: 42 },
-      viaPanel: false,
+      surface: 'worker',
       grantedCapabilities: ['storage:own'],
       services: createServices(storageSet)
     })
@@ -152,7 +152,7 @@ async function sendTerminalText(
     pluginId: 'samples.demo',
     method: 'terminal.sendText',
     params: { terminalId, text: 'echo hi', enter: true },
-    viaPanel: false,
+    surface: 'worker',
     grantedCapabilities: ['terminal:send'],
     services,
     audit: { record: vi.fn().mockResolvedValue(undefined) }
@@ -166,13 +166,47 @@ describe('terminal.sendText panel surface', () => {
       pluginId: 'orca-samples.demo',
       method: 'terminal.sendText',
       params: { terminalId: 'term-1', text: 'echo hi', enter: true },
-      viaPanel: true,
+      surface: 'panel',
       grantedCapabilities: ['terminal:send'],
       services,
       audit: { record: vi.fn().mockResolvedValue(undefined) }
     })
-    expect(outcome).toMatchObject({ ok: false, code: 'panel_forbidden' })
+    expect(outcome).toMatchObject({ ok: false, code: 'not_permitted' })
     expect(delegate.sendTerminal).not.toHaveBeenCalled()
+  })
+})
+
+describe('host API surfaces and strict params', () => {
+  const call = (method: string, params: unknown, surface: 'worker' | 'panel' | 'editor') =>
+    executePluginHostCall({
+      pluginId: 'samples.demo',
+      method,
+      params,
+      surface,
+      grantedCapabilities: ['storage:own', 'notifications:show'],
+      services: createServices(vi.fn().mockReturnValue({ ok: true })),
+      audit: { record: vi.fn().mockResolvedValue(undefined) }
+    })
+
+  it('lets each surface call only the methods that list it', async () => {
+    await expect(call('storage.keys', {}, 'editor')).resolves.toMatchObject({
+      ok: false,
+      code: 'not_permitted'
+    })
+    await expect(call('storage.keys', {}, 'worker')).resolves.toEqual({
+      ok: true,
+      value: { keys: [] }
+    })
+    await expect(call('notifications.show', { title: 'Hi' }, 'editor')).resolves.toEqual({
+      ok: true,
+      value: { delivered: true }
+    })
+  })
+
+  it('refuses a param this host does not know instead of dropping it', async () => {
+    const outcome = await call('notifications.show', { title: 'Hi', silent: true }, 'worker')
+    expect(outcome).toMatchObject({ ok: false, code: 'invalid_params' })
+    expect(!outcome.ok && outcome.error).toContain('silent')
   })
 })
 
@@ -234,7 +268,7 @@ describe('terminal.sendText explicit worktree routing', () => {
       pluginId: 'samples.demo',
       method: 'workspace.readContext',
       params: {},
-      viaPanel: true,
+      surface: 'panel',
       grantedCapabilities: ['workspace:read'],
       services
     })

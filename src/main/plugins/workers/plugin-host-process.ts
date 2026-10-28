@@ -4,12 +4,21 @@ import { join } from 'node:path'
 import {
   PLUGIN_WORKER_INVOKE_TIMEOUT_MS,
   PLUGIN_WORKER_READY_TIMEOUT_MS,
-  pluginWorkerChildMessageSchema,
-  type PluginWorkerParentMessage
+  readPluginWorkerEvent,
+  WORKER_EVENTS,
+  WORKER_METHODS
 } from '../../../shared/plugins/workers/plugin-host-protocol'
 import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabilities'
 import type { PluginEventName } from '../../../shared/plugins/manifest/plugin-manifest'
-import type { PluginPanelActionOutcome } from '../../../shared/plugins/plugin-panel-bridge'
+import {
+  pluginCancel,
+  pluginEvent,
+  pluginOutcomeResponse,
+  pluginRequest,
+  readPluginEnvelope,
+  type PluginEnvelope,
+  type PluginHostCallOutcome
+} from '../../../shared/plugins/plugin-protocol'
 import { buildPluginWorkerEnv } from './plugin-worker-env'
 import { pipePluginWorkerOutput } from './plugin-worker-output-buffer'
 
@@ -22,7 +31,7 @@ export type PluginWorkerLogSink = (level: 'info' | 'warn' | 'error', line: strin
 export type PluginWorkerHostCallExecutor = (
   method: string,
   params: unknown
-) => Promise<PluginPanelActionOutcome>
+) => Promise<PluginHostCallOutcome>
 
 export type PluginWorkerHandle = {
   /** Command ids the worker registered on activate (⊆ manifest commands). */
@@ -92,14 +101,14 @@ export async function startPluginWorker(
   const pendingCommands = new Map<number, PendingCall>()
   const pendingEvents = new Map<number, ReturnType<typeof setTimeout>>()
   const exitCallbacks: ((code: number | null) => void)[] = []
-  let nextCallId = 0
-  let nextEventId = 0
+  // One id space for host → worker requests: commands and event deliveries share `res`.
+  let nextId = 0
   let exited = false
   let exitCode: number | null = null
   let disposed = false
   let lastActivityAt = Date.now()
 
-  function sendToChild(message: PluginWorkerParentMessage): void {
+  function sendToChild(message: PluginEnvelope): void {
     if (child.connected) {
       child.send(message)
     }
@@ -160,83 +169,71 @@ export async function startPluginWorker(
       rejectAllPending(failure.message)
     })
     child.on('exit', (code) => fail(new Error(`${tag} worker exited before ready (code ${code})`)))
+    // A host call the worker cancels leaves this set, so its late answer is dropped.
+    const inFlightHostCalls = new Set<number>()
     child.on('message', (raw) => {
-      const parsed = pluginWorkerChildMessageSchema.safeParse(raw)
-      if (!parsed.success) {
+      const message = readPluginEnvelope(raw)
+      if (!message) {
         log('warn', 'ignoring malformed worker message')
         return
       }
-      const message = parsed.data
-      switch (message.type) {
-        case 'ready': {
-          if (!settled) {
-            settled = true
-            clearTimeout(timer)
-            options.signal?.removeEventListener('abort', onAbort)
-            resolve(message.commands)
-          }
-          return
-        }
-        case 'commandResult': {
-          const entry = pendingCommands.get(message.callId)
-          if (!entry) {
+      switch (message.kind) {
+        case 'res': {
+          lastActivityAt = Date.now()
+          clearTimeout(pendingEvents.get(message.id))
+          const entry = pendingCommands.get(message.id)
+          if (pendingEvents.delete(message.id) || !entry) {
             return
           }
           clearTimeout(entry.timer)
-          pendingCommands.delete(message.callId)
-          lastActivityAt = Date.now()
-          if (message.ok) {
-            entry.resolve(message.value)
+          pendingCommands.delete(message.id)
+          if (message.error) {
+            entry.reject(new Error(message.error.message || 'plugin command failed'))
           } else {
-            entry.reject(new Error(message.error ?? 'plugin command failed'))
+            entry.resolve(message.result)
           }
           return
         }
-        case 'eventAck': {
-          const timer = pendingEvents.get(message.eventId)
-          if (timer) {
-            clearTimeout(timer)
-            pendingEvents.delete(message.eventId)
-          }
+        case 'req': {
           lastActivityAt = Date.now()
-          return
-        }
-        case 'hostCall': {
-          lastActivityAt = Date.now()
+          const { id } = message
+          inFlightHostCalls.add(id)
           void options.executeHostCall(message.method, message.params).then((outcome) => {
             lastActivityAt = Date.now()
-            sendToChild(
-              outcome.ok
-                ? { type: 'hostResult', callId: message.callId, ok: true, value: outcome.value }
-                : {
-                    type: 'hostResult',
-                    callId: message.callId,
-                    ok: false,
-                    errorCode: outcome.code,
-                    error: outcome.error
-                  }
-            )
+            if (inFlightHostCalls.delete(id)) {
+              sendToChild(pluginOutcomeResponse(id, outcome))
+            }
           })
           return
         }
-        case 'log': {
-          log(message.level, message.message)
+        case 'cancel':
+          inFlightHostCalls.delete(message.id)
           return
-        }
-        case 'fatal': {
-          fail(new Error(`${tag} worker crashed: ${message.error}`))
-          rejectAllPending(`${tag} worker crashed: ${message.error}`)
-          child.kill('SIGKILL')
-        }
+        case 'evt':
+          break
+      }
+      const event = readPluginWorkerEvent(message)
+      if (event?.event === WORKER_EVENTS.ready && !settled) {
+        settled = true
+        clearTimeout(timer)
+        options.signal?.removeEventListener('abort', onAbort)
+        resolve(event.payload.commands)
+      } else if (event?.event === WORKER_EVENTS.log) {
+        log(event.payload.level, event.payload.message)
+      } else if (event?.event === WORKER_EVENTS.fatal) {
+        fail(new Error(`${tag} worker crashed: ${event.payload.error}`))
+        rejectAllPending(`${tag} worker crashed: ${event.payload.error}`)
+        child.kill('SIGKILL')
       }
     })
-    sendToChild({
-      type: 'init',
-      pluginId,
-      pluginRoot: rootDir,
-      mainEntry,
-      grantedCapabilities: [...options.grantedCapabilities]
-    })
+    sendToChild(
+      pluginEvent(WORKER_EVENTS.init, {
+        pluginId,
+        pluginRoot: rootDir,
+        mainEntry,
+        grantedCapabilities: [...options.grantedCapabilities]
+      })
+    )
     if (options.signal?.aborted) {
       onAbort()
     }
@@ -248,14 +245,16 @@ export async function startPluginWorker(
       if (exited || disposed) {
         return Promise.reject(new Error(`${tag} worker is not running`))
       }
-      const callId = nextCallId++
+      const callId = nextId++
       return new Promise<unknown>((resolve, reject) => {
         const timer = setTimeout(() => {
           pendingCommands.delete(callId)
+          // Tell the handler too, so it stops instead of running on unobserved.
+          sendToChild(pluginCancel(callId))
           reject(new Error(`${tag} ${commandId} timed out after ${invokeTimeoutMs}ms`))
         }, invokeTimeoutMs)
         pendingCommands.set(callId, { resolve, reject, timer })
-        sendToChild({ type: 'invokeCommand', callId, commandId, args })
+        sendToChild(pluginRequest(callId, WORKER_METHODS.invokeCommand, { commandId, args }))
       })
     },
     deliverEvent(event, payload) {
@@ -268,14 +267,14 @@ export async function startPluginWorker(
         return
       }
       lastActivityAt = Date.now()
-      const eventId = nextEventId++
+      const eventId = nextId++
       const timer = setTimeout(() => {
         pendingEvents.delete(eventId)
         log('error', `${tag} ${event} did not finish within ${eventTimeoutMs}ms`)
         child.kill('SIGKILL')
       }, eventTimeoutMs)
       pendingEvents.set(eventId, timer)
-      sendToChild({ type: 'deliverEvent', eventId, event, payload })
+      sendToChild(pluginRequest(eventId, WORKER_METHODS.deliverEvent, { event, payload }))
     },
     lastActivityAt: () => lastActivityAt,
     inFlightCount: () => pendingCommands.size + pendingEvents.size,
@@ -287,7 +286,7 @@ export async function startPluginWorker(
       if (exited) {
         return
       }
-      sendToChild({ type: 'shutdown' })
+      sendToChild(pluginEvent(WORKER_EVENTS.shutdown))
       await new Promise<void>((resolve) => {
         const killTimer = setTimeout(() => {
           child.kill('SIGKILL')

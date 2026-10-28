@@ -1,10 +1,14 @@
+import type { z } from 'zod'
 import {
-  getPluginHostMethodSpec,
+  isPluginHostMethodName,
   PLUGIN_HOST_API,
+  PLUGIN_HOST_METHOD_NAMES,
   PLUGIN_TERMINAL_ID_MAX_LENGTH,
   PLUGIN_WORKSPACE_LABEL_MAX_LENGTH,
   PLUGIN_WORKSPACE_TERMINAL_LIMIT,
-  type PluginHostMethodSpec
+  type PluginHostMethodName,
+  type PluginHostMethodSpec,
+  type PluginJsonValue
 } from '../../../shared/plugins/workers/plugin-host-api'
 import { shortPluginBranchName } from '../../../shared/plugins/plugin-events'
 
@@ -27,8 +31,12 @@ export type PluginHostServices = {
     body?: string
   }): Promise<{ delivered: boolean }>
   storage: {
-    get(pluginId: string, key: string): unknown
-    set(pluginId: string, key: string, value: unknown): { ok: true } | { ok: false; error: string }
+    get(pluginId: string, key: string): PluginJsonValue | undefined
+    set(
+      pluginId: string,
+      key: string,
+      value: PluginJsonValue
+    ): { ok: true } | { ok: false; error: string }
     delete(pluginId: string, key: string): void
     keys(pluginId: string): string[]
   }
@@ -41,32 +49,61 @@ export type PluginHostServices = {
     delete(pluginId: string, key: string): void
   }
   settings: {
-    getAll(pluginId: string): Record<string, unknown>
-    set(pluginId: string, key: string, value: unknown): { ok: true } | { ok: false; error: string }
+    getAll(pluginId: string): Record<string, PluginJsonValue>
+    set(
+      pluginId: string,
+      key: string,
+      value: PluginJsonValue
+    ): { ok: true } | { ok: false; error: string }
   }
 }
+
+type PluginHostMethodContext = { pluginId: string; services: PluginHostServices }
+
+export type PreparedPluginHostCall =
+  | { ok: false; issue: string }
+  | {
+      ok: true
+      params: unknown
+      /** Runs the handler; `value` is null when the result failed its schema. */
+      execute: (ctx: PluginHostMethodContext) => Promise<{ value: unknown } | null>
+    }
 
 export type BoundPluginHostMethod = {
   spec: PluginHostMethodSpec
-  handler: (
-    params: unknown,
-    ctx: { pluginId: string; services: PluginHostServices }
-  ) => Promise<unknown>
+  prepare: (params: unknown) => PreparedPluginHostCall
 }
 
-function definePluginMethod(
-  name: string,
-  handler: BoundPluginHostMethod['handler']
-): [string, BoundPluginHostMethod] {
-  const spec = getPluginHostMethodSpec(name)
-  if (!spec) {
-    throw new Error(`no host API spec for method ${name}`)
+function bind<P extends z.ZodType, R extends z.ZodType>(
+  spec: PluginHostMethodSpec<P, R>,
+  handler: (params: z.output<P>, ctx: PluginHostMethodContext) => Promise<z.input<R>>
+): BoundPluginHostMethod {
+  return {
+    spec,
+    prepare(raw) {
+      const parsed = spec.params.safeParse(raw)
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0]
+        const path = issue?.path.join('.') || '(root)'
+        return { ok: false, issue: `${path}: ${issue?.message ?? 'invalid params'}` }
+      }
+      return {
+        ok: true,
+        params: parsed.data,
+        async execute(ctx) {
+          const result = spec.result.safeParse(await handler(parsed.data, ctx))
+          return result.success ? { value: result.data } : null
+        }
+      }
+    }
   }
-  return [name, { spec, handler }]
 }
 
-const HANDLERS = new Map<string, BoundPluginHostMethod>([
-  definePluginMethod('workspace.readContext', async (_params, { services }) => {
+const api = PLUGIN_HOST_API
+const OK = { ok: true } as const
+
+const HANDLERS: Record<PluginHostMethodName, BoundPluginHostMethod> = {
+  'workspace.readContext': bind(api['workspace.readContext'], async (_params, { services }) => {
     const context = await services.resolveActiveWorktreeContext()
     if (!context) {
       return null
@@ -85,88 +122,73 @@ const HANDLERS = new Map<string, BoundPluginHostMethod>([
         .map((terminal) => ({ id: terminal.id }))
     }
   }),
-  definePluginMethod('terminal.sendText', async (params, { services }) => {
-    const { terminalId, text, enter } = params as {
-      terminalId: string
-      text: string
-      enter: boolean
-    }
+  'terminal.sendText': bind(api['terminal.sendText'], async (params, { services }) => {
     const context = await services.resolveActiveWorktreeContext()
     if (!context) {
       throw new Error('no active worktree is available for terminal input')
     }
     // Handles outlive focus changes; revalidate current workspace membership before terminal input.
     const terminals = await services.listWorktreeTerminals(context.worktreeId)
-    if (!terminals.some((terminal) => terminal.id === terminalId)) {
+    if (!terminals.some((terminal) => terminal.id === params.terminalId)) {
       throw new Error('terminal is outside the active worktree')
     }
-    const result = await services.sendTerminalText(terminalId, { text, enter })
+    const { text, enter } = params
+    const result = await services.sendTerminalText(params.terminalId, { text, enter })
     return { accepted: result.accepted }
   }),
-  definePluginMethod('notifications.show', async (params, { pluginId, services }) => {
-    const { title, body } = params as { title: string; body?: string }
-    return services.dispatchPluginNotification({ pluginId, title, body })
-  }),
-  definePluginMethod('storage.get', async (params, { pluginId, services }) => {
-    const { key } = params as { key: string }
-    return { value: services.storage.get(pluginId, key) ?? null }
-  }),
-  definePluginMethod('storage.set', async (params, { pluginId, services }) => {
-    const { key, value } = params as { key: string; value: unknown }
-    const result = services.storage.set(pluginId, key, value)
-    if (!result.ok) {
-      throw new Error(result.error)
-    }
-    return { ok: true }
-  }),
-  definePluginMethod('storage.delete', async (params, { pluginId, services }) => {
-    const { key } = params as { key: string }
+  'notifications.show': bind(api['notifications.show'], async (params, { pluginId, services }) =>
+    services.dispatchPluginNotification({ pluginId, title: params.title, body: params.body })
+  ),
+  'storage.get': bind(api['storage.get'], async ({ key }, { pluginId, services }) => ({
+    value: services.storage.get(pluginId, key) ?? null
+  })),
+  'storage.set': bind(api['storage.set'], async ({ key, value }, { pluginId, services }) =>
+    okOrThrow(services.storage.set(pluginId, key, value))
+  ),
+  'storage.delete': bind(api['storage.delete'], async ({ key }, { pluginId, services }) => {
     services.storage.delete(pluginId, key)
-    return { ok: true }
+    return OK
   }),
-  definePluginMethod('storage.keys', async (_params, { pluginId, services }) => {
-    return { keys: services.storage.keys(pluginId) }
-  }),
-  definePluginMethod('secrets.get', async (params, { pluginId, services }) => {
-    const { key } = params as { key: string }
+  'storage.keys': bind(api['storage.keys'], async (_params, { pluginId, services }) => ({
+    keys: services.storage.keys(pluginId)
+  })),
+  'secrets.get': bind(api['secrets.get'], async ({ key }, { pluginId, services }) => {
     const result = services.secrets.get(pluginId, key)
     if (!result.ok) {
       throw new Error(result.error)
     }
     return { value: result.value }
   }),
-  definePluginMethod('secrets.set', async (params, { pluginId, services }) => {
-    const { key, value } = params as { key: string; value: string }
-    const result = services.secrets.set(pluginId, key, value)
-    if (!result.ok) {
-      throw new Error(result.error)
-    }
-    return { ok: true }
-  }),
-  definePluginMethod('secrets.delete', async (params, { pluginId, services }) => {
-    const { key } = params as { key: string }
+  'secrets.set': bind(api['secrets.set'], async ({ key, value }, { pluginId, services }) =>
+    okOrThrow(services.secrets.set(pluginId, key, value))
+  ),
+  'secrets.delete': bind(api['secrets.delete'], async ({ key }, { pluginId, services }) => {
     services.secrets.delete(pluginId, key)
-    return { ok: true }
+    return OK
   }),
-  definePluginMethod('settings.get', async (_params, { pluginId, services }) => {
-    return { settings: services.settings.getAll(pluginId) }
-  }),
-  definePluginMethod('settings.set', async (params, { pluginId, services }) => {
-    const { key, value } = params as { key: string; value: unknown }
-    const result = services.settings.set(pluginId, key, value)
-    if (!result.ok) {
-      throw new Error(result.error)
-    }
-    return { ok: true }
-  })
-])
+  'settings.get': bind(api['settings.get'], async (_params, { pluginId, services }) => ({
+    settings: services.settings.getAll(pluginId)
+  })),
+  'settings.set': bind(api['settings.set'], async ({ key, value }, { pluginId, services }) =>
+    okOrThrow(services.settings.set(pluginId, key, value))
+  )
+}
+
+function okOrThrow(result: { ok: true } | { ok: false; error: string }): typeof OK {
+  if (!result.ok) {
+    throw new Error(result.error)
+  }
+  return OK
+}
 
 // Why: adding a facade schema without a binding must fail at module load,
 // before a plugin can observe transport-specific behavior.
-if (HANDLERS.size !== PLUGIN_HOST_API.length) {
-  throw new Error('plugin host API spec table and handler bindings are out of sync')
+for (const name of PLUGIN_HOST_METHOD_NAMES) {
+  if (HANDLERS[name].spec !== PLUGIN_HOST_API[name]) {
+    throw new Error(`plugin host API binding for ${name} uses another method's spec`)
+  }
 }
 
 export function getBoundPluginHostMethod(name: string): BoundPluginHostMethod | null {
-  return HANDLERS.get(name) ?? null
+  return isPluginHostMethodName(name) ? HANDLERS[name] : null
 }

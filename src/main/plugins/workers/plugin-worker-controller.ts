@@ -1,5 +1,5 @@
 import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabilities'
-import type { PluginPanelActionOutcome } from '../../../shared/plugins/plugin-panel-bridge'
+import type { PluginHostCallOutcome } from '../../../shared/plugins/plugin-protocol'
 import {
   PLUGIN_COMMAND_EXTENSION_POINT,
   type PluginExtensionRegistry
@@ -32,7 +32,7 @@ export type PluginWorkerControllerOptions = {
     pluginKey: string,
     method: string,
     params: unknown
-  ) => Promise<PluginPanelActionOutcome>
+  ) => Promise<PluginHostCallOutcome>
   log: (pluginKey: string) => (level: 'info' | 'warn' | 'error', line: string) => void
   onStateChanged: (pluginKey: string) => void
 }

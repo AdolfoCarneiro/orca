@@ -2,7 +2,7 @@ import {
   PANEL_CONTROL_MESSAGE_MAX_BYTES,
   PANEL_MESSAGE_MAX_BYTES,
   PANEL_MESSAGE_RATE_LIMIT
-} from './plugin-panel-bridge'
+} from './plugin-frame-bridge'
 
 /** Share clock-injected per-plugin size/rate decisions between renderer bridge and tests. */
 
@@ -10,6 +10,8 @@ export type PanelMessageBudget = {
   readonly maxBytes?: number
   /** Returns null when the message may proceed, or a refusal reason. */
   admit(now: number, messageBytes: number): 'oversized' | 'rate_limited' | null
+  /** After a rate-limit refusal: how long until the window admits another message. */
+  retryAfterMs?(now: number): number
 }
 
 export function createPanelMessageBudget(
@@ -35,7 +37,8 @@ export function createPanelMessageBudget(
         return 'oversized'
       }
       return null
-    }
+    },
+    retryAfterMs: (now) => Math.max(0, (timestamps[0] ?? now) + perMs - now)
   }
 }
 

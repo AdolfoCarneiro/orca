@@ -1,16 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { isPluginPanelTabKey } from '../../../../shared/plugins/manifest/plugin-manifest'
-import {
-  PANEL_PING_TYPE,
-  PLUGIN_PANEL_FRAME_NAME_PREFIX
-} from '../../../../shared/plugins/plugin-panel-bridge'
-import {
-  callPanelActionViaPreload,
-  createPanelBridgeMessageHandler
-} from './plugin-panel-bridge-host'
-import { createPanelWatchdog } from './plugin-panel-watchdog'
-import { fillPluginPanelShell, postPluginFrameTheme } from './plugin-panel-design-token-css'
-import { usePluginFrameThemeSync } from './use-plugin-panel-theme-revision'
+import { PLUGIN_PANEL_FRAME_NAME_PREFIX } from '../../../../shared/plugins/plugin-frame-bridge'
+import { fillPluginPanelShell } from './plugin-panel-design-token-css'
+import { usePluginFrameHost } from './use-plugin-frame-host'
 import { usePluginPanels, usePluginPanelsStore } from '@/store/plugin-panels'
 import { translate } from '@/i18n/i18n'
 
@@ -40,9 +32,7 @@ function PluginPanel({ tabKey }: PluginPanelProps): React.JSX.Element {
     : null
   const [entryState, setEntryState] = useState<PluginPanelEntryState>({ status: 'loading' })
   const [sessionToken, setSessionToken] = useState<string | null>(null)
-  const [loadedFrameKey, setLoadedFrameKey] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
-  usePluginFrameThemeSync(iframeRef)
 
   const pluginKey = panel?.pluginKey ?? null
   const panelId = panel?.id ?? null
@@ -54,46 +44,16 @@ function PluginPanel({ tabKey }: PluginPanelProps): React.JSX.Element {
   )
   const panelFrameKey =
     entryState.status === 'ready' ? `${tabKey}:${entryState.documentRevision}` : null
-  const watchdog = useMemo(
-    () =>
-      createPanelWatchdog({
-        sendPing: (pingId) =>
-          iframeRef.current?.contentWindow?.postMessage({ type: PANEL_PING_TYPE, pingId }, '*'),
-        onUnresponsive: () => {
-          setPanelHealth(tabKey, 'error')
-          setEntryState({ status: 'unresponsive' })
-        }
-      }),
-    [setPanelHealth, tabKey]
-  )
-
-  useEffect(() => {
-    if (!sessionToken || !panelDocument) {
-      return
+  const { onFrameLoad } = usePluginFrameHost({
+    surface: 'panel',
+    iframeRef,
+    frameKey: panelFrameKey,
+    sessionToken,
+    onUnresponsive: () => {
+      setPanelHealth(tabKey, 'error')
+      setEntryState({ status: 'unresponsive' })
     }
-    let active = true
-    const handler = createPanelBridgeMessageHandler({
-      sessionToken,
-      getPanelWindow: () => iframeRef.current?.contentWindow ?? null,
-      callPanelAction: callPanelActionViaPreload,
-      isActive: () => active,
-      onPong: (pingId) => watchdog.handlePong(pingId)
-    })
-    window.addEventListener('message', handler)
-    return () => {
-      active = false
-      window.removeEventListener('message', handler)
-    }
-  }, [panelDocument, sessionToken, watchdog])
-
-  useEffect(() => {
-    if (!panelFrameKey || loadedFrameKey !== panelFrameKey) {
-      return
-    }
-    // Install the srcdoc pong listener before pinging or a healthy panel may be suspended.
-    watchdog.start()
-    return () => watchdog.stop()
-  }, [loadedFrameKey, panelFrameKey, watchdog])
+  })
 
   useEffect(() => {
     if (!pluginKey || !panelId) {
@@ -210,11 +170,7 @@ function PluginPanel({ tabKey }: PluginPanelProps): React.JSX.Element {
       sandbox="allow-scripts"
       name={`${PLUGIN_PANEL_FRAME_NAME_PREFIX}${tabKey}`}
       srcDoc={panelDocument ?? ''}
-      onLoad={() => {
-        setLoadedFrameKey(panelFrameKey)
-        // The theme may have changed between building srcdoc and the frame loading it.
-        postPluginFrameTheme(iframeRef.current?.contentWindow)
-      }}
+      onLoad={onFrameLoad}
       title={panel.title}
       className="h-full w-full flex-1 border-0 bg-background"
     />

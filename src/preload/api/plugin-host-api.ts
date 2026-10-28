@@ -1,7 +1,6 @@
 import type { PluginHostImages } from '../../shared/plugins/plugin-image-url'
 import type { PluginUpdateAccessGrowth } from '../../shared/plugins/approval/plugin-update-access-growth'
 import type { PluginAutoUpdateState } from '../../shared/plugins/catalog/plugin-update-policy'
-import type { PluginExecutionProfile } from '../../shared/plugins/plugin-execution-profile'
 import type {
   PluginIconThemeMetadata,
   PluginIconThemeRegistration
@@ -12,10 +11,8 @@ import type {
   PluginSyntaxPayload
 } from '../../shared/plugins/artifacts/plugin-syntax-artifact'
 import type { PluginTerminalThemeRegistration } from '../../shared/plugins/artifacts/plugin-terminal-theme-artifact'
-import type {
-  PluginPanelActionOutcome,
-  PluginPanelEntry
-} from '../../shared/plugins/plugin-panel-bridge'
+import type { PluginFrameEntry } from '../../shared/plugins/plugin-frame-bridge'
+import type { PluginHostCallOutcome } from '../../shared/plugins/plugin-protocol'
 import type { PluginConsentRequest } from '../../shared/plugins/approval/plugin-consent-request'
 import type { PluginLanguagePackRegistration } from '../../shared/plugins/artifacts/plugin-language-pack-artifact'
 import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
@@ -25,94 +22,14 @@ import type {
   PluginMarketplaceGitSource
 } from '../../shared/plugins/catalog/plugin-marketplace'
 import type { PluginCatalogRelease } from '../../shared/plugins/catalog/plugin-catalog-release'
-import type { PluginCatalogType } from '../../shared/plugins/catalog/plugin-catalog-types'
 
-export type PluginHostPanel = {
-  id: string
-  title: string
-  /** Lucide icon name declared in the plugin manifest. */
-  icon?: string
-  tabKey: `plugin:${string}`
-}
-
-/** pending awaits consent; idle defers worker startup; errored exhausted retries or failed startup. */
-export type PluginHostStatus =
-  | 'running'
-  | 'restarting'
-  | 'idle'
-  | 'pending'
-  | 'disabled'
-  | 'errored'
-  | 'invalid'
-
-export type PluginHostCustomEditor = {
-  id: string
-  title: string
-  extensions: string[]
-  filenames: string[]
-  priority: 'default' | 'option'
-  /** Absent on hosts that predate byte editors: text. */
-  contentKind?: 'text' | 'bytes'
-}
-
-// Keep assignable from main/plugins/plugin-list-projection.ts.
-export type PluginHostListEntry = {
-  pluginKey: string
-  consentFingerprint: string | null
-  name: string
-  version: string
-  publisher: string
-  description?: string
-  /** The verified execution profile from the installed manifest; absent for invalid entries and
-   *  on hosts that predate it. Never infer it from the plugin's contents. */
-  execution?: PluginExecutionProfile
-  /** What the installed manifest contributes; absent on hosts that predate it. */
-  types?: readonly PluginCatalogType[]
-  /** Declared images (format 2 manifests), as orca-plugin-image URLs main serves. */
-  images?: PluginHostImages
-  /** SPDX license expression from the manifest. */
-  license?: string
-  homepage?: string
-  repository?: string
-  status: PluginHostStatus
-  needsReconsent: boolean
-  error?: string
-  isDev: boolean
-  official: boolean
-  bundled: boolean
-  capabilities: { kind: string; description: string }[]
-  panels: PluginHostPanel[]
-  /** Absent on hosts that predate custom editors. */
-  customEditors?: PluginHostCustomEditor[]
-  commands: {
-    id: string
-    title: string
-    // Why `worktree`: hosts from before the rename to `workspace` still send it.
-    context: 'global' | 'workspace' | 'worktree'
-    handler: { type: 'built-in'; action: string } | { type: 'worker' }
-    keybindings: { key: string; when: 'global' | 'workspace' | 'worktree' }[]
-  }[]
-  hasWorker: boolean
-  vmRecipes?: {
-    id: string
-    name: string
-    description?: string
-    commands: {
-      phase: 'create' | 'suspend' | 'resume' | 'destroy'
-      command: string
-    }[]
-  }[]
-  restarts: number
-  blockedByKillList?: { reason: string; advisoryUrl?: string }
-  source?: {
-    kind: 'local-path' | 'git' | 'marketplace' | 'bundled'
-    reference: string
-    resolvedCommit: string | null
-    contentHash: string
-    /** `ref` is the catalog's ref, so a client can join to the exact catalog source. */
-    marketplace?: { reference: string; ref?: string; resolvedCommit: string }
-  }
-}
+export type {
+  PluginHostCustomEditor,
+  PluginHostListEntry,
+  PluginHostPanel,
+  PluginHostStatus
+} from '../../shared/plugins/plugin-list-entry'
+import type { PluginHostListEntry } from '../../shared/plugins/plugin-list-entry'
 
 export type PluginHostLogLine = {
   ts: number
@@ -225,23 +142,23 @@ export type PluginsApi = {
   consent: (args: PluginConsentRequest) => Promise<PluginHostListEntry[]>
   setEnabled: (args: { pluginKey: string; enabled: boolean }) => Promise<PluginHostListEntry[]>
   /** CSP-wrapped HTML for a sandboxed iframe; null if missing or disabled. */
-  readPanelEntry: (args: { pluginKey: string; panelId: string }) => Promise<PluginPanelEntry | null>
-  /** CSP-wrapped custom editor HTML; null if missing or disabled. Absent on older preloads. */
+  readPanelEntry: (args: { pluginKey: string; panelId: string }) => Promise<PluginFrameEntry | null>
+  /** CSP-wrapped custom editor HTML and its host-call session; null if missing or disabled. */
   readCustomEditorEntry?: (args: {
     pluginKey: string
     editorId: string
-  }) => Promise<{ html: string } | null>
+  }) => Promise<PluginFrameEntry | null>
   invokeCommand: (args: {
     pluginKey: string
     commandId: string
     args?: unknown
   }) => Promise<unknown>
-  /** Main enforces consented capabilities before executing sandboxed panel requests. */
+  /** One frame host call; main enforces consented capabilities and the frame's surface. */
   panelAction: (args: {
     sessionToken: string
     action: string
     params?: unknown
-  }) => Promise<PluginPanelActionOutcome>
+  }) => Promise<PluginHostCallOutcome>
   install: (source: PluginHostInstallSource) => Promise<PluginHostInstallResult>
   listMarketplaces: () => Promise<PluginMarketplaceHostSourceState[]>
   addMarketplace: (source: PluginMarketplaceGitSource) => Promise<PluginMarketplaceHostSourceState>

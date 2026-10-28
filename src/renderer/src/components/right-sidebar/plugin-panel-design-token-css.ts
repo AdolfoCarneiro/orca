@@ -1,4 +1,5 @@
-import { PANEL_THEME_TYPE } from '../../../../shared/plugins/plugin-panel-bridge'
+import { FRAME_EVENTS, type PluginFrameTheme } from '../../../../shared/plugins/plugin-frame-bridge'
+import { pluginEvent } from '../../../../shared/plugins/plugin-protocol'
 import {
   PANEL_DESIGN_TOKEN_ALLOWLIST,
   PANEL_SHELL_COLOR_SCHEME_PLACEHOLDER,
@@ -30,14 +31,11 @@ export function fillPluginPanelShell(html: string): string {
     .replace(PANEL_SHELL_TOKENS_PLACEHOLDER, buildPanelDesignTokenCss())
 }
 
+export function currentPluginFrameTheme(): PluginFrameTheme {
+  return { colorScheme: currentPanelColorScheme(), tokens: buildPanelDesignTokenCss() }
+}
+
 /** Restyles a loaded frame in place; remounting would discard the plugin's state. */
 export function postPluginFrameTheme(frameWindow: Window | null | undefined): void {
-  frameWindow?.postMessage(
-    {
-      type: PANEL_THEME_TYPE,
-      colorScheme: currentPanelColorScheme(),
-      tokens: buildPanelDesignTokenCss()
-    },
-    '*'
-  )
+  frameWindow?.postMessage(pluginEvent(FRAME_EVENTS.theme, currentPluginFrameTheme()), '*')
 }

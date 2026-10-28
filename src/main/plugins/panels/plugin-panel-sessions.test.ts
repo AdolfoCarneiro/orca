@@ -3,7 +3,8 @@ import { PluginPanelSessions } from './plugin-panel-sessions'
 
 const binding = {
   pluginKey: 'samples.demo',
-  panelId: 'dashboard',
+  surface: 'panel' as const,
+  contributionId: 'dashboard',
   rootDir: '/plugins/samples.demo/hash-one',
   manifestRevision: 'manifest-v1'
 }
@@ -21,12 +22,14 @@ describe('PluginPanelSessions', () => {
     expect(sessions.issue('renderer:1', { ...binding, manifestRevision: 'manifest-v2' })).not.toBe(
       token
     )
+    // An editor with the same id as a panel is a different contribution.
+    expect(sessions.issue('renderer:1', { ...binding, surface: 'editor' })).not.toBe(token)
   })
 
   it('revokes every session owned by a disconnected transport', () => {
     const sessions = new PluginPanelSessions()
     const first = sessions.issue('connection:one', binding)
-    const second = sessions.issue('connection:one', { ...binding, panelId: 'secondary' })
+    const second = sessions.issue('connection:one', { ...binding, contributionId: 'secondary' })
     const other = sessions.issue('connection:two', binding)
 
     sessions.revokeOwner('connection:one')

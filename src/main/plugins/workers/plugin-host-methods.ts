@@ -2,7 +2,8 @@ import { getBoundPluginHostMethod, type PluginHostServices } from './plugin-host
 import { isQualifiedPluginKey } from '../../../shared/plugins/manifest/plugin-manifest'
 import { gatePluginHostCall as decidePluginHostCall } from '../../../shared/plugins/plugin-capability-gate'
 import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabilities'
-import type { PluginPanelActionOutcome } from '../../../shared/plugins/plugin-panel-bridge'
+import { isPluginJsonObject } from '../../../shared/plugins/manifest/plugin-json-object'
+import type { PluginHostCallOutcome, PluginSurface } from '../../../shared/plugins/plugin-protocol'
 import type { PluginAuditLog } from '../plugin-audit-log'
 
 /**
@@ -20,7 +21,7 @@ export type ExecutePluginHostCallInput = {
   pluginId: string
   method: string
   params: unknown
-  viaPanel: boolean
+  surface: PluginSurface
   /** Consented capability kinds; null = unknown/disabled/consent-stale. */
   grantedCapabilities: readonly PluginCapabilityKind[] | null
   services: PluginHostServices | null
@@ -29,12 +30,12 @@ export type ExecutePluginHostCallInput = {
 
 export async function executePluginHostCall(
   input: ExecutePluginHostCallInput
-): Promise<PluginPanelActionOutcome> {
+): Promise<PluginHostCallOutcome> {
   if (!isQualifiedPluginKey(input.pluginId)) {
     return { ok: false, code: 'invalid_request', error: 'invalid qualified plugin key' }
   }
   const gate = decidePluginHostCall(
-    { grantedCapabilities: input.grantedCapabilities, viaPanel: input.viaPanel },
+    { grantedCapabilities: input.grantedCapabilities, surface: input.surface },
     input.method
   )
   if (!gate.granted) {
@@ -44,17 +45,12 @@ export async function executePluginHostCall(
   if (!bound) {
     return { ok: false, code: 'unknown_method', error: `unknown host method: ${input.method}` }
   }
-  const parsedParams = bound.spec.params.safeParse(input.params)
-  if (!parsedParams.success) {
-    const issue = parsedParams.error.issues[0]
-    const path = issue?.path.join('.') || '(root)'
-    return {
-      ok: false,
-      code: 'invalid_params',
-      error: `${path}: ${issue?.message ?? 'invalid params'}`
-    }
+  const prepared = bound.prepare(input.params)
+  if (!prepared.ok) {
+    return { ok: false, code: 'invalid_params', error: prepared.issue }
   }
-  if (!input.services) {
+  const services = input.services
+  if (!services) {
     return { ok: false, code: 'unavailable', error: 'runtime is not available' }
   }
   const auditMutation = async (outcome: 'attempt' | 'ok' | 'error'): Promise<void> => {
@@ -63,7 +59,7 @@ export async function executePluginHostCall(
         ts: Date.now(),
         actor: `plugin:${input.pluginId}`,
         method: input.method,
-        summary: summarizeParams(input.method, parsedParams.data),
+        summary: summarizeParams(input.method, prepared.params),
         outcome
       })
     }
@@ -88,12 +84,8 @@ export async function executePluginHostCall(
     }
   }
   try {
-    const value = await bound.handler(parsedParams.data, {
-      pluginId: input.pluginId,
-      services: input.services
-    })
-    const validated = bound.spec.result.safeParse(value)
-    if (!validated.success) {
+    const validated = await prepared.execute({ pluginId: input.pluginId, services })
+    if (!validated) {
       await auditMutation('error').catch(() => undefined)
       // Malformed host results must not leak unvalidated shapes through any plugin transport.
       return {
@@ -103,7 +95,7 @@ export async function executePluginHostCall(
       }
     }
     await auditMutation('ok').catch(() => undefined)
-    return { ok: true, value: validated.data }
+    return { ok: true, value: validated.value }
   } catch (error) {
     await auditMutation('error').catch(() => undefined)
     return {
@@ -115,10 +107,7 @@ export async function executePluginHostCall(
 }
 
 function summarizeParams(method: string, params: unknown): string {
-  const record = (typeof params === 'object' && params !== null ? params : {}) as Record<
-    string,
-    unknown
-  >
+  const record = isPluginJsonObject(params) ? params : {}
   switch (method) {
     case 'terminal.sendText': {
       const text = typeof record.text === 'string' ? record.text : ''

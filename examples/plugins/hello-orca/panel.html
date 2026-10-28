@@ -43,58 +43,37 @@
     <p class="status" id="status"></p>
     <script>
       'use strict'
-      var seq = 0
-      var pending = new Map()
+      // Orca injects a frozen window.orca before this script runs.
       var statusEl = document.getElementById('status')
 
-      function call(action, params) {
-        return new Promise(function (resolve) {
-          var requestId = 'req-' + ++seq
-          pending.set(requestId, resolve)
-          // Opaque-origin frames require '*'; the host verifies the sending window.
-          window.parent.postMessage(
-            { type: 'orca-panel-action', requestId: requestId, action: action, params: params },
-            '*'
-          )
-        })
-      }
-
-      window.addEventListener('message', function (event) {
-        var data = event.data
-        if (event.source !== window.parent || !data || data.type !== 'orca-panel-action-result') {
-          return
-        }
-        var resolve = pending.get(data.requestId)
-        if (!resolve) return
-        pending.delete(data.requestId)
-        resolve(data)
-      })
-
       document.getElementById('ctx').addEventListener('click', function () {
-        call('workspace.readContext').then(function (result) {
-          if (!result.ok) {
-            statusEl.textContent = 'context failed: ' + (result.error || result.errorCode)
-            return
+        orca.host.call('workspace.readContext').then(
+          function (context) {
+            if (!context) {
+              statusEl.textContent = 'No workspace is focused.'
+              return
+            }
+            var count = context.terminals.length
+            var terminals = count === 1 ? 'terminal' : 'terminals'
+            statusEl.textContent = `${context.displayName} on branch ${context.branch} · ${count} ${terminals}`
+          },
+          function (error) {
+            statusEl.textContent = 'context failed: ' + error.code + ': ' + error.message
           }
-          if (!result.value) {
-            statusEl.textContent = 'No workspace is focused.'
-            return
-          }
-          var count = result.value.terminals.length
-          var branch = result.value.branch.replace(/^refs\/heads\//, '')
-          var terminals = count === 1 ? 'terminal' : 'terminals'
-          statusEl.textContent = `${result.value.displayName} on branch ${branch} · ${count} ${terminals}`
-        })
+        )
       })
 
       document.getElementById('notify').addEventListener('click', function () {
-        call('notifications.show', { title: 'Hello from the panel' }).then(function (result) {
-          statusEl.textContent = result.ok
-            ? result.value.delivered
+        orca.host.call('notifications.show', { title: 'Hello from the panel' }).then(
+          function (result) {
+            statusEl.textContent = result.delivered
               ? 'Notification shown.'
               : 'Notifications are turned off.'
-            : 'notify failed: ' + (result.error || result.errorCode)
-        })
+          },
+          function (error) {
+            statusEl.textContent = 'notify failed: ' + error.code + ': ' + error.message
+          }
+        )
       })
     </script>
   </body>

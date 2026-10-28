@@ -1,8 +1,6 @@
 import { ipcRenderer } from 'electron'
-import type {
-  PluginPanelActionOutcome,
-  PluginPanelEntry
-} from '../../shared/plugins/plugin-panel-bridge'
+import type { PluginFrameEntry } from '../../shared/plugins/plugin-frame-bridge'
+import type { PluginHostCallOutcome } from '../../shared/plugins/plugin-protocol'
 import type { PluginConsentRequest } from '../../shared/plugins/approval/plugin-consent-request'
 import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
 import type {
@@ -30,18 +28,18 @@ export const pluginsApi = {
   readPanelEntry: (args: {
     pluginKey: string
     panelId: string
-  }): Promise<PluginPanelEntry | null> => ipcRenderer.invoke('plugins:readPanelEntry', args),
+  }): Promise<PluginFrameEntry | null> => ipcRenderer.invoke('plugins:readPanelEntry', args),
   readCustomEditorEntry: (args: {
     pluginKey: string
     editorId: string
-  }): Promise<{ html: string } | null> => ipcRenderer.invoke('plugins:readCustomEditorEntry', args),
+  }): Promise<PluginFrameEntry | null> => ipcRenderer.invoke('plugins:readCustomEditorEntry', args),
   invokeCommand: (args: { pluginKey: string; commandId: string; args?: unknown }) =>
     ipcRenderer.invoke('plugins:invokeCommand', args),
   panelAction: (args: {
     sessionToken: string
     action: string
     params?: unknown
-  }): Promise<PluginPanelActionOutcome> => ipcRenderer.invoke('plugins:panelAction', args),
+  }): Promise<PluginHostCallOutcome> => ipcRenderer.invoke('plugins:panelAction', args),
   install: (source: PluginHostInstallSource): Promise<PluginHostInstallResult> =>
     ipcRenderer.invoke('plugins:install', source),
   listMarketplaces: () => ipcRenderer.invoke('plugins:listMarketplaces'),

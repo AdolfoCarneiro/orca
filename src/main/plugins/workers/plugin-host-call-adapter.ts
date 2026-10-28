@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { isQualifiedPluginKey } from '../../../shared/plugins/manifest/plugin-manifest'
-import type { PluginPanelActionOutcome } from '../../../shared/plugins/plugin-panel-bridge'
+import type { PluginHostCallOutcome, PluginSurface } from '../../../shared/plugins/plugin-protocol'
 import { executePluginHostCall, type ExecutePluginHostCallInput } from './plugin-host-methods'
 
 const pluginHostCallRequestSchema = z
@@ -24,9 +24,9 @@ export async function executePluginHostCallRequest(input: {
   /** Qualified identity already authenticated by the owning transport. */
   pluginKey: string
   request: unknown
-  viaPanel: boolean
+  surface: PluginSurface
   resolvePolicy: ResolvePluginHostCallPolicy
-}): Promise<PluginPanelActionOutcome> {
+}): Promise<PluginHostCallOutcome> {
   if (!isQualifiedPluginKey(input.pluginKey)) {
     return { ok: false, code: 'invalid_request', error: 'invalid qualified plugin key' }
   }
@@ -44,7 +44,7 @@ export async function executePluginHostCallRequest(input: {
     pluginId: input.pluginKey,
     method: parsed.data.method,
     params: parsed.data.params,
-    viaPanel: input.viaPanel,
+    surface: input.surface,
     ...policy
   })
 }

@@ -60,7 +60,8 @@ describe('PluginPanelController custom editor entries', () => {
   it('wraps the editor in the panel CSP shell with the key forwarder, after verifying bytes', async () => {
     const plugin = await createEditorPlugin()
     const verify = vi.fn().mockResolvedValue(undefined)
-    const entry = await controllerFor(plugin, verify).readCustomEditorEntry(
+    const entry = await controllerFor(plugin, verify).openCustomEditor(
+      'owner',
       plugin.pluginKey,
       'excalidraw'
     )
@@ -69,7 +70,9 @@ describe('PluginPanelController custom editor entries', () => {
     // No network, no remote scripts: every fetch, socket and beacon is refused.
     expect(PLUGIN_PANEL_CSP).toContain("connect-src 'none'")
     expect(PLUGIN_PANEL_CSP).toContain("default-src 'none'")
-    expect(entry?.html).toContain("type: 'orca-editor-keydown'")
+    // The frozen frame API, editor flavour, is injected before plugin code.
+    expect(entry?.html).toContain('"surface":"editor"')
+    expect(entry?.html).toContain("Object.defineProperty(window, 'orca'")
     expect(entry?.html.endsWith('<main id="canvas"></main>')).toBe(true)
     // Why: the editor is told nothing about where the file lives or where the plugin is.
     expect(entry?.html).not.toContain(plugin.rootDir)
@@ -78,22 +81,40 @@ describe('PluginPanelController custom editor entries', () => {
   it('returns null for unknown editors, unapproved plugins and tampered bytes', async () => {
     const plugin = await createEditorPlugin()
     await expect(
-      controllerFor(plugin).readCustomEditorEntry(plugin.pluginKey, 'other')
+      controllerFor(plugin).openCustomEditor('owner', plugin.pluginKey, 'other')
     ).resolves.toBeNull()
     await expect(
-      controllerFor(null).readCustomEditorEntry(plugin.pluginKey, 'excalidraw')
+      controllerFor(null).openCustomEditor('owner', plugin.pluginKey, 'excalidraw')
     ).resolves.toBeNull()
     const tampered = vi.fn().mockRejectedValue(new Error('content changed'))
     await expect(
-      controllerFor(plugin, tampered).readCustomEditorEntry(plugin.pluginKey, 'excalidraw')
+      controllerFor(plugin, tampered).openCustomEditor('owner', plugin.pluginKey, 'excalidraw')
     ).resolves.toBeNull()
   })
 
-  it('gives custom editors no panel session, so they cannot call host actions', async () => {
+  it('gives custom editors an editor session: frame methods only, never a panel', async () => {
     const plugin = await createEditorPlugin()
-    const controller = controllerFor(plugin)
-    const entry = await controller.readCustomEditorEntry(plugin.pluginKey, 'excalidraw')
-    expect(entry).not.toHaveProperty('sessionToken')
+    const executeHostCall = vi.fn().mockResolvedValue({ ok: true, value: null })
+    const controller = new PluginPanelController({
+      resolveApprovedPlugin: (pluginKey) => (plugin.pluginKey === pluginKey ? plugin : null),
+      contentVerifier: { verify: vi.fn() },
+      executeHostCall,
+      log: () => vi.fn()
+    })
+    const entry = await controller.openCustomEditor('owner', plugin.pluginKey, 'excalidraw')
+    expect(entry?.sessionToken).toEqual(expect.any(String))
+    await controller.execute('owner', {
+      sessionToken: entry?.sessionToken,
+      action: 'notifications.show',
+      params: { title: 'hi' }
+    })
+    expect(executeHostCall).toHaveBeenCalledWith(
+      plugin.pluginKey,
+      'notifications.show',
+      { title: 'hi' },
+      'editor'
+    )
+    // The editor id names no panel, so it cannot open one.
     await expect(controller.open('owner', plugin.pluginKey, 'excalidraw')).resolves.toBeNull()
   })
 })

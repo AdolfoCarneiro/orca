@@ -27,17 +27,48 @@ asked to approve:
 - `data`: themes, terminal themes, icon themes, syntaxes, translations. Installs in one click.
 - `declarative`: commands that run Orca actions, shortcuts, VM recipes. Reviewed before they
   are enabled.
-- `sandboxed-ui`: panels, in a sandboxed frame that can only call the host methods marked
-  "Panels: yes".
-  Orca's colors reach panel CSS as `--orca-background`, `--orca-foreground`, `--orca-primary`
-  and the rest of its panel token set, so they never collide with a panel's own variables.
-  Custom editors (`contributes.customEditors`) run in the same frame and get no host methods;
-  see [Custom editors](#custom-editors).
+- `sandboxed-ui`: panels and custom editors, in a sandboxed frame that talks to Orca only
+  through `window.orca` (see [Frames](#frames-windoworca)) and can call only the host methods
+  whose surfaces list `panel` or `editor`.
+  Orca's colors reach frame CSS as `--orca-background`, `--orca-foreground`, `--orca-primary`
+  and the rest of its panel token set, so they never collide with a frame's own variables.
 - `trusted-worker`: `main` runs in a separate Node process and can call every host method its
   `capabilities` allow.
 
 Set `engines.orca` to the newest `Since` of any field you use, and `pluginApi` (currently `1`)
 only when a panel or worker calls the host API.
+
+### Frames: `window.orca`
+
+Before any plugin code runs, the frame shell defines a frozen `window.orca`. It is the only
+supported way to talk to Orca; the messages underneath are internal and change without notice.
+
+```js
+orca.api // { major: 1, minor: 0 }: the host API this Orca implements
+if (orca.host.has('workspace.readContext')) {
+  // Synchronous: is the method offered to this surface by this Orca?
+  const controller = new AbortController()
+  try {
+    const context = await orca.host.call('workspace.readContext', {}, { signal: controller.signal })
+  } catch (error) {
+    // error.code, error.message, error.retryable, error.retryAfterMs (rate_limited only)
+  }
+}
+const subscription = orca.on('theme', ({ colorScheme }) => {})
+subscription.dispose()
+```
+
+Methods, their surfaces and their errors are in the [host API reference](plugin-host-api.md).
+Aborting the `signal` rejects the call with `cancelled`. Treat an error `code` you do not know as
+`action_failed`. Params are strict: a field the running Orca does not know is refused with
+`invalid_params`, so check `orca.host.has` or `orca.api.minor` before using a newer one.
+
+Workers get the same calls on the `orca` object passed to `activate(orca)`:
+`orca.api`, `orca.host.call(method, params, { signal })`, `orca.host.has(method)`, plus
+`orca.commands.register(id, (args, { signal }) => …)` and `orca.events.on(event, handler)`, which
+both return `{ dispose() }`. A command's `signal` aborts when Orca stops waiting for it. In
+`agent.status.changed`, `state` and `mainAgent.state` are one of `working`, `blocked`, `waiting`
+and `done`.
 
 ### Custom editors
 
@@ -46,38 +77,41 @@ A custom editor opens files that end in one of its `extensions` (with the dot, s
 match files the same way. It runs in the same sandboxed frame as a panel (no Node, no file system), and Orca keeps
 the buffer, dirty state, saving, the external-change banner, read-only tabs and remote (SSH or
 paired host) files; the frame only gets the document, never a path. Editor and panel plugins are
-trusted code, and an editor can read every file it opens, so install ones you trust. Messages (`postMessage` with `window.parent`; check `event.source === window.parent`):
+trusted code, and an editor can read every file it opens, so install ones you trust.
 
-| Direction     | Message                                                                   | When                                                                                                |
-| ------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| editor → Orca | `{ type: 'orca-editor-ready' }`                                           | Once listening. Orca answers with the document.                                                     |
-| Orca → editor | `{ type: 'orca-editor-document', version, readOnly, content, fileType? }` | After ready, and whenever the file changes outside the editor. `version` rises with each one.       |
-| editor → Orca | `{ type: 'orca-editor-edit', baseVersion, content }`                      | The user changed the document: the full new content, against document `baseVersion`. Never on load. |
-| Orca → editor | `{ type: 'orca-editor-edit-rejected', baseVersion, error }`               | The edit named an older version (`error.code` is `conflict`) or was too large (`too_large`).        |
-| Orca → editor | `{ type: 'orca-editor-flush', requestId }`                                | Before a save: post any debounced edit, then reply `orca-editor-flushed` with the same `requestId`. |
+An editor's `window.orca` adds `document`:
 
-`content` is `{ kind: 'text', text }` for a text editor (the default `contentKind`). Every edit
-must name the `baseVersion` it was made against; Orca drops an edit without one. Treat an unknown
-`error.code` as a failed edit. When `readOnly` is true (an agent transcript, say), Orca ignores
-edits; an editor that only views files simply never posts one.
+```js
+const doc = await orca.document.get() // { version, readOnly, content, fileType? }
+orca.document.onDidChange((doc) => render(doc)) // the file changed outside the editor
+await orca.document.applyEdit({ baseVersion: doc.version, content: { kind: 'text', text } })
+orca.on('editor.flush', () => sendPendingEdit()) // before a save; Orca waits for the promise
+```
+
+`content` is `{ kind: 'text', text }` for a text editor (the default `contentKind`). An edit is
+the full new content, made against document `baseVersion`; send one only when the user changes
+the document, never on load. `applyEdit` rejects with `conflict` when the file changed outside
+the editor since that version (edit the newer document instead), `too_large` past the size cap,
+and `not_permitted` when `readOnly` is true (an agent transcript, say). `version` rises with each
+document Orca sends, not with your own edits.
 
 Set `"contentKind": "bytes"` for a binary format such as a spreadsheet. Orca reads the file
-itself (locally, over SSH or from a paired host) and sends `content: { kind: 'bytes', bytes }`,
-where `bytes` is a transferred `ArrayBuffer`, plus the matched suffix as `fileType`. An edit is
-the whole new file the same way: `content: { kind: 'bytes', bytes }` with a transferable
-`ArrayBuffer` (pass it in the `postMessage` transfer list). Orca marks the tab dirty and saves the
-bytes with the tab's normal save, replacing the file atomically; a save is refused if the file
-changed on disk since the document's version, and the banner offers Reload or Overwrite. Saving
-to a remote host needs an Orca server new enough to replace binary files. Source shows the binary
-placeholder, unsaved bytes are not kept across restarts, and bytes tabs don't autosave.
+itself (locally, over SSH or from a paired host) and the document's `content` is
+`{ kind: 'bytes', bytes }`, where `bytes` is an `ArrayBuffer`, plus the matched suffix as
+`fileType`. An edit is the whole new file the same way: `content: { kind: 'bytes', bytes }`.
+Orca marks the tab dirty and saves the bytes with the tab's normal save, replacing the file
+atomically; a save is refused if the file changed on disk since the document's version, and the
+banner offers Reload or Overwrite. Saving to a remote host needs an Orca server new enough to
+replace binary files. Source shows the binary placeholder, unsaved bytes are not kept across
+restarts, and bytes tabs don't autosave.
 
 Documents and edits are capped at 16 MiB, text or bytes: a larger file shows "too large to open",
 and a larger edit is rejected with `too_large`. Orca saves on its own save shortcut pressed
-inside the frame, never on a message alone.
+inside the frame, never on a call alone.
 
-Theme changes do not reload the frame: Orca posts `{ type: 'orca-panel-theme', colorScheme }`,
-and the shell updates the `--orca-*` variables and the `light`/`dark` class on `<html>` in place.
-Restyle from the variables, or watch the class, to follow it.
+Theme changes do not reload the frame: the shell updates the `--orca-*` variables and the
+`light`/`dark` class on `<html>` in place and emits `theme`. Restyle from the variables, or
+listen with `orca.on('theme', …)`, to follow it.
 
 ## 2. Load it while you work
 
@@ -186,20 +220,19 @@ Plugins are in Alpha: the manifest v2 format and catalog format are stable contr
 listed as experimental may change. These parts are stable and change only additively:
 
 - manifest format 2, capability names and execution profiles;
-- host API 1 (`"pluginApi": 1`): method names, params and results;
-- the panel bridge message names (`orca-panel-action`, `-result`, `-ping`, `-pong`) and error
-  codes;
-- the custom editor message names (`orca-editor-ready`, `-document`, `-edit`,
-  `-edit-rejected`, `-flush`, `-flushed`) and the document `version`/`content` shape;
+- host API 1 (`"pluginApi": 1`): method names, params, results, surfaces and error codes;
+- the frame API `window.orca` (`api`, `host.call`, `host.has`, `on`, and `document` in custom
+  editors) and the document `version`/`content` shape;
 - theme token names, and theme ids once published (users' settings store them);
 - catalog format 2 (`orca-catalog.json`).
 
 Experimental; these may still change without a new format:
 
-- the `agent.status.changed` payload: `state` and `outcome` are free strings and `paneKey` is
-  not yet a terminal id `terminal.sendText` accepts;
+- the `agent.status.changed` payload: `paneKey` is not yet a terminal id `terminal.sendText`
+  accepts;
 - the worker process model: Node version, lifecycle and the channel to Orca. Only
-  `activate(orca)` and `orca.host`, `orca.commands`, `orca.events` and `orca.log` are promised,
+  `activate(orca)` and `orca.api`, `orca.host`, `orca.commands`, `orca.events` and `orca.log` are
+  promised,
   and workers may be stopped at any time;
 - language-pack keys, which change when Orca's source moves or its English copy changes; packs
   get best-effort coverage per release;

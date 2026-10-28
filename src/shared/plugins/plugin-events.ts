@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { AGENT_STATUS_STATES } from '../agent-status-types'
+import { AGENT_TURN_OUTCOMES } from '../agent-turn-outcome'
 import type { PluginEventName } from './manifest/plugin-manifest'
 
 /**
@@ -40,15 +42,15 @@ export const agentStatusChangedPayloadSchema = z.object({
   workspaceId: z.string().min(1).max(2048).nullable(),
   paneKey: z.string().min(1).max(2048),
   /** The combined status the user sees: `working` while the main agent or any live child works. */
-  state: z.string().min(1).max(256),
+  state: z.enum(AGENT_STATUS_STATES),
   receivedAt: z.number().finite().positive(),
   /** Distinguish the main agent from combined child activity; absent on older hosts or without main-agent evidence. State keeps its meaning. */
   mainAgent: z
     .object({
-      state: z.string().min(1).max(256),
+      state: z.enum(AGENT_STATUS_STATES),
       /** The verdict on the main agent's last finished turn, the provider's or else the host-observed end
        *  (`interruption`, `unconfirmed`); present only while `state` is done. */
-      outcome: z.string().min(1).max(256).optional(),
+      outcome: z.enum(AGENT_TURN_OUTCOMES).optional(),
       // Why: the same bound the row normalizer applies; a stricter one here would reject the whole event.
       /** Stamped by the host the agent runs on (an SSH host's own clock), unlike `receivedAt`. */
       stateStartedAt: z.number().finite()
@@ -56,11 +58,15 @@ export const agentStatusChangedPayloadSchema = z.object({
     .optional()
 })
 
-export const PLUGIN_EVENT_PAYLOAD_SCHEMAS: Record<PluginEventName, z.ZodTypeAny> = {
+export const PLUGIN_EVENT_PAYLOAD_SCHEMAS = {
   'workspace.created': workspaceCreatedPayloadSchema,
   'workspace.removed': workspaceRemovedPayloadSchema,
   'agent.status.changed': agentStatusChangedPayloadSchema
-}
+} satisfies Record<PluginEventName, z.ZodType>
+
+export type PluginEventPayload<E extends PluginEventName> = z.infer<
+  (typeof PLUGIN_EVENT_PAYLOAD_SCHEMAS)[E]
+>
 
 export type PluginWorkspaceCreatedPayload = z.infer<typeof workspaceCreatedPayloadSchema>
 export type PluginWorkspaceRemovedPayload = z.infer<typeof workspaceRemovedPayloadSchema>

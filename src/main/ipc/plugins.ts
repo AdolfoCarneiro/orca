@@ -1,12 +1,10 @@
 import { pluginThemeSettingsAfterRemoval } from '../../shared/plugin-theme-settings'
-import { ipcMain } from 'electron'
+import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { z } from 'zod'
 import type { Store } from '../persistence'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
-import type {
-  PluginPanelActionOutcome,
-  PluginPanelEntry
-} from '../../shared/plugins/plugin-panel-bridge'
+import type { PluginFrameEntry } from '../../shared/plugins/plugin-frame-bridge'
+import type { PluginHostCallOutcome } from '../../shared/plugins/plugin-protocol'
 import { getUserPluginsDir, getPluginsDataDir } from '../plugins/plugin-discovery'
 import {
   installPluginFromGit,
@@ -177,37 +175,37 @@ export function registerPluginHandlers(
   })
 
   // Sandboxed iframe srcdoc needs CSP-wrapped HTML contents across IPC.
-  ipcMain.handle(
-    'plugins:readPanelEntry',
-    async (event, args: unknown): Promise<PluginPanelEntry | null> => {
-      const ownerKey = rendererPanelOwner(event.sender.id)
-      const ownerLease = bindPluginPanelOwnerLifecycle(event.sender, () =>
-        pluginService.panels.revokeOwner(ownerKey)
-      )
-      await pluginService.whenReady()
-      const parsed = readPanelEntryArgsSchema.parse(args)
-      return pluginService.panels.open(
-        ownerKey,
-        parsed.pluginKey,
-        parsed.panelId,
-        ownerLease.isCurrent
-      )
-    }
-  )
+  const openFrameEntry = async (
+    sender: IpcMainInvokeEvent['sender'],
+    open: (ownerKey: string, isCurrent: () => boolean) => Promise<PluginFrameEntry | null>
+  ): Promise<PluginFrameEntry | null> => {
+    const ownerKey = rendererPanelOwner(sender.id)
+    const ownerLease = bindPluginPanelOwnerLifecycle(sender, () =>
+      pluginService.panels.revokeOwner(ownerKey)
+    )
+    await pluginService.whenReady()
+    // Why not revoke on a stale load: the owner key may already belong to a successor document.
+    return open(ownerKey, ownerLease.isCurrent)
+  }
 
-  ipcMain.handle(
-    'plugins:readCustomEditorEntry',
-    async (_event, args: unknown): Promise<{ html: string } | null> => {
-      await pluginService.whenReady()
-      const parsed = readCustomEditorEntryArgsSchema.parse(args)
-      return pluginService.panels.readCustomEditorEntry(parsed.pluginKey, parsed.editorId)
-    }
-  )
+  ipcMain.handle('plugins:readPanelEntry', (event, args: unknown) => {
+    const parsed = readPanelEntryArgsSchema.parse(args)
+    return openFrameEntry(event.sender, (ownerKey, isCurrent) =>
+      pluginService.panels.open(ownerKey, parsed.pluginKey, parsed.panelId, isCurrent)
+    )
+  })
 
-  // Renderer forwards panel actions; main enforces capabilities.
+  ipcMain.handle('plugins:readCustomEditorEntry', (event, args: unknown) => {
+    const parsed = readCustomEditorEntryArgsSchema.parse(args)
+    return openFrameEntry(event.sender, (ownerKey, isCurrent) =>
+      pluginService.panels.openCustomEditor(ownerKey, parsed.pluginKey, parsed.editorId, isCurrent)
+    )
+  })
+
+  // Renderer forwards frame host calls; main enforces capabilities and surfaces.
   ipcMain.handle(
     'plugins:panelAction',
-    async (event, args: unknown): Promise<PluginPanelActionOutcome> => {
+    async (event, args: unknown): Promise<PluginHostCallOutcome> => {
       await pluginService.whenReady()
       return pluginService.panels.execute(rendererPanelOwner(event.sender.id), args)
     }

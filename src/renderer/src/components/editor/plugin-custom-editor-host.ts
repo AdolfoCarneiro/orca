@@ -1,20 +1,29 @@
 import {
+  CUSTOM_EDITOR_CONFLICT,
   CUSTOM_EDITOR_DOCUMENT_MAX_BYTES,
-  CUSTOM_EDITOR_DOCUMENT_TYPE,
   CUSTOM_EDITOR_EDIT_RATE_LIMIT,
   CUSTOM_EDITOR_FLUSH_TIMEOUT_MS,
-  CUSTOM_EDITOR_FLUSH_TYPE,
+  CUSTOM_EDITOR_TOO_LARGE,
   isCustomEditorEditAttempt,
-  readCustomEditorFrameMessage,
-  customEditorConflict,
-  customEditorTooLarge,
-  type CustomEditorContent,
-  type CustomEditorDocumentMessage,
-  type CustomEditorEditRejectedMessage,
+  readCustomEditorEdit,
+  readCustomEditorKeyChord,
+  type CustomEditorDocument,
+  type CustomEditorEdit,
   type CustomEditorKeyChord
 } from '../../../../shared/plugins/plugin-custom-editor-bridge'
-import { isPluginJsonObject } from '../../../../shared/plugins/manifest/plugin-json-object'
-import { readPanelPongId } from '../../../../shared/plugins/plugin-panel-bridge'
+import { EDITOR_METHODS, FRAME_EVENTS } from '../../../../shared/plugins/plugin-frame-bridge'
+import {
+  pluginError,
+  pluginEvent,
+  pluginFailure,
+  pluginRequest,
+  pluginRequestId,
+  pluginResult,
+  readPluginEnvelope,
+  type PluginEnvelope,
+  type PluginError
+} from '../../../../shared/plugins/plugin-protocol'
+import type { PluginFrameEditorChannel } from '../right-sidebar/plugin-frame-host'
 import {
   createPanelMessageBudget,
   structuredCloneMessageBytes,
@@ -42,16 +51,15 @@ export type CustomEditorHostOptions = {
   /** The frame holds edits the buffer lacks, or caught up again. */
   onUnappliedEdit?: (state: CustomEditorUnappliedEdit) => void
   onKeyChord?: (chord: CustomEditorKeyChord) => void
-  onPong?: (pingId: number) => void
+  /** The edit lane; every other message spends the frame's shared budget. */
   budget?: PanelMessageBudget
-  /** Meters non-edit messages, so chords and flush replies never spend the edit budget. */
-  controlBudget?: PanelMessageBudget
   now?: () => number
   flushTimeoutMs?: number
 }
 
 export type CustomEditorHost = {
-  handleMessage: (event: MessageEvent) => void
+  /** Plugged into the frame host for this editor's frame. */
+  channel: PluginFrameEditorChannel
   /** Push the buffer when it changed outside the frame (reload, revert, Source edits). */
   syncDocument: () => void
   /** Waits for edits still in the frame's debounce window; false on timeout or when an edit
@@ -71,7 +79,6 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
       maxBytes: CUSTOM_EDITOR_DOCUMENT_MAX_BYTES,
       ...CUSTOM_EDITOR_EDIT_RATE_LIMIT
     })
-  const controlBudget = options.controlBudget ?? createPanelMessageBudget()
   const now = options.now ?? (() => Date.now())
   const flushTimeoutMs = options.flushTimeoutMs ?? CUSTOM_EDITOR_FLUSH_TIMEOUT_MS
   let ready = false
@@ -82,9 +89,10 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
   // The version of the last document sent; edits against an older one are refused.
   let version = 0
   let nextFlushId = 0
-  const pendingFlushes = new Map<number, () => void>()
+  const pendingFlushes = new Map<number, (answered: boolean) => void>()
   // The newest edit refused for the rate limit, unparsed until applied; full-text, so it wins.
   let heldEdit: unknown = null
+  let heldId: number | null = null
   let heldTimer: ReturnType<typeof setTimeout> | null = null
   let lostEdit = false
   let unapplied: CustomEditorUnappliedEdit = null
@@ -97,15 +105,19 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
     }
   }
 
-  const post = (
-    message:
-      | CustomEditorDocumentMessage
-      | CustomEditorEditRejectedMessage
-      | { type: string; requestId: number },
-    transfer: Transferable[] = []
-  ) => {
+  const post = (message: PluginEnvelope, transfer: Transferable[] = []) => {
     // Opaque srcdoc origins require targetOrigin '*'.
     options.getFrameWindow()?.postMessage(message, '*', transfer)
+  }
+
+  const answer = (id: number | null, error: PluginError | null): void => {
+    if (id !== null) {
+      post(error ? pluginFailure(id, error) : pluginResult(id, null))
+    }
+  }
+
+  const postDocument = (document: CustomEditorDocument, transfer: Transferable[] = []): void => {
+    post(pluginEvent(FRAME_EVENTS.editorDocument, document), transfer)
   }
 
   const pushBinaryDocument = (force: boolean, binary: CustomEditorBinaryDocument | null): void => {
@@ -116,9 +128,8 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
     // Why a copy: transferring detaches the buffer, and a remounted frame needs the bytes again.
     const bytes = binary.bytes.slice().buffer
     version += 1
-    post(
+    postDocument(
       {
-        type: CUSTOM_EDITOR_DOCUMENT_TYPE,
         version,
         readOnly: options.getDocument().readOnly,
         fileType: binary.fileType,
@@ -143,27 +154,25 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
     frameText = text
     frameReadOnly = readOnly
     version += 1
-    post({
-      type: CUSTOM_EDITOR_DOCUMENT_TYPE,
-      version,
-      readOnly,
-      content: { kind: 'text', text }
-    })
+    postDocument({ version, readOnly, content: { kind: 'text', text } })
   }
 
-  const applyEdit = (content: CustomEditorContent, baseVersion: number): void => {
+  const applyEdit = ({ content, baseVersion }: CustomEditorEdit): PluginError | null => {
     const binary = options.getBinaryDocument
-    if (
-      !ready ||
-      options.getDocument().readOnly ||
-      content.kind !== (binary ? 'bytes' : 'text') ||
-      (binary && !frameBinary)
-    ) {
-      return
+    if (!ready || (binary && !frameBinary)) {
+      return pluginError('unavailable', 'The document is not loaded yet.')
+    }
+    if (options.getDocument().readOnly) {
+      return pluginError('not_permitted', 'This document is read-only.')
+    }
+    if (content.kind !== (binary ? 'bytes' : 'text')) {
+      return pluginError(
+        'invalid_params',
+        `content.kind: this editor edits ${binary ? 'bytes' : 'text'}`
+      )
     }
     if (baseVersion !== version) {
-      post(customEditorConflict(baseVersion))
-      return
+      return CUSTOM_EDITOR_CONFLICT
     }
     // A newer full document supersedes anything held back or lost.
     lostEdit = false
@@ -171,13 +180,21 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
     if (content.kind === 'bytes') {
       frameBinary = { bytes: new Uint8Array(content.bytes), fileType: frameBinary?.fileType ?? '' }
       options.onBytesEdit?.(frameBinary)
-      return
+      return null
     }
-    if (content.text === frameText) {
-      return
+    if (content.text !== frameText) {
+      frameText = content.text
+      options.onEdit(content.text)
     }
-    frameText = content.text
-    options.onEdit(content.text)
+    return null
+  }
+
+  /** Applies an admitted edit message and answers it. */
+  const receiveEdit = (data: unknown): void => {
+    const message = readPluginEnvelope(data)
+    const edit = message?.kind === 'req' ? readCustomEditorEdit(message.params) : null
+    const id = pluginRequestId(data)
+    answer(id, edit ? applyEdit(edit) : pluginError('invalid_params', 'malformed editor edit'))
   }
 
   const applyHeldEdit = (): void => {
@@ -187,22 +204,30 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
     }
     const held = heldEdit
     heldEdit = null
-    const message = held === null ? null : readCustomEditorFrameMessage(held)
-    if (message?.type === 'orca-editor-edit') {
-      applyEdit(message.content, message.baseVersion)
+    heldId = null
+    if (held !== null) {
+      receiveEdit(held)
     }
     reportUnapplied()
+  }
+
+  /** A newer full-document edit carries the held one's intent, so the held one succeeds. */
+  const supersedeHeldEdit = (): void => {
+    answer(heldId, null)
+    heldEdit = null
+    heldId = null
   }
 
   const refuseEdit = (data: unknown, refusal: CustomEditorEditRefusal): void => {
     options.onEditRefused?.(refusal)
     if (refusal === 'oversized') {
-      heldEdit = null
+      supersedeHeldEdit()
       lostEdit = true
-      const baseVersion = isPluginJsonObject(data) ? data.baseVersion : undefined
-      post(customEditorTooLarge(Number.isSafeInteger(baseVersion) ? Number(baseVersion) : version))
+      answer(pluginRequestId(data), CUSTOM_EDITOR_TOO_LARGE)
     } else {
+      supersedeHeldEdit()
       heldEdit = data
+      heldId = pluginRequestId(data)
       heldTimer ??= setTimeout(applyHeldEdit, CUSTOM_EDITOR_EDIT_RATE_LIMIT.perMs)
     }
     reportUnapplied()
@@ -210,56 +235,48 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
 
   const settleFlushes = (): void => {
     for (const settle of pendingFlushes.values()) {
-      settle()
+      settle(true)
     }
     pendingFlushes.clear()
   }
 
   return {
-    handleMessage(event) {
-      const frameWindow = options.getFrameWindow()
-      // Sandboxed srcdoc has a null origin; trust the sending Window identity instead.
-      if (!frameWindow || event.source !== frameWindow) {
-        return
-      }
-      const pongId = readPanelPongId(event.data)
-      if (pongId !== null) {
-        options.onPong?.(pongId)
-        return
-      }
-      // Budget before parsing so floods cannot spend unmetered validation work.
-      const isEdit = isCustomEditorEditAttempt(event.data)
-      const refusal = (isEdit ? budget : controlBudget).admit(
-        now(),
-        structuredCloneMessageBytes(event.data, CUSTOM_EDITOR_DOCUMENT_MAX_BYTES)
-      )
-      if (refusal) {
-        if (isEdit) {
-          refuseEdit(event.data, refusal)
+    channel: {
+      claim(data) {
+        if (!isCustomEditorEditAttempt(data)) {
+          return false
         }
-        return
-      }
-      const message = readCustomEditorFrameMessage(event.data)
-      if (!message) {
-        return
-      }
-      switch (message.type) {
-        case 'orca-editor-ready':
-          ready = true
-          pushDocument(true)
-          return
-        case 'orca-editor-edit':
-          // An admitted edit is newer than any held one.
-          heldEdit = null
-          applyEdit(message.content, message.baseVersion)
-          reportUnapplied()
-          return
-        case 'orca-editor-flushed':
-          pendingFlushes.get(message.requestId)?.()
-          pendingFlushes.delete(message.requestId)
-          return
-        case 'orca-editor-keydown':
-          options.onKeyChord?.(message)
+        // Budget before parsing so floods cannot spend unmetered validation work.
+        const refusal = budget.admit(
+          now(),
+          structuredCloneMessageBytes(data, CUSTOM_EDITOR_DOCUMENT_MAX_BYTES)
+        )
+        if (refusal) {
+          refuseEdit(data, refusal)
+          return true
+        }
+        // An admitted edit is newer than any held one.
+        supersedeHeldEdit()
+        receiveEdit(data)
+        reportUnapplied()
+        return true
+      },
+      onReady() {
+        ready = true
+        pushDocument(true)
+      },
+      onEvent(event) {
+        const chord =
+          event.event === FRAME_EVENTS.editorKeydown
+            ? readCustomEditorKeyChord(event.payload)
+            : null
+        if (chord) {
+          options.onKeyChord?.(chord)
+        }
+      },
+      onResponse(response) {
+        pendingFlushes.get(response.id)?.(response.error === undefined)
+        pendingFlushes.delete(response.id)
       }
     },
     syncDocument() {
@@ -278,11 +295,11 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
           resolve(answered && !lostEdit)
         }
         const timer = setTimeout(() => settle(false), flushTimeoutMs)
-        pendingFlushes.set(requestId, () => {
+        pendingFlushes.set(requestId, (answered) => {
           clearTimeout(timer)
-          settle(true)
+          settle(answered)
         })
-        post({ type: CUSTOM_EDITOR_FLUSH_TYPE, requestId })
+        post(pluginRequest(requestId, EDITOR_METHODS.flush))
       })
     },
     currentText() {
@@ -294,6 +311,7 @@ export function createCustomEditorHost(options: CustomEditorHostOptions): Custom
       frameReadOnly = null
       frameBinary = null
       heldEdit = null
+      heldId = null
       lostEdit = false
       if (heldTimer !== null) {
         clearTimeout(heldTimer)

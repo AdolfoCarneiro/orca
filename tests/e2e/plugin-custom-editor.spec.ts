@@ -16,30 +16,21 @@ import { disablePluginSystem, enableDevPlugins, openRepoFile } from './helpers/p
 const FILE = 'custom-editor-smoke.sketch'
 const FRAME = 'iframe[title="Sketch Pad"]'
 
-// A tiny protocol-complete editor: a textarea that posts debounced full-text edits.
+// A tiny complete editor on window.orca: a textarea that sends debounced full-text edits.
 const EDITOR_HTML = `<textarea id="doc" style="width:100%;height:90vh"></textarea>
 <script>
 const doc = document.getElementById('doc')
 let timer = null
 let version = 0
-const post = (message) => window.parent.postMessage(message, '*')
 const flush = () => {
   clearTimeout(timer); timer = null
-  post({ type: 'orca-editor-edit', baseVersion: version, content: { kind: 'text', text: doc.value } })
+  return orca.document.applyEdit({ baseVersion: version, content: { kind: 'text', text: doc.value } })
 }
 doc.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(flush, 400) })
-window.addEventListener('message', (event) => {
-  if (event.source !== window.parent) return
-  const data = event.data
-  if (data.type === 'orca-editor-document') {
-    version = data.version; doc.value = data.content.text; doc.readOnly = data.readOnly
-  }
-  if (data.type === 'orca-editor-flush') {
-    if (timer) flush()
-    post({ type: 'orca-editor-flushed', requestId: data.requestId })
-  }
+orca.document.onDidChange((next) => {
+  version = next.version; doc.value = next.content.text; doc.readOnly = next.readOnly
 })
-post({ type: 'orca-editor-ready' })
+orca.on('editor.flush', () => (timer ? flush() : undefined))
 </script>`
 
 async function writeEditorPlugin(root: string): Promise<void> {
@@ -131,30 +122,24 @@ const BYTES_EDITOR_HTML = `<output id="summary">waiting</output><button id="appe
 let version = 0
 let bytes = new Uint8Array()
 const summary = document.getElementById('summary')
-const post = (message, transfer) => window.parent.postMessage(message, '*', transfer || [])
-window.addEventListener('message', (event) => {
-  if (event.source !== window.parent) return
-  const data = event.data
-  if (data.type === 'orca-editor-flush') post({ type: 'orca-editor-flushed', requestId: data.requestId })
-  if (data.type !== 'orca-editor-document' || !data.content || data.content.kind !== 'bytes') return
-  version = data.version
-  bytes = new Uint8Array(data.content.bytes)
+orca.document.onDidChange((doc) => {
+  if (doc.content.kind !== 'bytes') return
+  version = doc.version
+  bytes = new Uint8Array(doc.content.bytes)
   summary.textContent =
-    'v' + data.version + ' ' + data.fileType + ' ' + data.readOnly + ' ' + bytes.length + ':' +
+    'v' + doc.version + ' ' + doc.fileType + ' ' + doc.readOnly + ' ' + bytes.length + ':' +
     Array.from(bytes.slice(0, 4), (byte) => byte.toString(16)).join(' ') +
     ' name=' + (window.name.includes('hexbook') ? 'leaks' : 'opaque')
-  // A text edit is the wrong kind for a bytes document: Orca ignores it.
-  post({ type: 'orca-editor-edit', baseVersion: version, content: { kind: 'text', text: 'x' } })
+  // A text edit is the wrong kind for a bytes document: Orca refuses it.
+  orca.document.applyEdit({ baseVersion: version, content: { kind: 'text', text: 'x' } }).catch(() => {})
 })
 document.getElementById('append').addEventListener('click', () => {
   const next = new Uint8Array(bytes.length + 1)
   next.set(bytes)
   next[bytes.length] = 0xaa
   bytes = next
-  const buffer = next.slice().buffer
-  post({ type: 'orca-editor-edit', baseVersion: version, content: { kind: 'bytes', bytes: buffer } }, [buffer])
+  orca.document.applyEdit({ baseVersion: version, content: { kind: 'bytes', bytes: next.slice().buffer } })
 })
-post({ type: 'orca-editor-ready' })
 </script>`
 
 test('a bytes custom editor edits and saves a binary file', async ({

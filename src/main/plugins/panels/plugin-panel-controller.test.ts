@@ -71,9 +71,12 @@ describe('PluginPanelController identity binding', () => {
         params: { title: 'Hello' }
       })
     ).resolves.toMatchObject({ ok: true })
-    expect(executeHostCall).toHaveBeenCalledWith(plugin.pluginKey, 'notifications.show', {
-      title: 'Hello'
-    })
+    expect(executeHostCall).toHaveBeenCalledWith(
+      plugin.pluginKey,
+      'notifications.show',
+      { title: 'Hello' },
+      'panel'
+    )
     await expect(
       controller.execute('runtime:other', {
         sessionToken: entry!.sessionToken,
@@ -113,7 +116,7 @@ describe('PluginPanelController identity binding', () => {
       })
     ).resolves.toEqual({
       ok: false,
-      code: 'invalid_request',
+      code: 'too_large',
       error: 'panel message exceeds the size limit'
     })
     await expect(

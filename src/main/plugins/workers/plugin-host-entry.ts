@@ -1,8 +1,9 @@
 // ELECTRON_RUN_AS_NODE entry: imports must stay transitively Electron-free.
 import { createPluginWorkerRuntime } from './plugin-host-runtime'
-import type { PluginWorkerChildMessage } from '../../../shared/plugins/workers/plugin-host-protocol'
+import { pluginWorkerFatal } from '../../../shared/plugins/workers/plugin-host-protocol'
+import type { PluginEnvelope } from '../../../shared/plugins/plugin-protocol'
 
-function sendToParent(message: PluginWorkerChildMessage): void {
+function sendToParent(message: PluginEnvelope): void {
   process.send?.(message)
 }
 
@@ -15,10 +16,9 @@ process.on('message', (raw: unknown) => {
 // Escaped third-party errors must terminate the worker so supervision can restart it.
 function dieFatally(error: unknown): void {
   try {
-    sendToParent({
-      type: 'fatal',
-      error: error instanceof Error ? (error.stack ?? error.message) : String(error)
-    })
+    sendToParent(
+      pluginWorkerFatal(error instanceof Error ? (error.stack ?? error.message) : String(error))
+    )
   } catch {
     // Channel already gone; nothing left to report to.
   }

@@ -182,7 +182,12 @@ describe('PluginPanel', () => {
     // Why the same frame: remounting would discard the panel's own state.
     expect(container.querySelector('iframe')).toBe(lightFrame)
     expect(posted).toHaveBeenCalledWith(
-      { type: 'orca-panel-theme', colorScheme: 'dark', tokens: expect.any(String) },
+      {
+        orca: 1,
+        kind: 'evt',
+        event: 'theme',
+        payload: { colorScheme: 'dark', tokens: expect.any(String) }
+      },
       '*'
     )
   })
@@ -212,9 +217,10 @@ describe('PluginPanel', () => {
 
     const event = new MessageEvent('message', {
       data: {
-        type: 'orca-panel-action',
-        requestId: 'request-one',
-        action: 'notifications.show',
+        orca: 1,
+        kind: 'req',
+        id: 1,
+        method: 'notifications.show',
         params: { title: 'Hello' }
       }
     })

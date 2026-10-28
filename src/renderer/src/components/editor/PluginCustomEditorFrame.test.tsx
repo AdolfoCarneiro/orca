@@ -19,6 +19,21 @@ import PluginCustomEditorFrame from './PluginCustomEditorFrame'
 import { flushEditorFrames } from './editor-pending-flush'
 
 const FILE_ID = '/repo/diagram.excalidraw'
+const READY = { orca: 1, kind: 'evt', event: 'ready', payload: { protocol: 1 } }
+const textEdit = (text: string, id = 1) => ({
+  orca: 1,
+  kind: 'req',
+  id,
+  method: 'editor.applyEdit',
+  params: { baseVersion: 1, content: { kind: 'text', text } }
+})
+const keydown = (payload: object) => ({ orca: 1, kind: 'evt', event: 'editor.keydown', payload })
+const textDocument = (text: string, readOnly: boolean) => ({
+  orca: 1,
+  kind: 'evt',
+  event: 'editor.document',
+  payload: { version: 1, readOnly, content: { kind: 'text', text } }
+})
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -44,7 +59,10 @@ beforeEach(() => {
   document.body.appendChild(container)
   root = createRoot(container)
   readCustomEditorEntry.mockReset()
-  readCustomEditorEntry.mockResolvedValue({ html: '<main>editor</main>' })
+  readCustomEditorEntry.mockResolvedValue({
+    html: '<main>editor</main>',
+    sessionToken: 't'.repeat(43)
+  })
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the frame reads only these two plugin bridge methods.
   globalThis.window.api = {
     plugins: { readCustomEditorEntry, onChanged: () => vi.fn() }
@@ -90,7 +108,7 @@ async function renderFrame(props: {
 }
 
 describe('PluginCustomEditorFrame', () => {
-  it('renders the editor in a scripts-only sandbox with the no-network shell', async () => {
+  it('renders the editor in a scripts-only sandbox inside the CSP shell', async () => {
     const { iframe } = await renderFrame({ content: '{}' })
     expect(readCustomEditorEntry).toHaveBeenCalledWith({
       pluginKey: 'stablyai.excalidraw',
@@ -107,38 +125,25 @@ describe('PluginCustomEditorFrame', () => {
 
   it('sends the buffer on ready and applies edits without saving', async () => {
     const { posted, fromFrame, onContentChange, onSave } = await renderFrame({ content: 'scene' })
-    await fromFrame({ type: 'orca-editor-ready' })
-    expect(posted).toHaveBeenCalledWith(
-      {
-        type: 'orca-editor-document',
-        version: 1,
-        readOnly: false,
-        content: { kind: 'text', text: 'scene' }
-      },
-      '*',
-      []
-    )
-    await fromFrame({
-      type: 'orca-editor-edit',
-      baseVersion: 1,
-      content: { kind: 'text', text: 'scene+rect' }
-    })
+    await fromFrame(READY)
+    expect(posted).toHaveBeenCalledWith(textDocument('scene', false), '*', [])
+    await fromFrame(textEdit('scene+rect'))
     expect(onContentChange).toHaveBeenCalledWith('scene+rect')
     expect(onSave).not.toHaveBeenCalled()
   })
 
   it('flushes the frame before any save of the file, and keeps the tab unsaved if it never answers', async () => {
     const { posted, fromFrame } = await renderFrame({ content: 'scene' })
-    await fromFrame({ type: 'orca-editor-ready' })
+    await fromFrame(READY)
     const index = { editorBufferIdOf: {}, editorBufferViews: {} }
     const flushed = flushEditorFrames(index, FILE_ID)
-    expect(posted).toHaveBeenLastCalledWith({ type: 'orca-editor-flush', requestId: 0 }, '*', [])
-    await fromFrame({
-      type: 'orca-editor-edit',
-      baseVersion: 1,
-      content: { kind: 'text', text: 'scene+late' }
-    })
-    await fromFrame({ type: 'orca-editor-flushed', requestId: 0 })
+    expect(posted).toHaveBeenLastCalledWith(
+      { orca: 1, kind: 'req', id: 0, method: 'editor.flush' },
+      '*',
+      []
+    )
+    await fromFrame(textEdit('scene+late'))
+    await fromFrame({ orca: 1, kind: 'res', id: 0, result: null })
     await expect(flushed).resolves.toBe(true)
 
     let silent: Promise<boolean> | null = null
@@ -152,18 +157,12 @@ describe('PluginCustomEditorFrame', () => {
 
   it('saves on a frame chord only while it rides real user input', async () => {
     const isMac = navigator.userAgent.includes('Mac')
-    const chord = {
-      type: 'orca-editor-keydown',
-      key: 's',
-      code: 'KeyS',
-      metaKey: isMac,
-      ctrlKey: !isMac
-    }
+    const chord = keydown({ key: 's', code: 'KeyS', metaKey: isMac, ctrlKey: !isMac })
     const activation = { isActive: false }
     Object.defineProperty(navigator, 'userActivation', { value: activation, configurable: true })
     try {
       const { fromFrame, onSave } = await renderFrame({ content: 'scene' })
-      await fromFrame({ type: 'orca-editor-ready' })
+      await fromFrame(READY)
       await fromFrame(chord)
       expect(onSave).not.toHaveBeenCalled()
       activation.isActive = true
@@ -179,23 +178,10 @@ describe('PluginCustomEditorFrame', () => {
       content: 'scene',
       readOnly: true
     })
-    await fromFrame({ type: 'orca-editor-ready' })
-    expect(posted).toHaveBeenCalledWith(
-      {
-        type: 'orca-editor-document',
-        version: 1,
-        readOnly: true,
-        content: { kind: 'text', text: 'scene' }
-      },
-      '*',
-      []
-    )
-    await fromFrame({
-      type: 'orca-editor-edit',
-      baseVersion: 1,
-      content: { kind: 'text', text: 'tampered' }
-    })
-    await fromFrame({ type: 'orca-editor-keydown', key: 's', code: 'KeyS', metaKey: true })
+    await fromFrame(READY)
+    expect(posted).toHaveBeenCalledWith(textDocument('scene', true), '*', [])
+    await fromFrame(textEdit('tampered'))
+    await fromFrame(keydown({ key: 's', code: 'KeyS', metaKey: true }))
     expect(onContentChange).not.toHaveBeenCalled()
     expect(onSave).not.toHaveBeenCalled()
   })
@@ -208,7 +194,12 @@ describe('PluginCustomEditorFrame', () => {
     })
     expect(container.querySelector('iframe')).toBe(iframe)
     expect(posted).toHaveBeenCalledWith(
-      { type: 'orca-panel-theme', colorScheme: 'dark', tokens: expect.any(String) },
+      {
+        orca: 1,
+        kind: 'evt',
+        event: 'theme',
+        payload: { colorScheme: 'dark', tokens: expect.any(String) }
+      },
       '*'
     )
     document.documentElement.classList.remove('dark')
@@ -220,22 +211,15 @@ describe('PluginCustomEditorFrame', () => {
       readOnly: true,
       binaryDocument: { bytes: new Uint8Array([1, 2, 3]), fileType: 'xlsx' }
     })
-    await fromFrame({ type: 'orca-editor-ready' })
-    const [message, origin, transfer]: unknown[] = posted.mock.calls[0] ?? []
+    await fromFrame(READY)
+    const [message, origin, transfer]: unknown[] = posted.mock.calls[1] ?? []
     expect(message).toMatchObject({
-      type: 'orca-editor-document',
-      version: 1,
-      readOnly: true,
-      fileType: 'xlsx',
-      content: { kind: 'bytes' }
+      event: 'editor.document',
+      payload: { version: 1, readOnly: true, fileType: 'xlsx', content: { kind: 'bytes' } }
     })
     expect(origin).toBe('*')
     expect(transfer).toHaveLength(1)
-    await fromFrame({
-      type: 'orca-editor-edit',
-      baseVersion: 1,
-      content: { kind: 'text', text: 'x' }
-    })
+    await fromFrame(textEdit('x'))
     expect(onContentChange).not.toHaveBeenCalled()
   })
 

@@ -2,7 +2,9 @@ import { randomBytes } from 'node:crypto'
 
 export type PluginPanelSessionBinding = {
   pluginKey: string
-  panelId: string
+  /** Which contribution list `contributionId` names; it also picks the callable methods. */
+  surface: 'panel' | 'editor'
+  contributionId: string
   rootDir: string
   manifestRevision: string
 }
@@ -17,7 +19,8 @@ function bindingKey(ownerKey: string, binding: PluginPanelSessionBinding): strin
   return JSON.stringify([
     ownerKey,
     binding.pluginKey,
-    binding.panelId,
+    binding.surface,
+    binding.contributionId,
     binding.rootDir,
     binding.manifestRevision
   ])
@@ -57,7 +60,8 @@ export class PluginPanelSessions {
     }
     return {
       pluginKey: session.pluginKey,
-      panelId: session.panelId,
+      surface: session.surface,
+      contributionId: session.contributionId,
       rootDir: session.rootDir,
       manifestRevision: session.manifestRevision
     }

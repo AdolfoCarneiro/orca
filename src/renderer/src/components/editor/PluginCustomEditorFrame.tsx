@@ -2,16 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { translate } from '@/i18n/i18n'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
-import {
-  PANEL_PING_TYPE,
-  PLUGIN_PANEL_FRAME_NAME_PREFIX
-} from '../../../../shared/plugins/plugin-panel-bridge'
-import {
-  fillPluginPanelShell,
-  postPluginFrameTheme
-} from '../right-sidebar/plugin-panel-design-token-css'
-import { createPanelWatchdog } from '../right-sidebar/plugin-panel-watchdog'
-import { usePluginFrameThemeSync } from '../right-sidebar/use-plugin-panel-theme-revision'
+import { PLUGIN_PANEL_FRAME_NAME_PREFIX } from '../../../../shared/plugins/plugin-frame-bridge'
+import { fillPluginPanelShell } from '../right-sidebar/plugin-panel-design-token-css'
+import { usePluginFrameHost } from '../right-sidebar/use-plugin-frame-host'
 import { editorShortcutMatches } from './editor-shortcuts'
 import { registerEditorFrameFlush } from './editor-pending-flush'
 import {
@@ -39,7 +32,7 @@ type EntryState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'unresponsive' }
-  | { status: 'ready'; html: string; revision: number }
+  | { status: 'ready'; html: string; sessionToken: string | null; revision: number }
 
 function FrameMessage({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
@@ -64,9 +57,7 @@ export default function PluginCustomEditorFrame({
   const [entry, setEntry] = useState<EntryState>({ status: 'loading' })
   const [refusal, setRefusal] = useState<CustomEditorEditRefusal | null>(null)
   const [saveBlocked, setSaveBlocked] = useState(false)
-  const [loadedFrameKey, setLoadedFrameKey] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
-  usePluginFrameThemeSync(iframeRef)
   // Why random: window.name is readable inside the frame, so it must not carry the file's path.
   const [frameName] = useState(
     () => `${PLUGIN_PANEL_FRAME_NAME_PREFIX}editor:${createBrowserUuid()}`
@@ -119,8 +110,13 @@ export default function PluginCustomEditorFrame({
           if (result.html !== currentHtml) {
             currentHtml = result.html
             revision += 1
-            setEntry({ status: 'ready', html: result.html, revision })
           }
+          setEntry({
+            status: 'ready',
+            html: result.html,
+            sessionToken: result.sessionToken,
+            revision
+          })
         })
         .catch(() => {
           if (!cancelled) {
@@ -143,16 +139,6 @@ export default function PluginCustomEditorFrame({
   const frameDocument = useMemo(
     () => (entryHtml === null ? null : fillPluginPanelShell(entryHtml)),
     [entryHtml]
-  )
-
-  const watchdog = useMemo(
-    () =>
-      createPanelWatchdog({
-        sendPing: (pingId) =>
-          iframeRef.current?.contentWindow?.postMessage({ type: PANEL_PING_TYPE, pingId }, '*'),
-        onUnresponsive: () => setEntry({ status: 'unresponsive' })
-      }),
-    []
   )
 
   const host = useMemo(() => {
@@ -179,7 +165,6 @@ export default function PluginCustomEditorFrame({
           latestRef.current.onDirtyHint?.(true)
         }
       },
-      onPong: (pingId) => watchdog.handlePong(pingId),
       onKeyChord: (chord) => {
         const event = new KeyboardEvent('keydown', chord)
         // Why: chords are posted by frame code, so only one riding real user input may save.
@@ -195,27 +180,23 @@ export default function PluginCustomEditorFrame({
       }
     })
     return created
-  }, [watchdog, isBinary])
+  }, [isBinary])
+
+  const { onFrameLoad } = usePluginFrameHost({
+    surface: 'editor',
+    iframeRef,
+    frameKey,
+    sessionToken: entry.status === 'ready' ? entry.sessionToken : null,
+    editor: host.channel,
+    onUnresponsive: () => setEntry({ status: 'unresponsive' })
+  })
 
   useEffect(() => {
     if (!frameKey) {
       return
     }
-    window.addEventListener('message', host.handleMessage)
-    return () => {
-      window.removeEventListener('message', host.handleMessage)
-      host.reset()
-    }
+    return () => host.reset()
   }, [frameKey, host])
-
-  useEffect(() => {
-    if (!frameKey || loadedFrameKey !== frameKey) {
-      return
-    }
-    // Ping only once srcdoc (and its pong responder) has loaded.
-    watchdog.start()
-    return () => watchdog.stop()
-  }, [frameKey, loadedFrameKey, watchdog])
 
   useEffect(() => {
     host.syncDocument()
@@ -294,11 +275,7 @@ export default function PluginCustomEditorFrame({
         sandbox="allow-scripts"
         name={frameName}
         srcDoc={frameDocument ?? ''}
-        onLoad={() => {
-          setLoadedFrameKey(frameKey)
-          // The theme may have changed between building srcdoc and the frame loading it.
-          postPluginFrameTheme(iframeRef.current?.contentWindow)
-        }}
+        onLoad={onFrameLoad}
         title={editor.title}
         className="min-h-0 w-full flex-1 border-0 bg-background"
       />

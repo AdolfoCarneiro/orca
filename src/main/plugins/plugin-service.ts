@@ -7,7 +7,7 @@ import type {
   PluginActivationState,
   PluginConsentLists
 } from '../../shared/plugins/approval/plugin-consent-state'
-import type { PluginPanelActionOutcome } from '../../shared/plugins/plugin-panel-bridge'
+import type { PluginHostCallOutcome, PluginSurface } from '../../shared/plugins/plugin-protocol'
 import { createPluginExtensionRegistry } from '../../shared/plugins/plugin-extension-registry'
 import {
   discoverPlugins,
@@ -79,8 +79,8 @@ export class PluginService {
     this.panels = new PluginPanelController({
       resolveApprovedPlugin: resolveApproved,
       contentVerifier: this.contentVerifier,
-      executeHostCall: (pluginKey, method, params) =>
-        this.executeHostCall(pluginKey, method, params, { viaPanel: true }),
+      executeHostCall: (pluginKey, method, params, surface) =>
+        this.executeHostCall(pluginKey, method, params, surface),
       log: (pluginKey) => this.installed.captureLog(pluginKey, 'error')
     })
     this.workerController = new PluginWorkerController({
@@ -95,7 +95,7 @@ export class PluginService {
       isApprovalKept: (spec) => isApprovedWorkerSpec(spec, resolveApproved(spec.pluginKey, true)),
       invokeCommand: (pluginKey, commandId, args) => this.invokeCommand(pluginKey, commandId, args),
       executeHostCall: (pluginKey, method, params) =>
-        this.executeHostCall(pluginKey, method, params, { viaPanel: false }),
+        this.executeHostCall(pluginKey, method, params, 'worker'),
       log: (pluginKey) => this.installed.logs.capture(pluginKey),
       onStateChanged: () => this.notifyChanged(false)
     })
@@ -242,12 +242,12 @@ export class PluginService {
     pluginKey: string,
     method: string,
     params: unknown,
-    options: { viaPanel: boolean }
-  ): Promise<PluginPanelActionOutcome> {
+    surface: PluginSurface
+  ): Promise<PluginHostCallOutcome> {
     return executePluginHostCallRequest({
       pluginKey,
       request: { method, params },
-      viaPanel: options.viaPanel,
+      surface,
       resolvePolicy: (boundPluginKey) => ({
         grantedCapabilities: this.getGrantedCapabilities(boundPluginKey),
         services: this.runtimeDelegate

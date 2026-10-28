@@ -52,9 +52,10 @@ describe('buildPluginPanelShellHtml', () => {
     style.textContent = ':root{--orca-background:white}'
     document.head.appendChild(style)
     const theme = {
-      type: 'orca-panel-theme',
-      colorScheme: 'dark',
-      tokens: '--orca-background:black'
+      orca: 1,
+      kind: 'evt',
+      event: 'theme',
+      payload: { colorScheme: 'dark', tokens: '--orca-background:black' }
     }
 
     window.dispatchEvent(new MessageEvent('message', { data: theme, source: null }))
@@ -67,7 +68,7 @@ describe('buildPluginPanelShellHtml', () => {
 
     window.dispatchEvent(
       new MessageEvent('message', {
-        data: { ...theme, tokens: '}</style><script>x</script>{' },
+        data: { ...theme, payload: { ...theme.payload, tokens: '}</style><script>x</script>{' } },
         source: window.parent
       })
     )
