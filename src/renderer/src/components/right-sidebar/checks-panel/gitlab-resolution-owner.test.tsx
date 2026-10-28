@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import type { PRComment } from '../../../../../shared/github/comment-types'
 import type { PRInfo } from '../../../../../shared/github/pull-request-types'
 import type { HostedReviewInfo } from '../../../../../shared/hosted-review'
+import type { ExecutionHostId } from '../../../../../shared/execution-host'
 import { getDefaultSettings } from '../../../../../shared/constants'
 import { useMountedRef } from '@/hooks/useMountedRef'
 import { makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
@@ -61,7 +62,7 @@ const initialReview: HostedReviewInfo = {
 type PanelContext = {
   review: HostedReviewInfo
   cacheKey: string
-  hostId: string
+  hostId: ExecutionHostId
 }
 const initialContext: PanelContext = {
   review: initialReview,
