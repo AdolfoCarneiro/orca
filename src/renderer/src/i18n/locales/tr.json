@@ -11794,7 +11794,6 @@
         "PluginsSettingsSection": {
           "systemLabel": "Eklenti sistemi",
           "systemDescription": "Yüklü eklentileri bulur ve bunları tek tek etkinleştirmenize olanak tanır. Siz inceleyip etkinleştirene kadar hiçbir şey çalışmaz. Worker'lar her zaman bu bilgisayarda çalışır; SSH çalışma alanı işlemleri Orca üzerinden yönlendirilir.",
-          "featureOff": "Yüklü eklentileri görmek ve yönetmek için eklenti sistemini açın. Zaten yüklü olanlar diskte kalır ve sistem kapalıyken devre dışı kalır.",
           "loading": "Eklentiler yükleniyor…",
           "noInstalledResultsTitle": "Eşleşen eklenti yok",
           "noInstalledResults": "Bu aramayla eşleşen yüklü eklenti yok.",

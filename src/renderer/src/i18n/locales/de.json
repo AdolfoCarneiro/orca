@@ -11808,7 +11808,6 @@
         "PluginsSettingsSection": {
           "systemLabel": "Plugin-System",
           "systemDescription": "Erkennt installierte Plugins und ermöglicht deren einzelne Aktivierung. Vor der Prüfung und Aktivierung wird nichts ausgeführt. Hintergrundprozesse laufen immer auf diesem Computer; Aktionen für SSH-Arbeitsbereiche werden über Orca geleitet.",
-          "featureOff": "Das Plugin-System aktivieren, um installierte Plugins anzuzeigen und zu verwalten. Bereits installierte Plugins bleiben auf dem Datenträger und sind deaktiviert, solange das System ausgeschaltet ist.",
           "loading": "Plugins werden geladen…",
           "noInstalledResultsTitle": "Keine passenden Plugins",
           "noInstalledResults": "Keine installierten Plugins entsprechen dieser Suche.",

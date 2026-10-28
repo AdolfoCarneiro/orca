@@ -11663,7 +11663,6 @@
         "PluginsSettingsSection": {
           "systemLabel": "外掛系統",
           "systemDescription": "發現已安裝的外掛並允許您單獨啟用它們。在您審查並啟用之前，沒有任何內容會執行。工作行程始終在此電腦上執行；SSH 工作區操作透過 Orca 路由。",
-          "featureOff": "開啟外掛系統以檢視和管理已安裝的外掛。任何已安裝的內容將保留在磁碟上，並在系統關閉時保持停用。",
           "loading": "正在載入外掛…",
           "noInstalledResultsTitle": "沒有符合的外掛",
           "noInstalledResults": "沒有已安裝的外掛符合此搜尋。",
