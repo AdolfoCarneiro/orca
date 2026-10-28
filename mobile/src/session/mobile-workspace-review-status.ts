@@ -50,7 +50,12 @@ export function createMobileWorkspaceReviewStatus() {
               const row = cachedWorkspaceReviewSchema.safeParse(raw)
               if (row.success && row.data.worktreeId === worktreeId) {
                 const review = row.data.linkedPR
-                publish(review ? reviewStatusPresentation(review) : UNKNOWN_STATUS)
+                if (review) {
+                  const presentation = reviewStatusPresentation(review)
+                  publish({ ...presentation, label: `${presentation.label}, cached status` })
+                } else {
+                  publish(UNKNOWN_STATUS)
+                }
                 break
               }
             }
@@ -152,10 +157,15 @@ export function createMobileWorkspaceReviewStatus() {
               scheduleRenewal(epoch, subscriptionId)
             }
             const review = event.review
-            publish(
-              review === null && (event.stale || event.error || event.fetchedAt === null)
+            const stale = event.stale || Boolean(event.error) || event.fetchedAt === null
+            const presentation =
+              review === null && stale
                 ? UNKNOWN_STATUS
                 : reviewStatusPresentation({ ...review, hasReview: review !== null })
+            publish(
+              review !== null && stale
+                ? { ...presentation, label: `${presentation.label}, cached status` }
+                : presentation
             )
           }
         )

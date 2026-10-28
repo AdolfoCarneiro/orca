@@ -300,6 +300,89 @@ describe('mobile source-control review status', () => {
     expect(button().props.accessibilityLabel).toContain('No pull request')
   })
 
+  it.each([{ stale: true }, { error: 'refresh failed' }, { fetchedAt: null }])(
+    'identifies a known cached PR accessibly until fresh status arrives: %j',
+    (metadata) => {
+      mount()
+      emit(frame(metadata))
+      expect(button().props.accessibilityLabel).toBe(
+        'Open source control, Open pull request, checks passing, cached status'
+      )
+      expect(
+        renderer!.root.find((node) => String(node.type) === 'GitPullRequest').props.color
+      ).toBe(colors.statusGreen)
+      const renders = lifecycle.iconRenders
+      emit(frame({ ...metadata, type: 'updated' }))
+      expect(lifecycle.iconRenders).toBe(renders)
+      emit(frame({ fetchedAt: 2 }))
+      expect(button().props.accessibilityLabel).toBe(
+        'Open source control, Open pull request, checks passing'
+      )
+      expect(lifecycle.iconRenders).toBe(renders + 1)
+      expect(chatMounts).toBe(1)
+    }
+  )
+
+  it('ignores old route frames and renewal completion after switching workspaces', async () => {
+    mount()
+    emit(frame())
+    let finishRenew: ((value: unknown) => void) | undefined
+    sendRequest.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishRenew = resolve
+        })
+    )
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50_000)
+    })
+    const oldFrame = frames[0]
+    update({ worktreeId: 'repo::/next' })
+    expect(button().props.accessibilityLabel).toContain('unknown')
+    emit(
+      frame({
+        worktreeId: 'repo::/next',
+        subscriptionId: 'next-lease',
+        review: { ...frame().review!, state: 'merged' }
+      })
+    )
+    await act(async () => {
+      finishRenew?.({ id: 'late', ok: true, result: { renewed: false } })
+      oldFrame?.(frame())
+      await vi.advanceTimersByTimeAsync(5_000)
+    })
+    expect(button().props.accessibilityLabel).toContain('Merged')
+    expect(subscribe).toHaveBeenCalledTimes(2)
+    expect(chatMounts).toBe(1)
+    expect(stopStream).toHaveBeenCalledOnce()
+  })
+
+  it('ignores old-host cache replies delivered after switching workspaces', async () => {
+    lifecycle.supported = false
+    let finishCache: ((value: unknown) => void) | undefined
+    sendRequest.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishCache = resolve
+        })
+    )
+    mount()
+    await act(async () => {
+      update({ worktreeId: 'repo::/next' })
+    })
+    await act(async () => {
+      finishCache?.({
+        id: 'late-cache',
+        ok: true,
+        result: { worktrees: [{ worktreeId: 'repo::/worktree', linkedPR: { state: 'merged' } }] }
+      })
+    })
+    expect(button().props.accessibilityLabel).toContain('unknown')
+    expect(sendRequest.mock.calls.map(([method]) => method)).toEqual(['worktree.ps', 'worktree.ps'])
+    expect(subscribe).not.toHaveBeenCalled()
+    expect(chatMounts).toBe(1)
+  })
+
   it('recovers expired leases and stream errors with one bounded subscription retry', async () => {
     mount()
     emit(frame())
@@ -391,6 +474,7 @@ describe('mobile source-control review status', () => {
     update({ tick: 1 })
     expect(sendRequest).toHaveBeenCalledTimes(1)
     expect(sendRequest).toHaveBeenCalledWith('worktree.ps', {})
+    expect(button().props.accessibilityLabel).toContain('cached status')
     connect('disconnected')
     sendRequest.mockResolvedValueOnce({
       id: 'empty-cache',
