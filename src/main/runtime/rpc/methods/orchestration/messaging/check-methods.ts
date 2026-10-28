@@ -44,6 +44,7 @@ export const ORCHESTRATION_CHECK_METHODS = [
       })
       const paneKey = caller.paneKey ?? undefined
       const boundRun = hasRunBindingKey(caller) ? db.getCurrentRunForCoordinator(caller) : undefined
+      const consumingCheck = params.peek !== true && params.all !== true && params.unread !== false
       if (params.run || boundRun) {
         const result = await checkRunMailbox({
           params,
@@ -96,7 +97,6 @@ export const ORCHESTRATION_CHECK_METHODS = [
           recordMutationReceipt
         })
       }
-      const consumingCheck = params.peek !== true && params.all !== true && params.unread !== false
       // A superseded Attempt must receive a stop signal, not an empty checkpoint; this outranks pane rebind advice.
       const settledDispatch = consumingCheck ? db.getLatestDispatchForTerminal(handle) : undefined
       if (settledDispatch && isSupersededDispatch(settledDispatch)) {
