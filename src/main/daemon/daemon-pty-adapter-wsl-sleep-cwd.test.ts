@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { join } from 'node:path'
 import { readFileSync, rmSync } from 'node:fs'
 import { DaemonPtyAdapter } from './daemon-pty-adapter'
+import { setActiveSink } from '../observability/tracer'
 import type { DaemonServer } from './daemon-server'
 import { getHistorySessionDirName } from './history-paths'
 import { createMockSubprocess, startDaemonAdapterHarness } from './daemon-pty-adapter-test-harness'
@@ -92,7 +93,17 @@ describe('a sleeping bridge WSL pane keeps its shell folder', () => {
     })
 
     const info = vi.spyOn(console, 'info').mockImplementation(() => {})
-    await adapter.shutdown(id, { immediate: true, keepHistory: true })
+    const spans: unknown[] = []
+    setActiveSink({
+      push: (span) => spans.push(span),
+      flush: () => {},
+      close: () => {}
+    })
+    try {
+      await adapter.shutdown(id, { immediate: true, keepHistory: true })
+    } finally {
+      setActiveSink(null)
+    }
 
     expect(readRows).toHaveBeenCalledWith('Ubuntu', expect.any(Number), { running: true })
     expect(checkpointCwd(id)).toBe(`${WSL_CWD}\\deep\\er`)
@@ -104,6 +115,21 @@ describe('a sleeping bridge WSL pane keeps its shell folder', () => {
     expect(lines[0]).toContain(`[history] Sleep folder for ${id}: wsl probe (budget `)
     expect(lines[0]).toContain(
       `rows 2, shells 1), distro Ubuntu, pane ${PANE_KEY}, live true, folder found in `
+    )
+    // verify-18 (b): a packaged build keeps no console, so the same line goes to the local trace.
+    expect(spans).toContainEqual(
+      expect.objectContaining({
+        name: 'wsl.sleep-folder',
+        attributes: expect.objectContaining({
+          line: lines[0],
+          probe: 'wsl',
+          distro: 'Ubuntu',
+          rows: 2,
+          shells: 1,
+          timedOut: false,
+          folderFound: true
+        })
+      })
     )
   })
 

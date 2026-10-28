@@ -98,3 +98,20 @@ export function describeSleepFolderRead(
       : 'live probe'
   return `[history] Sleep folder for ${sessionId}: ${probe}, distro ${pane.wslDistro ?? 'unknown'}, pane ${pane.paneKey ?? 'unknown'}, live ${pane.live}, folder ${read.cwd ? 'found' : 'not found'} in ${pane.elapsedMs}ms`
 }
+
+/** The same facts as the line, as fields a trace reader can filter on. */
+export function sleepFolderAttributes(
+  read: DaemonWslSleepCwdRead | { cwd: string | null },
+  pane: { wslDistro?: string; live: boolean; elapsedMs: number }
+): Record<string, string | number | boolean | null> {
+  return {
+    probe: 'rows' in read ? 'wsl' : 'live',
+    distro: pane.wslDistro ?? null,
+    live: pane.live,
+    folderFound: read.cwd !== null,
+    elapsedMs: pane.elapsedMs,
+    ...('rows' in read
+      ? { rows: read.rows, shells: read.shells, timedOut: read.timedOut, budgetMs: read.budgetMs }
+      : {})
+  }
+}
