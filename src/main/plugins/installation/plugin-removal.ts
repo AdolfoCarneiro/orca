@@ -55,23 +55,10 @@ async function removePluginFiles(input: {
 }
 
 async function removeResolvedPluginDirectory(rootDir: string, pluginKey: string): Promise<void> {
-  let rootReal: string
-  let targetReal: string
-  try {
-    rootReal = await realpath(resolve(rootDir))
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return
-    }
-    throw error
-  }
-  try {
-    targetReal = await realpath(resolve(rootDir, pluginKey))
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return
-    }
-    throw error
+  const rootReal = await realpathIfPresent(resolve(rootDir))
+  const targetReal = rootReal ? await realpathIfPresent(resolve(rootDir, pluginKey)) : null
+  if (!rootReal || !targetReal) {
+    return
   }
   const fromRoot = relative(rootReal, targetReal)
   if (
@@ -83,4 +70,15 @@ async function removeResolvedPluginDirectory(rootDir: string, pluginKey: string)
     throw new Error(`refusing to remove plugin path outside ${rootReal}`)
   }
   await rm(resolve(rootDir, pluginKey), { recursive: true, force: true })
+}
+
+async function realpathIfPresent(path: string): Promise<string | null> {
+  try {
+    return await realpath(path)
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return null
+    }
+    throw error
+  }
 }

@@ -56,7 +56,7 @@ type PluginManagerProps = {
   pluginsLoading: boolean
   pluginsError: string | null
   busyPluginKeys: ReadonlySet<string>
-  handlers: Omit<InstalledRowHandlers, 'onCheckUpdate'>
+  handlers: Omit<InstalledRowHandlers, 'onOpen' | 'onViewLogs' | 'onCheckUpdate'>
   onRefreshInstalled: () => Promise<void>
   /** Reloads after an install or update and opens review for any that now need it. */
   onInstalled: (pluginKeys: string | readonly string[]) => Promise<void>
@@ -144,9 +144,7 @@ export function PluginManager({
     chosenTab === 'updates' && updates.length === 0 ? 'installed' : chosenTab
   const visibleInstalled = filter === 'updates' ? updates.filter(matches) : installed
   const capped = (groupId: string, rows: PluginListEntry[]): PluginListEntry[] =>
-    narrowed || filter !== 'all' || expandedGroups.has(groupId)
-      ? rows
-      : rows.slice(0, PLUGIN_GROUP_ROW_CAP)
+    narrowed || expandedGroups.has(groupId) ? rows : rows.slice(0, PLUGIN_GROUP_ROW_CAP)
   const showAll = (groupId: string) => () =>
     setExpandedGroups((current) => new Set(current).add(groupId))
 
@@ -195,7 +193,6 @@ export function PluginManager({
       showHeading={false}
       notice={
         <CatalogNotice
-          standalone
           tone="error"
           title={translate(
             'auto.components.settings.PluginManager.installedFailedTitle',
@@ -313,7 +310,6 @@ export function PluginManager({
       >
         {catalog.error && catalog.sources.length > 0 ? (
           <CatalogNotice
-            standalone
             tone="error"
             title={catalog.error}
             body=""
@@ -362,7 +358,6 @@ export function PluginManager({
               cardHandlers={cardHandlers}
               matches={matches}
               narrowed={narrowed}
-              filter={filter}
               capped={capped}
               showAll={showAll}
               openSources={() => setSourcesOpen(true)}

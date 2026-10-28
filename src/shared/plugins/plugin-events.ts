@@ -68,6 +68,4 @@ export type PluginEventPayload<E extends PluginEventName> = z.infer<
   (typeof PLUGIN_EVENT_PAYLOAD_SCHEMAS)[E]
 >
 
-export type PluginWorkspaceCreatedPayload = z.infer<typeof workspaceCreatedPayloadSchema>
-export type PluginWorkspaceRemovedPayload = z.infer<typeof workspaceRemovedPayloadSchema>
 export type PluginAgentStatusChangedPayload = z.infer<typeof agentStatusChangedPayloadSchema>

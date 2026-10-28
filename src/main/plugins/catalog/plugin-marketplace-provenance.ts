@@ -11,13 +11,10 @@ export function validateMarketplaceProvenance(
   source: PluginMarketplaceRegisteredSource,
   fetched: PluginMarketplaceFetchResult
 ): void {
-  if (
-    isOfficialMarketplaceGitSource(source.source.url) &&
-    fetched.marketplace.owner.toLowerCase() !== OFFICIAL_MARKETPLACE_OWNER
-  ) {
+  const official = isOfficialMarketplaceGitSource(source.source.url)
+  if (official && fetched.marketplace.owner.toLowerCase() !== OFFICIAL_MARKETPLACE_OWNER) {
     throw new Error('official marketplace metadata has an unexpected owner')
   }
-  const official = isOfficialMarketplaceGitSource(source.source.url)
   for (const entry of fetched.marketplace.plugins) {
     if (!isReservedPluginIdentity(entry.id)) {
       continue

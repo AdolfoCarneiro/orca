@@ -36,7 +36,13 @@ describe('useInstalledPluginManifest', () => {
     })
     const seen: unknown[] = []
     function Probe({ revision }: { revision: string }): null {
-      seen.push(useInstalledPluginManifest('acme.notes', revision)?.version)
+      seen.push(
+        useInstalledPluginManifest({
+          pluginKey: 'acme.notes',
+          consentFingerprint: revision,
+          source: undefined
+        })?.version
+      )
       return null
     }
     root = createRoot(document.createElement('div'))

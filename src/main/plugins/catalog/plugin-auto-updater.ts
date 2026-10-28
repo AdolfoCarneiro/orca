@@ -1,8 +1,5 @@
 import { compareAppVersions } from '../../../shared/app-version'
-import {
-  pluginUpdateAccessGrowth,
-  pluginUpdateGrowsAccess
-} from '../../../shared/plugins/approval/plugin-update-access-growth'
+import { pluginUpdateGrowsAccess } from '../../../shared/plugins/approval/plugin-update-access-growth'
 import type { PluginAutoUpdateState } from '../../../shared/plugins/catalog/plugin-update-policy'
 import {
   isInvalidDiscoveredPlugin,
@@ -12,9 +9,9 @@ import {
 import {
   installCatalogReleaseWithApproval,
   readApprovedPredecessor,
+  readPreviewAccessGrowth,
   type PluginCatalogInstallOutcome
 } from './plugin-update-approval'
-import { readPluginVmRecipeIdentities } from '../plugin-vm-recipe-identities'
 import type { PluginPolicySource } from '../plugin-activation-policy'
 import type { PluginMarketplaceInstaller } from './plugin-marketplace-installer'
 import type { PluginReleaseFirstSeenStore } from './plugin-release-first-seen-store'
@@ -175,15 +172,9 @@ export class PluginAutoUpdater {
     ) {
       return null
     }
-    const vmRecipes = {
-      installed: await readPluginVmRecipeIdentities(plugin.rootDir, plugin.manifest),
-      next: preview.vmRecipeIdentities ?? null
-    }
     if (
       preview.repositoryMoved ||
-      pluginUpdateGrowsAccess(
-        pluginUpdateAccessGrowth(plugin.manifest, preview.manifest, vmRecipes)
-      )
+      pluginUpdateGrowsAccess(await readPreviewAccessGrowth(plugin, preview))
     ) {
       return { kind: 'needs-review', version: preview.manifest.version }
     }

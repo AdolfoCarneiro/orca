@@ -5,6 +5,7 @@ import type { PluginTerminalThemeRegistration } from '../../../../../shared/plug
 import type { PluginThemeRegistration } from '../../../../../shared/plugins/artifacts/plugin-theme-artifact'
 import { isUsablePluginLanguagePack } from '../../../../../shared/plugins/plugin-language-pack-coverage'
 import { useAppStore } from '@/store'
+import { isPluginAppThemeSelected } from './plugin-theme-apply'
 import { usePluginIconThemes } from '@/store/plugin-icon-themes'
 import { usePluginLanguagePacks } from '@/store/plugin-language-packs'
 import { usePluginTerminalThemes, usePluginThemes } from '@/store/plugin-themes'
@@ -48,8 +49,7 @@ export function pluginInUse(
   }
   const slots = new Set<ThemeMode>()
   for (const theme of apps) {
-    const slot = theme.base === 'dark' ? settings.pluginAppThemeDark : settings.pluginAppThemeLight
-    if (slot === theme.id) {
+    if (isPluginAppThemeSelected(settings, theme)) {
       slots.add(theme.base)
     }
   }

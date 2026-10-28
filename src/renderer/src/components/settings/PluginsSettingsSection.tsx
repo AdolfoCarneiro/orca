@@ -360,7 +360,6 @@ export function PluginsSettingsSection({
         busyPluginKeys={busyPluginKeys}
         onConsent={decideConsent}
         handlers={{
-          onOpen: () => undefined,
           onReview: review.show,
           onToggleEnabled: (pluginKey) => {
             const plugin = plugins.find((entry) => entry.pluginKey === pluginKey)
@@ -369,7 +368,6 @@ export function PluginsSettingsSection({
             }
           },
           onRestart: (pluginKey) => void restart(pluginKey),
-          onViewLogs: pluginLogs.toggleLogs,
           onRollbackRequest: marketplaceLifecycle.requestRollback,
           onRemoveRequest: setRemovePluginId
         }}

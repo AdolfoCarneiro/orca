@@ -7,10 +7,7 @@ import { useInstalledPluginManifest } from '../state/use-plugin-contribution-sou
 
 /** Events a worker plugin subscribed to; the host entry doesn't carry them, so read its manifest. */
 export function usePluginWorkerEvents(plugin: PluginHostListEntry | null): PluginEventName[] {
-  const manifest = useInstalledPluginManifest(
-    plugin?.hasWorker ? plugin.pluginKey : null,
-    plugin?.consentFingerprint ?? plugin?.source?.contentHash ?? null
-  )
+  const manifest = useInstalledPluginManifest(plugin?.hasWorker ? plugin : null)
   // Why dedupe: one row per event name, even if a manifest lists the same event twice.
   return [...new Set(manifest?.contributes.events.map((event) => event.on) ?? [])]
 }

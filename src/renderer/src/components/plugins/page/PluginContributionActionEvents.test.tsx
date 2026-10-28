@@ -29,7 +29,7 @@ const plugin: PluginHostListEntry = {
 
 afterEach(() => useInstalledPluginManifest.mockReset())
 
-it('names each subscribed event once, keyed to the installed revision', () => {
+it('names each subscribed event once', () => {
   useInstalledPluginManifest.mockReturnValue({
     contributes: {
       events: [
@@ -41,12 +41,12 @@ it('names each subscribed event once, keyed to the installed revision', () => {
   })
   const { result } = renderHook(() => usePluginWorkerEvents(plugin))
   expect(result.current).toEqual(['workspace.created', 'workspace.removed'])
-  expect(useInstalledPluginManifest).toHaveBeenCalledWith('samples.hello-orca', 'sha256-hello')
+  expect(useInstalledPluginManifest).toHaveBeenCalledWith(plugin)
 })
 
 it('never reads a manifest for a plugin without a worker', () => {
   useInstalledPluginManifest.mockReturnValue(undefined)
   const { result } = renderHook(() => usePluginWorkerEvents({ ...plugin, hasWorker: false }))
   expect(result.current).toEqual([])
-  expect(useInstalledPluginManifest).toHaveBeenCalledWith(null, 'sha256-hello')
+  expect(useInstalledPluginManifest).toHaveBeenCalledWith(null)
 })

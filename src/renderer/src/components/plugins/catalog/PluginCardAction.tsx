@@ -1,24 +1,24 @@
 import { Check, Loader2 } from 'lucide-react'
-import { satisfiesOrcaEngineRange } from '../../../../../shared/plugins/manifest/plugin-manifest'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../../ui/button'
 import { StatusWord } from '../list/PluginStatusWord'
-import type { PluginListEntry } from '../list/plugin-list-entries'
+import { needsNewerOrca, type PluginListEntry } from '../list/plugin-list-entries'
 import { installedPluginControls, type InstalledRowHandlers } from '../list/PluginManagerRows'
 import type { PluginInstallPhase } from '../state/use-plugin-install-action'
 import { usePluginInUse } from '../state/use-plugin-in-use'
 import { PluginInUseAction } from './PluginInUseAction'
 
-export function needsNewerOrca(entry: PluginListEntry, orcaVersion: string | null): string | null {
-  return entry.minimumOrca &&
-    orcaVersion &&
-    !satisfiesOrcaEngineRange(orcaVersion, `>=${entry.minimumOrca}`)
-    ? entry.minimumOrca
-    : null
+/** The Install button's words for a catalog plugin's install phase. */
+export function installButtonLabel(phase: PluginInstallPhase | null): string {
+  return phase?.kind === 'installing'
+    ? translate('auto.components.settings.PluginCardAction.installing', 'Installing…')
+    : phase?.kind === 'error'
+      ? translate('auto.components.settings.PluginCardAction.retry', 'Try again')
+      : translate('auto.components.settings.PluginMarketplaceListingRow.install', 'Install')
 }
 
 /** One click installs only what the catalog verifies as content only; anything else is reviewed. */
-export function installsInOneClick(entry: PluginListEntry): boolean {
+function installsInOneClick(entry: PluginListEntry): boolean {
   return entry.listing?.release?.execution === 'data'
 }
 
@@ -78,7 +78,7 @@ export function PluginCardAction({
   if (entry.listing?.blockedByKillList) {
     return <StatusWord kind="blocked" />
   }
-  const needsOrca = needsNewerOrca(entry, orcaVersion)
+  const needsOrca = needsNewerOrca(entry.minimumOrca, orcaVersion)
   if (needsOrca) {
     return (
       <span className="text-xs whitespace-nowrap text-status-warning-text">
@@ -106,7 +106,7 @@ export function PluginCardAction({
     return (
       <Button variant="outline" size="xs" className="w-32" disabled>
         <Loader2 className="animate-spin" />
-        {translate('auto.components.settings.PluginCardAction.installing', 'Installing…')}
+        {installButtonLabel(phase)}
       </Button>
     )
   }
@@ -140,9 +140,7 @@ export function PluginCardAction({
       )}
       onClick={onInstall}
     >
-      {phase?.kind === 'error'
-        ? translate('auto.components.settings.PluginCardAction.retry', 'Try again')
-        : translate('auto.components.settings.PluginMarketplaceListingRow.install', 'Install')}
+      {installButtonLabel(phase)}
     </Button>
   )
 }

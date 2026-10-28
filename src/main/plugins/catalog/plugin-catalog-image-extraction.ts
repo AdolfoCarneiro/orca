@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import type { PluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog-release'
 import { readPluginImageHeader } from '../../../shared/plugins/plugin-image-format'
 import {
@@ -8,6 +7,7 @@ import {
   type PluginImageKind
 } from '../../../shared/plugins/plugin-image-fields'
 import type { PluginMarketplace } from '../../../shared/plugins/catalog/plugin-marketplace'
+import { sha256Hex } from '../plugin-image-cache'
 
 // Why a catalog-wide cap: a large catalog must not turn one refresh into an unbounded download.
 const CATALOG_IMAGES_MAX_BYTES = 64 * 1024 * 1024
@@ -38,7 +38,7 @@ export async function extractCatalogImages(
     const ok =
       bytes !== null &&
       typeof info !== 'string' &&
-      createHash('sha256').update(bytes).digest('hex') === image.sha256 &&
+      sha256Hex(bytes) === image.sha256 &&
       info.width === image.width &&
       info.height === image.height &&
       pluginImageRuleError(kind, info, bytes.byteLength) === null

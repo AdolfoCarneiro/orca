@@ -19,6 +19,7 @@ import { formatKeybinding } from '../../../../../shared/keybindings/formatting'
 import type { PluginCatalogType } from '../../../../../shared/plugins/catalog/plugin-catalog-release'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
+import { getShortcutPlatform } from '@/lib/shortcut-platform'
 import { usePluginLanguagePackStore } from '@/store/plugin-language-packs'
 import type { ActivePluginCommand } from '@/store/plugin-panels'
 import { usePluginSyntaxes } from '@/store/plugin-syntax-packs'
@@ -45,13 +46,6 @@ import {
   type PluginContributionKind
 } from '../presentation/plugin-contributions'
 import { useInstalledPluginContributions } from '../state/use-plugin-contribution-source'
-
-function shortcutPlatform(): NodeJS.Platform {
-  if (navigator.userAgent.includes('Mac')) {
-    return 'darwin'
-  }
-  return navigator.userAgent.includes('Windows') ? 'win32' : 'linux'
-}
 
 function catalogTypeLabel(type: PluginCatalogType): string {
   switch (type) {
@@ -122,7 +116,7 @@ function CommandRow({
 }): React.JSX.Element {
   const overrides = useAppStore((state) => state.keybindings)
   const activeWorktreeId = useAppStore((state) => state.activeWorktreeId)
-  const platform = shortcutPlatform()
+  const platform = getShortcutPlatform()
   const binding = command.keybindings[0]
   const shadowed = binding ? shadowedKeybindingTitles(binding.key, platform, overrides) : []
   const unavailableReason = command.live

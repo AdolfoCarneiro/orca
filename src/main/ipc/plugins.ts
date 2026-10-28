@@ -119,34 +119,24 @@ export function registerPluginHandlers(
     const { pluginKey } = logsArgsSchema.parse(args)
     return readInstalledPluginManifest(pluginService, pluginKey)
   })
-  ipcMain.handle('plugins:listLanguagePacks', async () => {
-    await pluginService.whenReady()
-    return pluginService.contentPacks.languagePacks.list()
-  })
-  ipcMain.handle('plugins:listThemes', async () => {
-    await pluginService.whenReady()
-    return pluginService.contentPacks.themes.list()
-  })
-  ipcMain.handle('plugins:listTerminalThemes', async () => {
-    await pluginService.whenReady()
-    return pluginService.contentPacks.terminalThemes.list()
-  })
-  ipcMain.handle('plugins:listIconThemes', async () => {
-    await pluginService.whenReady()
-    return pluginService.contentPacks.iconThemes.list()
-  })
-  ipcMain.handle('plugins:loadIconTheme', async (_event, id: unknown) => {
-    await pluginService.whenReady()
-    return typeof id === 'string' ? pluginService.contentPacks.iconThemes.load(id) : null
-  })
-  ipcMain.handle('plugins:listSyntaxes', async () => {
-    await pluginService.whenReady()
-    return pluginService.contentPacks.syntaxes.list()
-  })
-  ipcMain.handle('plugins:loadSyntax', async (_event, id: unknown) => {
-    await pluginService.whenReady()
-    return typeof id === 'string' ? pluginService.contentPacks.syntaxes.load(id) : null
-  })
+  const handleContentPacks = (channel: string, read: (arg: unknown) => unknown): void => {
+    ipcMain.handle(channel, async (_event, arg: unknown) => {
+      await pluginService.whenReady()
+      return read(arg)
+    })
+  }
+  const { contentPacks } = pluginService
+  handleContentPacks('plugins:listLanguagePacks', () => contentPacks.languagePacks.list())
+  handleContentPacks('plugins:listThemes', () => contentPacks.themes.list())
+  handleContentPacks('plugins:listTerminalThemes', () => contentPacks.terminalThemes.list())
+  handleContentPacks('plugins:listIconThemes', () => contentPacks.iconThemes.list())
+  handleContentPacks('plugins:loadIconTheme', (id) =>
+    typeof id === 'string' ? contentPacks.iconThemes.load(id) : null
+  )
+  handleContentPacks('plugins:listSyntaxes', () => contentPacks.syntaxes.list())
+  handleContentPacks('plugins:loadSyntax', (id) =>
+    typeof id === 'string' ? contentPacks.syntaxes.load(id) : null
+  )
   ipcMain.handle('plugins:consent', async (event, args: unknown) => {
     await pluginService.whenReady()
     const parsed = parsePluginConsentArgs(args)

@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Loader2, RotateCw, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, Check, Loader2, ShieldCheck } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 import type { PluginTrust } from '../presentation/plugin-access-profile'
 import { pluginTrustWarnings } from '../presentation/plugin-consent-copy'
@@ -73,47 +73,22 @@ export function DetailRow({
 /** What the plugin can reach, in the consent's words. */
 export function PluginAccessSection({
   capabilities: requested,
-  trust,
-  loading,
-  failed = false,
-  onRetry
+  trust
 }: {
-  capabilities: readonly { kind: string; description: string }[] | null
+  capabilities: readonly { kind: string; description: string }[]
   /** Null while unknown; never guessed from contributions alone. */
   trust: PluginTrust | null
-  loading: boolean
-  /** The manifest couldn't be read, so nothing is known about its access. */
-  failed?: boolean
-  onRetry?: () => void
 }): React.JSX.Element {
-  const capabilities = requested ? shownPluginCapabilities(requested, trust) : null
-  const unknown = trust === null
+  const capabilities = shownPluginCapabilities(requested, trust)
   // Why "own files" only then: a panel bounded by no capabilities is sandboxed; anything that
   // runs instructions or a worker reaches further, whatever it asks for.
   const ownFilesOnly =
-    trust !== null && !trust.worker && !trust.declarative && capabilities?.length === 0
+    trust !== null && !trust.worker && !trust.declarative && capabilities.length === 0
   return (
     <DetailSection
       title={translate('auto.components.settings.PluginDetailSections.access', 'Can access')}
     >
-      {failed || (!loading && capabilities !== null && unknown) ? (
-        // Why: an unreadable plugin must never read as one that needs no access.
-        <DetailRow
-          icon={<AlertTriangle />}
-          title={translate(
-            'auto.components.settings.PluginDetailSections.accessFailed',
-            'Couldn’t read its access'
-          )}
-          trailing={
-            failed && onRetry ? (
-              <Button variant="ghost" size="xs" onClick={onRetry}>
-                <RotateCw />
-                {translate('auto.components.settings.PluginDetailSections.retry', 'Retry')}
-              </Button>
-            ) : null
-          }
-        />
-      ) : loading || capabilities === null || trust === null ? (
+      {trust === null ? (
         <DetailRow
           icon={<Loader2 className="animate-spin" />}
           title={translate(

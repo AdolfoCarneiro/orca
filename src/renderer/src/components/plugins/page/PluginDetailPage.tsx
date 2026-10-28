@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { BadgeCheck, ChevronLeft } from 'lucide-react'
-import { satisfiesOrcaEngineRange } from '../../../../../shared/plugins/manifest/plugin-manifest'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../../ui/button'
-import type { PluginListEntry } from '../list/plugin-list-entries'
+import { needsNewerOrca, type PluginListEntry } from '../list/plugin-list-entries'
 import { PluginDetailAlert as Alert } from './PluginDetailAlert'
 import { usePluginPageAction } from './PluginPageAction'
 import { PluginPageHero, PluginScreenshots } from './PluginPageHero'
@@ -70,17 +69,14 @@ export function PluginDetailPage({
   const model = usePluginPageModel({ entry, fetchPreview, refreshing })
   const { plugin, listing, preview, stale } = model
   const palettes = usePluginArtPalettes(entry.pluginKey, listing?.release?.themePreview)
+  const tooNew = needsNewerOrca(entry.minimumOrca, orcaVersion) !== null
+  // Why: a fetched manifest names the plugin exactly; older catalogs only give its key.
+  const name = plugin?.name ?? preview?.manifest.name ?? entry.name
   const action = usePluginPageAction({
     entry,
-    name: plugin?.name ?? model.preview?.manifest.name ?? entry.name,
+    name,
     model,
-    unavailable:
-      Boolean(listing?.blockedByKillList) ||
-      Boolean(
-        entry.minimumOrca &&
-        orcaVersion &&
-        !satisfiesOrcaEngineRange(orcaVersion, `>=${entry.minimumOrca}`)
-      ),
+    unavailable: Boolean(listing?.blockedByKillList) || tooNew,
     busy,
     install,
     onConsent,
@@ -100,12 +96,7 @@ export function PluginDetailPage({
         inPage: true
       })
     : null
-  const tooNew =
-    Boolean(entry.minimumOrca && orcaVersion) &&
-    !satisfiesOrcaEngineRange(orcaVersion ?? '', `>=${entry.minimumOrca}`)
   const version = plugin?.version ?? preview?.manifest.version ?? entry.version
-  // Why: a fetched manifest names the plugin exactly; older catalogs only give its key.
-  const name = plugin?.name ?? preview?.manifest.name ?? entry.name
   const description = plugin?.description ?? preview?.manifest.description ?? entry.description
 
   let alert: React.ReactNode = null
@@ -289,11 +280,7 @@ export function PluginDetailPage({
           />
           {/* Why installed only: before install, and while it waits for review, the consent above says this. */}
           {plugin && controls?.kind !== 'review' ? (
-            <PluginAccessSection
-              capabilities={plugin.capabilities}
-              trust={model.trust}
-              loading={model.trust === null}
-            />
+            <PluginAccessSection capabilities={plugin.capabilities} trust={model.trust} />
           ) : null}
           <PluginReleaseNotes entry={entry} />
           {plugin?.hasWorker ? <PluginLogsSection state={logsState} /> : null}

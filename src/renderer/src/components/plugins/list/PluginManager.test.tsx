@@ -127,11 +127,9 @@ function Harness({ plugins }: { plugins: PluginHostListEntry[] }): React.JSX.Ele
       pluginsError={null}
       busyPluginKeys={new Set()}
       handlers={{
-        onOpen: vi.fn(),
         onReview: vi.fn(),
         onToggleEnabled: vi.fn(),
         onRestart: vi.fn(),
-        onViewLogs: vi.fn(),
         onRollbackRequest: vi.fn(),
         onRemoveRequest: vi.fn()
       }}

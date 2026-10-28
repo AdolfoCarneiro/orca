@@ -13,6 +13,7 @@ import { PluginThemeUseNow } from './PluginThemeUseNow'
 import type { usePluginInstallAction } from '../state/use-plugin-install-action'
 import { usePluginInUse } from '../state/use-plugin-in-use'
 import { PluginInUseAction } from '../catalog/PluginInUseAction'
+import { installButtonLabel } from '../catalog/PluginCardAction'
 import type { usePluginPageModel } from '../state/use-plugin-page-model'
 
 type PluginPageActionProps = {
@@ -34,7 +35,7 @@ type PluginPageActionProps = {
 
 /** Where the page's decision renders: top-right beside the name, the status line under the
  *  publisher, and what must be read before deciding, directly under the header. */
-export type PluginPageActionParts = {
+type PluginPageActionParts = {
   /** Top-right, beside the title; null leaves the slot to the installed controls. */
   header: React.ReactNode
   /** The line under the publisher, reserved on every page. */
@@ -186,14 +187,7 @@ export function usePluginPageAction({
           onClick={() => void install.install(listing, preview ? { preview } : undefined)}
         >
           {installing ? <Loader2 className="animate-spin" /> : null}
-          {installing
-            ? translate('auto.components.settings.PluginCardAction.installing', 'Installing…')
-            : phase?.kind === 'error'
-              ? translate('auto.components.settings.PluginCardAction.retry', 'Try again')
-              : translate(
-                  'auto.components.settings.PluginMarketplaceListingRow.install',
-                  'Install'
-                )}
+          {installButtonLabel(phase)}
         </Button>
       ),
       status: <ContentOnlyNote />,

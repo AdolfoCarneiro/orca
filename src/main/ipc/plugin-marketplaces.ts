@@ -1,6 +1,7 @@
-import { installCatalogReleaseWithApproval } from '../plugins/catalog/plugin-update-approval'
-import { pluginUpdateAccessGrowth } from '../../shared/plugins/approval/plugin-update-access-growth'
-import { readPluginVmRecipeIdentities } from '../plugins/plugin-vm-recipe-identities'
+import {
+  installCatalogReleaseWithApproval,
+  readPreviewAccessGrowth
+} from '../plugins/catalog/plugin-update-approval'
 import { ipcMain } from 'electron'
 import { z } from 'zod'
 import { PLUGIN_COMMIT_PATTERN } from '../../shared/plugins/plugin-install-lockfile'
@@ -111,14 +112,7 @@ export function registerPluginMarketplaceHandlers(
     if (!installed) {
       return preview
     }
-    const vmRecipes = {
-      installed: await readPluginVmRecipeIdentities(installed.rootDir, installed.manifest),
-      next: preview.vmRecipeIdentities ?? null
-    }
-    return {
-      ...preview,
-      accessGrowth: pluginUpdateAccessGrowth(installed.manifest, preview.manifest, vmRecipes)
-    }
+    return { ...preview, accessGrowth: await readPreviewAccessGrowth(installed, preview) }
   })
   ipcMain.handle(
     'plugins:getAutoUpdateState',

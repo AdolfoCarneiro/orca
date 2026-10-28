@@ -42,7 +42,7 @@ export function previewMatchesListing(
 }
 
 /** Everything a listing vouches for that the page shows; any change is a different release. */
-export function listingIdentity(listing: PluginMarketplaceHostListing): string {
+function listingIdentity(listing: PluginMarketplaceHostListing): string {
   const release = listing.release
   return [
     listing.marketplaceCommit,
@@ -68,7 +68,6 @@ export function usePluginPageModel({
   const [pinned, setPinned] = useState(entry.listing)
   const listing = plugin ? entry.listing : pinned
   const [preview, setPreview] = useState<PluginMarketplaceHostInstallPreview | null>(null)
-  const [previewLoading, setPreviewLoading] = useState(!plugin && Boolean(listing))
   const [previewFailed, setPreviewFailed] = useState(false)
   const [previewAttempt, setPreviewAttempt] = useState(0)
 
@@ -78,13 +77,11 @@ export function usePluginPageModel({
     }
     let stale = false
     setPreview(null)
-    setPreviewLoading(true)
     setPreviewFailed(false)
     void fetchPreview(listing).then((result) => {
       if (!stale) {
         setPreview(result.ok ? result.preview : null)
         setPreviewFailed(!result.ok)
-        setPreviewLoading(false)
       }
     })
     return () => {
@@ -92,10 +89,7 @@ export function usePluginPageModel({
     }
   }, [plugin, listing, fetchPreview, previewAttempt])
 
-  const installedManifest = useInstalledPluginManifest(
-    plugin?.pluginKey ?? null,
-    plugin?.consentFingerprint ?? plugin?.source?.contentHash ?? null
-  )
+  const installedManifest = useInstalledPluginManifest(plugin)
   const previewMatches = preview && listing ? previewMatchesListing(preview, listing) : null
   const newerListed =
     !plugin &&
@@ -179,7 +173,6 @@ export function usePluginPageModel({
     plugin,
     listing,
     preview: shownPreview,
-    previewLoading,
     previewFailed,
     retryPreview: () => setPreviewAttempt((attempt) => attempt + 1),
     showNewer: () => setPinned(entry.listing),
@@ -190,7 +183,6 @@ export function usePluginPageModel({
     capabilities,
     shortcuts,
     editorFileTypes: editorFileTypes ? [...new Set(editorFileTypes)] : null,
-    images,
-    installedManifest
+    images
   }
 }

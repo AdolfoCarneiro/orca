@@ -15,7 +15,10 @@ import { SettingsSegmentedControl } from './SettingsFormControls'
 import { translate } from '@/i18n/i18n'
 import { usePluginTerminalThemes, usePluginThemes } from '@/store/plugin-themes'
 import { PluginThemeSwatch } from '../plugins/page/PluginThemeSwatch'
-import { terminalSlot, terminalThemeUpdate } from '../plugins/state/plugin-theme-apply'
+import {
+  isPluginTerminalThemeSelected,
+  terminalThemeUpdate
+} from '../plugins/state/plugin-theme-apply'
 
 type BuiltInTheme = GlobalSettings['theme']
 
@@ -82,11 +85,8 @@ export function AppearanceThemeSlotSelect({
           theme.pluginKey === active.pluginKey && (theme.mode === base || theme.mode === 'unknown')
       )
     : undefined
-  const terminalKey = terminal ? terminalSlot(terminal.mode, base === 'dark') : null
   const terminalInUse =
-    terminalKey !== null &&
-    settings[terminalKey] === terminal?.id &&
-    (terminalKey === 'terminalThemeDark' || settings.terminalUseSeparateLightTheme)
+    terminal !== undefined && isPluginTerminalThemeSelected(settings, terminal, base === 'dark')
   return (
     <div className="flex flex-col items-end gap-1">
       <Select

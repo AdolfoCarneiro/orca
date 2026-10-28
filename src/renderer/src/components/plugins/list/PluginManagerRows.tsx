@@ -35,7 +35,7 @@ export type InstalledRowHandlers = {
   onRemoveRequest: (pluginKey: string) => void
 }
 
-export type InstalledPluginControls = {
+type InstalledPluginControls = {
   kind: PluginStatusKind
   statusText: string
   description: React.ReactNode
@@ -46,7 +46,7 @@ export type InstalledPluginControls = {
   more: React.ReactNode
 }
 
-/** What an installed plugin shows and offers, shared by its row and its page. */
+/** What an installed plugin shows and offers, shared by its card and its page. */
 export function installedPluginControls(
   plugin: PluginHostListEntry,
   entry: PluginListEntry,

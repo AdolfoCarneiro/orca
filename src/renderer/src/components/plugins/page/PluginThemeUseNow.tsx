@@ -6,7 +6,11 @@ import { pluginAppThemeSlotUpdate } from '../../../../../shared/plugin-theme-set
 import { useAppStore } from '@/store'
 import { usePluginThemes, usePluginTerminalThemes } from '@/store/plugin-themes'
 import { Button } from '../../ui/button'
-import { terminalSlot, terminalThemeUpdate } from '../state/plugin-theme-apply'
+import {
+  isPluginAppThemeSelected,
+  isPluginTerminalThemeSelected,
+  terminalThemeUpdate
+} from '../state/plugin-theme-apply'
 import { PluginThemeSwatch } from './PluginThemeSwatch'
 
 /** One-click "use it" for each theme a plugin adds, e.g. the other light/dark variant. */
@@ -35,9 +39,7 @@ export function PluginThemeUseNow({
     dark: translate('auto.components.settings.PluginThemeUseNow.useForDark', 'Use for dark:')
   }
   const appChip = (theme: (typeof themes)[number]): React.JSX.Element => {
-    const selected =
-      (theme.base === 'dark' ? settings.pluginAppThemeDark : settings.pluginAppThemeLight) ===
-      theme.id
+    const selected = isPluginAppThemeSelected(settings, theme)
     return (
       <Button
         key={theme.id}
@@ -78,10 +80,7 @@ export function PluginThemeUseNow({
         </Button>
       ))}
       {terminals.map((theme) => {
-        const slot = terminalSlot(theme.mode, dark)
-        const selected =
-          settings[slot] === theme.id &&
-          (slot !== 'terminalThemeLight' || settings.terminalUseSeparateLightTheme)
+        const selected = isPluginTerminalThemeSelected(settings, theme, dark)
         return (
           <Button
             key={`terminal:${theme.id}`}

@@ -65,7 +65,7 @@ function installedVerifiedSource(
     : { kind: 'unverified' }
 }
 
-export type PluginEntryAutoUpdate = { updatedTo: string | null; needsReview: boolean }
+type PluginEntryAutoUpdate = { updatedTo: string | null; needsReview: boolean }
 
 const NO_AUTO_UPDATE: PluginEntryAutoUpdate = { updatedTo: null, needsReview: false }
 
@@ -90,6 +90,16 @@ function catalogVersion(listing: PluginMarketplaceHostListing): string | null {
   return listing.version ?? listing.release?.version ?? null
 }
 
+/** The minimum Orca a release needs when this Orca is older; null when it runs or either is unknown. */
+export function needsNewerOrca(
+  minimumOrca: string | null | undefined,
+  orcaVersion: string | null
+): string | null {
+  return minimumOrca && orcaVersion && !satisfiesOrcaEngineRange(orcaVersion, `>=${minimumOrca}`)
+    ? minimumOrca
+    : null
+}
+
 function newerCatalogVersion(
   plugin: PluginHostListEntry,
   listing: PluginMarketplaceHostListing | null,
@@ -99,9 +109,8 @@ function newerCatalogVersion(
   if (!version || plugin.source?.kind !== 'marketplace') {
     return null
   }
-  const minimumOrca = listing?.release?.minimumOrca
   // Why: an update this Orca can't run isn't one to offer; Orca itself needs updating first.
-  if (minimumOrca && orcaVersion && !satisfiesOrcaEngineRange(orcaVersion, `>=${minimumOrca}`)) {
+  if (needsNewerOrca(listing?.release?.minimumOrca, orcaVersion)) {
     return null
   }
   return compareAppVersions(version, plugin.version) > 0 ? version : null

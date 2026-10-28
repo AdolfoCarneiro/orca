@@ -1,11 +1,15 @@
 import {
   pluginUpdateAccessGrowth,
   pluginUpdateGrowsAccess,
+  type PluginUpdateAccessGrowth,
   type PluginVmRecipeIdentities
 } from '../../../shared/plugins/approval/plugin-update-access-growth'
 import { readPluginVmRecipeIdentities } from '../plugin-vm-recipe-identities'
 import { livePluginActivationState, type PluginPolicySource } from '../plugin-activation-policy'
-import type { PluginMarketplaceInstallResult } from './plugin-marketplace-installer'
+import type {
+  PluginMarketplaceInstallPreview,
+  PluginMarketplaceInstallResult
+} from './plugin-marketplace-installer'
 import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import { enableIfDataPlugin } from './plugin-one-click-enable'
 
@@ -19,6 +23,17 @@ export function readApprovedPredecessor(
     return null
   }
   return plugin
+}
+
+/** What a previewed update asks for beyond the installed plugin. */
+export async function readPreviewAccessGrowth(
+  installed: ValidDiscoveredPlugin,
+  preview: Pick<PluginMarketplaceInstallPreview, 'manifest' | 'vmRecipeIdentities'>
+): Promise<PluginUpdateAccessGrowth> {
+  return pluginUpdateAccessGrowth(installed.manifest, preview.manifest, {
+    installed: await readPluginVmRecipeIdentities(installed.rootDir, installed.manifest),
+    next: preview.vmRecipeIdentities ?? null
+  })
 }
 
 /**

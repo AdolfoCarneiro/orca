@@ -4,7 +4,6 @@ import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { formatShortTimeAgo } from '@/lib/short-time-ago'
 import { Button } from '../../ui/button'
-import type { PluginCatalogFilter } from '../list/PluginCatalogLayout'
 import { PluginListGroup } from '../list/PluginListGroup'
 import type { PluginListEntry } from '../list/plugin-list-entries'
 import { PluginCard } from '../list/PluginCard'
@@ -30,23 +29,19 @@ export function CatalogNotice({
   tone,
   title,
   body,
-  actions,
-  standalone = false
+  actions
 }: {
   tone: 'warning' | 'error'
   title: string
   body: string
   actions: React.ReactNode
-  /** Its own card, not a strip under a group heading. */
-  standalone?: boolean
 }): React.JSX.Element {
   const Icon = tone === 'warning' ? AlertTriangle : CircleAlert
   return (
     <div
       role="status"
       data-tone={tone}
-      data-standalone={standalone}
-      className="flex items-start gap-2.5 border-t border-border px-4 py-2.5 text-xs data-[standalone=true]:rounded-xl data-[standalone=true]:border data-[standalone=true]:border-border/50 data-[standalone=true]:bg-card/50 data-[tone=warning]:bg-status-warning/7"
+      className="flex items-start gap-2.5 rounded-xl border border-border/50 bg-card/50 px-4 py-2.5 text-xs data-[tone=warning]:bg-status-warning/7"
     >
       <Icon
         data-tone={tone}
@@ -188,7 +183,6 @@ export function PluginCatalogGroups({
   cardHandlers,
   matches,
   narrowed,
-  filter,
   capped,
   showAll,
   openSources
@@ -201,11 +195,10 @@ export function PluginCatalogGroups({
   matches: (entry: PluginListEntry) => boolean
   /** Search or a filter is on: show every match and hide groups with none. */
   narrowed: boolean
-  filter: PluginCatalogFilter
   capped: (groupId: string, rows: PluginListEntry[]) => PluginListEntry[]
   showAll: (groupId: string) => () => void
   openSources: () => void
-}): React.JSX.Element | null {
+}): React.JSX.Element {
   const order = new Map(
     catalog.listings.map((listing, index) => [
       `${listing.marketplaceSourceId}:${listing.pluginKey}`,
@@ -221,7 +214,7 @@ export function PluginCatalogGroups({
       .sort((left, right) => rank(left) - rank(right))
     return { source, rows }
   })
-  return filter !== 'all' ? null : catalog.loading ? (
+  return catalog.loading ? (
     <PluginListGroup
       layout="grid"
       title={translate('auto.components.settings.PluginManager.catalogLoading', 'Catalog')}
@@ -234,7 +227,6 @@ export function PluginCatalogGroups({
       title={translate('auto.components.settings.PluginManager.catalogLoading', 'Catalog')}
       notice={
         <CatalogNotice
-          standalone
           tone="error"
           title={translate(
             'auto.components.settings.PluginManager.catalogFailedTitle',
@@ -266,7 +258,6 @@ export function PluginCatalogGroups({
         const notice =
           failed && listedTotal === 0 ? (
             <CatalogNotice
-              standalone
               tone="error"
               title={translate(
                 'auto.components.settings.PluginManager.sourceFailedTitle',
@@ -289,7 +280,6 @@ export function PluginCatalogGroups({
             />
           ) : failed || source.stale ? (
             <CatalogNotice
-              standalone
               tone="warning"
               title={translate(
                 'auto.components.settings.PluginManager.sourceStaleTitle',

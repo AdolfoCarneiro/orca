@@ -13,27 +13,20 @@ export function usePluginLogs(
   mountedRef: MutableRefObject<boolean>,
   plugins: readonly PluginHostListEntry[]
 ): {
-  openLogs: ReadonlySet<string>
   logsByPlugin: Readonly<Record<string, PluginLogsState>>
-  toggleLogs: (pluginKey: string) => void
   showLogs: (pluginKey: string) => void
 } {
-  const [openLogs, setOpenLogs] = useState<Set<string>>(() => new Set())
   const [logsByPlugin, setLogsByPlugin] = useState<Record<string, PluginLogsState>>({})
   const nextRequestRef = useRef(0)
   const requestsRef = useRef<Record<string, number>>({})
 
   useEffect(() => {
     if (!mounted) {
-      setOpenLogs(new Set())
       setLogsByPlugin({})
       requestsRef.current = {}
       return
     }
     const installedKeys = new Set(plugins.map((plugin) => plugin.pluginKey))
-    setOpenLogs(
-      (current) => new Set([...current].filter((pluginKey) => installedKeys.has(pluginKey)))
-    )
     setLogsByPlugin((current) =>
       Object.fromEntries(
         Object.entries(current).filter(([pluginKey]) => installedKeys.has(pluginKey))
@@ -46,29 +39,8 @@ export function usePluginLogs(
     }
   }, [mounted, plugins])
 
-  const toggleLogs = (pluginKey: string): void => {
-    if (openLogs.has(pluginKey)) {
-      setOpenLogs((current) => {
-        const next = new Set(current)
-        next.delete(pluginKey)
-        return next
-      })
-      return
-    }
-    setOpenLogs((current) => new Set(current).add(pluginKey))
-    if (logsByPlugin[pluginKey]?.lines) {
-      return
-    }
-    fetchLogs(pluginKey)
-  }
-
-  /** Opens and re-reads a plugin's logs; a plugin page always shows the latest. */
+  /** Re-reads a plugin's logs; a plugin page always shows the latest. */
   const showLogs = (pluginKey: string): void => {
-    setOpenLogs((current) => new Set(current).add(pluginKey))
-    fetchLogs(pluginKey)
-  }
-
-  function fetchLogs(pluginKey: string): void {
     const requestId = ++nextRequestRef.current
     requestsRef.current[pluginKey] = requestId
     setLogsByPlugin((current) => ({ ...current, [pluginKey]: { loading: true } }))
@@ -99,5 +71,5 @@ export function usePluginLogs(
       })
   }
 
-  return { openLogs, logsByPlugin, toggleLogs, showLogs }
+  return { logsByPlugin, showLogs }
 }

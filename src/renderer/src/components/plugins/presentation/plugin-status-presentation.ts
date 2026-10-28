@@ -102,8 +102,8 @@ export function sortByAttention<T extends { installed: PluginHostListEntry | nul
 export function installedPluginPresentation(
   plugin: PluginHostListEntry,
   updateVersion: string | null,
-  busy = false,
-  autoUpdate: { updatedTo: string | null; needsReview: boolean } | null = null
+  busy: boolean,
+  autoUpdate: { updatedTo: string | null; needsReview: boolean }
 ) {
   const kind = pluginStatusKind(plugin)
   const removable = !plugin.bundled && !plugin.isDev
@@ -120,20 +120,33 @@ export function installedPluginPresentation(
             : kind === 'invalid'
               ? 'error'
               : null
+  const fact =
+    updateVersion && autoUpdate.needsReview
+      ? translate(
+          'auto.components.settings.PluginManagerRows.updateNeedsReview',
+          'update {{value0}} needs review',
+          { value0: updateVersion }
+        )
+      : updateVersion
+        ? translate(
+            'auto.components.settings.PluginManagerRows.updateAvailable',
+            'update {{value0}} available',
+            { value0: updateVersion }
+          )
+        : autoUpdate.updatedTo
+          ? translate(
+              'auto.components.settings.PluginManagerRows.updatedTo',
+              'updated to {{value0}}',
+              { value0: autoUpdate.updatedTo }
+            )
+          : null
   return {
     kind,
     removable,
     primary,
     enabled: isPluginEnabled(plugin),
     switchable: !busy && kind !== 'review' && kind !== 'invalid' && kind !== 'blocked',
-    statusText:
-      updateVersion && autoUpdate?.needsReview
-        ? `${statusWordFor(kind)}, ${translate('auto.components.settings.PluginManagerRows.updateNeedsReview', 'update {{value0}} needs review', { value0: updateVersion })}`
-        : updateVersion
-          ? `${statusWordFor(kind)}, ${translate('auto.components.settings.PluginManagerRows.updateAvailable', 'update {{value0}} available', { value0: updateVersion })}`
-          : autoUpdate?.updatedTo
-            ? `${statusWordFor(kind)}, ${translate('auto.components.settings.PluginManagerRows.updatedTo', 'updated to {{value0}}', { value0: autoUpdate.updatedTo })}`
-            : statusWordFor(kind)
+    statusText: fact ? `${statusWordFor(kind)}, ${fact}` : statusWordFor(kind)
   }
 }
 

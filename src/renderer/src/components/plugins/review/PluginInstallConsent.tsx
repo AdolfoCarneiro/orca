@@ -2,6 +2,7 @@ import { useId } from 'react'
 import { AlertTriangle, Check, Loader2, ShieldAlert } from 'lucide-react'
 import type { PluginHostListEntry } from '../../../../../preload/api-types'
 import { translate } from '@/i18n/i18n'
+import { getShortcutPlatform } from '@/lib/shortcut-platform'
 import { Button } from '../../ui/button'
 import { SecuritySurface } from '../../ui/security-surface'
 import {
@@ -40,13 +41,6 @@ type PluginInstallConsentProps = {
   error: string | null
 }
 
-function shortcutPlatform(): NodeJS.Platform {
-  if (navigator.userAgent.includes('Mac')) {
-    return 'darwin'
-  }
-  return navigator.userAgent.includes('Windows') ? 'win32' : 'linux'
-}
-
 function formatFileTypeList(fileTypes: readonly string[]): string {
   try {
     return new Intl.ListFormat(undefined, { type: 'conjunction' }).format(fileTypes)
@@ -78,7 +72,7 @@ export function PluginInstallConsent({
   const capabilities = requested ? shownPluginCapabilities(requested, trust) : null
   const ready = capabilities !== null
   const overrides = useAppStore((state) => state.keybindings)
-  const platform = shortcutPlatform()
+  const platform = getShortcutPlatform()
   const conflicts = (shortcuts ?? []).flatMap((shortcut) => {
     const replaced = shadowedKeybindingTitles(shortcut.key, platform, overrides)
     return replaced.length > 0 ? [{ ...shortcut, replaced }] : []

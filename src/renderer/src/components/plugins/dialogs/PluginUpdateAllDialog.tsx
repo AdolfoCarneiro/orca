@@ -62,8 +62,7 @@ export function PluginUpdateAllDialog({
   const [updated, setUpdated] = useState<ReadonlySet<string>>(() => new Set())
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
-  // Why frozen: each update reloads the list mid-run; previews (git clones) and "Updated" rows
-  // belong to the set the user opened, and the parent mounts a fresh dialog per open.
+  // Why frozen: each update reloads the list mid-run; the rows belong to the set the user opened.
   const [plugins] = useState(entries)
   const orcaVersionRef = useRef(orcaVersion)
   useLayoutEffect(() => {

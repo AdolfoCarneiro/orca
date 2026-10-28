@@ -54,7 +54,7 @@ export type PluginTrust = {
 }
 
 /** Contribution points a plugin is known to use; null when nothing verified says yet. */
-export type PluginKnownPoints = ReadonlySet<PluginContributionPoint> | null
+type PluginKnownPoints = ReadonlySet<PluginContributionPoint> | null
 
 export function pluginPointsFromManifest(manifest: PluginManifest): Set<PluginContributionPoint> {
   return new Set(

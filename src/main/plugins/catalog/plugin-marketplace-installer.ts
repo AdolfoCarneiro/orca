@@ -29,6 +29,7 @@ import type {
 import { marketplaceSourceId } from './plugin-marketplace-store'
 import { fullAccessError, PLUGIN_FULL_ACCESS_OFF_ERROR } from '../plugin-activation-policy'
 import { isSamePluginSource } from '../../../shared/plugins/catalog/plugin-marketplace'
+import type { PluginInstallSource } from '../../../shared/plugins/plugin-install-lockfile'
 
 export type PluginMarketplaceInstallPreview = {
   marketplaceSourceId: string
@@ -54,6 +55,8 @@ export type PluginMarketplaceInstallPreview = {
 
 /** `repositoryMoved`: this replaced an install that came from a different repository. */
 export type PluginMarketplaceInstallResult = PluginInstallResult & { repositoryMoved?: true }
+
+type MarketplaceInstallSource = Extract<PluginInstallSource, { kind: 'marketplace' }>
 
 export type PluginMarketplacePreviewIdentity = Pick<
   PluginMarketplaceInstallPreview,
@@ -167,7 +170,9 @@ export class PluginMarketplaceInstaller {
       return { ok: false, error: 'marketplace source is no longer configured' }
     }
     // Why read first: the install rewrites the lock entry this comparison needs.
-    const repositoryMoved = await this.isRepositoryMoved(preview.pluginKey, listing.source)
+    const installed = await this.readMarketplaceInstall(preview.pluginKey)
+    const repositoryMoved =
+      installed !== null && !isSamePluginSource(installed.plugin, listing.source)
     const result = await installPluginFromMarketplace({
       pluginsDir: getUserPluginsDir(this.userDataPath),
       hostVersion: this.hostVersion,
@@ -192,29 +197,30 @@ export class PluginMarketplaceInstaller {
     return result.ok && repositoryMoved ? { ...result, repositoryMoved: true } : result
   }
 
-  private async isRepositoryMoved(
-    pluginKey: string,
-    next: PluginMarketplaceListing['source']
-  ): Promise<boolean> {
+  /** The catalog an installed plugin came from, or null when it was not a marketplace install. */
+  private async readMarketplaceInstall(
+    pluginKey: string
+  ): Promise<{ sourceId: string; plugin: MarketplaceInstallSource['plugin'] } | null> {
     const entry = (await readPluginLockfile(getUserPluginsDir(this.userDataPath))).plugins[
       pluginKey
     ]
-    return entry?.source.kind === 'marketplace' && !isSamePluginSource(entry.source.plugin, next)
+    if (entry?.source.kind !== 'marketplace') {
+      return null
+    }
+    const { marketplace, plugin } = entry.source
+    return {
+      sourceId: marketplaceSourceId({ kind: 'git', url: marketplace.url, ref: marketplace.ref }),
+      plugin
+    }
   }
 
   async previewInstalledUpdate(pluginKey: string): Promise<PluginMarketplaceInstallPreview> {
-    const lock = await readPluginLockfile(getUserPluginsDir(this.userDataPath))
-    const entry = lock.plugins[pluginKey]
-    if (!entry || entry.source.kind !== 'marketplace') {
+    const installed = await this.readMarketplaceInstall(pluginKey)
+    if (!installed) {
       throw new Error(`plugin ${pluginKey} was not installed from a marketplace`)
     }
-    const sourceId = marketplaceSourceId({
-      kind: 'git',
-      url: entry.source.marketplace.url,
-      ref: entry.source.marketplace.ref
-    })
-    const preview = await this.preview(sourceId, pluginKey)
-    return isSamePluginSource(entry.source.plugin, preview.source)
+    const preview = await this.preview(installed.sourceId, pluginKey)
+    return isSamePluginSource(installed.plugin, preview.source)
       ? preview
       : { ...preview, repositoryMoved: true }
   }
@@ -224,26 +230,17 @@ export class PluginMarketplaceInstaller {
     listing: PluginMarketplaceListing
     officialCatalog: boolean
   } | null> {
-    const entry = (await readPluginLockfile(getUserPluginsDir(this.userDataPath))).plugins[
-      pluginKey
-    ]
-    if (!entry || entry.source.kind !== 'marketplace') {
+    const installed = await this.readMarketplaceInstall(pluginKey)
+    const listing = installed
+      ? await this.marketplace.findPlugin(installed.sourceId, pluginKey)
+      : null
+    if (!installed || !listing) {
       return null
     }
-    const sourceId = marketplaceSourceId({
-      kind: 'git',
-      url: entry.source.marketplace.url,
-      ref: entry.source.marketplace.ref
-    })
-    const listing = await this.marketplace.findPlugin(sourceId, pluginKey)
-    if (!listing) {
-      return null
-    }
-    const source = (await this.marketplace.listSources()).find(({ id }) => id === sourceId)
-    return {
-      listing,
-      officialCatalog: source?.official === true
-    }
+    const source = (await this.marketplace.listSources()).find(
+      ({ id }) => id === installed.sourceId
+    )
+    return { listing, officialCatalog: source?.official === true }
   }
 
   /** What `rollback` would restore, read only when the UI asks. */

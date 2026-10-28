@@ -19,7 +19,7 @@ import {
 } from '../presentation/plugin-contributions'
 
 /** What an installed plugin adds right now, from Orca's live registrations; empty for others. */
-export function useInstalledPluginContributionSource(
+function useInstalledPluginContributionSource(
   plugin: PluginHostListEntry | null
 ): PluginContributionSource {
   const appThemes = usePluginThemes()
@@ -56,14 +56,15 @@ export function useInstalledPluginContributionSource(
 /** An installed plugin's declared manifest, read when its page opens; undefined until read, null if
  *  unreadable. Keyed by revision too, so a same-key update never pairs old contents with new trust. */
 export function useInstalledPluginManifest(
-  pluginKey: string | null,
-  revision: string | null
+  plugin: Pick<PluginHostListEntry, 'pluginKey' | 'consentFingerprint' | 'source'> | null
 ): PluginManifest | null | undefined {
   const [loaded, setLoaded] = useState<{
     key: string
     manifest: PluginManifest | null
   } | null>(null)
-  const key = pluginKey ? `${pluginKey}@${revision ?? ''}` : null
+  const pluginKey = plugin?.pluginKey ?? null
+  const revision = plugin?.consentFingerprint ?? plugin?.source?.contentHash ?? ''
+  const key = pluginKey ? `${pluginKey}@${revision}` : null
   useEffect(() => {
     if (!pluginKey || !key) {
       return
@@ -108,10 +109,7 @@ export function useInstalledPluginContributions(
   plugin: PluginHostListEntry | null
 ): PluginContributionSource {
   const live = useInstalledPluginContributionSource(plugin)
-  const manifest = useInstalledPluginManifest(
-    plugin?.pluginKey ?? null,
-    plugin?.consentFingerprint ?? plugin?.source?.contentHash ?? null
-  )
+  const manifest = useInstalledPluginManifest(plugin)
   return useMemo(
     () => (hasLiveContent(live) || !manifest ? live : manifestContributionSource(manifest)),
     [live, manifest]

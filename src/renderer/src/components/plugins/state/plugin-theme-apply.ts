@@ -10,13 +10,35 @@ import { useAppStore } from '@/store'
 import { usePluginIconThemeStore } from '@/store/plugin-icon-themes'
 import { usePluginThemeStore, usePluginTerminalThemeStore } from '@/store/plugin-themes'
 
-export function terminalSlot(
+export function isPluginAppThemeSelected(
+  settings: Pick<GlobalSettings, 'pluginAppThemeDark' | 'pluginAppThemeLight'>,
+  theme: Pick<PluginThemeRegistration, 'id' | 'base'>
+): boolean {
+  return (
+    (theme.base === 'dark' ? settings.pluginAppThemeDark : settings.pluginAppThemeLight) ===
+    theme.id
+  )
+}
+
+function terminalSlot(
   mode: PluginTerminalThemeRegistration['mode'],
   dark: boolean
 ): 'terminalThemeDark' | 'terminalThemeLight' {
   return mode === 'light' || (mode === 'unknown' && !dark)
     ? 'terminalThemeLight'
     : 'terminalThemeDark'
+}
+
+export function isPluginTerminalThemeSelected(
+  settings: GlobalSettings,
+  theme: PluginTerminalThemeRegistration,
+  dark: boolean
+): boolean {
+  const slot = terminalSlot(theme.mode, dark)
+  return (
+    settings[slot] === theme.id &&
+    (slot === 'terminalThemeDark' || settings.terminalUseSeparateLightTheme)
+  )
 }
 
 export function terminalThemeUpdate(

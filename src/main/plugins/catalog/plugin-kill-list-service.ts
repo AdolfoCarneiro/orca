@@ -95,9 +95,7 @@ export class PluginKillListService {
     )
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null
-      void this.refresh().catch((error) =>
-        console.warn('[plugins] failed to refresh plugin safety list; using cached state:', error)
-      )
+      this.refreshInBackground()
     }, delay)
     this.retryTimer.unref?.()
   }
@@ -111,12 +109,14 @@ export class PluginKillListService {
     if (this.periodicTimer) {
       return
     }
-    this.periodicTimer = setInterval(() => {
-      void this.refresh().catch((error) =>
-        console.warn('[plugins] failed to refresh plugin safety list; using cached state:', error)
-      )
-    }, intervalMs)
+    this.periodicTimer = setInterval(() => this.refreshInBackground(), intervalMs)
     this.periodicTimer.unref?.()
+  }
+
+  private refreshInBackground(): void {
+    void this.refresh().catch((error) =>
+      console.warn('[plugins] failed to refresh plugin safety list; using cached state:', error)
+    )
   }
 
   dispose(): void {

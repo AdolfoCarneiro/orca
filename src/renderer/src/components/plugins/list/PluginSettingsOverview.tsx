@@ -26,7 +26,7 @@ type PluginSettingsOverviewProps = {
     reviewedFingerprint: string,
     decision: 'approve' | 'keep-disabled'
   ) => Promise<void>
-  handlers: Omit<InstalledRowHandlers, 'onCheckUpdate'>
+  handlers: Omit<InstalledRowHandlers, 'onOpen' | 'onViewLogs' | 'onCheckUpdate'>
   onToggleFeature: () => void
   onRefresh: () => Promise<void>
   onMarketplaceInstalled: (pluginKeys: string | readonly string[]) => Promise<void>
@@ -94,8 +94,6 @@ function PluginsOffState({
                   entry={entry}
                   description={entry.description ?? ''}
                   chips={<PluginChips entry={entry} />}
-                  dimmed
-                  inert
                 />
               )
             })}

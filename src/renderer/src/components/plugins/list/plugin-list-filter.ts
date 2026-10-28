@@ -35,7 +35,7 @@ const KIND_BY_CATEGORY: Readonly<Record<string, PluginFilterKind>> = {
   recipes: 'machines'
 }
 
-export const PLUGIN_FILTER_KINDS = ['themes', 'languages', 'icons', 'commands', 'machines'] as const
+const PLUGIN_FILTER_KINDS = ['themes', 'languages', 'icons', 'commands', 'machines'] as const
 export type PluginFilterKind = (typeof PLUGIN_FILTER_KINDS)[number]
 
 export function isPluginFilterKind(value: string): value is PluginFilterKind {

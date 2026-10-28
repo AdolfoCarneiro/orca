@@ -130,8 +130,6 @@ export const pluginCatalogSchema = pluginCatalogDocumentSchema
     return { ...catalog, plugins }
   })
 
-export type PluginCatalogEntry = z.infer<typeof pluginCatalogEntrySchema>
-
 /** Why before parsing: a newer format may change fields this build would misread, so refuse it
  *  with the fix instead of a list of schema errors. */
 export function pluginCatalogVersionError(raw: unknown): string | null {
