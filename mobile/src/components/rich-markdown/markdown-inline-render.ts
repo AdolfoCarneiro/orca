@@ -1,9 +1,14 @@
+import {
+  createRawMarkdownCodeSpanScanner,
+  type MarkdownCodeSpanScanner
+} from '../../../../src/shared/markdown-code-span-runs'
 import { escapeAttr, escapeHtml, escapeLiteralHtml, isSafeUrl } from './markdown-escaping'
 
 // Build global exec regex per recursive call: shared lastIndex would leak between nested parses. Escape text between recognized inline forms.
 export function renderInline(text: string): string {
   const pattern =
-    /(!\[[^\]]*\]\([^)]+\)|`[^`]+`|~~[^~]+~~|\*\*[^*]+\*\*|__[^_]+__|\*[^*\n]+\*|_[^_\n]+_|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s<]+)/g
+    /(!\[[^\]]*\]\([^)]+\)|`+|~~[^~]+~~|\*\*[^*]+\*\*|__[^_]+__|\*[^*\n]+\*|_[^_\n]+_|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s<]+)/g
+  let codeSpans: MarkdownCodeSpanScanner | undefined
   let output = ''
   let lastIndex = 0
   let match = pattern.exec(text)
@@ -19,7 +24,18 @@ export function renderInline(text: string): string {
     } else if (/^https?:\/\//i.test(token)) {
       output += `<a href="${escapeAttr(token)}">${escapeHtml(token)}</a>`
     } else if (token.startsWith('`')) {
-      output += `<code>${escapeLiteralHtml(token.slice(1, -1))}</code>`
+      codeSpans ??= createRawMarkdownCodeSpanScanner(text)
+      const spanEnd = codeSpans.findSpanEnd(match.index)
+      if (spanEnd === null) {
+        output += escapeHtml(token)
+      } else {
+        let code = text.slice(pattern.lastIndex, spanEnd - token.length).replace(/\r\n?|\n/g, ' ')
+        if (code.startsWith(' ') && code.endsWith(' ') && /[^ ]/.test(code)) {
+          code = code.slice(1, -1)
+        }
+        output += `<code>${escapeLiteralHtml(code)}</code>`
+        pattern.lastIndex = spanEnd
+      }
     } else if (token.startsWith('~~')) {
       output += `<s>${renderInline(token.slice(2, -2))}</s>`
     } else if (token.startsWith('**') || token.startsWith('__')) {

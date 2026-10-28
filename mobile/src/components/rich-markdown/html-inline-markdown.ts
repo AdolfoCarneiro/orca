@@ -1,3 +1,5 @@
+import { codeFenceFor } from './markdown-code-fence'
+
 export function literalTextContent(node: Node): string {
   return node.textContent ?? ''
 }
@@ -32,7 +34,18 @@ export function inlineMarkdown(node: Node | null | undefined): string {
     return `~~${inlineChildren(node)}~~`
   }
   if (tag === 'code' && node.parentElement && node.parentElement.tagName.toLowerCase() !== 'pre') {
-    return `\`${literalTextContent(node)}\``
+    const code = literalTextContent(node)
+    if (!code) {
+      return ''
+    }
+    const delimiter = codeFenceFor(code, 1)
+    const padding =
+      code.startsWith('`') ||
+      code.endsWith('`') ||
+      (code.startsWith(' ') && code.endsWith(' ') && /[^ ]/.test(code))
+        ? ' '
+        : ''
+    return `${delimiter}${padding}${code}${padding}${delimiter}`
   }
   if (tag === 'a') {
     return `[${inlineChildren(node)}](${node.getAttribute('href') ?? ''})`
