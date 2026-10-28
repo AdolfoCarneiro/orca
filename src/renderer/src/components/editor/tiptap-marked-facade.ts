@@ -105,6 +105,21 @@ export function createTiptapMarkedFacade(): typeof marked {
       }
     }
 
+    inlineTokens(source: string, tokens?: Token[]): Token[] {
+      const previousExtensions = this.options.extensions
+      const extensions = this.registeredExtensions
+      if (!extensions?.startInline) {
+        return super.inlineTokens(source, tokens)
+      }
+      const startInline = extensions.startInline.map(createMarkdownTokenizerStartCursor)
+      this.options.extensions = { ...extensions, startInline }
+      try {
+        return super.inlineTokens(source, tokens)
+      } finally {
+        this.options.extensions = previousExtensions
+      }
+    }
+
     constructor(options?: MarkedOptions) {
       super({
         ...registry.defaults,

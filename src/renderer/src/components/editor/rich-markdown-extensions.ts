@@ -1,6 +1,6 @@
 import { createMarkdownTokenizerStart } from './markdown-tokenizer-start'
 import type { AnyExtension } from '@tiptap/core'
-import StarterKit from '@tiptap/starter-kit'
+import { RichMarkdownInlineMath, RichMarkdownStarterKit } from './rich-markdown-inline-tokenizers'
 import { RichMarkdownTrailingParagraph } from './rich-markdown-trailing-paragraph'
 import Link from '@tiptap/extension-link'
 import { Code } from '@tiptap/extension-code'
@@ -9,7 +9,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { TaskItem } from '@tiptap/extension-list'
 import { RichMarkdownTable } from './rich-markdown-table'
 import { TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
-import { BlockMath, InlineMath } from '@tiptap/extension-mathematics'
+import { BlockMath } from '@tiptap/extension-mathematics'
 import { createRichMarkdownExtension } from './rich-markdown-extension'
 import { createLowlight, common } from 'lowlight'
 import {
@@ -70,7 +70,7 @@ export function createRichMarkdownExtensions({
   }
   const extensions: AnyExtension[] = [
     // Eligibility and live editing must share extensions or a document deemed safe could still lose syntax on save.
-    StarterKit.configure({
+    RichMarkdownStarterKit.configure({
       link: false,
       code: false,
       codeBlock: false,
@@ -221,7 +221,7 @@ export function createRichMarkdownExtensions({
     TableRow,
     TableHeader,
     TableCell,
-    InlineMath.configure({
+    RichMarkdownInlineMath.configure({
       katexOptions: {
         throwOnError: false
       }

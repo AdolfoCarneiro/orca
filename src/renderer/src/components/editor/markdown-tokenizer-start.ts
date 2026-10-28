@@ -48,7 +48,7 @@ export function getMarkdownTokenizerStartMarker(start: (source: string) => numbe
   return startMarkers.get(start)
 }
 
-/** Bind to one blockTokens call, where Marked passes monotonically shorter suffixes. */
+/** Bind to one lexer call, where Marked passes monotonically shorter suffixes. */
 export function createMarkdownTokenizerStartCursor(
   start: MarkdownTokenizerStart
 ): MarkdownTokenizerStart {

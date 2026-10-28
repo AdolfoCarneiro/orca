@@ -1,4 +1,6 @@
 import { expect, it, vi } from 'vitest'
+import { flattenExtensions, getExtensionField } from '@tiptap/core'
+import { RichMarkdownInlineMath, RichMarkdownStarterKit } from './rich-markdown-inline-tokenizers'
 import { createTiptapMarkedFacade } from './tiptap-marked-facade'
 import {
   createMarkdownTokenizerStart,
@@ -146,5 +148,123 @@ it('recognizes a suffix-start directive skipped by an earlier line-start search'
     { type: 'directive', raw: ':::x' },
     { type: 'space', raw: '\n\n' },
     { type: 'directive', raw: ':::x' }
+  ])
+})
+
+function createInlineTokenizerFacade() {
+  const marked = createTiptapMarkedFacade()
+  for (const extension of flattenExtensions([RichMarkdownStarterKit, RichMarkdownInlineMath])) {
+    if (extension.name !== 'underline' && extension.name !== 'inlineMath') {
+      continue
+    }
+    const tokenizer = getExtensionField(extension, 'markdownTokenizer')
+    if (
+      !tokenizer ||
+      typeof tokenizer === 'function' ||
+      tokenizer.level !== 'inline' ||
+      typeof tokenizer.start !== 'function'
+    ) {
+      throw new Error('Inline tokenizer configuration must be available')
+    }
+    marked.use({
+      extensions: [
+        {
+          name: tokenizer.name,
+          level: tokenizer.level,
+          start: tokenizer.start,
+          tokenizer(source, tokens) {
+            return tokenizer.tokenize(source, tokens, {
+              inlineTokens: (text) => this.lexer.inlineTokens(text),
+              blockTokens: (text) => this.lexer.blockTokens(text)
+            })
+          }
+        }
+      ]
+    })
+  }
+  return marked
+}
+
+it.each(['absent', 'before', 'after'])(
+  'reuses inline marker searches with their only tokens %s escaped prose',
+  (placement) => {
+    const marked = createInlineTokenizerFacade()
+    const prose = 'Prose \\! '.repeat(1000)
+    const inline = '$x$ ++u++ '
+    const source =
+      placement === 'before' ? inline + prose : placement === 'after' ? prose + inline : prose
+    const indexOf = vi.spyOn(String.prototype, 'indexOf')
+    try {
+      const tokens = marked.lexer(source)
+      const inlineTokens = tokens.flatMap((token) =>
+        'tokens' in token ? (token.tokens ?? []) : []
+      )
+      expect(tokens.filter((token) => token.type === 'paragraph')).toHaveLength(1)
+      expect(inlineTokens.filter((token) => token.type === 'escape')).toHaveLength(1000)
+      expect(inlineTokens.filter((token) => token.type === 'inlineMath')).toHaveLength(
+        placement === 'absent' ? 0 : 1
+      )
+      expect(inlineTokens.filter((token) => token.type === 'underline')).toHaveLength(
+        placement === 'absent' ? 0 : 1
+      )
+      for (const marker of ['$', '++']) {
+        expect(
+          indexOf.mock.calls.filter(([search]) => search === marker).length
+        ).toBeLessThanOrEqual(3)
+      }
+    } finally {
+      indexOf.mockRestore()
+    }
+  }
+)
+
+it('keeps inline cursors separate for recursive generated input and later parses', () => {
+  const marked = createInlineTokenizerFacade()
+  marked.use({
+    extensions: [
+      {
+        name: 'generated',
+        level: 'inline',
+        start: (source) => source.indexOf('GEN'),
+        tokenizer(source) {
+          if (source.startsWith('GEN')) {
+            return {
+              type: 'generated',
+              raw: 'GEN',
+              tokens: this.lexer.inlineTokens('Generated longer prose $nested$ ++underlined++')
+            }
+          }
+          return undefined
+        }
+      }
+    ]
+  })
+  expect([...marked.lexer('Lead GEN end')]).toMatchObject([
+    {
+      type: 'paragraph',
+      tokens: [
+        { type: 'text', text: 'Lead ' },
+        {
+          type: 'generated',
+          tokens: [
+            { type: 'text', text: 'Generated longer prose ' },
+            { type: 'inlineMath', latex: 'nested' },
+            { type: 'text', text: ' ' },
+            { type: 'underline', text: 'underlined' }
+          ]
+        },
+        { type: 'text', text: ' end' }
+      ]
+    }
+  ])
+  expect([...marked.lexer('$later$ ++later++')]).toMatchObject([
+    {
+      type: 'paragraph',
+      tokens: [
+        { type: 'inlineMath', latex: 'later' },
+        { type: 'text', text: ' ' },
+        { type: 'underline', text: 'later' }
+      ]
+    }
   ])
 })
