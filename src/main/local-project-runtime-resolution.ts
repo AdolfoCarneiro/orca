@@ -23,11 +23,9 @@ import {
 } from './wsl'
 import { getRepoIdFromWorktreeId } from '../shared/worktree/id'
 import { projectMatchesRepo } from '../shared/project-repo-match'
-import {
-  resolveLocalWindowsTerminalRuntimeOptions,
-  type LocalWindowsTerminalRuntimeOptions
-} from '../shared/local-windows-terminal-runtime'
-import { resolveManagedSshHostLoginShell } from './pty/managed-ssh-host-login-shell'
+import type { LocalWindowsTerminalRuntimeOptions } from '../shared/local-windows-terminal-runtime'
+import { resolveLocalPtyOptions, type LocalPtySettings } from './local-project-runtime-pty-options'
+export { resolveLocalPtyOptions } from './local-project-runtime-pty-options'
 import {
   getConnectionExecutionHostId,
   getRepoExecutionHostId,
@@ -77,6 +75,16 @@ function resolveLocalProjectRuntime(
     wslAvailable,
     availableWslDistros
   })
+}
+
+/** One local project's runtime, from the current WSL discovery caches. */
+export function resolveLocalProjectRuntimeForProject(
+  store: ProjectRuntimeResolutionStore,
+  project: Pick<Project, 'id' | 'localWindowsRuntimePreference'>
+): ProjectExecutionRuntimeResolution | undefined {
+  return canResolveProjectRuntimeForRepo(store)
+    ? resolveLocalProjectRuntime(store, project)
+    : undefined
 }
 
 export function resolveLocalProjectRuntimeForRepo(
@@ -273,32 +281,6 @@ export function resolveLocalProjectRuntimeForWorktreeId(
   }
   const repo = store.getRepo(getRepoIdFromWorktreeId(worktreeId))
   return repo ? resolveLocalProjectRuntimeForRepo(store, repo) : undefined
-}
-
-type LocalPtySettings = Partial<
-  Pick<GlobalSettings, 'terminalWindowsShell' | 'terminalWindowsWslDistro' | 'terminalDefaultShell'>
->
-
-/** Throws for a Windows runtime that needs repair. */
-export function resolveLocalPtyOptions(
-  settings: LocalPtySettings | undefined,
-  projectRuntime: ProjectExecutionRuntimeResolution | undefined,
-  requestedShellOverride: string | undefined,
-  /** Replaces a `wsl.exe` setting on a Windows-host runtime; absent is `powershell.exe`. */
-  fallbackHostShell?: string
-): LocalWindowsTerminalRuntimeOptions {
-  return process.platform === 'win32'
-    ? resolveLocalWindowsTerminalRuntimeOptions({
-        requestedShellOverride,
-        settings,
-        projectRuntime,
-        fallbackHostShell,
-        sshLoginShell: resolveManagedSshHostLoginShell()
-      })
-    : {
-        shellOverride: requestedShellOverride ?? (settings?.terminalDefaultShell || undefined),
-        terminalWindowsWslDistro: null
-      }
 }
 
 /** Plain terminals use the project runtime and fall back to COMSPEC for the Windows host shell. */

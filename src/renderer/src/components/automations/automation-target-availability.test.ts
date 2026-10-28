@@ -3,6 +3,8 @@
 import { registerCapturedAutomationRunActionTests } from './automation-captured-run-actions.spec'
 import { projectHostSetupProjectionFromRepos } from '../../../../shared/project-host-setup-projection'
 import { cleanup } from '@testing-library/react'
+import { i18n } from '@/i18n/i18n'
+import es from '@/i18n/locales/es.json'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Automation } from '../../../../shared/automations-types'
 import type { RuntimeStatus } from '../../../../shared/runtime-types'
@@ -240,8 +242,8 @@ describe('automation target availability', () => {
     ).toBe('missing-workspace')
   })
 
-  it('blocks a saved run context that no longer matches the repo host setup', () => {
-    expect(
+  it('blocks a saved run context that no longer matches the repo host setup', async () => {
+    const availability = () =>
       getAutomationTargetAvailability({
         automation: makeAutomation({
           runContext: {
@@ -257,8 +259,20 @@ describe('automation target availability', () => {
         workspace: makeWorkspace(),
         projectHostSetups: [makeProjectHostSetup()],
         sshConnectionStates: new Map()
-      }).reason
-    ).toBe('host-mismatch')
+      })
+    expect(availability().reason).toBe('host-mismatch')
+    const originalLanguage = i18n.language
+    i18n.addResourceBundle('es', 'translation', es)
+    await i18n.changeLanguage('es')
+    try {
+      expect(availability()).toEqual({
+        canRunNow: false,
+        reason: 'host-mismatch',
+        message: es.auto.components.automations.automationTargetAvailability.hostMismatch
+      })
+    } finally {
+      await i18n.changeLanguage(originalLanguage)
+    }
   })
 
   it('allows a run context whose derived projectId tier drifted but repo/host/path still match', () => {

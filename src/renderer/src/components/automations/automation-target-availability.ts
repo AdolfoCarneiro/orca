@@ -4,10 +4,9 @@ import {
   setupHostMatchesRunContext,
   repoHostMatchesRunContext
 } from './automation-run-context-host-match'
-import {
-  describeRuntimeCompatBlock,
-  evaluateRuntimeCompat
-} from '../../../../shared/protocol-compat'
+import { evaluateRuntimeCompat } from '../../../../shared/protocol-compat'
+import { describeRuntimeCompatBlock } from '@/lib/runtime-host-copy'
+import { translate } from '@/i18n/i18n'
 import {
   MIN_COMPATIBLE_RUNTIME_SERVER_VERSION,
   RUNTIME_PROTOCOL_VERSION
@@ -101,7 +100,10 @@ export function getAutomationTargetAvailability({
       if (projectHostSetups.some((candidate) => candidate.id === runContext.projectHostSetupId)) {
         return unavailable(
           'host-mismatch',
-          'The saved run host no longer matches this project setup.'
+          translate(
+            'auto.components.automations.automationTargetAvailability.hostMismatch',
+            'The saved run host no longer matches this project setup.'
+          )
         )
       }
       return unavailable(
@@ -127,7 +129,10 @@ export function getAutomationTargetAvailability({
     if (!setupMatchesContext || !repoMatchesContext) {
       return unavailable(
         'host-mismatch',
-        'The saved run host no longer matches this project setup.'
+        translate(
+          'auto.components.automations.automationTargetAvailability.hostMismatch',
+          'The saved run host no longer matches this project setup.'
+        )
       )
     }
   }
