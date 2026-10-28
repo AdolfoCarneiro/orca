@@ -176,6 +176,26 @@ describe.each(['pane-issued', 'preallocated'] as const)('a %s handle across a re
     expect(outcome).toMatchObject({ handle, condition: 'exit', satisfied: true })
   })
 
+  it('keeps a tui-idle wait while its pane remounts, then settles it on idle', async () => {
+    const { runtime, handle } = await rendererTerminal()
+    runtime.onPtyData(RENDERER_PTY_ID, '\x1b]0;Codex working\x07', 1)
+    let outcome: unknown = null
+    const wait = runtime.waitForTerminal(handle, { condition: 'tui-idle', timeoutMs: 60_000 }).then(
+      (result) => (outcome = result),
+      (error: Error) => (outcome = error.message)
+    )
+    // Opening a workspace remounts the pane, which briefly publishes no terminal.
+    runtime.syncWindowGraph(1, { ...GRAPH, leaves: [{ ...GRAPH.leaves[0]!, ptyId: null }] })
+    runtime.syncWindowGraph(1, GRAPH)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(outcome).toBeNull()
+
+    runtime.onPtyData(RENDERER_PTY_ID, '\x1b]0;Codex done\x07', 2)
+    await vi.advanceTimersByTimeAsync(5_000)
+    await wait
+    expect(outcome).toMatchObject({ handle, condition: 'tui-idle', satisfied: true })
+  })
+
   it('points Run mail at the terminal and submits it while the renderer reloads', async () => {
     const { runtime, write, handle } = await rendererTerminal()
     const db = new OrchestrationDb(':memory:')
