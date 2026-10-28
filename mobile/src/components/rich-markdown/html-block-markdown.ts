@@ -3,6 +3,7 @@ import { escapeTableCell } from './markdown-table-rows'
 import {
   inlineChildren,
   inlineMarkdown,
+  inlineNodesMarkdown,
   literalTextContent,
   textContent
 } from './html-inline-markdown'
@@ -40,6 +41,38 @@ function blocksAroundLists(element: Element): string {
   return blocks.filter(Boolean).join('\n\n')
 }
 
+function quoteMarkdown(element: Element): string {
+  const blocks: string[] = []
+  let inline: Node[] = []
+  const flushInline = () => {
+    const markdown = inlineNodesMarkdown(inline).trim()
+    if (markdown) {
+      blocks.push(markdown)
+    }
+    inline = []
+  }
+  for (const child of element.childNodes) {
+    if (
+      child instanceof Element &&
+      /^(p|div|h[1-6]|blockquote|pre|ul|ol|table|hr)$/.test(child.tagName.toLowerCase())
+    ) {
+      flushInline()
+      const markdown = blockMarkdown(child)
+      if (markdown.trim()) {
+        blocks.push(markdown)
+      }
+    } else {
+      inline.push(child)
+    }
+  }
+  flushInline()
+  return blocks
+    .join('\n\n')
+    .split('\n')
+    .map((line) => `> ${line}`)
+    .join('\n')
+}
+
 // Unknown block elements serialize inline content so browser-created tags cannot lose user text.
 export function blockMarkdown(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) {
@@ -56,11 +89,7 @@ export function blockMarkdown(node: Node): string {
     return holdsUnownedList(node) ? blocksAroundLists(node) : inlineChildren(node).trim()
   }
   if (tag === 'blockquote') {
-    return inlineChildren(node)
-      .trim()
-      .split('\n')
-      .map((line) => `> ${line}`)
-      .join('\n')
+    return quoteMarkdown(node)
   }
   if (tag === 'pre') {
     const language = node.getAttribute('data-language') ?? ''

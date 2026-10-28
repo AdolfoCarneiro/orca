@@ -13,10 +13,23 @@ export function isBlockStart(line: string): boolean {
 
 // Read fenced/table/list blocks by their own consumed line runs, not flat replacements; empty source still needs paragraph for placeholder.
 export function markdownToHtml(scope: RichMarkdownEditorScope, markdown: string): string {
-  const lines = markdown.replace(/\r\n?/g, '\n').split('\n')
-  const html: string[] = []
+  let lines = markdown.replace(/\r\n?/g, '\n').split('\n')
+  let html: string[] = []
   let index = 0
-  while (index < lines.length) {
+  const parents: { lines: string[]; html: string[]; index: number }[] = []
+  while (index < lines.length || parents.length > 0) {
+    if (index >= lines.length) {
+      const markup = html.join('\n') || '<p class="is-empty"><br /></p>'
+      const parent = parents.pop()
+      if (!parent) {
+        break
+      }
+      lines = parent.lines
+      html = parent.html
+      index = parent.index
+      html.push(`<blockquote>${markup}</blockquote>`)
+      continue
+    }
     const line = lines[index] ?? ''
     if (!line.trim()) {
       index += 1
@@ -82,9 +95,10 @@ export function markdownToHtml(scope: RichMarkdownEditorScope, markdown: string)
         quote.push((lines[index] ?? '').replace(/^>\s?/, ''))
         index += 1
       }
-      html.push(
-        `<blockquote><p>${renderInline(quote.join('\n').trim()).replace(/\n/g, '<br />')}</p></blockquote>`
-      )
+      parents.push({ lines, html, index })
+      lines = quote
+      html = []
+      index = 0
       continue
     }
     if (/^\s*(?:[-*+]|\d+[.)])\s+/.test(line)) {

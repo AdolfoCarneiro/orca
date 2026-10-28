@@ -72,9 +72,13 @@ export function inlineMarkdown(node: Node | null | undefined): string {
 }
 
 export function inlineChildren(element: Element): string {
+  return inlineNodesMarkdown(element.childNodes)
+}
+
+export function inlineNodesMarkdown(nodes: Iterable<Node>): string {
   const parts: string[] = []
   let code = ''
-  for (const child of element.childNodes) {
+  for (const child of nodes) {
     if (isInlineCode(child)) {
       code += literalTextContent(child)
       continue
