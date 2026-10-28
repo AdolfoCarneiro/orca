@@ -10,6 +10,7 @@ import {
   type PluginListFilter
 } from './plugin-list-filter'
 import { pluginCategoryLabel } from './plugin-category-label'
+import { PluginCategoryIcon } from './PluginCategoryBadge'
 
 function toggled(set: ReadonlySet<string>, value: string, on: boolean): Set<string> {
   const next = new Set(set)
@@ -24,12 +25,14 @@ function toggled(set: ReadonlySet<string>, value: string, on: boolean): Set<stri
 function FilterOption({
   id,
   label,
+  icon,
   count,
   checked,
   onChange
 }: {
   id: string
   label: string
+  icon?: React.ReactNode
   count?: number
   checked: boolean
   onChange: (checked: boolean) => void
@@ -37,9 +40,10 @@ function FilterOption({
   return (
     <label
       htmlFor={id}
-      className="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent"
+      className="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent [&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:text-muted-foreground"
     >
       <Checkbox id={id} checked={checked} onCheckedChange={(value) => onChange(value === true)} />
+      {icon}
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {count !== undefined ? (
         <span className="text-xs tabular-nums text-muted-foreground">{count}</span>
@@ -84,6 +88,7 @@ export function PluginFilterPopover({
                 key={category}
                 id={`plugin-filter-category-${category}`}
                 label={pluginCategoryLabel(category)}
+                icon={<PluginCategoryIcon category={category} />}
                 count={count}
                 checked={filter.categories.has(category)}
                 onChange={(on) =>

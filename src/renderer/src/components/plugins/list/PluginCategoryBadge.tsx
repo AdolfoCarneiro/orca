@@ -12,6 +12,12 @@ const KIND_ICON: Record<PluginFilterKind, typeof Palette> = {
   machines: Server
 }
 
+/** A category's icon; the filter list and the card badges share it. */
+export function PluginCategoryIcon({ category }: { category: string }): React.JSX.Element {
+  const Icon = isPluginFilterKind(category) ? KIND_ICON[category] : Tag
+  return <Icon aria-hidden="true" />
+}
+
 /** What kind of plugin this is, as a chip with its icon; nothing when the kind is unknown. */
 export function PluginCategoryBadge({
   entry
@@ -27,10 +33,9 @@ export function PluginCategoryBadge({
     kind === 'languages' &&
     entry.types.includes('syntax') &&
     !entry.types.includes('interface-language')
-  const Icon = forCode ? Code : isPluginFilterKind(kind) ? KIND_ICON[kind] : Tag
   return (
     <Badge variant="hostContext">
-      <Icon aria-hidden="true" />
+      {forCode ? <Code aria-hidden="true" /> : <PluginCategoryIcon category={kind} />}
       {pluginCategoryLabel(kind)}
     </Badge>
   )
