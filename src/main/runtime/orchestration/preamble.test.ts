@@ -11,7 +11,6 @@ function baseParams(overrides: Partial<Parameters<typeof buildDispatchPreamble>[
     taskSpec: 'Implement the login form',
     coordinatorHandle: 'term_coord',
     workerHandle: 'term_worker',
-    heartbeatIntervalMinutes: 5,
     ...overrides
   }
 }
@@ -162,7 +161,6 @@ describe('buildDispatchPreamble', () => {
       taskSpec: 'do stuff',
       coordinatorHandle: 'term_c',
       workerHandle: 'term_w',
-      heartbeatIntervalMinutes: 5,
       baseDrift: {
         base: 'origin/main',
         behind: 7,
@@ -185,7 +183,6 @@ describe('buildDispatchPreamble', () => {
       taskSpec: 'do stuff',
       coordinatorHandle: 'term_c',
       workerHandle: 'term_w',
-      heartbeatIntervalMinutes: 5,
       baseDrift: {
         base: 'origin/main',
         behind: 0,
@@ -204,7 +201,6 @@ describe('buildDispatchPreamble', () => {
       taskSpec: 'do stuff',
       coordinatorHandle: 'term_c',
       workerHandle: 'term_w',
-      heartbeatIntervalMinutes: 5,
       baseDrift: {
         base: 'origin/main',
         behind: 3,
@@ -227,7 +223,6 @@ describe('buildDispatchPreamble', () => {
       taskSpec: 'TASK_BODY',
       coordinatorHandle: 'term_COORD',
       workerHandle: 'term_WORKER',
-      heartbeatIntervalMinutes: 5
     })
     expect(result).toMatchSnapshot()
   })
@@ -239,7 +234,6 @@ describe('buildDispatchPreamble', () => {
       taskSpec: 'TASK_BODY',
       coordinatorHandle: 'orca_session_id:COORD',
       workerHandle: 'orca_session_id:WORKER',
-      heartbeatIntervalMinutes: 5
     })
     expect(result).toMatchSnapshot()
   })
@@ -252,7 +246,6 @@ describe('sub-dispatch section', () => {
     taskSpec: 'do the thing',
     coordinatorHandle: 'term_coord',
     workerHandle: 'term_worker',
-    heartbeatIntervalMinutes: 5
   }
 
   it('is omitted explicitly when nesting is disallowed', () => {
