@@ -15,8 +15,23 @@ export function restorePRCommentThreadSnapshot(
   previousThreadComments: PRComment[]
 ): PRComment[] {
   const previousById = new Map(previousThreadComments.map((comment) => [comment.id, comment]))
+  const previousResolutionByThread = new Map<string, boolean>()
+  for (const previous of previousThreadComments) {
+    if (
+      previous.threadId !== undefined &&
+      previous.isResolved !== undefined &&
+      !previousResolutionByThread.has(previous.threadId)
+    ) {
+      previousResolutionByThread.set(previous.threadId, previous.isResolved)
+    }
+  }
   return comments.map((comment) => {
     const previous = previousById.get(comment.id)
-    return previous ? { ...comment, isResolved: previous.isResolved } : comment
+    if (previous) {
+      return { ...comment, isResolved: previous.isResolved }
+    }
+    const isResolved =
+      comment.threadId === undefined ? undefined : previousResolutionByThread.get(comment.threadId)
+    return isResolved === undefined ? comment : { ...comment, isResolved }
   })
 }

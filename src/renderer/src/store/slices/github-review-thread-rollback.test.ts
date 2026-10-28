@@ -65,6 +65,36 @@ it.each(['false', 'throw'] as const)(
   }
 )
 
+it.each(['false', 'throw'] as const)(
+  'restores resolution on a REST reply when pending unresolve fails with %s',
+  async (failure) => {
+    const resolved = { ...original, isResolved: true }
+    const store = makeStore([resolved])
+    const result = Promise.withResolvers<boolean>()
+    mockApi.gh.resolveReviewThread.mockReturnValueOnce(result.promise)
+    const pending = store.getState().resolveReviewThread(repoPath, 12, threadId, false, options)
+    expect(store.getState().commentsCache[cacheKey]?.data?.[0].isResolved).toBe(false)
+    const restReply = { ...reply }
+    delete restReply.isResolved
+    mockApi.gh.addPRReviewCommentReply.mockResolvedValueOnce({ ok: true, comment: restReply })
+    await expect(
+      store
+        .getState()
+        .addPRReviewCommentReply(repoPath, 12, 10, reply.body, { ...options, threadId })
+    ).resolves.toMatchObject({ ok: true })
+    if (failure === 'throw') {
+      result.reject(new Error('offline'))
+    } else {
+      result.resolve(false)
+    }
+    await expect(pending).resolves.toBe(false)
+    expect(store.getState().commentsCache[cacheKey]?.data).toEqual([
+      resolved,
+      { ...restReply, isResolved: true }
+    ])
+  }
+)
+
 it('keeps a successful reaction on the thread whose resolution fails', async () => {
   const store = makeStore()
   const result = Promise.withResolvers<boolean>()
@@ -110,13 +140,16 @@ it('does not resurrect a cache entry cleared while thread resolution was pending
 
 it('keeps replies on the paired source when its pending thread resolution fails', async () => {
   const store = makeStore()
+  const resolved = { ...original, isResolved: true }
+  const restReply = { ...reply }
+  delete restReply.isResolved
   const sourceContext = githubSourceContext('runtime:source-runtime', 'source-repo')
   const sourceOptions = { ...options, sourceContext }
   const sourceKey = `${getTaskSourceCacheScope(sourceContext)}::${cacheKey}`
   store.setState({
     commentsCache: {
       ...store.getState().commentsCache,
-      [sourceKey]: { data: [original], fetchedAt: 1 }
+      [sourceKey]: { data: [resolved], fetchedAt: 1 }
     }
   })
   const result = Promise.withResolvers<{
@@ -134,11 +167,11 @@ it('keeps replies on the paired source when its pending thread resolution fails'
     return {
       id: 'source-write',
       ok: true,
-      result: { ok: true, comment: reply },
+      result: { ok: true, comment: restReply },
       _meta: { runtimeId: 'source-runtime' }
     }
   })
-  const pending = store.getState().resolveReviewThread(repoPath, 12, threadId, true, sourceOptions)
+  const pending = store.getState().resolveReviewThread(repoPath, 12, threadId, false, sourceOptions)
   await started.promise
   await expect(
     store.getState().addPRReviewCommentReply(repoPath, 12, 10, reply.body, sourceOptions)
@@ -150,6 +183,9 @@ it('keeps replies on the paired source when its pending thread resolution fails'
     _meta: { runtimeId: 'source-runtime' }
   })
   await expect(pending).resolves.toBe(false)
-  expect(store.getState().commentsCache[sourceKey]?.data).toEqual([original, reply])
+  expect(store.getState().commentsCache[sourceKey]?.data).toEqual([
+    resolved,
+    { ...restReply, isResolved: true }
+  ])
   expect(store.getState().commentsCache[cacheKey]?.data).toEqual([original])
 })
