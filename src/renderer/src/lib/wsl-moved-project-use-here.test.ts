@@ -159,6 +159,13 @@ describe('bringWslMovedProjectBack', () => {
     )
   })
 
+  it("adds that the host's terminals are asleep when the refusal came after their stop", async () => {
+    stubApi({ released: false, reason: 'failed', detail: 'journal', hostTerminalsAsleep: true })
+    expect(await refusalShown()).toBe(
+      'Could not bring this project back to this computer. Its terminals on the Ubuntu host were put to sleep. Open the project to resume them.'
+    )
+  })
+
   it('says a host removed here but kept for another Orca needs re-adding', async () => {
     stubApi({ released: false, reason: 'host-unreachable', detail: 'host-kept-for-peers' })
     expect(await refusalShown()).toBe(

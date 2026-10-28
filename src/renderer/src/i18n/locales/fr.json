@@ -19240,6 +19240,7 @@
       "useHereHostKeptForPeers": "{{project}} a été déplacé vers l'hôte {{distro}}, qui reste actif pour un autre Orca. Ajoutez de nouveau l'hôte pour l'utiliser ici.",
       "useHereHostUnreachable": "L'hôte {{distro}} ne répond pas : Orca ne peut pas arrêter sa copie de ce projet, et ses agents y tournent peut-être encore. Connectez l'hôte dans les Paramètres, ou supprimez-le, puis réessayez.",
       "useHereHostStillRunning": "La copie de ce projet sur l'hôte {{distro}} a encore des terminaux en cours : ses agents pourraient tourner deux fois. Patientez un instant, puis réessayez.",
+      "useHereHostTerminalsAsleep": "Ses terminaux sur l'hôte {{distro}} ont été mis en veille. Ouvrez le projet pour les reprendre.",
       "useHereFailed": "Impossible de ramener ce projet sur cet ordinateur.",
       "useHereHostRemovalPending": "L'hôte {{distro}} est encore en cours de suppression, Orca n'y touche donc pas. Terminez sa suppression dans les Paramètres, puis réessayez.",
       "useHereHostAutomations": "Orca n'a pas pu désactiver les automatisations de ce projet sur l'hôte {{distro}} : elles pourraient s'exécuter deux fois. Connectez l'hôte dans les Paramètres, puis réessayez.",

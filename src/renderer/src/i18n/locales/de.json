@@ -63,6 +63,7 @@
       "useHereHostKeptForPeers": "{{project}} wurde auf den Host {{distro}} verschoben, der für ein anderes Orca weiterläuft. Füge den Host erneut hinzu, um es hier wieder zu verwenden.",
       "useHereHostUnreachable": "Der {{distro}}-Host antwortet nicht, daher kann Orca die dortige Kopie dieses Projekts nicht stoppen, und die zugehörigen Agenten laufen dort möglicherweise noch. Den Host in den Einstellungen verbinden oder entfernen und dann erneut versuchen.",
       "useHereHostStillRunning": "In der Kopie dieses Projekts auf dem {{distro}}-Host laufen noch Terminals, sodass die zugehörigen Agenten doppelt ausgeführt werden könnten. Einen Moment warten und dann erneut versuchen.",
+      "useHereHostTerminalsAsleep": "Die Terminals des Projekts auf dem {{distro}}-Host wurden in den Ruhezustand versetzt. Das Projekt öffnen, um sie fortzusetzen.",
       "useHereFailed": "Dieses Projekt konnte nicht auf diesen Computer zurückgeholt werden.",
       "useHereHostRemovalPending": "Der {{distro}}-Host wird noch entfernt, daher nimmt Orca dort keine Änderungen vor. Das Entfernen in den Einstellungen abschließen und dann erneut versuchen.",
       "useHereHostAutomations": "Orca konnte die Automatisierungen dieses Projekts auf dem {{distro}}-Host nicht deaktivieren, daher könnten sie doppelt ausgeführt werden. Den Host in den Einstellungen verbinden und dann erneut versuchen.",

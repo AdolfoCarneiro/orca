@@ -67,6 +67,7 @@
       "useHereHostKeptForPeers": "{{project}} projesi, başka bir Orca için hâlâ çalışan {{distro}} ana makinesine taşındı. Burada yeniden kullanmak için ana makineyi tekrar ekleyin.",
       "useHereHostUnreachable": "{{distro}} ana makinesi yanıt vermiyor; bu nedenle Orca bu projenin oradaki kopyasını durduramıyor ve kopyadaki ajanlar hâlâ çalışıyor olabilir. Ana makineyi Ayarlar'dan bağlayın veya kaldırın, ardından tekrar deneyin.",
       "useHereHostStillRunning": "Bu projenin {{distro}} ana makinesindeki kopyasında hâlâ terminaller çalışıyor; bu yüzden oradaki ajanlar iki kez çalışabilir. Biraz bekleyip tekrar deneyin.",
+      "useHereHostTerminalsAsleep": "{{distro}} ana makinesindeki terminalleri uyku moduna alındı. Sürdürmek için projeyi açın.",
       "useHereFailed": "Bu proje bu bilgisayara geri getirilemedi.",
       "useHereHostRemovalPending": "{{distro}} ana makinesi hâlâ kaldırılıyor, bu yüzden Orca ona dokunmuyor. Kaldırma işlemini Ayarlar'da tamamlayın, ardından tekrar deneyin.",
       "useHereHostAutomations": "Orca bu projenin {{distro}} ana makinesindeki otomasyonlarını kapatamadı; bu yüzden otomasyonlar iki kez çalışabilir. Ana makineyi Ayarlar'dan bağlayın, ardından tekrar deneyin.",

@@ -67,6 +67,7 @@
       "useHereHostKeptForPeers": "{{project}} 已移至 {{distro}} 主機，該主機仍在為另一個 Orca 執行。重新新增該主機，即可在這裡再次使用它。",
       "useHereHostUnreachable": "{{distro}} 主機沒有回應，Orca 無法停止其上的此專案副本，其代理程式可能仍在執行。請在設定中連線或移除該主機，然後再試一次。",
       "useHereHostStillRunning": "{{distro}} 主機上的此專案副本仍有終端機在執行，其代理程式可能會執行兩次。請稍候再試一次。",
+      "useHereHostTerminalsAsleep": "它在 {{distro}} 主機上的終端機已進入休眠。開啟該專案即可恢復。",
       "useHereFailed": "無法將此專案帶回這台電腦。",
       "useHereHostRemovalPending": "{{distro}} 主機仍在移除中，因此 Orca 不會變動它。請在設定中完成移除，然後再試一次。",
       "useHereHostAutomations": "Orca 無法關閉此專案在 {{distro}} 主機上的自動化，它們可能會執行兩次。請在設定中連線該主機，然後再試一次。",

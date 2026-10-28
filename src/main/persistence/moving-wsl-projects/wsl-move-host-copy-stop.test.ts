@@ -13,11 +13,11 @@ function port(overrides: Partial<WslMoveHostCopyPort> = {}): WslMoveHostCopyPort
 
 describe("undo's stop of the host's copies", () => {
   // The host's agent kept running beside the one undo resumed here.
-  it('sleeps every host workspace and reports stopped once none of their terminals runs', async () => {
+  it('sleeps every host workspace and reports them asleep once none of their terminals runs', async () => {
     let checks = 0
     const host = port({ liveTerminals: vi.fn(async () => (checks++ < 4 ? 1 : 0)) })
 
-    expect(await stopWslMoveHostCopies(['wt-a', 'wt-b'], host)).toBe('stopped')
+    expect(await stopWslMoveHostCopies(['wt-a', 'wt-b'], host)).toBe('slept')
     expect(host.sleepWorkspace).toHaveBeenCalledWith('wt-a')
     expect(host.sleepWorkspace).toHaveBeenCalledWith('wt-b')
     expect(host.wait).toHaveBeenCalled()
@@ -46,7 +46,12 @@ describe("undo's stop of the host's copies", () => {
 
   it('checks exit even when the host refused the sleep itself', async () => {
     const host = port({ sleepWorkspace: async () => false })
+    // Nothing went to sleep there, so nothing waits to be resumed.
     expect(await stopWslMoveHostCopies(['wt-a'], host)).toBe('stopped')
+  })
+
+  it('reports stopped, not asleep, when the host has no workspace to sleep', async () => {
+    expect(await stopWslMoveHostCopies([], port())).toBe('stopped')
   })
 
   // verify-15c: with the host's orcad stopped, undo of a project this computer kept no tabs for
@@ -63,7 +68,7 @@ describe("undo's stop of the host's copies", () => {
       workspacesWithTerminals: vi.fn(async () => ['wt-host-only']),
       liveTerminals: vi.fn(async () => (checks++ < 2 ? 1 : 0))
     })
-    expect(await stopWslMoveHostCopies([], host)).toBe('stopped')
+    expect(await stopWslMoveHostCopies([], host)).toBe('slept')
     expect(host.sleepWorkspace).toHaveBeenCalledWith('wt-host-only')
   })
 
@@ -92,7 +97,7 @@ describe("undo's stop of the host's copies", () => {
           vi.advanceTimersByTime(ms)
         })
       })
-      expect(await stopWslMoveHostCopies([], host, 30_000)).toBe('stopped')
+      expect(await stopWslMoveHostCopies([], host, 30_000)).toBe('slept')
     })
 
     // Polls counted, not timed: a host taking 10 s per answer stretched the wait 40-fold.

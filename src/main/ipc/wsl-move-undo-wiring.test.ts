@@ -247,7 +247,7 @@ describe("undo's stop of the host's terminals", () => {
       ].filter((terminal) => worktree === null || terminal.worktreeId === worktree)
       return { ok: true, result: { terminals, truncated: false } }
     })
-    expect(await createWslMoveUndoPorts(store, '/user-data').stopHostCopies(move)).toBe('stopped')
+    expect(await createWslMoveUndoPorts(store, '/user-data').stopHostCopies(move)).toBe('slept')
     const slept = rpc.call.mock.calls
       .filter(([, , method]) => method === 'worktree.sleep')
       .map(([, , , params]) => params)
@@ -283,7 +283,7 @@ describe("undo's stop of the host's terminals", () => {
     it('reads a workspace the host no longer has as running nothing', async () => {
       host.listed = true
       answering({ ok: false, error: { code: 'selector_not_found', message: 'gone' } })
-      expect(await createWslMoveUndoPorts(store, '/user-data').stopHostCopies(move)).toBe('stopped')
+      expect(await createWslMoveUndoPorts(store, '/user-data').stopHostCopies(move)).toBe('slept')
     })
 
     it('reads any other error, or an answer it cannot read, as the host not answering', async () => {

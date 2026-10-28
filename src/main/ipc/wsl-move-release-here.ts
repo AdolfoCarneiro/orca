@@ -217,7 +217,7 @@ async function releaseOneMoveHere(
   }
   // The host's copies stop next, or an agent the move resumed there runs beside this one.
   const stop = await ports.stopHostCopies(move).catch(() => 'unreachable' as const)
-  if (stop !== 'stopped') {
+  if (stop !== 'stopped' && stop !== 'slept') {
     await automations.restore()
     if (stop === 'unreachable' && wslMoveHostKeptForPeers(userDataPath, move)) {
       return keptForPeersRefusal()
@@ -237,6 +237,8 @@ async function releaseOneMoveHere(
       // The host's copies go back on even if putting the copies here back failed.
       await automations.restore()
     }
+    // The host's terminals stay in ordinary Sleep: opening the project there resumes them.
+    return stop === 'slept' ? { ...release, hostTerminalsAsleep: true } : release
   }
   return release
 }

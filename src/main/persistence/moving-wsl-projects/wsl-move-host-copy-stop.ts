@@ -4,7 +4,8 @@
  * beside the local one, two writers on one transcript. Unverifiable is not
  * exited, so a host that does not answer is reported, never assumed stopped.
  */
-export type WslMoveHostCopyStop = 'stopped' | 'still-running' | 'unreachable'
+/** `slept`: stopped, with at least one host workspace put to sleep; opening it resumes its terminals. */
+export type WslMoveHostCopyStop = 'stopped' | 'slept' | 'still-running' | 'unreachable'
 
 export type WslMoveHostCopyPort = {
   /**
@@ -45,11 +46,13 @@ export async function stopWslMoveHostCopies(
       return 'unreachable'
     }
   }
+  let sleptAny = false
   for (const id of hostWorkspaceIds) {
     const slept = await port.sleepWorkspace(id)
     if (slept === null) {
       return 'unreachable'
     }
+    sleptAny ||= slept
   }
   // A slow but healthy host with many workspaces may spend the budget sleeping them.
   const exitDeadline = Math.max(deadline, now() + MIN_EXIT_WAIT_MS)
@@ -63,7 +66,7 @@ export async function stopWslMoveHostCopies(
       running += live
     }
     if (running === 0) {
-      return 'stopped'
+      return sleptAny ? 'slept' : 'stopped'
     }
     if (now() >= exitDeadline) {
       return 'still-running'
