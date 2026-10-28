@@ -224,3 +224,35 @@ it('keeps unrelated long definitions from admitting impossible nested labels', (
   )
   expect(normalized).toBe(`${prefix}\n\n`)
 })
+
+it('reuses exact normalized suffix matches across long missing reference labels', () => {
+  const length = 10_000
+  const counts = 400
+  const groups = 100
+  const prefix = `${'['.repeat(counts)}Z${'界'.repeat(length)}]\n`.repeat(groups)
+  const definitions = Array.from(
+    { length: counts },
+    (_, index) => `[${'['.repeat(index)}Q${'界'.repeat(length)}]: url`
+  ).join('\n')
+  const source = `${prefix}\n${definitions}\n`
+  const normalized = runInNewContext(
+    'normalize(source)',
+    { normalize: normalizeMarkdownReferenceLinks, source },
+    { timeout: 1500 }
+  )
+  expect(normalized).toBe(`${prefix}\n`)
+})
+
+it.each([
+  { prefix: 'İ\u0301\u200d', text: ' \u200dΣ ', label: '\u200dσ' },
+  { prefix: 'A\u0301\u200d', text: 'İ\u0301Σ', label: 'i\u0307\u0301ς' },
+  { prefix: 'İ', text: ' \t\uFEFF ', label: ' ' }
+])('preserves casing and trimming after a nested $prefix prefix', ({ prefix, text, label }) => {
+  const definitions = Array.from(
+    { length: 4 },
+    (_, count) => `[${'['.repeat(count)}${'X'.repeat(32)}]: missing`
+  )
+  definitions.push(`[${label}]: target`)
+  const source = `[[[${prefix}[${text}]\n\n${definitions.join('\n')}\n`
+  expect(normalizeMarkdownReferenceLinks(source)).toBe(`[[[${prefix}[${text}](target)\n\n`)
+})

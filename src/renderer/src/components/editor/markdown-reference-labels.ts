@@ -1,3 +1,5 @@
+import { createReferenceDefinitionSuffixIndex } from './markdown-reference-definition-suffix-index'
+
 export function normalizeReferenceLabel(label: string): string {
   return collapseReferenceLabelWhitespace(label).toLowerCase()
 }
@@ -43,7 +45,6 @@ function isMarkdownReferenceLabelWhitespace(code: number): boolean {
 type ReferenceTextCharacterCounts = {
   openingBrackets: number
   nonWhitespaceCodePoints: number
-  foldedCodeUnits: number
 }
 
 function countReferenceTextCharacters(
@@ -53,30 +54,20 @@ function countReferenceTextCharacters(
 ): ReferenceTextCharacterCounts {
   let openingBrackets = 0
   let nonWhitespaceCodePoints = 0
-  let foldedCodeUnits = 0
-  let previousWhitespace = false
   for (let index = start; index < end; index += 1) {
     const code = content.charCodeAt(index)
     if (code === 91) {
       openingBrackets += 1
     }
-    if (isMarkdownReferenceLabelWhitespace(code)) {
-      if (!previousWhitespace) {
-        foldedCodeUnits += 1
-      }
-      previousWhitespace = true
-    } else {
-      foldedCodeUnits += 1
-      previousWhitespace = false
+    if (!isMarkdownReferenceLabelWhitespace(code)) {
       nonWhitespaceCodePoints += 1
       const next = content.charCodeAt(index + 1)
       if (code >= 0xd800 && code <= 0xdbff && index + 1 < end && next >= 0xdc00 && next <= 0xdfff) {
         index += 1
-        foldedCodeUnits += 1
       }
     }
   }
-  return { openingBrackets, nonWhitespaceCodePoints, foldedCodeUnits }
+  return { openingBrackets, nonWhitespaceCodePoints }
 }
 
 export function createReferenceTextDefinitionLookup<T>(
@@ -87,8 +78,11 @@ export function createReferenceTextDefinitionLookup<T>(
   let previousStart = 0
   let previousEnd = -1
   let textCounts: ReferenceTextCharacterCounts | null = null
-  let foldedText: string | null = null
-  let foldedStart = 0
+  let suffixIndex: ReturnType<typeof createReferenceDefinitionSuffixIndex<T>> | null = null
+  let suffixMatches: Map<number, T> | null = null
+  let normalizedStart = 0
+  let normalizedEnd = 0
+  let minimumDefinitionBrackets = Number.POSITIVE_INFINITY
   return (text, start, end) => {
     const lastStart = previousStart
     previousStart = start
@@ -97,6 +91,7 @@ export function createReferenceTextDefinitionLookup<T>(
         definitionMaximumLengths = new Map<number, number>()
         for (const label of definitions.keys()) {
           const count = countReferenceTextCharacters(label, 0, label.length).openingBrackets
+          minimumDefinitionBrackets = Math.min(minimumDefinitionBrackets, count)
           definitionMaximumLengths.set(
             count,
             Math.max(definitionMaximumLengths.get(count) ?? 0, label.length)
@@ -109,29 +104,39 @@ export function createReferenceTextDefinitionLookup<T>(
         const removed = countReferenceTextCharacters(markdown, lastStart, start)
         textCounts.openingBrackets -= removed.openingBrackets
         textCounts.nonWhitespaceCodePoints -= removed.nonWhitespaceCodePoints
-        textCounts.foldedCodeUnits -= removed.foldedCodeUnits
-        if (foldedText !== null) {
-          // Each removed prefix ends at [, so whitespace runs never cross this cursor.
-          foldedStart += removed.foldedCodeUnits
+        if (suffixMatches !== null) {
+          // Every removed prefix ends at [, which blocks contextual casing across the boundary.
+          normalizedStart += collapseReferenceLabelWhitespace(
+            markdown.slice(lastStart, start),
+            true
+          ).toLowerCase().length
         }
       }
       const maximumLength = definitionMaximumLengths.get(textCounts.openingBrackets)
       if (maximumLength === undefined || textCounts.nonWhitespaceCodePoints > maximumLength) {
         return undefined
       }
-      if (foldedText === null) {
-        if (text.length === textCounts.foldedCodeUnits) {
+      if (suffixMatches === null) {
+        if (textCounts.openingBrackets === minimumDefinitionBrackets) {
           return definitions.get(normalizeReferenceLabel(text))
         }
-        foldedText = collapseReferenceLabelWhitespace(text, true)
-        foldedStart = 0
+        suffixIndex ??= createReferenceDefinitionSuffixIndex(definitions)
+        const normalized = collapseReferenceLabelWhitespace(text, true).toLowerCase()
+        const trailingWhitespace = isMarkdownReferenceLabelWhitespace(markdown.charCodeAt(end - 1))
+        normalizedEnd = normalized.length - (trailingWhitespace ? 1 : 0)
+        suffixMatches = suffixIndex(normalized, normalizedEnd)
+        normalizedStart = 0
       }
-      return definitions.get(normalizeReferenceLabel(foldedText.slice(foldedStart)))
+      const leadingWhitespace = isMarkdownReferenceLabelWhitespace(markdown.charCodeAt(start))
+      return suffixMatches.get(
+        Math.min(normalizedEnd, normalizedStart + (leadingWhitespace ? 1 : 0))
+      )
     }
     previousEnd = end
     textCounts = null
-    foldedText = null
-    foldedStart = 0
+    suffixMatches = null
+    normalizedStart = 0
+    normalizedEnd = 0
     return definitions.get(normalizeReferenceLabel(text))
   }
 }
