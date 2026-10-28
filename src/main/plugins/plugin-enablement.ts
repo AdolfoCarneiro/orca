@@ -6,7 +6,6 @@ import type { Store } from '../persistence'
 import type { PluginService } from './plugin-service'
 import type { PluginConsentRequest } from '../../shared/plugins/approval/plugin-consent-request'
 import { verifyDeclarativePluginContent } from './plugin-declarative-content-integrity'
-import { isFullAccessBlocked, PLUGIN_FULL_ACCESS_OFF_ERROR } from './plugin-activation-policy'
 
 // Desktop and headless writes share qualified-key consent; capability or worker-tier expansion requires reapproval.
 
@@ -27,12 +26,6 @@ export async function applyPluginConsent(input: {
   // Same-key installs may change while the dialog is open; bind consent to the reviewed fingerprint.
   if (input.decision === 'approve' && plugin.consentFingerprint !== input.reviewedFingerprint) {
     throw new Error(`plugin ${pluginKey} changed since its permissions were reviewed`)
-  }
-  if (
-    input.decision === 'approve' &&
-    isFullAccessBlocked(plugin, () => pluginService.options.isFullAccessAllowed())
-  ) {
-    throw new Error(PLUGIN_FULL_ACCESS_OFF_ERROR)
   }
   if (input.decision === 'approve') {
     // Why: IPC and serve callers can bypass the renderer dialog, so main must
@@ -67,9 +60,6 @@ export async function applyPluginEnablement(input: {
   const plugin = pluginService.findValidPlugin(pluginKey)
   if (!plugin) {
     throw new Error(`cannot change enablement for unknown plugin ${pluginKey}`)
-  }
-  if (enabled && isFullAccessBlocked(plugin, () => pluginService.options.isFullAccessAllowed())) {
-    throw new Error(PLUGIN_FULL_ACCESS_OFF_ERROR)
   }
   const settings = store.getSettings()
   const disabled = new Set(normalizePluginIdList(settings.disabledPlugins))

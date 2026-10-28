@@ -30,7 +30,6 @@ import type {
   PluginMarketplaceService
 } from './plugin-marketplace-service'
 import { marketplaceSourceId } from './plugin-marketplace-store'
-import { fullAccessError, PLUGIN_FULL_ACCESS_OFF_ERROR } from '../plugin-activation-policy'
 import { isSamePluginSource } from '../../../shared/plugins/catalog/plugin-marketplace'
 import type { PluginInstallSource } from '../../../shared/plugins/installation/plugin-install-lockfile'
 
@@ -71,7 +70,6 @@ export class PluginMarketplaceInstaller {
   private readonly userDataPath: string
   private readonly hostVersion: string
   private readonly blockedPluginReason: (pluginKey: string) => string | null
-  private readonly isFullAccessAllowed: () => boolean
   private readonly imageCache: PluginImageCache | null
 
   constructor(options: {
@@ -79,7 +77,6 @@ export class PluginMarketplaceInstaller {
     userDataPath: string
     hostVersion: string
     blockedPluginReason?: (pluginKey: string) => string | null
-    isFullAccessAllowed?: () => boolean
     imageCache?: PluginImageCache
   }) {
     this.imageCache = options.imageCache ?? null
@@ -87,7 +84,6 @@ export class PluginMarketplaceInstaller {
     this.userDataPath = options.userDataPath
     this.hostVersion = options.hostVersion
     this.blockedPluginReason = options.blockedPluginReason ?? (() => null)
-    this.isFullAccessAllowed = options.isFullAccessAllowed ?? (() => false)
   }
 
   async preview(
@@ -155,10 +151,6 @@ export class PluginMarketplaceInstaller {
     if (blockedReason) {
       return { ok: false, error: `plugin is blocked by Orca's safety list: ${blockedReason}` }
     }
-    // Why the pinned release: install refuses bytes whose manifest profile differs from it.
-    if (listing.release?.execution === 'trusted-worker' && !this.isFullAccessAllowed()) {
-      return { ok: false, error: PLUGIN_FULL_ACCESS_OFF_ERROR }
-    }
     const incompatible = this.releaseCompatibilityError(listing)
     if (incompatible) {
       return { ok: false, error: incompatible }
@@ -193,8 +185,6 @@ export class PluginMarketplaceInstaller {
       },
       ...(listing.release ? { release: listing.release } : {}),
       blockedPluginReason: this.blockedPluginReason,
-      // Why also here: an unpinned listing names no execution profile to check before checkout.
-      manifestError: (manifest) => fullAccessError({ manifest }, this.isFullAccessAllowed),
       ...(options.requireInstalled ? { requireInstalled: true } : {})
     })
     return result.ok && repositoryMoved ? { ...result, repositoryMoved: true } : result

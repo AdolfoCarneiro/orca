@@ -19,8 +19,6 @@ export function PluginSettingsMenu({
   onToggleSuggestions,
   autoUpdateEnabled,
   onToggleAutoUpdate,
-  fullAccessEnabled,
-  onToggleFullAccess,
   open,
   onOpenChange,
   onSources,
@@ -31,9 +29,6 @@ export function PluginSettingsMenu({
   onToggleSuggestions: () => void
   autoUpdateEnabled: boolean
   onToggleAutoUpdate: () => void
-  fullAccessEnabled: boolean
-  onToggleFullAccess: () => void
-  /** Controlled so a catalog card can open it to the full access switch. */
   open: boolean
   onOpenChange: (open: boolean) => void
   onSources: () => void
@@ -83,28 +78,6 @@ export function PluginSettingsMenu({
               {translate(
                 'auto.components.settings.PluginSettingsMenu.autoUpdateHint',
                 'Asks again only for new access'
-              )}
-            </span>
-          </span>
-        </DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem
-          checked={fullAccessEnabled}
-          disabled={!featureEnabled}
-          onCheckedChange={onToggleFullAccess}
-          onSelect={(event) => event.preventDefault()}
-          className="items-start"
-        >
-          <span className="min-w-0">
-            <span className="block">
-              {translate(
-                'auto.components.settings.PluginSettingsMenu.fullAccessLabel',
-                'Allow full-access plugins'
-              )}
-            </span>
-            <span className="block text-muted-foreground">
-              {translate(
-                'auto.components.settings.PluginSettingsMenu.fullAccessHint',
-                'Full access to files and network'
               )}
             </span>
           </span>

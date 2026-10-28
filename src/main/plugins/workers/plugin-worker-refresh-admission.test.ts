@@ -69,7 +69,6 @@ async function harness() {
     userDataPath,
     hostVersion: '1.4.0',
     isPluginSystemEnabled: () => true,
-    isFullAccessAllowed: () => true,
     getDisabledPlugins: () => disabled,
     getDevPluginPaths: () => devPaths,
     getPluginConsents: () => ({ [pluginKey]: consent }),

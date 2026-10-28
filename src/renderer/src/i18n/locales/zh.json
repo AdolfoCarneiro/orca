@@ -11173,7 +11173,6 @@
         },
         "PluginConsentDialog": {
           "reconsent": "自你批准后已更改",
-          "warning": "完全访问你的文件、网络和进程",
           "instructionalWarning": "其命令可代表你或你的代理执行操作",
           "declarativeWarning": "仅内容。不运行代码。",
           "enable": "启用插件",
@@ -11186,7 +11185,8 @@
             "agentsRead": "在智能体状态更改时获得通知",
             "terminalRun": "在终端中运行命令（包括 SSH）"
           },
-          "decisionFailed": "无法保存权限决定。请重试。"
+          "decisionFailed": "无法保存权限决定。请重试。",
+          "fullAccessWarning": "完全访问：作为普通程序运行，可以读取你的文件、使用网络并运行其他程序。"
         },
         "PluginConsentProvenance": {
           "official": "Official",
@@ -11381,8 +11381,7 @@
           "mismatch": "下载内容与目录不符。未安装任何内容。",
           "catalogChanged": "目录已更改。请刷新后重试。",
           "blocked": "Orca 的安全列表阻止了此插件。",
-          "downloadFailed": "无法下载。请检查网络连接。",
-          "fullAccessOff": "完全访问插件已关闭。请在插件设置中开启。"
+          "downloadFailed": "无法下载。请检查网络连接。"
         },
         "pluginThemeApply": {
           "nowUsing": "正在使用 {{value0}}",

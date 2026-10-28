@@ -21,8 +21,8 @@ export function pluginTrustWarnings(trust: PluginTrust): string[] {
   if (trust.worker) {
     warnings.push(
       translate(
-        'auto.components.settings.PluginConsentDialog.warning',
-        'Full access to your files, network, and processes'
+        'auto.components.settings.PluginConsentDialog.fullAccessWarning',
+        'Full access: runs as a normal program and can read your files, use the network and run other programs.'
       )
     )
   }

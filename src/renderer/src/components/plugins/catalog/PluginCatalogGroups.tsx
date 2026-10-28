@@ -1,7 +1,6 @@
 import { AlertTriangle, CircleAlert } from 'lucide-react'
 import type { PluginMarketplaceHostSourceState } from '../../../../../preload/api-types'
 import { translate } from '@/i18n/i18n'
-import { useAppStore } from '@/store'
 import { formatShortTimeAgo } from '@/lib/short-time-ago'
 import { Button } from '../../ui/button'
 import { PluginListGroup } from '../list/PluginListGroup'
@@ -66,7 +65,6 @@ export type CatalogCardHandlers = {
   orcaVersion: string | null
   /** A catalog refresh is in flight; installs wait for it. */
   refreshing: boolean
-  onOpenFullAccessSetting: () => void
 }
 
 export function CatalogCard({
@@ -81,8 +79,6 @@ export function CatalogCard({
   const listing = entry.listing
   const installed = entry.installed
   const release = listing?.release
-  const fullAccessEnabled = useAppStore((s) => s.settings?.pluginFullAccessEnabled === true)
-  const fullAccessOff = !installed && release?.execution === 'trusted-worker' && !fullAccessEnabled
   // Why only full access: it is the one trust level worth a chip; the page's access section says the rest.
   const fullAccess =
     (installed?.execution ?? release?.execution) === 'trusted-worker' || installed?.hasWorker
@@ -138,7 +134,6 @@ export function CatalogCard({
           phase={phase}
           orcaVersion={handlers.orcaVersion}
           refreshing={handlers.refreshing}
-          onOpenFullAccessSetting={fullAccessOff ? handlers.onOpenFullAccessSetting : undefined}
           onInstall={() => {
             if (listing) {
               void handlers.install.install(listing)

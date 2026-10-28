@@ -11624,7 +11624,6 @@
         },
         "PluginConsentDialog": {
           "reconsent": "Modifié depuis votre approbation",
-          "warning": "Accès complet à vos fichiers, au réseau et aux processus",
           "instructionalWarning": "Ses commandes peuvent agir pour vous ou vos agents",
           "declarativeWarning": "Contenu uniquement. Aucun code ne s'exécute.",
           "enable": "Activer le plugin",
@@ -11637,7 +11636,8 @@
             "agentsRead": "Être notifié quand le statut d'un agent change",
             "terminalRun": "Exécuter des commandes dans vos terminaux, y compris SSH"
           },
-          "decisionFailed": "Impossible d'enregistrer la décision d'autorisation. Réessayez."
+          "decisionFailed": "Impossible d'enregistrer la décision d'autorisation. Réessayez.",
+          "fullAccessWarning": "Accès complet : s’exécute comme un programme normal et peut lire vos fichiers, utiliser le réseau et lancer d’autres programmes."
         },
         "PluginConsentProvenance": {
           "official": "Officiel",
@@ -11832,8 +11832,7 @@
           "mismatch": "Le téléchargement ne correspond pas au catalogue. Rien n'a été installé.",
           "catalogChanged": "Le catalogue a changé. Actualisez et réessayez.",
           "blocked": "La liste de sécurité d’Orca bloque ce plugin.",
-          "downloadFailed": "Téléchargement impossible. Vérifiez votre connexion.",
-          "fullAccessOff": "Les plugins à accès complet sont désactivés. Activez-les dans les réglages des plugins."
+          "downloadFailed": "Téléchargement impossible. Vérifiez votre connexion."
         },
         "pluginThemeApply": {
           "nowUsing": "{{value0}} est maintenant utilisé",

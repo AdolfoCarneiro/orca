@@ -10,7 +10,6 @@ import type {
   PluginMarketplaceHostSourceState
 } from '../../../../../preload/api-types'
 import { requestPluginPreview } from '@/store/plugin-preview-request'
-import { useAppStore } from '@/store'
 import { PluginManager } from './PluginManager'
 import { usePluginPageNavigation } from '../state/use-plugin-page-navigation'
 
@@ -197,7 +196,6 @@ function Harness({
       logsByPlugin={{}}
       onShowLogs={vi.fn()}
       onOpenShortcuts={vi.fn()}
-      onOpenFullAccessSetting={vi.fn()}
       page={page}
       sourcesOpen={false}
       setSourcesOpen={vi.fn()}
@@ -249,18 +247,7 @@ afterEach(() => {
   root = null
   document.body.innerHTML = ''
   vi.restoreAllMocks()
-  setFullAccess(false)
 })
-
-function setFullAccess(enabled: boolean): void {
-  const settings = useAppStore.getState().settings
-  act(() =>
-    useAppStore.setState({
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the catalog reads only this field.
-      settings: { ...settings, pluginFullAccessEnabled: enabled } as NonNullable<typeof settings>
-    })
-  )
-}
 
 describe('PluginManager catalog', () => {
   it('installs a content-only plugin in one click and lets main decide it turns on', async () => {
@@ -308,11 +295,12 @@ describe('PluginManager catalog', () => {
   })
 
   it('reviews a plugin that runs code on its page and approves exactly what it showed', async () => {
-    setFullAccess(true)
     const { onInstalled } = await render()
     await act(async () => button('Review & install').click())
     expect(document.body.textContent).toContain('Can access')
-    expect(document.body.textContent).toContain('Full access to your files, network, and processes')
+    expect(document.body.textContent).toContain(
+      'Full access: runs as a normal program and can read your files, use the network and run other programs.'
+    )
 
     await act(async () => button('Install & enable').click())
     expect(window.api.plugins.installMarketplacePlugin).toHaveBeenCalledWith({
@@ -329,7 +317,7 @@ describe('PluginManager catalog', () => {
     expect(onInstalled).toHaveBeenCalledWith(listing.pluginKey)
   })
 
-  it('shows a full-access release as turned off and links to the setting instead of installing', async () => {
+  it('offers a full-access release for review with no global switch', async () => {
     installApi({
       listMarketplacePlugins: vi.fn().mockResolvedValue([
         {
@@ -347,28 +335,8 @@ describe('PluginManager catalog', () => {
     })
     const { container } = await render()
     expect(container.textContent).toContain('Full access')
-    expect(buttons('Review & install')).toHaveLength(0)
-    expect(buttons('Turn on in settings')).toHaveLength(1)
-  })
-
-  it('shows the real reason a full-access install was refused, and drops it when the setting changes', async () => {
-    setFullAccess(true)
-    installApi({
-      installMarketplacePlugin: vi.fn().mockResolvedValue({
-        ok: false,
-        error:
-          'Full access plugins are turned off. Turn on "Allow full-access plugins" in Plugin settings.'
-      })
-    })
-    const { container } = await render()
-    await act(async () => button('Review & install').click())
-    await act(async () => button('Install & enable').click())
-    expect(container.textContent).toContain('Full-access plugins are off.')
-    expect(container.textContent).not.toContain('Plugin installation failed')
-
-    setFullAccess(false)
-    expect(container.textContent).not.toContain('Full-access plugins are off.')
-    expect(buttons('Turn on in settings')).toHaveLength(1)
+    expect(buttons('Review & install')).toHaveLength(1)
+    expect(buttons('Turn on in settings')).toHaveLength(0)
   })
 
   it('never offers Install for a listing the safety list revoked', async () => {

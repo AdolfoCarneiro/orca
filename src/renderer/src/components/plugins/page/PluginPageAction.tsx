@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Loader2, ShieldCheck } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
-import { useAppStore } from '@/store'
 import { Button } from '../../ui/button'
 import type { PluginListEntry } from '../list/plugin-list-entries'
 import { installedPluginTrust } from '../presentation/plugin-access-profile'
@@ -29,8 +28,6 @@ type PluginPageActionProps = {
     reviewedFingerprint: string,
     decision: 'approve' | 'keep-disabled'
   ) => Promise<void>
-  /** Opens the plugin settings menu where full access is turned on. */
-  onOpenFullAccessSetting: () => void
 }
 
 /** Where the page's decision renders: top-right beside the name, the status line under the
@@ -81,11 +78,9 @@ export function usePluginPageAction({
   unavailable,
   busy,
   install,
-  onConsent,
-  onOpenFullAccessSetting
+  onConsent
 }: PluginPageActionProps): PluginPageActionParts {
   const [consentError, setConsentError] = useState<string | null>(null)
-  const fullAccessEnabled = useAppStore((s) => s.settings?.pluginFullAccessEnabled === true)
   const { plugin, listing, execution, preview, trust } = model
   const inUse = usePluginInUse(plugin?.pluginKey ?? null)
   const phase = install.phaseOf(entry.pluginKey)
@@ -202,22 +197,13 @@ export function usePluginPageAction({
 
   // Why the preview: it carries the fingerprint approved, and must be the release shown.
   const armed = preview !== null && !model.disarmed
-  const fullAccessOff = execution === 'trusted-worker' && !fullAccessEnabled
   const installLabel = translate(
     'auto.components.settings.PluginInstallConsent.install',
     'Install & enable'
   )
   return {
     ...none,
-    // Why the same action as the card: install would be refused until full access is on.
-    header: fullAccessOff ? (
-      <Button variant="outline" size="sm" onClick={onOpenFullAccessSetting}>
-        {translate(
-          'auto.components.settings.PluginCardAction.openFullAccess',
-          'Turn on in settings'
-        )}
-      </Button>
-    ) : (
+    header: (
       <Button
         size="sm"
         className="w-36"

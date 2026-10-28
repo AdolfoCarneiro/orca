@@ -39,12 +39,11 @@ function createStore(): {
 
 function createPluginService(
   getFingerprint: () => string,
-  overrides: Partial<ValidDiscoveredPlugin> = {},
-  fullAccessAllowed = true
+  overrides: Partial<ValidDiscoveredPlugin> = {}
 ): PluginService {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the enablement paths read only these members.
   return {
-    options: { isFullAccessAllowed: () => fullAccessAllowed },
+    options: {},
     findValidPlugin: (requestedKey: string) =>
       requestedKey === pluginKey
         ? {
@@ -62,38 +61,21 @@ function createPluginService(
   } as unknown as PluginService
 }
 
-describe('full access gate', () => {
+describe('full access', () => {
   const workerManifest = pluginManifestSchema.parse({ ...manifest, main: 'main.mjs' })
-  const workerService = (allowed: boolean): PluginService =>
-    createPluginService(() => 'sha256-reviewed', { manifest: workerManifest }, allowed)
 
-  it('refuses to approve or enable a trusted worker while full access is off', async () => {
+  it('approves and enables a trusted worker with its own consent alone', async () => {
     const harness = createStore()
-    const pluginService = workerService(false)
+    const pluginService = createPluginService(() => 'sha256-reviewed', {
+      manifest: workerManifest
+    })
     const request = { store: harness.store, pluginService, pluginKey }
-
-    await expect(
-      applyPluginConsent({
-        ...request,
-        reviewedFingerprint: 'sha256-reviewed',
-        decision: 'approve'
-      })
-    ).rejects.toThrow('Allow full-access plugins')
-    await expect(applyPluginEnablement({ ...request, enabled: true })).rejects.toThrow(
-      'Allow full-access plugins'
-    )
-    expect(harness.updateSettings).not.toHaveBeenCalled()
-  })
-
-  it('approves a trusted worker once full access is on', async () => {
-    const harness = createStore()
     await applyPluginConsent({
-      store: harness.store,
-      pluginService: workerService(true),
-      pluginKey,
+      ...request,
       reviewedFingerprint: 'sha256-reviewed',
       decision: 'approve'
     })
+    await applyPluginEnablement({ ...request, enabled: true })
     expect(harness.getSettings().pluginConsents[pluginKey]).toBe('sha256-reviewed')
   })
 })

@@ -68,8 +68,6 @@ type PluginManagerProps = {
   logsByPlugin: Readonly<Record<string, PluginLogsState>>
   onShowLogs: (pluginKey: string) => void
   onOpenShortcuts: () => void
-  /** Opens plugin settings at the full access switch. */
-  onOpenFullAccessSetting: () => void
   /** Which plugin's page is open; owned by the pane, which hides its header and cards for it. */
   page: PluginPageNavigation
   sourcesOpen: boolean
@@ -92,7 +90,6 @@ export function PluginManager({
   logsByPlugin,
   onShowLogs,
   onOpenShortcuts,
-  onOpenFullAccessSetting,
   page,
   sourcesOpen,
   setSourcesOpen,
@@ -181,7 +178,6 @@ export function PluginManager({
     openEntry,
     orcaVersion,
     refreshing: catalog.refreshBusy,
-    onOpenFullAccessSetting,
     installedHandlers: rowHandlers,
     busyPluginKeys
   }
@@ -292,11 +288,6 @@ export function PluginManager({
           onConsent={onConsent}
           onBack={back}
           onOpenShortcuts={onOpenShortcuts}
-          // Why back first: the settings menu lives in the list header the page hides.
-          onOpenFullAccessSetting={() => {
-            back()
-            onOpenFullAccessSetting()
-          }}
         />
         {dialogs}
       </>

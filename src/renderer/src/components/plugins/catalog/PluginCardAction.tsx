@@ -30,14 +30,11 @@ export function PluginCardAction({
   onInstall,
   onOpen,
   installedHandlers,
-  onOpenFullAccessSetting,
   busy = false,
   refreshing = false
 }: {
   entry: PluginListEntry
   refreshing?: boolean
-  /** Set when installing needs the full access setting turned on first. */
-  onOpenFullAccessSetting?: () => void
   phase: PluginInstallPhase | null
   orcaVersion: string | null
   onInstall: () => void
@@ -90,16 +87,6 @@ export function PluginCardAction({
           }
         )}
       </span>
-    )
-  }
-  if (onOpenFullAccessSetting) {
-    return (
-      <Button variant="outline" size="xs" className="w-32" onClick={onOpenFullAccessSetting}>
-        {translate(
-          'auto.components.settings.PluginCardAction.openFullAccess',
-          'Turn on in settings'
-        )}
-      </Button>
     )
   }
   if (phase?.kind === 'installing') {

@@ -33,7 +33,9 @@ asked to approve:
   Orca's colors reach frame CSS as `--orca-background`, `--orca-foreground`, `--orca-primary`
   and the rest of its panel token set, so they never collide with a frame's own variables.
 - `trusted-worker`: `main` runs in a separate Node process and can call every host method its
-  `capabilities` allow.
+  `capabilities` allow. There is no global switch for these full-access plugins: each one runs
+  only after the user approves it on install. An enterprise policy to block full-access plugins
+  may come later.
 
 Set `engines.orca` to the newest `Since` of any field you use, and `pluginApi` (currently `1`)
 only when a panel or worker calls the host API.

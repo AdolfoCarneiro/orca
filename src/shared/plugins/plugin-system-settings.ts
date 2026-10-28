@@ -6,8 +6,6 @@ export type PluginSystemSettings = {
   /** One-shot guard for the default-on rollout: a saved false from the old
    *  default flips on once; later explicit false (e.g. policy) sticks. */
   pluginSystemDefaultedOn?: boolean
-  /** Second opt-in for trusted-worker plugins (unsandboxed Node). Off by default. */
-  pluginFullAccessEnabled: boolean
   /** Qualified plugin keys (`publisher.id`) the user disabled. Discovered
    *  plugins stay listed but are not activated. */
   disabledPlugins: string[]

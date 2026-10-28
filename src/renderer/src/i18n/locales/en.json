@@ -11677,7 +11677,6 @@
         },
         "PluginConsentDialog": {
           "reconsent": "Changed since you approved it",
-          "warning": "Full access to your files, network, and processes",
           "instructionalWarning": "Its commands can act for you or your agents",
           "declarativeWarning": "Content only. No code runs.",
           "enable": "Enable plugin",
@@ -11690,7 +11689,8 @@
             "agentsRead": "Get notified when agent status changes",
             "terminalRun": "Run commands in your terminals, including SSH"
           },
-          "decisionFailed": "Could not save the permission decision. Try again."
+          "decisionFailed": "Could not save the permission decision. Try again.",
+          "fullAccessWarning": "Full access: runs as a normal program and can read your files, use the network and run other programs."
         },
         "PluginConsentProvenance": {
           "official": "Official",
@@ -12972,8 +12972,7 @@
           "review": "Review & install",
           "retry": "Try again",
           "disable": "Disable",
-          "enable": "Enable",
-          "openFullAccess": "Turn on in settings"
+          "enable": "Enable"
         },
         "PluginInstallConsent": {
           "install": "Install & enable",
@@ -12991,8 +12990,6 @@
         "PluginSettingsMenu": {
           "label": "Plugin settings",
           "development": "Development folders…",
-          "fullAccessLabel": "Allow full-access plugins",
-          "fullAccessHint": "Full access to files and network",
           "autoUpdateLabel": "Update plugins automatically",
           "autoUpdateHint": "Asks again only for new access"
         },
@@ -13052,8 +13049,7 @@
           "mismatch": "Download didn’t match the catalog. Nothing installed.",
           "catalogChanged": "The catalog changed. Refresh and try again.",
           "blocked": "Orca’s safety list blocks this plugin.",
-          "downloadFailed": "Couldn’t download. Check your connection.",
-          "fullAccessOff": "Full-access plugins are off. Turn them on in plugin settings."
+          "downloadFailed": "Couldn’t download. Check your connection."
         },
         "pluginThemeApply": {
           "nowUsing": "Now using {{value0}}",

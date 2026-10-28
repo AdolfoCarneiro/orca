@@ -77,7 +77,6 @@ async function runUpdate(options: {
     pluginService: {
       options: {
         isPluginSystemEnabled: () => true,
-        isFullAccessAllowed: () => true,
         getPluginConsents: () => consents,
         getDisabledPlugins: () => []
       },

@@ -6,16 +6,12 @@ import type {
 } from '../../../../../preload/api-types'
 import { pluginExecutionProfile } from '../../../../../shared/plugins/contributions/plugin-execution-profile'
 import { translate } from '@/i18n/i18n'
-import { useAppStore } from '@/store'
 import { pluginInstallErrorMessage } from '../presentation/plugin-error-presentation'
 import { applyPluginThemesNow } from './plugin-theme-apply'
 import type { PluginPagePreview } from './use-plugin-catalog'
 import { previewMatchesListing } from './use-plugin-page-model'
 
 export type PluginInstallPhase = { kind: 'installing' } | { kind: 'error'; message: string }
-
-// Why the setting is recorded: an error from before full access changed no longer applies.
-type StoredInstallPhase = PluginInstallPhase & { fullAccessEnabled?: boolean }
 
 // Why the `plugin` key prefix: install errors are security copy language packs may not rewrite.
 function catalogInstallErrorMessage(cause: unknown): string {
@@ -30,12 +26,6 @@ function catalogInstallErrorMessage(cause: unknown): string {
     return translate(
       'auto.components.settings.pluginInstallAction.catalogChanged',
       'The catalog changed. Refresh and try again.'
-    )
-  }
-  if (detail.includes('full access plugins are turned off')) {
-    return translate(
-      'auto.components.settings.pluginInstallAction.fullAccessOff',
-      'Full-access plugins are off. Turn them on in plugin settings.'
     )
   }
   if (detail.includes('safety list')) {
@@ -76,8 +66,7 @@ export function usePluginInstallAction({
   ) => Promise<void>
   dismiss: (pluginKey: string) => void
 } {
-  const [phases, setPhases] = useState<Readonly<Record<string, StoredInstallPhase>>>({})
-  const fullAccessEnabled = useAppStore((s) => s.settings?.pluginFullAccessEnabled === true)
+  const [phases, setPhases] = useState<Readonly<Record<string, PluginInstallPhase>>>({})
   const mountedRef = useRef(true)
 
   useEffect(() => {
@@ -87,23 +76,20 @@ export function usePluginInstallAction({
     }
   }, [])
 
-  const setPhase = useCallback(
-    (pluginKey: string, phase: PluginInstallPhase | null) => {
-      if (!mountedRef.current) {
-        return
+  const setPhase = useCallback((pluginKey: string, phase: PluginInstallPhase | null) => {
+    if (!mountedRef.current) {
+      return
+    }
+    setPhases((current) => {
+      const next = { ...current }
+      if (phase) {
+        next[pluginKey] = phase
+      } else {
+        delete next[pluginKey]
       }
-      setPhases((current) => {
-        const next = { ...current }
-        if (phase) {
-          next[pluginKey] = phase.kind === 'error' ? { ...phase, fullAccessEnabled } : phase
-        } else {
-          delete next[pluginKey]
-        }
-        return next
-      })
-    },
-    [fullAccessEnabled]
-  )
+      return next
+    })
+  }, [])
 
   const dismiss = useCallback((pluginKey: string) => setPhase(pluginKey, null), [setPhase])
 
@@ -196,19 +182,8 @@ export function usePluginInstallAction({
   )
 
   const phaseOf = useCallback(
-    (pluginKey: string): PluginInstallPhase | null => {
-      const phase = phases[pluginKey]
-      if (!phase) {
-        return null
-      }
-      if (phase.kind === 'error') {
-        return phase.fullAccessEnabled === fullAccessEnabled
-          ? { kind: 'error', message: phase.message }
-          : null
-      }
-      return phase
-    },
-    [phases, fullAccessEnabled]
+    (pluginKey: string): PluginInstallPhase | null => phases[pluginKey] ?? null,
+    [phases]
   )
   return { phaseOf, install, dismiss }
 }

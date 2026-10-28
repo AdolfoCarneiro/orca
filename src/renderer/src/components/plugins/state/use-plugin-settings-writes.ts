@@ -9,8 +9,8 @@ const saveFailed = (): string =>
     'Could not save plugin settings.'
   )
 
-/** Plugin settings writes: full access and development folders re-discover; all report
- *  a failed save instead of dropping it. */
+/** Plugin settings writes: development folders re-discover; all report a failed save
+ *  instead of dropping it. */
 export function usePluginSettingsWrites({
   settings,
   updateSettings,
@@ -75,25 +75,12 @@ export function usePluginSettingsWrites({
     }
   }
 
-  const toggleFullAccess = async (): Promise<void> => {
-    setSettingsError(null)
-    try {
-      await updateSettings({ pluginFullAccessEnabled: !settings.pluginFullAccessEnabled })
-      await rediscover()
-    } catch {
-      if (mountedRef.current) {
-        setSettingsError(saveFailed())
-      }
-    }
-  }
-
   return {
     devPathsBusy,
     settingsError,
     reset,
     toggleSuggestions,
     toggleAutoUpdate,
-    toggleFullAccess,
     updateDevPaths
   }
 }

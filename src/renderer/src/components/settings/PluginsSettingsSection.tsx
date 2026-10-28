@@ -132,7 +132,6 @@ export function PluginsSettingsSection({
     reset: resetSettingsWrites,
     toggleSuggestions,
     toggleAutoUpdate,
-    toggleFullAccess,
     updateDevPaths
   } = usePluginSettingsWrites({
     settings,
@@ -336,8 +335,6 @@ export function PluginsSettingsSection({
           onToggleSuggestions={() => void toggleSuggestions()}
           autoUpdateEnabled={isPluginAutoUpdateOn(settings)}
           onToggleAutoUpdate={() => void toggleAutoUpdate()}
-          fullAccessEnabled={settings.pluginFullAccessEnabled === true}
-          onToggleFullAccess={() => void toggleFullAccess()}
           open={settingsMenuOpen}
           onOpenChange={setSettingsMenuOpen}
           onAdd={setInstallKind}
@@ -374,7 +371,6 @@ export function PluginsSettingsSection({
         sourcesOpen={sourcesOpen}
         setSourcesOpen={setSourcesOpen}
         page={page}
-        onOpenFullAccessSetting={() => setSettingsMenuOpen(true)}
         onOpenShortcuts={() =>
           useAppStore.getState().openSettingsTarget({ pane: 'shortcuts', repoId: null })
         }

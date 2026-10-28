@@ -11173,7 +11173,6 @@
         },
         "PluginConsentDialog": {
           "reconsent": "承認後に変更されました",
-          "warning": "ファイル、ネットワーク、プロセスへのフルアクセス",
           "instructionalWarning": "コマンドがあなたや Agent の代わりに動作できます",
           "declarativeWarning": "コンテンツのみ。コードは実行されません。",
           "enable": "プラグインを有効にする",
@@ -11186,7 +11185,8 @@
             "agentsRead": "Agent ステータスが変更されたときに通知を受ける",
             "terminalRun": "ターミナルでコマンドを実行 (SSH を含む)"
           },
-          "decisionFailed": "権限の選択を保存できませんでした。再試行してください。"
+          "decisionFailed": "権限の選択を保存できませんでした。再試行してください。",
+          "fullAccessWarning": "フルアクセス：通常のプログラムとして実行され、ファイルの読み取り、ネットワークの使用、他のプログラムの実行ができます。"
         },
         "PluginConsentProvenance": {
           "official": "公式",
@@ -11381,8 +11381,7 @@
           "mismatch": "ダウンロードがカタログと一致しません。何もインストールされていません。",
           "catalogChanged": "カタログが変更されました。更新して再試行してください。",
           "blocked": "Orca の安全リストがこのプラグインをブロックしています。",
-          "downloadFailed": "ダウンロードできませんでした。接続を確認してください。",
-          "fullAccessOff": "フルアクセスのプラグインはオフです。プラグイン設定でオンにしてください。"
+          "downloadFailed": "ダウンロードできませんでした。接続を確認してください。"
         },
         "pluginThemeApply": {
           "nowUsing": "{{value0}} を使用中",

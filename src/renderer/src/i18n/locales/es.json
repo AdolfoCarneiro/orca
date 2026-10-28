@@ -11447,7 +11447,6 @@
         },
         "PluginConsentDialog": {
           "reconsent": "Cambió desde que lo aprobaste",
-          "warning": "Acceso total a tus archivos, red y procesos",
           "instructionalWarning": "Sus comandos pueden actuar por ti o tus agentes",
           "declarativeWarning": "Solo contenido. No ejecuta código.",
           "enable": "Activar plugin",
@@ -11460,7 +11459,8 @@
             "agentsRead": "Recibir avisos cuando cambie el estado de un agente",
             "terminalRun": "Ejecutar comandos en tus terminales, incluso SSH"
           },
-          "decisionFailed": "No se pudo guardar la decisión sobre los permisos. Inténtalo de nuevo."
+          "decisionFailed": "No se pudo guardar la decisión sobre los permisos. Inténtalo de nuevo.",
+          "fullAccessWarning": "Acceso total: se ejecuta como un programa normal y puede leer tus archivos, usar la red y ejecutar otros programas."
         },
         "PluginConsentProvenance": {
           "official": "Official",
@@ -11655,8 +11655,7 @@
           "mismatch": "La descarga no coincide con el catálogo. No se instaló nada.",
           "catalogChanged": "El catálogo cambió. Actualiza y vuelve a intentarlo.",
           "blocked": "La lista de seguridad de Orca bloquea este plugin.",
-          "downloadFailed": "No se pudo descargar. Revisa tu conexión.",
-          "fullAccessOff": "Los plugins con acceso total están desactivados. Actívalos en la configuración de plugins."
+          "downloadFailed": "No se pudo descargar. Revisa tu conexión."
         },
         "pluginThemeApply": {
           "nowUsing": "Ahora usas {{value0}}",

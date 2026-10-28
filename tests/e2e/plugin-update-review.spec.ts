@@ -157,11 +157,6 @@ test('confirms card removal and shares single/bulk update review without strandi
       state?.openSettingsTarget({ pane: 'plugins', repoId: null })
       state?.openSettingsPage()
     })
-    // The 1.1.0 updates are full-access workers, which stay blocked behind this second switch.
-    await page.evaluate(async () => {
-      const settings = await window.api.settings.set({ pluginFullAccessEnabled: true })
-      window.__store?.setState({ settings })
-    })
     const appearanceBefore = await page.evaluate(() => {
       const settings = window.__store?.getState().settings
       return {
@@ -286,7 +281,9 @@ test('confirms card removal and shares single/bulk update review without strandi
     await expect(update).toHaveAccessibleName('Update 1 plugin')
     await expect(update.locator('[data-plugin-update]')).toHaveCount(1, GIT_STEP)
     // Only what's new shows; the rest of its access waits behind "See all access".
-    await expect(update).toContainText('New: Full access to your files, network, and processes')
+    await expect(update).toContainText(
+      'New: Full access: runs as a normal program and can read your files, use the network and run other programs.'
+    )
     await expect(update.getByRole('button', { name: 'See all access' })).toBeVisible()
     await screenshot(page, 'update-single')
     await update.getByRole('button', { name: 'Cancel', exact: true }).click()

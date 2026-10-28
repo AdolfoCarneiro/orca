@@ -78,10 +78,7 @@ test('runs hello-orca panel, command, and event behind visible consent', async (
 
   try {
     const installed = await orcaPage.evaluate(async (sourcePath) => {
-      const settings = await window.api.settings.set({
-        pluginSystemEnabled: true,
-        pluginFullAccessEnabled: true
-      })
+      const settings = await window.api.settings.set({ pluginSystemEnabled: true })
       window.__store?.setState({ settings })
       const result = await window.api.plugins.install({ kind: 'local-path', path: sourcePath })
       if (!result.ok) {
@@ -117,7 +114,9 @@ test('runs hello-orca panel, command, and event behind visible consent', async (
     const consent = orcaPage.locator('[data-plugin-consent]')
     await expect(consent).toBeVisible()
     await expect(orcaPage.getByRole('article')).toContainText('Local folder')
-    await expect(consent).toContainText('Full access to your files, network, and processes')
+    await expect(consent).toContainText(
+      'Full access: runs as a normal program and can read your files, use the network and run other programs.'
+    )
     await expect(orcaPage.getByRole('dialog')).toHaveCount(0)
     await orcaPage
       .getByRole('article')

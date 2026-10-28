@@ -143,7 +143,7 @@ describe('PluginUpdateAllDialog', () => {
     installApi({ previewMarketplaceUpdate: vi.fn().mockResolvedValue(worker) })
     const container = await renderDialog([entry('a', [])])
     expect(container.textContent).toContain(
-      'New: Full access to your files, network, and processes'
+      'New: Full access: runs as a normal program and can read your files, use the network and run other programs.'
     )
   })
 

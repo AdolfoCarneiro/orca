@@ -47,7 +47,6 @@ function createPluginService(): PluginService {
   return {
     options: {
       isPluginSystemEnabled: () => true,
-      isFullAccessAllowed: () => false,
       getPluginConsents: () => ({}),
       getDisabledPlugins: () => []
     },

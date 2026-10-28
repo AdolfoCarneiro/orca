@@ -306,39 +306,14 @@ describe('PluginMarketplaceInstaller', () => {
     expect(git.checkout).not.toHaveBeenCalled()
   })
 
-  it('refuses a full-access release while the full access setting is off', async () => {
-    git.release = {
-      version: '1.0.0',
-      commit: git.commit,
-      contentHash: 'c'.repeat(64),
-      execution: 'trusted-worker',
-      minimumOrca: PLUGIN_SCHEMA_NEWEST_SINCE,
-      types: ['instructions']
-    }
-    const { installer, sourceId } = await setup()
-    await expect(
-      installer.install({
-        marketplaceSourceId: sourceId,
-        marketplaceCommit: 'f'.repeat(40),
-        pluginKey: 'community.notes',
-        resolvedCommit: git.commit
-      })
-    ).resolves.toMatchObject({
-      ok: false,
-      error: expect.stringContaining('Allow full-access plugins')
-    })
-    expect(git.checkout).not.toHaveBeenCalled()
-  })
-
-  it('refuses an unpinned full-access plugin while the full access setting is off', async () => {
+  it('installs a full-access plugin with no global switch; approval stays per plugin', async () => {
     git.worker = true
     const { installer, sourceId, root } = await setup()
     const preview = await installer.preview(sourceId, 'community.notes')
-    await expect(installer.install(preview)).resolves.toMatchObject({
-      ok: false,
-      error: expect.stringContaining('Allow full-access plugins')
-    })
-    expect((await readPluginLockfile(join(root, 'plugins'))).plugins).toEqual({})
+    await expect(installer.install(preview)).resolves.toMatchObject({ ok: true })
+    expect(Object.keys((await readPluginLockfile(join(root, 'plugins'))).plugins)).toEqual([
+      'community.notes'
+    ])
   })
 
   it('rejects a source whose manifest identity differs from its listing', async () => {

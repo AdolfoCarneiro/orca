@@ -92,7 +92,6 @@ function setup(
     pluginService: {
       options: {
         isPluginSystemEnabled: () => true,
-        isFullAccessAllowed: () => true,
         getPluginConsents: () => consents,
         getDisabledPlugins: () => (options.disabled ? [KEY] : [])
       },

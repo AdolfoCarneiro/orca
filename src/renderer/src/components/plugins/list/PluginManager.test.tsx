@@ -138,7 +138,6 @@ function Harness({ plugins }: { plugins: PluginHostListEntry[] }): React.JSX.Ele
       logsByPlugin={{}}
       onShowLogs={vi.fn()}
       onOpenShortcuts={vi.fn()}
-      onOpenFullAccessSetting={vi.fn()}
       page={page}
       sourcesOpen={false}
       setSourcesOpen={vi.fn()}
