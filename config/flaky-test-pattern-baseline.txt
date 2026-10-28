@@ -988,7 +988,6 @@
 2 test-no-wall-clock:src/main/runtime/orca-runtime-terminal-close-records.test.ts
 3 test-no-wall-clock:src/main/runtime/orchestration-cli-subprocess.test.ts
 2 test-no-wall-clock:src/main/runtime/orchestration-codex-real-pty.integration.test.ts
-1 test-no-wall-clock:src/main/runtime/orchestration/db.test.ts
 1 test-no-wall-clock:src/main/runtime/orchestration/structured-pointer-operation-id.test.ts
 6 test-no-wall-clock:src/main/runtime/orchestration/worker-output-archive.test.ts
 1 test-no-wall-clock:src/main/runtime/owned-session-teardown-policy.test.ts
