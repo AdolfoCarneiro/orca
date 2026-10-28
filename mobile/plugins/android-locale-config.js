@@ -1,5 +1,5 @@
-const fs = require('fs')
-const path = require('path')
+const fs = require('node:fs')
+const path = require('node:path')
 const { withAndroidManifest, withDangerousMod, AndroidConfig } = require('expo/config-plugins')
 
 // Declares the Android 13+ per-app language list. expo-localization's own Android option also
