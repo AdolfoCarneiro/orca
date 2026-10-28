@@ -1,10 +1,13 @@
-import type { WebContents } from 'electron'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
+import { abortWhenRendererGone, type RendererLifetimeSender } from './renderer-lifetime-abort'
+
+type DesktopRuntimeSender = RendererLifetimeSender & { readonly id: number }
 
 type SenderState = {
   connectionId: string
-  sender: WebContents
+  sender: DesktopRuntimeSender
   subscriptions: Map<string, AbortController>
+  lifetime: ReturnType<typeof abortWhenRendererGone>
 }
 
 type CleanupRuntime = Pick<OrcaRuntimeService, 'cleanupSubscriptionsForConnection'>
@@ -15,50 +18,45 @@ export class DesktopRuntimeSenderLifecycle {
 
   constructor(private readonly runtime: CleanupRuntime) {}
 
-  connectionIdFor(sender: WebContents): string {
+  connectionIdFor(sender: DesktopRuntimeSender): string {
     return this.stateFor(sender).connectionId
   }
 
-  subscriptionsFor(sender: WebContents): Map<string, AbortController> {
+  subscriptionsFor(sender: DesktopRuntimeSender): Map<string, AbortController> {
     return this.stateFor(sender).subscriptions
   }
 
-  existingSubscriptionsFor(sender: WebContents): Map<string, AbortController> | null {
+  existingSubscriptionsFor(sender: DesktopRuntimeSender): Map<string, AbortController> | null {
     const state = this.senders.get(sender.id)
     return state?.sender === sender ? state.subscriptions : null
   }
 
-  private stateFor(sender: WebContents): SenderState {
+  private stateFor(sender: DesktopRuntimeSender): SenderState {
     const existing = this.senders.get(sender.id)
     if (existing?.sender === sender) {
       return existing
     }
     if (existing) {
-      this.retire(existing, true)
+      this.retire(existing)
     }
     const state: SenderState = {
       connectionId: this.mintConnectionId(sender.id),
       sender,
-      subscriptions: new Map()
+      subscriptions: new Map(),
+      lifetime: abortWhenRendererGone(sender)
     }
     this.senders.set(sender.id, state)
-    const retireDocument = (): void => this.retire(state, false)
-    sender.on('did-navigate', retireDocument)
-    sender.on('render-process-gone', retireDocument)
-    sender.once('destroyed', () => this.retire(state, true))
+    state.lifetime.signal.addEventListener('abort', () => this.retire(state), { once: true })
     return state
   }
 
-  private retire(state: SenderState, destroyed: boolean): void {
+  private retire(state: SenderState): void {
     if (this.senders.get(state.sender.id) !== state) {
       return
     }
     const retiredConnectionId = state.connectionId
-    if (destroyed) {
-      this.senders.delete(state.sender.id)
-    } else {
-      state.connectionId = this.mintConnectionId(state.sender.id)
-    }
+    this.senders.delete(state.sender.id)
+    state.lifetime.dispose()
     for (const controller of state.subscriptions.values()) {
       controller.abort()
     }

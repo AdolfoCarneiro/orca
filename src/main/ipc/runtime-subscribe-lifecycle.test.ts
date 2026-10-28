@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type StreamRecord = {
@@ -67,63 +68,27 @@ vi.mock('../runtime/rpc/dispatcher', () => ({
 
 import { registerRuntimeHandlers } from './runtime'
 
-type SenderHarness = {
-  destroy: () => void
-  emitDidNavigate: () => void
-  emitRenderProcessGone: () => void
-  listenerCount: (eventName: string) => number
-  sender: {
-    id: number
-    isDestroyed: () => boolean
-    mainFrame: object
-    on: (eventName: string, callback: () => void) => void
-    once: (eventName: string, callback: () => void) => void
-    send: ReturnType<typeof vi.fn>
-  }
-}
-
-function createSender(id: number): SenderHarness {
-  const senderListeners = new Map<string, (() => void)[]>()
+function createSender(id: number) {
   let destroyed = false
-  const add = (eventName: string, callback: () => void): void => {
-    const callbacks = senderListeners.get(eventName) ?? []
-    callbacks.push(callback)
-    senderListeners.set(eventName, callbacks)
-  }
-  const fire = (eventName: string): void => {
-    for (const callback of senderListeners.get(eventName) ?? []) {
-      callback()
-    }
-  }
-  const mainFrame = {}
+  const sender = Object.assign(new EventEmitter(), {
+    id,
+    isDestroyed: () => destroyed,
+    mainFrame: { processId: 1, routingId: id },
+    send: vi.fn()
+  })
   return {
     destroy: () => {
       destroyed = true
-      fire('destroyed')
+      sender.emit('destroyed')
     },
-    emitDidNavigate: () => fire('did-navigate'),
-    emitRenderProcessGone: () => fire('render-process-gone'),
-    listenerCount: (eventName) => (senderListeners.get(eventName) ?? []).length,
-    sender: {
-      id,
-      isDestroyed: () => destroyed,
-      mainFrame,
-      on: add,
-      once: (eventName, callback) => {
-        const wrapped = (): void => {
-          const callbacks = senderListeners.get(eventName) ?? []
-          senderListeners.set(
-            eventName,
-            callbacks.filter((candidate) => candidate !== wrapped)
-          )
-          callback()
-        }
-        add(eventName, wrapped)
-      },
-      send: vi.fn()
-    }
+    emitDidNavigate: () => sender.emit('did-navigate'),
+    emitRenderProcessGone: () => sender.emit('render-process-gone'),
+    listenerCount: (eventName: string) => sender.listenerCount(eventName),
+    sender
   }
 }
+
+type SenderHarness = ReturnType<typeof createSender>
 
 async function call(sender: SenderHarness['sender']): Promise<void> {
   const handler = handlers.get('runtime:call')

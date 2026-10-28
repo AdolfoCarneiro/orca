@@ -8,6 +8,7 @@ import {
   resolveUserNamedRegularFile
 } from './local-file-access-resolution'
 import { createSenderScopedRequestCancellations } from './sender-scoped-request-cancellation'
+import { abortWhenRendererGone } from './renderer-lifetime-abort'
 import { startNotebookKernel, type NotebookKernel } from '../notebook/notebook-kernel'
 import {
   createNotebookVenv,
@@ -43,19 +44,20 @@ function kernelsOf(owner: WebContents): Map<string, NotebookKernel> {
   let kernels = kernelsByOwner.get(owner)
   if (!kernels) {
     const owned = new Map<string, NotebookKernel>()
+    const lifetime = abortWhenRendererGone(owner)
     const stopAll = (): void => {
+      if (kernelsByOwner.get(owner) !== owned) {
+        return
+      }
+      kernelsByOwner.delete(owner)
+      lifetime.dispose()
       for (const kernel of owned.values()) {
         kernel.shutdown()
       }
       owned.clear()
     }
-    owner.on('did-navigate', stopAll)
-    owner.on('render-process-gone', stopAll)
-    owner.once('destroyed', () => {
-      stopAll()
-      kernelsByOwner.delete(owner)
-    })
     kernelsByOwner.set(owner, owned)
+    lifetime.signal.addEventListener('abort', stopAll, { once: true })
     kernels = owned
   }
   return kernels
@@ -107,11 +109,17 @@ export function registerNotebookHandlers(store: Store): void {
         }
         const kernels = kernelsOf(owner)
         kernels.get(args.filePath)?.shutdown()
+        let kernelForFrames: NotebookKernel | null = null
         const { kernel, ready, exited } = startNotebookKernel({
           python: args.python,
           cwd,
           onFrame: (frame) => {
-            if (!owner.isDestroyed()) {
+            if (
+              kernelForFrames &&
+              kernelsByOwner.get(owner) === kernels &&
+              kernels.get(args.filePath) === kernelForFrames &&
+              !owner.isDestroyed()
+            ) {
               owner.send('notebook:kernelFrame', {
                 filePath: args.filePath,
                 frame
@@ -119,6 +127,7 @@ export function registerNotebookHandlers(store: Store): void {
             }
           }
         })
+        kernelForFrames = kernel
         kernels.set(args.filePath, kernel)
         void exited.then(() => {
           if (kernels.get(args.filePath) === kernel) {
