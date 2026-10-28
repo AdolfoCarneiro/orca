@@ -35,6 +35,13 @@ describe('buildNativeChatPasteBytes', () => {
   it('neutralizes a stray ESC in the single-line branch', () => {
     expect(buildNativeChatPasteBytes('hi\x1b there')).toBe('hi␛ there')
   })
+
+  it('frames single-line text over 1 KiB of UTF-8 so agents keep every read (#13332)', () => {
+    const atBoundary = 'é'.repeat(512)
+    const overBoundary = `${atBoundary}x`
+    expect(buildNativeChatPasteBytes(atBoundary)).toBe(atBoundary)
+    expect(buildNativeChatPasteBytes(overBoundary)).toBe(`${BEGIN}${overBoundary}${END}`)
+  })
 })
 
 describe('buildNativeChatImagePasteBytes', () => {

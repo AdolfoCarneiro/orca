@@ -1,13 +1,10 @@
 import { separateImagePasteFromFollowingText } from '../../../src/shared/image-paste-following-text'
-import {
-  normalizeTerminalPasteLineEndings,
-  wrapTerminalBracketedPasteText
-} from '../../../src/shared/terminal-bracketed-paste-text'
 import { reportWorkerTerminalUserInput } from '../terminal/worker-terminal-takeover-report'
 import { useCallback, type RefObject } from 'react'
 import { terminalInputSend } from '../terminal/mobile-terminal-operations'
 import { useClipboardReader } from '../platform/clipboard'
 import type { TerminalModes } from '../terminal/terminal-webview-contract'
+import { buildMobileTerminalPasteText } from '../terminal/mobile-terminal-paste-text'
 import type { RpcClient } from '../transport/rpc-client'
 import type { ConnectionState } from '../transport/types'
 import {
@@ -16,16 +13,6 @@ import {
   saveMobileClipboardImageAsTempFile
 } from './mobile-clipboard-image'
 import { resizeMobileClipboardImage } from './mobile-clipboard-image-resize'
-
-// Match xterm's paste(): newlines become CR, and DECSET 2004 frames the text with ESC made inert.
-function buildMobileTerminalClipboardTextPayload(
-  text: string,
-  modes: TerminalModes | undefined
-): string {
-  return modes?.bracketedPasteMode === true
-    ? wrapTerminalBracketedPasteText(text)
-    : normalizeTerminalPasteLineEndings(text)
-}
 
 type UseMobileTerminalPasteOptions = {
   readonly agent?: string | null
@@ -77,10 +64,7 @@ export function useMobileTerminalPaste({
       const text = await clipboard.readText()
       let payload: string | null = null
       if (text.length > 0) {
-        payload = buildMobileTerminalClipboardTextPayload(
-          text,
-          ptyModesRef.current.get(targetHandle)
-        )
+        payload = buildMobileTerminalPasteText(text, ptyModesRef.current.get(targetHandle))
       } else {
         const image = await clipboard.readImage()
         if (!image) {
