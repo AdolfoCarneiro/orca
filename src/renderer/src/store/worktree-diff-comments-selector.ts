@@ -11,6 +11,38 @@ import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import { selectWorktreesByRepo } from './workspace-record-selectors'
 
 const EMPTY_DIFF_COMMENTS = Object.freeze([]) as unknown as DiffComment[]
+const EMPTY_WORKTREE_ROWS: readonly Worktree[] = []
+
+// Preserve raw bucket membership and duplicates that the global worktree view deduplicates.
+const diffCommentRowIndexCache = new WeakMap<
+  readonly Worktree[],
+  ReadonlyMap<string, readonly Worktree[]>
+>()
+
+function indexedDiffCommentRows(
+  worktrees: readonly Worktree[] | undefined,
+  worktreeId: string
+): readonly Worktree[] {
+  if (!worktrees) {
+    return EMPTY_WORKTREE_ROWS
+  }
+  let index = diffCommentRowIndexCache.get(worktrees)
+  if (!index) {
+    const next = new Map<string, Worktree[]>()
+    for (const worktree of worktrees) {
+      const id = worktree.id
+      const rows = next.get(id)
+      if (rows) {
+        rows.push(worktree)
+      } else {
+        next.set(id, [worktree])
+      }
+    }
+    index = next
+    diffCommentRowIndexCache.set(worktrees, index)
+  }
+  return index.get(worktreeId) ?? EMPTY_WORKTREE_ROWS
+}
 
 type DiffCommentSelectorState = Pick<AppState, 'worktreesByRepo'> &
   Partial<
@@ -77,8 +109,9 @@ export function findDiffCommentRows(
   worktreeId: string,
   hint: { twin?: DiffCommentTwin; hostId?: ExecutionHostId; commentIds?: ReadonlySet<string> } = {}
 ): DiffCommentRows | null {
-  const rows = (selectWorktreesByRepo(state)[getRepoIdFromWorktreeId(worktreeId)] ?? []).filter(
-    (row) => row.id === worktreeId
+  const rows = indexedDiffCommentRows(
+    selectWorktreesByRepo(state)[getRepoIdFromWorktreeId(worktreeId)],
+    worktreeId
   )
   const { twin: captured, commentIds } = hint
   if (captured) {
@@ -197,7 +230,7 @@ export function selectWorktreeDiffComments(
   if (scope?.type === 'folder') {
     return findFolderWorkspaceOwner(state, scope.folderWorkspaceId)?.diffComments
   }
-  // Open twins need their own notes (unnamed writes refuse); scan only the open bucket per store write, using the cached ID index elsewhere.
+  // Open twins need host-aware note selection.
   const open = namedHostForOwnerRef(state, { workspaceId: worktreeId })
     ? findDiffCommentRows(state, worktreeId)
     : null
