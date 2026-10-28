@@ -212,7 +212,8 @@ export function handleMonacoLargeTextPaste(
   if (options.readOnly) {
     return { status: 'ignored', reason: 'read-only' }
   }
-  if (!monacoEditor?.getModel()) {
+  // Why: find/replace/rename overlay inputs sit inside the editor container.
+  if (!monacoEditor?.getModel() || !monacoEditor.hasTextFocus()) {
     return { status: 'ignored', reason: 'no-editor' }
   }
 

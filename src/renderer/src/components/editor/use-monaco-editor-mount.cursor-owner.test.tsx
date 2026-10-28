@@ -70,8 +70,7 @@ function mountParams(
       contentRef: { current: '' },
       lastSyncedContentRef: { current: '' },
       contentSyncModeRef: { current: 'undoable' },
-      isApplyingProgrammaticContentRef: { current: false },
-      isApplyingLargePasteRef: { current: false }
+      isApplyingProgrammaticContentRef: { current: false }
     },
     decorations: {
       markdownDocLinkDecorationsRef: { current: null },
