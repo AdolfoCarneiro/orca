@@ -22,6 +22,7 @@ vi.mock('react-native-gesture-handler', async () => {
 })
 vi.mock('lucide-react-native', () => ({
   ArrowDown: 'ArrowDown',
+  ChevronUp: 'ChevronUp',
   ChevronsDownUp: 'ChevronsDownUp',
   ChevronsUpDown: 'ChevronsUpDown',
   Square: 'Square'
@@ -180,6 +181,37 @@ describe('MobileNativeChatView: composer lock and prompt cards', () => {
     it('leaves a structured chat composer open: its host queues the send behind the prompt', async () => {
       await render({ permission, structuredActivityUi: true })
       expect(composer().props.sendDisabled).toBe(false)
+    })
+  })
+
+  // Why: as on desktop, the card is the one answering surface; the composer keeps its draft underneath.
+  describe('a shown prompt card replaces the composer', () => {
+    const permission = { title: 'Approve?', options: [{ label: 'Allow', send: '1' }] }
+    const composerHidden = (): boolean => {
+      let node = composer().parent
+      while (node && hostType(node) !== 'View') {
+        node = node.parent
+      }
+      return node?.props.style?.display === 'none'
+    }
+
+    it('hides the mounted composer and its draft until the card clears', async () => {
+      await render({ permission, composerText: 'half-written' })
+      const mounted = composer()
+      expect(composerHidden()).toBe(true)
+      expect(mounted.props.value).toBe('half-written')
+
+      await update({ permission: null, composerText: 'half-written' })
+      expect(composerHidden()).toBe(false)
+      expect(composer()).toBe(mounted)
+    })
+
+    it('shows the composer for a collapsed card and while dictation runs', async () => {
+      await render({ permission, collapsedPrompt: { title: 'Approve?', expand: () => {} } })
+      expect(composerHidden()).toBe(false)
+
+      await update({ permission, micActive: true })
+      expect(composerHidden()).toBe(false)
     })
   })
 })
