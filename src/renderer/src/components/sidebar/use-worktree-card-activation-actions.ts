@@ -132,6 +132,11 @@ export function useWorktreeCardActivationActions({
       if (
         event.pointerType !== 'mouse' ||
         event.button !== 0 ||
+        // Modified presses select or open menus rather than switch.
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
         isActive ||
         isDeleting ||
         isSshDisconnected
