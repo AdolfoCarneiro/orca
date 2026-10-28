@@ -1,8 +1,10 @@
+import { MOBILE_DICTATION_RECONNECT_GRACE_MS } from '../../../src/shared/rpc-contract/speech-params'
+
 export const MOBILE_DICTATION_PCM_SAMPLE_RATE = 16000
 
 const PCM_BYTES_PER_SAMPLE = 2
-// Covers the host's reconnect grace (MOBILE_DICTATION_RECONNECT_GRACE_MS) so a reconnect keeps the speech queued behind it.
-const MAX_PENDING_AUDIO_SECONDS = 30
+// Hold the speech captured while a reconnect is pending, for as long as the host keeps the session.
+const MAX_PENDING_AUDIO_SECONDS = MOBILE_DICTATION_RECONNECT_GRACE_MS / 1000
 
 // Why: dictation chunk RPCs wait through reconnect before timing out, so
 // cap retained raw microphone audio before it is expanded into base64 payloads.

@@ -4,6 +4,7 @@ import {
 } from './mobile-dictation-pending-audio-budget'
 import { bytesToBase64 } from './mobile-dictation-session-state'
 import { dictationAudioChunkSend } from '../dictation/mobile-dictation-operations'
+import { MOBILE_DICTATION_RECONNECT_GRACE_MS } from '../../../src/shared/rpc-contract/speech-params'
 import { isRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
 import { rpcPayloadMember } from '../transport/rpc-reader-payload'
 import { isLogicalClientCutoverError } from '../transport/stable-logical-rpc-client'
@@ -39,12 +40,14 @@ export function enqueueMobileDictationAudioChunk(
     audioBase64: bytesToBase64(bytes),
     sampleRate: MOBILE_DICTATION_PCM_SAMPLE_RATE
   }
+  // Wait for a reconnect only as long as the host keeps the session; past that, fail and keep the text so far.
+  const options = { timeoutMs: MOBILE_DICTATION_RECONNECT_GRACE_MS }
   const sendChunk = dictationAudioChunkSend
-    .request(client, params)
+    .request(client, params, options)
     .catch((err: unknown) =>
       // A chunk still waiting when the connection moved never reached the host; send it on the new one.
       isLogicalClientCutoverError(err) && !isRpcDeliveryUnknown(err)
-        ? dictationAudioChunkSend.request(client, params)
+        ? dictationAudioChunkSend.request(client, params, options)
         : Promise.reject(err)
     )
     .then((reply) => {

@@ -4,10 +4,8 @@ import {
   setSpeechServiceFactories,
   type SpeechServiceFactories
 } from '../speech/speech-runtime-service'
-import {
-  MOBILE_DICTATION_RECONNECT_GRACE_MS,
-  RuntimeMobileDictationController
-} from './runtime-mobile-dictation-controller'
+import { MOBILE_DICTATION_RECONNECT_GRACE_MS } from '../../shared/rpc-contract/speech-params'
+import { RuntimeMobileDictationController } from './runtime-mobile-dictation-controller'
 import type { RuntimeStore } from './runtime-store-contract'
 
 type Sink = (event: { type: string; text?: string }) => void
@@ -49,13 +47,12 @@ async function startPhoneDictation(): Promise<RuntimeMobileDictationController> 
 const chunk = { dictationId: 'd-1', audioBase64: 'AAAA', sampleRate: 16_000, clientId: 'phone-a' }
 
 describe('mobile dictation across a phone reconnect', () => {
-  it('keeps the session when the phone comes back within the grace', async () => {
+  it('keeps the session while the phone keeps reaching it, whatever connection it uses', async () => {
     const controller = await startPhoneDictation()
 
-    controller.cancelAfterClientDisconnectGrace('phone-a')
-    vi.advanceTimersByTime(MOBILE_DICTATION_RECONNECT_GRACE_MS - 1)
+    await vi.advanceTimersByTimeAsync(MOBILE_DICTATION_RECONNECT_GRACE_MS - 1)
     expect(controller.feed(chunk)).toEqual({ dictationId: 'd-1', text: 'before the drop' })
-    await vi.advanceTimersByTimeAsync(MOBILE_DICTATION_RECONNECT_GRACE_MS)
+    await vi.advanceTimersByTimeAsync(MOBILE_DICTATION_RECONNECT_GRACE_MS - 1)
     sink({ type: 'final', text: 'after it' })
 
     await expect(controller.finish({ dictationId: 'd-1', clientId: 'phone-a' })).resolves.toEqual({
@@ -64,10 +61,9 @@ describe('mobile dictation across a phone reconnect', () => {
     })
   })
 
-  it('releases the speech model when the phone never comes back', async () => {
+  it('releases the speech model when the phone goes quiet for the grace', async () => {
     const controller = await startPhoneDictation()
 
-    controller.cancelAfterClientDisconnectGrace('phone-a')
     await vi.advanceTimersByTimeAsync(MOBILE_DICTATION_RECONNECT_GRACE_MS)
 
     expect(stopDictation).toHaveBeenCalledOnce()
