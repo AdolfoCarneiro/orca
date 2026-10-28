@@ -13,7 +13,10 @@ import type { ChecksPanelControllerState } from './use-checks-panel-controller-s
 import type { ChecksPanelContextState } from './use-checks-panel-context-state'
 import type { ChecksPanelComposerState } from './use-checks-panel-composer-state'
 import type { ChecksPanelReviewState } from './use-checks-panel-review-state'
-import { checksPanelAsyncResultKey } from '../checks-panel-async-result-key'
+import {
+  checksPanelAsyncResultKey,
+  checksPanelHostedReviewAsyncResultKey
+} from '../checks-panel-async-result-key'
 import { resolveGitLabMRDiscussionForChecks } from './gitlab-review-client'
 import { clearPendingPRCommentAiAck } from '../pr-comments-ai-launch-ack'
 import type { PRComment } from '../../../../../shared/github/comment-types'
@@ -30,6 +33,7 @@ type ChecksPanelCommentResolutionInput = Pick<
   | 'commentResolutionAckBusy'
   | 'commentsLoading'
   | 'detectedAgentIds'
+  | 'mountedRef'
   | 'pendingCommentResolutionRef'
   | 'repo'
   | 'resolveReviewThread'
@@ -40,7 +44,12 @@ type ChecksPanelCommentResolutionInput = Pick<
 > &
   Pick<
     ChecksPanelContextState,
-    'activeGitLabReview' | 'activeReview' | 'pr' | 'prCacheKey' | 'prNumber'
+    | 'activeGitLabReview'
+    | 'activeReview'
+    | 'hostedReviewCacheKey'
+    | 'pr'
+    | 'prCacheKey'
+    | 'prNumber'
   > &
   Pick<ChecksPanelComposerState, 'isCurrentAsyncResult'> &
   Pick<ChecksPanelReviewState, 'sourceControlAiActionsVisible'>
@@ -56,7 +65,9 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
     commentResolutionAckBusy,
     commentsLoading,
     detectedAgentIds,
+    hostedReviewCacheKey,
     isCurrentAsyncResult,
+    mountedRef,
     pendingCommentResolutionRef,
     pr,
     prCacheKey,
@@ -79,6 +90,13 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
         setComments((prev) => restorePRCommentThreadSnapshot(prev, previousThreadComments))
       }
       if (repo && activeGitLabReview) {
+        const requestKey = checksPanelHostedReviewAsyncResultKey(
+          hostedReviewCacheKey,
+          branch,
+          activeGitLabReview.provider,
+          activeGitLabReview.number,
+          activeGitLabReview.headSha
+        )
         let previousThreadComments: PRComment[] = []
         setComments((prev) => {
           previousThreadComments = prev.filter((comment) => comment.threadId === threadId)
@@ -92,6 +110,9 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
           resolved: resolve,
           repoOwnerExecutionHostId: forgeOwnerHostIdForWorkspace(repo, activeWorktree)
         })
+        if (!mountedRef.current || !isCurrentAsyncResult(requestKey)) {
+          return result.ok
+        }
         if (!result.ok) {
           rollbackThread(previousThreadComments)
           if (notifyOnFailure) {
@@ -120,7 +141,7 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
         repoId: repo.id,
         prRepo: pr?.prRepo
       })
-      if (!isCurrentAsyncResult(requestKey)) {
+      if (!mountedRef.current || !isCurrentAsyncResult(requestKey)) {
         return ok
       }
       if (!ok) {
@@ -139,7 +160,9 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
     [
       activeGitLabReview,
       branch,
+      hostedReviewCacheKey,
       isCurrentAsyncResult,
+      mountedRef,
       pr?.headSha,
       pr?.prRepo,
       prCacheKey,
