@@ -18,6 +18,10 @@ export type InflightChecks = {
   force: boolean
   noCache: boolean
 }
+export type InflightComments = {
+  promise: Promise<PRComment[]>
+  postedComments: PRComment[]
+}
 export type InflightWorkItems = {
   promise: Promise<readonly GitHubWorkItem[]>
   requestId: number
@@ -34,7 +38,7 @@ export type InflightProjectView = {
 export const inflightPRRequests = new Map<string, InflightPR>()
 export const inflightIssueRequests = new Map<string, Promise<IssueInfo | null>>()
 export const inflightChecksRequests = new Map<string, InflightChecks>()
-export const inflightCommentsRequests = new Map<string, Promise<PRComment[]>>()
+export const inflightCommentsRequests = new Map<string, InflightComments>()
 export const inflightWorkItemsRequests = new Map<string, InflightWorkItems>()
 export const inflightProjectViewRequests = new Map<string, InflightProjectView>()
 export const prRequestGenerations = new Map<string, number>()

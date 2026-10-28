@@ -6,6 +6,7 @@ import { callRuntimeRpc } from '../../runtime/runtime-rpc-client'
 import { prCommentsCacheSuffix, sourceScopedRepoCacheKey } from './cache-identity'
 import { isFresh, withBoundedCacheEntry } from './cache-policy'
 import { inflightCommentsRequests } from './request-coordination'
+import { mergePRCommentIntoList } from './pr-comment-cache'
 import {
   getGitHubRepoSourceSettings,
   getGitHubSourceTarget,
@@ -39,9 +40,10 @@ export const createCommentFetchActions = (
 
     const inflightRequest = inflightCommentsRequests.get(cacheKey)
     if (inflightRequest) {
-      return inflightRequest
+      return inflightRequest.promise
     }
 
+    const postedComments: PRComment[] = []
     const request = (async () => {
       try {
         const requestContext = getGitHubWorkItemRequestContext(
@@ -51,7 +53,7 @@ export const createCommentFetchActions = (
           repoPath,
           options?.sourceContext
         )
-        const comments =
+        let comments: PRComment[] =
           requestContext.target.kind === 'environment'
             ? await callRuntimeRpc<PRComment[]>(
                 { kind: 'environment', environmentId: requestContext.target.environmentId },
@@ -64,18 +66,21 @@ export const createCommentFetchActions = (
                 },
                 { timeoutMs: 30_000 }
               )
-            : ((await window.api.gh.prComments({
+            : await window.api.gh.prComments({
                 repoPath,
                 repoId,
                 prNumber,
                 prRepo: options?.prRepo ?? null,
                 noCache: options?.force,
                 sourceContext: options?.sourceContext
-              })) as PRComment[])
-        // A comment posted during this read owns the newer snapshot and the caller's displayed list.
-        const current = get().commentsCache[cacheKey]
-        if (current !== undefined && current !== cached) {
-          return current.data ?? []
+              })
+        if (postedComments.length > 0) {
+          const currentById = new Map(
+            (get().commentsCache[cacheKey]?.data ?? []).map((comment) => [comment.id, comment])
+          )
+          for (const posted of postedComments) {
+            comments = mergePRCommentIntoList(comments, currentById.get(posted.id) ?? posted)
+          }
         }
         set((s) => ({
           commentsCache: withBoundedCacheEntry(s.commentsCache, cacheKey, {
@@ -92,7 +97,7 @@ export const createCommentFetchActions = (
       }
     })()
 
-    inflightCommentsRequests.set(cacheKey, request)
+    inflightCommentsRequests.set(cacheKey, { promise: request, postedComments })
     return request
   }
 })
