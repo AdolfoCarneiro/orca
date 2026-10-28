@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import { act } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -204,6 +205,16 @@ describe('MobileNativeChatView: composer lock and prompt cards', () => {
       await update({ permission: null, composerText: 'half-written' })
       expect(composerHidden()).toBe(false)
       expect(composer()).toBe(mounted)
+    })
+
+    it('keeps the queued tray in view, as desktop does', async () => {
+      await render({ permission, composerTray: { content: createElement('QueuedTray') } })
+      let node = root().find((n) => hostType(n) === 'QueuedTray').parent
+      while (node && hostType(node) !== 'View') {
+        node = node.parent
+      }
+      expect(node?.props.style?.display).not.toBe('none')
+      expect(composerHidden()).toBe(true)
     })
 
     it('keeps the composer for an approval this build cannot draw, so a turn can cancel it', async () => {

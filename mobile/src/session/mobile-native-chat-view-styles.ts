@@ -8,8 +8,6 @@ const LOAD_EARLIER_RETRY_HEIGHT = 28
 
 export const styles = themedStyleSheet(() => ({
   hidden: { display: 'none' },
-  // Pass the remaining height down so the queued-message tray can shrink and scroll.
-  composerArea: { flexShrink: 1, minHeight: 0 },
   root: {
     flex: 1,
     backgroundColor: colors.bgBase

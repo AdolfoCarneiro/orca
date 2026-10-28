@@ -55,8 +55,9 @@ export function MobileNativeChatAsk({
   const [submitting, setSubmitting] = useState(false)
   const submittingRef = useRef(false)
   const autoAdvance = useMobileNativeChatAskAutoAdvance()
-  // Open each step at its question, not at the previous step's scroll offset.
+  // Open each step at its question and end the last step's edit, so no typing lands out of view.
   const showStep = (next: (current: number) => number): void => {
+    inputRef.current?.blur()
     scrollRef.current?.scrollTo({ y: 0, animated: false })
     setIndex(next)
   }

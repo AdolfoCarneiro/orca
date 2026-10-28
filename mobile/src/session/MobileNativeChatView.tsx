@@ -391,8 +391,8 @@ export function MobileNativeChatView({
           <Text style={styles.sendErrorText}>{sendErrorMessage}</Text>
         </View>
       ) : null}
-      <View style={promptOwnsInput ? styles.hidden : styles.composerArea}>
-        {trayContent}
+      {trayContent}
+      <View style={promptOwnsInput ? styles.hidden : undefined}>
         <MobileNativeChatDraftComposer
           draftScopeKey={composerScopeKey}
           structured={structuredActivityUi ? structuredComposer : null}
