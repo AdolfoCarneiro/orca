@@ -1,6 +1,10 @@
-/** A node's text with non-breaking spaces turned back into the spaces the source wrote. */
+export function literalTextContent(node: Node): string {
+  return node.textContent ?? ''
+}
+
+/** A node's prose with browser-created non-breaking spaces turned back into spaces. */
 export function textContent(node: Node): string {
-  return (node.textContent ?? '').replace(/ /g, ' ')
+  return literalTextContent(node).replace(/ /g, ' ')
 }
 
 // Serialize task label as empty: checkbox chrome is replaced by list writer’s Markdown marker.
@@ -28,7 +32,7 @@ export function inlineMarkdown(node: Node | null | undefined): string {
     return `~~${inlineChildren(node)}~~`
   }
   if (tag === 'code' && node.parentElement && node.parentElement.tagName.toLowerCase() !== 'pre') {
-    return `\`${textContent(node)}\``
+    return `\`${literalTextContent(node)}\``
   }
   if (tag === 'a') {
     return `[${inlineChildren(node)}](${node.getAttribute('href') ?? ''})`

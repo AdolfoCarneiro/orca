@@ -1,4 +1,4 @@
-import { escapeAttr, escapeHtml, isSafeUrl } from './markdown-escaping'
+import { escapeAttr, escapeHtml, escapeLiteralHtml, isSafeUrl } from './markdown-escaping'
 
 // Build global exec regex per recursive call: shared lastIndex would leak between nested parses. Escape text between recognized inline forms.
 export function renderInline(text: string): string {
@@ -19,7 +19,7 @@ export function renderInline(text: string): string {
     } else if (/^https?:\/\//i.test(token)) {
       output += `<a href="${escapeAttr(token)}">${escapeHtml(token)}</a>`
     } else if (token.startsWith('`')) {
-      output += `<code>${escapeHtml(token.slice(1, -1))}</code>`
+      output += `<code>${escapeLiteralHtml(token.slice(1, -1))}</code>`
     } else if (token.startsWith('~~')) {
       output += `<s>${renderInline(token.slice(2, -2))}</s>`
     } else if (token.startsWith('**') || token.startsWith('__')) {

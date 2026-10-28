@@ -1,6 +1,11 @@
 import { codeFenceFor } from './markdown-code-fence'
 import { escapeTableCell } from './markdown-table-rows'
-import { inlineChildren, inlineMarkdown, textContent } from './html-inline-markdown'
+import {
+  inlineChildren,
+  inlineMarkdown,
+  literalTextContent,
+  textContent
+} from './html-inline-markdown'
 import { holdsUnownedList, listMarkdown } from './html-list-markdown'
 
 // WebKit 26.4/Chromium 147 insertUnorderedList nests ul inside p; serialize surrounding inline runs and list as separate blocks or typed list markers vanish. Leave DOM unchanged.
@@ -59,7 +64,7 @@ export function blockMarkdown(node: Node): string {
   }
   if (tag === 'pre') {
     const language = node.getAttribute('data-language') ?? ''
-    const code = textContent(node.querySelector('code') ?? node).replace(/\n+$/g, '')
+    const code = literalTextContent(node.querySelector('code') ?? node)
     const fence = codeFenceFor(code)
     return `${fence}${language}\n${code}\n${fence}`
   }

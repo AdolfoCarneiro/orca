@@ -1,4 +1,4 @@
-import { escapeAttr, escapeHtml } from './markdown-escaping'
+import { escapeAttr, escapeLiteralHtml } from './markdown-escaping'
 import { renderInline } from './markdown-inline-render'
 import { renderListItems } from './markdown-list-render'
 import { parseListTree } from './markdown-list-parse'
@@ -34,7 +34,7 @@ export function markdownToHtml(scope: RichMarkdownEditorScope, markdown: string)
         index += 1
       }
       html.push(
-        `<pre data-language="${escapeAttr(fence.language)}"><code>${escapeHtml(code.join('\n'))}</code></pre>`
+        `<pre data-language="${escapeAttr(fence.language)}"><code>${escapeLiteralHtml(code.join('\n'))}</code></pre>`
       )
       continue
     }
