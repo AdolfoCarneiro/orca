@@ -62,7 +62,7 @@ function compareRecordSources(
   let reordered = false
   for (let i = 0; i < oldKeys.length; i++) {
     const key = oldKeys[i]
-    const present = Object.hasOwn(after, key)
+    const present = key === newKeys[i] || Object.hasOwn(after, key)
     if (!present || Reflect.get(after, key) !== Reflect.get(before, key)) {
       keys.add(key)
     }
@@ -72,7 +72,7 @@ function compareRecordSources(
   }
   for (let i = 0; i < newKeys.length; i++) {
     const key = newKeys[i]
-    if (!Object.hasOwn(before, key)) {
+    if (key !== oldKeys[i] && !Object.hasOwn(before, key)) {
       keys.add(key)
       if (i >= firstNewString && key !== newKeys[nextString++]) {
         reordered = true
