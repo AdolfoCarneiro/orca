@@ -37,7 +37,7 @@ export function applyPRCacheResult(
 export function mergedPRMatchesHead(
   pr: PRInfo | null | undefined,
   currentHeadOid?: string | null
-): pr is PRInfo & { state: 'merged'; headSha: string } {
+): boolean {
   return (
     pr?.state === 'merged' &&
     typeof pr.headSha === 'string' &&
@@ -59,6 +59,7 @@ export function shouldPreserveMergedPRForFallbackMiss(args: {
   return (
     args.nextPR === null &&
     args.linkedPRNumber == null &&
+    currentPR != null &&
     mergedPRMatchesHead(currentPR, currentHeadOid) &&
     !args.rejectedPRUrls?.includes(currentPR.url)
   )
