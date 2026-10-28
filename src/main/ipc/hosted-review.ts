@@ -113,7 +113,8 @@ export function registerHostedReviewHandlers(store: Store, stats: StatsCollector
       admissionTier: args.admissionTier ?? ('background' as const)
     }
     // Sidebar cards and the checks panel poll this for every provider; gh/glab in WSL boot it (E9).
-    // Only an interactive request (the checks panel's manual Refresh) may start a stopped distro.
+    // Only an explicit Refresh may start a stopped distro; admissionTier is priority only, and
+    // the visible scheduler sends 'interactive' for the selected card on a timer.
     const review = await guardWslUncPathAccess(
       repo.path,
       () =>
@@ -132,7 +133,7 @@ export function registerHostedReviewHandlers(store: Store, stats: StatsCollector
           ...(args.force === true ? { force: true } : {}),
           localGitExecOptions: localGitOptions
         }),
-      { wake: args.admissionTier === 'interactive', wslDistro: localGitOptions.wslDistro }
+      { wake: args.wakeWslDistro === true, wslDistro: localGitOptions.wslDistro }
     )
     if (review?.provider === 'github' && !stats.hasCountedPR(review.url)) {
       stats.record({

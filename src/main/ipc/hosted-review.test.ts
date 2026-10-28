@@ -352,7 +352,18 @@ describe('registerHostedReviewHandlers', () => {
     expect(getHostedReviewForBranchMock).not.toHaveBeenCalled()
   })
 
-  it("lets the checks panel's interactive Refresh start a stopped distro", async () => {
+  it.each([
+    [
+      "refuses the visible scheduler's interactive-priority poll",
+      { admissionTier: 'interactive' },
+      0
+    ],
+    [
+      'lets an explicit Refresh start the distro',
+      { admissionTier: 'interactive', wakeWslDistro: true },
+      1
+    ]
+  ] as const)('%s for a stopped distro', async (_case, extra, reads) => {
     setPlatform('win32')
     const localRepo = {
       id: 'repo-local',
@@ -380,15 +391,15 @@ describe('registerHostedReviewHandlers', () => {
     getHostedReviewForBranchMock.mockResolvedValue(null)
     registerHostedReviewHandlers(store as never, stats as never)
 
-    await handlers['hostedReview:forBranch'](null, {
+    const read = handlers['hostedReview:forBranch'](null, {
       repoPath: localRepo.path,
       repoId: localRepo.id,
       branch: 'feature/wsl',
-      admissionTier: 'interactive'
+      ...extra
     })
 
-    expect(readWslDistroRunningStateMock).not.toHaveBeenCalled()
-    expect(getHostedReviewForBranchMock).toHaveBeenCalledTimes(1)
+    await (reads === 0 ? expect(read).rejects.toBeInstanceOf(WslDistroStoppedError) : read)
+    expect(getHostedReviewForBranchMock).toHaveBeenCalledTimes(reads)
   })
 
   it('carries a selected-worktree claim and explicit refresh through to the branch lookup', async () => {
