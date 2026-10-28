@@ -327,6 +327,7 @@ export default function MonacoEditor({
         fileId={fileId}
         filePath={filePath}
         relativePath={relativePath}
+        worktreeId={worktreeId}
       />
     </div>
   )

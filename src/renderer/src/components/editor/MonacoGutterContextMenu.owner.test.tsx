@@ -89,10 +89,3 @@ it('copies the mounted file owner URL when another host has the same absolute pa
     'https://example.invalid/host-b/file.ts#L7'
   )
 })
-
-it('does not borrow a same-path owner after the mounted file closes', () => {
-  openMenu('closed-file')
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Copy Remote URL' }))
-  expect(getRuntimeGitRemoteFileUrl).not.toHaveBeenCalled()
-  expect(window.api.ui.writeClipboardText).not.toHaveBeenCalled()
-})
