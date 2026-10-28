@@ -59,12 +59,12 @@ vi.mock('expo-file-system', () => {
       this.uri = `${typeof parent === 'string' ? parent : parent.uri}${name ? `/${name}` : ''}`
     }
     get exists() {
-      return [...device.files.keys()].some((uri) => uri.startsWith(this.uri + '/'))
+      return [...device.files.keys()].some((uri) => uri.startsWith(`${this.uri}/`))
     }
     create(): void {}
     delete(): void {
       for (const uri of device.files.keys()) {
-        if (uri.startsWith(this.uri + '/')) {
+        if (uri.startsWith(`${this.uri}/`)) {
           device.files.delete(uri)
         }
       }
@@ -153,19 +153,14 @@ async function mount() {
   return { serve, send }
 }
 
-it.each([10, 100])(
-  'refuses %i PDF opens from a retained hidden page before downloading',
-  async (count) => {
-    const handler = await mount()
-    act(() => device.blur())
-    for (let index = 0; index < count; index += 1) {
-      await handler.serve(open).catch(() => undefined)
-    }
-    expect.soft(handler.send).not.toHaveBeenCalled()
-    expect.soft(device.creates).toBe(0)
-    expect(device.presentations).toEqual([])
-  }
-)
+it('refuses a PDF open from a retained hidden page before downloading', async () => {
+  const handler = await mount()
+  act(() => device.blur())
+  await expect(handler.serve(open)).rejects.toThrow('not focused')
+  expect.soft(handler.send).not.toHaveBeenCalled()
+  expect.soft(device.creates).toBe(0)
+  expect(device.presentations).toEqual([])
+})
 
 it.each(['ios', 'android'] as const)(
   'still downloads and presents after refocus on %s',
