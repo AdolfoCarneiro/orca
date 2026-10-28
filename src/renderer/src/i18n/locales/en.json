@@ -8415,7 +8415,9 @@
           "fbb428db98": "Selected:",
           "search_terminal_themes": "Search terminal themes",
           "cb330ef7f8": " of {{value0}}",
-          "c822571b2e": " matching \"{{value0}}\""
+          "c822571b2e": " matching \"{{value0}}\"",
+          "plugin_themes": "Plugins",
+          "from_plugin": "From {{value0}}"
         },
         "SettingsSidebar": {
           "e0900f83e7": "SSH",
@@ -12555,6 +12557,9 @@
             "mod": "mod",
             "shortcut": "shortcut"
           }
+        },
+        "AppearanceThemeControl": {
+          "useTerminalTheme": "Use its terminal colors"
         },
         "notification": {
           "settings": {
