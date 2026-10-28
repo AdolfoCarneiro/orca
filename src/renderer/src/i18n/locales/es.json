@@ -350,7 +350,8 @@
       "permissionOverrideMore": "y {{count}} más",
       "permissionOverrideMore_one": "y {{count}} más",
       "permissionOverrideMore_other": "y {{count}} más",
-      "permissionOverridesUse": "Usar {{mode}}"
+      "permissionOverridesUse": "Usar {{mode}}",
+      "approveForMe": "aprobar por mí"
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "enlace simbólico",
@@ -381,6 +382,34 @@
       "actionPermissions": {
         "sameAsAgent": "Igual que {{agent}}"
       }
+    },
+    "ssh": {
+      "status": {
+        "disconnected": "Desconectado",
+        "connecting": "Conectando…",
+        "auth-failed": "Error de autenticación",
+        "connected": "Conectado",
+        "reconnection-failed": "Error de reconexión",
+        "deploying-relay": "Desplegando relay…",
+        "reconnecting": "Reconectando…"
+      }
+    },
+    "mcp": {
+      "workspace": "Espacio de trabajo",
+      "inspectFailed": "No se pudo inspeccionar {{directory}}.",
+      "unreadable": "No se puede leer",
+      "notFound": "No se encontró",
+      "invalidJson": "JSON no válido",
+      "noServers": "Sin servidores",
+      "httpServer": "Servidor HTTP",
+      "stdioServer": "Servidor stdio",
+      "invalidServer": "Servidor no válido",
+      "serverCount_one": "{{count}} servidor",
+      "serverCount_other": "{{count}} servidores",
+      "claudeWorkspace": "Espacio de trabajo de Claude"
+    },
+    "shortcuts": {
+      "parseFailed": "No se pudo interpretar el atajo."
     }
   },
   "menu": {
@@ -1576,7 +1605,6 @@
         "d1fa2cf888": "No se puede comentar sin el SHA del head del PR.",
         "829674460a": "El diff no está disponible porque faltan los SHA de commits del PR.",
         "af924014f8": "Visto",
-        "2d89a38d9d": "Cambiar estado de visto de {{value1}} ({{value0}})",
         "70e84e3d0b": "No hay revisores que coincidan.",
         "1ffce94a8b": "Todos los demás",
         "c2b21818e1": "Sugerencias",
@@ -1801,7 +1829,6 @@
       "LinearIssueTextEditor": {
         "947ba2d6f4": "guardar",
         "04d73b72dc": "Título del issue",
-        "e8ff595db3": "No se pudo actualizar {{value0}}",
         "1e08a1ec80": "El título es obligatorio"
       },
       "LinearIssueWorkspace": {
@@ -2130,10 +2157,6 @@
         "9e97f08d0f": "Buscar un archivo para abrir",
         "ec31e058f7": "Ir al archivo",
         "73b44e7bde": "Copiar comando de instalación",
-        "1cf8561ab4": "en el remoto para habilitar un listado rápido y compatible con gitignore:",
-        "5d80dc39bb": "ripgrep",
-        "2ca749c15d": "Instalar",
-        "4725b0e931": "El escaneo de apertura rápida es demasiado grande (",
         "b227d88520": "{{value0}} archivos encontrados",
         "995be8ea22": "Copiar",
         "cf144856dc": "Copiado"
@@ -2204,9 +2227,6 @@
         "7f3f7b4c18": "Descripción (opcional, markdown)",
         "9f2b4c03a6": "Creando en",
         "d3d0998b7d": "Nuevo issue de GitHub",
-        "d1e243795c": "issues",
-        "be8cf68d9f": "ver issues",
-        "67662ade50": "issues del proyecto",
         "6244a02f46": "Abrir en Linear",
         "606a85c774": "Abierto",
         "5e8061b088": "Iniciar espacio de trabajo desde {{value0}} {{value1}}",
@@ -2226,11 +2246,9 @@
         "af377b13b1": "Vista {{value0}}",
         "d47248df4d": "Modo de vista de Linear",
         "f397d513e3": "Atrás",
-        "b39fe6511d": "proyectos",
         "8675cd6188": "Linear",
         "733b8f2421": "Linear / Vistas",
         "bc06ed0fb0": "Volver a vistas",
-        "3cb855080f": "vistas",
         "b4e10f096e": "Propietario",
         "a04fe7ba73": "Visibilidad",
         "0aa8525950": "Modelo",
@@ -2936,8 +2954,6 @@
               "7616c986c6": "Abrir issues de {{value0}}",
               "openInLinear": "Abrir {{value0}} en Linear",
               "93e1f6bfca": "Cargando",
-              "98730088a6": ". Busca o abre Linear para ver el conjunto completo.",
-              "06b887d622": "Mostrando primero",
               "linearLoginUnreadable": "No se puede leer el inicio de sesión guardado de Linear. Vuelve a conectarlo en Configuración.",
               "f2cc1e0ff6": "Linear / Proyectos",
               "906b5e4cb8": "Linear / Proyectos / {{value0}}",
@@ -4460,10 +4476,7 @@
         },
         "UsageBreakdownSection": {
           "7765a4c3e1": "n/a",
-          "247c93ca92": "• precios inferidos",
-          "32176e1d44": "vueltas",
-          "79a69522a5": "eventos",
-          "02a046792e": "sesiones •"
+          "247c93ca92": "• precios inferidos"
         },
         "GrokUsagePane": {
           "g8h9i0j1k2": "Uso de Grok",
@@ -5958,7 +5971,9 @@
         },
         "sidebarHostOptions": {
           "3e102f111c": "Todos los hosts",
-          "visibleHostsCount": "{{value0}} hosts"
+          "hosts": "Hosts",
+          "visibleHosts_one": "{{count}} host",
+          "visibleHosts_other": "{{count}} hosts"
         },
         "HostRemoveDialog": {
           "1a2b3c4d5e": "Se quitó {{value0}}",
@@ -6246,7 +6261,7 @@
           "running": "En ejecución",
           "stopped": "Detenida",
           "title": "Agregar distro WSL",
-          "description": "Orca ejecuta su servidor dentro de la distro, así que git, los archivos y las terminales se ejecutan de forma nativa en Linux. Los proyectos que abriste a través de \\\\wsl.localhost siguen funcionando tal como están hasta que los muevas a este host.",
+          "description": "Orca ejecuta su servidor dentro de la distro, así que git, los archivos y las terminales se ejecutan de forma nativa en Linux. Los proyectos de esta distro que abriste a través de \\\\wsl.localhost se mueven a este host automáticamente cuando sus terminales están inactivas; los proyectos en una unidad de Windows (/mnt/…) se quedan en este equipo. Puedes devolver un proyecto movido desde la barra lateral.",
           "distro": "Distro",
           "loading": "Buscando distros WSL…",
           "placeholder": "Elige una distro",
@@ -7972,7 +7987,9 @@
           "builtin_themes": "Integrados",
           "imported_from": "Importado desde {{value0}}",
           "imported_themes": "Importados",
-          "search_terminal_themes": "Buscar temas de terminal"
+          "search_terminal_themes": "Buscar temas de terminal",
+          "plugin_themes": "Plugins",
+          "from_plugin": "De {{value0}}"
         },
         "SettingsSidebar": {
           "e0900f83e7": "SSH",
@@ -10995,7 +11012,7 @@
           "mixedTitle": "Revisar acceso y contenido",
           "instructionalTitle": "Revisar el contenido del plugin",
           "subtitle": "{{value0}} v{{value1}} · {{value2}}",
-          "reconsent": "Los permisos, el nivel de confianza del proceso o el contenido instructivo cambiaron desde la última revisión de este plugin. Revísalo de nuevo antes de ejecutarlo.",
+          "reconsent": "Este plugin cambió desde que lo aprobaste. Revísalo para volver a ejecutarlo.",
           "capabilities": "Este plugin puede",
           "warning": "Estos permisos limitan cómo usa el plugin la API de Orca. Su proceso se ejecuta como un proceso normal en tu equipo, con acceso completo a tus archivos, red y otros procesos.",
           "instructionalWarning": "Este plugin no tiene ningún proceso en segundo plano. Aun así, su contenido instructivo puede provocar acciones cuando tú o un agente lo usen. Revisa las instrucciones y los comandos siguientes antes de habilitarlo.",
@@ -12122,6 +12139,9 @@
           "noMatches": "No hay compilaciones coincidentes.",
           "searchPlaceholder": "Buscar compilaciones…"
         },
+        "AppearanceThemeControl": {
+          "useTerminalTheme": "Usar sus colores de terminal"
+        },
         "notification": {
           "settings": {
             "copy": {
@@ -12184,6 +12204,12 @@
                 }
               }
             }
+          },
+          "BulkActionBar": {
+            "selectedCount_one": "{{count}} seleccionado",
+            "selectedCount_other": "{{count}} seleccionados",
+            "stageCount": "Agregar al stage ({{count}})",
+            "unstageCount": "Quitar del stage ({{count}})"
           },
           "ChecksPanel": {
             "2ef90c9819": "Se inició un agente de IA para los checks con errores.",
@@ -13065,10 +13091,10 @@
                 "dialog": {
                   "3bc61dc989": "Cancelar",
                   "15efa778e3": "Descartar",
-                  "42f89dd030": "archivos",
-                  "e7611dca35": "archivo",
                   "0d2d88cba5": "Esto no se puede deshacer.",
-                  "1551c14668": "¿Descartar cambios?"
+                  "1551c14668": "¿Descartar cambios?",
+                  "fileCount_one": "{{count}} archivo",
+                  "fileCount_other": "{{count}} archivos"
                 }
               },
               "dropdown": {
@@ -13228,6 +13254,12 @@
                   }
                 }
               },
+              "compare": {
+                "summary": {
+                  "commitsAhead_one": "{{count}} commit por delante de {{ref}}",
+                  "commitsAhead_other": "{{count}} commits por delante de {{ref}}"
+                }
+              },
               "conflict": {
                 "status": {
                   "cards": {
@@ -13268,12 +13300,6 @@
                     "cefacd0ec7": "archivo completo"
                   }
                 }
-              },
-              "compare": {
-                "summary": {
-                  "commitsAhead_one": "{{count}} commit por delante de {{ref}}",
-                  "commitsAhead_other": "{{count}} commits por delante de {{ref}}"
-                }
               }
             }
           },
@@ -13295,20 +13321,32 @@
             "unresolved": "No se pudo determinar qué host posee este espacio de trabajo. Comprueba la conexión e inténtalo de nuevo."
           },
           "useFileDeletion": {
-            "72691dfebc": "No se pudo {{value0}} '{{value1}}'.",
             "d979a4fbb5": "¿Eliminar '{{value0}}' permanentemente?",
             "92276aceb7": "Eliminar",
             "7fb9435c86": "Esto elimina permanentemente el directorio y su contenido en el host remoto. Esto no se puede deshacer.",
             "23e98f192f": "Esto elimina permanentemente el archivo en el host remoto. Esto no se puede deshacer.",
             "8b8ee9d22f": "No se pudo determinar qué host posee este archivo. Comprueba la conexión del espacio de trabajo e inténtalo de nuevo.",
-            "af1270b90d": "¿Eliminar {{count}} elementos permanentemente?",
             "dd029aa5cd": "Esto elimina permanentemente los elementos seleccionados y el contenido de cualquier directorio en el host remoto. Esto no se puede deshacer.",
-            "77fdc36183": "Delete {{count}} items?",
-            "fca915a67a": "Los elementos remotos se eliminan permanentemente y esta acción no se puede deshacer. Los elementos locales se mueven a {{value0}}."
+            "deleteFailed": "No se pudo eliminar '{{name}}'.",
+            "deleteItems_one": "¿Eliminar {{count}} elemento?",
+            "deleteItems_other": "¿Eliminar {{count}} elementos?",
+            "mixedRecycleBin": "Los elementos remotos se eliminan permanentemente y esta acción no se puede deshacer. Los elementos locales se mueven a la Papelera de reciclaje.",
+            "mixedTrash": "Los elementos remotos se eliminan permanentemente y esta acción no se puede deshacer. Los elementos locales se mueven a la Papelera.",
+            "permanentlyDeleteItems_one": "¿Eliminar {{count}} elemento permanentemente?",
+            "permanentlyDeleteItems_other": "¿Eliminar {{count}} elementos permanentemente?",
+            "recycleBinFailed": "No se pudo mover '{{name}}' a la Papelera de reciclaje.",
+            "trashFailed": "No se pudo mover '{{name}}' a la Papelera."
           },
           "useFileExplorerHandlers": {
             "32cd9fd991": "No se puede abrir el destino del enlace simbólico",
             "folderLinksOutsideProject": "Esta carpeta enlaza fuera del proyecto, así que no se puede abrir aquí."
+          },
+          "useFileExplorerImport": {
+            "importFailedCount_one": "No se pudo importar {{count}} archivo.",
+            "importFailedCount_other": "No se pudieron importar {{count}} archivos.",
+            "importSkippedCount_one": "Se omitió {{count}} archivo.",
+            "importSkippedCount_other": "Se omitieron {{count}} archivos.",
+            "importFailed": "No se pudieron importar los archivos."
           },
           "useFileExplorerKeys": {
             "8adb953095": "Operación fallida"
@@ -13663,19 +13701,6 @@
                 }
               }
             }
-          },
-          "BulkActionBar": {
-            "selectedCount_one": "{{count}} seleccionado",
-            "selectedCount_other": "{{count}} seleccionados",
-            "stageCount": "Agregar al stage ({{count}})",
-            "unstageCount": "Quitar del stage ({{count}})"
-          },
-          "useFileExplorerImport": {
-            "importFailedCount_one": "No se pudo importar {{count}} archivo.",
-            "importFailedCount_other": "No se pudieron importar {{count}} archivos.",
-            "importSkippedCount_one": "Se omitió {{count}} archivo.",
-            "importSkippedCount_other": "Se omitieron {{count}} archivos.",
-            "importFailed": "No se pudieron importar los archivos."
           },
           "fileExplorerMultiDrag": {
             "moreItems_one": "+{{count}} más",
@@ -14285,13 +14310,13 @@
             "9ee54037a4": "Comando personalizado",
             "4b2fc4b80c": "Esfuerzo de razonamiento",
             "be8917699e": "Modelo",
-            "4d9b6d84df": "no compatible. Elige Claude, Codex o Personalizado.",
             "560d4feb00": "Personalizado",
             "29d119fe95": "Agente",
             "f9382b48a1": "Habilitar autor de IA",
             "1c0cb4fabb": "Autor de IA",
             "bd14e9c42a": "No configurado",
-            "1f9468c5c9": "{{value0}} no compatible"
+            "1f9468c5c9": "{{value0}} no compatible",
+            "unsupportedAgent": "{{agent}} no es compatible. Elige Claude, Codex o Personalizado."
           },
           "BrowserAnimatedVisual": {
             "46df009982": "Comienza tu prueba gratuita",
@@ -14832,17 +14857,14 @@
         "ConflictComponents": {
           "f338288514": "Cargando contenido del conflicto…",
           "90d576adb2": "Actualizar",
-          "a1ce36f77d": "Instantánea capturada a las ",
           "c8ca989aea": "Mostrar árbol de archivos",
           "58ad5ad431": "Descartar",
           "28e7db4a90": "Control de código fuente",
           "31931dec46": "Esta instantánea de revisión ya no tiene conflictos activos sin resolver.",
           "992145ff5a": "Todos los conflictos resueltos",
-          "d5edd81755": "Renombrado desde ",
           "6e459867ad": "Estado de continuidad local de la sesión. Git ya no informa que este archivo está sin merge.",
           "9c2901ef8a": "Siguiente conflicto",
           "41d9af2e7a": "Conflicto anterior",
-          "55d61a0ccd": "conflicto ·",
           "da539359b6": "No hay ningún archivo del worktree disponible para editar este conflicto.",
           "unresolvedConflicts_one": "{{count}} conflicto no resuelto",
           "unresolvedConflicts_other": "{{count}} conflictos no resueltos"
@@ -17141,12 +17163,10 @@
         "untitled": "Chat sin título",
         "listLabel": "Chats que se reanudarían",
         "dontAskAgain": "No volver a preguntar (reanudar automáticamente)",
-        "dontAskAgainHint": "Puedes desactivarlo en Ajustes → Experimental → Interfaz de chat.",
+        "dontAskAgainHint": "Puedes desactivarlo en Ajustes → Chat → Comportamiento.",
         "continuedOne": "Se reanudó 1 chat",
         "continuedMany": "Se reanudaron {{value0}} chats",
         "selectAgent": "Reanudar {{value0}} chat \"{{value1}}\" en {{value2}}",
-        "resumeSelected": "Reanudar {{value0}} chats",
-        "resumeSelectedOne": "Reanudar 1 chat",
         "dismissAll": "Descartar todo",
         "selectWorkspace": "Seleccionar todos los chats en {{value0}}",
         "workspaceSelectedCount": "{{value0}} de {{value1}}",
@@ -17165,7 +17185,9 @@
         "serverDismiss": "Descartar",
         "serverResumeAll": "Reanudar los {{count}} en {{machine}}",
         "serverResumeHereOne": "Reanudar 1 chat iniciado aquí",
-        "serverResumeHere": "Reanudar {{count}} chats iniciados aquí"
+        "serverResumeHere": "Reanudar {{count}} chats iniciados aquí",
+        "resumeChats_one": "Reanudar {{count}} chat",
+        "resumeChats_other": "Reanudar {{count}} chats"
       },
       "NativeChatResumeOutcomeRow": {
         "openChat": "Abrir chat",
@@ -17697,7 +17719,8 @@
         "compactAfterRetry": "Reintente su mensaje anterior y luego ejecute /compact.",
         "clearAfterSending": "Su mensaje anterior todavía se está enviando. Ejecute /clear cuando se haya enviado.",
         "compactAfterSending": "Su mensaje anterior todavía se está enviando. Ejecute /compact cuando se haya enviado.",
-        "pendingWork": "Espera a que terminen el trabajo y los mensajes pendientes antes de usar este comando."
+        "pendingWork": "Espera a que terminen el trabajo y los mensajes pendientes antes de usar este comando.",
+        "notDoneGoalChangeIncomplete": "No se pudo terminar de cambiar el objetivo. Revisa el chat."
       },
       "composer": {
         "imageUnavailable": "Vista previa no disponible",
@@ -18366,6 +18389,15 @@
         "settings": "Abrir la configuración en la terminal",
         "extensions": "Abrir el panel de extensiones en la terminal",
         "hotkeys": "Mostrar los atajos de teclado en la terminal"
+      },
+      "modelDescriptions": {
+        "grok_4_7": "El modelo de vanguardia más reciente de xAI",
+        "grok_4_6": "El modelo de vanguardia anterior de xAI",
+        "grok_4_5": "Un modelo de vanguardia anterior de xAI",
+        "fable": "El más capaz para las tareas más difíciles y largas",
+        "opus": "Ideal para tareas cotidianas y complejas",
+        "sonnet": "Eficiente para tareas rutinarias",
+        "haiku": "El más rápido para respuestas breves"
       }
     },
     "tab": {
@@ -19155,6 +19187,15 @@
       "empty": "No hay extensiones activadas para este perfil",
       "visitWebStore": "Visitar Chrome Web Store",
       "manage": "Administrar extensiones"
+    },
+    "viewport": {
+      "mobile-s": "Móvil S — 320 × 568",
+      "mobile-m": "Móvil M — 375 × 667",
+      "mobile-l": "Móvil L — 425 × 812",
+      "tablet": "Tableta — 768 × 1024",
+      "laptop": "Portátil — 1024 × 768",
+      "laptop-l": "Portátil L — 1440 × 900",
+      "desktop": "Escritorio — 1920 × 1080"
     }
   },
   "runtimeRpc": {
@@ -19746,7 +19787,9 @@
       "confirmTitle": "¿Reiniciar el daemon de terminal?",
       "confirmBody": "Reiniciar termina todos los procesos que se ejecutan en {{sessions}}. Los agentes que admiten reanudación pueden reanudarse después; los shells y otros trabajos no, y deben iniciarse de nuevo. Hazlo cuando tus agentes estén inactivos.",
       "cancel": "Cancelar",
-      "confirm": "Reiniciar y terminar procesos"
+      "confirm": "Reiniciar y terminar procesos",
+      "count_other": "{{count}} terminales en ejecución",
+      "count_one": "{{count}} terminal en ejecución"
     },
     "restartedInputNotSent": "El terminal se reinició mientras escribías, así que parte de la entrada puede no haberle llegado. Revisa el nuevo shell antes de volver a escribirla.",
     "stalledDaemonBanner": {
@@ -19762,7 +19805,9 @@
   },
   "quickOpen": {
     "moreMatchesAvailable": "Puede haber más coincidencias disponibles. Refina tu búsqueda para acotar los resultados.",
-    "recentValidationFailed": "No se pudieron comprobar los archivos recientes: {{error}}"
+    "recentValidationFailed": "No se pudieron comprobar los archivos recientes: {{error}}",
+    "installRipgrepOnRemote": "Instala <code>ripgrep</code> en el host remoto para listar archivos rápidamente respetando .gitignore:",
+    "scanTooLarge": "El escaneo de Apertura rápida es demasiado amplio ({{reason}})."
   },
   "checksPanel": {
     "unlinked": {
@@ -19775,11 +19820,20 @@
     "actionSaveFailed": "No se pudo guardar esta acción. Intenta guardarla de nuevo en Ajustes.",
     "discard": {
       "deleteUntrackedFileDescription": "Esto eliminará permanentemente este archivo sin seguimiento. No se puede deshacer.",
-      "deleteUntrackedFilesDescription": "Esto eliminará permanentemente estos {{count}} archivos sin seguimiento. No se puede deshacer.",
+      "deleteUntrackedFilesDescription_other": "Esto eliminará permanentemente estos {{count}} archivos sin seguimiento. No se puede deshacer.",
       "restoreStagedVersionDescription": "Esto restaurará la última versión preparada y descartará la eliminación. No se puede deshacer.",
       "unstagedChangesDescription": "Esto revertirá los cambios no preparados de este archivo. No se puede deshacer.",
       "unstagedSelectionIncludingUntrackedDescription": "Esto revertirá los cambios no preparados y eliminará permanentemente cualquier archivo sin seguimiento de esta selección. No se puede deshacer.",
-      "unstagedFilesIncludingUntrackedDescription": "Esto revertirá los cambios no preparados y eliminará permanentemente cualquier archivo sin seguimiento entre estos {{count}} archivos. No se puede deshacer."
+      "unstagedFilesIncludingUntrackedDescription_other": "Esto revertirá los cambios no preparados y eliminará permanentemente cualquier archivo sin seguimiento entre estos {{count}} archivos. No se puede deshacer.",
+      "delete": "Eliminar",
+      "restore": "Restaurar",
+      "discard": "Descartar",
+      "discardAll": "Descartar todo",
+      "deleteUntrackedTitle_one": "¿Eliminar {{count}} archivo sin seguimiento?",
+      "deleteUntrackedTitle_other": "¿Eliminar {{count}} archivos sin seguimiento?",
+      "deleteCount": "Eliminar {{count}}",
+      "deleteUntrackedFilesDescription_one": "Esto eliminará permanentemente {{count}} archivo sin seguimiento. No se puede deshacer.",
+      "unstagedFilesIncludingUntrackedDescription_one": "Esto revertirá los cambios no preparados de {{count}} archivo y lo eliminará permanentemente si no tiene seguimiento. No se puede deshacer."
     },
     "unlinkedPr": {
       "status": "PR #{{number}} desvinculada"
@@ -19813,6 +19867,34 @@
       "creationUnconfirmed": "Puede que la creación de {{shortLabel}} se haya completado. Actualizando el estado de revisión de la rama...",
       "withDetail": "No se pudo crear {{shortLabel}}: {{detail}}",
       "pushFailed": "El push falló. Resuelve el error de push y vuelve a intentarlo."
+    },
+    "model": {
+      "auto": "Automático",
+      "configDefault": "Predeterminado de la configuración"
+    },
+    "thinking": {
+      "off": "Desactivado",
+      "minimal": "Mínimo",
+      "low": "Bajo",
+      "medium": "Medio",
+      "high": "Alto",
+      "max": "Máximo",
+      "xhigh": "Muy alto"
+    },
+    "variables": {
+      "basePrompt": "El prompt integrado de Orca para esta acción, incluido el contexto que Orca puede recopilar de forma segura.",
+      "branch": "El nombre de la rama actual del control de versiones.",
+      "stagedFiles": "Una lista de archivos en staging, separados por saltos de línea, para generar el mensaje de commit.",
+      "stagedPatch": "El parche de Git en staging usado para generar el mensaje de commit.",
+      "baseBranch": "La rama de destino seleccionada al crear el PR.",
+      "currentTitle": "El título del PR introducido en el editor antes de iniciar la generación.",
+      "currentBody": "La descripción del PR introducida en el editor antes de iniciar la generación.",
+      "commitSummary": "Una lista de commits de la rama respecto a la base, separados por saltos de línea.",
+      "changedFiles": "Un resumen de los archivos modificados entre la rama y su base.",
+      "patch": "El diff de la rama respecto a su base usado para generar los detalles del PR.",
+      "firstPrompt": "La primera solicitud del usuario en este espacio de trabajo o chat.",
+      "assistantMessage": "La respuesta inicial del agente, cuando Orca dispone de ella.",
+      "linkedIssue": "El número del issue de GitHub vinculado a este espacio de trabajo. Vacío si no hay un issue de GitHub vinculado (también en espacios vinculados a GitLab). Usa plantillas con instrucciones: \"Fixes #{linkedIssue}\" por sí solo se convierte en \"Fixes #\" si no hay vínculo."
     }
   },
   "aiVault": {
@@ -19989,7 +20071,11 @@
     "picker": {
       "pasteUnparseable": "Se esperaba una URL de proyecto o owner/number",
       "ownerLoadFailed": "No se pudieron cargar los proyectos de {{owner}}.",
-      "organizationsLoadFailed": "Algunas organizaciones no se cargaron ({{failureCount}})."
+      "organizationsLoadFailed": "Algunas organizaciones no se cargaron ({{failureCount}}).",
+      "organizations": "Organizaciones",
+      "listFailed": "No se pudieron listar los proyectos",
+      "detailsFailed": "No se pudieron cargar los detalles",
+      "viewFailed": "No se pudo obtener la vista del proyecto"
     },
     "error": {
       "notFoundState": "No se pudo encontrar este proyecto o vista.",
@@ -20025,6 +20111,9 @@
       "schemaDriftDetail": "No se pudo leer esta vista del proyecto: {{detail}}.",
       "tooLargeCount_one": "Esta vista tiene {{count}} elemento — es demasiado grande para mostrarla en Orca. Restringe el filtro de la vista en GitHub.",
       "tooLargeCount_other": "Esta vista tiene {{count}} elementos — es demasiado grande para mostrarla en Orca. Restringe el filtro de la vista en GitHub."
+    },
+    "columns": {
+      "type": "Tipo"
     }
   },
   "projectField": {
@@ -20111,6 +20200,27 @@
     "attachments": {
       "updateRuntime": "Actualiza el tiempo de ejecución remoto para cambiar los enlaces del espacio de trabajo",
       "updateRuntimeSafely": "Actualiza el tiempo de ejecución remoto para cambiar de forma segura los enlaces del espacio de trabajo"
+    },
+    "activity": {
+      "active": "Activo",
+      "working": "Trabajando",
+      "monitoring": "Supervisando tareas en segundo plano",
+      "failed": "Fallido",
+      "interrupted": "Interrumpido",
+      "unconfirmed": "No se pudo confirmar",
+      "done": "Listo",
+      "inactive": "Inactivo",
+      "permission": "Necesita permiso",
+      "unreadLabel": "{{status}} · Sin leer"
+    },
+    "reviewStatus": {
+      "checksFailed": "Checks de {{review}}: Fallidos",
+      "checksPassing": "Checks de {{review}}: Correctos",
+      "checksPending": "Checks de {{review}}: Pendientes",
+      "closed": "{{review}}: Cerrada",
+      "draft": "{{review}}: Borrador",
+      "merged": "{{review}}: Fusionada",
+      "open": "{{review}}: Abierta"
     }
   },
   "tabHoverCard": {
@@ -20160,7 +20270,9 @@
       "preparingAriaLabel": "Preparando actualización. Haz clic para expandir.",
       "browserSummary": "El navegador de un servidor Orca en segundo plano todavía usa esta aplicación.",
       "browserGuidance": "Finaliza el proceso que aparece abajo y vuelve a intentarlo: su servidor seguirá funcionando sin navegador. Si otro equipo usa este Mac como host SSH, actualiza Orca en ese equipo para que el navegador pueda pausarse automáticamente durante las actualizaciones."
-    }
+    },
+    "wslMoveInstallHeld": "Un proyecto se está moviendo a su host WSL. Instala la actualización cuando termine el movimiento.",
+    "wslMoveUndoInstallHeld": "Un proyecto está volviendo desde su host WSL. Instala la actualización cuando termine."
   },
   "jira": {
     "savedFilters": {
@@ -20607,6 +20719,186 @@
   "nativeChat": {
     "math": {
       "scrollDisplayEquation": "Desplazar ecuación en bloque"
+    }
+  },
+  "runtime": {
+    "health": {
+      "available": "Conectado",
+      "connecting": "Conectando",
+      "disconnected": "Desconectado",
+      "error": "Requiere atención",
+      "mixed": "Mixto",
+      "local": "Local",
+      "repair": "Requiere volver a emparejar",
+      "update": "Requiere actualización"
+    },
+    "compat": {
+      "compatible": "El cliente y el servidor del entorno de ejecución son compatibles.",
+      "clientTooOld": "Este cliente de Orca es demasiado antiguo para el servidor seleccionado. Actualiza Orca en este equipo. Protocolo del cliente: {{clientProtocol}}; el servidor requiere el protocolo de cliente {{requiredProtocol}}.",
+      "serverTooOld": "El servidor de Orca seleccionado es demasiado antiguo para este cliente. Actualiza Orca en el servidor. Protocolo del servidor: {{serverProtocol}}; el cliente requiere el protocolo de servidor {{requiredProtocol}}."
+    }
+  },
+  "native": {
+    "about": {
+      "gpu": {
+        "unknownStatus": "Estado no disponible",
+        "enabled": "Activado",
+        "disabled": "Desactivado",
+        "unavailable": "No disponible",
+        "safeMode": "Desactivada (modo gráfico seguro)",
+        "software": "Renderizado por software",
+        "unknown": "Desconocido ({{status}})",
+        "summary": "Aceleración GPU: {{status}}"
+      }
+    },
+    "dialog": {
+      "importCookies": "Importar cookies",
+      "spaceTitle": "Espacio de Orca (beta)",
+      "dashboardTitle": "Panel de agentes de Orca",
+      "cookieFiles": "Archivos de cookies",
+      "allFiles": "Todos los archivos",
+      "importPetBundle": "Seleccionar un paquete .codex-pet",
+      "pickPet": "Seleccionar mascota",
+      "petImage": "Imagen de mascota",
+      "importWarpTheme": "Importar tema de Warp",
+      "warpThemeYaml": "YAML de tema de Warp",
+      "importWarpFolder": "Importar carpeta de temas de Warp",
+      "images": "Imágenes",
+      "repoIconImages": "Imágenes de icono del repositorio",
+      "audio": "Audio"
+    }
+  },
+  "taskProviders": {
+    "linear": {
+      "updateAccess": "Actualizar acceso",
+      "addAccess": "Agregar acceso Linear",
+      "fetchMore": "Cargar más",
+      "connectionFailed": "La conexión falló",
+      "listLabel": "Lista de Linear",
+      "projectsLoadFailed": "No se pudieron cargar los proyectos.",
+      "projectNotFound": "No se encontró el proyecto.",
+      "projectLoadFailed": "No se pudo cargar el proyecto.",
+      "projectIssuesLoadFailed": "No se pudieron cargar los issues del proyecto.",
+      "viewsLoadFailed": "No se pudieron cargar las vistas.",
+      "viewContentsLoadFailed": "No se pudo cargar el contenido de la vista.",
+      "issuesLoadFailed": "No se pudieron cargar los issues de Linear.",
+      "apiKeyHint": "Pega una clave API personal del espacio de trabajo de Linear que quieras usar en Orca. Si ya está conectado, Orca sustituirá la clave guardada.",
+      "remoteKeyStorage": "Esta clave se guarda en el entorno de ejecución remoto activo.",
+      "localKeyStorage": "Las claves del entorno de ejecución local se guardan en este dispositivo con el almacenamiento cifrado de Electron cuando está disponible.",
+      "commentsLoadFailed": "No se pudieron cargar los comentarios.",
+      "updateWorkspaceAccess": "Actualizar el acceso a Linear para {{workspace}}",
+      "workspaceApiKeyHint": "Pega una clave API personal de {{workspace}}. Si ya está conectado, Orca sustituirá la clave guardada.",
+      "connect": "Conectar",
+      "descriptionUpdateFailed": "No se pudo actualizar la descripción",
+      "titleUpdateFailed": "No se pudo actualizar el título",
+      "truncated": {
+        "issues_one": "Se muestra {{count}} issue, el primero de la lista. Busca o abre Linear para ver la lista completa.",
+        "issues_other": "Se muestran los primeros {{count}} issues. Busca o abre Linear para ver la lista completa.",
+        "projectIssues_one": "Se muestra {{count}} issue del proyecto, el primero de la lista. Busca o abre Linear para ver la lista completa.",
+        "projectIssues_other": "Se muestran los primeros {{count}} issues del proyecto. Busca o abre Linear para ver la lista completa.",
+        "projects_one": "Se muestra {{count}} proyecto, el primero de la lista. Busca o abre Linear para ver la lista completa.",
+        "projects_other": "Se muestran los primeros {{count}} proyectos. Busca o abre Linear para ver la lista completa.",
+        "viewIssues_one": "Se muestra {{count}} issue de la vista, el primero de la lista. Busca o abre Linear para ver la lista completa.",
+        "viewIssues_other": "Se muestran los primeros {{count}} issues de la vista. Busca o abre Linear para ver la lista completa.",
+        "views_one": "Se muestra {{count}} vista, la primera de la lista. Busca o abre Linear para ver la lista completa.",
+        "views_other": "Se muestran las primeras {{count}} vistas. Busca o abre Linear para ver la lista completa."
+      }
+    },
+    "jira": {
+      "connectionFailed": "La conexión falló",
+      "remoteTokenStorage": "Tu token se envía al entorno de ejecución remoto seleccionado y se almacena allí con el cifrado que admita.",
+      "localTokenStorage": "Tu token se almacena localmente y se cifra si el almacenamiento del entorno de ejecución local lo admite."
+    },
+    "errors": {
+      "jira": {
+        "createFailed": "No se pudo crear el issue.",
+        "commentFailed": "No se pudo agregar el comentario.",
+        "notConnected": "Sin conexión a Jira.",
+        "titleRequired": "El título es obligatorio.",
+        "labelsConflict": "Proporciona labels o labelOperations, pero no ambos.",
+        "updateFailed": "No se pudo actualizar el issue.",
+        "credentialsRequired": "La URL del sitio, el correo y el token de API son obligatorios.",
+        "projectRequired": "El proyecto es obligatorio.",
+        "issueTypeRequired": "El tipo de issue es obligatorio.",
+        "issueKeyRequired": "La clave del issue es obligatoria.",
+        "updatesRequired": "El objeto de actualización es obligatorio.",
+        "commentBodyRequired": "El contenido del comentario es obligatorio.",
+        "invalidSiteUrl": "Introduce una URL válida del sitio de Jira.",
+        "passwordRequired": "La contraseña es obligatoria.",
+        "personalTokenRequired": "El token de acceso personal es obligatorio.",
+        "apiTokenRequired": "El token de API es obligatorio.",
+        "connectionFailed": "Error de conexión.",
+        "invalidSiteIdentity": "Introduce una URL de Jira HTTP o HTTPS sin credenciales.",
+        "missingProjectIdentity": "Jira devolvió un proyecto sin ID o clave.",
+        "invalidIssuePage": "Jira devolvió una página de issues no válida.",
+        "incompleteIssuePage": "Jira devolvió una página de issues incompleta.",
+        "repeatedIssueToken": "Jira devolvió un token de página de issues no válido o repetido.",
+        "issueSearchLimit": "La búsqueda de issues de Jira superó el límite de páginas. Selecciona un proyecto mediante JQL.",
+        "invalidProjectPage": "Jira devolvió una página de proyectos no válida.",
+        "incompleteProjectPage": "Jira devolvió una página de proyectos incompleta.",
+        "projectListLimit": "La lista de proyectos de Jira superó el límite de páginas. Selecciona un proyecto mediante JQL.",
+        "invalidCloudId": "El sitio no proporcionó un ID válido de Atlassian Cloud."
+      },
+      "linear": {
+        "notConnected": "Sin conexión a Linear",
+        "createFailed": "Error al crear en Linear",
+        "createdButUnavailable": "El issue se creó, pero no se pudo recuperar",
+        "updateFailed": "Error al actualizar en Linear",
+        "commentFailed": "No se pudo crear el comentario",
+        "projectCreateFailed": "Error al crear el proyecto de Linear",
+        "noApiKey": "No hay ninguna clave API guardada.",
+        "workspaceAuthExpired": "La autenticación de Linear ha caducado para este espacio de trabajo.",
+        "projectNameRequired": "El nombre del proyecto es obligatorio",
+        "projectIdRequired": "El ID del proyecto es obligatorio",
+        "projectNotFound": "No se encontró el proyecto",
+        "viewIdRequired": "El ID de la vista personalizada es obligatorio",
+        "viewHasNoIssues": "La vista personalizada no contiene issues",
+        "viewHasNoProjects": "La vista personalizada no contiene proyectos"
+      }
+    }
+  },
+  "workspaceOptions": {
+    "activeFilterCount_one": "{{count}} filtro",
+    "activeFilterCount_other": "{{count}} filtros"
+  },
+  "editorConflicts": {
+    "kind": {
+      "addedByUs": "Añadido por nosotros",
+      "bothAdded": "Añadido por ambos",
+      "deletedByUs": "Eliminado por nosotros",
+      "addedByThem": "Añadido por ellos",
+      "bothDeleted": "Eliminado por ambos",
+      "bothModified": "Modificado por ambos",
+      "deletedByThem": "Eliminado por ellos"
+    },
+    "resolvedBanner": "Conflicto resuelto localmente · {{kind}}",
+    "hint": {
+      "addedByUs": "Evalúa si conservar el archivo añadido",
+      "bothModified": "Resuelve los conflictos señalados por los marcadores",
+      "addedByThem": "Revisa el archivo añadido antes de conservarlo",
+      "bothDeleted": "Resuelve el conflicto en Git o restaura una de las versiones antes de editar",
+      "deletedByThem": "Decide si conservar el archivo o aceptar su eliminación",
+      "deletedByUs": "Decide si restaurar el archivo",
+      "bothAdded": "Elige qué versión conservar o combínalas"
+    },
+    "renamedFrom": "Nombre anterior: {{path}}",
+    "snapshotCapturedAt": "Instantánea capturada a las {{time}}.",
+    "unresolvedBanner": "Conflicto sin resolver · {{kind}}"
+  },
+  "stats": {
+    "usageBreakdown": {
+      "turns_one": "{{count}} turno",
+      "events_one": "{{count}} evento",
+      "sessions_one": "{{count}} sesión",
+      "events_other": "{{count}} eventos",
+      "sessions_other": "{{count}} sesiones",
+      "turns_other": "{{count}} turnos"
+    }
+  },
+  "github": {
+    "viewed": {
+      "markFile": "Marcar {{path}} como visto",
+      "unmarkFile": "Desmarcar {{path}} como visto"
     }
   }
 }
