@@ -1,7 +1,8 @@
 import { Animated, View } from 'react-native'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { assert, expect, it, vi } from 'vitest'
-import { MobileSessionTitleBlock } from './MobileSessionTitleBlock'
+import { MobileSessionHeader } from './MobileSessionHeader'
+import type { MobileSessionController } from './use-mobile-session-controller'
 import { useSessionTitleCard } from './use-session-title-card'
 import { AnchoredDetailCard } from '../components/AnchoredDetailCard'
 
@@ -12,8 +13,7 @@ const overlay = vi.hoisted(
     back: (() => boolean) | null
     motions: Array<() => () => void>
     measure: (() => void) | null
-    claims: number
-  } => ({ width: 667, height: 375, back: null, motions: [], measure: null, claims: 0 })
+  } => ({ width: 667, height: 375, back: null, motions: [], measure: null })
 )
 vi.mock('../layout/side-safe-area', () => ({
   useWindowSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
@@ -38,7 +38,6 @@ vi.mock('react-native', () => {
     BackHandler: {
       addEventListener: (_event: string, claim: () => boolean) => {
         overlay.back = claim
-        overlay.claims += 1
         return {
           remove: () => {
             overlay.back = null
@@ -75,27 +74,29 @@ vi.mock('react-native', () => {
   }
 })
 vi.mock('../platform/use-reduced-motion', () => ({ useReducedMotionEnabled: () => false }))
+vi.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }))
+vi.mock('lucide-react-native', () => ({ ChevronLeft: 'Icon' }))
+vi.mock('../layout/host-sidebar-reveal', () => ({ useHostSidebarReveal: () => null }))
+vi.mock('./MobileSessionTabStrip', () => ({ MobileSessionTabStrip: () => null }))
+const leave = vi.fn()
+// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This header fixture supplies every rendered field; no tabs or panel actions are exercised.
+const header = {
+  worktreeName: 'workspace',
+  connState: 'connected',
+  visibleTabs: [],
+  requestLeaveSession: leave,
+  isFloatingWorkspaceRoute: true,
+  terminalSummary: ''
+} as MobileSessionController
 
 function Fixture() {
   const details = useSessionTitleCard(true, false)
   return (
-    <View ref={details.barRef}>
-      <MobileSessionTitleBlock
-        title="workspace"
-        connState="connected"
-        details={details}
-        meta=""
-        showConnectionRetry={false}
-        onRetry={() => {}}
-      />
+    <View>
+      <MobileSessionHeader controller={header} details={details} />
       <View ref={details.layerRef} testID="layer" onLayout={details.onLayout}>
         {details.visual ? (
-          <AnchoredDetailCard
-            {...details}
-            {...details.visual}
-            onDismiss={details.dismiss}
-            title="workspace"
-          />
+          <AnchoredDetailCard {...details} {...details.visual} obscured={false} title="workspace" />
         ) : null}
       </View>
     </View>
@@ -103,7 +104,6 @@ function Fixture() {
 }
 
 it('preserves title identity and current request across queued results and Back', () => {
-  let titleWidth = 40
   const mounted: { renderer?: ReactTestRenderer } = {}
   act(() => {
     mounted.renderer = create(<Fixture />, {
@@ -112,7 +112,7 @@ it('preserves title identity and current request across queued results and Back'
           if (node.props !== null && typeof node.props === 'object' && 'testID' in node.props) {
             overlay.measure = () => done(20, 10, 627, 365)
           } else {
-            done(80, 20, titleWidth, 45)
+            done(80, 20, 40, 45)
           }
         }
       })
@@ -121,18 +121,18 @@ it('preserves title identity and current request across queued results and Back'
   const renderer = mounted.renderer
   assert(renderer)
   const root = renderer.root
-  const opener = root.findByProps({ accessibilityRole: 'button' })
+  const opener = root.findByProps({ 'aria-expanded': false })
   const title = opener.findByProps({ children: 'workspace' })
-  expect(title.props.onPress).toBe(opener.props.onPress)
   const card = () => root.findByType(AnchoredDetailCard)
   const tap = () => act(() => title.props.onPress())
   const measure = () => act(() => overlay.measure?.())
-  const close = () => act(() => root.findAllByProps({ accessible: false })[0]?.props.onPress())
+  const back = root.findByProps({ hitSlop: 4 })
+  const close = () => act(() => back.props.onPress())
   const finish = () => act(() => overlay.motions.at(-1)?.()())
   const check = (expanded: boolean, present: boolean) => {
     expect(opener.props['aria-expanded']).toBe(expanded)
     expect(root.findAllByType(AnchoredDetailCard)).toHaveLength(Number(present))
-    expect(overlay.back !== null).toBe(present)
+    expect(overlay.back !== null).toBe(expanded)
   }
   const layout = (width: number, height: number) =>
     root
@@ -148,7 +148,7 @@ it('preserves title identity and current request across queued results and Back'
   tap()
   check(true, false)
   const dismissed = overlay.measure
-  act(() => opener.props.onLayout())
+  close()
   act(() => dismissed?.())
   check(false, false)
   tap()
@@ -176,7 +176,7 @@ it('preserves title identity and current request across queued results and Back'
   const motions = overlay.motions.length
   close()
   expect(overlay.motions).toHaveLength(motions)
-  expect(overlay.claims).toBe(1)
+  expect(leave).toHaveBeenCalledTimes(1)
   tap()
   finish()
   check(true, false)
@@ -190,18 +190,17 @@ it('preserves title identity and current request across queued results and Back'
   overlay.height = 300
   act(() => layout(627, 290))
   expect(root.findByType(Animated.View).props.style[1].maxHeight).toBe(227)
-  titleWidth = 160
   act(() => opener.props.onLayout())
-  expect(root.findAllByProps({ accessible: false })[3]?.props.style.left).toBe(220)
+  check(false, true)
   tap()
   measure()
   finish()
   overlay.width = 375
-  act(() => renderer.update(<Fixture />))
   act(() => expect(overlay.back?.()).toBe(true))
+  act(() => renderer.update(<Fixture />))
   finish()
   check(false, false)
-  expect(root.findByProps({ accessibilityRole: 'button' })).toBe(opener)
+  expect(root.findByProps({ 'aria-expanded': false })).toBe(opener)
   expect(opener.findByProps({ children: 'workspace' })).toBe(title)
   act(() => renderer.unmount())
 })

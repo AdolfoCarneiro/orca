@@ -1,26 +1,19 @@
 import { useCallback, useLayoutEffect, useReducer, useRef, useState } from 'react'
 import type { ComponentRef } from 'react'
-import {
-  type Text,
-  useWindowDimensions,
-  type LayoutChangeEvent,
-  type LayoutRectangle,
-  type View
-} from 'react-native'
+import { type Text, useWindowDimensions, type LayoutChangeEvent, type View } from 'react-native'
 import type { DetailCardAnchor } from '../components/AnchoredDetailCard'
+import { useBackClaim } from '../navigation/use-back-claim'
 import { useWindowSafeAreaInsets } from '../layout/side-safe-area'
 
 type State = {
   serial: number
   request: number | null
   visual: { anchor: DetailCardAnchor; target: 0 | 1; motion: number } | null
-  titleBounds: LayoutRectangle
 }
 type Action =
   | { type: 'toggle'; eligible: boolean }
   | { type: 'close'; request?: number }
   | { type: 'measured'; request: number; anchor: DetailCardAnchor }
-  | { type: 'hole'; bounds: LayoutRectangle }
   | { type: 'settled'; motion: number }
 
 function reduce(state: State, action: Action): State {
@@ -51,16 +44,9 @@ function reduce(state: State, action: Action): State {
       return {
         serial: serial + 1,
         request: null,
-        visual: { anchor, target: 1, motion: serial + 1 },
-        titleBounds: {
-          ...anchor.trigger,
-          x: anchor.trigger.x + anchor.origin.x,
-          y: anchor.trigger.y + anchor.origin.y
-        }
+        visual: { anchor, target: 1, motion: serial + 1 }
       }
     }
-    case 'hole':
-      return { ...state, titleBounds: action.bounds }
     case 'settled':
       return visual?.target === 0 && visual.motion === action.motion
         ? { ...state, visual: null }
@@ -74,11 +60,12 @@ export function useSessionTitleCard(besideTabs: boolean, obscured: boolean) {
   const titleRef = useRef<ComponentRef<typeof Text>>(null)
   const openerRef = useRef<View>(null)
   const contentRef = useRef<View>(null)
+  const backRef = useRef<View>(null)
+  const boundaryRefs = useRef<unknown[]>([])
   const [state, dispatch] = useReducer(reduce, {
     serial: 0,
     request: null,
-    visual: null,
-    titleBounds: { x: 0, y: 0, width: 0, height: 0 }
+    visual: null
   })
   const [size, setSize] = useState({ width: 0, height: 0 })
   const window = useWindowDimensions()
@@ -90,13 +77,8 @@ export function useSessionTitleCard(besideTabs: boolean, obscured: boolean) {
   const onSettled = useCallback((motion: number) => dispatch({ type: 'settled', motion }), [])
   const toggle = useCallback(() => dispatch({ type: 'toggle', eligible: !obscured }), [obscured])
   const onAnchorLayout = useCallback(() => {
-    const current = ++generation.current
+    generation.current += 1
     dismiss()
-    titleRef.current?.measureInWindow((x, y, width, height) => {
-      if (current === generation.current) {
-        dispatch({ type: 'hole', bounds: { x, y, width, height } })
-      }
-    })
   }, [dismiss])
   useLayoutEffect(() => {
     dismiss()
@@ -142,7 +124,16 @@ export function useSessionTitleCard(besideTabs: boolean, obscured: boolean) {
   const onLayout = useCallback((event: LayoutChangeEvent) => {
     setSize(event.nativeEvent.layout)
   }, [])
-  const { visual, titleBounds } = state
+  const { visual } = state
+  const requestedOpen = request !== null || visual?.target === 1
+  const closeFirst = () => {
+    if (!requestedOpen || obscured) {
+      return false
+    }
+    dismiss()
+    return true
+  }
+  useBackClaim(requestedOpen && !obscured ? closeFirst : null)
   const origin = visual?.anchor.origin ?? { x: 0, y: 0 }
   return {
     layerRef,
@@ -150,9 +141,12 @@ export function useSessionTitleCard(besideTabs: boolean, obscured: boolean) {
     titleRef,
     openerRef,
     contentRef,
+    backRef,
+    boundaryRefs,
+    closeFirst,
+    active: visual?.target === 1 && !obscured,
     visual,
-    trigger: { ...titleBounds, x: titleBounds.x - origin.x, y: titleBounds.y - origin.y },
-    requestedOpen: request !== null || visual?.target === 1,
+    requestedOpen,
     present: visual !== null,
     besideTabs,
     dismiss,
@@ -160,7 +154,6 @@ export function useSessionTitleCard(besideTabs: boolean, obscured: boolean) {
     onLayout,
     onAnchorLayout,
     toggle,
-    viewport: { x: -origin.x, y: -origin.y, width: window.width, height: window.height },
     bounds: {
       left: Math.max(0, insets.left - origin.x),
       top: Math.max(0, insets.top - origin.y),

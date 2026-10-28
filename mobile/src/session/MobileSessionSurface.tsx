@@ -58,11 +58,11 @@ export function MobileSessionSurface({ controller }: { controller: MobileSession
           {details.visual ? (
             <AnchoredDetailCard
               {...details.visual}
-              trigger={details.trigger}
               bounds={details.bounds}
-              viewport={details.viewport}
               contentRef={details.contentRef}
-              onDismiss={details.dismiss}
+              boundaryRefs={details.boundaryRefs}
+              active={details.active}
+              obscured={obscured}
               onSettled={details.onSettled}
               title={controller.worktreeName || 'Terminal'}
               detail={controller.worktreePath}

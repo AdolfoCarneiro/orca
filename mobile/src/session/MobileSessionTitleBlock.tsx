@@ -1,3 +1,5 @@
+import { Fragment } from 'react'
+import { DetailCardFocusBoundary } from '../components/detail-card-host'
 import { Platform, Pressable, Text } from 'react-native'
 import type { SessionTitleCard } from './use-session-title-card'
 import { StatusDot } from '../components/StatusDot'
@@ -22,36 +24,45 @@ export function MobileSessionTitleBlock({
   onRetry: () => void
 }): React.JSX.Element {
   return (
-    <Pressable
-      style={[styles.sessionTitleBlock, details.besideTabs && styles.sessionTitleBlockBesideTabs]}
-      ref={details.openerRef}
-      onLayout={details.onAnchorLayout}
-      onPress={details.toggle}
-      aria-expanded={details.requestedOpen}
-      accessibilityRole="button"
-      accessibilityHint="Shows the full workspace name and where it is"
-    >
-      <Text
-        ref={details.titleRef}
-        onLayout={details.onAnchorLayout}
-        onPress={Platform.OS === 'web' ? details.toggle : undefined}
-        style={styles.sessionTitle}
-        numberOfLines={1}
-      >
-        {title}
-      </Text>
-      <Pressable
-        style={styles.sessionMetaRow}
-        disabled={!showConnectionRetry}
-        onPress={onRetry}
-        accessibilityRole={showConnectionRetry ? 'button' : undefined}
-        accessibilityLabel={showConnectionRetry ? 'Reconnect to desktop' : undefined}
-      >
-        <StatusDot state={connState} />
-        <Text style={styles.sessionMetaText} numberOfLines={1}>
-          {meta}
-        </Text>
-      </Pressable>
-    </Pressable>
+    <>
+      <DetailCardFocusBoundary refs={details.boundaryRefs} index={0} active={details.active} />
+      <Fragment key="title">
+        <Pressable
+          style={[
+            styles.sessionTitleBlock,
+            details.besideTabs && styles.sessionTitleBlockBesideTabs
+          ]}
+          ref={details.openerRef}
+          onLayout={details.onAnchorLayout}
+          onPress={details.toggle}
+          aria-expanded={details.requestedOpen}
+          accessibilityRole="button"
+          accessibilityHint="Shows the full workspace name and where it is"
+        >
+          <Text
+            ref={details.titleRef}
+            onLayout={details.onAnchorLayout}
+            onPress={Platform.OS === 'web' ? details.toggle : undefined}
+            style={styles.sessionTitle}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          <Pressable
+            style={styles.sessionMetaRow}
+            disabled={!showConnectionRetry}
+            onPress={onRetry}
+            accessibilityRole={showConnectionRetry ? 'button' : undefined}
+            accessibilityLabel={showConnectionRetry ? 'Reconnect to desktop' : undefined}
+          >
+            <StatusDot state={connState} />
+            <Text style={styles.sessionMetaText} numberOfLines={1}>
+              {meta}
+            </Text>
+          </Pressable>
+        </Pressable>
+      </Fragment>
+      <DetailCardFocusBoundary refs={details.boundaryRefs} index={1} active={details.active} />
+    </>
   )
 }

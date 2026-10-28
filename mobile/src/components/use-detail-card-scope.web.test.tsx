@@ -1,81 +1,138 @@
 // @vitest-environment happy-dom
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import { assert, expect, it, vi } from 'vitest'
+import { act, useRef } from 'react'
+import { createRoot } from 'react-dom/client'
+import { expect, it, vi } from 'vitest'
+import {
+  DetailCardHostProvider,
+  DetailCardLayer,
+  DetailCardFocusBoundary
+} from './detail-card-host.web'
 import { useDetailCardScope } from './use-detail-card-scope.web'
 
-it('owns keys, reading and focus through exit, then yields to a higher sheet', async () => {
+it('keeps outside actions and finite focus order while releasing a retained visual', () => {
   const root = document.createElement('div')
-  root.innerHTML = `<div><input id="terminal"><button id="opener"><span id="title">Title</span><span id="status">Status</span></button></div><div><div id="layer"><div id="card" tabindex="-1"><div id="scroll" tabindex="0">Full details</div></div></div></div>`
   document.body.append(root)
-  const higher = document.createElement('button')
-  document.body.append(higher)
   const node = (id: string) => {
-    const found = root.querySelector(`#${id}`)
-    if (!(found instanceof HTMLElement)) {
+    const value = document.getElementById(id)
+    if (!(value instanceof HTMLElement)) {
       throw new Error(id)
     }
-    return found
+    return value
   }
+  const renderer = createRoot(root)
   const dismiss = vi.fn()
-  const refs = {
-    openerRef: { current: node('opener') },
-    titleRef: { current: node('title') },
-    layerRef: { current: node('layer') },
-    contentRef: { current: node('card') }
+  const action = vi.fn()
+  function Scope({ active, obscured = false }: { active: boolean; obscured?: boolean }) {
+    const contentRef = useRef<HTMLDivElement>(null)
+    const boundaryRefs = useRef<unknown[]>([])
+    const openerRef = useRef<HTMLButtonElement>(null)
+    const backRef = useRef<HTMLButtonElement>(null)
+    useDetailCardScope({ active, obscured, openerRef, backRef, contentRef, boundaryRefs, dismiss })
+    return (
+      <>
+        <input id="terminal" />
+        <button ref={backRef} id="back">
+          Back
+        </button>
+        <DetailCardFocusBoundary refs={boundaryRefs} index={0} active={active} />
+        <button ref={openerRef} id="opener">
+          Title
+        </button>
+        <DetailCardFocusBoundary refs={boundaryRefs} index={1} active={active} />
+        <button id="files" onClick={action}>
+          Files
+        </button>
+        <DetailCardLayer>
+          <DetailCardFocusBoundary refs={boundaryRefs} index={2} active={active} />
+          <div ref={contentRef} id="card" tabIndex={-1} aria-hidden={!active}>
+            <div id="scroll" tabIndex={active ? 0 : -1}>
+              Details
+            </div>
+          </div>
+          <DetailCardFocusBoundary refs={boundaryRefs} index={3} active={active} />
+        </DetailCardLayer>
+      </>
+    )
   }
-  function Scope({ present, obscured = false }: { present: boolean; obscured?: boolean }) {
-    useDetailCardScope({ ...refs, present, obscured, dismiss })
-    return null
+  const render = (active: boolean, obscured = false) =>
+    act(() =>
+      renderer.render(
+        <DetailCardHostProvider>
+          <Scope active={active} obscured={obscured} />
+        </DetailCardHostProvider>
+      )
+    )
+  const focusBoundary = (id: string, backwards: boolean) => {
+    const boundary = backwards ? node(id).previousElementSibling : node(id).nextElementSibling
+    if (!(boundary instanceof HTMLElement)) {
+      throw new Error(`Missing focus boundary beside ${id}`)
+    }
+    boundary.focus()
   }
+
   const key = (type: string, name: string, shiftKey = false) =>
     document.activeElement?.dispatchEvent(
       new KeyboardEvent(type, { key: name, shiftKey, bubbles: true, cancelable: true })
     )
   const terminalKeys = vi.fn()
   window.addEventListener('keydown', terminalKeys)
-  const mounted: { renderer?: ReactTestRenderer } = {}
-  node('terminal').focus()
-  act(() => {
-    mounted.renderer = create(<Scope present={false} />)
-  })
-  const renderer = mounted.renderer
-  assert(renderer)
   try {
-    expect(document.activeElement).toBe(node('terminal'))
-    act(() => renderer.update(<Scope present />))
-    const later = document.createElement('button')
-    node('opener').parentElement?.append(later)
-    await vi.waitFor(() => expect(later.getAttribute('aria-hidden')).toBe('true'))
-    expect(document.activeElement).toBe(node('card'))
-    expect(node('terminal').inert).toBe(true)
-    expect(node('status').getAttribute('aria-hidden')).toBe('true')
-    key('keydown', 'Tab', true)
-    expect(document.activeElement).toBe(node('scroll'))
-    key('keydown', 'Tab')
-    expect(document.activeElement).toBe(node('opener'))
-    key('keydown', 'Tab', true)
-    expect(document.activeElement).toBe(node('scroll'))
-    higher.focus()
-    expect(document.activeElement).toBe(node('card'))
-    key('keydown', 'Escape')
+    render(false)
+    expect(document.activeElement).toBe(document.body)
+    const opener = node('opener')
+    const host = node('card').parentElement
+    expect(host?.parentElement).toBe(document.body)
+    node('terminal').focus()
+    render(true)
+    expect(node('terminal').inert).toBe(false)
+    node('back').click()
     expect(dismiss).not.toHaveBeenCalled()
+    key('keydown', 'Escape')
     key('keyup', 'Escape')
     expect(terminalKeys).not.toHaveBeenCalled()
-    act(() => renderer.update(<Scope present={false} />))
+    render(false)
+    expect(node('card').inert).toBe(true)
+    expect(opener.previousElementSibling).toBe(node('back'))
+    expect(opener.nextElementSibling).toBe(node('files'))
+    expect(node('card').nextElementSibling).toBeNull()
     expect(document.activeElement).toBe(node('terminal'))
-    act(() => renderer.update(<Scope present />))
-    act(() => renderer.update(<Scope present obscured />))
-    higher.focus()
-    key('keydown', 'Escape')
-    key('keyup', 'Escape')
-    expect(terminalKeys).toHaveBeenCalledTimes(1)
-    expect(dismiss).toHaveBeenCalledTimes(1)
-    act(() => renderer.update(<Scope present={false} obscured />))
-    expect(document.activeElement).toBe(higher)
-  } finally {
+    render(true)
+    key('keydown', 'Tab')
+    focusBoundary('opener', false)
+    expect(document.activeElement).toBe(node('scroll'))
+    key('keydown', 'Tab', true)
+    focusBoundary('card', true)
+    expect(document.activeElement).toBe(opener)
+    key('keydown', 'Tab', true)
+    focusBoundary('opener', true)
+    expect(document.activeElement).toBe(node('back'))
+    render(false)
+    render(true)
+    key('keydown', 'Tab')
+    focusBoundary('card', false)
+    expect(document.activeElement).toBe(node('files'))
+    expect(dismiss).toHaveBeenCalledTimes(3)
+    render(false)
+    render(true)
+    node('files').click()
+    expect(action).toHaveBeenCalledTimes(1)
+    expect(dismiss).toHaveBeenCalledTimes(4)
+    node('files').focus()
+    render(false)
+    expect(document.activeElement).toBe(node('files'))
+    render(true)
+    node('files').focus()
+    expect(dismiss).toHaveBeenCalledTimes(5)
+    render(false)
+    expect(document.activeElement).toBe(node('files'))
+    render(true)
+    render(false, true)
+    expect(node('card').inert).toBe(true)
+    expect(node('opener')).toBe(opener)
     act(() => renderer.unmount())
+    expect(host?.isConnected).toBe(false)
+  } finally {
     window.removeEventListener('keydown', terminalKeys)
     root.remove()
-    higher.remove()
   }
 })

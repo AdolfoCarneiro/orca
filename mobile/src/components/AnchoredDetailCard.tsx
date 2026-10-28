@@ -3,16 +3,14 @@ import {
   Animated,
   Easing,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
   type LayoutRectangle
 } from 'react-native'
-import { commitDetailCardExit } from './detail-card-host'
+import { DetailCardFocusBoundary, commitDetailCardExit } from './detail-card-host'
 import { useReducedMotionEnabled } from '../platform/use-reduced-motion'
-import { useBackClaim } from '../navigation/use-back-claim'
 import { colors, radii, spacing, typography } from '../theme/mobile-theme'
 
 export type DetailCardAnchor = {
@@ -29,26 +27,26 @@ const SLIDE_FROM = -6
 /** Only the current motion may release the retained exit presentation. */
 export function AnchoredDetailCard({
   anchor,
-  trigger,
   target,
   motion,
   bounds,
-  viewport,
   contentRef,
-  onDismiss,
+  boundaryRefs,
+  active,
+  obscured,
   onSettled,
   title,
   detail,
   footer
 }: {
   anchor: DetailCardAnchor
-  trigger: LayoutRectangle
   target: 0 | 1
   motion: number
   bounds: { left: number; top: number; right: number; bottom: number }
-  viewport: LayoutRectangle
   contentRef: RefObject<View | null>
-  onDismiss: () => void
+  boundaryRefs: RefObject<unknown[]>
+  active: boolean
+  obscured: boolean
   onSettled: (motion: number) => void
   title: string
   detail?: string | null
@@ -56,10 +54,6 @@ export function AnchoredDetailCard({
 }): React.JSX.Element {
   // Unknown counts as reduced, so the card never slides before the setting is read.
   const slide = useReducedMotionEnabled() === false
-  useBackClaim(() => {
-    onDismiss()
-    return true
-  })
   const [progress] = useState(() => new Animated.Value(0))
   useLayoutEffect(() => {
     let disposed = false
@@ -95,42 +89,22 @@ export function AnchoredDetailCard({
   )
   const top = Math.max(anchor.top, bounds.top)
   const maxHeight = Math.max(0, bounds.bottom - top - EDGE_INSET)
-  const right = viewport.x + viewport.width
-  const bottom = viewport.y + viewport.height
-  const x = Math.max(viewport.x, Math.min(trigger.x, right))
-  const y = Math.max(viewport.y, Math.min(trigger.y, bottom))
-  const endX = Math.max(x, Math.min(trigger.x + trigger.width, right))
-  const endY = Math.max(y, Math.min(trigger.y + trigger.height, bottom))
-  // Leave the real title target uncovered for the whole pointer sequence, including exit.
-  const bands = [
-    {
-      key: 'above',
-      left: viewport.x,
-      top: viewport.y,
-      width: viewport.width,
-      height: y - viewport.y
-    },
-    { key: 'below', left: viewport.x, top: endY, width: viewport.width, height: bottom - endY },
-    { key: 'left', left: viewport.x, top: y, width: x - viewport.x, height: endY - y },
-    { key: 'right', left: endX, top: y, width: right - endX, height: endY - y }
-  ]
   return (
     <>
-      {bands.map(({ key, ...frame }) => (
-        <Pressable
-          key={key}
-          accessible={false}
-          tabIndex={-1}
-          style={{ position: 'absolute', ...frame }}
-          onPress={onDismiss}
-        />
-      ))}
+      <DetailCardFocusBoundary refs={boundaryRefs} index={2} active={active} />
       <Animated.View
         ref={contentRef}
         tabIndex={-1}
+        role="dialog"
+        accessibilityLabel={title}
+        aria-hidden={!active}
+        accessibilityElementsHidden={!active}
+        importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}
+        pointerEvents={active ? 'auto' : 'none'}
         style={[
           styles.card,
           {
+            display: obscured ? 'none' : 'flex',
             left,
             top,
             width,
@@ -149,7 +123,7 @@ export function AnchoredDetailCard({
           }
         ]}
       >
-        <ScrollView contentContainerStyle={styles.content} tabIndex={0}>
+        <ScrollView contentContainerStyle={styles.content} tabIndex={active ? 0 : -1}>
           <Text style={styles.title} selectable>
             {title}
           </Text>
@@ -161,6 +135,7 @@ export function AnchoredDetailCard({
           {footer ? <View style={styles.footer}>{footer}</View> : null}
         </ScrollView>
       </Animated.View>
+      <DetailCardFocusBoundary refs={boundaryRefs} index={3} active={active} />
     </>
   )
 }

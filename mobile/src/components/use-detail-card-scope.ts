@@ -1,11 +1,11 @@
 import type { RefObject } from 'react'
 
 export type DetailCardScopeOptions = {
-  present: boolean
+  active: boolean
   obscured: boolean
   openerRef: RefObject<unknown>
-  titleRef: RefObject<unknown>
-  layerRef: RefObject<unknown>
+  backRef: RefObject<unknown>
+  boundaryRefs: RefObject<unknown[]>
   contentRef: RefObject<unknown>
   dismiss: () => void
 }

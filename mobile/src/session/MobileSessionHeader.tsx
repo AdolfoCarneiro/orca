@@ -49,9 +49,14 @@ export function MobileSessionHeader({
           />
         ) : null}
         <MobileSessionHeaderIconButton
+          ref={details.backRef}
           accessibilityLabel="Back to worktrees"
           icon={ChevronLeft}
-          onPress={requestLeaveSession}
+          onPress={() => {
+            if (!details.closeFirst()) {
+              requestLeaveSession()
+            }
+          }}
         />
 
         <MobileSessionTitleBlock

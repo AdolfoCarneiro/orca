@@ -1,22 +1,30 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useState,
+  type ReactNode,
+  type RefObject
+} from 'react'
 import { createPortal, flushSync } from 'react-dom'
-import { StyleSheet, View } from 'react-native'
 
 const DetailCardHostContext = createContext<HTMLElement | null>(null)
 
 export function DetailCardHostProvider({ children }: { children: ReactNode }) {
   const [host, setHost] = useState<HTMLElement | null>(null)
-  const attach = useCallback((node: unknown) => {
-    setHost(node instanceof HTMLElement ? node : null)
+  useLayoutEffect(() => {
+    const node = document.createElement('div')
+    Object.assign(node.style, {
+      position: 'fixed',
+      inset: '0',
+      pointerEvents: 'none',
+      zIndex: '1000'
+    })
+    document.body.append(node)
+    setHost(node)
+    return () => node.remove()
   }, [])
-  return (
-    <DetailCardHostContext.Provider value={host}>
-      <View style={styles.root}>
-        {children}
-        <View ref={attach} pointerEvents="box-none" style={styles.outlet} />
-      </View>
-    </DetailCardHostContext.Provider>
-  )
+  return <DetailCardHostContext.Provider value={host}>{children}</DetailCardHostContext.Provider>
 }
 
 export function DetailCardLayer({ children }: { children: ReactNode }) {
@@ -24,10 +32,31 @@ export function DetailCardLayer({ children }: { children: ReactNode }) {
   return host ? createPortal(children, host) : null
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  outlet: { ...StyleSheet.absoluteFillObject, zIndex: 1000 }
-})
+export type DetailCardFocusBoundaryProps = {
+  refs: RefObject<unknown[]>
+  index: number
+  active: boolean
+}
+
+export function DetailCardFocusBoundary({ refs, index, active }: DetailCardFocusBoundaryProps) {
+  return active ? (
+    <span
+      ref={(node) => {
+        refs.current[index] = node
+      }}
+      tabIndex={0}
+      aria-hidden="true"
+      style={{
+        position: 'fixed',
+        width: 1,
+        height: 1,
+        overflow: 'hidden',
+        opacity: 0,
+        pointerEvents: 'none'
+      }}
+    />
+  ) : null
+}
 
 export function commitDetailCardExit(settle: () => void) {
   flushSync(settle)

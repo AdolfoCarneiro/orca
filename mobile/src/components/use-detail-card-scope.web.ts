@@ -6,157 +6,126 @@ function element(value: unknown): HTMLElement | null {
 }
 
 export function useDetailCardScope({
-  present,
+  active,
   obscured,
   openerRef,
-  titleRef,
-  layerRef,
+  backRef,
+  boundaryRefs,
   contentRef,
   dismiss
 }: DetailCardScopeOptions): void {
-  const savedFocus = useRef<HTMLElement | null>(null)
+  const saved = useRef<{ target: HTMLElement | null; restore: boolean } | null>(null)
   useLayoutEffect(() => {
     const opener = element(openerRef.current)
-    const title = element(titleRef.current)
-    const layer = element(layerRef.current)
     const content = element(contentRef.current)
-    let ancestor = layer?.parentElement
-    while (ancestor && opener && !ancestor.contains(opener)) {
-      ancestor = ancestor.parentElement
+    if (!active) {
+      const previous = saved.current
+      saved.current = null
+      if (!obscured && previous?.restore) {
+        ;(previous.target?.isConnected ? previous.target : opener)?.focus()
+      }
     }
-    const root = ancestor
-    if (obscured) {
-      savedFocus.current = null
+    if (content) {
+      content.inert = !active
+    }
+    if (!active || !opener || !content) {
       return
     }
-    if (!present) {
-      if (
-        savedFocus.current &&
-        root?.isConnected &&
-        (document.activeElement === document.body || root.contains(document.activeElement))
-      ) {
-        ;(savedFocus.current?.isConnected ? savedFocus.current : opener)?.focus()
+    const record = {
+      target: document.activeElement === document.body ? opener : element(document.activeElement),
+      restore: true
+    }
+    saved.current = record
+    const inside = (target: EventTarget | null) =>
+      target instanceof Node && (opener.contains(target) || content.contains(target))
+    const headerBack = (target: EventTarget | null) =>
+      target instanceof Node && element(backRef.current)?.contains(target)
+    const listeners = new AbortController()
+    const outside = () => {
+      listeners.abort()
+      record.restore = false
+      dismiss()
+    }
+    const click = (event: MouseEvent) => {
+      if (!inside(event.target) && !headerBack(event.target)) {
+        outside()
       }
-      savedFocus.current = null
-      return
     }
-    if (!opener || !title || !layer || !content || !root) {
-      return
-    }
-    savedFocus.current =
-      document.activeElement === document.body ? opener : element(document.activeElement)
-    const restore: (() => void)[] = []
-    const attribute = (node: HTMLElement, name: string, value: string) => {
-      const previous = node.getAttribute(name)
-      node.setAttribute(name, value)
-      restore.push(() => {
-        if (previous === null) {
-          node.removeAttribute(name)
-        } else {
-          node.setAttribute(name, previous)
-        }
-      })
-    }
-    // Observe only the kept ancestry, so later header controls are excluded without watching terminal output.
-    const masked = new WeakSet<HTMLElement>()
-    const mask = (parent: HTMLElement): HTMLElement[] => {
-      const nodes = [parent]
-      for (const child of parent.children) {
-        if (!(child instanceof HTMLElement) || child === title || child === layer) {
-          continue
-        }
-        if (child.contains(title) || child.contains(layer)) {
-          nodes.push(...mask(child))
-        } else if (!masked.has(child)) {
-          masked.add(child)
-          const inert = child.inert
-          child.inert = true
-          attribute(child, 'aria-hidden', 'true')
-          restore.push(() => {
-            child.inert = inert
-          })
-        }
+    let backwards = false
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Tab') {
+        backwards = event.shiftKey
       }
-      return nodes
-    }
-    // The returned cleanup disconnects this observer; its callback only refreshes the same subscriptions.
-    // react-doctor-disable-next-line react-doctor/effect-observer-needs-disconnect
-    const observer = new MutationObserver(() => {
-      for (const node of mask(root)) {
-        observer.observe(node, { childList: true })
-      }
-    })
-    for (const node of mask(root)) {
-      observer.observe(node, { childList: true })
-    }
-    attribute(root, 'role', 'dialog')
-    attribute(root, 'aria-modal', 'true')
-    attribute(root, 'aria-label', title.textContent ?? '')
-    const allowed = (target: EventTarget | null) =>
-      target instanceof Node && (target === opener || content.contains(target))
-    const focusable = () => [
-      opener,
-      ...Array.from(
-        content.querySelectorAll<HTMLElement>('a[href],button,input,select,textarea,[tabindex]')
-      ).filter(
-        (node) =>
-          node.tabIndex >= 0 &&
-          !node.hasAttribute('disabled') &&
-          !node.closest('[inert],[aria-hidden="true"]')
-      )
-    ]
-    const keydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.isComposing) {
         event.preventDefault()
         event.stopImmediatePropagation()
-      } else if (event.key === 'Tab') {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        const nodes = focusable()
-        const index = nodes.indexOf(element(document.activeElement) ?? content)
-        const next =
-          index === -1
-            ? event.shiftKey
-              ? nodes.length - 1
-              : 0
-            : (index + (event.shiftKey ? -1 : 1) + nodes.length) % nodes.length
-        nodes[next]?.focus()
+        if (event.type === 'keyup') {
+          dismiss()
+        }
       }
     }
-    const keyup = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        dismiss()
-      }
-    }
-    // React receives opener activation first; keys then stop before window-level shortcuts.
+    // React handles local activation before terminal window shortcuts see the event.
     const isolate = (event: KeyboardEvent) => {
-      if (allowed(event.target)) {
+      if (inside(event.target)) {
         event.stopImmediatePropagation()
       }
+    }
+    const visible = (node: HTMLElement) => {
+      let current: HTMLElement | null = node
+      while (current) {
+        const style = getComputedStyle(current)
+        if (style.display === 'none' || style.visibility === 'hidden') {
+          return false
+        }
+        current = current.parentElement
+      }
+      return true
     }
     const focusin = (event: FocusEvent) => {
-      if (!allowed(event.target)) {
-        content.focus()
+      const index = boundaryRefs.current.indexOf(event.target)
+      if (index !== -1) {
+        if (!opener.isConnected || !content.isConnected) {
+          return
+        }
+        if ((index === 0 && backwards) || (index === 3 && !backwards)) {
+          const nodes = Array.from(
+            document.querySelectorAll<HTMLElement>(
+              'a[href],button,input,select,textarea,[tabindex]'
+            )
+          ).filter(
+            (node) =>
+              node.tabIndex >= 0 &&
+              !node.hasAttribute('disabled') &&
+              !node.closest('[inert],[aria-hidden="true"],[hidden]') &&
+              visible(node) &&
+              !content.contains(node) &&
+              !opener.contains(node)
+          )
+          const direction = backwards
+            ? Node.DOCUMENT_POSITION_FOLLOWING
+            : Node.DOCUMENT_POSITION_PRECEDING
+          const adjacent = (backwards ? nodes.toReversed() : nodes).find((node) =>
+            Boolean(node.compareDocumentPosition(opener) & direction)
+          )
+          outside()
+          adjacent?.focus()
+        } else if (index === 0 || (index === 2 && backwards)) {
+          opener.focus()
+        } else {
+          content.querySelector<HTMLElement>('[tabindex="0"]')?.focus()
+        }
+      } else if (!inside(event.target) && !headerBack(event.target)) {
+        outside()
       }
     }
-    document.addEventListener('keydown', keydown, true)
-    document.addEventListener('keyup', keyup, true)
-    document.addEventListener('keydown', isolate)
-    document.addEventListener('keyup', isolate)
-    document.addEventListener('focusin', focusin, true)
+    const capture = { capture: true, signal: listeners.signal }
+    document.addEventListener('click', click, capture)
+    document.addEventListener('keydown', key, capture)
+    document.addEventListener('keyup', key, capture)
+    document.addEventListener('keydown', isolate, { signal: listeners.signal })
+    document.addEventListener('keyup', isolate, { signal: listeners.signal })
+    document.addEventListener('focusin', focusin, capture)
     content.focus()
-    return () => {
-      document.removeEventListener('keydown', keydown, true)
-      document.removeEventListener('keyup', keyup, true)
-      document.removeEventListener('keydown', isolate)
-      document.removeEventListener('keyup', isolate)
-      document.removeEventListener('focusin', focusin, true)
-      observer.disconnect()
-      for (const undo of restore.toReversed()) {
-        undo()
-      }
-    }
-  }, [present, obscured, openerRef, titleRef, layerRef, contentRef, dismiss])
+    return () => listeners.abort()
+  }, [active, obscured, openerRef, backRef, boundaryRefs, contentRef, dismiss])
 }
