@@ -19,7 +19,7 @@ export function pluginCapabilityDescription(kind: string, fallback: string): str
         'auto.components.settings.PluginConsentDialog.capability.workspaceRead',
         'Read workspace names, branches, and terminals'
       )
-    case 'agents:read':
+    case 'agent:read':
       return translate(
         'auto.components.settings.PluginConsentDialog.capability.agentsRead',
         'Get notified when agent status changes'

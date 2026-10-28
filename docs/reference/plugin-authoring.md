@@ -166,12 +166,16 @@ arbitrary plugin UI:
 
 - `taskSources`: issue and task providers such as Asana, Linear or Jira, filled by a worker.
 - `connections`: account providers with a host-run sign-in.
-- `agents`: new coding-agent harnesses described as data.
+- `agentHarnesses`: new coding-agent harnesses described as data.
 - `statusBarItems`: declarative status bar widgets whose values a worker updates.
 - `sidebarCards`: declarative left-sidebar cards whose values a worker updates.
 - `mcpServers`: MCP server definitions offered to the agents Orca launches.
 - `skills`: agent skills shipped as files.
+- `hooks`: agent lifecycle hooks for the agents Orca launches.
 - `settings`: typed plugin settings shown in Orca's settings UI.
+
+`skills`, `mcpServers` and `hooks` will mean what they mean in agent-plugin formats such as
+Claude Code's. Orca does not reserve `agents`, because those formats use it for subagent files.
 
 See [the manifest reference](plugin-manifest.md#planned-contribution-points) for details.
 

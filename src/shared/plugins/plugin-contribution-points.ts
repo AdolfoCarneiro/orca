@@ -52,11 +52,14 @@ export const PLUGIN_CONTRIBUTION_POINTS = [
 export type PluginContributionPoint = (typeof PLUGIN_CONTRIBUTION_POINTS)[number]
 
 /** `contributes` keys held for planned points, so each can ship later as an additive minor
- *  instead of a new manifest format. Each must stay empty until its format is defined. */
+ *  instead of a new manifest format. Each must stay empty until its format is defined.
+ *  `skills`, `mcpServers` and `hooks` keep the meaning agent-plugin formats such as Claude Code's
+ *  give them; `agents` is left unclaimed because those formats use it for subagent files. */
 export const PLUGIN_RESERVED_CONTRIBUTION_POINTS = {
-  agents: 'coding-agent definitions',
+  agentHarnesses: 'coding-agent harness definitions',
   skills: 'agent skills',
   mcpServers: 'MCP server definitions',
+  hooks: 'agent hooks',
   taskSources: 'task sources',
   connections: 'account connections',
   settings: 'plugin settings',
@@ -74,12 +77,15 @@ export const PLUGIN_PLANNED_CONTRIBUTION_POINTS: Readonly<
     'Issue and task providers such as Asana, Linear or Jira, declared as data that a worker fills with tasks.',
   connections:
     'Account providers with a host-run sign-in, so a plugin never handles credentials itself.',
-  agents: 'New coding-agent harnesses described as data: how to launch them and read their status.',
+  agentHarnesses:
+    'New coding-agent harnesses described as data: how to launch them and read their status.',
   statusBarItems:
     'Declarative status bar widgets (label, icon, tooltip) whose values a worker updates.',
   sidebarCards: 'Declarative left-sidebar cards with fixed layouts whose values a worker updates.',
   mcpServers: 'MCP server definitions that Orca offers to the agents it launches.',
   skills: 'Agent skills shipped as files that Orca installs for the agents it launches.',
+  hooks:
+    'Agent lifecycle hooks, such as before and after a tool call, for the agents Orca launches.',
   settings: 'Typed plugin settings that Orca renders in its own settings UI.'
 }
 
@@ -184,9 +190,10 @@ export const pluginContributesFields = {
 } satisfies Record<PluginContributionPoint, z.ZodType>
 
 export const pluginReservedContributesFields = {
-  agents: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.agents),
+  agentHarnesses: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.agentHarnesses),
   skills: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.skills),
   mcpServers: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.mcpServers),
+  hooks: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.hooks),
   taskSources: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.taskSources),
   connections: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.connections),
   settings: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.settings),

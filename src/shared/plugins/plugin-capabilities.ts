@@ -11,7 +11,7 @@ import {
 
 export const PLUGIN_CAPABILITY_KINDS = [
   'workspace:read',
-  'agents:read',
+  'agent:read',
   'terminal:send',
   'notifications:show',
   'storage:own',
@@ -24,7 +24,7 @@ export type PluginCapabilityKind = (typeof PLUGIN_CAPABILITY_KINDS)[number]
 /** The release each capability arrived in; engines.orca must cover every one a plugin asks for. */
 export const PLUGIN_CAPABILITY_SINCE: Record<PluginCapabilityKind, string> = {
   'workspace:read': PLUGIN_SCHEMA_SINCE_V1,
-  'agents:read': PLUGIN_MANIFEST_V2_SINCE,
+  'agent:read': PLUGIN_MANIFEST_V2_SINCE,
   'terminal:send': PLUGIN_SCHEMA_SINCE_V1,
   'notifications:show': PLUGIN_SCHEMA_SINCE_V1,
   'storage:own': PLUGIN_MANIFEST_V2_SINCE,
@@ -37,7 +37,7 @@ export const PLUGIN_V1_CAPABILITY_ALIASES: ReadonlyMap<string, readonly PluginCa
   new Map([
     ['storage', ['storage:own']],
     ['secrets', ['secrets:own']],
-    ['events:subscribe', ['workspace:read', 'agents:read']]
+    ['events:subscribe', ['workspace:read', 'agent:read']]
   ])
 
 // Strict object (not a bare enum) so scoped fields can be added per-kind later
@@ -58,7 +58,7 @@ export type PluginCapability = z.infer<typeof pluginCapabilitySchema>
 export const PLUGIN_CAPABILITY_DESCRIPTIONS: Record<PluginCapabilityKind, string> = {
   'workspace:read':
     'Read the name, branch, and terminal list of your focused workspace, and get notified when workspaces are created or removed',
-  'agents:read': 'Get notified when agent status changes',
+  'agent:read': 'Get notified when agent status changes',
   'terminal:send': 'Type and run commands in your terminals, local and SSH',
   'notifications:show': 'Show desktop notifications labeled with the plugin name',
   'storage:own': "Store data in the plugin's own storage folder",

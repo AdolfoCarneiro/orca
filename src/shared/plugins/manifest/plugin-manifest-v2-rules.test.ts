@@ -62,16 +62,17 @@ describe('manifest format 2 rules', () => {
     })
   })
 
-  it('keeps contributes.agents reserved', () => {
+  it('keeps contributes.agentHarnesses reserved and leaves agents unclaimed', () => {
     expect(
       parsePluginManifest(
-        v2({ execution: 'declarative', contributes: { agents: [{ path: 'a.json' }] } })
+        v2({ execution: 'declarative', contributes: { agentHarnesses: [{ path: 'a.json' }] } })
       )
     ).toEqual({
       ok: false,
       error:
-        'contributes.agents: is reserved for coding-agent definitions and must be empty for now'
+        'contributes.agentHarnesses: is reserved for coding-agent harness definitions and must be empty for now'
     })
+    expect(parsePluginManifest(v2({ contributes: { agents: [] } }))).toMatchObject({ ok: false })
   })
 
   it.each(Object.entries(PLUGIN_RESERVED_CONTRIBUTION_POINTS))(

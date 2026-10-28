@@ -61,7 +61,7 @@ describe('fingerprintPluginConsent', () => {
       contributes: {
         keybindings: [],
         vmRecipes: [{ path: 'recipes/cloud.json' }],
-        agents: []
+        agentHarnesses: []
       }
     }
     const first = fingerprintPluginConsent(subject, 'a'.repeat(64))
@@ -156,7 +156,7 @@ describe('fingerprintPluginConsent', () => {
       contributes: {
         keybindings: [],
         vmRecipes: [],
-        agents: []
+        agentHarnesses: []
       }
     }
 

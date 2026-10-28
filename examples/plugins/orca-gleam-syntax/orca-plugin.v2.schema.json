@@ -294,8 +294,8 @@
             "$ref": "#/$defs/CustomEditorContribution"
           }
         },
-        "agents": {
-          "description": "Reserved for coding-agent definitions; must be empty until their format is defined.",
+        "agentHarnesses": {
+          "description": "Reserved for coding-agent harness definitions; must be empty until their format is defined.",
           "x-orca-since": "1.4.244",
           "maxItems": 0,
           "type": "array",
@@ -310,6 +310,13 @@
         },
         "mcpServers": {
           "description": "Reserved for MCP server definitions; must be empty until their format is defined.",
+          "x-orca-since": "1.4.244",
+          "maxItems": 0,
+          "type": "array",
+          "items": {}
+        },
+        "hooks": {
+          "description": "Reserved for agent hooks; must be empty until their format is defined.",
           "x-orca-since": "1.4.244",
           "maxItems": 0,
           "type": "array",
@@ -616,7 +623,7 @@
         "on"
       ],
       "additionalProperties": false,
-      "description": "An event subscription. Requires `main`, the `trusted-worker` execution profile and the capability of the event's domain: `workspace:read` for workspace events, `agents:read` for agent events."
+      "description": "An event subscription. Requires `main`, the `trusted-worker` execution profile and the capability of the event's domain: `workspace:read` for workspace events, `agent:read` for agent events."
     },
     "LanguagePackContribution": {
       "type": "object",
@@ -962,7 +969,7 @@
           "type": "string",
           "enum": [
             "workspace:read",
-            "agents:read",
+            "agent:read",
             "terminal:send",
             "notifications:show",
             "storage:own",
@@ -973,7 +980,7 @@
           "x-orca-since": "1.4.160",
           "x-orca-enum-since": {
             "workspace:read": "1.4.160",
-            "agents:read": "1.4.244",
+            "agent:read": "1.4.244",
             "terminal:send": "1.4.160",
             "notifications:show": "1.4.160",
             "storage:own": "1.4.244",

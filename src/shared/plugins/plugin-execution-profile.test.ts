@@ -16,7 +16,14 @@ function manifestInput(): Record<string, unknown> {
 }
 
 describe('execution profiles', () => {
-  const empty = { panels: [], commands: [], events: [], keybindings: [], vmRecipes: [], agents: [] }
+  const empty = {
+    panels: [],
+    commands: [],
+    events: [],
+    keybindings: [],
+    vmRecipes: [],
+    agentHarnesses: []
+  }
   it.each([
     [{ main: 'main.mjs' }, {}, 'trusted-worker'],
     [{}, { panels: [{}] }, 'sandboxed-ui'],

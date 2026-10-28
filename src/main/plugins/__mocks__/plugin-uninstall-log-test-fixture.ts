@@ -114,7 +114,7 @@ export async function createUninstallFixture() {
       pluginApi: 1,
       main: 'worker.js',
       contributes: { commands: [{ id: 'run', title: 'Run' }], ...contributes },
-      capabilities: contributes.events ? [{ kind: 'workspace:read' }, { kind: 'agents:read' }] : []
+      capabilities: contributes.events ? [{ kind: 'workspace:read' }, { kind: 'agent:read' }] : []
     }
     await writeFile(join(sourcePath, 'orca-plugin.json'), JSON.stringify(manifest))
     await writeFile(join(sourcePath, 'worker.js'), 'export default function () {}')

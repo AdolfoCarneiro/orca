@@ -139,7 +139,7 @@ describe('PluginService worker reconciliation', () => {
           keybindings: [{ command: 'run', key: 'Mod+Alt+T' }],
           events: [{ on: 'workspace.created' }]
         },
-        capabilities: [{ kind: 'workspace:read' }, { kind: 'agents:read' }]
+        capabilities: [{ kind: 'workspace:read' }, { kind: 'agent:read' }]
       })
     const firstManifest = conflictingManifest('first')
     const secondManifest = conflictingManifest('second')

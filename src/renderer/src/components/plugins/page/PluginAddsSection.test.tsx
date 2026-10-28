@@ -72,7 +72,7 @@ const helloManifest = pluginManifestSchema.parse({
     commands: [{ id: 'ping', title: 'Hello: Ping' }],
     events: [{ on: 'workspace.created' }, { on: 'agent.status.changed' }]
   },
-  capabilities: [{ kind: 'workspace:read' }, { kind: 'agents:read' }]
+  capabilities: [{ kind: 'workspace:read' }, { kind: 'agent:read' }]
 })
 
 const invokeCommand = vi.fn()

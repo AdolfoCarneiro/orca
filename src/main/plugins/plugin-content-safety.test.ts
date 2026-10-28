@@ -55,11 +55,7 @@ afterEach(async () => {
 describe('declared plugin artifacts', () => {
   it('validates every content-pack file and directory before enablement', async () => {
     const root = await tempRoot()
-    await Promise.all([
-      mkdir(join(root, 'locales')),
-      mkdir(join(root, 'recipes')),
-      writeFile(join(root, 'agent.json'), '{}')
-    ])
+    await Promise.all([mkdir(join(root, 'locales')), mkdir(join(root, 'recipes'))])
     await Promise.all([
       writeFile(join(root, 'locales', 'pt-BR.json'), '{}'),
       writeFile(join(root, 'recipes', 'vm.json'), '{}')
@@ -67,8 +63,7 @@ describe('declared plugin artifacts', () => {
     const pluginManifest = manifest({
       contributes: {
         languagePacks: [{ locale: 'pt-BR', path: 'locales/pt-BR.json' }],
-        vmRecipes: [{ path: 'recipes/vm.json' }],
-        agents: [{ path: 'agent.json' }]
+        vmRecipes: [{ path: 'recipes/vm.json' }]
       }
     })
 

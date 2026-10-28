@@ -35,7 +35,7 @@ export const PLUGIN_V1_EVENT_ALIASES: ReadonlyMap<string, PluginEventName> = new
 export const PLUGIN_EVENT_CAPABILITY: Record<PluginEventName, PluginCapabilityKind> = {
   'workspace.created': 'workspace:read',
   'workspace.removed': 'workspace:read',
-  'agent.status.changed': 'agents:read'
+  'agent.status.changed': 'agent:read'
 }
 
 export const pluginEventContributionSchema = z
@@ -49,7 +49,7 @@ export const pluginEventContributionSchema = z
   .meta({
     id: 'EventContribution',
     description:
-      "An event subscription. Requires `main`, the `trusted-worker` execution profile and the capability of the event's domain: `workspace:read` for workspace events, `agents:read` for agent events."
+      "An event subscription. Requires `main`, the `trusted-worker` execution profile and the capability of the event's domain: `workspace:read` for workspace events, `agent:read` for agent events."
   })
 
 export type PluginEventContribution = z.infer<typeof pluginEventContributionSchema>

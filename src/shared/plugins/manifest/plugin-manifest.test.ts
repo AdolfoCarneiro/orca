@@ -49,7 +49,7 @@ describe('pluginManifestSchema boundaries', () => {
           { kind: 'storage:own' },
           { kind: 'secrets:own' },
           { kind: 'workspace:read' },
-          { kind: 'agents:read' }
+          { kind: 'agent:read' }
         ]
       }
     })
