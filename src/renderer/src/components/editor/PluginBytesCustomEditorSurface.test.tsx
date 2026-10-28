@@ -51,7 +51,8 @@ import PluginBytesCustomEditorSurface from './PluginBytesCustomEditorSurface'
 const editor: ActivePluginCustomEditor = {
   id: 'sheet',
   title: 'Spreadsheet',
-  fileTypes: ['xlsx', 'xls'],
+  extensions: ['.xlsx', '.xls'],
+  filenames: [],
   priority: 'default',
   contentKind: 'bytes',
   key: 'stablyai.spreadsheet/sheet',

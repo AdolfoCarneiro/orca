@@ -4,7 +4,8 @@ import { basename } from '@/lib/path'
 import { readRuntimeFileBytes } from '@/runtime/runtime-paged-file-read'
 import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
 import { CUSTOM_EDITOR_DOCUMENT_MAX_BYTES } from '../../../../shared/plugins/plugin-custom-editor-bridge'
-import { matchCustomEditorFileType } from '../../../../shared/plugins/plugin-custom-editor-contribution'
+import { matchPluginFile } from '../../../../shared/plugins/plugin-file-match'
+import { fileTypeOfPath } from '../../../../shared/plugins/plugin-file-type'
 import { formatBytes } from '../status-bar/workspace-space-format'
 import { Button } from '../ui/button'
 import type { OpenFile } from '@/store/slices/editor'
@@ -69,7 +70,9 @@ export default function PluginBytesCustomEditorSurface({
   const [state, setState] = useState<BytesState>({ status: 'ok' })
   const [attempt, setAttempt] = useState(0)
   const { id: fileId, filePath } = file
-  const fileType = matchCustomEditorFileType(filePath, editor.fileTypes) ?? ''
+  const match = matchPluginFile(filePath, editor)
+  const fileType =
+    match?.by === 'extension' ? match.extension.slice(1) : (fileTypeOfPath(filePath) ?? '')
   const source = fileContent.byteSource
   // Why the object: every reload (an outside change included) lands as a new FileContent.
   const loadKey = fileContent.isStale ? null : fileContent

@@ -60,7 +60,7 @@ async function writeEditorPlugin(root: string): Promise<void> {
           {
             id: 'sketch',
             title: 'Sketch Pad',
-            fileTypes: ['sketch'],
+            extensions: ['.sketch'],
             entry: 'editor/index.html'
           }
         ]
@@ -183,7 +183,7 @@ test('a bytes custom editor edits and saves a binary file', async ({
             {
               id: 'hex',
               title: 'Hex Book',
-              fileTypes: ['hexbook'],
+              extensions: ['.hexbook'],
               entry: 'editor/index.html',
               contentKind: 'bytes'
             }

@@ -2,6 +2,7 @@ import type { RefinementCtx } from 'zod'
 import { isPluginCommandAliasActionId } from '../plugin-command-actions'
 import { getKeybindingConflictIdentity } from '../../keybindings'
 import { PLUGIN_EVENT_CAPABILITY, type PluginEventName } from '../plugin-event-contribution'
+import type { PluginFileMatch } from '../plugin-file-match'
 
 type IdentifiedContribution = { id: string }
 type PathContribution = { path: string }
@@ -18,10 +19,8 @@ type ContributionValidationManifest = {
     themes: IdentifiedContribution[]
     terminalThemes: IdentifiedContribution[]
     iconThemes: IdentifiedContribution[]
-    syntaxes: (IdentifiedContribution & { scopeName: string })[]
-    customEditors: (IdentifiedContribution & {
-      fileTypes: string[]
-    })[]
+    syntaxes: (IdentifiedContribution & PluginFileMatch & { scopeName: string })[]
+    customEditors: (IdentifiedContribution & PluginFileMatch)[]
   }
   capabilities: { kind: string }[]
 }
@@ -75,12 +74,26 @@ export function validatePluginManifestContributions(
     'syntax scope name',
     ctx
   )
+  for (const point of ['syntaxes', 'customEditors'] as const) {
+    for (const [index, item] of manifest.contributes[point].entries()) {
+      for (const field of ['extensions', 'filenames'] as const) {
+        const values = item[field].map((value) => value.toLowerCase())
+        if (new Set(values).size !== values.length) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['contributes', point, index, field],
+            message: `duplicate ${field === 'extensions' ? 'extension' : 'file name'}`
+          })
+        }
+      }
+    }
+  }
   for (const [index, editor] of manifest.contributes.customEditors.entries()) {
-    if (new Set(editor.fileTypes).size !== editor.fileTypes.length) {
+    if (editor.extensions.length === 0 && editor.filenames.length === 0) {
       ctx.addIssue({
         code: 'custom',
-        path: ['contributes', 'customEditors', index, 'fileTypes'],
-        message: 'duplicate custom editor file type'
+        path: ['contributes', 'customEditors', index, 'extensions'],
+        message: 'must list at least one extension or file name'
       })
     }
   }

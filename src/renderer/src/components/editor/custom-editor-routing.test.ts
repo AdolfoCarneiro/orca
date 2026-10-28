@@ -29,7 +29,9 @@ function plugin(
     commands: [],
     hasWorker: false,
     restarts: 0,
-    customEditors: [{ id: 'draw', title: 'Draw', fileTypes: ['excalidraw'], priority: 'default' }],
+    customEditors: [
+      { id: 'draw', title: 'Draw', extensions: ['.excalidraw'], filenames: [], priority: 'default' }
+    ],
     ...overrides
   }
 }
@@ -103,7 +105,13 @@ describe('custom editor routing', () => {
         plugin({
           pluginKey: 'acme.alt',
           customEditors: [
-            { id: 'alt', title: 'Alt', fileTypes: ['excalidraw'], priority: 'option' }
+            {
+              id: 'alt',
+              title: 'Alt',
+              extensions: ['.excalidraw'],
+              filenames: [],
+              priority: 'option'
+            }
           ]
         }),
         plugin({ pluginKey: 'stablyai.excalidraw' })
@@ -125,7 +133,13 @@ describe('custom editor routing', () => {
           plugin({
             pluginKey: 'acme.json',
             customEditors: [
-              { id: 'json', title: 'Json', fileTypes: ['json', 'md'], priority: 'default' }
+              {
+                id: 'json',
+                title: 'Json',
+                extensions: ['.json', '.md'],
+                filenames: [],
+                priority: 'default'
+              }
             ]
           })
         ])
@@ -166,7 +180,13 @@ describe('custom editor routing', () => {
       plugin({
         pluginKey,
         customEditors: [
-          { id: 'd', title: pluginKey, fileTypes: ['excalidraw'], priority: 'default' }
+          {
+            id: 'd',
+            title: pluginKey,
+            extensions: ['.excalidraw'],
+            filenames: [],
+            priority: 'default'
+          }
         ]
       })
     const editors = customEditorsForFile(
@@ -180,7 +200,15 @@ describe('custom editor routing', () => {
     const editors = collectActivePluginCustomEditors([
       plugin({
         pluginKey: 'acme.alt',
-        customEditors: [{ id: 'alt', title: 'Alt', fileTypes: ['excalidraw'], priority: 'option' }]
+        customEditors: [
+          {
+            id: 'alt',
+            title: 'Alt',
+            extensions: ['.excalidraw'],
+            filenames: [],
+            priority: 'option'
+          }
+        ]
       })
     ])
     const result = model({ editors })
@@ -260,7 +288,8 @@ describe('custom editor routing', () => {
             {
               id: 'sheet',
               title: 'Spreadsheet',
-              fileTypes: ['xlsx'],
+              extensions: ['.xlsx'],
+              filenames: [],
               priority: 'default',
               contentKind: 'bytes'
             }

@@ -14,6 +14,7 @@ import type { Page, TestInfo } from '@stablyai/playwright-test'
 import { expect, test } from '@stablyai/playwright-test'
 import { hashPluginTree } from '../../src/main/plugins/plugin-content-hash'
 import { pluginContributionSummary } from '../../src/shared/plugins/plugin-contribution-summary'
+import { pluginEditorFileTypes } from '../../src/shared/plugins/plugin-file-type'
 import { parsePluginManifest } from '../../src/shared/plugins/manifest/plugin-manifest'
 import { attachRepoAndOpenTerminal, createRestartSession } from './helpers/orca-restart'
 import { commitRepository, configureFixtureGit, headCommit } from './helpers/plugin-git-fixture'
@@ -26,7 +27,7 @@ const EDITORS = [
     editor: {
       id: 'spreadsheet',
       title: 'Spreadsheet',
-      fileTypes: ['xlsx'],
+      extensions: ['.xlsx'],
       entry: 'editor/index.html',
       contentKind: 'bytes'
     }
@@ -37,7 +38,7 @@ const EDITORS = [
     editor: {
       id: 'excalidraw',
       title: 'Excalidraw',
-      fileTypes: ['excalidraw', 'excalidraw.json'],
+      extensions: ['.excalidraw', '.excalidraw.json'],
       entry: 'editor/index.html'
     }
   }
@@ -90,8 +91,8 @@ async function createCatalogFixture(root: string) {
           minimumOrca: PLUGIN_MANIFEST_V2_SINCE,
           name: plugin.name,
           contributes: pluginContributionSummary(parsed.manifest),
-          fileTypes: plugin.editor.fileTypes.filter((fileType) => !fileType.includes('.')),
-          editorFileTypes: plugin.editor.fileTypes.filter((fileType) => !fileType.includes('.'))
+          fileTypes: pluginEditorFileTypes(parsed.manifest.contributes),
+          editorFileTypes: pluginEditorFileTypes(parsed.manifest.contributes)
         }
       ]
     })

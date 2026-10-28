@@ -15,6 +15,7 @@ import {
   PLUGIN_MANIFEST_V2_SINCE,
   PLUGIN_SCHEMA_SINCE_V1
 } from './manifest/plugin-schema-field-docs'
+import { pluginFileMatchFields } from './plugin-file-match'
 
 export const PLUGIN_LANGUAGE_PACK_LIMIT = 16
 export const PLUGIN_KEYBINDING_LIMIT = 256
@@ -191,46 +192,10 @@ export const pluginSyntaxContributionSchema = z
           ['syntaxes/language-configuration.json']
         )
       ),
-    extensions: z
-      .array(
-        z
-          .string()
-          .max(64)
-          .regex(/^\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/, 'must look like .ext')
-      )
-      .max(32)
-      .default([])
-      .meta(
-        pluginFieldDoc(
-          'File extensions this language opens, with the dot.',
-          PLUGIN_MANIFEST_V2_SINCE,
-          [['.gleam']]
-        )
-      ),
-    filenames: z
-      .array(
-        z
-          .string()
-          .min(1)
-          .max(128)
-          .refine(
-            (name) =>
-              name !== '.' &&
-              name !== '..' &&
-              !/[<>:"/\\|?*]/.test(name) &&
-              Array.from(name).every((character) => character.charCodeAt(0) >= 32),
-            'must be a portable file name'
-          )
-      )
-      .max(32)
-      .default([])
-      .meta(
-        pluginFieldDoc(
-          'Exact file names this language opens. Names must be portable: no path separators, `.`, `..` or characters Windows forbids.',
-          PLUGIN_MANIFEST_V2_SINCE,
-          [['gleam.toml']]
-        )
-      )
+    ...pluginFileMatchFields('this language', PLUGIN_MANIFEST_V2_SINCE, {
+      extensions: ['.gleam'],
+      filenames: ['gleam.toml']
+    })
   })
   .strict()
   .meta({ id: 'SyntaxContribution', description: 'Syntax highlighting for one language.' })

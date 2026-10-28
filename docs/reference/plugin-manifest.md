@@ -136,20 +136,21 @@ Syntax highlighting for one language.
 | `scopeName` | string | yes | 1.4.244 | The grammar's root TextMate scope, unique among this plugin's syntaxes. Example: `"source.gleam"` |
 | `path` | string | yes | 1.4.244 | TextMate grammar JSON file. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"syntaxes/gleam.tmLanguage.json"` |
 | `configuration` | string | no | 1.4.244 | Language configuration JSON file: comments, brackets and auto-closing pairs. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"syntaxes/language-configuration.json"` |
-| `extensions` | string[] | no | 1.4.244 | File extensions this language opens, with the dot. Example: `[".gleam"]` |
-| `filenames` | string[] | no | 1.4.244 | Exact file names this language opens. Names must be portable: no path separators, `.`, `..` or characters Windows forbids. Example: `["gleam.toml"]` |
+| `extensions` | string[] | no | 1.4.244 | File-name suffixes, with the dot, this language opens, ignoring case. A longer suffix such as `.excalidraw.json` wins over a shorter one, and a file named only the suffix never matches. At most 32. Example: `[".gleam"]` |
+| `filenames` | string[] | no | 1.4.244 | Exact file names this language opens, ignoring case; a name beats any extension. Names must be portable: no path separators, `.`, `..` or characters Windows forbids. At most 32. Example: `["gleam.toml"]` |
 
 ## CustomEditorContribution
 
-An editor for files of the listed types, shown in the editor tab beside Source. Requires the `sandboxed-ui` execution profile or higher.
+An editor for the listed files, shown in the editor tab beside Source. It must list at least one extension or file name. Requires the `sandboxed-ui` execution profile or higher.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
 | `id` | string | yes | 1.4.244 | Editor id, unique among this plugin's custom editors. The reserved names `constructor` and `prototype` are refused. Example: `"excalidraw"` |
 | `title` | string | yes | 1.4.244 | Name shown in the editor's view toggle, beside Source. Example: `"Excalidraw"` |
-| `fileTypes` | string[] | yes | 1.4.244 | File-name suffixes, without the leading dot, this editor opens. A longer suffix such as `excalidraw.json` matches only files ending in it. At most 16. Example: `["excalidraw","excalidraw.json"]` |
+| `extensions` | string[] | no | 1.4.244 | File-name suffixes, with the dot, this editor opens, ignoring case. A longer suffix such as `.excalidraw.json` wins over a shorter one, and a file named only the suffix never matches. At most 32. Example: `[".excalidraw",".excalidraw.json"]` |
+| `filenames` | string[] | no | 1.4.244 | Exact file names this editor opens, ignoring case; a name beats any extension. Names must be portable: no path separators, `.`, `..` or characters Windows forbids. At most 32. Example: `[]` |
 | `entry` | string | yes | 1.4.244 | HTML file rendered inside a sandboxed editor frame, like a panel. It receives the open document and posts edits back; it never gets a file path or file system. It is trusted code: install editors you trust. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"editor/index.html"` |
-| `priority` | `"default"` \| `"option"` | no | 1.4.244 | `default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. File types Orca opens itself (such as `json`, `ts`, `md`, `csv`, `yaml`, lockfiles and `.env` files) always behave as `option`. Example: `"default"` |
+| `priority` | `"default"` \| `"option"` | no | 1.4.244 | `default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. Files Orca opens itself (such as `.json`, `.ts`, `.md`, `.csv`, `.yaml`, lockfiles and `.env` files) always behave as `option`. Example: `"default"` |
 | `contentKind` | `"text"` \| `"bytes"` | no | 1.4.244 | `text` (the default) sends the file as text and accepts full-text edits. `bytes` sends the file's raw bytes, for binary formats such as spreadsheets, and accepts full-byte edits. Example: `"bytes"` |
 
 ## Capability

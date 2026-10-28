@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { create } from 'zustand'
 import type { PluginHostCustomEditor, PluginHostListEntry } from '../../../preload/api-types'
-import { matchCustomEditorFileType } from '../../../shared/plugins/plugin-custom-editor-contribution'
+import { matchPluginFile } from '../../../shared/plugins/plugin-file-match'
 import { customEditorMayOpenByDefault } from '../../../shared/plugins/plugin-custom-editor-core-file-types'
 import { ensurePluginPanelsLoaded, usePluginPanelsStore } from './plugin-panels'
 
@@ -43,12 +43,12 @@ export function customEditorsForFile(
   editors: readonly ActivePluginCustomEditor[]
 ): ActivePluginCustomEditor[] {
   const matching = editors.flatMap((editor) => {
-    const fileType = matchCustomEditorFileType(filePath, editor.fileTypes)
-    if (fileType === null) {
+    const match = matchPluginFile(filePath, editor)
+    if (match === null) {
       return []
     }
     const takesDefault =
-      editor.priority === 'default' && customEditorMayOpenByDefault(filePath, fileType)
+      editor.priority === 'default' && customEditorMayOpenByDefault(filePath, match)
     return [{ ...editor, priority: takesDefault ? ('default' as const) : ('option' as const) }]
   })
   const byPlugin = (a: ActivePluginCustomEditor, b: ActivePluginCustomEditor): number =>

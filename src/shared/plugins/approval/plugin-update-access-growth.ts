@@ -47,7 +47,7 @@ function entryIdentity(point: PluginContributionPoint, entry: unknown): string {
 }
 
 type CustomEditorReach = {
-  fileTypes: string[]
+  files: string[]
   takesDefault: boolean
   contentKind: string
 }
@@ -59,14 +59,19 @@ function customEditorReach(entry: unknown): [string, CustomEditorReach] | null {
   return [
     entry.id,
     {
-      fileTypes: Array.isArray(entry.fileTypes) ? entry.fileTypes.map(String) : [],
+      files: (['extensions', 'filenames'] as const).flatMap((field) => {
+        const list = entry[field]
+        return Array.isArray(list)
+          ? list.map((value) => `${field}:${String(value).toLowerCase()}`)
+          : []
+      }),
       takesDefault: entry.priority !== 'option',
       contentKind: typeof entry.contentKind === 'string' ? entry.contentKind : 'text'
     }
   ]
 }
 
-/** Why per field: new file types or taking over opening them is more reach, while new editor
+/** Why per field: new extensions or file names, or taking over opening them is more reach, while new editor
  *  code under the same id is not. */
 function customEditorsGrow(installed: readonly unknown[], next: readonly unknown[]): boolean {
   const held = new Map(installed.map(customEditorReach).filter((reach) => reach !== null))
@@ -78,7 +83,7 @@ function customEditorsGrow(installed: readonly unknown[], next: readonly unknown
     }
     const after = asked[1]
     return (
-      after.fileTypes.some((fileType) => !before.fileTypes.includes(fileType)) ||
+      after.files.some((file) => !before.files.includes(file)) ||
       (after.takesDefault && !before.takesDefault) ||
       after.contentKind !== before.contentKind
     )

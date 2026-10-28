@@ -1,3 +1,5 @@
+import { pluginFileBaseName, type PluginFileMatchResult } from './plugin-file-match'
+
 /**
  * Files Orca opens itself, or that usually hold secrets or drive tooling. A plugin editor may be
  * offered for them in the view toggle, but never opens them by default.
@@ -57,11 +59,14 @@ const CORE_FILE_NAMES = new Set([
   'kubeconfig'
 ])
 
-/** Whether a plugin editor whose `fileType` suffix matched this file may open it by default. */
-export function customEditorMayOpenByDefault(filePath: string, fileType: string): boolean {
-  const name = (filePath.split(/[\\/]/).at(-1) ?? '').toLowerCase()
+/** Whether a plugin editor that matched this file may open it by default. */
+export function customEditorMayOpenByDefault(
+  filePath: string,
+  match: PluginFileMatchResult
+): boolean {
+  const name = pluginFileBaseName(filePath)
   if (CORE_FILE_NAMES.has(name) || name === '.env' || name.startsWith('.env.')) {
     return false
   }
-  return !CORE_FILE_TYPES.has(fileType.toLowerCase())
+  return match.by === 'filename' || !CORE_FILE_TYPES.has(match.extension.slice(1))
 }

@@ -27,7 +27,8 @@ const FILE_ID = '/repo/diagram.excalidraw'
 const editor: ActivePluginCustomEditor = {
   id: 'excalidraw',
   title: 'Excalidraw',
-  fileTypes: ['excalidraw'],
+  extensions: ['.excalidraw'],
+  filenames: [],
   priority: 'default',
   key: 'stablyai.excalidraw/excalidraw',
   pluginKey: 'stablyai.excalidraw',

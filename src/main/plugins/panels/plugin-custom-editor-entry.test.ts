@@ -35,7 +35,7 @@ async function createEditorPlugin(): Promise<ValidDiscoveredPlugin> {
           {
             id: 'excalidraw',
             title: 'Excalidraw',
-            fileTypes: ['excalidraw'],
+            extensions: ['.excalidraw'],
             entry: 'editor/index.html'
           }
         ]

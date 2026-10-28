@@ -38,8 +38,11 @@ export type PluginContributionSource = {
   /** Coverage is known only once a pack is installed. */
   languages: readonly { locale: string; coverage?: number }[]
   panels: readonly string[]
-  /** File types carry their leading dot, as the listing shows them. */
-  customEditors: readonly { title: string; fileTypes: readonly string[] }[]
+  customEditors: readonly {
+    title: string
+    extensions: readonly string[]
+    filenames: readonly string[]
+  }[]
   recipes: readonly string[]
 }
 
@@ -83,10 +86,7 @@ export function manifestContributionSource(manifest: PluginManifest): PluginCont
     syntaxes: contributes.syntaxes,
     languages: contributes.languagePacks,
     panels: contributes.panels.map((panel) => panel.title),
-    customEditors: contributes.customEditors.map((editor) => ({
-      title: editor.title,
-      fileTypes: editor.fileTypes.map((fileType) => `.${fileType}`)
-    })),
+    customEditors: contributes.customEditors,
     recipes: contributes.vmRecipes.map((recipe) => nameFromContributionPath(recipe.path))
   }
 }
@@ -121,7 +121,8 @@ export function summaryContributionSource(
     panels: of('panels').map((item) => item.name),
     customEditors: of('customEditors').map((item) => ({
       title: item.name,
-      fileTypes: item.detail ? item.detail.split(', ') : []
+      extensions: item.detail ? item.detail.split(', ') : [],
+      filenames: []
     })),
     recipes: of('vmRecipes').map((item) => nameFromContributionPath(item.name))
   }
@@ -255,7 +256,7 @@ export function describePluginContributions(
   }
   for (const [index, editor] of source.customEditors.entries()) {
     const label = translate('auto.components.settings.PluginDetailSections.customEditor', 'Editor')
-    const files = fileList(editor.fileTypes, [])
+    const files = fileList(editor.extensions, editor.filenames)
     rows.push({
       key: `editor:${index}`,
       kind: 'editor',

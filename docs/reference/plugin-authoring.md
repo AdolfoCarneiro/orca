@@ -41,8 +41,9 @@ only when a panel or worker calls the host API.
 
 ### Custom editors
 
-A custom editor opens files whose names end in one of its `fileTypes` in the editor tab, beside
-Source. It runs in the same sandboxed frame as a panel (no Node, no file system), and Orca keeps
+A custom editor opens files that end in one of its `extensions` (with the dot, such as
+`.excalidraw`) or carry one of its exact `filenames` in the editor tab, beside Source. Syntaxes
+match files the same way. It runs in the same sandboxed frame as a panel (no Node, no file system), and Orca keeps
 the buffer, dirty state, saving, the external-change banner, read-only tabs and remote (SSH or
 paired host) files; the frame only gets the document, never a path. Editor and panel plugins are
 trusted code, and an editor can read every file it opens, so install ones you trust. Messages (`postMessage` with `window.parent`; check `event.source === window.parent`):

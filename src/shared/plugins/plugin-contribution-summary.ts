@@ -4,6 +4,7 @@ import {
   type PluginContributionPoint
 } from './plugin-contribution-points'
 import type { PluginManifest } from './manifest/plugin-manifest'
+import type { PluginFileMatch } from './plugin-file-match'
 import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from './manifest/plugin-schema-field-docs'
 
 export const PLUGIN_CONTRIBUTION_SUMMARY_LIMIT = 64
@@ -47,6 +48,10 @@ export const pluginContributionSummarySchema = z
     return known.length === 0 && items.length > 0 ? undefined : known
   })
 
+function fileMatchDetail(match: PluginFileMatch): string | undefined {
+  return [...match.extensions, ...match.filenames].join(', ') || undefined
+}
+
 /** What a manifest adds, as catalogs list it. Catalog CI generates the summary with this, and
  *  install compares a catalog's summary against it, so a listing cannot misstate a plugin. */
 export function pluginContributionSummary(
@@ -78,18 +83,8 @@ export function pluginContributionSummary(
     ...named('themes', c.themes, (theme) => theme.label),
     ...named('terminalThemes', c.terminalThemes, (theme) => theme.label),
     ...named('iconThemes', c.iconThemes, (theme) => theme.label),
-    ...named(
-      'syntaxes',
-      c.syntaxes,
-      (syntax) => syntax.label,
-      (syntax) => syntax.extensions.join(', ') || undefined
-    ),
-    ...named(
-      'customEditors',
-      c.customEditors,
-      (editor) => editor.title,
-      (editor) => editor.fileTypes.map((fileType) => `.${fileType}`).join(', ')
-    )
+    ...named('syntaxes', c.syntaxes, (syntax) => syntax.label, fileMatchDetail),
+    ...named('customEditors', c.customEditors, (editor) => editor.title, fileMatchDetail)
   ].slice(0, PLUGIN_CONTRIBUTION_SUMMARY_LIMIT)
 }
 

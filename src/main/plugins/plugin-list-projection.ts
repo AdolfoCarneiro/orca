@@ -74,7 +74,8 @@ export type PluginListEntry = {
   customEditors: {
     id: string
     title: string
-    fileTypes: string[]
+    extensions: string[]
+    filenames: string[]
     priority: 'default' | 'option'
     contentKind: 'text' | 'bytes'
   }[]
@@ -210,7 +211,8 @@ export async function buildPluginList(
         customEditors: plugin.manifest.contributes.customEditors.map((editor) => ({
           id: editor.id,
           title: editor.title,
-          fileTypes: editor.fileTypes,
+          extensions: editor.extensions,
+          filenames: editor.filenames,
           priority: editor.priority ?? 'default',
           contentKind: customEditorContentKind(editor)
         })),

@@ -4,6 +4,7 @@ import {
 } from '../../../shared/plugins/artifacts/plugin-syntax-artifact'
 import { createPluginContentListStore } from './plugin-content-list-store'
 import { prunePluginSyntaxFailures } from './plugin-syntax-failures'
+import { matchPluginFile, pluginFileMatchRank } from '../../../shared/plugins/plugin-file-match'
 
 const syntaxes = createPluginContentListStore<PluginSyntaxMetadata>({
   kind: 'syntaxes',
@@ -26,23 +27,13 @@ export function matchPluginSyntax(
   entries: readonly PluginSyntaxMetadata[],
   filePath: string
 ): PluginSyntaxMetadata | null {
-  const name = (filePath.split(/[\\/]/).at(-1) ?? '').toLowerCase()
-  const byName = entries.find((entry) => entry.filenames.includes(name))
-  if (byName) {
-    return byName
-  }
   let best: PluginSyntaxMetadata | null = null
-  let bestLength = 0
+  let bestRank = 0
   for (const entry of entries) {
-    for (const extension of entry.extensions) {
-      if (
-        name.endsWith(extension) &&
-        name.length > extension.length &&
-        extension.length > bestLength
-      ) {
-        best = entry
-        bestLength = extension.length
-      }
+    const rank = pluginFileMatchRank(matchPluginFile(filePath, entry))
+    if (rank > bestRank) {
+      best = entry
+      bestRank = rank
     }
   }
   return best

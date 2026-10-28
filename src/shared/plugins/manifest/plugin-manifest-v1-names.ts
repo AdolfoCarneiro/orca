@@ -31,7 +31,15 @@ export function upgradePluginManifestV1Names(raw: unknown): unknown {
     return { ...raw, capabilities }
   }
   // Why drop agents: format 1 accepted entries Orca never read, so they stay inert forever.
-  const { agents: _inert, panels, commands, keybindings, events, ...contributes } = raw.contributes
+  const {
+    agents: _inert,
+    panels,
+    commands,
+    keybindings,
+    events,
+    customEditors,
+    ...contributes
+  } = raw.contributes
   return {
     ...raw,
     capabilities,
@@ -44,6 +52,11 @@ export function upgradePluginManifestV1Names(raw: unknown): unknown {
       }),
       commands: mapRecords(commands, renameField('context', 'worktree', 'workspace')),
       keybindings: mapRecords(keybindings, renameField('when', 'worktree', 'workspace')),
+      customEditors: mapRecords(customEditors, ({ fileTypes, ...editor }) => [
+        Array.isArray(fileTypes)
+          ? { ...editor, extensions: fileTypes.map((fileType) => `.${String(fileType)}`) }
+          : editor
+      ]),
       events: mapRecords(events, (event) => {
         const on = PLUGIN_V1_EVENT_ALIASES.get(String(event.on))
         return [on ? { ...event, on } : event]

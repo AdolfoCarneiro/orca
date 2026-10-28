@@ -48,7 +48,8 @@ export type PluginHostStatus =
 export type PluginHostCustomEditor = {
   id: string
   title: string
-  fileTypes: string[]
+  extensions: string[]
+  filenames: string[]
   priority: 'default' | 'option'
   /** Absent on hosts that predate byte editors: text. */
   contentKind?: 'text' | 'bytes'

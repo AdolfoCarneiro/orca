@@ -5,9 +5,9 @@ import {
   pluginPathFieldDoc,
   PLUGIN_MANIFEST_V2_SINCE
 } from './manifest/plugin-schema-field-docs'
+import { pluginFileMatchFields } from './plugin-file-match'
 
 export const PLUGIN_CUSTOM_EDITOR_LIMIT = 16
-const PLUGIN_CUSTOM_EDITOR_FILE_TYPE_LIMIT = 16
 
 export const PLUGIN_CUSTOM_EDITOR_PRIORITIES = ['default', 'option'] as const
 export type PluginCustomEditorPriority = (typeof PLUGIN_CUSTOM_EDITOR_PRIORITIES)[number]
@@ -15,15 +15,6 @@ export type PluginCustomEditorPriority = (typeof PLUGIN_CUSTOM_EDITOR_PRIORITIES
 /** What the editor frame receives: the file's text, or its raw bytes. */
 export const PLUGIN_CUSTOM_EDITOR_CONTENT_KINDS = ['text', 'bytes'] as const
 export type PluginCustomEditorContentKind = (typeof PLUGIN_CUSTOM_EDITOR_CONTENT_KINDS)[number]
-
-/** A file-name suffix without the leading dot: `excalidraw`, or a compound one like `excalidraw.json`. */
-export const pluginCustomEditorFileTypeSchema = z
-  .string()
-  .max(64)
-  .regex(
-    /^[a-z0-9][a-z0-9+_-]*(?:\.[a-z0-9][a-z0-9+_-]*){0,2}$/,
-    'must be a lowercase file suffix without the leading dot'
-  )
 
 export const pluginCustomEditorContributionSchema = z
   .object({
@@ -45,17 +36,10 @@ export const pluginCustomEditorContributionSchema = z
           ['Excalidraw']
         )
       ),
-    fileTypes: z
-      .array(pluginCustomEditorFileTypeSchema)
-      .min(1)
-      .max(PLUGIN_CUSTOM_EDITOR_FILE_TYPE_LIMIT)
-      .meta(
-        pluginFieldDoc(
-          `File-name suffixes, without the leading dot, this editor opens. A longer suffix such as \`excalidraw.json\` matches only files ending in it. At most ${PLUGIN_CUSTOM_EDITOR_FILE_TYPE_LIMIT}.`,
-          PLUGIN_MANIFEST_V2_SINCE,
-          [['excalidraw', 'excalidraw.json']]
-        )
-      ),
+    ...pluginFileMatchFields('this editor', PLUGIN_MANIFEST_V2_SINCE, {
+      extensions: ['.excalidraw', '.excalidraw.json'],
+      filenames: []
+    }),
     entry: pluginRelativePathSchema.meta(
       pluginPathFieldDoc(
         'HTML file rendered inside a sandboxed editor frame, like a panel. It receives the open document and posts edits back; it never gets a file path or file system. It is trusted code: install editors you trust.',
@@ -68,7 +52,7 @@ export const pluginCustomEditorContributionSchema = z
       .optional()
       .meta(
         pluginFieldDoc(
-          '`default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. File types Orca opens itself (such as `json`, `ts`, `md`, `csv`, `yaml`, lockfiles and `.env` files) always behave as `option`.',
+          '`default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. Files Orca opens itself (such as `.json`, `.ts`, `.md`, `.csv`, `.yaml`, lockfiles and `.env` files) always behave as `option`.',
           PLUGIN_MANIFEST_V2_SINCE,
           ['default']
         )
@@ -88,7 +72,7 @@ export const pluginCustomEditorContributionSchema = z
   .meta({
     id: 'CustomEditorContribution',
     description:
-      'An editor for files of the listed types, shown in the editor tab beside Source. Requires the `sandboxed-ui` execution profile or higher.'
+      'An editor for the listed files, shown in the editor tab beside Source. It must list at least one extension or file name. Requires the `sandboxed-ui` execution profile or higher.'
   })
 
 export type PluginCustomEditorContribution = z.infer<typeof pluginCustomEditorContributionSchema>
@@ -97,22 +81,4 @@ export function customEditorContentKind(editor: {
   contentKind?: PluginCustomEditorContentKind
 }): PluginCustomEditorContentKind {
   return editor.contentKind ?? 'text'
-}
-
-/** The longest listed suffix the file name ends with, or null; a bare `.excalidraw` name never matches. */
-export function matchCustomEditorFileType(
-  filePath: string,
-  fileTypes: readonly string[]
-): string | null {
-  const name = (filePath.split(/[\\/]/).at(-1) ?? '').toLowerCase()
-  let best: string | null = null
-  for (const fileType of fileTypes) {
-    const suffix = `.${fileType}`
-    if (name.length > suffix.length && name.endsWith(suffix)) {
-      if (best === null || fileType.length > best.length) {
-        best = fileType
-      }
-    }
-  }
-  return best
 }

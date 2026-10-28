@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { PluginFileMatch } from './plugin-file-match'
 
 /** A file extension without its dot, as catalogs list it. */
 export const pluginFileTypeSchema = z
@@ -7,35 +8,33 @@ export const pluginFileTypeSchema = z
 
 const MAX_DISMISSED_FILE_TYPES = 256
 
-/** File types a plugin opens: syntax extensions, plus custom-editor suffixes that are one extension
- *  (a file-type suggestion only ever sees a path's last extension). */
-export function pluginHandledFileTypes(contributes: {
-  syntaxes: readonly { extensions: readonly string[] }[]
-  customEditors: readonly { fileTypes: readonly string[] }[]
-}): string[] {
+type FileMatchContributes = {
+  syntaxes: readonly PluginFileMatch[]
+  customEditors: readonly PluginFileMatch[]
+}
+
+/** Catalog file types: single extensions without the dot, since a suggestion sees only a path's
+ *  last extension; compound suffixes and exact names never reach it. */
+function catalogFileTypes(matches: readonly PluginFileMatch[]): string[] {
   return [
-    ...new Set([
-      ...contributes.syntaxes.flatMap((syntax) =>
-        syntax.extensions.map((extension) => extension.slice(1).toLowerCase())
-      ),
-      ...contributes.customEditors.flatMap((editor) =>
-        editor.fileTypes.filter((fileType) => pluginFileTypeSchema.safeParse(fileType).success)
-      )
-    ])
+    ...new Set(
+      matches
+        .flatMap((match) => match.extensions.map((extension) => extension.slice(1).toLowerCase()))
+        .filter((fileType) => pluginFileTypeSchema.safeParse(fileType).success)
+    )
   ]
 }
 
-/** Single-extension file types a plugin's custom editors open. */
-export function pluginEditorFileTypes(contributes: {
-  customEditors: readonly { fileTypes: readonly string[] }[]
-}): string[] {
-  return [
-    ...new Set(
-      contributes.customEditors.flatMap((editor) =>
-        editor.fileTypes.filter((fileType) => pluginFileTypeSchema.safeParse(fileType).success)
-      )
-    )
-  ]
+/** File types a plugin opens, through a syntax or a custom editor. */
+export function pluginHandledFileTypes(contributes: FileMatchContributes): string[] {
+  return catalogFileTypes([...contributes.syntaxes, ...contributes.customEditors])
+}
+
+/** File types a plugin's custom editors open. */
+export function pluginEditorFileTypes(
+  contributes: Pick<FileMatchContributes, 'customEditors'>
+): string[] {
+  return catalogFileTypes(contributes.customEditors)
 }
 
 /** Why a purpose: a file Orca already highlights only gets an editor suggestion, never a syntax one. */

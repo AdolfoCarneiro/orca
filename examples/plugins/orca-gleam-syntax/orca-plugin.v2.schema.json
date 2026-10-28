@@ -834,7 +834,7 @@
         },
         "extensions": {
           "default": [],
-          "description": "File extensions this language opens, with the dot.",
+          "description": "File-name suffixes, with the dot, this language opens, ignoring case. A longer suffix such as `.excalidraw.json` wins over a shorter one, and a file named only the suffix never matches. At most 32.",
           "x-orca-since": "1.4.244",
           "examples": [
             [
@@ -846,12 +846,12 @@
           "items": {
             "type": "string",
             "maxLength": 64,
-            "pattern": "^\\.[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$"
+            "pattern": "^\\.[A-Za-z0-9_+-]+(?:\\.[A-Za-z0-9_+-]+)*$"
           }
         },
         "filenames": {
           "default": [],
-          "description": "Exact file names this language opens. Names must be portable: no path separators, `.`, `..` or characters Windows forbids.",
+          "description": "Exact file names this language opens, ignoring case; a name beats any extension. Names must be portable: no path separators, `.`, `..` or characters Windows forbids. At most 32.",
           "x-orca-since": "1.4.244",
           "examples": [
             [
@@ -899,23 +899,38 @@
             "Excalidraw"
           ]
         },
-        "fileTypes": {
-          "minItems": 1,
-          "maxItems": 16,
+        "extensions": {
+          "default": [],
+          "description": "File-name suffixes, with the dot, this editor opens, ignoring case. A longer suffix such as `.excalidraw.json` wins over a shorter one, and a file named only the suffix never matches. At most 32.",
+          "x-orca-since": "1.4.244",
+          "examples": [
+            [
+              ".excalidraw",
+              ".excalidraw.json"
+            ]
+          ],
+          "maxItems": 32,
           "type": "array",
           "items": {
             "type": "string",
             "maxLength": 64,
-            "pattern": "^[a-z0-9][a-z0-9+_-]*(?:\\.[a-z0-9][a-z0-9+_-]*){0,2}$"
-          },
-          "description": "File-name suffixes, without the leading dot, this editor opens. A longer suffix such as `excalidraw.json` matches only files ending in it. At most 16.",
+            "pattern": "^\\.[A-Za-z0-9_+-]+(?:\\.[A-Za-z0-9_+-]+)*$"
+          }
+        },
+        "filenames": {
+          "default": [],
+          "description": "Exact file names this editor opens, ignoring case; a name beats any extension. Names must be portable: no path separators, `.`, `..` or characters Windows forbids. At most 32.",
           "x-orca-since": "1.4.244",
           "examples": [
-            [
-              "excalidraw",
-              "excalidraw.json"
-            ]
-          ]
+            []
+          ],
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
         },
         "entry": {
           "type": "string",
@@ -929,7 +944,7 @@
           ]
         },
         "priority": {
-          "description": "`default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. File types Orca opens itself (such as `json`, `ts`, `md`, `csv`, `yaml`, lockfiles and `.env` files) always behave as `option`.",
+          "description": "`default` (the default) opens matching files in this editor; `option` only offers it in the view toggle, so files open in Source. Files Orca opens itself (such as `.json`, `.ts`, `.md`, `.csv`, `.yaml`, lockfiles and `.env` files) always behave as `option`.",
           "x-orca-since": "1.4.244",
           "examples": [
             "default"
@@ -956,11 +971,10 @@
       "required": [
         "id",
         "title",
-        "fileTypes",
         "entry"
       ],
       "additionalProperties": false,
-      "description": "An editor for files of the listed types, shown in the editor tab beside Source. Requires the `sandboxed-ui` execution profile or higher."
+      "description": "An editor for the listed files, shown in the editor tab beside Source. It must list at least one extension or file name. Requires the `sandboxed-ui` execution profile or higher."
     },
     "Capability": {
       "type": "object",

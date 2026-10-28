@@ -17,6 +17,7 @@ import {
 } from '../presentation/plugin-access-profile'
 import type { PluginPagePreview } from './use-plugin-catalog'
 import { useInstalledPluginManifest } from './use-plugin-contribution-source'
+import type { PluginFileMatch } from '../../../../../shared/plugins/plugin-file-match'
 
 /** A shortcut a plugin binds, by the key as written and the command it runs. */
 export type PluginPageShortcut = { key: string; command: string }
@@ -162,12 +163,12 @@ export function usePluginPageModel({
         .map((item) => ({ key: item.name, command: item.detail ?? item.name })) ?? null
   }
 
-  // Dotted suffixes the plugin's custom editors open and edit, named in the consent.
-  const customEditors: readonly { fileTypes: readonly string[] }[] | undefined = plugin
+  // Extensions and file names the plugin's custom editors open and edit, named in the consent.
+  const customEditors: readonly PluginFileMatch[] | undefined = plugin
     ? (plugin.customEditors ?? [])
     : shownPreview?.manifest.contributes.customEditors
   const editorFileTypes = customEditors
-    ? customEditors.flatMap((editor) => editor.fileTypes.map((fileType) => `.${fileType}`))
+    ? customEditors.flatMap((editor) => [...editor.extensions, ...editor.filenames])
     : (summary
         ?.filter((item) => item.kind === 'customEditors')
         .flatMap((item) => (item.detail ? item.detail.split(', ') : [])) ?? null)

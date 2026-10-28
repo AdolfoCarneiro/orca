@@ -4,14 +4,14 @@ import { PLUGIN_MANIFEST_V2_SINCE } from './manifest/plugin-schema-field-docs'
 import { pluginCatalogReleaseEntry } from './catalog/plugin-catalog-release'
 import { pluginCatalogTypes } from './catalog/plugin-catalog-types'
 import { pluginContributionSummary } from './plugin-contribution-summary'
-import { matchCustomEditorFileType } from './plugin-custom-editor-contribution'
+import { matchPluginFile, pluginFileMatchRank } from './plugin-file-match'
 import { requiresPluginContentApproval } from './approval/plugin-consent-fingerprint'
 import { pluginUpdateAccessGrowth } from './approval/plugin-update-access-growth'
 
 const excalidraw = {
   id: 'excalidraw',
   title: 'Excalidraw',
-  fileTypes: ['excalidraw', 'excalidraw.json'],
+  extensions: ['.excalidraw', '.excalidraw.json'],
   entry: 'editor/index.html'
 }
 
@@ -39,20 +39,20 @@ function parsed(overrides: Record<string, unknown> = {}) {
 
 describe('contributes.customEditors', () => {
   it('accepts a sandboxed-ui editor and defaults every other point', () => {
-    expect(parsed().contributes.customEditors).toEqual([excalidraw])
+    expect(parsed().contributes.customEditors).toEqual([{ ...excalidraw, filenames: [] }])
   })
 
   it('accepts a bytes editor, which edits like a text one', () => {
     const spreadsheet = {
       id: 'spreadsheet',
       title: 'Spreadsheet',
-      fileTypes: ['xlsx'],
+      extensions: ['.xlsx'],
       entry: 'editor/index.html',
       contentKind: 'bytes'
     }
     expect(
       parsed({ contributes: { customEditors: [spreadsheet] } }).contributes.customEditors
-    ).toEqual([spreadsheet])
+    ).toEqual([{ ...spreadsheet, filenames: [] }])
   })
 
   it('refuses the retired readonly field', () => {
@@ -83,10 +83,10 @@ describe('contributes.customEditors', () => {
   })
 
   it.each([
-    [{ ...excalidraw, fileTypes: [] }],
-    [{ ...excalidraw, fileTypes: ['.excalidraw'] }],
-    [{ ...excalidraw, fileTypes: ['Excalidraw'] }],
-    [{ ...excalidraw, fileTypes: ['excalidraw', 'excalidraw'] }],
+    [{ ...excalidraw, extensions: [] }],
+    [{ ...excalidraw, extensions: ['excalidraw'] }],
+    [{ ...excalidraw, extensions: ['.excalidraw', '.EXCALIDRAW'] }],
+    [{ ...excalidraw, extensions: [], filenames: ['a/b'] }],
     [{ ...excalidraw, priority: 'always' }],
     [{ ...excalidraw, entry: '../escape.html' }],
     [{ ...excalidraw, path: 'extra' }]
@@ -106,6 +106,16 @@ describe('contributes.customEditors', () => {
     })
   })
 
+  it('accepts an editor that lists only exact file names', () => {
+    expect(
+      parsePluginManifest(
+        manifest({
+          contributes: { customEditors: [{ ...excalidraw, extensions: [], filenames: ['Board'] }] }
+        })
+      )
+    ).toMatchObject({ ok: true })
+  })
+
   it('lists as a panel type with dotted file types, and suggests for single-extension types', () => {
     const plugin = parsed()
     expect(pluginCatalogTypes(plugin)).toEqual(['panel'])
@@ -121,7 +131,7 @@ describe('contributes.customEditors', () => {
     const plugin = parsed()
     expect(requiresPluginContentApproval(plugin)).toBe(true)
     const wider = parsed({
-      contributes: { customEditors: [{ ...excalidraw, fileTypes: ['excalidraw', 'svg'] }] }
+      contributes: { customEditors: [{ ...excalidraw, extensions: ['.excalidraw', '.svg'] }] }
     })
     expect(pluginUpdateAccessGrowth(plugin, wider).contributions).toEqual(['customEditors'])
     expect(pluginUpdateAccessGrowth(plugin, plugin).contributions).toEqual([])
@@ -137,20 +147,37 @@ describe('contributes.customEditors', () => {
     expect(growth(editor({ priority: 'option', contentKind: 'bytes' }))).toEqual(['customEditors'])
     // Narrower reach keeps the approval.
     expect(pluginUpdateAccessGrowth(editor({}), option).contributions).toEqual([])
-    expect(growth(editor({ priority: 'option', fileTypes: ['excalidraw'] }))).toEqual([])
+    expect(growth(editor({ priority: 'option', extensions: ['.excalidraw'] }))).toEqual([])
   })
 })
 
-describe('matchCustomEditorFileType', () => {
-  it('matches the longest suffix, case-insensitively, across path styles', () => {
-    const types = ['excalidraw', 'excalidraw.json', 'json']
-    expect(matchCustomEditorFileType('/repo/a/Diagram.EXCALIDRAW', types)).toBe('excalidraw')
-    expect(matchCustomEditorFileType('C:\\repo\\d.excalidraw.json', types)).toBe('excalidraw.json')
-    expect(matchCustomEditorFileType('/repo/package.json', ['excalidraw.json'])).toBeNull()
+describe('matchPluginFile', () => {
+  const match = (extensions: string[], filenames: string[] = []) => ({ extensions, filenames })
+
+  it('matches the longest extension, case-insensitively, across path styles', () => {
+    const editor = match(['.excalidraw', '.excalidraw.json', '.json'])
+    expect(matchPluginFile('/repo/a/Diagram.EXCALIDRAW', editor)).toEqual({
+      by: 'extension',
+      extension: '.excalidraw'
+    })
+    expect(matchPluginFile('C:\\repo\\d.excalidraw.json', editor)).toEqual({
+      by: 'extension',
+      extension: '.excalidraw.json'
+    })
+    expect(matchPluginFile('/repo/package.json', match(['.excalidraw.json']))).toBeNull()
   })
 
   it('never matches a bare suffix name or a directory segment', () => {
-    expect(matchCustomEditorFileType('/repo/.excalidraw', ['excalidraw'])).toBeNull()
-    expect(matchCustomEditorFileType('/repo/x.excalidraw/readme.md', ['excalidraw'])).toBeNull()
+    expect(matchPluginFile('/repo/.excalidraw', match(['.excalidraw']))).toBeNull()
+    expect(matchPluginFile('/repo/x.excalidraw/readme.md', match(['.excalidraw']))).toBeNull()
+  })
+
+  it('ranks an exact file name above any extension', () => {
+    const byName = matchPluginFile('/repo/Gleam.TOML', match(['.toml'], ['gleam.toml']))
+    expect(byName).toEqual({ by: 'filename' })
+    expect(pluginFileMatchRank(byName)).toBeGreaterThan(
+      pluginFileMatchRank(matchPluginFile('/repo/gleam.toml', match(['.toml'])))
+    )
+    expect(pluginFileMatchRank(null)).toBe(0)
   })
 })
