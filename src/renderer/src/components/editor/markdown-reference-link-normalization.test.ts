@@ -192,19 +192,56 @@ it.each(['界', '𐐀'])(
 it.each([' ', '\uFEFF'])(
   'folds a shared nested reference whitespace tail once for %j',
   (whitespace) => {
-    const count = 2_000_000
+    const count = 10_000
     const prefix = `${'['.repeat(count)}${whitespace.repeat(count)}]`
     const definitions = Array.from(
       { length: Math.floor(Math.sqrt(count)) },
       (_, index) => `[${'['.repeat(index)}missing]: url`
     ).join('\n')
     const source = `${prefix}\n\n${definitions}\n`
-    const normalized = runInNewContext(
-      'normalize(source)',
-      { normalize: normalizeMarkdownReferenceLinks, source },
-      { timeout: 1500 }
-    )
+    let characterVisits = 0
+    const originalReplace = String.prototype.replace
+    const originalCharCodeAt = String.prototype.charCodeAt
+    const originalCharAt = String.prototype.charAt
+    const originalLowerCase = String.prototype.toLowerCase
+    const replace = vi.spyOn(String.prototype, 'replace').mockImplementation(function (
+      this: string,
+      ...args: Parameters<typeof originalReplace>
+    ) {
+      characterVisits += this.length
+      return originalReplace.apply(this, args)
+    })
+    const charCodeAt = vi.spyOn(String.prototype, 'charCodeAt').mockImplementation(function (
+      this: string,
+      index
+    ) {
+      characterVisits++
+      return originalCharCodeAt.call(this, index)
+    })
+    const charAt = vi.spyOn(String.prototype, 'charAt').mockImplementation(function (
+      this: string,
+      index
+    ) {
+      characterVisits++
+      return originalCharAt.call(this, index)
+    })
+    const toLowerCase = vi.spyOn(String.prototype, 'toLowerCase').mockImplementation(function (
+      this: string
+    ) {
+      characterVisits += this.length
+      return originalLowerCase.call(this)
+    })
+    let normalized: string
+    try {
+      normalized = normalizeMarkdownReferenceLinks(source)
+    } finally {
+      replace.mockRestore()
+      charCodeAt.mockRestore()
+      charAt.mockRestore()
+      toLowerCase.mockRestore()
+    }
     expect(normalized).toBe(`${prefix}\n\n`)
+    expect(characterVisits).toBeLessThanOrEqual(source.length * 16)
   }
 )
 
