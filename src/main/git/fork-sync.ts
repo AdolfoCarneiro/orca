@@ -20,6 +20,7 @@ export async function gitSyncForkDefaultBranch(
       (args) =>
         gitExecFileAsync(args, {
           ...gitOptionsForWorktree(worktreePath, options),
+          captureWslLoginShellOutput: true,
           timeout: 60_000,
           signal
         }),
