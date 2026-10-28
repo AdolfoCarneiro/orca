@@ -1,12 +1,15 @@
 import { createHash } from 'node:crypto'
-import { canonicalizeCapabilitySet } from '../plugin-capabilities'
-import { pluginExecutionAllows, type PluginExecutionProfile } from '../plugin-execution-profile'
+import { canonicalizeCapabilitySet } from '../capabilities/plugin-capabilities'
+import {
+  pluginExecutionAllows,
+  type PluginExecutionProfile
+} from '../contributions/plugin-execution-profile'
 import type { PluginManifest } from '../manifest/plugin-manifest'
 import {
   PLUGIN_CONTRIBUTION_POINT_POLICY,
   PLUGIN_CONTRIBUTION_POINTS,
   type PluginContributionPoint
-} from '../plugin-contribution-points'
+} from '../contributions/plugin-contribution-points'
 
 type PluginConsentSubject = Pick<PluginManifest, 'capabilities' | 'main'> & {
   execution?: PluginExecutionProfile

@@ -6,7 +6,7 @@ import {
   pluginGitConfigArgs,
   pluginGitFetchCommitArgs,
   pluginGitTreeArgs
-} from './plugins/plugin-git-arguments'
+} from './plugins/installation/plugin-git-arguments'
 
 export function registerPluginGitDownloadBinaryCompatibilityCase(
   runGit: (

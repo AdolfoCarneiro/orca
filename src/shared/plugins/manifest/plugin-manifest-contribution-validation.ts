@@ -1,8 +1,11 @@
 import type { RefinementCtx } from 'zod'
-import { isPluginCommandAliasActionId } from '../plugin-command-actions'
+import { isPluginCommandAliasActionId } from '../contributions/plugin-command-actions'
 import { getKeybindingConflictIdentity } from '../../keybindings'
-import { PLUGIN_EVENT_CAPABILITY, type PluginEventName } from '../plugin-event-contribution'
-import type { PluginFileMatch } from '../plugin-file-match'
+import {
+  PLUGIN_EVENT_CAPABILITY,
+  type PluginEventName
+} from '../contributions/plugin-event-contribution'
+import type { PluginFileMatch } from '../contributions/plugin-file-match'
 
 type IdentifiedContribution = { id: string }
 type PathContribution = { path: string }

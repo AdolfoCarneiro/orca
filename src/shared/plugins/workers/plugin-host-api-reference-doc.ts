@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { PluginErrorCode } from '../plugin-protocol'
+import type { PluginErrorCode } from '../frames/plugin-protocol'
 import { PLUGIN_HOST_API_MAJOR } from './plugin-host-api-major'
 import { PLUGIN_HOST_API, PLUGIN_HOST_API_MINOR, PLUGIN_HOST_METHOD_NAMES } from './plugin-host-api'
 

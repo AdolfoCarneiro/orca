@@ -6,7 +6,7 @@ import {
   pluginLockEntrySchema,
   type PluginLockEntry,
   type PluginLockfile
-} from '../../../shared/plugins/plugin-install-lockfile'
+} from '../../../shared/plugins/installation/plugin-install-lockfile'
 import { isQualifiedPluginKey } from '../../../shared/plugins/manifest/plugin-manifest'
 import { writePluginFileAtomically } from './plugin-atomic-file-write'
 import { readPluginCurrentPointer } from './plugin-current-pointer'

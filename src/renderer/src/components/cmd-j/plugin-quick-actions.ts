@@ -1,5 +1,5 @@
 import { Blocks } from 'lucide-react'
-import { isWorkspaceScopedPluginContext } from '../../../../shared/plugins/plugin-command-contribution'
+import { isWorkspaceScopedPluginContext } from '../../../../shared/plugins/contributions/plugin-command-contribution'
 import type { ActivePluginCommand } from '@/store/plugin-panels'
 import { executePluginCommand } from '@/lib/plugin-command-execution'
 import { translate } from '@/i18n/i18n'

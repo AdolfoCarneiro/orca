@@ -1,5 +1,5 @@
 import { defineMethod, type RpcContext } from '../core'
-import type { PluginFrameEntry } from '../../../../shared/plugins/plugin-frame-bridge'
+import type { PluginFrameEntry } from '../../../../shared/plugins/frames/plugin-frame-bridge'
 import { listPluginsForClients } from '../../../plugins/plugin-client-list'
 import type { PluginHostListEntry } from '../../../../shared/plugins/plugin-list-entry'
 import type { PluginService } from '../../../plugins/plugin-service'

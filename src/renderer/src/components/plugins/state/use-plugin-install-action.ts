@@ -4,7 +4,7 @@ import type {
   PluginMarketplaceHostInstallPreview,
   PluginMarketplaceHostListing
 } from '../../../../../preload/api-types'
-import { pluginExecutionProfile } from '../../../../../shared/plugins/plugin-execution-profile'
+import { pluginExecutionProfile } from '../../../../../shared/plugins/contributions/plugin-execution-profile'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { pluginInstallErrorMessage } from '../presentation/plugin-error-presentation'

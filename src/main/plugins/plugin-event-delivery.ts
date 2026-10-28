@@ -1,7 +1,7 @@
 import type { PluginEventName } from '../../shared/plugins/manifest/plugin-manifest'
-import type { PluginCapabilityKind } from '../../shared/plugins/plugin-capabilities'
-import { PLUGIN_EVENT_CAPABILITY } from '../../shared/plugins/plugin-event-contribution'
-import { PLUGIN_EVENT_PAYLOAD_SCHEMAS } from '../../shared/plugins/plugin-events'
+import type { PluginCapabilityKind } from '../../shared/plugins/capabilities/plugin-capabilities'
+import { PLUGIN_EVENT_CAPABILITY } from '../../shared/plugins/contributions/plugin-event-contribution'
+import { PLUGIN_EVENT_PAYLOAD_SCHEMAS } from '../../shared/plugins/events/plugin-events'
 import {
   isInvalidDiscoveredPlugin,
   type DiscoveredPlugin,

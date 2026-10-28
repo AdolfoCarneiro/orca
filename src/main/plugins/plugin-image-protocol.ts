@@ -1,7 +1,16 @@
 import { protocol } from 'electron'
-import { PLUGIN_IMAGE_MIME, readPluginImageHeader } from '../../shared/plugins/plugin-image-format'
-import { PLUGIN_IMAGE_RULES, pluginImageRuleError } from '../../shared/plugins/plugin-image-fields'
-import { PLUGIN_IMAGE_SCHEME, parsePluginImageUrl } from '../../shared/plugins/plugin-image-url'
+import {
+  PLUGIN_IMAGE_MIME,
+  readPluginImageHeader
+} from '../../shared/plugins/images/plugin-image-format'
+import {
+  PLUGIN_IMAGE_RULES,
+  pluginImageRuleError
+} from '../../shared/plugins/images/plugin-image-fields'
+import {
+  PLUGIN_IMAGE_SCHEME,
+  parsePluginImageUrl
+} from '../../shared/plugins/images/plugin-image-url'
 import { readContainedPluginArtifactBytes } from './plugin-artifact-validation'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
 import { declaredPluginImages } from './plugin-image-artifact-validation'

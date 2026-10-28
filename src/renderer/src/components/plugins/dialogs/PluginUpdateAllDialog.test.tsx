@@ -8,7 +8,7 @@ import type {
   PluginMarketplaceHostInstallPreview
 } from '../../../../../preload/api-types'
 import { pluginManifestSchema } from '../../../../../shared/plugins/manifest/plugin-manifest'
-import type { PluginCapabilityKind } from '../../../../../shared/plugins/plugin-capabilities'
+import type { PluginCapabilityKind } from '../../../../../shared/plugins/capabilities/plugin-capabilities'
 import type { PluginListEntry } from '../list/plugin-list-entries'
 import { PluginUpdateAllDialog } from './PluginUpdateAllDialog'
 

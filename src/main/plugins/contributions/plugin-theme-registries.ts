@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import type { PluginThemeContribution } from '../../../shared/plugins/plugin-content-pack-contributions'
+import type { PluginThemeContribution } from '../../../shared/plugins/contributions/plugin-content-pack-contributions'
 import {
   parsePluginAppThemeArtifact,
   type PluginThemeRegistration

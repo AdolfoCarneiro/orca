@@ -3,8 +3,8 @@ import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { z } from 'zod'
 import type { Store } from '../persistence'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
-import type { PluginFrameEntry } from '../../shared/plugins/plugin-frame-bridge'
-import type { PluginHostCallOutcome } from '../../shared/plugins/plugin-protocol'
+import type { PluginFrameEntry } from '../../shared/plugins/frames/plugin-frame-bridge'
+import type { PluginHostCallOutcome } from '../../shared/plugins/frames/plugin-protocol'
 import { getUserPluginsDir, getPluginsDataDir } from '../plugins/plugin-discovery'
 import {
   installPluginFromGit,
@@ -21,7 +21,7 @@ import { normalizePluginIdList } from '../../shared/plugins/approval/plugin-cons
 import {
   isAllowedPluginGitUrl,
   type PluginLockfile
-} from '../../shared/plugins/plugin-install-lockfile'
+} from '../../shared/plugins/installation/plugin-install-lockfile'
 import {
   registerPluginMarketplaceHandlers,
   type PluginMarketplaceHandlerServices

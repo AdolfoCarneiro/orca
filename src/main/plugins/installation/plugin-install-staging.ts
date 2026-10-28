@@ -17,7 +17,7 @@ import {
 import type {
   PluginInstallSource,
   PluginLockEntry
-} from '../../../shared/plugins/plugin-install-lockfile'
+} from '../../../shared/plugins/installation/plugin-install-lockfile'
 import {
   validateDeclaredPluginArtifacts,
   validatePluginInstallContent,

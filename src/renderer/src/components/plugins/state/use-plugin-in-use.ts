@@ -3,7 +3,7 @@ import type { PluginIconThemeMetadata } from '../../../../../shared/plugins/arti
 import type { PluginLanguagePackRegistration } from '../../../../../shared/plugins/artifacts/plugin-language-pack-artifact'
 import type { PluginTerminalThemeRegistration } from '../../../../../shared/plugins/artifacts/plugin-terminal-theme-artifact'
 import type { PluginThemeRegistration } from '../../../../../shared/plugins/artifacts/plugin-theme-artifact'
-import { isUsablePluginLanguagePack } from '../../../../../shared/plugins/plugin-language-pack-coverage'
+import { isUsablePluginLanguagePack } from '../../../../../shared/plugins/languages/plugin-language-pack-coverage'
 import { useAppStore } from '@/store'
 import { isPluginAppThemeSelected } from './plugin-theme-apply'
 import { usePluginIconThemes } from '@/store/plugin-icon-themes'

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { pluginManifestSchema } from '../../../shared/plugins/manifest/plugin-manifest'
 import { PLUGIN_MANIFEST_V2_SINCE } from '../../../shared/plugins/manifest/plugin-schema-field-docs'
-import { PLUGIN_PANEL_CSP } from '../../../shared/plugins/plugin-panel-shell'
+import { PLUGIN_PANEL_CSP } from '../../../shared/plugins/frames/plugin-panel-shell'
 import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import { PluginPanelController } from './plugin-panel-controller'
 

@@ -4,8 +4,8 @@ import {
   PLUGIN_EVENT_NAMES,
   pluginCommandIdSchema
 } from '../manifest/plugin-manifest'
-import { PLUGIN_CAPABILITY_KINDS } from '../plugin-capabilities'
-import { pluginEvent, type PluginEvent } from '../plugin-protocol'
+import { PLUGIN_CAPABILITY_KINDS } from '../capabilities/plugin-capabilities'
+import { pluginEvent, type PluginEvent } from '../frames/plugin-protocol'
 
 /**
  * The worker fork channel, on the shared envelope (plugin-protocol.ts). Validate both sides:

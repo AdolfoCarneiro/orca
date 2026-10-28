@@ -5,13 +5,13 @@ import type {
 import {
   pluginExecutionProfile,
   type PluginExecutionProfile
-} from '../../../../../shared/plugins/plugin-execution-profile'
+} from '../../../../../shared/plugins/contributions/plugin-execution-profile'
 import type { PluginManifest } from '../../../../../shared/plugins/manifest/plugin-manifest'
 import {
   PLUGIN_CONTRIBUTION_POINT_POLICY,
   PLUGIN_CONTRIBUTION_POINTS,
   type PluginContributionPoint
-} from '../../../../../shared/plugins/plugin-contribution-points'
+} from '../../../../../shared/plugins/contributions/plugin-contribution-points'
 
 /**
  * The execution profile a plugin page describes, or null while it is unknown.

@@ -16,7 +16,7 @@ import {
   type PluginMarketplaceCachedSnapshot,
   type PluginMarketplaceRegisteredSource
 } from './plugin-marketplace-store'
-import type { PluginKillListEntry } from '../../../shared/plugins/plugin-kill-list'
+import type { PluginKillListEntry } from '../../../shared/plugins/catalog/plugin-kill-list'
 import type { PluginImageCache } from '../plugin-image-cache'
 import { validateMarketplaceProvenance } from './plugin-marketplace-provenance'
 import { pluginMarketplaceErrorMessage } from './plugin-marketplace-error-message'

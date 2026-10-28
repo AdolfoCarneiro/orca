@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { PluginKillList } from '../../../shared/plugins/plugin-kill-list'
+import type { PluginKillList } from '../../../shared/plugins/catalog/plugin-kill-list'
 import {
   fetchPluginKillList,
   PLUGIN_KILL_LIST_RETRY_MS,

@@ -1,9 +1,12 @@
 import { getBoundPluginHostMethod, type PluginHostServices } from './plugin-host-method-bindings'
 import { isQualifiedPluginKey } from '../../../shared/plugins/manifest/plugin-manifest'
-import { gatePluginHostCall as decidePluginHostCall } from '../../../shared/plugins/plugin-capability-gate'
-import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabilities'
+import { gatePluginHostCall as decidePluginHostCall } from '../../../shared/plugins/capabilities/plugin-capability-gate'
+import type { PluginCapabilityKind } from '../../../shared/plugins/capabilities/plugin-capabilities'
 import { isPluginJsonObject } from '../../../shared/plugins/manifest/plugin-json-object'
-import type { PluginHostCallOutcome, PluginSurface } from '../../../shared/plugins/plugin-protocol'
+import type {
+  PluginHostCallOutcome,
+  PluginSurface
+} from '../../../shared/plugins/frames/plugin-protocol'
 import type { PluginAuditLog } from '../plugin-audit-log'
 
 /**

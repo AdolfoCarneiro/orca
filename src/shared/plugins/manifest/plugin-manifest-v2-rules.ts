@@ -1,7 +1,10 @@
 import type { RefinementCtx } from 'zod'
-import type { PluginCapability } from '../plugin-capabilities'
-import { pluginExecutionAllows, type PluginExecutionProfile } from '../plugin-execution-profile'
-import { pluginCapabilityReachable } from '../plugin-capability-reach'
+import type { PluginCapability } from '../capabilities/plugin-capabilities'
+import {
+  pluginExecutionAllows,
+  type PluginExecutionProfile
+} from '../contributions/plugin-execution-profile'
+import { pluginCapabilityReachable } from '../capabilities/plugin-capability-reach'
 
 type V2RuleSubject = {
   execution: PluginExecutionProfile

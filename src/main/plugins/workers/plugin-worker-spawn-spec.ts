@@ -1,4 +1,4 @@
-import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabilities'
+import type { PluginCapabilityKind } from '../../../shared/plugins/capabilities/plugin-capabilities'
 import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import type { PluginWorkerSpawnSpec } from './plugin-worker-startup'
 

@@ -1,13 +1,13 @@
 import { z } from 'zod'
-import { pluginCapabilitySchema } from '../plugin-capabilities'
+import { pluginCapabilitySchema } from '../capabilities/plugin-capabilities'
 import { orcaEngineRangeSchema } from './plugin-manifest-engine-range'
 import {
   pluginContributesFields,
   pluginReservedContributesFields
-} from '../plugin-contribution-points'
+} from '../contributions/plugin-contribution-points'
 import { pluginIdSchema, pluginRelativePathSchema } from './plugin-manifest-fields'
-import { pluginManifestDetailFields } from '../plugin-detail-fields'
-import { PLUGIN_ICON_RULE_TEXT, pluginManifestImageFields } from '../plugin-image-fields'
+import { pluginManifestDetailFields } from '../catalog/plugin-detail-fields'
+import { PLUGIN_ICON_RULE_TEXT, pluginManifestImageFields } from '../images/plugin-image-fields'
 import { validatePluginManifestContributions } from './plugin-manifest-contribution-validation'
 import { validatePluginEngineFloor } from './plugin-engine-floor'
 import { validatePluginManifestV2Rules } from './plugin-manifest-v2-rules'
@@ -23,7 +23,7 @@ import {
 import {
   pluginExecutionProfileSchema,
   validatePluginExecutionProfile
-} from '../plugin-execution-profile'
+} from '../contributions/plugin-execution-profile'
 
 /**
  * Plugin manifest v1 and v2 (`orca-plugin.json` at the plugin root). The
@@ -198,17 +198,20 @@ export const pluginManifestSchema = z.preprocess(
 )
 
 export type PluginManifest = z.infer<typeof pluginManifestSchema>
-export { PLUGIN_PANEL_LIMIT, type PluginPanelContribution } from '../plugin-panel-contribution'
+export {
+  PLUGIN_PANEL_LIMIT,
+  type PluginPanelContribution
+} from '../contributions/plugin-panel-contribution'
 export {
   PLUGIN_COMMAND_LIMIT,
   type PluginCommandContribution
-} from '../plugin-command-contribution'
+} from '../contributions/plugin-command-contribution'
 export {
   PLUGIN_EVENT_NAMES,
   PLUGIN_EVENT_SUBSCRIPTION_LIMIT,
   type PluginEventContribution,
   type PluginEventName
-} from '../plugin-event-contribution'
+} from '../contributions/plugin-event-contribution'
 
 export {
   isSafePluginId,
@@ -235,4 +238,8 @@ export function parsePluginManifest(raw: unknown): PluginManifestParseResult {
   return { ok: false, error: formatPluginSchemaIssues(parsed.error.issues, raw) }
 }
 
-export { isPluginPanelTabKey, isQualifiedPluginKey, pluginPanelTabKey } from '../plugin-tab-key'
+export {
+  isPluginPanelTabKey,
+  isQualifiedPluginKey,
+  pluginPanelTabKey
+} from '../frames/plugin-tab-key'

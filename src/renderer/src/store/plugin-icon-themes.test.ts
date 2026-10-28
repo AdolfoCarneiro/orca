@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { PluginChangeEvent } from '../../../shared/plugins/plugin-change-event'
+import type { PluginChangeEvent } from '../../../shared/plugins/events/plugin-change-event'
 
 afterEach(() => {
   vi.unstubAllGlobals()

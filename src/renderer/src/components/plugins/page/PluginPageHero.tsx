@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import type { PluginHostImages } from '../../../../../shared/plugins/plugin-image-url'
+import type { PluginHostImages } from '../../../../../shared/plugins/images/plugin-image-url'
 import { translate } from '@/i18n/i18n'
 import { PluginCardArt, type PluginArtPalette } from '../list/PluginCardArt'
 import type { PluginListEntry } from '../list/plugin-list-entries'

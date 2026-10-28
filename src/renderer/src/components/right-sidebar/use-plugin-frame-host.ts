@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
-import { FRAME_EVENTS } from '../../../../shared/plugins/plugin-frame-bridge'
-import { pluginEvent } from '../../../../shared/plugins/plugin-protocol'
+import { FRAME_EVENTS } from '../../../../shared/plugins/frames/plugin-frame-bridge'
+import { pluginEvent } from '../../../../shared/plugins/frames/plugin-protocol'
 import { createPluginFrameMessageHandler, type PluginFrameEditorChannel } from './plugin-frame-host'
 import { createPanelWatchdog } from './plugin-panel-watchdog'
 import { usePluginFrameThemeSync } from './use-plugin-panel-theme-revision'

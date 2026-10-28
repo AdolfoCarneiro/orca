@@ -1,5 +1,5 @@
 import type { EnrichedAgentHookEventPayload } from '../agent-hooks/server/server-types'
-import type { PluginAgentStatusChangedPayload } from '../../shared/plugins/plugin-events'
+import type { PluginAgentStatusChangedPayload } from '../../shared/plugins/events/plugin-events'
 
 /** Exclude restored rows from live automation triggers; optional mainAgent preserves old-host compatibility. */
 export function projectPluginAgentStatusChangedPayload(

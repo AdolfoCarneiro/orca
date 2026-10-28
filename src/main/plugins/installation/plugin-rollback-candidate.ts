@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { parsePluginManifest } from '../../../shared/plugins/manifest/plugin-manifest'
 import { readPluginCurrentPointer } from './plugin-current-pointer'
 import { readPluginManifestText } from '../plugin-manifest-file'
-import { PLUGIN_CONTENT_HASH_PATTERN } from '../../../shared/plugins/plugin-install-lockfile'
+import { PLUGIN_CONTENT_HASH_PATTERN } from '../../../shared/plugins/installation/plugin-install-lockfile'
 
 export type PluginRollbackCandidate =
   | { ok: true; currentContentHash: string; contentHash: string }

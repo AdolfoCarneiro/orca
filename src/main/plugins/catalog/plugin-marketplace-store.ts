@@ -3,7 +3,7 @@ import { createReadStream } from 'node:fs'
 import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { z } from 'zod'
-import { PLUGIN_COMMIT_PATTERN } from '../../../shared/plugins/plugin-install-lockfile'
+import { PLUGIN_COMMIT_PATTERN } from '../../../shared/plugins/installation/plugin-install-lockfile'
 import {
   pluginMarketplaceGitSourceSchema,
   pluginMarketplaceListingSchema,

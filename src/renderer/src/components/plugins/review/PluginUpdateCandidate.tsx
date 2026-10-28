@@ -1,11 +1,11 @@
 import { Check, ChevronDown } from 'lucide-react'
 import type { PluginMarketplaceHostInstallPreview } from '../../../../../preload/api-types'
-import { pluginExecutionProfile } from '../../../../../shared/plugins/plugin-execution-profile'
+import { pluginExecutionProfile } from '../../../../../shared/plugins/contributions/plugin-execution-profile'
 import {
   pluginCapabilityReachable,
   reachablePluginCapabilities
-} from '../../../../../shared/plugins/plugin-capability-reach'
-import type { PluginContributionPoint } from '../../../../../shared/plugins/plugin-contribution-points'
+} from '../../../../../shared/plugins/capabilities/plugin-capability-reach'
+import type { PluginContributionPoint } from '../../../../../shared/plugins/contributions/plugin-contribution-points'
 import { translate } from '@/i18n/i18n'
 import type { PluginListEntry } from '../list/plugin-list-entries'
 import { PluginRowArt } from '../list/PluginRowArt'

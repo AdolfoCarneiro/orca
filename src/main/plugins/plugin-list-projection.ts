@@ -1,9 +1,9 @@
-import { PLUGIN_CAPABILITY_DESCRIPTIONS } from '../../shared/plugins/plugin-capabilities'
+import { PLUGIN_CAPABILITY_DESCRIPTIONS } from '../../shared/plugins/capabilities/plugin-capabilities'
 import { needsReconsent } from '../../shared/plugins/approval/plugin-consent-state'
 import { pluginPanelTabKey } from '../../shared/plugins/manifest/plugin-manifest'
-import type { PluginLockfile } from '../../shared/plugins/plugin-install-lockfile'
+import type { PluginLockfile } from '../../shared/plugins/installation/plugin-install-lockfile'
 import { isInvalidDiscoveredPlugin, type DiscoveredPlugin } from './plugin-discovery'
-import type { PluginHostImages } from '../../shared/plugins/plugin-image-url'
+import type { PluginHostImages } from '../../shared/plugins/images/plugin-image-url'
 import { pluginInstalledHostImages } from './plugin-manifest-images'
 import type { PluginService } from './plugin-service'
 import { listPluginVmRecipeCommands } from '../../shared/plugins/artifacts/plugin-vm-recipe-artifact'
@@ -15,8 +15,8 @@ import {
 import { pluginCatalogTypes } from '../../shared/plugins/catalog/plugin-catalog-types'
 import { mapWithConcurrency } from '../../shared/map-with-concurrency'
 import type { PluginHostListEntry, PluginHostStatus } from '../../shared/plugins/plugin-list-entry'
-import { customEditorContentKind } from '../../shared/plugins/plugin-custom-editor-contribution'
-import { pluginExecutionProfile } from '../../shared/plugins/plugin-execution-profile'
+import { customEditorContentKind } from '../../shared/plugins/contributions/plugin-custom-editor-contribution'
+import { pluginExecutionProfile } from '../../shared/plugins/contributions/plugin-execution-profile'
 
 const PLUGIN_LIST_PROJECTION_CONCURRENCY = 4
 

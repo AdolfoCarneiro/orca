@@ -1,13 +1,13 @@
 import {
   pluginCommandKeybindingActionId,
   type PluginCommandAliasActionId
-} from '../../shared/plugins/plugin-command-actions'
+} from '../../shared/plugins/contributions/plugin-command-actions'
 import { getKeybindingConflictIdentity, type KeybindingOverrides } from '../../shared/keybindings'
 import type {
   PluginCommandContribution,
   PluginManifest
 } from '../../shared/plugins/manifest/plugin-manifest'
-import type { PluginKeybindingContribution } from '../../shared/plugins/plugin-content-pack-contributions'
+import type { PluginKeybindingContribution } from '../../shared/plugins/contributions/plugin-content-pack-contributions'
 import {
   isInvalidDiscoveredPlugin,
   type DiscoveredPlugin,

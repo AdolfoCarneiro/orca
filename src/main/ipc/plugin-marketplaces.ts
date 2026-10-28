@@ -4,7 +4,7 @@ import {
 } from '../plugins/catalog/plugin-update-approval'
 import { ipcMain } from 'electron'
 import { z } from 'zod'
-import { PLUGIN_COMMIT_PATTERN } from '../../shared/plugins/plugin-install-lockfile'
+import { PLUGIN_COMMIT_PATTERN } from '../../shared/plugins/installation/plugin-install-lockfile'
 import { isQualifiedPluginKey } from '../../shared/plugins/manifest/plugin-manifest'
 import { pluginMarketplaceGitSourceSchema } from '../../shared/plugins/catalog/plugin-marketplace'
 import type { PluginMarketplaceInstaller } from '../plugins/catalog/plugin-marketplace-installer'
@@ -14,7 +14,7 @@ import type { PluginService } from '../plugins/plugin-service'
 import type { PluginAutoUpdater } from '../plugins/catalog/plugin-auto-updater'
 import type { PluginAutoUpdateState } from '../../shared/plugins/catalog/plugin-update-policy'
 import type { GlobalSettings } from '../../shared/global-settings-types'
-import { pluginFileTypeSchema } from '../../shared/plugins/plugin-file-type'
+import { pluginFileTypeSchema } from '../../shared/plugins/contributions/plugin-file-type'
 import { findPluginFileTypeSuggestion } from '../plugins/catalog/plugin-file-type-suggestion'
 
 export type PluginMarketplaceHandlerServices = {

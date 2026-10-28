@@ -6,7 +6,7 @@ import {
   parsePluginLockfile,
   serializePluginLockfile,
   type PluginLockfile
-} from '../../../shared/plugins/plugin-install-lockfile'
+} from '../../../shared/plugins/installation/plugin-install-lockfile'
 import { writePluginFileAtomically } from './plugin-atomic-file-write'
 import { recoverPluginLockfile } from './plugin-install-provenance'
 

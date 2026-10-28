@@ -1,4 +1,4 @@
-import type { PluginInstallSource } from '../../../shared/plugins/plugin-install-lockfile'
+import type { PluginInstallSource } from '../../../shared/plugins/installation/plugin-install-lockfile'
 import {
   isOfficialMarketplaceGitSource,
   isOfficialOrganizationGitSource,

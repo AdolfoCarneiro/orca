@@ -1,5 +1,5 @@
 import type { PluginLanguagePackRegistration } from '../../../../../shared/plugins/artifacts/plugin-language-pack-artifact'
-import { isUsablePluginLanguagePack } from '../../../../../shared/plugins/plugin-language-pack-coverage'
+import { isUsablePluginLanguagePack } from '../../../../../shared/plugins/languages/plugin-language-pack-coverage'
 import { UI_LANGUAGE_SYSTEM, type UiLanguage } from '../../../../../shared/ui-language'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'

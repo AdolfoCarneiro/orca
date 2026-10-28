@@ -6,7 +6,7 @@ import { normalizeOpenInApplications } from '../../../shared/open-in-application
 import { normalizeTerminalShortcutPolicy } from '../../../shared/keybindings'
 import { normalizeAppIconId } from '../../../shared/app-icon'
 import { normalizeTerminalCustomThemes } from '../../../shared/terminal-custom-themes'
-import { normalizePluginOwnedSettings } from '../../../shared/plugins/plugin-owned-settings'
+import { normalizePluginOwnedSettings } from '../../../shared/plugins/capabilities/plugin-owned-settings'
 import { normalizeTerminalDefaultShell } from '../../../shared/terminal-default-shell'
 import { projectSourceControlAiToLegacyCommitMessageAi } from '../../../shared/source-control-ai'
 import { normalizeNativeChatShellEnvironmentVariables } from '../../../shared/native-chat/native-chat-shell-environment'

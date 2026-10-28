@@ -1,10 +1,10 @@
 import type { PluginCatalogType } from '../../../../../shared/plugins/catalog/plugin-catalog-release'
-import { PLUGIN_LANGUAGE_PACK_MIN_COVERAGE } from '../../../../../shared/plugins/plugin-language-pack-coverage'
-import type { PluginContributionSummaryItem } from '../../../../../shared/plugins/plugin-contribution-summary'
+import { PLUGIN_LANGUAGE_PACK_MIN_COVERAGE } from '../../../../../shared/plugins/languages/plugin-language-pack-coverage'
+import type { PluginContributionSummaryItem } from '../../../../../shared/plugins/contributions/plugin-contribution-summary'
 import {
   PLUGIN_CONTRIBUTION_POINT_POLICY,
   type PluginContributionPoint
-} from '../../../../../shared/plugins/plugin-contribution-points'
+} from '../../../../../shared/plugins/contributions/plugin-contribution-points'
 import type { PluginManifest } from '../../../../../shared/plugins/manifest/plugin-manifest'
 import { translate } from '@/i18n/i18n'
 

@@ -4,7 +4,7 @@ import {
   PLUGIN_CONTENT_HASH_PATTERN,
   upsertPluginLock,
   type PluginLockEntry
-} from '../../../shared/plugins/plugin-install-lockfile'
+} from '../../../shared/plugins/installation/plugin-install-lockfile'
 import {
   readPluginCurrentPointer,
   restorePluginCurrentPointer,

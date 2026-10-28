@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from 'react'
 import { create } from 'zustand'
 import type { PluginHostCustomEditor, PluginHostListEntry } from '../../../preload/api-types'
-import { matchPluginFile } from '../../../shared/plugins/plugin-file-match'
-import { customEditorMayOpenByDefault } from '../../../shared/plugins/plugin-custom-editor-core-file-types'
+import { matchPluginFile } from '../../../shared/plugins/contributions/plugin-file-match'
+import { customEditorMayOpenByDefault } from '../../../shared/plugins/contributions/plugin-custom-editor-core-file-types'
 import { ensurePluginPanelsLoaded, usePluginPanelsStore } from './plugin-panels'
 
 /** A custom editor from an enabled plugin. `key` is unique across plugins. */

@@ -1,4 +1,4 @@
-import { PLUGIN_IMAGE_SCHEME } from '../../shared/plugins/plugin-image-url'
+import { PLUGIN_IMAGE_SCHEME } from '../../shared/plugins/images/plugin-image-url'
 
 /** Declared before app ready (Electron freezes privileged schemes then); kept apart from the
  *  handler so startup does not load the plugin module graph. */

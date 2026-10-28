@@ -1,11 +1,11 @@
 import type { PluginManifest } from '../../shared/plugins/manifest/plugin-manifest'
-import { readPluginImageHeader } from '../../shared/plugins/plugin-image-format'
+import { readPluginImageHeader } from '../../shared/plugins/images/plugin-image-format'
 import {
   PLUGIN_IMAGE_RULES,
   PLUGIN_IMAGES_TOTAL_MAX_BYTES,
   pluginImageRuleError,
   type PluginImageKind
-} from '../../shared/plugins/plugin-image-fields'
+} from '../../shared/plugins/images/plugin-image-fields'
 
 /** The images a format 2 manifest declares, with the rules each must meet. */
 export function declaredPluginImages(

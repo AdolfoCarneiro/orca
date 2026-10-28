@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { workspaceRemovedPayloadSchema } from '../../shared/plugins/plugin-events'
+import { workspaceRemovedPayloadSchema } from '../../shared/plugins/events/plugin-events'
 import type { PluginService } from '../plugins/plugin-service'
 import { emitPluginWorktreeLifecycle } from './main-process-pty-startup'
 import { mainProcessState } from './main-process-state'

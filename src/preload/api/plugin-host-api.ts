@@ -1,4 +1,4 @@
-import type { PluginHostImages } from '../../shared/plugins/plugin-image-url'
+import type { PluginHostImages } from '../../shared/plugins/images/plugin-image-url'
 import type { PluginUpdateAccessGrowth } from '../../shared/plugins/approval/plugin-update-access-growth'
 import type { PluginAutoUpdateState } from '../../shared/plugins/catalog/plugin-update-policy'
 import type {
@@ -11,11 +11,11 @@ import type {
   PluginSyntaxPayload
 } from '../../shared/plugins/artifacts/plugin-syntax-artifact'
 import type { PluginTerminalThemeRegistration } from '../../shared/plugins/artifacts/plugin-terminal-theme-artifact'
-import type { PluginFrameEntry } from '../../shared/plugins/plugin-frame-bridge'
-import type { PluginHostCallOutcome } from '../../shared/plugins/plugin-protocol'
+import type { PluginFrameEntry } from '../../shared/plugins/frames/plugin-frame-bridge'
+import type { PluginHostCallOutcome } from '../../shared/plugins/frames/plugin-protocol'
 import type { PluginConsentRequest } from '../../shared/plugins/approval/plugin-consent-request'
 import type { PluginLanguagePackRegistration } from '../../shared/plugins/artifacts/plugin-language-pack-artifact'
-import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
+import type { PluginChangeEvent } from '../../shared/plugins/events/plugin-change-event'
 import type { PluginManifest } from '../../shared/plugins/manifest/plugin-manifest'
 import type {
   PluginCatalogGitSource,

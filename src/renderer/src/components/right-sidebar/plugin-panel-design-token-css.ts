@@ -1,10 +1,13 @@
-import { FRAME_EVENTS, type PluginFrameTheme } from '../../../../shared/plugins/plugin-frame-bridge'
-import { pluginEvent } from '../../../../shared/plugins/plugin-protocol'
+import {
+  FRAME_EVENTS,
+  type PluginFrameTheme
+} from '../../../../shared/plugins/frames/plugin-frame-bridge'
+import { pluginEvent } from '../../../../shared/plugins/frames/plugin-protocol'
 import {
   PANEL_DESIGN_TOKEN_ALLOWLIST,
   PANEL_SHELL_COLOR_SCHEME_PLACEHOLDER,
   PANEL_SHELL_TOKENS_PLACEHOLDER
-} from '../../../../shared/plugins/plugin-panel-shell'
+} from '../../../../shared/plugins/frames/plugin-panel-shell'
 
 /** Snapshot trusted computed tokens for isolated panels; strip structural CSS characters before inserting into the shell style block. */
 export function buildPanelDesignTokenCss(): string {

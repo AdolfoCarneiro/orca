@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { PLUGIN_SCHEMA_NEWEST_SINCE } from '../../shared/plugins/plugin-host-version'
+import { PLUGIN_SCHEMA_NEWEST_SINCE } from '../../shared/plugins/installation/plugin-host-version'
 import { expect, it } from 'vitest'
 import { fingerprintPluginConsent } from '../../shared/plugins/approval/plugin-consent-fingerprint'
 import { PluginContentVerifier } from './plugin-content-integrity'

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Puzzle } from 'lucide-react'
 import type { PluginFileTypeHostSuggestion } from '../../../../preload/api/plugin-host-api'
-import { fileTypeOfPath } from '../../../../shared/plugins/plugin-file-type'
+import { fileTypeOfPath } from '../../../../shared/plugins/contributions/plugin-file-type'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { requestPluginPreview } from '@/store/plugin-preview-request'

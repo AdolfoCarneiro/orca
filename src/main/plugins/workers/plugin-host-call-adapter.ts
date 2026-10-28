@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import { isQualifiedPluginKey } from '../../../shared/plugins/manifest/plugin-manifest'
-import type { PluginHostCallOutcome, PluginSurface } from '../../../shared/plugins/plugin-protocol'
+import type {
+  PluginHostCallOutcome,
+  PluginSurface
+} from '../../../shared/plugins/frames/plugin-protocol'
 import { executePluginHostCall, type ExecutePluginHostCallInput } from './plugin-host-methods'
 
 const pluginHostCallRequestSchema = z

@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { isProtectedPluginTranslationPath } from '../../../src/shared/plugins/artifacts/plugin-language-pack-artifact'
-import { translatablePluginChromeContainer } from '../../../src/shared/plugins/plugin-translatable-chrome'
+import { translatablePluginChromeContainer } from '../../../src/shared/plugins/languages/plugin-translatable-chrome'
 
 export const FIXTURE_LANGUAGE_PLUGIN = {
   repository: 'orca-pseudo-language',

@@ -4,12 +4,12 @@ import { join } from 'node:path'
 import {
   isAllowedPluginGitUrl,
   PLUGIN_COMMIT_PATTERN
-} from '../../../shared/plugins/plugin-install-lockfile'
+} from '../../../shared/plugins/installation/plugin-install-lockfile'
 import {
   pluginGitCloneArgs,
   pluginGitConfigArgs,
   pluginGitFetchCommitArgs
-} from '../../../shared/plugins/plugin-git-arguments'
+} from '../../../shared/plugins/installation/plugin-git-arguments'
 import { gitExecFileAsync } from '../../git/runner'
 import { MAX_PLUGIN_TOTAL_BYTES } from '../plugin-content-hash'
 import { materializePluginGitTree } from './plugin-git-tree'

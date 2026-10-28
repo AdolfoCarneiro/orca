@@ -1,7 +1,10 @@
 import { createReadStream } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { pluginKillListSchema, type PluginKillList } from '../../../shared/plugins/plugin-kill-list'
+import {
+  pluginKillListSchema,
+  type PluginKillList
+} from '../../../shared/plugins/catalog/plugin-kill-list'
 import { writePluginFileAtomically } from '../installation/plugin-atomic-file-write'
 
 const PLUGIN_KILL_LIST_MAX_BYTES = 4 * 1024 * 1024

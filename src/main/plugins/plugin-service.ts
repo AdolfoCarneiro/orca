@@ -2,13 +2,16 @@ import type { PluginEventName } from '../../shared/plugins/manifest/plugin-manif
 import {
   capabilityKinds,
   type PluginCapabilityKind
-} from '../../shared/plugins/plugin-capabilities'
+} from '../../shared/plugins/capabilities/plugin-capabilities'
 import type {
   PluginActivationState,
   PluginConsentLists
 } from '../../shared/plugins/approval/plugin-consent-state'
-import type { PluginHostCallOutcome, PluginSurface } from '../../shared/plugins/plugin-protocol'
-import { createPluginExtensionRegistry } from '../../shared/plugins/plugin-extension-registry'
+import type {
+  PluginHostCallOutcome,
+  PluginSurface
+} from '../../shared/plugins/frames/plugin-protocol'
+import { createPluginExtensionRegistry } from '../../shared/plugins/contributions/plugin-extension-registry'
 import {
   discoverPlugins,
   getPluginsDataDir,
@@ -39,7 +42,7 @@ import {
 } from './plugin-activation-policy'
 import { PluginContentPackRegistry } from './contributions/plugin-content-pack-registry'
 import type { PluginServiceOptions } from './plugin-service-options'
-import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
+import type { PluginChangeEvent } from '../../shared/plugins/events/plugin-change-event'
 import { waitForPluginRefreshSettlement } from './plugin-refresh-settlement'
 import { assertPluginWorkerCommand } from './plugin-command-invocation'
 import { deliverPluginEvent } from './plugin-event-delivery'

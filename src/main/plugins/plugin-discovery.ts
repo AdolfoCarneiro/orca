@@ -1,7 +1,7 @@
 import { readdir, realpath } from 'node:fs/promises'
 import type { Dirent } from 'node:fs'
 import { join } from 'node:path'
-import { PLUGIN_CONTENT_HASH_PATTERN } from '../../shared/plugins/plugin-install-lockfile'
+import { PLUGIN_CONTENT_HASH_PATTERN } from '../../shared/plugins/installation/plugin-install-lockfile'
 import {
   PLUGIN_MANIFEST_FILENAME,
   isQualifiedPluginKey,

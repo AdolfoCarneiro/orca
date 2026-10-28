@@ -1,8 +1,19 @@
 import { z } from 'zod'
-import { isSafePluginRelativePath, PLUGIN_RELATIVE_PATH_RE } from '../plugin-path-safety'
-import { isReservedPluginName, PLUGIN_ID_MAX_LENGTH, PLUGIN_ID_RE } from '../plugin-id-format'
+import {
+  isSafePluginRelativePath,
+  PLUGIN_RELATIVE_PATH_RE
+} from '../installation/plugin-path-safety'
+import {
+  isReservedPluginName,
+  PLUGIN_ID_MAX_LENGTH,
+  PLUGIN_ID_RE
+} from '../installation/plugin-id-format'
 
-export { isPluginManifestId, isSafePluginId, PLUGIN_ID_MAX_LENGTH } from '../plugin-id-format'
+export {
+  isPluginManifestId,
+  isSafePluginId,
+  PLUGIN_ID_MAX_LENGTH
+} from '../installation/plugin-id-format'
 
 const RELATIVE_PATH_MESSAGE = 'must be a portable relative path inside the plugin directory'
 

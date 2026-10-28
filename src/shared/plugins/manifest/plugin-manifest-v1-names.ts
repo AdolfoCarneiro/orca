@@ -1,6 +1,6 @@
-import { PLUGIN_V1_CAPABILITY_ALIASES } from '../plugin-capabilities'
-import { PLUGIN_V1_EVENT_ALIASES } from '../plugin-event-contribution'
-import { canonicalPluginPanelIcon } from '../plugin-panel-contribution'
+import { PLUGIN_V1_CAPABILITY_ALIASES } from '../capabilities/plugin-capabilities'
+import { PLUGIN_V1_EVENT_ALIASES } from '../contributions/plugin-event-contribution'
+import { canonicalPluginPanelIcon } from '../contributions/plugin-panel-contribution'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

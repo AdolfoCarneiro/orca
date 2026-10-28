@@ -1,6 +1,6 @@
 import type { PluginCatalogType } from './catalog/plugin-catalog-types'
-import type { PluginExecutionProfile } from './plugin-execution-profile'
-import type { PluginHostImages } from './plugin-image-url'
+import type { PluginExecutionProfile } from './contributions/plugin-execution-profile'
+import type { PluginHostImages } from './images/plugin-image-url'
 
 /** One installed plugin as main projects it for every client (preload IPC and the `plugins.list`
  *  RPC). Optional fields are absent on older hosts, so paired clients must tolerate them. */

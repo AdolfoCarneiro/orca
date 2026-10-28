@@ -7,7 +7,7 @@ import {
   pluginCatalogReleaseTypes,
   type PluginCatalogRelease
 } from './plugin-catalog-release'
-import { pluginContributionSummary } from '../plugin-contribution-summary'
+import { pluginContributionSummary } from '../contributions/plugin-contribution-summary'
 import { parsePluginManifest, type PluginManifest } from '../manifest/plugin-manifest'
 
 const COMMIT = 'c'.repeat(40)

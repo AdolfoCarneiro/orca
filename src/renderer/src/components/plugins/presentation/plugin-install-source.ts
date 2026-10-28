@@ -1,5 +1,5 @@
 import type { PluginHostInstallSource } from '../../../../../preload/api-types'
-import { isAllowedPluginGitUrl } from '../../../../../shared/plugins/plugin-install-lockfile'
+import { isAllowedPluginGitUrl } from '../../../../../shared/plugins/installation/plugin-install-lockfile'
 
 export type PluginInstallSourceParseResult =
   | { ok: true; source: PluginHostInstallSource }

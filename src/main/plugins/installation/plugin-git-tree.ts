@@ -1,11 +1,11 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { gitExecFileAsyncBuffer } from '../../git/runner'
-import { pluginGitTreeArgs } from '../../../shared/plugins/plugin-git-arguments'
+import { pluginGitTreeArgs } from '../../../shared/plugins/installation/plugin-git-arguments'
 import {
   isPluginRepositoryPath,
   pluginRelativePathError
-} from '../../../shared/plugins/plugin-path-safety'
+} from '../../../shared/plugins/installation/plugin-path-safety'
 import { MAX_PLUGIN_FILES, MAX_PLUGIN_TOTAL_BYTES } from '../plugin-content-hash'
 
 const MAX_PATH_BYTES = 1024

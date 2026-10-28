@@ -4,7 +4,7 @@ import { PLUGIN_SCHEMA_SINCE_V1 } from './plugin-schema-field-docs'
 import {
   PLUGIN_PLANNED_CONTRIBUTION_POINTS,
   PLUGIN_RESERVED_CONTRIBUTION_POINTS
-} from '../plugin-contribution-points'
+} from '../contributions/plugin-contribution-points'
 
 const reservedKeys = Object.keys(PLUGIN_RESERVED_CONTRIBUTION_POINTS).map((key, index) =>
   index === 0 ? `\`contributes.${key}\`` : `\`${key}\``

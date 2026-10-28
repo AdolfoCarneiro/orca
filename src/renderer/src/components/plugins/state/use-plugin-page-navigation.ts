@@ -1,4 +1,4 @@
-import { pluginHostVersion } from '../../../../../shared/plugins/plugin-host-version'
+import { pluginHostVersion } from '../../../../../shared/plugins/installation/plugin-host-version'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 function isBackShortcut(event: KeyboardEvent): boolean {

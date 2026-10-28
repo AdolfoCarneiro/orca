@@ -1,9 +1,9 @@
-import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabilities'
-import type { PluginHostCallOutcome } from '../../../shared/plugins/plugin-protocol'
+import type { PluginCapabilityKind } from '../../../shared/plugins/capabilities/plugin-capabilities'
+import type { PluginHostCallOutcome } from '../../../shared/plugins/frames/plugin-protocol'
 import {
   PLUGIN_COMMAND_EXTENSION_POINT,
   type PluginExtensionRegistry
-} from '../../../shared/plugins/plugin-extension-registry'
+} from '../../../shared/plugins/contributions/plugin-extension-registry'
 import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import { resolveContainedPluginArtifact } from '../plugin-artifact-validation'
 import type { PluginContentVerifier } from '../plugin-content-integrity'

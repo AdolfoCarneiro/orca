@@ -8,7 +8,7 @@ import {
   parsePluginImageUrl,
   pluginInstalledImageUrl,
   pluginShaImageUrl
-} from '../../shared/plugins/plugin-image-url'
+} from '../../shared/plugins/images/plugin-image-url'
 import { PLUGIN_MANIFEST_V2_SINCE } from '../../shared/plugins/manifest/plugin-schema-field-docs'
 import { extractCatalogImages } from './catalog/plugin-catalog-image-extraction'
 import { PluginImageCache } from './plugin-image-cache'

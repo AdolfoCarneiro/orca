@@ -3,9 +3,9 @@ import type {
   PluginMarketplaceHostInstallPreview,
   PluginMarketplaceHostListing
 } from '../../../../../preload/api-types'
-import { pluginExecutionProfile } from '../../../../../shared/plugins/plugin-execution-profile'
-import { PLUGIN_CONTRIBUTION_SUMMARY_LIMIT } from '../../../../../shared/plugins/plugin-contribution-summary'
-import type { PluginHostImages } from '../../../../../shared/plugins/plugin-image-url'
+import { pluginExecutionProfile } from '../../../../../shared/plugins/contributions/plugin-execution-profile'
+import { PLUGIN_CONTRIBUTION_SUMMARY_LIMIT } from '../../../../../shared/plugins/contributions/plugin-contribution-summary'
+import type { PluginHostImages } from '../../../../../shared/plugins/images/plugin-image-url'
 import type { PluginListEntry } from '../list/plugin-list-entries'
 import {
   installedPluginTrust,
@@ -17,7 +17,7 @@ import {
 } from '../presentation/plugin-access-profile'
 import type { PluginPagePreview } from './use-plugin-catalog'
 import { useInstalledPluginManifest } from './use-plugin-contribution-source'
-import type { PluginFileMatch } from '../../../../../shared/plugins/plugin-file-match'
+import type { PluginFileMatch } from '../../../../../shared/plugins/contributions/plugin-file-match'
 
 /** A shortcut a plugin binds, by the key as written and the command it runs. */
 export type PluginPageShortcut = { key: string; command: string }

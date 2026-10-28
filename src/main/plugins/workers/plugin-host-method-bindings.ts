@@ -10,7 +10,7 @@ import {
   type PluginHostMethodSpec,
   type PluginJsonValue
 } from '../../../shared/plugins/workers/plugin-host-api'
-import { shortPluginBranchName } from '../../../shared/plugins/plugin-events'
+import { shortPluginBranchName } from '../../../shared/plugins/events/plugin-events'
 
 export type PluginWorktreeContext = {
   worktreeId: string

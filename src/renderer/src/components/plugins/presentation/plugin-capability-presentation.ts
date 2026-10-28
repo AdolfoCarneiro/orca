@@ -1,5 +1,5 @@
 import { translate } from '@/i18n/i18n'
-import { reachablePluginCapabilities } from '../../../../../shared/plugins/plugin-capability-reach'
+import { reachablePluginCapabilities } from '../../../../../shared/plugins/capabilities/plugin-capability-reach'
 import type { PluginTrust } from './plugin-access-profile'
 
 /** The grants a plugin of this trust can use; approvals never list the rest. */

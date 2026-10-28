@@ -1,8 +1,8 @@
 import { ipcRenderer } from 'electron'
-import type { PluginFrameEntry } from '../../shared/plugins/plugin-frame-bridge'
-import type { PluginHostCallOutcome } from '../../shared/plugins/plugin-protocol'
+import type { PluginFrameEntry } from '../../shared/plugins/frames/plugin-frame-bridge'
+import type { PluginHostCallOutcome } from '../../shared/plugins/frames/plugin-protocol'
 import type { PluginConsentRequest } from '../../shared/plugins/approval/plugin-consent-request'
-import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
+import type { PluginChangeEvent } from '../../shared/plugins/events/plugin-change-event'
 import type {
   PluginAutoUpdateEvent,
   PluginHostInstallResult,

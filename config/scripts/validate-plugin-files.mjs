@@ -9,7 +9,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { loadPluginSchemaModule } from './plugin-schema-module-loader.mjs'
 
-const { validatePluginFile } = loadPluginSchemaModule('plugin-file-validation.ts')
+const { validatePluginFile } = loadPluginSchemaModule('installation/plugin-file-validation.ts')
 const { parsePluginManifest } = loadPluginSchemaModule('manifest/plugin-manifest.ts')
 const { pluginCatalogReleaseEntry } = loadPluginSchemaModule('catalog/plugin-catalog-release.ts')
 // Why the install code itself: the printed contentHash must be what Orca computes at install.
@@ -19,7 +19,7 @@ const { materializePluginGitTree } = loadPluginSchemaModule(
 const { hashPluginTree } = loadPluginSchemaModule('../../main/plugins/plugin-content-hash.ts')
 const { gitExecFileAsync } = loadPluginSchemaModule('../../main/git/runner.ts')
 const { formatPluginSchemaIssues } = loadPluginSchemaModule('manifest/plugin-schema-issues.ts')
-const { isPluginRepositoryPath } = loadPluginSchemaModule('plugin-path-safety.ts')
+const { isPluginRepositoryPath } = loadPluginSchemaModule('installation/plugin-path-safety.ts')
 const { parseGitRepositoryIdentity } = loadPluginSchemaModule('catalog/plugin-marketplace.ts')
 const ARTIFACT_PARSERS = {
   themes: loadPluginSchemaModule('artifacts/plugin-theme-artifact.ts').parsePluginAppThemeArtifact,

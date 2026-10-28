@@ -8,7 +8,7 @@ import {
   WORKER_EVENTS,
   WORKER_METHODS
 } from '../../../shared/plugins/workers/plugin-host-protocol'
-import type { PluginCapabilityKind } from '../../../shared/plugins/plugin-capabilities'
+import type { PluginCapabilityKind } from '../../../shared/plugins/capabilities/plugin-capabilities'
 import type { PluginEventName } from '../../../shared/plugins/manifest/plugin-manifest'
 import {
   pluginCancel,
@@ -18,7 +18,7 @@ import {
   readPluginEnvelope,
   type PluginEnvelope,
   type PluginHostCallOutcome
-} from '../../../shared/plugins/plugin-protocol'
+} from '../../../shared/plugins/frames/plugin-protocol'
 import { buildPluginWorkerEnv } from './plugin-worker-env'
 import { pipePluginWorkerOutput } from './plugin-worker-output-buffer'
 

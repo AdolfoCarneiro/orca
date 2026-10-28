@@ -23,9 +23,9 @@ import {
   type PluginErrorCode,
   type PluginRequest,
   type PluginResponse
-} from '../../../shared/plugins/plugin-protocol'
+} from '../../../shared/plugins/frames/plugin-protocol'
 import type { PluginEventName } from '../../../shared/plugins/manifest/plugin-manifest'
-import { PLUGIN_V1_EVENT_ALIASES } from '../../../shared/plugins/plugin-event-contribution'
+import { PLUGIN_V1_EVENT_ALIASES } from '../../../shared/plugins/contributions/plugin-event-contribution'
 import {
   PLUGIN_HOST_API_MINOR,
   pluginHostMethodsFor

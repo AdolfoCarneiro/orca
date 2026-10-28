@@ -1,5 +1,5 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { PLUGIN_SCHEMA_NEWEST_SINCE } from '../../shared/plugins/plugin-host-version'
+import { PLUGIN_SCHEMA_NEWEST_SINCE } from '../../shared/plugins/installation/plugin-host-version'
 import { PLUGIN_MANIFEST_V2_SINCE } from '../../shared/plugins/manifest/plugin-schema-field-docs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'

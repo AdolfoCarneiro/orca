@@ -4,7 +4,10 @@ import {
 } from '../../../shared/plugins/artifacts/plugin-syntax-artifact'
 import { createPluginContentListStore } from './plugin-content-list-store'
 import { prunePluginSyntaxFailures } from './plugin-syntax-failures'
-import { matchPluginFile, pluginFileMatchRank } from '../../../shared/plugins/plugin-file-match'
+import {
+  matchPluginFile,
+  pluginFileMatchRank
+} from '../../../shared/plugins/contributions/plugin-file-match'
 
 const syntaxes = createPluginContentListStore<PluginSyntaxMetadata>({
   kind: 'syntaxes',

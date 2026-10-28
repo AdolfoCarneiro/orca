@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import {
   PLUGIN_SCHEMA_NEWEST_SINCE,
   pluginHostVersion
-} from '../../../shared/plugins/plugin-host-version'
+} from '../../../shared/plugins/installation/plugin-host-version'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

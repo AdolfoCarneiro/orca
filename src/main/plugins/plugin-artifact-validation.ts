@@ -7,7 +7,7 @@ import {
   PLUGIN_SYNTAX_GRAMMAR_MAX_BYTES
 } from '../../shared/plugins/artifacts/plugin-syntax-artifact'
 import { parsePluginVmRecipeArtifact } from '../../shared/plugins/artifacts/plugin-vm-recipe-artifact'
-import { PLUGIN_IMAGE_RULES } from '../../shared/plugins/plugin-image-fields'
+import { PLUGIN_IMAGE_RULES } from '../../shared/plugins/images/plugin-image-fields'
 import { validatePluginImageArtifacts } from './plugin-image-artifact-validation'
 
 export type PluginArtifactValidationResult = { ok: true } | { ok: false; error: string }

@@ -15,8 +15,8 @@ import {
   matchFloatingWorkspacePanelChord
 } from './floating-workspace-terminal-actions'
 import { translate } from '@/i18n/i18n'
-import { pluginCommandKeybindingActionId as sharedPluginCommandKeybindingActionId } from '../../../shared/plugins/plugin-command-actions'
-import { isWorkspaceScopedPluginContext } from '../../../shared/plugins/plugin-command-contribution'
+import { pluginCommandKeybindingActionId as sharedPluginCommandKeybindingActionId } from '../../../shared/plugins/contributions/plugin-command-actions'
+import { isWorkspaceScopedPluginContext } from '../../../shared/plugins/contributions/plugin-command-contribution'
 
 export function pluginCommandKeybindingActionId(
   command: Pick<ActivePluginCommand, 'pluginKey' | 'id'>

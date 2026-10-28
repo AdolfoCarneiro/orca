@@ -1,9 +1,12 @@
 import { z } from 'zod'
-import { isAllowedPluginGitUrl } from '../plugin-install-lockfile'
+import { isAllowedPluginGitUrl } from '../installation/plugin-install-lockfile'
 import { isQualifiedPluginKey } from '../manifest/plugin-manifest'
 import { pluginCatalogReleaseSchema } from './plugin-catalog-release'
 import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from '../manifest/plugin-schema-field-docs'
-import { isPluginRepositoryPath, PLUGIN_REPOSITORY_PATH_RE } from '../plugin-path-safety'
+import {
+  isPluginRepositoryPath,
+  PLUGIN_REPOSITORY_PATH_RE
+} from '../installation/plugin-path-safety'
 import { isReservedPluginPublisher } from './plugin-publisher-reservation'
 
 const NEXT = PLUGIN_MANIFEST_V2_SINCE

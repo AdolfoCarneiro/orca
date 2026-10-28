@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import type { PluginSyntaxContribution } from '../../../shared/plugins/plugin-content-pack-contributions'
+import type { PluginSyntaxContribution } from '../../../shared/plugins/contributions/plugin-content-pack-contributions'
 import {
   PLUGIN_SYNTAX_CONFIGURATION_MAX_BYTES,
   PLUGIN_SYNTAX_GRAMMAR_MAX_BYTES,

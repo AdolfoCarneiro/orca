@@ -1,4 +1,4 @@
-import { pluginExecutionProfile } from '../../../shared/plugins/plugin-execution-profile'
+import { pluginExecutionProfile } from '../../../shared/plugins/contributions/plugin-execution-profile'
 import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 
 /**

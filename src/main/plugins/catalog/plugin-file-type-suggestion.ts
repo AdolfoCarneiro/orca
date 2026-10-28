@@ -3,7 +3,7 @@ import {
   pluginHandledFileTypes,
   type PluginFileTypeSuggestionPurpose,
   type PluginFileTypeSuggestionSettings
-} from '../../../shared/plugins/plugin-file-type'
+} from '../../../shared/plugins/contributions/plugin-file-type'
 import { isInvalidDiscoveredPlugin, type DiscoveredPlugin } from '../plugin-discovery'
 import type { PluginMarketplaceListing } from './plugin-marketplace-projection'
 

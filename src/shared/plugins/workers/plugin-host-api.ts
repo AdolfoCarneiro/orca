@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import type { PluginCapabilityKind } from '../plugin-capabilities'
-import type { PluginSurface } from '../plugin-protocol'
+import type { PluginCapabilityKind } from '../capabilities/plugin-capabilities'
+import type { PluginSurface } from '../frames/plugin-protocol'
 
 /**
  * Host API 1 (`pluginApi: 1`) — the separately-versioned public facade plugins call. Every

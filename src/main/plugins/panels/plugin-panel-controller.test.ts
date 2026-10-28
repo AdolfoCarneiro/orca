@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { pluginManifestSchema } from '../../../shared/plugins/manifest/plugin-manifest'
-import { createPluginPanelCallAdmission } from '../../../shared/plugins/plugin-panel-call-admission'
+import { createPluginPanelCallAdmission } from '../../../shared/plugins/frames/plugin-panel-call-admission'
 import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import { PluginPanelController } from './plugin-panel-controller'
 

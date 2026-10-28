@@ -1,17 +1,20 @@
 import {
   panelActionCallSchema,
   type PluginFrameEntry
-} from '../../../shared/plugins/plugin-frame-bridge'
-import type { PluginHostCallOutcome, PluginSurface } from '../../../shared/plugins/plugin-protocol'
+} from '../../../shared/plugins/frames/plugin-frame-bridge'
+import type {
+  PluginHostCallOutcome,
+  PluginSurface
+} from '../../../shared/plugins/frames/plugin-protocol'
 import {
   admitPluginPanelCall,
   createPluginPanelCallAdmission,
   type PluginPanelCallAdmission
-} from '../../../shared/plugins/plugin-panel-call-admission'
+} from '../../../shared/plugins/frames/plugin-panel-call-admission'
 import {
   buildPluginPanelShellHtml,
   type PluginFrameSurface
-} from '../../../shared/plugins/plugin-panel-shell'
+} from '../../../shared/plugins/frames/plugin-panel-shell'
 import type { ValidDiscoveredPlugin } from '../plugin-discovery'
 import type { PluginContentVerifier } from '../plugin-content-integrity'
 import {

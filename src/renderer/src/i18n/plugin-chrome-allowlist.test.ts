@@ -1,6 +1,6 @@
 /** Reject dead exemption paths and security-copy keys that drift into the plugin-chrome allowlist. */
 import { describe, expect, it } from 'vitest'
-import { translatablePluginChromePaths } from '../../../shared/plugins/plugin-translatable-chrome'
+import { translatablePluginChromePaths } from '../../../shared/plugins/languages/plugin-translatable-chrome'
 
 // Match the security components pinned by plugin-language-pack-artifact.test.ts.
 const SECURITY_COPY_COMPONENTS = [

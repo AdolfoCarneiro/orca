@@ -3,7 +3,7 @@ import {
   pluginInstalledImageUrl,
   type PluginHostImage,
   type PluginHostImages
-} from '../../shared/plugins/plugin-image-url'
+} from '../../shared/plugins/images/plugin-image-url'
 
 /** A format 2 manifest's images as the renderer loads them, given how each slot maps to a URL. */
 export function pluginManifestHostImages(

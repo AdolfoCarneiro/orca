@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { isUtf8ByteLengthWithinLimit } from '../../utf8-byte-limits'
-import { pluginGrammarScopeSchema } from '../plugin-content-pack-contributions'
+import { pluginGrammarScopeSchema } from '../contributions/plugin-content-pack-contributions'
 
 export const PLUGIN_SYNTAX_GRAMMAR_MAX_BYTES = 1024 * 1024
 export const PLUGIN_SYNTAX_CONFIGURATION_MAX_BYTES = 64 * 1024

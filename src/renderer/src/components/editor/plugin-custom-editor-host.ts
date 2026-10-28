@@ -10,8 +10,8 @@ import {
   type CustomEditorDocument,
   type CustomEditorEdit,
   type CustomEditorKeyChord
-} from '../../../../shared/plugins/plugin-custom-editor-bridge'
-import { EDITOR_METHODS, FRAME_EVENTS } from '../../../../shared/plugins/plugin-frame-bridge'
+} from '../../../../shared/plugins/frames/plugin-custom-editor-bridge'
+import { EDITOR_METHODS, FRAME_EVENTS } from '../../../../shared/plugins/frames/plugin-frame-bridge'
 import {
   pluginError,
   pluginEvent,
@@ -22,13 +22,13 @@ import {
   readPluginEnvelope,
   type PluginEnvelope,
   type PluginError
-} from '../../../../shared/plugins/plugin-protocol'
+} from '../../../../shared/plugins/frames/plugin-protocol'
 import type { PluginFrameEditorChannel } from '../right-sidebar/plugin-frame-host'
 import {
   createPanelMessageBudget,
   structuredCloneMessageBytes,
   type PanelMessageBudget
-} from '../../../../shared/plugins/plugin-panel-message-budget'
+} from '../../../../shared/plugins/frames/plugin-panel-message-budget'
 
 export type CustomEditorEditRefusal = 'oversized' | 'rate_limited'
 

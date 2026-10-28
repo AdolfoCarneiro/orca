@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { isPluginPanelTabKey } from '../../../../shared/plugins/manifest/plugin-manifest'
-import { PLUGIN_PANEL_FRAME_NAME_PREFIX } from '../../../../shared/plugins/plugin-frame-bridge'
+import { PLUGIN_PANEL_FRAME_NAME_PREFIX } from '../../../../shared/plugins/frames/plugin-frame-bridge'
 import { fillPluginPanelShell } from './plugin-panel-design-token-css'
 import { usePluginFrameHost } from './use-plugin-frame-host'
 import { usePluginPanels, usePluginPanelsStore } from '@/store/plugin-panels'

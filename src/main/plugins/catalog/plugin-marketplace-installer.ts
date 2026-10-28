@@ -2,8 +2,11 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { PluginManifest } from '../../../shared/plugins/manifest/plugin-manifest'
-import { PLUGIN_IMAGE_RULES } from '../../../shared/plugins/plugin-image-fields'
-import { pluginShaImageUrl, type PluginHostImages } from '../../../shared/plugins/plugin-image-url'
+import { PLUGIN_IMAGE_RULES } from '../../../shared/plugins/images/plugin-image-fields'
+import {
+  pluginShaImageUrl,
+  type PluginHostImages
+} from '../../../shared/plugins/images/plugin-image-url'
 import { readContainedPluginArtifactBytes } from '../plugin-artifact-validation'
 import { declaredPluginImages } from '../plugin-image-artifact-validation'
 import type { PluginImageCache } from '../plugin-image-cache'
@@ -29,7 +32,7 @@ import type {
 import { marketplaceSourceId } from './plugin-marketplace-store'
 import { fullAccessError, PLUGIN_FULL_ACCESS_OFF_ERROR } from '../plugin-activation-policy'
 import { isSamePluginSource } from '../../../shared/plugins/catalog/plugin-marketplace'
-import type { PluginInstallSource } from '../../../shared/plugins/plugin-install-lockfile'
+import type { PluginInstallSource } from '../../../shared/plugins/installation/plugin-install-lockfile'
 
 export type PluginMarketplaceInstallPreview = {
   marketplaceSourceId: string

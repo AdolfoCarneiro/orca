@@ -3,7 +3,7 @@
 import { StrictMode } from 'react'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PluginChangeEvent } from '../../../shared/plugins/plugin-change-event'
+import type { PluginChangeEvent } from '../../../shared/plugins/events/plugin-change-event'
 import {
   pluginLanguageResourceId,
   type PluginLanguagePackRegistration

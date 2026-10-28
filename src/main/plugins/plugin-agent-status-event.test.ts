@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { agentStatusChangedPayloadSchema } from '../../shared/plugins/plugin-events'
+import { agentStatusChangedPayloadSchema } from '../../shared/plugins/events/plugin-events'
 import { projectPluginAgentStatusChangedPayload } from './plugin-agent-status-event'
 
 const PANE = 'tab-1:11111111-1111-4111-8111-111111111111'

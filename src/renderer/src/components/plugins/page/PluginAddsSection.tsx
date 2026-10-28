@@ -1,4 +1,4 @@
-import { isWorkspaceScopedPluginContext } from '../../../../../shared/plugins/plugin-command-contribution'
+import { isWorkspaceScopedPluginContext } from '../../../../../shared/plugins/contributions/plugin-command-contribution'
 import {
   Blocks,
   Command,
@@ -35,7 +35,7 @@ import {
   pluginCommandUnavailableReason
 } from './plugin-contribution-action-availability'
 import { shadowedKeybindingTitles } from '../presentation/plugin-keybinding-conflicts'
-import type { PluginContributionSummaryItem } from '../../../../../shared/plugins/plugin-contribution-summary'
+import type { PluginContributionSummaryItem } from '../../../../../shared/plugins/contributions/plugin-contribution-summary'
 import {
   describePluginContributions,
   summaryContributionSource,

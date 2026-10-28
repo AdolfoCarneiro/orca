@@ -10,7 +10,7 @@ import { sanitizeAgentLaunchProfileUpdates } from '../../../shared/tui-agent-lau
 import { normalizeTerminalQuickCommands } from '../../../shared/terminal-quick-commands'
 import { assertTerminalQuickCommandsStorable } from '../../../shared/terminal-quick-command-prompt-limit'
 import { normalizeTerminalCustomThemes } from '../../../shared/terminal-custom-themes'
-import { normalizePluginOwnedSettings } from '../../../shared/plugins/plugin-owned-settings'
+import { normalizePluginOwnedSettings } from '../../../shared/plugins/capabilities/plugin-owned-settings'
 import { normalizeTerminalDefaultShell } from '../../../shared/terminal-default-shell'
 import { normalizeTerminalCursorStyleDefault } from '../../../shared/terminal-cursor-style-settings'
 import { normalizeDesktopTerminalScrollbackRows } from '../../../shared/terminal-scrollback-policy'

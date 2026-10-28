@@ -1,11 +1,11 @@
 import type { PluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog-release'
-import { readPluginImageHeader } from '../../../shared/plugins/plugin-image-format'
+import { readPluginImageHeader } from '../../../shared/plugins/images/plugin-image-format'
 import {
   PLUGIN_IMAGE_RULES,
   pluginImageRuleError,
   type PluginCatalogImages,
   type PluginImageKind
-} from '../../../shared/plugins/plugin-image-fields'
+} from '../../../shared/plugins/images/plugin-image-fields'
 import type { PluginMarketplace } from '../../../shared/plugins/catalog/plugin-marketplace'
 import { sha256Hex } from '../plugin-image-cache'
 

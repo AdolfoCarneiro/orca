@@ -6,7 +6,7 @@ import {
 import {
   pluginLanguagePackCoverage,
   translatableCatalogPaths
-} from '../../../shared/plugins/plugin-language-pack-coverage'
+} from '../../../shared/plugins/languages/plugin-language-pack-coverage'
 import type { PluginManifest } from '../../../shared/plugins/manifest/plugin-manifest'
 import {
   PLUGIN_LANGUAGE_PACK_MAX_BYTES,

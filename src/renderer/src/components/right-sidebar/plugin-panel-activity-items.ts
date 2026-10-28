@@ -32,7 +32,7 @@ import type { ActivityBarItem } from './activity-bar-buttons'
 import {
   canonicalPluginPanelIcon,
   type PluginPanelIconName
-} from '../../../../shared/plugins/plugin-panel-contribution'
+} from '../../../../shared/plugins/contributions/plugin-panel-contribution'
 
 type PluginPanelIcon = ActivityBarItem['icon']
 

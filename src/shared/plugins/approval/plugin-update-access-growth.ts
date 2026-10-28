@@ -1,15 +1,18 @@
 import type { PluginManifest } from '../manifest/plugin-manifest'
-import { canonicalizeCapability, type PluginCapabilityKind } from '../plugin-capabilities'
+import {
+  canonicalizeCapability,
+  type PluginCapabilityKind
+} from '../capabilities/plugin-capabilities'
 import {
   PLUGIN_CONTRIBUTION_POINT_POLICY,
   PLUGIN_CONTRIBUTION_POINTS,
   type PluginContributionPoint
-} from '../plugin-contribution-points'
+} from '../contributions/plugin-contribution-points'
 import {
   pluginExecutionAllows,
   pluginExecutionProfile,
   type PluginExecutionProfile
-} from '../plugin-execution-profile'
+} from '../contributions/plugin-execution-profile'
 import { isPluginJsonObject } from '../manifest/plugin-json-object'
 
 type GrowthSubject = Pick<PluginManifest, 'capabilities' | 'main' | 'contributes'> & {

@@ -1,7 +1,7 @@
 import { realpath, rm } from 'node:fs/promises'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { isQualifiedPluginKey } from '../../../shared/plugins/manifest/plugin-manifest'
-import { removePluginLock } from '../../../shared/plugins/plugin-install-lockfile'
+import { removePluginLock } from '../../../shared/plugins/installation/plugin-install-lockfile'
 import { readPluginLockfile, writePluginLockfile } from './plugin-install-lockfile-store'
 import { serializePluginMutation } from './plugin-mutation-queue'
 

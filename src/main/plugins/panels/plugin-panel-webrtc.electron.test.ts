@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { runBrowserRouteEgressElectron } from '../../browser/browser-route-egress-electron-launch'
-import { buildPluginPanelShellHtml } from '../../../shared/plugins/plugin-panel-shell'
-import { PLUGIN_PANEL_FRAME_NAME_PREFIX } from '../../../shared/plugins/plugin-frame-bridge'
+import { buildPluginPanelShellHtml } from '../../../shared/plugins/frames/plugin-panel-shell'
+import { PLUGIN_PANEL_FRAME_NAME_PREFIX } from '../../../shared/plugins/frames/plugin-frame-bridge'
 
 const roots: string[] = []
 const servers: Server[] = []

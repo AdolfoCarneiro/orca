@@ -11,7 +11,7 @@ import {
   isAllowedPluginGitUrl,
   PLUGIN_COMMIT_PATTERN,
   pluginInstallSourceSchema
-} from '../../../shared/plugins/plugin-install-lockfile'
+} from '../../../shared/plugins/installation/plugin-install-lockfile'
 import type { PluginCatalogRelease } from '../../../shared/plugins/catalog/plugin-catalog-release'
 import { readPluginLockfile } from './plugin-install-lockfile-store'
 import { serializePluginMutation } from './plugin-mutation-queue'

@@ -3,7 +3,7 @@ import {
   isPluginLanguagePackRegistration,
   type PluginLanguagePackRegistration
 } from '../../../shared/plugins/artifacts/plugin-language-pack-artifact'
-import { isUsablePluginLanguagePack } from '../../../shared/plugins/plugin-language-pack-coverage'
+import { isUsablePluginLanguagePack } from '../../../shared/plugins/languages/plugin-language-pack-coverage'
 import { createPluginContentListStore } from './plugin-content-list-store'
 
 const languagePacks = createPluginContentListStore<PluginLanguagePackRegistration>({

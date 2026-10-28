@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { pluginEngineFloor } from './plugin-engine-floor'
 import { PLUGIN_ENUM_SINCE_KEY } from './plugin-engine-floor-keys'
-import { PLUGIN_SCHEMA_NEWEST_SINCE, pluginHostVersion } from '../plugin-host-version'
+import { PLUGIN_SCHEMA_NEWEST_SINCE, pluginHostVersion } from '../installation/plugin-host-version'
 import { parsePluginManifest } from './plugin-manifest'
 import { PLUGIN_MANIFEST_V2_SINCE } from './plugin-schema-field-docs'
-import { PLUGIN_RESERVED_CONTRIBUTION_POINTS } from '../plugin-contribution-points'
+import { PLUGIN_RESERVED_CONTRIBUTION_POINTS } from '../contributions/plugin-contribution-points'
 
 function v2(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {

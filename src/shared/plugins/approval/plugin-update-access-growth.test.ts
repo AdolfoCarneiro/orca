@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { pluginManifestSchema, type PluginManifest } from '../manifest/plugin-manifest'
-import type { PluginCapability } from '../plugin-capabilities'
+import type { PluginCapability } from '../capabilities/plugin-capabilities'
 import { pluginUpdateAccessGrowth } from './plugin-update-access-growth'
 
 function declarative(contributes: Record<string, unknown>): PluginManifest {

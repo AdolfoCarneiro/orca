@@ -1,23 +1,26 @@
 import { z } from 'zod'
-import { pluginExecutionAllows, pluginExecutionProfileSchema } from '../plugin-execution-profile'
+import {
+  pluginExecutionAllows,
+  pluginExecutionProfileSchema
+} from '../contributions/plugin-execution-profile'
 import {
   PLUGIN_CATALOG_TYPE_PROFILE,
   PLUGIN_CATALOG_TYPES,
   pluginCatalogTypes
 } from './plugin-catalog-types'
-import { PLUGIN_CAPABILITY_KINDS } from '../plugin-capabilities'
+import { PLUGIN_CAPABILITY_KINDS } from '../capabilities/plugin-capabilities'
 import {
   pluginContributionSummary,
   pluginContributionSummaryKey,
   pluginContributionSummarySchema
-} from '../plugin-contribution-summary'
-import { pluginCatalogReleaseDetailFields } from '../plugin-detail-fields'
-import { pluginCatalogImagesSchema } from '../plugin-image-fields'
+} from '../contributions/plugin-contribution-summary'
+import { pluginCatalogReleaseDetailFields } from './plugin-detail-fields'
+import { pluginCatalogImagesSchema } from '../images/plugin-image-fields'
 import {
   pluginEditorFileTypes,
   pluginFileTypeSchema,
   pluginHandledFileTypes
-} from '../plugin-file-type'
+} from '../contributions/plugin-file-type'
 import type { PluginManifest } from '../manifest/plugin-manifest'
 import { pluginFieldDoc, PLUGIN_MANIFEST_V2_SINCE } from '../manifest/plugin-schema-field-docs'
 

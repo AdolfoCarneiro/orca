@@ -1,7 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { PLUGIN_IMAGE_MIME, readPluginImageHeader } from '../../shared/plugins/plugin-image-format'
+import {
+  PLUGIN_IMAGE_MIME,
+  readPluginImageHeader
+} from '../../shared/plugins/images/plugin-image-format'
 
 const MAX_CACHED_IMAGE_BYTES = 2 * 1024 * 1024
 

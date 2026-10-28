@@ -3,7 +3,7 @@ import {
   PANEL_CONTROL_MESSAGE_MAX_BYTES,
   readPanelPongId,
   type PluginFrameHello
-} from '../../../../shared/plugins/plugin-frame-bridge'
+} from '../../../../shared/plugins/frames/plugin-frame-bridge'
 import {
   PLUGIN_PROTOCOL_VERSION,
   pluginError,
@@ -17,7 +17,7 @@ import {
   type PluginHostCallOutcome,
   type PluginRequest,
   type PluginResponse
-} from '../../../../shared/plugins/plugin-protocol'
+} from '../../../../shared/plugins/frames/plugin-protocol'
 import {
   PLUGIN_HOST_API_MINOR,
   pluginHostMethodsFor
@@ -28,7 +28,7 @@ import {
   createPanelMessageBudget,
   structuredCloneMessageBytes,
   type PanelMessageBudget
-} from '../../../../shared/plugins/plugin-panel-message-budget'
+} from '../../../../shared/plugins/frames/plugin-panel-message-budget'
 import { translate } from '@/i18n/i18n'
 import { currentPluginFrameTheme } from './plugin-panel-design-token-css'
 

@@ -4,7 +4,7 @@ import {
   pluginKillListSchema,
   type PluginKillList,
   type PluginKillListEntry
-} from '../../../shared/plugins/plugin-kill-list'
+} from '../../../shared/plugins/catalog/plugin-kill-list'
 import { PluginKillListStore } from './plugin-kill-list-store'
 
 export const PLUGIN_KILL_LIST_URL = 'https://onorca.dev/plugins/kill-list.json'

@@ -5,7 +5,7 @@ import {
 } from '../../shared/plugins/approval/plugin-consent-state'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
 import type { PluginServiceOptions } from './plugin-service-options'
-import { pluginExecutionProfile } from '../../shared/plugins/plugin-execution-profile'
+import { pluginExecutionProfile } from '../../shared/plugins/contributions/plugin-execution-profile'
 
 export const PLUGIN_FULL_ACCESS_OFF_ERROR =
   'Full access plugins are turned off. Turn on "Allow full-access plugins" in Plugin settings.'
