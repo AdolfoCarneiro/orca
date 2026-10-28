@@ -68,6 +68,8 @@ export function MobileFilePreviewScreen({ route }: Props) {
     [routePreviewSource]
   )
   const previewSourceKeyRef = useRef(previewSourceKey)
+  // Grant-only refreshes keep the source key, so loads read the source here instead of re-running.
+  const previewSourceRef = useRef(previewSource)
   const previewLoadRevisionRef = useRef(0)
   const lineColumn = useMemo(
     () =>
@@ -87,6 +89,10 @@ export function MobileFilePreviewScreen({ route }: Props) {
   }, [previewSourceKey])
 
   useEffect(() => {
+    previewSourceRef.current = previewSource
+  }, [previewSource])
+
+  useEffect(() => {
     draftContentRef.current = draftContent
   }, [draftContent])
 
@@ -97,9 +103,10 @@ export function MobileFilePreviewScreen({ route }: Props) {
   const loadPreview = useCallback(async () => {
     const revision = ++previewLoadRevisionRef.current
     const loadSourceKey = previewSourceKey
+    const loadSource = previewSourceRef.current
     const isCurrent = () =>
       revision === previewLoadRevisionRef.current && previewSourceKeyRef.current === loadSourceKey
-    if (!previewParams || !previewSource || loadSourceKey !== routePreviewSourceKey) {
+    if (!previewParams || !loadSource || loadSourceKey !== routePreviewSourceKey) {
       setPreview(previewError(route.ok ? 'Unable to load preview' : route.message))
       return
     }
@@ -119,10 +126,11 @@ export function MobileFilePreviewScreen({ route }: Props) {
     }
     setSaveError('')
     try {
-      const result = await loadMobileFilePreview(client, previewSource, undefined, {
+      const result = await loadMobileFilePreview(client, loadSource, undefined, {
         isCurrent,
         onTerminalArtifactSourceRefreshed: (source) => {
           if (isCurrent()) {
+            previewSourceRef.current = source
             setPreviewSource(source)
           }
         },
@@ -160,15 +168,7 @@ export function MobileFilePreviewScreen({ route }: Props) {
       }
       setPreview(previewError(message))
     }
-  }, [
-    client,
-    connState,
-    previewParams,
-    previewSource,
-    previewSourceKey,
-    route,
-    routePreviewSourceKey
-  ])
+  }, [client, connState, previewParams, previewSourceKey, route, routePreviewSourceKey])
 
   useEffect(() => {
     void loadPreview()

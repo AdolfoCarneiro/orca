@@ -221,15 +221,13 @@ describe('file preview read ownership', () => {
       )
     })
     const recoveredReads = preview.reads.slice(2)
-    expect(recoveredReads.length).toBeGreaterThan(0)
+    expect(recoveredReads).toHaveLength(1)
+    expect(recoveredReads[0]!.params).toMatchObject({
+      absolutePath: '/tmp/current.txt',
+      grantId: 'new-grant'
+    })
     await act(async () => {
-      for (const read of recoveredReads) {
-        expect(read.params).toMatchObject({
-          absolutePath: '/tmp/current.txt',
-          grantId: 'new-grant'
-        })
-        read.reply.resolve(content('Recovered editable contents'))
-      }
+      recoveredReads[0]!.reply.resolve(content('Recovered editable contents'))
     })
     const input = renderer?.root.findByProps({ accessibilityLabel: 'current.txt editor' })
     expect(input?.props.value).toBe('Recovered editable contents')
