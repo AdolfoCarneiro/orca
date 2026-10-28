@@ -161,7 +161,7 @@ function fixture(context = initialContext) {
 }
 
 it.each(['review', 'source'] as const)(
-  'ignores a failed GitLab request after the panel changes %s',
+  'reports GitLab failure without rolling back after the panel changes %s',
   async (change) => {
     const f = fixture()
     let pending: Promise<boolean> | undefined
@@ -182,12 +182,12 @@ it.each(['review', 'source'] as const)(
     })
     expect(f.result.current.comments).toEqual([nextComment])
     expect(f.commentWrites).not.toHaveBeenCalled()
-    expect(toastError).not.toHaveBeenCalled()
+    expect(toastError).toHaveBeenCalledTimes(1)
   }
 )
 
 it.each(['gitlab', 'github'] as const)(
-  'does not publish a failed %s request after the panel unmounts',
+  'reports a failed %s request without rollback after the panel unmounts',
   async (provider) => {
     const f = fixture({ ...initialContext, review: { ...initialReview, provider } })
     let pending: Promise<boolean> | undefined
@@ -203,7 +203,7 @@ it.each(['gitlab', 'github'] as const)(
       await expect(pending).resolves.toBe(false)
     })
     expect(f.commentWrites).not.toHaveBeenCalled()
-    expect(toastError).not.toHaveBeenCalled()
+    expect(toastError).toHaveBeenCalledTimes(1)
   }
 )
 

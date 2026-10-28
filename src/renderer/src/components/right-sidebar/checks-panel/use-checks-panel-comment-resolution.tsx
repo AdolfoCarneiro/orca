@@ -110,11 +110,10 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
           resolved: resolve,
           repoOwnerExecutionHostId: forgeOwnerHostIdForWorkspace(repo, activeWorktree)
         })
-        if (!mountedRef.current || !isCurrentAsyncResult(requestKey)) {
-          return result.ok
-        }
         if (!result.ok) {
-          rollbackThread(previousThreadComments)
+          if (mountedRef.current && isCurrentAsyncResult(requestKey)) {
+            rollbackThread(previousThreadComments)
+          }
           if (notifyOnFailure) {
             toast.error(result.error)
           }
@@ -141,11 +140,10 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
         repoId: repo.id,
         prRepo: pr?.prRepo
       })
-      if (!mountedRef.current || !isCurrentAsyncResult(requestKey)) {
-        return ok
-      }
       if (!ok) {
-        rollbackThread(previousThreadComments)
+        if (mountedRef.current && isCurrentAsyncResult(requestKey)) {
+          rollbackThread(previousThreadComments)
+        }
         if (notifyOnFailure) {
           toast.error(
             translate(
