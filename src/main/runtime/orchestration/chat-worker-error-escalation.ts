@@ -35,7 +35,7 @@ export function chatWorkerErrorEscalationEnabled(
 type ChatWorkerDispatch = { dispatch: DispatchContextRow; from: string }
 
 /** The open Dispatch this session works, as a chat assignee or as a structured worker. */
-function chatWorkerDispatches(sessionId: string, db: OrchestrationDb): ChatWorkerDispatch[] {
+export function chatWorkerDispatches(sessionId: string, db: OrchestrationDb): ChatWorkerDispatch[] {
   const found: ChatWorkerDispatch[] = []
   if (isOrcaSessionId(sessionId)) {
     // A `/clear` successor keeps its root's address, so the Dispatch names the root.

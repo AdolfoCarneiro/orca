@@ -10,10 +10,17 @@ import { OrcaRuntimeWithMigrationCatalog } from './orca-runtime-migration-catalo
 import { getRuntimeDesktopSurface } from './runtime-desktop-surface'
 import type { AgentStatusStoreView } from './sidebar-inputs/workspace-activity-facts-producer'
 import { subscribeHookStatusTitles } from './terminal/layout/hook-status-title-subscription'
+import { TerminalWorkerTurnStops } from './orchestration/terminal-worker-turn-stops'
 import {
   TerminalAgentPhonePush,
   type TerminalAgentWorkspaceLabels
 } from './terminal-agent-phone-push'
+
+function unrefTimer(run: () => void, delayMs: number): { cancel: () => void } {
+  const timer = setTimeout(run, delayMs)
+  timer.unref?.()
+  return { cancel: () => clearTimeout(timer) }
+}
 
 /** All hosts/builds own transition detection and windowless phone pushes. */
 export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithMigrationCatalog {
@@ -36,12 +43,17 @@ export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithMig
     translate: (key, fallback) =>
       getRuntimeDesktopSurface().translateNotification?.(key, fallback) ?? fallback,
     dispatch: (event) => this.mobileNotifications.dispatch(event),
-    setTimer: (run, delayMs) => {
-      const timer = setTimeout(run, delayMs)
-      timer.unref?.()
-      return { cancel: () => clearTimeout(timer) }
-    },
+    setTimer: unrefTimer,
     now: Date.now
+  })
+  // The execution host observes its own panes, so local, SSH and paired-server workers are all seen.
+  private readonly terminalWorkerTurnStops = new TerminalWorkerTurnStops({
+    ...this.workerTurnStopReportDeps,
+    readHookRow: (paneKey) => this.agentTransitions.latestRow(paneKey),
+    setTimer: unrefTimer,
+    getHandle: (paneKey) => this.getTerminalHandleForPaneKey(paneKey),
+    getProcessIncarnation: (handle) => this.getTerminalProcessIncarnation(handle),
+    readScreen: (handle) => this.readTerminal(handle, { screen: true, limit: 15 })
   })
 
   private readonly externalConversations = installExternalConversations(this.store, this)
@@ -65,6 +77,7 @@ export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithMig
   constructor(...args: ConstructorParameters<typeof OrcaRuntimeWithMigrationCatalog>) {
     super(...args)
     this.agentTransitions.subscribe((change) => this.terminalAgentPhonePush.observe(change))
+    this.agentTransitions.subscribe((change) => this.terminalWorkerTurnStops.observe(change))
   }
 
   /** Attach after higher layers subscribe; also drive generated tab titles. */

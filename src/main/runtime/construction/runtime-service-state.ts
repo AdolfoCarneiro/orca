@@ -37,6 +37,7 @@ import { OrchestrationMailboxPointerDelivery } from '../orchestration/mailbox-po
 import { OrchestrationMailboxNotificationCoordinator } from '../orchestration/mailbox-notification-coordinator'
 import type { RuntimeMessageWaiter } from '../runtime-message-waiters'
 import { RuntimeMessageWaiters } from '../runtime-message-waiters'
+import type { WorkerTurnStopReportDeps } from '../orchestration/worker-turn-stop-report'
 import type { RuntimeSkillCommands } from '../runtime-skill-command-surface'
 import { RuntimeTerminalStreamConsumers } from '../runtime-terminal-stream-consumers'
 import type { RecentPtyOutputBuffer } from '../recent-pty-output-buffer'
@@ -321,6 +322,12 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
     })
 
   protected readonly messageWaiters = new RuntimeMessageWaiters()
+
+  protected readonly workerTurnStopReportDeps: WorkerTurnStopReportDeps = {
+    getDb: () => this._orchestrationDb,
+    isWaitingForMail: (mailbox) => (this.messageWaiters.get(mailbox)?.size ?? 0) > 0,
+    notify: (handle, messageType) => this.notifyMessageArrived(handle, messageType)
+  }
 
   protected readonly skillCommands!: RuntimeSkillCommands
 

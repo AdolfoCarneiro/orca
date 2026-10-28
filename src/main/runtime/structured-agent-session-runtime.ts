@@ -16,6 +16,10 @@ import type {
   StructuredAgentSessionHostDeps
 } from '../native-chat/agent-session-wire/structured-agent-session-host'
 import { setStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
+import type {
+  AgentSessionStatusSummary,
+  AgentSessionTurnCompletionEvent
+} from '../../shared/agent-session-wire'
 import { stopAgentSessionAttachments } from './structured-agent-session-attachment-wiring'
 import {
   openAgentSessionRecordStoreOnce,
@@ -75,6 +79,11 @@ export type StructuredAgentSessionRuntimeDeps = StructuredAgentSessionTransportO
   assertNoTerminalWriter?: StructuredAgentSessionHostDeps['assertNoTerminalWriter']
   /** Host-owned phone delivery and reconciliation from the current journal projection. */
   attentionDelivery?: StructuredAttentionMobileDelivery
+  /** Every live turn completion and pending prompt, with the host's status at that edge. */
+  onTurnAttention?: (
+    event: AgentSessionTurnCompletionEvent,
+    readStatus: (sessionId: string) => AgentSessionStatusSummary | undefined
+  ) => void
   /** Resolve the account home launch would pin for catalog reads without a session; absent disables catalogs. */
   resolveAgentAccountHome?: RuntimeAgentAccountHomeResolver
 } & Pick<StructuredAgentSessionHostDeps, 'onRequestFailure' | 'statusSink'>
