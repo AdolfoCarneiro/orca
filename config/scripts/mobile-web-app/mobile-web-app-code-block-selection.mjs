@@ -1,5 +1,8 @@
 import { expect, it } from 'vitest'
 
+// WebKit can report a Mac user agent while running on Linux.
+const historyModifier = process.platform === 'darwin' ? 'Meta' : 'Control'
+
 async function verifyCodeBlockSelections({
   browser,
   openPage,
@@ -80,13 +83,10 @@ async function verifyCodeBlockSelections({
       await expect
         .poll(() => page.evaluate(() => globalThis.__orcaEditor.changes.at(-1)))
         .toBe(saved)
-      const modifier = await page.evaluate(() =>
-        navigator.userAgent.includes('Mac') ? 'Meta' : 'Control'
-      )
-      await page.keyboard.press(`${modifier}+z`)
+      await page.keyboard.press(`${historyModifier}+z`)
       await expect.poll(() => readSurface(page)).toBe(sample.html)
       expect(await page.evaluate(() => window.getSelection().toString())).toBe(selected)
-      await page.keyboard.press(`${modifier}+Shift+z`)
+      await page.keyboard.press(`${historyModifier}+Shift+z`)
       await expect
         .poll(() => page.evaluate(() => globalThis.__orcaEditor.changes.at(-1)))
         .toBe(saved)
@@ -177,13 +177,10 @@ async function verifyStructuredSelections({
         expect(await page.locator('#first-surface #editor pre code').textContent()).toBe('code')
         expect(await page.locator(`#first-surface #editor ${sample.selector}`).count()).toBe(1)
         expect(await page.evaluate(() => globalThis.__orcaEditor.changes.at(-1))).toBe(sample.caret)
-        const modifier = await page.evaluate(() =>
-          navigator.userAgent.includes('Mac') ? 'Meta' : 'Control'
-        )
-        await page.keyboard.press(`${modifier}+z`)
+        await page.keyboard.press(`${historyModifier}+z`)
         await expect.poll(() => readSurface(page)).toBe(before)
         expect(await page.evaluate(() => window.getSelection().toString())).toBe(selected)
-        await page.keyboard.press(`${modifier}+Shift+z`)
+        await page.keyboard.press(`${historyModifier}+Shift+z`)
         await expect
           .poll(() => page.evaluate(() => globalThis.__orcaEditor.changes.at(-1)))
           .toBe(sample.caret)
