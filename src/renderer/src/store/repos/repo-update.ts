@@ -126,15 +126,7 @@ export function createRepoUpdateActions(
       const updateChainKey = getRepoHostIdentityForParts(projectId, ownerHostId)
       const applyRepoUpdate = async () => {
         try {
-          const latestOwner = get().repos.find((repo) =>
-            repoMatchesHostIdentity(repo, projectId, ownerHostId)
-          )
-          if (!latestOwner) {
-            return false
-          }
-          const sanitizedUpdates = sanitizeRepoUpdate(
-            typeof updates === 'function' ? updates(latestOwner) : updates
-          )
+          const sanitizedUpdates = sanitizeRepoUpdate(updates)
           const target = ownerTarget
           const updatedRepo =
             target.kind === 'local'

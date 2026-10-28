@@ -6,47 +6,28 @@ import type {
   EventProps
 } from '../../../../shared/telemetry-events'
 import type { Worktree } from '../../../../shared/worktree/types'
+import { areRuntimePathsEqual } from '../../../../shared/worktree/ownership'
 import { relativePathInsideRoot } from '../../../../shared/cross-platform-path'
-import {
-  getHiddenExternalWorktrees,
-  hasCompletedInitialExternalWorktreeImportPrompt,
-  mergeExternalWorktreeInboxPaths
-} from '../../../../shared/external-worktree-inbox'
 import { markOnboardingProjectAdded } from '@/lib/onboarding-project-checklist'
 import { finalizeImportedRepoAfterSkip } from './add-repo-skip-finalization'
-import { getRepoExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
-import { repoMatchesHostIdentity } from '@/store/slices/repo-host-identity'
-import { worktreeMatchesHost } from '@/store/slices/worktrees/listing/worktree-host-ownership'
-import type { Repo } from '../../../../shared/repo-types'
 import {
-  selectDetectedWorktreesByRepo,
-  selectWorktreesByRepo
-} from '@/store/workspace-record-selectors'
+  getRepoExecutionHostId,
+  parseExecutionHostId,
+  type ExecutionHostId
+} from '../../../../shared/execution-host'
+import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 
 type DefaultCheckoutHandoffReason = EventProps<'add_repo_default_checkout_handoff'>['reason']
 
-function getProjectInitialCheckout<T extends Worktree>(
-  worktrees: readonly T[],
-  anchorPaths: readonly (string | undefined)[]
-): T | null {
-  for (const anchorPath of anchorPaths) {
-    if (!anchorPath) {
-      continue
-    }
-    let containing: T | null = null
-    for (const worktree of worktrees) {
-      if (
-        relativePathInsideRoot(worktree.path, anchorPath) !== null &&
-        (!containing || relativePathInsideRoot(containing.path, worktree.path) !== null)
-      ) {
-        containing = worktree
-      }
-    }
-    if (containing) {
-      return containing
-    }
-  }
-  return worktrees.find((worktree) => worktree.isMainWorktree) ?? null
+// The checkout at repo.path is always visible, so opening it never needs to reveal other worktrees.
+export function getProjectDefaultCheckout(
+  worktrees: readonly Worktree[],
+  repoPath?: string
+): Worktree | null {
+  const selectedCheckout = repoPath
+    ? worktrees.find((worktree) => areRuntimePathsEqual(worktree.path, repoPath))
+    : undefined
+  return selectedCheckout ?? worktrees.find((worktree) => worktree.isMainWorktree) ?? null
 }
 
 function getProjectWorktreesForHost<T extends Worktree>(
@@ -56,112 +37,56 @@ function getProjectWorktreesForHost<T extends Worktree>(
   if (!executionHostId) {
     return [...worktrees]
   }
-  return worktrees.filter((worktree) => worktreeMatchesHost(worktree, executionHostId))
+  const parsedHost = parseExecutionHostId(executionHostId)
+  return worktrees.filter((worktree) => {
+    if (parsedHost?.kind === 'runtime') {
+      if (worktree.runtimeOwnerEnvironmentId) {
+        return worktree.runtimeOwnerEnvironmentId === parsedHost.environmentId
+      }
+      // Colliding repo IDs may carry only hostId, so match runtime-qualified hosts too.
+      return worktree.hostId === executionHostId
+    }
+    if (worktree.runtimeOwnerEnvironmentId) {
+      return false
+    }
+    if (worktree.hostId) {
+      return worktree.hostId === executionHostId
+    }
+    return executionHostId === 'local'
+  })
 }
 
-function getLoadedProjectWorktrees(repoId: string, executionHostId?: ExecutionHostId): Worktree[] {
-  return getProjectWorktreesForHost(
-    selectWorktreesByRepo(useAppStore.getState())[repoId] ?? [],
-    executionHostId
+function findLoadedDefaultCheckout(
+  repoId: string,
+  executionHostId?: ExecutionHostId
+): Worktree | null {
+  const state = useAppStore.getState()
+  // Match the owner row only; an ambiguous bare ID falls back to the main worktree, never the focused host.
+  const owners = state.repos.filter(
+    (repo) =>
+      repo.id === repoId && (!executionHostId || getRepoExecutionHostId(repo) === executionHostId)
+  )
+  return getProjectDefaultCheckout(
+    getProjectWorktreesForHost(selectWorktreesByRepo(state)[repoId] ?? [], executionHostId),
+    owners.length === 1 ? owners[0].path : undefined
   )
 }
 
-function ownerRefreshOptions(executionHostId?: ExecutionHostId) {
-  return {
-    requireAuthoritative: true as const,
-    ...(executionHostId ? { executionHostId } : {})
-  }
-}
-
-// Never falls back to the focused host: an ID shared across hosts needs the captured owner.
-function findProjectRepo(repoId: string, executionHostId?: ExecutionHostId): Repo | null {
-  const matches = useAppStore
-    .getState()
-    .repos.filter((repo) =>
-      executionHostId ? repoMatchesHostIdentity(repo, repoId, executionHostId) : repo.id === repoId
-    )
-  return matches.length === 1 ? matches[0] : null
-}
-
-async function resolveInitialCheckout(
+async function refreshDefaultCheckout(
   repoId: string,
-  anchorPaths: readonly (string | undefined)[],
   executionHostId?: ExecutionHostId
 ): Promise<{
   worktree: Worktree | null
   reason: DefaultCheckoutHandoffReason
 }> {
-  const repo = findProjectRepo(repoId, executionHostId)
-  if (!repo && useAppStore.getState().repos.some((candidate) => candidate.id === repoId)) {
-    return { worktree: null, reason: 'no_default_checkout' }
-  }
-  const loaded = getLoadedProjectWorktrees(repoId, executionHostId)
-  const detected = selectDetectedWorktreesByRepo(useAppStore.getState())[repoId]
-  const detectedForHost = detected && {
-    ...detected,
-    worktrees: getProjectWorktreesForHost(detected.worktrees, executionHostId)
-  }
-  // Detection includes hidden checkouts, so a picked hidden checkout wins over the visible primary.
-  const target =
-    detectedForHost?.authoritative === true
-      ? getProjectInitialCheckout(detectedForHost.worktrees, anchorPaths)
-      : null
-  const loadedTarget = target
-    ? loaded.find((worktree) => worktree.id === target.id)
-    : getProjectInitialCheckout(loaded, anchorPaths)
-  const importPath = target && !target.visible && !loadedTarget ? target.path : undefined
-  const dismissPrompt =
-    repo !== null &&
-    !hasCompletedInitialExternalWorktreeImportPrompt(repo) &&
-    getHiddenExternalWorktrees(detectedForHost).length > 0
-  if (importPath || dismissPrompt) {
-    // Import only the opened checkout and route hidden siblings to the existing compact hint.
-    const updated =
-      repo !== null &&
-      (await useAppStore.getState().updateRepo(
-        repoId,
-        (latestRepo) => ({
-          ...(importPath
-            ? {
-                importedExternalWorktreePaths: mergeExternalWorktreeInboxPaths(
-                  latestRepo.importedExternalWorktreePaths,
-                  [importPath]
-                )
-              }
-            : {}),
-          ...(dismissPrompt
-            ? {
-                externalWorktreeVisibilityPromptDismissedAt:
-                  latestRepo.externalWorktreeVisibilityPromptDismissedAt ?? Date.now()
-              }
-            : {})
-        }),
-        { hostId: getRepoExecutionHostId(repo) }
-      ))
-    if (importPath && !updated) {
-      return { worktree: null, reason: 'show_detected_default_failed' }
-    }
-  }
-  if (loadedTarget) {
-    return { worktree: loadedTarget, reason: 'loaded_default_checkout' }
-  }
-  if (!target) {
-    return {
-      worktree: null,
-      reason:
-        detected?.authoritative === true ? 'no_default_checkout' : 'no_authoritative_detection'
-    }
-  }
-  const refreshed = await useAppStore
-    .getState()
-    .fetchWorktrees(repoId, ownerRefreshOptions(executionHostId))
+  const refreshed = await useAppStore.getState().fetchWorktrees(repoId, {
+    requireAuthoritative: true,
+    ...(executionHostId ? { executionHostId } : {})
+  })
   if (!refreshed) {
     return { worktree: null, reason: 'authoritative_refresh_failed' }
   }
-  const worktree =
-    getLoadedProjectWorktrees(repoId, executionHostId).find(
-      (candidate) => candidate.id === target.id
-    ) ?? null
+  const worktree = findLoadedDefaultCheckout(repoId, executionHostId)
   return {
     worktree,
     reason: worktree ? 'detected_default_checkout' : 'refreshed_default_missing'
@@ -192,16 +117,15 @@ export async function openProjectDefaultCheckout({
   setHideDefaultBranchWorkspace: (value: boolean) => void
   executionHostId?: ExecutionHostId
 }): Promise<void> {
-  // A project registered at a linked checkout reopens that checkout rather than the hidden primary.
-  const repo = findProjectRepo(repoId, executionHostId)
-  const ownerHostId = executionHostId ?? (repo ? getRepoExecutionHostId(repo) : undefined)
-  const { worktree: checkout, reason } = await resolveInitialCheckout(
-    repoId,
-    [selectedPath, repo?.path],
-    ownerHostId
-  )
+  let defaultCheckout = findLoadedDefaultCheckout(repoId, executionHostId)
+  let reason: DefaultCheckoutHandoffReason = 'loaded_default_checkout'
+  if (!defaultCheckout) {
+    const refreshed = await refreshDefaultCheckout(repoId, executionHostId)
+    defaultCheckout = refreshed.worktree
+    reason = refreshed.reason
+  }
 
-  if (!checkout) {
+  if (!defaultCheckout) {
     track('add_repo_default_checkout_handoff', {
       source,
       result: 'revealed_project',
@@ -212,22 +136,22 @@ export async function openProjectDefaultCheckout({
   }
 
   // Onboarding must reveal its default checkout even when the normal sidebar preference hides it.
-  if (checkout.isMainWorktree && useAppStore.getState().hideDefaultBranchWorkspace) {
+  if (defaultCheckout.isMainWorktree && useAppStore.getState().hideDefaultBranchWorkspace) {
     setHideDefaultBranchWorkspace(false)
   }
   track('add_repo_default_checkout_handoff', {
     source,
-    result: checkout.isMainWorktree ? 'opened_default_checkout' : 'opened_selected_checkout',
+    result: defaultCheckout.isMainWorktree ? 'opened_default_checkout' : 'opened_selected_checkout',
     reason
   })
-  const initialCwd = resolveInitialCwdForDefaultCheckout(checkout, selectedPath)
-  if (initialCwd || ownerHostId) {
-    activateAndRevealWorktree(checkout.id, {
+  const initialCwd = resolveInitialCwdForDefaultCheckout(defaultCheckout, selectedPath)
+  if (initialCwd || executionHostId) {
+    activateAndRevealWorktree(defaultCheckout.id, {
       ...(initialCwd ? { initialCwd } : {}),
-      ...(ownerHostId ? { executionHostId: ownerHostId } : {})
+      ...(executionHostId ? { executionHostId } : {})
     })
   } else {
-    activateAndRevealWorktree(checkout.id)
+    activateAndRevealWorktree(defaultCheckout.id)
   }
 }
 

@@ -96,8 +96,6 @@ async function readOpenedProject(page: Page, repoPath: string) {
     return {
       activePath: worktrees.find((worktree) => worktree.id === state.activeWorktreeId)?.path,
       repoVisibility: repo.externalWorktreeVisibility,
-      visibilityPromptResolved:
-        typeof repo.externalWorktreeVisibilityPromptDismissedAt === 'number',
       visibleBranches: worktrees.map((worktree) => worktree.branch).sort()
     }
   }, repoPath)
@@ -184,7 +182,6 @@ test.describe('Add project default checkout', () => {
       .toEqual({
         activePath: fixture.mainPath,
         repoVisibility: undefined,
-        visibilityPromptResolved: true,
         visibleBranches: ['refs/heads/main']
       })
 
@@ -210,7 +207,6 @@ test.describe('Add project default checkout', () => {
       .toEqual({
         activePath: fixture.siblingPath,
         repoVisibility: undefined,
-        visibilityPromptResolved: true,
         visibleBranches: ['refs/heads/feature']
       })
     await expect(
