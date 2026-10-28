@@ -1,4 +1,3 @@
-import { hasRemoteFilesystemOwner } from '../ipc/remote-filesystem-owner'
 import { broadcastKeybindingsChanged } from '../ipc/keybindings'
 import { hydrateFilesystemHostFailureDomains } from '../filesystem-host/filesystem-host-read-client'
 import { refreshGrokAuthSnapshot } from '../rate-limits/grok-auth-snapshot'
@@ -58,14 +57,7 @@ export function initializeMainProcessAccountServices(): void {
     startBackfill: startCodexSessionBackfillInBackground,
     startIndexHeal: startCodexSessionIndexHealInBackground
   })
-  hydrateFilesystemHostFailureDomains([
-    app.getPath('home'),
-    app.getPath('userData'),
-    ...store
-      .getRepos()
-      .filter((repo) => !hasRemoteFilesystemOwner(repo))
-      .map((repo) => repo.path)
-  ])
+  hydrateFilesystemHostFailureDomains([app.getPath('home'), app.getPath('userData')])
   void refreshGrokAuthSnapshot()
   const services = createProviderAccountServices(store, {
     codexAccountLifecycle: { onHostSystemDefaultSelected: state.codexSessionMigration.requestRun },

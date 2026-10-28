@@ -45,7 +45,7 @@ describe('packaged filesystem host entry verification', () => {
     expect(() => assertPackagedFilesystemHostEntryExists(root)).toThrow(/missing unpacked entry/)
   })
 
-  it('boots the real packaged-layout entry under plain Node', () => {
+  it('accepts a protocol-printing fixture in the packaged layout', () => {
     const resources = createResources(
       `process.stdout.write(JSON.stringify({ protocolVersion: 1 }) + '\\n')\n`
     )

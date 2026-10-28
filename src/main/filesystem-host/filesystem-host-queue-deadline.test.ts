@@ -1,3 +1,5 @@
+import { FilesystemHostReadAuthority } from './filesystem-host-read-authority'
+import { FilesystemHostSupervisorError } from './filesystem-host-supervisor-error'
 import { expect, it, vi } from 'vitest'
 import { FilesystemHostSupervisor } from './filesystem-host-supervisor'
 import { FilesystemHostBackgroundQueue } from './filesystem-host-background-queue'
@@ -52,4 +54,83 @@ it('bounds background admission before the supervisor queue', async () => {
   queue.dispose()
   release()
   await Promise.all([running, ...pending])
+})
+
+it('expires public background calls in admission without dispatching expired work', async () => {
+  vi.useFakeTimers()
+  const dispatch = vi.fn<FilesystemHostSupervisor['dispatch']>(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20_000))
+    return { kind: 'read-snapshot-file', contentsBase64: '' }
+  })
+  const authority = new FilesystemHostReadAuthority({
+    entryPath: 'unused',
+    supervisor: {
+      dispatch,
+      publishFailureDomain: vi.fn(),
+      removeFailureDomain: vi.fn(),
+      dispose: async () => {}
+    }
+  })
+  try {
+    const blockers = Array.from({ length: 4 }, (_, i) =>
+      authority.readSnapshotFile(`/home/block-${i}`, 'grok-auth')
+    )
+    const queued = [
+      authority.readSnapshotFile('/home/queued', 'grok-auth'),
+      authority.prepareRateLimitPtyCwd('/user-data/pty'),
+      authority.resolveCliCommand('codex'),
+      authority.readOrcaYaml('/worktree/orca.yaml'),
+      authority.writeRateLimitCredential(
+        '/home/.gemini/oauth_creds.json',
+        'gemini-oauth-credentials',
+        '{}'
+      )
+    ].map((task) => task.catch((error: unknown) => error))
+    await vi.advanceTimersByTimeAsync(5_000)
+    for (const result of await Promise.all(queued.slice(0, 4))) {
+      expect(result).toMatchObject({ code: 'ETIMEDOUT', reason: 'deadline' })
+    }
+    expect(dispatch).toHaveBeenCalledTimes(4)
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(await queued[4]).toMatchObject({ code: 'ETIMEDOUT', reason: 'deadline' })
+    await Promise.all(blockers)
+    expect(dispatch).toHaveBeenCalledTimes(4)
+  } finally {
+    await authority.dispose()
+    vi.useRealTimers()
+  }
+})
+
+it('shares the YAML budget between classification, admission and the final read', async () => {
+  vi.useFakeTimers()
+  const dispatch = vi.fn<FilesystemHostSupervisor['dispatch']>(async (input) => {
+    if (input.operation.kind === 'classify-path') {
+      await new Promise((resolve) => setTimeout(resolve, 4_000))
+      return { kind: 'classify-path', deviceId: 'device' }
+    }
+    await new Promise((resolve) => setTimeout(resolve, input.deadlineMs))
+    throw new FilesystemHostSupervisorError('deadline', 'execution expired')
+  })
+  const authority = new FilesystemHostReadAuthority({
+    entryPath: 'unused',
+    supervisor: {
+      dispatch,
+      publishFailureDomain: vi.fn(),
+      removeFailureDomain: vi.fn(),
+      dispose: async () => {}
+    }
+  })
+  try {
+    const reading = authority.readOrcaYaml('/worktree/orca.yaml').catch((error: unknown) => error)
+    await vi.advanceTimersByTimeAsync(4_000)
+    expect(dispatch.mock.calls[1][0]).toMatchObject({
+      deadlineMs: 1_000,
+      operation: { kind: 'read-orca-yaml' }
+    })
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(await reading).toMatchObject({ code: 'ETIMEDOUT' })
+  } finally {
+    await authority.dispose()
+    vi.useRealTimers()
+  }
 })

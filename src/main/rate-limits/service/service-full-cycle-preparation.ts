@@ -78,6 +78,9 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
     const codexGeneration = this.codexFetchGeneration
     // Gate only Codex, never siblings, when its runtime is skipped (#STA-4422).
     const codexHome = await this.resolveCodexHome(codexTarget)
+    if (signal.aborted) {
+      return null
+    }
     const previousState = this.state
     const antigravityGeneration = this.antigravityFetchGeneration
     const codexFetchGated = codexHome.skip
@@ -100,9 +103,6 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
     const miniMaxEndpoint = miniMaxConfigResult.config.endpoint
     const miniMaxApiKey = miniMaxConfigResult.config.apiKey
     const geminiCliOAuthEnabled = this.geminiCliOAuthEnabledResolver?.() ?? false
-    // Probe auth during fetch, not hot renderer/mobile getState calls.
-    const grokAuthReadResult = await readGrokAuthSession()
-    this.grokAuthConfigured = grokAuthReadResult.status === 'ok'
 
     // Config changes discard old-account usage; hash credentials because only identity changes matter.
     const apiKeyFingerprint = openCodeGoApiKey
@@ -204,13 +204,17 @@ export abstract class RateLimitServiceFullCyclePreparation extends RateLimitServ
 
     const missingWslCodexHome =
       codexFetchGated || codexHomePath ? null : this.getMissingWslCodexHomeResult(codexTarget)
-    const grokResultPromise = fetchGrokRateLimits({
-      signal,
-      authReadResult: grokAuthReadResult
-    }).then(
-      (value) => ({ status: 'fulfilled', value }) as const,
-      (reason) => ({ status: 'rejected', reason }) as const
-    )
+    const grokResultPromise = Promise.resolve()
+      .then(() => readGrokAuthSession())
+      .then((authReadResult) => {
+        signal.throwIfAborted()
+        this.grokAuthConfigured = authReadResult.status === 'ok'
+        return fetchGrokRateLimits({ signal, authReadResult })
+      })
+      .then(
+        (value) => ({ status: 'fulfilled', value }) as const,
+        (reason) => ({ status: 'rejected', reason }) as const
+      )
 
     // Live display does not waive automated Retry-After gates.
     const claudeFetchGated =

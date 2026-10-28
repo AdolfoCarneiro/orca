@@ -1,3 +1,9 @@
+import { assertWslUncPathRunning } from '../wsl/wsl-unc-access-gate'
+import { windowsFsPath } from '../wsl/wsl-unc-drive-fs-path'
+import {
+  remainingFilesystemHostBudget,
+  withinFilesystemHostDeadline
+} from './filesystem-host-deadline'
 import { randomUUID } from 'node:crypto'
 import type { FilesystemHostResult } from '../../shared/filesystem-host-protocol'
 import type { FilesystemExecutionHost } from './filesystem-host-failure-domain'
@@ -20,11 +26,17 @@ type RoutePath = (path: string) => {
   storageClass: FilesystemStorageClass
 }
 
-const CAPACITY_RETRY_BASE_DELAY_MS = 25
-const CAPACITY_RETRY_MAX_DELAY_MS = 30_000
+const CLASSIFICATION_RETRY_BASE_DELAY_MS = 25
+const CLASSIFICATION_RETRY_MAX_DELAY_MS = 30_000
 
-function isCapacityFailure(error: unknown): boolean {
-  return (error as { code?: unknown } | null)?.code === 'capacity'
+function isRetryableClassificationFailure(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    ['capacity', 'deadline', 'WSL_DISTRO_STOPPED', 'WSL_DISTRO_UNVERIFIABLE'].includes(
+      String(error.code)
+    )
+  )
 }
 
 export class FilesystemHostFailureDomainHydrator {
@@ -70,10 +82,10 @@ export class FilesystemHostFailureDomainHydrator {
     }
   }
 
-  async acquire(path: string): Promise<() => void> {
+  async acquire(path: string, expiresAt = Date.now() + this.deadlineMs): Promise<() => void> {
     this.readLeases.set(path, (this.readLeases.get(path) ?? 0) + 1)
     try {
-      await this.classify(path)
+      await withinFilesystemHostDeadline(this.classify(path, expiresAt), expiresAt)
     } catch (error) {
       this.release(path)
       throw error
@@ -87,7 +99,7 @@ export class FilesystemHostFailureDomainHydrator {
     }
   }
 
-  classify(path: string): Promise<void> {
+  classify(path: string, expiresAt = Date.now() + this.deadlineMs): Promise<void> {
     if (this.classifiedPaths.has(path)) {
       return Promise.resolve()
     }
@@ -97,26 +109,31 @@ export class FilesystemHostFailureDomainHydrator {
     }
     const route = this.routePath(path)
     const flight = this.queue
-      .run(async () => {
-        const result = await this.supervisor.dispatch({
-          operationId: randomUUID(),
-          operation: { kind: 'classify-path', path },
-          ...route,
-          admission: 'background',
-          deadlineMs: this.deadlineMs
-        })
-        if (result.kind !== 'classify-path') {
-          throw new Error('Filesystem host returned the wrong classification result')
-        }
-        if (this.isOwned(path)) {
-          this.supervisor.publishFailureDomain({
-            executionHost: route.executionHost,
-            prefix: path,
-            mountId: result.deviceId
+      .run(
+        async () => {
+          await withinFilesystemHostDeadline(assertWslUncPathRunning(path), expiresAt)
+          const result = await this.supervisor.dispatch({
+            operationId: randomUUID(),
+            operation: { kind: 'classify-path', path: windowsFsPath(path) },
+            ...route,
+            admission: 'background',
+            deadlineMs: remainingFilesystemHostBudget(expiresAt)
           })
-          this.classifiedPaths.add(path)
-        }
-      }, path)
+          if (result.kind !== 'classify-path') {
+            throw new Error('Filesystem host returned the wrong classification result')
+          }
+          if (this.isOwned(path)) {
+            this.supervisor.publishFailureDomain({
+              executionHost: route.executionHost,
+              prefix: path,
+              mountId: result.deviceId
+            })
+            this.classifiedPaths.add(path)
+          }
+        },
+        path,
+        expiresAt
+      )
       .finally(() => {
         if (this.flights.get(path) === flight) {
           this.flights.delete(path)
@@ -148,8 +165,8 @@ export class FilesystemHostFailureDomainHydrator {
         }
       })
       .catch((error: unknown) => {
-        if (!this.disposed && this.isOwned(path) && isCapacityFailure(error)) {
-          this.scheduleCapacityRetry(path)
+        if (!this.disposed && this.isOwned(path) && isRetryableClassificationFailure(error)) {
+          this.scheduleClassificationRetry(path)
         }
       })
   }
@@ -184,15 +201,15 @@ export class FilesystemHostFailureDomainHydrator {
     this.supervisor.removeFailureDomain({ executionHost: route.executionHost, prefix: path })
   }
 
-  private scheduleCapacityRetry(path: string): void {
+  private scheduleClassificationRetry(path: string): void {
     if (this.disposed || this.retryTimers.has(path)) {
       return
     }
     const attempt = (this.retryAttempts.get(path) ?? 0) + 1
     this.retryAttempts.set(path, attempt)
     const delay = Math.min(
-      CAPACITY_RETRY_BASE_DELAY_MS * 2 ** Math.min(attempt - 1, 10),
-      CAPACITY_RETRY_MAX_DELAY_MS
+      CLASSIFICATION_RETRY_BASE_DELAY_MS * 2 ** Math.min(attempt - 1, 10),
+      CLASSIFICATION_RETRY_MAX_DELAY_MS
     )
     const timer = setTimeout(() => {
       this.retryTimers.delete(path)

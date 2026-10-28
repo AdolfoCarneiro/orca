@@ -17,19 +17,22 @@ export async function writeFilesystemHostRateLimitCredential(options: {
   queue: FilesystemHostBackgroundQueue
   dispatch(input: FilesystemHostDispatch): Promise<FilesystemHostResult>
 }): Promise<void> {
-  const result = await options.queue.run(() =>
-    options.dispatch({
-      operationId: randomUUID(),
-      operation: {
-        kind: 'write-rate-limit-credential',
-        path: options.path,
-        fileKind: options.fileKind,
-        contents: options.contents
-      },
-      ...options.route,
-      admission: 'background',
-      deadlineMs: options.deadlineMs
-    })
+  const result = await options.queue.run(
+    (deadlineMs) =>
+      options.dispatch({
+        operationId: randomUUID(),
+        operation: {
+          kind: 'write-rate-limit-credential',
+          path: options.path,
+          fileKind: options.fileKind,
+          contents: options.contents
+        },
+        ...options.route,
+        admission: 'background',
+        deadlineMs
+      }),
+    null,
+    Date.now() + options.deadlineMs
   )
   if (result.kind !== 'write-rate-limit-credential') {
     throw new Error('Filesystem host returned the wrong credential-write result')

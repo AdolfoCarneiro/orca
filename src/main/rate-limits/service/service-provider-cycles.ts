@@ -169,8 +169,11 @@ export abstract class RateLimitServiceProviderCycles extends RateLimitServiceFul
     if (signal.aborted) {
       return
     }
-    const previousState = this.state
     const grokAuthReadResult = await readGrokAuthSession()
+    if (signal.aborted) {
+      return
+    }
+    const previousState = this.state
     this.grokAuthConfigured = grokAuthReadResult.status === 'ok'
 
     this.updateState({

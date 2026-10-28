@@ -1,6 +1,6 @@
+import { readFilesystemHostOrcaYaml } from './filesystem-host-orca-yaml-client'
 import { randomUUID } from 'node:crypto'
 import { homedir } from 'node:os'
-import { dirname } from 'node:path'
 import type {
   FilesystemCliCommandName,
   FilesystemSnapshotFileKind,
@@ -138,26 +138,13 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
   }
 
   async readOrcaYaml(path: string): Promise<string> {
-    const releaseFailureDomain = await this.failureDomains
-      .acquire(dirname(path))
-      .catch(() => () => {})
-    const route = routeFilesystemHostPath(path, 'workspace', this.platform)
-    try {
-      const result = await this.backgroundQueue.run(() =>
-        this.supervisor.dispatch({
-          operationId: randomUUID(),
-          operation: { kind: 'read-orca-yaml', path, maxBytes: 1024 * 1024 },
-          ...route,
-          admission: 'background',
-          deadlineMs: BACKGROUND_READ_DEADLINE_MS
-        })
-      )
-      return requireFilesystemHostResult(result, 'read-orca-yaml').contents
-    } catch (error) {
-      throw new FilesystemHostReadError(filesystemHostReadFailureReason(error))
-    } finally {
-      releaseFailureDomain()
-    }
+    return readFilesystemHostOrcaYaml(path, {
+      deadlineMs: BACKGROUND_READ_DEADLINE_MS,
+      failureDomains: this.failureDomains,
+      queue: this.backgroundQueue,
+      dispatch: (input) => this.supervisor.dispatch(input),
+      route: routeFilesystemHostPath(path, 'workspace', this.platform)
+    })
   }
 
   async readKeybindings(path: string): Promise<string> {
@@ -213,16 +200,20 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
   }
 
   async readSnapshotFile(path: string, fileKind: FilesystemSnapshotFileKind): Promise<Buffer> {
+    const expiresAt = Date.now() + BACKGROUND_READ_DEADLINE_MS
     const route = routeFilesystemHostPath(path, 'home', this.platform)
     try {
-      const result = await this.backgroundQueue.run(() =>
-        this.supervisor.dispatch({
-          operationId: randomUUID(),
-          operation: { kind: 'read-snapshot-file', path, fileKind },
-          ...route,
-          admission: 'background',
-          deadlineMs: BACKGROUND_READ_DEADLINE_MS
-        })
+      const result = await this.backgroundQueue.run(
+        (deadlineMs) =>
+          this.supervisor.dispatch({
+            operationId: randomUUID(),
+            operation: { kind: 'read-snapshot-file', path, fileKind },
+            ...route,
+            admission: 'background',
+            deadlineMs
+          }),
+        null,
+        expiresAt
       )
       return Buffer.from(
         requireFilesystemHostResult(result, 'read-snapshot-file').contentsBase64,
@@ -234,16 +225,20 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
   }
 
   async prepareRateLimitPtyCwd(path: string): Promise<string> {
+    const expiresAt = Date.now() + BACKGROUND_READ_DEADLINE_MS
     const route = routeFilesystemHostPath(path, 'user-data', this.platform)
     try {
-      const result = await this.backgroundQueue.run(() =>
-        this.supervisor.dispatch({
-          operationId: randomUUID(),
-          operation: { kind: 'prepare-rate-limit-pty-cwd', path },
-          ...route,
-          admission: 'background',
-          deadlineMs: BACKGROUND_READ_DEADLINE_MS
-        })
+      const result = await this.backgroundQueue.run(
+        (deadlineMs) =>
+          this.supervisor.dispatch({
+            operationId: randomUUID(),
+            operation: { kind: 'prepare-rate-limit-pty-cwd', path },
+            ...route,
+            admission: 'background',
+            deadlineMs
+          }),
+        null,
+        expiresAt
       )
       return requireFilesystemHostResult(result, 'prepare-rate-limit-pty-cwd').canonicalPath
     } catch (error) {

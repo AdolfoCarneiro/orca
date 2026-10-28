@@ -313,11 +313,12 @@ describe('FilesystemHostReadAuthority', () => {
     })
 
     authority.reconcileFailureDomains(['/repo'])
-    await vi.waitFor(() => expect(dispatch).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalled())
     await authority.dispose()
+    const callsAtDisposal = dispatch.mock.calls.length
     await new Promise((resolve) => setTimeout(resolve, 50))
 
-    expect(dispatch).toHaveBeenCalledOnce()
+    expect(dispatch).toHaveBeenCalledTimes(callsAtDisposal)
   })
 
   it('cancels obsolete queued classifications when the catalog is replaced', async () => {
