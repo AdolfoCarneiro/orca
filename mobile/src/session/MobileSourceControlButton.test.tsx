@@ -259,13 +259,7 @@ describe('mobile source-control review status', () => {
     )
     appState('background')
     expect(stopStream).toHaveBeenCalledTimes(1)
-    expect(sendRequest).toHaveBeenCalledWith(
-      'worktree.review.unsubscribe',
-      {
-        subscriptionId: 'lease-1'
-      },
-      { failWhenDisconnected: true }
-    )
+    expect(sendRequest.mock.calls.map(([method]) => method)).toEqual(['worktree.review.renew'])
     const calls = sendRequest.mock.calls.length
     await act(async () => {
       await vi.advanceTimersByTimeAsync(150_000)

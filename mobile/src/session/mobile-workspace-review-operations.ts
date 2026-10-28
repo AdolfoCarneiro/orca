@@ -12,16 +12,6 @@ export const renewWorkspaceReview = bindDeferredRpcOperation(
   })
 )
 
-export const releaseWorkspaceReview = bindDeferredRpcOperation(
-  defineRpcOperation({
-    name: 'worktree.review.unsubscribe-or-skip',
-    method: 'worktree.review.unsubscribe',
-    acceptance: 'success-result-or-skip',
-    barrier: 'after-caller-barrier',
-    read: rpcResultVariant('review-released', z.object({ unsubscribed: z.boolean() }))
-  })
-)
-
 export const cachedWorkspaceReviewSchema = z.object({
   worktreeId: z.string(),
   linkedPR: z

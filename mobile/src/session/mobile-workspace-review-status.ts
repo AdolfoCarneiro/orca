@@ -4,7 +4,6 @@ import type { RpcClient } from '../transport/rpc-client'
 import { worktreeCatalogRead } from '../worktree/worktree-catalog-operations'
 import {
   cachedWorkspaceReviewSchema,
-  releaseWorkspaceReview,
   renewWorkspaceReview
 } from './mobile-workspace-review-operations'
 
@@ -70,11 +69,6 @@ export function createMobileWorkspaceReviewStatus() {
       let generation = 0
       let failures = 0
       let releaseStream = () => {}
-      const releaseLease = (id: string) => {
-        void releaseWorkspaceReview
-          .request(client, { subscriptionId: id }, { failWhenDisconnected: true })
-          .catch(() => {})
-      }
       const clearTimer = () => {
         if (timer !== null) {
           clearTimeout(timer)
@@ -87,10 +81,7 @@ export function createMobileWorkspaceReviewStatus() {
         const release = releaseStream
         releaseStream = () => {}
         release()
-        if (subscriptionId) {
-          releaseLease(subscriptionId)
-          subscriptionId = null
-        }
+        subscriptionId = null
       }
       const recover = () => {
         close()
@@ -129,13 +120,10 @@ export function createMobileWorkspaceReviewStatus() {
           'worktree.review.subscribe',
           { worktree: `id:${worktreeId}` },
           (raw) => {
-            const parsed = WorktreeReviewStatusSchema.safeParse(raw)
             if (disposed || epoch !== generation) {
-              if (parsed.success) {
-                releaseLease(parsed.data.subscriptionId)
-              }
               return
             }
+            const parsed = WorktreeReviewStatusSchema.safeParse(raw)
             if (
               raw &&
               typeof raw === 'object' &&
@@ -150,9 +138,6 @@ export function createMobileWorkspaceReviewStatus() {
             }
             const event = parsed.data
             if (subscriptionId !== event.subscriptionId) {
-              if (subscriptionId) {
-                releaseLease(subscriptionId)
-              }
               subscriptionId = event.subscriptionId
               scheduleRenewal(epoch, subscriptionId)
             }
