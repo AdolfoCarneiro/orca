@@ -169,30 +169,13 @@ export abstract class OrcaRuntimeWithStoredMobileSnapshotHasStalePreservedTab ex
     )
   }
 
-  protected getMobileSessionPublicationEpochAfterHeadlessBrowserChange(
-    snapshot: RuntimeMobileSessionTabsSnapshot,
-    nextTabs: readonly RuntimeMobileSessionSnapshotTab[],
-    headlessEpochPrefix: 'headless' | 'headless-hydrated'
+  // Headless publications re-stamp on page retirement; renderer publications keep their publisher epoch.
+  protected getMobileSessionPublicationEpochAfterHeadlessBrowserClose(
+    snapshot: RuntimeMobileSessionTabsSnapshot
   ): string {
-    if (this.isHeadlessBuiltMobileSessionPublicationBase(snapshot.publicationEpoch)) {
-      return `${headlessEpochPrefix}:${Date.now().toString(36)}`
-    }
-    const rendererTabIdentityKeys =
-      this.getAcceptedRendererIdentityKeysForMobileSessionSnapshot(snapshot)
-    if (!rendererTabIdentityKeys) {
-      return snapshot.publicationEpoch
-    }
-    const preservedTabs = nextTabs.filter(
-      (tab) =>
-        !getMobileSessionSnapshotTabIdentityKeys(tab).some((id) => rendererTabIdentityKeys.has(id))
-    )
-    const baseEpoch = snapshot.publicationEpoch.split(':headless-merge:')[0]
-    return preservedTabs.length === 0
-      ? baseEpoch
-      : this.getMergedMobileSessionPublicationEpoch(
-          { ...snapshot, publicationEpoch: baseEpoch },
-          preservedTabs
-        )
+    return this.isHeadlessBuiltMobileSessionPublicationBase(snapshot.publicationEpoch)
+      ? `headless:${Date.now().toString(36)}`
+      : this.getMergedMobileSessionPublicationEpoch(snapshot, [])
   }
 
   protected getMergedMobileSessionPublicationEpoch(

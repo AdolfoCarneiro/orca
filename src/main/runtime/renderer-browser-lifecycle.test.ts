@@ -324,3 +324,26 @@ it('finishes a pending runtime close after renderer detach without losing other 
   expect(returned.snapshotVersion).toBeGreaterThan(closedWhileDetached.snapshotVersion)
   expect(closeTab).toHaveBeenCalledTimes(1)
 })
+
+it('keeps the headless publication epoch while serve browser pages change', async () => {
+  const { runtimeStore } = makeRuntimeStoreWithWorkspaceSession(getDefaultWorkspaceSession())
+  const pages: BrowserTabInfo[] = []
+  const runtime = new OrcaRuntimeService(runtimeStore)
+  runtime.setOffscreenBrowserBackend({ createTab: vi.fn(), closeTab: vi.fn(), ownsTab: () => true })
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Only the bridge inventory is used by this lifecycle test.
+  runtime.setAgentBrowserBridge({ tabList: () => ({ tabs: [...pages] }) } as never)
+  const addPage = (browserPageId: string) => {
+    pages.push({ browserPageId, index: pages.length, title: browserPageId, url: '', active: false })
+    runtime.notifyMobileSessionTabsChanged(TEST_WORKTREE_ID)
+  }
+  const list = () => runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)
+  addPage('serve-page-1')
+  const first = await list()
+  addPage('serve-page-2')
+  const second = await list()
+
+  // Clients fence lifecycle closes by epoch; content changes must only bump the version.
+  expect(second.tabs.map((tab) => tab.id)).toContain('serve-page-2')
+  expect(second.publicationEpoch).toBe(first.publicationEpoch)
+  expect(second.snapshotVersion).toBeGreaterThan(first.snapshotVersion)
+})

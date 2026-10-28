@@ -64,11 +64,7 @@ it('classifies headless rows added under the current unchanged renderer epoch', 
     rendererTabCount: 0,
     rendererTabIdentityKeys: new Set<string>()
   })
-  const epoch = runtime['getMobileSessionPublicationEpochAfterHeadlessBrowserChange'](
-    snapshot,
-    [tab],
-    'headless-hydrated'
-  )
+  const epoch = runtime['getMobileSessionPublicationEpochAfterHeadlessBrowserClose'](snapshot)
   expect(epoch).toBe(snapshot.publicationEpoch)
   expect(
     runtime['isHeadlessOwnedMobileBrowserTab'](

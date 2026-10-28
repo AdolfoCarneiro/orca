@@ -36,11 +36,11 @@ export abstract class OrcaRuntimeWithCloseStructuredAgentSessionTab extends Orca
   protected abstract isHeadlessOwnedMobileBrowserTab(
     ...args: Parameters<BrowserOwnership['isHeadlessOwnedMobileBrowserTab']>
   ): ReturnType<BrowserOwnership['isHeadlessOwnedMobileBrowserTab']>
-  protected abstract getMobileSessionPublicationEpochAfterHeadlessBrowserChange(
+  protected abstract getMobileSessionPublicationEpochAfterHeadlessBrowserClose(
     ...args: Parameters<
-      BrowserOwnership['getMobileSessionPublicationEpochAfterHeadlessBrowserChange']
+      BrowserOwnership['getMobileSessionPublicationEpochAfterHeadlessBrowserClose']
     >
-  ): ReturnType<BrowserOwnership['getMobileSessionPublicationEpochAfterHeadlessBrowserChange']>
+  ): ReturnType<BrowserOwnership['getMobileSessionPublicationEpochAfterHeadlessBrowserClose']>
   protected abstract getListedBrowserTabsByPageId(worktreeId: string): Map<string, BrowserTabInfo>
   protected abstract getMobileTerminalLeafPtyIds(
     ...args: Parameters<PruneMobileSessionTabGroupLayoutMethods['getMobileTerminalLeafPtyIds']>
@@ -188,11 +188,7 @@ export abstract class OrcaRuntimeWithCloseStructuredAgentSessionTab extends Orca
     const active = nextTabs.find((candidate) => candidate.isActive) ?? nextTabs[0] ?? null
     const nextSnapshot: RuntimeMobileSessionTabsSnapshot = {
       ...snapshot,
-      publicationEpoch: this.getMobileSessionPublicationEpochAfterHeadlessBrowserChange(
-        snapshot,
-        nextTabs,
-        'headless'
-      ),
+      publicationEpoch: this.getMobileSessionPublicationEpochAfterHeadlessBrowserClose(snapshot),
       snapshotVersion: snapshot.snapshotVersion + 1,
       activeTabId: active?.id ?? null,
       activeTabType: active?.type ?? null,

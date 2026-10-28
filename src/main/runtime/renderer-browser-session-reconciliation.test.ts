@@ -87,13 +87,6 @@ function reconcile(
         return (
           tab.placement?.kind !== 'client' && !isHeadlessBuiltPublication(snapshot.publicationEpoch)
         )
-      },
-      getMobileSessionPublicationEpochAfterHeadlessBrowserChange(
-        snapshot: RuntimeMobileSessionTabsSnapshot
-      ) {
-        return isHeadlessBuiltPublication(snapshot.publicationEpoch)
-          ? 'headless-hydrated:test'
-          : snapshot.publicationEpoch
       }
     },
     'wt',

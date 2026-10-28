@@ -30,11 +30,6 @@ export abstract class OrcaRuntimeWithReconcileHeadlessMobileSessionBrowserTabs e
   protected abstract isRendererOwnedMobileBrowserTab(
     ...args: Parameters<BrowserOwnership['isRendererOwnedMobileBrowserTab']>
   ): ReturnType<BrowserOwnership['isRendererOwnedMobileBrowserTab']>
-  protected abstract getMobileSessionPublicationEpochAfterHeadlessBrowserChange(
-    ...args: Parameters<
-      BrowserOwnership['getMobileSessionPublicationEpochAfterHeadlessBrowserChange']
-    >
-  ): ReturnType<BrowserOwnership['getMobileSessionPublicationEpochAfterHeadlessBrowserChange']>
   protected abstract findPtyForMobileTerminalTab(
     ...args: Parameters<MobileSessionProjection['findPtyForMobileTerminalTab']>
   ): ReturnType<MobileSessionProjection['findPtyForMobileTerminalTab']>
@@ -164,11 +159,6 @@ export abstract class OrcaRuntimeWithReconcileHeadlessMobileSessionBrowserTabs e
       : (nextTabs.find((tab) => tab.isActive) ?? nextTabs[0] ?? null)
     this.storeMobileSessionSnapshot(worktreeId, {
       ...existing,
-      publicationEpoch: this.getMobileSessionPublicationEpochAfterHeadlessBrowserChange(
-        existing,
-        nextTabs,
-        'headless-hydrated'
-      ),
       snapshotVersion: existing.snapshotVersion + 1,
       ...(activeStillPresent
         ? {}
