@@ -1437,6 +1437,13 @@
   {
     "filePath": "mobile/src/components/MobileDictationSetupSheet.tsx",
     "kind": "jsx-attribute:accessibilityLabel",
+    "text": "Dictation enabled",
+    "dynamic": false,
+    "count": 1
+  },
+  {
+    "filePath": "mobile/src/components/MobileDictationSetupSheet.tsx",
+    "kind": "jsx-attribute:accessibilityLabel",
     "text": "Download",
     "dynamic": true,
     "count": 1
@@ -6351,13 +6358,6 @@
   {
     "filePath": "mobile/src/session/native-chat/composer/MobileNativeChatComposer.tsx",
     "kind": "jsx-attribute:accessibilityLabel",
-    "text": "Dictate",
-    "dynamic": false,
-    "count": 1
-  },
-  {
-    "filePath": "mobile/src/session/native-chat/composer/MobileNativeChatComposer.tsx",
-    "kind": "jsx-attribute:accessibilityLabel",
     "text": "Save edited message",
     "dynamic": false,
     "count": 1
@@ -6366,13 +6366,6 @@
     "filePath": "mobile/src/session/native-chat/composer/MobileNativeChatComposer.tsx",
     "kind": "jsx-attribute:accessibilityLabel",
     "text": "Send message",
-    "dynamic": false,
-    "count": 1
-  },
-  {
-    "filePath": "mobile/src/session/native-chat/composer/MobileNativeChatComposer.tsx",
-    "kind": "jsx-attribute:accessibilityLabel",
-    "text": "Stop dictation",
     "dynamic": false,
     "count": 1
   },
@@ -6415,6 +6408,27 @@
     "filePath": "mobile/src/session/native-chat/composer/MobileNativeChatComposerAttachments.tsx",
     "kind": "jsx-attribute:label",
     "text": "Remove image",
+    "dynamic": false,
+    "count": 1
+  },
+  {
+    "filePath": "mobile/src/session/native-chat/composer/MobileNativeChatComposerMic.tsx",
+    "kind": "jsx-attribute:accessibilityLabel",
+    "text": "Dictate",
+    "dynamic": false,
+    "count": 1
+  },
+  {
+    "filePath": "mobile/src/session/native-chat/composer/MobileNativeChatComposerMic.tsx",
+    "kind": "jsx-attribute:accessibilityLabel",
+    "text": "Stop dictation",
+    "dynamic": false,
+    "count": 1
+  },
+  {
+    "filePath": "mobile/src/session/native-chat/composer/MobileNativeChatComposerMic.tsx",
+    "kind": "jsx-attribute:accessibilityLabel",
+    "text": "Transcribing dictation",
     "dynamic": false,
     "count": 1
   },
