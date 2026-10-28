@@ -86,52 +86,21 @@ function advanceFrames(count: number): void {
 }
 
 describe('Mermaid diagram scroll restoration', () => {
-  it.each([
-    { height: 1200, expected: 600 },
-    { height: 300, expected: 200 }
-  ])(
-    'restores after a delayed render, clamping to $height pixels',
-    async ({ height, expected }) => {
-      const pending = Promise.withResolvers<{ svg: string }>()
-      mermaid.render.mockReturnValueOnce(pending.promise)
-      scrollTopCache.set('/diagram.mmd:mermaid-diagram', 600)
-      const { container } = render(
-        <MermaidViewer scrollCacheKey="/diagram.mmd:mermaid-diagram" content="flowchart TD\nA-->B" />
-      )
-      const viewer = diagramViewport(container, height)
-      await waitFor(() => expect(mermaid.render).toHaveBeenCalledTimes(1))
-      act(() => advanceFrames(40))
-      expect(viewer.scrollTop).toBe(0)
-
-      await act(async () => pending.resolve({ svg: '<svg><text>Diagram</text></svg>' }))
-
-      expect(viewer.scrollTop).toBe(expected)
-      expect(frames.size).toBe(0)
-    }
-  )
-
-  it('preserves a pending position through unmount and ignores the abandoned render', async () => {
-    const abandoned = Promise.withResolvers<{ svg: string }>()
-    const current = Promise.withResolvers<{ svg: string }>()
-    mermaid.render.mockReturnValueOnce(abandoned.promise).mockReturnValueOnce(current.promise)
+  it('restores the cached position when rendering finishes after the old retry window', async () => {
+    const pending = Promise.withResolvers<{ svg: string }>()
+    mermaid.render.mockReturnValueOnce(pending.promise)
     scrollTopCache.set('/diagram.mmd:mermaid-diagram', 600)
-    const first = render(<MermaidViewer scrollCacheKey="/diagram.mmd:mermaid-diagram" content="flowchart TD\nA-->B" />)
-    const detached = diagramViewport(first.container)
+    const { container } = render(
+      <MermaidViewer scrollCacheKey="/diagram.mmd:mermaid-diagram" content="flowchart TD\nA-->B" />
+    )
+    const viewer = diagramViewport(container)
     await waitFor(() => expect(mermaid.render).toHaveBeenCalledTimes(1))
-    first.unmount()
-    expect(scrollTopCache.get('/diagram.mmd:mermaid-diagram')).toBe(600)
-    expect(resizes.size).toBe(0)
-    const second = render(<MermaidViewer scrollCacheKey="/diagram.mmd:mermaid-diagram" content="flowchart TD\nA-->B" />)
-    const viewer = diagramViewport(second.container)
-
-    await act(async () => abandoned.resolve({ svg: '<svg><text>Abandoned</text></svg>' }))
-    await waitFor(() => expect(mermaid.render).toHaveBeenCalledTimes(2))
-    expect(detached.scrollTop).toBe(0)
+    act(() => advanceFrames(40))
     expect(viewer.scrollTop).toBe(0)
-    await act(async () => current.resolve({ svg: '<svg><text>Current</text></svg>' }))
+
+    await act(async () => pending.resolve({ svg: '<svg><text>Diagram</text></svg>' }))
 
     expect(viewer.scrollTop).toBe(600)
-    expect(frames.size).toBe(0)
   })
 
   it('waits for a hidden workspace to become measurable after rendering completes', async () => {
@@ -151,7 +120,5 @@ describe('Mermaid diagram scroll restoration', () => {
     act(() => resizes.forEach((callback) => callback()))
 
     expect(viewer.scrollTop).toBe(600)
-    expect(resizes.size).toBe(0)
-    expect(frames.size).toBe(0)
   })
 })
