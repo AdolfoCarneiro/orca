@@ -15,7 +15,10 @@ import {
   floatingWorkspaceToWorktree,
   isFloatingWorkspaceId
 } from '../../../../../../shared/floating-workspace-worktree'
-import { findIndexedDetectedWorktrees } from '@/lib/worktree-runtime-owner-index'
+import {
+  findFirstIndexedFolderWorkspace,
+  findIndexedDetectedWorktrees
+} from '@/lib/worktree-runtime-owner-index'
 import { findWorktreeById, withoutErasedRequiredWorktreeFields } from '../../worktree-helpers'
 import { worktreeMatchesHost } from './worktree-host-ownership'
 import { hostWorktreeTarget } from '../../../../../../shared/worktree/host-qualified-identity'
@@ -108,10 +111,10 @@ export function findKnownWorktreeById(
   }
   const workspaceScope = parseWorkspaceKey(worktreeId)
   if (workspaceScope?.type === 'folder') {
-    const folderWorkspace = selectFolderWorkspaces(state).find(
-      (workspace) =>
-        workspace.id === workspaceScope.folderWorkspaceId &&
-        (!executionHostId || folderWorkspaceMatchesHost(workspace, executionHostId))
+    const folderWorkspace = findFirstIndexedFolderWorkspace(
+      selectFolderWorkspaces(state),
+      workspaceScope.folderWorkspaceId,
+      executionHostId
     )
     return folderWorkspace ? getFolderWorkspaceWorktree(folderWorkspace) : undefined
   }

@@ -1,5 +1,3 @@
-import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
-import type { ProjectGroup } from '../../../shared/project-group-types'
 import type { Repo } from '../../../shared/repo-types'
 import type { Worktree } from '../../../shared/worktree/types'
 import {
@@ -12,12 +10,6 @@ import {
 type WorktreeOwnerRecord = Pick<Worktree, 'id' | 'repoId' | 'hostId' | 'runtimeOwnerEnvironmentId'>
 type DetectedWorktreeListing = { worktrees: readonly WorktreeOwnerRecord[] }
 type RepoOwnerRecord = Pick<Repo, 'id' | 'connectionId' | 'executionHostId'>
-type FolderWorkspaceOwnerRecord = Pick<
-  FolderWorkspace,
-  'id' | 'projectGroupId' | 'connectionId' | 'executionHostId' | 'diffComments'
->
-type ProjectGroupOwnerRecord = Pick<ProjectGroup, 'id' | 'connectionId' | 'executionHostId'>
-
 // Immutable-slice indexes avoid rescans on unrelated writes inside retained selectors and interaction paths.
 const worktreeOwnerIndexCache = new WeakMap<
   Record<string, readonly WorktreeOwnerRecord[]>,
@@ -27,60 +19,12 @@ const repoOwnerIndexCache = new WeakMap<
   readonly RepoOwnerRecord[],
   ReadonlyMap<string, IndexedRepoOwnerResolution>
 >()
-const folderWorkspaceOwnerIndexCache = new WeakMap<
-  readonly FolderWorkspaceOwnerRecord[],
-  ReadonlyMap<string, IndexedFolderWorkspaceOwnerResolution>
->()
-const projectGroupOwnerIndexCache = new WeakMap<
-  readonly ProjectGroupOwnerRecord[],
-  ReadonlyMap<string, IndexedProjectGroupOwnerResolution>
->()
 const detectedWorktreeIndexCache = new WeakMap<
   Record<string, DetectedWorktreeListing>,
   ReadonlyMap<string, readonly WorktreeOwnerRecord[]>
 >()
 
 const NO_DETECTED_WORKTREES: readonly WorktreeOwnerRecord[] = []
-
-type IndexedFolderWorkspaceOwnerResolution =
-  | { kind: 'resolved'; owner: FolderWorkspaceOwnerRecord }
-  | { kind: 'missing' }
-  | { kind: 'ambiguous' }
-
-type IndexedProjectGroupOwnerResolution =
-  | { kind: 'resolved'; owner: ProjectGroupOwnerRecord }
-  | { kind: 'missing' }
-  | { kind: 'ambiguous' }
-
-export function getCatalogOwnerHostId(owner: {
-  connectionId?: string | null
-  executionHostId?: string | null
-}): ExecutionHostId {
-  return getRepoExecutionHostId(owner)
-}
-
-function buildCatalogOwnerIndex<
-  T extends { id: string; connectionId?: string | null; executionHostId?: string | null }
->(
-  records: readonly T[]
-): ReadonlyMap<string, { kind: 'resolved'; owner: T } | { kind: 'ambiguous' }> {
-  const next = new Map<string, { kind: 'resolved'; owner: T } | { kind: 'ambiguous' }>()
-  for (const record of records) {
-    const id = record.id
-    const hostId = getCatalogOwnerHostId(record)
-    const current = next.get(id)
-    if (!current) {
-      next.set(id, { kind: 'resolved', owner: record })
-    } else if (current.kind === 'resolved' && getCatalogOwnerHostId(current.owner) !== hostId) {
-      next.set(id, { kind: 'ambiguous' })
-    }
-    next.set(`${id}\0${hostId}`, {
-      kind: 'resolved',
-      owner: record
-    })
-  }
-  return next
-}
 
 export function findIndexedWorktreeOwner(
   worktreesByRepo: Record<string, readonly WorktreeOwnerRecord[]> | undefined,
@@ -276,64 +220,11 @@ export function findIndexedRepoOwnerForHost<T extends RepoOwnerRecord>(
   return resolution?.kind === 'resolved' ? (resolution.owner as T) : null
 }
 
-function catalogOwnerKey(id: string, executionHostId?: ExecutionHostId): string {
-  return executionHostId ? `${id}\0${executionHostId}` : id
-}
-
-/** An unqualified lookup keeps a twin (same id on two hosts) distinct from a missing row. */
-export function resolveIndexedFolderWorkspaceOwner(
-  folderWorkspaces: readonly FolderWorkspaceOwnerRecord[] | undefined,
-  folderWorkspaceId: string,
-  executionHostId?: ExecutionHostId
-): IndexedFolderWorkspaceOwnerResolution {
-  if (!folderWorkspaces) {
-    return { kind: 'missing' }
-  }
-  let index = folderWorkspaceOwnerIndexCache.get(folderWorkspaces)
-  if (!index) {
-    index = buildCatalogOwnerIndex(folderWorkspaces)
-    folderWorkspaceOwnerIndexCache.set(folderWorkspaces, index)
-  }
-  return index.get(catalogOwnerKey(folderWorkspaceId, executionHostId)) ?? { kind: 'missing' }
-}
-
-/** An unqualified lookup keeps a twin (same id on two hosts) distinct from a missing row. */
-export function resolveIndexedProjectGroupOwner(
-  projectGroups: readonly ProjectGroupOwnerRecord[] | undefined,
-  projectGroupId: string,
-  executionHostId?: ExecutionHostId
-): IndexedProjectGroupOwnerResolution {
-  if (!projectGroups) {
-    return { kind: 'missing' }
-  }
-  let index = projectGroupOwnerIndexCache.get(projectGroups)
-  if (!index) {
-    index = buildCatalogOwnerIndex(projectGroups)
-    projectGroupOwnerIndexCache.set(projectGroups, index)
-  }
-  return index.get(catalogOwnerKey(projectGroupId, executionHostId)) ?? { kind: 'missing' }
-}
-
-export function findIndexedFolderWorkspaceOwner<T extends FolderWorkspaceOwnerRecord>(
-  folderWorkspaces: readonly T[] | undefined,
-  folderWorkspaceId: string,
-  executionHostId?: ExecutionHostId
-): T | null {
-  const resolution = resolveIndexedFolderWorkspaceOwner(
-    folderWorkspaces,
-    folderWorkspaceId,
-    executionHostId
-  )
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the index is built from and cached on this exact array, so its owner is one of the caller's T rows.
-  return resolution.kind === 'resolved' ? (resolution.owner as T) : null
-}
-
-export function findIndexedProjectGroupOwner<T extends ProjectGroupOwnerRecord>(
-  projectGroups: readonly T[] | undefined,
-  projectGroupId: string,
-  executionHostId?: ExecutionHostId
-): T | null {
-  const resolution = resolveIndexedProjectGroupOwner(projectGroups, projectGroupId, executionHostId)
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the index is built from and cached on this exact array, so its owner is one of the caller's T rows.
-  return resolution.kind === 'resolved' ? (resolution.owner as T) : null
-}
+export {
+  findFirstIndexedFolderWorkspace,
+  findIndexedFolderWorkspaceOwner,
+  findIndexedProjectGroupOwner,
+  getCatalogOwnerHostId,
+  resolveIndexedFolderWorkspaceOwner,
+  resolveIndexedProjectGroupOwner
+} from './workspace-catalog-owner-index'

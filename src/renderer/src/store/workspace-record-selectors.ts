@@ -1,14 +1,12 @@
-import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
-import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { Worktree } from '../../../shared/worktree/types'
 import type { HostWorktreeTarget } from '../../../shared/worktree/host-qualified-identity'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
-import { findIndexedWorktreeOwnerForHost } from '@/lib/worktree-runtime-owner-index'
-import type { AppState } from './types'
 import {
-  folderWorkspaceMatchesHost,
-  getFolderWorkspaceWorktree
-} from './slices/worktrees/listing/detected-worktree-meta'
+  findFirstIndexedFolderWorkspace,
+  findIndexedWorktreeOwnerForHost
+} from '@/lib/worktree-runtime-owner-index'
+import type { AppState } from './types'
+import { getFolderWorkspaceWorktree } from './slices/worktrees/listing/detected-worktree-meta'
 
 // Route workspace readers here; check-workspace-record-read-ratchet.mjs enforces this boundary.
 
@@ -34,17 +32,6 @@ export function selectDetectedWorktreesByRepo<TState extends { detectedWorktrees
   return state.detectedWorktreesByRepo
 }
 
-function findFolderWorkspaceForTarget(
-  folderWorkspaces: readonly FolderWorkspace[],
-  folderWorkspaceId: string,
-  hostId: ExecutionHostId
-): FolderWorkspace | undefined {
-  return folderWorkspaces.find(
-    (workspace) =>
-      workspace.id === folderWorkspaceId && folderWorkspaceMatchesHost(workspace, hostId)
-  )
-}
-
 /**
  * The row that owns `target` on its host, including a paired runtime's logical host alias.
  * An ambiguous owner on that host answers undefined.
@@ -55,7 +42,7 @@ export function selectWorkspaceByHostTarget(
 ): Worktree | undefined {
   const scope = parseWorkspaceKey(target.id)
   if (scope?.type === 'folder') {
-    const folder = findFolderWorkspaceForTarget(
+    const folder = findFirstIndexedFolderWorkspace(
       state.folderWorkspaces,
       scope.folderWorkspaceId,
       target.hostId
