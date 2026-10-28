@@ -1,3 +1,4 @@
+import { canonicalOrchestrationForRow } from '@/runtime/visible-agent-orchestration'
 import { resolveAgentSessionStartedAt } from '../../../../../shared/agent-session-start-time'
 import { sameAgentStatusTerminalOwner } from '../../../../../shared/agent-status-terminal-owner'
 import type { AppState } from '../../types'
@@ -142,7 +143,7 @@ export function buildAgentStatusLiveEntry(
   ) {
     return { entry: null, reason: 'suppressed-inherited-terminal' }
   }
-  const runtimeOrchestration = state.runtimeAgentOrchestrationByPaneKey[paneKey]
+  const runtimeOrchestration = canonicalOrchestrationForRow(state, paneKey)
   const runtimeMergedOrchestration = runtimeOrchestration
     ? mergeCurrentOrchestrationContext(existing?.orchestration, runtimeOrchestration)
     : undefined
