@@ -72,6 +72,7 @@ describe("orchestration.check of another live terminal's mailbox", () => {
       const worker = asCaller({ terminalHandle: 'term_b' })
       const opened = await h.call('orchestration.check', { terminal: 'term_b' }, worker)
       const deliveryId = z.object({ deliveryId: z.string() }).parse(opened).deliveryId
+      const readBefore = db.getMessageById(message.id)?.read
 
       await expect(
         h.call(
@@ -80,7 +81,7 @@ describe("orchestration.check of another live terminal's mailbox", () => {
           asCaller({ terminalHandle: 'term_coord' })
         )
       ).rejects.toMatchObject({ code: 'consumer_fenced' })
-      expect(db.getMessageById(message.id)?.read).toBe(0)
+      expect(db.getMessageById(message.id)?.read).toBe(readBefore)
       await expect(
         h.call('orchestration.check', { terminal: 'term_b', ack: deliveryId, peek: true }, worker)
       ).resolves.toMatchObject({ acknowledged: deliveryId })
