@@ -10,7 +10,7 @@ describe('plugin contributions', () => {
   it('names each contribution with what kind it is', () => {
     const rows = describePluginContributions({
       ...EMPTY_CONTRIBUTION_SOURCE,
-      appThemes: [{ id: 'midnight', label: 'Midnight', base: 'dark' }],
+      themes: [{ id: 'midnight', label: 'Midnight', base: 'dark' }],
       iconThemes: [{ id: 'minimal', label: 'Minimal Icons' }],
       syntaxes: [
         {
@@ -20,7 +20,7 @@ describe('plugin contributions', () => {
           filenames: []
         }
       ],
-      recipes: ['Ubuntu dev']
+      vmRecipes: ['Ubuntu dev']
     })
     expect(rows.map((row) => [row.title, row.detail])).toEqual([
       ['Midnight', 'App theme · Dark'],
@@ -46,7 +46,7 @@ describe('plugin contributions', () => {
   it('warns when a language pack is too incomplete to choose', () => {
     const [complete, partial] = describePluginContributions({
       ...EMPTY_CONTRIBUTION_SOURCE,
-      languages: [
+      languagePacks: [
         { locale: 'fr', coverage: 96 },
         { locale: 'de', coverage: 40 }
       ]
@@ -67,7 +67,7 @@ describe('plugin contributions', () => {
   it('falls back to catalog types only for what nothing names', () => {
     const rows = describePluginContributions({
       ...EMPTY_CONTRIBUTION_SOURCE,
-      appThemes: [{ id: 'midnight', label: 'Midnight' }]
+      themes: [{ id: 'midnight', label: 'Midnight' }]
     })
     expect(
       uncoveredCatalogTypes(['app-theme', 'terminal-theme', 'instructions', 'worker'], rows, true)

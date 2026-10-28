@@ -89,14 +89,14 @@ function catalogTypeLabel(type: PluginCatalogType): string {
 }
 
 const CONTRIBUTION_ICON: Record<PluginContributionKind, React.ReactNode> = {
-  'app-theme': <Palette />,
-  'terminal-theme': <SquareTerminal />,
-  'icon-theme': <Blocks />,
-  syntax: <Highlighter />,
-  language: <Languages />,
-  panel: <PanelRight />,
-  editor: <PenTool />,
-  recipe: <Server />
+  themes: <Palette />,
+  terminalThemes: <SquareTerminal />,
+  iconThemes: <Blocks />,
+  syntaxes: <Highlighter />,
+  languagePacks: <Languages />,
+  panels: <PanelRight />,
+  customEditors: <PenTool />,
+  vmRecipes: <Server />
 }
 
 type AddsCommand = {
@@ -194,7 +194,7 @@ function useContributionRowActions(
   return (row) => {
     const id = contributionRowId(row)
     switch (row.kind) {
-      case 'syntax': {
+      case 'syntaxes': {
         const syntax = syntaxes.find(
           (entry) => entry.id === id && entry.pluginKey === plugin.pluginKey
         )
@@ -205,21 +205,21 @@ function useContributionRowActions(
           />
         ) : null
       }
-      case 'language': {
+      case 'languagePacks': {
         const pack = languagePacks.find(
           (entry) => entry.locale === id && entry.pluginKey === plugin.pluginKey
         )
         return pack ? <PluginContributionActionLanguage pack={pack} /> : null
       }
-      case 'panel': {
+      case 'panels': {
         const panel = plugin.panels[Number(id)]
         return panel ? <PluginContributionActionPanel panel={panel} /> : null
       }
-      case 'app-theme':
-      case 'terminal-theme':
-      case 'icon-theme':
-      case 'editor':
-      case 'recipe':
+      case 'themes':
+      case 'terminalThemes':
+      case 'iconThemes':
+      case 'customEditors':
+      case 'vmRecipes':
         // Themes have "Use now" above the list; recipes have nothing to try here.
         return null
     }

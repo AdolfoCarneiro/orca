@@ -38,17 +38,17 @@ function useInstalledPluginContributionSource(
     const ours = <Entry extends { pluginKey: string }>(entries: readonly Entry[]): Entry[] =>
       entries.filter((entry) => entry.pluginKey === plugin.pluginKey)
     return {
-      appThemes: ours(appThemes),
+      themes: ours(appThemes),
       terminalThemes: ours(terminalThemes),
       iconThemes: ours(iconThemes),
       syntaxes: ours(syntaxes).map((syntax) => ({
         ...syntax,
         failed: Boolean(failures[pluginSyntaxRevisionKey(syntax)])
       })),
-      languages: ours(languagePacks),
+      languagePacks: ours(languagePacks),
       panels: plugin.panels.map((panel) => panel.title),
       customEditors: plugin.customEditors ?? [],
-      recipes: plugin.vmRecipes?.map((recipe) => recipe.name) ?? []
+      vmRecipes: plugin.vmRecipes?.map((recipe) => recipe.name) ?? []
     }
   }, [plugin, appThemes, terminalThemes, iconThemes, syntaxes, languagePacks, failures])
 }
@@ -92,11 +92,11 @@ export function useInstalledPluginManifest(
 
 function hasLiveContent(source: PluginContributionSource): boolean {
   return (
-    source.appThemes.length +
+    source.themes.length +
       source.terminalThemes.length +
       source.iconThemes.length +
       source.syntaxes.length +
-      source.languages.length >
+      source.languagePacks.length >
     0
   )
 }
