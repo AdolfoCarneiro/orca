@@ -22,6 +22,7 @@ const paletteMeasurementFile =
   'src/renderer/src/lib/palette-match/palette-match-performance.test.ts'
 const measurementFiles = [measurementFile, paletteMeasurementFile]
 const phoneContractModules = [
+  'mobile/src/transport/mobile-runtime-client-capabilities.ts',
   'mobile/src/session/native-chat/mobile-native-chat-stream-frame.ts',
   'mobile/src/session/mobile-native-chat-render-data.ts'
 ].map((file) => normalizePath(resolve(file)))

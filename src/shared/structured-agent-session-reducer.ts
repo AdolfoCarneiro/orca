@@ -1,4 +1,5 @@
 import type { AgentSessionCurrentRequestsMarker } from './agent-session-current-requests-wire'
+import { agentSessionTextItemsAfterBatch } from './agent-session-text-patches'
 import {
   hostClockField,
   replacePage,
@@ -229,7 +230,11 @@ export function reduceStructuredAgentSession(
         ? undefined
         : state.backgroundTasks
   const activity = event.activity !== undefined ? event.activity : state.activity
-  const liveItems = liveItemsWithinWindow(state, event.batch.items)
+  const patched = agentSessionTextItemsAfterBatch(state, event.batch)
+  if (patched === null) {
+    return { ...state, cursor: null, status: 'loading' }
+  }
+  const liveItems = liveItemsWithinWindow(state, [...event.batch.items, ...patched])
   // Fold every roster revision even outside the window; trimmed rows retain their sequence.
   const subagentRoster = foldStructuredAgentSubagentRoster(
     state.subagentRoster ?? NO_STRUCTURED_AGENT_SUBAGENT_ROSTER,

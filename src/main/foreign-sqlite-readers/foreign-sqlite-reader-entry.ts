@@ -1,4 +1,9 @@
 import { parentPort } from 'node:worker_threads'
+import { handleJournalTextValidation } from '../native-chat/agent-session-journal/journal-text-validation-worker'
+import type {
+  JournalTextValidationRequest,
+  JournalTextValidationResponse
+} from '../native-chat/agent-session-journal/journal-text-validation'
 import { handleOpenCodeSqliteRequest } from '../ai-vault/session-scanner-opencode-sqlite-dispatch'
 import type { OpenCodeSqliteWorkerRequest } from '../ai-vault/session-scanner-opencode-sqlite-worker-protocol'
 import { handleForeignSqliteReaderRequest } from './foreign-sqlite-reader-dispatch'
@@ -14,7 +19,10 @@ if (!parentPort) {
 }
 const port = parentPort
 
-type ReaderRequest = OpenCodeSqliteWorkerRequest | ForeignSqliteReaderRequest
+type ReaderRequest =
+  | OpenCodeSqliteWorkerRequest
+  | ForeignSqliteReaderRequest
+  | JournalTextValidationRequest
 
 function isOpenCodeRequest(request: ReaderRequest): request is OpenCodeSqliteWorkerRequest {
   return (
@@ -26,7 +34,12 @@ function isOpenCodeRequest(request: ReaderRequest): request is OpenCodeSqliteWor
   )
 }
 
-function handle(request: ReaderRequest): Promise<ForeignSqliteReaderResponse> {
+function handle(
+  request: ReaderRequest
+): Promise<ForeignSqliteReaderResponse | JournalTextValidationResponse> {
+  if (request.kind === 'journalTextValidation') {
+    return Promise.resolve(handleJournalTextValidation(request))
+  }
   return isOpenCodeRequest(request)
     ? handleOpenCodeSqliteRequest(request)
     : Promise.resolve(handleForeignSqliteReaderRequest(request))

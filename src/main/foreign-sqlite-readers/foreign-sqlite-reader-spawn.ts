@@ -7,7 +7,7 @@ import { ForeignSqliteReaderClient } from './foreign-sqlite-reader-client'
 import { resolveForeignSqliteReaderEntryPath } from './foreign-sqlite-reader-entry-path'
 import type { BinderSessionRow, OpenCodeSessionCursor } from './opencode-binder-sessions-result'
 
-function defaultWorkerFactory(): Worker {
+export function createForeignSqliteReaderWorker(): Worker {
   const workerPath = resolveForeignSqliteReaderEntryPath(currentWorkerEntryLayout(__dirname))
   if (!existsSync(workerPath)) {
     throw new Error(`Foreign SQLite reader entry not found: ${workerPath}`)
@@ -18,7 +18,7 @@ function defaultWorkerFactory(): Worker {
 let sharedClient: ForeignSqliteReaderClient | null = null
 
 function getSharedClient(): ForeignSqliteReaderClient {
-  sharedClient ??= new ForeignSqliteReaderClient({ workerFactory: defaultWorkerFactory })
+  sharedClient ??= new ForeignSqliteReaderClient({ workerFactory: createForeignSqliteReaderWorker })
   return sharedClient
 }
 

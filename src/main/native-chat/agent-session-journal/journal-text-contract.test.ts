@@ -163,7 +163,7 @@ it('charges advancing sparse/protected work at N and 10N', async () => {
   }
 })
 
-it('fully validates witnesses once per transaction and rechecks local/external corruption', async () => {
+it('reuses fully validated witnesses and rechecks local/external corruption', async () => {
   const r = await rig(),
     id = identity('validation')
   await r.append(id, 0)
@@ -184,7 +184,6 @@ it('fully validates witnesses once per transaction and rechecks local/external c
   expect(replayJournal(old.database.db, 'chat')?.damage).toBeNull()
   expect(sourceDecodes).toBe(1)
   sourceDecodes = 0
-  const units = vi.spyOn(JournalTextIndex.prototype, 'select')
   await r.journal.appendLifecycleBatch({
     settlementId: 'large',
     fence: 7,
@@ -198,8 +197,8 @@ it('fully validates witnesses once per transaction and rechecks local/external c
     ]
   })
   await flushJournalTextIdle(r.journal)
-  expect(sourceDecodes).toBe(units.mock.calls.length + 1)
-  units.mockRestore()
+  expect(sourceDecodes).toBe(2) // INSERT validation plus one stored-row validation.
+  expect(r.rows().filter((row) => row.kind === 'text-delta')).toHaveLength(0)
   sourceDecodes = 0
   expect(replayJournal(r.database.db, 'chat')?.damage).toBeNull()
   expect(sourceDecodes).toBe(1)

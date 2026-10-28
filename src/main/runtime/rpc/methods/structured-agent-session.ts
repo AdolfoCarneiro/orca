@@ -3,6 +3,7 @@ import {
   STRUCTURED_AGENT_SESSION_CURRENT_REQUESTS_METHODS
 } from './structured-agent-session-current-requests'
 import { clientSupportsSnapshotCatchUp } from './structured-agent-session-history-capability'
+import { clientReadsAgentSessionTextPatches } from '../../../../shared/agent-session-text-patches'
 // Require structured.v1 from remote callers before exposing journals/mutations; legacy mobile may receive session-tab metadata placeholders.
 
 import {
@@ -254,6 +255,7 @@ export const STRUCTURED_AGENT_SESSION_METHODS = [
       }
       // Resolve after opening snapshot/missed batch; a racing close disposes the bound stream.
       dispose = await host.subscribe({
+        textPatches: clientReadsAgentSessionTextPatches(ctx),
         readsCurrentRequests: clientReadsCurrentRequests(ctx),
         id: subscriptionId,
         sessionId: params.sessionId,

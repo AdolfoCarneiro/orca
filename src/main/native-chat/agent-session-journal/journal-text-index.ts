@@ -116,7 +116,7 @@ export class JournalTextIndex {
       this.reconsider(key, piece)
     }
   }
-  select(key: string, piece: JournalTextPieces, budget: number) {
+  select(key: string, piece: JournalTextPieces, budget: number, admit?: (seq: number) => boolean) {
     let head = piece.head
     let position = head?.first ?? 0
     let examined = 0
@@ -130,6 +130,9 @@ export class JournalTextIndex {
       const old = release.next().value
       const seq = old ?? (head && position < (piece.witness?.seq ?? 0) ? position : undefined)
       if (seq === undefined) {
+        break
+      }
+      if (!this.isProtected(seq) && admit && !admit(seq)) {
         break
       }
       examined++

@@ -150,6 +150,7 @@ export function emitSubscriberFrame(
   )
   for (const outgoing of built.frames) {
     subscriber.emit(outgoing)
+    subscriber.textDelivery?.observe(outgoing)
   }
   if (includeMarker) {
     subscriber.requestVersion = marker.version

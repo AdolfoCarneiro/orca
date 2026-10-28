@@ -10,6 +10,7 @@ export const STRUCTURED_AGENT_SESSION_CLIENT_COALESCE_MS = 48
 function bypassCoalescing(event: AgentSessionSubscribeEvent): boolean {
   return (
     event.type !== 'batch' ||
+    event.batch.textPatches !== undefined ||
     // Deliver queue lists immediately or the queued response removes Sending before its replacement card arrives.
     event.queuedMessages !== undefined ||
     event.currentRequests !== undefined ||

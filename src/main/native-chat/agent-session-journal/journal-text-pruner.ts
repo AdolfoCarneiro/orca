@@ -1,14 +1,20 @@
 import type { JournalStoreHost } from './journal-store-collaborators'
-import { parseJournalRow, type JournalRow } from './journal-row-schema'
+import type { JournalRow } from './journal-row-schema'
 import { deleteJournalTextRange } from './journal-row-table'
-import { journalTextFields, journalWholeItem } from './journal-text-rows'
+import { JournalTextProofCache } from './journal-text-proof-cache'
+import { JournalTextValidatorUnavailableError } from './journal-text-validation-client'
 
 /** One bounded unit per queue turn; failure retains the pieces and stops this drain. */
 export class JournalTextPruner {
   private scheduled: ReturnType<typeof setImmediate> | null = null
   private drain: 'open' | 'failed' | 'closed' = 'open'
+  private readonly proofs: JournalTextProofCache
+  private retry: ReturnType<typeof setTimeout> | null = null
+  private retryDelay = 250
 
-  constructor(private readonly host: JournalStoreHost) {}
+  constructor(private readonly host: JournalStoreHost) {
+    this.proofs = new JournalTextProofCache(host.database())
+  }
 
   committed(rows: readonly JournalRow[]): void {
     if (this.drain === 'closed') {
@@ -16,7 +22,7 @@ export class JournalTextPruner {
     }
     if (rows.some((row) => row.kind === 'item' || row.kind === 'lifecycle-batch')) {
       this.drain = 'open'
-      if (this.attempt()) {
+      if (!this.retry && !this.proofs.pending && this.attempt()) {
         this.schedule()
       }
     } else {
@@ -28,6 +34,8 @@ export class JournalTextPruner {
     if (
       this.drain !== 'open' ||
       this.scheduled ||
+      this.retry ||
+      this.proofs.pending ||
       this.host.readOnly() ||
       !this.host.state().textIndex.ready.size
     ) {
@@ -36,7 +44,11 @@ export class JournalTextPruner {
     const epoch = this.host.state().epoch
     this.scheduled = setImmediate(() => {
       this.scheduled = null
-      if (this.drain !== 'open' || this.host.state().epoch !== epoch) {
+      if (this.drain !== 'open') {
+        return
+      }
+      if (this.host.state().epoch !== epoch) {
+        this.schedule()
         return
       }
       void this.host
@@ -67,10 +79,15 @@ export class JournalTextPruner {
       clearImmediate(this.scheduled)
     }
     this.scheduled = null
+    if (this.retry) {
+      clearTimeout(this.retry)
+    }
+    this.retry = null
+    this.proofs.close()
   }
 
   private attempt(): boolean {
-    if (this.drain !== 'open' || this.host.readOnly()) {
+    if (this.drain !== 'open' || this.host.readOnly() || this.proofs.pending) {
       return false
     }
     try {
@@ -83,11 +100,32 @@ export class JournalTextPruner {
       this.scheduled = null
       this.failed(error)
       return false
+    } finally {
+      const pending = this.proofs.pending
+      if (pending) {
+        void pending.then(
+          () => {
+            this.retryDelay = 250
+            this.schedule()
+          },
+          (error: unknown) => this.failed(error)
+        )
+      }
     }
   }
 
   private failed(error: unknown): void {
-    if (this.drain !== 'closed') {
+    if (this.drain === 'closed') {
+      return
+    }
+    if (error instanceof JournalTextValidatorUnavailableError) {
+      this.retry = setTimeout(() => {
+        this.retry = null
+        this.schedule()
+      }, this.retryDelay)
+      this.retry.unref?.()
+      this.retryDelay = Math.min(30_000, this.retryDelay * 2)
+    } else {
       this.drain = 'failed'
     }
     console.warn('[journal-text-prune] keeping saved text pieces:', {
@@ -108,76 +146,72 @@ export class JournalTextPruner {
     }
     let commit: (() => void) | undefined
     this.host.database().transaction((db) => {
-      let remaining = 256
-      const decoded = new Map<number, JournalRow>()
-      const read = (seq: number): JournalRow => {
-        const cached = decoded.get(seq)
-        if (cached) {
-          return cached
-        }
-        if (--remaining < 0) {
-          throw new Error('journal_text_prune_budget_exceeded')
-        }
-        const stored = db
-          .prepare(
-            'SELECT row_json FROM journal_rows WHERE session_id = ? AND epoch = ? AND seq = ?'
-          )
-          .get(this.host.identity.sessionId, state.epoch, seq)
-        const parsed =
-          typeof stored?.row_json === 'string' ? parseJournalRow(stored.row_json, true) : null
-        if (!parsed?.ok || parsed.row.seq !== seq || parsed.row.epoch !== state.epoch) {
-          throw new Error('journal_text_prune_row_invalid')
-        }
-        decoded.set(seq, parsed.row)
-        return parsed.row
+      this.proofs.begin(db)
+      const query = { sessionId: this.host.identity.sessionId, epoch: state.epoch }
+      const item = { ...query, itemId: piece.itemId, field: piece.field }
+      const boundaryQuery = { ...query, seq: state.textIndex.sparseAfter ?? 0 }
+      const markerQuery = { ...item, seq: piece.marker?.seq ?? 0, revision: piece.marker?.revision }
+      const witnessQuery = {
+        ...item,
+        seq: piece.witness?.seq ?? 0,
+        revision: piece.revision,
+        settlementId: piece.witness?.settlementId
       }
-      const boundary = read(state.textIndex.sparseAfter ?? 0)
-      const marker = read(piece.marker?.seq ?? 0)
-      const witness = read(piece.witness?.seq ?? 0)
-      const anchor = marker.kind === 'item' ? journalWholeItem(marker, piece.itemId) : undefined
-      const whole =
-        witness.kind === 'item' || witness.kind === 'lifecycle-batch'
-          ? journalWholeItem(witness, piece.itemId, piece.revision)
-          : undefined
+      const boundary = this.proofs.read(db, boundaryQuery)
+      if (!boundary) {
+        return
+      }
+      const marker = this.proofs.read(db, markerQuery)
+      if (!marker) {
+        return
+      }
+      const witness = this.proofs.read(db, witnessQuery)
+      if (!witness) {
+        return
+      }
       if (
-        boundary.kind !== 'item' ||
-        boundary.v < 5 ||
-        !journalTextFields(boundary.body).length ||
+        !boundary.boundary ||
         marker.kind !== 'item' ||
         marker.v < 5 ||
-        !anchor ||
-        !whole ||
-        anchor.revision !== piece.marker?.revision ||
-        anchor.revision >= whole.revision ||
-        marker.seq >= witness.seq ||
-        (witness.kind === 'lifecycle-batch' &&
-          witness.settlementId !== piece.witness?.settlementId) ||
-        !journalTextFields(anchor.body).includes(piece.field) ||
-        !journalTextFields(whole.body).includes(piece.field) ||
+        marker.itemRevision === null ||
+        witness.itemRevision === null ||
+        marker.itemRevision !== piece.marker?.revision ||
+        marker.itemRevision >= witness.itemRevision ||
+        (piece.marker?.seq ?? 0) >= (piece.witness?.seq ?? 0) ||
+        !witness.settlementMatches ||
+        !marker.hasField ||
+        !witness.hasField ||
         state.replayTextDebt?.size
       ) {
         throw new Error('journal_text_prune_witness_invalid')
       }
-      const selection = state.textIndex.select(key, piece, remaining)
-      for (const seq of selection.sequences) {
-        const target = read(seq)
+      const selection = state.textIndex.select(key, piece, 253, (seq) => {
+        const target = this.proofs.read(db, { ...item, seq })
+        if (!target) {
+          return false
+        }
         if (
           target.kind !== 'text-delta' ||
-          target.itemId !== piece.itemId ||
-          target.field !== piece.field ||
-          target.revision >= whole.revision ||
-          target.seq <= marker.seq ||
-          target.seq >= witness.seq ||
-          target.seq >= state.lastSequence ||
+          !target.deltaMatches ||
+          target.deltaRevision === null ||
+          target.deltaRevision >= (witness.itemRevision ?? 0) ||
+          seq <= (piece.marker?.seq ?? 0) ||
+          seq >= (piece.witness?.seq ?? 0) ||
+          seq >= state.lastSequence ||
           state.textIndex.isProtected(seq)
         ) {
           throw new Error('journal_text_prune_target_invalid')
         }
-      }
+        return true
+      })
       for (const [first, last] of selection.ranges) {
         deleteJournalTextRange(db, this.host.identity.sessionId, state.epoch, first, last)
       }
-      commit = selection.commit
+      this.proofs.assertCurrent(db, [boundaryQuery, markerQuery, witnessQuery])
+      commit = () => {
+        selection.commit()
+        this.proofs.retired(selection.sequences)
+      }
     })
     commit?.()
   }

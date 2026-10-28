@@ -1,4 +1,5 @@
 import type { AgentSessionUnavailable } from './agent-session-availability'
+import type { AgentSessionTextPatches } from './agent-session-text-patches'
 import type { AgentSessionFrameFields } from './agent-session-frame-fields'
 import type { AgentSessionCurrentWorkFields } from './agent-session-current-work-wire'
 import type {
@@ -141,12 +142,14 @@ export type AgentSessionHistoryResult =
       providerSession?: AgentProviderSessionMetadata
     }
 
-/** Publish cursor-qualified current reduced states, not deltas, so duplicate batches converge. */
+/** Whole-item batches converge; negotiated live suffixes additionally name their exact base. */
 export type AgentSessionJournalBatch = {
   cursor: AgentJournalCursor
   items: AgentJournalRenderItem[]
   removedItemIds: string[]
   submissions: AgentJournalSubmission[]
+  /** Negotiated live-only suffixes; hydration and reconnects always carry whole items. */
+  textPatches?: AgentSessionTextPatches
 }
 
 export type AgentSessionSubscribeEvent =

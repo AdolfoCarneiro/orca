@@ -82,6 +82,11 @@ export function startStructuredAgentSessionLiveRead(args: {
   const coalescer = createStructuredAgentSessionEventCoalescer((event) => {
     if (!shouldStopCoalescedEvent()) {
       args.applyEvent(event)
+      if (event.type === 'batch' && event.batch.textPatches && args.getCursor() === null) {
+        openGeneration += 1
+        unsubscribe()
+        loseContact()
+      }
     }
   })
   const reconnectScheduler = createReconnectScheduler({

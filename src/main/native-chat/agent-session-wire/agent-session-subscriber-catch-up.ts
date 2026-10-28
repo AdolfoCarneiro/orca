@@ -99,6 +99,18 @@ export function deliverToSubscriber(
     }
     return
   }
+  if (
+    !emitCheckpoint &&
+    (work === undefined || work.workViewKey() === subscriber.workView) &&
+    subscriber.textDelivery?.tryDeliver(delivery, subscriber, journal, work, hostNow)
+  ) {
+    emitCaughtUp(delivery, subscriber, false, shared, { journal, work })
+    return
+  }
+  subscriber.textDelivery?.flush(delivery, subscriber, journal, work, hostNow)
+  if (!port.isActive(subscriber)) {
+    return
+  }
   // Caught up, so there are no rows to read: every publish behind a commit's own delivery.
   if (sameJournalCursor(subscriber.cursor, journal.cursor())) {
     emitCaughtUp(delivery, subscriber, emitCheckpoint, shared, {

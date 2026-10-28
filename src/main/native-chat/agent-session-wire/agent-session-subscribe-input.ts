@@ -13,4 +13,5 @@ export type AgentSessionSubscribeInput = {
   readsCurrentRequests?: boolean
   /** False for desktops that need exact replay to keep send echoes and current requests. */
   snapshotCatchUp?: boolean
+  textPatches?: boolean
 }

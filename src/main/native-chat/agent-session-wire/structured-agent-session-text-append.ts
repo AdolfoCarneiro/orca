@@ -154,7 +154,7 @@ export function createStructuredAgentSessionTextAppend(queue: StructuredAgentSes
       },
       resolve: (journal) => {
         const actual = journal.textSource(key)
-        if (operation === 'append' && actual?.truncated) {
+        if (operation === 'append' && actual && (!suffix.length || actual.truncated)) {
           adopt(actual)
           return null
         }
