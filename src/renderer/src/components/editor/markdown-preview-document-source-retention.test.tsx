@@ -6,12 +6,13 @@ import { expect, it } from 'vitest'
 import { useMarkdownPreviewDocument } from './use-markdown-preview-document'
 
 const SOURCE_BYTES = 2 * 1024 * 1024
+const OWNER_COUNT = 4
 
 type DocumentView = { root: Root; container: HTMLDivElement; content: string }
 
 function DocumentOwner({ view }: { view: DocumentView }) {
   const state = useMarkdownPreviewDocument(view.content, false)
-  return <div>{state.content}</div>
+  return <div>{state.content === 'tiny-c' ? state.content : 'initial-source'}</div>
 }
 
 async function renderDocument(view: DocumentView): Promise<void> {
@@ -23,16 +24,14 @@ async function prepareDocument(owner: number): Promise<DocumentView> {
   const view = {
     container,
     root: createRoot(container),
-    content: Buffer.concat([
-      Buffer.from(`Preview source ${owner}\n`),
-      Buffer.alloc(SOURCE_BYTES, 120)
-    ]).toString('utf8')
+    content: ''
   }
+  await act(async () => view.root.render(<div>warm</div>))
+  view.content = Buffer.concat([
+    Buffer.from(`Preview source ${owner}\n`),
+    Buffer.alloc(SOURCE_BYTES, 120)
+  ]).toString('utf8')
   await renderDocument(view)
-  for (const content of ['tiny-a', 'tiny-b', 'tiny-c']) {
-    view.content = content
-    await renderDocument(view)
-  }
   return view
 }
 
@@ -50,19 +49,21 @@ async function collectedMemory(): Promise<number> {
 
 it('releases replaced source inputs while the preview document worker is disabled', async () => {
   const views: DocumentView[] = []
-  const warmContainer = document.body.appendChild(document.createElement('div'))
-  const warm = { root: createRoot(warmContainer), container: warmContainer, content: 'warm' }
-  await renderDocument(warm)
-  await act(async () => warm.root.unmount())
-  warm.container.remove()
-  const before = await collectedMemory()
   try {
-    for (let owner = 0; owner < 4; owner++) {
+    for (let owner = 0; owner < OWNER_COUNT; owner++) {
       views.push(await prepareDocument(owner))
     }
-    const retainedBytes = (await collectedMemory()) - before
+    expect(views.every((view) => view.content.length > SOURCE_BYTES)).toBe(true)
+    const beforeReplacement = await collectedMemory()
+    for (const content of ['tiny-a', 'tiny-b', 'tiny-c']) {
+      for (const view of views) {
+        view.content = content
+        await renderDocument(view)
+      }
+    }
+    const releasedBytes = beforeReplacement - (await collectedMemory())
     expect(views.every((view) => view.container.textContent === 'tiny-c')).toBe(true)
-    expect(retainedBytes).toBeLessThan(SOURCE_BYTES)
+    expect(releasedBytes).toBeGreaterThan((OWNER_COUNT - 1) * SOURCE_BYTES)
   } finally {
     for (const view of views) {
       await act(async () => view.root.unmount())
