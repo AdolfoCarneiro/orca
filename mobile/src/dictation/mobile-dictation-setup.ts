@@ -1,3 +1,4 @@
+import { hostDictationErrorMessage } from '../../../src/shared/host-dictation-error-messages'
 import type { RpcOperationSender } from '../transport/rpc-operation-sender'
 import type { RpcResponse } from '../transport/types'
 import { interpretOrThrowRefusalMessage } from '../transport/rpc-refusal-message'
@@ -33,10 +34,17 @@ function isLegacyDesktopSpeechSetupReply(reply: RpcResponse): boolean {
 }
 
 // Headless servers lacked speech from 1.4.229 until #31174; name the required fix.
-export const SPEECHLESS_SERVER_MESSAGE = 'Update Orca on this server to use voice dictation.'
+const SPEECHLESS_SERVER_MESSAGE = 'Update Orca on this server to use voice dictation.'
 
-export function isSpeechlessServerError(message: string): boolean {
+function isSpeechlessServerError(message: string): boolean {
   return message.startsWith('speech_unavailable')
+}
+
+export function dictationFailureMessage(message: string): string {
+  if (isSpeechlessServerError(message)) {
+    return SPEECHLESS_SERVER_MESSAGE
+  }
+  return hostDictationErrorMessage(message) ?? message
 }
 
 function isSpeechlessServerReply(reply: RpcResponse): boolean {

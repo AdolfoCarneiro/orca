@@ -66,7 +66,7 @@ export function LinearApiKeyDialog({
     connectLabel ??
     (workspace
       ? translate('taskProviders.linear.updateAccess', 'Update access')
-      : translate('auto.components.TaskPage.887efe9140', 'Connect'))
+      : translate('taskProviders.linear.connect', 'Connect'))
   const resolvedDialogState = resolveLinearApiKeyDialogState(dialogState, open)
   if (resolvedDialogState !== dialogState) {
     // Reset hidden drafts/errors before paint because parent closure can race a connect request.

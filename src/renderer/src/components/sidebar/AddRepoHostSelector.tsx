@@ -26,6 +26,8 @@ type AddRepoHostSelectorProps = {
   onAddRemoteServer?: () => void
   /** Present only where WSL hosts are available and turned on. */
   onAddWslHost?: () => void
+  /** Serve-only: why "Add WSL distro" is missing from the add-host menu. */
+  wslHostsPausedNote?: string
   /** Opens Experimental → WSL distros as hosts, for a WSL host listed while that is off. */
   onOpenWslHostsSetting?: () => void
 }
@@ -52,6 +54,7 @@ export function AddRepoHostSelector({
   onAddSshHost,
   onAddRemoteServer,
   onAddWslHost,
+  wslHostsPausedNote,
   onOpenWslHostsSetting
 }: AddRepoHostSelectorProps): React.JSX.Element | null {
   const [addHostOpen, setAddHostOpen] = useState(false)
@@ -187,6 +190,11 @@ export function AddRepoHostSelector({
                           )}
                         </span>
                       </button>
+                    ) : null}
+                    {!onAddWslHost && wslHostsPausedNote ? (
+                      <p className="px-2.5 py-2 text-2xs text-muted-foreground">
+                        {wslHostsPausedNote}
+                      </p>
                     ) : null}
                     {onAddWslHost ? (
                       <button

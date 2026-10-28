@@ -14,6 +14,7 @@ import {
   type KeybindingInput,
   type KeybindingOverrides
 } from '../../shared/keybindings'
+import { wslHostsWindowArguments } from '../wsl/wsl-host-gate'
 
 const MIN_WIDTH = 480
 const MIN_HEIGHT = 360
@@ -126,6 +127,9 @@ export function createOrFocusDashboardPopout(
   options: { getKeybindings?: () => KeybindingOverrides | undefined } = {}
 ): BrowserWindow {
   if (dashboardPopoutWindow && !dashboardPopoutWindow.isDestroyed()) {
+    if (dashboardPopoutWindow.webContents.isCrashed()) {
+      dashboardPopoutWindow.webContents.reload()
+    }
     if (dashboardPopoutWindow.isMinimized()) {
       dashboardPopoutWindow.restore()
     }
@@ -137,6 +141,8 @@ export function createOrFocusDashboardPopout(
 
   const savedBounds = resolveRestoredBounds(store)
 
+  // Serve-only: this window lists saved WSL hosts and their Connect, as the main window does.
+  const wslArguments = wslHostsWindowArguments()
   const window = new BrowserWindow({
     width: savedBounds?.width ?? DEFAULT_WIDTH,
     height: savedBounds?.height ?? DEFAULT_HEIGHT,
@@ -154,7 +160,8 @@ export function createOrFocusDashboardPopout(
       // Chromium shares zoom by origin; isolate the session to keep popout zoom local.
       partition: DASHBOARD_POPOUT_PARTITION,
       // No webviews run here; disable embedding and omit host identity so client-placed pages stay mirrors.
-      webviewTag: false
+      webviewTag: false,
+      ...(wslArguments.length > 0 ? { additionalArguments: wslArguments } : {})
     }
   })
   installPrivilegedWindowNavigationPolicy(window.webContents)

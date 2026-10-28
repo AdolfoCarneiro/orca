@@ -13,9 +13,6 @@ import { LinearIntegrationCard } from './task-tracker-integration-cards'
 const LOCAL_HOST_LABEL = getExecutionHostLabel('local')
 
 type StoreState = {
-  repos: never[]
-  endpointProjects: never[]
-  endpointProjectHostSetups: never[]
   linearStatus: {
     connected: boolean
     workspaces?: { id: string; organizationName: string; displayName: string; email?: string }[]
@@ -63,9 +60,6 @@ function installStore(
   settings: StoreState['settings'] = { activeRuntimeEnvironmentId: null }
 ): StoreState {
   const state: StoreState = {
-    repos: [],
-    endpointProjects: [],
-    endpointProjectHostSetups: [],
     linearStatus: {
       connected,
       workspaces: connected

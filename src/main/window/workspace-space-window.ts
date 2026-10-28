@@ -6,6 +6,7 @@ import { installPrivilegedWindowNavigationPolicy } from './privileged-window-nav
 import { sendToTrustedUIRenderer } from '../ipc/ui'
 import type { Store } from '../persistence'
 import { stepUIZoomLevel, type UIZoomDirection } from '../../shared/ui-zoom-level'
+import { wslHostsWindowArguments } from '../wsl/wsl-host-gate'
 
 let spaceWindow: BrowserWindow | null = null
 
@@ -32,6 +33,9 @@ export function zoomWorkspaceSpaceWindowIfFocused(direction: UIZoomDirection): b
 export function createOrFocusWorkspaceSpaceWindow(store: Store): BrowserWindow {
   const existing = getWorkspaceSpaceWindow()
   if (existing) {
+    if (existing.webContents.isCrashed()) {
+      existing.webContents.reload()
+    }
     if (existing.isMinimized()) {
       existing.restore()
     }
@@ -41,6 +45,8 @@ export function createOrFocusWorkspaceSpaceWindow(store: Store): BrowserWindow {
     return existing
   }
 
+  // Serve-only: this window lists saved WSL hosts and their Connect, as the main window does.
+  const wslArguments = wslHostsWindowArguments()
   const window = new BrowserWindow({
     width: 1180,
     height: 820,
@@ -54,7 +60,8 @@ export function createOrFocusWorkspaceSpaceWindow(store: Store): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
       partition: 'orca-workspace-space-window',
-      webviewTag: false
+      webviewTag: false,
+      ...(wslArguments.length > 0 ? { additionalArguments: wslArguments } : {})
     }
   })
   spaceWindow = window
