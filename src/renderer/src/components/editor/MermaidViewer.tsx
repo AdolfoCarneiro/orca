@@ -15,19 +15,29 @@ export default function MermaidViewer({
 }: MermaidViewerProps): React.JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null)
   const pendingScrollTopRef = useRef<number | undefined>(undefined)
+  const renderCompleteRef = useRef(false)
+  const restoreObserverRef = useRef<ResizeObserver | null>(null)
   const isDark = useDocumentDarkTheme()
 
   const restorePendingScroll = useCallback(() => {
     const container = rootRef.current
     const targetScrollTop = pendingScrollTopRef.current
-    if (container && targetScrollTop !== undefined) {
-      container.scrollTop = Math.min(
-        targetScrollTop,
-        Math.max(0, container.scrollHeight - container.clientHeight)
-      )
-      pendingScrollTopRef.current = undefined
+    if (!container || targetScrollTop === undefined || container.clientHeight === 0) {
+      return
     }
+    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
+    if (!renderCompleteRef.current && maxScrollTop < targetScrollTop) {
+      return
+    }
+    container.scrollTop = Math.min(targetScrollTop, maxScrollTop)
+    pendingScrollTopRef.current = undefined
+    restoreObserverRef.current?.disconnect()
+    restoreObserverRef.current = null
   }, [])
+  const onRenderComplete = useCallback(() => {
+    renderCompleteRef.current = true
+    restorePendingScroll()
+  }, [restorePendingScroll])
 
   useLayoutEffect(() => {
     const container = rootRef.current
@@ -64,15 +74,22 @@ export default function MermaidViewer({
     const container = rootRef.current
     const targetScrollTop = scrollTopCache.get(scrollCacheKey)
     pendingScrollTopRef.current = targetScrollTop
-    if (
-      container &&
-      targetScrollTop !== undefined &&
-      container.scrollHeight - container.clientHeight >= targetScrollTop
-    ) {
-      restorePendingScroll()
+    renderCompleteRef.current = false
+    if (!container || targetScrollTop === undefined) {
+      return
     }
+    const observer =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(restorePendingScroll)
+    restoreObserverRef.current = observer
+    observer?.observe(container)
+    restorePendingScroll()
     return () => {
       pendingScrollTopRef.current = undefined
+      renderCompleteRef.current = false
+      observer?.disconnect()
+      if (restoreObserverRef.current === observer) {
+        restoreObserverRef.current = null
+      }
     }
   }, [scrollCacheKey, content, restorePendingScroll])
 
@@ -84,7 +101,7 @@ export default function MermaidViewer({
           content={content.trim()}
           isDark={isDark}
           htmlLabels={false}
-          onRenderComplete={restorePendingScroll}
+          onRenderComplete={onRenderComplete}
         />
       </div>
     </div>
