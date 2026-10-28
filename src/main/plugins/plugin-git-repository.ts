@@ -29,6 +29,9 @@ export async function runPluginGit(
 ): Promise<string> {
   const { stdout } = await gitExecFileAsync(args, {
     cwd,
+    // Why: overrides any user `protocol.<helper>.allow`, so an insteadOf rewrite cannot reach a
+    // custom git-remote-* helper.
+    env: { ...process.env, GIT_ALLOW_PROTOCOL: 'https:ssh' },
     timeout: PLUGIN_GIT_TIMEOUT_MS,
     // Why: abort must stop remote-https and index-pack too, and settle only once they exit.
     ...(signal ? { signal, terminationBarrier: true } : {})

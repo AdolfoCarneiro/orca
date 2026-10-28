@@ -52,6 +52,8 @@ async function fixture(initArgs: string[] = []) {
   await git(['commit', '--quiet', '-m', 'Exact source bytes'])
   await git(['tag', 'v1'])
   // Planted after the fixture commit so only the download under test can trigger them.
+  const smudge = `require('node:fs').writeFileSync(${JSON.stringify(filtered)},'1');process.stdin.pipe(process.stdout)`
+  await configure('filter.plugin-test.smudge', nodeCommand(smudge))
   for (const hook of PLANT_HOOKS ? ['post-checkout', 'reference-transaction'] : []) {
     await writeFile(
       join(hooks, hook),
@@ -87,10 +89,13 @@ it.each(['tag', 'exact commit'])(
 
 it.each([
   ['file', (repository: string) => pathToFileURL(repository).href],
-  ['http', () => 'http://127.0.0.1:9/sample.git']
+  ['http', () => 'http://127.0.0.1:9/sample.git'],
+  ['acme', () => 'acme::sample']
 ])('refuses a %s transport reached through an insteadOf rewrite', async (name, target) => {
   const f = await fixture()
   const url = 'https://plugins.example.invalid/rewritten.git'
+  // Why a user-level allow: a custom remote helper must stay refused even when the user allows it.
+  await f.configure(`protocol.${name}.allow`, 'always')
   await f.configure(`url.${target(f.repository)}.insteadOf`, url)
   // Why this also covers redirects: Git hands the same allowlist to curl's redirect protocols.
   await expect(f.checkout('v1', url)).rejects.toThrow(`transport '${name}' not allowed`)
