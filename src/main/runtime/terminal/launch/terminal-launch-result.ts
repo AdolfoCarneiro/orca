@@ -3,7 +3,10 @@ import { admitStablePaneAdoption } from '../../runtime-terminal-pane-identity'
 import type { RuntimePtyController } from '../../runtime-pty-controller-contract'
 import type { TerminalCreateOptions } from '../../runtime-terminal-contracts'
 import type { RuntimePtyWorktreeRecord } from '../../runtime-terminal-state-records'
-import { copySleepingAgentLaunchConfig } from '../../runtime-agent-launch-resolution'
+import {
+  copySleepingAgentLaunchConfig,
+  resolveLaunchCommandPaneAgent
+} from '../../runtime-agent-launch-resolution'
 
 type TerminalSpawnResult = Awaited<ReturnType<NonNullable<RuntimePtyController['spawn']>>>
 
@@ -52,7 +55,8 @@ export function resolveTerminalLaunchResult(
 export function recordTerminalLaunchMetadata(
   pty: RuntimePtyWorktreeRecord,
   result: TerminalSpawnResult,
-  launch: ReturnType<typeof resolveTerminalLaunchResult>
+  launch: ReturnType<typeof resolveTerminalLaunchResult>,
+  command: TerminalCreateOptions['command']
 ): void {
   if (launch.adoptedStablePane) {
     // A lower owner can supply facts before this runtime has a launch record.
@@ -71,6 +75,10 @@ export function recordTerminalLaunchMetadata(
     pty.launchToken = launch.launchToken ?? null
     pty.launchIncarnationId = launch.launchToken ? pty.incarnationId : null
     pty.launchAgent = launch.launchAgent ?? null
+    pty.launchCommandAgent =
+      result.agentResumeRefused || result.agentResumeUnavailable
+        ? null
+        : resolveLaunchCommandPaneAgent(command)
   }
 }
 

@@ -9,7 +9,6 @@ import { recordPtySurface, spawnSurfaceClaimSequence } from '../../pty-recorded-
 import { agentLaunchTokenFor, withAgentLaunchToken } from '../../../agent-launch/agent-launch-token'
 import { seedPtyLaunchTitle } from './pty-launch-title'
 import { migratedPaneRestoreHint } from '../../migrated-pane-restore-cwd'
-import { resolveLaunchCommandPaneAgent } from '../../runtime-agent-launch-resolution'
 import { prepareTerminalCreateCompletion } from './terminal-create-completion'
 import { terminalCreateSize } from './terminal-create-size'
 
@@ -25,11 +24,10 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
     if (opts.startupAgent && worktreeSelector === undefined) {
       throw new Error(`startupAgent ${opts.startupAgent} requires a workspace selector.`)
     }
-    const callerColors = dependencies.normalizeColorQueryReplyColors(opts.terminalColorQueryReplies)
-    // Older paired clients report their theme only at creation.
-    if (callerColors) {
-      dependencies.setPairedViewerColors(callerColors)
-    }
+    const launcherSpawnArgs = dependencies.admitPairedCreateColors(
+      opts.terminalColorQueryReplies,
+      opts.terminalViewAttributes
+    )
     const presentation = dependencies.resolveTerminalPresentation(opts)
     // Start host-placeable terminals here; timing out a window-made start still ran it later and retries duplicated it.
     if (worktreeSelector !== undefined) {
@@ -146,6 +144,7 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
             leafId,
             ...dependencies.spawnShellInputs(launchOpts),
             ...(terminalColorQueryReplies ? { terminalColorQueryReplies } : {}),
+            ...launcherSpawnArgs,
             terminalKittyKeyboardProtocol: launchOpts.terminalKittyKeyboardProtocol,
             ...(launchOpts.agentSessionClaim
               ? {
@@ -257,12 +256,8 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
               this.setPtyManagementTitleFromObservedTitle(pty, title, at)
             )
           }
-          recordTerminalLaunchMetadata(pty, result, launch)
+          recordTerminalLaunchMetadata(pty, result, launch, launchOpts.command)
           if (!launch.adoptedStablePane) {
-            pty.launchCommandAgent =
-              result.agentResumeRefused || result.agentResumeUnavailable
-                ? null
-                : resolveLaunchCommandPaneAgent(launchOpts.command)
             this.rememberSavedTerminalLaunchResult(result.id, result)
           }
           recordPtySurface(pty, tabId, paneKey, spawnSurfaceClaimSequence(this.graphSequence))

@@ -1,3 +1,4 @@
+import type { WslBridgeBootIdentity } from './daemon-wsl-bridge-boot-identity'
 import type { DaemonEndpointIdentity } from './daemon-hello-protocol'
 import type { TakePendingOutputResult } from './types'
 import type { HistoryCheckpointResult, HistoryRecoveryFreeze } from './history-manager'
@@ -44,6 +45,8 @@ export type DaemonPtyAdapterOptions = {
   respawn?: (reason: DaemonRespawnReason) => Promise<void | (() => void)>
   /** Test seam; production reads the shared, coalesced `wsl --list --running`. */
   readRunningWslDistros?: ReadRunningWslDistros
+  /** Test seam; production reads each distro's boot id through the background-work gate. */
+  wslBridgeBootIdentity?: WslBridgeBootIdentity
 }
 
 export type DaemonRespawnReason =

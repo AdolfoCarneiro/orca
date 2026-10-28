@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import type { AiVaultSession } from '../../../../shared/ai-vault-types'
 import type { AiVaultSearchHit } from '../../../../shared/ai-vault-search-types'
+import type { AgentDotState } from '@/components/AgentStateDot'
 import { AiVaultVirtualRow } from './AiVaultVirtualRow'
 import { setLocalRuntimeCapabilitiesForTests } from '@/runtime/local-runtime-capabilities'
 import { useAppStore } from '@/store'
@@ -51,7 +52,8 @@ function sessionRowFixture(
   searchHit?: AiVaultSearchHit,
   searchHitHostLabels?: ReadonlyMap<string, string>,
   index = 0,
-  resumeInChat = false
+  resumeInChat = false,
+  liveState: AgentDotState | null = null
 ) {
   const buildResumeStartup = vi.fn(() => ({ command: session.resumeCommand }))
   const onCopyResume = vi.fn()
@@ -73,7 +75,7 @@ function sessionRowFixture(
       buildResumeStartup={buildResumeStartup}
       getOriginalPaneTarget={getOriginalPaneTarget}
       isStructuredSessionOpen={() => false}
-      getSessionLiveState={() => null}
+      getSessionLiveState={() => liveState}
       getWorktreeInfo={() => null}
       getSessionResumeState={() => ({
         blocked,
@@ -120,12 +122,26 @@ function renderSession(
   session: AiVaultSession,
   blocked = false,
   searchHit?: AiVaultSearchHit,
-  searchHitHostLabels?: ReadonlyMap<string, string>
+  searchHitHostLabels?: ReadonlyMap<string, string>,
+  liveState: AgentDotState | null = null
 ) {
-  const fixture = sessionRowFixture(session, blocked, searchHit, searchHitHostLabels)
+  const fixture = sessionRowFixture(
+    session,
+    blocked,
+    searchHit,
+    searchHitHostLabels,
+    0,
+    false,
+    liveState
+  )
   render(<TooltipProvider>{fixture.element}</TooltipProvider>)
   return fixture
 }
+
+it('passes semantic status through the virtual row to the real glyph', () => {
+  renderSession(cliSession, false, undefined, undefined, 'monitoring')
+  expect(screen.getByLabelText('Monitoring background tasks')).toBeTruthy()
+})
 
 describe('AiVaultVirtualRow search hit source host', () => {
   it('names the host a hit came from when hits span several hosts', () => {

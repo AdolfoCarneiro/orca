@@ -7,20 +7,27 @@ import { waitForPromiseWithSignal } from '../../../shared/abort-signal-reason'
 import type { RuntimeStatus } from '../../../shared/runtime-types'
 import type { RuntimeCapability } from '../../../shared/protocol-version'
 import { withBrowserPaneUiRuntimeRpcSource } from '../../../shared/runtime-rpc-feature-interaction-source'
-import { assertRuntimeStatusCompatible, isRuntimeStatusCompatible } from './runtime-protocol-compat'
+import { assertRuntimeStatusCompatible } from './runtime-protocol-compat'
 import { createRuntimeRpcAbortError } from './abortable-runtime-environment-call'
 import { callRuntimeEnvironmentWithRevision } from './runtime-rpc-environment-call'
 import { unwrapRuntimeRpcResult } from './runtime-rpc-result'
 import { captureRuntimeEnvironmentRequestRevision } from './runtime-environment-revision'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import {
+  clearRuntimeCompatibilityCache,
+  compatibilityEntry,
   getCachedRuntimeCompatibilityCheck,
-  RUNTIME_COMPATIBILITY_CACHE_MAX,
-  RUNTIME_CAPABILITY_STATUS_TTL_MS,
-  type RuntimeCompatibilityCacheEntry,
+  rememberRuntimeEnvironmentCompatibility,
   runtimeCompatibilityChecks,
-  compatibilityEntry
-} from './runtime-environment-compatibility-cache'
+  RUNTIME_CAPABILITY_STATUS_TTL_MS
+} from './runtime-compatibility-cache'
+
+export {
+  clearRecentRuntimeCompatibilityFailure,
+  clearRuntimeCompatibilityCache,
+  markRuntimeEnvironmentCompatible,
+  peekRuntimeEnvironmentCapability
+} from './runtime-compatibility-cache'
 
 export async function callRuntimeRpc<TResult>(
   target: RuntimeClientTarget,
@@ -128,6 +135,7 @@ export async function ensureRuntimeEnvironmentCompatible(
     assertRuntimeStatusCompatible(status)
     entry.status = status
     entry.statusCheckedAt = Date.now()
+    entry.statusObservedAt = entry.statusCheckedAt
   })()
   entry.check = check
   rememberRuntimeEnvironmentCompatibility(environmentId, entry)
@@ -143,67 +151,6 @@ export async function ensureRuntimeEnvironmentCompatible(
     }
     throw error
   }
-}
-
-function rememberRuntimeEnvironmentCompatibility(
-  environmentId: string,
-  entry: RuntimeCompatibilityCacheEntry
-): void {
-  // Bound compatibility cache across saved/removed environment ID churn in long sessions.
-  runtimeCompatibilityChecks.delete(environmentId)
-  runtimeCompatibilityChecks.set(environmentId, entry)
-  while (runtimeCompatibilityChecks.size > RUNTIME_COMPATIBILITY_CACHE_MAX) {
-    const oldest = runtimeCompatibilityChecks.keys().next().value
-    if (oldest === undefined) {
-      break
-    }
-    runtimeCompatibilityChecks.delete(oldest)
-  }
-}
-
-// Live status invalidates dead-connection failures/pending probes; only proven-compatible success remains reusable.
-export function clearRecentRuntimeCompatibilityFailure(
-  environmentId: string,
-  observedStatus?: RuntimeStatus
-): void {
-  const trimmed = environmentId.trim()
-  if (!trimmed) {
-    return
-  }
-  const cached = runtimeCompatibilityChecks.get(trimmed)
-  if (
-    cached &&
-    (!cached.provenCompatible ||
-      (observedStatus &&
-        cached.status !== null &&
-        cached.status.runtimeId !== observedStatus.runtimeId))
-  ) {
-    // Replacement runtimes can be older; predecessor capability proof must not authorize structured calls.
-    runtimeCompatibilityChecks.delete(trimmed)
-    // Why (STA-11921): the host publishes a probe's answer before settling it, so the detached
-    // probe never records it; the published answer is the proof synchronous readers need.
-    const answersPendingProbe = cached.failedAt === null && !cached.provenCompatible
-    if (observedStatus && answersPendingProbe && isRuntimeStatusCompatible(observedStatus)) {
-      rememberRuntimeEnvironmentCompatibility(trimmed, compatibilityEntry(observedStatus))
-    }
-  }
-}
-
-export function clearRuntimeCompatibilityCache(environmentId?: string | null): void {
-  const trimmed = environmentId?.trim()
-  if (trimmed) {
-    runtimeCompatibilityChecks.delete(trimmed)
-    return
-  }
-  runtimeCompatibilityChecks.clear()
-}
-
-export function markRuntimeEnvironmentCompatible(environmentId: string): void {
-  const trimmed = environmentId.trim()
-  if (!trimmed) {
-    return
-  }
-  rememberRuntimeEnvironmentCompatibility(trimmed, compatibilityEntry(null, true))
 }
 
 export async function getRuntimeEnvironmentStatus(
@@ -225,6 +172,7 @@ export async function getRuntimeEnvironmentStatus(
     assertRuntimeStatusCompatible(status)
     entry.status = status
     entry.statusCheckedAt = Date.now()
+    entry.statusObservedAt = entry.statusCheckedAt
     entry.provenCompatible = true
   })()
   entry.check = check

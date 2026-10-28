@@ -38,7 +38,7 @@ export function createAgentStatusDropActions(
   return {
     dropAgentStatus: (paneKey, opts?: DropAgentStatusOptions) => {
       let liveExisted = false
-      set((s) => {
+      set((s, changedPaneKeys) => {
         const hasLive = paneKey in s.agentStatusByPaneKey
         liveExisted = hasLive
         const hasRetained = paneKey in s.retainedAgentsByPaneKey
@@ -84,6 +84,7 @@ export function createAgentStatusDropActions(
         }
         const nextLive = hasLive ? { ...s.agentStatusByPaneKey } : s.agentStatusByPaneKey
         if (hasLive) {
+          changedPaneKeys.add(paneKey)
           delete nextLive[paneKey]
         }
         const nextRetained = hasRetained
@@ -128,7 +129,7 @@ export function createAgentStatusDropActions(
     dropAgentStatusByTabPrefix: (tabIdPrefix, opts?: DropAgentStatusByTabPrefixOptions) => {
       const retiredAliasPaneKeys = retireAgentPaneAuthorityAliasesByOwnerTab(tabIdPrefix)
       let hadLive = false
-      set((s) => {
+      set((s, changedPaneKeys) => {
         const dropped = buildAgentStatusTabPrefixDropPatch(
           s,
           tabIdPrefix,
@@ -136,6 +137,9 @@ export function createAgentStatusDropActions(
           opts
         )
         hadLive = dropped.hadLive
+        for (const key of dropped.removedPaneKeys) {
+          changedPaneKeys.add(key)
+        }
         return dropped.patch
       })
       if (hadLive) {
@@ -148,7 +152,7 @@ export function createAgentStatusDropActions(
 
     dropHibernatedAgentStatusPane: (worktreeId, paneKey, opts?: DropHibernatedAgentPaneOptions) => {
       let hadLive = false
-      set((s) => {
+      set((s, changedPaneKeys) => {
         const liveEntry = s.agentStatusByPaneKey[paneKey]
         const hasLive = liveEntry !== undefined
         const hasRetained = paneKey in s.retainedAgentsByPaneKey
@@ -210,6 +214,7 @@ export function createAgentStatusDropActions(
         hadLive = hasLive
         const nextLive = hasLive ? { ...s.agentStatusByPaneKey } : s.agentStatusByPaneKey
         if (hasLive) {
+          changedPaneKeys.add(paneKey)
           delete nextLive[paneKey]
         }
         const nextLaunchConfigs = hasLaunchConfig

@@ -1,4 +1,4 @@
-import { SquareSplitVertical, X } from 'lucide-react'
+import { MessageSquarePlus, SquareSplitVertical, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
@@ -9,10 +9,13 @@ import { useSystemPrefersDark } from '../terminal-pane/use-system-prefers-dark'
 import { useStructuredChatPaneActions } from './use-structured-chat-pane-actions'
 import { NativeChatResumeInCliButton } from './NativeChatResumeInCliButton'
 import type { NativeChatStructuredViewProps } from './native-chat-view-types'
+import type { NativeChatHandOff } from './use-native-chat-hand-off'
 
 const HEADER_STYLE: React.CSSProperties & Record<'--orca-pane-title-bg', string> = {
   '--orca-pane-title-bg': 'var(--chat-canvas)'
 }
+
+export type NativeChatHeaderHandOff = { open: () => void; disabled: boolean }
 
 export function NativeChatPaneHeader({
   tabId,
@@ -21,7 +24,8 @@ export function NativeChatPaneHeader({
   nativeChat,
   focused,
   colorScheme,
-  topRightAction
+  topRightAction,
+  handOff
 }: {
   tabId: string
   worktreeId: string
@@ -30,6 +34,7 @@ export function NativeChatPaneHeader({
   focused: boolean
   colorScheme: React.CSSProperties['colorScheme']
   topRightAction?: React.ReactNode
+  handOff?: NativeChatHeaderHandOff
 }): React.JSX.Element {
   const actions = useStructuredChatPaneActions(tabId, worktreeId, groupId)
   const theme = useAppStore((state) => state.settings?.theme)
@@ -38,6 +43,10 @@ export function NativeChatPaneHeader({
     ? colorScheme === 'light'
     : theme === 'light' || (theme === 'system' && !systemDark)
   const split = translate('auto.components.cmd.j.quick.actions.splitChatRight', 'Split Chat Right')
+  const handOffLabel = translate(
+    'components.agentSessionContinuation.handOffToAnotherAgent',
+    'Hand Off to Another Agent'
+  )
   return (
     <div
       className="pane-title-bar z-20"
@@ -48,6 +57,28 @@ export function NativeChatPaneHeader({
     >
       <div className="pane-title-actions ml-auto flex shrink-0 items-center gap-0">
         {topRightAction}
+        {handOff && focused ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="pane-title"
+                size="icon-xs"
+                aria-label={handOffLabel}
+                disabled={handOff.disabled}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  handOff.open()
+                }}
+              >
+                <MessageSquarePlus className="size-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={4}>
+              {handOffLabel}
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
         {nativeChat.agent && agentForksConversations(nativeChat.agent) ? (
           <NativeChatResumeInCliButton
             tabId={tabId}
@@ -113,6 +144,7 @@ export function nativeChatPaneHeader(
   >,
   worktreeId: string | null,
   colorScheme: React.CSSProperties['colorScheme'],
+  handOff?: NativeChatHandOff,
   topRightAction?: React.ReactNode
 ): React.JSX.Element | null {
   return view.isVisible && worktreeId && view.groupId && !view.contextMenuActions ? (
@@ -124,6 +156,11 @@ export function nativeChatPaneHeader(
       focused={view.isFocusedGroup}
       colorScheme={colorScheme}
       topRightAction={topRightAction}
+      handOff={
+        handOff?.available
+          ? { open: handOff.open, disabled: handOff.preparing || handOff.dialog !== null }
+          : undefined
+      }
     />
   ) : null
 }

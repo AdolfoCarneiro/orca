@@ -102,7 +102,10 @@ export const TERMINAL_LIFECYCLE_METHODS = [
               ? { terminalKittyKeyboardProtocol: true }
               : {}),
             ...(params.terminalColorQueryReplies
-              ? { terminalColorQueryReplies: params.terminalColorQueryReplies }
+              ? {
+                  terminalColorQueryReplies: params.terminalColorQueryReplies,
+                  terminalViewAttributes: params.terminalViewAttributes
+                }
               : {}),
             title: params.title,
             focus,

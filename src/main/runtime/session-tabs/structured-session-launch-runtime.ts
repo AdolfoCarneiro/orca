@@ -70,7 +70,7 @@ export abstract class OrcaRuntimeWithStructuredSessionLaunchRuntime extends Orca
       return { repo, repoPath: repo.path }
     }
 
-    const worktree = await this.resolveWorktreeSelector(args.worktreeSelector)
+    const worktree = await this.resolveGitWorktreeSelector(args.worktreeSelector)
     if (worktree.repoId !== repo.id) {
       throw new Error('Access denied: worktree does not belong to repository')
     }

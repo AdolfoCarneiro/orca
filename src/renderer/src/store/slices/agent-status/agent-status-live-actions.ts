@@ -67,7 +67,7 @@ export function createAgentStatusLiveActions(
     }
     let built: AgentStatusLiveEntryBuild | AgentStatusLiveEntryRejection | null = null
     let liveEntryDelta: FreshnessLiveEntryDelta | null = null
-    set((state) => {
+    set((state, changedPaneKeys) => {
       const retirement = state.recentlyRetiredAgentStatusPaneKeys[paneKey]
       if (
         (retirement !== undefined &&
@@ -107,6 +107,10 @@ export function createAgentStatusLiveActions(
       }
       const previousEntries = state.agentStatusByPaneKey
       const reduction = reduceAgentStatusLiveUpdate(state, built, updatedAt, projectConversation)
+      changedPaneKeys.add(built.entry.paneKey)
+      for (const evicted of reduction.evictedEntries) {
+        changedPaneKeys.add(evicted.paneKey)
+      }
       liveEntryDelta = {
         previousEntries,
         nextEntries: reduction.patch.agentStatusByPaneKey ?? previousEntries,
