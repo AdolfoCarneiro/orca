@@ -8,8 +8,6 @@ import { FeedSession } from './sidebar-inputs-feed-session'
 import { randomUUID } from 'node:crypto'
 
 /** An urgent change (an accepted command, a metadata write) publishes with no coalesce delay. */
-
-/** An urgent change (an accepted command, a metadata write) publishes with no coalesce delay. */
 export type SidebarInputsFeedChange = { urgent?: boolean; entities?: readonly string[] }
 
 /** Read producer caches synchronously so publishing never waits on scans; null means unavailable until the producer announces readiness. */
@@ -22,8 +20,6 @@ export type SidebarInputsFeedDomain = {
   /** Settles once `read` has a first snapshot; only a phone read waits on it. */
   ready?: () => Promise<void>
 }
-
-// A change after a quiet spell publishes at once; the rest of its burst at most this often.
 
 /** Cache/diff/pin phone sidebar inputs only while subscribed; producers continue independently for desktop readers. */
 export class SidebarInputsFeed {

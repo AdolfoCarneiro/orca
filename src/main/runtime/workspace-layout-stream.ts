@@ -54,8 +54,6 @@ import { WorkspaceLayoutProjection, type DirtyPartitions } from './workspace-lay
 
 /** Partitions written by an operation or task; null when unscoped. */
 
-/** Partitions written by an operation or task; null when unscoped. */
-
 function addDirty(dirty: DirtyPartitions | null, hostId: ExecutionHostId | null): DirtyPartitions {
   if (hostId === null || dirty === 'all') {
     return 'all'

@@ -12,8 +12,6 @@ import type { ReconnectFactSources, ShutdownReconnectFacts } from './shutdown-re
 
 /** A candidate owns touched contributions; aggregate iteration is reserved for changed outputs. */
 
-/** A candidate owns touched contributions; aggregate iteration is reserved for changed outputs. */
-
 const indexByRoot = new WeakMap<WorkspaceSessionState, SessionUnitIndex>()
 const cachesByIndex = new WeakMap<SessionUnitIndex, Set<WeakRef<ReconnectContributions>>>()
 const cachesByOwner = new WeakMap<object, WeakMap<SessionUnitIndex, ReconnectContributions>>()

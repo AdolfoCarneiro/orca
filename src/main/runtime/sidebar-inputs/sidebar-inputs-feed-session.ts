@@ -20,6 +20,7 @@ import {
 import { FeedChangeLog } from './sidebar-inputs-feed-log'
 import { FeedPins, feedPageToken } from './sidebar-inputs-feed-pins'
 
+// A change after a quiet spell publishes at once; the rest of its burst at most this often.
 const FLUSH_COALESCE_MS = 50
 export function feedReply(
   generation: string,
