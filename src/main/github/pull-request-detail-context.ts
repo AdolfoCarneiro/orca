@@ -191,17 +191,25 @@ export async function getPRDetailContext(
   localGitOptions: LocalGitExecOptions = {}
 ): Promise<PRDetailContext> {
   const [context, metadata] = await Promise.all([
-    readPRDetailContext(repoPath, prNumber, repository, connectionId, localGitOptions),
+    readPRDetailContext(repoPath, prNumber, repository, connectionId, localGitOptions).then(
+      async (context) => ({
+        ...context,
+        participants:
+          context.participants ??
+          (await getWorkItemParticipants(
+            repoPath,
+            { number: prNumber, type: 'pr' },
+            repository,
+            connectionId,
+            localGitOptions
+          ))
+      })
+    ),
     getPRMetadata(repoPath, prNumber, repository, connectionId, localGitOptions)
   ])
-  const participants =
-    context.participants ??
-    (await getWorkItemParticipants(
-      repoPath,
-      { number: prNumber, type: 'pr' },
-      repository,
-      connectionId,
-      localGitOptions
-    ))
-  return { metadata, participants, viewedStates: context.viewedStates ?? null }
+  return {
+    metadata,
+    participants: context.participants,
+    viewedStates: context.viewedStates ?? null
+  }
 }
