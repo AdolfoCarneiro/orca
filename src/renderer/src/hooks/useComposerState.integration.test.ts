@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { act, render, renderHook, screen } from '@testing-library/react'
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -8,6 +8,8 @@ import { NewWorkspaceComposerNameSection } from '@/components/new-workspace/NewW
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import { EMPTY_RETIRED_NAME_REGISTRY } from '../../../shared/worktree/retired-name-registry'
+import type { CreateWorktreeResult } from '../../../shared/worktree/create-types'
+import { makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
 import type { Repo } from '../../../shared/repo-types'
 import { projectHostSetupProjectionFromRepos } from '../../../shared/project-host-setup-projection'
 import { normalizeTaskSourceContext } from '../../../shared/task-source-context'
@@ -154,8 +156,8 @@ describe('useComposerState integrated lifecycle', () => {
     const projection = projectHostSetupProjectionFromRepos([repo])
     useAppStore.setState({
       repos: [repo],
-      endpointProjects: [...projection.projects],
-      endpointProjectHostSetups: [...projection.setups],
+      projects: [...projection.projects],
+      projectHostSetups: [...projection.setups],
       sparsePresetsByRepo: { [repo.id]: [] }
     })
     const holder: { composer?: ReturnType<typeof useComposerState> } = {}

@@ -2177,8 +2177,6 @@
         "estimateValue": "估計值 {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "重複使用分支",
-        "reuseExistingBranchHint": "檢出已有分支，而不是從它建立新分支。",
         "createMultiple": "建立更多",
         "cbb47ee0dc": "僅適用於本機 Git 專案。",
         "d861de981b": "稀疏檢出",
