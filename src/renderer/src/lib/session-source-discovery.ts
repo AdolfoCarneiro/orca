@@ -43,6 +43,45 @@ function isIntegerProperty(key: string): boolean {
   )
 }
 
+function compareRecordSources(
+  before: object,
+  after: object
+): { keys: Set<string>; reordered: boolean } {
+  const oldKeys = Object.keys(before),
+    newKeys = Object.keys(after)
+  let oldStrings = 0,
+    nextString = 0
+  while (oldStrings < oldKeys.length && isIntegerProperty(oldKeys[oldStrings])) {
+    oldStrings++
+  }
+  while (nextString < newKeys.length && isIntegerProperty(newKeys[nextString])) {
+    nextString++
+  }
+  const firstNewString = nextString
+  const keys = new Set<string>()
+  let reordered = false
+  for (let i = 0; i < oldKeys.length; i++) {
+    const key = oldKeys[i]
+    const present = Object.hasOwn(after, key)
+    if (!present || Reflect.get(after, key) !== Reflect.get(before, key)) {
+      keys.add(key)
+    }
+    if (present && i >= oldStrings && key !== newKeys[nextString++]) {
+      reordered = true
+    }
+  }
+  for (let i = 0; i < newKeys.length; i++) {
+    const key = newKeys[i]
+    if (!Object.hasOwn(before, key)) {
+      keys.add(key)
+      if (i >= firstNewString && key !== newKeys[nextString++]) {
+        reordered = true
+      }
+    }
+  }
+  return { keys, reordered }
+}
+
 export function groupSessionFiles(files: readonly OpenFile[]): Map<string, OpenFile[]> {
   const groups = new Map<string, OpenFile[]>()
   for (const file of files) {
@@ -158,6 +197,10 @@ export function discoverSessionSources(
       after instanceof Set
     ) {
       changes.set(field, null)
+    } else if (!(before instanceof Map) && !(after instanceof Map)) {
+      const comparison = compareRecordSources(before, after)
+      changes.set(field, comparison.keys)
+      full ||= comparison.reordered
     } else {
       const oldKeys = sourceKeys(before),
         newKeys = sourceKeys(after)

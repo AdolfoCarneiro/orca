@@ -132,3 +132,43 @@ it('removes file-keyed dependents when the last occurrence closes', () => {
   expect(update.patch.markdownFrontmatterVisible).toEqual({})
   expect(update.keys.get('openFilesByWorktree')).toEqual(new Set(['repo::/a']))
 })
+
+it('compares Record membership and string order against native patch application', () => {
+  const shapes: Record<string, number>[] = [
+    { a: 1, b: 2 },
+    { b: 2, a: 1 },
+    { b: 2, c: 3 },
+    { c: 3, b: 2 },
+    { '2': 2, a: 1 },
+    { '1': 1, '2': 2, a: 1 },
+    { '4294967294': 2, '01': 1, a: 1 },
+    { a: 1, '01': 1, '4294967295': 2 },
+    Object.fromEntries([['a', undefined]]),
+    {}
+  ]
+  for (const old of shapes) {
+    for (const next of shapes) {
+      const initial = { ...fixture(), lastVisitedAtByWorktreeId: Object.freeze(old) }
+      const after = { ...initial, lastVisitedAtByWorktreeId: Object.freeze(next) }
+      const discovery = discoverSessionSources(initial, after, ['lastVisitedAtByWorktreeId'])
+      const candidate = { ...old },
+        keys = new Set<string>()
+      for (const key of Object.keys(old)) {
+        if (!Object.hasOwn(next, key)) {
+          delete candidate[key]
+          keys.add(key)
+        }
+      }
+      for (const key of Object.keys(next)) {
+        if (!Object.hasOwn(old, key) || old[key] !== next[key]) {
+          candidate[key] = next[key]
+          keys.add(key)
+        }
+      }
+      expect(new Set(discovery.changes.get('lastVisitedAtByWorktreeId'))).toEqual(keys)
+      expect(discovery.full).toBe(
+        JSON.stringify(Object.keys(candidate)) !== JSON.stringify(Object.keys(next))
+      )
+    }
+  }
+})
