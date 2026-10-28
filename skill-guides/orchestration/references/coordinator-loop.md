@@ -22,10 +22,10 @@ one. `run-use` keeps only the Run it names.
 
 ## Reusing a worker
 
-To give the same agent follow-up work, start the next Task on its terminal and
-workspace:
+To give a finished worker follow-up work, create the Task, then start it on the
+terminal handle and workspace from that worker's earlier `worker-start` receipt:
 
 ```text
-ORCA orchestration worker-show --dispatch <dispatch_id> --json
-ORCA orchestration worker-start --task <next_task_id> --terminal <agent_terminal_handle> --worktree <its_workspace> --json
+ORCA orchestration task-create --spec "<follow-up>" --json
+ORCA orchestration worker-start --task <task_id> --terminal <agent_terminal_handle> --worktree <its_workspace> --json
 ```

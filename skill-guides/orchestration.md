@@ -5,6 +5,8 @@ description: >-
   the user asks for Orca workers or supervision (monitor, task DAGs, ask/reply,
   decision gates), or when the work needs something your own subagents cannot
   give: a different agent (such as Codex from Claude) or its own Orca workspace.
+  "Have Codex (or Claude) review this and report back" means an Orca worker of
+  that agent, even when you have your own model subagents.
   Also use when you are a dispatched worker (a prompt with Task and Dispatch
   IDs: ask, worker_done). Otherwise prefer your own subagents,
   including for long or parallel work. Use `orca-cli` to hand work off with
@@ -66,9 +68,12 @@ Finished terminal workers close on their own. To keep one for a follow-up, run
 ## Task spec
 
 Make each spec self-contained: the target, the change, constraints, what the
-worker may edit, and the evidence that proves it is done. A review worker's
-findings are for you to summarize; send fixes to a worker unless the user gave
-them to you.
+worker may edit, and the evidence that proves it is done. Say whether a
+non-zero exit means the Task failed or capturing it is the deliverable. Send
+fixes to a worker unless the user gave them to you.
+
+Fetch this guide once. Summarize the worker's evidence; rerun checks only for a
+gap or contradiction.
 
 ## Safety
 
