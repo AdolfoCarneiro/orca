@@ -152,9 +152,9 @@ export function projectFleetNextAction(
         }
       : { kind: 'none', argv: [] }
   }
-  // Unsettled workers with proven exits need transcript recovery, then stop/abandon; unverifiable absence cannot qualify.
+  // Unsettled workers with proven exits, or whose turn ended without a report, need transcript recovery, then stop/abandon; unverifiable absence cannot qualify.
   if (
-    liveness.verdict === 'exited' &&
+    (liveness.verdict === 'exited' || worker.outcome === 'finished_unverified') &&
     !SETTLED_WORKER_STATES.has(worker.workerState) &&
     !worker.pendingInput &&
     !worker.pendingApproval
