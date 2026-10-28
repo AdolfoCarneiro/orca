@@ -35,6 +35,8 @@ type IncludePathCase = {
   otherIncludedPaths?: string[]
   expectedIncludedPaths?: string[]
   noFinalNewline?: boolean
+  directivePrefix?: string
+  includeKey?: string
 }
 
 const cases: IncludePathCase[] = [
@@ -347,6 +349,59 @@ const cases: IncludePathCase[] = [
     value: 'includes/stable.cfg\nignored = prefix\\\n[core]\npath = includes/team.cfg',
     otherIncludedPaths: ['includes/stable.cfg'],
     expectedIncludedPaths: ['includes/stable.cfg', 'includes/team.cfg']
+  },
+  ...[
+    { name: 'attached section header', directivePrefix: '[include]path = ' },
+    { name: 'indented mixed case header', directivePrefix: ' \t[InClUdE]\tPaTh = ' },
+    {
+      name: 'consecutive section headers',
+      directivePrefix: '[include][core] [include] path = '
+    },
+    {
+      name: 'escaped subsection quote before include',
+      directivePrefix: '[remote "unused\\"tail"][include] path = '
+    },
+    {
+      name: 'escaped subsection backslash before include',
+      directivePrefix: '[remote "unused\\\\"][include] path = '
+    },
+    {
+      name: 'other subsection escape before include',
+      directivePrefix: '[remote "unused\\qtail"][include] path = '
+    },
+    {
+      name: 'quoted subsection comment and bracket literals',
+      directivePrefix: '[remote "unused#;]tail"][include] path = '
+    },
+    {
+      name: 'include subsection before plain include',
+      directivePrefix: '[include "unused"][include] path = '
+    },
+    { name: 'header chain before next line', directivePrefix: '[core][include]\npath = ' },
+    {
+      name: 'same line conditional header',
+      directivePrefix: '[includeIf "gitdir:**/"] path = ',
+      includeKey: 'includeif.gitdir:**/.path'
+    },
+    {
+      name: 'conditional header after core with tab separator',
+      directivePrefix: '[core][includeIf\t"gitdir:**/"] path = ',
+      includeKey: 'includeif.gitdir:**/.path'
+    },
+    {
+      name: 'same line unknown continued value preserves section',
+      directivePrefix: '[include] ignored = prefix\\\n[core]\npath = '
+    }
+  ].map((testCase) => ({
+    ...testCase,
+    includedPath: 'includes/team.cfg',
+    value: 'includes/team.cfg'
+  })),
+  {
+    name: 'continued value after same line header',
+    includedPath: 'includes/team.cfg',
+    directivePrefix: '[include] path = ',
+    value: '"includes/te\\\nam.cfg"# comment'
   }
 ]
 
@@ -399,7 +454,9 @@ describe.skipIf(Boolean(process.env.ORCA_GIT_COMPAT_IMAGE))(
         value,
         otherIncludedPaths,
         expectedIncludedPaths,
-        noFinalNewline
+        noFinalNewline,
+        directivePrefix,
+        includeKey
       }) => {
         const repo = await mkdtemp(join(root, 'repo-'))
         await git.exec(['init', '-q', repo])
@@ -417,12 +474,14 @@ describe.skipIf(Boolean(process.env.ORCA_GIT_COMPAT_IMAGE))(
         const mainConfigPath = join(repo, '.git', 'config')
         await appendFile(
           mainConfigPath,
-          `\n[include]\n\tpath = ${value}${noFinalNewline ? '' : '\n'}`
+          `\n${directivePrefix ?? '[include]\n\tpath = '}${value}${noFinalNewline ? '' : '\n'}`
         )
         const mainConfig = await readFile(mainConfigPath)
         const head = await readFile(join(repo, '.git', 'HEAD'))
         expect(
-          (await git.exec(['config', '--null', '--get-all', 'include.path'], repo)).stdout
+          (
+            await git.exec(['config', '--null', '--get-all', includeKey ?? 'include.path'], repo)
+          ).stdout
             .slice(0, -1)
             .split('\0')
         ).toEqual(expectedIncludedPaths ?? [includedPath])
@@ -470,6 +529,63 @@ describe.skipIf(Boolean(process.env.ORCA_GIT_COMPAT_IMAGE))(
           owner: 'after-org',
           repo: 'replaced-origin-project'
         })
+        expect(await readFile(mainConfigPath)).toEqual(mainConfig)
+        expect(await readFile(join(repo, '.git', 'HEAD'))).toEqual(head)
+      }
+    )
+
+    it.each([
+      { name: 'include subsection', configText: '[include "unused"]path = includes/team.cfg' },
+      { name: 'last noninclude header', configText: '[include][core]path = includes/team.cfg' },
+      {
+        name: 'continued core value consumes include header',
+        configText: '[core] ignored = prefix\\\n[include]\npath = includes/team.cfg'
+      },
+      {
+        name: 'comment after header',
+        configText: '[include]# comment [include]path = includes/team.cfg'
+      },
+      {
+        name: 'invalid whitespace before bracket',
+        configText: '[include ]path = includes/team.cfg',
+        invalid: true
+      },
+      {
+        name: 'invalid single quoted subsection',
+        configText: "[includeIf 'gitdir:**/']path = includes/team.cfg",
+        invalid: true
+      },
+      {
+        name: 'invalid escaped closing quote',
+        configText: '[remote "unused\\"][include]path = includes/team.cfg',
+        invalid: true
+      }
+    ])(
+      'does not track paths outside valid include assignments: $name',
+      async ({ configText, invalid }) => {
+        const repo = await mkdtemp(join(root, 'repo-'))
+        await git.exec(['init', '-q', repo])
+        const includedConfig = join(repo, '.git', 'includes', 'team.cfg')
+        await mkdir(dirname(includedConfig), { recursive: true })
+        await writeFile(
+          includedConfig,
+          '[remote "origin"]\nurl = https://github.com/org/project.git\n'
+        )
+        const mainConfigPath = join(repo, '.git', 'config')
+        await appendFile(mainConfigPath, `\n${configText}\n`)
+        const mainConfig = await readFile(mainConfigPath)
+        const head = await readFile(join(repo, '.git', 'HEAD'))
+        if (invalid) {
+          await expect(git.exec(['remote'], repo)).rejects.toMatchObject({ code: 128 })
+        } else {
+          expect((await git.exec(['remote'], repo)).stdout.trim()).toBe('')
+        }
+        const signature = await readLocalGitConfigSignature({ repoPath: repo })
+        expect(signature).toBeDefined()
+
+        await appendFile(includedConfig, '\n# unrelated file change\n')
+
+        expect(await readLocalGitConfigSignature({ repoPath: repo })).toBe(signature)
         expect(await readFile(mainConfigPath)).toEqual(mainConfig)
         expect(await readFile(join(repo, '.git', 'HEAD'))).toEqual(head)
       }

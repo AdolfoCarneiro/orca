@@ -108,12 +108,21 @@ function parseIncludedConfigPaths(configText: string, baseDir: string): string[]
     if (!line || line.startsWith('#') || line.startsWith(';')) {
       continue
     }
-    const sectionName = parseConfigSectionName(line)
-    if (sectionName) {
-      inIncludeSection = sectionName === 'include' || sectionName.startsWith('includeif ')
-      continue
+    let offset = 0
+    for (
+      let section = parseConfigSectionHeader(line, offset);
+      section;
+      section = parseConfigSectionHeader(line, offset)
+    ) {
+      inIncludeSection =
+        (section.name === 'include' && !section.hasSubsection) ||
+        (section.name === 'includeif' && section.hasSubsection)
+      offset = section.end
+      while (line[offset] === ' ' || line[offset] === '\t') {
+        offset += 1
+      }
     }
-    const assignment = line.match(/^([a-z][a-z0-9-]*)\s*=\s*(.*)$/i)
+    const assignment = line.slice(offset).match(/^([a-z][a-z0-9-]*)\s*=\s*(.*)$/i)
     if (!assignment) {
       continue
     }
@@ -125,33 +134,45 @@ function parseIncludedConfigPaths(configText: string, baseDir: string): string[]
   return includedPaths
 }
 
-function parseConfigSectionName(line: string): string | null {
-  if (!line.startsWith('[')) {
+function parseConfigSectionHeader(
+  line: string,
+  offset: number
+): { name: string; hasSubsection: boolean; end: number } | null {
+  if (line[offset] !== '[') {
     return null
   }
-  let quote: string | null = null
-  for (let index = 1; index < line.length; index += 1) {
-    const char = line[index]
-    if (quote) {
-      if (char === quote) {
-        quote = null
-      }
-      continue
+  const nameStart = offset + 1
+  let index = nameStart
+  while (index < line.length && /[a-z0-9.-]/i.test(line[index])) {
+    index += 1
+  }
+  if (index === nameStart) {
+    return null
+  }
+  const name = line.slice(nameStart, index).toLowerCase()
+  let hasSubsection = false
+  if (line[index] === ' ' || line[index] === '\t') {
+    while (line[index] === ' ' || line[index] === '\t') {
+      index += 1
     }
-    if (char === '"' || char === "'") {
-      quote = char
-      continue
-    }
-    if (char !== ']') {
-      continue
-    }
-    const trailing = line.slice(index + 1).trim()
-    if (trailing && !trailing.startsWith('#') && !trailing.startsWith(';')) {
+    if (line[index] !== '"') {
       return null
     }
-    return line.slice(1, index).trim().toLowerCase()
+    hasSubsection = true
+    for (index += 1; index < line.length; index += 1) {
+      const char = line[index]
+      if (char === '\\') {
+        index += 1
+      } else if (char === '"') {
+        index += 1
+        break
+      }
+    }
   }
-  return null
+  if (line[index] !== ']') {
+    return null
+  }
+  return { name, hasSubsection, end: index + 1 }
 }
 
 function parseConfigValue(firstLine: string, lines: Iterator<string>): string | null {
