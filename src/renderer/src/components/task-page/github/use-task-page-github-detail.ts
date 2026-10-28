@@ -5,10 +5,7 @@ import { useState, useMemo, useLayoutEffect, useCallback, useEffect } from 'reac
 import type { ItemDialogTab } from '@/components/github/github-work-item-identity'
 import { stripRepoQualifiers } from '../../../../../shared/task-query'
 import { useShallow } from 'zustand/react/shallow'
-import {
-  selectTaskPageWorkItemsCacheEntries,
-  findTaskPageDialogWorkItem
-} from '@/components/task-page/task-page-cache-selectors'
+import { selectTaskPageWorkItemsCacheEntries } from '@/components/task-page/task-page-cache-selectors'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import type { GitLabWorkItem } from '../../../../../shared/gitlab-types'
 import {
@@ -16,6 +13,7 @@ import {
   getTaskPageRepoSourceContext
 } from '../task-page-source-context'
 import { startGitHubListScrollRestore } from './task-page-github-list-scroll-restore'
+import { useTaskPageGitHubDialogWorkItem } from './use-task-page-github-dialog-work-item'
 
 function getTaskPageScrollTop(
   scrollRef: React.RefObject<HTMLElement | null>,
@@ -73,9 +71,7 @@ export function useTaskPageGitHubDetail(model: TaskPageGitHubListStateModel) {
   )
 
   // Keep cache patches in the clicked conversation when origin and upstream share an issue number.
-  const cachedDialogWorkItem = useAppStore((s) =>
-    findTaskPageDialogWorkItem(s.workItemsCache, dialogWorkItemKey)
-  )
+  const cachedDialogWorkItem = useTaskPageGitHubDialogWorkItem(dialogWorkItemKey)
   const dialogWorkItem = dialogWorkItemKey
     ? (cachedDialogWorkItem ?? githubTaskDrawerWorkItem)
     : null
