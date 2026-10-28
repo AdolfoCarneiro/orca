@@ -54,7 +54,7 @@ export async function maintainRepoPackIndex(
     try {
       const { stdout } = await gitExecFileAsync(
         ['config', '--bool', '--get', 'core.multiPackIndex'],
-        gitOptions
+        { ...gitOptions, captureWslLoginShellOutput: true }
       )
       const configured = stdout.trim()
       if (configured === 'false') {

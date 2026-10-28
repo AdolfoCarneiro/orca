@@ -188,7 +188,13 @@ export function createLocalRepoRefMaintenanceTarget(
       try {
         const { stdout } = await gitExecFileAsync(
           ['config', '--get-regexp', '^(maintenance\\.auto|gc\\.auto)$'],
-          { cwd: args.repoPath, ...gitOptions, admissionTier: 'background', signal }
+          {
+            cwd: args.repoPath,
+            ...gitOptions,
+            captureWslLoginShellOutput: true,
+            admissionTier: 'background',
+            signal
+          }
         )
         return isGitAutoMaintenanceDisabled(stdout)
       } catch (error) {
