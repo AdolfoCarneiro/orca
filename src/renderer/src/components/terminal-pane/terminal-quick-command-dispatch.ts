@@ -8,6 +8,7 @@ import {
   normalizeTerminalQuickCommandText
 } from '../../../../shared/terminal-quick-commands'
 import { recordTerminalUserInputForLeaf } from './terminal-input-activity'
+import { runTerminalPtyInputTransaction } from './terminal-pty-input-transaction'
 import { encodeWindowsInputRecordPasteText } from './terminal-bracketed-paste'
 import type { TerminalPasteTextOptions } from './terminal-paste-model'
 import type { PtyTransport } from './pty-transport-types'
@@ -20,9 +21,9 @@ type QuickCommandPane = {
   }
 }
 
-type QuickCommandTransport = Pick<PtyTransport, 'sendInput'>
+type QuickCommandTransport = Pick<PtyTransport, 'sendInput' | 'getPtyId'>
 
-export function sendTerminalQuickCommandToPane({
+export async function sendTerminalQuickCommandToPane({
   command,
   pane,
   tabId,
@@ -37,7 +38,7 @@ export function sendTerminalQuickCommandToPane({
   /** Same framing as a user paste into this pane: ConPTY can drop DECSET 2004, and input-record agents need modified Enter. */
   multilinePasteOptions: TerminalPasteTextOptions | undefined
   onError: (message: string) => void
-}): boolean {
+}): Promise<boolean> {
   if (isTerminalAgentQuickCommand(command)) {
     return false
   }
@@ -45,20 +46,23 @@ export function sendTerminalQuickCommandToPane({
     return false
   }
 
-  const input = buildQuickCommandPaneInput(command, pane, multilinePasteOptions)
-  if (input === null) {
-    onError(
-      'This shell cannot safely receive a multiline command here. Use a script file or a shell with bracketed paste.'
-    )
-    return false
-  }
+  // A streaming clipboard paste holds this lock; our paste-end marker must not close its frame early.
+  return await runTerminalPtyInputTransaction(transport.getPtyId(), async () => {
+    const input = buildQuickCommandPaneInput(command, pane, multilinePasteOptions)
+    if (input === null) {
+      onError(
+        'This shell cannot safely receive a multiline command here. Use a script file or a shell with bracketed paste.'
+      )
+      return false
+    }
 
-  const sent = transport.sendInput(input, 'driving')
-  if (sent) {
-    recordTerminalUserInputForLeaf(tabId, pane.leafId)
-    pane.terminal.focus()
-  }
-  return sent
+    const sent = transport.sendInput(input, 'driving')
+    if (sent) {
+      recordTerminalUserInputForLeaf(tabId, pane.leafId)
+      pane.terminal.focus()
+    }
+    return sent
+  })
 }
 
 function buildQuickCommandPaneInput(

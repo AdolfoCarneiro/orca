@@ -249,7 +249,7 @@ export function useTerminalPaneContextMenu({
     if (!pane) {
       return
     }
-    sendTerminalQuickCommandToPane({
+    void sendTerminalQuickCommandToPane({
       command,
       pane,
       tabId,
