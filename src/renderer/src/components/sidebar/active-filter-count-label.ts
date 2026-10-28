@@ -1,7 +1,7 @@
 import { translate } from '@/i18n/i18n'
 
-export function formatActiveFilterCountLabel(count: number): string {
+export function activeFilterCountLabel(count: number): string {
   return count === 1
-    ? translate('auto.components.sidebar.activeFilterCount_one', '{{count}} filter', { count })
-    : translate('auto.components.sidebar.activeFilterCount_other', '{{count}} filters', { count })
+    ? translate('workspaceOptions.activeFilterCount_one', '{{count}} filter', { count })
+    : translate('workspaceOptions.activeFilterCount_other', '{{count}} filters', { count })
 }

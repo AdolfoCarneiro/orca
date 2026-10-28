@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { countActiveWorkspaceFilters } from '../../../../shared/workspace-view/workspace-row-filters'
-import { formatActiveFilterCountLabel } from './active-filter-count-label'
+import { activeFilterCountLabel } from './active-filter-count-label'
 import { useShallow } from 'zustand/react/shallow'
 import { selectSidebarFilterState, sidebarWorkspaceRowFilters } from './sidebar-filter-actions'
 import SidebarRepositoryFilterSection from './SidebarRepositoryFilterSection'
@@ -55,7 +55,7 @@ export function useWorkspaceOptionsFilterBadge(): {
   return {
     hasAnyFilter: activeFilterCount > 0,
     activeFilterCount,
-    activeFilterLabel: formatActiveFilterCountLabel(activeFilterCount)
+    activeFilterLabel: activeFilterCountLabel(activeFilterCount)
   }
 }
 

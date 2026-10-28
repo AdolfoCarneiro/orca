@@ -42,17 +42,7 @@ function writeDismissed(key: string): void {
 function sessionsLabel(count: number | null): string {
   return count === null
     ? translate('terminal.severedDaemonBanner.unknownCount', 'its running terminals')
-    : count === 1
-      ? translate(
-          'terminal.severedDaemonBanner.runningTerminals_one',
-          '{{count}} running terminal',
-          { count }
-        )
-      : translate(
-          'terminal.severedDaemonBanner.runningTerminals_other',
-          '{{count}} running terminals',
-          { count }
-        )
+    : translate('terminal.severedDaemonBanner.count', '{{count}} running terminals', { count })
 }
 
 function refusalMessage(
