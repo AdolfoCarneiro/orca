@@ -25,6 +25,8 @@ type ExecuteTerminalPastePlanArgs = {
   now?: () => number
   /** Written after a successful paste under the same PTY lock, so a queued paste cannot land before it. */
   submitInput?: string
+  /** Sends submitInput by the direct paste's route, so input guards that drop the body drop it too. */
+  typeInput?: (data: string) => void
 }
 
 export async function executeTerminalPastePlan(
@@ -35,12 +37,27 @@ export async function executeTerminalPastePlan(
     plan.target.ptyId,
     async (): Promise<TerminalPasteExecutionResult> => {
       const execution = await executeTerminalPastePlanNow(plan, args)
-      const { submitInput, writePty, canContinue } = args
+      const { submitInput, writePty, typeInput, canContinue } = args
       if (execution.status !== 'pasted' || !submitInput) {
         return execution
       }
-      if ((canContinue && !canContinue()) || !writePty || !(await writePty(submitInput))) {
+      if (canContinue && !canContinue()) {
         return { ...execution, status: 'cancelled', reason: 'target-disconnected' }
+      }
+      if (plan.mode !== 'chunked' && typeInput) {
+        typeInput(submitInput)
+        return execution
+      }
+      if (!writePty) {
+        return { ...execution, status: 'cancelled', reason: 'pty-writer-unavailable' }
+      }
+      const submit = await runTerminalPasteOperationWithTimeout(
+        (signal) => writePty(submitInput, signal),
+        args.operationTimeoutMs ?? getTerminalPasteOperationTimeoutMs(plan)
+      )
+      if (submit.timedOut || !submit.value) {
+        const reason = submit.timedOut ? 'operation-timeout' : 'target-disconnected'
+        return { ...execution, status: 'cancelled', reason }
       }
       return execution
     }

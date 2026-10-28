@@ -54,6 +54,7 @@ export async function pasteTextIntoTerminalPane({
     writePty: (data, signal) => writeTerminalPastePtyInput(transport, data, inputKind, signal),
     isTargetCurrent,
     canContinue,
-    submitInput
+    submitInput,
+    typeInput: (data) => pane.terminal.input(data)
   })
 }

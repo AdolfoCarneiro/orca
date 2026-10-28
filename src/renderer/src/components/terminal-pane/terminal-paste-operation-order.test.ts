@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { sendAgentDraftPasteContent } from '@/lib/agent-draft-paste-content'
 import {
@@ -11,7 +11,11 @@ import { planTerminalPaste } from './terminal-paste-coordinator'
 import { runTerminalPtyInputTransaction } from './terminal-pty-input-transaction'
 
 function chunkedWindowsPaste() {
-  return planTerminalPaste({
+  return planTerminalPaste(chunkedWindowsPasteArgs())
+}
+
+function chunkedWindowsPasteArgs() {
+  return {
     text: 'user-line-1\nuser-line-2',
     source: 'keyboard',
     target: {
@@ -29,7 +33,7 @@ function chunkedWindowsPaste() {
     terminalBracketedPasteMode: true,
     maxDirectBytes: 4,
     maxChunkBytes: 12
-  })
+  } satisfies Parameters<typeof planTerminalPaste>[0]
 }
 
 describe('terminal paste operation ordering', () => {
@@ -68,6 +72,56 @@ describe('terminal paste operation ordering', () => {
     const firstFrameEnd = writes.indexOf(BRACKETED_PASTE_END)
     expect(writes[firstFrameEnd + 1]).toBe('\r')
     expect(writes[firstFrameEnd + 2]).toBe(BRACKETED_PASTE_START)
+  })
+
+  it('sends submit input by the direct paste route so input guards drop both', async () => {
+    const typed: string[] = []
+    const writePty = vi.fn(async () => true)
+    const plan = planTerminalPaste({
+      ...chunkedWindowsPasteArgs(),
+      maxDirectBytes: 1024
+    })
+
+    const result = await executeTerminalPastePlan(plan, {
+      pasteText: (text) => {
+        typed.push(`paste:${text}`)
+      },
+      writePty,
+      submitInput: '\r',
+      typeInput: (data) => typed.push(data)
+    })
+
+    expect(result.status).toBe('pasted')
+    expect(typed).toEqual(['paste:user-line-1\nuser-line-2', '\r'])
+    expect(writePty).not.toHaveBeenCalled()
+  })
+
+  it('times out a stalled submit write and releases the PTY for the next paste', async () => {
+    let submitAborted = false
+    const result = await executeTerminalPastePlan(chunkedWindowsPaste(), {
+      pasteText: () => {},
+      writePty: async (data, signal) => {
+        if (data !== '\r') {
+          return true
+        }
+        return await new Promise<boolean>((resolve) => {
+          signal?.addEventListener('abort', () => {
+            submitAborted = true
+            resolve(false)
+          })
+        })
+      },
+      submitInput: '\r',
+      operationTimeoutMs: 10
+    })
+
+    expect(result).toMatchObject({ status: 'cancelled', reason: 'operation-timeout' })
+    expect(submitAborted).toBe(true)
+    let nextStarted = false
+    await runTerminalPtyInputTransaction('pty-1', async () => {
+      nextStarted = true
+    })
+    expect(nextStarted).toBe(true)
   })
 
   it('keeps startup context outside an active chunked user paste frame', async () => {
