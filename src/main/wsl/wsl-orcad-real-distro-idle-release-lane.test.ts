@@ -426,7 +426,12 @@ async function readGuestFile(path: string): Promise<Buffer> {
     )
     chunks.push(Buffer.from(encoded.trim(), 'base64'))
   }
-  return Buffer.concat(chunks)
+  const result = Buffer.concat(chunks)
+  // execCommand keeps only the tail past its cap, so a short or odd read must not pass as whole.
+  if (!Number.isFinite(size) || result.length !== size) {
+    throw new Error(`Read ${result.length} of ${size} bytes of ${path} from the lane distro`)
+  }
+  return result
 }
 
 /**
