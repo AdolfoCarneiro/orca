@@ -74,6 +74,7 @@ it('keeps a successful reaction on the thread whose resolution fails', async () 
     store.getState().setPRCommentReaction(repoPath, 12, 'IC_10', 'heart', true, options)
   ).resolves.toBe(true)
   const reactions = store.getState().commentsCache[cacheKey]?.data?.[0].reactions
+  expect(reactions).toEqual([{ content: 'heart', count: 1, viewerHasReacted: true }])
   result.resolve(false)
   await expect(pending).resolves.toBe(false)
   expect(store.getState().commentsCache[cacheKey]?.data).toEqual([{ ...original, reactions }])
