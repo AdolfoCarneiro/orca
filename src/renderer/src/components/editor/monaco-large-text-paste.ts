@@ -1,6 +1,7 @@
 import type { editor } from 'monaco-editor'
 import { yieldToEventLoop } from '../../../../shared/event-loop-yield'
 import { getUtf8ChunkEndIndex } from '../../../../shared/utf8-byte-limits'
+import { beginMonacoLargePasteLifecycle } from './monaco-large-paste-lifecycle'
 import {
   measureTextControlPasteByteLength,
   measureTextControlPasteByteLengthWithYield
@@ -39,7 +40,6 @@ export type MonacoLargeTextPasteOptions = {
   measureYieldAfterCodeUnits?: number
   readOnly?: boolean
   yieldToEventLoop?: () => Promise<void>
-  onPasteStart?: () => void
   onPasteResult?: (
     result: Exclude<MonacoLargeTextPasteResult, { status: 'ignored' | 'handled' }>
   ) => void
@@ -178,8 +178,34 @@ async function insertMonacoTextInChunks(
   return { status: 'pasted', mode: 'chunked', byteLength, chunksWritten }
 }
 
-// Share size rejection and chunking across DOM and context-menu paste paths.
+// Share size rejection, chunking, and the editor's registered paste lifecycle across DOM and context-menu paste paths.
 export async function executeMonacoLargeTextPaste(
+  monacoEditor: MonacoPasteEditor,
+  text: string,
+  options: MonacoLargeTextPasteOptions
+): Promise<Exclude<MonacoLargeTextPasteResult, { status: 'ignored' | 'handled' }>> {
+  const finish = beginMonacoLargePasteLifecycle(monacoEditor)
+  let result: Exclude<MonacoLargeTextPasteResult, { status: 'ignored' | 'handled' }>
+  try {
+    result = await performMonacoLargeTextPaste(monacoEditor, text, options)
+  } catch (error) {
+    try {
+      finish?.({
+        status: 'cancelled',
+        reason: 'target-unavailable',
+        byteLength: 0,
+        chunksWritten: 0
+      })
+    } catch (finishError) {
+      console.error('[editor] large paste lifecycle failed', finishError)
+    }
+    throw error
+  }
+  finish?.(result)
+  return result
+}
+
+async function performMonacoLargeTextPaste(
   monacoEditor: MonacoPasteEditor,
   text: string,
   options: MonacoLargeTextPasteOptions
@@ -246,8 +272,7 @@ export function handleMonacoLargeTextPaste(
   event.preventDefault()
   event.stopPropagation()
 
-  options.onPasteStart?.()
-  // Why the catch: a throwing paste must still settle, or its start-side state never releases.
+  // Why the catch: a throwing paste must still report a result instead of an unhandled rejection.
   void executeMonacoLargeTextPaste(monacoEditor, text, options)
     .catch((error: unknown) => {
       console.error('[editor] large paste failed', error)

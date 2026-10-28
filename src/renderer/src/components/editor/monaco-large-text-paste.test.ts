@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { handleMonacoLargeTextPaste } from './monaco-large-text-paste'
+import { executeMonacoLargeTextPaste, handleMonacoLargeTextPaste } from './monaco-large-text-paste'
+import { registerMonacoLargePasteLifecycle } from './monaco-large-paste-lifecycle'
 
 type FakeSelection = {
   startLineNumber: number
@@ -114,7 +115,6 @@ describe('monaco large text paste', () => {
   it('chunks large Monaco paste edits and reports one completed owner result', async () => {
     const { editor, edits, undoStops } = makeEditor()
     const resultSpy = vi.fn()
-    const startSpy = vi.fn()
     const yieldToEventLoop = vi.fn(async () => {})
     const event = pasteEvent('abcdef'.repeat(4))
 
@@ -122,7 +122,6 @@ describe('monaco large text paste', () => {
       directMaxBytes: 8,
       chunkMaxBytes: 6,
       yieldToEventLoop,
-      onPasteStart: startSpy,
       onPasteResult: resultSpy
     })
     await flushPromises()
@@ -132,7 +131,6 @@ describe('monaco large text paste', () => {
     expect(edits).toEqual(['abcdef', 'abcdef', 'abcdef', 'abcdef'])
     expect(yieldToEventLoop).toHaveBeenCalledTimes(3)
     expect(undoStops).toHaveLength(2)
-    expect(startSpy).toHaveBeenCalledOnce()
     expect(resultSpy).toHaveBeenCalledWith({
       status: 'pasted',
       mode: 'chunked',
@@ -141,7 +139,7 @@ describe('monaco large text paste', () => {
     })
   })
 
-  it('still reports a result when the chunked paste throws, so its start state releases', async () => {
+  it('still reports a result when the chunked paste throws', async () => {
     const { editor } = makeEditor()
     const resultSpy = vi.fn()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
@@ -153,7 +151,6 @@ describe('monaco large text paste', () => {
       yieldToEventLoop: async () => {
         throw new Error('yield failed')
       },
-      onPasteStart: vi.fn(),
       onPasteResult: resultSpy
     })
     await flushPromises()
@@ -161,6 +158,29 @@ describe('monaco large text paste', () => {
     expect(resultSpy).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'cancelled', reason: 'target-unavailable' })
     )
+  })
+
+  it('settles the registered lifecycle and rethrows the paste error when finishing also throws', async () => {
+    const { editor } = makeEditor()
+    const settled: string[] = []
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the paste reads only the editor methods makeEditor stubs.
+    const unregister = registerMonacoLargePasteLifecycle(editor as never, () => (result) => {
+      settled.push(result.status)
+      throw new Error('publish failed')
+    })
+
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the paste reads only the editor methods makeEditor stubs.
+    const paste = executeMonacoLargeTextPaste(editor as never, 'abcdef'.repeat(4), {
+      chunkMaxBytes: 6,
+      yieldToEventLoop: async () => {
+        throw new Error('yield failed')
+      }
+    })
+
+    await expect(paste).rejects.toThrow('yield failed')
+    expect(settled).toEqual(['cancelled'])
+    unregister()
   })
 
   it('claims large Monaco paste with bounded ownership measuring before yielded insertion', async () => {

@@ -16,6 +16,7 @@ import {
 } from './monaco-markdown-selection-annotation'
 import { handleMonacoLargeTextPaste } from './monaco-large-text-paste'
 import { beginEditorLargePaste } from './editor-large-paste-in-flight'
+import { registerMonacoLargePasteLifecycle } from './monaco-large-paste-lifecycle'
 import type { MarkdownCommentPopoverState } from './use-monaco-markdown-annotations'
 import type { MonacoEditorPropsRef } from './monaco-editor-mount-params'
 
@@ -102,34 +103,32 @@ export function installMonacoEditorInputBindings(params: MonacoEditorInputBindin
       state.showRightSidebarSearch({ query })
     }
   })
+  const unregisterPasteLifecycle = registerMonacoLargePasteLifecycle(editorInstance, () => {
+    isApplyingLargePasteRef.current = true
+    const pasteModel = editorInstance.getModel()
+    const publishPasteContent = propsRef.current.onContentChange
+    const modelUri = pasteModel?.uri.toString()
+    const endSaveDeferral = modelUri ? beginEditorLargePaste(modelUri) : null
+    return (result) => {
+      isApplyingLargePasteRef.current = false
+      endSaveDeferral?.()
+      if (
+        (result.status === 'pasted' || result.status === 'cancelled') &&
+        pasteModel &&
+        !pasteModel.isDisposed()
+      ) {
+        const value = pasteModel.getValue()
+        if (editorInstance.getModel() === pasteModel) {
+          lastSyncedContentRef.current = value
+        }
+        publishPasteContent(value)
+      }
+    }
+  })
   const onLargeTextPaste = (event: ClipboardEvent): void => {
-    let endSaveDeferral: (() => void) | null = null
-    let pasteModel: editor.ITextModel | null = null
-    let publishPasteContent: ((content: string) => void) | null = null
     handleMonacoLargeTextPaste(editorInstance, event, {
       readOnly: readOnlyRef.current,
-      onPasteStart: () => {
-        isApplyingLargePasteRef.current = true
-        pasteModel = editorInstance.getModel()
-        publishPasteContent = propsRef.current.onContentChange
-        const modelUri = pasteModel?.uri.toString()
-        endSaveDeferral = modelUri ? beginEditorLargePaste(modelUri) : null
-      },
       onPasteResult: (result) => {
-        isApplyingLargePasteRef.current = false
-        endSaveDeferral?.()
-        if (
-          (result.status === 'pasted' || result.status === 'cancelled') &&
-          pasteModel &&
-          !pasteModel.isDisposed() &&
-          publishPasteContent
-        ) {
-          const value = pasteModel.getValue()
-          if (editorInstance.getModel() === pasteModel) {
-            lastSyncedContentRef.current = value
-          }
-          publishPasteContent(value)
-        }
         if (result.status === 'rejected' && result.reason === 'too-large') {
           toast.error(
             translate(
@@ -149,6 +148,7 @@ export function installMonacoEditorInputBindings(params: MonacoEditorInputBindin
       cleanupFindShortcut()
       cleanupAddReviewNoteShortcut()
       editorDomNode.removeEventListener('paste', onLargeTextPaste, { capture: true })
+      unregisterPasteLifecycle()
       searchInFilesAction.dispose()
     }
   }
