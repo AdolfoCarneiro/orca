@@ -9,6 +9,29 @@ export function textContent(node: Node): string {
   return literalTextContent(node).replace(/ /g, ' ')
 }
 
+function codeMarkdown(code: string): string {
+  if (!code) {
+    return ''
+  }
+  const delimiter = codeFenceFor(code, 1)
+  const padding =
+    code.startsWith('`') ||
+    code.endsWith('`') ||
+    (code.startsWith(' ') && code.endsWith(' ') && /[^ ]/.test(code))
+      ? ' '
+      : ''
+  return `${delimiter}${padding}${code}${padding}${delimiter}`
+}
+
+function isInlineCode(node: Node): boolean {
+  return (
+    node instanceof Element &&
+    node.tagName.toLowerCase() === 'code' &&
+    node.parentElement !== null &&
+    node.parentElement.tagName.toLowerCase() !== 'pre'
+  )
+}
+
 // Serialize task label as empty: checkbox chrome is replaced by list writer’s Markdown marker.
 export function inlineMarkdown(node: Node | null | undefined): string {
   if (!node) {
@@ -33,19 +56,8 @@ export function inlineMarkdown(node: Node | null | undefined): string {
   if (tag === 's' || tag === 'del' || tag === 'strike') {
     return `~~${inlineChildren(node)}~~`
   }
-  if (tag === 'code' && node.parentElement && node.parentElement.tagName.toLowerCase() !== 'pre') {
-    const code = literalTextContent(node)
-    if (!code) {
-      return ''
-    }
-    const delimiter = codeFenceFor(code, 1)
-    const padding =
-      code.startsWith('`') ||
-      code.endsWith('`') ||
-      (code.startsWith(' ') && code.endsWith(' ') && /[^ ]/.test(code))
-        ? ' '
-        : ''
-    return `${delimiter}${padding}${code}${padding}${delimiter}`
+  if (isInlineCode(node)) {
+    return codeMarkdown(literalTextContent(node))
   }
   if (tag === 'a') {
     return `[${inlineChildren(node)}](${node.getAttribute('href') ?? ''})`
@@ -60,7 +72,25 @@ export function inlineMarkdown(node: Node | null | undefined): string {
 }
 
 export function inlineChildren(element: Element): string {
-  return Array.from(element.childNodes)
-    .map((child) => inlineMarkdown(child))
-    .join('')
+  const parts: string[] = []
+  let code = ''
+  for (const child of element.childNodes) {
+    if (isInlineCode(child)) {
+      code += literalTextContent(child)
+      continue
+    }
+    const markdown = inlineMarkdown(child)
+    if (!markdown) {
+      continue
+    }
+    if (code) {
+      parts.push(codeMarkdown(code))
+      code = ''
+    }
+    parts.push(markdown)
+  }
+  if (code) {
+    parts.push(codeMarkdown(code))
+  }
+  return parts.join('')
 }

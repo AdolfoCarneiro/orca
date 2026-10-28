@@ -56,3 +56,47 @@ it('continues decoding entities and browser-created spaces in prose', () => {
   document.querySelector('#editor p')!.textContent = 'ordinary\u00a0spaces'
   expect(editorDocument.send.currentMarkdown()).toBe('ordinary spaces')
 })
+
+it('preserves text after formatting the gap between inline code spans', async () => {
+  document.body.innerHTML = RICH_MARKDOWN_EDITOR_MARKUP
+  const messages: MobileRichMarkdownEditorMessage[] = []
+  const editorDocument = createRichMarkdownEditorDocument({
+    ...quietRichMarkdownEditorHost(),
+    postToHost: (message) => messages.push(message)
+  })
+  stopDocuments.push(editorDocument.stop)
+  editorDocument.send.setMarkdown('`old` middle `tail`', 7)
+  const paragraph = document.querySelector('#editor p')!
+  const range = document.createRange()
+  range.selectNodeContents(paragraph.childNodes[1])
+  window.getSelection()!.removeAllRanges()
+  window.getSelection()!.addRange(range)
+
+  await editorDocument.send.runCommand('inlineCode')
+
+  expect(editorDocument.send.currentMarkdown()).toBe('`old middle tail`')
+  expect(messages.filter((message) => message.type === 'change')).toEqual([
+    { type: 'change', generation: 7, markdown: '`old middle tail`' }
+  ])
+  editorDocument.send.setMarkdown(editorDocument.send.currentMarkdown(), 8)
+  expect(document.querySelector('#editor code')?.textContent).toBe('old middle tail')
+})
+
+it.each([
+  ['<code>a`</code><code>``b</code>', '````a```b````', 'a```b'],
+  ['<code> left</code><code>right </code>', '`  leftright  `', ' leftright '],
+  ['<code>left\u00a0</code><code>right</code>', '`left\u00a0right`', 'left\u00a0right'],
+  ['<code>&amp;</code><!-- ignored --><code>&lt;tag&gt;</code>', '`&<tag>`', '&<tag>'],
+  ['<code>alpha</code><code></code><code>beta</code>', '`alphabeta`', 'alphabeta']
+])('preserves adjacent literal code through save and reopen: %s', (html, markdown, text) => {
+  document.body.innerHTML = RICH_MARKDOWN_EDITOR_MARKUP
+  const editorDocument = createRichMarkdownEditorDocument(quietRichMarkdownEditorHost())
+  stopDocuments.push(editorDocument.stop)
+  const surface = document.getElementById('editor')!
+  surface.innerHTML = `<p>${html}</p>`
+
+  expect(editorDocument.send.currentMarkdown()).toBe(markdown)
+  editorDocument.send.setMarkdown(markdown, 8)
+  expect(surface.querySelector('code')?.textContent).toBe(text)
+  expect(editorDocument.send.currentMarkdown()).toBe(markdown)
+})
