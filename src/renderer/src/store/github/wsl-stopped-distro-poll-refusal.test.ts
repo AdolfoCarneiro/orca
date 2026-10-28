@@ -13,6 +13,13 @@ const refusal = new Error(
 const issue = { number: 7, title: 'Linked', state: 'open', url: 'https://example.test/7' }
 const checks: PRCheckDetail[] = [{ name: 'Build', status: 'queued', conclusion: null, url: null }]
 
+function wakeArg(call: readonly unknown[]): unknown {
+  const arg = call[0]
+  return typeof arg === 'object' && arg !== null && 'wakeWslDistro' in arg
+    ? arg.wakeWslDistro
+    : undefined
+}
+
 let consoleError: ReturnType<typeof vi.spyOn>
 beforeEach(() => {
   vi.clearAllMocks()
@@ -81,5 +88,36 @@ describe('GitHub polls refused for a stopped WSL distro', () => {
     expect(mockApi.gh.prChecks).toHaveBeenCalledTimes(2)
     expect(mockApi.gh.prChecks.mock.calls[0][0]).not.toHaveProperty('wakeWslDistro')
     expect(mockApi.gh.prChecks.mock.calls[1][0]).toMatchObject({ wakeWslDistro: true })
+  })
+
+  it('sends a Tasks user act as a wake, and a fan-out without one', async () => {
+    const store = createTestStore()
+    mockApi.gh.listWorkItems.mockResolvedValue({ items: [], sources: {} })
+    const repos = [{ repoId: 'repo-1', path: '/repo' }]
+
+    await store.getState().fetchWorkItemsAcrossRepos(repos, 10, 10, 'is:open')
+    await store.getState().countWorkItemsAcrossRepos(repos, 'is:open', 10)
+    await store
+      .getState()
+      .fetchWorkItemsAcrossRepos(repos, 10, 10, 'is:open', { force: true, wakeWslDistro: true })
+    await store.getState().countWorkItemsAcrossRepos(repos, 'is:open', 10, { wakeWslDistro: true })
+
+    expect(mockApi.gh.listWorkItems.mock.calls.map(wakeArg)).toEqual([undefined, true])
+    expect(mockApi.gh.countWorkItems.mock.calls.map(wakeArg)).toEqual([undefined, true])
+  })
+
+  it('lets only a manual PR lookup fallback start the distro', async () => {
+    const store = createTestStore()
+    const refreshPRNow = mockApi.gh.refreshPRNow
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Removing the optional method exercises the prForBranch fallback.
+    ;(mockApi.gh as unknown as { refreshPRNow?: typeof refreshPRNow }).refreshPRNow = undefined
+    try {
+      await store.getState().fetchPRForBranch('/repo', 'feature/a', { reason: 'visible' })
+      await store.getState().fetchPRForBranch('/repo', 'feature/b', { force: true })
+    } finally {
+      mockApi.gh.refreshPRNow = refreshPRNow
+    }
+
+    expect(mockApi.gh.prForBranch.mock.calls.map(wakeArg)).toEqual([undefined, true])
   })
 })

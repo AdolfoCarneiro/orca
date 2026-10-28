@@ -43,6 +43,7 @@ export type GithubPullRequestApi = {
     fallbackPRNumber?: number | null
     acceptMergedFallbackPR?: boolean
     currentHeadOid?: string | null
+    wakeWslDistro?: boolean
   }) => Promise<PRInfo | null>
   refreshPRNow: (args: {
     candidate: GitHubPRRefreshCandidate

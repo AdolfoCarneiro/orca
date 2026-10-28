@@ -352,6 +352,45 @@ describe('registerHostedReviewHandlers', () => {
     expect(getHostedReviewForBranchMock).not.toHaveBeenCalled()
   })
 
+  it("lets the checks panel's interactive Refresh start a stopped distro", async () => {
+    setPlatform('win32')
+    const localRepo = {
+      id: 'repo-local',
+      path: '/workspace/repo',
+      displayName: 'local',
+      badgeColor: '#000',
+      addedAt: 0
+    }
+    store.getRepo.mockImplementation((repoId: string) =>
+      repoId === localRepo.id ? localRepo : null
+    )
+    store.getRepos.mockReturnValue([localRepo])
+    store.getProjects.mockReturnValue([
+      {
+        id: 'project-1',
+        displayName: 'local',
+        badgeColor: '#000',
+        sourceRepoIds: [localRepo.id],
+        localWindowsRuntimePreference: { kind: 'wsl', distro: 'Ubuntu' },
+        createdAt: 0,
+        updatedAt: 0
+      }
+    ])
+    readWslDistroRunningStateMock.mockResolvedValue('stopped')
+    getHostedReviewForBranchMock.mockResolvedValue(null)
+    registerHostedReviewHandlers(store as never, stats as never)
+
+    await handlers['hostedReview:forBranch'](null, {
+      repoPath: localRepo.path,
+      repoId: localRepo.id,
+      branch: 'feature/wsl',
+      admissionTier: 'interactive'
+    })
+
+    expect(readWslDistroRunningStateMock).not.toHaveBeenCalled()
+    expect(getHostedReviewForBranchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('carries a selected-worktree claim and explicit refresh through to the branch lookup', async () => {
     getHostedReviewForBranchMock.mockResolvedValueOnce(null)
     registerHostedReviewHandlers(store as never, stats as never)

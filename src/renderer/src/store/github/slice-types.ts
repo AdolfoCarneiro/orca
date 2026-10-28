@@ -211,7 +211,7 @@ export type GitHubSlice = {
     displayLimit: number,
     query: string,
     page: number,
-    options?: Pick<FetchOptions, 'noCache' | 'requireComplete'>
+    options?: Pick<FetchOptions, 'noCache' | 'requireComplete' | 'wakeWslDistro'>
   ) => Promise<{
     items: GitHubWorkItem[]
     failedCount: number
@@ -226,7 +226,8 @@ export type GitHubSlice = {
       sourceContext?: TaskSourceContext | null
     }[],
     query: string,
-    perRepoLimit: number
+    perRepoLimit: number,
+    options?: Pick<FetchOptions, 'wakeWslDistro'>
   ) => Promise<{ totalCount: number; totalPages: number }>
   /** Fire-and-forget prefetch to warm the cache before the page mounts (hover/focus of the "new workspace" buttons). */
   prefetchWorkItems: (

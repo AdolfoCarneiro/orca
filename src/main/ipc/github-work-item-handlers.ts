@@ -23,7 +23,7 @@ import {
 } from './github-repo-routing'
 import { broadcastGitHubWorkItemMutation } from './github-work-item-mutation-events'
 
-// Card, Tasks and composer retries are background reads too, so the refusal can't promise one.
+// A sidebar card's issue retry is a background read too, so the refusal can't promise one.
 const NO_WAKING_RETRY = { retryStartsIt: false }
 
 export function registerGitHubWorkItemHandlers(store: Store): void {
@@ -100,10 +100,12 @@ export function registerGitHubWorkItemHandlers(store: Store): void {
         query?: string
         page?: number
         noCache?: boolean
+        /** A Tasks Refresh/Retry/search or single-repo open: a user act that may start the distro. */
+        wakeWslDistro?: boolean
       }
     ) => {
       const repo = assertRegisteredGitHubRepo(args, store)
-      // Tasks and the composer fan out across every repo; none of that is a user act on this distro.
+      // A multi-repo Tasks open and the composer fan out across every repo: background (E9).
       return readGitHubRepoUnlessWslStopped(
         store,
         repo,
@@ -118,27 +120,30 @@ export function registerGitHubWorkItemHandlers(store: Store): void {
             args.noCache,
             ...getGitHubLocalGitOptionArgs(store, repo)
           ),
-        NO_WAKING_RETRY
+        { wake: args.wakeWslDistro === true }
       )
     }
   )
 
-  ipcMain.handle('gh:countWorkItems', (_event, args: { repoPath: string; query?: string }) => {
-    const repo = assertRegisteredGitHubRepo(args, store)
-    return readGitHubRepoUnlessWslStopped(
-      store,
-      repo,
-      () =>
-        countWorkItems(
-          repo.path,
-          args.query,
-          repo.issueSourcePreference,
-          getGitHubRepoConnectionId(repo),
-          ...getGitHubLocalGitOptionArgs(store, repo)
-        ),
-      NO_WAKING_RETRY
-    )
-  })
+  ipcMain.handle(
+    'gh:countWorkItems',
+    (_event, args: { repoPath: string; query?: string; wakeWslDistro?: boolean }) => {
+      const repo = assertRegisteredGitHubRepo(args, store)
+      return readGitHubRepoUnlessWslStopped(
+        store,
+        repo,
+        () =>
+          countWorkItems(
+            repo.path,
+            args.query,
+            repo.issueSourcePreference,
+            getGitHubRepoConnectionId(repo),
+            ...getGitHubLocalGitOptionArgs(store, repo)
+          ),
+        { wake: args.wakeWslDistro === true }
+      )
+    }
+  )
 
   ipcMain.handle('gh:workItem', (_event, args: WorkItemArgs) => {
     const repo = assertRegisteredGitHubRepo(args, store)

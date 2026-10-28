@@ -28,7 +28,8 @@ const {
   getIssue: getIssueMock,
   listWorkItems: listWorkItemsMock,
   countWorkItems: countWorkItemsMock,
-  getPRChecks: getPRChecksMock
+  getPRChecks: getPRChecksMock,
+  getPRForBranch: getPRForBranchMock
 } = mocks.client
 
 // G1/G2: issue cards and the checks panel poll gh in the project's distro; a stopped one must stay down.
@@ -59,7 +60,8 @@ describe('background GitHub reads for a stopped WSL distro', () => {
     ['gh:issue', { repoPath: '/workspace/repo', number: 7 }],
     ['gh:listWorkItems', { repoPath: '/workspace/repo', limit: 10 }],
     ['gh:countWorkItems', { repoPath: '/workspace/repo', query: 'is:issue' }],
-    ['gh:prChecks', { repoPath: '/workspace/repo', prNumber: 3 }]
+    ['gh:prChecks', { repoPath: '/workspace/repo', prNumber: 3 }],
+    ['gh:prForBranch', { repoPath: '/workspace/repo', branch: 'feature/wsl' }]
   ])('%s refuses without running gh', async (channel, args) => {
     await expect(handlers[channel](null, args)).rejects.toBeInstanceOf(WslDistroStoppedError)
     expect(runningStateMock).toHaveBeenCalledWith('Ubuntu', expect.anything())
@@ -67,13 +69,14 @@ describe('background GitHub reads for a stopped WSL distro', () => {
     expect(listWorkItemsMock).not.toHaveBeenCalled()
     expect(countWorkItemsMock).not.toHaveBeenCalled()
     expect(getPRChecksMock).not.toHaveBeenCalled()
+    expect(getPRForBranchMock).not.toHaveBeenCalled()
   })
 
   it.each([
     ['gh:issue', { repoPath: '/workspace/repo', number: 7 }, 'Open a terminal in it to start it.'],
-    ['gh:listWorkItems', { repoPath: '/workspace/repo', limit: 10 }, 'Open a terminal in it'],
-    ['gh:countWorkItems', { repoPath: '/workspace/repo' }, 'Open a terminal in it'],
-    // The checks panel's Refresh is a user act, so its refusal may offer Retry.
+    // Tasks Refresh/Retry and the checks panel's Refresh are user acts, so these may offer Retry.
+    ['gh:listWorkItems', { repoPath: '/workspace/repo', limit: 10 }, 'Retry, or open a terminal'],
+    ['gh:countWorkItems', { repoPath: '/workspace/repo' }, 'Retry, or open a terminal'],
     ['gh:prChecks', { repoPath: '/workspace/repo', prNumber: 3 }, 'Retry, or open a terminal']
   ])('%s words the refusal for what its Retry can do', async (channel, args, wording) => {
     await expect(handlers[channel](null, args)).rejects.toThrow(wording)
@@ -86,15 +89,19 @@ describe('background GitHub reads for a stopped WSL distro', () => {
     expect(getIssueMock).toHaveBeenCalledWith('/workspace/repo', 7, null, { wslDistro: 'Ubuntu' })
   })
 
-  it('lets an opened checks panel or its Refresh start the distro, but not the next poll', async () => {
-    getPRChecksMock.mockResolvedValue([])
-    const args = { repoPath: '/workspace/repo', prNumber: 3 }
-    await handlers['gh:prChecks'](null, { ...args, wakeWslDistro: true })
-    expect(getPRChecksMock).toHaveBeenCalledTimes(1)
+  it.each([
+    ['gh:prChecks', { repoPath: '/workspace/repo', prNumber: 3 }, () => getPRChecksMock],
+    ['gh:listWorkItems', { repoPath: '/workspace/repo', limit: 10 }, () => listWorkItemsMock],
+    ['gh:countWorkItems', { repoPath: '/workspace/repo' }, () => countWorkItemsMock],
+    ['gh:prForBranch', { repoPath: '/workspace/repo', branch: 'b' }, () => getPRForBranchMock]
+  ])('%s: a user act may start the distro, the next poll may not', async (channel, args, read) => {
+    read().mockResolvedValue(null)
+    await handlers[channel](null, { ...args, wakeWslDistro: true })
+    expect(read()).toHaveBeenCalledTimes(1)
     expect(runningStateMock).not.toHaveBeenCalled()
 
-    await expect(handlers['gh:prChecks'](null, args)).rejects.toBeInstanceOf(WslDistroStoppedError)
-    expect(getPRChecksMock).toHaveBeenCalledTimes(1)
+    await expect(handlers[channel](null, args)).rejects.toBeInstanceOf(WslDistroStoppedError)
+    expect(read()).toHaveBeenCalledTimes(1)
   })
 
   it('never asks WSL about a repo that runs on the Windows host', async () => {

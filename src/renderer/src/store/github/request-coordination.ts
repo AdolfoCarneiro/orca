@@ -26,6 +26,7 @@ export type InflightWorkItems = {
   force: boolean
   noCache: boolean
   requireComplete: boolean
+  wakeWslDistro?: boolean
 }
 export type InflightProjectView = {
   promise: Promise<GetProjectViewTableResult>
