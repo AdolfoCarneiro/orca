@@ -1491,6 +1491,16 @@
       "workspace": "工作區"
     }
   },
+  "newWorkspace": {
+    "hostPicker": {
+      "title": "選擇建立工作區的主機"
+    },
+    "loadingDrawer": {
+      "downloadProgress": "正在下載… {{progress}}",
+      "downloading": "正在下載",
+      "loading": "載入中"
+    }
+  },
   "notifications": {
     "notificationDeliverySection": {
       "footer": "通知類型依各台已配對電腦的通知設定而定。若連續 7 天未使用此應用程式，通知將暫停；開啟應用程式並重新連線即可恢復。",
@@ -2520,11 +2530,67 @@
     }
   },
   "sourceControl": {
+    "actionSheetRunners": {
+      "noBaseBranch": "沒有可供變基的基底分支",
+      "waitingForDesktop": "等待桌面版…"
+    },
     "actions": {
+      "checkingReviewStatus": "正在檢查審查狀態。",
+      "checkoutBeforePublish": "請先檢出分支再發布提交。",
+      "commitStagedChanges": "提交已暫存的變更。",
       "commits": "提交",
+      "committing": "正在提交。",
       "createPr": "建立 PR",
+      "enterCommitMessage": "請輸入提交訊息以進行提交。",
+      "forcePushWithLease": "使用租約強制推送，以更新遠端分支。",
+      "forcePushing": "正在強制推送。",
+      "linkedReviewUnavailable": "已連結的審查分支無法使用。",
+      "publishToOrigin": "將此分支發布至 origin。",
+      "pullCommits_one": "拉取 {{count}} 筆提交。",
+      "pullCommits_other": "拉取 {{count}} 筆提交。",
       "pushAndCreatePr": "推送並建立 PR",
-      "switchBranch": "切換分支"
+      "pushCommits_one": "推送 {{count}} 筆提交。",
+      "pushCommits_other": "推送 {{count}} 筆提交。",
+      "pushLinkedReview": "將更新推送至已連結的審查分支。",
+      "remoteOperationInProgress": "正在執行遠端操作。",
+      "resolveConflicts": "請先解決衝突再提交。",
+      "reviewAlreadyMerged": "沒有可提交的內容。審查已合併。",
+      "stageAllChanges": "暫存所有變更。",
+      "stageFileToCommit": "請至少暫存一個檔案再提交。",
+      "switchBranch": "切換分支",
+      "syncCounts": "拉取 {{behind}} 筆，推送 {{ahead}} 筆。",
+      "upToDate": "沒有可提交的內容。分支已是最新狀態。",
+      "waitForRemoteOperation": "請等待遠端操作完成後再試。"
+    },
+    "branchBaseRef": {
+      "resolveFailed": "無法判定分支基準"
+    },
+    "branchCard": {
+      "branchCount": "已提交 {{count}} 項",
+      "changedCount": "已變更 {{count}} 項",
+      "cherryPickState": "挑選",
+      "mergeState": "合併",
+      "rebaseState": "變基",
+      "stagedCount": "已暫存 {{count}} 項"
+    },
+    "branchCompare": {
+      "commits_one": "{{count}} 筆提交",
+      "commits_other": "{{count}} 筆提交",
+      "files_one": "{{count}} 個檔案",
+      "files_other": "{{count}} 個檔案",
+      "sectionTitle": "已在分支上提交",
+      "summary": "{{files}} - 與 {{baseRef}} 比較",
+      "summaryWithCommits": "{{files}} - {{commits}} - 與 {{baseRef}} 比較"
+    },
+    "branchCompareOutcome": {
+      "baseBranchUnavailable": "無法判定用於比較的基礎分支。",
+      "loadFailed": "無法載入已提交的變更"
+    },
+    "branchDiffPreviewDrawer": {
+      "closePreview": "關閉已提交的差異預覽",
+      "committedOnBranch": "已在分支上提交",
+      "loadFailed": "無法載入差異",
+      "truncated": "行動版預覽的差異內容已截斷。"
     },
     "commitDropdown": {
       "checkOutBranchToPush": "推送提交前請先檢出分支",
@@ -2549,8 +2615,49 @@
       "stageFile": "暫存至少一個要提交的檔案",
       "useCommitAndForcePush": "使用「提交並強制推送」；遠端只有本機提交的舊版本"
     },
+    "commitFailurePanel": {
+      "fix": "修復",
+      "fixWithAi": "使用 AI 解決提交失敗的問題",
+      "hideDetails": "隱藏詳情",
+      "hideFailureDetails": "隱藏提交失敗詳情",
+      "showDetails": "顯示詳情",
+      "showFailureDetails": "顯示提交失敗詳情",
+      "summary": "提交失敗。",
+      "title": "提交失敗"
+    },
+    "commitMessageAi": {
+      "generateFailed": "產生提交訊息失敗"
+    },
+    "commitRunners": {
+      "actionFailed": "原始碼控制操作失敗",
+      "commitFailed": "提交失敗"
+    },
+    "conflictAbort": {
+      "abortMerge": "中止合併",
+      "abortOperation": "中止 {{operation}}",
+      "abortRebase": "中止變基",
+      "aborting": "正在中止…"
+    },
+    "content": {
+      "cancelGeneration": "取消產生提交訊息",
+      "commitMessageDisabled": "提交訊息已停用。沒有已暫存的檔案。",
+      "commitMessagePlaceholder": "提交訊息",
+      "emptyMessage": "工作樹沒有變更。",
+      "emptyTitle": "沒有本機變更",
+      "generateMessage": "使用 AI 產生提交訊息",
+      "noStagedFiles": "沒有已暫存的檔案",
+      "openActions": "開啟原始碼控制操作",
+      "reconnecting": "正在重新連線至桌面版…",
+      "regenerateHint": "清除訊息以重新產生。",
+      "stageAll": "暫存全部",
+      "unstageAll": "全部取消暫存"
+    },
     "createPrAction": {
-      "createReview": "建立 {{titleLabel}}"
+      "checkingStatus": "正在檢查審查狀態…",
+      "createPullRequest": "建立 PR",
+      "createReview": "建立 {{titleLabel}}",
+      "providerUnavailable": "此提供者無法建立審查",
+      "statusUnavailable": "無法取得審查狀態"
     },
     "dropdownCounts": {
       "fastForwardCount_one": "快轉 {{count}} 筆提交",
@@ -2572,6 +2679,64 @@
       "titleUnpublishedForcePushCount_one": "使用租約強制推送此分支的 {{count}} 筆提交，並視需要設定上游分支。",
       "titleUnpublishedForcePushCount_other": "使用租約強制推送此分支的 {{count}} 筆提交，並視需要設定上游分支。"
     },
+    "fileList": {
+      "committedSection": "已在分支上提交"
+    },
+    "fileRows": {
+      "addedByThem": "對方已新增",
+      "addedByUs": "我方已新增",
+      "bothAdded": "雙方皆已新增",
+      "bothDeleted": "雙方皆已刪除",
+      "bothModified": "雙方皆已修改",
+      "committedSection": "已在分支上提交",
+      "committedUnavailable": "無法取得已提交的變更。",
+      "deletedByThem": "對方已刪除",
+      "deletedByUs": "我方已刪除",
+      "discardFile": "放棄 {{path}} 的變更",
+      "loadingCommitted": "正在載入已提交的變更…",
+      "openChangedFile": "開啟已變更的檔案 {{path}}",
+      "openCommittedChange": "開啟 {{path}} 的已提交變更",
+      "renamedFrom": "原為 {{path}}",
+      "stageFile": "暫存 {{path}}",
+      "unresolvedConflict": "未解決的衝突",
+      "unstageFile": "取消暫存 {{path}}"
+    },
+    "gitHistory": {
+      "days_one": "{{count}} 天",
+      "days_other": "{{count}} 天",
+      "hours_one": "{{count}} 小時",
+      "hours_other": "{{count}} 小時",
+      "justNow": "剛剛",
+      "loadFailed": "載入提交記錄失敗",
+      "minutes_one": "{{count}} 分鐘",
+      "minutes_other": "{{count}} 分鐘",
+      "months_one": "{{count}} 個月",
+      "months_other": "{{count}} 個月",
+      "noCommitMessage": "（無提交訊息）",
+      "years_one": "{{count}} 年",
+      "years_other": "{{count}} 年"
+    },
+    "gitHistoryList": {
+      "loadFailed": "無法載入歷史記錄",
+      "loadFilesFailed": "無法載入該次提交的檔案",
+      "noCommits": "沒有提交記錄。",
+      "noFileChanges": "沒有檔案變更",
+      "retryFiles": "重新載入提交的檔案",
+      "waitingForDesktop": "正在等待桌面版…"
+    },
+    "gitStatus": {
+      "changes": "變更",
+      "conflicts": "衝突",
+      "stagedChanges": "已暫存的變更"
+    },
+    "header": {
+      "backToSession": "返回工作階段",
+      "close": "關閉原始碼控制",
+      "openNumberedPrWeb": "在瀏覽器中開啟 PR #{{number}}",
+      "openPrWeb": "在瀏覽器中開啟 PR",
+      "refresh": "重新整理原始碼控制",
+      "title": "原始碼控制"
+    },
     "hostedReview": {
       "mrCopy": {
         "reviewLabel": "合併請求",
@@ -2584,8 +2749,80 @@
         "titleLabel": "PR"
       }
     },
+    "hostedReviewCopy": {
+      "committingChanges": "正在提交變更…",
+      "creatingReview": "正在建立審查…",
+      "forcePushing": "正在使用租約強制推送…",
+      "generatingCommitMessage": "正在產生提交訊息…",
+      "publishingBranch": "正在發布分支…",
+      "pushingCommits": "正在推送提交…",
+      "stagingChanges": "正在暫存變更…",
+      "updatingBranch": "正在更新分支…"
+    },
     "hostedReviewCreate": {
       "pushSucceeded": "推送成功，但建立 {{shortLabel}} 失敗：{{error}}"
+    },
+    "hostedReviewCreateIntent": {
+      "branchChanged": "準備 PR 期間，分支已變更。",
+      "generateMessageFailed": "無法產生提交訊息。請在「原始碼控制」中新增提交訊息後再試一次。",
+      "resolveConflicts": "請先解決衝突，再建立 PR。",
+      "resolveOrStageChanges": "請先解決衝突或暫存變更，再建立 PR。",
+      "reviewCommitMessage": "請先檢查提交訊息，然後重試「建立 PR」。"
+    },
+    "hostedReviewGitPreparation": {
+      "commitFailed": "提交失敗",
+      "refreshFailed": "無法重新整理原始碼控制",
+      "stageFailed": "暫存變更失敗",
+      "updateBranchFailed": "無法更新遠端分支。請重試「建立 PR」。"
+    },
+    "hostedReviewRemotePrerequisite": {
+      "forcePushFailed": "使用租約強制推送失敗",
+      "publishFailed": "發布分支失敗",
+      "pushFailed": "推送提交失敗"
+    },
+    "hostedReviewService": {
+      "createFailed": "建立 PR 失敗",
+      "pushBeforeCreateFailed": "推送失敗。請解決推送錯誤後再試一次。"
+    },
+    "hubTab": {
+      "changes": "變更",
+      "commits": "提交",
+      "pullRequest": "PR"
+    },
+    "loaders": {
+      "connectingToDesktop": "正在連線至桌面版…",
+      "loadFailed": "無法載入原始碼控制",
+      "updateDesktop": "請更新 Orca 桌面版，才能在行動裝置上使用原始碼控制。",
+      "waitingForDesktop": "等待桌面版…"
+    },
+    "modals": {
+      "actionsTitle": "原始碼控制",
+      "currentBranch": "目前分支",
+      "discardButton": "放棄",
+      "discardConfirmMessage": "要放棄「{{path}}」的變更嗎？此操作無法復原。",
+      "discardTitle": "放棄變更",
+      "openPrMessage": "要在瀏覽器中開啟嗎？",
+      "openPrWithWarning": "要在瀏覽器中開啟嗎？\n\n{{warning}}",
+      "prCreatedTitle": "已建立 PR",
+      "switchBranchTitle": "切換分支"
+    },
+    "openers": {
+      "openDiffFailed": "無法開啟差異",
+      "tabNotReady": "檔案已開啟，但分頁尚未就緒。請再試一次。",
+      "waitingForDesktop": "等待桌面版…"
+    },
+    "panel": {
+      "loadFailedTitle": "無法載入",
+      "unavailableTitle": "無法使用原始碼控制"
+    },
+    "prChip": {
+      "createPr": "建立 PR",
+      "loading": "正在載入 PR…",
+      "loadingLabel": "正在載入 PR",
+      "openLabel": "PR #{{number}}，{{state}}，{{checks}}。開啟 PR。",
+      "openWithComments_one": "PR #{{number}}，{{state}}，{{checks}}，有 {{count}} 則未解決的留言。開啟 PR。",
+      "openWithComments_other": "PR #{{number}}，{{state}}，{{checks}}，有 {{count}} 則未解決的留言。開啟 PR。",
+      "unavailableLabel": "無法取得 PR：{{message}}"
     },
     "prCreate": {
       "authRequired": "請在建立 {{reviewLabel}} 之前完成身分驗證。",
@@ -2605,8 +2842,19 @@
       "unsupportedMergeRequests": "此存放庫不支援建立合併請求。",
       "unsupportedPullRequests": "此存放庫不支援建立 PR。"
     },
+    "prLink": {
+      "updatePullRequestFailed": "更新 PR 連結失敗",
+      "updateReviewFailed": "更新審查連結失敗"
+    },
     "primaryAction": {
-      "forcePushFromDesktop": "從桌面版強制推送此 PR 的分支"
+      "commit": "提交",
+      "forcePush": "強制推送",
+      "forcePushFromDesktop": "從桌面版強制推送此 PR 的分支",
+      "publishBranch": "發布分支",
+      "pull": "拉取",
+      "push": "推送",
+      "stageAll": "暫存全部",
+      "sync": "同步"
     },
     "remoteDropdown": {
       "branchAlreadyPublished": "分支已發布",
@@ -2656,6 +2904,591 @@
       "tryFastForwardPull": "嘗試以快轉方式拉取；git 可能因本機提交而拒絕拉取",
       "tryRegularPush": "嘗試一般推送；git 可能要求強制推送",
       "useForcePushToSync": "使用「強制推送」；遠端只有本機提交的舊版本"
+    },
+    "runners": {
+      "actionFailed": "原始碼控制操作失敗"
+    },
+    "screenState": {
+      "noBranch": "無分支"
+    },
+    "state": {
+      "noUpstream": "無上游分支",
+      "syncStatus": "領先 {{ahead}} 個提交，落後 {{behind}} 個提交"
+    },
+    "useMobileCommitFailureRecovery": {
+      "launchFailed": "無法啟動代理程式",
+      "waitingForDesktop": "等待桌面版…"
+    },
+    "useMobileCommitMessageGeneration": {
+      "generateFailed": "無法產生提交訊息"
+    },
+    "useMobileCreatePrRunner": {
+      "branchRequired": "建立 PR 前，請先檢出分支。"
+    },
+    "useMobileGitRequests": {
+      "actionFailed": "原始碼控制操作失敗",
+      "branchUnavailable": "無法取得分支狀態",
+      "commitFailed": "提交失敗",
+      "waitingForDesktop": "等待桌面版…"
+    }
+  },
+  "tasks": {
+    "composerSource": {
+      "baseFailed": "無法解析基礎分支。",
+      "forkPushWarning": "此 PR 未啟用「允許維護者編輯」；推送至分叉存放庫可能會遭 GitHub 拒絕。"
+    },
+    "detailCommentRenderers": {
+      "commentPlaceholder": "新增留言",
+      "comments_one": "{{count}} 則留言",
+      "comments_other": "{{count}} 則留言",
+      "reopenThread": "重新開啟討論串",
+      "reply": "回覆",
+      "resolveThread": "標記為已解決",
+      "resolvedCommentBy": "{{author}} 的留言（已解決）",
+      "resolvedThreadBy": "{{author}} 的討論串（已解決）",
+      "sendComment": "傳送留言",
+      "show": "顯示"
+    },
+    "filterPickers": {
+      "allTeams": "所有團隊",
+      "changeStatus": "更改狀態",
+      "fieldHidden": "不顯示於卡片",
+      "fieldShown": "顯示於卡片",
+      "fieldsSubtitle": "選擇要在項目卡片上顯示的專案欄位。",
+      "fieldsTitle": "專案欄位",
+      "gitlabFilter": "GitLab 篩選",
+      "gitlabView": "GitLab 檢視",
+      "jiraFilter": "Jira 篩選",
+      "jiraSite": "Jira 網站",
+      "linearFilter": "Linear 篩選",
+      "linearIssue": "Linear 議題",
+      "linearWorkspace": "Linear 工作區",
+      "loadingStates": "正在載入狀態…",
+      "noFields": "此檢視沒有其他可顯示的欄位。",
+      "noStates": "沒有可用的狀態",
+      "switchWorkspaceFailed": "無法切換工作區",
+      "teamsSubtitle": "選擇要在「任務」中顯示的團隊。",
+      "teamsTitle": "Linear 團隊",
+      "teams_one": "{{count}} 個團隊",
+      "teams_other": "{{count}} 個團隊"
+    },
+    "githubProjectList": {
+      "browseProjects": "瀏覽專案",
+      "chooseProject": "選擇 GitHub 專案",
+      "emptyField": "空白",
+      "issueSubtitle": "議題 · {{repository}}{{number}}",
+      "itemSubtitle": "專案項目 · {{repository}}{{number}}",
+      "items": "項目",
+      "moreFields_one": "+{{count}} 個欄位",
+      "moreFields_other": "+{{count}} 個欄位",
+      "noItems": "沒有專案項目",
+      "pullRequestSubtitle": "PR · {{repository}}{{number}}"
+    },
+    "githubProjectPickers": {
+      "add": "新增",
+      "addByUrlHint": "透過 URL 新增未列出的專案。",
+      "addPlaceholder": "透過 URL 或擁有者/編號新增",
+      "adding": "正在新增…",
+      "browseAll": "瀏覽全部",
+      "browseLoading": "瀏覽全部（載入中…）",
+      "chooseView": "選擇專案檢視",
+      "loadFailed": "無法載入專案",
+      "noMatches": "沒有符合的專案。",
+      "noMoreProjects": "沒有更多專案。",
+      "noProjects": "尚未載入任何專案",
+      "organizationsError": "組織：{{message}}",
+      "organizationsLoadFailed": "部分組織未能載入（{{count}} 個）。",
+      "ownerLoadFailed": "無法載入 {{owner}} 的專案。",
+      "pin": "固定",
+      "pinned": "已固定",
+      "recent": "最近的",
+      "retryHint": "點一下以重試。",
+      "searchProjects": "搜尋專案",
+      "sort": "專案排序",
+      "subtitle": "選擇要在「任務」頁面使用的專案檢視。",
+      "title": "GitHub 專案",
+      "unsupportedLayout": "Orca 尚不支援此 GitHub 專案版面配置。",
+      "view": "專案檢視"
+    },
+    "githubViewControls": {
+      "fields": "欄位：{{fields}}",
+      "openView": "在 GitHub 中開啟檢視",
+      "sort": "排序：{{sort}}",
+      "source": "來源：{{source}}"
+    },
+    "itemActions": {
+      "changeStatus": "更改狀態",
+      "copyGitHubLink": "複製 GitHub 連結",
+      "copyLinearLink": "複製 Linear 連結",
+      "createWorkspace": "建立工作區",
+      "creating": "建立中…",
+      "mergeConflicts": "GitHub 回報有合併衝突。",
+      "mergeMergeRequest": "合併 MR",
+      "mergePullRequest": "合併 PR"
+    },
+    "itemDetailContent": {
+      "addSubIssue": "新增子議題",
+      "assignee": "負責人",
+      "assignees": "負責人",
+      "checks": "檢查項目",
+      "description": "描述",
+      "discussion": "討論",
+      "noChecks": "找不到檢查項目。",
+      "noComments": "沒有留言。",
+      "noPipelineRuns": "此 MR 沒有管線執行紀錄。",
+      "noSubIssues": "沒有子議題。",
+      "none": "無",
+      "pipeline": "管線",
+      "pipelineJobs_one": "{{count}} 項作業",
+      "pipelineJobs_other": "{{count}} 項作業",
+      "project": "專案",
+      "rerunAll": "全部重新執行",
+      "rerunFailed": "重新執行失敗項目",
+      "status": "狀態",
+      "subIssueTitle": "子議題標題",
+      "subIssues": "子議題",
+      "type": "類型"
+    },
+    "itemDetailDrawer": {
+      "refreshDetails": "重新整理詳細資訊"
+    },
+    "itemFieldEditors": {
+      "addLabels": "新增標籤，以逗號分隔",
+      "addUsernames": "新增使用者名稱，以逗號分隔",
+      "assignees": "負責人",
+      "labels": "標籤",
+      "loadingAssignees": "正在載入負責人…",
+      "loadingLabels": "正在載入標籤…",
+      "noAssignableUsers": "找不到此存放庫可指派的使用者。",
+      "noLabels": "此存放庫沒有標籤。",
+      "none": "無",
+      "removeLabels": "移除標籤，以逗號分隔",
+      "removeUsernames": "移除使用者名稱，以逗號分隔",
+      "saveTitle": "儲存標題",
+      "title": "標題",
+      "updateAssignees": "更新負責人",
+      "updateLabels": "更新標籤"
+    },
+    "itemReviewSections": {
+      "binaryFile": "二進位檔案。",
+      "changedFilesTitle": "已變更檔案",
+      "descriptionPlaceholder": "描述",
+      "fileContentsUnavailable": "無法取得檔案內容。",
+      "hideFile": "隱藏",
+      "loadingReviewers": "正在載入審查人…",
+      "markUnviewed": "標記未檢視",
+      "markViewed": "標記已檢視",
+      "noDescription": "沒有描述。",
+      "noReviewerSuggestions": "找不到建議的審查人。",
+      "noReviewersRequested": "尚未邀請審查人。",
+      "requestReview": "請求審查",
+      "reviewersPlaceholder": "邀請審查人",
+      "reviewersTitle": "審查人",
+      "saveDescription": "儲存描述",
+      "viewFile": "檢視"
+    },
+    "legacySurface": {
+      "loadIssuesFailed": "無法從 {{source}} 載入議題。",
+      "mergeAction": "合併",
+      "mergeMethodTitle": "合併方式",
+      "mergePullRequestTitle": "合併 PR",
+      "mergeRequestMergeMessage": "選擇此合併請求的合併方式。",
+      "mergeRequestTitle": "合併此請求",
+      "pullRequestMergeMessage": "選擇此 PR 的合併方式。",
+      "retryLoadingIssues": "重新嘗試從 {{source}} 載入議題",
+      "retrying": "正在重試…",
+      "sourceFallback": "{{repo}} 的偏好議題來源 upstream 無法使用，已改用 origin。",
+      "subIssueDataUnavailable": "您的權杖無法取得子議題資料。",
+      "updateItemTitle": "更新項目"
+    },
+    "linearList": {
+      "changeStatusFrom": "變更狀態（目前為 {{status}}）"
+    },
+    "linearViewControls": {
+      "displayButton": "顯示",
+      "groupLabel": "分組：{{group}}",
+      "orderLabel": "排序：{{order}}"
+    },
+    "listDisplayPickers": {
+      "displayPropertiesTitle": "顯示屬性",
+      "linearGroupTitle": "Linear 議題分組",
+      "linearOrderTitle": "Linear 議題排序",
+      "linearViewTitle": "Linear 檢視",
+      "sortTasksTitle": "任務排序"
+    },
+    "listSurface": {
+      "connectLinearButton": "連線 Linear",
+      "connectLinearMessage": "直接從「任務」瀏覽並開始處理指派給您的 Linear 議題。",
+      "connectLinearTitle": "連線您的 Linear 帳戶",
+      "jiraStatusFailed": "無法讀取 Jira 狀態",
+      "updateDesktopMessage": "此行動版「任務」檢視需要較新版的桌面執行環境。",
+      "updateDesktopTitle": "更新 Orca 桌面版"
+    },
+    "options": {
+      "all": "全部",
+      "assignedToMe": "指派給我",
+      "assignee": "負責人",
+      "board": "看板",
+      "boardDescription": "依群組分欄",
+      "closedState": "已關閉",
+      "completedState": "已完成",
+      "createdState": "由我建立",
+      "githubAssignedIssuesDescription": "尚未關閉且指派給您的議題",
+      "githubDescription": "議題與 PR",
+      "githubIssuesDescription": "GitHub 議題",
+      "githubOpenIssuesDescription": "尚未關閉的 GitHub 議題",
+      "githubProjectsDescription": "GitHub Projects 檢視",
+      "githubPullRequestsDescription": "GitHub PR",
+      "gitlabAllDescription": "所有 GitLab 狀態",
+      "gitlabClosedDescription": "已關閉的議題與合併請求",
+      "gitlabDescription": "議題與合併請求",
+      "gitlabMergedDescription": "已合併的合併請求",
+      "gitlabOpenDescription": "開放的議題與合併請求",
+      "identifier": "識別符號",
+      "issues": "議題",
+      "jiraDescription": "已指派及已回報的議題",
+      "labels": "標籤",
+      "linearAllDescription": "已連線工作區中的開放議題",
+      "linearAssignedDescription": "指派給您的議題",
+      "linearCompletedDescription": "最近完成的議題",
+      "linearCreatedDescription": "由您建立的議題",
+      "linearDescription": "已指派的議題與團隊議題",
+      "list": "清單",
+      "listDescription": "精簡的議題列",
+      "mergedState": "已合併",
+      "mine": "我的",
+      "myIssues": "我的議題",
+      "myPullRequestsDescription": "您建立的 PR",
+      "myTodos": "我的待辦事項",
+      "myTodosDescription": "待處理的 GitLab 待辦事項",
+      "needsReview": "待審查",
+      "noGrouping": "沒有分組",
+      "openPullRequestsDescription": "尚未關閉的 PR",
+      "openState": "開放",
+      "priority": "優先等級",
+      "projectMergeRequests": "專案 MR",
+      "projectMergeRequestsDescription": "依存放庫顯示合併請求與議題",
+      "projects": "專案",
+      "pullRequests": "PR",
+      "repository": "存放庫",
+      "repositorySortDescription": "依存放庫分組，再依活動時間由新到舊排序",
+      "reviewRequestsDescription": "指派給您的審查請求",
+      "status": "狀態",
+      "team": "團隊",
+      "updated": "更新時間",
+      "updatedSortDescription": "最新活動優先"
+    },
+    "pickerProjection": {
+      "allRepos": "所有存放庫",
+      "allSites": "所有網站",
+      "currentlyAscending": "目前遞增 · 點一下改為遞減",
+      "currentlyDescending": "目前遞減 · 點一下改為遞增",
+      "fieldAscending": "{{field}} 遞增",
+      "fieldDescending": "{{field}} 遞減",
+      "fields": "欄位",
+      "repos_one": "{{count}} 個存放庫",
+      "repos_other": "{{count}} 個存放庫",
+      "selectTarget": "選擇目標",
+      "selectedFields": "{{selected}}/{{total}} 個欄位",
+      "sortAscending": "遞增排序",
+      "sources_one": "{{count}} 來源",
+      "sources_other": "{{count}} 來源",
+      "unsupportedLayout": "行動版不支援此版面配置",
+      "updatedSort": "更新時間",
+      "usesFieldAscending": "依 {{field}} 遞增排序",
+      "usesFieldDescending": "依 {{field}} 遞減排序",
+      "usesGitHubRankOrder": "依 GitHub 中的項目順序排列",
+      "viewNumber": "檢視 #{{number}}",
+      "viewOrder": "檢視順序"
+    },
+    "prFileDiff": {
+      "commentOnLine": "在第 {{line}} 行留言",
+      "commentPlaceholder": "新增審查留言",
+      "noTextChanges": "找不到文字變更。",
+      "showingDiffLines": "顯示前 {{limit}} 行差異，共 {{total}} 行。"
+    },
+    "projectComments": {
+      "comments_one": "{{count}} 則留言",
+      "comments_other": "{{count}} 則留言",
+      "discussion": "討論",
+      "editComment": "編輯留言",
+      "noComments": "沒有留言。",
+      "reopenThread": "重新開啟討論串",
+      "reply": "回覆",
+      "resolveThread": "將討論串標為已解決",
+      "resolvedCommentBy": "{{author}} 的留言（已解決）",
+      "resolvedThreadBy": "{{author}} 的討論串（已解決）",
+      "show": "顯示"
+    },
+    "projectDetailDrawer": {
+      "addRepositoryFromDesktop": "{{repository}} 尚未新增至 Orca。請先從桌面版應用程式新增此存放庫，再重新整理行動版的「任務」頁面。",
+      "clearType": "清除類型",
+      "closeItem": "關閉項目",
+      "copyGitHubLink": "複製 GitHub 連結",
+      "copyRepository": "複製存放庫名稱",
+      "createWorkspace": "建立工作區",
+      "draftIssue": "草稿議題",
+      "issue": "議題",
+      "issueType": "議題類型",
+      "loadingIssueTypes": "正在載入議題類型…",
+      "mergePullRequest": "合併 PR",
+      "mergeRepositoryRequirement": "必須先將此存放庫新增至 Orca，才能合併。",
+      "noIssueTypes": "此存放庫尚未設定議題類型。",
+      "noType": "無類型",
+      "openInGitHub": "在 GitHub 中開啟",
+      "projectItem": "專案項目",
+      "projectSubtitle": "GitHub 專案 · {{repository}}{{itemNumber}}",
+      "pullRequest": "PR",
+      "reopenItem": "重新開啟項目",
+      "repositoryNotInOrca": "存放庫不在 Orca 中",
+      "status": "狀態",
+      "type": "類型",
+      "workspaceCreationRequirement": "僅能從 GitHub 議題和 PR 建立工作區。"
+    },
+    "projectFieldEditors": {
+      "clearField": "清除欄位",
+      "completedIteration": "已完成 · {{startDate}} · {{duration}} 天",
+      "datePlaceholder": "YYYY-MM-DD",
+      "invalidDate": "請以 YYYY-MM-DD 格式輸入日期。",
+      "invalidNumber": "請輸入有效的數字。",
+      "noIterations": "沒有可用的迭代。",
+      "numberPlaceholder": "數字",
+      "projectFields": "專案欄位",
+      "saveField": "儲存欄位",
+      "textPlaceholder": "文字",
+      "upcomingIteration": "目前與即將開始 · {{startDate}} · {{duration}} 天"
+    },
+    "projectMetadataEditors": {
+      "assignees": "負責人",
+      "description": "描述",
+      "labels": "標籤",
+      "loadingAssignees": "正在載入負責人…",
+      "loadingLabels": "正在載入標籤…",
+      "noAssignableUsers": "此存放庫沒有可指派的使用者。",
+      "noDescription": "沒有描述。",
+      "noLabels": "此存放庫沒有標籤。",
+      "none": "無",
+      "saveDescription": "儲存描述",
+      "saveTitle": "儲存標題",
+      "title": "標題"
+    },
+    "projectReviewPanels": {
+      "binaryFile": "二進位檔案。",
+      "changedFiles": "已變更檔案",
+      "checks": "檢查項目",
+      "fileUnavailable": "無法取得檔案內容。",
+      "hideFile": "隱藏",
+      "loadingReviewers": "正在載入審查人…",
+      "markUnviewed": "標記未檢視",
+      "markViewed": "標記已檢視",
+      "noChecks": "找不到檢查項目。",
+      "noReviewers": "尚未邀請審查人。",
+      "noSuggestions": "找不到建議的審查人。",
+      "requestReview": "請求審查",
+      "requestReviewers": "邀請審查人",
+      "rerunAll": "全部重新執行",
+      "rerunFailed": "重新執行失敗項目",
+      "reviewers": "審查人",
+      "viewFile": "檢視"
+    },
+    "providerControls": {
+      "myTodos": "我的待辦事項",
+      "projectMergeRequests": "專案 MR",
+      "sort": "排序：{{sortLabel}}"
+    },
+    "providerItemList": {
+      "intoBranch": "合併至 {{base}}",
+      "nextPage": "前往下一頁",
+      "page": "第 {{page}} 頁",
+      "pageOfTotal": "第 {{page}} 頁，共 {{total}} 頁",
+      "previousPage": "前往上一頁",
+      "selectPage": "選擇頁面，第 {{page}} 頁",
+      "selectPageOfTotal": "選擇頁面，第 {{page}} 頁，共 {{total}} 頁"
+    },
+    "providerPickers": {
+      "allRepositories": "所有存放庫",
+      "githubView": "GitHub 檢視",
+      "issueSources": "GitHub 議題來源",
+      "issueSourcesDescription": "為各存放庫選擇查詢及建立工作的來源：upstream 或 origin。",
+      "issues": "議題",
+      "noIssueSources": "沒有其他可用的議題來源。",
+      "origin": "origin",
+      "pageHint": "跳至已載入或可載入的結果頁面。",
+      "pageLoaded": "已載入",
+      "pageNotLoaded": "載入較舊的結果",
+      "pageNumber": "第 {{page}} 頁",
+      "pages": "GitHub 結果頁",
+      "pullRequests": "PR",
+      "queryingSource": "正在查詢 {{source}}",
+      "repoDescription": "選擇要查詢的存放庫。",
+      "repos": "存放庫",
+      "taskSource": "任務來源",
+      "upstream": "上游"
+    },
+    "providerViewProjection": {
+      "all": "全部",
+      "allSites": "所有網站",
+      "allTeams": "所有團隊",
+      "allWorkspaces": "所有工作區",
+      "chooseProject": "選擇專案",
+      "default": "預設",
+      "defaultSubtitle": "{{subtitle}} · 預設",
+      "issues": "議題",
+      "list": "清單",
+      "noGrouping": "沒有分組",
+      "openState": "開放",
+      "priority": "優先等級",
+      "projects": "專案",
+      "pullRequests": "PR",
+      "teams_one": "{{count}} 個團隊",
+      "teams_other": "{{count}} 個團隊",
+      "workspace": "工作區"
+    },
+    "reviewerLinear": {
+      "issues": "議題",
+      "unassigned": "未指派"
+    },
+    "screenChrome": {
+      "connectLinear": "連線 Linear",
+      "newGitHubIssue": "新增 GitHub 議題",
+      "newLinearIssue": "新增 Linear 議題",
+      "refreshGitHub": "重新整理 GitHub 工作",
+      "refreshGitLab": "重新整理 GitLab 工作項",
+      "refreshJira": "重新整理 Jira 議題",
+      "refreshLinear": "重新整理 Linear",
+      "title": "任務"
+    },
+    "searchControl": {
+      "jiraPlaceholder": "Jira JQL，例如 project = ABC AND statusCategory != Done",
+      "projectPlaceholder": "在專案檢視中搜尋…",
+      "providerPlaceholder": "搜尋 {{provider}} 任務…"
+    },
+    "smartSourceModes": {
+      "allStates": "全部",
+      "branch": "分支",
+      "closedState": "已關閉",
+      "mergedState": "已合併",
+      "name": "名稱",
+      "openState": "開放",
+      "smart": "智慧"
+    },
+    "sparsePresetDraft": {
+      "directoryRequired": "新增至少一個目錄。",
+      "repoRelativeDirectoriesRequired": "使用相對於存放庫的目錄，而不是根目錄、絕對路徑或上層目錄路徑片段。"
+    },
+    "taskViewOptions": {
+      "allSubtitle": "所選站台中的未解決議題",
+      "assignedSubtitle": "指派給您的未解決議題",
+      "doneSubtitle": "指派給您且最近已解決的議題",
+      "noGitHubTasks": "沒有 GitHub 任務",
+      "noGitLabTasks": "沒有 GitLab 任務",
+      "noJiraTasks": "沒有 Jira 任務",
+      "noLinearTasks": "沒有 Linear 任務",
+      "reportedSubtitle": "您回報的未解決議題"
+    },
+    "tasksCreateDrawers": {
+      "connect": "連線",
+      "connectLinearWorkspace": "連線至 Linear 工作區",
+      "createIssue": "建立議題",
+      "createWorkspaceIn": "選擇建立工作區的存放庫",
+      "description": "描述",
+      "descriptionPlaceholder": "補充上下文",
+      "fileIn": "在 {{slug}} 建立議題",
+      "issueSource": "議題來源",
+      "keySecurityHint": "您的金鑰會透過主機作業系統的鑰匙圈加密，並儲存於本機。",
+      "linearConnectSubtitle": "貼上個人 API 金鑰，即可瀏覽該工作區的議題。",
+      "linearSettingsLink": "Linear 設定 / 安全性 / 新增 API 金鑰",
+      "linearTeam": "Linear 團隊",
+      "linearTeamSubtitle": "在所選 Linear 團隊中建立議題。",
+      "newIssueTitle": "新增 {{providerLabel}} 議題",
+      "origin": "origin",
+      "personalApiKey": "個人 API 金鑰",
+      "repository": "存放庫",
+      "repositorySubtitle": "在所選存放庫中建立議題。",
+      "team": "團隊",
+      "title": "標題",
+      "titlePlaceholder": "任務標題",
+      "upstream": "上游"
+    },
+    "workspaceAgentSelection": {
+      "blankTerminal": "空白終端機"
+    },
+    "workspaceCreateDrawer": {
+      "addRepository": "請先新增 Git 存放庫，再建立 Linear 工作區。",
+      "advanced": "進階",
+      "agent": "代理程式",
+      "connect": "連線",
+      "connectFirst": "請先連線存放庫",
+      "connectRepository": "連線存放庫",
+      "connecting": "正在連線…",
+      "createFrom": "從 {{branch}} 建立",
+      "defaultBranch": "預設分支",
+      "detectingAgents": "正在偵測代理程式…",
+      "optional": "[可選]",
+      "remoteRepository": "遠端存放庫",
+      "repository": "存放庫",
+      "repositoryNotFound": "找不到存放庫。",
+      "selectRepository": "選擇存放庫",
+      "sshConnection": "SSH 連線",
+      "startFrom": "起始來源",
+      "title": "建立工作區",
+      "workspaceName": "工作區名稱"
+    },
+    "workspaceCreateProjection": {
+      "nameAlreadyExists": "「{{name}}」已存在。",
+      "nameRequired": "請輸入名稱。",
+      "nameTooLong": "名稱不能超過 80 個字元。",
+      "openShell": "開啟殼層"
+    },
+    "workspaceOptionPickers": {
+      "baseBranchSubtitle": "選擇現有的分支或參照。",
+      "baseBranchTitle": "起始來源",
+      "branchName": "分支名稱：{{name}}",
+      "defaultBranch": "預設分支",
+      "defaultBranchSubtitle": "使用此存放庫設定的基礎分支",
+      "editPreset": "編輯 {{name}}",
+      "fullCheckout": "完整檢出",
+      "fullCheckoutSubtitle": "使用整個存放庫",
+      "newPreset": "新預設",
+      "noBranches": "沒有符合的分支。",
+      "searchBranches": "搜尋分支",
+      "sparseCheckoutTitle": "稀疏檢出"
+    },
+    "workspaceSshGate": {
+      "authenticationFailed": "身分驗證失敗",
+      "connected": "已連線",
+      "connecting": "連線中",
+      "connectionFailed": "連線失敗",
+      "deployingRelay": "正在部署中繼",
+      "disconnected": "已中斷連線",
+      "reconnectFailed": "重新連線失敗",
+      "reconnecting": "重新連線中"
+    },
+    "workspaceTrustDrawers": {
+      "alwaysTrustAndRun": "一律信任並執行",
+      "creating": "建立中…",
+      "directoriesLabel": "目錄",
+      "directories_one": "{{count}} 個目錄",
+      "directories_other": "{{count}} 個目錄",
+      "dontRun": "不執行",
+      "editSparsePreset": "編輯稀疏預設",
+      "nameLabel": "名稱",
+      "namePlaceholder": "算繪器介面",
+      "newSetupScript": "新的設定指令碼",
+      "newSparsePreset": "新增稀疏預設",
+      "runHooks": "執行鉤子",
+      "runSetupAndCreate": "執行設定並建立",
+      "runSetupTitle": "要執行 {{name}} 的設定指令碼嗎？",
+      "setupChangedTitle": "{{name}} 的設定指令碼已變更",
+      "setupScript": "設定指令碼",
+      "setupSubtitle": "建立此工作區前，請先選擇是否為 {{name}} 執行設定。",
+      "setupTitle": "要執行設定指令碼嗎？",
+      "skipSetupAndCreate": "略過設定並建立",
+      "trustFailed": "無法將設定指令碼設為信任。",
+      "trustSubtitle": "此存放庫的 orca.yaml 會在工作區啟動前於您的電腦上執行。請僅在信任此存放庫時執行。"
+    },
+    "worktreeCreateRetry": {
+      "createFailed": "建立工作區失敗"
     }
   },
   "terminal": {

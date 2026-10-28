@@ -1569,6 +1569,16 @@
       "workspace": "Рабочее пространство"
     }
   },
+  "newWorkspace": {
+    "hostPicker": {
+      "title": "Где создать рабочее пространство"
+    },
+    "loadingDrawer": {
+      "downloadProgress": "Скачивание… {{progress}}",
+      "downloading": "Скачивание",
+      "loading": "Загрузка"
+    }
+  },
   "notifications": {
     "notificationDeliverySection": {
       "footer": "Типы уведомлений зависят от настроек уведомлений на каждом сопряжённом компьютере. Если не пользоваться приложением 7 дней, уведомления приостанавливаются. Чтобы возобновить их, откройте приложение и подключитесь снова.",
@@ -2656,11 +2666,75 @@
     }
   },
   "sourceControl": {
+    "actionSheetRunners": {
+      "noBaseBranch": "Нет базовой ветки для перебазирования",
+      "waitingForDesktop": "Ожидание подключения к компьютеру…"
+    },
     "actions": {
+      "checkingReviewStatus": "Получение статуса PR/MR.",
+      "checkoutBeforePublish": "Переключитесь на ветку перед публикацией коммитов.",
+      "commitStagedChanges": "Создать коммит с изменениями в индексе.",
       "commits": "Коммиты",
+      "committing": "Создаётся коммит.",
       "createPr": "Создать PR",
+      "enterCommitMessage": "Введите сообщение, чтобы создать коммит.",
+      "forcePushWithLease": "Обновить удалённую ветку принудительной отправкой с проверкой её состояния.",
+      "forcePushing": "Выполняется принудительная отправка.",
+      "linkedReviewUnavailable": "Ветка связанного PR/MR недоступна.",
+      "publishToOrigin": "Опубликовать эту ветку в origin.",
+      "pullCommits_few": "Получить и слить {{count}} коммита.",
+      "pullCommits_many": "Получить и слить {{count}} коммитов.",
+      "pullCommits_one": "Получить и слить {{count}} коммит.",
+      "pullCommits_other": "Получить и слить {{count}} коммита.",
       "pushAndCreatePr": "Отправить и создать PR",
-      "switchBranch": "Переключиться на ветку"
+      "pushCommits_few": "Отправить {{count}} коммита.",
+      "pushCommits_many": "Отправить {{count}} коммитов.",
+      "pushCommits_one": "Отправить {{count}} коммит.",
+      "pushCommits_other": "Отправить {{count}} коммита.",
+      "pushLinkedReview": "Отправить изменения в ветку связанного PR/MR.",
+      "remoteOperationInProgress": "Выполняется удалённая операция.",
+      "resolveConflicts": "Разрешите конфликты перед созданием коммита.",
+      "reviewAlreadyMerged": "Нет изменений для коммита. Изменения уже слиты.",
+      "stageAllChanges": "Добавить все изменения в индекс.",
+      "stageFileToCommit": "Добавьте хотя бы один файл в индекс, чтобы создать коммит.",
+      "switchBranch": "Переключиться на ветку",
+      "syncCounts": "Получить и слить: {{behind}}, отправить: {{ahead}}.",
+      "upToDate": "Нет изменений для коммита. Ветка актуальна.",
+      "waitForRemoteOperation": "Повторите попытку после завершения удалённой операции."
+    },
+    "branchBaseRef": {
+      "resolveFailed": "Не удалось определить базовую ветку"
+    },
+    "branchCard": {
+      "branchCount": "В ветке: {{count}}",
+      "changedCount": "Изменено: {{count}}",
+      "cherryPickState": "cherry-pick",
+      "mergeState": "слияние",
+      "rebaseState": "перебазирование",
+      "stagedCount": "В индексе: {{count}}"
+    },
+    "branchCompare": {
+      "commits_few": "{{count}} коммита",
+      "commits_many": "{{count}} коммитов",
+      "commits_one": "{{count}} коммит",
+      "commits_other": "{{count}} коммита",
+      "files_few": "{{count}} файла",
+      "files_many": "{{count}} файлов",
+      "files_one": "{{count}} файл",
+      "files_other": "{{count}} файла",
+      "sectionTitle": "Закоммичено в ветке",
+      "summary": "{{files}} — по сравнению с {{baseRef}}",
+      "summaryWithCommits": "{{files}} — {{commits}} — по сравнению с {{baseRef}}"
+    },
+    "branchCompareOutcome": {
+      "baseBranchUnavailable": "Не удалось определить базовую ветку для сравнения.",
+      "loadFailed": "Не удалось загрузить закоммиченные изменения"
+    },
+    "branchDiffPreviewDrawer": {
+      "closePreview": "Закрыть предпросмотр закоммиченных изменений",
+      "committedOnBranch": "Закоммичено в ветке",
+      "loadFailed": "Не удалось загрузить различия",
+      "truncated": "В мобильном предпросмотре показана часть различий."
     },
     "commitDropdown": {
       "checkOutBranchToPush": "Переключитесь на ветку перед отправкой коммитов",
@@ -2685,8 +2759,49 @@
       "stageFile": "Добавьте в индекс хотя бы один файл для коммита",
       "useCommitAndForcePush": "Используйте «Закоммитить и принудительно отправить»: в удалённой ветке только старые версии локальных коммитов"
     },
+    "commitFailurePanel": {
+      "fix": "Исправить",
+      "fixWithAi": "Исправить ошибку коммита с ИИ",
+      "hideDetails": "Скрыть подробности",
+      "hideFailureDetails": "Скрыть подробности ошибки коммита",
+      "showDetails": "Показать подробности",
+      "showFailureDetails": "Показать подробности ошибки коммита",
+      "summary": "Не удалось создать коммит.",
+      "title": "Не удалось создать коммит"
+    },
+    "commitMessageAi": {
+      "generateFailed": "Не удалось сгенерировать сообщение коммита"
+    },
+    "commitRunners": {
+      "actionFailed": "Не удалось выполнить операцию управления версиями",
+      "commitFailed": "Не удалось создать коммит"
+    },
+    "conflictAbort": {
+      "abortMerge": "Прервать слияние",
+      "abortOperation": "Прервать {{operation}}",
+      "abortRebase": "Прервать перебазирование",
+      "aborting": "Прерывание…"
+    },
+    "content": {
+      "cancelGeneration": "Отменить создание сообщения коммита",
+      "commitMessageDisabled": "Ввод сообщения коммита недоступен. В индексе нет файлов.",
+      "commitMessagePlaceholder": "Сообщение коммита",
+      "emptyMessage": "В рабочем дереве нет изменений.",
+      "emptyTitle": "Нет локальных изменений",
+      "generateMessage": "Создать сообщение коммита с помощью ИИ",
+      "noStagedFiles": "В индексе нет файлов",
+      "openActions": "Открыть меню управления версиями",
+      "reconnecting": "Переподключение к компьютеру…",
+      "regenerateHint": "Очистите сообщение для повторного создания.",
+      "stageAll": "Добавить всё в индекс",
+      "unstageAll": "Убрать всё из индекса"
+    },
     "createPrAction": {
-      "createReview": "Создать {{titleLabel}}"
+      "checkingStatus": "Получение статуса PR/MR…",
+      "createPullRequest": "Создать пул-реквест",
+      "createReview": "Создать {{titleLabel}}",
+      "providerUnavailable": "Создание PR/MR недоступно для этого провайдера",
+      "statusUnavailable": "Статус PR/MR недоступен"
     },
     "dropdownCounts": {
       "fastForwardCount_few": "Продвинуть ветку на {{count}} коммита",
@@ -2722,6 +2837,74 @@
       "titleUnpublishedForcePushCount_one": "Принудительно отправьте {{count}} коммит этой ветки с проверкой состояния удалённой ветки и при необходимости настройте отслеживаемую удалённую ветку.",
       "titleUnpublishedForcePushCount_other": "Принудительно отправьте {{count}} коммита этой ветки с проверкой состояния удалённой ветки и при необходимости настройте отслеживаемую удалённую ветку."
     },
+    "fileList": {
+      "committedSection": "Закоммичено в ветке"
+    },
+    "fileRows": {
+      "addedByThem": "Добавлен ими",
+      "addedByUs": "Добавлен нами",
+      "bothAdded": "Добавлен с обеих сторон",
+      "bothDeleted": "Удалён с обеих сторон",
+      "bothModified": "Изменён с обеих сторон",
+      "committedSection": "Закоммичено в ветке",
+      "committedUnavailable": "Закоммиченные изменения недоступны.",
+      "deletedByThem": "Удалён ими",
+      "deletedByUs": "Удалён нами",
+      "discardFile": "Отменить изменения в «{{path}}»",
+      "loadingCommitted": "Загрузка закоммиченных изменений…",
+      "openChangedFile": "Открыть изменённый файл {{path}}",
+      "openCommittedChange": "Открыть закоммиченные изменения в «{{path}}»",
+      "renamedFrom": "из {{path}}",
+      "stageFile": "Добавить {{path}} в индекс",
+      "unresolvedConflict": "Неразрешённый конфликт",
+      "unstageFile": "Убрать {{path}} из индекса"
+    },
+    "gitHistory": {
+      "days_few": "{{count}} д",
+      "days_many": "{{count}} д",
+      "days_one": "{{count}} д",
+      "days_other": "{{count}} д",
+      "hours_few": "{{count}} ч",
+      "hours_many": "{{count}} ч",
+      "hours_one": "{{count}} ч",
+      "hours_other": "{{count}} ч",
+      "justNow": "только что",
+      "loadFailed": "Не удалось загрузить историю коммитов",
+      "minutes_few": "{{count}} мин",
+      "minutes_many": "{{count}} мин",
+      "minutes_one": "{{count}} мин",
+      "minutes_other": "{{count}} мин",
+      "months_few": "{{count}} мес.",
+      "months_many": "{{count}} мес.",
+      "months_one": "{{count}} мес.",
+      "months_other": "{{count}} мес.",
+      "noCommitMessage": "(без сообщения коммита)",
+      "years_few": "{{count}} года",
+      "years_many": "{{count}} лет",
+      "years_one": "{{count}} год",
+      "years_other": "{{count}} года"
+    },
+    "gitHistoryList": {
+      "loadFailed": "Не удалось загрузить историю",
+      "loadFilesFailed": "Не удалось загрузить файлы коммита",
+      "noCommits": "Нет коммитов.",
+      "noFileChanges": "Нет изменений в файлах",
+      "retryFiles": "Повторить загрузку файлов коммита",
+      "waitingForDesktop": "Ожидание ответа от компьютера…"
+    },
+    "gitStatus": {
+      "changes": "Изменения",
+      "conflicts": "Конфликты",
+      "stagedChanges": "Изменения в индексе"
+    },
+    "header": {
+      "backToSession": "Вернуться к сессии",
+      "close": "Закрыть управление версиями",
+      "openNumberedPrWeb": "Открыть пул-реквест #{{number}} в браузере",
+      "openPrWeb": "Открыть пул-реквест в браузере",
+      "refresh": "Обновить данные управления версиями",
+      "title": "Управление версиями"
+    },
     "hostedReview": {
       "mrCopy": {
         "reviewLabel": "запрос на слияние",
@@ -2734,8 +2917,82 @@
         "titleLabel": "Пул-реквест"
       }
     },
+    "hostedReviewCopy": {
+      "committingChanges": "Создание коммита…",
+      "creatingReview": "Создание запроса на проверку…",
+      "forcePushing": "Принудительная отправка с проверкой удалённой ветки…",
+      "generatingCommitMessage": "Создание сообщения коммита…",
+      "publishingBranch": "Публикация ветки…",
+      "pushingCommits": "Отправка коммитов…",
+      "stagingChanges": "Добавление изменений в индекс…",
+      "updatingBranch": "Обновление ветки…"
+    },
     "hostedReviewCreate": {
       "pushSucceeded": "Отправка прошла успешно, но не удалось создать {{shortLabel}}: {{error}}"
+    },
+    "hostedReviewCreateIntent": {
+      "branchChanged": "Ветка изменилась во время подготовки пул-реквеста.",
+      "generateMessageFailed": "Не удалось сгенерировать сообщение коммита. Введите его в разделе «Управление версиями» и повторите попытку.",
+      "resolveConflicts": "Разрешите конфликты перед созданием пул-реквеста.",
+      "resolveOrStageChanges": "Разрешите конфликты или добавьте изменения в индекс перед созданием пул-реквеста.",
+      "reviewCommitMessage": "Проверьте сообщение коммита и повторите «Создать PR»."
+    },
+    "hostedReviewGitPreparation": {
+      "commitFailed": "Не удалось создать коммит",
+      "refreshFailed": "Не удалось обновить данные управления версиями",
+      "stageFailed": "Не удалось добавить изменения в индекс",
+      "updateBranchFailed": "Не удалось обновить удалённую ветку. Повторите «Создать PR»."
+    },
+    "hostedReviewRemotePrerequisite": {
+      "forcePushFailed": "Не удалось выполнить принудительную отправку с проверкой удалённой ветки",
+      "publishFailed": "Не удалось опубликовать ветку",
+      "pushFailed": "Не удалось отправить коммиты"
+    },
+    "hostedReviewService": {
+      "createFailed": "Не удалось создать пул-реквест",
+      "pushBeforeCreateFailed": "Не удалось отправить изменения. Устраните причину ошибки отправки, затем повторите попытку."
+    },
+    "hubTab": {
+      "changes": "Изменения",
+      "commits": "Коммиты",
+      "pullRequest": "Пул-реквест"
+    },
+    "loaders": {
+      "connectingToDesktop": "Подключение к компьютеру…",
+      "loadFailed": "Не удалось загрузить данные управления версиями",
+      "updateDesktop": "Обновите Orca на компьютере, чтобы использовать управление версиями на мобильном устройстве.",
+      "waitingForDesktop": "Ожидание подключения к компьютеру…"
+    },
+    "modals": {
+      "actionsTitle": "Управление версиями",
+      "currentBranch": "текущая",
+      "discardButton": "Отменить изменения",
+      "discardConfirmMessage": "Отменить изменения в «{{path}}»? Это действие необратимо.",
+      "discardTitle": "Отменить изменение",
+      "openPrMessage": "Открыть в браузере?",
+      "openPrWithWarning": "Открыть в браузере?\n\n{{warning}}",
+      "prCreatedTitle": "Пул-реквест создан",
+      "switchBranchTitle": "Переключиться на ветку"
+    },
+    "openers": {
+      "openDiffFailed": "Не удалось открыть сравнение",
+      "tabNotReady": "Файл открыт, но его вкладка ещё не готова. Повторите попытку.",
+      "waitingForDesktop": "Ожидание подключения к компьютеру…"
+    },
+    "panel": {
+      "loadFailedTitle": "Не удалось загрузить",
+      "unavailableTitle": "Управление версиями недоступно"
+    },
+    "prChip": {
+      "createPr": "Создать пул-реквест",
+      "loading": "Загрузка пул-реквеста…",
+      "loadingLabel": "Загрузка пул-реквеста",
+      "openLabel": "Пул-реквест #{{number}}, {{state}}, {{checks}}. Открыть пул-реквест.",
+      "openWithComments_few": "Пул-реквест #{{number}}, {{state}}, {{checks}}, {{count}} неразрешённых комментария. Открыть пул-реквест.",
+      "openWithComments_many": "Пул-реквест #{{number}}, {{state}}, {{checks}}, {{count}} неразрешённых комментариев. Открыть пул-реквест.",
+      "openWithComments_one": "Пул-реквест #{{number}}, {{state}}, {{checks}}, {{count}} неразрешённый комментарий. Открыть пул-реквест.",
+      "openWithComments_other": "Пул-реквест #{{number}}, {{state}}, {{checks}}, {{count}} неразрешённого комментария. Открыть пул-реквест.",
+      "unavailableLabel": "Пул-реквест недоступен: {{message}}"
     },
     "prCreate": {
       "authRequired": "Прежде чем создать {{reviewLabel}}, пройдите аутентификацию.",
@@ -2755,8 +3012,19 @@
       "unsupportedMergeRequests": "Создание запросов на слияние для этого репозитория не поддерживается.",
       "unsupportedPullRequests": "Создание пул-реквестов для этого репозитория не поддерживается."
     },
+    "prLink": {
+      "updatePullRequestFailed": "Не удалось обновить связь с пул-реквестом",
+      "updateReviewFailed": "Не удалось обновить связь с запросом на проверку"
+    },
     "primaryAction": {
-      "forcePushFromDesktop": "Принудительно отправьте ветку этого пул-реквеста из настольного приложения"
+      "commit": "Закоммитить",
+      "forcePush": "Отправить принудительно",
+      "forcePushFromDesktop": "Принудительно отправьте ветку этого пул-реквеста из настольного приложения",
+      "publishBranch": "Опубликовать ветку",
+      "pull": "Получить и слить",
+      "push": "Отправить",
+      "stageAll": "Добавить всё в индекс",
+      "sync": "Синхронизировать"
     },
     "remoteDropdown": {
       "branchAlreadyPublished": "Ветка уже опубликована",
@@ -2806,6 +3074,609 @@
       "tryFastForwardPull": "Попробовать получить изменения и слить перемоткой вперёд; git может отклонить операцию из-за локальных коммитов",
       "tryRegularPush": "Попробовать обычную отправку; git может потребовать принудительную отправку",
       "useForcePushToSync": "Используйте принудительную отправку: в удалённом репозитории есть только старые версии локальных коммитов"
+    },
+    "runners": {
+      "actionFailed": "Не удалось выполнить операцию управления версиями"
+    },
+    "screenState": {
+      "noBranch": "Нет ветки"
+    },
+    "state": {
+      "noUpstream": "Нет отслеживаемой ветки",
+      "syncStatus": "Опережает на {{ahead}}, отстаёт на {{behind}}"
+    },
+    "useMobileCommitFailureRecovery": {
+      "launchFailed": "Не удалось запустить агента",
+      "waitingForDesktop": "Ожидание подключения к компьютеру…"
+    },
+    "useMobileCommitMessageGeneration": {
+      "generateFailed": "Не удалось сгенерировать сообщение коммита"
+    },
+    "useMobileCreatePrRunner": {
+      "branchRequired": "Перед созданием пул-реквеста переключитесь на ветку."
+    },
+    "useMobileGitRequests": {
+      "actionFailed": "Не удалось выполнить операцию управления версиями",
+      "branchUnavailable": "Состояние ветки недоступно",
+      "commitFailed": "Не удалось создать коммит",
+      "waitingForDesktop": "Ожидание подключения к компьютеру…"
+    }
+  },
+  "tasks": {
+    "composerSource": {
+      "baseFailed": "Не удалось определить базовую ветку.",
+      "forkPushWarning": "В этом PR отключена настройка «Разрешить правки сопровождающим»; GitHub может отклонить отправку в форк."
+    },
+    "detailCommentRenderers": {
+      "commentPlaceholder": "Добавить комментарий",
+      "comments_few": "{{count}} комментария",
+      "comments_many": "{{count}} комментариев",
+      "comments_one": "{{count}} комментарий",
+      "comments_other": "{{count}} комментария",
+      "reopenThread": "Возобновить обсуждение",
+      "reply": "Ответить",
+      "resolveThread": "Закрыть обсуждение",
+      "resolvedCommentBy": "Закрытый комментарий от {{author}}",
+      "resolvedThreadBy": "Закрытое обсуждение от {{author}}",
+      "sendComment": "Отправить комментарий",
+      "show": "Показать"
+    },
+    "filterPickers": {
+      "allTeams": "Все команды",
+      "changeStatus": "Изменить статус",
+      "fieldHidden": "Скрыто на карточках",
+      "fieldShown": "Показано на карточках",
+      "fieldsSubtitle": "Выберите, какие поля проекта показывать на карточках элементов.",
+      "fieldsTitle": "Поля проекта",
+      "gitlabFilter": "Фильтр GitLab",
+      "gitlabView": "Представление GitLab",
+      "jiraFilter": "Фильтр Jira",
+      "jiraSite": "Сайт Jira",
+      "linearFilter": "Фильтр Linear",
+      "linearIssue": "Задача Linear",
+      "linearWorkspace": "Рабочее пространство Linear",
+      "loadingStates": "Загрузка статусов…",
+      "noFields": "В этом представлении нет дополнительных полей.",
+      "noStates": "Нет доступных статусов",
+      "switchWorkspaceFailed": "Не удалось сменить рабочее пространство",
+      "teamsSubtitle": "Выберите команды для отображения в разделе «Задачи».",
+      "teamsTitle": "Команды Linear",
+      "teams_few": "{{count}} команды",
+      "teams_many": "{{count}} команд",
+      "teams_one": "{{count}} команда",
+      "teams_other": "{{count}} команды"
+    },
+    "githubProjectList": {
+      "browseProjects": "Просмотреть проекты",
+      "chooseProject": "Выберите проект GitHub",
+      "emptyField": "Пусто",
+      "issueSubtitle": "Задача · {{repository}}{{number}}",
+      "itemSubtitle": "Элемент проекта · {{repository}}{{number}}",
+      "items": "Элементы",
+      "moreFields_few": "+{{count}} поля",
+      "moreFields_many": "+{{count}} полей",
+      "moreFields_one": "+{{count}} поле",
+      "moreFields_other": "+{{count}} поля",
+      "noItems": "В проекте нет элементов",
+      "pullRequestSubtitle": "Пул-реквест · {{repository}}{{number}}"
+    },
+    "githubProjectPickers": {
+      "add": "Добавить",
+      "addByUrlHint": "Добавьте недостающие проекты по URL.",
+      "addPlaceholder": "Добавить по URL или owner/number",
+      "adding": "Добавление…",
+      "browseAll": "Посмотреть все",
+      "browseLoading": "Посмотреть все (загрузка…)",
+      "chooseView": "Выберите представление проекта",
+      "loadFailed": "Не удалось загрузить проекты",
+      "noMatches": "Подходящих проектов не найдено.",
+      "noMoreProjects": "Больше проектов нет.",
+      "noProjects": "Нет загруженных проектов",
+      "organizationsError": "организации: {{message}}",
+      "organizationsLoadFailed": "Не удалось загрузить некоторые организации ({{count}}).",
+      "ownerLoadFailed": "Не удалось загрузить проекты {{owner}}.",
+      "pin": "Закрепить",
+      "pinned": "Закреплено",
+      "recent": "Недавние",
+      "retryHint": "Нажмите, чтобы повторить.",
+      "searchProjects": "Поиск проектов",
+      "sort": "Сортировка проекта",
+      "subtitle": "Выберите представление проекта для страницы «Задачи».",
+      "title": "Проекты GitHub",
+      "unsupportedLayout": "Orca пока не поддерживает этот макет проекта GitHub.",
+      "view": "Представление проекта"
+    },
+    "githubViewControls": {
+      "fields": "Поля: {{fields}}",
+      "openView": "Открыть представление в GitHub",
+      "sort": "Сортировка: {{sort}}",
+      "source": "Источник: {{source}}"
+    },
+    "itemActions": {
+      "changeStatus": "Изменить статус",
+      "copyGitHubLink": "Скопировать ссылку на GitHub",
+      "copyLinearLink": "Скопировать ссылку на Linear",
+      "createWorkspace": "Создать рабочее пространство",
+      "creating": "Создание…",
+      "mergeConflicts": "GitHub сообщает о конфликтах слияния.",
+      "mergeMergeRequest": "Слить запрос на слияние",
+      "mergePullRequest": "Слить пул-реквест"
+    },
+    "itemDetailContent": {
+      "addSubIssue": "Добавить подзадачу",
+      "assignee": "Исполнитель",
+      "assignees": "Исполнители",
+      "checks": "Проверки",
+      "description": "Описание",
+      "discussion": "Обсуждение",
+      "noChecks": "Проверки не найдены.",
+      "noComments": "Комментариев нет.",
+      "noPipelineRuns": "Для этого MR нет запусков конвейера.",
+      "noSubIssues": "Нет подзадач.",
+      "none": "Нет",
+      "pipeline": "Конвейер",
+      "pipelineJobs_few": "{{count}} задания",
+      "pipelineJobs_many": "{{count}} заданий",
+      "pipelineJobs_one": "{{count}} задание",
+      "pipelineJobs_other": "{{count}} задания",
+      "project": "Проект",
+      "rerunAll": "Повторить все",
+      "rerunFailed": "Повторить неуспешные",
+      "status": "Статус",
+      "subIssueTitle": "Название подзадачи",
+      "subIssues": "Подзадачи",
+      "type": "Тип"
+    },
+    "itemDetailDrawer": {
+      "refreshDetails": "Обновить данные"
+    },
+    "itemFieldEditors": {
+      "addLabels": "Метки для добавления (через запятую)",
+      "addUsernames": "Логины для добавления (через запятую)",
+      "assignees": "Исполнители",
+      "labels": "Метки",
+      "loadingAssignees": "Загрузка исполнителей…",
+      "loadingLabels": "Загрузка меток…",
+      "noAssignableUsers": "В этом репозитории не найдены пользователи, которых можно назначить исполнителями.",
+      "noLabels": "В этом репозитории нет меток.",
+      "none": "Нет",
+      "removeLabels": "Метки для удаления (через запятую)",
+      "removeUsernames": "Логины для удаления (через запятую)",
+      "saveTitle": "Сохранить заголовок",
+      "title": "Заголовок",
+      "updateAssignees": "Обновить исполнителей",
+      "updateLabels": "Обновить метки"
+    },
+    "itemReviewSections": {
+      "binaryFile": "Двоичный файл.",
+      "changedFilesTitle": "Изменённые файлы",
+      "descriptionPlaceholder": "Описание",
+      "fileContentsUnavailable": "Содержимое файла недоступно.",
+      "hideFile": "Скрыть",
+      "loadingReviewers": "Загрузка рецензентов…",
+      "markUnviewed": "Отметить непросмотренным",
+      "markViewed": "Отметить просмотренным",
+      "noDescription": "Описания нет.",
+      "noReviewerSuggestions": "Кандидаты в рецензенты не найдены.",
+      "noReviewersRequested": "Проверка ещё ни у кого не запрошена.",
+      "requestReview": "Запросить проверку",
+      "reviewersPlaceholder": "Пригласить рецензентов",
+      "reviewersTitle": "Рецензенты",
+      "saveDescription": "Сохранить описание",
+      "viewFile": "Просмотреть"
+    },
+    "legacySurface": {
+      "loadIssuesFailed": "Не удалось загрузить задачи из {{source}}.",
+      "mergeAction": "Слить",
+      "mergeMethodTitle": "Способ слияния",
+      "mergePullRequestTitle": "Слить пул-реквест",
+      "mergeRequestMergeMessage": "Выберите способ слияния этого запроса на слияние.",
+      "mergeRequestTitle": "Запрос на слияние",
+      "pullRequestMergeMessage": "Выберите способ слияния этого пул-реквеста.",
+      "retryLoadingIssues": "Повторить загрузку задач из {{source}}",
+      "retrying": "Повторная попытка…",
+      "sourceFallback": "Предпочтительный источник задач upstream недоступен для {{repo}}. Используется origin.",
+      "subIssueDataUnavailable": "Ваш токен не даёт доступа к данным подзадач.",
+      "updateItemTitle": "Обновить элемент"
+    },
+    "linearList": {
+      "changeStatusFrom": "Изменить статус «{{status}}»"
+    },
+    "linearViewControls": {
+      "displayButton": "Отображение",
+      "groupLabel": "Группировка: {{group}}",
+      "orderLabel": "Порядок: {{order}}"
+    },
+    "listDisplayPickers": {
+      "displayPropertiesTitle": "Отображаемые поля",
+      "linearGroupTitle": "Группировка задач Linear",
+      "linearOrderTitle": "Сортировка задач Linear",
+      "linearViewTitle": "Вид задач Linear",
+      "sortTasksTitle": "Сортировка задач"
+    },
+    "listSurface": {
+      "connectLinearButton": "Подключить Linear",
+      "connectLinearMessage": "Просматривайте назначенные вам задачи Linear и начинайте работу над ними прямо в разделе «Задачи».",
+      "connectLinearTitle": "Подключите учётную запись Linear",
+      "jiraStatusFailed": "Не удалось получить статус Jira",
+      "updateDesktopMessage": "Для раздела «Задачи» в мобильном приложении нужна более новая версия Orca на компьютере.",
+      "updateDesktopTitle": "Обновите Orca на компьютере"
+    },
+    "options": {
+      "all": "Все",
+      "assignedToMe": "Назначенные мне",
+      "assignee": "Исполнитель",
+      "board": "Доска",
+      "boardDescription": "Колонки по группам",
+      "closedState": "Закрытые",
+      "completedState": "Выполненные",
+      "createdState": "Созданные",
+      "githubAssignedIssuesDescription": "Открытые задачи, назначенные вам",
+      "githubDescription": "Задачи и пул-реквесты",
+      "githubIssuesDescription": "Задачи GitHub",
+      "githubOpenIssuesDescription": "Открытые задачи GitHub",
+      "githubProjectsDescription": "Представления GitHub Projects",
+      "githubPullRequestsDescription": "Пул-реквесты GitHub",
+      "gitlabAllDescription": "Любой статус GitLab",
+      "gitlabClosedDescription": "Закрытые задачи и запросы на слияние",
+      "gitlabDescription": "Задачи и запросы на слияние",
+      "gitlabMergedDescription": "Слитые запросы на слияние",
+      "gitlabOpenDescription": "Открытые задачи и запросы на слияние",
+      "identifier": "Идентификатор",
+      "issues": "Задачи",
+      "jiraDescription": "Назначенные вам и созданные вами задачи",
+      "labels": "Метки",
+      "linearAllDescription": "Открытые задачи в подключённых рабочих пространствах",
+      "linearAssignedDescription": "Задачи, назначенные вам",
+      "linearCompletedDescription": "Недавно выполненные задачи",
+      "linearCreatedDescription": "Задачи, созданные вами",
+      "linearDescription": "Назначенные вам задачи и задачи команды",
+      "list": "Список",
+      "listDescription": "Компактный список задач",
+      "mergedState": "Слитые",
+      "mine": "Мои",
+      "myIssues": "Мои задачи",
+      "myPullRequestsDescription": "Созданные вами пул-реквесты",
+      "myTodos": "Мои дела",
+      "myTodosDescription": "Невыполненные дела GitLab",
+      "needsReview": "Нужна проверка",
+      "noGrouping": "Без группировки",
+      "openPullRequestsDescription": "Открытые пул-реквесты",
+      "openState": "Открытые",
+      "priority": "Приоритет",
+      "projectMergeRequests": "MR проекта",
+      "projectMergeRequestsDescription": "Запросы на слияние и задачи по репозиториям",
+      "projects": "Проекты",
+      "pullRequests": "PR",
+      "repository": "Репозиторий",
+      "repositorySortDescription": "По репозиториям, внутри — сначала недавно обновлённые",
+      "reviewRequestsDescription": "Запросы на проверку, назначенные вам",
+      "status": "Статус",
+      "team": "Команда",
+      "updated": "Обновлено",
+      "updatedSortDescription": "Сначала недавно обновлённые"
+    },
+    "pickerProjection": {
+      "allRepos": "Все репозитории",
+      "allSites": "Все сайты",
+      "currentlyAscending": "По возрастанию · нажмите для сортировки по убыванию",
+      "currentlyDescending": "По убыванию · нажмите для сортировки по возрастанию",
+      "fieldAscending": "{{field}} по возрастанию",
+      "fieldDescending": "{{field}} по убыванию",
+      "fields": "Поля",
+      "repos_few": "{{count}} репозитория",
+      "repos_many": "{{count}} репозиториев",
+      "repos_one": "{{count}} репозиторий",
+      "repos_other": "{{count}} репозитория",
+      "selectTarget": "Выбрать место создания",
+      "selectedFields": "Поля: {{selected}}/{{total}}",
+      "sortAscending": "Сортировать по возрастанию",
+      "sources_few": "{{count}} источника",
+      "sources_many": "{{count}} источников",
+      "sources_one": "{{count}} источник",
+      "sources_other": "{{count}} источника",
+      "unsupportedLayout": "Макет не поддерживается на мобильных устройствах",
+      "updatedSort": "Обновлено",
+      "usesFieldAscending": "Сортировка: {{field}} по возрастанию",
+      "usesFieldDescending": "Сортировка: {{field}} по убыванию",
+      "usesGitHubRankOrder": "Порядок элементов из GitHub",
+      "viewNumber": "Представление № {{number}}",
+      "viewOrder": "Порядок представления"
+    },
+    "prFileDiff": {
+      "commentOnLine": "Комментировать строку {{line}}",
+      "commentPlaceholder": "Добавьте комментарий к строке",
+      "noTextChanges": "Текстовых изменений не найдено.",
+      "showingDiffLines": "Показаны строки сравнения с 1 по {{limit}} из {{total}}."
+    },
+    "projectComments": {
+      "comments_few": "{{count}} комментария",
+      "comments_many": "{{count}} комментариев",
+      "comments_one": "{{count}} комментарий",
+      "comments_other": "{{count}} комментария",
+      "discussion": "Обсуждение",
+      "editComment": "Редактировать комментарий",
+      "noComments": "Комментариев нет.",
+      "reopenThread": "Открыть обсуждение заново",
+      "reply": "Ответить",
+      "resolveThread": "Закрыть обсуждение",
+      "resolvedCommentBy": "Закрытый комментарий от {{author}}",
+      "resolvedThreadBy": "Закрытое обсуждение от {{author}}",
+      "show": "Показать"
+    },
+    "projectDetailDrawer": {
+      "addRepositoryFromDesktop": "Репозиторий {{repository}} не добавлен в Orca. Добавьте его в настольном приложении, затем обновите раздел «Задачи» в мобильном приложении.",
+      "clearType": "Сбросить тип",
+      "closeItem": "Закрыть элемент",
+      "copyGitHubLink": "Скопировать ссылку на GitHub",
+      "copyRepository": "Скопировать имя репозитория",
+      "createWorkspace": "Создать рабочее пространство",
+      "draftIssue": "Черновик задачи",
+      "issue": "Задача",
+      "issueType": "Тип задачи",
+      "loadingIssueTypes": "Загрузка типов задач…",
+      "mergePullRequest": "Слить пул-реквест",
+      "mergeRepositoryRequirement": "Для слияния добавьте этот репозиторий в Orca.",
+      "noIssueTypes": "Для этого репозитория не настроены типы задач.",
+      "noType": "Без типа",
+      "openInGitHub": "Открыть на GitHub",
+      "projectItem": "Элемент проекта",
+      "projectSubtitle": "Проект GitHub · {{repository}}{{itemNumber}}",
+      "pullRequest": "Пул-реквест",
+      "reopenItem": "Открыть элемент заново",
+      "repositoryNotInOrca": "Репозиторий не добавлен в Orca",
+      "status": "Статус",
+      "type": "Тип",
+      "workspaceCreationRequirement": "Рабочие пространства можно создавать только на основе задач и пул-реквестов GitHub."
+    },
+    "projectFieldEditors": {
+      "clearField": "Очистить поле",
+      "completedIteration": "Завершена · {{startDate}} · {{duration}} дн.",
+      "datePlaceholder": "YYYY-MM-DD",
+      "invalidDate": "Введите дату в формате YYYY-MM-DD.",
+      "invalidNumber": "Введите корректное число.",
+      "noIterations": "Нет доступных итераций.",
+      "numberPlaceholder": "Число",
+      "projectFields": "Поля проекта",
+      "saveField": "Сохранить поле",
+      "textPlaceholder": "Текст",
+      "upcomingIteration": "Текущая или предстоящая · {{startDate}} · {{duration}} дн."
+    },
+    "projectMetadataEditors": {
+      "assignees": "Исполнители",
+      "description": "Описание",
+      "labels": "Метки",
+      "loadingAssignees": "Загрузка исполнителей…",
+      "loadingLabels": "Загрузка меток…",
+      "noAssignableUsers": "Для этого репозитория не найдены пользователи, которых можно назначить исполнителями.",
+      "noDescription": "Описания нет.",
+      "noLabels": "В этом репозитории нет меток.",
+      "none": "Нет",
+      "saveDescription": "Сохранить описание",
+      "saveTitle": "Сохранить заголовок",
+      "title": "Заголовок"
+    },
+    "projectReviewPanels": {
+      "binaryFile": "Двоичный файл.",
+      "changedFiles": "Изменённые файлы",
+      "checks": "Проверки",
+      "fileUnavailable": "Содержимое файла недоступно.",
+      "hideFile": "Скрыть",
+      "loadingReviewers": "Загрузка рецензентов…",
+      "markUnviewed": "Отметить непросмотренным",
+      "markViewed": "Отметить просмотренным",
+      "noChecks": "Проверки не найдены.",
+      "noReviewers": "Проверка ещё ни у кого не запрошена.",
+      "noSuggestions": "Подходящих рецензентов нет.",
+      "requestReview": "Запросить проверку",
+      "requestReviewers": "Укажите рецензентов",
+      "rerunAll": "Перезапустить все",
+      "rerunFailed": "Перезапустить неудачные",
+      "reviewers": "Рецензенты",
+      "viewFile": "Просмотреть"
+    },
+    "providerControls": {
+      "myTodos": "Мои дела",
+      "projectMergeRequests": "MR проекта",
+      "sort": "Сортировка: {{sortLabel}}"
+    },
+    "providerItemList": {
+      "intoBranch": "в {{base}}",
+      "nextPage": "Следующая страница",
+      "page": "Страница {{page}}",
+      "pageOfTotal": "Страница {{page}} из {{total}}",
+      "previousPage": "Предыдущая страница",
+      "selectPage": "Выбрать страницу, страница {{page}}",
+      "selectPageOfTotal": "Выбрать страницу, страница {{page}} из {{total}}"
+    },
+    "providerPickers": {
+      "allRepositories": "Все репозитории",
+      "githubView": "Режим GitHub",
+      "issueSources": "Источники задач GitHub",
+      "issueSourcesDescription": "Выберите для каждого репозитория, где искать и создавать задачи: upstream или origin.",
+      "issues": "Задачи",
+      "noIssueSources": "Другие источники задач недоступны.",
+      "origin": "Исходный репозиторий",
+      "pageHint": "Перейдите на загруженную или доступную страницу результатов.",
+      "pageLoaded": "Загружена",
+      "pageNotLoaded": "Загрузит более ранние результаты",
+      "pageNumber": "Страница {{page}}",
+      "pages": "Страницы GitHub",
+      "pullRequests": "Пул-реквесты",
+      "queryingSource": "Запрос к {{source}}",
+      "repoDescription": "Выберите репозитории для поиска.",
+      "repos": "Репозитории",
+      "taskSource": "Источник задач",
+      "upstream": "Вышестоящий репозиторий"
+    },
+    "providerViewProjection": {
+      "all": "Все",
+      "allSites": "Все сайты",
+      "allTeams": "Все команды",
+      "allWorkspaces": "Все рабочие пространства",
+      "chooseProject": "Выбрать проект",
+      "default": "По умолчанию",
+      "defaultSubtitle": "{{subtitle}} · По умолчанию",
+      "issues": "Задачи",
+      "list": "Список",
+      "noGrouping": "Без группировки",
+      "openState": "Открытые",
+      "priority": "Приоритет",
+      "projects": "Проекты",
+      "pullRequests": "PR",
+      "teams_few": "{{count}} команды",
+      "teams_many": "{{count}} команд",
+      "teams_one": "{{count}} команда",
+      "teams_other": "{{count}} команды",
+      "workspace": "Рабочее пространство"
+    },
+    "reviewerLinear": {
+      "issues": "Задачи",
+      "unassigned": "Не назначено"
+    },
+    "screenChrome": {
+      "connectLinear": "Подключить Linear",
+      "newGitHubIssue": "Новая задача GitHub",
+      "newLinearIssue": "Новая задача Linear",
+      "refreshGitHub": "Обновить задачи GitHub",
+      "refreshGitLab": "Обновить задачи GitLab",
+      "refreshJira": "Обновить задачи Jira",
+      "refreshLinear": "Обновить Linear",
+      "title": "Задачи"
+    },
+    "searchControl": {
+      "jiraPlaceholder": "Jira JQL, например project = ABC AND statusCategory != Done",
+      "projectPlaceholder": "Поиск в проекте…",
+      "providerPlaceholder": "Поиск задач {{provider}}…"
+    },
+    "smartSourceModes": {
+      "allStates": "Все",
+      "branch": "Ветка",
+      "closedState": "Закрытые",
+      "mergedState": "Слитые",
+      "name": "Название",
+      "openState": "Открытые",
+      "smart": "Умный ввод"
+    },
+    "sparsePresetDraft": {
+      "directoryRequired": "Добавьте хотя бы один каталог.",
+      "repoRelativeDirectoriesRequired": "Укажите каталоги относительно репозитория. Корень, абсолютные пути и переходы к родительскому каталогу недопустимы."
+    },
+    "taskViewOptions": {
+      "allSubtitle": "Нерешённые задачи на выбранных сайтах",
+      "assignedSubtitle": "Нерешённые задачи, назначенные вам",
+      "doneSubtitle": "Ваши недавно решённые задачи",
+      "noGitHubTasks": "Нет задач в GitHub",
+      "noGitLabTasks": "Нет задач в GitLab",
+      "noJiraTasks": "Нет задач в Jira",
+      "noLinearTasks": "Нет задач в Linear",
+      "reportedSubtitle": "Нерешённые задачи, созданные вами"
+    },
+    "tasksCreateDrawers": {
+      "connect": "Подключить",
+      "connectLinearWorkspace": "Подключить рабочее пространство Linear",
+      "createIssue": "Создать задачу",
+      "createWorkspaceIn": "Где создать рабочее пространство",
+      "description": "Описание",
+      "descriptionPlaceholder": "Добавьте подробности",
+      "fileIn": "Создать в {{slug}}",
+      "issueSource": "Источник задач",
+      "keySecurityHint": "Ваш ключ шифруется с помощью хранилища ключей ОС сервера и хранится локально.",
+      "linearConnectSubtitle": "Вставьте личный API-ключ, чтобы просматривать задачи из этого рабочего пространства.",
+      "linearSettingsLink": "Настройки Linear / Безопасность / Новый API-ключ",
+      "linearTeam": "Команда Linear",
+      "linearTeamSubtitle": "Создайте задачу в выбранной команде Linear.",
+      "newIssueTitle": "Новая задача в {{providerLabel}}",
+      "origin": "Исходный репозиторий",
+      "personalApiKey": "Личный API-ключ",
+      "repository": "Репозиторий",
+      "repositorySubtitle": "Создайте задачу в выбранном репозитории.",
+      "team": "Команда",
+      "title": "Заголовок",
+      "titlePlaceholder": "Заголовок задачи",
+      "upstream": "Вышестоящий репозиторий"
+    },
+    "workspaceAgentSelection": {
+      "blankTerminal": "Пустой терминал"
+    },
+    "workspaceCreateDrawer": {
+      "addRepository": "Добавьте репозиторий Git, прежде чем создавать рабочее пространство для задачи Linear.",
+      "advanced": "Дополнительно",
+      "agent": "Агент",
+      "connect": "Подключиться",
+      "connectFirst": "Сначала подключите репозиторий",
+      "connectRepository": "Подключить репозиторий",
+      "connecting": "Подключение…",
+      "createFrom": "Создать на основе {{branch}}",
+      "defaultBranch": "Ветка по умолчанию",
+      "detectingAgents": "Поиск агентов…",
+      "optional": "[Необязательно]",
+      "remoteRepository": "Удалённый репозиторий",
+      "repository": "Репозиторий",
+      "repositoryNotFound": "Репозиторий не найден.",
+      "selectRepository": "Выберите репозиторий",
+      "sshConnection": "SSH-подключение",
+      "startFrom": "Начать с",
+      "title": "Создать рабочее пространство",
+      "workspaceName": "Название рабочего пространства"
+    },
+    "workspaceCreateProjection": {
+      "nameAlreadyExists": "«{{name}}» уже существует.",
+      "nameRequired": "Укажите название.",
+      "nameTooLong": "Название должно быть не длиннее 80 символов.",
+      "openShell": "Открыть командную оболочку"
+    },
+    "workspaceOptionPickers": {
+      "baseBranchSubtitle": "Выберите существующую ветку или ссылку Git.",
+      "baseBranchTitle": "Начать с",
+      "branchName": "Имя ветки: {{name}}",
+      "defaultBranch": "Ветка по умолчанию",
+      "defaultBranchSubtitle": "Использовать заданную базовую ветку репозитория",
+      "editPreset": "Изменить {{name}}",
+      "fullCheckout": "Полная выгрузка",
+      "fullCheckoutSubtitle": "Использовать весь репозиторий",
+      "newPreset": "Новый набор настроек",
+      "noBranches": "Подходящих веток нет.",
+      "searchBranches": "Поиск веток",
+      "sparseCheckoutTitle": "Выборочная выгрузка"
+    },
+    "workspaceSshGate": {
+      "authenticationFailed": "Ошибка аутентификации",
+      "connected": "Подключён",
+      "connecting": "Подключение",
+      "connectionFailed": "Не удалось подключиться",
+      "deployingRelay": "Развёртывание ретранслятора",
+      "disconnected": "Отключён",
+      "reconnectFailed": "Не удалось подключиться повторно",
+      "reconnecting": "Повторное подключение"
+    },
+    "workspaceTrustDrawers": {
+      "alwaysTrustAndRun": "Всегда доверять и запускать",
+      "creating": "Создание…",
+      "directoriesLabel": "Каталоги",
+      "directories_few": "{{count}} каталога",
+      "directories_many": "{{count}} каталогов",
+      "directories_one": "{{count}} каталог",
+      "directories_other": "{{count}} каталога",
+      "dontRun": "Не выполнять",
+      "editSparsePreset": "Изменить набор выборочной выгрузки",
+      "nameLabel": "Название",
+      "namePlaceholder": "Интерфейс рендерера",
+      "newSetupScript": "Новый скрипт настройки",
+      "newSparsePreset": "Новый набор выборочной выгрузки",
+      "runHooks": "Выполнить хуки",
+      "runSetupAndCreate": "Выполнить настройку и создать",
+      "runSetupTitle": "Запустить настройку из {{name}}?",
+      "setupChangedTitle": "Скрипт настройки {{name}} изменился",
+      "setupScript": "Скрипт настройки",
+      "setupSubtitle": "Перед созданием рабочего пространства для {{name}} выберите, запускать ли скрипт настройки.",
+      "setupTitle": "Запустить скрипт настройки?",
+      "skipSetupAndCreate": "Пропустить настройку и создать",
+      "trustFailed": "Не удалось добавить скрипт настройки в доверенные.",
+      "trustSubtitle": "Скрипт из orca.yaml этого репозитория выполняется на вашем компьютере перед запуском рабочего пространства. Запускайте его, только если доверяете этому репозиторию."
+    },
+    "worktreeCreateRetry": {
+      "createFailed": "Не удалось создать рабочее пространство"
     }
   },
   "terminal": {

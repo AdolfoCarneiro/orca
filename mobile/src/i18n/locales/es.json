@@ -1532,6 +1532,16 @@
       "workspace": "Espacio de trabajo"
     }
   },
+  "newWorkspace": {
+    "hostPicker": {
+      "title": "Crear espacio de trabajo en"
+    },
+    "loadingDrawer": {
+      "downloadProgress": "Descargando… {{progress}}",
+      "downloading": "Descargando",
+      "loading": "Cargando"
+    }
+  },
   "notifications": {
     "notificationDeliverySection": {
       "footer": "Los tipos de alerta dependen de la configuración de notificaciones de cada escritorio emparejado. Las notificaciones se pausan tras 7 días sin usar esta aplicación; ábrela y vuelve a conectarte para reanudarlas.",
@@ -2590,11 +2600,71 @@
     }
   },
   "sourceControl": {
+    "actionSheetRunners": {
+      "noBaseBranch": "No hay una rama base sobre la que hacer rebase",
+      "waitingForDesktop": "Esperando al escritorio…"
+    },
     "actions": {
+      "checkingReviewStatus": "Comprobando estado de revisión.",
+      "checkoutBeforePublish": "Haz checkout de una rama antes de publicar commits.",
+      "commitStagedChanges": "Haz commit de los cambios preparados.",
       "commits": "Commits",
+      "committing": "Commit en curso.",
       "createPr": "Crear PR",
+      "enterCommitMessage": "Introduce un mensaje de commit para hacer commit.",
+      "forcePushWithLease": "Haz force push con lease para actualizar la rama remota.",
+      "forcePushing": "Force push en curso.",
+      "linkedReviewUnavailable": "La rama de la revisión vinculada no está disponible.",
+      "publishToOrigin": "Publica esta rama en origin.",
+      "pullCommits_many": "Haz pull de {{count}} commits.",
+      "pullCommits_one": "Haz pull de {{count}} commit.",
+      "pullCommits_other": "Haz pull de {{count}} commits.",
       "pushAndCreatePr": "Push y crear PR",
-      "switchBranch": "Cambiar de rama"
+      "pushCommits_many": "Haz push de {{count}} commits.",
+      "pushCommits_one": "Haz push de {{count}} commit.",
+      "pushCommits_other": "Haz push de {{count}} commits.",
+      "pushLinkedReview": "Haz push de las actualizaciones a la rama de la revisión vinculada.",
+      "remoteOperationInProgress": "Operación remota en curso.",
+      "resolveConflicts": "Resuelve los conflictos antes de hacer commit.",
+      "reviewAlreadyMerged": "No hay nada para hacer commit. La revisión ya está mergeada.",
+      "stageAllChanges": "Agrega todos los cambios al stage.",
+      "stageFileToCommit": "Agrega al stage al menos un archivo para hacer commit.",
+      "switchBranch": "Cambiar de rama",
+      "syncCounts": "Haz pull de {{behind}} y push de {{ahead}}.",
+      "upToDate": "No hay nada para hacer commit. La rama está actualizada.",
+      "waitForRemoteOperation": "Vuelve a intentarlo cuando termine la operación remota."
+    },
+    "branchBaseRef": {
+      "resolveFailed": "No se pudo determinar la base de la rama"
+    },
+    "branchCard": {
+      "branchCount": "{{count}} en la rama",
+      "changedCount": "{{count}} con cambios",
+      "cherryPickState": "cherry-pick",
+      "mergeState": "merge",
+      "rebaseState": "rebase",
+      "stagedCount": "{{count}} en stage"
+    },
+    "branchCompare": {
+      "commits_many": "{{count}} commits",
+      "commits_one": "{{count}} commit",
+      "commits_other": "{{count}} commits",
+      "files_many": "{{count}} archivos",
+      "files_one": "{{count}} archivo",
+      "files_other": "{{count}} archivos",
+      "sectionTitle": "Commits en la rama",
+      "summary": "{{files}} - frente a {{baseRef}}",
+      "summaryWithCommits": "{{files}} - {{commits}} - frente a {{baseRef}}"
+    },
+    "branchCompareOutcome": {
+      "baseBranchUnavailable": "No se pudo determinar la rama base para la comparación.",
+      "loadFailed": "No se pudieron cargar los cambios confirmados"
+    },
+    "branchDiffPreviewDrawer": {
+      "closePreview": "Cerrar vista previa del diff de los commits",
+      "committedOnBranch": "Commits en la rama",
+      "loadFailed": "No se pudo cargar el diff",
+      "truncated": "Diff truncado para la vista previa móvil."
     },
     "commitDropdown": {
       "checkOutBranchToPush": "Haz checkout de una rama antes de hacer push de commits",
@@ -2619,8 +2689,49 @@
       "stageFile": "Haz stage de al menos un archivo para crear un commit",
       "useCommitAndForcePush": "Usa Commit y Force Push — el remoto solo tiene copias antiguas de commits locales"
     },
+    "commitFailurePanel": {
+      "fix": "Arreglar",
+      "fixWithAi": "Solucionar error de commit con IA",
+      "hideDetails": "Ocultar detalles",
+      "hideFailureDetails": "Ocultar detalles del error de commit",
+      "showDetails": "Mostrar detalles",
+      "showFailureDetails": "Mostrar detalles del error de commit",
+      "summary": "No se pudo hacer commit.",
+      "title": "No se pudo hacer commit"
+    },
+    "commitMessageAi": {
+      "generateFailed": "No se pudo generar el mensaje de commit"
+    },
+    "commitRunners": {
+      "actionFailed": "No se pudo realizar la acción de control de código fuente",
+      "commitFailed": "No se pudo hacer commit"
+    },
+    "conflictAbort": {
+      "abortMerge": "Cancelar fusión",
+      "abortOperation": "Abortar {{operation}}",
+      "abortRebase": "Abortar rebase",
+      "aborting": "Abortando…"
+    },
+    "content": {
+      "cancelGeneration": "Cancelar la generación del mensaje de commit",
+      "commitMessageDisabled": "Mensaje de commit deshabilitado. No hay archivos preparados.",
+      "commitMessagePlaceholder": "Mensaje de commit",
+      "emptyMessage": "El árbol de trabajo está limpio.",
+      "emptyTitle": "No hay cambios locales",
+      "generateMessage": "Generar mensaje de commit con IA",
+      "noStagedFiles": "No hay archivos preparados",
+      "openActions": "Abrir acciones de control de código fuente",
+      "reconnecting": "Reconectando con el escritorio…",
+      "regenerateHint": "Borre el mensaje para regenerar.",
+      "stageAll": "Hacer stage de todo",
+      "unstageAll": "Quitar todo del stage"
+    },
     "createPrAction": {
-      "createReview": "Crear {{titleLabel}}"
+      "checkingStatus": "Comprobando estado de revisión…",
+      "createPullRequest": "Crear pull request",
+      "createReview": "Crear {{titleLabel}}",
+      "providerUnavailable": "Creación de revisiones no disponible para este proveedor",
+      "statusUnavailable": "Estado de revisión no disponible"
     },
     "dropdownCounts": {
       "fastForwardCount_many": "Hacer fast-forward de {{count}} commits",
@@ -2649,6 +2760,69 @@
       "titleUnpublishedForcePushCount_one": "Haz force push con lease de {{count}} commit de la rama y configura un upstream si es necesario.",
       "titleUnpublishedForcePushCount_other": "Haz force push con lease de {{count}} commits de la rama y configura un upstream si es necesario."
     },
+    "fileList": {
+      "committedSection": "Commits en la rama"
+    },
+    "fileRows": {
+      "addedByThem": "Agregado por ellos",
+      "addedByUs": "Agregado por nosotros",
+      "bothAdded": "Agregado por ambos",
+      "bothDeleted": "Eliminado por ambos",
+      "bothModified": "Modificado por ambos",
+      "committedSection": "Commits en la rama",
+      "committedUnavailable": "Los cambios confirmados no están disponibles.",
+      "deletedByThem": "Eliminado por ellos",
+      "deletedByUs": "Eliminado por nosotros",
+      "discardFile": "Descartar {{path}}",
+      "loadingCommitted": "Cargando cambios confirmados…",
+      "openChangedFile": "Abrir archivo modificado {{path}}",
+      "openCommittedChange": "Abrir cambio confirmado en {{path}}",
+      "renamedFrom": "de {{path}}",
+      "stageFile": "Agregar {{path}} al stage",
+      "unresolvedConflict": "Conflicto sin resolver",
+      "unstageFile": "Quitar {{path}} del stage"
+    },
+    "gitHistory": {
+      "days_many": "{{count}} d",
+      "days_one": "{{count}} d",
+      "days_other": "{{count}} d",
+      "hours_many": "{{count}} h",
+      "hours_one": "{{count}} h",
+      "hours_other": "{{count}} h",
+      "justNow": "ahora mismo",
+      "loadFailed": "No se pudo cargar el historial de commits",
+      "minutes_many": "{{count}} min",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "months_many": "{{count}} meses",
+      "months_one": "{{count}} mes",
+      "months_other": "{{count}} meses",
+      "noCommitMessage": "(sin mensaje de commit)",
+      "years_many": "{{count}} años",
+      "years_one": "{{count}} año",
+      "years_other": "{{count}} años"
+    },
+    "gitHistoryList": {
+      "loadFailed": "No se pudo cargar el historial",
+      "loadFilesFailed": "No se pudieron cargar los archivos del commit",
+      "noCommits": "No hay commits.",
+      "noFileChanges": "No hay cambios en los archivos",
+      "retryFiles": "Reintentar la carga de los archivos del commit",
+      "waitingForDesktop": "Esperando al escritorio…"
+    },
+    "gitStatus": {
+      "changes": "Cambios",
+      "conflicts": "Conflictos",
+      "stagedChanges": "Cambios preparados"
+    },
+    "header": {
+      "backToSession": "Volver a la sesión",
+      "close": "Cerrar el control de código fuente",
+      "openNumberedPrWeb": "Abrir la pull request #{{number}} en la web",
+      "openPrWeb": "Abrir la pull request en la web",
+      "refresh": "Actualizar el control de código fuente",
+      "title": "Control de código fuente"
+    },
     "hostedReview": {
       "mrCopy": {
         "reviewLabel": "solicitud de fusión",
@@ -2661,8 +2835,81 @@
         "titleLabel": "Solicitud de extracción"
       }
     },
+    "hostedReviewCopy": {
+      "committingChanges": "Confirmando cambios…",
+      "creatingReview": "Creando revisión…",
+      "forcePushing": "Haciendo force push con lease…",
+      "generatingCommitMessage": "Generando mensaje de commit…",
+      "publishingBranch": "Publicando rama…",
+      "pushingCommits": "Haciendo push de commits…",
+      "stagingChanges": "Agregando cambios al stage…",
+      "updatingBranch": "Actualizando rama…"
+    },
     "hostedReviewCreate": {
       "pushSucceeded": "El push se completó, pero no se pudo crear {{shortLabel}}: {{error}}"
+    },
+    "hostedReviewCreateIntent": {
+      "branchChanged": "La rama cambió mientras se preparaba la pull request.",
+      "generateMessageFailed": "No se pudo generar un mensaje de commit. Añade uno en Control de código fuente y vuelve a intentarlo.",
+      "resolveConflicts": "Resuelve los conflictos antes de crear una pull request.",
+      "resolveOrStageChanges": "Resuelve los conflictos o agrega los cambios al stage antes de crear una pull request.",
+      "reviewCommitMessage": "Revisa el mensaje de commit y vuelve a intentar Crear PR."
+    },
+    "hostedReviewGitPreparation": {
+      "commitFailed": "No se pudo hacer commit",
+      "refreshFailed": "No se pudo actualizar el control de código fuente",
+      "stageFailed": "No se pudieron agregar los cambios al stage",
+      "updateBranchFailed": "No se pudo actualizar la rama remota. Vuelve a intentar Crear PR."
+    },
+    "hostedReviewRemotePrerequisite": {
+      "forcePushFailed": "No se pudo hacer force push con lease",
+      "publishFailed": "No se pudo publicar la rama",
+      "pushFailed": "No se pudo hacer push de los commits"
+    },
+    "hostedReviewService": {
+      "createFailed": "No se pudo crear la pull request",
+      "pushBeforeCreateFailed": "El push falló. Resuelve el error de push y vuelve a intentarlo."
+    },
+    "hubTab": {
+      "changes": "Cambios",
+      "commits": "Commits",
+      "pullRequest": "Solicitud de extracción"
+    },
+    "loaders": {
+      "connectingToDesktop": "Conectando con el escritorio…",
+      "loadFailed": "No se pudo cargar el control de código fuente",
+      "updateDesktop": "Actualiza Orca en el escritorio para usar el control de código fuente en el móvil.",
+      "waitingForDesktop": "Esperando al escritorio…"
+    },
+    "modals": {
+      "actionsTitle": "Control de código fuente",
+      "currentBranch": "actual",
+      "discardButton": "Descartar",
+      "discardConfirmMessage": "¿Descartar los cambios de \"{{path}}\"? Esta acción no se puede deshacer.",
+      "discardTitle": "Descartar cambio",
+      "openPrMessage": "¿Abrirla en tu navegador?",
+      "openPrWithWarning": "¿Abrirla en tu navegador?\n\n{{warning}}",
+      "prCreatedTitle": "Solicitud de extracción creada",
+      "switchBranchTitle": "Cambiar de rama"
+    },
+    "openers": {
+      "openDiffFailed": "No se pudo abrir el diff",
+      "tabNotReady": "El archivo se abrió, pero su pestaña aún no está lista. Vuelve a intentarlo.",
+      "waitingForDesktop": "Esperando al escritorio…"
+    },
+    "panel": {
+      "loadFailedTitle": "No se pudo cargar",
+      "unavailableTitle": "Control de código fuente no disponible"
+    },
+    "prChip": {
+      "createPr": "Crear pull request",
+      "loading": "Cargando pull request…",
+      "loadingLabel": "Cargando pull request",
+      "openLabel": "Pull request #{{number}}, {{state}}, {{checks}}. Abrir pull request.",
+      "openWithComments_many": "Pull request #{{number}}, {{state}}, {{checks}}, {{count}} comentarios sin resolver. Abrir pull request.",
+      "openWithComments_one": "Pull request #{{number}}, {{state}}, {{checks}}, {{count}} comentario sin resolver. Abrir pull request.",
+      "openWithComments_other": "Pull request #{{number}}, {{state}}, {{checks}}, {{count}} comentarios sin resolver. Abrir pull request.",
+      "unavailableLabel": "Pull request no disponible: {{message}}"
     },
     "prCreate": {
       "authRequired": "Autentícate antes de crear una {{reviewLabel}}.",
@@ -2682,8 +2929,19 @@
       "unsupportedMergeRequests": "No se pueden crear merge requests en este repositorio.",
       "unsupportedPullRequests": "No se pueden crear pull requests en este repositorio."
     },
+    "prLink": {
+      "updatePullRequestFailed": "No se pudo actualizar la pull request vinculada",
+      "updateReviewFailed": "No se pudo actualizar la revisión vinculada"
+    },
     "primaryAction": {
-      "forcePushFromDesktop": "Haz force push de la rama de esta pull request desde el escritorio"
+      "commit": "Commit",
+      "forcePush": "Force Push",
+      "forcePushFromDesktop": "Haz force push de la rama de esta pull request desde el escritorio",
+      "publishBranch": "Publicar rama",
+      "pull": "Pull",
+      "push": "Push",
+      "stageAll": "Hacer stage de todo",
+      "sync": "Sincronizar"
     },
     "remoteDropdown": {
       "branchAlreadyPublished": "La rama ya está publicada",
@@ -2733,6 +2991,600 @@
       "tryFastForwardPull": "Intenta un pull con fast-forward; git puede rechazar los commits locales",
       "tryRegularPush": "Intenta un push normal; git puede requerir force push",
       "useForcePushToSync": "Usa Force Push — el remoto solo tiene copias antiguas de commits locales"
+    },
+    "runners": {
+      "actionFailed": "No se pudo realizar la acción de control de código fuente"
+    },
+    "screenState": {
+      "noBranch": "Sin rama"
+    },
+    "state": {
+      "noUpstream": "Sin upstream",
+      "syncStatus": "{{ahead}} por delante, {{behind}} por detrás"
+    },
+    "useMobileCommitFailureRecovery": {
+      "launchFailed": "No se pudo iniciar el agente",
+      "waitingForDesktop": "Esperando al escritorio…"
+    },
+    "useMobileCommitMessageGeneration": {
+      "generateFailed": "No se pudo generar el mensaje de commit"
+    },
+    "useMobileCreatePrRunner": {
+      "branchRequired": "Haz checkout de una rama antes de crear una pull request."
+    },
+    "useMobileGitRequests": {
+      "actionFailed": "No se pudo realizar la acción de control de código fuente",
+      "branchUnavailable": "Estado de la rama no disponible",
+      "commitFailed": "No se pudo hacer commit",
+      "waitingForDesktop": "Esperando al escritorio…"
+    }
+  },
+  "tasks": {
+    "composerSource": {
+      "baseFailed": "No se pudo resolver la rama base.",
+      "forkPushWarning": "Esta PR tiene desactivada la opción \"Allow edits from maintainers\"; GitHub podría rechazar el push al fork."
+    },
+    "detailCommentRenderers": {
+      "commentPlaceholder": "Agregar un comentario",
+      "comments_many": "{{count}} comentarios",
+      "comments_one": "{{count}} comentario",
+      "comments_other": "{{count}} comentarios",
+      "reopenThread": "Reabrir hilo",
+      "reply": "Responder",
+      "resolveThread": "Resolver hilo",
+      "resolvedCommentBy": "Comentario de {{author}} resuelto",
+      "resolvedThreadBy": "Hilo de {{author}} resuelto",
+      "sendComment": "Enviar comentario",
+      "show": "Mostrar"
+    },
+    "filterPickers": {
+      "allTeams": "Todos los equipos",
+      "changeStatus": "Cambiar estado",
+      "fieldHidden": "Oculto en las tarjetas",
+      "fieldShown": "Visible en las tarjetas",
+      "fieldsSubtitle": "Elige qué campos del proyecto aparecen en las tarjetas de los elementos.",
+      "fieldsTitle": "Campos del proyecto",
+      "gitlabFilter": "Filtro de GitLab",
+      "gitlabView": "Vista de GitLab",
+      "jiraFilter": "Filtro de Jira",
+      "jiraSite": "Sitio de Jira",
+      "linearFilter": "Filtro de Linear",
+      "linearIssue": "Issue de Linear",
+      "linearWorkspace": "Espacio de trabajo de Linear",
+      "loadingStates": "Cargando estados…",
+      "noFields": "Esta vista no tiene campos adicionales que mostrar.",
+      "noStates": "No hay estados disponibles",
+      "switchWorkspaceFailed": "No se pudo cambiar de espacio de trabajo",
+      "teamsSubtitle": "Elige qué equipos aparecen en Tareas.",
+      "teamsTitle": "Equipos de Linear",
+      "teams_many": "{{count}} equipos",
+      "teams_one": "{{count}} equipo",
+      "teams_other": "{{count}} equipos"
+    },
+    "githubProjectList": {
+      "browseProjects": "Explorar proyectos",
+      "chooseProject": "Elige un proyecto de GitHub",
+      "emptyField": "Vacío",
+      "issueSubtitle": "Issue · {{repository}}{{number}}",
+      "itemSubtitle": "Elemento del proyecto · {{repository}}{{number}}",
+      "items": "Elementos",
+      "moreFields_many": "+{{count}} campos",
+      "moreFields_one": "+{{count}} campo",
+      "moreFields_other": "+{{count}} campos",
+      "noItems": "No hay elementos en el proyecto",
+      "pullRequestSubtitle": "Pull request · {{repository}}{{number}}"
+    },
+    "githubProjectPickers": {
+      "add": "Agregar",
+      "addByUrlHint": "Usa Agregar por URL para acceder a los proyectos que faltan.",
+      "addPlaceholder": "Agregar por URL u owner/number",
+      "adding": "Agregando…",
+      "browseAll": "Explorar todo",
+      "browseLoading": "Explorar todo (cargando…)",
+      "chooseView": "Elegir vista del proyecto",
+      "loadFailed": "No se pudieron cargar los proyectos",
+      "noMatches": "No hay proyectos que coincidan.",
+      "noMoreProjects": "No hay más proyectos.",
+      "noProjects": "No hay proyectos cargados",
+      "organizationsError": "organizaciones: {{message}}",
+      "organizationsLoadFailed": "No se pudieron cargar algunas organizaciones ({{count}}).",
+      "ownerLoadFailed": "No se pudieron cargar los proyectos de {{owner}}.",
+      "pin": "Fijar",
+      "pinned": "Fijado",
+      "recent": "Recientes",
+      "retryHint": "Toca para reintentar.",
+      "searchProjects": "Buscar proyectos",
+      "sort": "Orden del proyecto",
+      "subtitle": "Elige una vista de proyecto para la página Tareas.",
+      "title": "Proyectos de GitHub",
+      "unsupportedLayout": "Orca aún no admite este diseño de proyecto de GitHub.",
+      "view": "Vista del proyecto"
+    },
+    "githubViewControls": {
+      "fields": "Campos: {{fields}}",
+      "openView": "Abrir vista en GitHub",
+      "sort": "Orden: {{sort}}",
+      "source": "Origen: {{source}}"
+    },
+    "itemActions": {
+      "changeStatus": "Cambiar estado",
+      "copyGitHubLink": "Copiar enlace de GitHub",
+      "copyLinearLink": "Copiar enlace de Linear",
+      "createWorkspace": "Crear espacio de trabajo",
+      "creating": "Creando…",
+      "mergeConflicts": "GitHub informa de conflictos de merge.",
+      "mergeMergeRequest": "Hacer merge de la merge request",
+      "mergePullRequest": "Hacer merge del pull request"
+    },
+    "itemDetailContent": {
+      "addSubIssue": "Añadir sub-issue",
+      "assignee": "Asignado",
+      "assignees": "Asignados",
+      "checks": "Checks",
+      "description": "Descripción",
+      "discussion": "Discusión",
+      "noChecks": "No se encontraron checks.",
+      "noComments": "No hay comentarios.",
+      "noPipelineRuns": "No hay ejecuciones de pipeline para este MR.",
+      "noSubIssues": "No hay sub-issues.",
+      "none": "Ninguno",
+      "pipeline": "Pipeline",
+      "pipelineJobs_many": "{{count}} trabajos",
+      "pipelineJobs_one": "{{count}} trabajo",
+      "pipelineJobs_other": "{{count}} trabajos",
+      "project": "Proyecto",
+      "rerunAll": "Reejecutar todos",
+      "rerunFailed": "Reejecutar fallidos",
+      "status": "Estado",
+      "subIssueTitle": "Título del sub-issue",
+      "subIssues": "Sub-issues",
+      "type": "Tipo"
+    },
+    "itemDetailDrawer": {
+      "refreshDetails": "Actualizar detalles"
+    },
+    "itemFieldEditors": {
+      "addLabels": "Añade etiquetas, separadas por comas",
+      "addUsernames": "Añade nombres de usuario, separados por comas",
+      "assignees": "Asignados",
+      "labels": "Etiquetas",
+      "loadingAssignees": "Cargando asignados…",
+      "loadingLabels": "Cargando etiquetas…",
+      "noAssignableUsers": "No se encontraron usuarios asignables en este repositorio.",
+      "noLabels": "No hay etiquetas en este repositorio.",
+      "none": "Sin selección",
+      "removeLabels": "Quita etiquetas, separadas por comas",
+      "removeUsernames": "Quita nombres de usuario, separados por comas",
+      "saveTitle": "Guardar título",
+      "title": "Título",
+      "updateAssignees": "Actualizar asignados",
+      "updateLabels": "Actualizar etiquetas"
+    },
+    "itemReviewSections": {
+      "binaryFile": "Archivo binario.",
+      "changedFilesTitle": "Archivos modificados",
+      "descriptionPlaceholder": "Descripción",
+      "fileContentsUnavailable": "El contenido del archivo no está disponible.",
+      "hideFile": "Ocultar",
+      "loadingReviewers": "Cargando revisores…",
+      "markUnviewed": "Marcar no visto",
+      "markViewed": "Marcar visto",
+      "noDescription": "Sin descripción.",
+      "noReviewerSuggestions": "No se encontraron sugerencias de revisores.",
+      "noReviewersRequested": "No se solicitaron revisores.",
+      "requestReview": "Solicitar revisión",
+      "reviewersPlaceholder": "Solicitar revisores",
+      "reviewersTitle": "Revisores",
+      "saveDescription": "Guardar descripción",
+      "viewFile": "Ver"
+    },
+    "legacySurface": {
+      "loadIssuesFailed": "No se pudieron cargar los issues de {{source}}.",
+      "mergeAction": "Merge",
+      "mergeMethodTitle": "Método de merge",
+      "mergePullRequestTitle": "Fusionar pull request",
+      "mergeRequestMergeMessage": "Elige cómo hacer merge de esta merge request.",
+      "mergeRequestTitle": "Solicitud de fusión",
+      "pullRequestMergeMessage": "Elige cómo hacer merge de esta pull request.",
+      "retryLoadingIssues": "Reintentar cargar los issues de {{source}}",
+      "retrying": "Reintentando…",
+      "sourceFallback": "La fuente de issues preferida, upstream, no está disponible para {{repo}}. Se usa origin.",
+      "subIssueDataUnavailable": "Los datos de sub-issues no están disponibles para tu token.",
+      "updateItemTitle": "Actualizar elemento"
+    },
+    "linearList": {
+      "changeStatusFrom": "Cambiar el estado actual: {{status}}"
+    },
+    "linearViewControls": {
+      "displayButton": "Mostrar",
+      "groupLabel": "Agrupar: {{group}}",
+      "orderLabel": "Orden: {{order}}"
+    },
+    "listDisplayPickers": {
+      "displayPropertiesTitle": "Propiedades visibles",
+      "linearGroupTitle": "Agrupar issues de Linear",
+      "linearOrderTitle": "Ordenar issues de Linear",
+      "linearViewTitle": "Vista de Linear",
+      "sortTasksTitle": "Ordenar tareas"
+    },
+    "listSurface": {
+      "connectLinearButton": "Conectar Linear",
+      "connectLinearMessage": "Consulta los issues de Linear que tienes asignados y empieza a trabajar en ellos directamente desde Tareas.",
+      "connectLinearTitle": "Conecta tu cuenta Linear",
+      "jiraStatusFailed": "No se pudo leer el estado de Jira",
+      "updateDesktopMessage": "Esta vista móvil de Tareas necesita un entorno de ejecución de escritorio más reciente.",
+      "updateDesktopTitle": "Actualiza Orca en el escritorio"
+    },
+    "options": {
+      "all": "Todo",
+      "assignedToMe": "Asignado a mí",
+      "assignee": "Asignado",
+      "board": "Tablero",
+      "boardDescription": "Columnas agrupadas",
+      "closedState": "Cerrado",
+      "completedState": "Completado",
+      "createdState": "Creado",
+      "githubAssignedIssuesDescription": "Issues abiertos asignados a ti",
+      "githubDescription": "Issues y pull requests",
+      "githubIssuesDescription": "Issues de GitHub",
+      "githubOpenIssuesDescription": "Issues abiertos de GitHub",
+      "githubProjectsDescription": "Vistas de GitHub Projects",
+      "githubPullRequestsDescription": "Pull requests de GitHub",
+      "gitlabAllDescription": "Cualquier estado de GitLab",
+      "gitlabClosedDescription": "Issues y merge requests cerrados",
+      "gitlabDescription": "Issues y merge requests",
+      "gitlabMergedDescription": "Merge requests mergeados",
+      "gitlabOpenDescription": "Issues y merge requests abiertos",
+      "identifier": "Identificador",
+      "issues": "Issues",
+      "jiraDescription": "Issues asignados y reportados",
+      "labels": "Etiquetas",
+      "linearAllDescription": "Issues abiertos en los espacios de trabajo conectados",
+      "linearAssignedDescription": "Issues que tienes asignados",
+      "linearCompletedDescription": "Issues completados recientemente",
+      "linearCreatedDescription": "Issues que has creado",
+      "linearDescription": "Issues asignados y del equipo",
+      "list": "Lista",
+      "listDescription": "Filas compactas de issues",
+      "mergedState": "Mergeado",
+      "mine": "Mío",
+      "myIssues": "Mis issues",
+      "myPullRequestsDescription": "Pull requests creadas por ti",
+      "myTodos": "Mis pendientes",
+      "myTodosDescription": "Tareas pendientes de GitLab",
+      "needsReview": "Necesita revisión",
+      "noGrouping": "Sin agrupación",
+      "openPullRequestsDescription": "Pull requests abiertas",
+      "openState": "Abierto",
+      "priority": "Prioridad",
+      "projectMergeRequests": "MRs del proyecto",
+      "projectMergeRequestsDescription": "Solicitudes de fusión e issues por repositorio",
+      "projects": "Proyectos",
+      "pullRequests": "PRs",
+      "repository": "Repositorio",
+      "repositorySortDescription": "Agrupar por repositorio y luego por actividad más reciente",
+      "reviewRequestsDescription": "Solicitudes de revisión asignadas a ti",
+      "status": "Estado",
+      "team": "Equipo",
+      "updated": "Actualizado",
+      "updatedSortDescription": "Actividad más reciente primero"
+    },
+    "pickerProjection": {
+      "allRepos": "Todos los repositorios",
+      "allSites": "Todos los sitios",
+      "currentlyAscending": "Ascendente · toca para cambiar a descendente",
+      "currentlyDescending": "Descendente · toca para cambiar a ascendente",
+      "fieldAscending": "{{field}} ascendente",
+      "fieldDescending": "{{field}} descendente",
+      "fields": "Campos",
+      "repos_many": "{{count}} repositorios",
+      "repos_one": "{{count}} repositorio",
+      "repos_other": "{{count}} repositorios",
+      "selectTarget": "Seleccionar destino",
+      "selectedFields": "{{selected}}/{{total}} campos",
+      "sortAscending": "Ordenar de forma ascendente",
+      "sources_many": "{{count}} orígenes",
+      "sources_one": "{{count}} origen",
+      "sources_other": "{{count}} orígenes",
+      "unsupportedLayout": "Diseño no compatible en móviles",
+      "updatedSort": "Actualizado",
+      "usesFieldAscending": "Usa {{field}} en orden ascendente",
+      "usesFieldDescending": "Usa {{field}} en orden descendente",
+      "usesGitHubRankOrder": "Usa el orden de clasificación de GitHub",
+      "viewNumber": "Vista #{{number}}",
+      "viewOrder": "Orden de la vista"
+    },
+    "prFileDiff": {
+      "commentOnLine": "Comentar en la línea {{line}}",
+      "commentPlaceholder": "Añade un comentario de revisión",
+      "noTextChanges": "No se encontraron cambios de texto.",
+      "showingDiffLines": "Se muestran las primeras {{limit}} de {{total}} líneas del diff."
+    },
+    "projectComments": {
+      "comments_many": "{{count}} comentarios",
+      "comments_one": "{{count}} comentario",
+      "comments_other": "{{count}} comentarios",
+      "discussion": "Conversación",
+      "editComment": "Editar comentario",
+      "noComments": "No hay comentarios.",
+      "reopenThread": "Reabrir hilo",
+      "reply": "Responder",
+      "resolveThread": "Resolver hilo",
+      "resolvedCommentBy": "Comentario de {{author}} resuelto",
+      "resolvedThreadBy": "Hilo de {{author}} resuelto",
+      "show": "Mostrar"
+    },
+    "projectDetailDrawer": {
+      "addRepositoryFromDesktop": "{{repository}} no se ha añadido a Orca. Añade este repositorio desde la aplicación de escritorio y luego actualiza Tareas en el móvil.",
+      "clearType": "Quitar tipo",
+      "closeItem": "Cerrar elemento",
+      "copyGitHubLink": "Copiar enlace de GitHub",
+      "copyRepository": "Copiar repositorio",
+      "createWorkspace": "Crear espacio de trabajo",
+      "draftIssue": "Issue en borrador",
+      "issue": "Issue",
+      "issueType": "Tipo de issue",
+      "loadingIssueTypes": "Cargando tipos de issue…",
+      "mergePullRequest": "Hacer merge de la pull request",
+      "mergeRepositoryRequirement": "Para hacer merge, el repositorio debe estar en Orca.",
+      "noIssueTypes": "No hay tipos de issue configurados para este repositorio.",
+      "noType": "Sin tipo",
+      "openInGitHub": "Abrir en GitHub",
+      "projectItem": "Elemento del proyecto",
+      "projectSubtitle": "Proyecto de GitHub · {{repository}}{{itemNumber}}",
+      "pullRequest": "Pull request",
+      "reopenItem": "Reabrir elemento",
+      "repositoryNotInOrca": "Repositorio no está en Orca",
+      "status": "Estado",
+      "type": "Tipo",
+      "workspaceCreationRequirement": "Solo se pueden crear espacios de trabajo a partir de issues y pull requests de GitHub."
+    },
+    "projectFieldEditors": {
+      "clearField": "Vaciar campo",
+      "completedIteration": "Completada · {{startDate}} · {{duration}}d",
+      "datePlaceholder": "YYYY-MM-DD",
+      "invalidDate": "Introduce una fecha con el formato YYYY-MM-DD.",
+      "invalidNumber": "Introduce un número válido.",
+      "noIterations": "No hay iteraciones disponibles.",
+      "numberPlaceholder": "Número",
+      "projectFields": "Campos del proyecto",
+      "saveField": "Guardar campo",
+      "textPlaceholder": "Texto",
+      "upcomingIteration": "En curso o próxima · {{startDate}} · {{duration}}d"
+    },
+    "projectMetadataEditors": {
+      "assignees": "Asignados",
+      "description": "Descripción",
+      "labels": "Etiquetas",
+      "loadingAssignees": "Cargando asignados…",
+      "loadingLabels": "Cargando etiquetas…",
+      "noAssignableUsers": "No se encontraron usuarios asignables en este repositorio.",
+      "noDescription": "Sin descripción.",
+      "noLabels": "No hay etiquetas en este repositorio.",
+      "none": "Sin selección",
+      "saveDescription": "Guardar descripción",
+      "saveTitle": "Guardar título",
+      "title": "Título"
+    },
+    "projectReviewPanels": {
+      "binaryFile": "Archivo binario.",
+      "changedFiles": "Archivos modificados",
+      "checks": "Checks",
+      "fileUnavailable": "Contenido del archivo no disponible.",
+      "hideFile": "Ocultar",
+      "loadingReviewers": "Cargando revisores…",
+      "markUnviewed": "Marcar no visto",
+      "markViewed": "Marcar visto",
+      "noChecks": "No se encontraron checks.",
+      "noReviewers": "No se solicitaron revisores.",
+      "noSuggestions": "No se encontraron sugerencias de revisores.",
+      "requestReview": "Solicitar revisión",
+      "requestReviewers": "Solicitar revisores",
+      "rerunAll": "Reejecutar todos",
+      "rerunFailed": "Reejecutar fallidos",
+      "reviewers": "Revisores",
+      "viewFile": "Ver"
+    },
+    "providerControls": {
+      "myTodos": "Mis tareas pendientes",
+      "projectMergeRequests": "MR del proyecto",
+      "sort": "Ordenar: {{sortLabel}}"
+    },
+    "providerItemList": {
+      "intoBranch": "en {{base}}",
+      "nextPage": "Página siguiente",
+      "page": "Página {{page}}",
+      "pageOfTotal": "Página {{page}} de {{total}}",
+      "previousPage": "Página anterior",
+      "selectPage": "Seleccionar página, página {{page}}",
+      "selectPageOfTotal": "Seleccionar página, página {{page}} de {{total}}"
+    },
+    "providerPickers": {
+      "allRepositories": "Todos los repositorios",
+      "githubView": "Vista de GitHub",
+      "issueSources": "Fuentes de issues de GitHub",
+      "issueSourcesDescription": "Elige si usar upstream u origin para consultar y crear issues en cada repositorio.",
+      "issues": "Issues",
+      "noIssueSources": "No hay fuentes alternativas de issues disponibles.",
+      "origin": "Origen",
+      "pageHint": "Ve a una página de resultados cargada o disponible.",
+      "pageLoaded": "Cargada",
+      "pageNotLoaded": "Carga resultados anteriores",
+      "pageNumber": "Página {{page}}",
+      "pages": "Páginas de GitHub",
+      "pullRequests": "Pull requests",
+      "queryingSource": "Consultando {{source}}",
+      "repoDescription": "Elige qué repositorios consultar.",
+      "repos": "Repositorios",
+      "taskSource": "Fuente de tareas",
+      "upstream": "Upstream"
+    },
+    "providerViewProjection": {
+      "all": "Todo",
+      "allSites": "Todos los sitios",
+      "allTeams": "Todos los equipos",
+      "allWorkspaces": "Todos los espacios de trabajo",
+      "chooseProject": "Elige proyecto",
+      "default": "Predeterminado",
+      "defaultSubtitle": "{{subtitle}} · Predeterminado",
+      "issues": "Issues",
+      "list": "Lista",
+      "noGrouping": "Sin agrupación",
+      "openState": "Abierto",
+      "priority": "Prioridad",
+      "projects": "Proyectos",
+      "pullRequests": "PRs",
+      "teams_many": "{{count}} equipos",
+      "teams_one": "{{count}} equipo",
+      "teams_other": "{{count}} equipos",
+      "workspace": "Espacio de trabajo"
+    },
+    "reviewerLinear": {
+      "issues": "Issues",
+      "unassigned": "Sin asignar"
+    },
+    "screenChrome": {
+      "connectLinear": "Conectar Linear",
+      "newGitHubIssue": "Nuevo issue de GitHub",
+      "newLinearIssue": "Nuevo issue de Linear",
+      "refreshGitHub": "Actualizar trabajo de GitHub",
+      "refreshGitLab": "Actualizar elementos de trabajo de GitLab",
+      "refreshJira": "Actualizar issues de Jira",
+      "refreshLinear": "Actualizar Linear",
+      "title": "Tareas"
+    },
+    "searchControl": {
+      "jiraPlaceholder": "JQL de Jira, p. ej. project = ABC AND statusCategory != Done",
+      "projectPlaceholder": "Buscar en la vista del proyecto…",
+      "providerPlaceholder": "Buscar tareas de {{provider}}…"
+    },
+    "smartSourceModes": {
+      "allStates": "Todo",
+      "branch": "Rama",
+      "closedState": "Cerrado",
+      "mergedState": "Mergeado",
+      "name": "Nombre",
+      "openState": "Abierto",
+      "smart": "Inteligente"
+    },
+    "sparsePresetDraft": {
+      "directoryRequired": "Agrega al menos un directorio.",
+      "repoRelativeDirectoriesRequired": "Usa directorios relativos al repositorio, no la raíz, rutas absolutas ni segmentos padre."
+    },
+    "taskViewOptions": {
+      "allSubtitle": "Issues sin resolver en los sitios seleccionados",
+      "assignedSubtitle": "Issues sin resolver asignados a ti",
+      "doneSubtitle": "Tus issues resueltos recientemente",
+      "noGitHubTasks": "No hay tareas de GitHub",
+      "noGitLabTasks": "No hay tareas de GitLab",
+      "noJiraTasks": "No hay tareas de Jira",
+      "noLinearTasks": "No hay tareas de Linear",
+      "reportedSubtitle": "Issues sin resolver que has reportado"
+    },
+    "tasksCreateDrawers": {
+      "connect": "Conectar",
+      "connectLinearWorkspace": "Conectar espacio de trabajo de Linear",
+      "createIssue": "Crear issue",
+      "createWorkspaceIn": "Crear espacio de trabajo en",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Añade contexto",
+      "fileIn": "Crear en {{slug}}",
+      "issueSource": "Fuente de issues",
+      "keySecurityHint": "Tu clave se cifra con el llavero del sistema operativo del host y se guarda localmente.",
+      "linearConnectSubtitle": "Pega una clave API personal para consultar los issues de ese espacio de trabajo.",
+      "linearSettingsLink": "Ajustes de Linear / Seguridad / Nueva clave API",
+      "linearTeam": "Equipo de Linear",
+      "linearTeamSubtitle": "Crea un issue en el equipo de Linear seleccionado.",
+      "newIssueTitle": "Nuevo issue de {{providerLabel}}",
+      "origin": "Origen",
+      "personalApiKey": "Clave API personal",
+      "repository": "Repositorio",
+      "repositorySubtitle": "Crea un issue en el repositorio seleccionado.",
+      "team": "Equipo",
+      "title": "Título",
+      "titlePlaceholder": "Título de la tarea",
+      "upstream": "Upstream"
+    },
+    "workspaceAgentSelection": {
+      "blankTerminal": "Terminal en blanco"
+    },
+    "workspaceCreateDrawer": {
+      "addRepository": "Añade un repositorio Git antes de crear un espacio de trabajo de Linear.",
+      "advanced": "Avanzado",
+      "agent": "Agente",
+      "connect": "Conectar",
+      "connectFirst": "Conecta primero el repositorio",
+      "connectRepository": "Conectar repositorio",
+      "connecting": "Conectando…",
+      "createFrom": "Crear desde {{branch}}",
+      "defaultBranch": "Rama predeterminada",
+      "detectingAgents": "Detectando agentes…",
+      "optional": "[Opcional]",
+      "remoteRepository": "Repositorio remoto",
+      "repository": "Repositorio",
+      "repositoryNotFound": "No se encontró el repositorio.",
+      "selectRepository": "Selecciona un repositorio",
+      "sshConnection": "Conexión SSH",
+      "startFrom": "Iniciar desde",
+      "title": "Crear espacio de trabajo",
+      "workspaceName": "Nombre del espacio de trabajo"
+    },
+    "workspaceCreateProjection": {
+      "nameAlreadyExists": "\"{{name}}\" ya existe.",
+      "nameRequired": "El nombre es obligatorio.",
+      "nameTooLong": "El nombre debe tener 80 caracteres o menos.",
+      "openShell": "Abrir un shell"
+    },
+    "workspaceOptionPickers": {
+      "baseBranchSubtitle": "Elige una rama o referencia existente.",
+      "baseBranchTitle": "Iniciar desde",
+      "branchName": "Nombre de la rama: {{name}}",
+      "defaultBranch": "Rama predeterminada",
+      "defaultBranchSubtitle": "Usar la rama base configurada para este repositorio",
+      "editPreset": "Editar {{name}}",
+      "fullCheckout": "Checkout completo",
+      "fullCheckoutSubtitle": "Usar todo el repositorio",
+      "newPreset": "Nuevo preset",
+      "noBranches": "No hay ramas que coincidan.",
+      "searchBranches": "Buscar ramas",
+      "sparseCheckoutTitle": "Checkout disperso"
+    },
+    "workspaceSshGate": {
+      "authenticationFailed": "Autenticación fallida",
+      "connected": "Conectado",
+      "connecting": "Conectando",
+      "connectionFailed": "La conexión falló",
+      "deployingRelay": "Desplegando Relay",
+      "disconnected": "Desconectado",
+      "reconnectFailed": "Falló la reconexión",
+      "reconnecting": "Reconectando"
+    },
+    "workspaceTrustDrawers": {
+      "alwaysTrustAndRun": "Confiar siempre y ejecutar",
+      "creating": "Creando…",
+      "directoriesLabel": "Directorios",
+      "directories_many": "{{count}} directorios",
+      "directories_one": "{{count}} directorio",
+      "directories_other": "{{count}} directorios",
+      "dontRun": "No ejecutar",
+      "editSparsePreset": "Editar preajuste de checkout disperso",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Interfaz del renderizador",
+      "newSetupScript": "Nuevo script de configuración",
+      "newSparsePreset": "Nuevo preajuste de checkout disperso",
+      "runHooks": "Ejecutar hooks",
+      "runSetupAndCreate": "Ejecutar configuración y crear",
+      "runSetupTitle": "¿Ejecutar la configuración de {{name}}?",
+      "setupChangedTitle": "El script de configuración de {{name}} ha cambiado",
+      "setupScript": "Script de configuración",
+      "setupSubtitle": "{{name}} requiere que decidas si ejecutar la configuración antes de crear este espacio de trabajo.",
+      "setupTitle": "¿Ejecutar script de configuración?",
+      "skipSetupAndCreate": "Omitir configuración y crear",
+      "trustFailed": "No se pudo marcar el script de configuración como de confianza.",
+      "trustSubtitle": "El archivo orca.yaml de este repositorio se ejecuta en tu equipo antes de iniciar el espacio de trabajo. Ejecútalo solo si confías en este repositorio."
+    },
+    "worktreeCreateRetry": {
+      "createFailed": "No se pudo crear el espacio de trabajo"
     }
   },
   "terminal": {

@@ -199,6 +199,18 @@
     }
   },
   "sourceControl": {
+    "actions": {
+      "pullCommits_one": "Pull {{count}} commit.",
+      "pullCommits_other": "Pull {{count}} commits.",
+      "pushCommits_one": "Push {{count}} commit.",
+      "pushCommits_other": "Push {{count}} commits."
+    },
+    "branchCompare": {
+      "commits_one": "{{count}} commit",
+      "commits_other": "{{count}} commits",
+      "files_one": "{{count}} file",
+      "files_other": "{{count}} files"
+    },
     "dropdownCounts": {
       "fastForwardCount_one": "Fast-forward {{count}} commit",
       "fastForwardCount_other": "Fast-forward {{count}} commits",
@@ -214,6 +226,58 @@
       "titleManualForcePush_other": "Force push {{count}} local commits with lease to update {{upstreamName}}.",
       "titleUnpublishedForcePushCount_one": "Force push {{count}} branch commit with lease and set an upstream if needed.",
       "titleUnpublishedForcePushCount_other": "Force push {{count}} branch commits with lease and set an upstream if needed."
+    },
+    "gitHistory": {
+      "days_one": "{{count}}d",
+      "days_other": "{{count}}d",
+      "hours_one": "{{count}}h",
+      "hours_other": "{{count}}h",
+      "minutes_one": "{{count}}m",
+      "minutes_other": "{{count}}m",
+      "months_one": "{{count}}mo",
+      "months_other": "{{count}}mo",
+      "years_one": "{{count}}y",
+      "years_other": "{{count}}y"
+    },
+    "prChip": {
+      "openWithComments_one": "Pull request #{{number}}, {{state}}, {{checks}}, {{count}} unresolved comments. Open pull request.",
+      "openWithComments_other": "Pull request #{{number}}, {{state}}, {{checks}}, {{count}} unresolved comments. Open pull request."
+    }
+  },
+  "tasks": {
+    "detailCommentRenderers": {
+      "comments_one": "{{count}} comment",
+      "comments_other": "{{count}} comments"
+    },
+    "filterPickers": {
+      "teams_one": "{{count}} team",
+      "teams_other": "{{count}} teams"
+    },
+    "githubProjectList": {
+      "moreFields_one": "+{{count}} field",
+      "moreFields_other": "+{{count}} fields"
+    },
+    "itemDetailContent": {
+      "pipelineJobs_one": "{{count}} jobs",
+      "pipelineJobs_other": "{{count}} jobs"
+    },
+    "pickerProjection": {
+      "repos_one": "{{count}} repo",
+      "repos_other": "{{count}} repos",
+      "sources_one": "{{count}} source",
+      "sources_other": "{{count}} sources"
+    },
+    "projectComments": {
+      "comments_one": "{{count}} comment",
+      "comments_other": "{{count}} comments"
+    },
+    "providerViewProjection": {
+      "teams_one": "{{count}} team",
+      "teams_other": "{{count}} teams"
+    },
+    "workspaceTrustDrawers": {
+      "directories_one": "{{count}} directory",
+      "directories_other": "{{count}} directories"
     }
   },
   "worktree": {

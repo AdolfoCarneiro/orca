@@ -1491,6 +1491,16 @@
       "workspace": "ワークスペース"
     }
   },
+  "newWorkspace": {
+    "hostPicker": {
+      "title": "ワークスペースの作成先ホスト"
+    },
+    "loadingDrawer": {
+      "downloadProgress": "ダウンロード中… {{progress}}",
+      "downloading": "ダウンロード中",
+      "loading": "読み込み中"
+    }
+  },
   "notifications": {
     "notificationDeliverySection": {
       "footer": "通知の種類は、ペアリング済みの各デスクトップの通知設定に従います。このアプリを7日間使用しないと通知が一時停止します。再開するには、アプリを開いて再接続してください。",
@@ -2520,11 +2530,67 @@
     }
   },
   "sourceControl": {
+    "actionSheetRunners": {
+      "noBaseBranch": "リベース先のベースブランチがありません。",
+      "waitingForDesktop": "デスクトップへの接続を待機中…"
+    },
     "actions": {
+      "checkingReviewStatus": "レビュー状態を確認中です。",
+      "checkoutBeforePublish": "コミットを公開する前にブランチをチェックアウトしてください。",
+      "commitStagedChanges": "ステージ済みの変更をコミットします。",
       "commits": "コミット",
+      "committing": "コミット中です。",
       "createPr": "PR を作成",
+      "enterCommitMessage": "コミットするには、コミットメッセージを入力してください。",
+      "forcePushWithLease": "リース付きフォースプッシュでリモートブランチを更新します。",
+      "forcePushing": "フォースプッシュ中です。",
+      "linkedReviewUnavailable": "リンクされたレビューのブランチを利用できません。",
+      "publishToOrigin": "このブランチを origin に公開します。",
+      "pullCommits_one": "{{count}} 件のコミットをプルします。",
+      "pullCommits_other": "{{count}} 件のコミットをプルします。",
       "pushAndCreatePr": "プッシュして PR を作成",
-      "switchBranch": "ブランチを切り替え"
+      "pushCommits_one": "{{count}} 件のコミットをプッシュします。",
+      "pushCommits_other": "{{count}} 件のコミットをプッシュします。",
+      "pushLinkedReview": "リンクされたレビューのブランチに更新をプッシュします。",
+      "remoteOperationInProgress": "リモート操作を実行中です。",
+      "resolveConflicts": "コミットする前に競合を解決してください。",
+      "reviewAlreadyMerged": "コミットするものがありません。レビューはすでにマージ済みです。",
+      "stageAllChanges": "すべての変更をステージします。",
+      "stageFileToCommit": "コミットするには、ファイルを 1 つ以上ステージしてください。",
+      "switchBranch": "ブランチを切り替え",
+      "syncCounts": "{{behind}} 件をプルし、{{ahead}} 件をプッシュします。",
+      "upToDate": "コミットするものがありません。ブランチは最新です。",
+      "waitForRemoteOperation": "リモート操作が完了してから再試行してください。"
+    },
+    "branchBaseRef": {
+      "resolveFailed": "ベースブランチを特定できませんでした。"
+    },
+    "branchCard": {
+      "branchCount": "ブランチ内 {{count}} 件",
+      "changedCount": "変更 {{count}} 件",
+      "cherryPickState": "チェリーピック",
+      "mergeState": "マージ",
+      "rebaseState": "リベース",
+      "stagedCount": "ステージ済み {{count}} 件"
+    },
+    "branchCompare": {
+      "commits_one": "{{count}} 件のコミット",
+      "commits_other": "{{count}} 件のコミット",
+      "files_one": "{{count}} 個のファイル",
+      "files_other": "{{count}} 個のファイル",
+      "sectionTitle": "ブランチのコミット済み変更",
+      "summary": "{{files}} - {{baseRef}} との比較",
+      "summaryWithCommits": "{{files}} - {{commits}} - {{baseRef}} との比較"
+    },
+    "branchCompareOutcome": {
+      "baseBranchUnavailable": "比較用のベースブランチを特定できませんでした。",
+      "loadFailed": "コミット済みの変更を読み込めませんでした。"
+    },
+    "branchDiffPreviewDrawer": {
+      "closePreview": "コミット済みの差分プレビューを閉じる",
+      "committedOnBranch": "ブランチでコミット済み",
+      "loadFailed": "差分を読み込めません",
+      "truncated": "モバイルでのプレビュー用に差分を一部省略しています。"
     },
     "commitDropdown": {
       "checkOutBranchToPush": "コミットをプッシュする前にブランチをチェックアウトしてください",
@@ -2549,8 +2615,49 @@
       "stageFile": "コミットするには、少なくとも 1 つのファイルをステージングしてください",
       "useCommitAndForcePush": "「コミットとフォースプッシュ」を使用してください — リモートにはローカルコミットの古いコピーしかありません"
     },
+    "commitFailurePanel": {
+      "fix": "修正",
+      "fixWithAi": "AI によるコミット失敗の修正",
+      "hideDetails": "詳細を非表示",
+      "hideFailureDetails": "コミット失敗の詳細を非表示",
+      "showDetails": "詳細を表示",
+      "showFailureDetails": "コミット失敗の詳細を表示",
+      "summary": "コミットに失敗しました。",
+      "title": "コミットに失敗しました"
+    },
+    "commitMessageAi": {
+      "generateFailed": "コミットメッセージの生成に失敗しました。"
+    },
+    "commitRunners": {
+      "actionFailed": "ソース管理の操作に失敗しました。",
+      "commitFailed": "コミットに失敗しました。"
+    },
+    "conflictAbort": {
+      "abortMerge": "マージを中止する",
+      "abortOperation": "{{operation}} を中止する",
+      "abortRebase": "リベースを中止する",
+      "aborting": "中止中…"
+    },
+    "content": {
+      "cancelGeneration": "コミットメッセージの生成をキャンセル",
+      "commitMessageDisabled": "コミットメッセージは入力できません。ステージ済みのファイルがありません。",
+      "commitMessagePlaceholder": "コミットメッセージ",
+      "emptyMessage": "ワークツリーに変更はありません。",
+      "emptyTitle": "ローカルの変更なし",
+      "generateMessage": "AIでコミットメッセージを生成",
+      "noStagedFiles": "ステージ済みのファイルなし",
+      "openActions": "ソース管理の操作を開く",
+      "reconnecting": "デスクトップに再接続中…",
+      "regenerateHint": "再生成するには、メッセージをクリアしてください。",
+      "stageAll": "ステージオール",
+      "unstageAll": "すべてステージ解除"
+    },
     "createPrAction": {
-      "createReview": "{{titleLabel}} を作成"
+      "checkingStatus": "レビュー状態を確認中…",
+      "createPullRequest": "PR の作成",
+      "createReview": "{{titleLabel}} を作成",
+      "providerUnavailable": "このプロバイダーではレビューを作成できません",
+      "statusUnavailable": "レビュー状態を取得できません"
     },
     "dropdownCounts": {
       "fastForwardCount_one": "{{count}} 件のコミットを fast-forward",
@@ -2572,6 +2679,64 @@
       "titleUnpublishedForcePushCount_one": "{{count}} 件のブランチコミットを lease 付きで強制プッシュし、必要に応じてアップストリームを設定します。",
       "titleUnpublishedForcePushCount_other": "{{count}} 件のブランチコミットを lease 付きで強制プッシュし、必要に応じてアップストリームを設定します。"
     },
+    "fileList": {
+      "committedSection": "ブランチのコミット済み変更"
+    },
+    "fileRows": {
+      "addedByThem": "相手側で追加",
+      "addedByUs": "こちら側で追加",
+      "bothAdded": "双方で追加",
+      "bothDeleted": "双方で削除",
+      "bothModified": "双方で変更",
+      "committedSection": "ブランチのコミット済み変更",
+      "committedUnavailable": "コミット済みの変更を表示できません。",
+      "deletedByThem": "相手側で削除",
+      "deletedByUs": "こちら側で削除",
+      "discardFile": "{{path}} の変更を破棄",
+      "loadingCommitted": "コミット済みの変更を読み込み中…",
+      "openChangedFile": "変更されたファイル {{path}} を開く",
+      "openCommittedChange": "{{path}} のコミット済みの変更を開く",
+      "renamedFrom": "変更前: {{path}}",
+      "stageFile": "{{path}} をステージ",
+      "unresolvedConflict": "未解決の競合",
+      "unstageFile": "{{path}} のステージを解除"
+    },
+    "gitHistory": {
+      "days_one": "{{count}}日",
+      "days_other": "{{count}}日",
+      "hours_one": "{{count}}時間",
+      "hours_other": "{{count}}時間",
+      "justNow": "たった今",
+      "loadFailed": "コミット履歴の読み込みに失敗しました。",
+      "minutes_one": "{{count}}分",
+      "minutes_other": "{{count}}分",
+      "months_one": "{{count}}か月",
+      "months_other": "{{count}}か月",
+      "noCommitMessage": "（コミットメッセージなし）",
+      "years_one": "{{count}}年",
+      "years_other": "{{count}}年"
+    },
+    "gitHistoryList": {
+      "loadFailed": "履歴の読み込みに失敗しました。",
+      "loadFilesFailed": "コミット内のファイルを読み込めません。",
+      "noCommits": "コミットがありません。",
+      "noFileChanges": "ファイルの変更なし",
+      "retryFiles": "コミット内のファイルの読み込みを再試行",
+      "waitingForDesktop": "デスクトップからの応答を待機中…"
+    },
+    "gitStatus": {
+      "changes": "変更点",
+      "conflicts": "競合",
+      "stagedChanges": "ステージ済みの変更"
+    },
+    "header": {
+      "backToSession": "セッションに戻る",
+      "close": "ソース管理を閉じる",
+      "openNumberedPrWeb": "PR #{{number}} をウェブで開く",
+      "openPrWeb": "PR をウェブで開く",
+      "refresh": "ソース管理を更新",
+      "title": "ソース管理"
+    },
     "hostedReview": {
       "mrCopy": {
         "reviewLabel": "MR",
@@ -2584,8 +2749,80 @@
         "titleLabel": "PR"
       }
     },
+    "hostedReviewCopy": {
+      "committingChanges": "変更をコミット中…",
+      "creatingReview": "レビューを作成中…",
+      "forcePushing": "リース付きで強制プッシュ中…",
+      "generatingCommitMessage": "コミットメッセージを生成中…",
+      "publishingBranch": "ブランチを公開中…",
+      "pushingCommits": "コミットをプッシュ中…",
+      "stagingChanges": "変更をステージング中…",
+      "updatingBranch": "ブランチを更新中…"
+    },
     "hostedReviewCreate": {
       "pushSucceeded": "プッシュは成功しましたが、{{shortLabel}} の作成に失敗しました: {{error}}"
+    },
+    "hostedReviewCreateIntent": {
+      "branchChanged": "PR の準備中にブランチが変更されました。",
+      "generateMessageFailed": "コミットメッセージを生成できませんでした。「ソース管理」で入力してから再試行してください。",
+      "resolveConflicts": "PR を作成する前に、競合を解決してください。",
+      "resolveOrStageChanges": "PR を作成する前に、競合を解決するか、変更をステージングしてください。",
+      "reviewCommitMessage": "コミットメッセージを確認してから、「PR を作成」を再試行してください。"
+    },
+    "hostedReviewGitPreparation": {
+      "commitFailed": "コミットに失敗しました。",
+      "refreshFailed": "ソース管理を更新できませんでした。",
+      "stageFailed": "変更のステージングに失敗しました。",
+      "updateBranchFailed": "リモートブランチを更新できませんでした。「PR を作成」を再試行してください。"
+    },
+    "hostedReviewRemotePrerequisite": {
+      "forcePushFailed": "リース付きの強制プッシュに失敗しました。",
+      "publishFailed": "ブランチの公開に失敗しました。",
+      "pushFailed": "コミットのプッシュに失敗しました。"
+    },
+    "hostedReviewService": {
+      "createFailed": "PR の作成に失敗しました。",
+      "pushBeforeCreateFailed": "プッシュに失敗しました。プッシュのエラーを解決してから、もう一度お試しください。"
+    },
+    "hubTab": {
+      "changes": "変更点",
+      "commits": "コミット",
+      "pullRequest": "PR"
+    },
+    "loaders": {
+      "connectingToDesktop": "デスクトップに接続中…",
+      "loadFailed": "ソース管理を読み込めませんでした。",
+      "updateDesktop": "モバイルでソース管理を使うには、デスクトップ版 Orca を更新してください。",
+      "waitingForDesktop": "デスクトップへの接続を待機中…"
+    },
+    "modals": {
+      "actionsTitle": "ソース管理",
+      "currentBranch": "現在",
+      "discardButton": "破棄",
+      "discardConfirmMessage": "「{{path}}」への変更を破棄しますか？この操作は取り消せません。",
+      "discardTitle": "変更を破棄",
+      "openPrMessage": "ブラウザで開きますか？",
+      "openPrWithWarning": "ブラウザで開きますか？\n\n{{warning}}",
+      "prCreatedTitle": "PR を作成しました",
+      "switchBranchTitle": "ブランチを切り替え"
+    },
+    "openers": {
+      "openDiffFailed": "差分を開けませんでした。",
+      "tabNotReady": "ファイルは開きましたが、タブの準備がまだできていません。再試行してください。",
+      "waitingForDesktop": "デスクトップへの接続を待機中…"
+    },
+    "panel": {
+      "loadFailedTitle": "読み込めません",
+      "unavailableTitle": "ソース管理を利用できません"
+    },
+    "prChip": {
+      "createPr": "PR を作成",
+      "loading": "PR を読み込み中…",
+      "loadingLabel": "PR を読み込み中",
+      "openLabel": "PR #{{number}}、{{state}}、{{checks}}。PR を開く。",
+      "openWithComments_one": "PR #{{number}}、{{state}}、{{checks}}、未解決のコメント {{count}} 件。PR を開く。",
+      "openWithComments_other": "PR #{{number}}、{{state}}、{{checks}}、未解決のコメント {{count}} 件。PR を開く。",
+      "unavailableLabel": "PR を表示できません：{{message}}"
     },
     "prCreate": {
       "authRequired": "{{reviewLabel}} を作成する前に認証してください。",
@@ -2605,8 +2842,19 @@
       "unsupportedMergeRequests": "このリポジトリでは MR の作成に対応していません。",
       "unsupportedPullRequests": "このリポジトリでは PR の作成に対応していません。"
     },
+    "prLink": {
+      "updatePullRequestFailed": "リンクされた PR の更新に失敗しました。",
+      "updateReviewFailed": "リンクされたレビューの更新に失敗しました。"
+    },
     "primaryAction": {
-      "forcePushFromDesktop": "デスクトップからこの PR のブランチを強制プッシュ"
+      "commit": "Commit",
+      "forcePush": "フォースプッシュ",
+      "forcePushFromDesktop": "デスクトップからこの PR のブランチを強制プッシュ",
+      "publishBranch": "ブランチを公開",
+      "pull": "プル",
+      "push": "プッシュ",
+      "stageAll": "ステージオール",
+      "sync": "同期"
     },
     "remoteDropdown": {
       "branchAlreadyPublished": "ブランチは既に公開されています",
@@ -2656,6 +2904,591 @@
       "tryFastForwardPull": "fast-forward プルを試行します。git がローカルコミットを拒否する場合があります",
       "tryRegularPush": "通常のプッシュを試行します。git が強制プッシュを要求する場合があります",
       "useForcePushToSync": "強制プッシュを使用してください — リモートにはローカルコミットの古いコピーしかありません"
+    },
+    "runners": {
+      "actionFailed": "ソース管理の操作に失敗しました。"
+    },
+    "screenState": {
+      "noBranch": "ブランチなし"
+    },
+    "state": {
+      "noUpstream": "アップストリームなし",
+      "syncStatus": "{{ahead}} コミット先行、{{behind}} コミット遅れ"
+    },
+    "useMobileCommitFailureRecovery": {
+      "launchFailed": "Agent の起動に失敗しました。",
+      "waitingForDesktop": "デスクトップへの接続を待機中…"
+    },
+    "useMobileCommitMessageGeneration": {
+      "generateFailed": "コミットメッセージの生成に失敗しました。"
+    },
+    "useMobileCreatePrRunner": {
+      "branchRequired": "PR を作成する前にブランチをチェックアウトしてください。"
+    },
+    "useMobileGitRequests": {
+      "actionFailed": "ソース管理の操作に失敗しました。",
+      "branchUnavailable": "ブランチの状態を確認できません。",
+      "commitFailed": "コミットに失敗しました。",
+      "waitingForDesktop": "デスクトップへの接続を待機中…"
+    }
+  },
+  "tasks": {
+    "composerSource": {
+      "baseFailed": "ベースブランチの特定に失敗しました。",
+      "forkPushWarning": "この PR は「メンテナーによる編集を許可」がオフのため、フォークへのプッシュが GitHub に拒否される場合があります。"
+    },
+    "detailCommentRenderers": {
+      "commentPlaceholder": "コメントを追加",
+      "comments_one": "{{count}} 件のコメント",
+      "comments_other": "{{count}} 件のコメント",
+      "reopenThread": "スレッドを再開",
+      "reply": "返事",
+      "resolveThread": "スレッドを解決",
+      "resolvedCommentBy": "{{author}} の解決済みコメント",
+      "resolvedThreadBy": "{{author}} の解決済みスレッド",
+      "sendComment": "コメントを送信",
+      "show": "表示"
+    },
+    "filterPickers": {
+      "allTeams": "全チーム",
+      "changeStatus": "ステータスを変更",
+      "fieldHidden": "カードでは非表示",
+      "fieldShown": "カードに表示",
+      "fieldsSubtitle": "アイテムカードに表示するプロジェクトのフィールドを選択してください。",
+      "fieldsTitle": "プロジェクトのフィールド",
+      "gitlabFilter": "GitLab フィルター",
+      "gitlabView": "GitLab ビュー",
+      "jiraFilter": "Jira フィルター",
+      "jiraSite": "Jira サイト",
+      "linearFilter": "Linear フィルター",
+      "linearIssue": "Linear Issue",
+      "linearWorkspace": "Linear ワークスペース",
+      "loadingStates": "ステータスを読み込み中…",
+      "noFields": "このビューに表示できる追加フィールドはありません。",
+      "noStates": "利用可能なステータスがありません。",
+      "switchWorkspaceFailed": "ワークスペースの切り替えに失敗しました",
+      "teamsSubtitle": "「タスク」に表示するチームを選択してください。",
+      "teamsTitle": "Linear チーム",
+      "teams_one": "{{count}} チーム",
+      "teams_other": "{{count}} チーム"
+    },
+    "githubProjectList": {
+      "browseProjects": "プロジェクトを参照",
+      "chooseProject": "GitHub プロジェクトを選択",
+      "emptyField": "空欄",
+      "issueSubtitle": "Issue · {{repository}}{{number}}",
+      "itemSubtitle": "プロジェクトアイテム · {{repository}}{{number}}",
+      "items": "アイテム",
+      "moreFields_one": "+{{count}} フィールド",
+      "moreFields_other": "+{{count}} フィールド",
+      "noItems": "プロジェクトのアイテムがありません。",
+      "pullRequestSubtitle": "PR · {{repository}}{{number}}"
+    },
+    "githubProjectPickers": {
+      "add": "追加",
+      "addByUrlHint": "表示されないプロジェクトは URL を入力して追加してください。",
+      "addPlaceholder": "URL または所有者/番号で追加",
+      "adding": "追加中…",
+      "browseAll": "すべて閲覧する",
+      "browseLoading": "すべて閲覧する（読み込み中…）",
+      "chooseView": "プロジェクトビューを選択",
+      "loadFailed": "プロジェクトのロードに失敗しました",
+      "noMatches": "一致するプロジェクトがありません。",
+      "noMoreProjects": "これ以上プロジェクトはありません。",
+      "noProjects": "読み込み済みのプロジェクトがありません。",
+      "organizationsError": "組織: {{message}}",
+      "organizationsLoadFailed": "一部の組織を読み込めませんでした（{{count}} 件）。",
+      "ownerLoadFailed": "{{owner}} のプロジェクトを読み込めませんでした。",
+      "pin": "ピン",
+      "pinned": "ピン留め済み",
+      "recent": "最近の",
+      "retryHint": "タップして再試行してください。",
+      "searchProjects": "プロジェクトを検索する",
+      "sort": "プロジェクトの並べ替え",
+      "subtitle": "「タスク」ページで使うプロジェクトビューを選択してください。",
+      "title": "GitHub Projects",
+      "unsupportedLayout": "Orca はこの GitHub プロジェクトのレイアウトにまだ対応していません。",
+      "view": "プロジェクトビュー"
+    },
+    "githubViewControls": {
+      "fields": "フィールド: {{fields}}",
+      "openView": "GitHub でビューを開く",
+      "sort": "並べ替え: {{sort}}",
+      "source": "ソース: {{source}}"
+    },
+    "itemActions": {
+      "changeStatus": "ステータスを変更",
+      "copyGitHubLink": "GitHub リンクをコピーする",
+      "copyLinearLink": "Linear リンクをコピーする",
+      "createWorkspace": "ワークスペースを作成",
+      "creating": "作成中…",
+      "mergeConflicts": "GitHub でマージの競合が報告されています。",
+      "mergeMergeRequest": "MR をマージ",
+      "mergePullRequest": "PR をマージ"
+    },
+    "itemDetailContent": {
+      "addSubIssue": "サブ Issue を追加",
+      "assignee": "担当者",
+      "assignees": "担当者",
+      "checks": "チェック",
+      "description": "説明",
+      "discussion": "ディスカッション",
+      "noChecks": "チェックが見つかりません。",
+      "noComments": "コメントはありません。",
+      "noPipelineRuns": "この MR のパイプライン実行履歴はありません。",
+      "noSubIssues": "サブ Issue はありません。",
+      "none": "なし",
+      "pipeline": "パイプライン",
+      "pipelineJobs_one": "{{count}} 件のジョブ",
+      "pipelineJobs_other": "{{count}} 件のジョブ",
+      "project": "プロジェクト",
+      "rerunAll": "すべて再実行",
+      "rerunFailed": "失敗分を再実行",
+      "status": "状態",
+      "subIssueTitle": "サブ Issue のタイトル",
+      "subIssues": "サブ Issue",
+      "type": "種類"
+    },
+    "itemDetailDrawer": {
+      "refreshDetails": "詳細を更新"
+    },
+    "itemFieldEditors": {
+      "addLabels": "追加するラベル（カンマ区切り）",
+      "addUsernames": "追加するユーザー名（カンマ区切り）",
+      "assignees": "担当者",
+      "labels": "ラベル",
+      "loadingAssignees": "担当者を読み込み中…",
+      "loadingLabels": "ラベルを読み込み中…",
+      "noAssignableUsers": "このリポジトリで担当者に指定できるユーザーが見つかりませんでした。",
+      "noLabels": "このリポジトリにはラベルがありません。",
+      "none": "なし",
+      "removeLabels": "削除するラベル（カンマ区切り）",
+      "removeUsernames": "削除するユーザー名（カンマ区切り）",
+      "saveTitle": "タイトルを保存",
+      "title": "タイトル",
+      "updateAssignees": "担当者を更新",
+      "updateLabels": "ラベルを更新"
+    },
+    "itemReviewSections": {
+      "binaryFile": "バイナリファイルです。",
+      "changedFilesTitle": "変更済みファイル",
+      "descriptionPlaceholder": "説明",
+      "fileContentsUnavailable": "ファイルの内容を表示できません。",
+      "hideFile": "非表示",
+      "loadingReviewers": "レビュアーを読み込み中…",
+      "markUnviewed": "未閲覧としてマークする",
+      "markViewed": "閲覧済みとしてマークする",
+      "noDescription": "説明はありません。",
+      "noReviewerSuggestions": "レビュアーの候補が見つかりませんでした。",
+      "noReviewersRequested": "レビュアーはリクエストされていません。",
+      "requestReview": "レビューを依頼",
+      "reviewersPlaceholder": "依頼するレビュアー",
+      "reviewersTitle": "レビュアー",
+      "saveDescription": "説明を保存",
+      "viewFile": "表示"
+    },
+    "legacySurface": {
+      "loadIssuesFailed": "{{source}} から Issue を読み込めませんでした。",
+      "mergeAction": "マージ",
+      "mergeMethodTitle": "マージ方法",
+      "mergePullRequestTitle": "PR をマージ",
+      "mergeRequestMergeMessage": "この MR のマージ方法を選択してください。",
+      "mergeRequestTitle": "MR をマージ",
+      "pullRequestMergeMessage": "この PR のマージ方法を選択してください。",
+      "retryLoadingIssues": "{{source}} からの Issue の読み込みを再試行",
+      "retrying": "再試行中…",
+      "sourceFallback": "{{repo}} では優先する Issue ソースの upstream が利用できません。origin を使用します。",
+      "subIssueDataUnavailable": "トークンではサブ Issue データを利用できません。",
+      "updateItemTitle": "項目を更新"
+    },
+    "linearList": {
+      "changeStatusFrom": "状態を「{{status}}」から変更"
+    },
+    "linearViewControls": {
+      "displayButton": "表示",
+      "groupLabel": "グループ化：{{group}}",
+      "orderLabel": "並べ替え：{{order}}"
+    },
+    "listDisplayPickers": {
+      "displayPropertiesTitle": "表示項目",
+      "linearGroupTitle": "Linear の Issue をグループ化",
+      "linearOrderTitle": "Linear の Issue を並べ替え",
+      "linearViewTitle": "Linear の表示",
+      "sortTasksTitle": "タスクを並べ替え"
+    },
+    "listSurface": {
+      "connectLinearButton": "Linear に接続",
+      "connectLinearMessage": "「タスク」から、担当する Linear の Issue を確認して作業を開始できます。",
+      "connectLinearTitle": "Linear アカウントを接続する",
+      "jiraStatusFailed": "Jira の状態の読み取りに失敗しました。",
+      "updateDesktopMessage": "モバイルの「タスク」画面には、新しいバージョンのデスクトップランタイムが必要です。",
+      "updateDesktopTitle": "Orca デスクトップを更新"
+    },
+    "options": {
+      "all": "全て",
+      "assignedToMe": "私に割り当てられた Issue",
+      "assignee": "担当者",
+      "board": "ボード",
+      "boardDescription": "グループ別の列で表示",
+      "closedState": "クローズ",
+      "completedState": "完了",
+      "createdState": "自分が作成",
+      "githubAssignedIssuesDescription": "私に割り当てられたオープンな Issue",
+      "githubDescription": "Issue と PR",
+      "githubIssuesDescription": "GitHub Issue",
+      "githubOpenIssuesDescription": "オープンな GitHub Issue",
+      "githubProjectsDescription": "GitHub Projects のビュー",
+      "githubPullRequestsDescription": "GitHub PR",
+      "gitlabAllDescription": "GitLab の全ての状態",
+      "gitlabClosedDescription": "クローズした Issue と MR",
+      "gitlabDescription": "Issue と MR",
+      "gitlabMergedDescription": "マージ済みの MR",
+      "gitlabOpenDescription": "オープンな Issue と MR",
+      "identifier": "識別子",
+      "issues": "Issue",
+      "jiraDescription": "担当する Issue と報告した Issue",
+      "labels": "ラベル",
+      "linearAllDescription": "接続済みワークスペース全体のオープンな Issue",
+      "linearAssignedDescription": "自分が担当する Issue",
+      "linearCompletedDescription": "最近完了した Issue",
+      "linearCreatedDescription": "自分が作成した Issue",
+      "linearDescription": "担当する Issue とチームの Issue",
+      "list": "リスト",
+      "listDescription": "Issue をコンパクトに一覧表示",
+      "mergedState": "マージ済み",
+      "mine": "私の",
+      "myIssues": "自分の Issue",
+      "myPullRequestsDescription": "私が作成した PR",
+      "myTodos": "私の ToDo",
+      "myTodosDescription": "未処理の GitLab ToDo",
+      "needsReview": "レビュー待ち",
+      "noGrouping": "グループ化なし",
+      "openPullRequestsDescription": "オープンな PR",
+      "openState": "オープン",
+      "priority": "優先度",
+      "projectMergeRequests": "プロジェクトの MR",
+      "projectMergeRequestsDescription": "リポジトリ別の MR と Issue",
+      "projects": "プロジェクト",
+      "pullRequests": "PR",
+      "repository": "リポジトリ",
+      "repositorySortDescription": "リポジトリ別にグループ化し、アクティビティが新しい順に表示",
+      "reviewRequestsDescription": "私に割り当てられたレビュー依頼",
+      "status": "状態",
+      "team": "チーム",
+      "updated": "更新日時",
+      "updatedSortDescription": "アクティビティが新しい順"
+    },
+    "pickerProjection": {
+      "allRepos": "すべてのリポジトリ",
+      "allSites": "すべてのサイト",
+      "currentlyAscending": "現在は昇順・タップで降順に変更",
+      "currentlyDescending": "現在は降順・タップで昇順に変更",
+      "fieldAscending": "{{field}} 昇順",
+      "fieldDescending": "{{field}} 降順",
+      "fields": "フィールド",
+      "repos_one": "{{count}} 件のリポジトリ",
+      "repos_other": "{{count}} 件のリポジトリ",
+      "selectTarget": "作成先を選択",
+      "selectedFields": "{{selected}}/{{total}} フィールド",
+      "sortAscending": "昇順に並べ替え",
+      "sources_one": "{{count}} 件のソース",
+      "sources_other": "{{count}} 件のソース",
+      "unsupportedLayout": "モバイルでは未対応のレイアウト",
+      "updatedSort": "更新済み",
+      "usesFieldAscending": "{{field}} の昇順を使用",
+      "usesFieldDescending": "{{field}} の降順を使用",
+      "usesGitHubRankOrder": "GitHub のランク順を使用",
+      "viewNumber": "ビュー #{{number}}",
+      "viewOrder": "ビューの並び順"
+    },
+    "prFileDiff": {
+      "commentOnLine": "{{line}} 行目にコメント",
+      "commentPlaceholder": "レビューコメントを追加",
+      "noTextChanges": "テキストの変更はありません。",
+      "showingDiffLines": "差分の全 {{total}} 行中、先頭 {{limit}} 行を表示しています。"
+    },
+    "projectComments": {
+      "comments_one": "{{count}} 件のコメント",
+      "comments_other": "{{count}} 件のコメント",
+      "discussion": "ディスカッション",
+      "editComment": "コメントを編集",
+      "noComments": "コメントはありません。",
+      "reopenThread": "スレッドを再開",
+      "reply": "返事",
+      "resolveThread": "スレッドを解決",
+      "resolvedCommentBy": "{{author}} のコメント（解決済み）",
+      "resolvedThreadBy": "{{author}} のスレッド（解決済み）",
+      "show": "表示"
+    },
+    "projectDetailDrawer": {
+      "addRepositoryFromDesktop": "{{repository}} は Orca に追加されていません。デスクトップアプリからこのリポジトリを追加し、モバイルの「タスク」を更新してください。",
+      "clearType": "種類をクリア",
+      "closeItem": "項目をクローズ",
+      "copyGitHubLink": "GitHub リンクをコピーする",
+      "copyRepository": "リポジトリ名をコピー",
+      "createWorkspace": "ワークスペースを作成",
+      "draftIssue": "下書きの Issue",
+      "issue": "Issue",
+      "issueType": "Issue の種類",
+      "loadingIssueTypes": "Issue の種類を読み込み中…",
+      "mergePullRequest": "PR をマージ",
+      "mergeRepositoryRequirement": "マージするには、このリポジトリを Orca に追加する必要があります。",
+      "noIssueTypes": "このリポジトリには Issue の種類が設定されていません。",
+      "noType": "種類なし",
+      "openInGitHub": "GitHub で開く",
+      "projectItem": "プロジェクト項目",
+      "projectSubtitle": "GitHub プロジェクト · {{repository}}{{itemNumber}}",
+      "pullRequest": "PR",
+      "reopenItem": "項目を再オープン",
+      "repositoryNotInOrca": "このリポジトリは Orca に登録されていません",
+      "status": "状態",
+      "type": "種類",
+      "workspaceCreationRequirement": "ワークスペースは GitHub の Issue と PR からのみ作成できます。"
+    },
+    "projectFieldEditors": {
+      "clearField": "フィールドをクリア",
+      "completedIteration": "完了 · {{startDate}} · {{duration}} 日",
+      "datePlaceholder": "YYYY-MM-DD",
+      "invalidDate": "日付は YYYY-MM-DD 形式で入力してください。",
+      "invalidNumber": "有効な数値を入力してください。",
+      "noIterations": "利用可能なイテレーションはありません。",
+      "numberPlaceholder": "数値",
+      "projectFields": "プロジェクトのフィールド",
+      "saveField": "フィールドを保存",
+      "textPlaceholder": "テキスト",
+      "upcomingIteration": "現在および今後の予定 · {{startDate}} · {{duration}} 日"
+    },
+    "projectMetadataEditors": {
+      "assignees": "担当者",
+      "description": "説明",
+      "labels": "ラベル",
+      "loadingAssignees": "担当者を読み込み中…",
+      "loadingLabels": "ラベルを読み込み中…",
+      "noAssignableUsers": "このリポジトリで割り当て可能なユーザーが見つかりません。",
+      "noDescription": "説明はありません。",
+      "noLabels": "このリポジトリにはラベルがありません。",
+      "none": "なし",
+      "saveDescription": "説明を保存",
+      "saveTitle": "タイトルを保存",
+      "title": "タイトル"
+    },
+    "projectReviewPanels": {
+      "binaryFile": "バイナリファイルです。",
+      "changedFiles": "変更済みファイル",
+      "checks": "チェック",
+      "fileUnavailable": "ファイルの内容を表示できません。",
+      "hideFile": "非表示",
+      "loadingReviewers": "レビュアーを読み込み中…",
+      "markUnviewed": "未閲覧としてマークする",
+      "markViewed": "閲覧済みとしてマークする",
+      "noChecks": "チェックが見つかりません。",
+      "noReviewers": "レビュアーはリクエストされていません。",
+      "noSuggestions": "レビュアー候補が見つかりません。",
+      "requestReview": "レビューを依頼",
+      "requestReviewers": "レビューの依頼先",
+      "rerunAll": "すべて再実行",
+      "rerunFailed": "失敗分を再実行",
+      "reviewers": "レビュアー",
+      "viewFile": "表示"
+    },
+    "providerControls": {
+      "myTodos": "自分の ToDo",
+      "projectMergeRequests": "プロジェクトの MR",
+      "sort": "並べ替え：{{sortLabel}}"
+    },
+    "providerItemList": {
+      "intoBranch": "{{base}} へ",
+      "nextPage": "次のページ",
+      "page": "{{page}} ページ",
+      "pageOfTotal": "{{page}} / {{total}} ページ",
+      "previousPage": "前のページへ",
+      "selectPage": "ページを選択、{{page}} ページ",
+      "selectPageOfTotal": "ページを選択、全 {{total}} ページ中 {{page}} ページ"
+    },
+    "providerPickers": {
+      "allRepositories": "すべてのリポジトリ",
+      "githubView": "GitHub の表示",
+      "issueSources": "GitHub Issue の取得元",
+      "issueSourcesDescription": "リポジトリごとに、検索や作業の作成に使うソースを upstream または origin から選択してください。",
+      "issues": "Issue",
+      "noIssueSources": "ほかに利用できる Issue の取得元はありません。",
+      "origin": "origin",
+      "pageHint": "読み込み済みまたは利用可能な結果ページに移動します。",
+      "pageLoaded": "読み込み済み",
+      "pageNotLoaded": "以前の結果を読み込み",
+      "pageNumber": "{{page}} ページ",
+      "pages": "GitHub の結果ページ",
+      "pullRequests": "PR",
+      "queryingSource": "検索対象: {{source}}",
+      "repoDescription": "検索対象のリポジトリを選択してください。",
+      "repos": "リポジトリ",
+      "taskSource": "タスクソース",
+      "upstream": "upstream"
+    },
+    "providerViewProjection": {
+      "all": "全て",
+      "allSites": "すべてのサイト",
+      "allTeams": "全チーム",
+      "allWorkspaces": "すべてのワークスペース",
+      "chooseProject": "プロジェクトを選択",
+      "default": "デフォルト",
+      "defaultSubtitle": "{{subtitle}} · デフォルト",
+      "issues": "Issue",
+      "list": "リスト",
+      "noGrouping": "グループ化なし",
+      "openState": "オープン",
+      "priority": "優先度",
+      "projects": "プロジェクト",
+      "pullRequests": "PR",
+      "teams_one": "{{count}} チーム",
+      "teams_other": "{{count}} チーム",
+      "workspace": "ワークスペース"
+    },
+    "reviewerLinear": {
+      "issues": "Issue",
+      "unassigned": "未割り当て"
+    },
+    "screenChrome": {
+      "connectLinear": "Linear に接続",
+      "newGitHubIssue": "GitHub の新規 Issue",
+      "newLinearIssue": "新規 Linear Issue",
+      "refreshGitHub": "GitHub の作業を更新する",
+      "refreshGitLab": "GitLab 作業項目を更新する",
+      "refreshJira": "Jira Issue を更新する",
+      "refreshLinear": "Linear を更新",
+      "title": "タスク"
+    },
+    "searchControl": {
+      "jiraPlaceholder": "Jira JQL（例：project = ABC AND statusCategory != Done）",
+      "projectPlaceholder": "プロジェクトビューを検索…",
+      "providerPlaceholder": "{{provider}} のタスクを検索…"
+    },
+    "smartSourceModes": {
+      "allStates": "全て",
+      "branch": "ブランチ",
+      "closedState": "クローズ",
+      "mergedState": "マージ済み",
+      "name": "名前",
+      "openState": "オープン",
+      "smart": "スマート"
+    },
+    "sparsePresetDraft": {
+      "directoryRequired": "少なくとも 1 つのディレクトリを追加してください。",
+      "repoRelativeDirectoriesRequired": "ルート、絶対パス、親セグメントではなく、リポジトリ相対ディレクトリを使用してください。"
+    },
+    "taskViewOptions": {
+      "allSubtitle": "選択したサイト全体の未解決の Issue",
+      "assignedSubtitle": "自分に割り当てられた未解決の Issue",
+      "doneSubtitle": "最近解決された自分の Issue",
+      "noGitHubTasks": "GitHub のタスクはありません。",
+      "noGitLabTasks": "GitLab のタスクはありません。",
+      "noJiraTasks": "Jira のタスクはありません。",
+      "noLinearTasks": "Linear のタスクはありません。",
+      "reportedSubtitle": "報告した未解決の Issue"
+    },
+    "tasksCreateDrawers": {
+      "connect": "接続",
+      "connectLinearWorkspace": "Linear ワークスペースに接続",
+      "createIssue": "Issue を作成",
+      "createWorkspaceIn": "ワークスペースの作成先リポジトリ",
+      "description": "説明",
+      "descriptionPlaceholder": "背景情報を追加",
+      "fileIn": "{{slug}} に登録",
+      "issueSource": "Issue ソース",
+      "keySecurityHint": "キーはホスト OS のキーチェーンで暗号化され、ローカルに保存されます。",
+      "linearConnectSubtitle": "ワークスペースの Issue を閲覧するには、個人用 API キーを貼り付けてください。",
+      "linearSettingsLink": "Linear の設定 / セキュリティ / 新規 API キー",
+      "linearTeam": "Linear チーム",
+      "linearTeamSubtitle": "選択した Linear チームに Issue を作成します。",
+      "newIssueTitle": "{{providerLabel}} の新規 Issue",
+      "origin": "オリジン",
+      "personalApiKey": "個人用APIキー",
+      "repository": "リポジトリ",
+      "repositorySubtitle": "選択したリポジトリに Issue を作成します。",
+      "team": "チーム",
+      "title": "タイトル",
+      "titlePlaceholder": "タスクのタイトル",
+      "upstream": "upstream"
+    },
+    "workspaceAgentSelection": {
+      "blankTerminal": "ブランクターミナル"
+    },
+    "workspaceCreateDrawer": {
+      "addRepository": "Linear の Issue からワークスペースを作成する前に、Git リポジトリを追加してください。",
+      "advanced": "詳細設定",
+      "agent": "Agent",
+      "connect": "接続",
+      "connectFirst": "先にリポジトリに接続",
+      "connectRepository": "リポジトリに接続",
+      "connecting": "接続中…",
+      "createFrom": "{{branch}} から作成",
+      "defaultBranch": "デフォルトブランチ",
+      "detectingAgents": "Agent を検出中…",
+      "optional": "[オプション]",
+      "remoteRepository": "リモートリポジトリ",
+      "repository": "リポジトリ",
+      "repositoryNotFound": "リポジトリが見つかりません。",
+      "selectRepository": "リポジトリを選択",
+      "sshConnection": "SSH 接続",
+      "startFrom": "作成元",
+      "title": "ワークスペースを作成",
+      "workspaceName": "ワークスペース名"
+    },
+    "workspaceCreateProjection": {
+      "nameAlreadyExists": "「{{name}}」は既に存在します。",
+      "nameRequired": "名前を入力してください。",
+      "nameTooLong": "名前は80文字以内にしてください。",
+      "openShell": "シェルを開く"
+    },
+    "workspaceOptionPickers": {
+      "baseBranchSubtitle": "既存のブランチまたは参照を選択してください。",
+      "baseBranchTitle": "作成元",
+      "branchName": "ブランチ名: {{name}}",
+      "defaultBranch": "デフォルトブランチ",
+      "defaultBranchSubtitle": "このリポジトリに設定されたベースブランチを使用",
+      "editPreset": "{{name}} を編集",
+      "fullCheckout": "フルチェックアウト",
+      "fullCheckoutSubtitle": "リポジトリ全体を使用",
+      "newPreset": "新規プリセット",
+      "noBranches": "一致するブランチはありません。",
+      "searchBranches": "ブランチを検索",
+      "sparseCheckoutTitle": "スパースチェックアウト"
+    },
+    "workspaceSshGate": {
+      "authenticationFailed": "認証に失敗しました",
+      "connected": "接続済み",
+      "connecting": "接続中",
+      "connectionFailed": "接続に失敗しました",
+      "deployingRelay": "リレーをデプロイ中",
+      "disconnected": "切断済み",
+      "reconnectFailed": "再接続に失敗しました",
+      "reconnecting": "再接続中"
+    },
+    "workspaceTrustDrawers": {
+      "alwaysTrustAndRun": "常に信頼して実行",
+      "creating": "作成中…",
+      "directoriesLabel": "ディレクトリ",
+      "directories_one": "{{count}} 個のディレクトリ",
+      "directories_other": "{{count}} 個のディレクトリ",
+      "dontRun": "実行しない",
+      "editSparsePreset": "スパースプリセットを編集",
+      "nameLabel": "名前",
+      "namePlaceholder": "レンダラー UI",
+      "newSetupScript": "新しいセットアップスクリプト",
+      "newSparsePreset": "新しいスパースプリセット",
+      "runHooks": "フックを実行する",
+      "runSetupAndCreate": "セットアップを実行して作成",
+      "runSetupTitle": "{{name}} のセットアップを実行しますか?",
+      "setupChangedTitle": "{{name}} のセットアップスクリプトが変更されました",
+      "setupScript": "セットアップスクリプト",
+      "setupSubtitle": "{{name}} でこのワークスペースを作成する前に、セットアップの実行有無を選択してください。",
+      "setupTitle": "セットアップスクリプトを実行しますか?",
+      "skipSetupAndCreate": "セットアップをスキップして作成",
+      "trustFailed": "セットアップスクリプトの信頼設定に失敗しました。",
+      "trustSubtitle": "このリポジトリの orca.yaml は、ワークスペースの起動前にコンピュータ上で実行されます。このリポジトリを信頼できる場合のみ実行してください。"
+    },
+    "worktreeCreateRetry": {
+      "createFailed": "ワークスペースの作成に失敗しました"
     }
   },
   "terminal": {
