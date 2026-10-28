@@ -11713,7 +11713,6 @@
           "loading": "Marketplace eklentileri yükleniyor…",
           "tryAgain": "Tekrar dene",
           "noSourcesTitle": "Marketplace yapılandırılmadı",
-          "noSources": "Eklentilere göz atmak için resmi, topluluk veya özel bir Git marketplace'i ekleyin.",
           "addSource": "Marketplace ekle",
           "noResultsTitle": "Eşleşen eklenti yok",
           "noResults": "Hiçbir marketplace eklentisi bu aramayla eşleşmiyor.",
@@ -11722,12 +11721,8 @@
           "empty": "Yapılandırılmış marketplace'ler herhangi bir eklenti listelemiyor."
         },
         "PluginMarketplaceListingRow": {
-          "official": "Resmi",
-          "installed": "Yüklü",
           "noDescription": "Açıklama sağlanmadı.",
           "blocked": "Orca'nın güvenlik listesi tarafından engellendi: {{value0}}",
-          "blockedAction": "Engellendi",
-          "checkUpdate": "Güncelleme kontrol et",
           "install": "Yükle"
         },
         "PluginMarketplacePreviewDialog": {
@@ -11793,7 +11788,6 @@
         },
         "PluginsSettingsSection": {
           "systemLabel": "Eklenti sistemi",
-          "systemDescription": "Yüklü eklentileri bulur ve bunları tek tek etkinleştirmenize olanak tanır. Siz inceleyip etkinleştirene kadar hiçbir şey çalışmaz. Worker'lar her zaman bu bilgisayarda çalışır; SSH çalışma alanı işlemleri Orca üzerinden yönlendirilir.",
           "loading": "Eklentiler yükleniyor…",
           "noInstalledResultsTitle": "Eşleşen eklenti yok",
           "noInstalledResults": "Bu aramayla eşleşen yüklü eklenti yok.",
@@ -11820,20 +11814,11 @@
           "loadingLogs": "Günlükler yükleniyor…",
           "noLogs": "Kayıtlı günlük satırı yok.",
           "logCount": "En fazla 200 satırdan son {{value0}}",
-          "reviewAndEnable": "İncele ve etkinleştir",
-          "official": "Resmi",
           "dev": "Geliştirici",
           "bundled": "Paket içinde",
-          "noDescription": "Açıklama sağlanmadı.",
           "killListMessage": "Orca'nın güvenlik listesi bu eklentiyi devre dışı bıraktı: {{value0}}",
-          "viewAdvisory": "Uyarıyı görüntüle",
-          "runtimeError": "Eklenti, bir etkinleştirme veya worker hatasından sonra durdu.",
-          "restartCount": " · {{value0}} yeniden başlatma",
           "moreActions": "{{value0}} için diğer işlemler",
-          "hideLogs": "Günlükleri gizle",
           "viewLogs": "Günlükleri görüntüle",
-          "rollback": "Geri al",
-          "remove": "Kaldır",
           "disableLabel": "{{value0}} eklentisini devre dışı bırak",
           "enableLabel": "{{value0}} eklentisini etkinleştir",
           "invalidPluginError": "Eklenti manifest'i veya yüklü dosyalar geçersiz. Eklentiyi düzeltip yenileyin."

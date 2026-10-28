@@ -11727,7 +11727,6 @@
           "loading": "Marktplatz-Plugins werden geladen…",
           "tryAgain": "Erneut versuchen",
           "noSourcesTitle": "Keine Marktplätze konfiguriert",
-          "noSources": "Einen offiziellen, von der Community betriebenen oder privaten Git-Marktplatz hinzufügen, um Plugins zu durchsuchen.",
           "addSource": "Marktplatz hinzufügen",
           "noResultsTitle": "Keine passenden Plugins",
           "noResults": "Keine Marktplatz-Plugins entsprechen dieser Suche.",
@@ -11736,12 +11735,8 @@
           "empty": "Die konfigurierten Marktplätze enthalten keine Plugins."
         },
         "PluginMarketplaceListingRow": {
-          "official": "Offiziell",
-          "installed": "Installiert",
           "noDescription": "Keine Beschreibung angegeben.",
           "blocked": "Durch die Sicherheitsliste von Orca blockiert: {{value0}}",
-          "blockedAction": "Blockiert",
-          "checkUpdate": "Nach Update suchen",
           "install": "Installieren"
         },
         "PluginMarketplacePreviewDialog": {
@@ -11807,7 +11802,6 @@
         },
         "PluginsSettingsSection": {
           "systemLabel": "Plugin-System",
-          "systemDescription": "Erkennt installierte Plugins und ermöglicht deren einzelne Aktivierung. Vor der Prüfung und Aktivierung wird nichts ausgeführt. Hintergrundprozesse laufen immer auf diesem Computer; Aktionen für SSH-Arbeitsbereiche werden über Orca geleitet.",
           "loading": "Plugins werden geladen…",
           "noInstalledResultsTitle": "Keine passenden Plugins",
           "noInstalledResults": "Keine installierten Plugins entsprechen dieser Suche.",
@@ -11834,20 +11828,11 @@
           "loadingLogs": "Protokolle werden geladen…",
           "noLogs": "Keine Protokollzeilen aufgezeichnet.",
           "logCount": "Letzte {{value0}} von bis zu 200 gespeicherten Zeilen",
-          "reviewAndEnable": "Prüfen und aktivieren",
-          "official": "Offiziell",
           "dev": "Entwicklung",
           "bundled": "Mitgeliefert",
-          "noDescription": "Keine Beschreibung angegeben.",
           "killListMessage": "Die Sicherheitsliste von Orca hat dieses Plugin deaktiviert: {{value0}}",
-          "viewAdvisory": "Sicherheitshinweis anzeigen",
-          "runtimeError": "Das Plugin wurde nach einem Aktivierungsfehler oder einem Fehler im Hintergrundprozess gestoppt.",
-          "restartCount": " · {{value0}} Neustarts",
           "moreActions": "Weitere Aktionen für {{value0}}",
-          "hideLogs": "Protokolle ausblenden",
           "viewLogs": "Protokolle anzeigen",
-          "rollback": "Zurücksetzen",
-          "remove": "Entfernen",
           "disableLabel": "{{value0}} deaktivieren",
           "enableLabel": "{{value0}} aktivieren",
           "invalidPluginError": "Das Plugin-Manifest oder die installierten Dateien sind ungültig. Das Plugin korrigieren und anschließend aktualisieren."
