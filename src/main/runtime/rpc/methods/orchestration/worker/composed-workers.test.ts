@@ -222,6 +222,7 @@ describe('orchestration RPC methods', () => {
 
       expect(result).toMatchObject({
         state: 'ready',
+        next: expect.stringContaining('end your turn'),
         launch: {
           requested: { agent: 'claude', model: 'aws-bedrock-opus-5', effort: 'high' },
           effective: { agent: 'claude', model: 'aws-bedrock-opus-5', effort: 'high' }

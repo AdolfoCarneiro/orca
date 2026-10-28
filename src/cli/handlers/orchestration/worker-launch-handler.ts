@@ -1,5 +1,6 @@
 import type { CommandHandler } from '../../dispatch'
 import { printResult } from '../../format'
+import { withReceiptNext } from './receipt-next-text'
 import { getOptionalStringFlag, getPresentStringFlag } from '../../flags'
 import { RuntimeClientError } from '../../runtime-client'
 import type { RuntimeStatus } from '../../../shared/runtime-types'
@@ -46,6 +47,7 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
       effects: unknown[]
       residualResources: unknown[]
       nextCommands?: string[]
+      next?: string
     }>(client, flags, 'orchestration.workerStart', {
       task,
       ...(spec ? { spec } : {}),
@@ -84,6 +86,6 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
           }
         }
       : result
-    printResult(renderedResult, json, formatWorkerStart)
+    printResult(renderedResult, json, (value) => withReceiptNext(formatWorkerStart(value), value))
   }
 }

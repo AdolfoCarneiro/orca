@@ -222,7 +222,10 @@ describe('orchestration RPC methods', () => {
 
       expect(db.getTask(task.id)?.status).toBe('completed')
       expect(db.getDispatchContextById(dispatch.id)?.status).toBe('completed')
-      expect(result).toMatchObject({ lifecycle: { action: 'completed' } })
+      expect(result).toMatchObject({
+        lifecycle: { action: 'completed' },
+        next: 'Recorded. End your turn.'
+      })
     })
 
     it('fences a replacement process for a capability-less manual Dispatch', async () => {

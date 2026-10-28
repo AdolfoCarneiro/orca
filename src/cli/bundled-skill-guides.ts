@@ -2404,6 +2404,8 @@ const ORCHESTRATION_MARKDOWN = [
   "  and `residualResources` in its output, then load",
   "  `references/recovery-and-cleanup.md`.",
   "",
+  "If a receipt has `next`, follow it; otherwise act on the result.",
+  "",
   "Then tell the user what you started and **end your turn**, unless you need to",
   "wait inside this turn (below).",
   "",

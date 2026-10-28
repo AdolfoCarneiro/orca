@@ -508,6 +508,24 @@ describe('orchestration federated worker output', () => {
     })
   })
 
+  it('never says to end the turn while a remote worker runs, since its silent exit sends no mail', async () => {
+    const taskId = createHomeTask().id
+    const started = await homeDispatcher.dispatch(startRequest(taskId))
+    const checked = await homeDispatcher.dispatch({
+      id: 'rpc_check_remote',
+      authToken: 'coordinator-token',
+      orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION,
+      orchestrationRequestId: 'rpc_check_remote',
+      method: 'orchestration.check',
+      params: { terminal: 'term_coord' }
+    })
+
+    expect(started).toMatchObject({ ok: true, result: { state: 'ready' } })
+    expect(checked).toMatchObject({ ok: true, result: { count: 0 } })
+    expect(started.ok && started.result).not.toHaveProperty('next')
+    expect(checked.ok && checked.result).not.toHaveProperty('next')
+  })
+
   it('negotiates release on the execution host and never treats relay loss as exit', async () => {
     const dispatchId = await startSettledRemoteWorker()
     workerReleaseUnavailable = true

@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { RpcContext } from '../../../core'
 import { createOrchestrationRpcHarness } from '../rpc-test-harness'
@@ -219,6 +220,38 @@ describe('orchestration RPC methods', () => {
         timeoutMs: 10
       })) as { timedOut: boolean; cancelled: boolean; count: number }
       expect(timedOut).toMatchObject({ timedOut: true, cancelled: false, count: 0 })
+    })
+
+    it('says to end the turn only while a worker runs and owes nothing', async () => {
+      setup()
+      const { task, dispatch } = createDispatchedTask()
+      const check = (params: Record<string, unknown> = {}) =>
+        call('orchestration.check', { terminal: 'term_coord', ...params })
+
+      expect(await check()).toMatchObject({
+        count: 0,
+        next: expect.stringContaining('end your turn')
+      })
+      expect(await check({ peek: true })).not.toHaveProperty('next')
+      insertWorkerDone({ taskId: task.id, dispatchId: dispatch.id })
+      const delivered = await check()
+      expect(delivered).toMatchObject({ count: 1 })
+      expect(delivered).not.toHaveProperty('next')
+      const { deliveryId } = z.object({ deliveryId: z.string() }).parse(delivered)
+      // The only worker settled, so nothing is left to wait for.
+      expect(await check({ ack: deliveryId })).not.toHaveProperty('next')
+    })
+
+    it('withholds the stop for a structured worker while chat failure mail is off', async () => {
+      setup()
+      createDispatchedTask('structworker_review')
+      const mail = vi.spyOn(runtime, 'isChatWorkerErrorEscalationEnabled').mockReturnValue(false)
+
+      expect(await call('orchestration.check', { terminal: 'term_coord' })).not.toHaveProperty(
+        'next'
+      )
+      mail.mockReturnValue(true)
+      expect(await call('orchestration.check', { terminal: 'term_coord' })).toHaveProperty('next')
     })
 
     it('lets a forgotten Run wait coexist with a new one that receives the same Delivery', async () => {

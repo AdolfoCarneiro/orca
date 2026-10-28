@@ -2,6 +2,7 @@ import { OrchestrationError } from '../../../../orchestration/orchestration-erro
 import { defineMethod } from '../../../core'
 import { startFederatedWorker } from '../federation/federated-worker-start'
 import { startLocalWorker } from './local-worker-start'
+import { withWorkerStartNext } from '../receipt-next'
 import {
   decideWorkerStartMode,
   readWorkerStartModeSettings
@@ -108,22 +109,27 @@ export const ORCHESTRATION_WORKER_START_METHODS = [
           orchestrationMutation,
           callerSession: orchestrationCaller
         })
-        return withRun(receipt && typeof receipt === 'object' ? { ...receipt, mode } : receipt)
+        return withRun(
+          withWorkerStartNext(
+            runtime,
+            run.id,
+            receipt && typeof receipt === 'object' ? { ...receipt, mode } : receipt
+          )
+        )
       }
-      return withRun(
-        await startLocalWorker({
-          params: { ...params, timeoutMs: readinessTimeoutMs },
-          runtime,
-          db,
-          run,
-          coordinator,
-          callerSession: orchestrationCaller,
-          existingTask,
-          orchestrationMutation,
-          mode,
-          helperCreator
-        })
-      )
+      const receipt = await startLocalWorker({
+        params: { ...params, timeoutMs: readinessTimeoutMs },
+        runtime,
+        db,
+        run,
+        coordinator,
+        callerSession: orchestrationCaller,
+        existingTask,
+        orchestrationMutation,
+        mode,
+        helperCreator
+      })
+      return withRun(withWorkerStartNext(runtime, run.id, receipt))
     }
   })
 ]
