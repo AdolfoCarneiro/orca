@@ -110,7 +110,7 @@ export const ORCHESTRATION_WORKER_START_METHODS = [
           callerSession: orchestrationCaller
         })
         return withRun(
-          withWorkerStartNext(
+          await withWorkerStartNext(
             runtime,
             run.id,
             receipt && typeof receipt === 'object' ? { ...receipt, mode } : receipt
@@ -129,7 +129,7 @@ export const ORCHESTRATION_WORKER_START_METHODS = [
         mode,
         helperCreator
       })
-      return withRun(withWorkerStartNext(runtime, run.id, receipt))
+      return withRun(await withWorkerStartNext(runtime, run.id, receipt))
     }
   })
 ]
