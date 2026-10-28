@@ -100,7 +100,7 @@ export default function IpynbViewer({
     flushSourceDrafts,
     applyContent
   })
-  useIpynbScrollRestoration(rootRef, scrollCacheKey, content)
+  useIpynbScrollRestoration(rootRef, scrollCacheKey, parsed.notebook !== null)
   const saveShortcut = useShortcutKeyDetails('editor.save')
   const fontSize = computeEditorFontSize(13, editorFontZoomLevel)
 
