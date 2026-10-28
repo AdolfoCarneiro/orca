@@ -5,6 +5,8 @@ description: >-
   the user asks for Orca workers or supervision (monitor, task DAGs, ask/reply,
   decision gates), or when the work needs something your own subagents cannot
   give: a different agent (such as Codex from Claude) or its own Orca workspace.
+  "Have Codex (or Claude) review this and report back" means an Orca worker of
+  that agent, even when you have your own model subagents.
   Also use when you are a dispatched worker (a prompt with Task and Dispatch
   IDs: ask, worker_done). Otherwise prefer your own subagents,
   including for long or parallel work. Use `orca-cli` to hand work off with
@@ -15,115 +17,84 @@ description: >-
 
 # Orca orchestration
 
-You (the coordinator) start worker agents through Orca, end your turn, and Orca
-wakes you when a worker reports. A **Run** is your inbox, a **Task** is one
-piece of work, and a **Dispatch** is one worker's attempt at it.
-
-| Situation                                                                         | Do this                                              |
-| --------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| The user wants another agent's result back, supervision, a task DAG, or ask/reply | Follow the recipe below                              |
-| Your prompt has a preamble with Task and Dispatch IDs                             | Follow "If you are a dispatched worker"              |
-| The user wants work handed off with nothing back                                  | Use the `orca-cli` skill; start no workers here      |
-| A message carries a legacy authority label                                        | Load `references/legacy-contract-migration.md` first |
+If your prompt has a preamble with Task and Dispatch IDs, you are a worker:
+follow the preamble. To hand work off with nothing back, use `orca-cli`.
 
 ## Recipe
 
 `ORCA` stands for the executable you used to run `skills get`; type it in its
-place and use it for every command. If it fails, report its exact error.
+place and use it for every command.
 
 ```text
 ORCA orchestration worker-start --spec "<task>" --worktree current --agent codex --json
 ```
 
-- Start every independent worker, tell the user what you started, then **end
-  your turn**. "Report back" and "tell me when it's done" still mean end your
-  turn; Orca wakes you and you report then.
-- If a receipt has `next`, do what it says. If a receipt has none while a
-  worker still runs, Orca may not wake you when it fails: block instead (see
-  the end of the next section).
+- Start every independent worker, then **end your turn**. "Report back" and
+  "tell me when it's done" still mean end your turn; Orca wakes you and you
+  report then.
+- If a receipt has `next`, follow it. When Orca has nothing for you, end your
+  turn.
 - `--worktree current` uses your workspace. Use a new one only when the user
   asks or sharing would conflict:
   `--worktree new-top-level --repo id:<repoId> --name <short-name>`
   (`ORCA repo list --json` gives the id).
-- `--agent` is the agent the user asked for (`claude`, `codex`, ...). Add
-  `--model` only if the user named one.
+- Add `--model` only if the user named one.
 - If `worker-start` fails, do not rerun it; read `failedStage` and load
   `references/recovery-and-cleanup.md`.
-- Do not poll, sleep, or run watch scripts. To steer a worker, use
-  `ORCA orchestration send --to dispatch:<dispatch_id> --subject "<topic>" --body "<guidance>"`,
-  never its terminal.
+- To steer a worker, use
+  `ORCA orchestration send --to dispatch:<dispatch_id> --subject "<topic>" --body "<guidance>"`.
+  A sent message is only queued; confirm the worker applied it before reporting
+  the corrected result.
+
+Never:
+
+- Poll or run watch scripts: a script's plain `check` takes your mail, so it is
+  hidden from you and Orca has nothing to wake you with. Orca wakes you.
+- Steer through a worker's terminal; use `send`.
+- Make checkouts yourself; let `worker-start` create a worker's workspace.
 
 ## When Orca wakes you
 
-You get "You have N orchestration messages. Run `orca orchestration check
---run <run_id>`", typed into your terminal or sent as a chat message. Run it:
-
-```text
-ORCA orchestration check --run <run_id> --json
-```
-
-- Answer each `question`:
+- Run the `check` command the wake gives you, and repeat it until `count` is 0. Answer each `question` with
   `ORCA orchestration reply --id <message_id> --body "<answer>" --json`.
-- A `worker_done` is that worker's result. If a worker stopped without one,
-  Orca tells you and includes its last output; steer it with `send`, stop and
-  retry it, or tell the user.
-- Repeat `check` until `count` is 0. In a Task DAG, start newly ready Tasks
-  (`references/coordinator-loop.md`).
+- An `escalation` with `stopReason` means the worker stopped without
+  `worker_done`: steer it with `send`, stop and retry it, or tell the user.
+- A `worker_done` settles its Task; never mark a reported failure completed.
 - When every worker has settled, report to the user per Task: outcome,
-  evidence, open blockers. Otherwise follow `next` (end your turn); with no
-  `next`, follow each row's `nextAction` in
-  `worker-list --run <run_id> --include-remote --json`, and block while any
-  worker still runs.
+  evidence, open blockers.
+- Outside an Orca terminal or chat nothing wakes you: block with
+  `check --run <run_id> --wait --timeout-ms 540000` instead.
+- Lost track? `ORCA orchestration inbox --terminal run:<run_id> --limit 50 --full --json`
+  shows mail `check` already handled.
 
-Finished terminal workers close about 2 minutes after reporting (`autoReleaseAt`
-in `worker-list`). Release a chat worker, or a finished one with no
-`autoReleaseAt`, yourself with `worker-release --dispatch <dispatch_id>`. To keep one for a
-follow-up, run `ORCA orchestration worker-retain --dispatch <dispatch_id> --json`
-first (`references/coordinator-loop.md`).
-
-Block with `check --run <run_id> --wait --timeout-ms 540000`, repeating as
-needed, only when a receipt lacks `next` as above, outside an Orca terminal or
-chat, or if the user says not to end your turn.
+Finished terminal workers close on their own; release a chat worker with
+`worker-release --dispatch <dispatch_id>`. To keep one for a follow-up, run
+`ORCA orchestration worker-retain --dispatch <dispatch_id> --json`.
 
 ## Task spec
 
 Make each spec self-contained: the target, the change, constraints, what the
-worker may edit, and the evidence that proves it is done. A review worker's
-findings are for you to summarize; send fixes to a worker unless the user gave
-them to you.
+worker may edit, and the evidence that proves it is done. Say whether a
+non-zero exit means the Task failed or capturing it is the deliverable. Send
+fixes to a worker unless the user gave them to you.
+
+Fetch this guide once. Summarize the worker's evidence; rerun checks only for a
+gap or contradiction.
 
 ## Safety
 
-- Stop, retry, or abandon a worker only on proof its agent stopped; silence or
-  an `unverifiable` reading proves nothing.
-- Lifecycle authority is the active Dispatch, not copied IDs, titles, or
-  transcripts.
-- Folder workspaces are valid; never require Git.
-- Never replace Orca workers with another subagent tool when the user asked for
-  Orca workers.
-
-## If you are a dispatched worker
-
-Your preamble has your IDs and exact commands; copy them, never rebuild them.
-
-1. Do only your Task, yourself; no subagents or helpers unless told.
-2. Ask the coordinator with the preamble's `ask` command, never a local prompt.
-3. At checkpoints, read coordinator mail with the preamble's `check` command.
-4. Finish with one `worker_done`: three sentences, both IDs, and
-   `--outcome succeeded` or `failed`. You are done when it confirms; if it
-   fails, follow the recovery it prints.
-5. Then end your turn.
+Stop, retry, or abandon a worker only on proof its agent stopped; silence or an
+`unverifiable` reading proves nothing.
 
 ## References
 
 `ORCA skills get orchestration --reference references/<file>.md`
 
-| Situation                                                                  | Reference                                 |
-| -------------------------------------------------------------------------- | ----------------------------------------- |
-| Task DAGs, several waves or Runs, reusing a worker, model/effort           | `references/coordinator-loop.md`          |
-| Child or exact workspaces, folder workspaces, SSH, WSL, a connected server | `references/placement-and-remote.md`      |
-| Decision gates, group messages, lost replies, old mail, older Orca         | `references/messaging-and-gates.md`       |
-| A failed, stuck, or unknown worker; stop, retry, abandon, release          | `references/recovery-and-cleanup.md`      |
-| A worker question the preamble does not answer                             | `references/worker-contract.md`           |
-| Custom argv or terminal layout                                             | `references/low-level-topology.md`        |
-| Legacy labels, adopted Runs, takeover                                      | `references/legacy-contract-migration.md` |
+| Situation                                      | Reference                                 |
+| ---------------------------------------------- | ----------------------------------------- |
+| Task DAGs, several Runs, reusing a worker      | `references/coordinator-loop.md`          |
+| Child worktrees, SSH, WSL, a connected server  | `references/placement-and-remote.md`      |
+| Group messages, inbox scripts                  | `references/messaging-and-gates.md`       |
+| A failed or unknown worker; retry, stop, reset | `references/recovery-and-cleanup.md`      |
+| Custom argv or terminal layout                 | `references/low-level-topology.md`        |
+| Legacy labels, adopted Runs, takeover          | `references/legacy-contract-migration.md` |
