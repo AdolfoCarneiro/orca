@@ -8,7 +8,11 @@ import {
   type SentRequest
 } from '../mobile-web-shell/bridge-host-test-fakes'
 import { markRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
-import { LogicalClientCutoverError } from '../transport/stable-logical-rpc-client'
+import {
+  LogicalClientCutoverError,
+  LogicalClientSuspendedError
+} from '../transport/stable-logical-rpc-client'
+import type { ConnectionState } from '../transport/types'
 import type {
   DictationCapture,
   DictationCaptureChunk
@@ -141,6 +145,28 @@ describe('dictation through a reconnect', () => {
     expect(methodsOf(sent).filter((m) => m === 'speech.dictation.finish')).toHaveLength(2)
     expect(methodsOf(sent)).not.toContain('speech.dictation.cancel')
     expect(transcripts).toEqual(['hello world'])
+    expect(errors).toEqual([])
+  })
+
+  it('holds a chunk refused while recovery dials a replacement, and sends it once connected', async () => {
+    let state: ConnectionState = 'connected'
+    const rpc = createFakeRpcClient({ getState: () => state })
+    const sent: SentRequest[] = []
+    const transcripts: string[] = []
+    const errors: string[] = []
+    mount(rpc, transcripts, errors)
+
+    state = 'disconnected'
+    await record(rpc, sent, [new LogicalClientSuspendedError()])
+    expect(methodsOf(sent).filter((m) => m === 'speech.dictation.chunk')).toHaveLength(1)
+    await act(async () => {
+      state = 'connected'
+      rpc.pushState('connected')
+      await pump(rpc, sent, [])
+    })
+
+    expect(methodsOf(sent).filter((m) => m === 'speech.dictation.chunk')).toHaveLength(2)
+    expect(dictation().status).toBe('recording')
     expect(errors).toEqual([])
   })
 

@@ -7,7 +7,11 @@ import { dictationAudioChunkSend } from '../dictation/mobile-dictation-operation
 import { MOBILE_DICTATION_RECONNECT_GRACE_MS } from '../../../src/shared/rpc-contract/speech-params'
 import { isRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
 import { rpcPayloadMember } from '../transport/rpc-reader-payload'
-import { isLogicalClientCutoverError } from '../transport/stable-logical-rpc-client'
+import { waitForRpcClientReconnected } from '../transport/rpc-client-reconnect-wait'
+import {
+  isLogicalClientCutoverError,
+  LogicalClientSuspendedError
+} from '../transport/stable-logical-rpc-client'
 import type {
   DictationCapture,
   DictationCaptureChunk
@@ -38,11 +42,25 @@ export class MobileDictationTranscriptSoFar {
   }
 }
 
-// A request still waiting when the connection moved never reached the host; send it again on the new one.
-export function sendAcrossConnectionMove<T>(send: () => Promise<T>): Promise<T> {
-  return send().catch((err: unknown) =>
-    isLogicalClientCutoverError(err) && !isRpcDeliveryUnknown(err) ? send() : Promise.reject(err)
-  )
+// A request refused or still waiting while the connection moved never reached the host; send it again on the new one, within the host's grace.
+export async function sendAcrossConnectionMove<T>(
+  client: RpcClient,
+  send: () => Promise<T>
+): Promise<T> {
+  try {
+    return await send()
+  } catch (err) {
+    if (isLogicalClientCutoverError(err) && !isRpcDeliveryUnknown(err)) {
+      return send()
+    }
+    if (
+      err instanceof LogicalClientSuspendedError &&
+      (await waitForRpcClientReconnected(client, MOBILE_DICTATION_RECONNECT_GRACE_MS))
+    ) {
+      return send()
+    }
+    throw err
+  }
 }
 
 export function subscribeMobileDictationAudioChunks(
@@ -94,7 +112,7 @@ export function enqueueMobileDictationAudioChunk(
     audioBase64: bytesToBase64(bytes),
     sampleRate: MOBILE_DICTATION_PCM_SAMPLE_RATE
   }
-  const sendChunk = sendAcrossConnectionMove(() =>
+  const sendChunk = sendAcrossConnectionMove(client, () =>
     // Wait for a reconnect only as long as the host keeps the session; past that, fail and keep the text so far.
     dictationAudioChunkSend.request(client, params, {
       timeoutMs: MOBILE_DICTATION_RECONNECT_GRACE_MS

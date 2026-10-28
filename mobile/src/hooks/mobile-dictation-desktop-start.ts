@@ -3,6 +3,7 @@ import {
   dictationSessionCancel,
   dictationSessionStart
 } from '../dictation/mobile-dictation-operations'
+import { MOBILE_DICTATION_RECONNECT_GRACE_MS } from '../../../src/shared/rpc-contract/speech-params'
 import type { RpcClient } from '../transport/rpc-client'
 
 type StartMobileDictationDesktopSessionOptions = {
@@ -51,7 +52,12 @@ export async function startMobileDictationDesktopSession(
   const { client, dictationId } = options
 
   try {
-    const reply = await dictationSessionStart.request(client, { dictationId })
+    // The mic is already open, so a start stalled by a drop must give up rather than hold it.
+    const reply = await dictationSessionStart.request(
+      client,
+      { dictationId },
+      { timeoutMs: MOBILE_DICTATION_RECONNECT_GRACE_MS }
+    )
     dictationSessionStart.interpret(reply)
   } catch (err) {
     const wasCurrent = isCurrentStart(options)

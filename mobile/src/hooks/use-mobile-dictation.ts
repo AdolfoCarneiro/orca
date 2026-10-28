@@ -218,7 +218,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
           return
         }
         const finished = dictationSessionFinish.interpret(
-          await sendAcrossConnectionMove(() =>
+          await sendAcrossConnectionMove(client, () =>
             dictationSessionFinish.request(
               client,
               { dictationId },
