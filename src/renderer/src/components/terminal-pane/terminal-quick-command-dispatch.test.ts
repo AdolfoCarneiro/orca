@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { TerminalPasteTextOptions } from './terminal-paste-model'
 
 const mocks = vi.hoisted(() => ({
   recordTerminalUserInputForLeaf: vi.fn()
@@ -8,16 +9,43 @@ vi.mock('./terminal-input-activity', () => ({
   recordTerminalUserInputForLeaf: mocks.recordTerminalUserInputForLeaf
 }))
 import { sendTerminalQuickCommandToPane } from './terminal-quick-command-dispatch'
-import { runTerminalPtyInputTransaction } from './terminal-pty-input-transaction'
 
-function createPane() {
-  return {
-    leafId: 'leaf-1',
-    terminal: {
-      focus: vi.fn(),
-      modes: { bracketedPasteMode: true }
-    }
-  }
+const REFUSAL =
+  'This shell cannot safely receive a multiline command here. Use a script file or a shell with bracketed paste.'
+
+function setup({
+  bracketedPasteMode = true,
+  multilinePasteOptions,
+  pasted = true,
+  accepted = true
+}: {
+  bracketedPasteMode?: boolean
+  multilinePasteOptions?: TerminalPasteTextOptions
+  pasted?: boolean
+  accepted?: boolean
+} = {}) {
+  const writes: string[] = []
+  const sendInput = vi.fn((data: string) => {
+    writes.push(data)
+    return accepted
+  })
+  const pasteText = vi.fn(async (text: string) => {
+    writes.push(`paste:${text}`)
+    return pasted
+  })
+  const onError = vi.fn()
+  const pane = { leafId: 'leaf-1', terminal: { focus: vi.fn(), modes: { bracketedPasteMode } } }
+  const send = (command: string, appendEnter: boolean) =>
+    sendTerminalQuickCommandToPane({
+      command: { id: 'cmd', label: 'Cmd', command, appendEnter },
+      pane,
+      tabId: 'tab-1',
+      transport: { sendInput },
+      multilinePasteOptions,
+      pasteText,
+      onError
+    })
+  return { writes, pasteText, onError, pane, send }
 }
 
 describe('sendTerminalQuickCommandToPane', () => {
@@ -25,229 +53,81 @@ describe('sendTerminalQuickCommandToPane', () => {
     vi.clearAllMocks()
   })
 
-  it('writes the formatted command to the PTY transport and refocuses the terminal', async () => {
-    const sendInput = vi.fn(() => true)
-    const pane = createPane()
+  it('writes a single-line command to the PTY transport and refocuses the terminal', async () => {
+    const { writes, pasteText, pane, send } = setup()
 
-    const sent = await sendTerminalQuickCommandToPane({
-      command: {
-        id: 'status',
-        label: 'Status',
-        command: 'git status',
-        appendEnter: true
-      },
-      pane,
-      tabId: 'tab-1',
-      transport: { sendInput, getPtyId: () => 'pty-1' },
-      multilinePasteOptions: undefined,
-      onError: vi.fn()
-    })
-
-    expect(sent).toBe(true)
-    expect(sendInput).toHaveBeenCalledWith('git status\r', 'driving')
+    expect(await send('git status', true)).toBe(true)
+    expect(writes).toEqual(['git status\r'])
+    expect(pasteText).not.toHaveBeenCalled()
     expect(pane.terminal.focus).toHaveBeenCalledOnce()
     expect(mocks.recordTerminalUserInputForLeaf).toHaveBeenCalledWith('tab-1', 'leaf-1')
   })
 
   it('does not focus the terminal when no connected transport accepts input', async () => {
-    const sendInput = vi.fn(() => false)
-    const pane = createPane()
+    const { pane, send } = setup({ accepted: false })
 
-    const sent = await sendTerminalQuickCommandToPane({
-      command: {
-        id: 'draft',
-        label: 'Draft',
-        command: 'npm test',
-        appendEnter: false
-      },
-      pane,
-      tabId: 'tab-1',
-      transport: { sendInput, getPtyId: () => 'pty-1' },
-      multilinePasteOptions: undefined,
-      onError: vi.fn()
-    })
-
-    expect(sent).toBe(false)
-    expect(sendInput).toHaveBeenCalledWith('npm test', 'driving')
+    expect(await send('npm test', false)).toBe(false)
     expect(pane.terminal.focus).not.toHaveBeenCalled()
     expect(mocks.recordTerminalUserInputForLeaf).not.toHaveBeenCalled()
   })
 
-  it('pastes multiline commands as one shell input before submitting', async () => {
-    const sendInput = vi.fn(() => true)
-    const pane = createPane()
-    const commandText = 'cd packages\nbun run build\ncd ..'
+  it('pastes a multiline Run through the pane paste path, then submits it separately', async () => {
+    const options = { forceBracketedPasteForMultiline: true }
+    const { writes, pasteText, pane, send } = setup({ multilinePasteOptions: options })
 
-    const sent = await sendTerminalQuickCommandToPane({
-      command: {
-        id: 'build',
-        label: 'Build',
-        command: commandText,
-        appendEnter: true
-      },
-      pane,
-      tabId: 'tab-1',
-      transport: { sendInput, getPtyId: () => 'pty-1' },
-      multilinePasteOptions: undefined,
-      onError: vi.fn()
-    })
-
-    expect(sent).toBe(true)
-    expect(sendInput).toHaveBeenCalledWith(
-      '\x1b[200~cd packages\rbun run build\rcd ..\x1b[201~\r',
-      'driving'
-    )
+    expect(await send('cd packages\r\nbun run build\rcd ..', true)).toBe(true)
+    expect(pasteText).toHaveBeenCalledWith('cd packages\nbun run build\ncd ..', options)
+    expect(writes).toEqual(['paste:cd packages\nbun run build\ncd ..', '\r'])
     expect(pane.terminal.focus).toHaveBeenCalledOnce()
   })
 
-  it('pastes multiline insert-only commands without submitting', async () => {
-    const sendInput = vi.fn(() => true)
-    const pane = createPane()
-    const commandText = 'echo one\necho two'
+  it('pastes a multiline Insert into a bracketed pane without submitting', async () => {
+    const { writes, send } = setup()
 
-    const sent = await sendTerminalQuickCommandToPane({
-      command: {
-        id: 'insert',
-        label: 'Insert',
-        command: commandText,
-        appendEnter: false
-      },
-      pane,
-      tabId: 'tab-1',
-      transport: { sendInput, getPtyId: () => 'pty-1' },
-      multilinePasteOptions: undefined,
-      onError: vi.fn()
-    })
+    expect(await send('echo one\necho two', false)).toBe(true)
+    expect(writes).toEqual(['paste:echo one\necho two'])
+  })
 
-    expect(sent).toBe(true)
-    expect(sendInput).toHaveBeenCalledWith('\x1b[200~echo one\recho two\x1b[201~', 'driving')
-    expect(pane.terminal.focus).toHaveBeenCalledOnce()
+  it('pastes a multiline Run into a pane without bracketed paste so its lines are typed', async () => {
+    const { writes, send } = setup({ bracketedPasteMode: false })
+
+    expect(await send('cd app\nnpm test', true)).toBe(true)
+    expect(writes).toEqual(['paste:cd app\nnpm test', '\r'])
   })
 
   it.each(['\n', '\r\n', '\r'])(
-    'refuses multiline Insert before sending bytes without bracketed paste (%j)',
+    'refuses a multiline Insert before sending bytes without bracketed paste (%j)',
     async (newline) => {
-      const sendInput = vi.fn(() => true)
-      const onError = vi.fn()
-      const pane = createPane()
-      pane.terminal.modes.bracketedPasteMode = false
-      expect(
-        await sendTerminalQuickCommandToPane({
-          command: {
-            id: 'script',
-            label: 'Script',
-            command: ['echo one', 'echo two'].join(newline),
-            appendEnter: false
-          },
-          pane,
-          tabId: 'tab-1',
-          transport: { sendInput, getPtyId: () => 'pty-1' },
-          multilinePasteOptions: undefined,
-          onError
-        })
-      ).toBe(false)
-      expect(sendInput).not.toHaveBeenCalled()
-      expect(onError).toHaveBeenCalledWith(
-        'This shell cannot safely receive a multiline command here. Use a script file or a shell with bracketed paste.'
-      )
+      const { writes, onError, pane, send } = setup({ bracketedPasteMode: false })
+
+      expect(await send(['echo one', 'echo two'].join(newline), false)).toBe(false)
+      expect(writes).toEqual([])
+      expect(onError).toHaveBeenCalledWith(REFUSAL)
       expect(pane.terminal.focus).not.toHaveBeenCalled()
     }
   )
 
-  it('types multiline Run commands line by line without bracketed paste', async () => {
-    const sendInput = vi.fn(() => true)
-    const pane = createPane()
-    pane.terminal.modes.bracketedPasteMode = false
+  it.each<TerminalPasteTextOptions>([
+    { forceBracketedPasteForMultiline: true },
+    { windowsInputRecordNewline: 'alt-enter' }
+  ])('inserts multiline commands where the pane paste path frames them (%j)', async (options) => {
+    const { writes, send } = setup({ bracketedPasteMode: false, multilinePasteOptions: options })
 
-    const sent = await sendTerminalQuickCommandToPane({
-      command: { id: 'build', label: 'Build', command: 'cd app\r\nnpm test', appendEnter: true },
-      pane,
-      tabId: 'tab-1',
-      transport: { sendInput, getPtyId: () => 'pty-1' },
-      multilinePasteOptions: undefined,
-      onError: vi.fn()
-    })
-
-    expect(sent).toBe(true)
-    expect(sendInput).toHaveBeenCalledWith('cd app\rnpm test\r', 'driving')
+    expect(await send('first\nsecond', false)).toBe(true)
+    expect(writes).toEqual(['paste:first\nsecond'])
   })
 
-  it('frames multiline commands on Windows clients whose ConPTY dropped the bracketed paste mode', async () => {
-    const sendInput = vi.fn(() => true)
-    const pane = createPane()
-    pane.terminal.modes.bracketedPasteMode = false
+  it('does not submit or focus when the pane paste path rejects the script', async () => {
+    const { writes, pane, send } = setup({ pasted: false })
 
-    const sent = await sendTerminalQuickCommandToPane({
-      command: {
-        id: 'build',
-        label: 'Build',
-        command: 'npm install\nnpm test',
-        appendEnter: true
-      },
-      pane,
-      tabId: 'tab-1',
-      transport: { sendInput, getPtyId: () => 'pty-1' },
-      multilinePasteOptions: { forceBracketedPasteForMultiline: true },
-      onError: vi.fn()
-    })
-
-    expect(sent).toBe(true)
-    expect(sendInput).toHaveBeenCalledWith('\x1b[200~npm install\rnpm test\x1b[201~\r', 'driving')
-  })
-
-  it('waits for an in-flight paste on the same PTY so its frame is not closed early', async () => {
-    const order: string[] = []
-    let releasePaste!: () => void
-    const paste = runTerminalPtyInputTransaction(
-      'pty-1',
-      () =>
-        new Promise<void>((resolve) => {
-          releasePaste = () => {
-            order.push('paste-end')
-            resolve()
-          }
-        })
-    )
-    const sendInput = vi.fn((data: string) => {
-      order.push(data)
-      return true
-    })
-
-    const sent = sendTerminalQuickCommandToPane({
-      command: { id: 'run', label: 'Run', command: 'echo one\necho two', appendEnter: true },
-      pane: createPane(),
-      tabId: 'tab-1',
-      transport: { sendInput, getPtyId: () => 'pty-1' },
-      multilinePasteOptions: undefined,
-      onError: vi.fn()
-    })
-    await Promise.resolve()
-    expect(sendInput).not.toHaveBeenCalled()
-
-    releasePaste()
-    await paste
-    expect(await sent).toBe(true)
-    expect(order).toEqual(['paste-end', '\x1b[200~echo one\recho two\x1b[201~\r'])
-  })
-
-  it('inserts multiline commands into Windows input-record agents with modified Enter', async () => {
-    const sendInput = vi.fn(() => true)
-
-    const sent = await sendTerminalQuickCommandToPane({
-      command: { id: 'insert', label: 'Insert', command: 'first\nsecond', appendEnter: false },
-      pane: createPane(),
-      tabId: 'tab-1',
-      transport: { sendInput, getPtyId: () => 'pty-1' },
-      multilinePasteOptions: { windowsInputRecordNewline: 'alt-enter' },
-      onError: vi.fn()
-    })
-
-    expect(sent).toBe(true)
-    expect(sendInput).toHaveBeenCalledWith('first\x1b\rsecond', 'driving')
+    expect(await send('echo one\necho two', true)).toBe(false)
+    expect(writes).toEqual(['paste:echo one\necho two'])
+    expect(pane.terminal.focus).not.toHaveBeenCalled()
   })
 
   it('does not write agent prompt quick commands into the current pane', async () => {
     const sendInput = vi.fn(() => true)
+    const pasteText = vi.fn()
     const focus = vi.fn()
 
     const sent = await sendTerminalQuickCommandToPane({
@@ -258,19 +138,17 @@ describe('sendTerminalQuickCommandToPane', () => {
         agent: 'codex',
         prompt: 'Review this'
       },
-      pane: {
-        leafId: 'leaf-1',
-        terminal: { focus, modes: { bracketedPasteMode: true } }
-      },
+      pane: { leafId: 'leaf-1', terminal: { focus, modes: { bracketedPasteMode: true } } },
       tabId: 'tab-1',
-      transport: { sendInput, getPtyId: () => 'pty-1' },
+      transport: { sendInput },
       multilinePasteOptions: undefined,
+      pasteText,
       onError: vi.fn()
     })
 
     expect(sent).toBe(false)
     expect(sendInput).not.toHaveBeenCalled()
+    expect(pasteText).not.toHaveBeenCalled()
     expect(focus).not.toHaveBeenCalled()
-    expect(mocks.recordTerminalUserInputForLeaf).not.toHaveBeenCalled()
   })
 })

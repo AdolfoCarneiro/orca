@@ -17,6 +17,8 @@ import { useAppStore } from '@/store'
 import { resolveProtectedMultilinePasteOptionsForPane } from './terminal-agent-paste-bracketing'
 import { resolveTerminalInputHostPlatform } from './terminal-input-host-platform'
 import { recordTerminalUserInputForLeaf } from './terminal-input-activity'
+import { sendTerminalQuickCommandToPane } from './terminal-quick-command-dispatch'
+import type { TerminalQuickCommand } from '../../../../shared/terminal-quick-command-types'
 
 export type TerminalPaneMenuPasteContext = {
   managerRef: React.RefObject<PaneManager | null>
@@ -83,7 +85,7 @@ export const executeTerminalPaneMenuPasteText = async (
   return true
 }
 
-export function resolveTerminalPaneMenuMultilinePasteOptions(
+function resolveTerminalPaneMenuMultilinePasteOptions(
   context: TerminalPaneMenuPasteContext,
   pane: ManagedPane
 ): TerminalPasteTextOptions | undefined {
@@ -101,6 +103,23 @@ export function resolveTerminalPaneMenuMultilinePasteOptions(
     paneForegroundAgentByPaneKey: state.paneForegroundAgentByPaneKey,
     tabId: context.tabId,
     leafId: pane.leafId
+  })
+}
+
+export function sendTerminalPaneMenuQuickCommand(
+  context: TerminalPaneMenuPasteContext,
+  pane: ManagedPane,
+  command: TerminalQuickCommand
+): Promise<boolean> {
+  return sendTerminalQuickCommandToPane({
+    command,
+    pane,
+    tabId: context.tabId,
+    transport: context.paneTransportsRef.current.get(pane.id),
+    multilinePasteOptions: resolveTerminalPaneMenuMultilinePasteOptions(context, pane),
+    pasteText: (text, options) =>
+      executeTerminalPaneMenuPasteText(context, pane, 'programmatic', text, options),
+    onError: context.onPasteError
   })
 }
 

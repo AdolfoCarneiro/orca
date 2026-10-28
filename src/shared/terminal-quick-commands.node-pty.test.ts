@@ -2,13 +2,13 @@ import { existsSync } from 'node:fs'
 import * as pty from 'node-pty'
 import { describe, expect, it } from 'vitest'
 import {
-  buildTerminalQuickCommandInput,
   normalizeTerminalQuickCommandText,
   normalizeTerminalQuickCommands,
   isTerminalAgentQuickCommand
 } from './terminal-quick-commands'
 import { stageStartupCommand, discardStagedStartupCommand } from './startup-command-staging'
 import { buildStartupCommandSubmission } from './startup-command-submission'
+import { wrapTerminalBracketedPasteText } from './terminal-bracketed-paste-text'
 
 const script = `printf '%s\\n' \\
   'CONTINUATION_OK'
@@ -43,7 +43,7 @@ const shells =
 
 async function exercise(
   shell: (typeof shells)[number],
-  mode: 'startup' | 'insert' | 'run',
+  mode: 'startup' | 'run',
   command = script,
   readsInput = false
 ) {
@@ -86,16 +86,11 @@ async function exercise(
       )
     } else {
       await waitFor('\x1b[?2004h')
-      proc.write(
-        buildTerminalQuickCommandInput(savedCommand, {
-          bracketedPasteSafe: true
-        })
-      )
-      if (mode === 'insert') {
-        await new Promise((resolve) => setTimeout(resolve, 100))
-        expect(output).not.toContain('EXECUTION_END')
-        proc.write('\r')
-      }
+      // Same bytes the pane paste path sends: one frame, then Enter in a separate write.
+      proc.write(wrapTerminalBracketedPasteText(savedCommand.command))
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      expect(output).not.toContain('EXECUTION_END')
+      proc.write('\r')
     }
     if (readsInput) {
       await waitFor('INPUT_READY\r\n')
@@ -129,12 +124,8 @@ describe.skipIf(shells.length === 0)('multiline quick-command shells', () => {
   describe.each(shells.filter((shell) => shell.bracketedPaste))(
     'saved script submission in $path',
     (shell) => {
-      it('runs continuations, blocks and heredocs as one bracketed input', async () => {
+      it('holds a bracketed script until Enter, then runs continuations, blocks and heredocs', async () => {
         await exercise(shell, 'run')
-      })
-
-      it('inserts the whole script without executing until Enter', async () => {
-        await exercise(shell, 'insert')
       })
 
       it.each(['startup', 'run'] as const)(

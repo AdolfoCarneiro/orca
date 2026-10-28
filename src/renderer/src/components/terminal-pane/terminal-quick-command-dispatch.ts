@@ -1,15 +1,10 @@
-import type {
-  TerminalCommandQuickCommand,
-  TerminalQuickCommand
-} from '../../../../shared/terminal-quick-command-types'
+import type { TerminalQuickCommand } from '../../../../shared/terminal-quick-command-types'
 import {
   buildTerminalQuickCommandInput,
   isTerminalAgentQuickCommand,
   normalizeTerminalQuickCommandText
 } from '../../../../shared/terminal-quick-commands'
 import { recordTerminalUserInputForLeaf } from './terminal-input-activity'
-import { runTerminalPtyInputTransaction } from './terminal-pty-input-transaction'
-import { encodeWindowsInputRecordPasteText } from './terminal-bracketed-paste'
 import type { TerminalPasteTextOptions } from './terminal-paste-model'
 import type { PtyTransport } from './pty-transport-types'
 
@@ -21,7 +16,7 @@ type QuickCommandPane = {
   }
 }
 
-type QuickCommandTransport = Pick<PtyTransport, 'sendInput' | 'getPtyId'>
+type QuickCommandTransport = Pick<PtyTransport, 'sendInput'>
 
 export async function sendTerminalQuickCommandToPane({
   command,
@@ -29,6 +24,7 @@ export async function sendTerminalQuickCommandToPane({
   tabId,
   transport,
   multilinePasteOptions,
+  pasteText,
   onError
 }: {
   command: TerminalQuickCommand
@@ -37,6 +33,8 @@ export async function sendTerminalQuickCommandToPane({
   transport: QuickCommandTransport | null | undefined
   /** Same framing as a user paste into this pane: ConPTY can drop DECSET 2004, and input-record agents need modified Enter. */
   multilinePasteOptions: TerminalPasteTextOptions | undefined
+  /** The pane's paste path, which serializes with other pastes and rechecks the target; false means it already reported. */
+  pasteText: (text: string, options: TerminalPasteTextOptions | undefined) => Promise<boolean>
   onError: (message: string) => void
 }): Promise<boolean> {
   if (isTerminalAgentQuickCommand(command)) {
@@ -46,45 +44,34 @@ export async function sendTerminalQuickCommandToPane({
     return false
   }
 
-  // A streaming clipboard paste holds this lock; our paste-end marker must not close its frame early.
-  return await runTerminalPtyInputTransaction(transport.getPtyId(), async () => {
-    const input = buildQuickCommandPaneInput(command, pane, multilinePasteOptions)
-    if (input === null) {
-      onError(
-        'This shell cannot safely receive a multiline command here. Use a script file or a shell with bracketed paste.'
-      )
-      return false
-    }
-
-    const sent = transport.sendInput(input, 'driving')
+  if (!/[\r\n]/.test(command.command)) {
+    const sent = transport.sendInput(buildTerminalQuickCommandInput(command), 'driving')
     if (sent) {
       recordTerminalUserInputForLeaf(tabId, pane.leafId)
       pane.terminal.focus()
     }
     return sent
-  })
-}
+  }
 
-function buildQuickCommandPaneInput(
-  command: TerminalCommandQuickCommand,
-  pane: QuickCommandPane,
-  options: TerminalPasteTextOptions | undefined
-): string | null {
-  if (!/[\r\n]/.test(command.command)) {
-    return buildTerminalQuickCommandInput(command)
-  }
-  if (options?.windowsInputRecordNewline) {
-    const text = encodeWindowsInputRecordPasteText(
-      normalizeTerminalQuickCommandText(command.command),
-      options.windowsInputRecordNewline
-    )
-    return command.appendEnter ? `${text}\r` : text
-  }
-  const bracketedPasteSafe =
-    pane.terminal.modes.bracketedPasteMode || options?.forceBracketedPasteForMultiline === true
+  const framed =
+    pane.terminal.modes.bracketedPasteMode ||
+    multilinePasteOptions?.forceBracketedPasteForMultiline === true ||
+    multilinePasteOptions?.windowsInputRecordNewline !== undefined
   // Insert must not run anything, and unframed newlines submit each line; Run may type them raw.
-  if (!command.appendEnter && !bracketedPasteSafe) {
-    return null
+  if (!command.appendEnter && !framed) {
+    onError(
+      'This shell cannot safely receive a multiline command here. Use a script file or a shell with bracketed paste.'
+    )
+    return false
   }
-  return buildTerminalQuickCommandInput(command, { bracketedPasteSafe })
+  if (
+    !(await pasteText(normalizeTerminalQuickCommandText(command.command), multilinePasteOptions))
+  ) {
+    return false
+  }
+  if (command.appendEnter && !transport.sendInput('\r', 'driving')) {
+    return false
+  }
+  pane.terminal.focus()
+  return true
 }

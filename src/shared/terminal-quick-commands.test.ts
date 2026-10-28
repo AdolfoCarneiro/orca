@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyTerminalQuickCommandMutation,
-  buildTerminalQuickCommandInput,
   normalizeTerminalQuickCommandText,
   normalizeTerminalQuickCommands,
   parseNormalizedTerminalQuickCommands,
@@ -213,38 +212,5 @@ describe('normalizeTerminalQuickCommandText', () => {
     for (const newline of ['\n', '\r\n', '\r']) {
       expect(normalizeTerminalQuickCommandText(command.replace(/\n/g, newline))).toBe(command)
     }
-  })
-})
-
-describe('multiline quick-command submission', () => {
-  const command = {
-    id: 'script',
-    label: 'Script',
-    command: 'if true; then\r\n  printf "%s\\n" \\\r\n    "block"\r\nfi\r\n\r\n',
-    appendEnter: true
-  }
-
-  it('keeps the whole body and trailing newlines inside a paste frame', () => {
-    expect(buildTerminalQuickCommandInput(command, { bracketedPasteSafe: true })).toBe(
-      '\x1b[200~if true; then\r  printf "%s\\n" \\\r    "block"\rfi\r\r\x1b[201~\r'
-    )
-  })
-
-  it('inserts a multiline command without sending Enter after its paste frame', () => {
-    expect(
-      buildTerminalQuickCommandInput(
-        { ...command, appendEnter: false },
-        { bracketedPasteSafe: true }
-      )
-    ).toBe('\x1b[200~if true; then\r  printf "%s\\n" \\\r    "block"\rfi\r\r\x1b[201~')
-  })
-
-  it('never emits paste escape sequences to a shell without bracketed paste', () => {
-    expect(
-      buildTerminalQuickCommandInput(
-        { ...command, command: 'echo one\r\necho two' },
-        { bracketedPasteSafe: false }
-      )
-    ).toBe('echo one\recho two\r')
   })
 })

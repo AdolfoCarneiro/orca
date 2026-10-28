@@ -4,14 +4,13 @@ import type { PtyTransport } from './pty-transport-types'
 import type { PaneCwdMap } from './resolve-split-cwd'
 import type { TerminalQuickCommand } from '../../../../shared/terminal-quick-command-types'
 import { isTerminalAgentQuickCommand } from '../../../../shared/terminal-quick-commands'
-import { sendTerminalQuickCommandToPane } from './terminal-quick-command-dispatch'
 import type { TerminalPasteSource } from './terminal-paste-model'
 import { runQuickCommandInNewTab } from '@/lib/run-quick-command-in-new-tab'
 import type { PreparedAgentSessionFork } from './terminal-agent-session-fork'
 import type { AgentSessionContinuationRequest } from '@/lib/agent-session-continuation'
 import {
   pasteTerminalPaneMenuClipboard,
-  resolveTerminalPaneMenuMultilinePasteOptions
+  sendTerminalPaneMenuQuickCommand
 } from './terminal-pane-menu-paste'
 import {
   copyTerminalPaneMenuAgentSessionId,
@@ -249,14 +248,7 @@ export function useTerminalPaneContextMenu({
     if (!pane) {
       return
     }
-    void sendTerminalQuickCommandToPane({
-      command,
-      pane,
-      tabId,
-      transport: paneTransportsRef.current.get(pane.id),
-      multilinePasteOptions: resolveTerminalPaneMenuMultilinePasteOptions(menuPasteContext, pane),
-      onError: onPasteError
-    })
+    void sendTerminalPaneMenuQuickCommand(menuPasteContext, pane, command)
   }
 
   const onToggleExpand = (): void => {

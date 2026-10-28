@@ -1,5 +1,4 @@
 import { isTuiAgent, TUI_AGENT_CONFIG } from './tui-agent-config'
-import { wrapTerminalBracketedPasteText } from './terminal-bracketed-paste-text'
 import type {
   TerminalAgentQuickCommand,
   TerminalCommandQuickCommand,
@@ -239,14 +238,6 @@ export function normalizeTerminalQuickCommandText(command: string): string {
   return command.replace(/\r\n|\r/g, '\n')
 }
 
-export function buildTerminalQuickCommandInput(
-  command: TerminalCommandQuickCommand,
-  { bracketedPasteSafe }: { bracketedPasteSafe: boolean } = { bracketedPasteSafe: false }
-): string {
-  const body = normalizeTerminalQuickCommandText(command.command)
-  const input =
-    bracketedPasteSafe && body.includes('\n')
-      ? wrapTerminalBracketedPasteText(body)
-      : body.replace(/\n/g, '\r')
-  return command.appendEnter ? `${input}\r` : input
+export function buildTerminalQuickCommandInput(command: TerminalCommandQuickCommand): string {
+  return command.appendEnter ? `${command.command}\r` : command.command
 }
