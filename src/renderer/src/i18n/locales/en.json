@@ -19975,6 +19975,13 @@
         "effortPickerFailed": "Could not open the effort picker.",
         "modelApplyFailed": "Could not apply model {{value}}.",
         "effortApplyFailed": "Could not apply effort {{value}}."
+      },
+      "githubPeek": {
+        "updated": "updated {{time}}",
+        "oneComment": "1 comment",
+        "comments": "{{count}} comments",
+        "unavailable": "Preview unavailable.",
+        "retry": "Retry"
       }
     },
     "tab": {
