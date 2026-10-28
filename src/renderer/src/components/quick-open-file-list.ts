@@ -25,10 +25,7 @@ import {
 } from '@/runtime/runtime-file-search-client'
 import { debounceRuntimeFileRequest } from '@/runtime/runtime-file-request-debounce'
 import { splitFileNameFilterTokens } from '../../../shared/file-name-filter-tokens'
-import {
-  nextCappedLocalListing,
-  type CappedLocalListing
-} from '@/components/quick-open-capped-local-listing'
+import { nextCappedLocalListing, type CappedLocalListing } from './quick-open-capped-local-listing'
 import { useAppStore } from '@/store'
 import { useKnownWorktreeById, useWorktreesForRepo } from '@/store/selectors'
 import type { FileExplorerOperationOwner } from '@/components/right-sidebar/file-explorer-types'
