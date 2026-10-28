@@ -321,10 +321,7 @@ export abstract class OrcaRuntimeWithResolveWorktreeRemovalTarget extends OrcaRu
     if (launch.launchAgent) {
       await this.accounts.awaitHostLaunchEnv()
     }
-    return withHostAccountLaunchEnv(
-      opts,
-      launch,
-      this.accounts.hostLaunchEnvFor(launch.launchAgent)
-    )
+    const hostLaunchEnv = this.accounts.hostLaunchEnvFor(launch.launchAgent)
+    return withHostAccountLaunchEnv(opts, launch, hostLaunchEnv)
   }
 }
