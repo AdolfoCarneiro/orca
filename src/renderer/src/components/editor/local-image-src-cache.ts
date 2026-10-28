@@ -7,7 +7,7 @@ import {
 } from './local-image-cache-pinning'
 
 const BLOB_URL_CACHE_MAX_SIZE = 100
-// Keep retained decoded image data bounded as well as entry count.
+// Bound retained encoded image payload separately from the reusable entry target.
 const BLOB_URL_CACHE_MAX_BYTES = 128 * 1024 * 1024
 
 export const blobUrlCache = new Map<string, string>()
