@@ -1,6 +1,7 @@
 import type { ComponentType, Ref } from 'react'
 import { Pressable, type View } from 'react-native'
 import { colors } from '../theme/mobile-theme'
+import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { styles } from './mobile-session-styles'
 
 type HeaderIconProps = {
@@ -18,7 +19,6 @@ type MobileSessionHeaderIconButtonProps = {
   onPress: () => void
 }
 
-// Why: every header and tab-strip button shares this one look and a 44pt touch area (36pt + 4pt slop each side).
 export function MobileSessionHeaderIconButton({
   ref,
   active = false,
@@ -27,6 +27,7 @@ export function MobileSessionHeaderIconButton({
   icon: Icon,
   onPress
 }: MobileSessionHeaderIconButtonProps) {
+  useMobileColorScheme()
   return (
     <Pressable
       ref={ref}

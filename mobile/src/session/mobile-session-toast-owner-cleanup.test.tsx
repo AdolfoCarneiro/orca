@@ -16,7 +16,12 @@ const boundary = vi.hoisted(() => {
     synchronous: false
   }
 })
+vi.mock('expo-router', async () => {
+  const { useEffect } = await import('react')
+  return { useFocusEffect: (effect: () => () => void) => useEffect(effect, [effect]) }
+})
 vi.mock('react-native', () => ({
+  AppState: { currentState: 'active', addEventListener: () => ({ remove: vi.fn() }) },
   View: 'View',
   StyleSheet: { create: (styles: unknown) => styles, absoluteFillObject: {} },
   Platform: { OS: 'ios' },
@@ -60,6 +65,9 @@ vi.mock('./use-session-title-card', () => ({ useSessionTitleCard: () => ({ ancho
 vi.mock('./MobileSessionHeader', () => ({ MobileSessionHeader: () => null }))
 vi.mock('./MobileSessionContentRow', () => ({ MobileSessionContentRow: () => null }))
 vi.mock('./MobileSessionSheets', () => ({ MobileSessionSheets: () => null }))
+vi.mock('./session-side-rail', () => ({
+  useSessionSideRail: () => ({ backInRail: false, keysInRail: false })
+}))
 import { useMobileSessionFeedbackCapabilities } from './use-mobile-session-feedback-capabilities'
 import { useMobileSessionAccessorySelection } from './use-mobile-session-accessory-selection'
 import { MobileSessionSurface } from './MobileSessionSurface'
@@ -138,8 +146,11 @@ function mounted(strict = false) {
     const accessory = useMobileSessionAccessorySelection(accessoryScope)
     const result = { ...feedback, ...accessory }
     read.value = result
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Actual surface reads only setMobileSessionRootRef; its child components are isolated presentation stubs.
-    const controller = result as unknown as SurfaceController
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Actual surface reads the root ref and sheet visibility; its presentation children are stubbed.
+    const controller = {
+      ...result,
+      bulkCloseConfirm: { visible: false }
+    } as unknown as SurfaceController
     return visible ? createElement(MobileSessionSurface, { key: surfaceKey, controller }) : null
   }
   let root: ReturnType<typeof create> | undefined

@@ -24,7 +24,7 @@ vi.mock('react-native', () => ({
 }))
 vi.mock('react-native-safe-area-context', () => ({
   SafeAreaView: 'SafeAreaView',
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 })
 }))
 vi.mock('lucide-react-native', () => ({
   ChevronLeft: 'ChevronLeft',
@@ -46,7 +46,6 @@ vi.mock('./responsive-layout', () => ({
   useResponsiveLayout: () => ({ isWideLayout: true, width: 1024 })
 }))
 vi.mock('../storage/preferences', () => ({
-  HOST_SIDEBAR_DEFAULT_WIDTH: 320,
   HOST_SIDEBAR_MIN_WIDTH: 240,
   HOST_SIDEBAR_MAX_WIDTH: 480,
   loadHostSidebarWidth: async () => 320,
@@ -66,6 +65,7 @@ vi.mock('../navigation/host-stack', () => ({
   HostStack: () =>
     createElement(MobileSessionHeader, {
       controller: headerController(),
+      backInRail: false,
       details: useSessionTitleCard(false, false)
     })
 }))
@@ -91,6 +91,7 @@ function headerController(): MobileSessionController {
     isFolderWorkspaceRoute: true,
     isFloatingWorkspaceRoute: true,
     connState: 'connected',
+    presentedConnState: 'connected',
     worktreeName: 'Workspace',
     visibleTabs: [],
     showConnectionRetry: false,
@@ -104,10 +105,14 @@ function headerController(): MobileSessionController {
 
 describe('host sidebar reveal in the session header', () => {
   let renderer: ReactTestRenderer | null = null
+  let activePair: ReturnType<typeof createFakeBridgePortPair> | null = null
 
   afterEach(() => {
     act(() => renderer?.unmount())
     renderer = null
+    activePair?.client.close()
+    activePair?.host.dispose()
+    activePair = null
   })
 
   function tree(): ReactTestRenderer {
@@ -122,6 +127,7 @@ describe('host sidebar reveal in the session header', () => {
       route: { pathname: '/h/host/session/workspace' },
       ownsHostArea
     })
+    activePair = pair
     await pair.flush()
     const client = pair.client
     await act(async () => {

@@ -1,6 +1,7 @@
 import { useContext } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { styles } from './mobile-session-styles'
+import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import type { MobileSessionController } from './use-mobile-session-controller'
 import { MobileSessionContentRow } from './MobileSessionContentRow'
 import { MobileSessionHeader } from './MobileSessionHeader'
@@ -12,8 +13,10 @@ import { useResponsiveLayout } from '../layout/responsive-layout'
 import { WorkspaceServerContext } from '../transport/use-workspace-client'
 import { useSessionTitleCard } from './use-session-title-card'
 import { useDetailCardScope } from '../components/use-detail-card-scope'
+import { useSessionSideRail } from './session-side-rail'
 
 export function MobileSessionSurface({ controller }: { controller: MobileSessionController }) {
+  useMobileColorScheme()
   const { setMobileSessionRootRef } = controller
   const server = useContext(WorkspaceServerContext)
   const besideTabs = useResponsiveLayout().isLandscapePhone && controller.visibleTabs.length > 0
@@ -27,6 +30,7 @@ export function MobileSessionSurface({ controller }: { controller: MobileSession
     controller.fileActionTarget != null ||
     controller.browserActionTarget != null ||
     controller.agentSessionActionTarget != null ||
+    controller.bulkCloseConfirm.visible ||
     controller.leaveDrafts != null ||
     controller.discardMarkdownTarget != null ||
     controller.renameTarget != null ||
@@ -37,15 +41,19 @@ export function MobileSessionSurface({ controller }: { controller: MobileSession
   )
   const details = useSessionTitleCard(besideTabs, obscured)
   useDetailCardScope({ ...details, obscured })
+  const rail = useSessionSideRail(controller, details)
   // Only a proven local record belongs to this route's desktop or server.
   const hostName =
     controller.worktreeHostId === 'local' ? (server ? server.name : controller.hostName) : null
   return (
     <View ref={setMobileSessionRootRef} style={styles.container}>
       <View style={styles.kavInner}>
-        <MobileSessionHeader controller={controller} details={details} />
-        {/* Content-row host (KTD2): on wide, content shares this row with the docked panel as the flex-1 left child. */}
-        <MobileSessionContentRow controller={controller} />
+        <MobileSessionHeader
+          controller={controller}
+          details={details}
+          backInRail={rail.backInRail}
+        />
+        <MobileSessionContentRow controller={controller} keysInRail={rail.keysInRail} />
       </View>
       <DetailCardLayer>
         <View

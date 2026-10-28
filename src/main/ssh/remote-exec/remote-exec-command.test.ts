@@ -16,8 +16,7 @@ function createMockChannel(): MockChannel {
   }) as unknown as MockChannel
 }
 
-// execCommand only rejects with Error; narrow the caught reason (its resolve
-// type is string) and fail loudly if the command unexpectedly succeeds.
+// Require rejection and narrow its Error before checking diagnostics.
 async function execCommandRejection(promise: Promise<string>): Promise<Error> {
   return promise.then(
     () => {
@@ -139,9 +138,7 @@ describe('execCommand', () => {
     const commandPromise = execCommand(conn as never, 'npm install 2>&1')
 
     await Promise.resolve()
-    // Why: the system-ssh transport routes the local OpenSSH client's own
-    // diagnostics to channel.stderr while the remote command's merged output
-    // arrives on stdout. stderr must not mask the real failure.
+    // System SSH stderr carries local client noise; remote merged stdout must supply failure details.
     channel.stderr.emit('data', Buffer.from("Warning: Permanently added 'host' (ED25519)\n"))
     channel.emit('data', Buffer.from("npm error g++: unrecognized '-std=gnu++20'\n"))
     channel.emit('close', 1)
@@ -217,10 +214,7 @@ describe('execCommand', () => {
     await Promise.resolve()
     controller.abort()
 
-    // Why: sshd frees the MaxSessions slot only when the channel finishes
-    // closing, so abort must request close and settle from the 'close' event —
-    // settling immediately lets the sequential fallback race the closing
-    // channel and get refused.
+    // Abort must await CHANNEL_CLOSE or MaxSessions fallback races a still-held session slot.
     expect(channel.close).toHaveBeenCalledOnce()
     const settledEarly = await Promise.race([
       commandPromise.then(
@@ -315,8 +309,7 @@ describe('execCommand', () => {
   })
 
   it('hands a zero-exit command stderr to onStderr instead of dropping it', async () => {
-    // Why: probes fenced with `|| echo MISSING` always exit 0, so the resolve path used to be the
-    // one place the failure reason was discarded.
+    // Zero-exit probes wrapped in || echo MISSING still need their stderr diagnostics.
     const channel = createMockChannel()
     const conn = { exec: vi.fn().mockResolvedValue(channel) }
     const captured: string[] = []
@@ -334,7 +327,7 @@ describe('execCommand', () => {
     // onStderr must not leak into the SSH exec options.
     expect(conn.exec).toHaveBeenCalledWith(
       expect.stringContaining("\n(node -e 'x' || echo MISSING)\n"),
-      {}
+      { compressCommand: true }
     )
   })
 
@@ -351,7 +344,10 @@ describe('execCommand', () => {
       })
 
       await Promise.resolve()
-      expect(conn.exec).toHaveBeenCalledWith('npm install', { wrapCommand: false })
+      expect(conn.exec).toHaveBeenCalledWith('npm install', {
+        wrapCommand: false,
+        compressCommand: true
+      })
       const rejection = expect(commandPromise).rejects.toThrow('timed out after 240s')
       await vi.advanceTimersByTimeAsync(240_000)
       expect(channel.close).toHaveBeenCalledOnce()

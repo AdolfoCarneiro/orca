@@ -34,11 +34,7 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
     }
   }
 }))
-/**
- * Function components rather than host strings, so a case can match a node by identity: the
- * renderer types `node.type` as an `ElementType`, which a string literal is not, and the tests
- * ratchet checks this file.
- */
+// Use function-component identity instead of host strings rejected by renderer ElementType; preserve test typecheck.
 const hosts = vi.hoisted(() => {
   const make = (name: string) => {
     const Host = (props: { children?: ReactNode }): ReactNode => props.children ?? null
@@ -66,7 +62,8 @@ vi.mock('react-native', () => ({
 vi.mock('lucide-react-native', () => ({ ChevronLeft: hosts.View }))
 vi.mock('./BottomDrawer', () => ({ BottomDrawer: hosts.View }))
 
-import { CustomKeyModal, removeCustomKey, saveCustomKeys } from './CustomKeyModal'
+import { CustomKeyModal } from './CustomKeyModal'
+import { loadCustomKeys, removeCustomKey, saveCustomKeys } from '../terminal/terminal-custom-keys'
 import { readMirroredStorage } from '../storage/mirrored-storage-keys'
 
 const CUSTOM_KEYS = 'orca:custom-accessory-keys'
@@ -129,16 +126,7 @@ beforeEach(() => {
   store.holdWrites = null
 })
 
-/**
- * The page refuses a write the app would have taken, and the modal is one of its callers.
- *
- * `orca:custom-accessory-keys` is in the session route's page allowlist, and on the page a write
- * over `PAGE_STORAGE_MAX_VALUE_CHARS` rejects rather than dropping — that is the size contract of
- * ruling 33.4, and ruling 33.6 adds the key `init` could not carry at all. Every other allowlisted
- * writer in this closure catches its save; this one awaited it inside a `void` call, so the
- * rejection had nowhere to go but the page's unhandled-rejection handler, which reports a page
- * fault and drops the generation.
- */
+// Page allowlisted custom keys reject over-size/unseeded writes (rulings 33.4/33.6). Modal must catch void-call rejection or page faults and drops generation.
 describe('adding a custom key when the store refuses the write', () => {
   it('does not let the refusal escape as an unhandled rejection', async () => {
     store.refuse = true
@@ -162,13 +150,10 @@ describe('adding a custom key when the store refuses the write', () => {
     })
     process.off('unhandledRejection', unhandled)
     expect(unhandled).not.toHaveBeenCalled()
-    // And the modal does not report a key it failed to store: a row that looks added and is not
-    // is the failure the allowlist exists to avoid.
+    // Do not report unstored key as added to accessory row.
     expect(onKeysChanged).not.toHaveBeenCalled()
     expect(onClose).not.toHaveBeenCalled()
-    // And the mirror is back where it started. `saveCustomKeys` notes the write before it
-    // persists, because a reader is answered from the map; a refused write that left the note
-    // standing would put the key the store rejected into the next `init`.
+    // Restore mirror after refused save: saveCustomKeys notes map before persistence, and next init must not include rejected value.
     expect(mirrored()).toBe(before)
   })
 
@@ -257,5 +242,41 @@ describe('adding a custom key when the stored list cannot be read', () => {
     expect(store.writes).toBe(0)
     expect(onKeysChanged).not.toHaveBeenCalled()
     expect(onClose).not.toHaveBeenCalled()
+  })
+})
+
+describe('when the stored value holds no keys', () => {
+  const HOLDS_NO_KEYS = ['{not json', 'null', '{}', '[null]']
+
+  it.each(HOLDS_NO_KEYS)('an add replaces %s with the new key', async (raw) => {
+    store.raw = raw
+    const onKeysChanged = vi.fn()
+    const onClose = vi.fn()
+    let renderer: ReturnType<typeof create> | null = null
+    act(() => {
+      renderer = create(createElement(CustomKeyModal, { visible: true, onClose, onKeysChanged }))
+    })
+    if (renderer === null) {
+      throw new Error('the modal did not render')
+    }
+    addAShortcut(renderer)
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(JSON.parse(store.raw ?? '[]')).toHaveLength(1)
+    expect(onKeysChanged).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(HOLDS_NO_KEYS)('a removal replaces %s with an empty list', async (raw) => {
+    store.raw = raw
+    await expect(removeCustomKey('custom-1')).resolves.toEqual([])
+    expect(store.raw).toBe('[]')
+  })
+
+  it.each(HOLDS_NO_KEYS)('loading %s shows no keys', async (raw) => {
+    store.raw = raw
+    await expect(loadCustomKeys()).resolves.toEqual([])
   })
 })

@@ -5,6 +5,8 @@ import { MobileSessionHeader } from './MobileSessionHeader'
 import type { MobileSessionController } from './use-mobile-session-controller'
 import { useSessionTitleCard } from './use-session-title-card'
 import { AnchoredDetailCard } from '../components/AnchoredDetailCard'
+import { SideRailProvider } from '../layout/side-rail'
+import { useSessionSideRail } from './session-side-rail'
 
 const overlay = vi.hoisted(
   (): {
@@ -77,12 +79,18 @@ vi.mock('../platform/use-reduced-motion', () => ({ useReducedMotionEnabled: () =
 vi.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }))
 vi.mock('lucide-react-native', () => ({ ChevronLeft: 'Icon' }))
 vi.mock('../layout/host-sidebar-reveal', () => ({ useHostSidebarReveal: () => null }))
+vi.mock('../layout/responsive-layout', () => ({
+  useResponsiveLayout: () => ({ isWideLayout: false })
+}))
 vi.mock('./MobileSessionTabStrip', () => ({ MobileSessionTabStrip: () => null }))
+vi.mock('./MobileSessionAccessoryKeys', () => ({ MobileSessionAccessoryKeys: () => null }))
+vi.mock('./MobileSessionCommandDock', () => ({ sessionCommandDockShown: () => false }))
 const leave = vi.fn()
 // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This header fixture supplies every rendered field; no tabs or panel actions are exercised.
 const header = {
   worktreeName: 'workspace',
   connState: 'connected',
+  presentedConnState: 'connected',
   visibleTabs: [],
   requestLeaveSession: leave,
   isFloatingWorkspaceRoute: true,
@@ -91,9 +99,10 @@ const header = {
 
 function Fixture() {
   const details = useSessionTitleCard(true, false)
+  const rail = useSessionSideRail(header, details)
   return (
     <View>
-      <MobileSessionHeader controller={header} details={details} />
+      <MobileSessionHeader controller={header} details={details} backInRail={rail.backInRail} />
       <View ref={details.layerRef} testID="layer" onLayout={details.onLayout}>
         {details.visual ? (
           <AnchoredDetailCard {...details} {...details.visual} obscured={false} title="workspace" />
@@ -103,10 +112,18 @@ function Fixture() {
   )
 }
 
+function Screen({ rail = false }: { rail?: boolean }) {
+  return (
+    <SideRailProvider edge={rail ? 'right' : null} width={84} bottom={0}>
+      <Fixture />
+    </SideRailProvider>
+  )
+}
+
 it('preserves title identity and current request across queued results and Back', () => {
   const mounted: { renderer?: ReactTestRenderer } = {}
   act(() => {
-    mounted.renderer = create(<Fixture />, {
+    mounted.renderer = create(<Screen />, {
       createNodeMock: (node) => ({
         measureInWindow: (done: (x: number, y: number, w: number, h: number) => void) => {
           if (node.props !== null && typeof node.props === 'object' && 'testID' in node.props) {
@@ -197,10 +214,32 @@ it('preserves title identity and current request across queued results and Back'
   finish()
   overlay.width = 375
   act(() => expect(overlay.back?.()).toBe(true))
-  act(() => renderer.update(<Fixture />))
+  act(() => renderer.update(<Screen />))
   finish()
   check(false, false)
   expect(root.findByProps({ 'aria-expanded': false })).toBe(opener)
   expect(opener.findByProps({ children: 'workspace' })).toBe(title)
+  act(() => renderer.update(<Screen rail />))
+  expect(root.findAllByProps({ hitSlop: 4 })).toHaveLength(0)
+  const railBack = root.findByProps({
+    accessibilityRole: 'button',
+    accessibilityLabel: 'Back to worktrees'
+  })
+  tap()
+  check(true, false)
+  const railMeasurement = overlay.measure
+  act(() => railBack.props.onPress())
+  act(() => railMeasurement?.())
+  check(false, false)
+  expect(leave).toHaveBeenCalledTimes(1)
+  tap()
+  measure()
+  finish()
+  act(() => railBack.props.onPress())
+  check(false, true)
+  expect(leave).toHaveBeenCalledTimes(1)
+  act(() => railBack.props.onPress())
+  expect(leave).toHaveBeenCalledTimes(2)
+  expect(root.findByProps({ 'aria-expanded': false })).toBe(opener)
   act(() => renderer.unmount())
 })

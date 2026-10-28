@@ -4,10 +4,13 @@ import {
   PLUGIN_AGENT_PROFILE_LIMIT,
   PLUGIN_KEYBINDING_LIMIT,
   PLUGIN_LANGUAGE_PACK_LIMIT,
+  PLUGIN_TERMINAL_THEME_LIMIT,
+  PLUGIN_THEME_LIMIT,
   PLUGIN_VM_RECIPE_LIMIT,
   pluginAgentProfileContributionSchema,
   pluginKeybindingContributionSchema,
   pluginLanguagePackContributionSchema,
+  pluginThemeContributionSchema,
   pluginVmRecipeContributionSchema
 } from './plugin-content-pack-contributions'
 import {
@@ -16,9 +19,13 @@ import {
   pluginRelativePathSchema
 } from './plugin-manifest-fields'
 import { validatePluginManifestContributions } from './plugin-manifest-contribution-validation'
+import {
+  pluginExecutionProfileSchema,
+  validatePluginExecutionProfile
+} from './plugin-execution-profile'
 
 /**
- * Plugin manifest v1 (`orca-plugin.json` at the plugin root). The
+ * Plugin manifest v1 and v2 (`orca-plugin.json` at the plugin root). The
  * `contributes` key names deliberately mirror common Electron-ecosystem
  * manifest conventions so future adapters stay cheap.
  *
@@ -34,8 +41,7 @@ const SEMVER_RE =
 export const PLUGIN_PANEL_LIMIT = 64
 export const PLUGIN_COMMAND_LIMIT = 256
 
-// Why: v0 supports only the ">=x.y.z" form. A closed grammar keeps the gate
-// predictable; richer ranges can be added without breaking old manifests.
+// Closed >=x.y.z grammar keeps v0 gating predictable; richer ranges can be added later.
 const orcaEngineRangeSchema = z
   .string()
   .max(64)
@@ -58,8 +64,7 @@ const commandContributionSchema = z.object({
   action: pluginCommandIdSchema.optional()
 })
 
-/** Domain events a plugin can subscribe to in v0. Closed set: server-side
- *  filtering means plugins only ever receive what they subscribed to. */
+/** Closed event set permits server-side filtering to only subscribed events. */
 export const PLUGIN_EVENT_NAMES = [
   'worktree.created',
   'worktree.removed',
@@ -73,62 +78,67 @@ const eventContributionSchema = z.object({
   on: z.enum(PLUGIN_EVENT_NAMES)
 })
 
-export const pluginManifestSchema = z
-  .object({
-    manifestVersion: z.literal(1),
-    id: pluginIdSchema,
-    /** Publisher slug; canonical identity is `<publisher>.<id>` — bare-id
-     *  global uniqueness is unverifiable without a registry. */
-    publisher: pluginIdSchema,
-    name: z.string().min(1).max(256),
-    version: z.string().regex(SEMVER_RE, 'must be semver'),
-    description: z.string().max(4096).optional(),
-    author: z
-      .object({ name: z.string().min(1).max(256), url: z.string().max(2048).optional() })
-      .optional(),
-    repository: z.string().max(2048).optional(),
-    icon: pluginRelativePathSchema.optional(),
-    /** Minimum host version gate; the host refuses to load below it. */
-    engines: z.object({ orca: orcaEngineRangeSchema }),
-    /** Host-API major version this plugin targets. */
-    pluginApi: z.literal(1),
-    /** Node entry executed inside the out-of-process plugin worker. */
-    main: pluginRelativePathSchema.optional(),
-    contributes: z
-      .object({
-        panels: z.array(panelContributionSchema).max(PLUGIN_PANEL_LIMIT).default([]),
-        commands: z.array(commandContributionSchema).max(PLUGIN_COMMAND_LIMIT).default([]),
-        events: z.array(eventContributionSchema).max(PLUGIN_EVENT_SUBSCRIPTION_LIMIT).default([]),
-        languagePacks: z
-          .array(pluginLanguagePackContributionSchema)
-          .max(PLUGIN_LANGUAGE_PACK_LIMIT)
-          .default([]),
-        keybindings: z
-          .array(pluginKeybindingContributionSchema)
-          .max(PLUGIN_KEYBINDING_LIMIT)
-          .default([]),
-        vmRecipes: z
-          .array(pluginVmRecipeContributionSchema)
-          .max(PLUGIN_VM_RECIPE_LIMIT)
-          .default([]),
-        agents: z
-          .array(pluginAgentProfileContributionSchema)
-          .max(PLUGIN_AGENT_PROFILE_LIMIT)
-          .default([])
-      })
-      .strict()
-      .default(() => ({
-        panels: [],
-        commands: [],
-        events: [],
-        languagePacks: [],
-        keybindings: [],
-        vmRecipes: [],
-        agents: []
-      })),
-    capabilities: z.array(pluginCapabilitySchema).max(32).default([])
+const pluginManifestV1Object = z.object({
+  manifestVersion: z.literal(1),
+  id: pluginIdSchema,
+  /** Qualify as publisher.id: bare-id global uniqueness cannot be verified without a registry. */
+  publisher: pluginIdSchema,
+  name: z.string().min(1).max(256),
+  version: z.string().regex(SEMVER_RE, 'must be semver'),
+  description: z.string().max(4096).optional(),
+  author: z
+    .object({ name: z.string().min(1).max(256), url: z.string().max(2048).optional() })
+    .optional(),
+  repository: z.string().max(2048).optional(),
+  icon: pluginRelativePathSchema.optional(),
+  /** Minimum host version gate; the host refuses to load below it. */
+  engines: z.object({ orca: orcaEngineRangeSchema }),
+  /** Host-API major version this plugin targets. */
+  pluginApi: z.literal(1),
+  /** Node entry executed inside the out-of-process plugin worker. */
+  main: pluginRelativePathSchema.optional(),
+  contributes: z
+    .object({
+      panels: z.array(panelContributionSchema).max(PLUGIN_PANEL_LIMIT).default([]),
+      commands: z.array(commandContributionSchema).max(PLUGIN_COMMAND_LIMIT).default([]),
+      events: z.array(eventContributionSchema).max(PLUGIN_EVENT_SUBSCRIPTION_LIMIT).default([]),
+      languagePacks: z
+        .array(pluginLanguagePackContributionSchema)
+        .max(PLUGIN_LANGUAGE_PACK_LIMIT)
+        .default([]),
+      keybindings: z
+        .array(pluginKeybindingContributionSchema)
+        .max(PLUGIN_KEYBINDING_LIMIT)
+        .default([]),
+      vmRecipes: z.array(pluginVmRecipeContributionSchema).max(PLUGIN_VM_RECIPE_LIMIT).default([]),
+      agents: z
+        .array(pluginAgentProfileContributionSchema)
+        .max(PLUGIN_AGENT_PROFILE_LIMIT)
+        .default([]),
+      themes: z.array(pluginThemeContributionSchema).max(PLUGIN_THEME_LIMIT).default([]),
+      terminalThemes: z
+        .array(pluginThemeContributionSchema)
+        .max(PLUGIN_TERMINAL_THEME_LIMIT)
+        .default([])
+    })
+    .strict()
+    // Why prefault: runs `{}` through the schema, so every family's own default applies.
+    .prefault({}),
+  capabilities: z.array(pluginCapabilitySchema).max(32).default([])
+})
+
+// Why strict: v2 declares its execution profile, so unknown keys must not smuggle in behavior.
+const pluginManifestV2Object = pluginManifestV1Object
+  .extend({ manifestVersion: z.literal(2), execution: pluginExecutionProfileSchema })
+  .strict()
+
+export const pluginManifestSchema = z.discriminatedUnion('manifestVersion', [
+  pluginManifestV1Object.superRefine(validatePluginManifestContributions),
+  pluginManifestV2Object.superRefine((manifest, ctx) => {
+    validatePluginManifestContributions(manifest, ctx)
+    validatePluginExecutionProfile(manifest, ctx)
   })
-  .superRefine(validatePluginManifestContributions)
+])
 
 export type PluginManifest = z.infer<typeof pluginManifestSchema>
 export type PluginPanelContribution = z.infer<typeof panelContributionSchema>

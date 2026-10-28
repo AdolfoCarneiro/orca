@@ -5,22 +5,26 @@ import { MobileSessionHeaderIconButton } from './MobileSessionHeaderIconButton'
 import { MobileSessionTabStrip } from './MobileSessionTabStrip'
 import { MobileSessionTitleBlock } from './MobileSessionTitleBlock'
 import { styles } from './mobile-session-styles'
+import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { useHostSidebarReveal } from '../layout/host-sidebar-reveal'
 import type { SessionTitleCard } from './use-session-title-card'
 import type { MobileSessionController } from './use-mobile-session-controller'
 
 export function MobileSessionHeader({
   controller,
-  details
+  details,
+  backInRail
 }: {
   controller: MobileSessionController
   details: SessionTitleCard
+  backInRail: boolean
 }) {
+  useMobileColorScheme()
   const {
     hostId,
     isFolderWorkspaceRoute,
     isFloatingWorkspaceRoute,
-    connState,
+    presentedConnState,
     forceReconnectHost,
     worktreeName,
     activePanel,
@@ -48,20 +52,22 @@ export function MobileSessionHeader({
             onPress={revealSidebar}
           />
         ) : null}
-        <MobileSessionHeaderIconButton
-          ref={details.backRef}
-          accessibilityLabel="Back to worktrees"
-          icon={ChevronLeft}
-          onPress={() => {
-            if (!details.closeFirst()) {
-              requestLeaveSession()
-            }
-          }}
-        />
+        {backInRail ? null : (
+          <MobileSessionHeaderIconButton
+            ref={details.backRef}
+            accessibilityLabel="Back to worktrees"
+            icon={ChevronLeft}
+            onPress={() => {
+              if (!details.closeFirst()) {
+                requestLeaveSession()
+              }
+            }}
+          />
+        )}
 
         <MobileSessionTitleBlock
           title={worktreeName || 'Terminal'}
-          connState={connState}
+          connState={presentedConnState}
           details={details}
           meta={terminalSummary}
           showConnectionRetry={showConnectionRetry}

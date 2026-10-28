@@ -9,11 +9,7 @@ import { useHostStatusGates, type HostStatusGates } from './host-status-gates'
 import type { RpcClient } from './rpc-client'
 import type { ConnectionState } from './types'
 
-/**
- * Where a workspace runs, as seen through the paired desktop. Whether a server is reachable stays
- * the desktop's answer; what it supports is the server's own status, read through the desktop.
- * `server` is null for the desktop's own workspaces (local, SSH, folder).
- */
+// Read reachability from the paired desktop and capabilities from the server; null server means local/SSH/folder workspaces.
 export function useWorkspaceServer(args: {
   client: RpcClient | null
   connState: ConnectionState
@@ -26,6 +22,7 @@ export function useWorkspaceServer(args: {
     state: ConnectionState
     name: string | null
     gates: HostStatusGates
+    desktopCapabilities: readonly string[]
   } | null
 } {
   const { client, connState, desktopCapabilities, executionHost } = args
@@ -36,23 +33,24 @@ export function useWorkspaceServer(args: {
   const selectedHost = hosts?.find((entry) => entry.hostId === routeHost)
   const state =
     connState === 'connected' && routeHost && hosts ? serverConnState(selectedHost) : connState
-  // No hostId: the desktop's recorded version and descriptor must not take the server's. The
-  // server's own state, so its restart under a connected desktop re-reads what it supports.
+  // Use the server’s own state and no desktop hostId so reconnect re-reads server gates without overwriting desktop identity.
   const gates = useHostStatusGates({ hostId: undefined, client: serverClient, connState: state })
   return {
     routeHost,
     server:
       routeHost === undefined
         ? null
-        : { client: serverClient, state, name: selectedHost?.label ?? null, gates }
+        : {
+            client: serverClient,
+            state,
+            name: selectedHost?.label ?? null,
+            gates,
+            desktopCapabilities
+          }
   }
 }
 
-/**
- * Whether the desktop can relay calls to the server now. A server it is reaching or has just
- * reached (status not answered yet) reads `connecting`, matching the desktop's reconnecting banner;
- * one too old to relay to, or no longer listed, is unreachable.
- */
+// Treat a server awaiting status as connecting; an unlisted or incompatible server is unreachable.
 function serverConnState(host: MobileRelayHost | undefined): ConnectionState {
   if (host?.relay === 'ready') {
     return 'connected'

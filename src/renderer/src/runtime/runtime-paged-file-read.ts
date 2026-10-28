@@ -1,10 +1,16 @@
-import { basename } from '@/lib/path'
 import { BINARY_PROBE_BYTES } from '../../../shared/binary-buffer'
-import { IMAGE_FILE_MIME_TYPES } from '../../../shared/image-file-extensions'
-import type { RuntimeFilePreviewResult } from '../../../shared/runtime-types'
+import {
+  IMAGE_AND_PDF_PREVIEW_MIME_TYPES,
+  filePreviewExtension
+} from '../../../shared/file-preview-kind'
+import type {
+  RuntimeFilePreviewResult,
+  RuntimeFileReadChunkResult
+} from '../../../shared/runtime-types'
 import {
   readRemoteRuntimeFileChunk,
   statRemoteRuntimeFile,
+  type RuntimeFileSnapshot,
   type RuntimeRemoteFileAddress
 } from './runtime-file-range-client'
 import { RuntimeRpcCallError } from './runtime-rpc-result'
@@ -44,7 +50,21 @@ export async function readRemoteFileInChunks(
   address: RuntimeRemoteFileAddress
 ): Promise<PagedRemoteFileRead> {
   const remote = pinRemoteFileAddress(address)
-  const before = await nullWhenUnsupported(() => statRemoteRuntimeFile(remote))
+  return readFileInChunks({
+    stat: () => statRemoteRuntimeFile(remote),
+    readChunk: (offset, length) => readRemoteRuntimeFileChunk(remote, offset, length)
+  })
+}
+
+/** Host calls for one file; a paired web client binds them to its own session. */
+export type ChunkedFileReader = {
+  stat: () => Promise<RuntimeFileSnapshot>
+  readChunk: (offset: number, length: number) => Promise<RuntimeFileReadChunkResult>
+}
+
+/** The paging loop behind `readRemoteFileInChunks`, over any way of calling the host. */
+export async function readFileInChunks(reader: ChunkedFileReader): Promise<PagedRemoteFileRead> {
+  const before = await nullWhenUnsupported(() => reader.stat())
   if (!before) {
     return { kind: 'unsupported' }
   }
@@ -57,9 +77,7 @@ export async function readRemoteFileInChunks(
   const bytes = new Uint8Array(before.size)
   let offset = 0
   for (;;) {
-    const chunk = await nullWhenUnsupported(() =>
-      readRemoteRuntimeFileChunk(remote, offset, PAGED_READ_CHUNK_BYTES)
-    )
+    const chunk = await nullWhenUnsupported(() => reader.readChunk(offset, PAGED_READ_CHUNK_BYTES))
     if (!chunk) {
       return { kind: 'unsupported' }
     }
@@ -74,9 +92,8 @@ export async function readRemoteFileInChunks(
       break
     }
   }
-  // Why: chunks are separate reads, so a rewrite between them (a PDF rebuild) would splice two
-  // versions into one corrupt file.
-  const after = await statRemoteRuntimeFile(remote)
+  // Separate chunks can straddle rewrites such as PDF rebuilds; validate metadata to avoid splicing corrupt versions.
+  const after = await reader.stat()
   if (
     offset !== before.size ||
     after.size !== before.size ||
@@ -86,6 +103,16 @@ export async function readRemoteFileInChunks(
     throw new Error(REMOTE_FILE_CHANGED_DURING_READ_MESSAGE)
   }
   return { kind: 'ok', bytes }
+}
+
+/** A binary the host refused as text: only images and PDFs preview, so no other is fetched. */
+export async function readRemoteBinaryFile(
+  address: RuntimeRemoteFileAddress,
+  options: { pageOversized: boolean }
+): Promise<RuntimeFilePreviewResult> {
+  return previewableBinaryMimeType(address.relativePath)
+    ? readRemoteFilePreview(address, options)
+    : { content: '', isBinary: true }
 }
 
 /** `files.readPreview`, falling back to a chunked read when the file is too large for one reply. */
@@ -141,15 +168,9 @@ export function pagedTextFileResult(bytes: Uint8Array): RuntimeFilePreviewResult
   return { content: new TextDecoder('utf-8', { ignoreBOM: true }).decode(bytes), isBinary: false }
 }
 
-/** Mirrors the host's RUNTIME_PREVIEWABLE_BINARY_MIME_TYPES, which drives `files.readPreview`. */
+/** The image/PDF previews the host's `files.readPreview` sends whole; one table for both sides. */
 export function previewableBinaryMimeType(relativePath: string): string | undefined {
-  const name = basename(relativePath)
-  const dot = name.lastIndexOf('.')
-  if (dot <= 0) {
-    return undefined
-  }
-  const extension = name.slice(dot).toLowerCase()
-  return extension === '.pdf' ? 'application/pdf' : IMAGE_FILE_MIME_TYPES[extension]
+  return IMAGE_AND_PDF_PREVIEW_MIME_TYPES[filePreviewExtension(relativePath)]
 }
 
 async function nullWhenUnsupported<TResult>(call: () => Promise<TResult>): Promise<TResult | null> {
@@ -182,7 +203,7 @@ function decodeChunk(contentBase64: unknown, bytesRead: unknown): Uint8Array {
   return bytes
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
+export function bytesToBase64(bytes: Uint8Array): string {
   const parts: string[] = []
   // Why: a multiple of 3, so slices join without padding; small enough for fromCharCode's args.
   const slice = 0x2000 * 3

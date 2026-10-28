@@ -104,7 +104,6 @@ describe('useLiveWorktreeName request volume', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000)
     })
-    // The retired 3s interval made one initial request plus ten idle ticks here.
     expect(sendRequest).toHaveBeenCalledTimes(1)
 
     await emitEvent({ type: 'worktreesChanged', repoId: 'repo-2' })
@@ -239,8 +238,7 @@ describe('useLiveWorktreeName request volume', () => {
     expect(firstNameByWorktree.get('repo-2::/worktree')).toBe('Next workspace')
   })
 
-  // The bounce in use-missing-worktree-bounce.ts rides this poll rather than adding a second
-  // RPC, so the failure branch has to publish a verdict instead of returning early.
+  // The missing-workspace bounce shares this poll, so failure must publish a verdict rather than return silently.
   it('reports the host-proven verdict from the same poll', async () => {
     let resolution = ''
     function VerdictHarness(): null {
@@ -271,8 +269,7 @@ describe('useLiveWorktreeName request volume', () => {
       _meta: { runtimeId: 'runtime-1' }
     })
     await mount()
-    // Why: a transient desktop repo-scan rejection also answers selector_not_found,
-    // so one miss stays unproven; only the confirming poll may say 'missing'.
+    // A transient repo-scan rejection also reports selector_not_found; require a confirming poll.
     expect(resolution).toBe('unknown')
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3_000)
@@ -281,7 +278,6 @@ describe('useLiveWorktreeName request volume', () => {
 
     act(() => renderer?.unmount())
     renderer = null
-    // A dropped socket is not a deletion, so it must leave the verdict unproven.
     sendRequest.mockResolvedValue({
       id: 'worktree-show',
       ok: false,
