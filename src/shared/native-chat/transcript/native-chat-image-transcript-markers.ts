@@ -1,11 +1,11 @@
-import { unwrapClaudePastedContent } from './claude-pasted-content'
+import { unwrapClaudePastedContent } from '../../claude-pasted-content'
 import {
   stripAnsiEscapeSequences,
   TERMINAL_CONTROL_CHARACTER_PATTERN
-} from './ansi-escape-sequences'
-import { isTextBlock, type NativeChatBlock, type NativeChatMessage } from './native-chat-types'
-import { imageReferenceToken, replaceImageReferences } from './native-chat-image-reference'
-import { NATIVE_CHAT_QUOTED_FILE_REFERENCE } from './agent-image-paste'
+} from '../../ansi-escape-sequences'
+import { isTextBlock, type NativeChatBlock, type NativeChatMessage } from '../../native-chat-types'
+import { imageReferenceToken, replaceImageReferences } from '../../native-chat-image-reference'
+import { NATIVE_CHAT_QUOTED_FILE_REFERENCE } from '../../agent-image-paste'
 
 const IMAGE_SOURCE_MARKER = /^\[Image:\s*source:\s*(.+?)\]\s*$/
 const IMAGE_PROMPT_MARKER = /\[Image #\d+\]/
