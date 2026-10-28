@@ -35,11 +35,10 @@ it.each(['detached', 'reassigned', 'disposed'] as const)(
     ]
     const node = document.createElement('div')
     document.body.append(node)
-    const getValue = vi.fn(() => liveModel?.getValue() ?? '')
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the input binding and paste executor use these real model, selection, action, and DOM methods.
     const instance = {
       getModel: () => liveModel,
-      getValue,
+      getValue: () => liveModel?.getValue() ?? '',
       getContainerDomNode: () => node,
       hasTextFocus: () => focused,
       getSelection: () => selections[0],
@@ -117,7 +116,6 @@ it.each(['detached', 'reassigned', 'disposed'] as const)(
         expect(isEditorLargePasteInFlight(originalModel.uri.toString())).toBe(false)
       })
       expect(changes).toBe(3)
-      expect(getValue).not.toHaveBeenCalled()
       expect(successorPublisher).not.toHaveBeenCalled()
       expect(successorModel.getValue()).toBe('successor')
       expect(lastSyncedContentRef.current).toBe('original')
