@@ -31,7 +31,7 @@ export function listItemText(item: Element): string {
   ) {
     last.remove()
   }
-  const markdown = inlineChildren(clone, '<br />')
+  const markdown = inlineChildren(clone, '<br />', true)
     .replace(/\r\n?|\n/g, ' ')
     .trim()
   return markdown === '<br />' ? '' : markdown
