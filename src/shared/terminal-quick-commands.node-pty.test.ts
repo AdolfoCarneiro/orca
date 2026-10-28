@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import * as pty from 'node-pty'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   normalizeTerminalQuickCommandText,
   normalizeTerminalQuickCommands,
@@ -64,13 +64,8 @@ async function exercise(
   const listener = proc.onData((data) => {
     output += data
   })
-  const waitFor = async (value: string) => {
-    const deadline = Date.now() + 5000
-    while (!output.includes(value) && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 20))
-    }
-    expect(output).toContain(value)
-  }
+  const waitFor = (value: string) =>
+    vi.waitFor(() => expect(output).toContain(value), { timeout: 5000, interval: 20 })
   let staged
   try {
     await waitFor('QUICK_READY> ')
@@ -89,7 +84,8 @@ async function exercise(
       await waitFor('\x1b[?2004h')
       // Same bytes the pane paste path sends: one frame, then Enter in a separate write.
       proc.write(wrapTerminalBracketedPasteText(savedCommand.command))
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      // The line editor echoes the pasted format string; the run would print EXECUTION_END.
+      await waitFor('EXECUTION_%s')
       expect(output).not.toContain('EXECUTION_END')
       proc.write('\r')
     }
