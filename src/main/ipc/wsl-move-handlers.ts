@@ -176,8 +176,10 @@ function registerWslMoveUseHereHandler(
         'unsavedWorkspaceIds' in request && Array.isArray(request.unsavedWorkspaceIds)
           ? request.unsavedWorkspaceIds.filter((id): id is string => typeof id === 'string')
           : []
-      return runTrackedWslMoveUndo(Date.now, () =>
-        releaseWslMovedProjectHere(getUserDataPath(), ref, unsavedWorkspaceIds, createUndoPorts)
+      return runTrackedWslMoveUndo(
+        () => performance.now(),
+        () =>
+          releaseWslMovedProjectHere(getUserDataPath(), ref, unsavedWorkspaceIds, createUndoPorts)
       )
     }
   )

@@ -128,6 +128,8 @@ export const WSL_MOVE_UNDO_OUTCOME_VALUES = [
   'host_unreachable',
   'unsaved_files',
   'failed',
+  // The undo threw instead of returning a refusal.
+  'threw',
   'other'
 ] as const
 

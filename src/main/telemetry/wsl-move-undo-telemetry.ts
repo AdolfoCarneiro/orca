@@ -37,7 +37,7 @@ export async function runTrackedWslMoveUndo(
   try {
     result = await run()
   } catch (error) {
-    safeTrack({ outcome: 'failed', duration_bucket: durationBucket(now() - startedAt) })
+    safeTrack({ outcome: 'threw', duration_bucket: durationBucket(Math.max(0, now() - startedAt)) })
     throw error
   }
   safeTrack({

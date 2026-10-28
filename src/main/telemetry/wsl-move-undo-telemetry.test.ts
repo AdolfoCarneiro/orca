@@ -54,7 +54,7 @@ describe('wsl_move_undo telemetry', () => {
     expect(props).toEqual({ outcome, duration_bucket: 'lt_5s' })
   })
 
-  it('reports an undo that threw as failed and rethrows it', async () => {
+  it('reports an undo that threw as threw, apart from a failed refusal, and rethrows it', async () => {
     const error = new Error('boom')
     await expect(
       runTrackedWslMoveUndo(
@@ -65,7 +65,24 @@ describe('wsl_move_undo telemetry', () => {
       )
     ).rejects.toBe(error)
     expect(track).toHaveBeenCalledWith('wsl_move_undo', {
-      outcome: 'failed',
+      outcome: 'threw',
+      duration_bucket: 'lt_5s'
+    })
+  })
+
+  it('buckets a clock that stepped back as the shortest duration', async () => {
+    let ms = 10_000
+    await expect(
+      runTrackedWslMoveUndo(
+        () => ms,
+        async () => {
+          ms -= 5_000
+          throw new Error('boom')
+        }
+      )
+    ).rejects.toThrow('boom')
+    expect(track).toHaveBeenCalledWith('wsl_move_undo', {
+      outcome: 'threw',
       duration_bucket: 'lt_5s'
     })
   })
