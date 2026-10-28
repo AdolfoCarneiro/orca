@@ -10,7 +10,7 @@ export type FileExplorerWatchRefreshScheduler = {
 }
 
 export type CreateFileExplorerWatchRefreshSchedulerParams = {
-  refreshTree: () => Promise<FileExplorerTreeRefreshOutcome>
+  refreshTree: (signal?: AbortSignal) => Promise<FileExplorerTreeRefreshOutcome>
   refreshDir: (dirPath: string) => Promise<void>
   /** Dirs a full tree refresh already re-reads; the scheduler has no view of `expanded`. */
   isCoveredByFullRefresh: (dirPath: string) => boolean
@@ -24,6 +24,7 @@ export function createFileExplorerWatchRefreshScheduler({
   isCoveredByFullRefresh,
   dirConcurrency
 }: CreateFileExplorerWatchRefreshSchedulerParams): FileExplorerWatchRefreshScheduler {
+  const refreshController = new AbortController()
   let pendingFull = false
   const pendingDirs = new Map<string, string>()
   let timer: ReturnType<typeof setTimeout> | null = null
@@ -52,7 +53,7 @@ export function createFileExplorerWatchRefreshScheduler({
     const started = (async () => {
       // Snapshot coverage before refreshTree reads the live expanded set; later expansions still need pending reads.
       const covered = full ? new Set(dirs.filter(isCoveredByFullRefresh)) : null
-      const outcome = full && !disposed ? await refreshTree() : null
+      const outcome = full && !disposed ? await refreshTree(refreshController.signal) : null
       // Retry covered dirs after supersession, but drop them after root transport failure to avoid dead timeouts blocking recovery.
       const outstanding =
         outcome === 'root-unreadable'
@@ -100,6 +101,7 @@ export function createFileExplorerWatchRefreshScheduler({
       const discardedWork =
         pendingFull || pendingDirs.size > 0 || timer !== null || inFlight !== null
       disposed = true
+      refreshController.abort()
       if (timer !== null) {
         clearTimeout(timer)
         timer = null

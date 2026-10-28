@@ -42,7 +42,7 @@ type UseFileExplorerTreeResult = {
   ) => Promise<boolean>
   statPath: (path: string) => Promise<UserOpenedPathStat>
   markPathAsDirectory: (path: string) => void
-  refreshTree: () => Promise<FileExplorerTreeRefreshOutcome>
+  refreshTree: (options?: { signal?: AbortSignal }) => Promise<FileExplorerTreeRefreshOutcome>
   /** `wakeWslDistro` only for a user act: it may start a stopped WSL distro. */
   refreshDir: (dirPath: string, options?: { wakeWslDistro?: boolean }) => Promise<void>
   /** True while a dir's cached listing predates the last full refresh that skipped it. */
@@ -216,57 +216,68 @@ export function useFileExplorerTree(
     [activeWorktreeId, worktreePath]
   )
 
-  const refreshTree = useCallback(async (): Promise<FileExplorerTreeRefreshOutcome> => {
-    if (!worktreePath) {
-      // No read means superseded; root-unreadable tells callers to drop pending refreshes.
-      return 'superseded'
-    }
-    const refreshGeneration = ++refreshGenerationRef.current
-    // Retain children to prevent virtualizer jumps; union stale marks before reading because supersession may skip verification, and prune uncached paths to bound marks.
-    for (const dirPath of staleDirsRef.current) {
-      if (dirCacheRef.current[dirPath] === undefined) {
-        staleDirsRef.current.delete(dirPath)
+  const refreshTree = useCallback(
+    async (options?: { signal?: AbortSignal }): Promise<FileExplorerTreeRefreshOutcome> => {
+      if (!worktreePath || options?.signal?.aborted) {
+        // No read means superseded; root-unreadable tells callers to drop pending refreshes.
+        return 'superseded'
       }
-    }
-    // Callers use the latest callback, so expanded reflects the current traversal.
-    for (const dirPath of collectStaleDirCachePaths(dirCacheRef.current, worktreePath, expanded)) {
-      staleDirsRef.current.add(dirPath)
-    }
-    const refreshSession = dirLoadTrackerRef.current.getSession()
-    rootReadFailedRef.current = false
-    // Propagate root failure before expanded waves; 200 dead dirs would otherwise impose about 50 sequential transport timeouts.
-    const rootLoadCompleted = await loadDir(worktreePath, -1, { force: true, failOnError: true })
-    if (!rootLoadCompleted || !dirLoadTrackerRef.current.isSessionCurrent(refreshSession)) {
-      // Callers handle root failure and supersession differently; neither verified the expanded dirs.
-      return rootReadFailedRef.current ? 'root-unreadable' : 'superseded'
-    }
-    // Exclude the root already force-loaded above to avoid reading it twice.
-    const expandedDirs = Array.from(expanded)
-      .filter((dirPath) => dirPath !== worktreePath)
-      .map((dirPath) => ({
-        dirPath,
-        depth: splitPathSegments(dirPath.slice(worktreePath.length + 1)).length - 1
-      }))
-    const allDirsCommitted = await refreshFileExplorerExpandedDirs({
-      dirs: expandedDirs,
-      worktreePath,
-      dirLoadTracker: dirLoadTrackerRef.current,
-      setDirCache,
-      updateLoadingDirPaths,
-      readDirectory: (dirPath) =>
-        readFileExplorerDirectory(activeWorktreeId, worktreePath, dirPath),
-      maxConcurrentReads: fileExplorerRefreshConcurrency(
-        getFileExplorerOperationOwner(activeWorktreeId)
-      ),
-      onDirCommitted: (dirPath) => {
-        // An older expanded read must not clear a newer collapsed-directory stale mark.
-        if (refreshGenerationRef.current === refreshGeneration) {
+      const refreshGeneration = ++refreshGenerationRef.current
+      // Retain children to prevent virtualizer jumps; union stale marks before reading because supersession may skip verification, and prune uncached paths to bound marks.
+      for (const dirPath of staleDirsRef.current) {
+        if (dirCacheRef.current[dirPath] === undefined) {
           staleDirsRef.current.delete(dirPath)
         }
       }
-    })
-    return allDirsCommitted ? 'refreshed' : 'superseded'
-  }, [activeWorktreeId, expanded, loadDir, updateLoadingDirPaths, worktreePath])
+      // Callers use the latest callback, so expanded reflects the current traversal.
+      for (const dirPath of collectStaleDirCachePaths(
+        dirCacheRef.current,
+        worktreePath,
+        expanded
+      )) {
+        staleDirsRef.current.add(dirPath)
+      }
+      const refreshSession = dirLoadTrackerRef.current.getSession()
+      rootReadFailedRef.current = false
+      // Propagate root failure before expanded waves; 200 dead dirs would otherwise impose about 50 sequential transport timeouts.
+      const rootLoadCompleted = await loadDir(worktreePath, -1, { force: true, failOnError: true })
+      if (options?.signal?.aborted) {
+        return 'superseded'
+      }
+      if (!rootLoadCompleted || !dirLoadTrackerRef.current.isSessionCurrent(refreshSession)) {
+        // Callers handle root failure and supersession differently; neither verified the expanded dirs.
+        return rootReadFailedRef.current ? 'root-unreadable' : 'superseded'
+      }
+      // Exclude the root already force-loaded above to avoid reading it twice.
+      const expandedDirs = Array.from(expanded)
+        .filter((dirPath) => dirPath !== worktreePath)
+        .map((dirPath) => ({
+          dirPath,
+          depth: splitPathSegments(dirPath.slice(worktreePath.length + 1)).length - 1
+        }))
+      const allDirsCommitted = await refreshFileExplorerExpandedDirs({
+        dirs: expandedDirs,
+        worktreePath,
+        signal: options?.signal,
+        dirLoadTracker: dirLoadTrackerRef.current,
+        setDirCache,
+        updateLoadingDirPaths,
+        readDirectory: (dirPath) =>
+          readFileExplorerDirectory(activeWorktreeId, worktreePath, dirPath),
+        maxConcurrentReads: fileExplorerRefreshConcurrency(
+          getFileExplorerOperationOwner(activeWorktreeId)
+        ),
+        onDirCommitted: (dirPath) => {
+          // An older expanded read must not clear a newer collapsed-directory stale mark.
+          if (refreshGenerationRef.current === refreshGeneration) {
+            staleDirsRef.current.delete(dirPath)
+          }
+        }
+      })
+      return allDirsCommitted ? 'refreshed' : 'superseded'
+    },
+    [activeWorktreeId, expanded, loadDir, updateLoadingDirPaths, worktreePath]
+  )
 
   const refreshDir = useCallback(
     async (dirPath: string, options?: { wakeWslDistro?: boolean }) => {

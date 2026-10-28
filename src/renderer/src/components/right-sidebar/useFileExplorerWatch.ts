@@ -42,7 +42,7 @@ type UseFileExplorerWatchParams = {
   expanded: Set<string>
   setSelectedPath: Dispatch<SetStateAction<string | null>>
   refreshDir: (dirPath: string) => Promise<void>
-  refreshTree: () => Promise<FileExplorerTreeRefreshOutcome>
+  refreshTree: (options?: { signal?: AbortSignal }) => Promise<FileExplorerTreeRefreshOutcome>
   inlineInput: InlineInput | null
   dragSourcePath: string | null
   isNativeDragOver: boolean
@@ -146,7 +146,7 @@ export function useFileExplorerWatch({
     // Share one scheduler across transports and scope its lifetime to this worktree so navigation cannot refresh an old root.
     const owner = getFileExplorerOperationOwner(currentWorktreeId)
     const scheduler = createFileExplorerWatchRefreshScheduler({
-      refreshTree: () => refreshTreeRef.current(),
+      refreshTree: (signal) => refreshTreeRef.current({ signal }),
       refreshDir: (dirPath) => refreshDirRef.current(dirPath),
       // Expanded paths must exactly match resolved cache keys or full refresh may falsely claim coverage; normalize only the root.
       isCoveredByFullRefresh: (dirPath) =>

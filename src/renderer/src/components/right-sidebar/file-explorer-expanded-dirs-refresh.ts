@@ -29,6 +29,7 @@ export type RefreshFileExplorerExpandedDirsParams = {
   updateLoadingDirPaths: FileExplorerLoadingDirsUpdater
   readDirectory: (dirPath: string) => Promise<FileExplorerDirectoryListing>
   maxConcurrentReads: number
+  signal?: AbortSignal
   /** Called per dir whose fresh listing was committed, so callers can clear a staleness mark. */
   onDirCommitted?: (dirPath: string) => void
 }
@@ -42,8 +43,12 @@ export async function refreshFileExplorerExpandedDirs({
   updateLoadingDirPaths,
   readDirectory,
   maxConcurrentReads,
+  signal,
   onDirCommitted
 }: RefreshFileExplorerExpandedDirsParams): Promise<boolean> {
+  if (signal?.aborted) {
+    return false
+  }
   if (dirs.length === 0) {
     return true
   }
@@ -86,7 +91,9 @@ export async function refreshFileExplorerExpandedDirs({
     settledSinceCommit = 0
     const currentResults = pendingResults
       .splice(0)
-      .filter((result) => dirLoadTracker.isCurrent(loadTokens.get(result.dirPath)!))
+      .filter(
+        (result) => !signal?.aborted && dirLoadTracker.isCurrent(loadTokens.get(result.dirPath)!)
+      )
     if (currentResults.length === 0) {
       return
     }
@@ -156,14 +163,14 @@ export async function refreshFileExplorerExpandedDirs({
       }
       const loadToken = loadTokens.get(dirPath)!
       // A superseding load owns this dir now; do not spend a round trip on a result we must drop.
-      if (!dirLoadTracker.isCurrent(loadToken)) {
+      if (signal?.aborted || !dirLoadTracker.isCurrent(loadToken)) {
         settleRead()
         return
       }
       let cache: DirCache | undefined
       try {
         const listing = await readDirectory(dirPath)
-        if (dirLoadTracker.isCurrent(loadToken)) {
+        if (!signal?.aborted && dirLoadTracker.isCurrent(loadToken)) {
           cache = {
             children: fileExplorerEntriesToTreeNodes(
               listing.entries,
@@ -176,7 +183,7 @@ export async function refreshFileExplorerExpandedDirs({
           }
         }
       } catch (error) {
-        if (dirLoadTracker.isCurrent(loadToken)) {
+        if (!signal?.aborted && dirLoadTracker.isCurrent(loadToken)) {
           cache = { children: [], error: describeFileExplorerReadError(error) }
         }
       }
@@ -190,5 +197,5 @@ export async function refreshFileExplorerExpandedDirs({
     clearOwnedLoadingMarks(uniqueDirPaths)
   }
 
-  return committedDirs === uniqueDirs.length
+  return !signal?.aborted && committedDirs === uniqueDirs.length
 }
