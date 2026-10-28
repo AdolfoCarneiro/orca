@@ -135,10 +135,13 @@ function readOrigin(href: string): string | null {
 // Chrome gives them only runtime messaging, which Electron already provides.
 if (process.contextIsolated) {
   const href = readContextHref()
+  if (
+    process.isMainFrame &&
+    (href.startsWith('chrome-extension://') || href.startsWith('chrome-error://'))
+  ) {
+    installBrowserExtensionPopupSize(ipcRenderer)
+  }
   if (href.startsWith('chrome-extension://')) {
-    if (process.isMainFrame) {
-      installBrowserExtensionPopupSize(ipcRenderer)
-    }
     // A document marker survives Chromium reusing an existing extension renderer process.
     // Why origin: a manifest sandbox page keeps its extension URL but runs with an opaque origin.
     if (!href.endsWith('/manifest.json?orca-native-page=1') && globalThis.origin !== 'null') {
