@@ -25,13 +25,12 @@ import { applyLayoutRenames } from './terminal-layout-renames-commit'
 import { isTerminalClose, keptOnWriteFailure } from './terminal-close-write-failure'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { moveTabAcrossPartitions } from './cross-partition-tab-move'
-import { writeRestorable } from './restorable-write'
 import { raisingBindingGenerations } from './layout-command-binding-generations'
 import {
   keepPartitionEditorViews,
   partitionEditorViewsOf
 } from '../loading-store/layout-editor-views'
-import { assignWorkspaceSessionPartition } from './terminal-topology-membership'
+import { writeRestorableSession } from './terminal-topology-membership'
 import {
   repairDuplicatePtyPanesMutation,
   type DuplicatePtyPaneTransfer
@@ -184,10 +183,11 @@ export class LayoutCommandPersistence {
           [to, moved.sessions.to]
         ] as const
       ).map(([hostId, session]) =>
-        writeRestorable(
-          () => commit.getSession(hostId),
-          (value) => commit.markDirty(assignWorkspaceSessionPartition(commit.state, hostId, value)),
-          keepFrozen(hostId, session, commit)
+        writeRestorableSession(
+          commit.state,
+          hostId,
+          keepFrozen(hostId, session, commit),
+          commit.markDirty
         )
       )
       const restores = [...viewRestores, ...sessionRestores]

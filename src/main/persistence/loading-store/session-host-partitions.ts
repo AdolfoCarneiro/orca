@@ -1,7 +1,8 @@
-import { orderTerminalRowsByTabGroups } from '../../../shared/workspace-layout/terminal-row-order'
+import { SessionUnitReader, selectSessionUnits } from '../../../shared/session-unit-reader'
+import { publishWorkspaceSessionSnapshot } from './workspace-session-snapshot-publication'
+import { runSessionOperation } from './session-operation'
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
-import { sanitizeWorkspaceSessionTerminalRetirements } from '../../runtime/mobile-session-terminal-persistence-retirement'
 import {
   LOCAL_EXECUTION_HOST_ID,
   normalizeExecutionHostId,
@@ -9,34 +10,19 @@ import {
 } from '../../../shared/execution-host'
 import type { HostWorktreeTarget } from '../../../shared/worktree/host-qualified-identity'
 import { getDefaultWorkspaceSession } from '../../../shared/constants'
-import { pruneLocalTerminalScrollbackBuffers } from '../../../shared/workspace-session-terminal-buffers'
-import { pruneWorkspaceSessionBrowserHistory } from '../../../shared/workspace-session-browser-history'
-import { withoutRedundantGlobalFields } from '../../../shared/workspace-session-host-field-ownership'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
 import { readTerminalScrollbackSnapshotSync } from '../../terminal-scrollback-snapshots'
-import { preserveRuntimeAuthoredWorkspaceSessionFields } from '../runtime-authored-workspace-session-fields'
-import { dropClosedTerminalTabs } from '../closed-terminal-tab-write-fence'
-import { findWorktreeIdForTab } from '../restoring-sessions/pane-identity-migration'
+import type { SessionReferenceKind } from '../../../shared/session-unit-index'
 import { invalidateLocalWorktreeMetadataPruneInputs } from '../../local-worktree-metadata-prune-gate'
 import { isWslMoveWorkspaceSessionFrozen } from '../moving-wsl-projects/wsl-move-scope-guard'
-import {
-  removeWorkspaceSessionOwner,
-  workspaceSessionPartitionIdsForHost
-} from '../restoring-sessions/session-owner-removal'
+import { workspaceSessionPartitionIdsForHost } from '../restoring-sessions/session-owner-removal'
 
 import type { StoreRuntimeState } from './store-runtime-state'
 import type { WriteSchedulingOperations } from './write-scheduling'
 import { scheduleSave } from './write-scheduling'
-import {
-  preserveMissingWorkspaceSessionTerminalBindings,
-  sshTargetIdForWorkspaceSessionHost
-} from './workspace-session-terminal-binding-replay'
 import type { TerminalBindingRecoveryOperations } from './terminal-binding-recovery'
-import {
-  keepRuntimePartitionRevisions,
-  noteRuntimeTopologyChange,
-  runtimePartitionFencePrior
-} from './runtime-partition-topology-fence'
+import { noteRuntimeTopologyChange } from './runtime-partition-topology-fence'
+import { publishSessionReplacement, sessionPublication } from './session-publication'
 
 type SessionHostPartitionOperationsRuntime = Pick<
   StoreRuntimeState,
@@ -89,14 +75,38 @@ export class SessionHostPartitionOperations {
     return [...hostIds]
   }
 
+  getWorkspaceSessionGeneration(hostId?: string | null): string {
+    return sessionPublication(this[sessionHostPartitionOperationsContext].runtime.state).generation(
+      resolveHostId(hostId)
+    )
+  }
+
+  getWorkspaceSessionReferences(kind: SessionReferenceKind, id: string, hostId?: string | null) {
+    return sessionPublication(this[sessionHostPartitionOperationsContext].runtime.state)
+      .partition(resolveHostId(hostId))
+      .index.references(kind, id)
+  }
+
+  readWorkspaceSessionUnits(keys: readonly string[], hostId?: string | null) {
+    const resolved = resolveHostId(hostId)
+    const { root, index } = sessionPublication(
+      this[sessionHostPartitionOperationsContext].runtime.state
+    ).partition(resolved)
+    const reader = new SessionUnitReader(root, index)
+    const selected = selectSessionUnits(
+      reader,
+      keys.flatMap((key) => index.references('owner', key))
+    )
+    return { reader: reader.view('candidate'), selected, owners: keys }
+  }
+
   removeWorkspaceSessionHost(hostId: ExecutionHostId): void {
     const runtime = this[sessionHostPartitionOperationsContext].runtime
     const partitions = runtime.state.workspaceSessionsByHostId
     if (hostId === LOCAL_EXECUTION_HOST_ID || partitions?.[hostId] === undefined) {
       return
     }
-    const { [hostId]: _removed, ...remaining } = partitions
-    runtime.state.workspaceSessionsByHostId = remaining
+    publishSessionReplacement(runtime.state, hostId, undefined, 'fullReplacement')
     invalidateLocalWorktreeMetadataPruneInputs()
     scheduleSave(
       this[sessionHostPartitionOperationsContext].scheduling,
@@ -113,7 +123,9 @@ export class SessionHostPartitionOperations {
   }
 
   getWorktreeIdForTab(tabId: string): string | undefined {
-    return findWorktreeIdForTab(this.getWorkspaceSession(), tabId)
+    return sessionPublication(this[sessionHostPartitionOperationsContext].runtime.state)
+      .partition(LOCAL_EXECUTION_HOST_ID)
+      .index.terminalOwner(tabId, 'first')
   }
 
   removeWorkspaceSessionStateForWorktree(
@@ -155,10 +167,11 @@ export function removeWorkspaceSessionOwnerInPartition(
   if (resolved === LOCAL_EXECUTION_HOST_ID && isWslMoveWorkspaceSessionFrozen(worktreeId)) {
     return
   }
-  const current = owner.getWorkspaceSession(resolved)
   const advanceTerminalTopologyRevision = options.advanceTerminalTopologyRevision ?? true
-  const session = removeWorkspaceSessionOwner(current, worktreeId, {
-    advanceTerminalTopologyRevision
+  runSessionOperation(owner[sessionHostPartitionOperationsContext].runtime.state, resolved, {
+    type: 'removeOwners',
+    owners: [worktreeId],
+    advanceRevision: advanceTerminalTopologyRevision
   })
   if (advanceTerminalTopologyRevision) {
     noteRuntimeTopologyChange(
@@ -167,19 +180,8 @@ export function removeWorkspaceSessionOwnerInPartition(
       worktreeId
     )
   }
-  if (!session) {
-    return
-  }
-  // Releasing session ownership may unblock metadata pruning; no other signal covers this write.
+  // Releasing session ownership may unblock metadata pruning.
   invalidateLocalWorktreeMetadataPruneInputs()
-  if (resolved === LOCAL_EXECUTION_HOST_ID) {
-    owner[sessionHostPartitionOperationsContext].runtime.state.workspaceSession = session
-  } else {
-    owner[sessionHostPartitionOperationsContext].runtime.state.workspaceSessionsByHostId = {
-      ...owner[sessionHostPartitionOperationsContext].runtime.state.workspaceSessionsByHostId,
-      [resolved]: session
-    }
-  }
   scheduleSave(
     owner[sessionHostPartitionOperationsContext].scheduling,
     resolved === LOCAL_EXECUTION_HOST_ID ? ['workspaceSession'] : ['workspaceSessionsByHostId'],
@@ -213,50 +215,13 @@ export function setHostWorkspaceSession(
   hostId: ExecutionHostId,
   session: WorkspaceSessionState
 ): void {
-  const persisted =
-    owner[sessionHostPartitionOperationsContext].runtime.state.workspaceSessionsByHostId?.[hostId]
-  const prior = persisted ? withRequiredWorkspaceSessionMaps(persisted) : undefined
-  // Empty host slices omit maps that retirement/rebase checks iterate.
-  session = withRequiredWorkspaceSessionMaps(session)
-  // Enforce at this shared boundary: quit staging bypasses per-caller normalization.
-  session = dropClosedTerminalTabs(preserveRuntimeAuthoredWorkspaceSessionFields(session, prior))
-  const { runtime } = owner[sessionHostPartitionOperationsContext]
-  // Each host owns its topology fence; stale renderer snapshots rebase against that host only.
-  session = keepRuntimePartitionRevisions(
+  const context = owner[sessionHostPartitionOperationsContext]
+  const { root, index } = sessionPublication(context.runtime.state).partition(hostId)
+  publishWorkspaceSessionSnapshot(
+    context,
     hostId,
-    sanitizeWorkspaceSessionTerminalRetirements(
-      session,
-      runtimePartitionFencePrior(runtime, hostId, session, prior)
-    ),
-    prior
-  )
-  session = preserveMissingWorkspaceSessionTerminalBindings(
-    session,
-    prior,
-    owner[sessionHostPartitionOperationsContext].bindingRecovery,
-    {
-      targetIdForWorktree: sshTargetIdForWorkspaceSessionHost(hostId),
-      executionHostId: hostId
-    }
-  )
-  // Strip redundant globals on every write so stale snapshots cannot reinject local-owned data.
-  const pruned = withoutRedundantGlobalFields(
-    pruneWorkspaceSessionBrowserHistory(
-      pruneLocalTerminalScrollbackBuffers(
-        session,
-        owner[sessionHostPartitionOperationsContext].runtime.state.repos
-      )
-    ),
-    owner[sessionHostPartitionOperationsContext].runtime.state.workspaceSession
-  )
-  owner[sessionHostPartitionOperationsContext].runtime.state.workspaceSessionsByHostId = {
-    ...owner[sessionHostPartitionOperationsContext].runtime.state.workspaceSessionsByHostId,
-    [hostId]: withRequiredWorkspaceSessionMaps(orderTerminalRowsByTabGroups(pruned))
-  }
-  scheduleSave(
-    owner[sessionHostPartitionOperationsContext].scheduling,
-    ['workspaceSessionsByHostId'],
-    hostId
+    SessionUnitReader.between(root, session, index),
+    true
   )
 }
 

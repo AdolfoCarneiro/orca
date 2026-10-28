@@ -1,14 +1,13 @@
-import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
+import { runSessionOperation } from './session-operation'
+import type { PersistedState } from '../../../shared/persisted-state-types'
 import type { ProjectHostSetup, ProjectHostSetupUpdateArgs } from '../../../shared/project-types'
 import type { Repo } from '../../../shared/repo-types'
 import type { RepoHostTarget } from '../../../shared/repo-host-identity'
 import type { GhAccountBinding } from '../../../shared/github/account-binding'
 import {
-  removeRepoFromHostWorkspaceSessions,
-  removeRepoFromWorkspaceSession
-} from '../../orca-profiles/profile-project-session-state'
-import {
   getRepoExecutionHostId,
+  LOCAL_EXECUTION_HOST_ID,
+  normalizeExecutionHostId,
   parseExecutionHostId,
   type ExecutionHostId
 } from '../../../shared/execution-host'
@@ -33,15 +32,6 @@ import { isWslMoveProjectSessionFrozen } from '../moving-wsl-projects/wsl-move-s
 import { dropOrcadTerminalRestoreHintsForWorktrees } from '../migrating-orcad-catalog/orcad-terminal-restore-hint-store'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
 
-// A paused WSL move keeps its local rows for a downgrade.
-function removeLocalRepoSession(
-  session: WorkspaceSessionState,
-  repoId: string
-): WorkspaceSessionState {
-  return isWslMoveProjectSessionFrozen({ repoId })
-    ? session
-    : removeRepoFromWorkspaceSession(session, repoId)
-}
 type RepoLifecycleOperationsRuntime = Pick<
   StoreRuntimeState,
   | 'gitUsernameCache'
@@ -104,24 +94,9 @@ export class RepoLifecycleOperations {
     const pairedHost = parseExecutionHostId(hostId)?.kind === 'runtime'
     pruneWorktreeStateForRepo(this, id, idStillPresent || pairedHost ? hostId : null)
     if (!idStillPresent && !pairedHost) {
-      this[repoLifecycleOperationsContext].runtime.state.workspaceSession = removeLocalRepoSession(
-        this[repoLifecycleOperationsContext].runtime.state.workspaceSession,
-        id
-      )
-      this[repoLifecycleOperationsContext].runtime.state.workspaceSessionsByHostId =
-        removeRepoFromHostWorkspaceSessions(
-          this[repoLifecycleOperationsContext].runtime.state.workspaceSessionsByHostId,
-          id
-        )
+      removePublishedRepoSessions(this[repoLifecycleOperationsContext].runtime.state, id)
     } else if (pairedHost) {
-      const session =
-        this[repoLifecycleOperationsContext].runtime.state.workspaceSessionsByHostId?.[hostId]
-      if (session) {
-        this[repoLifecycleOperationsContext].runtime.state.workspaceSessionsByHostId = {
-          ...this[repoLifecycleOperationsContext].runtime.state.workspaceSessionsByHostId,
-          [hostId]: removeRepoFromWorkspaceSession(session, id)
-        }
-      }
+      removePublishedRepoSessions(this[repoLifecycleOperationsContext].runtime.state, id, hostId)
     }
     scheduleSave(this[repoLifecycleOperationsContext].scheduling)
   }
@@ -137,11 +112,7 @@ export class RepoLifecycleOperations {
       retireLocalWorktreeScanGeneration(repoId)
       dropRepoRestoreHints(this, repoId)
       pruneWorktreeStateForRepo(this, repoId, null)
-      state.workspaceSession = removeLocalRepoSession(state.workspaceSession, repoId)
-      state.workspaceSessionsByHostId = removeRepoFromHostWorkspaceSessions(
-        state.workspaceSessionsByHostId,
-        repoId
-      )
+      removePublishedRepoSessions(state, repoId)
     }
     pruneDeregisteredRepoUiResidue(state.ui, orphanRepoIds)
     return [...orphanRepoIds]
@@ -295,4 +266,23 @@ export function updateIndependentProjectHostSetup(
 
 export function hydrateRepo(owner: RepoLifecycleOperations, repo: Repo): Repo {
   return hydrateRepoOperation(repo, owner[repoLifecycleOperationsContext].runtime.gitUsernameCache)
+}
+
+function removePublishedRepoSessions(
+  state: PersistedState,
+  repoId: string,
+  onlyHost?: ExecutionHostId
+): void {
+  for (const key of onlyHost
+    ? [onlyHost]
+    : [LOCAL_EXECUTION_HOST_ID, ...Object.keys(state.workspaceSessionsByHostId ?? {})]) {
+    const hostId = normalizeExecutionHostId(key)
+    if (!hostId) {
+      continue
+    }
+    if (hostId === LOCAL_EXECUTION_HOST_ID && isWslMoveProjectSessionFrozen({ repoId })) {
+      continue
+    }
+    runSessionOperation(state, hostId, { type: 'removeRepo', repoId })
+  }
 }

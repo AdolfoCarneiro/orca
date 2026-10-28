@@ -1,3 +1,4 @@
+import { initializeSessionPublication, disposeSessionPublication } from './session-publication'
 import { dirname } from 'node:path'
 import {
   setMigrationUnsupportedPty,
@@ -110,6 +111,10 @@ export class Store {
     } else {
       throw new Error('Store requires an authority or a frozen serialized import')
     }
+    const durableSessionState = {
+      workspaceSession: loaded.workspaceSession,
+      workspaceSessionsByHostId: loaded.workspaceSessionsByHostId
+    }
     const normalized = normalizePersistedPaneIdentityState(
       nameEmptyPersistedTerminalLayoutRoots(loaded),
       {
@@ -132,6 +137,7 @@ export class Store {
       this.state = bindPersistedTabTerminalPanes(sweepPersistedUnattachedTerminalRows(this.state))
       this.runtime.state = this.state
     }
+    initializeSessionPublication(this.state, durableSessionState, !imported)
     // Imported snapshots cannot own the live hook server or write their source file.
     if (!imported) {
       // Finish interrupted blob installs; shell history waits for post-attach live-process evidence.
@@ -273,6 +279,7 @@ export class Store {
   }
 
   freezeWrites(): void {
+    disposeSessionPublication(this.state)
     freezeProfileStateWrites(this.runtime)
   }
 
@@ -283,7 +290,9 @@ export class Store {
   }
 
   freezeWritesAsync(): Promise<void> {
-    return freezeProfileStateWritesAsync(this.runtime)
+    return freezeProfileStateWritesAsync(this.runtime).finally(() =>
+      disposeSessionPublication(this.state)
+    )
   }
 
   async quarantineProfileStateDatabaseAsync(

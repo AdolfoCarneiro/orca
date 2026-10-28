@@ -1,3 +1,4 @@
+import { resolveHostId } from '../persistence/loading-store/session-host-partitions'
 import { ipcMain } from 'electron'
 import type { Store } from '../persistence'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
@@ -5,7 +6,7 @@ import { parseTerminalSurfaceCloseTarget } from '../../shared/terminal-surface-c
 import { isFrozenOrcadSourceSessionPartition } from '../ssh/orcad-retained-source'
 import { visibleSessionHostIds } from '../ssh/orcad-retained-source-session'
 import { markAgentLaunchesClosedByUser } from '../agent-launch/agent-launch-pane-attachment'
-import { windowViewPatchForMain, windowViewSaveForMain } from '../persistence/window-save-view'
+import { windowViewSaveForMain } from '../persistence/window-save-view'
 import { reportWindowSaveDrift } from '../persistence/window-save-divergence'
 import { windowSaveKeepingMainSleepRecords } from '../persistence/window-save-sleep-records'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
@@ -20,9 +21,15 @@ export function registerSessionHandlers(store: Store, runtime: OrcaRuntimeServic
     isFrozenOrcadSourceSessionPartition(store, hostId)
 
   // Optional hostId preserves local-partition behavior for older renderers.
-  ipcMain.handle('session:get', (_event, hostId?: string | null) => {
-    return store.getWorkspaceSession(hostId)
-  })
+  ipcMain.handle(
+    'session:get',
+    (_event, hostId?: string | null, options?: { includeGeneration?: boolean }) => {
+      const session = store.getWorkspaceSession(hostId)
+      return options?.includeGeneration
+        ? { session, partitionGeneration: store.getWorkspaceSessionGeneration(hostId) }
+        : session
+    }
+  )
 
   // Repo catalogs omit folder-only SSH hosts; enumerate session partitions directly (#12723).
   ipcMain.handle('session:list-host-ids', () => {
@@ -37,14 +44,6 @@ export function registerSessionHandlers(store: Store, runtime: OrcaRuntimeServic
       runtime.shutdownReconnectFactsFor(session, partition)
     )
   }
-  const patchForMain = (args: WorkspaceSessionPatch, hostId: string | null | undefined) => {
-    const stored = store.getWorkspaceSession(hostId)
-    reportWindowSaveDrift(stored, { ...stored, ...args }, hostId, 'session:patch')
-    return windowViewPatchForMain(stored, args, hostId, (session, partition) =>
-      runtime.shutdownReconnectFactsFor(session, partition)
-    )
-  }
-
   ipcMain.handle('session:set', (_event, args: WorkspaceSessionState, hostId?: string | null) => {
     if (!isFenced(hostId)) {
       store.setWorkspaceSession(
@@ -57,14 +56,17 @@ export function registerSessionHandlers(store: Store, runtime: OrcaRuntimeServic
   })
 
   ipcMain.handle('session:patch', (_event, args: WorkspaceSessionPatch, hostId?: string | null) => {
-    if (!isFenced(hostId)) {
-      store.patchWorkspaceSession(
-        ORCA_LAYOUT_OWNER_IS_MAIN
-          ? patchForMain(args, hostId)
-          : windowSaveKeepingMainSleepRecords(store.getWorkspaceSession(hostId), args, 'patch'),
-        hostId
-      )
+    if (isFenced(hostId)) {
+      return {
+        applied: false,
+        reason: 'fenced',
+        partitionGeneration: store.getWorkspaceSessionGeneration(hostId)
+      }
     }
+    return store.patchWorkspaceSession(args, hostId, {
+      layoutOwner: ORCA_LAYOUT_OWNER_IS_MAIN ? 'main' : 'window',
+      reconnectSources: runtime.shutdownReconnectSources(resolveHostId(hostId))
+    })
   })
 
   // Window saves cannot shrink main-owned membership; closes must commit explicitly.

@@ -1,0 +1,307 @@
+import { SessionFieldOrder } from './session-field-order'
+import type { WorkspaceSessionState } from './workspace-session-state-types'
+import { WORKSPACE_SESSION_FIELD_OWNERSHIP } from './workspace-session-host-field-ownership'
+import { getRepoIdFromWorktreeId } from './worktree/id'
+import { parseWorkspaceKey } from './workspace-scope'
+import { parsePaneKey } from './stable-pane-id'
+import { SESSION_MAP_FIELDS, sessionMap, type SessionMapField } from './session-change-set'
+
+export type SessionReferenceKind =
+  | 'owner'
+  | 'tab'
+  | 'pane'
+  | 'leaf'
+  | 'pty'
+  | 'file'
+  | 'page'
+  | 'browser'
+  | 'repo'
+  | 'scrollback'
+export type SessionUnitAddress = { field: SessionMapField; key: string }
+type Contribution = SessionUnitAddress & {
+  references: Map<SessionReferenceKind, Set<string>>
+  terminalOccurrences: Map<string, number>
+  scrollbackOccurrences: Map<string, number>
+}
+
+function record(value: unknown): Record<string, unknown> | undefined {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    // SAFETY: the object check excludes primitives and arrays; members remain unknown.
+    return value as Record<string, unknown>
+  }
+  return undefined
+}
+
+function rawOwner(key: string): string {
+  const unqualified = key.includes('|') ? key.slice(key.indexOf('|') + 1) : key
+  const scope = parseWorkspaceKey(unqualified)
+  return scope?.type === 'worktree' ? scope.worktreeId : unqualified
+}
+
+/** One mutable, rebuildable index owner; retained snapshots contain values, never these Maps. */
+export class SessionUnitIndex {
+  private readonly units = new Map<SessionMapField, Map<string, Contribution>>()
+  private readonly reverse = new Map<SessionReferenceKind, Map<string, Set<Contribution>>>()
+
+  constructor(
+    session: WorkspaceSessionState,
+    private readonly order = new SessionFieldOrder()
+  ) {
+    for (const field of SESSION_MAP_FIELDS) {
+      for (const [key, value] of Object.entries(sessionMap(session, field) ?? {})) {
+        this.replace(field, key, value, true)
+      }
+    }
+  }
+
+  replace(
+    field: SessionMapField,
+    key: string,
+    value: unknown,
+    present = value !== undefined
+  ): void {
+    this.order.write(field, key, present)
+    const byKey = this.units.get(field) ?? new Map<string, Contribution>()
+    this.units.set(field, byKey)
+    const prior = byKey.get(key)
+    if (prior) {
+      for (const [kind, ids] of prior.references) {
+        for (const id of ids) {
+          const byId = this.reverse.get(kind)
+          const members = byId?.get(id)
+          members?.delete(prior)
+          if (members?.size === 0) {
+            byId?.delete(id)
+          }
+        }
+      }
+      byKey.delete(key)
+    }
+    if (!present) {
+      return
+    }
+    const unit: Contribution = {
+      field,
+      key,
+      references: new Map(),
+      terminalOccurrences: new Map(),
+      scrollbackOccurrences: new Map()
+    }
+    const add = (kind: SessionReferenceKind, id: unknown): void => {
+      if (typeof id !== 'string' || !id) {
+        return
+      }
+      const ids = unit.references.get(kind) ?? new Set<string>()
+      ids.add(id)
+      unit.references.set(kind, ids)
+    }
+    const addOwner = (id: unknown): void => {
+      if (typeof id === 'string') {
+        add('owner', id)
+        add('owner', rawOwner(id))
+        add('repo', getRepoIdFromWorktreeId(rawOwner(id)))
+        add('repo', getRepoIdFromWorktreeId(id.includes('|') ? id.slice(id.indexOf('|') + 1) : id))
+      }
+    }
+    const ownership = WORKSPACE_SESSION_FIELD_OWNERSHIP[field]
+    if (ownership === 'worktreeKeyed') {
+      addOwner(key)
+      add('repo', getRepoIdFromWorktreeId(rawOwner(key)))
+    } else if (ownership === 'tabKeyed') {
+      add('tab', key)
+    } else if (ownership === 'browserWorkspaceKeyed') {
+      add('browser', key)
+    } else if (ownership === 'fileKeyed') {
+      add('file', key)
+    } else if (
+      ownership === 'paneKeyed' ||
+      ownership === 'sleepingAgentKeyed' ||
+      ownership === 'surfaceTombstoneKeyed'
+    ) {
+      add('pane', key)
+      const pane = parsePaneKey(key)
+      if (pane) {
+        add('tab', pane.tabId)
+        add('leaf', pane.leafId)
+      }
+    } else if (field === 'terminalTopologyRevisionByRepoId') {
+      add('repo', key)
+    }
+    if (field === 'remoteSessionIdsByTabId') {
+      add('pty', value)
+    }
+    if (field === 'tabsByWorktree' || field === 'unifiedTabs') {
+      if (Array.isArray(value)) {
+        for (const row of value) {
+          const tab = record(row)
+          addOwner(tab?.worktreeId)
+          add('tab', tab?.id)
+          if (tab?.contentType === 'terminal') {
+            add('tab', tab.entityId)
+          }
+          add('pty', tab?.ptyId)
+          if (field === 'tabsByWorktree' && typeof tab?.id === 'string') {
+            unit.terminalOccurrences.set(tab.id, (unit.terminalOccurrences.get(tab.id) ?? 0) + 1)
+          }
+        }
+      }
+    } else if (
+      field === 'openFilesByWorktree' ||
+      field === 'browserTabsByWorktree' ||
+      field === 'browserPagesByWorkspace'
+    ) {
+      if (Array.isArray(value)) {
+        for (const row of value) {
+          const item = record(row)
+          addOwner(item?.worktreeId)
+          addOwner(record(item?.docLocation)?.worktreeId)
+          if (field === 'openFilesByWorktree') {
+            add('file', item?.id)
+            add('file', item?.filePath)
+          } else if (field === 'browserTabsByWorktree') {
+            add('browser', item?.id)
+          } else {
+            add('page', item?.id)
+            addOwner(record(item?.docLocation)?.worktreeId)
+          }
+        }
+      }
+    } else if (field === 'terminalLayoutsByTabId') {
+      const layout = record(value)
+      const visit = (node: unknown): void => {
+        const part = record(node)
+        if (part?.type === 'leaf') {
+          add('leaf', part.leafId)
+          if (typeof part.leafId === 'string') {
+            add('pane', `${key}:${part.leafId}`)
+          }
+        } else if (part?.type === 'split') {
+          visit(part.first)
+          visit(part.second)
+        }
+      }
+      visit(layout?.root)
+      for (const pty of Object.values(record(layout?.ptyIdsByLeafId) ?? {})) {
+        add('pty', pty)
+      }
+      for (const ref of Object.values(record(layout?.scrollbackRefsByLeafId) ?? {})) {
+        add('scrollback', ref)
+        if (typeof ref === 'string') {
+          unit.scrollbackOccurrences.set(ref, (unit.scrollbackOccurrences.get(ref) ?? 0) + 1)
+        }
+      }
+    } else {
+      const rows = Array.isArray(value) ? value : [value]
+      for (const row of rows) {
+        const item = record(row)
+        addOwner(item?.worktreeId)
+        add('tab', item?.parentTabId ?? item?.tabId)
+        add('pane', item?.paneKey)
+        add('leaf', item?.leafId)
+        add('pty', item?.ptyId)
+      }
+    }
+    byKey.set(key, unit)
+    for (const [kind, ids] of unit.references) {
+      const byId = this.reverse.get(kind) ?? new Map<string, Set<Contribution>>()
+      this.reverse.set(kind, byId)
+      for (const id of ids) {
+        const members = byId.get(id) ?? new Set<Contribution>()
+        members.add(unit)
+        byId.set(id, members)
+      }
+    }
+  }
+
+  references(kind: SessionReferenceKind, id: string): readonly SessionUnitAddress[] {
+    return [...(this.reverse.get(kind)?.get(id) ?? [])]
+      .sort(
+        (left, right) =>
+          SESSION_MAP_FIELDS.indexOf(left.field) - SESSION_MAP_FIELDS.indexOf(right.field) ||
+          this.order.compare(left.field, left.key, right.key)
+      )
+      .map(({ field, key }) => ({ field, key }))
+  }
+
+  ids(field: SessionMapField, key: string, kind: SessionReferenceKind): ReadonlySet<string> {
+    return this.units.get(field)?.get(key)?.references.get(kind) ?? new Set()
+  }
+
+  keys(field: SessionMapField): IterableIterator<string> {
+    return this.ordered(field, (this.units.get(field) ?? new Map()).keys()).values()
+  }
+
+  has(field: SessionMapField, key: string): boolean {
+    return this.units.get(field)?.has(key) ?? false
+  }
+
+  replaceField(
+    field: SessionMapField,
+    values: Readonly<Record<string, unknown>> | undefined
+  ): void {
+    for (const key of this.keys(field)) {
+      this.replace(field, key, undefined)
+    }
+    for (const [key, value] of Object.entries(values ?? {})) {
+      this.replace(field, key, value, true)
+    }
+  }
+
+  orderField(field: SessionMapField, keys: readonly string[]): void {
+    this.order.replace(field, keys)
+  }
+
+  size(field: SessionMapField): number {
+    return this.units.get(field)?.size ?? 0
+  }
+
+  terminalOwner(tabId: string, selection: 'first' | 'last' = 'last'): string | undefined {
+    const units = this.references('tab', tabId).filter((unit) => unit.field === 'tabsByWorktree')
+    return selection === 'first' ? units[0]?.key : units.at(-1)?.key
+  }
+
+  terminalUnitOccurrenceCount(field: SessionMapField, key: string, tabId: string): number {
+    return this.units.get(field)?.get(key)?.terminalOccurrences.get(tabId) ?? 0
+  }
+
+  terminalOccurrenceCount(tabId: string): number {
+    let count = 0
+    for (const unit of this.reverse.get('tab')?.get(tabId) ?? []) {
+      count += unit.terminalOccurrences.get(tabId) ?? 0
+    }
+    return count
+  }
+
+  scrollbackRefs(): IterableIterator<string> {
+    return (this.reverse.get('scrollback') ?? new Map()).keys()
+  }
+
+  scrollbackUnitCount(field: SessionMapField, key: string, ref: string): number {
+    return this.units.get(field)?.get(key)?.scrollbackOccurrences.get(ref) ?? 0
+  }
+
+  scrollbackCount(ref: string): number {
+    let count = 0
+    for (const unit of this.reverse.get('scrollback')?.get(ref) ?? []) {
+      count += unit.scrollbackOccurrences.get(ref) ?? 0
+    }
+    return count
+  }
+
+  candidate(): SessionUnitIndex {
+    return new SessionUnitIndex(
+      {
+        activeRepoId: null,
+        activeWorktreeId: null,
+        activeTabId: null,
+        tabsByWorktree: {},
+        terminalLayoutsByTabId: {}
+      },
+      this.order.candidate()
+    )
+  }
+
+  ordered(field: SessionMapField, keys: Iterable<string>): string[] {
+    return this.order.ordered(field, keys)
+  }
+}
