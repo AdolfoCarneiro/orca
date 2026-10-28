@@ -81,6 +81,7 @@ export const VERIFY_CHECKS = [
       'src/shared/ui-locale',
       'config/scripts/verify-mobile-localization',
       'config/scripts/verify-localization-',
+      'config/scripts/generate-runtime-required-english-catalog',
       'config/scripts/localization-surfaces'
     ]
   },

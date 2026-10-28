@@ -71,6 +71,15 @@ function activatePageUiLocale(locale: BridgeUiLocale | null): Promise<void> {
   return activateMobileUiLocale(locale ?? resolveUiLocaleFromTags(readDeviceUiLocaleTags()))
 }
 
+// Mount after the newest activation, not a superseded one that settled first.
+async function settleLatest(latest: () => Promise<void>): Promise<void> {
+  let current: Promise<void>
+  do {
+    current = latest()
+    await current
+  } while (current !== latest())
+}
+
 // Build outside React because an unresolved route tree cannot mount its own recovery panel.
 function renderShellTooOldPanel(container: HTMLElement): void {
   const panel = document.createElement('div')
@@ -119,10 +128,10 @@ bootstrapShellPage({
     applyMobileColorScheme(session.colorScheme)
     client.onColorSchemeUpdate(applyMobileColorScheme)
     // Subscribe before the first catalog load so a switch during startup is not lost; the latest request wins.
+    let uiLocaleActivation = activatePageUiLocale(session.uiLocale)
     client.onUiLocaleUpdate((locale) => {
-      void activatePageUiLocale(locale)
+      uiLocaleActivation = activatePageUiLocale(locale)
     })
-    const uiLocaleReady = activatePageUiLocale(session.uiLocale)
     // Publish plain-function seams before first render because effects and initial list paint already read them.
     publishPageHostProfile(session.host)
     publishExternalLinkOpener((url) => client.notifyExternalLink(url))
@@ -148,7 +157,7 @@ bootstrapShellPage({
         : null
     )
     // Activation settles to English on failure, so the page always mounts.
-    void uiLocaleReady.then(() =>
+    void settleLatest(() => uiLocaleActivation).then(() =>
       createRoot(container).render(
         // Catch outside ExpoRoot so route-resolution/import failures cannot bypass the page boundary.
         <PageFaultBoundary

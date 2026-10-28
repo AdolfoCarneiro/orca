@@ -92,7 +92,12 @@ function report(problems, heading, lines) {
 export function collectExtractionProblems(references, englishCatalog, keyEvidence) {
   const extracted = new Map()
   for (const reference of references) {
-    extracted.set(reference.key, typeof reference.fallback === 'string' ? reference.fallback : '')
+    // A dynamic fallback elsewhere must not hide a literal one that drifted from en.json.
+    if (typeof reference.fallback === 'string') {
+      extracted.set(reference.key, reference.fallback)
+    } else if (!extracted.has(reference.key)) {
+      extracted.set(reference.key, '')
+    }
   }
   const result = compareExtraction(nestCatalog(extracted), englishCatalog)
   const unreferenced = findUnreferencedKeys(result.orphans, result.extracted, keyEvidence)
