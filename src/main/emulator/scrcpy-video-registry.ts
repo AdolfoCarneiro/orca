@@ -2,7 +2,6 @@ import type { ScrcpyVideoMeta } from './android/scrcpy-video-frame-parser'
 
 // Cache metadata, decoder config, and the current GOP for late subscribers.
 
-// Bound high-motion replay caches while retaining their leading keyframe.
 const MAX_GOP_FRAMES = 120
 
 export type ScrcpyVideoFrameMessage = {
@@ -54,11 +53,10 @@ class ScrcpyVideoRegistry {
     } else if (frame.keyFrame) {
       entry.gop = [frame]
     } else if (entry.gop.length > 0) {
-      // Cache deltas only after a keyframe; pre-keyframe deltas are still delivered live.
       entry.gop.push(frame)
-      // Preserve the leading keyframe when bounding the cache.
+      // Missing deltas make the remaining replay undecodable.
       if (entry.gop.length > MAX_GOP_FRAMES) {
-        entry.gop.splice(1, 1)
+        entry.gop = []
       }
     }
     for (const subscriber of entry.subscribers) {
@@ -80,8 +78,18 @@ class ScrcpyVideoRegistry {
     for (const frame of entry.gop) {
       subscriber({ type: 'frame', frame })
     }
-    entry.subscribers.add(subscriber)
-    return () => entry.subscribers.delete(subscriber)
+    let waitingForKeyframe = entry.gop.length === 0
+    const deliver: ScrcpyVideoSubscriber = (event) => {
+      if (event.type === 'frame' && !event.frame.config) {
+        if (waitingForKeyframe && !event.frame.keyFrame) {
+          return
+        }
+        waitingForKeyframe = false
+      }
+      subscriber(event)
+    }
+    entry.subscribers.add(deliver)
+    return () => entry.subscribers.delete(deliver)
   }
 
   stop(deviceId: string): void {
