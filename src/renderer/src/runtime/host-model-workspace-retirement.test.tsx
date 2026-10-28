@@ -2,6 +2,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { ProjectGroup } from '../../../shared/project-group-types'
+import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
 import { mergeFetchedWorktrees } from '@/store/slices/worktrees/listing/fetched-worktree-merge'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import type { AgentSessionModelCatalogResult } from '../../../shared/agent-session-wire'
@@ -255,7 +256,7 @@ it.each(['deleted', 'rejected', 'failed'] as const)(
   async (outcome) => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const store = createTestStore()
-    const folder = { ...makeFolderWorkspace(), executionHostId: HOST }
+    const folder = makeFolderWorkspace({ executionHostId: HOST })
     store.setState({ folderWorkspaces: [folder] })
     const id = `folder:${folder.id}`
     await openChat(id)
@@ -263,12 +264,12 @@ it.each(['deleted', 'rejected', 'failed'] as const)(
     if (outcome !== 'deleted') {
       window.api.runtimeEnvironments.call = vi.fn(
         async (args) =>
-          createCompatibleRuntimeStatusResponseIfNeeded(args) ??
+          createCompatibleRuntimeStatusResponseIfNeeded({ method: args.method }) ??
           (outcome === 'failed'
             ? await Promise.reject(new Error('failed'))
             : {
                 id: 'rpc',
-                ok: true,
+                ok: true as const,
                 result: { deleted: false },
                 _meta: { runtimeId: 'catalog-runtime' }
               })
@@ -352,7 +353,7 @@ it.each([true, false])('retires a deleted group subtree only after success=%s', 
     })
   ]
   const other = { kind: 'environment', environmentId: 'other-host' } as const
-  const twin = { ...folders[0], executionHostId: 'runtime:other-host' }
+  const twin: FolderWorkspace = { ...folders[0], executionHostId: 'runtime:other-host' }
   store.setState({
     projectGroups: [
       parent,
@@ -371,7 +372,7 @@ it.each([true, false])('retires a deleted group subtree only after success=%s', 
   if (!deleted) {
     vi.mocked(window.api.runtimeEnvironments.call).mockImplementation(
       async (args) =>
-        createCompatibleRuntimeStatusResponseIfNeeded(args) ?? {
+        createCompatibleRuntimeStatusResponseIfNeeded({ method: args.method }) ?? {
           id: 'rpc',
           ok: true,
           result: { deleted: false },
@@ -393,7 +394,7 @@ it.each(['removed', 'present', 'failed'] as const)(
     const store = createTestStore()
     const folder = makeFolderWorkspace({ executionHostId: HOST })
     const other = { kind: 'environment', environmentId: 'other-host' } as const
-    const twin = { ...folder, executionHostId: 'runtime:other-host' }
+    const twin: FolderWorkspace = { ...folder, executionHostId: 'runtime:other-host' }
     store.setState({ folderWorkspaces: [folder, twin] })
     const id = `folder:${folder.id}`
     await openChat(id)
@@ -401,7 +402,7 @@ it.each(['removed', 'present', 'failed'] as const)(
     const before = read(id)
     const twinCatalog = read(id, other)
     vi.mocked(window.api.runtimeEnvironments.call).mockImplementation(async (args) => {
-      const status = createCompatibleRuntimeStatusResponseIfNeeded(args)
+      const status = createCompatibleRuntimeStatusResponseIfNeeded({ method: args.method })
       if (status) {
         return status
       }
@@ -482,7 +483,7 @@ it.each(['removed', 'present', 'failed'] as const)(
     const before = read(id)
     const twin = read(id, other)
     vi.mocked(window.api.runtimeEnvironments.call).mockImplementation(async (args) => {
-      const status = createCompatibleRuntimeStatusResponseIfNeeded(args)
+      const status = createCompatibleRuntimeStatusResponseIfNeeded({ method: args.method })
       if (status) {
         return status
       }

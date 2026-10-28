@@ -1,4 +1,5 @@
 import type { AgentSessionModelCatalogResult } from '../../../shared/agent-session-wire'
+import { authorityKey, parseHostAuthorityKey } from '../../../shared/host-authority'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { getRuntimeTargetHostId, runtimeRpcTargetForAuthorityKey } from './runtime-client-target'
 import { toRuntimeWorktreeSelector } from './runtime-worktree-selector'
@@ -118,7 +119,8 @@ export function forgetHostModelCatalogSnapshotsForWorkspaces(
   executionHostId: string | undefined,
   worktreeIds: Iterable<string>
 ): void {
-  const target = executionHostId ? runtimeRpcTargetForAuthorityKey(executionHostId) : null
+  const authority = parseHostAuthorityKey(executionHostId)
+  const target = authority ? runtimeRpcTargetForAuthorityKey(authorityKey(authority)) : null
   if (!target) {
     return
   }
