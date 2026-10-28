@@ -183,6 +183,21 @@ describe('collectWslDriveUncScope overlaps', () => {
       ]
     })
   })
+
+  it('converts a project nested under a refused duplicate, since its original converts too', () => {
+    const repos = [
+      repo('outer', String.raw`\\wsl.localhost\Ubuntu\mnt\c\src`),
+      repo('outer-alias', '//wsl$/Ubuntu/mnt/c/src/'),
+      repo('inner', String.raw`\\wsl.localhost\Ubuntu\mnt\c\src\app`)
+    ]
+    expect(
+      collectWslDriveUncScope({ repos, folderWorkspaces: [], projectGroups: [] }, 'Ubuntu', DRIVES)
+    ).toEqual({
+      repoIds: ['outer', 'inner'],
+      folderWorkspaceIds: [],
+      refused: [{ kind: 'repo', id: 'outer-alias', reason: 'duplicate-windows-project' }]
+    })
+  })
 })
 
 describe('wslDriveUncWorktreeId', () => {
