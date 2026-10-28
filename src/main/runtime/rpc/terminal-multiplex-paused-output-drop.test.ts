@@ -23,7 +23,8 @@ async function subscribePausable(
   const viewSubscribers = new RuntimeTerminalViewSubscribers({
     notifyPresenceChanged: () => {},
     hasMobileSubscribers: () => false,
-    ensureProviderAttach: () => {}
+    isUnattachedLocalCandidate: () => false,
+    attachProvider: () => null
   })
   const harness = startDesktopMultiplexSubscribe({
     subscribeToTerminalData: vi.fn((_ptyId, listener) => {

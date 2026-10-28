@@ -176,7 +176,7 @@ export abstract class OrcaRuntimeWithInvalidateAllHandlesForPty extends OrcaRunt
         })
       }
     }
-    this.mainDaemonAttachments.markSpawnPublished(ptyId)
+    this.terminalViewSubscribers.markSpawnPublished(ptyId)
     const pty = this.getOrCreatePtyWorktreeRecord(ptyId)
     if (pty) {
       if (incarnationId) {

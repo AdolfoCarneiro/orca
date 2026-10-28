@@ -15,7 +15,6 @@ import { buildTerminalWaitText } from '../../terminal-wait-tail-state'
 import { evaluateTuiIdle, type TuiIdleVerdict } from '../../tui-idle-evidence'
 import {
   leafTuiIdleEvidence,
-  outputClockOf,
   ptyTuiIdleEvidence,
   type TuiIdleEvidenceSource
 } from '../../tui-idle-evidence-source'
@@ -31,14 +30,13 @@ import type { RuntimeTerminalWaiterRegistry } from './terminal-waiter-registry'
 /** Probe unseen/provider-only panes and clockless screen-ruled agents with untrusted restored models; clocked panes settle through quiet polling. profile.screenProbeBanner also opts in. */
 function shouldProbeVisibleScreen(
   paneAgent: TuiAgent | null,
-  record: Pick<RuntimePtyWorktreeRecord, 'lastAgentStatus'>,
-  outputClockAt: number | null,
+  record: Pick<RuntimePtyWorktreeRecord, 'lastAgentStatus' | 'lastOutputAt'>,
   waitText: string
 ): boolean {
   return (
     (record.lastAgentStatus === null && waitText.length === 0) ||
     showsScreenProbeBanner(waitText) ||
-    (readsTrustedScreen(paneAgent) && outputClockAt === null)
+    (readsTrustedScreen(paneAgent) && record.lastOutputAt === null)
   )
 }
 
@@ -156,14 +154,7 @@ export class RuntimeTerminalWait {
           } else {
             this.polls.startPty(waiter, live.pty, verdict)
             const paneAgent = this.deps.getPaneAgent(live.pty.ptyId)
-            if (
-              shouldProbeVisibleScreen(
-                paneAgent,
-                live.pty,
-                outputClockOf(this.deps, live.pty),
-                livePtyWaitText
-              )
-            ) {
+            if (shouldProbeVisibleScreen(paneAgent, live.pty, livePtyWaitText)) {
               this.deps.startVisibleReadProbe(waiter, effectiveTimeoutMs, paneAgent)
             }
           }
@@ -244,14 +235,7 @@ export class RuntimeTerminalWait {
             // Ready previews can precede idle OSC titles; keep polling both.
             this.polls.startLeaf(waiter, live.leaf, verdict)
             const paneAgent = this.deps.getPaneAgent(live.leaf.ptyId)
-            if (
-              shouldProbeVisibleScreen(
-                paneAgent,
-                live.leaf,
-                outputClockOf(this.deps, live.leaf),
-                liveLeafWaitText
-              )
-            ) {
+            if (shouldProbeVisibleScreen(paneAgent, live.leaf, liveLeafWaitText)) {
               this.deps.startVisibleReadProbe(waiter, effectiveTimeoutMs, paneAgent)
             }
           }

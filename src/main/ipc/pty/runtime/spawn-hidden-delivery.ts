@@ -1,8 +1,7 @@
 import { markRuntimeOwnedHiddenRendererPty } from '../delivery/pty-hidden-delivery-gate'
-import { attachingRendererViewPtys, isRendererViewShowingPty } from '../delivery/visibility-state'
+import { attachingRendererViewPtys, visibleRendererPtys } from '../delivery/visibility-state'
 import { closeStartupQueryAuthorityForPty } from '../provider/registry'
 import type { RuntimePtySpawnState } from './spawn-state'
-import type { PtyRuntimeControllerDeps } from './controller-deps'
 
 // Background launches have no renderer to answer startup queries; main must own hidden-query replies.
 
@@ -43,7 +42,7 @@ export function commitRuntimeSpawnHiddenDelivery(ctx: RuntimePtySpawnState): voi
   if (attaching) {
     attaching.skippedHide = true
   }
-  if (isRendererViewShowingPty(id)) {
+  if (visibleRendererPtys.has(id) || attaching) {
     releaseRuntimeSpawnPreSpawnHiddenMark(ctx)
     ctx.deps.syncPtyBackgroundedDelivery?.(id, 'spawn')
     return
@@ -66,15 +65,7 @@ export function releaseRuntimeSpawnPreSpawnHiddenMark(ctx: RuntimePtySpawnState)
 }
 
 function markRuntimeSpawnHidden(ctx: RuntimePtySpawnState, id: string): void {
-  hideRuntimeOwnedRendererDelivery(ctx.deps, id)
-}
-
-/** Main-held streams with no view drop renderer bytes until a pane reveals them. */
-export function hideRuntimeOwnedRendererDelivery(
-  deps: Pick<PtyRuntimeControllerDeps, 'transitionSpawnHiddenRendererPtyDeliveryState'>,
-  id: string
-): void {
-  const transition = deps.transitionSpawnHiddenRendererPtyDeliveryState
+  const transition = ctx.deps.transitionSpawnHiddenRendererPtyDeliveryState
   if (!transition) {
     return
   }

@@ -78,17 +78,14 @@ it('preserves client-only unverifiable inspection from the owning legacy daemon'
 it('forwards the owning legacy daemon sequence from attach', async () => {
   const legacy = createAdapter('legacy', ['legacy-session'])
   const providerSequence = { value: 204, generation: 'continued' as const }
-  vi.mocked(legacy.attach).mockResolvedValueOnce({ id: 'legacy-session', providerSequence })
+  vi.mocked(legacy.attach).mockResolvedValueOnce({ providerSequence })
   const router = new DaemonPtyRouter({
     current: createAdapter('current'),
     legacy: [legacy]
   })
   await router.discoverLegacySessions()
 
-  await expect(router.attach('legacy-session')).resolves.toEqual({
-    id: 'legacy-session',
-    providerSequence
-  })
+  await expect(router.attach('legacy-session')).resolves.toEqual({ providerSequence })
 })
 
 describe('DaemonPtyRouter', () => {

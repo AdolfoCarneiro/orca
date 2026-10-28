@@ -323,7 +323,7 @@ describe('DegradedDaemonPtyProvider', () => {
   it('forwards the owning daemon sequence from attach', async () => {
     const legacy = createDaemonAdapter('legacy', ['daemon-session'])
     const providerSequence = { value: 204, generation: 'continued' as const }
-    vi.mocked(legacy.attach).mockResolvedValueOnce({ id: 'daemon-session', providerSequence })
+    vi.mocked(legacy.attach).mockResolvedValueOnce({ providerSequence })
     const provider = new DegradedDaemonPtyProvider({
       current: createDaemonAdapter('current'),
       legacy: [legacy],
@@ -331,10 +331,7 @@ describe('DegradedDaemonPtyProvider', () => {
     })
     await provider.discoverDaemonSessions()
 
-    await expect(provider.attach('daemon-session')).resolves.toEqual({
-      id: 'daemon-session',
-      providerSequence
-    })
+    await expect(provider.attach('daemon-session')).resolves.toEqual({ providerSequence })
   })
 
   it('only delegates owner-listing authority to the provider that owns the id', async () => {
