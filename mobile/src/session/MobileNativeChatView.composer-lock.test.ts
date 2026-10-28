@@ -208,10 +208,21 @@ describe('MobileNativeChatView: composer lock and prompt cards', () => {
 
     it('keeps the composer for an approval this build cannot draw, so a turn can cancel it', async () => {
       await render({
-        permission: { ...permission, subject: { kind: 'diff' } },
+        permission: { ...permission, subject: JSON.parse('{"kind":"diff"}') },
         structuredActivityUi: true
       })
       expect(composerHidden()).toBe(false)
+    })
+
+    it('keeps the composer for an ask only the terminal can answer, so Stop stays reachable', async () => {
+      const ask = {
+        questions: [{ question: 'Tabs?', multiSelect: false, options: [{ label: 'Tabs' }] }]
+      }
+      await render({ ask, askRequiresTerminal: true })
+      expect(composerHidden()).toBe(false)
+
+      await update({ ask })
+      expect(composerHidden()).toBe(true)
     })
 
     it('shows the composer for a collapsed card and while dictation runs', async () => {
