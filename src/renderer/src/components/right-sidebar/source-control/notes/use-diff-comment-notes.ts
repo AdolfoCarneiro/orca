@@ -45,13 +45,16 @@ export function useSourceControlDiffCommentNotes({
   const [diffCommentsCopied, showDiffCommentsCopied] = useCopyFeedbackState(false)
   const [pendingDiffCommentsClear, setPendingDiffCommentsClear] =
     useState<PendingDiffCommentsClear | null>(null)
-  const [isClearingDiffComments, setIsClearingDiffComments] = useState(false)
+  const [clearingDiffComments, setClearingDiffComments] = useState<PendingDiffCommentsClear | null>(
+    null
+  )
+  const isClearingDiffComments = clearingDiffComments !== null
   // Reset during render so workspace switches cannot paint the old confirmation.
   const [notesWorktreeId, setNotesWorktreeId] = useState(activeWorktreeId)
   if (notesWorktreeId !== activeWorktreeId) {
     setNotesWorktreeId(activeWorktreeId)
     setPendingDiffCommentsClear(null)
-    setIsClearingDiffComments(false)
+    setClearingDiffComments(null)
   }
   const handleCopyDiffComments = useCallback(async (): Promise<void> => {
     if (diffCommentsForActive.length === 0) {
@@ -105,7 +108,7 @@ export function useSourceControlDiffCommentNotes({
       setPendingDiffCommentsClear(null)
       return
     }
-    setIsClearingDiffComments(true)
+    setClearingDiffComments(pending)
     const clearOptions = { keepMarkdownNotes: !markdownReviewNotesEnabled }
     try {
       const ok =
@@ -113,7 +116,7 @@ export function useSourceControlDiffCommentNotes({
           ? await clearDiffComments(pending.worktreeId, clearOptions)
           : await clearDiffCommentsForFile(pending.worktreeId, pending.filePath, clearOptions)
       if (ok) {
-        setPendingDiffCommentsClear(null)
+        setPendingDiffCommentsClear((current) => (current === pending ? null : current))
       } else {
         toast.error(
           translate(
@@ -123,7 +126,7 @@ export function useSourceControlDiffCommentNotes({
         )
       }
     } finally {
-      setIsClearingDiffComments(false)
+      setClearingDiffComments((current) => (current === pending ? null : current))
     }
   }, [
     activeWorktreeId,
