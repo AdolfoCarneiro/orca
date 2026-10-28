@@ -1,7 +1,7 @@
 import type { OrchestrationDb } from './db'
 import type {
-  OrchestrationMailboxLeaf,
   OrchestrationMailboxOwner,
+  OrchestrationMailboxTerminal,
   RoutedOrchestrationMailbox
 } from './mailbox-owner'
 import type {
@@ -16,7 +16,7 @@ type NotificationCoordinatorDependencies<TWaiter extends OrchestrationMessageWai
   /** Sibling lane for workers that ARE a structured session; it has no PTY to type into. */
   structuredPointerDelivery?: OrchestrationStructuredMailboxPointerDelivery<TWaiter>
   getDb: () => OrchestrationDb | null
-  getLiveLeafForHandle: (handle: string) => OrchestrationMailboxLeaf
+  getTerminalForHandle: (handle: string) => OrchestrationMailboxTerminal | null
   getPaneKeyForHandle: (handle: string) => string | undefined
   getMessageWaiters: (mailboxHandle: string) => ReadonlySet<TWaiter> | undefined
   hasTerminalHandle: (handle: string) => boolean
@@ -38,10 +38,10 @@ export class OrchestrationMailboxNotificationCoordinator<
     this.deps.pointerDelivery.deliverForHandle(handle, reservedTypes)
   }
 
-  deliverForLeaf(leaf: OrchestrationMailboxLeaf): void {
-    this.notifyForwarded(this.deps.mailboxOwner.routeForeignDirectMessages(leaf))
-    for (const mailboxHandle of this.deps.mailboxOwner.resolveAll(leaf)) {
-      this.deps.pointerDelivery.deliver(leaf, { mailboxHandle })
+  deliverForTerminal(terminal: OrchestrationMailboxTerminal): void {
+    this.notifyForwarded(this.deps.mailboxOwner.routeForeignDirectMessages(terminal))
+    for (const mailboxHandle of this.deps.mailboxOwner.resolveAll(terminal)) {
+      this.deps.pointerDelivery.deliver(terminal, { mailboxHandle })
     }
   }
 
@@ -108,16 +108,15 @@ export class OrchestrationMailboxNotificationCoordinator<
     if (!this.deps.hasTerminalHandle(handle)) {
       return this.resolveDetachedMailbox(handle)
     }
-    try {
-      const leaf = this.deps.getLiveLeafForHandle(handle)
-      return {
-        mailboxHandle: this.deps.mailboxOwner.resolve(leaf, handle, {
-          requireRequestedMail: true
-        }),
-        forwarded: this.deps.mailboxOwner.routeForeignDirectMessages(leaf)
-      }
-    } catch {
+    const terminal = this.deps.getTerminalForHandle(handle)
+    if (!terminal) {
       return this.resolveDetachedMailbox(handle)
+    }
+    return {
+      mailboxHandle: this.deps.mailboxOwner.resolve(terminal, handle, {
+        requireRequestedMail: true
+      }),
+      forwarded: this.deps.mailboxOwner.routeForeignDirectMessages(terminal)
     }
   }
 

@@ -14,23 +14,14 @@ describe('OrchestrationMailboxDeliveryTarget absence probe', () => {
       controllerKnowsPtyIsLive: () => false,
       isLeafPtyProvenAbsent: () => new Promise((resolve) => (answer = resolve))
     })
-    const leaf = {
-      tabId: 'tab',
-      leafId: 'leaf',
-      ptyId: 'pty-coordinator',
-      writable: true,
-      lastAgentStatus: 'idle' as const,
-      lastAgentStatusObservedLive: true,
-      lastOscTitle: null
-    }
     const redeliver = vi.fn()
 
-    expect(target.deferForAbsenceProbe(leaf, 'run:run_a', false, redeliver)).toBe(true)
-    expect(target.deferForAbsenceProbe(leaf, 'run:run_b', false, redeliver)).toBe(true)
+    expect(target.deferForAbsenceProbe('pty-coordinator', 'run:run_a', false, redeliver)).toBe(true)
+    expect(target.deferForAbsenceProbe('pty-coordinator', 'run:run_b', false, redeliver)).toBe(true)
     answer(false)
     await vi.runAllTimersAsync()
 
-    expect(redeliver.mock.calls.map(([, , mailbox]) => mailbox)).toEqual(['run:run_a', 'run:run_b'])
+    expect(redeliver.mock.calls.map(([mailbox]) => mailbox)).toEqual(['run:run_a', 'run:run_b'])
     vi.useRealTimers()
   })
 })

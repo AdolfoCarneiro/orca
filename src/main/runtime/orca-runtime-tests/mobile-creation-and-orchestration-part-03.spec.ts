@@ -620,7 +620,8 @@ describe('OrcaRuntimeService', () => {
     }
   })
 
-  it('fails terminal waits closed when the handle goes stale during reload', async () => {
+  // #24354: a wait follows its terminal, which a renderer reload does not end.
+  it('keeps a terminal wait across a renderer reload until the terminal exits', async () => {
     const runtime = new OrcaRuntimeService(store)
 
     runtime.attachWindow(1)
@@ -648,7 +649,8 @@ describe('OrcaRuntimeService', () => {
     const [terminal] = (await runtime.listTerminals()).terminals
     const waitPromise = runtime.waitForTerminal(terminal.handle, { timeoutMs: 1000 })
     runtime.markRendererReloading(1)
+    await runtime.onPtyExit('pty-1', 0)
 
-    await expect(waitPromise).rejects.toThrow('terminal_handle_stale')
+    await expect(waitPromise).resolves.toMatchObject({ condition: 'exit', exitCode: 0 })
   })
 })
