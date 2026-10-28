@@ -6,11 +6,8 @@ import type {
 } from './native-chat-composer-draft-storage'
 
 const DATABASE_NAME = 'orca-native-chat-composer-drafts'
-const DATABASE_VERSION = 2
+const DATABASE_VERSION = 1
 const DRAFTS = 'drafts'
-const SOURCES = 'terminal-paste-sources'
-const REFERENCES = 'terminal-paste-references'
-const STORES = [DRAFTS, SOURCES, REFERENCES]
 
 function settled(request: IDBRequest): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -36,14 +33,6 @@ export function createIndexedDbNativeChatComposerDraftStorage(
     opened ??= new Promise<IDBDatabase>((resolve, reject) => {
       const request = factory.open(DATABASE_NAME, DATABASE_VERSION)
       request.onupgradeneeded = () => {
-        if (!request.result.objectStoreNames.contains(SOURCES)) {
-          request.result.createObjectStore(SOURCES)
-        }
-        if (!request.result.objectStoreNames.contains(REFERENCES)) {
-          const refs = request.result.createObjectStore(REFERENCES)
-          refs.createIndex('scope', 'scope')
-          refs.createIndex('source', 'id')
-        }
         if (!request.result.objectStoreNames.contains(DRAFTS)) {
           request.result.createObjectStore(DRAFTS)
         }
@@ -51,10 +40,7 @@ export function createIndexedDbNativeChatComposerDraftStorage(
       request.onsuccess = () => {
         const db = request.result
         // Close replaced/upgraded connections so later writes reopen instead of reusing a dead database.
-        db.onversionchange = () => {
-          opened = null
-          db.close()
-        }
+        db.onversionchange = () => db.close()
         db.onclose = () => {
           opened = null
         }
@@ -69,120 +55,13 @@ export function createIndexedDbNativeChatComposerDraftStorage(
     return opened
   }
 
-  const changeDraft = (
-    transaction: IDBTransaction,
-    scope: string,
-    draft: StoredNativeChatComposerDraft | null,
-    bodies: ReadonlyMap<string, string> = new Map()
-  ): void => {
-    const refs = transaction.objectStore(REFERENCES)
-    const sources = transaction.objectStore(SOURCES)
-    const drafts = transaction.objectStore(DRAFTS)
-    const ids = new Set(
-      (draft?.pastedTextSourceIds ?? []).filter((id) =>
-        draft?.text.includes(`[Pasted text](orca-paste:${id})`)
-      )
-    )
-    const previous = refs.index('scope').openCursor(scope)
-    previous.onsuccess = () => {
-      const cursor = previous.result
-      if (!cursor) {
-        return
-      }
-      const id: unknown = cursor.value.id
-      if (typeof id === 'string' && !ids.has(id)) {
-        cursor.delete()
-        const remaining = refs.index('source').count(id)
-        remaining.onsuccess = () => {
-          if (remaining.result === 0) {
-            sources.delete(id)
-          }
-        }
-      }
-      cursor.continue()
-    }
-    for (const id of ids) {
-      refs.put({ scope, id }, [scope, id])
-      const present = sources.getKey(id)
-      present.onsuccess = () => {
-        if (present.result !== undefined) {
-          return
-        }
-        const text = bodies.get(id)
-        if (text === undefined) {
-          transaction.abort()
-        } else {
-          sources.put(text, id)
-        }
-      }
-    }
-    if (draft) {
-      drafts.put(draft, scope)
-    } else {
-      drafts.delete(scope)
-    }
-  }
-  let collection: Promise<void> | null = null
-  let retryCollection = false
-  const change = async (apply: (transaction: IDBTransaction) => void): Promise<void> => {
-    const transaction = (await database()).transaction(STORES, 'readwrite')
+  const change = async (apply: (drafts: IDBObjectStore) => void): Promise<void> => {
+    const transaction = (await database()).transaction(DRAFTS, 'readwrite')
     const done = committed(transaction)
-    apply(transaction)
+    apply(transaction.objectStore(DRAFTS))
+    // Why: commit now rather than when the task ends, so a quit right after still lands it.
+    transaction.commit?.()
     await done
-    if (retryCollection) {
-      void collectSources().catch(() => {})
-    }
-  }
-  const collect = async (): Promise<void> => {
-    let after: IDBValidKey | undefined
-    let more = true
-    while (more) {
-      const transaction = (await database()).transaction([SOURCES, REFERENCES], 'readwrite')
-      const done = committed(transaction)
-      const sources = transaction.objectStore(SOURCES)
-      const refs = transaction.objectStore(REFERENCES).index('source')
-      const page = sources.openKeyCursor(
-        after === undefined ? undefined : IDBKeyRange.lowerBound(after, true)
-      )
-      let count = 0
-      more = false
-      page.onsuccess = () => {
-        const cursor = page.result
-        if (!cursor) {
-          return
-        }
-        after = cursor.key
-        const owned = refs.count(cursor.key)
-        owned.onsuccess = () => {
-          if (!owned.result) {
-            sources.delete(cursor.key)
-          }
-        }
-        if (++count < 32) {
-          cursor.continue()
-        } else {
-          more = true
-        }
-      }
-      await done
-    }
-  }
-
-  const collectSources = (): Promise<void> => {
-    collection ??= collect()
-      .then(
-        () => {
-          retryCollection = false
-        },
-        (error: unknown) => {
-          retryCollection = true
-          throw error
-        }
-      )
-      .finally(() => {
-        collection = null
-      })
-    return collection
   }
 
   return {
@@ -204,26 +83,28 @@ export function createIndexedDbNativeChatComposerDraftStorage(
     },
     read: async (scopeKey) =>
       settled((await database()).transaction(DRAFTS, 'readonly').objectStore(DRAFTS).get(scopeKey)),
-    readSource: async (id) =>
-      settled((await database()).transaction(SOURCES, 'readonly').objectStore(SOURCES).get(id)),
-    write: (scopeKey, draft: StoredNativeChatComposerDraft, bodies) =>
-      change((transaction) => changeDraft(transaction, scopeKey, draft, bodies)),
+    write: (scopeKey, draft: StoredNativeChatComposerDraft) =>
+      change((drafts) => drafts.put(draft, scopeKey)),
     remove: (scopeKeys) =>
-      change((transaction) => {
+      change((drafts) => {
         for (const scopeKey of scopeKeys) {
-          changeDraft(transaction, scopeKey, null)
+          drafts.delete(scopeKey)
         }
       }),
-    collectSources,
     update: async (scopeKey, apply) => {
-      const transaction = (await database()).transaction(STORES, 'readwrite')
+      const transaction = (await database()).transaction(DRAFTS, 'readwrite')
       const done = committed(transaction)
       const drafts = transaction.objectStore(DRAFTS)
       const read = drafts.get(scopeKey)
       // Why inside the read's callback: the write must land in the same transaction as the read.
       read.onsuccess = () => {
         const next = apply(read.result)
-        changeDraft(transaction, scopeKey, next)
+        if (next) {
+          drafts.put(next, scopeKey)
+        } else {
+          drafts.delete(scopeKey)
+        }
+        transaction.commit?.()
       }
       await done
     }

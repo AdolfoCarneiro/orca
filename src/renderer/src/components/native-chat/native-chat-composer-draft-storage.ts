@@ -14,7 +14,6 @@ export type NativeChatComposerDraftImage = {
 }
 
 export type NativeChatComposerDraft = {
-  readonly pastedTextSourceIds?: readonly string[]
   readonly text: string
   readonly pastedTextFiles?: Readonly<Record<string, string>>
   /** The editor's document for exactly `text`; dropped when the text changes without one. */
@@ -37,13 +36,7 @@ export type StoredNativeChatComposerDraft = NativeChatComposerDraft & {
 export type NativeChatComposerDraftStorage = {
   loadAll(): Promise<ReadonlyMap<string, unknown>>
   read(scopeKey: string): Promise<unknown>
-  write(
-    scopeKey: string,
-    draft: StoredNativeChatComposerDraft,
-    sources?: ReadonlyMap<string, string>
-  ): Promise<void>
-  readSource?(id: string): Promise<unknown>
-  collectSources?(): Promise<void>
+  write(scopeKey: string, draft: StoredNativeChatComposerDraft): Promise<void>
   remove(scopeKeys: readonly string[]): Promise<void>
   /** Reads the stored record and writes what `apply` makes of it, as one change. */
   update(
@@ -55,50 +48,26 @@ export type NativeChatComposerDraftStorage = {
 /** Use run-local storage without IndexedDB and as the controllable test backend. */
 export function createMemoryNativeChatComposerDraftStorage(): NativeChatComposerDraftStorage & {
   readonly drafts: Map<string, StoredNativeChatComposerDraft>
-  readonly sources: Map<string, string>
   refuseWrites: boolean
 } {
-  const sources = new Map<string, string>()
   const drafts = new Map<string, StoredNativeChatComposerDraft>()
   const storage = {
     drafts,
-    sources,
-    collectSources: async () => {
-      const owned = new Set(
-        [...drafts.values()].flatMap((draft) => draft.pastedTextSourceIds ?? [])
-      )
-      for (const id of sources.keys()) {
-        if (!owned.has(id)) {
-          sources.delete(id)
-        }
-      }
-    },
     refuseWrites: false,
     loadAll: async () => new Map(drafts),
     read: async (scopeKey: string) => drafts.get(scopeKey),
-    readSource: async (id: string) => sources.get(id),
-    write: (
-      scopeKey: string,
-      draft: StoredNativeChatComposerDraft,
-      bodies?: ReadonlyMap<string, string>
-    ) => {
+    write: (scopeKey: string, draft: StoredNativeChatComposerDraft) => {
       if (storage.refuseWrites) {
         return Promise.reject(new DOMException('refused', 'QuotaExceededError'))
-      }
-      for (const [id, text] of bodies ?? []) {
-        sources.set(id, text)
       }
       drafts.set(scopeKey, draft)
-      return storage.collectSources()
+      return Promise.resolve()
     },
     remove: (scopeKeys: readonly string[]) => {
-      if (storage.refuseWrites) {
-        return Promise.reject(new DOMException('refused', 'QuotaExceededError'))
-      }
       for (const scopeKey of scopeKeys) {
         drafts.delete(scopeKey)
       }
-      return storage.collectSources()
+      return Promise.resolve()
     },
     update: (
       scopeKey: string,
@@ -198,16 +167,6 @@ export function parseStoredNativeChatComposerDraft(
   const owner = parseOwner(value.owner)
   return {
     text,
-    ...(Array.isArray(value.pastedTextSourceIds)
-      ? {
-          pastedTextSourceIds: value.pastedTextSourceIds.filter(
-            (id): id is string =>
-              typeof id === 'string' &&
-              /^[0-9a-f-]{36}$/.test(id) &&
-              text.includes(`[Pasted text](orca-paste:${id})`)
-          )
-        }
-      : {}),
     ...(pastedTextFiles ? { pastedTextFiles } : {}),
     ...(isEditorDocument(document) ? { document } : {}),
     images: images.flatMap((image) => parseImage(image) ?? []),

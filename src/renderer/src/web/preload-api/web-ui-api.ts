@@ -175,9 +175,6 @@ export function createWebUiApi(): NonNullable<Partial<PreloadApi>['ui']> {
       return saveClipboardImageAsTempFileInRuntime(contentBase64, args)
     },
     savePastedTextAsFile: savePastedTextAsWebAgentSessionAttachment,
-    materializeTerminalTextInput: () =>
-      Promise.reject(new Error('Terminal text inputs require the desktop host.')),
-    retireTerminalTextInput: async () => {},
     clipboardHasImage,
     // Browsers expose copied files only inside a paste event.
     readClipboardFilePaths: async () => [],

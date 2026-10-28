@@ -1,7 +1,3 @@
-import {
-  retainTerminalPasteSources,
-  clearTerminalPasteSourcesForTests
-} from './native-chat-terminal-paste-sources'
 import { nativeChatPastedTextToken } from './native-chat-pasted-text-reference'
 // Own complete unsent drafts in memory so each write repairs storage from one authoritative record.
 
@@ -131,14 +127,6 @@ export function updateNativeChatComposerDraft(
 ): void {
   const current = records.get(scopeKey) ?? EMPTY_DRAFT
   const text = change.text ?? current.text
-  const pastedTextSourceIds = [
-    ...new Set([
-      ...retainTerminalPasteSources(scopeKey, text),
-      ...(current.pastedTextSourceIds ?? []).filter((id) =>
-        text.includes(nativeChatPastedTextToken(id))
-      )
-    ])
-  ]
   const document = 'document' in change ? change.document : current.document
   const pastedTextFiles = Object.fromEntries(
     Object.entries(change.pastedTextFiles ?? current.pastedTextFiles ?? {}).filter(([id]) =>
@@ -148,7 +136,6 @@ export function updateNativeChatComposerDraft(
   const images = change.images ?? current.images
   const unsavedText = change.unsavedText ?? current.unsavedText
   if (
-    JSON.stringify(pastedTextSourceIds) === JSON.stringify(current.pastedTextSourceIds ?? []) &&
     JSON.stringify(pastedTextFiles) === JSON.stringify(current.pastedTextFiles ?? {}) &&
     text === current.text &&
     sameNativeChatComposerDraftDocument(document, current.document) &&
@@ -171,7 +158,6 @@ export function updateNativeChatComposerDraft(
   const owner = current.owner ?? change.owner ?? resolveOwner?.(scopeKey)
   const record: DraftRecord = {
     text,
-    ...(pastedTextSourceIds.length ? { pastedTextSourceIds } : {}),
     ...(Object.keys(pastedTextFiles).length ? { pastedTextFiles } : {}),
     ...(document ? { document } : {}),
     images: [...images],
@@ -259,7 +245,6 @@ function deleteDraftsWhere(
     const draft = records.get(scopeKey)
     if (matches(scopeKey, draft)) {
       records.delete(scopeKey)
-      retainTerminalPasteSources(scopeKey, '')
       reconcileRestoredImageChecks(scopeKey, [])
       notifyScope(scopeKey)
       if (draft) {
@@ -304,7 +289,6 @@ export function deleteNativeChatComposerDraftsOwnedBy(owner: NativeChatComposerD
 }
 
 export function clearNativeChatComposerDraftsForTests(): void {
-  clearTerminalPasteSourcesForTests()
   clearDraftMemoryForTests()
   resetNativeChatComposerDraftPersistenceForTests()
   resetNativeChatComposerDraftLoadForTests()

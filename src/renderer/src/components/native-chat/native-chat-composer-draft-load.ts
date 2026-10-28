@@ -89,9 +89,6 @@ function applyLoaded(
   load.appendsBeforeLoad.clear()
   load.deletionsBeforeLoad.length = 0
   flushNativeChatComposerDrafts()
-  void nativeChatComposerDraftStorage()
-    .collectSources?.()
-    .catch(() => {})
 }
 
 function retryLater(error: unknown): void {

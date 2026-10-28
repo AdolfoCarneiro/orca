@@ -18,7 +18,7 @@ type PtyQueueState = {
   tail: Promise<void>
   freeAt: number
   depth: number
-  handles: Set<Pick<NativeChatPtySendQueueHandle, 'cancel'>>
+  handles: Set<NativeChatPtySendQueueHandle>
 }
 
 const ptyQueues = new Map<string, PtyQueueState>()
@@ -49,21 +49,6 @@ export function cancelNativeChatPtySends(ptyId: string): void {
   for (const handle of state.handles) {
     handle.cancel()
   }
-}
-
-/** Preparation is cancelable input ownership, but uncancelable disk I/O must not hold the PTY tail. */
-export function registerNativeChatPtySendPreparation(
-  ptyId: string,
-  handle: Pick<NativeChatPtySendQueueHandle, 'cancel' | 'settled'>
-): void {
-  const state = getOrCreateState(ptyId)
-  state.handles.add(handle)
-  void handle.settled.then(() => {
-    state.handles.delete(handle)
-    if (state.depth === 0 && state.handles.size === 0 && ptyQueues.get(ptyId) === state) {
-      ptyQueues.delete(ptyId)
-    }
-  })
 }
 
 export async function waitForNativeChatPtyIdle(ptyId: string): Promise<void> {

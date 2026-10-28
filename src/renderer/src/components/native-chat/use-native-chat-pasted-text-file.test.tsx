@@ -1,4 +1,3 @@
-import { resolveNativeChatPastedText } from './native-chat-composer-pasted-text-references'
 // @vitest-environment happy-dom
 import { useRef } from 'react'
 import { act, cleanup, render } from '@testing-library/react'
@@ -10,7 +9,6 @@ import {
   type NativeChatComposerInput
 } from './native-chat-composer-input'
 import { useNativeChatPastedTextFile } from './use-native-chat-pasted-text-file'
-import type { NativeChatAttachmentOwner } from './native-chat-attachment-upload'
 import {
   clearNativeChatComposerDraftsForTests,
   updateNativeChatComposerDraft
@@ -29,27 +27,17 @@ const notice = vi.fn()
 let paste: (text: string) => boolean
 const SCOPE = 'agent-session:sizing'
 const ID = '00000000-0000-4000-8000-000000000000'
-const PAIRED_CHAT: NativeChatAttachmentOwner = {
-  kind: 'runtime-session',
-  environmentId: 'e1',
-  sessionId: 's1',
-  pairingRevision: 7
-}
-function Composer({
-  text,
-  owner = PAIRED_CHAT,
-  structured = true
-}: {
-  text: string
-  owner?: NativeChatAttachmentOwner
-  structured?: boolean
-}) {
+function Composer({ text }: { text: string }) {
   const input = useRef<NativeChatComposerInput>(null)
   paste = useNativeChatPastedTextFile({
     scopeKey: SCOPE,
     scopeEditor: () => input.current,
-    structured,
-    resolveAttachmentOwner: () => owner,
+    resolveAttachmentOwner: () => ({
+      kind: 'runtime-session',
+      environmentId: 'e1',
+      sessionId: 's1',
+      pairingRevision: 7
+    }),
     insertTypedText: (value) => insertNativeChatPastedText(input.current, value),
     setNotice: notice
   })
@@ -122,175 +110,3 @@ it.each([
     expect(notice).toHaveBeenCalledTimes(tooLarge ? 1 : 0)
   }
 )
-
-it("stages a terminal-backed chat's long paste outside the editor, and never refuses one it must keep inline", () => {
-  vi.stubGlobal('api', { ui: { savePastedTextAsFile: save } })
-  const local = render(<Composer text="" owner={{ kind: 'local' }} structured={false} />)
-  act(() => {
-    promptEditor(local.getByRole('textbox')).commands.focus('end')
-    paste('x'.repeat(40 * 1024))
-  })
-  expect(save).not.toHaveBeenCalled()
-  expect(resolveNativeChatPastedText(SCOPE, promptValue(local.getByRole('textbox')), true)).toBe(
-    'x'.repeat(40 * 1024)
-  )
-  expect(promptValue(local.getByRole('textbox')).length).toBeLessThan(100)
-  local.unmount()
-  clearNativeChatComposerDraftsForTests()
-
-  // No message limit applies, so text the remote host can't take as a file still goes in.
-  const remote = render(<Composer text="" owner={{ kind: 'remote' }} structured={false} />)
-  act(() => {
-    promptEditor(remote.getByRole('textbox')).commands.focus('end')
-    paste('y'.repeat(300 * 1024))
-  })
-  expect(promptValue(remote.getByRole('textbox'))).toBe('y'.repeat(300 * 1024))
-  expect(notice).not.toHaveBeenCalled()
-  expect(save).not.toHaveBeenCalled()
-})
-
-import {
-  NativeChatPastedTextScopeProvider,
-  useNativeChatPastedTextAdmission,
-  useNativeChatPastedTextState
-} from './native-chat-pasted-text-state'
-import { rememberTerminalPasteSource } from './native-chat-terminal-paste-sources'
-
-it('isolates mounted paste consumers across scopes and other-host updates while delivering a real source change', async () => {
-  const renders = new Map<string, number>()
-  function Probe({ scope }: { scope: string }) {
-    const state = useNativeChatPastedTextState(nativeChatPastedTextToken(ID))
-    const admission = useNativeChatPastedTextAdmission(scope)
-    renders.set(scope, (renders.get(scope) ?? 0) + 1)
-    return (
-      <span>
-        {state}:{admission}
-      </span>
-    )
-  }
-  render(
-    <>
-      {['host-a:a', 'host-b:b'].map((scope) => (
-        <NativeChatPastedTextScopeProvider key={scope} value={scope}>
-          <Probe scope={scope} />
-        </NativeChatPastedTextScopeProvider>
-      ))}
-    </>
-  )
-  await act(async () => {})
-  renders.clear()
-  await act(async () =>
-    updateNativeChatComposerDraft('host-b:b', { text: 'unrelated text' }, 'immediate')
-  )
-  expect([...renders]).toEqual([])
-  const source = { id: ID, text: 'source' }
-  rememberTerminalPasteSource(source)
-  await act(async () =>
-    updateNativeChatComposerDraft('host-a:a', { text: nativeChatPastedTextToken(ID) }, 'immediate')
-  )
-  expect(renders.get('host-a:a')).toBe(1)
-  expect(renders.has('host-b:b')).toBe(false)
-})
-
-it('does not resurrect a removed draft or change a new scope when a source read finishes late', async () => {
-  const { createMemoryNativeChatComposerDraftStorage, setNativeChatComposerDraftStorageForTests } =
-    await import('./native-chat-composer-draft-storage')
-  const { hydrateNativeChatComposerDrafts, readNativeChatComposerDraft } =
-    await import('./native-chat-composer-draft-store')
-  const { loadNativeChatTerminalPasteSources } =
-    await import('./native-chat-composer-pasted-text-references')
-  const { readTerminalPasteSource } = await import('./native-chat-terminal-paste-sources')
-  const storage = createMemoryNativeChatComposerDraftStorage()
-  storage.drafts.set(SCOPE, {
-    text: nativeChatPastedTextToken(ID),
-    pastedTextSourceIds: [ID],
-    images: [],
-    savedAt: 1
-  })
-  setNativeChatComposerDraftStorageForTests(storage)
-  await hydrateNativeChatComposerDrafts()
-  const source = Promise.withResolvers<string>()
-  vi.spyOn(storage, 'readSource').mockReturnValue(source.promise)
-  const loaded = loadNativeChatTerminalPasteSources(SCOPE)
-  updateNativeChatComposerDraft(SCOPE, { text: '' }, 'immediate')
-  updateNativeChatComposerDraft('other-host:next', { text: 'new typing' }, 'immediate')
-  source.resolve('x'.repeat(1024 * 1024))
-  await loaded
-  expect(readNativeChatComposerDraft(SCOPE).text).toBe('')
-  expect(readNativeChatComposerDraft('other-host:next').text).toBe('new typing')
-  expect(readTerminalPasteSource(ID)).toBeUndefined()
-})
-
-it.each([1, 10])(
-  'recovers unchanged staged drafts on remount after %i failed storage reads without spinning',
-  async (failures) => {
-    const {
-      createMemoryNativeChatComposerDraftStorage,
-      setNativeChatComposerDraftStorageForTests
-    } = await import('./native-chat-composer-draft-storage')
-    const { hydrateNativeChatComposerDrafts, readNativeChatComposerDraft } =
-      await import('./native-chat-composer-draft-store')
-    const { nativeChatPastedTextAdmission } =
-      await import('./native-chat-composer-pasted-text-references')
-    const storage = createMemoryNativeChatComposerDraftStorage()
-    const text = 'exact recovered source '.repeat(2000)
-    storage.drafts.set(SCOPE, {
-      text: nativeChatPastedTextToken(ID),
-      pastedTextSourceIds: [ID],
-      images: [],
-      savedAt: 1
-    })
-    storage.sources.set(ID, text)
-    setNativeChatComposerDraftStorageForTests(storage)
-    await hydrateNativeChatComposerDrafts()
-    const draft = readNativeChatComposerDraft(SCOPE)
-    const read = vi.spyOn(storage, 'readSource')
-    for (let i = 0; i < failures; i++) {
-      read.mockRejectedValueOnce(new Error('storage temporarily unavailable'))
-    }
-    function Probe() {
-      return <span>{useNativeChatPastedTextAdmission(SCOPE)}</span>
-    }
-    for (let i = 0; i < failures; i++) {
-      const view = render(<Probe />)
-      await act(async () => {})
-      await act(async () => {})
-      expect(read).toHaveBeenCalledTimes(i + 1)
-      expect(nativeChatPastedTextAdmission(SCOPE)).not.toBeNull()
-      expect(readNativeChatComposerDraft(SCOPE)).toBe(draft)
-      view.unmount()
-    }
-    render(<Probe />)
-    await act(async () => {})
-    expect(read).toHaveBeenCalledTimes(failures + 1)
-    expect(readNativeChatComposerDraft(SCOPE)).toBe(draft)
-    expect(resolveNativeChatPastedText(SCOPE, draft.text, true)).toBe(text)
-    expect(nativeChatPastedTextAdmission(SCOPE)).toBeNull()
-  }
-)
-
-it('keeps proven missing sources unavailable without retry notifications', async () => {
-  const { createMemoryNativeChatComposerDraftStorage, setNativeChatComposerDraftStorageForTests } =
-    await import('./native-chat-composer-draft-storage')
-  const { hydrateNativeChatComposerDrafts } = await import('./native-chat-composer-draft-store')
-  const storage = createMemoryNativeChatComposerDraftStorage()
-  storage.drafts.set(SCOPE, {
-    text: nativeChatPastedTextToken(ID),
-    pastedTextSourceIds: [ID],
-    images: [],
-    savedAt: 1
-  })
-  setNativeChatComposerDraftStorageForTests(storage)
-  await hydrateNativeChatComposerDrafts()
-  const read = vi.spyOn(storage, 'readSource')
-  function Probe() {
-    return <span>{useNativeChatPastedTextAdmission(SCOPE)}</span>
-  }
-  const view = render(<Probe />)
-  await act(async () => {})
-  expect(view.getByText('unsaved')).toBeTruthy()
-  view.unmount()
-  render(<Probe />)
-  await act(async () => {})
-  expect(read).toHaveBeenCalledOnce()
-})

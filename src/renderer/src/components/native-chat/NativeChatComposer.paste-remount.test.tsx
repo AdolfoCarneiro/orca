@@ -184,6 +184,7 @@ beforeEach(() => {
   clearNativeChatAttachmentCacheForTests()
   clearNativeChatDraftCacheForTests()
   mocks.state.fieldProps = null
+  mocks.goal.mockClear()
   mocks.state.owner = {
     kind: 'runtime-session',
     environmentId: 'env-1',
@@ -525,133 +526,162 @@ it.each([false, true])(
   }
 )
 
-it.each(['terminal', 'terminal-unsaved', 'goal'] as const)(
-  'takes an actual clipboard paste in %s mode, preserving copy/history and scoped persistence',
-  async (scenario) => {
-    const mode = scenario === 'goal' ? 'goal' : 'terminal'
+it.each(['terminal', 'structured', 'goal'] as const)(
+  'uses the real clipboard path in %s mode, preserving inline terminal text and structured upload references',
+  async (mode) => {
     const storage = createMemoryNativeChatComposerDraftStorage()
     setNativeChatComposerDraftStorageForTests(storage)
     await hydrateNativeChatComposerDrafts()
-    mocks.state.owner =
-      mode === 'terminal' ? { kind: 'local' } : { kind: 'local', structuredSessionId: 'session-1' }
-    const save = vi.fn(async () => '/p/goal.txt')
+    mocks.state.owner = {
+      kind: 'local',
+      ...(mode === 'terminal' ? {} : { structuredSessionId: 'session-1' })
+    }
+    const pending = Promise.withResolvers<string>()
+    const save = vi.fn(() => pending.promise)
     installPreloadApi({ savePastedTextAsFile: save })
     const view = render(composer(true, undefined, mode))
     const field = () => screen.getByRole('textbox')
-    const editor = () => promptEditor(field())
     if (mode === 'goal') {
       act(() => writeNativeChatDraftCache(PANE, '/goal'))
       act(() => mocks.state.fieldProps?.onSend())
       await waitFor(() => expect(promptValue(field())).toBe(''))
+      save.mockRejectedValueOnce(new Error('disk full'))
+      const failedData = new DataTransfer()
+      failedData.setData('text/plain', 'failed objective source'.repeat(2000))
+      await act(async () =>
+        fireEvent(
+          field(),
+          new ClipboardEvent('paste', { clipboardData: failedData, cancelable: true })
+        )
+      )
+      const failedDraft = promptValue(field())
+      expect(failedDraft).toContain('orca-paste:')
+      expect(mocks.state.fieldProps?.sendButtonDisabled).toBe(false)
+      act(() => mocks.state.fieldProps?.onSend())
+      expect(mocks.goal).not.toHaveBeenCalled()
+      expect(promptValue(field())).toBe(failedDraft)
+      act(() => promptEditor(field()).commands.undo())
+      expect(promptValue(field())).toBe('')
     }
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    storage.refuseWrites = scenario === 'terminal-unsaved'
-    const text = 'a'.repeat(100 * 1024)
+    const text = 'exact clipboard source\r\n'.repeat(2000)
     const data = new DataTransfer()
     data.setData('text/plain', text)
     await act(async () =>
       fireEvent(field(), new ClipboardEvent('paste', { clipboardData: data, cancelable: true }))
     )
     const raw = promptValue(field())
-    expect(raw.length).toBeLessThan(100)
-    expect(resolveNativeChatPastedText(PANE, raw, true)).toBe(
-      mode === 'terminal' ? text : '@/p/goal.txt'
-    )
-    if (mode === 'goal') {
-      expect(save).toHaveBeenCalledWith({ text, forStructuredChat: true })
-      act(() => mocks.state.fieldProps?.onSend())
-      await waitFor(() => expect(mocks.goal).toHaveBeenCalledWith('@/p/goal.txt'))
-    } else {
+    if (mode === 'terminal') {
+      expect(raw).toBe(text)
       expect(save).not.toHaveBeenCalled()
-      expect(await nativeChatComposerDraftWriteSettled(PANE)).toBe(scenario !== 'terminal-unsaved')
-      expect(mocks.state.fieldProps?.sendButtonDisabled).toBe(false)
-      storage.refuseWrites = false
-      writeNativeChatDraftCache(PANE, raw)
-      await nativeChatComposerDraftWriteSettled(PANE)
-      expect([...storage.sources.values()]).toEqual([text])
-      act(() => editor().commands.clearContent())
-      await nativeChatComposerDraftWriteSettled(PANE)
-      expect(storage.sources.size).toBe(0)
-      act(() => editor().commands.undo())
-      expect(resolveNativeChatPastedText(PANE, promptValue(field()), true)).toBe(text)
-      await nativeChatComposerDraftWriteSettled(PANE)
-      expect([...storage.sources.values()]).toEqual([text])
-      view.unmount()
-      clearNativeChatComposerDraftsForTests()
-      setNativeChatComposerDraftStorageForTests(storage)
-      await hydrateNativeChatComposerDrafts()
-      render(composer(true, undefined, mode))
-      await waitFor(() =>
-        expect(resolveNativeChatPastedText(PANE, promptValue(field()), true)).toBe(text)
-      )
+    } else {
+      expect(raw).toMatch(/^\[Pasted text\]\(orca-paste:[0-9a-f-]{36}\)$/)
+      expect(save).toHaveBeenCalledWith({ text })
+      expect(mocks.state.fieldProps?.sendButtonDisabled).toBe(true)
+      act(() => mocks.state.fieldProps?.onSend())
+      expect(mocks.goal).not.toHaveBeenCalled()
+      await act(async () => pending.resolve('/p/structured.txt'))
+      expect(resolveNativeChatPastedText(PANE, raw)).toBe('@/p/structured.txt')
       expect(mocks.state.fieldProps?.sendButtonDisabled).toBe(false)
     }
-    warn.mockRestore()
+    if (mode === 'goal') {
+      mocks.goal.mockResolvedValueOnce(false)
+      act(() => mocks.state.fieldProps?.onSend())
+      await waitFor(() => expect(mocks.goal).toHaveBeenCalledWith('@/p/structured.txt'))
+      expect(promptValue(field())).toBe(raw)
+      act(() => mocks.state.fieldProps?.onSend())
+      await waitFor(() => expect(promptValue(field())).toBe(''))
+      act(() => promptEditor(field()).commands.undo())
+      expect(resolveNativeChatPastedText(PANE, promptValue(field()))).toBe('@/p/structured.txt')
+    }
+    const copied = new DataTransfer()
+    act(() => {
+      promptEditor(field()).commands.selectAll()
+      field().dispatchEvent(
+        new ClipboardEvent('copy', { clipboardData: copied, bubbles: true, cancelable: true })
+      )
+    })
+    expect(copied.getData('text/plain')).toBe(mode === 'terminal' ? raw : '@/p/structured.txt')
+    await nativeChatComposerDraftWriteSettled(PANE)
+    view.unmount()
+    clearNativeChatComposerDraftsForTests()
+    setNativeChatComposerDraftStorageForTests(storage)
+    await hydrateNativeChatComposerDrafts()
+    render(composer(true, undefined, mode))
+    expect(promptValue(field())).toBe(raw)
+    expect(resolveNativeChatPastedText(PANE, raw, true)).toBe(
+      mode === 'terminal' ? raw : '@/p/structured.txt'
+    )
   }
 )
 
+it('preserves goal paste-time size refusal on an upload-incapable owner without changing the draft', async () => {
+  mocks.state.owner = { kind: 'remote' }
+  const save = vi.fn()
+  installPreloadApi({ savePastedTextAsFile: save })
+  render(composer(true, undefined, 'goal'))
+  act(() => writeNativeChatDraftCache(PANE, '/goal'))
+  act(() => mocks.state.fieldProps?.onSend())
+  act(() => writeNativeChatDraftCache(PANE, 'keep this objective'))
+  const data = new DataTransfer()
+  data.setData('text/plain', 'x'.repeat(300 * 1024))
+  await act(async () =>
+    fireEvent(
+      screen.getByRole('textbox'),
+      new ClipboardEvent('paste', { clipboardData: data, cancelable: true })
+    )
+  )
+  expect(promptValue(screen.getByRole('textbox'))).toBe('keep this objective')
+  expect(screen.getByText(/256 KB limit/)).toBeTruthy()
+  expect(save).not.toHaveBeenCalled()
+})
+
 it.each([100 * 1024, 1024 * 1024])(
-  'bounds actual terminal clipboard intake at %i bytes with N/10N actions and unrelated drafts',
+  'bounds real structured goal clipboard intake at %i bytes for N/10 actions',
   async (bytes) => {
     const measurements: unknown[] = []
-    for (const unrelated of [1, 10]) {
-      for (const count of [1, 10]) {
-        clearNativeChatComposerDraftsForTests()
-        const storage = createMemoryNativeChatComposerDraftStorage()
-        for (let i = 0; i < unrelated; i++) {
-          storage.drafts.set(`other-host:${i}`, { text: 'unrelated', images: [], savedAt: 1 })
-        }
-        const readSource = vi.spyOn(storage, 'readSource')
-        const writes = vi.spyOn(storage, 'write')
-        setNativeChatComposerDraftStorageForTests(storage)
-        await hydrateNativeChatComposerDrafts()
-        mocks.state.owner = { kind: 'local' }
-        const hostSave = vi.fn()
-        installPreloadApi({ savePastedTextAsFile: hostSave })
-        const view = render(composer(true, undefined, 'terminal'))
-        const field = screen.getByRole('textbox')
-        const editor = promptEditor(field)
-        const paste = (text: string) => {
-          const data = new DataTransfer()
-          data.setData('text/plain', text)
-          fireEvent(field, new ClipboardEvent('paste', { clipboardData: data, cancelable: true }))
-        }
-        await act(async () => paste('small paste'))
-        expect(promptValue(field)).toBe('small paste')
-        expect(storage.sources.size).toBe(0)
-        act(() => editor.commands.clearContent())
-        await nativeChatComposerDraftWriteSettled(PANE)
-        writes.mockClear()
-        const started = performance.now()
-        let inserted = 0
-        for (let i = 0; i < count; i++) {
-          await act(async () => paste('x'.repeat(bytes)))
-          inserted += promptValue(field).length
-          await nativeChatComposerDraftWriteSettled(PANE)
-          expect([...storage.sources.values()].reduce((sum, value) => sum + value.length, 0)).toBe(
-            bytes
-          )
-          act(() => editor.commands.clearContent())
-          await nativeChatComposerDraftWriteSettled(PANE)
-          expect(storage.sources.size).toBe(0)
-        }
-        measurements.push({
-          bytes,
-          count,
-          unrelated,
-          elapsedMs: performance.now() - started,
-          inserted,
-          writes: writes.mock.calls.length
-        })
-        expect(inserted).toBeLessThan(100 * count)
-        expect(writes).toHaveBeenCalledTimes(count)
-        expect(readSource).not.toHaveBeenCalled()
-        expect(hostSave).not.toHaveBeenCalled()
-        expect(nativeChatPastedTextOperations.size).toBe(0)
-        view.unmount()
+    for (const count of [1, 10]) {
+      clearNativeChatComposerDraftsForTests()
+      const storage = createMemoryNativeChatComposerDraftStorage()
+      setNativeChatComposerDraftStorageForTests(storage)
+      await hydrateNativeChatComposerDrafts()
+      mocks.state.owner = { kind: 'local', structuredSessionId: 'session-1' }
+      const save = vi.fn(async () => '/p/benchmark.txt')
+      installPreloadApi({ savePastedTextAsFile: save })
+      const view = render(composer(true, undefined, 'goal'))
+      const field = screen.getByRole('textbox')
+      act(() => writeNativeChatDraftCache(PANE, '/goal'))
+      act(() => mocks.state.fieldProps?.onSend())
+      const paste = (text: string) => {
+        const data = new DataTransfer()
+        data.setData('text/plain', text)
+        fireEvent(field, new ClipboardEvent('paste', { clipboardData: data, cancelable: true }))
       }
+      await act(async () => paste('small paste'))
+      expect(promptValue(field)).toBe('small paste')
+      expect(save).not.toHaveBeenCalled()
+      act(() => promptEditor(field).commands.clearContent())
+      let inserted = 0
+      const text = 'x'.repeat(bytes)
+      const started = performance.now()
+      for (let index = 0; index < count; index++) {
+        await act(async () => paste(text))
+        inserted += promptValue(field).length
+        expect(resolveNativeChatPastedText(PANE, promptValue(field))).toBe('@/p/benchmark.txt')
+        act(() => promptEditor(field).commands.clearContent())
+      }
+      measurements.push({
+        bytes,
+        count,
+        inserted,
+        uploads: save.mock.calls.length,
+        elapsedMs: performance.now() - started
+      })
+      expect(save).toHaveBeenCalledTimes(count)
+      expect(inserted).toBeLessThan(100 * count)
+      expect(nativeChatPastedTextOperations.size).toBe(0)
+      view.unmount()
     }
-    // Handler/editor/IDB-fixture wall time; happy-dom has no native layout or real disk timing budget.
-    process.stdout.write(`terminal-paste-intake-benchmark ${JSON.stringify(measurements)}\n`)
+    // Happy-dom handler/editor timing with upload I/O injected; no native layout or filesystem claim.
+    process.stdout.write(`structured-goal-paste-intake-benchmark ${JSON.stringify(measurements)}\n`)
   }
 )

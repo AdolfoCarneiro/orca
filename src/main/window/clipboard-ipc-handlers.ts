@@ -1,6 +1,11 @@
-import { registerTerminalTextInputHandlers } from './native-chat-terminal-text-ipc'
-import { app, clipboard, ipcMain, nativeImage } from 'electron'
-import type { IpcMainInvokeEvent, WebContents } from 'electron'
+import {
+  app,
+  clipboard,
+  ipcMain,
+  nativeImage,
+  type IpcMainInvokeEvent,
+  type WebContents
+} from 'electron'
 import { randomUUID } from 'node:crypto'
 import { open, stat } from 'node:fs/promises'
 import { runProcess } from '@orca/process-host'
@@ -118,7 +123,6 @@ export function registerClipboardHandlers(
 
   void cleanupExpiredRemoteClipboardFiles()
   scheduleLegacyRemoteClipboardFileCleanup()
-  registerTerminalTextInputHandlers(assertTrustedClipboardSender)
 
   ipcMain.handle('clipboard:readText', async (event, options?: ReadClipboardTextOptions) => {
     assertTrustedClipboardTextSender(event)

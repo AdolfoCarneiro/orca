@@ -1,8 +1,3 @@
-import {
-  rememberTerminalPasteSource,
-  retainTerminalPasteSources
-} from './native-chat-terminal-paste-sources'
-import { persistNativeChatComposerDraft } from './native-chat-composer-draft-persistence'
 import { createUuidV4 } from '../../../../shared/uuid-v4'
 import {
   nativeChatPastedTextLabel,
@@ -56,16 +51,13 @@ function nativeChatDraftTooLarge(scopeKey: string, text: string): boolean {
 
 export function useNativeChatPastedTextFile(args: {
   scopeKey: string
-  /** The editor while it shows this scope; null without a draft scope. */
+  /** Null: not a structured chat. Else the editor while it shows this scope. */
   scopeEditor: (() => NativeChatComposerInput | null) | null
-  /** One structured message must fit 256 KB; a terminal-backed chat has no such limit. */
-  structured: boolean
   resolveAttachmentOwner: () => NativeChatAttachmentOwner
   insertTypedText: (text: string) => boolean
   setNotice: (notice: string | null, errorText?: string) => void
 }): (text: string) => boolean {
-  const { scopeKey, scopeEditor, structured, resolveAttachmentOwner, insertTypedText, setNotice } =
-    args
+  const { scopeKey, scopeEditor, resolveAttachmentOwner, insertTypedText, setNotice } = args
   return useCallback(
     (text: string): boolean => {
       const input = scopeEditor?.()
@@ -73,12 +65,10 @@ export function useNativeChatPastedTextFile(args: {
         return insertTypedText(text)
       }
       const { value, selectionStart, selectionEnd } = input
-      const tooLarge =
-        structured &&
-        nativeChatDraftTooLarge(
-          scopeKey,
-          `${value.slice(0, selectionStart ?? 0)}${text}${value.slice(selectionEnd ?? 0)}`
-        )
+      const tooLarge = nativeChatDraftTooLarge(
+        scopeKey,
+        `${value.slice(0, selectionStart ?? 0)}${text}${value.slice(selectionEnd ?? 0)}`
+      )
       const long =
         text.length >= NATIVE_CHAT_PASTED_TEXT_FILE_THRESHOLD ||
         measureUtf8ByteLength(text, { stopAfterBytes: NATIVE_CHAT_PASTED_TEXT_FILE_THRESHOLD - 1 })
@@ -96,14 +86,6 @@ export function useNativeChatPastedTextFile(args: {
       }
       input.focus()
       const id = createUuidV4()
-      if (owner.kind === 'local' && !owner.structuredSessionId) {
-        const source = { id, text }
-        rememberTerminalPasteSource(source)
-        input.stagePastedText(nativeChatPastedTextToken(id))
-        retainTerminalPasteSources(scopeKey, input.value)
-        persistNativeChatComposerDraft(scopeKey, 'immediate')
-        return true
-      }
       nativeChatPastedTextOperations.set(id, { scopeKey, text })
       input.stagePastedText(nativeChatPastedTextToken(id))
       const fail = (notice: string) => {
@@ -116,9 +98,6 @@ export function useNativeChatPastedTextFile(args: {
           text,
           ...(target
             ? { runtimeEnvironmentId: target.environmentId, agentSessionAttachment: target }
-            : {}),
-          ...(owner.kind === 'local' && owner.structuredSessionId
-            ? { forStructuredChat: true }
             : {})
         })
         .then(
@@ -139,6 +118,6 @@ export function useNativeChatPastedTextFile(args: {
         )
       return true
     },
-    [insertTypedText, resolveAttachmentOwner, scopeEditor, scopeKey, setNotice, structured]
+    [insertTypedText, resolveAttachmentOwner, scopeEditor, scopeKey, setNotice]
   )
 }

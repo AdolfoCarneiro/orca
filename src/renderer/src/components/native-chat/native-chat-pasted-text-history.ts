@@ -1,15 +1,9 @@
-import {
-  readTerminalPasteSource,
-  rememberTerminalPasteSource,
-  type TerminalPasteSource
-} from './native-chat-terminal-paste-sources'
 import type { Node } from '@tiptap/pm/model'
 import { readNativeChatComposerDraft } from './native-chat-composer-draft-store'
 import { nativeChatPastedTextId } from './native-chat-pasted-text-reference'
 
 /** A grouped Undo can cross a reconstructed atom; its intermediate documents retain the path. */
 export function createNativeChatPastedTextHistory(scope: string) {
-  const sources = new WeakMap<Node['attrs'], TerminalPasteSource>()
   const paths = new WeakMap<Node['attrs'], string>()
   return (doc: Node, before: readonly Node[] = []): Record<string, string> => {
     const saved = readNativeChatComposerDraft(scope).pastedTextFiles
@@ -17,10 +11,6 @@ export function createNativeChatPastedTextHistory(scope: string) {
     for (const previous of before) {
       previous.descendants((node) => {
         const id = nativeChatPastedTextId(String(node.attrs.token ?? ''))
-        const source = sources.get(node.attrs)
-        if (source) {
-          rememberTerminalPasteSource(source)
-        }
         const path = paths.get(node.attrs)
         if (id && path) {
           carried[id] = path
@@ -30,11 +20,6 @@ export function createNativeChatPastedTextHistory(scope: string) {
     const current: Record<string, string> = {}
     doc.descendants((node) => {
       const id = nativeChatPastedTextId(String(node.attrs.token ?? ''))
-      const source = (id ? readTerminalPasteSource(id) : undefined) ?? sources.get(node.attrs)
-      if (source) {
-        sources.set(node.attrs, source)
-        rememberTerminalPasteSource(source)
-      }
       const path = id ? (saved?.[id] ?? paths.get(node.attrs) ?? carried[id]) : undefined
       if (id && path) {
         paths.set(node.attrs, path)

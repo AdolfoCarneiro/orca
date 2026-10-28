@@ -1,23 +1,8 @@
-import { registerNativeChatPtySendPreparation } from './native-chat-pty-send-queue'
-import { sameNativeChatComposerDraftImages } from './native-chat-composer-draft-comparison'
-import { createUuidV4 } from '../../../../shared/uuid-v4'
-import {
-  nativeChatAttachFailedNotice,
-  nativeChatAttachmentOwnerChangedNotice
-} from './native-chat-attachment-upload'
-import { extractIpcErrorMessage } from '@/lib/ipc-error'
-import { readNativeChatComposerDraft } from './native-chat-composer-draft-store'
-import {
-  NATIVE_CHAT_PASTED_TEXT_TOKEN,
-  nativeChatPastedTextId,
-  nativeChatPastedTextLabel
-} from './native-chat-pasted-text-reference'
-import { readTerminalPasteSource } from './native-chat-terminal-paste-sources'
 import {
   admitNativeChatPastedText,
   resolveNativeChatPastedText
 } from './native-chat-composer-pasted-text-references'
-import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, type Dispatch, type SetStateAction } from 'react'
 import type { AgentType } from '../../../../shared/agent-status-types'
 import type { NativeChatLaunchDraft } from '@/lib/native-chat-launch-prompt'
 import { useAppStore } from '../../store'
@@ -68,17 +53,9 @@ export function useNativeChatPtyComposerSend(args: {
   clearImageAttachments: () => void
   setNotice: (notice: string | null) => void
 }): () => void {
-  const preparing = useRef<NativeChatSendHandle | null>(null)
-  const latest = useRef(args)
-  latest.current = args
   return useCallback(() => {
-    const submitted = args.draft
-    const text = submitted
-    const originalDraft = readNativeChatComposerDraft(args.draftScopeKey)
+    let text = args.draft
     const imagePaths = args.imageAttachments.map((attachment) => attachment.path)
-    if (preparing.current) {
-      return
-    }
     if ((text.trim() === '' && imagePaths.length === 0) || args.disabled) {
       return
     }
@@ -97,165 +74,74 @@ export function useNativeChatPtyComposerSend(args: {
     if (!admitNativeChatPastedText(args.draftScopeKey, text, args.setNotice)) {
       return
     }
-    const dispatch = (text: string) => {
-      const { sendOptions: launchSendOptions } = resolveNativeChatLaunchDraftSend({
-        launchDraft: args.launchDraft,
-        launchDraftResolved: args.launchDraftResolved,
-        agent: args.agent,
-        readScreen: () => args.readTerminalScreen?.()
-      })
-      let pendingId: string | undefined
-      const sendOptions =
-        args.agent === 'claude' && classification === 'chat'
-          ? {
-              ...launchSendOptions,
-              onWriteRejected: () => {
-                if (pendingId) {
-                  args.optimisticSendOutcome?.reject(pendingId)
-                }
-              },
-              onWriteUnconfirmed: () => {
-                if (pendingId) {
-                  args.optimisticSendOutcome?.holdUnconfirmed(pendingId)
-                }
+    text = resolveNativeChatPastedText(args.draftScopeKey, text)
+    const { sendOptions: launchSendOptions } = resolveNativeChatLaunchDraftSend({
+      launchDraft: args.launchDraft,
+      launchDraftResolved: args.launchDraftResolved,
+      agent: args.agent,
+      readScreen: () => args.readTerminalScreen?.()
+    })
+    let pendingId: string | undefined
+    const sendOptions =
+      args.agent === 'claude' && classification === 'chat'
+        ? {
+            ...launchSendOptions,
+            onWriteRejected: () => {
+              if (pendingId) {
+                args.optimisticSendOutcome?.reject(pendingId)
+              }
+            },
+            onWriteUnconfirmed: () => {
+              if (pendingId) {
+                args.optimisticSendOutcome?.holdUnconfirmed(pendingId)
               }
             }
-          : launchSendOptions
-      let pendingHandle: NativeChatSendHandle | null = null
-      // Slash-like drafts with images must retain their attachments.
-      if (classification !== 'chat' && imagePaths.length === 0) {
-        pendingHandle =
-          args.agent === 'codex' && isSlashCommandDraft(text)
-            ? sendNativeChatTypedCommand(target.ptyId, text)
-            : sendNativeChatMessage(target.ptyId, text, sendOptions)
-      } else if (imagePaths.length > 0) {
-        pendingHandle = sendNativeChatMessageWithImageAttachments(
-          args.agent,
-          target.ptyId,
-          text,
-          imagePaths,
-          sendOptions
-        )
-      } else if (text.trim().length > 0) {
-        pendingHandle = sendNativeChatMessage(target.ptyId, text, sendOptions)
-      } else {
-        submitNativeChatPrompt(target.ptyId)
-      }
-      if (classification !== 'chat') {
-        if (pendingHandle) {
-          args.trackPendingSend(pendingHandle)
-        }
-        if (classification === 'command') {
-          args.onSlashCommand?.(text.trim())
-          args.sessionOptionsSurface?.recordOutgoingCommand(text.trim())
-        }
-      } else {
-        pendingId = args.onOptimisticSend?.(text, imagePaths)
-        if (pendingHandle) {
-          args.trackPendingSend(pendingHandle, pendingId)
-        }
-      }
-      emitNativeChatMessageSent({
-        agent: args.agent,
-        runtime: nativeChatComposerTargetIsRemote(target.ptyId) ? 'remote' : 'local'
-      })
-      args.onSubmitted?.()
-      if (
-        latest.current.draftScopeKey === args.draftScopeKey &&
-        latest.current.draft === submitted &&
-        readNativeChatComposerDraft(args.draftScopeKey).text === originalDraft.text &&
-        sameNativeChatComposerDraftImages(
-          readNativeChatComposerDraft(args.draftScopeKey).images,
-          originalDraft.images
-        ) &&
-        latest.current.imageAttachments.length === imagePaths.length &&
-        latest.current.imageAttachments.every((image, index) => image.path === imagePaths[index])
-      ) {
-        args.setDraft('')
-        args.setCaret(0)
-        args.clearSkillOrigin()
-        args.clearImageAttachments()
-      }
-      args.setNotice(null)
-      useAppStore.getState().clearNativeChatLaunchDraft(args.terminalTabId)
-    }
-    const capturedInput = resolveNativeChatPastedText(args.draftScopeKey, submitted)
-    const sources = [
-      ...new Set(
-        text
-          .split(NATIVE_CHAT_PASTED_TEXT_TOKEN)
-          .flatMap((token) => nativeChatPastedTextId(token) ?? [])
+          }
+        : launchSendOptions
+    let pendingHandle: NativeChatSendHandle | null = null
+    // Slash-like drafts with images must retain their attachments.
+    if (classification !== 'chat' && imagePaths.length === 0) {
+      pendingHandle =
+        args.agent === 'codex' && isSlashCommandDraft(text)
+          ? sendNativeChatTypedCommand(target.ptyId, text)
+          : sendNativeChatMessage(target.ptyId, text, sendOptions)
+    } else if (imagePaths.length > 0) {
+      pendingHandle = sendNativeChatMessageWithImageAttachments(
+        args.agent,
+        target.ptyId,
+        text,
+        imagePaths,
+        sendOptions
       )
-    ].flatMap((id) => readTerminalPasteSource(id) ?? [])
-    if (sources.length === 0) {
-      dispatch(capturedInput)
-      return
+    } else if (text.trim().length > 0) {
+      pendingHandle = sendNativeChatMessage(target.ptyId, text, sendOptions)
+    } else {
+      submitNativeChatPrompt(target.ptyId)
     }
-    if (nativeChatComposerTargetIsRemote(target.ptyId)) {
-      args.setNotice(nativeChatAttachmentOwnerChangedNotice())
-      return
+    if (classification !== 'chat') {
+      if (pendingHandle) {
+        args.trackPendingSend(pendingHandle)
+      }
+      if (classification === 'command') {
+        args.onSlashCommand?.(text.trim())
+        args.sessionOptionsSurface?.recordOutgoingCommand(text.trim())
+      }
+    } else {
+      pendingId = args.onOptimisticSend?.(text, imagePaths)
+      if (pendingHandle) {
+        args.trackPendingSend(pendingHandle, pendingId)
+      }
     }
-    let cancelled = false
-    const done = Promise.withResolvers<void>()
-    const preparation: NativeChatSendHandle & { settled: Promise<void> } = {
-      cancel: () => {
-        cancelled = true
-        if (preparing.current === preparation) {
-          preparing.current = null
-        }
-        done.resolve()
-      },
-      settleAfterMs: 0,
-      settled: done.promise
-    }
-    preparing.current = preparation
-    registerNativeChatPtySendPreparation(target.ptyId, preparation)
-    args.trackPendingSend(preparation)
-    const request = {
-      requestId: createUuidV4(),
-      scopeKey: args.draftScopeKey,
-      ptyId: target.ptyId,
-      input: capturedInput,
-      sources
-    }
-    void Promise.resolve()
-      .then(() => window.api.ui.materializeTerminalTextInput(request))
-      .then(async (paths) => {
-        if (
-          cancelled ||
-          latest.current.draftScopeKey !== args.draftScopeKey ||
-          latest.current.resolveTarget()?.ptyId !== target.ptyId
-        ) {
-          await window.api.ui.retireTerminalTextInput(request).catch(() => {})
-          return
-        }
-        const resolved = resolveNativeChatPastedText(
-          args.draftScopeKey,
-          capturedInput,
-          false,
-          paths
-        )
-        if (resolved.includes('](orca-paste:')) {
-          throw new Error('Pasted text could not be prepared.')
-        }
-        dispatch(resolved)
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return
-        }
-        args.setNotice(
-          nativeChatAttachFailedNotice(
-            [nativeChatPastedTextLabel()],
-            extractIpcErrorMessage(error, '')
-          )
-        )
-      })
-      .finally(() => {
-        if (preparing.current === preparation) {
-          preparing.current = null
-        }
-        done.resolve()
-      })
+    emitNativeChatMessageSent({
+      agent: args.agent,
+      runtime: nativeChatComposerTargetIsRemote(target.ptyId) ? 'remote' : 'local'
+    })
+    args.onSubmitted?.()
+    args.setDraft('')
+    args.setCaret(0)
+    args.clearSkillOrigin()
+    args.clearImageAttachments()
+    args.setNotice(null)
+    useAppStore.getState().clearNativeChatLaunchDraft(args.terminalTabId)
   }, [args])
 }

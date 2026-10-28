@@ -14,10 +14,7 @@ import {
 
 export function NativeChatFileReferencePill({ node, selected }: NodeViewProps): React.JSX.Element {
   const state = useNativeChatPastedTextState(String(node.attrs.token))
-  const path =
-    state && state !== 'saving' && state !== 'unsaved' && state !== 'staged'
-      ? state
-      : String(node.attrs.path)
+  const path = state && state !== 'saving' && state !== 'unsaved' ? state : String(node.attrs.path)
   const pasteId = nativeChatPastedTextId(String(node.attrs.token))
   // A paste's pill with no saving behind it was lost to a restart: its text was only in memory.
   const unsaved = state === 'unsaved'

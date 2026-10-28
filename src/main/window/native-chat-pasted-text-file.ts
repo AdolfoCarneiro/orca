@@ -1,4 +1,4 @@
-// A structured chat's pasted text uses the execution host's attachment store so sends claim it with the chat.
+// Pasted text uses the execution host's ordinary attachment store so sends claim it with the chat.
 import { randomUUID } from 'node:crypto'
 import { app } from 'electron'
 import {
@@ -14,8 +14,6 @@ export type SavePastedTextAsFileArgs = {
   /** With `agentSessionAttachment`: the paired server whose chat stores the file. */
   runtimeEnvironmentId?: string | null
   agentSessionAttachment?: AgentSessionAttachmentClipboardTarget
-  /** A structured chat on this machine, whose sends claim its pastes from the chat attachment store. */
-  forStructuredChat?: boolean
 }
 
 export async function savePastedTextAsFile(
