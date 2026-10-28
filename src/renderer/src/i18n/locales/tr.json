@@ -2177,8 +2177,6 @@
         "estimateValue": "Tahmin {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Branch'i yeniden kullan",
-        "reuseExistingBranchHint": "Ondan yeni bir tane oluşturmak yerine mevcut branch'i checkout edin.",
         "createMultiple": "Daha fazla oluştur",
         "cbb47ee0dc": "Yalnızca yerel Git projeleri için kullanılabilir.",
         "d861de981b": "Sparse checkout",
