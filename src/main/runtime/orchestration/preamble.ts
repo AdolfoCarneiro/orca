@@ -94,6 +94,7 @@ ${heartbeat}  # Ask the coordinator and wait for its answer. Never use a local q
   # prompt such as AskUserQuestion; the coordinator cannot see or answer it.
   # On a timeout, resume with the returned message ID; do not ask again.
   ${cli} orchestration ask --from ${params.workerHandle} --question "<your question>" --options "<optional,comma,separated>" --timeout-ms 600000
+  ${cli} orchestration ask --from ${params.workerHandle} --resume <message_id> --timeout-ms 600000
 
   # Read coordinator mail. Nothing arrives unless you check: run this at each
   # checkpoint (before a new file, after a test run) and once right before

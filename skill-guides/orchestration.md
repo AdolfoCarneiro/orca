@@ -63,13 +63,16 @@ ORCA orchestration check --run <run_id> --json
 - Answer each `question`:
   `ORCA orchestration reply --id <message_id> --body "<answer>" --json`.
 - A `worker_done` is that worker's result. If a worker stopped without one,
-  Orca tells you and includes its last output; reply to it, retry, or tell the
-  user.
-- Then follow `next`: end your turn while workers still run, or report to the
-  user when all have settled, per Task: outcome, evidence, open blockers.
+  Orca tells you and includes its last output; steer it with `send`, stop and
+  retry it, or tell the user.
+- Repeat `check` until `count` is 0, then follow its `next`: end your turn while
+  workers still run, or report to the user when all have settled, per Task:
+  outcome, evidence, open blockers. With no `next`, follow each row's
+  `nextAction` in `worker-list --run <run_id> --include-remote --json`.
 
-Finished terminal workers close about 2 minutes after reporting; release a chat
-worker yourself with `worker-release --dispatch <dispatch_id>`. To keep one for a
+Finished terminal workers close about 2 minutes after reporting (`autoReleaseAt`
+in `worker-list`). Release a chat worker, or a finished one with no
+`autoReleaseAt`, yourself with `worker-release --dispatch <dispatch_id>`. To keep one for a
 follow-up, run `ORCA orchestration worker-retain --dispatch <dispatch_id> --json`
 first (`references/coordinator-loop.md`).
 
@@ -113,7 +116,7 @@ Your preamble has your IDs and exact commands; copy them, never rebuild them.
 | -------------------------------------------------------------------------- | ----------------------------------------- |
 | Task DAGs, several waves or Runs, reusing a worker, model/effort           | `references/coordinator-loop.md`          |
 | Child or exact workspaces, folder workspaces, SSH, WSL, a connected server | `references/placement-and-remote.md`      |
-| Decision gates, group messages, lost replies, reading old mail             | `references/messaging-and-gates.md`       |
+| Decision gates, group messages, lost replies, old mail, older Orca         | `references/messaging-and-gates.md`       |
 | A failed, stuck, or unknown worker; stop, retry, abandon, release          | `references/recovery-and-cleanup.md`      |
 | A worker question the preamble does not answer                             | `references/worker-contract.md`           |
 | Custom argv or terminal layout                                             | `references/low-level-topology.md`        |

@@ -2,7 +2,7 @@
 
 ## Placement
 
-A new worker is a new agent terminal, not a new worktree. Use the current or an
+A new worker is a new agent, not a new worktree. Use the current or an
 existing workspace unless the user asked for a new one or sharing would
 conflict.
 
@@ -18,7 +18,7 @@ ORCA orchestration worker-start --task <task_id> --worktree new-top-level --repo
 ```
 
 `new-child`, and `new-top-level` without `--repo`, need you inside an Orca
-worktree. New worktrees run setup and follow the repository's startup policy.
+worktree.
 For an existing worktree, pass the full ID Orca returned as
 `id:<repo-id>::<path>`; a repo ID is not a worktree ID.
 
@@ -45,8 +45,8 @@ ORCA orchestration worker-start --task <task_id> --on <environment> --worktree n
 `current` and `new-child` are invalid with `--on`; use an exact remote
 workspace or `new-top-level` with an exact remote repo. After start, do
 everything by Dispatch ID (`send --to dispatch:<id>`, `worker-show`,
-`worker-read`, `worker-stop`); never repeat `--on` or use a remote terminal
-handle. List remote workers with `worker-list --run <run_id> --include-remote`.
+`worker-read`, `worker-stop`) without `--on` or a remote terminal handle. A
+retry states `--on` and placement again. List remote workers with `worker-list --run <run_id> --include-remote`.
 
 The execution host owns process, file, and cleanup facts; lost contact reads
 `unverifiable`, never `exited`. Servers update separately, so optional fields

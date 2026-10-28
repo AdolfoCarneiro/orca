@@ -59,11 +59,11 @@ describe('buildDispatchPreamble', () => {
       .split('\n')
       .filter((line) => line.trimStart().startsWith('orca orchestration'))
 
-    expect(commandLines).toHaveLength(6)
+    expect(commandLines).toHaveLength(7)
     expect(result).not.toContain('\\\n')
     expect(commandLines.filter((line) => line.includes('--type worker_done'))).toHaveLength(1)
     expect(commandLines.filter((line) => line.includes('--type heartbeat'))).toHaveLength(1)
-    expect(commandLines.filter((line) => line.includes('orchestration ask'))).toHaveLength(1)
+    expect(commandLines.filter((line) => line.includes('orchestration ask'))).toHaveLength(2)
     expect(commandLines.filter((line) => line.includes('--type escalation'))).toHaveLength(1)
   })
 

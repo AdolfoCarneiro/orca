@@ -31,6 +31,7 @@ Do only this task, yourself: no subagents or helper workers unless the task asks
   # prompt such as AskUserQuestion; the coordinator cannot see or answer it.
   # On a timeout, resume with the returned message ID; do not ask again.
   orca orchestration ask --from orca_session_id:WORKER --question "<your question>" --options "<optional,comma,separated>" --timeout-ms 600000
+  orca orchestration ask --from orca_session_id:WORKER --resume <message_id> --timeout-ms 600000
 
   # Read coordinator mail. Nothing arrives unless you check: run this at each
   # checkpoint (before a new file, after a test run) and once right before
@@ -98,6 +99,7 @@ Do only this task, yourself: no subagents or helper workers unless the task asks
   # prompt such as AskUserQuestion; the coordinator cannot see or answer it.
   # On a timeout, resume with the returned message ID; do not ask again.
   orca orchestration ask --from term_WORKER --question "<your question>" --options "<optional,comma,separated>" --timeout-ms 600000
+  orca orchestration ask --from term_WORKER --resume <message_id> --timeout-ms 600000
 
   # Read coordinator mail. Nothing arrives unless you check: run this at each
   # checkpoint (before a new file, after a test run) and once right before

@@ -1,7 +1,7 @@
 # Legacy contract migration
 
-Use this only for a legacy label, an adopted Run, a compatibility or recovery
-receipt, or a legacy takeover. New work always uses the current commands.
+Use this only for a legacy label, adopted Run, compatibility receipt, or
+takeover. New work uses current commands.
 
 ## Labels
 

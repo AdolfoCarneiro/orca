@@ -35,8 +35,8 @@ Never guess a session ID, transcript path, or remote terminal handle.
 
 An `escalation` with `stopReason` means Orca saw the worker end its turn, or
 stop at a prompt, without `worker_done`; it carries the last output and the
-Dispatch stays open. Answer with `send --to dispatch:<id>`, retry, or
-`worker-stop`. `exited` liveness is also proof. Silence, an unchanged
+Dispatch stays open. Steer it with `send --to dispatch:<id>`, or `worker-stop`
+it and then retry. `exited` liveness is also proof. Silence, an unchanged
 `worker-read`, and `unverifiable` prove nothing.
 
 ## Was the mutation applied?
@@ -51,18 +51,16 @@ ORCA orchestration request-show --request <request_id> --json
 with `--retry-request <request_id>`. `absent`: unknown; inspect the Task,
 Dispatch, and terminal before retrying.
 
-If a terminal took input but the submit is unconfirmed, use
-`terminal send --wait-submit <seconds>`; it never resends.
-
 ## Refused starts
 
-Read `error.code`; `error.data.nextSteps`, when present, is the exact fix.
+`error.data.nextSteps`, when present, is the exact fix.
 
 | Code                 | Fix                                                                         |
 | -------------------- | --------------------------------------------------------------------------- |
 | `task_not_found`     | Check `task-list --json`; create the Task if missing                        |
 | `task_not_startable` | Wait for dependencies, or fix the failed one; a bad `--retry-of` lands here |
 | `inject_rejected`    | Start a known agent in that terminal, or skip `--inject`                    |
+| Not bound to a Run   | Older Orca: see `references/messaging-and-gates.md`                         |
 | `runtime_error`      | Read the message and inspect; never rerun unchanged                         |
 
 A start that failed before its agent was ready still owns its terminal; release

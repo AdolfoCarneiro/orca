@@ -9,7 +9,9 @@ ORCA terminal wait --terminal <handle> --for tui-idle --timeout-ms 60000 --json
 ORCA orchestration dispatch --task <task_id> --to <handle> --inject --json
 ```
 
-Wait for `tui-idle` only when startup could drop injected input.
+Wait for `tui-idle` only when startup could drop injected input. If a
+`terminal send` submit is unconfirmed, use `--wait-submit <seconds>`; it never
+resends.
 
 `dispatch --inject` records the Task and Dispatch but does not supervise the
 process: worker commands report it `unsupervised`, `worker-stop` and

@@ -1,7 +1,7 @@
 # Worker contract
 
-Your preamble is authoritative. Copy its commands exactly, including the
-executable, your handle, both IDs, and any extra flag it carries.
+Your preamble is authoritative: copy its commands exactly, including any extra
+flag.
 
 ## Ask
 
@@ -28,9 +28,9 @@ ORCA orchestration check --terminal <worker_handle> --json
 Repeat until `count` is 0. For a lost reply or lost context, and for older
 Orca, see `references/messaging-and-gates.md`.
 
-Never use `run-use` for your own Run or a parent Run. If a plain `check` returns
-`consumer_fenced`, another worker now owns your Dispatch: stop, and send no
-`worker_done`. If `send` or `ask` returns it, you ran it from a terminal that is
+Never `run-use` the Run your Dispatch is in, or any parent Run. If a plain
+`check` returns `consumer_fenced`, you no longer own this Dispatch: stop, and
+send no `worker_done`. If `send` or `ask` returns it, you ran it from a terminal that is
 not yours.
 
 ## Helpers

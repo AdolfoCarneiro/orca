@@ -7,6 +7,7 @@ dependencies; prefer parallel waves to long chains. Workers editing the same
 files at once need separate workspaces.
 
 ```text
+ORCA orchestration run-create --objective "<goal>" --json
 ORCA orchestration task-create --spec "<dependent work>" --deps <json_array> --json
 ORCA orchestration task-list --ready --brief --json
 ORCA orchestration worker-start --task <task_id> --worktree current --agent codex --json
@@ -17,9 +18,10 @@ need the full text. Pass `json_array` with the quoting rules of your shell.
 
 ## Several Runs
 
-The first `worker-start` creates your Run. A later `run-create` starts another
-Run and keeps the earlier ones: their mail still wakes you with
-`check --run <id>`, and commands without `--run` use the newest Run.
+`worker-start --spec` creates a Run when you have none. A later `run-create`
+starts another Run and keeps the earlier ones: their mail still wakes you with
+`check --run <id>`, but commands without `--run` use the newest Run, so pass
+`--run <id>` when acting on an earlier one.
 `run-use` keeps only the Run it names.
 
 ## Helpers and nesting
@@ -38,8 +40,8 @@ supports it. Neither works with `--terminal`.
 ORCA orchestration worker-start --task <task_id> --worktree current --agent claude --model opus --effort high --json
 ```
 
-OpenCode takes `--model` only in an existing workspace and no `--effort`.
-Report what the receipt's `launch.effective` says, not what you asked for.
+OpenCode takes `--model` only in an existing workspace, never `--effort`.
+Report the receipt's `launch.effective`, not your request.
 
 ## Reusing a worker
 
@@ -49,7 +51,7 @@ stops the close):
 
 ```text
 ORCA orchestration worker-show --dispatch <dispatch_id> --json
-ORCA orchestration worker-start --task <next_task_id> --terminal <agent_terminal_handle> --json
+ORCA orchestration worker-start --task <next_task_id> --terminal <agent_terminal_handle> --worktree <its_workspace> --json
 ```
 
 Run `worker-retain` only to keep one open with no follow-up yet;
