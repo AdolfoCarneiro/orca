@@ -164,6 +164,10 @@ describe('bringWslMovedProjectBack', () => {
     expect(await refusalShown()).toBe(
       'Could not bring this project back to this computer. Its terminals on the Ubuntu host were put to sleep. Open the project to resume them.'
     )
+    stubApi({ released: false, reason: 'host-still-running', hostTerminalsAsleep: true })
+    expect(await refusalShown()).toBe(
+      "The Ubuntu host's copy of this project is still running terminals, so its agents could run twice. Wait a moment, then try again. Its terminals on the Ubuntu host were put to sleep. Open the project to resume them."
+    )
   })
 
   it('says a host removed here but kept for another Orca needs re-adding', async () => {

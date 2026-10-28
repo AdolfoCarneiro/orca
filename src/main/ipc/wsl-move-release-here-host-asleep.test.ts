@@ -80,6 +80,8 @@ function hostStops(stop: WslMoveHostCopyStop) {
   return { stopHostCopies, ports: () => ({ stopHostCopies }) }
 }
 
+const SLEPT = { outcome: 'stopped', slept: true } as const
+
 beforeEach(() => {
   journal.chain = [move('m1', 'r1'), move('m2', 'r2')]
   journal.released = []
@@ -90,7 +92,7 @@ beforeEach(() => {
 describe("an undo refused after the host's terminals stopped", () => {
   it('says they are asleep when the release then fails', async () => {
     journal.failing.add('m2')
-    const { ports } = hostStops('slept')
+    const { ports } = hostStops(SLEPT)
     expect(await releaseWslMovedProjectHere('/user-data', { repoId: 'r2' }, [], ports)).toEqual({
       released: false,
       reason: 'failed',
@@ -98,6 +100,26 @@ describe("an undo refused after the host's terminals stopped", () => {
       hostTerminalsAsleep: true
     })
     expect(window.reloads).toBe(0)
+  })
+
+  // The sleep reached a running workspace before the host stopped answering or the wait ran out.
+  it.each([
+    ['unreachable', 'host-unreachable'],
+    ['still-running', 'host-still-running']
+  ] as const)('says they are asleep when the stop then ends %s', async (outcome, reason) => {
+    const { ports } = hostStops({ outcome, slept: true })
+    expect(await releaseWslMovedProjectHere('/user-data', { repoId: 'r2' }, [], ports)).toEqual({
+      released: false,
+      reason,
+      hostTerminalsAsleep: true
+    })
+    expect(journal.released).toEqual([])
+  })
+
+  it('says nothing about sleep when the stop ended before any sleep', async () => {
+    const { ports } = hostStops('unreachable')
+    const result = await releaseWslMovedProjectHere('/user-data', { repoId: 'r2' }, [], ports)
+    expect(result).toEqual({ released: false, reason: 'host-unreachable' })
   })
 
   it('says nothing about sleep when the host had nothing to put to sleep', async () => {
@@ -109,7 +131,7 @@ describe("an undo refused after the host's terminals stopped", () => {
   })
 
   it('says nothing about sleep for a refusal before the stop', async () => {
-    const { stopHostCopies, ports } = hostStops('slept')
+    const { stopHostCopies, ports } = hostStops(SLEPT)
     const result = await releaseWslMovedProjectHere('/user-data', { repoId: 'r2' }, [], () => ({
       ...ports(),
       // A newer move lands before the stop, so the late check refuses.
@@ -125,7 +147,7 @@ describe("an undo refused after the host's terminals stopped", () => {
 
   it('flags a Restore whose older move fails after its stop, and still reloads for what came back', async () => {
     journal.failing.add('m1')
-    const { stopHostCopies, ports } = hostStops('slept')
+    const { stopHostCopies, ports } = hostStops(SLEPT)
     expect(await releaseWslMoveChainHere('/user-data', 'Ubuntu', [], ports)).toEqual({
       released: false,
       reason: 'failed',
