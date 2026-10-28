@@ -216,7 +216,7 @@ describe('a structured chat coordinates through the same verbs as a terminal', (
     expect(response).toMatchObject({ ok: false, error: { message: 'placement reached' } })
   })
 
-  it("never lets one chat's run-create unbind another chat's Run", async () => {
+  it("keeps each chat's Runs when another chat or the same chat creates one", async () => {
     const xFirst = await runCreate(SESSION_X, 'x first')
     const yRun = await runCreate(SESSION_Y, 'y')
     const xSecond = await runCreate(SESSION_X, 'x second')
@@ -227,7 +227,7 @@ describe('a structured chat coordinates through the same verbs as a terminal', (
     expect(await as(SESSION_X, 'orchestration.runCurrent', {})).toMatchObject({
       run: { id: xSecond }
     })
-    expect(h.db.getRunRaw(xFirst)?.coordinator_orca_session_id).toBeNull()
+    expect(h.db.getRunRaw(xFirst)?.coordinator_orca_session_id).toBe(SESSION_X)
   })
 
   it('takes over a bound Run like a terminal does, and fences the previous coordinator', async () => {

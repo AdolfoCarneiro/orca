@@ -23,14 +23,14 @@ export function resolveWorkerStartRun(
   }
 ): { run: RunRow; runCreated: boolean; helperCreator?: DispatchContextRow } {
   const db = runtime.getOrchestrationDb()
-  const coordinated = args.coordinator
-    ? db.getCurrentRunForCoordinator(args.coordinator)
-    : undefined
-  if (coordinated) {
-    if (args.runId && args.runId !== coordinated.id) {
+  const coordinator = args.coordinator
+  const coordinated = coordinator ? db.getCurrentRunForCoordinator(coordinator) : undefined
+  if (coordinator && coordinated) {
+    const run = args.runId ? db.getCoordinatedRun(coordinator, args.runId) : coordinated
+    if (!run) {
       throw fenced(`This caller coordinates Run ${coordinated.id}, not ${args.runId}.`)
     }
-    return { run: coordinated, runCreated: false }
+    return { run, runCreated: false }
   }
   // Use the same active delegated Dispatch for authority and creator/reporting identity; remote Dispatches have no local row.
   const dispatchCreator = resolveDispatchCreator(runtime, args.from, args.callerSession)

@@ -56,7 +56,7 @@ describe('orchestration notification mailbox consistency', () => {
     const first = createRuntime(db)
     const runA = createBoundRun(db, 'Run A')
     const staleDirectMessage = insertDirectRunMessage(db, runA.id, 'Run A completion')
-    const runB = createBoundRun(db, 'Run B')
+    const runB = createBoundRun(db, 'Run B', { rebind: true })
 
     await driveToLiveIdle(first.runtime)
     const checked = await checkBoundMailbox(first.runtime)
@@ -113,7 +113,7 @@ describe('orchestration notification mailbox consistency', () => {
     const oldDb = new OrchestrationDb(dbPath)
     const runA = createBoundRun(oldDb, 'Persisted Run A')
     const message = insertDirectRunMessage(oldDb, runA.id, 'Persisted Run A completion')
-    createBoundRun(oldDb, 'Persisted Run B')
+    createBoundRun(oldDb, 'Persisted Run B', { rebind: true })
     sqliteFor(oldDb)
       .prepare('UPDATE messages SET to_handle = ? WHERE id = ?')
       .run(TERMINAL_HANDLE, message.id)
@@ -157,7 +157,7 @@ describe('orchestration notification mailbox consistency', () => {
     const messages = Array.from({ length: 151 }, (_, index) =>
       insertDirectRunMessage(db, runA.id, `Backlog message ${index}`)
     )
-    createBoundRun(db, 'Backlog Run B')
+    createBoundRun(db, 'Backlog Run B', { rebind: true })
     const placeholders = messages.map(() => '?').join(',')
     sqliteFor(db)
       .prepare(`UPDATE messages SET to_handle = ? WHERE id IN (${placeholders})`)
@@ -299,7 +299,7 @@ describe('orchestration notification mailbox consistency', () => {
     await driveToLiveIdle(first.runtime)
     expect(pointerCount(first.write)).toBe(1)
 
-    const runB = createBoundRun(firstDb, 'Run B')
+    const runB = createBoundRun(firstDb, 'Run B', { rebind: true })
     await vi.advanceTimersByTimeAsync(500)
     expect(first.write.mock.calls.filter(([, payload]) => payload === '\r')).toHaveLength(0)
     expect(firstDb.getMessageById(message.id)?.delivered_at).toBeNull()

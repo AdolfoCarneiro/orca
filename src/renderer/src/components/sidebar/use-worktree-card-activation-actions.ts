@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 
 import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 import { recordRendererCrashBreadcrumb } from '@/lib/crash-diagnostics'
@@ -13,6 +13,7 @@ import {
 } from './worktree-card-dom-events'
 import { canActivateWorktreeOnPress } from './worktree-press-activation-eligibility'
 import { isSidebarPointerDragBlocked } from './worktree-sidebar-pointer-drag-dom'
+import { noteWorktreeRowHoverEnd, noteWorktreeRowHoverStart } from './worktree-row-hover-prewarm'
 import type { WorktreeCardProps } from './worktree-card-model'
 import type { useWorktreeCardFoundation } from './use-worktree-card-foundation'
 import type { useWorktreeCardLinkedDetails } from './use-worktree-card-linked-details'
@@ -174,6 +175,23 @@ export function useWorktreeCardActivationActions({
     }
   }, [])
 
+  const handlePointerEnter = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      // Touch and pen have no hover intent; a disconnected SSH host cannot reattach a PTY.
+      if (event.pointerType !== 'mouse' || isActive || isDeleting || isSshDisconnected) {
+        return
+      }
+      noteWorktreeRowHoverStart(worktree.id)
+    },
+    [isActive, isDeleting, isSshDisconnected, worktree.id]
+  )
+
+  const handlePointerLeave = useCallback(() => {
+    noteWorktreeRowHoverEnd(worktree.id)
+  }, [worktree.id])
+  // A row unmounted under the pointer never receives pointerleave.
+  useEffect(() => () => noteWorktreeRowHoverEnd(worktree.id), [worktree.id])
+
   const handleRenameTitle = useCallback(
     // Store logging/refetch reverts failed optimistic renames; inline rename has no separate error surface.
     async (displayName: string): Promise<void> => {
@@ -230,6 +248,8 @@ export function useWorktreeCardActivationActions({
     handleClick,
     handlePointerDown,
     handleMouseDown,
+    handlePointerEnter,
+    handlePointerLeave,
     handleRenameTitle,
     handleDoubleClick,
     handleToggleUnreadQuick

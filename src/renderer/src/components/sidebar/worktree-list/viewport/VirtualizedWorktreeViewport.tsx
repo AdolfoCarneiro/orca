@@ -19,7 +19,7 @@ import { useWorktreeDragRuntime } from '../drag/use-runtime'
 import { useWorktreeDragSession } from '../drag/use-session'
 import { useWorktreeDocumentDrop } from '../drag/use-document-drop'
 import { useWorktreeLineageDropCommit } from '../drag/use-lineage-drop-commit'
-import { useWorktreeListKeyboardNavigation } from '../navigation/use-keyboard'
+import { useWorktreeListKeyboardNavigation, withKeyboardPreview } from '../navigation/use-keyboard'
 import { useWorktreeListVirtualizer } from './use-virtualizer'
 import { useWorktreeNativeDrag } from '../drag/use-native-drag'
 import { useWorktreePointerDrag } from '../drag/use-pointer-drag'
@@ -227,7 +227,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     toggleGroup
   })
 
-  const { handleContainerKeyDown } = useWorktreeListKeyboardNavigation({
+  const { handleContainerKeyDown, keyboardPreview } = useWorktreeListKeyboardNavigation({
     rows,
     renderRows,
     activeWorktreeId,
@@ -337,8 +337,12 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     markScrollMovement()
   }, [markScrollMovement])
 
+  const rowProps = useMemo(
+    () => withKeyboardPreview(props, keyboardPreview),
+    [keyboardPreview, props]
+  )
   const rowContext = buildWorktreeVirtualRowContext({
-    props,
+    props: rowProps,
     renderRows,
     firstHeaderIndex,
     virtualization,
@@ -378,8 +382,8 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
         aria-orientation="vertical"
         aria-multiselectable="true"
         aria-activedescendant={getActiveDescendantOptionId({
-          activeWorktreeId,
-          activeWorkspaceExecutionHostId: props.activeWorkspaceExecutionHostId,
+          activeWorktreeId: rowProps.activeWorktreeId,
+          activeWorkspaceExecutionHostId: rowProps.activeWorkspaceExecutionHostId,
           primaryActiveRowKey: primaryActive.primaryActiveWorktreeRow?.rowKey,
           pinnedDisplayPolicy,
           renderRows,

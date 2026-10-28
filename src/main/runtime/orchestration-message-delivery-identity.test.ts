@@ -363,8 +363,13 @@ describe('STA-4325 message and delivery identity', () => {
     expect(plan.map((row) => row.detail).join(' ')).toMatch(
       /SEARCH messages USING INDEX (idx_messages_delivery_contract|idx_messages_unread_current_inbox)/
     )
-    fixture.db.createRun({
+    const replacement = fixture.db.createRun({
       objective: 'Replacement coordinator',
+      coordinatorHandle: TERMINAL_HANDLE,
+      coordinatorPaneKey: PANE_KEY
+    })
+    fixture.db.bindRun({
+      runId: replacement.id,
       coordinatorHandle: TERMINAL_HANDLE,
       coordinatorPaneKey: PANE_KEY
     })

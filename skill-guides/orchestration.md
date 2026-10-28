@@ -50,7 +50,8 @@ ORCA orchestration worker-start --spec "<task>" --worktree current --agent claud
 - With no Run bound to you, `worker-start` creates one and binds it; its
   receipt's `run` names the Run it created or joined. If that is an earlier
   goal's Run, or the Orca is older and refuses with `run_required`, run
-  `ORCA orchestration run-create --objective "<goal>" --json` first.
+  `ORCA orchestration run-create --objective "<goal>" --json` first. Your
+  earlier Runs stay yours: their mail still wakes you.
 - `--worktree current` runs the worker in your workspace; an exact workspace
   selector runs it in another existing one. Placement goes on `worker-start`;
   `run-create` takes none.

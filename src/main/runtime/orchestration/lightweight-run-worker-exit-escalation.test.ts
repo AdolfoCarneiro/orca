@@ -482,11 +482,12 @@ describe('STA-4604 worker PTY exit escalation reaches the coordinator', () => {
       })
       const task = db.createTask({ spec: 'work outliving its coordinator', runId: run.id })
       createRootDispatch(db, task.id, workerHandle, WORKER_PANE_KEY)
-      db.createRun({
+      const newer = db.createRun({
         objective: 'newer run on the same coordinator pane',
         coordinatorHandle,
         coordinatorPaneKey: COORDINATOR_PANE_KEY
       })
+      db.bindRun({ runId: newer.id, coordinatorHandle, coordinatorPaneKey: COORDINATOR_PANE_KEY })
       expect(db.getRun(run.id)?.coordinator_handle).toBeNull()
       runtime.setOrchestrationDb(db as never)
 

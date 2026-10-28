@@ -211,10 +211,9 @@ export abstract class OrcaRuntimeWithOnPtyExit extends OrcaRuntimeWithOnClientDi
         if (mailboxHandle) {
           this.mailPointerRepointScheduler.schedule(mailboxHandle)
         }
-        const boundRun = this._orchestrationDb?.getCurrentRunForPane?.(
+        for (const boundRun of this._orchestrationDb?.runsBoundToPane?.(
           `${leaf.tabId}:${leaf.leafId}`
-        )
-        if (boundRun) {
+        ) ?? []) {
           this.mailPointerRepointScheduler.schedule(`run:${boundRun.id}`)
         }
       }

@@ -34,19 +34,15 @@ export function createBoundRun(
   from: string,
   objective: string
 ): RunRow {
-  const db = runtime.getOrchestrationDb()
-  const priorRun = db.getCurrentRunForCoordinator(caller)
-  const run = db.createRun({
+  const run = runtime.getOrchestrationDb().createRun({
     objective,
     coordinatorHandle: caller.terminalHandle,
     coordinatorPaneKey: caller.paneKey,
     coordinatorOrcaSessionId: caller.orcaSessionId
   })
+  // The earlier Run keeps this consumer, so only waiters that plain check now redirects end.
   runtime.cancelMessageWaiters(from)
   cancelBoundDispatchWaiters(runtime, caller, run.id)
-  if (priorRun) {
-    runtime.cancelMessageWaiters(`run:${priorRun.id}`)
-  }
   return run
 }
 
@@ -104,7 +100,7 @@ export const ORCHESTRATION_RUN_METHODS = [
         )
       }
       assertCallerHandleMatchesEvidence(runtime, params.from, orchestrationCompatibilityEvidence)
-      const priorRun = db.getCurrentRunForCoordinator(caller)
+      const priorRuns = db.runsBoundToCoordinator(caller)
       const run = db.bindRun({
         runId: params.id,
         coordinatorHandle: caller.terminalHandle,
@@ -121,9 +117,9 @@ export const ORCHESTRATION_RUN_METHODS = [
       }
       runtime.cancelMessageWaiters(params.from)
       cancelBoundDispatchWaiters(runtime, caller, run.id)
-      runtime.cancelMessageWaiters(`run:${params.id}`)
-      if (priorRun && priorRun.id !== params.id) {
-        runtime.cancelMessageWaiters(`run:${priorRun.id}`)
+      // run-use keeps only this Run, so every Run it held before has a new or no consumer.
+      for (const runId of new Set([params.id, ...priorRuns.map((prior) => prior.id)])) {
+        runtime.cancelMessageWaiters(`run:${runId}`)
       }
       return { run: exposeRun(run) }
     }

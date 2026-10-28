@@ -13,7 +13,7 @@ type OrchestrationMailboxDeliveryTargetDependencies = {
 }
 
 export class OrchestrationMailboxDeliveryTarget {
-  private readonly probeDeferredPtyIds = new Set<string>()
+  private readonly probeDeferredMailboxes = new Map<string, Set<string>>()
 
   constructor(private readonly deps: OrchestrationMailboxDeliveryTargetDependencies) {}
 
@@ -68,19 +68,25 @@ export class OrchestrationMailboxDeliveryTarget {
     ) {
       return false
     }
-    if (this.probeDeferredPtyIds.has(ptyId)) {
+    // A coordinator of several Runs can defer one mailbox per Run on the same probe.
+    const deferred = this.probeDeferredMailboxes.get(ptyId)
+    if (deferred) {
+      deferred.add(mailboxHandle)
       return true
     }
-    this.probeDeferredPtyIds.add(ptyId)
+    const mailboxes = new Set([mailboxHandle])
+    this.probeDeferredMailboxes.set(ptyId, mailboxes)
     void this.deps
       .isLeafPtyProvenAbsent(ptyId)
       .then((absent) => {
-        this.probeDeferredPtyIds.delete(ptyId)
+        this.probeDeferredMailboxes.delete(ptyId)
         if (!absent && leaf.ptyId === ptyId) {
-          setTimeout(() => redeliver(leaf, ptyId, mailboxHandle), 0)
+          for (const deferredMailbox of mailboxes) {
+            setTimeout(() => redeliver(leaf, ptyId, deferredMailbox), 0)
+          }
         }
       })
-      .catch(() => this.probeDeferredPtyIds.delete(ptyId))
+      .catch(() => this.probeDeferredMailboxes.delete(ptyId))
     return true
   }
 }

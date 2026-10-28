@@ -695,7 +695,8 @@ describe('a /clear keeps the chat its orchestration address', () => {
       (await call('orchestration.runCreate', { objective: 'second' }, { sessionId: firstClear }))
         .run
     )
-    expect(boundOrcaSessionId(first)).toBeNull()
+    // A later run-create keeps the earlier Run; the run-use below keeps only the one it names.
+    expect(boundOrcaSessionId(first)).toBe(root)
 
     const cleared = await clearChat(firstClear)
     await startClearedContext(cleared)

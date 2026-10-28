@@ -68,7 +68,9 @@ export class OrchestrationMailboxOwner {
       return null
     }
     const paneKey = `${leaf.tabId}:${leaf.leafId}`
-    const run = db.getCurrentRunForPane?.(paneKey)
+    const runs = db.runsBoundToPane?.(paneKey) ?? []
+    // A coordinator of several Runs owns each one's mailbox; unnamed mail goes to its current Run.
+    const run = runs.find((bound) => requestedMailbox === `run:${bound.id}`) ?? runs[0]
     if (run) {
       return this.resolveRunMailbox(db, leaf, terminalHandle, run.id, requestedMailbox, options)
     }
@@ -101,6 +103,16 @@ export class OrchestrationMailboxOwner {
     }
 
     return !requestedMailbox || requestedMailbox === terminalHandle ? terminalHandle : null
+  }
+
+  /** The leaf's mailbox, then every other Run it coordinates, so an idle edge wakes each with mail. */
+  resolveAll(leaf: OrchestrationMailboxLeaf): string[] {
+    const mailboxHandle = this.resolve(leaf)
+    if (!mailboxHandle) {
+      return []
+    }
+    const runs = this.deps.getDb()?.runsBoundToPane?.(`${leaf.tabId}:${leaf.leafId}`) ?? []
+    return [...new Set([mailboxHandle, ...runs.map((run) => `run:${run.id}`)])]
   }
 
   routeForeignDirectMessages(leaf: OrchestrationMailboxLeaf): RoutedOrchestrationMailbox[] {

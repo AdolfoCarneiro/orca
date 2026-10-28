@@ -84,7 +84,7 @@ export function submitOrchestrationMailboxPointer<TWaiter extends OrchestrationM
           : null
       const sameMailbox =
         exactTarget &&
-        deps.mailboxOwner.resolve(exactTarget.leaf, undefined, {
+        deps.mailboxOwner.resolve(exactTarget.leaf, input.mailboxHandle, {
           terminalHandle: exactTarget.terminalHandle
         }) === input.mailboxHandle
       const queueSafe = !!exactTarget && isMailboxLeafTakingInput(exactTarget.leaf)

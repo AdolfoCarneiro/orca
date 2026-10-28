@@ -181,7 +181,7 @@ describe('orchestration mailbox pointer submit', () => {
     await vi.waitFor(() => expect(settle).toHaveBeenCalledOnce())
     expect(writePty).toHaveBeenCalledOnce()
     expect(writePty).toHaveBeenCalledWith(ptyId, '\r')
-    expect(resolveMailbox).toHaveBeenCalledWith(leaf, undefined, {
+    expect(resolveMailbox).toHaveBeenCalledWith(leaf, mailboxHandle, {
       terminalHandle: 'term-parked'
     })
     expect(markMailboxPointerEnterAttempted.mock.invocationCallOrder[0]).toBeLessThan(

@@ -41,12 +41,24 @@ export function sqliteFor(db: OrchestrationDb): Database.Database {
   return (db as unknown as { db: Database.Database }).db
 }
 
-export function createBoundRun(db: OrchestrationDb, objective: string) {
-  return db.createRun({
+/** `rebind` then run-uses it, so the pane keeps only the new Run. */
+export function createBoundRun(
+  db: OrchestrationDb,
+  objective: string,
+  options: { rebind?: boolean } = {}
+) {
+  const run = db.createRun({
     objective,
     coordinatorHandle: TERMINAL_HANDLE,
     coordinatorPaneKey: PANE_KEY
   })
+  return options.rebind
+    ? db.bindRun({
+        runId: run.id,
+        coordinatorHandle: TERMINAL_HANDLE,
+        coordinatorPaneKey: PANE_KEY
+      })!
+    : run
 }
 
 export function insertDirectRunMessage(db: OrchestrationDb, runId: string, subject: string) {

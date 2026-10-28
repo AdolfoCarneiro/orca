@@ -40,8 +40,7 @@ export class OrchestrationMailboxNotificationCoordinator<
 
   deliverForLeaf(leaf: OrchestrationMailboxLeaf): void {
     this.notifyForwarded(this.deps.mailboxOwner.routeForeignDirectMessages(leaf))
-    const mailboxHandle = this.deps.mailboxOwner.resolve(leaf)
-    if (mailboxHandle) {
+    for (const mailboxHandle of this.deps.mailboxOwner.resolveAll(leaf)) {
       this.deps.pointerDelivery.deliver(leaf, { mailboxHandle })
     }
   }

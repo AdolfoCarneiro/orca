@@ -40,7 +40,13 @@ describe('orchestration mailbox routing races', () => {
       const page = route(...args)
       if (page.hasMore && !scheduled) {
         scheduled = true
-        setImmediate(() => createBoundRun(db, 'Replacement Run'))
+        setImmediate(() =>
+          db.bindRun({
+            runId: run.id,
+            coordinatorHandle: 'term_replacement',
+            coordinatorPaneKey: SECOND_PANE_KEY
+          })
+        )
       }
       return page
     })
