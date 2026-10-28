@@ -3,7 +3,11 @@ import { describe, expect, it, vi } from 'vitest'
 // The desktop's server-list feed loads react-native; its timer never runs without a subscriber.
 vi.mock('react-native', () => ({}))
 import type { MobileRelayHost } from '../../../src/shared/mobile-relay-hosts-contract'
-import { applyServerWorkspaces, NO_SERVER_WORKSPACES } from './server-workspaces'
+import {
+  applyServerWorkspaces,
+  NO_SERVER_WORKSPACES,
+  type ServerWorkspaces
+} from './server-workspaces'
 import type { Worktree } from './workspace-list-types'
 
 const host: MobileRelayHost = {
@@ -13,11 +17,11 @@ const host: MobileRelayHost = {
   relay: 'ready'
 }
 
-function row(worktreeId: string): Worktree {
+function row(worktreeId: string, hostId: MobileRelayHost['hostId'] = host.hostId): Worktree {
   return {
     worktreeId,
     repoId: 'repo-1',
-    hostId: host.hostId,
+    hostId,
     repo: 'orca',
     branch: 'main',
     displayName: worktreeId,
@@ -51,5 +55,35 @@ describe('applyServerWorkspaces', () => {
         rows: [[row('a'), row('b')]]
       })
     ).toBe(next)
+  })
+
+  it('keeps cached rows for failed servers with one ownership read per row', () => {
+    const hosts = Array.from({ length: 20 }, (_, index): MobileRelayHost => ({
+      ...host,
+      hostId: `runtime:env-${index}`
+    }))
+    let ownershipReads = 0
+    const previous: ServerWorkspaces = {
+      hosts,
+      worktrees: hosts.flatMap((server) =>
+        ['a', 'b'].map((slot) => ({
+          ...row(`${server.hostId}-${slot}`, server.hostId),
+          get hostId() {
+            ownershipReads += 1
+            return server.hostId
+          }
+        }))
+      )
+    }
+    const recovered = row('recovered', hosts[0]!.hostId)
+    const nextHosts = hosts.slice(0, -1).map((server) => ({ ...server }))
+    const next = applyServerWorkspaces(previous, {
+      hosts: nextHosts,
+      rows: nextHosts.map((_, index) => (index === 0 ? [recovered] : null))
+    })
+    const expected = [recovered, ...previous.worktrees.slice(2, -2)]
+    expect(next.worktrees).toHaveLength(expected.length)
+    expected.forEach((entry, index) => expect(next.worktrees[index]).toBe(entry))
+    expect(ownershipReads).toBeLessThanOrEqual(previous.worktrees.length)
   })
 })
