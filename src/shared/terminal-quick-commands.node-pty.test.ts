@@ -57,7 +57,8 @@ async function exercise(
     name: 'xterm-256color',
     cols: 120,
     rows: 30,
-    env: { ...process.env, PS1: 'QUICK_READY> ', PROMPT: 'QUICK_READY> ' }
+    // Empty HISTFILE keeps bash and zsh from saving test commands to the developer's history on SIGHUP.
+    env: { ...process.env, HISTFILE: '', PS1: 'QUICK_READY> ', PROMPT: 'QUICK_READY> ' }
   })
   let output = ''
   const listener = proc.onData((data) => {

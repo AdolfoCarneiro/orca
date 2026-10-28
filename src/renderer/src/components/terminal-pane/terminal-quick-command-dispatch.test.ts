@@ -29,10 +29,15 @@ function setup({
     writes.push(data)
     return accepted
   })
-  const pasteText = vi.fn(async (text: string) => {
-    writes.push(`paste:${text}`)
-    return pasted
-  })
+  const pasteText = vi.fn(
+    async (text: string, _options: unknown, submitInput: string | undefined) => {
+      writes.push(`paste:${text}`)
+      if (pasted && submitInput) {
+        writes.push(submitInput)
+      }
+      return pasted
+    }
+  )
   const onError = vi.fn()
   const pane = { leafId: 'leaf-1', terminal: { focus: vi.fn(), modes: { bracketedPasteMode } } }
   const send = (command: string, appendEnter: boolean) =>
@@ -71,12 +76,12 @@ describe('sendTerminalQuickCommandToPane', () => {
     expect(mocks.recordTerminalUserInputForLeaf).not.toHaveBeenCalled()
   })
 
-  it('pastes a multiline Run through the pane paste path, then submits it separately', async () => {
+  it('pastes a multiline Run through the pane paste path with Enter as its submit input', async () => {
     const options = { forceBracketedPasteForMultiline: true }
     const { writes, pasteText, pane, send } = setup({ multilinePasteOptions: options })
 
     expect(await send('cd packages\r\nbun run build\rcd ..', true)).toBe(true)
-    expect(pasteText).toHaveBeenCalledWith('cd packages\nbun run build\ncd ..', options)
+    expect(pasteText).toHaveBeenCalledWith('cd packages\nbun run build\ncd ..', options, '\r')
     expect(writes).toEqual(['paste:cd packages\nbun run build\ncd ..', '\r'])
     expect(pane.terminal.focus).toHaveBeenCalledOnce()
   })

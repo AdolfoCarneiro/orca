@@ -23,14 +23,27 @@ type ExecuteTerminalPastePlanArgs = {
   yieldToEventLoop?: () => Promise<void>
   operationTimeoutMs?: number
   now?: () => number
+  /** Written after a successful paste under the same PTY lock, so a queued paste cannot land before it. */
+  submitInput?: string
 }
 
 export async function executeTerminalPastePlan(
   plan: TerminalPastePlan,
   args: ExecuteTerminalPastePlanArgs
 ): Promise<TerminalPasteExecutionResult> {
-  return await runTerminalPtyInputTransaction(plan.target.ptyId, () =>
-    executeTerminalPastePlanNow(plan, args)
+  return await runTerminalPtyInputTransaction(
+    plan.target.ptyId,
+    async (): Promise<TerminalPasteExecutionResult> => {
+      const execution = await executeTerminalPastePlanNow(plan, args)
+      const { submitInput, writePty, canContinue } = args
+      if (execution.status !== 'pasted' || !submitInput) {
+        return execution
+      }
+      if ((canContinue && !canContinue()) || !writePty || !(await writePty(submitInput))) {
+        return { ...execution, status: 'cancelled', reason: 'target-disconnected' }
+      }
+      return execution
+    }
   )
 }
 

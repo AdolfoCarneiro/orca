@@ -43,6 +43,33 @@ describe('terminal paste operation ordering', () => {
     await operation
   })
 
+  it('writes submit input before a paste queued behind it', async () => {
+    const writes: string[] = []
+    let queued: Promise<unknown> | null = null
+    const writePty = async (data: string): Promise<boolean> => {
+      writes.push(data)
+      return true
+    }
+
+    const result = await executeTerminalPastePlan(chunkedWindowsPaste(), {
+      pasteText: () => {},
+      writePty,
+      submitInput: '\r',
+      yieldToEventLoop: async () => {
+        queued ??= executeTerminalPastePlan(chunkedWindowsPaste(), {
+          pasteText: () => {},
+          writePty
+        })
+      }
+    })
+    await queued
+
+    expect(result.status).toBe('pasted')
+    const firstFrameEnd = writes.indexOf(BRACKETED_PASTE_END)
+    expect(writes[firstFrameEnd + 1]).toBe('\r')
+    expect(writes[firstFrameEnd + 2]).toBe(BRACKETED_PASTE_START)
+  })
+
   it('keeps startup context outside an active chunked user paste frame', async () => {
     const writes: string[] = []
     let startupDraft: Promise<boolean> | null = null

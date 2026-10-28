@@ -50,7 +50,8 @@ export const executeTerminalPaneMenuPasteText = async (
   pane: ManagedPane,
   source: TerminalPasteSource,
   text: string,
-  options?: TerminalPasteTextOptions
+  options?: TerminalPasteTextOptions,
+  submitInput?: string
 ): Promise<boolean> => {
   const transport = context.paneTransportsRef.current.get(pane.id)
   const ptyId = transport?.getPtyId() ?? null
@@ -70,7 +71,8 @@ export const executeTerminalPaneMenuPasteText = async (
     inputKind: 'driving',
     isTargetCurrent: isTargetMounted,
     canContinue: isTargetMounted,
-    planOptions: options
+    planOptions: options,
+    submitInput
   })
   if (execution.status !== 'pasted') {
     context.onPasteError(formatTerminalPasteExecutionError(execution.reason))
@@ -117,8 +119,8 @@ export function sendTerminalPaneMenuQuickCommand(
     tabId: context.tabId,
     transport: context.paneTransportsRef.current.get(pane.id),
     multilinePasteOptions: resolveTerminalPaneMenuMultilinePasteOptions(context, pane),
-    pasteText: (text, options) =>
-      executeTerminalPaneMenuPasteText(context, pane, 'programmatic', text, options),
+    pasteText: (text, options, submitInput) =>
+      executeTerminalPaneMenuPasteText(context, pane, 'programmatic', text, options, submitInput),
     onError: context.onPasteError
   })
 }

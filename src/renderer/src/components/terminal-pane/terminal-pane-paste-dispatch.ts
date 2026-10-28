@@ -23,6 +23,7 @@ type PasteTextIntoTerminalPaneArgs = {
     TerminalPasteTextOptions,
     'forceBracketedPaste' | 'forceBracketedPasteForMultiline' | 'windowsInputRecordNewline'
   >
+  submitInput?: string
 }
 
 export async function pasteTextIntoTerminalPane({
@@ -35,7 +36,8 @@ export async function pasteTextIntoTerminalPane({
   inputKind,
   isTargetCurrent,
   canContinue,
-  planOptions
+  planOptions,
+  submitInput
 }: PasteTextIntoTerminalPaneArgs): Promise<TerminalPasteExecutionResult> {
   const plan = await planTerminalPasteWithYield({
     text,
@@ -51,6 +53,7 @@ export async function pasteTextIntoTerminalPane({
       pasteTerminalText(pane.terminal, pasteText, pasteOptions),
     writePty: (data, signal) => writeTerminalPastePtyInput(transport, data, inputKind, signal),
     isTargetCurrent,
-    canContinue
+    canContinue,
+    submitInput
   })
 }

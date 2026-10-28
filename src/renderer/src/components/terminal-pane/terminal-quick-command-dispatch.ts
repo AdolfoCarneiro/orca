@@ -33,8 +33,12 @@ export async function sendTerminalQuickCommandToPane({
   transport: QuickCommandTransport | null | undefined
   /** Same framing as a user paste into this pane: ConPTY can drop DECSET 2004, and input-record agents need modified Enter. */
   multilinePasteOptions: TerminalPasteTextOptions | undefined
-  /** The pane's paste path, which serializes with other pastes and rechecks the target; false means it already reported. */
-  pasteText: (text: string, options: TerminalPasteTextOptions | undefined) => Promise<boolean>
+  /** The pane's paste path: serializes with other pastes, rechecks the target and writes submitInput under the same lock; false means it already reported. */
+  pasteText: (
+    text: string,
+    options: TerminalPasteTextOptions | undefined,
+    submitInput: string | undefined
+  ) => Promise<boolean>
   onError: (message: string) => void
 }): Promise<boolean> {
   if (isTerminalAgentQuickCommand(command)) {
@@ -64,12 +68,8 @@ export async function sendTerminalQuickCommandToPane({
     )
     return false
   }
-  if (
-    !(await pasteText(normalizeTerminalQuickCommandText(command.command), multilinePasteOptions))
-  ) {
-    return false
-  }
-  if (command.appendEnter && !transport.sendInput('\r', 'driving')) {
+  const text = normalizeTerminalQuickCommandText(command.command)
+  if (!(await pasteText(text, multilinePasteOptions, command.appendEnter ? '\r' : undefined))) {
     return false
   }
   pane.terminal.focus()
