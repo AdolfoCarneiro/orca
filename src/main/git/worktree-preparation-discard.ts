@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { waitForPromiseWithSignal } from '../../shared/abort-signal-reason'
 import { resolveWorktreeHostPath } from '../../shared/git-metadata-path'
 import { findLinkedWorktreeGitDirectory } from '../../shared/git-worktree-admin'
+import { getGitCurrentBranchName } from '../../shared/git-current-branch'
 import { windowsLongPathGitArgs } from '../../shared/windows-long-path-git-args'
 import { toHostFilesystemPath } from '../host-tree-removal'
 import { gitExecFileAsync } from './runner'
@@ -127,15 +128,13 @@ export async function removeFailedFinalization(
 ): Promise<void> {
   let branchAttached = false
   if (moved) {
-    try {
-      const { stdout } = await gitExecFileAsync(
-        ['symbolic-ref', '--short', 'HEAD'],
-        gitCleanupOptions(cleanupPath, options)
-      )
-      branchAttached = stdout.trim() === branch
-    } catch {
-      // Detached or no longer readable.
-    }
+    const attachedBranch = await getGitCurrentBranchName((args) =>
+      gitExecFileAsync(args, {
+        ...gitCleanupOptions(cleanupPath, options),
+        captureWslLoginShellOutput: true
+      })
+    )
+    branchAttached = attachedBranch === branch
   }
   const removed = await performDiscardPreparedWorktree(
     repoPath,
