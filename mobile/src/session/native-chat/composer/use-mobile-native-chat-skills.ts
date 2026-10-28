@@ -48,6 +48,8 @@ export function useMobileNativeChatSkills(args: {
     if (!client || !supported || (held && held.status !== 'error')) {
       return
     }
+    // Read at request time: a same-state migration need not re-render before the menu opens.
+    const generation = client.getGeneration?.() ?? 0
     const settle = (next: Scan): void => {
       // A reply from a replaced connection must not wipe the current one's scans.
       if (clientRef.current !== client || (client.getGeneration?.() ?? 0) !== generation) {
@@ -69,7 +71,7 @@ export function useMobileNativeChatSkills(args: {
         settle(accepted.accepted ? { status: 'ready', reply: accepted.value } : { status: 'error' })
       })
       .catch(() => settle({ status: 'error' }))
-  }, [client, generation, supported, worktreeId])
+  }, [client, supported, worktreeId])
 
   const nativeChatSkills = useMemo<NativeChatSkillDiscoverySnapshot>(() => {
     if (!agent || !supported) {

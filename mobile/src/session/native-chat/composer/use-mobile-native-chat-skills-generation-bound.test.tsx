@@ -187,3 +187,33 @@ it('retries a current failure and ignores an old transport reply after recovery'
   })
   expect(reads).toBe(2)
 })
+
+it('keeps a current reply when the menu opens after an unrendered migration', async () => {
+  const client = createStableLogicalRpcClient(
+    stubRpcClient({ sendRequest: async () => reply(1) }),
+    'relay'
+  )
+  cleanups.push(() => client.close())
+  function Probe(): null {
+    hook.current = useMobileNativeChatSkills({
+      client,
+      worktreeId: firstWorkspace,
+      agent: 'codex',
+      supported: true
+    })
+    return null
+  }
+  await act(async () => {
+    renderer = create(createElement(Probe))
+  })
+  await act(async () => {
+    await client.migrateTo(stubRpcClient({ sendRequest: async () => reply(2) }), 'lan')
+  })
+  await act(async () => {
+    hook.current?.loadNativeChatSkills()
+  })
+  expect(hook.current?.nativeChatSkills).toMatchObject({
+    status: 'ready',
+    skills: [{ name: 'skill-2' }]
+  })
+})
