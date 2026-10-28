@@ -44,9 +44,13 @@ async function readPreparationLockPath(
   worktreePath: string,
   options: GitWorktreeExecOptions
 ): Promise<string> {
+  const readOptions = {
+    ...gitExecOptions(worktreePath, options),
+    captureWslLoginShellOutput: true
+  }
   const { stdout } = await gitExecFileAsync(
     ['rev-parse', '--git-path', 'locked', '--git-common-dir'],
-    gitExecOptions(worktreePath, options)
+    readOptions
   )
   options.signal?.throwIfAborted()
   const [lock, common, end, ...extra] = stdout.split('\n')
@@ -59,7 +63,7 @@ async function readPreparationLockPath(
             ['rev-parse', '--git-path', 'locked'],
             ['rev-parse', '--git-common-dir']
           ].map(async (args) => {
-            const result = await gitExecFileAsync(args, gitExecOptions(worktreePath, options))
+            const result = await gitExecFileAsync(args, readOptions)
             return result.stdout
           })
         )

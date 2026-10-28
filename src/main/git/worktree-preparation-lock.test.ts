@@ -54,7 +54,7 @@ describe('targeted preparation lock ownership', () => {
     await lockWorktreePreparation('/prepared', lockReason, options)
     expect(mocks.git).toHaveBeenCalledExactlyOnceWith(
       ['rev-parse', '--git-path', 'locked', '--git-common-dir'],
-      { cwd: '/prepared', ...options }
+      { cwd: '/prepared', ...options, captureWslLoginShellOutput: true }
     )
     expect(mocks.writeFile).toHaveBeenCalledExactlyOnceWith(lockPath, `${lockReason}\n`, {
       flag: 'wx'
@@ -152,9 +152,18 @@ describe('combined preparation lock query', () => {
       toHostFilesystemPath(newlineLock)
     )
     expect(mocks.git.mock.calls).toEqual([
-      [['rev-parse', '--git-path', 'locked', '--git-common-dir'], { cwd: '/prepared', ...options }],
-      [['rev-parse', '--git-path', 'locked'], { cwd: '/prepared', ...options }],
-      [['rev-parse', '--git-common-dir'], { cwd: '/prepared', ...options }]
+      [
+        ['rev-parse', '--git-path', 'locked', '--git-common-dir'],
+        { cwd: '/prepared', ...options, captureWslLoginShellOutput: true }
+      ],
+      [
+        ['rev-parse', '--git-path', 'locked'],
+        { cwd: '/prepared', ...options, captureWslLoginShellOutput: true }
+      ],
+      [
+        ['rev-parse', '--git-common-dir'],
+        { cwd: '/prepared', ...options, captureWslLoginShellOutput: true }
+      ]
     ])
     expect(mocks.writeFile).toHaveBeenCalledExactlyOnceWith(
       toHostFilesystemPath(newlineLock),
@@ -220,9 +229,18 @@ describe('combined preparation lock query', () => {
       cancellation
     )
     expect(mocks.git.mock.calls).toEqual([
-      [['rev-parse', '--git-path', 'locked', '--git-common-dir'], { cwd: '/prepared', ...options }],
-      [['rev-parse', '--git-path', 'locked'], { cwd: '/prepared', ...options }],
-      [['rev-parse', '--git-common-dir'], { cwd: '/prepared', ...options }]
+      [
+        ['rev-parse', '--git-path', 'locked', '--git-common-dir'],
+        { cwd: '/prepared', ...options, captureWslLoginShellOutput: true }
+      ],
+      [
+        ['rev-parse', '--git-path', 'locked'],
+        { cwd: '/prepared', ...options, captureWslLoginShellOutput: true }
+      ],
+      [
+        ['rev-parse', '--git-common-dir'],
+        { cwd: '/prepared', ...options, captureWslLoginShellOutput: true }
+      ]
     ])
     expect(mocks.writeFile).not.toHaveBeenCalled()
   })
