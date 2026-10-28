@@ -127,9 +127,20 @@ export const browserColorProbe: ColorProbe = (value) => {
   if (!probeContext) {
     return null
   }
-  probeContext.clearRect(0, 0, 1, 1)
-  probeContext.fillStyle = value
-  probeContext.fillRect(0, 0, 1, 1)
-  const [r = 0, g = 0, b = 0, a = 0] = probeContext.getImageData(0, 0, 1, 1).data
+  const context = probeContext
+  // Why two seeds: fillStyle silently keeps its old value for values it rejects (e.g. `inherit`).
+  const paint = (seed: string): number[] => {
+    context.clearRect(0, 0, 1, 1)
+    context.fillStyle = seed
+    context.fillStyle = value
+    context.fillRect(0, 0, 1, 1)
+    return [...context.getImageData(0, 0, 1, 1).data]
+  }
+  const first = paint('#000000')
+  const second = paint('#ffffff')
+  if (first.some((channel, index) => channel !== second[index])) {
+    return null
+  }
+  const [r = 0, g = 0, b = 0, a = 0] = first
   return [r, g, b, a / 255]
 }
