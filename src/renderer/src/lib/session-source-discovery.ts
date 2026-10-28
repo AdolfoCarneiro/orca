@@ -47,30 +47,31 @@ function compareRecordSources(
   before: object,
   after: object
 ): { keys: Set<string>; reordered: boolean } {
-  const oldKeys = Object.keys(before),
-    newKeys = Object.keys(after)
+  const newKeys = Object.keys(after)
   // SAFETY: this branch handles own string-keyed Records, after excluding Maps/arrays/Sets.
   const prior = before as Readonly<Record<string, unknown>>
   // SAFETY: the same checked source domain applies to the candidate.
   const candidate = after as Readonly<Record<string, unknown>>
   const keys = new Set<string>()
-  if (oldKeys.length === newKeys.length) {
-    let aligned = true
-    for (let i = 0; i < oldKeys.length; i++) {
-      const key = oldKeys[i]
-      if (key !== newKeys[i]) {
-        aligned = false
-        break
-      }
-      if (prior[key] !== candidate[key]) {
-        keys.add(key)
-      }
+  let aligned = true,
+    position = 0
+  for (const key in prior) {
+    if (!Object.hasOwn(prior, key)) {
+      continue
     }
-    if (aligned) {
-      return { keys, reordered: false }
+    if (key !== newKeys[position++]) {
+      aligned = false
+      break
     }
-    keys.clear()
+    if (prior[key] !== candidate[key]) {
+      keys.add(key)
+    }
   }
+  if (aligned && position === newKeys.length) {
+    return { keys, reordered: false }
+  }
+  keys.clear()
+  const oldKeys = Object.keys(before)
   let oldStrings = 0,
     nextString = 0
   while (oldStrings < oldKeys.length && isIntegerProperty(oldKeys[oldStrings])) {
