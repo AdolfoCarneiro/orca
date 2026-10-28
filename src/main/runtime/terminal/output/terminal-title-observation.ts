@@ -83,16 +83,16 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
       const { programAtRest: _ended, ...status } = pty.lastExplicitAgentStatus
       pty.lastExplicitAgentStatus = status
     }
-    if (entry.lastTitle) {
-      // A stale-spinner clear stands for the title it replaced, so a dead spinner is not revived.
-      const raw = pty?.titleDisplayClear?.title ?? entry.lastTitle.raw
-      const changed = this.applyTrackedPtyTitle(ptyId, raw, entry.lastTitle.normalized, undefined, {
-        statusOnly: true
-      })
-      // The chunk's session-tab fan-out carries the new status to mobile.
-      if (changed && entry.applyingChunk) {
-        entry.chunkTouchedSessionTabs = true
-      }
+    // A stale-spinner clear stands for the title it replaced, so a dead spinner is not revived.
+    // Programs that never set a title still report their status here.
+    const title = entry.lastTitle ?? { raw: '', normalized: '' }
+    const raw = pty?.titleDisplayClear?.title ?? title.raw
+    const changed = this.applyTrackedPtyTitle(ptyId, raw, title.normalized, undefined, {
+      statusOnly: true
+    })
+    // The chunk's session-tab fan-out carries the new status to mobile.
+    if (changed && entry.applyingChunk) {
+      entry.chunkTouchedSessionTabs = true
     }
   }
 

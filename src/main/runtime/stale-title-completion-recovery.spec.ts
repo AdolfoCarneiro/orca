@@ -57,4 +57,22 @@ describe('stale-working title clear and completion recovery', () => {
     ])
     db.close()
   })
+
+  it('delivers mail to a program that reports its status but never sets a title', async () => {
+    vi.useFakeTimers()
+    const db = createDatabase('orca-titleless-program-status-')
+    const { runtime, write } = createRuntime(db, { launchAgent: 'antigravity' })
+    const run = createBoundRun(db, 'Titleless Run')
+    await runtime.listTerminals()
+    runtime.onPtyData(PTY_ID, '\x1b]7501;state=working:app=antigravity\x07', 1)
+    runtime.onPtyData(PTY_ID, '\x1b]7501;state=done:app=antigravity\x07> ', 2)
+    insertDirectRunMessage(db, run.id, 'Worker done')
+    runtime.notifyMessageArrived(`run:${run.id}`, 'worker_done')
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(write.mock.calls.map(([, data]) => data)).toEqual([
+      expect.stringContaining('You have 1 orchestration message'),
+      '\r'
+    ])
+    db.close()
+  })
 })
