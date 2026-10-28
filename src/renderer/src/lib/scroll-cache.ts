@@ -27,6 +27,8 @@ export const scrollTopCache = new Map<string, number>()
 // Keep cursor/selection changes outside Zustand for the same no-rerender reason.
 export const editorSelectionCache = new Map<string, readonly ISelection[]>()
 
+export const editorViewStateCache = new Map<string, editor.ICodeEditorViewState>()
+
 // Store pdf.js user-space locations; pixel offsets drift when pane width/zoom rebuilds page layout.
 export type PdfViewPosition = { pageNumber: number; top: number; left: number }
 export const pdfViewPositionCache = new Map<string, PdfViewPosition>()
