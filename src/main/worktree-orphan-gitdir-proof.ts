@@ -1,6 +1,7 @@
 import type { posix } from 'node:path'
 import { isDefinitiveAbsence } from '../shared/definitive-filesystem-absence'
 import { resolveGitCommonDirectory } from '../shared/git-common-directory'
+import { parseGitdirMarkerPayload } from '../shared/gitdir-marker-payload'
 import {
   areResolvedPathsEqual,
   canonicalOwnerPathsEqual,
@@ -122,7 +123,7 @@ async function readProvenRepoWorktreesPath(
       join: pathOps.join,
       resolvePath: (base, pointer) => resolveGitdirPath(pointer, base, pathOps),
       parseMarker: (contents) => {
-        const marker = parseGitdirPath(contents)
+        const marker = parseGitdirMarkerPayload(contents)
         owningGitDir = marker ? resolveGitdirPath(marker, repoPath, pathOps) : null
         return marker
       },
@@ -152,7 +153,7 @@ async function repoGitdirIsLinkedWorktreeAdminEntry(
   const adminGitdirPath = pathOps.join(resolvedRepoGitdirPath, 'gitdir')
   try {
     const adminGitdirContents = readFileResultToText(await access.readPath(adminGitdirPath))
-    const repoGitPath = adminGitdirContents ? parseFirstLinePath(adminGitdirContents) : null
+    const repoGitPath = adminGitdirContents ? parseWorktreeAdminBacklink(adminGitdirContents) : null
     if (!repoGitPath) {
       return false
     }
@@ -180,7 +181,7 @@ async function gitFilePointsAtRepoWorktree(
   pathOps: PathOps,
   access: WorktreeProofAccess
 ): Promise<boolean> {
-  const gitdirPath = parseGitdirPath(contents)
+  const gitdirPath = parseGitdirMarkerPayload(contents)
   if (!gitdirPath) {
     return false
   }
@@ -211,7 +212,9 @@ async function adminGitdirPointsAtCandidate(
   const adminGitdirPath = pathOps.join(resolvedGitdirPath, 'gitdir')
   try {
     const adminGitdirContents = readFileResultToText(await readPath(adminGitdirPath))
-    const candidateGitPath = adminGitdirContents ? parseFirstLinePath(adminGitdirContents) : null
+    const candidateGitPath = adminGitdirContents
+      ? parseWorktreeAdminBacklink(adminGitdirContents)
+      : null
     if (!candidateGitPath) {
       return false
     }
@@ -236,17 +239,7 @@ async function adminGitdirPointsAtCandidate(
   }
 }
 
-function parseGitdirPath(contents: string): string | null {
-  const firstLine = contents.split(/\r?\n/, 1)[0]?.trim()
-  if (!firstLine) {
-    return null
-  }
-  const match = /^gitdir:\s*(.+)$/i.exec(firstLine)
-  const gitdirPath = match?.[1]?.trim()
-  return gitdirPath || null
-}
-
-function parseFirstLinePath(contents: string): string | null {
-  const firstLine = contents.split(/\r?\n/, 1)[0]?.trim()
-  return firstLine || null
+function parseWorktreeAdminBacklink(contents: string): string | null {
+  // Git's strbuf_rtrim preserves other ASCII controls and Unicode whitespace.
+  return contents.replace(/[ \t\n\r]+$/, '') || null
 }

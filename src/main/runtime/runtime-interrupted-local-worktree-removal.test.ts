@@ -300,7 +300,7 @@ async function orphanAdmin(): Promise<void> {
   const admin = (await readFile(join(worktreePath, '.git'), 'utf8')).trim().replace(/^gitdir: /, '')
   await removeTree(admin)
   await unlink(join(worktreePath, '.git'))
-  await writeFile(join(worktreePath, '.git'), `  gitdir: ${admin}\nignored second line\n`)
+  await writeFile(join(worktreePath, '.git'), `gitdir: ${admin}\n`)
 }
 
 async function recordFailedRemoval(force: boolean): Promise<void> {

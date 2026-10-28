@@ -311,7 +311,7 @@ describe('canSafelyRemoveOrphanedWorktreeDirectory', () => {
       readPath: makeReadPath([
         [
           `${candidate}/.git`,
-          { content: `  gitdir: ${physical}/worktrees/orphan\nignored`, isBinary: false }
+          { content: `gitdir: ${physical}/worktrees/orphan\n`, isBinary: false }
         ]
       ])
     }
