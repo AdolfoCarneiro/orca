@@ -234,6 +234,9 @@ export default function IpynbViewer({
                 </div>
                 <div className="min-w-0 flex-1">
                   <IpynbCellSource
+                    modelKey={
+                      cell.id === null ? null : JSON.stringify([fileId, scrollCacheKey, cell.id])
+                    }
                     cell={cell}
                     source={source}
                     active={editingCellKey === cellKey}
