@@ -85,6 +85,8 @@ export function MobileTerminalInputActions({
                 }
               : keepHeldPressThroughLongPress
           }
+          accessibilityRole="button"
+          aria-busy={dictation.isStarting || dictation.isProcessing}
           accessibilityLabel={
             dictation.isRecording
               ? 'Stop voice dictation'
