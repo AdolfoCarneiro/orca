@@ -28,6 +28,7 @@ type Props = {
   structuredComposer?: MobileNativeChatStructuredComposer | null
   onMicPress: (() => void) | undefined
   micActive: boolean
+  micProcessing: boolean
   dictationMode: string | undefined
   onMicPressIn: () => void
   onMicPressOut: () => void
@@ -52,6 +53,7 @@ export function MobileNativeChatOverlay({
   structuredComposer = null,
   onMicPress,
   micActive,
+  micProcessing,
   dictationMode,
   onMicPressIn,
   onMicPressOut,
@@ -133,6 +135,7 @@ export function MobileNativeChatOverlay({
       onError: (message: string) => controller.reportQueuedEditError?.(message),
       onMicPress,
       micActive,
+      micProcessing,
       dictationMode,
       onMicPressIn,
       onMicPressOut
@@ -147,6 +150,7 @@ export function MobileNativeChatOverlay({
       controller.reportQueuedEditError,
       onMicPress,
       micActive,
+      micProcessing,
       dictationMode,
       onMicPressIn,
       onMicPressOut
@@ -236,6 +240,7 @@ export function MobileNativeChatOverlay({
                     isAttaching={images.isAttaching}
                     onMicPress={onMicPress}
                     micActive={micActive}
+                    micProcessing={micProcessing}
                     dictationMode={dictationMode}
                     onMicPressIn={onMicPressIn}
                     onMicPressOut={onMicPressOut}

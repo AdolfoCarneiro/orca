@@ -96,6 +96,7 @@ describe('phone inline editor presentation', () => {
             onError: error,
             onMicPress: undefined,
             micActive: false,
+            micProcessing: false,
             dictationMode: undefined,
             onMicPressIn: () => {},
             onMicPressOut: () => {}

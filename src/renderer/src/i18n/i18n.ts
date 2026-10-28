@@ -105,6 +105,7 @@ void i18n
 // Plugin packs can replace translations without changing the active language.
 i18n.store.on('added', advanceTranslationResourceVersion)
 i18n.store.on('removed', advanceTranslationResourceVersion)
+i18n.on('languageChanged', advanceTranslationResourceVersion)
 
 // Synthetic plugin<hex> tags would get English plurals; plugin-pack-plurals.test.ts guards i18next upgrades.
 const pluralLocaleByResourceLanguage = new Map<string, string>()

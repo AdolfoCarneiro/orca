@@ -189,6 +189,15 @@
       "empty": "Aucune extension n'est activée pour ce profil",
       "visitWebStore": "Visiter le Chrome Web Store",
       "manage": "Gérer les extensions"
+    },
+    "viewport": {
+      "mobile-s": "Mobile S — 320 × 568",
+      "mobile-m": "Mobile M — 375 × 667",
+      "mobile-l": "Mobile L — 425 × 812",
+      "tablet": "Tablette — 768 × 1024",
+      "laptop": "Ordinateur portable — 1024 × 768",
+      "laptop-l": "Grand ordinateur portable — 1440 × 900",
+      "desktop": "Ordinateur de bureau — 1920 × 1080"
     }
   },
   "githubChecks": {
@@ -523,7 +532,8 @@
       "permissionOverrideMore": "et {{count}} de plus",
       "permissionOverrideMore_one": "et {{count}} de plus",
       "permissionOverrideMore_other": "et {{count}} de plus",
-      "permissionOverridesUse": "Utiliser {{mode}}"
+      "permissionOverridesUse": "Utiliser {{mode}}",
+      "approveForMe": "approuver pour moi"
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "lien symbolique",
@@ -554,6 +564,34 @@
       "actionPermissions": {
         "sameAsAgent": "Comme {{agent}}"
       }
+    },
+    "ssh": {
+      "status": {
+        "disconnected": "Déconnecté",
+        "connecting": "Connexion…",
+        "auth-failed": "Échec de l'authentification",
+        "connected": "Connecté",
+        "reconnection-failed": "Échec de la reconnexion",
+        "deploying-relay": "Déploiement du relais…",
+        "reconnecting": "Reconnexion…"
+      }
+    },
+    "mcp": {
+      "workspace": "Espace de travail",
+      "inspectFailed": "Impossible d’inspecter {{directory}}.",
+      "unreadable": "Illisible",
+      "notFound": "Introuvable",
+      "invalidJson": "JSON invalide",
+      "noServers": "Aucun serveur",
+      "httpServer": "Serveur HTTP",
+      "stdioServer": "Serveur stdio",
+      "invalidServer": "Serveur invalide",
+      "serverCount_one": "{{count}} serveur",
+      "serverCount_other": "{{count}} serveurs",
+      "claudeWorkspace": "Espace de travail Claude"
+    },
+    "shortcuts": {
+      "parseFailed": "Impossible d’analyser le raccourci."
     }
   },
   "menu": {
@@ -1975,7 +2013,6 @@
       "LinearIssueTextEditor": {
         "947ba2d6f4": "pour enregistrer",
         "04d73b72dc": "Titre du ticket",
-        "e8ff595db3": "Échec de la mise à jour de {{value0}}",
         "1e08a1ec80": "Le titre est obligatoire"
       },
       "LinearIssueWorkspace": {
@@ -2368,9 +2405,6 @@
         "7f3f7b4c18": "Description (facultatif, markdown)",
         "9f2b4c03a6": "Création dans",
         "d3d0998b7d": "Nouveau ticket GitHub",
-        "d1e243795c": "tickets",
-        "be8cf68d9f": "voir les tickets",
-        "67662ade50": "tickets du projet",
         "6244a02f46": "Ouvrir dans Linear",
         "606a85c774": "Ouvert",
         "5e8061b088": "Démarrer un espace de travail depuis {{value0}} {{value1}}",
@@ -2390,11 +2424,9 @@
         "af377b13b1": "Vue {{value0}}",
         "d47248df4d": "Mode d'affichage Linear",
         "f397d513e3": "Retour",
-        "b39fe6511d": "projets",
         "8675cd6188": "Linear",
         "733b8f2421": "Linear / Vues",
         "bc06ed0fb0": "Retour aux vues",
-        "3cb855080f": "vues",
         "b4e10f096e": "Propriétaire",
         "a04fe7ba73": "Visibilité",
         "0aa8525950": "Modèle",
@@ -3065,8 +3097,6 @@
               "7616c986c6": "Ouvrir {{value0}} issues",
               "openInLinear": "Ouvrir {{value0}} dans Linear",
               "93e1f6bfca": "Chargement",
-              "98730088a6": ". Recherchez ou ouvrez Linear pour voir l'ensemble complet.",
-              "06b887d622": "Affichage des premières",
               "linearLoginUnreadable": "Impossible de lire la connexion Linear enregistrée. Reconnectez-la dans les réglages.",
               "f2cc1e0ff6": "Linear / Projets",
               "906b5e4cb8": "Linear / Projets / {{value0}}",
@@ -5518,7 +5548,9 @@
         },
         "sidebarHostOptions": {
           "3e102f111c": "Tous les hôtes",
-          "visibleHostsCount": "{{value0}} hôtes"
+          "hosts": "Hôtes",
+          "visibleHosts_one": "{{count}} hôte",
+          "visibleHosts_other": "{{count}} hôtes"
         },
         "SidebarWorkspaceOptionsMenu": {
           "hosts": "Hôtes",
@@ -6372,7 +6404,7 @@
           "running": "En cours",
           "stopped": "Arrêtée",
           "title": "Ajouter une distro WSL",
-          "description": "Orca exécute son serveur dans la distro, de sorte que git, les fichiers et les terminaux s'exécutent nativement sous Linux. Les projets que vous avez ouverts via \\\\wsl.localhost continuent de fonctionner tels quels jusqu'à ce que vous les déplaciez vers cet hôte.",
+          "description": "Orca exécute son serveur dans la distro, de sorte que git, les fichiers et les terminaux s'exécutent nativement sous Linux. Les projets de cette distro que vous avez ouverts via \\\\wsl.localhost sont déplacés automatiquement vers cet hôte dès que leurs terminaux sont inactifs ; les projets situés sur un lecteur Windows (/mnt/…) restent sur cet ordinateur. Vous pouvez ramener un projet déplacé depuis la barre latérale.",
           "distro": "Distro",
           "loading": "Recherche des distros WSL…",
           "placeholder": "Choisissez une distro",
@@ -11112,7 +11144,7 @@
           "mixedTitle": "Examiner l'accès et le contenu",
           "instructionalTitle": "Examiner le contenu du plugin",
           "subtitle": "{{value0}} v{{value1}} · {{value2}}",
-          "reconsent": "Les autorisations, le niveau de confiance du worker ou le contenu instructif ont changé depuis votre dernière revue de ce plugin. Revoyez-le avant qu'il puisse s'exécuter.",
+          "reconsent": "Ce plugin a changé depuis votre approbation. Vérifiez-le pour le relancer.",
           "capabilities": "Ce plugin peut",
           "warning": "Ces autorisations limitent la façon dont le plugin utilise l'API d'Orca. Son worker s'exécute néanmoins comme un processus normal sur votre ordinateur, avec un accès complet à vos fichiers, votre réseau et vos autres processus.",
           "instructionalWarning": "Ce plugin n'a pas de processus worker. Son contenu instructif peut malgré tout déclencher des actions quand vous ou un agent l'utilisez. Examinez les instructions et commandes ci-dessous avant de l'activer.",
@@ -13153,10 +13185,10 @@
                 "dialog": {
                   "3bc61dc989": "Annuler",
                   "15efa778e3": "Abandonner",
-                  "42f89dd030": "fichiers",
-                  "e7611dca35": "fichier",
                   "0d2d88cba5": "Cette action est irréversible.",
-                  "1551c14668": "Abandonner les modifications ?"
+                  "1551c14668": "Abandonner les modifications ?",
+                  "fileCount_one": "{{count}} fichier",
+                  "fileCount_other": "{{count}} fichiers"
                 }
               },
               "dropdown": {
@@ -13383,16 +13415,21 @@
             "unresolved": "Impossible de déterminer quel hôte possède cet espace de travail. Vérifiez la connexion et réessayez."
           },
           "useFileDeletion": {
-            "72691dfebc": "Échec : {{value0}} « {{value1}} ».",
             "d979a4fbb5": "Supprimer définitivement « {{value0}} » ?",
             "92276aceb7": "Supprimer",
             "7fb9435c86": "Cette action supprime définitivement le répertoire et son contenu sur l'hôte distant. Elle est irréversible.",
             "23e98f192f": "Cette action supprime définitivement le fichier sur l'hôte distant. Elle est irréversible.",
             "8b8ee9d22f": "Impossible de déterminer quel hôte possède ce fichier. Vérifiez la connexion de l'espace de travail et réessayez.",
-            "af1270b90d": "Supprimer définitivement {{count}} éléments ?",
             "dd029aa5cd": "Cette action supprime définitivement les éléments sélectionnés ainsi que le contenu des répertoires sur l'hôte distant. Elle est irréversible.",
-            "77fdc36183": "Supprimer {{count}} éléments ?",
-            "fca915a67a": "Les éléments distants sont définitivement supprimés, sans retour arrière. Les éléments locaux sont déplacés dans {{value0}}."
+            "deleteFailed": "Impossible de supprimer « {{name}} ».",
+            "deleteItems_one": "Supprimer {{count}} élément ?",
+            "deleteItems_other": "Supprimer {{count}} éléments ?",
+            "mixedRecycleBin": "Les éléments distants sont supprimés définitivement. Cette action est irréversible. Les éléments locaux sont déplacés vers la Corbeille.",
+            "mixedTrash": "Les éléments distants sont supprimés définitivement. Cette action est irréversible. Les éléments locaux sont déplacés vers la Corbeille.",
+            "permanentlyDeleteItems_one": "Supprimer définitivement {{count}} élément ?",
+            "permanentlyDeleteItems_other": "Supprimer définitivement {{count}} éléments ?",
+            "recycleBinFailed": "Impossible de déplacer « {{name}} » vers la Corbeille.",
+            "trashFailed": "Impossible de déplacer « {{name}} » vers la Corbeille."
           },
           "useFileExplorerHandlers": {
             "32cd9fd991": "Impossible d'ouvrir la cible du symlink",
@@ -14350,13 +14387,13 @@
             "9ee54037a4": "Commande personnalisée",
             "4b2fc4b80c": "Effort de réflexion",
             "be8917699e": "Modèle",
-            "4d9b6d84df": "non pris en charge. Choisissez Claude, Codex ou Personnalisé.",
             "560d4feb00": "Personnalisé",
             "29d119fe95": "Agent",
             "f9382b48a1": "Activer l'auteur IA",
             "1c0cb4fabb": "Auteur IA",
             "bd14e9c42a": "Non configuré",
-            "1f9468c5c9": "{{value0}} non pris en charge"
+            "1f9468c5c9": "{{value0}} non pris en charge",
+            "unsupportedAgent": "{{agent}} n'est pas pris en charge. Choisissez Claude, Codex ou Personnalisé."
           },
           "BrowserAnimatedVisual": {
             "46df009982": "Démarrer l'essai gratuit",
@@ -17198,12 +17235,10 @@
         "untitled": "Discussion sans titre",
         "listLabel": "Des discussions qui reprendraient",
         "dontAskAgain": "Ne plus demander (reprendre automatiquement)",
-        "dontAskAgainHint": "Vous pouvez désactiver cette option dans Paramètres → Expérimental → Chat UI.",
+        "dontAskAgainHint": "Vous pouvez désactiver cette option dans Paramètres → Chat → Comportement.",
         "continuedOne": "1 chat a été repris",
         "continuedMany": "{{value0}} chats ont été repris",
         "selectAgent": "Reprendre le chat {{value0}} \"{{value1}}\" dans {{value2}}",
-        "resumeSelected": "Reprendre les discussions {{value0}}",
-        "resumeSelectedOne": "Reprendre 1 discussion",
         "dismissAll": "Tout rejeter",
         "notContinuedOne": "1 chat n'a pas pu reprendre",
         "notContinuedMany": "{{value0}} chats n'ont pas pu reprendre",
@@ -17238,7 +17273,9 @@
         "serverDismiss": "Ignorer",
         "serverResumeAll": "Reprendre les {{count}} sur {{machine}}",
         "serverResumeHereOne": "Reprendre 1 chat démarré ici",
-        "serverResumeHere": "Reprendre {{count}} chats démarrés ici"
+        "serverResumeHere": "Reprendre {{count}} chats démarrés ici",
+        "resumeChats_one": "Reprendre {{count}} discussion",
+        "resumeChats_other": "Reprendre {{count}} discussions"
       },
       "linear-issue-attribute-filter-coverage-notice": {
         "statusPartialTeamCoverage": "Filtrage des statuts des équipes {{value0}} sur {{value1}} : les problèmes des équipes restantes ne sont pas inclus.",
@@ -17750,7 +17787,8 @@
         "compactAfterRetry": "Réessayez votre message précédent, puis lancez /compact.",
         "clearAfterSending": "Votre message précédent est encore en cours d'envoi. Lancez /clear une fois qu'il est parti.",
         "compactAfterSending": "Votre message précédent est encore en cours d'envoi. Lancez /compact une fois qu'il est parti.",
-        "pendingWork": "Attendez la fin du travail et des messages en attente avant d'utiliser cette commande."
+        "pendingWork": "Attendez la fin du travail et des messages en attente avant d'utiliser cette commande.",
+        "notDoneGoalChangeIncomplete": "Impossible de terminer la modification de l’objectif. Consultez le chat."
       },
       "composer": {
         "imageUnavailable": "Aperçu indisponible",
@@ -18419,6 +18457,15 @@
         "settings": "Ouvrir les paramètres dans le terminal",
         "extensions": "Ouvrir le tableau de bord des extensions dans le terminal",
         "hotkeys": "Afficher les raccourcis clavier dans le terminal"
+      },
+      "modelDescriptions": {
+        "grok_4_7": "Le dernier modèle de pointe de xAI",
+        "grok_4_6": "Le précédent modèle de pointe de xAI",
+        "grok_4_5": "Un ancien modèle de pointe de xAI",
+        "fable": "Le plus performant pour les tâches les plus difficiles et longues",
+        "opus": "Idéal pour les tâches complexes du quotidien",
+        "sonnet": "Efficace pour les tâches courantes",
+        "haiku": "Le plus rapide pour des réponses immédiates"
       }
     },
     "tab": {
@@ -19228,11 +19275,20 @@
     },
     "discard": {
       "deleteUntrackedFileDescription": "Cela supprimera définitivement ce fichier non suivi. Cette action est irréversible.",
-      "deleteUntrackedFilesDescription": "Cela supprimera définitivement ces {{count}} fichiers non suivis. Cette action est irréversible.",
+      "deleteUntrackedFilesDescription_other": "Cela supprimera définitivement ces {{count}} fichiers non suivis. Cette action est irréversible.",
       "restoreStagedVersionDescription": "Cela restaurera la dernière version intermédiaire et annulera la suppression. Cela ne peut pas être annulé.",
       "unstagedChangesDescription": "Cela annulera les modifications non planifiées apportées à ce fichier. Cela ne peut pas être annulé.",
       "unstagedSelectionIncludingUntrackedDescription": "Cela annulera les modifications non indexées et supprimera définitivement tous les fichiers non suivis de cette sélection. Cette action est irréversible.",
-      "unstagedFilesIncludingUntrackedDescription": "Cela annulera les modifications non indexées et supprimera définitivement tous les fichiers non suivis parmi ces {{count}} fichiers. Cette action est irréversible."
+      "unstagedFilesIncludingUntrackedDescription_other": "Cela annulera les modifications non indexées et supprimera définitivement tous les fichiers non suivis parmi ces {{count}} fichiers. Cette action est irréversible.",
+      "delete": "Supprimer",
+      "restore": "Restaurer",
+      "discard": "Abandonner",
+      "discardAll": "Tout abandonner",
+      "deleteUntrackedTitle_one": "Supprimer {{count}} fichier non suivi ?",
+      "deleteUntrackedTitle_other": "Supprimer {{count}} fichiers non suivis ?",
+      "deleteCount": "Supprimer {{count}}",
+      "deleteUntrackedFilesDescription_one": "Cela supprimera définitivement {{count}} fichier non suivi. Cette action est irréversible.",
+      "unstagedFilesIncludingUntrackedDescription_one": "Cela annulera les modifications non indexées apportées à {{count}} fichier et le supprimera définitivement s'il n'est pas suivi. Cette action est irréversible."
     },
     "createReviewFailure": {
       "authRequiredCommand": "{{providerName}} n'est pas authentifié. Étape suivante : exécutez {{command}} dans cet environnement.",
@@ -19263,6 +19319,34 @@
       "creationUnconfirmed": "La création de {{shortLabel}} est peut-être terminée. Actualisation de l'état de revue de la branche...",
       "withDetail": "La création de {{shortLabel}} a échoué : {{detail}}",
       "pushFailed": "Le push a échoué. Résolvez l'erreur de push, puis réessayez."
+    },
+    "thinking": {
+      "off": "Désactivé",
+      "low": "Basse",
+      "medium": "Moyenne",
+      "high": "Haute",
+      "minimal": "Minimal",
+      "xhigh": "Très élevé",
+      "max": "Maximum"
+    },
+    "variables": {
+      "basePrompt": "Le prompt intégré d’Orca pour cette action, avec le contexte qu’Orca sait recueillir en toute sécurité.",
+      "branch": "Le nom de la branche actuelle du contrôle de version.",
+      "stagedFiles": "La liste des fichiers indexés, séparés par des sauts de ligne, pour générer le message de commit.",
+      "stagedPatch": "Le patch Git indexé utilisé pour générer le message de commit.",
+      "baseBranch": "La branche cible sélectionnée dans l’éditeur de création de PR.",
+      "currentTitle": "Le titre du PR saisi dans l’éditeur avant le début de la génération.",
+      "currentBody": "La description du PR saisie dans l’éditeur avant le début de la génération.",
+      "commitSummary": "La liste des commits de la branche par rapport à la base, séparés par des sauts de ligne.",
+      "changedFiles": "Un résumé des fichiers modifiés entre la branche et sa base.",
+      "patch": "Le diff de la branche par rapport à sa base utilisé pour générer les détails du PR.",
+      "firstPrompt": "La première demande de l’utilisateur dans cet espace de travail ou ce chat.",
+      "assistantMessage": "La réponse initiale de l’agent, lorsqu’Orca en dispose.",
+      "linkedIssue": "Le numéro de l’issue GitHub liée à cet espace de travail. Vide si aucune issue GitHub n’est liée (y compris pour les espaces liés à GitLab). Préférez les modèles avec instructions : « Fixes #{linkedIssue} » seul devient « Fixes # » sans lien."
+    },
+    "model": {
+      "configDefault": "Valeur par défaut de la configuration",
+      "auto": "Automatique"
     }
   },
   "agentsSidebarIntro": {
@@ -19686,7 +19770,9 @@
       "confirmTitle": "Redémarrer le daemon de terminal ?",
       "confirmBody": "Le redémarrage met fin à tous les processus en cours d'exécution dans {{sessions}}. Les agents qui prennent en charge la reprise peuvent être repris ensuite ; les shells et autres tâches ne le peuvent pas et doivent être redémarrés. Faites-le lorsque vos agents sont inactifs.",
       "cancel": "Annuler",
-      "confirm": "Redémarrer et arrêter les processus"
+      "confirm": "Redémarrer et arrêter les processus",
+      "count_other": "{{count}} terminaux en cours d'exécution",
+      "count_one": "{{count}} terminal en cours d’exécution"
     },
     "restartedInputNotSent": "Le terminal a redémarré pendant votre saisie, une partie ne lui est peut-être pas parvenue. Vérifiez le nouveau shell avant de la saisir à nouveau.",
     "stalledDaemonBanner": {
@@ -19861,7 +19947,11 @@
     "picker": {
       "pasteUnparseable": "URL de projet ou owner/number attendu",
       "ownerLoadFailed": "Impossible de charger les projets de {{owner}}.",
-      "organizationsLoadFailed": "Certaines organisations n'ont pas été chargées ({{failureCount}})."
+      "organizationsLoadFailed": "Certaines organisations n'ont pas été chargées ({{failureCount}}).",
+      "organizations": "Organisations",
+      "listFailed": "Impossible de lister les projets",
+      "detailsFailed": "Impossible de charger les détails",
+      "viewFailed": "Impossible de récupérer la vue du projet"
     },
     "error": {
       "notFoundState": "Impossible de trouver ce projet ou cette vue.",
@@ -19896,6 +19986,9 @@
       "tooLargeUnknownCount": "Cette vue contient trop d'éléments pour être affichée dans Orca. Restreignez le filtre de la vue sur GitHub.",
       "tooLarge": "Cette vue contient {{itemCount}} éléments, trop pour être affichée dans Orca. Restreignez le filtre de la vue sur GitHub.",
       "schemaDriftDetail": "Impossible de lire cette vue de projet : {{detail}}."
+    },
+    "columns": {
+      "type": "Tapez"
     }
   },
   "projectField": {
@@ -19982,6 +20075,27 @@
     "attachments": {
       "updateRuntime": "Mettez à jour le runtime distant pour modifier les liens de l'espace de travail",
       "updateRuntimeSafely": "Mettez à jour le runtime distant pour modifier les liens de l'espace de travail en toute sécurité"
+    },
+    "activity": {
+      "active": "Actif",
+      "working": "Fonctionnement",
+      "monitoring": "Surveillance des tâches en arrière-plan",
+      "failed": "Échec",
+      "interrupted": "Interrompu",
+      "unconfirmed": "Impossible de confirmer",
+      "done": "Terminé",
+      "inactive": "Inactif",
+      "permission": "Autorisation requise",
+      "unreadLabel": "{{status}} · Non lu"
+    },
+    "reviewStatus": {
+      "checksFailed": "{{review}} : vérifications en échec",
+      "checksPassing": "{{review}} : vérifications réussies",
+      "checksPending": "{{review}} : vérifications en attente",
+      "closed": "{{review}} : fermée",
+      "draft": "{{review}} : brouillon",
+      "merged": "{{review}} : fusionnée",
+      "open": "{{review}} : ouverte"
     }
   },
   "tabHoverCard": {
@@ -20124,7 +20238,9 @@
       "preparingAriaLabel": "Préparation de la mise à jour. Cliquez pour développer.",
       "browserSummary": "Le navigateur d'un serveur Orca en arrière-plan utilise toujours cette application.",
       "browserGuidance": "Terminez le processus ci-dessous, puis réessayez : son serveur continue de fonctionner sans navigateur. Si un autre ordinateur utilise ce Mac comme hôte SSH, la mise à jour d’Orca sur cet ordinateur permet au navigateur de se mettre automatiquement en pause lors des mises à jour."
-    }
+    },
+    "wslMoveInstallHeld": "Un projet est en cours de déplacement vers son hôte WSL. Installez la mise à jour une fois le déplacement terminé.",
+    "wslMoveUndoInstallHeld": "Un projet est en train de revenir de son hôte WSL. Installez la mise à jour une fois l'opération terminée."
   },
   "onboarding": {
     "language": {
@@ -20480,44 +20596,184 @@
       "scrollDisplayEquation": "Faire défiler l'équation affichée"
     }
   },
-  "editorConflicts": {
-    "hint": {
-      "addedByThem": "Examinez le fichier ajouté avant de le conserver",
-      "addedByUs": "Vérifiez s'il faut conserver le fichier ajouté",
-      "bothAdded": "Choisissez la version à conserver ou combinez les deux",
-      "bothDeleted": "Résolvez le conflit dans Git ou restaurez l'une des versions avant de modifier le fichier",
-      "bothModified": "Résolvez les conflits signalés par les marqueurs",
-      "deletedByThem": "Décidez s'il faut conserver le fichier ou accepter sa suppression",
-      "deletedByUs": "Décidez s'il faut restaurer le fichier"
+  "runtime": {
+    "health": {
+      "local": "Local",
+      "available": "Connecté",
+      "connecting": "Connexion",
+      "disconnected": "Déconnecté",
+      "error": "Demande votre attention",
+      "mixed": "Mixte",
+      "repair": "Nouvel appairage requis",
+      "update": "Mise à jour requise"
     },
+    "compat": {
+      "compatible": "Le client et le serveur d’exécution sont compatibles.",
+      "clientTooOld": "Ce client Orca est trop ancien pour le serveur sélectionné. Mettez Orca à jour sur cette machine. Protocole du client : {{clientProtocol}} ; le serveur exige le protocole client {{requiredProtocol}}.",
+      "serverTooOld": "Le serveur Orca sélectionné est trop ancien pour ce client. Mettez Orca à jour sur le serveur. Protocole du serveur : {{serverProtocol}} ; le client exige le protocole serveur {{requiredProtocol}}."
+    }
+  },
+  "native": {
+    "about": {
+      "gpu": {
+        "unknownStatus": "Statut indisponible",
+        "enabled": "Activé",
+        "disabled": "Désactivé",
+        "unavailable": "Indisponible",
+        "safeMode": "Désactivée (mode graphique sécurisé)",
+        "software": "Rendu logiciel",
+        "unknown": "Inconnu ({{status}})",
+        "summary": "Accélération GPU : {{status}}"
+      }
+    },
+    "dialog": {
+      "importCookies": "Importer des cookies",
+      "spaceTitle": "Espace Orca bêta",
+      "dashboardTitle": "Tableau de bord des agents Orca",
+      "cookieFiles": "Fichiers de cookies",
+      "allFiles": "Tous les fichiers",
+      "importPetBundle": "Choisir un paquet .codex-pet",
+      "pickPet": "Choisir une mascotte",
+      "petImage": "Image de mascotte",
+      "importWarpTheme": "Importer un thème Warp",
+      "warpThemeYaml": "YAML de thème Warp",
+      "importWarpFolder": "Importer un dossier de thèmes Warp",
+      "images": "Images",
+      "repoIconImages": "Images d’icône du dépôt",
+      "audio": "Audio"
+    }
+  },
+  "taskProviders": {
+    "linear": {
+      "updateAccess": "Accès aux mises à jour",
+      "addAccess": "Ajouter l'accès Linear",
+      "fetchMore": "Charger plus",
+      "connectionFailed": "Échec de la connexion",
+      "listLabel": "Liste Linear",
+      "projectsLoadFailed": "Impossible de charger les projets.",
+      "projectNotFound": "Le projet est introuvable.",
+      "projectLoadFailed": "Impossible de charger le projet.",
+      "projectIssuesLoadFailed": "Impossible de charger les issues du projet.",
+      "viewsLoadFailed": "Impossible de charger les vues.",
+      "viewContentsLoadFailed": "Impossible de charger le contenu de la vue.",
+      "issuesLoadFailed": "Impossible de charger les issues Linear.",
+      "apiKeyHint": "Collez une clé API personnelle de l’espace de travail Linear à utiliser dans Orca. Si cet espace est déjà connecté, Orca remplace la clé enregistrée.",
+      "remoteKeyStorage": "Cette clé est stockée par l’environnement d’exécution distant actif.",
+      "localKeyStorage": "Les clés de l’environnement d’exécution local sont stockées sur cet appareil avec le stockage chiffré d’Electron lorsqu’il est disponible.",
+      "commentsLoadFailed": "Impossible de charger les commentaires.",
+      "updateWorkspaceAccess": "Mettre à jour l’accès Linear pour {{workspace}}",
+      "workspaceApiKeyHint": "Collez une clé API personnelle pour {{workspace}}. Si cet espace est déjà connecté, Orca remplace la clé enregistrée.",
+      "connect": "Se connecter",
+      "descriptionUpdateFailed": "Échec de la mise à jour de la description",
+      "titleUpdateFailed": "Échec de la mise à jour du titre",
+      "truncated": {
+        "issues_one": "Affichage de {{count}} issue en tête de liste. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "issues_other": "Affichage des {{count}} premières issues. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "projectIssues_one": "Affichage de {{count}} issue du projet en tête de liste. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "projectIssues_other": "Affichage des {{count}} premières issues du projet. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "projects_one": "Affichage de {{count}} projet en tête de liste. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "projects_other": "Affichage des {{count}} premiers projets. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "viewIssues_one": "Affichage de {{count}} issue de la vue en tête de liste. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "viewIssues_other": "Affichage des {{count}} premières issues de la vue. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "views_one": "Affichage de {{count}} vue en tête de liste. Faites une recherche ou ouvrez Linear pour consulter la liste complète.",
+        "views_other": "Affichage des {{count}} premières vues. Faites une recherche ou ouvrez Linear pour consulter la liste complète."
+      }
+    },
+    "jira": {
+      "connectionFailed": "Échec de la connexion",
+      "remoteTokenStorage": "Votre jeton est envoyé à l’environnement d’exécution distant sélectionné et y est stocké avec le chiffrement pris en charge.",
+      "localTokenStorage": "Votre jeton est stocké localement et chiffré si le stockage de l’environnement d’exécution local le permet."
+    },
+    "errors": {
+      "jira": {
+        "createFailed": "Échec de la création de l'issue.",
+        "commentFailed": "Échec de l'ajout du commentaire.",
+        "notConnected": "Non connecté à Jira.",
+        "titleRequired": "Le titre est requis.",
+        "labelsConflict": "Fournissez labels ou labelOperations, mais pas les deux.",
+        "updateFailed": "Impossible de mettre à jour l’issue.",
+        "credentialsRequired": "L’URL du site, l’adresse e-mail et le jeton API sont requis.",
+        "projectRequired": "Le projet est requis.",
+        "issueTypeRequired": "Le type d’issue est requis.",
+        "issueKeyRequired": "La clé de l’issue est requise.",
+        "updatesRequired": "L’objet de mise à jour est requis.",
+        "commentBodyRequired": "Le contenu du commentaire est requis.",
+        "invalidSiteUrl": "Saisissez une URL de site Jira valide.",
+        "passwordRequired": "Le mot de passe est requis.",
+        "personalTokenRequired": "Le jeton d’accès personnel est requis.",
+        "apiTokenRequired": "Le jeton API est requis.",
+        "connectionFailed": "Échec de la connexion.",
+        "invalidSiteIdentity": "Saisissez une URL de site Jira HTTP ou HTTPS sans identifiants.",
+        "missingProjectIdentity": "Jira a renvoyé un projet sans ID ni clé.",
+        "invalidIssuePage": "Jira a renvoyé une page d’issues invalide.",
+        "incompleteIssuePage": "Jira a renvoyé une page d’issues incomplète.",
+        "repeatedIssueToken": "Jira a renvoyé un jeton de page d’issues invalide ou répété.",
+        "issueSearchLimit": "La recherche d’issues Jira a dépassé la limite de pages. Sélectionnez plutôt un projet avec JQL.",
+        "invalidProjectPage": "Jira a renvoyé une page de projets invalide.",
+        "incompleteProjectPage": "Jira a renvoyé une page de projets incomplète.",
+        "projectListLimit": "La liste des projets Jira a dépassé la limite de pages. Sélectionnez plutôt un projet avec JQL.",
+        "invalidCloudId": "Le site n’a pas fourni d’ID Atlassian Cloud valide."
+      },
+      "linear": {
+        "notConnected": "Non connecté à Linear",
+        "createFailed": "Échec de la création dans Linear",
+        "createdButUnavailable": "L’issue a été créée, mais n’a pas pu être récupérée",
+        "updateFailed": "Échec de la mise à jour dans Linear",
+        "commentFailed": "Impossible de créer le commentaire",
+        "projectCreateFailed": "Échec de la création du projet Linear",
+        "noApiKey": "Aucune clé API n’est enregistrée.",
+        "workspaceAuthExpired": "L’authentification Linear a expiré pour cet espace de travail.",
+        "projectNameRequired": "Le nom du projet est requis",
+        "projectIdRequired": "L’ID du projet est requis",
+        "projectNotFound": "Le projet est introuvable",
+        "viewIdRequired": "L’ID de la vue personnalisée est requis",
+        "viewHasNoIssues": "La vue personnalisée ne contient pas d’issues",
+        "viewHasNoProjects": "La vue personnalisée ne contient pas de projets"
+      }
+    }
+  },
+  "workspaceOptions": {
+    "activeFilterCount_one": "{{count}} filtre",
+    "activeFilterCount_other": "{{count}} filtres"
+  },
+  "editorConflicts": {
     "kind": {
-      "addedByThem": "Ajouté chez eux",
       "addedByUs": "Ajouté chez nous",
       "bothAdded": "Ajouté des deux côtés",
+      "deletedByUs": "Supprimé chez nous",
+      "addedByThem": "Ajouté chez eux",
       "bothDeleted": "Supprimé des deux côtés",
       "bothModified": "Modifié des deux côtés",
-      "deletedByThem": "Supprimé chez eux",
-      "deletedByUs": "Supprimé chez nous"
+      "deletedByThem": "Supprimé chez eux"
+    },
+    "resolvedBanner": "Conflit résolu localement · {{kind}}",
+    "hint": {
+      "addedByUs": "Vérifiez s'il faut conserver le fichier ajouté",
+      "bothModified": "Résolvez les conflits signalés par les marqueurs",
+      "addedByThem": "Examinez le fichier ajouté avant de le conserver",
+      "bothDeleted": "Résolvez le conflit dans Git ou restaurez l'une des versions avant de modifier le fichier",
+      "deletedByThem": "Décidez s'il faut conserver le fichier ou accepter sa suppression",
+      "deletedByUs": "Décidez s'il faut restaurer le fichier",
+      "bothAdded": "Choisissez la version à conserver ou combinez les deux"
     },
     "renamedFrom": "Ancien nom : {{path}}",
-    "resolvedBanner": "Conflit résolu localement · {{kind}}",
     "snapshotCapturedAt": "Instantané capturé à {{time}}.",
     "unresolvedBanner": "Conflit non résolu · {{kind}}"
+  },
+  "stats": {
+    "usageBreakdown": {
+      "turns_one": "{{count}} tour",
+      "events_one": "{{count}} événement",
+      "sessions_one": "{{count}} session",
+      "events_other": "{{count}} événements",
+      "sessions_other": "{{count}} sessions",
+      "turns_other": "{{count}} tours"
+    }
   },
   "github": {
     "viewed": {
       "markFile": "Marquer {{path}} comme consulté",
       "unmarkFile": "Ne plus marquer {{path}} comme consulté"
-    }
-  },
-  "stats": {
-    "usageBreakdown": {
-      "events_one": "{{count}} événement",
-      "events_other": "{{count}} événements",
-      "sessions_one": "{{count}} session",
-      "sessions_other": "{{count}} sessions",
-      "turns_one": "{{count}} tour",
-      "turns_other": "{{count}} tours"
     }
   }
 }
