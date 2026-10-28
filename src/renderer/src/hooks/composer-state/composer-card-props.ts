@@ -184,6 +184,7 @@ export function buildComposerCardProps(state: ComposerModel) {
     smartNameMode,
     smartNameSelection,
     onClearSmartNameSelection: handleClearSmartNameSelection,
+    reuseEligibleBranch: isProjectGroupTarget ? null : reuseEligibleBranch,
     canReuseSelectedBranch:
       !isProjectGroupTarget &&
       reuseEligibleBranch !== null &&

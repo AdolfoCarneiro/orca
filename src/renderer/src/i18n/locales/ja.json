@@ -1930,10 +1930,6 @@
         "notConnected": "未接続",
         "runOn": "実行先",
         "notePasteTooLarge": "メモ欄への貼り付け内容が大きすぎます。",
-        "checkoutSelectedBranch": "このブランチをチェックアウト",
-        "workOnLocalBranchHint": "新しいワークツリーで選択したブランチをチェックアウトします。",
-        "workOnRemoteBranchHint": "対応するローカルブランチを使用するか、このリモートブランチを追跡するローカルブランチを作成します。",
-        "createBranchFromSelectionHint": "選択したブランチから新しいブランチを作成します。",
         "createMultiple": "さらに作成",
         "waitForSetupBeforeAgent": "セットアップが完了するまで待ってから Agent を開始してください",
         "destroyDisabled": "破壊は無効です",
@@ -20437,6 +20433,16 @@
     "alwaysForceDeleteBranchesTooltip": "将来のワークスペースの削除後に保持されるブランチに適用されます。"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "このワークツリーのブランチ",
+      "existing": "既存のブランチ",
+      "existingHint": "新しいコミットはこのブランチに追加されます。",
+      "alreadyOpen": "別のワークツリーですでに開いています。",
+      "new": "新しいブランチ",
+      "newHint": "新しいローカルブランチを作成",
+      "newName": "新しいブランチ名",
+      "automaticName": "自動で命名"
+    },
     "links": {
       "foreignReview": "このレビューは別のリポジトリに属しています。このワークスペースのリポジトリのレビューを追加してください。",
       "repositoryLoading": "リポジトリの識別情報をまだ読み込んでいます。利用可能になってから再試行してください。",

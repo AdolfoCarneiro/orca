@@ -68,7 +68,6 @@ function isBranchSelection(refName: string, localBranchName: string): boolean {
 export function resolveComposerBranchReuse(args: {
   refName: string
   localBranchName: string
-  selectionProducedOverride: boolean
   branchCheckedOutElsewhere: boolean
 }): { reuseEligibleBranch: string | null; defaultReuse: boolean } {
   const reuseEligibleBranch = isBranchSelection(args.refName, args.localBranchName)
@@ -76,7 +75,7 @@ export function resolveComposerBranchReuse(args: {
     : null
   return {
     reuseEligibleBranch,
-    defaultReuse: reuseEligibleBranch !== null && args.selectionProducedOverride
+    defaultReuse: reuseEligibleBranch !== null
   }
 }
 
@@ -113,7 +112,6 @@ export function resolveComposerBranchPick(args: {
   const reuse = resolveComposerBranchReuse({
     refName: args.refName,
     localBranchName: args.localBranchName,
-    selectionProducedOverride: selection.branchNameOverride !== undefined,
     branchCheckedOutElsewhere
   })
   return {

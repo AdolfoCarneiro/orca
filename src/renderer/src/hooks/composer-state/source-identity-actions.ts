@@ -27,7 +27,6 @@ type SourceIdentityActionsInput = Pick<
   | 'setLinkedWorkItem'
   | 'setName'
   | 'setPushTarget'
-  | 'setReuseEligibleBranch'
   | 'setReuseSelectedBranch'
   | 'smartSourceSelectionRef'
 >
@@ -67,7 +66,6 @@ export function useSourceIdentityActions(input: SourceIdentityActionsInput) {
     setLinkedWorkItem,
     setName,
     setPushTarget,
-    setReuseEligibleBranch,
     setReuseSelectedBranch,
     smartSourceSelectionRef
   } = input
@@ -252,7 +250,6 @@ export function useSourceIdentityActions(input: SourceIdentityActionsInput) {
       setBranchNameOverridePreservesNameEdits(Boolean(next.branchNameOverride))
       setPushTarget(next.pushTarget)
       setForkPushWarning(next.forkPushWarning)
-      setReuseEligibleBranch(null)
       setReuseSelectedBranch(false)
       branchAutoNameRef.current = ''
     },
@@ -264,7 +261,6 @@ export function useSourceIdentityActions(input: SourceIdentityActionsInput) {
       setBranchNameOverridePreservesNameEdits,
       setForkPushWarning,
       setPushTarget,
-      setReuseEligibleBranch,
       setReuseSelectedBranch,
       smartSourceSelectionRef
     ]

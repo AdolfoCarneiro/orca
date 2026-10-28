@@ -265,7 +265,6 @@ describe('resolveComposerBranchReuse', () => {
       resolveComposerBranchReuse({
         refName: 'refs/heads/feature/加',
         localBranchName: 'feature/加',
-        selectionProducedOverride: true,
         branchCheckedOutElsewhere: false
       })
     ).toEqual({ reuseEligibleBranch: 'feature/加', defaultReuse: true })
@@ -273,7 +272,6 @@ describe('resolveComposerBranchReuse', () => {
       resolveComposerBranchReuse({
         refName: 'refs/remotes/origin/feature/加',
         localBranchName: 'feature/加',
-        selectionProducedOverride: true,
         branchCheckedOutElsewhere: false
       })
     ).toEqual({ reuseEligibleBranch: 'feature/加', defaultReuse: true })
@@ -291,7 +289,6 @@ describe('resolveComposerBranchReuse', () => {
       resolveComposerBranchReuse({
         refName: 'feature-x',
         localBranchName: 'feature-x',
-        selectionProducedOverride: true,
         branchCheckedOutElsewhere: false
       })
     ).toEqual({ reuseEligibleBranch: 'feature-x', defaultReuse: true })
@@ -302,7 +299,6 @@ describe('resolveComposerBranchReuse', () => {
       resolveComposerBranchReuse({
         refName: 'origin/feature/something',
         localBranchName: 'feature/something',
-        selectionProducedOverride: true,
         branchCheckedOutElsewhere: false
       })
     ).toEqual({ reuseEligibleBranch: 'feature/something', defaultReuse: true })
@@ -313,21 +309,8 @@ describe('resolveComposerBranchReuse', () => {
       resolveComposerBranchReuse({
         refName: 'feature-x',
         localBranchName: 'feature-x',
-        selectionProducedOverride: true,
         branchCheckedOutElsewhere: true
       })
     ).toEqual({ reuseEligibleBranch: 'feature-x', defaultReuse: true })
-  })
-
-  it('keeps a local branch reuse-eligible but defaults reuse OFF when the user typed a custom name', () => {
-    // Without an override, custom-name creation branches off the ref; reuse remains opt-in.
-    expect(
-      resolveComposerBranchReuse({
-        refName: 'feature-x',
-        localBranchName: 'feature-x',
-        selectionProducedOverride: false,
-        branchCheckedOutElsewhere: false
-      })
-    ).toEqual({ reuseEligibleBranch: 'feature-x', defaultReuse: false })
   })
 })

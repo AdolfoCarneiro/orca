@@ -16549,10 +16549,6 @@
         "typeHtml": "HTML"
       },
       "NewWorkspaceComposerCard": {
-        "checkoutSelectedBranch": "Fazer checkout desta branch",
-        "workOnLocalBranchHint": "Faça checkout da branch selecionada na nova árvore de trabalho.",
-        "workOnRemoteBranchHint": "Use a branch local correspondente ou crie uma que rastreie esta branch remota.",
-        "createBranchFromSelectionHint": "Crie uma nova branch a partir da branch selecionada.",
         "createMultiple": "Criar mais",
         "cbb47ee0dc": "Disponível apenas para projetos Git locais.",
         "d861de981b": "Checkout esparso",
@@ -20671,6 +20667,16 @@
     "openDefault": "Abrir no aplicativo padrão"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Branch para esta árvore de trabalho",
+      "existing": "Branch existente",
+      "existingHint": "Novos commits são adicionados a esta branch.",
+      "alreadyOpen": "Já está aberta em outra árvore de trabalho.",
+      "new": "Nova branch",
+      "newHint": "Criar uma nova branch local",
+      "newName": "Nome da nova branch",
+      "automaticName": "Nome automático"
+    },
     "links": {
       "foreignReview": "Esta revisão pertence a outro repositório. Adicione revisões do repositório deste espaço de trabalho.",
       "repositoryLoading": "A identidade do repositório ainda está carregando. Tente novamente quando estiver disponível.",

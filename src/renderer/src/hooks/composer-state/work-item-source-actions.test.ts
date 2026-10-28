@@ -52,7 +52,7 @@ it('records reuse intent for remote and local selections and clears it on Advanc
   expect(result.current.identity.branchNameOverride).toBe('feature/test')
 })
 
-it('preserves workspace-name edits while reuse pins a remote branch, including explicit opt-in after a custom label', () => {
+it('defaults to the existing remote branch while preserving a custom workspace name', () => {
   const { result } = renderHook(() => {
     const [name, setName] = useState('Review workspace')
     const identity = useWorkspaceIdentityState({
@@ -87,8 +87,7 @@ it('preserves workspace-name edits while reuse pins a remote branch, including e
     )
   )
   expect(result.current.name).toBe('Review workspace')
-  expect(result.current.identity.reuseSelectedBranch).toBe(false)
-  act(() => result.current.actions.handleReuseSelectedBranchChange(true))
+  expect(result.current.identity.reuseSelectedBranch).toBe(true)
   act(() => result.current.setName('Renamed review workspace'))
   expect(result.current.identity.baseBranch).toBe('refs/remotes/origin/feature/test')
   expect(result.current.identity.branchIntent).toBe('open-existing-v2')

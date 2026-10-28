@@ -1930,10 +1930,6 @@
         "notConnected": "연결되지 않음",
         "runOn": "실행 위치",
         "notePasteTooLarge": "메모 필드에 붙여넣을 내용이 너무 큽니다.",
-        "checkoutSelectedBranch": "이 브랜치 체크아웃",
-        "workOnLocalBranchHint": "새 워크트리에서 선택한 브랜치를 체크아웃합니다.",
-        "workOnRemoteBranchHint": "해당 로컬 브랜치를 사용하거나 이 원격 브랜치를 추적하는 로컬 브랜치를 만듭니다.",
-        "createBranchFromSelectionHint": "선택한 브랜치에서 새 브랜치를 만듭니다.",
         "createMultiple": "더 만들기",
         "waitForSetupBeforeAgent": "agent를 시작하기 전에 설정이 완료될 때까지 기다리세요.",
         "destroyDisabled": "삭제 비활성화됨",
@@ -20437,6 +20433,16 @@
     "alwaysForceDeleteBranches": "보존된 브랜치 항상 삭제"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "이 워크트리의 브랜치",
+      "existing": "기존 브랜치",
+      "existingHint": "새 커밋이 이 브랜치에 추가됩니다.",
+      "alreadyOpen": "이미 다른 워크트리에서 열려 있습니다.",
+      "new": "새 브랜치",
+      "newHint": "새 로컬 브랜치 만들기",
+      "newName": "새 브랜치 이름",
+      "automaticName": "자동 이름"
+    },
     "links": {
       "foreignReview": "이 리뷰는 다른 리포지토리에 속합니다. 이 워크스페이스의 리포지토리에서 리뷰를 추가하세요.",
       "repositoryLoading": "리포지토리 정보를 아직 불러오는 중입니다. 사용할 수 있게 되면 다시 시도하세요.",

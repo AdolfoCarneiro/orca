@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NewWorkspaceComposerNameSection } from './NewWorkspaceComposerNameSection'
@@ -33,6 +33,9 @@ function branchProps(): React.ComponentProps<typeof NewWorkspaceComposerNameSect
     branchesEnabled: true,
     forkPushWarning: null,
     canReuseSelectedBranch: true,
+    reuseEligibleBranch: 'feature/payments',
+    branchNameOverride: undefined,
+    onBranchNameOverrideChange: vi.fn(),
     reuseSelectedBranch: true,
     onReuseSelectedBranchChange: vi.fn(),
     baseBranch: 'refs/remotes/origin/feature/payments',
@@ -43,24 +46,33 @@ function branchProps(): React.ComponentProps<typeof NewWorkspaceComposerNameSect
 afterEach(cleanup)
 
 describe('NewWorkspaceComposerNameSection branch reuse', () => {
-  it('offers toggling reuse of the selected remote branch without changing the workspace name', async () => {
+  it('chooses a new branch by pointer and the existing branch by keyboard without changing the source', async () => {
     const user = userEvent.setup()
     const props = branchProps()
     const { rerender } = render(<NewWorkspaceComposerNameSection {...props} />)
 
     expect(screen.getByText('origin/feature/payments')).toBeTruthy()
+    expect(screen.getByText('feature/payments')).toBeTruthy()
+    expect(screen.queryByRole('textbox', { name: 'New branch name' })).toBeNull()
     expect(
-      screen.getByRole('checkbox', { name: 'Check out this branch' }).getAttribute('aria-checked')
+      screen.getByRole('radio', { name: 'Existing branch' }).getAttribute('aria-checked')
     ).toBe('true')
-    await user.click(screen.getByRole('checkbox', { name: 'Check out this branch' }))
+    await user.click(screen.getByRole('radio', { name: 'New branch' }))
     expect(props.onReuseSelectedBranchChange).toHaveBeenLastCalledWith(false)
 
     rerender(<NewWorkspaceComposerNameSection {...props} reuseSelectedBranch={false} />)
     expect(
-      screen.getByRole('checkbox', { name: 'Check out this branch' }).getAttribute('aria-checked')
+      screen.getByRole('radio', { name: 'Existing branch' }).getAttribute('aria-checked')
     ).toBe('false')
-    await user.click(screen.getByRole('checkbox', { name: 'Check out this branch' }))
-    expect(props.onReuseSelectedBranchChange).toHaveBeenLastCalledWith(true)
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'New branch name' }))
+    await user.paste('review/payments')
+    expect(props.onBranchNameOverrideChange).toHaveBeenLastCalledWith('review/payments')
+    await user.click(screen.getByRole('radio', { name: 'New branch' }))
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'New branch name' }))
+    screen.getByRole('radio', { name: 'New branch' }).focus()
+    await user.keyboard('{ArrowUp>}')
+    await waitFor(() => expect(props.onReuseSelectedBranchChange).toHaveBeenLastCalledWith(true))
+    await user.keyboard('{/ArrowUp}')
     expect(props.onNameValueChange).not.toHaveBeenCalled()
     expect(props.onClearSmartNameSelection).not.toHaveBeenCalled()
   })
@@ -101,7 +113,7 @@ describe('NewWorkspaceComposerNameSection branch reuse', () => {
 
     expect(screen.queryByRole('button', { name: 'Open existing workspace' })).toBeNull()
     expect(
-      screen.getByRole('checkbox', { name: 'Check out this branch' }).getAttribute('aria-checked')
+      screen.getByRole('radio', { name: 'Existing branch' }).getAttribute('aria-checked')
     ).toBe('false')
   })
 
@@ -116,7 +128,7 @@ describe('NewWorkspaceComposerNameSection branch reuse', () => {
       />
     )
 
-    expect(screen.queryByRole('checkbox', { name: 'Check out this branch' })).toBeNull()
+    expect(screen.queryByRole('radio', { name: 'Existing branch' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Open existing workspace' })).toBeNull()
     expect(screen.getByRole('textbox', { name: 'Workspace name' })).toBeTruthy()
   })

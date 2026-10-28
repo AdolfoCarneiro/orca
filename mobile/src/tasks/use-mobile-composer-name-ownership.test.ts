@@ -52,11 +52,13 @@ function issue(number: number): GitHubWorkItem {
 describe('mobile workspace name ownership', () => {
   it('pins a reused remote branch through name edits and supports branching off explicitly', () => {
     const result = renderMobileComposerSource()
+    act(() => result.current.setName('Review workspace'))
     act(() =>
       result.current.handleSmartBranchSelect('refs/remotes/origin/feature/test', 'feature/test')
     )
     expect(result.current.reuseEligibleBranch).toBe('feature/test')
-    act(() => result.current.setName('Review workspace'))
+    expect(result.current.name).toBe('Review workspace')
+    expect(result.current.reuseSelectedBranch).toBe(true)
     expect(result.current.createSelection).toMatchObject({
       reuse: true,
       localBranchName: 'feature/test'

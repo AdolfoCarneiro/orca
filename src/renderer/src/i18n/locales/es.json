@@ -1949,10 +1949,6 @@
         "notConnected": "No conectado",
         "runOn": "Ejecutar en",
         "notePasteTooLarge": "El contenido pegado es demasiado grande para el campo de nota.",
-        "checkoutSelectedBranch": "Hacer checkout de esta rama",
-        "workOnLocalBranchHint": "Haz checkout de la rama seleccionada en el nuevo árbol de trabajo.",
-        "workOnRemoteBranchHint": "Usa la rama local correspondiente o crea una que siga esta rama remota.",
-        "createBranchFromSelectionHint": "Crea una nueva rama a partir de la seleccionada.",
         "createMultiple": "Crear más",
         "waitForSetupBeforeAgent": "Esperar a que termine el setup antes de iniciar el agente",
         "destroyDisabled": "destroy deshabilitado",
@@ -20724,6 +20720,16 @@
     "alwaysForceDeleteBranches": "Eliminar siempre las ramas conservadas"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Rama para este árbol de trabajo",
+      "existing": "Rama existente",
+      "existingHint": "Los nuevos commits se añaden a esta rama.",
+      "alreadyOpen": "Ya está abierta en otro árbol de trabajo.",
+      "new": "Nueva rama",
+      "newHint": "Crear una nueva rama local",
+      "newName": "Nombre de la nueva rama",
+      "automaticName": "Nombre automático"
+    },
     "links": {
       "foreignReview": "Esta revisión pertenece a otro repositorio. Agrega revisiones del repositorio de este espacio de trabajo.",
       "repositoryLoading": "La identidad del repositorio aún se está cargando. Vuelve a intentarlo cuando esté disponible.",
