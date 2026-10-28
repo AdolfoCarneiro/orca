@@ -34,6 +34,7 @@ import {
 } from './hosted-review-cache-state'
 import { clearHostedReviewConflictingPrCache } from './hosted-review-pr-cache'
 import {
+  canJoinHostedReviewFlight,
   hostedReviewRequestKey,
   hostedReviewRequestGenerations as requestGenerations,
   inflightHostedReviewRequests,
@@ -287,7 +288,7 @@ export const createHostedReviewSlice: StateCreator<AppState, [], [], HostedRevie
 
       registerInflightHostedReviewRequest(requestKey, {
         promise: request,
-        force: Boolean(options?.force),
+        options,
         currentHeadOid,
         generation,
         startedAt: requestStartedAt
@@ -309,7 +310,7 @@ export const createHostedReviewSlice: StateCreator<AppState, [], [], HostedRevie
       return cached.data
     }
 
-    if (joinableInflightRequest && (!options?.force || joinableInflightRequest.force)) {
+    if (joinableInflightRequest && canJoinHostedReviewFlight(joinableInflightRequest, options)) {
       return joinableInflightRequest.promise
     }
 
