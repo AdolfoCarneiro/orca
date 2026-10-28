@@ -16,9 +16,10 @@ type MobileDictationSession = {
   partialText: string
   finalTexts: string[]
   errors: string[]
-  // Bumped by each transcript event; chunks arrive far more often, so replies carry text only after a bump.
+  // Bumped by each transcript event; chunks arrive far more often, so replies carry text only after a bump or a second.
   textVersion: number
   reportedVersion: number
+  reportedAt: number
   abandonTimer?: ReturnType<typeof setTimeout>
 }
 
@@ -70,7 +71,8 @@ export class RuntimeMobileDictationController {
       finalTexts: [],
       errors: [],
       textVersion: 0,
-      reportedVersion: 0
+      reportedVersion: 0,
+      reportedAt: 0
     }
     try {
       await getSpeechSttService(store).startDictation(
@@ -117,11 +119,13 @@ export class RuntimeMobileDictationController {
       samples[i] = pcm.readInt16LE(i * 2) / 32768
     }
     getSpeechSttService(this.requireStore()).feedAudio(samples, params.sampleRate, session.owner)
-    // The text so far lets the phone keep it if the connection never comes back.
-    if (session.reportedVersion === session.textVersion) {
+    // The text so far lets the phone keep it if the connection never comes back; resent each second in case a reply was lost.
+    const now = Date.now()
+    if (session.reportedVersion === session.textVersion && now - session.reportedAt < 1000) {
       return { dictationId: params.dictationId }
     }
     session.reportedVersion = session.textVersion
+    session.reportedAt = now
     return { dictationId: params.dictationId, text: transcriptOf(session) }
   }
 

@@ -11,40 +11,6 @@
       "idle": true,
       "started": "unstarted"
     },
-    "217153ab0a32": {
-      "name": "speech.dictation.cancel#1",
-      "ordinal": 4,
-      "args": [
-        {
-          "name": "method",
-          "value": "speech.dictation.cancel"
-        },
-        {
-          "name": "params",
-          "value": {
-            "dictationId": "dictation-1"
-          }
-        },
-        {
-          "name": "options",
-          "value": {
-            "$rpc": "absent"
-          }
-        }
-      ],
-      "settlement": {
-        "status": "fulfilled",
-        "startedAt": 0,
-        "settledAt": 0,
-        "value": {
-          "id": "frame-2",
-          "ok": true,
-          "result": {
-            "cancelled": true
-          }
-        }
-      }
-    },
     "4c42677aca21": {
       "name": "speech.dictation.start#1",
       "ordinal": 1,
@@ -75,6 +41,40 @@
           "ok": true,
           "result": {
             "started": true
+          }
+        }
+      }
+    },
+    "4c97e2d0e296": {
+      "name": "speech.dictation.cancel#1",
+      "ordinal": 4,
+      "args": [
+        {
+          "name": "method",
+          "value": "speech.dictation.cancel"
+        },
+        {
+          "name": "params",
+          "value": {
+            "dictationId": "dictation-1"
+          }
+        },
+        {
+          "name": "options",
+          "value": {
+            "failWhenDisconnected": true
+          }
+        }
+      ],
+      "settlement": {
+        "status": "fulfilled",
+        "startedAt": 0,
+        "settledAt": 0,
+        "value": {
+          "id": "frame-2",
+          "ok": true,
+          "result": {
+            "cancelled": true
           }
         }
       }
@@ -111,7 +111,7 @@
       {
         "id": "rolled-back",
         "observation": {
-          "sender": ["4c42677aca21", "217153ab0a32"],
+          "sender": ["4c42677aca21", "4c97e2d0e296"],
           "payloads": ["a7ddd021010a", "d6e61920633f"],
           "settlements": {
             "start": "7a657475cacc"

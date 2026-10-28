@@ -13,11 +13,11 @@ import {
   createMobileDictationId,
   isCurrentMobileDictationFinish
 } from './mobile-dictation-session-state'
-import { startMobileDictationDesktopSession } from './mobile-dictation-desktop-start'
 import {
-  dictationSessionCancel,
-  dictationSessionFinish
-} from '../dictation/mobile-dictation-operations'
+  cancelDesktopDictation,
+  startMobileDictationDesktopSession
+} from './mobile-dictation-desktop-start'
+import { dictationSessionFinish } from '../dictation/mobile-dictation-operations'
 import { rpcPayloadMember } from '../transport/rpc-reader-payload'
 import type {
   DictationStatus,
@@ -91,7 +91,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
       activeIdRef.current = null
       closeDictationAudio()
       if (client && dictationId) {
-        void dictationSessionCancel.request(client, { dictationId }).catch(() => undefined)
+        void cancelDesktopDictation(client, dictationId)
       }
       const kept = transcriptSoFarRef.current.take(dictationId)
       if (kept) {
@@ -268,7 +268,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
       activeIdRef.current = null
       closeDictationAudio()
       if (client && dictationId) {
-        await dictationSessionCancel.request(client, { dictationId }).catch(() => undefined)
+        await cancelDesktopDictation(client, dictationId)
       }
       // The cancel round trip may overlap a new recording; stale completion must neither report over it nor reset it.
       if (generationRef.current !== generation) {
@@ -312,9 +312,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
       closeDictationAudio()
       capture.release()
       if (clientRef.current && dictationId) {
-        void dictationSessionCancel
-          .request(clientRef.current, { dictationId })
-          .catch(() => undefined)
+        void cancelDesktopDictation(clientRef.current, dictationId)
       }
     }
   }, [capture, closeDictationAudio])
