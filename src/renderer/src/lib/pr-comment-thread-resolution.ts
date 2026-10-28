@@ -1,4 +1,4 @@
-import type { PRComment } from '../../../../shared/github/comment-types'
+import type { PRComment } from '../../../shared/github/comment-types'
 
 export function markPRCommentThreadResolved(
   comments: PRComment[],
@@ -15,7 +15,8 @@ export function restorePRCommentThreadSnapshot(
   previousThreadComments: PRComment[]
 ): PRComment[] {
   const previousById = new Map(previousThreadComments.map((comment) => [comment.id, comment]))
-  return comments.map((comment) =>
-    previousById.has(comment.id) ? (previousById.get(comment.id) ?? comment) : comment
-  )
+  return comments.map((comment) => {
+    const previous = previousById.get(comment.id)
+    return previous ? { ...comment, isResolved: previous.isResolved } : comment
+  })
 }

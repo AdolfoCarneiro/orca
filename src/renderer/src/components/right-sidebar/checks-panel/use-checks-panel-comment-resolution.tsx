@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import {
   markPRCommentThreadResolved,
   restorePRCommentThreadSnapshot
-} from '../pr-comment-thread-resolution'
+} from '@/lib/pr-comment-thread-resolution'
 import type { ChecksPanelControllerState } from './use-checks-panel-controller-state'
 import type { ChecksPanelContextState } from './use-checks-panel-context-state'
 import type { ChecksPanelComposerState } from './use-checks-panel-composer-state'
