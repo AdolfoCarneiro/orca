@@ -86,8 +86,7 @@ vi.mock('./MobileSessionTabStrip', () => ({ MobileSessionTabStrip: () => null })
 vi.mock('./MobileSessionAccessoryKeys', () => ({ MobileSessionAccessoryKeys: () => null }))
 vi.mock('./MobileSessionCommandDock', () => ({ sessionCommandDockShown: () => false }))
 const leave = vi.fn()
-// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This header fixture supplies every rendered field; no tabs or panel actions are exercised.
-const header = {
+const headerFields: Partial<MobileSessionController> = {
   worktreeName: 'workspace',
   connState: 'connected',
   presentedConnState: 'connected',
@@ -95,7 +94,9 @@ const header = {
   requestLeaveSession: leave,
   isFloatingWorkspaceRoute: true,
   terminalSummary: ''
-} as MobileSessionController
+}
+// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This header fixture supplies every rendered field; no tabs or panel actions are exercised.
+const header = headerFields as MobileSessionController
 
 function Fixture() {
   const details = useSessionTitleCard(true, false)

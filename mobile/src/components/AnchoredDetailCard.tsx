@@ -4,7 +4,6 @@ import {
   Easing,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   View,
   type LayoutRectangle
@@ -12,6 +11,8 @@ import {
 import { DetailCardFocusBoundary, commitDetailCardExit } from './detail-card-host'
 import { useReducedMotionEnabled } from '../platform/use-reduced-motion'
 import { colors, radii, spacing, typography } from '../theme/mobile-theme'
+import { themedStyleSheet } from '../theme/themed-styles'
+import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 
 export type DetailCardAnchor = {
   trigger: LayoutRectangle
@@ -52,6 +53,7 @@ export function AnchoredDetailCard({
   detail?: string | null
   footer?: React.ReactNode
 }): React.JSX.Element {
+  useMobileColorScheme()
   // Unknown counts as reduced, so the card never slides before the setting is read.
   const slide = useReducedMotionEnabled() === false
   const [progress] = useState(() => new Animated.Value(0))
@@ -140,7 +142,7 @@ export function AnchoredDetailCard({
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyleSheet(() => ({
   card: {
     position: 'absolute',
     backgroundColor: colors.bgRaised,
@@ -170,4 +172,4 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.sm
   }
-})
+}))
