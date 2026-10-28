@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, realpath, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, realpath, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -12,6 +12,7 @@ import {
 } from './git-branch-cleanup'
 import { GitCapabilityCache } from './git-capability-cache'
 import { removeTree } from './windows-transient-lock-removal'
+import { gitExecFileAsync } from '../main/git/command-runner/git-exec-file'
 
 const execFileAsync = promisify(execFile)
 
@@ -100,6 +101,69 @@ describe('branch cleanup with real Git', () => {
     expect(commands.some((args) => args[0] === 'merge-tree')).toBe(false)
     expect((await git(shallow, ['show', 'feature:feature'])).stdout).toBe('feature')
   })
+
+  it.each([
+    ['equivalent', true, 128],
+    ['unmerged', false, 128],
+    ['capture failure', false, 16]
+  ] as const)(
+    'checks %s patches within the cherry capture limit',
+    async (scenario, equivalent, maxBuffer) => {
+      await git(client, ['config', 'user.name', 'Orca Test'])
+      await git(client, ['config', 'user.email', 'orca@example.invalid'])
+      await git(client, ['checkout', '-qb', 'topic'])
+      await writeFile(join(client, 'proof.txt'), 'topic change\n')
+      await git(client, ['add', 'proof.txt'])
+      await git(client, ['commit', '-qm', `topic ${'x'.repeat(512)}`])
+      const topic = (await git(client, ['rev-parse', 'topic'])).stdout.trim()
+      await git(client, ['checkout', '-q', 'main'])
+      const targetContent = scenario === 'unmerged' ? 'target change\n' : 'topic change\n'
+      await writeFile(join(client, 'proof.txt'), targetContent)
+      await git(client, ['add', 'proof.txt'])
+      await git(client, ['commit', '-qm', 'target'])
+      const target = (await git(client, ['rev-parse', 'main'])).stdout.trim()
+
+      await expect(
+        gitExecFileAsync(['cherry', '-v', target, topic], { cwd: client, maxBuffer: 128 })
+      ).rejects.toMatchObject({ code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' })
+
+      const capabilities = new GitCapabilityCache()
+      capabilities.rememberUnsupported('merge-tree-write-tree')
+      let cherryStdout: string | undefined
+      let cherryError: unknown
+      const runGit: GitBranchCleanupExec = async (args) => {
+        try {
+          const result = await gitExecFileAsync(args, {
+            cwd: client,
+            ...(args[0] === 'cherry' ? { maxBuffer } : {})
+          })
+          if (args[0] === 'cherry') {
+            cherryStdout = result.stdout
+          }
+          return result
+        } catch (error) {
+          if (args[0] === 'cherry') {
+            cherryError = error
+          }
+          throw error
+        }
+      }
+
+      await expect(
+        branchHasNoUnmergedChangesOnAnyTarget(runGit, 'topic', ['main'], capabilities)
+      ).resolves.toBe(equivalent)
+      if (scenario === 'capture failure') {
+        expect(cherryStdout).toBeUndefined()
+        expect(cherryError).toMatchObject({ code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' })
+      } else {
+        expect(cherryError).toBeUndefined()
+        expect(cherryStdout?.trim()).toBe(`${equivalent ? '-' : '+'} ${topic}`)
+      }
+      expect((await git(client, ['rev-parse', 'topic'])).stdout.trim()).toBe(topic)
+      expect((await git(client, ['rev-parse', 'main'])).stdout.trim()).toBe(target)
+      expect(await readFile(join(client, 'proof.txt'), 'utf8')).toBe(targetContent)
+    }
+  )
 
   it.each([
     ['exact', '+refs/heads/unrelated-feature:refs/remotes/origin/main', 'refs/remotes/origin/main'],
