@@ -48,6 +48,14 @@ function normalizeTaskListToken(token: MarkdownToken, lexer: MarkdownLexerConfig
     }
   }
 
+  if (token.type === 'taskItem') {
+    for (const nested of token.nestedTokens ?? []) {
+      if (nested.type === 'text') {
+        nested.type = 'paragraph'
+      }
+    }
+  }
+
   for (const child of [...(token.items ?? []), ...(token.nestedTokens ?? [])]) {
     normalizeTaskListToken(child, lexer)
   }
