@@ -28,15 +28,15 @@ export const ZSH_WSL_CWD_REPORT_BLOCK = `__orca_wsl_cwd_report() {
   [[ -n \${WSL_DISTRO_NAME:-} ]] || return 0
   if [[ $PWD != \${__orca_wsl_cwd_reported-} ]]; then
     builtin typeset -g __orca_wsl_cwd_reported=$PWD
-    local e= c i
-    for (( i = 1; i <= $#PWD; i++ )); do
-      c=$PWD[i]
-      case $c in
-        ([A-Za-z0-9/._~-]) e+=$c ;;
-        (*) builtin printf -v c '%d' "'$c"; builtin printf -v c '%%%02X' $(( c & 255 )); e+=$c ;;
+    local __orca_e= __orca_c __orca_i
+    for (( __orca_i = 1; __orca_i <= $#PWD; __orca_i++ )); do
+      __orca_c=$PWD[__orca_i]
+      case $__orca_c in
+        ([A-Za-z0-9/._~-]) __orca_e+=$__orca_c ;;
+        (*) builtin printf -v __orca_c '%d' "'$__orca_c"; builtin printf -v __orca_c '%%%02X' $(( __orca_c & 255 )); __orca_e+=$__orca_c ;;
       esac
     done
-    builtin typeset -g __orca_wsl_cwd_encoded=$e
+    builtin typeset -g __orca_wsl_cwd_encoded=$__orca_e
   fi
   builtin printf '\\033]7;file://%s\\007' "\${__orca_wsl_cwd_encoded-}"
 }`
