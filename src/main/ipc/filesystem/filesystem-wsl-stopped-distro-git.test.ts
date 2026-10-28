@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   handlers,
   store,
+  checkIgnoredPathsMock,
   detectConflictOperationMock,
   getBranchCompareMock,
   getBranchDiffMock,
   getDiffMock,
-  checkIgnoredPathsMock,
   getStatusMock,
   realpathMock,
   resetFilesystemIpcMocks
@@ -65,7 +65,6 @@ vi.mock(
 import { registerFilesystemHandlers } from './filesystem'
 import { WslDistroStoppedError } from '../../wsl/wsl-unc-access-gate'
 
-const OID = 'a'.repeat(40)
 const UNC_ROOT = '\\\\wsl.localhost\\Ubuntu\\home\\me\\repo'
 const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')
 
@@ -94,20 +93,21 @@ describe('background Git for a stopped WSL distro', () => {
     ['git:conflictOperation', { worktreePath: UNC_ROOT }],
     ['git:upstreamStatus', { worktreePath: UNC_ROOT }],
     ['git:branchCompare', { worktreePath: UNC_ROOT, baseRef: 'main' }],
+    // Status followers: re-read whenever status changes, so each is a background poll.
     ['git:history', { worktreePath: UNC_ROOT, limit: 50 }],
-    ['git:diff', { worktreePath: UNC_ROOT, filePath: 'a.ts', staged: false }],
-    ['git:submoduleStatus', { worktreePath: UNC_ROOT, submodulePath: 'sub' }],
-    ['git:checkIgnored', { worktreePath: UNC_ROOT, paths: ['a.ts'] }],
+    ['git:submoduleStatus', { worktreePath: UNC_ROOT, submodulePath: 'vendor/lib' }],
+    ['git:checkIgnored', { worktreePath: UNC_ROOT, paths: ['dist'] }],
     ['git:findHugeFoldersToIgnore', { worktreePath: UNC_ROOT }],
+    ['git:diff', { worktreePath: UNC_ROOT, filePath: 'a.ts', staged: false }],
     [
       'git:branchDiff',
       {
         worktreePath: UNC_ROOT,
-        compare: { baseRef: 'main', baseOid: OID, headOid: OID, mergeBase: OID },
+        compare: { baseRef: 'main', baseOid: 'b', headOid: 'h', mergeBase: 'm' },
         filePath: 'a.ts'
       }
     ],
-    ['git:commitDiff', { worktreePath: UNC_ROOT, commitOid: OID, filePath: 'a.ts' }]
+    ['git:commitDiff', { worktreePath: UNC_ROOT, commitOid: 'a'.repeat(40), filePath: 'a.ts' }]
   ])('%s refuses before resolving the path or running Git', async (channel, args) => {
     await expect(invoke(channel, args)).rejects.toBeInstanceOf(WslDistroStoppedError)
     expect(isWslDistroRunningMock).toHaveBeenCalledWith('Ubuntu', expect.anything())
@@ -118,6 +118,24 @@ describe('background Git for a stopped WSL distro', () => {
     expect(getDiffMock).not.toHaveBeenCalled()
     expect(getBranchDiffMock).not.toHaveBeenCalled()
     expect(checkIgnoredPathsMock).not.toHaveBeenCalled()
+  })
+
+  it('lets showing a diff tab start the distro, but not a status-driven reload', async () => {
+    const diffArgs = { worktreePath: UNC_ROOT, filePath: 'a.ts', staged: false }
+    await invoke('git:diff', { ...diffArgs, wakeWslDistro: true }).catch((error: unknown) =>
+      expect(error).not.toBeInstanceOf(WslDistroStoppedError)
+    )
+    expect(isWslDistroRunningMock).not.toHaveBeenCalled()
+    await expect(invoke('git:diff', diffArgs)).rejects.toBeInstanceOf(WslDistroStoppedError)
+  })
+
+  it('lets showing Commits start the distro, but not a refresh after a Git action', async () => {
+    const historyArgs = { worktreePath: UNC_ROOT, limit: 50 }
+    await invoke('git:history', { ...historyArgs, wakeWslDistro: true }).catch((error: unknown) =>
+      expect(error).not.toBeInstanceOf(WslDistroStoppedError)
+    )
+    expect(isWslDistroRunningMock).not.toHaveBeenCalled()
+    await expect(invoke('git:history', historyArgs)).rejects.toBeInstanceOf(WslDistroStoppedError)
   })
 
   it("lets the active workspace's first git:status start the distro, but not later polls", async () => {

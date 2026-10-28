@@ -121,6 +121,7 @@ export const ghPullRequestsAndWorkItemsApi = {
     headSha?: string
     prRepo?: GitHubOwnerRepo | null
     noCache?: boolean
+    wakeWslDistro?: boolean
   }) => ipcRenderer.invoke('gh:prChecks', args),
   prCheckDetails: (args: {
     repoPath: string

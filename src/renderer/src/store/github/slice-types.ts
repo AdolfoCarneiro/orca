@@ -77,7 +77,11 @@ export type GitHubSlice = {
     branch?: string,
     headSha?: string,
     prRepo?: GitHubOwnerRepo | null,
-    options?: RepoScopedFetchOptions & { throwOnError?: boolean }
+    options?: RepoScopedFetchOptions & {
+      throwOnError?: boolean
+      /** Refresh or a check action: a user act that may start a stopped WSL distro. */
+      wakeWslDistro?: boolean
+    }
   ) => Promise<PRCheckDetail[]>
   fetchPRCheckDetails: (
     repoPath: string,

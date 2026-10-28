@@ -75,4 +75,23 @@ describe('background GitHub reads for a stopped WSL distro', () => {
     await handlers['gh:issue'](null, { repoPath: '/workspace/repo', number: 7 })
     expect(getIssueMock).toHaveBeenCalledWith('/workspace/repo', 7, null, { wslDistro: 'Ubuntu' })
   })
+
+  it('lets an opened checks panel or its Refresh start the distro, but not the next poll', async () => {
+    getPRChecksMock.mockResolvedValue([])
+    const args = { repoPath: '/workspace/repo', prNumber: 3 }
+    await handlers['gh:prChecks'](null, { ...args, wakeWslDistro: true })
+    expect(getPRChecksMock).toHaveBeenCalledTimes(1)
+    expect(runningStateMock).not.toHaveBeenCalled()
+
+    await expect(handlers['gh:prChecks'](null, args)).rejects.toBeInstanceOf(WslDistroStoppedError)
+    expect(getPRChecksMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('never asks WSL about a repo that runs on the Windows host', async () => {
+    harness.projects = []
+    getIssueMock.mockResolvedValue(null)
+    await handlers['gh:issue'](null, { repoPath: '/workspace/repo', number: 7 })
+    expect(runningStateMock).not.toHaveBeenCalled()
+    expect(getIssueMock).toHaveBeenCalledTimes(1)
+  })
 })

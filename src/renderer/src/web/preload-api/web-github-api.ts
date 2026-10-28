@@ -66,7 +66,9 @@ export function createGitHubApi(): WebGitHubApi {
       route<WebGitHubResult<'countWorkItems'>>(GITHUB_WEB_RPC_METHODS.countWorkItems, args),
     listWorkItems: (args) =>
       route<WebGitHubResult<'listWorkItems'>>(GITHUB_WEB_RPC_METHODS.listWorkItems, args),
-    prChecks: (args) => route<WebGitHubResult<'prChecks'>>(GITHUB_WEB_RPC_METHODS.prChecks, args),
+    // The host gates its own WSL reads; the wake hint is for local IPC only.
+    prChecks: ({ wakeWslDistro: _wake, ...args }) =>
+      route<WebGitHubResult<'prChecks'>>(GITHUB_WEB_RPC_METHODS.prChecks, args),
     prCheckDetails: (args) =>
       route<WebGitHubResult<'prCheckDetails'>>(GITHUB_WEB_RPC_METHODS.prCheckDetails, args),
     rerunPRChecks: (args) =>

@@ -7,14 +7,17 @@ const mocks = await vi.hoisted(async () => {
 })
 
 vi.mock('electron', () => mocks.electron)
-// Routing is under test here; the E9 distro gate has its own suite.
-vi.mock('../wsl/wsl-unc-access-gate', () => ({ assertWslUncPathRunning: async () => {} }))
 vi.mock('../github/client', () => mocks.client)
 vi.mock('../github/work-item-details', () => mocks.workItemDetails)
 vi.mock('../github/pr-refresh-coordinator', () => mocks.prRefresh)
 vi.mock('../telemetry/client', () => mocks.telemetry)
 vi.mock('../telemetry/cohort-classifier', () => mocks.cohort)
 vi.mock('./ui', () => mocks.ui)
+// Routing is under test here, in a running distro; the stopped case lives in github-wsl-stopped-distro.
+vi.mock('../wsl-background-distro-gate', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  readWslDistroRunningState: async () => 'running'
+}))
 
 import { registerGitHubHandlers } from './github'
 import { createGitHubIpcHarness, setPlatform } from './github-ipc-test-harness'

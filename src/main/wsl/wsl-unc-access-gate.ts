@@ -1,4 +1,8 @@
 import { parseWslUncPath } from '../../shared/wsl-paths'
+import {
+  wslDistroStoppedMessage,
+  wslDistroUnverifiableMessage
+} from '../../shared/wsl-distro-not-running-refusal'
 import { isWslUserActFor, runAsWslUserAct as runScopedWslUserAct } from './wsl-user-act-scope'
 import {
   noteWslDistroWoken,
@@ -26,7 +30,7 @@ export class WslDistroStoppedError extends Error {
   readonly code = 'WSL_DISTRO_STOPPED'
 
   constructor(readonly distro: string) {
-    super(`WSL distro '${distro}' is not running. Retry, or open a terminal in it, to start it.`)
+    super(wslDistroStoppedMessage(distro))
     this.name = 'WslDistroStoppedError'
   }
 }
@@ -35,9 +39,7 @@ export class WslDistroUnverifiableError extends Error {
   readonly code = 'WSL_DISTRO_UNVERIFIABLE'
 
   constructor(readonly distro: string) {
-    super(
-      `WSL didn't answer whether '${distro}' is running, so Orca left it alone. Retry in a moment.`
-    )
+    super(wslDistroUnverifiableMessage(distro))
     this.name = 'WslDistroUnverifiableError'
   }
 }
@@ -74,18 +76,19 @@ export async function blockedWslDistroForPath(
 /**
  * Refuses a background touch of a stopped (or unverifiable) distro's UNC path. `wake` is a user act:
  * it may boot the distro, and its success proves the distro runs so work waiting on it resumes.
+ * `wslDistro` covers a host path whose Git or gh runs in that distro.
  */
 export async function guardWslUncPathAccess<T>(
   path: string,
   access: () => Promise<T>,
-  options: { wake?: boolean } = {}
+  options: { wake?: boolean; wslDistro?: string | null } = {}
 ): Promise<T> {
   if (options.wake) {
-    const result = await runAsWslUserAct(wslDistroForPath(path), access)
-    noteWslDistroWokenForPath(path)
+    const result = await runAsWslUserAct(wslDistroForPath(path, options.wslDistro), access)
+    noteWslDistroWokenForPath(path, options.wslDistro)
     return result
   }
-  await assertWslUncPathRunning(path)
+  await assertWslUncPathRunning(path, options.wslDistro)
   return access()
 }
 

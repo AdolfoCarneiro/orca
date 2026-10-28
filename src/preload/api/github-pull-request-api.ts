@@ -75,6 +75,8 @@ export type GithubPullRequestApi = {
       headSha?: string
       prRepo?: GitHubOwnerRepo | null
       noCache?: boolean
+      /** Refresh or a check action: a user act that may start a stopped WSL distro. */
+      wakeWslDistro?: boolean
     }
   ) => Promise<PRCheckDetail[]>
   prCheckDetails: (args: {
