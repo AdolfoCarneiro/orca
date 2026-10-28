@@ -524,9 +524,6 @@
   "auto.components.activity.ActivityPrototypePage.b29191b3e0": {
     "ko": "워크트리"
   },
-  "auto.components.activity.ActivityTitlebarControls.f915168c8e": {
-    "ko": "읽지 않음"
-  },
   "auto.components.agent.AgentCombobox.48c6a5a9b4": {
     "ko": "agents 검색..."
   },
@@ -3530,9 +3527,6 @@
   "auto.components.sidebar.AddRepoSteps.cloneParentFolder": {
     "ko": "상위 폴더"
   },
-  "auto.components.sidebar.DeleteWorktreeWarningPanels.c4f96a6e18": {
-    "ko": "메인 워크트리"
-  },
   "auto.components.sidebar.HostRemoveDialog.1a2b3c4d5e": {
     "ko": "{{value0}} 제거됨"
   },
@@ -3553,12 +3547,6 @@
   },
   "auto.components.sidebar.HostRemoveDialog.8b9c0d1e2f": {
     "ko": "호스트 제거"
-  },
-  "auto.components.sidebar.HostRemoveDialog.manyWorkspaces": {
-    "ko": "워크스페이스 {{count}}개"
-  },
-  "auto.components.sidebar.HostRemoveDialog.oneWorkspace": {
-    "ko": "워크스페이스 1개"
   },
   "auto.components.sidebar.HostRemoveDialog.workspacesFailed": {
     "ko": "이 호스트에서 워크스페이스 {{count}}개를 제거할 수 없었습니다. 재시도할 수 있도록 호스트가 유지되었습니다."
@@ -3643,9 +3631,6 @@
   },
   "auto.components.sidebar.ScrollToCurrentWorkspaceToolbarButton.23989bb663": {
     "ko": "활성 워크스페이스로 이동"
-  },
-  "auto.components.sidebar.SetupScriptPromptCardViews.bb879db364": {
-    "ko": "이 repo는 공유를 무시합니다"
   },
   "auto.components.sidebar.SidebarFeedbackDialog.3460258a54": {
     "ko": "X에서 팔로우"
@@ -3974,12 +3959,6 @@
   "auto.components.status.bar.StatusBar.25d8bbde69": {
     "ko": "재설정 사용 중…"
   },
-  "auto.components.status.bar.StatusBar.5e5f9f5160": {
-    "ko": "rate-limit 재설정 1회 사용 가능"
-  },
-  "auto.components.status.bar.StatusBar.5ecae9197c": {
-    "ko": "rate-limit 재설정 {{value0}}회 사용 가능"
-  },
   "auto.components.status.bar.StatusBar.6d1042aa6f": {
     "ko": "활성 계정의 Codex rate-limit 재설정 크레딧 1회를 사용해 재설정 가능한 사용량 창을 즉시 초기화합니다."
   },
@@ -4013,12 +3992,6 @@
   "auto.components.status.bar.WorkspaceSpaceManagerPanel.39801484e0": {
     "ko": "실패"
   },
-  "auto.components.status.bar.WorkspaceSpaceManagerPanel.63efebe0e6": {
-    "ko": "{{value0}} {{value1}}이(가) Space에서 제거되었습니다."
-  },
-  "auto.components.status.bar.WorkspaceSpaceManagerPanel.65402b7192": {
-    "ko": "선택됨"
-  },
   "auto.components.status.bar.WorkspaceSpaceManagerPanel.81f14d9924": {
     "ko": "리포지토리"
   },
@@ -4036,12 +4009,6 @@
   },
   "auto.components.status.bar.tooltip.1292d4f2ee": {
     "ko": "사용할 수 없음"
-  },
-  "auto.components.status.bar.tooltip.45198c7d95": {
-    "ko": "rate-limit 재설정 1회 사용 가능"
-  },
-  "auto.components.status.bar.tooltip.bce421cba3": {
-    "ko": "rate-limit 재설정 {{value0}}회 사용 가능"
   },
   "auto.components.tab.bar.BrowserTab.911542656f": {
     "ko": "탭 고정"
@@ -5824,30 +5791,6 @@
   },
   "auto.components.TaskPage.memberCountPlural": {
     "ko": "멤버 {{count}}명"
-  },
-  "auto.components.terminal.pane.terminal.drop.handler.skippedSymlinkSingular": {
-    "ko": "심볼릭 링크 {{count}}개를 건너뛰었습니다."
-  },
-  "auto.components.terminal.pane.terminal.drop.handler.skippedSymlinkPlural": {
-    "ko": "심볼릭 링크 {{count}}개를 건너뛰었습니다."
-  },
-  "auto.components.terminal.pane.terminal.drop.handler.uploadingFileSingular": {
-    "ko": "파일 {{count}}개를 런타임에 업로드하는 중…"
-  },
-  "auto.components.terminal.pane.terminal.drop.handler.uploadingFilePlural": {
-    "ko": "파일 {{count}}개를 런타임에 업로드하는 중…"
-  },
-  "auto.components.sidebar.WorktreeList.groupProjectsRemainedSingular": {
-    "ko": "그룹을 삭제했지만, 포함된 프로젝트 {{count}}개 중 {{remaining}}개가 남아 있습니다."
-  },
-  "auto.components.sidebar.WorktreeList.groupProjectsRemainedPlural": {
-    "ko": "그룹을 삭제했지만, 포함된 프로젝트 {{count}}개 중 {{remaining}}개가 남아 있습니다."
-  },
-  "auto.components.sidebar.AddRemoteHostDialog.sshImportSyncedSingular": {
-    "ko": "호스트 {{count}}개를 Orca에 추가했습니다."
-  },
-  "auto.components.sidebar.AddRemoteHostDialog.sshImportSyncedPlural": {
-    "ko": "호스트 {{count}}개를 Orca에 추가했습니다."
   },
   "auto.components.right.sidebar.SourceControl.discardFailedSingular": {
     "ko": "파일 {{count}}개의 변경 사항을 버리지 못했습니다."

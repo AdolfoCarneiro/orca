@@ -1879,7 +1879,6 @@
         "ba64270bdb": "Agent を構成する",
         "ab63f25397": "Agent 設定を開く",
         "0c5d6a479c": "[オプション]",
-        "b5a0796911": "接続",
         "dccd26d4e4": "プロジェクトを選択",
         "d6b0a96f32": "プロジェクトを追加",
         "969a8bff66": "プロジェクト",
@@ -1928,7 +1927,8 @@
         "defaultBranchUpdateFailed": "プロジェクトのデフォルトブランチを更新できませんでした。再試行。",
         "setLocation": "プロジェクトの場所を設定する",
         "setLocationOnHost": "プロジェクトの場所を {{host}} に設定します",
-        "setLocationTooltip": "フォルダーを選択するか、このプロジェクトを {{host}} に複製します。"
+        "setLocationTooltip": "フォルダーを選択するか、このプロジェクトを {{host}} に複製します。",
+        "connectProject": "{{name}} に接続"
       },
       "NewWorkspaceComposerModal": {
         "createWorktree": "ワークツリーを作成する",
@@ -3282,21 +3282,18 @@
             },
             "drop": {
               "handler": {
-                "1e072f611e": "{{value0}} {{value1}} のアップロードに失敗しました。",
                 "0c77693641": "ワークツリーが準備できていません — しばらくしてから再試行してください。",
                 "ce8248b835": "ワークツリーのパスが使用できません。",
                 "internalTooManyPaths": "安全にターミナルへ貼り付けるにはドロップされたパスが多すぎます。",
                 "internalPathsTooLarge": "安全にターミナルへ貼り付けるにはパス一覧が大きすぎます。",
                 "internalHostMismatch": "このターミナルと同じホストのファイルをドロップしてください。",
-                "b4cf68e889": "{{value0}} {{value1}} をスキップしました。",
                 "writeTimeout": "ファイルドロップをキャンセルしました: 安全タイムアウト前にターミナルがパスを受け付けませんでした。",
                 "writeRejected": "ファイルドロップをキャンセルしました: ターミナルがパスを受け付けられませんでした。",
-                "skippedSymlinkSingular": "{{count}} 個のシンボリックリンクをスキップしました。",
-                "skippedSymlinkPlural": "{{count}} 個のシンボリックリンクをスキップしました。",
-                "uploadingFileSingular": "{{count}} 個のファイルをランタイムにアップロードしています…",
-                "uploadingFilePlural": "{{count}} 個のファイルをランタイムにアップロードしています…",
-                "uploadingFileToRemoteSingular": "{{count}} 個のファイルをリモートホストにアップロードしています…",
-                "uploadingFileToRemotePlural": "{{count}} 個のファイルをリモートホストにアップロードしています…"
+                "skippedSymlinks_other": "シンボリックリンク {{count}} 件をスキップしました。",
+                "skippedItems_other": "{{count}} 件の項目をスキップしました。",
+                "failedUploads_other": "{{count}} 件のファイルをアップロードできませんでした。",
+                "uploadingFiles_other": "{{count}} 件のファイルをランタイムにアップロード中…",
+                "uploadingFilesToRemote_other": "{{count}} 件のファイルをリモートにアップロード中…"
               }
             }
           },
@@ -3435,10 +3432,15 @@
             "sessionQueued": "セッションをキューに追加しました",
             "openSupportedWorkspace": "セッションを再開する前に、ワークスペースを開いてください。",
             "sessionHostMismatchUnsupported": "このセッションは別のホストに属しています。同じホスト上のワークスペースにドロップしてください。",
-            "oldPayload": "このセッションは古い Orca ウィンドウからドラッグされました。代わりにセッション履歴から再開してください。"
+            "oldPayload": "このセッションは古い Orca ウィンドウからドラッグされました。代わりにセッション履歴から再開してください。",
+            "legacyDragCannotRetarget": "このセッションは古いバージョンの Orca ウィンドウからドラッグされたため、選択した Codex アカウントに切り替えられません。セッション履歴パネルから再開してください。",
+            "legacyDragPrepareFailed": "Orca はこの旧形式の Codex セッションを準備できませんでした。もう一度再開を試してください。"
           },
           "TabGroupDropOverlay": {
             "paneColumnLabel": "新規分割"
+          },
+          "useTabGroupCreationCommands": {
+            "duplicateBrowserTabFailed": "ペアリングされたランタイムで管理対象のブラウザタブを複製できませんでした。"
           }
         },
         "bar": {
@@ -3633,6 +3635,30 @@
           "TabBarQuickCommandHostLoadStatus": {
             "82e294f3ca": "ホストが利用不可",
             "7c129b08ff": "ホストを読み込み中…"
+          },
+          "nativeChatCliFork": {
+            "cannotOpenInCli": "このセッションは CLI で開けません。"
+          },
+          "tabCreateEntry": {
+            "fileNotFound": "ファイルが見つかりません: {{path}}",
+            "cannotOpenDirectory": "ディレクトリを開けません: {{path}}",
+            "parentNotDirectory": "{{path}} はディレクトリではないため、ファイルを作成できません。",
+            "fileNoLongerExists": "ファイルはすでに存在しません: {{path}}",
+            "noActiveWorktree": "アクティブなワークツリーがありません。"
+          },
+          "tabCreateEntryPath": {
+            "filePathsCannotContainControlCharacters": "ファイルパスに制御文字は使用できません。",
+            "enterAUrlOrFilePath": "URL またはファイルパスを入力してください。",
+            "homeRelativePathsAreNotSupported": "ここではホームディレクトリからの相対パスは使用できません。",
+            "enterAFilePathNotA": "ディレクトリパスではなく、ファイルパスを入力してください。",
+            "enterAnAbsoluteFilePath": "ファイルの絶対パスを入力してください。",
+            "enterAnAbsolutePathForThis": "このコンピュータ上の絶対パスを入力してください。",
+            "enterARelativeFilePath": "ファイルの相対パスを入力してください。",
+            "windowsDrivePathsAreNotSupported": "ここでは Windows のドライブパスは使用できません。",
+            "uncPathsAreNotSupportedHere": "ここでは UNC パスは使用できません。",
+            "filePathsCannotContainEmptySegments": "ファイルパスに空のパス要素は使用できません。",
+            "filePathsCannotContainDotSegments": "ファイルパスに . または .. のパス要素は使用できません。",
+            "filePathsCannotContainTildeSegments": "ファイルパスに ~ のパス要素は使用できません。"
           }
         }
       },
@@ -3660,15 +3686,13 @@
             "4ebf90c12e": "外部ポートが検出されませんでした",
             "7dac3ecc9d": "外部ポート",
             "95495019ed": "{{value0}} ではポートスキャンを利用できません: {{value1}}",
-            "a8e4bdb412": " · 外部 {{value0}} 件",
             "c22ea609fd": "ポート",
-            "ca41be2802": "ポート — {{value0}} ワークスペース {{value1}}{{value2}}",
-            "b8bc3e420a": "ポート、{{value0}} ワークスペース {{value1}}",
             "3a87d54dfb": "ワークスペースポートが検出されませんでした",
             "c174bbbfed": "ワークスペースポートをスキャンしています…",
-            "8caaa86e9a": "ポート",
-            "45834a9ace": "ポート",
-            "2b84c4d11f": "{{value0}} ワークスペース · {{value1}} 外部"
+            "2b84c4d11f": "{{value0}} ワークスペース · {{value1}} 外部",
+            "portsAria_other": "ポート、ワークスペースのポート {{count}} 個",
+            "portsTooltipWithExternal_other": "ポート — ワークスペースのポート {{count}} 個 · 外部 {{externalCount}} 個",
+            "portsTooltip_other": "ポート — ワークスペースのポート {{count}} 個"
           },
           "ResourceUsageStatusSegment": {
             "946d9f94d0": "キャンセル",
@@ -3677,7 +3701,6 @@
             "27a74f91f0": "現在何も実行されていません",
             "298f4be7f2": "CPU",
             "2aa2de6cb9": "名前",
-            "30ff2c3c31": "{{value0}} 件の孤立",
             "1fedf94eae": "合計の CPU 負荷。 100% を超える値は、複数のコアが同時に動作していることを意味します。",
             "e7cf14ec78": "ターミナルセッションは利用できません。リストは古い可能性があります。",
             "93b0de3c21": "再起動",
@@ -3705,12 +3728,11 @@
             "d406915b78": "レンダラー",
             "81cd37af99": "メイン",
             "fa6d36758d": "セッション {{value0}} を強制終了",
-            "b8f4a2c1d0e3": "{{value0}} 件の孤立",
-            "c7e3b1a0d9f2": "孤立したターミナル {{value0}} 件を終了",
-            "d8f4c2b1e0a3": "孤立したターミナル {{value0}} 件を終了",
             "e9a5d3c2b1f0": "{{value0}} を終了しますか？",
             "8a0472ab54": "{{value0}} に接続できませんでした。リソースは不明です。",
-            "1ea066b73f": "リソースを表示するには {{value0}} を更新してください。"
+            "1ea066b73f": "リソースを表示するには {{value0}} を更新してください。",
+            "endOrphanTerminals_other": "孤立したターミナル {{count}} 件を終了",
+            "orphanCount_other": "孤立 {{count}} 件"
           },
           "SshStatusSegment": {
             "3ad70e0365": "リモートホストを管理…",
@@ -3778,10 +3800,6 @@
             "3325d996cb": "レート制限をリセット",
             "cd9d7b40ff": "{{value0}} セッションを再起動します",
             "6cd6650b4c": "セッションを再開する",
-            "1446d0d8a0": "{{value0}} Codex セッションはまだ古いアカウントにあります。",
-            "605901a495": "1 Codex セッションはまだ古いアカウントにあります",
-            "5e5f9f5160": "レート制限リセットが 1 回利用可能",
-            "5ecae9197c": "レート制限リセットが {{value0}} 回利用可能",
             "25d8bbde69": "リセットを使用中…",
             "e159fc1fd7": "今すぐリセット",
             "972a1ff497": "Codex の制限をリセットしますか？",
@@ -3798,7 +3816,9 @@
             "codexSignInError": "Codex のサインインに失敗しました。もう一度お試しください。",
             "cursorUsageMenu": "Cursor の使用状況",
             "hiddenUsageProviders": "ほかに: {{value0}}",
-            "zcodeUsageMenu": "ZCode の使用量"
+            "zcodeUsageMenu": "ZCode の使用量",
+            "rateLimitResetsAvailable_other": "レート制限リセットが {{count}} 回利用可能",
+            "staleCodexSessions_other": "{{count}} 件の Codex セッションがまだ以前のアカウントを使用しています。"
           },
           "StatusBarUsageEmptyCta": {
             "828c764a79": "アカウントを接続する",
@@ -3852,11 +3872,8 @@
             "6f8f6a6b04": "ワークスペースのフィルタリング",
             "5caccea440": "選択したものを削除",
             "e4a12c455b": "クリア",
-            "0cb1501ccf": "回収可能な",
-            "65402b7192": "選択中",
             "43171f3e60": "ワークスペース",
             "09960d86bd": "スキャン済み",
-            "63efebe0e6": "{{value0}} {{value1}} がスペースから削除されました。",
             "eee5240810": "ワークスペースが削除されました",
             "9afc97f9a3": "ワークスペースが削除されました",
             "792a214457": "ワークスペースの削除",
@@ -3864,7 +3881,6 @@
             "9155381019": "スパース",
             "f39d291997": "選択",
             "16988df079": "ファイルが見つかりませんでした。",
-            "b25c2c1086": "最上位の項目",
             "d3f9c69ddc": "ズーム",
             "ef890d31b9": "全て",
             "c28643d3da": "ワークスペースに移動",
@@ -3903,8 +3919,12 @@
             "c5135e7e4a": "ワークスペースのサイズをスキャンしています。このページから離れても構いません。",
             "0990a63160": "スキャンされたワークスペースのサイズはまだありません。",
             "977bdf9a36": "表示するトップレベルの項目はありません。",
-            "131662ac65": "{{value0}} オープン",
-            "0d1c78d749": "{{value0}} を選択"
+            "0d1c78d749": "{{value0}} を選択",
+            "removedFromSpace_other": "{{count}} 件のワークスペースをスペースから削除しました。",
+            "topLevelItems_other": "最上位の項目 {{formattedCount}} 件",
+            "selectedCount_other": "{{count}} 件選択中",
+            "reclaimableSize": "{{size}} を解放可能",
+            "scanning": "スキャン中"
           },
           "ports": {
             "status": {
@@ -3918,7 +3938,8 @@
                   "e4a709548c": "ポートの更新に失敗しました",
                   "acdb6df590": "{{value0}} でプロセスを停止しました",
                   "480d8f2347": "{{value0}} をコピーしました",
-                  "b854ec9ff5": "ブラウザを開けませんでした"
+                  "b854ec9ff5": "ブラウザを開けませんでした",
+                  "unknownProcess": "不明なプロセス"
                 }
               }
             }
@@ -3935,8 +3956,6 @@
             "7ad719c4bf": "制限中",
             "e740f92596": "更新に失敗しました",
             "8418ec448d": "{{value0}} の使用状況を更新できませんでした。Agent セッションは引き続きサインイン済みの場合があります。",
-            "45198c7d95": "レート制限リセットが 1 回利用可能",
-            "bce421cba3": "レート制限リセットが {{value0}} 回利用可能",
             "7ec6e030a0": "次は今期限切れ",
             "d1e442a9e5": "今期限切れ",
             "6cf9eaed10": "次は {{value0}} 後に期限切れ",
@@ -3988,7 +4007,13 @@
             "claudeNoUsageFromHost": "{{server}} から使用状況なし",
             "claudeUnknownOnHost": "{{server}} から Claude の使用状況を取得できません。そこでサインインしていないか、API キー課金を使用している可能性があります。",
             "remoteOwnerUnreachable": "使用状況を取得できません — {{server}} に接続できません",
-            "remoteOwnerNoUsage": "使用状況を取得できません — {{server}} が使用状況を報告していません。そのホストの Orca を更新してください。"
+            "remoteOwnerNoUsage": "使用状況を取得できません — {{server}} が使用状況を報告していません。そのホストの Orca を更新してください。",
+            "justNow": "たった今",
+            "minutesAgo": "{{minutes}} 分前",
+            "hoursAgo": "{{hours}} 時間前",
+            "updatedAgo": "{{time}}に更新",
+            "notYetUpdated": "未更新",
+            "rateLimitResetsAvailable_other": "レート制限リセットが {{count}} 回利用可能"
           },
           "SshTargetStatusRow": {
             "sshHost": "SSH ホスト"
@@ -4031,12 +4056,10 @@
           "RemoteServerUpdateStatusSegment": {
             "updating": "{{value0}}/{{value1}}を更新中",
             "updatingTooltip": "リモート Orca サーバーの更新が進行中",
-            "failed": "{{value0}}台のサーバー更新に失敗",
             "failedTooltip": "リモート Orca サーバーの更新を開いて確認し、再試行してください",
-            "updated": "{{value0}}台のサーバーを更新完了",
             "updatedTooltip": "リモート Orca サーバーの更新が完了しました",
-            "failedOne": "1台のサーバー更新に失敗",
-            "updatedOne": "1台のサーバーを更新完了"
+            "failedCount_other": "{{count}} 台のサーバーを更新できませんでした",
+            "updatedCount_other": "{{count}} 台のサーバーを更新しました"
           },
           "resource": {
             "memory": {
@@ -4044,7 +4067,10 @@
                 "workingSetDescription": "合計ワーキングセット(WS): 現在 RAM に常駐しているページです。共有ページが複数のプロセスに表示されることがあり、Windows がページアウトしたメモリはここには含まれません。",
                 "privateBytesDescription": "合計プライベートバイト: これらのプロセスがコミットしたメモリで、常駐中かページアウト済みかを問わず計上されます。ホストがコミット制限に対して計上する値であるため、ページングによって上のワーキングセットが縮小しても増え続けます。",
                 "footprintDescription": "合計メモリフットプリント。アクティビティモニタに表示される値と同じで、各プロセスが所有するメモリ(グラフィックスメモリを含む)です。プロセス間で共有されるページは二重に計上されません。",
-                "rssDescription": "合計レジデントセットサイズ(RSS)。共有またはエイリアスされたページが複数のプロセスに表示されることがあります。"
+                "rssDescription": "合計レジデントセットサイズ(RSS)。共有またはエイリアスされたページが複数のプロセスに表示されることがあります。",
+                "memColumn": "メモリ",
+                "memorySummary": "Σ メモリ",
+                "privateSummary": "Σ プライベート"
               }
             },
             "manager": {
@@ -4066,13 +4092,13 @@
           "SkillUpdateStatusSegment": {
             "runningLabel": "スキルを更新しています",
             "runningOne": "{{value0}} を更新しています…",
-            "runningMany": "{{value0}} 件のスキルを更新しています…",
             "runningAria": "スキルを更新しています。クリックすると詳細を開きます。",
             "successLabel": "スキルを更新しました",
             "successAria": "スキルを更新しました。クリックすると詳細を開きます。",
             "attentionAria": "一部のスキルの更新はスキップされました。クリックして詳細を開きます。",
             "attentionLabel": "スキルに対応が必要",
-            "attentionTooltip": "一部のスキルの更新はスキップされました — クリックして詳細を表示"
+            "attentionTooltip": "一部のスキルの更新はスキップされました — クリックして詳細を表示",
+            "runningSkills_other": "{{count}} 件のスキルを更新中…"
           },
           "RuntimeHostStatusRow": {
             "previous_connection_closed": "以前の接続が閉じられました",
@@ -4096,29 +4122,21 @@
             "repair": "Re-pair…"
           },
           "NativeChatResumeStatusSegment": {
-            "labelOne": "再開するには 1 チャット",
-            "label": "{{value0}} チャットを再開します",
-            "ariaLabelOne": "再開可能なチャットが 1 件あります",
-            "ariaLabel": "{{value0}} チャットを再開できます",
             "tooltip": "中断されたチャットを開いて再開可能",
-            "failedLabelOne": "1 件のチャットを再開できませんでした",
-            "failedLabel": "{{value0}} 件のチャットを再開できませんでした",
-            "failedAriaOne": "1 件のチャットを再開できませんでした。詳細はクリックしてください。",
-            "failedAria": "{{value0}} 件のチャットを再開できませんでした。詳細はクリックしてください。",
             "failedTooltip": "再起動後に Orca が再開できなかったチャット。詳細はクリックしてください。",
-            "checkLabelOne": "確認が必要なチャット 1 件",
-            "checkLabel": "確認が必要なチャット {{value0}} 件",
-            "checkAriaOne": "再開後に確認が必要なチャット 1 件。詳細はクリックしてください。",
-            "checkAria": "再開後に確認が必要なチャット {{value0}} 件。詳細はクリックしてください。",
             "checkTooltip": "再起動後に Orca が再開できなかった、または再開を確認できなかったチャット。詳細はクリックしてください。",
             "resumingTooltip": "中断されたチャットを復元し、続行を依頼しています…",
             "resumingProgressLabel": "チャットを再開中 {{value0}}/{{value1}}",
             "resumingProgressAria": "チャットを再開中。{{value1}} 件中 {{value0}} 件完了。クリックすると詳細を表示します。",
-            "resumedLabelOne": "再開したチャット 1 件",
-            "resumedLabel": "再開したチャット {{value0}} 件",
-            "resumedAriaOne": "チャットを 1 件再開しました。クリックすると表示します。",
-            "resumedAria": "チャットを {{value0}} 件再開しました。クリックすると表示します。",
-            "resumedTooltip": "再起動後に Orca が再開したチャットです。クリックすると表示します。"
+            "resumedTooltip": "再起動後に Orca が再開したチャットです。クリックすると表示します。",
+            "chatsFailedLabel_other": "{{count}} 件のチャットを再開できませんでした",
+            "chatsFailedAria_other": "{{count}} 件のチャットを再開できませんでした。クリックして詳細を表示。",
+            "resumedLabelCount_other": "{{count}} 件のチャットを再開しました",
+            "resumedAriaCount_other": "{{count}} 件のチャットを再開しました。クリックして表示。",
+            "checkLabelCount_other": "確認が必要なチャット {{count}} 件",
+            "checkAriaCount_other": "再開後に確認が必要なチャットが {{count}} 件あります。クリックして詳細を表示。",
+            "labelCount_other": "再開するチャット {{count}} 件",
+            "ariaLabelCount_other": "再開可能なチャット {{count}} 件"
           },
           "provider": {
             "extra": {
@@ -4128,6 +4146,71 @@
                 }
               }
             }
+          },
+          "mergeSnapshotAndSessions": {
+            "unattributed": "帰属不明"
+          },
+          "resourceSessionLabels": {
+            "terminalNumber": "ターミナル {{number}}",
+            "pid": "PID {{pid}}",
+            "sessionPrefix": "セッション {{id}}",
+            "unknownSession": "（不明なセッション）",
+            "unknown": "不明"
+          },
+          "runtimeTargets": {
+            "wslDefault": "WSL のデフォルト"
+          },
+          "floatingWorkspace": {
+            "minimize": "フローティングワークスペースを最小化",
+            "show": "フローティングワークスペースを表示"
+          },
+          "workspaceSpaceGitRefresh": {
+            "ownerUnavailable": "ワークスペースの所有者が利用できなくなりました"
+          },
+          "workspaceSpaceDecision": {
+            "syncedWithUpstream": "アップストリームと同期済み",
+            "aheadAndBehind": "{{ahead}} コミット先行、{{behind}} コミット遅延",
+            "ahead": "{{ahead}} コミット先行",
+            "behind": "{{behind}} コミット遅延",
+            "activeAgents_other": "稼働中の Agent {{count}} 件",
+            "completedAgents_other": "完了した Agent {{count}} 件",
+            "activeAndCompletedAgents": "{{active}}、{{completed}}",
+            "completedAgentsRetained_other": "完了した Agent {{count}} 件を保持",
+            "noTrackedAgents": "追跡中の Agent は実行されていません",
+            "noTerminalTabs": "ターミナルタブなし",
+            "liveTerminalTabs_other": "ターミナルタブ {{count}} 個中 {{live}} 個が稼働中",
+            "gitStatusUnavailable": "Git ステータスを取得できません: {{error}}",
+            "gitStatusNotLoaded": "Git ステータスはまだ読み込まれていません",
+            "noUncommittedFiles": "未コミットのファイルなし",
+            "changedFiles_other": "変更されたファイル {{count}} 件",
+            "noEditorFiles": "エディターで開いているファイルなし",
+            "editorFilesOpen_other": "エディターで開いているファイル {{count}} 件",
+            "dirtyOfOpen": "{{open}}のうち{{dirty}}",
+            "dirtyEditorBuffers_other": "未保存のエディターバッファー {{count}} 件",
+            "openFiles_other": "開いているファイル {{count}} 件",
+            "activeWorkspace": "これはアクティブなワークスペースです",
+            "mainWorktreeProtected": "メインワークツリーは保護されています",
+            "workspaceProtected": "ワークスペースは保護されています",
+            "canDeleteAfterReview": "確認後に削除可能",
+            "noLinkedIssue": "リンクされた Issue なし",
+            "noLinkedReview": "リンクされた PR なし",
+            "browserTabsOpen_other": "開いているブラウザタブ {{count}} 個"
+          },
+          "workspaceSpaceFormat": {
+            "cancellingScan": "スキャンをキャンセル中",
+            "currentWorkspaces": "ワークスペース",
+            "scanningWorkspaces": "{{total}} 件中 {{scanned}} 件をスキャン中 · {{current}}",
+            "scanningRepos_other": "{{count}} 件のリポジトリ中 {{scanned}} 件をスキャン中 · {{current}}",
+            "scanningSizes": "ワークスペースのサイズをスキャン中",
+            "status": {
+              "scanned": "スキャン済み",
+              "missing": "不足",
+              "noAccess": "アクセス不可",
+              "unavailable": "利用不可",
+              "failed": "失敗"
+            },
+            "mainWorktree": "メインワークツリー",
+            "detached": "分離状態"
           }
         }
       },
@@ -4933,12 +5016,10 @@
           "39d51212cc": "グループ名",
           "aa0247680d": "いいえ、個別にインポート",
           "a0bc4d1f8e": "はい、グループとしてインポート",
-          "8401a7a0d0": "1 個のリポジトリ",
-          "d4f1df62ef": "{{value0}} 個のリポジトリ",
-          "b4263a2ac4": "{{value1}} で {{value0}} が見つかりました。",
           "24eda6c8b2": "スキャン中… {{value0}}",
           "6149d5203f": "選択されているリポジトリがありません。代わりに親フォルダーを開くと、Git 機能なしでエディター、ターミナル、検索を利用できます。",
-          "e52454b7f6": "フォルダーとして開く"
+          "e52454b7f6": "フォルダーとして開く",
+          "foundRepositories_other": "{{path}} で {{count}} 件のリポジトリが見つかりました。"
         },
         "AddRepoRemoteStep": {
           "6680289908": "/home/user/project",
@@ -5007,9 +5088,8 @@
           "eab8b45238": "コピーエラー",
           "a23b22d16f": "コピーしました",
           "74fc00776f": "エラーの詳細",
-          "3afcad0497": "最初の Agent メッセージから。",
-          "ff62a18580": "Orca はブランチ名を生成できませんでした",
-          "ca3b225195": "ブランチの自動名前付けに失敗しました"
+          "ca3b225195": "ブランチの自動名前付けに失敗しました",
+          "couldNotGenerateBranchName": "Orca は最初の Agent メッセージから <name>{{name}}</name> のブランチ名を生成できませんでした。"
         },
         "CreateProjectLocationField": {
           "95548e33bf": "親フォルダーを選択…",
@@ -5029,37 +5109,32 @@
           "2b56b35f53": "これは設定で変更できます。",
           "dd3a45bbbd": "次回からはこの確認は省略させていただきます。",
           "fc23c4cbdf": "ワークスペースの削除",
-          "86f0ae1257": "ワークスペースの削除"
+          "86f0ae1257": "ワークスペースの削除",
+          "removeFolderProjectInstead": "このワークスペースを削除する代わりに、フォルダープロジェクトを削除してください。",
+          "gitBlocksMainWorktree": "Git ではメインワークツリーを削除できません。"
         },
         "DeleteWorktreeDirtyChangeHint": {
           "showLoadedPaths": "読み込まれたパスを表示",
           "loadedPathsNotice": "読み込まれたパスは不完全な場合や古い場合があります。",
           "loadedChangedPaths": "読み込まれた変更済みパス",
           "unresolvedConflict": "未解決の競合",
-          "moreLoadedPaths": "ほかに読み込まれたパスが{{value0}}件",
           "changeCount_one": "未コミットまたは未追跡の変更: {{count}} 件",
           "changeCount_other": "未コミットまたは未追跡の変更: {{count}} 件",
-          "changes": "未コミットまたは未追跡の変更があります"
+          "changes": "未コミットまたは未追跡の変更があります",
+          "moreLoadedPaths_other": "ほかに読み込み済みのパス {{count}} 件"
         },
         "DeleteWorktreeLineageNotice": {
-          "ad407c2d55": "件以上",
           "a940f3c96e": "子ワークスペースは削除されます",
-          "29b98bf9cd": "このワークスペースを削除すると、子ワークスペース {{value0}} 個も削除されます。",
-          "66798cc6a2": "このワークスペースを削除すると、子ワークスペースも 1 つ削除されます。"
+          "alsoDeletesChildren_other": "このワークスペースを削除すると、{{count}} 件の子ワークスペースも削除されます。",
+          "moreChildren_other": "ほか {{count}} 件"
         },
         "DeleteWorktreeSkipConfirmOption": {
           "29aefb7e52": "今後表示しない"
-        },
-        "DeleteWorktreeWarningPanels": {
-          "026738155a": "(元のクローンディレクトリ)。",
-          "c4f96a6e18": "メインワークツリー",
-          "e3be9eba15": "これは、"
         },
         "ImportedWorktreesVisibilityLine": {
           "b7a87dc32f": "ワークツリーリストに表示",
           "ad99f4eea9": "非表示のままにする",
           "9f4f14e821": "後でプロジェクトメニューから変更できます。",
-          "b2bc47c080": "さらに多くの場所",
           "b47ba1a9d2": "{{value0}} プレビュー",
           "2251d41ebb": "非表示のワークツリーグループ",
           "5a9688802a": "{{value0}} をもっと見る",
@@ -5073,7 +5148,8 @@
           "keepHiddenAriaLabel_one": "{{repo}} で検出されたワークツリー {{count}} 件を非表示のままにする（プロジェクトメニューから再表示できます）",
           "keepHiddenAriaLabel_other": "{{repo}} で検出されたワークツリー {{count}} 件を非表示のままにする（プロジェクトメニューから再表示できます）",
           "keepHiddenTooltip": "非表示のままにする（プロジェクトメニューから再表示できます）",
-          "repoOnHost": "{{repo}}（{{host}}）"
+          "repoOnHost": "{{repo}}（{{host}}）",
+          "moreLocations_other": "ほか {{count}} か所"
         },
         "NonGitFolderDialog": {
           "e52454b7f6": "フォルダーとして開く",
@@ -5107,20 +5183,22 @@
         },
         "ProjectGroupDeleteDialog": {
           "ca65b78f78": "キャンセル",
-          "69f5cb97d0": "削除",
           "591f330288": "プロジェクトグループの削除",
           "2c14ce677a": "削除中…",
           "0e0e6764af": "含まれるプロジェクト",
-          "ad407c2d55": "件以上",
-          "removeContainedProjectSingular": "含まれるプロジェクトを1件削除",
-          "removeContainedProjectPlural": "含まれるプロジェクトを{{value0}}件削除",
           "55f75628c0": "ディスク上のプロジェクトフォルダーは削除されません。",
-          "fec7e9c8ae": "グループを削除"
+          "fec7e9c8ae": "グループを削除",
+          "removeContainedProjects_other": "含まれる {{count}} 件のプロジェクトを削除",
+          "deleteGroupDescription": "<name>{{name}}</name> を削除します。",
+          "moreProjects_other": "ほか {{count}} 件"
         },
         "ProjectGroupNameDialog": {
           "d99a034073": "キャンセル",
           "83dfbc5313": "グループ名",
-          "4a64e78822": "保存中…"
+          "4a64e78822": "保存中…",
+          "defaultGroupName": "{{name}} グループ",
+          "create": "作成",
+          "rename": "名前を変更"
         },
         "RemoteFileBrowser": {
           "2300612806": "フィルタリングするために入力するか、パスを入力します…",
@@ -5132,7 +5210,9 @@
           "largeInputNoMatches": "この長い入力に一致するものはありません",
           "entriesLabel": "フォルダーの項目",
           "inputLabel": "フィルターまたはパス",
-          "fileHint": "ファイルはプロジェクトとして開けません"
+          "fileHint": "ファイルはプロジェクトとして開けません",
+          "invalidPathRepeatedSeparators": "無効なパス: 区切り文字が連続しています",
+          "invalidPathControlCharacters": "無効なパス: 制御文字は使用できません"
         },
         "SleepTwinWorkspaceDialog": {
           "title": "Sleep Workspace",
@@ -5162,11 +5242,10 @@
           "70715947fb": "セットアップスクリプトを空にすることはできません",
           "888b83bf78": "セットアップスクリプトの保存に失敗しました",
           "a49196d538": "Orca が新規ワークツリーを作成するときに実行されます。",
-          "d9f2db2738": "プロジェクトの設定",
-          "a5bb8c5135": "これに保存されました",
           "savedSetupCommand": "セットアップコマンドを保存しました。",
           "savedWithSkippedFields_one": "未対応の項目を {{count}} 件スキップしました。セットアップコマンドを保存しました。",
-          "savedWithSkippedFields_other": "未対応の項目を {{count}} 件スキップしました。セットアップコマンドを保存しました。"
+          "savedWithSkippedFields_other": "未対応の項目を {{count}} 件スキップしました。セットアップコマンドを保存しました。",
+          "savedInProjectSettings": "この<settings>プロジェクトの設定</settings>に保存済み"
         },
         "SetupScriptPromptCardViews": {
           "96a7f4198c": "ローカル設定を保存する",
@@ -5174,20 +5253,17 @@
           "31b8b01a45": "設定",
           "4a98f907ae": "再試行",
           "0a98169776": "Orca が新規ワークツリーを作成するときに実行するセットアップコマンドを追加します。",
-          "8349e3fa4c": "。新規ワークツリーに対して実行するために保存します。",
-          "b56d1322f7": "セットアップコマンドが見つかりました",
           "aef6c0a213": "Orca がワークツリーを作成するたびに実行できるように、検出されたコマンドを保存します。",
-          "660cdc17f8": "セットアップスクリプト。ローカルコマンドを追加するか、設定でソースを変更します。",
-          "8f6be51aa1": "orca.yaml",
-          "bb879db364": "このリポジトリは共有を無視します",
           "0155fb9ed3": "現在、このリポジトリのセットアップスクリプトを確認できませんでした。",
           "eefa756190": "手動で構成する",
           "ca4efcbc25": "保存",
-          "d02e6a42b1": "から検出されました",
           "fdbc6cb064": "検出されたセットアップスクリプト",
           "7275f674cc": "検出されたセットアップ",
           "822ff300ad": "閉じる",
-          "5bfd5c8779": "セットアップスクリプトを閉じる"
+          "5bfd5c8779": "セットアップスクリプトを閉じる",
+          "detectedFromSource": "<source>{{source}}</source> から検出",
+          "ignoresSharedSetup": "このリポジトリは共有の <yaml>orca.yaml</yaml> セットアップスクリプトを無視します。ローカルコマンドを追加するか、設定でソースを変更してください。",
+          "foundSetupCommandIn": "<source>{{source}}</source> でセットアップコマンドが見つかりました。新規ワークツリーで実行するには保存してください。"
         },
         "SidebarFeedbackDialog": {
           "8bf619e4cf": "キャンセル",
@@ -5364,8 +5440,8 @@
         "WorkspaceKanbanDrawerHeader": {
           "f369f5c5a3": "閉じる",
           "e1a34450fc": "ワークスペースをステータスごとに整理し、ワークスペースカードを開きます。",
-          "81870af08f": "選択中",
-          "c6a77ab0f4": "ワークスペースボード"
+          "c6a77ab0f4": "ワークスペースボード",
+          "selectedCount_other": "{{count}} 件選択中"
         },
         "WorkspaceKanbanPinDropTarget": {
           "c30151c5ee": "ここにドロップすると、ステータスを変更せずにピンを固定できます。",
@@ -5466,7 +5542,8 @@
           "2931b42b09": "状態: ドラフト {{value0}}",
           "e888362def": "状態: クローズ",
           "f394b3e86e": "状態: マージ済み",
-          "af2b07bda5": "状態: {{value0}}"
+          "af2b07bda5": "状態: {{value0}}",
+          "checksStatus": "チェック: {{status}}"
         },
         "WorktreeCardPorts": {
           "3240f320d7": "ライブポート",
@@ -5477,8 +5554,8 @@
           "5d1a5d51bb": "{{value0}} でプロセスを停止しました",
           "c89f290e25": "{{value0}} をコピーしました",
           "d1113f4660": "ブラウザを開けませんでした",
-          "fed49903c9": "{{value0}} ライブ {{value1}}",
-          "unknownProcess": "不明なプロセス"
+          "unknownProcess": "不明なプロセス",
+          "livePorts_other": "稼働中のポート {{count}} 個"
         },
         "WorktreeContextMenu": {
           "c39c37676a": "グループを作成し、このプロジェクトをそのグループに移動します。",
@@ -5520,7 +5597,6 @@
           "f9dc6cc5d3": "プロジェクトグループの名前を変更",
           "370c6a55dd": "フィルターをクリアする",
           "b7acbf038b": "ワークスペースが見つかりません",
-          "0c6ee14f23": "子供",
           "c83968f87f": "プロジェクトの削除",
           "64e55f7f01": "グループから削除",
           "4a08fb55f2": "グループに移動",
@@ -5533,12 +5609,7 @@
           "4d7b73658c": "グループ名の変更",
           "79465e9034": "{{value0}} のグループ操作",
           "bfbedc547b": "ワークツリー",
-          "045a8aed48": "子供たち",
           "bb85cd86ba": "{{value0}} のワークスペースを作成",
-          "20bebf9c7f": "{{value0}} 個の子ワークスペースを表示",
-          "c1f4a31623": "{{value0}} 個の子ワークスペースを表示",
-          "e97297cb75": "{{value0}} 個の子ワークスペースを非表示",
-          "0cd15956d4": "{{value0}} 個の子ワークスペースを非表示",
           "bd37a57ac8": "{{value0}} のワークスペースを作成",
           "b667b59632": "一部のプロジェクトを Orca から削除できませんでした",
           "groupDeleteFailed": "グループの削除に失敗しました",
@@ -5552,8 +5623,10 @@
           "groupRenameFailed": "グループ名の変更に失敗しました",
           "groupRenameFailedDesc": "Orca はグループのホストに新規名前を確認できませんでした。再接続後、グループを再確認してください。",
           "hostRepairRequired": "Re-pair required",
-          "groupProjectsRemainedSingular": "グループ削除後も、含まれていたプロジェクト {{count}} 件中 {{remaining}} 件が残りました。",
-          "groupProjectsRemainedPlural": "グループ削除後も、含まれていたプロジェクト {{count}} 件中 {{remaining}} 件が残りました。"
+          "showChildWorkspaces_other": "{{count}} 件の子ワークスペースを表示",
+          "hideChildWorkspaces_other": "{{count}} 件の子ワークスペースを非表示",
+          "childCount_other": "子 {{count}} 件",
+          "groupProjectsRemained_other": "グループの削除後も、含まれていた {{count}} 件のプロジェクトのうち {{remaining}} 件が残りました。"
         },
         "WorktreeMetaDialog": {
           "3db0a2a593": "キャンセル",
@@ -5617,7 +5690,6 @@
           "d40d436fc2": "ワークツリーの表示設定を更新できませんでした。もう一度お試しください。",
           "unsupportedHost": "このホストはソース別のワークツリー表示設定に対応していません。この設定を変更するには、ホストの Orca を更新してください。",
           "search": "非表示のワークツリーを検索",
-          "searchPlaceholder": "{{value0}} 件のワークツリーを検索…",
           "noMatches": "一致するワークツリーはありません",
           "allShown": "検出されたワークツリーはすべて表示されています",
           "noneFound": "Orca 以外のワークツリーは見つかりませんでした",
@@ -5625,7 +5697,8 @@
           "disableSource": "ソースを無効にするとワークツリーを個別に管理できます。",
           "appearWhenDetected": "Orca が新しいワークツリーを検出すると、ここに表示されます。",
           "openGlobalSettings": "グローバル設定で管理",
-          "globalSettingsSources": "これらのソースにはグローバル設定があり、ここで上書きできます:"
+          "globalSettingsSources": "これらのソースにはグローバル設定があり、ここで上書きできます:",
+          "searchHiddenPlaceholder_other": "{{count}} 件のワークツリーを検索…"
         },
         "WorktreeVisibilitySourceList": {
           "claude": "Claude Code",
@@ -5856,12 +5929,9 @@
                   "670864ab52": "ローカル {{value0}} を最新の状態に保つ",
                   "84c62e4d7f": "{{value0}} をオンにできませんでした",
                   "442552c656": "設定を開いてもう一度お試しください。",
-                  "f15fd80989": "新規ワークツリーは最新ですが、ローカル {{value0}} は {{value1}} {{value2}} 遅れているため、AI diff が古い履歴と比較する可能性があります。Orca が自動で最新状態を保つようにできます。これはいつでもここで変更できます",
-                  "3d260e1a5d": "設定 › {{value0}}",
                   "34a03a6565": "{{value0}} を最新の状態に保つ",
                   "4a18052018": "ローカル {{value0}} は {{value1}} より遅れています",
-                  "commit": "commit",
-                  "commits": "commits"
+                  "staleLocalBranch_other": "新規ワークツリーは最新ですが、ローカルの {{branch}} は {{count}} コミット遅れているため、AI の差分比較に古い履歴が使われる可能性があります。Orca にこのブランチの自動更新を任せられます。<settings>設定 › {{setting}}</settings>でいつでも変更できます"
                 }
               }
             }
@@ -5925,13 +5995,11 @@
           "7a8b9c0d1e": "設定を開く",
           "8b9c0d1e2f": "ホストを削除",
           "workspacesFailed": "このホストの {{count}} 個のワークスペースを削除できませんでした。ホストは保持されたので、再試行できます。",
-          "oneWorkspace": "1つのワークスペース",
-          "manyWorkspaces": "{{count}} 個のワークスペース",
-          "hostHasWorkspacesDefault": "このコンピュータから {{value0}} とその認証情報を削除します。{{value1}} は Orca に残ります — リモートファイルは変更されません。",
-          "alsoForgetLocal": "また、Orca からこれらの {{value0}} も削除",
           "advanced": "詳細設定",
           "alsoForgetLocalHint": "Orca からのみ削除します。リモートのファイル、ワークツリー、ブランチはそのまま残ります。",
-          "wslHostEndsTerminalsUnlessShared": "Orca から {{value0}} を削除します。このコンピューターで開いている別の Orca が使用していない場合は、開いているターミナルも終了し、そのディストリビューション内の Orca サーバーを停止します。ディストリビューション内のファイルは変更されません。"
+          "wslHostEndsTerminalsUnlessShared": "Orca から {{value0}} を削除します。このコンピューターで開いている別の Orca が使用していない場合は、開いているターミナルも終了し、そのディストリビューション内の Orca サーバーを停止します。ディストリビューション内のファイルは変更されません。",
+          "hostKeepsWorkspaces_other": "このコンピュータから {{host}} とその認証情報を削除します。ホストの {{count}} 件のワークスペースは Orca に残ります。リモートファイルは変更されません。",
+          "alsoRemoveWorkspaces_other": "この {{count}} 件のワークスペースも Orca から削除"
         },
         "HostRenameDialog": {
           "1a2b3c4d5e": "ホスト名を変更",
@@ -5975,7 +6043,7 @@
           "current": "現在",
           "searchPlaceholder": "ワークツリーを検索…",
           "empty": "一致する対象ワークツリーがありません。",
-          "setParentFor": "次のワークツリーの親を設定"
+          "setParentForName": "<name>{{name}}</name> の親を設定"
         },
         "WorktreeCardStatusSlot": {
           "branchIdentity": "ブランチ",
@@ -5986,11 +6054,9 @@
         "NewExternalWorktreesInboxLine": {
           "9f2d4c8b17": "{{value0}} の外部ワークツリーを完全に非表示にする",
           "c3e8a1f4b2": "今後表示しない",
-          "2a6f31d8c7": "非表示のワークツリー",
-          "5b90e4a2f6": "非表示のワークツリー",
-          "7f18c5b0d3": "{{value1}} の {{value0}} 非表示ワークツリーを確認する",
-          "4e2b7a9c05": "{{value1}} の {{value0}} 非表示ワークツリーを確認する",
-          "6c07f3a91e": "{{value0}}、{{value1}}"
+          "6c07f3a91e": "{{value0}}、{{value1}}",
+          "hiddenWorktreesNoun_other": "非表示のワークツリー",
+          "reviewHiddenWorktrees_other": "{{scope}} の非表示ワークツリー {{count}} 件を確認"
         },
         "NoticeHostGlyph": {
           "hostDisconnected": "{{hostName}} が切断されました",
@@ -6081,8 +6147,8 @@
           "sshConfigPickerRetry": "再試行",
           "sshConfigPickerResolving": "読む…",
           "pairingHelpShareComputer": "もう一方のコンピューターで「設定 → リモート Orca サーバー → このコンピューターを共有」から作成します。",
-          "sshImportSyncedPlural": "{{count}} 個のホストを Orca に追加しました。",
-          "sshImportSyncedSingular": "{{count}} 個のホストを Orca に追加しました。"
+          "sshImportSynced_other": "{{count}} 台のホストを Orca に追加しました。",
+          "sshConfigPickerInvalidResponse": "SSH 設定のホスト応答が無効です"
         },
         "ForgetSshWorkspaceDialog": {
           "ghostBody": "{{host}} は保存済みの SSH ホストではなくなったため、このワークスペースは稼働中のホストに接続されていません。Orca から削除することのみ可能です。リモート上のファイルとブランチはそのまま残ります。",
@@ -6105,11 +6171,11 @@
         },
         "WorkspaceKanbanSearchField": {
           "bdb753c78d": "一致するワークスペースはありません",
-          "4d96c209d6": "{{value1}} 件中 {{value0}} 件のワークスペースが一致します",
           "c0cd6bdf6c": "ワークスペースの検索",
           "3b7ea51793": "検索をクリア",
           "7f1c2e94a5": "検索テキストが長すぎます — ボードは絞り込まれていません",
-          "9a4d0f6b21": "長すぎます"
+          "9a4d0f6b21": "長すぎます",
+          "workspacesMatch_other": "{{count}} 件のワークスペース中 {{matchCount}} 件が一致"
         },
         "WorktreeCardSshHostControl": {
           "connectFailed": "SSH 接続に失敗しました",
@@ -6181,11 +6247,11 @@
           "developerToolsTitle": "Apple のコマンドラインツールをインストール",
           "developerToolsBody": "Git には Apple の開発者ツールが必要です。ターミナルでこれを実行し、Orca に戻ってください。自動的に再確認します。",
           "affectedOne": "{{value0}} のワークツリースキャンを一時停止中",
-          "affectedMany": "{{value0}} 件のプロジェクトのワークツリースキャンを一時停止中",
           "copyCommand": "コマンドをコピー",
           "copied": "コマンドをコピーしました",
           "retry": "今すぐ再試行",
-          "restored": "Git が再び動作しています。ワークツリーを更新しました。"
+          "restored": "Git が再び動作しています。ワークツリーを更新しました。",
+          "affectedProjects_other": "{{count}} 件のプロジェクトでワークツリーのスキャンを一時停止中"
         },
         "manualSortSwitch": {
           "title": "並べ替えが手動に変更されました",
@@ -6230,7 +6296,8 @@
         "wslHostRemoval": {
           "keptForOthers": "この Orca から削除しました。ホストは {{value0}} のために動作し続けます。",
           "partial": "ホストは削除されましたが、ディストリビューション内でまだ実行中のものがあります: {{value0}}",
-          "pending": "Orca はまだホストを削除していません: {{value0}} 再試行するにはもう一度削除し、残す場合は接続してください。"
+          "pending": "Orca はまだホストを削除していません: {{value0}} 再試行するにはもう一度削除し、残す場合は接続してください。",
+          "unavailable": "このコンピュータでは WSL ホストを利用できません。"
         },
         "addRepoWslHostFolderPicker": {
           "otherDistro": "そのフォルダーは {{value1}} ではなく {{value0}} にあります。",
@@ -6271,6 +6338,44 @@
           "openingProject": "プロジェクトを開いています…",
           "openingFolder": "フォルダーを開いています…",
           "chooseFolder": "フォルダーを選択中…"
+        },
+        "DeleteWorktreeWarningPanels": {
+          "mainWorktreeNotice": "これは<strong>メインワークツリー</strong>（元のクローンディレクトリ）です。"
+        },
+        "DeleteNestedWorktreesDialog": {
+          "unsupportedHost": "このホストはネストされたワークツリーの削除に対応していません。"
+        },
+        "WorktreeCardHelpers": {
+          "checksPassing": "成功",
+          "checksFailing": "失敗",
+          "checksPending": "保留中",
+          "conflictMerging": "マージ中",
+          "conflictRebasing": "リベース中",
+          "conflictCherryPicking": "チェリーピック中"
+        },
+        "activeFilterCount_other": "{{count}} 件のフィルター",
+        "folderWorkspaceComposer": {
+          "defaultWorkspaceName": "{{name}} ワークスペース"
+        },
+        "workspaceKanbanStatus": {
+          "defaultLabel": "ステータス {{number}}"
+        },
+        "worktreeCardModel": {
+          "sparsePreviewMore_other": "{{preview}}、ほか {{count}} 件"
+        },
+        "worktreeCardPrDisplay": {
+          "mrDetailsUnavailable": "MR の詳細を取得できません",
+          "prDetailsUnavailable": "PR の詳細を取得できません",
+          "loadingMr": "MR を読み込み中…",
+          "loadingPr": "PR を読み込み中…"
+        },
+        "HostSectionHeader": {
+          "workspaceCount_other": "{{count}} 件のワークスペース"
+        },
+        "titleDerivedAgentRows": {
+          "needsInput": "入力待ち",
+          "running": "実行中",
+          "idle": "アイドル"
         }
       },
       "shared": {
@@ -13778,17 +13883,8 @@
       "new": {
         "workspace": {
           "SmartWorkspaceNameField": {
-            "2a0d535f69": "新規ブランチを作成する",
-            "a44229ce4d": "を使用",
-            "766083a596": "」",
-            "34ca97bce3": "「",
-            "b1a7d679ba": "ワークスペース名として",
             "e57c53727c": "プロジェクトを追加…",
-            "a76fcb4fa0": "切り替え先",
-            "eadf877af5": "保持",
             "6859e2896c": "キャンセル",
-            "9ef1a7c4b0": "、選択したプロジェクトとは異なります。",
-            "ad188067ae": "GitHub URL は次を指しています。",
             "4bd98f1091": "プロジェクトを切り替えますか?",
             "0c9e668e3a": "クリア",
             "7199ff19c7": "選択したソースをクリアする",
@@ -13807,7 +13903,6 @@
             "fda67f0b61": "現在のプロジェクト",
             "3e8bb1176a": "設定で Linear を接続して Issue を検索します。",
             "switchTaskSourceTitle": "タスクソースを切り替えますか？",
-            "differentTaskSource": "、選択中のタスクソースとは異なります。",
             "currentTaskSource": "現在のタスクソース",
             "placeholderNameOrLinearUrl": "名前、Linear URL、または Jira URL を入力",
             "placeholderWorkspaceName": "ワークスペース名を入力",
@@ -13836,7 +13931,13 @@
             "emoji": "絵文字",
             "loadingLinearIssue": "Linear Issue を読み込み中…",
             "linearLoginUnreadableTitle": "Linear を再接続",
-            "linearLoginUnreadableBody": "保存された Linear のログイン情報を読み取れません。設定で再接続してください。"
+            "linearLoginUnreadableBody": "保存された Linear のログイン情報を読み取れません。設定で再接続してください。",
+            "keepRepo": "{{name}} を維持",
+            "switchToRepo": "{{name}} に切り替え",
+            "crossRepoDifferentTaskSource": "GitHub URL は、選択したタスクソースとは異なる {{repo}} を指しています。",
+            "crossRepoDifferentProject": "GitHub URL は、選択したプロジェクトとは異なる {{repo}} を指しています。",
+            "useAsWorkspaceName": "<name>「{{name}}」</name>をワークスペース名に使用",
+            "createNewBranchNamed": "新規ブランチ <name>{{name}}</name> を作成"
           },
           "ProjectCombobox": {
             "empty": "検索条件に一致するプロジェクトはありません。",
@@ -13859,6 +13960,11 @@
             "cloneFromUrl": "URL からクローン",
             "cloneFromUrlHelp": "このリポジトリのクローンを {{host}} に作成します。",
             "saveLocation": "場所を設定する"
+          },
+          "projectCombobox": {
+            "recentHeading": "最近",
+            "projectsHeading": "プロジェクト",
+            "foldersHeading": "フォルダー"
           }
         }
       },
@@ -15455,20 +15561,26 @@
         }
       },
       "dashboard": {
-        "DashboardAgentChildDisclosure": {
-          "1b57ce9fa4": "{{value0}} {{value1}} 子 {{value2}}"
-        },
         "DashboardAgentRow": {
           "912e136cd9": "送信",
           "a743da52ff": "詳細を展開",
           "a41fb5376e": "詳細を折りたたむ",
           "5ae84475cc": "閉じる",
           "b06e13fcf7": "Agent を閉じる",
-          "0272969e28": "この Agent に送信"
+          "0272969e28": "この Agent に送信",
+          "justNow": "たった今",
+          "timeAgo": "{{duration}}前",
+          "dispatchedAgents_other": "{{agentType}} - {{count}} 件の Agent を割り当て済み",
+          "startedAgo": "{{time}}に開始",
+          "doneAgo": "{{time}}に完了"
         },
         "DashboardAgentRowMessage": {
           "0a01046763": "中断された",
           "1ec01cef03": "ユーザーによる中断"
+        },
+        "DashboardAgentChildDisclosure": {
+          "hideChildAgents_other": "{{count}} 件の子 Agent を非表示",
+          "showChildAgents_other": "{{count}} 件の子 Agent を表示"
         }
       },
       "crash": {
@@ -16513,14 +16625,13 @@
           "clearNotification": "通知を消去"
         },
         "ActivityTitlebarControls": {
-          "f915168c8e": "未読",
           "d6a8de3934": "Agent",
-          "dc708f3eff": "Agent を閉じる"
+          "dc708f3eff": "Agent を閉じる",
+          "unreadCount_other": "未読 {{count}} 件"
         },
         "clearCompleted": {
-          "clearedOne": "完了した Agent を 1 人クリアした",
-          "clearedMany": "{{count}} 個の完了した Agent をクリアしました",
-          "undo": "元に戻す"
+          "undo": "元に戻す",
+          "cleared_other": "完了した Agent {{count}} 件を消去しました"
         },
         "standaloneWorktree": {
           "floatingTerminal": "フローティングターミナル",
@@ -17269,6 +17380,16 @@
         "cancelled": "この通常の SSH ターミナルは開始前に閉じられました。",
         "terminalUnavailable": "Orca はここでターミナルを開けませんでした。",
         "openHint": "Orca がホスト上でセットアップできない間も、ホストで作業を続けられます。"
+      },
+      "cmdJ": {
+        "quickActionUnavailable": {
+          "workspaceLoading": "「{{action}}」を実行できません。ワークスペースを読み込み中です。",
+          "noActiveWorkspace": "「{{action}}」を実行できません。アクティブなワークスペースがありません。",
+          "workspaceDisconnected": "「{{action}}」を実行できません。ワークスペースが切断されています。",
+          "noTabGroup": "「{{action}}」を実行できません。利用可能なタブグループがありません。",
+          "noMovableChat": "「{{action}}」を実行できません。移動できるアクティブなチャットがありません。",
+          "clientUnsupported": "「{{action}}」を実行できません。このクライアントとランタイムは対応していません。"
+        }
       }
     },
     "i18n": {
@@ -18456,8 +18577,6 @@
             "none": "何もありません"
           },
           "idleSignalField": "アイドル信号",
-          "selectionVanishedOne": "選択した 1 つのワークスペースは存在しません。",
-          "selectionVanished": "{{value0}} 選択されたワークスペースはもう存在しません。",
           "updatedAgo": "{{value0}} を更新しました",
           "refreshing": "更新中…",
           "refreshingProgress": "リフレッシュ {{value0}}/{{value1}}",
@@ -18472,12 +18591,6 @@
           "gitStatusCheckFailed": "Git ステータスチェックに失敗しました",
           "gitStatusUnverified": "Git のステータスを確認できませんでした",
           "deleteAnyway": "とにかく削除する",
-          "forceDeleteProjectionOne": "{{count}} ワークスペースは現在リスクを示しているため、強制削除が必要になる可能性があります",
-          "forceDeleteProjectionMany": "{{count}} ワークスペースには現在リスクがあるため、強制削除が必要になる可能性があります",
-          "selectionWithheldOne": "選択した 1 つのワークスペースが現在のフィルターで非表示になっており、選択が解除されました。",
-          "selectionWithheld": "{{value0}} 選択されたワークスペースは現在のフィルターによって非表示になっており、選択が解除されました。",
-          "selectAllCountOne": "安全性が確認されたワークスペースを 1 つ選択してください",
-          "selectAllCount": "{{value0}} 安全性がチェックされたワークスペースをすべて選択します",
           "appliedFilters": "適用されたフィルター",
           "removeFilter": "フィルター {{value0}} を削除します",
           "chip": {
@@ -18521,18 +18634,21 @@
               "locked": "ロックされています",
               "retainedAgents": "完成した Agent"
             }
-          }
+          },
+          "forceDeleteRisk_other": "現在 {{count}} 件のワークスペースにリスクがあり、強制削除が必要になる可能性があります",
+          "selectionVanishedCount_other": "選択した {{count}} 件のワークスペースはすでに存在しません。",
+          "selectionWithheldCount_other": "選択した {{count}} 件のワークスペースは現在のフィルターで非表示になっているため、選択を解除しました。",
+          "selectAllSafetyChecked_other": "安全性を確認した {{count}} 件のワークスペースをすべて選択"
         },
         "scan": {
           "progress": "ワークスペースのスキャン ({{value0}}/{{value1}})",
           "singleError": "{{value0}}: {{value1}} をチェックできませんでした。一部のワークスペースが見つからない可能性があります。更新して再試行してください。",
-          "moreErrors": "、+{{value0}} 詳細",
-          "multipleErrors": "{{value0}} リポジトリ ({{value1}}{{value2}}) をチェックできませんでした。一部のワークスペースが見つからない可能性があります。更新して再試行してください。",
           "noWorkspaces": "ワークスペースが見つかりません。",
           "fallbackRepository": "リポジトリ",
           "gitListFailed": "Git はワークツリーをリストできませんでした",
-          "readyOne": "1 つのワークスペースが見つかりました。",
-          "readyMany": "{{value0}} ワークスペースが見つかりました。"
+          "multipleErrorsWithMore_other": "{{count}} 件のリポジトリ（{{names}}、ほか {{moreCount}} 件）を確認できませんでした。一部のワークスペースが表示されていない可能性があります。更新して再試行してください。",
+          "multipleErrorsCount_other": "{{count}} 件のリポジトリ（{{names}}）を確認できませんでした。一部のワークスペースが表示されていない可能性があります。更新して再試行してください。",
+          "readyCount_other": "{{count}} 件のワークスペースが見つかりました。"
         },
         "relativeTime": {
           "never": "一度もない",
@@ -19682,7 +19798,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "実行中のターミナル",
-      "count": "実行中のターミナル {{count}} 個",
       "unverifiable": "Orca はターミナルサービスのプロセスを確認できなかったため、何も停止していません。",
       "alreadyReplaced": "ターミナルサービスはすでに置き換えられていたため、何も停止していません。",
       "restarted": "ターミナルサービスを再起動しました。",
@@ -19694,7 +19809,8 @@
       "confirmTitle": "ターミナルデーモンを再起動しますか?",
       "confirmBody": "再起動すると、{{sessions}} で実行中のすべてのプロセスが終了します。再開に対応している Agent は後で再開できますが、シェルなどのジョブは再開できず、再度開始する必要があります。Agent がアイドル状態のときに行ってください。",
       "cancel": "キャンセル",
-      "confirm": "再起動してプロセスを終了"
+      "confirm": "再起動してプロセスを終了",
+      "runningTerminals_other": "実行中のターミナル {{count}} 件"
     },
     "restartedInputNotSent": "入力中にターミナルが再起動したため、一部の入力が届いていない可能性があります。もう一度入力する前に新しいシェルを確認してください。",
     "stalledDaemonBanner": {
@@ -19866,7 +19982,6 @@
       "repositoryLoading": "リポジトリの識別情報をまだ読み込んでいます。利用可能になってから再試行してください。",
       "duplicate": "このリンクはすでに添付されています。",
       "title": "リンクされた作業",
-      "count": "{{count}} 件リンク済み",
       "empty": "このワークスペースのすべてのレビューとタスクをまとめて管理します。",
       "reviews": "レビュー",
       "tasks": "Issue とタスク",
@@ -19874,7 +19989,6 @@
       "open": "リンクを開く",
       "unlinkItem": "{{label}} のリンクを解除",
       "unlink": "ワークスペースからリンクを解除",
-      "show": "リンク済みのレビューとタスク {{count}} 件を表示",
       "details": "ワークスペースの詳細",
       "description": "このワークスペースにレビューとタスクを添付し、ノートを保管します。",
       "commentHelp": "Markdown に対応しています。保存するには Enter または {{shortcut}} を押します · 改行するには Shift+Enter を押します。",
@@ -19927,7 +20041,9 @@
       "checksPassing": "成功",
       "checksUnknown": "不明",
       "checksNeutral": "中立",
-      "allReviewChecks": "レビュー: {{count}} · チェック: {{status}}"
+      "allReviewChecks": "レビュー: {{count}} · チェック: {{status}}",
+      "showLinked_other": "リンクされたレビューとタスク {{count}} 件を表示",
+      "linkedCount_other": "{{count}} 件リンク済み"
     },
     "attachments": {
       "updateRuntime": "ワークスペースのリンクを変更するには、リモートランタイムを更新してください",
@@ -20162,8 +20278,8 @@
     },
     "compact": {
       "linked": "リンク済み",
-      "linkedAndScanned": "リンクされたワークツリーの {{value0}} · {{value1}} ワークスペース",
-      "linkedAndUnavailable": "リンクされたワークツリーの {{value0}} · {{value1}} は使用できません"
+      "linkedAndUnavailable": "リンクされたワークツリーの {{value0}} · {{value1}} は使用できません",
+      "linkedAndScannedCount_other": "リンクされたワークツリーで {{size}} 使用 · ワークスペース {{count}} 件"
     },
     "changes": {
       "empty": "一致するファイルはありません。",

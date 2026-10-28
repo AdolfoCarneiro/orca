@@ -2128,7 +2128,6 @@
         "ba64270bdb": "Ajanları yapılandır",
         "ab63f25397": "Ajan ayarlarını aç",
         "0c5d6a479c": "[İsteğe bağlı]",
-        "b5a0796911": "Bağlan",
         "dccd26d4e4": "Proje seçin",
         "d6b0a96f32": "Proje ekle",
         "969a8bff66": "Proje",
@@ -2174,7 +2173,8 @@
         "addSshHostHint": "SSH üzerinden mevcut bir makineyi kullanın",
         "addRemoteOrcaServer": "Uzak Orca Sunucusu Ekle",
         "addRemoteOrcaServerHint": "Başka bir Orca çalışma zamanını eşleştirin",
-        "hostConnectionFailed": "Bağlantı başarısız oldu"
+        "hostConnectionFailed": "Bağlantı başarısız oldu",
+        "connectProject": "{{name}} bağlantısını kur"
       },
       "NewWorkspaceComposerModal": {
         "createWorktree": "Worktree oluştur",
@@ -3599,21 +3599,18 @@
             },
             "drop": {
               "handler": {
-                "1e072f611e": "{{value0}} {{value1}} yüklenemedi.",
                 "0c77693641": "Worktree hazır değil, birazdan tekrar deneyin.",
                 "ce8248b835": "Worktree yolu kullanılamıyor.",
                 "internalTooManyPaths": "Bırakılan öğe, güvenli bir terminal yapıştırması için çok fazla yol içeriyor.",
                 "internalPathsTooLarge": "Bırakılan yol listesi, güvenli bir terminal yapıştırması için çok büyük.",
                 "internalHostMismatch": "Bu terminalle aynı ana makinede bulunan dosyaları bırakın.",
-                "b4cf68e889": "{{value0}} {{value1}} atlandı.",
                 "writeTimeout": "Dosya bırakma iptal edildi: terminal, güvenlik zaman aşımından önce yolu kabul etmedi.",
                 "writeRejected": "Dosya bırakma iptal edildi: terminal yolu kabul edemedi.",
-                "skippedSymlinkSingular": "{{count}} sembolik bağlantı atlandı.",
-                "skippedSymlinkPlural": "{{count}} sembolik bağlantı atlandı.",
-                "uploadingFileSingular": "Çalışma zamanına {{count}} dosya yükleniyor…",
-                "uploadingFilePlural": "Çalışma zamanına {{count}} dosya yükleniyor…",
-                "uploadingFileToRemoteSingular": "Uzak sunucuya {{count}} dosya yükleniyor…",
-                "uploadingFileToRemotePlural": "Uzak sunucuya {{count}} dosya yükleniyor…"
+                "skippedSymlinks_other": "{{count}} sembolik bağlantı atlandı.",
+                "skippedItems_other": "{{count}} öğe atlandı.",
+                "failedUploads_other": "{{count}} dosya yüklenemedi.",
+                "uploadingFiles_other": "{{count}} dosya çalışma zamanına yükleniyor…",
+                "uploadingFilesToRemote_other": "{{count}} dosya uzak ortama yükleniyor…"
               }
             }
           },
@@ -3731,10 +3728,15 @@
             "sessionQueued": "Oturum sıraya alındı",
             "openSupportedWorkspace": "Bir oturuma devam etmeden önce bir çalışma alanı açın.",
             "sessionHostMismatchUnsupported": "Bu oturum farklı bir ana bilgisayara ait. Aynı ana bilgisayardaki bir çalışma alanına bırakın.",
-            "oldPayload": "Bu oturum eski bir Orca penceresinden sürüklendi. Bunun yerine Oturum Geçmişi'nden devam ettirin."
+            "oldPayload": "Bu oturum eski bir Orca penceresinden sürüklendi. Bunun yerine Oturum Geçmişi'nden devam ettirin.",
+            "legacyDragCannotRetarget": "Bu oturum eski sürümdeki bir Orca penceresinden sürüklendiği için Orca onu seçili Codex hesabına yönlendiremiyor. Oturum Geçmişi panelinden devam ettirin.",
+            "legacyDragPrepareFailed": "Bu eski Codex oturumu Orca tarafından hazırlanamadı. Devam ettirmeyi yeniden deneyin."
           },
           "TabGroupDropOverlay": {
             "paneColumnLabel": "Yeni bölüm"
+          },
+          "useTabGroupCreationCommands": {
+            "duplicateBrowserTabFailed": "Eşleştirilmiş çalışma zamanında yönetilen tarayıcı sekmesi çoğaltılamadı."
           }
         },
         "bar": {
@@ -3929,6 +3931,30 @@
           "TabBarQuickCommandHostLoadStatus": {
             "82e294f3ca": "Ana bilgisayar kullanılamıyor",
             "7c129b08ff": "Ana bilgisayar yükleniyor…"
+          },
+          "nativeChatCliFork": {
+            "cannotOpenInCli": "Bu oturum CLI'de açılamaz."
+          },
+          "tabCreateEntry": {
+            "fileNotFound": "Dosya bulunamadı: {{path}}",
+            "cannotOpenDirectory": "Dizin açılamadı: {{path}}",
+            "parentNotDirectory": "{{path}} bir dizin olmadığı için dosya oluşturulamadı.",
+            "fileNoLongerExists": "Dosya artık mevcut değil: {{path}}",
+            "noActiveWorktree": "Etkin worktree yok."
+          },
+          "tabCreateEntryPath": {
+            "filePathsCannotContainControlCharacters": "Dosya yolları kontrol karakteri içeremez.",
+            "enterAUrlOrFilePath": "Bir URL veya dosya yolu girin.",
+            "homeRelativePathsAreNotSupported": "Ev dizinini temel alan göreli yollar burada desteklenmiyor.",
+            "enterAFilePathNotA": "Dizin yolu yerine bir dosya yolu girin.",
+            "enterAnAbsoluteFilePath": "Mutlak bir dosya yolu girin.",
+            "enterAnAbsolutePathForThis": "Bu bilgisayar için mutlak bir yol girin.",
+            "enterARelativeFilePath": "Göreli bir dosya yolu girin.",
+            "windowsDrivePathsAreNotSupported": "Windows sürücü yolları burada desteklenmiyor.",
+            "uncPathsAreNotSupportedHere": "UNC yolları burada desteklenmiyor.",
+            "filePathsCannotContainEmptySegments": "Dosya yolları boş yol bileşeni içeremez.",
+            "filePathsCannotContainDotSegments": "Dosya yolları . veya .. yol bileşeni içeremez.",
+            "filePathsCannotContainTildeSegments": "Dosya yolları ~ yol bileşeni içeremez."
           }
         }
       },
@@ -3956,15 +3982,13 @@
             "4ebf90c12e": "Harici bağlantı noktası bulunamadı",
             "7dac3ecc9d": "Harici Bağlantı Noktaları",
             "95495019ed": "{{value0}} üzerinde bağlantı noktası taraması kullanılamıyor: {{value1}}",
-            "a8e4bdb412": " · {{value0}} harici",
             "c22ea609fd": "Bağlantı Noktaları",
-            "ca41be2802": "Bağlantı Noktaları - {{value0}} çalışma alanı {{value1}}{{value2}}",
-            "b8bc3e420a": "Bağlantı Noktaları, {{value0}} çalışma alanı {{value1}}",
             "3a87d54dfb": "Çalışma alanı bağlantı noktası bulunamadı",
             "c174bbbfed": "Çalışma alanı bağlantı noktaları taranıyor...",
-            "8caaa86e9a": "bağlantı noktaları",
-            "45834a9ace": "bağlantı noktası",
-            "2b84c4d11f": "{{value0}} çalışma alanı · {{value1}} harici"
+            "2b84c4d11f": "{{value0}} çalışma alanı · {{value1}} harici",
+            "portsAria_other": "Portlar, {{count}} çalışma alanı portu",
+            "portsTooltipWithExternal_other": "Portlar — {{count}} çalışma alanı portu · {{externalCount}} harici",
+            "portsTooltip_other": "Portlar — {{count}} çalışma alanı portu"
           },
           "ResourceUsageStatusSegment": {
             "946d9f94d0": "İptal",
@@ -3973,7 +3997,6 @@
             "27a74f91f0": "Şu anda çalışan bir şey yok",
             "298f4be7f2": "CPU",
             "2aa2de6cb9": "Ad",
-            "30ff2c3c31": "{{value0}} yetim",
             "1fedf94eae": "Birleşik CPU yükü. %100'ün üzerindeki değerler, aynı anda birden fazla çekirdeğin çalıştığı anlamına gelir.",
             "e7cf14ec78": "Terminal oturumları kullanılamıyor. Liste güncel olmayabilir.",
             "93b0de3c21": "Yeniden Başlat",
@@ -4003,10 +4026,9 @@
             "d406915b78": "Renderer",
             "81cd37af99": "Main",
             "fa6d36758d": "{{value0}} oturumunu sonlandır",
-            "b8f4a2c1d0e3": "{{value0}} yetim",
-            "c7e3b1a0d9f2": "{{value0}} yetim terminali sonlandır",
-            "d8f4c2b1e0a3": "{{value0}} yetim terminali sonlandır",
-            "e9a5d3c2b1f0": "{{value0}} sonlandırılsın mı?"
+            "e9a5d3c2b1f0": "{{value0}} sonlandırılsın mı?",
+            "endOrphanTerminals_other": "{{count}} sahipsiz terminali sonlandır",
+            "orphanCount_other": "{{count}} sahipsiz"
           },
           "SshStatusSegment": {
             "3ad70e0365": "Uzak Ana Bilgisayarları Yönet…",
@@ -4066,10 +4088,6 @@
             "3325d996cb": "Hız sınırlarını yenile",
             "cd9d7b40ff": "{{value0}} Oturumu Yeniden Başlat",
             "6cd6650b4c": "Oturumu Yeniden Başlat",
-            "1446d0d8a0": "{{value0}} Codex oturumu hâlâ eski hesapta.",
-            "605901a495": "1 Codex oturumu hâlâ eski hesapta",
-            "5e5f9f5160": "1 hız sınırı sıfırlama kullanılabilir",
-            "5ecae9197c": "{{value0}} hız sınırı sıfırlama kullanılabilir",
             "25d8bbde69": "Sıfırlama kullanılıyor…",
             "e159fc1fd7": "Şimdi sıfırla",
             "972a1ff497": "Codex sınırları sıfırlansın mı?",
@@ -4088,7 +4106,9 @@
             "codexSignInError": "Codex'te oturum açılamadı. Lütfen tekrar deneyin.",
             "cursorUsageMenu": "Cursor Kullanımı",
             "hiddenUsageProviders": "Ayrıca: {{value0}}",
-            "zcodeUsageMenu": "ZCode Kullanımı"
+            "zcodeUsageMenu": "ZCode Kullanımı",
+            "rateLimitResetsAvailable_other": "{{count}} hız sınırı sıfırlama hakkı kullanılabilir",
+            "staleCodexSessions_other": "{{count}} Codex oturumu hâlâ eski hesapta."
           },
           "StatusBarUsageEmptyCta": {
             "828c764a79": "Bir hesap bağlayın",
@@ -4105,13 +4125,13 @@
           "SkillUpdateStatusSegment": {
             "runningLabel": "Beceriler güncelleniyor",
             "runningOne": "{{value0}} güncelleniyor…",
-            "runningMany": "{{value0}} beceri güncelleniyor…",
             "runningAria": "Beceriler güncelleniyor. Ayrıntıları açmak için tıklayın.",
             "successLabel": "Beceriler güncellendi",
             "successAria": "Beceriler güncellendi. Ayrıntıları açmak için tıklayın.",
             "attentionAria": "Bazı beceri güncellemeleri atlandı. Ayrıntıları açmak için tıklayın.",
             "attentionLabel": "Becerilerin incelenmesi gerekiyor",
-            "attentionTooltip": "Bazı beceri güncellemeleri atlandı — ayrıntıları görmek için tıklayın"
+            "attentionTooltip": "Bazı beceri güncellemeleri atlandı — ayrıntıları görmek için tıklayın",
+            "runningSkills_other": "{{count}} beceri güncelleniyor…"
           },
           "UpdateStatusSegment": {
             "5cd13105a3": "Güncelleme başarısız oldu. Genişletmek için tıklayın.",
@@ -4153,11 +4173,8 @@
             "6f8f6a6b04": "Çalışma alanlarını filtrele",
             "5caccea440": "Seçilenleri sil",
             "e4a12c455b": "Temizle",
-            "0cb1501ccf": "geri kazanılabilir",
-            "65402b7192": "seçili",
             "43171f3e60": "Çalışma Alanları",
             "09960d86bd": "Tarandı",
-            "63efebe0e6": "{{value0}} {{value1}}, Alan'dan kaldırıldı.",
             "eee5240810": "Çalışma alanları silindi",
             "9afc97f9a3": "Çalışma alanı silindi",
             "792a214457": "Çalışma alanını sil",
@@ -4165,7 +4182,6 @@
             "9155381019": "Seyrek",
             "f39d291997": "Seç",
             "16988df079": "Dosya bulunamadı.",
-            "b25c2c1086": "üst düzey öğeler",
             "d3f9c69ddc": "Yakınlaştır",
             "ef890d31b9": "Tümü",
             "c28643d3da": "Çalışma alanına git",
@@ -4204,8 +4220,12 @@
             "c5135e7e4a": "Çalışma alanı boyutları taranıyor. Bu sayfadan ayrılabilirsiniz.",
             "0990a63160": "Henüz taranmış çalışma alanı boyutu yok.",
             "977bdf9a36": "Gösterilecek üst düzey öğe yok.",
-            "131662ac65": "{{value0}} açık",
-            "0d1c78d749": "{{value0}} seç"
+            "0d1c78d749": "{{value0}} seç",
+            "removedFromSpace_other": "{{count}} çalışma alanı, Alan bölümünden kaldırıldı.",
+            "topLevelItems_other": "{{formattedCount}} üst düzey öğe",
+            "selectedCount_other": "{{count}} seçili",
+            "reclaimableSize": "{{size}} geri kazanılabilir",
+            "scanning": "Taranıyor"
           },
           "ports": {
             "status": {
@@ -4219,7 +4239,8 @@
                   "e4a709548c": "Bağlantı noktaları yenilenemedi",
                   "acdb6df590": "{{value0}} üzerindeki işlem durduruldu",
                   "480d8f2347": "{{value0}} kopyalandı",
-                  "b854ec9ff5": "Tarayıcı açılamadı"
+                  "b854ec9ff5": "Tarayıcı açılamadı",
+                  "unknownProcess": "Bilinmeyen işlem"
                 }
               }
             }
@@ -4249,8 +4270,6 @@
             "7ad719c4bf": "Sınırlı",
             "e740f92596": "Yenileme başarısız oldu",
             "8418ec448d": "{{value0}} kullanımı yenilenemedi. Ajan oturumları hâlâ açık olabilir.",
-            "45198c7d95": "1 hız sınırı sıfırlama kullanılabilir",
-            "bce421cba3": "{{value0}} hız sınırı sıfırlama kullanılabilir",
             "7ec6e030a0": "Sıradaki şimdi sona eriyor",
             "d1e442a9e5": "Şimdi sona eriyor",
             "6cf9eaed10": "Sıradaki {{value0}} içinde sona eriyor",
@@ -4307,7 +4326,13 @@
                 "label": "Claude çalıştığında güncellenir",
                 "message": "Claude kullanım bilgisi, Claude bir sonraki çalıştığında güncellenir."
               }
-            }
+            },
+            "justNow": "az önce",
+            "minutesAgo": "{{minutes}} dk önce",
+            "hoursAgo": "{{hours}} sa önce",
+            "updatedAgo": "{{time}} güncellendi",
+            "notYetUpdated": "Henüz güncellenmedi",
+            "rateLimitResetsAvailable_other": "{{count}} hız sınırı sıfırlama hakkı kullanılabilir"
           },
           "SshTargetStatusRow": {
             "sshHost": "SSH sunucusu"
@@ -4342,12 +4367,10 @@
           "RemoteServerUpdateStatusSegment": {
             "updating": "{{value0}}/{{value1}} güncelleniyor",
             "updatingTooltip": "Uzak Orca Sunucusu güncellemeleri sürüyor",
-            "failed": "{{value0}} sunucu güncellemesi başarısız oldu",
             "failedTooltip": "İncelemek ve tekrar denemek için Uzak Orca Sunucusu güncellemelerini aç",
-            "updated": "{{value0}} sunucu güncellendi",
             "updatedTooltip": "Uzak Orca Sunucusu güncellemeleri tamamlandı",
-            "failedOne": "1 sunucu güncellemesi başarısız oldu",
-            "updatedOne": "1 sunucu güncellendi"
+            "failedCount_other": "{{count}} sunucu güncellemesi başarısız",
+            "updatedCount_other": "{{count}} sunucu güncellendi"
           },
           "resource": {
             "memory": {
@@ -4355,7 +4378,10 @@
                 "workingSetDescription": "Toplam çalışma kümesi (WS): şu anda RAM'de yer alan sayfalar. Paylaşılan sayfalar birden fazla işlemde görünebilir ve Windows'un disk belleğine attığı bellek burada sayılmaz.",
                 "privateBytesDescription": "Toplam özel bayt: bu işlemlerin ayırdığı bellek, RAM'de olsun ya da disk belleğine atılmış olsun sayılır. Ana bilgisayarın taahhüt sınırından düştüğü değer budur, bu yüzden yukarıdaki çalışma kümesi disk belleğine atma nedeniyle küçülürken bu değer artmaya devam eder.",
                 "footprintDescription": "Toplam bellek kullanımı, Activity Monitor uygulamasında gösterilenle aynı değer: grafik belleği dahil her işleme ait bellek. İşlemler arasında paylaşılan sayfalar iki kez sayılmaz.",
-                "rssDescription": "Toplam yerleşik küme boyutu (RSS). Paylaşılan veya takma adlı sayfalar birden fazla işlemde görünebilir."
+                "rssDescription": "Toplam yerleşik küme boyutu (RSS). Paylaşılan veya takma adlı sayfalar birden fazla işlemde görünebilir.",
+                "memColumn": "Bellek",
+                "memorySummary": "Σ Bellek",
+                "privateSummary": "Σ Özel"
               }
             },
             "manager": {
@@ -4404,29 +4430,21 @@
             "repair": "Yeniden eşleştir…"
           },
           "NativeChatResumeStatusSegment": {
-            "labelOne": "Devam edilecek 1 sohbet",
-            "label": "Devam edilecek {{value0}} sohbet",
-            "ariaLabelOne": "Devam edilebilecek 1 sohbet",
-            "ariaLabel": "Devam edilebilecek {{value0}} sohbet",
             "tooltip": "Devam edilebilecek yarım kalmış sohbetleri aç",
-            "failedLabelOne": "1 sohbete devam edilemedi",
-            "failedLabel": "{{value0}} sohbete devam edilemedi",
-            "failedAriaOne": "1 sohbete devam edilemedi. Ayrıntılar için tıklayın.",
-            "failedAria": "{{value0}} sohbete devam edilemedi. Ayrıntılar için tıklayın.",
             "failedTooltip": "Orca'nın yeniden başlatma sonrasında devam edemediği sohbetler. Ayrıntılar için tıklayın.",
-            "checkLabelOne": "Kontrol edilecek 1 sohbet",
-            "checkLabel": "Kontrol edilecek {{value0}} sohbet",
-            "checkAriaOne": "Devam edildikten sonra kontrol edilecek 1 sohbet. Ayrıntılar için tıklayın.",
-            "checkAria": "Devam edildikten sonra kontrol edilecek {{value0}} sohbet. Ayrıntılar için tıklayın.",
             "checkTooltip": "Orca'nın yeniden başlatma sonrasında devam edemediği veya devam edildiğini doğrulayamadığı sohbetler. Ayrıntılar için tıklayın.",
             "resumingTooltip": "Yarım kalan sohbetler geri yükleniyor ve devam etmeleri isteniyor…",
             "resumingProgressLabel": "Sohbetlere devam ediliyor {{value0}}/{{value1}}",
             "resumingProgressAria": "Sohbetlere devam ediliyor, {{value1}} sohbetten {{value0}} tanesi tamamlandı. Ayrıntıları açmak için tıklayın.",
-            "resumedLabelOne": "1 sohbete devam edildi",
-            "resumedLabel": "{{value0}} sohbete devam edildi",
-            "resumedAriaOne": "1 sohbete devam edildi. Görmek için tıklayın.",
-            "resumedAria": "{{value0}} sohbete devam edildi. Görmek için tıklayın.",
-            "resumedTooltip": "Orca'nın yeniden başlatıldıktan sonra devam ettirdiği sohbetler. Görmek için tıklayın."
+            "resumedTooltip": "Orca'nın yeniden başlatıldıktan sonra devam ettirdiği sohbetler. Görmek için tıklayın.",
+            "chatsFailedLabel_other": "{{count}} sohbet devam ettirilemedi",
+            "chatsFailedAria_other": "{{count}} sohbet devam ettirilemedi. Ayrıntılar için tıklayın.",
+            "resumedLabelCount_other": "{{count}} sohbet devam ettirildi",
+            "resumedAriaCount_other": "{{count}} sohbet devam ettirildi. Görmek için tıklayın.",
+            "checkLabelCount_other": "Kontrol edilecek {{count}} sohbet",
+            "checkAriaCount_other": "Devam ettirdikten sonra kontrol edilecek {{count}} sohbet var. Ayrıntılar için tıklayın.",
+            "labelCount_other": "Devam ettirilecek {{count}} sohbet",
+            "ariaLabelCount_other": "Devam ettirilebilecek {{count}} sohbet"
           },
           "StatusBarUsageChangeNotices": {
             "compactTitle": "Kullanım görünümü artık kompakt",
@@ -4435,6 +4453,71 @@
           "usageUnitLabel": {
             "used": "Kullanılan",
             "remaining": "Kalan"
+          },
+          "mergeSnapshotAndSessions": {
+            "unattributed": "İlişkilendirilmemiş"
+          },
+          "resourceSessionLabels": {
+            "terminalNumber": "Terminal {{number}}",
+            "pid": "PID {{pid}}",
+            "sessionPrefix": "oturum {{id}}",
+            "unknownSession": "(bilinmeyen oturum)",
+            "unknown": "bilinmiyor"
+          },
+          "runtimeTargets": {
+            "wslDefault": "WSL varsayılanı"
+          },
+          "floatingWorkspace": {
+            "minimize": "Yüzen Çalışma Alanını Küçült",
+            "show": "Yüzen Çalışma Alanını Göster"
+          },
+          "workspaceSpaceGitRefresh": {
+            "ownerUnavailable": "Çalışma alanının sahibi artık kullanılamıyor"
+          },
+          "workspaceSpaceDecision": {
+            "syncedWithUpstream": "Upstream ile eşitlendi",
+            "aheadAndBehind": "{{ahead}} ileride, {{behind}} geride",
+            "ahead": "{{ahead}} ileride",
+            "behind": "{{behind}} geride",
+            "activeAgents_other": "{{count}} etkin ajan",
+            "completedAgents_other": "{{count}} tamamlanmış ajan",
+            "activeAndCompletedAgents": "{{active}}, {{completed}}",
+            "completedAgentsRetained_other": "{{count}} tamamlanmış ajan tutuluyor",
+            "noTrackedAgents": "Çalışan izlenen ajan yok",
+            "noTerminalTabs": "Terminal sekmesi yok",
+            "liveTerminalTabs_other": "{{count}} terminal sekmesinden {{live}} tanesi etkin",
+            "gitStatusUnavailable": "Git durumu alınamıyor: {{error}}",
+            "gitStatusNotLoaded": "Git durumu henüz yüklenmedi",
+            "noUncommittedFiles": "Commit edilmemiş dosya yok",
+            "changedFiles_other": "{{count}} değiştirilmiş dosya",
+            "noEditorFiles": "Düzenleyicide açık dosya yok",
+            "editorFilesOpen_other": "Düzenleyicide {{count}} dosya açık",
+            "dirtyOfOpen": "{{open}} içinde {{dirty}}",
+            "dirtyEditorBuffers_other": "{{count}} kaydedilmemiş düzenleyici arabelleği",
+            "openFiles_other": "{{count}} açık dosya",
+            "activeWorkspace": "Bu, etkin çalışma alanı",
+            "mainWorktreeProtected": "Ana worktree korunuyor",
+            "workspaceProtected": "Çalışma alanı korunuyor",
+            "canDeleteAfterReview": "İncelemeden sonra silinebilir",
+            "noLinkedIssue": "Bağlantılı sorun yok",
+            "noLinkedReview": "Bağlantılı PR yok",
+            "browserTabsOpen_other": "{{count}} tarayıcı sekmesi açık"
+          },
+          "workspaceSpaceFormat": {
+            "cancellingScan": "Tarama iptal ediliyor",
+            "currentWorkspaces": "çalışma alanları",
+            "scanningWorkspaces": "{{total}} öğeden {{scanned}} tanesi taranıyor · {{current}}",
+            "scanningRepos_other": "{{count}} repodan {{scanned}} tanesi taranıyor · {{current}}",
+            "scanningSizes": "Çalışma alanı boyutları taranıyor",
+            "status": {
+              "scanned": "Tarandı",
+              "missing": "Eksik",
+              "noAccess": "Erişim yok",
+              "unavailable": "Kullanılamıyor",
+              "failed": "Başarısız"
+            },
+            "mainWorktree": "ana worktree",
+            "detached": "ayrık"
           }
         }
       },
@@ -5213,12 +5296,9 @@
                   "670864ab52": "Yerel {{value0}} güncel tutuluyor",
                   "84c62e4d7f": "{{value0}} açılamadı",
                   "442552c656": "Ayarlar'ı açın ve tekrar deneyin.",
-                  "f15fd80989": "Yeni worktree'niz güncel, ancak yerel {{value0}}, {{value1}} {{value2}} geride, bu yüzden AI diff'leri eski bir geçmişle karşılaştırma yapabilir. Orca'nın bunu otomatik olarak güncel tutmasına izin verin. Bunu istediğiniz zaman şuradan değiştirebilirsiniz:",
-                  "3d260e1a5d": "Ayarlar › {{value0}}",
                   "34a03a6565": "{{value0}} referansını güncel tut",
                   "4a18052018": "Yerel {{value0}}, {{value1}} referansının gerisinde",
-                  "commit": "commit",
-                  "commits": "commit"
+                  "staleLocalBranch_other": "Yeni worktree'niz güncel, ancak yerel {{branch}} branch'i {{count}} commit geride olduğu için AI diff'leri güncel olmayan geçmişe dayanabilir. Orca'nın bu branch'i otomatik olarak güncel tutmasını sağlayın. Bunu <settings>Ayarlar › {{setting}}</settings> bölümünden istediğiniz zaman değiştirebilirsiniz"
                 }
               }
             }
@@ -5272,12 +5352,10 @@
           "39d51212cc": "Grup adı",
           "aa0247680d": "Hayır, ayrı ayrı içe aktar",
           "a0bc4d1f8e": "Evet, grup olarak içe aktar",
-          "8401a7a0d0": "1 repo",
-          "d4f1df62ef": "{{value0}} repo",
-          "b4263a2ac4": "{{value1}} içinde {{value0}} bulundu.",
           "24eda6c8b2": "Taranıyor... {{value0}}",
           "6149d5203f": "Repo seçilmedi. Git özellikleri olmadan düzenleyici, terminal ve arama kullanmak için bunun yerine üst klasörü açın.",
-          "e52454b7f6": "Klasör Olarak Aç"
+          "e52454b7f6": "Klasör Olarak Aç",
+          "foundRepositories_other": "{{path}} konumunda {{count}} repository bulundu."
         },
         "AddRepoRemoteStep": {
           "6680289908": "/home/user/project",
@@ -5346,9 +5424,8 @@
           "eab8b45238": "Hatayı kopyala",
           "a23b22d16f": "Kopyalandı",
           "74fc00776f": "Hata ayrıntıları",
-          "3afcad0497": "ilk ajan mesajından.",
-          "ff62a18580": "Orca şunun için bir branch adı oluşturamadı:",
-          "ca3b225195": "Branch otomatik adlandırması başarısız oldu"
+          "ca3b225195": "Branch otomatik adlandırması başarısız oldu",
+          "couldNotGenerateBranchName": "Orca'da <name>{{name}}</name> için ilk ajan mesajından bir branch adı oluşturulamadı."
         },
         "CreateProjectLocationField": {
           "95548e33bf": "Üst klasör seçin...",
@@ -5368,37 +5445,32 @@
           "2b56b35f53": "Bunu Ayarlar'dan değiştirebilirsiniz.",
           "dd3a45bbbd": "Bir dahaki sefere bu onayı atlayacağız.",
           "fc23c4cbdf": "Çalışma Alanını Sil",
-          "86f0ae1257": "Çalışma Alanlarını Sil"
+          "86f0ae1257": "Çalışma Alanlarını Sil",
+          "removeFolderProjectInstead": "Bu çalışma alanını silmek yerine klasör projesini kaldırın.",
+          "gitBlocksMainWorktree": "Git, ana worktree'nin kaldırılmasına izin vermez."
         },
         "DeleteWorktreeDirtyChangeHint": {
           "showLoadedPaths": "Yüklenen yolları göster",
           "loadedPathsNotice": "Yüklenen yollar eksik veya güncelliğini yitirmiş olabilir.",
           "loadedChangedPaths": "Yüklenen değişmiş yollar",
           "unresolvedConflict": "Çözülmemiş çakışma",
-          "moreLoadedPaths": "ve yüklenen {{value0}} yol daha",
           "changeCount_one": "{{count}} commit'lenmemiş veya izlenmeyen değişiklik",
           "changeCount_other": "{{count}} commit'lenmemiş veya izlenmeyen değişiklik",
-          "changes": "Commit'lenmemiş veya izlenmeyen değişiklikler"
+          "changes": "Commit'lenmemiş veya izlenmeyen değişiklikler",
+          "moreLoadedPaths_other": "ve yüklenmiş {{count}} yol daha"
         },
         "DeleteWorktreeLineageNotice": {
-          "ad407c2d55": "daha fazla",
           "a940f3c96e": "Alt çalışma alanları silinecek",
-          "29b98bf9cd": "Bu çalışma alanını silmek, {{value0}} alt çalışma alanını da siler.",
-          "66798cc6a2": "Bu çalışma alanını silmek, 1 alt çalışma alanını da siler."
+          "alsoDeletesChildren_other": "Bu çalışma alanı silindiğinde {{count}} alt çalışma alanı da silinir.",
+          "moreChildren_other": "+{{count}} tane daha"
         },
         "DeleteWorktreeSkipConfirmOption": {
           "29aefb7e52": "Tekrar sorma"
-        },
-        "DeleteWorktreeWarningPanels": {
-          "026738155a": "(orijinal klon dizini).",
-          "c4f96a6e18": "ana worktree",
-          "e3be9eba15": "Bu,"
         },
         "ImportedWorktreesVisibilityLine": {
           "b7a87dc32f": "Worktree listesinde göster",
           "ad99f4eea9": "Gizli tut",
           "9f4f14e821": "Bunu daha sonra proje menüsünden değiştirebilirsiniz.",
-          "b2bc47c080": "daha fazla konum",
           "b47ba1a9d2": "{{value0}} önizlemesi",
           "2251d41ebb": "Gizli worktree grupları",
           "5a9688802a": "{{value0}} tane daha göster",
@@ -5412,7 +5484,8 @@
           "keepHiddenAriaLabel_one": "{{repo}} için bulunan {{count}} worktree'yi gizli tut; proje menüsünden geri getir",
           "keepHiddenAriaLabel_other": "{{repo}} için bulunan {{count}} worktree'yi gizli tut; proje menüsünden geri getir",
           "keepHiddenTooltip": "Gizli tut - proje menüsünden geri getir",
-          "repoOnHost": "{{host}} üzerindeki {{repo}}"
+          "repoOnHost": "{{host}} üzerindeki {{repo}}",
+          "moreLocations_other": "+ {{count}} konum daha"
         },
         "NonGitFolderDialog": {
           "e52454b7f6": "Klasör Olarak Aç",
@@ -5446,20 +5519,22 @@
         },
         "ProjectGroupDeleteDialog": {
           "ca65b78f78": "İptal",
-          "69f5cb97d0": "Sil",
           "591f330288": "Proje Grubunu Sil",
           "2c14ce677a": "Siliniyor...",
           "0e0e6764af": "İçerdiği projeler",
-          "ad407c2d55": "daha fazla",
-          "removeContainedProjectSingular": "İçerdiği 1 projeyi kaldır",
-          "removeContainedProjectPlural": "İçerdiği {{value0}} projeyi kaldır",
           "55f75628c0": "Diskteki proje klasörleri silinmez.",
-          "fec7e9c8ae": "Grubu Sil"
+          "fec7e9c8ae": "Grubu Sil",
+          "removeContainedProjects_other": "İçerdiği {{count}} projeyi kaldır",
+          "deleteGroupDescription": "<name>{{name}}</name> silinecek.",
+          "moreProjects_other": "+{{count}} tane daha"
         },
         "ProjectGroupNameDialog": {
           "d99a034073": "İptal",
           "83dfbc5313": "Grup Adı",
-          "4a64e78822": "Kaydediliyor..."
+          "4a64e78822": "Kaydediliyor...",
+          "defaultGroupName": "{{name}} grubu",
+          "create": "Oluştur",
+          "rename": "Yeniden adlandır"
         },
         "RemoteFileBrowser": {
           "2300612806": "Filtrelemek için yazın veya bir yol girin…",
@@ -5471,7 +5546,9 @@
           "largeInputNoMatches": "Bu uzun girdi için eşleşme yok",
           "entriesLabel": "Klasör içeriği",
           "inputLabel": "Filtre veya yol",
-          "fileHint": "Dosyalar proje olarak açılamaz"
+          "fileHint": "Dosyalar proje olarak açılamaz",
+          "invalidPathRepeatedSeparators": "Geçersiz yol: yinelenen ayırıcılar",
+          "invalidPathControlCharacters": "Geçersiz yol: kontrol karakterlerine izin verilmez"
         },
         "SleepTwinWorkspaceDialog": {
           "title": "Çalışma alanını uyut",
@@ -5501,11 +5578,10 @@
           "70715947fb": "Kurulum betiği boş olamaz",
           "888b83bf78": "Kurulum betiği kaydedilemedi",
           "a49196d538": "Orca yeni bir worktree oluşturduğunda çalışır.",
-          "d9f2db2738": "projenin ayarları",
-          "a5bb8c5135": "Şurada kaydedildi:",
           "savedSetupCommand": "Kurulum komutu kaydedildi.",
           "savedWithSkippedFields_one": "Desteklenmeyen {{count}} alan atlandı. Kurulum komutu kaydedildi.",
-          "savedWithSkippedFields_other": "Desteklenmeyen {{count}} alan atlandı. Kurulum komutu kaydedildi."
+          "savedWithSkippedFields_other": "Desteklenmeyen {{count}} alan atlandı. Kurulum komutu kaydedildi.",
+          "savedInProjectSettings": "Bu <settings>projenin ayarlarında</settings> kayıtlı"
         },
         "SetupScriptPromptCardViews": {
           "96a7f4198c": "Yerel kurulumu kaydet",
@@ -5513,20 +5589,17 @@
           "31b8b01a45": "Ayarlar",
           "4a98f907ae": "Yeniden dene",
           "0a98169776": "Orca yeni worktree'ler oluşturduğunda çalıştırılacak bir kurulum komutu ekleyin.",
-          "8349e3fa4c": ". Yeni worktree'ler için çalıştırmak üzere kaydedin.",
-          "b56d1322f7": "Şurada bir kurulum komutu bulundu:",
           "aef6c0a213": "Orca bir worktree oluşturduğunda çalıştırmak için algılanan komutu kaydedin.",
-          "660cdc17f8": "kurulum betiklerini yok sayıyor. Yerel bir komut ekleyin veya kaynağı Ayarlar'dan değiştirin.",
-          "8f6be51aa1": "orca.yaml",
-          "bb879db364": "Bu repo paylaşılan",
           "0155fb9ed3": "Bu reponun kurulum betiği şu anda doğrulanamadı.",
           "eefa756190": "Manuel yapılandır",
           "ca4efcbc25": "Kaydet",
-          "d02e6a42b1": "Şuradan algılandı:",
           "fdbc6cb064": "Algılanan kurulum betiği",
           "7275f674cc": "Algılanan kurulum",
           "822ff300ad": "Kapat",
-          "5bfd5c8779": "Kurulum betiklerini kapat"
+          "5bfd5c8779": "Kurulum betiklerini kapat",
+          "detectedFromSource": "<source>{{source}}</source> kaynağından algılandı",
+          "ignoresSharedSetup": "Bu repo, paylaşılan <yaml>orca.yaml</yaml> kurulum betiklerini yok sayıyor. Yerel bir komut ekleyin veya Ayarlar bölümünde kaynağı değiştirin.",
+          "foundSetupCommandIn": "<source>{{source}}</source> içinde bir kurulum komutu bulundu. Yeni worktree'lerde çalıştırmak için kaydedin."
         },
         "SidebarFeedbackDialog": {
           "8bf619e4cf": "İptal",
@@ -5707,8 +5780,8 @@
         "WorkspaceKanbanDrawerHeader": {
           "f369f5c5a3": "Kapat",
           "e1a34450fc": "Çalışma alanlarını duruma göre düzenleyin ve çalışma alanı kartlarını açın.",
-          "81870af08f": "seçildi",
-          "c6a77ab0f4": "Çalışma alanı panosu"
+          "c6a77ab0f4": "Çalışma alanı panosu",
+          "selectedCount_other": "{{count}} seçili"
         },
         "WorkspaceKanbanPinDropTarget": {
           "c30151c5ee": "Durumu değiştirmeden sabitlemek için buraya bırakın.",
@@ -5809,7 +5882,8 @@
           "2931b42b09": "Durum: Taslak {{value0}}",
           "e888362def": "Durum: Kapalı",
           "f394b3e86e": "Durum: Merge edildi",
-          "af2b07bda5": "Durum: {{value0}}"
+          "af2b07bda5": "Durum: {{value0}}",
+          "checksStatus": "Kontroller: {{status}}"
         },
         "WorktreeCardPorts": {
           "3240f320d7": "Canlı Portlar",
@@ -5820,8 +5894,8 @@
           "5d1a5d51bb": "{{value0}} üzerindeki işlem durduruldu",
           "c89f290e25": "{{value0}} kopyalandı",
           "d1113f4660": "Tarayıcı açılamadı",
-          "fed49903c9": "{{value0}} canlı {{value1}}",
-          "unknownProcess": "Bilinmeyen işlem"
+          "unknownProcess": "Bilinmeyen işlem",
+          "livePorts_other": "{{count}} etkin port"
         },
         "WorktreeContextMenu": {
           "c39c37676a": "Bir grup oluşturun ve bu projeyi içine taşıyın.",
@@ -5866,7 +5940,6 @@
           "f9dc6cc5d3": "Proje Grubunu Yeniden Adlandır",
           "370c6a55dd": "Filtreleri Temizle",
           "b7acbf038b": "Çalışma alanı bulunamadı",
-          "0c6ee14f23": "alt",
           "c83968f87f": "Projeyi Kaldır",
           "64e55f7f01": "Gruptan kaldır",
           "4a08fb55f2": "Gruba taşı",
@@ -5879,12 +5952,7 @@
           "4d7b73658c": "Grubu yeniden adlandır",
           "79465e9034": "{{value0}} için grup işlemleri",
           "bfbedc547b": "Worktree'ler",
-          "045a8aed48": "alt öğeler",
           "bb85cd86ba": "{{value0}} için çalışma alanı oluştur",
-          "20bebf9c7f": "{{value0}} alt çalışma alanını göster",
-          "c1f4a31623": "{{value0}} alt çalışma alanını göster",
-          "e97297cb75": "{{value0}} alt çalışma alanını gizle",
-          "0cd15956d4": "{{value0}} alt çalışma alanını gizle",
           "bd37a57ac8": "{{value0}} için çalışma alanı oluştur",
           "b667b59632": "Bazı projeler Orca'dan kaldırılamadı",
           "groupDeleteFailed": "Grup silinemedi",
@@ -5895,8 +5963,10 @@
           "sidebarRowMissing": "Hedef artık mevcut değil",
           "failedUnnestWorkspace": "Çalışma alanının iç içe yerleşimi kaldırılamadı",
           "hostRepairRequired": "Yeniden eşleştirme gerekiyor",
-          "groupProjectsRemainedSingular": "Grup silindikten sonra içindeki {{count}} projeden {{remaining}} tanesi kaldı.",
-          "groupProjectsRemainedPlural": "Grup silindikten sonra içindeki {{count}} projeden {{remaining}} tanesi kaldı."
+          "showChildWorkspaces_other": "{{count}} alt çalışma alanını göster",
+          "hideChildWorkspaces_other": "{{count}} alt çalışma alanını gizle",
+          "childCount_other": "{{count}} alt öğe",
+          "groupProjectsRemained_other": "Grup silindikten sonra içerdiği {{count}} projeden {{remaining}} tanesi kaldı."
         },
         "WorktreeMetaDialog": {
           "3db0a2a593": "İptal",
@@ -5960,7 +6030,6 @@
           "d40d436fc2": "Worktree görünürlüğü güncellenemedi. Tekrar deneyin.",
           "unsupportedHost": "Bu host, kaynağa özel worktree görünürlüğünü desteklemiyor. Bu ayarı değiştirmek için host'taki Orca'yı güncelleyin.",
           "search": "Gizli worktree'lerde ara",
-          "searchPlaceholder": "{{value0}} worktree'lerinde ara…",
           "noMatches": "Eşleşen worktree yok",
           "allShown": "Bulunan tüm worktree'ler gösteriliyor",
           "noneFound": "Orca dışı worktree bulunamadı",
@@ -5968,7 +6037,8 @@
           "disableSource": "Worktree'lerini tek tek yönetmek için bir kaynağı devre dışı bırakın.",
           "appearWhenDetected": "Orca yeni worktree'ler algıladığında burada görünecekler.",
           "openGlobalSettings": "Genel Ayarlar'da Yönet",
-          "globalSettingsSources": "Bu kaynakların, burada geçersiz kılabileceğiniz genel bir ayarı vardır:"
+          "globalSettingsSources": "Bu kaynakların, burada geçersiz kılabileceğiniz genel bir ayarı vardır:",
+          "searchHiddenPlaceholder_other": "{{count}} worktree içinde ara…"
         },
         "add": {
           "repo": {
@@ -6175,13 +6245,11 @@
           "7a8b9c0d1e": "Ayarları aç",
           "8b9c0d1e2f": "Host'u kaldır",
           "workspacesFailed": "Bu host'un {{count}} çalışma alanı kaldırılamadı. Tekrar deneyebilmeniz için host korundu.",
-          "oneWorkspace": "1 çalışma alanı",
-          "manyWorkspaces": "{{count}} çalışma alanı",
-          "hostHasWorkspacesDefault": "{{value0}} öğesini ve kimlik bilgilerini bu bilgisayardan kaldırır. {{value1}} Orca'da kalır, uzak dosyalara dokunulmaz.",
-          "alsoForgetLocal": "Bu {{value0}} öğesini Orca'dan da kaldır",
           "advanced": "Gelişmiş",
           "alsoForgetLocalHint": "Yalnızca Orca'dan temizler. Uzak dosyalar, worktree'ler ve branch'ler dokunulmadan bırakılır.",
-          "wslHostEndsTerminalsUnlessShared": "{{value0}} öğesini Orca'dan kaldırır. Bu bilgisayarda açık olan başka bir Orca onu kullanmıyorsa açık terminallerini de sonlandırır ve bu dağıtımdaki Orca sunucusunu durdurur. Dağıtımdaki dosyalar değiştirilmez."
+          "wslHostEndsTerminalsUnlessShared": "{{value0}} öğesini Orca'dan kaldırır. Bu bilgisayarda açık olan başka bir Orca onu kullanmıyorsa açık terminallerini de sonlandırır ve bu dağıtımdaki Orca sunucusunu durdurur. Dağıtımdaki dosyalar değiştirilmez.",
+          "hostKeepsWorkspaces_other": "{{host}} sunucusunu ve kimlik bilgilerini bu bilgisayardan kaldırır. Sunucudaki {{count}} çalışma alanı Orca'da kalır — uzak dosyalara dokunulmaz.",
+          "alsoRemoveWorkspaces_other": "Bu {{count}} çalışma alanını da Orca'dan kaldır"
         },
         "HostRenameDialog": {
           "1a2b3c4d5e": "Host'u yeniden adlandır",
@@ -6254,7 +6322,7 @@
           "current": "Mevcut",
           "searchPlaceholder": "Worktree'lerde ara...",
           "empty": "Eşleşen uygun worktree yok.",
-          "setParentFor": "Şunun için üst ayarla:"
+          "setParentForName": "<name>{{name}}</name> için üst öğe ayarla"
         },
         "WorktreeCardStatusSlot": {
           "branchIdentity": "Branch",
@@ -6264,12 +6332,10 @@
         },
         "NewExternalWorktreesInboxLine": {
           "9f2d4c8b17": "{{value0}} için harici worktree'leri kalıcı olarak gizle",
-          "2a6f31d8c7": "gizli worktree",
-          "5b90e4a2f6": "gizli worktree",
-          "7f18c5b0d3": "{{value1}} içindeki {{value0}} gizli worktree'yi incele",
-          "4e2b7a9c05": "{{value1}} içindeki {{value0}} gizli worktree'yi incele",
           "c3e8a1f4b2": "Bir daha gösterme",
-          "6c07f3a91e": "{{value1}} üzerinde {{value0}}"
+          "6c07f3a91e": "{{value1}} üzerinde {{value0}}",
+          "hiddenWorktreesNoun_other": "gizli worktree'ler",
+          "reviewHiddenWorktrees_other": "{{scope}} kapsamındaki {{count}} gizli worktree'yi incele"
         },
         "NoticeHostGlyph": {
           "hostDisconnected": "{{hostName}} bağlantısı kesildi",
@@ -6360,8 +6426,8 @@
           "sshConfigPickerRetry": "Tekrar dene",
           "sshConfigPickerResolving": "Okunuyor…",
           "pairingHelpShareComputer": "Bunu diğer bilgisayarda Ayarlar → Uzak Orca Sunucuları → Bu bilgisayarı paylaş bölümünden oluşturun.",
-          "sshImportSyncedPlural": "Orca'ya {{count}} sunucu eklendi.",
-          "sshImportSyncedSingular": "Orca'ya {{count}} sunucu eklendi."
+          "sshImportSynced_other": "Orca'ya {{count}} sunucu eklendi.",
+          "sshConfigPickerInvalidResponse": "SSH yapılandırmasındaki sunucular için geçersiz yanıt"
         },
         "ForgetSshWorkspaceDialog": {
           "ghostBody": "{{host}} artık kayıtlı bir SSH sunucusu olmadığı için bu çalışma alanı etkin bir sunucuya bağlı değil. Yalnızca Orca'dan kaldırılabilir; uzak sunucudaki dosyalar ve branch'ler değiştirilmez.",
@@ -6384,11 +6450,11 @@
         },
         "WorkspaceKanbanSearchField": {
           "bdb753c78d": "Eşleşen çalışma alanı yok",
-          "4d96c209d6": "{{value1}} çalışma alanından {{value0}} tanesi eşleşiyor",
           "c0cd6bdf6c": "Çalışma alanlarında ara",
           "3b7ea51793": "Aramayı temizle",
           "7f1c2e94a5": "Arama metni çok uzun, pano filtrelenmedi",
-          "9a4d0f6b21": "Çok uzun"
+          "9a4d0f6b21": "Çok uzun",
+          "workspacesMatch_other": "{{count}} çalışma alanından {{matchCount}} tanesi eşleşiyor"
         },
         "WorktreeCardSshHostControl": {
           "connectFailed": "SSH bağlantısı başarısız oldu",
@@ -6486,11 +6552,11 @@
           "developerToolsTitle": "Apple'ın komut satırı araçlarını yükleyin",
           "developerToolsBody": "Git, Apple'ın geliştirici araçlarına ihtiyaç duyar. Bunu Terminal'de çalıştırıp Orca'ya dönün. Otomatik olarak yeniden kontrol edilecek.",
           "affectedOne": "{{value0}} için worktree taraması duraklatıldı",
-          "affectedMany": "{{value0}} proje için worktree taraması duraklatıldı",
           "copyCommand": "Komutu kopyala",
           "copied": "Komut kopyalandı",
           "retry": "Şimdi tekrar dene",
-          "restored": "Git yeniden çalışıyor. Worktree'ler yenilendi."
+          "restored": "Git yeniden çalışıyor. Worktree'ler yenilendi.",
+          "affectedProjects_other": "{{count}} proje için worktree taraması duraklatıldı"
         },
         "manualSortSwitch": {
           "title": "Sıralama Manuel olarak değiştirildi",
@@ -6535,7 +6601,8 @@
         "wslHostRemoval": {
           "keptForOthers": "Bu Orca’dan kaldırıldı. Ana bilgisayar {{value0}} için çalışmaya devam ediyor.",
           "partial": "Ana makine kaldırıldı ancak dağıtım içinde hâlâ çalışan bir şey var: {{value0}}",
-          "pending": "Orca ana makineyi henüz kaldırmadı: {{value0}} Tekrar denemek için yeniden kaldırın veya tutmak için bağlanın."
+          "pending": "Orca ana makineyi henüz kaldırmadı: {{value0}} Tekrar denemek için yeniden kaldırın veya tutmak için bağlanın.",
+          "unavailable": "Bu bilgisayarda WSL sunucuları kullanılamıyor."
         },
         "addRepoWslHostFolderPicker": {
           "otherDistro": "Bu klasör {{value1}} içinde değil, {{value0}} içinde.",
@@ -6576,6 +6643,44 @@
           "openingProject": "Proje açılıyor…",
           "openingFolder": "Klasör açılıyor…",
           "chooseFolder": "Klasör seç…"
+        },
+        "DeleteWorktreeWarningPanels": {
+          "mainWorktreeNotice": "Bu, <strong>ana worktree</strong> (ilk klonlama dizini)."
+        },
+        "DeleteNestedWorktreesDialog": {
+          "unsupportedHost": "Bu sunucu iç içe worktree silmeyi desteklemiyor."
+        },
+        "WorktreeCardHelpers": {
+          "checksPassing": "Başarılı",
+          "checksFailing": "Başarısız",
+          "checksPending": "Beklemede",
+          "conflictMerging": "Merge ediliyor",
+          "conflictRebasing": "Rebase ediliyor",
+          "conflictCherryPicking": "Cherry-pick ediliyor"
+        },
+        "activeFilterCount_other": "{{count}} filtre",
+        "folderWorkspaceComposer": {
+          "defaultWorkspaceName": "{{name}} çalışma alanı"
+        },
+        "workspaceKanbanStatus": {
+          "defaultLabel": "Durum {{number}}"
+        },
+        "worktreeCardModel": {
+          "sparsePreviewMore_other": "{{preview}}, +{{count}} tane daha"
+        },
+        "worktreeCardPrDisplay": {
+          "mrDetailsUnavailable": "MR ayrıntıları kullanılamıyor",
+          "prDetailsUnavailable": "PR ayrıntıları kullanılamıyor",
+          "loadingMr": "MR yükleniyor…",
+          "loadingPr": "PR yükleniyor…"
+        },
+        "HostSectionHeader": {
+          "workspaceCount_other": "{{count}} çalışma alanı"
+        },
+        "titleDerivedAgentRows": {
+          "needsInput": "Girdi gerekiyor",
+          "running": "Çalışıyor",
+          "idle": "Boşta"
         }
       },
       "shared": {
@@ -14092,17 +14197,8 @@
             "saveLocation": "Konumu ayarla"
           },
           "SmartWorkspaceNameField": {
-            "2a0d535f69": "Yeni branch oluştur",
-            "a44229ce4d": "çalışma alanı adı olarak",
-            "766083a596": "\"",
-            "34ca97bce3": "\"",
-            "b1a7d679ba": "Kullan",
             "e57c53727c": "Proje ekle...",
-            "a76fcb4fa0": "Şuna geç:",
-            "eadf877af5": "Koru",
             "6859e2896c": "İptal",
-            "9ef1a7c4b0": ", bu seçili projeden farklı.",
-            "ad188067ae": "GitHub URL'si şunu gösteriyor:",
             "4bd98f1091": "Proje değiştirilsin mi?",
             "0c9e668e3a": "Temizle",
             "7199ff19c7": "Seçili kaynağı temizle",
@@ -14121,7 +14217,6 @@
             "fda67f0b61": "mevcut proje",
             "3e8bb1176a": "Sorunları aramak için Ayarlar'da Linear'ı bağlayın.",
             "switchTaskSourceTitle": "Görev kaynağı değiştirilsin mi?",
-            "differentTaskSource": ", bu seçili görev kaynağından farklı.",
             "currentTaskSource": "mevcut görev kaynağı",
             "placeholderNameOrLinearUrl": "Bir ad, Linear URL'si veya Jira URL'si yazın",
             "placeholderWorkspaceName": "Bir çalışma alanı adı yazın",
@@ -14150,7 +14245,13 @@
             "emoji": "Emoji",
             "loadingLinearIssue": "Linear sorunu yükleniyor…",
             "linearLoginUnreadableTitle": "Linear'ı yeniden bağla",
-            "linearLoginUnreadableBody": "Kayıtlı Linear oturum açma bilgisi okunamıyor. Ayarlar'dan yeniden bağlayın."
+            "linearLoginUnreadableBody": "Kayıtlı Linear oturum açma bilgisi okunamıyor. Ayarlar'dan yeniden bağlayın.",
+            "keepRepo": "{{name}} seçimini koru",
+            "switchToRepo": "{{name}} seçimine geç",
+            "crossRepoDifferentTaskSource": "GitHub URL'si, seçili görev kaynağından farklı olan {{repo}} reposunu gösteriyor.",
+            "crossRepoDifferentProject": "GitHub URL'si, seçili projeden farklı olan {{repo}} reposunu gösteriyor.",
+            "useAsWorkspaceName": "Çalışma alanı adı olarak <name>\"{{name}}\"</name> kullan",
+            "createNewBranchNamed": "<name>{{name}}</name> adlı yeni branch oluştur"
           },
           "ProjectCombobox": {
             "empty": "Aramanızla eşleşen proje yok.",
@@ -14164,6 +14265,11 @@
             "listLabel": "Çalıştırma hedefleri",
             "label": "Çalıştırma yeri",
             "browse": "Çalıştırma hedeflerine göz at"
+          },
+          "projectCombobox": {
+            "recentHeading": "Son kullanılanlar",
+            "projectsHeading": "Projeler",
+            "foldersHeading": "Klasörler"
           }
         }
       },
@@ -15760,20 +15866,26 @@
         }
       },
       "dashboard": {
-        "DashboardAgentChildDisclosure": {
-          "1b57ce9fa4": "{{value1}} alt {{value2}} {{value0}}"
-        },
         "DashboardAgentRow": {
           "912e136cd9": "Gönder",
           "a743da52ff": "Ayrıntıları genişlet",
           "a41fb5376e": "Ayrıntıları daralt",
           "5ae84475cc": "Kapat",
           "b06e13fcf7": "Ajanı kapat",
-          "0272969e28": "Bu ajana gönder"
+          "0272969e28": "Bu ajana gönder",
+          "justNow": "az önce",
+          "timeAgo": "{{duration}} önce",
+          "dispatchedAgents_other": "{{agentType}} - {{count}} ajan görevlendirildi",
+          "startedAgo": "{{time}} başladı",
+          "doneAgo": "{{time}} tamamlandı"
         },
         "DashboardAgentRowMessage": {
           "0a01046763": "kesildi",
           "1ec01cef03": "Kullanıcı tarafından kesildi"
+        },
+        "DashboardAgentChildDisclosure": {
+          "hideChildAgents_other": "{{count}} alt ajanı gizle",
+          "showChildAgents_other": "{{count}} alt ajanı göster"
         }
       },
       "crash": {
@@ -16808,18 +16920,17 @@
           "activityOptionsActive": "Etkinlik seçenekleri ({{value0}})"
         },
         "clearCompleted": {
-          "clearedOne": "1 tamamlanmış ajan temizlendi",
-          "clearedMany": "{{count}} tamamlanmış ajan temizlendi",
-          "undo": "Geri al"
+          "undo": "Geri al",
+          "cleared_other": "{{count}} tamamlanmış ajan temizlendi"
         },
         "standaloneWorktree": {
           "floatingTerminal": "Yüzen terminal",
           "standaloneTerminal": "Bağımsız terminal"
         },
         "ActivityTitlebarControls": {
-          "f915168c8e": "okunmadı",
           "d6a8de3934": "ajan",
-          "dc708f3eff": "Ajanları kapat"
+          "dc708f3eff": "Ajanları kapat",
+          "unreadCount_other": "{{count}} okunmamış"
         },
         "ActivityScopeFilterControls": {
           "resetScope": "Tüm sunucuları ve projeleri göster",
@@ -17520,6 +17631,16 @@
         "cancelled": "Bu yalın SSH terminali başlatılmadan kapatıldı.",
         "terminalUnavailable": "Burada bir terminal açılamadı.",
         "openHint": "Orca sunucuda kurulum yapamadığında orada çalışmaya devam etmenizi sağlar."
+      },
+      "cmdJ": {
+        "quickActionUnavailable": {
+          "workspaceLoading": "“{{action}}” çalıştırılamıyor — çalışma alanı hâlâ yükleniyor.",
+          "noActiveWorkspace": "“{{action}}” çalıştırılamıyor — etkin çalışma alanı yok.",
+          "workspaceDisconnected": "“{{action}}” çalıştırılamıyor — çalışma alanının bağlantısı kesildi.",
+          "noTabGroup": "“{{action}}” çalıştırılamıyor — kullanılabilir sekme grubu yok.",
+          "noMovableChat": "“{{action}}” çalıştırılamıyor — taşınabilir etkin sohbet yok.",
+          "clientUnsupported": "“{{action}}” çalıştırılamıyor — bu istemci ve çalışma zamanı bunu desteklemiyor."
+        }
       }
     },
     "i18n": {
@@ -18719,8 +18840,6 @@
             "none": "Hiçbiri yok"
           },
           "idleSignalField": "Boşta kalma sinyali",
-          "selectionVanishedOne": "Seçilen 1 çalışma alanı artık mevcut değil.",
-          "selectionVanished": "Seçilen {{value0}} çalışma alanı artık mevcut değil.",
           "updatedAgo": "{{value0}} güncellendi",
           "refreshing": "Yenileniyor…",
           "refreshingProgress": "Yenileniyor {{value0}}/{{value1}}",
@@ -18735,12 +18854,6 @@
           "gitStatusCheckFailed": "Git durumu kontrolü başarısız oldu",
           "gitStatusUnverified": "Git durumu doğrulanamadı",
           "deleteAnyway": "Yine de sil",
-          "forceDeleteProjectionOne": "{{count}} çalışma alanı şu anda risk gösteriyor ve zorla silme gerekebilir",
-          "forceDeleteProjectionMany": "{{count}} çalışma alanı şu anda risk gösteriyor ve zorla silme gerekebilir",
-          "selectionWithheldOne": "Seçilen 1 çalışma alanı mevcut filtreler tarafından gizlendi ve seçimi kaldırıldı.",
-          "selectionWithheld": "Seçilen {{value0}} çalışma alanı mevcut filtreler tarafından gizlendi ve seçimleri kaldırıldı.",
-          "selectAllCountOne": "Güvenlik kontrolünden geçmiş 1 çalışma alanını seç",
-          "selectAllCount": "Güvenlik kontrolünden geçmiş {{value0}} çalışma alanının tümünü seç",
           "appliedFilters": "Uygulanan filtreler",
           "removeFilter": "{{value0}} filtresini kaldır",
           "chip": {
@@ -18784,18 +18897,21 @@
               "locked": "Kilitli",
               "retainedAgents": "Tamamlanmış ajanlar"
             }
-          }
+          },
+          "forceDeleteRisk_other": "Şu anda {{count}} çalışma alanında risk var ve bunların zorla silinmesi gerekebilir",
+          "selectionVanishedCount_other": "Seçili {{count}} çalışma alanı artık mevcut değil.",
+          "selectionWithheldCount_other": "Seçili {{count}} çalışma alanı geçerli filtreler tarafından gizlendiği için seçimden çıkarıldı.",
+          "selectAllSafetyChecked_other": "Güvenlik kontrolünden geçen {{count}} çalışma alanının tümünü seç"
         },
         "scan": {
           "progress": "Çalışma alanları taranıyor ({{value0}}/{{value1}})",
           "singleError": "{{value0}} kontrol edilemedi: {{value1}}. Bazı çalışma alanları eksik olabilir. Tekrar denemek için yenileyin.",
-          "moreErrors": ", +{{value0}} daha",
-          "multipleErrors": "{{value0}} repository kontrol edilemedi ({{value1}}{{value2}}). Bazı çalışma alanları eksik olabilir. Tekrar denemek için yenileyin.",
           "noWorkspaces": "Çalışma alanı bulunamadı.",
           "fallbackRepository": "bir repository",
           "gitListFailed": "Git worktree'leri listeleyemedi",
-          "readyOne": "1 çalışma alanı bulundu.",
-          "readyMany": "{{value0}} çalışma alanı bulundu."
+          "multipleErrorsWithMore_other": "{{count}} repository ({{names}}, +{{moreCount}} tane daha) kontrol edilemedi. Bazı çalışma alanları eksik olabilir. Yeniden denemek için yenileyin.",
+          "multipleErrorsCount_other": "{{count}} repository ({{names}}) kontrol edilemedi. Bazı çalışma alanları eksik olabilir. Yeniden denemek için yenileyin.",
+          "readyCount_other": "{{count}} çalışma alanı bulundu."
         },
         "relativeTime": {
           "never": "Hiçbir zaman",
@@ -19518,7 +19634,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "hizmetin çalışan terminalleri",
-      "count": "{{count}} çalışan terminal",
       "unverifiable": "Orca terminal hizmeti sürecini doğrulayamadığı için hiçbir şey durdurulmadı.",
       "alreadyReplaced": "Terminal hizmeti zaten değiştirilmiş; hiçbir şey durdurulmadı.",
       "restarted": "Terminal hizmeti yeniden başlatıldı.",
@@ -19530,7 +19645,8 @@
       "confirmTitle": "Terminal arka plan hizmeti yeniden başlatılsın mı?",
       "confirmBody": "Yeniden başlatma, {{sessions}} içindeki tüm süreçleri sonlandırır. Sürdürme desteği olan ajanlar daha sonra sürdürülebilir; kabuklar ve diğer işler ise yeniden başlatılmalıdır. Bunu ajanlarınız boşta olduğunda yapın.",
       "cancel": "İptal",
-      "confirm": "Yeniden başlat ve süreçleri sonlandır"
+      "confirm": "Yeniden başlat ve süreçleri sonlandır",
+      "runningTerminals_other": "{{count}} çalışan terminal"
     },
     "restartedInputNotSent": "Siz yazarken terminal yeniden başlatıldı, bu nedenle girdilerinizin bir kısmı terminale ulaşmamış olabilir. Yeniden yazmadan önce yeni kabuğu kontrol edin."
   },
@@ -19861,7 +19977,6 @@
       "repositoryLoading": "Repo kimliği hâlâ yükleniyor. Kullanılabilir olduğunda yeniden deneyin.",
       "duplicate": "Bu bağlantı zaten eklenmiş.",
       "title": "Bağlı işler",
-      "count": "{{count}} bağlı",
       "empty": "Bu çalışma alanına ait tüm inceleme ve görevleri bir arada tutun.",
       "reviews": "İncelemeler",
       "tasks": "Sorunlar ve görevler",
@@ -19869,7 +19984,6 @@
       "open": "Bağlantıyı aç",
       "unlinkItem": "{{label}} bağlantısını kaldır",
       "unlink": "Çalışma alanıyla bağlantısını kaldır",
-      "show": "Bağlı {{count}} inceleme ve görevi göster",
       "details": "Çalışma alanı ayrıntıları",
       "description": "Bu çalışma alanına inceleme ve görevler ekleyin, notlar tutun.",
       "commentHelp": "Markdown desteklenir. Kaydetmek için Enter veya {{shortcut}} · Yeni satır için Shift+Enter.",
@@ -19922,7 +20036,9 @@
       "checksPassing": "Başarılı",
       "checksUnknown": "Bilinmiyor",
       "checksNeutral": "Nötr",
-      "allReviewChecks": "İncelemeler: {{count}} · Kontroller: {{status}}"
+      "allReviewChecks": "İncelemeler: {{count}} · Kontroller: {{status}}",
+      "showLinked_other": "Bağlantılı {{count}} inceleme ve görevi göster",
+      "linkedCount_other": "{{count}} bağlantılı"
     },
     "attachments": {
       "updateRuntime": "Çalışma alanı bağlantılarını değiştirmek için uzak çalışma zamanını güncelleyin",
@@ -20081,8 +20197,8 @@
     },
     "compact": {
       "linkedAndUnavailable": "Bağlı worktree'lerde {{value0}} · {{value1}} kullanılamıyor",
-      "linkedAndScanned": "Bağlı worktree'lerde {{value0}} · {{value1}} çalışma alanı",
-      "linked": "Bağlı"
+      "linked": "Bağlı",
+      "linkedAndScannedCount_other": "Bağlantılı worktree'lerde {{size}} · {{count}} çalışma alanı"
     },
     "savedScan": {
       "folderDetailsUnavailable": "Klasör ayrıntıları geçmiş taramalarla birlikte kaydedilmez. Bu çalışma alanını incelemek için yenileyin."

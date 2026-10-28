@@ -20,6 +20,14 @@
           "markManyRead_other": "Mark {{count}} Agents Read",
           "markManyUnread_one": "Mark {{count}} Agent Unread",
           "markManyUnread_other": "Mark {{count}} Agents Unread"
+        },
+        "ActivityTitlebarControls": {
+          "unreadCount_one": "{{count}} unread",
+          "unreadCount_other": "{{count}} unread"
+        },
+        "clearCompleted": {
+          "cleared_one": "Cleared {{count}} completed agent",
+          "cleared_other": "Cleared {{count}} completed agents"
         }
       },
       "automations": {
@@ -47,6 +55,18 @@
           "errorAttach": "Could not attach the markup screenshot.",
           "errorCapture": "Could not capture the page to draw on.",
           "errorUnavailable": "Screenshot markup is not available on this page."
+        }
+      },
+      "dashboard": {
+        "DashboardAgentChildDisclosure": {
+          "hideChildAgents_one": "Hide {{count}} child agent",
+          "hideChildAgents_other": "Hide {{count}} child agents",
+          "showChildAgents_one": "Show {{count}} child agent",
+          "showChildAgents_other": "Show {{count}} child agents"
+        },
+        "DashboardAgentRow": {
+          "dispatchedAgents_one": "{{agentType}} - dispatched {{count}} agent",
+          "dispatchedAgents_other": "{{agentType}} - dispatched {{count}} agents"
         }
       },
       "editor": {
@@ -434,9 +454,35 @@
         }
       },
       "sidebar": {
+        "AddRemoteHostDialog": {
+          "sshImportSynced_one": "Added {{count}} host to Orca.",
+          "sshImportSynced_other": "Added {{count}} hosts to Orca."
+        },
+        "AddRepoNestedImportStep": {
+          "foundRepositories_one": "Found {{count}} repository in {{path}}.",
+          "foundRepositories_other": "Found {{count}} repositories in {{path}}."
+        },
         "DeleteWorktreeDirtyChangeHint": {
           "changeCount_one": "{{count}} uncommitted or untracked change",
-          "changeCount_other": "{{count}} uncommitted or untracked changes"
+          "changeCount_other": "{{count}} uncommitted or untracked changes",
+          "moreLoadedPaths_one": "and {{count}} more loaded path",
+          "moreLoadedPaths_other": "and {{count}} more loaded paths"
+        },
+        "DeleteWorktreeLineageNotice": {
+          "alsoDeletesChildren_one": "Deleting this workspace also deletes {{count}} child workspace.",
+          "alsoDeletesChildren_other": "Deleting this workspace also deletes {{count}} child workspaces.",
+          "moreChildren_one": "+{{count}} more",
+          "moreChildren_other": "+{{count}} more"
+        },
+        "HostRemoveDialog": {
+          "alsoRemoveWorkspaces_one": "Also remove this workspace from Orca",
+          "alsoRemoveWorkspaces_other": "Also remove these {{count}} workspaces from Orca",
+          "hostKeepsWorkspaces_one": "Removes {{host}} and its credentials from this computer. Its {{count}} workspace stays in Orca — remote files are not touched.",
+          "hostKeepsWorkspaces_other": "Removes {{host}} and its credentials from this computer. Its {{count}} workspaces stay in Orca — remote files are not touched."
+        },
+        "HostSectionHeader": {
+          "workspaceCount_one": "{{count}} workspace",
+          "workspaceCount_other": "{{count}} workspaces"
         },
         "ImportedWorktreesVisibilityLine": {
           "hidingInRepo_one": "Hiding {{count}} discovered worktree in {{repo}}",
@@ -444,15 +490,73 @@
           "hiding_one": "Hiding {{count}} discovered worktree",
           "hiding_other": "Hiding {{count}} discovered worktrees",
           "keepHiddenAriaLabel_one": "Keep {{count}} discovered worktree hidden for {{repo}}; recover from the project menu",
-          "keepHiddenAriaLabel_other": "Keep {{count}} discovered worktrees hidden for {{repo}}; recover from the project menu"
+          "keepHiddenAriaLabel_other": "Keep {{count}} discovered worktrees hidden for {{repo}}; recover from the project menu",
+          "moreLocations_one": "+ {{count}} more location",
+          "moreLocations_other": "+ {{count}} more locations"
+        },
+        "LocalGitToolchainScanBanner": {
+          "affectedProjects_one": "Worktree scan paused for {{count}} project",
+          "affectedProjects_other": "Worktree scan paused for {{count}} projects"
+        },
+        "NewExternalWorktreesInboxLine": {
+          "hiddenWorktreesNoun_one": "hidden worktree",
+          "hiddenWorktreesNoun_other": "hidden worktrees",
+          "reviewHiddenWorktrees_one": "Review {{count}} hidden worktree in {{scope}}",
+          "reviewHiddenWorktrees_other": "Review {{count}} hidden worktrees in {{scope}}"
         },
         "PreservedBranchBatchReviewDialog": {
           "a0f9863597_one": "Force Delete {{count}} Branch",
           "a0f9863597_other": "Force Delete {{count}} Branches"
         },
+        "ProjectGroupDeleteDialog": {
+          "moreProjects_one": "+{{count}} more",
+          "moreProjects_other": "+{{count}} more",
+          "removeContainedProjects_one": "Remove {{count}} contained project",
+          "removeContainedProjects_other": "Remove {{count}} contained projects"
+        },
         "SetupScriptPromptCard": {
           "savedWithSkippedFields_one": "{{count}} unsupported field skipped. Saved the setup command.",
           "savedWithSkippedFields_other": "{{count}} unsupported fields skipped. Saved the setup command."
+        },
+        "WorkspaceKanbanDrawerHeader": {
+          "selectedCount_one": "{{count}} selected",
+          "selectedCount_other": "{{count}} selected"
+        },
+        "WorkspaceKanbanSearchField": {
+          "workspacesMatch_one": "{{matchCount}} of {{count}} workspace matches",
+          "workspacesMatch_other": "{{matchCount}} of {{count}} workspaces match"
+        },
+        "WorktreeCardPorts": {
+          "livePorts_one": "{{count}} live port",
+          "livePorts_other": "{{count}} live ports"
+        },
+        "WorktreeList": {
+          "childCount_one": "{{count}} child",
+          "childCount_other": "{{count}} children",
+          "groupProjectsRemained_one": "{{remaining}} of {{count}} contained project remained after deleting the group.",
+          "groupProjectsRemained_other": "{{remaining}} of {{count}} contained projects remained after deleting the group.",
+          "hideChildWorkspaces_one": "Hide {{count}} child workspace",
+          "hideChildWorkspaces_other": "Hide {{count}} child workspaces",
+          "showChildWorkspaces_one": "Show {{count}} child workspace",
+          "showChildWorkspaces_other": "Show {{count}} child workspaces"
+        },
+        "WorktreeVisibilityDialog": {
+          "searchHiddenPlaceholder_one": "Search {{count}} worktree…",
+          "searchHiddenPlaceholder_other": "Search {{count}} worktrees…"
+        },
+        "activeFilterCount_one": "{{count}} filter",
+        "activeFilterCount_other": "{{count}} filters",
+        "local": {
+          "base": {
+            "ref": {
+              "suggestion": {
+                "toast": {
+                  "staleLocalBranch_one": "Your new worktree is current, but local {{branch}} is {{count}} commit behind, so AI diffs may compare to stale history. Let Orca keep it up to date automatically. Change this anytime in <settings>Settings › {{setting}}</settings>",
+                  "staleLocalBranch_other": "Your new worktree is current, but local {{branch}} is {{count}} commits behind, so AI diffs may compare to stale history. Let Orca keep it up to date automatically. Change this anytime in <settings>Settings › {{setting}}</settings>"
+                }
+              }
+            }
+          }
         },
         "preserved": {
           "branch": {
@@ -477,6 +581,10 @@
           "deleteCount_other": "Delete {{count}} Workspaces",
           "sleepCount_one": "Sleep {{count}} Workspace",
           "sleepCount_other": "Sleep {{count}} Workspaces"
+        },
+        "worktreeCardModel": {
+          "sparsePreviewMore_one": "{{preview}}, +{{count}} more",
+          "sparsePreviewMore_other": "{{preview}}, +{{count}} more"
         }
       },
       "skills": {
@@ -487,6 +595,48 @@
       },
       "status": {
         "bar": {
+          "NativeChatResumeStatusSegment": {
+            "ariaLabelCount_one": "{{count}} chat available to resume",
+            "ariaLabelCount_other": "{{count}} chats available to resume",
+            "chatsFailedAria_one": "{{count}} chat failed to resume. Click for details.",
+            "chatsFailedAria_other": "{{count}} chats failed to resume. Click for details.",
+            "chatsFailedLabel_one": "{{count}} chat failed to resume",
+            "chatsFailedLabel_other": "{{count}} chats failed to resume",
+            "checkAriaCount_one": "{{count}} chat to check after resuming. Click for details.",
+            "checkAriaCount_other": "{{count}} chats to check after resuming. Click for details.",
+            "checkLabelCount_one": "{{count}} chat to check",
+            "checkLabelCount_other": "{{count}} chats to check",
+            "labelCount_one": "{{count}} chat to resume",
+            "labelCount_other": "{{count}} chats to resume",
+            "resumedAriaCount_one": "{{count}} chat resumed. Click to see it.",
+            "resumedAriaCount_other": "{{count}} chats resumed. Click to see them.",
+            "resumedLabelCount_one": "{{count}} chat resumed",
+            "resumedLabelCount_other": "{{count}} chats resumed"
+          },
+          "PortsStatusSegment": {
+            "portsAria_one": "Ports, {{count}} workspace port",
+            "portsAria_other": "Ports, {{count}} workspace ports",
+            "portsTooltipWithExternal_one": "Ports — {{count}} workspace port · {{externalCount}} external",
+            "portsTooltipWithExternal_other": "Ports — {{count}} workspace ports · {{externalCount}} external",
+            "portsTooltip_one": "Ports — {{count}} workspace port",
+            "portsTooltip_other": "Ports — {{count}} workspace ports"
+          },
+          "RemoteServerUpdateStatusSegment": {
+            "failedCount_one": "{{count}} server update failed",
+            "failedCount_other": "{{count}} server updates failed",
+            "updatedCount_one": "{{count}} server updated",
+            "updatedCount_other": "{{count}} servers updated"
+          },
+          "ResourceUsageStatusSegment": {
+            "endOrphanTerminals_one": "End {{count}} orphan terminal",
+            "endOrphanTerminals_other": "End {{count}} orphan terminals",
+            "orphanCount_one": "{{count}} orphan",
+            "orphanCount_other": "{{count}} orphans"
+          },
+          "SkillUpdateStatusSegment": {
+            "runningSkills_one": "Updating {{count}} skill…",
+            "runningSkills_other": "Updating {{count}} skills…"
+          },
           "SshStatusSegment": {
             "connectedHostCount_one": "{{count}} host",
             "connectedHostCount_other": "{{count}} hosts",
@@ -494,6 +644,20 @@
             "moreSshHostMatches_other": "{{count}} more matches. Keep typing to narrow them down.",
             "moreSshHosts_one": "Find {{count}} more SSH host…",
             "moreSshHosts_other": "Find among {{count}} more SSH hosts…"
+          },
+          "StatusBar": {
+            "rateLimitResetsAvailable_one": "{{count}} rate-limit reset available",
+            "rateLimitResetsAvailable_other": "{{count}} rate-limit resets available",
+            "staleCodexSessions_one": "{{count}} Codex session is still on the old account.",
+            "staleCodexSessions_other": "{{count}} Codex sessions are still on the old account."
+          },
+          "WorkspaceSpaceManagerPanel": {
+            "removedFromSpace_one": "{{count}} workspace removed from Space.",
+            "removedFromSpace_other": "{{count}} workspaces removed from Space.",
+            "selectedCount_one": "{{count}} selected",
+            "selectedCount_other": "{{count}} selected",
+            "topLevelItems_one": "{{formattedCount}} top-level item",
+            "topLevelItems_other": "{{formattedCount}} top-level items"
           },
           "resource": {
             "manager": {
@@ -504,6 +668,34 @@
                 }
               }
             }
+          },
+          "tooltip": {
+            "rateLimitResetsAvailable_one": "{{count}} rate-limit reset available",
+            "rateLimitResetsAvailable_other": "{{count}} rate-limit resets available"
+          },
+          "workspaceSpaceDecision": {
+            "activeAgents_one": "{{count}} active agent",
+            "activeAgents_other": "{{count}} active agents",
+            "browserTabsOpen_one": "{{count}} browser tab open",
+            "browserTabsOpen_other": "{{count}} browser tabs open",
+            "changedFiles_one": "{{count}} changed file",
+            "changedFiles_other": "{{count}} changed files",
+            "completedAgentsRetained_one": "{{count}} completed agent retained",
+            "completedAgentsRetained_other": "{{count}} completed agents retained",
+            "completedAgents_one": "{{count}} completed agent",
+            "completedAgents_other": "{{count}} completed agents",
+            "dirtyEditorBuffers_one": "{{count}} dirty editor buffer",
+            "dirtyEditorBuffers_other": "{{count}} dirty editor buffers",
+            "editorFilesOpen_one": "{{count}} editor file open",
+            "editorFilesOpen_other": "{{count}} editor files open",
+            "liveTerminalTabs_one": "{{live}} live of {{count}} terminal tab",
+            "liveTerminalTabs_other": "{{live}} live of {{count}} terminal tabs",
+            "openFiles_one": "{{count}} open file",
+            "openFiles_other": "{{count}} open files"
+          },
+          "workspaceSpaceFormat": {
+            "scanningRepos_one": "Scanning {{scanned}} of {{count}} repo · {{current}}",
+            "scanningRepos_other": "Scanning {{scanned}} of {{count}} repos · {{current}}"
           }
         }
       },
@@ -513,6 +705,22 @@
             "hostTerminalCap": "The host is already running as many terminals as Orca allows. Close a terminal you no longer need, then try again.",
             "ptyAllocationLimit": "Your system cannot allocate any more pty devices. Close some terminals you are not using, in Orca or another program, then try again.",
             "terminalProcessLimit": "Your system cannot start another terminal process. Close unused terminals or quit unused processes, then try again."
+          },
+          "terminal": {
+            "drop": {
+              "handler": {
+                "failedUploads_one": "Failed to upload {{count}} file.",
+                "failedUploads_other": "Failed to upload {{count}} files.",
+                "skippedItems_one": "Skipped {{count}} item.",
+                "skippedItems_other": "Skipped {{count}} items.",
+                "skippedSymlinks_one": "Skipped {{count}} symlink.",
+                "skippedSymlinks_other": "Skipped {{count}} symlinks.",
+                "uploadingFilesToRemote_one": "Uploading {{count}} file to remote…",
+                "uploadingFilesToRemote_other": "Uploading {{count}} files to remote…",
+                "uploadingFiles_one": "Uploading {{count}} file to runtime…",
+                "uploadingFiles_other": "Uploading {{count}} files to runtime…"
+              }
+            }
           }
         }
       }
@@ -691,7 +899,6 @@
         "editSavedArguments": "Edit them in Settings > Agents > Arguments.",
         "emptyMessage": "This message is empty, so it was not sent.",
         "fullAccessAsRoot": "{{agent}} won't use Full access while it runs as root. Choose another permission for {{agent}} in Settings → Agents for the computer running this chat, then start a new chat.",
-        "launchPreparationFailed": "Orca couldn't prepare {{agent}} to start on the computer running this chat.",
         "historyInOtherAccount": "This chat's history is in another Claude account. Switch back to that account to continue it.",
         "historyTooLarge": "This conversation's history is too large to restore here.",
         "hostFault": "Orca ran into a problem, so this didn't go through.",
@@ -700,6 +907,7 @@
         "hostStopped": "{{agent}} never finished starting, so Orca stopped it.",
         "interactiveAgentNotSignedIn": "Sign in to {{agent}} by running `{{loginCommand}}` and using `{{slashCommand}}` on the computer running this chat.",
         "launchFolderMissing": "The folder this chat ran in no longer exists. Restore it to continue this chat.",
+        "launchPreparationFailed": "Orca couldn't prepare {{agent}} to start on the computer running this chat.",
         "managedAccountEnvOverride": "This Claude launch sets its own Anthropic sign-in variables. Remove them to use a managed Claude account.",
         "managedAccountUnsupported": "While a Claude account is added in WSL, Claude chats need a Windows Claude account.",
         "noTurnToStop": "{{agent}} had no turn running to stop.",
@@ -944,6 +1152,26 @@
       }
     },
     "workspace": {
+      "cleanup": {
+        "browse": {
+          "forceDeleteRisk_one": "{{count}} workspace currently shows risk and may need a force delete",
+          "forceDeleteRisk_other": "{{count}} workspaces currently show risk and may need a force delete",
+          "selectAllSafetyChecked_one": "Select {{count}} safety-checked workspace",
+          "selectAllSafetyChecked_other": "Select all {{count}} safety-checked workspaces",
+          "selectionVanishedCount_one": "{{count}} selected workspace no longer exists.",
+          "selectionVanishedCount_other": "{{count}} selected workspaces no longer exist.",
+          "selectionWithheldCount_one": "{{count}} selected workspace is hidden by the current filters and was deselected.",
+          "selectionWithheldCount_other": "{{count}} selected workspaces are hidden by the current filters and were deselected."
+        },
+        "scan": {
+          "multipleErrorsCount_one": "Could not check {{count}} repository ({{names}}). Some workspaces may be missing. Refresh to try again.",
+          "multipleErrorsCount_other": "Could not check {{count}} repositories ({{names}}). Some workspaces may be missing. Refresh to try again.",
+          "multipleErrorsWithMore_one": "Could not check {{count}} repository ({{names}}, +{{moreCount}} more). Some workspaces may be missing. Refresh to try again.",
+          "multipleErrorsWithMore_other": "Could not check {{count}} repositories ({{names}}, +{{moreCount}} more). Some workspaces may be missing. Refresh to try again.",
+          "readyCount_one": "{{count}} workspace found.",
+          "readyCount_other": "{{count}} workspaces found."
+        }
+      },
       "delete": {
         "unsavedEdits": {
           "blocked_one": "Save or close {{count}} unsaved file in {{name}} first",
@@ -1010,6 +1238,24 @@
       "reopened_other": "Reopened {{count}} terminals",
       "resumed_one": "{{count}} agent session resumed.",
       "resumed_other": "{{count}} agent sessions resumed."
+    },
+    "severedDaemonBanner": {
+      "runningTerminals_one": "{{count}} running terminal",
+      "runningTerminals_other": "{{count}} running terminals"
+    }
+  },
+  "workspace": {
+    "links": {
+      "linkedCount_one": "{{count}} linked",
+      "linkedCount_other": "{{count}} linked",
+      "showLinked_one": "Show {{count}} linked review or task",
+      "showLinked_other": "Show {{count}} linked reviews and tasks"
+    }
+  },
+  "workspaceSpace": {
+    "compact": {
+      "linkedAndScannedCount_one": "{{size}} in linked worktrees · {{count}} workspace",
+      "linkedAndScannedCount_other": "{{size}} in linked worktrees · {{count}} workspaces"
     }
   }
 }

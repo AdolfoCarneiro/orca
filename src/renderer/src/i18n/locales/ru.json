@@ -2140,7 +2140,6 @@
         "ba64270bdb": "Настроить агентов",
         "ab63f25397": "Открыть настройки агентов",
         "0c5d6a479c": "[Необязательно]",
-        "b5a0796911": "Подключиться",
         "dccd26d4e4": "Выбрать проект",
         "d6b0a96f32": "Добавить проект",
         "969a8bff66": "Проект",
@@ -2186,7 +2185,8 @@
         "addSshHostHint": "Использовать существующий компьютер по SSH",
         "addRemoteOrcaServer": "Добавить удалённый сервер Orca",
         "addRemoteOrcaServerHint": "Подключить другую среду выполнения Orca",
-        "hostConnectionFailed": "Не удалось подключиться"
+        "hostConnectionFailed": "Не удалось подключиться",
+        "connectProject": "Подключить {{name}}"
       },
       "NewWorkspaceComposerModal": {
         "createWorktree": "Создать рабочее дерево",
@@ -3611,21 +3611,33 @@
             },
             "drop": {
               "handler": {
-                "1e072f611e": "Не удалось загрузить {{value0}} {{value1}}.",
                 "0c77693641": "Рабочее дерево ещё не готово. Повторите через несколько секунд.",
                 "ce8248b835": "Путь рабочего дерева недоступен.",
                 "internalTooManyPaths": "Перетащено слишком много путей для безопасной вставки в терминал.",
                 "internalPathsTooLarge": "Список путей слишком велик для безопасной вставки в терминал.",
                 "internalHostMismatch": "Перетаскивайте файлы с того же компьютера, на котором работает терминал.",
-                "b4cf68e889": "Пропущено: {{value0}} {{value1}}.",
                 "writeTimeout": "Перетаскивание отменено: терминал не принял путь за отведённое безопасное время.",
                 "writeRejected": "Перетаскивание отменено: терминал не смог принять путь.",
-                "skippedSymlinkPlural": "Пропущено символических ссылок: {{count}}.",
-                "skippedSymlinkSingular": "Пропущена {{count}} символическая ссылка.",
-                "uploadingFilePlural": "Загрузка файлов в среду выполнения: {{count}}…",
-                "uploadingFileSingular": "Загрузка {{count}} файла в среду выполнения…",
-                "uploadingFileToRemotePlural": "Загрузка файлов на удалённый сервер: {{count}}…",
-                "uploadingFileToRemoteSingular": "Загрузка {{count}} файла на удалённый сервер…"
+                "skippedSymlinks_one": "Пропущена {{count}} символическая ссылка.",
+                "skippedSymlinks_few": "Пропущены {{count}} символические ссылки.",
+                "skippedSymlinks_many": "Пропущено {{count}} символических ссылок.",
+                "skippedSymlinks_other": "Пропущено {{count}} символической ссылки.",
+                "skippedItems_one": "Пропущен {{count}} элемент.",
+                "skippedItems_few": "Пропущены {{count}} элемента.",
+                "skippedItems_many": "Пропущено {{count}} элементов.",
+                "skippedItems_other": "Пропущено {{count}} элемента.",
+                "failedUploads_one": "Не удалось загрузить {{count}} файл.",
+                "failedUploads_few": "Не удалось загрузить {{count}} файла.",
+                "failedUploads_many": "Не удалось загрузить {{count}} файлов.",
+                "failedUploads_other": "Не удалось загрузить {{count}} файла.",
+                "uploadingFiles_one": "Загружается {{count}} файл в среду выполнения…",
+                "uploadingFiles_few": "Загружаются {{count}} файла в среду выполнения…",
+                "uploadingFiles_many": "Загружается {{count}} файлов в среду выполнения…",
+                "uploadingFiles_other": "Загружается {{count}} файла в среду выполнения…",
+                "uploadingFilesToRemote_one": "Загружается {{count}} файл на удалённый сервер…",
+                "uploadingFilesToRemote_few": "Загружаются {{count}} файла на удалённый сервер…",
+                "uploadingFilesToRemote_many": "Загружается {{count}} файлов на удалённый сервер…",
+                "uploadingFilesToRemote_other": "Загружается {{count}} файла на удалённый сервер…"
               }
             }
           },
@@ -3743,10 +3755,15 @@
             "sessionQueued": "Сессия поставлена в очередь",
             "openSupportedWorkspace": "Откройте рабочее пространство, прежде чем продолжить сессию.",
             "sessionHostMismatchUnsupported": "Эта сессия принадлежит другому компьютеру. Перетащите её в рабочее пространство на том же компьютере.",
-            "oldPayload": "Эта сессия перетащена из окна старой версии Orca. Продолжите её из истории сессий."
+            "oldPayload": "Эта сессия перетащена из окна старой версии Orca. Продолжите её из истории сессий.",
+            "legacyDragCannotRetarget": "Эта сессия перетащена из окна старой версии Orca, поэтому Orca не может привязать её к выбранной учётной записи Codex. Возобновите её на панели истории сессий.",
+            "legacyDragPrepareFailed": "Orca не удалось подготовить эту устаревшую сессию Codex. Повторите попытку возобновления."
           },
           "TabGroupDropOverlay": {
             "paneColumnLabel": "Новое разделение"
+          },
+          "useTabGroupCreationCommands": {
+            "duplicateBrowserTabFailed": "Сопряжённой среде выполнения не удалось дублировать вкладку управляемого браузера."
           }
         },
         "bar": {
@@ -3941,6 +3958,30 @@
           "TabBarQuickCommandHostLoadStatus": {
             "82e294f3ca": "Сервер недоступен",
             "7c129b08ff": "Загрузка сервера…"
+          },
+          "nativeChatCliFork": {
+            "cannotOpenInCli": "Эту сессию нельзя открыть в CLI."
+          },
+          "tabCreateEntry": {
+            "fileNotFound": "Файл не найден: {{path}}",
+            "cannotOpenDirectory": "Нельзя открыть папку: {{path}}",
+            "parentNotDirectory": "Нельзя создать файл, поскольку {{path}} — не папка.",
+            "fileNoLongerExists": "Файл больше не существует: {{path}}",
+            "noActiveWorktree": "Нет активного рабочего дерева."
+          },
+          "tabCreateEntryPath": {
+            "filePathsCannotContainControlCharacters": "Пути к файлам не могут содержать управляющие символы.",
+            "enterAUrlOrFilePath": "Введите URL или путь к файлу.",
+            "homeRelativePathsAreNotSupported": "Пути относительно домашней папки здесь не поддерживаются.",
+            "enterAFilePathNotA": "Введите путь к файлу, а не к папке.",
+            "enterAnAbsoluteFilePath": "Введите абсолютный путь к файлу.",
+            "enterAnAbsolutePathForThis": "Введите абсолютный путь для этого компьютера.",
+            "enterARelativeFilePath": "Введите относительный путь к файлу.",
+            "windowsDrivePathsAreNotSupported": "Пути с буквой диска Windows здесь не поддерживаются.",
+            "uncPathsAreNotSupportedHere": "Пути UNC здесь не поддерживаются.",
+            "filePathsCannotContainEmptySegments": "Пути к файлам не могут содержать пустые сегменты.",
+            "filePathsCannotContainDotSegments": "Пути к файлам не могут содержать сегменты . или ..",
+            "filePathsCannotContainTildeSegments": "Пути к файлам не могут содержать сегменты ~."
           }
         }
       },
@@ -3968,15 +4009,22 @@
             "4ebf90c12e": "Внешние порты не обнаружены",
             "7dac3ecc9d": "Внешние порты",
             "95495019ed": "Сканирование портов недоступно на {{value0}}: {{value1}}",
-            "a8e4bdb412": " · внешних: {{value0}}",
             "c22ea609fd": "Порты",
-            "ca41be2802": "{{value1}} рабочего пространства: {{value0}}{{value2}}",
-            "b8bc3e420a": "Порты, в рабочем пространстве: {{value0}} {{value1}}",
             "3a87d54dfb": "Порты рабочего пространства не обнаружены",
             "c174bbbfed": "Поиск портов рабочего пространства…",
-            "8caaa86e9a": "порты",
-            "45834a9ace": "порт",
-            "2b84c4d11f": "в рабочем пространстве: {{value0}} · внешних: {{value1}}"
+            "2b84c4d11f": "в рабочем пространстве: {{value0}} · внешних: {{value1}}",
+            "portsAria_one": "Порты, {{count}} порт рабочего пространства",
+            "portsAria_few": "Порты, {{count}} порта рабочего пространства",
+            "portsAria_many": "Порты, {{count}} портов рабочего пространства",
+            "portsAria_other": "Порты, {{count}} порта рабочего пространства",
+            "portsTooltipWithExternal_one": "Порты — {{count}} порт рабочего пространства · внешних: {{externalCount}}",
+            "portsTooltipWithExternal_few": "Порты — {{count}} порта рабочего пространства · внешних: {{externalCount}}",
+            "portsTooltipWithExternal_many": "Порты — {{count}} портов рабочего пространства · внешних: {{externalCount}}",
+            "portsTooltipWithExternal_other": "Порты — {{count}} порта рабочего пространства · внешних: {{externalCount}}",
+            "portsTooltip_one": "Порты — {{count}} порт рабочего пространства",
+            "portsTooltip_few": "Порты — {{count}} порта рабочего пространства",
+            "portsTooltip_many": "Порты — {{count}} портов рабочего пространства",
+            "portsTooltip_other": "Порты — {{count}} порта рабочего пространства"
           },
           "ResourceUsageStatusSegment": {
             "946d9f94d0": "Отмена",
@@ -3985,7 +4033,6 @@
             "27a74f91f0": "Сейчас ничего не работает",
             "298f4be7f2": "ЦП",
             "2aa2de6cb9": "Название",
-            "30ff2c3c31": "без владельца: {{value0}}",
             "1fedf94eae": "Общая нагрузка на ЦП. Значение выше 100% означает одновременную работу нескольких ядер.",
             "e7cf14ec78": "Сессии терминалов недоступны. Список может быть устаревшим.",
             "93b0de3c21": "Перезапустить",
@@ -4015,10 +4062,15 @@
             "d406915b78": "Процесс отрисовки",
             "81cd37af99": "Основной процесс",
             "fa6d36758d": "Завершить сессию {{value0}}",
-            "b8f4a2c1d0e3": "без владельца: {{value0}}",
-            "c7e3b1a0d9f2": "Завершить {{value0}} терминал без владельца",
-            "d8f4c2b1e0a3": "Завершить терминалы без владельца: {{value0}}",
-            "e9a5d3c2b1f0": "Завершить {{value0}}?"
+            "e9a5d3c2b1f0": "Завершить {{value0}}?",
+            "endOrphanTerminals_one": "Завершить {{count}} терминал без владельца",
+            "endOrphanTerminals_few": "Завершить {{count}} терминала без владельца",
+            "endOrphanTerminals_many": "Завершить {{count}} терминалов без владельца",
+            "endOrphanTerminals_other": "Завершить {{count}} терминала без владельца",
+            "orphanCount_one": "без владельца: {{count}}",
+            "orphanCount_few": "без владельца: {{count}}",
+            "orphanCount_many": "без владельца: {{count}}",
+            "orphanCount_other": "без владельца: {{count}}"
           },
           "SshStatusSegment": {
             "3ad70e0365": "Управление удалёнными серверами…",
@@ -4084,10 +4136,6 @@
             "3325d996cb": "Обновить лимиты запросов",
             "cd9d7b40ff": "Перезапустить сессии: {{value0}}",
             "6cd6650b4c": "Перезапустить сессию",
-            "1446d0d8a0": "Сессии Codex, всё ещё использующие старую учётную запись: {{value0}}.",
-            "605901a495": "1 сессия Codex всё ещё использует старую учётную запись",
-            "5e5f9f5160": "Доступен 1 сброс лимита",
-            "5ecae9197c": "Доступно сбросов лимита: {{value0}}",
             "25d8bbde69": "Сброс лимита…",
             "e159fc1fd7": "Сбросить сейчас",
             "972a1ff497": "Сбросить лимиты Codex?",
@@ -4106,7 +4154,15 @@
             "codexSignInError": "Не удалось войти в Codex. Повторите попытку.",
             "cursorUsageMenu": "Использование Cursor",
             "hiddenUsageProviders": "Также: {{value0}}",
-            "zcodeUsageMenu": "Использование ZCode"
+            "zcodeUsageMenu": "Использование ZCode",
+            "rateLimitResetsAvailable_one": "Доступен {{count}} сброс лимита",
+            "rateLimitResetsAvailable_few": "Доступны {{count}} сброса лимита",
+            "rateLimitResetsAvailable_many": "Доступно {{count}} сбросов лимита",
+            "rateLimitResetsAvailable_other": "Доступно {{count}} сброса лимита",
+            "staleCodexSessions_one": "{{count}} сессия Codex всё ещё использует старую учётную запись.",
+            "staleCodexSessions_few": "{{count}} сессии Codex всё ещё используют старую учётную запись.",
+            "staleCodexSessions_many": "{{count}} сессий Codex всё ещё используют старую учётную запись.",
+            "staleCodexSessions_other": "На старой учётной записи всё ещё остаётся {{count}} сессии Codex."
           },
           "StatusBarUsageEmptyCta": {
             "828c764a79": "Подключить учётную запись",
@@ -4123,13 +4179,16 @@
           "SkillUpdateStatusSegment": {
             "runningLabel": "Обновление навыков",
             "runningOne": "Обновление {{value0}}…",
-            "runningMany": "Обновление навыков: {{value0}}…",
             "runningAria": "Навыки обновляются. Нажмите, чтобы открыть подробности.",
             "successLabel": "Навыки обновлены",
             "successAria": "Навыки обновлены. Нажмите, чтобы открыть подробности.",
             "attentionAria": "Некоторые обновления навыков пропущены. Нажмите, чтобы открыть подробности.",
             "attentionLabel": "Навыки требуют внимания",
-            "attentionTooltip": "Некоторые обновления навыков пропущены — нажмите для подробностей"
+            "attentionTooltip": "Некоторые обновления навыков пропущены — нажмите для подробностей",
+            "runningSkills_one": "Обновляется {{count}} навык…",
+            "runningSkills_few": "Обновляются {{count}} навыка…",
+            "runningSkills_many": "Обновляется {{count}} навыков…",
+            "runningSkills_other": "Обновляется {{count}} навыка…"
           },
           "UpdateStatusSegment": {
             "5cd13105a3": "Обновление не удалось. Нажмите, чтобы развернуть.",
@@ -4171,11 +4230,8 @@
             "6f8f6a6b04": "Фильтр рабочих пространств",
             "5caccea440": "Удалить выбранные",
             "e4a12c455b": "Очистить",
-            "0cb1501ccf": "можно освободить",
-            "65402b7192": "выбрано",
             "43171f3e60": "Рабочие пространства",
             "09960d86bd": "Проверено",
-            "63efebe0e6": "Удалено из раздела «Место на диске»: {{value0}} {{value1}}.",
             "eee5240810": "Рабочие пространства удалены",
             "9afc97f9a3": "Рабочее пространство удалено",
             "792a214457": "Удалить рабочее пространство",
@@ -4183,7 +4239,6 @@
             "9155381019": "Выборочная выгрузка",
             "f39d291997": "Выбрать",
             "16988df079": "Файлы не найдены.",
-            "b25c2c1086": "элементы верхнего уровня",
             "d3f9c69ddc": "Масштаб",
             "ef890d31b9": "Все",
             "c28643d3da": "Перейти к рабочему пространству",
@@ -4222,8 +4277,21 @@
             "c5135e7e4a": "Проверка размеров рабочих пространств. Можно уйти с этой страницы.",
             "0990a63160": "Размеры рабочих пространств ещё не проверены.",
             "977bdf9a36": "Нет элементов верхнего уровня для отображения.",
-            "131662ac65": "Открыто: {{value0}}",
-            "0d1c78d749": "Выбрать {{value0}}"
+            "0d1c78d749": "Выбрать {{value0}}",
+            "removedFromSpace_one": "Из раздела «Место на диске» удалено {{count}} рабочее пространство.",
+            "removedFromSpace_few": "Из раздела «Место на диске» удалены {{count}} рабочих пространства.",
+            "removedFromSpace_many": "Из раздела «Место на диске» удалено {{count}} рабочих пространств.",
+            "removedFromSpace_other": "Из раздела «Место на диске» удалено {{count}} рабочего пространства.",
+            "topLevelItems_one": "{{formattedCount}} элемент верхнего уровня",
+            "topLevelItems_few": "{{formattedCount}} элемента верхнего уровня",
+            "topLevelItems_many": "{{formattedCount}} элементов верхнего уровня",
+            "topLevelItems_other": "{{formattedCount}} элемента верхнего уровня",
+            "selectedCount_one": "Выбрано: {{count}}",
+            "selectedCount_few": "Выбрано: {{count}}",
+            "selectedCount_many": "Выбрано: {{count}}",
+            "selectedCount_other": "Выбрано: {{count}}",
+            "reclaimableSize": "Можно освободить {{size}}",
+            "scanning": "Сканирование"
           },
           "ports": {
             "status": {
@@ -4237,7 +4305,8 @@
                   "e4a709548c": "Не удалось обновить порты",
                   "acdb6df590": "Процесс на {{value0}} остановлен",
                   "480d8f2347": "Скопировано: {{value0}}",
-                  "b854ec9ff5": "Не удалось открыть браузер"
+                  "b854ec9ff5": "Не удалось открыть браузер",
+                  "unknownProcess": "Неизвестный процесс"
                 }
               }
             }
@@ -4267,8 +4336,6 @@
             "7ad719c4bf": "Ограничено",
             "e740f92596": "Не удалось обновить",
             "8418ec448d": "Не удалось обновить данные об использовании {{value0}}. Сессии агента могут оставаться авторизованными.",
-            "45198c7d95": "Доступен 1 сброс лимита",
-            "bce421cba3": "Доступно сбросов лимита: {{value0}}",
             "7ec6e030a0": "Ближайший срок истекает сейчас",
             "d1e442a9e5": "Срок истекает сейчас",
             "6cf9eaed10": "Ближайший срок истекает через {{value0}}",
@@ -4325,7 +4392,16 @@
                 "label": "Обновится при запуске Claude",
                 "message": "Данные об использовании Claude обновятся при следующем запуске Claude."
               }
-            }
+            },
+            "justNow": "только что",
+            "minutesAgo": "{{minutes}} мин назад",
+            "hoursAgo": "{{hours}} ч назад",
+            "updatedAgo": "Обновлено {{time}}",
+            "notYetUpdated": "Ещё не обновлено",
+            "rateLimitResetsAvailable_one": "Доступен {{count}} сброс лимита",
+            "rateLimitResetsAvailable_few": "Доступны {{count}} сброса лимита",
+            "rateLimitResetsAvailable_many": "Доступно {{count}} сбросов лимита",
+            "rateLimitResetsAvailable_other": "Доступно {{count}} сброса лимита"
           },
           "SshTargetStatusRow": {
             "sshHost": "SSH-сервер"
@@ -4360,12 +4436,16 @@
           "RemoteServerUpdateStatusSegment": {
             "updating": "Обновление {{value0}}/{{value1}}",
             "updatingTooltip": "Обновляются удалённые серверы Orca",
-            "failed": "Не удалось обновить серверы: {{value0}}",
             "failedTooltip": "Откройте обновления удалённых серверов Orca для проверки и повторной попытки",
-            "updated": "Обновлено серверов: {{value0}}",
             "updatedTooltip": "Обновление удалённых серверов Orca завершено",
-            "failedOne": "Не удалось обновить 1 сервер",
-            "updatedOne": "Обновлён 1 сервер"
+            "failedCount_one": "Не удалось обновить {{count}} сервер",
+            "failedCount_few": "Не удалось обновить {{count}} сервера",
+            "failedCount_many": "Не удалось обновить {{count}} серверов",
+            "failedCount_other": "Не удалось обновить {{count}} сервера",
+            "updatedCount_one": "Обновлён {{count}} сервер",
+            "updatedCount_few": "Обновлены {{count}} сервера",
+            "updatedCount_many": "Обновлено {{count}} серверов",
+            "updatedCount_other": "Обновлено {{count}} сервера"
           },
           "resource": {
             "memory": {
@@ -4373,7 +4453,10 @@
                 "workingSetDescription": "Суммарный рабочий набор (WS): страницы, находящиеся в ОЗУ прямо сейчас. Общие страницы могут учитываться в нескольких процессах; память, выгруженная Windows на диск, здесь не учитывается.",
                 "privateBytesDescription": "Суммарная частная память: память, выделенная этим процессам, независимо от того, находится ли она в ОЗУ или выгружена на диск. Именно её компьютер учитывает в лимите выделенной памяти, поэтому показатель продолжает расти, когда рабочий набор выше уменьшается при подкачке.",
                 "footprintDescription": "Суммарное потребление памяти — тот же показатель, что и в «Мониторинге системы»: память, принадлежащая каждому процессу, включая графическую. Страницы, общие для нескольких процессов, не учитываются дважды.",
-                "rssDescription": "Суммарный размер резидентной памяти (RSS). Общие страницы или страницы с несколькими отображениями могут учитываться в нескольких процессах."
+                "rssDescription": "Суммарный размер резидентной памяти (RSS). Общие страницы или страницы с несколькими отображениями могут учитываться в нескольких процессах.",
+                "memColumn": "Память",
+                "memorySummary": "Σ Память",
+                "privateSummary": "Σ Частная память"
               }
             },
             "manager": {
@@ -4424,29 +4507,45 @@
             "repair": "Создать сопряжение заново…"
           },
           "NativeChatResumeStatusSegment": {
-            "labelOne": "1 чат для продолжения",
-            "label": "Чатов для продолжения: {{value0}}",
-            "ariaLabelOne": "1 чат доступен для продолжения",
-            "ariaLabel": "Доступно чатов для продолжения: {{value0}}",
             "tooltip": "Открыть прерванные чаты, доступные для продолжения",
-            "failedLabelOne": "Не удалось возобновить 1 чат",
-            "failedLabel": "Не удалось возобновить чаты: {{value0}}",
-            "failedAriaOne": "Не удалось возобновить 1 чат. Нажмите для подробностей.",
-            "failedAria": "Не удалось возобновить чаты: {{value0}}. Нажмите для подробностей.",
             "failedTooltip": "Чаты, которые Orca не смогла возобновить после перезапуска. Нажмите для подробностей.",
-            "checkLabelOne": "1 чат для проверки",
-            "checkLabel": "Чатов для проверки: {{value0}}",
-            "checkAriaOne": "После возобновления нужно проверить 1 чат. Нажмите для подробностей.",
-            "checkAria": "После возобновления нужно проверить чаты: {{value0}}. Нажмите для подробностей.",
             "checkTooltip": "Чаты, которые Orca не смогла возобновить после перезапуска или для которых не смогла подтвердить возобновление. Нажмите для подробностей.",
             "resumingTooltip": "Восстанавливаем прерванные чаты и просим агентов продолжить…",
             "resumingProgressLabel": "Возобновление чатов: {{value0}}/{{value1}}",
             "resumingProgressAria": "Возобновление чатов: готово {{value0}} из {{value1}}. Нажмите для подробностей.",
-            "resumedLabelOne": "1 чат возобновлён",
-            "resumedLabel": "Возобновлено чатов: {{value0}}",
-            "resumedAriaOne": "1 чат возобновлён. Нажмите, чтобы открыть.",
-            "resumedAria": "Возобновлено чатов: {{value0}}. Нажмите, чтобы открыть их.",
-            "resumedTooltip": "Чаты, возобновлённые Orca после перезапуска. Нажмите, чтобы открыть их."
+            "resumedTooltip": "Чаты, возобновлённые Orca после перезапуска. Нажмите, чтобы открыть их.",
+            "chatsFailedLabel_one": "Не удалось возобновить {{count}} чат",
+            "chatsFailedLabel_few": "Не удалось возобновить {{count}} чата",
+            "chatsFailedLabel_many": "Не удалось возобновить {{count}} чатов",
+            "chatsFailedLabel_other": "Не удалось возобновить {{count}} чата",
+            "chatsFailedAria_one": "Не удалось возобновить {{count}} чат. Нажмите, чтобы узнать подробности.",
+            "chatsFailedAria_few": "Не удалось возобновить {{count}} чата. Нажмите, чтобы узнать подробности.",
+            "chatsFailedAria_many": "Не удалось возобновить {{count}} чатов. Нажмите, чтобы узнать подробности.",
+            "chatsFailedAria_other": "Не удалось возобновить {{count}} чата. Нажмите, чтобы узнать подробности.",
+            "resumedLabelCount_one": "Возобновлён {{count}} чат",
+            "resumedLabelCount_few": "Возобновлены {{count}} чата",
+            "resumedLabelCount_many": "Возобновлено {{count}} чатов",
+            "resumedLabelCount_other": "Возобновлено {{count}} чата",
+            "resumedAriaCount_one": "Возобновлён {{count}} чат. Нажмите, чтобы открыть его.",
+            "resumedAriaCount_few": "Возобновлены {{count}} чата. Нажмите, чтобы открыть их.",
+            "resumedAriaCount_many": "Возобновлено {{count}} чатов. Нажмите, чтобы открыть их.",
+            "resumedAriaCount_other": "Возобновлено {{count}} чата. Нажмите, чтобы открыть их.",
+            "checkLabelCount_one": "Нужно проверить {{count}} чат",
+            "checkLabelCount_few": "Нужно проверить {{count}} чата",
+            "checkLabelCount_many": "Нужно проверить {{count}} чатов",
+            "checkLabelCount_other": "Нужно проверить {{count}} чата",
+            "checkAriaCount_one": "Нужно проверить {{count}} чат после возобновления. Нажмите, чтобы узнать подробности.",
+            "checkAriaCount_few": "Нужно проверить {{count}} чата после возобновления. Нажмите, чтобы узнать подробности.",
+            "checkAriaCount_many": "Нужно проверить {{count}} чатов после возобновления. Нажмите, чтобы узнать подробности.",
+            "checkAriaCount_other": "Нужно проверить {{count}} чата после возобновления. Нажмите, чтобы узнать подробности.",
+            "labelCount_one": "{{count}} чат для возобновления",
+            "labelCount_few": "{{count}} чата для возобновления",
+            "labelCount_many": "{{count}} чатов для возобновления",
+            "labelCount_other": "{{count}} чата для возобновления",
+            "ariaLabelCount_one": "Доступен {{count}} чат для возобновления",
+            "ariaLabelCount_few": "Доступны {{count}} чата для возобновления",
+            "ariaLabelCount_many": "Доступно {{count}} чатов для возобновления",
+            "ariaLabelCount_other": "Доступно {{count}} чата для возобновления"
           },
           "StatusBarUsageChangeNotices": {
             "compactTitle": "Вид данных об использовании стал компактным",
@@ -4455,6 +4554,101 @@
           "usageUnitLabel": {
             "used": "Использовано",
             "remaining": "Осталось"
+          },
+          "mergeSnapshotAndSessions": {
+            "unattributed": "Без привязки"
+          },
+          "resourceSessionLabels": {
+            "terminalNumber": "Терминал {{number}}",
+            "pid": "PID {{pid}}",
+            "sessionPrefix": "сессия {{id}}",
+            "unknownSession": "(неизвестная сессия)",
+            "unknown": "неизвестно"
+          },
+          "runtimeTargets": {
+            "wslDefault": "WSL по умолчанию"
+          },
+          "floatingWorkspace": {
+            "minimize": "Свернуть плавающее рабочее пространство",
+            "show": "Показать плавающее рабочее пространство"
+          },
+          "workspaceSpaceGitRefresh": {
+            "ownerUnavailable": "Владелец рабочего пространства больше недоступен"
+          },
+          "workspaceSpaceDecision": {
+            "syncedWithUpstream": "Синхронизировано с вышестоящей веткой",
+            "aheadAndBehind": "{{ahead}} впереди, {{behind}} позади",
+            "ahead": "{{ahead}} впереди",
+            "behind": "{{behind}} позади",
+            "activeAgents_one": "{{count}} активный агент",
+            "activeAgents_few": "{{count}} активных агента",
+            "activeAgents_many": "{{count}} активных агентов",
+            "activeAgents_other": "{{count}} активного агента",
+            "completedAgents_one": "{{count}} завершённый агент",
+            "completedAgents_few": "{{count}} завершённых агента",
+            "completedAgents_many": "{{count}} завершённых агентов",
+            "completedAgents_other": "{{count}} завершённого агента",
+            "activeAndCompletedAgents": "{{active}}, {{completed}}",
+            "completedAgentsRetained_one": "Сохранён {{count}} завершённый агент",
+            "completedAgentsRetained_few": "Сохранены {{count}} завершённых агента",
+            "completedAgentsRetained_many": "Сохранено {{count}} завершённых агентов",
+            "completedAgentsRetained_other": "Сохранено {{count}} завершённого агента",
+            "noTrackedAgents": "Нет запущенных отслеживаемых агентов",
+            "noTerminalTabs": "Нет вкладок терминала",
+            "liveTerminalTabs_one": "Активных вкладок терминала: {{live}} из {{count}}",
+            "liveTerminalTabs_few": "Активных вкладок терминала: {{live}} из {{count}}",
+            "liveTerminalTabs_many": "Активных вкладок терминала: {{live}} из {{count}}",
+            "liveTerminalTabs_other": "Активных вкладок терминала: {{live}} из {{count}}",
+            "gitStatusUnavailable": "Статус Git недоступен: {{error}}",
+            "gitStatusNotLoaded": "Статус Git ещё не загружен",
+            "noUncommittedFiles": "Нет файлов с незакоммиченными изменениями",
+            "changedFiles_one": "{{count}} изменённый файл",
+            "changedFiles_few": "{{count}} изменённых файла",
+            "changedFiles_many": "{{count}} изменённых файлов",
+            "changedFiles_other": "{{count}} изменённого файла",
+            "noEditorFiles": "В редакторе нет открытых файлов",
+            "editorFilesOpen_one": "В редакторе открыт {{count}} файл",
+            "editorFilesOpen_few": "В редакторе открыты {{count}} файла",
+            "editorFilesOpen_many": "В редакторе открыто {{count}} файлов",
+            "editorFilesOpen_other": "В редакторе открыто {{count}} файла",
+            "dirtyOfOpen": "{{dirty}} из {{open}}",
+            "dirtyEditorBuffers_one": "{{count}} несохранённый буфер редактора",
+            "dirtyEditorBuffers_few": "{{count}} несохранённых буфера редактора",
+            "dirtyEditorBuffers_many": "{{count}} несохранённых буферов редактора",
+            "dirtyEditorBuffers_other": "{{count}} несохранённого буфера редактора",
+            "openFiles_one": "{{count}} открытый файл",
+            "openFiles_few": "{{count}} открытых файла",
+            "openFiles_many": "{{count}} открытых файлов",
+            "openFiles_other": "{{count}} открытого файла",
+            "activeWorkspace": "Это активное рабочее пространство",
+            "mainWorktreeProtected": "Основное рабочее дерево защищено",
+            "workspaceProtected": "Рабочее пространство защищено",
+            "canDeleteAfterReview": "Можно удалить после проверки",
+            "noLinkedIssue": "Нет связанной задачи",
+            "noLinkedReview": "Нет связанного PR",
+            "browserTabsOpen_one": "Открыта {{count}} вкладка браузера",
+            "browserTabsOpen_few": "Открыты {{count}} вкладки браузера",
+            "browserTabsOpen_many": "Открыто {{count}} вкладок браузера",
+            "browserTabsOpen_other": "Открыто {{count}} вкладки браузера"
+          },
+          "workspaceSpaceFormat": {
+            "cancellingScan": "Отмена сканирования",
+            "currentWorkspaces": "рабочие пространства",
+            "scanningWorkspaces": "Сканирование {{scanned}} из {{total}} · {{current}}",
+            "scanningRepos_one": "Сканирование {{scanned}} из {{count}} репозитория · {{current}}",
+            "scanningRepos_few": "Сканирование {{scanned}} из {{count}} репозиториев · {{current}}",
+            "scanningRepos_many": "Сканирование {{scanned}} из {{count}} репозиториев · {{current}}",
+            "scanningRepos_other": "Сканирование {{scanned}} из {{count}} репозитория · {{current}}",
+            "scanningSizes": "Сканирование размеров рабочих пространств",
+            "status": {
+              "scanned": "Просканировано",
+              "missing": "Отсутствует",
+              "noAccess": "Нет доступа",
+              "unavailable": "Недоступно",
+              "failed": "Ошибка"
+            },
+            "mainWorktree": "основное рабочее дерево",
+            "detached": "отсоединено"
           }
         }
       },
@@ -5235,12 +5429,12 @@
                   "670864ab52": "Обновление локальной {{value0}}",
                   "84c62e4d7f": "Не удалось включить {{value0}}",
                   "442552c656": "Откройте настройки и повторите попытку.",
-                  "f15fd80989": "Новое рабочее дерево актуально, но локальная {{value0}} отстаёт на {{value1}} {{value2}}, поэтому сравнение изменений с помощью ИИ может использовать устаревшую историю. Разрешите Orca обновлять её автоматически. Это можно изменить в любой момент:",
-                  "3d260e1a5d": "Настройки › {{value0}}",
                   "34a03a6565": "Поддерживать {{value0}} в актуальном состоянии",
                   "4a18052018": "Локальная {{value0}} отстаёт от {{value1}}",
-                  "commit": "коммит",
-                  "commits": "коммитов"
+                  "staleLocalBranch_one": "Новое рабочее дерево актуально, но локальная ветка {{branch}} отстаёт на {{count}} коммит, поэтому ИИ может сравнивать изменения с устаревшей историей. Разрешите Orca автоматически поддерживать её в актуальном состоянии. Изменить это можно в любое время в разделе <settings>Настройки › {{setting}}</settings>",
+                  "staleLocalBranch_few": "Новое рабочее дерево актуально, но локальная ветка {{branch}} отстаёт на {{count}} коммита, поэтому ИИ может сравнивать изменения с устаревшей историей. Разрешите Orca автоматически поддерживать её в актуальном состоянии. Изменить это можно в любое время в разделе <settings>Настройки › {{setting}}</settings>",
+                  "staleLocalBranch_many": "Новое рабочее дерево актуально, но локальная ветка {{branch}} отстаёт на {{count}} коммитов, поэтому ИИ может сравнивать изменения с устаревшей историей. Разрешите Orca автоматически поддерживать её в актуальном состоянии. Изменить это можно в любое время в разделе <settings>Настройки › {{setting}}</settings>",
+                  "staleLocalBranch_other": "Новое рабочее дерево актуально, но локальная ветка {{branch}} отстаёт на {{count}} коммита, поэтому ИИ может сравнивать изменения с устаревшей историей. Разрешите Orca автоматически поддерживать её в актуальном состоянии. Изменить это можно в любое время в разделе <settings>Настройки › {{setting}}</settings>"
                 }
               }
             }
@@ -5294,12 +5488,13 @@
           "39d51212cc": "Название группы",
           "aa0247680d": "Нет, импортировать отдельно",
           "a0bc4d1f8e": "Да, импортировать как группу",
-          "8401a7a0d0": "1 репозиторий",
-          "d4f1df62ef": "Репозиториев: {{value0}}",
-          "b4263a2ac4": "Найдено {{value0}} в {{value1}}.",
           "24eda6c8b2": "Сканирование… {{value0}}",
           "6149d5203f": "Репозитории не выбраны. Откройте родительскую папку, чтобы пользоваться редактором, терминалом и поиском без функций Git.",
-          "e52454b7f6": "Открыть как папку"
+          "e52454b7f6": "Открыть как папку",
+          "foundRepositories_one": "В {{path}} найден {{count}} репозиторий.",
+          "foundRepositories_few": "В {{path}} найдены {{count}} репозитория.",
+          "foundRepositories_many": "В {{path}} найдено {{count}} репозиториев.",
+          "foundRepositories_other": "В {{path}} найдено {{count}} репозитория."
         },
         "AddRepoRemoteStep": {
           "6680289908": "/home/user/project",
@@ -5368,9 +5563,8 @@
           "eab8b45238": "Копировать ошибку",
           "a23b22d16f": "Скопировано",
           "74fc00776f": "Сведения об ошибке",
-          "3afcad0497": "по первому сообщению агенту.",
-          "ff62a18580": "Orca не удалось создать имя ветки для",
-          "ca3b225195": "Не удалось автоматически назвать ветку"
+          "ca3b225195": "Не удалось автоматически назвать ветку",
+          "couldNotGenerateBranchName": "Orca не удалось создать имя ветки для <name>{{name}}</name> из первого сообщения агента."
         },
         "CreateProjectLocationField": {
           "95548e33bf": "Выберите родительскую папку…",
@@ -5390,39 +5584,43 @@
           "2b56b35f53": "Это можно изменить в настройках.",
           "dd3a45bbbd": "В следующий раз подтверждение не потребуется.",
           "fc23c4cbdf": "Удалить рабочее пространство",
-          "86f0ae1257": "Удалить рабочие пространства"
+          "86f0ae1257": "Удалить рабочие пространства",
+          "removeFolderProjectInstead": "Удалите проект папки из списка вместо удаления этого рабочего пространства.",
+          "gitBlocksMainWorktree": "Git не позволяет удалить основное рабочее дерево."
         },
         "DeleteWorktreeDirtyChangeHint": {
           "showLoadedPaths": "Показать загруженные пути",
           "loadedPathsNotice": "Загруженные пути могут быть неполными или устаревшими.",
           "loadedChangedPaths": "Загруженные пути изменённых файлов",
           "unresolvedConflict": "Неразрешённый конфликт",
-          "moreLoadedPaths": "и ещё загруженных путей: {{value0}}",
           "changeCount_few": "{{count}} незакоммиченных или неотслеживаемых изменения",
           "changeCount_many": "{{count}} незакоммиченных или неотслеживаемых изменений",
           "changeCount_one": "{{count}} незакоммиченное или неотслеживаемое изменение",
           "changeCount_other": "{{count}} незакоммиченного или неотслеживаемого изменения",
-          "changes": "Незакоммиченные или неотслеживаемые изменения"
+          "changes": "Незакоммиченные или неотслеживаемые изменения",
+          "moreLoadedPaths_one": "и ещё {{count}} загруженный путь",
+          "moreLoadedPaths_few": "и ещё {{count}} загруженных пути",
+          "moreLoadedPaths_many": "и ещё {{count}} загруженных путей",
+          "moreLoadedPaths_other": "и ещё {{count}} загруженного пути"
         },
         "DeleteWorktreeLineageNotice": {
-          "ad407c2d55": "ещё",
           "a940f3c96e": "Дочерние рабочие пространства будут удалены",
-          "29b98bf9cd": "При удалении этого рабочего пространства также будут удалены дочерние рабочие пространства: {{value0}}.",
-          "66798cc6a2": "При удалении этого рабочего пространства также будет удалено 1 дочернее рабочее пространство."
+          "alsoDeletesChildren_one": "При удалении этого рабочего пространства также будет удалено {{count}} дочернее рабочее пространство.",
+          "alsoDeletesChildren_few": "При удалении этого рабочего пространства также будут удалены {{count}} дочерних рабочих пространства.",
+          "alsoDeletesChildren_many": "При удалении этого рабочего пространства также будет удалено {{count}} дочерних рабочих пространств.",
+          "alsoDeletesChildren_other": "При удалении этого рабочего пространства также будет удалено {{count}} дочернего рабочего пространства.",
+          "moreChildren_one": "+{{count}} ещё",
+          "moreChildren_few": "+{{count}} ещё",
+          "moreChildren_many": "+{{count}} ещё",
+          "moreChildren_other": "+{{count}} ещё"
         },
         "DeleteWorktreeSkipConfirmOption": {
           "29aefb7e52": "Больше не спрашивать"
-        },
-        "DeleteWorktreeWarningPanels": {
-          "026738155a": "(исходная папка клонирования).",
-          "c4f96a6e18": "основное рабочее дерево",
-          "e3be9eba15": "Это"
         },
         "ImportedWorktreesVisibilityLine": {
           "b7a87dc32f": "Показать в списке рабочих деревьев",
           "ad99f4eea9": "Оставить скрытыми",
           "9f4f14e821": "Это можно изменить позже в меню проекта.",
-          "b2bc47c080": "другие расположения",
           "b47ba1a9d2": "Просмотр {{value0}}",
           "2251d41ebb": "Скрытые группы рабочих деревьев",
           "5a9688802a": "Показать ещё {{value0}}",
@@ -5442,7 +5640,11 @@
           "keepHiddenAriaLabel_one": "Оставить скрытым {{count}} найденное рабочее дерево в {{repo}}; показать его снова можно через меню проекта",
           "keepHiddenAriaLabel_other": "Оставить скрытыми {{count}} найденного рабочего дерева в {{repo}}; показать их снова можно через меню проекта",
           "keepHiddenTooltip": "Оставить скрытыми — показать снова можно через меню проекта",
-          "repoOnHost": "{{repo}} на {{host}}"
+          "repoOnHost": "{{repo}} на {{host}}",
+          "moreLocations_one": "+ ещё {{count}} расположение",
+          "moreLocations_few": "+ ещё {{count}} расположения",
+          "moreLocations_many": "+ ещё {{count}} расположений",
+          "moreLocations_other": "+ ещё {{count}} расположения"
         },
         "NonGitFolderDialog": {
           "e52454b7f6": "Открыть как папку",
@@ -5476,20 +5678,28 @@
         },
         "ProjectGroupDeleteDialog": {
           "ca65b78f78": "Отмена",
-          "69f5cb97d0": "Удалить",
           "591f330288": "Удалить группу проектов",
           "2c14ce677a": "Удаление…",
           "0e0e6764af": "Проекты в группе",
-          "ad407c2d55": "ещё",
-          "removeContainedProjectSingular": "Убрать из Orca 1 проект этой группы",
-          "removeContainedProjectPlural": "Убрать из Orca проекты этой группы: {{value0}}",
           "55f75628c0": "Папки проектов на диске не удаляются.",
-          "fec7e9c8ae": "Удалить группу"
+          "fec7e9c8ae": "Удалить группу",
+          "removeContainedProjects_one": "Удалить {{count}} входящий в группу проект из списка",
+          "removeContainedProjects_few": "Удалить {{count}} входящих в группу проекта из списка",
+          "removeContainedProjects_many": "Удалить {{count}} входящих в группу проектов из списка",
+          "removeContainedProjects_other": "Удалить {{count}} входящего в группу проекта из списка",
+          "deleteGroupDescription": "Удалить <name>{{name}}</name>.",
+          "moreProjects_one": "+{{count}} ещё",
+          "moreProjects_few": "+{{count}} ещё",
+          "moreProjects_many": "+{{count}} ещё",
+          "moreProjects_other": "+{{count}} ещё"
         },
         "ProjectGroupNameDialog": {
           "d99a034073": "Отмена",
           "83dfbc5313": "Название группы",
-          "4a64e78822": "Сохранение…"
+          "4a64e78822": "Сохранение…",
+          "defaultGroupName": "Группа {{name}}",
+          "create": "Создать",
+          "rename": "Переименовать"
         },
         "RemoteFileBrowser": {
           "2300612806": "Начните вводить фильтр или укажите путь…",
@@ -5501,7 +5711,9 @@
           "largeInputNoMatches": "Нет совпадений для этого длинного запроса",
           "entriesLabel": "Содержимое папки",
           "inputLabel": "Фильтр или путь",
-          "fileHint": "Файлы нельзя открывать как проекты"
+          "fileHint": "Файлы нельзя открывать как проекты",
+          "invalidPathRepeatedSeparators": "Недопустимый путь: повторяющиеся разделители",
+          "invalidPathControlCharacters": "Недопустимый путь: управляющие символы запрещены"
         },
         "SleepTwinWorkspaceDialog": {
           "title": "Перевести рабочее пространство в сон",
@@ -5531,13 +5743,12 @@
           "70715947fb": "Скрипт настройки не может быть пустым",
           "888b83bf78": "Не удалось сохранить сценарий установки",
           "a49196d538": "Выполняется при создании нового рабочего дерева в Orca.",
-          "d9f2db2738": "настройках проекта",
-          "a5bb8c5135": "Сохраняется в",
           "savedSetupCommand": "Команда настройки сохранена.",
           "savedWithSkippedFields_few": "Пропущены {{count}} неподдерживаемых поля. Команда настройки сохранена.",
           "savedWithSkippedFields_many": "Пропущено {{count}} неподдерживаемых полей. Команда настройки сохранена.",
           "savedWithSkippedFields_one": "Пропущено {{count}} неподдерживаемое поле. Команда настройки сохранена.",
-          "savedWithSkippedFields_other": "Пропущено {{count}} неподдерживаемого поля. Команда настройки сохранена."
+          "savedWithSkippedFields_other": "Пропущено {{count}} неподдерживаемого поля. Команда настройки сохранена.",
+          "savedInProjectSettings": "Сохранено в <settings>настройках этого проекта</settings>"
         },
         "SetupScriptPromptCardViews": {
           "96a7f4198c": "Сохранить локальную настройку",
@@ -5545,20 +5756,17 @@
           "31b8b01a45": "Настройки",
           "4a98f907ae": "Повторить попытку",
           "0a98169776": "Добавьте команду настройки для выполнения при создании новых рабочих деревьев в Orca.",
-          "8349e3fa4c": ". Сохраните её для запуска в новых рабочих деревьях.",
-          "b56d1322f7": "Найдена команда настройки в",
           "aef6c0a213": "Сохраните найденную команду, чтобы запускать её при каждом создании рабочего дерева в Orca.",
-          "660cdc17f8": "скрипты настройки. Добавьте локальную команду или измените источник в настройках.",
-          "8f6be51aa1": "orca.yaml",
-          "bb879db364": "Этот репозиторий игнорирует общие",
           "0155fb9ed3": "Сейчас не удалось проверить скрипт настройки этого репозитория.",
           "eefa756190": "Настроить вручную",
           "ca4efcbc25": "Сохранить",
-          "d02e6a42b1": "Обнаружено в",
           "fdbc6cb064": "Найденный скрипт настройки",
           "7275f674cc": "Найденная настройка",
           "822ff300ad": "Скрыть",
-          "5bfd5c8779": "Скрыть скрипты настройки"
+          "5bfd5c8779": "Скрыть скрипты настройки",
+          "detectedFromSource": "Обнаружено в <source>{{source}}</source>",
+          "ignoresSharedSetup": "Этот репозиторий игнорирует общие скрипты настройки из <yaml>orca.yaml</yaml>. Добавьте локальную команду или измените источник в настройках.",
+          "foundSetupCommandIn": "В <source>{{source}}</source> найдена команда настройки. Сохраните её для запуска в новых рабочих деревьях."
         },
         "SidebarFeedbackDialog": {
           "8bf619e4cf": "Отмена",
@@ -5739,8 +5947,11 @@
         "WorkspaceKanbanDrawerHeader": {
           "f369f5c5a3": "Закрыть",
           "e1a34450fc": "Распределяйте рабочие пространства по статусам и открывайте их карточки.",
-          "81870af08f": "выбрано",
-          "c6a77ab0f4": "Доска рабочих пространств"
+          "c6a77ab0f4": "Доска рабочих пространств",
+          "selectedCount_one": "Выбрано: {{count}}",
+          "selectedCount_few": "Выбрано: {{count}}",
+          "selectedCount_many": "Выбрано: {{count}}",
+          "selectedCount_other": "Выбрано: {{count}}"
         },
         "WorkspaceKanbanPinDropTarget": {
           "c30151c5ee": "Перетащите сюда для закрепления без изменения статуса.",
@@ -5841,7 +6052,8 @@
           "2931b42b09": "Состояние: черновик {{value0}}",
           "e888362def": "Состояние: закрыт",
           "f394b3e86e": "Состояние: слит",
-          "af2b07bda5": "Состояние: {{value0}}"
+          "af2b07bda5": "Состояние: {{value0}}",
+          "checksStatus": "Проверки: {{status}}"
         },
         "WorktreeCardPorts": {
           "3240f320d7": "Открытые порты",
@@ -5852,8 +6064,11 @@
           "5d1a5d51bb": "Процесс на {{value0}} остановлен",
           "c89f290e25": "Скопировано: {{value0}}",
           "d1113f4660": "Не удалось открыть браузер",
-          "fed49903c9": "Открыто: {{value0}} {{value1}}",
-          "unknownProcess": "Неизвестный процесс"
+          "unknownProcess": "Неизвестный процесс",
+          "livePorts_one": "{{count}} активный порт",
+          "livePorts_few": "{{count}} активных порта",
+          "livePorts_many": "{{count}} активных портов",
+          "livePorts_other": "{{count}} активного порта"
         },
         "WorktreeContextMenu": {
           "c39c37676a": "Создайте группу и переместите в нее этот проект.",
@@ -5898,7 +6113,6 @@
           "f9dc6cc5d3": "Переименовать группу проектов",
           "370c6a55dd": "Сбросить фильтры",
           "b7acbf038b": "Рабочие пространства не найдены",
-          "0c6ee14f23": "дочернее",
           "c83968f87f": "Удалить проект",
           "64e55f7f01": "Удалить из группы",
           "4a08fb55f2": "Переместить в группу",
@@ -5911,12 +6125,7 @@
           "4d7b73658c": "Переименовать группу",
           "79465e9034": "Действия с группой {{value0}}",
           "bfbedc547b": "Рабочие деревья",
-          "045a8aed48": "дочерние",
           "bb85cd86ba": "Создать рабочее пространство для {{value0}}",
-          "20bebf9c7f": "Показать {{value0}} дочернее рабочее пространство",
-          "c1f4a31623": "Показать дочерние рабочие пространства: {{value0}}",
-          "e97297cb75": "Скрыть {{value0}} дочернее рабочее пространство",
-          "0cd15956d4": "Скрыть дочерние рабочие пространства: {{value0}}",
           "bd37a57ac8": "Создать рабочее пространство для {{value0}}",
           "b667b59632": "Некоторые проекты не удалось убрать из Orca",
           "groupDeleteFailed": "Не удалось удалить группу",
@@ -5927,8 +6136,22 @@
           "sidebarRowMissing": "Целевой объект больше не существует",
           "failedUnnestWorkspace": "Не удалось убрать вложение рабочего пространства",
           "hostRepairRequired": "Нужно создать сопряжение заново",
-          "groupProjectsRemainedPlural": "После удаления группы осталось проектов: {{remaining}} из {{count}}.",
-          "groupProjectsRemainedSingular": "После удаления группы осталось проектов: {{remaining}} из {{count}}."
+          "showChildWorkspaces_one": "Показать {{count}} дочернее рабочее пространство",
+          "showChildWorkspaces_few": "Показать {{count}} дочерних рабочих пространства",
+          "showChildWorkspaces_many": "Показать {{count}} дочерних рабочих пространств",
+          "showChildWorkspaces_other": "Показать {{count}} дочернего рабочего пространства",
+          "hideChildWorkspaces_one": "Скрыть {{count}} дочернее рабочее пространство",
+          "hideChildWorkspaces_few": "Скрыть {{count}} дочерних рабочих пространства",
+          "hideChildWorkspaces_many": "Скрыть {{count}} дочерних рабочих пространств",
+          "hideChildWorkspaces_other": "Скрыть {{count}} дочернего рабочего пространства",
+          "childCount_one": "{{count}} дочернее пространство",
+          "childCount_few": "{{count}} дочерних пространства",
+          "childCount_many": "{{count}} дочерних пространств",
+          "childCount_other": "{{count}} дочернего пространства",
+          "groupProjectsRemained_one": "Проектов группы, оставшихся после её удаления: {{remaining}} из {{count}}.",
+          "groupProjectsRemained_few": "Проектов группы, оставшихся после её удаления: {{remaining}} из {{count}}.",
+          "groupProjectsRemained_many": "Проектов группы, оставшихся после её удаления: {{remaining}} из {{count}}.",
+          "groupProjectsRemained_other": "Проектов группы, оставшихся после её удаления: {{remaining}} из {{count}}."
         },
         "WorktreeMetaDialog": {
           "3db0a2a593": "Отмена",
@@ -5992,7 +6215,6 @@
           "d40d436fc2": "Не удалось изменить видимость рабочего дерева. Повторите попытку.",
           "unsupportedHost": "Этот компьютер не поддерживает видимость рабочих деревьев по источникам. Обновите на нём Orca, чтобы изменить настройку.",
           "search": "Поиск скрытых рабочих деревьев",
-          "searchPlaceholder": "Поиск рабочих деревьев {{value0}}…",
           "noMatches": "Подходящих рабочих деревьев нет",
           "allShown": "Все найденные рабочие деревья показаны",
           "noneFound": "Рабочие деревья, созданные вне Orca, не найдены",
@@ -6000,7 +6222,11 @@
           "disableSource": "Отключите источник, чтобы управлять его рабочими деревьями по отдельности.",
           "appearWhenDetected": "Новые рабочие деревья появятся здесь, когда Orca обнаружит их.",
           "openGlobalSettings": "Управлять в общих настройках",
-          "globalSettingsSources": "Для этих источников есть общая настройка, которую можно переопределить здесь:"
+          "globalSettingsSources": "Для этих источников есть общая настройка, которую можно переопределить здесь:",
+          "searchHiddenPlaceholder_one": "Поиск среди {{count}} рабочего дерева…",
+          "searchHiddenPlaceholder_few": "Поиск среди {{count}} рабочих деревьев…",
+          "searchHiddenPlaceholder_many": "Поиск среди {{count}} рабочих деревьев…",
+          "searchHiddenPlaceholder_other": "Поиск среди {{count}} рабочего дерева…"
         },
         "add": {
           "repo": {
@@ -6203,13 +6429,17 @@
           "7a8b9c0d1e": "Открыть настройки",
           "8b9c0d1e2f": "Удалить компьютер",
           "workspacesFailed": "Не удалось убрать рабочие пространства этого компьютера: {{count}}. Компьютер сохранён, чтобы можно было повторить попытку.",
-          "oneWorkspace": "1 рабочее пространство",
-          "manyWorkspaces": "рабочие пространства ({{count}})",
-          "hostHasWorkspacesDefault": "Удаляет {{value0}} и его учётные данные с этого компьютера. В Orca без изменений: {{value1}}. Файлы на сервере сохранятся.",
-          "alsoForgetLocal": "Также убрать {{value0}} из Orca",
           "advanced": "Дополнительно",
           "alsoForgetLocalHint": "Только убирает их из Orca. Удалённые файлы, рабочие деревья и ветки сохранятся.",
-          "wslHostEndsTerminalsUnlessShared": "Удаляет {{value0}} из Orca. Если только его не использует другой Orca, открытый на этом компьютере, также закрывает его открытые терминалы и останавливает сервер Orca в этом дистрибутиве. Файлы в дистрибутиве не затрагиваются."
+          "wslHostEndsTerminalsUnlessShared": "Удаляет {{value0}} из Orca. Если только его не использует другой Orca, открытый на этом компьютере, также закрывает его открытые терминалы и останавливает сервер Orca в этом дистрибутиве. Файлы в дистрибутиве не затрагиваются.",
+          "hostKeepsWorkspaces_one": "Удаляет {{host}} и его учётные данные с этого компьютера. Его {{count}} рабочее пространство остаётся в Orca — удалённые файлы не затрагиваются.",
+          "hostKeepsWorkspaces_few": "Удаляет {{host}} и его учётные данные с этого компьютера. Его {{count}} рабочих пространства остаются в Orca — удалённые файлы не затрагиваются.",
+          "hostKeepsWorkspaces_many": "Удаляет {{host}} и его учётные данные с этого компьютера. Его {{count}} рабочих пространств остаются в Orca — удалённые файлы не затрагиваются.",
+          "hostKeepsWorkspaces_other": "Удаляет {{host}} и его учётные данные с этого компьютера. В Orca остаётся {{count}} его рабочего пространства — удалённые файлы не затрагиваются.",
+          "alsoRemoveWorkspaces_one": "Также удалить это рабочее пространство из Orca",
+          "alsoRemoveWorkspaces_few": "Также удалить эти {{count}} рабочих пространства из Orca",
+          "alsoRemoveWorkspaces_many": "Также удалить эти {{count}} рабочих пространств из Orca",
+          "alsoRemoveWorkspaces_other": "Также удалить из Orca эти рабочие пространства ({{count}})"
         },
         "HostRenameDialog": {
           "1a2b3c4d5e": "Переименовать компьютер",
@@ -6282,7 +6512,7 @@
           "current": "Текущий",
           "searchPlaceholder": "Поиск рабочих деревьев…",
           "empty": "Подходящих доступных рабочих деревьев нет.",
-          "setParentFor": "Задать родительское пространство для"
+          "setParentForName": "Задать родительское пространство для <name>{{name}}</name>"
         },
         "WorktreeCardStatusSlot": {
           "branchIdentity": "Ветка",
@@ -6292,12 +6522,16 @@
         },
         "NewExternalWorktreesInboxLine": {
           "9f2d4c8b17": "Всегда скрывать внешние рабочие деревья для {{value0}}",
-          "2a6f31d8c7": "скрытое рабочее дерево",
-          "5b90e4a2f6": "скрытые рабочие деревья",
-          "7f18c5b0d3": "Проверить {{value0}} скрытое рабочее дерево в {{value1}}",
-          "4e2b7a9c05": "Проверить скрытые рабочие деревья в {{value1}}: {{value0}}",
           "c3e8a1f4b2": "Больше не показывать",
-          "6c07f3a91e": "{{value0}} на {{value1}}"
+          "6c07f3a91e": "{{value0}} на {{value1}}",
+          "hiddenWorktreesNoun_one": "скрытое рабочее дерево",
+          "hiddenWorktreesNoun_few": "скрытых рабочих дерева",
+          "hiddenWorktreesNoun_many": "скрытых рабочих деревьев",
+          "hiddenWorktreesNoun_other": "скрытого рабочего дерева",
+          "reviewHiddenWorktrees_one": "Проверить {{count}} скрытое рабочее дерево в {{scope}}",
+          "reviewHiddenWorktrees_few": "Проверить {{count}} скрытых рабочих дерева в {{scope}}",
+          "reviewHiddenWorktrees_many": "Проверить {{count}} скрытых рабочих деревьев в {{scope}}",
+          "reviewHiddenWorktrees_other": "Проверить {{count}} скрытого рабочего дерева в {{scope}}"
         },
         "NoticeHostGlyph": {
           "hostDisconnected": "{{hostName}} отключён",
@@ -6388,8 +6622,11 @@
           "pairingHelpShareComputer": "Создайте это на другом компьютере: Настройки → Удалённые серверы Orca → Поделиться этим компьютером.",
           "nameInOrca": "Имя в Orca",
           "sshConfigPickerImportDescription": "Выберите сервер, чтобы заполнить форму, или добавьте все новые серверы в список серверов Orca.",
-          "sshImportSyncedPlural": "В Orca добавлено серверов: {{count}}.",
-          "sshImportSyncedSingular": "В Orca добавлен {{count}} сервер."
+          "sshImportSynced_one": "В Orca добавлен {{count}} сервер.",
+          "sshImportSynced_few": "В Orca добавлены {{count}} сервера.",
+          "sshImportSynced_many": "В Orca добавлено {{count}} серверов.",
+          "sshImportSynced_other": "В Orca добавлено {{count}} сервера.",
+          "sshConfigPickerInvalidResponse": "Недопустимый ответ о сервере из конфигурации SSH"
         },
         "ForgetSshWorkspaceDialog": {
           "ghostBody": "{{host}} больше не сохранён как SSH-сервер, поэтому рабочее пространство не связано с действующим компьютером. Его можно только убрать из Orca — файлы и ветки на сервере сохранятся.",
@@ -6412,11 +6649,14 @@
         },
         "WorkspaceKanbanSearchField": {
           "bdb753c78d": "Подходящих рабочих пространств нет",
-          "4d96c209d6": "Подходящих рабочих пространств: {{value0}} из {{value1}}",
           "c0cd6bdf6c": "Поиск рабочих пространств",
           "3b7ea51793": "Очистить поиск",
           "7f1c2e94a5": "Поисковый текст слишком длинный — доска показана без фильтра",
-          "9a4d0f6b21": "Слишком длинный запрос"
+          "9a4d0f6b21": "Слишком длинный запрос",
+          "workspacesMatch_one": "Совпадений: {{matchCount}} из {{count}} рабочего пространства",
+          "workspacesMatch_few": "Совпадений: {{matchCount}} из {{count}} рабочих пространств",
+          "workspacesMatch_many": "Совпадений: {{matchCount}} из {{count}} рабочих пространств",
+          "workspacesMatch_other": "Совпадений: {{matchCount}} из {{count}} рабочего пространства"
         },
         "WorktreeCardSshHostControl": {
           "connectFailed": "Не удалось подключиться по SSH",
@@ -6526,11 +6766,14 @@
           "developerToolsTitle": "Установите инструменты командной строки Apple",
           "developerToolsBody": "Для Git нужны инструменты разработки Apple. Выполните эту команду в Терминале и вернитесь в Orca. Проверка повторится автоматически.",
           "affectedOne": "Сканирование рабочих деревьев приостановлено для {{value0}}",
-          "affectedMany": "Сканирование рабочих деревьев приостановлено для проектов: {{value0}}",
           "copyCommand": "Копировать команду",
           "copied": "Команда скопирована",
           "retry": "Повторить сейчас",
-          "restored": "Git снова работает. Рабочие деревья обновлены."
+          "restored": "Git снова работает. Рабочие деревья обновлены.",
+          "affectedProjects_one": "Сканирование рабочих деревьев приостановлено для {{count}} проекта",
+          "affectedProjects_few": "Сканирование рабочих деревьев приостановлено для {{count}} проектов",
+          "affectedProjects_many": "Сканирование рабочих деревьев приостановлено для {{count}} проектов",
+          "affectedProjects_other": "Сканирование рабочих деревьев приостановлено для {{count}} проекта"
         },
         "manualSortSwitch": {
           "title": "Включена ручная сортировка",
@@ -6575,7 +6818,8 @@
         "wslHostRemoval": {
           "keptForOthers": "Удалено из этого Orca. Хост продолжает работать для {{value0}}.",
           "partial": "Компьютер убран, но в дистрибутиве что-то ещё работает: {{value0}}",
-          "pending": "Orca пока не удалила хост: {{value0}} Повторите удаление или подключитесь, чтобы оставить его."
+          "pending": "Orca пока не удалила хост: {{value0}} Повторите удаление или подключитесь, чтобы оставить его.",
+          "unavailable": "Серверы WSL недоступны на этом компьютере."
         },
         "addRepoWslHostFolderPicker": {
           "otherDistro": "Эта папка находится в {{value0}}, а не в {{value1}}.",
@@ -6624,6 +6868,53 @@
           "sleepCount_many": "Перевести в сон {{count}} рабочих пространств",
           "sleepCount_one": "Перевести в сон {{count}} рабочее пространство",
           "sleepCount_other": "Перевести в сон {{count}} рабочего пространства"
+        },
+        "DeleteWorktreeWarningPanels": {
+          "mainWorktreeNotice": "Это <strong>основное рабочее дерево</strong> (исходная папка клонирования)."
+        },
+        "DeleteNestedWorktreesDialog": {
+          "unsupportedHost": "Этот сервер не поддерживает удаление вложенных рабочих деревьев."
+        },
+        "WorktreeCardHelpers": {
+          "checksPassing": "Пройдены",
+          "checksFailing": "Ошибки",
+          "checksPending": "Ожидание",
+          "conflictMerging": "Выполняется слияние",
+          "conflictRebasing": "Выполняется перебазирование",
+          "conflictCherryPicking": "Выполняется cherry-pick"
+        },
+        "activeFilterCount_one": "{{count}} фильтр",
+        "activeFilterCount_few": "{{count}} фильтра",
+        "activeFilterCount_many": "{{count}} фильтров",
+        "activeFilterCount_other": "{{count}} фильтра",
+        "folderWorkspaceComposer": {
+          "defaultWorkspaceName": "Рабочее пространство {{name}}"
+        },
+        "workspaceKanbanStatus": {
+          "defaultLabel": "Статус {{number}}"
+        },
+        "worktreeCardModel": {
+          "sparsePreviewMore_one": "{{preview}}, +{{count}} ещё",
+          "sparsePreviewMore_few": "{{preview}}, +{{count}} ещё",
+          "sparsePreviewMore_many": "{{preview}}, +{{count}} ещё",
+          "sparsePreviewMore_other": "{{preview}}, +{{count}} ещё"
+        },
+        "worktreeCardPrDisplay": {
+          "mrDetailsUnavailable": "Сведения о MR недоступны",
+          "prDetailsUnavailable": "Сведения о PR недоступны",
+          "loadingMr": "Загрузка MR…",
+          "loadingPr": "Загрузка PR…"
+        },
+        "HostSectionHeader": {
+          "workspaceCount_one": "{{count}} рабочее пространство",
+          "workspaceCount_few": "{{count}} рабочих пространства",
+          "workspaceCount_many": "{{count}} рабочих пространств",
+          "workspaceCount_other": "{{count}} рабочего пространства"
+        },
+        "titleDerivedAgentRows": {
+          "needsInput": "Требуется ввод",
+          "running": "Работает",
+          "idle": "Бездействует"
         }
       },
       "shared": {
@@ -14192,17 +14483,8 @@
             "saveLocation": "Задать расположение"
           },
           "SmartWorkspaceNameField": {
-            "2a0d535f69": "Создать новую ветку",
-            "a44229ce4d": "как название рабочего пространства",
-            "766083a596": "\"",
-            "34ca97bce3": "\"",
-            "b1a7d679ba": "Использовать",
             "e57c53727c": "Добавить проект",
-            "a76fcb4fa0": "Переключиться на",
-            "eadf877af5": "Оставить",
             "6859e2896c": "Отмена",
-            "9ef1a7c4b0": ", что отличается от выбранного проекта.",
-            "ad188067ae": "URL GitHub указывает на",
             "4bd98f1091": "Переключить проект?",
             "0c9e668e3a": "Очистить",
             "7199ff19c7": "Убрать выбранный источник",
@@ -14221,7 +14503,6 @@
             "fda67f0b61": "текущий проект",
             "3e8bb1176a": "Подключите Linear в настройках для поиска задач.",
             "switchTaskSourceTitle": "Переключить источник задач?",
-            "differentTaskSource": ", что отличается от выбранного источника задач.",
             "currentTaskSource": "текущий источник задач",
             "placeholderNameOrLinearUrl": "Введите название, URL Linear или Jira",
             "placeholderWorkspaceName": "Введите название рабочего пространства",
@@ -14250,7 +14531,13 @@
             "emoji": "Эмодзи",
             "loadingLinearIssue": "Загрузка задачи Linear…",
             "linearLoginUnreadableTitle": "Подключить Linear заново",
-            "linearLoginUnreadableBody": "Не удалось прочитать сохранённые данные входа Linear. Подключите его заново в настройках."
+            "linearLoginUnreadableBody": "Не удалось прочитать сохранённые данные входа Linear. Подключите его заново в настройках.",
+            "keepRepo": "Оставить {{name}}",
+            "switchToRepo": "Переключиться на {{name}}",
+            "crossRepoDifferentTaskSource": "URL GitHub указывает на {{repo}}, который отличается от выбранного источника задач.",
+            "crossRepoDifferentProject": "URL GitHub указывает на {{repo}}, который отличается от выбранного проекта.",
+            "useAsWorkspaceName": "Использовать <name>«{{name}}»</name> как имя рабочего пространства",
+            "createNewBranchNamed": "Создать новую ветку <name>{{name}}</name>"
           },
           "ProjectCombobox": {
             "empty": "По вашему запросу проекты не найдены.",
@@ -14264,6 +14551,11 @@
             "listLabel": "Цели запуска",
             "label": "Запустить на",
             "browse": "Просмотреть цели запуска"
+          },
+          "projectCombobox": {
+            "recentHeading": "Недавние",
+            "projectsHeading": "Проекты",
+            "foldersHeading": "Папки"
           }
         }
       },
@@ -15864,20 +16156,35 @@
         }
       },
       "dashboard": {
-        "DashboardAgentChildDisclosure": {
-          "1b57ce9fa4": "{{value0}} {{value1}} дочерних {{value2}}"
-        },
         "DashboardAgentRow": {
           "912e136cd9": "Отправить",
           "a743da52ff": "Развернуть подробности",
           "a41fb5376e": "Свернуть подробности",
           "5ae84475cc": "Скрыть",
           "b06e13fcf7": "Убрать агента из списка",
-          "0272969e28": "Отправить этому агенту"
+          "0272969e28": "Отправить этому агенту",
+          "justNow": "только что",
+          "timeAgo": "{{duration}} назад",
+          "dispatchedAgents_one": "{{agentType}} - отправлен {{count}} агент",
+          "dispatchedAgents_few": "{{agentType}} - отправлены {{count}} агента",
+          "dispatchedAgents_many": "{{agentType}} - отправлено {{count}} агентов",
+          "dispatchedAgents_other": "{{agentType}} - отправлено {{count}} агента",
+          "startedAgo": "запущен {{time}}",
+          "doneAgo": "завершён {{time}}"
         },
         "DashboardAgentRowMessage": {
           "0a01046763": "прервано",
           "1ec01cef03": "Прервано пользователем"
+        },
+        "DashboardAgentChildDisclosure": {
+          "hideChildAgents_one": "Скрыть {{count}} дочернего агента",
+          "hideChildAgents_few": "Скрыть {{count}} дочерних агентов",
+          "hideChildAgents_many": "Скрыть {{count}} дочерних агентов",
+          "hideChildAgents_other": "Скрыть {{count}} дочернего агента",
+          "showChildAgents_one": "Показать {{count}} дочернего агента",
+          "showChildAgents_few": "Показать {{count}} дочерних агентов",
+          "showChildAgents_many": "Показать {{count}} дочерних агентов",
+          "showChildAgents_other": "Показать {{count}} дочернего агента"
         }
       },
       "crash": {
@@ -16912,18 +17219,23 @@
           "groupAgentActivityBy": "Группировать события агентов по"
         },
         "clearCompleted": {
-          "clearedOne": "Убран 1 завершённый агент",
-          "clearedMany": "Убрано завершённых агентов: {{count}}",
-          "undo": "Отменить действие"
+          "undo": "Отменить действие",
+          "cleared_one": "Убран {{count}} завершённый агент",
+          "cleared_few": "Убраны {{count}} завершённых агента",
+          "cleared_many": "Убрано {{count}} завершённых агентов",
+          "cleared_other": "Убрано {{count}} завершённого агента"
         },
         "standaloneWorktree": {
           "floatingTerminal": "Плавающий терминал",
           "standaloneTerminal": "Отдельный терминал"
         },
         "ActivityTitlebarControls": {
-          "f915168c8e": "непрочитано",
           "d6a8de3934": "агенты",
-          "dc708f3eff": "Закрыть агентов"
+          "dc708f3eff": "Закрыть агентов",
+          "unreadCount_one": "Непрочитанных: {{count}}",
+          "unreadCount_few": "Непрочитанных: {{count}}",
+          "unreadCount_many": "Непрочитанных: {{count}}",
+          "unreadCount_other": "Непрочитанных: {{count}}"
         },
         "ActivityScopeFilterControls": {
           "resetScope": "Показывать все серверы и проекты",
@@ -17630,6 +17942,16 @@
         "cancelled": "Этот обычный SSH-терминал закрыли до запуска.",
         "terminalUnavailable": "Orca не удалось открыть терминал здесь.",
         "openHint": "Позволяет продолжать работу на компьютере, пока Orca не может настроиться на нём."
+      },
+      "cmdJ": {
+        "quickActionUnavailable": {
+          "workspaceLoading": "Невозможно выполнить «{{action}}» — рабочее пространство ещё загружается.",
+          "noActiveWorkspace": "Невозможно выполнить «{{action}}» — нет активного рабочего пространства.",
+          "workspaceDisconnected": "Невозможно выполнить «{{action}}» — рабочее пространство отключено.",
+          "noTabGroup": "Невозможно выполнить «{{action}}» — нет доступной группы вкладок.",
+          "noMovableChat": "Невозможно выполнить «{{action}}» — нет активного чата, который можно переместить.",
+          "clientUnsupported": "Невозможно выполнить «{{action}}» — этот клиент и среда выполнения не поддерживают действие."
+        }
       }
     },
     "i18n": {
@@ -18831,8 +19153,6 @@
             "none": "Нет"
           },
           "idleSignalField": "Признак неактивности",
-          "selectionVanishedOne": "1 выбранное рабочее пространство больше не существует.",
-          "selectionVanished": "Больше не существуют выбранные рабочие пространства: {{value0}}.",
           "updatedAgo": "Обновлено {{value0}}",
           "refreshing": "Обновление…",
           "refreshingProgress": "Обновление {{value0}}/{{value1}}",
@@ -18847,12 +19167,6 @@
           "gitStatusCheckFailed": "Ошибка проверки статуса Git",
           "gitStatusUnverified": "Не удалось проверить статус Git",
           "deleteAnyway": "Всё равно удалить",
-          "forceDeleteProjectionOne": "У {{count}} рабочего пространства обнаружен риск; может потребоваться принудительное удаление",
-          "forceDeleteProjectionMany": "Обнаружен риск у рабочих пространств ({{count}}); может потребоваться принудительное удаление",
-          "selectionWithheldOne": "1 выбранное рабочее пространство скрыто текущими фильтрами и исключено из выбора.",
-          "selectionWithheld": "Текущие фильтры скрыли выбранные рабочие пространства ({{value0}}), и они исключены из выбора.",
-          "selectAllCountOne": "Выбрать 1 рабочее пространство, прошедшее проверку безопасности",
-          "selectAllCount": "Выбрать все рабочие пространства, прошедшие проверку безопасности: {{value0}}",
           "appliedFilters": "Применённые фильтры",
           "removeFilter": "Убрать фильтр {{value0}}",
           "chip": {
@@ -18896,18 +19210,42 @@
               "locked": "Заблокировано",
               "retainedAgents": "Завершённые агенты"
             }
-          }
+          },
+          "forceDeleteRisk_one": "Для {{count}} рабочего пространства сейчас выявлены риски; может потребоваться принудительное удаление",
+          "forceDeleteRisk_few": "Для {{count}} рабочих пространств сейчас выявлены риски; может потребоваться принудительное удаление",
+          "forceDeleteRisk_many": "Для {{count}} рабочих пространств сейчас выявлены риски; может потребоваться принудительное удаление",
+          "forceDeleteRisk_other": "Для {{count}} рабочего пространства сейчас выявлены риски; может потребоваться принудительное удаление",
+          "selectionVanishedCount_one": "{{count}} выбранное рабочее пространство больше не существует.",
+          "selectionVanishedCount_few": "{{count}} выбранных рабочих пространства больше не существуют.",
+          "selectionVanishedCount_many": "{{count}} выбранных рабочих пространств больше не существуют.",
+          "selectionVanishedCount_other": "{{count}} выбранного рабочего пространства больше не существует.",
+          "selectionWithheldCount_one": "{{count}} выбранное рабочее пространство скрыто текущими фильтрами, поэтому выбор снят.",
+          "selectionWithheldCount_few": "{{count}} выбранных рабочих пространства скрыты текущими фильтрами, поэтому выбор снят.",
+          "selectionWithheldCount_many": "{{count}} выбранных рабочих пространств скрыты текущими фильтрами, поэтому выбор снят.",
+          "selectionWithheldCount_other": "{{count}} выбранного рабочего пространства скрыто текущими фильтрами, поэтому выбор снят.",
+          "selectAllSafetyChecked_one": "Выбрать {{count}} рабочее пространство, прошедшее проверку безопасности",
+          "selectAllSafetyChecked_few": "Выбрать все {{count}} рабочих пространства, прошедших проверку безопасности",
+          "selectAllSafetyChecked_many": "Выбрать все {{count}} рабочих пространств, прошедших проверку безопасности",
+          "selectAllSafetyChecked_other": "Выбрать все рабочие пространства, прошедшие проверку безопасности ({{count}})"
         },
         "scan": {
           "progress": "Сканирование рабочих пространств ({{value0}}/{{value1}})",
           "singleError": "Не удалось проверить {{value0}}: {{value1}}. Некоторые рабочие пространства могут отсутствовать. Обновите для повторной попытки.",
-          "moreErrors": ", ещё {{value0}}",
-          "multipleErrors": "Не удалось проверить репозитории: {{value0}} ({{value1}}{{value2}}). Некоторые рабочие пространства могут отсутствовать. Обновите для повторной попытки.",
           "noWorkspaces": "Рабочие пространства не найдены.",
           "fallbackRepository": "репозиторий",
           "gitListFailed": "Git не смог получить список рабочих деревьев",
-          "readyOne": "Найдено 1 рабочее пространство.",
-          "readyMany": "Найдено рабочих пространств: {{value0}}."
+          "multipleErrorsWithMore_one": "Не удалось проверить {{count}} репозиторий ({{names}}, ещё +{{moreCount}}). Некоторые рабочие пространства могут отсутствовать. Обновите, чтобы повторить попытку.",
+          "multipleErrorsWithMore_few": "Не удалось проверить {{count}} репозитория ({{names}}, ещё +{{moreCount}}). Некоторые рабочие пространства могут отсутствовать. Обновите, чтобы повторить попытку.",
+          "multipleErrorsWithMore_many": "Не удалось проверить {{count}} репозиториев ({{names}}, ещё +{{moreCount}}). Некоторые рабочие пространства могут отсутствовать. Обновите, чтобы повторить попытку.",
+          "multipleErrorsWithMore_other": "Не удалось проверить {{count}} репозитория ({{names}}, ещё +{{moreCount}}). Некоторые рабочие пространства могут отсутствовать. Обновите, чтобы повторить попытку.",
+          "multipleErrorsCount_one": "Не удалось проверить {{count}} репозиторий ({{names}}). Некоторые рабочие пространства могут отсутствовать. Обновите, чтобы повторить попытку.",
+          "multipleErrorsCount_few": "Не удалось проверить {{count}} репозитория ({{names}}). Некоторые рабочие пространства могут отсутствовать. Обновите, чтобы повторить попытку.",
+          "multipleErrorsCount_many": "Не удалось проверить {{count}} репозиториев ({{names}}). Некоторые рабочие пространства могут отсутствовать. Обновите, чтобы повторить попытку.",
+          "multipleErrorsCount_other": "Не удалось проверить {{count}} репозитория ({{names}}). Некоторые рабочие пространства могут отсутствовать. Обновите, чтобы повторить попытку.",
+          "readyCount_one": "Найдено {{count}} рабочее пространство.",
+          "readyCount_few": "Найдены {{count}} рабочих пространства.",
+          "readyCount_many": "Найдено {{count}} рабочих пространств.",
+          "readyCount_other": "Найдено {{count}} рабочего пространства."
         },
         "relativeTime": {
           "never": "Никогда",
@@ -19644,7 +19982,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "работающие терминалы",
-      "count": "работающие терминалы ({{count}})",
       "unverifiable": "Orca не удалось проверить процесс службы терминалов, поэтому ничего не остановлено.",
       "alreadyReplaced": "Служба терминалов уже заменена; ничего не остановлено.",
       "restarted": "Служба терминалов перезапущена.",
@@ -19656,7 +19993,11 @@
       "confirmTitle": "Перезапустить службу терминалов?",
       "confirmBody": "Перезапуск остановит {{sessions}} и все процессы в них. Агентов с поддержкой продолжения можно возобновить позже; оболочки и другие задания придётся запустить заново. Делайте это, когда агенты не заняты.",
       "cancel": "Отмена",
-      "confirm": "Перезапустить и завершить процессы"
+      "confirm": "Перезапустить и завершить процессы",
+      "runningTerminals_one": "{{count}} работающий терминал",
+      "runningTerminals_few": "{{count}} работающих терминала",
+      "runningTerminals_many": "{{count}} работающих терминалов",
+      "runningTerminals_other": "{{count}} работающего терминала"
     },
     "restartedInputNotSent": "Терминал перезапустился во время ввода, поэтому часть текста могла не дойти. Проверьте новую оболочку, прежде чем вводить текст снова."
   },
@@ -19987,7 +20328,6 @@
       "repositoryLoading": "Данные репозитория ещё загружаются. Повторите попытку после загрузки.",
       "duplicate": "Эта ссылка уже прикреплена.",
       "title": "Связанная работа",
-      "count": "Связано: {{count}}",
       "empty": "Храните все ревью и задачи этого рабочего пространства вместе.",
       "reviews": "Ревью",
       "tasks": "Задачи",
@@ -19995,7 +20335,6 @@
       "open": "Открыть ссылку",
       "unlinkItem": "Отвязать {{label}}",
       "unlink": "Отвязать от рабочего пространства",
-      "show": "Показать связанные ревью и задачи: {{count}}",
       "details": "Сведения о рабочем пространстве",
       "description": "Прикрепляйте ревью и задачи и ведите заметки для этого рабочего пространства.",
       "commentHelp": "Поддерживается Markdown. Enter или {{shortcut}} — сохранить · Shift+Enter — новая строка.",
@@ -20048,7 +20387,15 @@
       "checksPassing": "Пройдено",
       "checksUnknown": "Неизвестно",
       "checksNeutral": "Нейтрально",
-      "allReviewChecks": "Ревью: {{count}} · Проверки: {{status}}"
+      "allReviewChecks": "Ревью: {{count}} · Проверки: {{status}}",
+      "showLinked_one": "Показать {{count}} связанную проверку или задачу",
+      "showLinked_few": "Показать {{count}} связанные проверки и задачи",
+      "showLinked_many": "Показать {{count}} связанных проверок и задач",
+      "showLinked_other": "Показать связанные проверки и задачи: {{count}}",
+      "linkedCount_one": "Связано: {{count}}",
+      "linkedCount_few": "Связано: {{count}}",
+      "linkedCount_many": "Связано: {{count}}",
+      "linkedCount_other": "Связано: {{count}}"
     },
     "attachments": {
       "updateRuntime": "Обновите удалённую среду выполнения, чтобы менять ссылки рабочего пространства",
@@ -20207,8 +20554,11 @@
     },
     "compact": {
       "linkedAndUnavailable": "В связанных рабочих деревьях: {{value0}} · недоступно: {{value1}}",
-      "linkedAndScanned": "В связанных рабочих деревьях: {{value0}} · рабочих пространств: {{value1}}",
-      "linked": "Связанные"
+      "linked": "Связанные",
+      "linkedAndScannedCount_one": "{{size}} в связанных рабочих деревьях · {{count}} рабочее пространство",
+      "linkedAndScannedCount_few": "{{size}} в связанных рабочих деревьях · {{count}} рабочих пространства",
+      "linkedAndScannedCount_many": "{{size}} в связанных рабочих деревьях · {{count}} рабочих пространств",
+      "linkedAndScannedCount_other": "{{size}} в связанных рабочих деревьях · {{count}} рабочего пространства"
     },
     "savedScan": {
       "folderDetailsUnavailable": "Сведения о папках не сохраняются с прошлыми сканированиями. Обновите данные для просмотра этого рабочего пространства."

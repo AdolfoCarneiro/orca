@@ -1879,7 +1879,6 @@
         "ba64270bdb": "agents 구성",
         "ab63f25397": "agent 설정 열기",
         "0c5d6a479c": "[선택 사항]",
-        "b5a0796911": "연결",
         "dccd26d4e4": "프로젝트 선택",
         "d6b0a96f32": "프로젝트 추가",
         "969a8bff66": "프로젝트",
@@ -1928,7 +1927,8 @@
         "defaultBranchUpdateFailed": "프로젝트 기본 브랜치를 업데이트할 수 없습니다. 다시 시도해 보세요.",
         "setLocation": "프로젝트 위치 설정",
         "setLocationOnHost": "{{host}}에 프로젝트 위치 설정",
-        "setLocationTooltip": "폴더를 선택하거나 이 프로젝트를 {{host}}에 복제하세요."
+        "setLocationTooltip": "폴더를 선택하거나 이 프로젝트를 {{host}}에 복제하세요.",
+        "connectProject": "{{name}} 연결"
       },
       "NewWorkspaceComposerModal": {
         "createWorktree": "작업 트리 만들기",
@@ -3282,21 +3282,18 @@
             },
             "drop": {
               "handler": {
-                "1e072f611e": "{{value0}} {{value1}}을(를) 업로드하지 못했습니다.",
                 "0c77693641": "Worktree가 준비되지 않았습니다. 잠시 후에 다시 시도하세요.",
                 "ce8248b835": "작업 트리 경로를 사용할 수 없습니다.",
                 "internalTooManyPaths": "터미널에 안전하게 붙여넣기에는 드롭된 경로가 너무 많습니다.",
                 "internalPathsTooLarge": "터미널에 안전하게 붙여넣기에는 경로 목록이 너무 큽니다.",
                 "internalHostMismatch": "이 터미널과 같은 호스트의 파일을 드롭하세요.",
-                "b4cf68e889": "{{value0}} {{value1}}을(를) 건너뛰었습니다.",
                 "writeTimeout": "파일 드롭이 취소되었습니다. 안전 시간 제한 전에 터미널이 경로를 받지 않았습니다.",
                 "writeRejected": "파일 드롭이 취소되었습니다. 터미널이 경로를 받을 수 없습니다.",
-                "skippedSymlinkSingular": "심볼릭 링크 {{count}}개를 건너뛰었습니다.",
-                "skippedSymlinkPlural": "심볼릭 링크 {{count}}개를 건너뛰었습니다.",
-                "uploadingFileSingular": "파일 {{count}}개를 런타임에 업로드하는 중…",
-                "uploadingFilePlural": "파일 {{count}}개를 런타임에 업로드하는 중…",
-                "uploadingFileToRemoteSingular": "파일 {{count}}개를 원격 호스트에 업로드하는 중…",
-                "uploadingFileToRemotePlural": "파일 {{count}}개를 원격 호스트에 업로드하는 중…"
+                "skippedSymlinks_other": "심볼릭 링크 {{count}}개를 건너뛰었습니다.",
+                "skippedItems_other": "항목 {{count}}개를 건너뛰었습니다.",
+                "failedUploads_other": "파일 {{count}}개를 업로드하지 못했습니다.",
+                "uploadingFiles_other": "파일 {{count}}개를 런타임에 업로드 중…",
+                "uploadingFilesToRemote_other": "파일 {{count}}개를 원격으로 업로드 중…"
               }
             }
           },
@@ -3435,10 +3432,15 @@
             "sessionQueued": "세션이 대기열에 추가됨",
             "openSupportedWorkspace": "세션을 재개하기 전에 워크스페이스를 여세요.",
             "sessionHostMismatchUnsupported": "이 세션은 다른 호스트에 속합니다. 같은 호스트의 워크스페이스에 놓으세요.",
-            "oldPayload": "이 세션은 이전 버전의 Orca 창에서 끌어왔습니다. 대신 세션 기록에서 재개하세요."
+            "oldPayload": "이 세션은 이전 버전의 Orca 창에서 끌어왔습니다. 대신 세션 기록에서 재개하세요.",
+            "legacyDragCannotRetarget": "이 세션은 이전 버전의 Orca 창에서 드래그되어 선택한 Codex 계정으로 전환할 수 없습니다. 세션 기록 패널에서 재개하세요.",
+            "legacyDragPrepareFailed": "Orca에서 이 이전 형식의 Codex 세션을 준비하지 못했습니다. 재개를 다시 시도하세요."
           },
           "TabGroupDropOverlay": {
             "paneColumnLabel": "새 분할"
+          },
+          "useTabGroupCreationCommands": {
+            "duplicateBrowserTabFailed": "페어링된 런타임에서 관리되는 브라우저 탭을 복제하지 못했습니다."
           }
         },
         "bar": {
@@ -3633,6 +3635,30 @@
           "TabBarQuickCommandHostLoadStatus": {
             "82e294f3ca": "호스트를 사용할 수 없음",
             "7c129b08ff": "호스트 로드 중…"
+          },
+          "nativeChatCliFork": {
+            "cannotOpenInCli": "이 세션은 CLI에서 열 수 없습니다."
+          },
+          "tabCreateEntry": {
+            "fileNotFound": "파일을 찾을 수 없음: {{path}}",
+            "cannotOpenDirectory": "디렉터리를 열 수 없음: {{path}}",
+            "parentNotDirectory": "{{path}} 경로가 디렉터리가 아니므로 파일을 만들 수 없습니다.",
+            "fileNoLongerExists": "파일이 더 이상 존재하지 않음: {{path}}",
+            "noActiveWorktree": "활성 워크트리가 없습니다."
+          },
+          "tabCreateEntryPath": {
+            "filePathsCannotContainControlCharacters": "파일 경로에는 제어 문자를 사용할 수 없습니다.",
+            "enterAUrlOrFilePath": "URL 또는 파일 경로를 입력하세요.",
+            "homeRelativePathsAreNotSupported": "여기서는 홈 디렉터리 기준 상대 경로를 지원하지 않습니다.",
+            "enterAFilePathNotA": "디렉터리 경로가 아닌 파일 경로를 입력하세요.",
+            "enterAnAbsoluteFilePath": "절대 파일 경로를 입력하세요.",
+            "enterAnAbsolutePathForThis": "이 컴퓨터의 절대 경로를 입력하세요.",
+            "enterARelativeFilePath": "상대 파일 경로를 입력하세요.",
+            "windowsDrivePathsAreNotSupported": "여기서는 Windows 드라이브 경로를 지원하지 않습니다.",
+            "uncPathsAreNotSupportedHere": "여기서는 UNC 경로를 지원하지 않습니다.",
+            "filePathsCannotContainEmptySegments": "파일 경로에는 빈 경로 구간을 사용할 수 없습니다.",
+            "filePathsCannotContainDotSegments": "파일 경로에는 . 또는 .. 경로 구간을 사용할 수 없습니다.",
+            "filePathsCannotContainTildeSegments": "파일 경로에는 ~ 경로 구간을 사용할 수 없습니다."
           }
         }
       },
@@ -3660,15 +3686,13 @@
             "4ebf90c12e": "외부 포트가 감지되지 않았습니다.",
             "7dac3ecc9d": "외부 포트",
             "95495019ed": "{{value0}}에서 포트 스캔을 사용할 수 없습니다: {{value1}}",
-            "a8e4bdb412": "· {{value0}} 외부",
             "c22ea609fd": "포트",
-            "ca41be2802": "포트 — {{value0}}개 워크스페이스 {{value1}}{{value2}}",
-            "b8bc3e420a": "포트, {{value0}} 워크스페이스 {{value1}}",
             "3a87d54dfb": "워크스페이스 포트가 감지되지 않았습니다.",
             "c174bbbfed": "워크스페이스 포트를 검색하는 중...",
-            "8caaa86e9a": "포트",
-            "45834a9ace": "포트",
-            "2b84c4d11f": "{{value0}} 워크스페이스 · {{value1}} 외부"
+            "2b84c4d11f": "{{value0}} 워크스페이스 · {{value1}} 외부",
+            "portsAria_other": "포트, 워크스페이스 포트 {{count}}개",
+            "portsTooltipWithExternal_other": "포트 — 워크스페이스 포트 {{count}}개 · 외부 {{externalCount}}개",
+            "portsTooltip_other": "포트 — 워크스페이스 포트 {{count}}개"
           },
           "ResourceUsageStatusSegment": {
             "946d9f94d0": "취소",
@@ -3677,7 +3701,6 @@
             "27a74f91f0": "지금은 실행 중인 항목이 없습니다.",
             "298f4be7f2": "CPU",
             "2aa2de6cb9": "이름",
-            "30ff2c3c31": "고아 {{value0}}개",
             "1fedf94eae": "결합된 CPU 로드. 100%를 초과하는 값은 두 개 이상의 코어가 동시에 작동하고 있음을 의미합니다.",
             "e7cf14ec78": "Terminal 세션을 사용할 수 없습니다. 목록이 오래되었을 수 있습니다.",
             "93b0de3c21": "다시 시작",
@@ -3705,12 +3728,11 @@
             "d406915b78": "렌더러",
             "81cd37af99": "메인",
             "fa6d36758d": "세션 {{value0}} 강제 종료",
-            "b8f4a2c1d0e3": "고아 {{value0}}개",
-            "c7e3b1a0d9f2": "고아 terminal {{value0}}개 종료",
-            "d8f4c2b1e0a3": "고아 terminals {{value0}}개 종료",
             "e9a5d3c2b1f0": "{{value0}}을(를) 종료할까요?",
             "8a0472ab54": "{{value0}}에 연결할 수 없어 리소스를 알 수 없습니다.",
-            "1ea066b73f": "리소스를 보려면 {{value0}}을(를) 업데이트하세요."
+            "1ea066b73f": "리소스를 보려면 {{value0}}을(를) 업데이트하세요.",
+            "endOrphanTerminals_other": "고아 터미널 {{count}}개 종료",
+            "orphanCount_other": "고아 {{count}}개"
           },
           "SshStatusSegment": {
             "3ad70e0365": "원격 호스트 관리…",
@@ -3778,10 +3800,6 @@
             "3325d996cb": "rate-limit 새로고침",
             "cd9d7b40ff": "{{value0}} 세션 다시 시작",
             "6cd6650b4c": "세션 다시 시작",
-            "1446d0d8a0": "{{value0}} Codex 세션은 여전히 ​​이전 계정에 있습니다.",
-            "605901a495": "1개의 Codex 세션이 여전히 이전 계정에 있습니다.",
-            "5e5f9f5160": "rate-limit 재설정 1회 사용 가능",
-            "5ecae9197c": "rate-limit 재설정 {{value0}}회 사용 가능",
             "25d8bbde69": "재설정 사용 중…",
             "e159fc1fd7": "지금 재설정",
             "972a1ff497": "Codex 한도를 재설정할까요?",
@@ -3798,7 +3816,9 @@
             "codexSignInError": "Codex 로그인에 실패했습니다. 다시 시도해 주세요.",
             "cursorUsageMenu": "Cursor 사용량",
             "hiddenUsageProviders": "그 외: {{value0}}",
-            "zcodeUsageMenu": "ZCode 사용"
+            "zcodeUsageMenu": "ZCode 사용",
+            "rateLimitResetsAvailable_other": "속도 제한 재설정 {{count}}회 사용 가능",
+            "staleCodexSessions_other": "Codex 세션 {{count}}개가 아직 이전 계정을 사용하고 있습니다."
           },
           "StatusBarUsageEmptyCta": {
             "828c764a79": "계정 연결",
@@ -3852,11 +3872,8 @@
             "6f8f6a6b04": "워크스페이스 필터링",
             "5caccea440": "선택 항목 삭제",
             "e4a12c455b": "지우기",
-            "0cb1501ccf": "회수 가능",
-            "65402b7192": "선택됨",
             "43171f3e60": "워크스페이스",
             "09960d86bd": "스캔됨",
-            "63efebe0e6": "{{value0}} {{value1}}이(가) Space에서 제거되었습니다.",
             "eee5240810": "워크스페이스가 삭제되었습니다.",
             "9afc97f9a3": "워크스페이스가 삭제되었습니다.",
             "792a214457": "워크스페이스 삭제",
@@ -3864,7 +3881,6 @@
             "9155381019": "스파스",
             "f39d291997": "선택",
             "16988df079": "파일을 찾을 수 없습니다.",
-            "b25c2c1086": "최상위 항목",
             "d3f9c69ddc": "줌",
             "ef890d31b9": "모두",
             "c28643d3da": "워크스페이스로 이동",
@@ -3903,8 +3919,12 @@
             "c5135e7e4a": "워크스페이스 크기를 스캔하는 중입니다. 이 페이지를 떠날 수 있습니다.",
             "0990a63160": "아직 스캔된 워크스페이스 크기가 없습니다.",
             "977bdf9a36": "표시할 최상위 항목이 없습니다.",
-            "131662ac65": "{{value0}} 열려 있음",
-            "0d1c78d749": "{{value0}} 선택"
+            "0d1c78d749": "{{value0}} 선택",
+            "removedFromSpace_other": "저장 공간에서 워크스페이스 {{count}}개를 제거했습니다.",
+            "topLevelItems_other": "최상위 항목 {{formattedCount}}개",
+            "selectedCount_other": "{{count}}개 선택됨",
+            "reclaimableSize": "{{size}} 확보 가능",
+            "scanning": "스캔 중"
           },
           "ports": {
             "status": {
@@ -3918,7 +3938,8 @@
                   "e4a709548c": "포트를 새로고침하지 못했습니다.",
                   "acdb6df590": "{{value0}}에서 프로세스가 중지되었습니다.",
                   "480d8f2347": "{{value0}} 복사됨",
-                  "b854ec9ff5": "브라우저를 열지 못했습니다."
+                  "b854ec9ff5": "브라우저를 열지 못했습니다.",
+                  "unknownProcess": "알 수 없는 프로세스"
                 }
               }
             }
@@ -3935,8 +3956,6 @@
             "7ad719c4bf": "제한됨",
             "e740f92596": "새로 고침 실패",
             "8418ec448d": "{{value0}} 사용량을 새로 고칠 수 없습니다. Agent 세션은 여전히 로그인되어 있을 수 있습니다.",
-            "45198c7d95": "rate-limit 재설정 1회 사용 가능",
-            "bce421cba3": "rate-limit 재설정 {{value0}}회 사용 가능",
             "7ec6e030a0": "다음 항목이 지금 만료됨",
             "d1e442a9e5": "지금 만료됨",
             "6cf9eaed10": "다음 항목이 {{value0}} 후 만료됨",
@@ -3988,7 +4007,13 @@
             "claudeNoUsageFromHost": "{{server}}에서 사용량 없음",
             "claudeUnknownOnHost": "{{server}}에서 Claude 사용량을 가져올 수 없습니다. 그곳에서 로그인하지 않았거나 API 키 결제를 사용 중일 수 있습니다.",
             "remoteOwnerUnreachable": "사용량 확인 불가 — {{server}}에 연결할 수 없습니다",
-            "remoteOwnerNoUsage": "사용량 확인 불가 — {{server}}에서 사용량을 제공하지 않습니다. 해당 호스트의 Orca를 업데이트하세요."
+            "remoteOwnerNoUsage": "사용량 확인 불가 — {{server}}에서 사용량을 제공하지 않습니다. 해당 호스트의 Orca를 업데이트하세요.",
+            "justNow": "방금",
+            "minutesAgo": "{{minutes}}분 전",
+            "hoursAgo": "{{hours}}시간 전",
+            "updatedAgo": "{{time}} 업데이트됨",
+            "notYetUpdated": "아직 업데이트되지 않음",
+            "rateLimitResetsAvailable_other": "속도 제한 재설정 {{count}}회 사용 가능"
           },
           "SshTargetStatusRow": {
             "sshHost": "SSH 호스트"
@@ -4031,12 +4056,10 @@
           "RemoteServerUpdateStatusSegment": {
             "updating": "{{value0}}/{{value1}} 업데이트 중",
             "updatingTooltip": "원격 Orca 서버 업데이트 진행 중",
-            "failed": "{{value0}} 서버 업데이트 실패",
             "failedTooltip": "원격 Orca 서버 업데이트를 열어 확인하고 다시 시도하세요",
-            "updated": "{{value0}} 서버 업데이트 완료",
             "updatedTooltip": "원격 Orca 서버 업데이트 완료",
-            "failedOne": "1개 서버 업데이트 실패",
-            "updatedOne": "1개 서버 업데이트 완료"
+            "failedCount_other": "서버 {{count}}개 업데이트 실패",
+            "updatedCount_other": "서버 {{count}}개 업데이트됨"
           },
           "resource": {
             "memory": {
@@ -4044,7 +4067,10 @@
                 "workingSetDescription": "합산된 워킹 세트(WS): 지금 RAM에 상주 중인 페이지입니다. 공유 페이지가 둘 이상의 프로세스에 나타날 수 있으며, Windows가 페이지 아웃한 메모리는 여기에 포함되지 않습니다.",
                 "privateBytesDescription": "합산된 프라이빗 바이트: 이 프로세스들이 커밋한 메모리로, 상주 여부와 관계없이 계산됩니다. 호스트가 커밋 한도에 반영하는 값이므로, 페이징으로 위의 워킹 세트가 줄어드는 동안에도 계속 늘어납니다.",
                 "footprintDescription": "합산된 메모리 사용 공간으로, 활성 상태 보기에 표시되는 값과 같습니다. 그래픽 메모리를 포함해 각 프로세스가 소유한 메모리이며, 프로세스 간에 공유되는 페이지는 중복으로 계산되지 않습니다.",
-                "rssDescription": "합산된 레지던트 세트 크기(RSS). 공유 또는 별칭된 페이지가 둘 이상의 프로세스에 나타날 수 있습니다."
+                "rssDescription": "합산된 레지던트 세트 크기(RSS). 공유 또는 별칭된 페이지가 둘 이상의 프로세스에 나타날 수 있습니다.",
+                "memColumn": "메모리",
+                "memorySummary": "Σ 메모리",
+                "privateSummary": "Σ 프라이빗"
               }
             },
             "manager": {
@@ -4066,13 +4092,13 @@
           "SkillUpdateStatusSegment": {
             "runningLabel": "Updating skills",
             "runningOne": "Updating {{value0}}…",
-            "runningMany": "Updating {{value0}} skills…",
             "runningAria": "스킬 업데이트 중입니다. 세부정보를 열려면 클릭하세요.",
             "successLabel": "Skills updated",
             "successAria": "스킬이 업데이트되었습니다. 세부정보를 열려면 클릭하세요.",
             "attentionAria": "일부 스킬 업데이트를 건너뛰었습니다. 클릭하여 세부 정보를 여세요.",
             "attentionLabel": "스킬 확인 필요",
-            "attentionTooltip": "일부 스킬 업데이트를 건너뛰었습니다 — 클릭하여 세부 정보 보기"
+            "attentionTooltip": "일부 스킬 업데이트를 건너뛰었습니다 — 클릭하여 세부 정보 보기",
+            "runningSkills_other": "스킬 {{count}}개 업데이트 중…"
           },
           "RuntimeHostStatusRow": {
             "previous_connection_closed": "이전 연결이 종료되었습니다.",
@@ -4096,29 +4122,21 @@
             "repair": "Re-pair…"
           },
           "NativeChatResumeStatusSegment": {
-            "labelOne": "재개할 채팅 1개",
-            "label": "{{value0}} 재개할 채팅",
-            "ariaLabelOne": "재개할 수 있는 채팅 1개",
-            "ariaLabel": "{{value0}} 재개 가능한 채팅",
             "tooltip": "중단된 채팅을 열어 재개할 수 있습니다.",
-            "failedLabelOne": "채팅 1개를 재개하지 못했습니다",
-            "failedLabel": "{{value0}}개의 채팅을 재개하지 못했습니다",
-            "failedAriaOne": "채팅 1개를 재개하지 못했습니다. 자세히 보려면 클릭하세요.",
-            "failedAria": "{{value0}}개의 채팅을 재개하지 못했습니다. 자세히 보려면 클릭하세요.",
             "failedTooltip": "다시 시작한 후 Orca가 재개하지 못한 채팅. 자세히 보려면 클릭하세요.",
-            "checkLabelOne": "확인할 채팅 1개",
-            "checkLabel": "확인할 채팅 {{value0}}개",
-            "checkAriaOne": "재개한 후 확인할 채팅 1개. 자세히 보려면 클릭하세요.",
-            "checkAria": "재개한 후 확인할 채팅 {{value0}}개. 자세히 보려면 클릭하세요.",
             "checkTooltip": "다시 시작한 후 Orca가 재개하지 못했거나 재개했는지 확인하지 못한 채팅. 자세히 보려면 클릭하세요.",
             "resumingTooltip": "중단된 채팅을 복원하고 계속하도록 요청하는 중…",
             "resumingProgressLabel": "채팅 재개 중 {{value0}}/{{value1}}",
             "resumingProgressAria": "채팅 재개 중, {{value1}}개 중 {{value0}}개 완료. 자세히 보려면 클릭하세요.",
-            "resumedLabelOne": "재개된 채팅 1개",
-            "resumedLabel": "재개된 채팅 {{value0}}개",
-            "resumedAriaOne": "채팅 1개를 재개했습니다. 클릭하여 확인하세요.",
-            "resumedAria": "채팅 {{value0}}개를 재개했습니다. 클릭하여 확인하세요.",
-            "resumedTooltip": "다시 시작한 후 Orca가 재개한 채팅입니다. 클릭하여 확인하세요."
+            "resumedTooltip": "다시 시작한 후 Orca가 재개한 채팅입니다. 클릭하여 확인하세요.",
+            "chatsFailedLabel_other": "채팅 {{count}}개 재개 실패",
+            "chatsFailedAria_other": "채팅 {{count}}개를 재개하지 못했습니다. 자세한 내용을 보려면 클릭하세요.",
+            "resumedLabelCount_other": "채팅 {{count}}개 재개됨",
+            "resumedAriaCount_other": "채팅 {{count}}개가 재개되었습니다. 확인하려면 클릭하세요.",
+            "checkLabelCount_other": "확인이 필요한 채팅 {{count}}개",
+            "checkAriaCount_other": "재개 후 확인이 필요한 채팅이 {{count}}개 있습니다. 자세한 내용을 보려면 클릭하세요.",
+            "labelCount_other": "재개할 채팅 {{count}}개",
+            "ariaLabelCount_other": "재개 가능한 채팅 {{count}}개"
           },
           "provider": {
             "extra": {
@@ -4128,6 +4146,71 @@
                 }
               }
             }
+          },
+          "mergeSnapshotAndSessions": {
+            "unattributed": "귀속 불명"
+          },
+          "resourceSessionLabels": {
+            "terminalNumber": "터미널 {{number}}",
+            "pid": "PID {{pid}}",
+            "sessionPrefix": "세션 {{id}}",
+            "unknownSession": "(알 수 없는 세션)",
+            "unknown": "알 수 없음"
+          },
+          "runtimeTargets": {
+            "wslDefault": "WSL 기본값"
+          },
+          "floatingWorkspace": {
+            "minimize": "플로팅 워크스페이스 최소화",
+            "show": "플로팅 워크스페이스 표시"
+          },
+          "workspaceSpaceGitRefresh": {
+            "ownerUnavailable": "워크스페이스 소유자를 더 이상 사용할 수 없음"
+          },
+          "workspaceSpaceDecision": {
+            "syncedWithUpstream": "업스트림과 동기화됨",
+            "aheadAndBehind": "{{ahead}}개 앞섬, {{behind}}개 뒤처짐",
+            "ahead": "{{ahead}}개 앞섬",
+            "behind": "{{behind}}개 뒤처짐",
+            "activeAgents_other": "활성 에이전트 {{count}}개",
+            "completedAgents_other": "완료된 에이전트 {{count}}개",
+            "activeAndCompletedAgents": "{{active}}, {{completed}}",
+            "completedAgentsRetained_other": "완료된 에이전트 {{count}}개 보관됨",
+            "noTrackedAgents": "실행 중인 추적 대상 에이전트 없음",
+            "noTerminalTabs": "터미널 탭 없음",
+            "liveTerminalTabs_other": "터미널 탭 {{count}}개 중 {{live}}개 실행 중",
+            "gitStatusUnavailable": "Git 상태를 가져올 수 없음: {{error}}",
+            "gitStatusNotLoaded": "Git 상태가 아직 로드되지 않음",
+            "noUncommittedFiles": "커밋되지 않은 파일 없음",
+            "changedFiles_other": "변경된 파일 {{count}}개",
+            "noEditorFiles": "편집기에서 열린 파일 없음",
+            "editorFilesOpen_other": "편집기에서 열린 파일 {{count}}개",
+            "dirtyOfOpen": "{{open}} 중 {{dirty}}",
+            "dirtyEditorBuffers_other": "저장되지 않은 편집기 버퍼 {{count}}개",
+            "openFiles_other": "열린 파일 {{count}}개",
+            "activeWorkspace": "현재 활성 워크스페이스",
+            "mainWorktreeProtected": "메인 워크트리가 보호됨",
+            "workspaceProtected": "워크스페이스가 보호됨",
+            "canDeleteAfterReview": "검토 후 삭제 가능",
+            "noLinkedIssue": "연결된 이슈 없음",
+            "noLinkedReview": "연결된 PR 없음",
+            "browserTabsOpen_other": "열린 브라우저 탭 {{count}}개"
+          },
+          "workspaceSpaceFormat": {
+            "cancellingScan": "스캔 취소 중",
+            "currentWorkspaces": "워크스페이스",
+            "scanningWorkspaces": "{{total}}개 중 {{scanned}}개 스캔 중 · {{current}}",
+            "scanningRepos_other": "저장소 {{count}}개 중 {{scanned}}개 스캔 중 · {{current}}",
+            "scanningSizes": "워크스페이스 크기 스캔 중",
+            "status": {
+              "scanned": "스캔됨",
+              "missing": "누락",
+              "noAccess": "접근 권한 없음",
+              "unavailable": "사용 불가",
+              "failed": "실패"
+            },
+            "mainWorktree": "메인 워크트리",
+            "detached": "분리됨"
           }
         }
       },
@@ -4933,12 +5016,10 @@
           "39d51212cc": "그룹 이름",
           "aa0247680d": "아니요, 별도로 가져오기",
           "a0bc4d1f8e": "예, 그룹으로 가져오기",
-          "8401a7a0d0": "repos 1개",
-          "d4f1df62ef": "repos {{value0}}개",
-          "b4263a2ac4": "{{value1}}에서 {{value0}}을(를) 찾았습니다.",
           "24eda6c8b2": "스캔 중... {{value0}}",
           "6149d5203f": "선택된 repos가 없습니다. 대신 상위 폴더를 열면 Git 기능 없이 편집기, terminal, 검색을 사용할 수 있습니다.",
-          "e52454b7f6": "폴더로 열기"
+          "e52454b7f6": "폴더로 열기",
+          "foundRepositories_other": "{{path}}에서 저장소 {{count}}개를 찾았습니다."
         },
         "AddRepoRemoteStep": {
           "6680289908": "/home/user/project",
@@ -5007,9 +5088,8 @@
           "eab8b45238": "복사 오류",
           "a23b22d16f": "복사됨",
           "74fc00776f": "오류 세부정보",
-          "3afcad0497": "첫 번째 agent 메시지에서.",
-          "ff62a18580": "Orca가 다음에 대한 브랜치 이름을 생성할 수 없습니다.",
-          "ca3b225195": "브랜치 자동 이름 지정에 실패했습니다."
+          "ca3b225195": "브랜치 자동 이름 지정에 실패했습니다.",
+          "couldNotGenerateBranchName": "Orca에서 첫 번째 에이전트 메시지를 바탕으로 <name>{{name}}</name>의 브랜치 이름을 생성하지 못했습니다."
         },
         "CreateProjectLocationField": {
           "95548e33bf": "상위 폴더 선택...",
@@ -5029,37 +5109,32 @@
           "2b56b35f53": "설정에서 이를 변경할 수 있습니다.",
           "dd3a45bbbd": "다음번에는 이 확인을 건너뛰겠습니다.",
           "fc23c4cbdf": "워크스페이스 삭제",
-          "86f0ae1257": "워크스페이스 삭제"
+          "86f0ae1257": "워크스페이스 삭제",
+          "removeFolderProjectInstead": "이 워크스페이스를 삭제하는 대신 폴더 프로젝트를 제거하세요.",
+          "gitBlocksMainWorktree": "Git에서는 메인 워크트리를 제거할 수 없습니다."
         },
         "DeleteWorktreeDirtyChangeHint": {
           "showLoadedPaths": "불러온 경로 표시",
           "loadedPathsNotice": "불러온 경로가 일부 누락되었거나 오래되었을 수 있습니다.",
           "loadedChangedPaths": "불러온 변경된 경로",
           "unresolvedConflict": "해결되지 않은 충돌",
-          "moreLoadedPaths": "불러온 경로 {{value0}}개 더",
           "changeCount_one": "커밋되지 않았거나 추적되지 않는 변경 {{count}}개",
           "changeCount_other": "커밋되지 않았거나 추적되지 않는 변경 {{count}}개",
-          "changes": "커밋되지 않았거나 추적되지 않는 변경 사항"
+          "changes": "커밋되지 않았거나 추적되지 않는 변경 사항",
+          "moreLoadedPaths_other": "그 외 로드된 경로 {{count}}개"
         },
         "DeleteWorktreeLineageNotice": {
-          "ad407c2d55": "더",
           "a940f3c96e": "하위 워크스페이스가 삭제됩니다.",
-          "29b98bf9cd": "이 워크스페이스를 삭제하면 {{value0}} 하위 워크스페이스도 삭제됩니다.",
-          "66798cc6a2": "이 워크스페이스를 삭제하면 하위 워크스페이스 1개도 삭제됩니다."
+          "alsoDeletesChildren_other": "이 워크스페이스를 삭제하면 하위 워크스페이스 {{count}}개도 삭제됩니다.",
+          "moreChildren_other": "+{{count}}개 더"
         },
         "DeleteWorktreeSkipConfirmOption": {
           "29aefb7e52": "다시 묻지 마세요"
-        },
-        "DeleteWorktreeWarningPanels": {
-          "026738155a": "(원본 복제 디렉터리).",
-          "c4f96a6e18": "메인 워크트리",
-          "e3be9eba15": "이것은"
         },
         "ImportedWorktreesVisibilityLine": {
           "b7a87dc32f": "워크트리 목록에 표시",
           "ad99f4eea9": "숨김 유지",
           "9f4f14e821": "나중에 프로젝트 메뉴에서 이를 변경하세요.",
-          "b2bc47c080": "더 많은 위치",
           "b47ba1a9d2": "{{value0}} 미리보기",
           "2251d41ebb": "숨겨진 워크트리 그룹",
           "5a9688802a": "{{value0}} 더 보기",
@@ -5073,7 +5148,8 @@
           "keepHiddenAriaLabel_one": "{{repo}}에서 발견된 워크트리 {{count}}개를 숨김 상태로 유지합니다. 프로젝트 메뉴에서 복구할 수 있습니다",
           "keepHiddenAriaLabel_other": "{{repo}}에서 발견된 워크트리 {{count}}개를 숨김 상태로 유지합니다. 프로젝트 메뉴에서 복구할 수 있습니다",
           "keepHiddenTooltip": "숨김 유지 - 프로젝트 메뉴에서 복구",
-          "repoOnHost": "{{host}}의 {{repo}}"
+          "repoOnHost": "{{host}}의 {{repo}}",
+          "moreLocations_other": "+ 위치 {{count}}개 더"
         },
         "NonGitFolderDialog": {
           "e52454b7f6": "폴더로 열기",
@@ -5107,20 +5183,22 @@
         },
         "ProjectGroupDeleteDialog": {
           "ca65b78f78": "취소",
-          "69f5cb97d0": "삭제",
           "591f330288": "프로젝트 그룹 삭제",
           "2c14ce677a": "삭제 중...",
           "0e0e6764af": "포함된 프로젝트",
-          "ad407c2d55": "개 더",
-          "removeContainedProjectSingular": "포함된 프로젝트 1개 제거",
-          "removeContainedProjectPlural": "포함된 프로젝트 {{value0}}개 제거",
           "55f75628c0": "디스크의 프로젝트 폴더는 삭제되지 않습니다.",
-          "fec7e9c8ae": "그룹 삭제"
+          "fec7e9c8ae": "그룹 삭제",
+          "removeContainedProjects_other": "포함된 프로젝트 {{count}}개 제거",
+          "deleteGroupDescription": "<name>{{name}}</name> 그룹을 삭제합니다.",
+          "moreProjects_other": "+{{count}}개 더"
         },
         "ProjectGroupNameDialog": {
           "d99a034073": "취소",
           "83dfbc5313": "그룹 이름",
-          "4a64e78822": "저장 중..."
+          "4a64e78822": "저장 중...",
+          "defaultGroupName": "{{name}} 그룹",
+          "create": "생성",
+          "rename": "이름 변경"
         },
         "RemoteFileBrowser": {
           "2300612806": "필터링하려면 입력하거나 경로를 입력하세요…",
@@ -5132,7 +5210,9 @@
           "largeInputNoMatches": "이 긴 입력과 일치하는 항목 없음",
           "entriesLabel": "폴더 항목",
           "inputLabel": "필터 또는 경로",
-          "fileHint": "파일은 프로젝트로 열 수 없습니다"
+          "fileHint": "파일은 프로젝트로 열 수 없습니다",
+          "invalidPathRepeatedSeparators": "잘못된 경로: 구분자가 반복됨",
+          "invalidPathControlCharacters": "잘못된 경로: 제어 문자는 사용할 수 없음"
         },
         "SleepTwinWorkspaceDialog": {
           "title": "Sleep Workspace",
@@ -5162,11 +5242,10 @@
           "70715947fb": "설정 스크립트는 비워둘 수 없습니다.",
           "888b83bf78": "설정 스크립트를 저장하지 못했습니다.",
           "a49196d538": "Orca가 새 작업 트리를 생성할 때 실행됩니다.",
-          "d9f2db2738": "프로젝트 설정",
-          "a5bb8c5135": "여기에 저장됨",
           "savedSetupCommand": "설정 명령을 저장했습니다.",
           "savedWithSkippedFields_one": "지원되지 않는 필드 {{count}}개를 건너뛰었습니다. 설정 명령을 저장했습니다.",
-          "savedWithSkippedFields_other": "지원되지 않는 필드 {{count}}개를 건너뛰었습니다. 설정 명령을 저장했습니다."
+          "savedWithSkippedFields_other": "지원되지 않는 필드 {{count}}개를 건너뛰었습니다. 설정 명령을 저장했습니다.",
+          "savedInProjectSettings": "이 <settings>프로젝트의 설정</settings>에 저장됨"
         },
         "SetupScriptPromptCardViews": {
           "96a7f4198c": "로컬 설정 저장",
@@ -5174,20 +5253,17 @@
           "31b8b01a45": "설정",
           "4a98f907ae": "다시 시도",
           "0a98169776": "Orca가 새 작업 트리를 생성할 때 실행할 설정 명령을 추가합니다.",
-          "8349e3fa4c": ". 새 작업 트리에 대해 실행되도록 저장하세요.",
-          "b56d1322f7": "다음에서 설정 명령을 찾았습니다.",
           "aef6c0a213": "Orca가 작업 트리를 생성할 때마다 실행되도록 감지된 명령을 저장합니다.",
-          "660cdc17f8": "설정 스크립트. 로컬 명령을 추가하거나 설정에서 소스를 변경하세요.",
-          "8f6be51aa1": "orca.yaml",
-          "bb879db364": "이 repo는 공유를 무시합니다",
           "0155fb9ed3": "지금은 이 repo의 설정 스크립트를 확인할 수 없습니다.",
           "eefa756190": "수동으로 구성",
           "ca4efcbc25": "저장",
-          "d02e6a42b1": "다음에서 감지됨",
           "fdbc6cb064": "감지된 설정 스크립트",
           "7275f674cc": "감지된 설정",
           "822ff300ad": "닫기",
-          "5bfd5c8779": "설정 스크립트 닫기"
+          "5bfd5c8779": "설정 스크립트 닫기",
+          "detectedFromSource": "<source>{{source}}</source>에서 감지됨",
+          "ignoresSharedSetup": "이 저장소는 공유 <yaml>orca.yaml</yaml> 설정 스크립트를 무시합니다. 로컬 명령을 추가하거나 설정에서 소스를 변경하세요.",
+          "foundSetupCommandIn": "<source>{{source}}</source>에서 설정 명령을 찾았습니다. 새 워크트리에서 실행하려면 저장하세요."
         },
         "SidebarFeedbackDialog": {
           "8bf619e4cf": "취소",
@@ -5364,8 +5440,8 @@
         "WorkspaceKanbanDrawerHeader": {
           "f369f5c5a3": "닫기",
           "e1a34450fc": "상태별로 워크스페이스를 구성하고 워크스페이스 카드를 엽니다.",
-          "81870af08f": "선택된",
-          "c6a77ab0f4": "워크스페이스 보드"
+          "c6a77ab0f4": "워크스페이스 보드",
+          "selectedCount_other": "{{count}}개 선택됨"
         },
         "WorkspaceKanbanPinDropTarget": {
           "c30151c5ee": "상태를 변경하지 않고 고정하려면 여기에 드롭하세요.",
@@ -5466,7 +5542,8 @@
           "2931b42b09": "상태: 초안 {{value0}}",
           "e888362def": "상태: 폐쇄됨",
           "f394b3e86e": "상태: 병합됨",
-          "af2b07bda5": "상태: {{value0}}"
+          "af2b07bda5": "상태: {{value0}}",
+          "checksStatus": "검사: {{status}}"
         },
         "WorktreeCardPorts": {
           "3240f320d7": "라이브 포트",
@@ -5477,8 +5554,8 @@
           "5d1a5d51bb": "{{value0}}에서 프로세스가 중지되었습니다.",
           "c89f290e25": "{{value0}} 복사됨",
           "d1113f4660": "브라우저를 열지 못했습니다.",
-          "fed49903c9": "{{value0}} 실시간 {{value1}}",
-          "unknownProcess": "알 수 없는 프로세스"
+          "unknownProcess": "알 수 없는 프로세스",
+          "livePorts_other": "활성 포트 {{count}}개"
         },
         "WorktreeContextMenu": {
           "c39c37676a": "그룹을 만들고 이 프로젝트를 그룹으로 이동하세요.",
@@ -5520,7 +5597,6 @@
           "f9dc6cc5d3": "프로젝트 그룹 이름 바꾸기",
           "370c6a55dd": "필터 지우기",
           "b7acbf038b": "워크스페이스를 찾을 수 없습니다.",
-          "0c6ee14f23": "하위",
           "c83968f87f": "프로젝트 제거",
           "64e55f7f01": "그룹에서 제거",
           "4a08fb55f2": "그룹으로 이동",
@@ -5533,12 +5609,7 @@
           "4d7b73658c": "그룹 이름 바꾸기",
           "79465e9034": "{{value0}}에 대한 그룹 작업",
           "bfbedc547b": "워크트리",
-          "045a8aed48": "하위",
           "bb85cd86ba": "{{value0}}에 대한 워크스페이스 만들기",
-          "20bebf9c7f": "{{value0}}개 하위 워크스페이스 표시",
-          "c1f4a31623": "{{value0}}개 하위 워크스페이스 표시",
-          "e97297cb75": "{{value0}}개 하위 워크스페이스 숨기기",
-          "0cd15956d4": "{{value0}}개 하위 워크스페이스 숨기기",
           "bd37a57ac8": "{{value0}}에 대한 워크스페이스 만들기",
           "b667b59632": "일부 프로젝트를 Orca에서 제거하지 못했습니다.",
           "groupDeleteFailed": "그룹을 삭제하지 못했습니다.",
@@ -5552,8 +5623,10 @@
           "groupRenameFailed": "그룹 이름을 바꾸지 못했습니다.",
           "groupRenameFailedDesc": "Orca는 그룹 호스트에게 새 이름을 확인할 수 없습니다. 다시 연결한 후 그룹을 다시 확인하세요.",
           "hostRepairRequired": "Re-pair required",
-          "groupProjectsRemainedSingular": "그룹을 삭제했지만, 포함된 프로젝트 {{count}}개 중 {{remaining}}개가 남아 있습니다.",
-          "groupProjectsRemainedPlural": "그룹을 삭제했지만, 포함된 프로젝트 {{count}}개 중 {{remaining}}개가 남아 있습니다."
+          "showChildWorkspaces_other": "하위 워크스페이스 {{count}}개 표시",
+          "hideChildWorkspaces_other": "하위 워크스페이스 {{count}}개 숨기기",
+          "childCount_other": "하위 {{count}}개",
+          "groupProjectsRemained_other": "그룹을 삭제한 후 포함된 프로젝트 {{count}}개 중 {{remaining}}개가 남았습니다."
         },
         "WorktreeMetaDialog": {
           "3db0a2a593": "취소",
@@ -5617,7 +5690,6 @@
           "d40d436fc2": "워크트리 표시 설정을 업데이트하지 못했습니다. 다시 시도하세요.",
           "unsupportedHost": "이 호스트는 소스별 워크트리 표시 설정을 지원하지 않습니다. 이 설정을 변경하려면 호스트의 Orca를 업데이트하세요.",
           "search": "숨겨진 워크트리 검색",
-          "searchPlaceholder": "워크트리 {{value0}}개 검색…",
           "noMatches": "일치하는 워크트리가 없습니다",
           "allShown": "발견된 모든 워크트리가 표시 중입니다",
           "noneFound": "Orca 외부 워크트리를 찾지 못했습니다",
@@ -5625,7 +5697,8 @@
           "disableSource": "소스를 비활성화하면 워크트리를 개별적으로 관리할 수 있습니다.",
           "appearWhenDetected": "Orca가 새 워크트리를 발견하면 여기에 표시됩니다.",
           "openGlobalSettings": "전역 설정에서 관리",
-          "globalSettingsSources": "다음 소스에는 여기에서 재정의할 수 있는 전역 설정이 있습니다:"
+          "globalSettingsSources": "다음 소스에는 여기에서 재정의할 수 있는 전역 설정이 있습니다:",
+          "searchHiddenPlaceholder_other": "워크트리 {{count}}개 검색…"
         },
         "WorktreeVisibilitySourceList": {
           "claude": "Claude Code",
@@ -5856,12 +5929,9 @@
                   "670864ab52": "로컬 {{value0}}을 최신 상태로 유지",
                   "84c62e4d7f": "{{value0}}을(를) 켤 수 없습니다.",
                   "442552c656": "설정을 열고 다시 시도하세요.",
-                  "f15fd80989": "새 워크트리는 최신 상태이지만 로컬 {{value0}}이(가) {{value1}} {{value2}} 뒤처져 있어 AI diff가 오래된 기록과 비교될 수 있습니다. Orca가 자동으로 최신 상태를 유지하도록 하세요. 언제든지 여기에서 변경할 수 있습니다",
-                  "3d260e1a5d": "설정 › {{value0}}",
                   "34a03a6565": "{{value0}} 최신 상태로 유지",
                   "4a18052018": "로컬 {{value0}}이(가) {{value1}}보다 뒤처져 있습니다",
-                  "commit": "commit",
-                  "commits": "commits"
+                  "staleLocalBranch_other": "새 워크트리는 최신 상태이지만 로컬 {{branch}} 브랜치가 커밋 {{count}}개 뒤처져 있어 AI diff에 오래된 기록이 사용될 수 있습니다. Orca가 이 브랜치를 자동으로 최신 상태로 유지하도록 설정하세요. <settings>설정 › {{setting}}</settings>에서 언제든 변경할 수 있습니다"
                 }
               }
             }
@@ -5925,13 +5995,11 @@
           "7a8b9c0d1e": "설정 열기",
           "8b9c0d1e2f": "호스트 제거",
           "workspacesFailed": "이 호스트에서 워크스페이스 {{count}}개를 제거할 수 없었습니다. 재시도할 수 있도록 호스트가 유지되었습니다.",
-          "oneWorkspace": "워크스페이스 1개",
-          "manyWorkspaces": "워크스페이스 {{count}}개",
-          "hostHasWorkspacesDefault": "이 컴퓨터에서 {{value0}}과(와) 해당 자격 증명을 제거합니다. {{value1}}은(는) Orca에 남아 있습니다 — 원격 파일은 변경되지 않습니다.",
-          "alsoForgetLocal": "Orca에서 이러한 {{value0}}도 제거",
           "advanced": "고급",
           "alsoForgetLocalHint": "Orca에서만 제거합니다. 원격 파일, 워크트리, 브랜치는 그대로 남아 있습니다.",
-          "wslHostEndsTerminalsUnlessShared": "Orca에서 {{value0}}을(를) 제거합니다. 이 컴퓨터에서 열려 있는 다른 Orca가 사용 중이지 않다면 열린 터미널도 종료하고 해당 배포판의 Orca 서버를 중지합니다. 배포판의 파일은 변경되지 않습니다."
+          "wslHostEndsTerminalsUnlessShared": "Orca에서 {{value0}}을(를) 제거합니다. 이 컴퓨터에서 열려 있는 다른 Orca가 사용 중이지 않다면 열린 터미널도 종료하고 해당 배포판의 Orca 서버를 중지합니다. 배포판의 파일은 변경되지 않습니다.",
+          "hostKeepsWorkspaces_other": "이 컴퓨터에서 {{host}} 호스트와 해당 자격 증명을 제거합니다. 해당 워크스페이스 {{count}}개는 Orca에 남으며 원격 파일은 변경되지 않습니다.",
+          "alsoRemoveWorkspaces_other": "이 워크스페이스 {{count}}개도 Orca에서 제거"
         },
         "HostRenameDialog": {
           "1a2b3c4d5e": "호스트 이름 바꾸기",
@@ -5975,7 +6043,7 @@
           "current": "현재",
           "searchPlaceholder": "워크트리 검색...",
           "empty": "일치하는 적격 워크트리가 없습니다.",
-          "setParentFor": "다음 워크트리의 상위 설정"
+          "setParentForName": "<name>{{name}}</name>의 상위 항목 설정"
         },
         "WorktreeCardStatusSlot": {
           "branchIdentity": "브랜치",
@@ -5986,11 +6054,9 @@
         "NewExternalWorktreesInboxLine": {
           "9f2d4c8b17": "{{value0}}의 외부 워크트리를 영구적으로 숨기기",
           "c3e8a1f4b2": "다시 표시하지 않기",
-          "2a6f31d8c7": "숨겨진 작업 트리",
-          "5b90e4a2f6": "숨겨진 작업 트리",
-          "7f18c5b0d3": "{{value1}}의 {{value0}} 숨겨진 작업 트리를 검토합니다.",
-          "4e2b7a9c05": "{{value1}}에서 {{value0}} 숨겨진 작업 트리를 검토합니다.",
-          "6c07f3a91e": "{{value1}}의 {{value0}}"
+          "6c07f3a91e": "{{value1}}의 {{value0}}",
+          "hiddenWorktreesNoun_other": "숨겨진 워크트리",
+          "reviewHiddenWorktrees_other": "{{scope}}의 숨겨진 워크트리 {{count}}개 검토"
         },
         "NoticeHostGlyph": {
           "hostDisconnected": "{{hostName}} 연결 끊김",
@@ -6081,8 +6147,8 @@
           "sshConfigPickerRetry": "다시 시도하세요",
           "sshConfigPickerResolving": "독서…",
           "pairingHelpShareComputer": "다른 컴퓨터의 설정 → 원격 Orca 서버 → 이 컴퓨터 공유에서 만드세요.",
-          "sshImportSyncedPlural": "호스트 {{count}}개를 Orca에 추가했습니다.",
-          "sshImportSyncedSingular": "호스트 {{count}}개를 Orca에 추가했습니다."
+          "sshImportSynced_other": "Orca에 호스트 {{count}}개를 추가했습니다.",
+          "sshConfigPickerInvalidResponse": "잘못된 SSH 설정 호스트 응답"
         },
         "ForgetSshWorkspaceDialog": {
           "ghostBody": "{{host}}은(는) 더 이상 저장된 SSH 호스트가 아니므로 이 워크스페이스는 라이브 호스트에 연결되어 있지 않습니다. Orca에서 제거만 할 수 있으며, 원격의 파일과 브랜치는 그대로 유지됩니다.",
@@ -6105,11 +6171,11 @@
         },
         "WorkspaceKanbanSearchField": {
           "bdb753c78d": "일치하는 워크스페이스가 없습니다",
-          "4d96c209d6": "워크스페이스 {{value1}}개 중 {{value0}}개 일치",
           "c0cd6bdf6c": "워크스페이스 검색",
           "3b7ea51793": "검색 지우기",
           "7f1c2e94a5": "검색어가 너무 깁니다 — 보드가 필터링되지 않았습니다",
-          "9a4d0f6b21": "너무 김"
+          "9a4d0f6b21": "너무 김",
+          "workspacesMatch_other": "워크스페이스 {{count}}개 중 {{matchCount}}개 일치"
         },
         "WorktreeCardSshHostControl": {
           "connectFailed": "SSH 연결 실패",
@@ -6181,11 +6247,11 @@
           "developerToolsTitle": "Apple 명령줄 도구 설치",
           "developerToolsBody": "Git에는 Apple 개발자 도구가 필요합니다. 터미널에서 이 명령을 실행한 뒤 Orca로 돌아오세요. 자동으로 다시 확인합니다.",
           "affectedOne": "{{value0}}에 대한 워크트리 검사가 일시 중지됨",
-          "affectedMany": "{{value0}}개 프로젝트의 워크트리 검사가 일시 중지됨",
           "copyCommand": "명령 복사",
           "copied": "명령이 복사됨",
           "retry": "지금 다시 시도",
-          "restored": "Git이 다시 작동합니다. 워크트리를 새로고침했습니다."
+          "restored": "Git이 다시 작동합니다. 워크트리를 새로고침했습니다.",
+          "affectedProjects_other": "프로젝트 {{count}}개의 워크트리 스캔 일시 중지됨"
         },
         "manualSortSwitch": {
           "title": "정렬이 수동으로 변경됨",
@@ -6230,7 +6296,8 @@
         "wslHostRemoval": {
           "keptForOthers": "이 Orca에서 제거했습니다. 호스트는 {{value0}}을(를) 위해 계속 실행됩니다.",
           "partial": "호스트는 제거되었지만 배포판에서 아직 실행 중인 항목이 있습니다: {{value0}}",
-          "pending": "Orca가 아직 호스트를 제거하지 않았습니다: {{value0}} 다시 시도하려면 다시 제거하고, 유지하려면 연결하세요."
+          "pending": "Orca가 아직 호스트를 제거하지 않았습니다: {{value0}} 다시 시도하려면 다시 제거하고, 유지하려면 연결하세요.",
+          "unavailable": "이 컴퓨터에서는 WSL 호스트를 사용할 수 없습니다."
         },
         "addRepoWslHostFolderPicker": {
           "otherDistro": "해당 폴더는 {{value1}}이(가) 아니라 {{value0}}에 있습니다.",
@@ -6271,6 +6338,44 @@
           "openingProject": "프로젝트 여는 중...",
           "openingFolder": "폴더 여는 중...",
           "chooseFolder": "폴더 선택..."
+        },
+        "DeleteWorktreeWarningPanels": {
+          "mainWorktreeNotice": "이 워크트리는 <strong>메인 워크트리</strong>(원래 복제 디렉터리)입니다."
+        },
+        "DeleteNestedWorktreesDialog": {
+          "unsupportedHost": "이 호스트는 중첩된 워크트리 삭제를 지원하지 않습니다."
+        },
+        "WorktreeCardHelpers": {
+          "checksPassing": "통과",
+          "checksFailing": "실패",
+          "checksPending": "대기 중",
+          "conflictMerging": "병합 중",
+          "conflictRebasing": "리베이스 중",
+          "conflictCherryPicking": "체리픽 중"
+        },
+        "activeFilterCount_other": "필터 {{count}}개",
+        "folderWorkspaceComposer": {
+          "defaultWorkspaceName": "{{name}} 워크스페이스"
+        },
+        "workspaceKanbanStatus": {
+          "defaultLabel": "상태 {{number}}"
+        },
+        "worktreeCardModel": {
+          "sparsePreviewMore_other": "{{preview}}, +{{count}}개 더"
+        },
+        "worktreeCardPrDisplay": {
+          "mrDetailsUnavailable": "MR 세부정보를 사용할 수 없음",
+          "prDetailsUnavailable": "PR 세부정보를 사용할 수 없음",
+          "loadingMr": "MR 로드 중…",
+          "loadingPr": "PR 로드 중…"
+        },
+        "HostSectionHeader": {
+          "workspaceCount_other": "워크스페이스 {{count}}개"
+        },
+        "titleDerivedAgentRows": {
+          "needsInput": "입력 필요",
+          "running": "실행 중",
+          "idle": "유휴"
         }
       },
       "shared": {
@@ -13778,17 +13883,8 @@
       "new": {
         "workspace": {
           "SmartWorkspaceNameField": {
-            "2a0d535f69": "새 브랜치 만들기",
-            "a44229ce4d": "워크스페이스 이름으로",
-            "766083a596": "\"",
-            "34ca97bce3": "\"",
-            "b1a7d679ba": "사용",
             "e57c53727c": "프로젝트 추가...",
-            "a76fcb4fa0": "다음으로 전환",
-            "eadf877af5": "유지",
             "6859e2896c": "취소",
-            "9ef1a7c4b0": ", 선택한 프로젝트와 다릅니다.",
-            "ad188067ae": "GitHub URL은 다음을 가리킵니다.",
             "4bd98f1091": "프로젝트를 전환하시겠습니까?",
             "0c9e668e3a": "지우기",
             "7199ff19c7": "선택한 소스 지우기",
@@ -13807,7 +13903,6 @@
             "fda67f0b61": "현재 프로젝트",
             "3e8bb1176a": "이슈를 검색하려면 설정에서 Linear를 연결하세요.",
             "switchTaskSourceTitle": "작업 소스를 전환할까요?",
-            "differentTaskSource": ", 선택한 작업 소스와 다릅니다.",
             "currentTaskSource": "현재 작업 소스",
             "placeholderNameOrLinearUrl": "이름, Linear URL 또는 Jira URL 입력",
             "placeholderWorkspaceName": "워크스페이스 이름 입력",
@@ -13836,7 +13931,13 @@
             "emoji": "Emoji",
             "loadingLinearIssue": "Linear 문제 로드 중…",
             "linearLoginUnreadableTitle": "Linear 다시 연결",
-            "linearLoginUnreadableBody": "저장된 Linear 로그인을 읽을 수 없습니다. 설정에서 다시 연결하세요."
+            "linearLoginUnreadableBody": "저장된 Linear 로그인을 읽을 수 없습니다. 설정에서 다시 연결하세요.",
+            "keepRepo": "{{name}} 유지",
+            "switchToRepo": "{{name}}(으)로 전환",
+            "crossRepoDifferentTaskSource": "GitHub URL이 선택한 작업 소스와 다른 {{repo}} 저장소를 가리킵니다.",
+            "crossRepoDifferentProject": "GitHub URL이 선택한 프로젝트와 다른 {{repo}} 저장소를 가리킵니다.",
+            "useAsWorkspaceName": "<name>\"{{name}}\"</name>을(를) 워크스페이스 이름으로 사용",
+            "createNewBranchNamed": "새 브랜치 <name>{{name}}</name> 만들기"
           },
           "ProjectCombobox": {
             "empty": "검색과 일치하는 프로젝트가 없습니다.",
@@ -13859,6 +13960,11 @@
             "cloneFromUrl": "URL에서 복제",
             "cloneFromUrlHelp": "이 저장소를 {{host}}에 복제하세요.",
             "saveLocation": "위치 설정"
+          },
+          "projectCombobox": {
+            "recentHeading": "최근",
+            "projectsHeading": "프로젝트",
+            "foldersHeading": "폴더"
           }
         }
       },
@@ -15455,20 +15561,26 @@
         }
       },
       "dashboard": {
-        "DashboardAgentChildDisclosure": {
-          "1b57ce9fa4": "{{value0}} {{value1}} 하위 {{value2}}"
-        },
         "DashboardAgentRow": {
           "912e136cd9": "보내기",
           "a743da52ff": "세부정보 펼치기",
           "a41fb5376e": "세부정보 접기",
           "5ae84475cc": "닫기",
           "b06e13fcf7": "agent 닫기",
-          "0272969e28": "이 agent에게 보내기"
+          "0272969e28": "이 agent에게 보내기",
+          "justNow": "방금",
+          "timeAgo": "{{duration}} 전",
+          "dispatchedAgents_other": "{{agentType}} - 에이전트 {{count}}개 배정됨",
+          "startedAgo": "{{time}} 시작",
+          "doneAgo": "{{time}} 완료"
         },
         "DashboardAgentRowMessage": {
           "0a01046763": "중단됨",
           "1ec01cef03": "사용자에 의해 중단됨"
+        },
+        "DashboardAgentChildDisclosure": {
+          "hideChildAgents_other": "하위 에이전트 {{count}}개 숨기기",
+          "showChildAgents_other": "하위 에이전트 {{count}}개 표시"
         }
       },
       "crash": {
@@ -16513,14 +16625,13 @@
           "clearNotification": "알림 지우기"
         },
         "ActivityTitlebarControls": {
-          "f915168c8e": "읽지 않음",
           "d6a8de3934": "에이전트",
-          "dc708f3eff": "agents 닫기"
+          "dc708f3eff": "agents 닫기",
+          "unreadCount_other": "읽지 않음 {{count}}개"
         },
         "clearCompleted": {
-          "clearedOne": "완료된 에이전트 1개를 클리어했습니다.",
-          "clearedMany": "{{count}} 완료된 에이전트를 삭제했습니다.",
-          "undo": "끄르다"
+          "undo": "끄르다",
+          "cleared_other": "완료된 에이전트 {{count}}개를 지웠습니다"
         },
         "standaloneWorktree": {
           "floatingTerminal": "플로팅 터미널",
@@ -17269,6 +17380,16 @@
         "cancelled": "이 일반 SSH 터미널은 시작되기 전에 닫혔습니다.",
         "terminalUnavailable": "Orca에서 여기의 터미널을 열 수 없습니다.",
         "openHint": "Orca가 호스트에서 설정할 수 없는 동안에도 호스트에서 계속 작업할 수 있습니다."
+      },
+      "cmdJ": {
+        "quickActionUnavailable": {
+          "workspaceLoading": "“{{action}}” 실행 불가 — 워크스페이스를 아직 로드 중입니다.",
+          "noActiveWorkspace": "“{{action}}” 실행 불가 — 활성 워크스페이스가 없습니다.",
+          "workspaceDisconnected": "“{{action}}” 실행 불가 — 워크스페이스 연결이 끊어졌습니다.",
+          "noTabGroup": "“{{action}}” 실행 불가 — 사용 가능한 탭 그룹이 없습니다.",
+          "noMovableChat": "“{{action}}” 실행 불가 — 이동 가능한 활성 채팅이 없습니다.",
+          "clientUnsupported": "“{{action}}” 실행 불가 — 이 클라이언트와 런타임에서 지원하지 않습니다."
+        }
       }
     },
     "i18n": {
@@ -18332,12 +18453,6 @@
           "gitStatusCheckFailed": "Git 상태 확인 실패",
           "gitStatusUnverified": "Git 상태를 확인할 수 없음",
           "deleteAnyway": "그래도 삭제",
-          "forceDeleteProjectionOne": "현재 워크스페이스 {{count}}개에 위험 요소가 표시되며 강제 삭제가 필요할 수 있습니다",
-          "forceDeleteProjectionMany": "현재 워크스페이스 {{count}}개에 위험 요소가 표시되며 강제 삭제가 필요할 수 있습니다",
-          "selectionWithheldOne": "선택한 워크스페이스 1개가 현재 필터에 의해 숨겨져 선택이 해제되었습니다.",
-          "selectionWithheld": "선택한 워크스페이스 {{value0}}개가 현재 필터에 의해 숨겨져 선택이 해제되었습니다.",
-          "selectAllCountOne": "안전 검사를 통과한 워크스페이스 1개 선택",
-          "selectAllCount": "안전 검사를 통과한 워크스페이스 {{value0}}개 모두 선택",
           "appliedFilters": "적용된 필터",
           "removeFilter": "{{value0}} 필터 제거",
           "chip": {
@@ -18502,8 +18617,6 @@
             "none": "없음"
           },
           "idleSignalField": "유휴 신호",
-          "selectionVanishedOne": "선택한 워크스페이스 1개가 더 이상 존재하지 않습니다.",
-          "selectionVanished": "{{value0}} 선택한 워크스페이스가 더 이상 존재하지 않습니다.",
           "updatedAgo": "{{value0}} 업데이트됨",
           "refreshing": "새로고침 중…",
           "refreshingProgress": "새로 고침 {{value0}}/{{value1}}",
@@ -18514,18 +18627,21 @@
           "measuringSizesProgress": "{{value0}}/{{value1}} 스캔 중",
           "measuringSizes": "스캔 크기",
           "measureSizesFailed": "워크스페이스 크기를 스캔할 수 없습니다.",
-          "selectedCount": "{{value0}} 선택됨"
+          "selectedCount": "{{value0}} 선택됨",
+          "forceDeleteRisk_other": "현재 워크스페이스 {{count}}개에 위험 요소가 있으며 강제 삭제가 필요할 수 있음",
+          "selectionVanishedCount_other": "선택한 워크스페이스 {{count}}개가 더 이상 존재하지 않습니다.",
+          "selectionWithheldCount_other": "선택한 워크스페이스 {{count}}개가 현재 필터에 의해 숨겨져 선택 해제되었습니다.",
+          "selectAllSafetyChecked_other": "안전성 검사를 마친 워크스페이스 {{count}}개 모두 선택"
         },
         "scan": {
-          "readyOne": "워크스페이스 1개를 찾았습니다.",
-          "readyMany": "워크스페이스 {{value0}}개를 찾았습니다.",
           "progress": "워크스페이스 스캔 중({{value0}}/{{value1}})",
           "singleError": "{{value0}}: {{value1}}을(를) 확인할 수 없습니다. 일부 워크스페이스가 누락되었을 수 있습니다. 다시 시도하려면 새로고침하세요.",
-          "moreErrors": ", +{{value0}} 더보기",
-          "multipleErrors": "{{value0}} 저장소({{value1}}{{value2}})를 확인할 수 없습니다. 일부 워크스페이스가 누락되었을 수 있습니다. 다시 시도하려면 새로고침하세요.",
           "noWorkspaces": "워크스페이스를 찾을 수 없습니다.",
           "fallbackRepository": "저장소",
-          "gitListFailed": "Git이 작업 트리를 나열할 수 없습니다."
+          "gitListFailed": "Git이 작업 트리를 나열할 수 없습니다.",
+          "multipleErrorsWithMore_other": "저장소 {{count}}개({{names}}, 외 {{moreCount}}개)를 확인하지 못했습니다. 일부 워크스페이스가 누락되었을 수 있습니다. 새로고침하여 다시 시도하세요.",
+          "multipleErrorsCount_other": "저장소 {{count}}개({{names}})를 확인하지 못했습니다. 일부 워크스페이스가 누락되었을 수 있습니다. 새로고침하여 다시 시도하세요.",
+          "readyCount_other": "워크스페이스 {{count}}개를 찾았습니다."
         },
         "presentationFixtures": {
           "reviewAlphaCleanup": "알파 정리 검토"
@@ -19682,7 +19798,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "실행 중인 터미널",
-      "count": "실행 중인 터미널 {{count}}개",
       "unverifiable": "Orca가 터미널 서비스 프로세스를 확인할 수 없어 아무것도 중지되지 않았습니다.",
       "alreadyReplaced": "터미널 서비스가 이미 교체되었으므로 아무것도 중지되지 않았습니다.",
       "restarted": "터미널 서비스가 다시 시작되었습니다.",
@@ -19694,7 +19809,8 @@
       "confirmTitle": "터미널 데몬을 다시 시작하시겠습니까?",
       "confirmBody": "다시 시작하면 {{sessions}}에서 실행 중인 모든 프로세스가 종료됩니다. 재개를 지원하는 에이전트는 나중에 재개할 수 있지만, 셸과 기타 작업은 재개할 수 없으므로 다시 시작해야 합니다. 에이전트가 유휴 상태일 때 실행하세요.",
       "cancel": "취소",
-      "confirm": "다시 시작하고 프로세스 종료"
+      "confirm": "다시 시작하고 프로세스 종료",
+      "runningTerminals_other": "실행 중인 터미널 {{count}}개"
     },
     "restartedInputNotSent": "입력하는 동안 터미널이 다시 시작되어 일부 입력이 전달되지 않았을 수 있습니다. 다시 입력하기 전에 새 셸을 확인하세요.",
     "stalledDaemonBanner": {
@@ -19866,7 +19982,6 @@
       "repositoryLoading": "리포지토리 정보를 아직 불러오는 중입니다. 사용할 수 있게 되면 다시 시도하세요.",
       "duplicate": "이 링크는 이미 첨부되어 있습니다.",
       "title": "연결된 작업",
-      "count": "{{count}}개 연결됨",
       "empty": "이 워크스페이스의 모든 리뷰와 작업을 한곳에 모아 두세요.",
       "reviews": "리뷰",
       "tasks": "이슈 및 작업",
@@ -19874,7 +19989,6 @@
       "open": "링크 열기",
       "unlinkItem": "{{label}} 연결 해제",
       "unlink": "워크스페이스에서 연결 해제",
-      "show": "연결된 리뷰와 작업 {{count}}개 표시",
       "details": "워크스페이스 세부정보",
       "description": "리뷰와 작업을 첨부하고 이 워크스페이스의 메모를 보관하세요.",
       "commentHelp": "Markdown을 지원합니다. 저장하려면 Enter 또는 {{shortcut}} · 새 줄은 Shift+Enter를 누르세요.",
@@ -19927,7 +20041,9 @@
       "checksPassing": "통과",
       "checksUnknown": "알 수 없음",
       "checksNeutral": "중립",
-      "allReviewChecks": "리뷰: {{count}} · 체크: {{status}}"
+      "allReviewChecks": "리뷰: {{count}} · 체크: {{status}}",
+      "showLinked_other": "연결된 리뷰 및 작업 {{count}}개 표시",
+      "linkedCount_other": "{{count}}개 연결됨"
     },
     "attachments": {
       "updateRuntime": "워크스페이스 링크를 변경하려면 원격 런타임을 업데이트하세요",
@@ -20163,7 +20279,7 @@
     "compact": {
       "linked": "연결됨",
       "linkedAndUnavailable": "연결된 작업 트리의 {{value0}} · {{value1}}을(를) 사용할 수 없습니다.",
-      "linkedAndScanned": "연결된 작업 트리의 {{value0}} · {{value1}} 워크스페이스"
+      "linkedAndScannedCount_other": "연결된 워크트리에서 {{size}} 사용 · 워크스페이스 {{count}}개"
     },
     "changes": {
       "empty": "일치하는 파일이 없습니다.",
