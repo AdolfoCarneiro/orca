@@ -223,6 +223,17 @@ describe('PluginCustomEditorFrame', () => {
     expect(onContentChange).not.toHaveBeenCalled()
   })
 
+  it('notes a file over 16 MiB may take a moment, without blocking the editor', async () => {
+    await renderFrame({ content: 'small' })
+    expect(container.textContent).not.toContain('Large file')
+    const { iframe } = await renderFrame({
+      content: '',
+      binaryDocument: { bytes: new Uint8Array(16 * 1024 * 1024 + 1), fileType: 'xlsx' }
+    })
+    expect(container.textContent).toContain('Large file — may take a moment.')
+    expect(iframe.isConnected).toBe(true)
+  })
+
   it('says so when the plugin can no longer serve its editor', async () => {
     readCustomEditorEntry.mockResolvedValue(null)
     await act(async () => {

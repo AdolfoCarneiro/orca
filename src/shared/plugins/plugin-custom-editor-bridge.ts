@@ -9,9 +9,11 @@ import { pluginError, type PluginError } from './plugin-protocol'
  * and the file's location, so the plugin never learns a path or touches a file system.
  */
 
-/** Why this cap: it bounds one structured-clone edit while fitting scenes with embedded images.
- *  It applies to text and to bytes, in both directions. */
-export const CUSTOM_EDITOR_DOCUMENT_MAX_BYTES = 16 * 1024 * 1024
+/** Why this cap: it bounds one structured-clone edit while fitting image-heavy scenes and
+ *  workbooks. It applies to text and to bytes, in both directions. */
+export const CUSTOM_EDITOR_DOCUMENT_MAX_BYTES = 64 * 1024 * 1024
+/** Past this the tab says the editor may take a moment to load or save. */
+export const CUSTOM_EDITOR_LARGE_DOCUMENT_BYTES = 16 * 1024 * 1024
 /** Edits are full-text, so a debounced editor needs only a few per second. */
 export const CUSTOM_EDITOR_EDIT_RATE_LIMIT = { maxMessages: 60, perMs: 10_000 }
 /** How long a save waits for the frame to post an edit still in its debounce window. */

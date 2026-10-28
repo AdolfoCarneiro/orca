@@ -67,7 +67,7 @@ describe('PluginPanelController custom editor entries', () => {
     )
     expect(verify).toHaveBeenCalledWith(plugin)
     expect(entry?.html).toContain(PLUGIN_PANEL_CSP)
-    // No network, no remote scripts: every fetch, socket and beacon is refused.
+    // The same CSP shell as panels.
     expect(PLUGIN_PANEL_CSP).toContain("connect-src 'none'")
     expect(PLUGIN_PANEL_CSP).toContain("default-src 'none'")
     // The frozen frame API, editor flavour, is injected before plugin code.

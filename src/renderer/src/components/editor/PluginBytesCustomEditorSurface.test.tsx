@@ -104,11 +104,11 @@ function lastDocument(): unknown {
 }
 
 describe('PluginBytesCustomEditorSurface', () => {
-  it('mounts the frame at once and hands it the bytes read on the same route, capped at 16 MiB', async () => {
+  it('mounts the frame at once and hands it the bytes read on the same route, capped at 64 MiB', async () => {
     const bytes = new Uint8Array([0x50, 0x4b])
     readRuntimeFileBytes.mockResolvedValue({ kind: 'ok', bytes })
     await render({ content: '', isBinary: true, byteSource })
-    expect(readRuntimeFileBytes).toHaveBeenCalledWith(byteSource, 16 * 1024 * 1024)
+    expect(readRuntimeFileBytes).toHaveBeenCalledWith(byteSource, 64 * 1024 * 1024)
     expect(frameProps.mock.calls[0][0]).toMatchObject({
       readOnly: false,
       fileId: 'book',
@@ -118,10 +118,10 @@ describe('PluginBytesCustomEditorSurface', () => {
   })
 
   it('names the file, its size and the limit when it is too large to open', async () => {
-    readRuntimeFileBytes.mockResolvedValue({ kind: 'too_large', size: 40 * 1024 * 1024 })
+    readRuntimeFileBytes.mockResolvedValue({ kind: 'too_large', size: 80 * 1024 * 1024 })
     await render({ content: '', isBinary: true, byteSource })
     expect(container.textContent).toContain(
-      'book.xlsx is too large to open in Spreadsheet (40.0 MB; the limit is 16.0 MB).'
+      'book.xlsx is too large to open in Spreadsheet (80.0 MB; the limit is 64.0 MB).'
     )
     expect(container.querySelector('[data-testid="frame"]')).toBeNull()
   })

@@ -106,8 +106,9 @@ banner offers Reload or Overwrite. Saving to a remote host needs an Orca server 
 replace binary files. Source shows the binary placeholder, unsaved bytes are not kept across
 restarts, and bytes tabs don't autosave.
 
-Documents and edits are capped at 16 MiB, text or bytes: a larger file shows "too large to open",
-and a larger edit is rejected with `too_large`. Orca saves on its own save shortcut pressed
+Documents and edits are capped at 64 MiB, text or bytes, on every route (local, SSH and paired
+hosts): a larger file shows "too large to open", and a larger edit is rejected with `too_large`.
+Past 16 MiB the tab notes that the file may take a moment. Orca saves on its own save shortcut pressed
 inside the frame, never on a call alone.
 
 Theme changes do not reload the frame: the shell updates the `--orca-*` variables and the

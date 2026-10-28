@@ -3,6 +3,7 @@ import { translate } from '@/i18n/i18n'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
 import { PLUGIN_PANEL_FRAME_NAME_PREFIX } from '../../../../shared/plugins/plugin-frame-bridge'
+import { CUSTOM_EDITOR_LARGE_DOCUMENT_BYTES } from '../../../../shared/plugins/plugin-custom-editor-bridge'
 import { fillPluginPanelShell } from '../right-sidebar/plugin-panel-design-token-css'
 import { usePluginFrameHost } from '../right-sidebar/use-plugin-frame-host'
 import { editorShortcutMatches } from './editor-shortcuts'
@@ -82,6 +83,9 @@ export default function PluginCustomEditorFrame({
     onBytesChange
   }
   const isBinary = binaryDocument !== undefined
+  // Why code units for text: a byte count would re-encode the whole document on every edit.
+  const isLarge =
+    (binaryDocument?.bytes.byteLength ?? content.length) > CUSTOM_EDITOR_LARGE_DOCUMENT_BYTES
 
   const { pluginKey, id: editorId } = editor
   useEffect(() => {
@@ -265,6 +269,13 @@ export default function PluginCustomEditorFrame({
                 '{{value0}} is sending changes too quickly; Orca applies the latest one shortly.',
                 { value0: editor.title }
               )}
+        </div>
+      ) : isLarge ? (
+        <div className="border-b border-border px-3 py-1.5 text-xs text-muted-foreground">
+          {translate(
+            'auto.components.editor.PluginCustomEditorFrame.largeFile',
+            'Large file — may take a moment.'
+          )}
         </div>
       ) : null}
       <iframe
