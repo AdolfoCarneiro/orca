@@ -295,11 +295,7 @@ class BrowserSessionRegistry {
     this.persistMeta(
       forgetBrowserSessionProfileMeta(this.loadPersistedMeta(), profile, this.defaultPartition)
     )
-    try {
-      await this.onProfileDeleted?.(profileId)
-    } finally {
-      await retireDeletedBrowserSessionProfile(profile)
-    }
+    await retireDeletedBrowserSessionProfile(profile, () => this.onProfileDeleted?.(profileId))
     return true
   }
 
