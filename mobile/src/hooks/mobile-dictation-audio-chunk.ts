@@ -51,14 +51,25 @@ export async function sendAcrossConnectionMove<T>(
     if (isLogicalClientCutoverError(err) && !isRpcDeliveryUnknown(err)) {
       return send()
     }
-    if (
-      isLogicalClientSuspendedError(err) &&
-      (await waitForRpcClientReconnected(client, MOBILE_DICTATION_RECONNECT_GRACE_MS))
-    ) {
+    if (isLogicalClientSuspendedError(err) && (await waitForReconnect(client))) {
       return send()
     }
     throw err
   }
+}
+
+// Every chunk refused during one outage shares a single wait instead of a listener and timer each.
+const reconnectWaits = new WeakMap<RpcClient, Promise<boolean>>()
+
+function waitForReconnect(client: RpcClient): Promise<boolean> {
+  let wait = reconnectWaits.get(client)
+  if (!wait) {
+    wait = waitForRpcClientReconnected(client, MOBILE_DICTATION_RECONNECT_GRACE_MS).finally(() =>
+      reconnectWaits.delete(client)
+    )
+    reconnectWaits.set(client, wait)
+  }
+  return wait
 }
 
 export function subscribeMobileDictationAudioChunks(

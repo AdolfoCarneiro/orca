@@ -16,7 +16,9 @@ type MobileDictationSession = {
   partialText: string
   finalTexts: string[]
   errors: string[]
-  reportedText: string
+  // Bumped by each transcript event; chunks arrive far more often, so replies carry text only after a bump.
+  textVersion: number
+  reportedVersion: number
   abandonTimer?: ReturnType<typeof setTimeout>
 }
 
@@ -67,7 +69,8 @@ export class RuntimeMobileDictationController {
       partialText: '',
       finalTexts: [],
       errors: [],
-      reportedText: ''
+      textVersion: 0,
+      reportedVersion: 0
     }
     try {
       await getSpeechSttService(store).startDictation(
@@ -80,7 +83,12 @@ export class RuntimeMobileDictationController {
         throw new Error('dictation_canceled')
       }
       this.session.state = 'active'
-      this.armAbandonTimer(this.session)
+      const session = this.session
+      // Owned by the phone, not its socket; it streams continuously, so this long without a request means it is gone.
+      session.abandonTimer = setTimeout(
+        () => void this.stopSession(session).catch(() => undefined),
+        MOBILE_DICTATION_RECONNECT_GRACE_MS
+      )
     } catch (error) {
       if (this.session?.id === params.dictationId) {
         this.session = null
@@ -109,13 +117,12 @@ export class RuntimeMobileDictationController {
       samples[i] = pcm.readInt16LE(i * 2) / 32768
     }
     getSpeechSttService(this.requireStore()).feedAudio(samples, params.sampleRate, session.owner)
-    // The text so far lets the phone keep it if the connection never comes back; only changes are sent, as chunks arrive every few ms.
-    const text = transcriptOf(session)
-    if (text === session.reportedText) {
+    // The text so far lets the phone keep it if the connection never comes back.
+    if (session.reportedVersion === session.textVersion) {
       return { dictationId: params.dictationId }
     }
-    session.reportedText = text
-    return { dictationId: params.dictationId, text }
+    session.reportedVersion = session.textVersion
+    return { dictationId: params.dictationId, text: transcriptOf(session) }
   }
 
   async finish(params: {
@@ -123,19 +130,11 @@ export class RuntimeMobileDictationController {
     clientId?: string
   }): Promise<{ dictationId: string; text: string }> {
     const session = this.requireOwnedSession(params)
-    clearTimeout(session.abandonTimer)
-    session.state = 'closing'
-    try {
-      await getSpeechSttService(this.requireStore()).stopDictation(session.owner)
-      if (session.errors.length > 0) {
-        throw new Error(session.errors[0])
-      }
-      return { dictationId: params.dictationId, text: transcriptOf(session) }
-    } finally {
-      if (this.session?.id === session.id) {
-        this.session = null
-      }
+    await this.stopSession(session)
+    if (session.errors.length > 0) {
+      throw new Error(session.errors[0])
     }
+    return { dictationId: params.dictationId, text: transcriptOf(session) }
   }
 
   async cancel(params: {
@@ -159,26 +158,17 @@ export class RuntimeMobileDictationController {
     }
     if (event.type === 'partial') {
       session.partialText = event.text ?? ''
+      session.textVersion += 1
     } else if (event.type === 'final') {
       const text = event.text?.trim()
       if (text) {
         session.finalTexts.push(text)
         session.partialText = ''
+        session.textVersion += 1
       }
     } else if (event.type === 'error') {
       session.errors.push(event.error ?? 'Speech worker error')
     }
-  }
-
-  // Owned by the phone, not its socket: a reconnect arrives on a new connection.
-  // The phone streams audio continuously, so silence this long means it is gone (killed, lost its cancel, never reconnected).
-  private armAbandonTimer(session: MobileDictationSession): void {
-    clearTimeout(session.abandonTimer)
-    session.abandonTimer = setTimeout(() => {
-      if (session.state === 'active') {
-        void this.stopSession(session).catch(() => undefined)
-      }
-    }, MOBILE_DICTATION_RECONNECT_GRACE_MS)
   }
 
   private requireOwnedSession(params: {
@@ -193,7 +183,7 @@ export class RuntimeMobileDictationController {
       throw new Error('dictation_owner_mismatch')
     }
     if (session.state === 'active') {
-      this.armAbandonTimer(session)
+      session.abandonTimer?.refresh()
     }
     return session
   }
