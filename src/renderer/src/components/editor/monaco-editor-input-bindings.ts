@@ -104,20 +104,31 @@ export function installMonacoEditorInputBindings(params: MonacoEditorInputBindin
   })
   const onLargeTextPaste = (event: ClipboardEvent): void => {
     let endSaveDeferral: (() => void) | null = null
+    let pasteModel: editor.ITextModel | null = null
+    let publishPasteContent: ((content: string) => void) | null = null
     handleMonacoLargeTextPaste(editorInstance, event, {
       readOnly: readOnlyRef.current,
       onPasteStart: () => {
         isApplyingLargePasteRef.current = true
-        const modelUri = editorInstance.getModel()?.uri.toString()
+        pasteModel = editorInstance.getModel()
+        publishPasteContent = propsRef.current.onContentChange
+        const modelUri = pasteModel?.uri.toString()
         endSaveDeferral = modelUri ? beginEditorLargePaste(modelUri) : null
       },
       onPasteResult: (result) => {
         isApplyingLargePasteRef.current = false
         endSaveDeferral?.()
-        if (result.status === 'pasted' || result.status === 'cancelled') {
-          const value = editorInstance.getValue()
-          lastSyncedContentRef.current = value
-          propsRef.current.onContentChange(value)
+        if (
+          (result.status === 'pasted' || result.status === 'cancelled') &&
+          pasteModel &&
+          !pasteModel.isDisposed() &&
+          publishPasteContent
+        ) {
+          const value = pasteModel.getValue()
+          if (editorInstance.getModel() === pasteModel) {
+            lastSyncedContentRef.current = value
+          }
+          publishPasteContent(value)
         }
         if (result.status === 'rejected' && result.reason === 'too-large') {
           toast.error(

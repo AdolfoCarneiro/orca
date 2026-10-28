@@ -30,7 +30,11 @@ function createSingleLineEditor(initial: string) {
   let selection = { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 1 }
   const container = document.createElement('div')
   document.body.appendChild(container)
-  const model = { uri: { toString: () => toEditorModelUri(PATH) }, getValue: () => value }
+  const model = {
+    uri: { toString: () => toEditorModelUri(PATH) },
+    getValue: () => value,
+    isDisposed: () => false
+  }
   const editorStub = {
     getModel: () => model,
     getContainerDomNode: () => container,
