@@ -6,7 +6,7 @@ description: >-
   decision gates), or when the work needs something your own subagents cannot
   give: a different agent (such as Codex from Claude) or its own Orca workspace.
   Also use when you are a dispatched worker (a prompt with Task and Dispatch
-  IDs: heartbeats, ask, worker_done). Otherwise prefer your own subagents,
+  IDs: ask, worker_done). Otherwise prefer your own subagents,
   including for long or parallel work. Use `orca-cli` to hand work off with
   nothing expected back ("hand off", "handover", "give this to another agent",
   "another worktree"), and for terminal control, shell commands, worktree

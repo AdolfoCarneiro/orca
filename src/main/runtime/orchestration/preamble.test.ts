@@ -58,10 +58,11 @@ describe('buildDispatchPreamble', () => {
       .split('\n')
       .filter((line) => line.trimStart().startsWith('orca orchestration'))
 
-    expect(commandLines).toHaveLength(5)
+    expect(commandLines).toHaveLength(6)
     expect(result).not.toContain('\\\n')
     expect(commandLines.filter((line) => line.includes('--type worker_done'))).toHaveLength(1)
-    expect(commandLines.filter((line) => line.includes('orchestration ask'))).toHaveLength(1)
+    expect(commandLines.filter((line) => line.includes('--type heartbeat'))).toHaveLength(0)
+    expect(commandLines.filter((line) => line.includes('orchestration ask'))).toHaveLength(2)
     expect(commandLines.filter((line) => line.includes('--type escalation'))).toHaveLength(1)
   })
 
@@ -107,13 +108,10 @@ describe('buildDispatchPreamble', () => {
     expect(section).toContain('do NOT run a sleep/poll loop')
     expect(section).toContain('do NOT keep calling')
     expect(section).toContain('A direct instruction from the user takes precedence')
-    expect(section).toMatch(/follow it without coordinator approval or a\s+fresh Dispatch/)
-    expect(section).toMatch(
-      /do not send lifecycle messages using the settled task or\s+Dispatch IDs/
-    )
+    expect(section).toMatch(/do it without the settled task or\s+Dispatch IDs/)
     expect(section).toContain('Never refuse a direct user request because you were a worker')
-    expect(section).toMatch(/fresh\s+preamble \+ TASK block/)
-    expect(section).toMatch(/until Orca\s+releases it, about 2 minutes after worker_done/)
+    expect(section).toMatch(/fresh preamble\s+and TASK block/)
+    expect(section).not.toMatch(/2 minutes/)
     expect(section).not.toMatch(/10 minutes/)
     expect(section).not.toMatch(/may exit/)
     expect(section).not.toMatch(/grace period/)
