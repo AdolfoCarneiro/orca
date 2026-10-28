@@ -150,7 +150,18 @@ function isComponentOrHook(name, isTsx) {
   return name !== undefined && (/^use[A-Z0-9]/.test(name) || (isTsx && /^[A-Z]/.test(name)))
 }
 
-// Live switching needs subscribed renders: components and hooks take `t` from useMobileTranslation(),
+function isMemoCallback(fn) {
+  const call = fn.parent
+  return (
+    ts.isCallExpression(call) &&
+    call.arguments[0] === fn &&
+    ts.isIdentifier(call.expression) &&
+    call.expression.text === 'useMemo'
+  )
+}
+
+// Live switching needs subscribed renders: render bodies and memos of components and hooks take `t`
+// from useMobileTranslation() (handlers and effects may call translate() when they run),
 // and nothing translates at import time, before the saved language is active.
 export function collectLiveSwitchViolations(filePath, sourceText) {
   const isTsx = filePath.endsWith('.tsx')
@@ -182,7 +193,7 @@ export function collectLiveSwitchViolations(filePath, sourceText) {
         } else if (
           callee === 'translate' &&
           !filePath.startsWith(I18N_RUNTIME_DIR) &&
-          functions.some((fn) => isComponentOrHook(functionName(fn), isTsx))
+          (isComponentOrHook(functionName(functions[0]), isTsx) || isMemoCallback(functions[0]))
         ) {
           violations.push(
             `${location} calls translate() in a component or hook; use \`const t = useMobileTranslation()\``
@@ -240,9 +251,54 @@ async function collectPolyfillProblems(root, supportedLocales) {
     .map((language) => `${PLURAL_POLYFILL_PATH} does not load plural rules for ${language}`)
 }
 
+// --fix drops keys no code names any more from every catalog, plural siblings included.
+async function pruneCatalogKeys(root, keys) {
+  // Locale-only plural forms (few, many) go with their family's English `_other`.
+  const families = new Set(
+    keys.filter((key) => key.endsWith('_other')).map((key) => key.slice(0, -'_other'.length))
+  )
+  const doomed = (key) =>
+    keys.includes(key) || families.has(PLURAL_SUFFIX_RE.exec(key)?.[1] ?? '\0')
+  const dir = path.join(root, SURFACE.localesDir)
+  for (const name of (await fs.readdir(dir)).filter((file) => file.endsWith('.json'))) {
+    const entries = flattenCatalog(JSON.parse(await fs.readFile(path.join(dir, name), 'utf8')))
+    const kept = new Map([...entries].filter(([key]) => !doomed(key)))
+    if (kept.size !== entries.size) {
+      await fs.writeFile(path.join(dir, name), `${JSON.stringify(nestCatalog(kept), null, 2)}\n`)
+    }
+  }
+  console.log(`Removed ${keys.length} unreferenced key(s) from the mobile catalogs.`)
+}
+
+async function scanSources(root) {
+  const files = []
+  for (const sourceRoot of SURFACE.sourceRoots) {
+    files.push(...(await collectSourceFiles(root, path.join(root, sourceRoot))))
+  }
+  const keyEvidence = { literals: new Set(), dynamicPrefixes: new Set() }
+  const liveSwitchViolations = []
+  for (const file of files) {
+    const text = await fs.readFile(file, 'utf8')
+    collectKeyLiterals(text, keyEvidence)
+    liveSwitchViolations.push(...collectLiveSwitchViolations(normalizePath(root, file), text))
+  }
+  return { keyEvidence, liveSwitchViolations }
+}
+
 export async function main(root = process.cwd(), argv = process.argv.slice(2)) {
   const fix = argv.includes('--fix')
   const references = await collectLocalizationReferences(root, SURFACE.sourceRoots)
+  const { keyEvidence, liveSwitchViolations } = await scanSources(root)
+  if (fix) {
+    const stale = collectExtractionProblems(
+      references,
+      await readJson(root, path.join(SURFACE.localesDir, 'en.json')),
+      keyEvidence
+    ).unreferenced
+    if (stale.length > 0) {
+      await pruneCatalogKeys(root, stale)
+    }
+  }
   // Shared catalog rules first; --fix adds new English declarations before the checks below read en.json.
   const catalogExit = await verifyCatalog(
     root,
@@ -260,18 +316,6 @@ export async function main(root = process.cwd(), argv = process.argv.slice(2)) {
   const englishCatalog = await readJson(root, path.join(SURFACE.localesDir, 'en.json'))
   const englishEntries = flattenCatalog(englishCatalog)
 
-  const files = []
-  for (const sourceRoot of SURFACE.sourceRoots) {
-    files.push(...(await collectSourceFiles(root, path.join(root, sourceRoot))))
-  }
-  const keyEvidence = { literals: new Set(), dynamicPrefixes: new Set() }
-  const liveSwitchViolations = []
-  for (const file of files) {
-    const text = await fs.readFile(file, 'utf8')
-    collectKeyLiterals(text, keyEvidence)
-    liveSwitchViolations.push(...collectLiveSwitchViolations(normalizePath(root, file), text))
-  }
-
   const { fallbackDrift, unreferenced } = collectExtractionProblems(
     references,
     englishCatalog,
@@ -284,7 +328,7 @@ export async function main(root = process.cwd(), argv = process.argv.slice(2)) {
   )
   report(
     problems,
-    'Mobile catalog keys no source references. Delete them from every mobile locale catalog.',
+    'Mobile catalog keys no source references. Run `pnpm sync:mobile-localization` to delete them from every catalog.',
     unreferenced
   )
   report(problems, 'Translations that cannot follow a language switch:', liveSwitchViolations)

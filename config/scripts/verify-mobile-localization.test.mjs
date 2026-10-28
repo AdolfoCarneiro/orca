@@ -13,7 +13,8 @@ describe('verify-mobile-localization', () => {
       "  return <Text>{translate('a.c', 'Global in component')}</Text>",
       '}',
       'export const Memoized = memo(() => {',
-      "  const onPress = () => Alert.alert(translate('a.d', 'Nested callback'))",
+      "  const onPress = () => Alert.alert(translate('a.d', 'Handler runs at press time'))",
+      "  const label = useMemo(() => translate('a.g', 'Memo'), [])",
       '  return null',
       '})',
       'export function Subscribed() {',
@@ -26,7 +27,7 @@ describe('verify-mobile-localization', () => {
     expect(collectLiveSwitchViolations('mobile/src/row.tsx', source)).toEqual([
       'mobile/src/row.tsx:1 translates at module scope; translate when rendering instead',
       'mobile/src/row.tsx:3 calls translate() in a component or hook; use `const t = useMobileTranslation()`',
-      'mobile/src/row.tsx:6 calls translate() in a component or hook; use `const t = useMobileTranslation()`'
+      'mobile/src/row.tsx:7 calls translate() in a component or hook; use `const t = useMobileTranslation()`'
     ])
   })
 
