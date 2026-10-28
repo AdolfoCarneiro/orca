@@ -9,6 +9,7 @@ import { projectMobileRpcRequestParams } from './mobile-rpc-request-projection'
 import { LogicalClientConnectionPath } from './logical-client-connection-path'
 import type { RelayHostReachability } from './relay-host-reachability'
 import { isRpcDeliveryUnknown, markRpcDeliveryUnknown } from './rpc-delivery-ambiguity'
+import { LogicalClientSuspendedError } from './logical-client-suspended-error'
 
 export type MobileConnectionPath = 'lan' | 'tailscale' | 'relay'
 
@@ -18,13 +19,6 @@ export class LogicalClientCutoverError extends Error {
     if (isRpcDeliveryUnknown(cause)) {
       markRpcDeliveryUnknown(this)
     }
-  }
-}
-
-// A suspended client refuses before anything is written, while recovery dials a replacement.
-export class LogicalClientSuspendedError extends Error {
-  constructor() {
-    super('Client suspended')
   }
 }
 

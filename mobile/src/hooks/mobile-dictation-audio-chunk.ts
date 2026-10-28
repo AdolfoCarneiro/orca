@@ -8,10 +8,8 @@ import { MOBILE_DICTATION_RECONNECT_GRACE_MS } from '../../../src/shared/rpc-con
 import { isRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
 import { rpcPayloadMember } from '../transport/rpc-reader-payload'
 import { waitForRpcClientReconnected } from '../transport/rpc-client-reconnect-wait'
-import {
-  isLogicalClientCutoverError,
-  LogicalClientSuspendedError
-} from '../transport/stable-logical-rpc-client'
+import { isLogicalClientCutoverError } from '../transport/stable-logical-rpc-client'
+import { isLogicalClientSuspendedError } from '../transport/logical-client-suspended-error'
 import type {
   DictationCapture,
   DictationCaptureChunk
@@ -54,7 +52,7 @@ export async function sendAcrossConnectionMove<T>(
       return send()
     }
     if (
-      err instanceof LogicalClientSuspendedError &&
+      isLogicalClientSuspendedError(err) &&
       (await waitForRpcClientReconnected(client, MOBILE_DICTATION_RECONNECT_GRACE_MS))
     ) {
       return send()

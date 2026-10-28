@@ -6,9 +6,9 @@ import { isRpcDeliveryUnknown, markRpcDeliveryUnknown } from './rpc-delivery-amb
 import {
   createStableLogicalRpcClient,
   LogicalClientCutoverError,
-  LogicalClientSuspendedError,
   type MobileConnectionPath
 } from './stable-logical-rpc-client'
+import { LogicalClientSuspendedError } from './logical-client-suspended-error'
 
 class FakeSession implements RpcClient {
   readonly sendRequest =

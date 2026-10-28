@@ -8,10 +8,7 @@ import {
   type SentRequest
 } from '../mobile-web-shell/bridge-host-test-fakes'
 import { markRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
-import {
-  LogicalClientCutoverError,
-  LogicalClientSuspendedError
-} from '../transport/stable-logical-rpc-client'
+import { LogicalClientCutoverError } from '../transport/stable-logical-rpc-client'
 import type { ConnectionState } from '../transport/types'
 import type {
   DictationCapture,
@@ -157,7 +154,8 @@ describe('dictation through a reconnect', () => {
     mount(rpc, transcripts, errors)
 
     state = 'disconnected'
-    await record(rpc, sent, [new LogicalClientSuspendedError()])
+    // The OTA page sees the shell's error rebuilt as another class with the same message.
+    await record(rpc, sent, [new Error('Client suspended')])
     expect(methodsOf(sent).filter((m) => m === 'speech.dictation.chunk')).toHaveLength(1)
     await act(async () => {
       state = 'connected'
