@@ -1,4 +1,5 @@
 import { mkdtempSync } from 'node:fs'
+import type * as NodeFs from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runInNewContext } from 'node:vm'
@@ -14,82 +15,113 @@ const mocks = vi.hoisted(() => ({
   nativeError: '',
   windows: new Array<{ options: unknown; destroyed: boolean }>()
 }))
-vi.mock('electron', () => ({
-  app: { on() {} },
-  webFrameMain: { fromId() {} },
-  BrowserWindow: class {
-    record: { options: unknown; destroyed: boolean }
-    constructor(options: unknown) {
-      this.record = { options, destroyed: false }
-      mocks.windows.push(this.record)
-    }
-    async loadURL() {}
-    webContents = {
-      executeJavaScript: async (code: string) => {
-        await mocks.beforeExecute()
-        const runtime: { lastError?: { message: string } } = {}
-        const complete = async (callback: (value?: unknown) => void, value?: unknown) => {
-          await mocks.beforeCallback()
-          if (mocks.nativeError) {
-            runtime.lastError = { message: mocks.nativeError }
+vi.mock('node:fs', async (importOriginal) => {
+  const original = await importOriginal<typeof NodeFs>()
+  return {
+    ...original,
+    existsSync: (path: string) =>
+      path.endsWith('browser-extension-native-page-preload.js') || original.existsSync(path)
+  }
+})
+vi.mock('electron', async () => {
+  const { EventEmitter } = await import('node:events')
+  return {
+    app: { on() {} },
+    webFrameMain: { fromId() {} },
+    BrowserWindow: class {
+      record: { options: unknown; destroyed: boolean }
+      constructor(options: unknown) {
+        this.record = { options, destroyed: false }
+        mocks.windows.push(this.record)
+      }
+      async loadURL() {}
+      webContents = Object.assign(new EventEmitter(), {
+        mainFrame: {},
+        send: (_channel: string, code: string) => {
+          void this.webContents.executeJavaScript(code).then(
+            (value) =>
+              this.webContents.emit(
+                'ipc-message',
+                { senderFrame: this.webContents.mainFrame },
+                'browser-extension-native-page:reply',
+                null,
+                value
+              ),
+            (error: unknown) =>
+              this.webContents.emit(
+                'ipc-message',
+                { senderFrame: this.webContents.mainFrame },
+                'browser-extension-native-page:reply',
+                error
+              )
+          )
+        },
+        executeJavaScript: async (code: string) => {
+          await mocks.beforeExecute()
+          const runtime: { lastError?: { message: string } } = {}
+          const complete = async (callback: (value?: unknown) => void, value?: unknown) => {
+            await mocks.beforeCallback()
+            if (mocks.nativeError) {
+              runtime.lastError = { message: mocks.nativeError }
+            }
+            callback(value)
+            delete runtime.lastError
           }
-          callback(value)
-          delete runtime.lastError
-        }
-        return runInNewContext(code, {
-          chrome: {
-            runtime,
-            scripting: {
-              registerContentScripts(scripts: Script[], callback: () => void) {
-                if (!mocks.nativeError) {
-                  for (const script of scripts) {
-                    if (mocks.scripts.has(script.id)) {
-                      runtime.lastError = { message: 'Duplicate script ID' }
-                      callback()
-                      delete runtime.lastError
-                      return
+          return runInNewContext(code, {
+            chrome: {
+              runtime,
+              scripting: {
+                registerContentScripts(scripts: Script[], callback: () => void) {
+                  if (!mocks.nativeError) {
+                    for (const script of scripts) {
+                      if (mocks.scripts.has(script.id)) {
+                        runtime.lastError = { message: 'Duplicate script ID' }
+                        callback()
+                        delete runtime.lastError
+                        return
+                      }
+                      mocks.scripts.set(script.id, { ...script })
                     }
-                    mocks.scripts.set(script.id, { ...script })
                   }
-                }
-                complete(callback)
-              },
-              updateContentScripts(updates: Script[], callback: () => void) {
-                if (!mocks.nativeError) {
-                  for (const update of updates) {
-                    mocks.scripts.set(update.id, { ...mocks.scripts.get(update.id), ...update })
+                  complete(callback)
+                },
+                updateContentScripts(updates: Script[], callback: () => void) {
+                  if (!mocks.nativeError) {
+                    for (const update of updates) {
+                      mocks.scripts.set(update.id, { ...mocks.scripts.get(update.id), ...update })
+                    }
                   }
+                  complete(callback)
+                },
+                unregisterContentScripts(filter: { ids?: string[] }, callback: () => void) {
+                  for (const id of filter.ids ?? [...mocks.scripts.keys()]) {
+                    mocks.scripts.delete(id)
+                  }
+                  complete(callback)
+                },
+                getRegisteredContentScripts(
+                  filterOrCallback: { ids?: string[] } | ((value: Script[]) => void),
+                  callback?: (value: Script[]) => void
+                ) {
+                  const filter = typeof filterOrCallback === 'function' ? {} : filterOrCallback
+                  const done = typeof filterOrCallback === 'function' ? filterOrCallback : callback
+                  done?.(
+                    [...mocks.scripts.values()]
+                      .filter((script) => !filter.ids || filter.ids.includes(script.id))
+                      .map((script) => ({ ...script }))
+                  )
                 }
-                complete(callback)
-              },
-              unregisterContentScripts(filter: { ids?: string[] }, callback: () => void) {
-                for (const id of filter.ids ?? [...mocks.scripts.keys()]) {
-                  mocks.scripts.delete(id)
-                }
-                complete(callback)
-              },
-              getRegisteredContentScripts(
-                filterOrCallback: { ids?: string[] } | ((value: Script[]) => void),
-                callback?: (value: Script[]) => void
-              ) {
-                const filter = typeof filterOrCallback === 'function' ? {} : filterOrCallback
-                const done = typeof filterOrCallback === 'function' ? filterOrCallback : callback
-                done?.(
-                  [...mocks.scripts.values()]
-                    .filter((script) => !filter.ids || filter.ids.includes(script.id))
-                    .map((script) => ({ ...script }))
-                )
               }
             }
-          }
-        })
+          })
+        }
+      })
+      destroy() {
+        this.record.destroyed = true
       }
     }
-    destroy() {
-      this.record.destroyed = true
-    }
   }
-}))
+})
 vi.mock('./browser-extension-profile-data-directory', () => ({
   getBrowserExtensionProfileDataDirectory: () => mocks.directory
 }))
