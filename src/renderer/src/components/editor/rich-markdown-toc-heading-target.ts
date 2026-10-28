@@ -1,4 +1,4 @@
-import type { MarkdownTocItem } from './markdown-table-of-contents'
+import { normalizeMarkdownTocTitle, type MarkdownTocItem } from './markdown-table-of-contents'
 
 // Match all TOC levels, including h4/h5, so every listed heading can resolve.
 const RICH_MARKDOWN_TOC_HEADING_SELECTOR = 'h1, h2, h3, h4, h5'
@@ -20,7 +20,7 @@ export function findRichMarkdownTocHeadingTarget(
   for (const candidate of container.querySelectorAll<HTMLElement>(
     RICH_MARKDOWN_TOC_HEADING_SELECTOR
   )) {
-    if (candidate.textContent?.trim() === target.title) {
+    if (normalizeMarkdownTocTitle(candidate.textContent ?? '') === target.title) {
       if (remaining === 0) {
         return candidate
       }

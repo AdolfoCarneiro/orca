@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { describe, expect, it } from 'vitest'
-import type { MarkdownTocItem } from './markdown-table-of-contents'
+import { buildMarkdownTableOfContents, type MarkdownTocItem } from './markdown-table-of-contents'
 import { findRichMarkdownTocHeadingTarget } from './rich-markdown-toc-heading-target'
 
 function makeTocItem(
@@ -14,6 +14,20 @@ function makeTocItem(
 }
 
 describe('findRichMarkdownTocHeadingTarget', () => {
+  it('resolves normalized TOC titles to headings with repeated display whitespace', () => {
+    const container = document.createElement('div')
+    container.innerHTML = '<h1>Setup   guide</h1><h1>Setup&nbsp;guide</h1>'
+    const items = buildMarkdownTableOfContents('# Setup   guide\n\n# Setup&nbsp;guide')
+    const headings = container.querySelectorAll<HTMLElement>('h1')
+
+    expect(items.map((item) => ({ id: item.id, title: item.title }))).toEqual([
+      { id: 'setup-guide', title: 'Setup guide' },
+      { id: 'setup-guide-1', title: 'Setup guide' }
+    ])
+    expect(findRichMarkdownTocHeadingTarget(container, items, items[0].id)).toBe(headings[0])
+    expect(findRichMarkdownTocHeadingTarget(container, items, items[1].id)).toBe(headings[1])
+  })
+
   it('returns undefined when the requested duplicate occurrence is missing', () => {
     const container = document.createElement('div')
     container.innerHTML = '<h2>Repeat</h2><h2>Other</h2>'
