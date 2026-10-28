@@ -134,7 +134,7 @@ describe('row 5: desktop automation pty:spawn request', () => {
         addedAt: 1
       }
       store.setState({
-        folderWorkspaces: reverse ? [twin, folder] : [folder, twin],
+        folderWorkspaces: [folder],
         repos: [repo],
         activeWorktreeId: 'unrelated',
         activeWorkspaceExecutionHostId: 'ssh:other'
@@ -161,6 +161,7 @@ describe('row 5: desktop automation pty:spawn request', () => {
       if (!resolved.repo) {
         throw new Error('missing repo')
       }
+      store.setState({ folderWorkspaces: reverse ? [twin, folder] : [folder, twin] })
       const markDispatchResult = vi.fn()
       const worktree = await modules.workspace.prepareAutomationDispatchWorkspace({
         state: store.getState(),
@@ -199,8 +200,121 @@ describe('row 5: desktop automation pty:spawn request', () => {
           resolved: { ...resolved, repo: resolved.repo },
           markDispatchResult
         })
-      ).rejects.toThrow('worktree_execution_host_unresolved')
+      ).resolves.toBeNull()
+      expect(markDispatchResult).toHaveBeenCalledWith(
+        expect.objectContaining({ runId: run.id, status: 'skipped_unavailable' })
+      )
       expect(spawn).toHaveBeenCalledTimes(1)
+    }
+  )
+
+  it.each(['local-first', 'ssh-first', 'sole-ssh'] as const)(
+    'requires initial folder ownership evidence independently of the local project (%s)',
+    async (order) => {
+      const modules = await load('darwin')
+      const store = modules.createStore()
+      holder.store = store
+      store.setState(
+        launchWorkspaceState(
+          { kind: 'folder', path: '/selected/folder' },
+          getDefaultSettings('/home/alice')
+        )
+      )
+      const folder = { ...store.getState().folderWorkspaces[0]!, executionHostId: 'local' as const }
+      const twin = {
+        ...folder,
+        executionHostId: 'ssh:other' as const,
+        folderPath: '/foreign/folder'
+      }
+      const repo = {
+        id: 'repo-1',
+        path: '/selected',
+        kind: 'folder' as const,
+        displayName: 'Project',
+        badgeColor: '#000',
+        addedAt: 1
+      }
+      store.setState({
+        repos: [repo],
+        folderWorkspaces:
+          order === 'sole-ssh' ? [twin] : order === 'local-first' ? [folder, twin] : [twin, folder],
+        sshConnectionStates: new Map([
+          [
+            'other',
+            {
+              targetId: 'other',
+              status: 'connected',
+              remotePlatform: 'linux',
+              error: null,
+              reconnectAttempt: 0
+            }
+          ]
+        ])
+      })
+      const automation = makeAutomation({
+        workspaceMode: 'existing',
+        workspaceId: `folder:${folder.id}`,
+        projectId: repo.id,
+        runContext: {
+          kind: 'workspace-run',
+          projectId: 'project',
+          projectHostSetupId: 'setup',
+          repoId: repo.id,
+          path: repo.path,
+          hostId: 'local'
+        }
+      })
+      const run = makeRun({ trigger: 'manual' })
+      const resolved = modules.workspace.resolveAutomationDispatchWorkspace(
+        store.getState(),
+        automation,
+        run
+      )
+      if (!resolved.repo) {
+        throw new Error('missing repo')
+      }
+      const markDispatchResult = vi.fn()
+      const spawn = vi.fn(async () => ({ id: 'ssh:other@@pty-folder' }))
+      vi.stubGlobal('window', {
+        dispatchEvent: vi.fn(),
+        api: { pty: { spawn, write: vi.fn(), kill: vi.fn() }, runtime: { call: vi.fn() } }
+      })
+      const prepare = () =>
+        modules.workspace.prepareAutomationDispatchWorkspace({
+          state: store.getState(),
+          automation,
+          run,
+          dispatchToken: 'token',
+          resolved: { ...resolved, repo: repo },
+          markDispatchResult
+        })
+      if (order !== 'sole-ssh') {
+        expect(resolved.automationWorktree).toBeNull()
+        expect(await prepare()).toBeNull()
+        store.setState({ folderWorkspaces: [twin] })
+        expect(await prepare()).toBeNull()
+        expect(markDispatchResult).toHaveBeenCalledTimes(2)
+        expect(markDispatchResult).toHaveBeenLastCalledWith(
+          expect.objectContaining({ runId: run.id, status: 'skipped_unavailable' })
+        )
+        expect(spawn).not.toHaveBeenCalled()
+        return
+      }
+      const worktree = await prepare()
+      expect(worktree).toMatchObject({ path: '/foreign/folder', hostId: 'ssh:other' })
+      expect(resolved.context.sshTargetId).toBe('other')
+      if (!worktree) {
+        throw new Error('missing SSH folder')
+      }
+      await modules.launch.launchAgentBackgroundSession({
+        agent: 'claude',
+        worktreeId: worktree.id,
+        resolvedTarget: { worktree, repo: resolved.repo }
+      })
+      expect(spawn).toHaveBeenCalledWith(
+        expect.objectContaining({ cwd: '/foreign/folder', connectionId: 'other' })
+      )
+      expect(markDispatchResult).not.toHaveBeenCalled()
     }
   )
 

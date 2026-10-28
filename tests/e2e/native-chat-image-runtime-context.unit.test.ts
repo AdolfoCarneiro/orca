@@ -5,6 +5,7 @@ import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { shallow } from 'zustand/shallow'
 import type { AppState } from '@/store/types'
+import type { RuntimeFileOperationArgs } from '../../src/renderer/src/runtime/runtime-file-client-types'
 import { useAppStore } from '@/store'
 import type { TerminalTab } from '../../src/shared/terminal-tab-types'
 import type { Tab } from '../../src/shared/tab-types'
@@ -14,8 +15,7 @@ import {
   resolveNativeChatImageRuntimeContext,
   resolveNativeChatImageRuntimeContextForOwner,
   selectNativeChatImageOwnerState,
-  useNativeChatImageRuntimeContext,
-  type NativeChatImageRuntimeContext
+  useNativeChatImageRuntimeContext
 } from '../../src/renderer/src/components/native-chat/native-chat-image-runtime-context'
 import {
   makeFolderWorkspace,
@@ -446,7 +446,7 @@ describe('resolveNativeChatImageRuntimeContext', () => {
     const cases: [
       name: string,
       snapshot: AppState,
-      expected: Partial<NonNullable<NativeChatImageRuntimeContext>> | null
+      expected: Partial<RuntimeFileOperationArgs> | null
     ][] = [
       ['terminal-first and first duplicate', duplicate, local('wt-1', '/repo/worktree')],
       ['unified fallback', fallback, local('wt-2', '/repo/second')],
@@ -575,7 +575,7 @@ describe('resolveNativeChatImageRuntimeContext', () => {
         null
       ]
     ]
-    let observed: NativeChatImageRuntimeContext = null
+    let observed: RuntimeFileOperationArgs | null = null
     function Probe() {
       observed = useNativeChatImageRuntimeContext('tab-1')
       return null

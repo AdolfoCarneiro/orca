@@ -10,7 +10,6 @@ import {
 } from '../../../../../../shared/execution-host'
 import { parseWorkspaceKey } from '../../../../../../shared/workspace-scope'
 import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../../../../../shared/sidebar-inputs-switch'
-import { folderWorkspaceToWorktree } from '../../../../../../shared/folder-workspace-worktree'
 import {
   floatingWorkspaceToWorktree,
   isFloatingWorkspaceId
@@ -20,21 +19,13 @@ import { findWorktreeById, withoutErasedRequiredWorktreeFields } from '../../wor
 import { worktreeMatchesHost } from './worktree-host-ownership'
 import { hostWorktreeTarget } from '../../../../../../shared/worktree/host-qualified-identity'
 import {
+  getFolderWorkspaceWorktree,
   resolveQualifiedIndexedFolderWorkspace,
   selectFolderWorkspaces,
   selectWorkspaceByHostTarget,
   selectWorktreesByRepo
 } from '../../../workspace-record-selectors'
 
-const folderWorkspaceWorktreeCache = new WeakMap<FolderWorkspace, Worktree>()
-const qualifiedFolderWorktreeCache = new WeakMap<
-  FolderWorkspace,
-  {
-    hostId: ExecutionHostId
-    connectionId: string | null
-    worktree: Worktree
-  }
->()
 // Why a one-slot cache: the floating workspace is a singleton; retained selectors only need the
 // row's identity to hold while the resolved directory is unchanged.
 let floatingWorkspaceWorktreeCache: { path: string; worktree: Worktree } | null = null
@@ -83,33 +74,6 @@ export function folderWorkspaceMatchesHost(
   executionHostId: ExecutionHostId
 ): boolean {
   return getRepoExecutionHostId(workspace) === executionHostId
-}
-
-/** Stable synthetic row per folder workspace object, so selectors keep referential equality. */
-export function getFolderWorkspaceWorktree(
-  folderWorkspace: FolderWorkspace,
-  resolved?: { hostId: ExecutionHostId; connectionId: string | null }
-): Worktree {
-  if (resolved) {
-    const cached = qualifiedFolderWorktreeCache.get(folderWorkspace)
-    if (cached?.hostId === resolved.hostId && cached.connectionId === resolved.connectionId) {
-      return cached.worktree
-    }
-    const worktree = folderWorkspaceToWorktree({
-      ...folderWorkspace,
-      executionHostId: resolved.hostId,
-      connectionId: resolved.connectionId
-    })
-    qualifiedFolderWorktreeCache.set(folderWorkspace, { ...resolved, worktree })
-    return worktree
-  }
-  const cached = folderWorkspaceWorktreeCache.get(folderWorkspace)
-  if (cached) {
-    return cached
-  }
-  const worktree = folderWorkspaceToWorktree(folderWorkspace)
-  folderWorkspaceWorktreeCache.set(folderWorkspace, worktree)
-  return worktree
 }
 
 export function findKnownWorktreeById(

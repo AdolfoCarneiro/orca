@@ -10,7 +10,8 @@ import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import { findIndexedWorktreeOwnerForHost } from '@/lib/worktree-runtime-owner-index'
 import type { AppState } from './types'
 import type { WorktreeRuntimeOwnerState } from '@/lib/worktree-runtime-owner-state'
-import { getFolderWorkspaceWorktree } from './slices/worktrees/listing/detected-worktree-meta'
+import { folderWorkspaceToWorktree } from '../../../shared/folder-workspace-worktree'
+import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
 
 // Route workspace readers here; check-workspace-record-read-ratchet.mjs enforces this boundary.
 
@@ -116,4 +117,40 @@ export function resolveQualifiedIndexedFolderWorkspace<W extends FolderHostWorks
   return isCallerResult(result)
     ? result
     : resolveQualifiedFolderWorkspaceResult(state, folderWorkspaceId, executionHostId)
+}
+
+const folderWorkspaceWorktreeCache = new WeakMap<FolderWorkspace, Worktree>()
+const qualifiedFolderWorktreeCache = new WeakMap<
+  FolderWorkspace,
+  {
+    hostId: ExecutionHostId
+    connectionId: string | null
+    worktree: Worktree
+  }
+>()
+/** Stable synthetic row per folder workspace object, so selectors keep referential equality. */
+export function getFolderWorkspaceWorktree(
+  folderWorkspace: FolderWorkspace,
+  resolved?: { hostId: ExecutionHostId; connectionId: string | null }
+): Worktree {
+  if (resolved) {
+    const cached = qualifiedFolderWorktreeCache.get(folderWorkspace)
+    if (cached?.hostId === resolved.hostId && cached.connectionId === resolved.connectionId) {
+      return cached.worktree
+    }
+    const worktree = folderWorkspaceToWorktree({
+      ...folderWorkspace,
+      executionHostId: resolved.hostId,
+      connectionId: resolved.connectionId
+    })
+    qualifiedFolderWorktreeCache.set(folderWorkspace, { ...resolved, worktree })
+    return worktree
+  }
+  const cached = folderWorkspaceWorktreeCache.get(folderWorkspace)
+  if (cached) {
+    return cached
+  }
+  const worktree = folderWorkspaceToWorktree(folderWorkspace)
+  folderWorkspaceWorktreeCache.set(folderWorkspace, worktree)
+  return worktree
 }

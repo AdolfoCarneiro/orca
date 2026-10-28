@@ -9,13 +9,13 @@ import { useAppStore } from '@/store'
 import { usePluginCommands } from '@/store/plugin-panels'
 import { useSettingsNavigationMetadata } from '@/hooks/useSettingsNavigationMetadata'
 import { dedupePaletteWorktrees } from '@/lib/palette-repo-resolution'
-import { getFolderWorkspaceWorktree } from '@/store/slices/worktrees/listing/detected-worktree-meta'
 import {
   selectPaletteIndexStatusSnapshot,
   selectPaletteStatusInputs
 } from './worktree-jump-palette-status-inputs'
 import { selectWorktreePaletteCacheInputs } from '@/components/cmd-j/worktree-palette-cache-inputs'
 import {
+  getFolderWorkspaceWorktree,
   resolveQualifiedIndexedFolderWorkspace,
   selectDetectedWorktreesByRepo,
   selectFolderWorkspaces,

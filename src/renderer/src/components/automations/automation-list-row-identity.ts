@@ -21,7 +21,7 @@ import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
 import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
-import { getFolderWorkspaceWorktree } from '../../store/slices/worktrees/listing/detected-worktree-meta'
+import { getFolderWorkspaceWorktree } from '../../store/workspace-record-selectors'
 
 export type AutomationListRow = {
   /** Authority-qualified and incarnation-free; see the module note. */

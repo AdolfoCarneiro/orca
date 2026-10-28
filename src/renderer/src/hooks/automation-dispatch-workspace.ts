@@ -83,7 +83,13 @@ export async function prepareAutomationDispatchWorkspace(args: {
   const { repo, runRepoId, automationWorkspaceScope, context } = resolved
   const folderTarget =
     automationWorkspaceScope?.type === 'folder'
-      ? resolveQualifiedFolderWorkspaceResult(state, automationWorkspaceScope.folderWorkspaceId)
+      ? resolved.automationWorktree?.hostId
+        ? resolveQualifiedFolderWorkspaceResult(
+            state,
+            automationWorkspaceScope.folderWorkspaceId,
+            resolved.automationWorktree.hostId
+          )
+        : { kind: 'missing' as const }
       : null
   const folder = folderTarget?.kind === 'selected' ? folderTarget.value : null
   const automationWorktree = folder
