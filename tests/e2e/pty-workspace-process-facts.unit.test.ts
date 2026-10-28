@@ -184,8 +184,9 @@ describe('owning process facts through host recovery and renderer consumers', ()
       await import('../../src/renderer/src/components/terminal-pane/pty-connection/pane-agent-identity')
     const { readTerminalTabShell } =
       await import('../../src/renderer/src/store/terminals/terminal-process-metadata')
-    const { installTerminalCapabilityReplyHandlers, CONPTY_DA1_RESPONSE } =
+    const { installTerminalCapabilityReplyHandlers } =
       await import('../../src/renderer/src/components/terminal-pane/terminal-capability-replies')
+    const { CONPTY_DA1_RESPONSE } = await import('../../src/shared/conpty-device-attributes')
     const originalWindow = globalThis.window
     vi.stubGlobal('navigator', { userAgent: 'Windows' })
     let output: ((event: { id: string; data: string }) => void) | undefined
