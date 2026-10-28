@@ -21,7 +21,11 @@ import {
 } from '@/components/github/pr-file-diff-mapping'
 import { githubRepoIdentityKey } from '../../../../../shared/github/repository-identity-key'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../../shared/execution-host'
-import { prFilesDiffScrollTopCache, prFilesDiffViewStateCache } from '../cache/files-diff-view'
+import {
+  getPRFilesDiffViewKey,
+  prFilesDiffScrollTopCache,
+  prFilesDiffViewStateCache
+} from '../cache/files-diff-view'
 import { PRFilesDiffToolbar } from './toolbar'
 import { addPullRequestLineComment } from './line-comment'
 import { usePRFileSectionLoader } from './section-loader'
@@ -94,10 +98,7 @@ export function PRFilesCombinedDiffViewer({
     [baseSha, diffEntrySignature, headSha, prNumber, prRepo, repoId, sourceScope]
   )
   const viewStateKey = useMemo(
-    () =>
-      [repoId || repoPath, prNumber, prRepo ? githubRepoIdentityKey(prRepo) : '', sourceScope].join(
-        '\0'
-      ),
+    () => getPRFilesDiffViewKey({ repoId, repoPath, prNumber, prRepo, sourceHostId: sourceScope }),
     [prNumber, prRepo, repoId, repoPath, sourceScope]
   )
   const [sections, setSections] = useState<DiffSection[]>([])

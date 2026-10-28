@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useLayoutEffect } from 'react'
 import { FileText, ListChecks, LoaderCircle, MessageSquare, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -27,6 +27,7 @@ import {
 import { ConversationTab } from '../conversation/tab'
 import { ChecksTab } from '../checks/tab'
 import { PRFilesCombinedDiffViewer } from '../files/combined-diff-viewer'
+import { getPRFilesDiffViewKey, retainPRFilesDiffView } from '../cache/files-diff-view'
 
 export function PullRequestPageTabs({
   tab,
@@ -82,6 +83,20 @@ export function PullRequestPageTabs({
     reviewRequests: GitHubAssignableUser[]
   ) => void
 }): React.JSX.Element {
+  const prRepo = resolvePullRequestRepo(workItem, projectOrigin)
+  const filesViewKey = getPRFilesDiffViewKey({
+    repoId: effectiveRepoId ?? '',
+    repoPath: repoPath ?? '',
+    prNumber: workItem.number,
+    prRepo,
+    sourceHostId: sourceContext?.hostId
+  })
+  // Files unmounts on tab changes; the page still owns its loaded diff bodies.
+  useLayoutEffect(
+    () => (workItem.type === 'pr' ? retainPRFilesDiffView(filesViewKey) : undefined),
+    [filesViewKey, workItem.type]
+  )
+
   return (
     <Tabs
       value={tab}
@@ -209,7 +224,7 @@ export function PullRequestPageTabs({
               repoId={effectiveRepoId ?? ''}
               sourceContext={sourceContext}
               prNumber={workItem.number}
-              prRepo={resolvePullRequestRepo(workItem, projectOrigin)}
+              prRepo={prRepo}
               prUrl={workItem.url}
               headSha={details?.headSha}
               baseSha={details?.baseSha}

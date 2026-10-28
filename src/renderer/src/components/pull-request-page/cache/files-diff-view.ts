@@ -1,6 +1,9 @@
 import { setWithLRU } from '@/lib/scroll-cache'
 import { invalidateCleanSections } from '@/components/editor/diff-section-invalidation'
 import type { DiffSection } from '@/components/editor/diff-section-types'
+import type { GitHubOwnerRepo } from '../../../../../shared/github/pull-request-types'
+import { githubRepoIdentityKey } from '../../../../../shared/github/repository-identity-key'
+import { LOCAL_EXECUTION_HOST_ID } from '../../../../../shared/execution-host'
 
 export type CachedPRFilesDiffViewState = {
   entrySignature: string
@@ -18,6 +21,21 @@ const bodyCharactersBySections = new WeakMap<DiffSection[], number>()
 const mountedViewCounts = new Map<string, number>()
 export const prFilesDiffViewStateCache = new Map<string, CachedPRFilesDiffViewState>()
 export const prFilesDiffScrollTopCache = new Map<string, number>()
+
+export function getPRFilesDiffViewKey(args: {
+  repoId: string
+  repoPath: string
+  prNumber: number
+  prRepo: GitHubOwnerRepo | null | undefined
+  sourceHostId?: string
+}): string {
+  return [
+    args.repoId || args.repoPath,
+    args.prNumber,
+    args.prRepo ? githubRepoIdentityKey(args.prRepo) : '',
+    args.sourceHostId ?? LOCAL_EXECUTION_HOST_ID
+  ].join('\0')
+}
 
 export function retainPRFilesDiffView(viewKey: string): () => void {
   mountedViewCounts.set(viewKey, (mountedViewCounts.get(viewKey) ?? 0) + 1)
