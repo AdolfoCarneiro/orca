@@ -33,6 +33,14 @@ import {
 import { PLUGIN_HOST_API_MAJOR } from '../../../shared/plugins/workers/plugin-host-api-major'
 
 /** A failed host call or command: the same `{ code, message, retryable }` frames get. */
+// Why: format 1 handlers read `worktreeId`; newer payloads name it `workspaceId`.
+function withV1WorktreeId(payload: unknown): unknown {
+  if (typeof payload !== 'object' || payload === null || !('workspaceId' in payload)) {
+    return payload
+  }
+  return 'worktreeId' in payload ? payload : { ...payload, worktreeId: payload.workspaceId }
+}
+
 export type PluginHostCallError = Error & {
   code: PluginErrorCode
   retryable: boolean
@@ -173,7 +181,9 @@ export function createPluginWorkerRuntime(
           const name = PLUGIN_V1_EVENT_ALIASES.get(event) ?? event
           const handlers = eventHandlers.get(name) ?? new Set()
           eventHandlers.set(name, handlers)
-          const entry = (payload: unknown): void | Promise<void> => handler(payload)
+          const v1Payload = name !== event || event === 'agent.status.changed'
+          const entry = (payload: unknown): void | Promise<void> =>
+            handler(v1Payload ? withV1WorktreeId(payload) : payload)
           handlers.add(entry)
           return {
             dispose: () => {

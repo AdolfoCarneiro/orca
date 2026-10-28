@@ -161,4 +161,23 @@ describe('worker orca API parity with frames', () => {
     await running
     expect(send).toHaveBeenLastCalledWith({ orca: 1, kind: 'res', id: 9, result: undefined })
   })
+
+  it('gives format 1 handlers worktreeId alongside workspaceId', async () => {
+    const legacy = vi.fn()
+    const current = vi.fn()
+    const { runtime } = await activateWith((orca) => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: format 1 workers pass the old event name the runtime aliases.
+      orca.events.on('worktree.created' as 'workspace.created', legacy)
+      orca.events.on('workspace.created', current)
+    })
+    await runtime.handleMessage({
+      orca: 1,
+      kind: 'req',
+      id: 3,
+      method: 'event.deliver',
+      params: { event: 'workspace.created', payload: { workspaceId: 'w1' } }
+    })
+    expect(legacy).toHaveBeenCalledWith({ workspaceId: 'w1', worktreeId: 'w1' })
+    expect(current).toHaveBeenCalledWith({ workspaceId: 'w1' })
+  })
 })

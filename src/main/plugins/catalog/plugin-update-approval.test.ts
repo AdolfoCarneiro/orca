@@ -61,11 +61,13 @@ async function runUpdate(options: {
   approved?: boolean
   repositoryMoved?: boolean
   dev?: boolean
+  disabledDuringInstall?: boolean
 }) {
   const previous = discovered(options.before, 'sha-old', options.dev)
   const next = discovered(options.after, 'sha-new')
   let current = previous
   const consents: Record<string, string> = {}
+  const disabled: string[] = []
   if (options.approved !== false) {
     consents[KEY] = previous.consentFingerprint
   }
@@ -78,28 +80,45 @@ async function runUpdate(options: {
       options: {
         isPluginSystemEnabled: () => true,
         getPluginConsents: () => consents,
-        getDisabledPlugins: () => []
+        getDisabledPlugins: () => disabled
       },
       findValidPlugin: () => current,
       refresh: async () => {
         current = next
       }
     },
-    install: async () => ({
-      ok: true,
+    install: async () => {
+      if (options.disabledDuringInstall) {
+        disabled.push(KEY)
+      }
+      return installed()
+    },
+    approve
+  })
+  return { outcome, approve, consents, next }
+
+  function installed() {
+    return {
+      ok: true as const,
       pluginKey: KEY,
       version: '1.1.0',
       contentHash: 'sha-new',
       resolvedCommit: null,
       consentFingerprint: next.consentFingerprint,
       ...(options.repositoryMoved ? { repositoryMoved: true as const } : {})
-    }),
-    approve
-  })
-  return { outcome, approve, consents, next }
+    }
+  }
 }
 
 describe('catalog update approval', () => {
+  it('does not re-enable a plugin the user disabled while its update installed', async () => {
+    const before = SAMPLES['trusted-worker']()
+    const after = { ...SAMPLES['trusted-worker'](), version: '1.1.0' }
+    const { outcome, approve } = await runUpdate({ before, after, disabledDuringInstall: true })
+    expect(outcome).toMatchObject({ ok: true, needsReview: true })
+    expect(approve).not.toHaveBeenCalled()
+  })
+
   for (const [type, sample] of Object.entries(SAMPLES)) {
     it(`keeps a ${type} plugin approved when an update changes only its content`, async () => {
       const before = sample()

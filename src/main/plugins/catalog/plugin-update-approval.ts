@@ -46,6 +46,7 @@ async function carryPluginApprovalAcrossUpdate(input: {
   previousVmRecipes: PluginVmRecipeIdentities
   installedFingerprint: string
   findValidPlugin: (pluginKey: string) => ValidDiscoveredPlugin | null
+  isDisabled: (pluginKey: string) => boolean
   approve: (pluginKey: string, reviewedFingerprint: string) => Promise<void>
 }): Promise<boolean> {
   const { previous } = input
@@ -66,6 +67,10 @@ async function carryPluginApprovalAcrossUpdate(input: {
   if (
     pluginUpdateGrowsAccess(pluginUpdateAccessGrowth(previous.manifest, next.manifest, vmRecipes))
   ) {
+    return false
+  }
+  // Why recheck after the waits: approving re-enables, and the user may have disabled it meanwhile.
+  if (input.isDisabled(next.pluginKey)) {
     return false
   }
   try {
@@ -122,6 +127,7 @@ export async function installCatalogReleaseWithApproval(input: {
       previousVmRecipes,
       installedFingerprint: result.consentFingerprint,
       findValidPlugin,
+      isDisabled: (key) => pluginService.options.getDisabledPlugins().includes(key),
       approve: input.approve
     })
   ) {
