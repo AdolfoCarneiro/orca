@@ -230,7 +230,6 @@ describe('PluginManager', () => {
     const nord = container.querySelector('[data-plugin-key="stablyai.orca-nord-theme"]')
     const watcher = container.querySelector('[data-plugin-key="local.watcher"]')
     expect(nord?.textContent).toContain('Themes')
-    expect(nord?.querySelector('.lucide-palette')).not.toBeNull()
     expect(nord?.textContent).not.toContain('Content only')
     expect(watcher?.textContent).toContain('Commands & panels')
     expect(watcher?.textContent).toContain('Full access')

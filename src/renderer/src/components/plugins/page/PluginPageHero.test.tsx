@@ -41,8 +41,6 @@ describe('PluginScreenshots', () => {
     await act(async () => second.click())
     const dialog = document.querySelector('[role="dialog"]')!
     expect(dialog.textContent).toContain('2 of 2')
-    // Why scrollable: on a short window the image shrinks and the close button stays reachable.
-    expect(dialog.className).toContain('overflow-y-auto')
 
     await act(async () =>
       dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))

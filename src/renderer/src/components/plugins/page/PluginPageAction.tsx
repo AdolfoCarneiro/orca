@@ -64,7 +64,7 @@ function UseNowLine({
     return null
   }
   return (
-    <div className="mt-3 flex min-h-7 items-center">
+    <div data-use-now-line="" className="mt-3 flex min-h-7 items-center">
       {pluginKey ? <PluginThemeUseNow pluginKey={pluginKey} /> : null}
     </div>
   )

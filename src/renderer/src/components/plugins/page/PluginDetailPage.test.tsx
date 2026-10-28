@@ -174,7 +174,7 @@ describe('PluginDetailPage', () => {
         types: [type]
       }
       const container = await render(entry, () => Promise.resolve({ ok: true, preview }))
-      expect(container.querySelector('.min-h-7')).not.toBeNull()
+      expect(container.querySelector('[data-use-now-line]')).not.toBeNull()
     }
   )
 
@@ -186,7 +186,7 @@ describe('PluginDetailPage', () => {
         types: ['app-theme']
       }
       const container = await render(entry, () => Promise.resolve({ ok: true, preview }))
-      expect(container.querySelector('.min-h-7')).not.toBeNull()
+      expect(container.querySelector('[data-use-now-line]')).not.toBeNull()
     }
   )
 
