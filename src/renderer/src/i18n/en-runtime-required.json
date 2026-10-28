@@ -1,4 +1,16 @@
 {
+  "accounts": {
+    "claude": {
+      "switchSessions": {
+        "body_one": "{{count}} Claude session is still running on {{previous}}. Restarting continues the conversation on {{next}}. Busy sessions wait for idle before restarting.",
+        "body_other": "{{count}} Claude sessions are still running on {{previous}}. Restarting continues each conversation on {{next}}. Busy sessions wait for idle before restarting.",
+        "restartCount_one": "Restart {{count}} session",
+        "restartCount_other": "Restart {{count}} sessions",
+        "reviewBody_one": "{{count}} other Claude session wasn't moved to {{next}}.",
+        "reviewBody_other": "{{count}} other Claude sessions weren't moved to {{next}}."
+      }
+    }
+  },
   "agentLaunch": {
     "opencode": {
       "invalidConfig": "OpenCode could not apply this model choice to the launch configuration. Check the OpenCode launch configuration and try again, or omit the model choice.",
@@ -9,8 +21,48 @@
   "auto": {
     "components": {
       "NativeChatResumeOnRestartModal": {
-        "serverResumeHere": "Resume {{count}} chats started here",
-        "serverResumeHereOne": "Resume 1 chat started here"
+        "activityMonitorCount_one": "Monitoring {{count}} background task",
+        "activityMonitorCount_other": "Monitoring {{count}} background tasks",
+        "activitySubagentCount_one": "{{count}} subagent running",
+        "activitySubagentCount_other": "{{count}} subagents running",
+        "continuedCount_one": "Resumed {{count}} chat",
+        "continuedCount_other": "Resumed {{count}} chats",
+        "notConfirmedCount_one": "Couldn’t confirm {{count}} chat was resumed",
+        "notConfirmedCount_other": "Couldn’t confirm {{count}} chats were resumed",
+        "notConfirmedOtherCount_one": "Couldn’t confirm {{count}} other chat was resumed",
+        "notConfirmedOtherCount_other": "Couldn’t confirm {{count}} other chats were resumed",
+        "notContinuedCount_one": "{{count}} chat couldn’t be resumed",
+        "notContinuedCount_other": "{{count}} chats couldn’t be resumed",
+        "serverResumeHereCount_one": "Resume {{count}} chat started here",
+        "serverResumeHereCount_other": "Resume {{count}} chats started here"
+      },
+      "NativeChatResumeRunPanel": {
+        "resumedOfTotal_one": "Resumed {{resumed}} of {{count}} chat",
+        "resumedOfTotal_other": "Resumed {{resumed}} of {{count}} chats",
+        "resumingCount_one": "Resuming {{count}} chat",
+        "resumingCount_other": "Resuming {{count}} chats"
+      },
+      "QuickOpen": {
+        "filesFound_one": "{{count}} file found",
+        "filesFound_other": "{{count}} files found"
+      },
+      "TaskPage": {
+        "changedFileCount_one": "{{count}} file",
+        "changedFileCount_other": "{{count}} files",
+        "labelCount_one": "{{count}} label",
+        "labelCount_other": "{{count}} labels",
+        "memberCount_one": "{{count}} member",
+        "memberCount_other": "{{count}} members",
+        "projectsFailedToLoad_one": "{{failed}} of {{count}} project failed to load",
+        "projectsFailedToLoad_other": "{{failed}} of {{count}} projects failed to load",
+        "shownCount_one": "{{count}} shown",
+        "shownCount_other": "{{count}} shown"
+      },
+      "WorktreeJumpPalette": {
+        "itemsAvailable_one": "{{count}} item available.",
+        "itemsAvailable_other": "{{count}} items available.",
+        "resultsFound_one": "{{count}} result found.",
+        "resultsFound_other": "{{count}} results found."
       },
       "activity": {
         "ActivityThreadContextMenu": {
@@ -23,6 +75,14 @@
         }
       },
       "automations": {
+        "AutomationDetail": {
+          "graceHours_one": "{{count}} hour",
+          "graceHours_other": "{{count}} hours",
+          "graceMinutes_one": "{{count}} minute",
+          "graceMinutes_other": "{{count}} minutes",
+          "usageCoverageRuns_one": "{{known}}/{{count}} run",
+          "usageCoverageRuns_other": "{{known}}/{{count}} runs"
+        },
         "AutomationRunsDashboard": {
           "local": "Local",
           "remote": "Remote"
@@ -37,9 +97,31 @@
         "AutomationsPage": {
           "moveOriginalKept": "Created on {host}, but the original could not be deleted. Remove it on the old host.",
           "moveOriginalUnverified": "Created on {host}, but the original deletion could not be verified. Check the old host before retrying.",
+          "runUsageSummaryTokens_one": "{{cost}} est. · {{tokens}} token",
+          "runUsageSummaryTokens_other": "{{cost}} est. · {{tokens}} tokens",
           "tableLastRun": "Last run",
           "tableName": "Name",
           "tableProject": "Project"
+        },
+        "ExternalAutomationManagers": {
+          "automationCount_one": "{{count}} automation",
+          "automationCount_other": "{{count}} automations"
+        },
+        "externalScope": {
+          "uncheckedHostCount_one": "External automation managers on {{count}} host could not be checked.",
+          "uncheckedHostCount_other": "External automation managers on {{count}} hosts could not be checked."
+        },
+        "runHistory": {
+          "occurrencesCount_one": "{{count}} time",
+          "occurrencesCount_other": "{{count}} times",
+          "occurrencesWithLatestCount_one": "{{count}} time, most recently {{date}}",
+          "occurrencesWithLatestCount_other": "{{count}} times, most recently {{date}}",
+          "runCountSummary_one": "{{count}} run · {{completed}} completed",
+          "runCountSummary_other": "{{count}} runs · {{completed}} completed"
+        },
+        "usage": {
+          "tokensAndCost_one": "{{tokens}} token · {{cost}}",
+          "tokensAndCost_other": "{{tokens}} tokens · {{cost}}"
         }
       },
       "browser-pane": {
@@ -109,6 +191,32 @@
       "hostPicker": {
         "moreHosts_one": "{{count}} more host. Search by name to find it.",
         "moreHosts_other": "{{count}} more hosts. Search by name to find one."
+      },
+      "linear": {
+        "project": {
+          "view": {
+            "surfaces": {
+              "scopedIssueCount_one": "{{count}} scoped issue",
+              "scopedIssueCount_other": "{{count}} scoped issues"
+            }
+          }
+        },
+        "scope": {
+          "selector": {
+            "teamCount_one": "{{count}} team",
+            "teamCount_other": "{{count}} teams"
+          }
+        }
+      },
+      "prCheckCounts": {
+        "checksFailing_one": "{{count}} check failing",
+        "checksFailing_other": "{{count}} checks failing",
+        "checksNeedAction_one": "{{count}} check needs action",
+        "checksNeedAction_other": "{{count}} checks need action",
+        "checksPassingOfTotal_one": "{{passing}} of {{count}} check passing",
+        "checksPassingOfTotal_other": "{{passing}} of {{count}} checks passing",
+        "checksPending_one": "{{count}} check pending",
+        "checksPending_other": "{{count}} checks pending"
       },
       "right": {
         "sidebar": {
@@ -507,6 +615,26 @@
           }
         }
       },
+      "task": {
+        "project": {
+          "source": {
+            "combobox": {
+              "hostCount_one": "{{count}} host",
+              "hostCount_other": "{{count}} hosts"
+            }
+          }
+        }
+      },
+      "taskSourceContextSummary": {
+        "projectCount_one": "{{count}} project",
+        "projectCount_other": "{{count}} projects",
+        "selectedProjectCount_one": "{{count}} selected project",
+        "selectedProjectCount_other": "{{count}} selected projects",
+        "sourceHostCount_one": "{{count}} source host",
+        "sourceHostCount_other": "{{count}} source hosts",
+        "unavailableCount_one": "{{count}} unavailable",
+        "unavailableCount_other": "{{count}} unavailable"
+      },
       "terminal": {
         "pane": {
           "TerminalErrorToast": {
@@ -569,6 +697,12 @@
       "waitingForHost": "Reloads when the SSH host reconnects",
       "waitingForNetwork": "Reloads when you're back online",
       "waitingForServer": "Reloads when the server starts"
+    }
+  },
+  "browserExtensions": {
+    "permission": {
+      "manyOtherSites_one": "Read and change your data on {{hosts}} and {{count}} other site",
+      "manyOtherSites_other": "Read and change your data on {{hosts}} and {{count}} other sites"
     }
   },
   "components": {
@@ -691,7 +825,6 @@
         "editSavedArguments": "Edit them in Settings > Agents > Arguments.",
         "emptyMessage": "This message is empty, so it was not sent.",
         "fullAccessAsRoot": "{{agent}} won't use Full access while it runs as root. Choose another permission for {{agent}} in Settings → Agents for the computer running this chat, then start a new chat.",
-        "launchPreparationFailed": "Orca couldn't prepare {{agent}} to start on the computer running this chat.",
         "historyInOtherAccount": "This chat's history is in another Claude account. Switch back to that account to continue it.",
         "historyTooLarge": "This conversation's history is too large to restore here.",
         "hostFault": "Orca ran into a problem, so this didn't go through.",
@@ -700,6 +833,7 @@
         "hostStopped": "{{agent}} never finished starting, so Orca stopped it.",
         "interactiveAgentNotSignedIn": "Sign in to {{agent}} by running `{{loginCommand}}` and using `{{slashCommand}}` on the computer running this chat.",
         "launchFolderMissing": "The folder this chat ran in no longer exists. Restore it to continue this chat.",
+        "launchPreparationFailed": "Orca couldn't prepare {{agent}} to start on the computer running this chat.",
         "managedAccountEnvOverride": "This Claude launch sets its own Anthropic sign-in variables. Remove them to use a managed Claude account.",
         "managedAccountUnsupported": "While a Claude account is added in WSL, Claude chats need a Windows Claude account.",
         "noTurnToStop": "{{agent}} had no turn running to stop.",
@@ -966,6 +1100,12 @@
     "card": {
       "subagents_one": "{{count}} subagent",
       "subagents_other": "{{count}} subagents"
+    }
+  },
+  "jira": {
+    "workspace": {
+      "linkedCount_one": "{{count}} workspace linked to {{key}}",
+      "linkedCount_other": "{{count}} workspaces linked to {{key}}"
     }
   },
   "localBuild": {

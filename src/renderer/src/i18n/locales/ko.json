@@ -1736,14 +1736,11 @@
         "69da9a208c": "Jira에서 열기",
         "fa132c8aed": "댓글을 추가하지 못했습니다.",
         "ea21952aa3": "Jira 이슈를 업데이트하지 못했습니다.",
-        "6c41a9bcea": "{{value0}}을(를) 복사하지 못했습니다.",
-        "2ff69a3545": "{{value0}} 복사됨",
         "666cfdd835": "알 수 없음",
         "ef21405c6d": "Jira 이슈",
         "commentTooLarge": "댓글이 너무 길어 안전하게 제출할 수 없습니다."
       },
       "Landing": {
-        "76a95f7f47": "생성",
         "f9eaa9e12d": "프로젝트 추가",
         "6ca6ff404e": "Orca",
         "520304a067": "Orca 로고",
@@ -1759,7 +1756,12 @@
         "0d0ace8861": "GitHub에서 별표 주기",
         "ec43b38ba7": "GitHub에 별표 표시됨",
         "157bb5ecbb": "GitHub 열기",
-        "preflightDismiss": "닫기"
+        "preflightDismiss": "닫기",
+        "moveUpWorkspace": "이전 워크스페이스 선택",
+        "moveDownWorkspace": "다음 워크스페이스 선택",
+        "installGit": "Git 설치",
+        "installGitHubCli": "GitHub CLI 설치",
+        "learnMore": "자세히 알아보기"
       },
       "LinearIssueMarkdownDescriptionEditor": {
         "d9c47069ef": "Markdown",
@@ -1791,7 +1793,6 @@
         "ad5dec37b7": "선택한 이슈를 미리보기하고, 편집하고, 작업을 시작하세요.",
         "c23e79e5c0": "작업",
         "b0eac92d85": "다시 시도",
-        "fabbd3f974": "이슈를 업데이트했습니다 ·",
         "543970c87a": "활동",
         "df4c86ed12": "닫기",
         "7a4997d8bb": "Linear 이슈 미리보기 닫기",
@@ -1815,11 +1816,8 @@
         "b25e453c9d": "하위 이슈를 생성하지 못했습니다.",
         "aeed19d003": "{{value0}}을(를) 생성했습니다.",
         "9a1317cdd3": "하위 이슈를 로드하지 못했습니다.",
-        "9bcbaa2737": "{{value0}}을(를) 복사하지 못했습니다.",
-        "7835483c43": "{{value0}} 복사됨",
         "61f424f8ca": "Linear 이슈",
         "ca8778c124": "알 수 없음",
-        "8a33c85e9c": "누군가",
         "65239a714b": "Linear",
         "76ffd3c937": "추가할 프로젝트를 검색하세요.",
         "c11b4e3cc2": "프로젝트를 찾을 수 없습니다.",
@@ -1830,7 +1828,10 @@
         "moreWorkspaceActions": "이슈 워크스페이스 작업 더 보기",
         "startNewWorkspace": "새 워크스페이스 시작",
         "workspaceSection": "워크스페이스",
-        "noWorkspaceYet": "아직 없음"
+        "noWorkspaceYet": "아직 없음",
+        "issueDescriptionLabel": "이슈 설명",
+        "namedUserUpdatedIssue": "{{name}}님이 이슈를 업데이트함 · {{time}}",
+        "someoneUpdatedIssue": "누군가 이슈를 업데이트함 · {{time}}"
       },
       "LinearItemDrawer": {
         "04008e6c46": "이슈에서 워크스페이스 시작",
@@ -1866,7 +1867,9 @@
         "openAttachedWorkspace": "이슈에 연결된 워크스페이스 열기",
         "openWorkspace": "워크스페이스 열기",
         "moreWorkspaceActions": "이슈 워크스페이스 작업 더 보기",
-        "startNewWorkspace": "새 워크스페이스 시작"
+        "startNewWorkspace": "새 워크스페이스 시작",
+        "setEstimate": "추정치 설정",
+        "estimateValue": "추정치 {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
         "cbb47ee0dc": "로컬 Git 프로젝트에만 사용할 수 있습니다.",
@@ -1928,7 +1931,22 @@
         "defaultBranchUpdateFailed": "프로젝트 기본 브랜치를 업데이트할 수 없습니다. 다시 시도해 보세요.",
         "setLocation": "프로젝트 위치 설정",
         "setLocationOnHost": "{{host}}에 프로젝트 위치 설정",
-        "setLocationTooltip": "폴더를 선택하거나 이 프로젝트를 {{host}}에 복제하세요."
+        "setLocationTooltip": "폴더를 선택하거나 이 프로젝트를 {{host}}에 복제하세요.",
+        "connect": "연결",
+        "reconnect": "다시 연결",
+        "setupConfigDefaultTabs": "기본 탭 명령",
+        "setupConfigSetupAndDefaultTabs": "설정 및 기본 탭 명령",
+        "setupConfigSetupScript": "설정 스크립트",
+        "runDefaultTabCommands": "기본 탭 명령 실행",
+        "runSetupAndDefaultTabCommands": "설정 및 기본 탭 명령 실행",
+        "runSetupCommand": "설정 명령 실행",
+        "askRunDefaultTabCommands": "지금 기본 탭 명령을 실행할까요?",
+        "askRunSetupAndDefaultTabCommands": "지금 설정 및 기본 탭 명령을 실행할까요?",
+        "askRunSetup": "지금 설정을 실행할까요?",
+        "runSetupNow": "지금 설정 실행",
+        "runCommandsNow": "지금 명령 실행",
+        "skipForNow": "지금은 건너뛰기",
+        "skipCommands": "명령 건너뛰기"
       },
       "NewWorkspaceComposerModal": {
         "createWorktree": "작업 트리 만들기",
@@ -2111,9 +2129,11 @@
         "5d80dc39bb": "ripgrep",
         "2ca749c15d": "설치",
         "4725b0e931": "Quick Open 스캔이 너무 큼(",
-        "b227d88520": "{{value0}} 파일을 찾았습니다.",
         "995be8ea22": "복사",
-        "cf144856dc": "복사됨"
+        "cf144856dc": "복사됨",
+        "filesFound_other": "파일 {{count}}개 찾음",
+        "hostCouldNotOpenPath": "호스트에서 이 파일 경로를 열 수 없습니다.",
+        "chooseFileNotDirectory": "디렉터리 대신 파일을 선택하세요."
       },
       "SelectedTextCopyMenu": {
         "9b40d7b018": "복사"
@@ -2131,7 +2151,6 @@
       "TaskPage": {
         "ff69a30681": "취소",
         "8ff6fdc368": "만드는 중…",
-        "fc0d8a1fa4": "제출.",
         "919a20dd5b": "{{value0}}을(를) 입력하세요",
         "56cdb413a2": "쉼표로 구분된 값",
         "1f0fce91e3": "{{value0}}을(를) 선택하세요",
@@ -2179,14 +2198,12 @@
         "bdebffcbfe": "선택한 팀에 대한 Linear 프로젝트를 만듭니다.",
         "1361275ec3": "새로운 Linear 프로젝트",
         "7f3f7b4c18": "설명(선택사항, markdown)",
-        "9f2b4c03a6": "등록 위치: ",
         "d3d0998b7d": "새 GitHub 이슈",
         "d1e243795c": "이슈",
         "be8cf68d9f": "이슈 보기",
         "67662ade50": "프로젝트 이슈",
         "6244a02f46": "Linear에서 열기",
         "606a85c774": "열기",
-        "5e8061b088": "{{value0}} {{value1}}에서 워크스페이스 시작",
         "592a55611b": "더 많은 팀을 선택하거나 새로고침해 보세요. 팀 필터는 현재 가져온 이슈 세트에 적용됩니다.",
         "618107fab3": "선택한 팀과 일치하는 가져온 이슈가 없습니다",
         "903c7af49f": "Linear 이슈를 찾을 수 없습니다.",
@@ -2195,7 +2212,6 @@
         "f362667d55": "업데이트됨",
         "b1eaa18ace": "이슈",
         "37e7ee311e": "키",
-        "b7bae28b6a": "표시됨",
         "a26a48252e": "표시 속성",
         "5d2d835467": "정렬 순서",
         "5659da12fc": "그룹화",
@@ -2237,8 +2253,6 @@
         "054bf695cc": "초안",
         "5b6b2af943": "재시도 중…",
         "0c0de0fc0e": "다음에서 이슈를 로드할 수 없습니다.",
-        "d1766fd62d": "프로젝트를 로드하지 못했습니다.",
-        "7762f4b03a": "/",
         "443f7dd928": "병합",
         "a7396b05c6": "체크",
         "f6fa3c97d0": "리뷰어",
@@ -2420,10 +2434,36 @@
         "jiraColumnOriginalEstimate": "예상",
         "jiraColumnRemainingEstimate": "남음",
         "jiraBoardEmptyColumn": "이슈 없음",
-        "labelCountPlural": "라벨 {{count}}개",
-        "labelCountSingular": "라벨 {{count}}개",
-        "memberCountPlural": "멤버 {{count}}명",
-        "memberCountSingular": "멤버 {{count}}명"
+        "backToPullRequests": "PR",
+        "backToGitHubList": "GitHub 목록",
+        "noGitHubRepositoryContext": "이 이슈에 사용할 GitHub 저장소 컨텍스트가 없습니다.",
+        "filingInTarget": "{{target}}에 생성",
+        "filingInThisRepository": "이 저장소에 생성",
+        "shortcutToSubmit": "{{shortcut}} 키로 제출하세요.",
+        "projectsFailedToLoad_other": "프로젝트 {{count}}개 중 {{failed}}개를 불러오지 못했습니다",
+        "draftPullRequestNumber": "초안 PR #{{number}}",
+        "pullRequestNumber": "PR #{{number}}",
+        "issueNumber": "이슈 #{{number}}",
+        "loadGitHubWorkFailed": "GitHub 작업을 불러오지 못했습니다.",
+        "gitlabViewIssues": "이슈",
+        "gitlabViewMrs": "MR",
+        "gitlabViewTodos": "내 할 일",
+        "startWorkspaceFromMr": "MR {{number}}에서 워크스페이스 시작",
+        "startWorkspaceFromIssue": "이슈 {{number}}에서 워크스페이스 시작",
+        "shownCount_other": "{{count}}개 표시됨",
+        "linearProjectPlaceholder": "프로젝트",
+        "labelCount_other": "라벨 {{count}}개",
+        "memberCount_other": "멤버 {{count}}명",
+        "groupUnassigned": "할당되지 않음",
+        "linearProjectContext": "프로젝트: {{name}}",
+        "linearViewContext": "보기: {{name}}",
+        "changedFileCount_other": "파일 {{count}}개",
+        "resumeRestoration": {
+          "linearProjectNotFound": "저장된 Linear 프로젝트를 찾을 수 없습니다.",
+          "linearProjectRestoreFailed": "저장된 Linear 프로젝트를 복원하지 못했습니다.",
+          "linearViewNotFound": "저장된 Linear 보기를 찾을 수 없습니다.",
+          "linearViewRestoreFailed": "저장된 Linear 보기를 복원하지 못했습니다."
+        }
       },
       "Terminal": {
         "73768427cf": "닫기",
@@ -2498,7 +2538,8 @@
         "b1e390250d": "로컬 빌드 전환을 완료할 수 없었습니다.",
         "d29740d175": "선택한 빌드를 사용할 수 없었습니다.",
         "37d45c9ec1": "다른 빌드 선택",
-        "7f1a4c9e02": "시스템 패키지 관리자가 Orca를 설치했으므로 거기에서 업데이트하십시오. Orca는 이 릴리스 자체를 설치할 수 없습니다."
+        "7f1a4c9e02": "시스템 패키지 관리자가 Orca를 설치했으므로 거기에서 업데이트하십시오. Orca는 이 릴리스 자체를 설치할 수 없습니다.",
+        "compatibilityModeFailed": "호환 모드를 활성화할 수 없습니다. {{message}}"
       },
       "WorktreeJumpPalette": {
         "ac037cfac2": "이동",
@@ -2524,8 +2565,6 @@
         "d7d496a451": "브라우저 페이지가 더 이상 존재하지 않습니다.",
         "50a1d11d5b": "열린 탭",
         "088d66d980": "작업 및 설정",
-        "20af998bff": "{{value0}} 사용 가능한 항목{{value1}}",
-        "bb72c08e63": "{{value0}} 결과를 찾았습니다{{value1}}",
         "34c8fbb46e": "SSH 원격",
         "63c2be1914": "SSH 연결이 끊어졌습니다.",
         "95be6587d3": "워크트리 \"{{value0}}\" 만들기",
@@ -2542,7 +2581,10 @@
         "27f10cca63": "채팅, 터미널, 워크스페이스, 작업, 설정 및 동작 검색...",
         "2770f02910": "채팅, 터미널, 워크스페이스, 작업, 설정 및 동작 검색",
         "recentChatsTerminalsHeader": "최근 채팅 및 터미널",
-        "lastActiveTime": "마지막 활동: {{value0}} 전"
+        "lastActiveTime": "마지막 활동: {{value0}} 전",
+        "resultsFound_other": "결과 {{count}}개를 찾았습니다.",
+        "itemsAvailable_other": "항목 {{count}}개를 사용할 수 있습니다.",
+        "createActionAvailable": "워크트리 생성 작업을 사용할 수 있습니다."
       },
       "github": {
         "pr": {
@@ -2844,11 +2886,6 @@
             }
           }
         },
-        "priority": {
-          "icon": {
-            "c43d3e065b": "우선순위:"
-          }
-        },
         "project": {
           "view": {
             "surfaces": {
@@ -2867,7 +2904,6 @@
               "c8db98b73b": "리소스",
               "bb1405eff8": "마일스톤",
               "5d99315fb8": "계획",
-              "3ad562bdf4": "범위 내 이슈",
               "563501f191": "진행률",
               "bb5664d456": "프로젝트 설명이 없습니다.",
               "7b147907dc": "Linear",
@@ -2894,7 +2930,9 @@
               "df4bd63c1d": "할당되지 않음",
               "30402d2c6e": "검색하거나 새로고침해 보세요.",
               "a2f31c4cd6": "Linear 프로젝트를 찾을 수 없습니다.",
-              "c9b6e9f90d": "Linear 프로젝트를 로드할 수 없습니다."
+              "c9b6e9f90d": "Linear 프로젝트를 로드할 수 없습니다.",
+              "scopedIssueCount_other": "선택 범위의 이슈 {{count}}개",
+              "backlog": "백로그"
             }
           }
         },
@@ -2907,7 +2945,13 @@
             "05baa5ae90": "워크스페이스",
             "89f6580dbf": "팀 검색...",
             "b3488fad3c": "가져온 팀이 없습니다. 액세스는 키 범위, 비공개 팀 멤버십, 보관된 팀, 권한 또는 가져오기 실패에 따라 달라질 수 있습니다.",
-            "405b33c378": "가져온 팀이 검색어와 일치하지 않습니다."
+            "405b33c378": "가져온 팀이 검색어와 일치하지 않습니다.",
+            "teamCount_other": "팀 {{count}}개"
+          }
+        },
+        "priority": {
+          "icon": {
+            "priorityValue": "우선순위: {{label}}"
           }
         }
       },
@@ -6291,7 +6335,11 @@
           "e8f25bd903": "터미널 정리를 완료할 수 없습니다.",
           "a702d4196e": "이 작업은 모든 워크스페이스의 모든 터미널 탭을 닫고 현재 터미널 세션의 종료를 요청합니다. 저장되지 않은 터미널 작업은 손실됩니다. 데몬 자체는 계속 실행되며 새 터미널은 즉시 열 수 있습니다. 이 작업은 되돌릴 수 없습니다.",
           "01d6b7c64e": "열린 터미널과 에이전트가 다시 시작됩니다. 원격 호스트의 터미널은 영향을 받지 않습니다.",
-          "922548bc66": "터미널 서비스를 다시 시작하시겠습니까?"
+          "922548bc66": "터미널 서비스를 다시 시작하시겠습니까?",
+          "confirmRestart": "다시 시작",
+          "busyRestarting": "다시 시작 중…",
+          "confirmKillAll": "모든 세션 종료",
+          "busyKilling": "종료 중…"
         },
         "MacFolderAccessFixDialog": {
           "stepAllow": "파일 및 폴더에서 Orca 허용",
@@ -14089,11 +14137,11 @@
                 "a2f68645ac": "GitLab API 예산 새로 고침",
                 "2f9c16d6c3": "Orca는 GitLab CLI를 통해 REST를 사용합니다.",
                 "14e144f7a7": "GitLab API 예산",
-                "3e2c982cfa": "남음, 재설정까지",
-                "ea8ad0bae8": "/",
                 "0a891e8935": "REST API",
                 "953f7c6062": "이 GitLab 호스트는 속도 제한 헤더를 반환하지 않았습니다.",
-                "budget_scope_prefix": "예산 범위"
+                "budget_scope_prefix": "예산 범위",
+                "resetUnknown": "알 수 없음",
+                "remainingOfLimit": "{{limit}}개 중 {{remaining}}개 남음, {{reset}} 후 초기화"
               }
             }
           }
@@ -16025,7 +16073,18 @@
           "b09b2384fd": "일시중지됨",
           "eaa02014f8": "활성화됨",
           "29baf8f4c2": "소스",
-          "lastRunFailed": "마지막 실행이 실패했습니다."
+          "lastRunFailed": "마지막 실행이 실패했습니다.",
+          "noGrace": "유예 없음",
+          "graceMinutes_other": "{{count}}분",
+          "graceHours_other": "{{count}}시간",
+          "usageCoverageRuns_other": "실행 {{known}}/{{count}}회",
+          "usageUnavailable": "사용할 수 없음",
+          "noRuns": "실행 없음",
+          "projectDefault": "프로젝트 기본값",
+          "reuseLiveSession": "활성 세션 재사용",
+          "freshEachRun": "실행마다 새로 시작",
+          "precheckEnabled": "활성화됨, {{timeout}}",
+          "precheckNone": "없음"
         },
         "AutomationEditorDialog": {
           "fb1896a5e7": "취소",
@@ -16126,11 +16185,8 @@
           "2faecab10b": "지금 실행",
           "13118faadf": "알 수 없는 프로젝트",
           "73f630b49d": "취소",
-          "1b586f0e2b": "~에",
-          "02a33e3204": "~에서",
           "9adfab2596": "외부 자동화 삭제",
           "1e2e41392f": "다시 묻지 마세요",
-          "b264564427": "및 실행 기록. 이전 실행으로 생성된 워크스페이스는 삭제되지 않습니다.",
           "080dcb5fbb": "자동화 삭제",
           "19a6e30eae": "자동화 새로 고침",
           "77c2778945": "자동화",
@@ -16165,7 +16221,6 @@
           "pendingAutomationRunMissing": "실행 기록을 더 이상 사용할 수 없습니다.",
           "paused": "일시 중지됨",
           "missingWorkspace": "워크스페이스 없음",
-          "runUsageSummary": "약 {{cost}} · {{tokens}} tokens",
           "usageUnavailable": "사용량을 사용할 수 없음",
           "noRunUsageYet": "아직 실행 사용량 없음",
           "noWorkspace": "워크스페이스 없음",
@@ -16180,7 +16235,10 @@
           "rowActions": "자동화 작업",
           "tableLastRun": "마지막 실행",
           "ownerChanged": "이 자동화로 인해 호스트가 변경되었습니다. 새로고침하고 다시 시도하세요.",
-          "runError": "오류:"
+          "runError": "오류:",
+          "deleteAutomationDescription": "<name/> 및 실행 기록을 삭제합니다. 이전 실행에서 생성된 워크스페이스는 삭제되지 않습니다.",
+          "deleteExternalAutomationDescription": "<host/>의 <provider/>에서 <name/>을(를) 삭제합니다.",
+          "runUsageSummaryTokens_other": "예상 {{cost}} · {{tokens}} 토큰"
         },
         "CreateFromPicker": {
           "f061f49e3f": "repo 브랜치 검색...",
@@ -16207,8 +16265,7 @@
           "92405f1431": "사용 불가",
           "dbdcec22bd": "읽기 전용",
           "0a2d4359a8": "관리 가능",
-          "e2532150ed": "자동화",
-          "701515f010": "자동화"
+          "automationCount_other": "자동화 {{count}}개"
         },
         "WorkspaceCombobox": {
           "ee5b280eba": "워크스페이스를 찾을 수 없습니다.",
@@ -16260,7 +16317,8 @@
             "last": {
               "run": {
                 "done": "완료",
-                "failed": "실패"
+                "failed": "실패",
+                "statusWithRelative": "{{status}} · {{relative}}"
               }
             }
           }
@@ -16416,14 +16474,10 @@
         },
         "externalScope": {
           "uncheckedHost": "{{hostLabel}}의 외부 자동화 관리자를 확인할 수 없습니다.",
-          "uncheckedHosts": "{{count}} 호스트의 외부 자동화 관리자를 확인할 수 없습니다."
+          "uncheckedHostCount_other": "호스트 {{count}}개의 외부 자동화 관리자를 확인할 수 없습니다."
         },
         "enablement": {
           "paused": "일시중지됨"
-        },
-        "runHistory": {
-          "occurrencesWithLatest": "{{times}}회, 가장 최근에는 {{date}}",
-          "occurrences": "{{times}}회"
         },
         "extraAgentArgs": {
           "advanced": "고급",
@@ -16434,6 +16488,67 @@
           "useFreshSessions": "새 세션 사용",
           "helper": "새 세션마다 이 호스트의 기본 인수 뒤에 추가됩니다.",
           "detailLabel": "추가 인수"
+        },
+        "runHistory": {
+          "runCountSummary_other": "실행 {{count}}회 · 완료 {{completed}}회",
+          "occurrencesWithLatestCount_other": "{{count}}회, 최근 {{date}}",
+          "occurrencesCount_other": "{{count}}회"
+        },
+        "capabilityProbe": {
+          "createIdempotencyUpdateRequired": "이 호스트로 자동화를 이동하려면 더 최신 Orca 서버가 필요합니다. HUB를 업데이트하고 다시 시도하세요."
+        },
+        "editDraft": {
+          "unsupportedSchedule": "이 자동화에 지원되지 않는 일정이 저장되어 있습니다. 변경 사항을 저장하기 전에 지원되는 일정을 선택하세요."
+        },
+        "hostCatalog": {
+          "orphanEntryLabel": "할당되지 않은 기존 자동화"
+        },
+        "automationPageParts": {
+          "never": "없음",
+          "now": "방금",
+          "runStatusPending": "대기 중",
+          "runStatusDispatching": "시작 중",
+          "runStatusDispatched": "시작됨",
+          "runStatusCompleted": "완료",
+          "runStatusSkippedPrecheck": "사전 확인으로 건너뜀",
+          "runStatusSkippedMissed": "건너뜀",
+          "runStatusSkippedUnavailable": "사용할 수 없음",
+          "runStatusSkippedNeedsInteractiveAuth": "인증 정보 필요",
+          "runStatusDispatchFailed": "실패"
+        },
+        "runContent": {
+          "noOutput": "사용 가능한 출력 내용이 없습니다."
+        },
+        "runViewState": {
+          "viewRun": "실행 보기",
+          "runOpen": "실행이 열려 있습니다",
+          "terminalOnPairedServer": "실행 터미널이 페어링된 서버에 있습니다.",
+          "terminalUnavailable": "실행 터미널을 사용할 수 없습니다.",
+          "openWorkspace": "워크스페이스 열기",
+          "workspaceAvailable": "워크스페이스를 사용할 수 있습니다.",
+          "snapshotSaved": "스냅샷 저장됨",
+          "showingSnapshot": "저장된 실행 스냅샷을 표시합니다.",
+          "namedWorkspaceGone": "{{name}}을(를) 더 이상 사용할 수 없습니다",
+          "workspaceGone": "워크스페이스를 더 이상 사용할 수 없습니다",
+          "noWorkspaceLaunched": "시작된 워크스페이스 없음"
+        },
+        "runWorkspaceDisplay": {
+          "notLaunched": "시작되지 않음",
+          "namedWorkspaceGone": "{{name}} (더 이상 사용할 수 없음)"
+        },
+        "usage": {
+          "tokensAndCost_other": "{{tokens}} 토큰 · {{cost}}"
+        },
+        "externalDisplay": {
+          "sshHost": "SSH 호스트",
+          "local": "로컬"
+        },
+        "externalActionDisabled": {
+          "actionInProgress": "다른 자동화 작업이 아직 실행 중입니다.",
+          "sshConnecting": "이 SSH 호스트의 연결이 완료될 때까지 기다리세요.",
+          "connectSshHost": "{{provider}} 자동화를 관리하기 전에 이 SSH 호스트에 연결하세요.",
+          "cannotManageOnSshHost": "{{provider}}에서 이 SSH 호스트의 자동화를 관리할 수 없습니다.",
+          "cannotManageLocally": "{{provider}}에서 이 컴퓨터의 자동화를 관리할 수 없습니다."
         }
       },
       "agent": {
@@ -16574,8 +16689,6 @@
             "63ce735809": "연결",
             "4a2ab52781": "확인 중…",
             "79e7aaed39": "취소",
-            "fdd26d81cc": "Atlassian 계정 설정",
-            "8090504a3e": "다음에서 토큰 생성:",
             "7b3967c12f": "Atlassian API 토큰",
             "3d81bf3ab3": "API 토큰",
             "e91b9a4073": "you@example.com",
@@ -16600,7 +16713,8 @@
             "be9eba0a1b": "username",
             "70035652d7": "Password",
             "c50abbf340": "Jira 계정 비밀번호",
-            "d8737db691": "Jira Server 또는 Data Center 계정의 사용자 이름과 비밀번호를 사용하세요."
+            "d8737db691": "Jira Server 또는 Data Center 계정의 사용자 이름과 비밀번호를 사용하세요.",
+            "createTokenInSettings": "<link>Atlassian 계정 설정</link>에서 토큰을 만드세요."
           }
         }
       },
@@ -16709,10 +16823,10 @@
             "combobox": {
               "noProjects": "프로젝트 없음",
               "allProjects": "모든 프로젝트",
-              "hostCount": "호스트 {{value0}}개",
               "searchProjects": "프로젝트 검색...",
               "noMatches": "검색과 일치하는 프로젝트가 없습니다.",
-              "chooseSource": "작업 소스 선택"
+              "chooseSource": "작업 소스 선택",
+              "hostCount_other": "호스트 {{count}}개"
             }
           }
         },
@@ -16749,7 +16863,31 @@
       "taskSourceContextSummary": {
         "sourceUnavailable": "{{value0}} 소스를 사용할 수 없음: {{value1}}",
         "someSourceHostsUnavailable": "일부 {{value0}} 소스 호스트를 사용할 수 없음: {{value1}}",
-        "reconnectOrUpdateTitle": "이 소스를 불러오려면 {{value0}}을(를) 다시 연결하거나 업데이트하세요."
+        "reconnectOrUpdateTitle": "이 소스를 불러오려면 {{value0}}을(를) 다시 연결하거나 업데이트하세요.",
+        "providerSourceTitle": "{{provider}} 소스",
+        "hostTitle": "호스트: {{hosts}}",
+        "accountTitle": "계정: {{accounts}}",
+        "sourceTitle": "소스: {{source}}",
+        "sourceHostCount_other": "소스 호스트 {{count}}개",
+        "noHost": "호스트 없음",
+        "projectCount_other": "프로젝트 {{count}}개",
+        "selectedProject": "선택한 프로젝트",
+        "selectedProjectCount_other": "선택한 프로젝트 {{count}}개",
+        "currentAccount": "현재 계정",
+        "statusCheckingCapabilities": "서버 기능 확인 중",
+        "statusServerUpdateForTaskSources": "작업 소스에 서버 업데이트 필요",
+        "statusProviderAuthNeeded": "공급자 인증 필요",
+        "statusSourceToolUnavailable": "소스 도구 사용 불가",
+        "statusProviderUnsupported": "이 호스트에서 공급자 미지원",
+        "statusServerUpdateNeeded": "서버 업데이트 필요",
+        "unavailableCount_other": "{{count}}개 사용 불가",
+        "statusConnected": "연결됨",
+        "statusAuthNeeded": "인증 필요",
+        "statusConnecting": "연결 중",
+        "statusConnectionIssue": "연결 문제",
+        "statusDisconnected": "연결 끊김",
+        "hostStatus": "{{host}} {{status}}",
+        "availabilityTitle": "가용성: {{hosts}}"
       },
       "ShortcutKeyCombo": {
         "07eb4985a1": "{{value0}} 두 번 누르기"
@@ -17005,18 +17143,10 @@
         "listLabel": "재개될 채팅",
         "dontAskAgain": "다시 묻지 않음(자동으로 재개)",
         "dontAskAgainHint": "설정 → 실험적 → 채팅 UI에서 이 기능을 끌 수 있습니다.",
-        "continuedOne": "채팅 1개를 재개했습니다",
-        "continuedMany": "{{value0}}개의 채팅을 재개했습니다",
         "selectAgent": "{{value2}}에서 {{value0}} 채팅 \"{{value1}}\" 재개",
         "resumeSelected": "{{value0}} 채팅 재개",
         "resumeSelectedOne": "채팅 1개 재개",
         "dismissAll": "모두 닫기",
-        "notContinuedOne": "채팅 1개를 재개하지 못했습니다",
-        "notContinuedMany": "{{value0}}개의 채팅을 재개하지 못했습니다",
-        "notConfirmedOne": "채팅 1개가 재개되었는지 확인하지 못했습니다",
-        "notConfirmedMany": "{{value0}}개의 채팅이 재개되었는지 확인하지 못했습니다",
-        "notConfirmedOtherOne": "다른 채팅 1개가 재개되었는지 확인하지 못했습니다",
-        "notConfirmedOtherMany": "다른 채팅 {{value0}}개가 재개되었는지 확인하지 못했습니다",
         "viewChats": "채팅 보기",
         "review": "확인",
         "activityUnnamed": "이름 없음",
@@ -17024,9 +17154,7 @@
         "activityQuestion": "답변 대기 중: {{value0}}",
         "activityMidReply": "응답 중이었음",
         "activitySubagentOne": "하위 에이전트 실행 중: {{value0}}",
-        "activitySubagentMany": "하위 에이전트 {{value0}}개 실행 중",
         "activityMonitorOne": "모니터링 중: {{value0}}",
-        "activityMonitorMany": "백그라운드 작업 {{value0}}개 모니터링 중",
         "selectWorkspace": "{{value0}}의 채팅 모두 선택",
         "workspaceSelectedCount": "{{value0}}/{{value1}}",
         "selectAll": "모든 채팅 선택",
@@ -17043,8 +17171,13 @@
         "serverBody": "{{machine}}의 Orca가 다시 시작될 때 이 채팅들은 작업 중이었습니다. 재개하면 각 채팅이 중단된 위치에서 복원되고 에이전트에게 계속 진행하도록 요청합니다. 사용자의 프롬프트는 다시 전송되지 않습니다.",
         "serverDismiss": "닫기",
         "serverResumeAll": "{{machine}}에서 {{count}}개 모두 재개",
-        "serverResumeHereOne": "여기에서 시작한 채팅 1개 재개",
-        "serverResumeHere": "여기에서 시작한 채팅 {{count}}개 재개"
+        "serverResumeHereCount_other": "여기서 시작한 채팅 {{count}}개 재개",
+        "continuedCount_other": "채팅 {{count}}개 재개됨",
+        "notContinuedCount_other": "채팅 {{count}}개를 재개할 수 없습니다",
+        "notConfirmedCount_other": "채팅 {{count}}개의 재개 여부를 확인할 수 없습니다",
+        "notConfirmedOtherCount_other": "다른 채팅 {{count}}개의 재개 여부를 확인할 수 없습니다",
+        "activitySubagentCount_other": "하위 에이전트 {{count}}개 실행 중",
+        "activityMonitorCount_other": "백그라운드 작업 {{count}}개 모니터링 중"
       },
       "linear-issue-attribute-filter-coverage-notice": {
         "statusPartialTeamCoverage": "{{value1}} 팀 상태 중 {{value0}} 필터링 중 - 나머지 팀의 문제는 포함되지 않습니다.",
@@ -17196,15 +17329,13 @@
         }
       },
       "NativeChatResumeRunPanel": {
-        "resumedTitle": "채팅 {{value1}}개 중 {{value0}}개를 재개했습니다",
-        "resumedTitleOne": "채팅 1개 중 {{value0}}개를 재개했습니다",
-        "resumingTitleOne": "채팅 1개 재개 중",
-        "resumingTitle": "채팅 {{value0}}개 재개 중",
         "description": "각 채팅은 전체 컨텍스트와 함께 복원되며, 멈춘 지점을 확인하도록 요청됩니다. 이 창을 닫아도 상태 표시줄에서 진행 상황을 계속 볼 수 있습니다.",
         "finished": "이 채팅들은 Orca가 종료될 때 작업 중이었습니다. Orca는 각 채팅을 멈춘 지점에서 전체 컨텍스트와 함께 복원하고, 계속하기 전에 하던 작업을 확인하도록 에이전트에게 요청했습니다. 사용자의 프롬프트는 다시 전송되지 않았습니다.",
         "finishedUpdate": "이 채팅들은 Orca가 업데이트를 설치할 때 작업 중이었습니다. Orca는 각 채팅을 멈춘 지점에서 전체 컨텍스트와 함께 복원하고, 계속하기 전에 하던 작업을 확인하도록 에이전트에게 요청했습니다. 사용자의 프롬프트는 다시 전송되지 않았습니다.",
         "finishedPartial": "이 채팅들은 Orca가 종료될 때 작업 중이었습니다. Orca가 재개한 채팅은 멈춘 지점에서 전체 컨텍스트와 함께 복원되었고, 계속하기 전에 하던 작업을 확인하도록 요청받았습니다. 사용자의 프롬프트는 다시 전송되지 않았습니다. 아직 확인이 필요하거나 재개할 수 있는 채팅은 목록에서 확인하세요.",
-        "finishedPartialUpdate": "이 채팅들은 Orca가 업데이트를 설치할 때 작업 중이었습니다. Orca가 재개한 채팅은 멈춘 지점에서 전체 컨텍스트와 함께 복원되었고, 계속하기 전에 하던 작업을 확인하도록 요청받았습니다. 사용자의 프롬프트는 다시 전송되지 않았습니다. 아직 확인이 필요하거나 재개할 수 있는 채팅은 목록에서 확인하세요."
+        "finishedPartialUpdate": "이 채팅들은 Orca가 업데이트를 설치할 때 작업 중이었습니다. Orca가 재개한 채팅은 멈춘 지점에서 전체 컨텍스트와 함께 복원되었고, 계속하기 전에 하던 작업을 확인하도록 요청받았습니다. 사용자의 프롬프트는 다시 전송되지 않았습니다. 아직 확인이 필요하거나 재개할 수 있는 채팅은 목록에서 확인하세요.",
+        "resumedOfTotal_other": "채팅 {{count}}개 중 {{resumed}}개 재개됨",
+        "resumingCount_other": "채팅 {{count}}개 재개 중"
       },
       "NativeChatResumeRunStatusIcon": {
         "waitingForReply": "응답 대기 중",
@@ -17269,6 +17400,68 @@
         "cancelled": "이 일반 SSH 터미널은 시작되기 전에 닫혔습니다.",
         "terminalUnavailable": "Orca에서 여기의 터미널을 열 수 없습니다.",
         "openHint": "Orca가 호스트에서 설정할 수 없는 동안에도 호스트에서 계속 작업할 수 있습니다."
+      },
+      "AgentStateDot": {
+        "working": "작업 중",
+        "monitoring": "백그라운드 작업 모니터링 중",
+        "blocked": "차단됨",
+        "waiting": "입력 대기 중",
+        "interrupted": "중단됨",
+        "failed": "실패",
+        "done": "완료",
+        "idle": "유휴 상태",
+        "unverifiable": "최근 업데이트 없음",
+        "unconfirmed": "확인할 수 없음",
+        "permission": "주의 필요"
+      },
+      "issueComments": {
+        "you": "나"
+      },
+      "ZoomOverlay": {
+        "uiZoom": "UI 확대/축소",
+        "editorZoom": "편집기 확대/축소",
+        "terminalZoom": "터미널 확대/축소"
+      },
+      "issueCopy": {
+        "urlCopied": "URL 복사됨",
+        "keyCopied": "키 복사됨",
+        "identifierCopied": "식별자 복사됨",
+        "branchNameCopied": "브랜치 이름 복사됨",
+        "promptCopied": "프롬프트 복사됨",
+        "urlCopyFailed": "URL을 복사하지 못했습니다",
+        "keyCopyFailed": "키를 복사하지 못했습니다",
+        "identifierCopyFailed": "식별자를 복사하지 못했습니다",
+        "branchNameCopyFailed": "브랜치 이름을 복사하지 못했습니다",
+        "promptCopyFailed": "프롬프트를 복사하지 못했습니다"
+      },
+      "prCheckCounts": {
+        "noChecksFound": "검사를 찾을 수 없음",
+        "checksFailing_other": "검사 {{count}}개 실패",
+        "checksNeedAction_other": "검사 {{count}}개에 조치 필요",
+        "checksPending_other": "검사 {{count}}개 대기 중",
+        "allChecksPassing": "모든 검사 통과",
+        "checksPassingOfTotal_other": "검사 {{count}}개 중 {{passing}}개 통과"
+      },
+      "taskPageJiraBoard": {
+        "changeStatusFailed": "상태를 변경하지 못했습니다."
+      },
+      "jiraIssue": {
+        "loadStatusChangesFailed": "상태 변경 내역을 불러오지 못했습니다.",
+        "loadCommentsFailed": "댓글을 불러오지 못했습니다."
+      },
+      "taskPageJiraLinkedIssues": {
+        "someIssuesFailed": "워크스페이스에 연결된 일부 Jira 이슈를 불러올 수 없습니다. 새로고침하여 다시 시도하세요."
+      },
+      "taskPageJiraLoadState": {
+        "failedToLoadIssues": "Jira 이슈를 불러오지 못했습니다.",
+        "authFailed": "Jira 인증에 실패했습니다. 설정에서 Jira를 다시 연결한 후 다시 시도하세요.",
+        "accessDenied": "Jira에서 이 이슈 검색에 대한 접근을 거부했습니다. 프로젝트 권한을 확인하거나 다른 JQL 쿼리를 사용해 보세요.",
+        "rateLimited": "이 이슈 검색이 Jira 요청 한도에 도달했습니다. 잠시 후 다시 시도하세요.",
+        "serverError": "이슈를 불러오는 중 Jira 서버 오류가 발생했습니다. 잠시 후 다시 시도하세요.",
+        "jqlFailed": "Jira에서 이 JQL 쿼리를 실행할 수 없습니다. 구문을 확인하고 다시 시도하세요.",
+        "unreachable": "Jira에 연결할 수 없습니다. 연결을 확인하고 다시 시도하세요.",
+        "loadFailed": "Jira 이슈를 불러올 수 없습니다. 잠시 후 다시 시도하세요.",
+        "errorWithCode": "오류 {{code}}: {{summary}}"
       }
     },
     "i18n": {
@@ -19451,9 +19644,9 @@
     "pathAdded": "Added",
     "openFolder": "Open {{name}}",
     "findOrTypePath": "폴더를 찾거나 경로를 입력하세요...",
-    "addTypedPath": "Add",
     "noDirectories": "아직 추가된 폴더가 없습니다.",
-    "removePath": "Remove {{name}}"
+    "removePath": "Remove {{name}}",
+    "addTypedPathCode": "<path/> 추가"
   },
   "accounts": {
     "wslAccountNotApplied": {
@@ -19552,12 +19745,9 @@
         "settingAsk": "묻기",
         "dontAskAgain": "다시 묻지 않음(자동으로 다시 시작)",
         "title": "{{account}}(으)로 전환됨",
-        "bodyOther": "{{previous}} 계정에서 Claude 세션 {{count}}개가 아직 실행 중입니다. 다시 시작하면 {{next}} 계정에서 각 대화가 이어집니다. 작업 중인 세션은 작업이 끝난 후 다시 시작됩니다.",
         "dontAskAgainHint": "설정 → AI 공급자 계정에서 이 기능을 끌 수 있습니다.",
-        "bodyOne": "{{previous}} 계정에서 Claude 세션 1개가 아직 실행 중입니다. 다시 시작하면 {{next}} 계정에서 대화가 이어집니다. 작업 중인 세션은 작업이 끝난 후 다시 시작됩니다.",
         "session": "Claude 세션",
         "restartOne": "세션 다시 시작",
-        "restartOther": "{{count}} 세션 다시 시작",
         "keep": "그대로 유지",
         "listLabel": "다시 시작할 Claude 세션",
         "settingTitle": "Claude가 실행되는 동안 계정을 전환하는 경우",
@@ -19574,13 +19764,14 @@
         "reasonOwnFolder": "자체 Claude 폴더 사용",
         "reasonUnknownAccount": "계정 알 수 없음",
         "reasonNoSession": "재개할 수 없음",
-        "reviewBodyOne": "다른 Claude 세션 1개가 {{next}}(으)로 옮겨지지 않았습니다.",
-        "reviewBodyOther": "다른 Claude 세션 {{count}}개가 {{next}}(으)로 옮겨지지 않았습니다.",
         "notMovedOne": "다른 세션 1개는 옮겨지지 않았습니다.",
         "notMovedOther": "다른 세션 {{count}}개는 옮겨지지 않았습니다.",
         "review": "검토",
         "uncheckedOne": "터미널 1개에서 Claude 실행 여부를 확인할 수 없습니다. 그곳에서 Claude가 실행 중이면 다시 시작할 때까지 {{previous}}을(를) 계속 사용합니다.",
-        "uncheckedOther": "터미널 {{count}}개에서 Claude 실행 여부를 확인할 수 없습니다. 그곳에서 실행 중인 Claude는 다시 시작할 때까지 {{previous}}을(를) 계속 사용합니다."
+        "uncheckedOther": "터미널 {{count}}개에서 Claude 실행 여부를 확인할 수 없습니다. 그곳에서 실행 중인 Claude는 다시 시작할 때까지 {{previous}}을(를) 계속 사용합니다.",
+        "restartCount_other": "세션 {{count}}개 다시 시작",
+        "reviewBody_other": "다른 Claude 세션 {{count}}개가 {{next}}(으)로 이동되지 않았습니다.",
+        "body_other": "Claude 세션 {{count}}개가 아직 {{previous}}에서 실행 중입니다. 다시 시작하면 각 대화가 {{next}}에서 계속됩니다. 작업 중인 세션은 유휴 상태가 된 후 다시 시작됩니다."
       }
     },
     "hostSignIn": {
@@ -19975,13 +20166,12 @@
       "optionalEmail": "Atlassian 이메일(범위가 지정된 토큰은 선택 사항)"
     },
     "workspace": {
-      "count": "{{key}}에 연결된 워크스페이스 {{count}}개",
       "startAnother": "새 워크스페이스 시작",
       "empty": "Jira 이슈를 워크스페이스에 연결하거나 다른 보기를 선택하세요.",
       "openFailed": "이 Jira 이슈에 연결된 워크스페이스를 열 수 없습니다.",
       "mode": "워크스페이스 있음",
       "search": "연결된 이슈 검색",
-      "single": "{{key}}에 연결된 워크스페이스 1개"
+      "linkedCount_other": "워크스페이스 {{count}}개가 {{key}}에 연결됨"
     },
     "prompt": {
       "dialogTitle": "템플릿에서 프롬프트 복사",
@@ -20457,7 +20647,7 @@
       "email": "이메일 주소 확인",
       "allSites": "모든 웹사이트의 모든 데이터 읽기 및 변경",
       "someSites": "{{hosts}}에 있는 데이터 읽기 및 변경",
-      "manySites": "{{hosts}} 및 다른 사이트 {{count}}개에 있는 데이터 읽기 및 변경"
+      "manyOtherSites_other": "{{hosts}} 및 다른 사이트 {{count}}개에서 데이터 읽기 및 변경"
     },
     "install": {
       "title": "{{name}}을(를) 추가하시겠습니까?",

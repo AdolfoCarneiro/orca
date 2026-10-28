@@ -1736,14 +1736,11 @@
         "69da9a208c": "在 Jira 中打开",
         "fa132c8aed": "添加评论失败。",
         "ea21952aa3": "无法更新 Jira 议题。",
-        "6c41a9bcea": "复制 {{value0}} 失败",
-        "2ff69a3545": "{{value0}} 已复制",
         "666cfdd835": "未知",
         "ef21405c6d": "Jira 议题",
         "commentTooLarge": "评论过长，无法安全提交。"
       },
       "Landing": {
-        "76a95f7f47": "创建",
         "f9eaa9e12d": "添加项目",
         "6ca6ff404e": "ORCA",
         "520304a067": "Orca 标志",
@@ -1759,7 +1756,12 @@
         "0d0ace8861": "在 GitHub 上加星标",
         "ec43b38ba7": "已在 GitHub 上加星标",
         "157bb5ecbb": "打开 GitHub",
-        "preflightDismiss": "关闭"
+        "preflightDismiss": "关闭",
+        "moveUpWorkspace": "选择上一个工作区",
+        "moveDownWorkspace": "选择下一个工作区",
+        "installGit": "安装 Git",
+        "installGitHubCli": "安装 GitHub CLI",
+        "learnMore": "了解更多"
       },
       "LinearIssueMarkdownDescriptionEditor": {
         "d9c47069ef": "Markdown",
@@ -1791,7 +1793,6 @@
         "ad5dec37b7": "预览、编辑并从选定的议题开始工作。",
         "c23e79e5c0": "操作",
         "b0eac92d85": "重试",
-        "fabbd3f974": "更新了议题·",
         "543970c87a": "活动",
         "df4c86ed12": "关闭",
         "7a4997d8bb": "关闭 Linear 议题预览",
@@ -1815,11 +1816,8 @@
         "b25e453c9d": "创建子议题失败",
         "aeed19d003": "创建 {{value0}}",
         "9a1317cdd3": "无法加载子议题",
-        "9bcbaa2737": "复制 {{value0}} 失败",
-        "7835483c43": "{{value0}} 已复制",
         "61f424f8ca": "Linear 议题",
         "ca8778c124": "未知",
-        "8a33c85e9c": "有人",
         "65239a714b": "Linear",
         "76ffd3c937": "搜索要添加的项目。",
         "c11b4e3cc2": "没有找到项目。",
@@ -1830,7 +1828,10 @@
         "moreWorkspaceActions": "更多议题工作区操作",
         "startNewWorkspace": "启动新工作区",
         "workspaceSection": "工作区",
-        "noWorkspaceYet": "暂无"
+        "noWorkspaceYet": "暂无",
+        "issueDescriptionLabel": "议题描述",
+        "namedUserUpdatedIssue": "{{name}} 更新了议题 · {{time}}",
+        "someoneUpdatedIssue": "有人更新了议题 · {{time}}"
       },
       "LinearItemDrawer": {
         "04008e6c46": "从议题开始工作区",
@@ -1866,7 +1867,9 @@
         "openAttachedWorkspace": "打开关联到议题的工作区",
         "openWorkspace": "打开工作区",
         "moreWorkspaceActions": "更多议题工作区操作",
-        "startNewWorkspace": "启动新工作区"
+        "startNewWorkspace": "启动新工作区",
+        "setEstimate": "设置估计值",
+        "estimateValue": "估计值 {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
         "cbb47ee0dc": "仅适用于本地 Git 项目。",
@@ -1928,7 +1931,22 @@
         "defaultBranchUpdateFailed": "无法更新项目默认分支。再试一次。",
         "setLocation": "设置项目位置",
         "setLocationOnHost": "将项目位置设置为 {{host}}",
-        "setLocationTooltip": "选择一个文件夹或将此项目克隆到 {{host}} 上。"
+        "setLocationTooltip": "选择一个文件夹或将此项目克隆到 {{host}} 上。",
+        "connect": "连接",
+        "reconnect": "重新连接",
+        "setupConfigDefaultTabs": "默认标签页命令",
+        "setupConfigSetupAndDefaultTabs": "设置及默认标签页命令",
+        "setupConfigSetupScript": "设置脚本",
+        "runDefaultTabCommands": "运行默认标签页命令",
+        "runSetupAndDefaultTabCommands": "运行设置及默认标签页命令",
+        "runSetupCommand": "运行设置命令",
+        "askRunDefaultTabCommands": "立即运行默认标签页命令？",
+        "askRunSetupAndDefaultTabCommands": "立即运行设置及默认标签页命令？",
+        "askRunSetup": "立即运行设置？",
+        "runSetupNow": "立即运行设置",
+        "runCommandsNow": "立即运行命令",
+        "skipForNow": "暂时跳过",
+        "skipCommands": "跳过命令"
       },
       "NewWorkspaceComposerModal": {
         "createWorktree": "创建工作树",
@@ -2111,9 +2129,11 @@
         "5d80dc39bb": "ripgrep",
         "2ca749c15d": "安装",
         "4725b0e931": "快速打开扫描太大（",
-        "b227d88520": "找到 {{value0}} 文件",
         "995be8ea22": "复制",
-        "cf144856dc": "已复制"
+        "cf144856dc": "已复制",
+        "filesFound_other": "找到 {{count}} 个文件",
+        "hostCouldNotOpenPath": "主机无法打开此文件路径。",
+        "chooseFileNotDirectory": "请选择文件，而非目录。"
       },
       "SelectedTextCopyMenu": {
         "9b40d7b018": "复制"
@@ -2131,7 +2151,6 @@
       "TaskPage": {
         "ff69a30681": "取消",
         "8ff6fdc368": "创建中…",
-        "fc0d8a1fa4": "提交。",
         "919a20dd5b": "输入 {{value0}}",
         "56cdb413a2": "逗号分隔值",
         "1f0fce91e3": "选择{{value0}}",
@@ -2179,14 +2198,12 @@
         "bdebffcbfe": "为所选团队创建 Linear 项目。",
         "1361275ec3": "新建 Linear 项目",
         "7f3f7b4c18": "描述（可选，markdown）",
-        "9f2b4c03a6": "提交",
         "d3d0998b7d": "新的 GitHub 议题",
         "d1e243795c": "议题",
         "be8cf68d9f": "查看议题",
         "67662ade50": "项目议题",
         "6244a02f46": "在 Linear 中打开",
         "606a85c774": "开放",
-        "5e8061b088": "从 {{value0}} {{value1}} 开始工作区",
         "592a55611b": "尝试选择更多的团队或者刷新；团队筛选条件适用于当前获取的议题集。",
         "618107fab3": "没有获取到与所选团队匹配的议题",
         "903c7af49f": "未找到 Linear 议题",
@@ -2195,7 +2212,6 @@
         "f362667d55": "已更新",
         "b1eaa18ace": "议题",
         "37e7ee311e": "标识",
-        "b7bae28b6a": "显示",
         "a26a48252e": "显示属性",
         "5d2d835467": "排序",
         "5659da12fc": "分组",
@@ -2237,8 +2253,6 @@
         "054bf695cc": "草稿",
         "5b6b2af943": "正在重试...",
         "0c0de0fc0e": "无法加载议题，来源",
-        "d1766fd62d": "项目加载失败",
-        "7762f4b03a": "的",
         "443f7dd928": "合并",
         "a7396b05c6": "检查项",
         "f6fa3c97d0": "评审人",
@@ -2420,10 +2434,36 @@
         "jiraColumnOriginalEstimate": "预估",
         "jiraColumnRemainingEstimate": "剩余",
         "jiraBoardEmptyColumn": "没有议题",
-        "labelCountPlural": "{{count}} 个标签",
-        "labelCountSingular": "{{count}} 个标签",
-        "memberCountPlural": "{{count}} 名成员",
-        "memberCountSingular": "{{count}} 名成员"
+        "backToPullRequests": "拉取请求",
+        "backToGitHubList": "GitHub 列表",
+        "noGitHubRepositoryContext": "此议题没有可用的 GitHub 仓库上下文。",
+        "filingInTarget": "将在 {{target}} 中创建",
+        "filingInThisRepository": "将在此仓库中创建",
+        "shortcutToSubmit": "按 {{shortcut}} 提交。",
+        "projectsFailedToLoad_other": "{{count}} 个项目中有 {{failed}} 个加载失败",
+        "draftPullRequestNumber": "草稿拉取请求 #{{number}}",
+        "pullRequestNumber": "拉取请求 #{{number}}",
+        "issueNumber": "议题 #{{number}}",
+        "loadGitHubWorkFailed": "加载 GitHub 工作项失败。",
+        "gitlabViewIssues": "议题",
+        "gitlabViewMrs": "MR",
+        "gitlabViewTodos": "我的待办",
+        "startWorkspaceFromMr": "从 MR {{number}} 启动工作区",
+        "startWorkspaceFromIssue": "从议题 {{number}} 启动工作区",
+        "shownCount_other": "已显示 {{count}} 项",
+        "linearProjectPlaceholder": "项目",
+        "labelCount_other": "{{count}} 个标签",
+        "memberCount_other": "{{count}} 位成员",
+        "groupUnassigned": "未分配",
+        "linearProjectContext": "项目：{{name}}",
+        "linearViewContext": "视图：{{name}}",
+        "changedFileCount_other": "{{count}} 个文件",
+        "resumeRestoration": {
+          "linearProjectNotFound": "未找到已保存的 Linear 项目。",
+          "linearProjectRestoreFailed": "恢复已保存的 Linear 项目失败。",
+          "linearViewNotFound": "未找到已保存的 Linear 视图。",
+          "linearViewRestoreFailed": "恢复已保存的 Linear 视图失败。"
+        }
       },
       "Terminal": {
         "73768427cf": "关闭",
@@ -2498,7 +2538,8 @@
         "b1e390250d": "无法完成本地构建切换。",
         "d29740d175": "无法使用所选的构建。",
         "37d45c9ec1": "选择其他构建",
-        "7f1a4c9e02": "您的系统包管理器安装了 Orca，因此请从那里更新它 — Orca 本身无法安装此版本。"
+        "7f1a4c9e02": "您的系统包管理器安装了 Orca，因此请从那里更新它 — Orca 本身无法安装此版本。",
+        "compatibilityModeFailed": "无法启用兼容模式。{{message}}"
       },
       "WorktreeJumpPalette": {
         "ac037cfac2": "移动",
@@ -2524,8 +2565,6 @@
         "d7d496a451": "浏览器页面不再存在",
         "50a1d11d5b": "打开标签页",
         "088d66d980": "操作与设置",
-        "20af998bff": "{{value0}} 可用项{{value1}}",
-        "bb72c08e63": "找到 {{value0}} 结果{{value1}}",
         "34c8fbb46e": "SSH远程",
         "63c2be1914": "SSH 已断开连接",
         "95be6587d3": "创建工作树“{{value0}}”",
@@ -2542,7 +2581,10 @@
         "27f10cca63": "搜索聊天、终端、工作区、任务、设置和操作...",
         "2770f02910": "搜索聊天、终端、工作区、任务、设置和操作",
         "recentChatsTerminalsHeader": "最近的聊天和终端",
-        "lastActiveTime": "最后活跃时间 {{value0}} 前"
+        "lastActiveTime": "最后活跃时间 {{value0}} 前",
+        "resultsFound_other": "找到 {{count}} 个结果。",
+        "itemsAvailable_other": "{{count}} 个项目可用。",
+        "createActionAvailable": "可执行创建工作树操作。"
       },
       "github": {
         "pr": {
@@ -2844,11 +2886,6 @@
             }
           }
         },
-        "priority": {
-          "icon": {
-            "c43d3e065b": "优先事项："
-          }
-        },
         "project": {
           "view": {
             "surfaces": {
@@ -2867,7 +2904,6 @@
               "c8db98b73b": "资源",
               "bb1405eff8": "里程碑",
               "5d99315fb8": "规划",
-              "3ad562bdf4": "范围议题",
               "563501f191": "进度",
               "bb5664d456": "无项目描述。",
               "7b147907dc": "Linear",
@@ -2894,7 +2930,9 @@
               "df4bd63c1d": "未分配",
               "30402d2c6e": "尝试搜索或刷新。",
               "a2f31c4cd6": "未找到 Linear 项目",
-              "c9b6e9f90d": "无法加载 Linear 项目"
+              "c9b6e9f90d": "无法加载 Linear 项目",
+              "scopedIssueCount_other": "范围内有 {{count}} 个议题",
+              "backlog": "待办"
             }
           }
         },
@@ -2907,7 +2945,13 @@
             "05baa5ae90": "工作区",
             "89f6580dbf": "搜索团队...",
             "b3488fad3c": "没有提取任何团队。访问权限可能取决于密钥范围、私有团队成员资格、存档团队、权限或获取失败。",
-            "405b33c378": "没有提取的团队与您的搜索相匹配。"
+            "405b33c378": "没有提取的团队与您的搜索相匹配。",
+            "teamCount_other": "{{count}} 个团队"
+          }
+        },
+        "priority": {
+          "icon": {
+            "priorityValue": "优先级：{{label}}"
           }
         }
       },
@@ -6291,7 +6335,11 @@
           "e8f25bd903": "无法完成终端清理。",
           "a702d4196e": "这将关闭所有工作区中的每个终端标签页，并请求关闭其当前终端会话。任何未保存的终端工作将丢失。守护进程本身将继续运行，可以立即打开新终端。此操作不可撤销。",
           "01d6b7c64e": "打开终端，智能体将重新启动。远程主机上的终端不受影响。",
-          "922548bc66": "重启终端服务？"
+          "922548bc66": "重启终端服务？",
+          "confirmRestart": "重启",
+          "busyRestarting": "正在重启…",
+          "confirmKillAll": "终止所有会话",
+          "busyKilling": "正在结束…"
         },
         "MacFolderAccessFixDialog": {
           "stepAllow": "在文件和文件夹下允许 Orca",
@@ -14089,11 +14137,11 @@
                 "a2f68645ac": "刷新 GitLab API 预算",
                 "2f9c16d6c3": "Orca 通过 GitLab CLI 使用 REST。",
                 "14e144f7a7": "GitLab API预算",
-                "3e2c982cfa": "向左，重置于",
-                "ea8ad0bae8": "的",
                 "0a891e8935": "REST API",
                 "953f7c6062": "此 GitLab 主机未返回速率限制标头。",
-                "budget_scope_prefix": "预算范围"
+                "budget_scope_prefix": "预算范围",
+                "resetUnknown": "未知",
+                "remainingOfLimit": "剩余 {{remaining}}/{{limit}}，{{reset}} 后重置"
               }
             }
           }
@@ -16025,7 +16073,18 @@
           "b09b2384fd": "已暂停",
           "eaa02014f8": "启用",
           "29baf8f4c2": "来源",
-          "lastRunFailed": "上次运行失败。"
+          "lastRunFailed": "上次运行失败。",
+          "noGrace": "无宽限期",
+          "graceMinutes_other": "{{count}} 分钟",
+          "graceHours_other": "{{count}} 小时",
+          "usageCoverageRuns_other": "{{known}}/{{count}} 次运行",
+          "usageUnavailable": "不可用",
+          "noRuns": "无运行记录",
+          "projectDefault": "项目默认值",
+          "reuseLiveSession": "复用活动会话",
+          "freshEachRun": "每次运行新建",
+          "precheckEnabled": "已启用，{{timeout}}",
+          "precheckNone": "无"
         },
         "AutomationEditorDialog": {
           "fb1896a5e7": "取消",
@@ -16126,11 +16185,8 @@
           "2faecab10b": "立即运行",
           "13118faadf": "未知项目",
           "73f630b49d": "取消",
-          "1b586f0e2b": "在",
-          "02a33e3204": "从",
           "9adfab2596": "删除外部自动化",
           "1e2e41392f": "不要再问",
-          "b264564427": "及其运行历史记录。先前运行创建的工作区不会被删除。",
           "080dcb5fbb": "删除自动化",
           "19a6e30eae": "刷新自动化",
           "77c2778945": "自动化",
@@ -16165,7 +16221,6 @@
           "pendingAutomationRunMissing": "运行历史已不可用。",
           "paused": "已暂停",
           "missingWorkspace": "缺少工作区",
-          "runUsageSummary": "约 {{cost}} · {{tokens}} tokens",
           "usageUnavailable": "用量不可用",
           "noRunUsageYet": "尚无运行用量",
           "noWorkspace": "无工作区",
@@ -16180,7 +16235,10 @@
           "rowActions": "自动化操作",
           "tableLastRun": "最后一次运行",
           "ownerChanged": "这种自动化改变了主机。刷新并重试。",
-          "runError": "错误："
+          "runError": "错误：",
+          "deleteAutomationDescription": "删除 <name/> 及其运行历史。不会删除之前运行创建的工作区。",
+          "deleteExternalAutomationDescription": "从 <host/> 上的 <provider/> 中删除 <name/>。",
+          "runUsageSummaryTokens_other": "预估 {{cost}} · {{tokens}} token"
         },
         "CreateFromPicker": {
           "f061f49e3f": "搜索仓库分支...",
@@ -16207,8 +16265,7 @@
           "92405f1431": "不可用",
           "dbdcec22bd": "只读",
           "0a2d4359a8": "易于管理",
-          "e2532150ed": "自动化",
-          "701515f010": "自动化"
+          "automationCount_other": "{{count}} 个自动化"
         },
         "WorkspaceCombobox": {
           "ee5b280eba": "未找到工作区。",
@@ -16260,7 +16317,8 @@
             "last": {
               "run": {
                 "done": "完成",
-                "failed": "失败的"
+                "failed": "失败的",
+                "statusWithRelative": "{{status}} · {{relative}}"
               }
             }
           }
@@ -16416,14 +16474,10 @@
         },
         "externalScope": {
           "uncheckedHost": "无法检查 {{hostLabel}} 上的外部自动化管理器。",
-          "uncheckedHosts": "无法检查 {{count}} 主机上的外部自动化管理器。"
+          "uncheckedHostCount_other": "无法检查 {{count}} 台主机上的外部自动化管理器。"
         },
         "enablement": {
           "paused": "已暂停"
-        },
-        "runHistory": {
-          "occurrencesWithLatest": "{{times}} 次，最近一次 {{date}}",
-          "occurrences": "{{times}} 次"
         },
         "extraAgentArgs": {
           "advanced": "高级",
@@ -16434,6 +16488,67 @@
           "useFreshSessions": "使用新会话",
           "helper": "每次新会话时附加到此主机的默认参数之后。",
           "detailLabel": "额外参数"
+        },
+        "runHistory": {
+          "runCountSummary_other": "运行 {{count}} 次 · 已完成 {{completed}} 次",
+          "occurrencesWithLatestCount_other": "{{count}} 次，最近一次为 {{date}}",
+          "occurrencesCount_other": "{{count}} 次"
+        },
+        "capabilityProbe": {
+          "createIdempotencyUpdateRequired": "将自动化移至此主机需要更新版本的 Orca 服务器。请更新 HUB 后重试。"
+        },
+        "editDraft": {
+          "unsupportedSchedule": "此自动化保存的计划不受支持。请在保存更改前选择受支持的计划。"
+        },
+        "hostCatalog": {
+          "orphanEntryLabel": "未分配的旧版自动化"
+        },
+        "automationPageParts": {
+          "never": "从未",
+          "now": "刚刚",
+          "runStatusPending": "已排队",
+          "runStatusDispatching": "正在启动",
+          "runStatusDispatched": "已启动",
+          "runStatusCompleted": "完成",
+          "runStatusSkippedPrecheck": "因预检查而跳过",
+          "runStatusSkippedMissed": "已跳过",
+          "runStatusSkippedUnavailable": "不可用",
+          "runStatusSkippedNeedsInteractiveAuth": "需要凭据",
+          "runStatusDispatchFailed": "失败"
+        },
+        "runContent": {
+          "noOutput": "没有可用的输出内容。"
+        },
+        "runViewState": {
+          "viewRun": "查看运行",
+          "runOpen": "运行已打开",
+          "terminalOnPairedServer": "运行终端位于已配对的服务器上。",
+          "terminalUnavailable": "运行终端不可用。",
+          "openWorkspace": "打开工作区",
+          "workspaceAvailable": "工作区可用。",
+          "snapshotSaved": "快照已保存",
+          "showingSnapshot": "正在显示已保存的运行快照。",
+          "namedWorkspaceGone": "{{name}} 已不可用",
+          "workspaceGone": "工作区已不可用",
+          "noWorkspaceLaunched": "未启动工作区"
+        },
+        "runWorkspaceDisplay": {
+          "notLaunched": "未启动",
+          "namedWorkspaceGone": "{{name}}（已不可用）"
+        },
+        "usage": {
+          "tokensAndCost_other": "{{tokens}} token · {{cost}}"
+        },
+        "externalDisplay": {
+          "sshHost": "SSH 主机",
+          "local": "本地"
+        },
+        "externalActionDisabled": {
+          "actionInProgress": "另一个自动化操作仍在运行。",
+          "sshConnecting": "请等待此 SSH 主机完成连接。",
+          "connectSshHost": "请先连接此 SSH 主机，再管理 {{provider}} 自动化。",
+          "cannotManageOnSshHost": "{{provider}} 无法管理此 SSH 主机上的自动化。",
+          "cannotManageLocally": "{{provider}} 无法管理此计算机上的自动化。"
         }
       },
       "agent": {
@@ -16574,8 +16689,6 @@
             "63ce735809": "连接",
             "4a2ab52781": "正在验证…",
             "79e7aaed39": "取消",
-            "fdd26d81cc": "Atlassian 账户设置",
-            "8090504a3e": "在此创建 token：",
             "7b3967c12f": "Atlassian API 令牌",
             "3d81bf3ab3": "API 令牌",
             "e91b9a4073": "you@example.com",
@@ -16600,7 +16713,8 @@
             "be9eba0a1b": "username",
             "70035652d7": "Password",
             "c50abbf340": "Jira 账户密码",
-            "d8737db691": "使用你的 Jira Server 或 Data Center 账户用户名和密码。"
+            "d8737db691": "使用你的 Jira Server 或 Data Center 账户用户名和密码。",
+            "createTokenInSettings": "在 <link>Atlassian 账户设置</link>中创建令牌。"
           }
         }
       },
@@ -16709,10 +16823,10 @@
             "combobox": {
               "noProjects": "没有项目",
               "allProjects": "所有项目",
-              "hostCount": "{{value0}} 个主机",
               "searchProjects": "搜索项目...",
               "noMatches": "没有匹配搜索的项目。",
-              "chooseSource": "选择任务来源"
+              "chooseSource": "选择任务来源",
+              "hostCount_other": "{{count}} 台主机"
             }
           }
         },
@@ -16749,7 +16863,31 @@
       "taskSourceContextSummary": {
         "sourceUnavailable": "{{value0}} 来源不可用：{{value1}}",
         "someSourceHostsUnavailable": "部分 {{value0}} 来源主机不可用：{{value1}}",
-        "reconnectOrUpdateTitle": "重新连接或更新 {{value0}} 以加载此来源。"
+        "reconnectOrUpdateTitle": "重新连接或更新 {{value0}} 以加载此来源。",
+        "providerSourceTitle": "{{provider}} 来源",
+        "hostTitle": "主机：{{hosts}}",
+        "accountTitle": "账户：{{accounts}}",
+        "sourceTitle": "来源：{{source}}",
+        "sourceHostCount_other": "{{count}} 台来源主机",
+        "noHost": "无主机",
+        "projectCount_other": "{{count}} 个项目",
+        "selectedProject": "所选项目",
+        "selectedProjectCount_other": "已选择 {{count}} 个项目",
+        "currentAccount": "当前账户",
+        "statusCheckingCapabilities": "正在检查服务器能力",
+        "statusServerUpdateForTaskSources": "任务来源需要更新服务器",
+        "statusProviderAuthNeeded": "需要提供商认证",
+        "statusSourceToolUnavailable": "来源工具不可用",
+        "statusProviderUnsupported": "此主机不支持该提供商",
+        "statusServerUpdateNeeded": "需要更新服务器",
+        "unavailableCount_other": "{{count}} 项不可用",
+        "statusConnected": "已连接",
+        "statusAuthNeeded": "需要认证",
+        "statusConnecting": "正在连接",
+        "statusConnectionIssue": "连接异常",
+        "statusDisconnected": "已断开连接",
+        "hostStatus": "{{host}} {{status}}",
+        "availabilityTitle": "可用性：{{hosts}}"
       },
       "ShortcutKeyCombo": {
         "07eb4985a1": "双击 {{value0}}"
@@ -17001,8 +17139,6 @@
         "serverBody": "这些聊天在 {{machine}} 上的 Orca 重启时正在进行中。恢复会把每个聊天还原到中断处，并让智能体继续。你自己的提示词不会重新发送。",
         "serverDismiss": "忽略",
         "serverResumeAll": "恢复 {{machine}} 上的全部 {{count}} 个",
-        "serverResumeHereOne": "恢复此处开始的 1 个聊天",
-        "serverResumeHere": "恢复此处开始的 {{count}} 个聊天",
         "title": "恢复中断的聊天？",
         "body": "当 Orca 关闭时，这些聊天正在工作。恢复会将每个聊天还原到停止的位置及其完整上下文，并要求智能体在继续之前检查它正在做的事情。您自己的提示不会重新发送。",
         "updateBody": "当 Orca 安装更新时，这些聊天正在工作。恢复会将每个聊天还原到停止的位置及其完整上下文，并要求智能体在继续之前检查它正在做的事情。您自己的提示不会重新发送。",
@@ -17011,18 +17147,10 @@
         "listLabel": "将恢复的聊天",
         "dontAskAgain": "不再询问（自动恢复）",
         "dontAskAgainHint": "您可以在“设置”→“实验”→“聊天 UI”中关闭此功能。",
-        "continuedOne": "已恢复 1 个聊天",
-        "continuedMany": "已恢复 {{value0}} 个聊天",
         "selectAgent": "在 {{value2}} 中恢复 {{value0}} 聊天“{{value1}}”",
         "resumeSelected": "恢复 {{value0}} 聊天",
         "resumeSelectedOne": "恢复 1 次聊天",
         "dismissAll": "全部关闭",
-        "notContinuedOne": "1 个聊天无法恢复",
-        "notContinuedMany": "{{value0}} 个聊天无法恢复",
-        "notConfirmedOne": "无法确认 1 个聊天已恢复",
-        "notConfirmedMany": "无法确认 {{value0}} 个聊天已恢复",
-        "notConfirmedOtherOne": "无法确认另外 1 个聊天已恢复",
-        "notConfirmedOtherMany": "无法确认另外 {{value0}} 个聊天已恢复",
         "viewChats": "查看聊天",
         "review": "检查",
         "activityUnnamed": "未命名",
@@ -17030,9 +17158,7 @@
         "activityQuestion": "等待您的回答：{{value0}}",
         "activityMidReply": "回复进行中",
         "activitySubagentOne": "子智能体运行中：{{value0}}",
-        "activitySubagentMany": "{{value0}} 个子智能体运行中",
         "activityMonitorOne": "正在监控：{{value0}}",
-        "activityMonitorMany": "正在监控 {{value0}} 个后台任务",
         "selectWorkspace": "选择 {{value0}} 中的全部聊天",
         "workspaceSelectedCount": "{{value0}}/{{value1}}",
         "selectAll": "选择全部聊天",
@@ -17044,7 +17170,14 @@
         "selectMachine": "选择 {{value0}} 上的全部聊天",
         "sshHost": "SSH",
         "done": "完成",
-        "resultListLabel": "本次恢复的聊天"
+        "resultListLabel": "本次恢复的聊天",
+        "serverResumeHereCount_other": "恢复在此启动的 {{count}} 个聊天",
+        "continuedCount_other": "已恢复 {{count}} 个聊天",
+        "notContinuedCount_other": "{{count}} 个聊天无法恢复",
+        "notConfirmedCount_other": "无法确认 {{count}} 个聊天是否已恢复",
+        "notConfirmedOtherCount_other": "无法确认其他 {{count}} 个聊天是否已恢复",
+        "activitySubagentCount_other": "{{count}} 个子智能体正在运行",
+        "activityMonitorCount_other": "正在监控 {{count}} 个后台任务"
       },
       "linear-issue-attribute-filter-coverage-notice": {
         "statusPartialTeamCoverage": "过滤 {{value1}} 团队状态中的 {{value0}} — 不包括其余团队的问题。",
@@ -17196,15 +17329,13 @@
         }
       },
       "NativeChatResumeRunPanel": {
-        "resumedTitle": "已恢复 {{value0}}/{{value1}} 个聊天",
-        "resumedTitleOne": "已恢复 {{value0}}/1 个聊天",
-        "resumingTitleOne": "正在恢复 1 个聊天",
-        "resumingTitle": "正在恢复 {{value0}} 个聊天",
         "description": "每个聊天都会带着完整上下文恢复，并被要求检查它停在了哪里。你可以关闭此窗口，状态栏会继续显示进度。",
         "finished": "Orca 关闭时这些聊天正在工作。Orca 已将每个聊天恢复到停止的位置并保留完整上下文，并让智能体在继续之前先检查它之前在做什么。你自己的提示没有被重新发送。",
         "finishedUpdate": "Orca 安装更新时这些聊天正在工作。Orca 已将每个聊天恢复到停止的位置并保留完整上下文，并让智能体在继续之前先检查它之前在做什么。你自己的提示没有被重新发送。",
         "finishedPartial": "Orca 关闭时这些聊天正在工作。Orca 恢复的聊天已回到停止的位置并保留完整上下文，并被要求在继续之前先检查之前在做什么。你自己的提示没有被重新发送。请在列表中查看仍需处理或可以恢复的聊天。",
-        "finishedPartialUpdate": "Orca 安装更新时这些聊天正在工作。Orca 恢复的聊天已回到停止的位置并保留完整上下文，并被要求在继续之前先检查之前在做什么。你自己的提示没有被重新发送。请在列表中查看仍需处理或可以恢复的聊天。"
+        "finishedPartialUpdate": "Orca 安装更新时这些聊天正在工作。Orca 恢复的聊天已回到停止的位置并保留完整上下文，并被要求在继续之前先检查之前在做什么。你自己的提示没有被重新发送。请在列表中查看仍需处理或可以恢复的聊天。",
+        "resumedOfTotal_other": "已恢复 {{resumed}}/{{count}} 个聊天",
+        "resumingCount_other": "正在恢复 {{count}} 个聊天"
       },
       "NativeChatResumeRunStatusIcon": {
         "waitingForReply": "等待回复",
@@ -17269,6 +17400,68 @@
         "cancelled": "此普通 SSH 终端在启动前已关闭。",
         "terminalUnavailable": "Orca 无法在此处打开终端。",
         "openHint": "在 Orca 无法在该主机上完成设置时，仍可让你继续在主机上工作。"
+      },
+      "AgentStateDot": {
+        "working": "工作中",
+        "monitoring": "正在监控后台任务",
+        "blocked": "受阻",
+        "waiting": "等待输入",
+        "interrupted": "已中断",
+        "failed": "失败",
+        "done": "完成",
+        "idle": "空闲",
+        "unverifiable": "无近期更新",
+        "unconfirmed": "无法确认",
+        "permission": "需要关注"
+      },
+      "issueComments": {
+        "you": "你"
+      },
+      "ZoomOverlay": {
+        "uiZoom": "界面缩放",
+        "editorZoom": "编辑器缩放",
+        "terminalZoom": "终端缩放"
+      },
+      "issueCopy": {
+        "urlCopied": "URL 已复制",
+        "keyCopied": "标识已复制",
+        "identifierCopied": "标识符已复制",
+        "branchNameCopied": "分支名称已复制",
+        "promptCopied": "提示词已复制",
+        "urlCopyFailed": "复制 URL 失败",
+        "keyCopyFailed": "复制标识失败",
+        "identifierCopyFailed": "复制标识符失败",
+        "branchNameCopyFailed": "复制分支名称失败",
+        "promptCopyFailed": "复制提示词失败"
+      },
+      "prCheckCounts": {
+        "noChecksFound": "未找到检查",
+        "checksFailing_other": "{{count}} 项检查失败",
+        "checksNeedAction_other": "{{count}} 项检查需要处理",
+        "checksPending_other": "{{count}} 项检查待完成",
+        "allChecksPassing": "所有检查均通过",
+        "checksPassingOfTotal_other": "{{count}} 项检查中有 {{passing}} 项通过"
+      },
+      "taskPageJiraBoard": {
+        "changeStatusFailed": "更改状态失败。"
+      },
+      "jiraIssue": {
+        "loadStatusChangesFailed": "加载状态变更失败。",
+        "loadCommentsFailed": "加载评论失败。"
+      },
+      "taskPageJiraLinkedIssues": {
+        "someIssuesFailed": "无法加载部分与工作区关联的 Jira 议题。请刷新重试。"
+      },
+      "taskPageJiraLoadState": {
+        "failedToLoadIssues": "加载 Jira 议题失败。",
+        "authFailed": "Jira 认证失败。请在设置中重新连接 Jira 后重试。",
+        "accessDenied": "Jira 拒绝了此次议题搜索的访问。请检查项目权限或尝试其他 JQL 查询。",
+        "rateLimited": "此次议题搜索触发了 Jira 速率限制。请稍后重试。",
+        "serverError": "加载议题时 Jira 出现服务器错误。请稍后重试。",
+        "jqlFailed": "Jira 无法执行此 JQL 查询。请检查语法后重试。",
+        "unreachable": "无法连接 Jira。请检查连接后重试。",
+        "loadFailed": "无法加载 Jira 议题。请稍后重试。",
+        "errorWithCode": "错误 {{code}}：{{summary}}"
       }
     },
     "i18n": {
@@ -19452,9 +19645,9 @@
     "pathAdded": "Added",
     "openFolder": "Open {{name}}",
     "findOrTypePath": "查找文件夹，或输入任意路径...",
-    "addTypedPath": "Add",
     "noDirectories": "尚未添加文件夹。",
-    "removePath": "Remove {{name}}"
+    "removePath": "Remove {{name}}",
+    "addTypedPathCode": "添加 <path/>"
   },
   "accounts": {
     "wslAccountNotApplied": {
@@ -19555,14 +19748,11 @@
         "keep": "保持原样",
         "restartOne": "重新启动会话",
         "title": "切换到 {{account}}",
-        "bodyOne": "{{previous}} 账户上仍有 1 个 Claude 会话正在运行。重启后，对话将在 {{next}} 账户上继续。正在工作的会话会等到空闲后再重启。",
         "dontAskAgainHint": "您可以在“设置”→“AI 提供商帐户”中关闭此功能。",
-        "bodyOther": "{{previous}} 账户上仍有 {{count}} 个 Claude 会话正在运行。重启后，各对话将在 {{next}} 账户上继续。正在工作的会话会等到空闲后再重启。",
         "listLabel": "要重新启动的 Claude 会话",
         "settingTitle": "Claude 运行期间切换账户时",
         "settingDescription": "重启后，每个正在进行的对话都会在新账户上继续。",
         "settingRestart": "总是重新启动",
-        "restartOther": "重启 {{count}} 个会话",
         "session": "Claude 会话",
         "restartingOther": "正在 {{account}} 账户上重启 {{count}} 个 Claude 会话",
         "uncheckedOne": "无法检查 1 个终端中的 Claude。如果 Claude 正在那里运行，它会保持 {{previous}} 直到重启。",
@@ -19577,11 +19767,12 @@
         "reasonOwnFolder": "使用你自己的 Claude 文件夹",
         "reasonUnknownAccount": "账户未知",
         "reasonNoSession": "无法恢复",
-        "reviewBodyOne": "另有 1 个 Claude 会话未移至 {{next}}。",
-        "reviewBodyOther": "另有 {{count}} 个 Claude 会话未移至 {{next}}。",
         "notMovedOne": "另有 1 个会话未移动。",
         "notMovedOther": "另有 {{count}} 个会话未移动。",
-        "review": "查看"
+        "review": "查看",
+        "restartCount_other": "重启 {{count}} 个会话",
+        "reviewBody_other": "其他 {{count}} 个 Claude 会话未移至 {{next}}。",
+        "body_other": "{{count}} 个 Claude 会话仍在 {{previous}} 上运行。重启后，各对话将在 {{next}} 上继续。忙碌的会话会等待空闲后再重启。"
       }
     },
     "hostSignIn": {
@@ -19976,13 +20167,12 @@
       "optionalEmail": "Atlassian 邮箱（作用域令牌可选）"
     },
     "workspace": {
-      "count": "{{count}} 个关联到 {{key}} 的工作区",
       "startAnother": "启动新工作区",
       "empty": "将 Jira 议题关联到工作区，或选择其他视图。",
       "openFailed": "无法打开关联到此 Jira 议题的工作区。",
       "mode": "有工作区",
       "search": "搜索关联的议题",
-      "single": "1 个关联到 {{key}} 的工作区"
+      "linkedCount_other": "{{count}} 个工作区已关联到 {{key}}"
     },
     "prompt": {
       "dialogTitle": "从模板复制提示词",
@@ -20178,7 +20368,7 @@
       "email": "获取你的电子邮件地址",
       "allSites": "读取和更改你在所有网站上的数据",
       "someSites": "读取和更改你在 {{hosts}} 上的数据",
-      "manySites": "读取和更改你在 {{hosts}} 及其他 {{count}} 个网站上的数据"
+      "manyOtherSites_other": "读取和更改你在 {{hosts}} 及其他 {{count}} 个网站上的数据"
     },
     "install": {
       "title": "添加 {{name}}？",

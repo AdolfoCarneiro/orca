@@ -2028,14 +2028,11 @@
         "69da9a208c": "Open in Jira",
         "fa132c8aed": "Failed to add comment.",
         "ea21952aa3": "Failed to update Jira issue.",
-        "6c41a9bcea": "Failed to copy {{value0}}",
-        "2ff69a3545": "{{value0}} copied",
         "666cfdd835": "Unknown",
         "ef21405c6d": "Jira issue",
         "commentTooLarge": "Comment is too large to submit safely."
       },
       "Landing": {
-        "76a95f7f47": "Create",
         "f9eaa9e12d": "Add project",
         "6ca6ff404e": "ORCA",
         "520304a067": "Orca logo",
@@ -2051,7 +2048,12 @@
         "0d0ace8861": "Star on GitHub",
         "ec43b38ba7": "Starred on GitHub",
         "157bb5ecbb": "Open GitHub",
-        "preflightDismiss": "Dismiss"
+        "preflightDismiss": "Dismiss",
+        "moveUpWorkspace": "Move up workspace",
+        "moveDownWorkspace": "Move down workspace",
+        "installGit": "Install Git",
+        "installGitHubCli": "Install GitHub CLI",
+        "learnMore": "Learn more"
       },
       "LinearIssueMarkdownDescriptionEditor": {
         "d9c47069ef": "Markdown",
@@ -2083,7 +2085,6 @@
         "ad5dec37b7": "Preview, edit, and start work from the selected issue.",
         "c23e79e5c0": "Actions",
         "b0eac92d85": "Retry",
-        "fabbd3f974": "updated the issue ·",
         "543970c87a": "Activity",
         "df4c86ed12": "Close",
         "7a4997d8bb": "Close Linear issue preview",
@@ -2107,11 +2108,8 @@
         "b25e453c9d": "Failed to create sub-issue",
         "aeed19d003": "Created {{value0}}",
         "9a1317cdd3": "Failed to load sub-issue",
-        "9bcbaa2737": "Failed to copy {{value0}}",
-        "7835483c43": "{{value0}} copied",
         "61f424f8ca": "Linear issue",
         "ca8778c124": "Unknown",
-        "8a33c85e9c": "Someone",
         "65239a714b": "Linear",
         "76ffd3c937": "Search for a project to add.",
         "c11b4e3cc2": "No projects found.",
@@ -2122,7 +2120,10 @@
         "moreWorkspaceActions": "More issue workspace actions",
         "startNewWorkspace": "Start new workspace",
         "workspaceSection": "Workspace",
-        "noWorkspaceYet": "None yet"
+        "noWorkspaceYet": "None yet",
+        "issueDescriptionLabel": "Issue description",
+        "namedUserUpdatedIssue": "{{name}} updated the issue · {{time}}",
+        "someoneUpdatedIssue": "Someone updated the issue · {{time}}"
       },
       "LinearItemDrawer": {
         "04008e6c46": "Start workspace from issue",
@@ -2158,7 +2159,9 @@
         "openAttachedWorkspace": "Open workspace attached to issue",
         "openWorkspace": "Open workspace",
         "moreWorkspaceActions": "More issue workspace actions",
-        "startNewWorkspace": "Start new workspace"
+        "startNewWorkspace": "Start new workspace",
+        "setEstimate": "Set estimate",
+        "estimateValue": "Estimate {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
         "reuseExistingBranch": "Reuse branch",
@@ -2220,7 +2223,22 @@
         "addSshHostHint": "Use an existing machine over SSH",
         "addRemoteOrcaServer": "Add Remote Orca Server",
         "addRemoteOrcaServerHint": "Pair another Orca runtime",
-        "hostConnectionFailed": "Connection failed"
+        "hostConnectionFailed": "Connection failed",
+        "connect": "Connect",
+        "reconnect": "Reconnect",
+        "setupConfigDefaultTabs": "Default tab commands",
+        "setupConfigSetupAndDefaultTabs": "Setup and default tab commands",
+        "setupConfigSetupScript": "Setup script",
+        "runDefaultTabCommands": "Run default tab commands",
+        "runSetupAndDefaultTabCommands": "Run setup and default tab commands",
+        "runSetupCommand": "Run setup command",
+        "askRunDefaultTabCommands": "Run default tab commands now?",
+        "askRunSetupAndDefaultTabCommands": "Run setup and default tab commands now?",
+        "askRunSetup": "Run setup now?",
+        "runSetupNow": "Run setup now",
+        "runCommandsNow": "Run commands now",
+        "skipForNow": "Skip for now",
+        "skipCommands": "Skip commands"
       },
       "NewWorkspaceComposerModal": {
         "createWorktree": "Create worktree",
@@ -2403,9 +2421,12 @@
         "5d80dc39bb": "ripgrep",
         "2ca749c15d": "Install",
         "4725b0e931": "Quick Open scan too large (",
-        "b227d88520": "{{value0}} files found",
         "995be8ea22": "Copy",
-        "cf144856dc": "Copied"
+        "cf144856dc": "Copied",
+        "filesFound_one": "{{count}} file found",
+        "filesFound_other": "{{count}} files found",
+        "hostCouldNotOpenPath": "The host could not open this file path.",
+        "chooseFileNotDirectory": "Choose a file rather than a directory."
       },
       "SelectedTextCopyMenu": {
         "9b40d7b018": "Copy"
@@ -2415,8 +2436,6 @@
         "serverBody": "These chats were working when Orca on {{machine}} restarted. Resuming restores each one where it stopped and asks the agent to carry on. Your own prompt is not re-sent.",
         "serverDismiss": "Dismiss",
         "serverResumeAll": "Resume all {{count}} on {{machine}}",
-        "serverResumeHereOne": "Resume 1 chat started here",
-        "serverResumeHere": "Resume {{count}} chats started here",
         "title": "Resume interrupted chats?",
         "body": "These chats were working when Orca closed. Resuming restores each one where it stopped, with its full context, and asks the agent to check what it was doing before carrying on. Your own prompt is not re-sent.",
         "updateBody": "These chats were working when Orca installed an update. Resuming restores each one where it stopped, with its full context, and asks the agent to check what it was doing before carrying on. Your own prompt is not re-sent.",
@@ -2425,18 +2444,10 @@
         "listLabel": "Chats that would be resumed",
         "dontAskAgain": "Don't ask again (resume automatically)",
         "dontAskAgainHint": "You can turn this off in Settings → Experimental → Chat UI.",
-        "continuedOne": "Resumed 1 chat",
-        "continuedMany": "Resumed {{value0}} chats",
         "selectAgent": "Resume {{value0}} chat \"{{value1}}\" in {{value2}}",
         "resumeSelected": "Resume {{value0}} chats",
         "resumeSelectedOne": "Resume 1 chat",
         "dismissAll": "Dismiss all",
-        "notContinuedOne": "1 chat couldn’t be resumed",
-        "notContinuedMany": "{{value0}} chats couldn’t be resumed",
-        "notConfirmedOne": "Couldn’t confirm 1 chat was resumed",
-        "notConfirmedMany": "Couldn’t confirm {{value0}} chats were resumed",
-        "notConfirmedOtherOne": "Couldn’t confirm 1 other chat was resumed",
-        "notConfirmedOtherMany": "Couldn’t confirm {{value0}} other chats were resumed",
         "viewChats": "View chats",
         "review": "Review",
         "activityUnnamed": "unnamed",
@@ -2444,9 +2455,7 @@
         "activityQuestion": "Waiting for your answer: {{value0}}",
         "activityMidReply": "Was mid-reply",
         "activitySubagentOne": "Subagent running: {{value0}}",
-        "activitySubagentMany": "{{value0}} subagents running",
         "activityMonitorOne": "Monitoring: {{value0}}",
-        "activityMonitorMany": "Monitoring {{value0}} background tasks",
         "selectWorkspace": "Select all chats in {{value0}}",
         "workspaceSelectedCount": "{{value0}} of {{value1}}",
         "selectAll": "Select all chats",
@@ -2458,7 +2467,21 @@
         "selectMachine": "Select all chats on {{value0}}",
         "sshHost": "SSH",
         "done": "Done",
-        "resultListLabel": "Chats in this resume"
+        "resultListLabel": "Chats in this resume",
+        "serverResumeHereCount_one": "Resume {{count}} chat started here",
+        "serverResumeHereCount_other": "Resume {{count}} chats started here",
+        "continuedCount_one": "Resumed {{count}} chat",
+        "continuedCount_other": "Resumed {{count}} chats",
+        "notContinuedCount_one": "{{count}} chat couldn’t be resumed",
+        "notContinuedCount_other": "{{count}} chats couldn’t be resumed",
+        "notConfirmedCount_one": "Couldn’t confirm {{count}} chat was resumed",
+        "notConfirmedCount_other": "Couldn’t confirm {{count}} chats were resumed",
+        "notConfirmedOtherCount_one": "Couldn’t confirm {{count}} other chat was resumed",
+        "notConfirmedOtherCount_other": "Couldn’t confirm {{count}} other chats were resumed",
+        "activitySubagentCount_other": "{{count}} subagents running",
+        "activityMonitorCount_other": "Monitoring {{count}} background tasks",
+        "activityMonitorCount_one": "Monitoring {{count}} background task",
+        "activitySubagentCount_one": "{{count}} subagent running"
       },
       "StarNagCard": {
         "30c36231c1": "Orca is open source. If it helped today, a GitHub star helps other developers find it.",
@@ -2473,7 +2496,6 @@
       "TaskPage": {
         "ff69a30681": "Cancel",
         "8ff6fdc368": "Creating…",
-        "fc0d8a1fa4": "to submit.",
         "919a20dd5b": "Enter {{value0}}",
         "56cdb413a2": "Comma-separated values",
         "1f0fce91e3": "Select {{value0}}",
@@ -2521,14 +2543,12 @@
         "bdebffcbfe": "Create a Linear project for the selected team.",
         "1361275ec3": "New Linear project",
         "7f3f7b4c18": "Description (optional, markdown)",
-        "9f2b4c03a6": "Filing in",
         "d3d0998b7d": "New GitHub issue",
         "d1e243795c": "issues",
         "be8cf68d9f": "view issues",
         "67662ade50": "project issues",
         "6244a02f46": "Open in Linear",
         "606a85c774": "Open",
-        "5e8061b088": "Start workspace from {{value0}} {{value1}}",
         "592a55611b": "Try selecting more teams or refreshing; team filters apply to the current fetched issue set.",
         "618107fab3": "No fetched issues match the selected teams",
         "903c7af49f": "No Linear issues found",
@@ -2537,7 +2557,6 @@
         "f362667d55": "Updated",
         "b1eaa18ace": "Issue",
         "37e7ee311e": "Key",
-        "b7bae28b6a": "shown",
         "a26a48252e": "Display properties",
         "5d2d835467": "Ordering",
         "5659da12fc": "Grouping",
@@ -2579,8 +2598,6 @@
         "054bf695cc": "Draft",
         "5b6b2af943": "Retrying…",
         "0c0de0fc0e": "Couldn't load issues from",
-        "d1766fd62d": "projects failed to load",
-        "7762f4b03a": "of",
         "443f7dd928": "Merge",
         "a7396b05c6": "Checks",
         "f6fa3c97d0": "Reviewers",
@@ -2762,10 +2779,41 @@
         "linearOpenAttachedWorkspace": "Open workspace attached to {{value0}}",
         "linearWorktreesColumn": "Workspaces",
         "jiraBoardEmptyColumn": "No issues",
-        "labelCountPlural": "{{count}} labels",
-        "labelCountSingular": "{{count}} label",
-        "memberCountPlural": "{{count}} members",
-        "memberCountSingular": "{{count}} member"
+        "backToPullRequests": "Pull requests",
+        "backToGitHubList": "GitHub list",
+        "noGitHubRepositoryContext": "No GitHub repository context available for this issue.",
+        "filingInTarget": "Filing in {{target}}",
+        "filingInThisRepository": "Filing in this repository",
+        "shortcutToSubmit": "{{shortcut}} to submit.",
+        "projectsFailedToLoad_one": "{{failed}} of {{count}} project failed to load",
+        "projectsFailedToLoad_other": "{{failed}} of {{count}} projects failed to load",
+        "draftPullRequestNumber": "Draft pull request #{{number}}",
+        "pullRequestNumber": "Pull request #{{number}}",
+        "issueNumber": "Issue #{{number}}",
+        "loadGitHubWorkFailed": "Failed to load GitHub work.",
+        "gitlabViewIssues": "Issues",
+        "gitlabViewMrs": "MRs",
+        "gitlabViewTodos": "My Todos",
+        "startWorkspaceFromMr": "Start workspace from MR {{number}}",
+        "startWorkspaceFromIssue": "Start workspace from issue {{number}}",
+        "shownCount_other": "{{count}} shown",
+        "linearProjectPlaceholder": "Project",
+        "labelCount_one": "{{count}} label",
+        "labelCount_other": "{{count}} labels",
+        "memberCount_one": "{{count}} member",
+        "memberCount_other": "{{count}} members",
+        "groupUnassigned": "Unassigned",
+        "linearProjectContext": "Project: {{name}}",
+        "linearViewContext": "View: {{name}}",
+        "changedFileCount_one": "{{count}} file",
+        "changedFileCount_other": "{{count}} files",
+        "resumeRestoration": {
+          "linearProjectNotFound": "Saved Linear project was not found.",
+          "linearProjectRestoreFailed": "Failed to restore saved Linear project.",
+          "linearViewNotFound": "Saved Linear view was not found.",
+          "linearViewRestoreFailed": "Failed to restore saved Linear view."
+        },
+        "shownCount_one": "{{count}} shown"
       },
       "Terminal": {
         "73768427cf": "Close",
@@ -2840,7 +2888,8 @@
         "b1e390250d": "Could not complete the local build switch.",
         "d29740d175": "The selected build could not be used.",
         "37d45c9ec1": "Choose Another Build",
-        "7f1a4c9e02": "Your system package manager installed Orca, so update it from there — Orca cannot install this release itself."
+        "7f1a4c9e02": "Your system package manager installed Orca, so update it from there — Orca cannot install this release itself.",
+        "compatibilityModeFailed": "Could not enable compatibility mode. {{message}}"
       },
       "WorktreeJumpPalette": {
         "ac037cfac2": "Move",
@@ -2866,8 +2915,6 @@
         "d7d496a451": "Browser page no longer exists",
         "50a1d11d5b": "Open Tabs",
         "088d66d980": "Actions & Settings",
-        "20af998bff": "{{value0}} items available{{value1}}",
-        "bb72c08e63": "{{value0}} results found{{value1}}",
         "34c8fbb46e": "SSH remote",
         "63c2be1914": "SSH disconnected",
         "95be6587d3": "Create worktree \"{{value0}}\"",
@@ -2884,7 +2931,12 @@
         "recentChatsTerminalsHeader": "Recent Chats & Terminals",
         "27f10cca63": "Search chats, terminals, workspaces, tasks, settings, and actions...",
         "2770f02910": "Search chats, terminals, workspaces, tasks, settings, and actions",
-        "lastActiveTime": "Last active {{value0}} ago"
+        "lastActiveTime": "Last active {{value0}} ago",
+        "resultsFound_one": "{{count}} result found.",
+        "resultsFound_other": "{{count}} results found.",
+        "itemsAvailable_one": "{{count}} item available.",
+        "itemsAvailable_other": "{{count}} items available.",
+        "createActionAvailable": "Create worktree action available."
       },
       "github": {
         "pr": {
@@ -3188,7 +3240,7 @@
         },
         "priority": {
           "icon": {
-            "c43d3e065b": "Priority:"
+            "priorityValue": "Priority: {{label}}"
           }
         },
         "project": {
@@ -3209,7 +3261,6 @@
               "c8db98b73b": "Resources",
               "bb1405eff8": "Milestones",
               "5d99315fb8": "Planning",
-              "3ad562bdf4": "scoped issues",
               "563501f191": "Progress",
               "bb5664d456": "No project description.",
               "7b147907dc": "Linear",
@@ -3236,7 +3287,10 @@
               "df4bd63c1d": "Unassigned",
               "30402d2c6e": "Try search or refresh.",
               "a2f31c4cd6": "No Linear projects found",
-              "c9b6e9f90d": "Unable to load Linear projects"
+              "c9b6e9f90d": "Unable to load Linear projects",
+              "scopedIssueCount_one": "{{count}} scoped issue",
+              "scopedIssueCount_other": "{{count}} scoped issues",
+              "backlog": "Backlog"
             }
           }
         },
@@ -3249,7 +3303,9 @@
             "05baa5ae90": "Workspace",
             "89f6580dbf": "Search teams...",
             "b3488fad3c": "No teams were fetched. Access can depend on key scope, private-team membership, archived teams, permissions, or a fetch failure.",
-            "405b33c378": "No fetched teams match your search."
+            "405b33c378": "No fetched teams match your search.",
+            "teamCount_one": "{{count}} team",
+            "teamCount_other": "{{count}} teams"
           }
         }
       },
@@ -6652,7 +6708,11 @@
           "c34fb1098d": "Terminal tabs closed and shutdown requested.",
           "d9657ac204": "Terminal session shutdown requested.",
           "e8f25bd903": "Couldn’t finish terminal cleanup.",
-          "a702d4196e": "This closes every terminal tab across all workspaces and requests shutdown for its current terminal sessions. Any unsaved terminal work is lost. The daemon itself keeps running, and new terminals can be opened immediately. This can't be undone."
+          "a702d4196e": "This closes every terminal tab across all workspaces and requests shutdown for its current terminal sessions. Any unsaved terminal work is lost. The daemon itself keeps running, and new terminals can be opened immediately. This can't be undone.",
+          "confirmRestart": "Restart",
+          "busyRestarting": "Restarting…",
+          "confirmKillAll": "Kill all sessions",
+          "busyKilling": "Killing…"
         },
         "MacFolderAccessFixDialog": {
           "stepAllow": "Allow Orca under Files and Folders",
@@ -14452,11 +14512,11 @@
                 "a2f68645ac": "Refresh GitLab API budget",
                 "2f9c16d6c3": "Orca uses REST through the GitLab CLI.",
                 "14e144f7a7": "GitLab API Budget",
-                "3e2c982cfa": "left, resets in",
-                "ea8ad0bae8": "of",
                 "0a891e8935": "REST API",
                 "953f7c6062": "This GitLab host did not return rate-limit headers.",
-                "budget_scope_prefix": "Budget scope"
+                "budget_scope_prefix": "Budget scope",
+                "resetUnknown": "unknown",
+                "remainingOfLimit": "{{remaining}} of {{limit}} left, resets in {{reset}}"
               }
             }
           }
@@ -16359,7 +16419,21 @@
           "b09b2384fd": "Paused",
           "eaa02014f8": "Enabled",
           "29baf8f4c2": "Source",
-          "lastRunFailed": "Last run failed."
+          "lastRunFailed": "Last run failed.",
+          "noGrace": "No grace",
+          "graceMinutes_one": "{{count}} minute",
+          "graceMinutes_other": "{{count}} minutes",
+          "graceHours_one": "{{count}} hour",
+          "graceHours_other": "{{count}} hours",
+          "usageCoverageRuns_one": "{{known}}/{{count}} run",
+          "usageCoverageRuns_other": "{{known}}/{{count}} runs",
+          "usageUnavailable": "Unavailable",
+          "noRuns": "No runs",
+          "projectDefault": "Project default",
+          "reuseLiveSession": "Reuse live session",
+          "freshEachRun": "Fresh each run",
+          "precheckEnabled": "Enabled, {{timeout}}",
+          "precheckNone": "None"
         },
         "AutomationEditorDialog": {
           "fb1896a5e7": "Cancel",
@@ -16463,11 +16537,8 @@
           "2faecab10b": "Run Now",
           "13118faadf": "Unknown project",
           "73f630b49d": "Cancel",
-          "1b586f0e2b": "on",
-          "02a33e3204": "from",
           "9adfab2596": "Delete External Automation",
           "1e2e41392f": "Don't ask again",
-          "b264564427": "and its run history. Workspaces created by previous runs are not deleted.",
           "080dcb5fbb": "Delete Automation",
           "19a6e30eae": "Refresh automations",
           "77c2778945": "Automations",
@@ -16502,7 +16573,6 @@
           "pendingAutomationRunMissing": "Run history no longer available.",
           "paused": "Paused",
           "missingWorkspace": "Missing workspace",
-          "runUsageSummary": "{{cost}} est. · {{tokens}} tokens",
           "usageUnavailable": "Usage unavailable",
           "noRunUsageYet": "No run usage yet",
           "noWorkspace": "No workspace",
@@ -16517,7 +16587,11 @@
           "rowActions": "Automation actions",
           "tableLastRun": "Last run",
           "ownerChanged": "This automation changed hosts. Refresh and try again.",
-          "runError": "Error:"
+          "runError": "Error:",
+          "deleteAutomationDescription": "Delete <name/> and its run history. Workspaces created by previous runs are not deleted.",
+          "deleteExternalAutomationDescription": "Delete <name/> from <provider/> on <host/>.",
+          "runUsageSummaryTokens_one": "{{cost}} est. · {{tokens}} token",
+          "runUsageSummaryTokens_other": "{{cost}} est. · {{tokens}} tokens"
         },
         "AutomationsPageSkeleton": {
           "55527b7bcf": "Loading automations"
@@ -16547,8 +16621,8 @@
           "92405f1431": "Unavailable",
           "dbdcec22bd": "Read-only",
           "0a2d4359a8": "Manageable",
-          "e2532150ed": "automations",
-          "701515f010": "automation"
+          "automationCount_one": "{{count}} automation",
+          "automationCount_other": "{{count}} automations"
         },
         "WorkspaceCombobox": {
           "ee5b280eba": "No workspaces found.",
@@ -16590,7 +16664,8 @@
             "last": {
               "run": {
                 "done": "Done",
-                "failed": "Failed"
+                "failed": "Failed",
+                "statusWithRelative": "{{status}} {{relative}}"
               }
             }
           },
@@ -16735,14 +16810,19 @@
         },
         "externalScope": {
           "uncheckedHost": "External automation managers on {{hostLabel}} could not be checked.",
-          "uncheckedHosts": "External automation managers on {{count}} hosts could not be checked."
+          "uncheckedHostCount_other": "External automation managers on {{count}} hosts could not be checked.",
+          "uncheckedHostCount_one": "External automation managers on {{count}} host could not be checked."
         },
         "enablement": {
           "paused": "Paused"
         },
         "runHistory": {
-          "occurrencesWithLatest": "{{times}} times, most recently {{date}}",
-          "occurrences": "{{times}} times"
+          "runCountSummary_one": "{{count}} run · {{completed}} completed",
+          "runCountSummary_other": "{{count}} runs · {{completed}} completed",
+          "occurrencesWithLatestCount_other": "{{count}} times, most recently {{date}}",
+          "occurrencesCount_other": "{{count}} times",
+          "occurrencesCount_one": "{{count}} time",
+          "occurrencesWithLatestCount_one": "{{count}} time, most recently {{date}}"
         },
         "createDestination": {
           "label": "Host",
@@ -16797,6 +16877,63 @@
           "useFreshSessions": "Use fresh sessions",
           "helper": "Added to this host's default arguments for each fresh session.",
           "detailLabel": "Extra arguments"
+        },
+        "capabilityProbe": {
+          "createIdempotencyUpdateRequired": "Moving automations to this host requires a newer Orca server. Update the HUB and try again."
+        },
+        "editDraft": {
+          "unsupportedSchedule": "This automation has an unsupported saved schedule. Pick a supported schedule before saving changes."
+        },
+        "hostCatalog": {
+          "orphanEntryLabel": "Unassigned legacy automations"
+        },
+        "automationPageParts": {
+          "never": "Never",
+          "now": "now",
+          "runStatusPending": "Queued",
+          "runStatusDispatching": "Starting",
+          "runStatusDispatched": "Launched",
+          "runStatusCompleted": "Done",
+          "runStatusSkippedPrecheck": "Precheck skipped",
+          "runStatusSkippedMissed": "Skipped",
+          "runStatusSkippedUnavailable": "Unavailable",
+          "runStatusSkippedNeedsInteractiveAuth": "Needs credentials",
+          "runStatusDispatchFailed": "Failed"
+        },
+        "runContent": {
+          "noOutput": "No output content available."
+        },
+        "runViewState": {
+          "viewRun": "View run",
+          "runOpen": "Run is open",
+          "terminalOnPairedServer": "Run terminal is on the paired server.",
+          "terminalUnavailable": "Run terminal is unavailable.",
+          "openWorkspace": "Open workspace",
+          "workspaceAvailable": "Workspace is available.",
+          "snapshotSaved": "Snapshot saved",
+          "showingSnapshot": "Showing saved run snapshot.",
+          "namedWorkspaceGone": "{{name}} no longer available",
+          "workspaceGone": "Workspace no longer available",
+          "noWorkspaceLaunched": "No workspace launched"
+        },
+        "runWorkspaceDisplay": {
+          "notLaunched": "Not launched",
+          "namedWorkspaceGone": "{{name}} (no longer available)"
+        },
+        "usage": {
+          "tokensAndCost_one": "{{tokens}} token · {{cost}}",
+          "tokensAndCost_other": "{{tokens}} tokens · {{cost}}"
+        },
+        "externalDisplay": {
+          "sshHost": "SSH host",
+          "local": "Local"
+        },
+        "externalActionDisabled": {
+          "actionInProgress": "Another automation action is still running.",
+          "sshConnecting": "Wait for this SSH host to finish connecting.",
+          "connectSshHost": "Connect this SSH host before managing {{provider}} automations.",
+          "cannotManageOnSshHost": "{{provider}} cannot manage automations on this SSH host.",
+          "cannotManageLocally": "{{provider}} cannot manage automations on this machine."
         }
       },
       "agent": {
@@ -16937,8 +17074,6 @@
             "63ce735809": "Connect",
             "4a2ab52781": "Verifying…",
             "79e7aaed39": "Cancel",
-            "fdd26d81cc": "Atlassian account settings",
-            "8090504a3e": "Create a token in",
             "7b3967c12f": "Atlassian API token",
             "3d81bf3ab3": "API token",
             "e91b9a4073": "you@example.com",
@@ -16963,7 +17098,8 @@
             "be9eba0a1b": "username",
             "70035652d7": "Password",
             "c50abbf340": "Jira account password",
-            "d8737db691": "Use your Jira Server or Data Center account username and password."
+            "d8737db691": "Use your Jira Server or Data Center account username and password.",
+            "createTokenInSettings": "Create a token in <link>Atlassian account settings</link>."
           }
         }
       },
@@ -17072,10 +17208,11 @@
             "combobox": {
               "noProjects": "No projects",
               "allProjects": "All projects",
-              "hostCount": "{{value0}} hosts",
               "searchProjects": "Search projects...",
               "noMatches": "No projects match your search.",
-              "chooseSource": "Choose task source"
+              "chooseSource": "Choose task source",
+              "hostCount_other": "{{count}} hosts",
+              "hostCount_one": "{{count}} host"
             }
           }
         },
@@ -17112,7 +17249,35 @@
       "taskSourceContextSummary": {
         "sourceUnavailable": "{{value0}} source unavailable: {{value1}}",
         "someSourceHostsUnavailable": "Some {{value0}} source hosts unavailable: {{value1}}",
-        "reconnectOrUpdateTitle": "Reconnect or update {{value0}} to load this source."
+        "reconnectOrUpdateTitle": "Reconnect or update {{value0}} to load this source.",
+        "providerSourceTitle": "{{provider}} source",
+        "hostTitle": "Host: {{hosts}}",
+        "accountTitle": "Account: {{accounts}}",
+        "sourceTitle": "Source: {{source}}",
+        "sourceHostCount_other": "{{count}} source hosts",
+        "noHost": "No host",
+        "projectCount_other": "{{count}} projects",
+        "selectedProject": "Selected project",
+        "selectedProjectCount_other": "{{count}} selected projects",
+        "currentAccount": "Current account",
+        "statusCheckingCapabilities": "checking server capabilities",
+        "statusServerUpdateForTaskSources": "server update needed for task sources",
+        "statusProviderAuthNeeded": "provider auth needed",
+        "statusSourceToolUnavailable": "source tool unavailable",
+        "statusProviderUnsupported": "provider unsupported on this host",
+        "statusServerUpdateNeeded": "server update needed",
+        "unavailableCount_other": "{{count}} unavailable",
+        "statusConnected": "connected",
+        "statusAuthNeeded": "auth needed",
+        "statusConnecting": "connecting",
+        "statusConnectionIssue": "connection issue",
+        "statusDisconnected": "disconnected",
+        "hostStatus": "{{host}} {{status}}",
+        "availabilityTitle": "Availability: {{hosts}}",
+        "projectCount_one": "{{count}} project",
+        "selectedProjectCount_one": "{{count}} selected project",
+        "sourceHostCount_one": "{{count}} source host",
+        "unavailableCount_one": "{{count}} unavailable"
       },
       "ShortcutKeyCombo": {
         "07eb4985a1": "Double-tap {{value0}}"
@@ -17505,15 +17670,15 @@
         }
       },
       "NativeChatResumeRunPanel": {
-        "resumedTitle": "Resumed {{value0}} of {{value1}} chats",
-        "resumingTitleOne": "Resuming 1 chat",
-        "resumingTitle": "Resuming {{value0}} chats",
         "description": "Each chat is restored with its full context and asked to check where it stopped. You can close this; the status bar keeps track.",
-        "resumedTitleOne": "Resumed {{value0}} of 1 chat",
         "finished": "These chats were working when Orca closed. Orca restored each one where it stopped, with its full context, and asked the agent to check what it was doing before carrying on. Your own prompts weren’t re-sent.",
         "finishedUpdate": "These chats were working when Orca installed an update. Orca restored each one where it stopped, with its full context, and asked the agent to check what it was doing before carrying on. Your own prompts weren’t re-sent.",
         "finishedPartial": "These chats were working when Orca closed. The ones Orca resumed were restored where they stopped, with their full context, and asked to check what they were doing before carrying on. Your own prompts weren’t re-sent. Check the list for chats that still need attention or can be resumed.",
-        "finishedPartialUpdate": "These chats were working when Orca installed an update. The ones Orca resumed were restored where they stopped, with their full context, and asked to check what they were doing before carrying on. Your own prompts weren’t re-sent. Check the list for chats that still need attention or can be resumed."
+        "finishedPartialUpdate": "These chats were working when Orca installed an update. The ones Orca resumed were restored where they stopped, with their full context, and asked to check what they were doing before carrying on. Your own prompts weren’t re-sent. Check the list for chats that still need attention or can be resumed.",
+        "resumedOfTotal_one": "Resumed {{resumed}} of {{count}} chat",
+        "resumedOfTotal_other": "Resumed {{resumed}} of {{count}} chats",
+        "resumingCount_one": "Resuming {{count}} chat",
+        "resumingCount_other": "Resuming {{count}} chats"
       },
       "NativeChatResumeRunStatusIcon": {
         "waitingForReply": "Waiting for a reply",
@@ -17578,6 +17743,72 @@
         "cancelled": "This plain SSH terminal was closed before it started.",
         "terminalUnavailable": "Orca couldn’t open a terminal here.",
         "openHint": "Keeps you working on the host while Orca can’t set up there."
+      },
+      "AgentStateDot": {
+        "working": "Working",
+        "monitoring": "Monitoring background tasks",
+        "blocked": "Blocked",
+        "waiting": "Waiting for input",
+        "interrupted": "Interrupted",
+        "failed": "Failed",
+        "done": "Done",
+        "idle": "Idle",
+        "unverifiable": "No recent update",
+        "unconfirmed": "Couldn’t confirm",
+        "permission": "Needs attention"
+      },
+      "issueComments": {
+        "you": "You"
+      },
+      "ZoomOverlay": {
+        "uiZoom": "UI Zoom",
+        "editorZoom": "Editor Zoom",
+        "terminalZoom": "Terminal Zoom"
+      },
+      "issueCopy": {
+        "urlCopied": "URL copied",
+        "keyCopied": "Key copied",
+        "identifierCopied": "Identifier copied",
+        "branchNameCopied": "Branch name copied",
+        "promptCopied": "Prompt copied",
+        "urlCopyFailed": "Failed to copy URL",
+        "keyCopyFailed": "Failed to copy key",
+        "identifierCopyFailed": "Failed to copy identifier",
+        "branchNameCopyFailed": "Failed to copy branch name",
+        "promptCopyFailed": "Failed to copy prompt"
+      },
+      "prCheckCounts": {
+        "noChecksFound": "No checks found",
+        "checksFailing_one": "{{count}} check failing",
+        "checksFailing_other": "{{count}} checks failing",
+        "checksNeedAction_one": "{{count}} check needs action",
+        "checksNeedAction_other": "{{count}} checks need action",
+        "checksPending_one": "{{count}} check pending",
+        "checksPending_other": "{{count}} checks pending",
+        "allChecksPassing": "All checks passing",
+        "checksPassingOfTotal_one": "{{passing}} of {{count}} check passing",
+        "checksPassingOfTotal_other": "{{passing}} of {{count}} checks passing"
+      },
+      "taskPageJiraBoard": {
+        "changeStatusFailed": "Failed to change status."
+      },
+      "jiraIssue": {
+        "loadStatusChangesFailed": "Failed to load status changes.",
+        "loadCommentsFailed": "Failed to load comments."
+      },
+      "taskPageJiraLinkedIssues": {
+        "someIssuesFailed": "Some Jira issues linked to workspaces could not be loaded. Refresh to try again."
+      },
+      "taskPageJiraLoadState": {
+        "failedToLoadIssues": "Failed to load Jira issues.",
+        "authFailed": "Jira authentication failed. Reconnect Jira in Settings, then try again.",
+        "accessDenied": "Jira denied access to this issue search. Check project permissions or try a different JQL query.",
+        "rateLimited": "Jira rate-limited this issue search. Try again in a moment.",
+        "serverError": "Jira had a server error while loading issues. Try again in a moment.",
+        "jqlFailed": "Jira couldn't run this JQL query. Check the syntax and try again.",
+        "unreachable": "Couldn't reach Jira. Check your connection and try again.",
+        "loadFailed": "Couldn't load Jira issues. Try again in a moment.",
+        "errorWithCode": "Error {{code}}: {{summary}}"
       }
     },
     "i18n": {
@@ -19651,9 +19882,9 @@
     "pathAdded": "Added",
     "openFolder": "Open {{name}}",
     "findOrTypePath": "Find a folder, or type any path…",
-    "addTypedPath": "Add",
     "noDirectories": "No folders added yet.",
-    "removePath": "Remove {{name}}"
+    "removePath": "Remove {{name}}",
+    "addTypedPathCode": "Add <path/>"
   },
   "accounts": {
     "wslAccountNotApplied": {
@@ -19730,13 +19961,10 @@
       "signInLinkCopyFailed": "Could not copy the link.",
       "switchSessions": {
         "title": "Switched to {{account}}",
-        "bodyOne": "1 Claude session is still running on {{previous}}. Restarting continues the conversation on {{next}}. Busy sessions wait for idle before restarting.",
-        "bodyOther": "{{count}} Claude sessions are still running on {{previous}}. Restarting continues each conversation on {{next}}. Busy sessions wait for idle before restarting.",
         "dontAskAgain": "Don't ask again (restart automatically)",
         "dontAskAgainHint": "You can turn this off in Settings → AI Provider Accounts.",
         "keep": "Keep as is",
         "restartOne": "Restart session",
-        "restartOther": "Restart {{count}} sessions",
         "listLabel": "Claude sessions to restart",
         "session": "Claude session",
         "busy": "Working",
@@ -19762,11 +19990,15 @@
         "reasonOwnFolder": "Uses your own Claude folder",
         "reasonUnknownAccount": "Account unknown",
         "reasonNoSession": "Can't resume",
-        "reviewBodyOne": "1 other Claude session wasn't moved to {{next}}.",
-        "reviewBodyOther": "{{count}} other Claude sessions weren't moved to {{next}}.",
         "notMovedOne": "1 other session wasn't moved.",
         "notMovedOther": "{{count}} other sessions weren't moved.",
-        "review": "Review"
+        "review": "Review",
+        "restartCount_other": "Restart {{count}} sessions",
+        "reviewBody_one": "{{count}} other Claude session wasn't moved to {{next}}.",
+        "reviewBody_other": "{{count}} other Claude sessions weren't moved to {{next}}.",
+        "body_one": "{{count}} Claude session is still running on {{previous}}. Restarting continues the conversation on {{next}}. Busy sessions wait for idle before restarting.",
+        "body_other": "{{count}} Claude sessions are still running on {{previous}}. Restarting continues each conversation on {{next}}. Busy sessions wait for idle before restarting.",
+        "restartCount_one": "Restart {{count}} session"
       }
     },
     "managedData": {
@@ -20050,13 +20282,13 @@
       "optionalEmail": "Atlassian email (optional for scoped tokens)"
     },
     "workspace": {
-      "count": "{{count}} workspaces linked to {{key}}",
       "startAnother": "Start new workspace",
       "empty": "Link a Jira issue to a workspace, or choose another view.",
       "openFailed": "Unable to open the workspace linked to this Jira issue.",
       "mode": "Has Workspace",
       "search": "Search linked issues",
-      "single": "1 workspace linked to {{key}}"
+      "linkedCount_one": "{{count}} workspace linked to {{key}}",
+      "linkedCount_other": "{{count}} workspaces linked to {{key}}"
     },
     "prompt": {
       "dialogTitle": "Copy prompt from template",
@@ -20450,7 +20682,8 @@
       "email": "Know your email address",
       "allSites": "Read and change all your data on all websites",
       "someSites": "Read and change your data on {{hosts}}",
-      "manySites": "Read and change your data on {{hosts}} and {{count}} other sites"
+      "manyOtherSites_one": "Read and change your data on {{hosts}} and {{count}} other site",
+      "manyOtherSites_other": "Read and change your data on {{hosts}} and {{count}} other sites"
     },
     "install": {
       "title": "Add {{name}}?",
