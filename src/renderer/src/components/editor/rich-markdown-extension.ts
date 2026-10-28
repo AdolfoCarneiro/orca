@@ -20,7 +20,7 @@ export function createRichMarkdownExtension(
   codec: RichMarkdownEditorCodec,
   htmlSuperscriptLinks = false
 ) {
-  return RichMarkdownExtension.extend({
+  return RichMarkdownExtension.configure().extend({
     onBeforeCreate(event) {
       this.parent?.(event)
       preserveLiteralMarkdownSource(this.editor, codec, htmlSuperscriptLinks)
