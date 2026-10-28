@@ -51,7 +51,6 @@ export const ORCHESTRATION_CHECK_METHODS = [
       })
       const paneKey = caller.paneKey ?? undefined
       const boundRun = hasRunBindingKey(caller) ? db.getCurrentRunForCoordinator(caller) : undefined
-      const consumingCheck = params.peek !== true && params.all !== true && params.unread !== false
       if (params.run || boundRun) {
         const result = await checkRunMailbox({
           params,
