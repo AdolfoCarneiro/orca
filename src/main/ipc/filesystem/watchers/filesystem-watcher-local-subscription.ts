@@ -76,6 +76,11 @@ async function subscribeWhileRemovalAllowed(
     clearTimeout(pendingTeardown)
     watcherLifecycleState.pendingTeardowns.delete(rootKey)
   }
+  const waitingRetry = watcherLifecycleState.pendingLocalCapacityRetries.get(rootKey)
+  if (!root && waitingRetry) {
+    waitingRetry.listeners.set(sender.id, sender)
+    return
+  }
   const capacityRetryListeners = takeLocalCapacityRetryListeners(rootKey)
   const retrySignals = new Map(
     capacityRetryListeners.map((listener) => [listener.id, registerWatcherSenderCleanup(listener)])

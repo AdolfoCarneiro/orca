@@ -199,7 +199,8 @@ export function scheduleLocalBatchFlush(root: WatchedRoot): void {
 export async function createLocalWatcher(
   rootKey: string,
   rootPath: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onUnexpectedStop?: (root: WatchedRoot, retirement: Promise<void>) => void
 ): Promise<WatchedRoot> {
   const root: WatchedRoot = {
     subscription: null!,
@@ -229,6 +230,10 @@ export async function createLocalWatcher(
       rootPath,
       (err, events) => {
         if (err) {
+          if (errorCleanedUp) {
+            return
+          }
+          errorCleanedUp = true
           // Errors invalidate path precision; force a conservative renderer refresh.
           console.error(`[filesystem-watcher] error for ${rootKey}:`, err)
           notifyLocalWatcherInterrupted(root)
@@ -238,10 +243,12 @@ export async function createLocalWatcher(
           // The error callback can precede assignment of the subscription.
           if (root.subscription) {
             retainLocalWatcherPhysicalFailure(rootKey, err)
-            void trackDetachedLocalUnsubscribe(rootKey, root)
+            const retirement = trackDetachedLocalUnsubscribe(rootKey, root)
+            if (watcherLifecycleState.watchedRoots.get(rootKey) === root) {
+              watcherLifecycleState.watchedRoots.delete(rootKey)
+              onUnexpectedStop?.(root, retirement)
+            }
           }
-          errorCleanedUp = true
-          watcherLifecycleState.watchedRoots.delete(rootKey)
           return
         }
 

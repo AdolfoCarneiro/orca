@@ -10,6 +10,7 @@ import type {
 } from './filesystem-watcher-lifecycle-state'
 import { watcherLifecycleState } from './filesystem-watcher-lifecycle-state'
 import { createLocalWatcher, scheduleLocalBatchFlush } from './filesystem-watcher-local-events'
+import { waitForLocalWatcherErrorRetry } from './filesystem-watcher-error-retry'
 import {
   registerWatcherSenderCleanup,
   rememberUnwatchableRoot,
@@ -83,7 +84,13 @@ export async function installLocalWatcher(
             },
             cancelToken.abortController.signal
           )
-        : await createLocalWatcher(rootKey, rootPath, cancelToken.abortController.signal)
+        : await createLocalWatcher(
+            rootKey,
+            rootPath,
+            cancelToken.abortController.signal,
+            (stoppedRoot, retirement) =>
+              scheduleRetry(stoppedRoot.listeners, waitForLocalWatcherErrorRetry(retirement))
+          )
     } catch (error) {
       // Retain physical ownership if setup failed before the child proved exit.
       retainLocalWatcherPhysicalFailure(rootKey, error)
