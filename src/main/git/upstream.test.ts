@@ -220,6 +220,7 @@ describe('getUpstreamStatus', () => {
     gitExecFileAsyncMock
       .mockResolvedValueOnce({ stdout: 'refs/heads/feature\n' })
       .mockResolvedValueOnce({ stdout: '\n' })
+      .mockResolvedValueOnce({ stdout: 'refs/heads/feature\0\0\0\0\n' })
       .mockResolvedValueOnce({ stdout: '' })
       .mockRejectedValueOnce(new Error('missing remote branch'))
 

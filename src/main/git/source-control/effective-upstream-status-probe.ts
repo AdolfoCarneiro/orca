@@ -1,8 +1,7 @@
 import type { GitUpstreamStatus } from '../../../shared/git-status-types'
 import {
   getEffectiveGitUpstreamStatus,
-  getGitUpstreamStatusForUpstreamName,
-  splitRemoteBranchName
+  getGitUpstreamStatusForUpstreamName
 } from '../../../shared/git-effective-upstream'
 import type { GitRuntimeOptions } from '../git-runtime-options'
 import { gitReadOptionsForWorktree } from '../git-runtime-options'
@@ -144,6 +143,8 @@ export function shouldProbeEffectiveUpstreamStatus(
   if (!upstreamName) {
     return true
   }
-  const parsed = splitRemoteBranchName(upstreamName)
-  return parsed?.remoteName === 'origin' && parsed.branchName !== branchName
+  const originPrefix = ['origin/', 'remotes/origin/', 'refs/remotes/origin/'].find((prefix) =>
+    upstreamName.startsWith(prefix)
+  )
+  return originPrefix !== undefined && upstreamName.slice(originPrefix.length) !== branchName
 }

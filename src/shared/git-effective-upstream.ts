@@ -1,4 +1,5 @@
 import { isNoUpstreamError } from './git-remote-error'
+import { isSafeGitRefName } from './git-status-upstream-ref'
 import type { GitUpstreamStatus } from './git-status-types'
 import {
   getConfiguredBranchRemoteUpstream,
@@ -63,28 +64,70 @@ async function splitRemoteBranchNameByKnownRemote(
 }
 
 async function getConfiguredUpstream(
-  runGit: GitCommandRunner
-): Promise<EffectiveGitUpstream | null> {
+  runGit: GitCommandRunner,
+  currentBranchName: string | null
+): Promise<{ upstream: EffectiveGitUpstream; canUseSameNameOriginFallback: boolean } | null> {
   try {
     const { stdout } = await runGit(['rev-parse', '--abbrev-ref', 'HEAD@{u}'])
     const upstreamName = stdout.trim()
+    if (
+      currentBranchName &&
+      (!upstreamName || /^(?:refs\/|heads\/|remotes\/)/.test(upstreamName))
+    ) {
+      const branchRef = `refs/heads/${currentBranchName}`
+      const metadata = await runGit([
+        'for-each-ref',
+        '--format=%(refname)%00%(upstream)%00%(upstream:short)%00%(upstream:remotename)%00%(upstream:remoteref)',
+        '--count=1',
+        branchRef
+      ])
+      const fields = metadata.stdout.replace(/\r?\n$/, '').split('\0')
+      if (
+        fields.length !== 5 ||
+        fields[0] !== branchRef ||
+        (upstreamName && fields[2] !== upstreamName)
+      ) {
+        throw new Error('Unable to resolve qualified configured upstream')
+      }
+      if (!fields[1]) {
+        return null
+      }
+      if (!isSafeGitRefName(fields[1]) || !isSafeGitRefName(fields[4])) {
+        throw new Error('Unable to resolve qualified configured upstream')
+      }
+      return {
+        upstream: {
+          upstreamName: upstreamName || fields[1],
+          remoteName: fields[3] && fields[3] !== '.' ? fields[3] : null,
+          branchName: fields[4].replace(/^refs\/heads\//, ''),
+          isConfiguredUpstream: true
+        },
+        canUseSameNameOriginFallback: fields[4].startsWith('refs/heads/')
+      }
+    }
     if (!upstreamName) {
       return null
     }
     const parsed = splitRemoteBranchName(upstreamName)
     if (!parsed) {
       return {
-        upstreamName,
-        remoteName: null,
-        branchName: upstreamName,
-        isConfiguredUpstream: true
+        upstream: {
+          upstreamName,
+          remoteName: null,
+          branchName: upstreamName,
+          isConfiguredUpstream: true
+        },
+        canUseSameNameOriginFallback: true
       }
     }
     return {
-      upstreamName,
-      remoteName: parsed.remoteName,
-      branchName: parsed.branchName,
-      isConfiguredUpstream: true
+      upstream: {
+        upstreamName,
+        remoteName: parsed.remoteName,
+        branchName: parsed.branchName,
+        isConfiguredUpstream: true
+      },
+      canUseSameNameOriginFallback: true
     }
   } catch (error) {
     if (isNoUpstreamError(error)) {
@@ -111,12 +154,14 @@ async function resolveEffectiveGitUpstreamForBranch(
   runGit: GitCommandRunner,
   currentBranchName: string | null
 ): Promise<EffectiveGitUpstream | null> {
-  let configured = await getConfiguredUpstream(runGit)
+  const configuredTarget = await getConfiguredUpstream(runGit, currentBranchName)
+  let configured = configuredTarget?.upstream
 
   if (configured) {
     if (
       currentBranchName &&
       configured.remoteName === 'origin' &&
+      configured.upstreamName.startsWith('origin/') &&
       configured.branchName !== currentBranchName &&
       hasMultipleSlashSegments(configured.upstreamName)
     ) {
@@ -132,6 +177,7 @@ async function resolveEffectiveGitUpstreamForBranch(
 
     // Legacy worktrees tracked origin/main while publishing same-name branches; pull/sync must follow the existing publish branch.
     if (
+      configuredTarget?.canUseSameNameOriginFallback &&
       configured.remoteName === 'origin' &&
       (await remoteTrackingRefExists(runGit, configured.remoteName, currentBranchName))
     ) {

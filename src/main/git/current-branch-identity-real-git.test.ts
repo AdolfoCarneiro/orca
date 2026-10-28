@@ -3,10 +3,16 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runProcess } from '@orca/process-host'
 import { afterEach, describe, expect, it } from 'vitest'
-import { getEffectiveGitUpstreamStatus } from '../../shared/git-effective-upstream'
+import {
+  getEffectiveGitUpstreamStatus,
+  resolveEffectiveGitUpstream
+} from '../../shared/git-effective-upstream'
 import { loadGitHistoryFromExecutor } from '../../shared/git-history'
 import { resolveConfiguredGitPushTarget } from '../../shared/git-push-target-resolution'
-import { gitPush } from './remote'
+import { gitPull, gitPush } from './remote'
+import { getUpstreamStatus } from './upstream'
+import { getStatus } from './status'
+import { disposeLocalRepoRefMaintenance } from './local-repo-ref-maintenance'
 import { installRealWorkerThreadChildProcesses } from '../worker-thread-child-process/worker-thread-child-process-real.test-fixtures'
 
 const directories: string[] = []
@@ -18,6 +24,7 @@ const branches = [
 ]
 
 afterEach(async () => {
+  await disposeLocalRepoRefMaintenance()
   await Promise.all(
     directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))
   )
@@ -57,7 +64,7 @@ async function createRepo(branch: string, tag: boolean) {
   }
   await git(['update-ref', 'refs/remotes/origin/main', base])
   await git(['update-ref', `refs/remotes/origin/${branch}`, head])
-  return { directory, git, head, origin, fork }
+  return { directory, git, base, head, origin, fork }
 }
 
 describe.each(branches)('current branch $branch, tag=$tag', ({ branch, tag }) => {
@@ -122,6 +129,162 @@ it('preserves detached history and does not infer a branch push target', async (
     name: head.slice(0, 7),
     revision: head,
     category: 'commits'
+  })
+})
+
+describe('qualified configured upstreams with real Git', () => {
+  it.each([0, 1, 2])(
+    'keeps status and Pull on the published topic with %i colliding tags',
+    async (tags) => {
+      const { directory, git, base, head, origin } = await createRepo('topic', false)
+      const tree = (await git(['rev-parse', 'HEAD^{tree}'])).stdout.trim()
+      const published = (
+        await git(['commit-tree', tree, '-p', head, '-m', 'published topic'])
+      ).stdout.trim()
+      await git([
+        'push',
+        '-q',
+        'origin',
+        `${base}:refs/heads/main`,
+        `${published}:refs/heads/topic`
+      ])
+      await git(['update-ref', 'refs/remotes/origin/topic', published])
+      await git(['config', 'branch.topic.remote', 'origin'])
+      await git(['config', 'branch.topic.merge', 'refs/heads/main'])
+      const tagNames = ['origin/main', 'remotes/origin/main'].slice(0, tags)
+      for (const tag of tagNames) {
+        await git(['update-ref', `refs/tags/${tag}`, head])
+      }
+
+      expect(await resolveEffectiveGitUpstream(git)).toEqual({
+        upstreamName: 'origin/topic',
+        remoteName: 'origin',
+        branchName: 'topic',
+        isConfiguredUpstream: false
+      })
+      const expected = { hasUpstream: true, upstreamName: 'origin/topic', ahead: 0, behind: 1 }
+      expect(await getUpstreamStatus(directory)).toEqual(expected)
+      expect(
+        (
+          await getStatus(directory, {
+            includeLineStats: false,
+            bypassEffectiveUpstreamNegativeCache: true
+          })
+        ).upstreamStatus
+      ).toEqual(expected)
+      expect((await getStatus(directory, { includeLineStats: false })).upstreamStatus).toEqual(
+        expected
+      )
+
+      await gitPull(directory)
+
+      expect((await git(['rev-parse', 'HEAD'])).stdout.trim()).toBe(published)
+      expect((await git(['rev-parse', 'refs/heads/main'], origin)).stdout.trim()).toBe(base)
+      expect((await git(['rev-parse', 'refs/heads/topic'], origin)).stdout.trim()).toBe(published)
+      for (const tag of tagNames) {
+        expect((await git(['rev-parse', `refs/tags/${tag}`])).stdout.trim()).toBe(head)
+      }
+    }
+  )
+
+  it.each(['remotes', 'origin/team'])(
+    'preserves the exact configured remote %s under tag ambiguity',
+    async (remoteName) => {
+      const { git, base, head, origin } = await createRepo('topic', false)
+      await git(['config', `remote.${remoteName}.url`, origin])
+      await git([
+        'config',
+        `remote.${remoteName}.fetch`,
+        `+refs/heads/*:refs/remotes/${remoteName}/*`
+      ])
+      await git(['update-ref', `refs/remotes/${remoteName}/main`, base])
+      await git(['update-ref', `refs/tags/${remoteName}/main`, head])
+      await git(['config', 'branch.topic.remote', remoteName])
+      await git(['config', 'branch.topic.merge', 'refs/heads/main'])
+
+      expect(await resolveEffectiveGitUpstream(git)).toMatchObject({
+        remoteName,
+        branchName: 'main',
+        isConfiguredUpstream: true
+      })
+      expect(await getEffectiveGitUpstreamStatus(git)).toMatchObject({ ahead: 1, behind: 0 })
+    }
+  )
+
+  it('keeps an ambiguity-qualified slash-named local upstream local', async () => {
+    const { git, base, head } = await createRepo('topic', false)
+    await git(['update-ref', 'refs/heads/origin/base', base])
+    await git(['update-ref', 'refs/tags/origin/base', head])
+    await git(['config', 'branch.topic.remote', '.'])
+    await git(['config', 'branch.topic.merge', 'refs/heads/origin/base'])
+
+    expect(await resolveEffectiveGitUpstream(git)).toEqual({
+      upstreamName: 'heads/origin/base',
+      remoteName: null,
+      branchName: 'origin/base',
+      isConfiguredUpstream: true
+    })
+    expect(await getEffectiveGitUpstreamStatus(git)).toMatchObject({ ahead: 1, behind: 0 })
+  })
+
+  it('keeps a configured non-branch source instead of selecting the published topic', async () => {
+    const { directory, git, base, head, origin } = await createRepo('topic', false)
+    const tree = (await git(['rev-parse', 'HEAD^{tree}'])).stdout.trim()
+    const published = (
+      await git(['commit-tree', tree, '-p', head, '-m', 'published topic'])
+    ).stdout.trim()
+    await git(['push', '-q', 'origin', `${base}:refs/changes/1`, `${published}:refs/heads/topic`])
+    await git(['update-ref', 'refs/remotes/origin/topic', published])
+    await git([
+      'config',
+      '--add',
+      'remote.origin.fetch',
+      '+refs/changes/*:refs/remotes/origin/change/*'
+    ])
+    await git(['update-ref', 'refs/remotes/origin/change/1', base])
+    await git(['update-ref', 'refs/tags/origin/change/1', head])
+    await git(['config', 'branch.topic.remote', 'origin'])
+    await git(['config', 'branch.topic.merge', 'refs/changes/1'])
+
+    expect(await resolveEffectiveGitUpstream(git)).toEqual({
+      upstreamName: 'remotes/origin/change/1',
+      remoteName: 'origin',
+      branchName: 'refs/changes/1',
+      isConfiguredUpstream: true
+    })
+    expect(await getEffectiveGitUpstreamStatus(git)).toMatchObject({ ahead: 1, behind: 0 })
+
+    await gitPull(directory)
+
+    expect((await git(['rev-parse', 'HEAD'])).stdout.trim()).toBe(head)
+    expect((await git(['rev-parse', 'refs/tags/origin/change/1'])).stdout.trim()).toBe(head)
+    expect((await git(['rev-parse', 'refs/changes/1'], origin)).stdout.trim()).toBe(base)
+    expect((await git(['rev-parse', 'refs/heads/topic'], origin)).stdout.trim()).toBe(published)
+  })
+
+  it('uses the canonical custom destination when abbreviated upstream output is empty', async () => {
+    const { directory, git, base, head } = await createRepo('topic', false)
+    await git(['push', '-q', 'origin', `${base}:refs/heads/main`])
+    await git(['config', 'remote.origin.fetch', '+refs/heads/*:refs/custom/*'])
+    await git(['update-ref', '-d', 'refs/remotes/origin/main'])
+    await git(['update-ref', '-d', 'refs/remotes/origin/topic'])
+    await git(['update-ref', 'refs/custom/main', base])
+    await git(['update-ref', 'refs/tags/custom/main', head])
+    await git(['config', 'branch.topic.remote', 'origin'])
+    await git(['config', 'branch.topic.merge', 'refs/heads/main'])
+
+    expect(await resolveEffectiveGitUpstream(git)).toEqual({
+      upstreamName: 'refs/custom/main',
+      remoteName: 'origin',
+      branchName: 'main',
+      isConfiguredUpstream: true
+    })
+    expect(await getEffectiveGitUpstreamStatus(git)).toMatchObject({ ahead: 1, behind: 0 })
+
+    await gitPull(directory)
+
+    expect((await git(['rev-parse', 'HEAD'])).stdout.trim()).toBe(head)
+    expect((await git(['rev-parse', 'refs/tags/custom/main'])).stdout.trim()).toBe(head)
   })
 })
 
