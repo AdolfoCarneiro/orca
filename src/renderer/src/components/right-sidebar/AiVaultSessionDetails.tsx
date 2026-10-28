@@ -9,7 +9,8 @@ import {
   MessageSquarePlus,
   MessagesSquare,
   Play,
-  SquareTerminal
+  SquareTerminal,
+  UserRound
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -25,6 +26,7 @@ import { ResumeInNewCliTooltipText } from './ai-vault-session-cli-fork-copy'
 import { sessionDetailConversationTurns, sessionPromptPreview } from './ai-vault-session-display'
 import { SessionSubagentsSection } from './AiVaultSessionSubagents'
 import { SessionUnsavedConversationNotice } from './AiVaultSessionUnsavedNotice'
+import { useAiVaultSessionAccount } from './ai-vault-session-account'
 import {
   aiVaultResumeInSessionWorkspaceLabel,
   aiVaultSessionWorkspaceHeading,
@@ -78,6 +80,7 @@ export function SessionInlineDetails({
     (!resumeActions.worktree.worktreeId || Boolean(resumeActions.newTab.worktreeId))
   const promptPreview = sessionPromptPreview(session)
   const detailTurns = sessionDetailConversationTurns(session, 3)
+  const accountLabel = useAiVaultSessionAccount(session)
 
   return (
     <div
@@ -280,6 +283,19 @@ export function SessionInlineDetails({
             <WorktreeMetadataLines worktreeInfo={worktreeInfo} vaultScope={vaultScope} />
           </SessionReceiptSection>
         ) : null}
+        <SessionReceiptSection
+          icon={<UserRound className="size-3" />}
+          label={translate('aiVault.sessionAccount', 'Account')}
+        >
+          <div
+            className={cn(
+              'select-text text-[12px] leading-4 [overflow-wrap:anywhere]',
+              accountLabel ? 'font-medium text-foreground' : 'text-muted-foreground'
+            )}
+          >
+            {accountLabel ?? translate('aiVault.sessionAccountUnknown', 'Unknown')}
+          </div>
+        </SessionReceiptSection>
       </div>
     </div>
   )
