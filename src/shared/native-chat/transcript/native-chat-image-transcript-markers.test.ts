@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { NativeChatMessage } from './native-chat-types'
-import { imageReferenceToken } from './native-chat-image-reference'
+import type { NativeChatMessage } from '../../native-chat-types'
+import { imageReferenceToken } from '../../native-chat-image-reference'
 import {
   imageReferencesToPromptMarkers,
   promptMarkersToImageReferences,
@@ -11,7 +11,7 @@ import {
   stripImagePromptMarker,
   stripSentImagePromptMarkers
 } from './native-chat-image-transcript-markers'
-import { formatNativeChatFileReference } from './agent-image-paste'
+import { formatNativeChatFileReference } from '../../agent-image-paste'
 
 function userText(id: string, text: string): NativeChatMessage {
   return {
