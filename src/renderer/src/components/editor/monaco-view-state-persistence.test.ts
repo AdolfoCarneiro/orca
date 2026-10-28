@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { editor, ISelection } from 'monaco-editor'
-import { editorSelectionCache, editorViewStateCache, scrollTopCache } from '@/lib/scroll-cache'
+import { editorSelectionCache, scrollTopCache } from '@/lib/scroll-cache'
 import {
+  editorViewStateCache,
   installMonacoViewStateTracking,
   restoreMonacoViewState,
   snapshotMonacoViewState

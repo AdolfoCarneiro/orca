@@ -1,11 +1,8 @@
 import type { MutableRefObject } from 'react'
 import type { editor } from 'monaco-editor'
-import {
-  editorSelectionCache,
-  editorViewStateCache,
-  scrollTopCache,
-  setWithLRU
-} from '@/lib/scroll-cache'
+import { editorSelectionCache, scrollTopCache, setWithLRU } from '@/lib/scroll-cache'
+
+export const editorViewStateCache = new Map<string, editor.ICodeEditorViewState>()
 
 type MonacoViewStateTrackingParams = {
   editorInstance: editor.IStandaloneCodeEditor
