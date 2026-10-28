@@ -10,13 +10,12 @@ export function useRichMarkdownCompletionScroll(selectedIndex: number, rows: rea
     if (!viewport || !item) {
       return
     }
-    const top = viewport.getBoundingClientRect().top + viewport.clientTop
-    const bottom = top + viewport.clientHeight
-    const rect = item.getBoundingClientRect()
-    if (rect.top < top) {
-      viewport.scrollTop += rect.top - top
-    } else if (rect.bottom > bottom) {
-      viewport.scrollTop += rect.bottom - bottom
+    const top = item.offsetTop
+    const bottom = top + item.offsetHeight
+    if (top < viewport.scrollTop) {
+      viewport.scrollTop = top
+    } else if (bottom > viewport.scrollTop + viewport.clientHeight) {
+      viewport.scrollTop = bottom - viewport.clientHeight
     }
   }, [selectedIndex, rows])
 

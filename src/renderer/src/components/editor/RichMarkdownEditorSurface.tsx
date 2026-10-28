@@ -110,6 +110,8 @@ type RichMarkdownEditorSurfaceProps = {
   onImagePick: () => void
   onEmojiPick: (menu: SlashMenuState) => void
   onCloseEmojiMenu: () => void
+  onCloseSlashMenu: () => void
+  onCloseDocLinkMenu: () => void
   onOpenAnnotationPopover: () => void
   onCancelAnnotationPopover: () => void
   onSubmitAnnotation: (body: string) => Promise<void>
@@ -170,6 +172,8 @@ export function RichMarkdownEditorSurface({
   onImagePick,
   onEmojiPick,
   onCloseEmojiMenu,
+  onCloseSlashMenu,
+  onCloseDocLinkMenu,
   onOpenAnnotationPopover,
   onCancelAnnotationPopover,
   onSubmitAnnotation,
@@ -266,7 +270,6 @@ export function RichMarkdownEditorSurface({
         </div>
         {linkBubble ? (
           <RichMarkdownLinkBubble
-            anchorElement={rootElement}
             linkBubble={linkBubble}
             isEditing={isEditingLink}
             onDismiss={linkBubbleActions.dismissLinkBubble}
@@ -291,6 +294,7 @@ export function RichMarkdownEditorSurface({
             selectedIndex={selectedCommandIndex}
             onImagePick={onImagePick}
             onEmojiPick={() => onEmojiPick(slashMenu)}
+            onClose={onCloseSlashMenu}
           />
         ) : null}
         {emojiMenu ? (
@@ -308,6 +312,7 @@ export function RichMarkdownEditorSurface({
             rows={docLinkRows}
             totalMatches={docLinkTotalMatches}
             selectedIndex={selectedDocLinkIndex}
+            onClose={onCloseDocLinkMenu}
           />
         ) : null}
         <RichMarkdownAnnotationOverlay

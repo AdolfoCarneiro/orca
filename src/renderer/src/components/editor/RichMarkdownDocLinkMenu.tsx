@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { commitRow } from './rich-markdown-commands'
 import type { DocLinkMenuRow, DocLinkMenuState } from './rich-markdown-commands'
 import { translate } from '@/i18n/i18n'
+import { RichMarkdownCompletionPopover } from './RichMarkdownCompletionPopover'
 import { useRichMarkdownCompletionScroll } from './useRichMarkdownCompletionScroll'
 
 type RichMarkdownDocLinkMenuProps = {
@@ -12,6 +13,7 @@ type RichMarkdownDocLinkMenuProps = {
   rows: DocLinkMenuRow[]
   totalMatches: number
   selectedIndex: number
+  onClose: () => void
 }
 
 export function RichMarkdownDocLinkMenu({
@@ -19,17 +21,20 @@ export function RichMarkdownDocLinkMenu({
   menu,
   rows,
   totalMatches,
-  selectedIndex
+  selectedIndex,
+  onClose
 }: RichMarkdownDocLinkMenuProps): React.JSX.Element {
   const { viewportRef, activeItemRef } = useRichMarkdownCompletionScroll(selectedIndex, rows)
   const overflow = totalMatches > rows.length
   return (
-    <div
-      ref={viewportRef}
+    <RichMarkdownCompletionPopover
+      editor={editor}
+      position={menu.to}
+      onClose={onClose}
+      viewportRef={viewportRef}
       className="rich-markdown-doc-link-menu scrollbar-sleek"
-      style={{ left: menu.left, top: menu.top }}
       role="listbox"
-      aria-label={translate(
+      ariaLabel={translate(
         'auto.components.editor.RichMarkdownDocLinkMenu.0e8489bc11',
         'Markdown document links'
       )}
@@ -85,6 +90,6 @@ export function RichMarkdownDocLinkMenu({
           '↑↓ navigate&nbsp;&nbsp;↵ select&nbsp;&nbsp;esc dismiss'
         )}
       </div>
-    </div>
+    </RichMarkdownCompletionPopover>
   )
 }
