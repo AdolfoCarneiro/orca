@@ -90,12 +90,15 @@ export function cacheLocalImageBlob(
   let projectedEntries = blobUrlCache.size + (previousUrl === undefined ? 1 : 0)
   let projectedBytes = retainedBytes - previousBytes + byteLength
 
-  // Evict unpinned entries only; refuse new retention when visible leases consume the budget.
+  // Active displays share the strict byte budget; the entry target bounds reusable, unleased images.
   while (projectedEntries > BLOB_URL_CACHE_MAX_SIZE || projectedBytes > BLOB_URL_CACHE_MAX_BYTES) {
     const candidate = Array.from(blobUrlCache.keys()).find(
       (candidateKey) => candidateKey !== key && !isLocalImageCacheKeyPinned(candidateKey)
     )
     if (candidate === undefined) {
+      if (isLocalImageCacheKeyPinned(key) && projectedBytes <= BLOB_URL_CACHE_MAX_BYTES) {
+        break
+      }
       URL.revokeObjectURL(url)
       cleanupLocalImageCacheKeyVersion(key)
       return false
