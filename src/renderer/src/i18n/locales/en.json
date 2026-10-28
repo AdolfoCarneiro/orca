@@ -20394,6 +20394,7 @@
       "startFailed": "Orca lost contact with the move. Open this dialog again to see where it stands.",
       "unavailable": "Moving projects to a WSL host is not available in this window.",
       "alreadyRunning": "A move into {{distro}} is already running. Wait for it to finish, then try again.",
+      "undoRunning": "A project is coming back from {{distro}}. Try again once that finishes.",
       "alreadyInFlightPreview": "A move of {{distro}} is still finishing. Starting this move first finishes or undoes it where Orca can.",
       "alreadyInFlight": "A move of {{distro}} is still finishing, so this one did not start. Keep the {{distro}} host connected and try again later.",
       "nothingNew": "These projects are already on the {{distro}} host.",

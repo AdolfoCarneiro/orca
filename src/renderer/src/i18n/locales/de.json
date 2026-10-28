@@ -20356,6 +20356,7 @@
       "startFailed": "Orca hat die Verbindung zum Verschiebevorgang verloren. Diesen Dialog erneut öffnen, um den aktuellen Stand zu sehen.",
       "unavailable": "Das Verschieben von Projekten auf einen WSL-Host ist in diesem Fenster nicht verfügbar.",
       "alreadyRunning": "Ein Verschiebevorgang nach {{distro}} läuft bereits. Den Abschluss abwarten und dann erneut versuchen.",
+      "undoRunning": "Ein Projekt wird von {{distro}} zurückgeholt. Danach erneut versuchen.",
       "alreadyInFlightPreview": "Ein Verschiebevorgang für {{distro}} wird noch abgeschlossen. Beim Start dieses Verschiebevorgangs schließt Orca den vorherigen zunächst ab oder macht ihn rückgängig, soweit möglich.",
       "alreadyInFlight": "Da ein Verschiebevorgang für {{distro}} noch abgeschlossen wird, wurde dieser Vorgang nicht gestartet. Den {{distro}}-Host verbunden lassen und später erneut versuchen.",
       "nothingNew": "Diese Projekte befinden sich bereits auf dem {{distro}}-Host.",
