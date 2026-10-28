@@ -22,6 +22,10 @@ import {
   createRouteScreenPaintReporter
 } from '../src/mobile-web-shell/bridge/page-first-paint'
 import { PageFaultBoundary } from '../src/mobile-web-shell/bridge/page-fault-boundary'
+import type { BridgeUiLocale } from '../src/mobile-web-shell/bridge/bridge-envelope'
+import { activateMobileUiLocale, subscribeMobileUiLanguage } from '../src/i18n/mobile-i18n'
+import { getUiIntlLocale } from '../src/i18n/ui-intl-locale'
+import { readDeviceUiLocaleTags, resolveUiLocaleFromTags } from '../src/i18n/system-ui-locale'
 import { publishPageHostProfile } from '../src/mobile-web-shell/bridge/page-host-profile'
 import { publishExternalLinkOpener } from '../src/platform/external-link.web'
 import { publishHapticsNotifier } from '../src/platform/haptics.web'
@@ -62,6 +66,11 @@ function createRootProviders(client: BridgeRpcClient, target: PageMountTarget) {
   }
 }
 
+// Older shells send no language; follow the WebView's, which tracks the phone's.
+function activatePageUiLocale(locale: BridgeUiLocale | null): Promise<void> {
+  return activateMobileUiLocale(locale ?? resolveUiLocaleFromTags(readDeviceUiLocaleTags()))
+}
+
 // Build outside React because an unresolved route tree cannot mount its own recovery panel.
 function renderShellTooOldPanel(container: HTMLElement): void {
   const panel = document.createElement('div')
@@ -93,6 +102,10 @@ function paintDocumentScheme(): void {
 }
 paintDocumentScheme()
 subscribeMobileColorScheme(paintDocumentScheme)
+// The WebView picks CJK glyph variants and hyphenation from <html lang>.
+subscribeMobileUiLanguage(() => {
+  target.lang = getUiIntlLocale()
+})
 stampPageMountState(target, 'started')
 
 bootstrapShellPage({
@@ -105,6 +118,11 @@ bootstrapShellPage({
     // Apply before the first render so no component paints the default dark palette first.
     applyMobileColorScheme(session.colorScheme)
     client.onColorSchemeUpdate(applyMobileColorScheme)
+    // Subscribe before the first catalog load so a switch during startup is not lost; the latest request wins.
+    client.onUiLocaleUpdate((locale) => {
+      void activatePageUiLocale(locale)
+    })
+    const uiLocaleReady = activatePageUiLocale(session.uiLocale)
     // Publish plain-function seams before first render because effects and initial list paint already read them.
     publishPageHostProfile(session.host)
     publishExternalLinkOpener((url) => client.notifyExternalLink(url))
@@ -129,20 +147,23 @@ bootstrapShellPage({
             ).value
         : null
     )
-    createRoot(container).render(
-      // Catch outside ExpoRoot so route-resolution/import failures cannot bypass the page boundary.
-      <PageFaultBoundary
-        onFault={(error) => {
-          client.notifyPageFault(error)
-        }}
-      >
-        <ExpoRoot
-          context={routeContext}
-          // Pass the post-init URL explicitly; ExpoRoot’s import-time location predates bridge frames and still names /.
-          location={new URL(window.location.href)}
-          wrapper={createRootProviders(client, target)}
-        />
-      </PageFaultBoundary>
+    // Activation settles to English on failure, so the page always mounts.
+    void uiLocaleReady.then(() =>
+      createRoot(container).render(
+        // Catch outside ExpoRoot so route-resolution/import failures cannot bypass the page boundary.
+        <PageFaultBoundary
+          onFault={(error) => {
+            client.notifyPageFault(error)
+          }}
+        >
+          <ExpoRoot
+            context={routeContext}
+            // Pass the post-init URL explicitly; ExpoRoot’s import-time location predates bridge frames and still names /.
+            location={new URL(window.location.href)}
+            wrapper={createRootProviders(client, target)}
+          />
+        </PageFaultBoundary>
+      )
     )
   },
   refuseUnroutedShell: () => {
