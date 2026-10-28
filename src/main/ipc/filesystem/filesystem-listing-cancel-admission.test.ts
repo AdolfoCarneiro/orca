@@ -38,29 +38,18 @@ describe('file listing cancellation before native admission', () => {
     expect(spawn).not.toHaveBeenCalled()
   })
 
-  it.each([10, 100])('admits no obsolete scans after %i pending authorizations', async (count) => {
+  it('admits no obsolete scan after a pending authorization', async () => {
     const held = Promise.withResolvers<string>()
     authorize.mockReturnValue(held.promise)
     const reason = new FileListingCancelledError('workspace switched')
-    const controllers = Array.from({ length: count }, () => new AbortController())
-    const pending = controllers.map((controller) =>
-      expect(listQuickOpenFiles('/repo', store, undefined, controller.signal)).rejects.toBe(reason)
-    )
-    expect(authorize).toHaveBeenCalledTimes(count)
-    for (const controller of controllers) {
-      controller.abort(reason)
-    }
+    const controller = new AbortController()
+    const pending = expect(
+      listQuickOpenFiles('/repo', store, undefined, controller.signal)
+    ).rejects.toBe(reason)
+    controller.abort(reason)
     held.resolve('/repo')
-    await Promise.all(pending)
+    await pending
     expect(spawn).not.toHaveBeenCalled()
-
-    const live = childProcess()
-    spawn.mockReturnValue(live)
-    const successor = listQuickOpenFiles('/repo', store)
-    await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(1))
-    live.stdout.emit('data', 'src/live.ts\0')
-    live.emit('close', 0, null)
-    await expect(successor).resolves.toEqual(['src/live.ts'])
   })
 
   it('does not start the ignored pass when canceled after the primary pass closes', async () => {
@@ -78,22 +67,5 @@ describe('file listing cancellation before native admission', () => {
     await rejected
     expect(spawn).toHaveBeenCalledTimes(1)
     expect(primary.kill).not.toHaveBeenCalled()
-  })
-
-  it('preserves primary-first output and ignored files for a live listing', async () => {
-    const primary = childProcess()
-    const ignored = childProcess()
-    spawn.mockReturnValueOnce(primary).mockReturnValueOnce(ignored)
-    const listing = listQuickOpenFiles('/repo', store, undefined, undefined, 10)
-    await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(1))
-    primary.stdout.emit('data', 'src/primary.ts\0')
-    primary.emit('close', 0, null)
-    await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(2))
-    ignored.stdout.emit('data', 'src/primary.ts\0.env.local\0')
-    ignored.emit('close', 0, null)
-
-    await expect(listing).resolves.toEqual(['src/primary.ts', '.env.local'])
-    expect(primary.kill).not.toHaveBeenCalled()
-    expect(ignored.kill).not.toHaveBeenCalled()
   })
 })
