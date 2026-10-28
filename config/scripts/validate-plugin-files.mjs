@@ -21,6 +21,9 @@ const { gitExecFileAsync } = loadPluginSchemaModule('../../main/git/runner.ts')
 const { formatPluginSchemaIssues } = loadPluginSchemaModule('manifest/plugin-schema-issues.ts')
 const { isPluginRepositoryPath } = loadPluginSchemaModule('installation/plugin-path-safety.ts')
 const { parseGitRepositoryIdentity } = loadPluginSchemaModule('catalog/plugin-marketplace.ts')
+const { catalogImagesFromManifest } = loadPluginSchemaModule(
+  'images/plugin-manifest-catalog-images.ts'
+)
 const ARTIFACT_PARSERS = {
   themes: loadPluginSchemaModule('artifacts/plugin-theme-artifact.ts').parsePluginAppThemeArtifact,
   terminalThemes: loadPluginSchemaModule('artifacts/plugin-terminal-theme-artifact.ts')
@@ -91,13 +94,28 @@ async function catalogReleaseEntry(pluginDir) {
       ...(sourcePath ? { path: sourcePath } : {})
     })
     const hashed = await hashPluginTree(tree)
-    const parsed = parsePluginManifest(
-      JSON.parse(readFileSync(path.join(tree, 'orca-plugin.json'), 'utf8'))
-    )
-    const entry =
+    const rawManifest = JSON.parse(readFileSync(path.join(tree, 'orca-plugin.json'), 'utf8'))
+    const parsed = parsePluginManifest(rawManifest)
+    const release =
       hashed.ok && parsed.ok
         ? pluginCatalogReleaseEntry(parsed.manifest, { commit, contentHash: hashed.hash })
         : null
+    // Why here: a new release entry must carry the manifest's images, or listings lose their covers.
+    const images = release
+      ? await catalogImagesFromManifest({
+          manifest: rawManifest,
+          prefix: sourcePath,
+          read: async (repositoryPath, maxBytes) => {
+            const file = path.join(
+              tree,
+              repositoryPath.slice(sourcePath ? sourcePath.length + 1 : 0)
+            )
+            return existsSync(file) && statSync(file).size <= maxBytes ? readFileSync(file) : null
+          },
+          sha256: (bytes) => createHash('sha256').update(bytes).digest('hex')
+        })
+      : null
+    const entry = release && images ? { ...release, images } : release
     if (!entry) {
       return {
         note: `no catalog release entry: committed plugin is not installable (${hashed.ok ? (parsed.ok ? 'catalogs need manifest format 2' : parsed.error) : hashed.error})`

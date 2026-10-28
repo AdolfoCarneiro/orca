@@ -12,6 +12,7 @@ import {
 import { formatPluginSchemaIssues } from '../../../shared/plugins/manifest/plugin-schema-issues'
 import { gitExecFileAsyncBuffer } from '../../git/runner'
 import { extractCatalogImages } from './plugin-catalog-image-extraction'
+import { fillMonorepoReleaseImages } from './plugin-catalog-monorepo-images'
 import { readPluginGitCommit } from '../installation/plugin-git-repository'
 import type { PluginMarketplaceRegisteredSource } from './plugin-marketplace-store'
 
@@ -38,7 +39,7 @@ export async function fetchPluginMarketplace(
       workingDirectory: tmpdir(),
       maxDownloadBytes: MARKETPLACE_DOWNLOAD_MAX_BYTES
     },
-    readMarketplaceAtCommit
+    (repository, commit) => readMarketplaceAtCommit(repository, commit, source.source.url)
   )
   return { marketplaceCommit: commit, marketplace: value.marketplace, images: value.images }
 }
@@ -47,7 +48,8 @@ export async function fetchPluginMarketplace(
  *  Prefers orca-catalog.json; repositories that only publish the frozen v1 file still load. */
 async function readMarketplaceAtCommit(
   repository: string,
-  commit: string
+  commit: string,
+  catalogUrl: string
 ): Promise<{ marketplace: PluginMarketplace; images: Buffer[] }> {
   const options = { cwd: repository, timeout: MARKETPLACE_GIT_TIMEOUT_MS }
   const listing = await gitExecFileAsyncBuffer(
@@ -75,10 +77,14 @@ async function readMarketplaceAtCommit(
     ...options,
     maxBuffer: MARKETPLACE_INDEX_MAX_BYTES
   })
-  const marketplace = parsePluginMarketplaceIndex(filename, bytes.stdout)
-  return extractCatalogImages(marketplace, (path, maxBytes) =>
+  const readBlob = (path: string, maxBytes: number): Promise<Buffer | null> =>
     readCatalogBlob(repository, commit, path, maxBytes)
+  const marketplace = await fillMonorepoReleaseImages(
+    parsePluginMarketplaceIndex(filename, bytes.stdout),
+    catalogUrl,
+    readBlob
   )
+  return extractCatalogImages(marketplace, readBlob)
 }
 
 /** One file from the catalog commit, refused before reading when it is larger than allowed. */
