@@ -269,6 +269,7 @@ function defaultWorkerFactory(): Worker {
 }
 
 let sharedHost: WorkerThreadChildProcessHost | null = null
+let sharedForkHost: WorkerThreadChildProcessHost | null = null
 
 export function spawnProcessOnWorkerThread(spec: WorkerThreadChildSpec): WorkerThreadChildProcess {
   sharedHost ??= new WorkerThreadChildProcessHost(defaultWorkerFactory)
@@ -276,6 +277,6 @@ export function spawnProcessOnWorkerThread(spec: WorkerThreadChildSpec): WorkerT
 }
 
 export function forkProcessOnWorkerThread(spec: WorkerThreadForkSpec): WorkerThreadChildProcess {
-  sharedHost ??= new WorkerThreadChildProcessHost(defaultWorkerFactory)
-  return sharedHost.fork(spec)
+  sharedForkHost ??= new WorkerThreadChildProcessHost(defaultWorkerFactory)
+  return sharedForkHost.fork(spec)
 }
