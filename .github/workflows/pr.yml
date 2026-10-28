@@ -235,7 +235,7 @@ jobs:
           ORCA_UNIT_SELECTION_MODE: ${{ vars.ORCA_UNIT_SELECTION_MODE || 'shadow' }}
           ORCA_PULL_REQUEST_DRAFT: ${{ github.event.pull_request.draft }}
           # Twelve 4-vCPU hosted shards match the old 8-vCPU wall time; the repository variable can request 2 to 16.
-          ORCA_UNIT_FULL_SHARD_COUNT: '12'
+          ORCA_UNIT_FULL_SHARD_COUNT: ${{ vars.ORCA_UNIT_FULL_SHARD_COUNT || '12' }}
         run: |
           if [ "$PREFLIGHT_PHASE_SELECTED" != true ] || [ "$PREFLIGHT_PRIOR_SUCCESS" != true ]; then exit 0; fi
           node config/scripts/ci-unit-plan.mjs
