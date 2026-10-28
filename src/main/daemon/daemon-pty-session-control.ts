@@ -1,29 +1,103 @@
 import { coldRestorePayloadFromInfo, type ColdRestorePayload } from './cold-restore-payload-cache'
-import { isPtyFencedTerminationOutcome } from '../../shared/pty-fenced-termination'
-import type { DaemonEndpointIdentity } from './daemon-hello-protocol'
-import { sameEndpointIdentity } from './daemon-endpoint-incarnation'
-import { FENCED_TERMINATION_PROTOCOL_VERSION } from './daemon-protocol-version'
+import { isUnknownRequestTypeError } from './daemon-endpoint-errors'
+import { GET_SIZE_PROTOCOL_VERSION } from './daemon-protocol-version'
+import { readDaemonAppliedPtySize, type DaemonAppliedPtySize } from './daemon-pty-applied-size'
 import { FinalCheckpointWaitExpiredError } from './daemon-pty-lifecycle-errors'
-import { DaemonPtySessionLiveness } from './daemon-pty-session-liveness'
-export { LIVENESS_PROBE_TIMEOUT_MS } from './daemon-pty-session-liveness'
+import { DaemonPtySessionInput } from './daemon-pty-session-input'
 import { remainingDaemonRequestTimeoutMs, teardownReadBudgetMs } from './daemon-request-deadline'
 import type { ColdRestoreInfo } from './history-reader'
 import { normalizeWslColdRestoreCwd } from './wsl-cold-restore-cwd'
 import { readDaemonWslSleepCwd } from './daemon-wsl-sleep-cwd'
 import * as unlistedSession from './daemon-unlisted-session'
-import { SessionNotFoundError } from './types'
+import { SessionNotFoundError, type ListSessionsResult } from './types'
 import { resolveSafePtyDefaultCwd } from '../providers/pty-default-cwd'
-import type { PtyShutdownOptions } from '../providers/pty-provider-contract'
+import type { PtySpawnResult } from '../providers/pty-provider-contract'
+
+export const LIVENESS_PROBE_TIMEOUT_MS = 2_000
 
 const MAX_TOMBSTONES = 1000
 // A busy daemon must not eat the final checkpoint's share of the Sleep deadline.
 const LIVE_SLEEP_CWD_BUDGET_MS = 1_500
 
-export abstract class DaemonPtySessionControl extends DaemonPtySessionLiveness {
+export abstract class DaemonPtySessionControl extends DaemonPtySessionInput {
   protected abstract adoptListedSessionForSleep(
     sessionId: string,
     deadlineMs?: number
   ): Promise<void>
+
+  async attach(id: string): Promise<Pick<PtySpawnResult, 'providerSequence' | 'lastTitle'> | void> {
+    await this.ensureConnected()
+    if (!this.canDelegateBackgroundToDaemon) {
+      this.setPtyBackgrounded(id, false)
+    }
+
+    // Attach at the proven live size; default geometry could resize an agent TUI or accidentally create a shell.
+    // Preserve transport errors: treating lost contact as absence could duplicate or retire a live owner.
+    const size = await this.readAppliedSize(id, 'preserve')
+    if (!size) {
+      throw new SessionNotFoundError(id)
+    }
+    const result = await this.spawn({
+      sessionId: id,
+      cols: size.cols,
+      rows: size.rows,
+      attachOnly: true
+    })
+    if (result.exitedBeforeSpawnReply) {
+      throw new SessionNotFoundError(id)
+    }
+    // A restarted runtime has never seen the surviving session's title.
+    return result.providerSequence || result.lastTitle
+      ? {
+          ...(result.providerSequence ? { providerSequence: result.providerSequence } : {}),
+          ...(result.lastTitle ? { lastTitle: result.lastTitle } : {})
+        }
+      : undefined
+  }
+
+  hasPty(id: string): boolean {
+    return this.activeSessionIds.has(id)
+  }
+
+  /** Use the same saved-history probe as spawn. */
+  hasRestorableHistory(id: string): boolean {
+    return this.historyReader?.hasRestorableHistory(id) ?? false
+  }
+
+  async probePtyLiveness(id: string): Promise<boolean | null> {
+    try {
+      if (!this.getSizeUnsupported && this.protocolVersion >= GET_SIZE_PROTOCOL_VERSION) {
+        try {
+          const result = await this.client.request<{ size: { cols: number; rows: number } | null }>(
+            'getSize',
+            { sessionId: id },
+            LIVENESS_PROBE_TIMEOUT_MS
+          )
+          return result.size !== null
+        } catch (error) {
+          // getSize shipped without a protocol bump; remember rejection instead of trusting the version alone.
+          if (!isUnknownRequestTypeError(error)) {
+            throw error
+          }
+          this.getSizeUnsupported = true
+        }
+      }
+      // Legacy listSessions can prove absence; request it directly to avoid publishing inventory audit observations.
+      const { sessions } = await this.client.request<ListSessionsResult>(
+        'listSessions',
+        undefined,
+        LIVENESS_PROBE_TIMEOUT_MS
+      )
+      return sessions.some((session) => session.sessionId === id && session.isAlive)
+    } catch {
+      return null
+    }
+  }
+
+  /** Whether this daemon lists the session at all, alive or not; null when it can't answer. */
+  listsSession(id: string): Promise<boolean | null> {
+    return unlistedSession.readDaemonSessionListing(this.client, id, LIVENESS_PROBE_TIMEOUT_MS)
+  }
 
   /** The daemons that share this history dir and can answer for it; a router widens this. */
   private listingDaemons: () => readonly unlistedSession.SessionListingDaemon[] = () => [this]
@@ -34,21 +108,20 @@ export abstract class DaemonPtySessionControl extends DaemonPtySessionLiveness {
 
   async shutdown(
     id: string,
-    opts: PtyShutdownOptions,
-    endpoint: DaemonEndpointIdentity | null = this.client.getDaemonIdentity()
+    opts: { immediate?: boolean; keepHistory?: boolean; deadlineMs?: number }
   ): Promise<void> {
     if (opts.keepHistory && this.disconnectOnlyPromise) {
       throw new Error('Cannot keep history after daemon disconnect has started')
     }
     if (!opts.keepHistory) {
-      await this.withHistorySpawnLock(id, () => this.shutdownWithHistoryLock(id, opts, endpoint))
+      await this.withHistorySpawnLock(id, () => this.shutdownWithHistoryLock(id, opts))
       return
     }
     const shutdown = Promise.resolve().then(async () => {
       // Outside the spawn lock, which adopting the session's history takes itself.
       await this.ensureConnected(opts.deadlineMs)
       await this.adoptListedSessionForSleep(id, opts.deadlineMs).catch(() => {})
-      await this.withHistorySpawnLock(id, () => this.shutdownWithHistoryLock(id, opts, endpoint))
+      await this.withHistorySpawnLock(id, () => this.shutdownWithHistoryLock(id, opts))
     })
     this.keepHistoryShutdowns.add(shutdown)
     try {
@@ -60,24 +133,8 @@ export abstract class DaemonPtySessionControl extends DaemonPtySessionLiveness {
 
   protected async shutdownWithHistoryLock(
     id: string,
-    opts: PtyShutdownOptions,
-    endpoint: DaemonEndpointIdentity | null = this.client.getDaemonIdentity()
+    opts: { immediate?: boolean; keepHistory?: boolean; deadlineMs?: number }
   ): Promise<void> {
-    const original = opts.expectedIncarnationId
-    if (
-      opts.authorizeStop &&
-      (!original ||
-        !endpoint ||
-        this.protocolVersion < FENCED_TERMINATION_PROTOCOL_VERSION ||
-        this.sessionIncarnations.get(id) !== original)
-    ) {
-      throw new Error('terminal_stop_identity_unavailable')
-    }
-    const previousRestore = this.coldRestoreCache.get(id)
-    const previouslySlept = this.sleepRestoreSessionIds.has(id)
-    const hadWriter = this.historyManager?.hasWriter(id)
-    let installedRestore: ColdRestorePayload | null = null
-    let sleepCommit: (() => void) | undefined
     // Connect lazily, sharing one deadline with checkpoint waits and kill; durable writes themselves remain unbounded.
     await this.ensureConnected(opts.deadlineMs)
     // Sleep may precede the first periodic checkpoint; persist the screen before killing.
@@ -129,84 +186,27 @@ export abstract class DaemonPtySessionControl extends DaemonPtySessionLiveness {
           }
         : null
       const coldRestore = restoreInfo ? this.buildColdRestorePayload(restoreInfo) : null
-      sleepCommit = () => {
-        if (coldRestore) {
-          installedRestore = coldRestore
-          this.coldRestoreCache.set(id, coldRestore)
-          if (this.coldRestoreCache.has(id)) {
-            this.sleepRestoreSessionIds.add(id)
-          }
-          // Intentional sleep keeps the final checkpoint authoritative; physical exit must not mark history clean.
-          this.historyManager?.suspendSession(id)
-        } else if (
-          detection?.status === 'unreadable' ||
-          (detection?.status === 'restored' && detection.hasUnreadableRecovery)
-        ) {
-          this.historyManager?.suspendSession(id)
+      if (coldRestore) {
+        this.coldRestoreCache.set(id, coldRestore)
+        if (this.coldRestoreCache.has(id)) {
+          this.sleepRestoreSessionIds.add(id)
         }
-      }
-    }
-    if (opts.authorizeStop) {
-      if (!(await opts.authorizeStop())) {
-        throw new Error('terminal_stop_declined')
-      }
-      const current = this.client.getDaemonIdentity()
-      if (
-        !current ||
-        !endpoint ||
-        !sameEndpointIdentity(current, endpoint) ||
-        this.sessionIncarnations.get(id) !== original
+        // Intentional sleep keeps the final checkpoint authoritative; physical exit must not mark history clean.
+        this.historyManager?.suspendSession(id)
+      } else if (
+        detection?.status === 'unreadable' ||
+        (detection?.status === 'restored' && detection.hasUnreadableRecovery)
       ) {
-        throw new Error('terminal_stop_identity_changed')
+        this.historyManager?.suspendSession(id)
       }
     }
-    sleepCommit?.()
     try {
-      const result = await this.client.request<unknown>(
+      await this.client.request(
         'kill',
-        {
-          sessionId: id,
-          immediate: opts.immediate ?? false,
-          ...(opts.authorizeStop
-            ? {
-                expectedIncarnationId: original,
-                requireNoAgentOwner: false,
-                requireUnattached: false
-              }
-            : {})
-        },
+        { sessionId: id, immediate: opts.immediate ?? false },
         remainingDaemonRequestTimeoutMs(opts.deadlineMs)
       )
-      if (
-        opts.authorizeStop &&
-        (!isPtyFencedTerminationOutcome(result) || result.outcome === 'refused')
-      ) {
-        throw new Error('terminal_stop_unproven')
-      }
     } catch (error) {
-      if (
-        opts.authorizeStop &&
-        (await this.probePtyLiveness(id)) === true &&
-        this.sessionIncarnations.get(id) === original &&
-        endpoint
-      ) {
-        const currentEndpoint = this.client.getDaemonIdentity()
-        if (currentEndpoint && sameEndpointIdentity(currentEndpoint, endpoint)) {
-          if (installedRestore && this.coldRestoreCache.get(id) === installedRestore) {
-            if (previousRestore) {
-              this.coldRestoreCache.set(id, previousRestore)
-            } else {
-              this.coldRestoreCache.delete(id)
-            }
-            if (!previouslySlept) {
-              this.sleepRestoreSessionIds.delete(id)
-            }
-          }
-          if (hadWriter) {
-            this.historyManager?.registerWriter(id)
-          }
-        }
-      }
       // Gone is known for a session this adapter lost, or (after a relaunch forgot that) one whose
       // history is unended and that no daemon sharing the history dir may still run.
       if (
@@ -326,5 +326,26 @@ export abstract class DaemonPtySessionControl extends DaemonPtySessionLiveness {
 
   async getInitialCwd(id: string): Promise<string> {
     return this.initialCwds.get(id) ?? ''
+  }
+
+  // Resize notifications can be dropped; report applied dimensions so the renderer can repair drift.
+  async getAppliedSize(id: string): Promise<{ cols: number; rows: number } | null> {
+    return await this.readAppliedSize(id, 'suppress')
+  }
+
+  private async readAppliedSize(
+    id: string,
+    failureMode: 'preserve' | 'suppress'
+  ): Promise<DaemonAppliedPtySize | null> {
+    return await readDaemonAppliedPtySize({
+      client: this.client,
+      protocolVersion: this.protocolVersion,
+      sessionId: id,
+      failureMode,
+      getSizeUnsupported: this.getSizeUnsupported,
+      markGetSizeUnsupported: () => {
+        this.getSizeUnsupported = true
+      }
+    })
   }
 }

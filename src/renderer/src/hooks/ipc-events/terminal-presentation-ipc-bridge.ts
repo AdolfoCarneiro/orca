@@ -1,7 +1,7 @@
-import { requestBackgroundTerminalWorktreeMount } from '@/components/terminal/background-terminal-worktree-mount'
-import { registerTerminalTabMountIpcBridge } from './terminal-tab-mount-ipc-bridge'
-import { registerAutomationTerminalLifecycle } from '@/lib/automation-terminal-ownership'
 import { presentAgentLaunchTab } from '@/lib/agent-launch-tab-presentation'
+import { requestBackgroundTerminalWorktreeMount } from '@/components/terminal/background-terminal-worktree-mount'
+import { hasRegisteredRuntimeTerminalTab } from '@/runtime/mounted-terminal-tab-registry'
+import { planMobileTerminalTabMount } from '@/lib/mobile-terminal-tab-mount'
 import { resolveTerminalTabPtyOwnership } from '@/lib/terminal-tab-for-pty-id'
 import { SPLIT_TERMINAL_PANE_EVENT } from '@/constants/terminal'
 import type { SplitTerminalPaneDetail } from '@/constants/terminal'
@@ -22,7 +22,6 @@ import {
 } from './terminal-command-state'
 
 export function registerTerminalPresentationIpcBridge(unsubs: (() => void)[]): void {
-  unsubs.push(registerAutomationTerminalLifecycle())
   unsubs.push(
     window.api.ui.onLaunchRecipe(registerLaunchRecipe),
     window.api.ui.onCreateTerminal(
@@ -96,19 +95,7 @@ export function registerTerminalPresentationIpcBridge(unsubs: (() => void)[]): v
             ownership.kind === 'owned'
               ? worktreeTabs.find((candidate) => candidate.id === ownership.tabId)
               : undefined
-          const reservedTab =
-            tabId && leafId && ptyId && !splitFromLeafId
-              ? worktreeTabs.find((tab) => {
-                  const root = store.terminalLayoutsByTabId[tab.id]?.root
-                  return (
-                    tab.id === tabId &&
-                    tab.ptyId === null &&
-                    root?.type === 'leaf' &&
-                    root.leafId === leafId
-                  )
-                })
-              : undefined
-          let reusedTab = existingTab ?? splitTargetTab ?? reservedTab
+          let reusedTab = existingTab ?? splitTargetTab
           // Reuse main’s frame-drawn tab even if stale records make legacy ownership ambiguous.
           const frameDrawnTab =
             ORCA_LAYOUT_OWNER_IS_MAIN && !reusedTab && tabId !== undefined
@@ -295,7 +282,30 @@ export function registerTerminalPresentationIpcBridge(unsubs: (() => void)[]): v
     )
   )
 
-  unsubs.push(registerTerminalTabMountIpcBridge())
+  // Why: background-mount a mobile-subscribed tab's PTY without navigating the desktop (STA-1840).
+  unsubs.push(
+    window.api.ui.onRequestTerminalTabMount(({ worktreeId, tabId, ptyId }) => {
+      if (!worktreeId) {
+        return
+      }
+      // Why: synthetic pty handles need persisted-tab resolution; a miss must not mount every saved tab in a hidden worktree.
+      const mount = planMobileTerminalTabMount(
+        useAppStore.getState(),
+        {
+          worktreeId,
+          ...(tabId ? { tabId } : {}),
+          ...(ptyId ? { ptyId } : {})
+        },
+        {
+          isTabMounted: (tabId, targetWorktreeId) =>
+            hasRegisteredRuntimeTerminalTab(tabId, targetWorktreeId)
+        }
+      )
+      if (mount) {
+        requestBackgroundTerminalWorktreeMount(mount)
+      }
+    })
+  )
 
   // Why: CLI-driven terminal creation waits for the tabId reply so it can hand the caller a usable handle immediately.
 }

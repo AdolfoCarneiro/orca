@@ -12,7 +12,6 @@ import { tmpdir } from 'node:os'
 import type { Repo } from '../../shared/repo-types'
 import { toRuntimeExecutionHostId } from '../../shared/execution-host'
 import { AutomationService } from './service'
-import type { HeadlessAutomationDispatcher } from './headless-dispatch'
 
 vi.mock('electron', () => ({
   app: {
@@ -71,11 +70,8 @@ describe('AutomationService', () => {
     })
 
     vi.setSystemTime(new Date('2026-05-13T09:01:00'))
-    const send = vi.fn<HeadlessAutomationDispatcher>(async (_request) => ({
-      workspaceId: 'wt1',
-      terminalSessionId: 'tab-1'
-    }))
-    const service = new AutomationService(store, { headlessDispatcher: send, tickMs: 60_000 })
+    const send = vi.fn()
+    const service = new AutomationService(store, { tickMs: 60_000 })
     service.setWebContents({
       isDestroyed: () => false,
       send
@@ -84,18 +80,14 @@ describe('AutomationService', () => {
     service.start()
     service.setRendererReady()
     await vi.waitFor(() =>
-      expect(send).toHaveBeenCalledWith(
-        expect.objectContaining({ automation: expect.any(Object), run: expect.any(Object) })
-      )
+      expect(send).toHaveBeenCalledWith('automations:dispatchRequested', expect.any(Object))
     )
     service.stop()
 
-    const [payload] = send.mock.calls[0]
+    const [, payload] = send.mock.calls[0]
     expect(payload.automation.id).toBe(automation.id)
     expect(payload.run.scheduledFor).toBe(new Date('2026-05-13T09:00:00').getTime())
-    await vi.waitFor(() =>
-      expect(store.listAutomationRuns(automation.id)[0]?.status).toBe('dispatched')
-    )
+    expect(store.listAutomationRuns(automation.id)[0]?.status).toBe('dispatching')
     expect(store.listAutomations().find((entry) => entry.id === automation.id)?.nextRunAt).toBe(
       new Date('2026-05-14T09:00:00').getTime()
     )
@@ -116,8 +108,8 @@ describe('AutomationService', () => {
       rrule: 'FREQ=DAILY;BYHOUR=9;BYMINUTE=0',
       dtstart: new Date('2026-05-14T00:00:00Z').getTime()
     })
-    const send = vi.fn(async () => ({ workspaceId: 'wt1', terminalSessionId: 'tab-1' }))
-    const service = new AutomationService(store, { headlessDispatcher: send, tickMs: 60_000 })
+    const send = vi.fn()
+    const service = new AutomationService(store, { tickMs: 60_000 })
     service.setWebContents({
       isDestroyed: () => false,
       send
@@ -126,16 +118,88 @@ describe('AutomationService', () => {
 
     const run = await service.runNow(automation.id)
 
-    expect(run.status).toBe('dispatched')
-    await vi.waitFor(() =>
-      expect(store.listAutomationRuns(automation.id)[0]?.status).toBe('dispatched')
-    )
+    expect(run.status).toBe('dispatching')
+    expect(store.listAutomationRuns(automation.id)[0]?.status).toBe('dispatching')
     expect(send).toHaveBeenCalledWith(
+      'automations:dispatchRequested',
       expect.objectContaining({
         run: expect.objectContaining({ id: run.id, status: 'dispatching' })
       })
     )
   })
+
+  it.each([undefined, 'terminal', 'chat'] as const)(
+    'routes saved surface=%s independently of the Chat callback and renderer readiness',
+    async (surface) => {
+      const store = await createStore()
+      store.addRepo(makeRepo())
+      const automation = store.createAutomation({
+        name: 'Surface routing',
+        prompt: 'Check the repo',
+        agentId: 'claude',
+        projectId: 'r1',
+        workspaceMode: 'existing',
+        workspaceId: 'r1::/repo',
+        timezone: 'UTC',
+        rrule: 'FREQ=DAILY',
+        dtstart: Date.now() + 86_400_000,
+        ...(surface ? { launchSetupPatch: { surface } } : {})
+      })
+      const launch = { workspaceId: 'wt1', terminalSessionId: null }
+      const chat = vi.fn(async () => ({
+        ...launch,
+        sessionKind: 'chat' as const,
+        chatSessionId: 'claude_chat'
+      }))
+      const terminal = vi.fn(async () => launch)
+      const send = vi.fn()
+      const desktop = new AutomationService(store, { chatDispatcher: chat })
+      desktop.setWebContents({ isDestroyed: () => false, send })
+      desktop.start()
+      expect((await desktop.runNow(automation.id)).status).toBe('skipped_unavailable')
+      expect(chat).not.toHaveBeenCalled()
+      desktop.setRendererReady()
+      vi.setSystemTime(Date.now() + 1)
+      const dispatched = await desktop.runNow(automation.id)
+      expect(dispatched.error).toBeNull()
+      if (surface === 'chat') {
+        expect(dispatched).toMatchObject({ status: 'dispatched', chatSessionId: 'claude_chat' })
+        expect(chat).toHaveBeenCalledOnce()
+        expect(send).not.toHaveBeenCalled()
+      } else {
+        expect(dispatched.status).toBe('dispatching')
+        expect(send).toHaveBeenCalledWith(
+          'automations:dispatchRequested',
+          expect.objectContaining({
+            automation: expect.objectContaining({
+              id: automation.id,
+              prompt: automation.prompt,
+              workspaceMode: automation.workspaceMode,
+              workspaceId: automation.workspaceId,
+              ...(surface ? { surface } : {})
+            }),
+            run: expect.objectContaining({ id: dispatched.id })
+          })
+        )
+        expect(chat).not.toHaveBeenCalled()
+      }
+      desktop.stop()
+      chat.mockClear()
+      vi.setSystemTime(Date.now() + 1)
+      const headless = new AutomationService(store, {
+        allowRemoteHostScheduling: true,
+        headlessDispatcher: terminal,
+        chatDispatcher: chat
+      })
+      try {
+        expect((await headless.runNow(automation.id)).status).toBe('dispatched')
+        expect(chat).toHaveBeenCalledTimes(surface === 'chat' ? 1 : 0)
+        expect(terminal).toHaveBeenCalledTimes(surface === 'chat' ? 0 : 1)
+      } finally {
+        headless.stop()
+      }
+    }
+  )
 
   it('skips dispatch when the selected project host setup is gone', async () => {
     vi.setSystemTime(new Date('2026-05-13T08:00:00Z'))
@@ -162,8 +226,8 @@ describe('AutomationService', () => {
       }
     })
     const reloaded = await createStore()
-    const send = vi.fn(async () => ({ workspaceId: 'wt1', terminalSessionId: 'tab-1' }))
-    const service = new AutomationService(reloaded, { headlessDispatcher: send, tickMs: 60_000 })
+    const send = vi.fn()
+    const service = new AutomationService(reloaded, { tickMs: 60_000 })
     service.setWebContents({
       isDestroyed: () => false,
       send
@@ -203,8 +267,8 @@ describe('AutomationService', () => {
       }
     })
     const reloaded = await createStore()
-    const send = vi.fn(async () => ({ workspaceId: 'wt1', terminalSessionId: 'tab-1' }))
-    const service = new AutomationService(reloaded, { headlessDispatcher: send, tickMs: 60_000 })
+    const send = vi.fn()
+    const service = new AutomationService(reloaded, { tickMs: 60_000 })
     service.setWebContents({
       isDestroyed: () => false,
       send
@@ -242,8 +306,8 @@ describe('AutomationService', () => {
       rrule: 'FREQ=DAILY;BYHOUR=9;BYMINUTE=0',
       dtstart: new Date('2026-05-14T00:00:00Z').getTime()
     })
-    const send = vi.fn(async () => ({ workspaceId: 'wt1', terminalSessionId: 'tab-1' }))
-    const service = new AutomationService(store, { headlessDispatcher: send, tickMs: 60_000 })
+    const send = vi.fn()
+    const service = new AutomationService(store, { tickMs: 60_000 })
     service.setWebContents({
       isDestroyed: () => false,
       send
@@ -281,9 +345,8 @@ describe('AutomationService', () => {
       rrule: 'FREQ=DAILY;BYHOUR=9;BYMINUTE=0',
       dtstart: new Date('2026-05-14T00:00:00Z').getTime()
     })
-    const send = vi.fn(async () => ({ workspaceId: 'wt1', terminalSessionId: 'tab-1' }))
+    const send = vi.fn()
     const service = new AutomationService(store, {
-      headlessDispatcher: send,
       tickMs: 60_000,
       allowRemoteHostScheduling: true
     })
@@ -295,8 +358,9 @@ describe('AutomationService', () => {
 
     const run = await service.runNow(automation.id)
 
-    expect(run.status).toBe('dispatched')
+    expect(run.status).toBe('dispatching')
     expect(send).toHaveBeenCalledWith(
+      'automations:dispatchRequested',
       expect.objectContaining({
         automation: expect.objectContaining({ schedulerOwner: 'remote_host_service' }),
         run: expect.objectContaining({ id: run.id, status: 'dispatching' })
@@ -686,27 +750,20 @@ describe('AutomationService', () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     vi.setSystemTime(new Date('2026-05-13T09:01:00'))
-    const send = vi.fn<HeadlessAutomationDispatcher>(async (_request) => ({
-      workspaceId: 'wt1',
-      terminalSessionId: 'tab-1'
-    }))
-    const service = new AutomationService(reloaded, { headlessDispatcher: send, tickMs: 60_000 })
-    service.setWebContents({ isDestroyed: () => false, send: vi.fn() })
+    const send = vi.fn()
+    const service = new AutomationService(reloaded, { tickMs: 60_000 })
+    service.setWebContents({ isDestroyed: () => false, send })
 
     service.start()
     service.setRendererReady()
     await vi.waitFor(() =>
-      expect(send).toHaveBeenCalledWith(
-        expect.objectContaining({ automation: expect.any(Object), run: expect.any(Object) })
-      )
+      expect(send).toHaveBeenCalledWith('automations:dispatchRequested', expect.any(Object))
     )
     service.stop()
 
-    const [payload] = send.mock.calls[0]
+    const [, payload] = send.mock.calls[0]
     expect(payload.automation.id).toBe(healthy.id)
-    await vi.waitFor(() =>
-      expect(reloaded.listAutomationRuns(healthy.id)[0]?.status).toBe('dispatched')
-    )
+    expect(reloaded.listAutomationRuns(healthy.id)[0]?.status).toBe('dispatching')
     const poisonRun = reloaded.listAutomationRuns(poison.id)[0]
     expect(poisonRun?.status).toBe('skipped_unavailable')
     expect(poisonRun?.error).toBe(
@@ -749,34 +806,27 @@ describe('AutomationService', () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     vi.setSystemTime(new Date('2026-05-13T09:01:00'))
-    const send = vi.fn<HeadlessAutomationDispatcher>(async (_request) => ({
-      workspaceId: 'wt1',
-      terminalSessionId: 'tab-1'
-    }))
-    const service = new AutomationService(reloaded, { headlessDispatcher: send, tickMs: 60_000 })
-    service.setWebContents({ isDestroyed: () => false, send: vi.fn() })
+    const send = vi.fn()
+    const service = new AutomationService(reloaded, { tickMs: 60_000 })
+    service.setWebContents({ isDestroyed: () => false, send })
 
     service.start()
     service.setRendererReady()
     await vi.waitFor(() =>
-      expect(send).toHaveBeenCalledWith(
-        expect.objectContaining({ automation: expect.any(Object), run: expect.any(Object) })
-      )
+      expect(send).toHaveBeenCalledWith('automations:dispatchRequested', expect.any(Object))
     )
     service.stop()
 
-    const [payload] = send.mock.calls[0]
+    const [, payload] = send.mock.calls[0]
     expect(payload.automation.id).toBe(healthy.id)
-    await vi.waitFor(() =>
-      expect(reloaded.listAutomationRuns(healthy.id)[0]?.status).toBe('dispatched')
-    )
+    expect(reloaded.listAutomationRuns(healthy.id)[0]?.status).toBe('dispatching')
     expect(reloaded.listAutomationRuns(poison.id)[0]?.error).toBe(
       'Orca could not evaluate this automation and skipped the occurrence.'
     )
     expect(logged).toHaveBeenCalled()
   })
 
-  it('marks the run dispatch_failed when the host launch throws', async () => {
+  it('marks the run dispatch_failed when the renderer send throws', async () => {
     vi.setSystemTime(new Date('2026-05-13T08:59:00'))
     const store = await createStore()
     store.addRepo(makeRepo())
@@ -795,10 +845,10 @@ describe('AutomationService', () => {
     logged.mockClear()
 
     vi.setSystemTime(new Date('2026-05-13T09:01:00'))
-    const send = vi.fn(async () => {
-      throw new Error('host launch failed')
+    const send = vi.fn(() => {
+      throw new Error('renderer is gone')
     })
-    const service = new AutomationService(store, { tickMs: 60_000, headlessDispatcher: send })
+    const service = new AutomationService(store, { tickMs: 60_000 })
     service.setWebContents({ isDestroyed: () => false, send })
 
     service.start()
@@ -809,7 +859,7 @@ describe('AutomationService', () => {
     const runs = store.listAutomationRuns(automation.id)
     expect(runs).toHaveLength(1)
     expect(runs[0]?.status).toBe('dispatch_failed')
-    expect(runs[0]?.error).toBe('host launch failed')
+    expect(runs[0]?.error).toBe('renderer is gone')
     expect(logged).not.toHaveBeenCalled()
   })
 })

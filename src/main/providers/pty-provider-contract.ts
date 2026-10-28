@@ -167,7 +167,18 @@ export type IPtyProvider = {
   supportsForegroundProcessEvidence?(options?: { signal?: AbortSignal }): Promise<boolean>
 
   // Absolute deadlines bound leaf RPCs within the destructive sweep budget; each leaf converts to a relative timeout.
-  shutdown(id: string, opts: PtyShutdownOptions): Promise<void>
+  shutdown(
+    id: string,
+    opts: {
+      immediate?: boolean
+      keepHistory?: boolean
+      deadlineMs?: number
+      expectedIncarnationId?: PtyIncarnationId
+      /** Require the host-attested creator and current authenticated client to match before destructive ownership-based stops.
+       * Optional/ignored on older hosts; ordinary teardown and unattested revived PTYs may omit it. */
+      expectedOwnerClientInstanceId?: string
+    }
+  ): Promise<void>
   sendSignal(id: string, signal: string): Promise<void>
   getCwd(id: string): Promise<string>
   getInitialCwd(id: string): Promise<string>
@@ -216,16 +227,4 @@ export type IPtyProvider = {
       runtimeFed?: true
     }) => void
   ): () => void
-}
-
-export type PtyShutdownOptions = {
-  immediate?: boolean
-  keepHistory?: boolean
-  deadlineMs?: number
-  expectedIncarnationId?: PtyIncarnationId
-  /** Require the host-attested creator and current authenticated client to match before destructive ownership-based stops.
-   * Optional/ignored on older hosts; ordinary teardown and unattested revived PTYs may omit it. */
-  expectedOwnerClientInstanceId?: string
-  /** In-process final veto after provider preparation; never serialized. */
-  authorizeStop?: () => Promise<boolean>
 }

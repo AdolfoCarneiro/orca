@@ -170,13 +170,6 @@ export type TerminalActions = {
       leafId: string
       ptyId: string
       expectedRuntimePtyId?: string
-      lifecycle?: {
-        preservePane: boolean
-        stop: (
-          preservePane: boolean,
-          transactionCurrent: () => boolean
-        ) => Promise<'stopped' | 'live' | 'unproven'>
-      }
     }
   ) => Promise<void>
   suppressPtyExit: (ptyId: string) => void

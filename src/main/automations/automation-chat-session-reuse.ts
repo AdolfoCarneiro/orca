@@ -1,8 +1,8 @@
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import type {
-  AutomationAgentLaunchRequest,
-  HeadlessAutomationAgentLaunch
-} from './headless-automation-agent-launch'
+  AutomationChatLaunchRequest,
+  AutomationChatAgentLaunch
+} from './automation-chat-agent-launch'
 import { automationRunRecency } from '../../shared/automation-session-reuse'
 import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
 import { AUTOMATION_AGENT_CALLER, automationRunOperationId } from './automation-run-operation'
@@ -15,8 +15,8 @@ import { automationRunAcceptedTarget } from './automation-agent-run-result'
 
 export async function reuseAutomationChat(
   runtime: OrcaRuntimeService,
-  { automation, run, runs }: AutomationAgentLaunchRequest
-): Promise<HeadlessAutomationAgentLaunch | null> {
+  { automation, run, runs }: AutomationChatLaunchRequest
+): Promise<AutomationChatAgentLaunch | null> {
   let preparationError: { error: unknown } | undefined
   const store = await runtime.openAgentSessionRecordStore().catch((error: unknown) => {
     preparationError = { error }
@@ -37,7 +37,7 @@ export async function reuseAutomationChat(
       continue
     }
     seen.add(id)
-    const target: HeadlessAutomationAgentLaunch = {
+    const target: AutomationChatAgentLaunch = {
       // The caller only attempts Chat reuse for a stable workspace.
       workspaceId: automation.workspaceId!,
       workspaceDisplayName: null,

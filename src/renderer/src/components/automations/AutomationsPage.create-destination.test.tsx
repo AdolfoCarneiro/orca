@@ -150,11 +150,12 @@ function createRpcCalls(): unknown[][] {
 }
 
 describe('AutomationsPage create destination', () => {
-  it('creates on the selected runtime rather than under the desktop authority', async () => {
+  it('creates Terminal on the selected runtime while Chat capability observation is unavailable', async () => {
     api.automations.list.mockResolvedValue([])
     scopedList([])
     runtimeHost([], [])
     runtimeCreateReturns(makeAutomation({ id: 'a-new', name: 'Sweep' }))
+    mocks.state.runtimeStatusByEnvironmentId = new Map()
     addRuntimeProject()
     mocks.state.automationHostFilter = RUNTIME_SELF_FILTER
 
@@ -167,6 +168,7 @@ describe('AutomationsPage create destination', () => {
     expect(api.automations.create).not.toHaveBeenCalled()
     expect(createRpcCalls()).toHaveLength(1)
     expect(createRpcCalls()[0]?.[0]).toEqual({ kind: 'environment', environmentId: RUNTIME_ID })
+    expect(createRpcCalls()[0]?.[2]).not.toHaveProperty('launchSetupPatch')
     expect(createRpcCalls()[0]?.[3]).toMatchObject({ expectedEnvironmentPairingRevision: 4 })
     expect(createRpcCalls()[0]?.[2]).toMatchObject({
       repo: `id:${RUNTIME_REPO_ID}`,

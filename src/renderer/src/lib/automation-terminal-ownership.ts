@@ -1,31 +1,40 @@
-import {
-  automationTerminalLifecycleResponse,
-  isCurrentAutomationTerminalRequest
-} from '../../../shared/automation-terminal-lifecycle'
 import { isRemoteRuntimePtyId } from '../../../shared/remote-runtime/remote-runtime-pty-id'
-import type {
-  AutomationTerminalLifecycleOwner,
-  AutomationTerminalTarget,
-  AutomationTerminalLifecycleResponse
-} from '../../../shared/automation-terminal-lifecycle'
 import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
+import type { TerminalTab } from '../../../shared/terminal-tab-types'
 import { parsePaneKey } from '../../../shared/stable-pane-id'
-import { mobilePublicationEpoch } from '@/runtime/sync-runtime-graph/graph-state'
+import '@/store/slices/agent-status/agent-status'
+import { collectSleepingAgentSessionRecordsForWorktree } from '@/store/slices/agent-status/agent-status-recovery-collection'
+import { singlePaneLayoutSnapshot } from '@/store/slices/terminal-helpers'
 import { readLastTerminalInputAt } from './terminal-input-activity-coalescing'
-import { persistWorkspaceSessionByHost } from './workspace-session-host-persistence'
-import { buildWorkspaceSessionPayload } from './workspace-session'
-import { closeTerminalTab } from '@/components/terminal/terminal-tab-actions'
-import { isUnifiedTabPinned } from '@/store/pinned-tab-close-guard'
 
 export type AutomationTerminalOwnershipStore = {
   getState: () => AppState
   subscribe: (listener: (state: AppState, previousState: AppState) => void) => () => void
 }
 
+/** How finalize retired the run's terminal; null when it left the terminal as it was. */
+export type AutomationTerminalRetirement = 'closed' | 'hibernated' | null
+
+export type AutomationTerminalOwnership = {
+  /** `preservePane` sleeps a resumable pane in place instead of closing its tab. */
+  finalize: (options: { preservePane: boolean }) => Promise<AutomationTerminalRetirement>
+  release: () => void
+}
+
+type CreateAutomationTerminalOwnershipArgs = {
+  store: AutomationTerminalOwnershipStore
+  worktreeId: string
+  tabId: string
+  paneKey: string
+  ptyId: string
+  tabCreatedAt: number
+  runtimeKind: 'desktop' | 'environment'
+}
+
 function isOwnedTabIdentityCurrent(
   state: AppState,
-  args: AutomationTerminalTarget & { ptyId: string; tabCreatedAt: number }
+  args: Omit<CreateAutomationTerminalOwnershipArgs, 'store' | 'runtimeKind'>
 ): boolean {
   const parsedPane = parsePaneKey(args.paneKey)
   if (!parsedPane || parsedPane.tabId !== args.tabId) {
@@ -67,240 +76,129 @@ function isOwnedTabIdentityCurrent(
   return layoutPtyId === undefined || layoutPtyId === args.ptyId
 }
 
-export function createAutomationTerminalOwnership(
-  store: AutomationTerminalOwnershipStore,
-  target: AutomationTerminalTarget
-) {
-  let taken = false
-  let lost = false
-  let materialized = false
-  let createdAt = 0
-  let ptyId: string | null = null
-  const initial = store.getState()
-  const input = readLastTerminalInputAt(initial.lastTerminalInputAtByPaneKey, target.paneKey)
-  let tabs = initial.tabsByWorktree[target.worktreeId]
-  let layout = initial.terminalLayoutsByTabId[target.tabId]
-  let ptys = initial.ptyIdsByTabId[target.tabId]
-  // Enrollment cannot infer the history of a surface that already existed.
-  if (tabs?.some((tab) => tab.id === target.tabId)) {
-    lost = true
+function canHibernateOwnedPane(
+  state: AppState,
+  args: Pick<CreateAutomationTerminalOwnershipArgs, 'worktreeId' | 'tabId' | 'paneKey' | 'ptyId'>
+): boolean {
+  // Why: a run that ended by exiting has no process left to stop in place.
+  if (!(state.ptyIdsByTabId[args.tabId] ?? []).includes(args.ptyId)) {
+    return false
   }
-  const observe = (state: AppState): void => {
-    taken ||=
-      (state.activeWorktreeId === target.worktreeId &&
-        state.activeTabId === target.tabId &&
+  return Boolean(
+    collectSleepingAgentSessionRecordsForWorktree(state, args.worktreeId, {
+      paneKeys: [args.paneKey],
+      captureMode: 'completed-agent-hibernation'
+    })[args.paneKey]
+  )
+}
+
+export function createAutomationTerminalOwnership(
+  args: CreateAutomationTerminalOwnershipArgs
+): AutomationTerminalOwnership {
+  let consumed = false
+  let userTookOver = false
+  // Include coalesced pending keystrokes or a recent user takeover can be missed.
+  const inputAtLaunch = readLastTerminalInputAt(
+    args.store.getState().lastTerminalInputAtByPaneKey,
+    args.paneKey
+  )
+  const observeTakeover = (): void => {
+    const state = args.store.getState()
+    if (
+      (state.activeWorktreeId === args.worktreeId &&
+        state.activeTabId === args.tabId &&
         state.activeTabType === 'terminal') ||
-      readLastTerminalInputAt(state.lastTerminalInputAtByPaneKey, target.paneKey) !== input
-    const nextTabs = state.tabsByWorktree[target.worktreeId]
-    const nextLayout = state.terminalLayoutsByTabId[target.tabId]
-    const nextPtys = state.ptyIdsByTabId[target.tabId]
-    if (tabs === nextTabs && layout === nextLayout && ptys === nextPtys) {
+      readLastTerminalInputAt(state.lastTerminalInputAtByPaneKey, args.paneKey) !== inputAtLaunch
+    ) {
+      userTookOver = true
+    }
+  }
+  const unsubscribe = args.store.subscribe(observeTakeover)
+  observeTakeover()
+
+  const release = (): void => {
+    if (consumed) {
       return
     }
-    tabs = nextTabs
-    layout = nextLayout
-    ptys = nextPtys
-    const tab = tabs?.find((candidate) => candidate.id === target.tabId)
-    if (!materialized && tab) {
-      materialized = true
-      createdAt = tab.createdAt
-    } else if (materialized && (!tab || tab.createdAt !== createdAt)) {
-      lost = true
-    }
-    if (ptyId && !isOwnedTabIdentityCurrent(state, { ...target, ptyId, tabCreatedAt: createdAt })) {
-      lost = true
-    }
+    consumed = true
+    unsubscribe()
   }
-  const release = store.subscribe(observe)
-  observe(initial)
-  const eligible = (): boolean => {
-    observe(store.getState())
-    return (
-      !taken &&
-      !lost &&
-      materialized &&
-      ptyId !== null &&
-      isOwnedTabIdentityCurrent(store.getState(), { ...target, ptyId, tabCreatedAt: createdAt })
-    )
-  }
+
   return {
     release,
-    eligible,
-    bind: (original: string): boolean => {
-      if (ptyId || isRemoteRuntimePtyId(original)) {
-        return false
+    finalize: async ({ preservePane }) => {
+      if (consumed) {
+        return null
       }
-      ptyId = original
-      return eligible()
+      // Consume before identity checks: completion and exit can race to retire the same session.
+      consumed = true
+      unsubscribe()
+      observeTakeover()
+      if (args.runtimeKind !== 'desktop' || isRemoteRuntimePtyId(args.ptyId) || userTookOver) {
+        return null
+      }
+      const state = args.store.getState()
+      const leafId = parsePaneKey(args.paneKey)?.leafId
+      if (!leafId || !isOwnedTabIdentityCurrent(state, args)) {
+        return null
+      }
+      if (preservePane && canHibernateOwnedPane(state, args)) {
+        try {
+          // Why: sleeping keeps the tab and its resume record, so opening the run resumes it.
+          await state.shutdownCompletedAgentPaneForHibernation(args.worktreeId, {
+            paneKey: args.paneKey,
+            tabId: args.tabId,
+            leafId,
+            ptyId: args.ptyId
+          })
+        } catch (error) {
+          // Failed stop rolls back to a live agent; closing would discard the session it preserved.
+          console.error('[automations] Failed to hibernate owned automation terminal:', error)
+          return null
+        }
+        return 'hibernated'
+      }
+      try {
+        // Use closeTab’s provider/pane teardown authority rather than adding a second direct-kill path.
+        state.closeTab(args.tabId, { recordInteraction: false, reason: 'cleanup' })
+      } catch (error) {
+        // A throwing close leaves the terminal live; retain its valid identity and report not-closed.
+        console.error('[automations] Failed to close owned automation terminal:', error)
+        return null
+      }
+      return 'closed'
     }
   }
 }
 
-export function registerAutomationTerminalLifecycle(
-  store: AutomationTerminalOwnershipStore = useAppStore
-): () => void {
-  const api = window.api.automations
-  if (!api.onTerminalLifecycleRequest) {
-    return () => {}
+export function bindAutomationTerminal(
+  tab: TerminalTab,
+  paneKey: string,
+  ptyId: string,
+  runtimeKind: 'local' | 'environment',
+  title?: string
+): AutomationTerminalOwnership | null {
+  const parsedPane = parsePaneKey(paneKey)
+  if (!parsedPane || parsedPane.tabId !== tab.id) {
+    throw new Error('Automation terminal pane identity is invalid.')
   }
-  const owners = new Map<
-    string,
-    AutomationTerminalLifecycleOwner<ReturnType<typeof createAutomationTerminalOwnership>>
-  >()
-  const persist = async (): Promise<void> => {
-    const state = store.getState()
-    await persistWorkspaceSessionByHost(
-      window.api.session,
-      buildWorkspaceSessionPayload(state),
-      state
-    )
+  const store = useAppStore.getState()
+  if (title) {
+    store.setTabCustomTitle(tab.id, title, { recordInteraction: false })
   }
-  const dispose = (id: string): void => {
-    const owner = owners.get(id)
-    owners.delete(id)
-    owner?.ownership.release()
-    owner?.settle?.(owner.authorized ? 'unproven' : 'live')
-  }
-  const release = api.onTerminalLifecycleRequest((request) => {
-    const respond = (disposition: AutomationTerminalLifecycleResponse['disposition']): void =>
-      api.respondTerminalLifecycle(
-        automationTerminalLifecycleResponse(request, mobilePublicationEpoch, disposition)
-      )
-    if (request.operation === 'arm') {
-      if (owners.has(request.registrationId) || request.documentEpoch !== null) {
-        respond('kept')
-        return
-      }
-      owners.set(request.registrationId, {
-        request,
-        target: request.target,
-        ownership: createAutomationTerminalOwnership(store, request.target),
-        ptyId: null,
-        prepared: false,
-        authorized: false
-      })
-      respond('armed')
-      return
-    }
-    const owner = owners.get(request.registrationId)
-    if (!isCurrentAutomationTerminalRequest(owner, request, mobilePublicationEpoch)) {
-      respond('kept')
-      return
-    }
-    if (request.operation === 'release') {
-      dispose(request.registrationId)
-      respond('released')
-      return
-    }
-    if (request.operation === 'bind') {
-      if (owner.ptyId || !owner.ownership.bind(request.ptyId)) {
-        respond('kept')
-        return
-      }
-      owner.ptyId = request.ptyId
-      respond('bound')
-      return
-    }
-    if (request.phase === 'authorize') {
-      const allowed =
-        owner.prepared &&
-        !owner.authorized &&
-        owner.transactionCurrent?.() === true &&
-        owner.ownership.eligible()
-      owner.authorized ||= allowed
-      respond(allowed ? 'authorized' : 'kept')
-      return
-    }
-    if (request.phase === 'stop-settled') {
-      if (!owner.prepared || !owner.completion || !owner.settle) {
-        respond('unproven')
-        return
-      }
-      const proof = request.proof === 'stopped' && !owner.authorized ? 'unproven' : request.proof
-      owner.proof = proof
-      owner.settle(proof)
-      void owner.completion.then(respond).finally(() => dispose(request.registrationId))
-      return
-    }
-    const state = store.getState()
-    const { target, ptyId } = owner
-    if (owner.completion || !ptyId || !owner.ownership.eligible()) {
-      respond('kept')
-      return
-    }
-    let preservePane = request.preservePane
-    owner.completion = (async () => {
-      try {
-        await state.shutdownCompletedAgentPaneForHibernation(target.worktreeId, {
-          ...target,
+  store.updateTabPtyId(tab.id, ptyId)
+  store.setTabLayout(tab.id, singlePaneLayoutSnapshot(parsedPane.leafId, ptyId))
+  const ownership =
+    runtimeKind === 'local'
+      ? createAutomationTerminalOwnership({
+          store: useAppStore,
+          worktreeId: tab.worktreeId,
+          tabId: tab.id,
+          paneKey,
           ptyId,
-          lifecycle: {
-            preservePane,
-            stop: async (captured, transactionCurrent) => {
-              owner.transactionCurrent = transactionCurrent
-              preservePane = captured
-              if (
-                !preservePane &&
-                isUnifiedTabPinned(store.getState(), target.worktreeId, target.tabId)
-              ) {
-                return 'live'
-              }
-              await persist()
-              if (!owner.ownership.eligible() || owners.get(request.registrationId) !== owner) {
-                return 'live'
-              }
-              const settlement = new Promise<'stopped' | 'live' | 'unproven'>((resolve) => {
-                owner.settle = resolve
-              })
-              owner.prepared = true
-              respond('prepared')
-              return settlement
-            }
-          }
+          tabCreatedAt: tab.createdAt,
+          runtimeKind: 'desktop'
         })
-        if (!preservePane) {
-          if (!owner.ownership.eligible()) {
-            return 'stopped-but-uncommitted'
-          }
-          let closed = false
-          closeTerminalTab(target.tabId, {
-            reason: 'cleanup',
-            rejectPinned: true,
-            skipRunningProcessConfirm: true,
-            localPtyTeardownOwnedExternally: true,
-            onClosed: () => {
-              closed = true
-            }
-          })
-          if (!closed) {
-            return 'stopped-but-uncommitted'
-          }
-        }
-        await persist()
-        return preservePane ? 'hibernated' : 'closed'
-      } catch {
-        if (!owner.prepared) {
-          respond('kept')
-        }
-        try {
-          await persist()
-        } catch {
-          /* Preserve the captured record on an uncertain commit. */
-        }
-        return owner.proof === 'stopped'
-          ? 'stopped-but-uncommitted'
-          : owner.proof === 'live'
-            ? 'kept-live'
-            : owner.authorized
-              ? 'unproven'
-              : 'kept-live'
-      }
-    })()
-  })
-  return () => {
-    release()
-    for (const id of owners.keys()) {
-      dispose(id)
-    }
-  }
+      : null
+  return ownership
 }

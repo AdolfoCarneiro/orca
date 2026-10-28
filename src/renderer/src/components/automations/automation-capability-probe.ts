@@ -20,6 +20,7 @@ import {
 } from '../../../../shared/automation-extra-agent-args'
 import { automationAuthorityCatalogKey } from './automation-host-catalog-types'
 import { automationHostDiagnostics } from './automation-host-diagnostics'
+import { translate } from '@/i18n/i18n'
 
 export const REQUEST_TIMEOUT_MS = 15_000
 
@@ -146,7 +147,10 @@ export async function assertAutomationCreateIdempotencySupported(
   await assertAuthorityCapability(
     authority,
     AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY,
-    'Moving automations to this host requires a newer Orca server. Update the HUB and try again.'
+    translate(
+      'auto.components.automations.capabilityProbe.createIdempotencyUpdateRequired',
+      'Moving automations to this host requires a newer Orca server. Update the HUB and try again.'
+    )
   )
 }
 

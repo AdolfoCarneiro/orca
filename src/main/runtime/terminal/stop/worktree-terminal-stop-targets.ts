@@ -1,4 +1,3 @@
-import type { PtyShutdownOptions } from '../../../providers/pty-provider-contract'
 import { setTimeout as delay } from 'node:timers/promises'
 import { OrcaRuntimeWithSleepResolvedWorktreeTerminals } from './worktree-terminal-sleep'
 import { setsEqual } from '../../runtime-worktree-binding-index'
@@ -20,9 +19,7 @@ export abstract class OrcaRuntimeWithStopExactTerminalsForWorktree extends OrcaR
   async stopExactTerminalsForWorktree(
     worktreeSelector: string,
     expectedPtyIds: readonly string[],
-    opts: Pick<PtyShutdownOptions, 'keepHistory' | 'expectedIncarnationId' | 'authorizeStop'> & {
-      targetOnly?: boolean
-    } = {}
+    opts: { keepHistory?: boolean; targetOnly?: boolean } = {}
   ): Promise<{
     stopped: number
     stoppedPtyIds: string[]
@@ -33,7 +30,7 @@ export abstract class OrcaRuntimeWithStopExactTerminalsForWorktree extends OrcaR
   }> {
     // Why: exact stop hibernates one known pane; worktree sleep discovers its complete host-owned set separately.
     const graphEpoch = this.captureReadyGraphEpoch()
-    const worktree = await this.resolveWorktreeSelector(worktreeSelector)
+    const worktree = await this.resolveWorkspaceSelector(worktreeSelector)
     this.assertStableReadyGraph(graphEpoch)
     const expected = new Set(expectedPtyIds.filter((ptyId) => ptyId.length > 0))
     if (expected.size !== 1) {
@@ -72,11 +69,7 @@ export abstract class OrcaRuntimeWithStopExactTerminalsForWorktree extends OrcaR
         : null
       let stopped = false
       try {
-        stopped = await this.ptyController.stopAndWait(ptyId, {
-          keepHistory: opts.keepHistory,
-          expectedIncarnationId: opts.expectedIncarnationId,
-          authorizeStop: opts.authorizeStop
-        })
+        stopped = await this.ptyController.stopAndWait(ptyId, { keepHistory: opts.keepHistory })
       } finally {
         settleStop?.(stopped)
       }

@@ -224,7 +224,7 @@ export function AutomationEditorDialog({
         <AutomationEditorDialogFooter
           isEditing={isEditing}
           isSaving={isSaving}
-          canSave={canSave && chatSupported !== null && (surface !== 'chat' || chatSupported)}
+          canSave={canSave && (surface !== 'chat' || chatSupported === true)}
           hasProjects={repos.length > 0}
           onOpenChange={onOpenChange}
           onSave={onSave}

@@ -4,8 +4,7 @@ import { createTestStore, makeWorktree, seedStore } from '@/store/slices/store-t
 import { createStoreCascadesMockApi } from '@/store/slices/store-cascades-test-harness'
 import { makePaneKey } from '../../../shared/stable-pane-id'
 import { LayoutApplyParams } from '../../../shared/rpc-contract/workspace-layout-params'
-import { publishAgentLaunchTab } from './agent-launch-tab-publication'
-import { registerTerminalPresentationIpcBridge } from '@/hooks/ipc-events/terminal-presentation-ipc-bridge'
+import { bindAutomationTerminal } from './automation-terminal-ownership'
 
 const mocks = vi.hoisted(() => {
   const storeRef: { current: unknown } = { current: null }
@@ -51,98 +50,27 @@ beforeEach(() => {
 })
 
 describe('a background agent tab in a layout-owner build', () => {
-  it('binds the published reserved pane without another layout RPC', () => {
-    const onLifecycle = vi.fn<typeof window.api.automations.onTerminalLifecycleRequest>(
-      () => () => {}
-    )
-    const respond = vi.fn<typeof window.api.automations.respondTerminalLifecycle>()
-    const onCreate = vi.fn<typeof window.api.ui.onCreateTerminal>(() => () => {})
-    vi.stubGlobal('window', {
-      dispatchEvent: vi.fn(),
-      api: {
-        ...window.api,
-        automations: { onTerminalLifecycleRequest: onLifecycle, respondTerminalLifecycle: respond },
-        ui: {
-          onLaunchRecipe: () => () => {},
-          onCreateTerminal: onCreate,
-          onRequestTerminalTabMount: () => () => {},
-          replyTerminalCreate: vi.fn()
-        }
-      }
+  it('binds the one-pane tree main made the tab with, so the bind changes no pane tree', () => {
+    // As adoptAgentBackgroundSessionTab: the tab is made under its terminal's pane id.
+    const tab = store.getState().createTab(WT, undefined, undefined, {
+      id: 'tab-run',
+      initialLeafId: LEAF,
+      initialPtyId: 'pty-run',
+      activate: false,
+      recordInteraction: false
     })
-    const unsubs: (() => void)[] = []
-    registerTerminalPresentationIpcBridge(unsubs)
-    try {
-      const lifecycle = onLifecycle.mock.calls[0][0]
-      const correlation = {
-        requestId: 'arm',
-        registrationId: 'registration',
-        runId: 'run',
-        operationId: 'operation',
-        serviceGeneration: 'generation',
-        documentEpoch: null
-      }
-      const target = {
-        worktreeId: WT,
-        tabId: 'tab-run',
-        leafId: LEAF,
-        paneKey: makePaneKey('tab-run', LEAF)
-      }
-      lifecycle({ ...correlation, operation: 'arm', target })
-      expect(respond).toHaveBeenLastCalledWith(expect.objectContaining({ disposition: 'armed' }))
-      const epoch = respond.mock.calls[0][0].documentEpoch
-      const published = publishAgentLaunchTab({
-        requestId: 'publish',
-        worktreeId: WT,
-        tabId: target.tabId,
-        leafId: LEAF,
-        launchAgent: 'codex',
-        viewMode: 'terminal',
-        viewer: 'none'
-      })
-      expect(published).toMatchObject({ tabId: target.tabId, created: true })
-      onCreate.mock.calls[0][0]({
-        requestId: 'materialize',
-        worktreeId: WT,
-        tabId: target.tabId,
-        leafId: LEAF,
-        ptyId: 'pty-run',
-        presentation: 'background',
-        surfaceOwner: false,
-        agentLaunchViewer: 'none'
-      })
-      lifecycle({
-        ...correlation,
-        requestId: 'bind',
-        documentEpoch: epoch,
-        operation: 'bind',
-        ptyId: 'pty-run',
-        incarnationId: 'original',
-        hostId: 'local'
-      })
-      expect(respond).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          ...correlation,
-          requestId: 'bind',
-          documentEpoch: epoch,
-          disposition: 'bound'
-        })
-      )
-      expect(
-        store.getState().tabsByWorktree[WT].find((tab) => tab.id === target.tabId)?.ptyId
-      ).toBe('pty-run')
-      const layout = store.getState().terminalLayoutsByTabId[target.tabId]
-      expect(layout?.root).toEqual({ type: 'leaf', leafId: LEAF })
-      expect(layout?.ptyIdsByLeafId).toEqual({ [LEAF]: 'pty-run' })
-      expect(store.getState().ptyIdsByTabId[target.tabId]).toEqual(['pty-run'])
-      expect(store.getState().tabsByWorktree[WT]).toHaveLength(1)
-      expect(mocks.callRuntimeRpc).toHaveBeenCalledTimes(1)
-      expect(LayoutApplyParams.parse(mocks.callRuntimeRpc.mock.calls[0][2]).command).toEqual(
-        expect.objectContaining({ type: 'createTerminalTab', leafId: LEAF })
-      )
-    } finally {
-      unsubs.forEach((release) => release())
-      vi.unstubAllGlobals()
-    }
+    const [create] = mocks.callRuntimeRpc.mock.calls.map(
+      ([, , params]) => LayoutApplyParams.parse(params).command
+    )
+
+    bindAutomationTerminal(tab, makePaneKey(tab.id, LEAF), 'pty-run', 'environment')
+
+    expect(create).toEqual(expect.objectContaining({ type: 'createTerminalTab', leafId: LEAF }))
+    expect(store.getState().terminalLayoutsByTabId[tab.id]?.root).toEqual({
+      type: 'leaf',
+      leafId: LEAF
+    })
+    // The bind sends nothing more: main already holds this tree.
+    expect(mocks.callRuntimeRpc).toHaveBeenCalledTimes(1)
   })
 })

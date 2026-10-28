@@ -1,6 +1,5 @@
-import { createDesktopRunTerminalLifecycle } from './desktop-run-terminal-lifecycle'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type * as AgentLauncher from './headless-automation-agent-launch'
+import type * as AgentLauncher from './automation-chat-agent-launch'
 import type { HeadlessAutomationDispatcher } from './headless-dispatch'
 import type { AutomationRunTerminalObserver } from './run-completion-watcher'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
@@ -10,6 +9,7 @@ import { automationRunOperationId } from './automation-run-operation'
 
 type Options = {
   headlessDispatcher?: HeadlessAutomationDispatcher
+  chatDispatcher?: HeadlessAutomationDispatcher
   terminalObserver?: AutomationRunTerminalObserver
 }
 const captured = vi.hoisted(() => {
@@ -21,6 +21,13 @@ const captured = vi.hoisted(() => {
     markDispatchResult: vi.fn()
   }
 })
+const { deliverTerminalAgentLaunchPrompt } = vi.hoisted(() => ({
+  deliverTerminalAgentLaunchPrompt: vi.fn(async () => true)
+}))
+vi.mock('../runtime/rpc/methods/agent-launch-terminal-prompt', () => ({
+  deliverTerminalAgentLaunchPrompt
+}))
+
 vi.mock('./service', () => ({
   AutomationService: class {
     start(): void {}
@@ -31,9 +38,9 @@ vi.mock('./service', () => ({
     }
   }
 }))
-vi.mock('./headless-automation-agent-launch', async (original) => ({
+vi.mock('./automation-chat-agent-launch', async (original) => ({
   ...(await original<typeof AgentLauncher>()),
-  launchHeadlessAutomationAgent: captured.launch
+  launchAutomationChatAgent: captured.launch
 }))
 vi.mock('./runtime-chat-run-observer', () => ({ observeAutomationChatRun: captured.observeChat }))
 import { createRuntimeAutomationService } from './runtime-automation-service'
@@ -44,19 +51,21 @@ const run = {
   status: 'dispatching' as const,
   chatSessionId: null
 }
-function fixture(headless: boolean) {
+function fixture(headless: boolean, definitionSurface: 'chat' | 'terminal' = 'chat') {
   const rows = new Map<string, unknown>()
+  const records = {
+    getOperationRow: (_caller: string, id: string) => rows.get(id),
+    getConversation: () => ({
+      sessionId: 'claude_chat',
+      provider: 'claude',
+      location: { workspaceId: 'wt-1' }
+    })
+  }
   const runtime = {
     setAutomationService: vi.fn(),
     notifyAutomationsChanged: vi.fn(),
-    openAgentSessionRecordStore: async () => ({
-      getOperationRow: (_caller: string, id: string) => rows.get(id),
-      getConversation: () => ({
-        sessionId: 'claude_chat',
-        provider: 'claude',
-        location: { workspaceId: 'wt-1' }
-      })
-    }),
+    openAgentSessionRecordStore: async () => records,
+    openedAgentSessionRecordStore: () => records,
     getTerminalHandleForPaneKey: vi.fn((_pane: string): string | null => null),
     getTerminalPtyIdForHandle: vi.fn((_handle: string): string | null => 'pty-1'),
     getTerminalPaneKey: vi.fn(
@@ -69,13 +78,13 @@ function fixture(headless: boolean) {
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: construction and recovery use only these store boundaries.
     store: {
       listAutomationRuns: () => [],
-      listAutomations: () => [{ id: run.automationId, agentId: 'claude' }]
+      listAutomations: () => [
+        { id: run.automationId, agentId: 'claude', surface: definitionSurface }
+      ]
     } as unknown as Store,
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: launching and chat observation are mocked; the runtime implements the recovery boundaries.
     runtime: runtime as unknown as OrcaRuntimeService,
-    ...(headless
-      ? { headless: true as const }
-      : { headless: false as const, createDesktopLifecycle: createDesktopRunTerminalLifecycle })
+    headless
   })
   return { runtime, rows }
 }
@@ -86,7 +95,7 @@ beforeEach(() => {
 })
 describe('host-owned automation execution', () => {
   it.each([false, true])(
-    'uses the same dispatcher on desktop/headless=%s and immediately hands completion to the watcher',
+    'uses the same Chat dispatcher on desktop/headless=%s without supplying a desktop Terminal dispatcher',
     async (headless) => {
       fixture(headless)
       captured.launch.mockResolvedValue({
@@ -96,9 +105,10 @@ describe('host-owned automation execution', () => {
           '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d:3f2504e0-4f89-41d3-9a0c-0305e82c3301',
         terminalHandle: 'term-1'
       })
-      const dispatcher = captured.options.headlessDispatcher!
+      expect(Boolean(captured.options.headlessDispatcher)).toBe(headless)
+      const dispatcher = captured.options.chatDispatcher!
       const result = await dispatcher({
-        automation: state.automations[0],
+        automation: { ...state.automations[0], surface: 'chat' },
         run,
         target: { ok: true, cwd: '/fixture', repo: state.repos[0] }
       })
@@ -117,7 +127,7 @@ describe('host-owned automation execution', () => {
   it.each(['fresh-launch', 'reuse-send'] as const)(
     'recovers a %s accepted chat before the automation run identity was saved',
     async (purpose) => {
-      const { rows } = fixture(false)
+      const { rows } = fixture(false, purpose === 'fresh-launch' ? 'terminal' : 'chat')
       rows.set(automationRunOperationId(run, purpose), {
         outcome: {
           status: 'succeeded',
@@ -157,98 +167,47 @@ describe('host-owned automation execution', () => {
       expect(captured.launch).not.toHaveBeenCalled()
     }
   )
-  it('recovers a terminal reuse receipt without a pane key and never launches again', async () => {
-    const { rows, runtime } = fixture(false)
-    const originalRun = { ...run, terminalPtyId: 'pty-1' }
-    rows.set(automationRunOperationId(run, 'reuse-terminal-launch'), {
+  it('recovers an accepted Chat request that actually fell back to Terminal without relaunch', async () => {
+    const { rows, runtime } = fixture(false, 'terminal')
+    rows.set(automationRunOperationId(run, 'fresh-launch'), {
       outcome: {
         status: 'succeeded',
         launch: {
           worktreeId: 'wt-1',
-          outcome: { kind: 'terminal', handle: 'term-reused' },
+          outcome: {
+            kind: 'terminal',
+            handle: 'term-fallback',
+            paneKey: 'tab:11111111-1111-4111-8111-111111111111'
+          },
           receipt: {
             mode: 'terminal',
-            preferred: 'terminal',
-            reason: 'requested',
-            detail: 'Terminal'
+            preferred: 'structured',
+            reason: 'unsupported',
+            detail: 'Fallback'
           },
           prompt: { delivery: 'submit', outcome: 'handed-to-terminal' }
         }
       }
     })
-    runtime.waitForTerminal.mockRejectedValueOnce(new Error('test-stop'))
+    runtime.waitForTerminal.mockRejectedValueOnce(new Error('ordinary-terminal-observer'))
     const observer = captured.options.terminalObserver!
     await expect(
-      observer.observeCompletion(observer.resolveRunTerminal(originalRun)!, {
-        run: originalRun,
+      observer.observeCompletion(observer.resolveRunTerminal(run)!, {
+        run,
         signal: new AbortController().signal
       })
-    ).rejects.toThrow('test-stop')
+    ).rejects.toThrow('ordinary-terminal-observer')
     expect(captured.markDispatchResult).toHaveBeenCalledWith(
       expect.objectContaining({
+        status: 'dispatched',
         sessionKind: 'terminal',
-        terminalPaneKey:
-          '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d:3f2504e0-4f89-41d3-9a0c-0305e82c3301',
-        terminalSessionId: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
         terminalPtyId: 'pty-1'
       })
     )
+    expect(runtime.waitForTerminal).toHaveBeenCalledWith('term-fallback', expect.anything())
+    expect(captured.observeChat).not.toHaveBeenCalled()
     expect(captured.launch).not.toHaveBeenCalled()
   })
-  it.each(['same-process', 'replacement', 'unknown', 'same-id-replacement'] as const)(
-    'projects an adopted live handle with independent %s evidence',
-    async (proof) => {
-      const { rows, runtime } = fixture(false)
-      runtime.getTerminalHandleForPaneKey.mockReturnValue('term-adopted')
-      runtime.getTerminalPtyIdForHandle.mockImplementation((handle) =>
-        handle === 'term-adopted'
-          ? proof === 'same-process' || proof === 'same-id-replacement'
-            ? 'original-pty'
-            : proof === 'replacement'
-              ? 'replacement-pty'
-              : null
-          : proof === 'same-id-replacement'
-            ? null
-            : 'original-pty'
-      )
-      const ownRun = {
-        ...run,
-        status: 'dispatched' as const,
-        sessionKind: 'terminal' as const,
-        terminalPaneKey: 'tab:leaf',
-        terminalPtyId: 'original-pty'
-      }
-      rows.set(automationRunOperationId(run, 'fresh-launch'), {
-        outcome: {
-          status: 'succeeded',
-          launch: {
-            worktreeId: 'wt-1',
-            outcome: { kind: 'terminal', handle: 'term-old', paneKey: 'tab:leaf' },
-            receipt: {
-              mode: 'terminal',
-              preferred: 'terminal',
-              reason: 'requested',
-              detail: 'Terminal'
-            },
-            prompt: { delivery: 'submit', outcome: 'handed-to-terminal' }
-          }
-        }
-      })
-      const observer = captured.options.terminalObserver!
-      runtime.waitForTerminal.mockRejectedValueOnce(new Error('observed-current-handle'))
-      const pending = observer.observeCompletion(observer.resolveRunTerminal(ownRun)!, {
-        run: ownRun,
-        signal: new AbortController().signal
-      })
-      if (proof === 'same-process') {
-        await expect(pending).rejects.toThrow('observed-current-handle')
-      } else {
-        expect(await pending).toMatchObject({ status: 'dispatch_failed' })
-        expect(runtime.waitForTerminal).not.toHaveBeenCalled()
-      }
-      expect(captured.launch).not.toHaveBeenCalled()
-    }
-  )
   it.each(['chat', 'terminal'] as const)(
     'recovers a published failed %s receipt without accepting or sending it',
     async (kind) => {
@@ -268,7 +227,7 @@ describe('host-owned automation execution', () => {
                   },
             receipt: {
               mode: kind === 'chat' ? 'structured' : 'terminal',
-              preferred: kind === 'chat' ? 'structured' : 'terminal',
+              preferred: 'structured',
               reason: 'requested',
               detail: 'Published'
             },
@@ -312,5 +271,68 @@ describe('host-owned automation execution', () => {
       })
     ).toMatchObject({ status: 'dispatch_failed', error: expect.stringContaining('Claude') })
     expect(captured.launch).not.toHaveBeenCalled()
+  })
+})
+
+function capturedOption<K extends keyof Options>(key: K): NonNullable<Options[K]> {
+  const value = captured.options[key]
+  if (value === undefined) {
+    throw new Error(`the service was constructed without ${key}`)
+  }
+  return value
+}
+
+describe('headless automation dispatch', () => {
+  it('hands the launched run to its watcher instead of awaiting one tui-idle wait itself', async () => {
+    const runtime = {
+      setAutomationService: vi.fn(),
+      notifyAutomationsChanged: vi.fn(),
+      launchAgentTerminal: vi.fn(async () => ({
+        handle: 'terminal-1',
+        tabId: 'tab-1',
+        paneKey: 'tab-1:pane-1',
+        ptyId: 'pty-1',
+        worktreeId: 'wt-1'
+      })),
+      showManagedWorktree: vi.fn(async () => ({ displayName: 'repo' })),
+      waitForTerminal: vi.fn(),
+      getTerminalHandleForPaneKey: vi.fn(() => null),
+      getAgentStatusRowsForPane: vi.fn(() => [])
+    }
+    createRuntimeAutomationService({
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the mocked service never reads the store; the dispatcher reads only past runs.
+      store: { listAutomationRuns: () => [] } as never,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the dispatcher reads only the members faked above.
+      runtime: runtime as never,
+      headless: true
+    })
+    const dispatcher = capturedOption('headlessDispatcher')
+    const launch = await dispatcher({
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a reuse-workspace automation; only these fields are read.
+      automation: {
+        workspaceMode: 'existing',
+        workspaceId: 'wt-1',
+        agentId: 'goose'
+      } as never,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only the title is read.
+      run: { title: 'Nightly' } as never,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: unused for an existing workspace.
+      target: {} as never
+    })
+
+    expect(launch.completion).toBeUndefined()
+    expect(launch.terminalPaneKey).toBe('tab-1:pane-1')
+    expect(runtime.launchAgentTerminal).toHaveBeenCalledWith('id:wt-1', {
+      agent: 'goose',
+      prompt: '',
+      title: 'Nightly',
+      suppressStartupUpdatePrompt: true
+    })
+    expect(runtime.waitForTerminal).not.toHaveBeenCalled()
+    const observer = capturedOption('terminalObserver')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: resolution reads only the pane key.
+    expect(observer.resolveRunTerminal({ terminalPaneKey: 'tab-1:pane-1' } as never)).toBe(
+      'terminal-1'
+    )
   })
 })

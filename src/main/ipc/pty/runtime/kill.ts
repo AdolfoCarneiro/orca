@@ -180,10 +180,7 @@ export function retireRejectedPtyFromRuntimeController(
 export async function stopAndWaitPtyFromRuntimeController(
   deps: PtyRuntimeControllerDeps,
   ptyId: string,
-  opts?: Pick<
-    Parameters<IPtyProvider['shutdown']>[1],
-    'keepHistory' | 'deadlineMs' | 'expectedIncarnationId' | 'authorizeStop'
-  >
+  opts?: { keepHistory?: boolean; deadlineMs?: number }
 ): Promise<boolean> {
   // A final relay stop is owed until the relay proves it, so an unproven one still reads as closing.
   const relayOwesStop =
@@ -203,10 +200,7 @@ export async function stopAndWaitPtyFromRuntimeController(
 async function stopAndWaitPty(
   deps: PtyRuntimeControllerDeps,
   ptyId: string,
-  opts?: Pick<
-    Parameters<IPtyProvider['shutdown']>[1],
-    'keepHistory' | 'deadlineMs' | 'expectedIncarnationId' | 'authorizeStop'
-  >
+  opts?: { keepHistory?: boolean; deadlineMs?: number }
 ): Promise<boolean> {
   const {
     runtime,
@@ -215,10 +209,7 @@ async function stopAndWaitPty(
     shutdownProviderAndDetectExit,
     finishPtyShutdown
   } = deps
-  if (!opts?.authorizeStop) {
-    runtime?.markPtyStopRequested?.(ptyId)
-  }
-  const expectedIncarnationId = opts?.expectedIncarnationId
+  runtime?.markPtyStopRequested?.(ptyId)
   const connectionId = getPtySshConnectionId(ptyId)
   if (connectionId && isLegacyRelayBridgedPty(ptyId)) {
     // A reversible stop must not leave the bridge's durable stop behind, so the pane stays live.
@@ -273,18 +264,13 @@ async function stopAndWaitPty(
     }
     return false
   }
-  const stoppingIncarnationId = expectedIncarnationId ?? ptyIncarnationById.get(ptyId)
-  if (expectedIncarnationId && ptyIncarnationById.get(ptyId) !== expectedIncarnationId) {
-    return false
-  }
+  const stoppingIncarnationId = ptyIncarnationById.get(ptyId)
   let providerExitObserved = false
   try {
     providerExitObserved = await shutdownProviderAndDetectExit(provider, ptyId, {
       immediate: true,
       keepHistory: opts?.keepHistory ?? false,
-      deadlineMs,
-      expectedIncarnationId,
-      authorizeStop: opts?.authorizeStop
+      deadlineMs
     })
   } catch (err) {
     if (!isPtyAlreadyGoneError(err)) {

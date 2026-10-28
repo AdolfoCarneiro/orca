@@ -1,7 +1,6 @@
 /** Exercise RPC authorization, parsing and all surface factories; structured creates must omit startupAgent while legacy worktree.create retains its terminal contract. */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { deliverStartupFollowupPrompt } from '../../runtime-worktree-startup-readiness'
 import { AGENT_LAUNCH_RUNTIME_CAPABILITY } from '../../../../shared/agent-launch-runtime-capability'
 import type { RpcContext } from '../core'
 import {
@@ -29,7 +28,7 @@ vi.mock('./structured-agent-session-create', () => ({
     createStructuredSession(args)
 }))
 
-const { AGENT_LAUNCH_METHODS, launchAgentOnHost } = await import('./agent-launch')
+const { AGENT_LAUNCH_METHODS } = await import('./agent-launch')
 const { WORKTREE_METHODS } = await import('./worktree')
 
 const AGENT_LAUNCH = methodNamed(AGENT_LAUNCH_METHODS, 'agent.launch')
@@ -695,113 +694,3 @@ describe('launch inputs that cross the wire', () => {
     expect(result.receipt).toMatchObject({ mode: 'terminal', reason: 'tui_launch_command' })
   })
 })
-
-describe('trusted unattended launch policy', () => {
-  it('uses the ordinary terminal factory while suppressing updates and retaining the run title', async () => {
-    const runtime = runtimeStub()
-    const result = await launchAgentOnHost(
-      AGENT_LAUNCH.params.parse({
-        agent: 'claude',
-        surface: 'terminal',
-        presentation: 'background',
-        target: { kind: 'existing', worktree: 'id:wt-7' }
-      }),
-      rpcContext(runtime, {}),
-      { suppressStartupUpdatePrompt: true, terminalTitle: 'Nightly run 1' }
-    )
-    expect(result.outcome.kind).toBe('terminal')
-    expect(runtime.createTerminal).toHaveBeenCalledWith(
-      'id:wt-7',
-      expect.objectContaining({
-        startupAgent: 'claude',
-        suppressStartupUpdatePrompt: true,
-        title: 'Nightly run 1',
-        presentation: 'background'
-      })
-    )
-  })
-  it('forwards suppression through the ordinary new-workspace factory without exposing a wire option', async () => {
-    const runtime = runtimeStub()
-    const params = AGENT_LAUNCH.params.parse({
-      ...CREATE_LAUNCH,
-      surface: 'terminal',
-      suppressStartupUpdatePrompt: true
-    })
-    expect(params).not.toHaveProperty('suppressStartupUpdatePrompt')
-    await launchAgentOnHost(params, rpcContext(runtime, {}), { suppressStartupUpdatePrompt: true })
-    expect(runtime.createManagedWorktree).toHaveBeenCalledWith(
-      expect.objectContaining({
-        startupAgent: 'claude',
-        startupSuppressUpdatePrompt: true,
-        createdWithAgent: 'claude'
-      })
-    )
-  })
-})
-
-it.each([
-  ['fresh', true, false, true],
-  ['fresh', false, false, false],
-  ['fresh', true, true, false],
-  ['reuse', true, false, true],
-  ['reuse', false, false, false]
-] as const)(
-  'uses actual readiness for %s trusted=%s provenShell=%s',
-  async (mode, trusted, shell, delivered) => {
-    const runtime = runtimeStub()
-    const write = vi.fn()
-    const boundary = {
-      ...runtime,
-      waitForFreshWorkerComposer: async () => ({ satisfied: true, status: 'running' as const }),
-      waitForTerminal: async () => ({ satisfied: true, status: 'idle' as const }),
-      readLaunchedAgentForeground: async () => (shell ? ('shell' as const) : ('unknown' as const)),
-      subscribeToTerminalData: () => () => {},
-      launchedAgentHostProvesAgent: () => false,
-      launchedAgentHostProvesShellAlone: () => shell,
-      sendTerminalAgentPrompt: async (
-        _handle: string,
-        text: string,
-        opts: { beforeWrite?: (ptyId: string) => Promise<void> }
-      ) => {
-        await opts.beforeWrite?.('pty-1')
-        write(text)
-        return { handle: 'term_1', accepted: true, bytesWritten: text.length }
-      }
-    }
-    const host = {
-      getPtyId: () => 'pty-1',
-      getForegroundProcess: async () => 'kimi',
-      subscribeToData: () => () => {},
-      readRecentOutput: () => undefined,
-      write
-    }
-    // SAFETY: only the OS/read/write boundary is a stand-in; both launch and readiness/guard owners execute.
-    Object.assign(runtime, boundary, {
-      deliverStartupFollowup: (
-        handle: string,
-        followup: { agent: 'kimi'; prompt: string },
-        opts: { agentLaunch?: boolean }
-      ) =>
-        deliverStartupFollowupPrompt(
-          boundary as unknown as Parameters<typeof deliverStartupFollowupPrompt>[0],
-          host,
-          handle,
-          followup,
-          opts
-        )
-    })
-    const result = await launchAgentOnHost(
-      AGENT_LAUNCH.params.parse({
-        agent: 'kimi',
-        surface: 'terminal',
-        prompt: { text: 'go', delivery: 'submit' },
-        target: { kind: 'existing', worktree: 'id:wt-7' },
-        ...(mode === 'reuse' ? { reuseTerminal: { handle: 'term_1' } } : {})
-      }),
-      rpcContext(runtime, {}),
-      trusted ? { unprovableHost: 'write-unless-shell' } : {}
-    )
-    expect(result.prompt?.outcome).toBe(delivered ? 'handed-to-terminal' : 'not-delivered')
-    expect(write).toHaveBeenCalledTimes(delivered ? 1 : 0)
-  }
-)

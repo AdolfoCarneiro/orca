@@ -1,3 +1,5 @@
+import type { Automation, AutomationUpdateInput } from '../../../../shared/automations-types'
+import { hasExtraAgentArgs } from '../../../../shared/automation-extra-agent-args'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { AUTOMATION_SURFACE_RUNTIME_CAPABILITY } from '../../../../shared/automation-runtime-capabilities'
 import { isNativeChatDefaultFor } from '../../../../shared/structured-native-chat-launch-route'
@@ -58,4 +60,25 @@ export function automationDraftSurface(
     draft.surface ??
     (chatSupported && isNativeChatDefaultFor(settings, draft.agentId) ? 'chat' : 'terminal')
   )
+}
+
+export function automationDraftLaunchSetup(
+  draft: Pick<AutomationDraft, 'extraAgentArgs'>,
+  surface: 'chat' | 'terminal',
+  currentAutomation: Automation | null
+): Pick<AutomationUpdateInput, 'launchSetupPatch' | 'extraAgentArgs'> {
+  const argumentsChanged =
+    hasExtraAgentArgs(draft.extraAgentArgs) || currentAutomation?.extraAgentArgs
+  return surface === 'chat' || currentAutomation?.surface === 'chat'
+    ? {
+        launchSetupPatch: {
+          surface,
+          ...(argumentsChanged
+            ? { arguments: { kind: 'legacy-extras' as const, value: draft.extraAgentArgs } }
+            : {})
+        }
+      }
+    : argumentsChanged
+      ? { extraAgentArgs: draft.extraAgentArgs }
+      : {}
 }

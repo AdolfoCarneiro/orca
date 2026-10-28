@@ -61,8 +61,7 @@ export async function runHeadlessAutomationDispatch(
         error instanceof AutomationDispatchRefusedError ? 'skipped_unavailable' : 'dispatch_failed',
       workspaceId: automation.workspaceId,
       ...(error instanceof AutomationRunLaunchError ? error.target : {}),
-      dispatchedAt,
-      precheckResult,
+      ...(automation.surface === 'chat' ? { dispatchedAt, precheckResult } : {}),
       error: describeDispatchError(error)
     })
   }

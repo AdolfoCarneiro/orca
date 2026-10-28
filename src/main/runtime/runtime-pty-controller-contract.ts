@@ -1,3 +1,4 @@
+import type { TerminalViewAttributes } from '../../shared/terminal-view-attributes'
 import type { PtySpawnOutcome } from '../ipc/pty/spawn-outcome'
 import type { RuntimePaneCreateClaim } from '../ipc/pty/pane/spawn-reservation'
 import type { PaneSpawnOperation } from '../ipc/pty/pane/pane-spawn-operation'
@@ -21,7 +22,6 @@ import type { ExecutionHostId } from '../../shared/execution-host'
 import type {
   PtyProviderBufferSnapshot,
   PtyProcessInfo,
-  PtyShutdownOptions,
   PtySpawnResult
 } from '../providers/pty-provider-contract'
 import type { PtyProcessInspection } from '../providers/pty-process-inspection'
@@ -98,6 +98,10 @@ export type RuntimePtyController = {
     placement?: TerminalPanePlacement
     terminalKittyKeyboardProtocol?: boolean
     terminalColorQueryReplies?: { foreground?: string; background?: string }
+    /** A paired launcher's theme: its PTY answers OSC 10/11 with it over the host-wide theme. */
+    launcherColorQueryReplies?: { foreground?: string; background?: string }
+    /** That launcher's palette and cursor, so its PTY's OSC 4/12 agree with its OSC 10/11. */
+    launcherViewAttributes?: TerminalViewAttributes
     agentSessionEnsure?: {
       claim: AgentSessionExecutionClaim
       surface: AgentSessionSurfaceBinding
@@ -145,10 +149,7 @@ export type RuntimePtyController = {
   retireRejectedPty?(ptyId: string, stopConfirmed: boolean, incarnationId: string | undefined): void
   stopAndWait?(
     ptyId: string,
-    opts?: Pick<
-      PtyShutdownOptions,
-      'keepHistory' | 'deadlineMs' | 'expectedIncarnationId' | 'authorizeStop'
-    >
+    opts?: { keepHistory?: boolean; deadlineMs?: number }
   ): Promise<boolean>
   getCwd?(ptyId: string): Promise<string | null>
   getForegroundProcess(ptyId: string): Promise<string | null>

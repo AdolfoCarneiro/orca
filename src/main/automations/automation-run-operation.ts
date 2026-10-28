@@ -5,7 +5,7 @@ export const AUTOMATION_AGENT_CALLER = { kind: 'local-cli' } as const
 
 export function automationRunOperationId(
   run: Pick<AutomationRun, 'id' | 'createdAt'>,
-  purpose: 'fresh-launch' | 'reuse-send' | 'reuse-terminal-launch'
+  purpose: 'fresh-launch' | 'reuse-send'
 ): string {
   const entropy = canonicalAgentSessionDigest({
     domain: `automation:${purpose}`,

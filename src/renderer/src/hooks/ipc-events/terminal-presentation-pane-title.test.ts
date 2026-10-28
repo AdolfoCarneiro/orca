@@ -75,14 +75,7 @@ async function setup(windowHoldsTab: boolean) {
           : vi.fn()
     }
   )
-  vi.stubGlobal('window', {
-    dispatchEvent: vi.fn(),
-    api: {
-      ...createStoreSessionMockApi(),
-      ui,
-      automations: { onTerminalLifecycleRequest: () => () => {} }
-    }
-  })
+  vi.stubGlobal('window', { dispatchEvent: vi.fn(), api: { ...createStoreSessionMockApi(), ui } })
   const store = createTestStore()
   mocks.store.current = store
   seedStore(store, {
@@ -128,7 +121,6 @@ async function setup(windowHoldsTab: boolean) {
     title: 'Build',
     presentation: 'background'
   })
-  await vi.dynamicImportSettled()
   return store.getState()
 }
 

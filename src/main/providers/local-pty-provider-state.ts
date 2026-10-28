@@ -1,7 +1,7 @@
 import type * as pty from 'node-pty'
 import type { PhysicalExitTracker } from '../../shared/physical-exit-tracker'
 import type { PtyStartupIngress } from '../../shared/pty-startup-ingress'
-import type { IPtyProvider, PtyShutdownOptions } from './pty-provider-contract'
+import type { IPtyProvider } from './pty-provider-contract'
 import type { PtyDataEvent } from './pty-provider-events'
 import { getSpawnedShellName, normalizeLocalCallerSessionId } from './local-pty-launch-helpers'
 
@@ -10,7 +10,6 @@ export type PtyShutdownOperation = {
   immediate: boolean
   rootSignalled: boolean
   proc: pty.IPty
-  authorizeStop?: PtyShutdownOptions['authorizeStop']
 }
 
 export type PendingLocalPtySpawn = {

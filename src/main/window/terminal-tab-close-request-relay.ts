@@ -6,10 +6,6 @@ import type {
   TerminalTabCloseRequest,
   TerminalTabCloseResponse
 } from '../../shared/terminal-tab-close'
-import type {
-  AutomationTerminalLifecycleRequest,
-  AutomationTerminalLifecycleResponse
-} from '../../shared/automation-terminal-lifecycle'
 import { addFanoutListener, addFanoutListeners } from '../event-listener-fanout'
 
 const TERMINAL_TAB_CLOSE_TIMEOUT_MS = 20_000
@@ -19,41 +15,6 @@ export async function requestTerminalTabCloseFromRenderer(
   tabId: string,
   options: { localPtyTeardownOwnedExternally?: boolean; force?: boolean } = {}
 ): Promise<void> {
-  const requestId = randomUUID()
-  const request: TerminalTabCloseRequest = { requestId, tabId, ...options }
-  const response = await requestWindowTransaction<TerminalTabCloseResponse>(
-    mainWindow,
-    'ui:terminalTabCloseRequest',
-    'ui:terminalTabCloseResponse',
-    request
-  )
-  if (response.error) {
-    throw new Error(response.error)
-  }
-}
-
-export function requestAutomationTerminalLifecycle(
-  window: BrowserWindow,
-  request: AutomationTerminalLifecycleRequest,
-  signal: AbortSignal,
-  valid: () => boolean
-): Promise<AutomationTerminalLifecycleResponse> {
-  return requestWindowTransaction(
-    window,
-    'automations:terminalLifecycleRequest',
-    'automations:terminalLifecycleResponse',
-    request,
-    { signal, valid }
-  )
-}
-
-function requestWindowTransaction<T extends { requestId: string }>(
-  mainWindow: BrowserWindow,
-  requestChannel: string,
-  responseChannel: string,
-  request: { requestId: string },
-  options: { signal?: AbortSignal; valid?: () => boolean } = {}
-): Promise<T> {
   if (mainWindow.isDestroyed()) {
     throw new Error('renderer_unavailable')
   }
@@ -61,44 +22,42 @@ function requestWindowTransaction<T extends { requestId: string }>(
   if (webContents.isDestroyed()) {
     throw new Error('renderer_unavailable')
   }
-  return new Promise<T>((resolve, reject) => {
+  const requestId = randomUUID()
+  await new Promise<void>((resolve, reject) => {
     let settled = false
     const releaseListeners: (() => void)[] = []
     const onRendererUnavailable = (): void => finish(new Error('renderer_unavailable'))
-    const finish = (error?: Error, response?: T): void => {
+    const finish = (error?: Error): void => {
       if (settled) {
         return
       }
       settled = true
       clearTimeout(timeout)
-      options.signal?.removeEventListener('abort', onRendererUnavailable)
       for (const release of releaseListeners) {
         release()
       }
       if (error) {
         reject(error)
       } else {
-        resolve(response!)
+        resolve()
       }
     }
     const timeout = setTimeout(
       () => finish(new Error('terminal_tab_close_timeout')),
       TERMINAL_TAB_CLOSE_TIMEOUT_MS
     )
-    const onResponse = (event: Electron.IpcMainEvent, response: T): void => {
+    const onResponse = (event: Electron.IpcMainEvent, response: TerminalTabCloseResponse): void => {
       // Visible request IDs confer no authority; only the selected window may commit/reject its lifecycle transaction.
-      if (
-        event.sender !== webContents ||
-        !response ||
-        response.requestId !== request.requestId ||
-        (options.valid && (event.senderFrame !== webContents.mainFrame || !options.valid()))
-      ) {
+      if (event.sender !== webContents || response.requestId !== requestId) {
         return
       }
-      finish(undefined, response)
+      if (response.error) {
+        finish(new Error(response.error))
+      } else {
+        finish()
+      }
     }
-
-    releaseListeners.push(addFanoutListener(ipcMain, responseChannel, onResponse))
+    releaseListeners.push(addFanoutListener(ipcMain, 'ui:terminalTabCloseResponse', onResponse))
     // Lean test windows may lack event methods.
     if (typeof mainWindow.on === 'function') {
       releaseListeners.push(addFanoutListener(mainWindow, 'closed', onRendererUnavailable))
@@ -108,13 +67,9 @@ function requestWindowTransaction<T extends { requestId: string }>(
         addFanoutListeners(webContents, ['destroyed', 'render-process-gone'], onRendererUnavailable)
       )
     }
-    options.signal?.addEventListener('abort', onRendererUnavailable, { once: true })
-    if (options.signal?.aborted || options.valid?.() === false) {
-      onRendererUnavailable()
-      return
-    }
+    const request: TerminalTabCloseRequest = { requestId, tabId, ...options }
     try {
-      webContents.send(requestChannel, request)
+      webContents.send('ui:terminalTabCloseRequest', request)
     } catch {
       finish(new Error('renderer_unavailable'))
     }

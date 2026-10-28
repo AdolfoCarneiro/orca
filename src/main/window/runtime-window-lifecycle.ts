@@ -8,7 +8,6 @@ import type { RuntimeMobileSessionTabMove } from '../../shared/runtime-types'
 import type { TerminalTabCreateReply } from '../../shared/terminal-reveal-identity'
 import { runWorktreeChangeInvalidators } from '../ipc/worktree-change-invalidators'
 import { requestAgentLaunchTabPublishFromRenderer } from './agent-launch-tab-publish-relay'
-import type { RuntimeNotifier } from '../runtime/runtime-notifier-contract'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import { registerRendererDocumentNavigation } from './renderer-document-navigation'
 import { createRuntimeRendererNotificationSender } from './runtime-renderer-notification-sender'
@@ -118,10 +117,33 @@ export function registerRuntimeWindowLifecycle(
           })
         }
         ipcMain.on('terminal:tabCreateReply', handler)
-        const sent = send(
-          'ui:createTerminal',
-          terminalPresentationRequest(worktreeId, opts, requestId)
-        )
+        const sent = send('ui:createTerminal', {
+          requestId,
+          worktreeId,
+          ptyId: opts.ptyId,
+          title: opts.title ?? undefined,
+          ...(opts.cwd ? { cwd: opts.cwd } : {}),
+          ...(opts.launchConfig ? { launchConfig: opts.launchConfig } : {}),
+          ...(opts.launchToken ? { launchToken: opts.launchToken } : {}),
+          ...(opts.launchAgent ? { launchAgent: opts.launchAgent } : {}),
+          ...(opts.viewMode ? { viewMode: opts.viewMode } : {}),
+          ...(opts.targetGroupId ? { targetGroupId: opts.targetGroupId } : {}),
+          ...(opts.afterTabId ? { afterTabId: opts.afterTabId } : {}),
+          ...(opts.shellOverride ? { shellOverride: opts.shellOverride } : {}),
+          activate: opts.activate !== false,
+          ...(opts.presentation ? { presentation: opts.presentation } : {}),
+          ...(opts.surfaceOwner === false ? { surfaceOwner: false } : {}),
+          ...(opts.agentLaunchViewer ? { agentLaunchViewer: opts.agentLaunchViewer } : {}),
+          // Pre-mint tabId to match the PTY paneKey so hook events reach the correct tab.
+          ...(opts.tabId !== undefined ? { tabId: opts.tabId } : {}),
+          ...(opts.leafId !== undefined ? { leafId: opts.leafId } : {}),
+          ...(opts.splitFromLeafId !== undefined ? { splitFromLeafId: opts.splitFromLeafId } : {}),
+          ...(opts.splitDirection !== undefined ? { splitDirection: opts.splitDirection } : {}),
+          ...(opts.splitTelemetrySource !== undefined
+            ? { splitTelemetrySource: opts.splitTelemetrySource }
+            : {}),
+          ...(opts.focus !== undefined ? { focus: opts.focus } : {})
+        })
         if (!sent) {
           clearTimeout(timer)
           ipcMain.removeListener('terminal:tabCreateReply', handler)
@@ -234,38 +256,4 @@ export function registerRuntimeWindowLifecycle(
       activeRuntimeNotifierToken = null
     }
   })
-}
-
-export function terminalPresentationRequest(
-  worktreeId: string,
-  opts: Parameters<NonNullable<RuntimeNotifier['revealTerminalSession']>>[1],
-  requestId?: string
-) {
-  return {
-    requestId,
-    worktreeId,
-    ptyId: opts.ptyId,
-    title: opts.title ?? undefined,
-    ...(opts.cwd ? { cwd: opts.cwd } : {}),
-    ...(opts.launchConfig ? { launchConfig: opts.launchConfig } : {}),
-    ...(opts.launchToken ? { launchToken: opts.launchToken } : {}),
-    ...(opts.launchAgent ? { launchAgent: opts.launchAgent } : {}),
-    ...(opts.viewMode ? { viewMode: opts.viewMode } : {}),
-    ...(opts.targetGroupId ? { targetGroupId: opts.targetGroupId } : {}),
-    ...(opts.afterTabId ? { afterTabId: opts.afterTabId } : {}),
-    ...(opts.shellOverride ? { shellOverride: opts.shellOverride } : {}),
-    activate: opts.activate !== false,
-    ...(opts.presentation ? { presentation: opts.presentation } : {}),
-    ...(opts.surfaceOwner === false ? { surfaceOwner: false } : {}),
-    ...(opts.agentLaunchViewer ? { agentLaunchViewer: opts.agentLaunchViewer } : {}),
-    // Pre-mint tabId to match the PTY paneKey so hook events reach the correct tab.
-    ...(opts.tabId !== undefined ? { tabId: opts.tabId } : {}),
-    ...(opts.leafId !== undefined ? { leafId: opts.leafId } : {}),
-    ...(opts.splitFromLeafId !== undefined ? { splitFromLeafId: opts.splitFromLeafId } : {}),
-    ...(opts.splitDirection !== undefined ? { splitDirection: opts.splitDirection } : {}),
-    ...(opts.splitTelemetrySource !== undefined
-      ? { splitTelemetrySource: opts.splitTelemetrySource }
-      : {}),
-    ...(opts.focus !== undefined ? { focus: opts.focus } : {})
-  }
 }

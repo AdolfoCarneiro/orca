@@ -17,8 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OrcaRuntimeService } from '../../src/main/runtime/orca-runtime'
 import type { AgentLaunchResult } from '../../src/shared/agent-launch-intent'
 import { buildProfileStateCutoverFixture } from '../../src/main/persistence/profile-state-cutover-fixture'
-import { tokenizeStartupCommand } from '../../src/shared/tui-agent-startup-shell'
-import { launchHeadlessAutomationAgent } from '../../src/main/automations/headless-automation-agent-launch'
+import { launchAutomationChatAgent } from '../../src/main/automations/automation-chat-agent-launch'
 
 const mocks = vi.hoisted(() => ({
   actualHost: null as StructuredAgentSessionHost | null,
@@ -64,13 +63,14 @@ const automation = {
   workspaceMode: 'existing' as const,
   workspaceId: 'wt-1',
   prompt: 'Audit',
+  surface: 'chat' as const,
   extraAgentArgs: undefined
 }
 const target = { ok: true as const, repo: state.repos[0], cwd: '/fixture' }
 const terminal: AgentLaunchResult = {
   worktreeId: 'wt-1',
   outcome: { kind: 'terminal', handle: 'term-1', paneKey: 'tab-1:leaf-1' },
-  receipt: { mode: 'terminal', preferred: 'terminal', reason: 'requested', detail: 'Terminal' },
+  receipt: { mode: 'terminal', preferred: 'structured', reason: 'unsupported', detail: 'Fallback' },
   prompt: { delivery: 'submit', outcome: 'handed-to-terminal' }
 }
 const chat: AgentLaunchResult = {
@@ -131,11 +131,11 @@ beforeEach(() => {
 })
 describe('automations through agent.launch', () => {
   it.each(['claude', 'codex'] as const)(
-    'pins legacy %s runs to Terminal and preserves unattended/background policy',
+    'launches explicit Chat for %s through the common entry and keeps its actual fallback',
     async (agentId) => {
       const { runtime } = fixture()
-      const result = await launchHeadlessAutomationAgent(runtime, {
-        automation: { ...automation, surface: undefined, agentId },
+      const result = await launchAutomationChatAgent(runtime, {
+        automation: { ...automation, agentId },
         run,
         target,
         runs: []
@@ -143,7 +143,7 @@ describe('automations through agent.launch', () => {
       expect(mocks.launch).toHaveBeenCalledWith(
         expect.objectContaining({
           agent: agentId,
-          surface: 'terminal',
+          surface: 'chat',
           operationId: automationRunOperationId(run, 'fresh-launch'),
           prompt: { text: 'Audit', delivery: 'submit' },
           presentation: 'background',
@@ -151,9 +151,6 @@ describe('automations through agent.launch', () => {
         }),
         expect.objectContaining({ runtime }),
         expect.objectContaining({
-          terminalTitle: run.title,
-          suppressStartupUpdatePrompt: true,
-          unprovableHost: 'write-unless-shell',
           onSurfacePublished: expect.any(Function)
         })
       )
@@ -165,57 +162,22 @@ describe('automations through agent.launch', () => {
       })
     }
   )
-  it('merges Terminal extras over the live host defaults, and never applies them to Chat', async () => {
+  it('does not apply stored Terminal extras to Chat', async () => {
     const { runtime } = fixture()
-    await launchHeadlessAutomationAgent(runtime, {
+    mocks.launch.mockResolvedValue(chat)
+    await launchAutomationChatAgent(runtime, {
       automation: { ...automation, extraAgentArgs: '--model opus' },
       run,
       target,
       runs: []
     })
-    expect(tokenizeStartupCommand(mocks.launch.mock.calls[0][0].agentArgs, 'posix')).toMatchObject({
-      ok: true,
-      tokens: ['--add-dir', 'docs', '--model', 'opus']
-    })
-    mocks.launch.mockResolvedValue(chat)
-    await launchHeadlessAutomationAgent(runtime, {
-      automation: { ...automation, surface: 'chat', extraAgentArgs: '--model opus' },
-      run: { ...run, id: 'chat-run' },
-      target,
-      runs: []
-    })
-    expect(mocks.launch.mock.calls[1][0].agentArgs).toBeUndefined()
-  })
-  it('retains the actual pane for a reused terminal whose launch result has only a handle', async () => {
-    const { runtime } = fixture()
-    mocks.launch.mockResolvedValue({
-      ...terminal,
-      outcome: { kind: 'terminal', handle: 'term-prev' }
-    })
-    const result = await launchHeadlessAutomationAgent(runtime, {
-      automation: { ...automation, reuseSession: true },
-      run,
-      target,
-      runs: [
-        {
-          ...run,
-          id: 'old',
-          status: 'completed',
-          workspaceId: 'wt-1',
-          sessionKind: 'terminal',
-          terminalPaneKey: 'old:leaf',
-          terminalPtyId: 'pty-1'
-        }
-      ]
-    })
-    expect(result).toMatchObject({ terminalPaneKey: 'tab-1:leaf-1', terminalPtyId: 'pty-1' })
-    expect(mocks.launch).toHaveBeenCalledTimes(1)
+    expect(mocks.launch.mock.calls[0][0].agentArgs).toBeUndefined()
   })
   it('refuses an expired admission without minting another launch identity', async () => {
     const { runtime } = fixture()
     mocks.launch.mockRejectedValue(new Error('agent_session_operation_expired'))
     await expect(
-      launchHeadlessAutomationAgent(runtime, { automation, run, target, runs: [] })
+      launchAutomationChatAgent(runtime, { automation, run, target, runs: [] })
     ).rejects.toThrow(
       'Claude could not start because this run waited too long. Run the automation again.'
     )
@@ -224,7 +186,7 @@ describe('automations through agent.launch', () => {
   it('records the actual chat identity and delegates new workspace setup and provenance', async () => {
     const { runtime } = fixture()
     mocks.launch.mockResolvedValue(chat)
-    const result = await launchHeadlessAutomationAgent(runtime, {
+    const result = await launchAutomationChatAgent(runtime, {
       automation: {
         ...automation,
         surface: 'chat',
@@ -263,55 +225,6 @@ describe('automations through agent.launch', () => {
       terminalPtyId: null
     })
   })
-  it('separates a proven no-effect terminal reuse refusal from the fresh launch identity', async () => {
-    const { runtime, records } = fixture()
-    records.getOperationRow.mockReturnValue({ outcome: { status: 'failed' } })
-    mocks.launch
-      .mockRejectedValueOnce(new Error('no longer an agent'))
-      .mockResolvedValueOnce(terminal)
-    const previous = {
-      ...run,
-      id: 'old',
-      workspaceId: 'wt-1',
-      status: 'completed' as const,
-      sessionKind: 'terminal' as const,
-      terminalPaneKey: 'old:leaf',
-      terminalPtyId: 'pty-1'
-    }
-    await launchHeadlessAutomationAgent(runtime, {
-      automation: { ...automation, reuseSession: true },
-      run,
-      target,
-      runs: [previous]
-    })
-    expect(mocks.launch.mock.calls.map(([input]) => input.operationId)).toEqual([
-      automationRunOperationId(run, 'reuse-terminal-launch'),
-      automationRunOperationId(run, 'fresh-launch')
-    ])
-  })
-  it('never falls back after an ambiguous reuse launch', async () => {
-    const { runtime, records } = fixture()
-    records.getOperationRow.mockReturnValue({ outcome: { status: 'unknown' } })
-    mocks.launch.mockRejectedValue(new Error('lost reply'))
-    await expect(
-      launchHeadlessAutomationAgent(runtime, {
-        automation: { ...automation, reuseSession: true },
-        run,
-        target,
-        runs: [
-          {
-            ...run,
-            id: 'old',
-            workspaceId: 'wt-1',
-            status: 'completed',
-            terminalPaneKey: 'old:leaf',
-            terminalPtyId: 'pty-1'
-          }
-        ]
-      })
-    ).rejects.toMatchObject({ target: { workspaceId: 'wt-1', sessionKind: 'terminal' } })
-    expect(mocks.launch).toHaveBeenCalledTimes(1)
-  })
   it('chooses the newest compatible Chat despite busy work and stale nonfinal history', async () => {
     const { runtime, records } = fixture()
     mocks.host.currentWork.mockReturnValue({ working: () => true })
@@ -324,7 +237,7 @@ describe('automations through agent.launch', () => {
       sessionKind: 'chat' as const,
       chatSessionId: 'claude_prev'
     }
-    const result = await launchHeadlessAutomationAgent(runtime, {
+    const result = await launchAutomationChatAgent(runtime, {
       automation: { ...automation, surface: 'chat', reuseSession: true },
       run,
       target,
@@ -391,13 +304,11 @@ describe('automations through agent.launch', () => {
       target,
       runs
     }
-    expect((await launchHeadlessAutomationAgent(runtime, request)).chatSessionId).toBe(
-      'claude_prev'
-    )
+    expect((await launchAutomationChatAgent(runtime, request)).chatSessionId).toBe('claude_prev')
     expect(mocks.launch).not.toHaveBeenCalled()
     mocks.host.send.mockClear()
     mocks.launch.mockResolvedValue(chat)
-    await launchHeadlessAutomationAgent(runtime, { ...request, runs: runs.slice(0, 2) })
+    await launchAutomationChatAgent(runtime, { ...request, runs: runs.slice(0, 2) })
     expect(mocks.host.send).not.toHaveBeenCalled()
     expect(mocks.launch).toHaveBeenCalledOnce()
     expect(mocks.launch.mock.calls[0][0].operationId).toBe(
@@ -406,7 +317,7 @@ describe('automations through agent.launch', () => {
   })
 })
 
-it.each(['terminal', 'chat', 'reuse-terminal'] as const)(
+it.each(['terminal', 'chat'] as const)(
   'preserves published %s identity for refused, uncertain and throwing settlement',
   async (kind) => {
     const { runtime, records } = fixture()
@@ -420,11 +331,7 @@ it.each(['terminal', 'chat', 'reuse-terminal'] as const)(
         policy.onSurfacePublished(published)
         if (outcome === 'accepted-throw') {
           records.getOperationRow.mockImplementation((_caller, id) =>
-            id ===
-            automationRunOperationId(
-              run,
-              kind === 'reuse-terminal' ? 'reuse-terminal-launch' : 'fresh-launch'
-            )
+            id === automationRunOperationId(run, 'fresh-launch')
               ? { outcome: { status: 'succeeded', launch: published } }
               : undefined
           )
@@ -435,28 +342,14 @@ it.each(['terminal', 'chat', 'reuse-terminal'] as const)(
         }
         return { ...published, prompt: { delivery: 'submit', outcome } }
       })
-      const result = await launchHeadlessAutomationAgent(runtime, {
+      const result = await launchAutomationChatAgent(runtime, {
         automation: {
           ...automation,
-          surface: kind === 'chat' ? 'chat' : 'terminal',
-          reuseSession: kind === 'reuse-terminal'
+          surface: 'chat'
         },
         run,
         target,
-        runs:
-          kind === 'reuse-terminal'
-            ? [
-                {
-                  ...run,
-                  id: 'old',
-                  status: 'completed',
-                  workspaceId: 'wt-1',
-                  sessionKind: 'terminal',
-                  terminalPaneKey: 'old:leaf',
-                  terminalPtyId: 'pty-1'
-                }
-              ]
-            : []
+        runs: []
       }).catch((error) => error)
       expect(outcome === 'accepted-throw' ? { target: result } : result).toMatchObject({
         target: {
@@ -522,7 +415,7 @@ it('retains a known identity when record/host preparation cannot prove availabil
       )
     }
     await expect(
-      launchHeadlessAutomationAgent(runtime, {
+      launchAutomationChatAgent(runtime, {
         automation: { ...automation, surface: 'chat', reuseSession: true },
         run,
         target,
@@ -574,7 +467,7 @@ it.each(['before-admission', 'accepted-reply', 'accepted-lost-reply'] as const)(
         return reply
       })
       mocks.launch.mockResolvedValue(chat)
-      const attempt = launchHeadlessAutomationAgent(runtime, {
+      const attempt = launchAutomationChatAgent(runtime, {
         automation: {
           ...automation,
           agentId: 'codex',
@@ -639,7 +532,7 @@ it.each(['unknown', 'refused', 'conflict', 'failed-row'] as const)(
       acceptance === 'failed-row' ? { outcome: { status: 'failed' } } : undefined
     )
     await expect(
-      launchHeadlessAutomationAgent(runtime, {
+      launchAutomationChatAgent(runtime, {
         automation: { ...automation, surface: 'chat', reuseSession: true },
         run,
         target,

@@ -1,4 +1,3 @@
-import type { PtyShutdownOptions } from './pty-provider-contract'
 import type * as pty from 'node-pty'
 import { PhysicalExitTracker } from '../../shared/physical-exit-tracker'
 import { killWithDescendantSweep } from '../pty-descendant-termination'
@@ -18,7 +17,6 @@ import {
   ptyForceKillTimers,
   ptyPhysicalExits,
   ptyProcesses,
-  ptyIncarnations,
   ptyShutdownOperations,
   ptyTerminationMode,
   ptyLoadGeneration,
@@ -189,30 +187,12 @@ function requestTrackedPtyShutdown(id: string, proc: pty.IPty, immediate: boolea
 async function shutdownTrackedPty(
   id: string,
   proc: pty.IPty,
-  operation: PtyShutdownOperation,
-  opts: PtyShutdownOptions
+  operation: PtyShutdownOperation
 ): Promise<void> {
   const physicalExit = ptyPhysicalExits.get(id)
-  const ownsOperation = (): boolean =>
-    ptyProcesses.get(id) === proc && ptyShutdownOperations.get(id) === operation
-  const authorize = opts.authorizeStop
-  const authorizeStop = authorize
-    ? async (): Promise<boolean> => {
-        if (
-          !ownsOperation() ||
-          !(await authorize()) ||
-          !ownsOperation() ||
-          ptyIncarnations.get(id) !== opts.expectedIncarnationId
-        ) {
-          return false
-        }
-        operation.authorizeStop = undefined
-        return true
-      }
-    : undefined
   const signalRoot = (): void => {
     // Natural exit can race descendant capture; never signal after losing this PTY handle.
-    if (!ownsOperation()) {
+    if (ptyProcesses.get(id) !== proc) {
       return
     }
     // Cancel startup delivery now, but keep the exit listener and ownership maps until node-pty reports physical exit.
@@ -223,29 +203,22 @@ async function shutdownTrackedPty(
   if (ptyAgentSessionIds.has(id) || operation.immediate) {
     // Typed agents also detach tool process groups; immediate close must snapshot before root exit.
     await killWithDescendantSweep(proc.pid, signalRoot, {
-      ownsRoot: ownsOperation,
-      authorizeStop,
+      ownsRoot: () => ptyProcesses.get(id) === proc,
       terminateOwnedTree: () => terminatePtyJob(proc),
       terminateDescendants: terminateShutdownDescendants,
       // Group SIGKILL must wait out the SIGTERM grace so agents can run exit hooks (Claude SessionEnd).
       awaitEscalation: () => operation.immediate
     })
   } else {
-    if (authorizeStop && !(await authorizeStop())) {
-      throw new Error('terminal_stop_declined')
-    }
     signalRoot()
   }
   await waitForPtyPhysicalExit(id, physicalExit)
 }
 
-export async function shutdownLocalPty(id: string, opts: PtyShutdownOptions): Promise<void> {
-  if (
-    opts.authorizeStop &&
-    (!opts.expectedIncarnationId || ptyIncarnations.get(id) !== opts.expectedIncarnationId)
-  ) {
-    throw new Error('terminal_stop_identity_changed')
-  }
+export async function shutdownLocalPty(
+  id: string,
+  opts: { immediate?: boolean; keepHistory?: boolean }
+): Promise<void> {
   cancelPendingLocalPtySpawns(id)
   const pending = ptyShutdownOperations.get(id)
   if (pending) {
@@ -255,25 +228,21 @@ export async function shutdownLocalPty(id: string, opts: PtyShutdownOptions): Pr
         requestTrackedPtyShutdown(id, pending.proc, true)
       }
     }
-    if (opts.authorizeStop || !pending.authorizeStop || pending.rootSignalled) {
-      await pending.promise
-      return
-    }
+    await pending.promise
+    return
   }
   const proc = ptyProcesses.get(id)
   if (!proc) {
     return
   }
-  const completion = Promise.withResolvers<void>()
   const entry: PtyShutdownOperation = {
-    promise: completion.promise,
+    promise: Promise.resolve(),
     immediate: opts.immediate === true,
     rootSignalled: false,
-    proc,
-    authorizeStop: opts.authorizeStop
+    proc
   }
+  entry.promise = shutdownTrackedPty(id, proc, entry)
   ptyShutdownOperations.set(id, entry)
-  void shutdownTrackedPty(id, proc, entry, opts).then(completion.resolve, completion.reject)
   try {
     await entry.promise
   } finally {

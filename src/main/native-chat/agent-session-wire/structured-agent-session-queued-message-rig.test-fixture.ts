@@ -85,6 +85,14 @@ export async function createQueuedMessageTestRig(
   let host = makeHost()
   const firstAttach = hostTestAttachParams(null, {
     ...(options.location ? { location: options.location } : {}),
+    ...(options.agent === 'claude'
+      ? ({
+          provider: 'claude',
+          agent: 'claude',
+          providerHandle: { kind: 'claude', sessionId: THREAD, leafUuid: null },
+          accountHome: { variable: 'CLAUDE_CONFIG_DIR', path: '/private-fixture/claude' }
+        } as const)
+      : {}),
     ...(options.sessionId
       ? {
           envelope: {

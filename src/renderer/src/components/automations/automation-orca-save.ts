@@ -1,5 +1,6 @@
 import {
   automationChatSupport,
+  automationDraftLaunchSetup,
   automationDraftSurface,
   automationLaunchWorkspace
 } from './automation-launch-surface'
@@ -20,7 +21,6 @@ import {
   type AutomationDispatchResult
 } from './automation-row-action-dispatch'
 import { buildDraftPrecheck } from './automation-draft-model'
-import { hasExtraAgentArgs } from '../../../../shared/automation-extra-agent-args'
 import { buildAutomationRunContextForRepo } from './automation-run-context'
 import { resolveAutomationSetupDecisionForSave } from './automation-setup-decision'
 import {
@@ -166,18 +166,13 @@ export async function saveOrcaAutomation(
       automationLaunchWorkspace(draft, setupResolution ?? undefined)
     )
   )
-  const launchSetupPatch = {
-    surface,
-    ...(hasExtraAgentArgs(draft.extraAgentArgs) || currentAutomation?.extraAgentArgs
-      ? { arguments: { kind: 'legacy-extras' as const, value: draft.extraAgentArgs } }
-      : {})
-  }
+  const launchSetup = automationDraftLaunchSetup(draft, surface, currentAutomation)
   const updates: AutomationUpdateInput = {
     name: draft.name,
     prompt: draft.prompt,
     precheck,
     agentId: draft.agentId,
-    launchSetupPatch,
+    ...launchSetup,
     runContext,
     projectId: draft.projectId,
     workspaceMode: draft.workspaceMode,
@@ -197,7 +192,7 @@ export async function saveOrcaAutomation(
     prompt: draft.prompt,
     precheck,
     agentId: draft.agentId,
-    launchSetupPatch,
+    ...launchSetup,
     runContext,
     projectId: draft.projectId,
     workspaceMode: draft.workspaceMode,

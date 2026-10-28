@@ -24,7 +24,8 @@ export type PtyRuntimeControllerDeps = PtySpawnCodexResumeDeps & {
   getLocalPtyProviderStartupPromise: (hostId?: ResolvedPtyHost) => Promise<void> | undefined
   assertWorkspaceAcceptsNewPty: (
     worktreeId: string | undefined,
-    sessionId?: string
+    sessionId?: string,
+    cwd?: string
   ) => Promise<void> | void
   resolvePtySpawnStartupCwd: (
     worktreeId: string | undefined,
@@ -45,7 +46,7 @@ export type PtyRuntimeControllerDeps = PtySpawnCodexResumeDeps & {
   shutdownProviderAndDetectExit: (
     provider: IPtyProvider,
     id: string,
-    opts: Parameters<IPtyProvider['shutdown']>[1]
+    opts: { immediate?: boolean; keepHistory?: boolean; deadlineMs?: number }
   ) => Promise<boolean>
   rememberSyntheticKillExit: (id: string, incarnationId?: string) => void
   rememberRetiredRejectedPty: (id: string) => void

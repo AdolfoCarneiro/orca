@@ -31,7 +31,7 @@ import {
   AgentLaunchReplay,
   type AgentLaunchParams
 } from '../../../../shared/rpc-contract/agent-launch-params'
-import { agentLaunchSurfaceFactory, type AgentLaunchHostPolicy } from './agent-launch-surfaces'
+import { agentLaunchSurfaceFactory } from './agent-launch-surfaces'
 import {
   agentLaunchFailureCode,
   launchFailureWithoutEffectsCode
@@ -55,7 +55,9 @@ import {
 
 export { supportsAgentLaunch } from './agent-launch-target-authorization'
 
-type HostLaunchContext = RpcContext & { agentLaunchPolicy?: AgentLaunchHostPolicy }
+type HostLaunchContext = RpcContext & {
+  agentLaunchPolicy?: { onSurfacePublished?: (surface: AgentLaunchResult) => void }
+}
 
 /** What a launch admitted under an operation id carries into its execution. */
 type ReplaySafeLaunch = {
@@ -83,10 +85,9 @@ async function runAgentLaunch(
       replaySafe?.callerKey,
       callerNavigationId !== null,
       replaySafe?.terminalSpawn,
-      view,
-      context.agentLaunchPolicy
+      view
     ),
-    workspaces: agentLaunchWorkspaceFactory(context, intent.agent, context.agentLaunchPolicy),
+    workspaces: agentLaunchWorkspaceFactory(context, intent.agent),
     // The tab is shown as it is published, not after a prompt that can take a minute to land.
     onSurfacePublished: (surface) => {
       try {
@@ -308,7 +309,7 @@ export const AGENT_LAUNCH_METHODS = [
 export async function launchAgentOnHost(
   { operationId, ...params }: AgentLaunchParams,
   context: RpcContext,
-  policy?: AgentLaunchHostPolicy
+  policy?: HostLaunchContext['agentLaunchPolicy']
 ): Promise<AgentLaunchResult> {
   const host = { ...context, agentLaunchPolicy: policy }
   if (!supportsAgentLaunch(host)) {

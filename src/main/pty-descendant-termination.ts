@@ -6,34 +6,36 @@ import {
   type WindowsTreeKillTarget
 } from './windows-pty-root-identity'
 import { parseProcessTable, type ProcessTableRow } from './pty-process-table-parser'
-import {
-  createProcessTableSnapshotReader,
-  readProcessTableBeforeDeadline,
-  collectDescendantRows,
-  type DescendantSnapshot,
-  DESCENDANT_SNAPSHOT_TIMEOUT_MS,
-  type ProcessTableCapture,
-  type ProcessTableReader
-} from './pty-descendant-snapshot'
 
 export { parseProcessTable, type ProcessTableRow } from './pty-process-table-parser'
-export {
-  createProcessTableSnapshotReader,
-  readProcessTableBeforeDeadline,
-  collectDescendantRows,
-  type PosixProcessIdentity,
-  type DescendantSnapshot,
-  DESCENDANT_SNAPSHOT_TIMEOUT_MS,
-  type ProcessTableCapture,
-  type ProcessTableReader
-} from './pty-descendant-snapshot'
 
 export const DESCENDANT_KILL_GRACE_MS = 2_000
-
-export type SignalSender = (pid: number, signal: NodeJS.Signals) => void
-
+export const DESCENDANT_SNAPSHOT_TIMEOUT_MS = 1_000
 // Busy hosts can exceed execFile’s 1MB default; truncated output would omit descendants.
 const PS_MAX_BUFFER_BYTES = 32 * 1024 * 1024
+
+export type PosixProcessIdentity = Pick<ProcessTableRow, 'pid' | 'startedAt'>
+
+export type DescendantSnapshot = {
+  root?: PosixProcessIdentity
+  rootPgid: number | null
+  descendants: ProcessTableRow[]
+  /** Wall-clock boundary for an unmerged snapshot (or legacy callers). */
+  capturedAtMs: number
+  /** Per-PID identity boundaries for merged captures. */
+  capturedAtMsByPid?: Readonly<Record<string, number>>
+  /** Fresh ancestry proves ownership despite lstart’s second-resolution timestamps; retained merge rows do not. */
+  reDerivedPids?: ReadonlySet<number>
+}
+
+export type ProcessTableCapture = {
+  rows: ProcessTableRow[]
+  /** Start boundary of the scan that produced rows, never a later consumer's time. */
+  capturedAtMs: number
+}
+
+export type ProcessTableReader = (timeoutMs?: number) => Promise<ProcessTableCapture>
+export type SignalSender = (pid: number, signal: NodeJS.Signals) => void
 
 function readFreshProcessTable(
   timeoutMs = DESCENDANT_SNAPSHOT_TIMEOUT_MS
@@ -62,7 +64,115 @@ function readFreshProcessTable(
   })
 }
 
+/** Share only scans not yet started; later requests need fresh identities before signalling. */
+export function createProcessTableSnapshotReader(
+  readFresh: ProcessTableReader
+): ProcessTableReader {
+  let queued: { promise: Promise<ProcessTableCapture>; started: boolean } | null = null
+
+  return (timeoutMs) => {
+    if (queued && !queued.started) {
+      return queued.promise
+    }
+
+    const entry: { promise: Promise<ProcessTableCapture>; started: boolean } = {
+      promise: Promise.resolve(undefined as never),
+      started: false
+    }
+    entry.promise = Promise.resolve().then(() => {
+      // Start each later request’s scan within its own deadline, without queuing behind an older one.
+      entry.started = true
+      return readFresh(timeoutMs)
+    })
+    queued = entry
+    const clearQueued = (): void => {
+      if (queued === entry) {
+        queued = null
+      }
+    }
+    void entry.promise.then(clearQueued, clearQueued)
+    return entry.promise
+  }
+}
+
 export const readProcessTable = createProcessTableSnapshotReader(readFreshProcessTable)
+
+export function readProcessTableBeforeDeadline(
+  readTable: ProcessTableReader,
+  timeoutMs: number
+): Promise<ProcessTableCapture | null> {
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (capture: ProcessTableCapture | null): void => {
+      if (settled) {
+        return
+      }
+      settled = true
+      clearTimeout(timer)
+      resolve(capture)
+    }
+    const timer = setTimeout(() => finish(null), timeoutMs)
+    timer.unref?.()
+    try {
+      void readTable(timeoutMs).then(
+        (rows) => finish(rows),
+        () => finish(null)
+      )
+    } catch {
+      finish(null)
+    }
+  })
+}
+
+export function collectDescendantRows(
+  rootPid: number,
+  table: ProcessTableRow[],
+  capturedAtMs = Date.now()
+): DescendantSnapshot {
+  const childrenByPpid = new Map<number, ProcessTableRow[]>()
+  let rootRow: ProcessTableRow | null = null
+  let duplicateRoot = false
+  for (const row of table) {
+    if (row.pid === rootPid) {
+      // Duplicate root rows from a non-atomic read leave its identity ambiguous.
+      duplicateRoot = rootRow !== null
+      rootRow ??= row
+      continue
+    }
+    const siblings = childrenByPpid.get(row.ppid)
+    if (siblings) {
+      siblings.push(row)
+    } else {
+      childrenByPpid.set(row.ppid, [row])
+    }
+  }
+  // After root exit, descendants reparent; remaining rows with its old PID as parent may reflect PID reuse.
+  if (!rootRow || duplicateRoot) {
+    return { rootPgid: null, descendants: [], capturedAtMs }
+  }
+  const descendants: ProcessTableRow[] = []
+  const queue = [rootPid]
+  const visited = new Set(queue)
+  for (let nextIndex = 0; nextIndex < queue.length; nextIndex += 1) {
+    const pid = queue[nextIndex]
+    for (const child of childrenByPpid.get(pid) ?? []) {
+      // Non-atomic ps output can contain duplicate or cyclic rows; never loop on them.
+      if (visited.has(child.pid)) {
+        continue
+      }
+      visited.add(child.pid)
+      descendants.push(child)
+      queue.push(child.pid)
+    }
+  }
+  return {
+    root: { pid: rootRow.pid, startedAt: rootRow.startedAt },
+    rootPgid: rootRow.pgid,
+    descendants,
+    capturedAtMs,
+    reDerivedPids: new Set(descendants.map((row) => row.pid))
+  }
+}
 
 type SnapshotDeps = {
   readTable?: ProcessTableReader
@@ -92,7 +202,6 @@ export async function captureDescendantSnapshot(
 type KillSweepDeps = SnapshotDeps &
   TerminateDeps & {
     ownsRoot?: () => boolean
-    authorizeStop?: () => Promise<boolean>
     /** Shutdown can retain the owner until descendant escalation finishes. */
     terminateDescendants?: (snapshot: DescendantSnapshot) => void | Promise<unknown>
     awaitEscalation?: boolean | (() => boolean)
@@ -110,13 +219,6 @@ export async function killWithDescendantSweep(
 ): Promise<void> {
   const platform = deps.platform ?? process.platform
   if (platform === 'win32') {
-    const verify = deps.verifyTreeKillTarget ?? verifyWindowsTreeKillTarget
-    const preparedTarget = deps.authorizeStop
-      ? await verify(rootPid).catch((): WindowsTreeKillTarget => 'unknown')
-      : null
-    if (deps.authorizeStop && !(await deps.authorizeStop())) {
-      throw new Error('terminal_stop_declined')
-    }
     try {
       if ((deps.ownsRoot?.() ?? true) && Number.isInteger(rootPid) && rootPid > 0) {
         // Owned jobs survive PID reuse and include descendants reparented away from the shell.
@@ -125,8 +227,7 @@ export async function killWithDescendantSweep(
         }
         // ConPTY closes the shell handle before JS sees exit; require OS identity to reject recycled PIDs.
         const verify = deps.verifyTreeKillTarget ?? verifyWindowsTreeKillTarget
-        const target =
-          preparedTarget ?? (await verify(rootPid).catch((): WindowsTreeKillTarget => 'unknown'))
+        const target = await verify(rootPid).catch((): WindowsTreeKillTarget => 'unknown')
         // Re-check ownership: the identity query awaits, so exit can land meanwhile.
         if (target === 'own' && (deps.ownsRoot?.() ?? true)) {
           const killTree =
@@ -143,9 +244,6 @@ export async function killWithDescendantSweep(
   }
 
   const snapshot = await captureDescendantSnapshot(rootPid, deps)
-  if (deps.authorizeStop && !(await deps.authorizeStop())) {
-    throw new Error('terminal_stop_declined')
-  }
   let descendants: void | Promise<unknown> = undefined
   const awaitEscalation =
     typeof deps.awaitEscalation === 'function' ? deps.awaitEscalation() : deps.awaitEscalation

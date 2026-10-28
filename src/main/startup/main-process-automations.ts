@@ -1,4 +1,3 @@
-import { createDesktopRunTerminalLifecycle } from '../automations/desktop-run-terminal-lifecycle'
 import type { AutomationService } from '../automations/service'
 import { createRuntimeAutomationService } from '../automations/runtime-automation-service'
 import { mainProcessState as state } from './main-process-state'
@@ -17,9 +16,7 @@ export function initializeMainProcessAutomations(): AutomationService {
     claudeUsage,
     codexUsage,
     // Remote clients mirror schedules; only server processes execute remote_host_service ownership.
-    ...(state.isServeMode
-      ? { headless: true as const }
-      : { headless: false as const, createDesktopLifecycle: createDesktopRunTerminalLifecycle })
+    headless: state.isServeMode
   })
   state.automations = service
   return service

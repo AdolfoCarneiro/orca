@@ -1,6 +1,7 @@
 import {
   AutomationDispatchCancelledError,
   requestAutomationDispatch,
+  runAutomationRequestPrecheck,
   type AutomationRendererChannel
 } from './automation-dispatch-request'
 export type { AutomationRendererChannel } from './automation-dispatch-request'
@@ -14,7 +15,6 @@ import {
 } from '../../shared/automations-types'
 import type { ClaudeUsageStore } from '../claude-usage/store'
 import type { CodexUsageStore } from '../codex-usage/store'
-import { runAutomationRunPrecheck, runAutomationPrecheck } from './precheck-runner'
 import {
   captureLegacyRunTarget,
   resolveAutomationRunTarget,
@@ -43,7 +43,10 @@ import type {
   PublishAutomationsChanged
 } from '../../shared/runtime-client-events'
 
+const DEFAULT_TICK_MS = 60 * 1000
+
 export class AutomationService {
+  private readonly store: Store
   private readonly tickMs: number
   private timer: ReturnType<typeof setInterval> | null = null
   private webContents: AutomationRendererChannel | null = null
@@ -55,12 +58,10 @@ export class AutomationService {
   private readonly codexUsage: CodexUsageStore | null
   private readonly allowRemoteHostScheduling: boolean
   private readonly headlessDispatcher: HeadlessAutomationDispatcher | null
+  private readonly chatDispatcher: HeadlessAutomationDispatcher | null
   private readonly automationLanes = new Map<string, Promise<void>>()
   /** Close unused completed terminals on headless hosts; return the count. */
   releaseFinishedRunTerminals: (() => Promise<number>) | null = null
-  private readonly onRunFinalized:
-    | ((run: AutomationRun) => Promise<AutomationDispatchResult | null>)
-    | undefined
   private readonly publish: PublishAutomationsChanged | null
   private readonly runs: AutomationRunWriter
   private readonly completionWatcher: AutomationRunCompletionWatcher | null
@@ -68,24 +69,25 @@ export class AutomationService {
   externalProbePriority: (<T>(run: () => T) => T) | null = null
 
   constructor(
-    private readonly store: Store,
+    store: Store,
     opts: {
-      onRunFinalized?: (run: AutomationRun) => Promise<AutomationDispatchResult | null>
       tickMs?: number
       claudeUsage?: ClaudeUsageStore
       codexUsage?: CodexUsageStore
       allowRemoteHostScheduling?: boolean
       headlessDispatcher?: HeadlessAutomationDispatcher
+      chatDispatcher?: HeadlessAutomationDispatcher
       terminalObserver?: AutomationRunTerminalObserver
       onAutomationsChanged?: PublishAutomationsChanged
     } = {}
   ) {
-    this.onRunFinalized = opts.onRunFinalized
-    this.tickMs = opts.tickMs ?? 60_000
+    this.store = store
+    this.tickMs = opts.tickMs ?? DEFAULT_TICK_MS
     this.claudeUsage = opts.claudeUsage ?? null
     this.codexUsage = opts.codexUsage ?? null
     this.allowRemoteHostScheduling = opts.allowRemoteHostScheduling ?? false
     this.headlessDispatcher = opts.headlessDispatcher ?? null
+    this.chatDispatcher = opts.chatDispatcher ?? null
     this.publish = opts.onAutomationsChanged ?? null
     this.runs = createAutomationRunWriter(store, this.publish)
     this.completionWatcher = opts.terminalObserver
@@ -125,7 +127,7 @@ export class AutomationService {
     this.completionWatcher?.reconcileRetainedRuns(this.store.listAutomationRuns())
     reportAutomationScheduleDrift(this.store.listAutomations())
     // Headless hosts need startup catch-up without a renderer-ready notification.
-    if (this.rendererReady || (this.allowRemoteHostScheduling && this.headlessDispatcher)) {
+    if (this.rendererReady || this.headlessDispatcher) {
       // Serve adopts PTYs and publishes its graph before start().
       this.completionWatcher?.markTerminalSurfaceReady()
       void this.evaluateDueRuns()
@@ -168,27 +170,19 @@ export class AutomationService {
   }
 
   async runPrecheck(automationId: string, runId: string): Promise<AutomationPrecheckResult | null> {
-    return runAutomationRunPrecheck(
-      this.store,
-      automationId,
-      runId,
-      (automation) => this.resolveTarget(automation),
-      runAutomationPrecheck
+    return runAutomationRequestPrecheck(this.store, automationId, runId, (automation) =>
+      this.resolveTarget(automation)
     )
   }
 
   async markDispatchResult(result: AutomationDispatchResult): Promise<AutomationRun> {
-    let run = await this.runs.updateRun(result)
+    const run = await this.runs.updateRun(result)
     clearAutomationDispatchTokens(run.automationId, run.id)
     if (!isFinalAutomationRunStatus(run.status)) {
       if (run.status === 'dispatched') {
         this.completionWatcher?.watch(run)
       }
       return run
-    }
-    const retirement = await this.onRunFinalized?.(run)
-    if (retirement) {
-      run = await this.runs.updateRun(retirement)
     }
     this.completionWatcher?.forget(run.id)
     // Duplicate completion effects must not recalculate usage with a later attribution window.
@@ -254,9 +248,7 @@ export class AutomationService {
 
     // Fold recurring refusals before creating rows so they do not evict real run history.
     const target = this.resolveTarget(automation)
-    const canDispatch =
-      this.canDispatchToRenderer() ||
-      Boolean(this.allowRemoteHostScheduling && this.headlessDispatcher)
+    const canDispatch = this.canDispatchToRenderer() || Boolean(this.headlessDispatcher)
     const refusal = describeScheduledRefusal({ target, canDispatch })
     // Once WSL owns the schedule, avoid churning skips on the retained local copy.
     if (refusal === WSL_MOVE_OWNED_BY_HOST) {
@@ -305,9 +297,11 @@ export class AutomationService {
           store: this.store,
           runs: this.runs,
           isActive: () => !this.stopped && generation === this.dispatchGeneration,
-          headlessDispatcher:
+          getRenderer: () => (this.canDispatchToRenderer() ? this.webContents : null),
+          headlessDispatcher: this.headlessDispatcher,
+          chatDispatcher:
             this.allowRemoteHostScheduling || this.canDispatchToRenderer()
-              ? this.headlessDispatcher
+              ? this.chatDispatcher
               : null,
           resolveTarget: (current) => this.resolveTarget(current),
           runPrecheck: () => this.runPrecheck(automation.id, run.id),

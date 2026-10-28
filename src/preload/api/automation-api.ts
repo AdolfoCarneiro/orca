@@ -1,9 +1,5 @@
 import type { ExecutionHostId } from '../../shared/execution-host'
 import type {
-  AutomationTerminalLifecycleRequest,
-  AutomationTerminalLifecycleResponse
-} from '../../shared/automation-terminal-lifecycle'
-import type {
   AutomationDispatchRequest,
   AutomationDispatchResult,
   AutomationPrecheckResult,
@@ -42,10 +38,6 @@ export type AutomationsApi = {
     displayName: string
   }) => Promise<number>
   rendererReady: () => Promise<void>
-  onTerminalLifecycleRequest: (
-    callback: (request: AutomationTerminalLifecycleRequest) => void
-  ) => () => void
-  respondTerminalLifecycle: (response: AutomationTerminalLifecycleResponse) => void
   onDispatchRequested: (callback: (request: AutomationDispatchRequest) => void) => () => void
   onChanged: (callback: (payload: AutomationsChangedPayload) => void) => () => void
 }

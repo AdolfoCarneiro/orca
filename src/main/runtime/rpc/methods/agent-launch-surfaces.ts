@@ -1,4 +1,3 @@
-import type { AgentLaunchResult } from '../../../../shared/agent-launch-intent'
 import { terminalImageViewerSupported } from '../../terminal-image-viewer-env'
 /** Use ordinary user-facing terminal/chat creation; worker factories add redrive, mailbox and background-tab behavior.
  * The executor selects surface and prompt delivery; this factory supplies the wire-shaped runtime calls. */
@@ -35,14 +34,6 @@ import {
   type AgentLaunchView
 } from './agent-launch-tab-publication'
 
-export type AgentLaunchHostPolicy = {
-  terminalTitle?: string
-  suppressStartupUpdatePrompt?: true
-  unprovableHost?: 'write-unless-shell'
-  onWorkspaceCreated?: (worktreeId: string) => void
-  onSurfacePublished?: (result: AgentLaunchResult) => void
-}
-
 /** Replay-safe launches keep the nested attach in the same stable caller namespace as the launch. */
 export function agentLaunchSurfaceFactory(
   context: RpcContext,
@@ -52,8 +43,7 @@ export function agentLaunchSurfaceFactory(
   callerPresentsSurface = false,
   terminalSpawn: TerminalSpawnDispatch = trackTerminalSpawnDispatch(),
   // Read the early pane at spawn: publication and user close can finish after admission.
-  view: AgentLaunchView = { early: null, presentation: undefined },
-  policy: AgentLaunchHostPolicy = {}
+  view: AgentLaunchView = { early: null, presentation: undefined }
 ): AgentLaunchSurfaceFactory {
   const movesHostWindow = agentLaunchMovesHostWindow(context)
   const { early: earlyTab, presentation } = view
@@ -152,8 +142,6 @@ export function agentLaunchSurfaceFactory(
       const created = context.runtime.createTerminal(`id:${worktreeId}`, {
         // Let the runtime build the configured launcher: agent ids are not commands (cursor uses cursor-agent).
         startupAgent: agent,
-        ...(policy.terminalTitle ? { title: policy.terminalTitle } : {}),
-        ...(policy.suppressStartupUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {}),
         terminalImageViewerSupported: terminalImageViewerSupported(context),
         // The runtime reports typed-line prompt carry; paste only when the command did not carry it.
         ...(startupPrompt
@@ -212,10 +200,7 @@ export function agentLaunchSurfaceFactory(
         return runtime.deliverStartupFollowup(
           handle,
           { agent, prompt: prompt.text },
-          {
-            agentLaunch: policy.unprovableHost !== 'write-unless-shell',
-            ...(signal ? { signal } : {})
-          }
+          { agentLaunch: true, ...(signal ? { signal } : {}) }
         )
       }
       return deliverTerminalAgentLaunchPrompt({
@@ -223,7 +208,6 @@ export function agentLaunchSurfaceFactory(
         handle,
         agent,
         freshLaunch,
-        ...(policy.unprovableHost ? { unprovableHost: policy.unprovableHost } : {}),
         text: prompt.text,
         ...(signal ? { signal } : {})
       })

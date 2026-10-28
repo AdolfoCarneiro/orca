@@ -1,7 +1,7 @@
 import type { AgentLaunchResult } from '../../shared/agent-launch-intent'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import type { AutomationRun } from '../../shared/automations-types'
-import type { HeadlessAutomationAgentLaunch } from './headless-automation-agent-launch'
+import type { AutomationChatAgentLaunch } from './automation-chat-agent-launch'
 import { tuiAgentDisplayName } from '../../shared/tui-agent-display-names'
 import { parsePaneKey } from '../../shared/stable-pane-id'
 import { readAutomationRunReceipt } from './automation-run-receipt'
@@ -10,7 +10,7 @@ import { AutomationRunLaunchError } from './headless-dispatch'
 export function publishedLaunchTarget(
   runtime: Pick<OrcaRuntimeService, 'getTerminalPaneKey' | 'getTerminalPtyIdForHandle'>,
   result: Pick<AgentLaunchResult, 'worktreeId' | 'outcome'>
-): HeadlessAutomationAgentLaunch {
+): AutomationChatAgentLaunch {
   let paneKey = result.outcome.kind === 'terminal' ? (result.outcome.paneKey ?? null) : null
   let ptyId: string | null = null
   if (result.outcome.kind === 'terminal') {
@@ -39,8 +39,8 @@ export function publishedLaunchTarget(
 
 export async function enrichAutomationRunTarget(
   runtime: OrcaRuntimeService,
-  target: HeadlessAutomationAgentLaunch
-): Promise<HeadlessAutomationAgentLaunch> {
+  target: AutomationChatAgentLaunch
+): Promise<AutomationChatAgentLaunch> {
   try {
     const shown = await runtime.showManagedWorktree(`id:${target.workspaceId}`)
     target.workspaceDisplayName = shown.displayName ?? null
@@ -61,10 +61,10 @@ export async function enrichAutomationRunTarget(
 export async function automationRunAcceptedTarget(
   runtime: OrcaRuntimeService,
   run: Pick<AutomationRun, 'id' | 'createdAt'>,
-  target: HeadlessAutomationAgentLaunch | undefined,
+  target: AutomationChatAgentLaunch | undefined,
   error: unknown,
   agent: string
-): Promise<HeadlessAutomationAgentLaunch> {
+): Promise<AutomationChatAgentLaunch> {
   const receipt = await runtime
     .openAgentSessionRecordStore()
     .then((store) => readAutomationRunReceipt(store, run))

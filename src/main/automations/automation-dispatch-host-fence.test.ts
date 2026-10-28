@@ -129,8 +129,8 @@ function attachedService(store: Store): {
   service: AutomationService
   send: ReturnType<typeof vi.fn>
 } {
-  const send = vi.fn(async () => ({ workspaceId: 'wt1', terminalSessionId: 'tab-1' }))
-  const service = new AutomationService(store, { headlessDispatcher: send, tickMs: 60_000 })
+  const send = vi.fn()
+  const service = new AutomationService(store, { tickMs: 60_000 })
   service.setWebContents({ isDestroyed: () => false, send } as never)
   return { service, send }
 }
@@ -197,9 +197,8 @@ describe('scheduled dispatch fenced on the host the record captured', () => {
     vi.setSystemTime(new Date('2026-05-13T08:00:00'))
     const store = await createStore()
     const automation = seedRemoteScheduledAutomation(store)
-    const send = vi.fn(async () => ({ workspaceId: 'wt1', terminalSessionId: 'tab-1' }))
+    const send = vi.fn()
     const service = new AutomationService(store, {
-      headlessDispatcher: send,
       tickMs: 60_000,
       allowRemoteHostScheduling: true
     })
@@ -213,9 +212,7 @@ describe('scheduled dispatch fenced on the host the record captured', () => {
 
     await evaluateAt(store, service, automation.id, '2026-05-13T09:01:00')
 
-    expect(send).toHaveBeenCalledWith(
-      expect.objectContaining({ automation: expect.any(Object), run: expect.any(Object) })
-    )
+    expect(send).toHaveBeenCalledWith('automations:dispatchRequested', expect.anything())
   })
 
   it('dispatches while the registration the record captured is still the live one', async () => {
@@ -226,12 +223,8 @@ describe('scheduled dispatch fenced on the host the record captured', () => {
 
     await evaluateAt(store, service, automation.id, '2026-05-13T09:01:00')
 
-    expect(send).toHaveBeenCalledWith(
-      expect.objectContaining({ automation: expect.any(Object), run: expect.any(Object) })
-    )
-    await vi.waitFor(() =>
-      expect(store.listAutomationRuns(automation.id)[0]?.status).toBe('dispatched')
-    )
+    expect(send).toHaveBeenCalledWith('automations:dispatchRequested', expect.anything())
+    expect(store.listAutomationRuns(automation.id)[0]?.status).toBe('dispatching')
   })
 
   it('dispatches a record that captured no generation at all', async () => {
@@ -244,9 +237,7 @@ describe('scheduled dispatch fenced on the host the record captured', () => {
     expect(automation.executionTargetGeneration).toBeUndefined()
     await evaluateAt(store, service, automation.id, '2026-05-13T09:01:00')
 
-    expect(send).toHaveBeenCalledWith(
-      expect.objectContaining({ automation: expect.any(Object), run: expect.any(Object) })
-    )
+    expect(send).toHaveBeenCalledWith('automations:dispatchRequested', expect.anything())
   })
 
   it('refuses a legacy record with no run context once its host was replaced', async () => {
@@ -331,9 +322,7 @@ describe('scheduled dispatch fenced on the host the record captured', () => {
     store.updateSshTarget(TARGET_ID, { orcadFence: undefined })
     await evaluateAt(store, service, automation.id, '2026-05-13T09:02:00')
 
-    expect(send).toHaveBeenCalledWith(
-      expect.objectContaining({ automation: expect.any(Object), run: expect.any(Object) })
-    )
+    expect(send).toHaveBeenCalledWith('automations:dispatchRequested', expect.anything())
   })
 
   it('still runs an automation Move anyway left on this desktop', async () => {
@@ -349,8 +338,6 @@ describe('scheduled dispatch fenced on the host the record captured', () => {
 
     await evaluateAt(store, service, automation.id, '2026-05-13T09:01:00')
 
-    expect(send).toHaveBeenCalledWith(
-      expect.objectContaining({ automation: expect.any(Object), run: expect.any(Object) })
-    )
+    expect(send).toHaveBeenCalledWith('automations:dispatchRequested', expect.anything())
   })
 })

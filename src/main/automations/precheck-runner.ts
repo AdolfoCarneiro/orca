@@ -1,12 +1,6 @@
-import type { Store } from '../persistence'
-import type {
-  Automation,
-  AutomationPrecheck,
-  AutomationPrecheckResult
-} from '../../shared/automations-types'
-import type { AutomationRunTargetResult } from './run-target-resolution'
 import { spawn, type ChildProcess } from 'node:child_process'
 import type { ClientChannel } from 'ssh2'
+import type { AutomationPrecheck, AutomationPrecheckResult } from '../../shared/automations-types'
 import { MAX_AUTOMATION_PRECHECK_OUTPUT_CHARS } from '../../shared/automation-precheck'
 import { getSshConnectionManager } from '../ssh/targets/ssh-target-registry'
 import { quotePosixShell } from '../../shared/shell-argument-quoting'
@@ -282,35 +276,4 @@ export async function runAutomationPrecheck(args: {
     return await runSshPrecheck(args.precheck, args.target)
   }
   return await runLocalPrecheck(args.precheck, args.target)
-}
-
-export async function runAutomationRunPrecheck(
-  store: Store,
-  automationId: string,
-  runId: string,
-  resolveTarget: (automation: Automation) => AutomationRunTargetResult,
-  executePrecheck: typeof runAutomationPrecheck
-): Promise<AutomationPrecheckResult | null> {
-  const automation = store.listAutomations().find((entry) => entry.id === automationId)
-  if (!automation) {
-    throw new Error('Automation not found.')
-  }
-  const run = store.listAutomationRuns(automationId).find((entry) => entry.id === runId)
-  if (!run) {
-    throw new Error('Automation run not found.')
-  }
-  if (run.trigger !== 'scheduled' || !automation.precheck) {
-    return null
-  }
-  const target = resolveTarget(automation)
-  if (!target.ok) {
-    return failedPrecheckResult(automation.precheck, Date.now(), target.error)
-  }
-  return await executePrecheck({
-    precheck: automation.precheck,
-    target:
-      automation.executionTargetType === 'ssh'
-        ? { type: 'ssh', cwd: target.cwd, connectionId: automation.executionTargetId }
-        : { type: 'local', cwd: target.cwd }
-  })
 }

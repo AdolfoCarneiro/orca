@@ -84,7 +84,7 @@ export function createAutomationSaveAction(context: AutomationSaveContext) {
       automationLaunchWorkspace(draft, resolution)
     )
     const surface = automationDraftSurface(draft, settings, chatSupported)
-    if (chatSupported === null || (surface === 'chat' && !chatSupported)) {
+    if (surface === 'chat' && chatSupported !== true) {
       return
     }
     const effectiveDraft = { ...draft, surface }

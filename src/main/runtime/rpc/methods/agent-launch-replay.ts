@@ -101,7 +101,7 @@ function readsUnconfirmedLaunchPrompt(
 
 /** Resolve the current handle by durable pane key when PTY incarnation or host re-adoption changed it.
  * Keep the recorded handle for an unknown pane: shipped clients require one, and an exited terminal is truthful. */
-export function withLiveTerminalHandle(
+function withLiveTerminalHandle(
   recorded: AgentLaunchResult,
   runtime: Pick<RpcContext['runtime'], 'getTerminalHandleForPaneKey'>
 ): AgentLaunchResult {

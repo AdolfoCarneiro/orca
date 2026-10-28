@@ -31,6 +31,7 @@ it.each(['chat', 'terminal'] as const)(
         name: 'Failed delivery',
         prompt: 'check',
         agentId: 'claude',
+        launchSetupPatch: { surface: 'chat' },
         projectId: 'r1',
         workspaceMode: 'existing',
         workspaceId: 'r1::/repo',
@@ -53,7 +54,7 @@ it.each(['chat', 'terminal'] as const)(
           published
         )
       })
-      const service = new AutomationService(store, { headlessDispatcher: dispatch })
+      const service = new AutomationService(store, { chatDispatcher: dispatch })
       service.setWebContents({ isDestroyed: () => false, send: vi.fn() })
       service.setRendererReady()
       const failed = await service.runNow(automation.id)

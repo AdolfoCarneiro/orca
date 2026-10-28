@@ -116,18 +116,16 @@ describe('legacy automation on a repo id two hosts share', () => {
   it('captures the only host on its first run, which still launches, and keeps it', async () => {
     seed([localRow], legacyAutomation({ runContext: null }))
     const store = createStore()
-    const send = vi.fn(async () => ({ workspaceId: 'wt1', terminalSessionId: 'tab-1' }))
-    const service = new AutomationService(store, { headlessDispatcher: send, tickMs: 60_000 })
+    const send = vi.fn()
+    const service = new AutomationService(store, { tickMs: 60_000 })
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: dispatch reads only isDestroyed and send.
     service.setWebContents({ isDestroyed: () => false, send } as never)
     service.setRendererReady()
 
     const run = await service.runNow('legacy-1')
 
-    expect(run.status).toBe('dispatched')
-    expect(send).toHaveBeenCalledWith(
-      expect.objectContaining({ automation: expect.any(Object), run: expect.any(Object) })
-    )
+    expect(run.status).toBe('dispatching')
+    expect(send).toHaveBeenCalledWith('automations:dispatchRequested', expect.any(Object))
     const stamped = storedAutomation(store).runContext
     expect(stamped).toMatchObject({ hostId: 'local', repoId: 'twin', path: '/laptop/twin' })
 

@@ -6,11 +6,7 @@ import type { OrcaRuntimeService } from '../../../src/main/runtime/orca-runtime'
 import type { StructuredAgentSessionHost } from '../../../src/main/native-chat/agent-session-wire/structured-agent-session-host'
 import { createRuntimeAutomationService } from '../../../src/main/automations/runtime-automation-service'
 import { createAutomationRunWriter } from '../../../src/main/automations/automation-run-writer'
-import { runHeadlessAutomationDispatch } from '../../../src/main/automations/headless-dispatch-runner'
-import {
-  launchHeadlessAutomationAgent,
-  type AutomationAgentLaunchRequest
-} from '../../../src/main/automations/headless-automation-agent-launch'
+import type { AutomationChatLaunchRequest } from '../../../src/main/automations/automation-chat-agent-launch'
 import { automationRunOperationId } from '../../../src/main/automations/automation-run-operation'
 import { agentJournalItemKey } from '../../../src/shared/agent-session-journal-item-key'
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../src/shared/agent-session-journal-types'
@@ -36,8 +32,8 @@ export type ChatReuseMode = 'normal' | 'lost-reply' | 'restart'
 
 export async function exerciseBusyChatReuse(
   mode: ChatReuseMode,
-  automation: AutomationAgentLaunchRequest['automation'],
-  target: AutomationAgentLaunchRequest['target'],
+  automation: AutomationChatLaunchRequest['automation'],
+  target: AutomationChatLaunchRequest['target'],
   controls: {
     setHost: (host: StructuredAgentSessionHost | null) => void
     openChat: Mock
@@ -103,28 +99,15 @@ export async function exerciseBusyChatReuse(
     const runtime = {
       ensureStructuredAgentSessionHost: async () => {},
       openAgentSessionRecordStore: async () => rig.store,
+      openedAgentSessionRecordStore: () => rig.store,
       setAutomationService: vi.fn(),
       notifyAutomationsChanged: vi.fn(),
       showManagedWorktree: async () => {
         throw new Error('optional display unavailable')
       }
     } as unknown as OrcaRuntimeService
-    const dispatched = await runHeadlessAutomationDispatch({
-      automation: saved,
-      run: current,
-      target,
-      runs: writer,
-      dispatcher: () =>
-        launchHeadlessAutomationAgent(runtime, {
-          automation: saved,
-          run: current,
-          target,
-          runs: disk.listAutomationRuns(saved.id)
-        }),
-      runPrecheck: async () => null,
-      markDispatchResult: writer.updateRun,
-      watchRun: () => {}
-    })
+    service = createRuntimeAutomationService({ store: disk, runtime, headless: true })
+    const dispatched = await service.runNow(saved.id)
     expect(dispatched).toMatchObject({
       status: 'dispatched',
       sessionKind: 'chat',
@@ -134,7 +117,6 @@ export async function exerciseBusyChatReuse(
     expect(await rig.drafts()).toEqual([{ messageId: q, state: 'waiting' }])
     expect(await rig.handoff(q)).toBeUndefined()
     expect(send).toHaveBeenCalledOnce()
-    service = createRuntimeAutomationService({ store: disk, runtime, headless: true })
     service.start()
     await eventually(() =>
       expect(rig.host.collaboratorsForTests().sessions['observers'].size).toBe(1)
