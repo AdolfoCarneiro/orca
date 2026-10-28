@@ -12508,7 +12508,6 @@
       "src/shared/native-chat-turn-membership.test.ts": 174,
       "src/shared/native-chat-turn-status.test.ts": 52,
       "src/shared/native-chat-unverifiable-turn-status.test.ts": 111,
-      "src/shared/native-chat/native-chat-upgrade-tip-audience.test.ts": 41,
       "src/shared/native-chat/native-chat-visual-directive.test.ts": 45,
       "src/shared/native-chat/native-chat-visual-height-governor.test.ts": 141,
       "src/shared/native-chat/native-chat-visual-shell.reader-scroll.test.ts": 188,
