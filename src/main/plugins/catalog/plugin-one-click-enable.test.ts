@@ -25,7 +25,7 @@ function installed(execution: 'data' | 'declarative', contributes: Record<string
   return plugin
 }
 
-const theme = { themes: [{ id: 'dusk', label: 'Dusk', path: 'dusk.json' }] }
+const theme = { themes: [{ id: 'dusk', title: 'Dusk', path: 'dusk.json' }] }
 const command = { commands: [{ id: 'tasks', title: 'Tasks', action: 'view.tasks' }] }
 
 describe('enableIfDataPlugin', () => {

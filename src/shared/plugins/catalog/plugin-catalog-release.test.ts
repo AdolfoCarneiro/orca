@@ -81,7 +81,7 @@ describe('catalog releases', () => {
           syntaxes: [
             {
               id: 'gleam',
-              label: 'Gleam',
+              title: 'Gleam',
               scopeName: 'source.gleam',
               path: 'g.json',
               extensions: ['.gleam']
@@ -165,7 +165,7 @@ describe('catalog releases', () => {
         syntaxes: [
           {
             id: 'typ',
-            label: 'Typst',
+            title: 'Typst',
             scopeName: 'source.typst',
             path: 't.json',
             extensions: ['.Typ']
@@ -206,7 +206,7 @@ describe('catalog releases', () => {
 describe('catalog release summaries', () => {
   it('must match what the manifest adds and asks for', () => {
     const themed = manifest({
-      contributes: { themes: [{ id: 'dusk', label: 'Dusk', path: 'dusk.json' }] },
+      contributes: { themes: [{ id: 'dusk', title: 'Dusk', path: 'dusk.json' }] },
       capabilities: []
     })
     const base = { manifest: themed, resolvedCommit: COMMIT, contentHash: HASH }

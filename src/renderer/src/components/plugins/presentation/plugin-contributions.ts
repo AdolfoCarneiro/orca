@@ -79,11 +79,16 @@ export function languageDisplayName(locale: string): string {
 
 export function manifestContributionSource(manifest: PluginManifest): PluginContributionSource {
   const { contributes } = manifest
+  // Why label: the source shares the shape of Orca's live registrations, which name it so.
+  const titled = <Item extends { title: string }>({ title, ...item }: Item) => ({
+    ...item,
+    label: title
+  })
   return {
-    appThemes: contributes.themes,
-    terminalThemes: contributes.terminalThemes,
-    iconThemes: contributes.iconThemes,
-    syntaxes: contributes.syntaxes,
+    appThemes: contributes.themes.map(titled),
+    terminalThemes: contributes.terminalThemes.map(titled),
+    iconThemes: contributes.iconThemes.map(titled),
+    syntaxes: contributes.syntaxes.map(titled),
     languages: contributes.languagePacks,
     panels: contributes.panels.map((panel) => panel.title),
     customEditors: contributes.customEditors,

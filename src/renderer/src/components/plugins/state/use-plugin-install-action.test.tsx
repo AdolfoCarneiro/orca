@@ -48,7 +48,7 @@ const preview: PluginMarketplaceHostInstallPreview = {
     version: '1.0.0',
     engines: { orca: '>=1.0.0' },
     pluginApi: 1,
-    contributes: { themes: [{ id: 'dusk', label: 'Dusk', path: 'themes/dusk.json' }] }
+    contributes: { themes: [{ id: 'dusk', title: 'Dusk', path: 'themes/dusk.json' }] }
   })
 }
 

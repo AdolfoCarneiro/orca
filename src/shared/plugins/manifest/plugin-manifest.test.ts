@@ -31,7 +31,10 @@ describe('pluginManifestSchema boundaries', () => {
         contributes: {
           commands: [{ id: 'run', title: 'Run', context: 'worktree' }],
           keybindings: [{ command: 'run', key: 'Mod+Shift+R', when: 'worktree' }],
-          events: [{ on: 'worktree.created' }]
+          events: [{ on: 'worktree.created' }],
+          themes: [{ id: 'dusk', label: 'Dusk', path: 'dusk.json' }],
+          syntaxes: [{ id: 'g', label: 'G', scopeName: 'source.g', path: 'g.json' }],
+          customEditors: [{ id: 'd', title: 'D', fileTypes: ['draw'], entry: 'd.html' }]
         },
         capabilities: [{ kind: 'storage' }, { kind: 'secrets' }, { kind: 'events:subscribe' }]
       })
@@ -41,9 +44,12 @@ describe('pluginManifestSchema boundaries', () => {
       ok: true,
       manifest: {
         contributes: {
-          commands: [{ context: 'workspace' }],
+          commands: [{ when: 'workspace' }],
           keybindings: [{ when: 'workspace' }],
-          events: [{ on: 'workspace.created' }]
+          events: [{ on: 'workspace.created' }],
+          themes: [{ title: 'Dusk' }],
+          syntaxes: [{ title: 'G' }],
+          customEditors: [{ extensions: ['.draw'] }]
         },
         capabilities: [
           { kind: 'storage:own' },

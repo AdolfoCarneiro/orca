@@ -11,7 +11,7 @@ type ContributionValidationManifest = {
   main?: string
   contributes: {
     panels: IdentifiedContribution[]
-    commands: (IdentifiedContribution & { action?: string; context?: 'global' | 'workspace' })[]
+    commands: (IdentifiedContribution & { action?: string; when?: 'global' | 'workspace' })[]
     events: { on: PluginEventName }[]
     languagePacks: { locale: string }[]
     keybindings: { command: string; key: string; when?: 'global' | 'workspace' }[]
@@ -146,12 +146,12 @@ export function validatePluginManifestContributions(
       })
       continue
     }
-    const commandContext = command.context ?? 'global'
-    if (keybinding.when !== undefined && keybinding.when !== commandContext) {
+    const commandWhen = command.when ?? 'global'
+    if (keybinding.when !== undefined && keybinding.when !== commandWhen) {
       ctx.addIssue({
         code: 'custom',
         path: ['contributes', 'keybindings', index, 'when'],
-        message: 'keybinding context must match its command context'
+        message: "must match its command's when"
       })
     }
   }

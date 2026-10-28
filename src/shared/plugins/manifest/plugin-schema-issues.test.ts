@@ -39,10 +39,10 @@ describe('plugin schema issues', () => {
         execution: 'root',
         surprise: true,
         contributes: {
-          themes: [{ id: 'dusk', label: '', path: 'themes/dusk.json' }],
+          themes: [{ id: 'dusk', title: '', path: 'themes/dusk.json' }],
           syntaxes: Array.from({ length: 17 }, (_, index) => ({
             id: `lang-${index}`,
-            label: 'Lang',
+            title: 'Lang',
             scopeName: 'source.lang',
             path: 'lang.json'
           }))
@@ -52,7 +52,7 @@ describe('plugin schema issues', () => {
     expect(error.split('; ')).toEqual([
       'execution: must be one of "data", "declarative", "sandboxed-ui", "trusted-worker"',
       'name: is required',
-      'contributes.themes[0].label: must not be empty',
+      'contributes.themes[0].title: must not be empty',
       'contributes.syntaxes: must be at most 16 items',
       '(root): unknown key "surprise"'
     ])

@@ -31,14 +31,14 @@ async function syntaxPlugin(files: Record<string, unknown>): Promise<ValidDiscov
       syntaxes: [
         {
           id: 'demo',
-          label: 'Demo',
+          title: 'Demo',
           scopeName: 'source.demo',
           path: 'demo.json',
           configuration: 'demo-config.json',
           extensions: ['.Demo'],
           filenames: ['Demofile']
         },
-        { id: 'embedded', label: 'Embedded', scopeName: 'source.embedded', path: 'embedded.json' }
+        { id: 'embedded', title: 'Embedded', scopeName: 'source.embedded', path: 'embedded.json' }
       ]
     }
   })

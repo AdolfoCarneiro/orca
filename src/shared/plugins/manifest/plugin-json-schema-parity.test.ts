@@ -213,7 +213,7 @@ describe('unknown-key policy', () => {
     ['contributes', manifest({ contributes: { widgets: [] } })],
     [
       'a contribution',
-      manifest({ contributes: { themes: [{ id: 'a', label: 'A', path: 'a.json', future: 1 }] } })
+      manifest({ contributes: { themes: [{ id: 'a', title: 'A', path: 'a.json', future: 1 }] } })
     ],
     ['engines', manifest({ engines: { orca: '>=9.0.0', node: '>=20' } })]
   ])('manifests reject an unknown key in %s', (_where, raw) => {

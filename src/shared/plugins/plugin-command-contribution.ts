@@ -14,13 +14,15 @@ import {
 export const PLUGIN_COMMAND_LIMIT = 256
 
 // Why `workspace`: folder workspaces exist too; format 1's `worktree` is rewritten on parse.
-export const pluginCommandContextSchema = z.enum(['global', 'workspace'])
+// Why `when`: it is meant to grow into an expression (`workspaceKind == folder`, `remote`) in
+// which the bare `global` and `workspace` stay valid, so the shape never has to change.
+export const pluginCommandWhenSchema = z.enum(['global', 'workspace'])
 /** Why not `=== 'workspace'`: hosts from before the rename still send `worktree`. */
 export function isWorkspaceScopedPluginContext(context: string | undefined): boolean {
   return context !== undefined && context !== 'global'
 }
 
-export const PLUGIN_COMMAND_CONTEXT_SINCE = {
+export const PLUGIN_COMMAND_WHEN_SINCE = {
   [PLUGIN_ENUM_SINCE_KEY]: { global: PLUGIN_SCHEMA_SINCE_V1, workspace: PLUGIN_MANIFEST_V2_SINCE }
 }
 
@@ -42,12 +44,12 @@ export const pluginCommandContributionSchema = z
           'Restart kernel'
         ])
       ),
-    context: pluginCommandContextSchema.optional().meta({
+    when: pluginCommandWhenSchema.optional().meta({
       ...pluginFieldDoc(
-        '`workspace` hides the command when no workspace is active. Defaults to `global`.',
+        'Where the command is available. `workspace` hides it when no workspace is active. Defaults to `global`.',
         PLUGIN_SCHEMA_SINCE_V1
       ),
-      ...PLUGIN_COMMAND_CONTEXT_SINCE
+      ...PLUGIN_COMMAND_WHEN_SINCE
     }),
     action: pluginCommandIdSchema.optional().meta({
       ...pluginFieldDoc(

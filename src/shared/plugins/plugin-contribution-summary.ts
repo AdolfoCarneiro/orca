@@ -80,10 +80,10 @@ export function pluginContributionSummary(
       (binding) => binding.command
     ),
     ...named('vmRecipes', c.vmRecipes, (recipe) => recipe.path),
-    ...named('themes', c.themes, (theme) => theme.label),
-    ...named('terminalThemes', c.terminalThemes, (theme) => theme.label),
-    ...named('iconThemes', c.iconThemes, (theme) => theme.label),
-    ...named('syntaxes', c.syntaxes, (syntax) => syntax.label, fileMatchDetail),
+    ...named('themes', c.themes, (theme) => theme.title),
+    ...named('terminalThemes', c.terminalThemes, (theme) => theme.title),
+    ...named('iconThemes', c.iconThemes, (theme) => theme.title),
+    ...named('syntaxes', c.syntaxes, (syntax) => syntax.title, fileMatchDetail),
     ...named('customEditors', c.customEditors, (editor) => editor.title, fileMatchDetail)
   ].slice(0, PLUGIN_CONTRIBUTION_SUMMARY_LIMIT)
 }

@@ -5,10 +5,7 @@ import {
   pluginRelativePathSchema
 } from './manifest/plugin-manifest-fields'
 import { normalizeKeybinding } from '../keybindings'
-import {
-  PLUGIN_COMMAND_CONTEXT_SINCE,
-  pluginCommandContextSchema
-} from './plugin-command-contribution'
+import { PLUGIN_COMMAND_WHEN_SINCE, pluginCommandWhenSchema } from './plugin-command-contribution'
 import {
   pluginFieldDoc,
   pluginPathFieldDoc,
@@ -103,12 +100,12 @@ export const pluginKeybindingContributionSchema = z
         }
         return normalized.value
       }),
-    when: pluginCommandContextSchema.optional().meta({
+    when: pluginCommandWhenSchema.optional().meta({
       ...pluginFieldDoc(
-        "Where the shortcut is active; must match its command's `context`.",
+        "Where the shortcut is active; must match its command's `when`.",
         PLUGIN_SCHEMA_SINCE_V1
       ),
-      ...PLUGIN_COMMAND_CONTEXT_SINCE
+      ...PLUGIN_COMMAND_WHEN_SINCE
     })
   })
   .strict()
@@ -125,7 +122,7 @@ export const pluginVmRecipeContributionSchema = z
   .strict()
   .meta({ id: 'VmRecipeContribution', description: 'A virtual machine environment recipe.' })
 
-/** App, terminal and icon themes share one shape: a labelled JSON artifact. */
+/** App, terminal and icon themes share one shape: a titled JSON artifact. */
 export const pluginThemeContributionSchema = z
   .object({
     id: pluginIdSchema.meta(
@@ -135,7 +132,7 @@ export const pluginThemeContributionSchema = z
         ['dusk']
       )
     ),
-    label: z
+    title: z
       .string()
       .min(1)
       .max(128)
@@ -147,7 +144,7 @@ export const pluginThemeContributionSchema = z
     )
   })
   .strict()
-  .meta({ id: 'ThemeContribution', description: 'A labelled theme file.' })
+  .meta({ id: 'ThemeContribution', description: 'A titled theme file.' })
 
 export const pluginGrammarScopeSchema = z
   .string()
@@ -164,7 +161,7 @@ export const pluginSyntaxContributionSchema = z
         ['gleam']
       )
     ),
-    label: z
+    title: z
       .string()
       .min(1)
       .max(128)

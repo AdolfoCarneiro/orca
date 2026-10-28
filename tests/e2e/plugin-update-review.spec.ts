@@ -34,8 +34,8 @@ async function writePlugin(repository: string, id: string, version: string): Pro
       ...(version === '1.0.0' ? {} : { main: 'worker.mjs' }),
       contributes:
         id === PLUGINS[0]
-          ? { iconThemes: [{ id: 'review', label: 'Review Icons', path: 'icons.json' }] }
-          : { terminalThemes: [{ id: 'review', label: 'Review Terminal', path: 'terminal.json' }] },
+          ? { iconThemes: [{ id: 'review', title: 'Review Icons', path: 'icons.json' }] }
+          : { terminalThemes: [{ id: 'review', title: 'Review Terminal', path: 'terminal.json' }] },
       capabilities: []
     })
   )

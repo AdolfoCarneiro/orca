@@ -41,7 +41,7 @@ function entryIdentity(point: PluginContributionPoint, entry: unknown): string {
   }
   if (point === 'commands') {
     const field = (key: string): unknown => (key in entry ? entry[key] : null)
-    return JSON.stringify([field('id'), field('action'), field('context') ?? 'global'])
+    return JSON.stringify([field('id'), field('action'), field('when') ?? 'global'])
   }
   return JSON.stringify(entry)
 }

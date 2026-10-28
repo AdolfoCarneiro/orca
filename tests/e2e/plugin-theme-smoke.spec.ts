@@ -31,8 +31,8 @@ async function writeThemePlugin(root: string): Promise<void> {
       engines: { orca: '>=1.0.0' },
       pluginApi: 1,
       contributes: {
-        themes: [{ id: 'dusk', label: 'Smoke Dusk', path: 'app.json' }],
-        iconThemes: [{ id: 'blocks', label: 'Smoke Blocks', path: 'icons.json' }]
+        themes: [{ id: 'dusk', title: 'Smoke Dusk', path: 'app.json' }],
+        iconThemes: [{ id: 'blocks', title: 'Smoke Blocks', path: 'icons.json' }]
       }
     })
   )

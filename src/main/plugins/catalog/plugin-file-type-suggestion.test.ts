@@ -45,7 +45,7 @@ function installed(pluginKey: string, extensions: string[]): ValidDiscoveredPlug
     pluginApi: 1,
     contributes: {
       syntaxes: extensions.length
-        ? [{ id: 'lang', label: 'Lang', scopeName: 'source.lang', path: 'g.json', extensions }]
+        ? [{ id: 'lang', title: 'Lang', scopeName: 'source.lang', path: 'g.json', extensions }]
         : []
     }
   })

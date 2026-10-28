@@ -128,7 +128,7 @@ describe('content-pack manifest contributions', () => {
         commands: [{ id: 'open', title: 'Open', context: 'workspace', action: 'view.tasks' }],
         keybindings: [{ command: 'open', key: 'Mod+K', when: 'global' }]
       },
-      'command context'
+      "command's when"
     ],
     [
       'platform-equivalent duplicate chords',

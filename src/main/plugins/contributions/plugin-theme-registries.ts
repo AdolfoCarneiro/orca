@@ -42,7 +42,7 @@ async function readTheme<T>(
       revision: createHash('sha256').update(text).digest('hex').slice(0, 32),
       pluginKey: plugin.pluginKey,
       pluginName: plugin.manifest.name,
-      label: contribution.label
+      label: contribution.title
     }
   } catch (error) {
     throw new Error(

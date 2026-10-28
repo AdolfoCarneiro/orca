@@ -36,7 +36,7 @@ async function iconPlugin(svgs: Record<string, string>): Promise<ValidDiscovered
     version: '1.0.0',
     engines: { orca: '>=1.0.0' },
     pluginApi: 1,
-    contributes: { iconThemes: [{ id: 'minimal', label: 'Minimal', path: 'theme.json' }] }
+    contributes: { iconThemes: [{ id: 'minimal', title: 'Minimal', path: 'theme.json' }] }
   })
   return {
     pluginKey: 'samples.minimal-icons',

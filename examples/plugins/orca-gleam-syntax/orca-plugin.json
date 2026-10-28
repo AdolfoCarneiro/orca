@@ -12,7 +12,7 @@
     "syntaxes": [
       {
         "id": "gleam",
-        "label": "Gleam",
+        "title": "Gleam",
         "scopeName": "source.gleam",
         "path": "syntaxes/gleam.tmLanguage.json",
         "configuration": "syntaxes/language-configuration.json",

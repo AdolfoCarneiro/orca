@@ -287,7 +287,7 @@ describe('PluginManager catalog', () => {
           capabilities: [],
           contributes: {
             ...preview.manifest.contributes,
-            themes: [{ id: 'dusk', label: 'Dusk', path: 'themes/dusk.json' }]
+            themes: [{ id: 'dusk', title: 'Dusk', path: 'themes/dusk.json' }]
           }
         }
       })

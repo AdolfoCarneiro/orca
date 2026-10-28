@@ -138,7 +138,7 @@ function registrationsForManifest(
     pluginKey,
     id: command.id,
     title: command.title,
-    context: command.context ?? 'global',
+    context: command.when ?? 'global',
     handler:
       command.action === undefined
         ? { type: 'worker' as const }
@@ -153,6 +153,6 @@ function keybindingsForCommand(
 ): PluginCommandKeybinding[] {
   return keybindings.map((keybinding) => ({
     key: keybinding.key,
-    when: keybinding.when ?? command.context ?? 'global'
+    when: keybinding.when ?? command.when ?? 'global'
   }))
 }

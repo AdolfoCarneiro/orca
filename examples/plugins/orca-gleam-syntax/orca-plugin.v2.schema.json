@@ -534,8 +534,8 @@
             "Restart kernel"
           ]
         },
-        "context": {
-          "description": "`workspace` hides the command when no workspace is active. Defaults to `global`.",
+        "when": {
+          "description": "Where the command is available. `workspace` hides it when no workspace is active. Defaults to `global`.",
           "x-orca-since": "1.4.160",
           "x-orca-enum-since": {
             "global": "1.4.160",
@@ -693,7 +693,7 @@
           ]
         },
         "when": {
-          "description": "Where the shortcut is active; must match its command's `context`.",
+          "description": "Where the shortcut is active; must match its command's `when`.",
           "x-orca-since": "1.4.160",
           "x-orca-enum-since": {
             "global": "1.4.160",
@@ -747,7 +747,7 @@
             "dusk"
           ]
         },
-        "label": {
+        "title": {
           "type": "string",
           "minLength": 1,
           "maxLength": 128,
@@ -771,11 +771,11 @@
       },
       "required": [
         "id",
-        "label",
+        "title",
         "path"
       ],
       "additionalProperties": false,
-      "description": "A labelled theme file."
+      "description": "A titled theme file."
     },
     "SyntaxContribution": {
       "type": "object",
@@ -790,7 +790,7 @@
             "gleam"
           ]
         },
-        "label": {
+        "title": {
           "type": "string",
           "minLength": 1,
           "maxLength": 128,
@@ -869,7 +869,7 @@
       },
       "required": [
         "id",
-        "label",
+        "title",
         "scopeName",
         "path"
       ],

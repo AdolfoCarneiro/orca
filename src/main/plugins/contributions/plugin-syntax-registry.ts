@@ -42,7 +42,7 @@ async function loadSyntax(
     return {
       id: `plugin:${plugin.pluginKey}/${contribution.id}`,
       pluginKey: plugin.pluginKey,
-      label: contribution.label,
+      label: contribution.title,
       extensions: contribution.extensions.map((extension) => extension.toLowerCase()),
       filenames: contribution.filenames.map((filename) => filename.toLowerCase()),
       // Why: open files re-tokenize when a plugin update changes the grammar they use.

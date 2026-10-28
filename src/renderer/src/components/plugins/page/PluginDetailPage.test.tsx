@@ -56,7 +56,7 @@ const manifest = pluginManifestSchema.parse({
   engines: { orca: '>=1.0.0' },
   pluginApi: 1,
   contributes: {
-    iconThemes: [{ id: 'minimal', label: 'Minimal Icons', path: 'icons/theme.json' }]
+    iconThemes: [{ id: 'minimal', title: 'Minimal Icons', path: 'icons/theme.json' }]
   }
 })
 

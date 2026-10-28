@@ -30,8 +30,8 @@ async function themePlugin(files: { app?: unknown; terminal?: unknown }) {
     engines: { orca: '>=1.0.0' },
     pluginApi: 1,
     contributes: {
-      themes: [{ id: 'midnight', label: 'Midnight', path: 'app.json' }],
-      terminalThemes: [{ id: 'midnight', label: 'Midnight', path: 'terminal.json' }]
+      themes: [{ id: 'midnight', title: 'Midnight', path: 'app.json' }],
+      terminalThemes: [{ id: 'midnight', title: 'Midnight', path: 'terminal.json' }]
     }
   })
   const plugin: ValidDiscoveredPlugin = {

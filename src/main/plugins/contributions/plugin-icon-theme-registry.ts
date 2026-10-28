@@ -37,7 +37,7 @@ export class PluginIconThemeRegistry {
       load: async (plugin, contribution) => ({
         id: `plugin:${plugin.pluginKey}/${contribution.id}`,
         pluginKey: plugin.pluginKey,
-        label: contribution.label,
+        label: contribution.title,
         rootDir: plugin.rootDir,
         artifact: parsePluginIconThemeArtifact(
           await readContainedPluginArtifactText(

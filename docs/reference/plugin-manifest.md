@@ -76,7 +76,7 @@ A command palette entry. Requires the `declarative` execution profile or higher.
 | --- | --- | --- | --- | --- |
 | `id` | string | yes | 1.4.160 | Command id, unique among this plugin's commands. Dotted namespaces are allowed. Example: `"jupyter.restartKernel"` |
 | `title` | string | yes | 1.4.160 | Title shown in the command palette. Example: `"Restart kernel"` |
-| `context` | `"global"` \| `"workspace"` | no | 1.4.160 | `workspace` hides the command when no workspace is active. Defaults to `global`. |
+| `when` | `"global"` \| `"workspace"` | no | 1.4.160 | Where the command is available. `workspace` hides it when no workspace is active. Defaults to `global`. |
 | `action` | `"worktree.history.back"` \| `"worktree.history.forward"` \| `"sidebar.left.toggle"` \| `"sidebar.sleepingWorkspaces.toggle"` \| `"floatingWorkspace.maximize"` \| `"tab.rename"` \| `"workspace.rename"` \| `"workspace.openBoard"` \| `"view.tasks"` \| `"sidebar.right.toggle"` \| `"sidebar.explorer.toggle"` \| `"sidebar.search.toggle"` \| `"sidebar.sourceControl.toggle"` \| `"sidebar.checks.toggle"` \| `"sidebar.ports.toggle"` | no | 1.4.160 | Built-in Orca action this command runs. A command with an action is declarative and never starts the plugin worker; one without needs `main`. Example: `"view.tasks"` |
 
 ## EventContribution
@@ -105,7 +105,7 @@ A keyboard shortcut for a command.
 | --- | --- | --- | --- | --- |
 | `command` | string | yes | 1.4.160 | Id of a command this plugin contributes in `contributes.commands`. Example: `"jupyter.restartKernel"` |
 | `key` | string | yes | 1.4.160 | Key chord Orca recognizes, such as `Mod+Shift+K`. `Mod` is Cmd on macOS and Ctrl elsewhere. Each chord may be bound once on every platform. Example: `"Mod+Shift+K"` |
-| `when` | `"global"` \| `"workspace"` | no | 1.4.160 | Where the shortcut is active; must match its command's `context`. |
+| `when` | `"global"` \| `"workspace"` | no | 1.4.160 | Where the shortcut is active; must match its command's `when`. |
 
 ## VmRecipeContribution
 
@@ -117,12 +117,12 @@ A virtual machine environment recipe.
 
 ## ThemeContribution
 
-A labelled theme file.
+A titled theme file.
 
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
 | `id` | string | yes | 1.4.244 | Theme id, unique within its family in this plugin. The reserved names `constructor` and `prototype` are refused. Example: `"dusk"` |
-| `label` | string | yes | 1.4.244 | Name shown in the theme picker. Example: `"Dusk"` |
+| `title` | string | yes | 1.4.244 | Name shown in the theme picker. Example: `"Dusk"` |
 | `path` | string | yes | 1.4.244 | JSON theme file, at most 16 KiB. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"themes/dusk.json"` |
 
 ## SyntaxContribution
@@ -132,7 +132,7 @@ Syntax highlighting for one language.
 | Field | Type | Required | Since | Description |
 | --- | --- | --- | --- | --- |
 | `id` | string | yes | 1.4.244 | Language id, unique among this plugin's syntaxes. The reserved names `constructor` and `prototype` are refused. Example: `"gleam"` |
-| `label` | string | yes | 1.4.244 | Language name shown in the editor. Example: `"Gleam"` |
+| `title` | string | yes | 1.4.244 | Language name shown in the editor. Example: `"Gleam"` |
 | `scopeName` | string | yes | 1.4.244 | The grammar's root TextMate scope, unique among this plugin's syntaxes. Example: `"source.gleam"` |
 | `path` | string | yes | 1.4.244 | TextMate grammar JSON file. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"syntaxes/gleam.tmLanguage.json"` |
 | `configuration` | string | no | 1.4.244 | Language configuration JSON file: comments, brackets and auto-closing pairs. Relative to the plugin root; `..` segments and Windows device names such as `CON` are refused. Example: `"syntaxes/language-configuration.json"` |
