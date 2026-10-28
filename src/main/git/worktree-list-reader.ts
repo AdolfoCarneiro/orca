@@ -29,15 +29,11 @@ const PRUNABLE_EXISTENCE_PROBE_CONCURRENCY = 8
 type RepoLocation = { topLevel: string; commonDir: string; gitDir: string }
 
 function parseRepoLocation(repoPath: string, output: string): RepoLocation | undefined {
-  // Older Git echoes unknown flags with exit 0; keep the last three path lines and preserve edge spaces.
-  const lines = output
-    .split('\n')
-    .map((line) => (line.endsWith('\r') ? line.slice(0, -1) : line))
-    .filter((line) => line.length > 0 && !line.startsWith('-'))
-  if (lines.length < 3) {
+  const records = readGitCommonDirectoryOutput(output)?.split('\n') ?? []
+  const [topLevel, commonDir, gitDir] = records
+  if (records.length !== 3 || !topLevel || !commonDir || !gitDir) {
     return undefined
   }
-  const [topLevel, commonDir, gitDir] = lines.slice(-3)
   return {
     topLevel: resolveRevParsePath(repoPath, topLevel),
     commonDir: resolveRevParsePath(repoPath, commonDir),
@@ -50,38 +46,56 @@ export async function readRepoLocation(
   resolveBasePath: string,
   options: GitWorktreeExecOptions = {}
 ): Promise<RepoLocation | undefined> {
+  const readOutput = async (args: string[]): Promise<string> => {
+    throwIfSignalAborted(options.signal)
+    const { stdout } = await gitExecFileAsync(args, {
+      ...gitExecOptions(repoPath, options),
+      captureWslLoginShellOutput: true
+    })
+    return stdout
+  }
+  const readPath = async (flag: string): Promise<string | undefined> => {
+    const value = readGitCommonDirectoryOutput(await readOutput(['rev-parse', flag]))
+    return value ? resolveRevParsePath(resolveBasePath, value) : undefined
+  }
   try {
     return await withLocalGitCapabilityCacheForExecution(
       { cwd: repoPath, wslDistro: options.wslDistro, signal: options.signal },
-      (capabilities) =>
-        capabilities.runWithFallback(
+      (capabilities) => {
+        const readLocation = async (pathFormat: boolean): Promise<RepoLocation | undefined> => {
+          const stdout = await readOutput([
+            'rev-parse',
+            ...(pathFormat ? ['--path-format=absolute'] : []),
+            '--show-toplevel',
+            '--git-common-dir',
+            '--git-dir'
+          ])
+          if (pathFormat && hasUnsupportedRevParsePathFormatEcho(stdout)) {
+            capabilities.rememberUnsupported('rev-parse-path-format')
+          }
+          const location = parseRepoLocation(resolveBasePath, stdout)
+          if (location) {
+            return location
+          }
+          // Embedded newlines make the batch's pathname boundaries ambiguous.
+          const topLevel = await readPath('--show-toplevel')
+          if (!topLevel) {
+            return undefined
+          }
+          const commonDir = await readPath('--git-common-dir')
+          if (!commonDir) {
+            return undefined
+          }
+          const gitDir = await readPath('--git-dir')
+          return gitDir ? { topLevel, commonDir, gitDir } : undefined
+        }
+        return capabilities.runWithFallback(
           'rev-parse-path-format',
-          async () => {
-            const { stdout } = await gitExecFileAsync(
-              [
-                'rev-parse',
-                '--path-format=absolute',
-                '--show-toplevel',
-                '--git-common-dir',
-                '--git-dir'
-              ],
-              gitExecOptions(repoPath, options)
-            )
-            if (hasUnsupportedRevParsePathFormatEcho(stdout)) {
-              // Cache the unsupported-option signal even when parsing recovers.
-              capabilities.rememberUnsupported('rev-parse-path-format')
-            }
-            return parseRepoLocation(resolveBasePath, stdout)
-          },
-          async () => {
-            const { stdout } = await gitExecFileAsync(
-              ['rev-parse', '--show-toplevel', '--git-common-dir', '--git-dir'],
-              gitExecOptions(repoPath, options)
-            )
-            return parseRepoLocation(resolveBasePath, stdout)
-          },
+          () => readLocation(true),
+          () => readLocation(false),
           isUnsupportedRevParsePathFormatError
         )
+      }
     )
   } catch {
     return undefined

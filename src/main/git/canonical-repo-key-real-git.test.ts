@@ -45,7 +45,7 @@ import { disposeLocalRepoRefMaintenance } from './local-repo-ref-maintenance'
 import { _resetGitAdmissionForTests } from './command-runner/git-subprocess-admission'
 import { resetWslGitReadEnvironmentForTests } from './wsl-git-read-environment'
 import { quotePosixShell } from '../../shared/shell-argument-quoting'
-import { readRepoCommonDirFromGit } from './worktree-list-reader'
+import { readRepoCommonDirFromGit, readRepoLocation } from './worktree-list-reader'
 import { clearGitCapabilityStateForTests } from './git-capability-state'
 
 const nativePlatform = process.platform
@@ -54,6 +54,8 @@ const banner = 'To run a command as administrator, use sudo.\n\n'
 const names = [
   'ordinary',
   'line\nbreak',
+  'blank\n\nline',
+  'line\n-dash',
   'trailing\r',
   'trailing\n',
   '--path-format=absolute\nrepo',
@@ -190,6 +192,11 @@ describe.skipIf(nativePlatform === 'win32')('common-directory identity with real
         captureWslLoginShellOutput: true
       })
       expect(executed.stdout.trim()).toBe(version)
+      expect(await readRepoLocation(fixture.linked, fixture.linked, options)).toEqual({
+        topLevel: fixture.linked,
+        commonDir: fixture.common,
+        gitDir: join(fixture.common, 'worktrees/linked')
+      })
       const host = mode === 'native' ? 'local' : 'wsl:Ubuntu'
       expect(await getCanonicalRepoKey(fixture.common, options)).toBe(`${host}::${fixture.common}`)
       expect(await getCanonicalRepoKey(fixture.linked, options)).toBe(`${host}::${fixture.common}`)
@@ -197,7 +204,7 @@ describe.skipIf(nativePlatform === 'win32')('common-directory identity with real
       expect(await readRepoCommonDirFromGit(fixture.linked, options)).toBe(fixture.common)
       if (mode !== 'native') {
         expect(rejectedProbes).toBe(1)
-        expect(shellReads).toBe(5)
+        expect(shellReads).toBe(5 + (name.includes('\n') ? 4 : 1))
       }
     }
   )
