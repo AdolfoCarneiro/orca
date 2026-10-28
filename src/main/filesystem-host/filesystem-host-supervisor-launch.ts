@@ -44,8 +44,8 @@ export async function launchFilesystemHostProcess(
       'Filesystem failure domain still holds an unreaped child'
     )
   }
-  let release = context.capacity.reserve(admission)
-  if (!release) {
+  let release = context.capacity.reserve(admission, lane.classification)
+  if (!release && (!lane.classification || context.capacity.hasClassifierCapacity)) {
     await reclaimIdleFilesystemHostProcess({
       lanes: context.lanes.values(),
       excludedLane: lane,
@@ -55,7 +55,7 @@ export async function launchFilesystemHostProcess(
       }
     })
     checkAdmission()
-    release = context.capacity.reserve(admission)
+    release = context.capacity.reserve(admission, lane.classification)
   }
   while (!release) {
     const retirement = context.retirement.waitForRetirement()
@@ -64,7 +64,7 @@ export async function launchFilesystemHostProcess(
     }
     await retirement
     checkAdmission()
-    release = context.capacity.reserve(admission)
+    release = context.capacity.reserve(admission, lane.classification)
   }
   if (!release) {
     throw new FilesystemHostSupervisorError(

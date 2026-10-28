@@ -97,8 +97,8 @@ export function initializeMainProcessAccountServices(): void {
   })
   void state.keybindings
     .reload()
-    .then(async () => {
-      broadcastKeybindingsChanged()
+    .then(async (snapshot) => {
+      broadcastKeybindingsChanged(snapshot)
       await state.pluginService?.reconcileActivationState()
     })
     .catch((error) => console.warn('Keybindings preparation failed', error))

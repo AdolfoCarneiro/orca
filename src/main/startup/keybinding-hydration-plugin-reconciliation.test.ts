@@ -1,6 +1,9 @@
 import { expect, it, vi } from 'vitest'
 import type { KeybindingService } from '../keybindings/keybinding-service'
 import type { PluginService } from '../plugins/plugin-service'
+import type { KeybindingFileSnapshot } from '../../shared/keybindings'
+import type { AppState } from '../../renderer/src/store/types'
+import { createKeybindingsSlice } from '../../renderer/src/store/slices/keybindings'
 
 const fixture = vi.hoisted(() => {
   const state: {
@@ -20,11 +23,20 @@ const fixture = vi.hoisted(() => {
     keybindings: null,
     pluginService: null
   }
-  return { state, prepare: vi.fn(), broadcast: vi.fn() }
+  return {
+    state,
+    prepare: vi.fn(),
+    send: vi.fn<(channel: string, snapshot: KeybindingFileSnapshot) => void>()
+  }
 })
 vi.mock('./main-process-state', () => ({ mainProcessState: fixture.state }))
-vi.mock('electron', () => ({ app: { getPath: () => '/test-home' } }))
-vi.mock('../ipc/keybindings', () => ({ broadcastKeybindingsChanged: fixture.broadcast }))
+vi.mock('electron', () => ({
+  app: { getPath: () => '/test-home' },
+  BrowserWindow: {
+    getAllWindows: () => [{ isDestroyed: () => false, webContents: { send: fixture.send } }]
+  }
+}))
+vi.mock('../menu/register-app-menu', () => ({ rebuildAppMenu: () => {} }))
 vi.mock('../filesystem-host/filesystem-host-read-client', () => ({
   hydrateFilesystemHostFailureDomains: () => {},
   prepareKeybindingsThroughFilesystemHost: fixture.prepare
@@ -72,7 +84,19 @@ it.each(['before', 'after'] as const)(
   async (timing) => {
     vi.resetModules()
     fixture.state.pluginService = null
-    fixture.broadcast.mockClear()
+    const set = vi.fn<Parameters<typeof createKeybindingsSlice>[0]>()
+    const get = (): AppState => {
+      throw new Error('Unexpected renderer state read')
+    }
+    const renderer = createKeybindingsSlice(set, get, {
+      setState: set,
+      getState: get,
+      getInitialState: get,
+      subscribe: () => () => {}
+    })
+    fixture.send.mockReset().mockImplementation((channel, snapshot) => {
+      if (channel === 'keybindings:changed') renderer.setKeybindingSnapshot(snapshot)
+    })
     let complete!: (value: { contents: string; seedCompleted: boolean }) => void
     fixture.prepare.mockImplementationOnce(
       () =>
@@ -84,6 +108,8 @@ it.each(['before', 'after'] as const)(
     initializeMainProcessAccountServices()
     await vi.waitFor(() => expect(complete).toBeTypeOf('function'))
     expect(fixture.state.keybindings?.getOverrides()).toEqual({})
+    expect(renderer.keybindings).toEqual({})
+    expect(set).not.toHaveBeenCalled()
     const observed: unknown[] = []
     const reconcile = vi.fn(async () => {
       observed.push(fixture.state.keybindings?.getOverrides())
@@ -98,7 +124,14 @@ it.each(['before', 'after'] as const)(
       }),
       seedCompleted: false
     })
-    await vi.waitFor(() => expect(fixture.broadcast).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(fixture.send).toHaveBeenCalledOnce())
+    const snapshot = fixture.state.keybindings?.getSnapshot()
+    expect(snapshot?.overrides).toEqual({ 'plugin:orca-samples.first/run': ['Mod+Shift+T'] })
+    expect(fixture.send).toHaveBeenCalledWith('keybindings:changed', snapshot)
+    expect(set).toHaveBeenCalledWith({
+      keybindings: snapshot?.overrides,
+      keybindingSnapshot: snapshot
+    })
     if (timing === 'after') {
       expect(reconcile).toHaveBeenCalledOnce()
       expect(observed).toEqual([{ 'plugin:orca-samples.first/run': ['Mod+Shift+T'] }])

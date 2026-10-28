@@ -166,10 +166,13 @@ export class WorkerThreadChildProcessHost {
   private readonly children = new Map<number, WorkerThreadChildProcess>()
   private nextId = 1
 
-  constructor(factory: WorkerThreadFactory) {
+  constructor(
+    private readonly factory: WorkerThreadFactory,
+    idleTeardownMs = IDLE_TEARDOWN_MS
+  ) {
     this.host = new LazyWorkerThreadHost<WorkerThreadChildEvent>({
       factory,
-      idleTeardownMs: IDLE_TEARDOWN_MS,
+      idleTeardownMs,
       onMessage: (event) => this.route(event),
       onError: (error) => this.abandonAll(`Child process worker failed: ${error.message}`),
       onExit: (code) => this.abandonAll(`Child process worker exited with code ${code}`),
@@ -186,7 +189,9 @@ export class WorkerThreadChildProcessHost {
   }
 
   fork(spec: WorkerThreadForkSpec): WorkerThreadChildProcess {
-    return this.start({ type: 'fork', id: this.nextId++, spec })
+    // A blocked fork must not stall an established sibling's IPC, kill, or exit delivery.
+    const isolated = new WorkerThreadChildProcessHost(this.factory, 0)
+    return isolated.start({ type: 'fork', id: 1, spec })
   }
 
   private start(

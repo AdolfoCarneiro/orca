@@ -28,6 +28,7 @@ export type FilesystemHostQueuedDispatch = {
 
 export type FilesystemHostLane = {
   key: string
+  classification: boolean
   retireWhenIdle: boolean
   retiring: boolean
   breaker: FilesystemHostBreaker

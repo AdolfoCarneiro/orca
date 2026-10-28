@@ -114,7 +114,11 @@ export class FilesystemHostSupervisor {
             normalizedInput.operation.path
           )
         : this.domains.resolve(normalizedInput.executionHost, normalizedInput.operation.path)
-    const lane = this.getLane(laneKey, retireWhenIdle)
+    const lane = this.getLane(
+      laneKey,
+      retireWhenIdle,
+      normalizedInput.operation.kind === 'classify-path'
+    )
     // Why: mirrors the physical-slot reservation — a background burst (startup repo
     // reconcile) must not fill the queue and strand the fs IPC gate every handler awaits.
     const laneLimit =
@@ -186,11 +190,12 @@ export class FilesystemHostSupervisor {
     })
   }
 
-  private getLane(key: string, retireWhenIdle = false): FilesystemHostLane {
+  private getLane(key: string, retireWhenIdle = false, classification = false): FilesystemHostLane {
     let lane = this.lanes.get(key)
     if (!lane) {
       lane = {
         key,
+        classification,
         retireWhenIdle,
         retiring: false,
         breaker: new FilesystemHostBreaker(this.breakerRecoveryDelayMs),

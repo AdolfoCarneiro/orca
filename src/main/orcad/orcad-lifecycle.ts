@@ -1,4 +1,8 @@
-import { disposeFilesystemHost } from '../filesystem-host/filesystem-host-lifetime'
+import {
+  disposeFilesystemHost,
+  initializeFilesystemHost
+} from '../filesystem-host/filesystem-host-lifetime'
+import { resolveOrcadInstallRoot } from './orcad-app-paths'
 import { setRuntimeBrowserCommandsFactory } from '../runtime/runtime-browser-commands-factory'
 import { setDesktopBrowserBridgeHostEnabled } from '../runtime/desktop-browser-bridge/desktop-browser-bridge-registry'
 import { ORCAD_MANAGED_ACTIVATION_ROOT_ENV } from '../../shared/orcad-managed-launch-env'
@@ -116,6 +120,7 @@ export async function startOrcadWithLifecycle<T extends object>(
     }
   })
   try {
+    initializeFilesystemHost(resolveOrcadInstallRoot(), false)
     const handle = await start((nextCleanup) => runtime.add(nextCleanup))
     return { ...handle, stop: cleanup }
   } catch (error) {
