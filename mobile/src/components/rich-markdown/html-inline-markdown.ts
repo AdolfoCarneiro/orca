@@ -1,6 +1,15 @@
 import { codeFenceFor } from './markdown-code-fence'
 
 export function literalTextContent(node: Node): string {
+  if (node.nodeType === Node.COMMENT_NODE) {
+    return ''
+  }
+  if (node instanceof Element) {
+    if (node.tagName.toLowerCase() === 'br') {
+      return '\n'
+    }
+    return Array.from(node.childNodes).map(literalTextContent).join('')
+  }
   return node.textContent ?? ''
 }
 
