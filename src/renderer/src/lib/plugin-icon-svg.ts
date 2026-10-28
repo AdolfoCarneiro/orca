@@ -86,6 +86,28 @@ function isSafeAttributeValue(value: string): boolean {
   )
 }
 
+const SHAPES = new Set(['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline', 'text', 'use'])
+
+function declaredFill(element: Element): string | null {
+  const style = element.getAttribute('style')?.match(/(?:^|;)\s*fill\s*:\s*([^;]+)/i)?.[1]
+  return style ?? element.getAttribute('fill')
+}
+
+/** Whether any painted shape falls back to SVG's default black fill. */
+function hasDefaultFill(root: Element): boolean {
+  return Array.from(root.getElementsByTagName('*')).some((element) => {
+    if (!SHAPES.has(element.localName) || element.closest('defs, clipPath, mask, symbol')) {
+      return false
+    }
+    for (let node: Element | null = element; node; node = node.parentElement) {
+      if (declaredFill(node) !== null) {
+        return false
+      }
+    }
+    return true
+  })
+}
+
 export type SanitizedPluginIcon = {
   svg: string
   /** Drawn with only currentColor, so it can take the surrounding text color as a mask. */
@@ -136,6 +158,6 @@ export function sanitizePluginIconSvg(source: string): SanitizedPluginIcon | nul
   paints.delete('none')
   return {
     svg: new XMLSerializer().serializeToString(root),
-    monochrome: paints.size === 1 && paints.has('currentcolor')
+    monochrome: paints.size === 1 && paints.has('currentcolor') && !hasDefaultFill(root)
   }
 }
