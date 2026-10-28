@@ -5,7 +5,7 @@ import { endianness } from 'node:os'
  * byte order followed by that many bytes of UTF-8 JSON.
  */
 
-const HEADER_BYTES = 4
+export const HEADER_BYTES = 4
 /** Chrome refuses host → extension messages over 1 MB (kMaximumNativeMessageSize). */
 export const MAX_NATIVE_HOST_MESSAGE_BYTES = 1024 * 1024
 
