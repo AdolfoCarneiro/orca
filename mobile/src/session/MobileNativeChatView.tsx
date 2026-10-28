@@ -393,8 +393,9 @@ export function MobileNativeChatView({
           <Text style={styles.sendErrorText}>{sendErrorMessage}</Text>
         </View>
       ) : null}
-      <View style={promptOwnsInput ? styles.hidden : undefined}>
-        {trayContent}
+      <View style={promptOwnsInput ? styles.hidden : styles.composerArea}>
+        {/* Unmount the tray so a focused queued-message editor cannot keep typing out of sight. */}
+        {promptOwnsInput ? null : trayContent}
         <MobileNativeChatDraftComposer
           draftScopeKey={composerScopeKey}
           structured={structuredActivityUi ? structuredComposer : null}

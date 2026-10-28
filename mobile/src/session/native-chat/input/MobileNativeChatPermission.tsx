@@ -43,7 +43,12 @@ function MobileNativeChatPermissionImpl({
     }
   }
   return (
-    <View testID="native-chat-approval-card" style={styles.card}>
+    <ScrollView
+      testID="native-chat-approval-card"
+      style={styles.card}
+      contentContainerStyle={styles.cardContent}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.header}>
         <ShieldQuestion size={16} color={colors.accentBlue} strokeWidth={2} />
         <Text
@@ -85,7 +90,7 @@ function MobileNativeChatPermissionImpl({
           )
         })}
       </View>
-    </View>
+    </ScrollView>
   )
 }
 
@@ -149,17 +154,21 @@ function MobileNativeChatPermissionContext({
 }
 
 const styles = themedStyleSheet(() => ({
+  // Scroll as a whole when the actions cannot fit the prompt card's bound.
   card: {
     marginHorizontal: spacing.lg,
     marginVertical: spacing.sm,
-    padding: spacing.md,
-    gap: spacing.sm,
     borderRadius: radii.card,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderSubtle,
     backgroundColor: colors.bgPanel,
+    flexGrow: 0,
     flexShrink: 1,
     minHeight: 0
+  },
+  cardContent: {
+    padding: spacing.md,
+    gap: spacing.sm
   },
   header: {
     flexDirection: 'row',
