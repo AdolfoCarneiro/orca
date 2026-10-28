@@ -58,6 +58,7 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
       // Null leaves CODEX_HOME uninjected; refresh the retired mirror only for retained panes.
       this.copyMirrorLoginIntoEmptySystemHome()
       this.reconcileLegacySharedHomeForRetainedPanes()
+      this.startSystemDefaultSessionBridgeForLaunch()
       return null
     }
     this.invalidateBackfillAfterManagedSystemDefaultLaunch(launchEnv)

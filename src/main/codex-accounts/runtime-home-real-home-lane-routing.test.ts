@@ -129,6 +129,38 @@ describe('CodexRuntimeHomeService', () => {
     }
   })
 
+  it('bridges managed-account history into the real home when launching system default', async () => {
+    const accountBridge = vi.fn(async () => {})
+    vi.doMock('../codex/codex-account-session-bridge', () => ({
+      startCodexAccountSessionBridgeInBackground: accountBridge
+    }))
+    const managedHomePath = createManagedAuth(
+      testState.userDataDir,
+      'account-1',
+      createCodexAuthJson('user@example.com', 'acct-1', 'refresh-1')
+    )
+    const store = createStore(
+      createSettings({
+        realHomeRoutable: true,
+        codexManagedAccounts: [
+          createCodexAccountRecord('account-1', 'user@example.com', 'acct-1', managedHomePath)
+        ]
+      })
+    )
+    try {
+      const { CodexRuntimeHomeService } = await import('./runtime-home-service')
+      const service = new CodexRuntimeHomeService(store as never)
+
+      expect(service.prepareForCodexLaunch()).toBeNull()
+      expect(accountBridge).toHaveBeenCalledWith({
+        targetCodexHomePath: getSystemCodexHomePath(),
+        sourceCodexHomePaths: [managedHomePath]
+      })
+    } finally {
+      vi.doUnmock('../codex/codex-account-session-bridge')
+    }
+  })
+
   it('seeds shared auth for a pane-local custom home on the real-home lane', async () => {
     const systemAuth = createCodexAuthJson('system@example.com', 'acct-system', 'system-token')
     writeFileSync(getSystemCodexAuthPath(), systemAuth, 'utf-8')

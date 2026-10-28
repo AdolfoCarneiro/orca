@@ -151,6 +151,19 @@ export abstract class CodexRuntimeHomeManagedHome extends CodexRuntimeHomeSync {
     ]
   }
 
+  // Real-home launches see managed-account history too, or switching back to system default hides it (#25000).
+  protected startSystemDefaultSessionBridgeForLaunch(): void {
+    const sourceCodexHomePaths = this.getManagedHostAccountHomesForSessionDiscovery()
+    if (sourceCodexHomePaths.length === 0) {
+      return
+    }
+    void startCodexAccountSessionBridgeInBackground({
+      targetCodexHomePath:
+        resolveHostCodexSessionSourceHome(this.store.getSettings()) ?? getSystemCodexHomePath(),
+      sourceCodexHomePaths
+    })
+  }
+
   // Per-account homes own auth refreshes in place; selection needs no shared-mirror read-back.
   protected syncSelfContainedManagedSelection(account: CodexManagedAccount): void {
     const resolved = this.resolveSelfContainedManagedHome(account)
