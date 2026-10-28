@@ -175,11 +175,13 @@ export function screenModuleMocks(dependencies: ScreenDependencies) {
         dependencies.storageRefreshes += 1
       }
       const writeStorage = () => {}
+      const retry = () => {}
       return {
         usePageHostSnapshot: () => ({
           // Stable values match the real hook's state and callbacks across screen renders.
           snapshot: SCREEN_SNAPSHOT,
           unreadable: dependencies.snapshotUnreadable,
+          retry,
           readStorage,
           refreshStorage,
           writeStorage

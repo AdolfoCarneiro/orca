@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
-import { StyleSheet, View, Text, Pressable } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { AppState, StyleSheet, View, Text, Pressable } from 'react-native'
+import { useFocusEffect } from 'expo-router'
 import type { ParsedFileLinkLocation } from '../../../src/shared/file-link-location'
 import { terminalPaneKeyboardLayout } from './mobile-terminal-pane-layout'
 import { colors, spacing } from '../theme/mobile-theme'
@@ -83,6 +84,20 @@ export function TerminalPaneView({
   if (visible && !visited) {
     setVisited(true)
   }
+  const [routeFocused, setRouteFocused] = useState(false)
+  useFocusEffect(
+    useCallback(() => {
+      setRouteFocused(true)
+      return () => setRouteFocused(false)
+    }, [])
+  )
+  const [appActive, setAppActive] = useState(() => AppState.currentState === 'active')
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) =>
+      setAppActive(state === 'active')
+    )
+    return () => subscription.remove()
+  }, [])
   const setRef = useCallback(
     (ref: TerminalWebViewHandle | null) => {
       onRef(handle, ref)
@@ -147,6 +162,7 @@ export function TerminalPaneView({
             terminalTheme={terminalTheme}
             textScale={textScale}
             shownAtMount={visible}
+            interactionActive={visible && appActive && routeFocused}
             onWebReady={() => onWebReady(handle)}
             onSelectionMode={(a) => onSelectionMode(handle, a)}
             onSelectionCopy={(t) => onSelectionCopy(handle, t)}

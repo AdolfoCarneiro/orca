@@ -119,8 +119,15 @@ export function MobileWebShellScreen({
   })
   const readySessionId = state.kind === 'ready' ? state.sessionId : null
   const keyRail = useShellKeyRail({ sessionId: readySessionId, overlay, routeGrants })
-  const { snapshot, unreadable, readStorage, refreshStorage, writeStorage, readWorkspaceKey } =
-    usePageHostSnapshot(hostId, route.pathname, ownsHostArea)
+  const {
+    snapshot,
+    unreadable,
+    retry: retryHostSnapshot,
+    readStorage,
+    refreshStorage,
+    writeStorage,
+    readWorkspaceKey
+  } = usePageHostSnapshot(hostId, route.pathname, ownsHostArea)
   // Create the media registry before the bridge; staged files belong to this page session.
   const serveDeviceVerb = useNativeDeviceVerbs(readySessionId)
   const servePdfView = useNativePdfViewer(hostId, readySessionId)
@@ -238,11 +245,11 @@ export function MobileWebShellScreen({
   })
   useReportedShellOverlayLoad(onOverlayLoad, state, pageFrame, downloadProgress)
 
-  // A rejected profile read creates no host; fail the document instead of leaving ready forever. Recovery refetches once, then exposes Try again.
+  // Profile failures preserve verified bundle bytes and retry the device store.
   useEffect(() => {
     if (unreadable) {
       console.warn('[web-shell] this host could not be read from the app store')
-      reportShellFailure('document-load-failed')
+      reportShellFailure('host-profile-unreadable')
     }
   }, [reportShellFailure, unreadable])
   useEffect(() => {
@@ -259,7 +266,12 @@ export function MobileWebShellScreen({
       <ShellStateScreen
         hostId={hostId}
         state={state}
-        onRetry={retry}
+        onRetry={() => {
+          if (unreadable) {
+            retryHostSnapshot()
+          }
+          retry()
+        }}
         downloadProgress={downloadProgress}
         host={snapshot?.host ?? null}
       />

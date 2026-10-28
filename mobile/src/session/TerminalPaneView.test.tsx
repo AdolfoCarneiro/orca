@@ -17,6 +17,7 @@ const hosts = vi.hoisted(() => {
   }
 })
 vi.mock('react-native', () => ({
+  AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
   View: hosts.View,
   Text: hosts.Text,
   Pressable: hosts.Pressable,
@@ -35,6 +36,10 @@ vi.mock('./MobileSessionFileReader', () => ({ FileReader: () => null }))
 vi.mock('./MobileSessionMarkdownReader', () => ({ MarkdownReader: () => null }))
 vi.mock('./mobile-session-styles', () => ({ styles: {} }))
 vi.mock('../transport/use-host-profile', () => ({ useHostProfile: () => null }))
+vi.mock('expo-router', async () => {
+  const { useEffect } = await import('react')
+  return { useFocusEffect: (effect: () => () => void) => useEffect(effect, [effect]) }
+})
 import { TerminalPaneView } from './TerminalPaneView'
 import { MobileSessionActiveContent } from './MobileSessionActiveContent'
 import { terminalPaneViewport } from './mobile-terminal-pane-layout'

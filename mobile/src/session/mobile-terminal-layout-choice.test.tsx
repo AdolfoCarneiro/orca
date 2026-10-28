@@ -4,6 +4,7 @@ import { expect, it, vi } from 'vitest'
 import { mountFixture } from '../test-support/rpc-recording/recorder-fixture-shape'
 
 vi.mock('react-native', () => ({
+  AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
   View: 'View',
   Text: 'Text',
   Pressable: 'Pressable',
@@ -40,6 +41,10 @@ vi.mock('./MobileSessionHeaderIconButton', () => ({
 vi.mock('./QuickCommandsTabButton', () => ({ QuickCommandsTabButton: () => null }))
 vi.mock('./mobile-session-styles', () => ({ styles: {} }))
 vi.mock('../transport/use-host-profile', () => ({ useHostProfile: () => null }))
+vi.mock('expo-router', async () => {
+  const { useEffect } = await import('react')
+  return { useFocusEffect: (effect: () => () => void) => useEffect(effect, [effect]) }
+})
 vi.mock('../platform/keyboard-persisting-taps', () => ({ useKeyboardPersistingTaps: () => null }))
 vi.mock('../navigation/workspace-execution-host', () => ({ useWorkspaceExecutionHost: () => ({}) }))
 vi.mock('../browser/MobileBrowserPane', () => ({ MobileBrowserPane: () => null }))
