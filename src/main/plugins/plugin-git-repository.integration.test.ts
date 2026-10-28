@@ -5,7 +5,11 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, expect, it, vi } from 'vitest'
 import { serveRepositoriesOverTestSsh } from './__mocks__/plugin-git-ssh-remote-fixture'
-import { checkoutPluginGitSource, runPluginGit } from './plugin-git-repository'
+import {
+  checkoutPluginGitSource,
+  pluginGitAllowedProtocols,
+  runPluginGit
+} from './plugin-git-repository'
 
 const PLUGIN_URL = 'ssh://git@plugins.example.invalid/sample.git'
 // Why not on Windows: the planted hooks are POSIX shell scripts; the no-checkout path is shared.
@@ -129,4 +133,10 @@ it('rejects SHA-256 repositories', async () => {
   }
   await expect(f.checkout('v1')).rejects.toThrow('SHA-256 plugin repositories are not supported')
   await expect(f.checkout('a'.repeat(64))).rejects.toThrow('SHA-256')
+})
+
+it('only narrows an inherited Git protocol allowlist', () => {
+  expect(pluginGitAllowedProtocols(undefined)).toBe('https:ssh')
+  expect(pluginGitAllowedProtocols('https:file:ext')).toBe('https')
+  expect(pluginGitAllowedProtocols('')).toBe('')
 })

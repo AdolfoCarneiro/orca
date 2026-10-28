@@ -26,6 +26,8 @@ export type PluginWorkerControllerOptions = {
   contentVerifier: PluginContentVerifier
   capabilities: (pluginKey: string) => readonly PluginCapabilityKind[] | null
   isCurrentApproved: (spec: PluginWorkerSpawnSpec) => boolean
+  /** Gates crash restarts: a refresh's temporary pause is not revocation. */
+  isApprovalKept?: (spec: PluginWorkerSpawnSpec) => boolean
   invokeCommand: (pluginKey: string, commandId: string, args: unknown) => Promise<unknown>
   executeHostCall: (
     pluginKey: string,
@@ -83,7 +85,11 @@ export class PluginWorkerController {
       // Why per spawn and uncached: an integrity check (not a sandbox) that bytes didn't change
       // between a crash and its restart; an already running worker is reused without hashing.
       const handle = await this.manager.ensureActive(spec, {
-        assertApproved: () => this.assertCurrentApproved(spec),
+        assertApproved: () => {
+          if (!(this.options.isApprovalKept ?? this.options.isCurrentApproved)(spec)) {
+            throw new Error(`plugin ${spec.pluginKey} changed or is no longer approved`)
+          }
+        },
         verifyBeforeSpawn: () =>
           this.options.contentVerifier.verifyNow({
             pluginKey: plugin.pluginKey,

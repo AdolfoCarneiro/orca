@@ -65,6 +65,7 @@ function controller(options: {
   factory: PluginWorkerFactory
   verify: () => Promise<void>
   isApproved: () => boolean
+  isApprovalKept?: () => boolean
   logs?: PluginLogBuffer
 }): PluginWorkerController {
   const contentVerifier = new PluginContentVerifier()
@@ -77,6 +78,7 @@ function controller(options: {
     contentVerifier,
     capabilities: () => (options.isApproved() ? [] : null),
     isCurrentApproved: () => options.isApproved(),
+    isApprovalKept: options.isApprovalKept,
     invokeCommand: vi.fn(async () => null),
     executeHostCall: vi.fn(async () => ({ ok: true as const, value: null })),
     log: (key) => options.logs?.capture(key) ?? vi.fn(),
@@ -123,6 +125,35 @@ describe('PluginWorkerController activation authority', () => {
     expect(capture).toHaveBeenCalledTimes(capturesBeforeStop)
     expect(logs.get(subjectPlugin.pluginKey)).toEqual([])
     await subject.dispose()
+  })
+
+  it('keeps restarting a crashed worker through a refresh pause', async () => {
+    const subjectPlugin = await plugin()
+    vi.useFakeTimers()
+    const exits: ((code: number | null) => void)[] = []
+    const factory = vi.fn<PluginWorkerFactory>(async () => ({
+      ...worker(['run']),
+      onExit: (callback) => exits.push(callback)
+    }))
+    let paused = false
+    const subject = controller({
+      factory,
+      verify: async () => undefined,
+      isApproved: () => !paused,
+      isApprovalKept: () => true
+    })
+    try {
+      await subject.ensure(subjectPlugin)
+      paused = true
+      exits[0]?.(1)
+      await vi.advanceTimersByTimeAsync(500)
+
+      expect(factory).toHaveBeenCalledTimes(2)
+      expect(subject.state(subjectPlugin.pluginKey).state).not.toBe('restarting')
+    } finally {
+      vi.useRealTimers()
+      await subject.dispose()
+    }
   })
 
   it('does not start code after approval is revoked during integrity verification', async () => {

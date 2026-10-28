@@ -67,9 +67,9 @@ export class PluginService {
       Boolean(this.options.getPluginKillListEntry?.(pluginKey))
     )
     this.audit = new PluginAuditLog(getPluginsDataDir(options.userDataPath))
-    const resolveApproved = (pluginKey: string) => {
+    const resolveApproved = (pluginKey: string, allowRefreshPause = false) => {
       const plugin = this.findValidPlugin(pluginKey)
-      return plugin && this.canStartPluginWork(plugin) ? plugin : null
+      return plugin && this.canStartPluginWork(plugin, allowRefreshPause) ? plugin : null
     }
     this.panels = new PluginPanelController({
       resolveApprovedPlugin: resolveApproved,
@@ -87,6 +87,7 @@ export class PluginService {
       contentVerifier: this.contentVerifier,
       capabilities: (pluginKey) => this.getGrantedCapabilities(pluginKey),
       isCurrentApproved: (spec) => isApprovedWorkerSpec(spec, resolveApproved(spec.pluginKey)),
+      isApprovalKept: (spec) => isApprovedWorkerSpec(spec, resolveApproved(spec.pluginKey, true)),
       invokeCommand: (pluginKey, commandId, args) => this.invokeCommand(pluginKey, commandId, args),
       executeHostCall: (pluginKey, method, params) =>
         this.executeHostCall(pluginKey, method, params, { viaPanel: false }),
@@ -204,13 +205,13 @@ export class PluginService {
     })
   }
 
-  private canStartPluginWork(plugin: ValidDiscoveredPlugin): boolean {
-    return !this.installed.isRemoving(plugin) && this.isRuntimeApproved(plugin)
+  private canStartPluginWork(plugin: ValidDiscoveredPlugin, allowRefreshPause = false): boolean {
+    return !this.installed.isRemoving(plugin) && this.isRuntimeApproved(plugin, allowRefreshPause)
   }
 
-  private isRuntimeApproved(plugin: ValidDiscoveredPlugin): boolean {
+  private isRuntimeApproved(plugin: ValidDiscoveredPlugin, allowRefreshPause = false): boolean {
     return (
-      this.contentPacksReady &&
+      (allowRefreshPause || this.contentPacksReady) &&
       this.activationState(plugin) === 'approved' &&
       !this.contentPacks.error(plugin.pluginKey) &&
       !this.options.getPluginKillListEntry?.(plugin.pluginKey)
@@ -327,8 +328,8 @@ export class PluginService {
     this.disposed = true
     this.housekeeping.dispose()
     this.panels.dispose()
-    await this.refreshChain.catch(() => undefined)
-    await this.workerController.dispose()
+    // Why stop workers first: a refresh may be waiting on a worker slot only shutdown releases.
+    await Promise.all([this.workerController.dispose(), this.refreshChain.catch(() => undefined)])
     await this.audit.flush()
   }
 }
