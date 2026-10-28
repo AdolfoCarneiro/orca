@@ -1,6 +1,5 @@
-import type { TerminalPaneManagerOptionsContext } from './terminal-pane-mount-context'
+import { createPaneManagerOptionsTestContext } from './terminal-pane-manager-options-test-context'
 import { mockPanePtyArgs } from './pty-connection-test-connect-mock-pane'
-import type { PanePtyBinding } from './pty-connection/pane-pty-binding'
 import type * as React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushAsyncTicks } from './pty-connection-test-async'
@@ -255,7 +254,8 @@ describe('connectPanePty queued startup consume', () => {
       transportFactoryQueue.push(transport)
       const deps = buildPaneConnectionDeps(() => mockStoreState, { worktreeId })
       const pane = createPane(1)
-      const binding = connectPanePty(...mockPanePtyArgs(pane, createManager(1), deps))
+      const args = mockPanePtyArgs(pane, createManager(1), deps)
+      const binding = connectPanePty(...args)
       const captured = binding.getOwnerContext()
       expect(captured.route).toEqual({ runtimeEnvironmentId: remote ? 'server' : null })
       expect(captured.executionHostId).toBe(remote ? 'runtime:server' : 'local')
@@ -274,22 +274,8 @@ describe('connectPanePty queued startup consume', () => {
         activeRuntimeEnvironmentId: remote ? null : 'other'
       }
       mockStoreState.runtimeEnvironments = remote ? [] : [{ id: 'other' }]
-      const context = {
-        deps: {
-          tabId: 'tab-1',
-          worktreeId,
-          isVisibleRef: { current: true },
-          panePtyBindingsRef: { current: new Map<number, PanePtyBinding>([[1, binding]]) },
-          settingsRef: { current: null },
-          effectiveMacOptionAsAltRef: { current: 'false' }
-        },
-        ptyDeps: {},
-        startupCwd: deps.cwd
-      }
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: constructing options and reading terminalOptions access only the supplied fields.
-      const options = createTerminalPaneManagerOptions(
-        context as unknown as TerminalPaneManagerOptionsContext
-      )
+      const context = createPaneManagerOptionsTestContext(args[2], binding, deps.cwd)
+      const options = createTerminalPaneManagerOptions(context)
       const refreshed =
         typeof options.terminalOptions === 'function'
           ? options.terminalOptions(1)
