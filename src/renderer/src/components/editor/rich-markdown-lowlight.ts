@@ -1,3 +1,4 @@
+import { getExtensionField } from '@tiptap/core'
 import { getChangedRanges } from '@tiptap/core'
 import { CodeBlock } from '@tiptap/extension-code-block'
 import CodeBlockLowlight, {
@@ -207,8 +208,11 @@ export const RichMarkdownCodeBlockLowlight = CodeBlock.extend<CodeBlockLowlightO
     return { ...CodeBlockLowlight.options }
   },
   addProseMirrorPlugins() {
+    const basePlugins = getExtensionField<
+      NonNullable<typeof CodeBlock.config.addProseMirrorPlugins>
+    >(CodeBlock, 'addProseMirrorPlugins', this)
     return [
-      ...(this.parent?.() ?? []),
+      ...(basePlugins?.() ?? []),
       createRichMarkdownLowlightPlugin({
         name: this.name,
         lowlight: this.options.lowlight as Lowlight,
