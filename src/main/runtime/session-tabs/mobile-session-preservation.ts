@@ -203,11 +203,13 @@ export abstract class OrcaRuntimeWithMergePreservedHeadlessMobileSessionTabs ext
       tabs.find((tab) => tab.isActive) ??
       tabs[0] ??
       null
-    const publicationBase = this.isHeadlessBuiltMobileSessionPublicationBase(
-      existing.publicationEpoch
-    )
-      ? existing
-      : { ...existing, publicationEpoch: `headless-hydrated:${Date.now().toString(36)}` }
+    // Retained offscreen pages need headless ownership; terminal-only rebases would loosen terminal liveness checks.
+    const rebaseToHeadless =
+      !this.isHeadlessBuiltMobileSessionPublicationBase(existing.publicationEpoch) &&
+      tabs.some((tab) => tab.type === 'browser' && tab.placement?.kind !== 'client')
+    const publicationBase = rebaseToHeadless
+      ? { ...existing, publicationEpoch: `headless-hydrated:${Date.now().toString(36)}` }
+      : existing
     return {
       ...existing,
       publicationEpoch: this.getMergedMobileSessionPublicationEpoch(publicationBase, tabs),
