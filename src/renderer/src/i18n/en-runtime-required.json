@@ -33,6 +33,8 @@
         "notConfirmedOtherCount_other": "Couldn’t confirm {{count}} other chats were resumed",
         "notContinuedCount_one": "{{count}} chat couldn’t be resumed",
         "notContinuedCount_other": "{{count}} chats couldn’t be resumed",
+        "resumeChats_one": "Resume {{count}} chat",
+        "resumeChats_other": "Resume {{count}} chats",
         "serverResumeHereCount_one": "Resume {{count}} chat started here",
         "serverResumeHereCount_other": "Resume {{count}} chats started here"
       },
@@ -345,6 +347,12 @@
           },
           "source": {
             "control": {
+              "discard": {
+                "dialog": {
+                  "fileCount_one": "{{count}} file",
+                  "fileCount_other": "{{count}} files"
+                }
+              },
               "dropdown": {
                 "items": {
                   "fastForwardCount_one": "Fast-forward {{count}} commit",
@@ -364,6 +372,10 @@
                 }
               }
             }
+          },
+          "useFileDeletion": {
+            "deleteItems_other": "Delete {{count}} items?",
+            "permanentlyDeleteItems_other": "Permanently delete {{count}} items?"
           }
         }
       },
@@ -579,6 +591,9 @@
               }
             }
           }
+        },
+        "sidebarHostOptions": {
+          "visibleHosts_other": "{{count}} hosts"
         },
         "workspaceBatchActionLabels": {
           "deleteCount_one": "Delete {{count}} Workspace",
@@ -1134,12 +1149,51 @@
   },
   "settings": {
     "agents": {
+      "approveForMe": "approve for me",
       "permissionOverrideMore_one": "and {{count}} more",
       "permissionOverrideMore_other": "and {{count}} more",
       "permissionOverridesFollow_one": "{{count}} agent now follows {{mode}}",
       "permissionOverridesFollow_other": "{{count}} agents now follow {{mode}}",
       "permissionOverridesKept_one": "{{count}} agent still uses their own permission setting:",
       "permissionOverridesKept_other": "{{count}} agents still use their own permission setting:"
+    },
+    "mcp": {
+      "serverCount_one": "{{count}} server",
+      "serverCount_other": "{{count}} servers"
+    }
+  },
+  "sourceControl": {
+    "discard": {
+      "deleteUntrackedFilesDescription_other": "This will permanently delete these {{count}} untracked files. This cannot be undone.",
+      "deleteUntrackedTitle_one": "Delete {{count}} untracked file?",
+      "deleteUntrackedTitle_other": "Delete {{count}} untracked files?",
+      "unstagedFilesIncludingUntrackedDescription_other": "This will revert unstaged changes and permanently delete any untracked files among these {{count}} files. This cannot be undone."
+    }
+  },
+  "stats": {
+    "usageBreakdown": {
+      "events_one": "{{count}} event",
+      "events_other": "{{count}} events",
+      "sessions_one": "{{count}} session",
+      "sessions_other": "{{count}} sessions",
+      "turns_one": "{{count}} turn",
+      "turns_other": "{{count}} turns"
+    }
+  },
+  "taskProviders": {
+    "linear": {
+      "truncated": {
+        "issues_one": "Showing the first {{count}} issue. Search or open Linear for the full set.",
+        "issues_other": "Showing the first {{count}} issues. Search or open Linear for the full set.",
+        "projectIssues_one": "Showing the first {{count}} project issue. Search or open Linear for the full set.",
+        "projectIssues_other": "Showing the first {{count}} project issues. Search or open Linear for the full set.",
+        "projects_one": "Showing the first {{count}} project. Search or open Linear for the full set.",
+        "projects_other": "Showing the first {{count}} projects. Search or open Linear for the full set.",
+        "viewIssues_one": "Showing the first {{count}} view issue. Search or open Linear for the full set.",
+        "viewIssues_other": "Showing the first {{count}} view issues. Search or open Linear for the full set.",
+        "views_one": "Showing the first {{count}} view. Search or open Linear for the full set.",
+        "views_other": "Showing the first {{count}} views. Search or open Linear for the full set."
+      }
     }
   },
   "terminal": {
@@ -1150,6 +1204,14 @@
       "reopened_other": "Reopened {{count}} terminals",
       "resumed_one": "{{count}} agent session resumed.",
       "resumed_other": "{{count}} agent sessions resumed."
+    },
+    "severedDaemonBanner": {
+      "count_one": "{{count}} running terminal",
+      "count_other": "{{count}} running terminals"
     }
+  },
+  "workspaceOptions": {
+    "activeFilterCount_one": "{{count}} filter",
+    "activeFilterCount_other": "{{count}} filters"
   }
 }
