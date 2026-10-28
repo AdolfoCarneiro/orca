@@ -94,3 +94,57 @@ it('skips custom searches when their required marker is absent', () => {
   marked.lexer('Prose\n<DETAILS>')
   expect(search).toHaveReturnedWith(5)
 })
+
+it.each(['before', 'after'])(
+  'reuses a marker search across paragraphs %s its only token',
+  (placement) => {
+    const marked = createTiptapMarkedFacade()
+    marked.use({
+      extensions: [
+        {
+          name: 'marker',
+          level: 'block',
+          start: createMarkdownTokenizerStart('MARKER'),
+          tokenizer: (source) =>
+            source.startsWith('MARKER')
+              ? { type: 'marker', raw: 'MARKER', text: 'found' }
+              : undefined
+        }
+      ]
+    })
+    const prose = 'Prose\n\n'.repeat(1000)
+    const source = placement === 'before' ? `${prose}MARKER` : `MARKER\n\n${prose}`
+    const indexOf = vi.spyOn(String.prototype, 'indexOf')
+    try {
+      const tokens = marked.lexer(source)
+      expect(tokens.filter((token) => token.type === 'paragraph')).toHaveLength(1000)
+      expect(tokens.filter((token) => token.type === 'marker')).toHaveLength(1)
+      expect(indexOf.mock.calls.filter(([value]) => value === 'MARKER')).toHaveLength(1)
+    } finally {
+      indexOf.mockRestore()
+    }
+  }
+)
+
+it('recognizes a suffix-start directive skipped by an earlier line-start search', () => {
+  const marked = createTiptapMarkedFacade()
+  marked.use({
+    extensions: [
+      {
+        name: 'directive',
+        level: 'block',
+        start: createMarkdownTokenizerStart(':::x', true),
+        tokenizer: (source) =>
+          source.startsWith(':::x') ? { type: 'directive', raw: ':::x', text: 'found' } : undefined
+      }
+    ]
+  })
+  expect(marked.lexer('Prose\n\nx:::x\n\n:::x').map(({ type, raw }) => ({ type, raw }))).toEqual([
+    { type: 'paragraph', raw: 'Prose' },
+    { type: 'space', raw: '\n\n' },
+    { type: 'paragraph', raw: 'x' },
+    { type: 'directive', raw: ':::x' },
+    { type: 'space', raw: '\n\n' },
+    { type: 'directive', raw: ':::x' }
+  ])
+})
