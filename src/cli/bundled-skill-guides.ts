@@ -2483,10 +2483,6 @@ const ORCHESTRATION_LOW_LEVEL_TOPOLOGY_REFERENCE_MARKDOWN = [
   "ORCA orchestration dispatch --task <task_id> --to <handle> --inject --json",
   "```",
   "",
-  "If a `terminal send` submit is unconfirmed, rerun the same send with its",
-  "receipt's `--retry-request <id>` and `--wait-submit <seconds>`; that never sends",
-  "twice.",
-  "",
 ].join('\n')
 
 // oxfmt-ignore
