@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultPersistedState } from '../../shared/constants'
 import type { PersistedState } from '../../shared/persisted-state-types'
+import { WSL_HOSTS_INTERNAL_GATE_ENV } from '../../shared/wsl-host-internal-gate'
 import { getHistorySessionDirName } from '../daemon/history-paths'
 import { readProfileProjectTransferState } from '../orca-profiles/profile-project-domain-state'
 import { getOrcaProfileStateDatabaseFile } from '../orca-profiles/profile-storage-paths'
@@ -17,7 +18,11 @@ import {
   writeWslDriveUncConversion,
   type WslDriveUncConversion
 } from './wsl-drive-unc-conversion-journal'
-import { runWslDriveUncConversionsAtStartup } from './wsl-drive-unc-conversion-startup'
+import {
+  lastWslDriveUncConversionOutcomes,
+  runPendingWslDriveUncConversions,
+  runWslDriveUncConversionsAtStartup
+} from './wsl-drive-unc-conversion-startup'
 import {
   wslDriveUncConversionStores,
   type WslDriveUncConversionStore
@@ -267,6 +272,21 @@ describe('runWslDriveUncConversionsAtStartup', () => {
     expect(listWslDriveUncConversions(root)).toEqual([])
   })
 
+  it('converts past a shell history meta.json a crash left torn, keeping its history', () => {
+    seedProfile(profileState())
+    seedOutside()
+    const shell = join(root, 'terminal-history-wsl', 'Ubuntu', hashWorktreeId(OLD_ID))
+    writeFileSync(join(shell, 'meta.json'), '{"worktreeId":')
+    journal()
+
+    expect(run()[0]?.outcome).toBe('converted')
+    const moved = join(root, 'terminal-history-wsl', 'Ubuntu', hashWorktreeId(NEW_ID))
+    expect(readFileSync(join(moved, '.bash_history'), 'utf8')).toBe('make test\n')
+    // The chats re-key after the history store, so a torn meta.json no longer leaves them behind.
+    expect(chatRows()[0]).toEqual({ workspace_id: NEW_ID })
+    expect(listWslDriveUncConversions(root)).toEqual([])
+  })
+
   it('keeps the profile converted and resumes a failed store at the next startup', () => {
     seedProfile(profileState())
     seedOutside()
@@ -340,5 +360,35 @@ describe('runWslDriveUncConversionsAtStartup', () => {
       existsSync(join(root, 'terminal-history', getHistorySessionDirName(`${NEW_ID}@@s1`)))
     ).toBe(true)
     expect(chatRows()[0]).toEqual({ workspace_id: NEW_ID })
+  })
+})
+
+describe('runPendingWslDriveUncConversions', () => {
+  const originalPlatform = process.platform
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    Object.defineProperty(process, 'platform', { configurable: true, value: originalPlatform })
+  })
+
+  it.each([
+    ['with the WSL hosts gate closed', 'win32', ''],
+    ['off Windows', 'linux', '1']
+  ])('leaves a journaled conversion untouched %s', (_case, platform, gate) => {
+    vi.stubEnv(WSL_HOSTS_INTERNAL_GATE_ENV, gate)
+    Object.defineProperty(process, 'platform', { configurable: true, value: platform })
+    seedProfile(profileState())
+    journal()
+
+    runPendingWslDriveUncConversions({
+      userDataPath: root,
+      profileUserDataPath: root,
+      profileId: PROFILE
+    })
+
+    expect(lastWslDriveUncConversionOutcomes()).toEqual([])
+    expect(listWslDriveUncConversions(root)).toEqual([
+      expect.objectContaining({ phase: 'prepared' })
+    ])
+    expect(readProfile().repos[0].path).toBe(UNC)
   })
 })

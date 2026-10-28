@@ -49,7 +49,10 @@ export async function startWslDriveUncConversion(
   deps: WslDriveUncConversionRunDeps,
   request: WslDriveUncConversionRequest
 ): Promise<WslDriveUncConversionResult> {
-  if (listWslDriveUncConversionsForProfile(deps.userDataPath, deps.profileId).length > 0) {
+  // A prepared conversion still owns its fence and restart; one past the profile commit only
+  // finishes outside stores, so it must not block every later conversion if one keeps failing.
+  const journals = listWslDriveUncConversionsForProfile(deps.userDataPath, deps.profileId)
+  if (journals.some((journal) => journal.phase === 'prepared')) {
     return refused([{ kind: 'conversion-pending' }])
   }
   const state = await deps.readProfileState()

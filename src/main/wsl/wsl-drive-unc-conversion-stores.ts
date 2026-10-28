@@ -3,12 +3,16 @@
  * profile names the drive paths and recorded in the journal's ledger. Each is idempotent: a step
  * that crashed before its ledger entry finds its own earlier work and changes nothing.
  */
-import { existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 import { PTY_SESSION_ID_SEPARATOR } from '../../shared/pty-session-id-format'
 import { isRecord } from '../../shared/orcad-migration/orcad-migration-manifest-fields'
 import { getHistorySessionDirName } from '../daemon/history-paths'
-import { syncDirectoryDurablySync } from '../durable-file-write'
+import {
+  durableWriteTempPath,
+  syncDirectoryDurablySync,
+  writeFileDurableSync
+} from '../durable-file-write'
 import { rewriteWslMoveOrchestrationHistoryFile } from '../persistence/moving-wsl-projects/wsl-move-orchestration-history-rewrite'
 import Database from '../sqlite/sync-database'
 import { hashWorktreeId } from '../terminal-history-id'
@@ -111,12 +115,17 @@ function renameShellHistories(root: string, ids: ReadonlyMap<string, string>): v
 
 function rewriteShellHistoryMeta(dir: string, oldId: string, newId: string): void {
   const path = join(dir, 'meta.json')
-  if (!existsSync(path)) {
+  let meta: unknown
+  try {
+    meta = JSON.parse(readFileSync(path, 'utf8'))
+  } catch {
+    // Missing, or torn by a crash: the history file is what matters, and a throw here would stall
+    // every later startup before the chats are re-keyed.
     return
   }
-  const meta: unknown = JSON.parse(readFileSync(path, 'utf8'))
   if (isRecord(meta) && meta.worktreeId === oldId) {
-    writeFileSync(path, JSON.stringify({ ...meta, worktreeId: newId }), { mode: 0o600 })
+    const payload = JSON.stringify({ ...meta, worktreeId: newId })
+    writeFileDurableSync(durableWriteTempPath(path), path, payload, 0o600)
   }
 }
 

@@ -9,7 +9,10 @@ import {
   wslMoveFenceFromCutovers,
   withWslDriveUncConversions
 } from '../persistence/moving-wsl-projects/wsl-move-fence'
-import { listWslDriveUncConversions } from './wsl-drive-unc-conversion-journal'
+import {
+  listWslDriveUncConversions,
+  writeWslDriveUncConversion
+} from './wsl-drive-unc-conversion-journal'
 import {
   startWslDriveUncConversion,
   type WslDriveUncConversionRunDeps
@@ -247,6 +250,16 @@ describe('startWslDriveUncConversion', () => {
       outcome: 'refused',
       blockers: [{ kind: 'conversion-pending' }]
     })
+  })
+
+  it('lets a new conversion start while an earlier one only has outside stores left to finish', async () => {
+    await startWslDriveUncConversion(deps(), REQUEST)
+    const [stuck] = listWslDriveUncConversions(root)
+    // Past the profile commit, a store that keeps failing must not block every later conversion.
+    writeWslDriveUncConversion(root, { ...stuck, phase: 'profile-rewritten' })
+    expect(
+      await startWslDriveUncConversion(deps({ newMigrationId: () => 'conv-2' }), REQUEST)
+    ).toEqual({ outcome: 'restarting', migrationId: 'conv-2' })
   })
 
   it("lets another profile convert while this profile's conversion waits for its restart", async () => {
