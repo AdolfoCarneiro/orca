@@ -38,6 +38,7 @@ export type GithubPullRequestApi = {
   prForBranch: (args: {
     repoPath: string
     repoId?: string
+    repoOwnerExecutionHostId?: string
     branch: string
     linkedPRNumber?: number | null
     fallbackPRNumber?: number | null
@@ -83,6 +84,7 @@ export type GithubPullRequestApi = {
   prCheckDetails: (args: {
     repoPath: string
     repoId?: string
+    repoOwnerExecutionHostId?: string
     sourceContext?: TaskSourceContext | null
     checkRunId?: number
     workflowRunId?: number
@@ -101,6 +103,7 @@ export type GithubPullRequestApi = {
   prComments: (args: {
     repoPath: string
     repoId?: string
+    repoOwnerExecutionHostId?: string
     sourceContext?: TaskSourceContext | null
     prNumber: number
     prRepo?: GitHubOwnerRepo | null
