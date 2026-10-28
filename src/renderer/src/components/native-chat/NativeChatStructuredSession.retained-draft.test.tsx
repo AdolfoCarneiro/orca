@@ -35,6 +35,8 @@ vi.mock('@/runtime/use-managed-runtime-install', () => ({
 
 import { NativeChatStructuredSession } from './NativeChatStructuredSession'
 import {
+  clearNativeChatComposerDraftsForTests,
+  hydrateNativeChatComposerDrafts,
   readNativeChatComposerDraft,
   structuredAgentSessionDraftScopeKey,
   updateNativeChatComposerDraft
@@ -43,10 +45,6 @@ import {
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { promptEditor } from './native-chat-prompt-editor.test-support'
 import { promptTextContent } from './native-chat-prompt-document-text'
-import {
-  clearNativeChatComposerDraftsForTests,
-  hydrateNativeChatComposerDrafts
-} from './native-chat-composer-draft-store'
 import {
   createMemoryNativeChatComposerDraftStorage,
   setNativeChatComposerDraftStorageForTests

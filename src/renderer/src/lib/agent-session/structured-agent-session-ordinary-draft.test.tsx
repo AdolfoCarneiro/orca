@@ -7,10 +7,10 @@ import { adoptAgentSessionLaunchVerdict } from '../agent-session-launch-plan'
 import { beginStructuredAgentSessionProvisionalLaunch } from './structured-agent-session-provisional-tab'
 import {
   getStructuredLaunchStateBySessionId,
+  hasStructuredAgentSessionLaunchCancellationTombstone,
   resetStructuredAgentLaunchRegistryForTests
 } from './launch/structured-agent-session-launch-registry'
 import { hasStagedStructuredLaunchPrompt } from '../structured-agent-session-launch-prompt'
-import { hasStructuredAgentSessionLaunchCancellationTombstone } from './launch/structured-agent-session-launch-registry'
 import { wasStructuredAgentLaunchClosedByLocalCancel } from '../structured-agent-session-local-launch-cancel'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import {
