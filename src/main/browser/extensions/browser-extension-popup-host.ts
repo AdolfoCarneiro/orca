@@ -135,6 +135,7 @@ export function openBrowserExtensionPopup(options: BrowserExtensionPopupOptions)
   }
   current = popup
   const contents = window.webContents
+  contents.on('will-prevent-unload', (event) => event.preventDefault())
 
   // Why measure in the page: preferred-size-changed only reports while the window paints, and its
   // height never drops below the viewport, so a hidden or late-rendering popup kept its first size.
