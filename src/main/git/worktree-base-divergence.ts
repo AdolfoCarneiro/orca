@@ -35,6 +35,7 @@ function probeOptions(
   admissionTier?: GitAdmissionTier
   signal: AbortSignal
   timeout: number
+  captureWslLoginShellOutput: true
 } {
   // Exclude test-only keys; signals cover pre-spawn waits and command timeouts bound hung children.
   return {
@@ -42,7 +43,8 @@ function probeOptions(
     ...(options.wslDistro ? { wslDistro: options.wslDistro } : {}),
     ...(options.admissionTier ? { admissionTier: options.admissionTier } : {}),
     signal,
-    timeout: RETARGET_DIVERGENCE_BUDGET_MS
+    timeout: RETARGET_DIVERGENCE_BUDGET_MS,
+    captureWslLoginShellOutput: true
   }
 }
 
