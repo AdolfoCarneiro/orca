@@ -132,6 +132,7 @@ describe('session tab status on the phone clock', () => {
         chat: {
           agent: 'claude',
           sessionId: 'session-1',
+          sessionLive: true,
           transcriptPath: null,
           agentConfirmed: true
         },
