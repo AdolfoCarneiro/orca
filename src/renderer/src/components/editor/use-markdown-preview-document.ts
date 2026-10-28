@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { MarkdownPreviewDocumentClient } from './markdown-preview-document-client'
 import type { MarkdownPreviewDocument } from './markdown-preview-document-types'
 
@@ -19,26 +19,23 @@ export function useMarkdownPreviewDocument(
   enabled: boolean,
   beforeSwap?: () => void
 ) {
-  const [state, setState] = useState<DocumentState>({ content, status: 'loading' })
+  const [state, setState] = useState<DocumentState>({
+    content: enabled ? content : '',
+    status: 'loading'
+  })
   const [refreshFailure, setRefreshFailure] = useState<{ content: string; message: string } | null>(
     null
   )
   const [previousEnabled, setPreviousEnabled] = useState(enabled)
   if (previousEnabled !== enabled) {
     setPreviousEnabled(enabled)
-    setState({ content, status: 'loading' })
+    setState({ content: enabled ? content : '', status: 'loading' })
     setRefreshFailure(null)
   }
   const displayed = useRef<ReadyDocumentState | null>(null)
   const revision = useRef(0)
 
-  useEffect(
-    () => () => {
-      displayed.current?.client.close()
-      displayed.current = null
-    },
-    []
-  )
+  useCloseDisplayedMarkdownPreviewDocument(displayed)
 
   useEffect(() => {
     let active = true
@@ -129,4 +126,14 @@ export function useMarkdownPreviewDocument(
     refreshing: enabled && visibleState.status === 'ready' && visibleState.content !== content,
     refreshError: refreshFailure?.content === content ? refreshFailure.message : null
   }
+}
+
+function useCloseDisplayedMarkdownPreviewDocument(displayed: RefObject<ReadyDocumentState | null>) {
+  useEffect(
+    () => () => {
+      displayed.current?.client.close()
+      displayed.current = null
+    },
+    []
+  )
 }
