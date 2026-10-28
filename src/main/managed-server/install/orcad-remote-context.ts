@@ -4,6 +4,7 @@ import type { OrcadActivationRecord } from '../activation/orcad-activation-recor
 import { readOrcadActivationRecord } from '../activation/orcad-activation-record-store'
 import { resolveOrcadRuntimeTarget } from '../lifecycle/orcad-runtime-target'
 import { LINUX_LIBC_FIRST_PROBE } from '../../node-runtime/linux-libc-probe'
+import { execCommand } from '../../ssh/remote-exec/remote-exec-command'
 import { prepareWindowsOrcadHost } from '../host-state/orcad-windows-host-preparation'
 import {
   isWslOrcadHostTarget,
@@ -88,7 +89,8 @@ export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget =
               firstLibcProbeOutput = undefined
               return output
             }
-            return execOrcadRemote(remote, command)
+            // The fallbacks run exactly as the default exec would.
+            return execCommand(connection, command, { signal })
           }
         })
   })

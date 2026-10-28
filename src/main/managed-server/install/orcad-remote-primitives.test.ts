@@ -322,7 +322,10 @@ describe('orcad remote context', () => {
     })
 
     expect(context.serverTarget).toBe('linux-x64-glibc')
-    expect(commands.some((command) => command.includes('getconf'))).toBe(true)
+    // The same plain exec the default probe uses, not the fenced orcad runner.
+    expect(mockExec).toHaveBeenCalledWith(conn, expect.stringContaining('getconf'), {
+      signal: undefined
+    })
     expect(commands.some((command) => command.includes('ldd --version'))).toBe(false)
   })
 })
