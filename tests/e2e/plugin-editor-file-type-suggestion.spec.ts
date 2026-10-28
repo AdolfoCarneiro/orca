@@ -91,7 +91,8 @@ async function createCatalogFixture(root: string) {
           minimumOrca: PLUGIN_MANIFEST_V2_SINCE,
           name: plugin.name,
           contributes: pluginContributionSummary(parsed.manifest),
-          fileTypes: plugin.editor.fileTypes.filter((fileType) => !fileType.includes('.'))
+          fileTypes: plugin.editor.fileTypes.filter((fileType) => !fileType.includes('.')),
+          editorFileTypes: plugin.editor.fileTypes.filter((fileType) => !fileType.includes('.'))
         }
       ]
     })
