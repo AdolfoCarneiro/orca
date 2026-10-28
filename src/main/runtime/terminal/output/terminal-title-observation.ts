@@ -1,15 +1,10 @@
 import type { AgentStatus } from '../../../../shared/agent-detection'
-import type {
-  RuntimePtyWorktreeRecord,
-  RuntimeLeafRecord
-} from '../../runtime-terminal-state-records'
+import type { RuntimePtyWorktreeRecord } from '../../runtime-terminal-state-records'
 import { OrcaRuntimeWithGetUnpersistedTrackedTitleForPty } from './terminal-title-tracker'
 import type { TerminalTitleFactMeta } from '../../../../shared/terminal-output-side-effects'
 import { detectAgentStatusFromTitle } from '../../../../shared/agent-detection'
 import { terminalTitleBlocksExplicitAgentStatus } from '../../runtime-worktree-status-projection'
 import type { ClaudeTerminalEvidence } from '../../../../shared/claude-terminal-interrupt'
-import type { OrchestrationMailboxLeaf } from '../../orchestration/mailbox-owner'
-import type { PtyLaneMailboxTarget } from '../query/pty-terminal-summary'
 import { agentStatusTakesTypedInput } from '../../orchestration/mailbox-owner'
 
 export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWithGetUnpersistedTrackedTitleForPty {
@@ -38,15 +33,7 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
     titleObservedAt: number,
     foregroundRefresh: Promise<boolean>
   ): void
-  protected abstract resolveTuiIdleWaiters(leaf: RuntimeLeafRecord): void
-  protected abstract checkDeliverySettledAndArmRecheck(leaf: {
-    tabId: string
-    leafId: string
-  }): boolean
-  protected abstract deliverPendingMessagesForLeaf(leaf: OrchestrationMailboxLeaf): void
-  protected abstract getPtyLaneMailboxTargetForPty(
-    pty: RuntimePtyWorktreeRecord | undefined
-  ): PtyLaneMailboxTarget | null
+  protected abstract deliverPendingMessagesForPty(ptyId: string): void
   protected abstract clearAgentPromptCorrelationForPty(ptyId: string): void
   protected abstract collectAgentStatusPaneKeysForPty(ptyId: string): Set<string>
   protected abstract markPaneLiveTitlesDirty(): void
@@ -128,7 +115,8 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
     if (pty) {
       const prevStatus = pty.lastAgentStatus
       const prevTitle = pty.lastOscTitle
-      // Same delivery edge as the leaf branch below: live input-taking status, or an idle title that changed.
+      // Mail goes to a terminal taking input, at rest or mid-turn, so offer it when the terminal starts
+      // taking input (first live status after seed/respawn included); idle titles re-offer upgrades (#12536).
       ptyInputEdge =
         agentStatusTakesTypedInput(agentStatus) &&
         (prevStatus !== agentStatus ||
@@ -196,40 +184,15 @@ export abstract class OrcaRuntimeWithApplyTrackedPtyTitle extends OrcaRuntimeWit
     }
     for (const leaf of this.getLeavesForPty(ptyId)) {
       // Retain live titles for worktree.ps recomputation, including shell titles that clear stale working state (#1437).
-      const prevStatus = leaf.lastAgentStatus
-      const prevObservedLive = leaf.lastAgentStatusObservedLive
-      const leafTitleChanged = !statusOnly && leaf.lastOscTitle !== recordedTitle
       if (!statusOnly) {
         leaf.lastOscTitle = recordedTitle
         leaf.lastOscTitleAt = identityOnlyTitle ? null : this.nextTitleObservationSequence()
       }
-      // Non-agent titles clear sticky status; new waiters fall back to live title detection/polling.
       leaf.lastAgentStatus = agentStatus
       leaf.lastAgentStatusObservedLive = true
-      // Fast agents can skip working; accept transitions to idle except permission-to-idle. Also re-offer changed idle-to-idle evidence, never unchanged repaint.
-      if (
-        agentStatus === 'idle' &&
-        prevStatus !== 'permission' &&
-        (prevStatus !== agentStatus || leafTitleChanged)
-      ) {
-        this.resolveTuiIdleWaiters(leaf)
-      }
-      // Mail goes to a pane taking input, at rest or mid-turn, so offer it when the pane starts taking
-      // input (first live status after seed/respawn included); idle titles re-offer upgrades (#12536).
-      if (
-        agentStatusTakesTypedInput(agentStatus) &&
-        (prevStatus !== agentStatus ||
-          !prevObservedLive ||
-          (agentStatus === 'idle' && leafTitleChanged)) &&
-        this.checkDeliverySettledAndArmRecheck(leaf)
-      ) {
-        this.deliverPendingMessagesForLeaf(leaf)
-      }
     }
-    // A pane no window publishes (headless serve) has no leaf above; its PTY is the mailbox target.
-    const lane = ptyInputEdge ? this.getPtyLaneMailboxTargetForPty(pty) : null
-    if (lane && this.checkDeliverySettledAndArmRecheck(lane.leaf)) {
-      this.deliverPendingMessagesForLeaf(lane.leaf)
+    if (ptyInputEdge) {
+      this.deliverPendingMessagesForPty(ptyId)
     }
     return ptyRecordChanged
   }

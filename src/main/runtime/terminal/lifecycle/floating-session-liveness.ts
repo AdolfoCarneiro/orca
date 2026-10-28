@@ -134,6 +134,7 @@ export abstract class OrcaRuntimeWithRefreshFloatingWorkspacePtyLiveness extends
     this.terminalRunFacts.delete(ptyId)
     this.disposePtyTitleTracker(ptyId)
     this.invalidatePtyIncarnationHandle(ptyId)
+    this.terminalWaiters.rejectPty(ptyId, 'terminal_handle_stale')
     this.oscTitleScanTailByPtyId.delete(ptyId)
     this.osc7ScanTailByPtyId.delete(ptyId)
     this.terminalCwdByPtyId.delete(ptyId)

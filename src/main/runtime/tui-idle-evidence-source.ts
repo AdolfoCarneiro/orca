@@ -1,7 +1,7 @@
 // Gathers each tui-idle evaluation's evidence from runtime state; tui-idle-evidence.ts ranks it.
 import type { AgentStatus } from '../../shared/agent-detection'
 import type { TuiAgent } from '../../shared/tui-agent'
-import type { RuntimeLeafRecord, RuntimePtyWorktreeRecord } from './runtime-terminal-state-records'
+import type { RuntimePtyWorktreeRecord } from './runtime-terminal-state-records'
 import {
   detectTerminalWaitBlockedReason,
   isKnownReadyPromptBody,
@@ -23,7 +23,6 @@ import type {
 /** The runtime state every tui-idle site reads its evidence from. */
 export type TuiIdleEvidenceSource = {
   quiescenceMs: number
-  getTabTitle(tabId: string): string | null
   getAdoptedPtyIdleStatus(pty: RuntimePtyWorktreeRecord): AgentStatus | null
   getPaneAgent(ptyId: string | null | undefined): TuiAgent | null
   getFirstPartyAgentStatus(ptyId: string | null | undefined): FirstPartyAgentStatus
@@ -33,8 +32,6 @@ export type TuiIdleEvidenceSource = {
   /** The painted grid on the PTY's own size, which only agents whose rules read the trusted
    *  screen, and screen vetoes, use. Absent, they have no trustworthy screen. */
   readRuledScreen?(ptyId: string | null | undefined): RuledScreen | null
-  /** When the PTY last observed a title of its own. Absent, no title has an age. */
-  getTitleObservedAtEpochMs?(ptyId: string | null | undefined): number | null
   /** The PTY's quiet clock: its last output, else when main began receiving its silent stream. */
   getOutputClockAt?(ptyId: string | null | undefined): number | null
 }
@@ -116,32 +113,6 @@ function screenInputVetoReader(
 function lazyWaitText(readWaitText: () => string): () => string {
   let waitText: string | null = null
   return () => (waitText ??= readWaitText())
-}
-
-export function leafTuiIdleEvidence(
-  source: TuiIdleEvidenceSource,
-  leaf: RuntimeLeafRecord,
-  readWaitText: () => string
-): TuiIdleEvaluationInput {
-  const waitText = lazyWaitText(readWaitText)
-  const agent = source.getPaneAgent(leaf.ptyId)
-  const readScreen = screenReader(source, agent, leaf.ptyId)
-  const record = evidenceRecord(source, leaf)
-  return {
-    record,
-    readTailBlockedReason: () => detectTerminalWaitBlockedReason(waitText()),
-    rendererTitle: leaf.paneTitle ?? source.getTabTitle(leaf.tabId),
-    readPositiveBodyEvidence: () =>
-      isKnownReadyPromptBody(waitText(), agent, readScreen, record.lastOutputAt !== null),
-    readQuietReadyBodyEvidence: () => isQuietReadyScreenBody(waitText(), agent, readScreen),
-    readAgentRuleVerdict: () => readAgentRuleVerdict(agent, record, readScreen, waitText),
-    readScreenInputVeto: screenInputVetoReader(source, agent, leaf.ptyId),
-    titleObservedAtEpochMs: source.getTitleObservedAtEpochMs?.(leaf.ptyId) ?? null,
-    agent,
-    firstPartyStatus: source.getFirstPartyAgentStatus(leaf.ptyId),
-    readHookTurn: hookTurnReader(source, agent, leaf.ptyId),
-    quiescenceMs: source.quiescenceMs
-  }
 }
 
 export function ptyTuiIdleEvidence(

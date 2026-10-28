@@ -33,7 +33,7 @@ import type { RuntimeWorktreeScanResult } from '../repo-worktree-resolution-scan
 import type { ProcessedAgentStatusChunk } from '../../../shared/agent-status-osc'
 import type { RuntimeTerminalAgentPresenceOptions } from '../runtime-terminal-agent-presence'
 import type { resolveTerminalOrchestrationCliCommand } from '../orchestration/cli-command'
-import type { OrchestrationMailboxLeaf } from '../orchestration/mailbox-owner'
+import type { OrchestrationMailboxTerminal } from '../orchestration/mailbox-owner'
 import type { OrchestrationMailboxPointerSubmitTarget } from '../orchestration/mailbox-pointer-submit'
 import type { WriteSettlement } from '../../../shared/pty-write-settlement'
 import type { StructuredPointerTarget } from '../orchestration/structured-mailbox-pointer-delivery'
@@ -43,7 +43,6 @@ import type * as PtyControllerContract from '../runtime-pty-controller-contract'
 import type { RuntimeClientEventBus } from '../runtime-client-event-bus'
 import type { RuntimeRepoSelector } from '../runtime-repo-selector'
 import type { PtyPane, PtyPaneSource } from '../terminal/surface/pty-pane-query'
-import type { PtyLaneMailboxTarget } from '../terminal/query/pty-terminal-summary'
 
 export abstract class RuntimeConstructionServices {
   abstract getOrchestrationDb(): OrchestrationDb
@@ -125,8 +124,14 @@ export abstract class RuntimeConstructionServices {
     record: TerminalHandleRecord
     leaf: RuntimeLeafRecord
   }
-  protected abstract getOrchestrationMailboxLeafForHandle(handle: string): OrchestrationMailboxLeaf
-  protected abstract getPtyLaneMailboxTarget(leafKey: string): PtyLaneMailboxTarget | null
+  protected abstract getTerminalPtyForHandle(handle: string): { pty: RuntimePtyWorktreeRecord }
+  protected abstract getRetainedHandlePty(handle: string): RuntimePtyWorktreeRecord | undefined
+  protected abstract getOrchestrationMailboxTerminal(
+    ptyId: string
+  ): OrchestrationMailboxTerminal | null
+  protected abstract getOrchestrationMailboxTerminalForHandle(
+    handle: string
+  ): OrchestrationMailboxTerminal | null
   protected abstract hasMailboxTerminalHandle(handle: string): boolean
   protected abstract startTuiIdleVisibleReadProbe(
     waiter: TerminalWaiter,
@@ -234,16 +239,12 @@ export abstract class RuntimeConstructionServices {
   abstract getTerminalProcessIncarnation(handle: string): string | null
   protected abstract controllerKnowsPtyIsLive(ptyId: string): boolean
   protected abstract isLeafPtyProvenAbsent(ptyId: string): Promise<boolean>
-  protected abstract checkDeliverySettledAndArmRecheck(leaf: {
-    tabId: string
-    leafId: string
-  }): boolean
+  protected abstract checkDeliverySettledAndArmRecheck(ptyId: string): boolean
   protected abstract isPtyAwaitingUserInput(ptyId: string): boolean
   abstract getTerminalOrchestrationCliCommand(
     handle: string
   ): ReturnType<typeof resolveTerminalOrchestrationCliCommand>
   protected abstract resolveOrchestrationPointerSubmitTarget(
-    stagedLeaf: OrchestrationMailboxLeaf,
     ptyId: string
   ): OrchestrationMailboxPointerSubmitTarget | null
   abstract deliverPendingMessagesForHandle(

@@ -54,11 +54,7 @@ async function makeRuntime(launchAgent: TuiAgent | null, foreground = 'codex') {
 /** Spy on actual delivery while running the real settlement gate. */
 function watchDelivery(runtime: OrcaRuntimeService) {
   return vi
-    .spyOn(
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the delivery entry point is protected; the spy only needs its name and signature.
-      runtime as never as { deliverPendingMessagesForLeaf: (leaf: unknown) => void },
-      'deliverPendingMessagesForLeaf'
-    )
+    .spyOn(runtime['orchestrationMailboxNotifications'], 'deliverForTerminal')
     .mockImplementation(() => {})
 }
 

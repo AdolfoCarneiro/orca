@@ -391,23 +391,21 @@ describe('orchestration mailbox routing races', () => {
 
   it('keeps an unfiltered parked delivery unrestricted when reservations merge', () => {
     const state = new OrchestrationMailboxPointerState()
-    const leaf = {} as never
 
     const unfilteredFirst = state.beginFlight('pty_unfiltered_first')
-    state.parkDelivery('pty_unfiltered_first', 'run:run_test', leaf, new Set())
-    state.parkDelivery('pty_unfiltered_first', 'run:run_test', leaf, new Set(['worker_done']))
+    state.parkDelivery('pty_unfiltered_first', 'run:run_test', new Set())
+    state.parkDelivery('pty_unfiltered_first', 'run:run_test', new Set(['worker_done']))
 
     expect(
       state.settleFlight('pty_unfiltered_first', unfilteredFirst)?.get('run:run_test')
-        ?.reservedTypes
     ).toBeUndefined()
 
     const unfilteredLast = state.beginFlight('pty_unfiltered_last')
-    state.parkDelivery('pty_unfiltered_last', 'run:run_test', leaf, new Set(['worker_done']))
-    state.parkDelivery('pty_unfiltered_last', 'run:run_test', leaf, new Set())
+    state.parkDelivery('pty_unfiltered_last', 'run:run_test', new Set(['worker_done']))
+    state.parkDelivery('pty_unfiltered_last', 'run:run_test', new Set())
 
     expect(
-      state.settleFlight('pty_unfiltered_last', unfilteredLast)?.get('run:run_test')?.reservedTypes
+      state.settleFlight('pty_unfiltered_last', unfilteredLast)?.get('run:run_test')
     ).toBeUndefined()
   })
 
