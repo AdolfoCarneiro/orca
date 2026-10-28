@@ -56,10 +56,10 @@ export async function bulkStageFiles(
   filePaths: string[],
   options: GitRuntimeOptions = {}
 ): Promise<void> {
-  invalidateGitReadCaches()
   if (filePaths.length === 0) {
     return
   }
+  invalidateGitReadCaches()
   try {
     await gitExecFileAsync(['add', '--pathspec-from-file=-', '--pathspec-file-nul'], {
       ...gitOptionsForWorktree(worktreePath, options),
@@ -108,10 +108,10 @@ export async function bulkUnstageFiles(
   filePaths: string[],
   options: GitRuntimeOptions = {}
 ): Promise<void> {
-  invalidateGitReadCaches()
   if (filePaths.length === 0) {
     return
   }
+  invalidateGitReadCaches()
   try {
     await gitExecFileAsync(['reset', '--quiet', '--pathspec-from-file=-', '--pathspec-file-nul'], {
       ...gitOptionsForWorktree(worktreePath, options),

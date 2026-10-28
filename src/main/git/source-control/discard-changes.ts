@@ -97,10 +97,10 @@ export async function bulkDiscardChanges(
   filePaths: string[],
   options: GitRuntimeOptions = {}
 ): Promise<void> {
-  invalidateGitReadCaches()
   if (filePaths.length === 0) {
     return
   }
+  invalidateGitReadCaches()
 
   try {
     const resolvedWorktree = path.resolve(worktreePath)

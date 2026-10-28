@@ -83,7 +83,15 @@ vi.mock('../../shared/node-bounded-file-reader', async (importOriginal) =>
   })
 )
 
-import { getDiff, getStatus, invalidateGitReadCaches, stageFile } from './status'
+import {
+  bulkDiscardChanges,
+  bulkStageFiles,
+  bulkUnstageFiles,
+  getDiff,
+  getStatus,
+  invalidateGitReadCaches,
+  stageFile
+} from './status'
 import { settledDiffCache } from './source-control/git-read-cache-invalidation'
 
 const REPO = '/repo'
@@ -97,6 +105,12 @@ const GITMODULES_PATH = `${REPO}/.gitmodules`
 // Old enough to satisfy the racy-write margin.
 const SETTLED_MTIME_MS = Date.now() - 60_000
 let nextInode = 100
+
+const emptyBulkMutations = [
+  { name: 'bulk stage', mutate: bulkStageFiles },
+  { name: 'bulk unstage', mutate: bulkUnstageFiles },
+  { name: 'bulk discard', mutate: bulkDiscardChanges }
+] as const
 
 function writeFile(target: string, content: string, mtimeMs = SETTLED_MTIME_MS): void {
   files.set(target, { content: Buffer.from(content), mtimeMs, ino: (nextInode += 1) })
@@ -140,6 +154,50 @@ describe('settled diff cache', () => {
     expect(blobReadCount()).toBe(spawnsAfterFirst)
     expect(second).toEqual(first)
     expect(settledDiffCache.stats().hits).toBe(1)
+  })
+
+  it.each(emptyBulkMutations)('keeps cached diffs after empty $name', async ({ mutate }) => {
+    const first = await getDiff(REPO, FILE, false)
+    const spawnsAfterFirst = blobReadCount()
+    const commandsAfterFirst = gitExecFileAsyncMock.mock.calls.length
+
+    await mutate('/another-repo', [])
+    const second = await getDiff(REPO, FILE, false)
+
+    expect(second).toEqual(first)
+    expect(blobReadCount()).toBe(spawnsAfterFirst)
+    expect(gitExecFileAsyncMock.mock.calls).toHaveLength(commandsAfterFirst)
+  })
+
+  it.each(emptyBulkMutations)('keeps pending diff joins after empty $name', async ({ mutate }) => {
+    let releaseBlob = (): void => {}
+    let onBlobRead = (): void => {}
+    const blobStarted = new Promise<void>((resolve) => {
+      onBlobRead = resolve
+    })
+    const blocked = new Promise<{ stdout: Buffer }>((resolve) => {
+      releaseBlob = () => resolve({ stdout: Buffer.from('index-content\n') })
+    })
+    gitExecFileAsyncBufferMock.mockImplementation(() => {
+      onBlobRead()
+      return blocked
+    })
+
+    const first = getDiff(REPO, FILE, false)
+    await blobStarted
+    const spawnsBeforeEmptyMutation = blobReadCount()
+    try {
+      await mutate('/another-repo', [])
+      const second = getDiff(REPO, FILE, false)
+      releaseBlob()
+      const [firstResult, secondResult] = await Promise.all([first, second])
+
+      expect(secondResult).toEqual(firstResult)
+      expect(blobReadCount()).toBe(spawnsBeforeEmptyMutation)
+    } finally {
+      releaseBlob()
+      await first
+    }
   })
 
   describe('on a Windows host reading a raw Linux WSL worktree path', () => {
