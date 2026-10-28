@@ -21228,6 +21228,7 @@
       "startFailed": "O Orca perdeu o contato com a movimentação. Abra esta caixa de diálogo novamente para ver em que ponto ela está.",
       "unavailable": "Mover projetos para um host WSL não está disponível nesta janela.",
       "alreadyRunning": "Uma movimentação para {{distro}} já está em andamento. Aguarde até que termine e tente novamente.",
+      "undoRunning": "Um projeto está voltando de {{distro}}. Tente novamente quando isso terminar.",
       "alreadyInFlightPreview": "Uma movimentação de {{distro}} ainda está terminando. Ao iniciar esta movimentação, o Orca primeiro conclui ou desfaz aquela, quando possível.",
       "alreadyInFlight": "Uma movimentação de {{distro}} ainda está terminando, então esta não foi iniciada. Mantenha o host {{distro}} conectado e tente novamente mais tarde.",
       "nothingNew": "Estes projetos já estão no host {{distro}}.",

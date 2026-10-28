@@ -21131,6 +21131,7 @@
       "startFailed": "Orca 与此次移动失去了联系。请重新打开此对话框查看其进展。",
       "unavailable": "此窗口无法将项目移到 WSL 主机。",
       "alreadyRunning": "移到 {{distro}} 的操作已在进行中。请等待其完成，然后重试。",
+      "undoRunning": "有项目正在从 {{distro}} 移回。完成后请重试。",
       "alreadyInFlightPreview": "{{distro}} 的一次移动仍在收尾。开始此次移动时，Orca 会尽可能先完成或撤销那次移动。",
       "alreadyInFlight": "{{distro}} 的一次移动仍在收尾，因此此次移动未开始。请保持 {{distro}} 主机连接，稍后重试。",
       "nothingNew": "这些项目已在 {{distro}} 主机上。",

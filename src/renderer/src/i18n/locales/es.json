@@ -21223,6 +21223,7 @@
       "startFailed": "Orca perdió el contacto con el traslado. Vuelve a abrir este diálogo para ver en qué punto está.",
       "unavailable": "Mover proyectos a un host WSL no está disponible en esta ventana.",
       "alreadyRunning": "Ya hay un traslado a {{distro}} en curso. Espera a que termine e inténtalo de nuevo.",
+      "undoRunning": "Un proyecto está volviendo desde {{distro}}. Inténtalo de nuevo cuando termine.",
       "alreadyInFlightPreview": "Un traslado de {{distro}} todavía está terminando. Al iniciar este traslado, Orca primero lo termina o lo deshace cuando puede.",
       "alreadyInFlight": "Un traslado de {{distro}} todavía está terminando, así que este no se inició. Mantén conectado el host {{distro}} e inténtalo de nuevo más tarde.",
       "nothingNew": "Estos proyectos ya están en el host {{distro}}.",

@@ -21223,6 +21223,7 @@
       "startFailed": "Orca a perdu le contact avec le déplacement. Rouvrez cette boîte de dialogue pour voir où il en est.",
       "unavailable": "Le déplacement de projets vers un hôte WSL n'est pas disponible dans cette fenêtre.",
       "alreadyRunning": "Un déplacement vers {{distro}} est déjà en cours. Attendez qu'il se termine, puis réessayez.",
+      "undoRunning": "Un projet est en train de revenir de {{distro}}. Réessayez une fois l'opération terminée.",
       "alreadyInFlightPreview": "Un déplacement de {{distro}} est encore en cours de finalisation. Lancer ce déplacement le termine ou l'annule d'abord, là où Orca le peut.",
       "alreadyInFlight": "Un déplacement de {{distro}} est encore en cours de finalisation : celui-ci n'a donc pas démarré. Gardez l'hôte {{distro}} connecté et réessayez plus tard.",
       "nothingNew": "Ces projets sont déjà sur l'hôte {{distro}}.",

@@ -21140,6 +21140,7 @@
       "startFailed": "Orca'nın taşımayla bağlantısı koptu. Durumu görmek için bu iletişim kutusunu yeniden açın.",
       "unavailable": "Projeleri bir WSL ana makinesine taşıma bu pencerede kullanılamıyor.",
       "alreadyRunning": "{{distro}} içine bir taşıma zaten sürüyor. Bitmesini bekleyin, ardından tekrar deneyin.",
+      "undoRunning": "Bir proje {{distro}} ana makinesinden geri getiriliyor. Bu bittiğinde tekrar deneyin.",
       "alreadyInFlightPreview": "{{distro}} için bir taşıma hâlâ tamamlanıyor. Bu taşımayı başlatırsanız Orca, mümkün olduğu yerde önce o taşımayı tamamlar veya geri alır.",
       "alreadyInFlight": "{{distro}} için bir taşıma hâlâ tamamlanıyor, bu yüzden bu taşıma başlamadı. {{distro}} ana makinesini bağlı tutun ve daha sonra tekrar deneyin.",
       "nothingNew": "Bu projeler zaten {{distro}} ana makinesinde.",

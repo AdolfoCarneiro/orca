@@ -21124,6 +21124,7 @@
       "startFailed": "Orca 與此次移動失去聯繫。請重新開啟此對話方塊查看目前進度。",
       "unavailable": "此視窗無法將專案移至 WSL 主機。",
       "alreadyRunning": "移至 {{distro}} 的操作已在進行中。請等待其完成，然後再試一次。",
+      "undoRunning": "有專案正在從 {{distro}} 帶回。完成後請再試一次。",
       "alreadyInFlightPreview": "{{distro}} 的一次移動仍在收尾。開始此次移動時，Orca 會盡可能先完成或復原那次移動。",
       "alreadyInFlight": "{{distro}} 的一次移動仍在收尾，因此此次移動未開始。請保持 {{distro}} 主機連線，稍後再試一次。",
       "nothingNew": "這些專案已在 {{distro}} 主機上。",
