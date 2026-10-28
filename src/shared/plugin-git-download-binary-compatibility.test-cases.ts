@@ -24,6 +24,8 @@ export function registerPluginGitDownloadBinaryCompatibilityCase(
     await writeFile(join(getRepoPath(), source, 'bin', 'run'), 'plugin\n', { mode: 0o755 })
     await runGit(['init', '-q', source])
     await runGit(['-C', source, 'add', '--all'])
+    // Why: Windows ignores the 0o755 file mode, so record the executable bit in the index directly.
+    await runGit(['-C', source, 'update-index', '--chmod=+x', 'bin/run'])
     // Why inline identity: a fresh repository does not inherit the fixture repository's config.
     const identity = [
       '-c',
