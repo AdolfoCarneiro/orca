@@ -4,6 +4,7 @@ import { defineMethod } from '../../../core'
 import { mapWithConcurrency } from '../../../../../../shared/map-with-concurrency'
 import { readExactWorkerOutput } from '../worker/worker-output'
 import { exposeWorkerRetainReceipt } from '../worker/worker-terminal-resource-presentation'
+import { archiveWorkerOutputBeforeStop } from '../worker/worker-stop-archive'
 import { describeUnconfirmedAgentStop } from '../../../../../../shared/pty-liveness-verdict'
 import {
   inspectRemoteAttachment,
@@ -241,6 +242,13 @@ export const ORCHESTRATION_FEDERATION_CONTROL_METHODS = [
           lastError: attachment.last_error
         }
       }
+      await archiveWorkerOutputBeforeStop({
+        runtime,
+        db,
+        dispatchId: params.dispatchId,
+        terminalHandle: observation.terminal.handle,
+        attachedAt: begun.created_at
+      })
       try {
         const close = await runtime.closeTerminal(observation.terminal.handle)
         if (!close.ptyKilled) {

@@ -27,6 +27,38 @@ export function storeWorkerTerminalArchive(
     .run(params.dispatchId, params.resourceId, params.kind, params.content)
 }
 
+/** Stop closes the terminal; keep its output so a later release has an archive to settle with. */
+export function storeWorkerTerminalArchiveBeforeStop(
+  this: OrchestrationDb,
+  params: {
+    dispatchId: string
+    resourceId: string
+    kind: WorkerTerminalArchiveKind
+    content: string
+    archiveSource: 'transcript' | 'terminal'
+    archiveStatus: Extract<WorkerTerminalArchiveStatus, 'captured' | 'empty'>
+  }
+): void {
+  this.db.exec('BEGIN IMMEDIATE')
+  try {
+    const { changes } = this.db
+      .prepare(
+        `UPDATE worker_terminal_resources
+         SET archive_source = ?, archive_status = ?, updated_at = datetime('now')
+         WHERE id = ? AND owner_dispatch_id = ? AND ownership_state = 'owned'
+           AND release_state IN ('not_requested', 'retained')`
+      )
+      .run(params.archiveSource, params.archiveStatus, params.resourceId, params.dispatchId)
+    if (changes > 0) {
+      this.storeWorkerTerminalArchive(params)
+    }
+    this.db.exec('COMMIT')
+  } catch (error) {
+    this.db.exec('ROLLBACK')
+    throw error
+  }
+}
+
 export function commitWorkerTerminalArchiveForRelease(
   this: OrchestrationDb,
   params: {
@@ -156,9 +188,20 @@ export function retainTerminalResourceInTransaction(
     )
     .run(resourceId)
   if (changes > 0) {
-    database.db
-      .prepare('DELETE FROM worker_terminal_archives WHERE dispatch_id = ?')
-      .run(dispatchId)
+    // A stopped worker's terminal is closed; the archive taken before stop is its only output.
+    const dropped = database.db
+      .prepare(
+        `DELETE FROM worker_terminal_archives WHERE dispatch_id = ? AND NOT EXISTS (
+           SELECT 1 FROM worker_dispatches WHERE dispatch_id = ? AND state = 'stopped')`
+      )
+      .run(dispatchId, dispatchId)
+    if (dropped.changes > 0) {
+      database.db
+        .prepare(
+          'UPDATE worker_terminal_resources SET archive_source = NULL, archive_status = NULL WHERE id = ?'
+        )
+        .run(resourceId)
+    }
   }
   return changes > 0
 }
@@ -235,6 +278,7 @@ function retainOwnedTerminalResource(
 
 export type WorkerTerminalArchiveMethods = {
   storeWorkerTerminalArchive: typeof storeWorkerTerminalArchive
+  storeWorkerTerminalArchiveBeforeStop: typeof storeWorkerTerminalArchiveBeforeStop
   commitWorkerTerminalArchiveForRelease: typeof commitWorkerTerminalArchiveForRelease
   getWorkerTerminalArchive: typeof getWorkerTerminalArchive
   settleWorkerTerminalRelease: typeof settleWorkerTerminalRelease
@@ -247,6 +291,7 @@ export type WorkerTerminalArchiveMethods = {
 export function attachWorkerTerminalArchive(ctor: { prototype: object }): void {
   Object.assign(ctor.prototype, {
     storeWorkerTerminalArchive,
+    storeWorkerTerminalArchiveBeforeStop,
     commitWorkerTerminalArchiveForRelease,
     getWorkerTerminalArchive,
     settleWorkerTerminalRelease,
