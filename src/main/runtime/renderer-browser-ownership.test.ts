@@ -1,5 +1,6 @@
+import './orca-runtime-test-lifecycle.spec'
 import { expect, it, vi } from 'vitest'
-import { OrcaRuntimeService } from './orca-runtime-test-mocks.spec'
+import { OrcaRuntimeService, electronMocks } from './orca-runtime-test-mocks.spec'
 import { TEST_WORKTREE_ID, store } from './orca-runtime-test-fixtures.spec'
 import type {
   RuntimeMobileSessionSnapshotTab,
@@ -28,6 +29,9 @@ it('preserves renderer browser ownership across headless reconciliation and clos
     terminalFitOverrideChanged: vi.fn(),
     terminalDriverChanged: vi.fn()
   })
+  electronMocks.BrowserWindow.fromId.mockImplementation((id: number) =>
+    id === 1 ? { isDestroyed: () => false } : null
+  )
   runtime.attachWindow(1)
   runtime.syncWindowGraph(1, {
     tabs: [],
@@ -158,53 +162,48 @@ it('preserves renderer browser ownership across headless reconciliation and clos
   expect(closeTab).toHaveBeenCalledWith('headless-page-1')
 })
 
-it('preserves only live offscreen pages from a legacy merge-suffix snapshot', () => {
+it('drops renderer browser rows once the serve desktop window closes', async () => {
   const runtime = new OrcaRuntimeService(store)
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Test harness mocks partial OffscreenBrowserBackend.
   runtime.setOffscreenBrowserBackend({ closeTab: vi.fn() } as never)
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Test harness mocks partial AgentBrowserBridge.
-  runtime.setAgentBrowserBridge({
-    tabList: () => ({
-      tabs: [
-        {
-          browserPageId: 'headless-page-1',
-          title: 'Headless Browser',
-          url: 'https://headless.example/'
-        }
-      ]
-    })
-  } as never)
-  const headlessTab = {
-    type: 'browser' as const,
-    id: 'headless-page-1',
-    title: 'Headless Browser',
-    browserWorkspaceId: 'headless-page-1',
-    browserPageId: 'headless-page-1',
-    url: 'https://headless.example/',
-    loading: false,
-    canGoBack: false,
-    canGoForward: false,
-    isActive: false
-  }
-  const snapshot: RuntimeMobileSessionTabsSnapshot = {
-    worktree: TEST_WORKTREE_ID,
-    publicationEpoch: 'epoch-1:headless-merge:runtime-page',
-    snapshotVersion: 1,
-    activeGroupId: 'group-1',
-    activeTabId: 'headless-page-1',
-    activeTabType: 'browser',
-    tabs: [
-      headlessTab,
+  runtime.setAgentBrowserBridge({ tabList: () => ({ tabs: [] }) } as never)
+  electronMocks.BrowserWindow.fromId.mockImplementation((id: number) =>
+    id === 1 ? { isDestroyed: () => false } : null
+  )
+  runtime.attachWindow(1)
+  runtime.syncWindowGraph(1, {
+    tabs: [],
+    leaves: [],
+    mobileSessionTabs: [
       {
-        ...headlessTab,
-        id: 'closed-page',
-        browserWorkspaceId: 'closed-page',
-        browserPageId: 'closed-page'
+        worktree: TEST_WORKTREE_ID,
+        publicationEpoch: 'epoch-1',
+        snapshotVersion: 1,
+        activeGroupId: 'group-1',
+        activeTabId: 'browser-unified-1',
+        activeTabType: 'browser',
+        tabs: [
+          {
+            type: 'browser',
+            id: 'browser-unified-1',
+            title: 'Browser',
+            browserWorkspaceId: 'browser-workspace-1',
+            browserPageId: 'browser-page-1',
+            url: 'https://example.com/',
+            loading: false,
+            canGoBack: false,
+            canGoForward: false,
+            isActive: true
+          }
+        ]
       }
     ]
-  }
-  runtime['acceptedRendererMobileSnapshotByWorktree'].delete(TEST_WORKTREE_ID)
-  const preserved = runtime['buildPreservedHeadlessMobileSessionSnapshot'](snapshot)
-  expect(preserved?.publicationEpoch).toMatch(/^headless-hydrated:/)
-  expect(preserved?.tabs).toEqual([expect.objectContaining({ id: 'headless-page-1' })])
+  })
+  expect((await runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)).tabs).toEqual([
+    expect.objectContaining({ id: 'browser-unified-1' })
+  ])
+
+  runtime.markGraphUnavailable(1)
+  expect((await runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)).tabs).toEqual([])
 })

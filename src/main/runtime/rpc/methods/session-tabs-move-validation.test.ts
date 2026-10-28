@@ -272,6 +272,9 @@ describe('session tab move validation', () => {
     })
 
     moveSessionTab.mockClear()
+    // Renderer rows stay listed without a live page only while their window exists.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: ownership checks only test the window for presence.
+    vi.spyOn(runtime as never, 'getAvailableAuthoritativeWindow').mockReturnValue({} as never)
     const headlessSnapshot = runtime['mobileSessionTabsByWorktree'].get('wt-1')!
     setMobileSessionSnapshot(runtime, {
       ...headlessSnapshot,

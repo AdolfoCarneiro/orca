@@ -1,5 +1,6 @@
+import './orca-runtime-test-lifecycle.spec'
 import { expect, it, vi } from 'vitest'
-import { OrcaRuntimeService } from './orca-runtime-test-mocks.spec'
+import { OrcaRuntimeService, electronMocks } from './orca-runtime-test-mocks.spec'
 import { TEST_WORKTREE_ID, store } from './orca-runtime-test-fixtures.spec'
 import type {
   BrowserTabInfo,
@@ -40,6 +41,9 @@ function browserRuntime(closeTab = vi.fn(async (_pageId: string) => {})) {
   runtime.setOffscreenBrowserBackend({ createTab: vi.fn(), closeTab })
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Only the bridge inventory is used by this lifecycle test.
   runtime.setAgentBrowserBridge({ tabList: () => ({ tabs: [...livePages.values()] }) } as never)
+  electronMocks.BrowserWindow.fromId.mockImplementation((id: number) =>
+    id === 1 ? { isDestroyed: () => false } : null
+  )
   runtime.attachWindow(1)
   const sync = (snapshots: RuntimeMobileSessionTabsSnapshot[]) =>
     runtime.syncWindowGraph(1, { tabs: [], leaves: [], mobileSessionTabs: snapshots })

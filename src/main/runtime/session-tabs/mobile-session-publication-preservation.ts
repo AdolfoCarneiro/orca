@@ -85,10 +85,10 @@ export abstract class OrcaRuntimeWithStoredMobileSnapshotHasStalePreservedTab ex
       if (!this.offscreenBrowserBackend) {
         return false
       }
-      // Merges keep the renderer epoch, so runtime-owned pages are those outside the accepted identity set; `:headless-merge:` is the legacy marker.
+      // Merges keep the renderer epoch, so runtime-owned pages are those outside the accepted identity set.
       return (
         this.isHeadlessBuiltMobileSessionPublicationBase(snapshot.publicationEpoch) ||
-        (this.isRuntimeOwnedBrowserOnRendererPublication(snapshot, tab) &&
+        (this.isHeadlessOwnedMobileBrowserTab(snapshot, tab) &&
           typeof tab.browserPageId === 'string' &&
           this.getListedBrowserTabsByPageId(snapshot.worktree).has(tab.browserPageId))
       )
@@ -128,23 +128,6 @@ export abstract class OrcaRuntimeWithStoredMobileSnapshotHasStalePreservedTab ex
     return accepted?.publicationEpoch === baseEpoch ? accepted.rendererTabIdentityKeys : null
   }
 
-  // Why: current getMerged keeps the renderer publisher epoch; accepted
-  // identity is the owner split. Legacy `:headless-merge:` still names a
-  // mixed snapshot when that pair is missing.
-  protected isRuntimeOwnedBrowserOnRendererPublication(
-    snapshot: RuntimeMobileSessionTabsSnapshot,
-    tab: RuntimeMobileSessionBrowserTab
-  ): boolean {
-    const rendererTabIdentityKeys =
-      this.getAcceptedRendererIdentityKeysForMobileSessionSnapshot(snapshot)
-    if (rendererTabIdentityKeys) {
-      return !getMobileSessionSnapshotTabIdentityKeys(tab).some((id) =>
-        rendererTabIdentityKeys.has(id)
-      )
-    }
-    return snapshot.publicationEpoch.includes(':headless-merge:')
-  }
-
   protected isHeadlessOwnedMobileBrowserTab(
     snapshot: RuntimeMobileSessionTabsSnapshot,
     tab: RuntimeMobileSessionBrowserTab
@@ -166,7 +149,8 @@ export abstract class OrcaRuntimeWithStoredMobileSnapshotHasStalePreservedTab ex
     snapshot: RuntimeMobileSessionTabsSnapshot,
     tab: RuntimeMobileSessionBrowserTab
   ): boolean {
-    if (tab.placement?.kind === 'client') {
+    // A closed window's webviews are gone, so its rows need live pages like any other.
+    if (tab.placement?.kind === 'client' || !this.getAvailableAuthoritativeWindow()) {
       return false
     }
     return !this.isHeadlessOwnedMobileBrowserTab(snapshot, tab)

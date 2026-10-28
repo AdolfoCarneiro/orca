@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { OrcaRuntimeService } from '../orca-runtime-test-mocks.spec'
+import { OrcaRuntimeService, electronMocks } from '../orca-runtime-test-mocks.spec'
 import type { TerminalLayoutSnapshot } from '../orca-runtime-test-mocks.spec'
 import {
   TEST_WORKTREE_ID,
@@ -566,6 +566,7 @@ describe('OrcaRuntimeService', () => {
       ]
     }))
     runtime.setAgentBrowserBridge({ tabList } as never)
+    electronMocks.BrowserWindow.fromId.mockReturnValue({ isDestroyed: () => false })
     runtime.attachWindow(1)
     runtime.syncWindowGraph(1, {
       tabs: [],
