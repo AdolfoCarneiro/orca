@@ -268,7 +268,7 @@ async function releasePreparedPartitions(
 
 registerBrowserRoutePartitionRetentionProbe((partition) => preparedByPartition.has(partition))
 
-// Register only after SSH partitions are used; ordinary profile deletion need not load routing.
+// Registry stays routing-agnostic; this module installs its own profile-deletion hook.
 browserSessionRegistry.onProfileDeleted = async (profileId) => {
   const partitions = new Set<string>()
   try {

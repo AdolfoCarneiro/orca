@@ -263,7 +263,7 @@ describe('deleted browser profile SSH partitions', () => {
     state.clearPolicy.mockImplementationOnce(() => {
       throw new Error('policy cleanup failed')
     })
-    await expect(registry.deleteProfile(retired.id)).rejects.toThrow('policy cleanup failed')
+    await expect(registry.deleteProfile(retired.id)).resolves.toBe(true)
     expect(isLocalSshBrowserPartition(route.partition)).toBe(false)
     expect(session.fromPartition(route.partition).clearStorageData).toHaveBeenCalledTimes(1)
     expect(session.fromPartition(retired.partition).clearStorageData).toHaveBeenCalledTimes(1)

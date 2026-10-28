@@ -34,9 +34,11 @@ export async function retireDeletedBrowserSessionProfile(
 ): Promise<void> {
   try {
     await beforeRetirement?.()
-  } finally {
-    await clearDeletedBrowserSessionProfile(profile)
+  } catch (error) {
+    // Why: the profile is already deleted and persisted, so route cleanup stays best-effort.
+    console.warn('[browser-session] Failed to retire route partitions for deleted profile', error)
   }
+  await clearDeletedBrowserSessionProfile(profile)
 }
 
 async function clearDeletedBrowserSessionProfile(profile: BrowserSessionProfile): Promise<void> {
