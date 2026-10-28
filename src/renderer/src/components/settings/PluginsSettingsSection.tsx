@@ -127,11 +127,9 @@ export function PluginsSettingsSection({
   }
 
   const {
-    featureBusy,
     devPathsBusy,
     settingsError,
     reset: resetSettingsWrites,
-    toggleFeature,
     toggleSuggestions,
     toggleAutoUpdate,
     toggleFullAccess,
@@ -140,8 +138,7 @@ export function PluginsSettingsSection({
     settings,
     updateSettings,
     mountedRef,
-    rediscover: () => loadPluginList(window.api.plugins.refresh()),
-    onStart: () => setError(null)
+    rediscover: () => loadPluginList(window.api.plugins.refresh())
   })
 
   useEffect(() => {
@@ -352,7 +349,6 @@ export function PluginsSettingsSection({
       {featureEnabled && page.openKey !== null ? null : <PluginsAlphaNotice />}
       <PluginSettingsOverview
         featureEnabled={featureEnabled}
-        featureBusy={featureBusy}
         settingsError={settingsError}
         loading={loading}
         error={error}
@@ -371,7 +367,6 @@ export function PluginsSettingsSection({
           onRollbackRequest: marketplaceLifecycle.requestRollback,
           onRemoveRequest: setRemovePluginId
         }}
-        onToggleFeature={() => void toggleFeature()}
         onRefresh={refresh}
         onMarketplaceInstalled={marketplaceLifecycle.reloadAfterMutation}
         logsByPlugin={pluginLogs.logsByPlugin}

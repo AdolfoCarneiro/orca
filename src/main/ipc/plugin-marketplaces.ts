@@ -72,7 +72,16 @@ export function registerPluginMarketplaceHandlers(
       })
     }
   )
-  ipcMain.handle('plugins:listMarketplaces', () => services.marketplace.listSources())
+  // Startup defers the official seed; a marketplace view must not wait for that timer.
+  const ensureOfficialSeed = (): void => {
+    if (getSettings().pluginSystemEnabled === true) {
+      void services.marketplace.seedOfficialSource().catch(() => undefined)
+    }
+  }
+  ipcMain.handle('plugins:listMarketplaces', () => {
+    ensureOfficialSeed()
+    return services.marketplace.listSources()
+  })
   ipcMain.handle('plugins:addMarketplace', async (_event, args: unknown) => {
     const source = pluginMarketplaceGitSourceSchema.parse(args)
     return services.marketplace.addSource(source)
@@ -88,7 +97,10 @@ export function registerPluginMarketplaceHandlers(
       ? [await services.marketplace.refreshSource(sourceId)]
       : services.marketplace.refreshAll()
   })
-  ipcMain.handle('plugins:listMarketplacePlugins', () => services.marketplace.listPlugins())
+  ipcMain.handle('plugins:listMarketplacePlugins', () => {
+    ensureOfficialSeed()
+    return services.marketplace.listPlugins()
+  })
   ipcMain.handle('plugins:previewMarketplacePlugin', async (_event, args: unknown) => {
     const parsed = marketplacePluginSchema.parse(args)
     return services.installer.preview(parsed.marketplaceSourceId, parsed.pluginKey)

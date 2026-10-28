@@ -170,9 +170,8 @@ async function applyInstalledLanguage(page: Page): Promise<void> {
 async function runMarketplaceJourney(page: Page): Promise<void> {
   const startedAt = Date.now()
   await openPluginSettings(page)
-  // Why a button: with plugins off the page offers one action, and the switch appears once on.
-  await page.getByRole('button', { name: 'Turn on plugins' }).click()
-  await expect(page.getByRole('button', { name: 'Turn on plugins' })).toBeHidden()
+  // Plugins are on by default, so the page never offers a turn-on action.
+  await expect(page.getByRole('button', { name: 'Turn on plugins' })).toHaveCount(0)
   await expect
     .poll(
       () =>

@@ -1,20 +1,13 @@
 import { Puzzle } from 'lucide-react'
 import type { PluginHostListEntry } from '../../../../../preload/api-types'
 import { translate } from '@/i18n/i18n'
-import { cn } from '@/lib/utils'
-import { Button } from '../../ui/button'
-import { PluginListGroup } from './PluginListGroup'
-import { PluginListRow } from './PluginListRow'
-import { pluginListEntryFromInstalled } from './plugin-list-entries'
 import { PluginManager } from './PluginManager'
 import type { InstalledRowHandlers } from './PluginManagerRows'
-import { PluginChips } from './PluginChips'
 import type { PluginLogsState } from '../state/use-plugin-logs'
 import type { PluginPageNavigation } from '../state/use-plugin-page-navigation'
 
 type PluginSettingsOverviewProps = {
   featureEnabled: boolean
-  featureBusy: boolean
   settingsError: string | null
   loading: boolean
   error: string | null
@@ -27,7 +20,6 @@ type PluginSettingsOverviewProps = {
     decision: 'approve' | 'keep-disabled'
   ) => Promise<void>
   handlers: Omit<InstalledRowHandlers, 'onOpen' | 'onViewLogs' | 'onCheckUpdate'>
-  onToggleFeature: () => void
   onRefresh: () => Promise<void>
   onMarketplaceInstalled: (pluginKeys: string | readonly string[]) => Promise<void>
   logsByPlugin: Readonly<Record<string, PluginLogsState>>
@@ -40,73 +32,20 @@ type PluginSettingsOverviewProps = {
   page: PluginPageNavigation
 }
 
-/** The Settings body card; the section body is transparent so each block draws its own. */
-function SettingsCard({
-  className,
-  children
-}: {
-  className?: string
-  children: React.ReactNode
-}): React.JSX.Element {
+/** Plugins are on by default; off only comes from a deliberate saved choice such as policy. */
+function PluginsOffState(): React.JSX.Element {
   return (
-    <div className={cn('rounded-xl border border-border/50 bg-card/50 shadow-xs', className)}>
-      {children}
+    <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/40 py-2.5 pr-3 pl-4">
+      <Puzzle className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <p className="min-w-0 flex-1 text-sm font-medium">
+        {translate('auto.components.settings.PluginSettingsOverview.offTitle', 'Plugins are off')}
+      </p>
     </div>
-  )
-}
-
-/** With plugins off: what off means, the way back on, and who is installed (inert). */
-function PluginsOffState({
-  plugins,
-  featureBusy,
-  onTurnOn
-}: {
-  plugins: readonly PluginHostListEntry[]
-  featureBusy: boolean
-  onTurnOn: () => void
-}): React.JSX.Element {
-  return (
-    <>
-      <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/40 py-2.5 pr-3 pl-4">
-        <Puzzle className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <p className="min-w-0 flex-1 text-sm font-medium">
-          {translate('auto.components.settings.PluginSettingsOverview.offTitle', 'Plugins are off')}
-        </p>
-        <Button size="sm" disabled={featureBusy} onClick={onTurnOn}>
-          {translate('auto.components.settings.PluginSettingsOverview.turnOn', 'Turn on plugins')}
-        </Button>
-      </div>
-      {plugins.length > 0 ? (
-        <SettingsCard className="@container/plugin-list overflow-hidden">
-          <PluginListGroup
-            title={translate('auto.components.settings.PluginManager.installed', 'Installed')}
-            aside={translate(
-              'auto.components.settings.PluginSettingsOverview.pausedCount',
-              '{{value0}} paused',
-              { value0: plugins.length }
-            )}
-          >
-            {plugins.map((plugin) => {
-              const entry = pluginListEntryFromInstalled(plugin)
-              return (
-                <PluginListRow
-                  key={plugin.pluginKey}
-                  entry={entry}
-                  description={entry.description ?? ''}
-                  chips={<PluginChips entry={entry} />}
-                />
-              )
-            })}
-          </PluginListGroup>
-        </SettingsCard>
-      ) : null}
-    </>
   )
 }
 
 export function PluginSettingsOverview({
   featureEnabled,
-  featureBusy,
   settingsError,
   loading,
   error,
@@ -114,7 +53,6 @@ export function PluginSettingsOverview({
   busyPluginKeys,
   onConsent,
   handlers,
-  onToggleFeature,
   onRefresh,
   onMarketplaceInstalled,
   logsByPlugin,
@@ -127,9 +65,7 @@ export function PluginSettingsOverview({
 }: PluginSettingsOverviewProps): React.JSX.Element {
   return (
     <>
-      {featureEnabled ? null : (
-        <PluginsOffState plugins={plugins} featureBusy={featureBusy} onTurnOn={onToggleFeature} />
-      )}
+      {featureEnabled ? null : <PluginsOffState />}
       {settingsError ? <p className="text-xs text-destructive">{settingsError}</p> : null}
       {featureEnabled ? (
         <PluginManager

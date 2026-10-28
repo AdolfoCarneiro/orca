@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { PluginImageCache } from '../plugins/plugin-image-cache'
 import { installPluginImageProtocolHandler } from '../plugins/plugin-image-protocol'
 import { pluginHostVersion } from '../../shared/plugins/installation/plugin-host-version'
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, net } from 'electron'
 import { performance } from 'node:perf_hooks'
 import { PluginService } from '../plugins/plugin-service'
 import { PluginKillListService } from '../plugins/catalog/plugin-kill-list-service'
@@ -33,6 +33,8 @@ import { mainProcessState as state } from './main-process-state'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 
 const PLUGIN_AUTO_UPDATE_STARTUP_DELAY_MS = 60_000
+// Why: the official catalog fetch must not compete with first paint; opening the marketplace seeds sooner.
+const PLUGIN_MARKETPLACE_SEED_STARTUP_DELAY_MS = 15_000
 
 export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService): Promise<void> {
   const store = state.store
@@ -234,7 +236,11 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
     }
   })
   requestBundledPluginBootstrap()
-  requestOfficialMarketplaceSeed()
+  setTimeout(() => {
+    if (net.isOnline()) {
+      requestOfficialMarketplaceSeed()
+    }
+  }, PLUGIN_MARKETPLACE_SEED_STARTUP_DELAY_MS).unref?.()
   // Filter hook/worktree events server-side by each plugin subscription.
   agentHookServer.subscribeEnrichedStatus((enriched) => {
     const payload = projectPluginAgentStatusChangedPayload(enriched)

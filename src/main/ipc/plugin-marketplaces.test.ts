@@ -23,13 +23,15 @@ let handlers: Map<string, IpcHandler>
 
 function createServices(): PluginMarketplaceHandlerServices {
   return {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the handlers read only these members.
     marketplace: {
       listSources: vi.fn().mockResolvedValue([{ id: SOURCE_ID }]),
       addSource: vi.fn().mockResolvedValue({ id: SOURCE_ID }),
       removeSource: vi.fn().mockResolvedValue(true),
       refreshSource: vi.fn().mockResolvedValue({ id: SOURCE_ID }),
       refreshAll: vi.fn().mockResolvedValue([{ id: SOURCE_ID }]),
-      listPlugins: vi.fn().mockResolvedValue([{ pluginKey: PLUGIN_KEY }])
+      listPlugins: vi.fn().mockResolvedValue([{ pluginKey: PLUGIN_KEY }]),
+      seedOfficialSource: vi.fn().mockResolvedValue({ id: SOURCE_ID })
     } as unknown as PluginMarketplaceService,
     installer: {
       preview: vi.fn().mockResolvedValue({ pluginKey: PLUGIN_KEY }),
@@ -141,6 +143,8 @@ describe('plugin marketplace IPC authority', () => {
     await invoke('plugins:listMarketplacePlugins')
 
     expect(services.marketplace.listSources).toHaveBeenCalledTimes(2)
+    // The startup seed is deferred, so opening the marketplace seeds the official catalog.
+    expect(services.marketplace.seedOfficialSource).toHaveBeenCalledTimes(2)
     expect(services.marketplace.addSource).toHaveBeenCalledWith(source)
     expect(services.marketplace.removeSource).toHaveBeenCalledWith(SOURCE_ID)
     expect(services.marketplace.refreshSource).toHaveBeenCalledWith(SOURCE_ID)

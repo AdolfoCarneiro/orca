@@ -1,8 +1,11 @@
 /** The plugin system's switches, approvals and dev paths, composed into GlobalSettings. */
 export type PluginSystemSettings = {
-  /** Master switch for the experimental plugin system. Off by default: no
+  /** Master switch for the plugin system. On by default; false means no
    *  discovery, no panels, no plugin code paths run at all. */
   pluginSystemEnabled: boolean
+  /** One-shot guard for the default-on rollout: a saved false from the old
+   *  default flips on once; later explicit false (e.g. policy) sticks. */
+  pluginSystemDefaultedOn?: boolean
   /** Second opt-in for trusted-worker plugins (unsandboxed Node). Off by default. */
   pluginFullAccessEnabled: boolean
   /** Qualified plugin keys (`publisher.id`) the user disabled. Discovered
@@ -15,4 +18,20 @@ export type PluginSystemSettings = {
   pluginConsents: Record<string, string>
   /** Local directories loaded as dev-mode plugins (manifest hot-reload). */
   devPluginPaths: string[]
+}
+
+type PluginSystemDefaultOnSettings = Pick<
+  PluginSystemSettings,
+  'pluginSystemEnabled' | 'pluginSystemDefaultedOn'
+>
+
+export function normalizePluginSystemEnabledDefaultOn(
+  settings: Partial<PluginSystemDefaultOnSettings> | undefined
+): Required<PluginSystemDefaultOnSettings> {
+  return {
+    // Pre-rollout false was the old default, not an opt-out.
+    pluginSystemEnabled:
+      settings?.pluginSystemDefaultedOn === true ? settings.pluginSystemEnabled !== false : true,
+    pluginSystemDefaultedOn: true
+  }
 }
