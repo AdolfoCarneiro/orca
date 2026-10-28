@@ -163,6 +163,8 @@ export function useRichMarkdownReviewController({
       if (!annotationPopover || sourceRelativePath === null) {
         return
       }
+      const submittedEditor = editorRef.current
+      const submittedRoot = rootRef.current
       const result = await addDiffComment({
         worktreeId,
         filePath: sourceRelativePath,
@@ -180,10 +182,23 @@ export function useRichMarkdownReviewController({
         console.error('Failed to add markdown comment — draft preserved')
         return
       }
+      if (
+        !submittedEditor ||
+        submittedEditor.isDestroyed ||
+        editorRef.current !== submittedEditor ||
+        !submittedRoot ||
+        rootRef.current !== submittedRoot ||
+        annotationPopoverRef.current !== annotationPopover
+      ) {
+        return
+      }
+      const currentComments = markdownCommentsRef.current
       updateRichMarkdownAnnotationHighlightsAfterSubmit({
         annotationPopover,
-        comments: [...markdownComments, result],
-        editor: editorRef.current,
+        comments: currentComments.some((comment) => comment.id === result.id)
+          ? currentComments
+          : [...currentComments, result],
+        editor: submittedEditor,
         markdownSourceLineOffset
       })
       setAnnotationPopover(null)
@@ -195,8 +210,8 @@ export function useRichMarkdownReviewController({
       annotationPopover,
       clearAnnotationHighlight,
       editorRef,
-      markdownComments,
       markdownSourceLineOffset,
+      rootRef,
       sourceRelativePath,
       worktreeId
     ]
