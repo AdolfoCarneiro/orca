@@ -82,8 +82,8 @@ function findCaseInsensitiveMatchRanges(
   return matches
 }
 
-// Treat Unicode letters/digits/underscore as word characters, matching editor whole-word find boundaries.
-const WORD_CHARACTER = /[\p{L}\p{N}_]/u
+// Combining marks stay attached to their letters when checking whole-word boundaries.
+const WORD_CHARACTER = /[\p{L}\p{M}\p{N}_]/u
 
 function isWordCharacter(char: string | undefined): boolean {
   return char !== undefined && WORD_CHARACTER.test(char)
