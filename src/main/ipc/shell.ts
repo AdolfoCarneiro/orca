@@ -29,6 +29,7 @@ import {
   resolveOwnedPathTarget,
   validateLocalPathTarget
 } from './shell-owned-path-target'
+import { guardWslUncPathAccess } from '../wsl/wsl-unc-access-gate'
 
 export { EXTERNAL_EDITOR_CLI_COMMAND }
 
@@ -196,7 +197,9 @@ export function registerShellHandlers(
 
   ipcMain.handle('shell:pathsExist', async (_event, paths: string[]): Promise<boolean[]> => {
     validatePathExistenceBatch(paths)
-    return Promise.all(paths.map(pathExists))
+    // Chat link renders and terminal hovers ask unprompted: a stat of a stopped distro's UNC path
+    // boots it (E9), so refuse and let the caller retry rather than report the file missing.
+    return Promise.all(paths.map((path) => guardWslUncPathAccess(path, () => pathExists(path))))
   })
 
   ipcMain.handle('shell:pathExists', async (_event, filePath: string): Promise<boolean> => {
