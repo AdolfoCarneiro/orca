@@ -11,6 +11,7 @@ import {
   clearRuntimeCompatibilityCache
 } from '@/runtime/runtime-rpc-client'
 import { replaceRuntimeEnvironmentRevisions } from '@/runtime/runtime-environment-revision'
+import { retireStructuredAgentSessionStatusFeeds } from '@/runtime/structured-agent-session-status-feed-owners'
 import { bumpProviderRuntimeSessionGeneration } from '@/lib/provider-runtime-context'
 import { evictInstalledAgentSkillDiscoveryForRuntimeEnvironments } from '@/hooks/installed-agent-skill-discovery'
 import {
@@ -20,7 +21,7 @@ import {
 import { reconcileCatalogRows } from '../../../../shared/catalog-row-reconcile'
 import { createRuntimeStatusHydration } from './runtime-status-hydration'
 import { refreshRuntimeEnvironmentStatus } from './runtime-status-refresh'
-import * as runtimeStatusConnectionGeneration from './runtime-status-connection-generation'
+import * as connectionGenerations from './runtime-status-connection-generation'
 import { replayClientHostedBrowserCloseIntents } from '@/runtime/client-hosted-browser-close-intent-replay'
 import {
   pairedTerminalTabCloseIntentStoreOf,
@@ -38,7 +39,7 @@ import {
 } from './runtime-environment-peer-replacement'
 
 export const clearRuntimeEnvironmentConnectionGenerationsForTests = (): void => {
-  runtimeStatusConnectionGeneration.clearRuntimeEnvironmentConnectionGenerations()
+  connectionGenerations.clearRuntimeEnvironmentConnectionGenerations()
 }
 
 export {
@@ -88,7 +89,7 @@ export const createRuntimeStatusSlice: (
       for (const id of nextStatuses.keys()) {
         if (!keep.has(id)) {
           nextStatuses.delete(id)
-          runtimeStatusConnectionGeneration.advanceRuntimeEnvironmentConnectionGeneration(id)
+          connectionGenerations.advanceRuntimeEnvironmentConnectionGeneration(id)
           statusesChanged = true
         }
       }
@@ -96,7 +97,7 @@ export const createRuntimeStatusSlice: (
         if (nextStatuses.delete(id)) {
           statusesChanged = true
         }
-        runtimeStatusConnectionGeneration.advanceRuntimeEnvironmentConnectionGeneration(id)
+        connectionGenerations.advanceRuntimeEnvironmentConnectionGeneration(id)
       }
       // Tombstone removed IDs, clearing re-added ones, to reject late catalog merges without mistaking pre-hydration absence for removal (#8881).
       const nextRemoved = new Set(s.removedRuntimeEnvironmentIds)
@@ -152,6 +153,7 @@ export const createRuntimeStatusSlice: (
       evictInstalledAgentSkillDiscoveryForRuntimeEnvironments(retiredEnvironmentIds)
       get().purgeStaleRuntimeHostState?.(retiredEnvironmentIds)
       get().clearHostWorkspaceStatuses?.(retiredEnvironmentIds)
+      retireStructuredAgentSessionStatusFeeds(retiredEnvironmentIds)
       retiredEnvironmentIds.forEach(dismissRuntimeDisconnectedToast)
     }
     reconcileWebSessionCloseReplaysWithCatalog(pairedTerminalTabCloseIntentStoreOf(get), {
@@ -210,14 +212,10 @@ export const createRuntimeStatusSlice: (
       const connectionChanged = previous !== undefined && runtimeSessionStarted
       const activeEnvironmentId = s.settings?.activeRuntimeEnvironmentId?.trim()
       const connectionGeneration = connectionChanged
-        ? runtimeStatusConnectionGeneration.advanceRuntimeEnvironmentConnectionGeneration(
-            environmentId
-          )
+        ? connectionGenerations.advanceRuntimeEnvironmentConnectionGeneration(environmentId)
         : (previous?.connectionGeneration ??
           status.connectionGeneration ??
-          runtimeStatusConnectionGeneration.getRuntimeEnvironmentConnectionGeneration(
-            environmentId
-          ))
+          connectionGenerations.getRuntimeEnvironmentConnectionGeneration(environmentId))
       // Same-runtime recovery preserves mirror generation; advance a separate epoch to reinstall streams that ended with transport loss.
       const hostContactEpoch =
         (previous?.hostContactEpoch ?? status.hostContactEpoch ?? 0) + (contactRegained ? 1 : 0)
@@ -267,7 +265,7 @@ export const createRuntimeStatusSlice: (
   clearRuntimeEnvironmentStatus: (environmentId) => {
     dismissRuntimeDisconnectedToast(environmentId)
     set((s) => {
-      runtimeStatusConnectionGeneration.advanceRuntimeEnvironmentConnectionGeneration(environmentId)
+      connectionGenerations.advanceRuntimeEnvironmentConnectionGeneration(environmentId)
       if (!s.runtimeStatusByEnvironmentId.has(environmentId)) {
         return s
       }

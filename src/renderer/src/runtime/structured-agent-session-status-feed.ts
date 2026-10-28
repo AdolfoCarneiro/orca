@@ -16,6 +16,15 @@ import { AGENT_SESSION_STATUS_FEED_RUNTIME_CAPABILITY } from '../../../shared/pr
 import { runtimeEnvironmentSupportsCapability } from './runtime-rpc-client'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { subscribeStructuredAgentSessionStatus } from './structured-agent-session-client'
+import {
+  getOrCreateStructuredAgentSessionStatusFeed,
+  type OwnedStatusFeed
+} from './structured-agent-session-status-feed-owners'
+
+export {
+  resetStructuredAgentSessionStatusFeedsForTests,
+  structuredAgentSessionStatusFeedKey
+} from './structured-agent-session-status-feed-owners'
 
 export type StructuredAgentSessionStatusSnapshot = AgentSessionStatusSnapshot
 
@@ -31,15 +40,6 @@ export type StructuredAgentSessionStatusFeedOwner = {
 }
 
 const RECONNECT_MAX_DELAY_MS = 5_000
-
-/** `stop` is the map's own teardown, not part of the owner contract callers hold. */
-type OwnedStatusFeed = StructuredAgentSessionStatusFeedOwner & { stop: () => void }
-
-const owners = new Map<string, OwnedStatusFeed>()
-
-export function structuredAgentSessionStatusFeedKey(target: RuntimeClientTarget): string {
-  return target.kind === 'local' ? 'local' : `environment:${target.environmentId}`
-}
 
 function createOwner(target: RuntimeClientTarget): OwnedStatusFeed {
   let snapshot: StructuredAgentSessionStatusSnapshot = new Map()
@@ -247,26 +247,13 @@ function createOwner(target: RuntimeClientTarget): OwnedStatusFeed {
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
-    stop
+    stop,
+    isUnused: () => activations.size === 0 && listeners.size === 0
   }
 }
 
 export function getStructuredAgentSessionStatusFeed(
   target: RuntimeClientTarget
 ): StructuredAgentSessionStatusFeedOwner {
-  const key = structuredAgentSessionStatusFeedKey(target)
-  let owner = owners.get(key)
-  if (!owner) {
-    owner = createOwner(target)
-    owners.set(key, owner)
-  }
-  return owner
-}
-
-export function resetStructuredAgentSessionStatusFeedsForTests(): void {
-  // Stop subscriptions/reconnects before clearing map or they reopen unheld streams in the next test.
-  for (const owner of owners.values()) {
-    owner.stop()
-  }
-  owners.clear()
+  return getOrCreateStructuredAgentSessionStatusFeed(target, createOwner)
 }
