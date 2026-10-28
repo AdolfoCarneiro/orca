@@ -5,7 +5,11 @@ import type { OrchestrationCallerIdentity } from '../../../../orchestration/orch
 import type { OrchestrationDb } from '../../../../orchestration/db'
 import type { OrcaSessionId } from '../../../../../../shared/orca-session-address'
 import { formatOrcaSessionAddress } from '../../../../../../shared/orca-session-address'
-import { admitChatAssignee, refuseChatSelfAssignment } from '../chat-assignee-admission'
+import {
+  admitChatAssignee,
+  chatAssigneeOf,
+  refuseChatSelfAssignment
+} from '../chat-assignee-admission'
 import type { OrchestrationParty } from '../../../../orchestration/orchestration-party'
 
 /** Before any effects, refuse coordinator self-assignment, foreign-workspace panes and terminals without agents. */
@@ -50,7 +54,7 @@ export async function assertExplicitWorkerTerminalUsable(args: {
   }
 }
 
-/** A `--terminal` party: a terminal pane, or an agent session (a chat or a structured worker). */
+/** A `--terminal` party: a terminal pane, or a chat named by its Orca session ID. */
 export async function assertExplicitWorkerUsable(args: {
   runtime: OrcaRuntimeService
   db: OrchestrationDb
@@ -59,9 +63,9 @@ export async function assertExplicitWorkerUsable(args: {
   coordinator: OrchestrationCallerIdentity | null
   resolvedWorktreeId: string | undefined
 }): Promise<void> {
-  const session = args.terminal.orcaSessionId
-  await (session
-    ? assertExplicitWorkerChatUsable({ ...args, chat: session })
+  const chat = chatAssigneeOf(args.terminal)
+  await (chat
+    ? assertExplicitWorkerChatUsable({ ...args, chat })
     : assertExplicitWorkerTerminalUsable({ ...args, terminal: args.terminal.address }))
 }
 

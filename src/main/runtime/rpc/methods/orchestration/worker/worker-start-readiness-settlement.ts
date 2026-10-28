@@ -8,7 +8,7 @@ import type { RunRow, TaskRow } from '../../../../orchestration/types'
 import type { WorkerStartModeReceipt } from '../../orchestration-worker-start-mode'
 import { deliverWorkerDispatchPreamble } from './deliver-worker-dispatch-preamble'
 import { reportedWorkerOutcome } from './worker-start-receipt'
-import type { OrcaSessionId } from '../../../../../../shared/orca-session-address'
+import { chatAssigneeSessionId } from '../../../../orchestration/chat-assignee'
 import type { OrchestrationWorkerLaunchReceipt } from './worker-launch-preferences'
 import {
   describeUnobservedWorkerTurnStart,
@@ -31,8 +31,6 @@ export async function deliverAndSettleWorkerStartReadiness(args: {
   dispatchId: string
   dispatchDepth: number
   structuredSession: Awaited<ReturnType<typeof createStructuredWorkerSessionForWorktree>> | null
-  /** The agent session a reused `--terminal` worker takes its task through: a chat or a structured worker. */
-  session: OrcaSessionId | null
   terminalHandle: string
   coordinatorHandle: string
   devMode: boolean | undefined
@@ -60,7 +58,6 @@ export async function deliverAndSettleWorkerStartReadiness(args: {
     runtime,
     db,
     structuredSession,
-    session: args.session,
     terminalHandle,
     dispatchId: args.dispatchId,
     dispatchDepth: args.dispatchDepth,
@@ -140,7 +137,7 @@ export async function deliverAndSettleWorkerStartReadiness(args: {
       nextCommands: [
         `orca orchestration worker-show --dispatch ${args.dispatchId} --json`,
         // A structured worker or a chat has no screen to read.
-        ...(structuredSession || args.session
+        ...(structuredSession || chatAssigneeSessionId(terminalHandle)
           ? []
           : [`orca terminal read --terminal ${terminalHandle} --screen`]),
         `orca orchestration worker-abandon --dispatch ${args.dispatchId} --json`
