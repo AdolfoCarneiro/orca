@@ -41,6 +41,13 @@ describe('getPluginFileTypeIconIndex', () => {
   it('matches exact names, then extensions, then the file icon', () => {
     expect(getPluginFileTypeIconIndex(theme, '/a/README.md')).toBe(1)
     expect(getPluginFileTypeIconIndex(theme, '/a/x.TS')).toBe(2)
+  })
+
+  it('matches the longest dotted extension the theme maps', () => {
+    const multi = { icons: {}, fileNames: {}, fileExtensions: { 'd.ts': 5, ts: 2, gz: 6 } }
+    expect(getPluginFileTypeIconIndex(multi, '/a/types.d.ts')).toBe(5)
+    expect(getPluginFileTypeIconIndex(multi, '/a/index.ts')).toBe(2)
+    expect(getPluginFileTypeIconIndex(multi, '/a/archive.tar.gz')).toBe(6)
     expect(getPluginFileTypeIconIndex(theme, '/a/x.unknown')).toBe(3)
   })
 

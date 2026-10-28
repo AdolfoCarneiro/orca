@@ -42,6 +42,17 @@ describe('sanitizePluginIconSvg', () => {
         '<svg xmlns="http://www.w3.org/2000/svg"><path fill="currentColor"/><path fill="#f00"/></svg>'
       )?.monochrome
     ).toBe(false)
+    // An unpainted shape keeps SVG's default black fill.
+    expect(
+      sanitizePluginIconSvg(
+        '<svg xmlns="http://www.w3.org/2000/svg"><path fill="currentColor"/><path d="M0 0h1"/></svg>'
+      )?.monochrome
+    ).toBe(false)
+    expect(
+      sanitizePluginIconSvg(
+        '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path/><path/></svg>'
+      )?.monochrome
+    ).toBe(true)
   })
 
   it.each([

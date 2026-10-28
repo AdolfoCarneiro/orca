@@ -91,6 +91,9 @@ export function usePluginIconThemeActivation(selectedId: string | null | undefin
       .catch(() => null)
       .then((theme) => {
         if (generation === loadGeneration) {
+          if (!theme) {
+            clearRegisteredIcons()
+          }
           useActivePluginIconTheme.setState({ theme: theme ? registerIcons(theme) : null })
         }
       })

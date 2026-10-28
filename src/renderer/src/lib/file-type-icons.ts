@@ -71,6 +71,21 @@ function ownIconIndex(entries: Partial<Record<string, number>>, key: string): nu
   return Number.isInteger(index) && index !== undefined && index >= 0 ? index : null
 }
 
+// Longest dotted suffix first, so a theme's `d.ts` wins over `ts` and `gz` still matches `a.tar.gz`.
+function ownExtensionIconIndex(
+  entries: Partial<Record<string, number>>,
+  filename: string
+): number | null {
+  const parts = filename.split('.')
+  for (let start = 1; start < parts.length; start += 1) {
+    const index = ownIconIndex(entries, parts.slice(start).join('.'))
+    if (index !== null) {
+      return index
+    }
+  }
+  return null
+}
+
 /** The active plugin icon theme's icon index for a path: exact name, then extension, then
  *  its file icon. */
 export function getPluginFileTypeIconIndex(
@@ -83,7 +98,7 @@ export function getPluginFileTypeIconIndex(
   }
   return (
     ownIconIndex(theme.fileNames, filename) ??
-    ownIconIndex(theme.fileExtensions, getExtension(filename)) ??
+    ownExtensionIconIndex(theme.fileExtensions, filename) ??
     ownIconIndex(theme.icons, 'file')
   )
 }
