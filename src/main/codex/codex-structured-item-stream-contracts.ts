@@ -63,7 +63,8 @@ export type CodexStructuredItemStreams = {
     at?: number,
     item?: CodexThreadItem
   ) => CodexStructuredItemStreamAdmission
-  flush: () => boolean
+  /** Force-save only the thread's streams before its next row. */
+  flush: (threadId?: string) => boolean
   dispose: () => void
   snapshot: (
     threadId: string,
