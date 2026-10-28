@@ -49,6 +49,28 @@ function compareRecordSources(
 ): { keys: Set<string>; reordered: boolean } {
   const oldKeys = Object.keys(before),
     newKeys = Object.keys(after)
+  // SAFETY: this branch handles own string-keyed Records, after excluding Maps/arrays/Sets.
+  const prior = before as Readonly<Record<string, unknown>>
+  // SAFETY: the same checked source domain applies to the candidate.
+  const candidate = after as Readonly<Record<string, unknown>>
+  const keys = new Set<string>()
+  if (oldKeys.length === newKeys.length) {
+    let aligned = true
+    for (let i = 0; i < oldKeys.length; i++) {
+      const key = oldKeys[i]
+      if (key !== newKeys[i]) {
+        aligned = false
+        break
+      }
+      if (prior[key] !== candidate[key]) {
+        keys.add(key)
+      }
+    }
+    if (aligned) {
+      return { keys, reordered: false }
+    }
+    keys.clear()
+  }
   let oldStrings = 0,
     nextString = 0
   while (oldStrings < oldKeys.length && isIntegerProperty(oldKeys[oldStrings])) {
@@ -58,12 +80,11 @@ function compareRecordSources(
     nextString++
   }
   const firstNewString = nextString
-  const keys = new Set<string>()
   let reordered = false
   for (let i = 0; i < oldKeys.length; i++) {
     const key = oldKeys[i]
     const present = key === newKeys[i] || Object.hasOwn(after, key)
-    if (!present || Reflect.get(after, key) !== Reflect.get(before, key)) {
+    if (!present || candidate[key] !== prior[key]) {
       keys.add(key)
     }
     if (present && i >= oldStrings && key !== newKeys[nextString++]) {
@@ -82,9 +103,15 @@ function compareRecordSources(
   return { keys, reordered }
 }
 
-export function groupSessionFiles(files: readonly OpenFile[]): Map<string, OpenFile[]> {
+export function groupSessionFiles(
+  files: readonly OpenFile[],
+  owners?: ReadonlySet<string>
+): Map<string, OpenFile[]> {
   const groups = new Map<string, OpenFile[]>()
   for (const file of files) {
+    if (owners && !owners.has(file.worktreeId)) {
+      continue
+    }
     const rows = groups.get(file.worktreeId)
     if (rows) {
       rows.push(file)

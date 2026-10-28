@@ -158,7 +158,7 @@ export class SessionUnitProjection extends SessionProjectionIndex {
       ] as const
     ).some((field) => changed.has(field))
     const selectedFiles = editorChanged
-      ? (discovery.filesByOwner ?? groupSessionFiles(state.openFiles))
+      ? (discovery.filesByOwner ?? groupSessionFiles(state.openFiles, owners))
       : undefined
     const sparse = {
       ...state,
