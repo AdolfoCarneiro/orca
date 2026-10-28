@@ -44,6 +44,10 @@ export class AgentSessionTextDelivery {
     if (event.type === 'batch') {
       for (const id of event.batch.removedItemIds) {
         this.baselines.delete(id)
+        this.pending.delete(id)
+      }
+      if (this.pending.size === 0) {
+        this.inspected = undefined
       }
       for (const patch of event.batch.textPatches?.items ?? []) {
         const baseline = this.baselines.get(patch.item.itemId)
@@ -75,13 +79,21 @@ export class AgentSessionTextDelivery {
     const patches = subscriber.textPatches
       ? agentSessionTextWindowPatches(
           window,
-          subscriber.cursor,
+          after,
           this.baselines,
           subscriberHistoryReader(subscriber).budgetBytes,
           subscriber.boundedFrames
         )
       : null
     if (patches) {
+      // A patch cursor must not skip a different stream's withheld whole revision.
+      this.flush(port, subscriber, journal, work, hostNow)
+      if (!port.isActive(subscriber)) {
+        return true
+      }
+      if (this.pending.size > 0) {
+        return false
+      }
       port.emit(
         subscriber,
         {
@@ -112,7 +124,12 @@ export class AgentSessionTextDelivery {
       }
       const previous = this.baselines.get(row.itemId)?.lengths.get(row.field) ?? 0
       this.pending.add(row.itemId)
-      if (previous === 0 || length >= Math.max(previous + 32, Math.ceil(previous * 1.125))) {
+      // ProviderTimeline (ACP/Pi) already published each coalescer window to legacy readers.
+      if (
+        (journal.agent !== 'claude' && journal.agent !== 'codex') ||
+        previous === 0 ||
+        length >= Math.max(previous + 32, Math.ceil(previous * 1.125))
+      ) {
         due.add(row.itemId)
       }
     }

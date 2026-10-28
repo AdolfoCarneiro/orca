@@ -161,3 +161,227 @@ it('keeps phone shortening and authoritative corrections on the whole-item path'
       .items.map((item) => subscriberHistoryReader({ boundedFrames: true }).form(item).item)
   )
 })
+
+it.each(['before-retry', 'after-retry'] as const)(
+  'recovers an opening patch failure when the stale handle resolves %s',
+  async (resolution) => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const r = await textRig()
+    const subscribers = new AgentSessionSubscribers()
+    const handles: ReturnType<typeof Promise.withResolvers<{ unsubscribe: () => void }>>[] = []
+    const params: { sessionId: string; cursor?: AgentJournalCursor }[] = []
+    const closes: ReturnType<typeof vi.fn>[] = []
+    const contactClosed: (() => void)[] = []
+    let retryNow = (): void => {}
+    let state = EMPTY_STRUCTURED_AGENT_SESSION
+    const read = startStructuredAgentSessionLiveRead({
+      sessionId: 'chat',
+      getCursor: () => state.cursor,
+      applyEvent: (event) => {
+        state = reduceStructuredAgentSession(state, { type: 'event', event })
+      },
+      applyError: (message) => {
+        throw new Error(message)
+      },
+      readCurrentRequests: async () => {
+        throw new Error('unexpected requests')
+      },
+      onContactLost: () => {},
+      onHistoryReadInvalidated: () => {},
+      subscribeRetryNow: (retry) => {
+        retryNow = retry
+        return () => {}
+      },
+      subscribe: (input, onEvent, _onError, onClose) => {
+        params.push(input)
+        contactClosed.push(onClose)
+        const handle = Promise.withResolvers<{ unsubscribe: () => void }>()
+        handles.push(handle)
+        closes.push(
+          vi.fn(
+            subscribers.open({
+              ...input,
+              id: `opening-${params.length}`,
+              journal: r.journal,
+              fence: 7,
+              textPatches: true,
+              emit: onEvent
+            })
+          )
+        )
+        return handle.promise
+      }
+    })
+    try {
+      await r.stream(0, 'hello', '')
+      subscribers.publish('chat', r.journal)
+      await vi.advanceTimersByTimeAsync(48)
+      state = { ...state, items: [] }
+      await r.stream(5, '!', '')
+      subscribers.publish('chat', r.journal)
+      expect(state.cursor).toBeNull()
+      if (resolution === 'before-retry') {
+        handles[0].resolve({ unsubscribe: closes[0] })
+      }
+      await vi.advanceTimersByTimeAsync(750)
+      if (resolution === 'after-retry') {
+        handles[0].resolve({ unsubscribe: closes[0] })
+        await Promise.resolve()
+      }
+      expect(closes[0]).toHaveBeenCalledOnce()
+      expect(params).toEqual([{ sessionId: 'chat' }, { sessionId: 'chat' }])
+      if (resolution === 'after-retry') {
+        // The stale promise's finally must not retire the newer operation's opening guard.
+        contactClosed[1]()
+        retryNow()
+        expect(params).toHaveLength(2)
+      }
+      handles[1].resolve({ unsubscribe: closes[1] })
+      await Promise.resolve()
+      if (resolution === 'after-retry') {
+        await vi.advanceTimersByTimeAsync(750)
+        expect(params).toHaveLength(3)
+        handles[2].resolve({ unsubscribe: closes[2] })
+        await Promise.resolve()
+      }
+      expect(state.cursor).toEqual(r.journal.cursor())
+      expect(state.items).toEqual(r.journal.snapshot().items)
+    } finally {
+      read.dispose()
+      closes.forEach((close) => close())
+    }
+  }
+)
+
+it.each(['publish', 'control'] as const)(
+  'delivers interleaved shortened revisions before patch cursor advancement and %s/reconnect',
+  async (boundary) => {
+    const r = await textRig()
+    const subscribers = new AgentSessionSubscribers()
+    const shortIdentity = { ...textIdentity, uuid: 'short' }
+    let state = EMPTY_STRUCTURED_AGENT_SESSION
+    const cursors: number[] = []
+    let patches = 0
+    const emit = (event: AgentSessionSubscribeEvent) => {
+      if (event.type === 'end') {
+        return
+      }
+      const cursor = event.type === 'batch' ? event.batch.cursor : event.page.liveCursor
+      if (cursor) {
+        cursors.push(cursor.sequence)
+      }
+      if (event.type === 'batch' && event.batch.textPatches) {
+        patches++
+      }
+      state = reduceStructuredAgentSession(state, { type: 'event', event })
+    }
+    const close = subscribers.open({
+      id: 'phone',
+      sessionId: 'chat',
+      journal: r.journal,
+      fence: 7,
+      textPatches: true,
+      boundedFrames: true,
+      emit
+    })
+    const append = async (long: boolean, baseLength: number, suffix: string) => {
+      await r.journal.appendItem(long ? textIdentity : shortIdentity, textBody(''), {
+        ...textOptions,
+        streamText: {
+          operation: baseLength === 0 ? 'start' : 'append',
+          field: 0,
+          baseLength,
+          suffix
+        }
+      })
+      subscribers.publish('chat', r.journal)
+    }
+    await append(true, 0, 'a'.repeat(100_000))
+    await append(false, 0, 'b'.repeat(100))
+    await append(true, 100_000, '1')
+    await append(true, 100_001, '2')
+    expect(state.cursor?.sequence).toBeLessThan(r.journal.cursor().sequence)
+    await append(false, 100, '!')
+    if (boundary === 'control') {
+      await r.journal.appendItem(
+        { ...textIdentity, uuid: 'control' },
+        { kind: 'status', text: 'ended' },
+        textOptions
+      )
+    }
+    subscribers.publish('chat', r.journal)
+    const projection = () =>
+      r.journal
+        .snapshot()
+        .items.map((item) => subscriberHistoryReader({ boundedFrames: true }).form(item).item)
+    expect(state.items).toEqual(projection())
+    expect(state.cursor).toEqual(r.journal.cursor())
+    expect(cursors).toEqual([...cursors].sort((a, b) => a - b))
+    const cursor = state.cursor!
+    close()
+    subscribers.open({
+      id: 'resumed',
+      sessionId: 'chat',
+      journal: r.journal,
+      fence: 7,
+      textPatches: true,
+      boundedFrames: true,
+      cursor,
+      emit
+    })
+    expect(state.items).toEqual(projection())
+    await append(false, 101, '?')
+    await append(false, 102, '.')
+    expect(state.items).toEqual(projection())
+    expect(patches).toBeGreaterThan(0)
+    expect(cursors).toEqual([...cursors].sort((a, b) => a - b))
+  }
+)
+
+it('retires a removed pending item and resumes suffix delivery for another item', async () => {
+  const r = await textRig()
+  const subscribers = new AgentSessionSubscribers()
+  let state = EMPTY_STRUCTURED_AGENT_SESSION
+  const frames: AgentSessionSubscribeEvent[] = []
+  subscribers.open({
+    id: 'phone',
+    sessionId: 'chat',
+    journal: r.journal,
+    fence: 7,
+    boundedFrames: true,
+    textPatches: true,
+    emit: (event) => {
+      frames.push(event)
+      state = reduceStructuredAgentSession(state, { type: 'event', event })
+    }
+  })
+  for (const [baseLength, suffix] of [
+    [0, 'a'.repeat(100_000)],
+    [100_000, '1'],
+    [100_001, '2']
+  ] as const) {
+    await r.stream(baseLength, suffix, '')
+    subscribers.publish('chat', r.journal)
+  }
+  expect(state.cursor?.sequence).toBeLessThan(r.journal.cursor().sequence)
+  await r.journal.appendTombstone(textIdentity, { fence: 7 })
+  subscribers.publish('chat', r.journal)
+  expect(state.items).toEqual([])
+  const other = { ...textIdentity, uuid: 'other' }
+  for (const [baseLength, suffix] of [
+    [0, 'hello'],
+    [5, '!'],
+    [6, '?']
+  ] as const) {
+    await r.journal.appendItem(other, textBody(''), {
+      ...textOptions,
+      streamText: { operation: baseLength === 0 ? 'start' : 'append', field: 0, baseLength, suffix }
+    })
+    subscribers.publish('chat', r.journal)
+    expect(state.items).toEqual(r.journal.snapshot().items)
+    expect(state.cursor).toEqual(r.journal.cursor())
+  }
+  expect(frames.filter((event) => event.type === 'batch' && event.batch.textPatches)).toHaveLength(
+    2
+  )
+})

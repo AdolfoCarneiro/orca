@@ -70,7 +70,7 @@ export function startStructuredAgentSessionLiveRead(args: {
   // Terminal refusals stop this run’s reconnects; reopening the chat starts a new run.
   let failedFinally = false
   let unattachedSince: number | null = null
-  let opening = false
+  let openingGeneration: number | undefined
   let openGeneration = 0
   /** The open generation whose first frame has not arrived yet. */
   let openingFrameGeneration = 0
@@ -84,6 +84,7 @@ export function startStructuredAgentSessionLiveRead(args: {
       args.applyEvent(event)
       if (event.type === 'batch' && event.batch.textPatches && args.getCursor() === null) {
         openGeneration += 1
+        openingGeneration = undefined
         unsubscribe()
         loseContact()
       }
@@ -197,17 +198,16 @@ export function startStructuredAgentSessionLiveRead(args: {
     if (stopped || connected) {
       return
     }
-    if (opening) {
+    if (openingGeneration !== undefined) {
       reconnectScheduler.schedule()
       return
     }
-    opening = true
     coalescer.flush()
     if (stopped) {
-      opening = false
       return
     }
     const currentOpenGeneration = ++openGeneration
+    openingGeneration = currentOpenGeneration
     openingFrameGeneration = currentOpenGeneration
     requestReader.invalidate()
     args.onHistoryReadInvalidated()
@@ -254,8 +254,8 @@ export function startStructuredAgentSessionLiveRead(args: {
       reportReadFailure(error)
       loseContact()
     } finally {
-      if (currentOpenGeneration === openGeneration) {
-        opening = false
+      if (currentOpenGeneration === openingGeneration) {
+        openingGeneration = undefined
       }
     }
   }
