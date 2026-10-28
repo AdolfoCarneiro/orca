@@ -91,10 +91,7 @@ export function runQuickCommandInNewTab({
   const store = useAppStore.getState()
   const tab = store.createTab(worktreeId, targetGroupId, undefined, {
     quickCommandLabel: command.label,
-    pendingStartup: {
-      command: normalizeTerminalQuickCommandText(command.command),
-      startupCommandDelivery: 'shell-ready'
-    }
+    pendingStartup: { command: normalizeTerminalQuickCommandText(command.command) }
   })
 
   // Switch to terminal view like the + button; otherwise an editor keeps the new tab invisible.
