@@ -113,6 +113,9 @@ export function useEditorPanelFileContentLoader({
                 : 'The sibling file owner changed while the tab was restoring.'
             )
           }
+          if (fileReadGenerationRef.current[id] !== generation) {
+            return
+          }
           fileReadGenerationRef.current[id] = ++fileReadGenerationCounterRef.current
           setFileContents((prev) => {
             const next = { ...prev }
