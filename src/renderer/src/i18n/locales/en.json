@@ -16580,7 +16580,8 @@
           "loadFailed": "{{value0}} could not be loaded. Switch to Source to edit this file.",
           "editTooLarge": "This file is too large for {{value0}} to save changes. Use Source instead.",
           "saveBlocked": "Couldn't save the latest changes from {{value0}}.",
-          "editsHeld": "{{value0}} is sending changes too quickly; Orca applies the latest one shortly."
+          "editsHeld": "{{value0}} is sending changes too quickly; Orca applies the latest one shortly.",
+          "largeFile": "Large file — may take a moment."
         },
         "PluginBytesCustomEditorSurface": {
           "retry": "Retry",
