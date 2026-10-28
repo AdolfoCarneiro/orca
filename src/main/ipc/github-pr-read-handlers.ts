@@ -14,6 +14,8 @@ import {
 import type { Store } from '../persistence'
 import {
   assertRegisteredGitHubRepo,
+  assertRegisteredGitHubReviewThreadRepo,
+  type GitHubReviewThreadRepoArgs,
   getGitHubLocalGitOptionArgs,
   getGitHubRepoConnectionId
 } from './github-repo-routing'
@@ -155,16 +157,13 @@ export function registerGitHubPRReadHandlers(store: Store): void {
     'gh:resolveReviewThread',
     async (
       _event,
-      args: {
-        repoPath: string
-        repoId?: string | null
-        sourceContext?: TaskSourceContext | null
+      args: GitHubReviewThreadRepoArgs & {
         threadId: string
         resolve: boolean
         prRepo?: GitHubOwnerRepo | null
       }
     ) => {
-      const repo = assertRegisteredGitHubRepo(args, store)
+      const repo = assertRegisteredGitHubReviewThreadRepo(args, store)
       return resolveReviewThread(
         repo.path,
         args.threadId,

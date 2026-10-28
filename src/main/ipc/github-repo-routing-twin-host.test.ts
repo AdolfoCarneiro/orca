@@ -9,6 +9,7 @@ vi.mock('../project-runtime-git-options', () => ({
 
 import {
   assertRegisteredGitHubRepo,
+  assertRegisteredGitHubReviewThreadRepo,
   assertRegisteredPRRefreshCandidateRepo,
   validateAutomaticPRRefreshCandidate
 } from './github-repo-routing'
@@ -41,6 +42,35 @@ function candidate(overrides: Partial<GitHubPRRefreshCandidate>): GitHubPRRefres
 }
 
 describe('registered GitHub repo lookup for a repo id on two hosts', () => {
+  it('requires the explicit thread owner even if only its identical-path twin remains', () => {
+    const args = {
+      repoPath: localTwin.path,
+      repoId: localTwin.id,
+      repoOwnerExecutionHostId: 'ssh:builder' as const
+    }
+    for (const repos of [
+      [localTwin, samePathSshTwin],
+      [samePathSshTwin, localTwin]
+    ]) {
+      expect(assertRegisteredGitHubReviewThreadRepo(args, storeWith(repos))).toBe(samePathSshTwin)
+    }
+    expect(() => assertRegisteredGitHubReviewThreadRepo(args, storeWith([localTwin]))).toThrow(
+      'review thread owner does not match repository host'
+    )
+    expect(() =>
+      assertRegisteredGitHubReviewThreadRepo(
+        { ...args, repoOwnerExecutionHostId: 'runtime:' },
+        storeWith([localTwin])
+      )
+    ).toThrow('review thread owner does not match repository host')
+    expect(
+      assertRegisteredPRRefreshCandidateRepo(
+        candidate({ repoPath: localTwin.path }),
+        storeWith([localTwin])
+      )
+    ).toBe(localTwin)
+  })
+
   it("accepts the second twin's fetch by its own path", () => {
     const store = storeWith([localTwin, sshTwin])
 

@@ -9,6 +9,7 @@ import {
 import type { ChecksAgentComposerState } from './panel-state-types'
 import type { ChecksPanelAiAcknowledgementState } from './use-checks-panel-ai-acknowledgement'
 import { forgeOwnerHostIdForWorkspace } from '@/runtime/forge-credential-target'
+import { normalizeExecutionHostId } from '../../../../../shared/execution-host'
 import { toast } from 'sonner'
 import { buildResolvePullRequestConflictsPrompt } from '../SourceControl'
 import { buildPRCommentsResolutionPrompt } from '../../pr-comments-resolution-prompt'
@@ -211,11 +212,26 @@ export function useChecksPanelAiQueue(model: ChecksPanelAiQueueInput) {
     const githubTarget = githubTargetFromPr ?? githubTargetFromUrl
     // Why: resolving needs no prRepo, so a degraded PR entry that only yields a number must
     // still ack by resolving instead of failing every selected thread.
-    const githubResolveTarget =
+    const githubResolveBase =
       githubTarget ??
       (activeReview.provider === 'github' && prNumber
         ? { repoPath: repo.path, repoId: repo.id, prNumber }
         : undefined)
+    const githubOwnerHostId = normalizeExecutionHostId(
+      forgeOwnerHostIdForWorkspace(repo, activeWorktree)
+    )
+    const githubResolveTarget = githubResolveBase
+      ? { ...githubResolveBase, repoOwnerExecutionHostId: githubOwnerHostId ?? undefined }
+      : undefined
+    if (githubResolveBase && !githubOwnerHostId) {
+      toast.error(
+        translate(
+          'auto.runtime.forgeCredentialTarget.unknownHost',
+          'The machine that owns this repository is not known yet. Reconnect it and try again.'
+        )
+      )
+      return
+    }
     // Why: the ack resolves against this MR after delivery, so pin the iid now — the panel
     // may already be showing a different review by then.
     const gitlabTarget =

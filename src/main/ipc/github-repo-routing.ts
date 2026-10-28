@@ -1,5 +1,9 @@
 import { resolve } from 'node:path'
-import { getRepoExecutionHostId } from '../../shared/execution-host'
+import {
+  getRepoExecutionHostId,
+  normalizeExecutionHostId,
+  type ExecutionHostId
+} from '../../shared/execution-host'
 import type {
   GitHubPRRefreshCandidate,
   GitHubPRRefreshEnqueueResult
@@ -22,6 +26,10 @@ export type GitHubRepoScopedArgs = {
   sourceContext?: TaskSourceContext | null
 }
 
+export type GitHubReviewThreadRepoArgs = GitHubRepoScopedArgs & {
+  repoOwnerExecutionHostId?: ExecutionHostId
+}
+
 type RegisteredRepoValidationResult =
   | { kind: 'ok'; repo: Repo }
   | { kind: 'denied'; reason: PRRefreshValidationDenialReason; message: string }
@@ -32,6 +40,7 @@ type RegisteredRepoQuery = {
   /** Picks between twins (one id on two hosts); a lone row's own fields still win (they may be stale). */
   hostHint?: Parameters<typeof getRepoExecutionHostId>[0] | null
   sourceContext?: TaskSourceContext | null
+  requiredOwnerHostId?: ExecutionHostId
 }
 
 function validateRegisteredRepo(
@@ -77,6 +86,20 @@ function validateRegisteredRepo(
           message: 'Access denied: GitHub source host does not match repository host'
         }
   }
+  if (query.requiredOwnerHostId !== undefined) {
+    const hostId = normalizeExecutionHostId(query.requiredOwnerHostId)
+    const ownedRows = hostId
+      ? pathRows.filter((candidate) => getRepoExecutionHostId(candidate) === hostId)
+      : []
+    const repo = ownedRows.length === 1 ? ownedRows[0] : undefined
+    return repo
+      ? { kind: 'ok', repo }
+      : {
+          kind: 'denied',
+          reason: 'host-mismatch',
+          message: 'Access denied: review thread owner does not match repository host'
+        }
+  }
   const hintHostId = query.hostHint ? getRepoExecutionHostId(query.hostHint) : null
   const repo =
     (hintHostId
@@ -112,6 +135,16 @@ export function assertRegisteredGitHubRepo(
   store: Store
 ): Repo {
   return assertRegisteredRepo(registeredRepoQuery(args), store)
+}
+
+export function assertRegisteredGitHubReviewThreadRepo(
+  args: GitHubReviewThreadRepoArgs,
+  store: Store
+): Repo {
+  return assertRegisteredRepo(
+    { ...registeredRepoQuery(args), requiredOwnerHostId: args.repoOwnerExecutionHostId },
+    store
+  )
 }
 
 export function assertRegisteredPRRefreshCandidateRepo(

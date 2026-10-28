@@ -9,6 +9,7 @@ import type { GitHubOwnerRepo } from '../../shared/github/pull-request-types'
 import type { GitHubWorkItem, ListWorkItemsResult } from '../../shared/github/work-item-types'
 import type { GitHubCreateIssueResult } from '../../shared/issue-mutation-types'
 import type { TaskSourceContext } from '../../shared/task-source-context'
+import type { ExecutionHostId } from '../../shared/execution-host'
 import type { PreloadApi } from '../api-types'
 
 export const ghPullRequestsAndWorkItemsApi = {
@@ -163,6 +164,7 @@ export const ghPullRequestsAndWorkItemsApi = {
     repoPath: string
     repoId?: string | null
     sourceContext?: TaskSourceContext | null
+    repoOwnerExecutionHostId?: ExecutionHostId
     threadId: string
     resolve: boolean
     prRepo?: GitHubOwnerRepo | null

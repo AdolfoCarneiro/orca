@@ -1,6 +1,7 @@
 import type { AppStarSource } from '../../shared/gh-star-source'
 import type { GhAuthDiagnostic } from '../../shared/github/auth-types'
 import type { TaskSourceContext } from '../../shared/task-source-context'
+import type { ExecutionHostId } from '../../shared/execution-host'
 import type { PRCheckDetail, PRCheckRunDetails } from '../../shared/github/check-types'
 import type {
   GitHubCommentResult,
@@ -116,6 +117,7 @@ export type GithubPullRequestApi = {
     repoPath: string
     repoId?: string
     sourceContext?: TaskSourceContext | null
+    repoOwnerExecutionHostId?: ExecutionHostId
     threadId: string
     resolve: boolean
     prRepo?: GitHubOwnerRepo | null

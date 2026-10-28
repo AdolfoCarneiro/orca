@@ -3,6 +3,7 @@ import type { AppState } from '../types'
 import type { GitHubSlice } from './slice-types'
 import { callRuntimeRpc } from '../../runtime/runtime-rpc-client'
 import { prCommentsCacheSuffix, sourceScopedRepoCacheKey } from './cache-identity'
+import { githubReviewThreadOwner } from './review-thread-owner'
 import {
   getGitHubRepoSourceSettings,
   getGitHubSourceTarget,
@@ -14,9 +15,11 @@ export const createReviewThreadActions = (
   get: Parameters<StateCreator<AppState>>[1]
 ): Pick<GitHubSlice, 'resolveReviewThread'> => ({
   resolveReviewThread: async (repoPath, prNumber, threadId, resolve, options) => {
-    const repo = get().repos?.find((candidate) =>
-      options?.repoId ? candidate.id === options.repoId : candidate.path === repoPath
-    )
+    const owner = githubReviewThreadOwner(get(), repoPath, options)
+    if (!owner.ok) {
+      return false
+    }
+    const { repo } = owner
     const repoId = options?.repoId ?? repo?.id
     const requestSettings = getGitHubRepoSourceSettings(get(), repo, options?.sourceContext)
     const cacheKey = sourceScopedRepoCacheKey(
@@ -28,6 +31,13 @@ export const createReviewThreadActions = (
       repo?.executionHostId,
       options?.sourceContext,
       repo !== undefined
+    )
+    const requestContext = getGitHubWorkItemRequestContext(
+      get(),
+      getGitHubSourceTarget(get(), repo, options?.sourceContext),
+      repoId ?? repoPath,
+      repoPath,
+      options?.sourceContext
     )
 
     // Optimistic toggle of isResolved for this thread; reverts if the API call fails.
@@ -44,13 +54,6 @@ export const createReviewThreadActions = (
       }))
     }
 
-    const requestContext = getGitHubWorkItemRequestContext(
-      get(),
-      getGitHubSourceTarget(get(), repo, options?.sourceContext),
-      repoId ?? repoPath,
-      repoPath,
-      options?.sourceContext
-    )
     let ok = false
     try {
       ok =
@@ -72,7 +75,10 @@ export const createReviewThreadActions = (
               threadId,
               resolve,
               prRepo: options?.prRepo ?? null,
-              sourceContext: options?.sourceContext
+              sourceContext: options?.sourceContext,
+              ...(options?.repoOwnerExecutionHostId
+                ? { repoOwnerExecutionHostId: options.repoOwnerExecutionHostId }
+                : {})
             })
     } catch (err) {
       console.error('Failed to update review thread:', err)

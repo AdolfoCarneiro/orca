@@ -41,6 +41,7 @@ import type {
   WorkItemsCacheSources
 } from './cache-model'
 import type { PRRefreshState, PRRefreshStateClearToken } from './pr-refresh-state'
+import type { GitHubReviewThreadOwnerOptions } from './review-thread-owner'
 
 export type GitHubSlice = {
   prCache: Record<string, CacheEntry<PRInfo>>
@@ -126,7 +127,8 @@ export type GitHubSlice = {
     prNumber: number,
     threadId: string,
     resolve: boolean,
-    options?: RepoScopedFetchOptions & { prRepo?: GitHubOwnerRepo | null }
+    options?: RepoScopedFetchOptions &
+      GitHubReviewThreadOwnerOptions & { prRepo?: GitHubOwnerRepo | null }
   ) => Promise<boolean>
   initGitHubCache: () => Promise<void>
   refreshAllGitHub: () => void

@@ -3,7 +3,9 @@ import { useAgentDetectionTargetForWorktree } from '@/hooks/useAgentDetectionTar
 import { resolveChecksActionAgent } from '@/lib/source-control-agent-picker'
 import type { SourceControlActionId } from '../../../../../shared/source-control-ai-actions'
 import { forgeOwnerHostIdForWorkspace } from '@/runtime/forge-credential-target'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { normalizeExecutionHostId } from '../../../../../shared/execution-host'
+import { githubReviewThreadOwner } from '@/store/github/review-thread-owner'
 import { toast } from 'sonner'
 import {
   markPRCommentThreadResolved,
@@ -68,6 +70,16 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
     sourceControlAiActionsVisible,
     commentResolutionLaunchAcceptedRef
   } = model
+  const selectedOwnerHostId = repo
+    ? normalizeExecutionHostId(forgeOwnerHostIdForWorkspace(repo, activeWorktree))
+    : null
+  const currentOwnerHostId = useRef(selectedOwnerHostId)
+  useLayoutEffect(() => {
+    currentOwnerHostId.current = selectedOwnerHostId
+    return () => {
+      currentOwnerHostId.current = null
+    }
+  }, [selectedOwnerHostId])
   const handleResolve = useCallback(
     async (
       threadId: string,
@@ -104,6 +116,34 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
       if (!repo || !prNumber) {
         return false
       }
+      const notifyGitHubFailure = (): void => {
+        if (notifyOnFailure) {
+          toast.error(
+            translate(
+              'auto.components.right.sidebar.ChecksPanel.5788d1059d',
+              'Could not update review thread. Check the GitHub API budget.'
+            )
+          )
+        }
+      }
+      const ownerOptions = {
+        repoId: repo.id,
+        repoOwnerExecutionHostId: selectedOwnerHostId ?? undefined
+      }
+      if (
+        !selectedOwnerHostId ||
+        !githubReviewThreadOwner(useAppStore.getState(), repo.path, ownerOptions).ok
+      ) {
+        if (notifyOnFailure) {
+          toast.error(
+            translate(
+              'auto.runtime.forgeCredentialTarget.unknownHost',
+              'The machine that owns this repository is not known yet. Reconnect it and try again.'
+            )
+          )
+        }
+        return false
+      }
       const requestKey = checksPanelAsyncResultKey(
         prCacheKey,
         branch,
@@ -117,22 +157,17 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
         return markPRCommentThreadResolved(prev, threadId, resolve)
       })
       const ok = await resolveReviewThread(repo.path, prNumber, threadId, resolve, {
-        repoId: repo.id,
+        ...ownerOptions,
         prRepo: pr?.prRepo
       })
-      if (!isCurrentAsyncResult(requestKey)) {
-        return ok
-      }
       if (!ok) {
-        rollbackThread(previousThreadComments)
-        if (notifyOnFailure) {
-          toast.error(
-            translate(
-              'auto.components.right.sidebar.ChecksPanel.5788d1059d',
-              'Could not update review thread. Check the GitHub API budget.'
-            )
-          )
+        if (
+          isCurrentAsyncResult(requestKey) &&
+          currentOwnerHostId.current === selectedOwnerHostId
+        ) {
+          rollbackThread(previousThreadComments)
         }
+        notifyGitHubFailure()
       }
       return ok
     },
@@ -147,7 +182,8 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
       repo,
       resolveReviewThread,
       activeWorktree,
-      setComments
+      setComments,
+      selectedOwnerHostId
     ]
   )
 

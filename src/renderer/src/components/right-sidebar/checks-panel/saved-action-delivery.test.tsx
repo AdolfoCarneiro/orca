@@ -313,7 +313,7 @@ it('owns detection single-flight, returns failed delivery to the editor, then co
     42,
     'thread-42',
     true,
-    expect.objectContaining({ repoId: 'repo-1' })
+    expect.objectContaining({ repoId: 'repo-1', repoOwnerExecutionHostId: 'runtime:alpha' })
   )
   expect(takePendingPRCommentAiAck()).toBeNull()
 })

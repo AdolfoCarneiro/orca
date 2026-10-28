@@ -1,4 +1,5 @@
 import type { HostedReviewInfo } from '../../../../shared/hosted-review'
+import type { GitHubReviewThreadOwnerOptions } from '@/store/github/review-thread-owner'
 import type {
   PendingPRCommentAiAckGithubResolveTarget,
   PendingPRCommentAiAckGitlabTarget
@@ -16,7 +17,7 @@ export type SnapshottedThreadResolverDeps = {
     prNumber: number,
     threadId: string,
     resolve: boolean,
-    options: {
+    options: GitHubReviewThreadOwnerOptions & {
       repoId: string
       prRepo?: PendingPRCommentAiAckGithubResolveTarget['prRepo']
     }
@@ -77,7 +78,11 @@ async function resolveOnHost(
     const target = deps.githubResolveTarget
     const ok = await deps.resolveReviewThread(target.repoPath, target.prNumber, threadId, true, {
       repoId: target.repoId,
-      prRepo: target.prRepo
+      prRepo: target.prRepo,
+      ...(target.repoOwnerExecutionHostId
+        ? { repoOwnerExecutionHostId: target.repoOwnerExecutionHostId }
+        : {}),
+      ...(target.sourceContext ? { sourceContext: target.sourceContext } : {})
     })
     return { ok }
   } catch (err) {
