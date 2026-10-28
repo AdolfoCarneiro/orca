@@ -209,7 +209,13 @@ export function useChecksPanelAiQueue(model: ChecksPanelAiQueueInput) {
         }
       }
     })()
-    const githubTarget = githubTargetFromPr ?? githubTargetFromUrl
+    const githubTargetBase = githubTargetFromPr ?? githubTargetFromUrl
+    const githubOwnerHostId = normalizeExecutionHostId(
+      forgeOwnerHostIdForWorkspace(repo, activeWorktree)
+    )
+    const githubTarget = githubTargetBase
+      ? { ...githubTargetBase, repoOwnerExecutionHostId: githubOwnerHostId ?? undefined }
+      : undefined
     // Why: resolving needs no prRepo, so a degraded PR entry that only yields a number must
     // still ack by resolving instead of failing every selected thread.
     const githubResolveBase =
@@ -217,9 +223,6 @@ export function useChecksPanelAiQueue(model: ChecksPanelAiQueueInput) {
       (activeReview.provider === 'github' && prNumber
         ? { repoPath: repo.path, repoId: repo.id, prNumber }
         : undefined)
-    const githubOwnerHostId = normalizeExecutionHostId(
-      forgeOwnerHostIdForWorkspace(repo, activeWorktree)
-    )
     const githubResolveTarget = githubResolveBase
       ? { ...githubResolveBase, repoOwnerExecutionHostId: githubOwnerHostId ?? undefined }
       : undefined

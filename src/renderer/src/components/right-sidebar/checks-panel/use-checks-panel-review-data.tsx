@@ -3,6 +3,7 @@ import { checksPanelAsyncResultKey } from '../checks-panel-async-result-key'
 import { loadGitLabJobLogDetails } from '@/runtime/gitlab-job-trace-client'
 import { checksPanelLoadErrorMessage } from './checks-panel-forge-owner'
 import { forgeOwnerHostIdForWorkspace } from '@/runtime/forge-credential-target'
+import { normalizeExecutionHostId } from '../../../../../shared/execution-host'
 import type { PRCheckDetail } from '../../../../../shared/github/check-types'
 import type { PRInfo } from '../../../../../shared/github/pull-request-types'
 
@@ -47,6 +48,9 @@ export function useChecksPanelReviewData(model: ChecksPanelReviewDataInput) {
     setCommentsError,
     setCommentsLoading
   } = model
+  const repoOwnerExecutionHostId = repo
+    ? normalizeExecutionHostId(forgeOwnerHostIdForWorkspace(repo, activeWorktree))
+    : null
   const fetchComments = useCallback(
     async ({
       force = false,
@@ -59,7 +63,7 @@ export function useChecksPanelReviewData(model: ChecksPanelReviewDataInput) {
     } = {}) => {
       const targetPRNumber = prNumberOverride ?? prNumber
       const targetPRRepo = prRepoOverride ?? pr?.prRepo
-      if (!repo || !targetPRNumber) {
+      if (!repo || !targetPRNumber || !repoOwnerExecutionHostId) {
         return
       }
       setCommentsLoading(true)
@@ -74,7 +78,8 @@ export function useChecksPanelReviewData(model: ChecksPanelReviewDataInput) {
         const result = await fetchPRComments(repo.path, targetPRNumber, {
           force,
           repoId: repo.id,
-          prRepo: targetPRRepo
+          prRepo: targetPRRepo,
+          repoOwnerExecutionHostId
         })
         if (!isCurrentAsyncResult(requestKey)) {
           return
@@ -105,6 +110,7 @@ export function useChecksPanelReviewData(model: ChecksPanelReviewDataInput) {
     },
     [
       repo,
+      repoOwnerExecutionHostId,
       prNumber,
       pr?.headSha,
       pr?.prRepo,
@@ -155,7 +161,7 @@ export function useChecksPanelReviewData(model: ChecksPanelReviewDataInput) {
     if (activeGitLabReview) {
       return
     }
-    if (!repo || !prNumber || !isPanelVisible) {
+    if (!repo || !prNumber || !isPanelVisible || !repoOwnerExecutionHostId) {
       setComments([])
       return
     }
@@ -168,7 +174,11 @@ export function useChecksPanelReviewData(model: ChecksPanelReviewDataInput) {
       pr?.headSha
     )
     setCommentsLoading(true)
-    void fetchPRComments(repo.path, prNumber, { repoId: repo.id, prRepo: pr?.prRepo }).then(
+    void fetchPRComments(repo.path, prNumber, {
+      repoId: repo.id,
+      prRepo: pr?.prRepo,
+      repoOwnerExecutionHostId
+    }).then(
       (result) => {
         if (!cancelled && isCurrentAsyncResult(requestKey)) {
           setComments(result)
@@ -188,6 +198,7 @@ export function useChecksPanelReviewData(model: ChecksPanelReviewDataInput) {
   }, [
     activeGitLabReview,
     repo,
+    repoOwnerExecutionHostId,
     prNumber,
     pr?.headSha,
     pr?.prRepo,

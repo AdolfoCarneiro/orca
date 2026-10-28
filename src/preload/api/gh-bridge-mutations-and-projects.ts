@@ -8,6 +8,7 @@ import type {
   GhAuthDiagnostic
 } from '../../shared/github/auth-types'
 import type { TaskSourceContext } from '../../shared/task-source-context'
+import type { ExecutionHostId } from '../../shared/execution-host'
 import type {
   GetProjectViewTableResult,
   GitHubProjectCommentMutationResult,
@@ -99,6 +100,7 @@ export const ghMutationsAndProjectsApi = {
     repoPath: string
     repoId?: string | null
     sourceContext?: TaskSourceContext | null
+    repoOwnerExecutionHostId?: ExecutionHostId
     number: number
     body: string
     type?: 'issue' | 'pr'

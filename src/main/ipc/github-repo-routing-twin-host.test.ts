@@ -9,7 +9,7 @@ vi.mock('../project-runtime-git-options', () => ({
 
 import {
   assertRegisteredGitHubRepo,
-  assertRegisteredGitHubReviewThreadRepo,
+  assertRegisteredGitHubPRCommentRepo,
   assertRegisteredPRRefreshCandidateRepo,
   validateAutomaticPRRefreshCandidate
 } from './github-repo-routing'
@@ -52,17 +52,17 @@ describe('registered GitHub repo lookup for a repo id on two hosts', () => {
       [localTwin, samePathSshTwin],
       [samePathSshTwin, localTwin]
     ]) {
-      expect(assertRegisteredGitHubReviewThreadRepo(args, storeWith(repos))).toBe(samePathSshTwin)
+      expect(assertRegisteredGitHubPRCommentRepo(args, storeWith(repos))).toBe(samePathSshTwin)
     }
-    expect(() => assertRegisteredGitHubReviewThreadRepo(args, storeWith([localTwin]))).toThrow(
-      'review thread owner does not match repository host'
+    expect(() => assertRegisteredGitHubPRCommentRepo(args, storeWith([localTwin]))).toThrow(
+      'PR comment owner does not match repository host'
     )
     expect(() =>
-      assertRegisteredGitHubReviewThreadRepo(
+      assertRegisteredGitHubPRCommentRepo(
         { ...args, repoOwnerExecutionHostId: 'runtime:' },
         storeWith([localTwin])
       )
-    ).toThrow('review thread owner does not match repository host')
+    ).toThrow('PR comment owner does not match repository host')
     expect(
       assertRegisteredPRRefreshCandidateRepo(
         candidate({ repoPath: localTwin.path }),

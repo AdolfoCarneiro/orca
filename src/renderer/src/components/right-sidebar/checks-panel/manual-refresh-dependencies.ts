@@ -6,6 +6,7 @@ import type { ChecksPanelComposerState } from './use-checks-panel-composer-state
 export type ChecksPanelManualRefreshInput = Pick<
   ChecksPanelControllerState,
   | 'activeConnectionId'
+  | 'activeWorktree'
   | 'activeWorktreeId'
   | 'activeWorktreePath'
   | 'activeWorktreePushTarget'

@@ -29,6 +29,7 @@ import type {
   UpdatePullRequestBySlugArgs
 } from '../../shared/github/project-request-types'
 import type { TaskSourceContext } from '../../shared/task-source-context'
+import type { ExecutionHostId } from '../../shared/execution-host'
 import type { GitHubCommentResult } from '../../shared/github/comment-types'
 import type {
   GitHubAssignableUser,
@@ -113,6 +114,7 @@ export type GithubWorkItemApi = {
   ) => Promise<{ ok: true } | { ok: false; error: string }>
   addIssueComment: (
     args: GitHubRepoSelectorArgs & {
+      repoOwnerExecutionHostId?: ExecutionHostId
       number: number
       body: string
       /** Keep PR and issue cache invalidation separate when their numbers match. */

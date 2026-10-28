@@ -29,6 +29,67 @@ describe('registerGitHubHandlers', () => {
 
   beforeEach(harness.reset)
 
+  it('validates optional PR comment owners for reads and PR posts while preserving issue routing', async () => {
+    const local = harness.repos[0]
+    const remote = { ...local, connectionId: 'builder' }
+    harness.repos = [local, remote]
+    mocks.client.getPRComments.mockResolvedValue([])
+    mocks.client.addIssueComment.mockResolvedValue({ ok: false, error: 'stub' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the fixture implements all repo/settings reads used by these handlers.
+    registerGitHubHandlers(store as never, stats as never)
+    const args = { repoPath: local.path, repoId: local.id, repoOwnerExecutionHostId: 'ssh:builder' }
+    await handlers['gh:prComments'](null, { ...args, prNumber: 12 })
+    await handlers['gh:addIssueComment'](null, {
+      ...args,
+      number: 12,
+      body: 'PR reply',
+      type: 'pr'
+    })
+    expect(mocks.client.getPRComments).toHaveBeenCalledWith(
+      local.path,
+      12,
+      { noCache: undefined, prRepo: null },
+      'builder'
+    )
+    expect(mocks.client.addIssueComment).toHaveBeenLastCalledWith(
+      local.path,
+      12,
+      'PR reply',
+      'builder',
+      null,
+      undefined,
+      undefined
+    )
+    harness.repos = [local]
+    const reads = mocks.client.getPRComments.mock.calls.length
+    const posts = mocks.client.addIssueComment.mock.calls.length
+    expect(() => handlers['gh:prComments'](null, { ...args, prNumber: 12 })).toThrow(
+      'PR comment owner does not match repository host'
+    )
+    await expect(
+      handlers['gh:addIssueComment'](null, { ...args, number: 12, body: 'PR reply', type: 'pr' })
+    ).rejects.toThrow('PR comment owner does not match repository host')
+    expect(mocks.client.getPRComments).toHaveBeenCalledTimes(reads)
+    expect(mocks.client.addIssueComment).toHaveBeenCalledTimes(posts)
+    await handlers['gh:addIssueComment'](null, {
+      ...args,
+      number: 12,
+      body: 'Issue reply',
+      type: 'issue'
+    })
+    expect(mocks.client.addIssueComment).toHaveBeenLastCalledWith(
+      local.path,
+      12,
+      'Issue reply',
+      null,
+      null,
+      undefined,
+      undefined
+    )
+    await handlers['gh:prComments'](null, { repoPath: local.path, prNumber: 12 })
+    expect(mocks.client.getPRComments).toHaveBeenCalledTimes(reads + 1)
+  })
+
   it('drops the error field from listIssues envelope at the IPC boundary', async () => {
     // Preserve legacy gh:listIssues arrays; only gh:listWorkItems exposes the richer items/error envelope.
     listIssuesMock.mockResolvedValue({

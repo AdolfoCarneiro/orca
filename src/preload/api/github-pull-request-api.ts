@@ -100,6 +100,7 @@ export type GithubPullRequestApi = {
     repoPath: string
     repoId?: string
     sourceContext?: TaskSourceContext | null
+    repoOwnerExecutionHostId?: ExecutionHostId
     prNumber: number
     prRepo?: GitHubOwnerRepo | null
     noCache?: boolean

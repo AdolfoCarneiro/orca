@@ -1,4 +1,5 @@
 import { forgeOwnerHostIdForWorkspace } from '@/runtime/forge-credential-target'
+import { fetchChecksPanelPRComments } from './checks-panel-pr-comment-read'
 import React, { useCallback } from 'react'
 import { toast } from 'sonner'
 import { refreshHostedReviewCard } from '@/store/slices/hosted-review-card-refresh'
@@ -242,11 +243,7 @@ export function useChecksPanelCheckAndReviewActions(model: ChecksPanelCheckAndRe
                 setChecksLoading(false)
               }
             }),
-          fetchPRComments(repo.path, refreshedPR.number, {
-            force: true,
-            repoId: repo.id,
-            prRepo: refreshedPR.prRepo
-          })
+          fetchChecksPanelPRComments({ repo, activeWorktree, fetchPRComments }, refreshedPR)
             .then(
               (result) => {
                 if (isCurrentAsyncResult(refreshedRequestKey)) {
@@ -288,6 +285,7 @@ export function useChecksPanelCheckAndReviewActions(model: ChecksPanelCheckAndRe
       }
     },
     [
+      activeWorktree,
       activeWorktreeId,
       branch,
       fetchHostedReviewForBranch,

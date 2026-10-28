@@ -6,17 +6,18 @@ import type { AppState } from '../types'
 import { findRepoForHost } from '../slices/repo-host-identity'
 import { normalizeRuntimePathForComparison } from '../../../../shared/cross-platform-path'
 
-export type GitHubReviewThreadOwnerOptions = {
+export type GitHubPRCommentOwnerOptions = {
   repoId?: string
   sourceContext?: TaskSourceContext | null
   /** A real GitHub sourceContext takes precedence over this selected repo owner. */
   repoOwnerExecutionHostId?: ExecutionHostId
 }
 
-export function githubReviewThreadOwner(
+export function githubPRCommentOwner(
   state: Pick<AppState, 'repos'>,
   repoPath: string,
-  options?: GitHubReviewThreadOwnerOptions
+  options?: GitHubPRCommentOwnerOptions,
+  policy: { allowUnregisteredRepo?: boolean } = {}
 ): { ok: true; repo: Repo | undefined } | { ok: false } {
   const candidates = (state.repos ?? []).filter(
     (repo) => !options?.repoId || repo.id === options.repoId
@@ -44,6 +45,10 @@ export function githubReviewThreadOwner(
     }
     const repo = findRepoForHost(ownedRows, repoId, { hostId })
     return ownedRows.length === 1 && repo ? { ok: true, repo } : { ok: false }
+  }
+  // Legacy reads/posts may arrive before their repo catalog is hydrated.
+  if (candidates.length === 0 && policy.allowUnregisteredRepo) {
+    return { ok: true, repo: undefined }
   }
   return rows.length === 1 ? { ok: true, repo: rows[0] } : { ok: false }
 }

@@ -3,7 +3,7 @@ import type { AppState } from '../types'
 import type { GitHubSlice } from './slice-types'
 import { callRuntimeRpc } from '../../runtime/runtime-rpc-client'
 import { prCommentsCacheSuffix, sourceScopedRepoCacheKey } from './cache-identity'
-import { githubReviewThreadOwner } from './review-thread-owner'
+import { githubPRCommentOwner } from './pr-comment-owner'
 import {
   getGitHubRepoSourceSettings,
   getGitHubSourceTarget,
@@ -15,7 +15,7 @@ export const createReviewThreadActions = (
   get: Parameters<StateCreator<AppState>>[1]
 ): Pick<GitHubSlice, 'resolveReviewThread'> => ({
   resolveReviewThread: async (repoPath, prNumber, threadId, resolve, options) => {
-    const owner = githubReviewThreadOwner(get(), repoPath, options)
+    const owner = githubPRCommentOwner(get(), repoPath, options)
     if (!owner.ok) {
       return false
     }

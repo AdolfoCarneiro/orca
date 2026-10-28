@@ -14,8 +14,8 @@ import {
 import type { Store } from '../persistence'
 import {
   assertRegisteredGitHubRepo,
-  assertRegisteredGitHubReviewThreadRepo,
-  type GitHubReviewThreadRepoArgs,
+  assertRegisteredGitHubPRCommentRepo,
+  type GitHubPRCommentRepoArgs,
   getGitHubLocalGitOptionArgs,
   getGitHubRepoConnectionId
 } from './github-repo-routing'
@@ -103,16 +103,13 @@ export function registerGitHubPRReadHandlers(store: Store): void {
     'gh:prComments',
     (
       _event,
-      args: {
-        repoPath: string
-        repoId?: string | null
-        sourceContext?: TaskSourceContext | null
+      args: GitHubPRCommentRepoArgs & {
         prNumber: number
         prRepo?: GitHubOwnerRepo | null
         noCache?: boolean
       }
     ) => {
-      const repo = assertRegisteredGitHubRepo(args, store)
+      const repo = assertRegisteredGitHubPRCommentRepo(args, store)
       return getPRComments(
         repo.path,
         args.prNumber,
@@ -157,13 +154,13 @@ export function registerGitHubPRReadHandlers(store: Store): void {
     'gh:resolveReviewThread',
     async (
       _event,
-      args: GitHubReviewThreadRepoArgs & {
+      args: GitHubPRCommentRepoArgs & {
         threadId: string
         resolve: boolean
         prRepo?: GitHubOwnerRepo | null
       }
     ) => {
-      const repo = assertRegisteredGitHubReviewThreadRepo(args, store)
+      const repo = assertRegisteredGitHubPRCommentRepo(args, store)
       return resolveReviewThread(
         repo.path,
         args.threadId,

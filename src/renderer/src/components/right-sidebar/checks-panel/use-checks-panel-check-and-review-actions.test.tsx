@@ -193,6 +193,47 @@ function makeInput(overrides: Partial<Input> = {}): Input {
   } as Input
 }
 
+it('reads replacement GitHub PR comments on the captured workspace credential owner', async () => {
+  const pr: NonNullable<Input['pr']> = {
+    number: 43,
+    title: 'Replacement',
+    state: 'open',
+    url: 'https://github.com/acme/widgets/pull/43',
+    checksStatus: 'pending',
+    updatedAt: '2026-10-28T00:00:00Z',
+    mergeable: 'UNKNOWN',
+    headSha: 'replacement-head',
+    prRepo: { owner: 'acme', repo: 'widgets' }
+  }
+  const openModal = vi.fn()
+  const input = makeInput({
+    activeReview: {
+      provider: 'github',
+      number: 42,
+      title: 'Old PR',
+      state: 'open',
+      url: 'https://github.com/acme/widgets/pull/42',
+      status: 'pending',
+      updatedAt: '2026-10-28T00:00:00Z',
+      mergeable: 'UNKNOWN'
+    },
+    linkedGitLabMR: null,
+    fetchPRForBranch: vi.fn().mockResolvedValue(pr),
+    fetchPRChecks: vi.fn().mockResolvedValue([]),
+    fetchPRComments: vi.fn().mockResolvedValue([]),
+    openModal
+  })
+  const { result } = renderHook(() => useChecksPanelCheckAndReviewActions(input))
+  act(() => result.current.handleLinkAnotherReview())
+  await act(async () => openModal.mock.calls[0]?.[1].afterSave({ updates: { linkedPR: 43 } }))
+  expect(input.fetchPRComments).toHaveBeenCalledWith('/workspace/repo', 43, {
+    force: true,
+    repoId: 'repo-1',
+    prRepo: pr.prRepo,
+    repoOwnerExecutionHostId: 'ssh:ssh-1'
+  })
+})
+
 describe('useChecksPanelCheckAndReviewActions GitLab links', () => {
   it('unlinks the displayed MR through its provider slot', () => {
     const input = makeInput()

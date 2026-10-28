@@ -26,7 +26,7 @@ export type GitHubRepoScopedArgs = {
   sourceContext?: TaskSourceContext | null
 }
 
-export type GitHubReviewThreadRepoArgs = GitHubRepoScopedArgs & {
+export type GitHubPRCommentRepoArgs = GitHubRepoScopedArgs & {
   repoOwnerExecutionHostId?: ExecutionHostId
 }
 
@@ -97,7 +97,7 @@ function validateRegisteredRepo(
       : {
           kind: 'denied',
           reason: 'host-mismatch',
-          message: 'Access denied: review thread owner does not match repository host'
+          message: 'Access denied: PR comment owner does not match repository host'
         }
   }
   const hintHostId = query.hostHint ? getRepoExecutionHostId(query.hostHint) : null
@@ -137,8 +137,8 @@ export function assertRegisteredGitHubRepo(
   return assertRegisteredRepo(registeredRepoQuery(args), store)
 }
 
-export function assertRegisteredGitHubReviewThreadRepo(
-  args: GitHubReviewThreadRepoArgs,
+export function assertRegisteredGitHubPRCommentRepo(
+  args: GitHubPRCommentRepoArgs,
   store: Store
 ): Repo {
   return assertRegisteredRepo(

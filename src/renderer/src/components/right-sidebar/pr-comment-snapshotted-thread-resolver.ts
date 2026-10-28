@@ -1,5 +1,5 @@
 import type { HostedReviewInfo } from '../../../../shared/hosted-review'
-import type { GitHubReviewThreadOwnerOptions } from '@/store/github/review-thread-owner'
+import type { GitHubPRCommentOwnerOptions } from '@/store/github/pr-comment-owner'
 import type {
   PendingPRCommentAiAckGithubResolveTarget,
   PendingPRCommentAiAckGitlabTarget
@@ -17,7 +17,7 @@ export type SnapshottedThreadResolverDeps = {
     prNumber: number,
     threadId: string,
     resolve: boolean,
-    options: GitHubReviewThreadOwnerOptions & {
+    options: GitHubPRCommentOwnerOptions & {
       repoId: string
       prRepo?: PendingPRCommentAiAckGithubResolveTarget['prRepo']
     }

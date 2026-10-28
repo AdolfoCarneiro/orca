@@ -5,7 +5,7 @@ import type { SourceControlActionId } from '../../../../../shared/source-control
 import { forgeOwnerHostIdForWorkspace } from '@/runtime/forge-credential-target'
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { normalizeExecutionHostId } from '../../../../../shared/execution-host'
-import { githubReviewThreadOwner } from '@/store/github/review-thread-owner'
+import { githubPRCommentOwner } from '@/store/github/pr-comment-owner'
 import { toast } from 'sonner'
 import {
   markPRCommentThreadResolved,
@@ -132,7 +132,7 @@ export function useChecksPanelCommentResolution(model: ChecksPanelCommentResolut
       }
       if (
         !selectedOwnerHostId ||
-        !githubReviewThreadOwner(useAppStore.getState(), repo.path, ownerOptions).ok
+        !githubPRCommentOwner(useAppStore.getState(), repo.path, ownerOptions).ok
       ) {
         if (notifyOnFailure) {
           toast.error(

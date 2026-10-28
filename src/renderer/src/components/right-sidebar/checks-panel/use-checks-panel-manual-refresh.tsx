@@ -5,6 +5,7 @@ import { refreshHostedReviewCard } from '@/store/slices/hosted-review-card-refre
 import { getRuntimeGitStatus } from '@/runtime/runtime-git-status-client'
 import { getRuntimeGitUpstreamStatus } from '@/runtime/runtime-git-sync-client'
 import { resolveWorktreeGitCopyNow } from '@/lib/worktree-git-copy'
+import { refreshChecksPanelPRComments } from './checks-panel-pr-comment-read'
 import {
   hasChecksPanelGitStatusBranchChanged,
   readChecksPanelRefreshGitIdentitySnapshot,
@@ -19,6 +20,7 @@ import type { ChecksPanelManualRefreshInput } from './manual-refresh-dependencie
 export function useChecksPanelManualRefresh(model: ChecksPanelManualRefreshInput) {
   const {
     activeConnectionId,
+    activeWorktree,
     activeGitLabReview,
     activeWorktreeId,
     activeWorktreePath,
@@ -295,24 +297,16 @@ export function useChecksPanelManualRefresh(model: ChecksPanelManualRefreshInput
           }
         )
         setChecksLoading(true)
-        setCommentsLoading(true)
-        const refreshedComments = fetchPRComments(repo.path, refreshedPR.number, {
-          force: true,
-          repoId: repo.id,
-          prRepo: refreshedPR.prRepo
-        }).then(
-          (result) => {
-            if (isCurrentRequest() && isCurrentAsyncResult(prRequestKey)) {
-              setComments(result)
-            }
+        const refreshedComments = refreshChecksPanelPRComments(
+          {
+            repo,
+            activeWorktree,
+            fetchPRComments,
+            setComments,
+            setCommentsLoading,
+            isCurrent: () => isCurrentRequest() && isCurrentAsyncResult(prRequestKey)
           },
-          (err) => {
-            if (!isCurrentRequest() || !isCurrentAsyncResult(prRequestKey)) {
-              return
-            }
-            console.warn('Failed to fetch PR comments:', err)
-            setComments([])
-          }
+          refreshedPR
         )
         await Promise.all([
           refreshedChecks.finally(() => {
@@ -320,11 +314,7 @@ export function useChecksPanelManualRefresh(model: ChecksPanelManualRefreshInput
               setChecksLoading(false)
             }
           }),
-          refreshedComments.finally(() => {
-            if (isCurrentRequest() && isCurrentAsyncResult(prRequestKey)) {
-              setCommentsLoading(false)
-            }
-          })
+          refreshedComments
         ])
       } else if (isCurrentRequest()) {
         setChecks([])
@@ -361,6 +351,7 @@ export function useChecksPanelManualRefresh(model: ChecksPanelManualRefreshInput
     repo,
     branch,
     activeConnectionId,
+    activeWorktree,
     activeWorktreeId,
     activeWorktreePath,
     activeWorktreePushTarget,

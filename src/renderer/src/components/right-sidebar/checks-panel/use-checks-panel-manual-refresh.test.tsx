@@ -43,6 +43,7 @@ describe('useChecksPanelManualRefresh ordering', () => {
     })
     const input: RefreshInput = {
       activeConnectionId: null,
+      activeWorktree: null,
       activeGitLabReview: null,
       activeWorktreeId: null,
       activeWorktreePath: null,
@@ -120,6 +121,12 @@ describe('useChecksPanelManualRefresh ordering', () => {
       linkedPRNumber: null,
       fallbackPRNumber: null,
       reason: 'manual'
+    })
+    expect(input.fetchPRComments).toHaveBeenCalledWith('/workspace/repo', 42, {
+      force: true,
+      repoId: 'repo-1',
+      prRepo: refreshedPR.prRepo,
+      repoOwnerExecutionHostId: 'local'
     })
   })
 })

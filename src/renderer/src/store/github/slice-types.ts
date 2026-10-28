@@ -41,7 +41,7 @@ import type {
   WorkItemsCacheSources
 } from './cache-model'
 import type { PRRefreshState, PRRefreshStateClearToken } from './pr-refresh-state'
-import type { GitHubReviewThreadOwnerOptions } from './review-thread-owner'
+import type { GitHubPRCommentOwnerOptions } from './pr-comment-owner'
 
 export type GitHubSlice = {
   prCache: Record<string, CacheEntry<PRInfo>>
@@ -94,13 +94,15 @@ export type GitHubSlice = {
   fetchPRComments: (
     repoPath: string,
     prNumber: number,
-    options?: RepoScopedFetchOptions & { prRepo?: GitHubOwnerRepo | null }
+    options?: RepoScopedFetchOptions &
+      GitHubPRCommentOwnerOptions & { prRepo?: GitHubOwnerRepo | null }
   ) => Promise<PRComment[]>
   addPRConversationComment: (
     repoPath: string,
     prNumber: number,
     body: string,
-    options?: RepoScopedFetchOptions & { prRepo?: GitHubOwnerRepo | null }
+    options?: RepoScopedFetchOptions &
+      GitHubPRCommentOwnerOptions & { prRepo?: GitHubOwnerRepo | null }
   ) => Promise<GitHubCommentResult>
   addPRReviewCommentReply: (
     repoPath: string,
@@ -128,7 +130,7 @@ export type GitHubSlice = {
     threadId: string,
     resolve: boolean,
     options?: RepoScopedFetchOptions &
-      GitHubReviewThreadOwnerOptions & { prRepo?: GitHubOwnerRepo | null }
+      GitHubPRCommentOwnerOptions & { prRepo?: GitHubOwnerRepo | null }
   ) => Promise<boolean>
   initGitHubCache: () => Promise<void>
   refreshAllGitHub: () => void

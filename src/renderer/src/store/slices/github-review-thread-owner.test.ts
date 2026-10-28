@@ -222,3 +222,129 @@ it('keeps delayed AI resolution on its captured owner after runtime focus change
   expect(mockApi.gh.resolveReviewThread).not.toHaveBeenCalled()
   expect(onResolvedOptimistically).not.toHaveBeenCalled()
 })
+
+const conversation = { ...comments[0], id: 2, threadId: undefined, isResolved: undefined }
+const postedComment = { ...conversation, id: 3, body: 'Fixing' }
+
+it.each([false, true])(
+  'reads and posts conversation replies only through the selected owner cache (runtime first: %s)',
+  async (runtimeFirst) => {
+    const { store, localEntry } = setup(runtimeFirst ? [remote, local] : [local, remote])
+    const options = { repoId: remote.id, repoOwnerExecutionHostId: 'runtime:owner' as const }
+    runtimeEnvironmentCall.mockResolvedValueOnce({
+      id: 'rpc-read',
+      ok: true,
+      result: [conversation],
+      _meta: {}
+    })
+    await expect(store.getState().fetchPRComments(remote.path, 12, options)).resolves.toEqual([
+      conversation
+    ])
+    expect(store.getState().commentsCache[cacheKey(remote)]?.data).toEqual([conversation])
+    runtimeEnvironmentCall.mockResolvedValueOnce({
+      id: 'rpc-post',
+      ok: true,
+      result: { ok: true, comment: postedComment },
+      _meta: {}
+    })
+    await expect(
+      store.getState().addPRConversationComment(remote.path, 12, 'Fixing', options)
+    ).resolves.toEqual({ ok: true, comment: postedComment })
+    expect(
+      store.getState().commentsCache[cacheKey(remote)]?.data?.map((comment) => comment.id)
+    ).toEqual([2, 3])
+    expect(store.getState().commentsCache[cacheKey(local)]).toBe(localEntry)
+    expect(runtimeEnvironmentCall.mock.calls.map(([args]) => args)).toEqual([
+      expect.objectContaining({ selector: 'owner', method: 'github.prComments' }),
+      expect.objectContaining({ selector: 'owner', method: 'github.addIssueComment' })
+    ])
+    expect(mockApi.gh.prComments).not.toHaveBeenCalled()
+    expect(mockApi.gh.addIssueComment).not.toHaveBeenCalled()
+  }
+)
+
+it('pins local reads and conversation replies to desktop IPC despite runtime focus', async () => {
+  const { store, settings } = setup()
+  store.setState({ settings: { ...settings, activeRuntimeEnvironmentId: 'other' } })
+  mockApi.gh.prComments.mockResolvedValue([conversation])
+  mockApi.gh.addIssueComment.mockResolvedValue({ ok: true, comment: postedComment })
+  const options = { repoId: local.id, repoOwnerExecutionHostId: 'local' as const }
+  await store.getState().fetchPRComments(local.path, 12, options)
+  await store.getState().addPRConversationComment(local.path, 12, 'Fixing', options)
+  expect(mockApi.gh.prComments).toHaveBeenCalledWith(
+    expect.objectContaining({ repoOwnerExecutionHostId: 'local' })
+  )
+  expect(mockApi.gh.addIssueComment).toHaveBeenCalledWith(
+    expect.objectContaining({ type: 'pr', repoOwnerExecutionHostId: 'local' })
+  )
+  expect(
+    store.getState().commentsCache[cacheKey(local)]?.data?.map((comment) => comment.id)
+  ).toEqual([2, 3])
+  expect(store.getState().commentsCache[cacheKey(remote)]?.data).toEqual(comments)
+  expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
+})
+
+it.each([
+  { name: 'empty catalog', repos: [], path: remote.path, hostId: 'runtime:owner' as const },
+  { name: 'removed owner', repos: [local], path: remote.path, hostId: 'runtime:owner' as const },
+  {
+    name: 'ambiguous owner',
+    repos: [local, remote, { ...remote }],
+    path: remote.path,
+    hostId: 'runtime:owner' as const
+  },
+  {
+    name: 'changed path',
+    repos: [local, { ...remote, path: '/elsewhere' }],
+    path: remote.path,
+    hostId: 'runtime:owner' as const
+  },
+  { name: 'invalid owner', repos: [local, remote], path: remote.path, hostId: 'runtime:' as const }
+])(
+  'refuses read and conversation dispatch with an explicit $name before touching cache',
+  async ({ repos, path, hostId }) => {
+    const { store } = setup(repos)
+    const cache = store.getState().commentsCache
+    const options = { repoId: remote.id, repoOwnerExecutionHostId: hostId }
+    await expect(store.getState().fetchPRComments(path, 12, options)).resolves.toEqual([])
+    await expect(
+      store.getState().addPRConversationComment(path, 12, 'Fixing', options)
+    ).resolves.toMatchObject({ ok: false })
+    expect(store.getState().commentsCache).toBe(cache)
+    expect(mockApi.gh.prComments).not.toHaveBeenCalled()
+    expect(mockApi.gh.addIssueComment).not.toHaveBeenCalled()
+    expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
+  }
+)
+
+it('keeps rowless source-context reads and replies in their mapped repo and cache domain', async () => {
+  const { store } = setup([])
+  store.setState({ commentsCache: {} })
+  const options = {
+    repoId: local.id,
+    sourceContext: source,
+    repoOwnerExecutionHostId: 'local' as const
+  }
+  runtimeEnvironmentCall.mockResolvedValueOnce({
+    id: 'rpc-read',
+    ok: true,
+    result: [conversation],
+    _meta: {}
+  })
+  await store.getState().fetchPRComments(local.path, 12, options)
+  runtimeEnvironmentCall.mockResolvedValueOnce({
+    id: 'rpc-post',
+    ok: true,
+    result: { ok: true, comment: postedComment },
+    _meta: {}
+  })
+  await store.getState().addPRConversationComment(local.path, 12, 'Fixing', options)
+  const key = cacheKey(local, source)
+  expect(Object.keys(store.getState().commentsCache)).toEqual([key])
+  expect(store.getState().commentsCache[key]?.data?.map((comment) => comment.id)).toEqual([2, 3])
+  for (const [args] of runtimeEnvironmentCall.mock.calls) {
+    expect(args).toMatchObject({ selector: 'source', params: { repo: 'server-repo' } })
+  }
+  expect(mockApi.gh.prComments).not.toHaveBeenCalled()
+  expect(mockApi.gh.addIssueComment).not.toHaveBeenCalled()
+})

@@ -147,6 +147,7 @@ export const ghPullRequestsAndWorkItemsApi = {
     repoPath: string
     repoId?: string | null
     sourceContext?: TaskSourceContext | null
+    repoOwnerExecutionHostId?: ExecutionHostId
     prNumber: number
     prRepo?: GitHubOwnerRepo | null
     noCache?: boolean

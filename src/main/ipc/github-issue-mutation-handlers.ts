@@ -1,14 +1,15 @@
 import { ipcMain } from 'electron'
 import type { GitHubOwnerRepo } from '../../shared/github/pull-request-types'
 import type { GitHubIssueUpdate } from '../../shared/issue-mutation-types'
-import type { TaskSourceContext } from '../../shared/task-source-context'
 import { addIssueComment, listAssignableUsers, listLabels, updateIssue } from '../github/client'
 import type { Store } from '../persistence'
 import {
   assertRegisteredGitHubRepo,
+  assertRegisteredGitHubPRCommentRepo,
   getGitHubLocalGitOptionArgs,
   getGitHubRepoConnectionId,
-  type GitHubRepoScopedArgs
+  type GitHubRepoScopedArgs,
+  type GitHubPRCommentRepoArgs
 } from './github-repo-routing'
 import { broadcastGitHubWorkItemMutation } from './github-work-item-mutation-events'
 
@@ -53,17 +54,17 @@ export function registerGitHubIssueMutationHandlers(store: Store): void {
     'gh:addIssueComment',
     async (
       event,
-      args: {
-        repoPath: string
-        repoId?: string
-        sourceContext?: TaskSourceContext | null
+      args: GitHubPRCommentRepoArgs & {
         number: number
         body: string
         type?: 'issue' | 'pr'
         prRepo?: GitHubOwnerRepo | null
       }
     ) => {
-      const repo = assertRegisteredGitHubRepo(args, store)
+      const repo =
+        args.type === 'pr'
+          ? assertRegisteredGitHubPRCommentRepo(args, store)
+          : assertRegisteredGitHubRepo(args, store)
       if (typeof args.number !== 'number' || !Number.isInteger(args.number) || args.number < 1) {
         return { ok: false, error: 'Invalid issue number' }
       }

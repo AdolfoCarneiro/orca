@@ -189,7 +189,13 @@ export function useChecksPanelAiAcknowledgement(model: ChecksPanelAiAcknowledgem
                 body,
                 {
                   repoId: githubTarget.repoId,
-                  prRepo: githubTarget.prRepo
+                  prRepo: githubTarget.prRepo,
+                  ...(githubTarget.repoOwnerExecutionHostId
+                    ? { repoOwnerExecutionHostId: githubTarget.repoOwnerExecutionHostId }
+                    : {}),
+                  ...(githubTarget.sourceContext
+                    ? { sourceContext: githubTarget.sourceContext }
+                    : {})
                 }
               )
               if (result.ok) {

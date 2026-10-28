@@ -1,7 +1,7 @@
 import type { PRComment } from '../../../../shared/github/comment-types'
 import type { PRInfo } from '../../../../shared/github/pull-request-types'
 import type { HostedReviewInfo } from '../../../../shared/hosted-review'
-import type { GitHubReviewThreadOwnerOptions } from '@/store/github/review-thread-owner'
+import type { GitHubPRCommentOwnerOptions } from '@/store/github/pr-comment-owner'
 import { getPRCommentGroupRoot, type PRCommentGroup } from '../../../../shared/pr-comment-groups'
 import { isResolvablePRCommentGroup } from '../pr-comments-resolution-prompt'
 import {
@@ -246,7 +246,7 @@ async function postInThreadFixingReply(
 }
 
 /** Pin resolve targets at queue time; prRepo remains optional so degraded PR cache entries can still acknowledge threads. */
-export type PendingPRCommentAiAckGithubResolveTarget = GitHubReviewThreadOwnerOptions & {
+export type PendingPRCommentAiAckGithubResolveTarget = GitHubPRCommentOwnerOptions & {
   repoPath: string
   repoId: string
   prNumber: number

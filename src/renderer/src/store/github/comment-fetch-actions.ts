@@ -6,6 +6,7 @@ import { callRuntimeRpc } from '../../runtime/runtime-rpc-client'
 import { prCommentsCacheSuffix, sourceScopedRepoCacheKey } from './cache-identity'
 import { isFresh, withBoundedCacheEntry } from './cache-policy'
 import { inflightCommentsRequests } from './request-coordination'
+import { githubPRCommentOwner } from './pr-comment-owner'
 import {
   getGitHubRepoSourceSettings,
   getGitHubSourceTarget,
@@ -17,9 +18,11 @@ export const createCommentFetchActions = (
   get: Parameters<StateCreator<AppState>>[1]
 ): Pick<GitHubSlice, 'fetchPRComments'> => ({
   fetchPRComments: async (repoPath, prNumber, options): Promise<PRComment[]> => {
-    const repo = get().repos?.find((candidate) =>
-      options?.repoId ? candidate.id === options.repoId : candidate.path === repoPath
-    )
+    const owner = githubPRCommentOwner(get(), repoPath, options, { allowUnregisteredRepo: true })
+    if (!owner.ok) {
+      return []
+    }
+    const { repo } = owner
     const repoId = options?.repoId ?? repo?.id
     const requestSettings = getGitHubRepoSourceSettings(get(), repo, options?.sourceContext)
     const cacheKey = sourceScopedRepoCacheKey(
@@ -70,7 +73,10 @@ export const createCommentFetchActions = (
                 prNumber,
                 prRepo: options?.prRepo ?? null,
                 noCache: options?.force,
-                sourceContext: options?.sourceContext
+                sourceContext: options?.sourceContext,
+                ...(options?.repoOwnerExecutionHostId
+                  ? { repoOwnerExecutionHostId: options.repoOwnerExecutionHostId }
+                  : {})
               })) as PRComment[])
         set((s) => ({
           commentsCache: withBoundedCacheEntry(s.commentsCache, cacheKey, {
