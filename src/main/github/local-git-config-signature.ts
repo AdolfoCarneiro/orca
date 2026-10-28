@@ -102,8 +102,9 @@ async function readConfigPathSignature(configPath: string): Promise<string> {
 function parseIncludedConfigPaths(configText: string, baseDir: string): string[] {
   const includedPaths: string[] = []
   let inIncludeSection = false
-  for (const rawLine of configText.split(/\r?\n/)) {
-    const line = rawLine.trim()
+  const lines = configText.split(/\r?\n/).values()
+  for (const rawLine of lines) {
+    const line = rawLine.trimStart()
     if (!line || line.startsWith('#') || line.startsWith(';')) {
       continue
     }
@@ -112,12 +113,13 @@ function parseIncludedConfigPaths(configText: string, baseDir: string): string[]
       inIncludeSection = sectionName === 'include' || sectionName.startsWith('includeif ')
       continue
     }
-    if (!inIncludeSection) {
+    const assignment = line.match(/^([a-z][a-z0-9-]*)\s*=\s*(.*)$/i)
+    if (!assignment) {
       continue
     }
-    const includePath = parseIncludedConfigPath(line)
-    if (includePath) {
-      includedPaths.push(resolveIncludedConfigPath(includePath, baseDir))
+    const value = parseConfigValue(assignment[2], lines)
+    if (inIncludeSection && assignment[1].toLowerCase() === 'path' && value) {
+      includedPaths.push(resolveIncludedConfigPath(value, baseDir))
     }
   }
   return includedPaths
@@ -152,12 +154,8 @@ function parseConfigSectionName(line: string): string | null {
   return null
 }
 
-function parseIncludedConfigPath(line: string): string | null {
-  const match = line.match(/^path\s*=\s*(.+)$/i)
-  if (!match) {
-    return null
-  }
-  const rawValue = match[1]
+function parseConfigValue(firstLine: string, lines: Iterator<string>): string | null {
+  let rawValue = firstLine
   let value = ''
   let quoted = false
   let trailingWhitespace: number | null = null
@@ -165,6 +163,16 @@ function parseIncludedConfigPath(line: string): string | null {
     const char = rawValue[index]
     if (char === '\\') {
       index += 1
+      if (index === rawValue.length) {
+        trailingWhitespace = null
+        const continuation = lines.next()
+        if (continuation.done) {
+          break
+        }
+        rawValue = continuation.value
+        index = -1
+        continue
+      }
       const escaped = rawValue[index]
       switch (escaped) {
         case '\\':
@@ -195,6 +203,9 @@ function parseIncludedConfigPath(line: string): string | null {
       break
     }
     if (!quoted && /[ \t\r\v\f]/.test(char)) {
+      if (!value) {
+        continue
+      }
       trailingWhitespace ??= value.length
     } else {
       trailingWhitespace = null

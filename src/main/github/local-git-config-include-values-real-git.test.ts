@@ -32,6 +32,9 @@ type IncludePathCase = {
   includedPath: string
   value: string
   posixOnly?: boolean
+  otherIncludedPaths?: string[]
+  expectedIncludedPaths?: string[]
+  noFinalNewline?: boolean
 }
 
 const cases: IncludePathCase[] = [
@@ -154,6 +157,196 @@ const cases: IncludePathCase[] = [
     includedPath: 'includes/team.cfg  ',
     value: 'includes/team.cfg  ""',
     posixOnly: true
+  },
+  {
+    name: 'unquoted lf',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/te\\\nam.cfg'
+  },
+  {
+    name: 'quoted lf',
+    includedPath: 'includes/team.cfg',
+    value: '"includes/te\\\nam.cfg"'
+  },
+  {
+    name: 'quoted prefix then continuation',
+    includedPath: 'includes/team.cfg',
+    value: '"includes/te"\\\nam.cfg'
+  },
+  {
+    name: 'continuation then quoted suffix',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/te\\\n"am.cfg"'
+  },
+  {
+    name: 'multiple lf',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/te\\\nam\\\n.cfg'
+  },
+  {
+    name: 'repeated empty continuation',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/te\\\n\\\nam.cfg'
+  },
+  {
+    name: 'quoted multiple lf',
+    includedPath: 'includes/team.cfg',
+    value: '"includes/te\\\nam\\\n.cfg"'
+  },
+  {
+    name: 'unquoted crlf',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/te\\\r\nam.cfg'
+  },
+  {
+    name: 'quoted crlf',
+    includedPath: 'includes/team.cfg',
+    value: '"includes/te\\\r\nam.cfg"'
+  },
+  {
+    name: 'multiple crlf',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/te\\\r\nam\\\r\n.cfg'
+  },
+  {
+    name: 'unquoted continuation indent spaces',
+    includedPath: 'includes/te  am.cfg',
+    value: 'includes/te\\\n  am.cfg'
+  },
+  {
+    name: 'quoted continuation indent tab',
+    includedPath: 'includes/te\tam.cfg',
+    value: '"includes/te\\\n\tam.cfg"',
+    posixOnly: true
+  },
+  {
+    name: 'quoted hash before continuation',
+    includedPath: 'includes/te#am.cfg',
+    value: '"includes/te#\\\nam.cfg"'
+  },
+  {
+    name: 'quoted semicolon before continuation',
+    includedPath: 'includes/te;am.cfg',
+    value: '"includes/te;\\\nam.cfg"'
+  },
+  {
+    name: 'escaped quote before continuation',
+    includedPath: 'includes/te"am.cfg',
+    value: '"includes/te\\"\\\nam.cfg"',
+    posixOnly: true
+  },
+  {
+    name: 'three backslashes before newline',
+    includedPath: 'includes/te\\am.cfg',
+    value: 'includes/te\\\\\\\nam.cfg',
+    posixOnly: true
+  },
+  {
+    name: 'two backslashes end value',
+    includedPath: 'includes/team\\',
+    value: 'includes/team\\\\\n# following comment',
+    posixOnly: true
+  },
+  {
+    name: 'four backslashes end value',
+    includedPath: 'includes/team\\\\',
+    value: 'includes/team\\\\\\\\\n# following comment',
+    posixOnly: true
+  },
+  {
+    name: 'escaped literal backslash then n',
+    includedPath: 'includes/te\\nam.cfg',
+    value: 'includes/te\\\\nam.cfg',
+    posixOnly: true
+  },
+  {
+    name: 'inline comment hash does not continue',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/stable.cfg # ignored\\\n\tpath = includes/team.cfg',
+    otherIncludedPaths: ['includes/stable.cfg'],
+    expectedIncludedPaths: ['includes/stable.cfg', 'includes/team.cfg']
+  },
+  {
+    name: 'full line comment hash does not continue',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/stable.cfg\n# ignored\\\n\tpath = includes/team.cfg',
+    otherIncludedPaths: ['includes/stable.cfg'],
+    expectedIncludedPaths: ['includes/stable.cfg', 'includes/team.cfg']
+  },
+  {
+    name: 'inline comment semicolon does not continue',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/stable.cfg ; ignored\\\n\tpath = includes/team.cfg',
+    otherIncludedPaths: ['includes/stable.cfg'],
+    expectedIncludedPaths: ['includes/stable.cfg', 'includes/team.cfg']
+  },
+  {
+    name: 'full line comment semicolon does not continue',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/stable.cfg\n; ignored\\\n\tpath = includes/team.cfg',
+    otherIncludedPaths: ['includes/stable.cfg'],
+    expectedIncludedPaths: ['includes/stable.cfg', 'includes/team.cfg']
+  },
+  {
+    name: 'continued quote then comment does not continue',
+    includedPath: 'includes/team.cfg',
+    value: '"includes/sta\\\nble.cfg"# ignored\\\n\tpath = includes/team.cfg',
+    otherIncludedPaths: ['includes/stable.cfg'],
+    expectedIncludedPaths: ['includes/stable.cfg', 'includes/team.cfg']
+  },
+  {
+    name: 'continued quote first path',
+    includedPath: 'includes/stable.cfg',
+    value: '"includes/sta\\\nble.cfg"# ignored\\\n\tpath = includes/team.cfg',
+    otherIncludedPaths: ['includes/team.cfg'],
+    expectedIncludedPaths: ['includes/stable.cfg', 'includes/team.cfg']
+  },
+  {
+    name: 'spaces before continuation then blank line',
+    includedPath: 'includes/team.cfg  ',
+    value: 'includes/team.cfg  \\\n\n# following comment',
+    posixOnly: true
+  },
+  {
+    name: 'continuation then blank line',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/team.cfg\\\n\n# following comment'
+  },
+  {
+    name: 'unquoted backslash at eof',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/team.cfg\\',
+    noFinalNewline: true
+  },
+  {
+    name: 'leading value continuation skips indent',
+    includedPath: 'includes/team.cfg',
+    value: '\\\n\t  includes/team.cfg'
+  },
+  {
+    name: 'empty quote leading continuation skips indent',
+    includedPath: 'includes/team.cfg',
+    value: '"" \t \\\n\tincludes/team.cfg'
+  },
+  {
+    name: 'three backslashes in comment do not continue',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/stable.cfg # ignored\\\\\\\n\tpath = includes/team.cfg',
+    otherIncludedPaths: ['includes/stable.cfg'],
+    expectedIncludedPaths: ['includes/stable.cfg', 'includes/team.cfg']
+  },
+  {
+    name: 'escaped newline next to continuation',
+    includedPath: 'includes/te\nam.cfg',
+    value: '"includes/te\\n\\\nam.cfg"',
+    posixOnly: true
+  },
+  {
+    name: 'non path continuation must not change section',
+    includedPath: 'includes/team.cfg',
+    value: 'includes/stable.cfg\nignored = prefix\\\n[core]\npath = includes/team.cfg',
+    otherIncludedPaths: ['includes/stable.cfg'],
+    expectedIncludedPaths: ['includes/stable.cfg', 'includes/team.cfg']
   }
 ]
 
@@ -201,9 +394,20 @@ describe.skipIf(Boolean(process.env.ORCA_GIT_COMPAT_IMAGE))(
 
     it.each(cases.filter((testCase) => process.platform !== 'win32' || !testCase.posixOnly))(
       'refreshes signed remote caches after an include changes: $name',
-      async ({ includedPath, value }) => {
+      async ({
+        includedPath,
+        value,
+        otherIncludedPaths,
+        expectedIncludedPaths,
+        noFinalNewline
+      }) => {
         const repo = await mkdtemp(join(root, 'repo-'))
         await git.exec(['init', '-q', repo])
+        for (const otherPath of otherIncludedPaths ?? []) {
+          const stableConfig = join(repo, '.git', otherPath)
+          await mkdir(dirname(stableConfig), { recursive: true })
+          await writeFile(stableConfig, '# stable included config\n')
+        }
         const includedConfig = join(repo, '.git', includedPath)
         await mkdir(dirname(includedConfig), { recursive: true })
         await writeFile(
@@ -211,12 +415,17 @@ describe.skipIf(Boolean(process.env.ORCA_GIT_COMPAT_IMAGE))(
           '[remote "origin"]\n\turl = https://github.com/before-org/origin-project.git\n'
         )
         const mainConfigPath = join(repo, '.git', 'config')
-        await appendFile(mainConfigPath, `\n[include]\n\tpath = ${value}\n`)
+        await appendFile(
+          mainConfigPath,
+          `\n[include]\n\tpath = ${value}${noFinalNewline ? '' : '\n'}`
+        )
         const mainConfig = await readFile(mainConfigPath)
         const head = await readFile(join(repo, '.git', 'HEAD'))
         expect(
-          (await git.exec(['config', '--get', 'include.path'], repo)).stdout.slice(0, -1)
-        ).toBe(includedPath)
+          (await git.exec(['config', '--null', '--get-all', 'include.path'], repo)).stdout
+            .slice(0, -1)
+            .split('\0')
+        ).toEqual(expectedIncludedPaths ?? [includedPath])
 
         const signature = await readLocalGitConfigSignature({ repoPath: repo })
         expect(signature).toBeDefined()
