@@ -3,6 +3,21 @@ import { TaskList } from '@tiptap/extension-list'
 
 const baseTokenizer = TaskList.config.markdownTokenizer as MarkdownTokenizer
 
+function inlineTokenSpansLineBreak(tokens: MarkdownToken[], lineBreak: number): boolean {
+  let offset = 0
+  for (const token of tokens) {
+    if (typeof token.raw !== 'string') {
+      return false
+    }
+    const end = offset + token.raw.length
+    if (offset <= lineBreak && end > lineBreak) {
+      return token.type !== 'text'
+    }
+    offset = end
+  }
+  return false
+}
+
 function normalizeTaskListToken(token: MarkdownToken, lexer: MarkdownLexerConfiguration): void {
   const firstNested = token.nestedTokens?.[0]
   if (
@@ -16,6 +31,21 @@ function normalizeTaskListToken(token: MarkdownToken, lexer: MarkdownLexerConfig
     firstNested.raw = firstNested.text
     firstNested.tokens = lexer.inlineTokens(firstNested.text)
     delete firstNested.codeBlockStyle
+  }
+
+  if (
+    token.type === 'taskItem' &&
+    (firstNested?.type === 'paragraph' || firstNested?.type === 'text') &&
+    typeof token.text === 'string' &&
+    typeof firstNested.text === 'string'
+  ) {
+    const text = `${token.text}\n${firstNested.text}`
+    const inlineTokens = lexer.inlineTokens(text)
+    if (inlineTokenSpansLineBreak(inlineTokens, token.text.length)) {
+      token.text = text
+      token.tokens = inlineTokens
+      token.nestedTokens.shift()
+    }
   }
 
   for (const child of [...(token.items ?? []), ...(token.nestedTokens ?? [])]) {
