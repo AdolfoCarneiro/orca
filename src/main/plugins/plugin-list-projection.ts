@@ -14,7 +14,6 @@ import type { PluginCommandAliasActionId } from '../../shared/plugins/plugin-com
 import {
   isOfficialMarketplaceGitSource,
   isOfficialOrganizationGitSource,
-  isOfficialPluginIdentity,
   pluginSourceLabel
 } from '../../shared/plugins/catalog/plugin-marketplace'
 import {
@@ -172,7 +171,6 @@ export async function buildPluginList(
       const official =
         bundled ||
         (lockEntry?.source.kind === 'marketplace' &&
-          isOfficialPluginIdentity(plugin.pluginKey) &&
           isOfficialMarketplaceGitSource(lockEntry.source.marketplace.url) &&
           isOfficialOrganizationGitSource(lockEntry.source.plugin.url))
       return {

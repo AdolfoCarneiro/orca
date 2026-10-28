@@ -3,7 +3,7 @@ import { isAbsolute, join, relative, sep } from 'node:path'
 import { z } from 'zod'
 import { isQualifiedPluginKey } from '../../shared/plugins/manifest/plugin-manifest'
 import { pluginRelativeDirectorySchema } from '../../shared/plugins/manifest/plugin-manifest-fields'
-import { isOfficialPluginIdentity } from '../../shared/plugins/catalog/plugin-marketplace'
+import { hasOfficialPluginPublisher } from '../../shared/plugins/catalog/plugin-marketplace'
 import { getPluginsDataDir, getUserPluginsDir } from './plugin-discovery'
 import {
   installBundledPlugin,
@@ -27,7 +27,10 @@ const bundledPluginIndexSchema = z
             pluginKey: z
               .string()
               .refine(isQualifiedPluginKey, 'invalid qualified plugin identity')
-              .refine(isOfficialPluginIdentity, 'bundled plugins must use an official identity'),
+              .refine(
+                hasOfficialPluginPublisher,
+                'bundled plugins must use the official publisher'
+              ),
             path: pluginRelativeDirectorySchema,
             contentHash: z.string().regex(/^[0-9a-f]{64}$/)
           })

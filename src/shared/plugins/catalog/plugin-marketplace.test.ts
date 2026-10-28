@@ -6,7 +6,7 @@ import {
   isMarketplaceListingSupported,
   isOfficialMarketplaceGitSource,
   isOfficialOrganizationGitSource,
-  isOfficialPluginIdentity,
+  hasOfficialPluginPublisher,
   isReservedPluginIdentity,
   gitRepositoryOwnerLabel,
   isSameGitRepository,
@@ -128,7 +128,7 @@ describe('pluginMarketplaceSchema', () => {
 describe('marketplace provenance contracts', () => {
   it.each([
     ['stablyai.orca-skills', true, true],
-    ['stablyai.skills', true, false],
+    ['stablyai.skills', true, true],
     ['community.orca-skills', true, false],
     ['community.skills', false, false],
     ['orca.skills', true, false],
@@ -139,9 +139,9 @@ describe('marketplace provenance contracts', () => {
     ['orcalike.skills', true, false],
     ['acme.skills', false, false],
     ['invalid', false, false]
-  ])('classifies %s', (pluginKey, reserved, official) => {
+  ])('classifies %s', (pluginKey, reserved, officialPublisher) => {
     expect(isReservedPluginIdentity(pluginKey)).toBe(reserved)
-    expect(isOfficialPluginIdentity(pluginKey)).toBe(official)
+    expect(hasOfficialPluginPublisher(pluginKey)).toBe(officialPublisher)
   })
 
   it.each([

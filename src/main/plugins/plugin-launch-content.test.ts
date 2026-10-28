@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import {
   isOfficialOrganizationGitSource,
-  isOfficialPluginIdentity,
+  hasOfficialPluginPublisher,
   pluginMarketplaceSchema
 } from '../../shared/plugins/catalog/plugin-marketplace'
 import { bootstrapBundledPlugins, resolveBundledPluginRoot } from './plugin-bundled-bootstrap'
@@ -42,7 +42,8 @@ describe('Phase 1 launch plugin content', () => {
     expect(
       marketplace.plugins.filter(
         (plugin) =>
-          isOfficialPluginIdentity(plugin.id) && isOfficialOrganizationGitSource(plugin.source.url)
+          hasOfficialPluginPublisher(plugin.id) &&
+          isOfficialOrganizationGitSource(plugin.source.url)
       ).length
     ).toBe(marketplace.plugins.length)
 
@@ -87,7 +88,7 @@ describe('Phase 1 launch plugin content', () => {
 
     expect(result.errors).toEqual([])
     expect(result.installed).toEqual(await readBundledPluginKeys())
-    expect(result.installed.every(isOfficialPluginIdentity)).toBe(true)
+    expect(result.installed.every(hasOfficialPluginPublisher)).toBe(true)
   })
 
   it('boots release-indexed content from the packaged resources layout', async () => {

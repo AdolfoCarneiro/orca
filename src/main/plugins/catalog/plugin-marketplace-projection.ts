@@ -2,7 +2,6 @@ import {
   OFFICIAL_MARKETPLACE_OWNER,
   isOfficialMarketplaceGitSource,
   isOfficialOrganizationGitSource,
-  isOfficialPluginIdentity,
   type PluginMarketplaceEntry,
   type PluginMarketplaceGitSource
 } from '../../../shared/plugins/catalog/plugin-marketplace'
@@ -134,7 +133,6 @@ export function pluginMarketplaceListing(input: {
   const official =
     isOfficialMarketplaceGitSource(source.source.url) &&
     snapshot.marketplace.owner.toLowerCase() === OFFICIAL_MARKETPLACE_OWNER &&
-    isOfficialPluginIdentity(entry.id) &&
     isOfficialOrganizationGitSource(entry.source.url)
   return {
     marketplaceSourceId: source.id,

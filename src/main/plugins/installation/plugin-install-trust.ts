@@ -2,7 +2,7 @@ import type { PluginInstallSource } from '../../../shared/plugins/plugin-install
 import {
   isOfficialMarketplaceGitSource,
   isOfficialOrganizationGitSource,
-  isOfficialPluginIdentity,
+  hasOfficialPluginPublisher,
   isReservedPluginIdentity
 } from '../../../shared/plugins/catalog/plugin-marketplace'
 
@@ -11,9 +11,9 @@ export function pluginInstallTrustError(
   source: PluginInstallSource
 ): string | null {
   if (source.kind === 'bundled') {
-    return source.bundleId === pluginKey && isOfficialPluginIdentity(pluginKey)
+    return source.bundleId === pluginKey && hasOfficialPluginPublisher(pluginKey)
       ? null
-      : 'bundled plugins must use an official stablyai.orca-* identity'
+      : 'bundled plugins must use the official stablyai publisher'
   }
   if (!isReservedPluginIdentity(pluginKey)) {
     return null

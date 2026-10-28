@@ -254,13 +254,9 @@ export function isReservedPluginIdentity(pluginKey: string): boolean {
   )
 }
 
-export function isOfficialPluginIdentity(pluginKey: string): boolean {
-  const identity = splitQualifiedPluginKey(pluginKey)
-  return (
-    identity !== null &&
-    identity.publisher === OFFICIAL_PLUGIN_PUBLISHER &&
-    identity.id.startsWith(OFFICIAL_PLUGIN_ID_PREFIX)
-  )
+/** Orca's own publisher; reserved, so only the official catalog and bundled content carry it. */
+export function hasOfficialPluginPublisher(pluginKey: string): boolean {
+  return splitQualifiedPluginKey(pluginKey)?.publisher === OFFICIAL_PLUGIN_PUBLISHER
 }
 
 type GitRepositoryIdentity = {
