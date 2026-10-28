@@ -393,7 +393,7 @@ describe('orchestration RPC methods', () => {
       )
       const preamble = agentPrompt.mock.calls[0]![1]
       expect(preamble).toContain('The coordinator cannot see this terminal')
-      expect(preamble).toContain('Do not exit the shell. Your terminal stays available')
+      expect(preamble).toContain('Do not exit the shell. Your terminal stays available until Orca')
       expect(preamble).not.toContain('this chat')
       expect(rawSend).not.toHaveBeenCalled()
     })

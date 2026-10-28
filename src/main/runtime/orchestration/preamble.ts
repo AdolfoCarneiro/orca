@@ -168,9 +168,10 @@ export function dispatchPreambleSendOptions(requestId: string): DispatchPreamble
   }
 }
 
-export const TERMINAL_REDISPATCH_PARAGRAPH = `Do not exit the shell. Your terminal stays available, and if the
-coordinator has more for you it will re-engage this terminal with a fresh
-preamble + TASK block, which arrives as new input. Treat that as supervised
+export const TERMINAL_REDISPATCH_PARAGRAPH = `Do not exit the shell. Your terminal stays available until Orca
+releases it, about 2 minutes after worker_done unless the coordinator retains
+it. If the coordinator has more for you, it will re-engage this terminal with a
+fresh preamble + TASK block, which arrives as new input. Treat that as supervised
 work under the new Dispatch; ignore stale follow-ups from the settled task.`
 
 export const CHAT_REDISPATCH_PARAGRAPH = `If the coordinator has more for you, it will send this chat a fresh

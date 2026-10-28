@@ -11,7 +11,7 @@ unknown or `unverifiable`.
 | `ready` or active       | Keep waiting; optionally read bounded output                       |
 | `failed` or `stopped`   | Start a replacement with `--retry-of`; repeat placement explicitly |
 | `outcome_unknown`       | Inspect, then choose `worker-stop` or explicit `worker-abandon`    |
-| Accepted `worker_done`  | Reuse, retain, or release                                          |
+| Accepted `worker_done`  | Reuse or retain before `autoReleaseAt`; release chat workers       |
 | Remote contact lost     | Preserve `unverifiable`; do not stop or retry from absence alone   |
 | `unverifiable` liveness | Keep waiting or inspect; never stop, abandon, retry, or release    |
 | Proven `exited` agent   | Enumerate with `worker-list`; follow its `nextAction`              |
@@ -169,7 +169,11 @@ ORCA orchestration worker-retain --dispatch <dispatch_id> --json
 ORCA orchestration worker-release --dispatch <dispatch_id> --json
 ```
 
-Retain only when the user explicitly wants the settled terminal kept live.
+A terminal worker is released automatically about 2 minutes after an accepted
+`worker_done` (`autoReleaseAt` in `worker-show` and `worker-list`). Run
+`worker-retain` before then to reuse or inspect it later, or when the user
+wants it kept live. Explicit release is needed for chat workers and for any
+settled worker without `autoReleaseAt`, and is always allowed after settlement.
 Release works after succeeded and failed reports, archives readable output, and
 closes only the exact terminal owned by that settled Dispatch. Replays may call
 release again safely. Reused, pre-existing, setup, coordinator, active,

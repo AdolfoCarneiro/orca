@@ -115,7 +115,7 @@ describe('buildDispatchPreamble', () => {
     )
     expect(section).toContain('Never refuse a direct user request because you were a worker')
     expect(section).toMatch(/fresh\s+preamble \+ TASK block/)
-    expect(section).not.toMatch(/2 minutes/)
+    expect(section).toMatch(/until Orca\s+releases it, about 2 minutes after worker_done/)
     expect(section).not.toMatch(/10 minutes/)
     expect(section).not.toMatch(/may exit/)
     expect(section).not.toMatch(/grace period/)

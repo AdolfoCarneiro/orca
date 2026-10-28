@@ -55,17 +55,19 @@ claim a model or effort from requested arguments alone.
 
 ## Reuse after settlement
 
-Choose the terminal's next owner before the next `check`. When the
-same exact agent has immediate follow-up work, recover the proven handle and
-transfer cleanup ownership to the new Dispatch:
+Choose the terminal's next owner before the next `check`. A terminal worker is
+released about 2 minutes after `worker_done`; to reuse it later than that, run
+`worker-retain` first. When the same exact agent has immediate follow-up work,
+recover the proven handle and transfer cleanup ownership to the new Dispatch:
 
 ```text
 ORCA orchestration worker-show --dispatch <dispatch_id> --json
 ORCA orchestration worker-start --task <next_task_id> --terminal <agent_terminal_handle> --json
 ```
 
-Otherwise explicitly retain or release the settled worker. Do not leave it live
-only to inspect output; archived output remains available through `worker-read`.
+Otherwise let the automatic release run, or release it explicitly; a chat worker
+always needs `worker-release`. Do not retain it only to read output; archived
+output remains available through `worker-read`.
 
 ## Review ownership
 
