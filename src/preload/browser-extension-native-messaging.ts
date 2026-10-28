@@ -1,4 +1,5 @@
 import type { BrowserExtensionMainWorldBridge } from './browser-extension-main-world'
+import type * as NativePort from './browser-extension-native-messaging-types'
 
 /** Main-only namespace behind connectNative/sendNativeMessage; never installed on `chrome`. */
 export const PRELOAD_NATIVE_MESSAGING_NAMESPACE = 'orcaNativeMessaging'
@@ -6,7 +7,6 @@ export const PRELOAD_NATIVE_MESSAGING_NAMESPACE = 'orcaNativeMessaging'
 export type BrowserExtensionNativeMessagingContext = 'page' | 'worker'
 
 type ApiObject = Record<string, unknown>
-type ExtensionCallable = (...args: unknown[]) => unknown
 
 /**
  * Installs chrome.runtime.connectNative and sendNativeMessage for extensions that declare
@@ -22,9 +22,16 @@ export function installBrowserExtensionNativeMessaging(
   const namespace = 'orcaNativeMessaging'
   const portEvent = 'onPortEvent'
   const disconnectedError = 'Attempting to use a disconnected port object'
+  const ioError = 'Error when communicating with the native messaging host.'
+  const headerBytes = 4
+  const maxMessageBytes = 64 * 1024 * 1024
+  const maxPortBytes = maxMessageBytes + headerBytes
+  const maxContextBytes = 2 * maxPortBytes
+  const maxPortMessages = 256
+  const maxContextMessages = 1024
   const isObject = (value: unknown): value is ApiObject =>
     value !== null && typeof value === 'object'
-  const isCallable = (value: unknown): value is ExtensionCallable => typeof value === 'function'
+  const isCallable = (value: unknown): value is NativePort.Listener => typeof value === 'function'
   const root: { chrome?: unknown; browser?: unknown } = globalThis
   const chromeApi = root.chrome
   const runtime = isObject(chromeApi) && isObject(chromeApi.runtime) ? chromeApi.runtime : null
@@ -81,7 +88,7 @@ export function installBrowserExtensionNativeMessaging(
     return json
   }
   const makeEvent = () => {
-    const listeners = new Set<ExtensionCallable>()
+    const listeners = new Set<NativePort.Listener>()
     return {
       listeners,
       api: {
@@ -100,7 +107,7 @@ export function installBrowserExtensionNativeMessaging(
       }
     }
   }
-  const dispatch = (listeners: Set<ExtensionCallable>, args: unknown[]): void => {
+  const dispatch = (listeners: Set<NativePort.Listener>, args: unknown[]): void => {
     for (const listener of listeners) {
       try {
         listener(...args)
@@ -110,25 +117,55 @@ export function installBrowserExtensionNativeMessaging(
     }
   }
 
-  type PortState = {
-    // 'starting' until main confirms the host runs; posts wait for it.
-    state: 'starting' | 'open' | 'closed'
-    queued: string[]
-    onMessage: Set<ExtensionCallable>
-    onDisconnect: Set<ExtensionCallable>
-    port: ApiObject
+  let utf8Encoder: TextEncoder | undefined
+  let utf8Scratch: Uint8Array | undefined
+  const measureQueuedBytes = (json: string, limit: number): number => {
+    if (json.length > limit) {
+      return limit + 1
+    }
+    utf8Encoder ??= new TextEncoder()
+    utf8Scratch ??= new Uint8Array(64 * 1024)
+    let read = 0
+    let bytes = 0
+    while (read < json.length && bytes <= limit) {
+      const chunk = utf8Encoder.encodeInto(read === 0 ? json : json.slice(read), utf8Scratch)
+      read += chunk.read
+      bytes += chunk.written
+    }
+    return bytes
   }
-  const ports = new Map<string, PortState>()
-  let counter = 0
 
-  const endPort = (id: string, entry: PortState, error: string | null): void => {
+  const ports = new Map<string, NativePort.State>()
+  let counter = 0
+  let queuedContextBytes = 0
+  let queuedContextMessages = 0
+
+  const requireConnected = (entry: NativePort.State): void => {
+    if (entry.state === 'closed') {
+      throw new Error(disconnectedError)
+    }
+  }
+
+  const endPort: NativePort.EndPort = (id, entry, error, closeMain = false) => {
+    if (entry.state === 'closed') {
+      return
+    }
+    const wasOpen = entry.state === 'open'
     entry.state = 'closed'
+    queuedContextBytes -= entry.queuedBytes
+    queuedContextMessages -= entry.queued.length
+    entry.queuedBytes = 0
     entry.queued.length = 0
     ports.delete(id)
-    if (error !== null && entry.onDisconnect.size === 0) {
-      console.error(`Unchecked runtime.lastError: ${error}`)
+    if (error !== undefined) {
+      if (entry.onDisconnect.size === 0) {
+        console.error(`Unchecked runtime.lastError: ${error}`)
+      }
+      callWithLastError(error, () => dispatch(entry.onDisconnect, [entry.port]))
     }
-    callWithLastError(error, () => dispatch(entry.onDisconnect, [entry.port]))
+    if (wasOpen && closeMain) {
+      void bridge.call(namespace, 'disconnect', [id])
+    }
   }
 
   bridge.onEvent((eventNamespace, event, args) => {
@@ -169,9 +206,11 @@ export function installBrowserExtensionNativeMessaging(
     const onMessage = makeEvent()
     const onDisconnect = makeEvent()
     const port: ApiObject = {}
-    const entry: PortState = {
+    const entry: NativePort.State = {
       state: 'starting',
       queued: [],
+      queuedBytes: 0,
+      draining: false,
       onMessage: onMessage.listeners,
       onDisconnect: onDisconnect.listeners,
       port
@@ -182,35 +221,38 @@ export function installBrowserExtensionNativeMessaging(
       onMessage: onMessage.api,
       onDisconnect: onDisconnect.api,
       postMessage: (message: unknown) => {
-        if (entry.state === 'closed') {
-          throw new Error(disconnectedError)
-        }
+        requireConnected(entry)
         const json = serialize(message)
-        if (entry.state === 'starting') {
-          entry.queued.push(json)
+        requireConnected(entry)
+        if (entry.state === 'starting' || entry.draining) {
+          const limit = Math.min(
+            maxMessageBytes,
+            maxPortBytes - entry.queuedBytes - headerBytes,
+            maxContextBytes - queuedContextBytes - headerBytes
+          )
+          const bodyBytes =
+            entry.queued.length >= maxPortMessages || queuedContextMessages >= maxContextMessages
+              ? limit + 1
+              : measureQueuedBytes(json, limit)
+          if (bodyBytes > limit) {
+            endPort(id, entry, ioError, true)
+            return
+          }
+          const bytes = headerBytes + bodyBytes
+          entry.queued.push({ json, bytes })
+          entry.queuedBytes += bytes
+          queuedContextBytes += bytes
+          queuedContextMessages += 1
         } else {
           void bridge.call(namespace, 'postMessage', [id, json])
         }
       },
-      disconnect: () => {
-        const wasOpen = entry.state === 'open'
-        if (entry.state === 'closed') {
-          return
-        }
-        entry.state = 'closed'
-        entry.queued.length = 0
-        ports.delete(id)
-        if (wasOpen) {
-          void bridge.call(namespace, 'disconnect', [id])
-        }
-      }
+      disconnect: () => endPort(id, entry, undefined, true)
     })
     ports.set(id, entry)
     void bridge.call(namespace, 'connect', [id, application]).then((reply) => {
       if (!reply.ok) {
-        if (entry.state !== 'closed') {
-          endPort(id, entry, reply.error)
-        }
+        endPort(id, entry, reply.error)
         return
       }
       if (entry.state === 'closed') {
@@ -219,9 +261,18 @@ export function installBrowserExtensionNativeMessaging(
         return
       }
       entry.state = 'open'
-      for (const json of entry.queued.splice(0)) {
-        void bridge.call(namespace, 'postMessage', [id, json])
+      entry.draining = true
+      while (entry.queued.length > 0) {
+        const queued = entry.queued.shift()
+        if (!queued) {
+          break
+        }
+        entry.queuedBytes -= queued.bytes
+        queuedContextBytes -= queued.bytes
+        queuedContextMessages -= 1
+        void bridge.call(namespace, 'postMessage', [id, queued.json])
       }
+      entry.draining = false
     })
     return port
   }
