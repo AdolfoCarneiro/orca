@@ -1,14 +1,14 @@
 import type { AppState } from '@/store/types'
 import { getWorktreeMapFromState } from '@/store/selectors'
-import { getConnectionId } from '@/lib/connection-context'
-import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
-import { resolveTerminalWorktreeRoute } from '@/lib/terminal-worktree-route'
+import { getConnectionIdFromState } from '@/lib/connection-context'
+import type { TerminalWorktreeRoute } from '@/lib/terminal-worktree-route'
 import { resolveWorktreeOperationRouteForHost } from '@/lib/worktree-operation-route'
 import { getRemoteRuntimePtyEnvironmentId } from '@/runtime/runtime-terminal-stream'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
 import { isWebTerminalSurfaceTabId } from '../../../../shared/terminal-surface-id'
 import {
   getRepoExecutionHostId,
+  getConnectionExecutionHostId,
   getRepoSshConnectionId,
   parseExecutionHostId,
   toRuntimeExecutionHostId,
@@ -24,6 +24,7 @@ export function resolveTerminalPaneOwnerContext(
   state: AppState,
   worktreeId: string,
   tabId: string,
+  acquiredRoute: TerminalWorktreeRoute | null,
   restoredPtyId?: string | null
 ) {
   const tab = state.tabsByWorktree[worktreeId]?.find((entry) => entry.id === tabId)
@@ -71,13 +72,13 @@ export function resolveTerminalPaneOwnerContext(
         ? selectedHost.targetId
         : selectedHost
           ? repo && getRepoSshConnectionId(repo)
-          : getConnectionId(worktreeId)
+          : getConnectionIdFromState(state, worktreeId)
   const route =
     tabHost && !selectedHost
       ? null
       : selectedHost
         ? resolveWorktreeOperationRouteForHost(state, worktreeId, selectedHost.id)
-        : resolveTerminalWorktreeRoute(state, worktreeId)
+        : acquiredRoute
   const runtimeOwners = new Set(
     (selectedHost || isWebTerminalSurfaceTabId(tabId) ? [restoredPtyId, tab?.ptyId] : [])
       .map((id) => (id ? getRemoteRuntimePtyEnvironmentId(id) : null))
@@ -95,7 +96,9 @@ export function resolveTerminalPaneOwnerContext(
     ? UNRESOLVED_OWNER_HOST_ID
     : runtimeEnvironmentId && (!selectedHost || selectedHost.kind === 'local')
       ? toRuntimeExecutionHostId(runtimeEnvironmentId)
-      : (selectedHost?.id ?? getExecutionHostIdForWorktree(state, worktreeId))
+      : (selectedHost?.id ??
+        parseExecutionHostId(worktree?.hostId)?.id ??
+        (repo ? getRepoExecutionHostId(repo) : getConnectionExecutionHostId(connectionId)))
   return {
     tab,
     selectedHost,

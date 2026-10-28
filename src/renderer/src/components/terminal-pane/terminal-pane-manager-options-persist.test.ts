@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createInitialStoreState } from './pty-connection-test-store-fixtures'
 import { createTerminalPaneManagerOptions } from './terminal-pane-manager-options'
+import type { PanePtyBinding } from './pty-connection/pane-pty-binding'
 import type { TerminalPaneManagerOptionsContext } from './terminal-pane-mount-context'
 
 vi.mock('@/runtime/sync-runtime-graph', () => ({ scheduleRuntimeGraphSync: vi.fn() }))
@@ -8,11 +9,15 @@ vi.mock('@/runtime/sync-runtime-graph', () => ({ scheduleRuntimeGraphSync: vi.fn
 let storeState = createInitialStoreState(() => storeState)
 vi.mock('@/store', () => ({ useAppStore: { getState: () => storeState } }))
 
-function createOptions(worktreeId: string) {
+function createOptions(
+  worktreeId: string,
+  panePtyBindings = new Map<number, Pick<PanePtyBinding, 'getOwnerContext' | 'dispose'>>()
+) {
   const persistLayoutSnapshot = vi.fn()
   const context = {
     deps: {
       persistLayoutSnapshot,
+      panePtyBindingsRef: { current: panePtyBindings },
       syncExpandedLayout: vi.fn(),
       tabId: 'tab',
       worktreeId,
@@ -62,7 +67,33 @@ describe('terminal pane manager recorded backend options', () => {
           }
         }
       })
-      const options = createOptions(worktreeId)
+      const owner: ReturnType<PanePtyBinding['getOwnerContext']> = {
+        tab: undefined,
+        selectedHost: null,
+        folderWorkspace: null,
+        worktree: null,
+        repo: undefined,
+        projectRuntimeTarget: undefined,
+        connectionId: null,
+        route: { runtimeEnvironmentId: mirror ? 'server' : null },
+        runtimeOwners: new Set(),
+        mirroredRuntimeEnvironmentId: null,
+        runtimeEnvironmentId: mirror ? 'server' : null,
+        executionHostId: mirror ? 'runtime:server' : 'local',
+        unresolved: false
+      }
+      const options = createOptions(
+        worktreeId,
+        new Map([
+          [
+            1,
+            {
+              getOwnerContext: () => owner,
+              dispose: vi.fn()
+            }
+          ]
+        ])
+      )
       const resolved =
         typeof options.terminalOptions === 'function'
           ? options.terminalOptions(1)
@@ -73,4 +104,17 @@ describe('terminal pane manager recorded backend options', () => {
       expect(resolved?.vtExtensions).toEqual(mirror ? undefined : { kittyKeyboard: false })
     }
   )
+
+  it('keeps backend policy unknown until connect captures an owner', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Windows' })
+    vi.stubGlobal('window', { api: { platform: { get: () => ({ osRelease: '10.0.22631' }) } } })
+    storeState = createInitialStoreState(() => storeState)
+    const options = createOptions('wt-1')
+    const resolved =
+      typeof options.terminalOptions === 'function'
+        ? options.terminalOptions(1)
+        : options.terminalOptions
+    expect(resolved?.windowsPty).toBeUndefined()
+    expect(resolved?.vtExtensions).toBeUndefined()
+  })
 })

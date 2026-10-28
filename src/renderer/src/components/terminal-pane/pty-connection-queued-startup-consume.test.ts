@@ -1,3 +1,6 @@
+import type { TerminalPaneManagerOptionsContext } from './terminal-pane-mount-context'
+import { mockPanePtyArgs } from './pty-connection-test-connect-mock-pane'
+import type { PanePtyBinding } from './pty-connection/pane-pty-binding'
 import type * as React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushAsyncTicks } from './pty-connection-test-async'
@@ -87,6 +90,19 @@ vi.mock('./pty-transport', () => ({
   })
 }))
 
+vi.mock('./remote-runtime-pty-transport', () => ({
+  createRemoteRuntimePtyTransport: vi.fn(
+    (_environmentId: string, options: Record<string, unknown>) => {
+      createdTransportOptions.push(options)
+      const transport = transportFactoryQueue.shift()
+      if (!transport) {
+        throw new Error('No remote mock transport queued')
+      }
+      return transport
+    }
+  )
+}))
+
 vi.mock('./pty-dispatcher', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>()
   return { ...actual, getEagerPtyBufferHandle: vi.fn(() => undefined) }
@@ -114,6 +130,7 @@ describe('connectPanePty queued startup consume', () => {
 
   afterEach(async () => {
     await restoreTerminalTestGlobals()
+    vi.unstubAllGlobals()
   })
 
   it('spends the queued startup only after the pty is bound to the tab', async () => {
@@ -197,4 +214,90 @@ describe('connectPanePty queued startup consume', () => {
     expect(escapedIntoSpawn).toBe(false)
     expect(updateTabPtyId).toHaveBeenCalled()
   })
+
+  it.each([
+    { rowless: true, remote: false },
+    { rowless: true, remote: true },
+    { rowless: false, remote: false },
+    { rowless: false, remote: true }
+  ])(
+    'retains the connect owner through focus changes ($rowless, $remote)',
+    async ({ rowless, remote }) => {
+      const { connectPanePty } = await import('./pty-connection')
+      const { createTerminalPaneManagerOptions } = await import('./terminal-pane-manager-options')
+      vi.stubGlobal('navigator', { userAgent: 'Windows' })
+      const worktreeId = rowless ? 'ephemeral-setup-terminal:install' : 'repo1::/tmp/wt-1'
+      if (!rowless) {
+        mockStoreState.worktreesByRepo = {
+          repo1: [
+            {
+              id: worktreeId,
+              repoId: 'repo1',
+              path: '/tmp/wt-1',
+              hostId: remote ? 'runtime:server' : 'local'
+            }
+          ]
+        }
+      }
+      mockStoreState.tabsByWorktree[worktreeId] = [{ id: 'tab-1', ptyId: null }]
+      mockStoreState.settings = {
+        ...mockStoreState.settings,
+        activeRuntimeEnvironmentId: remote ? 'server' : null
+      }
+      mockStoreState.runtimeEnvironments = remote ? [{ id: 'server' }] : []
+      if (!rowless && remote) {
+        mockStoreState.repos = mockStoreState.repos.map((repo) => ({
+          ...repo,
+          executionHostId: 'runtime:server'
+        }))
+      }
+      const transport = createMockTransport()
+      transportFactoryQueue.push(transport)
+      const deps = buildPaneConnectionDeps(() => mockStoreState, { worktreeId })
+      const pane = createPane(1)
+      const binding = connectPanePty(...mockPanePtyArgs(pane, createManager(1), deps))
+      const captured = binding.getOwnerContext()
+      expect(captured.route).toEqual({ runtimeEnvironmentId: remote ? 'server' : null })
+      expect(captured.executionHostId).toBe(remote ? 'runtime:server' : 'local')
+      expect(captured.connectionId).toBe(rowless ? undefined : null)
+      const localConpty = !rowless && !remote
+      expect(pane.terminal.options.windowsPty).toEqual(
+        localConpty ? { backend: 'conpty', buildNumber: 26100 } : undefined
+      )
+      expect(createdTransportOptions[0]?.terminalKittyKeyboardProtocol).toBe(!localConpty)
+      const tracker = deps.paneKittyKeyboardModesRef.current.get(1)
+      expect(tracker).toBeDefined()
+      tracker?.restoreSnapshotFlags(1)
+      expect(tracker?.flags).toBe(localConpty ? 0 : 1)
+      mockStoreState.settings = {
+        ...mockStoreState.settings,
+        activeRuntimeEnvironmentId: remote ? null : 'other'
+      }
+      mockStoreState.runtimeEnvironments = remote ? [] : [{ id: 'other' }]
+      const context = {
+        deps: {
+          tabId: 'tab-1',
+          worktreeId,
+          isVisibleRef: { current: true },
+          panePtyBindingsRef: { current: new Map<number, PanePtyBinding>([[1, binding]]) },
+          settingsRef: { current: null },
+          effectiveMacOptionAsAltRef: { current: 'false' }
+        },
+        ptyDeps: {},
+        startupCwd: deps.cwd
+      }
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: constructing options and reading terminalOptions access only the supplied fields.
+      const options = createTerminalPaneManagerOptions(
+        context as unknown as TerminalPaneManagerOptionsContext
+      )
+      const refreshed =
+        typeof options.terminalOptions === 'function'
+          ? options.terminalOptions(1)
+          : options.terminalOptions
+      expect(binding.getOwnerContext()).toBe(captured)
+      expect(refreshed?.windowsPty).toEqual(pane.terminal.options.windowsPty)
+      expect(refreshed?.vtExtensions).toEqual(localConpty ? { kittyKeyboard: false } : undefined)
+      binding.dispose()
+    }
+  )
 })

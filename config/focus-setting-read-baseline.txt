@@ -169,6 +169,7 @@
 2 src/renderer/src/components/task-page/linear/use-task-page-linear-project-creation.ts
 9 src/renderer/src/components/task-page/TaskPage.tsx
 2 src/renderer/src/components/task-page/use-task-page-source-availability.ts
+1 src/renderer/src/components/terminal-pane/pty-connection/agent-idle-working-handlers.ts
 1 src/renderer/src/components/terminal-pane/retire-unbound-runtime-terminal-pane.ts
 1 src/renderer/src/components/terminal-pane/terminal-fit-restore.ts
 1 src/renderer/src/components/terminal-pane/terminal-link-open-hints.ts

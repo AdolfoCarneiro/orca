@@ -1,5 +1,6 @@
 import { resolveTerminalPaneOwnerContext } from '../terminal-pane-owner-context'
 import { useAppStore } from '@/store'
+import { resolveTerminalWorktreeRoute } from '@/lib/terminal-worktree-route'
 import { parseWorkspaceKey } from '../../../../../shared/workspace-scope'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../../shared/constants'
 import { isEphemeralSetupTerminalWorktreeId } from '../../../../../shared/ephemeral-setup-terminal-worktree-id'
@@ -42,10 +43,15 @@ export function installAgentIdleWorkingHandlers(session: ConnectPanePtySession):
     session.deps.restoredLeafId && session.deps.restoredPtyIdByLeafId
       ? (session.deps.restoredPtyIdByLeafId[session.deps.restoredLeafId] ?? null)
       : null
+  session.terminalWorktreeRoute = resolveTerminalWorktreeRoute(
+    session.state,
+    session.deps.worktreeId
+  )
   session.ownerContext = resolveTerminalPaneOwnerContext(
     session.state,
     session.deps.worktreeId,
     session.deps.tabId,
+    session.terminalWorktreeRoute,
     session.restoredPtyIdForTransport
   )
   session.folderWorkspace = session.ownerContext.folderWorkspace

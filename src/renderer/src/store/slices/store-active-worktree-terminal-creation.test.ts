@@ -8,6 +8,7 @@ import {
   MIXED_FOLDER,
   MIXED_GROUP
 } from '../../../../shared/folder-workspace-host-routing.test-fixture'
+import { resolveWorktreeOperationRouteForHost } from '@/lib/worktree-operation-route'
 import { resolveTerminalPaneOwnerContext } from '@/components/terminal-pane/terminal-pane-owner-context'
 
 const mockUnregisterPtyDataHandlers = vi.hoisted(() => vi.fn<() => unknown[]>(() => []))
@@ -98,7 +99,12 @@ describe('setActiveWorktree', () => {
         })
         const terminal = store.getState().createTab(worktreeId)
         const current = store.getState()
-        const owner = resolveTerminalPaneOwnerContext(current, worktreeId, terminal.id)
+        const owner = resolveTerminalPaneOwnerContext(
+          current,
+          worktreeId,
+          terminal.id,
+          resolveWorktreeOperationRouteForHost(current, worktreeId, 'local')
+        )
         expect({
           shell: terminal.shellOverride,
           stamp: current.unifiedTabsByWorktree[worktreeId][0].executionHostId,
