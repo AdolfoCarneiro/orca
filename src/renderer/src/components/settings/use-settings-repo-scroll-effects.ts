@@ -80,8 +80,14 @@ export function useSettingsRepoScrollEffects(
         }
         try {
           const hostId = getRepoExecutionHostId(repo)
-          const result = await checkRuntimeHooks(hostId, repo.id)
-          if (stale || requestSeq !== repoHooksRequestSeqRef.current) {
+          // Showing Settings is no act on the repo's WSL distro (E9).
+          const result = await checkRuntimeHooks(hostId, repo.id, { background: true })
+          // Unread is not "no orca.yaml": leave the pane checking rather than offer local-only commands.
+          if (
+            stale ||
+            requestSeq !== repoHooksRequestSeqRef.current ||
+            result.unavailable === 'wsl-distro-stopped'
+          ) {
             return
           }
           setRepoHooksMap((previous) => {

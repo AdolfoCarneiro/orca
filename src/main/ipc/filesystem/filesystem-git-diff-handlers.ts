@@ -1,3 +1,4 @@
+import { assertWslUncPathRunning } from '../../wsl/wsl-unc-access-gate'
 import { ipcMain } from 'electron'
 import type { GitDiffResult } from '../../../shared/git-diff-compare-types'
 import { getBranchDiff, getCommitDiff } from '../../git/status'
@@ -28,6 +29,8 @@ export function registerFilesystemGitDiffHandlers(context: FilesystemHandlerCont
       }
     ): Promise<GitDiffResult> => {
       requireReachableGitRoute(getConnectionExecutionHostId(args.connectionId))
+      // A render- or poll-driven read: never boot a stopped WSL distro (E9).
+      await assertWslUncPathRunning(args.worktreePath)
       const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
       const filePath = validateGitRelativeFilePath(worktreePath, args.filePath)
       const oldPath = args.oldPath
@@ -38,6 +41,7 @@ export function registerFilesystemGitDiffHandlers(context: FilesystemHandlerCont
         args.worktreePath,
         worktreePath
       )
+      await assertWslUncPathRunning(worktreePath, gitOptions.wslDistro)
       return getBranchDiff(
         worktreePath,
         {
@@ -67,6 +71,8 @@ export function registerFilesystemGitDiffHandlers(context: FilesystemHandlerCont
       const commitOid = validateFullGitObjectId(args.commitOid, 'commitOid')
       const parentOid = args.parentOid ? validateFullGitObjectId(args.parentOid, 'parentOid') : null
       requireReachableGitRoute(getConnectionExecutionHostId(args.connectionId))
+      // A render- or poll-driven read: never boot a stopped WSL distro (E9).
+      await assertWslUncPathRunning(args.worktreePath)
       const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
       const filePath = validateGitRelativeFilePath(worktreePath, args.filePath)
       const oldPath = args.oldPath
@@ -77,6 +83,7 @@ export function registerFilesystemGitDiffHandlers(context: FilesystemHandlerCont
         args.worktreePath,
         worktreePath
       )
+      await assertWslUncPathRunning(worktreePath, gitOptions.wslDistro)
       return getCommitDiff(
         worktreePath,
         {

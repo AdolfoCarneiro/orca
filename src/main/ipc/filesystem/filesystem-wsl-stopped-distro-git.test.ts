@@ -4,6 +4,9 @@ import {
   store,
   detectConflictOperationMock,
   getBranchCompareMock,
+  getBranchDiffMock,
+  getDiffMock,
+  checkIgnoredPathsMock,
   getStatusMock,
   realpathMock,
   resetFilesystemIpcMocks
@@ -62,6 +65,7 @@ vi.mock(
 import { registerFilesystemHandlers } from './filesystem'
 import { WslDistroStoppedError } from '../../wsl/wsl-unc-access-gate'
 
+const OID = 'a'.repeat(40)
 const UNC_ROOT = '\\\\wsl.localhost\\Ubuntu\\home\\me\\repo'
 const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')
 
@@ -89,7 +93,21 @@ describe('background Git for a stopped WSL distro', () => {
     ['git:status', { worktreePath: UNC_ROOT }],
     ['git:conflictOperation', { worktreePath: UNC_ROOT }],
     ['git:upstreamStatus', { worktreePath: UNC_ROOT }],
-    ['git:branchCompare', { worktreePath: UNC_ROOT, baseRef: 'main' }]
+    ['git:branchCompare', { worktreePath: UNC_ROOT, baseRef: 'main' }],
+    ['git:history', { worktreePath: UNC_ROOT, limit: 50 }],
+    ['git:diff', { worktreePath: UNC_ROOT, filePath: 'a.ts', staged: false }],
+    ['git:submoduleStatus', { worktreePath: UNC_ROOT, submodulePath: 'sub' }],
+    ['git:checkIgnored', { worktreePath: UNC_ROOT, paths: ['a.ts'] }],
+    ['git:findHugeFoldersToIgnore', { worktreePath: UNC_ROOT }],
+    [
+      'git:branchDiff',
+      {
+        worktreePath: UNC_ROOT,
+        compare: { baseRef: 'main', baseOid: OID, headOid: OID, mergeBase: OID },
+        filePath: 'a.ts'
+      }
+    ],
+    ['git:commitDiff', { worktreePath: UNC_ROOT, commitOid: OID, filePath: 'a.ts' }]
   ])('%s refuses before resolving the path or running Git', async (channel, args) => {
     await expect(invoke(channel, args)).rejects.toBeInstanceOf(WslDistroStoppedError)
     expect(isWslDistroRunningMock).toHaveBeenCalledWith('Ubuntu', expect.anything())
@@ -97,6 +115,9 @@ describe('background Git for a stopped WSL distro', () => {
     expect(getStatusMock).not.toHaveBeenCalled()
     expect(detectConflictOperationMock).not.toHaveBeenCalled()
     expect(getBranchCompareMock).not.toHaveBeenCalled()
+    expect(getDiffMock).not.toHaveBeenCalled()
+    expect(getBranchDiffMock).not.toHaveBeenCalled()
+    expect(checkIgnoredPathsMock).not.toHaveBeenCalled()
   })
 
   it("lets the active workspace's first git:status start the distro, but not later polls", async () => {

@@ -135,12 +135,15 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
       }
     ): Promise<GitStatusResult> => {
       requireReachableGitRoute(getConnectionExecutionHostId(args.connectionId))
+      // A render- or poll-driven read: never boot a stopped WSL distro (E9).
+      await assertWslUncPathRunning(args.worktreePath)
       const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
       const gitOptions = getLocalGitOptionsForRegisteredWorktree(
         store,
         args.worktreePath,
         worktreePath
       )
+      await assertWslUncPathRunning(worktreePath, gitOptions.wslDistro)
       return getSubmoduleStatus(worktreePath, args.submodulePath, {
         ...gitOptions,
         ...(args.area === 'staged' ? { staged: true } : {})
@@ -155,6 +158,8 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
       args: { worktreePath: string; paths: string[]; connectionId?: string }
     ): Promise<string[]> => {
       requireReachableGitRoute(getConnectionExecutionHostId(args.connectionId))
+      // A render- or poll-driven read: never boot a stopped WSL distro (E9).
+      await assertWslUncPathRunning(args.worktreePath)
       const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
       const paths = args.paths.map((p) => validateGitRelativeFilePath(worktreePath, p))
       const gitOptions = getLocalGitOptionsForRegisteredWorktree(
@@ -162,6 +167,7 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
         args.worktreePath,
         worktreePath
       )
+      await assertWslUncPathRunning(worktreePath, gitOptions.wslDistro)
       return checkIgnoredPaths(worktreePath, paths, gitOptions)
     }
   )
@@ -169,12 +175,15 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
   ipcMain.handle(
     'git:findHugeFoldersToIgnore',
     async (_event, args: { worktreePath: string }): Promise<string[]> => {
+      // A render- or poll-driven read: never boot a stopped WSL distro (E9).
+      await assertWslUncPathRunning(args.worktreePath)
       const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
       const gitOptions = getLocalGitOptionsForRegisteredWorktree(
         store,
         args.worktreePath,
         worktreePath
       )
+      await assertWslUncPathRunning(worktreePath, gitOptions.wslDistro)
       return findKnownHugeFolderPathsToIgnore(worktreePath, gitOptions)
     }
   )
@@ -195,12 +204,15 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
     ): Promise<GitHistoryResult> => {
       const options: GitHistoryOptions = { limit: args.limit, baseRef: args.baseRef }
       requireReachableGitRoute(getConnectionExecutionHostId(args.connectionId))
+      // A render- or poll-driven read: never boot a stopped WSL distro (E9).
+      await assertWslUncPathRunning(args.worktreePath)
       const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
       const gitOptions = getLocalGitOptionsForRegisteredWorktree(
         store,
         args.worktreePath,
         worktreePath
       )
+      await assertWslUncPathRunning(worktreePath, gitOptions.wslDistro)
       return getHistory(worktreePath, { ...options, ...gitOptions })
     }
   )
@@ -283,6 +295,8 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
       }
     ): Promise<GitDiffResult> => {
       requireReachableGitRoute(getConnectionExecutionHostId(args.connectionId))
+      // A render- or poll-driven read: never boot a stopped WSL distro (E9).
+      await assertWslUncPathRunning(args.worktreePath)
       const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
       const filePath = validateGitRelativeFilePath(worktreePath, args.filePath)
       const gitOptions = getLocalGitOptionsForRegisteredWorktree(
@@ -290,6 +304,7 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
         args.worktreePath,
         worktreePath
       )
+      await assertWslUncPathRunning(worktreePath, gitOptions.wslDistro)
       return getDiff(worktreePath, filePath, args.staged, args.compareAgainstHead, {
         ...gitOptions,
         admissionTier: 'interactive'

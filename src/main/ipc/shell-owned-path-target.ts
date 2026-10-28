@@ -1,3 +1,5 @@
+import { isWslUncPath } from '../../shared/wsl-paths'
+import { blockedWslDistroForPath } from '../wsl/wsl-unc-access-gate'
 import { stat } from 'node:fs/promises'
 import { isAbsolute, normalize, win32 } from 'node:path'
 import { parseRoutableExecutionHostId } from '../../shared/execution-host'
@@ -11,6 +13,16 @@ export async function pathExists(pathValue: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/**
+ * Link existence checks run on render and on timers: a stat of a stopped distro's `\\wsl.localhost`
+ * path would boot it (E9), so it answers "not there" until the distro runs.
+ */
+export async function pathExistsUnlessDistroStopped(pathValue: string): Promise<boolean> {
+  return isWslUncPath(pathValue) && (await blockedWslDistroForPath(pathValue))
+    ? false
+    : pathExists(pathValue)
 }
 
 export async function validateLocalPathTarget(

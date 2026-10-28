@@ -11,6 +11,7 @@ import {
   type PRRefreshValidationDenialReason
 } from '../github/pr-refresh-validation-backoff'
 import type { Store } from '../persistence'
+import { assertWslUncPathRunning } from '../wsl/wsl-unc-access-gate'
 import {
   getLocalProjectGhExecOptions,
   type LocalProjectGhExecOptions
@@ -135,6 +136,11 @@ export function isPRRefreshCandidateRegistered(
 
 export function getGitHubRepoConnectionId(repo: Repo): string | null {
   return repo.connectionId ?? null
+}
+
+/** Background GitHub reads run gh and git in a WSL project's distro: never boot a stopped one (E9). */
+export async function assertGitHubRepoDistroRunning(store: Store, repo: Repo): Promise<void> {
+  await assertWslUncPathRunning(repo.path, getLocalProjectGhExecOptions(store, repo).wslDistro)
 }
 
 export function getGitHubLocalGitOptionArgs(

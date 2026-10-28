@@ -7,6 +7,8 @@ const mocks = await vi.hoisted(async () => {
 })
 
 vi.mock('electron', () => mocks.electron)
+// Routing is under test here; the E9 distro gate has its own suite.
+vi.mock('../wsl/wsl-unc-access-gate', () => ({ assertWslUncPathRunning: async () => {} }))
 vi.mock('../github/client', () => mocks.client)
 vi.mock('../github/work-item-details', () => mocks.workItemDetails)
 vi.mock('../github/pr-refresh-coordinator', () => mocks.prRefresh)

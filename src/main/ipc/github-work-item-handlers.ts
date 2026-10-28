@@ -17,6 +17,7 @@ import { dispatchWorkItem, type WorkItemArgs } from './github-work-item-args'
 import {
   assertRegisteredGitHubRepo,
   getGitHubLocalGitOptionArgs,
+  assertGitHubRepoDistroRunning,
   getGitHubRepoConnectionId,
   type GitHubRepoScopedArgs
 } from './github-repo-routing'
@@ -25,7 +26,7 @@ import { broadcastGitHubWorkItemMutation } from './github-work-item-mutation-eve
 export function registerGitHubWorkItemHandlers(store: Store): void {
   ipcMain.handle(
     'gh:issue',
-    (
+    async (
       _event,
       args: {
         repoPath: string
@@ -35,6 +36,7 @@ export function registerGitHubWorkItemHandlers(store: Store): void {
       }
     ) => {
       const repo = assertRegisteredGitHubRepo(args, store)
+      await assertGitHubRepoDistroRunning(store, repo)
       return getIssue(
         repo.path,
         args.number,
@@ -80,7 +82,7 @@ export function registerGitHubWorkItemHandlers(store: Store): void {
 
   ipcMain.handle(
     'gh:listWorkItems',
-    (
+    async (
       _event,
       args: {
         repoPath: string
@@ -92,6 +94,7 @@ export function registerGitHubWorkItemHandlers(store: Store): void {
       }
     ) => {
       const repo = assertRegisteredGitHubRepo(args, store)
+      await assertGitHubRepoDistroRunning(store, repo)
       return listWorkItems(
         repo.path,
         args.limit,
@@ -105,16 +108,20 @@ export function registerGitHubWorkItemHandlers(store: Store): void {
     }
   )
 
-  ipcMain.handle('gh:countWorkItems', (_event, args: { repoPath: string; query?: string }) => {
-    const repo = assertRegisteredGitHubRepo(args, store)
-    return countWorkItems(
-      repo.path,
-      args.query,
-      repo.issueSourcePreference,
-      getGitHubRepoConnectionId(repo),
-      ...getGitHubLocalGitOptionArgs(store, repo)
-    )
-  })
+  ipcMain.handle(
+    'gh:countWorkItems',
+    async (_event, args: { repoPath: string; query?: string }) => {
+      const repo = assertRegisteredGitHubRepo(args, store)
+      await assertGitHubRepoDistroRunning(store, repo)
+      return countWorkItems(
+        repo.path,
+        args.query,
+        repo.issueSourcePreference,
+        getGitHubRepoConnectionId(repo),
+        ...getGitHubLocalGitOptionArgs(store, repo)
+      )
+    }
+  )
 
   ipcMain.handle('gh:workItem', (_event, args: WorkItemArgs) => {
     const repo = assertRegisteredGitHubRepo(args, store)

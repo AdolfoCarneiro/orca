@@ -13,6 +13,7 @@ import {
 } from '../github/client'
 import type { Store } from '../persistence'
 import {
+  assertGitHubRepoDistroRunning,
   assertRegisteredGitHubRepo,
   getGitHubLocalGitOptionArgs,
   getGitHubRepoConnectionId
@@ -41,7 +42,7 @@ export function registerGitHubPRReadHandlers(store: Store): void {
 
   ipcMain.handle(
     'gh:prChecks',
-    (
+    async (
       _event,
       args: {
         repoPath: string
@@ -54,6 +55,7 @@ export function registerGitHubPRReadHandlers(store: Store): void {
       }
     ) => {
       const repo = assertRegisteredGitHubRepo(args, store)
+      await assertGitHubRepoDistroRunning(store, repo)
       return getPRChecks(
         repo.path,
         args.prNumber,
