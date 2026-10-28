@@ -26,6 +26,7 @@ const NO_STORE = {} as Store
 
 class Sender extends EventEmitter {
   dead = false
+  mainFrame = { processId: 1, routingId: 1 }
   send = vi.fn()
   constructor(readonly id: number) {
     super()
@@ -161,6 +162,26 @@ it('keeps live watches for same-document and canceled navigation', async () => {
   sender.emit('did-start-navigation', {}, 'https://blocked.example', false, true)
   sender.emit('did-navigate-in-page', {}, 'app://index.html#route', true)
   expect(getActiveLocalLogTailWatcherCount()).toBe(1)
+})
+
+it('retires installed and pending watches after error-page replacement without harming a sibling', async () => {
+  const sender = new Sender(80)
+  const sibling = new Sender(81)
+  await start(sender, 'installed')
+  await start(sibling, 'sibling')
+  const admission = deferAuthorization()
+  const pending = start(sender, 'pending')
+  sender.mainFrame.routingId++
+  sender.emit('did-fail-load', {}, -2, 'ERR_FAILED', 'https://orca.test/', true)
+  expect(getActiveLocalLogTailWatcherCount()).toBe(1)
+  admission.resolve()
+  await pending
+  expect(getActiveLocalLogTailWatcherCount()).toBe(1)
+  expect(sender.listenerCount('did-fail-load')).toBe(0)
+  await start(sender, 'successor')
+  expect(getActiveLocalLogTailWatcherCount()).toBe(2)
+  sender.emit('did-fail-load', {}, -300, 'ERR_INVALID_URL', 'http://[', true)
+  expect(getActiveLocalLogTailWatcherCount()).toBe(2)
 })
 
 it('shares lifecycle listeners and releases them when the last watch stops', async () => {
