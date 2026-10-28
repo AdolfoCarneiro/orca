@@ -6493,10 +6493,6 @@
         "RemoteFileBrowserEntryList": {
           "pathEmpty": "{{path}} 为空"
         },
-        "importedWorktreesCardActions": {
-          "keepHiddenError": "无法保持检测到的工作树为隐藏状态。请重试。",
-          "showError": "无法显示检测到的工作树。请重试。"
-        },
         "repoHeaderProjectActions": {
           "hideNonOrcaWorktrees": "隐藏非 Orca 工作树",
           "showHiddenWorktrees": "显示隐藏的工作树"

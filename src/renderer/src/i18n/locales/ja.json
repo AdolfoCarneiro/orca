@@ -6493,10 +6493,6 @@
         "RemoteFileBrowserEntryList": {
           "pathEmpty": "{{path}} は空です"
         },
-        "importedWorktreesCardActions": {
-          "keepHiddenError": "検出されたワークツリーを非表示のままにできませんでした。もう一度お試しください。",
-          "showError": "検出されたワークツリーを表示できませんでした。もう一度お試しください。"
-        },
         "repoHeaderProjectActions": {
           "hideNonOrcaWorktrees": "Orca 以外のワークツリーを非表示にする",
           "showHiddenWorktrees": "非表示のワークツリーを表示する"

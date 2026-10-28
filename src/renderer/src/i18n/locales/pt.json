@@ -12300,10 +12300,6 @@
         "RemoteFileBrowserEntryList": {
           "pathEmpty": "A pasta {{path}} está vazia"
         },
-        "importedWorktreesCardActions": {
-          "keepHiddenError": "Não foi possível manter ocultas as worktrees descobertas. Tente novamente.",
-          "showError": "Não foi possível mostrar as worktrees descobertas. Tente novamente."
-        },
         "repoHeaderProjectActions": {
           "hideNonOrcaWorktrees": "Ocultar worktrees que não são do Orca",
           "showHiddenWorktrees": "Mostrar worktrees ocultas"

@@ -6982,10 +6982,6 @@
         "RemoteFileBrowserEntryList": {
           "pathEmpty": "Le dossier {{path}} est vide"
         },
-        "importedWorktreesCardActions": {
-          "keepHiddenError": "Impossible de garder masqués les worktrees détectés. Réessayez.",
-          "showError": "Impossible d'afficher les worktrees détectés. Réessayez."
-        },
         "repoHeaderProjectActions": {
           "hideNonOrcaWorktrees": "Masquer les worktrees hors Orca",
           "showHiddenWorktrees": "Afficher les worktrees masqués"

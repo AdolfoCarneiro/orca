@@ -7182,10 +7182,6 @@
         "RemoteFileBrowserEntryList": {
           "pathEmpty": "{{path}} is empty"
         },
-        "importedWorktreesCardActions": {
-          "keepHiddenError": "Could not keep discovered worktrees hidden. Try again.",
-          "showError": "Could not show discovered worktrees. Try again."
-        },
         "repoHeaderProjectActions": {
           "hideNonOrcaWorktrees": "Hide non-Orca worktrees",
           "showHiddenWorktrees": "Show hidden worktrees"
