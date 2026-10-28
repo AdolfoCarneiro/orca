@@ -31,6 +31,7 @@ import { StoreRuntimeState } from './store-runtime-state'
 import { createStoreDomains } from './store-domain-composition'
 import { getSessionSnapshotOperationsContext } from './session-snapshot-operations'
 import { publishWorkspaceSessionSnapshot } from './workspace-session-snapshot-publication'
+import { migrateWorkspaceSessionTerminalScrollbackSnapshotsAsync } from '../../terminal-scrollback-snapshot-async-migration'
 import { fullSessionSelection } from './session-full-enumeration.test-fixture'
 import { initializeSessionPublication, sessionPublication } from './session-publication'
 
@@ -54,11 +55,16 @@ function context(session: WorkspaceSessionState, home: string) {
   runtime.writesFrozen = true
   const domains = createStoreDomains(runtime)
   initializeSessionPublication(runtime.state)
-  return { runtime, snapshot: getSessionSnapshotOperationsContext(domains.sessionSnapshots) }
+  return {
+    runtime,
+    domains,
+    snapshot: getSessionSnapshotOperationsContext(domains.sessionSnapshots)
+  }
 }
 
 const homes: string[] = []
 afterEach(() => {
+  vi.restoreAllMocks()
   for (const home of homes.splice(0)) {
     rmSync(home, { recursive: true, force: true })
   }
@@ -364,4 +370,77 @@ describe('complete policy outputs with zero selected units', () => {
       expect(Object.hasOwn(reader.snapshot(), 'terminalPtyIncarnationsByPaneKey')).toBe(true)
     })
   }
+})
+
+describe('full snapshot writer adapters', () => {
+  it.each(['set', 'unload'] as const)(
+    '%s matches independently enumerated full normalization and snapshot-file completion',
+    async (mode) => {
+      vi.spyOn(Date, 'now').mockReturnValue(1700000000000)
+      const home = mkdtempSync(join(tmpdir(), 'orca-snapshot-writer-differential-'))
+      homes.push(home)
+      const prior = freeze(
+        addWorkspace(emptySession(), GIT_KEY, [
+          { id: 'group-a', tabs: [{ id: 'tab-a', leaves: [[leaf(1), 'pty-a']] }] }
+        ])
+      )
+      const saved = structuredClone(prior)
+      const incoming = structuredClone(prior)
+      incoming.tabsByWorktree[GIT_KEY][0].title = 'incoming'
+      incoming.terminalLayoutsByTabId['tab-a'].buffersByLeafId = {
+        [leaf(1)]: 'saved terminal buffer'
+      }
+      const keyed = context(prior, home),
+        complete = context(prior, home)
+      const full = SessionUnitReader.between(prior, incoming, new SessionUnitIndex(prior))
+      publishWorkspaceSessionSnapshot(
+        complete.snapshot,
+        'local',
+        full,
+        true,
+        mode === 'unload',
+        fullSessionSelection(full)
+      )
+      keyed.runtime.writesFrozen = false
+      try {
+        if (mode === 'set') {
+          keyed.domains.sessionSnapshots.setWorkspaceSession(incoming)
+        } else {
+          keyed.domains.sessionSnapshots.stageWorkspaceSessionBeforeUnload(incoming)
+        }
+      } finally {
+        keyed.runtime.writesFrozen = true
+        if (keyed.runtime.writeTimer) {
+          clearTimeout(keyed.runtime.writeTimer)
+        }
+        keyed.runtime.writeTimer = null
+      }
+      expect(keyed.runtime.state.workspaceSession).toStrictEqual(
+        complete.runtime.state.workspaceSession
+      )
+      const staged = freeze(keyed.runtime.state.workspaceSession),
+        stagedCopy = structuredClone(staged)
+      const expected =
+        mode === 'unload'
+          ? await migrateWorkspaceSessionTerminalScrollbackSnapshotsAsync(
+              complete.runtime.state.workspaceSession,
+              complete.runtime.terminalScrollbackSnapshotStorage
+            )
+          : complete.runtime.state.workspaceSession
+      await keyed.runtime.pendingSnapshotFileWork
+      expect(keyed.runtime.state.workspaceSession).toStrictEqual(expected)
+      expect(staged).toStrictEqual(stagedCopy)
+      expect(prior).toStrictEqual(saved)
+      const actual = sessionPublication(keyed.runtime.state).partition('local').index
+      const rebuilt = new SessionUnitIndex(expected)
+      for (const field of SESSION_MAP_FIELDS) {
+        expect([...actual.keys(field)]).toEqual([...rebuilt.keys(field)])
+        for (const key of rebuilt.keys(field)) {
+          expect(actual.ids(field, key, 'scrollback')).toEqual(
+            rebuilt.ids(field, key, 'scrollback')
+          )
+        }
+      }
+    }
+  )
 })

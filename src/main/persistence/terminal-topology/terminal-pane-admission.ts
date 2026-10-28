@@ -16,7 +16,7 @@ import {
   writeLayoutOperation
 } from './layout-operation-selection'
 export {
-  SessionReferenceRequest,
+  type SessionReferenceRequest,
   commandSessionReferences,
   loadLayoutOperation
 } from './layout-operation-selection'

@@ -1,5 +1,5 @@
 import type { PublicationState, Partition, SessionRefSnapshot } from './session-publication-types'
-export { SessionRefSnapshot, PublicationState, Partition } from './session-publication-types'
+export type { SessionRefSnapshot, PublicationState, Partition } from './session-publication-types'
 import { mergeSessionChanges } from './session-change-coalescing'
 import { SessionPublicationResources } from './session-publication-resources'
 import {

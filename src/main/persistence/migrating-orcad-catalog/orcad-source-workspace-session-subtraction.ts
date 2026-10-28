@@ -116,6 +116,9 @@ function removeOwnedSessionState(
       )
     )
   }
+  if (retired.terminalTopologyRevisionByRepoId) {
+    retired.terminalTopologyRevisionByRepoId = { ...retired.terminalTopologyRevisionByRepoId }
+  }
   for (const repoId of scope.repoIds) {
     if (!scope.sharedRepoIds.has(repoId)) {
       delete retired.terminalTopologyRevisionByRepoId?.[repoId]

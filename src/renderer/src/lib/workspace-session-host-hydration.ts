@@ -1,5 +1,5 @@
 import type { WorkspaceSessionHostRead } from './workspace-session-host-read'
-export { WorkspaceSessionHostRead } from './workspace-session-host-read'
+export type { WorkspaceSessionHostRead } from './workspace-session-host-read'
 import type { Repo } from '../../../shared/repo-types'
 import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
 import {

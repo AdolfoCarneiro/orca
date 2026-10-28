@@ -83,12 +83,10 @@ export function reduceSessionOwnerRemoval(
     reader.replace('activeWorkspaceKey', { present: true, value: null })
   }
   const active = reader.field('activeWorktreeIdsOnShutdown')
-  if (active.present && active.value?.includes(owner)) {
-    reader.replace('activeWorktreeIdsOnShutdown', {
-      present: true,
-      value: active.value.filter((id) => id !== owner)
-    })
-  }
+  reader.replace('activeWorktreeIdsOnShutdown', {
+    present: true,
+    value: active.value?.filter((id) => id !== owner)
+  })
 }
 
 export function reduceSessionRepoRemoval(reader: SessionUnitReader, repoId: string): void {
@@ -156,10 +154,8 @@ export function reduceSessionRepoRemoval(reader: SessionUnitReader, repoId: stri
     reader.replace('activeWorkspaceKey', { present: true, value: null })
   }
   const members = reader.field('activeWorktreeIdsOnShutdown')
-  if (members.present) {
-    reader.replace('activeWorktreeIdsOnShutdown', {
-      present: true,
-      value: members.value?.filter((id) => !isRepoWorktreeId(repoId, id))
-    })
-  }
+  reader.replace('activeWorktreeIdsOnShutdown', {
+    present: true,
+    value: members.value?.filter((id) => !isRepoWorktreeId(repoId, id))
+  })
 }

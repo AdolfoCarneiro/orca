@@ -142,6 +142,18 @@ function moveLeafInPartition(
       value: { ...sleep.value, paneKey: toPaneKey, tabId: targetTabId }
     })
   }
+  for (const field of [
+    'terminalPtyIncarnationsByPaneKey',
+    'sleepingAgentSessionsByPaneKey'
+  ] as const) {
+    reader.reconcileField(field, {
+      kind: 'replacement',
+      present: true,
+      ...(reader.prior[field] === undefined
+        ? { valueWhenEmpty: 'undefined' as const }
+        : { explicitEmpty: true })
+    })
+  }
   const repoId = getRepoIdFromWorktreeId(worktreeId)
   reader.write('terminalTopologyRevisionByRepoId', repoId, {
     present: true,
@@ -172,13 +184,13 @@ export function planTerminalLeafMove(
   if (owners.some(({ reader }) => leafHeldByOtherTab(reader, sourceTabId, leafId))) {
     return refuse('leaf_in_other_tab')
   }
-  const holders = owners.flatMap(({ hostId, session, reader }) => {
+  const holders = owners.flatMap(({ hostId, session, reader, prepared }) => {
     const sourceTab = reader
       .unit('tabsByWorktree', worktreeId)
       .value?.find((tab) => tab.id === sourceTabId)
     const sourceLayout = reader.unit('terminalLayoutsByTabId', sourceTabId).value
     return sourceTab && sourceLayout && layoutContainsLeafId(sourceLayout.root, leafId)
-      ? [{ hostId, session, reader, sourceTab, sourceLayout }]
+      ? [{ hostId, session, reader, prepared, sourceTab, sourceLayout }]
       : []
   })
   if (holders.length === 0) {

@@ -6,7 +6,7 @@ import type { MigrationUnsupportedPtyEntry } from '../../../shared/agent-status-
 import type { PaneAliasNormalizationOptions } from './pane-identity-migration'
 
 export {
-  WorkspaceSessionPaneIdentityRemap,
+  type WorkspaceSessionPaneIdentityRemap,
   remapSshRemotePtyLeaseLeafIds,
   normalizePersistedPaneIdentityState
 } from './persisted-pane-identity-state'

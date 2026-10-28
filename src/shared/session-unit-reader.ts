@@ -1,4 +1,4 @@
-export { SessionUnitSelection, selectSessionUnits } from './session-unit-selection'
+export { type SessionUnitSelection, selectSessionUnits } from './session-unit-selection'
 
 import type { WorkspaceSessionState } from './workspace-session-state-types'
 import type {

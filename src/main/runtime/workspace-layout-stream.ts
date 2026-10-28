@@ -3,7 +3,7 @@ import type {
   LayoutListener,
   StreamStore
 } from './workspace-layout-stream-types'
-export { LayoutOperationCommit, WorkspaceLayoutReads } from './workspace-layout-stream-types'
+export type { LayoutOperationCommit, WorkspaceLayoutReads } from './workspace-layout-stream-types'
 import {
   reconcileShownLayouts,
   changedLayoutRecords,
