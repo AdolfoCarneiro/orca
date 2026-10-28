@@ -36,7 +36,7 @@ export type ZshStartupHookSpec = {
   osc133CommandMarkers: boolean
   /** Local-only command delivery from the first zle line editor. */
   startupCommandDelivery: boolean
-  /** WSL bridge panes report their folder (OSC 7) at each prompt where it changed. */
+  /** WSL bridge panes report their folder (OSC 7) at each prompt. */
   wslCwdReports?: boolean
   overlayRestoreComment: string
   restores: ZshWrapperRestoreSpec
