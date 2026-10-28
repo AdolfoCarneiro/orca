@@ -260,15 +260,8 @@ export function useMarkdownDocuments(
     refresh: refreshMarkdownDocuments
   })
 
-  const markdownDocuments = useMemo(
-    () => (snapshot?.key === scopeKey ? snapshot.documents : []),
-    [scopeKey, snapshot]
-  )
-
-  const previewProps = useMemo(
-    () => ({ markdownDocuments, onOpenDocument: openMarkdownDocument }),
-    [markdownDocuments, openMarkdownDocument]
-  )
+  const markdownDocuments = useMarkdownDocumentSnapshot(snapshot, scopeKey)
+  const previewProps = useMarkdownDocumentPreviewProps(markdownDocuments, openMarkdownDocument)
 
   const mdSave = useCallback(
     (content: string) =>
@@ -276,12 +269,37 @@ export function useMarkdownDocuments(
     [onSave, refreshMarkdownDocuments]
   )
 
+  const onOpenDocLink = useMarkdownDocumentLinkOpener(markdownDocuments, openMarkdownDocument)
+
+  return { markdownDocuments, openMarkdownDocument, onOpenDocLink, previewProps, mdSave }
+}
+
+function useMarkdownDocumentSnapshot(
+  snapshot: { key: string; documents: MarkdownDocument[] } | null,
+  scopeKey: string
+): MarkdownDocument[] {
+  return useMemo(() => (snapshot?.key === scopeKey ? snapshot.documents : []), [scopeKey, snapshot])
+}
+
+function useMarkdownDocumentPreviewProps(
+  markdownDocuments: MarkdownDocument[],
+  openMarkdownDocument: UseMarkdownDocumentsResult['openMarkdownDocument']
+): UseMarkdownDocumentsResult['previewProps'] {
+  return useMemo(
+    () => ({ markdownDocuments, onOpenDocument: openMarkdownDocument }),
+    [markdownDocuments, openMarkdownDocument]
+  )
+}
+
+function useMarkdownDocumentLinkOpener(
+  markdownDocuments: MarkdownDocument[],
+  openMarkdownDocument: UseMarkdownDocumentsResult['openMarkdownDocument']
+): UseMarkdownDocumentsResult['onOpenDocLink'] {
   const docIndex = useMemo(
     () => createMarkdownDocumentIndex(markdownDocuments),
     [markdownDocuments]
   )
-
-  const onOpenDocLink = useCallback(
+  return useCallback(
     (target: string) => {
       const resolution = resolveMarkdownDocLink(target, docIndex)
       if (resolution.status === 'resolved') {
@@ -292,6 +310,4 @@ export function useMarkdownDocuments(
     },
     [docIndex, openMarkdownDocument]
   )
-
-  return { markdownDocuments, openMarkdownDocument, onOpenDocLink, previewProps, mdSave }
 }

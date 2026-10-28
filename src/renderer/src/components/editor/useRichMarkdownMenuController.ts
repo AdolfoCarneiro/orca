@@ -83,16 +83,10 @@ export function useRichMarkdownMenuController({
   filteredSlashCommandsRef.current = filteredSlashCommands
   selectedCommandIndexRef.current = selectedCommandIndex
 
-  const { docLinkRows, docLinkTotalMatches } = useMemo(() => {
-    if (!docLinkMenu || !markdownDocuments) {
-      return { docLinkRows: [] as DocLinkMenuRow[], docLinkTotalMatches: 0 }
-    }
-    const matches = getMarkdownDocCompletionDocuments(markdownDocuments, docLinkMenu.query)
-    const rows: DocLinkMenuRow[] = matches
-      .slice(0, DOC_LINK_MENU_MAX_ROWS)
-      .map((document) => ({ kind: 'document', document }))
-    return { docLinkRows: rows, docLinkTotalMatches: matches.length }
-  }, [docLinkMenu, markdownDocuments])
+  const { docLinkRows, docLinkTotalMatches } = useRichMarkdownDocLinkRows(
+    docLinkMenu,
+    markdownDocuments
+  )
   const selectedDocLinkIndex = resolveSelectedMenuIndex(
     docLinkSelection,
     docLinkMenu?.query ?? null,
@@ -130,6 +124,22 @@ export function useRichMarkdownMenuController({
     slashMenu,
     slashMenuRef
   }
+}
+
+function useRichMarkdownDocLinkRows(
+  docLinkMenu: DocLinkMenuState | null,
+  markdownDocuments: MarkdownDocument[] | undefined
+) {
+  return useMemo<{ docLinkRows: DocLinkMenuRow[]; docLinkTotalMatches: number }>(() => {
+    if (!docLinkMenu || !markdownDocuments) {
+      return { docLinkRows: [], docLinkTotalMatches: 0 }
+    }
+    const matches = getMarkdownDocCompletionDocuments(markdownDocuments, docLinkMenu.query)
+    const rows: DocLinkMenuRow[] = matches
+      .slice(0, DOC_LINK_MENU_MAX_ROWS)
+      .map((document) => ({ kind: 'document', document }))
+    return { docLinkRows: rows, docLinkTotalMatches: matches.length }
+  }, [docLinkMenu, markdownDocuments])
 }
 
 function resolveSelectedMenuIndex(
