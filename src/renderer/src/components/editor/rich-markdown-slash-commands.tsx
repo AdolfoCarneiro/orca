@@ -49,7 +49,11 @@ export function syncSlashMenu(
   }
 
   const { $from } = selection
-  if (!$from.parent.isTextblock) {
+  if (!$from.parent.isTextblock || $from.parent.type.spec.code) {
+    setSlashMenu(null)
+    return
+  }
+  if (editor.isActive('code')) {
     setSlashMenu(null)
     return
   }
