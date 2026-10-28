@@ -84,8 +84,9 @@ async function releaseWslMovesHere(
   unsavedWorkspaceIdsAsked: readonly string[],
   createUndoPorts: () => WslMoveUndoPorts
 ): Promise<WslMoveUseLocallyResult> {
-  // An update install quits the app; it waits until this undo returns (updater-wsl-move-install-hold).
-  const endUndoRun = beginWslMoveUndoRun()
+  // Taken before any guard or host connect: that connect wakes the move orchestrator, whose run of
+  // this distro must not claim one mid-undo. An update install also waits until this returns.
+  const endUndoRun = beginWslMoveUndoRun(newestFirst[0].manifest.source.distro)
   try {
     return await releaseWslMovesHereNow(
       userDataPath,
@@ -207,6 +208,12 @@ async function releaseOneMoveHere(
       detail:
         automations.outcome === 'removal-pending' ? 'host-removal-pending' : 'host-automations'
     }
+  }
+  // Re-checked last before the stop: a refusal after it would leave the host's terminals stopped.
+  const late = wslMoveReleaseRefusal(userDataPath, move)
+  if (late) {
+    await automations.restore()
+    return late
   }
   // The host's copies stop next, or an agent the move resumed there runs beside this one.
   const stop = await ports.stopHostCopies(move).catch(() => 'unreachable' as const)
