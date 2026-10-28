@@ -143,6 +143,7 @@ describe('checks panel concrete content', () => {
       handleOpenStackPR: vi.fn(),
       handleReplyToComment: vi.fn(),
       handleResolve: vi.fn(),
+      getThreadResolutionKey: () => undefined,
       handleResolveCommentsWithAI: vi.fn(),
       handleResolveConflictsWithAI: vi.fn(),
       handleSaveTitle: vi.fn(),

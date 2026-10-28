@@ -1,3 +1,4 @@
+import { getPRCommentGroupId } from '../../../../../shared/pr-comment-groups'
 import { useCallback, useLayoutEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { mergePRCommentIntoList } from '@/store/github/pr-comment-cache'
@@ -17,7 +18,7 @@ import type { ChecksPanelPollingState } from './use-checks-panel-polling'
 import { buildSnapshottedThreadResolver } from '../pr-comment-snapshotted-thread-resolver'
 import { markPRCommentThreadResolved } from '../pr-comment-thread-resolution'
 import { resolveGitLabMRDiscussionForChecks } from './gitlab-review-client'
-import { clearPRCommentsListSelection } from '../pr-comments-list-selection'
+import { removePRCommentsListSelectionGroups } from '../pr-comments-list-selection'
 import { translate } from '@/i18n/i18n'
 import type { ChecksAgentComposerState } from './panel-state-types'
 import type { ChecksPanelReview } from '../checks-panel-review'
@@ -58,12 +59,13 @@ export function useChecksPanelAiAcknowledgement(model: ChecksPanelAiAcknowledgem
     commentResolutionLaunchAcceptedRef
   } = model
   const clearSentCommentSelection = useCallback(
-    (reviewContextKey: string): void => {
-      clearPRCommentsListSelection(reviewContextKey)
+    (reviewContextKey: string, removeGroupIds: ReadonlySet<string>): void => {
+      removePRCommentsListSelectionGroups(reviewContextKey, removeGroupIds)
       commentsSelectionClearTokenRef.current += 1
       setCommentsSelectionClearRequest({
         contextKey: reviewContextKey,
-        token: commentsSelectionClearTokenRef.current
+        token: commentsSelectionClearTokenRef.current,
+        removeGroupIds
       })
     },
     [commentsSelectionClearTokenRef, setCommentsSelectionClearRequest]
@@ -87,7 +89,10 @@ export function useChecksPanelAiAcknowledgement(model: ChecksPanelAiAcknowledgem
 
   const resolveSelectedThreadsAfterLaunch = useCallback(
     async (resolution: NonNullable<ChecksAgentComposerState['commentResolution']>) => {
-      clearSentCommentSelection(resolution.reviewContextKey)
+      clearSentCommentSelection(
+        resolution.reviewContextKey,
+        new Set(resolution.selectedGroups.map(getPRCommentGroupId))
+      )
       // Ignore headSha churn; abort only when the user leaves this review/panel.
       const launchStableKey = checksPanelReviewStableKey(resolution.reviewContextKey)
       // Host calls keep the snapshotted target; gate UI writes so replies cannot appear in another review.
@@ -108,6 +113,7 @@ export function useChecksPanelAiAcknowledgement(model: ChecksPanelAiAcknowledgem
       const resolveSnapshottedThread = buildSnapshottedThreadResolver({
         provider: resolution.provider,
         githubResolveTarget: resolution.githubResolveTarget,
+        githubThreadRequests: resolution.githubThreadRequests,
         gitlabTarget: resolution.gitlabTarget,
         resolveReviewThread,
         resolveGitLabDiscussion: resolveGitLabMRDiscussionForChecks,
@@ -125,10 +131,14 @@ export function useChecksPanelAiAcknowledgement(model: ChecksPanelAiAcknowledgem
           console.warn('Post-launch thread resolve failed:', threadId, error)
         }
       })
+      const busyThreadIds = new Set<string>()
       const counts = await acknowledgePRCommentsAfterAiLaunch({
         groups: resolution.selectedGroups,
         deps: {
           resolveThread: resolveSnapshottedThread,
+          onThreadBusy: (threadId) => {
+            busyThreadIds.add(threadId)
+          },
           canReply: canReplyOnHost,
           replyInThread: async (comment, body) => {
             if (!githubTarget || !canPostPRReviewThreadReply(comment)) {
@@ -210,7 +220,26 @@ export function useChecksPanelAiAcknowledgement(model: ChecksPanelAiAcknowledgem
         }
       })
 
-      if (isPanelStillOnLaunchReview()) {
+      const pendingMessage =
+        busyThreadIds.size > 0
+          ? translate(
+              'auto.components.right.sidebar.ChecksPanel.threadsStillUpdating',
+              'Selected threads still updating: {{value0}}.',
+              { value0: busyThreadIds.size }
+            )
+          : ''
+      const completedWork = counts.resolved + counts.replied + counts.failed
+      if (completedWork === 0 && busyThreadIds.size > 0) {
+        toast.message(
+          translate(
+            'auto.components.right.sidebar.ChecksPanel.agentStartedWithPendingThreads',
+            'Started the agent. Selected threads still updating: {{value0}}.',
+            { value0: busyThreadIds.size }
+          )
+        )
+        return
+      }
+      if (isPanelStillOnLaunchReview() && busyThreadIds.size === 0) {
         await refreshCommentsRef.current(resolution.provider)
       }
 
@@ -229,23 +258,31 @@ export function useChecksPanelAiAcknowledgement(model: ChecksPanelAiAcknowledgem
               value1: counts.replied,
               value2: counts.skipped,
               value3: counts.failed,
-              value4: lastHostError ? ` ${lastHostError}` : ''
+              value4: [lastHostError, pendingMessage]
+                .filter(Boolean)
+                .map((message) => ` ${message}`)
+                .join('')
             }
           )
         )
         return
       }
       toast.success(
-        translate(
-          'auto.components.right.sidebar.ChecksPanel.aa95b81a3a',
-          'Started the agent. Marked {{value0}} resolved, replied to {{value1}}, skipped {{value2}}, failed {{value3}}.',
-          {
-            value0: counts.resolved,
-            value1: counts.replied,
-            value2: counts.skipped,
-            value3: counts.failed
-          }
-        )
+        [
+          translate(
+            'auto.components.right.sidebar.ChecksPanel.aa95b81a3a',
+            'Started the agent. Marked {{value0}} resolved, replied to {{value1}}, skipped {{value2}}, failed {{value3}}.',
+            {
+              value0: counts.resolved,
+              value1: counts.replied,
+              value2: counts.skipped,
+              value3: counts.failed
+            }
+          ),
+          pendingMessage
+        ]
+          .filter(Boolean)
+          .join(' ')
       )
     },
     [

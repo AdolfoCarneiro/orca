@@ -64,6 +64,7 @@ export function ChecksPanelActiveContent({
     handleRefresh,
     handleReplyToComment,
     handleResolve,
+    getThreadResolutionKey,
     handleResolveCommentsWithAI,
     handleResolveConflictsWithAI,
     handleSaveTitle,
@@ -249,6 +250,7 @@ export function ChecksPanelActiveContent({
         }
         onReply={pr ? handleReplyToComment : undefined}
         onResolve={pr || activeGitLabReview ? handleResolve : undefined}
+        getThreadResolutionKey={getThreadResolutionKey}
         onEditComment={pr ? handleEditComment : undefined}
         onDeleteComment={pr ? handleDeleteComment : undefined}
         onSetReaction={canTargetPRComments ? handleSetReaction : undefined}

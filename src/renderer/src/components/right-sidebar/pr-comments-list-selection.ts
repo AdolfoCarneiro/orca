@@ -1,3 +1,4 @@
+import { usePendingReviewThreadResolutionKeys } from '@/lib/review-thread-resolution-pending'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   getPRCommentGroupId,
@@ -21,6 +22,7 @@ export type PRCommentsListSelection = {
 export type PRCommentsListSelectionClearRequest = {
   contextKey: string
   token: number
+  removeGroupIds?: ReadonlySet<string>
 }
 
 type PRCommentsListSelectionState = {
@@ -90,6 +92,25 @@ export function clearPRCommentsListSelection(contextKey: string | undefined): vo
   }
 }
 
+function selectionAfterRequest(
+  contextKey: string | undefined,
+  removeGroupIds: ReadonlySet<string> | undefined
+): PRCommentsListSelectionState {
+  const selectedGroupIds = removeGroupIds
+    ? new Set(
+        [...readSelectionState(contextKey).selectedGroupIds].filter((id) => !removeGroupIds.has(id))
+      )
+    : new Set<string>()
+  return { contextKey, isSelectingForAI: selectedGroupIds.size > 0, selectedGroupIds }
+}
+
+export function removePRCommentsListSelectionGroups(
+  contextKey: string,
+  groupIds: ReadonlySet<string>
+): void {
+  persistSelectionState(selectionAfterRequest(contextKey, groupIds))
+}
+
 export function clearPRCommentsListSelectionsForTests(): void {
   persistedSelectionByContextKey.clear()
 }
@@ -114,7 +135,8 @@ export function seedPRCommentsListSelectionForTests(
 export function usePRCommentsListSelection(
   comments: PRComment[],
   selectionContextKey: string | undefined,
-  clearRequest?: PRCommentsListSelectionClearRequest | null
+  clearRequest?: PRCommentsListSelectionClearRequest | null,
+  getThreadResolutionKey?: (threadId: string) => string | undefined
 ): PRCommentsListSelection {
   const lastClearRequestTokenRef = useRef<number | null>(null)
   const [renderedSelectionState, setRenderedSelectionState] =
@@ -142,12 +164,7 @@ export function usePRCommentsListSelection(
       return
     }
     lastClearRequestTokenRef.current = clearRequest.token
-    const next = {
-      contextKey: selectionContextKey,
-      isSelectingForAI: false,
-      selectedGroupIds: new Set<string>()
-    }
-    commitSelectionState(next)
+    commitSelectionState(selectionAfterRequest(selectionContextKey, clearRequest.removeGroupIds))
   }, [clearRequest, commitSelectionState, selectionContextKey])
 
   // Use unfiltered groups so audience changes cannot silently discard queued selections.
@@ -167,18 +184,39 @@ export function usePRCommentsListSelection(
   const candidateSelectedGroupIds = isCurrentSelectionContext
     ? selectionState.selectedGroupIds
     : EMPTY_SELECTED_GROUP_IDS
+  const selectedThreadKeys = useMemo(
+    () =>
+      canonicalGroups.flatMap((group) => {
+        if (!candidateSelectedGroupIds.has(getPRCommentGroupId(group)) || group.kind !== 'thread') {
+          return []
+        }
+        const key = getThreadResolutionKey?.(group.threadId)
+        return key ? [[getPRCommentGroupId(group), key] as const] : []
+      }),
+    [canonicalGroups, candidateSelectedGroupIds, getThreadResolutionKey]
+  )
+  const selectedPendingKeys = usePendingReviewThreadResolutionKeys(
+    useMemo(() => selectedThreadKeys.map(([, key]) => key), [selectedThreadKeys])
+  )
+  const pendingGroupIds = useMemo(
+    () =>
+      new Set(
+        selectedThreadKeys.filter(([, key]) => selectedPendingKeys.has(key)).map(([id]) => id)
+      ),
+    [selectedThreadKeys, selectedPendingKeys]
+  )
   const selectedGroupIds = useMemo(() => {
     let pruned = false
     const next = new Set<string>()
     for (const groupId of candidateSelectedGroupIds) {
-      if (selectableGroupsById.has(groupId)) {
+      if (selectableGroupsById.has(groupId) || pendingGroupIds.has(groupId)) {
         next.add(groupId)
       } else {
         pruned = true
       }
     }
     return pruned ? next : candidateSelectedGroupIds
-  }, [candidateSelectedGroupIds, selectableGroupsById])
+  }, [candidateSelectedGroupIds, selectableGroupsById, pendingGroupIds])
 
   useEffect(() => {
     if (
@@ -248,7 +286,9 @@ export function usePRCommentsListSelection(
         current.contextKey === selectionContextKey
           ? current.selectedGroupIds
           : EMPTY_SELECTED_GROUP_IDS
-      const next = new Set([...base].filter((id) => selectableGroupsById.has(id)))
+      const next = new Set(
+        [...base].filter((id) => selectableGroupsById.has(id) || pendingGroupIds.has(id))
+      )
       if (checked) {
         next.add(groupId)
       } else {
@@ -260,7 +300,7 @@ export function usePRCommentsListSelection(
         selectedGroupIds: next
       })
     },
-    [commitSelectionState, selectableGroupsById, selectionContextKey]
+    [commitSelectionState, selectableGroupsById, selectionContextKey, pendingGroupIds]
   )
 
   return {

@@ -1,9 +1,12 @@
+import { useAppStore } from '@/store'
+import { githubReviewThreadRequest } from '@/store/github/review-thread-request'
 import { useSavedSourceControlActionStart } from '../use-saved-source-control-action-start'
 import { resolveSourceControlActionRecipe } from '../../../../../shared/source-control-ai'
 import {
   checksPanelReviewStableKey,
   clearPendingPRCommentAiAck,
   setPendingPRCommentAiAck,
+  type PendingPRCommentAiAckGithubResolveTarget,
   type PendingPRCommentAiAckGithubTarget
 } from '../pr-comments-ai-launch-ack'
 import type { ChecksAgentComposerState } from './panel-state-types'
@@ -211,7 +214,7 @@ export function useChecksPanelAiQueue(model: ChecksPanelAiQueueInput) {
     const githubTarget = githubTargetFromPr ?? githubTargetFromUrl
     // Why: resolving needs no prRepo, so a degraded PR entry that only yields a number must
     // still ack by resolving instead of failing every selected thread.
-    const githubResolveTarget =
+    const githubResolveTarget: PendingPRCommentAiAckGithubResolveTarget | undefined =
       githubTarget ??
       (activeReview.provider === 'github' && prNumber
         ? { repoPath: repo.path, repoId: repo.id, prNumber }
@@ -233,6 +236,26 @@ export function useChecksPanelAiQueue(model: ChecksPanelAiQueueInput) {
       selectedGroups: [...selectedGroups],
       githubTarget,
       githubResolveTarget,
+      githubThreadRequests: githubResolveTarget
+        ? new Map(
+            selectedGroups.flatMap((group) =>
+              group.kind === 'thread'
+                ? [
+                    [
+                      group.threadId,
+                      githubReviewThreadRequest(
+                        useAppStore.getState(),
+                        githubResolveTarget.repoPath,
+                        githubResolveTarget.prNumber,
+                        group.threadId,
+                        { repoId: githubResolveTarget.repoId, prRepo: githubResolveTarget.prRepo }
+                      )
+                    ] as const
+                  ]
+                : []
+            )
+          )
+        : undefined,
       gitlabTarget
     }
     openOrStart({

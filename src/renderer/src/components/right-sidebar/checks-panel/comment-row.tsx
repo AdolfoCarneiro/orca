@@ -34,6 +34,7 @@ export function CommentRow({
   presentation,
   now,
   onResolve,
+  getThreadResolutionKey,
   onReply,
   onEditComment,
   onDeleteComment,
@@ -54,6 +55,7 @@ export function CommentRow({
   presentation: PRCommentPresentationClasses
   now: number
   onResolve?: (threadId: string, resolve: boolean) => boolean | Promise<boolean>
+  getThreadResolutionKey?: (threadId: string) => string | undefined
   onReply?: (comment: PRComment) => void
   onEditComment?: (comment: PRComment, body: string) => Promise<boolean>
   onDeleteComment?: (comment: PRComment) => void | Promise<void>
@@ -146,6 +148,7 @@ export function CommentRow({
         (actionState === 'open' || actionState === 'resolved') && (
           <ResolveButton
             threadId={comment.threadId}
+            pendingKey={getThreadResolutionKey?.(comment.threadId)}
             isResolved={comment.isResolved ?? false}
             onResolve={onResolve}
           />

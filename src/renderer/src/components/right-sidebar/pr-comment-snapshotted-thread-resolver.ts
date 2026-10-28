@@ -1,3 +1,16 @@
+import {
+  acquireReviewThreadResolution,
+  releaseReviewThreadResolution,
+  type ReviewThreadResolutionResult
+} from '@/lib/review-thread-resolution-pending'
+import {
+  gitlabReviewThreadRequest,
+  type GitLabReviewThreadAdmission
+} from '@/runtime/review-thread-resolution'
+import type {
+  GitHubReviewThreadAdmission,
+  GitHubReviewThreadRequest
+} from '@/store/github/review-thread-request'
 import type { HostedReviewInfo } from '../../../../shared/hosted-review'
 import type {
   PendingPRCommentAiAckGithubResolveTarget,
@@ -11,6 +24,7 @@ export type SnapshottedThreadResolverDeps = {
   provider: HostedReviewInfo['provider']
   githubResolveTarget?: PendingPRCommentAiAckGithubResolveTarget
   gitlabTarget?: PendingPRCommentAiAckGitlabTarget
+  githubThreadRequests?: ReadonlyMap<string, GitHubReviewThreadRequest>
   resolveReviewThread: (
     repoPath: string,
     prNumber: number,
@@ -19,16 +33,20 @@ export type SnapshottedThreadResolverDeps = {
     options: {
       repoId: string
       prRepo?: PendingPRCommentAiAckGithubResolveTarget['prRepo']
+      threadResolutionAdmission?: GitHubReviewThreadAdmission
     }
-  ) => Promise<boolean>
-  resolveGitLabDiscussion: (args: {
-    repoPath: string
-    repoId: string
-    iid: number
-    discussionId: string
-    resolved: boolean
-    repoOwnerExecutionHostId: string
-  }) => Promise<SnapshottedThreadResolveOutcome>
+  ) => Promise<ReviewThreadResolutionResult>
+  resolveGitLabDiscussion: (
+    args: {
+      repoPath: string
+      repoId: string
+      iid: number
+      discussionId: string
+      resolved: boolean
+      repoOwnerExecutionHostId: string
+    },
+    admission?: GitLabReviewThreadAdmission
+  ) => Promise<SnapshottedThreadResolveOutcome | 'busy'>
   /** False once the panel moved to another review: host calls continue, UI writes stop. */
   isPanelStillOnLaunchReview: () => boolean
   onResolvedOptimistically: (threadId: string) => void
@@ -38,50 +56,81 @@ export type SnapshottedThreadResolverDeps = {
 /** Use the snapshotted launch review for host resolves even if the panel switches before prompt delivery. */
 export function buildSnapshottedThreadResolver(
   deps: SnapshottedThreadResolverDeps
-): (threadId: string) => Promise<boolean> {
-  return async (threadId: string): Promise<boolean> => {
-    const outcome = await resolveOnHost(deps, threadId)
-    if (!outcome.ok) {
-      deps.onResolveFailed({ threadId, error: outcome.error })
+): (threadId: string) => Promise<ReviewThreadResolutionResult> {
+  return async (threadId) => {
+    const githubRequest =
+      deps.provider === 'github' ? deps.githubThreadRequests?.get(threadId) : undefined
+    const gitlabRequest =
+      deps.provider === 'gitlab' && deps.gitlabTarget
+        ? gitlabReviewThreadRequest(
+            {
+              repoPath: deps.gitlabTarget.repoPath,
+              repoId: deps.gitlabTarget.repoId,
+              repoOwnerExecutionHostId: deps.gitlabTarget.ownerHostId
+            },
+            deps.gitlabTarget.iid,
+            threadId
+          )
+        : undefined
+    const key = githubRequest?.key ?? gitlabRequest?.key
+    if (!key) {
+      deps.onResolveFailed({ threadId, error: undefined })
       return false
     }
-    // Gate optimistic rows to the launch review; guarded refresh reconciles whichever panel is showing.
-    if (deps.isPanelStillOnLaunchReview()) {
-      deps.onResolvedOptimistically(threadId)
+    const owner = acquireReviewThreadResolution(key)
+    if (!owner) {
+      return 'busy'
     }
-    return true
-  }
-}
-
-async function resolveOnHost(
-  deps: SnapshottedThreadResolverDeps,
-  threadId: string
-): Promise<SnapshottedThreadResolveOutcome> {
-  try {
-    if (deps.provider === 'gitlab') {
-      if (!deps.gitlabTarget) {
-        return { ok: false }
+    try {
+      let outcome: SnapshottedThreadResolveOutcome | 'busy'
+      if (gitlabRequest && deps.gitlabTarget) {
+        outcome = await deps.resolveGitLabDiscussion(
+          {
+            repoPath: deps.gitlabTarget.repoPath,
+            repoId: deps.gitlabTarget.repoId,
+            iid: deps.gitlabTarget.iid,
+            discussionId: threadId,
+            resolved: true,
+            repoOwnerExecutionHostId: deps.gitlabTarget.ownerHostId
+          },
+          { request: gitlabRequest, owner }
+        )
+      } else if (githubRequest && deps.githubResolveTarget) {
+        const target = deps.githubResolveTarget
+        const result = await deps.resolveReviewThread(
+          target.repoPath,
+          target.prNumber,
+          threadId,
+          true,
+          {
+            repoId: target.repoId,
+            prRepo: target.prRepo,
+            threadResolutionAdmission: { owner, request: githubRequest }
+          }
+        )
+        outcome = result === 'busy' ? 'busy' : { ok: result }
+      } else {
+        outcome = { ok: false }
       }
-      return await deps.resolveGitLabDiscussion({
-        repoPath: deps.gitlabTarget.repoPath,
-        repoId: deps.gitlabTarget.repoId,
-        iid: deps.gitlabTarget.iid,
-        discussionId: threadId,
-        resolved: true,
-        repoOwnerExecutionHostId: deps.gitlabTarget.ownerHostId
+      if (outcome === 'busy') {
+        return 'busy'
+      }
+      if (!outcome.ok) {
+        deps.onResolveFailed({ threadId, error: outcome.error })
+        return false
+      }
+      if (deps.isPanelStillOnLaunchReview()) {
+        deps.onResolvedOptimistically(threadId)
+      }
+      return true
+    } catch (error) {
+      deps.onResolveFailed({
+        threadId,
+        error: error instanceof Error ? error.message : String(error)
       })
+      return false
+    } finally {
+      releaseReviewThreadResolution(owner)
     }
-    if (deps.provider !== 'github' || !deps.githubResolveTarget) {
-      return { ok: false }
-    }
-    const target = deps.githubResolveTarget
-    const ok = await deps.resolveReviewThread(target.repoPath, target.prNumber, threadId, true, {
-      repoId: target.repoId,
-      prRepo: target.prRepo
-    })
-    return { ok }
-  } catch (err) {
-    // A rejected host call must not abort the bulk acknowledgement pool.
-    return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
 }

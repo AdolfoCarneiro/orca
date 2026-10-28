@@ -57,6 +57,7 @@ export type PRCommentsListProps = {
   onResolveSelectedCommentsWithAI?: (groups: PRCommentGroup[]) => void
   onReply?: (comment: PRComment, body: string) => Promise<RightPanelCommentSubmitResult>
   onResolve?: (threadId: string, resolve: boolean) => boolean | Promise<boolean>
+  getThreadResolutionKey?: (threadId: string) => string | undefined
   onEditComment?: (comment: PRComment, body: string) => Promise<boolean>
   onDeleteComment?: (comment: PRComment) => void | Promise<void>
   onSetReaction?: (
@@ -76,6 +77,7 @@ export function useCommentsListState({
   onAddComment,
   onReply,
   onResolve,
+  getThreadResolutionKey,
   onEditComment,
   onDeleteComment,
   onSetReaction,
@@ -145,7 +147,12 @@ export function useCommentsListState({
     addGroupToSelection,
     clearSelection,
     toggleGroupSelection
-  } = usePRCommentsListSelection(comments, selectionContextKey, selectionClearRequest)
+  } = usePRCommentsListSelection(
+    comments,
+    selectionContextKey,
+    selectionClearRequest,
+    getThreadResolutionKey
+  )
   const visibleComments = React.useMemo(
     () => filterPRCommentsByAudience(comments, commentFilter, botAuthorOverrides),
     [botAuthorOverrides, commentFilter, comments]
@@ -240,6 +247,7 @@ export function useCommentsListState({
         replyDisabledReason={commentsDisabledReason}
         presentation={presentation}
         onResolve={onResolve}
+        getThreadResolutionKey={getThreadResolutionKey}
         onStartReply={setReplyingCommentId}
         onCancelReply={(commentId) =>
           setReplyingCommentId((current) => (current === commentId ? null : current))

@@ -1,3 +1,5 @@
+import { PendingActionIcon } from '@/components/PendingActionIcon'
+import { useReviewThreadResolutionPending } from '@/lib/review-thread-resolution-pending'
 import React from 'react'
 import { ExternalLink, LoaderCircle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -118,14 +120,15 @@ export function dedupeGitLabUsers(users: readonly GitLabAssignableUser[]): GitLa
 export function CommentCard({
   comment,
   canResolve,
-  resolving,
+  pendingKey,
   onResolve
 }: {
   comment: MRComment
   canResolve?: boolean
-  resolving?: boolean
+  pendingKey?: string
   onResolve?: (threadId: string, resolved: boolean) => void
 }): React.JSX.Element {
+  const resolving = useReviewThreadResolutionPending(pendingKey)
   const hasThread = Boolean(comment.threadId)
   return (
     <div className="rounded-md border border-border/40 bg-muted/30 p-3">
@@ -155,10 +158,15 @@ export function CommentCard({
               variant="ghost"
               size="xs"
               disabled={resolving}
+              aria-busy={resolving}
               onClick={() => onResolve(comment.threadId ?? '', !comment.isResolved)}
               className="h-6"
             >
-              {resolving ? <LoaderCircle className="size-3 animate-spin" /> : null}
+              <span className="size-3 shrink-0">
+                <PendingActionIcon pending={resolving} className="size-3">
+                  <span />
+                </PendingActionIcon>
+              </span>
               {comment.isResolved
                 ? translate('auto.components.GitLabItemDialog.65e784c1f1', 'Reopen')
                 : translate('auto.components.GitLabItemDialog.4168eb2c51', 'Resolve')}

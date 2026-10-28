@@ -1,3 +1,5 @@
+import type { ReviewThreadResolutionResult } from '@/lib/review-thread-resolution-pending'
+import type { GitHubReviewThreadAdmission } from './review-thread-request'
 import type { ClassifiedError } from '../../../../shared/classified-error'
 import type { PRCheckDetail, PRCheckRunDetails } from '../../../../shared/github/check-types'
 import type {
@@ -126,8 +128,11 @@ export type GitHubSlice = {
     prNumber: number,
     threadId: string,
     resolve: boolean,
-    options?: RepoScopedFetchOptions & { prRepo?: GitHubOwnerRepo | null }
-  ) => Promise<boolean>
+    options?: RepoScopedFetchOptions & {
+      prRepo?: GitHubOwnerRepo | null
+      threadResolutionAdmission?: GitHubReviewThreadAdmission
+    }
+  ) => Promise<ReviewThreadResolutionResult>
   initGitHubCache: () => Promise<void>
   refreshAllGitHub: () => void
   refreshGitHubForWorktree: (worktreeId: string) => void

@@ -39,6 +39,7 @@ export function PRCommentGroupView({
   replyDisabledReason,
   presentation,
   onResolve,
+  getThreadResolutionKey,
   onStartReply,
   onCancelReply,
   onReply,
@@ -59,6 +60,7 @@ export function PRCommentGroupView({
   replyDisabledReason?: string
   presentation: PRCommentPresentationClasses
   onResolve?: (threadId: string, resolve: boolean) => boolean | Promise<boolean>
+  getThreadResolutionKey?: (threadId: string) => string | undefined
   onStartReply?: (commentId: number) => void
   onCancelReply?: (commentId: number) => void
   onReply?: (comment: PRComment, body: string) => Promise<RightPanelCommentSubmitResult>
@@ -113,6 +115,7 @@ export function PRCommentGroupView({
     replyDisabledReason,
     presentation,
     onResolve,
+    getThreadResolutionKey,
     onEditComment,
     onDeleteComment,
     onSetReaction,
@@ -197,6 +200,7 @@ export function ResolvedCommentGroupsSection({
   replyDisabledReason,
   presentation,
   onResolve,
+  getThreadResolutionKey,
   onStartReply,
   onCancelReply,
   onReply,
@@ -213,6 +217,7 @@ export function ResolvedCommentGroupsSection({
   replyDisabledReason?: string
   presentation: PRCommentPresentationClasses
   onResolve?: (threadId: string, resolve: boolean) => boolean | Promise<boolean>
+  getThreadResolutionKey?: (threadId: string) => string | undefined
   onStartReply?: (commentId: number) => void
   onCancelReply?: (commentId: number) => void
   onReply?: (comment: PRComment, body: string) => Promise<RightPanelCommentSubmitResult>
@@ -255,6 +260,7 @@ export function ResolvedCommentGroupsSection({
                 replyDisabledReason={replyDisabledReason}
                 presentation={presentation}
                 onResolve={onResolve}
+                getThreadResolutionKey={getThreadResolutionKey}
                 onStartReply={onStartReply}
                 onCancelReply={onCancelReply}
                 onReply={onReply}

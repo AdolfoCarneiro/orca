@@ -1,3 +1,5 @@
+import { PendingActionIcon } from '@/components/PendingActionIcon'
+import { useReviewThreadResolutionPending } from '@/lib/review-thread-resolution-pending'
 import React, { useCallback, useRef, useState } from 'react'
 import {
   Bot,
@@ -5,7 +7,6 @@ import {
   Copy,
   ExternalLink,
   MoreHorizontal,
-  LoaderCircle,
   Pencil,
   Sparkles,
   Trash
@@ -89,59 +90,47 @@ export function CopyButton({
 export function ResolveButton({
   threadId,
   isResolved,
+  pendingKey,
   onResolve
 }: {
   threadId: string
   isResolved: boolean
+  pendingKey?: string
   onResolve: (threadId: string, resolve: boolean) => boolean | Promise<boolean>
 }): React.JSX.Element {
   const [loading, setLoading] = useState(false)
-  const loadingResetTimerRef = useRef<number | null>(null)
-
-  const clearLoadingResetTimer = useCallback((): void => {
-    if (loadingResetTimerRef.current !== null) {
-      window.clearTimeout(loadingResetTimerRef.current)
-      loadingResetTimerRef.current = null
-    }
-  }, [])
-
-  const setResolveButtonRootRef = useCallback(
-    (node: HTMLSpanElement | null) => {
-      if (node === null) {
-        clearLoadingResetTimer()
-      }
-    },
-    [clearLoadingResetTimer]
-  )
-
+  const pending = useReviewThreadResolutionPending(pendingKey)
+  const busy = pendingKey === undefined ? loading : pending
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
-      clearLoadingResetTimer()
-      setLoading(true)
+      if (busy) {
+        return
+      }
+      if (pendingKey === undefined) {
+        setLoading(true)
+      }
       void Promise.resolve(onResolve(threadId, !isResolved)).finally(() => setLoading(false))
     },
-    [clearLoadingResetTimer, threadId, isResolved, onResolve]
+    [threadId, isResolved, onResolve, busy, pendingKey]
   )
 
   return (
-    <span ref={setResolveButtonRootRef} className="contents">
-      {loading ? (
-        <LoaderCircle className="size-3 animate-spin text-muted-foreground shrink-0" />
-      ) : (
-        <button
-          className="text-[10px] px-1.5 py-0.5 rounded transition-colors shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent"
-          onClick={handleClick}
-        >
-          {isResolved
-            ? translate(
-                'auto.components.right.sidebar.checks.panel.content.365254cc1b',
-                'Unresolve'
-              )
-            : translate('auto.components.right.sidebar.checks.panel.content.0c96cd25e5', 'Resolve')}
-        </button>
-      )}
-    </span>
+    <button
+      className="inline-flex items-center gap-1 text-3xs px-1.5 py-0.5 rounded transition-colors shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-50"
+      onClick={handleClick}
+      disabled={busy}
+      aria-busy={busy}
+    >
+      <span className="size-3 shrink-0">
+        <PendingActionIcon pending={busy} className="size-3">
+          <span />
+        </PendingActionIcon>
+      </span>
+      {isResolved
+        ? translate('auto.components.right.sidebar.checks.panel.content.365254cc1b', 'Unresolve')
+        : translate('auto.components.right.sidebar.checks.panel.content.0c96cd25e5', 'Resolve')}
+    </button>
   )
 }
 

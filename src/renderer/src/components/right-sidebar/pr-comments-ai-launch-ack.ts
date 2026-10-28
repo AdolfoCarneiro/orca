@@ -1,3 +1,5 @@
+import type { ReviewThreadResolutionResult } from '@/lib/review-thread-resolution-pending'
+import type { GitHubReviewThreadRequest } from '@/store/github/review-thread-request'
 import type { PRComment } from '../../../../shared/github/comment-types'
 import type { PRInfo } from '../../../../shared/github/pull-request-types'
 import type { HostedReviewInfo } from '../../../../shared/hosted-review'
@@ -17,7 +19,8 @@ export type PRCommentAiLaunchAckCounts = {
 
 export type PRCommentAiLaunchAckDeps = {
   /** Resolve a host thread. Always called against the threadId snapshotted at launch. */
-  resolveThread: (threadId: string) => Promise<boolean>
+  resolveThread: (threadId: string) => Promise<ReviewThreadResolutionResult>
+  onThreadBusy?: (threadId: string) => void
   /** Provider supports posting a reply (GitHub in the Checks panel today). */
   canReply: boolean
   /** Nested review reply API; call only when canPostPRReviewThreadReply allows it. */
@@ -208,7 +211,12 @@ async function acknowledgePRCommentGroup(
   const counts = { ...EMPTY_ACK_COUNTS }
 
   if (isResolvablePRCommentGroup(group)) {
-    if (await deps.resolveThread(group.threadId)) {
+    const result = await deps.resolveThread(group.threadId)
+    if (result === 'busy') {
+      deps.onThreadBusy?.(group.threadId)
+      return counts
+    }
+    if (result) {
       counts.resolved += 1
     } else {
       counts.failed += 1
@@ -274,6 +282,7 @@ export type PendingPRCommentAiAck = {
   /** Reply target: requires prRepo. */
   githubTarget?: PendingPRCommentAiAckGithubTarget
   githubResolveTarget?: PendingPRCommentAiAckGithubResolveTarget
+  githubThreadRequests?: ReadonlyMap<string, GitHubReviewThreadRequest>
   gitlabTarget?: PendingPRCommentAiAckGitlabTarget
 }
 

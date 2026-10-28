@@ -1,5 +1,13 @@
+import {
+  acquireReviewThreadResolution,
+  releaseReviewThreadResolution
+} from '@/lib/review-thread-resolution-pending'
+import {
+  gitlabReviewThreadRequest,
+  resolveGitlabReviewThread
+} from '@/runtime/review-thread-resolution'
 import { gitLabApiFor } from '@/runtime/gitlab-owner-api'
-import { useCallback } from 'react'
+import { useCallback, useLayoutEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { getCommentBodySubmitState } from '@/lib/comment-body-submit-state'
 import { translate } from '@/i18n/i18n'
@@ -25,7 +33,6 @@ export function useGitLabReviewActions(
     setDetails,
     setInlineCommentBody,
     setInlineCommentSubmitting,
-    setResolvingThreadId,
     setReviewerDraftId,
     setReviewerOptions,
     setReviewerOptionsLoading,
@@ -208,21 +215,35 @@ export function useGitLabReviewActions(
     setInlineCommentSubmitting
   ])
 
+  const getThreadResolutionKey = useCallback(
+    (threadId: string): string | undefined =>
+      item && repoSelector && item.type === 'mr'
+        ? gitlabReviewThreadRequest(repoSelector, item.number, threadId).key
+        : undefined,
+    [item, repoSelector]
+  )
+  const currentThreadResolutionKey = useRef(getThreadResolutionKey)
+  useLayoutEffect(() => {
+    currentThreadResolutionKey.current = getThreadResolutionKey
+  }, [getThreadResolutionKey])
+
   const handleResolveDiscussion = useCallback(
     async (threadId: string, resolved: boolean): Promise<void> => {
       if (!item || !repoSelector || item.type !== 'mr') {
         return
       }
-      setResolvingThreadId(threadId)
+      const request = gitlabReviewThreadRequest(repoSelector, item.number, threadId)
+      const owner = acquireReviewThreadResolution(request.key)
+      if (!owner) {
+        return
+      }
       try {
-        const res = await gitLabApiFor(repoSelector).resolveMRDiscussion({
-          ...repoSelector,
-          iid: item.number,
-          discussionId: threadId,
-          resolved
-        })
+        const res = await resolveGitlabReviewThread(request, resolved, owner)
+        if (res === 'busy') {
+          return
+        }
         if (res.ok) {
-          if (mountedRef.current) {
+          if (mountedRef.current && currentThreadResolutionKey.current(threadId) === request.key) {
             setDetails((current) =>
               current
                 ? {
@@ -235,23 +256,20 @@ export function useGitLabReviewActions(
             )
             useAppStore.getState().recordFeatureInteraction('gitlab-tasks')
           }
-        } else if (mountedRef.current) {
+        } else {
           toast.error(res.error)
         }
       } catch (error) {
-        if (mountedRef.current) {
-          showGitLabMutationError(error)
-        }
+        showGitLabMutationError(error)
       } finally {
-        if (mountedRef.current) {
-          setResolvingThreadId(null)
-        }
+        releaseReviewThreadResolution(owner)
       }
     },
-    [item, repoSelector, mountedRef, setDetails, setResolvingThreadId]
+    [item, repoSelector, mountedRef, setDetails]
   )
 
   return {
+    getThreadResolutionKey,
     handleResolveDiscussion,
     handleSetReviewers,
     handleSubmitInlineComment,

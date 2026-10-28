@@ -18,7 +18,6 @@ export function useGitLabItemDialogState(itemId: string | null) {
     setCommentDraftState({ itemId, value: '' })
   }
   const [commentSubmitting, setCommentSubmitting] = useState(false)
-  const [resolvingThreadId, setResolvingThreadId] = useState<string | null>(null)
   const [editingDetails, setEditingDetails] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
   const [bodyDraft, setBodyDraft] = useState('')
@@ -67,7 +66,6 @@ export function useGitLabItemDialogState(itemId: string | null) {
     loading,
     mountedRef,
     refreshNonce,
-    resolvingThreadId,
     retryingJobId,
     reviewerDraftId,
     reviewerOptions,
@@ -92,7 +90,6 @@ export function useGitLabItemDialogState(itemId: string | null) {
     setLabelOptionsLoading,
     setLoading,
     setRefreshNonce,
-    setResolvingThreadId,
     setRetryingJobId,
     setReviewerDraftId,
     setReviewerOptions,

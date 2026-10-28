@@ -679,3 +679,19 @@ describe('hasPRCommentGroupNeedingReply', () => {
     expect(hasPRCommentGroupNeedingReply([])).toBe(false)
   })
 })
+
+it('leaves a busy thread eligible for retry without counting a host success or failure', async () => {
+  const onThreadBusy = vi.fn()
+  const counts = await acknowledgePRCommentsAfterAiLaunch({
+    groups: [openThread('busy'), openThread('done')],
+    deps: {
+      resolveThread: async (threadId) => (threadId === 'busy' ? 'busy' : true),
+      onThreadBusy,
+      canReply: false,
+      replyInThread: vi.fn(),
+      replyAsConversation: vi.fn()
+    }
+  })
+  expect(counts).toEqual({ resolved: 1, replied: 0, skipped: 0, failed: 0 })
+  expect(onThreadBusy).toHaveBeenCalledExactlyOnceWith('busy')
+})

@@ -1,3 +1,9 @@
+import { createTestStore } from '@/store/slices/github-slice-test-harness'
+import { githubReviewThreadRequest } from '@/store/github/review-thread-request'
+import {
+  acquireReviewThreadResolution,
+  releaseReviewThreadResolution
+} from '@/lib/review-thread-resolution-pending'
 import { describe, expect, it, vi } from 'vitest'
 import {
   buildSnapshottedThreadResolver,
@@ -9,7 +15,25 @@ const PR_REPO = { owner: 'acme', repo: 'widgets', host: 'github.com' }
 function deps(
   overrides: Partial<SnapshottedThreadResolverDeps> = {}
 ): SnapshottedThreadResolverDeps {
+  const target: NonNullable<SnapshottedThreadResolverDeps['githubResolveTarget']> =
+    overrides.githubResolveTarget ?? {
+      repoPath: '/repos/widgets',
+      repoId: 'repo-1',
+      prNumber: 42
+    }
   return {
+    githubThreadRequests: new Map(
+      ['T1'].map((threadId) => [
+        threadId,
+        githubReviewThreadRequest(
+          createTestStore().getState(),
+          target.repoPath,
+          target.prNumber,
+          threadId,
+          { repoId: target.repoId, prRepo: target.prRepo }
+        )
+      ])
+    ),
     provider: 'github',
     githubResolveTarget: { repoPath: '/repos/widgets', repoId: 'repo-1', prNumber: 42 },
     resolveReviewThread: vi.fn().mockResolvedValue(true),
@@ -41,7 +65,11 @@ describe('buildSnapshottedThreadResolver', () => {
     expect(await resolve('T1')).toBe(true)
     expect(resolveReviewThread).toHaveBeenCalledWith('/repos/widgets', 42, 'T1', true, {
       repoId: 'repo-1',
-      prRepo: PR_REPO
+      prRepo: PR_REPO,
+      threadResolutionAdmission: expect.objectContaining({
+        owner: expect.any(Object),
+        request: expect.objectContaining({ threadId: 'T1' })
+      })
     })
     expect(onResolvedOptimistically).toHaveBeenCalledWith('T1')
   })
@@ -54,7 +82,8 @@ describe('buildSnapshottedThreadResolver', () => {
     expect(await resolve('T1')).toBe(true)
     expect(resolveReviewThread).toHaveBeenCalledWith('/repos/widgets', 42, 'T1', true, {
       repoId: 'repo-1',
-      prRepo: undefined
+      prRepo: undefined,
+      threadResolutionAdmission: expect.objectContaining({ owner: expect.any(Object) })
     })
   })
 
@@ -77,14 +106,17 @@ describe('buildSnapshottedThreadResolver', () => {
     )
 
     expect(await resolve('D1')).toBe(true)
-    expect(resolveGitLabDiscussion).toHaveBeenCalledWith({
-      repoPath: '/repos/widgets',
-      repoId: 'repo-1',
-      iid: 7,
-      discussionId: 'D1',
-      resolved: true,
-      repoOwnerExecutionHostId: 'runtime:env-b'
-    })
+    expect(resolveGitLabDiscussion).toHaveBeenCalledWith(
+      {
+        repoPath: '/repos/widgets',
+        repoId: 'repo-1',
+        iid: 7,
+        discussionId: 'D1',
+        resolved: true,
+        repoOwnerExecutionHostId: 'runtime:env-b'
+      },
+      expect.objectContaining({ owner: expect.any(Object) })
+    )
     expect(resolveReviewThread).not.toHaveBeenCalled()
   })
 
@@ -184,4 +216,34 @@ describe('buildSnapshottedThreadResolver', () => {
     expect(resolveReviewThread).toHaveBeenCalledTimes(1)
     expect(onResolvedOptimistically).not.toHaveBeenCalled()
   })
+})
+
+it('treats a pending thread as neutral and keeps ownership through the optimistic completion', async () => {
+  const model = deps()
+  const request = model.githubThreadRequests?.get('T1')
+  if (!request) {
+    throw new Error('Missing test request')
+  }
+  const owner = acquireReviewThreadResolution(request.key)
+  if (!owner) {
+    throw new Error('Unexpected test owner')
+  }
+  const resolver = buildSnapshottedThreadResolver(model)
+  try {
+    expect(await resolver('T1')).toBe('busy')
+    expect(model.resolveReviewThread).not.toHaveBeenCalled()
+    expect(model.onResolveFailed).not.toHaveBeenCalled()
+    expect(model.onResolvedOptimistically).not.toHaveBeenCalled()
+  } finally {
+    releaseReviewThreadResolution(owner)
+  }
+  model.onResolvedOptimistically = () => {
+    expect(acquireReviewThreadResolution(request.key)).toBe(null)
+  }
+  expect(await resolver('T1')).toBe(true)
+  const retry = acquireReviewThreadResolution(request.key)
+  expect(retry).not.toBe(null)
+  if (retry) {
+    releaseReviewThreadResolution(retry)
+  }
 })

@@ -47,6 +47,7 @@ export function PRCommentsList(props: PRCommentsListProps): React.JSX.Element {
     onResolveSelectedCommentsWithAI,
     onReply,
     onResolve,
+    getThreadResolutionKey,
     onEditComment,
     onDeleteComment,
     onSetReaction,
@@ -361,6 +362,7 @@ export function PRCommentsList(props: PRCommentsListProps): React.JSX.Element {
                 replyDisabledReason={commentsDisabledReason}
                 presentation={presentation}
                 onResolve={onResolve}
+                getThreadResolutionKey={getThreadResolutionKey}
                 onStartReply={setReplyingCommentId}
                 onCancelReply={(commentId) =>
                   setReplyingCommentId((current) => (current === commentId ? null : current))

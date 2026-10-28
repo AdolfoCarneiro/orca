@@ -4,6 +4,11 @@ import type {
   GitLabWorkItemDetails
 } from '../../../../../shared/gitlab-types'
 import { gitLabApiFor } from '@/runtime/gitlab-owner-api'
+import {
+  gitlabReviewThreadRequest,
+  resolveGitlabReviewThread,
+  type GitLabReviewThreadAdmission
+} from '@/runtime/review-thread-resolution'
 import type { ChecksPanelReview } from '../checks-panel-review'
 
 export function isGitLabChecksPanelReview(
@@ -38,19 +43,24 @@ export async function fetchGitLabMRDetailsForChecks(args: {
   })
 }
 
-export async function resolveGitLabMRDiscussionForChecks(args: {
-  repoPath: string
-  repoId?: string
-  iid: number
-  discussionId: string
-  resolved: boolean
-  repoOwnerExecutionHostId?: string
-}): Promise<GitLabDiscussionResolveResult> {
-  return gitLabApiFor(args).resolveMRDiscussion({
-    repoPath: args.repoPath,
-    repoId: args.repoId,
-    iid: args.iid,
-    discussionId: args.discussionId,
-    resolved: args.resolved
-  })
+export async function resolveGitLabMRDiscussionForChecks(
+  args: {
+    repoPath: string
+    repoId?: string
+    iid: number
+    discussionId: string
+    resolved: boolean
+    repoOwnerExecutionHostId?: string
+  },
+  admission?: GitLabReviewThreadAdmission
+): Promise<GitLabDiscussionResolveResult | 'busy'> {
+  const request = admission?.request ?? gitlabReviewThreadRequest(args, args.iid, args.discussionId)
+  if (
+    request.selector.repoPath !== args.repoPath ||
+    request.iid !== args.iid ||
+    request.discussionId !== args.discussionId
+  ) {
+    return 'busy'
+  }
+  return resolveGitlabReviewThread(request, args.resolved, admission?.owner)
 }

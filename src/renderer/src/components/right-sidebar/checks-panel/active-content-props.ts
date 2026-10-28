@@ -59,6 +59,7 @@ export type ChecksPanelActiveContentModel = Pick<
     | 'canTargetPRComments'
     | 'commentsDisabledReason'
     | 'handleResolve'
+    | 'getThreadResolutionKey'
     | 'resolveCommentsWithAIDisabledReason'
   > &
   Pick<ChecksPanelReviewDataState, 'getGitLabProjectRef' | 'handleLoadCheckDetails'> &

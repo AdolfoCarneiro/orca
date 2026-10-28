@@ -13,7 +13,7 @@ type Props = {
 }
 
 export function GitLabConversationTab({ item, state, reviewActions }: Props) {
-  const { details, loading, resolvingThreadId } = state
+  const { details, loading } = state
   const isMR = item.type === 'mr'
   return (
     <TabsContent value="conversation" className="mt-0 space-y-3">
@@ -27,7 +27,9 @@ export function GitLabConversationTab({ item, state, reviewActions }: Props) {
             key={comment.id}
             comment={comment}
             canResolve={isMR}
-            resolving={resolvingThreadId === comment.threadId}
+            pendingKey={
+              comment.threadId ? reviewActions.getThreadResolutionKey(comment.threadId) : undefined
+            }
             onResolve={(threadId, resolved) =>
               void reviewActions.handleResolveDiscussion(threadId, resolved)
             }
