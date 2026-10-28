@@ -41,9 +41,13 @@ function buildPreflightArgs(
   if (!force && !wslDistro && !wslDefault && !projectRuntime) {
     return undefined
   }
+  // Only a focused WSL workspace's own distro may wake; a native workspace wakes nothing.
+  const wslWorkspace =
+    Boolean(wslDistro) ||
+    (projectRuntime?.status === 'resolved' && projectRuntime.runtime.kind === 'wsl')
   return {
     ...(force ? { force: true } : {}),
-    ...(wake ? { wakeWslDistro: true } : {}),
+    ...(wake && wslWorkspace ? { wakeWslDistro: true } : {}),
     ...(projectRuntime ? { projectRuntime } : {}),
     ...(wslDistro ? { wslDistro } : {}),
     ...(wslDefault ? { wslDefault: true } : {})
