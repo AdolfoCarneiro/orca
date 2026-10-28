@@ -35,6 +35,8 @@ it('reads only the catalog index, prefers orca-catalog.json, and ignores plugin 
     JSON.stringify({ catalogVersion: 2, name: 'New', owner: 'samples', plugins: [] })
   )
   await git(['init', '--quiet'])
+  // Git's detached auto-maintenance after commit can still be writing .git during teardown.
+  await git(['config', 'maintenance.auto', 'false'])
   await git(['add', '--all'])
   await git(['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-qm', 'c'])
   await git(['tag', 'catalog'])
