@@ -1,6 +1,14 @@
 import { ImeTextarea } from '@/lib/ime-text-field'
 import { CornerDownLeft, Pencil, Trash } from 'lucide-react'
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+  type Dispatch,
+  type SetStateAction
+} from 'react'
 import { Button } from '@/components/ui/button'
 import { getDiffCommentLineLabel } from '@/lib/diff-comment-compat'
 import { useMountedRef } from '@/hooks/useMountedRef'
@@ -145,15 +153,15 @@ export function DiffCommentCard({
     }
     setSubmitting(true)
     try {
-      const ok = await onSubmitEdit(trimmedDraft)
-      if (ok && mountedRef.current) {
-        scheduleContentResizeAfterClose()
-        setEditing(false)
-      }
+      return finishDiffCommentEditSubmission(
+        onSubmitEdit(trimmedDraft),
+        mountedRef,
+        resizeAfterCloseRef,
+        setEditing,
+        setSubmitting
+      )
     } catch (err) {
-      // Catch rejected saves and retain the draft for retry; fire-and-forget callers cannot handle this rejection.
       console.error('Failed to submit diff comment edit:', err)
-    } finally {
       if (mountedRef.current) {
         setSubmitting(false)
       }
@@ -317,4 +325,26 @@ export function DiffCommentCard({
       </div>
     </div>
   )
+}
+
+async function finishDiffCommentEditSubmission(
+  submission: Promise<boolean>,
+  mountedRef: RefObject<boolean>,
+  resizeAfterCloseRef: RefObject<boolean>,
+  setEditing: Dispatch<SetStateAction<boolean>>,
+  setSubmitting: Dispatch<SetStateAction<boolean>>
+): Promise<void> {
+  try {
+    const ok = await submission
+    if (ok && mountedRef.current) {
+      resizeAfterCloseRef.current = true
+      setEditing(false)
+    }
+  } catch (err) {
+    console.error('Failed to submit diff comment edit:', err)
+  } finally {
+    if (mountedRef.current) {
+      setSubmitting(false)
+    }
+  }
 }
