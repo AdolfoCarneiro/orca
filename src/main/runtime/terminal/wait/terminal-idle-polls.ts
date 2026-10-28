@@ -18,6 +18,7 @@ import {
 } from '../../tui-idle-evidence'
 import {
   leafTuiIdleEvidence,
+  outputClockOf,
   ptyTuiIdleEvidence,
   type TuiIdleEvidenceSource
 } from '../../tui-idle-evidence-source'
@@ -145,7 +146,7 @@ export class RuntimeTerminalIdlePolls {
         ready: () => buildPtyTerminalWaitResult(handle, 'tui-idle', pty),
         blocked: (reason) => buildPtyTerminalWaitBlockedResult(handle, 'tui-idle', pty, reason),
         isQuiet: (lane) =>
-          isQuietForQuiescence(pty.lastOutputAt, this.deps.quiescenceMs, lane, () =>
+          isQuietForQuiescence(outputClockOf(this.deps, pty), this.deps.quiescenceMs, lane, () =>
             this.deps.hasCommandPainted(pty.ptyId)
           )
       }
@@ -165,7 +166,7 @@ export class RuntimeTerminalIdlePolls {
       blocked: (reason) => buildTerminalWaitBlockedResult(handle, 'tui-idle', live(), reason),
       isQuiet: (lane) =>
         isQuietForQuiescence(
-          live().lastOutputAt,
+          outputClockOf(this.deps, live()),
           this.deps.quiescenceMs,
           lane,
           () => !leaf.ptyId || this.deps.hasCommandPainted(leaf.ptyId)

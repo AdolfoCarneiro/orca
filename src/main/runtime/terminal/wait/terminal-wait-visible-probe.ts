@@ -25,6 +25,7 @@ import {
   buildTerminalWaitBlockedResult,
   buildTerminalWaitResult
 } from '../../terminal-wait-results'
+import { outputClockOf } from '../../tui-idle-evidence-source'
 import { createSetupCompletionScanner } from '../../orchestration/setup-completion-signal'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 
@@ -79,10 +80,11 @@ export abstract class OrcaRuntimeWithStartTuiIdleVisibleReadProbe extends OrcaRu
               agent,
               () => restoreProjectedComposerDraft(projection.tail, projection.draft),
               // Why read now: output since the probe started makes the pane clocked.
-              (
+              outputClockOf(
+                this.tuiIdleEvidenceSource,
                 this.getLivePtyForHandle(waiter.handle)?.pty ??
-                this.getLiveLeafForHandle(waiter.handle).leaf
-              ).lastOutputAt !== null
+                  this.getLiveLeafForHandle(waiter.handle).leaf
+              ) !== null
             )
           : isKnownReadyPromptSettled(snapshotText)
         if (!blockedReason && !ready) {

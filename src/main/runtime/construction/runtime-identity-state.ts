@@ -342,6 +342,7 @@ export abstract class OrcaRuntimeWithRuntimeId extends RuntimeConstructionServic
     getHookTurn: (ptyId, agent) => this.readTuiIdleHookTurnForPty(ptyId, agent),
     readScreenLines: (ptyId) => this.readLiveTerminalScreenLines(ptyId),
     readRuledScreen: (ptyId) => this.readRuledScreen(ptyId),
+    getOutputClockAt: (ptyId) => this.readOutputClockAt(ptyId),
     getTitleObservedAtEpochMs: (ptyId) =>
       (ptyId ? this.ptysById.get(ptyId)?.lastOscTitleEpochMs : null) ?? null
   }
