@@ -231,6 +231,27 @@ describe('a sleeping bridge WSL pane keeps its shell folder', () => {
     expect(checkpointCwd(id)).toBe(WSL_CWD)
   })
 
+  // verify-18 (e): `cd deep`, then the distro was terminated: no Sleep read ran, and the restore
+  // reopened at the root. The bridge shell's OSC 7 now carries the folder into every checkpoint.
+  it('checkpoints the folder the shell last reported, with no read of the distro', async () => {
+    readRows.mockResolvedValue(null)
+    adapter = new DaemonPtyAdapter({ socketPath, tokenPath, historyPath: historyDir() })
+    const { id } = await adapter.spawn({
+      cols: 80,
+      rows: 24,
+      cwd: WSL_CWD,
+      env: { ORCA_PANE_KEY: PANE_KEY },
+      sessionId: 'repo::/repo@@reported'
+    })
+    lastSubprocess._simulateData(
+      '$ cd "deep er"\r\n\x1b]7;file:///home/jin/repo/deep%20er/d%C3%A9j%C3%A0\x07$ '
+    )
+
+    await adapter.shutdown(id, { immediate: true, keepHistory: true })
+
+    expect(checkpointCwd(id)).toBe(`${WSL_CWD}\\deep er\\déjà`)
+  })
+
   it('never reads a distro for a pane that is not a WSL pane', async () => {
     adapter = new DaemonPtyAdapter({ socketPath, tokenPath, historyPath: historyDir() })
     const { id } = await adapter.spawn({
