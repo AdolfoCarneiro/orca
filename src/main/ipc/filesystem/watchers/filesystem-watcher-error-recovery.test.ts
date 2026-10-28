@@ -2,9 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Event as WatcherEvent } from '@parcel/watcher'
 import { createWatcherSender, fireWatcherSenderEvent } from './filesystem-watcher-test-sender'
 
-const { statMock, subscribeMock } = vi.hoisted(() => ({
+const { statMock, subscribeMock, handlers } = vi.hoisted(() => ({
+  handlers: new Map<string, (event: unknown, args: unknown) => Promise<void>>(),
   statMock: vi.fn(),
   subscribeMock: vi.fn()
+}))
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: (channel: string, handler: (event: unknown, args: unknown) => Promise<void>) =>
+      handlers.set(channel, handler)
+  }
 }))
 vi.mock('node:fs/promises', () => ({ stat: statMock }))
 vi.mock('../watcher-process/parcel-watcher-process', () => ({
@@ -13,10 +20,8 @@ vi.mock('../watcher-process/parcel-watcher-process', () => ({
 }))
 vi.mock('./filesystem-watcher-wsl', () => ({ createWslWatcher: vi.fn() }))
 
-import {
-  subscribeLocalWatcher,
-  unsubscribeLocalWatcher
-} from './filesystem-watcher-local-subscription'
+import { unsubscribeLocalWatcher } from './filesystem-watcher-local-subscription'
+import { registerFilesystemWatcherHandlers } from './filesystem-watcher-handlers'
 import { closeAllWatchers } from './filesystem-watcher-shutdown'
 import { watcherLifecycleState } from './filesystem-watcher-lifecycle-state'
 import { WatcherProcessFailure } from '../watcher-process/parcel-watcher-process-failure'
@@ -27,6 +32,14 @@ const RETRY_MS = 5_000
 type Callback = (error: Error | null, events: WatcherEvent[]) => void
 
 describe('local watcher terminal error recovery', () => {
+  async function watch(sender: ReturnType<typeof createWatcherSender>): Promise<void> {
+    const handler = handlers.get('fs:watchWorktree')
+    if (!handler) {
+      throw new Error('watch handler not registered')
+    }
+    await handler({ sender }, { worktreePath: ROOT })
+  }
+
   let callbacks: Callback[]
   let unsubscribe: ReturnType<typeof vi.fn>
   let settleRetirements: (() => void)[]
@@ -39,7 +52,7 @@ describe('local watcher terminal error recovery', () => {
 
   beforeEach(async () => {
     await closeAllWatchers()
-    watcherLifecycleState.localWatchersClosed = false
+    registerFilesystemWatcherHandlers()
     callbacks = []
     settleRetirements = []
     unsubscribe = vi.fn().mockResolvedValue(undefined)
@@ -62,7 +75,7 @@ describe('local watcher terminal error recovery', () => {
 
   it('reinstalls one shared root and delivers later events to both surviving senders', async () => {
     const senders = [createWatcherSender(1), createWatcherSender(2)]
-    await Promise.all(senders.map((sender) => subscribeLocalWatcher(ROOT, sender)))
+    await Promise.all(senders.map((sender) => watch(sender)))
     expect(subscribeMock).toHaveBeenCalledOnce()
     callbacks[0](new Error('native watcher stopped'), [])
     callbacks[0](new Error('duplicate stale error'), [])
@@ -92,8 +105,8 @@ describe('local watcher terminal error recovery', () => {
     unsubscribe.mockReturnValueOnce(retirement.promise)
     const first = createWatcherSender(1)
     const survivor = createWatcherSender(2)
-    await subscribeLocalWatcher(ROOT, first)
-    await subscribeLocalWatcher(ROOT, survivor)
+    await watch(first)
+    await watch(survivor)
     callbacks[0](new Error('stopped'), [])
     unsubscribeLocalWatcher(ROOT, first.id)
     await vi.advanceTimersByTimeAsync(RETRY_MS * 2)
@@ -114,7 +127,7 @@ describe('local watcher terminal error recovery', () => {
     ['shutdown', 'cooldown']
   ])('cancels deferred recovery on %s during %s', async (action, phase) => {
     const sender = createWatcherSender(1)
-    await subscribeLocalWatcher(ROOT, sender)
+    await watch(sender)
     callbacks[0](new Error('stopped'), [])
     if (phase === 'cooldown') {
       await vi.advanceTimersByTimeAsync(1_000)
@@ -140,7 +153,7 @@ describe('local watcher terminal error recovery', () => {
       physicalExit.promise
     )
     unsubscribe.mockRejectedValueOnce(failure)
-    await subscribeLocalWatcher(ROOT, createWatcherSender(1))
+    await watch(createWatcherSender(1))
     callbacks[0](failure, [])
     await vi.advanceTimersByTimeAsync(RETRY_MS * 2)
     expect(subscribeMock).toHaveBeenCalledOnce()
@@ -154,14 +167,14 @@ describe('local watcher terminal error recovery', () => {
     async (phase) => {
       const retirement = heldRetirement()
       unsubscribe.mockReturnValueOnce(retirement.promise)
-      await subscribeLocalWatcher(ROOT, createWatcherSender(1))
+      await watch(createWatcherSender(1))
       callbacks[0](new Error('stopped'), [])
       if (phase === 'cooldown') {
         retirement.resolve()
         await vi.advanceTimersByTimeAsync(1_000)
       }
       const joining = createWatcherSender(2)
-      await subscribeLocalWatcher(ROOT, joining)
+      await watch(joining)
       expect(subscribeMock).toHaveBeenCalledOnce()
       if (phase === 'retirement') {
         await vi.advanceTimersByTimeAsync(RETRY_MS)
@@ -179,7 +192,7 @@ describe('local watcher terminal error recovery', () => {
   )
 
   it('does not recreate a missing root or spin when replacement setup fails', async () => {
-    await subscribeLocalWatcher(ROOT, createWatcherSender(1))
+    await watch(createWatcherSender(1))
     callbacks[0](new Error('root removed'), [])
     statMock.mockRejectedValueOnce(new Error('ENOENT'))
     await vi.advanceTimersByTimeAsync(RETRY_MS * 10)
