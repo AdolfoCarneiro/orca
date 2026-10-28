@@ -83,6 +83,27 @@ export const executeTerminalPaneMenuPasteText = async (
   return true
 }
 
+export function resolveTerminalPaneMenuMultilinePasteOptions(
+  context: TerminalPaneMenuPasteContext,
+  pane: ManagedPane
+): TerminalPasteTextOptions | undefined {
+  const state = useAppStore.getState()
+  const transport = context.paneTransportsRef.current.get(pane.id) ?? null
+  return resolveProtectedMultilinePasteOptionsForPane({
+    isWindowsClient: context.forceBracketedMultilineTextPaste,
+    hostPlatform: resolveTerminalInputHostPlatform({
+      clientPlatform: getShortcutPlatform(),
+      state,
+      worktreeId: context.worktreeId,
+      transport
+    }),
+    agentStatusByPaneKey: state.agentStatusByPaneKey,
+    paneForegroundAgentByPaneKey: state.paneForegroundAgentByPaneKey,
+    tabId: context.tabId,
+    leafId: pane.leafId
+  })
+}
+
 export const pasteTerminalPaneMenuClipboard = async (
   context: TerminalPaneMenuPasteContext,
   pane: ManagedPane | null,
@@ -94,7 +115,7 @@ export const pasteTerminalPaneMenuClipboard = async (
   if (requestNativeChatCoverPaste(pane)) {
     return
   }
-  const { tabId, worktreeId, forceBracketedMultilineTextPaste, onPasteError } = context
+  const { worktreeId, onPasteError } = context
   const connectionId = getConnectionId(worktreeId) ?? null
   const state = useAppStore.getState()
   const transport = context.paneTransportsRef.current.get(pane.id) ?? null
@@ -108,19 +129,7 @@ export const pasteTerminalPaneMenuClipboard = async (
     saveClipboardImageAsTempFile: window.api.ui.saveClipboardImageAsTempFile,
     connectionId,
     runtimeEnvironmentId,
-    protectedMultilineTextPasteOptions: resolveProtectedMultilinePasteOptionsForPane({
-      isWindowsClient: forceBracketedMultilineTextPaste,
-      hostPlatform: resolveTerminalInputHostPlatform({
-        clientPlatform: getShortcutPlatform(),
-        state,
-        worktreeId,
-        transport
-      }),
-      agentStatusByPaneKey: state.agentStatusByPaneKey,
-      paneForegroundAgentByPaneKey: state.paneForegroundAgentByPaneKey,
-      tabId,
-      leafId: pane.leafId
-    }),
+    protectedMultilineTextPasteOptions: resolveTerminalPaneMenuMultilinePasteOptions(context, pane),
     pasteText: (text, options) =>
       executeTerminalPaneMenuPasteText(context, pane, source, text, options),
     onTextPasteError: () =>

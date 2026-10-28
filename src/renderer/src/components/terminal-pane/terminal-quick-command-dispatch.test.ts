@@ -38,7 +38,7 @@ describe('sendTerminalQuickCommandToPane', () => {
       pane,
       tabId: 'tab-1',
       transport: { sendInput },
-      forceBracketedMultilinePaste: false,
+      multilinePasteOptions: undefined,
       onError: vi.fn()
     })
 
@@ -62,7 +62,7 @@ describe('sendTerminalQuickCommandToPane', () => {
       pane,
       tabId: 'tab-1',
       transport: { sendInput },
-      forceBracketedMultilinePaste: false,
+      multilinePasteOptions: undefined,
       onError: vi.fn()
     })
 
@@ -87,7 +87,7 @@ describe('sendTerminalQuickCommandToPane', () => {
       pane,
       tabId: 'tab-1',
       transport: { sendInput },
-      forceBracketedMultilinePaste: false,
+      multilinePasteOptions: undefined,
       onError: vi.fn()
     })
 
@@ -114,7 +114,7 @@ describe('sendTerminalQuickCommandToPane', () => {
       pane,
       tabId: 'tab-1',
       transport: { sendInput },
-      forceBracketedMultilinePaste: false,
+      multilinePasteOptions: undefined,
       onError: vi.fn()
     })
 
@@ -141,7 +141,7 @@ describe('sendTerminalQuickCommandToPane', () => {
           pane,
           tabId: 'tab-1',
           transport: { sendInput },
-          forceBracketedMultilinePaste: false,
+          multilinePasteOptions: undefined,
           onError
         })
       ).toBe(false)
@@ -163,7 +163,7 @@ describe('sendTerminalQuickCommandToPane', () => {
       pane,
       tabId: 'tab-1',
       transport: { sendInput },
-      forceBracketedMultilinePaste: false,
+      multilinePasteOptions: undefined,
       onError: vi.fn()
     })
 
@@ -186,12 +186,28 @@ describe('sendTerminalQuickCommandToPane', () => {
       pane,
       tabId: 'tab-1',
       transport: { sendInput },
-      forceBracketedMultilinePaste: true,
+      multilinePasteOptions: { forceBracketedPasteForMultiline: true },
       onError: vi.fn()
     })
 
     expect(sent).toBe(true)
     expect(sendInput).toHaveBeenCalledWith('\x1b[200~npm install\rnpm test\x1b[201~\r', 'driving')
+  })
+
+  it('inserts multiline commands into Windows input-record agents with modified Enter', () => {
+    const sendInput = vi.fn(() => true)
+
+    const sent = sendTerminalQuickCommandToPane({
+      command: { id: 'insert', label: 'Insert', command: 'first\nsecond', appendEnter: false },
+      pane: createPane(),
+      tabId: 'tab-1',
+      transport: { sendInput },
+      multilinePasteOptions: { windowsInputRecordNewline: 'alt-enter' },
+      onError: vi.fn()
+    })
+
+    expect(sent).toBe(true)
+    expect(sendInput).toHaveBeenCalledWith('first\x1b\rsecond', 'driving')
   })
 
   it('does not write agent prompt quick commands into the current pane', () => {
@@ -212,7 +228,7 @@ describe('sendTerminalQuickCommandToPane', () => {
       },
       tabId: 'tab-1',
       transport: { sendInput },
-      forceBracketedMultilinePaste: false,
+      multilinePasteOptions: undefined,
       onError: vi.fn()
     })
 

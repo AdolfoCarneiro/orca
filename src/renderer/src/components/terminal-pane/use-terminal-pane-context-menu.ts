@@ -9,7 +9,10 @@ import type { TerminalPasteSource } from './terminal-paste-model'
 import { runQuickCommandInNewTab } from '@/lib/run-quick-command-in-new-tab'
 import type { PreparedAgentSessionFork } from './terminal-agent-session-fork'
 import type { AgentSessionContinuationRequest } from '@/lib/agent-session-continuation'
-import { pasteTerminalPaneMenuClipboard } from './terminal-pane-menu-paste'
+import {
+  pasteTerminalPaneMenuClipboard,
+  resolveTerminalPaneMenuMultilinePasteOptions
+} from './terminal-pane-menu-paste'
 import {
   copyTerminalPaneMenuAgentSessionId,
   copyTerminalPaneMenuPaneId,
@@ -117,21 +120,17 @@ export function useTerminalPaneContextMenu({
     return manager.getActivePane() ?? panes[0] ?? null
   }, [managerRef])
 
+  const menuPasteContext = {
+    managerRef,
+    paneTransportsRef,
+    tabId,
+    worktreeId,
+    forceBracketedMultilineTextPaste,
+    onPasteError
+  }
   const pasteResolvedPane = async (
     source: Extract<TerminalPasteSource, 'context-menu' | 'right-click'>
-  ): Promise<void> =>
-    pasteTerminalPaneMenuClipboard(
-      {
-        managerRef,
-        paneTransportsRef,
-        tabId,
-        worktreeId,
-        forceBracketedMultilineTextPaste,
-        onPasteError
-      },
-      resolveMenuPane(),
-      source
-    )
+  ): Promise<void> => pasteTerminalPaneMenuClipboard(menuPasteContext, resolveMenuPane(), source)
 
   const {
     open,
@@ -255,7 +254,7 @@ export function useTerminalPaneContextMenu({
       pane,
       tabId,
       transport: paneTransportsRef.current.get(pane.id),
-      forceBracketedMultilinePaste: forceBracketedMultilineTextPaste,
+      multilinePasteOptions: resolveTerminalPaneMenuMultilinePasteOptions(menuPasteContext, pane),
       onError: onPasteError
     })
   }
