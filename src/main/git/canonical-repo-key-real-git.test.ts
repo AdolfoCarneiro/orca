@@ -45,6 +45,8 @@ import { disposeLocalRepoRefMaintenance } from './local-repo-ref-maintenance'
 import { _resetGitAdmissionForTests } from './command-runner/git-subprocess-admission'
 import { resetWslGitReadEnvironmentForTests } from './wsl-git-read-environment'
 import { quotePosixShell } from '../../shared/shell-argument-quoting'
+import { readRepoCommonDirFromGit } from './worktree-list-reader'
+import { clearGitCapabilityStateForTests } from './git-capability-state'
 
 const nativePlatform = process.platform
 const modes = ['native', 'clean', 'banner'] as const
@@ -118,6 +120,7 @@ describe.skipIf(nativePlatform === 'win32')('common-directory identity with real
   beforeEach(() => {
     observeRunner.mockClear()
     _resetCanonicalRepoKeyCacheForTests()
+    clearGitCapabilityStateForTests()
     resetWslGitReadEnvironmentForTests()
     execFileMock.mockImplementation(
       (nativeExec: typeof ChildProcess.execFile, command, args, options, callback) => {
@@ -190,9 +193,11 @@ describe.skipIf(nativePlatform === 'win32')('common-directory identity with real
       const host = mode === 'native' ? 'local' : 'wsl:Ubuntu'
       expect(await getCanonicalRepoKey(fixture.common, options)).toBe(`${host}::${fixture.common}`)
       expect(await getCanonicalRepoKey(fixture.linked, options)).toBe(`${host}::${fixture.common}`)
+      expect(await readRepoCommonDirFromGit(fixture.common, options)).toBe(fixture.common)
+      expect(await readRepoCommonDirFromGit(fixture.linked, options)).toBe(fixture.common)
       if (mode !== 'native') {
         expect(rejectedProbes).toBe(1)
-        expect(shellReads).toBe(3)
+        expect(shellReads).toBe(5)
       }
     }
   )

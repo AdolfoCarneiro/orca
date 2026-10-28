@@ -22,6 +22,7 @@ import {
   translateWorktreePath
 } from './worktree-path-comparison'
 import { gitExecFileAsync } from './runner'
+import { readGitCommonDirectoryOutput } from './git-common-directory-output'
 
 const PRUNABLE_EXISTENCE_PROBE_CONCURRENCY = 8
 
@@ -94,10 +95,7 @@ export async function readRepoCommonDirFromGit(
 ): Promise<string | undefined> {
   const resolveBasePath = toWslExecutionSpace(repoPath)
   const readCommonDir = (stdout: string): string | undefined => {
-    const commonDir = stdout
-      .split('\n')
-      .map((line) => (line.endsWith('\r') ? line.slice(0, -1) : line))
-      .findLast((line) => line.length > 0 && !line.startsWith('-'))
+    const commonDir = readGitCommonDirectoryOutput(stdout)
     return commonDir ? resolveRevParsePath(resolveBasePath, commonDir) : undefined
   }
   try {
@@ -109,7 +107,7 @@ export async function readRepoCommonDirFromGit(
           async () => {
             const { stdout } = await gitExecFileAsync(
               ['rev-parse', '--path-format=absolute', '--git-common-dir'],
-              gitExecOptions(repoPath, options)
+              { ...gitExecOptions(repoPath, options), captureWslLoginShellOutput: true }
             )
             if (hasUnsupportedRevParsePathFormatEcho(stdout)) {
               capabilities.rememberUnsupported('rev-parse-path-format')
@@ -117,10 +115,10 @@ export async function readRepoCommonDirFromGit(
             return readCommonDir(stdout)
           },
           async () => {
-            const { stdout } = await gitExecFileAsync(
-              ['rev-parse', '--git-common-dir'],
-              gitExecOptions(repoPath, options)
-            )
+            const { stdout } = await gitExecFileAsync(['rev-parse', '--git-common-dir'], {
+              ...gitExecOptions(repoPath, options),
+              captureWslLoginShellOutput: true
+            })
             return readCommonDir(stdout)
           },
           isUnsupportedRevParsePathFormatError

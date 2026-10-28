@@ -3,6 +3,7 @@ import type { GitExecOptions } from './command-runner/git-exec-options'
 import { toWslExecutionSpace } from '../../shared/wsl-paths'
 import { gitExecFileAsync } from './runner'
 import { resolveRevParsePath } from './worktree-path-comparison'
+import { readGitCommonDirectoryOutput } from './git-common-directory-output'
 
 /** Fetch serialization and ref maintenance share a host-scoped Git common-dir identity across worktrees. */
 
@@ -14,11 +15,7 @@ const cache = new Map<string, string>()
 
 /** Git < 2.31 echoes unsupported --path-format=absolute; resolve its relative answer to prevent key collisions. */
 export function readGitCommonDir(stdout: string, repoPath: string): string | undefined {
-  const unsupportedOption = '--path-format=absolute\n'
-  const payload = stdout.startsWith(unsupportedOption)
-    ? stdout.slice(unsupportedOption.length)
-    : stdout
-  const commonDir = payload.endsWith('\n') ? payload.slice(0, -1) : payload
+  const commonDir = readGitCommonDirectoryOutput(stdout)
   return commonDir ? resolveRevParsePath(toWslExecutionSpace(repoPath), commonDir) : undefined
 }
 

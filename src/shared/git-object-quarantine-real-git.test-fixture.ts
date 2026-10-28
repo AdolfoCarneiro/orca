@@ -41,8 +41,8 @@ function scratchDirectoriesIn(objectsDir: string): string[] {
   )
 }
 
-export function createDivergentRepoFixture(): DivergentRepoFixture {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'orca-merge-tree-quarantine-')))
+export function createDivergentRepoFixture(parentDirectory = tmpdir()): DivergentRepoFixture {
+  const root = realpathSync(mkdtempSync(join(parentDirectory, 'orca-merge-tree-quarantine-')))
   const repoPath = join(root, 'repo')
   const git = (cwd: string, ...args: string[]): string =>
     execFileSync('git', args, { cwd, encoding: 'utf8' })
