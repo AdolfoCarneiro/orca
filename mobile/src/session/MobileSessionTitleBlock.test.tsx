@@ -13,7 +13,7 @@ const overlay = vi.hoisted(
     width: number
     height: number
     back: (() => boolean) | null
-    motions: Array<() => () => void>
+    motions: (() => () => void)[]
     measure: (() => void) | null
   } => ({ width: 667, height: 375, back: null, motions: [], measure: null })
 )
