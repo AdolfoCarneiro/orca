@@ -1,8 +1,11 @@
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
+import { parseGitHubIssueOrPRLink } from '../../../../shared/github/links'
+import { githubRepoIdentityKey } from '../../../../shared/github/repository-identity-key'
 
 // Why the host: a twin's two hosts return the same PR under one repo id.
 export function taskPageWorkItemKey(item: GitHubWorkItem): string {
-  return `${item.repoId}\u0000${item.repoHostId ?? ''}\u0000${item.id}`
+  const repository = parseGitHubIssueOrPRLink(item.url)?.slug
+  return `${item.repoId}\u0000${item.repoHostId ?? ''}\u0000${item.id}\u0000${repository ? githubRepoIdentityKey(repository) : item.url}`
 }
 
 export function sortedStrings(values: readonly string[] | undefined): string {

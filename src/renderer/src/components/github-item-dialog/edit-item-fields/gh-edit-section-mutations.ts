@@ -7,16 +7,10 @@ import {
   validateTaskPageGitHubDuplicateTarget,
   type TaskPageGitHubCloseAction
 } from '@/components/task-page/github/task-page-github-status-actions'
-import {
-  assertTaskPageGitHubDialogStateAuthority,
-  publishTaskPageGitHubDialogAssigneeChange
-} from '@/components/task-page/github/task-page-github-dialog-state-authority'
+import { assertTaskPageGitHubDialogStateAuthority } from '@/components/task-page/github/task-page-github-dialog-state-authority'
 import { runIssueUpdate } from '@/components/github/github-work-item-edit-mutations'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
-import type {
-  GitHubAssignableUser,
-  GitHubOwnerRepo
-} from '../../../../../shared/github/pull-request-types'
+import type { GitHubOwnerRepo } from '../../../../../shared/github/pull-request-types'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
 import type { GitHubPatchWorkItemOptions } from '@/store/github/cache-model'
 import { translate } from '@/i18n/i18n'
@@ -223,8 +217,6 @@ export function runGHEditLabelToggle({
 }
 
 export function runGHEditAssigneeToggle({
-  item,
-  knownAssignees,
   login,
   localAssignees,
   assigneesItemKey,
@@ -237,38 +229,53 @@ export function runGHEditAssigneeToggle({
   issueRepo,
   run,
   setLocalAssignees,
-  patchWorkItem,
   patchProjectRowIfNeeded,
   onMutated
 }: GHEditMutationBase & {
-  item: GitHubWorkItem
-  knownAssignees: GitHubAssignableUser[]
   login: string
   localAssignees: string[]
   assigneesItemKey: string
   editedAssigneesItemKeyRef: { current: string | null }
   setLocalAssignees: (value: string[]) => void
-  patchWorkItem: (
-    id: string,
-    patch: Partial<GitHubWorkItem>,
-    repoId: string | undefined,
-    options: GitHubPatchWorkItemOptions
-  ) => void
 }): void {
   const isAssigned = localAssignees.includes(login)
   const prevAssignees = localAssignees
   const newAssignees = isAssigned
     ? prevAssignees.filter((l) => l !== login)
     : [...prevAssignees, login]
-  const resolveUser = (login: string): GitHubAssignableUser =>
-    knownAssignees.find((user) => user.login.toLowerCase() === login.toLowerCase()) ?? {
-      login,
-      name: null,
-      avatarUrl: ''
-    }
 
   // Why: scope the optimistic guard to this repo item so switching items doesn't suppress the next item's assignee sync.
   editedAssigneesItemKeyRef.current = assigneesItemKey
+  if (isAssigned) {
+    void run('assignees', {
+      mutate: () =>
+        runIssueUpdate({
+          repoId: itemRepoId,
+          repoPath,
+          sourceContext,
+          projectOrigin,
+          issueRepo,
+          number: itemNumber,
+          updates: { removeAssignees: [login] }
+        }),
+      onOptimistic: () => {
+        setLocalAssignees(newAssignees)
+        patchProjectRowIfNeeded({ assignees: newAssignees })
+      },
+      onRevert: () => {
+        // Why: leaving the guard set after a failed toggle suppresses assignee prop syncs indefinitely.
+        editedAssigneesItemKeyRef.current = null
+        setLocalAssignees(prevAssignees)
+        patchProjectRowIfNeeded({ assignees: prevAssignees })
+      },
+      onSuccess: () => {
+        useAppStore.getState().recordFeatureInteraction('github-tasks')
+        onMutated()
+      },
+      onError: (err) => toast.error(err)
+    })
+    return
+  }
   void run('assignees', {
     mutate: () =>
       runIssueUpdate({
@@ -278,24 +285,13 @@ export function runGHEditAssigneeToggle({
         projectOrigin,
         issueRepo,
         number: itemNumber,
-        updates: isAssigned ? { removeAssignees: [login] } : { addAssignees: [login] }
+        updates: { addAssignees: [login] }
       }),
     onOptimistic: () => {
       setLocalAssignees(newAssignees)
       patchProjectRowIfNeeded({ assignees: newAssignees })
     },
     onSuccess: () => {
-      const confirmed = publishTaskPageGitHubDialogAssigneeChange({
-        item,
-        user: resolveUser(login),
-        assigned: !isAssigned,
-        sourceContext,
-        ownerRepo: projectOrigin ?? issueRepo
-      })
-      patchWorkItem(item.id, { assignees: confirmed.assignees }, itemRepoId, {
-        sourceContext,
-        ownerRepo: projectOrigin ?? issueRepo
-      })
       useAppStore.getState().recordFeatureInteraction('github-tasks')
       onMutated()
     },

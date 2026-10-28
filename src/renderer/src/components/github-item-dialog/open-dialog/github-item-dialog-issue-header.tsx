@@ -9,7 +9,8 @@ import {
   Copy,
   ExternalLink,
   FolderKanban,
-  Plus
+  Plus,
+  RefreshCw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ButtonGroup } from '@/components/ui/button-group'
@@ -29,6 +30,9 @@ import { WorkItemIssueSourceIndicator } from './work-item-issue-source-indicator
 
 export function GitHubItemDialogIssueHeader({
   workItem,
+  refreshTask,
+  refreshing,
+  canRefreshTask,
   backLabel,
   onClose,
   linkCopied,
@@ -42,6 +46,9 @@ export function GitHubItemDialogIssueHeader({
   repoPath,
   issueAttachedWorkspaceLabel
 }: {
+  refreshTask?: () => Promise<void>
+  refreshing: boolean
+  canRefreshTask: boolean
   workItem: GitHubWorkItem
   backLabel: string
   onClose: () => void
@@ -88,6 +95,29 @@ export function GitHubItemDialogIssueHeader({
           ) : null}
           <span className="font-mono text-muted-foreground">#{workItem.number}</span>
           <div className="ml-auto flex items-center gap-1">
+            {refreshTask ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="size-7 shrink-0"
+                    disabled={!canRefreshTask || refreshing}
+                    onClick={() => void refreshTask()}
+                    aria-label={translate(
+                      'auto.components.GitHubItemDialog.refreshTask',
+                      'Refresh task'
+                    )}
+                  >
+                    <RefreshCw className={cn('size-3.5', refreshing && 'animate-spin')} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={6}>
+                  {translate('auto.components.GitHubItemDialog.refreshTask', 'Refresh task')}
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

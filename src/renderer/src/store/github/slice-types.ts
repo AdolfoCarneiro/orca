@@ -207,7 +207,7 @@ export type GitHubSlice = {
     displayLimit: number,
     query: string,
     page: number,
-    options?: Pick<FetchOptions, 'noCache' | 'requireComplete'>
+    options?: Pick<FetchOptions, 'noCache' | 'requireComplete' | 'taskRead'>
   ) => Promise<{
     items: GitHubWorkItem[]
     failedCount: number
@@ -279,5 +279,6 @@ export type GitHubSlice = {
     issueType: { id: string; name: string; color: string | null; description: string | null } | null
   ) => Promise<GitHubProjectMutationResult>
   /** Patch ProjectV2 content without IPC; patchWorkItem updates only workItemsCache and leaves boards stale. */
+  patchProjectTaskContent: (item: GitHubWorkItem, body: string, source: TaskSourceContext) => void
   patchProjectRowContent: (cacheKey: string, rowId: string, patch: ProjectRowContentPatch) => void
 }

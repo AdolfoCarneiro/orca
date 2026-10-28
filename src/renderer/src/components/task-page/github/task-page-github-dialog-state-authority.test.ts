@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import { getTaskSourceCacheScope } from '../../../../../shared/task-source-context'
 import { assertTaskPageGitHubDialogStateAuthority } from './task-page-github-dialog-state-authority'
+import { clearTaskPageGitHubAuthorityAbsentFromLoadedItems } from './task-page-github-work-item-authority-refresh'
 import { adoptQuietSearchFieldsForItem } from './task-page-github-work-item-quiet-adopt'
 import {
   applyPendingTaskPageGitHubMutationsToItems,
@@ -20,7 +21,8 @@ import {
 } from './task-page-github-work-item-mutation-registry'
 import {
   taskPageGitHubFamilyDirtyKey,
-  taskPageGitHubItemKey
+  taskPageGitHubItemKey,
+  taskPageGitHubAuthorityItemKeys
 } from './task-page-github-work-item-mutation-keys'
 
 function item(overrides: Partial<GitHubWorkItem> = {}): GitHubWorkItem {
@@ -226,6 +228,58 @@ describe('dialog state authority (STA-3343)', () => {
       getLastConfirmedClientValue(null, 'repo-1', 'issue:1', 'state', ownerRepo)
     ).toBeUndefined()
     expect(applyPendingTaskPageGitHubMutationsToItems([item()])[0]?.state).toBe('open')
+  })
+
+  it.each(['closed', 'merged'] as const)(
+    'retains ownerless PR %s through loaded-row cleanup and stale search',
+    (state) => {
+      const pr = item({ id: 'pr:1', type: 'pr', url: 'https://github.com/o/r/pull/1' })
+      assertTaskPageGitHubDialogStateAuthority({
+        repoId: pr.repoId,
+        itemId: pr.id,
+        state,
+        sourceContext
+      })
+      clearTaskPageGitHubAuthorityAbsentFromLoadedItems(
+        new Set(taskPageGitHubAuthorityItemKeys(pr))
+      )
+      expect(
+        materializeTaskPageItemList({ networkItems: [pr], previousItems: [pr], queryKey: 'q' })[0]
+          ?.state
+      ).toBe(state)
+    }
+  )
+
+  it('replaces upstream scalar authority when a fork edit shares the same query and source', () => {
+    setTaskPageGitHubMutationQueryKey('q')
+    const upstream = item({ url: 'https://github.com/upstream/r/issues/1' })
+    const upstreamOwner = { owner: 'upstream', repo: 'r', host: 'github.com' }
+    assertTaskPageGitHubDialogStateAuthority({
+      repoId: upstream.repoId,
+      itemId: upstream.id,
+      state: 'closed',
+      sourceContext,
+      ownerRepo: upstreamOwner
+    })
+    expect(applyPendingTaskPageGitHubMutationsToItems([upstream])[0]?.state).toBe('closed')
+    assertTaskPageGitHubDialogStateAuthority({
+      repoId: upstream.repoId,
+      itemId: upstream.id,
+      state: 'closed',
+      sourceContext,
+      ownerRepo: { ...upstreamOwner, owner: 'o' }
+    })
+    const patches: Partial<GitHubWorkItem>[] = []
+    adoptQuietSearchFieldsForItem({
+      item: upstream,
+      serverItem: upstream,
+      sourceScope: getTaskSourceCacheScope(sourceContext),
+      queryKey: 'q',
+      fetchStartedAtGeneration: getOrCreateQuietRevalidateState('q').dirtyGeneration,
+      patchWorkItem: (_id, patch) => patches.push(patch)
+    })
+    expect(patches).toContainEqual({ state: 'open' })
+    expect(applyPendingTaskPageGitHubMutationsToItems([upstream])[0]?.state).toBe('open')
   })
 
   it('keeps another repository confirmation when an older qualified edit rolls back', () => {

@@ -7,6 +7,16 @@ const lastConfirmedClientValues = new Map<
   { value: unknown; ownerRepo?: GitHubOwnerRepo | null }
 >()
 
+export function getLastConfirmedClientEntry(
+  sourceScope: string | null,
+  repoId: string,
+  itemId: string,
+  family: string
+) {
+  return lastConfirmedClientValues.get(
+    taskPageGitHubLastConfirmedKey(sourceScope, repoId, itemId, family)
+  )
+}
 export function getLastConfirmedClientValue(
   sourceScope: string | null,
   repoId: string,

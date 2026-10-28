@@ -1,10 +1,11 @@
+import { beginGitHubTaskRead } from '@/store/github/request-coordination'
+import { taskPageGitHubAuthorityItemKeys } from './task-page-github-work-item-mutation-keys'
 import type { TaskPageGitHubQuietRefreshPreludeModel } from './use-task-page-github-quiet-refresh'
 import {
   getOrCreateQuietRevalidateState,
   beginTaskPageQuietRevalidateRun,
   finishTaskPageQuietRevalidateRun
 } from '@/components/task-page/github/task-page-github-work-item-quiet-state'
-import { taskPageGitHubItemKey } from '@/components/task-page/github/task-page-github-work-item-mutation-keys'
 import { getTaskPageGitHubConfirmedAuthorityItemKeys } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
 import {
   clearTaskPageGitHubAuthorityAbsentFromLoadedItems,
@@ -61,9 +62,7 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
   }
   const quietState = getOrCreateQuietRevalidateState(githubWorkItemMutationQueryKey)
   const loadedItemKeys = new Set(
-    pagesRef.current.flatMap((page) =>
-      (page ?? []).map((item) => taskPageGitHubItemKey(item.repoId, item.id))
-    )
+    pagesRef.current.flatMap((page) => (page ?? []).flatMap(taskPageGitHubAuthorityItemKeys))
   )
   clearTaskPageGitHubAuthorityAbsentFromLoadedItems(loadedItemKeys)
   if (getTaskPageGitHubConfirmedAuthorityItemKeys().size === 0) {
@@ -98,12 +97,14 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
     githubWorkItemMutationQueryKey
   )
   const authorityPage = pages.findIndex((page) =>
-    page?.some((item) => authorityItemKeys.has(taskPageGitHubItemKey(item.repoId, item.id)))
+    page?.some((item) =>
+      taskPageGitHubAuthorityItemKeys(item).some((key) => authorityItemKeys.has(key))
+    )
   )
   const quietPage = authorityPage !== -1 ? authorityPage : currentPage
   const visiblePage = currentPage > quietPage ? currentPage : undefined
   const pageItemKeys = (page: number): Set<string> =>
-    new Set((pages[page] ?? []).map((item) => taskPageGitHubItemKey(item.repoId, item.id)))
+    new Set((pages[page] ?? []).flatMap(taskPageGitHubAuthorityItemKeys))
   const authorityPageItemKeys = pageItemKeys(quietPage)
   const visiblePageItemKeys = visiblePage === undefined ? undefined : pageItemKeys(visiblePage)
   const revalidatedItemKeys = new Set([...authorityPageItemKeys, ...(visiblePageItemKeys ?? [])])
@@ -113,10 +114,13 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
     executionHostId: r.executionHostId,
     sourceContext: getTaskPageRepoSourceContext(r, 'github')
   }))
+  const read = beginGitHubTaskRead(repoArgs)
+  let cancelled = false
   const sourceContextByRepoId = new Map(repoArgs.map((r) => [r.repoId, r.sourceContext] as const))
   const fetchQuietPage = (page: number): Promise<GitHubWorkItem[]> =>
     page === 0
       ? fetchWorkItemsAcrossRepos(repoArgs, githubPerRepoPageLimit, githubPageSize, q, {
+          taskRead: read,
           force: true,
           noCache: true,
           requireComplete: true,
@@ -134,6 +138,7 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
           q,
           taskPageToGitHubApiPage(page),
           {
+            taskRead: read,
             noCache: true,
             requireComplete: true
           }
@@ -154,7 +159,7 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
   void quietFetch
     .then(async ({ authorityItems, visibleItems }) => {
       // Skip unmounted/stale renderer writes but settle shared quietState so trailing work cannot be stranded.
-      if (!quietRevalidateMountedRef.current || !isCurrentScope()) {
+      if (cancelled || !quietRevalidateMountedRef.current || !isCurrentScope()) {
         return
       }
       let fetchedVisiblePage = visiblePage
@@ -165,18 +170,24 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
       if (latestVisiblePage !== undefined && latestVisiblePage !== fetchedVisiblePage) {
         fetchedVisiblePage = latestVisiblePage
         const latestVisiblePageItemKeys = new Set(
-          (pagesRef.current[latestVisiblePage] ?? []).map((item) =>
-            taskPageGitHubItemKey(item.repoId, item.id)
-          )
+          (pagesRef.current[latestVisiblePage] ?? []).flatMap(taskPageGitHubAuthorityItemKeys)
         )
         fetchedVisiblePageItemKeys = latestVisiblePageItemKeys
         fetchedVisibleItems = await fetchQuietPage(latestVisiblePage)
         for (const itemKey of latestVisiblePageItemKeys) {
           revalidatedItemKeys.add(itemKey)
         }
-        if (!quietRevalidateMountedRef.current || !isCurrentScope()) {
+        if (cancelled || !quietRevalidateMountedRef.current || !isCurrentScope()) {
           return
         }
+      }
+      const currentItems = pagesRef.current.flatMap((page) => page ?? [])
+      authorityItems = read.apply(authorityItems, currentItems)
+      if (visibleItems) {
+        visibleItems = read.apply(visibleItems, currentItems)
+      }
+      if (fetchedVisibleItems) {
+        fetchedVisibleItems = read.apply(fetchedVisibleItems, currentItems)
       }
       const liveVisiblePage =
         currentPageRef.current > quietPage ? currentPageRef.current : undefined
@@ -190,9 +201,7 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
         liveVisiblePage === undefined
           ? undefined
           : new Set(
-              (pagesRef.current[liveVisiblePage] ?? []).map((item) =>
-                taskPageGitHubItemKey(item.repoId, item.id)
-              )
+              (pagesRef.current[liveVisiblePage] ?? []).flatMap(taskPageGitHubAuthorityItemKeys)
             )
       quietState.networkFailureAttempts = 0
       const revalidatedItems = [
@@ -212,14 +221,12 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
         sourceContextByRepoId,
         revalidatedItemKeys
       })
-      const networkItemKeys = new Set(
-        authorityItems.map((item) => taskPageGitHubItemKey(item.repoId, item.id))
-      )
+      const networkItemKeys = new Set(authorityItems.flatMap(taskPageGitHubAuthorityItemKeys))
       const visibleNetworkItemKeys = new Set(
-        (liveVisibleItems ?? []).map((item) => taskPageGitHubItemKey(item.repoId, item.id))
+        (liveVisibleItems ?? []).flatMap(taskPageGitHubAuthorityItemKeys)
       )
       const fetchedVisibleNetworkItemKeys = new Set(
-        (fetchedVisibleItems ?? []).map((item) => taskPageGitHubItemKey(item.repoId, item.id))
+        (fetchedVisibleItems ?? []).flatMap(taskPageGitHubAuthorityItemKeys)
       )
       const membershipChanged =
         networkItemKeys.size !== authorityPageItemKeys.size ||
@@ -246,7 +253,27 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
             })
       })
       pagesRef.current = reconciledPages
-      setPages(reconciledPages)
+      setPages((current) =>
+        reconcileTaskPagePagesAfterQuietRefresh({
+          pages: current,
+          queryKey: githubWorkItemMutationQueryKey,
+          authorityPage: quietPage,
+          authorityItems: read.apply(
+            authorityItems,
+            current.flatMap((page) => page ?? [])
+          ),
+          membershipChanged,
+          ...(liveVisiblePage === undefined || liveVisibleItems === undefined
+            ? {}
+            : {
+                visiblePage: liveVisiblePage,
+                visibleItems: read.apply(
+                  liveVisibleItems,
+                  current.flatMap((page) => page ?? [])
+                )
+              })
+        })
+      )
       const attempts = getTaskPageQuietRevalidateBackoffAttempt(quietState.lagSkipAttempts.values())
       const wallExceeded =
         quietState.lastConfirmAt > 0 && Date.now() - quietState.lastConfirmAt > LAG_WALL_BUDGET_MS
@@ -257,7 +284,7 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
           (itemKey) =>
             !revalidatedItemKeys.has(itemKey) &&
             pages.some((page) =>
-              page?.some((item) => taskPageGitHubItemKey(item.repoId, item.id) === itemKey)
+              page?.some((item) => taskPageGitHubAuthorityItemKeys(item).includes(itemKey))
             )
         )
       quietState.trailingQueued = false
@@ -285,6 +312,7 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
       }
     })
     .finally(() => {
+      read.dispose()
       if (
         !finishTaskPageQuietRevalidateRun(
           quietState,
@@ -310,4 +338,8 @@ export function runTaskPageGitHubQuietRefresh(model: TaskPageGitHubQuietRefreshP
         }, networkRetryDelay)
       }
     })
+  return () => {
+    cancelled = true
+    read.dispose()
+  }
 }

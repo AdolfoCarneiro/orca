@@ -1,3 +1,4 @@
+import { githubWorkItemWriteKey, startGitHubWorkItemWrite } from '@/lib/github-work-item-writes'
 import React, { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -152,6 +153,10 @@ export function ConversationTab({
       setBodyEditing(false)
       return
     }
+    const finishWrite =
+      item.type === 'issue'
+        ? startGitHubWorkItemWrite(githubWorkItemWriteKey(item, sourceContext))
+        : () => {}
     setBodySaving(true)
     try {
       await runWorkItemBodyUpdate({
@@ -178,6 +183,7 @@ export function ConversationTab({
             )
       )
     } finally {
+      finishWrite()
       setBodySaving(false)
     }
   }, [

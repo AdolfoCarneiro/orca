@@ -1,3 +1,4 @@
+import { githubTaskContent, type GitHubTaskRefreshHandler } from '@/lib/github-task-target'
 import React, { useCallback, useMemo } from 'react'
 import GitHubItemDialog from '@/components/GitHubItemDialog'
 import { launchWorkItemDirect } from '@/lib/launch-work-item-direct'
@@ -25,6 +26,7 @@ import type { ExecutionHostId } from '../../../../shared/execution-host'
 import { taskSourceRuntimeTarget } from '@/lib/task-source-runtime-target'
 
 type Props = {
+  onTaskRefresh?: GitHubTaskRefreshHandler
   selectedRepoIds: ReadonlySet<string>
   /** Row-less source host (shared with Linear and Jira): the board, picker and unmatched rows read from it. */
   sourceHostId: ExecutionHostId
@@ -32,7 +34,8 @@ type Props = {
 
 export default function ProjectViewWrapper({
   selectedRepoIds,
-  sourceHostId
+  sourceHostId,
+  onTaskRefresh
 }: Props): React.JSX.Element {
   const sourceTarget = useMemo(
     () => taskSourceRuntimeTarget({ hostId: sourceHostId }),
@@ -63,7 +66,11 @@ export default function ProjectViewWrapper({
           onPick={(viewId) => void tableState.switchView(viewId)}
         />
       ) : null}
-      <ProjectViewBody tableState={tableState} rowActions={rowActions} />
+      <ProjectViewBody
+        tableState={tableState}
+        rowActions={rowActions}
+        onTaskRefresh={onTaskRefresh}
+      />
       <ProjectItemSlugDialog
         projectOrigin={slugOrigin}
         sourceTarget={slugSourceTarget ?? tableState.sourceTarget}
@@ -80,8 +87,10 @@ export default function ProjectViewWrapper({
 
 function ProjectViewBody({
   tableState,
-  rowActions
+  rowActions,
+  onTaskRefresh
 }: {
+  onTaskRefresh?: GitHubTaskRefreshHandler
   tableState: ReturnType<typeof useProjectViewTable>
   rowActions: ReturnType<typeof useProjectRowActions>
 }): React.JSX.Element | null {
@@ -135,6 +144,14 @@ function ProjectViewBody({
           'auto.components.github.project.ProjectViewWrapper.1aa7c952b9',
           'Project view'
         )}
+        onTaskRefresh={(item, target) => {
+          rowActions.setDialogRepoItem((previous) =>
+            previous && target.matches(previous.workItem)
+              ? { ...previous, workItem: { ...previous.workItem, ...githubTaskContent(item) } }
+              : previous
+          )
+          onTaskRefresh?.(item, target)
+        }}
         onUse={(item) => {
           rowActions.setDialogRepoItem(null)
           // Project actions start work immediately; TaskPage’s background creation flow does not apply.

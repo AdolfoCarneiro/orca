@@ -1,7 +1,10 @@
 import type { GitHubWorkItem, GitHubWorkItemDetails } from '../../../shared/github/work-item-types'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
 import type { GitHubOwnerRepo } from '../../../shared/github/pull-request-types'
-import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
+import { callRuntimeRpc, runtimeEnvironmentSupportsCapability } from '@/runtime/runtime-rpc-client'
+import { GITHUB_CANONICAL_DETAILS_RUNTIME_CAPABILITY } from '../../../shared/task-source-runtime-capabilities'
+import { parseGitHubIssueOrPRLink } from '../../../shared/github/links'
+import { githubRepoIdentityKey } from '../../../shared/github/repository-identity-key'
 import {
   getGitHubRuntimeRepoId,
   getGitHubSourceRuntimeHost,
@@ -30,6 +33,9 @@ type GitHubWorkItemDetailsLookupArgs = {
   number: number
   type: 'issue' | 'pr'
   ownerRepo?: GitHubOwnerRepo | null
+  canonical?: boolean
+  accepts?: () => boolean
+  rpcOptions?: Parameters<typeof callRuntimeRpc>[3]
 }
 
 function runtimeRepoId(args: Pick<GitHubWorkItemLookupArgs, 'repoId' | 'sourceContext'>): string {
@@ -93,29 +99,76 @@ export async function lookupGitHubWorkItemByOwnerRepoForSource(
   return item ? ({ ...item, repoId: args.repoId } as GitHubWorkItem) : null
 }
 
-export function lookupGitHubWorkItemDetailsForSource(
+export async function lookupGitHubWorkItemDetailsForSource(
   args: GitHubWorkItemDetailsLookupArgs
 ): Promise<GitHubWorkItemDetails | null> {
+  if (args.accepts?.() === false) {
+    return null
+  }
   const sourceContext = args.sourceContext
   const runtimeHost = getGitHubSourceRuntimeHost(sourceContext)
-  if (runtimeHost) {
-    return callRuntimeRpc<GitHubWorkItemDetails | null>(
-      { kind: 'environment', environmentId: runtimeHost.environmentId },
-      'github.workItemDetails',
-      {
-        repo: getGitHubRuntimeRepoId(sourceContext, args.repoId),
-        number: args.number,
-        type: args.type
-      },
-      { timeoutMs: 30_000 }
-    )
+  if (
+    args.canonical &&
+    runtimeHost &&
+    !(await runtimeEnvironmentSupportsCapability(
+      runtimeHost.environmentId,
+      GITHUB_CANONICAL_DETAILS_RUNTIME_CAPABILITY
+    ))
+  ) {
+    throw new Error('Task refresh is unavailable on this server. Update the server and try again.')
   }
-  return window.api.gh.workItemDetails({
-    repoPath: args.repoPath,
-    repoId: args.repoId,
-    sourceContext,
-    number: args.number,
-    type: args.type,
-    ...(args.ownerRepo ? { ownerRepo: args.ownerRepo } : {})
-  })
+  if (args.accepts?.() === false) {
+    return null
+  }
+  const result = await (runtimeHost
+    ? callRuntimeRpc<GitHubWorkItemDetails | null>(
+        { kind: 'environment', environmentId: runtimeHost.environmentId },
+        'github.workItemDetails',
+        {
+          repo: getGitHubRuntimeRepoId(sourceContext, args.repoId),
+          number: args.number,
+          type: args.type,
+          ...(args.canonical && args.ownerRepo ? { ownerRepo: args.ownerRepo } : {})
+        },
+        {
+          timeoutMs: 30_000,
+          ...args.rpcOptions,
+          ...(args.accepts
+            ? {
+                beforeSend: () => {
+                  if (!args.accepts?.()) {
+                    throw new Error('Task context changed.')
+                  }
+                }
+              }
+            : {})
+        }
+      )
+    : window.api.gh.workItemDetails({
+        repoPath: args.repoPath,
+        repoId: args.repoId,
+        sourceContext,
+        number: args.number,
+        type: args.type,
+        ...(args.ownerRepo ? { ownerRepo: args.ownerRepo } : {})
+      }))
+  if (args.accepts?.() === false) {
+    return null
+  }
+  if (args.canonical && result) {
+    const returned = parseGitHubIssueOrPRLink(result.item.url)
+    if (
+      !returned ||
+      !args.ownerRepo ||
+      result.item.type !== args.type ||
+      result.item.number !== args.number ||
+      returned.type !== args.type ||
+      returned.number !== args.number ||
+      githubRepoIdentityKey(returned.slug) !== githubRepoIdentityKey(args.ownerRepo)
+    ) {
+      throw new Error('GitHub returned a different task. Refresh this task again.')
+    }
+    return { ...result, assignees: (result.item.assignees ?? []).map((user) => user.login) }
+  }
+  return result
 }

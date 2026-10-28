@@ -1,3 +1,4 @@
+import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import type { GitHubSlice } from './slice-types'
@@ -8,6 +9,7 @@ import { getTaskSourceCacheScope } from '../../../../shared/task-source-context'
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
 import { translate } from '@/i18n/i18n'
 import { repoMatchesHostIdentity } from '../slices/repo-host-identity'
+import { repoCacheKeyHostId } from '../../../../shared/github/github-cache-key'
 import { evictRepoCacheEntries, repoCacheEviction, type RepoCacheEviction } from './cache-identity'
 import { ERROR_TOAST_DURATION } from './cache-policy'
 import { clearInflightWorkItemsForRepo } from './request-coordination'
@@ -37,10 +39,23 @@ export const createWorkItemMutationActions = (
         options?.sourceContext?.provider === 'github'
           ? getTaskSourceCacheScope(options.sourceContext)
           : null
+      const sourceScopes =
+        options?.sourceContexts?.map(getTaskSourceCacheScope) ?? (sourceScope ? [sourceScope] : [])
       const repositoryKey = options?.ownerRepo ? githubRepoIdentityKey(options.ownerRepo) : null
       for (const key of Object.keys(nextCache)) {
+        if (options?.hostId && repoId && repoCacheKeyHostId(key, [repoId]) !== options.hostId) {
+          continue
+        }
+        // A legacy refresh cannot publish into a project/account-scoped cache it did not read.
+        if (options?.hostId && !sourceScope && key.startsWith('github:')) {
+          continue
+        }
         // Why: don't patch another host/account's visually identical issue/PR cache entry.
-        if (sourceScope && key !== sourceScope && !key.startsWith(`${sourceScope}::`)) {
+        if (
+          sourceScopes.length &&
+          key.startsWith('github:') &&
+          !sourceScopes.some((scope) => key === scope || key.startsWith(`${scope}::`))
+        ) {
           continue
         }
         const entry = nextCache[key]
@@ -48,23 +63,28 @@ export const createWorkItemMutationActions = (
           continue
         }
         // Why: issue/PR ids are only unique within a repo; cross-repo views can share `pr:42`.
-        const idx = entry.data.findIndex((item) => {
-          if (item.id !== itemId || (repoId && item.repoId !== repoId)) {
-            return false
+        let updatedItems: GitHubWorkItem[] | undefined
+        entry.data.forEach((item, index) => {
+          if (
+            (!options?.matches && updatedItems) ||
+            (repoId && item.repoId !== repoId) ||
+            (options?.matches ? !options.matches(item) : item.id !== itemId)
+          ) {
+            return
           }
-          if (!repositoryKey) {
-            return true
+          const repository = repositoryKey ? parseGitHubIssueOrPRLink(item.url)?.slug : undefined
+          if (
+            repositoryKey &&
+            (!repository || githubRepoIdentityKey(repository) !== repositoryKey)
+          ) {
+            return
           }
-          const itemRepository = parseGitHubIssueOrPRLink(item.url)?.slug
-          return (
-            itemRepository !== undefined && githubRepoIdentityKey(itemRepository) === repositoryKey
-          )
+          updatedItems ??= [...entry.data]
+          updatedItems[index] = { ...item, ...patch }
         })
-        if (idx === -1) {
+        if (!updatedItems) {
           continue
         }
-        const updatedItems = [...entry.data]
-        updatedItems[idx] = { ...updatedItems[idx], ...patch }
         nextCache[key] = { ...entry, data: updatedItems }
         changed = true
       }

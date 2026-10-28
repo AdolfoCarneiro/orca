@@ -26,7 +26,10 @@ import {
 } from './task-page-github-work-item-mutation-registry'
 import { getLastConfirmedClientValue } from './task-page-github-confirmed-client-values'
 import { getOrCreateQuietRevalidateState } from './task-page-github-work-item-quiet-state'
-import { taskPageGitHubItemKey } from './task-page-github-work-item-mutation-keys'
+import {
+  taskPageGitHubItemKey,
+  taskPageGitHubMutationItemId
+} from './task-page-github-work-item-mutation-keys'
 
 function query(overrides: Partial<ParsedTaskQuery> = {}): ParsedTaskQuery {
   return {
@@ -60,6 +63,9 @@ function item(overrides: Partial<GitHubWorkItem> = {}): GitHubWorkItem {
     ...overrides
   }
 }
+
+const issueListId = taskPageGitHubMutationItemId(item())
+const assigneeSnapshot = () => getConfirmedListSnapshot(null, 'repo-1', issueListId, 'assignees')
 
 function createPatchRecorder() {
   const patches: { id: string; patch: Partial<GitHubWorkItem>; repoId?: string }[] = []
@@ -117,11 +123,7 @@ describe('TaskPage GitHub work item mutations', () => {
 
     const merged = getRegistryMergedTaskPageGitHubWorkItem(base, null)
     expect(merged.assignees?.map((u) => u.login.toLowerCase()).sort()).toEqual(['alice', 'bob'])
-    expect(
-      getConfirmedListSnapshot(null, 'repo-1', 'issue:1', 'assignees')?.map((u) =>
-        u.login.toLowerCase()
-      )
-    ).toEqual(['alice'])
+    expect(assigneeSnapshot()?.map((u) => u.login.toLowerCase())).toEqual(['alice'])
 
     void bob
   })
@@ -159,8 +161,9 @@ describe('TaskPage GitHub work item mutations', () => {
       patchWorkItem,
       scheduleQuiet: false
     })
+    const prId = taskPageGitHubMutationItemId(base)
     expect(
-      getConfirmedListSnapshot(null, 'repo-1', 'pr:1', 'reviewRequests')?.map((u) =>
+      getConfirmedListSnapshot(null, 'repo-1', prId, 'reviewRequests')?.map((u) =>
         u.login.toLowerCase()
       )
     ).toEqual(['bob', 'carol'])
@@ -260,7 +263,7 @@ describe('TaskPage GitHub work item mutations', () => {
       patchWorkItem
     })
 
-    const snap = getConfirmedListSnapshot(null, 'repo-1', 'issue:1', 'assignees')
+    const snap = assigneeSnapshot()
     expect(snap).toBeUndefined()
     expect(
       patches
@@ -328,11 +331,7 @@ describe('TaskPage GitHub work item mutations', () => {
       patchWorkItem
     })
     expect(result.needTrailing).toBe(true)
-    expect(
-      getConfirmedListSnapshot(null, 'repo-1', 'issue:1', 'assignees')?.map((u) =>
-        u.login.toLowerCase()
-      )
-    ).toEqual(['alice', 'bob'])
+    expect(assigneeSnapshot()?.map((u) => u.login.toLowerCase())).toEqual(['alice', 'bob'])
   })
 
   it('K21: fat search after confirmed remove does not force-accept', () => {
@@ -363,11 +362,7 @@ describe('TaskPage GitHub work item mutations', () => {
       patchWorkItem,
       scheduleQuiet: false
     })
-    expect(
-      getConfirmedListSnapshot(null, 'repo-1', 'issue:1', 'assignees')?.map((u) =>
-        u.login.toLowerCase()
-      )
-    ).toEqual(['alice'])
+    expect(assigneeSnapshot()?.map((u) => u.login.toLowerCase())).toEqual(['alice'])
 
     const quiet = getOrCreateQuietRevalidateState('q')
     quiet.fetchStartedAtGeneration = quiet.dirtyGeneration
@@ -385,11 +380,7 @@ describe('TaskPage GitHub work item mutations', () => {
       fetchStartedAtGeneration: quiet.fetchStartedAtGeneration,
       patchWorkItem
     })
-    expect(
-      getConfirmedListSnapshot(null, 'repo-1', 'issue:1', 'assignees')?.map((u) =>
-        u.login.toLowerCase()
-      )
-    ).toEqual(['alice'])
+    expect(assigneeSnapshot()?.map((u) => u.login.toLowerCase())).toEqual(['alice'])
   })
 
   it('K21: lagging open after close confirm keeps closed + sticky', () => {
@@ -692,7 +683,7 @@ describe('TaskPage GitHub work item mutations', () => {
       patchWorkItem
     })
     expect(settle.needTrailing).toBe(true)
-    const snap = getConfirmedListSnapshot(null, 'repo-1', 'issue:1', 'assignees')
+    const snap = assigneeSnapshot()
     expect(snap?.map((u) => u.login.toLowerCase()).sort()).toEqual(['alice', 'bob', 'carol'])
   })
 

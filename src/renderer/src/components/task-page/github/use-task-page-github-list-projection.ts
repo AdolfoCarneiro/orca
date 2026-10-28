@@ -1,3 +1,4 @@
+import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
 import type { TaskPageJiraCreationMetadataModel } from '../../use-task-page-jira-creation-metadata'
 import { getWorkItemRepo } from '@/lib/work-item-repo-row'
 import { useCallback, useMemo, useEffect } from 'react'
@@ -51,6 +52,9 @@ export function useTaskPageGitHubListProjection(model: TaskPageJiraCreationMetad
         (workItem) =>
           !githubWorkItemMutation.softHiddenItemKeys.has(
             taskPageGitHubItemKey(workItem.repoId, workItem.id)
+          ) &&
+          !githubWorkItemMutation.softHiddenItemKeys.has(
+            taskPageGitHubItemKey(workItem.repoId, taskPageGitHubMutationItemId(workItem))
           )
       ),
     [githubWorkItemMutation.softHiddenItemKeys, typeFilteredCurrentPageItems]

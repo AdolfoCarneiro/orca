@@ -1,3 +1,5 @@
+import { beginGitHubTaskRead } from './request-coordination'
+import { reconcileProjectTaskRead } from './project-task-content-actions'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import type { GitHubSlice } from './slice-types'
@@ -48,6 +50,7 @@ export const createProjectActions = (
       }
     }
 
+    const read = beginGitHubTaskRead([], target)
     let waitedForUpgrade = false
     for (;;) {
       const existing = inflightProjectViewRequests.get(requestKey)
@@ -56,7 +59,7 @@ export const createProjectActions = (
       }
       // Forced callers must await weaker in-flight work then refetch, like fetchWorkItems.
       if (!options?.force || existing.force) {
-        return existing.promise
+        return existing.promise.finally(read.dispose)
       }
       // Wait only once for weaker work so peers share upgrades without starvation.
       if (waitedForUpgrade) {
@@ -84,7 +87,7 @@ export const createProjectActions = (
           return envelope
         }
         if (envelope.ok) {
-          const table = envelope.data
+          let table = envelope.data
           const key = projectViewCacheKey(
             table.project.ownerType,
             table.project.owner,
@@ -94,6 +97,7 @@ export const createProjectActions = (
             sourceScope,
             table.project.host
           )
+          table = reconcileProjectTaskRead(read, table, get().projectViewCache[key]?.data)
           set((s) => ({
             projectViewCache: withBoundedCacheEntry(s.projectViewCache, key, {
               data: table,
@@ -125,6 +129,7 @@ export const createProjectActions = (
         releaseWorkItemSlot()
       }
     })().finally(() => {
+      read.dispose()
       if (ownsInflightRequest(inflightProjectViewRequests, requestKey, requestId)) {
         inflightProjectViewRequests.delete(requestKey)
       }

@@ -1,3 +1,4 @@
+import type { GitHubTaskRefreshHandler } from '@/lib/github-task-target'
 import type { GitHubAssignableUser } from '../../../../../shared/github/pull-request-types'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
@@ -15,6 +16,7 @@ export type GitHubItemDialogProps = {
   sourceContext?: TaskSourceContext | null
   initialTab?: ItemDialogTab
   backLabel?: string
+  onTaskRefresh?: GitHubTaskRefreshHandler
   onUse: (item: GitHubWorkItem) => void
   onReviewRequestsChange?: (
     itemKey: { id: string; repoId: string },
@@ -37,6 +39,7 @@ export type GitHubItemDialogEditSectionProps = {
   onLabelsChange: (labels: string[]) => void
   /** Invalidate the parent’s detail cache after mutation so reopening cannot show stale data during FRESH_MS. */
   onMutated: () => void
+  acceptedRefresh?: number
   assignees: string[]
   onUse: (item: GitHubWorkItem) => void
   onOpenOrUse?: (item: GitHubWorkItem) => void

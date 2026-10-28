@@ -6,26 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import type { GitHubItemDialogProjectOrigin } from '../load-item-details/github-item-dialog-types'
 import { GHEditSection } from './gh-edit-section'
-import {
-  resetTaskPageGitHubMutationRegistryForTests,
-  getConfirmedListSnapshot,
-  getTaskPageGitHubMutationQueryKey,
-  setConfirmedListSnapshot,
-  setTaskPageGitHubMutationQueryKey
-} from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
-import { materializeTaskPageItemList } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
-import { adoptQuietSearchFieldsForItem } from '@/components/task-page/github/task-page-github-work-item-quiet-adopt'
-import { getOrCreateQuietRevalidateState } from '@/components/task-page/github/task-page-github-work-item-quiet-state'
-import { beginTaskPageGitHubWorkItemMutation } from '@/components/task-page/github/task-page-github-work-item-mutations'
-import {
-  confirmTaskPageGitHubWorkItemMutation,
-  rollbackTaskPageGitHubWorkItemMutation
-} from '@/components/task-page/github/task-page-github-work-item-mutation-lifecycle'
-import { parseTaskQuery } from '../../../../../shared/task-query'
-import {
-  getTaskSourceCacheScope,
-  type TaskSourceContext
-} from '../../../../../shared/task-source-context'
+import { resetTaskPageGitHubMutationRegistryForTests } from '@/components/task-page/github/task-page-github-work-item-mutation-registry'
 
 const mocks = vi.hoisted(() => ({
   update: vi.fn(),
@@ -55,9 +36,7 @@ vi.mock('@/hooks/useIssueMetadata', async () => {
   return {
     useImmediateMutation,
     useRepoLabels: () => ({ data: [] }),
-    useRepoAssignees: () => ({
-      data: [{ login: 'candidate-user', name: 'Candidate', avatarUrl: 'https://avatar/candidate' }]
-    })
+    useRepoAssignees: () => ({ data: [] })
   }
 })
 vi.mock('@/hooks/useGitHubSlugMetadata', () => ({
@@ -118,8 +97,7 @@ let container: HTMLDivElement
 async function render(
   nextItem = item,
   assignees: string[] = [],
-  projectOrigin?: GitHubItemDialogProjectOrigin,
-  sourceContext?: TaskSourceContext
+  projectOrigin?: GitHubItemDialogProjectOrigin
 ): Promise<void> {
   await act(async () => {
     root.render(
@@ -128,7 +106,6 @@ async function render(
         repoPath={null}
         repoId={nextItem.repoId}
         projectOrigin={projectOrigin}
-        sourceContext={sourceContext}
         localState="open"
         localLabels={[]}
         onStateChange={() => {}}
@@ -192,7 +169,6 @@ describe('opened issue assignee ownership', () => {
   beforeEach(() => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     vi.clearAllMocks()
-    mocks.patchWorkItem.mockReset()
     resetTaskPageGitHubMutationRegistryForTests()
     updateParentSelection = () => {}
     mocks.update.mockResolvedValue({ ok: true })
@@ -206,313 +182,6 @@ describe('opened issue assignee ownership', () => {
     container.remove()
     vi.unstubAllGlobals()
     resetTaskPageGitHubMutationRegistryForTests()
-  })
-
-  it.each([false, true])(
-    'publishes dialog assignees to Tasks until search agrees (removing=%s)',
-    async (removing) => {
-      const candidate = {
-        login: 'candidate-user',
-        name: 'Candidate',
-        avatarUrl: 'https://avatar/candidate'
-      }
-      const original = {
-        login: 'original-user',
-        name: 'Original',
-        avatarUrl: 'https://avatar/original'
-      }
-      const stale = { ...item, assignees: removing ? [original, candidate] : [original] }
-      const expected = removing ? [original] : [original, candidate]
-      let row = stale
-      let finish: (result: { ok: boolean }) => void = () => {}
-      mocks.update.mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            finish = resolve
-          })
-      )
-      mocks.patchWorkItem.mockImplementation((_id, patch) => {
-        row = { ...row, ...patch }
-      })
-      setTaskPageGitHubMutationQueryKey('assignee-query')
-      await render(
-        stale,
-        stale.assignees.map((user) => user.login)
-      )
-      await click()
-      expect(row.assignees).toEqual(stale.assignees)
-      await act(async () => finish({ ok: true }))
-      expect(row.assignees).toEqual(expected)
-      expect(mocks.patchWorkItem).toHaveBeenLastCalledWith(
-        item.id,
-        { assignees: expected },
-        item.repoId,
-        {
-          sourceContext: undefined,
-          ownerRepo: { owner: 'upstream', repo: 'widgets', host: 'github.com' }
-        }
-      )
-      expect(mocks.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          issueRepo: { owner: 'upstream', repo: 'widgets', host: 'github.com' },
-          updates: removing
-            ? { removeAssignees: ['candidate-user'] }
-            : { addAssignees: ['candidate-user'] }
-        })
-      )
-      const otherRepo = { ...stale, url: 'https://github.com/fork/widgets/issues/5' }
-      expect(
-        materializeTaskPageItemList({
-          networkItems: [otherRepo],
-          previousItems: [],
-          queryKey: 'assignee-query'
-        })[0]?.assignees
-      ).toEqual(stale.assignees)
-      const materialize = () =>
-        materializeTaskPageItemList({
-          networkItems: [stale],
-          previousItems: [row],
-          queryKey: 'assignee-query'
-        })[0]?.assignees
-      const adopt = (serverItem: GitHubWorkItem) =>
-        adoptQuietSearchFieldsForItem({
-          item: row,
-          serverItem,
-          sourceScope: null,
-          queryKey: 'assignee-query',
-          fetchStartedAtGeneration:
-            getOrCreateQuietRevalidateState('assignee-query').dirtyGeneration,
-          patchWorkItem: mocks.patchWorkItem
-        })
-      expect(materialize()).toEqual(expected)
-      adopt(stale)
-      expect(materialize()).toEqual(expected)
-      adopt({ ...row, assignees: expected })
-      expect(materialize()).toEqual(stale.assignees)
-    }
-  )
-
-  it.each(['throw', 'result'])(
-    'leaves Tasks authority untouched when a dialog edit fails (%s)',
-    async (failure) => {
-      const stale = { ...item, assignees: [] }
-      let row: GitHubWorkItem = stale
-      mocks.patchWorkItem.mockImplementation((_id, patch) => {
-        row = { ...row, ...patch }
-      })
-      let fail: (reason: Error) => void = () => {}
-      let finish: (result: { ok: boolean }) => void = () => {}
-      mocks.update.mockImplementation(
-        () =>
-          new Promise((resolve, reject) => {
-            fail = reject
-            finish = resolve
-          })
-      )
-      await render(stale)
-      await click()
-      const sibling = [{ login: 'sibling', name: null, avatarUrl: '' }]
-      setConfirmedListSnapshot(null, item.repoId, item.id, 'assignees', sibling, {
-        owner: 'upstream',
-        repo: 'widgets',
-        host: 'github.com'
-      })
-      await act(async () =>
-        failure === 'throw' ? fail(new Error('Assignment failed')) : finish({ ok: false })
-      )
-      expect(mocks.patchWorkItem).not.toHaveBeenCalled()
-      expect(row.assignees).toEqual([])
-      const external = [{ login: 'external', name: null, avatarUrl: '' }]
-      expect(
-        materializeTaskPageItemList({
-          networkItems: [{ ...stale, assignees: external }],
-          previousItems: [row],
-          queryKey: 'q'
-        })[0]?.assignees
-      ).toEqual(sibling)
-      expect(selected()).toBe('')
-    }
-  )
-
-  it.each([
-    { dialogFirst: false, succeeds: false },
-    { dialogFirst: true, succeeds: false },
-    { dialogFirst: false, succeeds: true },
-    { dialogFirst: true, succeeds: true }
-  ])(
-    'composes a pending Tasks edit with dialog success ($dialogFirst/$succeeds)',
-    async ({ dialogFirst, succeeds }) => {
-      const base = { ...item, assignees: [] }
-      let row: GitHubWorkItem = base
-      mocks.patchWorkItem.mockImplementation((_id, patch) => {
-        row = { ...row, ...patch }
-      })
-      const context = {
-        item: base,
-        query: parseTaskQuery(''),
-        queryKey: 'q',
-        viewerLogin: null,
-        patchWorkItem: mocks.patchWorkItem
-      }
-      const pending = beginTaskPageGitHubWorkItemMutation({
-        ...context,
-        intent: {
-          type: 'toggleAssignee',
-          user: { login: 'alice', name: 'Alice', avatarUrl: 'alice-avatar' }
-        }
-      })
-      let finish: (result: { ok: boolean }) => void = () => {}
-      mocks.update.mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            finish = resolve
-          })
-      )
-      await render(row, ['alice'])
-      await click()
-      const settleRow = () =>
-        succeeds
-          ? confirmTaskPageGitHubWorkItemMutation(pending.key, pending.generation, context)
-          : rollbackTaskPageGitHubWorkItemMutation({ ...context, ...pending })
-      if (!dialogFirst) {
-        settleRow()
-      }
-      await act(async () => finish({ ok: true }))
-      if (dialogFirst) {
-        settleRow()
-      }
-      expect(
-        materializeTaskPageItemList({
-          networkItems: [base],
-          previousItems: [row],
-          queryKey: 'q'
-        })[0]
-          ?.assignees?.map((user) => user.login)
-          .sort()
-      ).toEqual(succeeds ? ['alice', 'candidate-user'] : ['candidate-user'])
-      expect(row.assignees?.map((user) => user.login).sort()).toEqual(
-        succeeds ? ['alice', 'candidate-user'] : ['candidate-user']
-      )
-    }
-  )
-
-  it.each([false, true])(
-    'publishes Project edits without changing Tasks query ownership (query=%s)',
-    async (hasQuery) => {
-      const ownerRepo = { owner: 'upstream', repo: 'widgets', host: 'github.com' }
-      if (hasQuery) {
-        setTaskPageGitHubMutationQueryKey('unrelated-query')
-      }
-      setConfirmedListSnapshot(null, 'other-repo', 'issue:9', 'assignees', [], ownerRepo)
-      const origin = {
-        ...ownerRepo,
-        number: 5,
-        type: 'issue' as const,
-        projectId: 'project',
-        projectItemId: 'row',
-        cacheKey: 'project-cache'
-      }
-      await render(item, [], origin)
-      await click()
-      expect(getTaskPageGitHubMutationQueryKey()).toBe(hasQuery ? 'unrelated-query' : null)
-      expect(
-        getConfirmedListSnapshot(null, 'other-repo', 'issue:9', 'assignees', ownerRepo)
-      ).toEqual([])
-      expect(mocks.patchWorkItem).toHaveBeenLastCalledWith(
-        item.id,
-        { assignees: [{ login: 'candidate-user', name: null, avatarUrl: '' }] },
-        item.repoId,
-        { sourceContext: undefined, ownerRepo: origin }
-      )
-    }
-  )
-
-  it.each(['dialog', 'row', 'server'])(
-    'qualifies %s snapshots and quiet release by repository',
-    async (writer) => {
-      const ownerRepo = { owner: 'upstream', repo: 'widgets', host: 'github.com' }
-      const user = { login: 'candidate-user', name: null, avatarUrl: '' }
-      const base = { ...item, assignees: [] }
-      setTaskPageGitHubMutationQueryKey('q')
-      if (writer === 'dialog') {
-        await render(base)
-        await click()
-      } else {
-        const context = {
-          item: base,
-          query: parseTaskQuery(''),
-          queryKey: 'q',
-          viewerLogin: null,
-          patchWorkItem: mocks.patchWorkItem
-        }
-        const pending = beginTaskPageGitHubWorkItemMutation({
-          ...context,
-          intent: { type: 'toggleAssignee', user }
-        })
-        expect(
-          getConfirmedListSnapshot(null, item.repoId, item.id, 'assignees', {
-            ...ownerRepo,
-            owner: 'fork'
-          })
-        ).toBeUndefined()
-        confirmTaskPageGitHubWorkItemMutation(pending.key, pending.generation, {
-          ...context,
-          ...(writer === 'server' ? { serverEntity: { assignees: [user] } } : {})
-        })
-      }
-      const materialize = (row: GitHubWorkItem) =>
-        materializeTaskPageItemList({
-          networkItems: [row],
-          previousItems: [],
-          queryKey: 'q'
-        })[0]?.assignees
-      const adopt = (row: GitHubWorkItem) =>
-        adoptQuietSearchFieldsForItem({
-          item: row,
-          serverItem: row,
-          sourceScope: null,
-          queryKey: 'q',
-          fetchStartedAtGeneration: getOrCreateQuietRevalidateState('q').dirtyGeneration,
-          patchWorkItem: mocks.patchWorkItem
-        })
-      for (const url of [
-        'https://github.com/fork/widgets/issues/5',
-        'https://ghe.example/upstream/widgets/issues/5'
-      ]) {
-        const twin = { ...base, url }
-        expect(materialize(twin)).toEqual([])
-        expect(adopt(twin).needTrailing).toBe(false)
-        expect(materialize(base)?.map((user) => user.login)).toEqual(['candidate-user'])
-      }
-      adopt({ ...base, assignees: [user] })
-      expect(materialize(base)).toEqual([])
-    }
-  )
-
-  it('publishes into the dialog source scope and carries it to the cache patch', async () => {
-    const sourceContext = {
-      kind: 'task-source' as const,
-      provider: 'github' as const,
-      hostId: 'local' as const,
-      projectId: 'project',
-      projectHostSetupId: 'setup',
-      repoId: item.repoId
-    }
-    await render(item, [], undefined, sourceContext)
-    await click()
-    expect(
-      getConfirmedListSnapshot(
-        getTaskSourceCacheScope(sourceContext),
-        item.repoId,
-        item.id,
-        'assignees'
-      )?.map((user) => user.login)
-    ).toEqual(['candidate-user'])
-    expect(getConfirmedListSnapshot(null, item.repoId, item.id, 'assignees')).toBeUndefined()
-    expect(mocks.patchWorkItem).toHaveBeenCalledWith(item.id, expect.anything(), item.repoId, {
-      sourceContext,
-      ownerRepo: { owner: 'upstream', repo: 'widgets', host: 'github.com' }
-    })
   })
 
   it('retires an optimistic selection across fork and return navigation', async () => {

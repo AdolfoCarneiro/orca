@@ -1,3 +1,4 @@
+import { observeGitHubProjectWrite } from '@/lib/github-work-item-writes'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import type { GitHubSlice as GitHubSliceContract } from '../github/slice-types'
@@ -80,6 +81,14 @@ export const createGitHubSlice: StateCreator<AppState, [], [], GitHubSlice> = (
 
   ...createProjectActions(set, get),
   ...createProjectRowActions(set, get),
+  patchProjectIssueOrPr: (...args) =>
+    observeGitHubProjectWrite((start) =>
+      createProjectRowActions(set, get, start).patchProjectIssueOrPr(...args)
+    ),
+  patchProjectRowIssueType: (...args) =>
+    observeGitHubProjectWrite((start) =>
+      createProjectRowActions(set, get, start).patchProjectRowIssueType(...args)
+    ),
   ...createWorkItemFetchActions(set, get),
   ...createWorkItemAggregateActions(get),
   ...createPullRequestActions(set, get),

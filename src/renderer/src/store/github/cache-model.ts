@@ -1,3 +1,6 @@
+import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
+import type { GitHubTaskRead } from './request-coordination'
 import type { ClassifiedError } from '../../../../shared/classified-error'
 import type { GitHubOwnerRepo } from '../../../../shared/github/pull-request-types'
 import type { GitHubPRRefreshAlias } from '../../../../shared/github/pull-request-refresh-types'
@@ -26,6 +29,7 @@ export type CacheEntry<T> = {
 }
 
 export type FetchOptions = {
+  taskRead?: GitHubTaskRead
   force?: boolean
   noCache?: boolean
   requireComplete?: boolean
@@ -61,6 +65,9 @@ export type ProjectRowContentPatch = {
 }
 
 export type GitHubPatchWorkItemOptions = {
+  sourceContexts?: readonly TaskSourceContext[]
   sourceContext?: TaskSourceContext | null
   ownerRepo?: GitHubOwnerRepo | null
+  matches?: (item: GitHubWorkItem) => boolean
+  hostId?: ExecutionHostId
 }

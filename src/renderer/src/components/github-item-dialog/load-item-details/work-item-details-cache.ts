@@ -19,6 +19,7 @@ export type WorkItemDetailsCacheEntry = {
   fetchedAt: number
   pending?: Promise<GitHubWorkItemDetails | null>
   error?: string
+  route?: { ownerRepo: GitHubOwnerRepo; bindingKey: string }
 }
 export const workItemDetailsCache = new Map<string, WorkItemDetailsCacheEntry>()
 
@@ -45,22 +46,26 @@ export function getWorkItemDetailsCacheKey(args: {
   type: 'issue' | 'pr'
   number: number
   ownerRepo?: GitHubOwnerRepo | null
+  canonical?: boolean
+  bindingKey?: string
 }): string {
   // NUL-separate routing axes to prevent key collisions; keep repoPath second for path-only invalidation events.
   const sourceKey =
-    args.ownerRepo && !getGitHubSourceRuntimeHost(args.sourceContext)
+    args.ownerRepo && (args.canonical || !getGitHubSourceRuntimeHost(args.sourceContext))
       ? githubRepoIdentityKey(args.ownerRepo)
       : (args.issueSourcePreference ?? 'auto')
   const keyParts = args.sourceCacheScope
     ? [args.repoId, args.repoPath, args.sourceCacheScope, sourceKey, args.type]
     : [args.repoId, args.repoPath, sourceKey, args.type]
+  keyParts.splice(2, 0, ...(args.bindingKey ? [args.bindingKey] : []))
   return [...keyParts, args.number].join('\0')
 }
 
 export function touchWorkItemDetailsCache(key: string, entry: WorkItemDetailsCacheEntry): void {
   // Reinsert as most recent; Map order supplies the eviction order.
+  const route = entry.route ?? workItemDetailsCache.get(key)?.route
   workItemDetailsCache.delete(key)
-  workItemDetailsCache.set(key, entry)
+  workItemDetailsCache.set(key, route ? { ...entry, route } : entry)
   while (workItemDetailsCache.size > WORK_ITEM_DETAILS_CACHE_MAX) {
     const oldest = workItemDetailsCache.keys().next().value
     if (oldest === undefined) {
@@ -73,7 +78,11 @@ export function touchWorkItemDetailsCache(key: string, entry: WorkItemDetailsCac
 
 export function invalidateWorkItemDetailsCacheForKey(key: string): void {
   workItemDetailsCacheGeneration += 1
-  const existed = workItemDetailsCache.delete(key)
+  const previous = workItemDetailsCache.get(key)
+  const existed = previous?.route
+    ? (touchWorkItemDetailsCache(key, { ...previous, fetchedAt: -Date.now(), pending: undefined }),
+      true)
+    : workItemDetailsCache.delete(key)
   if (existed) {
     notifyWorkItemDetailsCache()
   }
@@ -103,7 +112,12 @@ export function invalidateWorkItemDetailsCacheByMatch(args: {
     const [keyRepoId, keyRepoPath] = key.split('\0')
     const matches = args.repoId ? keyRepoId === args.repoId : keyRepoPath === args.repoPath
     if (matches) {
-      workItemDetailsCache.delete(key)
+      const previous = workItemDetailsCache.get(key)
+      if (previous?.route) {
+        touchWorkItemDetailsCache(key, { ...previous, fetchedAt: -Date.now(), pending: undefined })
+      } else {
+        workItemDetailsCache.delete(key)
+      }
       removed = true
     }
   }

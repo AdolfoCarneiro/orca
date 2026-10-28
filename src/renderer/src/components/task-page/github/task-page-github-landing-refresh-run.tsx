@@ -1,3 +1,5 @@
+import { clearDispatchedTaskSourceRetries } from '../task-page-work-item-pagination'
+import { beginGitHubTaskRead, type GitHubTaskRead } from '@/store/github/request-coordination'
 import type { TaskPageGitHubSearchPaginationModel } from './use-task-page-github-search-pagination'
 import { stripRepoQualifiers } from '../../../../../shared/task-query'
 import { useAppStore } from '@/store/index'
@@ -10,6 +12,8 @@ import { getTaskPageRepoSourceContext } from '../task-page-source-context'
 import { sortWorkItemsByNumber, taskPageToGitHubApiPage } from '../../../../../shared/work-items'
 import {
   materializeTaskPageItemList,
+  materializeTaskPageGitHubRead,
+  restoreTaskPageGitHubReadPage,
   overlayPendingOnTaskPagePages,
   reapplyPendingTaskPageGitHubMutationsToCache
 } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
@@ -181,6 +185,9 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
     executionHostId: r.executionHostId,
     sourceContext: getTaskPageRepoSourceContext(r, 'github')
   }))
+  const reads = new Set<GitHubTaskRead>()
+  const landingRead = beginGitHubTaskRead(repoArgs)
+  reads.add(landingRead)
   const landingRefreshKey = `${repoArgs.map((r) => `${r.repoId}:${r.path}`).join('|')}::${q}`
   const shouldProbeOnLanding =
     !forcedFetch &&
@@ -196,6 +203,8 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
   // Why: manual refresh keeps cached rows (tasksLoading stays false), so track forced fetch separately for the toolbar spinner.
   setTasksRefreshing(forcedFetch)
   if (targetPage > 0 && (!cachedTargetIsFresh || forcedFetch)) {
+    const restoredRead = beginGitHubTaskRead(repoArgs)
+    reads.add(restoredRead)
     const requestGeneration = paginationGenerationRef.current
     if (!cachedTargetPage) {
       setPaginationLoading(true)
@@ -206,7 +215,8 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
       githubPerRepoPageLimit,
       githubPageSize,
       q,
-      taskPageToGitHubApiPage(targetPage)
+      taskPageToGitHubApiPage(targetPage),
+      { taskRead: restoredRead }
     )
       .then(({ items, failedCount, errorTypes }) => {
         if (cancelled || paginationGenerationRef.current !== requestGeneration) {
@@ -230,20 +240,24 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
           setPages(next)
           return
         }
-        const restoredItems = overlayPendingOnTaskPagePages([items])[0] ?? []
-        taskPageGitHubResumeCache.write(githubResumeContextKey, targetPage, restoredItems)
-        const next = [...pagesRef.current]
-        while (next.length <= targetPage) {
-          next.push(null)
-        }
-        next[targetPage] = restoredItems
+        const next = restoreTaskPageGitHubReadPage(
+          restoredRead,
+          pagesRef.current,
+          items,
+          targetPage
+        )
+        taskPageGitHubResumeCache.write(githubResumeContextKey, targetPage, next[targetPage] ?? [])
         pagesRef.current = next
-        setPages(next)
+        setPages((current) =>
+          restoreTaskPageGitHubReadPage(restoredRead, current, items, targetPage)
+        )
       })
       .catch((error) => {
         console.error('Failed to restore GitHub task page:', error)
       })
       .finally(() => {
+        restoredRead.dispose()
+        reads.delete(restoredRead)
         if (!cancelled && paginationGenerationRef.current === requestGeneration) {
           setPaginationLoading(false)
           setLoadingTargetPage(null)
@@ -255,6 +269,7 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
   // Why: snapshot retrying keys at dispatch so an earlier settling effect doesn't wipe a newer retry's pending source.
   const dispatchedRetrySourceKeys = retryingSourceKeys
   void fetchWorkItemsAcrossRepos(repoArgs, githubPerRepoPageLimit, githubPageSize, q, {
+    taskRead: landingRead,
     ...deriveTaskPageGitHubWorkItemsFetchOptions(forcedFetch, shouldProbeOnLanding),
     ...(forcedFetch
       ? {
@@ -263,21 +278,23 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
       : {})
   })
     .then(
-      ({ items, failedCount: failed, githubUnavailable: unavailable, requestFailureCount = 0 }) => {
+      ({
+        items: returnedItems,
+        failedCount: failed,
+        githubUnavailable: unavailable,
+        requestFailureCount = 0
+      }) => {
         // Why: clear only the dispatch-time snapshot keys so an overlapping retry's newer source isn't wiped.
-        setRetryingSourceKeys((prev) => {
-          if (dispatchedRetrySourceKeys.size === 0) {
-            return prev
-          }
-          const next = new Set(prev)
-          for (const key of dispatchedRetrySourceKeys) {
-            next.delete(key)
-          }
-          return next
-        })
+        setRetryingSourceKeys((prev) =>
+          clearDispatchedTaskSourceRetries(prev, dispatchedRetrySourceKeys)
+        )
         if (cancelled) {
           return
         }
+        const items = landingRead.apply(
+          returnedItems,
+          pagesRef.current.flatMap((page) => page ?? [])
+        )
         // Hard refresh releases confirmed authority for non-pending fields; quiet refresh must retain it.
         if (
           forcedFetchAuthorityGeneration !== null &&
@@ -307,14 +324,27 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
             queryKey: githubWorkItemMutationQueryKey
           })
           pagesRef.current = next
-          setPages(next)
+          setPages((current) => {
+            const next = [...current]
+            next[0] = materializeTaskPageGitHubRead(
+              landingRead,
+              current,
+              returnedItems,
+              githubWorkItemMutationQueryKey
+            )
+            return next
+          })
         } else if (shouldProbeOnLanding) {
           const replaceFirstPage = shouldReplaceTaskPageItemsAfterRefresh(page0Raw, items)
           const resetPagination = shouldResetTaskPagePaginationAfterLandingRefresh(page0Raw, items)
           setPages((current) =>
-            reconcileTaskPagePagesAfterLandingRefresh(current, items).map((page) =>
-              page ? (overlayPendingOnTaskPagePages([page])[0] ?? []) : null
-            )
+            reconcileTaskPagePagesAfterLandingRefresh(
+              current,
+              landingRead.apply(
+                returnedItems,
+                current.flatMap((page) => page ?? [])
+              )
+            ).map((page) => (page ? (overlayPendingOnTaskPagePages([page])[0] ?? []) : null))
           )
           if (replaceFirstPage || resetPagination) {
             currentPageRef.current = 0
@@ -322,11 +352,12 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
           }
         } else {
           setPages((previous) => [
-            materializeTaskPageItemList({
-              networkItems: items,
-              previousItems: previous.flatMap((page) => page ?? []),
-              queryKey: githubWorkItemMutationQueryKey
-            })
+            materializeTaskPageGitHubRead(
+              landingRead,
+              previous,
+              returnedItems,
+              githubWorkItemMutationQueryKey
+            )
           ])
           currentPageRef.current = 0
           setCurrentPage(0)
@@ -343,16 +374,9 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
     .catch((err) => {
       // Why: fetchWorkItemsAcrossRepos swallows per-repo failures, so a reject here is IPC/programmer error — surface it.
       // Why: clear only the dispatch-time snapshot keys so an overlapping retry's newer source isn't wiped.
-      setRetryingSourceKeys((prev) => {
-        if (dispatchedRetrySourceKeys.size === 0) {
-          return prev
-        }
-        const next = new Set(prev)
-        for (const key of dispatchedRetrySourceKeys) {
-          next.delete(key)
-        }
-        return next
-      })
+      setRetryingSourceKeys((prev) =>
+        clearDispatchedTaskSourceRetries(prev, dispatchedRetrySourceKeys)
+      )
       if (cancelled) {
         return
       }
@@ -364,6 +388,10 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
       }
       setTasksRefreshing(false)
       setTasksFiltering(false)
+    })
+    .finally(() => {
+      landingRead.dispose()
+      reads.delete(landingRead)
     })
 
   // Why: fire-and-forget count query alongside the items fetch; the search API is cached 120s server-side so it adds little cost.
@@ -385,5 +413,8 @@ export function runTaskPageGitHubLandingRefresh(model: TaskPageGitHubSearchPagin
   })
   return () => {
     cancelled = true
+    for (const read of reads) {
+      read.dispose()
+    }
   }
 }

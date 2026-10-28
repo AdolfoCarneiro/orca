@@ -1,3 +1,10 @@
+import { getTaskPageRepoSourceContext } from './task-page-source-context'
+import { areTaskSourceContextsEqual } from '../../../../shared/task-source-context'
+import { githubTaskContent, type GitHubTaskRefreshHandler } from '@/lib/github-task-target'
+import { recomputeSoftHideForItem } from './github/task-page-github-work-item-mutation-composition'
+import { notifyTaskPageGitHubMutationRegistry } from './github/task-page-github-work-item-mutation-registry'
+import { githubTaskSourceKey } from '@/lib/github-task-target'
+import { shouldSkipLocalViewerQualifiers } from '@/hooks/useTaskPageGitHubWorkItemMutation'
 import type { TaskPageComposerActionsModel } from './use-task-page-composer-actions'
 import PullRequestPage from '@/components/PullRequestPage'
 import GitHubItemDialog from '@/components/GitHubItemDialog'
@@ -26,6 +33,44 @@ export function TaskPageContent({
     closeTaskDetailPage,
     handleUseWorkItem
   } = model
+  const onTaskRefresh: GitHubTaskRefreshHandler = (item, target) => {
+    const row = model.selectedRepos.find(
+      (repo) =>
+        repo.id === target.item.repoId &&
+        target.sources.some((source) =>
+          areTaskSourceContextsEqual(getTaskPageRepoSourceContext(repo, 'github'), source)
+        )
+    )
+    if (!row) {
+      return
+    }
+    model.patchTaskPageWorkItemRows(item, githubTaskContent(item), target.matches)
+    for (const source of target.sources) {
+      for (const alias of new Set([item.id, `issue:${item.number}`, item.url])) {
+        recomputeSoftHideForItem({
+          item: { ...item, id: alias },
+          sourceScope: githubTaskSourceKey(source),
+          query: model.appliedTaskQuery,
+          queryKey: model.githubWorkItemMutationQueryKey,
+          viewerLogin: model.githubViewerLogin,
+          skipMeQualifiers: shouldSkipLocalViewerQualifiers(target.source),
+          updateSticky: true,
+          listFamily: false
+        })
+      }
+      recomputeSoftHideForItem({
+        item,
+        sourceScope: githubTaskSourceKey(source),
+        query: model.appliedTaskQuery,
+        queryKey: model.githubWorkItemMutationQueryKey,
+        viewerLogin: model.githubViewerLogin,
+        skipMeQualifiers: shouldSkipLocalViewerQualifiers(target.source),
+        updateSticky: true,
+        listFamily: true
+      })
+    }
+    notifyTaskPageGitHubMutationRegistry()
+  }
   return taskSource === 'github' && dialogWorkItem ? (
     dialogWorkItem.type === 'pr' ? (
       <PullRequestPage
@@ -49,6 +94,7 @@ export function TaskPageContent({
         repoPath={dialogRepoPath}
         repoId={dialogWorkItem.repoId}
         sourceContext={dialogSourceContext}
+        onTaskRefresh={onTaskRefresh}
         backLabel="GitHub list"
         onUse={(item) => {
           setDialogWorkItem(null)
@@ -63,6 +109,7 @@ export function TaskPageContent({
       <ProjectViewWrapper
         selectedRepoIds={repoSelection}
         sourceHostId={accountBackedTaskSourceHostId}
+        onTaskRefresh={onTaskRefresh}
       />
     </div>
   ) : taskSource === 'github' ? (

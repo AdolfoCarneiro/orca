@@ -1,3 +1,4 @@
+import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
 import type { ParsedTaskQuery } from '../../../../../shared/task-query'
 import type { GitHubAssignableUser } from '../../../../../shared/github/pull-request-types'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
@@ -95,7 +96,8 @@ export function getRegistryMergedTaskPageGitHubWorkItem(
   item: GitHubWorkItem,
   sourceScope: string | null
 ): GitHubWorkItem {
-  const ops = listPendingTaskPageGitHubOpsForItem(item.repoId, item.id, sourceScope)
+  const itemId = taskPageGitHubMutationItemId(item)
+  const ops = listPendingTaskPageGitHubOpsForItem(item.repoId, itemId, sourceScope)
   let merged: GitHubWorkItem = { ...item }
 
   // Hold confirmed whole-field values after pending clears until matching search adoption or newer intent.
@@ -127,13 +129,7 @@ export function getRegistryMergedTaskPageGitHubWorkItem(
 
   for (const family of ['assignees', 'reviewRequests'] as const) {
     const familyOps = pendingListOpsForFamily(ops, family)
-    let snapshot = getConfirmedListSnapshot(
-      sourceScope,
-      item.repoId,
-      item.id,
-      family,
-      parseGitHubIssueOrPRLink(item.url)?.slug ?? null
-    )
+    let snapshot = getConfirmedListSnapshot(sourceScope, item.repoId, itemId, family)
     if (!snapshot && familyOps.length === 0) {
       continue
     }
@@ -159,9 +155,13 @@ export function recomputeSoftHideForItem(args: {
   skipMeQualifiers: boolean
   /** When true (confirm/rollback), set or clear sticky per K22. */
   updateSticky: boolean
+  listFamily?: boolean
 }): boolean {
   const merged = getRegistryMergedTaskPageGitHubWorkItem(args.item, args.sourceScope)
-  const itemKey = taskPageGitHubItemKey(args.item.repoId, args.item.id)
+  const itemKey = taskPageGitHubItemKey(
+    args.item.repoId,
+    args.listFamily ? taskPageGitHubMutationItemId(args.item) : args.item.id
+  )
   const membershipHide = shouldSoftHideTaskPageGitHubWorkItem({
     item: merged,
     query: args.query,
@@ -209,16 +209,20 @@ export function rebuildSoftHiddenKeysFromPendingAndSticky(args: {
     }
   }
   for (const item of args.items) {
-    const ops = listPendingTaskPageGitHubOpsForItem(item.repoId, item.id)
-    const itemKey = taskPageGitHubItemKey(item.repoId, item.id)
+    const itemId = taskPageGitHubMutationItemId(item)
+    const ops = listPendingTaskPageGitHubOpsForItem(item.repoId, itemId)
+    const listAuthority =
+      ops.some((op) => op.listOp) || hasConfirmedAuthorityForItem(item.repoId, itemId)
+    const itemKey = taskPageGitHubItemKey(item.repoId, listAuthority ? itemId : item.id)
     if (
       ops.length === 0 &&
       !next.has(itemKey) &&
+      !hasConfirmedAuthorityForItem(item.repoId, itemId) &&
       !hasConfirmedAuthorityForItem(item.repoId, item.id)
     ) {
       continue
     }
-    const sourceScope = ops[0]?.key.sourceScope ?? resolveItemSourceScope(item.repoId, item.id)
+    const sourceScope = ops[0]?.key.sourceScope ?? resolveItemSourceScope(item.repoId, itemId)
     const skipMe = args.skipMeByItemKey?.get(itemKey) ?? ops[0]?.skipMeQualifiers ?? false
     const merged = getRegistryMergedTaskPageGitHubWorkItem(item, sourceScope)
     if (

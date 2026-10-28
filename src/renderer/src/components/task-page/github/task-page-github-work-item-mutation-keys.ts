@@ -1,3 +1,7 @@
+import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+import type { GitHubOwnerRepo } from '../../../../../shared/github/pull-request-types'
+import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
+import { githubRepoIdentityKey } from '../../../../../shared/github/repository-identity-key'
 import type {
   TaskPageGitHubListFamily,
   TaskPageGitHubMutationKey
@@ -37,4 +41,26 @@ export function taskPageGitHubListOpKey(
     return `${family}:${normalized[0]}`
   }
   return `${family}:batch:${normalized.join(',')}`
+}
+
+export function taskPageGitHubQualifiedMutationId(
+  id: string,
+  ownerRepo?: GitHubOwnerRepo | null
+): string {
+  return ownerRepo ? `${id}\u0001${githubRepoIdentityKey(ownerRepo)}` : id
+}
+export function taskPageGitHubMutationItemId(item: GitHubWorkItem): string {
+  return item.type === 'issue'
+    ? taskPageGitHubQualifiedMutationId(
+        `issue:${item.number}`,
+        parseGitHubIssueOrPRLink(item.url)?.slug
+      )
+    : item.id
+}
+
+export function taskPageGitHubMutationItemKey(item: GitHubWorkItem): string {
+  return taskPageGitHubItemKey(item.repoId, taskPageGitHubMutationItemId(item))
+}
+export function taskPageGitHubAuthorityItemKeys(item: GitHubWorkItem): string[] {
+  return [taskPageGitHubItemKey(item.repoId, item.id), taskPageGitHubMutationItemKey(item)]
 }

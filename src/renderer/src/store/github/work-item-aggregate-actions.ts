@@ -1,3 +1,4 @@
+import { beginGitHubTaskRead } from './request-coordination'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import type { GitHubSlice } from './slice-types'
@@ -45,12 +46,13 @@ export const createWorkItemAggregateActions = (
     if (isGitHubWorkItemsQueryTooLarge(query)) {
       return { items: [], failedCount: 0, githubUnavailable: false }
     }
+    const read = options?.taskRead ?? beginGitHubTaskRead(repos, undefined, get())
     const state = get()
     let failedCount = 0
     let requestFailureCount = 0
     let unavailableFailureCount = 0
     let skippedSourceCount = 0
-    const perProjectResults = await Promise.all(
+    return Promise.all(
       repos.map(async (r) => {
         try {
           return await state.fetchWorkItems(r.repoId, r.path, perRepoLimit, query, {
@@ -92,18 +94,31 @@ export const createWorkItemAggregateActions = (
         }
       })
     )
-    const merged = sortWorkItemsByNumber(perProjectResults.flat()).slice(0, displayLimit)
-    // Why: only claim global unavailability when every eligible source failed for a reachability reason; skipped SSH repos aren't GitHub sources here.
-    const githubUnavailable =
-      requestFailureCount > 0 &&
-      requestFailureCount === repos.length - skippedSourceCount &&
-      unavailableFailureCount === requestFailureCount
-    return {
-      items: merged,
-      failedCount,
-      githubUnavailable,
-      ...(requestFailureCount > 0 ? { requestFailureCount } : {})
-    }
+      .then((perProjectResults) => {
+        const merged = read.apply(
+          sortWorkItemsByNumber(perProjectResults.flat()).slice(0, displayLimit),
+          repos.flatMap(
+            (r) =>
+              get().getCachedWorkItems(r.repoId, perRepoLimit, query, r.path, r.sourceContext) ?? []
+          )
+        )
+        // Why: only claim global unavailability when every eligible source failed for a reachability reason; skipped SSH repos aren't GitHub sources here.
+        const githubUnavailable =
+          requestFailureCount > 0 &&
+          requestFailureCount === repos.length - skippedSourceCount &&
+          unavailableFailureCount === requestFailureCount
+        return {
+          items: merged,
+          failedCount,
+          githubUnavailable,
+          ...(requestFailureCount > 0 ? { requestFailureCount } : {})
+        }
+      })
+      .finally(() => {
+        if (!options?.taskRead) {
+          read.dispose()
+        }
+      })
   },
 
   fetchWorkItemsNextPage: async (repos, perRepoLimit, displayLimit, query, page, options) => {
@@ -111,8 +126,9 @@ export const createWorkItemAggregateActions = (
       return { items: [], failedCount: 0, errorTypes: [] }
     }
     let failedCount = 0
+    const read = options?.taskRead ?? beginGitHubTaskRead(repos, undefined, get())
     const errorTypes: ClassifiedError['type'][] = []
-    const perProjectResults = await Promise.all(
+    return Promise.all(
       repos.map(async (r) => {
         const requestState = get()
         const repo = findRepoForGitHubOwner(requestState, r.repoId, r.path)
@@ -185,8 +201,21 @@ export const createWorkItemAggregateActions = (
         }
       })
     )
-    const merged = sortWorkItemsByNumber(perProjectResults.flat()).slice(0, displayLimit)
-    return { items: merged, failedCount, errorTypes }
+      .then((perProjectResults) => {
+        const merged = read.apply(
+          sortWorkItemsByNumber(perProjectResults.flat()).slice(0, displayLimit),
+          repos.flatMap(
+            (r) =>
+              get().getCachedWorkItems(r.repoId, perRepoLimit, query, r.path, r.sourceContext) ?? []
+          )
+        )
+        return { items: merged, failedCount, errorTypes }
+      })
+      .finally(() => {
+        if (!options?.taskRead) {
+          read.dispose()
+        }
+      })
   },
 
   countWorkItemsAcrossRepos: async (repos, query, perRepoLimit) => {

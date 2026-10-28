@@ -1,3 +1,4 @@
+import { beginGitHubTaskRead } from '@/store/github/request-coordination'
 import { useEffect, useMemo } from 'react'
 import { normalizeGitHubLinkQuery, parseGitHubIssueOrPRLink } from '@/lib/github-links'
 import {
@@ -148,6 +149,15 @@ export function useSmartWorkspaceGithubSearch({
       }
     }
 
+    const read = beginGitHubTaskRead(
+      repoBackedSearchTargets.map((target) => ({
+        repoId: target.repo.id,
+        path: target.repo.path,
+        sourceContext: target.githubSourceContext
+      })),
+      undefined,
+      { repos }
+    )
     const trimmed = normalizedGhQuery.query.trim()
     const query = trimmed ? normalizedGhQuery.query : ''
     if (repoBackedSearchTargets.length === 1) {
@@ -166,11 +176,12 @@ export function useSmartWorkspaceGithubSearch({
         setGithubLoading(true)
       }
       void fetchWorkItems(target.repo.id, target.repo.path, RESULT_LIMIT, query, {
-        sourceContext: target.githubSourceContext
+        sourceContext: target.githubSourceContext,
+        taskRead: read
       })
         .then((items) => {
           if (!stale) {
-            setGithubItems(items.slice(0, RESULT_LIMIT))
+            setGithubItems((current) => read.apply(items, current).slice(0, RESULT_LIMIT))
           }
         })
         .catch(() => {
@@ -179,6 +190,7 @@ export function useSmartWorkspaceGithubSearch({
           }
         })
         .finally(() => {
+          read.dispose()
           if (!stale) {
             setGithubLoading(false)
           }
@@ -194,11 +206,12 @@ export function useSmartWorkspaceGithubSearch({
         })),
         RESULT_LIMIT,
         RESULT_LIMIT,
-        query
+        query,
+        { taskRead: read }
       )
         .then((result) => {
           if (!stale) {
-            setGithubItems(result.items)
+            setGithubItems((current) => read.apply(result.items, current))
           }
         })
         .catch(() => {
@@ -207,6 +220,7 @@ export function useSmartWorkspaceGithubSearch({
           }
         })
         .finally(() => {
+          read.dispose()
           if (!stale) {
             setGithubLoading(false)
           }
@@ -214,6 +228,7 @@ export function useSmartWorkspaceGithubSearch({
     }
     return () => {
       stale = true
+      read.dispose()
     }
   }, [
     debouncedQuery,

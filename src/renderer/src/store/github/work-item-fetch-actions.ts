@@ -1,3 +1,4 @@
+import { beginGitHubTaskRead } from './request-coordination'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import type { GitHubSlice } from './slice-types'
@@ -107,6 +108,11 @@ export const createWorkItemFetchActions = (
       options?.sourceContext
     )
     const inflightKey = workItemsInflightRequestKey(key, requestContext.target)
+    const read = beginGitHubTaskRead(
+      [{ repoId, path: repoPath, sourceContext: options?.sourceContext }],
+      undefined,
+      requestState
+    )
     let waitedForUpgrade = false
     for (;;) {
       const existing = inflightWorkItemsRequests.get(inflightKey)
@@ -120,6 +126,8 @@ export const createWorkItemFetchActions = (
         (options?.requireComplete && !existing.requireComplete)
       if (!weakerThanRequested) {
         return existing.promise
+          .then((items) => read.apply(items, get().workItemsCache[key]?.data))
+          .finally(read.dispose)
       }
       // Wait once for weaker requests to coalesce upgrades without starvation.
       if (waitedForUpgrade) {
@@ -145,7 +153,7 @@ export const createWorkItemFetchActions = (
           repoPath,
           options?.sourceContext
         )
-        const items: GitHubWorkItem[] = envelope.items.map((item) => ({
+        let items: GitHubWorkItem[] = envelope.items.map((item) => ({
           ...item,
           repoId,
           ...(repoHostId ? { repoHostId } : {})
@@ -166,6 +174,7 @@ export const createWorkItemFetchActions = (
           issuesError && envelope.sources.issues
             ? { ...issuesError, source: envelope.sources.issues }
             : undefined
+        items = read.apply(items, get().workItemsCache[key]?.data)
         const currentRepo = findRepoForGitHubOwner(get(), repoId, repoPath)
         const currentHostId = getGitHubWorkItemSourceHostId(currentRepo, options?.sourceContext)
         // Why: repo ownership changed, so this response belongs to an older execution-host bucket (host focus changes alone are fine).
@@ -235,6 +244,7 @@ export const createWorkItemFetchActions = (
         releaseWorkItemSlot()
       }
     })().finally(() => {
+      read.dispose()
       if (ownsInflightRequest(inflightWorkItemsRequests, inflightKey, requestId)) {
         inflightWorkItemsRequests.delete(inflightKey)
       }

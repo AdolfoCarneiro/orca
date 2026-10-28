@@ -81,14 +81,15 @@ export function buildSelectedReposKey<
     executionHostId?: string | null
   }
 >(repos: readonly T[], sourceContextFor: (repo: T) => unknown): string {
-  return repos
-    .map(
-      (r) =>
-        `${r.id}|${r.path}|${r.connectionId ?? ''}|${r.executionHostId ?? ''}|${JSON.stringify(
-          sourceContextFor(r)
-        )}`
-    )
-    .join(',')
+  return JSON.stringify(
+    repos.map((r) => [
+      r.id,
+      r.path,
+      r.connectionId ?? '',
+      r.executionHostId ?? '',
+      sourceContextFor(r)
+    ])
+  )
 }
 
 export type WorkItemPageFetchResult = { items: GitHubWorkItem[] }
@@ -167,4 +168,18 @@ export async function accumulateWorkItemPages(
   }
 
   return { cancelled: false, newPages, loadedPages }
+}
+
+export function clearDispatchedTaskSourceRetries(
+  previous: ReadonlySet<string>,
+  dispatched: ReadonlySet<string>
+): ReadonlySet<string> {
+  if (dispatched.size === 0) {
+    return previous
+  }
+  const next = new Set(previous)
+  for (const key of dispatched) {
+    next.delete(key)
+  }
+  return next
 }

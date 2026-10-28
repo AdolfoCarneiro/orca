@@ -1,8 +1,5 @@
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
-import type {
-  GitHubAssignableUser,
-  GitHubOwnerRepo
-} from '../../../../../shared/github/pull-request-types'
+import type { GitHubOwnerRepo } from '../../../../../shared/github/pull-request-types'
 import {
   getTaskSourceCacheScope,
   type TaskSourceContext
@@ -13,24 +10,16 @@ import {
 } from './task-page-github-confirmed-client-values'
 import {
   getTaskPageGitHubMutationQueryKey,
-  getConfirmedListSnapshot,
-  listPendingTaskPageGitHubOpsForItem,
   notifyTaskPageGitHubMutationRegistry,
-  setConfirmedListSnapshot,
   setLastConfirmedClientValue
 } from './task-page-github-work-item-mutation-registry'
 import { markTaskPageGitHubFamiliesDirty } from './task-page-github-work-item-quiet-state'
 import { taskPageGitHubItemKey } from './task-page-github-work-item-mutation-keys'
-import { applyTaskPageGitHubListOps } from './task-page-github-work-item-mutation-patches'
-import {
-  getRegistryMergedTaskPageGitHubWorkItem,
-  stripFamilyPendingFromList
-} from './task-page-github-work-item-mutation-composition'
 
-function markFamilyDirty(repoId: string, itemId: string, family: 'state' | 'assignees'): void {
+function markStateFamilyDirty(repoId: string, itemId: string): void {
   const queryKey = getTaskPageGitHubMutationQueryKey()
   if (queryKey !== null) {
-    markTaskPageGitHubFamiliesDirty(queryKey, taskPageGitHubItemKey(repoId, itemId), [family])
+    markTaskPageGitHubFamiliesDirty(queryKey, taskPageGitHubItemKey(repoId, itemId), ['state'])
   }
 }
 
@@ -59,7 +48,7 @@ export function assertTaskPageGitHubDialogStateAuthority(args: {
     args.state,
     args.ownerRepo
   )
-  markFamilyDirty(args.repoId, args.itemId, 'state')
+  markStateFamilyDirty(args.repoId, args.itemId)
   notifyTaskPageGitHubMutationRegistry()
   return {
     revert: () => {
@@ -92,41 +81,9 @@ export function assertTaskPageGitHubDialogStateAuthority(args: {
           args.ownerRepo
         )
       }
-      markFamilyDirty(args.repoId, args.itemId, 'state')
+      markStateFamilyDirty(args.repoId, args.itemId)
       notifyTaskPageGitHubMutationRegistry()
       return true
     }
   }
-}
-
-/** Publish only the successful login delta; pending list edits remain separate from confirmed data. */
-export function publishTaskPageGitHubDialogAssigneeChange(args: {
-  item: GitHubWorkItem
-  user: GitHubAssignableUser
-  assigned: boolean
-  sourceContext?: TaskSourceContext | null
-  ownerRepo?: GitHubOwnerRepo | null
-}): GitHubWorkItem {
-  const { item, ownerRepo } = args
-  const scope =
-    args.sourceContext?.provider === 'github' ? getTaskSourceCacheScope(args.sourceContext) : null
-  const snapshot =
-    getConfirmedListSnapshot(scope, item.repoId, item.id, 'assignees', ownerRepo) ??
-    stripFamilyPendingFromList(
-      item,
-      'assignees',
-      listPendingTaskPageGitHubOpsForItem(item.repoId, item.id, scope)
-    )
-  const users = applyTaskPageGitHubListOps(snapshot, [
-    {
-      family: 'assignees',
-      kind: args.assigned ? 'add' : 'remove',
-      logins: [args.user.login.toLowerCase()],
-      users: [args.user]
-    }
-  ])
-  setConfirmedListSnapshot(scope, item.repoId, item.id, 'assignees', users, ownerRepo)
-  markFamilyDirty(item.repoId, item.id, 'assignees')
-  notifyTaskPageGitHubMutationRegistry()
-  return getRegistryMergedTaskPageGitHubWorkItem(item, scope)
 }

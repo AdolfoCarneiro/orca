@@ -1,6 +1,10 @@
+import { createProjectTaskContentAction } from './project-task-content-actions'
+
+import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import type { GitHubSlice } from './slice-types'
+import type { ProjectRowContentPatch } from './cache-model'
 import type { GitHubProjectRow } from '../../../../shared/github/project-types'
 import type { GitHubProjectMutationResult } from '../../../../shared/github/project-result-types'
 import { translate } from '@/i18n/i18n'
@@ -11,10 +15,14 @@ import { applyRowPatch, parseSlugAndNumber, rollbackRowIfPresent } from './proje
 
 export const createProjectRowActions = (
   set: Parameters<StateCreator<AppState>>[0],
-  get: Parameters<StateCreator<AppState>>[1]
+  get: Parameters<StateCreator<AppState>>[1],
+  onValidatedWrite?: (row: GitHubProjectRow, target: RuntimeClientTarget) => void
 ): Pick<
   GitHubSlice,
-  'patchProjectIssueOrPr' | 'patchProjectRowIssueType' | 'patchProjectRowContent'
+  | 'patchProjectIssueOrPr'
+  | 'patchProjectRowIssueType'
+  | 'patchProjectRowContent'
+  | 'patchProjectTaskContent'
 > => ({
   patchProjectIssueOrPr: async (cacheKey, rowId, updates) => {
     const state = get()
@@ -53,6 +61,14 @@ export const createProjectRowActions = (
         }
       }
     }
+    const target = runtimeTargetForProjectRowOwner(
+      get(),
+      owner,
+      repo,
+      table.project.host,
+      projectViewCacheKeyTarget(cacheKey)
+    )
+    onValidatedWrite?.(previousRow, target)
     const nextContent = { ...previousRow.content }
     if (updates.title !== undefined) {
       nextContent.title = updates.title
@@ -90,13 +106,7 @@ export const createProjectRowActions = (
     // Labels/assignees use issue endpoints for both kinds; title/body require PR-versus-issue endpoints.
     let envelope: GitHubProjectMutationResult = { ok: true }
     // Why: slug-only Project rows have no registered Orca repo, so fall back to the view source in the cache key, not the focused host.
-    const target = runtimeTargetForProjectRowOwner(
-      get(),
-      owner,
-      repo,
-      table.project.host,
-      projectViewCacheKeyTarget(cacheKey)
-    )
+
     if (
       previousRow.itemType === 'PULL_REQUEST' &&
       (updates.title !== undefined || updates.body !== undefined)
@@ -211,12 +221,6 @@ export const createProjectRowActions = (
         }
       }
     }
-    const previousRow = row
-    const optimistic: GitHubProjectRow = {
-      ...previousRow,
-      content: { ...previousRow.content, issueType }
-    }
-    applyRowPatch(set, cacheKey, rowId, optimistic)
     // Why: slug-only Project rows belong to the host that loaded the view, which may differ from the now-focused host.
     const target = runtimeTargetForProjectRowOwner(
       get(),
@@ -225,6 +229,13 @@ export const createProjectRowActions = (
       table.project.host,
       projectViewCacheKeyTarget(cacheKey)
     )
+    onValidatedWrite?.(row, target)
+    const previousRow = row
+    const optimistic: GitHubProjectRow = {
+      ...previousRow,
+      content: { ...previousRow.content, issueType }
+    }
+    applyRowPatch(set, cacheKey, rowId, optimistic)
     const args = {
       owner,
       repo,
@@ -247,6 +258,7 @@ export const createProjectRowActions = (
     return res
   },
 
+  patchProjectTaskContent: createProjectTaskContentAction(set),
   patchProjectRowContent: (cacheKey, rowId, patch) => {
     const state = get()
     const entry = state.projectViewCache[cacheKey]
@@ -258,30 +270,37 @@ export const createProjectRowActions = (
     if (!previousRow) {
       return
     }
-    const nextContent = { ...previousRow.content }
-    if (patch.title !== undefined) {
-      nextContent.title = patch.title
-    }
-    if (patch.body !== undefined) {
-      nextContent.body = patch.body
-    }
-    if (patch.state !== undefined) {
-      // ProjectV2 uses uppercase state enums while dialog uses lowercase; normalize optimistic patches.
-      nextContent.state = patch.state.toUpperCase()
-    }
-    if (patch.labels !== undefined) {
-      const existingByName = new Map(previousRow.content.labels.map((l) => [l.name, l]))
-      nextContent.labels = patch.labels.map(
-        (name) => existingByName.get(name) ?? { name, color: '808080' }
-      )
-    }
-    if (patch.assignees !== undefined) {
-      const existingByLogin = new Map(previousRow.content.assignees.map((u) => [u.login, u]))
-      nextContent.assignees = patch.assignees.map(
-        (login) => existingByLogin.get(login) ?? { login, name: null, avatarUrl: null }
-      )
-    }
-    const nextRow: GitHubProjectRow = { ...previousRow, content: nextContent }
+    const nextRow = patchGitHubProjectRowContent(previousRow, patch)
     applyRowPatch(set, cacheKey, rowId, nextRow)
   }
 })
+
+export function patchGitHubProjectRowContent(
+  row: GitHubProjectRow,
+  patch: ProjectRowContentPatch
+): GitHubProjectRow {
+  const nextContent = { ...row.content }
+  if (patch.title !== undefined) {
+    nextContent.title = patch.title
+  }
+  if (patch.body !== undefined) {
+    nextContent.body = patch.body
+  }
+  if (patch.state !== undefined) {
+    // ProjectV2 uses uppercase state enums while dialog uses lowercase; normalize optimistic patches.
+    nextContent.state = patch.state.toUpperCase()
+  }
+  if (patch.labels !== undefined) {
+    const existingByName = new Map(row.content.labels.map((l) => [l.name, l]))
+    nextContent.labels = patch.labels.map(
+      (name) => existingByName.get(name) ?? { name, color: '808080' }
+    )
+  }
+  if (patch.assignees !== undefined) {
+    const existingByLogin = new Map(row.content.assignees.map((u) => [u.login, u]))
+    nextContent.assignees = patch.assignees.map(
+      (login) => existingByLogin.get(login) ?? { login, name: null, avatarUrl: null }
+    )
+  }
+  return { ...row, content: nextContent }
+}

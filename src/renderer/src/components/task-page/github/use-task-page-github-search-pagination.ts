@@ -1,5 +1,6 @@
+import { beginGitHubTaskRead, type GitHubTaskRead } from '@/store/github/request-coordination'
 import type { TaskPageGitHubListProjectionModel } from './use-task-page-github-list-projection'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { stripRepoQualifiers } from '../../../../../shared/task-query'
 import { taskPageToGitHubApiPage } from '../../../../../shared/work-items'
 import {
@@ -9,7 +10,10 @@ import {
 } from '@/components/task-page/task-page-work-item-pagination'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
-import { overlayPendingOnTaskPagePages } from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
+import {
+  overlayPendingOnTaskPagePages,
+  restoreTaskPageGitHubReadPage
+} from '@/components/task-page/github/task-page-github-work-item-mutation-pages'
 import { scopeGitHubTaskSearch } from '../../../../../shared/task-github-search'
 import { useGitHubTaskSearchCommit } from '@/components/use-github-task-search-commit'
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
@@ -41,6 +45,15 @@ export function useTaskPageGitHubSearchPagination(model: TaskPageGitHubListProje
     fetchWorkItemsNextPage,
     activeGithubTaskKind
   } = model
+  const activeReads = useRef(new Set<GitHubTaskRead>())
+  useEffect(
+    () => () => {
+      for (const read of activeReads.current) {
+        read.dispose()
+      }
+    },
+    []
+  )
   // Why: load only the clicked page so a high-page jump doesn't exhaust GitHub's Search API rate bucket.
   const handleLoadNextPage = useCallback(
     async (targetPage?: number) => {
@@ -54,6 +67,8 @@ export function useTaskPageGitHubSearchPagination(model: TaskPageGitHubListProje
         executionHostId: r.executionHostId,
         sourceContext: getTaskPageRepoSourceContext(r, 'github')
       }))
+      const read = beginGitHubTaskRead(repoArgs)
+      activeReads.current.add(read)
       const requestGeneration = paginationGenerationRef.current
       const target = targetPage ?? currentPage + 1
       setPaginationLoading(true)
@@ -64,7 +79,8 @@ export function useTaskPageGitHubSearchPagination(model: TaskPageGitHubListProje
           githubPerRepoPageLimit,
           githubPageSize,
           q,
-          taskPageToGitHubApiPage(target)
+          taskPageToGitHubApiPage(target),
+          { taskRead: read }
         )
         if (paginationGenerationRef.current !== requestGeneration) {
           return
@@ -135,14 +151,22 @@ export function useTaskPageGitHubSearchPagination(model: TaskPageGitHubListProje
         while (nextPages.length <= target) {
           nextPages.push(null)
         }
-        nextPages[target] = overlayPendingOnTaskPagePages([items])[0] ?? []
+        nextPages[target] =
+          overlayPendingOnTaskPagePages([
+            read.apply(
+              items,
+              pagesRef.current.flatMap((page) => page ?? [])
+            )
+          ])[0] ?? []
         pagesRef.current = nextPages
         currentPageRef.current = target
-        setPages(nextPages)
+        setPages((current) => restoreTaskPageGitHubReadPage(read, current, items, target))
         setCurrentPage(target)
       } catch (err) {
         console.error('Failed to load next page:', err)
       } finally {
+        read.dispose()
+        activeReads.current.delete(read)
         if (paginationGenerationRef.current === requestGeneration) {
           setPaginationLoading(false)
           setLoadingTargetPage(null)

@@ -1,3 +1,7 @@
+import {
+  taskPageGitHubMutationItemId,
+  taskPageGitHubAuthorityItemKeys
+} from './task-page-github-work-item-mutation-keys'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
 import {
@@ -14,7 +18,6 @@ import {
   resolveItemSourceScope
 } from './task-page-github-work-item-mutation-registry'
 import { getOrCreateQuietRevalidateState } from './task-page-github-work-item-quiet-state'
-import { taskPageGitHubItemKey } from './task-page-github-work-item-mutation-keys'
 import type { TaskPageGitHubPatchWorkItem } from './task-page-github-work-item-mutation-types'
 
 export type TaskPageQuietRevalidateScope = { queryKey: string; generation: number }
@@ -65,7 +68,7 @@ export function settleQuietSearchRevalidate(args: {
   for (const serverItem of args.networkItems) {
     const sourceScope =
       args.resolveSourceScope?.(serverItem) ??
-      resolveItemSourceScope(serverItem.repoId, serverItem.id)
+      resolveItemSourceScope(serverItem.repoId, taskPageGitHubMutationItemId(serverItem))
     const result = adoptQuietSearchFieldsForItem({
       item: serverItem,
       serverItem,
@@ -80,9 +83,7 @@ export function settleQuietSearchRevalidate(args: {
     }
   }
   // Retain sticky hides for search-omitted rows with pending/confirmed authority so lag cannot unhide a successful membership exit.
-  const pageKeys = new Set(
-    args.networkItems.map((item) => taskPageGitHubItemKey(item.repoId, item.id))
-  )
+  const pageKeys = new Set(args.networkItems.flatMap(taskPageGitHubAuthorityItemKeys))
   for (const [itemKey, entry] of getAllStickyHideEntries()) {
     if (
       entry.queryKey !== args.queryKey ||

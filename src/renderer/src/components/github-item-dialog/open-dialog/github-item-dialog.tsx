@@ -25,6 +25,7 @@ export default function GitHubItemDialog({
   backLabel = 'Back',
   projectOrigin,
   onUse,
+  onTaskRefresh,
   onReviewRequestsChange,
   onClose
 }: GitHubItemDialogProps): React.JSX.Element {
@@ -32,7 +33,6 @@ export default function GitHubItemDialog({
   const [localLabels, setLocalLabels] = useState<string[]>(workItem?.labels ?? [])
   const workItemId = workItem?.id
   const workItemState = workItem?.state
-  const workItemLabels = workItem?.labels
   const effectiveRepoId = repoId ?? workItem?.repoId ?? null
   const allWorktrees = useAllWorktrees()
   const issueAttachedWorkspace = useMemo(
@@ -80,6 +80,12 @@ export default function GitHubItemDialog({
   )
 
   const {
+    refreshTask,
+    refreshing,
+    refreshError,
+    acceptedRefresh,
+    canRefreshTask,
+    showRefreshTask,
     tab,
     setTab,
     canUseDetailsRepoContext,
@@ -101,21 +107,23 @@ export default function GitHubItemDialog({
     sourceContext,
     initialTab,
     projectOrigin,
+    onTaskRefresh,
     onReviewRequestsChange
   })
   const { linkCopied, setLinkCopyButtonRef, handleCopyWorkItemLink } =
     useGitHubItemDialogLinkCopy(workItem)
 
+  const resolvedWorkItemLabels = displayWorkItem?.labels
   const resolvedWorkItemState = details?.item.state ?? workItemState
   // Why: the opening list row can be stale; the detail payload has authoritative state, so refresh the local edit UI from it.
   useEffect(() => {
     if (resolvedWorkItemState) {
       setLocalState(resolvedWorkItemState)
     }
-    if (workItemLabels) {
-      setLocalLabels(workItemLabels)
+    if (resolvedWorkItemLabels) {
+      setLocalLabels(resolvedWorkItemLabels)
     }
-  }, [workItemId, resolvedWorkItemState, workItemLabels])
+  }, [workItemId, resolvedWorkItemState, resolvedWorkItemLabels])
 
   // Why: a just-closed Radix overlay can leave `pointer-events: none` on <body>, killing header button clicks; poll a few frames to clear it.
   useEffect(() => {
@@ -150,7 +158,10 @@ export default function GitHubItemDialog({
     <div className="flex h-full min-h-0 flex-col">
       {isIssuePage ? (
         <GitHubItemDialogIssueHeader
-          workItem={workItem}
+          workItem={displayWorkItem ?? workItem}
+          refreshTask={showRefreshTask ? refreshTask : undefined}
+          refreshing={refreshing}
+          canRefreshTask={canRefreshTask}
           backLabel={backLabel}
           onClose={onClose}
           linkCopied={linkCopied}
@@ -199,12 +210,18 @@ export default function GitHubItemDialog({
         />
       )}
 
+      {refreshError ? (
+        <div role="alert" className="flex items-center gap-2 px-6 py-2 text-xs text-destructive">
+          {refreshError}
+        </div>
+      ) : null}
       <div className="min-h-0 flex-1">
-        {error ? (
+        {error && !refreshError ? (
           <div className="px-4 py-6 text-[12px] text-destructive">{error}</div>
         ) : isIssuePage ? (
           <GitHubItemDialogIssueBody
-            workItem={workItem}
+            workItem={displayWorkItem ?? workItem}
+            acceptedRefresh={acceptedRefresh}
             displayWorkItem={displayWorkItem}
             repoPath={repoPath}
             effectiveRepoId={effectiveRepoId}

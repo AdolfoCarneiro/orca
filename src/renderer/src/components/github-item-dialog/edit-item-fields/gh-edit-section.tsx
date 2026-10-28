@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { githubWorkItemWriteKey } from '@/lib/github-work-item-writes'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
 import { useRepoLabels, useRepoAssignees, useImmediateMutation } from '@/hooks/useIssueMetadata'
@@ -45,6 +46,7 @@ function GHEditSectionItem({
   onLabelsChange,
   onMutated,
   assignees,
+  acceptedRefresh = 0,
   onUse,
   onOpenOrUse,
   attachedWorkspaceLabel,
@@ -66,7 +68,13 @@ function GHEditSectionItem({
   const ownerTarget = useAppStore(
     useShallow((s) => getGitHubRepoRoutingTarget(s, item.repoId ?? null, sourceContext))
   )
-  const { isPending, run } = useImmediateMutation()
+  const { isPending, run: runMutation } = useImmediateMutation()
+  const writeKey = githubWorkItemWriteKey(item, sourceContext)
+  const run: typeof runMutation = useCallback(
+    (key, options) =>
+      runMutation(key, { ...options, writeKey: item.type === 'issue' ? writeKey : undefined }),
+    [runMutation, writeKey, item.type]
+  )
   // Patch Project rows too; patchWorkItem updates only workItemsCache, leaving projectViewCache stale.
   const patchProjectRowIfNeeded = useCallback(
     (patch: Parameters<typeof patchProjectRowContent>[2]) => {
@@ -147,6 +155,16 @@ function GHEditSectionItem({
     }
     onUse(item)
   }, [item, onOpenOrUse, onUse])
+
+  const lastAcceptedRefresh = useRef(acceptedRefresh)
+  const assigneePending = isPending('assignees')
+  useEffect(() => {
+    if (lastAcceptedRefresh.current !== acceptedRefresh && !assigneePending) {
+      lastAcceptedRefresh.current = acceptedRefresh
+      editedAssigneesItemKeyRef.current = null
+      setLocalAssignees(assignees)
+    }
+  }, [acceptedRefresh, assigneePending, assignees])
 
   // Sync resolved assignees unless an optimistic edit for this item is still in flight.
   useEffect(() => {
@@ -274,8 +292,6 @@ function GHEditSectionItem({
   const handleAssigneeToggle = useCallback(
     (login: string) => {
       runGHEditAssigneeToggle({
-        item,
-        knownAssignees: [...(item.assignees ?? []), ...repoAssignees.data],
         login,
         localAssignees,
         assigneesItemKey,
@@ -288,21 +304,19 @@ function GHEditSectionItem({
         issueRepo,
         run,
         setLocalAssignees,
-        patchWorkItem,
         patchProjectRowIfNeeded,
         onMutated
       })
     },
     [
-      item,
-      repoAssignees.data,
+      item.number,
+      item.repoId,
       assigneesItemKey,
       repoPath,
       sourceContext,
       projectOrigin,
       issueRepo,
       localAssignees,
-      patchWorkItem,
       patchProjectRowIfNeeded,
       run,
       onMutated

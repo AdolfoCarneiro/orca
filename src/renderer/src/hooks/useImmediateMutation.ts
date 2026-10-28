@@ -1,3 +1,4 @@
+import { startGitHubWorkItemWrite } from '@/lib/github-work-item-writes'
 import { useCallback, useRef, useState } from 'react'
 import { useMountedRef } from './useMountedRef'
 
@@ -14,6 +15,7 @@ export function useImmediateMutation() {
     async <T>(
       key: string,
       opts: {
+        writeKey?: string
         mutate: () => Promise<T>
         onOptimistic?: () => void
         onSuccess?: (result: T) => void
@@ -24,9 +26,10 @@ export function useImmediateMutation() {
       if (pendingRef.current.has(key)) {
         return
       }
+      const finishWrite = opts.writeKey ? startGitHubWorkItemWrite(opts.writeKey) : () => {}
       setPendingKeys((prev) => new Set(prev).add(key))
-      opts.onOptimistic?.()
       try {
+        opts.onOptimistic?.()
         const result = await opts.mutate()
         const asResult = result as { ok?: boolean; error?: string }
         if (asResult && asResult.ok === false) {
@@ -39,6 +42,7 @@ export function useImmediateMutation() {
         opts.onRevert?.()
         opts.onError?.(err instanceof Error ? err.message : 'Update failed')
       } finally {
+        finishWrite()
         if (mountedRef.current) {
           setPendingKeys((prev) => {
             const next = new Set(prev)

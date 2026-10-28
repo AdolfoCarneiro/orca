@@ -1,3 +1,4 @@
+import { githubWorkItemWriteKey, withGitHubWorkItemWrite } from '@/lib/github-work-item-writes'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { parseExecutionHostId } from '../../../shared/execution-host'
@@ -100,7 +101,7 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
 
   const { query, queryKey, viewerLogin } = args
 
-  const run = useCallback(
+  const execute = useCallback(
     async (input: {
       item: GitHubWorkItem
       intent: TaskPageGitHubMutationIntent
@@ -110,9 +111,6 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
       errorToast: string
       serverEntityFromResult?: (result: unknown) => Partial<GitHubWorkItem> | undefined
     }): Promise<'confirmed' | 'rolled_back' | 'stale'> => {
-      if (!canStartTaskPageGitHubWorkItemMutation(input)) {
-        return 'stale'
-      }
       const skipMeQualifiers = shouldSkipLocalViewerQualifiers(input.sourceContext)
       const began = beginTaskPageGitHubWorkItemMutation({
         item: input.item,
@@ -190,5 +188,18 @@ export function useTaskPageGitHubWorkItemMutation(args: UseTaskPageGitHubWorkIte
     [query, queryKey, viewerLogin, mountedRef, patchWorkItem]
   )
 
+  const run = useCallback(
+    (input: Parameters<typeof execute>[0]) => {
+      if (!canStartTaskPageGitHubWorkItemMutation(input)) {
+        return Promise.resolve('stale' as const)
+      }
+      return input.item.type === 'issue'
+        ? withGitHubWorkItemWrite(githubWorkItemWriteKey(input.item, input.sourceContext), () =>
+            execute(input)
+          )
+        : execute(input)
+    },
+    [execute]
+  )
   return { run, isIntentPending, softHiddenItemKeys }
 }

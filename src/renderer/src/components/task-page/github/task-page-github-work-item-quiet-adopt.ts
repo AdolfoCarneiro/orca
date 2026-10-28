@@ -1,3 +1,4 @@
+import { taskPageGitHubMutationItemId } from './task-page-github-work-item-mutation-keys'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
 import { parseGitHubIssueOrPRLink } from '../../../../../shared/github/links'
@@ -54,7 +55,8 @@ export function adoptQuietSearchFieldsForItem(args: {
   sourceContext?: TaskSourceContext | null
 }): { needTrailing: boolean } {
   const state = getOrCreateQuietRevalidateState(args.queryKey)
-  const itemKey = taskPageGitHubItemKey(args.item.repoId, args.item.id)
+  const itemId = taskPageGitHubMutationItemId(args.item)
+  const itemKey = taskPageGitHubItemKey(args.item.repoId, itemId)
   const ownerRepo = parseGitHubIssueOrPRLink(args.item.url)?.slug ?? null
   let needTrailing = false
   const G0 = args.fetchStartedAtGeneration
@@ -65,17 +67,22 @@ export function adoptQuietSearchFieldsForItem(args: {
     hasClientAuthority: () => boolean,
     releaseClientAuthority: () => void
   ): void => {
-    if (hasPendingForFamily(args.sourceScope, args.item.repoId, args.item.id, family)) {
+    if (hasPendingForFamily(args.sourceScope, args.item.repoId, itemId, family)) {
       return
     }
-    const dirtyAt = state.familyDirtyAt.get(taskPageGitHubFamilyDirtyKey(itemKey, family)) ?? 0
+    const familyItemKey =
+      family === 'state' || family === 'autoMerge'
+        ? taskPageGitHubItemKey(args.item.repoId, args.item.id)
+        : itemKey
+    const dirtyAt =
+      state.familyDirtyAt.get(taskPageGitHubFamilyDirtyKey(familyItemKey, family)) ?? 0
     if (dirtyAt > G0) {
       needTrailing = true
       return
     }
     const hasAuthority = hasClientAuthority()
     if (hasAuthority && !matches()) {
-      const lagKey = taskPageGitHubFamilyDirtyKey(itemKey, family)
+      const lagKey = taskPageGitHubFamilyDirtyKey(familyItemKey, family)
       const attempts = (state.lagSkipAttempts.get(lagKey) ?? 0) + 1
       state.lagSkipAttempts.set(lagKey, attempts)
       const wallExceeded = Date.now() - state.lastConfirmAt > LAG_WALL_BUDGET_MS
@@ -89,7 +96,7 @@ export function adoptQuietSearchFieldsForItem(args: {
     if (hasAuthority) {
       releaseClientAuthority()
     }
-    state.lagSkipAttempts.delete(taskPageGitHubFamilyDirtyKey(itemKey, family))
+    state.lagSkipAttempts.delete(taskPageGitHubFamilyDirtyKey(familyItemKey, family))
   }
   tryFamily(
     'state',
@@ -172,9 +179,8 @@ export function adoptQuietSearchFieldsForItem(args: {
         const snapshot = getConfirmedListSnapshot(
           args.sourceScope,
           args.item.repoId,
-          args.item.id,
-          family,
-          ownerRepo
+          itemId,
+          family
         )
         if (!snapshot) {
           return true
@@ -182,21 +188,8 @@ export function adoptQuietSearchFieldsForItem(args: {
         return loginSetsEqual(loginSetOfUsers(snapshot), loginSetOfUsers(serverListValue))
       },
       () =>
-        getConfirmedListSnapshot(
-          args.sourceScope,
-          args.item.repoId,
-          args.item.id,
-          family,
-          ownerRepo
-        ) !== undefined,
-      () =>
-        deleteConfirmedListSnapshot(
-          args.sourceScope,
-          args.item.repoId,
-          args.item.id,
-          family,
-          ownerRepo
-        )
+        getConfirmedListSnapshot(args.sourceScope, args.item.repoId, itemId, family) !== undefined,
+      () => deleteConfirmedListSnapshot(args.sourceScope, args.item.repoId, itemId, family)
     )
   }
   return { needTrailing }

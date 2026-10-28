@@ -1,3 +1,13 @@
+import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
+import { getGitHubWorkItemRowHostId } from './work-item-routing'
+import { getGitHubSourceRuntimeTarget } from '@/lib/github-source-runtime-context'
+import {
+  githubTaskIdentity,
+  githubTaskSourceKey,
+  githubTaskContent,
+  type captureGitHubTaskTarget
+} from '@/lib/github-task-target'
+import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import type { PRCheckDetail } from '../../../../shared/github/check-types'
 import type { PRComment } from '../../../../shared/github/comment-types'
 import type { IssueInfo, PRInfo } from '../../../../shared/github/pull-request-types'
@@ -98,5 +108,85 @@ export function clearInflightWorkItemsForRepo(eviction: RepoCacheEviction): void
     if (matchesRepoCacheEviction(key, eviction)) {
       inflightWorkItemsRequests.delete(key)
     }
+  }
+}
+
+type RefreshTarget = NonNullable<ReturnType<typeof captureGitHubTaskTarget>>
+type ReadPatch = { target: RefreshTarget; item: GitHubWorkItem; body: string }
+const liveTaskReads = new Set<GitHubTaskRead>()
+const rowKey = (row: GitHubWorkItem, host = row.repoHostId ?? '') =>
+  `${row.repoId}\0${host}\0${githubTaskIdentity(row)}`
+export type GitHubTaskRead = ReturnType<typeof beginGitHubTaskRead>
+/** Marks live only through their final owner's commit; queued pure updaters keep their local marks. */
+export function beginGitHubTaskRead(
+  sources: readonly { repoId: string; path?: string; sourceContext?: TaskSourceContext | null }[],
+  projectTarget?: RuntimeClientTarget,
+  state?: Pick<AppState, 'repos'>
+) {
+  const scopes = new Set(sources.map((s) => `${s.repoId}\0${githubTaskSourceKey(s.sourceContext)}`))
+  const legacy = new Set(
+    sources
+      .filter((s) => !s.sourceContext)
+      .map(
+        (s) =>
+          `${s.repoId}\0${state ? (getGitHubWorkItemRowHostId(state, s.repoId, s.path ?? '') ?? '') : ''}`
+      )
+  )
+  const patches = new Map<string, ReadPatch>()
+  const read = {
+    mark(target: RefreshTarget, item: GitHubWorkItem, body: string) {
+      if (
+        target.sources.some((source) =>
+          scopes.has(`${target.item.repoId}\0${githubTaskSourceKey(source)}`)
+        ) ||
+        legacy.has(`${target.item.repoId}\0${target.hostId}`) ||
+        (projectTarget &&
+          JSON.stringify(projectTarget) ===
+            JSON.stringify(getGitHubSourceRuntimeTarget(target.source)))
+      ) {
+        patches.set(rowKey(item, target.hostId), { target, item, body })
+      }
+    },
+    projectPatches() {
+      return [...patches.values()].filter((p) => p.target.current())
+    },
+    apply(
+      items: readonly GitHubWorkItem[],
+      current: readonly GitHubWorkItem[] = []
+    ): GitHubWorkItem[] {
+      if (!patches.size) {
+        return items as GitHubWorkItem[]
+      } // SAFETY: callers never mutate the unchanged readonly array.
+      const valid = new Map<string, ReadPatch>()
+      for (const [key, patch] of patches) {
+        if (patch.target.current()) {
+          valid.set(key, patch)
+          valid.set(rowKey(patch.item, ''), patch)
+        }
+      }
+      const latest = new Map(current.map((row) => [rowKey(row), row]))
+      return items.map((row) => {
+        const patch =
+          valid.get(rowKey(row)) ?? (!row.repoHostId ? valid.get(rowKey(row, '')) : undefined)
+        if (!patch || !patch.target.matches(row)) {
+          return row
+        }
+        const present = latest.get(rowKey(row, patch.target.hostId)) ?? latest.get(rowKey(row, ''))
+        return {
+          ...row,
+          ...githubTaskContent(present && patch.target.matches(present) ? present : patch.item)
+        }
+      })
+    },
+    dispose() {
+      liveTaskReads.delete(read)
+    }
+  }
+  liveTaskReads.add(read)
+  return read
+}
+export function markGitHubTaskReads(target: RefreshTarget, item: GitHubWorkItem, body: string) {
+  for (const read of liveTaskReads) {
+    read.mark(target, item, body)
   }
 }
