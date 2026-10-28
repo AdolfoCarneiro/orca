@@ -1,7 +1,8 @@
 import { lstat, open, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { Worktree } from '../../shared/worktree/types'
-import { resolveGitMetadataPath } from '../../shared/git-metadata-path'
+import { resolveGitDirectoryPath } from '../../shared/git-metadata-path'
+import { parseGitdirMarkerPayload } from '../../shared/gitdir-marker-payload'
 import { getPersistedWorkspaceCleanupActivityAt } from '../../shared/workspace-cleanup'
 import type { WorkspaceCleanupGitRoute } from './workspace-cleanup-git-route'
 
@@ -156,16 +157,12 @@ async function readLocalWorktreeGitDir(
 ): Promise<string | null> {
   try {
     const contents = await readTextFile(gitPath)
-    const match = /^gitdir:\s*(.+)\s*$/im.exec(contents)
-    if (!match) {
-      return null
-    }
-    const gitDir = match[1]?.trim()
+    const gitDir = parseGitdirMarkerPayload(contents)
     if (!gitDir) {
       return null
     }
     // Linked Git metadata is external; resolve pointers in the writing Git's namespace, including WSL guest paths.
-    return resolveGitMetadataPath(worktreePath, gitDir)
+    return resolveGitDirectoryPath(worktreePath, gitDir)
   } catch {
     return null
   }
