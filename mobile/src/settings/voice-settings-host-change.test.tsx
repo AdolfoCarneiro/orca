@@ -31,7 +31,9 @@ vi.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0 })
 }))
 vi.mock('lucide-react-native', () => ({ ChevronLeft: 'Icon', ChevronRight: 'Icon' }))
-vi.mock('../components/BottomDrawer', () => ({ BottomDrawer: () => null }))
+vi.mock('../components/BottomDrawer', () => ({
+  BottomDrawer: ({ visible }: { visible: boolean }) => (visible ? 'Model drawer open' : null)
+}))
 vi.mock('../components/VoiceModelList', () => ({ VoiceModelList: () => null }))
 
 function pendingReply() {
@@ -128,5 +130,27 @@ describe('voice settings host ownership', () => {
     })
     expect(JSON.stringify(renderer.toJSON())).toContain('Desktop B model')
     expect(JSON.stringify(renderer.toJSON())).not.toContain('Desktop A model')
+  })
+
+  it('keeps setup and the open model drawer when the same host reconnects', async () => {
+    const read = pendingReply()
+    const host = client(read)
+    read.resolve(ok(setup('Desktop A model', true)))
+    connections.clients = [{ hostId: 'a', state: 'connected', client: host }]
+    await act(async () => {
+      renderer = create(createElement(NativeVoiceSettingsRoute))
+    })
+    await act(async () => {
+      renderer.root.findByProps({ testID: 'voice-model-picker' }).props.onPress()
+    })
+    for (const state of ['reconnecting', 'connected']) {
+      connections.clients = [{ hostId: 'a', state, client: host }]
+      await act(async () => {
+        renderer.update(createElement(NativeVoiceSettingsRoute))
+      })
+      expect(JSON.stringify(renderer.toJSON())).toContain('Model drawer open')
+    }
+    expect(findAllByHostType(renderer.root, 'ActivityIndicator')).toHaveLength(0)
+    expect(renderer.root.findByProps({ testID: 'voice-enabled' }).props.value).toBe(true)
   })
 })

@@ -16,13 +16,18 @@ export default function NativeVoiceSettingsRoute() {
   const { clients, focused } = useFocusedSettingsHostClients(hostIds)
   const connectedHost = clients.find((entry) => entry.state === 'connected')
   const client = connectedHost?.client ?? null
+  // Keep the last host's key through reconnects so only a real host switch resets the screen.
+  const [screenHostId, setScreenHostId] = useState<string | null>(null)
+  if (connectedHost && connectedHost.hostId !== screenHostId) {
+    setScreenHostId(connectedHost.hostId)
+  }
   const operations = useMemo(
     () => (client ? nativeVoiceSettingsOperations(client) : null),
     [client]
   )
   return (
     <VoiceSettingsScreen
-      key={connectedHost?.hostId ?? 'disconnected'}
+      key={screenHostId ?? 'disconnected'}
       operations={operations}
       focused={focused}
       onBack={() => router.back()}

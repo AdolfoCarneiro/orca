@@ -75,6 +75,19 @@ export default function VoiceSettingsScreen({
     intervalMs: POLL_INTERVAL_MS
   })
 
+  // A superseded response may predate host state the newer edit never saw, so refetch instead of dropping it.
+  const applyIfCurrent = useCallback(
+    (epoch: number, next: MobileSpeechSetup): boolean => {
+      if (epoch === requestEpoch.current) {
+        setSetup(next)
+        return true
+      }
+      void refreshSetup()
+      return false
+    },
+    [refreshSetup]
+  )
+
   const configure = useCallback(
     async (params: Parameters<VoiceSettingsOperations['configure']>[0]) => {
       if (!operations) {
@@ -93,18 +106,15 @@ export default function VoiceSettingsScreen({
           : prev
       )
       try {
-        const next = await operations.configure(params)
-        if (epoch === requestEpoch.current) {
-          setSetup(next)
-        }
+        applyIfCurrent(epoch, await operations.configure(params))
       } catch (err) {
         if (epoch === requestEpoch.current) {
           setError(err instanceof Error ? err.message : 'Could not update')
-          void refreshSetup()
         }
+        void refreshSetup()
       }
     },
-    [operations, refreshSetup]
+    [operations, applyIfCurrent, refreshSetup]
   )
 
   const handleUseModel = useCallback(
@@ -116,20 +126,22 @@ export default function VoiceSettingsScreen({
       setBusyAction({ modelId: model.id, type: 'select' })
       setError(null)
       try {
-        const next = await operations.configure({ enabled: true, modelId: model.id })
-        if (epoch === requestEpoch.current) {
-          setSetup(next)
+        if (
+          applyIfCurrent(epoch, await operations.configure({ enabled: true, modelId: model.id }))
+        ) {
           setModelDrawerOpen(false)
         }
       } catch (err) {
         if (epoch === requestEpoch.current) {
           setError(err instanceof Error ? err.message : 'Could not select model')
+        } else {
+          void refreshSetup()
         }
       } finally {
         setBusyAction(null)
       }
     },
-    [operations]
+    [operations, applyIfCurrent, refreshSetup]
   )
 
   const handleDownload = useCallback(
@@ -137,16 +149,15 @@ export default function VoiceSettingsScreen({
       if (!operations) {
         return
       }
-      const epoch = ++requestEpoch.current
+      requestEpoch.current += 1
       setBusyAction({ modelId: model.id, type: 'download' })
       setError(null)
       try {
         await operations.download(model.id)
         await refreshSetup()
       } catch (err) {
-        if (epoch === requestEpoch.current) {
-          setError(err instanceof Error ? err.message : 'Download failed')
-        }
+        setError(err instanceof Error ? err.message : 'Download failed')
+        void refreshSetup()
       } finally {
         setBusyAction(null)
       }
@@ -164,22 +175,17 @@ export default function VoiceSettingsScreen({
       setBusyAction({ modelId: model.id, type: 'delete' })
       setError(null)
       try {
-        const next = await operations.delete(model.id)
-        if (epoch === requestEpoch.current) {
-          setSetup(next)
-          if (deletedSelectedModel) {
-            setModelDrawerOpen(false)
-          }
+        if (applyIfCurrent(epoch, await operations.delete(model.id)) && deletedSelectedModel) {
+          setModelDrawerOpen(false)
         }
       } catch (err) {
-        if (epoch === requestEpoch.current) {
-          setError(err instanceof Error ? err.message : 'Delete failed')
-        }
+        setError(err instanceof Error ? err.message : 'Delete failed')
+        void refreshSetup()
       } finally {
         setBusyAction(null)
       }
     },
-    [operations, setup?.selectedModelId]
+    [operations, applyIfCurrent, refreshSetup, setup?.selectedModelId]
   )
 
   const enabled = setup?.enabled ?? false

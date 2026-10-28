@@ -141,7 +141,7 @@ describe('voice settings response ownership', () => {
     })
   })
 
-  it('does not show an old save failure or refetch after a newer save succeeds', async () => {
+  it('does not show an old save failure after a newer save succeeds', async () => {
     const host = desktop()
     await mount(host.operations)
     await toggle(false)
@@ -153,7 +153,7 @@ describe('voice settings response ownership', () => {
       host.changes[0]!.reject(new Error('Older request disconnected'))
     })
     expect(JSON.stringify(renderer.toJSON())).not.toContain('Older request disconnected')
-    expect(host.polls).toHaveLength(0)
+    expect(renderer.root.findByProps({ testID: 'voice-enabled' }).props.value).toBe(true)
   })
 
   it('drops a superseded progress-poll failure after a successful user edit', async () => {
@@ -186,6 +186,43 @@ describe('voice settings response ownership', () => {
     })
     expect(JSON.stringify(renderer.toJSON())).not.toContain('Old progress read failed')
     expect(renderer.root.findByProps({ testID: 'voice-enabled' }).props.value).toBe(false)
+  })
+
+  it.each([
+    ['resolves', undefined],
+    ['rejects', 'Model is in use']
+  ])('reconciles when a pending delete %s after a switch edit', async (_outcome, failure) => {
+    const model = { id: 'small', label: 'Small', provider: 'local', status: 'ready' } as const
+    const deleted = { ...model, status: 'not-downloaded' } as const
+    const host = desktop({ ...initial, selectedModelId: 'small', models: [model] })
+    await mount(host.operations)
+    await act(async () => {
+      renderer.root.findByProps({ testID: 'voice-model-picker' }).props.onPress()
+    })
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: 'Delete Small' }).props.onPress()
+    })
+    await toggle(false)
+    await act(async () => {
+      host.changes[1]!.resolve(
+        ok({ ...initial, enabled: false, selectedModelId: 'small', models: [model] })
+      )
+    })
+    await act(async () => {
+      if (failure) {
+        host.changes[0]!.reject(new Error(failure))
+      } else {
+        host.changes[0]!.resolve(ok({ ...initial, enabled: false, models: [deleted] }))
+      }
+    })
+    if (failure) {
+      expect(JSON.stringify(renderer.toJSON())).toContain(failure)
+    }
+    expect(host.polls).toHaveLength(1)
+    await act(async () => {
+      host.polls[0]!.resolve(ok({ ...initial, enabled: false, models: [deleted] }))
+    })
+    expect(JSON.stringify(renderer.toJSON())).toContain('None selected')
   })
 
   it('does not let a model-selection snapshot re-enable voice after a later switch edit', async () => {
