@@ -38,7 +38,7 @@ export async function checkDirectMailbox(args: {
     }
     let visibleMessages = messages
     if (consumeUnread && messages.length > 0) {
-      // Unread check is authoritative for worker_done/heartbeat; reconcile lifecycle mail here too.
+      // Unread check is authoritative for worker_done; reconcile lifecycle mail here too.
       visibleMessages = messages.map((message) => {
         const reconciled = reconcileLifecycleMessage(db, message)
         return reconciled.action === 'rejected'

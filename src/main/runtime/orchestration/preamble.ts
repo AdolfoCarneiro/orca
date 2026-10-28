@@ -5,7 +5,7 @@ import { ORCA_SESSION_ADDRESS_PREFIX } from '../../../shared/orca-session-addres
 
 export type PreambleParams = {
   taskId: string
-  // Dispatch ids fence heartbeat/completion authority across retries of one Task.
+  // Dispatch ids fence completion authority across retries of one Task.
   dispatchId: string
   taskSpec: string
   /** A terminal handle, or a session's `orca_session_id:<id>`; each is labelled by its kind. */
@@ -26,8 +26,6 @@ export type PreambleParams = {
   canDispatchSubWorkers?: boolean
   // Federated workers have no local Dispatch row to parent helpers.
   subWorkersInOwnRun?: boolean
-  // Null when the user turned heartbeats off: the worker is never told to send them.
-  heartbeatIntervalMinutes: number | null
 }
 
 /** A session address names a chat worker; any other handle is a terminal. */
@@ -60,24 +58,6 @@ export function buildDispatchPreamble(params: PreambleParams): string {
     chat
   })
 
-  const heartbeat =
-    params.heartbeatIntervalMinutes === null
-      ? ''
-      : `  # Send a heartbeat every ${params.heartbeatIntervalMinutes} minutes
-  # while actively working on the task. The coordinator uses this to
-  # distinguish "still thinking" from "hung / crashed." Skip heartbeats only
-  # while blocked inside \`check --wait\` or \`ask\` — those calls are
-  # themselves liveness signals. If a background loop sends them, restart
-  # it if it expires mid-task, and stop it before you send worker_done.
-  #
-  # Include BOTH taskId and dispatchId in the payload: the coordinator
-  # attributes the heartbeat to the specific dispatch context, not just
-  # the task, so a straggler heartbeat from a previously-failed dispatch
-  # cannot mask a hung retry.
-  ${cli} orchestration send --from ${params.workerHandle} --type heartbeat --subject "alive" --task-id ${params.taskId} --dispatch-id ${params.dispatchId} --phase "<short: investigating|implementing|reviewing|waiting>"
-
-`
-
   // Use one-line recipes across POSIX/PowerShell/cmd; fence comments and use plain reasons to avoid misleading Chat rendering (STA-8200).
   const header = `You are working inside Orca, a multi-agent IDE. You are a dispatched worker.
 ${dispatchIdentityLines(params)}
@@ -106,7 +86,7 @@ Don't post to Slack, GitHub, or other channels during the run; report through th
   # from a failed retry cannot complete the current dispatch.
   ${cli} orchestration send --from ${params.workerHandle} --type worker_done --subject "<short status>" --body "<3-sentence summary: what you did, what you found, what's left>" --task-id ${params.taskId} --dispatch-id ${params.dispatchId} --outcome succeeded
 
-${heartbeat}  # Ask the coordinator a question and block until it answers.
+  # Ask the coordinator a question and block until it answers.
   #
   # Use this instead of AskUserQuestion: that opens a local prompt the
   # coordinator cannot see or answer, so the task would stall until someone

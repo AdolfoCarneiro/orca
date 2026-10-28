@@ -153,8 +153,6 @@ export function buildDefaultSettings(args: {
     agentSkillSharingEnabled: false,
     nestedWorkerMaxDepth: 1,
     orchestrationChatErrorEscalationEnabled: true,
-    orchestrationHeartbeatsEnabled: true,
-    orchestrationHeartbeatIntervalMinutes: 5,
     showArtifactsButton: false,
     showSkillsButton: false,
     showMobileButton: true,

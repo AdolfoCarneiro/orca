@@ -7735,14 +7735,6 @@
           "chatErrorEscalationNeedsChat": "請先在實驗性設定中開啟「聊天介面」才能使用。",
           "chatErrorEscalationKeywordError": "錯誤",
           "chatErrorEscalationKeywordChat": "聊天",
-          "heartbeatTitle": "工作代理程式心跳",
-          "heartbeatDescription": "分派的工作代理程式每隔幾分鐘會回報一次，讓協調代理程式判斷代理程式是在工作還是已無回應。關閉後，傳送給協調代理程式的訊息會減少，但也會失去這個回報訊號。此設定適用於變更後分派的工作代理程式。",
-          "heartbeatKeywordHeartbeat": "心跳",
-          "heartbeatKeywordStalled": "停滯",
-          "heartbeatKeywordInterval": "間隔",
-          "heartbeatIntervalTitle": "心跳間隔",
-          "heartbeatIntervalDescription": "間隔越短，協調代理程式收到的回報越頻繁，但訊息也越多。間隔越長，訊息越少，但兩次回報之間的空檔也越長。此設定適用於變更後分派的工作代理程式。",
-          "heartbeatIntervalSuffix": "分鐘",
           "7bc082f4de": "複製安裝命令"
         },
         "OrchestrationSetupCard": {

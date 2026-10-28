@@ -77,6 +77,8 @@ type RetiredGlobalSettings = {
   opencodeGoApiKey?: unknown
   experimentalStructuredNativeChat?: unknown
   openAgentTabsInChatByDefault?: unknown
+  orchestrationHeartbeatsEnabled?: unknown
+  orchestrationHeartbeatIntervalMinutes?: unknown
 }
 
 export function stripRetiredGlobalSettings(
@@ -92,6 +94,8 @@ export function stripRetiredGlobalSettings(
     opencodeGoApiKey: _legacyOpenCodeGoApiKey,
     experimentalStructuredNativeChat: _legacyStructuredNativeChat,
     openAgentTabsInChatByDefault: _legacyChatDefaultView,
+    orchestrationHeartbeatsEnabled: _retiredHeartbeatsEnabled,
+    orchestrationHeartbeatIntervalMinutes: _retiredHeartbeatInterval,
     ...rest
   } = (settings ?? {}) as Partial<GlobalSettings> & RetiredGlobalSettings
   void _retiredChatPermissionCopies
@@ -103,6 +107,8 @@ export function stripRetiredGlobalSettings(
   void _legacyOpenCodeGoApiKey
   void _legacyStructuredNativeChat
   void _legacyChatDefaultView
+  void _retiredHeartbeatsEnabled
+  void _retiredHeartbeatInterval
   return rest
 }
 
