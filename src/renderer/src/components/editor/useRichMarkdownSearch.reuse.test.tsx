@@ -86,9 +86,10 @@ describe('live rich markdown search reuse', () => {
     const { hook } = mountSearch()
     act(() => hook.result.current.openSearch())
     act(() => hook.result.current.searchActions.setSearchQuery('beta'))
-    expect(walk).toHaveBeenCalledTimes(1)
+    expect(walk).not.toHaveBeenCalled()
     act(() => vi.advanceTimersByTime(150))
     expect(hook.result.current.searchState.matchCount).toBe(2)
+    expect(walk).toHaveBeenCalledTimes(1)
     for (let index = 0; index < 20; index++) {
       act(() => hook.result.current.searchActions.setReplaceQuery(`replacement ${index}`))
       act(() => hook.result.current.searchActions.moveToMatch(1))
@@ -97,7 +98,26 @@ describe('live rich markdown search reuse', () => {
     act(() => hook.result.current.searchActions.closeSearch())
     act(() => hook.result.current.openSearch())
     act(() => hook.result.current.searchActions.setSearchQuery('beta'))
+    expect(walk).toHaveBeenCalledTimes(1)
+    act(() => vi.advanceTimersByTime(150))
     expect(walk).toHaveBeenCalledTimes(2)
+    hook.unmount()
+  })
+
+  it('scans only the settled find query after a burst of input', () => {
+    vi.useFakeTimers()
+    const walk = vi.spyOn(visibleText, 'createRichMarkdownVisibleTextMap')
+    const { hook } = mountSearch()
+    act(() => hook.result.current.openSearch())
+    for (const query of ['b', 'be', 'bet', 'beta']) {
+      act(() => hook.result.current.searchActions.setSearchQuery(query))
+    }
+    expect(walk).not.toHaveBeenCalled()
+    act(() => vi.advanceTimersByTime(149))
+    expect(walk).not.toHaveBeenCalled()
+    act(() => vi.advanceTimersByTime(1))
+    expect(walk).toHaveBeenCalledTimes(1)
+    expect(hook.result.current.searchState.matchCount).toBe(2)
     hook.unmount()
   })
 
@@ -109,6 +129,7 @@ describe('live rich markdown search reuse', () => {
     act(() => vi.advanceTimersByTime(150))
     act(() => hook.result.current.searchActions.setSearchQuery('locked'))
     expect(hook.result.current.searchState.matchCount).toBe(2)
+    act(() => hook.result.current.searchActions.toggleReplaceMode())
     expect(hook.result.current.searchState.replaceDisabled).toBe(true)
     const doc = editor.state.doc
     act(() => hook.result.current.searchActions.replaceAllMatches())

@@ -89,8 +89,9 @@ export function useRichMarkdownSearch({
     })
   }, [editor, findMatches, isSearchOpen, matchCase, searchQuery, wholeWord])
 
-  // Derive disabled state from the same live atom guards as replacement, including during the highlight debounce.
-  const replaceDisabled = getLiveMatches().some((match) => match.touchesReadOnlyAtom)
+  // Visible replace controls need live guards; hidden controls must not bypass the find debounce.
+  const replaceDisabled =
+    isReplaceMode && getLiveMatches().some((match) => match.touchesReadOnlyAtom)
 
   const activeMatchIndex =
     !isSearchOpen || matchCount === 0
