@@ -167,30 +167,54 @@ function PanelArt({ worker }: { worker: boolean }): React.JSX.Element {
   )
 }
 
-function OutlineLines({ inverted }: { inverted: boolean }): React.JSX.Element {
+const OUTLINE_WIDTHS = [0.7, 0.45, 0.6, 0.35] as const
+
+/** Seeded look for drawn art, so two plugins without pictures never share one. */
+type ArtSeed = { tint: string; ink: string; widths: readonly number[]; mirrored: boolean }
+
+function artSeed(key: string): ArtSeed {
+  const hash = hashKey(key)
+  const tintCount = ART_TINTS.length
+  const inkCount = ART_INKS.length
+  const shift = Math.floor(hash / (tintCount * inkCount)) % OUTLINE_WIDTHS.length
+  return {
+    tint: ART_TINTS[hash % tintCount] ?? ART_TINTS[0],
+    ink: ART_INKS[Math.floor(hash / tintCount) % inkCount] ?? ART_INKS[0],
+    widths: [...OUTLINE_WIDTHS.slice(shift), ...OUTLINE_WIDTHS.slice(0, shift)].slice(0, 3),
+    mirrored: Math.floor(hash / (tintCount * inkCount * OUTLINE_WIDTHS.length)) % 2 === 1
+  }
+}
+
+function OutlineLines({ inverted, seed }: { inverted: boolean; seed: ArtSeed }): React.JSX.Element {
   return (
     <>
-      {[0.7, 0.45, 0.6].map((width, line) => (
+      {seed.widths.map((width, line) => (
         <div
           key={line}
           data-inverted={inverted}
           className="mb-[12%] h-1.5 rounded-full bg-foreground/35 data-[inverted=true]:bg-background/45"
-          style={{ width: `${width * 100}%` }}
+          style={{
+            width: `${width * 100}%`,
+            ...(line === 1 ? { background: seed.ink } : {})
+          }}
         />
       ))}
     </>
   )
 }
 
-/** A theme with no colours known yet: the same window in the app's light and dark ink. */
-function ThemeOutlineArt(): React.JSX.Element {
+/** A theme with no colours known yet: one window in the app's light and dark ink, seeded per plugin. */
+function ThemeOutlineArt({ seed }: { seed: ArtSeed }): React.JSX.Element {
   return (
-    <div className="absolute inset-0 flex items-center justify-center gap-3 px-[12%]">
+    <div
+      data-mirrored={seed.mirrored}
+      className="absolute inset-0 flex items-center justify-center gap-3 px-[12%] data-[mirrored=true]:flex-row-reverse"
+    >
       <div className="h-[62%] flex-1 rounded-md border border-border bg-background p-[6%] shadow-xs">
-        <OutlineLines inverted={false} />
+        <OutlineLines inverted={false} seed={seed} />
       </div>
       <div className="h-[62%] flex-1 rounded-md border border-border bg-foreground p-[6%] shadow-xs">
-        <OutlineLines inverted />
+        <OutlineLines inverted seed={seed} />
       </div>
     </div>
   )
@@ -226,10 +250,10 @@ export function PluginCardArt({
   shortcut?: string | null
   /** Fill a sized parent (the page hero) instead of setting its own 16:10 height. */
   fill?: boolean
-  /** Picks the backdrop tint, so each plugin's art stays the same colour everywhere. */
+  /** Seeds the backdrop tint and drawn details, so each plugin's art is its own everywhere. */
   tintKey: string
 }): React.JSX.Element {
-  const tint = ART_TINTS[hashKey(tintKey) % ART_TINTS.length]
+  const seed = artSeed(tintKey)
   let art: React.ReactNode
   if (palettes.length > 0) {
     art = <ThemeArt palettes={palettes} />
@@ -244,13 +268,13 @@ export function PluginCardArt({
   } else if (types.includes('interface-language')) {
     art = <LanguageArt />
   } else if (types.includes('app-theme') || types.includes('terminal-theme')) {
-    art = <ThemeOutlineArt />
+    art = <ThemeOutlineArt seed={seed} />
   } else {
     // Why a glyph, not initials: letters on a blank tile read as an empty listing.
     art = (
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="flex size-16 items-center justify-center rounded-2xl border border-border bg-background text-muted-foreground shadow-xs">
-          <Puzzle className="size-7" />
+          <Puzzle className="size-7" style={{ color: seed.ink }} />
         </span>
       </div>
     )
@@ -260,7 +284,7 @@ export function PluginCardArt({
       aria-hidden="true"
       data-fill={fill}
       className="relative aspect-[16/10] overflow-hidden data-[fill=true]:absolute data-[fill=true]:inset-0 data-[fill=true]:aspect-auto bg-[radial-gradient(color-mix(in_srgb,var(--foreground)_9%,transparent)_1px,transparent_1.2px)] bg-size-[14px_14px]"
-      style={{ backgroundColor: `color-mix(in srgb, var(${tint}) 16%, var(--muted))` }}
+      style={{ backgroundColor: `color-mix(in srgb, var(${seed.tint}) 16%, var(--muted))` }}
     >
       {art}
     </div>
