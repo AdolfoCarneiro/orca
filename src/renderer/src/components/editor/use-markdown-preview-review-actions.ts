@@ -1,4 +1,8 @@
 import { useCallback } from 'react'
+import {
+  finishMarkdownPreviewReviewNotesCopy,
+  finishMarkdownPreviewReviewNoteCopy
+} from './markdown-preview-copy-feedback'
 import { copyMarkdownReviewNotesForAgent } from '@/lib/markdown-review-note-copy'
 import type { MarkdownReviewNote } from '@/lib/markdown-review-notes'
 import type { DiffComment } from '../../../../shared/diff-comment-types'
@@ -50,20 +54,19 @@ export function useMarkdownPreviewReviewActions({
       return
     }
     try {
-      const copied = await copyMarkdownReviewNotesForAgent({
-        notes: markdownReviewNotes,
-        content: renderedContent,
-        writeClipboardText: window.api.ui.writeClipboardText
-      })
-      if (!copied || !reviewNotesCopyMountedRef.current) {
-        return
-      }
-      clearReviewNotesCopiedResetTimer()
-      setReviewNotesCopied(true)
-      reviewNotesCopiedResetTimerRef.current = window.setTimeout(() => {
-        reviewNotesCopiedResetTimerRef.current = null
-        setReviewNotesCopied(false)
-      }, 1600)
+      return finishMarkdownPreviewReviewNotesCopy(
+        copyMarkdownReviewNotesForAgent({
+          notes: markdownReviewNotes,
+          content: renderedContent,
+          writeClipboardText: window.api.ui.writeClipboardText
+        }),
+        {
+          reviewNotesCopyMountedRef,
+          clearReviewNotesCopiedResetTimer,
+          setReviewNotesCopied,
+          reviewNotesCopiedResetTimerRef
+        }
+      )
     } catch {
       // Best-effort clipboard action; failures usually mean the window is not focused.
     }
@@ -79,20 +82,20 @@ export function useMarkdownPreviewReviewActions({
   const handleCopyMarkdownReviewNote = useCallback(
     async (note: MarkdownReviewNote): Promise<void> => {
       try {
-        const copied = await copyMarkdownReviewNotesForAgent({
-          notes: [note],
-          content: renderedContent,
-          writeClipboardText: window.api.ui.writeClipboardText
-        })
-        if (!copied || !reviewNotesCopyMountedRef.current) {
-          return
-        }
-        clearCopiedReviewNoteResetTimer()
-        setCopiedReviewNoteId(note.id)
-        copiedReviewNoteResetTimerRef.current = window.setTimeout(() => {
-          copiedReviewNoteResetTimerRef.current = null
-          setCopiedReviewNoteId(null)
-        }, 1600)
+        return finishMarkdownPreviewReviewNoteCopy(
+          copyMarkdownReviewNotesForAgent({
+            notes: [note],
+            content: renderedContent,
+            writeClipboardText: window.api.ui.writeClipboardText
+          }),
+          note.id,
+          {
+            reviewNotesCopyMountedRef,
+            clearCopiedReviewNoteResetTimer,
+            setCopiedReviewNoteId,
+            copiedReviewNoteResetTimerRef
+          }
+        )
       } catch {
         // Best-effort clipboard action; failures usually mean the window is not focused.
       }
