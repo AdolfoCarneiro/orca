@@ -73,6 +73,9 @@ export async function checkRunMailbox(args: {
     const address = `run:${run.id}`
     completionMailbox = address
     runtime.observeMessageCheck(address, waitScope, opportunityTypes)
+    if (run.coordinator_handle) {
+      runtime.observeMessageCheck(run.coordinator_handle, waitScope, opportunityTypes)
+    }
     runtime.ensureOrchestrationFederationRelay(run.id)
     await routeDirectSnapshot(run.id, handle, (throughSequence) =>
       db.routeUnreadDirectMessagesToRunMailbox(run.id, handle, throughSequence)

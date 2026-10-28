@@ -70,6 +70,25 @@ export function homeImportCreationProof(
   return parseMailCreationProof(value) && typeof value === 'string' ? value : null
 }
 
+/** Genuine local Run founding closes its canonical creation lifetime, including missed sources. */
+export function runMailCreationProof(db: OrchestrationDb, runId: string): string | null {
+  const value = db.db
+    .prepare('SELECT mail_creation_domain FROM runs WHERE id = ?')
+    .get(runId)?.mail_creation_domain
+  return typeof value === 'string' && parseMailCreationProof(value) ? value : null
+}
+export function recoverRunMailCreationProof(db: OrchestrationDb, id: string): void {
+  const row = db.db
+    .prepare('SELECT run_id FROM messages WHERE id = ? AND creation_proof IS NULL')
+    .get(id)
+  const proof = typeof row?.run_id === 'string' ? runMailCreationProof(db, row.run_id) : null
+  if (proof) {
+    db.db
+      .prepare('UPDATE messages SET creation_proof = ? WHERE id = ? AND creation_proof IS NULL')
+      .run(proof, id)
+  }
+}
+
 /** Binding commits before offer; a bound original domain is never silently rebound. */
 export function bindMailCreationProof(
   db: OrchestrationDb,

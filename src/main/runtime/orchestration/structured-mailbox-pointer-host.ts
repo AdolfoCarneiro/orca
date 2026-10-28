@@ -1,7 +1,10 @@
 import { readMailCreationAuthority } from '../../native-chat/agent-session-journal/mail-creation-authority'
 import { queuedMessagesPublishedBytes } from '../../native-chat/agent-session-wire/structured-agent-session-queued-published-bytes'
-import { mailHistoryRevision } from './structured-mail-history-revision'
-import { readMailCreationHistory } from './structured-mail-creation-history'
+import {
+  readMailCreationHistory,
+  observeMailCreationHistory,
+  forgetMailCreationHistorySource
+} from './structured-mail-creation-history'
 import {
   conversationRecordReader,
   resolveLineageRunningSession
@@ -56,9 +59,21 @@ export function createStructuredMailboxPointerHost(): StructuredMailboxPointerHo
       const host = getStructuredAgentSessionHost()
       return host ? readMailCreationAuthority(host.deps.journalDatabase.db) : null
     },
-    readHistory: (sessionId) => {
+    observeHistory: (listener) => {
       const host = getStructuredAgentSessionHost()
-      return host ? readMailCreationHistory(host, sessionId) : { members: new Set(), opaque: true }
+      return host && observeMailCreationHistory(host, listener)
+    },
+    forgetHistorySource: (key) => {
+      const host = getStructuredAgentSessionHost()
+      if (host) {
+        forgetMailCreationHistorySource(host, key)
+      }
+    },
+    readHistory: (sessionId, key) => {
+      const host = getStructuredAgentSessionHost()
+      return host
+        ? readMailCreationHistory(host, sessionId, key)
+        : { members: new Set(), opaque: true }
     },
     admission: (sessionId) => {
       const host = getStructuredAgentSessionHost()
@@ -79,7 +94,6 @@ export function createStructuredMailboxPointerHost(): StructuredMailboxPointerHo
           record.location,
           record.lease.runtimeFence,
           journal?.epoch,
-          mailHistoryRevision(host.deps.journalDatabase.db),
           readMailCreationAuthority(host.deps.journalDatabase.db)
         ]),
         queuedBytes: journal ? queuedMessagesPublishedBytes(journal) : 0

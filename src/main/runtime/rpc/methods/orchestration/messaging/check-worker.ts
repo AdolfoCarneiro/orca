@@ -10,15 +10,12 @@ import { interruptedAcknowledgedCheck } from '../routing'
 import { currentDispatchAssigneeRun } from './recipient-routing'
 import type { CheckParams } from '../schemas'
 import type { z } from 'zod'
+import type { RemoteDispatchAttachmentRow } from '../../../../orchestration/types'
 
-type CheckParamsInput = z.infer<typeof CheckParams>
 type ActiveDispatch = NonNullable<ReturnType<OrchestrationDb['getActiveDispatchForIdentity']>>
-type RemoteAttachment = NonNullable<
-  ReturnType<OrchestrationDb['findActiveRemoteAttachmentForPane']>
->
 
 export async function checkWorkerMailbox(args: {
-  params: CheckParamsInput
+  params: z.infer<typeof CheckParams>
   runtime: OrcaRuntimeService
   db: OrchestrationDb
   handle: string
@@ -26,7 +23,7 @@ export async function checkWorkerMailbox(args: {
   typeFilter: MessageType[] | undefined
   signal: AbortSignal | undefined
   activeDispatch: ActiveDispatch | undefined
-  remoteAttachment: RemoteAttachment | undefined
+  remoteAttachment: RemoteDispatchAttachmentRow | undefined
   wakeTypes?: MessageType[]
   revalidateConsumer?: () => void
   deferDelivery?: () => boolean
@@ -73,6 +70,9 @@ export async function checkWorkerMailbox(args: {
     const address = `dispatch:${workerMailbox.dispatchId}`
     completionMailbox = address
     runtime.observeMessageCheck(address, waitScope, opportunityTypes)
+    if (activeDispatch?.assignee_handle) {
+      runtime.observeMessageCheck(activeDispatch.assignee_handle, waitScope, opportunityTypes)
+    }
     // Federated hosts keep consumer generations on remote_dispatch_attachments, without a dispatch_contexts row.
     const readCurrentGeneration = (): number | undefined =>
       activeDispatch
@@ -118,6 +118,7 @@ export async function checkWorkerMailbox(args: {
         (!latestDispatch ||
           (latestDispatch.status !== 'pending' && latestDispatch.status !== 'dispatched'))
       ) {
+        runtime.observeMessageCheck(`run:${owningRunId}`, waitScope, opportunityTypes)
         const throughSequence = db.getLatestUnreadMessageSequence(address)
         if (throughSequence !== undefined) {
           const routedTypes = new Set<MessageType>()

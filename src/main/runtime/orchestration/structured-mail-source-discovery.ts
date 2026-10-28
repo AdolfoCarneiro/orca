@@ -77,13 +77,38 @@ export class MailDebts extends Map<
     return ids.sort((a, b) => (this.get(a)?.sequence ?? 0) - (this.get(b)?.sequence ?? 0))
   }
 }
+export class MailPending extends Map<string, number> {
+  private revision = 0
+  constructor(private readonly membership?: (id: string, present: boolean) => void) {
+    super()
+  }
+  override set(id: string, revision: number): this {
+    this.membership?.(id, true)
+    return super.set(id, revision)
+  }
+  override delete(id: string): boolean {
+    const removed = super.delete(id)
+    if (removed) {
+      this.membership?.(id, false)
+    }
+    return removed
+  }
+  nominate(id: string): void {
+    this.set(id, ++this.revision)
+  }
+  include(id: string): void {
+    if (!this.has(id)) {
+      this.nominate(id)
+    }
+  }
+}
 export type Interest = {
   db: OrchestrationDb
   target: StructuredPointerTarget
   authority: MailAdmission
   frontier: number
   deferred: MailDebts
-  dirty: Set<string>
+  dirty: MailPending
   running: boolean
   pending: boolean
   consumersChanged: boolean
@@ -117,11 +142,11 @@ export async function discoverMailSources(input: {
     interest.consumersChanged = false
     interest.retry = false
     interest.authority = now
-    const selected = new Set(interest.dirty)
-    interest.dirty.clear()
+    const selected = new Set(interest.dirty.keys())
     const select = (reason: Debt, filter?: ReadonlySet<string>) => {
       for (const id of interest.deferred.select(reason, filter)) {
         selected.add(id)
+        interest.dirty.include(id)
       }
     }
     if (improved) {
@@ -172,12 +197,13 @@ export async function discoverMailSources(input: {
       for (const raw of rows) {
         const source = sourceIdentity.parse(raw)
         if (!selected.has(source.id)) {
+          interest.dirty.include(source.id)
           await offer(source)
         }
-        interest.frontier = source.sequence
         if (!current()) {
           return
         }
+        interest.frontier = source.sequence
       }
       await new Promise<void>((resolve) => setImmediate(resolve))
     }

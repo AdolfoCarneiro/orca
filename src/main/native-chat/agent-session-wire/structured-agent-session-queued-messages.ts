@@ -1,14 +1,16 @@
 import type { JournalMailSource } from '../agent-session-journal/journal-mail-boundary'
 // Drafts owe no execution work; derive delivery gates under serialization before consuming one card per turn.
 
-import { randomUUID } from 'node:crypto'
 import type { AgentJournalMessageItem } from '../../../shared/agent-session-journal-types'
 import {
   QUEUED_MESSAGE_PAUSED_SEND_FAILED,
   type AgentSessionSendResult,
   type AgentSessionWireRefusal
 } from '../../../shared/agent-session-wire'
-import { createStructuredAgentSessionOperationId } from '../../../shared/structured-agent-session-mutation'
+import {
+  allocateQueuedSubmission,
+  retireSubmissionBirth
+} from './structured-agent-session-request-birth'
 import { queuedSendAnswer } from './structured-agent-session-queued-send-answer'
 import { structuredAgentSessionSendBlock } from './structured-agent-session-send-preparation'
 import { queuedMessagesPublishedBytesRefusal } from './structured-agent-session-queued-published-bytes'
@@ -269,7 +271,7 @@ export class StructuredAgentSessionQueuedMessageDrain {
       return
     }
     // Fresh submission IDs link drafts through queuedMessageId, never equality.
-    const submissionId = createStructuredAgentSessionOperationId(randomUUID)
+    const submissionId = allocateQueuedSubmission(journal)
     try {
       await journal.appendSubmission(
         {
@@ -287,6 +289,7 @@ export class StructuredAgentSessionQueuedMessageDrain {
         this.deps.submissionReceipt?.(sessionId)
       )
     } catch (error) {
+      retireSubmissionBirth(journal, submissionId)
       if (error instanceof QueuedMessageNotConsumableError) {
         return
       }

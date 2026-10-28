@@ -87,7 +87,13 @@ describe('Run binding during Dispatch checks', () => {
       }
     )
     const pending = check({ wait: true, timeoutMs: 10000 })
-    await vi.waitFor(() => expect(state.runtime.messageWaitersByHandle.get(mailbox)?.size).toBe(1))
+    await vi.waitFor(() =>
+      expect(
+        [...(state.runtime.messageWaitersByHandle.get(mailbox) ?? [])].filter(
+          (waiter) => waiter.timeout !== null
+        )
+      ).toHaveLength(1)
+    )
     expect(initialScopes.length).toBeGreaterThan(0)
     expect(initialScopes.every(Boolean)).toBe(true)
     const reserve = state.db.getOrCreateMailboxDelivery.bind(state.db)
@@ -112,7 +118,13 @@ describe('Run binding during Dispatch checks', () => {
     expect([first, second].every((row) => state.db.getMessageById(row.id)?.read === 1)).toBe(true)
     const inactive = check({ wait: true, timeoutMs: 10000 })
     const rejected = expect(inactive).rejects.toMatchObject({ code: 'dispatch_inactive' })
-    await vi.waitFor(() => expect(state.runtime.messageWaitersByHandle.get(mailbox)?.size).toBe(1))
+    await vi.waitFor(() =>
+      expect(
+        [...(state.runtime.messageWaitersByHandle.get(mailbox) ?? [])].filter(
+          (waiter) => waiter.timeout !== null
+        )
+      ).toHaveLength(1)
+    )
     const routed: boolean[] = []
     const route = state.db.routeUnreadDispatchMailboxToRunMailbox.bind(state.db)
     vi.spyOn(state.db, 'routeUnreadDispatchMailboxToRunMailbox').mockImplementation((...args) => {

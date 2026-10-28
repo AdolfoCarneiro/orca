@@ -21,6 +21,7 @@ export async function askRemoteRunHome(args: {
   const waitScope = new MessageWaitScope()
   try {
     args.runtime.observeMessageCheck(`dispatch:${args.dispatchId}`, waitScope)
+    args.runtime.observeMessageCheck(args.from, waitScope)
     const db = args.runtime.getOrchestrationDb()
     const timeoutMs = clampOrchestrationAskTimeoutMs(args.params.timeoutMs)
     assertWorkerCanReport({

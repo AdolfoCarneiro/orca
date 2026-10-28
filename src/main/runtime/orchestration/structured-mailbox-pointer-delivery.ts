@@ -1,3 +1,4 @@
+import { MailHistorySources } from './structured-mail-history-sources'
 import type { OrchestrationDb } from './db'
 import type { OrchestrationMessageWaiter } from './mailbox-pointer-eligibility'
 import type { MailDeliveryDependencies } from './structured-mail-creation-contract'
@@ -9,15 +10,20 @@ export type {
   MailDeliveryDependencies
 } from './structured-mail-creation-contract'
 import { offerMailSource } from './structured-mail-source-offer'
+import { MailSourceWork } from './structured-mail-source-work'
 import { discoverMailSources, MailDebts, type Interest } from './structured-mail-source-discovery'
 export type { MailAdmission } from './structured-mail-source-discovery'
 /** Disposable finite discovery only; the ordinary queue is the sole executor. */
 export class OrchestrationStructuredMailboxPointerDelivery<T extends OrchestrationMessageWaiter> {
   private readonly interests = new Map<string, Interest>()
   private unsubscribe: (() => void) | undefined
-  private readonly dirty = new Map<string, Set<string>>()
+  private readonly work = new MailSourceWork()
+  private readonly history: MailHistorySources
   private sourceDb: OrchestrationDb | null = null
   constructor(private readonly deps: MailDeliveryDependencies<T>) {
+    this.history = new MailHistorySources(deps, (mailbox, ids) =>
+      this.nominateSources(mailbox, ids)
+    )
     const db = deps.getDb()
     if (db) {
       this.attachDatabase(db)
@@ -37,6 +43,19 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
         }
         const wake = new Set<string>()
         for (const mutation of mutations) {
+          if (mutation.state === null) {
+            this.work.forget(mutation.id)
+            for (const mailbox of new Set([
+              ...mutation.previousMailboxes,
+              mutation.previousMailbox
+            ])) {
+              if (mailbox) {
+                this.interests.get(mailbox)?.deferred.delete(mutation.id)
+              }
+            }
+            this.history.forget(mutation.id)
+            continue
+          }
           const classified =
             mutation.mailbox && this.interests.get(mutation.mailbox)?.deferred.get(mutation.id)
           if (!mutation.forced && classified && classified.state === mutation.state) {
@@ -50,9 +69,8 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
             if (!mailbox) {
               continue
             }
-            const ids = this.dirty.get(mailbox) ?? new Set<string>()
-            this.dirty.set(mailbox, ids)
-            ids.add(mutation.id)
+            const ids = this.work.pending(mailbox)
+            ids.nominate(mutation.id)
             wake.add(mailbox)
           }
         }
@@ -79,7 +97,6 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
     const target = this.deps.resolveStructuredTarget(mailbox)
     if (!target) {
       this.interests.delete(mailbox)
-      this.dirty.delete(mailbox)
       this.deps.cancelRetry?.(mailbox)
       return false
     }
@@ -87,10 +104,6 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
     if (!interest) {
       return true
     }
-    for (const id of this.dirty.get(mailbox) ?? []) {
-      interest.dirty.add(id)
-    }
-    this.dirty.delete(mailbox)
     interest.pending = true
     if (!interest.running) {
       interest.running = true
@@ -100,13 +113,33 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
         current: () => this.current(mailbox, interest),
         admission: () => this.deps.host.admission(interest.target.sessionId),
         offer: (source) =>
-          offerMailSource({
+          this.work.run({
             mailbox,
             interest,
             source,
-            deps: this.deps,
             current: () => this.current(mailbox, interest),
-            retire: (id) => this.retire(interest, id)
+            offer: (current, capture, retire) => {
+              this.history.record(source.id, source.run_id)
+              return offerMailSource({
+                mailbox,
+                interest,
+                source,
+                deps: this.deps,
+                current,
+                capture,
+                retire
+              })
+            },
+            retire: (id) => this.retire(interest, id),
+            wake: (scope) => {
+              if (this.sourceDb === interest.db) {
+                const next = this.interests.get(scope)
+                if (next) {
+                  next.pending = true
+                }
+                this.deliverForHandle(scope)
+              }
+            }
           }),
         retire: (id) => this.retire(interest, id),
         finished: () => {
@@ -144,10 +177,9 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
     return this.deliverForHandle(mailbox)
   }
   nominateSources(mailbox: string, ids: readonly string[]): void {
-    const pending = this.dirty.get(mailbox) ?? new Set<string>()
-    this.dirty.set(mailbox, pending)
+    const pending = this.work.pending(mailbox)
     for (const id of ids) {
-      pending.add(id)
+      pending.nominate(id)
     }
     this.deliverForHandle(mailbox)
   }
@@ -160,9 +192,10 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
     this.deliverForHandle(mailbox)
   }
   resetForDatabaseChange(): void {
+    this.history.reset()
     this.unsubscribe?.()
     this.unsubscribe = undefined
-    this.dirty.clear()
+    this.work.clear()
     this.sourceDb = null
     for (const mailbox of this.interests.keys()) {
       this.deps.cancelRetry?.(mailbox)
@@ -206,6 +239,7 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
     if (!db || !target || !authority) {
       return null
     }
+    this.history.observe(db, authority.owner)
     let interest = this.interests.get(mailbox)
     if (!interest || interest.db !== db) {
       interest = {
@@ -214,7 +248,7 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
         authority,
         frontier: 0,
         deferred: new MailDebts(),
-        dirty: new Set(),
+        dirty: this.work.pending(mailbox),
         running: false,
         pending: false,
         consumersChanged: false,
@@ -235,7 +269,7 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
         running: false,
         pending: true,
         authorityChanged: true,
-        dirty: new Set(interest.dirty),
+        dirty: this.work.pending(mailbox),
         capacityImproved:
           interest.capacityImproved ||
           authority.queuedBytes < interest.authority.queuedBytes ||
@@ -261,6 +295,7 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
   }
 
   private retire(interest: Interest, id: string): void {
+    this.history.forget(id)
     interest.deferred.delete(id)
     interest.dirty.delete(id)
   }

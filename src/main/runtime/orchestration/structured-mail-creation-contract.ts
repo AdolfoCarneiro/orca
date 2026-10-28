@@ -18,7 +18,9 @@ export type StructuredMailboxPointerHost = {
     sessionId: string,
     legacy?: true
   ) => 'accepted' | 'absent' | 'unknown'
-  readHistory: (sessionId: string) => MailCreationHistory
+  readHistory: (sessionId: string, sourceKey?: string) => MailCreationHistory
+  observeHistory?: (listener: (members: ReadonlySet<string>) => void) => (() => void) | undefined
+  forgetHistorySource?: (key: string) => void
   creationAuthority?: () => MailCreationAuthority | null
   admission: (sessionId: string) => MailAdmission | null
   currentFence: (sessionId: string) => number | null

@@ -4,17 +4,35 @@ export type MessageWaitResult = 'notified' | 'timed_out' | 'cancelled'
 
 /** A notified check retains its opportunity until its actual read/reserve continuation finishes. */
 export class MessageWaitScope {
-  private release: (() => void) | undefined
+  private readonly observations = new Map<string, () => void>()
+  private notification: (() => void) | undefined
+  private completed = false
+  observe(key: string, install: () => () => void): void {
+    if (!this.completed && !this.observations.has(key)) {
+      this.observations.set(key, install())
+    }
+  }
   bind(release: () => void): void {
-    const previous = this.release
-    this.release = release
+    const previous = this.notification
+    this.notification = this.completed ? undefined : release
     previous?.()
+    if (this.completed) {
+      release()
+    }
   }
   complete(): boolean {
-    const release = this.release
-    this.release = undefined
-    release?.()
-    return release !== undefined
+    if (this.completed) {
+      return false
+    }
+    this.completed = true
+    this.notification?.()
+    this.notification = undefined
+    const hadObservation = this.observations.size !== 0
+    for (const release of this.observations.values()) {
+      release()
+    }
+    this.observations.clear()
+    return hadObservation
   }
 }
 
@@ -50,19 +68,24 @@ export class RuntimeMessageWaiters {
   }
 
   observe(handle: string, scope: MessageWaitScope, typeFilter?: string[]): void {
-    const waiter: RuntimeMessageWaiter = {
-      handle,
-      typeFilter,
-      scope,
-      resolve: () => {},
-      timeout: null,
-      abortCleanup: null,
-      notified: true
-    }
-    const waiters = this.waitersByHandle.get(handle) ?? new Set<RuntimeMessageWaiter>()
-    this.waitersByHandle.set(handle, waiters)
-    waiters.add(waiter)
-    scope.bind(() => this.remove(waiter))
+    scope.observe(
+      JSON.stringify([handle, typeFilter ? [...new Set(typeFilter)].sort() : null]),
+      () => {
+        const waiter: RuntimeMessageWaiter = {
+          handle,
+          typeFilter,
+          scope,
+          resolve: () => {},
+          timeout: null,
+          abortCleanup: null,
+          notified: true
+        }
+        const waiters = this.waitersByHandle.get(handle) ?? new Set<RuntimeMessageWaiter>()
+        this.waitersByHandle.set(handle, waiters)
+        waiters.add(waiter)
+        return () => this.remove(waiter)
+      }
+    )
   }
 
   wait(
@@ -74,6 +97,9 @@ export class RuntimeMessageWaiters {
       scope?: MessageWaitScope
     }
   ): Promise<MessageWaitResult> {
+    if (options?.scope) {
+      this.observe(handle, options.scope, options.typeFilter)
+    }
     return new Promise((resolve) => {
       const waiter: RuntimeMessageWaiter = {
         handle,
@@ -87,7 +113,10 @@ export class RuntimeMessageWaiters {
       const waiters = this.waitersByHandle.get(handle) ?? new Set()
       this.waitersByHandle.set(handle, waiters)
       waiters.add(waiter)
-      options?.scope?.bind(() => this.remove(waiter))
+      options?.scope?.bind(() => this.resolve(waiter, 'cancelled'))
+      if (waiter.notified) {
+        return
+      }
       const signal = options?.signal
       if (signal?.aborted) {
         this.resolve(waiter, 'cancelled')
@@ -144,9 +173,7 @@ export class RuntimeMessageWaiters {
     }
     waiter.notified = true
     this.cleanup(waiter)
-    if (!waiter.scope) {
-      this.remove(waiter)
-    }
+    this.remove(waiter, !waiter.scope)
     waiter.resolve(result)
   }
 

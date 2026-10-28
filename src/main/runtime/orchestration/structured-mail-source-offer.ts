@@ -28,6 +28,7 @@ export async function offerMailSource<T extends OrchestrationMessageWaiter>(inpu
   deps: MailDeliveryDependencies<T>
   current: () => boolean
   retire: (id: string) => void
+  capture?: () => void
 }): Promise<void> {
   const { mailbox, interest, source, deps, current, retire } = input
   const checkOwns = (source: SourceIdentity) => {
@@ -52,6 +53,7 @@ export async function offerMailSource<T extends OrchestrationMessageWaiter>(inpu
     })
   try {
     const receipt = readSourceCreation(deps.host, interest, source)
+    input.capture?.()
     if (receipt === 'accepted') {
       defer('stamp')
       if (source.delivered_at === null) {
@@ -100,6 +102,7 @@ export async function offerMailSource<T extends OrchestrationMessageWaiter>(inpu
       .prepare('SELECT creation_proof FROM messages WHERE id = ?')
       .get(source.id)?.creation_proof
     source.creation_proof = typeof proofValue === 'string' ? proofValue : null
+    input.capture?.()
     const bound = parseMailCreationProof(source.creation_proof)
     defer('retry')
     const body = structuredMailBody({

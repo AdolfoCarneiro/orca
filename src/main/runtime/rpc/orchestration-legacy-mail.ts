@@ -38,6 +38,7 @@ export async function handleLegacyCheck(args: {
       waitScope,
       typeFilter
     )
+    runtime.observeMessageCheck(principal.terminal_handle, waitScope, typeFilter)
     const db = runtime.getOrchestrationDb()
     if (params.compatibilityQuestionAck) {
       const answer = parseLegacyQuestionAck(params.compatibilityQuestionAck)

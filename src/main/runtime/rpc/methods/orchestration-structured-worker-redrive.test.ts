@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import * as hostInstaller from '../../structured-agent-session-runtime'
+import { partialRuntimeStore } from '../../runtime-store-partial-fixture'
+import { StructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/structured-agent-session-host'
 import { computeAgentSessionPayloadFingerprint } from '../../../../shared/agent-session-mutation-envelope'
 import { MailDebts } from '../../orchestration/structured-mail-source-discovery'
 import { MessageWaitScope } from '../../runtime-message-waiters'
@@ -9,7 +12,10 @@ import {
   agentJournalSubmissionKey,
   AGENT_JOURNAL_THREAD_SCOPE
 } from '../../../../shared/agent-session-journal-types'
-import { hostTestState } from '../../../native-chat/agent-session-wire/structured-agent-session-host-test-harness'
+import {
+  hostTestState,
+  replaceHostTestState
+} from '../../../native-chat/agent-session-wire/structured-agent-session-host-test-harness'
 import { createTestParams } from '../../../native-chat/agent-session-wire/structured-agent-session-create-test-fixture'
 import {
   hostTestMessage,
@@ -59,10 +65,25 @@ function createDispatch() {
   return id
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.useFakeTimers()
   structuredWorkerIdentities.clear()
-  state = harness.setup()
+  state = harness.setup(true, partialRuntimeStore())
+  // Exercise the real process-listing factory. Only its adapter/store installation boundary is a fixture.
+  vi.spyOn(hostInstaller, 'ensureStructuredAgentSessionHost').mockImplementation(async (deps) => {
+    const prior = hostTestState()
+    prior.host.stopDelivery()
+    const installed = new StructuredAgentSessionHost({
+      ...prior.host.deps,
+      captureSessionMail: deps.captureSessionMail,
+      onSessionMailActivity: deps.onSessionMailActivity,
+      onSessionStatusChanged: deps.onSessionStatusChanged,
+      onRequestFailure: deps.onRequestFailure
+    })
+    replaceHostTestState({ store: prior.store, host: installed })
+    return installed
+  })
+  await state.runtime.ensureStructuredAgentSessionHost()
   vi.spyOn(state.runtime, 'ensureStructuredAgentSessionHost').mockResolvedValue(undefined)
   const { host, store, acquire } = hostTestState()
   const acquireImpl = acquire.getMockImplementation()
@@ -121,8 +142,6 @@ it.each([100, 1000])(
   async (count) => {
     vi.useRealTimers()
     const { host, store, dispatch } = hostTestState()
-    host.deps.onSessionMailActivity = (id) =>
-      state.runtime.notifyStructuredSessionJournalActivity(id)
     const { identity } = await createStructuredWorkerSessionForWorktree({
       runtime: state.runtime,
       worktreeId: 'workspace-1',
@@ -246,10 +265,6 @@ it.each([100, 1000])(
     const beforeBytes = queuedMessagesPublishedBytes(worker.journal)
     for (let n = 0; n < 10; n++) {
       await worker.append(`separated-token-${n}`)
-      state.runtime.onStructuredSessionStatusForMail({
-        sessionId: identity.sessionId,
-        status: 'working'
-      })
       await new Promise<void>((resolve) => setImmediate(resolve))
     }
     for (let n = 0; n < 30; n++) {
@@ -263,6 +278,11 @@ it.each([100, 1000])(
       queueBodySerializations: queueBodyWork()
     }).toEqual(baseline)
     expect(queuedMessagesPublishedBytes(worker.journal)).toBe(beforeBytes)
+    const coordinatorRun = state.db.createRun({
+      objective: 'real Run-shaped empty typed peek',
+      coordinatorHandle: identity.handle,
+      coordinatorPaneKey: identity.paneKey
+    })
     const debtSelections = vi.spyOn(MailDebts.prototype, 'select')
     for (let n = 0; n < 10; n++) {
       expect(
@@ -276,6 +296,18 @@ it.each([100, 1000])(
           state.ctx
         )
       ).toMatchObject({ messages: [], count: 0 })
+      expect(
+        await harness.call(
+          'orchestration.check',
+          {
+            terminal: identity.handle,
+            run: coordinatorRun.id,
+            peek: true,
+            types: 'question'
+          },
+          state.ctx
+        )
+      ).toMatchObject({ runId: coordinatorRun.id, messages: [], count: 0 })
     }
     expect(attempts).toHaveBeenCalledTimes(count)
     expect(sourceWork.count()).toBe(baseline.visits)
@@ -445,3 +477,140 @@ it.each([100, 1000])(
     expect(attempts).not.toHaveBeenCalled()
   }
 )
+
+it('protects H, actual A and Dispatch through a paged pane-alias check and real Delete room wake, then preserves FIFO replay/ack/finally', async () => {
+  vi.useRealTimers()
+  const { host, store } = hostTestState()
+  const { identity } = await createStructuredWorkerSessionForWorktree({
+    runtime: state.runtime,
+    worktreeId: 'workspace-1',
+    agent: 'codex',
+    dispatchId,
+    effects: []
+  })
+  const worker = workerJournal(identity)
+  state.db.prepareStartingWorkerAuthority({
+    dispatchId,
+    handle: identity.handle,
+    paneKey: identity.paneKey,
+    processIncarnation: identity.processIncarnation,
+    worktreeId: 'workspace-1',
+    effects: [],
+    setupState: 'not_applicable'
+  })
+  state.db.markWorkerDispatchReady(dispatchId)
+  const run = state.db.getDispatchContextById(dispatchId)!.run_id
+  const H = 'term_alias'
+  const pane = vi.mocked(state.runtime.getTerminalPaneKey).getMockImplementation()
+  vi.mocked(state.runtime.getTerminalPaneKey).mockImplementation((handle) =>
+    handle === H ? identity.paneKey : (pane?.(handle) ?? null)
+  )
+  await worker.journal.appendItem(
+    { provider: 'orca', clientMessageId: 'active-alias-turn' },
+    { kind: 'turn', turnId: 'active-alias-turn', state: 'running' },
+    { fence: worker.fence, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+  )
+  const cards: string[] = []
+  for (let n = 0; n < 4; n++) {
+    const body = hostTestMessage('p'.repeat(200000))
+    const fields = { body, delivery: 'queue-if-active' as const }
+    const id = hostTestOperationId()
+    expect(
+      await host.send(
+        { callerKey: 'real-client' },
+        {
+          ...fields,
+          userSend: true,
+          envelope: {
+            sessionId: identity.sessionId,
+            clientOperationId: id,
+            expectedRuntimeFence: worker.fence,
+            payloadFingerprint: computeAgentSessionPayloadFingerprint({
+              method: 'agentSession.send',
+              sessionId: identity.sessionId,
+              fields
+            })
+          }
+        }
+      )
+    ).toMatchObject({ ok: true, value: { queued: {} } })
+    cards.push(id)
+  }
+  const source = state.db.insertMessage({
+    runId: run,
+    from: 'term_coord',
+    to: identity.handle,
+    subject: 'actual assignee report'
+  })
+  state.runtime.deliverPendingMessagesForHandle(identity.handle)
+  await new Promise<void>((resolve) => setImmediate(resolve))
+  const routed = Array.from({ length: 51 }, (_, n) =>
+    state.db.insertMessage({ runId: run, from: 'term_coord', to: H, subject: `H route ${n}` })
+  )
+  let deleted: Promise<unknown> | undefined
+  const scopes: string[][] = []
+  const route = state.db.routeUnreadDirectMessagesToDispatchMailbox.bind(state.db)
+  vi.spyOn(state.db, 'routeUnreadDirectMessagesToDispatchMailbox').mockImplementation((...args) => {
+    const result = route(...args)
+    if (args[2] === H && !deleted) {
+      scopes.push([...state.runtime.messageWaitersByHandle.keys()])
+      const fields = { messageId: cards[0]! }
+      deleted = host.queuedMessageDelete(
+        { callerKey: 'real-client' },
+        {
+          ...fields,
+          envelope: {
+            sessionId: identity.sessionId,
+            clientOperationId: hostTestOperationId(),
+            expectedRuntimeFence: worker.fence,
+            payloadFingerprint: computeAgentSessionPayloadFingerprint({
+              method: 'agentSession.queuedMessageDelete',
+              sessionId: identity.sessionId,
+              fields
+            })
+          }
+        }
+      )
+    }
+    return result
+  })
+  const check = (ack?: string) =>
+    harness.call(
+      'orchestration.check',
+      { terminal: H, types: 'question', ...(ack ? { ack } : {}) },
+      state.ctx
+    )
+  const result = await check()
+  await deleted
+  expect(scopes).toEqual([expect.arrayContaining([H, identity.handle, `dispatch:${dispatchId}`])])
+  expect(result).toMatchObject({
+    count: 50,
+    messages: expect.arrayContaining([expect.objectContaining({ id: source.id })])
+  })
+  const receipt = (value: unknown): string => {
+    if (
+      value &&
+      typeof value === 'object' &&
+      'deliveryId' in value &&
+      typeof value.deliveryId === 'string'
+    ) {
+      return value.deliveryId
+    }
+    throw new Error('missing delivery receipt')
+  }
+  const first = receipt(result)
+  expect(await check()).toMatchObject({ deliveryId: first, replayed: true })
+  const tail = await check(first)
+  expect(tail).toMatchObject({ count: 2 })
+  expect(await check(receipt(tail))).toMatchObject({ count: 0 })
+  expect([source, ...routed].every((row) => state.db.getMessageById(row.id)?.read === 1)).toBe(true)
+  expect(
+    [H, identity.handle, `dispatch:${dispatchId}`].every(
+      (key) => !state.runtime.messageWaitersByHandle.has(key)
+    )
+  ).toBe(true)
+  expect(
+    store.readCommandReceipt({ kind: 'global' }, ordinaryMailCreationId(source))
+  ).toMatchObject({ verdict: 'absent' })
+  expect(worker.journal.queuedMessages.get(ordinaryMailCreationId(source))).toBeNull()
+})

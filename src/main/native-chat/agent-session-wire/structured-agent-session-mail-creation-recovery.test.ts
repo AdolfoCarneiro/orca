@@ -1,5 +1,8 @@
 import { join } from 'node:path'
-import { expect, it, vi } from 'vitest'
+import { createTestParams } from './structured-agent-session-create-test-fixture'
+import { MailDebts } from '../../runtime/orchestration/structured-mail-source-discovery'
+import { hostTestMessage } from './structured-agent-session-host-test-data'
+import { afterEach, expect, it, vi } from 'vitest'
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../shared/agent-session-journal-types'
 import { mailTestResources } from '../../runtime/orchestration/mail-handoff.test-fixture'
 import { observeMailSqlWork } from '../../runtime/orchestration/mail-sql-work.test-support'
@@ -25,6 +28,7 @@ import {
   openMailQueueSource
 } from './structured-agent-session-mail-queue.test-fixture'
 installMailQueueLifecycle()
+afterEach(() => vi.restoreAllMocks())
 it.each([100, 1000])(
   'reconciles a saved random batch through original receipt/member history N=%i after Delete and restart, without recreating either report',
   async (count) => {
@@ -267,8 +271,27 @@ it('retains no-target birth across source reopen, qualifies real home imports, a
   })
   expect(run).not.toHaveProperty('mail_creation_domain')
   bridge.resetForDatabaseChange()
+  const missed = db.insertMessage({
+    id: 'stable-missed-source',
+    runId: run.id,
+    from: 'worker',
+    to: 'consumer',
+    subject: 'already persisted missed source in genuine local Run',
+    type: 'escalation'
+  })
+  expect(
+    db.db.prepare('SELECT creation_proof FROM messages WHERE id = ?').get(missed.id)?.creation_proof
+  ).toBeNull()
   db.close()
   openMailQueueSource(path)
+  bridge.attachDatabase(db)
+  bridge.deliverForHandle('consumer')
+  const missedCard = await card(missed.id)
+  await eventually(async () => expect(await rig.handoff(missedCard)).toBeDefined())
+  await complete(await rig.handoffId(missedCard))
+  expect(
+    db.db.prepare('SELECT creation_proof FROM messages WHERE id = ?').get(missed.id)?.creation_proof
+  ).toContain(original!.storeId)
   const imported = db.importFederatedRelayItem({
     dispatchId: dispatch.id,
     sequence: 1,
@@ -311,3 +334,124 @@ it('retains no-target birth across source reopen, qualifies real home imports, a
   await clock.observe(100)
   expect(sends).not.toHaveBeenCalled()
 })
+
+it.each([100, 1000])(
+  'keeps U=%i protected inputs cold for unrelated actual creates/preambles and wakes a former-domain member at its current READ route',
+  async (count) => {
+    await rig.workingSend()
+    bridge.resetForDatabaseChange()
+    const sources = db.insertMessages(
+      Array.from({ length: count }, (_, n) => ({
+        id: hostTestOperationId(),
+        from: 'worker',
+        to: 'consumer',
+        subject: `protected-${n}`
+      }))
+    )
+    const first = sources[0]!
+    const receipt = vi.spyOn(rig.host.deps.store, 'readCommandReceipt')
+    const body = vi.spyOn(db, 'getMessageById')
+    const reads = observeMailSqlWork(
+      db.db,
+      (sql) =>
+        sql.trimStart().startsWith('SELECT id, run_id, sequence, type') &&
+        sql.includes('FROM messages'),
+      'id'
+    )
+    bridge.deliverForHandle('consumer')
+    await eventually(() => expect(reads.count()).toBe(count))
+    await clock.observe(200)
+    const baseline = {
+      probes: reads.count(),
+      body: body.mock.calls.length,
+      receipts: receipt.mock.calls.length
+    }
+    const selections = vi.spyOn(MailDebts.prototype, 'select')
+    const domainInventories = vi.spyOn(rig.host.deps.store, 'listConversations')
+    const create = async (id: string) => {
+      const params = createTestParams(undefined, {
+        envelope: {
+          sessionId: id,
+          clientOperationId: hostTestOperationId(),
+          expectedRuntimeFence: null,
+          payloadFingerprint: '0'.repeat(64)
+        }
+      })
+      expect(await rig.host.create({ callerKey: 'real-client' }, params)).toMatchObject({
+        ok: true
+      })
+    }
+    for (let n = 0; n < 10; n++) {
+      const id = `unrelated-X-${n}`
+      await create(id)
+      expect(
+        await sendAgentTurn({
+          kind: 'structured-session',
+          host: rig.host,
+          sessionId: id,
+          callerKey: `trusted-local:orchestration:dispatch-preamble-${n}`,
+          turn: {
+            body: hostTestMessage('Task preamble with no mail membership'),
+            operationId: hostTestOperationId(),
+            expectedRuntimeFence: rig.store.getRecord(id)!.lease.runtimeFence,
+            delivery: 'queue',
+            queueAlways: true
+          }
+        })
+      ).toMatchObject({ kind: 'queued' })
+      await clock.observe(20)
+    }
+    expect(reads.count()).toBe(baseline.probes)
+    expect(body).toHaveBeenCalledTimes(baseline.body)
+    expect(selections).not.toHaveBeenCalled()
+    expect(domainInventories).not.toHaveBeenCalled()
+    expect(db.getMessageById(first.id)?.delivered_at).toBeNull()
+    const former = 'original-D'
+    await create(former)
+    const from = structuredMailSource({
+      db,
+      mailboxHandle: 'former-route',
+      dispatchId: null,
+      message: first,
+      senderName: () => null
+    })
+    db.markAsRead([first.id])
+    const sends = vi.spyOn(rig.host, 'send')
+    expect(
+      await sendAgentTurn({
+        kind: 'structured-session',
+        host: rig.host,
+        sessionId: former,
+        callerKey: 'trusted-local:orchestration:original-domain',
+        turn: {
+          body: { ...hostTestMessage('original saved report'), from },
+          operationId: hostTestOperationId(),
+          expectedRuntimeFence: rig.store.getRecord(former)!.lease.runtimeFence,
+          delivery: 'queue',
+          queueAlways: true
+        }
+      })
+    ).toMatchObject({ kind: 'queued' })
+    await eventually(() =>
+      expect(db.getMessageById(first.id)).toMatchObject({
+        read: 1,
+        to_handle: 'consumer',
+        delivered_at: expect.any(String)
+      })
+    )
+    expect(sends).toHaveBeenCalledOnce()
+    expect(journal().queuedMessages.get(ordinaryMailCreationId(first))).toBeNull()
+    expect(db.getMessageById(sources[1]!.id)?.delivered_at).toBeNull()
+    console.info(
+      'original-domain-exact-work',
+      JSON.stringify({
+        count,
+        baseline,
+        finalProbes: reads.count(),
+        calls: reads.calls,
+        receiptsAfterNonmail: receipt.mock.calls.length - baseline.receipts
+      })
+    )
+    reads.restore()
+  }
+)

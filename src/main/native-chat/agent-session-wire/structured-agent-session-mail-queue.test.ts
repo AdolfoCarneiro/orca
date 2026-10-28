@@ -1,5 +1,8 @@
 import { orchestrationInboxMethod } from '../../runtime/rpc/methods/orchestration/messaging/inbox-method'
 import { expect, it, vi } from 'vitest'
+import { structuredWorkerIdentities } from '../../runtime/structured-worker-identity'
+import { createRootDispatch } from '../../runtime/orchestration/db/root-dispatch-test-fixture'
+import { escalateChatWorkerError } from '../../runtime/orchestration/chat-worker-error-escalation'
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../shared/agent-session-journal-types'
 import { agentJournalSubmissionKey } from '../../../shared/agent-session-journal-item-key'
 import { ordinaryMailCreationId } from '../../runtime/orchestration/structured-mailbox-pointer-delivery'
@@ -517,4 +520,198 @@ it('ordinary Edit and Delete capacity wakes skip a refused older report for a fr
     await complete(await rig.handoffId(waiting))
   }
   expect(rig.cancelTurn).toHaveBeenCalledTimes(1)
+})
+
+it('retains routed old IDs and a same-ID mutation across awaited acceptance and actual host replacement, then settles each report', async () => {
+  const working = await rig.workingSend()
+  const first = db.insertMessage({ from: 'worker', to: 'old-route', subject: 'first old ID' })
+  const second = db.insertMessage({ from: 'worker', to: 'old-route', subject: 'second old ID' })
+  // Complete the finite pass before these exact IDs become eligible below its frontier.
+  bridge.deliverForHandle('consumer')
+  await clock.observe(100)
+  const original = rig.host.send.bind(rig.host)
+  let release: (() => void) | undefined
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const paused = vi.spyOn(rig.host, 'send').mockImplementationOnce(async (...args) => {
+    await waiting
+    args[1].beforeRun?.()
+    return original(...args)
+  })
+  expect(db.routeDirectMessagePage('consumer', first.run_id, 'old-route').routedCount).toBe(2)
+  await eventually(() => expect(paused).toHaveBeenCalledOnce())
+  await rig.restartHostProcess()
+  setStructuredAgentSessionHost(rig.host)
+  installSourceCapture()
+  await rig.host.history({ sessionId: SESSION, direction: 'tail' })
+  db.db
+    .prepare('UPDATE messages SET subject = ? WHERE id = ?')
+    .run('newer same-ID content', first.id)
+  const current = vi.spyOn(rig.host, 'send')
+  bridge.deliverForHandle('consumer')
+  await clock.observe(50)
+  // The new leaf may offer the unvisited suffix but cannot duplicate the inflight identity.
+  expect(
+    current.mock.calls.filter(
+      ([, params]) => params.envelope.clientOperationId === ordinaryMailCreationId(first)
+    )
+  ).toHaveLength(0)
+  release?.()
+  const a = await card(first.id),
+    b = await card(second.id)
+  expect(journal().queuedMessages.get(a)?.body.blocks).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: 'text',
+        text: expect.stringContaining('newer same-ID content')
+      })
+    ])
+  )
+  const ids = journal()
+    .queuedMessages.list()
+    .filter((row) => row.messageId === a || row.messageId === b)
+    .map((row) => row.messageId)
+  expect(new Set(ids).size).toBe(2)
+  await complete(working)
+  expect(await rig.resume()).toMatchObject({ ok: true })
+  for (const id of ids) {
+    await eventually(async () =>
+      expect(await rig.handoff(id)).toMatchObject({ source: { kind: 'agent' } })
+    )
+    const submission = await rig.handoffId(id)
+    expect(submission).not.toBe(id)
+    await complete(submission)
+  }
+  expect(
+    db.db
+      .prepare('SELECT count(*) AS n FROM messages WHERE delivered_at IS NULL AND to_handle = ?')
+      .get('consumer')?.n
+  ).toBe(0)
+})
+
+it('qualifies a real automatic queued request in an old Run through its stable error observer, then creates one attributed full report turn', async () => {
+  const working = await rig.workingSend()
+  const run = db.createRun({
+    objective: 'preexisting Run',
+    coordinatorHandle: 'coordinator',
+    coordinatorPaneKey: null
+  })
+  db.db.prepare('UPDATE runs SET mail_creation_domain = NULL WHERE id = ?').run(run.id)
+  const identity = structuredWorkerIdentities.register({
+    handle: 'structworker_queue-birth',
+    sessionId: SESSION,
+    agent: 'codex',
+    paneKey: 'tab_worker:queue-birth',
+    processIncarnation: `structured:${SESSION}`,
+    worktreeId: 'workspace-1',
+    hostScope: { kind: 'local', hostId: 'local' }
+  })
+  try {
+    const dispatch = createRootDispatch(
+      db,
+      db.createTask({ runId: run.id, spec: 'existing task' }).id,
+      identity.handle,
+      identity.paneKey
+    )
+    const readCaptured = Promise.withResolvers<void>()
+    const releaseRead = Promise.withResolvers<void>()
+    rig.host.deps.onRequestFailure = (failure) => {
+      const read = failure.read
+      void escalateChatWorkerError(
+        {
+          ...failure,
+          read: async () => {
+            const snapshot = await read()
+            readCaptured.resolve()
+            await releaseRead.promise
+            return snapshot
+          }
+        },
+        {
+          db: () => db,
+          enabled: () => true,
+          notify: (mailbox) => {
+            db.routeDirectMessagePage('consumer', run.id, mailbox)
+          }
+        }
+      )
+    }
+    const person = rig.send('new request in existing Run', 'queue-if-active')
+    expect(await person.result).toMatchObject({ ok: true, value: { queued: {} } })
+    await complete(working)
+    await eventually(async () => expect(await rig.handoff(person.id)).toBeDefined())
+    const request = await rig.handoffId(person.id)
+    await rig.settleAccepted(request, 'new-request')
+    const turn = {
+      provider: 'codex' as const,
+      threadId: THREAD,
+      turnId: 'genuinely-new-request',
+      ordinal: 0
+    }
+    const failureBody = {
+      kind: 'turn' as const,
+      turnId: turn.turnId,
+      state: 'completed' as const,
+      outcome: 'failure' as const,
+      userItemId: agentJournalSubmissionKey(request)
+    }
+    await journal().appendItem(turn, failureBody, {
+      fence: rig.store.getRecord(SESSION)!.lease.runtimeFence,
+      turnScope: AGENT_JOURNAL_THREAD_SCOPE
+    })
+    await readCaptured.promise
+    // A later terminal publication cannot retire the capability held by the real ordered read.
+    await journal().appendItem(
+      turn,
+      { ...failureBody, outcome: 'success' },
+      {
+        fence: rig.store.getRecord(SESSION)!.lease.runtimeFence,
+        turnScope: AGENT_JOURNAL_THREAD_SCOPE
+      }
+    )
+    releaseRead.resolve()
+    await eventually(() =>
+      expect(
+        db.db
+          .prepare("SELECT count(*) AS n FROM messages WHERE run_id = ? AND type = 'escalation'")
+          .get(run.id)?.n
+      ).toBe(1)
+    )
+    const saved = db.db
+      .prepare("SELECT id FROM messages WHERE run_id = ? AND type = 'escalation'")
+      .get(run.id)
+    if (typeof saved?.id !== 'string') {
+      throw new Error('stable error source missing')
+    }
+    const message = db.getMessageById(saved.id)!
+    expect(message.from_handle).toBe(identity.handle)
+    expect(message.creation_proof).not.toBeNull()
+    const id = await card(message.id)
+    await eventually(async () =>
+      expect(await rig.handoff(id)).toMatchObject({ source: { kind: 'agent' } })
+    )
+    const reportAttempt = await rig.handoffId(id)
+    expect(reportAttempt).not.toBe(id)
+    await complete(reportAttempt)
+    // Same real request identity/state replay cannot mint a second report.
+    await journal().appendItem(turn, failureBody, {
+      fence: rig.store.getRecord(SESSION)!.lease.runtimeFence,
+      turnScope: AGENT_JOURNAL_THREAD_SCOPE
+    })
+    await clock.observe(100)
+    expect(
+      db.db
+        .prepare("SELECT count(*) AS n FROM messages WHERE run_id = ? AND type = 'escalation'")
+        .get(run.id)?.n
+    ).toBe(1)
+    expect(db.getDispatchContextById(dispatch.id)?.status).toBe(dispatch.status)
+    expect(
+      journal()
+        .queuedMessages.list()
+        .filter((row) => row.messageId === id)
+    ).toHaveLength(1)
+  } finally {
+    structuredWorkerIdentities.forget(identity.handle)
+  }
 })

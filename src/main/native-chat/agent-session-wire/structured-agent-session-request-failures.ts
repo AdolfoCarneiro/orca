@@ -1,3 +1,9 @@
+import {
+  submissionBirth,
+  forgetSubmissionBirths,
+  retireSubmissionBirth,
+  hasSubmissionBirths
+} from './structured-agent-session-request-birth'
 import type { AgentJournalSnapshot } from '../../../shared/agent-session-journal-types'
 import { agentTurnVerdict } from '../../../shared/agent-turn-outcome'
 import { isAgentSessionContextClear } from '../../../shared/agent-session-context-clear'
@@ -27,6 +33,7 @@ export type StructuredAgentSessionRequestFailure = {
   capturePendingOutput?: () => (() => boolean) | undefined
   death?: NonNullable<StructuredAgentSessionHostSession['lastEndedChild']> &
     AgentSessionFailureWordsContext
+  creationBirth?: { valid: () => boolean; consume: () => void }
   read: () => Promise<AgentJournalSnapshot | null>
 }
 
@@ -52,9 +59,17 @@ export class StructuredAgentSessionRequestFailures {
   ) {}
 
   forget = (sessionId: string): void => {
+    const journal = this.baselines.get(sessionId)?.journal
+    if (journal) {
+      forgetSubmissionBirths(journal)
+    }
     this.baselines.delete(sessionId)
   }
-  clear = (): void => this.baselines.clear()
+  clear = (): void => {
+    for (const id of this.baselines.keys()) {
+      this.forget(id)
+    }
+  }
 
   observe = (
     sessionId: string,
@@ -94,6 +109,7 @@ export class StructuredAgentSessionRequestFailures {
       cursor.sequence < baseline.sequence
     const historical = replaced || cleared
     if (historical) {
+      forgetSubmissionBirths(journal)
       // Context clear retires marks, while captured reads still belong to the held journal.
       baseline = Object.assign(replaced ? {} : (baseline ?? {}), {
         ...cursor,
@@ -210,6 +226,16 @@ export class StructuredAgentSessionRequestFailures {
     const key = `${request.kind}:${request.id}`
     const previous = baseline.marks.get(key)
     baseline.marks.set(key, request.mark)
+    if (
+      hasSubmissionBirths(baseline.journal) &&
+      request.kind === 'turn' &&
+      ['success', 'completed', 'interrupted'].includes(request.mark)
+    ) {
+      const opener = journalSubmissionForRequest(baseline.journal, request)
+      if (opener) {
+        retireSubmissionBirth(baseline.journal, opener)
+      }
+    }
     const outcome = request.mark
     if (
       historical ||
@@ -223,23 +249,38 @@ export class StructuredAgentSessionRequestFailures {
     const session = this.deps.sessions.get(sessionId)
     const child = session?.child
     const fence = journal.itemFence(request.id)
-    const opener = journal.canonicalItemId(
-      (request.kind === 'turn'
-        ? readAgentJournalTurn(journal.itemBody(request.id) ?? undefined)?.userItemId
-        : request.id) ?? ''
-    )
-    const { clientMessageId } =
-      journal
-        .submissions()
-        .find(({ clientMessageId: id }) => agentJournalSubmissionKey(id) === opener) ?? {}
+    const clientMessageId = journalSubmissionForRequest(journal, request)
     const generation = child?.fence === fence ? child?.generation : undefined
     const end = outcome === 'interruption' ? session?.lastEndedChild : undefined
+    const birth = clientMessageId ? submissionBirth(journal, clientMessageId) : undefined
+    const newRequest = () => {
+      const submission = clientMessageId ? journal.submission(clientMessageId) : undefined
+      return (
+        request.kind === 'refused-send' ||
+        submission?.dispatchState === 'accepted' ||
+        (submission?.answeredInTurn?.via === 'start' &&
+          journal.canonicalItemId(submission.answeredInTurn.turnItemId) === request.id)
+      )
+    }
     this.deps.onFailure({
       sessionId,
       agent: journal.agent,
       kind: request.kind,
       id: request.id,
       outcome,
+      ...(birth
+        ? {
+            creationBirth: {
+              valid: () =>
+                this.baselines.get(sessionId) === baseline &&
+                this.deps.sessions.get(sessionId)?.journal === journal &&
+                journal.epoch === epoch &&
+                newRequest() &&
+                birth.valid(),
+              consume: birth.consume
+            }
+          }
+        : {}),
       death: end && { ...end, ...this.deps.wordsContext?.(sessionId) },
       capturePendingOutput: () =>
         clientMessageId && generation && fence !== undefined
@@ -253,4 +294,18 @@ export class StructuredAgentSessionRequestFailures {
         )
     })
   }
+}
+
+function journalSubmissionForRequest(
+  journal: AgentSessionJournal,
+  request: Pick<StructuredAgentSessionRequestFailure, 'kind' | 'id'>
+): string | undefined {
+  const opener = journal.canonicalItemId(
+    (request.kind === 'turn'
+      ? readAgentJournalTurn(journal.itemBody(request.id) ?? undefined)?.userItemId
+      : request.id) ?? ''
+  )
+  return journal
+    .submissions()
+    .find(({ clientMessageId: id }) => agentJournalSubmissionKey(id) === opener)?.clientMessageId
 }
