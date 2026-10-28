@@ -48,6 +48,12 @@ export function createNativeHostMessageReader(
     return false
   }
 
+  const compactPending = (): void => {
+    if (pending.length === 1 && pendingBytes < pending[0].buffer.byteLength) {
+      pending = [Buffer.concat(pending, pendingBytes)]
+    }
+  }
+
   const readSize = (): number => {
     const head =
       pending[0].length >= HEADER_BYTES ? pending[0] : Buffer.concat(pending, HEADER_BYTES)
@@ -67,6 +73,7 @@ export function createNativeHostMessageReader(
           return fail(`message of ${size} bytes is over the 1 MB limit`)
         }
         if (pendingBytes < HEADER_BYTES + size) {
+          compactPending()
           return true
         }
         // Why concat only now: a 1 MB message arrives in many chunks; joining each time is quadratic.
@@ -82,6 +89,7 @@ export function createNativeHostMessageReader(
         }
         onMessage(json)
       }
+      compactPending()
       return true
     }
   }
