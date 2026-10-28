@@ -47,11 +47,12 @@ export function createClaudeStreamedThinking(deps: {
   sink: StructuredAgentSessionEventSink
   producer: ClaudeSubagentLinkageSource
   turnScope: () => AgentJournalTurnScope
+  openTurn: (frame: Record<string, unknown>, observedAt: number) => void
   coalesceMs?: number
   schedule?: AgentSessionDeltaCoalescerDeps['schedule']
 }) {
   const blocks = createClaudeStreamedBlockRegistry('thinking')
-  const open = new Map<string, { scope: string; startedAt: number }>()
+  const open = new Map<string, { scope: string }>()
   const checkpoints = createClaudeStreamedTextCheckpoints({
     ...(deps.coalesceMs === undefined ? {} : { coalesceMs: deps.coalesceMs }),
     ...(deps.schedule ? { schedule: deps.schedule } : {}),
@@ -62,12 +63,8 @@ export function createClaudeStreamedThinking(deps: {
         ended ? endedJournalReasoning(ended.completedAt) : { state: 'running' }
       )
       if (body) {
-        const startedAt = open.get(agentJournalItemKey(identity))?.startedAt
         const attribution = {
           ...options,
-          turnScope: deps.turnScope(),
-          // Preserve block start time despite delayed text or writes.
-          ...(startedAt === undefined ? {} : { observedAt: startedAt }),
           // Preserve terminal writes under pressure so reasoning cannot remain open.
           ...(ended ? { lifecycle: true } : {})
         }
@@ -98,14 +95,17 @@ export function createClaudeStreamedThinking(deps: {
       if (!delta) {
         return false
       }
+      deps.openTurn(frame, observedAt)
       const identity = delta.identity
       if (identity.provider === 'claude') {
         open.set(agentJournalItemKey(identity), {
-          scope: `${identity.sessionId}/${delta.parentToolUseId ?? ''}`,
-          startedAt: delta.startedAt
+          scope: `${identity.sessionId}/${delta.parentToolUseId ?? ''}`
         })
       }
-      checkpoints.append(identity, delta.text, delta.parentToolUseId)
+      checkpoints.append(identity, delta.text, delta.parentToolUseId, {
+        turnScope: deps.turnScope(),
+        observedAt: delta.startedAt
+      })
       return true
     },
     /** Close the streamed row if present; only streaming gives us an observed end time. */

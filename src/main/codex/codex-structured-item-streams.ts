@@ -12,6 +12,7 @@ import { codexJournalItem, codexStreamingJournalItem } from './codex-structured-
 import { withJournalReasoningLifecycle } from '../native-chat/agent-session-journal/journal-reasoning-row'
 import {
   codexStructuredItemKey,
+  codexStreamCheckpointDue,
   MAX_CODEX_ITEM_STREAM_PENDING_PATCHES,
   MAX_CODEX_ITEM_STREAM_PENDING_PATCH_BYTES,
   MAX_CODEX_ITEM_STREAM_RETAINED_BYTES,
@@ -123,14 +124,8 @@ export function createCodexStructuredItemStreams(
     return type === 'agentMessage' || type === 'reasoning'
   }
 
-  const shouldPersist = (key: string, textLength: number): boolean => {
-    if (isText(key)) {
-      return true
-    }
-    const checkpointLength = checkpointLengths.get(key) ?? 0
-    const nextLength = Math.max(checkpointLength + 32, Math.ceil(checkpointLength * 1.125))
-    return !(checkpointLength > 0 && textLength < nextLength)
-  }
+  const shouldPersist = (key: string, textLength: number): boolean =>
+    isText(key) || codexStreamCheckpointDue(checkpointLengths.get(key) ?? 0, textLength)
 
   const persist = (key: string, text: string, force: boolean): boolean => {
     if (!force && !shouldPersist(key, text.length)) {
@@ -180,7 +175,11 @@ export function createCodexStructuredItemStreams(
 
   const flush = (threadId?: string): boolean => {
     let flushed = coalescer.flushAll(
-      (key) => !isText(key) || threadId === undefined || producers.get(key)?.threadId === threadId
+      (key) =>
+        !isText(key) ||
+        !checkpointLengths.has(key) ||
+        threadId === undefined ||
+        producers.get(key)?.threadId === threadId
     )
     for (const key of pendingCheckpoints) {
       // flushAll already placed every stream's first row; re-saving other threads would bypass their cadence.

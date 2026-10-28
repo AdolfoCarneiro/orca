@@ -41,7 +41,8 @@ export type AgentSessionDeltaCoalescerDeps = {
 export type AgentSessionDeltaCoalescer = {
   /** False means a retained stream could not flush to admit this key. */
   append: (key: string, delta: string) => boolean
-  flush: (key: string) => boolean
+  /** Force also owes a clean snapshot again, for terminal metadata. */
+  flush: (key: string, force?: boolean) => boolean
   /** Lifecycle barriers flush every stream first. */
   flushAll: (include?: (key: string) => boolean) => boolean
   /** Authoritative bodies supersede buffered text; drop it without emission. */
@@ -104,7 +105,7 @@ export function createAgentSessionDeltaCoalescer(
       return false
     }
     stream.dirty = false
-    stream.lastAccepted = Date.now()
+    stream.lastAccepted = performance.now()
     return true
   }
 
@@ -116,8 +117,8 @@ export function createAgentSessionDeltaCoalescer(
         delay = Math.min(
           delay,
           interval !== undefined && stream.lastAccepted !== undefined
-            ? stream.lastAccepted + interval > Date.now()
-              ? stream.lastAccepted + interval - Date.now()
+            ? stream.lastAccepted + interval > performance.now()
+              ? stream.lastAccepted + interval - performance.now()
               : windowMs
             : windowMs
         )
@@ -130,11 +131,11 @@ export function createAgentSessionDeltaCoalescer(
     if (!Number.isFinite(delay)) {
       return
     }
-    if (cancelTimer && timerAt <= Date.now() + delay) {
+    if (cancelTimer && timerAt <= performance.now() + delay) {
       return
     }
     cancelTimer?.()
-    timerAt = Date.now() + delay
+    timerAt = performance.now() + delay
     cancelTimer = schedule(() => {
       cancelTimer = null
       timerAt = Number.POSITIVE_INFINITY
@@ -143,7 +144,7 @@ export function createAgentSessionDeltaCoalescer(
         if (
           interval === undefined ||
           stream.lastAccepted === undefined ||
-          Date.now() >= stream.lastAccepted + interval
+          performance.now() >= stream.lastAccepted + interval
         ) {
           flushKey(key)
         }
@@ -230,7 +231,11 @@ export function createAgentSessionDeltaCoalescer(
       scheduleFlush()
       return true
     },
-    flush: (key) => {
+    flush: (key, force = false) => {
+      const stream = streams.get(key)
+      if (stream && force) {
+        stream.dirty = true
+      }
       const accepted = flushKey(key)
       if (![...streams.values()].some((stream) => stream.dirty)) {
         cancelTimer?.()
@@ -288,7 +293,7 @@ export function createAgentSessionDeltaCoalescer(
       const stream = streams.get(key)
       if (stream) {
         stream.dirty = false
-        stream.lastAccepted = Date.now()
+        stream.lastAccepted = performance.now()
       }
     }
   }

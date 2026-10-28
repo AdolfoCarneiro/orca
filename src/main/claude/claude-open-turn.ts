@@ -1,3 +1,4 @@
+import { claudeProviderFrameActivity } from '../native-chat/agent-session-wire/provider-frame-activity'
 import type { AgentSessionContextUsage } from '../../shared/agent-session-context-usage'
 import { agentJournalItemKey } from '../../shared/agent-session-journal-item-key'
 import {
@@ -194,6 +195,17 @@ export class ClaudeOpenTurn {
   /** Keep failure suppression latched until a new accepted send. */
   suppressReopenOnFailure(failed: boolean): void {
     this.reopenSuppressed ||= failed
+  }
+
+  publishActivity(kind: string, payload: unknown): void {
+    const turnId = this.id
+    if (turnId === null) {
+      return
+    }
+    const text = claudeProviderFrameActivity(kind, payload)
+    if (text !== undefined) {
+      this.deps.sink.setActivity?.(text ? { turnId, text } : null)
+    }
   }
 
   private publish(

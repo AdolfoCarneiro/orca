@@ -815,3 +815,48 @@ describe('Codex streamed checkpoint admission', () => {
     translator.dispose()
   })
 })
+
+it.each([true, false])(
+  'orders the first other-thread text before a barrier, started=%s',
+  (started) => {
+    vi.useFakeTimers()
+    const tap = recorder()
+    const translator = createCodexJournalTranslator({ sink: tap.sink })
+    const child = (method: string, params: Record<string, unknown>) =>
+      translator.handle({
+        ...notification(method, params),
+        threadId: 'child-B'
+      })
+    const childRows = () => tap.rows.filter((row) => row.body.kind === 'message')
+    const startTool = (id: string) =>
+      translator.handle(
+        notification('item/started', {
+          item: { type: 'commandExecution', id, command: 'pwd', status: 'inProgress' }
+        })
+      )
+    try {
+      if (started) {
+        child('item/started', { item: { type: 'agentMessage', id: 'reply-B', text: '' } })
+      }
+      child('item/agentMessage/delta', { itemId: 'reply-B', delta: 'B spoke first' })
+      startTool('tool-A')
+      const first = [...new Map(tap.rows.map((row) => [row.key, row])).values()]
+      expect(first.slice(0, 2).map((row) => row.body.kind)).toEqual(['message', 'tool-call'])
+      expect(childRows()).toHaveLength(1)
+      for (let index = 0; index < 100; index++) {
+        child('item/agentMessage/delta', { itemId: 'reply-B', delta: 'x' })
+        startTool(`tool-A-${index}`)
+      }
+      expect(childRows()).toHaveLength(1)
+      vi.advanceTimersByTime(400)
+      expect(childRows()).toHaveLength(2)
+      expect(childRows()[1].body).toMatchObject({
+        blocks: [{ type: 'text', text: `B spoke first${'x'.repeat(100)}` }]
+      })
+      expect([...new Set(tap.rows.map((row) => row.key))][0]).toBe(first[0].key)
+    } finally {
+      translator.dispose()
+      vi.useRealTimers()
+    }
+  }
+)

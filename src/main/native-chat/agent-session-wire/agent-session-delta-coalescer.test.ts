@@ -314,3 +314,55 @@ it('keeps per-item deadlines while a newly arriving item gets its first 60 ms wi
     vi.useRealTimers()
   }
 })
+
+it('delivers the owed tail after 400 elapsed ms despite a backward wall-clock step', () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(300_000)
+  const emitted: string[] = []
+  const coalescer = createAgentSessionDeltaCoalescer({
+    checkpointMs: () => 400,
+    emit: (_key, text) => emitted.push(text)
+  })
+  try {
+    coalescer.append('reply', 'first')
+    vi.advanceTimersByTime(60)
+    expect(emitted).toEqual(['first'])
+    vi.setSystemTime(0)
+    coalescer.append('reply', ' tail')
+    vi.advanceTimersByTime(399)
+    expect(emitted).toEqual(['first'])
+    vi.advanceTimersByTime(1)
+    expect(emitted).toEqual(['first', 'first tail'])
+    expect(vi.getTimerCount()).toBe(0)
+  } finally {
+    coalescer.dispose()
+    vi.useRealTimers()
+  }
+})
+
+it('retains a forced terminal snapshot on refusal even when the capped stream was clean', () => {
+  const clock = manualClock()
+  const emitted: string[] = []
+  let refuse = false
+  const coalescer = createAgentSessionDeltaCoalescer({
+    maxRetainedBytes: 40,
+    schedule: clock.schedule,
+    emit: (_key, text) => {
+      if (refuse) {
+        return false
+      }
+      emitted.push(text)
+      return true
+    }
+  })
+  coalescer.append('reply', 'x'.repeat(100))
+  clock.fire()
+  refuse = true
+  expect(coalescer.flush('reply', true)).toBe(false)
+  expect(clock.pendingCount()).toBe(1)
+  refuse = false
+  clock.fire()
+  expect(emitted).toEqual([coalescer.snapshot('reply')?.text, coalescer.snapshot('reply')?.text])
+  expect(clock.pendingCount()).toBe(0)
+  coalescer.dispose()
+})

@@ -7,7 +7,6 @@ import {
   claudeStreamingMessageBody,
   type ClaudeToolUse
 } from './claude-structured-item-translation'
-import { claudeProviderFrameActivity } from '../native-chat/agent-session-wire/provider-frame-activity'
 import {
   claudeProviderFrameKind,
   createClaudeProviderFrameFallback,
@@ -51,7 +50,7 @@ export function createClaudeJournalTranslator(
   const coverage = createClaudeFinalOutputCoverage(deps.sink)
   deps = { ...deps, sink: coverage.sink }
   const tools = new Map<string, ClaudeToolUse>()
-  // Every row joins the root turn open when it is written, whoever produced it.
+  // Buffered rows retain the root turn open when their text arrived.
   const turnScope = () => turn.turnScope
   const prompts = new ClaudeJournalPrompts({
     ...deps,
@@ -63,7 +62,10 @@ export function createClaudeJournalTranslator(
     sink: deps.sink,
     // Keep existing stamps when superseding a turn ends pending attribution corrections.
     turnSuperseded: () => corrections.abandon(),
-    endOpenWork: (completedAt) => streamedThinking.finishOpen(completedAt),
+    endOpenWork: (completedAt) => {
+      streamedText.finish({ completedAt })
+      streamedThinking.finishOpen(completedAt)
+    },
     onOpen: () => context.markActivity()
   })
   const context = new ClaudeContextFacts(turn, deps.sink)
@@ -110,7 +112,6 @@ export function createClaudeJournalTranslator(
       const body = claudeStreamingMessageBody(text)
       const attribution = {
         ...options,
-        turnScope: turnScope(),
         ...(ended ? { lifecycle: true } : {})
       }
       return appendAgentSessionItemAndPublish(deps.sink, identity, body, attribution).accepted
@@ -119,22 +120,13 @@ export function createClaudeJournalTranslator(
   const streamedThinking = createClaudeStreamedThinking({
     ...deps,
     producer: subagents.linkage,
-    turnScope
+    turnScope,
+    openTurn: (frame, observedAt) =>
+      turn.ensureOpen(frame, claudeStreamTurnSource(frame), observedAt)
   })
   const flush = (): void => {
     streamedText.flush()
     streamedThinking.flush()
-  }
-
-  const publishActivity = (kind: string, payload: unknown): void => {
-    const turnId = turn.id
-    if (turnId === null) {
-      return
-    }
-    const text = claudeProviderFrameActivity(kind, payload)
-    if (text !== undefined) {
-      deps.sink.setActivity?.(text ? { turnId, text } : null)
-    }
   }
 
   const handleStream = (message: Record<string, unknown>, observedAt: number): boolean => {
@@ -145,7 +137,9 @@ export function createClaudeJournalTranslator(
       delta || thinking ? claudeStreamTurnSource(message) : claudeStreamTurnStartSource(message)
     turn.ensureOpen(message, source, observedAt)
     if (delta) {
-      streamedText.append(delta.identity, delta.text, delta.parentToolUseId)
+      streamedText.append(delta.identity, delta.text, delta.parentToolUseId, {
+        turnScope: turnScope()
+      })
     }
     return delta !== null || thinking
   }
@@ -254,7 +248,7 @@ export function createClaudeJournalTranslator(
           )
         }
         context.observeResponse(event.message, event.observedAt ?? Date.now())
-        publishActivity(kind, event.message)
+        turn.publishActivity(kind, event.message)
         // Idle also closes faults without a result; the live cause decides failed reopening.
         if (claudeSessionStateEndsTurn(event.message)) {
           corrections.abandon()
@@ -263,7 +257,7 @@ export function createClaudeJournalTranslator(
         }
       } else if (event.type === 'provider-frame') {
         providerFallback.append(event.kind, event.payload)
-        publishActivity(event.kind, event.payload)
+        turn.publishActivity(event.kind, event.payload)
       }
     },
     journalPrompts: prompts,

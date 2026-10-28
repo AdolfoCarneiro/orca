@@ -112,6 +112,46 @@ export function registerJournalRowWriterTests(): void {
       }
     )
 
+    it.each(['single', 'batch'] as const)(
+      'does constant predecessor work after N/10N unrelated items in a %s write',
+      async (kind) => {
+        const counts: number[] = []
+        for (const population of [100, 1000]) {
+          const { writer } = writerHarness()
+          for (let index = 0; index < population; index++) {
+            await writer.enqueue((seq) => textRow(seq, `reply-${population}-${index}`, 1))
+          }
+          const saved = Reflect.get(Reflect.get(writer, 'textPredecessors'), 'saved')
+          const items: Map<unknown, unknown> = saved.items
+          let visits = 0
+          const iterator = items[Symbol.iterator].bind(items)
+          const get = items.get.bind(items)
+          vi.spyOn(items, Symbol.iterator).mockImplementation(function* () {
+            for (const entry of iterator()) {
+              visits++
+              yield entry
+            }
+          })
+          vi.spyOn(items, 'get').mockImplementation((key) => {
+            visits++
+            return get(key)
+          })
+          const build = (seq: number) => ({ ...row(seq, 1), itemId: 'unrelated-status' })
+          await (kind === 'single' ? writer.enqueue(build) : writer.enqueueRows(() => [build]))
+          const revision = (seq: number) => textRow(seq, `reply-${population}-0`, 2)
+          await (kind === 'single'
+            ? writer.enqueue(revision)
+            : writer.enqueueRows(() => [revision]))
+          counts.push(visits)
+          vi.restoreAllMocks()
+          // Start the next independent writer sample with an empty row table.
+          database.db.prepare('DELETE FROM journal_rows WHERE session_id = ?').run(SESSION_ID)
+        }
+        expect(counts[0]).toBeLessThanOrEqual(2)
+        expect(counts[1]).toBe(counts[0])
+      }
+    )
+
     it('does not publish rolled-back predecessors when their sequence is reused', async () => {
       const { writer } = writerHarness()
       await writer.enqueue((seq) => textRow(seq))

@@ -10,6 +10,10 @@ type TextPredecessor = {
 }
 
 type TextPredecessors = { epoch: string | null; items: Map<string, TextPredecessor> }
+type StagedTextPredecessors = {
+  epoch: string | null
+  items: Map<string, TextPredecessor | null>
+}
 
 function predecessor(row: JournalRow): TextPredecessor | null {
   if (
@@ -46,8 +50,8 @@ export class JournalTextPredecessors {
 
   constructor(private readonly sessionId: string) {}
 
-  stage(db: Database.Database, rows: readonly JournalRow[]): TextPredecessors {
-    const staged = { epoch: this.saved.epoch, items: new Map(this.saved.items) }
+  stage(db: Database.Database, rows: readonly JournalRow[]): StagedTextPredecessors {
+    const staged: StagedTextPredecessors = { epoch: this.saved.epoch, items: new Map() }
     for (const row of rows) {
       if (row.epoch !== staged.epoch) {
         staged.items.clear()
@@ -57,9 +61,13 @@ export class JournalTextPredecessors {
         continue
       }
       const key = JSON.stringify([row.epoch, row.itemId])
-      const previous = staged.items.get(key)
+      const previous = staged.items.has(key)
+        ? staged.items.get(key)
+        : row.epoch === this.saved.epoch
+          ? this.saved.items.get(key)
+          : undefined
       const next = predecessor(row)
-      staged.items.delete(key)
+      staged.items.set(key, null)
       if (!next) {
         continue
       }
@@ -91,7 +99,16 @@ export class JournalTextPredecessors {
     return staged
   }
 
-  committed(staged: TextPredecessors): void {
-    this.saved = staged
+  committed(staged: StagedTextPredecessors): void {
+    if (staged.epoch !== this.saved.epoch) {
+      this.saved = { epoch: staged.epoch, items: new Map() }
+    }
+    for (const [key, value] of staged.items) {
+      if (value) {
+        this.saved.items.set(key, value)
+      } else {
+        this.saved.items.delete(key)
+      }
+    }
   }
 }
