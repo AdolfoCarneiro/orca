@@ -1,7 +1,9 @@
 import { expect, it, vi } from 'vitest'
 import { createTiptapMarkedFacade } from './tiptap-marked-facade'
+import { createOrcaDetailsExtensions } from './rich-markdown-details-extension'
 import {
   createMarkdownTokenizerStart,
+  createMarkdownTokenizerStartCursor,
   registerMarkdownTokenizerStart
 } from './markdown-tokenizer-start'
 
@@ -147,4 +149,52 @@ it('recognizes a suffix-start directive skipped by an earlier line-start search'
     { type: 'space', raw: '\n\n' },
     { type: 'directive', raw: ':::x' }
   ])
+})
+
+function getDetailsTokenizerStart() {
+  const tokenizer = createOrcaDetailsExtensions()[0].config.markdownTokenizer
+  if (!tokenizer || typeof tokenizer === 'function' || typeof tokenizer.start !== 'function') {
+    throw new Error('Details tokenizer must expose its start hint')
+  }
+  return tokenizer.start
+}
+
+it.each(['before', 'after'])(
+  'reuses a details start search across paragraphs %s its only HTML block',
+  (placement) => {
+    const marked = createTiptapMarkedFacade()
+    marked.use({
+      extensions: [
+        {
+          name: 'details',
+          level: 'block',
+          start: getDetailsTokenizerStart(),
+          tokenizer: () => undefined
+        }
+      ]
+    })
+    const prose = 'Prose\n\n'.repeat(1000)
+    const html = '<details>\nBody\n</details>\n\n'
+    const source = placement === 'before' ? `${prose}${html}` : `${html}${prose}`
+    const search = vi.spyOn(String.prototype, 'search')
+    try {
+      const tokens = marked.lexer(source)
+      expect(tokens.filter((token) => token.type === 'paragraph')).toHaveLength(1000)
+      expect(tokens.filter((token) => token.type === 'html')).toHaveLength(1)
+      expect(
+        search.mock.calls.filter(
+          ([pattern]) =>
+            pattern instanceof RegExp && pattern.source === String.raw`(?<=[\n\r] {0,3})<details\b`
+        )
+      ).toHaveLength(1)
+    } finally {
+      search.mockRestore()
+    }
+  }
+)
+
+it('rechecks details start hints when a suffix discards their lookbehind', () => {
+  const start = createMarkdownTokenizerStartCursor(getDetailsTokenizerStart())
+  const source = 'before\n   <details>\n\nnext\n<details>'
+  expect([0, 7, 10, 26].map((offset) => start(source.slice(offset)))).toEqual([10, 19, 16, -1])
 })
