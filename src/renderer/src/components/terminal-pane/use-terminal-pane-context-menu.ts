@@ -255,6 +255,7 @@ export function useTerminalPaneContextMenu({
       pane,
       tabId,
       transport: paneTransportsRef.current.get(pane.id),
+      forceBracketedMultilinePaste: forceBracketedMultilineTextPaste,
       onError: onPasteError
     })
   }
