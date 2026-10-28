@@ -15,6 +15,7 @@ export type LocalAgentInventoryLifecycle = {
   refreshPromises: Map<string, Promise<TuiAgent[]>>
   /** Refreshes sent as a user act; a background one may be refused for a stopped WSL distro. */
   wakeRefreshes: WeakSet<Promise<TuiAgent[]>>
+  wakeDetects: WeakSet<Promise<TuiAgent[]>>
   keptThroughFailure: WeakSet<TuiAgent[]>
   failedDetectContextKeys: Set<string>
   detectedContextKey: string | null

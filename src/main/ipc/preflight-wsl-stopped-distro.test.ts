@@ -5,10 +5,15 @@ const mocks = vi.hoisted(() => ({
   handlers: new Map<string, (event: unknown, args?: unknown) => Promise<unknown>>(),
   runWslProcess: vi.fn(),
   readWslDistroRunningState: vi.fn(),
+  deferred: new Map<string, () => unknown>(),
+  sent: vi.fn(),
   listWslDistrosAsync: vi.fn()
 }))
 
 vi.mock('electron', () => ({
+  BrowserWindow: {
+    getAllWindows: () => [{ isDestroyed: () => false, webContents: { send: mocks.sent } }]
+  },
   ipcMain: {
     handle: (channel: string, handler: (event: unknown, args?: unknown) => Promise<unknown>) =>
       mocks.handlers.set(channel, handler)
@@ -18,7 +23,9 @@ vi.mock('../wsl/wsl-runner', () => ({ runWslProcess: mocks.runWslProcess }))
 vi.mock('../wsl', () => ({ listWslDistrosAsync: mocks.listWslDistrosAsync }))
 vi.mock('../wsl-background-distro-gate', async (importOriginal) => ({
   ...(await importOriginal<typeof BackgroundDistroGate>()),
-  readWslDistroRunningState: mocks.readWslDistroRunningState
+  readWslDistroRunningState: mocks.readWslDistroRunningState,
+  deferUntilWslDistroRunning: (distro: string, key: string, task: () => unknown) =>
+    mocks.deferred.set(`${distro}:${key}`, task)
 }))
 vi.mock('../bitbucket/client', () => ({
   getBitbucketAuthStatus: async () => ({ configured: false, authenticated: false, account: null })
@@ -62,6 +69,8 @@ describe('preflight never starts a stopped WSL distro in the background (E9)', (
   beforeEach(() => {
     Object.defineProperty(process, 'platform', { configurable: true, value: 'win32' })
     mocks.handlers.clear()
+    mocks.deferred.clear()
+    mocks.sent.mockReset()
     _resetPreflightCache()
     mocks.readWslDistroRunningState.mockReset().mockResolvedValue('stopped')
     mocks.listWslDistrosAsync.mockReset().mockResolvedValue(['Ubuntu', 'Debian'])
@@ -130,6 +139,22 @@ describe('preflight never starts a stopped WSL distro in the background (E9)', (
     expect(mocks.runWslProcess).not.toHaveBeenCalled()
 
     await invoke('preflight:refreshAgents', { ...UBUNTU, wakeWslDistro: true })
+    expect(mocks.runWslProcess).toHaveBeenCalled()
+  })
+
+  it('defers a refused check until the distro runs, then tells renderers to re-ask', async () => {
+    await expect(invoke('preflight:detectAgents', UBUNTU)).rejects.toMatchObject({
+      code: 'WSL_DISTRO_STOPPED'
+    })
+    expect(mocks.sent).not.toHaveBeenCalled()
+    const retry = mocks.deferred.get('Ubuntu:preflight-refused')
+    expect(retry).toBeDefined()
+    retry?.()
+    expect(mocks.sent).toHaveBeenCalledWith('preflight:wslDistroRunning', 'Ubuntu')
+  })
+
+  it('lets an agent picker opening start the distro to list its agents', async () => {
+    await invoke('preflight:detectAgents', { ...UBUNTU, enabledOnly: true, wakeWslDistro: true })
     expect(mocks.runWslProcess).toHaveBeenCalled()
   })
 })

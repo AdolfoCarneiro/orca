@@ -27,6 +27,7 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
     detectPromises: new Map(),
     refreshPromises: new Map(),
     wakeRefreshes: new WeakSet(),
+    wakeDetects: new WeakSet(),
     keptThroughFailure: new WeakSet(),
     failedDetectContextKeys: new Set(),
     detectedContextKey: null,
@@ -51,11 +52,15 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
     },
     ensureAllDetectedAgents: (worktreeId?: string | null): Promise<TuiAgent[]> =>
       actions.ensureDetectedAgents(worktreeId, false, true),
+    ensureDetectedAgentsForPicker: (worktreeId?: string | null): Promise<TuiAgent[]> =>
+      actions.ensureDetectedAgents(worktreeId, false, false, { wakeWslDistro: true }),
     ensureDetectedAgents: (
       worktreeId?: string | null,
       nativeHost = false,
-      includeDisabled = false
+      includeDisabled = false,
+      options: LocalAgentRefreshOptions = {}
     ): Promise<TuiAgent[]> => {
+      const wake = options.wakeWslDistro === true
       const isolatedInventory =
         includeDisabled || nativeHost || worktreeId === FLOATING_TERMINAL_WORKTREE_ID
       const context = nativeHost
@@ -64,7 +69,8 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
       const contextKey = localAgentInventoryContextKey(context, includeDisabled)
       const existing = get().localDetectedAgentIdsByContext[contextKey]
       const inflightRefresh = lifecycle.refreshPromises.get(contextKey)
-      if (inflightRefresh) {
+      // A picker's wake must not ride a background probe that a stopped WSL distro refuses.
+      if (inflightRefresh && (!wake || lifecycle.wakeRefreshes.has(inflightRefresh))) {
         if (!isolatedInventory) {
           lifecycle.legacyRefreshContextKey = contextKey
         }
@@ -99,7 +105,7 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
         }
       }
       const inflight = lifecycle.detectPromises.get(contextKey)
-      if (inflight) {
+      if (inflight && (!wake || lifecycle.wakeDetects.has(inflight))) {
         exposeInflightToLegacy()
         return inflight
       }
@@ -120,8 +126,9 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
           [contextKey]: true
         }
       }))
+      const detectArgs = includeDisabled ? context : { ...context, enabledOnly: true }
       const pending = window.api.preflight
-        .detectAgents(includeDisabled ? context : { ...context, enabledOnly: true })
+        .detectAgents(wake ? { ...detectArgs, wakeWslDistro: true } : detectArgs)
         .then((ids) => {
           const typed = ids.filter(isTuiAgent)
           if (
@@ -177,6 +184,9 @@ export const createLocalDetectedAgentState: LocalDetectedAgentStateCreator = (se
             lifecycle.detectPromises.delete(contextKey)
           }
         })
+      if (wake) {
+        lifecycle.wakeDetects.add(pending)
+      }
       lifecycle.detectPromises.set(contextKey, pending)
       return pending
     },

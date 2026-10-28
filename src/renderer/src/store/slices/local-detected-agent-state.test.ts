@@ -121,6 +121,38 @@ describe('local detected agent context lifecycle', () => {
     await Promise.all([background, click, again])
   })
 
+  it('retries a refused list as a wake when an agent picker opens, without joining a background probe', async () => {
+    const store = createTestStore([makeRepo('repo-1')])
+    detectAgents.mockRejectedValueOnce(new Error("WSL distro 'Ubuntu' is not running."))
+    await store.getState().ensureDetectedAgents()
+    expect(store.getState().readLocalAgentInventory().state).toBe('failed')
+
+    let finishBackground: (ids: string[]) => void = () => {}
+    detectAgents
+      .mockReturnValueOnce(
+        new Promise<string[]>((resolve) => {
+          finishBackground = resolve
+        })
+      )
+      .mockResolvedValueOnce(['codex'])
+    const background = store.getState().ensureDetectedAgents()
+    const picker = store.getState().ensureDetectedAgentsForPicker()
+
+    expect(detectAgents).toHaveBeenCalledTimes(3)
+    expect(detectAgents).toHaveBeenLastCalledWith(expect.objectContaining({ wakeWslDistro: true }))
+    await expect(picker).resolves.toEqual(['codex'])
+    // The background probe settles later but no longer owns the context.
+    finishBackground([])
+    await background
+    expect(store.getState().readLocalAgentInventory()).toEqual({
+      ids: ['codex'],
+      state: 'successful'
+    })
+    // A known list is reused: opening the picker again probes nothing.
+    await store.getState().ensureDetectedAgentsForPicker()
+    expect(detectAgents).toHaveBeenCalledTimes(3)
+  })
+
   it('re-detects re-enabled agents and prevents pre-change requests from restoring caches', async () => {
     const store = createTestStore([])
     let finishOld: (ids: string[]) => void = () => {}

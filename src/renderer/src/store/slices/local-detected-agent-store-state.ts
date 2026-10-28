@@ -28,6 +28,8 @@ export type LocalDetectedAgentState = {
   ) => Promise<TuiAgent[]>
   ensureNativeDetectedAgents: () => Promise<TuiAgent[]>
   ensureDetectedAgents: (worktreeId?: string | null) => Promise<TuiAgent[]>
+  /** Opening an agent-launch picker is a user act: a list a stopped WSL distro refused may wake it. */
+  ensureDetectedAgentsForPicker: (worktreeId?: string | null) => Promise<TuiAgent[]>
   refreshDetectedAgents: (
     worktreeId?: string | null,
     options?: LocalAgentRefreshOptions

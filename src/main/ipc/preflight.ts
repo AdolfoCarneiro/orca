@@ -19,9 +19,10 @@ import type {
 import { readZCodeInteractiveCapability } from '../zcode/interactive-capability'
 import { getPreflightWslTarget } from './preflight-runtime-target'
 import { runAsWslExecUserAct } from '../wsl/wsl-background-exec-gate'
+import { deferRefusedPreflight } from './preflight-wsl-refusal-retry'
 
 type AgentDetectionRequest = PreflightRuntimeContext & { enabledOnly?: boolean }
-/** Set by a user act (window focus, a click) on the focused workspace: it may start its WSL distro. */
+/** Set by a user act (window focus, a click, opening a picker): it may start its WSL distro. */
 type PreflightWake = { wakeWslDistro?: boolean }
 
 function runPreflightAct<T>(
@@ -29,7 +30,9 @@ function runPreflightAct<T>(
   act: () => Promise<T>
 ): Promise<T> {
   const wslTarget = context?.wakeWslDistro ? getPreflightWslTarget(context) : null
-  return wslTarget ? runAsWslExecUserAct(wslTarget.distro, act) : act()
+  return deferRefusedPreflight(() =>
+    wslTarget ? runAsWslExecUserAct(wslTarget.distro, act) : act()
+  )
 }
 
 export function registerPreflightHandlers(store?: Pick<Store, 'getSettings'>): void {
@@ -52,12 +55,16 @@ export function registerPreflightHandlers(store?: Pick<Store, 'getSettings'>): v
     }
   )
 
-  // Detection runs on launch-surface mounts, never a user act: it must not start a stopped distro.
-  ipcMain.handle('preflight:detectAgents', async (_event, args?: AgentDetectionRequest) => {
-    const host: AgentDetectionHost = { kind: 'local', context: args }
-    await assertAgentDetectionHostRunning(host)
-    return detectAgentsOnHost(host, detectionOptions(args))
-  })
+  // Mount-time detection must not start a stopped distro; opening an agent picker wakes it.
+  ipcMain.handle(
+    'preflight:detectAgents',
+    async (_event, args?: AgentDetectionRequest & PreflightWake) =>
+      runPreflightAct(args, async () => {
+        const host: AgentDetectionHost = { kind: 'local', context: args }
+        await assertAgentDetectionHostRunning(host)
+        return detectAgentsOnHost(host, detectionOptions(args))
+      })
+  )
 
   ipcMain.handle('preflight:zcodeInteractiveCapability', async () =>
     readZCodeInteractiveCapability()

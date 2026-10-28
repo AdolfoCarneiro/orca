@@ -27,8 +27,14 @@ export const preflightApi = {
     }
     linear: { connected: boolean }
   }> => ipcRenderer.invoke('preflight:check', args),
-  detectAgents: (args?: PreflightRuntimeContext & { enabledOnly?: boolean }): Promise<string[]> =>
-    ipcRenderer.invoke('preflight:detectAgents', args),
+  detectAgents: (
+    args?: PreflightRuntimeContext & { enabledOnly?: boolean; wakeWslDistro?: boolean }
+  ): Promise<string[]> => ipcRenderer.invoke('preflight:detectAgents', args),
+  onWslDistroRunning: (callback: (distro: string) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, distro: string): void => callback(distro)
+    ipcRenderer.on('preflight:wslDistroRunning', listener)
+    return () => ipcRenderer.removeListener('preflight:wslDistroRunning', listener)
+  },
   zcodeInteractiveCapability: (): Promise<ZCodeInteractiveCapability> =>
     ipcRenderer.invoke('preflight:zcodeInteractiveCapability'),
   refreshAgents: (
