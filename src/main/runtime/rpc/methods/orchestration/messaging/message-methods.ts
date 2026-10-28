@@ -15,6 +15,7 @@ import { recordReceiptBeforeNudge, replayMutationNudge } from './mutation-replay
 import { resolveReplyRecipient } from './recipient-routing'
 import { helperQuestionAnswerer } from './helper-question-answerer'
 import { replyToRemoteRunHome } from './reply-remote'
+import { withAnswerNext } from '../receipt-next'
 import {
   ReplyParams,
   InboxParams,
@@ -112,11 +113,11 @@ export const ORCHESTRATION_MESSAGE_METHODS = [
           body: params.body
         })
         const federated = db.getFederatedDispatch(question.dispatch_id)
-        const receipt = {
+        const receipt = await withAnswerNext(runtime, run.id, {
           message: exposeMessage(answered.message),
           question: answered.question,
           duplicate: answered.duplicate
-        }
+        })
         if (federated) {
           db.enqueueFederationRelay({
             dispatchId: question.dispatch_id,

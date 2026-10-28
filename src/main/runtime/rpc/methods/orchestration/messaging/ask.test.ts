@@ -99,6 +99,25 @@ describe('orchestration RPC methods', () => {
         })
       ).rejects.toMatchObject({ code: 'answer_conflict' })
     })
+
+    it('says to end the turn after an answer only while the asking worker still runs', async () => {
+      setup()
+      const task = db.createTask({ spec: 'question work' })
+      const dispatch = createRootDispatch(db, task.id, 'term_worker')
+      const created = db.createQuestion({
+        runId: activeRunId!,
+        dispatchId: dispatch.id,
+        askerHandle: 'term_worker',
+        question: 'Proceed?'
+      })
+      vi.spyOn(runtime, 'notifyMessageArrived').mockImplementation(() => {})
+      const answer = () =>
+        call('orchestration.reply', { id: created.message.id, body: 'Yes', from: 'term_coord' })
+
+      expect(await answer()).toMatchObject({ next: expect.stringContaining('end your turn') })
+      db.failDispatch(dispatch.id, 'worker crashed')
+      expect(await answer()).not.toHaveProperty('next')
+    })
   })
 
   describe('orchestration.ask', () => {
