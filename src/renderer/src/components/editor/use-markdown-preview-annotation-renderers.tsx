@@ -70,21 +70,19 @@ export function useMarkdownPreviewAnnotationRenderers({
       const commentsForBlock = getMarkdownCommentsForRange(range)
 
       const handleSubmit = async (body: string): Promise<boolean> => {
-        const result = await addDiffComment({
-          worktreeId: sourceWorktree.id,
-          filePath: sourceRelativePath,
-          source: 'markdown',
-          startLine: range.startLine === range.endLine ? undefined : range.startLine,
-          lineNumber: range.endLine,
-          ...(annotationQuote ? { selectedText: annotationQuote } : {}),
-          body,
-          side: 'modified'
-        })
-        if (result) {
-          setActiveAnnotationBlockKey(null)
-          return true
-        }
-        return false
+        return finishMarkdownPreviewAnnotationSubmission(
+          addDiffComment({
+            worktreeId: sourceWorktree.id,
+            filePath: sourceRelativePath,
+            source: 'markdown',
+            startLine: range.startLine === range.endLine ? undefined : range.startLine,
+            lineNumber: range.endLine,
+            ...(annotationQuote ? { selectedText: annotationQuote } : {}),
+            body,
+            side: 'modified'
+          }),
+          setActiveAnnotationBlockKey
+        )
       }
 
       return (
@@ -254,3 +252,15 @@ export function useMarkdownPreviewAnnotationRenderers({
 export type MarkdownPreviewAnnotationRenderers = ReturnType<
   typeof useMarkdownPreviewAnnotationRenderers
 >
+
+async function finishMarkdownPreviewAnnotationSubmission(
+  save: ReturnType<MarkdownPreviewFoundation['addDiffComment']>,
+  setActiveAnnotationBlockKey: MarkdownPreviewFoundation['setActiveAnnotationBlockKey']
+): Promise<boolean> {
+  const result = await save
+  if (result) {
+    setActiveAnnotationBlockKey(null)
+    return true
+  }
+  return false
+}

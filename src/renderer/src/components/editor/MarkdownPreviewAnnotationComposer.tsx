@@ -1,5 +1,6 @@
 import { ImeTextarea } from '@/lib/ime-text-field'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { CornerDownLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useMountedRef } from '@/hooks/useMountedRef'
@@ -78,17 +79,17 @@ export function MarkdownPreviewAnnotationComposer({
     }
     setSubmitting(true)
     try {
-      const ok = await onSubmit(trimmed)
-      if (!mountedRef.current) {
-        return
-      }
-      if (ok) {
-        setBody('')
-      }
-    } finally {
+      return finishMarkdownPreviewComposerSubmission(
+        onSubmit(trimmed),
+        mountedRef,
+        setBody,
+        setSubmitting
+      )
+    } catch (error) {
       if (mountedRef.current) {
         setSubmitting(false)
       }
+      throw error
     }
   }
 
@@ -141,4 +142,25 @@ export function MarkdownPreviewAnnotationComposer({
       </div>
     </div>
   )
+}
+
+async function finishMarkdownPreviewComposerSubmission(
+  submission: Promise<boolean>,
+  mountedRef: RefObject<boolean>,
+  setBody: Dispatch<SetStateAction<string>>,
+  setSubmitting: Dispatch<SetStateAction<boolean>>
+): Promise<void> {
+  try {
+    const ok = await submission
+    if (!mountedRef.current) {
+      return
+    }
+    if (ok) {
+      setBody('')
+    }
+  } finally {
+    if (mountedRef.current) {
+      setSubmitting(false)
+    }
+  }
 }
