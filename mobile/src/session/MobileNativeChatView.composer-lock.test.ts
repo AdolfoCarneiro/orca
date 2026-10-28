@@ -225,11 +225,14 @@ describe('MobileNativeChatView: composer lock and prompt cards', () => {
       expect(composerHidden()).toBe(true)
     })
 
-    it('shows the composer for a collapsed card and while dictation runs', async () => {
+    it('shows the composer for a collapsed card and while dictation runs or lands', async () => {
       await render({ permission, collapsedPrompt: { title: 'Approve?', expand: () => {} } })
       expect(composerHidden()).toBe(false)
 
       await update({ permission, micActive: true })
+      expect(composerHidden()).toBe(false)
+
+      await update({ permission, micProcessing: true })
       expect(composerHidden()).toBe(false)
     })
   })

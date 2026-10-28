@@ -46,7 +46,7 @@ export function MobileNativeChatAsk({
   freeTextInputs
 }: Props): React.JSX.Element {
   useMobileColorScheme()
-  const { scrollRef, inputRef, revealReply } = useMobileNativeChatReplyScroll()
+  const { scrollRef, inputRef, revealReply, onViewportLayout } = useMobileNativeChatReplyScroll()
   const [index, setIndex] = useState(0)
   const [selections, setSelections] = useState<number[][]>(() => prompt.questions.map(() => []))
   const [otherText, setOtherText] = useState<string[]>(() =>
@@ -195,7 +195,7 @@ export function MobileNativeChatAsk({
 
       <ScrollView
         ref={scrollRef}
-        onLayout={revealReply}
+        onLayout={onViewportLayout}
         style={styles.scroll}
         keyboardShouldPersistTaps="always"
       >

@@ -30,7 +30,7 @@ export function MobileNativeChatQuestion({
   onCollapse
 }: Props): React.JSX.Element {
   useMobileColorScheme()
-  const { scrollRef, inputRef, revealReply } = useMobileNativeChatReplyScroll()
+  const { scrollRef, inputRef, revealReply, onViewportLayout } = useMobileNativeChatReplyScroll()
   const [selectedOptionIndexes, setSelectedOptionIndexes] = useState<number[]>([])
   const [freeText, setFreeText] = useState(() => question.freeTextInput?.initialValue ?? '')
   const [sending, setSending] = useState(false)
@@ -113,7 +113,7 @@ export function MobileNativeChatQuestion({
   return (
     <ScrollView
       ref={scrollRef}
-      onLayout={revealReply}
+      onLayout={onViewportLayout}
       style={styles.card}
       contentContainerStyle={styles.cardContent}
       keyboardShouldPersistTaps="handled"

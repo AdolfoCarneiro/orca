@@ -325,7 +325,7 @@ export function MobileNativeChatView({
   const promptShown = !collapsedPrompt && (ask ?? permission ?? question) != null
   const expandedPromptOwnsSend = !structuredActivityUi && promptShown
   const promptOwnsInput = useMobileNativeChatPromptInputOwner(
-    { promptShown, ask, askRequiresTerminal, permission, micActive },
+    { promptShown, ask, askRequiresTerminal, permission, micActive, micProcessing },
     inputRef
   )
   const emptyStateView = emptyState ? <MobileNativeChatEmptyStateView copy={emptyState} /> : null

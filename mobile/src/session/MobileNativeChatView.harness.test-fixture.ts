@@ -39,6 +39,7 @@ export type Overrides = {
   askRequiresTerminal?: boolean
   collapsedPrompt?: Parameters<typeof MobileNativeChatView>[0]['collapsedPrompt']
   micActive?: boolean
+  micProcessing?: boolean
   question?: Parameters<typeof MobileNativeChatView>[0]['question']
   permission?: Parameters<typeof MobileNativeChatView>[0]['permission']
   sendSurfaceId?: string
