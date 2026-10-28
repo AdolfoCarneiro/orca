@@ -79,10 +79,15 @@ const trafficMutations: ReadonlySet<keyof OrchestrationDb> = new Set([
 
 /** Wake after the synchronous outer mutation; nested writes coalesce and rolled-back reads compare equal. */
 export function attachCrewMutationNotifications(ctor: { prototype: object }): void {
-  // SAFETY: the database installer invokes this after installing the domain methods.
-  const prototype = ctor.prototype as OrchestrationDb
+  const prototype = ctor.prototype
+  if (
+    !hasDomainMethod(prototype, 'getOrCreateLocalMutationCallerFingerprint') ||
+    !hasDomainMethod(prototype, 'insertMessage')
+  ) {
+    throw new Error('Crew notifications require installed orchestration methods')
+  }
   const sourceIdentity = prototype.getOrCreateLocalMutationCallerFingerprint
-  prototype.getOrCreateLocalMutationCallerFingerprint = function () {
+  prototype.getOrCreateLocalMutationCallerFingerprint = function (this: OrchestrationDb) {
     const known = this.localMutationCallerFingerprint
     const result = sourceIdentity.call(this)
     if (!known) {
@@ -91,7 +96,7 @@ export function attachCrewMutationNotifications(ctor: { prototype: object }): vo
     return result
   }
   const insert = prototype.insertMessage
-  prototype.insertMessage = function (message) {
+  prototype.insertMessage = function (this: OrchestrationDb, message) {
     const result = insert.call(this, message)
     if (result.type !== 'heartbeat') {
       this.crewChanges.notify(new Set(['traffic']))
@@ -99,17 +104,15 @@ export function attachCrewMutationNotifications(ctor: { prototype: object }): vo
     return result
   }
   for (const name of mutations) {
-    const original = prototype[name]
-    if (typeof original !== 'function') {
+    if (!hasDomainMethod(prototype, name)) {
       continue
     }
+    const original = prototype[name]
     Object.defineProperty(ctor.prototype, name, {
       configurable: true,
       writable: true,
       value(this: OrchestrationDb, ...args: unknown[]) {
-        const invoke: (...values: never[]) => unknown = original
-        // SAFETY: the wrapper forwards the unmodified arguments to the selected domain method.
-        const result = invoke.apply(this, args as never[])
+        const result: unknown = Reflect.apply(original, this, args)
         if (
           typeof result === 'object' &&
           result !== null &&
@@ -124,4 +127,11 @@ export function attachCrewMutationNotifications(ctor: { prototype: object }): vo
       }
     })
   }
+}
+
+function hasDomainMethod<K extends keyof OrchestrationDb>(
+  prototype: object,
+  name: K
+): prototype is object & Pick<OrchestrationDb, K> {
+  return name in prototype && typeof Reflect.get(prototype, name) === 'function'
 }

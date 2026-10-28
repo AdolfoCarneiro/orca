@@ -196,12 +196,13 @@ export abstract class OrcaRuntimeWithAutomationOperations extends OrcaRuntimeWit
   }
 
   private readonly crewReadModel = new CrewReadModel(
-    () =>
+    (previous) =>
       readCrewRuntimeInputs(
         this,
         this._orchestrationDb,
         existsSync(this.orchestrationDbPath()),
-        getPublishedHostDescriptor(this.runtimeId)?.installationId ?? this.runtimeId
+        getPublishedHostDescriptor(this.runtimeId)?.installationId ?? this.runtimeId,
+        previous
       ),
     (wake) =>
       watchCrewRuntimeSources(

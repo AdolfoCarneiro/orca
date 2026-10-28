@@ -22,7 +22,11 @@ import {
   resolveTerminalOrchestrationCliCommand,
   runtimeOrchestrationCliCommand
 } from '../../orchestration/cli-command'
-import { readOrchestrationFleetAgentStatusSnapshot } from '../../orchestration-fleet-agent-status-snapshot'
+import {
+  readOrchestrationFleetAgentStatusSnapshot,
+  readAgentOrchestrationProjectionRecords,
+  readCapturedOrchestrationFleetAgentStatusSnapshot
+} from '../../orchestration-fleet-agent-status-snapshot'
 import { resolveStructuredWorkerAuthority } from '../../structured-worker-authority'
 import { isStructuredWorkerHandle } from '../../../../shared/structured-worker-handle'
 import { parseOrcaSessionAddress } from '../../../../shared/orca-session-address'
@@ -37,7 +41,8 @@ export abstract class OrcaRuntimeWithGetOrchestrationDispatchAuthority extends O
   ): string | null {
     const structured = resolveStructuredWorkerAuthority(
       handle,
-      this.getOrchestrationDbIfAvailable?.() ?? null
+      this.getOrchestrationDbIfAvailable?.() ?? null,
+      context?.structured
     )
     if (structured) {
       return structured.identity.processIncarnation
@@ -108,11 +113,13 @@ export abstract class OrcaRuntimeWithGetOrchestrationDispatchAuthority extends O
   }
 
   getOrchestrationDispatchAuthority(
-    terminalHandle: string
+    terminalHandle: string,
+    context?: TerminalIdentityReadContext
   ): OrchestrationCompatibilityTerminalAuthority | null {
     const structured = resolveStructuredWorkerAuthority(
       terminalHandle,
-      this.getOrchestrationDbIfAvailable?.() ?? null
+      this.getOrchestrationDbIfAvailable?.() ?? null,
+      context?.structured
     )
     if (structured) {
       return {
@@ -130,7 +137,7 @@ export abstract class OrcaRuntimeWithGetOrchestrationDispatchAuthority extends O
     let ptyId: string | null
     try {
       ptyId =
-        this.getLivePtyForHandle(terminalHandle)?.pty.ptyId ??
+        this.getLivePtyForHandle(terminalHandle, context)?.pty.ptyId ??
         this.resolveLiveLeafForHandle(terminalHandle)?.ptyId ??
         null
     } catch {
@@ -152,8 +159,8 @@ export abstract class OrcaRuntimeWithGetOrchestrationDispatchAuthority extends O
       terminalHandle,
       ptyId,
       worktreeId: pty.worktreeId,
-      processIncarnation: this.getTerminalProcessIncarnation(terminalHandle),
-      paneKey: this.paneOfPty(pty).paneKey,
+      processIncarnation: this.getTerminalProcessIncarnation(terminalHandle, context),
+      paneKey: (context ? context.paneOf(pty) : this.paneOfPty(pty)).paneKey,
       launchTokenHash: pty.launchToken
         ? createHash('sha256').update(pty.launchToken).digest('hex')
         : null,
@@ -239,8 +246,32 @@ export abstract class OrcaRuntimeWithGetOrchestrationDispatchAuthority extends O
     )
   }
 
-  getOrchestrationFleetAgentStatusSnapshot() {
-    return readOrchestrationFleetAgentStatusSnapshot(this)
+  getOrchestrationFleetAgentStatusSnapshot(context?: TerminalIdentityReadContext) {
+    if (!context) {
+      return readOrchestrationFleetAgentStatusSnapshot(this)
+    }
+    const dependencies = this.agentOrchestrationDependencies({
+      paneOf: (pty) => context.paneOf(pty),
+      issueLeafHandle: (leaf) => this.issueHandle(leaf, context),
+      issuePtyHandle: (pty) => this.issuePtyHandle(pty, context),
+      getWorktreeId: (handle) => this.getTerminalWorktreeIdForHandle(handle, context),
+      getHandleForPaneKey: (pane) => this.getTerminalHandleForPaneKey(pane, context),
+      getPaneKey: (handle) => this.getPaneKeyForTerminalHandle(handle, context),
+      getDispatchAuthority: (handle) => this.getOrchestrationDispatchAuthority(handle, context),
+      getSessionRecords: () => readAgentOrchestrationProjectionRecords(context)
+    })
+    return readCapturedOrchestrationFleetAgentStatusSnapshot(
+      {
+        getAgentStatusSnapshotFn: this.getAgentStatusSnapshotFn,
+        readObservedAgentStatusPaneIdentityFn: (pane) =>
+          this.readObservedAgentStatusPaneIdentityFn(pane),
+        getAgentStatusTerminalHandleForPaneKey: (pane) =>
+          this.getTerminalHandleForPaneKey(pane, context) ?? undefined,
+        getTerminalProcessIncarnation: (handle) =>
+          this.getTerminalProcessIncarnation(handle, context)
+      },
+      dependencies
+    )
   }
 
   getTerminalOrchestrationCliCommand(handle: string) {

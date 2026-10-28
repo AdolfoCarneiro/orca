@@ -83,7 +83,7 @@ it('shares complete host derivation across N/10N handled assignments and subscri
     const dependencies = vi.fn(() => deps)
     const watch = vi.fn(db.crewChanges.subscribe)
     const model = new CrewReadModel(dependencies, watch)
-    const publications = Array.from({ length: subscribers }, () => [] as OrchestrationCrewFrame[])
+    const publications = Array.from({ length: subscribers }, (): OrchestrationCrewFrame[] => [])
     const stops = publications.map((frames, i) =>
       subscribeCrew(
         () => model.read(i === 0 ? 'term_coord' : `orca_session_id:chat-empty-${i}`),

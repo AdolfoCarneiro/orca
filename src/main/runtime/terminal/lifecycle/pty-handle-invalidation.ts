@@ -22,6 +22,7 @@ export abstract class OrcaRuntimeWithInvalidateAllHandlesForPty extends OrcaRunt
   }
 
   protected invalidateAllHandlesForPty(ptyId: string, preserveHandle?: string): Set<string> {
+    const preservedRecord = preserveHandle !== undefined && this.handles.has(preserveHandle)
     const incarnationHandle = this.handleByPtyIncarnation.get(ptyId)?.handle
     const preallocatedHandle = this.handleByPtyId.get(ptyId)
     const invalidated = new Set<string>()
@@ -55,6 +56,9 @@ export abstract class OrcaRuntimeWithInvalidateAllHandlesForPty extends OrcaRunt
       // Only the direct alias survives incarnation changes; rebuild predecessor pane records before reuse.
       this.handles.delete(preserveHandle)
       this.syntheticTerminalHandles.delete(preserveHandle)
+    }
+    if (invalidated.size || preservedRecord) {
+      this.crewChanges.notify()
     }
     return invalidated
   }
@@ -145,6 +149,8 @@ export abstract class OrcaRuntimeWithInvalidateAllHandlesForPty extends OrcaRunt
   ): void {
     this.invalidatePtyControllerInventoryForLifecycle(ptyId)
     const existingPty = this.ptysById.get(ptyId)
+    const previousConnected = existingPty?.connected
+    const previousIncarnation = existingPty?.incarnationId
     if (
       existingPty &&
       incarnationId !== undefined &&
@@ -184,6 +190,9 @@ export abstract class OrcaRuntimeWithInvalidateAllHandlesForPty extends OrcaRunt
       }
       pty.connected = true
       pty.disconnectedAt = null
+      if (previousConnected !== pty.connected || previousIncarnation !== pty.incarnationId) {
+        this.crewChanges.notify()
+      }
     }
     for (const leaf of this.getLeavesForPty(ptyId)) {
       leaf.connected = true

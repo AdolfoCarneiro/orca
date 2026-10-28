@@ -200,8 +200,11 @@ export abstract class OrcaRuntimeWithAdoptTerminalOrphansFromInventory extends O
   // Dispatch uses remint-stable pane keys; unresolved handles return null so best-effort dispatch can proceed.
   getTerminalPaneKey(handle: string, context?: TerminalIdentityReadContext): string | null {
     return (
-      resolveStructuredWorkerAuthority(handle, this.getOrchestrationDbIfAvailable?.() ?? null)
-        ?.identity.paneKey ??
+      resolveStructuredWorkerAuthority(
+        handle,
+        this.getOrchestrationDbIfAvailable?.() ?? null,
+        context?.structured
+      )?.identity.paneKey ??
       this.getPaneKeyForTerminalHandle(handle, context) ??
       this.getOrchestrationCompatibilitySshTerminal(handle, context)?.paneKey ??
       null

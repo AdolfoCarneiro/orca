@@ -289,7 +289,7 @@ it.each([3, 30])(
       const stops = [db.crewChanges.subscribe(wake), sessionCrewChanges.subscribe(wake)]
       return () => stops.forEach((stop) => stop())
     })
-    const publications = Array.from({ length: population }, () => [] as OrchestrationCrewFrame[])
+    const publications = Array.from({ length: population }, (): OrchestrationCrewFrame[] => [])
     const stops = publications.map((frames, i) =>
       subscribeCrew(
         () => model.read(i === 0 ? 'term_coord' : `orca_session_id:chat-empty-${i}`),

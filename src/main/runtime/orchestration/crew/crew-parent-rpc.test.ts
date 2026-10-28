@@ -89,17 +89,16 @@ it('composes actual local and paired RPC claims in either order and preserves de
         parents.find((row) => row.sendAddress === 'run:run_remote_home')?.openTarget
       ).toBeUndefined()
       const client = new RuntimeClient('/tmp/crew-parent-routing', 1000, null, null)
-      vi.spyOn(client, 'call').mockImplementation(async <T>(method: string, params: unknown) => {
+      vi.spyOn(client, 'call').mockImplementation(async (method: string, params: unknown) => {
         const response = await h.dispatch(
           orchestrationRequest(method, z.record(z.string(), z.unknown()).parse(params))
         )
         if (!response.ok) {
           throw new RuntimeClientError(response.error.code, response.error.message)
         }
-        // SAFETY: the real dispatcher validates the result; only the in-memory CLI transport is substituted.
         return {
           ...response,
-          result: response.result as T,
+          result: response.result,
           _meta: { runtimeId: 'crew-parent-test' }
         }
       })

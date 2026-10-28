@@ -136,15 +136,14 @@ it('executes snapshot addresses through CLI send and the dispatcher into the pro
       ])
     )
     const client = new RuntimeClient('/tmp/crew-address-client', 1000, null, null)
-    vi.spyOn(client, 'call').mockImplementation(async <T>(method: string, params: unknown) => {
+    vi.spyOn(client, 'call').mockImplementation(async (method: string, params: unknown) => {
       const response = await h.dispatch(
         orchestrationRequest(method, z.record(z.string(), z.unknown()).parse(params))
       )
       if (!response.ok) {
         throw new RuntimeClientError(response.error.code, response.error.message)
       }
-      // SAFETY: the real dispatcher validates each method's result; this is only the in-memory transport boundary.
-      return { ...response, result: response.result as T, _meta: { runtimeId: 'crew-test' } }
+      return { ...response, result: response.result, _meta: { runtimeId: 'crew-test' } }
     })
     for (const to of addresses) {
       await dispatch(['orchestration', 'send'], {
@@ -300,9 +299,14 @@ it('keeps crew as the only observer for title, settings and mirrored-name source
     selection.mockClear()
     names.mockClear()
     // RuntimeClientEventBus is the real production filter. Crew is its only enrolled consumer.
-    // SAFETY: the protected method is this class's client-event publication boundary, exercised without OS input.
-    const events = runtime as unknown as {
-      emitClientEvent(event: RuntimeClientEvent): void
+    const publish: unknown = Reflect.get(runtime, 'emitClientEvent')
+    if (typeof publish !== 'function') {
+      throw new Error('Missing runtime client-event publication boundary')
+    }
+    const events = {
+      emitClientEvent: (event: RuntimeClientEvent): void => {
+        Reflect.apply(publish, runtime, [event])
+      }
     }
     events.emitClientEvent({
       type: 'terminalSideEffects',

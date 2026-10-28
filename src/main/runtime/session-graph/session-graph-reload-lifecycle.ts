@@ -123,6 +123,7 @@ export abstract class OrcaRuntimeWithHasTerminalsForWorktree extends OrcaRuntime
     }
     this.handles.clear()
     this.handleByLeafKey.clear()
+    this.crewChanges.notify()
     // Preserve CLI handles and incarnation waiters across reload; graph adoption may rejoin the same PTY.
     this.refreshWritableFlags()
     return revision

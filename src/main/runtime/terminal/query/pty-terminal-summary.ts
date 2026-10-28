@@ -1,4 +1,7 @@
-import { TerminalIdentityReadContext } from './terminal-identity-read-context'
+import {
+  TerminalIdentityRawInputs,
+  TerminalIdentityReadContext
+} from './terminal-identity-read-context'
 import { OrcaRuntimeWithGetPtyRecordForPaneKey } from '../../orchestration/terminal-pane-mail-routing'
 import type {
   RuntimeLeafRecord,
@@ -35,15 +38,14 @@ export abstract class OrcaRuntimeWithBuildPtyTerminalSummary extends OrcaRuntime
     leaf: RuntimeLeafRecord
   ): void
 
-  createTerminalIdentityReadContext(): TerminalIdentityReadContext {
-    return new TerminalIdentityReadContext({
-      handles: this.handles,
-      sshTerminals: this.orchestrationCompatibilitySshTerminals,
-      reverse: this.handleByPtyId,
-      leaves: this.leaves,
-      ptys: this.ptysById,
-      capturePaneOf: () => this.captureTerminalPaneReader()
-    })
+  createTerminalIdentityRawInputs(): TerminalIdentityRawInputs {
+    return new TerminalIdentityRawInputs(this.terminalIdentitySources())
+  }
+
+  createTerminalIdentityReadContext(
+    inputs?: TerminalIdentityRawInputs
+  ): TerminalIdentityReadContext {
+    return new TerminalIdentityReadContext(this.terminalIdentitySources(), inputs)
   }
 
   protected ptySurfaceTopology(): PtySurfaceTopology {
@@ -245,7 +247,11 @@ export abstract class OrcaRuntimeWithBuildPtyTerminalSummary extends OrcaRuntime
       return null
     }
     // Why: renderer adoption can race with CLI reads; keep ptyId → handle populated so summaries don't mint a second handle for the same terminal.
+    const previousHandle = this.handleByPtyId.get(record.ptyId)
     this.handleByPtyId.set(record.ptyId, handle)
+    if (previousHandle !== handle) {
+      this.crewChanges.notify()
+    }
     context?.changedReverseBinding(record.ptyId)
     return { record, pty }
   }
