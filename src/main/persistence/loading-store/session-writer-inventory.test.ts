@@ -411,4 +411,34 @@ describe('writer inventory native-root differential', () => {
     subtractOrcadMigrationClientState(state, manifest)
     verify(state, expected, prior, saved)
   })
+
+  it('leaf move retains an explicitly empty field when the last stale incarnation is retired', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(123456)
+    const live = initial().workspaceSession,
+      stale = structuredClone(live)
+    stale.terminalLayoutsByTabId.tab.ptyIdsByLeafId = { [leaf(1)]: 'stale' }
+    stale.terminalPtyIncarnationsByPaneKey = { [`tab:${leaf(1)}`]: 'old' }
+    const prior = freeze(stale),
+      saved = structuredClone(prior)
+    const planned = planTerminalLeafMove(
+      [
+        { hostId: 'local', session: freeze(live) },
+        { hostId: 'ssh:one', session: prior }
+      ],
+      {
+        worktreeId: GIT_KEY,
+        sourceTabId: 'tab',
+        targetTabId: 'next',
+        leafId: leaf(1),
+        ptyId: 'pty'
+      }
+    )
+    expect(planned.result).toStrictEqual({ status: 'moved', ptyId: 'pty' })
+    const next = planned.sessions.find((entry) => entry.hostId === 'ssh:one')!.session
+    const expected = { ...saved.terminalPtyIncarnationsByPaneKey }
+    delete expected[`tab:${leaf(1)}`]
+    expect(Object.hasOwn(next, 'terminalPtyIncarnationsByPaneKey')).toBe(true)
+    expect(next.terminalPtyIncarnationsByPaneKey).toStrictEqual(expected)
+    expect(prior).toStrictEqual(saved)
+  })
 })
