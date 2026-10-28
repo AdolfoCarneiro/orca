@@ -12451,9 +12451,7 @@
           "dataLoadFailed": "无法加载其文件"
         },
         "PluginSettingsOverview": {
-          "offTitle": "插件已关闭",
-          "turnOn": "开启插件",
-          "pausedCount": "已暂停 {{value0}} 个"
+          "offTitle": "插件已关闭"
         },
         "PluginFilterPopover": {
           "label": "筛选插件",

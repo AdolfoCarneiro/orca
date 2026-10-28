@@ -12418,9 +12418,7 @@
           "dataLoadFailed": "파일을 불러오지 못했습니다"
         },
         "PluginSettingsOverview": {
-          "offTitle": "플러그인이 꺼져 있습니다",
-          "turnOn": "플러그인 켜기",
-          "pausedCount": "{{value0}}개 일시 중지됨"
+          "offTitle": "플러그인이 꺼져 있습니다"
         },
         "PluginFilterPopover": {
           "label": "플러그인 필터",

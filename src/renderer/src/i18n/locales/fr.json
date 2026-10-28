@@ -12881,9 +12881,7 @@
           "dataLoadFailed": "Impossible de charger ses fichiers"
         },
         "PluginSettingsOverview": {
-          "offTitle": "Les plugins sont désactivés",
-          "turnOn": "Activer les plugins",
-          "pausedCount": "{{value0}} en pause"
+          "offTitle": "Les plugins sont désactivés"
         },
         "PluginFilterPopover": {
           "label": "Filtrer les plugins",

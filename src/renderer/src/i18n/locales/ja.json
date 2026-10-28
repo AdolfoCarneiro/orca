@@ -12418,9 +12418,7 @@
           "dataLoadFailed": "ファイルを読み込めませんでした"
         },
         "PluginSettingsOverview": {
-          "offTitle": "プラグインはオフです",
-          "turnOn": "プラグインをオンにする",
-          "pausedCount": "{{value0}} 件を一時停止中"
+          "offTitle": "プラグインはオフです"
         },
         "PluginFilterPopover": {
           "label": "プラグインを絞り込む",
