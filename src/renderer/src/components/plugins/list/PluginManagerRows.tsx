@@ -1,13 +1,4 @@
-import {
-  ArrowUpCircle,
-  Copy,
-  FileText,
-  Hash,
-  Loader2,
-  Power,
-  RotateCcw,
-  Trash2
-} from 'lucide-react'
+import { ArrowUpCircle, Copy, FileText, Hash, Loader2, RotateCcw, Trash2 } from 'lucide-react'
 import type { PluginHostListEntry } from '../../../../../preload/api-types'
 import { translate } from '@/i18n/i18n'
 import { Button } from '../../ui/button'
@@ -164,6 +155,7 @@ export function installedPluginControls(
     )
   }
 
+  const toggleItem = toggleInMenu && kind !== 'review' && kind !== 'invalid' && kind !== 'blocked'
   return {
     kind,
     statusText,
@@ -207,17 +199,6 @@ export function installedPluginControls(
     ),
     more: (
       <MoreButton name={plugin.name}>
-        {toggleInMenu && kind !== 'review' && kind !== 'invalid' && kind !== 'blocked' ? (
-          <DropdownMenuItem
-            disabled={!switchable}
-            onSelect={() => handlers.onToggleEnabled(plugin.pluginKey)}
-          >
-            <Power />
-            {enabled && !needsReview
-              ? translate('auto.components.settings.PluginCardAction.disable', 'Disable')
-              : translate('auto.components.settings.PluginCardAction.enable', 'Enable')}
-          </DropdownMenuItem>
-        ) : null}
         {inPage ? null : <DetailsItem onSelect={() => handlers.onOpen(plugin.pluginKey)} />}
         {plugin.hasWorker && !inPage ? (
           <DropdownMenuItem onSelect={() => handlers.onViewLogs(plugin.pluginKey)}>
@@ -247,7 +228,7 @@ export function installedPluginControls(
             )}
           </DropdownMenuItem>
         ) : null}
-        {plugin.source?.kind === 'marketplace' || removable || plugin.bundled ? (
+        {plugin.source?.kind === 'marketplace' || removable || plugin.bundled || toggleItem ? (
           <DropdownMenuSeparator />
         ) : null}
         {plugin.source?.kind === 'marketplace' ? (
@@ -255,6 +236,18 @@ export function installedPluginControls(
             pluginKey={plugin.pluginKey}
             onSelect={() => handlers.onRollbackRequest(plugin.pluginKey)}
           />
+        ) : null}
+        {toggleItem ? (
+          // Why inset, no icon: sits with Remove as a lifecycle action, text aligned with iconed rows.
+          <DropdownMenuItem
+            inset
+            disabled={!switchable}
+            onSelect={() => handlers.onToggleEnabled(plugin.pluginKey)}
+          >
+            {enabled && !needsReview
+              ? translate('auto.components.settings.PluginCardAction.disable', 'Disable')
+              : translate('auto.components.settings.PluginCardAction.enable', 'Enable')}
+          </DropdownMenuItem>
         ) : null}
         {removable ? (
           <DropdownMenuItem

@@ -415,6 +415,17 @@ describe('PluginManager catalog', () => {
     expect(onToggleEnabled).toHaveBeenCalledWith(listing.pluginKey)
   })
 
+  it('lists the card menu Disable directly above Remove, without an icon', async () => {
+    await render([installedPlugin(preview.contentHash)])
+    const remove = button('Remove…')
+    const menu = remove.parentElement
+    const items = Array.from(menu?.querySelectorAll(':scope > button') ?? [])
+    const disableIndex = items.findIndex((item) => item.textContent?.trim() === 'Disable')
+    expect(disableIndex).toBeGreaterThanOrEqual(0)
+    expect(items.indexOf(remove) - disableIndex).toBe(1)
+    expect(items[disableIndex]?.querySelector('svg')).toBeNull()
+  })
+
   it('offers Enable for one disabled plugin', async () => {
     await render([{ ...installedPlugin(preview.contentHash), status: 'disabled' }])
     expect(buttons('Enable')).toHaveLength(2)
