@@ -38,7 +38,9 @@ ORCA orchestration worker-start --spec "<task>" --worktree current --agent codex
 - Start every independent worker, tell the user what you started, then **end
   your turn**. "Report back" and "tell me when it's done" still mean end your
   turn; Orca wakes you and you report then.
-- If a receipt has `next`, do what it says.
+- If a receipt has `next`, do what it says. If a receipt has none while a
+  worker still runs, Orca may not wake you when it fails: block instead (see
+  the end of the next section).
 - `--worktree current` uses your workspace. Use a new one only when the user
   asks or sharing would conflict:
   `--worktree new-top-level --repo id:<repoId> --name <short-name>`
@@ -67,12 +69,11 @@ ORCA orchestration check --run <run_id> --json
   retry it, or tell the user.
 - Repeat `check` until `count` is 0. In a Task DAG, start newly ready Tasks
   (`references/coordinator-loop.md`).
-- Then follow `next`: end your turn while workers still run, or report to the
-  user when all have settled, per Task: outcome, evidence, open blockers. With
-  no `next`, follow each row's `nextAction` in
-  `worker-list --run <run_id> --include-remote --json`; if none needs action,
-  Orca may not wake you on a failure, so block (below) instead of ending your
-  turn.
+- When every worker has settled, report to the user per Task: outcome,
+  evidence, open blockers. Otherwise follow `next` (end your turn); with no
+  `next`, follow each row's `nextAction` in
+  `worker-list --run <run_id> --include-remote --json`, and block while any
+  worker still runs.
 
 Finished terminal workers close about 2 minutes after reporting (`autoReleaseAt`
 in `worker-list`). Release a chat worker, or a finished one with no
@@ -81,8 +82,8 @@ follow-up, run `ORCA orchestration worker-retain --dispatch <dispatch_id> --json
 first (`references/coordinator-loop.md`).
 
 Block with `check --run <run_id> --wait --timeout-ms 540000`, repeating as
-needed, only then, outside an Orca terminal or chat, or if the user says not to
-end your turn.
+needed, only when a receipt lacks `next` as above, outside an Orca terminal or
+chat, or if the user says not to end your turn.
 
 ## Task spec
 
