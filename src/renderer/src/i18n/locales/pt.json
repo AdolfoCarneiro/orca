@@ -7910,7 +7910,8 @@
             "install": "instalar plugin",
             "permissions": "permissões de plugin",
             "logs": "logs de plugin",
-            "development": "plugins de desenvolvimento"
+            "development": "plugins de desenvolvimento",
+            "aliases": "plugins extensões complementos mods extensions"
           }
         },
         "BrowserHomePageSetting": {

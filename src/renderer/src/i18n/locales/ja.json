@@ -11409,7 +11409,8 @@
             "install": "プラグインをインストール",
             "permissions": "プラグイン権限",
             "logs": "プラグインログ",
-            "development": "開発プラグイン"
+            "development": "開発プラグイン",
+            "aliases": "プラグイン 拡張機能 MOD plugins mods extensions"
           }
         },
         "LinearAgentSkillGuide": {

@@ -11860,7 +11860,8 @@
             "install": "installer le plugin",
             "permissions": "permissions du plugin",
             "logs": "logs du plugin",
-            "development": "plugins de développement"
+            "development": "plugins de développement",
+            "aliases": "plugins extensions mods modules"
           }
         },
         "LinearAgentSkillGuide": {

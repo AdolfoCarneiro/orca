@@ -11409,7 +11409,8 @@
             "install": "플러그인 설치",
             "permissions": "플러그인 권한",
             "logs": "플러그인 로그",
-            "development": "개발 플러그인"
+            "development": "개발 플러그인",
+            "aliases": "플러그인 확장 프로그램 모드 plugins mods extensions"
           }
         },
         "LinearAgentSkillGuide": {

@@ -11409,7 +11409,8 @@
             "install": "安装插件",
             "permissions": "插件权限",
             "logs": "插件日志",
-            "development": "开发插件"
+            "development": "开发插件",
+            "aliases": "插件 扩展 模组 plugins mods extensions"
           }
         },
         "LinearAgentSkillGuide": {

@@ -13,7 +13,9 @@ export const getPluginsPaneSearchEntries = createLocalizedCatalog((): SettingsSe
       translate('auto.components.settings.plugins.search.install', 'install plugin'),
       translate('auto.components.settings.plugins.search.permissions', 'plugin permissions'),
       translate('auto.components.settings.plugins.search.logs', 'plugin logs'),
-      translate('auto.components.settings.plugins.search.development', 'development plugins')
+      translate('auto.components.settings.plugins.search.development', 'development plugins'),
+      // Why one string: substring search finds mod/mods and extension/extensions alike.
+      translate('auto.components.settings.plugins.search.aliases', 'plugins mods extensions')
     ]
   }
 ])
