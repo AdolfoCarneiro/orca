@@ -98,6 +98,13 @@ async function openDock(onClosed = vi.fn()) {
   return { dock, guest, onClosed }
 }
 
+function captureFrame(view: (typeof electronMocks.views)[number]) {
+  const image = { isEmpty: () => false, toJPEG: vi.fn(() => Buffer.from('frame')) }
+  const capture = Promise.withResolvers<typeof image>()
+  view.host.capturePage.mockReturnValue(capture.promise)
+  return { image, finish: () => capture.resolve(image) }
+}
+
 describe('BrowserGuestDevToolsDock', () => {
   let children: unknown[]
 
@@ -139,19 +146,75 @@ describe('BrowserGuestDevToolsDock', () => {
     const { dock } = await openDock()
     await dock.setBounds(GUEST_ID, { x: 0, y: 0, width: 100, height: 100 }, false)
     const [view] = electronMocks.views
-    let finishCapture: (image: unknown) => void = () => {}
-    view.host.capturePage.mockReturnValue(
-      new Promise((resolve) => {
-        finishCapture = resolve
-      })
-    )
+    const capture = captureFrame(view)
 
     const hidden = dock.setBounds(GUEST_ID, null, true)
     await dock.setBounds(GUEST_ID, { x: 0, y: 0, width: 120, height: 100 }, false)
-    finishCapture({ isEmpty: () => false, toJPEG: () => Buffer.from('') })
+    capture.finish()
 
-    await expect(hidden).resolves.toBe('data:image/jpeg;base64,')
+    await expect(hidden).resolves.toBeNull()
+    expect(capture.image.toJPEG).not.toHaveBeenCalled()
     expect(view.visible).toBe(true)
+  })
+
+  it.each(['closed', 'reopened'])(
+    'drops a capture from a %s dock before encoding',
+    async (state) => {
+      const { dock, guest } = await openDock()
+      await dock.setBounds(GUEST_ID, { x: 0, y: 0, width: 100, height: 100 }, false)
+      const capture = captureFrame(electronMocks.views[0])
+      const hidden = dock.setBounds(GUEST_ID, null, true)
+
+      await dock.close(GUEST_ID)
+      if (state === 'reopened') {
+        await dock.open(asGuest(guest), vi.fn())
+        await dock.setBounds(GUEST_ID, { x: 0, y: 0, width: 120, height: 100 }, false)
+      }
+      capture.finish()
+
+      await expect(hidden).resolves.toBeNull()
+      expect(capture.image.toJPEG).not.toHaveBeenCalled()
+      if (state === 'reopened') {
+        expect(electronMocks.views[1].visible).toBe(true)
+      }
+    }
+  )
+
+  it('drops a replaced frontend capture while preserving the current hide request', async () => {
+    const { dock, guest, onClosed } = await openDock()
+    const bounds = { x: 10, y: 20, width: 100, height: 100 }
+    await dock.setBounds(GUEST_ID, bounds, false)
+    const capture = captureFrame(electronMocks.views[0])
+    const hidden = dock.setBounds(GUEST_ID, null, true)
+
+    guest.emit('render-process-gone')
+    guest.emit('dom-ready')
+    await tick()
+    capture.finish()
+
+    await expect(hidden).resolves.toBeNull()
+    expect(capture.image.toJPEG).not.toHaveBeenCalled()
+    const fresh = electronMocks.views[1]
+    expect(fresh.bounds).toEqual(bounds)
+    expect(fresh.visible).toBe(false)
+    expect(children).toEqual([fresh])
+    expect(onClosed).not.toHaveBeenCalled()
+    expect(dock.isDocked(GUEST_ID)).toBe(true)
+  })
+
+  it('returns the current frame and hides its view', async () => {
+    const { dock } = await openDock()
+    await dock.setBounds(GUEST_ID, { x: 0, y: 0, width: 100, height: 100 }, false)
+    const [view] = electronMocks.views
+    const capture = captureFrame(view)
+    const hidden = dock.setBounds(GUEST_ID, null, true)
+    capture.finish()
+
+    await expect(hidden).resolves.toBe(
+      `data:image/jpeg;base64,${Buffer.from('frame').toString('base64')}`
+    )
+    expect(capture.image.toJPEG).toHaveBeenCalledExactlyOnceWith(85)
+    expect(view.visible).toBe(false)
   })
 
   it('still hides the view when the snapshot capture fails', async () => {

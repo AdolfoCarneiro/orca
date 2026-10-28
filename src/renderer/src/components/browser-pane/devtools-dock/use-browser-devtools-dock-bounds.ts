@@ -18,6 +18,7 @@ export function useBrowserDevToolsDockBounds(
       return
     }
     let applied = ''
+    let requestGeneration = 0
     // Per frame: a pane can move without resizing, and overlays open without any event here.
     const sync = (): void => {
       const rect = placeholder.getBoundingClientRect()
@@ -37,11 +38,12 @@ export function useBrowserDevToolsDockBounds(
         return
       }
       applied = next
+      const generation = ++requestGeneration
       if (!visible || covered) {
         void window.api.browser
           .setDevToolsDockBounds({ browserPageId, bounds: null, snapshot: covered })
           .then((url) => {
-            if (url && applied === 'covered') {
+            if (url && generation === requestGeneration && applied === 'covered') {
               setSnapshot({ url, width: rect.width, height: rect.height })
             }
           })
@@ -56,6 +58,7 @@ export function useBrowserDevToolsDockBounds(
     const releaseSync = registerBrowserClientPagePositionSync(sync)
     sync()
     return () => {
+      requestGeneration++
       releaseSync()
       void window.api.browser.setDevToolsDockBounds({ browserPageId, bounds: null })
     }

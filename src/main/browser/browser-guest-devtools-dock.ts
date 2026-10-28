@@ -185,12 +185,17 @@ export class BrowserGuestDevToolsDock {
       dock.view.setVisible(true)
       return null
     }
+    const view = dock.view
     const host = dock.view.webContents
     // A host destroyed mid-capture rejects; hide anyway, without a snapshot.
     const image =
       snapshot && host && dock.view.getVisible() ? await host.capturePage().catch(() => null) : null
-    if (dock.boundsGeneration === generation) {
-      dock.view.setVisible(false)
+    if (this.docks.get(guestId) !== dock || dock.boundsGeneration !== generation) {
+      return null
+    }
+    dock.view.setVisible(false)
+    if (dock.view !== view) {
+      return null
     }
     // JPEG: it only shows under a backdrop or a drag, and encodes far faster than PNG.
     return image && !image.isEmpty()
