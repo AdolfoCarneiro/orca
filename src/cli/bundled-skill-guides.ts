@@ -2653,11 +2653,9 @@ const ORCHESTRATION_MESSAGING_AND_GATES_REFERENCE_MARKDOWN = [
   "",
   "- A `check` batch without `\"deliveryAcknowledged\": true` is not marked handled;",
   "  ack it with `check --ack <delivery_id>` or it comes back.",
-  "- A receipt without `next` means act on the result yourself; outside a wake,",
-  "  wait with `check --run <run_id> --wait --timeout-ms 540000`.",
-  "- If `worker-start --spec` fails with `run_required`, run",
-  "  `ORCA orchestration run-create --objective \"<goal>\" --json` first, then",
-  "  `task-create`, then `worker-start --task`.",
+  "- A receipt without `next` means act on the result yourself.",
+  "- If `worker-start` says the coordinator must be bound to a Run, run",
+  "  `ORCA orchestration run-create --objective \"<goal>\" --json`, then rerun it.",
   "",
 ].join('\n')
 
