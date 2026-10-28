@@ -33,10 +33,10 @@ import {
 let pendingQualification: { directory: string; key: string } | null = null
 
 /** Qualify packaged startup before touching profile indexes, data-root locks or imports. */
-export async function preflightBundledOrcadStartup(): Promise<void> {
+export async function preflightBundledOrcadStartup(): Promise<boolean> {
   const directory = resolveBundledOrcadSlot()
   if (!isRunningAsBundledOrcadRuntime(directory)) {
-    return
+    return false
   }
   const identity = await readInstalledVersion(directory)
   // Windows' child also proves the process identity table, which depends on host services.
@@ -46,7 +46,7 @@ export async function preflightBundledOrcadStartup(): Promise<void> {
       : await orcadStartupQualificationKey(directory, identity).catch(() => null)
   if (key && (await consumeOrcadStartupQualification(directory, key))) {
     pendingQualification = { directory, key }
-    return
+    return true
   }
   try {
     await runStartupPreflightChild(directory, identity)
@@ -57,6 +57,12 @@ export async function preflightBundledOrcadStartup(): Promise<void> {
     throw error
   }
   pendingQualification = key ? { directory, key } : null
+  return false
+}
+
+/** A launch whose node-pty probe did not pass must not let the next one skip either probe. */
+export function forgetBundledOrcadStartupQualification(): void {
+  pendingQualification = null
 }
 
 async function runStartupPreflightChild(directory: string, identity: string): Promise<void> {

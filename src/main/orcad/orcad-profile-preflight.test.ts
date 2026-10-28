@@ -9,6 +9,7 @@ import type * as BundledRuntime from './orcad-bundled-runtime'
 import { resolveOrcadExitCode } from './orcad-exit-code'
 import {
   confirmBundledOrcadStartupQualified,
+  forgetBundledOrcadStartupQualification,
   preflightBundledOrcadStartup,
   runOrcadProfilePreflight
 } from './orcad-profile-preflight'
@@ -243,6 +244,23 @@ describe('startup qualification on an unchanged host', () => {
     expect(fixture.recordQualification).not.toHaveBeenCalled()
     await confirmBundledOrcadStartupQualified()
     expect(fixture.recordQualification).toHaveBeenCalledExactlyOnceWith('/slot', 'key-1')
+  })
+
+  it('reports whether the slot was qualified from its marker', async () => {
+    fixture.consumeQualification.mockResolvedValue(true)
+    await expect(preflightBundledOrcadStartup()).resolves.toBe(true)
+    await confirmBundledOrcadStartupQualified()
+
+    fixture.consumeQualification.mockResolvedValue(false)
+    await expect(preflightBundledOrcadStartup()).resolves.toBe(false)
+  })
+
+  it('records nothing once a launch forgot its qualification (node-pty probe not ok)', async () => {
+    await preflightBundledOrcadStartup()
+    forgetBundledOrcadStartupQualification()
+    await confirmBundledOrcadStartupQualified()
+
+    expect(fixture.recordQualification).not.toHaveBeenCalled()
   })
 
   it('runs the preflight child without a matching marker, and records only after readiness', async () => {
