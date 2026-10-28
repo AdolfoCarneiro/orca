@@ -96,7 +96,7 @@ describe.skipIf(process.platform === 'win32')('registerWslHookFsHandlers (WSL fs
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Only request is used, forwarded to the production guest handlers.
     const mux = { request: call } as unknown as SshChannelMultiplexer
     const sftp = createWslHookSftpAdapter(mux)
-    const write = vi.spyOn(fs, 'writeFile')
+    const open = vi.spyOn(fs, 'open')
     const rename = vi.spyOn(fs, 'rename')
     const unlink = vi.spyOn(fs, 'unlink')
     const chmod = vi.spyOn(fs, 'chmod')
@@ -107,9 +107,9 @@ describe.skipIf(process.platform === 'win32')('registerWslHookFsHandlers (WSL fs
       const settings = { model: 'opus', permissions: { allow: ['Read'] } }
       await writeHooksJsonRemote(sftp, path, settings)
       expect(await readHooksJsonRemote(sftp, path)).toEqual(settings)
-      expect(mkdir).toHaveBeenCalledWith(custom)
+      expect(mkdir).toHaveBeenCalledWith(custom, { recursive: true })
       expect(statSync(path).mode & 0o777).toBe(0o600)
-      const temporary = write.mock.calls[0]?.[0]
+      const temporary = open.mock.calls[0]?.[0]
       expect(typeof temporary).toBe('string')
       expect(temporary).toEqual(expect.stringMatching(/\/missing\/\.[^/]+\.tmp$/))
       expect(stat).toHaveBeenCalledWith(path)
@@ -117,7 +117,7 @@ describe.skipIf(process.platform === 'win32')('registerWslHookFsHandlers (WSL fs
       expect(rename).toHaveBeenCalledExactlyOnceWith(temporary, path)
       expect(unlink).toHaveBeenCalledExactlyOnceWith(temporary)
       await writeHooksJsonRemote(sftp, path, settings)
-      expect(write).toHaveBeenCalledTimes(1)
+      expect(open).toHaveBeenCalledExactlyOnceWith(temporary, 'wx', 0o600)
       expect(rename).toHaveBeenCalledTimes(1)
       expect(unlink).toHaveBeenCalledTimes(1)
     } finally {

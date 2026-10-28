@@ -6,10 +6,12 @@
 import { resolveSystemClaudeHookTarget } from '../main/claude/claude-hook-target'
 import { promises as fs } from 'node:fs'
 import { posix } from 'node:path'
+import { writeHookFileAtomically } from './hook-file-atomic-write'
 
 import type { RelayDispatcher } from './dispatcher'
 import {
   WSL_HOOK_FS_METHODS,
+  type WslHookFsHome,
   type WslFsFailure,
   type WslFsResult
 } from '../shared/wsl-hook-relay-contract'
@@ -52,12 +54,9 @@ export function registerWslHookFsHandlers(
     throw Object.assign(new Error(`path outside hook roots: ${resolved}`), { code: 'EACCES' })
   }
 
-  dispatcher.onRequest(
-    WSL_HOOK_FS_METHODS.home,
-    async (): Promise<WslFsResult<{ home: string }>> => {
-      return { ok: true, home: homeRoot, ...linkStatus?.() }
-    }
-  )
+  dispatcher.onRequest(WSL_HOOK_FS_METHODS.home, async (): Promise<WslFsResult<WslHookFsHome>> => {
+    return { ok: true, home: homeRoot, ...linkStatus?.(), physicalAtomicWrite: true }
+  })
 
   dispatcher.onRequest(
     WSL_HOOK_FS_METHODS.readFile,
@@ -74,10 +73,11 @@ export function registerWslHookFsHandlers(
   dispatcher.onRequest(WSL_HOOK_FS_METHODS.writeFile, async (params): Promise<WslFsResult> => {
     try {
       const mode = typeof params.mode === 'number' ? params.mode : undefined
-      await fs.writeFile(await scoped(params.path), String(params.content ?? ''), {
-        encoding: 'utf8',
-        mode
-      })
+      const path = await scoped(params.path)
+      const content = String(params.content ?? '')
+      await (params.physicalAtomic === true
+        ? writeHookFileAtomically(path, content, mode)
+        : fs.writeFile(path, content, { encoding: 'utf8', mode }))
       return { ok: true }
     } catch (err) {
       return failure(err)

@@ -55,6 +55,9 @@ export type WslFsFailure = {
 }
 export type WslFsResult<T extends object = object> = ({ ok: true } & T) | WslFsFailure
 
+/** Opt-in publication is admitted only by the current mux's home response. */
+export type WslHookFsHome = { home: string; physicalAtomicWrite?: true }
+
 /** Where the guest relay publishes its endpoint file. Keyed by the stable
  *  instance key (restart-stable, instance-unique), so a restarted instance's
  *  relay REWRITES the same file that surviving agents' env already names —
