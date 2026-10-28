@@ -64,8 +64,18 @@ export async function getPRByNumber(
       knownPullRequestData === undefined
         ? await readPullRequestSidebarQuery(ownerRepo, number, ghOptions)
         : undefined
+    if (sidebarData === null) {
+      return null
+    }
     if (sidebarData) {
-      return hydratePullRequestLookupData(ownerRepo, sidebarData, ghOptions, executionScope)
+      const { stack, ...prData } = sidebarData
+      const hydrated = await hydratePullRequestLookupData(
+        ownerRepo,
+        prData,
+        ghOptions,
+        executionScope
+      )
+      return { ...hydrated, ...(stack ? { stack } : {}) }
     }
     noteRepositoryRateLimitSpend(ownerRepo, 'graphql', 1, ghOptions)
     const { stdout } = await ghExecFileAsync(

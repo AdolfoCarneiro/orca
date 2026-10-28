@@ -65,7 +65,12 @@ const commitsSchema = z.object({
     .max(1)
 })
 const errorsSchema = z
-  .array(z.object({ path: z.array(z.union([z.string(), z.number()])).optional() }))
+  .array(
+    z.object({
+      type: z.string().optional(),
+      path: z.array(z.union([z.string(), z.number()])).optional()
+    })
+  )
   .optional()
 
 const pullRequestSchema = z.object({
@@ -99,6 +104,10 @@ const envelopeSchema = z.object({
   data: z.object({ repository: z.object({ pullRequest: pullRequestSchema }) }),
   errors: errorsSchema
 })
+const missingEnvelopeSchema = z.object({
+  data: z.object({ repository: z.object({ pullRequest: z.null() }) }),
+  errors: errorsSchema
+})
 const checksEnvelopeSchema = z.object({
   data: z.object({
     repository: z.object({
@@ -114,7 +123,7 @@ async function readQuery(
   options: GhExecOptions,
   query: string,
   cursor?: string
-): Promise<unknown> {
+): Promise<{ payload: unknown; failure?: { error: unknown } }> {
   noteRepositoryRateLimitSpend(repository, 'graphql', 1, options)
   const args = [
     'api',
@@ -132,92 +141,122 @@ async function readQuery(
     args.push('-f', `checksCursor=${cursor}`)
   }
   let stdout: string
+  let failure: { error: unknown } | undefined
   try {
     stdout = (await ghExecFileAsync(args, { ...options, ...githubHostExecOptions(repository) }))
       .stdout
   } catch (error) {
+    failure = { error }
     stdout = extractExecError(error).stdout
   }
-  return JSON.parse(stdout)
+  try {
+    return { payload: JSON.parse(stdout), failure }
+  } catch {
+    return { payload: undefined, failure }
+  }
 }
 
 export async function readPullRequestSidebarQuery(
   repository: GitHubApiRepository,
   number: number,
   options: GhExecOptions
-): Promise<PullRequestLookupData | undefined> {
+): Promise<PullRequestLookupData | null | undefined> {
   if (repository.host?.toLowerCase() !== 'github.com') {
     return undefined
   }
-  try {
-    const envelope = envelopeSchema.parse(
-      await readQuery(repository, number, options, SIDEBAR_QUERY)
+  const response = await readQuery(repository, number, options, SIDEBAR_QUERY)
+  const missing = missingEnvelopeSchema.safeParse(response.payload)
+  if (
+    missing.success &&
+    missing.data.errors?.length &&
+    missing.data.errors.every(
+      ({ type, path }) =>
+        type === 'NOT_FOUND' &&
+        path?.length === 2 &&
+        path[0] === 'repository' &&
+        path[1] === 'pullRequest'
     )
-    const stackErrors = envelope.errors ?? []
+  ) {
+    return null
+  }
+  const parsed = envelopeSchema.safeParse(response.payload)
+  if (!parsed.success) {
+    if (response.failure) {
+      throw response.failure.error
+    }
+    return undefined
+  }
+  const envelope = parsed.data
+  const stackErrors = envelope.errors ?? []
+  if (
+    stackErrors.some(
+      ({ path }) =>
+        path?.[0] !== 'repository' ||
+        path[1] !== 'pullRequest' ||
+        (path[2] !== 'stack' && path[2] !== 'stackEntry')
+    )
+  ) {
+    if (response.failure) {
+      throw response.failure.error
+    }
+    return undefined
+  }
+  const pr = envelope.data.repository.pullRequest
+  if (pr.number !== number) {
+    return undefined
+  }
+  let contexts = pr.commits.nodes[0]?.commit.statusCheckRollup?.contexts
+  const statusCheckRollup = contexts?.nodes.flatMap((node) => (node ? [node] : [])) ?? []
+  const cursors = new Set<string>()
+  while (contexts?.pageInfo.hasNextPage) {
+    const cursor = contexts.pageInfo.endCursor
+    if (!cursor || cursors.has(cursor)) {
+      return undefined
+    }
+    cursors.add(cursor)
+    const page = await readQuery(repository, number, options, CHECKS_QUERY, cursor)
+    if (page.failure) {
+      throw page.failure.error
+    }
+    const parsedPage = checksEnvelopeSchema.safeParse(page.payload)
+    if (!parsedPage.success) {
+      return undefined
+    }
+    const next = parsedPage.data
     if (
-      stackErrors.some(
-        ({ path }) =>
-          path?.[0] !== 'repository' ||
-          path[1] !== 'pullRequest' ||
-          (path[2] !== 'stack' && path[2] !== 'stackEntry')
-      )
+      next.errors?.length ||
+      next.data.repository.pullRequest.number !== number ||
+      next.data.repository.pullRequest.commits.nodes[0]?.commit.oid !==
+        pr.commits.nodes[0]?.commit.oid
     ) {
       return undefined
     }
-    const pr = envelope.data.repository.pullRequest
-    if (pr.number !== number) {
+    contexts = next.data.repository.pullRequest.commits.nodes[0]?.commit.statusCheckRollup?.contexts
+    if (!contexts) {
       return undefined
     }
-    let contexts = pr.commits.nodes[0]?.commit.statusCheckRollup?.contexts
-    const statusCheckRollup = contexts?.nodes.flatMap((node) => (node ? [node] : [])) ?? []
-    const cursors = new Set<string>()
-    while (contexts?.pageInfo.hasNextPage) {
-      const cursor = contexts.pageInfo.endCursor
-      if (!cursor || cursors.has(cursor)) {
-        return undefined
-      }
-      cursors.add(cursor)
-      const next = checksEnvelopeSchema.parse(
-        await readQuery(repository, number, options, CHECKS_QUERY, cursor)
-      )
-      if (
-        next.errors?.length ||
-        next.data.repository.pullRequest.number !== number ||
-        next.data.repository.pullRequest.commits.nodes[0]?.commit.oid !==
-          pr.commits.nodes[0]?.commit.oid
-      ) {
-        return undefined
-      }
-      contexts =
-        next.data.repository.pullRequest.commits.nodes[0]?.commit.statusCheckRollup?.contexts
-      if (!contexts) {
-        return undefined
-      }
-      statusCheckRollup.push(...contexts.nodes.flatMap((node) => (node ? [node] : [])))
-    }
-    const stack = stackSchema.safeParse(pr.stack)
-    const entry = stackEntrySchema.safeParse(pr.stackEntry)
-    const validStack = stack.success && entry.success && entry.data.position <= stack.data.size
-    const stackMetadataChecked =
-      stackErrors.length === 0 && ((pr.stack === null && pr.stackEntry === null) || validStack)
-    const { commits: _commits, stackEntry: _stackEntry, ...metadata } = pr
-    return {
-      ...metadata,
-      baseRefOid: pr.baseRefOid ?? undefined,
-      headRefOid: pr.headRefOid ?? undefined,
-      statusCheckRollup,
-      stackMetadataChecked,
-      stack:
-        stackMetadataChecked && validStack
-          ? {
-              number: stack.data.number,
-              size: stack.data.size,
-              position: entry.data.position,
-              baseRefName: stack.data.baseRefName
-            }
-          : undefined
-    }
-  } catch {
-    return undefined
+    statusCheckRollup.push(...contexts.nodes.flatMap((node) => (node ? [node] : [])))
+  }
+  const stack = stackSchema.safeParse(pr.stack)
+  const entry = stackEntrySchema.safeParse(pr.stackEntry)
+  const validStack = stack.success && entry.success && entry.data.position <= stack.data.size
+  const stackMetadataChecked =
+    stackErrors.length === 0 && ((pr.stack === null && pr.stackEntry === null) || validStack)
+  const { commits: _commits, stackEntry: _stackEntry, ...metadata } = pr
+  return {
+    ...metadata,
+    baseRefOid: pr.baseRefOid ?? undefined,
+    headRefOid: pr.headRefOid ?? undefined,
+    statusCheckRollup,
+    stackMetadataChecked,
+    stack:
+      stackMetadataChecked && validStack
+        ? {
+            number: stack.data.number,
+            size: stack.data.size,
+            position: entry.data.position,
+            baseRefName: stack.data.baseRefName
+          }
+        : undefined
   }
 }

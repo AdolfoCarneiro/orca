@@ -86,6 +86,82 @@ beforeEach(() => {
 })
 
 describe('sidebar PR query', () => {
+  it.each(['HTTP 401: Bad credentials', 'HTTP 429: secondary rate limit', 'ETIMEDOUT'])(
+    'uses REST recovery directly after %s without another GraphQL attempt',
+    async (message) => {
+      exec.mockImplementation(async (args: string[]) => {
+        if (args.includes('graphql') || args[0] === 'pr') {
+          throw new Error(message)
+        }
+        return restResponse()
+      })
+      await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toMatchObject({
+        number: 42
+      })
+      expect(exec).toHaveBeenCalledTimes(2)
+      expect(exec.mock.calls[1][0]).toContain('repos/acme/widgets/pulls/42')
+      expect(spend.mock.calls.filter(([, bucket]) => bucket === 'graphql')).toHaveLength(1)
+    }
+  )
+
+  it.each([true, false])(
+    'accepts a scoped NOT_FOUND response without another request (nonzero exit: %s)',
+    async (failed) => {
+      const missing = {
+        stdout: JSON.stringify({
+          data: { repository: { pullRequest: null } },
+          errors: [{ type: 'NOT_FOUND', path: ['repository', 'pullRequest'] }]
+        })
+      }
+      if (failed) {
+        exec.mockRejectedValueOnce({ code: 1, ...missing })
+      } else {
+        exec.mockResolvedValueOnce(missing)
+      }
+      await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toBeNull()
+      expect(exec).toHaveBeenCalledTimes(1)
+      expect(spend).toHaveBeenCalledTimes(1)
+    }
+  )
+
+  it('uses REST recovery directly if a continuation request fails', async () => {
+    exec
+      .mockResolvedValueOnce(response({ ...fields, commits: commits([successCheck], 'next') }))
+      .mockRejectedValueOnce(new Error('ETIMEDOUT'))
+      .mockResolvedValueOnce(restResponse())
+    await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toMatchObject({
+      number: 42
+    })
+    expect(exec).toHaveBeenCalledTimes(3)
+    expect(exec.mock.calls[2][0]).toContain('repos/acme/widgets/pulls/42')
+  })
+
+  it('keeps capability hydration on the PR base before attaching its stack summary', async () => {
+    exec
+      .mockResolvedValueOnce(
+        response({
+          ...fields,
+          state: 'OPEN',
+          stack: { number: 12, size: 3, baseRefName: 'release' },
+          stackEntry: { position: 2 }
+        })
+      )
+      .mockResolvedValueOnce({
+        stdout: JSON.stringify({
+          data: {
+            repository: { autoMergeAllowed: true, mergeQueue: null, ref: { rules: { nodes: [] } } }
+          }
+        })
+      })
+    await expect(getPRByNumber(repository, 42, options, 'local:host')).resolves.toMatchObject({
+      autoMergeAllowed: true,
+      stack: { baseRefName: 'release', position: 2 }
+    })
+    expect(exec).toHaveBeenCalledTimes(2)
+    expect(exec.mock.calls[1][0]).toContain('branch=main')
+    expect(exec.mock.calls[1][0]).not.toContain('branch=release')
+  })
+
   it('reads linked PR metadata and confirms no stack with one request through the refresh pipeline', async () => {
     exec.mockImplementation(async (args: string[]) => {
       if (args[0] === 'api' && args[1] === 'graphql') {
