@@ -1,6 +1,6 @@
 import { View, TextInput, Pressable } from 'react-native'
 import { hostOs } from '../platform/host-os'
-import { ArrowUp, Keyboard as KeyboardIcon } from 'lucide-react-native'
+import { ArrowUp } from 'lucide-react-native'
 import {
   getTerminalCommandKeyboardType,
   getTerminalLiveInputKeyboardType
@@ -46,7 +46,6 @@ export function MobileSessionCommandDock({
     canSend,
     canCompose,
     liveInputEnabled,
-    focusLiveInput,
     dictation,
     cancelDictation,
     handleDictationToggle,
@@ -70,63 +69,58 @@ export function MobileSessionCommandDock({
         {}
         {liveInputEnabled ? (
           <View style={[styles.inputBar, styles.liveInputBar]}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.liveInputFocusTarget,
-                pressed && styles.liveInputFocusTargetPressed,
-                !canSend && styles.liveInputFocusTargetDisabled
-              ]}
-              disabled={!canSend}
-              onPress={focusLiveInput}
-              accessibilityRole="button"
-              accessibilityLabel="Show keyboard for live terminal input"
-              accessibilityHint="Typed text is sent directly to the active terminal"
-            >
-              <KeyboardIcon size={16} color={colors.textSecondary} strokeWidth={2} />
-              <MobileTerminalLiveInputStatus
-                dictation={dictation}
-                dictationMode={dictationMode}
-                isAttaching={isAttaching}
-                liveInputText={liveInputCapture}
-              />
-            </Pressable>
-            <MobileTerminalInputActions
-              canSend={canSend}
-              isAttaching={isAttaching}
+            <MobileTerminalLiveInputStatus
               dictation={dictation}
               dictationMode={dictationMode}
-              dictationEnabled={dictationEnabled}
-              buttonStyle={styles.dictationButton}
-              activeButtonStyle={styles.dictationButtonActive}
-              disabledButtonStyle={styles.sendButtonDisabled}
-              onAttachImage={() => void attachImage('library')}
-              onAttachFile={() => void attachImage('files')}
-              onDictationToggle={handleDictationToggle}
-              onDictationPressIn={handleDictationPressIn}
-              onDictationPressOut={handleDictationPressOut}
-              onDictationCancel={cancelDictation}
+              isAttaching={isAttaching}
             />
-            <TextInput
-              ref={bindLiveInputField}
-              style={styles.liveInputCapture}
-              value={liveInputCapture}
-              onChange={handleLiveInputChange}
-              onKeyPress={handleLiveInputKeyPress}
-              onSubmitEditing={submitLiveInput}
-              placeholder=""
-              showSoftInputOnFocus
-              autoCapitalize="none"
-              autoCorrect={false}
-              spellCheck={false}
-              smartInsertDelete={false}
-              // Why: iOS textContentType overrides autoComplete and can narrow the keyboard; keep IME switching available.
-              autoComplete="off"
-              keyboardType={getTerminalLiveInputKeyboardType(hostOs())}
-              returnKeyType="default"
-              blurOnSubmit={false}
-              editable={canSend}
-              importantForAutofill="no"
-            />
+            <View style={styles.liveInputRow}>
+              <TextInput
+                ref={bindLiveInputField}
+                style={[
+                  styles.textInput,
+                  styles.liveInputCapture,
+                  !canSend && styles.liveInputCaptureDisabled
+                ]}
+                value={liveInputCapture}
+                onChange={handleLiveInputChange}
+                onKeyPress={handleLiveInputKeyPress}
+                onSubmitEditing={submitLiveInput}
+                placeholder="Live input"
+                placeholderTextColor={colors.textMuted}
+                selectionColor={colors.accentBlue}
+                accessibilityLabel="Live terminal input"
+                accessibilityHint="Typed text is sent directly to the active terminal"
+                showSoftInputOnFocus
+                autoCapitalize="none"
+                autoCorrect={false}
+                spellCheck={false}
+                smartInsertDelete={false}
+                // Why: iOS textContentType overrides autoComplete and can narrow the keyboard; keep IME switching available.
+                autoComplete="off"
+                keyboardType={getTerminalLiveInputKeyboardType(hostOs())}
+                returnKeyType="default"
+                blurOnSubmit={false}
+                editable={canSend}
+                importantForAutofill="no"
+              />
+              <MobileTerminalInputActions
+                canSend={canSend}
+                isAttaching={isAttaching}
+                dictation={dictation}
+                dictationMode={dictationMode}
+                dictationEnabled={dictationEnabled}
+                buttonStyle={styles.dictationButton}
+                activeButtonStyle={styles.dictationButtonActive}
+                disabledButtonStyle={styles.sendButtonDisabled}
+                onAttachImage={() => void attachImage('library')}
+                onAttachFile={() => void attachImage('files')}
+                onDictationToggle={handleDictationToggle}
+                onDictationPressIn={handleDictationPressIn}
+                onDictationPressOut={handleDictationPressOut}
+                onDictationCancel={cancelDictation}
+              />
+            </View>
           </View>
         ) : (
           <View style={styles.inputBar}>

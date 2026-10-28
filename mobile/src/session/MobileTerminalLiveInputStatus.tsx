@@ -11,17 +11,20 @@ type MobileTerminalLiveInputStatusProps = {
   readonly dictation: MobileDictationStatusFlags
   readonly dictationMode: string | undefined
   readonly isAttaching: boolean
-  readonly liveInputText: string
 }
 
+/** Shows transient recording/upload status without intercepting touches meant for live input. */
 export function MobileTerminalLiveInputStatus({
   dictation,
   dictationMode,
-  isAttaching,
-  liveInputText
+  isAttaching
 }: MobileTerminalLiveInputStatusProps) {
   useMobileColorScheme()
-  const title = mobileDictationStatusTitle(dictation) ?? 'Live input'
+  const dictationTitle = mobileDictationStatusTitle(dictation)
+  if (!dictationTitle && !isAttaching) {
+    return null
+  }
+  const title = dictationTitle ?? 'Uploading image'
   const detail = dictation.isRecording
     ? dictationMode === 'hold'
       ? 'Release mic to stop'
@@ -30,12 +33,10 @@ export function MobileTerminalLiveInputStatus({
       ? 'Transcribing on desktop'
       : dictation.isStarting
         ? 'Preparing microphone'
-        : isAttaching
-          ? 'Uploading image to host'
-          : liveInputText || 'Tap to show keyboard'
+        : 'Uploading image to host'
 
   return (
-    <View style={styles.status}>
+    <View style={styles.status} pointerEvents="none">
       <Text style={styles.title} numberOfLines={1}>
         {title}
       </Text>
@@ -48,7 +49,6 @@ export function MobileTerminalLiveInputStatus({
 
 const styles = themedStyleSheet(() => ({
   status: {
-    flex: 1,
     gap: 1
   },
   title: {
