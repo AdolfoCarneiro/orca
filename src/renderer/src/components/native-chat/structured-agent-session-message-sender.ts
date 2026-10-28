@@ -16,6 +16,7 @@ import {
   structuredAgentSessionSettledSends
 } from '../../../../shared/structured-agent-session-send-settlement'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
+import { resetStructuredAgentSessionReadOwnersForTests } from './structured-agent-session-read-owner'
 import {
   attemptStructuredAgentSessionSend,
   forgetStructuredAgentSessionFence,
@@ -59,10 +60,13 @@ async function attempt(entry: StructuredAgentSessionPendingSend): Promise<void> 
   const outcome = await attemptStructuredAgentSessionSend({
     entry,
     target: runtime.target,
-    beforeIssue: () =>
+    reconcile: runtime.activity.settle,
+    beforeIssue: () => {
+      runtime.activity.issue()
       updateStructuredAgentSessionPendingSend(entry.sessionId, entry.clientMessageId, {
         issued: true
-      }),
+      })
+    },
     abandoned: () => runtime.abort.signal.aborted || runtimes.get(entry.clientMessageId) !== runtime
   })
   const current = findStructuredAgentSessionPendingSend(entry.sessionId, entry.clientMessageId)
@@ -171,6 +175,8 @@ export function reserveStructuredAgentSessionSend(
         return null
       }
       const sending = beginSend(current, target, remaining)
+      const activity = runtimes.get(current.clientMessageId)?.activity
+      activity?.issue()
       void sending.outcome.then(settleReservation)
       updateStructuredAgentSessionPendingSend(current.sessionId, current.clientMessageId, {
         issued: true
@@ -179,6 +185,7 @@ export function reserveStructuredAgentSessionSend(
         ...sending,
         message: { clientMessageId: current.clientMessageId, body: current.body },
         settle: (result) => {
+          activity?.settle(result.kind === 'unconfirmed')
           const pending = findStructuredAgentSessionPendingSend(
             current.sessionId,
             current.clientMessageId
@@ -262,6 +269,7 @@ export function dropStructuredAgentSessionSends(sessionId: string): void {
 }
 
 export function resetStructuredAgentSessionSendsForTests(): void {
+  resetStructuredAgentSessionReadOwnersForTests()
   for (const sessionId of structuredAgentSessionsWithPendingSends()) {
     publishStructuredAgentSessionSends(sessionId, { holds: 0 })
     dropStructuredAgentSessionSends(sessionId)

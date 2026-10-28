@@ -2,10 +2,11 @@ import {
   SwitchPresentationContext,
   useSwitchPresentation
 } from '@/lib/conversation-switch-presentation'
+import { useNativeChatHandOff } from './use-native-chat-hand-off'
 import { cn } from '@/lib/utils'
 import { NATIVE_CHAT_APPEARANCE_ROOT_CLASS } from './native-chat-appearance-style'
 import { useNativeChatStoreAppearanceStyle } from './use-native-chat-store-appearance-style'
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { agentSessionPromptQuestions } from '../../../../shared/agent-session-question-answer'
 import { structuredAgentSessionPaneKey } from '../../../../shared/structured-agent-session-projection'
 import { useStructuredChatLiveSession } from './use-structured-chat-live-session'
@@ -22,7 +23,11 @@ import { useStructuredNativeChatSubmitReveal } from './use-structured-native-cha
 import { useStructuredPromptResponseHold } from './use-structured-prompt-response-hold'
 import { NativeChatStructuredQuestionCard } from './NativeChatStructuredQuestionCard'
 import { NativeChatStructuredAsyncQuestion } from './NativeChatStructuredAsyncQuestion'
-import { selectNativeChatViewState, structuredChatHistoryPhase } from './native-chat-view-state'
+import {
+  selectNativeChatViewState,
+  structuredChatHistoryPhase,
+  structuredChatSwitchTranscriptState
+} from './native-chat-view-state'
 import { useNativeChatRootInputRouting } from './use-native-chat-root-input-routing'
 import { useNativeChatFontSize } from './use-native-chat-font-size'
 import { useNativeChatFind } from './use-native-chat-find'
@@ -72,10 +77,7 @@ export function NativeChatStructuredSession(
   const provisionalLaunch = useNativeChatProvisionalLaunch(ownerWorktreeId, props.sessionId)
   // The host's own word on whether the provider child has answered startup yet.
   const hostExecution = useStructuredAgentSessionHostExecution(props.sessionId, props.target)
-  const paneKey = useMemo(
-    () => structuredAgentSessionPaneKey(props.tabId, props.sessionId),
-    [props.sessionId, props.tabId]
-  )
+  const paneKey = structuredAgentSessionPaneKey(props.tabId, props.sessionId)
   // Chat-wide: absent means on; only an explicit off keeps mid-turn sends immediate.
   const queueFollowUps = useAppStore((store) => store.settings?.nativeChatQueueFollowUps !== false)
   const composerRef = useRef<NativeChatComposerHandle>(null)
@@ -146,14 +148,7 @@ export function NativeChatStructuredSession(
     props.target,
     props.sessionId,
     props.isVisible,
-    (controller.readCurrent || provisionalLaunch.launch?.kind === 'new') &&
-      (viewState.kind === 'ready' || viewState.kind === 'empty')
-      ? viewState.kind === 'empty'
-        ? 'empty'
-        : 'readable'
-      : controller.status === 'error'
-        ? 'failed'
-        : 'pending'
+    structuredChatSwitchTranscriptState(controller, provisionalLaunch, viewState)
   )
   const paneActive = props.isVisible && props.isFocusedGroup
   useNativeChatFontSize(viewState.kind === 'ready' && paneActive, rootRef)
@@ -166,17 +161,20 @@ export function NativeChatStructuredSession(
     { sessionId: props.sessionId, isVisible: props.isVisible }
   )
   const fileLinkProps = { onLinkClick, allowFileUriLinks: onLinkClick !== undefined }
+  const handOff = useNativeChatHandOff({
+    pane: props,
+    directory: fileLinkContext,
+    messages: controller.messages,
+    epoch: controller.epoch,
+    focusComposer
+  })
   const paneCommands = useStructuredNativeChatPaneCommands({
-    tabId: props.tabId,
+    pane: props,
+    handOff,
     ownerWorktreeId,
-    groupId: props.groupId,
-    isVisible: props.isVisible,
     rootRef,
     composerRef,
     questionAnswerInputRef,
-    terminalPaneActions: props.contextMenuActions,
-    sessionId: props.sessionId,
-    target: props.target,
     messageListRef: submits.messageListRef,
     fileLinkContext,
     rewind: controller.rewind.surface,
@@ -185,7 +183,7 @@ export function NativeChatStructuredSession(
   const prompt = controller.prompts[0] ?? null
   // Unknown prompts leave the composer usable; a send starts a turn whose cancel can resolve them.
   const promptsUnanswerable = pendingPromptsAllUnanswerableHere(controller.prompts)
-  const composerShown = (prompt === null || promptsUnanswerable) && !readFailedFinally
+  const composerShown = (prompt === null || promptsUnanswerable) && readFailure?.final !== true
   // An owned prompt keeps its card; otherwise a missing program leaves the composer disabled.
   const installLayout = viewState.kind === 'empty' ? 'hero' : 'strip'
   const install = useNativeChatInstallSlot(props, agentLabel, installLayout)
@@ -330,7 +328,7 @@ export function NativeChatStructuredSession(
             </NativeChatRewindContext.Provider>
           )}
         </NativeChatContextClearFade>
-        {readFailedFinally ? null : (
+        {readFailure?.final ? null : (
           <>
             {/* Keep queued drafts outside the transcript and above the background-task dock. */}
             <NativeChatQueuedMessageList
@@ -407,6 +405,7 @@ export function NativeChatStructuredSession(
           </>
         )}
         {paneCommands.menu}
+        {handOff.dialog}
         <LinkActionPopover request={linkActionRequest} onClose={closeLinkActions} />
       </div>
     </SwitchPresentationContext.Provider>

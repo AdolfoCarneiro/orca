@@ -1,5 +1,6 @@
-import type { ReactNode, SyntheticEvent } from 'react'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import { useState, type ReactNode, type SyntheticEvent } from 'react'
+import { flushSync } from 'react-dom'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 function TabHoverCardBody({
@@ -47,12 +48,17 @@ export function TabHoverCard({
   icon: ReactNode
   programName: string
   description?: string
-  alert?: ReactNode
+  /** Controls below the program row; the card then stays open under the pointer. */
+  alert?: ReactNode | ((dismiss: () => void) => ReactNode)
   action?: ReactNode
 }): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+  // Remove the portal before navigation can start rendering a slower destination.
+  const dismiss = () => flushSync(() => setOpen(false))
+  const alert = typeof body.alert === 'function' ? body.alert(dismiss) : body.alert
   if (body.action) {
     return (
-      <HoverCard openDelay={500} closeDelay={100}>
+      <HoverCard open={open} onOpenChange={setOpen} openDelay={500} closeDelay={100}>
         <HoverCardTrigger asChild>{children}</HoverCardTrigger>
         <HoverCardContent
           variant="tab-preview"
@@ -66,14 +72,14 @@ export function TabHoverCard({
           onClick={stopTabStripEvent}
           onDoubleClick={stopTabStripEvent}
         >
-          <TabHoverCardBody {...body} />
+          <TabHoverCardBody {...body} alert={alert} />
         </HoverCardContent>
       </HoverCard>
     )
   }
   const interactive = body.alert !== undefined && body.alert !== null
   return (
-    <Tooltip disableHoverableContent={!interactive}>
+    <Tooltip open={open} onOpenChange={setOpen} disableHoverableContent={!interactive}>
       <TooltipTrigger
         asChild
         onFocus={(event) => {
@@ -98,7 +104,7 @@ export function TabHoverCard({
         onClick={stopTabStripEvent}
         onDoubleClick={stopTabStripEvent}
       >
-        <TabHoverCardBody {...body} />
+        <TabHoverCardBody {...body} alert={alert} />
       </TooltipContent>
     </Tooltip>
   )

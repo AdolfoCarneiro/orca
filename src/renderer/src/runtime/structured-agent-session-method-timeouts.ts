@@ -1,3 +1,4 @@
+import { AGENT_SESSION_SWITCH_CLIENT_MS } from '../../../shared/agent-session-switch-execution'
 import { AGENT_SESSION_CONVERSATION_COMMAND_TIMEOUT_MS } from '../../../shared/agent-session/agent-session-conversation-command'
 
 export const STRUCTURED_AGENT_SESSION_METHOD_TIMEOUT_MS: ReadonlyMap<string, number> = new Map([
@@ -10,3 +11,18 @@ export const STRUCTURED_AGENT_SESSION_METHOD_TIMEOUT_MS: ReadonlyMap<string, num
   // All bounded-concurrency provider starts and dispatch settlements precede the reply.
   ['agentSession.restartContinue', 600_000]
 ])
+
+export function structuredAgentSessionMethodTimeoutMs(
+  method: string,
+  params: unknown
+): number | undefined {
+  const executionSwitch =
+    (method === 'agentSession.switchToChat' || method === 'agentSession.switchToTerminal') &&
+    params !== null &&
+    typeof params === 'object' &&
+    'execution' in params &&
+    Boolean(params.execution)
+  return executionSwitch
+    ? AGENT_SESSION_SWITCH_CLIENT_MS
+    : STRUCTURED_AGENT_SESSION_METHOD_TIMEOUT_MS.get(method)
+}

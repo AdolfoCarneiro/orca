@@ -1,3 +1,4 @@
+import { assertWslDistroAllowed } from '@orca/process-host/wsl-distro-allowlist'
 import type * as pty from 'node-pty'
 import {
   hostReportsChildExitStatus,
@@ -11,6 +12,16 @@ import { spawnConptyWithInputReader, type ConptyStartupEvents } from './conpty-s
 async function loadNodePty(): Promise<typeof pty> {
   return import('node-pty')
 }
+
+export type DisposableNativePty = pty.IPty & {
+  destroy?: () => void
+  signalProcess?: (signal: string) => void
+  // node-pty emits these when its master stream retires; writes then become silent no-ops.
+  on?: (event: 'close' | 'error', listener: (error?: unknown) => void) => void
+  // False once node-pty's _close() retired the master; Windows never emits 'close' for that.
+  _writable?: boolean
+}
+
 export type SpawnedDaemonPty = {
   process: pty.IPty
   shellPath: string
@@ -46,6 +57,7 @@ export async function spawnNativeDaemonPty(args: {
     cwd: string
   ): Promise<pty.IPty> => {
     args.signal?.throwIfAborted()
+    assertWslDistroAllowed(shellPath, shellArgs)
     const tcc = wrapShellSpawnForMacosTccAttribution(shellPath, shellArgs, args.env)
     const wrapped = wrapPtySpawnInTerminalScope(tcc.file, tcc.args, args.env)
     const nodePty = await loadNodePty()

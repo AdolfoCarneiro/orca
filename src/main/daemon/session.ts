@@ -102,7 +102,6 @@ export class Session extends SessionProcessInspection {
       },
       onEmission: (emission) => this.recoveryBarrier.accept(emission)
     })
-    this.shellReady.startPromptReadinessProbe()
     this.subprocess.onData((data) => {
       if (!this._disposed) {
         this.shellReady.ingestSubprocessData(data)
@@ -158,13 +157,21 @@ export class Session extends SessionProcessInspection {
       return
     }
     this.noteUse()
+    // Human input must reach rc-file readers while automatic startup commands wait for readiness.
+    if (!this.startupIngress.answerLiveQueryReply(data)) {
+      this.subprocess.write(data)
+    }
+  }
 
-    // Contain cooked query echoes and preserve input order through the post-ready flush window.
-    if (this.startupIngress.answerLiveQueryReply(data) || this.shellReady.tryEnqueue(data)) {
+  /** Orca's own startup command: held by the shell-ready barrier until the shell can read it. */
+  writeStartupCommand(data: string): void {
+    if (this._state === 'exited' || this._disposed || this.switchClosing) {
       return
     }
-
-    this.subprocess.write(data)
+    this.noteUse()
+    if (!this.shellReady.tryEnqueue(data)) {
+      this.subprocess.write(data)
+    }
   }
 
   resize(cols: number, rows: number): void {
@@ -275,9 +282,7 @@ export class Session extends SessionProcessInspection {
     const wasTerminating = this.termination.isTerminating && this._state !== 'exited'
     const clientsToNotify = wasTerminating ? this.output.snapshotClients() : []
     if (wasTerminating) {
-      try {
-        this.subprocess.forceKill()
-      } catch {}
+      this.termination.forceKillDuringDispose().catch(() => {})
       this._exitCode = -1
       this.termination.clearTerminating()
     }
@@ -331,7 +336,6 @@ export class Session extends SessionProcessInspection {
     }
 
     this.shellReady.releaseDeviceAttributes()
-    this.shellReady.disposePromptReadinessProbe()
     this.shellReady.releaseHeldBytes()
     this.startupIngress.drainAndClose()
     // Flush after ingress drains so prompts held mid-proof reach clients and history before the exit event.

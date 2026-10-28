@@ -11,6 +11,7 @@ import type {
 } from '../../../../shared/native-chat-composer-autocomplete'
 import type { NativeChatMentionFiles } from './use-native-chat-mention-files'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { localizeSlashCommandDescription } from './native-chat-slash-command-descriptions'
 
 export const NativeChatPickerMenu = memo(function NativeChatPickerMenu({
   autocomplete,
@@ -185,10 +186,8 @@ function PickerOption({
 }): React.JSX.Element {
   const annotation = getPickerAnnotation(item)
   const description =
-    item.kind === 'command' &&
-    item.name === 'clear' &&
-    item.description === 'Clear conversation context'
-      ? translate('components.native-chat.composer.clearDescription', 'Clear conversation context')
+    item.kind === 'command'
+      ? localizeSlashCommandDescription(item.name, item.description)
       : item.description
   return (
     <PickerOptionButton

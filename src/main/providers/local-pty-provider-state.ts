@@ -59,6 +59,26 @@ export class LocalPtyPhysicalExit extends PhysicalExitTracker {
   witness?: { token: string; revision: number; at: number }
 }
 export const ptyPhysicalExits = new Map<string, LocalPtyPhysicalExit>()
+
+export const LOCAL_PTY_PHYSICAL_EXIT_TIMEOUT_MS = 8_000
+
+export function createPtyPhysicalExit(id: string): void {
+  ptyPhysicalExits.set(id, new LocalPtyPhysicalExit())
+}
+
+export function waitForPtyPhysicalExit(
+  id: string,
+  physicalExit?: PhysicalExitTracker
+): Promise<void> {
+  if (!physicalExit) {
+    return Promise.reject(new Error(`PTY "${id}" exit tracking unavailable`))
+  }
+  return physicalExit.waitForExit(
+    LOCAL_PTY_PHYSICAL_EXIT_TIMEOUT_MS,
+    () => new Error(`Timed out waiting for PTY process exit: ${id}`)
+  )
+}
+
 export function noteLocalPtyUse(id: string): boolean {
   const owner = ptyPhysicalExits.get(id)
   if (owner?.closing) {

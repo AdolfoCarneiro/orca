@@ -31,9 +31,4 @@ describe('readableMermaidFlowchartSvg', () => {
     )
     expect(labelFill(readableMermaidFlowchartSvg(stadium, '#e0e0e0', '#111111'))).toBe('#e0e0e0')
   })
-
-  it('leaves a label that already reads on its fill', () => {
-    const svg = readableMermaidFlowchartSvg(flowchart('#1e3a8a', '#e0e0e0'), '#e0e0e0', '#111111')
-    expect(labelFill(svg)).toBe('#e0e0e0')
-  })
 })

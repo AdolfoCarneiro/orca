@@ -665,7 +665,6 @@ describe('lookupTabSessionHistoryRow', () => {
     })
     expect(listSessions).toHaveBeenCalledTimes(1)
     expect(listSessions).toHaveBeenCalledWith({
-      historyOwnership: {},
       includeAntigravityIdeSessions: true,
       limit: 250,
       unlimited: false,

@@ -183,6 +183,12 @@ export function paramsFor(method: string): unknown {
     }
     case 'agentSession.history':
       return { sessionId: SESSION, direction: 'tail' }
+    case 'agentSession.continuationContext':
+      return {
+        sessionId: SESSION,
+        workspaceId: WORKSPACE,
+        expectedCursor: { epoch: 'epoch-a', sequence: 0 }
+      }
     case ITEM_DETAIL_METHOD:
       return { sessionId: SESSION, itemId: 'item-1' }
     case 'agentSession.sleepWorkspace':

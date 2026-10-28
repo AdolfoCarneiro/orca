@@ -9,7 +9,7 @@ import {
 } from './types'
 import type { CreateOrAttachResult } from './terminal-host-create-contract'
 import type { TerminalHostOptions } from './terminal-host-options'
-import { disposeTerminalHostSessions } from './terminal-host-disposal'
+import { disposeTerminalHostSessions, killLiveSessionGroupsSync } from './terminal-host-disposal'
 import { getAliveTerminalHostSession } from './terminal-host-session-access'
 import { writeSessionInput } from './session-input-path'
 import { TerminalSessionTeardown } from './terminal-session-teardown'
@@ -306,12 +306,23 @@ export class TerminalHost extends TerminalHostInspection {
     return hasLiveTerminalHostSessions(this.sessions)
   }
 
+  /** Last resort when shutdown overruns its deadline: an async group sweep may not have signalled yet. */
+  killLiveSessionGroupsSync(): void {
+    killLiveSessionGroupsSync(this.sessions.values())
+  }
+
   dispose(): Promise<void> {
     this.creationFenced = true
     if (this.disposePromise) {
       return this.disposePromise
     }
-    const disposePromise = this.disposeSessions()
+    const disposePromise = disposeTerminalHostSessions({
+      pendingCreations: this.pendingCreations,
+      sessionTeardown: this.sessionTeardown,
+      sessions: this.sessions,
+      onFinalCheckpoint: this.onFinalCheckpoint,
+      killedTombstones: this.killedTombstones
+    })
     this.disposePromise = disposePromise
     void disposePromise.catch(() => {
       // Keep failed native owners retryable on the next shutdown request.
@@ -320,15 +331,5 @@ export class TerminalHost extends TerminalHostInspection {
       }
     })
     return disposePromise
-  }
-
-  private disposeSessions(): Promise<void> {
-    return disposeTerminalHostSessions({
-      pendingCreations: this.pendingCreations,
-      sessionTeardown: this.sessionTeardown,
-      sessions: this.sessions,
-      onFinalCheckpoint: this.onFinalCheckpoint,
-      killedTombstones: this.killedTombstones
-    })
   }
 }

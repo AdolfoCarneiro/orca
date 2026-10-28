@@ -180,6 +180,22 @@ describe('deriveComposerAutocomplete — one grammar for every agent', () => {
     expect(tokens([{ name: 'skill:caveman' }])).toEqual([['/skill:caveman', 'On disk']])
   })
 
+  it('does not offer scanned OMP skills or wait on a scan without native metadata', () => {
+    for (const reported of [undefined, []]) {
+      const result = deriveComposerAutocomplete(
+        '/',
+        1,
+        [],
+        skills,
+        getNativeChatAgentProfile('omp'),
+        { status: 'idle', skills },
+        null,
+        reported
+      )
+      expect(result).toMatchObject({ mode: 'slash', items: [], skillStatus: 'ready' })
+    }
+  })
+
   it('opens only Codex skills under `$`, and a pick keeps Codex `$` token', () => {
     for (const [draft, query] of [
       ['use $type', 'type'],

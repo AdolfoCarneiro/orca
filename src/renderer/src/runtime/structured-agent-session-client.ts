@@ -1,5 +1,4 @@
 import type { RuntimeRpcDispatchObservation } from '../../../shared/runtime-rpc-envelope'
-import { AGENT_SESSION_SWITCH_CLIENT_MS } from '../../../shared/agent-session-switch-execution'
 import type {
   AgentJournalCursor,
   AgentJournalRenderItem
@@ -10,10 +9,11 @@ import type {
   AgentSessionTurnCompletionEvent
 } from '../../../shared/agent-session-wire'
 import type { AgentSessionConversationOutline } from '../../../shared/agent-session/agent-session-conversation-outline'
-import { STRUCTURED_AGENT_SESSION_METHOD_TIMEOUT_MS } from './structured-agent-session-method-timeouts'
+import { structuredAgentSessionMethodTimeoutMs } from './structured-agent-session-method-timeouts'
 import {
   AGENT_SESSION_ATTENTION_ACK_RUNTIME_CAPABILITY,
   AGENT_SESSION_CONVERSATION_OUTLINE_RUNTIME_CAPABILITY,
+  AGENT_SESSION_CONTINUATION_CONTEXT_RUNTIME_CAPABILITY,
   AGENT_SESSION_ITEM_DETAIL_RUNTIME_CAPABILITY,
   AGENT_SESSION_PROMPT_CANCEL_RUNTIME_CAPABILITY,
   AGENT_SESSION_QUESTION_ANSWERS_RUNTIME_CAPABILITY,
@@ -57,6 +57,15 @@ async function structuredAgentSessionHostSupports(
   } catch {
     return false
   }
+}
+
+export function supportsStructuredAgentSessionContinuationContext(
+  target: RuntimeClientTarget
+): Promise<boolean> {
+  return structuredAgentSessionHostSupports(
+    target,
+    AGENT_SESSION_CONTINUATION_CONTEXT_RUNTIME_CAPABILITY
+  )
 }
 
 export function supportsStructuredAgentSessionPromptCancel(
@@ -183,15 +192,7 @@ export async function callStructuredAgentSession<TResult>(
   ) {
     throw new Error('Rewinding requires a newer Orca server. Update the server and try again.')
   }
-  const executionSwitch =
-    (method === 'agentSession.switchToChat' || method === 'agentSession.switchToTerminal') &&
-    params !== null &&
-    typeof params === 'object' &&
-    'execution' in params &&
-    Boolean(params.execution)
-  const timeoutMs = executionSwitch
-    ? AGENT_SESSION_SWITCH_CLIENT_MS
-    : STRUCTURED_AGENT_SESSION_METHOD_TIMEOUT_MS.get(method)
+  const timeoutMs = structuredAgentSessionMethodTimeoutMs(method, params)
   return timeoutMs === undefined && !options.skipCompatibilityCheck && !options.beforeSend
     ? callRuntimeRpc<TResult>(target, method, params)
     : callRuntimeRpc<TResult>(target, method, params, {

@@ -7,7 +7,7 @@ import {
   nativeChatNoticeBlock,
   nativeChatNoticeLook,
   type NativeChatNoticeTone
-} from '../../../../../src/shared/native-chat-notice'
+} from '../../../../../src/shared/native-chat/native-chat-notice'
 import {
   isTextBlock,
   type NativeChatBlock,
