@@ -266,6 +266,7 @@ export const createHostedReviewSlice: StateCreator<AppState, [], [], HostedRevie
           return review
         } catch (error) {
           // Transient timeout/rate-limit/git failures are not definitive misses: preserve last review and retry next visible poll instead of hiding for TTL.
+          // A stopped WSL distro's refusal (E9) also lands here; it is logged too, and the review kept.
           console.error('Failed to fetch hosted review:', error)
           const preserved = get().hostedReviewCache[cacheKey]
           // Never preserve merged review after worktree leaves its valid head/contained line.
