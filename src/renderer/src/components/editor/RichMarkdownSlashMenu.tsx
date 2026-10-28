@@ -6,6 +6,7 @@ import { runSlashCommand } from './rich-markdown-slash-commands'
 import type { SlashCommand, SlashMenuState } from './rich-markdown-slash-commands'
 import type { SlashCommandGroup } from './rich-markdown-slash-command-primitives'
 import { translate } from '@/i18n/i18n'
+import { useRichMarkdownCompletionScroll } from './useRichMarkdownCompletionScroll'
 
 function slashCommandGroupLabel(group: SlashCommandGroup): string {
   switch (group) {
@@ -47,6 +48,10 @@ export function RichMarkdownSlashMenu({
   onImagePick,
   onEmojiPick
 }: RichMarkdownSlashMenuProps): React.JSX.Element {
+  const { viewportRef, activeItemRef } = useRichMarkdownCompletionScroll(
+    selectedIndex,
+    filteredCommands
+  )
   let currentGroup: SlashCommand['group'] | null = null
 
   return (
@@ -75,7 +80,7 @@ export function RichMarkdownSlashMenu({
           )}
         />
       </div>
-      <div className="rich-markdown-slash-results scrollbar-sleek" role="listbox">
+      <div ref={viewportRef} className="rich-markdown-slash-results scrollbar-sleek" role="listbox">
         {filteredCommands.length === 0 ? (
           <div className="rich-markdown-slash-empty">
             {translate(
@@ -95,6 +100,7 @@ export function RichMarkdownSlashMenu({
                   </div>
                 ) : null}
                 <button
+                  ref={index === selectedIndex ? activeItemRef : undefined}
                   type="button"
                   title={command.description}
                   role="option"

@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { commitRow } from './rich-markdown-commands'
 import type { DocLinkMenuRow, DocLinkMenuState } from './rich-markdown-commands'
 import { translate } from '@/i18n/i18n'
+import { useRichMarkdownCompletionScroll } from './useRichMarkdownCompletionScroll'
 
 type RichMarkdownDocLinkMenuProps = {
   editor: Editor | null
@@ -20,10 +21,12 @@ export function RichMarkdownDocLinkMenu({
   totalMatches,
   selectedIndex
 }: RichMarkdownDocLinkMenuProps): React.JSX.Element {
+  const { viewportRef, activeItemRef } = useRichMarkdownCompletionScroll(selectedIndex, rows)
   const overflow = totalMatches > rows.length
   return (
     <div
-      className="rich-markdown-doc-link-menu"
+      ref={viewportRef}
+      className="rich-markdown-doc-link-menu scrollbar-sleek"
       style={{ left: menu.left, top: menu.top }}
       role="listbox"
       aria-label={translate(
@@ -44,7 +47,10 @@ export function RichMarkdownDocLinkMenu({
           return (
             <button
               key={rowKey}
+              ref={index === selectedIndex ? activeItemRef : undefined}
               type="button"
+              role="option"
+              aria-selected={index === selectedIndex}
               className={cn('rich-markdown-doc-link-item', index === selectedIndex && 'is-active')}
               // Prevent blur before click so the commit transaction retains its editor selection.
               onMouseDown={(event) => event.preventDefault()}
