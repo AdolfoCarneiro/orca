@@ -1,3 +1,4 @@
+import { forgetHostModelCatalogSnapshotsForWorkspaces } from '../../runtime/host-model-catalog-snapshots'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import { toRuntimeExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
@@ -33,6 +34,7 @@ export function createFolderWorkspaceCatalogActions(
       return false
     }
     let applied = false
+    let removedWorkspaceIds: string[] = []
     set((current) => {
       if (!isHostCatalogFenceCurrent(get, fence)) {
         return current
@@ -45,11 +47,12 @@ export function createFolderWorkspaceCatalogActions(
           current.projectGroups
         )
       )
-      const { folderWorkspaces } = mergeFetchedFolderWorkspaceCatalog(
+      const { folderWorkspaces, removedWorkspaceIds: removed } = mergeFetchedFolderWorkspaceCatalog(
         catalog,
         current.folderWorkspaces,
         current.projectGroups
       )
+      removedWorkspaceIds = removed
       if (arrayElementsUnchanged(folderWorkspaces, current.folderWorkspaces)) {
         return current
       }
@@ -58,6 +61,9 @@ export function createFolderWorkspaceCatalogActions(
         folderWorkspacePathStatuses: {}
       }
     })
+    if (applied && removedWorkspaceIds.length > 0) {
+      forgetHostModelCatalogSnapshotsForWorkspaces(catalog.hostId, removedWorkspaceIds)
+    }
     return applied
   }
 

@@ -1,3 +1,4 @@
+import { forgetHostModelCatalogSnapshotsForWorkspaces } from '../../runtime/host-model-catalog-snapshots'
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
@@ -101,25 +102,32 @@ function mergeFetchedFolderWorkspacesForHost({
   fetched: FolderWorkspace[]
   projectGroups: readonly ProjectGroup[]
   hostId: string
-}): readonly FolderWorkspace[] {
+}): { folderWorkspaces: readonly FolderWorkspace[]; removedWorkspaceIds: string[] } {
   const resolveHostId = createFolderWorkspaceHostResolver(projectGroups)
   const fetchedIdentities = new Set(
     fetched.map((workspace) => getFolderWorkspaceHostIdentity(workspace, resolveHostId))
   )
+  const removedWorkspaceIds: string[] = []
   const preserved = previous.filter((workspace) => {
     const existingHostId = resolveHostId(workspace)
-    return (
+    const keep =
       !catalogOwnsHost(hostId, existingHostId) ||
       fetchedIdentities.has(getFolderWorkspaceHostIdentity(workspace, resolveHostId))
-    )
+    if (!keep && existingHostId === hostId) {
+      removedWorkspaceIds.push(folderWorkspaceKey(workspace.id))
+    }
+    return keep
   })
-  return unchangedMergeSource(
-    previous,
-    preserved,
-    mergeByIdentity(preserved, fetched, (workspace) =>
-      getFolderWorkspaceHostIdentity(workspace, resolveHostId)
-    )
-  )
+  return {
+    folderWorkspaces: unchangedMergeSource(
+      previous,
+      preserved,
+      mergeByIdentity(preserved, fetched, (workspace) =>
+        getFolderWorkspaceHostIdentity(workspace, resolveHostId)
+      )
+    ),
+    removedWorkspaceIds
+  }
 }
 
 export function getFolderWorkspaceCatalogReplacementIdentities(
@@ -214,9 +222,13 @@ export function mergeFetchedFolderWorkspaceCatalog(
   catalog: FetchedFolderWorkspaceCatalog,
   currentFolderWorkspaces: readonly FolderWorkspace[],
   projectGroups: readonly ProjectGroup[]
-): { folderWorkspaces: readonly FolderWorkspace[]; hostId: ExecutionHostId } {
+): {
+  folderWorkspaces: readonly FolderWorkspace[]
+  removedWorkspaceIds: string[]
+  hostId: ExecutionHostId
+} {
   return {
-    folderWorkspaces: mergeFetchedFolderWorkspacesForHost({
+    ...mergeFetchedFolderWorkspacesForHost({
       previous: currentFolderWorkspaces,
       fetched: catalog.folderWorkspaces,
       projectGroups,
@@ -266,6 +278,9 @@ export async function reconcileFailedFolderWorkspaceUpdate(args: {
         : {})
     }))
     if (!refreshed) {
+      forgetHostModelCatalogSnapshotsForWorkspaces(args.ownerHostId, [
+        folderWorkspaceKey(args.folderWorkspaceId)
+      ])
       args.get().purgeWorktreeTerminalState([
         hostWorktreeTarget({
           id: folderWorkspaceKey(args.folderWorkspaceId),

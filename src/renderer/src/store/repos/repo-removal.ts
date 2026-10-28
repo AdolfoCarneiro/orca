@@ -1,3 +1,4 @@
+import { forgetHostModelCatalogSnapshotsForWorkspaces } from '@/runtime/host-model-catalog-snapshots'
 import { runEnclosingWorktreeRemoval } from '@/store/active-worktree-deselection-intent'
 import { isRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
 import type { StateCreator } from 'zustand'
@@ -188,12 +189,9 @@ export function createRepoRemovalActions(
         const { clearRepoSlugCacheEntry } = await import('../../lib/repo-slug-index')
         clearRepoSlugCacheEntry(projectId)
 
-        const worktreeIds = [
-          ...new Set([
-            ...knownWorktreeIds,
-            ...getKnownRepoWorktreeIds(get(), projectId, ownerHostId)
-          ])
-        ]
+        const currentWorktreeIds = getKnownRepoWorktreeIds(get(), projectId, ownerHostId)
+        const worktreeIds = [...new Set([...knownWorktreeIds, ...currentWorktreeIds])]
+        forgetHostModelCatalogSnapshotsForWorkspaces(ownerHostId, worktreeIds)
         // Why rechecked: a concurrent removal of the other copy leaves no survivor to share with.
         const twins = collectRemovedHostTwins(get(), worktreeIds, ownerHostId)
         const exclusiveWorktreeIds = worktreeIds.filter((id) => !twins.twinHostIds.has(id))

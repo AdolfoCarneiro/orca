@@ -1,3 +1,4 @@
+import { forgetHostModelCatalogSnapshotsForWorkspaces } from '../../../../runtime/host-model-catalog-snapshots'
 import type { StateCreator } from 'zustand'
 import { appliedWorktreeCatalogVersionPatch } from './worktree-catalog-version-state'
 import type { AppState } from '../../../types'
@@ -295,6 +296,9 @@ export function mergeFetchedWorktrees(
     // Why: applied outside the updater so a repeated updater call cannot double-apply the removal memory.
     forgetAuthoritativelyRemovedWorktrees(args.hostId, authoritativelySeenIds)
     rememberAuthoritativelyRemovedWorktrees(args.hostId, authoritativelyRemovedIds)
+    if (args.refresh.result.source === 'git' && authoritativelyRemovedIds.length > 0) {
+      forgetHostModelCatalogSnapshotsForWorkspaces(args.hostId, authoritativelyRemovedIds)
+    }
     // Retire metadata only on real scans; legacy session-fallback claims authority but truncates/filter rows, so omissions prove no deletion.
     forgetPersistedWorktreeMetaForRemovals(
       args.repoId,

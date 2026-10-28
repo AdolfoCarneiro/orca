@@ -1,3 +1,4 @@
+import { forgetHostModelCatalogSnapshotsForWorkspaces } from '@/runtime/host-model-catalog-snapshots'
 import type { WorktreeSlice } from '../../worktree-helpers'
 import type { WorktreeSliceGet, WorktreeSliceSet } from '../listing/worktree-slice-types'
 import type { RemoveWorktreeResult } from '../../../../../../shared/worktree/create-types'
@@ -163,6 +164,8 @@ export function createRemoveWorktree(
           throw error
         }
       }
+
+      forgetHostModelCatalogSnapshotsForWorkspaces(hostId, [worktreeId])
 
       if (!snapshotPruneHandledByLocalMain) {
         await recordRemovedWorktreeSnapshotPrune({

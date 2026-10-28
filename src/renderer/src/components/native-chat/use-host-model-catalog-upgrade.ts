@@ -12,7 +12,7 @@ import {
 } from '../../../../shared/structured-agent-session-options'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import { callStructuredAgentSession } from '@/runtime/structured-agent-session-client'
-import { recordHostModelCatalogSnapshot } from '@/runtime/host-model-catalog-snapshots'
+import { hostModelCatalogSnapshotWriter } from '@/runtime/host-model-catalog-snapshots'
 import { structuredAgentSessionHostKey } from '@/runtime/structured-agent-session-host-capability'
 import type { StructuredAgentSessionOptionRecord } from '../../../../shared/structured-agent-session-option-state'
 import {
@@ -92,6 +92,9 @@ export function useHostModelCatalogUpgrade(args: {
       return
     }
     let stale = false
+    const recordSnapshot = newLaunch
+      ? hostModelCatalogSnapshotWriter(target, agent, worktree ?? '')
+      : null
     const params = { agent, sessionId, ...(newLaunch && worktree ? { worktree } : {}) }
     const read = (waitForListing: boolean): Promise<AgentSessionModelCatalogResult> =>
       callStructuredAgentSession<AgentSessionModelCatalogResult>(
@@ -117,8 +120,8 @@ export function useHostModelCatalogUpgrade(args: {
           : { key: waitKey, unavailable: next }
       })
       // A new chat's answer is the account's a new chat pins, so the next chat starts from it.
-      if (catalog && newLaunch) {
-        recordHostModelCatalogSnapshot(target, agent, worktree ?? '', catalog)
+      if (catalog) {
+        recordSnapshot?.(catalog)
       }
       receiver.current(catalog, settled ? 'settled' : event)
     }

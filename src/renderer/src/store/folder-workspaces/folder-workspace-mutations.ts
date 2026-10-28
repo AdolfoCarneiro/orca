@@ -1,3 +1,4 @@
+import { forgetHostModelCatalogSnapshotsForWorkspaces } from '@/runtime/host-model-catalog-snapshots'
 import { assertWorkspaceAttachmentWriteCapability } from '../../runtime/runtime-workspace-attachment-capabilities'
 import { getWorkspaceAttachments } from '../../../../shared/workspace-attachments'
 import type { StateCreator } from 'zustand'
@@ -282,6 +283,7 @@ export function createFolderWorkspaceMutationActions(
         if (!deleted) {
           return false
         }
+        forgetHostModelCatalogSnapshotsForWorkspaces(ownerHostId, [workspaceKey])
         set((s) => ({
           folderWorkspaces: s.folderWorkspaces.filter(
             (workspace) =>

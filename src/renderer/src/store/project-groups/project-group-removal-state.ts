@@ -1,3 +1,7 @@
+import { forgetHostModelCatalogSnapshotsForWorkspaces } from '../../runtime/host-model-catalog-snapshots'
+import { getRuntimeTargetHostId } from '../../runtime/runtime-client-target'
+import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
+import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import type { ProjectGroup } from '../../../../shared/project-group-types'
 import { getProjectGroupSubtreeIds } from '../../../../shared/project-groups'
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
@@ -36,4 +40,26 @@ export function applyProjectGroupDeleteCascade(
     ),
     folderWorkspacePathStatuses: {}
   }
+}
+
+export function completeProjectGroupDeleteCascade(
+  state: Pick<RepoSlice, 'projectGroups' | 'folderWorkspaces' | 'repos'>,
+  groupId: string,
+  ownerHostId: ExecutionHostId | null,
+  target: RuntimeClientTarget
+): ReturnType<typeof applyProjectGroupDeleteCascade> {
+  const cascade = applyProjectGroupDeleteCascade(state, groupId, ownerHostId)
+  const survivors = new Set(cascade.folderWorkspaces)
+  const catalogHostId = ownerHostId ?? getRuntimeTargetHostId(target)
+  forgetHostModelCatalogSnapshotsForWorkspaces(
+    catalogHostId,
+    state.folderWorkspaces
+      .filter(
+        (workspace) =>
+          !survivors.has(workspace) &&
+          getFolderWorkspaceHostId(workspace, state.projectGroups) === catalogHostId
+      )
+      .map((workspace) => folderWorkspaceKey(workspace.id))
+  )
+  return cascade
 }
