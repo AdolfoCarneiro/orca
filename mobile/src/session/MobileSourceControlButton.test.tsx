@@ -377,6 +377,83 @@ describe('mobile source-control review status', () => {
     expect(chatMounts).toBe(1)
   })
 
+  describe.each([
+    {
+      name: 'confirmed absence',
+      review: null,
+      freshLabel: 'No pull request',
+      recoveredLabel: 'Pull request status unknown',
+      glyph: 'GitBranch',
+      tone: 'textSecondary'
+    },
+    {
+      name: 'known passing PR',
+      review: frame().review,
+      freshLabel: 'Open pull request, checks passing',
+      recoveredLabel: 'Open pull request, checks passing, cached status',
+      glyph: 'GitPullRequest',
+      tone: 'statusGreen'
+    }
+  ] as const)('$name recovery', ({ review, freshLabel, recoveredLabel, glyph, tone }) => {
+    it.each(['error', 'end', 'renewal refused', 'renewal rejected'] as const)(
+      'invalidates freshness after %s and restores it only after new data',
+      async (failure) => {
+        mount()
+        emit(frame({ review }))
+        expect(button().props.accessibilityLabel).toBe(`Open source control, ${freshLabel}`)
+        const freshRenders = lifecycle.iconRenders
+        if (failure === 'error' || failure === 'end') {
+          emit({ type: failure, message: 'stream unavailable' })
+        } else {
+          if (failure === 'renewal refused') {
+            sendRequest.mockResolvedValueOnce({
+              id: 'expired',
+              ok: true,
+              result: { renewed: false }
+            })
+          } else {
+            sendRequest.mockRejectedValueOnce(new Error('renewal unavailable'))
+          }
+          await act(async () => {
+            await vi.advanceTimersByTimeAsync(50_000)
+          })
+        }
+        expect(button().props.accessibilityLabel).toBe(`Open source control, ${recoveredLabel}`)
+        expect(renderer!.root.find((node) => String(node.type) === glyph).props.color).toBe(
+          colors[tone]
+        )
+        expect(lifecycle.iconRenders).toBe(freshRenders + 1)
+        expect(stopStream).toHaveBeenCalledOnce()
+        expect(subscribe).toHaveBeenCalledOnce()
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1_000)
+        })
+        expect(subscribe).toHaveBeenCalledTimes(2)
+        // A silent replacement must neither restore freshness nor repeat the qualifier.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(15_000)
+        })
+        expect(button().props.accessibilityLabel).toBe(`Open source control, ${recoveredLabel}`)
+        expect(lifecycle.iconRenders).toBe(freshRenders + 1)
+        expect(stopStream).toHaveBeenCalledTimes(2)
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(5_000)
+        })
+        expect(subscribe).toHaveBeenCalledTimes(3)
+        emit(frame({ review, subscriptionId: 'fresh-lease', fetchedAt: 2 }))
+        expect(button().props.accessibilityLabel).toBe(`Open source control, ${freshLabel}`)
+        expect(lifecycle.iconRenders).toBe(freshRenders + 2)
+        emit(frame({ review, subscriptionId: 'fresh-lease', fetchedAt: 3 }))
+        expect(lifecycle.iconRenders).toBe(freshRenders + 2)
+        expect(sendRequest.mock.calls.map(([method]) => method)).toEqual(
+          failure === 'error' || failure === 'end' ? [] : ['worktree.review.renew']
+        )
+        expect(chatMounts).toBe(1)
+      }
+    )
+  })
+
   it('recovers expired leases and stream errors with one bounded subscription retry', async () => {
     mount()
     emit(frame())

@@ -1,5 +1,8 @@
 import { reviewStatusPresentation } from '../../../src/shared/review-status-presentation'
-import { WorktreeReviewStatusSchema } from '../../../src/shared/worktree-review-status'
+import {
+  WorktreeReviewStatusSchema,
+  type WorktreeReviewStatus
+} from '../../../src/shared/worktree-review-status'
 import type { RpcClient } from '../transport/rpc-client'
 import { worktreeCatalogRead } from '../worktree/worktree-catalog-operations'
 import {
@@ -68,7 +71,19 @@ export function createMobileWorkspaceReviewStatus() {
       let timer: ReturnType<typeof setTimeout> | null = null
       let generation = 0
       let failures = 0
+      let latestReview: WorktreeReviewStatus['review'] = null
       let releaseStream = () => {}
+      const publishReview = (stale: boolean) => {
+        const presentation =
+          latestReview === null && stale
+            ? UNKNOWN_STATUS
+            : reviewStatusPresentation({ ...latestReview, hasReview: latestReview !== null })
+        publish(
+          latestReview !== null && stale
+            ? { ...presentation, label: `${presentation.label}, cached status` }
+            : presentation
+        )
+      }
       const clearTimer = () => {
         if (timer !== null) {
           clearTimeout(timer)
@@ -85,6 +100,7 @@ export function createMobileWorkspaceReviewStatus() {
       }
       const recover = () => {
         close()
+        publishReview(true)
         const delay = [1_000, 5_000, 15_000][failures++] ?? 60_000
         timer = setTimeout(open, delay)
       }
@@ -141,17 +157,9 @@ export function createMobileWorkspaceReviewStatus() {
               subscriptionId = event.subscriptionId
               scheduleRenewal(epoch, subscriptionId)
             }
-            const review = event.review
+            latestReview = event.review
             const stale = event.stale || Boolean(event.error) || event.fetchedAt === null
-            const presentation =
-              review === null && stale
-                ? UNKNOWN_STATUS
-                : reviewStatusPresentation({ ...review, hasReview: review !== null })
-            publish(
-              review !== null && stale
-                ? { ...presentation, label: `${presentation.label}, cached status` }
-                : presentation
-            )
+            publishReview(stale)
           }
         )
         if (!disposed && epoch === generation) {
