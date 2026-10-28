@@ -50,6 +50,7 @@ const KIND_BY_TYPE: Readonly<Record<PluginCatalogType, PluginFilterKind>> = {
   'interface-language': 'languages',
   instructions: 'commands',
   panel: 'commands',
+  editor: 'commands',
   worker: 'commands'
 }
 

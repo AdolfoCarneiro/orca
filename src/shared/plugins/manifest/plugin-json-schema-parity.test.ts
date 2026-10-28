@@ -179,7 +179,7 @@ const RUNTIME_ONLY_RULES = [
     rule: 'catalog types beyond the execution profile',
     raw: catalog([entry({}, { types: ['panel'] })]),
     pointer: '/$defs/CatalogRelease/properties/types',
-    phrase: 'needs `sandboxed-ui`'
+    phrase: 'need `sandboxed-ui`'
   },
   {
     rule: 'reserved names in catalog ids',

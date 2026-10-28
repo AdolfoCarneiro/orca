@@ -204,7 +204,7 @@
           ]
         },
         "types": {
-          "description": "Optional; Orca derives it from `contributes` and `execution`. When present, every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` needs `sandboxed-ui`, and `worker` needs `trusted-worker`.",
+          "description": "Optional; Orca derives it from `contributes` and `execution`. When present, every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` and `editor` need `sandboxed-ui`, and `worker` needs `trusted-worker`.",
           "x-orca-since": "1.4.244",
           "examples": [
             [
@@ -213,7 +213,7 @@
           ],
           "uniqueItems": true,
           "minItems": 1,
-          "maxItems": 8,
+          "maxItems": 9,
           "type": "array",
           "items": {
             "type": "string",
@@ -225,6 +225,7 @@
               "syntax",
               "instructions",
               "panel",
+              "editor",
               "worker"
             ]
           }

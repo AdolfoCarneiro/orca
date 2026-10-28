@@ -289,7 +289,7 @@ const KIND_TYPE: Record<PluginContributionKind, PluginCatalogType> = {
   syntax: 'syntax',
   language: 'interface-language',
   panel: 'panel',
-  editor: 'panel',
+  editor: 'editor',
   recipe: 'instructions'
 }
 

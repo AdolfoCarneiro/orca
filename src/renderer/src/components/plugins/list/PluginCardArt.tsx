@@ -233,7 +233,7 @@ export function PluginCardArt({
   let art: React.ReactNode
   if (palettes.length > 0) {
     art = <ThemeArt palettes={palettes} />
-  } else if (types.includes('panel') || types.includes('worker')) {
+  } else if (types.includes('panel') || types.includes('editor') || types.includes('worker')) {
     art = <PanelArt worker={types.includes('worker')} />
   } else if (types.includes('syntax')) {
     art = <SyntaxArt fileType={fileType} />

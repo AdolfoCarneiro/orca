@@ -227,6 +227,5 @@ export const PLUGIN_CONTRIBUTION_POINT_POLICY: Record<
   terminalThemes: { execution: 'data', catalogType: 'terminal-theme', bindsContent: false },
   iconThemes: { execution: 'data', catalogType: 'icon-theme', bindsContent: false },
   syntaxes: { execution: 'data', catalogType: 'syntax', bindsContent: false },
-  // Why panel: a custom editor is sandboxed plugin UI with one extra document channel.
-  customEditors: { execution: 'sandboxed-ui', catalogType: 'panel', bindsContent: false }
+  customEditors: { execution: 'sandboxed-ui', catalogType: 'editor', bindsContent: false }
 }

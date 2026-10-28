@@ -16,6 +16,7 @@ export const PLUGIN_CATALOG_TYPES = [
   'syntax',
   'instructions',
   'panel',
+  'editor',
   'worker'
 ] as const
 
@@ -26,6 +27,7 @@ export const PLUGIN_CATALOG_TYPE_PROFILE: Partial<
 > = {
   instructions: 'declarative',
   panel: 'sandboxed-ui',
+  editor: 'sandboxed-ui',
   worker: 'trusted-worker'
 }
 

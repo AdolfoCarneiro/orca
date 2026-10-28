@@ -116,9 +116,9 @@ describe('contributes.customEditors', () => {
     ).toMatchObject({ ok: true })
   })
 
-  it('lists as a panel type with dotted file types, and suggests for single-extension types', () => {
+  it('lists as an editor type with dotted file types, and suggests for single-extension types', () => {
     const plugin = parsed()
-    expect(pluginCatalogTypes(plugin)).toEqual(['panel'])
+    expect(pluginCatalogTypes(plugin)).toEqual(['editor'])
     expect(pluginContributionSummary(plugin)).toEqual([
       { kind: 'customEditors', name: 'Excalidraw', detail: '.excalidraw, .excalidraw.json' }
     ])

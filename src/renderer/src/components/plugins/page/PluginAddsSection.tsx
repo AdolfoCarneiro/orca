@@ -84,6 +84,8 @@ function catalogTypeLabel(type: PluginCatalogType): string {
       )
     case 'panel':
       return translate('auto.components.settings.PluginDetailSections.typePanel', 'Sidebar panel')
+    case 'editor':
+      return translate('auto.components.settings.PluginDetailSections.customEditor', 'Editor')
     case 'worker':
       return translate(
         'auto.components.settings.PluginDetailSections.typeWorker',

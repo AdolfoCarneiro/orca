@@ -81,7 +81,7 @@ export const pluginCatalogReleaseSchema = z
       .optional()
       .meta({
         ...pluginFieldDoc(
-          'Optional; Orca derives it from `contributes` and `execution`. When present, every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` needs `sandboxed-ui`, and `worker` needs `trusted-worker`.',
+          'Optional; Orca derives it from `contributes` and `execution`. When present, every kind of contribution the release carries, matching its manifest exactly. `instructions` needs the `declarative` profile or higher, `panel` and `editor` need `sandboxed-ui`, and `worker` needs `trusted-worker`.',
           NEXT,
           [['syntax']]
         ),

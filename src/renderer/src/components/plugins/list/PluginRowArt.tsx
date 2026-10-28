@@ -6,6 +6,7 @@ import {
   Languages,
   Palette,
   PanelRight,
+  PenTool,
   Puzzle,
   SquareTerminal
 } from 'lucide-react'
@@ -20,6 +21,7 @@ const TYPE_ICON: Record<PluginCatalogType, typeof Palette> = {
   'interface-language': Languages,
   instructions: Command,
   panel: PanelRight,
+  editor: PenTool,
   worker: Cpu
 }
 
@@ -27,6 +29,7 @@ const TYPE_ICON: Record<PluginCatalogType, typeof Palette> = {
 const TYPE_ORDER: readonly PluginCatalogType[] = [
   'worker',
   'panel',
+  'editor',
   'instructions',
   'app-theme',
   'terminal-theme',
@@ -53,7 +56,7 @@ const ART_TYPE_BY_CATEGORY: Readonly<Record<string, PluginCatalogType>> = {
   recipes: 'instructions',
   machines: 'instructions',
   panels: 'panel',
-  editors: 'panel'
+  editors: 'editor'
 }
 
 /** What a plugin is, from its catalog types plus what an installed copy shows it carries. */
@@ -66,8 +69,11 @@ export function pluginArtTypes(entry: PluginListEntry): PluginCatalogType[] {
   if (installed?.hasWorker) {
     types.push('worker')
   }
-  if (installed && (installed.panels.length > 0 || (installed.customEditors?.length ?? 0) > 0)) {
+  if (installed && installed.panels.length > 0) {
     types.push('panel')
+  }
+  if (installed && (installed.customEditors?.length ?? 0) > 0) {
+    types.push('editor')
   }
   if (installed && installed.commands.length > 0) {
     types.push('instructions')
