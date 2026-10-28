@@ -136,14 +136,7 @@ export abstract class OrcaRuntimeWithReconcileHeadlessMobileSessionBrowserTabs e
     const existingHeadlessBrowserTabs = existingBrowserTabs.filter(
       (tab) => !this.isRendererOwnedMobileBrowserTab(existing, tab)
     )
-    const rendererBrowserPageIds = new Set(
-      existingBrowserTabs
-        .filter((tab) => this.isRendererOwnedMobileBrowserTab(existing, tab))
-        .flatMap((tab) => tab.browserPageId ?? [])
-    )
-    const liveBrowserTabs = this.buildHeadlessMobileSessionBrowserTabs(worktreeId).filter(
-      (tab) => !rendererBrowserPageIds.has(tab.browserPageId ?? '')
-    )
+    const liveBrowserTabs = this.buildHeadlessMobileSessionBrowserTabs(worktreeId)
     const existingHeadlessBrowserIds = new Set(
       existingHeadlessBrowserTabs.flatMap((tab) => [tab.id, tab.browserWorkspaceId])
     )

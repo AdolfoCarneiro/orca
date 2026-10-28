@@ -1,7 +1,12 @@
 import './orca-runtime-test-lifecycle.spec'
 import { expect, it, vi } from 'vitest'
 import { OrcaRuntimeService, electronMocks } from './orca-runtime-test-mocks.spec'
-import { TEST_WORKTREE_ID, store } from './orca-runtime-test-fixtures.spec'
+import {
+  TEST_WORKTREE_ID,
+  makeRuntimeStoreWithWorkspaceSession,
+  store
+} from './orca-runtime-test-fixtures.spec'
+import { getDefaultWorkspaceSession } from '../../shared/constants'
 import type {
   BrowserTabInfo,
   RuntimeMobileSessionBrowserTab,
@@ -35,9 +40,9 @@ function publication(epoch = 'renderer-1', version = 1): RuntimeMobileSessionTab
   }
 }
 
-function browserRuntime(closeTab = vi.fn(async (_pageId: string) => {})) {
+function browserRuntime(closeTab = vi.fn(async (_pageId: string) => {}), runtimeStore = store) {
   const livePages = new Map<string, BrowserTabInfo>()
-  const runtime = new OrcaRuntimeService(store)
+  const runtime = new OrcaRuntimeService(runtimeStore)
   runtime.setOffscreenBrowserBackend({ createTab: vi.fn(), closeTab })
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Only the bridge inventory is used by this lifecycle test.
   runtime.setAgentBrowserBridge({ tabList: () => ({ tabs: [...livePages.values()] }) } as never)
@@ -207,10 +212,15 @@ it('does not tombstone a renderer browser when the acknowledged close fails', as
 
 it('projects a renderer page only once when the offscreen inventory also lists its page id', async () => {
   const closeTab = vi.fn(async (_pageId: string) => {})
-  const { runtime, sync, addPage, list } = browserRuntime(closeTab)
+  // A saved workspace session sends list and graph sync through hydrate's runtime-owned merge.
+  const { runtimeStore } = makeRuntimeStoreWithWorkspaceSession(getDefaultWorkspaceSession())
+  const { runtime, sync, addPage, list } = browserRuntime(closeTab, runtimeStore)
   sync([publication()])
   addPage('renderer-page')
   addPage('separate-runtime-page')
+  runtime.notifyMobileSessionTabsChanged(TEST_WORKTREE_ID)
+  await list()
+  sync([publication('renderer-1', 2)])
   runtime.notifyMobileSessionTabsChanged(TEST_WORKTREE_ID)
 
   const snapshot = await list()

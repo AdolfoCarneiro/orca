@@ -156,6 +156,19 @@ export abstract class OrcaRuntimeWithStoredMobileSnapshotHasStalePreservedTab ex
     return !this.isHeadlessOwnedMobileBrowserTab(snapshot, tab)
   }
 
+  protected getRendererOwnedBrowserPageIds(worktreeId: string): Set<string> {
+    const snapshot = this.mobileSessionTabsByWorktree.get(worktreeId)
+    return new Set(
+      snapshot?.tabs.flatMap((tab) =>
+        tab.type === 'browser' &&
+        tab.browserPageId &&
+        this.isRendererOwnedMobileBrowserTab(snapshot, tab)
+          ? [tab.browserPageId]
+          : []
+      )
+    )
+  }
+
   protected getMobileSessionPublicationEpochAfterHeadlessBrowserChange(
     snapshot: RuntimeMobileSessionTabsSnapshot,
     nextTabs: readonly RuntimeMobileSessionSnapshotTab[],
