@@ -1,3 +1,4 @@
+import { MarkdownClosingDelimiterTokenizer } from './markdown-closing-delimiter-bound'
 import {
   createMarkdownTokenizerStartCursor,
   getMarkdownTokenizerStartMarker
@@ -59,7 +60,7 @@ function isListToken(token: Tokens.Generic | undefined): token is Tokens.List {
   return token?.type === 'list' && Array.isArray(token.items)
 }
 
-class BlockquoteListTokenizer extends Tokenizer {
+class BlockquoteListTokenizer extends MarkdownClosingDelimiterTokenizer {
   // Marked v18 lazy quotes call list directly then read raw, bypassing Tiptap’s no-break-space list tokenizer.
   list(source: string): Tokens.List | undefined {
     const token = super.list(source)
@@ -106,6 +107,14 @@ export function createTiptapMarkedFacade(): typeof marked {
     }
 
     inlineTokens(source: string, tokens?: Token[]): Token[] {
+      const tokenize = () => this.tokenizeInline(source, tokens)
+      const tokenizer = this.options.tokenizer
+      return tokenizer instanceof BlockquoteListTokenizer
+        ? tokenizer.withInlineDelimiterBounds(tokenize)
+        : tokenize()
+    }
+
+    private tokenizeInline(source: string, tokens?: Token[]): Token[] {
       const previousExtensions = this.options.extensions
       const extensions = this.registeredExtensions
       if (!extensions?.startInline) {
