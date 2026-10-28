@@ -192,6 +192,11 @@ describe('getWorkItemDetails PR file viewed state', () => {
     const details = await getWorkItemDetails('/repo-root', 42, 'pr')
 
     expect(ghExecFileAsyncMock).toHaveBeenCalledTimes(3)
+    expect(
+      ghExecFileAsyncMock.mock.calls.find(([args]) =>
+        args.includes('repos/stablyai/orca/pulls/42')
+      )?.[0]
+    ).toEqual(['api', '--cache', '60s', 'repos/stablyai/orca/pulls/42'])
     expect(details?.body).toBe('PR body')
     expect(details?.pullRequestId).toBe('PR_kwDO123')
     expect(details?.headSha).toBe('head-sha')

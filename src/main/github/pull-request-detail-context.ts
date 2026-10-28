@@ -8,7 +8,6 @@ import { ghExecFileAsync, ghRepoExecOptions, githubRepoContext } from './gh-util
 import type { LocalGitExecOptions } from './gh-utils'
 import { githubHostExecOptions, type GitHubApiRepository } from './github-api-repository'
 import { noteRepositoryRateLimitSpend, repositoryRateLimitGuard } from './rate-limit'
-import { getPRMetadata } from './pull-request-file-data'
 import { getWorkItemParticipants } from './work-item-participants'
 
 function detailContextQuery(includeContext: boolean): string {
@@ -72,9 +71,7 @@ export type PRFileViewedStatesResult = {
   pullRequestId: string
   viewedStates: Map<string, GitHubPRFileViewedState>
 }
-type PRMetadata = Awaited<ReturnType<typeof getPRMetadata>>
 type PRDetailContext = {
-  metadata: PRMetadata
   participants: GitHubAssignableUser[]
   viewedStates: PRFileViewedStatesResult | null
 }
@@ -101,7 +98,7 @@ async function readPRDetailContext(
   repository: GitHubApiRepository | null,
   connectionId: string | null | undefined,
   localGitOptions: LocalGitExecOptions
-): Promise<Partial<Omit<PRDetailContext, 'metadata'>>> {
+): Promise<Partial<PRDetailContext>> {
   if (!repository) {
     return {}
   }
@@ -109,7 +106,7 @@ async function readPRDetailContext(
     ...ghRepoExecOptions(githubRepoContext(repoPath, connectionId, localGitOptions)),
     ...githubHostExecOptions(repository)
   }
-  const result: Partial<Omit<PRDetailContext, 'metadata'>> = {}
+  const result: Partial<PRDetailContext> = {}
   const viewedStates = new Map<string, GitHubPRFileViewedState>()
   let after: string | null = null
   try {
@@ -190,26 +187,24 @@ export async function getPRDetailContext(
   connectionId?: string | null,
   localGitOptions: LocalGitExecOptions = {}
 ): Promise<PRDetailContext> {
-  const [context, metadata] = await Promise.all([
-    readPRDetailContext(repoPath, prNumber, repository, connectionId, localGitOptions).then(
-      async (context) => ({
-        ...context,
-        participants:
-          context.participants ??
-          (await getWorkItemParticipants(
-            repoPath,
-            { number: prNumber, type: 'pr' },
-            repository,
-            connectionId,
-            localGitOptions
-          ))
-      })
-    ),
-    getPRMetadata(repoPath, prNumber, repository, connectionId, localGitOptions)
-  ])
+  const context = await readPRDetailContext(
+    repoPath,
+    prNumber,
+    repository,
+    connectionId,
+    localGitOptions
+  )
+  const participants =
+    context.participants ??
+    (await getWorkItemParticipants(
+      repoPath,
+      { number: prNumber, type: 'pr' },
+      repository,
+      connectionId,
+      localGitOptions
+    ))
   return {
-    metadata,
-    participants: context.participants,
+    participants,
     viewedStates: context.viewedStates ?? null
   }
 }

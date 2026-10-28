@@ -27,11 +27,6 @@ const files = {
   pageInfo: { hasNextPage: false, endCursor: null },
   nodes: [{ path: 'src/changed.ts', viewerViewedState: 'VIEWED' }]
 }
-const metadata = {
-  body: 'Cached PR body',
-  head: { sha: 'cached-head' },
-  base: { sha: 'cached-base' }
-}
 
 function response(
   pullRequest: Record<string, unknown> | null = { participants: { nodes: [participant] } },
@@ -55,7 +50,7 @@ function mockReads(reads: ({ stdout: string } | Error | { code: number; stdout: 
       }
       return next
     }
-    return { stdout: JSON.stringify(metadata) }
+    throw new Error('Unexpected non-GraphQL read')
   })
 }
 
@@ -69,28 +64,17 @@ beforeEach(() => {
 })
 
 describe('PR detail context requests', () => {
-  it('reads participants and viewed state together while keeping the existing metadata cache', async () => {
+  it('reads participants and viewed state in one request', async () => {
     mockReads([response()])
     const result = await getPRDetailContext('/folder-workspace', 42, repository)
-    expect(result.metadata).toEqual({
-      body: 'Cached PR body',
-      headSha: 'cached-head',
-      baseSha: 'cached-base'
-    })
     expect(result.participants).toEqual([participant])
     expect(result.viewedStates).toEqual({
       pullRequestId: 'PR_42',
       viewedStates: new Map([['src/changed.ts', 'VIEWED']])
     })
-    expect(exec).toHaveBeenCalledTimes(2)
+    expect(exec).toHaveBeenCalledTimes(1)
     expect(graphqlCalls()).toHaveLength(1)
     expect(graphqlCalls()[0].join(' ')).not.toMatch(/headRefOid|baseRefOid|\bbody\b/)
-    expect(exec.mock.calls.find(([args]) => !args.includes('graphql'))?.[0]).toEqual([
-      'api',
-      '--cache',
-      '60s',
-      'repos/acme/widgets/pulls/42'
-    ])
     expect(exec.mock.calls[0][1]).toMatchObject({ cwd: '/folder-workspace', host: 'github.com' })
   })
 
@@ -132,7 +116,6 @@ describe('PR detail context requests', () => {
     expect(result.participants).toEqual([participant])
     expect(result.viewedStates?.pullRequestId).toBe('PR_42')
     expect(result.viewedStates?.viewedStates.get('src/changed.ts')).toBe('VIEWED')
-    expect(result.metadata.headSha).toBe('cached-head')
     expect(graphqlCalls()).toHaveLength(2)
     expect(graphqlCalls()[1].join(' ')).not.toContain('viewerViewedState')
   })
@@ -183,7 +166,6 @@ describe('PR detail context requests', () => {
     const result = await getPRDetailContext('/repo', 42, repository)
     expect(result.participants).toEqual([participant])
     expect(result.viewedStates).toBeNull()
-    expect(result.metadata.headSha).toBe('cached-head')
     expect(graphqlCalls()).toHaveLength(2)
   })
 
@@ -191,7 +173,6 @@ describe('PR detail context requests', () => {
     guard.mockImplementation((_, bucket: string) => ({ blocked: bucket === 'core' }))
     mockReads([response()])
     const result = await getPRDetailContext('/repo', 42, repository)
-    expect(result.metadata).toEqual({ body: '' })
     expect(result.viewedStates?.pullRequestId).toBe('PR_42')
     expect(exec).toHaveBeenCalledTimes(1)
   })
