@@ -305,7 +305,7 @@ describe('getStatus', () => {
       if (args[0] === 'rev-parse' && args.includes('HEAD@{u}')) {
         return Promise.reject(new Error('fatal: no upstream configured'))
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/feature/prompts')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/feature/prompts')) {
         return Promise.reject(new Error('missing remote branch'))
       }
       if (args[0] === 'config') {
@@ -317,7 +317,12 @@ describe('getStatus', () => {
     const result = await getStatus('/repo')
 
     expect(gitExecFileAsyncMock).toHaveBeenCalledWith(
-      ['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/feature/prompts'],
+      [
+        'for-each-ref',
+        '--format=%(refname)%00',
+        '--count=1',
+        'refs/remotes/origin/feature/prompts'
+      ],
       { cwd: '/repo', preferWslDirectGit: true }
     )
     expect(result.upstreamStatus).toEqual({ hasUpstream: false, ahead: 0, behind: 0 })
@@ -332,7 +337,7 @@ describe('getStatus', () => {
       })
       .mockResolvedValueOnce({ stdout: 'refs/heads/feature/prompts\n' })
       .mockResolvedValueOnce({ stdout: 'origin/main\n' })
-      .mockResolvedValueOnce({ stdout: 'abc123\n' })
+      .mockResolvedValueOnce({ stdout: 'refs/remotes/origin/feature/prompts\0\n' })
       .mockResolvedValueOnce({ stdout: '3\t1\n' })
 
     const result = await getStatus('/repo')

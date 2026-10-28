@@ -269,7 +269,7 @@ describe('getUpstreamStatus', () => {
     gitExecFileAsyncMock
       .mockResolvedValueOnce({ stdout: 'refs/heads/feature\n' })
       .mockResolvedValueOnce({ stdout: 'origin/main\n' })
-      .mockResolvedValueOnce({ stdout: 'abc123\n' })
+      .mockResolvedValueOnce({ stdout: 'refs/remotes/origin/feature\0\n' })
       .mockResolvedValueOnce({ stdout: '3\t1\n' })
       .mockResolvedValueOnce({ stdout: '+ def456 remote work\n' })
 
@@ -282,6 +282,23 @@ describe('getUpstreamStatus', () => {
       behind: 1,
       behindCommitsArePatchEquivalent: false
     })
+    expect(gitExecFileAsyncMock).toHaveBeenCalledWith(
+      ['rev-list', '--left-right', '--count', 'HEAD...refs/remotes/origin/feature'],
+      { cwd: '/repo' }
+    )
+    expect(gitExecFileAsyncMock).toHaveBeenCalledWith(
+      [
+        'log',
+        '--no-show-signature',
+        '--no-color',
+        '--oneline',
+        '--cherry-mark',
+        '--right-only',
+        'HEAD...refs/remotes/origin/feature',
+        '--'
+      ],
+      { cwd: '/repo' }
+    )
   })
 
   it('uses a named remote that matches a URL-valued branch remote', async () => {
@@ -321,10 +338,10 @@ describe('getUpstreamStatus', () => {
         return Promise.resolve({ stdout: 'origin\npr-pynickle-orca\n' })
       }
       if (
-        args[0] === 'rev-parse' &&
+        args[0] === 'for-each-ref' &&
         args.includes('refs/remotes/pr-pynickle-orca/imp/chinese-translation')
       ) {
-        return Promise.resolve({ stdout: 'fork-head\n' })
+        return Promise.resolve({ stdout: `${args.at(-1)}\0\n` })
       }
       if (args[0] === 'rev-list') {
         return Promise.resolve({ stdout: '2\t0\n' })
@@ -359,8 +376,8 @@ describe('getUpstreamStatus', () => {
       if (args[0] === 'config' && args.includes('branch.review/pr-1.base')) {
         return Promise.resolve({ stdout: 'refs/remotes/origin/main\n' })
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/fork/main')) {
-        return Promise.resolve({ stdout: 'fork-head\n' })
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/fork/main')) {
+        return Promise.resolve({ stdout: `${args.at(-1)}\0\n` })
       }
       if (args[0] === 'rev-list') {
         return Promise.resolve({ stdout: '3\t0\n' })
@@ -407,7 +424,10 @@ describe('getUpstreamStatus', () => {
       if (args[0] === 'remote') {
         return Promise.resolve({ stdout: 'origin\n' })
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/imp/chinese-translation')) {
+      if (
+        args[0] === 'for-each-ref' &&
+        args.includes('refs/remotes/origin/imp/chinese-translation')
+      ) {
         return Promise.reject(new Error('missing origin tracking ref'))
       }
       throw new Error(`unexpected git args: ${args.join(' ')}`)
@@ -446,10 +466,10 @@ describe('getUpstreamStatus', () => {
       if (args[0] === 'config' && args.includes('branch.review/pr-1.base')) {
         return Promise.resolve({ stdout: 'refs/remotes/origin/main\n' })
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/fork/main')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/fork/main')) {
         return Promise.reject(new Error('missing fork tracking ref'))
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/review/pr-1')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/review/pr-1')) {
         return Promise.reject(new Error('missing origin review branch'))
       }
       throw new Error(`unexpected git args: ${args.join(' ')}`)
@@ -488,10 +508,10 @@ describe('getUpstreamStatus', () => {
       if (args[0] === 'config' && args.includes('branch.feature.base')) {
         return Promise.resolve({ stdout: 'refs/remotes/origin/main\n' })
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/main')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/main')) {
         return Promise.reject(new Error('missing origin/main tracking ref'))
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/feature')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/feature')) {
         return Promise.reject(new Error('missing origin/feature tracking ref'))
       }
       throw new Error(`unexpected git args: ${args.join(' ')}`)
@@ -529,7 +549,7 @@ describe('getUpstreamStatus', () => {
       if (args[0] === 'config' && args.includes('branch.feature/fix.base')) {
         return Promise.resolve({ stdout: 'refs/remotes/origin/main\n' })
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/feature/fix')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/feature/fix')) {
         return Promise.reject(new Error('missing origin feature branch'))
       }
       throw new Error(`unexpected git args: ${args.join(' ')}`)
@@ -555,8 +575,8 @@ describe('getUpstreamStatus', () => {
       if (args[0] === 'remote') {
         return Promise.resolve({ stdout: 'origin\norigin/team\n' })
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/feature')) {
-        return Promise.resolve({ stdout: 'origin-feature-oid\n' })
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/feature')) {
+        return Promise.resolve({ stdout: `${args.at(-1)}\0\n` })
       }
       if (args[0] === 'rev-list' && args.includes('HEAD...origin/team/feature')) {
         return Promise.resolve({ stdout: '2\t0\n' })

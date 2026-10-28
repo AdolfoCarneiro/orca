@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runProcess } from '@orca/process-host'
@@ -9,6 +9,10 @@ import {
 } from '../../shared/git-effective-upstream'
 import { loadGitHistoryFromExecutor } from '../../shared/git-history'
 import { resolveConfiguredGitPushTarget } from '../../shared/git-push-target-resolution'
+import { hasUsableHostedReviewPushTarget } from '../../shared/hosted-review-push-target'
+import { resolveSourceControlCompareBaseRef } from '../../shared/source-control-base-ref-resolution'
+import { ENGLISH_REMOTE_DROPDOWN_COPY } from '../../shared/source-control-dropdown-remote-copy'
+import { buildSourceControlManualReviewUrl } from '../../renderer/src/components/right-sidebar/source-control/review/manual-review-url'
 import { gitPull, gitPush } from './remote'
 import { getUpstreamStatus } from './upstream'
 import { getStatus } from './status'
@@ -33,8 +37,8 @@ afterEach(async () => {
 async function createRepo(branch: string, tag: boolean) {
   const directory = await mkdtemp(join(tmpdir(), 'orca-current-branch-'))
   directories.push(directory)
-  const git = async (args: string[], cwd = directory) => {
-    const result = await runProcess({ program: 'git', args, cwd })
+  const git = async (args: string[], cwd = directory, input?: string) => {
+    const result = await runProcess({ program: 'git', args, cwd, input, timeoutMs: 30_000 })
     if (result.code !== 0) {
       throw new Error(result.stderr)
     }
@@ -285,6 +289,177 @@ describe('qualified configured upstreams with real Git', () => {
 
     expect((await git(['rev-parse', 'HEAD'])).stdout.trim()).toBe(head)
     expect((await git(['rev-parse', 'refs/tags/custom/main'])).stdout.trim()).toBe(head)
+  })
+})
+
+describe('same-name fallback upstream identity with real Git', () => {
+  async function publishedBranch(branch = 'topic', legacy = true) {
+    const fixture = await createRepo(branch, false)
+    const { directory, git, base, head } = fixture
+    const blob = (
+      await git(['hash-object', '-w', '--stdin'], directory, 'published\n')
+    ).stdout.trim()
+    const tree = (
+      await git(['mktree'], directory, `100644 blob ${blob}\tpublished.txt\n`)
+    ).stdout.trim()
+    const published = (
+      await git(['commit-tree', tree, '-p', head, '-m', 'published'])
+    ).stdout.trim()
+    await git([
+      'push',
+      '-q',
+      'origin',
+      `${base}:refs/heads/main`,
+      `${published}:refs/heads/${branch}`
+    ])
+    await git(['update-ref', `refs/remotes/origin/${branch}`, published])
+    if (legacy) {
+      await git(['config', `branch.${branch}.remote`, 'origin'])
+      await git(['config', `branch.${branch}.merge`, 'refs/heads/main'])
+    }
+    return { ...fixture, published }
+  }
+
+  it.each([
+    { legacy: true, tags: 1, nonStrict: false },
+    { legacy: true, tags: 3, nonStrict: false },
+    { legacy: true, tags: 2, nonStrict: true },
+    { legacy: false, tags: 2, nonStrict: false }
+  ])(
+    'counts and pulls the published branch with $tags tags, legacy=$legacy, nonStrict=$nonStrict',
+    async ({ legacy, tags, nonStrict }) => {
+      const { directory, git, base, head, origin, published } = await publishedBranch(
+        'topic',
+        legacy
+      )
+      if (nonStrict) {
+        await git(['config', 'core.warnAmbiguousRefs', 'false'])
+      }
+      const tagNames = ['origin/topic', 'remotes/origin/topic', 'refs/remotes/origin/topic'].slice(
+        0,
+        tags
+      )
+      for (const tag of tagNames) {
+        await git(['update-ref', `refs/tags/${tag}`, head])
+      }
+      const upstream = await resolveEffectiveGitUpstream(git)
+      expect(upstream).toEqual({
+        upstreamName: 'origin/topic',
+        remoteName: 'origin',
+        branchName: 'topic',
+        isConfiguredUpstream: false
+      })
+      const expected = { hasUpstream: true, upstreamName: 'origin/topic', ahead: 0, behind: 1 }
+      expect(await getUpstreamStatus(directory)).toEqual(expected)
+      expect(
+        (
+          await getStatus(directory, {
+            includeLineStats: false,
+            bypassEffectiveUpstreamNegativeCache: true
+          })
+        ).upstreamStatus
+      ).toEqual(expected)
+      expect((await getStatus(directory, { includeLineStats: false })).upstreamStatus).toEqual(
+        expected
+      )
+      expect(
+        buildSourceControlManualReviewUrl({
+          baseRef: 'origin/main',
+          branchName: 'topic',
+          repoRemoteName: 'origin',
+          repoRemoteUrl: 'https://github.com/stablyai/orca.git',
+          provider: 'github',
+          upstreamName: upstream?.upstreamName
+        })
+      ).toBe('https://github.com/stablyai/orca/compare/main...topic?expand=1')
+      expect(
+        hasUsableHostedReviewPushTarget({
+          pushTarget: { remoteName: 'origin', branchName: 'topic' },
+          upstreamStatus: expected
+        })
+      ).toBe(true)
+      expect(ENGLISH_REMOTE_DROPDOWN_COPY.nothingToPushTo(expected.upstreamName)).toBe(
+        'Nothing to push to origin/topic'
+      )
+      expect(
+        resolveSourceControlCompareBaseRef({ enabled: true, upstreamName: expected.upstreamName })
+      ).toBe('origin/topic')
+
+      await gitPull(directory)
+
+      expect((await git(['rev-parse', 'HEAD'])).stdout.trim()).toBe(published)
+      expect(await readFile(join(directory, 'published.txt'), 'utf8')).toBe('published\n')
+      expect((await git(['rev-parse', 'refs/heads/main'], origin)).stdout.trim()).toBe(base)
+      expect((await git(['rev-parse', 'refs/heads/topic'], origin)).stdout.trim()).toBe(published)
+      for (const tag of tagNames) {
+        expect((await git(['rev-parse', `refs/tags/${tag}`])).stdout.trim()).toBe(head)
+      }
+      expect(await getUpstreamStatus(directory)).toEqual({ ...expected, behind: 0 })
+      expect((await getStatus(directory, { includeLineStats: false })).upstreamStatus).toEqual({
+        ...expected,
+        behind: 0
+      })
+    }
+  )
+
+  it.each([true, false])(
+    'keeps a warm fallback comparison exact when tags appear, legacy=%s',
+    async (legacy) => {
+      const { directory, git, head } = await publishedBranch('topic', legacy)
+      const expected = { hasUpstream: true, upstreamName: 'origin/topic', ahead: 0, behind: 1 }
+      expect((await getStatus(directory, { includeLineStats: false })).upstreamStatus).toEqual(
+        expected
+      )
+      for (const tag of ['origin/topic', 'remotes/origin/topic', 'refs/remotes/origin/topic']) {
+        await git(['update-ref', `refs/tags/${tag}`, head])
+        expect((await getStatus(directory, { includeLineStats: false })).upstreamStatus).toEqual(
+          expected
+        )
+      }
+    }
+  )
+
+  it.each(['!', '-', '+', ']', '(', ')', 'é', '😀'])(
+    'resolves a valid fallback branch ending in %s',
+    async (suffix) => {
+      const branch = `topic${suffix}`
+      const { directory, git } = await publishedBranch(branch)
+      expect(await resolveEffectiveGitUpstream(git)).toEqual({
+        upstreamName: `origin/${branch}`,
+        remoteName: 'origin',
+        branchName: branch,
+        isConfiguredUpstream: false
+      })
+      expect(await getUpstreamStatus(directory)).toEqual({
+        hasUpstream: true,
+        upstreamName: `origin/${branch}`,
+        ahead: 0,
+        behind: 1
+      })
+    }
+  )
+
+  it('rejects a child-only tracking ref and preserves the checkout on failed Pull', async () => {
+    const { directory, git, head, published } = await publishedBranch('topic', false)
+    await git(['update-ref', '-d', 'refs/remotes/origin/topic'])
+    await git(['update-ref', 'refs/remotes/origin/topic/child', published])
+    expect(await resolveEffectiveGitUpstream(git)).toBeNull()
+    expect(await getUpstreamStatus(directory)).toEqual({ hasUpstream: false, ahead: 0, behind: 0 })
+    for (let poll = 0; poll < 2; poll++) {
+      expect((await getStatus(directory, { includeLineStats: false })).upstreamStatus).toEqual({
+        hasUpstream: false,
+        ahead: 0,
+        behind: 0
+      })
+    }
+    await expect(gitPull(directory)).rejects.toThrow()
+    expect((await git(['rev-parse', 'HEAD'])).stdout.trim()).toBe(head)
+    expect((await git(['rev-parse', 'refs/remotes/origin/topic/child'])).stdout.trim()).toBe(
+      published
+    )
+    await expect(readFile(join(directory, 'published.txt'))).rejects.toMatchObject({
+      code: 'ENOENT'
+    })
   })
 })
 

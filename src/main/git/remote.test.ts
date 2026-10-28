@@ -489,7 +489,7 @@ describe('git remote operations', () => {
     gitExecFileAsyncMock
       .mockResolvedValueOnce({ stdout: 'refs/heads/feature\n', stderr: '' })
       .mockResolvedValueOnce({ stdout: 'origin/main\n', stderr: '' })
-      .mockResolvedValueOnce({ stdout: 'abc123\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: 'refs/remotes/origin/feature\0\n', stderr: '' })
       .mockResolvedValueOnce({ stdout: '', stderr: '' })
 
     await gitPull('/repo')
@@ -497,7 +497,10 @@ describe('git remote operations', () => {
     expect(gitExecFileAsyncMock.mock.calls).toEqual([
       [['symbolic-ref', '--quiet', 'HEAD'], { cwd: '/repo' }],
       [['rev-parse', '--abbrev-ref', 'HEAD@{u}'], { cwd: '/repo' }],
-      [['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/feature'], { cwd: '/repo' }],
+      [
+        ['for-each-ref', '--format=%(refname)%00', '--count=1', 'refs/remotes/origin/feature'],
+        { cwd: '/repo' }
+      ],
       [['pull', 'origin', 'feature'], { cwd: '/repo' }]
     ])
   })

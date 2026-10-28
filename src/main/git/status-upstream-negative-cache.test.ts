@@ -78,13 +78,13 @@ describe('local upstream negative cache', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/feature')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/feature')) {
         if (originBranchExists) {
-          return { stdout: 'abc123\n' }
+          return { stdout: `${args.at(-1)}\0\n` }
         }
         throw new Error('missing remote branch')
       }
-      if (args[0] === 'rev-list' && args.includes('HEAD...origin/feature')) {
+      if (args[0] === 'rev-list' && args.includes('HEAD...refs/remotes/origin/feature')) {
         return { stdout: '0\t1\n' }
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
@@ -125,15 +125,15 @@ describe('local upstream negative cache', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/feature')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/feature')) {
         if (originBranchExists) {
-          return { stdout: 'abc123\n' }
+          return { stdout: `${args.at(-1)}\0\n` }
         }
         return await new Promise<{ stdout: string }>((_, reject) => {
           deferredOriginReject = reject
         })
       }
-      if (args[0] === 'rev-list' && args.includes('HEAD...origin/feature')) {
+      if (args[0] === 'rev-list' && args.includes('HEAD...refs/remotes/origin/feature')) {
         return { stdout: '0\t1\n' }
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
@@ -188,15 +188,21 @@ describe('local upstream negative cache', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.some((arg) => arg.startsWith('refs/remotes/origin/'))) {
+      if (
+        args[0] === 'for-each-ref' &&
+        args.some((arg) => arg.startsWith('refs/remotes/origin/'))
+      ) {
         if (originBranchExists) {
-          return { stdout: 'abc123\n' }
+          return { stdout: `${args.at(-1)}\0\n` }
         }
         return await new Promise<{ stdout: string }>((_, reject) => {
           deferredOriginReject = reject
         })
       }
-      if (args[0] === 'rev-list' && args.some((arg) => arg.startsWith('HEAD...origin/'))) {
+      if (
+        args[0] === 'rev-list' &&
+        args.some((arg) => arg.startsWith('HEAD...refs/remotes/origin/'))
+      ) {
         return { stdout: '0\t1\n' }
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
@@ -252,15 +258,21 @@ describe('local upstream negative cache', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.some((arg) => arg.startsWith('refs/remotes/origin/'))) {
+      if (
+        args[0] === 'for-each-ref' &&
+        args.some((arg) => arg.startsWith('refs/remotes/origin/'))
+      ) {
         if (originBranchExists) {
-          return { stdout: 'abc123\n' }
+          return { stdout: `${args.at(-1)}\0\n` }
         }
         return await new Promise<{ stdout: string }>((_, reject) => {
           deferredOriginReject = reject
         })
       }
-      if (args[0] === 'rev-list' && args.some((arg) => arg.startsWith('HEAD...origin/'))) {
+      if (
+        args[0] === 'rev-list' &&
+        args.some((arg) => arg.startsWith('HEAD...refs/remotes/origin/'))
+      ) {
         return { stdout: '0\t1\n' }
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
@@ -310,15 +322,21 @@ describe('local upstream negative cache', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.some((arg) => arg.startsWith('refs/remotes/origin/'))) {
+      if (
+        args[0] === 'for-each-ref' &&
+        args.some((arg) => arg.startsWith('refs/remotes/origin/'))
+      ) {
         if (currentBranch === 'feature') {
           return await new Promise<{ stdout: string }>((_, reject) => {
             deferredOriginReject = reject
           })
         }
-        return { stdout: 'abc123\n' }
+        return { stdout: `${args.at(-1)}\0\n` }
       }
-      if (args[0] === 'rev-list' && args.some((arg) => arg.startsWith('HEAD...origin/'))) {
+      if (
+        args[0] === 'rev-list' &&
+        args.some((arg) => arg.startsWith('HEAD...refs/remotes/origin/'))
+      ) {
         return { stdout: '0\t1\n' }
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
@@ -360,7 +378,10 @@ describe('local upstream negative cache', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.some((arg) => arg.startsWith('refs/remotes/origin/'))) {
+      if (
+        args[0] === 'for-each-ref' &&
+        args.some((arg) => arg.startsWith('refs/remotes/origin/'))
+      ) {
         throw new Error('missing remote branch')
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
@@ -394,10 +415,10 @@ describe('local upstream negative cache', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.includes(`refs/remotes/origin/${currentBranch}`)) {
-        return { stdout: 'abc123\n' }
+      if (args[0] === 'for-each-ref' && args.includes(`refs/remotes/origin/${currentBranch}`)) {
+        return { stdout: `${args.at(-1)}\0\n` }
       }
-      if (args[0] === 'rev-list' && args.includes(`HEAD...origin/${currentBranch}`)) {
+      if (args[0] === 'rev-list' && args.includes(`HEAD...refs/remotes/origin/${currentBranch}`)) {
         return { stdout: '0\t1\n' }
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)

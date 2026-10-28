@@ -79,7 +79,11 @@ async function probeOrRevalidateEffectiveUpstreamStatus(
   branchName: string,
   options: GitRuntimeOptions = {},
   bypassCache = false
-): Promise<{ status: GitUpstreamStatus; probedSameNameOriginRef: boolean }> {
+): Promise<{
+  status: GitUpstreamStatus
+  probedSameNameOriginRef: boolean
+  comparisonRef?: string
+}> {
   const now = Date.now()
   const cached = resolvedUpstreamNameCache.get(cacheKey)
   if (cached && (bypassCache || cached.expiresAt <= now)) {
@@ -88,7 +92,9 @@ async function probeOrRevalidateEffectiveUpstreamStatus(
     try {
       const status = await getGitUpstreamStatusForUpstreamName(
         (args) => gitExecFileAsync(args, gitReadOptionsForWorktree(worktreePath, options)),
-        cached.upstreamName
+        cached.upstreamName,
+        undefined,
+        cached.comparisonRef
       )
       return { status, probedSameNameOriginRef: false }
     } catch (error) {
@@ -104,6 +110,7 @@ async function probeOrRevalidateEffectiveUpstreamStatus(
   if (result.status.hasUpstream && result.status.upstreamName) {
     resolvedUpstreamNameCache.set(cacheKey, {
       upstreamName: result.status.upstreamName,
+      comparisonRef: result.comparisonRef,
       expiresAt: Date.now() + RESOLVED_UPSTREAM_NAME_CACHE_TTL_MS
     })
     while (resolvedUpstreamNameCache.size > MAX_EFFECTIVE_UPSTREAM_NEGATIVE_CACHE_ENTRIES) {
@@ -121,15 +128,27 @@ async function probeEffectiveUpstreamStatus(
   worktreePath: string,
   branchName: string,
   options: GitRuntimeOptions = {}
-): Promise<{ status: GitUpstreamStatus; probedSameNameOriginRef: boolean }> {
+): Promise<{
+  status: GitUpstreamStatus
+  probedSameNameOriginRef: boolean
+  comparisonRef?: string
+}> {
   let probedSameNameOriginRef = false
-  const status = await getEffectiveGitUpstreamStatus((args) => {
-    if (args[0] === 'rev-parse' && args.includes(`refs/remotes/origin/${branchName}`)) {
-      probedSameNameOriginRef = true
+  let comparisonRef: string | undefined
+  const originRef = `refs/remotes/origin/${branchName}`
+  const status = await getEffectiveGitUpstreamStatus(
+    (args) => {
+      if (args.includes('for-each-ref') && args.at(-1) === originRef) {
+        probedSameNameOriginRef = true
+      }
+      return gitExecFileAsync(args, gitReadOptionsForWorktree(worktreePath, options))
+    },
+    undefined,
+    (resolvedRef) => {
+      comparisonRef = resolvedRef
     }
-    return gitExecFileAsync(args, gitReadOptionsForWorktree(worktreePath, options))
-  })
-  return { status, probedSameNameOriginRef }
+  )
+  return { status, probedSameNameOriginRef, comparisonRef }
 }
 
 export function shouldProbeEffectiveUpstreamStatus(

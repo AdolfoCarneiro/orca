@@ -83,7 +83,7 @@ describe('getStatus missing-upstream polling churn', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/Initi-Project')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/Initi-Project')) {
         throw new Error('missing remote branch')
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
@@ -99,7 +99,7 @@ describe('getStatus missing-upstream polling churn', () => {
     })
     const sameNameOriginProbeCalls = gitExecFileAsyncMock.mock.calls.filter((call) => {
       const args = getGitArgs(call)
-      return args[0] === 'rev-parse' && args.includes('refs/remotes/origin/Initi-Project')
+      return args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/Initi-Project')
     })
 
     expect(upstreamProbeCalls).toHaveLength(1)
@@ -124,7 +124,7 @@ describe('getStatus missing-upstream polling churn', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/Initi-Project')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/Initi-Project')) {
         throw new Error('missing remote branch')
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
@@ -159,7 +159,7 @@ describe('getStatus missing-upstream polling churn', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/Initi-Project')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/Initi-Project')) {
         await Promise.resolve()
         throw new Error('missing remote branch')
       }
@@ -174,7 +174,7 @@ describe('getStatus missing-upstream polling churn', () => {
     })
     const sameNameOriginProbeCalls = gitExecFileAsyncMock.mock.calls.filter((call) => {
       const args = getGitArgs(call)
-      return args[0] === 'rev-parse' && args.includes('refs/remotes/origin/Initi-Project')
+      return args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/Initi-Project')
     })
 
     expect(upstreamProbeCalls).toHaveLength(1)
@@ -199,8 +199,8 @@ describe('getStatus missing-upstream polling churn', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/bench/feature')) {
-        return { stdout: 'abcdef1234567890\n' }
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/bench/feature')) {
+        return { stdout: 'refs/remotes/origin/bench/feature\0\n' }
       }
       if (args[0] === 'rev-list') {
         revListCalls++
@@ -229,10 +229,22 @@ describe('getStatus missing-upstream polling churn', () => {
     expect(countCalls(isConfigListSnapshotCommand)).toBe(1)
     expect(
       countCalls(
-        (args) => args[0] === 'rev-parse' && args.includes('refs/remotes/origin/bench/feature')
+        (args) => args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/bench/feature')
       )
     ).toBe(1)
     expect(countCalls((args) => args[0] === 'rev-list')).toBe(3)
+    expect(
+      gitExecFileAsyncMock.mock.calls
+        .filter((call) => getGitArgs(call)[0] === 'rev-list')
+        .map(getGitArgs)
+    ).toEqual(
+      Array.from({ length: 3 }, () => [
+        'rev-list',
+        '--left-right',
+        '--count',
+        'HEAD...refs/remotes/origin/bench/feature'
+      ])
+    )
   })
 
   it('re-resolves the upstream after the resolved-name cache TTL lapses', async () => {
@@ -276,7 +288,7 @@ describe('getStatus missing-upstream polling churn', () => {
       if (isConfigListSnapshotCommand(args)) {
         return featureFixPushTargetSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.some((arg) => arg.startsWith('refs/remotes/'))) {
+      if (args[0] === 'for-each-ref' && args.some((arg) => arg.startsWith('refs/remotes/'))) {
         throw new Error('missing remote branch')
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
@@ -313,7 +325,10 @@ describe('getStatus missing-upstream polling churn', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.some((arg) => arg.startsWith('refs/remotes/origin/'))) {
+      if (
+        args[0] === 'for-each-ref' &&
+        args.some((arg) => arg.startsWith('refs/remotes/origin/'))
+      ) {
         throw new Error('missing remote branch')
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
@@ -324,7 +339,9 @@ describe('getStatus missing-upstream polling churn', () => {
 
     const sameNameOriginProbeCalls = gitExecFileAsyncMock.mock.calls.filter((call) => {
       const args = getGitArgs(call)
-      return args[0] === 'rev-parse' && args.some((arg) => arg.startsWith('refs/remotes/origin/'))
+      return (
+        args[0] === 'for-each-ref' && args.some((arg) => arg.startsWith('refs/remotes/origin/'))
+      )
     })
 
     expect(sameNameOriginProbeCalls.map((call) => getGitArgs(call).at(-1))).toEqual([
@@ -349,7 +366,7 @@ describe('getStatus missing-upstream polling churn', () => {
       if (isConfigListSnapshotCommand(args)) {
         return emptyGitConfigSnapshot()
       }
-      if (args[0] === 'rev-parse' && args.includes('refs/remotes/origin/Initi-Project')) {
+      if (args[0] === 'for-each-ref' && args.includes('refs/remotes/origin/Initi-Project')) {
         throw new Error('missing remote branch')
       }
       throw new Error(`unexpected git command: ${args.join(' ')}`)
