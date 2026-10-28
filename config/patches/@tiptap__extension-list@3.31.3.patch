@@ -1,5 +1,5 @@
 diff --git a/dist/index.cjs b/dist/index.cjs
-index 283575c0a81fa24ea2d73cb8096de05bce7ab26b..c7b19bda70eececb4688250f8bd11cbe6db6a9aa 100644
+index 283575c0a81fa24ea2d73cb8096de05bce7ab26b..4ed86251a30f57dc2d9c3df4a20883e6e6fb6b7f 100644
 --- a/dist/index.cjs
 +++ b/dist/index.cjs
 @@ -245,10 +245,9 @@ const ROMAN_NUMERALS = [
@@ -15,8 +15,18 @@ index 283575c0a81fa24ea2d73cb8096de05bce7ab26b..c7b19bda70eececb4688250f8bd11cbe
  /**
  * Convert a number to lowercase roman numerals.
  * @example toRoman(1) // 'i'
+@@ -920,7 +919,8 @@
+ 				raw: mainText,
+ 				tokens: lexer.inlineTokens(mainText)
+ 			});
+-			const additionalContent = blockLines.join("\n").trim();
++			const blockContent = blockLines.join("\n");
++			const additionalContent = /^\s*[-+*]\s+\[[ xX]\]\s+/.test(blockContent) ? blockContent.trimEnd() : blockContent.trim();
+ 			if (additionalContent) {
+ 				const blockTokens = lexer.blockTokens(additionalContent);
+ 				tokens.push(...blockTokens);
 diff --git a/dist/index.js b/dist/index.js
-index 1fa29e72a755ce527b1840765bbe44e80df38c3d..9a857225b17a51fa6afd14674502e556566bef8c 100644
+index 1fa29e72a755ce527b1840765bbe44e80df38c3d..4b687a9b33de5ae9dac9c70c92d5eda4f3277561 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -233,10 +233,9 @@ const ROMAN_NUMERALS = [
@@ -32,8 +42,18 @@ index 1fa29e72a755ce527b1840765bbe44e80df38c3d..9a857225b17a51fa6afd14674502e556
  /**
  * Convert a number to lowercase roman numerals.
  * @example toRoman(1) // 'i'
+@@ -908,7 +907,8 @@
+ 				raw: mainText,
+ 				tokens: lexer.inlineTokens(mainText)
+ 			});
+-			const additionalContent = blockLines.join("\n").trim();
++			const blockContent = blockLines.join("\n");
++			const additionalContent = /^\s*[-+*]\s+\[[ xX]\]\s+/.test(blockContent) ? blockContent.trimEnd() : blockContent.trim();
+ 			if (additionalContent) {
+ 				const blockTokens = lexer.blockTokens(additionalContent);
+ 				tokens.push(...blockTokens);
 diff --git a/dist/kit/index.cjs b/dist/kit/index.cjs
-index a1f217bd0eb67c84404a4e4b447379eaf3a7f367..1f26c89d35a87bcd98113ad425245a9d86cb7ef0 100644
+index a1f217bd0eb67c84404a4e4b447379eaf3a7f367..14437ede9f2ffe60745cc7d61dd2ded693169d04 100644
 --- a/dist/kit/index.cjs
 +++ b/dist/kit/index.cjs
 @@ -233,10 +233,9 @@ const ROMAN_NUMERALS = [
@@ -49,8 +69,18 @@ index a1f217bd0eb67c84404a4e4b447379eaf3a7f367..1f26c89d35a87bcd98113ad425245a9d
  /**
  * Convert a number to lowercase roman numerals.
  * @example toRoman(1) // 'i'
+@@ -862,7 +861,8 @@
+ 				raw: mainText,
+ 				tokens: lexer.inlineTokens(mainText)
+ 			});
+-			const additionalContent = blockLines.join("\n").trim();
++			const blockContent = blockLines.join("\n");
++			const additionalContent = /^\s*[-+*]\s+\[[ xX]\]\s+/.test(blockContent) ? blockContent.trimEnd() : blockContent.trim();
+ 			if (additionalContent) {
+ 				const blockTokens = lexer.blockTokens(additionalContent);
+ 				tokens.push(...blockTokens);
 diff --git a/dist/kit/index.js b/dist/kit/index.js
-index ee2b2a9114cb40daa6061340ccd80d128c2981ba..8152d964a20dfac20fc3234f93182325593d027d 100644
+index ee2b2a9114cb40daa6061340ccd80d128c2981ba..faf238d1f5510cc5f5be6a4c1a471d16bc4e297c 100644
 --- a/dist/kit/index.js
 +++ b/dist/kit/index.js
 @@ -232,10 +232,9 @@ const ROMAN_NUMERALS = [
@@ -66,8 +96,18 @@ index ee2b2a9114cb40daa6061340ccd80d128c2981ba..8152d964a20dfac20fc3234f93182325
  /**
  * Convert a number to lowercase roman numerals.
  * @example toRoman(1) // 'i'
+@@ -861,7 +860,8 @@
+ 				raw: mainText,
+ 				tokens: lexer.inlineTokens(mainText)
+ 			});
+-			const additionalContent = blockLines.join("\n").trim();
++			const blockContent = blockLines.join("\n");
++			const additionalContent = /^\s*[-+*]\s+\[[ xX]\]\s+/.test(blockContent) ? blockContent.trimEnd() : blockContent.trim();
+ 			if (additionalContent) {
+ 				const blockTokens = lexer.blockTokens(additionalContent);
+ 				tokens.push(...blockTokens);
 diff --git a/dist/ordered-list/index.cjs b/dist/ordered-list/index.cjs
-index 9373d830293b67e463c9764cec5bacd8c189b473..4292a2b0f1b45fdc0f06d6fe7f351f7484e45974 100644
+index 9373d830293b67e463c9764cec5bacd8c189b473..d8d32412d9d3a622fc367856871f5cc8b93206f6 100644
 --- a/dist/ordered-list/index.cjs
 +++ b/dist/ordered-list/index.cjs
 @@ -19,10 +19,9 @@ const ROMAN_NUMERALS = [
@@ -83,8 +123,18 @@ index 9373d830293b67e463c9764cec5bacd8c189b473..4292a2b0f1b45fdc0f06d6fe7f351f74
  /**
  * Convert a number to lowercase roman numerals.
  * @example toRoman(1) // 'i'
+@@ -356,7 +355,8 @@
+ 				raw: mainText,
+ 				tokens: lexer.inlineTokens(mainText)
+ 			});
+-			const additionalContent = blockLines.join("\n").trim();
++			const blockContent = blockLines.join("\n");
++			const additionalContent = /^\s*[-+*]\s+\[[ xX]\]\s+/.test(blockContent) ? blockContent.trimEnd() : blockContent.trim();
+ 			if (additionalContent) {
+ 				const blockTokens = lexer.blockTokens(additionalContent);
+ 				tokens.push(...blockTokens);
 diff --git a/dist/ordered-list/index.js b/dist/ordered-list/index.js
-index ace73267067e8c785e080cbf5bc6655a0527aa36..de1bb3061ec1629b20616f10a42eeba0a4e2222d 100644
+index ace73267067e8c785e080cbf5bc6655a0527aa36..641abc1ac77a80e30ef24c7796cbe1410352f006 100644
 --- a/dist/ordered-list/index.js
 +++ b/dist/ordered-list/index.js
 @@ -18,10 +18,9 @@ const ROMAN_NUMERALS = [
@@ -100,3 +150,13 @@ index ace73267067e8c785e080cbf5bc6655a0527aa36..de1bb3061ec1629b20616f10a42eeba0
  /**
  * Convert a number to lowercase roman numerals.
  * @example toRoman(1) // 'i'
+@@ -355,7 +354,8 @@
+ 				raw: mainText,
+ 				tokens: lexer.inlineTokens(mainText)
+ 			});
+-			const additionalContent = blockLines.join("\n").trim();
++			const blockContent = blockLines.join("\n");
++			const additionalContent = /^\s*[-+*]\s+\[[ xX]\]\s+/.test(blockContent) ? blockContent.trimEnd() : blockContent.trim();
+ 			if (additionalContent) {
+ 				const blockTokens = lexer.blockTokens(additionalContent);
+ 				tokens.push(...blockTokens);
