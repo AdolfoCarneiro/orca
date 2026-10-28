@@ -36,13 +36,15 @@ export abstract class OrcaRuntimeWithBuildHeadlessMobileSessionBrowserTabs exten
   protected buildHeadlessMobileSessionBrowserTabs(
     worktreeId: string
   ): RuntimeMobileSessionBrowserTab[] {
-    // The bridge also lists an attached window's webviews; those pages already have renderer rows.
+    const backend = this.offscreenBrowserBackend
     const rendererPageIds = this.getRendererOwnedBrowserPageIds(worktreeId)
     // Saved tabs whose page starts on first use are listed as running ones are.
     const serverTabs =
-      this.offscreenBrowserBackend && this.agentBrowserBridge?.tabList
+      backend && this.agentBrowserBridge?.tabList
         ? [
-            ...this.agentBrowserBridge.tabList(worktreeId).tabs,
+            ...this.agentBrowserBridge
+              .tabList(worktreeId)
+              .tabs.filter((tab) => backend.ownsTab(tab.browserPageId)),
             ...this.serveBrowserTabs.listUnstarted(worktreeId)
           ].filter((tab) => !rendererPageIds.has(tab.browserPageId))
         : []

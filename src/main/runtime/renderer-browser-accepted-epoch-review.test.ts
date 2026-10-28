@@ -6,7 +6,7 @@ import type { RuntimeMobileSessionTabsSnapshot } from '../../shared/runtime-type
 it('does not publish unknown-owner offscreen rows into an unaccepted renderer epoch', () => {
   const runtime = new OrcaRuntimeService(store)
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Test harness mocks partial OffscreenBrowserBackend.
-  runtime.setOffscreenBrowserBackend({ closeTab: vi.fn() } as never)
+  runtime.setOffscreenBrowserBackend({ closeTab: vi.fn(), ownsTab: () => true } as never)
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Test harness mocks partial AgentBrowserBridge.
   runtime.setAgentBrowserBridge({
     tabList: () => ({

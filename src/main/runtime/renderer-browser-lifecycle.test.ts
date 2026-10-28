@@ -42,8 +42,13 @@ function publication(epoch = 'renderer-1', version = 1): RuntimeMobileSessionTab
 
 function browserRuntime(closeTab = vi.fn(async (_pageId: string) => {}), runtimeStore = store) {
   const livePages = new Map<string, BrowserTabInfo>()
+  const desktopPageIds = new Set<string>()
   const runtime = new OrcaRuntimeService(runtimeStore)
-  runtime.setOffscreenBrowserBackend({ createTab: vi.fn(), closeTab })
+  runtime.setOffscreenBrowserBackend({
+    createTab: vi.fn(),
+    closeTab,
+    ownsTab: (pageId) => livePages.has(pageId) && !desktopPageIds.has(pageId)
+  })
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Only the bridge inventory is used by this lifecycle test.
   runtime.setAgentBrowserBridge({ tabList: () => ({ tabs: [...livePages.values()] }) } as never)
   electronMocks.BrowserWindow.fromId.mockImplementation((id: number) =>
@@ -52,6 +57,11 @@ function browserRuntime(closeTab = vi.fn(async (_pageId: string) => {}), runtime
   runtime.attachWindow(1)
   const sync = (snapshots: RuntimeMobileSessionTabsSnapshot[]) =>
     runtime.syncWindowGraph(1, { tabs: [], leaves: [], mobileSessionTabs: snapshots })
+  // Desktop webviews share the bridge inventory with offscreen pages but the backend does not own them.
+  const addDesktopPage = (browserPageId: string) => {
+    desktopPageIds.add(browserPageId)
+    addPage(browserPageId)
+  }
   const addPage = (browserPageId: string) =>
     livePages.set(browserPageId, {
       browserPageId,
@@ -61,7 +71,7 @@ function browserRuntime(closeTab = vi.fn(async (_pageId: string) => {}), runtime
       active: false
     })
   const list = () => runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)
-  return { runtime, livePages, sync, addPage, list }
+  return { runtime, livePages, sync, addPage, addDesktopPage, list }
 }
 
 it('finishes an offscreen close against the latest renderer revision without losing newer tabs', async () => {
@@ -210,13 +220,15 @@ it('does not tombstone a renderer browser when the acknowledged close fails', as
   expect((await list()).tabs.map((tab) => tab.id)).toEqual(['renderer-tab'])
 })
 
-it('projects a renderer page only once when the offscreen inventory also lists its page id', async () => {
+it('lists only pages the offscreen backend owns when the bridge also lists desktop webviews', async () => {
   const closeTab = vi.fn(async (_pageId: string) => {})
   // A saved workspace session sends list and graph sync through hydrate's runtime-owned merge.
   const { runtimeStore } = makeRuntimeStoreWithWorkspaceSession(getDefaultWorkspaceSession())
-  const { runtime, sync, addPage, list } = browserRuntime(closeTab, runtimeStore)
+  const { runtime, sync, addPage, addDesktopPage, list } = browserRuntime(closeTab, runtimeStore)
   sync([publication()])
-  addPage('renderer-page')
+  addDesktopPage('renderer-page')
+  // A background page of the same desktop browser workspace is absent from the renderer's publication.
+  addDesktopPage('background-desktop-page')
   addPage('separate-runtime-page')
   runtime.notifyMobileSessionTabsChanged(TEST_WORKTREE_ID)
   await list()
