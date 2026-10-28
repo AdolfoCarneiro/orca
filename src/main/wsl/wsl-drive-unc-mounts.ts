@@ -46,13 +46,11 @@ export function wslUncPathIsWindowsDriveFolder(
     return false
   }
   const normalized = posix.normalize(linux.replace(/\\/g, '/')).replace(/(.)\/+$/, '$1')
-  // Case-blind like wslUncDrivePathToWindows, which folds the `/mnt/<letter>` part.
-  const folded = normalized.toLowerCase()
+  // Linux paths are case-sensitive: a real /mnt/C directory is not the /mnt/c drive mount.
   const mount = mounts
-    .filter((entry) => {
-      const point = entry.mountPoint.toLowerCase()
-      return folded === point || folded.startsWith(`${point}/`)
-    })
+    .filter(
+      ({ mountPoint }) => normalized === mountPoint || normalized.startsWith(`${mountPoint}/`)
+    )
     .sort((a, b) => b.mountPoint.length - a.mountPoint.length)[0]
   if (!mount?.windowsRoot) {
     return false

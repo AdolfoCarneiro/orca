@@ -91,11 +91,11 @@ describe('collectWslDriveUncScope: one folder, one project', () => {
     const state = {
       repos: [
         repo('first', String.raw`\\wsl$\Ubuntu\mnt\c\src\app`),
-        repo('alias', '//wsl.localhost/Ubuntu/mnt/C/src/app/')
+        repo('alias', '//wsl.localhost/ubuntu/mnt/c/src/app/')
       ],
       folderWorkspaces: [
         folder('f-first', String.raw`\\wsl.localhost\Ubuntu\mnt\d\notes`),
-        folder('f-alias', '//wsl$/ubuntu/mnt/D/notes'),
+        folder('f-alias', '//wsl$/ubuntu/mnt/d/notes/'),
         folder('f-drive', String.raw`D:\docs`),
         folder('f-taken', String.raw`\\wsl.localhost\Ubuntu\mnt\d\docs`)
       ],
@@ -145,6 +145,19 @@ describe('collectWslDriveUncScope: only real Windows drive folders', () => {
     const swapped: WindowsDriveMount[] = [{ mountPoint: '/mnt/c', windowsRoot: 'D:\\' }]
     expect(collectWslDriveUncScope(state, 'Ubuntu', swapped).repoIds).toEqual([])
     expect(collectWslDriveUncScope(state, 'Ubuntu', []).repoIds).toEqual([])
+  })
+
+  it('refuses a real /mnt/C directory: only the exact /mnt/c mount point is the C: drive', () => {
+    const upper = {
+      repos: [repo('upper', String.raw`\\wsl.localhost\Ubuntu\mnt\C\src\app`)],
+      folderWorkspaces: [],
+      projectGroups: []
+    }
+    expect(collectWslDriveUncScope(upper, 'Ubuntu', DRIVES)).toEqual({
+      repoIds: [],
+      folderWorkspaceIds: [],
+      refused: [{ kind: 'repo', id: 'upper', reason: 'not-windows-drive-mount' }]
+    })
   })
 })
 
