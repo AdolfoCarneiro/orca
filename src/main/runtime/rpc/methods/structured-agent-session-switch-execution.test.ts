@@ -1,6 +1,11 @@
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as cliTranscript from '../../../ai-vault/structured-chat-cli-fork'
+import * as processTable from '../../../../shared/process-table-snapshot-reader'
+import {
+  assertCliConversationWritersExited,
+  posixCliWriterShellAlone
+} from '../../structured-agent-cli-writers'
 import { structuredAgentRuntimeMetadata } from '../../structured-agent-runtime-metadata'
 import { agentSessionProviderHandleChainHead } from '../../../../shared/agent-session-provider-handle'
 import { captureTerminalSurfaceIdentity } from '../../../../shared/terminal-tab-close'
@@ -303,13 +308,59 @@ it('preserves the v1 request/result and start-only side effects when execution i
   expect(create).not.toHaveBeenCalled()
 })
 
-it('keeps an opened readable chat successful when conditional source-shell cleanup refuses', async () => {
+it.each([false, true])('keeps chat with cleanup=%s', async (cleanupCompletes) => {
   await rig.host.switchToChat(id)
   await rig.host.switchToTerminal(id)
   const record = rig.store.getRecord(id)!
   const head = agentSessionProviderHandleChainHead(record.providerHandleChain)!
   const filePath = join(rig.root, 'cleanup-source.jsonl')
   const nativeId = head.handle.nativeId
+  let shellExited = false
+  const phases: string[] = []
+  const acquisition = Promise.withResolvers<void>()
+  vi.spyOn(processTable, 'getFreshShellForegroundSnapshot').mockImplementation(async () => {
+    phases.push(shellExited ? 'census-exited' : 'census-live')
+    return shellExited ? [] : [{ pid: 101, ppid: 1, stat: 'S+', command: '-/bin/zsh -l' }]
+  })
+  const writer = vi.fn(async () => {
+    await acquisition.promise
+    await assertCliConversationWritersExited(
+      {
+        rows: () => [
+          {
+            paneKey: 'source',
+            worktreeId: WORKTREE_ID,
+            connectionId: null,
+            agentType: 'codex',
+            receivedAt: 1,
+            stateStartedAt: 1,
+            state: 'done',
+            prompt: '',
+            providerSession: { key: 'session_id', id: nativeId }
+          }
+        ],
+        saved: () => [],
+        observation: () => ({
+          current: () => true,
+          topology: 'pane-owned',
+          presence: async () => 'exited'
+        }),
+        terminal: () => ({
+          pane: {
+            ptyId: 'source',
+            incarnationId: 'source-incarnation',
+            identity: 'source:original'
+          }
+        }),
+        links: () => [],
+        sleeping: () => false,
+        shellAlone: () => posixCliWriterShellAlone(101)
+      },
+      'codex',
+      nativeId
+    )
+  })
+  rig.host.deps.assertNoTerminalWriter = writer
   await writeFile(
     filePath,
     `${[
@@ -370,7 +421,13 @@ it('keeps an opened readable chat successful when conditional source-shell clean
     input.check?.()
     await rig.store.setSessionTabVisibility(id, true)
   })
-  const cleanup = vi.spyOn(runtime, 'closeSwitchedSourceTerminal').mockResolvedValue(false)
+  const cleanup = vi.spyOn(runtime, 'closeSwitchedSourceTerminal').mockImplementation(async () => {
+    if (cleanupCompletes) {
+      shellExited = true
+      phases.push('shell-exit')
+    }
+    return cleanupCompletes
+  })
   const params = {
     sessionId: id,
     execution: {
@@ -385,7 +442,7 @@ it('keeps an opened readable chat successful when conditional source-shell clean
   if (view.status !== 'present') {
     throw new Error('missing shown handshake')
   }
-  await executeStructuredSessionSwitch(
+  const opened = await executeStructuredSessionSwitch(
     {
       ...params,
       execution: { ...params.execution, receipt: { generation: view.generation, shown: true } }
@@ -393,12 +450,16 @@ it('keeps an opened readable chat successful when conditional source-shell clean
     { runtime },
     'chat'
   )
+  expect(opened).toMatchObject({ status: 'completed', startupPending: true })
+  acquisition.resolve()
   const result = await executeStructuredSessionSwitch(
     { ...params, execution: { ...params.execution, observe: true } },
     { runtime },
     'chat'
   )
-  expect(result).toMatchObject({ status: 'completed', sourceRetained: true })
+  expect.soft(phases).toEqual(['census-live', ...(cleanupCompletes ? ['shell-exit'] : [])])
+  await expect.soft(writer.mock.results[0]?.value).resolves.toBeUndefined()
+  expect(result).toMatchObject({ status: 'completed', sourceRetained: !cleanupCompletes })
   expect(cleanup).toHaveBeenCalledOnce()
   expect(rig.store.getSessionTabId(id)).not.toBeNull()
 })

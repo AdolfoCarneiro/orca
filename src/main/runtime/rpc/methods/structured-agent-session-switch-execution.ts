@@ -186,9 +186,6 @@ export async function executeStructuredSessionSwitch(
             sessionId,
             startupPending: true
           })
-          const cleanup = source
-            ? cleanupSwitchedSourceShell(ctx, source, switchWitness, witnessBudget, deadline)
-            : Promise.resolve(true)
           const started = await starting
           if (!started.ok) {
             return {
@@ -198,6 +195,9 @@ export async function executeStructuredSessionSwitch(
               ...(started.failureItemId ? { failureItemId: started.failureItemId } : {})
             }
           }
+          const cleanup = source
+            ? cleanupSwitchedSourceShell(ctx, source, switchWitness, witnessBudget, deadline)
+            : Promise.resolve(true)
           return { status: 'completed', sessionId, sourceRetained: !(await cleanup) }
         }
         return executeStructuredSessionTerminalSwitch(
