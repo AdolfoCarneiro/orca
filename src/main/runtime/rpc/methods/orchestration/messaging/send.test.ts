@@ -443,8 +443,7 @@ describe('orchestration RPC methods', () => {
       setup()
       const task = db.createTask({ spec: 'work' })
       const dispatch = createRootDispatch(db, task.id, 'term_worker')
-      vi.spyOn(runtime, 'deliverPendingMessagesForHandle').mockImplementation(() => {})
-      const notify = vi.spyOn(runtime, 'notifyMessageArrived').mockImplementation(() => {})
+      const waiting = runtime.waitForMessage(`run:${activeRunId}`, { timeoutMs: 50 })
 
       await call('orchestration.send', {
         from: 'term_worker',
@@ -454,7 +453,7 @@ describe('orchestration RPC methods', () => {
         payload: JSON.stringify({ dispatchId: dispatch.id })
       })
 
-      expect(notify).not.toHaveBeenCalled()
+      await expect(waiting).resolves.toBe('timed_out')
       expect(db.getUnreadMessages(`run:${activeRunId}`)).toEqual([])
       expect(db.getDispatchContextById(dispatch.id)?.last_heartbeat_at).toBeTruthy()
     })

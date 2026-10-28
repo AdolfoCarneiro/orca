@@ -108,7 +108,7 @@ export async function handleLegacyLifecycleSend(args: {
             }
           : { kind: 'message_only' }
   })
-  if (!committed.duplicate && committed.message.read === 0) {
+  if (!committed.duplicate) {
     runtime.notifyMessageArrived(committed.message.to_handle, committed.message.type)
   }
   return {

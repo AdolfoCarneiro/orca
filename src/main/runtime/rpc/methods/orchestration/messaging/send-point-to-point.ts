@@ -1,9 +1,4 @@
-import type {
-  MessagePriority,
-  MessageRow,
-  MessageType,
-  OrchestrationDb
-} from '../../../../orchestration/db'
+import type { MessagePriority, MessageType, OrchestrationDb } from '../../../../orchestration/db'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import { reconcileLifecycleMessage } from '../../../../orchestration/lifecycle-reconciliation'
 import { bindCoordinatorMutationPayload } from '../../../../orchestration/dispatch-message-binding'
@@ -59,12 +54,6 @@ export function sendPointToPointMessage(args: {
   const processIncarnation = isDispatchMutationMessageType(messageType)
     ? resolveProcessIncarnation()
     : undefined
-  // Rows stored handled (heartbeats) have nothing for a waiter or pointer to deliver.
-  const notifyArrival = (row: MessageRow): void => {
-    if (row.read === 0) {
-      runtime.notifyMessageArrived(row.to_handle, row.type)
-    }
-  }
   const commitMessage = (): { receipt: unknown; nudge: () => void } => {
     const dispatch = dispatchId ? db.getDispatchContextById(dispatchId) : undefined
     const msg = db.insertMessage({
@@ -110,7 +99,7 @@ export function sendPointToPointMessage(args: {
           }
         })
         return recordReceiptForPostCommitNudge(recordMutationReceipt, receipt, () =>
-          notifyArrival(rejection)
+          runtime.notifyMessageArrived(rejection.to_handle, rejection.type)
         )
       }
     }
@@ -132,7 +121,7 @@ export function sendPointToPointMessage(args: {
           lifecycle: reconciled
         })
         return recordReceiptForPostCommitNudge(recordMutationReceipt, receipt, () =>
-          notifyArrival(rejection)
+          runtime.notifyMessageArrived(rejection.to_handle, rejection.type)
         )
       }
       const receipt = withSendWarnings(
@@ -141,11 +130,13 @@ export function sendPointToPointMessage(args: {
           : { message: exposeMessage(msg) }
       )
       return recordReceiptForPostCommitNudge(recordMutationReceipt, receipt, () =>
-        notifyArrival(msg)
+        runtime.notifyMessageArrived(msg.to_handle, msg.type)
       )
     }
     const receipt = withSendWarnings({ message: exposeMessage(msg) })
-    return recordReceiptForPostCommitNudge(recordMutationReceipt, receipt, () => notifyArrival(msg))
+    return recordReceiptForPostCommitNudge(recordMutationReceipt, receipt, () =>
+      runtime.notifyMessageArrived(msg.to_handle, msg.type)
+    )
   }
   // Wake the Run only after worker_done mail, settlement and replay receipt commit atomically.
   if (messageType === 'worker_done') {
