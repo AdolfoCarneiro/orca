@@ -199,9 +199,8 @@ it('drops renderer browser rows once the serve desktop window closes', async () 
       }
     ]
   })
-  expect((await runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)).tabs).toEqual([
-    expect.objectContaining({ id: 'browser-unified-1' })
-  ])
+  const listed = await runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)
+  expect(listed.tabs).toEqual([expect.objectContaining({ id: 'browser-unified-1' })])
 
   const pushed: RuntimeMobileSessionTabsSnapshot[] = []
   runtime.onMobileSessionTabsChanged((snapshot) => {
@@ -212,5 +211,7 @@ it('drops renderer browser rows once the serve desktop window closes', async () 
 
   runtime.markGraphUnavailable(1)
   await vi.waitFor(() => expect(pushed.at(-1)?.tabs).toEqual([]))
+  // Desktop and web mirrors drop same-version frames, so the drop must advance the version.
+  expect(pushed.at(-1)?.snapshotVersion).toBeGreaterThan(listed.snapshotVersion)
   expect((await runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)).tabs).toEqual([])
 })
