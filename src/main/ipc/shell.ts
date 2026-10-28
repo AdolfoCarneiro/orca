@@ -1,5 +1,8 @@
 import { translateMain } from '../i18n/main-i18n'
-import { validatePathExistenceBatch } from '../../shared/path-existence-batch'
+import {
+  validatePathExistenceBatch,
+  type ShellPathExistence
+} from '../../shared/path-existence-batch'
 import { ipcMain, shell, dialog } from 'electron'
 import { constants, copyFile, readFile, stat } from 'node:fs/promises'
 import { basename, extname, isAbsolute, normalize, posix, win32 } from 'node:path'
@@ -195,12 +198,23 @@ export function registerShellHandlers(
     await openWithSystemDefault(target.path, ownerHostId)
   })
 
-  ipcMain.handle('shell:pathsExist', async (_event, paths: string[]): Promise<boolean[]> => {
-    validatePathExistenceBatch(paths)
-    // Chat link renders and terminal hovers ask unprompted: a stat of a stopped distro's UNC path
-    // boots it (E9), so refuse and let the caller retry rather than report the file missing.
-    return Promise.all(paths.map((path) => guardWslUncPathAccess(path, () => pathExists(path))))
-  })
+  ipcMain.handle(
+    'shell:pathsExist',
+    async (_event, paths: string[]): Promise<ShellPathExistence[]> => {
+      validatePathExistenceBatch(paths)
+      // Chat link renders and terminal hovers ask unprompted: a stat of a stopped distro's UNC path
+      // boots it (E9). Refuse that path alone, so the caller retries it and keeps the rest.
+      return Promise.all(
+        paths.map((path) =>
+          guardWslUncPathAccess(path, () => pathExists(path)).catch(
+            (error: unknown): ShellPathExistence => ({
+              error: error instanceof Error ? error.message : String(error)
+            })
+          )
+        )
+      )
+    }
+  )
 
   ipcMain.handle('shell:pathExists', async (_event, filePath: string): Promise<boolean> => {
     return pathExists(filePath)

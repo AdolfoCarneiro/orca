@@ -54,11 +54,11 @@ describe('shell:pathsExist never starts a stopped WSL distro (E9)', () => {
     Object.defineProperty(process, 'platform', { configurable: true, value: originalPlatform })
   })
 
-  it('refuses a chat-link check in a stopped distro without touching its UNC path', async () => {
-    await expect(pathsExist([HOST_FILE, UNC_FILE])).rejects.toMatchObject({
-      code: 'WSL_DISTRO_STOPPED',
-      distro: 'Ubuntu'
-    })
+  it('refuses only the stopped distro path, never touching it, and answers the rest', async () => {
+    await expect(pathsExist([HOST_FILE, UNC_FILE])).resolves.toEqual([
+      true,
+      { error: expect.stringContaining("WSL distro 'Ubuntu' is not running") }
+    ])
     expect(mocks.pathExists).not.toHaveBeenCalledWith(UNC_FILE)
   })
 
