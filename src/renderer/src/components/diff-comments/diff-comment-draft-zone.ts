@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { editor as monacoEditor } from 'monaco-editor'
 import { createRoot } from 'react-dom/client'
+import {
+  completeDiffCommentDraftZoneSubmission,
+  finishDiffCommentDraftZoneSubmission,
+  type PendingDiffCommentDraftSubmission
+} from './diff-comment-draft-submission'
 import { installDiffCommentZoneMouseDownStopper } from './diff-comment-zone-mouse-events'
 import { renderDiffCommentDraftCard } from './diff-comment-zone-card'
 import {
@@ -58,6 +63,7 @@ export function useDiffCommentDraftZone({
 
   // A save settling after unmount must not restore an undisposable retry card.
   const unmountedRef = useRef(false)
+  const pendingSubmissionsRef = useRef<Set<PendingDiffCommentDraftSubmission> | null>(null)
   const onCreateCommentRef = useRef(onCreateComment)
   const onLegacyAddCommentClickRef = useRef(onAddCommentClick)
 
@@ -65,6 +71,10 @@ export function useDiffCommentDraftZone({
     unmountedRef.current = false
     return () => {
       unmountedRef.current = true
+      for (const submission of pendingSubmissionsRef.current ?? []) {
+        submission.finish = null
+      }
+      pendingSubmissionsRef.current?.clear()
     }
   }, [])
 
@@ -185,25 +195,33 @@ export function useDiffCommentDraftZone({
               return false
             }
             entry.submitting = true
-            let succeeded = false
+            const pending =
+              pendingSubmissionsRef.current ?? new Set<PendingDiffCommentDraftSubmission>()
+            pendingSubmissionsRef.current = pending
+            const submission: PendingDiffCommentDraftSubmission = {
+              finish: (succeeded) => {
+                entry.submitting = false
+                if (succeeded) {
+                  if (draftZoneRef.current === entry) {
+                    // Restore Monaco focus only if this card still owns it when the save settles.
+                    disposeDraftZone(entry.domNode.contains(document.activeElement))
+                  }
+                } else if (draftZoneRef.current !== entry) {
+                  restoreFailedSubmit(draft, body)
+                }
+              }
+            }
+            pending.add(submission)
             try {
-              const result = await createComment({
+              const save = createComment({
                 lineNumber: draft.lineNumber,
                 startLine: draft.startLine,
                 body
               })
-              succeeded = result !== false
-              return result
-            } finally {
-              entry.submitting = false
-              if (succeeded) {
-                if (draftZoneRef.current === entry) {
-                  // Restore Monaco focus only if this card still owns it when the save settles.
-                  disposeDraftZone(entry.domNode.contains(document.activeElement))
-                }
-              } else if (draftZoneRef.current !== entry) {
-                restoreFailedSubmit(draft, body)
-              }
+              return finishDiffCommentDraftZoneSubmission(save, submission, pending)
+            } catch (error) {
+              completeDiffCommentDraftZoneSubmission(submission, pending, false)
+              throw error
             }
           }
         })

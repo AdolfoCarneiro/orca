@@ -154,19 +154,10 @@ export function DiffCommentDraftCard({
     textareaRef.current?.focus()
     setSubmitting(true)
     try {
-      const result = await onSubmit(bodyState.body)
-      if (result === false && mountedRef.current) {
-        setSubmitting(false)
-      }
+      const save = onSubmit(bodyState.body)
+      return finishDiffCommentDraftSubmission(save, mountedRef, setSubmitting)
     } catch (err) {
-      console.error('Failed to submit diff comment draft:', err)
-      // A rejected save never reaches the caller's own failure toast, so report it here.
-      toast.error(
-        translate('auto.components.editor.diffCommentSaveFailed', 'Failed to save comment')
-      )
-      if (mountedRef.current) {
-        setSubmitting(false)
-      }
+      reportDiffCommentDraftSubmissionFailure(err, mountedRef, setSubmitting)
     }
   }
 
@@ -265,4 +256,32 @@ export function DiffCommentDraftCard({
       </div>
     </div>
   )
+}
+
+async function finishDiffCommentDraftSubmission(
+  save: Promise<boolean>,
+  mountedRef: { current: boolean },
+  setSubmitting: (submitting: boolean) => void
+): Promise<void> {
+  try {
+    const result = await save
+    if (result === false && mountedRef.current) {
+      setSubmitting(false)
+    }
+  } catch (error) {
+    reportDiffCommentDraftSubmissionFailure(error, mountedRef, setSubmitting)
+  }
+}
+
+function reportDiffCommentDraftSubmissionFailure(
+  error: unknown,
+  mountedRef: { current: boolean },
+  setSubmitting: (submitting: boolean) => void
+): void {
+  console.error('Failed to submit diff comment draft:', error)
+  // A rejected save never reaches the caller's own failure toast, so report it here.
+  toast.error(translate('auto.components.editor.diffCommentSaveFailed', 'Failed to save comment'))
+  if (mountedRef.current) {
+    setSubmitting(false)
+  }
 }

@@ -117,7 +117,7 @@ export default function DiffViewer({
       if (!worktreeId) {
         return false
       }
-      const result = await addDiffComment({
+      const save = addDiffComment({
         worktreeId,
         filePath: relativePath,
         source: 'diff',
@@ -126,12 +126,7 @@ export default function DiffViewer({
         body,
         side: 'modified'
       })
-      if (!result) {
-        toast.error(
-          translate('auto.components.editor.diffCommentSaveFailed', 'Failed to save comment')
-        )
-      }
-      return Boolean(result)
+      return finishDiffViewerCommentCreation(save)
     },
     [addDiffComment, onAddLineComment, relativePath, worktreeId]
   )
@@ -362,4 +357,14 @@ export default function DiffViewer({
       {toastNode}
     </div>
   )
+}
+
+async function finishDiffViewerCommentCreation(
+  save: Promise<DiffComment | null>
+): Promise<boolean> {
+  const result = await save
+  if (!result) {
+    toast.error(translate('auto.components.editor.diffCommentSaveFailed', 'Failed to save comment'))
+  }
+  return Boolean(result)
 }
