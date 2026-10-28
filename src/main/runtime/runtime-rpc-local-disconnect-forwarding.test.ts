@@ -7,10 +7,10 @@ import { OrcaRuntimeService } from './orca-runtime'
 import { defineMethod } from './rpc/core'
 import { OrcaRuntimeRpcServer } from './runtime-rpc'
 
-it.each(['linear.commentEdit', 'linear.commentDelete'] as const)(
+it.each(['browser.eval', 'linear.commentEdit', 'linear.commentDelete'] as const)(
   'forwards local disconnect to %s without long-poll keepalives',
   async (method) => {
-    const userDataPath = mkdtempSync(join(tmpdir(), 'pr-30003-cancellation-'))
+    const userDataPath = mkdtempSync(join(tmpdir(), 'local-disconnect-forwarding-'))
     const entered = vi.fn()
     const server = new OrcaRuntimeRpcServer({
       runtime: new OrcaRuntimeService(),

@@ -5773,7 +5773,7 @@
       "src/main/runtime/runtime-rpc-device-key-dispatch.test.ts": 3022,
       "src/main/runtime/runtime-rpc-device-revocation.test.ts": 4229,
       "src/main/runtime/runtime-rpc-dispatch-inject-long-poll.test.ts": 2899,
-      "src/main/runtime/runtime-rpc-linear-comment-cancellation.test.ts": 2559,
+      "src/main/runtime/runtime-rpc-local-disconnect-forwarding.test.ts": 2559,
       "src/main/runtime/runtime-rpc-long-poll-transport.test.ts": 23796,
       "src/main/runtime/runtime-rpc-metadata-lifecycle.test.ts": 2618,
       "src/main/runtime/runtime-rpc-mobile-legacy-socket-relay-refusal.test.ts": 2701,
