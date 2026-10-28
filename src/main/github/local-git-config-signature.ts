@@ -157,45 +157,54 @@ function parseIncludedConfigPath(line: string): string | null {
   if (!match) {
     return null
   }
-  const rawValue = match[1].trim()
-  if (!rawValue) {
+  const rawValue = match[1]
+  let value = ''
+  let quoted = false
+  let trailingWhitespace: number | null = null
+  for (let index = 0; index < rawValue.length; index += 1) {
+    const char = rawValue[index]
+    if (char === '\\') {
+      index += 1
+      const escaped = rawValue[index]
+      switch (escaped) {
+        case '\\':
+        case '"':
+          value += escaped
+          break
+        case 't':
+          value += '\t'
+          break
+        case 'n':
+          value += '\n'
+          break
+        case 'b':
+          value += '\b'
+          break
+        default:
+          return null
+      }
+      trailingWhitespace = null
+      continue
+    }
+    if (char === '"') {
+      quoted = !quoted
+      trailingWhitespace = null
+      continue
+    }
+    if (!quoted && (char === '#' || char === ';')) {
+      break
+    }
+    if (!quoted && /[ \t\r\v\f]/.test(char)) {
+      trailingWhitespace ??= value.length
+    } else {
+      trailingWhitespace = null
+    }
+    value += char
+  }
+  if (quoted) {
     return null
   }
-  const quotedValue = parseQuotedConfigValue(rawValue)
-  if (quotedValue !== null) {
-    return quotedValue
-  }
-  const value = stripInlineConfigComment(rawValue).trim()
-  if (!value) {
-    return null
-  }
-  return value
-}
-
-function parseQuotedConfigValue(rawValue: string): string | null {
-  const quote = rawValue[0]
-  if (quote !== '"' && quote !== "'") {
-    return null
-  }
-  const endQuoteIndex = rawValue.indexOf(quote, 1)
-  if (endQuoteIndex === -1) {
-    return null
-  }
-  const trailing = rawValue.slice(endQuoteIndex + 1).trim()
-  if (trailing && !trailing.startsWith('#') && !trailing.startsWith(';')) {
-    return null
-  }
-  return rawValue.slice(1, endQuoteIndex)
-}
-
-function stripInlineConfigComment(value: string): string {
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    return value.slice(1, -1)
-  }
-  return value.replace(/\s[#;].*$/, '').trim()
+  return (trailingWhitespace === null ? value : value.slice(0, trailingWhitespace)) || null
 }
 
 function resolveIncludedConfigPath(includePath: string, baseDir: string): string {
