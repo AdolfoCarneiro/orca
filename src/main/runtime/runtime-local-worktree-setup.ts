@@ -34,9 +34,22 @@ export async function prepareRuntimeLocalWorktreeSetup(args: {
   const { request, repo, worktreePath, settings } = args
   let warning = args.warning
   let setup: CreateWorktreeResult['setup']
-  const yamlHooks = await loadHooksThroughFilesystemHost(worktreePath)
-  const hooks = getEffectiveHooksFromConfig(repo, yamlHooks)
   const effectiveDecision = resolveRuntimeSetupDecision(request)
+  let yamlHooks: Awaited<ReturnType<typeof loadHooksThroughFilesystemHost>>
+  try {
+    yamlHooks = await loadHooksThroughFilesystemHost(worktreePath)
+  } catch (error) {
+    const skipped = `Worktree created, but orca.yaml could not be inspected; setup and default tab commands skipped.`
+    console.warn(`[hooks] ${skipped}`, error)
+    return {
+      warning: warning ? `${warning} Also ${skipped}` : skipped,
+      effectiveDecision,
+      hookFound: false,
+      shouldRunSetup: false,
+      didStartInProcessSetupHook: false
+    }
+  }
+  const hooks = getEffectiveHooksFromConfig(repo, yamlHooks)
   let defaultTabs: CreateWorktreeResult['defaultTabs']
   try {
     defaultTabs = getDefaultTabsLaunch(yamlHooks, repo, effectiveDecision)

@@ -9,7 +9,10 @@ import type { FilesystemHostResult } from '../../shared/filesystem-host-protocol
 import type { FilesystemExecutionHost } from './filesystem-host-failure-domain'
 import type { FilesystemHostDispatch } from './filesystem-host-supervisor-scheduling'
 import type { FilesystemStorageClass } from './filesystem-host-telemetry'
-import type { FilesystemHostBackgroundQueue } from './filesystem-host-background-queue'
+import type {
+  FilesystemHostBackgroundQueue,
+  FilesystemHostBackgroundAdmission
+} from './filesystem-host-background-queue'
 
 type FailureDomainSupervisor = {
   dispatch(input: FilesystemHostDispatch): Promise<FilesystemHostResult>
@@ -53,7 +56,8 @@ export class FilesystemHostFailureDomainHydrator {
     private readonly supervisor: FailureDomainSupervisor,
     private readonly queue: FilesystemHostBackgroundQueue,
     private readonly routePath: RoutePath,
-    private readonly deadlineMs: number
+    private readonly deadlineMs: number,
+    private readonly demandQueueForPath?: (path: string) => FilesystemHostBackgroundAdmission
   ) {}
 
   hydrate(paths: readonly string[]): void {
@@ -85,9 +89,18 @@ export class FilesystemHostFailureDomainHydrator {
   async acquire(path: string, expiresAt = Date.now() + this.deadlineMs): Promise<() => void> {
     this.readLeases.set(path, (this.readLeases.get(path) ?? 0) + 1)
     try {
-      await withinFilesystemHostDeadline(this.classify(path, expiresAt), expiresAt)
+      if (this.demandQueueForPath && this.queue.cancel(path)) {
+        this.flights.delete(path)
+      }
+      await withinFilesystemHostDeadline(
+        this.classify(path, expiresAt, this.demandQueueForPath?.(path)),
+        expiresAt
+      )
     } catch (error) {
       this.release(path)
+      if (this.isOwned(path) && isRetryableClassificationFailure(error)) {
+        this.scheduleClassificationRetry(path)
+      }
       throw error
     }
     let released = false
@@ -99,7 +112,11 @@ export class FilesystemHostFailureDomainHydrator {
     }
   }
 
-  classify(path: string, expiresAt = Date.now() + this.deadlineMs): Promise<void> {
+  classify(
+    path: string,
+    expiresAt = Date.now() + this.deadlineMs,
+    queue: FilesystemHostBackgroundAdmission = this.queue
+  ): Promise<void> {
     if (this.classifiedPaths.has(path)) {
       return Promise.resolve()
     }
@@ -108,7 +125,7 @@ export class FilesystemHostFailureDomainHydrator {
       return existing
     }
     const route = this.routePath(path)
-    const flight = this.queue
+    const flight = queue
       .run(
         async () => {
           await withinFilesystemHostDeadline(assertWslUncPathRunning(path), expiresAt)

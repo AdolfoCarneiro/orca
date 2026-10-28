@@ -22,8 +22,19 @@ type LaunchContext = {
 export async function launchFilesystemHostProcess(
   context: LaunchContext,
   lane: FilesystemHostLane,
-  admission: FilesystemHostAdmissionClass
+  admission: FilesystemHostAdmissionClass,
+  assertActive: () => void
 ): Promise<FilesystemHostProcessHandle> {
+  const checkAdmission = (): void => {
+    assertActive()
+    if (context.isDisposed()) {
+      throw new FilesystemHostSupervisorError(
+        'unavailable',
+        'Filesystem host supervisor is disposed'
+      )
+    }
+  }
+  checkAdmission()
   // Why: a child wedged in an uninterruptible syscall ignores SIGKILL and never
   // releases its slot, so one dead mount would drain the process-wide budget a
   // child per breaker probe. Its physical exit clears this and reopens the lane.
@@ -38,9 +49,12 @@ export async function launchFilesystemHostProcess(
     await reclaimIdleFilesystemHostProcess({
       lanes: context.lanes.values(),
       excludedLane: lane,
-      retire: async (idleLane, process) =>
-        await context.retirement.retire(idleLane.key, idleLane, process)
+      retire: async (idleLane, process) => {
+        checkAdmission()
+        return await context.retirement.retire(idleLane.key, idleLane, process)
+      }
     })
+    checkAdmission()
     release = context.capacity.reserve(admission)
   }
   while (!release) {
@@ -49,6 +63,7 @@ export async function launchFilesystemHostProcess(
       break
     }
     await retirement
+    checkAdmission()
     release = context.capacity.reserve(admission)
   }
   if (!release) {

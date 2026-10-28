@@ -5,12 +5,13 @@ import { getDefaultRepoHookSettings } from '../../shared/constants'
 
 const mocks = vi.hoisted(() => ({
   effectiveHooks: vi.fn(),
+  loadHooks: vi.fn(),
   runHook: vi.fn()
 }))
 
 vi.mock('../hooks', () => ({
   getEffectiveHooks: mocks.effectiveHooks,
-  loadHooksThroughFilesystemHost: async () => null,
+  loadHooksThroughFilesystemHost: mocks.loadHooks,
   runHook: mocks.runHook
 }))
 
@@ -45,6 +46,7 @@ function prepare(request: { setupDecision?: 'run' | 'skip' | 'inherit' } = {}) {
 describe('runtime create setup for a hook the new branch added', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    mocks.loadHooks.mockResolvedValue(null)
     mocks.runHook.mockResolvedValue({ success: true, output: '' })
     mocks.effectiveHooks.mockReturnValue({ scripts: { setup: 'pnpm install' } })
   })
@@ -63,4 +65,23 @@ describe('runtime create setup for a hook the new branch added', () => {
     expect(result.shouldRunSetup).toBe(true)
     expect(mocks.runHook).toHaveBeenCalledOnce()
   })
+
+  it.each(['run', 'skip', 'inherit'] as const)(
+    'finishes an already-created worktree without commands when post-create inspection fails (%s)',
+    async (setupDecision) => {
+      mocks.loadHooks.mockRejectedValue(Object.assign(new Error('unreadable'), { code: 'EFBIG' }))
+      const result = await prepare({ setupDecision })
+
+      expect(result).toMatchObject({
+        effectiveDecision: setupDecision,
+        shouldRunSetup: false,
+        didStartInProcessSetupHook: false,
+        warning: expect.stringContaining('Worktree created')
+      })
+      expect(result.defaultTabs).toBeUndefined()
+      expect(result.setup).toBeUndefined()
+      expect(mocks.effectiveHooks).not.toHaveBeenCalled()
+      expect(mocks.runHook).not.toHaveBeenCalled()
+    }
+  )
 })

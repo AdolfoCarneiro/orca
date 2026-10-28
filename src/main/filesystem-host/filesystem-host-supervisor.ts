@@ -71,6 +71,10 @@ export class FilesystemHostSupervisor {
     this.domains.remove(input)
   }
 
+  resolveFailureDomain(executionHost: FilesystemExecutionHost, path: string): string {
+    return this.domains.resolve(executionHost, path)
+  }
+
   dispatch(input: FilesystemHostDispatch): Promise<FilesystemHostResult> {
     if (this.disposed) {
       return Promise.reject(
@@ -213,7 +217,8 @@ export class FilesystemHostSupervisor {
     void executeFilesystemHostDispatch(
       {
         now: this.now,
-        launch: (targetLane, admission) => this.launch(targetLane, admission),
+        launch: (targetLane, admission, assertActive) =>
+          this.launch(targetLane, admission, assertActive),
         abandon: (laneKey, targetLane, process) => {
           void this.retirement.retire(laneKey, targetLane, process)
         },
@@ -244,9 +249,10 @@ export class FilesystemHostSupervisor {
 
   private launch(
     lane: FilesystemHostLane,
-    admission: FilesystemHostAdmissionClass
+    admission: FilesystemHostAdmissionClass,
+    assertActive: () => void
   ): Promise<FilesystemHostProcessHandle> {
-    const launch = this.launchProcess(lane, admission)
+    const launch = this.launchProcess(lane, admission, assertActive)
     this.launches.add(launch)
     void launch.then(
       () => this.launches.delete(launch),
@@ -257,7 +263,8 @@ export class FilesystemHostSupervisor {
 
   private launchProcess(
     lane: FilesystemHostLane,
-    admission: FilesystemHostAdmissionClass
+    admission: FilesystemHostAdmissionClass,
+    assertActive: () => void
   ): Promise<FilesystemHostProcessHandle> {
     return launchFilesystemHostProcess(
       {
@@ -269,7 +276,8 @@ export class FilesystemHostSupervisor {
         isDisposed: () => this.disposed
       },
       lane,
-      admission
+      admission,
+      assertActive
     )
   }
 }

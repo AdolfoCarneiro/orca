@@ -1,3 +1,4 @@
+import type { FilesystemHostSupervisorOptions } from './filesystem-host-supervisor-options'
 import { FilesystemHostReadAuthority } from './filesystem-host-read-authority'
 import { FilesystemHostSupervisorError } from './filesystem-host-supervisor-error'
 import { expect, it, vi } from 'vitest'
@@ -40,21 +41,26 @@ it('expires queued foreground work before launch rather than granting a fresh ex
   expect(invoke).toHaveBeenCalledOnce()
   await supervisor.dispose()
 })
-it('bounds background admission before the supervisor queue', async () => {
-  const queue = new FilesystemHostBackgroundQueue(1)
-  let release!: () => void
-  const running = queue.run(
-    () =>
-      new Promise<void>((resolve) => {
-        release = resolve
-      })
-  )
-  const pending = Array.from({ length: 128 }, () => queue.run(async () => {}).catch(() => {}))
-  await expect(queue.run(async () => {})).rejects.toThrow('queue is full')
-  queue.dispose()
-  release()
-  await Promise.all([running, ...pending])
-})
+it.each([false, true])(
+  'bounds background admission across independent domains (%s)',
+  async (independent) => {
+    const queue = new FilesystemHostBackgroundQueue(1)
+    let release!: () => void
+    const running = queue.run(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve
+        })
+    )
+    const pending = Array.from({ length: 128 }, (_, index) =>
+      queue.run(async () => {}, null, Infinity, independent ? String(index) : '').catch(() => {})
+    )
+    await expect(queue.run(async () => {})).rejects.toThrow('queue is full')
+    queue.dispose()
+    release()
+    await Promise.all([running, ...pending])
+  }
+)
 
 it('expires public background calls in admission without dispatching expired work', async () => {
   vi.useFakeTimers()
@@ -134,3 +140,89 @@ it('shares the YAML budget between classification, admission and the final read'
     vi.useRealTimers()
   }
 })
+
+it.each(['reclamation', 'retirement'] as const)(
+  'does not launch expired capacity waiters or open their healthy breaker after %s',
+  async (waitKind) => {
+    vi.useFakeTimers()
+    let releaseRetirement!: () => void
+    const retirement = new Promise<void>((resolve) => {
+      releaseRetirement = resolve
+    })
+    let releaseBusy!: () => void
+    const busy = new Promise<void>((resolve) => {
+      releaseBusy = resolve
+    })
+    const startProcess = vi.fn<NonNullable<FilesystemHostSupervisorOptions['startProcess']>>(
+      async (options) => {
+        const index = startProcess.mock.calls.length
+        return {
+          invoke: async (operation) => {
+            if (index === 2 && waitKind === 'retirement') {
+              await busy
+            }
+            return { kind: 'canonicalize-path', canonicalPath: operation.path }
+          },
+          retire: async () => {
+            if (index === 1) {
+              await retirement
+            }
+            options.onPhysicalExit?.()
+            return true
+          }
+        }
+      }
+    )
+    const supervisor = new FilesystemHostSupervisor({
+      entryPath: 'unused',
+      maximumChildren: 2,
+      startProcess
+    })
+    for (const mount of ['a', 'b', 'c', 'd']) {
+      supervisor.publishFailureDomain({
+        executionHost: 'native',
+        prefix: `/${mount}`,
+        mountId: mount
+      })
+    }
+    const dispatch = (mount: string, deadlineMs = 1000) =>
+      supervisor.dispatch({
+        operationId: mount,
+        operation: { kind: 'canonicalize-path', path: `/${mount}/file` },
+        executionHost: 'native',
+        storageClass: 'workspace',
+        admission: 'foreground',
+        deadlineMs
+      })
+    try {
+      await dispatch('a')
+      const second = dispatch('b')
+      await vi.advanceTimersByTimeAsync(0)
+      if (waitKind === 'reclamation') {
+        await second
+      }
+      const reclaiming = dispatch('c', waitKind === 'reclamation' ? 10 : 1000).catch(
+        (error: unknown) => error
+      )
+      await vi.advanceTimersByTimeAsync(0)
+      const expired =
+        waitKind === 'reclamation' ? reclaiming : dispatch('d', 10).catch((error: unknown) => error)
+      await vi.advanceTimersByTimeAsync(10)
+      expect(await expired).toMatchObject({ code: 'deadline' })
+      expect(startProcess).toHaveBeenCalledTimes(2)
+      releaseRetirement()
+      releaseBusy()
+      await vi.advanceTimersByTimeAsync(0)
+      await Promise.all([reclaiming, second])
+      const mount = waitKind === 'reclamation' ? 'c' : 'd'
+      expect(startProcess).toHaveBeenCalledTimes(waitKind === 'reclamation' ? 2 : 3)
+      expect(supervisor.health().breakers[`native:${mount}`]).toBe('closed')
+      await expect(dispatch(mount)).resolves.toMatchObject({ canonicalPath: `/${mount}/file` })
+    } finally {
+      releaseRetirement()
+      releaseBusy()
+      await supervisor.dispose()
+      vi.useRealTimers()
+    }
+  }
+)

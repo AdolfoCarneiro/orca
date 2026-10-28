@@ -18,7 +18,11 @@ async function resolveGeminiBinary(
   pathEnvironment: string
 ): Promise<string | null> {
   const command = resolveCliCommand('gemini', { homePath, pathEnv: pathEnvironment })
-  return path.isAbsolute(command) ? command : null
+  if (path.isAbsolute(command)) {
+    return command
+  }
+  const homeBin = path.join(homePath, 'bin', 'gemini')
+  return process.platform !== 'win32' && (await fileExists(homeBin)) ? homeBin : null
 }
 
 // Resolve symlinks before deriving package siblings (e.g. Homebrew Cellar installs).

@@ -3,13 +3,16 @@ import { FilesystemHostSupervisorError } from './filesystem-host-supervisor-erro
 
 type QueuedTask = {
   key: string | null
+  domain: string
   run: () => Promise<void>
   timer?: ReturnType<typeof setTimeout>
   reject: (error: unknown) => void
 }
 
+export type FilesystemHostBackgroundAdmission = Pick<FilesystemHostBackgroundQueue, 'run'>
+
 export class FilesystemHostBackgroundQueue {
-  private active = 0
+  private readonly active = new Map<string, number>()
   private disposed = false
   private readonly pending: QueuedTask[] = []
 
@@ -22,17 +25,25 @@ export class FilesystemHostBackgroundQueue {
   run<T>(
     task: (remainingMs: number) => Promise<T>,
     key: string | null = null,
-    expiresAt = Infinity
+    expiresAt = Infinity,
+    domain = ''
   ): Promise<T> {
     if (this.disposed) {
       return Promise.reject(new Error('Filesystem host background queue is disposed'))
     }
-    if (this.pending.length >= 128) {
-      return Promise.reject(new Error('Filesystem host background queue is full'))
+    const active = [...this.active.values()].reduce((total, count) => total + count, 0)
+    if (
+      this.pending.length >= 128 ||
+      active + this.pending.length >= 128 + this.maximumConcurrent
+    ) {
+      return Promise.reject(
+        new FilesystemHostSupervisorError('capacity', 'Filesystem host background queue is full')
+      )
     }
     return new Promise<T>((resolve, reject) => {
       const queued: QueuedTask = {
         key,
+        domain,
         run: async () => {
           try {
             resolve(await task(remainingFilesystemHostBudget(expiresAt)))
@@ -91,15 +102,23 @@ export class FilesystemHostBackgroundQueue {
   }
 
   private pump(): void {
-    while (!this.disposed && this.active < this.maximumConcurrent) {
-      const task = this.pending.shift()
-      if (!task) {
+    while (!this.disposed) {
+      const index = this.pending.findIndex(
+        (task) => (this.active.get(task.domain) ?? 0) < this.maximumConcurrent
+      )
+      if (index === -1) {
         return
       }
+      const [task] = this.pending.splice(index, 1)
       clearTimeout(task.timer)
-      this.active++
+      this.active.set(task.domain, (this.active.get(task.domain) ?? 0) + 1)
       void task.run().finally(() => {
-        this.active--
+        const active = (this.active.get(task.domain) ?? 1) - 1
+        if (active === 0) {
+          this.active.delete(task.domain)
+        } else {
+          this.active.set(task.domain, active)
+        }
         this.pump()
       })
     }

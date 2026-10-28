@@ -13,7 +13,8 @@ type ExecutionContext = {
   now: () => number
   launch: (
     lane: FilesystemHostLane,
-    admission: FilesystemHostDispatch['admission']
+    admission: FilesystemHostDispatch['admission'],
+    assertActive: () => void
   ) => Promise<FilesystemHostProcessHandle>
   abandon: (laneKey: string, lane: FilesystemHostLane, process: FilesystemHostProcessHandle) => void
   recordTelemetry: (
@@ -40,12 +41,20 @@ export async function executeFilesystemHostDispatch(
     )
   }
   let process = lane.process
-  try {
-    process ??= await context.launch(lane, input.admission)
+  const remainingBudget = (): number => {
     const remaining = job.expiresAt === undefined ? input.deadlineMs : job.expiresAt - context.now()
     if (remaining <= 0) {
-      throw new FilesystemHostProcessError('deadline', 'Filesystem request timed out')
+      throw new FilesystemHostSupervisorError(
+        'deadline',
+        'Filesystem request expired before invocation'
+      )
     }
+    return remaining
+  }
+  try {
+    remainingBudget()
+    process ??= await context.launch(lane, input.admission, remainingBudget)
+    const remaining = remainingBudget()
     const result = await process.invoke(input.operation, remaining, input.operationId)
     lane.breaker.recordSuccess(admission.probe)
     context.recordTelemetry(input, lane, startedAt, 'success')
@@ -53,7 +62,7 @@ export async function executeFilesystemHostDispatch(
   } catch (error) {
     if (error instanceof FilesystemHostSupervisorError) {
       if (admission.probe) {
-        if (error.code === 'capacity') {
+        if (error.code === 'capacity' || error.code === 'deadline') {
           lane.breaker.deferProbe()
         } else {
           lane.breaker.recordFailure(context.now())

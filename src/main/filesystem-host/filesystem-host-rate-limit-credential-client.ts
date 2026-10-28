@@ -4,7 +4,7 @@ import type {
   RateLimitCredentialFileKind
 } from '../../shared/filesystem-host-protocol'
 import type { FilesystemExecutionHost } from './filesystem-host-failure-domain'
-import type { FilesystemHostBackgroundQueue } from './filesystem-host-background-queue'
+import type { FilesystemHostBackgroundAdmission } from './filesystem-host-background-queue'
 import type { FilesystemHostDispatch } from './filesystem-host-supervisor-scheduling'
 import type { FilesystemStorageClass } from './filesystem-host-telemetry'
 
@@ -14,7 +14,7 @@ export async function writeFilesystemHostRateLimitCredential(options: {
   contents: string
   route: { executionHost: FilesystemExecutionHost; storageClass: FilesystemStorageClass }
   deadlineMs: number
-  queue: FilesystemHostBackgroundQueue
+  queue: FilesystemHostBackgroundAdmission
   dispatch(input: FilesystemHostDispatch): Promise<FilesystemHostResult>
 }): Promise<void> {
   const result = await options.queue.run(

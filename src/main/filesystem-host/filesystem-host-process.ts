@@ -1,4 +1,6 @@
-import { fork, type ChildProcess, type ForkOptions } from 'node:child_process'
+import { forkProcess } from '@orca/process-host/fork-process'
+import type { ChildProcess, ForkOptions } from 'node:child_process'
+import { forkProcessOnWorkerThread } from '../worker-thread-child-process/worker-thread-child-process'
 import { randomUUID } from 'node:crypto'
 import {
   filesystemHostChildMessageSchema,
@@ -23,6 +25,13 @@ export type FilesystemHostProcessOptions = {
   onPhysicalExit?: () => void
 }
 
+type FilesystemHostChild = Pick<
+  ChildProcess,
+  'connected' | 'on' | 'once' | 'removeListener' | 'kill'
+> & {
+  send(message: FilesystemHostParentMessage, callback: (error: Error | null) => void): boolean
+}
+
 export class FilesystemHostProcess {
   private readonly reads = new FilesystemHostReadRequests((message, onError) =>
     this.send(message, onError)
@@ -33,23 +42,38 @@ export class FilesystemHostProcess {
   private readonly exitWaiters = new Set<(didExit: boolean) => void>()
 
   private constructor(
-    private readonly child: ChildProcess,
+    private readonly child: FilesystemHostChild,
     private readonly options: Required<
       Pick<FilesystemHostProcessOptions, 'exitDeadlineMs' | 'hardKillDelayMs'>
     >
   ) {}
 
   static start(options: FilesystemHostProcessOptions): Promise<FilesystemHostProcess> {
-    const spawn = options.spawn ?? fork
-    let child: ChildProcess
+    let child: FilesystemHostChild
     try {
-      child = spawn(options.entryPath, [], {
-        env: buildFilesystemHostEnv(),
-        execArgv: [],
-        serialization: 'advanced',
-        stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
-        ...(process.platform === 'win32' ? { windowsHide: true } : {})
-      })
+      const env = buildFilesystemHostEnv()
+      child = options.spawn
+        ? options.spawn(options.entryPath, [], {
+            env,
+            execArgv: [],
+            serialization: 'advanced',
+            stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+            ...(process.platform === 'win32' ? { windowsHide: true } : {})
+          })
+        : process.platform === 'win32'
+          ? forkProcessOnWorkerThread({
+              modulePath: options.entryPath,
+              args: [],
+              env,
+              execArgv: []
+            })
+          : forkProcess({
+              modulePath: options.entryPath,
+              env,
+              execArgv: [],
+              serialization: 'advanced',
+              stdio: ['ignore', 'ignore', 'ignore', 'ipc']
+            })
     } catch (error) {
       options.onPhysicalExit?.()
       return Promise.reject(error)

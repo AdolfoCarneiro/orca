@@ -7,7 +7,10 @@ import type {
   RateLimitCredentialFileKind
 } from '../../shared/filesystem-host-protocol'
 import type { KeybindingOverrides } from '../../shared/keybindings'
-import { FilesystemHostBackgroundQueue } from './filesystem-host-background-queue'
+import {
+  FilesystemHostBackgroundQueue,
+  type FilesystemHostBackgroundAdmission
+} from './filesystem-host-background-queue'
 import { FilesystemHostFailureDomainHydrator } from './filesystem-host-failure-domain-hydrator'
 import { writeFilesystemHostRateLimitCredential } from './filesystem-host-rate-limit-credential-client'
 import { resolveFilesystemHostCliCommand } from './filesystem-host-cli-command-client'
@@ -60,6 +63,7 @@ export type FilesystemHostReadAuthorityOptions = {
     dispatch: Dispatch
     publishFailureDomain: PublishFailureDomain
     removeFailureDomain: FilesystemHostSupervisor['removeFailureDomain']
+    resolveFailureDomain?: FilesystemHostSupervisor['resolveFailureDomain']
     dispose(): Promise<void>
   }
 }
@@ -68,6 +72,9 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
   private readonly supervisor: NonNullable<FilesystemHostReadAuthorityOptions['supervisor']>
   private readonly platform: NodeJS.Platform
   private readonly backgroundQueue = new FilesystemHostBackgroundQueue(
+    BACKGROUND_OPERATION_CONCURRENCY
+  )
+  private readonly classificationQueue = new FilesystemHostBackgroundQueue(
     BACKGROUND_OPERATION_CONCURRENCY
   )
   private readonly failureDomains: FilesystemHostFailureDomainHydrator
@@ -82,9 +89,10 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
       })
     this.failureDomains = new FilesystemHostFailureDomainHydrator(
       this.supervisor,
-      this.backgroundQueue,
+      this.classificationQueue,
       (path) => routeFilesystemHostPath(path, 'workspace', this.platform),
-      BACKGROUND_READ_DEADLINE_MS
+      BACKGROUND_READ_DEADLINE_MS,
+      (path) => this.backgroundAdmission(path)
     )
   }
 
@@ -141,7 +149,7 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
     return readFilesystemHostOrcaYaml(path, {
       deadlineMs: BACKGROUND_READ_DEADLINE_MS,
       failureDomains: this.failureDomains,
-      queue: this.backgroundQueue,
+      queue: this.backgroundAdmission(path),
       dispatch: (input) => this.supervisor.dispatch(input),
       route: routeFilesystemHostPath(path, 'workspace', this.platform)
     })
@@ -203,7 +211,7 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
     const expiresAt = Date.now() + BACKGROUND_READ_DEADLINE_MS
     const route = routeFilesystemHostPath(path, 'home', this.platform)
     try {
-      const result = await this.backgroundQueue.run(
+      const result = await this.backgroundAdmission(path).run(
         (deadlineMs) =>
           this.supervisor.dispatch({
             operationId: randomUUID(),
@@ -228,7 +236,7 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
     const expiresAt = Date.now() + BACKGROUND_READ_DEADLINE_MS
     const route = routeFilesystemHostPath(path, 'user-data', this.platform)
     try {
-      const result = await this.backgroundQueue.run(
+      const result = await this.backgroundAdmission(path).run(
         (deadlineMs) =>
           this.supervisor.dispatch({
             operationId: randomUUID(),
@@ -255,7 +263,7 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
         pathEnvironment: process.env.PATH ?? process.env.Path ?? '',
         route: routeFilesystemHostPath(path, 'home', this.platform),
         deadlineMs: BACKGROUND_READ_DEADLINE_MS,
-        queue: this.backgroundQueue,
+        queue: this.backgroundAdmission(path),
         dispatch: (input) => this.supervisor.dispatch(input)
       })
     } catch (error) {
@@ -275,11 +283,24 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
         contents,
         route: routeFilesystemHostPath(path, 'home', this.platform),
         deadlineMs: CREDENTIAL_WRITE_DEADLINE_MS,
-        queue: this.backgroundQueue,
+        queue: this.backgroundAdmission(path),
         dispatch: (input) => this.supervisor.dispatch(input)
       })
     } catch (error) {
       throw new FilesystemHostReadError(filesystemHostReadFailureReason(error))
+    }
+  }
+
+  private backgroundAdmission(path: string): FilesystemHostBackgroundAdmission {
+    const { executionHost } = routeFilesystemHostPath(path, 'workspace', this.platform)
+    return {
+      run: (task, key = null, expiresAt = Infinity) =>
+        this.backgroundQueue.run(
+          task,
+          key,
+          expiresAt,
+          this.supervisor.resolveFailureDomain?.(executionHost, path) ?? `${executionHost}:unknown`
+        )
     }
   }
 
@@ -294,6 +315,7 @@ export class FilesystemHostReadAuthority implements FilesystemHostReadClient {
   dispose(): Promise<void> {
     this.failureDomains.dispose()
     this.backgroundQueue.dispose()
+    this.classificationQueue.dispose()
     return this.supervisor.dispose()
   }
 }

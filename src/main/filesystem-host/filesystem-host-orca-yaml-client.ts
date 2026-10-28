@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { dirname } from 'node:path'
-import type { FilesystemHostBackgroundQueue } from './filesystem-host-background-queue'
+import type { FilesystemHostBackgroundAdmission } from './filesystem-host-background-queue'
 import type { FilesystemHostFailureDomainHydrator } from './filesystem-host-failure-domain-hydrator'
 import type { FilesystemHostSupervisor } from './filesystem-host-supervisor'
 import type { routeFilesystemHostPath } from './filesystem-host-path-route'
@@ -16,7 +16,7 @@ export async function readFilesystemHostOrcaYaml(
   options: {
     deadlineMs: number
     failureDomains: FilesystemHostFailureDomainHydrator
-    queue: FilesystemHostBackgroundQueue
+    queue: FilesystemHostBackgroundAdmission
     dispatch: FilesystemHostSupervisor['dispatch']
     route: ReturnType<typeof routeFilesystemHostPath>
   }
