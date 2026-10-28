@@ -25,7 +25,6 @@ it('preserves renderer browser ownership across headless reconciliation and clos
     focusTerminal: vi.fn(),
     closeTerminal: vi.fn(),
     closeSessionTab,
-    sleepWorktree: vi.fn(),
     terminalFitOverrideChanged: vi.fn(),
     terminalDriverChanged: vi.fn()
   })
