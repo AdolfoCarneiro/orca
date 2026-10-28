@@ -1,7 +1,11 @@
 import type { AppState } from '@/store'
 import type { OpenFile } from '@/store/slices/editor'
 import { joinPath } from '@/lib/path'
-import { getOpenFilesForExternalFileChange, type EditorPathMutationTarget } from './editor-autosave'
+import {
+  getOpenFilesForExternalFileChange,
+  type EditorPathMutationTarget,
+  type EditorPathsMutationTarget
+} from './editor-autosave'
 import { resolveEditorModelOwner, resolvedEditorModelOwnerKey } from './editor-model-owner'
 import type { EditorModelOwner } from './editor-model-owner'
 import {
@@ -44,28 +48,29 @@ export function editorPathHoldKey(
 /** Hold matched tabs plus the target physical path, including views opened only in other workspaces. */
 export function pathMutationHoldKeys(
   state: AppState,
-  target: EditorPathMutationTarget
+  target: EditorPathMutationTarget | EditorPathsMutationTarget
 ): Set<string> {
   const keys = new Set(
     getOpenFilesForExternalFileChange(state.openFiles, target).map((file) =>
       editorFileHoldKey(state, file)
     )
   )
-  const targetKey = physicalFileKey(
-    resolveEditorModelOwner(
-      {
-        worktreeId: target.worktreeId,
-        ...(Object.hasOwn(target, 'runtimeEnvironmentId')
-          ? { runtimeEnvironmentId: target.runtimeEnvironmentId }
-          : {})
-      },
-      state
-    ),
-    joinPath(target.worktreePath, target.relativePath)
+  const owner = resolveEditorModelOwner(
+    {
+      worktreeId: target.worktreeId,
+      ...(Object.hasOwn(target, 'runtimeEnvironmentId')
+        ? { runtimeEnvironmentId: target.runtimeEnvironmentId }
+        : {})
+    },
+    state
   )
-  // Unknown owners remain private per-tab keys and cannot supply shared holds.
-  if (targetKey !== null) {
-    keys.add(targetKey)
+  const relativePaths = 'relativePaths' in target ? target.relativePaths : [target.relativePath]
+  for (const relativePath of relativePaths) {
+    const targetKey = physicalFileKey(owner, joinPath(target.worktreePath, relativePath))
+    // Unknown owners remain private per-tab keys and cannot supply shared holds.
+    if (targetKey !== null) {
+      keys.add(targetKey)
+    }
   }
   return keys
 }

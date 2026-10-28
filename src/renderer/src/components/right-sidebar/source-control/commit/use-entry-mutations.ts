@@ -141,27 +141,12 @@ export function useSourceControlEntryMutations({
       const runtimeEnvironmentId =
         activeRepoTarget?.kind === 'environment' ? activeRepoTarget.environmentId : null
       // Quiesce matching editors so delayed autosaves cannot recreate edits after Git mutates files.
-      const quiesced = await Promise.allSettled(
-        filePaths.map((relativePath) =>
-          requestEditorSaveQuiesce({
-            worktreeId: activeWorktreeId,
-            worktreePath,
-            relativePath,
-            runtimeEnvironmentId
-          })
-        )
-      )
-      const releases = quiesced.flatMap((result) =>
-        result.status === 'fulfilled' ? [result.value] : []
-      )
-      const failed = quiesced.find((result) => result.status === 'rejected')
-      // If any path cannot quiesce, stop the whole discard and release all holds already acquired.
-      if (failed) {
-        for (const release of releases) {
-          release()
-        }
-        throw failed.reason
-      }
+      const releaseAutoSave = await requestEditorSaveQuiesce({
+        worktreeId: activeWorktreeId,
+        worktreePath,
+        relativePaths: filePaths,
+        runtimeEnvironmentId
+      })
       try {
         const connectionId = getConnectionId(activeWorktreeId) ?? undefined
         await bulkDiscardRuntimeGitPaths(
@@ -183,9 +168,7 @@ export function useSourceControlEntryMutations({
           })
         }
       } finally {
-        for (const release of releases) {
-          release()
-        }
+        releaseAutoSave()
       }
     },
     [activeRepoTarget, activeWorktreeId, worktreePath]

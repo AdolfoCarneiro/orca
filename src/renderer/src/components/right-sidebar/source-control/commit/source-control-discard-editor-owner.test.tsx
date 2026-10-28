@@ -3,13 +3,19 @@ import { act, renderHook } from '@testing-library/react'
 import { runtimeTargetForOwnerEnvironment } from '@/runtime/runtime-client-target'
 import type { RuntimeClientTarget } from '../../../../../../shared/runtime-client-target'
 import { beforeEach, expect, it, vi } from 'vitest'
-import type { EditorPathMutationTarget } from '@/components/editor/editor-autosave'
+import type {
+  EditorPathMutationTarget,
+  EditorPathsMutationTarget
+} from '@/components/editor/editor-autosave'
 
 const mocks = vi.hoisted(() => {
   const focus: { value: string | null } = { value: null }
   return {
     focus,
-    quiesce: vi.fn<(target: EditorPathMutationTarget) => Promise<() => void>>(),
+    quiesce:
+      vi.fn<
+        (target: EditorPathMutationTarget | EditorPathsMutationTarget) => Promise<() => void>
+      >(),
     notify: vi.fn<(target: EditorPathMutationTarget) => void>(),
     discard: vi.fn(),
     bulkDiscard: vi.fn()
@@ -78,12 +84,21 @@ for (const bulk of [false, true]) {
       })
       expect(invokedBeforeSaveFinished).toBe(0)
       expect(mocks.quiesce.mock.calls.map(([target]) => target)).toEqual(
-        paths.map((relativePath) => ({
-          worktreeId: 'wt-owner',
-          worktreePath: '/repo',
-          relativePath,
-          runtimeEnvironmentId: owner
-        }))
+        bulk
+          ? [
+              {
+                worktreeId: 'wt-owner',
+                worktreePath: '/repo',
+                relativePaths: paths,
+                runtimeEnvironmentId: owner
+              }
+            ]
+          : paths.map((relativePath) => ({
+              worktreeId: 'wt-owner',
+              worktreePath: '/repo',
+              relativePath,
+              runtimeEnvironmentId: owner
+            }))
       )
       expect(mocks.notify.mock.calls.map(([target]) => target)).toEqual(
         paths.map((relativePath) => ({

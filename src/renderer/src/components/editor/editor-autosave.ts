@@ -44,6 +44,12 @@ export type EditorSaveQuiesceTarget =
       /** Don't Save: no flush, and autosave held until the release runs. */ discard?: true
     }
   | EditorPathMutationTarget
+  | EditorPathsMutationTarget
+
+export type EditorPathsMutationTarget = Omit<
+  EditorPathMutationTarget,
+  'relativePath' | 'indexedOpenFiles' | 'allowLocalWindowsWslAliases'
+> & { relativePaths: readonly string[] }
 
 export type EditorSaveQuiesceDetail = EditorSaveQuiesceTarget & {
   claim: () => void
@@ -135,14 +141,26 @@ export function normalizeAutoSaveDelayMs(value: unknown): number {
 
 export function getOpenFilesForExternalFileChange(
   openFiles: OpenFile[],
-  target: EditorPathMutationTarget
+  target: EditorPathMutationTarget | EditorPathsMutationTarget
 ): OpenFile[] {
-  if (target.indexedOpenFiles) {
+  if ('indexedOpenFiles' in target && target.indexedOpenFiles) {
     return target.indexedOpenFiles.matches(openFiles)
   }
-  const absolutePath = joinPath(target.worktreePath, target.relativePath)
+  const relativePaths = new Set(
+    'relativePaths' in target ? target.relativePaths : [target.relativePath]
+  )
   const pathKey = externalChangePathKeyFor(target.worktreePath)
-  const absolutePathKey = pathKey(absolutePath)
+  const absolutePathKeys = new Set(
+    Array.from(relativePaths, (relativePath) =>
+      pathKey(joinPath(target.worktreePath, relativePath))
+    )
+  )
+  const aliasPath =
+    'relativePath' in target &&
+    target.allowLocalWindowsWslAliases === true &&
+    isLocalWindowsDesktopClient()
+      ? joinPath(target.worktreePath, target.relativePath)
+      : null
   const hasRuntimeOwnerFilter = Object.hasOwn(target, 'runtimeEnvironmentId')
   const targetRuntimeOwner = target.runtimeEnvironmentId?.trim() || null
   return openFiles.filter((file) => {
@@ -157,16 +175,14 @@ export function getOpenFilesForExternalFileChange(
     }
     if (file.mode === 'edit' || file.mode === 'markdown-preview') {
       return (
-        pathKey(file.filePath) === absolutePathKey ||
-        (target.allowLocalWindowsWslAliases === true &&
-          isLocalWindowsDesktopClient() &&
-          areLocalWindowsWslPathAliases(file.filePath, absolutePath))
+        absolutePathKeys.has(pathKey(file.filePath)) ||
+        (aliasPath !== null && areLocalWindowsWslPathAliases(file.filePath, aliasPath))
       )
     }
     if (file.mode === 'diff') {
       return (
         (file.diffSource === 'unstaged' || file.diffSource === 'staged') &&
-        file.relativePath === target.relativePath
+        relativePaths.has(file.relativePath)
       )
     }
     return false
@@ -177,6 +193,9 @@ export function getOpenFilesForExternalFileChange(
 export async function requestEditorSaveQuiesce(
   target: EditorSaveQuiesceTarget
 ): Promise<() => void> {
+  if ('relativePaths' in target && target.relativePaths.length === 0) {
+    return () => {}
+  }
   let release = (): void => {}
   await new Promise<void>((resolve, reject) => {
     let claimed = false

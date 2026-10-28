@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { OpenFile } from '@/store/slices/editor'
 import { createEditorStore } from './editor-autosave-controller-test-fixture'
-import { editorFileHoldKey, pathMutationHoldKeys } from './editor-autosave-holds'
+import { editorFileHoldKey, pathMutationHoldKeys as holdKeys } from './editor-autosave-holds'
 
 // Emulate a Windows client to ensure its path rules cannot fold distinct POSIX host paths.
 vi.mock('@/lib/desktop-window-chrome', async (importOriginal) => ({
@@ -22,7 +22,22 @@ function tab(id: string, filePath: string, patch: Partial<OpenFile> = {}): OpenF
   }
 }
 
-describe('discard hold keys on a Windows client', () => {
+describe.each(['single', 'batch'] as const)('%s discard hold keys on a Windows client', (kind) => {
+  function pathMutationHoldKeys(
+    state: Parameters<typeof holdKeys>[0],
+    target: {
+      worktreeId: string
+      worktreePath: string
+      relativePath: string
+      runtimeEnvironmentId?: string | null
+    }
+  ): Set<string> {
+    if (kind === 'single') {
+      return holdKeys(state, target)
+    }
+    const { relativePath, ...scope } = target
+    return holdKeys(state, { ...scope, relativePaths: [relativePath, 'not-open.ts'] })
+  }
   const state = createEditorStore().getState()
   const remote = { runtimeEnvironmentId: 'env-1' }
 

@@ -136,7 +136,16 @@ export function attachEditorAutosaveController(store: AppStoreApi): () => void {
         release = holdAutoSave(keys)
         matchingFiles = state.openFiles.filter((file) => keys.has(editorFileHoldKey(state, file)))
       }
-      await Promise.all(matchingFiles.map((file) => settleFileSaves(file.id, !discard)))
+      const settling = matchingFiles.map((file) => settleFileSaves(file.id, !discard))
+      if ('relativePaths' in detail) {
+        const settled = await Promise.allSettled(settling)
+        const failed = settled.find((result) => result.status === 'rejected')
+        if (failed) {
+          throw failed.reason
+        }
+      } else {
+        await Promise.all(settling)
+      }
     } catch (error) {
       // Settle failures must reject discard and release its hold rather than strand it.
       release?.()
