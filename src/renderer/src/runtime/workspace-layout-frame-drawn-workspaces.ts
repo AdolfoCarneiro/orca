@@ -23,15 +23,16 @@ export function onWorkspaceStartsDrawing(
   unshown: () => string[],
   onDrawn: () => void
 ): () => void {
-  let held = store.getState()
+  let { groupsByWorktree, unifiedTabsByWorktree } = store.getState()
   return store.subscribe((state) => {
     if (
-      state.groupsByWorktree === held.groupsByWorktree &&
-      state.unifiedTabsByWorktree === held.unifiedTabsByWorktree
+      state.groupsByWorktree === groupsByWorktree &&
+      state.unifiedTabsByWorktree === unifiedTabsByWorktree
     ) {
       return
     }
-    held = state
+    groupsByWorktree = state.groupsByWorktree
+    unifiedTabsByWorktree = state.unifiedTabsByWorktree
     if (unshown().some(draws(state))) {
       onDrawn()
     }
