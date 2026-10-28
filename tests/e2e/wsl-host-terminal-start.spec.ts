@@ -61,8 +61,24 @@ test('a stopped WSL distro boots only for Start or New Terminal, never for a ter
     await expect.poll(() => focusProject(page, projectPath), { timeout: 60_000 }).toBeTruthy()
 
     const terminals = page.locator('.xterm')
-    await openNewTerminal(page)
-    await expect(terminals.first()).toBeVisible({ timeout: 60_000 })
+    // The tab bar's own action, awaited: a New Terminal still in flight when the distro stops is a
+    // user act and boots it, which is right but would land in the no-boot window below.
+    const activeGroupId = (): Promise<string | null> =>
+      page.evaluate(() => {
+        const state = window.__store?.getState()
+        const worktreeId = state?.activeWorktreeId
+        return worktreeId
+          ? (state.activeGroupIdByWorktree[worktreeId] ??
+              state.groupsByWorktree[worktreeId]?.[0]?.id ??
+              null)
+          : null
+      })
+    await expect.poll(activeGroupId, { timeout: 60_000 }).not.toBeNull()
+    await page.evaluate(
+      (groupId) => window.__store?.getState().openNewTerminalTabInActiveWorkspace(groupId),
+      await activeGroupId()
+    )
+    await expect(page.locator('.xterm:visible')).toBeVisible({ timeout: 60_000 })
 
     const stopDistro = async (): Promise<number> => {
       const connects = fakeWslConnects(connectLogFile).length
