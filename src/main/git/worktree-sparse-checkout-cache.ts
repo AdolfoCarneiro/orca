@@ -111,9 +111,9 @@ async function revalidateInBackground(
     // An invalidate or remove/recreate can replace the entry while this probe is in flight.
     if (sparseCheckoutStateCache.get(key) === startingEntry) {
       retainSparseCheckoutCacheEntry(key, { isSparse, cachedAt: Date.now() })
-    }
-    if (isSparse !== startingEntry.isSparse) {
-      changeListener?.(repoPath, worktreePath, isSparse)
+      if (isSparse !== startingEntry.isSparse) {
+        changeListener?.(repoPath, worktreePath, isSparse)
+      }
     }
   } catch {
     // Leave whatever's there in place; the next read past the window retries.

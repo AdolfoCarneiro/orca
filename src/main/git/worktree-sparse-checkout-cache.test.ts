@@ -197,6 +197,46 @@ describe('detectSparseCheckoutCached', () => {
       onSparseCheckoutStateChanged(undefined)
     }
   })
+
+  it.each([
+    { scope: 'worktree', retire: () => invalidateSparseCheckoutState('/repo', '/repo/wt-a') },
+    { scope: 'repo', retire: () => clearSparseCheckoutStateCacheForRepo('/repo') },
+    { scope: 'all', retire: () => clearSparseCheckoutStateCache() }
+  ])('does not notify after $scope retires a background probe', async ({ retire }) => {
+    const listener = vi.fn()
+    onSparseCheckoutStateChanged(listener)
+    const nowSpy = vi.spyOn(Date, 'now')
+    let resolveRetiredProbe: (isSparse: boolean) => void = () => {}
+    try {
+      nowSpy.mockReturnValue(1_000)
+      detectSparseCheckoutMock.mockResolvedValueOnce(false)
+      await detectSparseCheckoutCached('/repo', '/repo/wt-a')
+
+      nowSpy.mockReturnValue(1_000 + RECONCILE_WINDOW_MS + 1)
+      detectSparseCheckoutMock.mockImplementationOnce(
+        () => new Promise<boolean>((resolve) => (resolveRetiredProbe = resolve))
+      )
+      expect(await detectSparseCheckoutCached('/repo', '/repo/wt-a')).toBe(false)
+      retire()
+      detectSparseCheckoutMock.mockResolvedValueOnce(true)
+      expect(await detectSparseCheckoutCached('/repo', '/repo/wt-a')).toBe(true)
+
+      resolveRetiredProbe(true)
+      await flushBackgroundRevalidation()
+      expect(listener).not.toHaveBeenCalled()
+      expect(await detectSparseCheckoutCached('/repo', '/repo/wt-a')).toBe(true)
+      expect(detectSparseCheckoutMock).toHaveBeenCalledTimes(3)
+
+      nowSpy.mockReturnValue(1_000 + 2 * RECONCILE_WINDOW_MS + 2)
+      detectSparseCheckoutMock.mockResolvedValueOnce(false)
+      expect(await detectSparseCheckoutCached('/repo', '/repo/wt-a')).toBe(true)
+      await flushBackgroundRevalidation()
+      expect(listener).toHaveBeenCalledExactlyOnceWith('/repo', '/repo/wt-a', false)
+    } finally {
+      nowSpy.mockRestore()
+      onSparseCheckoutStateChanged(undefined)
+    }
+  })
 })
 
 describe('invalidateSparseCheckoutState', () => {
