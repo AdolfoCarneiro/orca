@@ -89,7 +89,7 @@ describe('a sleeping bridge WSL pane keeps its shell folder', () => {
       rows: 24,
       cwd: WSL_CWD,
       env: { ORCA_PANE_KEY: PANE_KEY },
-      sessionId: 'repo::/repo@@spawned'
+      sessionId: 'repo::/home/jin/private-repo@@spawned'
     })
 
     const info = vi.spyOn(console, 'info').mockImplementation(() => {})
@@ -112,7 +112,7 @@ describe('a sleeping bridge WSL pane keeps its shell folder', () => {
       .filter((line) => line.includes('Sleep folder'))
     // One line per Sleep, naming the branch, what the distro returned and whether a folder came back.
     expect(lines).toHaveLength(1)
-    expect(lines[0]).toContain(`[history] Sleep folder for ${id}: wsl probe (budget `)
+    expect(lines[0]).toContain(`[history] Sleep folder for …@@spawned: wsl probe (budget `)
     expect(lines[0]).toContain(
       `rows 2, shells 1), distro Ubuntu, pane ${PANE_KEY}, live true, folder found in `
     )
@@ -121,9 +121,8 @@ describe('a sleeping bridge WSL pane keeps its shell folder', () => {
       expect.objectContaining({
         name: 'wsl.sleep-folder',
         attributes: expect.objectContaining({
-          line: lines[0],
+          line: lines[0].replace(', distro Ubuntu', ''),
           probe: 'wsl',
-          distro: 'Ubuntu',
           rows: 2,
           shells: 1,
           timedOut: false,
@@ -131,6 +130,11 @@ describe('a sleeping bridge WSL pane keeps its shell folder', () => {
         })
       })
     )
+    // The trace persists, so it names neither the worktree path in the session id nor the distro.
+    const persisted = JSON.stringify(spans)
+    for (const segment of ['home', 'jin', 'private-repo', 'Ubuntu']) {
+      expect(persisted).not.toContain(segment)
+    }
   })
 
   // awin verify-9: panes cd'd before a relaunch and slept before the window reopened them

@@ -262,8 +262,11 @@ export class DaemonPtyAdapter extends DaemonPtyDaemonRecovery implements IPtyPro
     const probeMs = Math.round(performance.now() - exitAt)
     logWslPaneDiagnostic(
       'wsl.bridge-exit',
-      `[pty] WSL bridge exit: ${verdict} (distro ${wslDistro}, code ${exit.code}, probe ${probeMs}ms)`,
-      { verdict, distro: wslDistro, code: exit.code, probeMs }
+      {
+        console: `[pty] WSL bridge exit: ${verdict} (distro ${wslDistro}, code ${exit.code}, probe ${probeMs}ms)`,
+        trace: `[pty] WSL bridge exit: ${verdict} (code ${exit.code}, probe ${probeMs}ms)`
+      },
+      { verdict, code: exit.code, probeMs }
     )
     // A spawn that replaced this incarnation meanwhile owns the session now.
     const current = this.sessionIncarnations.get(sessionId)

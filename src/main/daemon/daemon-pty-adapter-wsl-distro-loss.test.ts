@@ -156,8 +156,9 @@ describe('a WSL bridge pane exit', () => {
       // Kept in the local trace too: a packaged build keeps no console (verify-18).
       expect(spans.at(-1)).toMatchObject({
         name: 'wsl.bridge-exit',
-        attributes: { verdict, distro: 'Ubuntu', code: 1 }
+        attributes: { verdict, code: 1 }
       })
+      expect(JSON.stringify(spans.at(-1))).not.toContain('Ubuntu')
     }
   })
 

@@ -8,12 +8,7 @@ import { remainingDaemonRequestTimeoutMs } from './daemon-request-deadline'
 import { readDaemonLiveSleepCwd } from './daemon-live-sleep-cwd'
 import type { ColdRestoreInfo } from './history-reader'
 import { normalizeWslColdRestoreCwd } from './wsl-cold-restore-cwd'
-import {
-  describeSleepFolderRead,
-  readDaemonWslSleepCwdWithFacts,
-  sleepFolderAttributes
-} from './daemon-wsl-sleep-cwd'
-import { logWslPaneDiagnostic } from './daemon-wsl-diagnostic-log'
+import { logSleepFolderRead, readDaemonWslSleepCwdWithFacts } from './daemon-wsl-sleep-cwd'
 import * as unlistedSession from './daemon-unlisted-session'
 import { SessionNotFoundError, type ListSessionsResult } from './types'
 import { resolveSafePtyDefaultCwd } from '../providers/pty-default-cwd'
@@ -164,11 +159,7 @@ export abstract class DaemonPtySessionControl extends DaemonPtySessionInput {
         live,
         elapsedMs: Date.now() - startedAt
       }
-      logWslPaneDiagnostic(
-        'wsl.sleep-folder',
-        describeSleepFolderRead(id, read, sleepFolder),
-        sleepFolderAttributes(read, sleepFolder)
-      )
+      logSleepFolderRead(id, read, sleepFolder)
       const committed = await this.runExclusiveCheckpoint(
         async () => {
           // Set inside: a caller past its deadline leaves this checkpoint running without it.
