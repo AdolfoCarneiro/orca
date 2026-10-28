@@ -53,6 +53,12 @@ describe('sanitizePluginIconSvg', () => {
         '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path/><path/></svg>'
       )?.monochrome
     ).toBe(true)
+    // Stroke-only icons declare fill="none", usually on the root.
+    expect(
+      sanitizePluginIconSvg(
+        '<svg xmlns="http://www.w3.org/2000/svg" fill="none"><path stroke="currentColor"/></svg>'
+      )?.monochrome
+    ).toBe(true)
   })
 
   it.each([
