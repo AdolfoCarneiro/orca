@@ -2203,8 +2203,6 @@
         "estimateValue": "Оценка {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Использовать существующую ветку",
-        "reuseExistingBranchHint": "Переключиться на существующую ветку вместо создания новой на её основе.",
         "createMultiple": "Создать ещё",
         "cbb47ee0dc": "Доступно только для локальных Git-проектов.",
         "d861de981b": "Выборочная выгрузка",
