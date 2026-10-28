@@ -52,6 +52,30 @@
     "startupWorktreeRefresh": {
       "loading": "正在尋找工作區…",
       "description": "載入本機與遠端專案時，可能會顯示更多工作區。"
+    },
+    "wslMoved": {
+      "movedToHost": "已移至 {{distro}} 主機",
+      "useHere": "重新在這台電腦上使用",
+      "useHereTitle": "要重新在這台電腦上使用 {{name}} 嗎？",
+      "useHereDescription": "Orca 會依照移動前的狀態在這裡開啟此專案。你的程式碼不受影響：它從未移動。移動後在 {{distro}} 主機上所做的變更（例如新分頁和聊天）會留在主機上，不會帶回來。與它一起移動的專案也會一起回來。在你於 {{distro}} 主機上將其移除之前，專案也會一直保留在那裡。此視窗將重新載入。",
+      "useHereConfirm": "在這台電腦上使用",
+      "useHereSuperseded": "之後一次移至 {{distro}} 主機的操作包含此專案。請先將那次移動帶回。",
+      "useHereRefusedTitle": "目前還無法在這裡使用 {{name}}",
+      "useHereRefusedOk": "確定",
+      "useHereSupersededBy": "{{names}} 在此專案之後移至 {{distro}} 主機。請先重新在這台電腦上使用它們，再處理此專案。",
+      "useHereMoveRunning": "移至 {{distro}} 主機的操作仍在進行。請在其結束後再試一次。",
+      "useHereHostKeptForPeers": "{{project}} 已移至 {{distro}} 主機，該主機仍在為另一個 Orca 執行。重新新增該主機，即可在這裡再次使用它。",
+      "useHereHostUnreachable": "{{distro}} 主機沒有回應，Orca 無法停止其上的此專案副本，其代理程式可能仍在執行。請在設定中連線或移除該主機，然後再試一次。",
+      "useHereHostStillRunning": "{{distro}} 主機上的此專案副本仍有終端機在執行，其代理程式可能會執行兩次。請稍候再試一次。",
+      "useHereFailed": "無法將此專案帶回這台電腦。",
+      "useHereHostRemovalPending": "{{distro}} 主機仍在移除中，因此 Orca 不會變動它。請在設定中完成移除，然後再試一次。",
+      "useHereHostAutomations": "Orca 無法關閉此專案在 {{distro}} 主機上的自動化，它們可能會執行兩次。請在設定中連線該主機，然後再試一次。",
+      "useHereUnsavedTitle": "請先儲存檔案",
+      "useHereUnsavedDescription": "將 {{name}} 帶回會重新載入此視窗。請先儲存或關閉以下檔案：{{files}}",
+      "automationRunsOnHost": "在 {{distro}} 主機上執行",
+      "quitDuringMoveTitle": "要在專案移動期間結束嗎？",
+      "quitDuringMoveDescription": "有專案正在移至其 WSL 主機。仍要結束嗎？下次啟動時會復原此次移動。",
+      "quitDuringMoveConfirm": "仍要結束"
     }
   },
   "app": {
@@ -11998,7 +12022,8 @@
             "migration": "未完成：遷移到此伺服器的操作尚未完成。請先繼續該操作。",
             "deferred": "尚未完成：伺服器尚未準備好執行此操作。請稍後重試。",
             "failed": "Orca 無法在伺服器上完成此操作。請重試。",
-            "defaultServer": "未完成：此伺服器是新專案的預設主機。停止前，請先在「新專案開啟位置」選擇其他主機。"
+            "defaultServer": "未完成：此伺服器是新專案的預設主機。停止前，請先在「新專案開啟位置」選擇其他主機。",
+            "wslMoveRunning": "未完成：有專案正在移至此伺服器。移動完成後，Orca 會更新它。"
           },
           "reassurance": "在各臺主機上執行，並透過自己的 SSH 連線存取。程式碼與檔案會留在原處，只有 Orca 的專案、分頁與終端機清單會遷移至主機。"
         },
@@ -20754,6 +20779,161 @@
     "viewed": {
       "markFile": "將 {{path}} 標記為「已檢視」",
       "unmarkFile": "取消 {{path}} 的「已檢視」標記"
+    }
+  },
+  "wslMove": {
+    "entry": {
+      "hostRow": "從此發行版移動專案…",
+      "projectMenu": "移至 {{distro}} 主機…"
+    },
+    "blockers": {
+      "title": "這些專案移動前需要處理",
+      "inProjects": "位於 {{names}}",
+      "skipOne": "此次移動不包括 {{name}}",
+      "skipMany": "此次移動不包括這 {{n}} 個專案"
+    },
+    "title": "將專案移至 {{distro}} 主機",
+    "loading": "正在檢查 {{distro}} 中的專案…",
+    "runningTitle": "正在移至 {{distro}} 主機",
+    "preview": {
+      "counts": "專案：{{projects}} · 工作區：{{workspaces}} · 終端機：{{terminals}} · 聊天：{{chats}}",
+      "whatHappens": "你的檔案會留在原處。終端機會在同一個資料夾中重新啟動；其輸出、殼層歷程記錄和代理程式對話都會保留。",
+      "projects": "{{distro}} 中的專案",
+      "folderBadge": "資料夾",
+      "notMoving": "不移動",
+      "checking": "正在檢查所選專案…",
+      "checkAgain": "重新檢查",
+      "moveOne": "移動 1 個專案",
+      "moveMany": "移動 {{n}} 個專案",
+      "heldByHost": "已在 {{distro}} 主機上。",
+      "changed": "先前已移動，之後又被舊版 Orca 在這裡變更。不會再次移動。",
+      "chatsStay": "現有聊天會留在這台電腦上。此專案中的新聊天會在 WSL 主機上開始。",
+      "browserLoginsConflict": "瀏覽器登入狀態不會轉移，因為主機的瀏覽器設定檔已在使用中。移動後，請在主機的瀏覽器分頁中重新登入。",
+      "browserLoginsNotCarried": "瀏覽器登入狀態不會轉移到此主機。移動後，請在其瀏覽器分頁中重新登入。"
+    },
+    "cancel": "取消",
+    "progress": {
+      "bytes": "{{sent}} / {{total}}",
+      "tooLate": "已無法取消：主機正在切換。請保持 Orca 開啟，直到切換完成。",
+      "switching": "切換無法取消。請保持 Orca 開啟，直到切換完成。",
+      "readOnly": "這些專案在移動期間為唯讀。切換開始前你都可以取消。",
+      "cancelUntilSwitch": "切換開始前你都可以取消。",
+      "closeKeepsGoing": "關閉此對話方塊不會停止移動；移動結束時會再次開啟。",
+      "cancelling": "正在取消…",
+      "cancel": "取消移動"
+    },
+    "result": {
+      "movedTitle": "已移至 {{distro}} 主機",
+      "resetTitle": "未移動任何內容",
+      "waitingTitle": "正在等待 {{distro}} 主機",
+      "earlierMoveTitle": "先前的一次移動先完成了",
+      "refusedTitle": "專案未移動",
+      "reloadCheckpointRefused": "Orca 無法備份未儲存的檔案，因此視窗未重新載入。請關閉此對話方塊，儲存或關閉這些檔案，然後在持續顯示的通知中按一下「立即重新載入」。",
+      "reloadVetoed": "有項目阻止了視窗重新載入。請關閉此對話方塊，儲存你的工作，然後在持續顯示的通知中按一下「立即重新載入」。",
+      "reloadFailed": "視窗未重新載入。請再試一次。",
+      "moved": "重新載入此視窗，即可在 {{distro}} 主機下看到這些專案。Orca 會在重新載入前備份未儲存的檔案。",
+      "automationsPendingOne": "主機上有一個自動化暫時處於關閉狀態。Orca 會持續要求主機將其重新開啟。",
+      "automationsPendingMany": "主機上有 {{n}} 個自動化暫時處於關閉狀態。Orca 會持續要求主機將其重新開啟。",
+      "undoHint": "改變主意了？重新載入後，側邊欄會將這些專案顯示為「已移至 {{distro}} 主機」。在那裡選擇「重新在這台電腦上使用」，即可將它們還原為移動前的狀態。",
+      "reset": "移動已停止，所有內容都已還原。這些專案會像之前一樣在這台電腦上運作；已暫停的終端機會在你開啟時重新啟動。",
+      "resetReason": "停止原因：{{detail}}",
+      "waiting": "此次移動可能已到達 {{distro}} 主機，但主機沒有回應。在主機回應之前，這些專案在這裡會保持唯讀。請在設定中連線該主機，然後再次開啟此對話方塊並開始移動：Orca 會先完成或復原這次移動。",
+      "reloading": "正在重新載入…",
+      "reload": "立即重新載入",
+      "close": "關閉",
+      "review": "返回專案",
+      "browserLoginsHostUnknown": "瀏覽器登入狀態未複製，因為 Orca 無法識別主機的瀏覽器設定檔。請在主機的瀏覽器分頁中重新登入。",
+      "browserLoginsConflict": "瀏覽器登入狀態未複製，因為主機的瀏覽器設定檔已在使用中。請在主機的瀏覽器分頁中重新登入。",
+      "browserLoginsNotCopied": "瀏覽器登入狀態未複製到主機。請在主機的瀏覽器分頁中重新登入。"
+    },
+    "runtime": {
+      "label": "專案執行環境",
+      "description": "此專案透過這台電腦在 {{distro}} 中執行。將其移至 {{distro}} 主機，即可在那裡執行。",
+      "move": "移動專案"
+    },
+    "unfinished": {
+      "one": "已移至 {{distro}} 主機的一個自動化仍處於關閉狀態。Orca 會持續要求主機將其重新開啟。",
+      "many": "已移至 {{distro}} 主機的 {{n}} 個自動化仍處於關閉狀態。Orca 會持續要求主機將其重新開啟。"
+    },
+    "refusal": {
+      "previewFailed": "Orca 無法檢查這些專案。請再試一次。",
+      "startFailed": "Orca 與此次移動失去聯繫。請重新開啟此對話方塊查看目前進度。",
+      "unavailable": "此視窗無法將專案移至 WSL 主機。",
+      "alreadyRunning": "移至 {{distro}} 的操作已在進行中。請等待其完成，然後再試一次。",
+      "alreadyInFlightPreview": "{{distro}} 的一次移動仍在收尾。開始此次移動時，Orca 會盡可能先完成或復原那次移動。",
+      "alreadyInFlight": "{{distro}} 的一次移動仍在收尾，因此此次移動未開始。請保持 {{distro}} 主機連線，稍後再試一次。",
+      "nothingNew": "這些專案已在 {{distro}} 主機上。",
+      "destinationChanged": "先前來自 {{distro}} 的專案已移至另一個 WSL 主機。請連線該主機以移動更多專案。",
+      "hostUnavailable": "{{distro}} 主機未連線。請在設定中連線，然後再試一次。",
+      "hostUpdateRequired": "{{distro}} 主機執行的是舊版 Orca。請在設定中更新，然後再試一次。",
+      "terminalsBlocked": "這些專案中的部分終端機、代理程式或自動化正在忙碌。未移動任何內容。",
+      "exportIncomplete": "這些專案中的部分已儲存狀態目前還無法移動，因此未移動任何內容：",
+      "exportIncompletePreview": "這些專案中的部分已儲存狀態目前還無法移動：",
+      "tooLarge": "這些專案的已儲存狀態過多，無法一次移動。請每次移動較少的專案。",
+      "pauseFailed": "Orca 無法暫停這些專案中的終端機，因此未移動任何內容。已暫停的終端機會在你開啟時重新啟動。請再試一次。",
+      "scopeChanged": "準備移動期間有專案發生變更，因此未移動任何內容。請檢查專案後再試一次。",
+      "cancelled": "移動已取消。未移動任何內容。",
+      "finishedEarlierMove": "Orca 先完成了先前一次移至 {{distro}} 的操作。請重新載入視窗，然後重新開始此次移動。"
+    },
+    "step": {
+      "preparing": "準備中",
+      "pausingTerminals": "正在暫停終端機",
+      "copying": "正在複製",
+      "switching": "正在切換",
+      "finishing": "正在收尾",
+      "done": "完成"
+    },
+    "blocker": {
+      "agentWorkingOne": "有一個代理程式正在工作或等待回覆",
+      "agentWorkingMany": "有 {{n}} 個代理程式正在工作或等待回覆",
+      "processRunningOne": "有一個終端機正在執行程式",
+      "processRunningMany": "有 {{n}} 個終端機正在執行程式",
+      "agentNotResumableOne": "有一個代理程式在移動後無法繼續",
+      "agentNotResumableMany": "有 {{n}} 個代理程式在移動後無法繼續",
+      "unverifiableOne": "Orca 目前無法檢查一個終端機",
+      "unverifiableMany": "Orca 目前無法檢查 {{n}} 個終端機",
+      "automationRunningOne": "有一個自動化執行正在進行",
+      "automationRunningMany": "有 {{n}} 個自動化執行正在進行",
+      "dispatchRunningOne": "有一個代理程式工作正在進行",
+      "dispatchRunningMany": "有 {{n}} 個代理程式工作正在進行",
+      "scrollbackTooLargeOne": "有一個終端機的輸出記錄過多，無法移動",
+      "scrollbackTooLargeMany": "有 {{n}} 個終端機的輸出記錄過多，無法移動"
+    },
+    "blockerHint": {
+      "agentWorking": "等它完成，或在其終端機中停止它，然後重新檢查。",
+      "processRunning": "停止該程式（例如開發伺服器或編輯器），然後重新檢查。",
+      "agentNotResumable": "在其終端機中結束該代理程式，然後重新檢查。",
+      "unverifiable": "請稍候，然後重新檢查。Orca 不會為了移動而停止任何項目。",
+      "wait": "等待其完成，然後重新檢查。",
+      "scrollbackTooLarge": "清除這些終端機中的輸出，然後重新檢查。"
+    },
+    "scopeRefused": {
+      "windowsDrive": "其資料夾位於 Windows 磁碟機上，因此會留在這台電腦上。",
+      "mixedLocations": "其部分資料夾不在此發行版中，因此會留在這台電腦上。",
+      "notLocal": "它已在另一台主機上執行。",
+      "other": "它無法移動。"
+    },
+    "reloadToast": {
+      "title": "重新載入以完成移動"
+    },
+    "orchestrator": {
+      "showTerminal": "顯示終端機",
+      "moveAgain": "再次移動",
+      "checkAgain": "重新檢查",
+      "deferred": "正在完成移至 {{distro}} 主機的操作：部分終端機仍在忙碌。",
+      "stuck": "先前一次移至 {{distro}} 主機的操作尚未完全結束。",
+      "declined": "移動已暫停，因為你已將這些專案帶回這台電腦。",
+      "doneToast": "專案已移至 {{distro}} 主機",
+      "terminalGone": "該終端機已不在此視窗中開啟。請重新檢查以重新整理。",
+      "blocker": "{{title}}。{{hint}}",
+      "paused": "將專案移至 {{distro}} 主機的操作已暫停：{{reason}}。",
+      "pausedReason": {
+        "exportIncomplete": "部分已儲存狀態目前還無法轉移",
+        "manifestTooLarge": "已儲存狀態超出單次移動的容量",
+        "hostUpdate": "需要先更新主機",
+        "attemptsExhausted": "多次嘗試後仍未完成"
+      },
+      "finishPending": "先前一次移至 {{distro}} 主機的操作已在主機上完成。Orca 會在重新啟動時於這裡完成它，你也可以按一下「重新檢查」立即完成。"
     }
   }
 }

@@ -59,6 +59,15 @@ export abstract class RuntimeWorkspaceSelectors extends OrcaRuntimeWithResolveBr
     const worktrees = (await this.listResolvedWorktrees()).filter(
       (row) => requiredHostId === undefined || row.hostId === requiredHostId
     )
+    return this.matchWorktreeSelector(selector, worktrees, explicitWorktreeId, requiredHostId)
+  }
+
+  protected matchWorktreeSelector(
+    selector: string,
+    worktrees: ResolvedWorktree[],
+    explicitWorktreeId = this.getValidatedExplicitWorktreeIdSelector(selector),
+    requiredHostId?: ExecutionHostId
+  ): ResolvedWorktree {
     let candidates: ResolvedWorktree[]
 
     if (selector === 'active') {

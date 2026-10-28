@@ -68,7 +68,10 @@
       "useHereHostAutomations": "Orca konnte die Automatisierungen dieses Projekts auf dem {{distro}}-Host nicht deaktivieren, daher könnten sie doppelt ausgeführt werden. Den Host in den Einstellungen verbinden und dann erneut versuchen.",
       "useHereUnsavedTitle": "Zuerst Dateien speichern",
       "useHereUnsavedDescription": "Beim Zurückholen von {{name}} wird dieses Fenster neu geladen. Zuerst diese Dateien speichern oder schließen: {{files}}",
-      "automationRunsOnHost": "Wird auf dem {{distro}}-Host ausgeführt"
+      "automationRunsOnHost": "Wird auf dem {{distro}}-Host ausgeführt",
+      "quitDuringMoveTitle": "Beenden, während ein Projekt verschoben wird?",
+      "quitDuringMoveDescription": "Ein Projekt wird auf seinen WSL-Host verschoben. Trotzdem beenden? Das Verschieben wird beim nächsten Start rückgängig gemacht.",
+      "quitDuringMoveConfirm": "Trotzdem beenden"
     },
     "startupWorktreeRefresh": {
       "loading": "Arbeitsbereiche werden gesucht…",

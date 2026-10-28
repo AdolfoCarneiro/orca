@@ -60,7 +60,7 @@ export function mobileWebAppBundleBudgetBytes(manifest) {
 
 // Measure sorted route prefixes with routes.slice(0,n): distinct importer sets determine chunks, not route count.
 // Re-measure table when routes change; it is envelope’s only input, and pins must fail rather than permit arbitrary ceiling bumps.
-// Measured tree 731d5633c10776e471bef3b0abbee99c2389e011 on admitted Windows high, LF checkout, esbuild 0.28.2.
+// PROVISIONAL: main 86def974 sweep + tree 731d5633 prefix deltas from base d45d579; merged-tree measurement pending.
 export const MOBILE_WEB_APP_BUNDLE_SCRIPT_SWEEP = [
   ['./_layout.tsx', 3],
   ['./h/[hostId]/[...page].tsx', 7],
@@ -77,8 +77,8 @@ export const MOBILE_WEB_APP_BUNDLE_SCRIPT_SWEEP = [
   ['./h/[hostId]/review/[worktreeId].tsx', 76],
   ['./h/[hostId]/session/[worktreeId].tsx', 89],
   ['./h/[hostId]/source-control/[worktreeId].tsx', 97],
-  ['./h/[hostId]/tasks.tsx', 109],
-  ['./h/_layout.tsx', 113]
+  ['./h/[hostId]/tasks.tsx', 108],
+  ['./h/_layout.tsx', 112]
 ]
 
 const sweptScripts = MOBILE_WEB_APP_BUNDLE_SCRIPT_SWEEP.map(([, scripts]) => scripts)
