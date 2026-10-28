@@ -34,7 +34,7 @@ afterEach(() => {
 
 function mount(client: RpcClient) {
   let commands: Commands | null = null
-  const errors: Array<string | null> = []
+  const errors: (string | null)[] = []
   function Screen({ currentClient }: { currentClient: RpcClient }) {
     const { pageParams, sendBrowserRequest } = useMobileBrowserRequest({
       busyRef: { current: false },
@@ -107,7 +107,7 @@ describe('browser pointer commands after owner retirement', () => {
     })
     expect(calls).toHaveLength(owners)
 
-    const liveCalls: Array<{ method: string; params: unknown }> = []
+    const liveCalls: { method: string; params: unknown }[] = []
     const live = mount(
       stubRpcClient({
         sendRequest: async (method, params) => {
@@ -221,7 +221,7 @@ describe('browser pointer commands after owner retirement', () => {
     )
     screen.commands.sendWheel({ x: 1, y: 2 }, 0, 3, 1)
     const nextMove = deferred<RpcResponse>()
-    const newCalls: Array<{ method: string; params: unknown }> = []
+    const newCalls: { method: string; params: unknown }[] = []
     screen.replace(
       stubRpcClient({
         sendRequest: async (method, params) => {
