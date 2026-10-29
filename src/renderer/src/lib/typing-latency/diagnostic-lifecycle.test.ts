@@ -104,6 +104,18 @@ describe('typing latency diagnostic lifecycle', () => {
   it('retains echo timings without typed text during and after a diagnostic', () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const buildReport = vi.spyOn(diagnosticReport, 'buildTypingLatencyReport')
+    const pending = [{ startTime: 90, duration: 100 }]
+    vi.stubGlobal(
+      'PerformanceObserver',
+      class {
+        static supportedEntryTypes = ['long-animation-frame']
+        observe(): void {}
+        disconnect(): void {}
+        takeRecords(): typeof pending {
+          return pending.splice(0)
+        }
+      }
+    )
     installTypingLatencyDiagnostic()
     const bridge = (window as DiagnosticWindow).__orcaTypingDiagnostic
     if (!bridge) {
@@ -115,15 +127,12 @@ describe('typing latency diagnostic lifecycle', () => {
     if (!onObservation) {
       throw new Error('Pane echo instrumentation was not installed')
     }
-    for (const [source, text] of [
-      ['direct', 'private keyboard input'],
-      ['ime', '비공개']
-    ] as const) {
+    for (const source of ['direct', 'ime'] as const) {
       const observation = createEchoObservation(
         {
           candidates: [
             {
-              ...createEchoCandidate(110, source, text, source === 'direct' ? 100 : null),
+              ...createEchoCandidate(110, source, source === 'direct' ? 100 : null),
               dispatchedAt: 120,
               arrivedAt: 130
             }
@@ -152,9 +161,12 @@ describe('typing latency diagnostic lifecycle', () => {
       byInputSource: { direct: { exactInputs: 1 }, ime: { exactInputs: 1 } },
       longTaskOverlap: {
         exactSamples: 2,
+        exactSamplesOverlapped: 2,
+        overlapMs: { count: 2, p50: 50, p95: 60, max: 60 },
         slowestExactSamples: [
           {
             echoMs: 60,
+            longTaskOverlapMs: 60,
             eventToHandlerMs: 10,
             inputToDispatchMs: 10,
             dispatchToArrivalMs: 10,
@@ -162,7 +174,7 @@ describe('typing latency diagnostic lifecycle', () => {
             writeToParseMs: 10,
             parseToPaintMs: 10
           },
-          { echoMs: 50, eventToHandlerMs: null }
+          { echoMs: 50, eventToHandlerMs: null, longTaskOverlapMs: 50 }
         ]
       }
     })

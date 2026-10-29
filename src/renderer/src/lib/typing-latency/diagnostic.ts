@@ -149,7 +149,6 @@ function startProbe(): string {
       target,
       recordedAt,
       signal.source,
-      signal.text,
       readTrustedEventTime(signal.event, recordedAt)
     )
     state.unmatchedKeystrokes += recorded.unmatched
