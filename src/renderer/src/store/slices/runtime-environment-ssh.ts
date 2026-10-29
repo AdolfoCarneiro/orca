@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { SshConnectionState, SshTargetSummary } from '../../../../shared/ssh-types'
 import { sshConnectionStatesEqual } from './ssh-connection-state-equality'
@@ -114,10 +114,8 @@ function removedLabelsEqual(current: Map<string, string>, labels: Record<string,
   )
 }
 
-export const createRuntimeEnvironmentSshSlice: StateCreator<
+export const createRuntimeEnvironmentSshSlice: SessionStateCreator<
   AppState,
-  [],
-  [],
   RuntimeEnvironmentSshSlice
 > = (set) => ({
   sshStateByEnvironment: new Map(),

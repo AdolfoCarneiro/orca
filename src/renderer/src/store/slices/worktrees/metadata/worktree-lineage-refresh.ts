@@ -1,3 +1,4 @@
+import type { SessionSourceSet } from '@/store/session-source-edits'
 import { editSessionSource, type SessionSourceEdit } from '@/store/session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../../../types'
@@ -277,7 +278,7 @@ export async function refreshWorktreeLineageForTarget(
 
 export async function refreshRemoteWorktreeLineageBestEffort(
   target: RuntimeClientTarget | null,
-  set: (partial: Partial<AppState> | ((state: AppState) => Partial<AppState>)) => void,
+  set: SessionSourceSet<AppState>,
   getState: () => Pick<AppState, 'worktreeLineageById' | 'workspaceLineageByChildKey'>
 ): Promise<void> {
   if (target?.kind !== 'environment') {

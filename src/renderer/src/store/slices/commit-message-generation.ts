@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 
@@ -127,10 +127,8 @@ export function markCommitMessageGenerationHydrated(
   }
 }
 
-export const createCommitMessageGenerationSlice: StateCreator<
+export const createCommitMessageGenerationSlice: SessionStateCreator<
   AppState,
-  [],
-  [],
   CommitMessageGenerationSlice
 > = (set) => ({
   commitMessageGenerationRequestSeq: 0,

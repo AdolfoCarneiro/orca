@@ -1,3 +1,5 @@
+import type { RekeyOpenFilesPatch } from '../actions/rekey-open-files-action'
+import type { SessionSourcePartial } from '@/store/session-source-edits'
 // In layout-owner builds propose per-workspace rename IDs to main; its frame atomically rekeys drafts/buffers/autosave gate. Refusal changes nothing.
 
 import { isTwinWorkspace, runtimeEnvironmentIdUnlessTwin } from '@/lib/resolve-owner'
@@ -70,7 +72,7 @@ export function renameEditorFilesThroughLayoutOwner(
     state: AppState,
     rekeys: readonly OpenFilePathRekey[],
     moveOperationId: string | undefined
-  ) => { ok: true; patch: Partial<AppState> } | Extract<RekeyOpenFilesResult, { ok: false }>
+  ) => RekeyOpenFilesPatch
 ): RekeyOpenFilesResult {
   const state = get()
   const planned = rekeyOpenFilesPatch(state, rekeys, moveOperationId)
@@ -118,7 +120,7 @@ function sendRenames(
   get: EditorGet,
   state: AppState,
   [first, ...rest]: readonly RenamePart[],
-  rekeyHere: (own: readonly OpenFilePathRekey[]) => (s: AppState) => Partial<AppState>,
+  rekeyHere: (own: readonly OpenFilePathRekey[]) => SessionSourcePartial<AppState>,
   renamesIn: (own: readonly OpenFilePathRekey[]) => EditorFileRename[]
 ): void {
   if (!first) {

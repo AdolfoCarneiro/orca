@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import { structuredAgentSessionPaneKey } from '../../../../shared/structured-agent-session-projection'
 import { isStructuredTab } from '../../../../shared/structured-agent-session-tab'
 import type { Tab } from '../../../../shared/tab-types'
@@ -42,10 +42,8 @@ export function hasAwakeStructuredChat(
   )
 }
 
-export const createStructuredChatSleptAtSlice: StateCreator<
+export const createStructuredChatSleptAtSlice: SessionStateCreator<
   AppState,
-  [],
-  [],
   StructuredChatSleptAtSlice
 > = (set) => ({
   structuredChatSleptAtByPaneKey: {},

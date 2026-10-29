@@ -1,3 +1,4 @@
+import type { SessionSourcePartial } from '@/store/session-source-edits'
 // Rekey local editor files/drafts/buffers/autosave gates in the same store update that first draws main’s accepted IDs, preventing mismatched tabs/content. Refusal drops unapplied rekeys.
 
 import type { AppState } from '@/store/types'
@@ -7,7 +8,7 @@ export type ContentRekey = {
   /** Whether these frames show main's change. Never true for a change no tab shows. */
   shows: (cache: WorkspaceLayoutCache) => boolean
   /** The rekey against the store as the frame finds it. */
-  patch: (state: AppState) => Partial<AppState>
+  patch: (state: AppState) => SessionSourcePartial<AppState>
 }
 
 type Entry = { rekey: ContentRekey; fileIds: readonly string[]; waiters: ((ok: boolean) => void)[] }
@@ -29,7 +30,7 @@ function finish(entry: Entry, ok: boolean): void {
 
 export type ExpectedContentRekey = {
   /** Main applied the change: the rekey runs now unless its frame already ran it. */
-  applied: (show: (patch: Partial<AppState>) => void, state: AppState) => void
+  applied: (show: (patch: SessionSourcePartial<AppState>) => void, state: AppState) => void
   /** Main refused, or the window did it itself: nothing is applied. */
   dropped: () => void
 }

@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import { runtimeEnvironmentIdForWorkspaceOwner } from '@/lib/resolve-owner'
 import {
@@ -104,10 +104,8 @@ export type RecentlyClosedTabsSlice = {
   reopenClosedTab: (worktreeId: string) => boolean
 }
 
-export const createRecentlyClosedTabsSlice: StateCreator<
+export const createRecentlyClosedTabsSlice: SessionStateCreator<
   AppState,
-  [],
-  [],
   RecentlyClosedTabsSlice
 > = (set, get) => ({
   recentlyClosedTerminalTabsByWorktree: {},

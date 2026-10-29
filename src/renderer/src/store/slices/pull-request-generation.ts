@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import { resolveGeneratedFields } from './pull-request-generation-auto-submit'
 import type {
@@ -247,10 +247,8 @@ export function resolvePullRequestGenerationCancel(
   }
 }
 
-export const createPullRequestGenerationSlice: StateCreator<
+export const createPullRequestGenerationSlice: SessionStateCreator<
   AppState,
-  [],
-  [],
   PullRequestGenerationSlice
 > = (set) => ({
   pullRequestGenerationRequestSeq: 0,

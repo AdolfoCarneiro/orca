@@ -1,3 +1,4 @@
+import type { SessionSourceSet } from '@/store/session-source-edits'
 import type { AppState } from '../types'
 import type {
   GitHubProjectFieldMutationValue,
@@ -73,7 +74,7 @@ export function optimisticFieldValueFromMutation(
 }
 
 export function applyRowPatch(
-  set: (fn: (s: AppState) => Partial<AppState>) => void,
+  set: SessionSourceSet<AppState>,
   cacheKey: string,
   rowId: string,
   nextRow: GitHubProjectRow
@@ -102,7 +103,7 @@ export function applyRowPatch(
 }
 
 export function rollbackRowIfPresent(
-  set: (fn: (s: AppState) => Partial<AppState>) => void,
+  set: SessionSourceSet<AppState>,
   get: () => AppState,
   cacheKey: string,
   rowId: string,

@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand'
+import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { TerminalAgent } from '../../../../shared/terminal-agent'
 
@@ -33,10 +33,8 @@ export type PaneForegroundAgentSlice = {
   clearPaneForegroundAgentByWorktree: (worktreeId: string) => void
 }
 
-export const createPaneForegroundAgentSlice: StateCreator<
+export const createPaneForegroundAgentSlice: SessionStateCreator<
   AppState,
-  [],
-  [],
   PaneForegroundAgentSlice
 > = (set) => ({
   paneForegroundAgentByPaneKey: {},

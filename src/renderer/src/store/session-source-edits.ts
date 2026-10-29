@@ -26,9 +26,9 @@ export type OrdinarySourcePartial<S> = Partial<
 export type SessionSourceWrite<S> = Partial<S> & {
   readonly [SESSION_SOURCE_RECEIPT]: SessionSourceDiscovery
 }
+export type SessionSourcePartial<S> = OrdinarySourcePartial<S> | SessionSourceWrite<S>
 export type SessionSourceUpdate<S> =
-  | OrdinarySourcePartial<S>
-  | SessionSourceWrite<S>
+  | SessionSourcePartial<S>
   | ((
       state: SessionSourceSnapshot<S>
     ) => OrdinarySourcePartial<S> | SessionSourceWrite<S> | SessionSourceSnapshot<S>)

@@ -1,3 +1,4 @@
+import type { SessionSourceSet } from '@/store/session-source-edits'
 // Status-only start/resume frames update maps without pane trees, preserving mounted views.
 
 import type { AppState } from '@/store/types'
@@ -100,7 +101,7 @@ export function paneStartsWithFrames(
 
 /** Shows the starts of the `changed` workspaces, and drops those of workspaces main stopped sending. */
 export function showFramePaneStarts(
-  store: { getState: () => AppState; setState: (patch: Partial<AppState>) => void },
+  store: { getState: () => AppState; setState: SessionSourceSet<AppState> },
   changed: readonly string[],
   cache: Readonly<Record<string, PublishedWorkspaceLayout | undefined>>,
   shown: FramePaneFactsShown
