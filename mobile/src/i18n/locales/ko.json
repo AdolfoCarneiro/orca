@@ -13,7 +13,7 @@
       "sessionWindow": "5시간",
       "switchFailed": "계정을 전환하지 못했습니다.",
       "title": "계정",
-      "useReset": "초기화권 사용",
+      "useReset": "재설정권 사용",
       "weeklyWindow": "7일"
     }
   },
@@ -1238,6 +1238,7 @@
       "chooseWorkspaceFile": "이 워크스페이스 안의 파일을 선택하세요.",
       "discard": "버리기",
       "discardMessage": "저장하지 않은 편집 내용은 사라집니다.",
+      "discardMessageSaving": "진행 중인 저장이 완료되지 않을 수 있습니다. 저장하지 않은 편집 내용은 사라집니다.",
       "discardTitle": "변경사항을 삭제하시겠습니까?",
       "fileTitle": "파일",
       "loadFailed": "미리보기를 불러올 수 없습니다.",
@@ -1491,7 +1492,21 @@
       "workspace": "워크스페이스"
     }
   },
+  "newWorkspace": {
+    "hostPicker": {
+      "title": "워크스페이스 생성 호스트"
+    },
+    "loadingDrawer": {
+      "downloadProgress": "다운로드 중… {{progress}}",
+      "downloading": "다운로드 중",
+      "loading": "로드 중"
+    }
+  },
   "notifications": {
+    "desktopChannel": {
+      "name": "데스크톱 알림",
+      "silentName": "Orca 무음 알림"
+    },
     "notificationDeliverySection": {
       "footer": "알림 유형은 페어링된 각 데스크톱의 알림 설정을 따릅니다. 이 앱을 7일 동안 사용하지 않으면 알림이 일시 중지됩니다. 다시 받으려면 앱을 열고 다시 연결하세요.",
       "onlyWhenAway": "데스크톱을 사용하지 않을 때만",
@@ -2034,9 +2049,9 @@
       "switchToTerminalView": "터미널 보기로 전환"
     },
     "newTabAgentHostLaunch": {
-      "notesNotSent": "에이전트가 시작되었지만 노트가 전송되지 않았습니다.",
-      "notesSent": "노트 전송됨",
-      "notesUnconfirmed": "에이전트가 시작되었지만 노트가 전송되었는지 확인하지 못했습니다.",
+      "notesNotSent": "에이전트가 시작되었지만 메모가 전송되지 않았습니다.",
+      "notesSent": "메모 전송됨",
+      "notesUnconfirmed": "에이전트가 시작되었지만 메모가 전송되었는지 확인하지 못했습니다.",
       "promptUnconfirmed": "에이전트가 시작되었지만 프롬프트가 전송되었는지 확인하지 못했습니다."
     },
     "prActionsEngine": {
@@ -2162,7 +2177,7 @@
       "draftsHint": "나가기 전에 휴대폰의 초안을 복사하거나 버리세요.",
       "file": "파일",
       "markdown": "Markdown",
-      "markdownNote": "Markdown 메모",
+      "markdownNote": "Markdown 노트",
       "newBrowser": "새 브라우저",
       "newTab": "새 탭",
       "notesCopied": "메모를 복사했습니다.",
@@ -2254,12 +2269,12 @@
       "untitledNoteCreateFailed": "제목 없는 Markdown 노트를 만들 수 없습니다."
     },
     "useDiffComments": {
-      "copyNotesFailed": "노트를 복사하지 못했습니다.",
-      "deleteNoteFailed": "노트를 삭제하지 못했습니다.",
-      "noteAdded": "노트 추가됨",
-      "notesCopied": "노트 복사됨",
-      "saveNoteFailed": "노트를 저장하지 못했습니다.",
-      "saveNotesFailed": "리뷰 노트를 저장하지 못했습니다.",
+      "copyNotesFailed": "메모를 복사하지 못했습니다.",
+      "deleteNoteFailed": "메모를 삭제하지 못했습니다.",
+      "noteAdded": "메모 추가됨",
+      "notesCopied": "메모 복사됨",
+      "saveNoteFailed": "메모를 저장하지 못했습니다.",
+      "saveNotesFailed": "리뷰 메모를 저장하지 못했습니다.",
       "waitingForDesktop": "데스크톱 대기 중…"
     },
     "useDiffReviewCommentActions": {
@@ -2287,14 +2302,14 @@
       "openFailed": "세션에서 열 수 없습니다."
     },
     "useDiffReviewSendActions": {
-      "copyFailed": "리뷰 노트를 복사할 수 없습니다.",
+      "copyFailed": "리뷰 메모를 복사할 수 없습니다.",
       "inputLocked": "터미널 입력이 잠겨 있습니다.",
       "loadSessionsFailed": "에이전트 세션을 로드할 수 없습니다.",
-      "notesCopied": "리뷰 노트 복사됨",
-      "notesSent": "리뷰 노트 전송됨",
-      "notesSentWithWarning": "리뷰 노트를 전송했습니다. {{warning}}",
-      "promptNotSent": "에이전트가 시작되었지만 노트가 전송되지 않았습니다. '노트 복사'로 복사한 후 붙여넣으세요.",
-      "sendFailed": "노트를 전송하지 못했습니다.",
+      "notesCopied": "리뷰 메모 복사됨",
+      "notesSent": "리뷰 메모 전송됨",
+      "notesSentWithWarning": "리뷰 메모를 전송했습니다. {{warning}}",
+      "promptNotSent": "에이전트가 시작되었지만 메모가 전송되지 않았습니다. '메모 복사'로 복사한 후 붙여넣으세요.",
+      "sendFailed": "메모를 전송하지 못했습니다.",
       "startingAgent": "에이전트 시작 중…",
       "waitingForDesktop": "데스크톱 연결 대기 중…"
     },
@@ -2324,7 +2339,7 @@
     },
     "usePanelRouteActions": {
       "checkHostHint": "호스트 연결을 확인하세요.",
-      "copyNotesHint": "대신 노트를 복사하세요.",
+      "copyNotesHint": "대신 메모를 복사하세요.",
       "detectingAgents": "에이전트 감지 중",
       "newSessionHint": "새 에이전트 세션",
       "noEnabledAgents": "활성화된 에이전트 없음",
@@ -2358,9 +2373,9 @@
       "forkBusy": "다른 터미널을 여는 중입니다. 잠시 기다린 후 {{agentName}} 채팅을 다시 시도하세요.",
       "forkUnavailable": "연결되어 있고 업데이트된 호스트에서 {{agentName}} 채팅을 열고 다시 시도하세요.",
       "inputLocked": "터미널 입력이 다른 클라이언트에 의해 잠겨 있습니다.",
-      "notesSent": "노트 전송됨",
-      "sendNotesError": "노트를 보내지 못했습니다.",
-      "sendNotesFailed": "노트를 보내지 못했습니다.",
+      "notesSent": "메모 전송됨",
+      "sendNotesError": "메모를 보내지 못했습니다.",
+      "sendNotesFailed": "메모를 보내지 못했습니다.",
       "terminalTitle": "터미널"
     },
     "useTerminalInput": {
@@ -2520,11 +2535,67 @@
     }
   },
   "sourceControl": {
+    "actionSheetRunners": {
+      "noBaseBranch": "리베이스할 기본 브랜치가 없습니다.",
+      "waitingForDesktop": "데스크톱 연결 대기 중…"
+    },
     "actions": {
+      "checkingReviewStatus": "리뷰 상태를 확인 중입니다.",
+      "checkoutBeforePublish": "커밋을 게시하기 전에 브랜치를 체크아웃하세요.",
+      "commitStagedChanges": "스테이징된 변경 사항을 커밋하세요.",
       "commits": "커밋",
+      "committing": "커밋이 진행 중입니다.",
       "createPr": "PR 작성",
+      "enterCommitMessage": "커밋하려면 커밋 메시지를 입력하세요.",
+      "forcePushWithLease": "원격 브랜치를 업데이트하려면 lease로 강제 푸시하세요.",
+      "forcePushing": "강제 푸시가 진행 중입니다.",
+      "linkedReviewUnavailable": "연결된 리뷰 브랜치를 사용할 수 없습니다.",
+      "publishToOrigin": "이 브랜치를 origin에 게시하세요.",
+      "pullCommits_one": "커밋 {{count}}개를 풀하세요.",
+      "pullCommits_other": "커밋 {{count}}개를 풀하세요.",
       "pushAndCreatePr": "푸시 및 PR 작성",
-      "switchBranch": "브랜치 전환"
+      "pushCommits_one": "커밋 {{count}}개를 푸시하세요.",
+      "pushCommits_other": "커밋 {{count}}개를 푸시하세요.",
+      "pushLinkedReview": "연결된 리뷰 브랜치에 업데이트를 푸시하세요.",
+      "remoteOperationInProgress": "원격 작업이 진행 중입니다.",
+      "resolveConflicts": "커밋하기 전에 충돌을 해결하세요.",
+      "reviewAlreadyMerged": "커밋할 항목이 없습니다. 리뷰가 이미 병합되었습니다.",
+      "stageAllChanges": "모든 변경 사항을 스테이지하세요.",
+      "stageFileToCommit": "커밋하려면 파일을 하나 이상 스테이지하세요.",
+      "switchBranch": "브랜치 전환",
+      "syncCounts": "커밋 {{behind}}개를 풀하고 {{ahead}}개를 푸시하세요.",
+      "upToDate": "커밋할 항목이 없습니다. 브랜치가 최신 상태입니다.",
+      "waitForRemoteOperation": "원격 작업이 끝나면 다시 시도하세요."
+    },
+    "branchBaseRef": {
+      "resolveFailed": "브랜치의 기준점을 확인할 수 없습니다."
+    },
+    "branchCard": {
+      "branchCount": "브랜치 변경 {{count}}개",
+      "changedCount": "변경 {{count}}개",
+      "cherryPickState": "체리픽",
+      "mergeState": "병합",
+      "rebaseState": "리베이스",
+      "stagedCount": "{{count}}개 스테이징됨"
+    },
+    "branchCompare": {
+      "commits_one": "커밋 {{count}}개",
+      "commits_other": "커밋 {{count}}개",
+      "files_one": "파일 {{count}}개",
+      "files_other": "파일 {{count}}개",
+      "sectionTitle": "브랜치에 커밋됨",
+      "summary": "{{files}} - {{baseRef}} 대비",
+      "summaryWithCommits": "{{files}} - {{commits}} - {{baseRef}} 대비"
+    },
+    "branchCompareOutcome": {
+      "baseBranchUnavailable": "비교할 기본 브랜치를 확인할 수 없습니다.",
+      "loadFailed": "커밋된 변경 사항을 로드할 수 없습니다."
+    },
+    "branchDiffPreviewDrawer": {
+      "closePreview": "커밋된 차이점 미리보기 닫기",
+      "committedOnBranch": "브랜치에 커밋됨",
+      "loadFailed": "차이점을 불러올 수 없음",
+      "truncated": "모바일 미리보기용으로 차이점의 일부가 생략되었습니다."
     },
     "commitDropdown": {
       "checkOutBranchToPush": "커밋을 푸시하기 전에 브랜치를 체크아웃하세요",
@@ -2549,8 +2620,49 @@
       "stageFile": "commit 할 파일을 하나 이상 스테이지하세요",
       "useCommitAndForcePush": "Commit 및 강제 푸시를 사용하세요 — 원격에는 로컬 커밋의 이전 사본만 있습니다"
     },
+    "commitFailurePanel": {
+      "fix": "수정",
+      "fixWithAi": "AI로 commit 실패 수정",
+      "hideDetails": "세부 정보 숨기기",
+      "hideFailureDetails": "커밋 실패 세부 정보 숨기기",
+      "showDetails": "세부 정보 표시",
+      "showFailureDetails": "커밋 실패 세부 정보 표시",
+      "summary": "커밋에 실패했습니다.",
+      "title": "커밋 실패"
+    },
+    "commitMessageAi": {
+      "generateFailed": "커밋 메시지를 생성하지 못했습니다."
+    },
+    "commitRunners": {
+      "actionFailed": "소스 제어 작업에 실패했습니다.",
+      "commitFailed": "커밋 실패"
+    },
+    "conflictAbort": {
+      "abortMerge": "병합 중단",
+      "abortOperation": "{{operation}} 중단",
+      "abortRebase": "리베이스 중단",
+      "aborting": "중단 중…"
+    },
+    "content": {
+      "cancelGeneration": "커밋 메시지 생성 취소",
+      "commitMessageDisabled": "커밋 메시지 입력이 비활성화되었습니다. 스테이징된 파일이 없습니다.",
+      "commitMessagePlaceholder": "Commit 메시지",
+      "emptyMessage": "워크트리에 변경 사항이 없습니다.",
+      "emptyTitle": "로컬 변경 사항 없음",
+      "generateMessage": "AI로 commit 메시지 생성",
+      "noStagedFiles": "스테이징된 파일 없음",
+      "openActions": "소스 제어 작업 열기",
+      "reconnecting": "데스크톱에 다시 연결 중…",
+      "regenerateHint": "다시 생성하려면 메시지를 지웁니다.",
+      "stageAll": "모두 스테이지",
+      "unstageAll": "모두 언스테이징"
+    },
     "createPrAction": {
-      "createReview": "{{titleLabel}} 만들기"
+      "checkingStatus": "리뷰 상태 확인 중…",
+      "createPullRequest": "PR 생성",
+      "createReview": "{{titleLabel}} 만들기",
+      "providerUnavailable": "이 제공업체에서는 리뷰를 생성할 수 없음",
+      "statusUnavailable": "리뷰 상태를 사용할 수 없음"
     },
     "dropdownCounts": {
       "fastForwardCount_one": "커밋 {{count}}개 fast-forward",
@@ -2572,6 +2684,64 @@
       "titleUnpublishedForcePushCount_one": "브랜치 커밋 {{count}}개를 lease로 강제 푸시하고 필요하면 업스트림을 설정합니다.",
       "titleUnpublishedForcePushCount_other": "브랜치 커밋 {{count}}개를 lease로 강제 푸시하고 필요하면 업스트림을 설정합니다."
     },
+    "fileList": {
+      "committedSection": "브랜치에 커밋됨"
+    },
+    "fileRows": {
+      "addedByThem": "상대 쪽에서 추가됨",
+      "addedByUs": "우리 쪽에서 추가됨",
+      "bothAdded": "양쪽에서 추가됨",
+      "bothDeleted": "양쪽에서 삭제됨",
+      "bothModified": "양쪽에서 수정됨",
+      "committedSection": "브랜치에 커밋됨",
+      "committedUnavailable": "커밋된 변경 사항을 확인할 수 없습니다.",
+      "deletedByThem": "상대 쪽에서 삭제됨",
+      "deletedByUs": "우리 쪽에서 삭제됨",
+      "discardFile": "{{path}} 변경사항 취소",
+      "loadingCommitted": "커밋된 변경 사항 로드 중…",
+      "openChangedFile": "변경된 파일 {{path}} 열기",
+      "openCommittedChange": "{{path}}의 커밋된 변경 사항 열기",
+      "renamedFrom": "이전 경로: {{path}}",
+      "stageFile": "{{path}} 스테이지",
+      "unresolvedConflict": "해결되지 않은 충돌",
+      "unstageFile": "{{path}} 언스테이지"
+    },
+    "gitHistory": {
+      "days_one": "{{count}}일",
+      "days_other": "{{count}}일",
+      "hours_one": "{{count}}시간",
+      "hours_other": "{{count}}시간",
+      "justNow": "방금 전",
+      "loadFailed": "커밋 기록을 로드하지 못했습니다.",
+      "minutes_one": "{{count}}분",
+      "minutes_other": "{{count}}분",
+      "months_one": "{{count}}개월",
+      "months_other": "{{count}}개월",
+      "noCommitMessage": "(커밋 메시지 없음)",
+      "years_one": "{{count}}년",
+      "years_other": "{{count}}년"
+    },
+    "gitHistoryList": {
+      "loadFailed": "기록을 불러오지 못했습니다.",
+      "loadFilesFailed": "커밋 파일을 불러올 수 없습니다.",
+      "noCommits": "커밋이 없습니다.",
+      "noFileChanges": "파일 변경 사항 없음",
+      "retryFiles": "커밋 파일 다시 불러오기",
+      "waitingForDesktop": "데스크톱 응답 대기 중…"
+    },
+    "gitStatus": {
+      "changes": "변경 사항",
+      "conflicts": "충돌",
+      "stagedChanges": "스테이징된 변경 사항"
+    },
+    "header": {
+      "backToSession": "세션으로 돌아가기",
+      "close": "소스 제어 닫기",
+      "openNumberedPrWeb": "웹에서 PR #{{number}} 열기",
+      "openPrWeb": "웹에서 PR 열기",
+      "refresh": "소스 제어 새로고침",
+      "title": "소스 제어"
+    },
     "hostedReview": {
       "mrCopy": {
         "reviewLabel": "MR",
@@ -2584,8 +2754,80 @@
         "titleLabel": "PR"
       }
     },
+    "hostedReviewCopy": {
+      "committingChanges": "변경 사항 커밋 중…",
+      "creatingReview": "리뷰 생성 중…",
+      "forcePushing": "lease로 강제 푸시하는 중…",
+      "generatingCommitMessage": "커밋 메시지 생성 중…",
+      "publishingBranch": "브랜치를 게시하는 중…",
+      "pushingCommits": "커밋 푸시 중…",
+      "stagingChanges": "변경 사항 스테이징 중…",
+      "updatingBranch": "브랜치를 업데이트하는 중…"
+    },
     "hostedReviewCreate": {
       "pushSucceeded": "푸시는 성공했지만 {{shortLabel}} 생성에 실패했습니다: {{error}}"
+    },
+    "hostedReviewCreateIntent": {
+      "branchChanged": "PR을 준비하는 동안 브랜치가 변경되었습니다.",
+      "generateMessageFailed": "커밋 메시지를 생성하지 못했습니다. 소스 제어에서 메시지를 입력한 다음 다시 시도하세요.",
+      "resolveConflicts": "PR을 생성하기 전에 충돌을 해결하세요.",
+      "resolveOrStageChanges": "PR을 생성하기 전에 변경 사항을 정리하거나 스테이지하세요.",
+      "reviewCommitMessage": "커밋 메시지를 검토한 다음 PR 생성을 다시 시도하세요."
+    },
+    "hostedReviewGitPreparation": {
+      "commitFailed": "커밋 실패",
+      "refreshFailed": "소스 제어를 새로고침할 수 없습니다.",
+      "stageFailed": "변경 사항을 스테이지하지 못했습니다.",
+      "updateBranchFailed": "원격 브랜치를 업데이트할 수 없습니다. PR 생성을 다시 시도하세요."
+    },
+    "hostedReviewRemotePrerequisite": {
+      "forcePushFailed": "lease로 강제 푸시하지 못했습니다.",
+      "publishFailed": "브랜치를 게시하지 못했습니다.",
+      "pushFailed": "커밋을 푸시하지 못했습니다."
+    },
+    "hostedReviewService": {
+      "createFailed": "PR을 생성하지 못했습니다.",
+      "pushBeforeCreateFailed": "푸시에 실패했습니다. 푸시 오류를 해결한 후 다시 시도하세요."
+    },
+    "hubTab": {
+      "changes": "변경 사항",
+      "commits": "커밋",
+      "pullRequest": "PR"
+    },
+    "loaders": {
+      "connectingToDesktop": "데스크톱에 연결 중…",
+      "loadFailed": "소스 제어를 로드할 수 없습니다.",
+      "updateDesktop": "모바일에서 소스 제어를 사용하려면 Orca 데스크톱 앱을 업데이트하세요.",
+      "waitingForDesktop": "데스크톱 연결 대기 중…"
+    },
+    "modals": {
+      "actionsTitle": "소스 제어",
+      "currentBranch": "현재",
+      "discardButton": "버리기",
+      "discardConfirmMessage": "\"{{path}}\"의 변경 사항을 버리시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "discardTitle": "변경사항 취소",
+      "openPrMessage": "브라우저에서 여시겠습니까?",
+      "openPrWithWarning": "브라우저에서 여시겠습니까?\n\n{{warning}}",
+      "prCreatedTitle": "PR 생성 완료",
+      "switchBranchTitle": "브랜치 전환"
+    },
+    "openers": {
+      "openDiffFailed": "차이점을 열 수 없습니다.",
+      "tabNotReady": "파일은 열렸지만 탭이 아직 준비되지 않았습니다. 다시 시도하세요.",
+      "waitingForDesktop": "데스크톱 연결 대기 중…"
+    },
+    "panel": {
+      "loadFailedTitle": "로드 실패",
+      "unavailableTitle": "소스 제어 사용 불가"
+    },
+    "prChip": {
+      "createPr": "PR 생성",
+      "loading": "PR 로드 중…",
+      "loadingLabel": "PR 로드 중",
+      "openLabel": "PR #{{number}}, {{state}}, {{checks}}. PR 열기.",
+      "openWithComments_one": "PR #{{number}}, {{state}}, {{checks}}, 해결되지 않은 댓글 {{count}}개. PR 열기.",
+      "openWithComments_other": "PR #{{number}}, {{state}}, {{checks}}, 해결되지 않은 댓글 {{count}}개. PR 열기.",
+      "unavailableLabel": "PR 확인 불가: {{message}}"
     },
     "prCreate": {
       "authRequired": "{{reviewLabel}} 생성 전에 인증하세요.",
@@ -2605,8 +2847,19 @@
       "unsupportedMergeRequests": "이 저장소에서는 MR 생성을 지원하지 않습니다.",
       "unsupportedPullRequests": "이 저장소에서는 PR 생성을 지원하지 않습니다."
     },
+    "prLink": {
+      "updatePullRequestFailed": "연결된 PR을 업데이트하지 못했습니다.",
+      "updateReviewFailed": "연결된 리뷰를 업데이트하지 못했습니다."
+    },
     "primaryAction": {
-      "forcePushFromDesktop": "데스크톱에서 이 PR의 브랜치를 강제 푸시하세요."
+      "commit": "Commit",
+      "forcePush": "강제 푸시",
+      "forcePushFromDesktop": "데스크톱에서 이 PR의 브랜치를 강제 푸시하세요.",
+      "publishBranch": "브랜치 게시",
+      "pull": "풀",
+      "push": "푸시",
+      "stageAll": "모두 스테이지",
+      "sync": "동기화"
     },
     "remoteDropdown": {
       "branchAlreadyPublished": "브랜치가 이미 게시되었습니다",
@@ -2656,6 +2909,591 @@
       "tryFastForwardPull": "fast-forward 풀을 시도합니다. git에서 로컬 커밋을 거부할 수 있습니다",
       "tryRegularPush": "일반 푸시를 시도합니다. git에서 강제 푸시가 필요할 수 있습니다",
       "useForcePushToSync": "강제 푸시를 사용하세요 — 원격에는 로컬 커밋의 이전 사본만 있습니다"
+    },
+    "runners": {
+      "actionFailed": "소스 제어 작업에 실패했습니다."
+    },
+    "screenState": {
+      "noBranch": "브랜치 없음"
+    },
+    "state": {
+      "noUpstream": "업스트림 없음",
+      "syncStatus": "{{ahead}}개 앞섬, {{behind}}개 뒤처짐"
+    },
+    "useMobileCommitFailureRecovery": {
+      "launchFailed": "에이전트를 실행하지 못했습니다.",
+      "waitingForDesktop": "데스크톱 연결 대기 중…"
+    },
+    "useMobileCommitMessageGeneration": {
+      "generateFailed": "커밋 메시지를 생성하지 못했습니다."
+    },
+    "useMobileCreatePrRunner": {
+      "branchRequired": "PR을 생성하기 전에 브랜치를 체크아웃하세요."
+    },
+    "useMobileGitRequests": {
+      "actionFailed": "소스 제어 작업에 실패했습니다.",
+      "branchUnavailable": "브랜치 상태를 확인할 수 없습니다.",
+      "commitFailed": "커밋 실패",
+      "waitingForDesktop": "데스크톱 연결 대기 중…"
+    }
+  },
+  "tasks": {
+    "composerSource": {
+      "baseFailed": "기본 브랜치를 확인하지 못했습니다.",
+      "forkPushWarning": "이 PR에서 \"유지 관리자의 수정 허용\"이 꺼져 있어 GitHub에서 포크로의 푸시를 거부할 수 있습니다."
+    },
+    "detailCommentRenderers": {
+      "commentPlaceholder": "댓글 추가",
+      "comments_one": "댓글 {{count}}개",
+      "comments_other": "댓글 {{count}}개",
+      "reopenThread": "스레드 다시 열기",
+      "reply": "회신",
+      "resolveThread": "스레드 해결",
+      "resolvedCommentBy": "{{author}}의 댓글 · 해결됨",
+      "resolvedThreadBy": "{{author}}의 스레드 · 해결됨",
+      "sendComment": "댓글 보내기",
+      "show": "표시"
+    },
+    "filterPickers": {
+      "allTeams": "모든 팀",
+      "changeStatus": "상태 변경",
+      "fieldHidden": "카드에서 숨김",
+      "fieldShown": "카드에 표시됨",
+      "fieldsSubtitle": "항목 카드에 표시할 프로젝트 필드를 선택하세요.",
+      "fieldsTitle": "프로젝트 필드",
+      "gitlabFilter": "GitLab 필터",
+      "gitlabView": "GitLab 보기",
+      "jiraFilter": "Jira 필터",
+      "jiraSite": "Jira 사이트",
+      "linearFilter": "Linear 필터",
+      "linearIssue": "Linear 이슈",
+      "linearWorkspace": "Linear 워크스페이스",
+      "loadingStates": "상태 로드 중…",
+      "noFields": "이 보기에는 표시할 추가 필드가 없습니다.",
+      "noStates": "사용 가능한 상태가 없습니다.",
+      "switchWorkspaceFailed": "워크스페이스를 전환하지 못했습니다.",
+      "teamsSubtitle": "작업 화면에 표시할 팀을 선택하세요.",
+      "teamsTitle": "Linear 팀",
+      "teams_one": "팀 {{count}}개",
+      "teams_other": "팀 {{count}}개"
+    },
+    "githubProjectList": {
+      "browseProjects": "프로젝트 검색",
+      "chooseProject": "GitHub 프로젝트를 선택하세요.",
+      "emptyField": "비어 있음",
+      "issueSubtitle": "이슈 · {{repository}}{{number}}",
+      "itemSubtitle": "프로젝트 항목 · {{repository}}{{number}}",
+      "items": "항목",
+      "moreFields_one": "필드 +{{count}}개",
+      "moreFields_other": "필드 +{{count}}개",
+      "noItems": "프로젝트 항목이 없습니다.",
+      "pullRequestSubtitle": "PR · {{repository}}{{number}}"
+    },
+    "githubProjectPickers": {
+      "add": "추가",
+      "addByUrlHint": "목록에 없는 프로젝트는 URL로 추가하세요.",
+      "addPlaceholder": "URL 또는 소유자/번호로 추가",
+      "adding": "추가 중…",
+      "browseAll": "모두 찾아보기",
+      "browseLoading": "모두 찾아보기 (로드 중…)",
+      "chooseView": "프로젝트 보기 선택",
+      "loadFailed": "프로젝트를 로드하지 못했습니다.",
+      "noMatches": "일치하는 프로젝트가 없습니다.",
+      "noMoreProjects": "더 이상 프로젝트가 없습니다.",
+      "noProjects": "불러온 프로젝트 없음",
+      "organizationsError": "조직: {{message}}",
+      "organizationsLoadFailed": "일부 조직을 불러오지 못했습니다({{count}}개).",
+      "ownerLoadFailed": "{{owner}}의 프로젝트를 불러올 수 없습니다.",
+      "pin": "핀",
+      "pinned": "고정됨",
+      "recent": "최근",
+      "retryHint": "탭하여 다시 시도하세요.",
+      "searchProjects": "프로젝트 검색",
+      "sort": "프로젝트 정렬",
+      "subtitle": "작업 페이지에 표시할 프로젝트 보기를 선택하세요.",
+      "title": "GitHub 프로젝트",
+      "unsupportedLayout": "Orca는 아직 이 GitHub 프로젝트 레이아웃을 지원하지 않습니다.",
+      "view": "프로젝트 보기"
+    },
+    "githubViewControls": {
+      "fields": "필드: {{fields}}",
+      "openView": "GitHub에서 보기 열기",
+      "sort": "정렬: {{sort}}",
+      "source": "출처: {{source}}"
+    },
+    "itemActions": {
+      "changeStatus": "상태 변경",
+      "copyGitHubLink": "GitHub 링크 복사",
+      "copyLinearLink": "Linear 링크 복사",
+      "createWorkspace": "워크스페이스 만들기",
+      "creating": "만드는 중…",
+      "mergeConflicts": "GitHub에서 병합 충돌이 보고되었습니다.",
+      "mergeMergeRequest": "MR 병합",
+      "mergePullRequest": "PR 병합"
+    },
+    "itemDetailContent": {
+      "addSubIssue": "하위 이슈 추가",
+      "assignee": "담당자",
+      "assignees": "담당자",
+      "checks": "체크",
+      "description": "설명",
+      "discussion": "토론",
+      "noChecks": "체크를 찾을 수 없습니다.",
+      "noComments": "댓글이 없습니다.",
+      "noPipelineRuns": "이 MR에 실행된 파이프라인이 없습니다.",
+      "noSubIssues": "하위 이슈가 없습니다.",
+      "none": "없음",
+      "pipeline": "파이프라인",
+      "pipelineJobs_one": "작업 {{count}}개",
+      "pipelineJobs_other": "작업 {{count}}개",
+      "project": "프로젝트",
+      "rerunAll": "모두 재실행",
+      "rerunFailed": "실패한 체크 재실행",
+      "status": "상태",
+      "subIssueTitle": "하위 이슈 제목",
+      "subIssues": "하위 이슈",
+      "type": "유형"
+    },
+    "itemDetailDrawer": {
+      "refreshDetails": "상세 정보 새로고침"
+    },
+    "itemFieldEditors": {
+      "addLabels": "추가할 라벨(쉼표로 구분)",
+      "addUsernames": "추가할 사용자 이름(쉼표로 구분)",
+      "assignees": "담당자",
+      "labels": "라벨",
+      "loadingAssignees": "담당자 로드 중…",
+      "loadingLabels": "라벨 로드 중…",
+      "noAssignableUsers": "이 저장소에서 담당자로 지정할 수 있는 사용자가 없습니다.",
+      "noLabels": "이 저장소에 라벨이 없습니다.",
+      "none": "없음",
+      "removeLabels": "제거할 라벨(쉼표로 구분)",
+      "removeUsernames": "제거할 사용자 이름(쉼표로 구분)",
+      "saveTitle": "제목 저장",
+      "title": "제목",
+      "updateAssignees": "담당자 업데이트",
+      "updateLabels": "라벨 업데이트"
+    },
+    "itemReviewSections": {
+      "binaryFile": "바이너리 파일입니다.",
+      "changedFilesTitle": "변경된 파일",
+      "descriptionPlaceholder": "설명",
+      "fileContentsUnavailable": "파일 내용을 표시할 수 없습니다.",
+      "hideFile": "숨기기",
+      "loadingReviewers": "리뷰어 로드 중…",
+      "markUnviewed": "보지 않은 것으로 표시",
+      "markViewed": "본 것으로 표시",
+      "noDescription": "설명이 없습니다.",
+      "noReviewerSuggestions": "추천 리뷰어를 찾지 못했습니다.",
+      "noReviewersRequested": "요청한 리뷰어가 없습니다.",
+      "requestReview": "리뷰 요청",
+      "reviewersPlaceholder": "리뷰를 요청할 리뷰어",
+      "reviewersTitle": "리뷰어",
+      "saveDescription": "설명 저장",
+      "viewFile": "보기"
+    },
+    "legacySurface": {
+      "loadIssuesFailed": "{{source}}에서 이슈를 로드하지 못했습니다.",
+      "mergeAction": "병합",
+      "mergeMethodTitle": "병합 방식",
+      "mergePullRequestTitle": "PR 병합",
+      "mergeRequestMergeMessage": "이 MR의 병합 방식을 선택하세요.",
+      "mergeRequestTitle": "머지 리퀘스트",
+      "pullRequestMergeMessage": "이 PR의 병합 방식을 선택하세요.",
+      "retryLoadingIssues": "{{source}}에서 이슈 로드 다시 시도",
+      "retrying": "다시 시도 중…",
+      "sourceFallback": "{{repo}}에서 선택한 이슈 소스인 upstream을 사용할 수 없습니다. origin을 사용합니다.",
+      "subIssueDataUnavailable": "현재 토큰으로는 하위 이슈 데이터를 조회할 수 없습니다.",
+      "updateItemTitle": "항목 업데이트"
+    },
+    "linearList": {
+      "changeStatusFrom": "상태 변경(현재: {{status}})"
+    },
+    "linearViewControls": {
+      "displayButton": "표시",
+      "groupLabel": "그룹화: {{group}}",
+      "orderLabel": "정렬: {{order}}"
+    },
+    "listDisplayPickers": {
+      "displayPropertiesTitle": "표시 속성",
+      "linearGroupTitle": "Linear 이슈 그룹화",
+      "linearOrderTitle": "Linear 이슈 정렬",
+      "linearViewTitle": "Linear 보기",
+      "sortTasksTitle": "작업 정렬"
+    },
+    "listSurface": {
+      "connectLinearButton": "Linear 연결",
+      "connectLinearMessage": "작업 화면에서 할당받은 Linear 이슈를 바로 살펴보고 작업을 시작하세요.",
+      "connectLinearTitle": "Linear 계정 연결",
+      "jiraStatusFailed": "Jira 상태를 읽지 못했습니다.",
+      "updateDesktopMessage": "모바일 작업 화면을 사용하려면 더 최신 버전의 데스크톱 런타임이 필요합니다.",
+      "updateDesktopTitle": "Orca 데스크톱 업데이트"
+    },
+    "options": {
+      "all": "모두",
+      "assignedToMe": "나에게 할당됨",
+      "assignee": "담당자",
+      "board": "보드",
+      "boardDescription": "그룹별 열",
+      "closedState": "닫힘",
+      "completedState": "완료됨",
+      "createdState": "내가 만든 이슈",
+      "githubAssignedIssuesDescription": "나에게 할당된 열린 이슈",
+      "githubDescription": "이슈 및 PR",
+      "githubIssuesDescription": "GitHub 이슈",
+      "githubOpenIssuesDescription": "열려 있는 GitHub 이슈",
+      "githubProjectsDescription": "GitHub 프로젝트 보기",
+      "githubPullRequestsDescription": "GitHub PR",
+      "gitlabAllDescription": "모든 GitLab 상태",
+      "gitlabClosedDescription": "닫힌 이슈 및 MR",
+      "gitlabDescription": "이슈 및 MR",
+      "gitlabMergedDescription": "병합된 MR",
+      "gitlabOpenDescription": "열린 이슈 및 MR",
+      "identifier": "식별자",
+      "issues": "이슈",
+      "jiraDescription": "할당된 이슈 및 보고한 이슈",
+      "labels": "라벨",
+      "linearAllDescription": "연결된 워크스페이스의 열린 이슈",
+      "linearAssignedDescription": "할당받은 이슈",
+      "linearCompletedDescription": "최근 완료된 이슈",
+      "linearCreatedDescription": "직접 생성한 이슈",
+      "linearDescription": "할당된 이슈 및 팀 이슈",
+      "list": "목록",
+      "listDescription": "이슈를 간결한 행으로 표시",
+      "mergedState": "병합됨",
+      "mine": "내 항목",
+      "myIssues": "내 이슈",
+      "myPullRequestsDescription": "내가 작성한 PR",
+      "myTodos": "내 할 일",
+      "myTodosDescription": "대기 중인 GitLab 할 일",
+      "needsReview": "리뷰 필요",
+      "noGrouping": "그룹화 없음",
+      "openPullRequestsDescription": "열린 PR",
+      "openState": "열림",
+      "priority": "우선순위",
+      "projectMergeRequests": "프로젝트 MR",
+      "projectMergeRequestsDescription": "저장소별 MR 및 이슈",
+      "projects": "프로젝트",
+      "pullRequests": "PR",
+      "repository": "리포지토리",
+      "repositorySortDescription": "저장소별로 그룹화한 후 최근 활동순 정렬",
+      "reviewRequestsDescription": "나에게 할당된 리뷰 요청",
+      "status": "상태",
+      "team": "팀",
+      "updated": "업데이트됨",
+      "updatedSortDescription": "최근 활동순"
+    },
+    "pickerProjection": {
+      "allRepos": "모든 저장소",
+      "allSites": "모든 사이트",
+      "currentlyAscending": "현재 오름차순 · 탭하면 내림차순",
+      "currentlyDescending": "현재 내림차순 · 탭하면 오름차순",
+      "fieldAscending": "{{field}} 오름차순",
+      "fieldDescending": "{{field}} 내림차순",
+      "fields": "필드",
+      "repos_one": "저장소 {{count}}개",
+      "repos_other": "저장소 {{count}}개",
+      "selectTarget": "대상 선택",
+      "selectedFields": "필드 {{selected}}/{{total}}개",
+      "sortAscending": "오름차순 정렬",
+      "sources_one": "소스 {{count}}개",
+      "sources_other": "소스 {{count}}개",
+      "unsupportedLayout": "모바일에서 지원하지 않는 레이아웃",
+      "updatedSort": "업데이트됨",
+      "usesFieldAscending": "{{field}} 오름차순 사용",
+      "usesFieldDescending": "{{field}} 내림차순 사용",
+      "usesGitHubRankOrder": "GitHub 항목 순서 사용",
+      "viewNumber": "보기 #{{number}}",
+      "viewOrder": "보기 순서"
+    },
+    "prFileDiff": {
+      "commentOnLine": "{{line}}번 줄에 댓글 추가",
+      "commentPlaceholder": "리뷰 댓글 추가",
+      "noTextChanges": "텍스트 변경 사항이 없습니다.",
+      "showingDiffLines": "차이점 총 {{total}}줄 중 처음 {{limit}}줄을 표시합니다."
+    },
+    "projectComments": {
+      "comments_one": "댓글 {{count}}개",
+      "comments_other": "댓글 {{count}}개",
+      "discussion": "토론",
+      "editComment": "댓글 수정",
+      "noComments": "댓글이 없습니다.",
+      "reopenThread": "스레드 다시 열기",
+      "reply": "회신",
+      "resolveThread": "스레드 해결",
+      "resolvedCommentBy": "{{author}}의 해결된 댓글",
+      "resolvedThreadBy": "{{author}}의 해결된 스레드",
+      "show": "표시"
+    },
+    "projectDetailDrawer": {
+      "addRepositoryFromDesktop": "{{repository}}이(가) Orca에 추가되지 않았습니다. 데스크톱 앱에서 이 저장소를 추가한 후 모바일의 작업 화면을 새로고침하세요.",
+      "clearType": "유형 해제",
+      "closeItem": "항목 닫기",
+      "copyGitHubLink": "GitHub 링크 복사",
+      "copyRepository": "저장소 복사",
+      "createWorkspace": "워크스페이스 생성",
+      "draftIssue": "초안 이슈",
+      "issue": "이슈",
+      "issueType": "이슈 유형",
+      "loadingIssueTypes": "이슈 유형 로드 중…",
+      "mergePullRequest": "PR 병합",
+      "mergeRepositoryRequirement": "병합하려면 이 저장소가 Orca에 추가되어 있어야 합니다.",
+      "noIssueTypes": "이 저장소에 설정된 이슈 유형이 없습니다.",
+      "noType": "유형 없음",
+      "openInGitHub": "GitHub에서 열기",
+      "projectItem": "프로젝트 항목",
+      "projectSubtitle": "GitHub 프로젝트 · {{repository}}{{itemNumber}}",
+      "pullRequest": "PR",
+      "reopenItem": "항목 다시 열기",
+      "repositoryNotInOrca": "Orca에 없는 저장소",
+      "status": "상태",
+      "type": "유형",
+      "workspaceCreationRequirement": "워크스페이스는 GitHub 이슈와 PR에서만 생성할 수 있습니다."
+    },
+    "projectFieldEditors": {
+      "clearField": "필드 비우기",
+      "completedIteration": "완료 · {{startDate}} · {{duration}}일",
+      "datePlaceholder": "YYYY-MM-DD",
+      "invalidDate": "날짜를 YYYY-MM-DD 형식으로 입력하세요.",
+      "invalidNumber": "올바른 숫자를 입력하세요.",
+      "noIterations": "사용 가능한 반복 주기가 없습니다.",
+      "numberPlaceholder": "숫자",
+      "projectFields": "프로젝트 필드",
+      "saveField": "필드 저장",
+      "textPlaceholder": "텍스트",
+      "upcomingIteration": "진행 중 및 예정 · {{startDate}} · {{duration}}일"
+    },
+    "projectMetadataEditors": {
+      "assignees": "담당자",
+      "description": "설명",
+      "labels": "라벨",
+      "loadingAssignees": "담당자 로드 중…",
+      "loadingLabels": "라벨 로드 중…",
+      "noAssignableUsers": "이 저장소에서 담당자로 지정할 수 있는 사용자가 없습니다.",
+      "noDescription": "설명이 없습니다.",
+      "noLabels": "이 저장소에 라벨이 없습니다.",
+      "none": "없음",
+      "saveDescription": "설명 저장",
+      "saveTitle": "제목 저장",
+      "title": "제목"
+    },
+    "projectReviewPanels": {
+      "binaryFile": "바이너리 파일입니다.",
+      "changedFiles": "변경된 파일",
+      "checks": "체크",
+      "fileUnavailable": "파일 내용을 사용할 수 없습니다.",
+      "hideFile": "숨기기",
+      "loadingReviewers": "리뷰어 로드 중…",
+      "markUnviewed": "보지 않은 것으로 표시",
+      "markViewed": "본 것으로 표시",
+      "noChecks": "체크가 없습니다.",
+      "noReviewers": "요청한 리뷰어가 없습니다.",
+      "noSuggestions": "추천 리뷰어가 없습니다.",
+      "requestReview": "리뷰 요청",
+      "requestReviewers": "리뷰어 요청",
+      "rerunAll": "모두 재실행",
+      "rerunFailed": "실패한 체크 재실행",
+      "reviewers": "리뷰어",
+      "viewFile": "보기"
+    },
+    "providerControls": {
+      "myTodos": "내 할 일",
+      "projectMergeRequests": "프로젝트 MR",
+      "sort": "정렬: {{sortLabel}}"
+    },
+    "providerItemList": {
+      "intoBranch": "{{base}}(으)로",
+      "nextPage": "다음 페이지",
+      "page": "{{page}}페이지",
+      "pageOfTotal": "{{page}} / {{total}}페이지",
+      "previousPage": "이전 페이지",
+      "selectPage": "페이지 선택, {{page}}페이지",
+      "selectPageOfTotal": "페이지 선택, 전체 {{total}}페이지 중 {{page}}페이지"
+    },
+    "providerPickers": {
+      "allRepositories": "모든 리포지토리",
+      "githubView": "GitHub 보기",
+      "issueSources": "GitHub 이슈 소스",
+      "issueSourcesDescription": "각 리포지토리에서 이슈 조회와 작업 생성에 사용할 소스를 upstream과 origin 중에서 선택하세요.",
+      "issues": "이슈",
+      "noIssueSources": "사용할 수 있는 다른 이슈 소스가 없습니다.",
+      "origin": "origin",
+      "pageHint": "로드되었거나 로드 가능한 결과 페이지로 이동하세요.",
+      "pageLoaded": "로드됨",
+      "pageNotLoaded": "이전 결과를 로드합니다.",
+      "pageNumber": "{{page}}페이지",
+      "pages": "GitHub 페이지",
+      "pullRequests": "PR",
+      "queryingSource": "조회 대상: {{source}}",
+      "repoDescription": "조회할 리포지토리를 선택하세요.",
+      "repos": "리포지토리",
+      "taskSource": "작업 소스",
+      "upstream": "업스트림"
+    },
+    "providerViewProjection": {
+      "all": "모두",
+      "allSites": "모든 사이트",
+      "allTeams": "모든 팀",
+      "allWorkspaces": "모든 워크스페이스",
+      "chooseProject": "프로젝트 선택",
+      "default": "기본",
+      "defaultSubtitle": "{{subtitle}} · 기본",
+      "issues": "이슈",
+      "list": "목록",
+      "noGrouping": "그룹화 없음",
+      "openState": "열림",
+      "priority": "우선순위",
+      "projects": "프로젝트",
+      "pullRequests": "PR",
+      "teams_one": "팀 {{count}}개",
+      "teams_other": "팀 {{count}}개",
+      "workspace": "워크스페이스"
+    },
+    "reviewerLinear": {
+      "issues": "이슈",
+      "unassigned": "할당되지 않음"
+    },
+    "screenChrome": {
+      "connectLinear": "Linear 연결",
+      "newGitHubIssue": "새 GitHub 이슈",
+      "newLinearIssue": "새 Linear 이슈",
+      "refreshGitHub": "GitHub 작업 새로 고침",
+      "refreshGitLab": "GitLab 작업 항목 새로 고침",
+      "refreshJira": "Jira 이슈 새로 고침",
+      "refreshLinear": "Linear 새로고침",
+      "title": "작업"
+    },
+    "searchControl": {
+      "jiraPlaceholder": "Jira JQL, 예: project = ABC AND statusCategory != Done",
+      "projectPlaceholder": "프로젝트 보기 검색…",
+      "providerPlaceholder": "{{provider}} 작업 검색…"
+    },
+    "smartSourceModes": {
+      "allStates": "모두",
+      "branch": "브랜치",
+      "closedState": "닫힘",
+      "mergedState": "병합됨",
+      "name": "이름",
+      "openState": "열림",
+      "smart": "스마트"
+    },
+    "sparsePresetDraft": {
+      "directoryRequired": "하나 이상의 디렉터리를 추가합니다.",
+      "repoRelativeDirectoriesRequired": "루트, 절대 경로, 상위 경로가 아니라 repo 기준 상대 디렉터리를 사용하세요."
+    },
+    "taskViewOptions": {
+      "allSubtitle": "선택한 사이트의 미해결 이슈",
+      "assignedSubtitle": "나에게 할당된 미해결 이슈",
+      "doneSubtitle": "최근 해결된 내 이슈",
+      "noGitHubTasks": "GitHub 작업 없음",
+      "noGitLabTasks": "GitLab 작업 없음",
+      "noJiraTasks": "Jira 작업 없음",
+      "noLinearTasks": "Linear 작업 없음",
+      "reportedSubtitle": "내가 보고한 미해결 이슈"
+    },
+    "tasksCreateDrawers": {
+      "connect": "연결",
+      "connectLinearWorkspace": "Linear 워크스페이스 연결",
+      "createIssue": "이슈 생성",
+      "createWorkspaceIn": "워크스페이스 생성 리포지토리",
+      "description": "설명",
+      "descriptionPlaceholder": "배경 설명 추가",
+      "fileIn": "{{slug}}에 이슈 등록",
+      "issueSource": "이슈 소스",
+      "keySecurityHint": "키는 호스트 OS 키체인을 통해 암호화되어 로컬에 저장됩니다.",
+      "linearConnectSubtitle": "해당 워크스페이스의 이슈를 보려면 개인 API 키를 붙여넣으세요.",
+      "linearSettingsLink": "Linear 설정 / 보안 / 새 API 키",
+      "linearTeam": "Linear 팀",
+      "linearTeamSubtitle": "선택한 Linear 팀에 이슈를 생성하세요.",
+      "newIssueTitle": "새 {{providerLabel}} 이슈",
+      "origin": "origin",
+      "personalApiKey": "개인 API 키",
+      "repository": "리포지토리",
+      "repositorySubtitle": "선택한 리포지토리에 이슈를 생성하세요.",
+      "team": "팀",
+      "title": "제목",
+      "titlePlaceholder": "작업 제목",
+      "upstream": "업스트림"
+    },
+    "workspaceAgentSelection": {
+      "blankTerminal": "빈 터미널"
+    },
+    "workspaceCreateDrawer": {
+      "addRepository": "Linear 워크스페이스를 생성하기 전에 Git 리포지토리를 추가하세요.",
+      "advanced": "고급",
+      "agent": "에이전트",
+      "connect": "연결",
+      "connectFirst": "먼저 리포지토리를 연결하세요",
+      "connectRepository": "리포지토리 연결",
+      "connecting": "연결 중…",
+      "createFrom": "{{branch}} 기준으로 생성",
+      "defaultBranch": "기본 브랜치",
+      "detectingAgents": "에이전트 감지 중…",
+      "optional": "[선택 사항]",
+      "remoteRepository": "원격 리포지토리",
+      "repository": "리포지토리",
+      "repositoryNotFound": "리포지토리를 찾을 수 없습니다.",
+      "selectRepository": "리포지토리 선택",
+      "sshConnection": "SSH 연결",
+      "startFrom": "시작 기준",
+      "title": "워크스페이스 생성",
+      "workspaceName": "워크스페이스 이름"
+    },
+    "workspaceCreateProjection": {
+      "nameAlreadyExists": "\"{{name}}\"이(가) 이미 존재합니다.",
+      "nameRequired": "이름을 입력하세요.",
+      "nameTooLong": "이름은 80자 이하여야 합니다.",
+      "openShell": "셸 열기"
+    },
+    "workspaceOptionPickers": {
+      "baseBranchSubtitle": "기존 브랜치나 참조를 선택하세요.",
+      "baseBranchTitle": "시작 기준",
+      "branchName": "브랜치 이름: {{name}}",
+      "defaultBranch": "기본 브랜치",
+      "defaultBranchSubtitle": "이 저장소에 설정된 기본 브랜치 사용",
+      "editPreset": "프리셋 편집: {{name}}",
+      "fullCheckout": "전체 체크아웃",
+      "fullCheckoutSubtitle": "저장소 전체 사용",
+      "newPreset": "새로운 사전 설정",
+      "noBranches": "일치하는 브랜치가 없습니다.",
+      "searchBranches": "브랜치 검색",
+      "sparseCheckoutTitle": "스파스 체크아웃"
+    },
+    "workspaceSshGate": {
+      "authenticationFailed": "인증 실패",
+      "connected": "연결됨",
+      "connecting": "연결 중",
+      "connectionFailed": "연결 실패",
+      "deployingRelay": "릴레이 배포 중",
+      "disconnected": "연결 끊김",
+      "reconnectFailed": "다시 연결 실패",
+      "reconnecting": "다시 연결 중"
+    },
+    "workspaceTrustDrawers": {
+      "alwaysTrustAndRun": "항상 신뢰하고 실행",
+      "creating": "만드는 중…",
+      "directoriesLabel": "디렉터리",
+      "directories_one": "디렉터리 {{count}}개",
+      "directories_other": "디렉터리 {{count}}개",
+      "dontRun": "실행 안 함",
+      "editSparsePreset": "스파스 프리셋 편집",
+      "nameLabel": "이름",
+      "namePlaceholder": "렌더러 UI",
+      "newSetupScript": "새 설정 스크립트",
+      "newSparsePreset": "새 스파스 프리셋",
+      "runHooks": "후크 실행",
+      "runSetupAndCreate": "설정 실행 후 만들기",
+      "runSetupTitle": "{{name}}의 설정 스크립트를 실행하시겠습니까?",
+      "setupChangedTitle": "{{name}}의 설정 스크립트가 변경되었습니다",
+      "setupScript": "설정 스크립트",
+      "setupSubtitle": "{{name}}의 워크스페이스를 만들려면 먼저 설정 스크립트 실행 여부를 선택해야 합니다.",
+      "setupTitle": "설정 스크립트를 실행하시겠습니까?",
+      "skipSetupAndCreate": "설정 건너뛰고 만들기",
+      "trustFailed": "설정 스크립트 신뢰 설정에 실패했습니다.",
+      "trustSubtitle": "워크스페이스가 시작되기 전에 이 저장소의 orca.yaml이 컴퓨터에서 실행됩니다. 이 저장소를 신뢰하는 경우에만 실행하세요."
+    },
+    "worktreeCreateRetry": {
+      "createFailed": "워크스페이스를 생성하지 못했습니다."
     }
   },
   "terminal": {

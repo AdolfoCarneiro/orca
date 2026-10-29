@@ -696,7 +696,13 @@
       "permissionOverrideMore_many": "и ещё {{count}}",
       "permissionOverrideMore_other": "и ещё {{count}}",
       "permissionOverridesUse": "Использовать настройки «{{mode}}»",
-      "approveForMe": "одобрять за меня"
+      "approveForMe": "одобрять за меня",
+      "codexHistorySharing": {
+        "title": "Общая история Codex для всех аккаунтов",
+        "description": "Позволяет каждому аккаунту Codex и вашему собственному ~/.codex продолжать разговоры, начатые в других. Выключите, чтобы история каждого аккаунта оставалась отдельной. При выключении ничего из уже общего не удаляется.",
+        "unsupported": "Обновите Orca на {{host}}, чтобы изменить там эту настройку.",
+        "updateFailed": "Не удалось обновить настройку на {{host}}."
+      }
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "символическая ссылка",

@@ -687,7 +687,13 @@
       "permissionOverrideMore_one": "另外 {{count}} 個",
       "permissionOverrideMore_other": "另外 {{count}} 個",
       "permissionOverridesUse": "使用 {{mode}}",
-      "approveForMe": "代為核准"
+      "approveForMe": "代為核准",
+      "codexHistorySharing": {
+        "title": "在帳戶之間共用 Codex 歷史記錄",
+        "description": "讓每個 Codex 帳戶以及你自己的 ~/.codex 都能繼續在其他帳戶中開始的對話。關閉後，每個帳戶的歷史記錄將保持獨立。關閉不會移除任何已共用的內容。",
+        "unsupported": "請更新 {{host}} 上的 Orca 以在那裡變更此設定。",
+        "updateFailed": "無法更新 {{host}} 上的設定。"
+      }
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "符號連結",

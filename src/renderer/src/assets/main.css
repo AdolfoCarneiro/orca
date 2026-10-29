@@ -1899,6 +1899,30 @@ html.native-shell .app-layout {
   }
 }
 
+/* Duration matches EDITOR_REVEAL_FLASH_MS; a fade only, so it stays under reduced motion. */
+.editor-reveal-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--terminal-pane-locate) 12%, transparent);
+  animation: editor-reveal-flash 1.2s ease-out forwards;
+}
+
+@keyframes editor-reveal-flash {
+  0% {
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes settings-shell-enter {
   from {
     opacity: 0;

@@ -40,7 +40,7 @@ const BUSY_ACTIONS = new Set(['create-pr', 'push-create-pr'])
 function hiddenAction(onPress: () => void): MobileCreatePrAction {
   return {
     visible: false,
-    label: 'Create Pull Request',
+    label: translate('sourceControl.createPrAction.createPullRequest', 'Create Pull Request'),
     disabled: true,
     loading: false,
     pushFirst: false,
@@ -62,7 +62,10 @@ export function buildMobileCreatePrAction({
   if (eligibilityState.kind === 'error') {
     return {
       visible: true,
-      label: 'Review status unavailable',
+      label: translate(
+        'sourceControl.createPrAction.statusUnavailable',
+        'Review status unavailable'
+      ),
       disabled: true,
       loading: false,
       pushFirst: false,
@@ -73,7 +76,7 @@ export function buildMobileCreatePrAction({
   if (!eligibility) {
     return {
       visible: true,
-      label: 'Checking review status…',
+      label: translate('sourceControl.createPrAction.checkingStatus', 'Checking review status…'),
       disabled: true,
       loading: true,
       pushFirst: false,
@@ -84,7 +87,10 @@ export function buildMobileCreatePrAction({
   if (!supportsHostedReviewCreation(eligibility.provider)) {
     return {
       visible: true,
-      label: 'Review creation unavailable for this provider',
+      label: translate(
+        'sourceControl.createPrAction.providerUnavailable',
+        'Review creation unavailable for this provider'
+      ),
       disabled: true,
       loading: false,
       pushFirst: false,

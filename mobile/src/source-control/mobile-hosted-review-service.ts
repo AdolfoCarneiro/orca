@@ -162,19 +162,17 @@ export type MobileHostedReviewCreateOutcome =
   | { ok: true; url: string; number?: number; existing?: boolean; linkError?: string }
   | { ok: false; error: string }
 
-const PUSH_BEFORE_CREATE_ERROR = 'Push failed. Resolve the push error, then try again.'
-
 // The form intentionally uses one actionable fallback for all push failures.
 async function pushMobileBranchBeforeCreate(
   client: RpcOperationSender,
   worktreeId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const pushed = await pushMobileHostedReviewBranch(
-    client,
-    { worktree: `id:${worktreeId}` },
-    PUSH_BEFORE_CREATE_ERROR
+  const error = translate(
+    'sourceControl.hostedReviewService.pushBeforeCreateFailed',
+    'Push failed. Resolve the push error, then try again.'
   )
-  return pushed.ok ? { ok: true } : { ok: false, error: PUSH_BEFORE_CREATE_ERROR }
+  const pushed = await pushMobileHostedReviewBranch(client, { worktree: `id:${worktreeId}` }, error)
+  return pushed.ok ? { ok: true } : { ok: false, error }
 }
 
 function formatMobileHostedReviewCreateError(
@@ -244,7 +242,13 @@ export async function createMobileHostedReview(
     } catch (error) {
       return {
         ok: false,
-        error: refusedRpcMessageOrFallback(error, 'Failed to create pull request')
+        error: refusedRpcMessageOrFallback(
+          error,
+          translate(
+            'sourceControl.hostedReviewService.createFailed',
+            'Failed to create pull request'
+          )
+        )
       }
     }
     if (result.ok) {
@@ -271,13 +275,19 @@ export async function createMobileHostedReview(
       ok: false,
       error:
         formatMobileHostedReviewCreateError(result, pushed, input.provider) ||
-        'Failed to create pull request'
+        translate('sourceControl.hostedReviewService.createFailed', 'Failed to create pull request')
     }
   } catch (err) {
     // Inline creation must display transport errors instead of leaking rejected promises.
     return {
       ok: false,
-      error: err instanceof Error ? err.message : 'Failed to create pull request'
+      error:
+        err instanceof Error
+          ? err.message
+          : translate(
+              'sourceControl.hostedReviewService.createFailed',
+              'Failed to create pull request'
+            )
     }
   }
 }
