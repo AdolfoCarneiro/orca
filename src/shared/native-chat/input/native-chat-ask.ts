@@ -162,6 +162,7 @@ function scanPendingAsks(messages: readonly NativeChatMessage[]): {
   let pendingDepth = -1
   // Each async question stays open past its immediate result until the agent receives a message.
   let asyncQuestions: AskQuestion[] = []
+  let asyncOccurrences: [string, string | number][] = []
   const asyncCallIds = new Set<string>()
   for (const message of messages) {
     // New user turns/interrupts abandon unresolved calls. Decoding drops tool_use_id, so orphan results cannot match by id;
@@ -173,10 +174,11 @@ function scanPendingAsks(messages: readonly NativeChatMessage[]): {
       pending = null
       if (interrupted || reachedAgent(message)) {
         asyncQuestions = []
+        asyncOccurrences = []
         asyncCallIds.clear()
       }
     }
-    for (const block of message.blocks) {
+    for (const [blockIndex, block] of message.blocks.entries()) {
       if (block.type === 'tool-call') {
         const parsed = QUESTION_TOOL_PARSERS.has(block.name)
           ? parseAskFromToolInput(block.name, block.input)
@@ -184,6 +186,8 @@ function scanPendingAsks(messages: readonly NativeChatMessage[]): {
         if (parsed?.replyAsMessage) {
           if (block.callId === undefined || !asyncCallIds.has(block.callId)) {
             asyncQuestions = [...asyncQuestions, ...parsed.questions]
+            // Provider call IDs survive block reshaping; row IDs separate reused calls in later turns.
+            asyncOccurrences.push([message.id, block.callId ?? blockIndex])
           }
           if (block.callId !== undefined) {
             asyncCallIds.add(block.callId)
@@ -207,7 +211,13 @@ function scanPendingAsks(messages: readonly NativeChatMessage[]): {
   return {
     blocking: pending,
     replyAsMessage:
-      asyncQuestions.length > 0 ? { questions: asyncQuestions, replyAsMessage: true } : null
+      asyncQuestions.length > 0
+        ? {
+            questions: asyncQuestions,
+            replyAsMessage: true,
+            occurrenceKey: JSON.stringify(asyncOccurrences)
+          }
+        : null
   }
 }
 

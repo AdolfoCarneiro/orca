@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentStatusEntry } from '../../../../../src/shared/agent-status-types'
 import type { NativeChatMessage } from '../../../../../src/shared/native-chat-types'
 import { useMobileNativeChatPrompts } from './use-mobile-native-chat-prompts'
+import { useMobileNativeChatAskDismiss } from './use-mobile-native-chat-ask-dismiss'
+import { mobileNativeChatPromptDismissals } from './mobile-native-chat-prompt-dismissals'
 
 const renderers: ReactTestRenderer[] = []
 afterEach(() => {
@@ -166,6 +168,88 @@ describe('useMobileNativeChatPrompts in a structured chat', () => {
         accepted
       )
       expect(sendWithOutcome).toHaveBeenCalledWith('> Which color?\n\nBlue')
+    }
+  )
+})
+
+describe('structured async question occurrences', () => {
+  it.each([undefined, 'reused-call'])(
+    'shows an identical question after a delivered answer without an empty read (call ID: %s)',
+    async (callId) => {
+      mobileNativeChatPromptDismissals.clearForTests()
+      const sendWithOutcome = vi.fn(async () => 'accepted' as const)
+      const structured = { permission: null, question: null, sendWithOutcome }
+      const first: NativeChatMessage = {
+        id: 'ask',
+        role: 'assistant',
+        timestamp: null,
+        source: 'transcript',
+        blocks: [
+          {
+            type: 'tool-call',
+            name: 'request_user_input_async',
+            callId,
+            input: { questions: [{ title: 'Which color?', options: ['Red', 'Blue'] }] }
+          }
+        ]
+      }
+      let prompts: ReturnType<typeof useMobileNativeChatPrompts>
+      let dismissal: ReturnType<typeof useMobileNativeChatAskDismiss>
+      function Probe({ messages }: { messages: NativeChatMessage[] }): null {
+        prompts = useMobileNativeChatPrompts({
+          enabled: true,
+          structured,
+          status: null,
+          messages,
+          transcriptLoading: false
+        })
+        dismissal = useMobileNativeChatAskDismiss({
+          ask: prompts.ask,
+          startedAt: prompts.waitStartedAt,
+          scopeKey: 'async-tab',
+          sessionKey: 'session',
+          observing: true
+        })
+        return null
+      }
+      let renderer: ReactTestRenderer
+      TestRenderer.act(() => {
+        renderer = TestRenderer.create(createElement(Probe, { messages: [first] }))
+        renderers.push(renderer)
+      })
+      const update = (messages: NativeChatMessage[]) =>
+        TestRenderer.act(() => renderer.update(createElement(Probe, { messages })))
+      TestRenderer.act(() => dismissal.dismissAsk())
+      expect(dismissal!.showAsk).toBe(false)
+      expect(sendWithOutcome).not.toHaveBeenCalled()
+      update([{ ...first, blocks: [...first.blocks] }])
+      expect(dismissal!.showAsk).toBe(false)
+
+      const answer: NativeChatMessage = {
+        id: 'answer',
+        role: 'user',
+        timestamp: null,
+        source: 'transcript',
+        blocks: [{ type: 'text', text: 'Blue' }]
+      }
+      const second = { ...first, id: 'ask-again' }
+      update([first, answer, second])
+      expect(dismissal!.showAsk).toBe(true)
+      await TestRenderer.act(async () => {
+        if (await prompts.structuredAnswer?.(prompts.ask!, [{ indices: [1] }])) {
+          dismissal.dismissAsk()
+        }
+      })
+      expect(sendWithOutcome).toHaveBeenCalledWith('> Which color?\n\nBlue')
+      expect(dismissal!.showAsk).toBe(false)
+      update([
+        first,
+        answer,
+        second,
+        { ...answer, id: 'second-answer' },
+        { ...first, id: 'third-ask' }
+      ])
+      expect(dismissal!.showAsk).toBe(true)
     }
   )
 })

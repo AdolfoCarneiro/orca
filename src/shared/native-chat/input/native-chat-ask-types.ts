@@ -11,6 +11,8 @@ export type AskPrompt = {
   questions: AskQuestion[]
   /** The agent kept working after asking, so the answer goes back as an ordinary message. */
   replyAsMessage?: true
+  /** Transcript coordinates of the calls contributing to this async question. */
+  occurrenceKey?: string
 }
 
 export type InteractiveQuestionParser = (input: unknown) => AskPrompt | null

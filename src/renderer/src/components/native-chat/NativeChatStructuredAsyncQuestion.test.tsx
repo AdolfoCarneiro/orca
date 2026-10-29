@@ -4,10 +4,12 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NativeChatMessage } from '../../../../shared/native-chat-types'
 import { NativeChatStructuredAsyncQuestion } from './NativeChatStructuredAsyncQuestion'
+import { nativeChatPromptDismissals } from './native-chat-prompt-dismissals'
 
 let container: HTMLDivElement
 let root: ReturnType<typeof createRoot>
 beforeEach(() => {
+  nativeChatPromptDismissals.clearForTests()
   vi.useFakeTimers()
   container = document.createElement('div')
   document.body.appendChild(container)
@@ -55,4 +57,72 @@ describe('NativeChatStructuredAsyncQuestion', () => {
     expect(send).toHaveBeenCalledWith('> Which color?\n\nBlue', [])
     expect(container.textContent).not.toContain('Which color?')
   })
+
+  it.each([undefined, 'reused-call'])(
+    'shows an identical replacement in one ready-to-ready update (call ID: %s)',
+    (callId) => {
+      const send = vi.fn(() => true)
+      const first = {
+        ...asked,
+        blocks: asked.blocks.map((block) =>
+          block.type === 'tool-call' ? { ...block, callId } : block
+        )
+      }
+      const render = (messages: NativeChatMessage[]) =>
+        act(() =>
+          root.render(
+            <NativeChatStructuredAsyncQuestion
+              paneKey="tab-1:structured"
+              session={{ messages, readPhase: 'ready' }}
+              send={send}
+            />
+          )
+        )
+      render([first])
+      act(() =>
+        container
+          .querySelector('button[aria-label="Cancel"]')
+          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      )
+      expect(container.textContent).not.toContain('Which color?')
+      expect(send).not.toHaveBeenCalled()
+      // Settled readbacks replace row objects without creating another occurrence.
+      render([
+        {
+          ...first,
+          blocks:
+            callId === undefined
+              ? [...first.blocks]
+              : [{ type: 'text', text: 'More context' }, ...first.blocks]
+        }
+      ])
+      expect(container.textContent).not.toContain('Which color?')
+
+      const answer: NativeChatMessage = {
+        id: 'delivered-answer',
+        role: 'user',
+        blocks: [{ type: 'text', text: 'Blue' }],
+        timestamp: null,
+        source: 'transcript'
+      }
+      render([first, answer, { ...first, id: 'ask-again' }])
+      expect(container.textContent).toContain('Which color?')
+      const blue = [...container.querySelectorAll('button[aria-pressed]')].find((node) =>
+        node.textContent?.includes('Blue')
+      )
+      act(() => blue?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+      act(() => vi.runAllTimers())
+      expect(send).toHaveBeenCalledWith('> Which color?\n\nBlue', [])
+      expect(container.textContent).not.toContain('Which color?')
+
+      render([
+        first,
+        answer,
+        { ...first, id: 'ask-again' },
+        { ...answer, id: 'second-answer' },
+        { ...first, id: 'third-ask' }
+      ])
+      expect(container.textContent).toContain('Which color?')
+    }
+  )
 })

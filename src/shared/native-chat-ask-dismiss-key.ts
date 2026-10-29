@@ -7,10 +7,13 @@ function askDismissKeyText(text: string | undefined): string | undefined {
   return text?.slice(0, ASK_DISMISS_KEY_TEXT_PREFIX)
 }
 
-/** Stable cross-platform identity for one canonical question prompt. */
+/** Async questions use their occurrence; blocking questions keep the status-to-transcript content key. */
 export function nativeChatAskDismissKey(prompt: AskPrompt | null): string | null {
   if (!prompt) {
     return null
+  }
+  if (prompt.replyAsMessage && prompt.occurrenceKey !== undefined) {
+    return `async-question:${JSON.stringify([prompt.occurrenceKey, prompt.questions])}`
   }
   const questions = prompt.questions.map((question) => ({
     ...question,
