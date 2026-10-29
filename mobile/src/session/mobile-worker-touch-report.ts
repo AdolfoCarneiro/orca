@@ -1,3 +1,4 @@
+import { isWorkerTouchRecorded } from '../../../src/shared/worker-touch-receipt'
 import type { RpcClient } from '../transport/rpc-client'
 import type { MobileSessionTab } from './mobile-session-route-types'
 
@@ -12,15 +13,16 @@ export function workerTouchSubjectOf(tab: MobileSessionTab): MobileWorkerTouchSu
     : null
 }
 
-/** The user saw this terminal or chat; its host keeps it if it is a worker. */
+/** The user saw this terminal or chat; true once its host has recorded the keep. */
 export function reportMobileWorkerTouch(
   client: Pick<RpcClient, 'sendRequest'>,
   subject: MobileWorkerTouchSubject
-): void {
-  void client
+): Promise<boolean> {
+  return client
     .sendRequest('orchestration.workerChatTouch', subject, {
       timeoutMs: 5_000,
       budgetSpansConnect: true
     })
-    .catch(() => {})
+    .then((response) => response.ok && isWorkerTouchRecorded(response.result))
+    .catch(() => false)
 }

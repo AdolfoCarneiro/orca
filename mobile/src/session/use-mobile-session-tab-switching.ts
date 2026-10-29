@@ -64,7 +64,6 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
       }
       subscribeToTerminal(handle)
       if (client) {
-        reportMobileWorkerTouch(client, { terminal: handle })
         if (matchingTab) {
           void activateMobileSessionTab(client, {
             worktree: `id:${worktreeId}`,
@@ -136,9 +135,6 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
       activeHandleRef.current = null
       setActiveHandle(null)
       if (client) {
-        if (tab.type === 'agent-session') {
-          reportMobileWorkerTouch(client, { sessionId: tab.sessionId })
-        }
         void activateMobileSessionTab(client, {
           worktree: `id:${worktreeId}`,
           tabId: tab.id,
@@ -180,15 +176,20 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
     ]
   )
   switchSessionTabRef.current = switchSessionTab
-  // The tab a session opens on is on screen as surely as one the user switches to.
-  const openReportedWorktreeRef = useRef<string | null>(null)
+  // Every displayed terminal or chat, tapped or selected for the user, until its host records the keep.
+  const keptSubjectRef = useRef<string | null>(null)
   const openTab = sessionTabs.find((tab) => tab.id === activeSessionTabId)
   useEffect(() => {
     const subject = openTab ? workerTouchSubjectOf(openTab) : null
-    if (client && subject && openReportedWorktreeRef.current !== worktreeId) {
-      openReportedWorktreeRef.current = worktreeId
-      reportMobileWorkerTouch(client, subject)
+    const key = subject && JSON.stringify([worktreeId, subject])
+    if (!client || !subject || keptSubjectRef.current === key) {
+      return
     }
+    void reportMobileWorkerTouch(client, subject).then((kept) => {
+      if (kept) {
+        keptSubjectRef.current = key
+      }
+    })
   }, [client, openTab, worktreeId])
   return {
     switchTab,

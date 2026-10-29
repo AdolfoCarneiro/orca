@@ -5,6 +5,7 @@ import { collectLeafIdsInOrder } from '@/components/terminal-pane/terminal-layou
 import type { WorkerTouch } from '@/lib/worker-terminal-takeover-report'
 import { isTerminalLeafId, makePaneKey } from '../../../shared/stable-pane-id'
 import type { AutoAckTabTarget } from './agent-auto-ack-targets'
+import { isWorkerTouchRecorded } from '../../../shared/worker-touch-receipt'
 
 /** Every split pane of an on-screen terminal tab, and each on-screen chat its view can name. */
 export function resolveOnScreenWorkerTouches(
@@ -43,7 +44,7 @@ export function resolveOnScreenWorkerTouches(
   return touches
 }
 
-/** Reports each target once per stay on screen; a failed report retries on the next scan. */
+/** Reports each target once per stay on screen; a failed or not-yet-recorded report retries on the next scan. */
 export function createOnScreenWorkerTouchReporter(
   report: (touch: WorkerTouch) => Promise<unknown>
 ): {
@@ -65,7 +66,14 @@ export function createOnScreenWorkerTouchReporter(
         const key = keyOf(touch)
         if (!reported.has(key)) {
           reported.add(key)
-          report(touch).catch(() => reported.delete(key))
+          report(touch).then(
+            (result) => {
+              if (!isWorkerTouchRecorded(result)) {
+                reported.delete(key)
+              }
+            },
+            () => reported.delete(key)
+          )
         }
       }
     }

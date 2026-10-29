@@ -46,6 +46,7 @@ function mountSwitching(args: {
   markdownDocs?: Map<string, MarkdownDocState>
   fileDocs?: Map<string, FileDocState>
   client?: Pick<RpcClient, 'sendRequest'>
+  sessionTabs?: MobileSessionTab[]
 }) {
   const readMarkdownTab = vi.fn()
   const readFileTab = vi.fn()
@@ -67,7 +68,7 @@ function mountSwitching(args: {
         activeSessionTabTypeRef: { current: null },
         activeHandleRef: { current: null },
         client: args.client ?? null,
-        sessionTabs: [],
+        sessionTabs: args.sessionTabs ?? [],
         unsubscribeTerminal: vi.fn(),
         subscribeToTerminal: vi.fn(),
         terminalUnsubsRef: { current: new Map() },
@@ -82,6 +83,12 @@ function mountSwitching(args: {
     setActiveSessionTabId,
     switchTo: (tab: MobileSessionTab) => {
       performHookAction(() => switching?.switchSessionTab(tab))
+    },
+    /** A snapshot that displays `tabId` without any tap. */
+    display: (tabId: string | null, sessionTabs: MobileSessionTab[]) => {
+      args.activeSessionTabId = tabId
+      args.sessionTabs = sessionTabs.map((tab) => ({ ...tab }))
+      hook.update()
     },
     unmount: hook.unmount
   }
@@ -178,33 +185,49 @@ describe('useMobileSessionTabSwitching active document retap', () => {
 })
 
 describe('useMobileSessionTabSwitching worker touch', () => {
-  it('tells the host the user saw the terminal or chat they switched to', () => {
+  it('reports a worker chat a snapshot selects, again until its host records the keep', async () => {
+    const replies = [{ changed: 0 }, { changed: 0, pending: true }, { changed: 1 }]
     const sendRequest = vi.fn<RpcClient['sendRequest']>(async () => ({
       id: 'rpc',
       ok: true,
-      result: { changed: 1 }
+      result: replies.shift()
     }))
-    const harness = mountSwitching({ activeSessionTabId: null, client: { sendRequest } })
-    try {
-      harness.switchTo({
-        type: 'agent-session',
-        id: 'chat',
-        title: 'Worker',
-        sessionId: 's1',
-        agent: 'claude',
-        isActive: false
-      })
-      harness.switchTo({
-        type: 'terminal',
-        id: 'term',
-        title: 'Worker',
-        terminal: 'pty-1',
-        isActive: false
-      })
-      const touches = sendRequest.mock.calls
+    const plain: MobileSessionTab = {
+      type: 'terminal',
+      id: 'plain',
+      title: 'zsh',
+      terminal: 'pty-plain',
+      isActive: true
+    }
+    const worker: MobileSessionTab = {
+      type: 'agent-session',
+      id: 'chat',
+      title: 'Worker',
+      sessionId: 's1',
+      agent: 'claude',
+      isActive: false
+    }
+    const touches = () =>
+      sendRequest.mock.calls
         .filter(([method]) => method === 'orchestration.workerChatTouch')
         .map(([, params]) => params)
-      expect(touches).toEqual([{ sessionId: 's1' }, { terminal: 'pty-1' }])
+    const harness = mountSwitching({
+      activeSessionTabId: 'plain',
+      client: { sendRequest },
+      sessionTabs: [plain, worker]
+    })
+    try {
+      await vi.waitFor(() => expect(touches()).toEqual([{ terminal: 'pty-plain' }]))
+      // The plain terminal closes and the next snapshot falls back to the worker chat.
+      for (let snapshot = 0; snapshot < 3; snapshot++) {
+        harness.display('chat', [worker])
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+      expect(touches()).toEqual([
+        { terminal: 'pty-plain' },
+        { sessionId: 's1' },
+        { sessionId: 's1' }
+      ])
     } finally {
       harness.unmount()
     }

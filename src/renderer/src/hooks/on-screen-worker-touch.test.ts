@@ -7,6 +7,7 @@ import {
   screenOf,
   WS_A
 } from '@/store/slices/workspace-attention/workspace-unread-characterization-fixture'
+import { createOnScreenWorkerTouchReporter } from './on-screen-worker-touch'
 
 vi.mock('sonner', () => ({
   toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn(), dismiss: vi.fn() }
@@ -39,4 +40,20 @@ it('counts a worker tab created in another workspace only once a present user is
     subject: { paneKey: worker.paneKey },
     target: { kind: 'local' }
   })
+})
+
+it('reports a chat shown before its custody exists again until the host records the keep', async () => {
+  const replies = [{ changed: 0, pending: true }, { changed: 1 }]
+  const report = vi.fn(async () => replies.shift())
+  const reporter = createOnScreenWorkerTouchReporter(report)
+  const chat = { subject: { sessionId: 's1' }, target: { kind: 'local' as const } }
+
+  for (let scan = 0; scan < 3; scan++) {
+    reporter.report([chat])
+    await vi.waitFor(() => expect(report).toHaveBeenCalledTimes(Math.min(scan + 1, 2)))
+    await Promise.resolve()
+  }
+
+  expect(report).toHaveBeenCalledTimes(2)
+  expect(reporter.hasUnreported([chat])).toBe(false)
 })
