@@ -42,6 +42,8 @@ export class BackgroundTransientFactRelay {
           onBell: () => this.emitFact(sessionId, { kind: 'bell' }),
           onCommandFinished: (exitCode) =>
             this.emitFact(sessionId, { kind: 'command-finished', exitCode }),
+          onLaunchExitReceipt: (receiptId) =>
+            this.emitFact(sessionId, { kind: 'launch-exit-receipt', receiptId }),
           // Background toggles reset PR-link dedupe; consumers accept links as association updates.
           onPrLink: (link) => this.emitFact(sessionId, { kind: 'pr-link', link }),
           onMode2031Subscribe: () => this.emitFact(sessionId, { kind: '2031-subscribe' }),

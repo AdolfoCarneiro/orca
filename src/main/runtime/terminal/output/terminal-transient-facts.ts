@@ -22,7 +22,7 @@ import type { TerminalTitleFactMeta } from '../../../../shared/terminal-output-s
 
 export abstract class OrcaRuntimeWithEmitDaemonPtyTransientFact extends OrcaRuntimeWithScheduleWaitBlockedCheck {
   protected abstract retirePtyAgentLaunchAuthority(ptyId: string): void
-  protected abstract observeWorkerCommandEnded(ptyId: string): void
+  protected abstract observeLaunchExitReceipt(ptyId: string, receiptId: string): void
 
   /** A transient fact the daemon detected while it held scan authority —
    *  emitted through the same fact channel as byte-scanned facts. Arrives
@@ -39,6 +39,9 @@ export abstract class OrcaRuntimeWithEmitDaemonPtyTransientFact extends OrcaRunt
           exitCode: fact.exitCode
         })
         this.openCodeRunLifetime.onCommandFinished(ptyId, fact.exitCode)
+        return
+      case 'launch-exit-receipt':
+        this.observeLaunchExitReceipt(ptyId, fact.receiptId)
         return
       case 'pr-link':
         this.recordTerminalSideEffectFact(ptyId, { kind: 'pr-link', link: fact.link })
@@ -77,10 +80,6 @@ export abstract class OrcaRuntimeWithEmitDaemonPtyTransientFact extends OrcaRunt
   /** Record one derived side-effect fact: batched per chunk while applying
    *  bytes, emitted immediately for between-chunk facts (stale-title timer). */
   protected recordTerminalSideEffectFact(ptyId: string, fact: TerminalSideEffectFact): void {
-    // Before the consumer gate: headless hosts still report a dead worker; agent-exited covers shells without OSC 133.
-    if (fact.kind === 'command-finished' || fact.kind === 'agent-exited') {
-      this.observeWorkerCommandEnded(ptyId)
-    }
     if (!this.terminalSideEffectConsumerAvailable) {
       return
     }

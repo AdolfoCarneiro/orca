@@ -53,17 +53,19 @@ export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithMig
     setTimer: unrefTimer,
     getHandle: (paneKey) => this.getTerminalHandleForPaneKey(paneKey),
     getProcessIncarnation: (handle) => this.getTerminalProcessIncarnation(handle),
-    readScreen: (handle) => this.readTerminal(handle, { screen: true, limit: 15 }),
-    confirmShellAlone: (ptyId) => this.confirmTerminalShellAlone(ptyId),
-    readLaunchFence: (ptyId) => {
-      const pty = this.ptysById.get(ptyId)
-      return pty ? `${pty.incarnationId}:${pty.launchToken}` : null
-    }
+    readScreen: (handle) => this.readTerminal(handle, { screen: true, limit: 15 })
   })
 
-  protected observeWorkerCommandEnded(ptyId: string): void {
+  /** Only the receipt of this PTY's current launch counts: a nested shell has none, a relaunch names a new one. */
+  protected observeLaunchExitReceipt(ptyId: string, receiptId: string): void {
+    const pty = this.ptysById.get(ptyId)
+    const launch = pty?.launchExitReceipt
+    if (!pty || !launch || launch.id !== receiptId || launch.incarnationId !== pty.incarnationId) {
+      return
+    }
+    pty.launchExitReceipt = null
     for (const paneKey of this.collectPaneKeysForPty(ptyId)) {
-      this.terminalWorkerTurnStops.observeCommandEnded(paneKey, ptyId)
+      this.terminalWorkerTurnStops.observeAgentExited(paneKey)
     }
   }
 

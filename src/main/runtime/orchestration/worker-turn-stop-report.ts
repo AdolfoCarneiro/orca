@@ -69,6 +69,18 @@ function describeStop(stop: WorkerTurnStop, task: string, dispatchId: string): s
   ].join('\n')
 }
 
+export function workerTurnStopMessageId(dispatchId: string, stopKey: string): string {
+  return `msg_stop_${createHash('sha256')
+    .update(JSON.stringify([dispatchId, stopKey]))
+    .digest('hex')
+    .slice(0, 24)}`
+}
+
+/** One key per process, so the agent's return to its shell and the PTY's later exit report it once. */
+export function workerExitStopKey(processIncarnation: string | null): string {
+  return `exit:${processIncarnation}`
+}
+
 /** Tell the coordinator once that a worker is at rest with its Dispatch unsettled; never settles it. */
 export function reportWorkerTurnStop(
   db: OrchestrationDb,
@@ -87,10 +99,7 @@ export function reportWorkerTurnStop(
   ) {
     return
   }
-  const id = `msg_stop_${createHash('sha256')
-    .update(JSON.stringify([dispatchId, stop.stopKey]))
-    .digest('hex')
-    .slice(0, 24)}`
+  const id = workerTurnStopMessageId(dispatchId, stop.stopKey)
   const payload = { dispatchId, handle: stop.from, stopReason: stop.reason }
   if (target.kind === 'local') {
     const { dispatch } = target
@@ -140,7 +149,6 @@ export function reportWorkerTurnStop(
   }
 }
 
-/** One key per process, so the shell regaining the pane and the PTY's later exit report it once. */
 export function reportWorkerExit(
   db: OrchestrationDb,
   target: WorkerTurnStopDispatch,
@@ -152,7 +160,7 @@ export function reportWorkerExit(
     target,
     {
       from: exit.from,
-      stopKey: `exit:${exit.processIncarnation}`,
+      stopKey: workerExitStopKey(exit.processIncarnation),
       reason: 'exited',
       lastOutput: undefined,
       exitCause: exit.exitCause
