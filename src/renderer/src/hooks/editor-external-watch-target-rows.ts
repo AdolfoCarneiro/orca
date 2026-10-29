@@ -1,4 +1,5 @@
 import type { AppState } from '@/store'
+import type { ExecutionHostOwnerRow } from '../../../shared/worktree-execution-host-resolution'
 import { isWindowsAbsolutePathLike } from '../../../shared/cross-platform-path'
 import {
   isLocalExecutionHost,
@@ -19,7 +20,7 @@ type WatchTargetRowState = Pick<
 
 export type EditorExternalWatchTargetRows = {
   worktree: AppState['worktreesByRepo'][string][number] | undefined
-  repo: AppState['repos'][number] | undefined
+  repo: ExecutionHostOwnerRow | undefined
   folderWorkspace: AppState['folderWorkspaces'][number] | undefined
   projectGroup: AppState['projectGroups'][number] | undefined
   connectionId: string | null | undefined

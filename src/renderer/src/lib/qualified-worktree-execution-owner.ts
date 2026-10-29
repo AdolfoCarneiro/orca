@@ -3,6 +3,7 @@ import type { ExecutionHostId } from '../../../shared/execution-host'
 import {
   createRepoRowExecutionHostLookup,
   resolveWorktreeExecutionHost,
+  type ExecutionHostOwnerLookup,
   type ExecutionHostOwnerRow
 } from '../../../shared/worktree-execution-host-resolution'
 import {
@@ -13,13 +14,25 @@ import {
 
 type WorktreeOwnerRow = Pick<Worktree, 'id' | 'repoId' | 'hostId' | 'runtimeOwnerEnvironmentId'>
 
+const EMPTY_REPOS: readonly ExecutionHostOwnerRow[] = []
+const repoLookupCache = new WeakMap<
+  readonly ExecutionHostOwnerRow[],
+  ExecutionHostOwnerLookup<ExecutionHostOwnerRow>
+>()
+
+function repoExecutionHostLookup(repos: readonly ExecutionHostOwnerRow[]) {
+  let lookup = repoLookupCache.get(repos)
+  if (!lookup) {
+    lookup = createRepoRowExecutionHostLookup(repos)
+    repoLookupCache.set(repos, lookup)
+  }
+  return lookup
+}
+
 /** Qualify legacy repo proof without changing the raw index's absent-host compatibility rule. */
-export function resolveQualifiedWorktreeExecutionOwner<
-  W extends WorktreeOwnerRow,
-  R extends ExecutionHostOwnerRow
->(
+export function resolveQualifiedWorktreeExecutionOwner<W extends WorktreeOwnerRow>(
   worktreesByRepo: Record<string, readonly W[]> | undefined,
-  repos: readonly R[] | undefined,
+  repos: readonly ExecutionHostOwnerRow[] | undefined,
   worktreeId: string,
   hostId?: ExecutionHostId | null
 ) {
@@ -36,7 +49,7 @@ export function resolveQualifiedWorktreeExecutionOwner<
   if (!worktree) {
     return null
   }
-  const lookup = createRepoRowExecutionHostLookup(repos ?? [])
+  const lookup = repoExecutionHostLookup(repos ?? EMPTY_REPOS)
   const owner = resolveWorktreeExecutionHost(lookup, {
     ...worktree,
     hostId: worktree.runtimeOwnerEnvironmentId?.trim()
