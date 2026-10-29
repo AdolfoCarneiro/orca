@@ -230,11 +230,8 @@ function Tasks() {
   }, [])
   // SAFETY: shipping error banner reads error/provider/loading; unrelated drawers/chrome are mocked above.
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the production phone search surface reads the explicitly supplied RPC/list dependencies; unrelated mobile screen services are intentionally inert.
-  return (
-    <MobileTasksLegacySurface
-      model={{ ...actions, error, loading } as unknown as ConnectionPresentationModel}
-    />
-  )
+  const presentation = { ...actions, error, loading } as unknown as ConnectionPresentationModel
+  return <MobileTasksLegacySurface model={presentation} />
 }
 it('shipping phone Tasks renders the safe server search failure', async () => {
   const raw = '429: GraphQL request failed private phone Tasks diagnostic'
