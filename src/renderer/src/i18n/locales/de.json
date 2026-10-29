@@ -119,6 +119,25 @@
         "gitInitFailed": "Git-Repository konnte nicht initialisiert werden: {{detail}}",
         "initialCommitFailed": "Erster Commit konnte nicht erstellt werden: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} ist bereits ein Host.",
+        "distroStopped": "{{distro}} wurde nach dem Einlesen der Liste gestoppt. Zum Starten „Starten und hinzufügen“ auswählen.",
+        "wsl1": "{{distro}} läuft unter WSL 1, das Orca nicht mehr unterstützt. In einem Terminal unter Windows mit folgendem Befehl auf WSL 2 umstellen: {{command}}",
+        "notRegistered": "{{distro}} ist keine installierte WSL-Distribution. In einem Terminal unter Windows {{command}} ausführen, um die installierten Distributionen anzuzeigen, oder die Distribution neu installieren und erneut versuchen.",
+        "sshManaged": "In {{distro}} läuft bereits der Orca-Server für „{{server}}“, den dieser Computer über SSH erreicht. Diesen Server zuerst entfernen; der Wechsel zu einem WSL-Host wird noch nicht unterstützt."
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows hat nicht gemeldet, ob die Distribution läuft.",
+        "guestUnanswered": "Die Distribution läuft, hat aber nicht auf Orcas Prüfanfrage geantwortet.",
+        "orcadUnanswered": "Der Orca-Server in der Distribution hat nicht geantwortet.",
+        "restartGaveUp_one": "Der Orca-Server in {{distro}} konnte nach {{count}} Versuch nicht neu gestartet werden",
+        "restartGaveUp_other": "Der Orca-Server in {{distro}} konnte nach {{count}} Versuchen nicht neu gestartet werden",
+        "serviceUnconfirmed": "Der WSL-Dienst hat nicht bestätigt, ob die Distribution läuft.",
+        "peerCheckFailed": "Orca konnte den WSL-Host nicht fragen, ob eine andere Orca-Instanz auf diesem Computer ihn noch nutzt: {{detail}}",
+        "removalUnrecorded": "Orca konnte nicht erfassen, was nach dem Entfernen noch läuft: {{detail}}"
+      }
     }
   },
   "app": {
@@ -666,10 +685,8 @@
       "permissionSameAsAll": "Wie alle Agenten",
       "permissionChipRemove": "{{flag}} entfernen und eigene Einstellungen von {{agent}} verwenden",
       "permissionChipTooltip": "Durch „Berechtigungen“ hinzugefügt. Entfernen, um die eigenen Einstellungen von {{agent}} zu verwenden.",
-      "permissionOverridesKept": "{{count}} Agenten verwenden weiterhin ihre eigene Berechtigungseinstellung:",
       "permissionOverridesKept_one": "{{count}} Agent verwendet weiterhin seine eigene Berechtigungseinstellung:",
       "permissionOverridesKept_other": "{{count}} Agenten verwenden weiterhin ihre eigene Berechtigungseinstellung:",
-      "permissionOverridesFollow": "{{count}} Agenten verwenden jetzt {{mode}}",
       "permissionOverridesFollow_one": "{{count}} Agent verwendet jetzt {{mode}}",
       "permissionOverridesFollow_other": "{{count}} Agenten verwenden jetzt {{mode}}",
       "permissionOverrideFollows": "{{agent}} verwendet jetzt {{mode}}",
@@ -677,7 +694,13 @@
       "permissionOverrideMore_one": "und {{count}} weiterer",
       "permissionOverrideMore_other": "und {{count}} weitere",
       "permissionOverridesUse": "{{mode}} verwenden",
-      "approveForMe": "für mich genehmigen"
+      "approveForMe": "für mich genehmigen",
+      "codexHistorySharing": {
+        "title": "Codex-Verlauf zwischen Konten teilen",
+        "description": "Erlaubt jedem Codex-Konto und deinem eigenen ~/.codex, Unterhaltungen fortzusetzen, die in den anderen begonnen wurden. Schalte es aus, um den Verlauf jedes Kontos getrennt zu halten. Beim Ausschalten wird nichts entfernt, was bereits geteilt wurde.",
+        "unsupported": "Aktualisiere Orca auf {{host}}, um diese Einstellung dort zu ändern.",
+        "updateFailed": "Die Einstellung auf {{host}} konnte nicht aktualisiert werden."
+      }
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "Symbolischer Link",
@@ -1672,7 +1695,6 @@
         "folderWorkspaceCreateFailedMessage": "Der Ordner-Arbeitsbereich konnte nicht erstellt werden. Die Fehlerdetails oben prüfen und erneut versuchen.",
         "setupAgentStartupPolicySaveFailed": "Das Startverhalten bei der Einrichtung konnte nicht gespeichert werden.",
         "5f3d2c8a1b": "Die MR-Basis konnte nicht ermittelt werden.",
-        "dropPartiallyAttached": "{{failureCount}} von {{count}} Elementen konnten nicht angehängt werden.",
         "dropPartiallyAttached_one": "{{failureCount}} von {{count}} Element konnte nicht angehängt werden.",
         "dropPartiallyAttached_other": "{{failureCount}} von {{count}} Elementen konnten nicht angehängt werden."
       },
@@ -1689,7 +1711,6 @@
         "workspaceOpenFailed": "{{fileName}} konnte nicht geöffnet werden. Die Datei aus ihrem ursprünglichen Arbeitsbereich öffnen und erneut versuchen.",
         "nativeDropUnresolvedPathsDescription": "Die Dateien zuerst auf dem Datenträger speichern und dann die gespeicherten Dateien ablegen.",
         "nativeDropUnresolvedPaths": "Orca konnte keinen Pfad für die abgelegten Dateien lesen.",
-        "nativeDropTempCopyFailed": "Orca konnte {{count}} abgelegte Dateien nicht kopieren.",
         "nativeDropTempCopyFailed_one": "Orca konnte {{count}} abgelegte Datei nicht kopieren.",
         "nativeDropTempCopyFailed_other": "Orca konnte {{count}} abgelegte Dateien nicht kopieren."
       },
@@ -6828,23 +6849,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git hat {{count}} lokale Branches beibehalten, da sie möglicherweise nicht gemergte Commits enthalten. Beibehaltene Branches behalten keine Arbeitsbereichsordner; ihre Commits bleiben im Repository. Orca gibt möglicherweise weiterhin im Hintergrund Speicherplatz von Arbeitsbereichen frei.",
                 "a3cdd9d9e6_one": "Git hat {{count}} lokalen Branch beibehalten, da er möglicherweise nicht gemergte Commits enthält. Beibehaltene Branches behalten keine Arbeitsbereichsordner; ihre Commits bleiben im Repository. Orca gibt möglicherweise weiterhin im Hintergrund Speicherplatz von Arbeitsbereichen frei.",
                 "a3cdd9d9e6_other": "Git hat {{count}} lokale Branches beibehalten, da sie möglicherweise nicht gemergte Commits enthalten. Beibehaltene Branches behalten keine Arbeitsbereichsordner; ihre Commits bleiben im Repository. Orca gibt möglicherweise weiterhin im Hintergrund Speicherplatz von Arbeitsbereichen frei.",
-                "6310412304": "{{count}} Branches prüfen",
                 "6310412304_one": "{{count}} Branch prüfen",
                 "6310412304_other": "{{count}} Branches prüfen",
-                "cea24c2b7d": "{{count}} Arbeitsbereiche entfernt",
                 "cea24c2b7d_one": "{{count}} Arbeitsbereich entfernt",
                 "cea24c2b7d_other": "{{count}} Arbeitsbereiche entfernt",
-                "0e0379f24a": "{{count}} Branches beibehalten",
                 "0e0379f24a_one": "{{count}} Branch beibehalten",
                 "0e0379f24a_other": "{{count}} Branches beibehalten",
                 "4cf75caab7": "{{value0}}, {{value1}}",
                 "e61d78054f": "Lokale Branches werden gelöscht: {{value0}}",
                 "1e1a5f6763": "Lokale Branches gelöscht: {{value0}}",
                 "43d9395605": "{{value0}} gelöscht, {{value1}} nicht gelöscht",
-                "d42f1f14e0": "Für {{count}} Branches erneut versuchen",
                 "d42f1f14e0_one": "Für {{count}} Branch erneut versuchen",
                 "d42f1f14e0_other": "Für {{count}} Branches erneut versuchen"
               }
@@ -6859,7 +6875,6 @@
           "ee39e872d5": "Möglicherweise nicht gemergt",
           "676db406fd": "HEAD nicht verfügbar",
           "285e1e4882": "Abbrechen",
-          "a0f9863597": "Löschen von {{count}} Branches erzwingen",
           "a0f9863597_one": "Löschen von {{count}} Branch erzwingen",
           "a0f9863597_other": "Löschen von {{count}} Branches erzwingen"
         },
@@ -12403,10 +12418,8 @@
           "olderTerminalsUnverifiable": "Orca konnte nicht bestätigen, dass die von einer älteren Orca-Version gestarteten Terminals beendet wurden. Zum erneuten Versuch wieder verbinden.",
           "olderTerminals_one": "Auf diesem Host läuft noch {{count}} Terminal, das von einer älteren Orca-Version gestartet wurde und nicht von selbst endet. Dieses in jener Orca-Version schließen oder auf dem Host beenden und anschließend erneut verbinden.",
           "olderTerminals_other": "Auf diesem Host laufen noch {{count}} Terminals, die von einer älteren Orca-Version gestartet wurden und nicht von selbst enden. Diese in jener Orca-Version schließen oder auf dem Host beenden und anschließend erneut verbinden.",
-          "olderTerminals": "Auf diesem Host laufen noch {{count}} Terminals, die von einer älteren Orca-Version gestartet wurden und nicht von selbst enden. Diese in jener Orca-Version schließen oder auf dem Host beenden und anschließend erneut verbinden.",
           "linkedProjects_one": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs und {{count}} Automatisierung dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
           "linkedProjects_other": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs und {{count}} Automatisierungen dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
-          "linkedProjects": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs und {{count}} Automatisierungen dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
           "linkedProjectsNoAutomations": "Auf dem Orca-Server dieses Hosts gab es {{paths}} bereits. Daher verwendet diese Desktop-App jetzt die Kopie des Servers. Die dortigen Tabs dieser Desktop-App wurden nicht verschoben, und dort von ihr erstellte Worktrees werden als externe Worktrees angezeigt.",
           "automationsLeftDisabled_one": "Der Orca-Server dieses Hosts hat {{count}} Automatisierung übernommen, konnte sie aber nicht wieder aktivieren. Unter „Automatisierungen“ aktivieren.",
           "automationsLeftDisabled_other": "Der Orca-Server dieses Hosts hat {{count}} Automatisierungen übernommen, konnte sie aber nicht wieder aktivieren. Unter „Automatisierungen“ aktivieren.",
@@ -12425,8 +12438,7 @@
           "refusedLeaveBehind": "Einige gespeicherte Elemente für diesen Host können nicht auf seinen Orca-Server verschoben werden: {{items}}. „Trotzdem verschieben“ verbindet den Host und behält diese Elemente auf diesem Computer.",
           "refusedLeaveBehindUnnamed": "Einige gespeicherte Elemente für diesen Host können nicht auf seinen Orca-Server verschoben werden. „Trotzdem verschieben“ verbindet den Host und behält diese Elemente auf diesem Computer.",
           "windowsBuildUnsupported": "Auf diesem Host läuft eine ältere Windows-Version als Windows 10 bzw. Windows Server 2016. Daher kann er den Orca-Server nicht ausführen. Einen Host mit einer neueren Windows-Version oder einen Linux- oder macOS-Host verwenden.",
-          "windowsNoExtractor": "Dieser Windows-Host verfügt weder über tar.exe noch über Expand-Archive von PowerShell. Daher kann Orca seinen Server dort nicht entpacken. Windows PowerShell 5.1 auf dem Host installieren und anschließend erneut verbinden.",
-          "automationsLeftDisabled": "Der Orca-Server dieses Hosts hat {{count}} Automatisierungen übernommen, konnte sie aber nicht wieder aktivieren. Unter „Automatisierungen“ aktivieren."
+          "windowsNoExtractor": "Dieser Windows-Host verfügt weder über tar.exe noch über Expand-Archive von PowerShell. Daher kann Orca seinen Server dort nicht entpacken. Windows PowerShell 5.1 auf dem Host installieren und anschließend erneut verbinden."
         },
         "ZcodeCliSetupSection": {
           "title": "GLM mit ZCode verwenden",
@@ -15449,7 +15461,6 @@
           "0f806a2ab1": "Abbrechen",
           "b6c3b84476": "Dateibaum anzeigen",
           "39f8007549": "Konflikte prüfen",
-          "skippedConflictsExcluded": "{{count}} ungelöste Konflikte wurden aus dieser Diff-Ansicht ausgeschlossen.",
           "skippedConflictsExcluded_one": "{{count}} ungelöster Konflikt wurde aus dieser Diff-Ansicht ausgeschlossen.",
           "skippedConflictsExcluded_other": "{{count}} ungelöste Konflikte wurden aus dieser Diff-Ansicht ausgeschlossen.",
           "820ec01f24": "Dateien mit Konflikten werden separat geprüft",
@@ -17493,10 +17504,7 @@
           "markManyUnread_one": "{{count}} Agenten als ungelesen markieren",
           "markManyUnread_other": "{{count}} Agenten als ungelesen markieren",
           "clearMany_one": "{{count}} Agenten aus der Liste entfernen",
-          "clearMany_other": "{{count}} Agenten aus der Liste entfernen",
-          "markManyRead": "{{count}} Agenten als gelesen markieren",
-          "markManyUnread": "{{count}} Agenten als ungelesen markieren",
-          "clearMany": "{{count}} Agenten aus der Liste entfernen"
+          "clearMany_other": "{{count}} Agenten aus der Liste entfernen"
         }
       },
       "confirmation": {
@@ -19182,7 +19190,6 @@
         "editFailed": "Diese Nachricht kann nicht bearbeitet werden.",
         "editGone": "Diese Nachricht wurde bereits gesendet oder entfernt. Die bearbeitete Fassung steht im Chat-Eingabefeld.",
         "editGonePrompt": "Diese Nachricht wurde bereits gesendet oder entfernt. Die bearbeitete Fassung steht nach der Antwort an den Agenten im Chat-Eingabefeld.",
-        "imageCount": "{{count}} Bilder",
         "imageCount_one": "{{count}} Bild",
         "imageCount_other": "{{count}} Bilder",
         "collapse": "Einklappen",
@@ -20106,6 +20113,58 @@
       "patch": "Der Diff zwischen dem Branch und dem Basis-Branch für die Generierung der PR-Details.",
       "stagedFiles": "Eine durch Zeilenumbrüche getrennte Liste der vorgemerkten Dateien für die Generierung der Commit-Nachricht.",
       "stagedPatch": "Der vorgemerkte Git-Patch für die Generierung der Commit-Nachricht."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "Der Prompt für {{label}} ist für die Windows-Befehlszeile zu groß. Weniger Änderungen vormerken und erneut versuchen.",
+        "promptTooLargeForArgument": "Der Prompt für {{label}} ist zu groß, um ihn als einzelnes Befehlszeilenargument zu übergeben. Weniger Änderungen vormerken und erneut versuchen.",
+        "agentCouldNotStart": "{{label}} konnte nicht gestartet werden. Den Agentenbefehl in den Einstellungen prüfen und erneut versuchen.",
+        "agentFailedToStart": "Der Start von {{label}} ist fehlgeschlagen. Den Agentenbefehl in den Einstellungen prüfen und erneut versuchen.",
+        "agentBinaryNotFound": "{{binary}} wurde in PATH nicht gefunden. {{label}} installieren, um KI-generierte Commit-Nachrichten zu nutzen.",
+        "timedOut": "Zeitüberschreitung bei der Generierung nach {{seconds}} s.",
+        "outputTooLarge": "Der CLI-Befehl von {{label}} hat zu viel Ausgabe erzeugt. Die CLI-Konfiguration des Agenten prüfen und erneut versuchen.",
+        "windowsBatchUnsafeArguments": "{{label}} wird über ein Windows-Batchskript ausgeführt, das den mehrzeiligen Prompt nicht als Argument annehmen kann. In den Einstellungen die ausführbare Datei des Agenten angeben oder einen benutzerdefinierten Befehl ohne {prompt} verwenden, damit Orca den Prompt über stdin sendet.",
+        "cliTerminated": "Der CLI-Befehl von {{label}} wurde vorzeitig beendet.",
+        "cliTerminatedWithDetail": "Der CLI-Befehl von {{label}} wurde vorzeitig beendet: {{detail}}",
+        "cliFailed": "Der CLI-Befehl von {{label}} ist mit Code {{exitCode}} fehlgeschlagen.",
+        "cliFailedWithDetail": "Der CLI-Befehl von {{label}} ist mit Code {{exitCode}} fehlgeschlagen: {{detail}}",
+        "agentReportedError": "{{label}} hat einen Fehler gemeldet.",
+        "emptyCommitMessage": "{{label}} hat eine leere Nachricht zurückgegeben.",
+        "emptyCommitMessageWithDetail": "{{label}} hat eine leere Nachricht zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} hat leere Details zurückgegeben.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} hat leere Details zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "emptyJiraSummary": "{{label}} hat eine leere Zusammenfassung zurückgegeben.",
+        "emptyJiraSummaryWithDetail": "{{label}} hat eine leere Zusammenfassung zurückgegeben. CLI-Ausgabe: {{detail}}",
+        "commitMessageUnparseable": "Die generierte Commit-Nachricht konnte nicht geparst werden.",
+        "pullRequestDetailsUnparseable": "Die generierten Pull-Request-Details konnten nicht geparst werden.",
+        "jiraSummaryEmptyAfterSanitization": "Die generierte Zusammenfassung war nach der Bereinigung leer.",
+        "jiraDescriptionRequired": "Eine Beschreibung ist erforderlich.",
+        "jiraAccountDisconnected": "Das ausgewählte Jira-Konto auf diesem Host erneut verbinden.",
+        "jiraSummaryBusyInOtherDraft": "In einem anderen Entwurf wird bereits ein Jira-Titel generiert.",
+        "stagedChangesReadFailed": "Vorgemerkte Änderungen konnten nicht gelesen werden.",
+        "noStagedChanges": "Keine vorgemerkten Änderungen zum Zusammenfassen.",
+        "noBranchChanges": "Keine Änderungen im Branch zum Zusammenfassen.",
+        "commandTemplateEmptyCommitMessage": "Die Befehlsvorlage für Commit-Nachrichten ist leer.",
+        "commandTemplateEmptyPullRequest": "Die Befehlsvorlage für Pull-Request-Details ist leer.",
+        "commandTemplateEmptyBranchName": "Die Befehlsvorlage für Branch-Namen ist leer.",
+        "commandTemplateEmptyChatName": "Die Befehlsvorlage für Chat-Namen ist leer.",
+        "sourceControlAgentUnsupported": "Für diese Aktion unter Einstellungen -> Git -> KI für die Quellcodeverwaltung einen unterstützten Agenten auswählen. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "chatNameAgentUnsupported": "Für diese Aktion unter Einstellungen -> Chat -> Chat-Namen einen unterstützten Agenten für Chat-Namen auswählen. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "sourceControlCustomCommandEmpty": "Der benutzerdefinierte Befehl ist leer. Unter Einstellungen -> Git -> KI für die Quellcodeverwaltung einen hinzufügen.",
+        "chatNameCustomCommandEmpty": "Der benutzerdefinierte Befehl ist leer. Unter Einstellungen -> Chat -> Chat-Namen einen hinzufügen.",
+        "agentCannotGenerateCommitMessage": "Agent „{{agent}}“ unterstützt keine Commit-Nachrichten über die KI für die Quellcodeverwaltung. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "agentCannotGeneratePullRequest": "Agent „{{agent}}“ unterstützt keine Pull-Request-Details über die KI für die Quellcodeverwaltung. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "agentCannotGenerateBranchName": "Agent „{{agent}}“ unterstützt keine Branch-Namen über die KI für die Quellcodeverwaltung. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "agentCannotGenerateChatName": "Agent „{{agent}}“ unterstützt keine Chat-Namen. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "noModelForAgent": "Für {{label}} ist kein Modell verfügbar.",
+        "planCustomCommandEmpty": "Der benutzerdefinierte Befehl ist leer. Unter Einstellungen → Git → KI-Commit-Nachrichten einen hinzufügen.",
+        "planAgentUnsupported": "Agent „{{agent}}“ unterstützt keine KI-generierten Commit-Nachrichten.",
+        "planModelUnavailable": "Modell „{{model}}“ ist für {{label}} nicht verfügbar.",
+        "planModelWithoutThinking": "Modell „{{model}}“ unterstützt keine Einstellung des Denkaufwands.",
+        "planThinkingLevelInvalid": "Die Denkstufe „{{level}}“ ist für {{model}} nicht gültig."
+      },
+      "enableSourceControlAi": "KI für die Quellcodeverwaltung unter Einstellungen -> Git aktivieren.",
+      "chooseBaseBranch": "Vor dem Generieren einen Basis-Branch auswählen."
     }
   },
   "agentsSidebarIntro": {
@@ -20349,13 +20408,10 @@
       "resumableBody": "Hier erneut öffnen, um weiterzuarbeiten. Die Agentensitzung wird fortgesetzt.",
       "reopening": "Wird erneut geöffnet…",
       "tryAgain": "Erneut versuchen",
-      "reopenTerminal": "{{count}} Terminals erneut öffnen",
       "reopenTerminal_one": "Terminal erneut öffnen",
       "reopenTerminal_other": "{{count}} Terminals erneut öffnen",
-      "reopened": "{{count}} Terminals erneut geöffnet",
       "reopened_one": "{{count}} Terminal erneut geöffnet",
       "reopened_other": "{{count}} Terminals erneut geöffnet",
-      "resumed": "{{count}} Agentensitzungen fortgesetzt.",
       "resumed_one": "{{count}} Agentensitzung fortgesetzt.",
       "resumed_other": "{{count}} Agentensitzungen fortgesetzt."
     },
@@ -20366,7 +20422,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "seine laufenden Terminals",
-      "count": "{{count}} laufende Terminals",
       "unverifiable": "Orca konnte den Prozess des Terminaldienstes nicht verifizieren. Daher wurde nichts gestoppt.",
       "alreadyReplaced": "Der Terminaldienst wurde bereits ersetzt. Es wurde nichts gestoppt.",
       "restarted": "Terminaldienst neu gestartet.",
@@ -21713,6 +21768,39 @@
     "viewed": {
       "markFile": "{{path}} als angesehen markieren",
       "unmarkFile": "Markierung „Angesehen“ für {{path}} aufheben"
+    }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "Zum Starten der Automatisierung war kein Orca-Fenster verfügbar.",
+      "unevaluableSchedule": "Orca konnte diese Automatisierung nicht auswerten und hat diese Ausführung übersprungen.",
+      "noRunnableHost": "Dieser Automatisierung fehlt ein Host zur Ausführung.",
+      "wslMoveInProgress": "Das Projekt dieser Automatisierung wird auf seinen WSL-Host verschoben. Deshalb hat Orca diese Ausführung übersprungen. Die Ausführungen werden nach Abschluss des Verschiebens fortgesetzt.",
+      "wslMoveOwnedByHost": "Das Projekt dieser Automatisierung läuft jetzt auf seinem WSL-Host, der die Automatisierung dort ausführt. Orca führt diese lokale Kopie nicht mehr aus.",
+      "missedGraceWindow": "Bei der nächsten Prüfung durch Orca war die Nachholfrist für diese verpasste Ausführung bereits abgelaufen.",
+      "targetMissing": "Der Host der Automatisierung ist nicht mehr registriert. Daher gibt es für diese Automatisierung keinen Ausführungsort.",
+      "targetReplaced": "Der Host der Automatisierung wurde entfernt und erneut registriert. Daher muss diese Automatisierung vor der Ausführung erneut zugeordnet werden.",
+      "workspaceHostAmbiguous": "Der Arbeitsbereich der Automatisierung erstreckt sich über mehrere Hosts. Orca kann daher nicht bestimmen, auf welchem Host sie ausgeführt werden soll.",
+      "legacyTwinHosts": "Diese Automatisierung wurde gespeichert, bevor Orca ihren ausführenden Host erfasste. Ihr Projekt befindet sich auf mehreren Hosts. Die Automatisierung öffnen und den Host auswählen, auf dem sie ausgeführt werden soll.",
+      "targetUnavailable": "Das Ausführungsziel der Automatisierung ist nicht mehr verfügbar.",
+      "remoteSchedulingUnavailable": "Die Zeitplanung für Automatisierungen auf Remote-Servern ist mit diesem Orca-Client noch nicht verfügbar. Diese Automatisierung auf dem Remote-Server ausführen oder Orca aktualisieren, sobald dauerhafte Remote-Zeitplanung verfügbar ist.",
+      "projectSetupMissing": "Das Projekt ist auf dem ausgewählten Automatisierungs-Host nicht mehr eingerichtet.",
+      "targetSetupMismatch": "Das Ausführungsziel der Automatisierung stimmt nicht mehr mit der ausgewählten Host-Einrichtung des Projekts überein.",
+      "repoUnavailable": "Das Repository für den ausgewählten Automatisierungs-Host ist nicht mehr verfügbar.",
+      "repoDetached": "Das Repository ist dem ausgewählten Automatisierungs-Host nicht mehr zugeordnet.",
+      "projectPathChanged": "Der Projektpfad für den ausgewählten Automatisierungs-Host hat sich geändert.",
+      "automationChanged": "Die Automatisierung wurde geändert, bevor diese Ausführung gestartet werden konnte.",
+      "destinationChanged": "Das Ziel der Automatisierung wurde geändert, bevor diese Ausführung gestartet werden konnte.",
+      "hooksReviewBlocked": "Der Agent wartet darauf, dass neue oder geänderte Hooks überprüft werden („Hooks need review“). Diese Ausführung öffnen und den Hooks vertrauen oder sie entfernen. Geplante Ausführungen laufen weiter und sind erfolgreich, sobald nichts mehr überprüft werden muss.",
+      "agentNeverStarted": "Der Agent der Automatisierung wurde nach dem Absenden des Prompts nie gestartet.",
+      "agentNoCompletion": "Der Agent der Automatisierung hat keinen Abschluss gemeldet.",
+      "watchTimedOut": "Orca hat die Überwachung dieser Ausführung nach 6 Stunden ohne Abschlusssignal beendet.",
+      "projectSetupState": {
+        "notSetUp": "Das Projekt ist auf dem ausgewählten Automatisierungs-Host nicht eingerichtet.",
+        "settingUp": "Das Projekt wird auf dem ausgewählten Automatisierungs-Host noch eingerichtet.",
+        "error": "Die Projekteinrichtung auf dem ausgewählten Automatisierungs-Host ist fehlgeschlagen.",
+        "unsupported": "Der ausgewählte Automatisierungs-Host unterstützt dieses Projekt nicht."
+      }
     }
   }
 }

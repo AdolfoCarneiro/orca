@@ -176,6 +176,13 @@ describe('main-i18n lazy locale loading', () => {
     expect(
       [1, 3, 5, 21].map((count) => translateMain('terminals_other', '{{count}} terms', { count }))
     ).toEqual(['1 one', '3 few', '5 other', '21 one'])
+    // A key the pack omits falls back to English chosen by English rules, not Russian's (21 is ru "one").
+    expect(
+      translateMain('missing.family', '{{count}} files', {
+        count: 21,
+        defaultValue_one: '{{count}} file'
+      })
+    ).toBe('21 files')
     expect(translateMain('empty', '{{count}} terminals', { count: 2 })).toBe('2 terminals')
   })
 })

@@ -107,14 +107,16 @@ function transport(target: WslOrcadHostTarget): OrcadHostTransport {
   return { getTarget: () => target } as unknown as OrcadHostTransport
 }
 
+const section = (text: string) => `${text}\n__ORCA_WSL_CONNECT_STATE_END__\n`
+let snapshotAnswer = ''
+
 function launch(kernel = '5.15.167.4-microsoft-standard-WSL2', options = {}) {
   mocks.exec.mockImplementation(async (_conn: unknown, command: string) => {
     if (command.includes('uname -r')) {
       mocks.steps.push('uname')
       return `__ORCA_WSL_KERNEL__ ${kernel}\n__ORCA_WSL_HOME__ /home/u\n\n__ORCA_REMOTE_PLATFORM__ Linux x86_64\n\n__ORCA_WSL_LIBC__\nldd (GNU libc) 2.39\n`
     }
-    const end = '\n__ORCA_WSL_CONNECT_STATE_END__\n'
-    return command.includes(end.trim()) ? `ABSENT${end}ABSENT${end}ABSENT${end}OPEN\n` : '4242\n'
+    return command.includes('CONNECT_STATE_END') ? snapshotAnswer : '4242\n'
   })
   return deployAndLaunchWslOrcad('Ubuntu-24.04', {
     holder: holder(),
@@ -194,7 +196,12 @@ describe('deployAndLaunchWslOrcad', () => {
     )
   })
 
-  it('hands its one connect-state read to recovery, adoption and deploy as hints', async () => {
+  it.each([
+    ['nothing pending', 'ABSENT', 'OPEN', { transactionAbsent: true, fenceOpen: true }],
+    ['a held fence', 'ABSENT', 'LOCKED', { transactionAbsent: true, fenceOpen: false }],
+    ['a pending journal', 'PRESENT\n{}', 'OPEN', { transactionAbsent: false, fenceOpen: true }]
+  ])('passes its connect-state read (%s) on as hints', async (_, journal, fence, preRead) => {
+    snapshotAnswer = `${section('ABSENT')}${section(journal)}${section('ABSENT')}${fence}\n`
     const resolve = mocks.resolveContext.getMockImplementation()
     mocks.resolveContext.mockImplementationOnce(async (target, connection, signal, h, known) => {
       const context = await resolve?.(target, connection, signal, h, known)
@@ -202,11 +209,10 @@ describe('deployAndLaunchWslOrcad', () => {
       return { ...context, activationRecord: await known.readActivationRecord(at) }
     })
     await launch()
-    const idle = { transactionAbsent: true, fenceOpen: true }
-    expect(mocks.recover).toHaveBeenCalledWith(expect.anything(), expect.objectContaining(idle))
+    // Recovery reads the host unless both are idle; deploy re-probes a fence seen held.
+    expect(mocks.recover.mock.calls[0][1]).toMatchObject(preRead)
     expect(mocks.adopt.mock.calls[0][3]).toEqual({ state: 'absent' })
-    const record = emptyOrcadActivationRecord()
-    expect(mocks.deploy.mock.calls[0][0].preRead).toEqual({ record, fenceOpen: true })
+    expect(mocks.deploy.mock.calls[0][0].preRead.fenceOpen).toBe(preRead.fenceOpen)
   })
 
   it('applies the SSH census and downgrade admission to the first deploy', async () => {

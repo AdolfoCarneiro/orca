@@ -120,6 +120,18 @@ describe('usePluginInstallAction', () => {
     expect(toast.success).not.toHaveBeenCalled()
   })
 
+  it('keeps the Try it toast up long enough to click', async () => {
+    const { hook } = setup()
+    await act(async () => hook.current?.install(listing))
+    expect(toast.success).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        duration: 10_000,
+        action: expect.objectContaining({ label: 'Try it' })
+      })
+    )
+  })
+
   it('approves exactly the fingerprint the page showed for a plugin that runs code', async () => {
     const { hook } = setup()
     const codeListing = {

@@ -1182,6 +1182,33 @@
       }
     }
   },
+  "automations": {
+    "runFailures": {
+      "agentNeverStarted": "Automation agent never started after the prompt was submitted.",
+      "agentNoCompletion": "Automation agent did not report completion.",
+      "automationChanged": "The automation changed before this run could launch.",
+      "destinationChanged": "The automation destination changed before this run could launch.",
+      "hooksReviewBlocked": "The agent is waiting for someone to review new or changed hooks (\"Hooks need review\"). Open this run and trust them, or remove them. Scheduled runs keep going and succeed once nothing needs review.",
+      "legacyTwinHosts": "This automation was saved before Orca tracked which host it runs on, and its project is on more than one host. Open the automation and pick the host it should run on.",
+      "missedGraceWindow": "This run was past its missed-run grace window when Orca next checked.",
+      "noDispatchHost": "No Orca window was available to launch the automation.",
+      "noRunnableHost": "This automation has no host to run on.",
+      "projectPathChanged": "Project path for the selected automation host has changed.",
+      "projectSetupMissing": "Project is not set up on the selected automation host anymore.",
+      "remoteSchedulingUnavailable": "Remote-server automation scheduling is not available from this Orca client yet. Run this automation on the remote server or update Orca when durable remote scheduling is available.",
+      "repoDetached": "Repository is no longer attached to the selected automation host.",
+      "repoUnavailable": "Repository for the selected automation host is no longer available.",
+      "targetMissing": "The automation host is no longer registered, so this automation has nowhere to run.",
+      "targetReplaced": "The automation host was removed and re-registered, so this automation must be re-adopted before it can run.",
+      "targetSetupMismatch": "Automation run target no longer matches the selected project host setup.",
+      "targetUnavailable": "Automation run target is no longer available.",
+      "unevaluableSchedule": "Orca could not evaluate this automation and skipped the occurrence.",
+      "watchTimedOut": "Orca stopped watching this run after 6h without a completion signal.",
+      "workspaceHostAmbiguous": "The automation workspace spans more than one host, so Orca cannot tell which one to run it on.",
+      "wslMoveInProgress": "This automation's project is moving to its WSL host, so Orca skipped this run. Runs resume when the move finishes.",
+      "wslMoveOwnedByHost": "This automation's project now runs on its WSL host, which runs this automation there. Orca no longer runs this local copy."
+    }
+  },
   "browser": {
     "loadFailure": {
       "blockedDescription": "An extension blocked this page. To open it, allow this site in the extension, then retry.",
@@ -1794,6 +1821,25 @@
         "targetNotEmpty": "\"{{name}}\" already exists at this location and is not empty.",
         "targetNotFolder": "\"{{name}}\" already exists at this location and is not a folder."
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} is already a host.",
+        "distroStopped": "{{distro}} stopped since the list was read. Choose Start and add to start it.",
+        "notRegistered": "{{distro}} is not an installed WSL distro. Run {{command}} in a Windows terminal to see the installed ones, or reinstall it and try again.",
+        "sshManaged": "{{distro}} already runs the Orca server for “{{server}}”, which this computer reaches over SSH. Remove that server first; moving it to a WSL host isn’t supported yet.",
+        "wsl1": "{{distro}} runs WSL 1, which Orca no longer supports. Convert it to WSL 2 in a Windows terminal with: {{command}}"
+      },
+      "statusDetails": {
+        "guestUnanswered": "The distro is running but didn’t answer Orca’s check.",
+        "orcadUnanswered": "Orca’s server in the distro didn’t answer.",
+        "peerCheckFailed": "Orca couldn’t ask the WSL host whether another Orca on this computer still uses it: {{detail}}",
+        "removalUnrecorded": "Orca couldn’t record what this Remove left running: {{detail}}",
+        "restartGaveUp_one": "Could not restart the Orca server in {{distro}} after {{count}} attempt",
+        "restartGaveUp_other": "Could not restart the Orca server in {{distro}} after {{count}} attempts",
+        "runningListUnavailable": "Windows didn’t report whether the distro is running.",
+        "serviceUnconfirmed": "The WSL service did not confirm whether the distro runs."
+      }
     }
   },
   "sourceControl": {
@@ -1802,6 +1848,56 @@
       "deleteUntrackedTitle_one": "Delete {{count}} untracked file?",
       "deleteUntrackedTitle_other": "Delete {{count}} untracked files?",
       "unstagedFilesIncludingUntrackedDescription_other": "This will revert unstaged changes and permanently delete any untracked files among these {{count}} files. This cannot be undone."
+    },
+    "textGeneration": {
+      "errors": {
+        "agentBinaryNotFound": "{{binary}} not found on PATH. Install {{label}} to use AI commit messages.",
+        "agentCannotGenerateBranchName": "Agent \"{{agent}}\" does not support Source Control AI branch names. Supported agents: {{agents}}, or Custom command.",
+        "agentCannotGenerateChatName": "Agent \"{{agent}}\" does not support chat names. Supported agents: {{agents}}, or Custom command.",
+        "agentCannotGenerateCommitMessage": "Agent \"{{agent}}\" does not support Source Control AI commit messages. Supported agents: {{agents}}, or Custom command.",
+        "agentCannotGeneratePullRequest": "Agent \"{{agent}}\" does not support Source Control AI pull request details. Supported agents: {{agents}}, or Custom command.",
+        "agentCouldNotStart": "{{label}} could not be started. Check the agent command in Settings and try again.",
+        "agentFailedToStart": "{{label}} failed to start. Check the agent command in Settings and try again.",
+        "agentReportedError": "{{label}} reported an error.",
+        "chatNameAgentUnsupported": "Choose a supported chat name agent for this action in Settings -> Chat -> Chat names. Supported agents: {{agents}}, or Custom command.",
+        "chatNameCustomCommandEmpty": "Custom command is empty. Add one in Settings -> Chat -> Chat names.",
+        "cliFailed": "{{label}} CLI command failed with code {{exitCode}}.",
+        "cliFailedWithDetail": "{{label}} CLI command failed with code {{exitCode}}: {{detail}}",
+        "cliTerminated": "{{label}} CLI command was terminated before exiting.",
+        "cliTerminatedWithDetail": "{{label}} CLI command was terminated before exiting: {{detail}}",
+        "commandTemplateEmptyBranchName": "Command template is empty for branch names.",
+        "commandTemplateEmptyChatName": "Command template is empty for chat names.",
+        "commandTemplateEmptyCommitMessage": "Command template is empty for commit messages.",
+        "commandTemplateEmptyPullRequest": "Command template is empty for pull request details.",
+        "commitMessageUnparseable": "Generated commit message could not be parsed.",
+        "emptyCommitMessage": "{{label}} returned an empty message.",
+        "emptyCommitMessageWithDetail": "{{label}} returned an empty message. CLI output: {{detail}}",
+        "emptyJiraSummary": "{{label}} returned an empty summary.",
+        "emptyJiraSummaryWithDetail": "{{label}} returned an empty summary. CLI output: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} returned an empty details.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} returned an empty details. CLI output: {{detail}}",
+        "jiraAccountDisconnected": "Reconnect the selected Jira account on this host.",
+        "jiraDescriptionRequired": "Description is required.",
+        "jiraSummaryBusyInOtherDraft": "A Jira title is already being generated in another draft.",
+        "jiraSummaryEmptyAfterSanitization": "Generated summary was empty after sanitization.",
+        "noBranchChanges": "No branch changes to summarize.",
+        "noModelForAgent": "No model is available for {{label}}.",
+        "noStagedChanges": "No staged changes to summarize.",
+        "outputTooLarge": "{{label}} CLI command produced too much output. Check the agent CLI configuration and try again.",
+        "planAgentUnsupported": "Agent \"{{agent}}\" does not support AI commit messages.",
+        "planCustomCommandEmpty": "Custom command is empty. Add one in Settings → Git → AI Commit Messages.",
+        "planModelUnavailable": "Model \"{{model}}\" is not available for {{label}}.",
+        "planModelWithoutThinking": "Model \"{{model}}\" does not support a thinking effort level.",
+        "planThinkingLevelInvalid": "Thinking level \"{{level}}\" is not valid for {{model}}.",
+        "promptTooLargeForArgument": "{{label}} prompt is too large to pass as a single command-line argument. Stage fewer changes and try again.",
+        "promptTooLargeForWindows": "{{label}} prompt is too large for the Windows command line. Stage fewer changes and try again.",
+        "pullRequestDetailsUnparseable": "Generated pull request details could not be parsed.",
+        "sourceControlAgentUnsupported": "Choose a supported Source Control AI agent for this action in Settings -> Git -> Source Control AI. Supported agents: {{agents}}, or Custom command.",
+        "sourceControlCustomCommandEmpty": "Custom command is empty. Add one in Settings -> Git -> Source Control AI.",
+        "stagedChangesReadFailed": "Failed to read staged changes.",
+        "timedOut": "Generation timed out after {{seconds}}s.",
+        "windowsBatchUnsafeArguments": "{{label}} runs through a Windows batch script that cannot take the multi-line prompt as an argument. Point Settings at the agent's executable, or use a custom command without {prompt} so Orca sends the prompt on stdin."
+      }
     }
   },
   "stats": {

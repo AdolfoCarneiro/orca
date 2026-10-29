@@ -64,25 +64,16 @@ export function getWorkspaceSpaceProgressLabel(
     )
   }
   if (progress.totalRepoCount > 0) {
-    return progress.totalRepoCount === 1
-      ? translate(
-          'auto.components.status.bar.workspaceSpaceFormat.scanningRepos_one',
-          'Scanning {{scanned}} of {{count}} repo · {{current}}',
-          {
-            scanned: progress.scannedRepoCount,
-            count: progress.totalRepoCount,
-            current
-          }
-        )
-      : translate(
-          'auto.components.status.bar.workspaceSpaceFormat.scanningRepos_other',
-          'Scanning {{scanned}} of {{count}} repos · {{current}}',
-          {
-            scanned: progress.scannedRepoCount,
-            count: progress.totalRepoCount,
-            current
-          }
-        )
+    return translate(
+      'auto.components.status.bar.workspaceSpaceFormat.scanningRepos',
+      'Scanning {{scanned}} of {{count}} repos · {{current}}',
+      {
+        scanned: progress.scannedRepoCount,
+        count: progress.totalRepoCount,
+        current,
+        defaultValue_one: 'Scanning {{scanned}} of {{count}} repo · {{current}}'
+      }
+    )
   }
   return getWorkspaceSpaceScanningFallbackLabel()
 }

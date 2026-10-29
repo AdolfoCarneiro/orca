@@ -18,47 +18,39 @@ const INTENSITY_CLASS: Record<UsageOverviewDailyPoint['intensity'], string> = {
 }
 
 function sessionCountLabel(sessions: number): string {
-  const values = { count: sessions, formatted: sessions.toLocaleString(getIntlLocale()) }
-  return sessions === 1
-    ? translate(
-        'auto.components.stats.usage.overview.sections.sessionCount_one',
-        '{{formatted}} session',
-        values
-      )
-    : translate(
-        'auto.components.stats.usage.overview.sections.sessionCount_other',
-        '{{formatted}} sessions',
-        values
-      )
+  return translate(
+    'auto.components.stats.usage.overview.sections.sessionCount',
+    '{{formatted}} sessions',
+    {
+      count: sessions,
+      formatted: sessions.toLocaleString(getIntlLocale()),
+      defaultValue_one: '{{formatted}} session'
+    }
+  )
 }
 
 function activityCountLabel(provider: UsageProviderOverview): string {
   const count = provider.activityCount
-  const values = { count, formatted: count.toLocaleString(getIntlLocale()) }
   if (provider.activityLabel === 'turns') {
-    return count === 1
-      ? translate(
-          'auto.components.stats.usage.overview.sections.turnCount_one',
-          '{{formatted}} turn',
-          values
-        )
-      : translate(
-          'auto.components.stats.usage.overview.sections.turnCount_other',
-          '{{formatted}} turns',
-          values
-        )
+    return translate(
+      'auto.components.stats.usage.overview.sections.turnCount',
+      '{{formatted}} turns',
+      {
+        count,
+        formatted: count.toLocaleString(getIntlLocale()),
+        defaultValue_one: '{{formatted}} turn'
+      }
+    )
   }
-  return count === 1
-    ? translate(
-        'auto.components.stats.usage.overview.sections.eventCount_one',
-        '{{formatted}} event',
-        values
-      )
-    : translate(
-        'auto.components.stats.usage.overview.sections.eventCount_other',
-        '{{formatted}} events',
-        values
-      )
+  return translate(
+    'auto.components.stats.usage.overview.sections.eventCount',
+    '{{formatted}} events',
+    {
+      count,
+      formatted: count.toLocaleString(getIntlLocale()),
+      defaultValue_one: '{{formatted}} event'
+    }
+  )
 }
 
 function providerSessionsSummary(provider: UsageProviderOverview): string {

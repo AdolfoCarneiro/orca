@@ -119,6 +119,25 @@
         "gitInitFailed": "Git repository'si başlatılamadı: {{detail}}",
         "initialCommitFailed": "İlk commit oluşturulamadı: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} zaten ana makine olarak ekli.",
+        "distroStopped": "Liste okunduktan sonra {{distro}} durdu. Başlatmak için “Başlat ve ekle” seçeneğini seçin.",
+        "wsl1": "{{distro}}, Orca'nın artık desteklemediği WSL 1'i kullanıyor. Windows terminalinde şu komutla WSL 2'ye dönüştürün: {{command}}",
+        "notRegistered": "{{distro}} yüklü bir WSL dağıtımı değil. Yüklü dağıtımları görmek için Windows terminalinde {{command}} komutunu çalıştırın veya dağıtımı yeniden yükleyip tekrar deneyin.",
+        "sshManaged": "{{distro}} içinde zaten “{{server}}” için Orca sunucusu çalışıyor ve bu bilgisayar ona SSH üzerinden bağlanıyor. Önce bu sunucuyu kaldırın; WSL ana makinesine taşıma henüz desteklenmiyor."
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows, dağıtımın çalışıp çalışmadığını bildirmedi.",
+        "guestUnanswered": "Dağıtım çalışıyor ancak Orca'nın kontrolüne yanıt vermedi.",
+        "orcadUnanswered": "Dağıtım içindeki Orca sunucusu yanıt vermedi.",
+        "restartGaveUp_one": "{{count}} denemeden sonra {{distro}} içindeki Orca sunucusu yeniden başlatılamadı",
+        "restartGaveUp_other": "{{count}} denemeden sonra {{distro}} içindeki Orca sunucusu yeniden başlatılamadı",
+        "serviceUnconfirmed": "WSL hizmeti dağıtımın çalışıp çalışmadığını doğrulamadı.",
+        "peerCheckFailed": "Orca tarafından WSL ana makinesine bu bilgisayardaki başka bir Orca'nın onu hâlâ kullanıp kullanmadığı sorulamadı: {{detail}}",
+        "removalUnrecorded": "Bu kaldırma işleminden sonra nelerin çalışmaya devam ettiği Orca tarafından kaydedilemedi: {{detail}}"
+      }
     }
   },
   "app": {
@@ -658,10 +677,8 @@
       "permissionSameAsAll": "Tüm ajanlarla aynı",
       "permissionChipRemove": "{{flag}} seçeneğini kaldır ve {{agent}} ajanının kendi ayarlarını kullan",
       "permissionChipTooltip": "İzinler bölümünden eklendi. {{agent}} ajanının kendi ayarlarını kullanmak için kaldırın.",
-      "permissionOverridesKept": "{{count}} ajan hâlâ kendi izin ayarını kullanıyor:",
       "permissionOverridesKept_one": "{{count}} ajan hâlâ kendi izin ayarını kullanıyor:",
       "permissionOverridesKept_other": "{{count}} ajan hâlâ kendi izin ayarını kullanıyor:",
-      "permissionOverridesFollow": "{{count}} ajan artık {{mode}} ayarını kullanıyor",
       "permissionOverridesFollow_one": "{{count}} ajan artık {{mode}} ayarını kullanıyor",
       "permissionOverridesFollow_other": "{{count}} ajan artık {{mode}} ayarını kullanıyor",
       "permissionOverrideFollows": "{{agent}} artık {{mode}} ayarını kullanıyor",
@@ -669,7 +686,13 @@
       "permissionOverrideMore_one": "ve {{count}} ajan daha",
       "permissionOverrideMore_other": "ve {{count}} ajan daha",
       "permissionOverridesUse": "{{mode}} ayarını kullan",
-      "approveForMe": "benim için onayla"
+      "approveForMe": "benim için onayla",
+      "codexHistorySharing": {
+        "title": "Codex geçmişini hesaplar arasında paylaş",
+        "description": "Her Codex hesabının ve kendi ~/.codex dizininin, diğerlerinde başlatılan konuşmaları sürdürmesine izin verir. Her hesabın geçmişini ayrı tutmak için kapatın. Kapatmak, zaten paylaşılmış hiçbir şeyi kaldırmaz.",
+        "unsupported": "Bu ayarı orada değiştirmek için {{host}} üzerindeki Orca'yı güncelleyin.",
+        "updateFailed": "{{host}} üzerindeki ayar güncellenemedi."
+      }
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "sembolik bağlantı",
@@ -1650,7 +1673,6 @@
         "folderWorkspaceCreateFailedMessage": "Klasör çalışma alanı oluşturulamadı. Yukarıdaki hata ayrıntılarını kontrol edip tekrar deneyin.",
         "setupAgentStartupPolicySaveFailed": "Kurulum başlangıç davranışı kaydedilemedi.",
         "5f3d2c8a1b": "MR tabanı belirlenemedi.",
-        "dropPartiallyAttached": "{{count}} öğeden {{failureCount}} tanesi eklenemedi.",
         "dropPartiallyAttached_one": "{{count}} öğeden {{failureCount}} tanesi eklenemedi.",
         "dropPartiallyAttached_other": "{{count}} öğeden {{failureCount}} tanesi eklenemedi."
       },
@@ -1667,7 +1689,6 @@
         "workspaceOpenFailed": "{{fileName}} açılamadı. Kaynak çalışma alanından açıp tekrar deneyin.",
         "nativeDropUnresolvedPathsDescription": "Önce diske kaydedin, ardından kaydedilen dosyaları bırakın.",
         "nativeDropUnresolvedPaths": "Orca, bırakılan dosyalar için bir yol okuyamadı.",
-        "nativeDropTempCopyFailed": "Orca, bırakılan {{count}} dosyayı kopyalayamadı.",
         "nativeDropTempCopyFailed_one": "Orca, bırakılan {{count}} dosyayı kopyalayamadı.",
         "nativeDropTempCopyFailed_other": "Orca, bırakılan {{count}} dosyayı kopyalayamadı."
       },
@@ -6814,23 +6835,18 @@
           "branch": {
             "batch": {
               "toast": {
-                "a3cdd9d9e6": "Git, merge edilmemiş commit'ler içerebileceği için {{count}} yerel branch'i korudu. Korunan branch'ler çalışma alanı klasörlerini tutmaz; commit'leri repoda kalır. Orca, arka planda çalışma alanı disk alanını boşaltmaya devam edebilir.",
                 "a3cdd9d9e6_one": "Git, merge edilmemiş commit'ler içerebileceği için {{count}} yerel branch'i korudu. Korunan branch'ler çalışma alanı klasörlerini tutmaz; commit'leri repoda kalır. Orca, arka planda çalışma alanı disk alanını boşaltmaya devam edebilir.",
                 "a3cdd9d9e6_other": "Git, merge edilmemiş commit'ler içerebileceği için {{count}} yerel branch'i korudu. Korunan branch'ler çalışma alanı klasörlerini tutmaz; commit'leri repoda kalır. Orca, arka planda çalışma alanı disk alanını boşaltmaya devam edebilir.",
-                "6310412304": "{{count}} Branch'i İncele",
                 "6310412304_one": "{{count}} Branch'i İncele",
                 "6310412304_other": "{{count}} Branch'i İncele",
-                "cea24c2b7d": "{{count}} çalışma alanı kaldırıldı",
                 "cea24c2b7d_one": "{{count}} çalışma alanı kaldırıldı",
                 "cea24c2b7d_other": "{{count}} çalışma alanı kaldırıldı",
-                "0e0379f24a": "{{count}} branch korundu",
                 "0e0379f24a_one": "{{count}} branch korundu",
                 "0e0379f24a_other": "{{count}} branch korundu",
                 "4cf75caab7": "{{value0}}, {{value1}}",
                 "e61d78054f": "Yerel branch'ler siliniyor: {{value0}}",
                 "1e1a5f6763": "Silinen yerel branch'ler: {{value0}}",
                 "43d9395605": "{{value0}} silindi, {{value1}} silinmedi",
-                "d42f1f14e0": "{{count}} Branch'i Yeniden Dene",
                 "d42f1f14e0_one": "{{count}} Branch'i Yeniden Dene",
                 "d42f1f14e0_other": "{{count}} Branch'i Yeniden Dene"
               }
@@ -6845,7 +6861,6 @@
           "ee39e872d5": "Merge edilmemiş olabilir",
           "676db406fd": "HEAD kullanılamıyor",
           "285e1e4882": "İptal",
-          "a0f9863597": "{{count}} Branch'i Zorla Sil",
           "a0f9863597_one": "{{count}} Branch'i Zorla Sil",
           "a0f9863597_other": "{{count}} Branch'i Zorla Sil"
         },
@@ -12389,10 +12404,8 @@
           "olderTerminalsUnverifiable": "Orca, eski bir sürümünün başlattığı terminallerin kapandığını doğrulayamadı. Yeniden denemek için tekrar bağlanın.",
           "olderTerminals_one": "Orca'nın eski bir sürümünün başlattığı {{count}} terminal bu ana makinede hâlâ çalışıyor ve kendiliğinden durmuyor. İlgili Orca sürümünde kapatın veya ana makinede sonlandırın, ardından yeniden bağlanın.",
           "olderTerminals_other": "Orca'nın eski bir sürümünün başlattığı {{count}} terminal bu ana makinede hâlâ çalışıyor ve kendiliğinden durmuyor. İlgili Orca sürümünde kapatın veya ana makinede sonlandırın, ardından yeniden bağlanın.",
-          "olderTerminals": "Orca'nın eski bir sürümünün başlattığı {{count}} terminal bu ana makinede hâlâ çalışıyor ve kendiliğinden durmuyor. İlgili Orca sürümünde kapatın veya ana makinede sonlandırın, ardından yeniden bağlanın.",
           "linkedProjects_one": "Bu ana makinenin Orca sunucusunda {{paths}} zaten bulunduğu için bu masaüstü artık sunucudaki kopyayı kullanıyor. Bu masaüstünün oradaki sekmeleri ve {{count}} otomasyonu taşınmadı; orada oluşturduğu worktree'ler ise harici worktree olarak görünüyor.",
           "linkedProjects_other": "Bu ana makinenin Orca sunucusunda {{paths}} zaten bulunduğu için bu masaüstü artık sunucudaki kopyayı kullanıyor. Bu masaüstünün oradaki sekmeleri ve {{count}} otomasyonu taşınmadı; orada oluşturduğu worktree'ler ise harici worktree olarak görünüyor.",
-          "linkedProjects": "Bu ana makinenin Orca sunucusunda {{paths}} zaten bulunduğu için bu masaüstü artık sunucudaki kopyayı kullanıyor. Bu masaüstünün oradaki sekmeleri ve {{count}} otomasyonu taşınmadı; orada oluşturduğu worktree'ler ise harici worktree olarak görünüyor.",
           "linkedProjectsNoAutomations": "Bu ana makinenin Orca sunucusunda {{paths}} zaten bulunduğu için bu masaüstü artık sunucudaki kopyayı kullanıyor. Bu masaüstünün oradaki sekmeleri taşınmadı; orada oluşturduğu worktree'ler ise harici worktree olarak görünüyor.",
           "automationsLeftDisabled_one": "Bu sunucunun Orca sunucusuna devredilen {{count}} otomasyon yeniden etkinleştirilemedi. Otomasyonlar bölümünden etkinleştirin.",
           "automationsLeftDisabled_other": "Bu sunucunun Orca sunucusuna devredilen {{count}} otomasyon yeniden etkinleştirilemedi. Otomasyonlar bölümünden etkinleştirin.",
@@ -12411,8 +12424,7 @@
           "refusedLeaveBehind": "Bu sunucuya ait bazı kayıtlı öğeler sunucunun Orca sunucusuna taşınamıyor: {{items}}. Yine de taşı seçeneğiyle sunucuya bağlanılır ve bu öğeler bu bilgisayarda tutulur.",
           "refusedLeaveBehindUnnamed": "Bu sunucuya ait bazı kayıtlı öğeler sunucunun Orca sunucusuna taşınamıyor. Yine de taşı seçeneğiyle sunucuya bağlanılır ve bu öğeler bu bilgisayarda tutulur.",
           "windowsBuildUnsupported": "Bu sunucuda Windows 10 ve Windows Server 2016'dan eski bir Windows sürümü çalışıyor; bu nedenle Orca sunucusu çalıştırılamaz. Daha yeni bir Windows sürümü olan bir sunucu ya da Linux veya macOS sunucusu kullanın.",
-          "windowsNoExtractor": "Bu Windows sunucusunda ne tar.exe ne de PowerShell'in Expand-Archive komutu var; bu yüzden Orca sunucusunun paketi burada açılamıyor. Sunucuya Windows PowerShell 5.1 yükleyin, ardından yeniden bağlanın.",
-          "automationsLeftDisabled": "Bu sunucunun Orca sunucusuna devredilen {{count}} otomasyon yeniden etkinleştirilemedi. Otomasyonlar bölümünden etkinleştirin."
+          "windowsNoExtractor": "Bu Windows sunucusunda ne tar.exe ne de PowerShell'in Expand-Archive komutu var; bu yüzden Orca sunucusunun paketi burada açılamıyor. Sunucuya Windows PowerShell 5.1 yükleyin, ardından yeniden bağlanın."
         },
         "ZcodeCliSetupSection": {
           "title": "GLM'yi ZCode ile kullanın",
@@ -15435,7 +15447,6 @@
           "0f806a2ab1": "İptal",
           "b6c3b84476": "Dosya ağacını göster",
           "39f8007549": "Conflict'leri incele",
-          "skippedConflictsExcluded": "{{count}} çözülmemiş conflict bu diff görünümünden hariç tutuldu.",
           "skippedConflictsExcluded_one": "{{count}} çözülmemiş conflict bu diff görünümünden hariç tutuldu.",
           "skippedConflictsExcluded_other": "{{count}} çözülmemiş conflict bu diff görünümünden hariç tutuldu.",
           "820ec01f24": "Conflict'li dosyalar ayrı incelenir",
@@ -17479,10 +17490,7 @@
           "markManyUnread_one": "{{count}} ajanı okunmadı olarak işaretle",
           "markManyUnread_other": "{{count}} ajanı okunmadı olarak işaretle",
           "clearMany_one": "{{count}} ajanı listeden kaldır",
-          "clearMany_other": "{{count}} ajanı listeden kaldır",
-          "markManyRead": "{{count}} ajanı okundu olarak işaretle",
-          "markManyUnread": "{{count}} ajanı okunmadı olarak işaretle",
-          "clearMany": "{{count}} ajanı listeden kaldır"
+          "clearMany_other": "{{count}} ajanı listeden kaldır"
         }
       },
       "confirmation": {
@@ -19169,7 +19177,6 @@
         "editFailed": "Bu mesaj düzenlenemiyor.",
         "editGone": "Bu mesaj zaten gönderildi veya kaldırıldı. Düzenlediğiniz metin sohbet kutusunda.",
         "editGonePrompt": "Bu mesaj zaten gönderildi veya kaldırıldı. Ajana yanıt verdikten sonra düzenlediğiniz metin sohbet kutusuna getirilecek.",
-        "imageCount": "{{count}} görsel",
         "imageCount_one": "{{count}} görsel",
         "imageCount_other": "{{count}} görsel",
         "collapse": "Daralt",
@@ -20087,6 +20094,58 @@
       "patch": "PR ayrıntılarını oluşturmak için kullanılan, branch'in temel branch'e göre diff'i.",
       "stagedFiles": "Commit mesajı oluşturmak için hazırlama alanına alınmış dosyaların satır sonlarıyla ayrılmış listesi.",
       "stagedPatch": "Commit mesajı oluşturmak için kullanılan, hazırlama alanına alınmış git yaması."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} istemi Windows komut satırı için çok büyük. Daha az değişikliği stage'e ekleyip yeniden deneyin.",
+        "promptTooLargeForArgument": "{{label}} istemi tek bir komut satırı argümanı olarak iletilemeyecek kadar büyük. Daha az değişikliği stage'e ekleyip yeniden deneyin.",
+        "agentCouldNotStart": "{{label}} başlatılamadı. Ayarlar bölümündeki ajan komutunu kontrol edip yeniden deneyin.",
+        "agentFailedToStart": "{{label}} başlatılamadı. Ayarlar bölümündeki ajan komutunu kontrol edip yeniden deneyin.",
+        "agentBinaryNotFound": "PATH içinde {{binary}} bulunamadı. Yapay zekâ destekli commit mesajlarını kullanmak için {{label}} yükleyin.",
+        "timedOut": "Oluşturma işlemi {{seconds}} saniye sonra zaman aşımına uğradı.",
+        "outputTooLarge": "{{label}} CLI komutu çok fazla çıktı üretti. Ajanın CLI yapılandırmasını kontrol edip yeniden deneyin.",
+        "windowsBatchUnsafeArguments": "{{label}}, çok satırlı istemi argüman olarak alamayan bir Windows toplu iş betiği üzerinden çalışır. Ayarlar bölümünde ajanın yürütülebilir dosyasını belirtin veya Orca'nın istemi stdin üzerinden göndermesi için {prompt} içermeyen özel bir komut kullanın.",
+        "cliTerminated": "{{label}} CLI komutu tamamlanmadan sonlandırıldı.",
+        "cliTerminatedWithDetail": "{{label}} CLI komutu tamamlanmadan sonlandırıldı: {{detail}}",
+        "cliFailed": "{{label}} CLI komutu {{exitCode}} hata koduyla sonlandı.",
+        "cliFailedWithDetail": "{{label}} CLI komutu {{exitCode}} hata koduyla sonlandı: {{detail}}",
+        "agentReportedError": "{{label}} bir hata bildirdi.",
+        "emptyCommitMessage": "{{label}} boş bir mesaj döndürdü.",
+        "emptyCommitMessageWithDetail": "{{label}} boş bir mesaj döndürdü. CLI çıktısı: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} boş ayrıntılar döndürdü.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} boş ayrıntılar döndürdü. CLI çıktısı: {{detail}}",
+        "emptyJiraSummary": "{{label}} boş bir özet döndürdü.",
+        "emptyJiraSummaryWithDetail": "{{label}} boş bir özet döndürdü. CLI çıktısı: {{detail}}",
+        "commitMessageUnparseable": "Oluşturulan commit mesajı ayrıştırılamadı.",
+        "pullRequestDetailsUnparseable": "Oluşturulan pull request ayrıntıları ayrıştırılamadı.",
+        "jiraSummaryEmptyAfterSanitization": "Oluşturulan özet temizleme sonrasında boş kaldı.",
+        "jiraDescriptionRequired": "Açıklama zorunludur.",
+        "jiraAccountDisconnected": "Bu ana makinede seçili Jira hesabını yeniden bağlayın.",
+        "jiraSummaryBusyInOtherDraft": "Başka bir taslakta zaten bir Jira başlığı oluşturuluyor.",
+        "stagedChangesReadFailed": "Stage'e eklenen değişiklikler okunamadı.",
+        "noStagedChanges": "Özetlenecek stage'e eklenmiş değişiklik yok.",
+        "noBranchChanges": "Özetlenecek branch değişikliği yok.",
+        "commandTemplateEmptyCommitMessage": "Commit mesajları için komut şablonu boş.",
+        "commandTemplateEmptyPullRequest": "Pull request ayrıntıları için komut şablonu boş.",
+        "commandTemplateEmptyBranchName": "Branch adları için komut şablonu boş.",
+        "commandTemplateEmptyChatName": "Sohbet adları için komut şablonu boş.",
+        "sourceControlAgentUnsupported": "Bu eylem için Ayarlar -> Git -> Kaynak Kontrolü AI bölümünde desteklenen bir ajan seçin. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "chatNameAgentUnsupported": "Bu eylem için Ayarlar -> Sohbet -> Sohbet adları bölümünde desteklenen bir sohbet adı oluşturma ajanı seçin. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "sourceControlCustomCommandEmpty": "Özel komut boş. Ayarlar -> Git -> Kaynak Kontrolü AI bölümünde bir komut ekleyin.",
+        "chatNameCustomCommandEmpty": "Özel komut boş. Ayarlar -> Sohbet -> Sohbet adları bölümünde bir komut ekleyin.",
+        "agentCannotGenerateCommitMessage": "\"{{agent}}\" ajanı Kaynak Kontrolü AI commit mesajlarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "agentCannotGeneratePullRequest": "\"{{agent}}\" ajanı Kaynak Kontrolü AI pull request ayrıntılarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "agentCannotGenerateBranchName": "\"{{agent}}\" ajanı Kaynak Kontrolü AI branch adlarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "agentCannotGenerateChatName": "\"{{agent}}\" ajanı sohbet adlarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "noModelForAgent": "{{label}} için kullanılabilir model yok.",
+        "planCustomCommandEmpty": "Özel komut boş. Ayarlar → Git → Yapay Zekâ Destekli Commit Mesajları bölümünde bir komut ekleyin.",
+        "planAgentUnsupported": "\"{{agent}}\" ajanı yapay zekâ destekli commit mesajlarını desteklemiyor.",
+        "planModelUnavailable": "\"{{model}}\" modeli {{label}} için kullanılamıyor.",
+        "planModelWithoutThinking": "\"{{model}}\" modeli düşünme çabası düzeyini desteklemiyor.",
+        "planThinkingLevelInvalid": "\"{{level}}\" düşünme düzeyi {{model}} için geçerli değil."
+      },
+      "enableSourceControlAi": "Ayarlar -> Git bölümünde Kaynak Kontrolü AI özelliğini etkinleştirin.",
+      "chooseBaseBranch": "Oluşturmadan önce bir temel branch seçin."
     }
   },
   "agentsSidebarIntro": {
@@ -20330,13 +20389,10 @@
       "resumableBody": "Çalışmaya devam etmek için burada yeniden açın. Ajan oturumunuz sürdürülecek.",
       "reopening": "Yeniden açılıyor…",
       "tryAgain": "Yeniden dene",
-      "reopenTerminal": "{{count}} terminali yeniden aç",
       "reopenTerminal_one": "Terminali yeniden aç",
       "reopenTerminal_other": "{{count}} terminali yeniden aç",
-      "reopened": "{{count}} terminal yeniden açıldı",
       "reopened_one": "{{count}} terminal yeniden açıldı",
       "reopened_other": "{{count}} terminal yeniden açıldı",
-      "resumed": "{{count}} ajan oturumu sürdürüldü.",
       "resumed_one": "{{count}} ajan oturumu sürdürüldü.",
       "resumed_other": "{{count}} ajan oturumu sürdürüldü."
     },
@@ -20347,7 +20403,6 @@
     },
     "severedDaemonBanner": {
       "unknownCount": "hizmetin çalışan terminalleri",
-      "count": "{{count}} çalışan terminal",
       "unverifiable": "Orca terminal hizmeti sürecini doğrulayamadığı için hiçbir şey durdurulmadı.",
       "alreadyReplaced": "Terminal hizmeti zaten değiştirilmiş; hiçbir şey durdurulmadı.",
       "restarted": "Terminal hizmeti yeniden başlatıldı.",
@@ -21694,6 +21749,39 @@
         "attemptsExhausted": "birkaç denemeden sonra tamamlanamadı"
       },
       "finishPending": "{{distro}} ana makinesine yapılan önceki bir taşıma orada tamamlandı. Orca bu taşımayı burada yeniden başladığında ya da şimdi Yeniden kontrol et ile tamamlar."
+    }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "Otomasyonu başlatmak için kullanılabilir bir Orca penceresi yoktu.",
+      "unevaluableSchedule": "Orca bu otomasyonu değerlendiremedi ve bu çalıştırmayı atladı.",
+      "noRunnableHost": "Bu otomasyonun çalışacağı bir sunucu yok.",
+      "wslMoveInProgress": "Bu otomasyonun projesi WSL ana makinesine taşınıyor. Bu nedenle Orca bu çalıştırmayı atladı. Taşıma tamamlandığında çalıştırmalar devam edecek.",
+      "wslMoveOwnedByHost": "Bu otomasyonun projesi artık WSL ana makinesinde çalışıyor ve bu otomasyon da orada ana makine tarafından çalıştırılıyor. Orca artık bu yerel kopyayı çalıştırmıyor.",
+      "missedGraceWindow": "Orca'nın bir sonraki kontrolünde bu çalıştırma, kaçırılan çalıştırmalar için tanınan tolerans süresini aşmıştı.",
+      "targetMissing": "Otomasyon sunucusu artık kayıtlı olmadığından bu otomasyonun çalışacağı bir yer yok.",
+      "targetReplaced": "Otomasyon sunucusu kaldırılıp yeniden kaydedildiği için bu otomasyonun çalıştırılmadan önce yeniden ilişkilendirilmesi gerekiyor.",
+      "workspaceHostAmbiguous": "Otomasyonun çalışma alanı birden fazla sunucuya yayıldığı için Orca hangi sunucuda çalıştırılacağını belirleyemiyor.",
+      "legacyTwinHosts": "Bu otomasyon, Orca hangi sunucuda çalıştığını izlemeye başlamadan önce kaydedilmiş ve projesi birden fazla sunucuda bulunuyor. Otomasyonu açın ve çalışması gereken sunucuyu seçin.",
+      "targetUnavailable": "Otomasyonun çalıştırma hedefi artık kullanılamıyor.",
+      "remoteSchedulingUnavailable": "Bu Orca istemcisinden uzak sunucu otomasyonlarını zamanlama henüz kullanılamıyor. Bu otomasyonu uzak sunucuda çalıştırın veya kalıcı uzak zamanlama kullanıma sunulduğunda Orca'yı güncelleyin.",
+      "projectSetupMissing": "Proje artık seçili otomasyon sunucusunda kurulu değil.",
+      "targetSetupMismatch": "Otomasyonun çalıştırma hedefi artık projenin seçili sunucu kurulumuyla eşleşmiyor.",
+      "repoUnavailable": "Seçili otomasyon sunucusunun repository'si artık kullanılamıyor.",
+      "repoDetached": "Repository artık seçili otomasyon sunucusuna bağlı değil.",
+      "projectPathChanged": "Seçili otomasyon sunucusundaki proje yolu değişti.",
+      "automationChanged": "Bu çalıştırma başlatılamadan otomasyon değişti.",
+      "destinationChanged": "Bu çalıştırma başlatılamadan otomasyonun hedefi değişti.",
+      "hooksReviewBlocked": "Ajan, yeni veya değiştirilmiş hook'ların incelenmesini bekliyor (\"Hooks need review\"). Bu çalıştırmayı açıp hook'lara güvenin veya onları kaldırın. Zamanlanmış çalıştırmalar devam eder ve incelenecek bir şey kalmadığında başarıyla tamamlanır.",
+      "agentNeverStarted": "İstem gönderildikten sonra otomasyon ajanı hiç başlatılmadı.",
+      "agentNoCompletion": "Otomasyon ajanı tamamlanma bildirimi göndermedi.",
+      "watchTimedOut": "Orca, 6 saat boyunca tamamlanma sinyali gelmeyince bu çalıştırmayı izlemeyi durdurdu.",
+      "projectSetupState": {
+        "notSetUp": "Proje seçili otomasyon sunucusunda kurulu değil.",
+        "settingUp": "Proje seçili otomasyon sunucusunda hâlâ kuruluyor.",
+        "error": "Proje seçili otomasyon sunucusunda kurulamadı.",
+        "unsupported": "Seçili otomasyon sunucusu bu projeyi desteklemiyor."
+      }
     }
   }
 }

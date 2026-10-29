@@ -7,6 +7,7 @@ import type {
 import { pluginExecutionProfile } from '../../../../../shared/plugins/contributions/plugin-execution-profile'
 import { translate } from '@/i18n/i18n'
 import { pluginInstallErrorMessage } from '../presentation/plugin-error-presentation'
+import { PLUGIN_ACTION_TOAST_DURATION_MS } from './plugin-action-toast'
 import { applyPluginThemesNow } from './plugin-theme-apply'
 import type { PluginPagePreview } from './use-plugin-catalog'
 import { previewMatchesListing } from './use-plugin-page-model'
@@ -166,6 +167,7 @@ export function usePluginInstallAction({
               { value0: preview.manifest.name }
             ),
             {
+              duration: PLUGIN_ACTION_TOAST_DURATION_MS,
               action: {
                 label: translate('auto.components.settings.pluginInstallAction.tryIt', 'Try it'),
                 onClick: () => onTryPlugin(pluginKey)
