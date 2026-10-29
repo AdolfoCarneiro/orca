@@ -8,7 +8,10 @@ import type {
   OrchestrationMailboxPointerDelivery,
   OrchestrationMessageWaiter
 } from './mailbox-pointer-delivery'
-import { selectOrchestrationPointerBatch } from './mailbox-pointer-eligibility'
+import {
+  hasUnfilteredOrchestrationWaiter,
+  selectOrchestrationPointerBatch
+} from './mailbox-pointer-eligibility'
 import type { OrchestrationStructuredMailboxPointerDelivery } from './structured-mailbox-pointer-delivery'
 
 type NotificationCoordinatorDependencies<TWaiter extends OrchestrationMessageWaiter> = {
@@ -46,20 +49,25 @@ export class OrchestrationMailboxNotificationCoordinator<
     }
   }
 
-  /** Whether a pointer would type for this terminal now: unread, undelivered mail no waiter or held batch claims. */
+  /** Whether delivery has work for this terminal: a pointer reservation to recover, or unread, undelivered mail no waiter or held batch claims. */
   hasDeliverableMail(terminal: OrchestrationMailboxTerminal): boolean {
     const db = this.deps.getDb()
     return (
       !!db &&
-      this.deps.mailboxOwner.resolveAll(terminal).some(
-        (mailboxHandle) =>
-          selectOrchestrationPointerBatch({
-            db,
-            mailboxHandle,
-            waiters: this.deps.getMessageWaiters(mailboxHandle),
-            reservedTypes: undefined
-          }).messages.length > 0
-      )
+      this.deps.mailboxOwner.resolveAll(terminal).some((mailboxHandle) => {
+        const waiters = this.deps.getMessageWaiters(mailboxHandle)
+        return (
+          // Mirrors deliver(): an unfiltered waiter preempts recovery too.
+          !hasUnfilteredOrchestrationWaiter(waiters) &&
+          (db.getPendingMailboxPointerMessages(mailboxHandle).length > 0 ||
+            selectOrchestrationPointerBatch({
+              db,
+              mailboxHandle,
+              waiters,
+              reservedTypes: undefined
+            }).messages.length > 0)
+        )
+      })
     )
   }
 

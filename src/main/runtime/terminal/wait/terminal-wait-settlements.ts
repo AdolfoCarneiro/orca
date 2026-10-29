@@ -98,18 +98,20 @@ export abstract class OrcaRuntimeWithResolveExitWaiters extends OrcaRuntimeWithB
     if (this.deliveryRecheckTimersByPtyId.has(ptyId)) {
       return
     }
-    const pty = this.ptysById.get(ptyId)
-    // Schedule just beyond the quiet window and re-arm from fresher output if still streaming.
-    const elapsed = pty?.lastOutputAt ? Date.now() - pty.lastOutputAt : 0
-    const quietRemainingMs = TUI_IDLE_QUIESCENCE_MS - elapsed
-    const holding = this.isPtyHoldingDelivery(ptyId)
-    const quietPassed = quietRemainingMs <= 0 && !!pty?.lastOutputAt
-    // Past quiet, refusal waits on untimed evidence (hook deadlines, foreground recognition), so poll slowly only while mail waits.
-    if (!holding && quietPassed && !this.hasDeliverableMailForPty(ptyId)) {
+    // Refusal can lift without another edge (hook deadlines, foreground recognition), but only waiting work needs the retry.
+    const terminal = this.getOrchestrationMailboxTerminal(ptyId)
+    if (!terminal || !this.orchestrationMailboxNotifications.hasDeliverableMail(terminal)) {
       return
     }
+    // Schedule just beyond the quiet window and re-arm from fresher output if still streaming.
+    const outputAt = this.readOutputClockAt(ptyId)
+    const quietRemainingMs =
+      outputAt === null ? 0 : TUI_IDLE_QUIESCENCE_MS - (Date.now() - outputAt)
     // A dialog or draft lifts only when the user acts, so poll it slowly rather than at 20 Hz.
-    const delay = holding || quietPassed ? DIALOG_HOLD_RECHECK_MS : quietRemainingMs + 50
+    const delay =
+      this.isPtyHoldingDelivery(ptyId) || quietRemainingMs <= 0
+        ? DIALOG_HOLD_RECHECK_MS
+        : quietRemainingMs + 50
     const timer = setTimeout(() => {
       this.deliveryRecheckTimersByPtyId.delete(ptyId)
       // Delivery rechecks settlement first; the agent may have become busy again.
@@ -117,11 +119,6 @@ export abstract class OrcaRuntimeWithResolveExitWaiters extends OrcaRuntimeWithB
     }, delay)
     timer.unref?.()
     this.deliveryRecheckTimersByPtyId.set(ptyId, timer)
-  }
-
-  private hasDeliverableMailForPty(ptyId: string): boolean {
-    const terminal = this.getOrchestrationMailboxTerminal(ptyId)
-    return !!terminal && this.orchestrationMailboxNotifications.hasDeliverableMail(terminal)
   }
 
   /** Pointer plus Enter takes the waits' readiness ranking, plus a working verdict: agents queue or
