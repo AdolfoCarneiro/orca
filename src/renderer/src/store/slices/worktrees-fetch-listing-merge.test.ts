@@ -657,7 +657,7 @@ describe('fetchWorktrees', () => {
       })
     )
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the merge reads only these tab fields.
-    store.setState({
+    setSessionTestState(store, {
       worktreesByRepo: { repo1: [scanned, notStored] },
       sortEpoch: 7,
       tabsByWorktree: { [notStored.id]: [{ id: 'tab-2', worktreeId: notStored.id }] }
