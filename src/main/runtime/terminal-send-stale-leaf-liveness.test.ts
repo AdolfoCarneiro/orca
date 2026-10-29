@@ -463,6 +463,7 @@ function makeOrchestrationDbStub(toHandle: () => string) {
         ),
       // Consulted by onPtyExit's dispatch-failure path.
       getActiveDispatchForTerminal: () => null,
+      findActiveRemoteAttachmentForPane: () => undefined,
       stageMailboxPointerEnter,
       markMailboxPointerWriteAttempted,
       markMailboxPointerEnterAttempted,
