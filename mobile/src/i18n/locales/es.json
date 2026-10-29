@@ -1278,6 +1278,7 @@
       "chooseWorkspaceFile": "Elige un archivo dentro de este espacio de trabajo.",
       "discard": "Descartar",
       "discardMessage": "Se perderán los cambios sin guardar.",
+      "discardMessageSaving": "Es posible que el guardado en curso no termine. Se perderán los cambios no guardados.",
       "discardTitle": "¿Descartar cambios?",
       "fileTitle": "Archivo",
       "loadFailed": "No se pudo cargar la vista previa",

@@ -119,6 +119,24 @@
         "gitInitFailed": "無法初始化 Git 存放庫：{{detail}}",
         "initialCommitFailed": "無法建立初始提交：{{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} 已是主機。",
+        "distroStopped": "讀取清單後，{{distro}} 已停止。選擇「啟動並新增」以啟動它。",
+        "wsl1": "{{distro}} 使用 WSL 1，Orca 已不再支援。請在 Windows 終端機中使用以下命令將其轉換為 WSL 2：{{command}}",
+        "notRegistered": "{{distro}} 不是已安裝的 WSL 發行版。請在 Windows 終端機中執行 {{command}} 查看已安裝的發行版，或重新安裝它後再試一次。",
+        "sshManaged": "{{distro}} 已在為「{{server}}」執行 Orca 伺服器，此電腦透過 SSH 存取該伺服器。請先移除該伺服器；目前尚不支援將其移轉為 WSL 主機。"
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows 未回報此發行版是否正在執行。",
+        "guestUnanswered": "發行版正在執行，但未回應 Orca 的檢查。",
+        "orcadUnanswered": "發行版中的 Orca 伺服器未回應。",
+        "restartGaveUp_other": "嘗試 {{count}} 次後仍無法重新啟動 {{distro}} 中的 Orca 伺服器",
+        "serviceUnconfirmed": "WSL 服務未確認此發行版是否正在執行。",
+        "peerCheckFailed": "Orca 無法向 WSL 主機詢問此電腦上的另一個 Orca 是否仍在使用該主機：{{detail}}",
+        "removalUnrecorded": "Orca 無法記錄此次移除後仍在執行的項目：{{detail}}"
+      }
     }
   },
   "app": {
@@ -21427,6 +21445,39 @@
         "attemptsExhausted": "多次嘗試後仍未完成"
       },
       "finishPending": "先前一次移至 {{distro}} 主機的操作已在主機上完成。Orca 會在重新啟動時於這裡完成它，你也可以按一下「重新檢查」立即完成。"
+    }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "沒有可用來啟動自動化的 Orca 視窗。",
+      "unevaluableSchedule": "Orca 無法評估此自動化，已略過此次執行。",
+      "noRunnableHost": "此自動化沒有可供執行的主機。",
+      "wslMoveInProgress": "此自動化的專案正在移至其 WSL 主機，因此 Orca 略過了此次執行。移動完成後便會恢復執行。",
+      "wslMoveOwnedByHost": "此自動化的專案現在在其 WSL 主機上執行，自動化本身也由該主機執行。Orca 不再執行這個本機副本。",
+      "missedGraceWindow": "Orca 再次檢查時，此次執行的補執行寬限期已過。",
+      "targetMissing": "自動化主機已不在註冊清單中，因此已無處執行此自動化。",
+      "targetReplaced": "自動化主機已被移除並重新註冊，因此必須為此自動化重新建立關聯後才能執行。",
+      "workspaceHostAmbiguous": "自動化工作區橫跨多個主機，因此 Orca 無法判斷應在哪個主機上執行。",
+      "legacyTwinHosts": "此自動化是在 Orca 開始記錄執行主機之前儲存的，且其專案位於多個主機上。請開啟自動化，選擇應執行它的主機。",
+      "targetUnavailable": "自動化執行目標已無法使用。",
+      "remoteSchedulingUnavailable": "此 Orca 用戶端尚無法設定遠端伺服器上的自動化排程。請在遠端伺服器上執行此自動化，或等支援持久性遠端排程後再更新 Orca。",
+      "projectSetupMissing": "所選自動化主機上已沒有此專案的設定。",
+      "targetSetupMismatch": "自動化執行目標與專案所選主機的設定已不相符。",
+      "repoUnavailable": "所選自動化主機的存放庫已無法使用。",
+      "repoDetached": "存放庫已不再連結至所選自動化主機。",
+      "projectPathChanged": "所選自動化主機上的專案路徑已變更。",
+      "automationChanged": "此次執行啟動前，自動化已變更。",
+      "destinationChanged": "此次執行啟動前，自動化的執行位置已變更。",
+      "hooksReviewBlocked": "代理程式正在等待有人審查新增或變更的鉤子（「Hooks need review」）。請開啟此次執行，信任這些鉤子或將其移除。排定的執行會持續進行，等沒有需要審查的項目後便會成功。",
+      "agentNeverStarted": "送出提示詞後，自動化代理程式始終未啟動。",
+      "agentNoCompletion": "自動化代理程式未回報完成。",
+      "watchTimedOut": "6 小時內未收到完成訊號，Orca 已停止監看此次執行。",
+      "projectSetupState": {
+        "notSetUp": "專案尚未在所選自動化主機上完成設定。",
+        "settingUp": "專案仍在所選自動化主機上進行設定。",
+        "error": "專案在所選自動化主機上設定失敗。",
+        "unsupported": "所選自動化主機不支援此專案。"
+      }
     }
   }
 }

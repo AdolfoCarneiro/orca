@@ -1238,6 +1238,7 @@
       "chooseWorkspaceFile": "このワークスペース内のファイルを選択してください。",
       "discard": "破棄",
       "discardMessage": "未保存の編集内容は失われます。",
+      "discardMessageSaving": "進行中の保存は完了しない可能性があります。未保存の編集内容は失われます。",
       "discardTitle": "変更を破棄しますか?",
       "fileTitle": "ファイル",
       "loadFailed": "プレビューを読み込めませんでした。",

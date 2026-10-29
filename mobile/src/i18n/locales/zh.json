@@ -1238,6 +1238,7 @@
       "chooseWorkspaceFile": "请选择此工作区内的文件。",
       "discard": "放弃",
       "discardMessage": "未保存的更改将丢失。",
+      "discardMessageSaving": "正在进行的保存可能无法完成。未保存的编辑将会丢失。",
       "discardTitle": "放弃更改？",
       "fileTitle": "文件",
       "loadFailed": "无法加载预览",

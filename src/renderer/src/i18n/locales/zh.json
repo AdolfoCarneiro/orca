@@ -19931,6 +19931,24 @@
         "gitInitFailed": "初始化 Git 仓库失败：{{detail}}",
         "initialCommitFailed": "创建初始提交失败：{{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} 已是主机。",
+        "distroStopped": "读取列表后，{{distro}} 已停止。选择“启动并添加”以启动它。",
+        "wsl1": "{{distro}} 使用 WSL 1，Orca 已不再支持。请在 Windows 终端中使用以下命令将其转换为 WSL 2：{{command}}",
+        "notRegistered": "{{distro}} 不是已安装的 WSL 发行版。请在 Windows 终端中运行 {{command}} 查看已安装的发行版，或重新安装它后重试。",
+        "sshManaged": "{{distro}} 已在为“{{server}}”运行 Orca 服务器，此电脑通过 SSH 访问该服务器。请先移除该服务器；暂不支持将其迁移为 WSL 主机。"
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows 未报告该发行版是否正在运行。",
+        "guestUnanswered": "发行版正在运行，但未响应 Orca 的检查。",
+        "orcadUnanswered": "发行版中的 Orca 服务器未响应。",
+        "restartGaveUp_other": "尝试 {{count}} 次后仍无法重启 {{distro}} 中的 Orca 服务器",
+        "serviceUnconfirmed": "WSL 服务未确认该发行版是否正在运行。",
+        "peerCheckFailed": "Orca 无法向 WSL 主机询问此电脑上的另一个 Orca 是否仍在使用该主机：{{detail}}",
+        "removalUnrecorded": "Orca 无法记录此次移除后仍在运行的内容：{{detail}}"
+      }
     }
   },
   "editor": {
@@ -21727,6 +21745,39 @@
         "attemptsExhausted": "多次尝试后仍未完成"
       },
       "finishPending": "之前一次到 {{distro}} 主机的移动已在主机上完成。Orca 会在重启时在此处完成它，也可以点击“重新检查”立即完成。"
+    }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "没有可用于启动自动化的 Orca 窗口。",
+      "unevaluableSchedule": "Orca 无法评估此自动化，已跳过此次执行。",
+      "noRunnableHost": "此自动化没有可运行的主机。",
+      "wslMoveInProgress": "此自动化的项目正在移到其 WSL 主机，因此 Orca 跳过了此次运行。移动完成后将恢复运行。",
+      "wslMoveOwnedByHost": "此自动化的项目现在在其 WSL 主机上运行，自动化本身也由该主机运行。Orca 不再运行此本地副本。",
+      "missedGraceWindow": "Orca 再次检查时，此次运行的补跑宽限期已过。",
+      "targetMissing": "自动化主机已不在注册列表中，因此此自动化已无处运行。",
+      "targetReplaced": "自动化主机已被移除并重新注册，因此必须重新关联此自动化后才能运行。",
+      "workspaceHostAmbiguous": "自动化工作区跨越多个主机，因此 Orca 无法确定应在哪个主机上运行。",
+      "legacyTwinHosts": "此自动化保存于 Orca 开始记录运行主机之前，且其项目位于多个主机上。请打开自动化，选择应运行它的主机。",
+      "targetUnavailable": "自动化运行目标已不可用。",
+      "remoteSchedulingUnavailable": "此 Orca 客户端尚不支持远程服务器上的自动化调度。请在远程服务器上运行此自动化，或等持久化远程调度可用后更新 Orca。",
+      "projectSetupMissing": "所选自动化主机上已没有此项目的配置。",
+      "targetSetupMismatch": "自动化运行目标与项目所选主机的配置已不匹配。",
+      "repoUnavailable": "所选自动化主机的仓库已不可用。",
+      "repoDetached": "仓库已不再关联到所选自动化主机。",
+      "projectPathChanged": "所选自动化主机上的项目路径已更改。",
+      "automationChanged": "此次运行启动前，自动化已更改。",
+      "destinationChanged": "此次运行启动前，自动化的目标位置已更改。",
+      "hooksReviewBlocked": "智能体正在等待有人审查新增或更改的钩子（“Hooks need review”）。请打开此次运行，信任这些钩子或将其移除。计划运行会继续进行，待没有需要审查的内容后即可成功。",
+      "agentNeverStarted": "提交提示词后，自动化智能体始终未启动。",
+      "agentNoCompletion": "自动化智能体未报告完成。",
+      "watchTimedOut": "6 小时内未收到完成信号，Orca 已停止监视此次运行。",
+      "projectSetupState": {
+        "notSetUp": "项目尚未在所选自动化主机上完成设置。",
+        "settingUp": "项目仍在所选自动化主机上进行设置。",
+        "error": "项目在所选自动化主机上设置失败。",
+        "unsupported": "所选自动化主机不支持此项目。"
+      }
     }
   }
 }

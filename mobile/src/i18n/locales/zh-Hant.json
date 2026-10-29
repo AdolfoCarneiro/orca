@@ -1238,6 +1238,7 @@
       "chooseWorkspaceFile": "請選擇此工作區內的檔案。",
       "discard": "放棄",
       "discardMessage": "未儲存的編輯內容將會遺失。",
+      "discardMessageSaving": "正在進行的儲存可能無法完成。未儲存的編輯將會遺失。",
       "discardTitle": "放棄變更？",
       "fileTitle": "檔案",
       "loadFailed": "無法載入預覽",

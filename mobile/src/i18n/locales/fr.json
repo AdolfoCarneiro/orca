@@ -1278,6 +1278,7 @@
       "chooseWorkspaceFile": "Choisissez un fichier dans cet espace de travail.",
       "discard": "Abandonner",
       "discardMessage": "Les modifications non enregistrées seront perdues.",
+      "discardMessageSaving": "L'enregistrement en cours risque de ne pas aboutir. Les modifications non enregistrées seront perdues.",
       "discardTitle": "Abandonner les modifications ?",
       "fileTitle": "Fichier",
       "loadFailed": "Impossible de charger l'aperçu",

@@ -1628,6 +1628,7 @@
       "chooseWorkspaceFile": "Choose a file inside this workspace.",
       "discardTitle": "Discard changes?",
       "discardMessage": "Unsaved edits will be lost.",
+      "discardMessageSaving": "The save in progress may not finish. Unsaved edits will be lost.",
       "discard": "Discard",
       "stay": "Stay"
     },
