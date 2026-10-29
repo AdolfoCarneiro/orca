@@ -1388,17 +1388,6 @@
   color: var(--muted-foreground);
 }
 
-.rich-markdown-emoji-menu {
-  position: absolute;
-  z-index: 31;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
-  border-radius: 6px;
-  background: var(--popover);
-  color: var(--popover-foreground);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
-}
-
 .rich-markdown-emoji-menu .EmojiPickerReact {
   --epr-bg-color: var(--popover);
   --epr-category-label-bg-color: var(--popover);

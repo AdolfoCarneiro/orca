@@ -16400,6 +16400,9 @@
           "0e8489bc11": "Markdown document links",
           "showingOfTotal": "Showing {{shown}} of {{total}}"
         },
+        "RichMarkdownEmojiMenu": {
+          "chooseEmoji": "Choose an emoji"
+        },
         "RichMarkdownErrorBoundary": {
           "aad0998127": "Retry",
           "4a5de9f2f0": "Switch to source mode, or click retry to reload the rich view.",

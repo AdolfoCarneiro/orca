@@ -296,6 +296,7 @@ export function RichMarkdownEditorSurface({
         {emojiMenu ? (
           <RichMarkdownEmojiMenu
             editor={editor}
+            anchorElement={rootElement}
             left={emojiMenu.left}
             top={emojiMenu.top}
             onClose={onCloseEmojiMenu}
