@@ -4,6 +4,7 @@ import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
 import { persistAgentLaunchTabOrder } from '@/lib/launch-agent-tab-order'
 import {
+  resolveRuntimeHostReportedPlatform,
   resolveSshHostReportedPlatform,
   resolveAgentResumeLaunchTarget,
   type AgentResumeLaunchTarget
@@ -40,7 +41,8 @@ function getResumeLaunchTarget(worktreeId: string): AgentResumeLaunchTarget {
       state,
       executionHostId,
       runtimeEnvironmentIdUnlessTwin(state, worktreeId)
-    )
+    ),
+    runtimeHostPlatform: resolveRuntimeHostReportedPlatform(state, executionHostId)
   })
 }
 
@@ -58,6 +60,7 @@ export function launchSleepingAgentSession(
     cmdOverrides: state.settings?.agentCmdOverrides ?? {},
     ...resolveResumeLaunchRecipe(launchConfig),
     platform: resumeTarget.platform,
+    agentHostPlatform: resumeTarget.agentHostPlatform,
     shell: resumeTarget.shell,
     launchCwd: state.getKnownWorktreeById(record.worktreeId)?.path
   })
