@@ -176,8 +176,8 @@ try {
 
 function runDesktopStartupOracle({ image, appImage, platform }) {
   console.log('Running original AppImage desktop startup oracle...')
-  const fuseAvailable = existsSync('/dev/fuse')
-  const result = docker([
+  const fuseDevicePresent = existsSync('/dev/fuse')
+  const startupOptions = [
     'run',
     '--rm',
     '--init',
@@ -197,7 +197,7 @@ function runDesktopStartupOracle({ image, appImage, platform }) {
     'seccomp=unconfined',
     '--security-opt',
     'apparmor=unconfined',
-    ...(fuseAvailable
+    ...(fuseDevicePresent
       ? ['--device', '/dev/fuse', '--cap-add', 'SYS_ADMIN']
       : ['--security-opt', 'no-new-privileges']),
     '--user',
@@ -207,12 +207,37 @@ function runDesktopStartupOracle({ image, appImage, platform }) {
     '-e',
     'ORCA_STARTUP_DIAGNOSTICS=1',
     '-v',
-    `${appImage}:/input/orca.AppImage:ro`,
-    image,
-    '/input/orca.AppImage'
-  ])
+    `${appImage}:/input/orca.AppImage:ro`
+  ]
+  const launch = (extraOptions = []) =>
+    docker([...startupOptions, ...extraOptions, image, '/input/orca.AppImage'], {
+      allowFailure: true
+    })
+  let result = launch()
   process.stdout.write(result.stdout)
   process.stderr.write(result.stderr)
+  const output = result.stdout + result.stderr
+  // Device access alone does not prove that the nonroot fixture may mount the AppImage.
+  if (
+    result.status === 127 &&
+    result.stdout.includes('AppImage desktop launch mode: fuse\n') &&
+    output.includes(
+      'FAIL: desktop launcher exited before the updater-setup-done marker (status=127)'
+    ) &&
+    output.includes('Cannot mount AppImage, please check your FUSE setup.') &&
+    /^\/usr\/bin\/fusermount3?: mount failed: Permission denied\r?$/m.test(output) &&
+    !output.includes('[startup]')
+  ) {
+    console.log(
+      'FUSE mount unavailable (permission denied); trying original AppImage --appimage-extract-and-run in a fresh container.'
+    )
+    result = launch(['-e', 'ORCA_STARTUP_APPIMAGE_EXTRACT_AND_RUN=1'])
+    process.stdout.write(result.stdout)
+    process.stderr.write(result.stderr)
+  }
+  if (result.status !== 0) {
+    fail(`Desktop AppImage startup oracle failed with status ${result.status}`)
+  }
 }
 
 function valueAfter(flag) {

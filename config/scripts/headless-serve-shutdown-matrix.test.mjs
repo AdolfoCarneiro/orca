@@ -91,6 +91,64 @@ describe('packaged shutdown matrix', () => {
     ])
   })
 
+  it.each(['mount-denied', 'generic-exit', 'app-started', 'extract-assertion-failed'])(
+    'bounds desktop extraction fallback: %s',
+    async (scenario) => {
+      // Mount diagnostics captured in package job123685326492; Docker execution here is mocked.
+      const mountFailure = {
+        status: 127,
+        stdout: 'AppImage desktop launch mode: fuse\n',
+        stderr:
+          'FAIL: desktop launcher exited before the updater-setup-done marker (status=127)\n' +
+          'Cannot mount AppImage, please check your FUSE setup.\n' +
+          '/usr/bin/fusermount3: mount failed: Permission denied\n'
+      }
+      let attempts = 0
+      spawnSync.mockImplementation((_, args) => {
+        if (!args.includes('/usr/local/bin/run-appimage-desktop-startup-case')) {
+          return succeeded
+        }
+        attempts++
+        if (attempts > 1) {
+          return scenario === 'extract-assertion-failed'
+            ? {
+                ...succeeded,
+                status: 1,
+                stderr: 'FAIL: packaged PTY owning CLI command/profile mismatch'
+              }
+            : succeeded
+        }
+        if (scenario === 'generic-exit') {
+          return { ...mountFailure, stderr: 'Unexpected crash\n' }
+        }
+        if (scenario === 'app-started') {
+          return { ...mountFailure, stderr: `${mountFailure.stderr}[startup] app-ready t=10\n` }
+        }
+        return mountFailure
+      })
+      await (scenario === 'mount-denied'
+        ? run('--all-entrypoints')
+        : expect(run('--all-entrypoints')).rejects.toThrow(
+            `failed with status ${scenario === 'extract-assertion-failed' ? 1 : 127}`
+          ))
+      const startup = commands().filter((args) =>
+        args.includes('/usr/local/bin/run-appimage-desktop-startup-case')
+      )
+      const retries = scenario === 'mount-denied' || scenario === 'extract-assertion-failed'
+      expect(startup).toHaveLength(retries ? 2 : 1)
+      expect(startup[0]).not.toContain('ORCA_STARTUP_APPIMAGE_EXTRACT_AND_RUN=1')
+      if (retries) {
+        expect(startup[1]).toContain('ORCA_STARTUP_APPIMAGE_EXTRACT_AND_RUN=1')
+        expect(startup.every((args) => args.includes('--rm'))).toBe(true)
+        expect(startup.every((args) => args.includes(`${artifact}:/input/orca.AppImage:ro`))).toBe(
+          true
+        )
+      }
+      expect(signalRuns()).toHaveLength(scenario === 'mount-denied' ? 6 : 0)
+      expect(commands().at(-2).slice(0, 2)).toEqual(['volume', 'rm'])
+    }
+  )
+
   it('attributes failures and still attempts later cases before cleanup', async () => {
     spawnSync.mockImplementation((_, args) =>
       args.at(-1) === 'INT' ? { ...succeeded, status: 7 } : succeeded

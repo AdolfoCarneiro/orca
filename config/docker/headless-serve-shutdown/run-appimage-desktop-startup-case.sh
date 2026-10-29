@@ -233,7 +233,7 @@ ulimit -c 0
 [[ -x "$appimage" ]] || { echo "FAIL: AppImage is not executable: $appimage" >&2; exit 1; }
 
 appimage_args=(--appimage-extract-and-run)
-if [[ -c /dev/fuse ]]; then
+if [[ -c /dev/fuse && ${ORCA_STARTUP_APPIMAGE_EXTRACT_AND_RUN:-0} != 1 ]]; then
   appimage_args=()
 fi
 printf 'AppImage desktop launch mode: %s\n' "${appimage_args[*]:-fuse}"
