@@ -1,5 +1,5 @@
 // #35559: a serve host restarted without its daemon restores each pane with a new shell; the dead agent's title, status and input modes must not survive.
-import type { Page } from '@stablyai/playwright-test'
+import type { JSHandle, Page } from '@stablyai/playwright-test'
 import { toWebTerminalSurfaceTabId } from '../../src/shared/terminal-surface-id'
 import { expect, test } from './helpers/orca-app'
 import { launchHeadlessPairedRuntimeHost } from './helpers/headless-paired-runtime-host'
@@ -27,6 +27,43 @@ async function readPaneState(page: Page, webTabId: string) {
       runtimeTitle: state?.runtimePaneTitlesByTabId?.[id]?.[pane.id] ?? null,
       content: pane.serializeAddon?.serialize?.() ?? ''
     }
+  }, webTabId)
+}
+
+// Hold the window where the host still publishes the tab-default title, so the reattach image's title alone must prove the agent.
+async function pinStalePublishedTitle(page: Page, webTabId: string): Promise<JSHandle<() => void>> {
+  return page.evaluateHandle((id) => {
+    const store = window.__store
+    const manager = window.__paneManagers?.get(id)
+    const paneId = (manager?.getActivePane?.() ?? manager?.getPanes?.()[0])?.id
+    if (!store || paneId === undefined) {
+      throw new Error(`Pane for ${id} is not mounted`)
+    }
+    const pin = (): void => {
+      const state = store.getState()
+      const statusKeys = Object.keys(state.agentStatusByPaneKey).filter((key) =>
+        key.startsWith(`${id}:`)
+      )
+      if (
+        state.runtimePaneTitlesByTabId[id]?.[paneId] === 'Terminal 1' &&
+        statusKeys.length === 0
+      ) {
+        return
+      }
+      const agentStatusByPaneKey = { ...state.agentStatusByPaneKey }
+      for (const key of statusKeys) {
+        delete agentStatusByPaneKey[key]
+      }
+      store.setState({
+        agentStatusByPaneKey,
+        runtimePaneTitlesByTabId: {
+          ...state.runtimePaneTitlesByTabId,
+          [id]: { ...state.runtimePaneTitlesByTabId[id], [paneId]: 'Terminal 1' }
+        }
+      })
+    }
+    pin()
+    return store.subscribe(pin)
   }, webTabId)
 }
 
@@ -103,7 +140,8 @@ test('a serve restart that respawns the shell drops the dead agent title, status
       .toMatchObject({ mouse: 'any', focus: true, applicationCursor: true })
     expect((await readPaneState(page, webTabId))?.runtimeTitle).toContain('Claude Code')
 
-    // Control: a serve restart that keeps the daemon reattaches the same process, so no process-boundary ground runs.
+    // A serve restart that keeps the daemon reattaches the same live agent, so its modes must survive.
+    const titlePin = await pinStalePublishedTitle(page, webTabId)
     await host.restartServeProcess()
     await expect
       .poll(
@@ -123,8 +161,13 @@ test('a serve restart that respawns the shell drops the dead agent title, status
         { timeout: 120_000, message: 'The paired pane never reattached after the serve restart' }
       )
       .toBe(true)
-    // Only a process-boundary ground clears cursor-key mode; reattach epilogues leave it.
-    expect((await readPaneState(page, webTabId))?.applicationCursor).toBe(true)
+    expect(await readPaneState(page, webTabId)).toMatchObject({
+      mouse: 'any',
+      focus: true,
+      applicationCursor: true
+    })
+    await titlePin.evaluate((release) => release())
+    await titlePin.dispose()
     const before = await readPaneState(page, webTabId)
 
     // The host machine restarted: serve and its daemon both lose every process.
