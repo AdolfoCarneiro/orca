@@ -15,7 +15,6 @@ export const NativeChatComposer = forwardRef<NativeChatComposerHandle, NativeCha
     return (
       <NativeChatTextAttachmentScope
         key={props.paneKey}
-        tabId={props.terminalTabId}
         enabled={Boolean(props.structuredTransport)}
       >
         <NativeChatComposerPane {...props} ref={ref} />

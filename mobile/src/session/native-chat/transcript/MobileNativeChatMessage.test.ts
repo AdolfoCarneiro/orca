@@ -87,6 +87,10 @@ vi.mock('./MobileNativeChatMessageActionsSheet', () => ({
   MobileNativeChatMessageActionsSheet: 'MessageActionsSheet'
 }))
 
+const actualMarkdown = await vi.importActual<typeof import('../../../components/MobileMarkdown')>(
+  '../../../components/MobileMarkdown'
+)
+
 import { MobileNativeChatMessage } from './MobileNativeChatMessage'
 import {
   findAllByHostType,
@@ -718,9 +722,6 @@ it('bounds phone row recognition at N and 10N during unchanged and one-row updat
 })
 
 it('renders each original phone message through the shipping Markdown renderer with separate lexical actions', async () => {
-  const actual = await vi.importActual<typeof import('../../../components/MobileMarkdown')>(
-    '../../../components/MobileMarkdown'
-  )
   const adapter = await import('../../../components/MobileMarkdown')
   const references =
     await import('../../../../../src/shared/native-chat-text-attachment-references')
@@ -756,15 +757,18 @@ it('renders each original phone message through the shipping Markdown renderer w
     ],
     [`\` @${path}\``, [path + '`']]
   ]
+  // Compare rendered values; themed style getters and React wrappers have separate function identities.
   const hostContent = (root: ReactTestInstance) =>
-    root
-      .findAll((node) => typeof node.type === 'string')
-      .map((node) => [
-        node.type,
-        node.props.style,
-        node.children.filter((child) => typeof child === 'string')
-      ])
-  markdownImplementation.current = actual.MobileMarkdown
+    JSON.stringify(
+      root
+        .findAll((node) => typeof node.type === 'string')
+        .map((node) => [
+          node.type,
+          node.props.style,
+          node.children.filter((child) => typeof child === 'string')
+        ])
+    )
+  markdownImplementation.current = actualMarkdown.MobileMarkdown
   try {
     for (const [content, paths] of cases) {
       const onOpenFile = vi.fn()
@@ -784,7 +788,7 @@ it('renders each original phone message through the shipping Markdown renderer w
         expect(body).toHaveLength(1)
         expect(body[0]!.props.content).toBe(content)
         act(() => {
-          direct = create(createElement(actual.MobileMarkdown, body[0]!.props))
+          direct = create(createElement(actualMarkdown.MobileMarkdown, body[0]!.props))
         })
         expect(hostContent(body[0]!)).toEqual(hostContent(direct!.root))
         const actions = row!.root.findAll(

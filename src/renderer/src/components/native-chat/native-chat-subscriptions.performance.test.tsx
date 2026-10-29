@@ -1,6 +1,10 @@
 // @vitest-environment happy-dom
 
-import { Profiler } from 'react'
+import { Profiler, useContext } from 'react'
+import {
+  NativeChatMarkdownImageOwnerProvider,
+  NativeChatMarkdownImageOwnerContext
+} from './native-chat-markdown-image-owner'
 import { NativeChatTextAttachmentScope } from './NativeChatTextAttachments'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -565,7 +569,7 @@ it('keeps mounted attachment scopes quiet and folder catalog work linear at N an
     const contexts = new Map<string, NativeChatImageRuntimeContext>()
     const renders = new Map<string, number>()
     function Probe({ id }: { id: string }) {
-      contexts.set(id, useNativeChatImageRuntimeContext(id))
+      contexts.set(id, useContext(NativeChatMarkdownImageOwnerContext)!.runtimeContext)
       renders.set(id, (renders.get(id) ?? 0) + 1)
       return null
     }
@@ -575,9 +579,11 @@ it('keeps mounted attachment scopes quiet and folder catalog work linear at N an
         const id = `chat-${index}`
         return (
           <Profiler key={id} id={id} onRender={() => commits++}>
-            <NativeChatTextAttachmentScope tabId={id} enabled>
-              <Probe id={id} />
-            </NativeChatTextAttachmentScope>
+            <NativeChatMarkdownImageOwnerProvider tabId={id} sessionId={null} isVisible>
+              <NativeChatTextAttachmentScope enabled>
+                <Probe id={id} />
+              </NativeChatTextAttachmentScope>
+            </NativeChatMarkdownImageOwnerProvider>
           </Profiler>
         )
       })

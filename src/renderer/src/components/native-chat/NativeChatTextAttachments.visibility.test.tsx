@@ -76,7 +76,7 @@ function ChatBody({ tabId }: NativeChatStructuredViewProps) {
   return mocks.fallback ? (
     <Editor tabId={tabId} />
   ) : (
-    <NativeChatTextAttachmentScope tabId={tabId} enabled>
+    <NativeChatTextAttachmentScope enabled>
       <Editor tabId={tabId} />
     </NativeChatTextAttachmentScope>
   )

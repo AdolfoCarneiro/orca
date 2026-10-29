@@ -7,6 +7,7 @@ import { queuedMessageWithEdit } from '../../../../shared/queued-message-edit'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, vi } from 'vitest'
 import { toast } from 'sonner'
+import type * as I18n from '@/i18n/i18n'
 import type { AgentJournalSubmission } from '../../../../shared/agent-session-journal-types'
 import type {
   AgentSessionQueuedMessage,
@@ -48,7 +49,11 @@ vi.mock('@/runtime/structured-agent-session-client', () => ({
   callStructuredAgentSession: hoistedRpc
 }))
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
-vi.mock('@/i18n/i18n', () => ({ translate: (_key: string, fallback: string) => fallback }))
+vi.mock('@/i18n/i18n', async (importOriginal) => ({
+  ...(await importOriginal<typeof I18n>()),
+  translate: (_key: string, fallback: string) => fallback,
+  getIntlLocale: () => 'en-US'
+}))
 
 export const SESSION = 'folder-session'
 export const SCOPE = 'pane-draft'
@@ -81,28 +86,28 @@ export type Props = {
   skillsCapable?: boolean
   promptOpen?: boolean
 }
-export function harness(capable = true, initial: Props = { messages: [message] }) {
-  return renderHook(
-    (props: Props) => {
-      const submissions = props.submissions ?? []
-      return useStructuredAgentSessionQueuedEdit({
-        transport: {
-          target: { kind: 'environment', environmentId: 'remote-host' },
-          sessionId: props.sessionId ?? SESSION,
-          capable,
-          imagesCapable: props.imagesCapable,
-          skillsCapable: props.skillsCapable,
-          write
-        },
-        messages: props.messages,
-        cards: projectQueuedMessageCards(props.messages, submissions, {}),
-        submissions,
-        composerScopeKey: SCOPE,
-        promptOpen: props.promptOpen ?? false
-      })
+export function useQueuedEditFixture(props: Props, capable = true) {
+  const submissions = props.submissions ?? []
+  return useStructuredAgentSessionQueuedEdit({
+    transport: {
+      target: { kind: 'environment', environmentId: 'remote-host' },
+      sessionId: props.sessionId ?? SESSION,
+      capable,
+      imagesCapable: props.imagesCapable,
+      skillsCapable: props.skillsCapable,
+      write
     },
-    { initialProps: initial }
-  )
+    messages: props.messages,
+    cards: projectQueuedMessageCards(props.messages, submissions, {}),
+    submissions,
+    composerScopeKey: SCOPE,
+    promptOpen: props.promptOpen ?? false
+  })
+}
+export function harness(capable = true, initial: Props = { messages: [message] }) {
+  return renderHook((props: Props) => useQueuedEditFixture(props, capable), {
+    initialProps: initial
+  })
 }
 export type Hook = ReturnType<typeof harness>
 export async function begin(hook: Hook) {

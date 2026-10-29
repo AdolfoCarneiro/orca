@@ -6,7 +6,6 @@ import {
   chatTextAttachmentName
 } from '../../../../shared/native-chat-text-attachment-references'
 import { NativeChatTextAttachmentPreview } from './NativeChatTextAttachmentPreview'
-import { useNativeChatImageRuntimeContext } from './native-chat-image-runtime-context'
 import { NativeChatMarkdownImageOwnerContext } from './native-chat-markdown-image-owner'
 
 export const NativeChatTextAttachmentOpener = createContext<
@@ -14,24 +13,23 @@ export const NativeChatTextAttachmentOpener = createContext<
 >(null)
 
 export function NativeChatTextAttachmentScope({
-  tabId,
   enabled,
   children
 }: {
-  tabId: string
   enabled: boolean
   children: ReactNode
 }) {
   return enabled ? (
-    <StructuredAttachmentScope tabId={tabId}>{children}</StructuredAttachmentScope>
+    <StructuredAttachmentScope>{children}</StructuredAttachmentScope>
   ) : (
     <>{children}</>
   )
 }
 
-function StructuredAttachmentScope({ tabId, children }: { tabId: string; children: ReactNode }) {
-  const context = useNativeChatImageRuntimeContext(tabId)
-  const visible = useContext(NativeChatMarkdownImageOwnerContext)?.isVisible ?? true
+function StructuredAttachmentScope({ children }: { children: ReactNode }) {
+  const imageOwner = useContext(NativeChatMarkdownImageOwnerContext)
+  const context = imageOwner?.runtimeContext ?? null
+  const visible = imageOwner?.isVisible ?? true
   const owner = JSON.stringify(context)
   const [selection, setSelection] = useState<{
     owner: string

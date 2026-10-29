@@ -4,7 +4,6 @@ import {
   ATTACHMENT_TEXT_PAGE_BYTES,
   type AttachmentTextRequest
 } from './attachment-text-source'
-import { nativeChatTextAttachmentParts } from './native-chat-text-attachment-references'
 
 function sourceFor(bytes: Buffer) {
   const requests: AttachmentTextRequest[] = []
@@ -46,7 +45,6 @@ describe('bounded attachment source', () => {
         }
       }
       expect(actual).toBe(text)
-      expect(await source.copyText()).toBe(text)
       expect(
         requests.slice(1).every((request) => request.expectedSnapshot === 'a'.repeat(64))
       ).toBe(true)
@@ -118,26 +116,6 @@ describe('bounded attachment source', () => {
     await source.page(0)
     expect(requests).toHaveLength(4)
   })
-})
-
-it('recognizes exact committed references while leaving terminal messages and surrounding text intact', () => {
-  for (const path of [
-    '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/Pasted text.txt',
-    'C:\\Orca\\agent-session-attachments\\12345678-1234-1234-1234-123456789abc\\both\'" names.txt'
-  ]) {
-    const token = ['@"', path.replace(/"/g, '\\"'), '"'].join('')
-    const text = `before ${token} after`
-    const parts = nativeChatTextAttachmentParts(text, true)
-    expect(parts.map((part) => part.text).join('')).toBe(text)
-    expect(parts.find((part) => part.path)?.path).toBe(path)
-    expect(nativeChatTextAttachmentParts(text, false)).toEqual([{ text }])
-  }
-  for (const path of [
-    '@/workspace/file.txt',
-    '@/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/.upload.part'
-  ]) {
-    expect(nativeChatTextAttachmentParts(path, true)).toEqual([{ text: path }])
-  }
 })
 
 it('bounds preview and complete output operations at N and 10N on realistic text shapes', async () => {

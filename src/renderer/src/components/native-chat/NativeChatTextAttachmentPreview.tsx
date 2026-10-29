@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,11 +9,18 @@ import {
   SheetDescription
 } from '@/components/ui/sheet'
 import { isWebClientLocation } from '@/lib/web-client-location'
+import { getIntlLocale } from '@/i18n/i18n'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
-import { useAttachmentTextPreview } from '../../../../shared/use-attachment-text-preview'
+import { createAttachmentTextPreviewHook } from '../../../../shared/use-attachment-text-preview'
 import { ATTACHMENT_TEXT_COPY_MAX_BYTES } from '../../../../shared/attachment-text-source'
 import { createChatAttachmentReader } from './native-chat-text-attachment-read'
 import { chatTextAttachmentName } from '../../../../shared/native-chat-text-attachment-references'
+
+const useAttachmentTextPreview = createAttachmentTextPreviewHook({
+  useState,
+  useEffect,
+  useCallback
+})
 
 export function NativeChatTextAttachmentPreview({
   path,
@@ -114,7 +121,9 @@ export function NativeChatTextAttachmentPreview({
         <SheetHeader>
           <SheetTitle>{name}</SheetTitle>
           <SheetDescription className="break-all">
-            {source.size === null ? 'Text attachment' : `${source.size.toLocaleString()} bytes`}
+            {source.size === null
+              ? 'Text attachment'
+              : `${source.size.toLocaleString(getIntlLocale())} bytes`}
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-wrap gap-2 px-4">

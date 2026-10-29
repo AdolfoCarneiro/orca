@@ -127,7 +127,11 @@ it('opens original descriptor-less POSIX, Windows and UNC tokens without entity,
     `\\\\server\\root @ ' "\\agent-session-attachments\\${uuid}\\日本語.txt`
   ]
   const opened: string[] = []
-  const content = paths.map(formatNativeChatFileReference).join(' ')
+  const content = [
+    ...paths.map(formatNativeChatFileReference),
+    '@/workspace/file.txt',
+    `@/root/agent-session-attachments/${uuid}/.upload.part`
+  ].join(' ')
   const view = render(
     createElement(
       NativeChatTextAttachmentOpener.Provider,

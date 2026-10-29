@@ -1,5 +1,9 @@
 // @vitest-environment happy-dom
-import { Profiler } from 'react'
+import { Profiler, useContext } from 'react'
+import {
+  NativeChatMarkdownImageOwnerProvider,
+  NativeChatMarkdownImageOwnerContext
+} from './native-chat-markdown-image-owner'
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
@@ -16,11 +20,13 @@ import {
   repoFixture,
   worktreeFixture
 } from './native-chat-workspace-test-fixtures'
+import * as runtimeContextHooks from './native-chat-image-runtime-context'
 import { FLOATING_TERMINAL_WORKTREE_ID, getDefaultSettings } from '../../../../shared/constants'
 
 vi.mock('./NativeChatTextAttachmentPreview', () => ({
   NativeChatTextAttachmentPreview: () => null
 }))
+const ownerHook = vi.spyOn(runtimeContextHooks, 'useNativeChatImageRuntimeContext')
 const initial = useAppStore.getInitialState()
 afterEach(() => {
   cleanup()
@@ -127,23 +133,32 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
         )
         const contexts: NativeChatImageRuntimeContext[] = []
         function Probe({ index }: { index: number }) {
-          contexts[index] = useNativeChatImageRuntimeContext(`chat-${index}`)
+          contexts[index] = useContext(NativeChatMarkdownImageOwnerContext)!.runtimeContext
           renders++
           return null
         }
         visits = 0
+        ownerHook.mockClear()
         const view = render(
           tabs.map((_, index) => (
             <Profiler key={index} id={String(index)} onRender={() => commits++}>
-              <NativeChatTextAttachmentScope tabId={`chat-${index}`} enabled={mode !== 'disabled'}>
-                {mode === 'with-probe' ? <Probe index={index} /> : <span />}
-              </NativeChatTextAttachmentScope>
+              <NativeChatMarkdownImageOwnerProvider
+                tabId={`chat-${index}`}
+                sessionId={null}
+                isVisible
+              >
+                <NativeChatTextAttachmentScope enabled={mode !== 'disabled'}>
+                  {mode === 'with-probe' ? <Probe index={index} /> : <span />}
+                </NativeChatTextAttachmentScope>
+              </NativeChatMarkdownImageOwnerProvider>
             </Profiler>
           ))
         )
         await act(async () => {})
+        // The preexisting provider owns all route hooks; enabled scopes add none.
+        expect(ownerHook).toHaveBeenCalledTimes(n)
         // Shared immutable indexes plus addressed lookup, including cold catalogs, are additive.
-        expect(visits).toBeLessThanOrEqual(mode === 'disabled' ? 0 : 12 * n)
+        expect(visits).toBeLessThanOrEqual(12 * n)
         const baseline = contexts.map((context) => JSON.stringify(context))
         const metrics = []
         for (const kind of ['other-host', 'other-target', 'other-pin'] as const) {
@@ -212,9 +227,9 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
               : { sshStateByEnvironment: new Map([['owner-a', ssh(4)]]) }
           )
         )
-        expect(commits).toBe(mode === 'disabled' ? 0 : floating ? 1 : n)
+        expect(commits).toBe(floating ? 1 : n)
         expect(renders).toBe(mode === 'with-probe' ? (floating ? 1 : n) : 0)
-        expect(visits).toBeLessThanOrEqual(mode === 'disabled' ? 0 : 4 * n)
+        expect(visits).toBeLessThanOrEqual(4 * n)
         if (mode === 'with-probe') {
           expect(contexts[0]).toMatchObject(
             floating ? { worktreePath: '/changed' } : { expectedSshConnectionGeneration: 4 }
@@ -435,22 +450,30 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
         )
         const contexts: NativeChatImageRuntimeContext[] = []
         function Probe({ index }: { index: number }) {
-          contexts[index] = useNativeChatImageRuntimeContext(`chat-${index}`)
+          contexts[index] = useContext(NativeChatMarkdownImageOwnerContext)!.runtimeContext
           renders++
           return null
         }
         operations = 0
+        ownerHook.mockClear()
         const view = render(
           Array.from({ length: n }, (_, index) => (
             <Profiler key={index} id={String(index)} onRender={() => commits++}>
-              <NativeChatTextAttachmentScope tabId={`chat-${index}`} enabled={mode !== 'disabled'}>
-                {mode === 'with-probe' ? <Probe index={index} /> : <span />}
-              </NativeChatTextAttachmentScope>
+              <NativeChatMarkdownImageOwnerProvider
+                tabId={`chat-${index}`}
+                sessionId={null}
+                isVisible
+              >
+                <NativeChatTextAttachmentScope enabled={mode !== 'disabled'}>
+                  {mode === 'with-probe' ? <Probe index={index} /> : <span />}
+                </NativeChatTextAttachmentScope>
+              </NativeChatMarkdownImageOwnerProvider>
             </Profiler>
           ))
         )
         await act(async () => {})
-        const bound = mode === 'disabled' ? 0 : 20 * n
+        expect(ownerHook).toHaveBeenCalledTimes(n)
+        const bound = 20 * n
         expect(operations).toBeLessThanOrEqual(bound)
         if (mode === 'with-probe') {
           expect(contexts).toHaveLength(n)
@@ -472,7 +495,7 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
           renders = 0
           await act(async () => useAppStore.setState(patch))
           expect(operations).toBeLessThanOrEqual(limit)
-          expect(commits).toBe(changed && mode !== 'disabled' ? n : 0)
+          expect(commits).toBe(changed ? n : 0)
           expect(renders).toBe(changed && mode === 'with-probe' ? n : 0)
           if (mode === 'with-probe') {
             expect(

@@ -476,7 +476,7 @@ it('settles source-owned relay waits, never serializes local options and complet
   const { session } = await authenticateSession()
   const logical = createStableLogicalRpcClient(session, 'relay')
   const client = scopeRpcClientToExecutionHost(logical, 'runtime:server35636')
-  let source: AttachmentTextSource
+  let source: InstanceType<typeof AttachmentTextSource>
   let hold = true
   fakes.sendText.mockImplementation((raw) => {
     const frame = JSON.parse(raw)

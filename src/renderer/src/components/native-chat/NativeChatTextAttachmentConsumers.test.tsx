@@ -1,8 +1,24 @@
 // @vitest-environment happy-dom
-import { createRef, useRef } from 'react'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { createRef, useRef, useContext, useMemo } from 'react'
+import { useQueuedEditFixture, withText, writeSpy } from './structured-queued-edit.test-fixture'
+import { NativeChatQueuedMessageComposer } from './NativeChatQueuedMessageComposer'
+import { NativeChatComposer } from './NativeChatComposer'
+import { fileReferenceContent } from './native-chat-prompt-document'
+import { NativeChatMarkdownImageOwnerProvider } from './native-chat-markdown-image-owner'
+import { useAppStore } from '@/store'
+import {
+  nativeChatFanoutFixture,
+  agentSessionTabFixture,
+  repoFixture,
+  worktreeFixture
+} from './native-chat-workspace-test-fixtures'
+import type { NativeChatImageRuntimeContext } from './native-chat-image-runtime-context'
+import { getDefaultSettings } from '../../../../shared/constants'
+import type { NativeChatStructuredComposerTransport } from './native-chat-composer-types'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { NativeChatMarkdownImageOwnerContext } from './native-chat-markdown-image-owner'
 import { NativeChatPromptEditor } from './NativeChatPromptEditor'
 import { NativeChatTextAttachmentScope } from './NativeChatTextAttachments'
 import { NativeChatUserMessageRow } from './NativeChatUserMessageRow'
@@ -25,16 +41,6 @@ import { deriveNativeChatRowContent } from '../../../../shared/native-chat-row-c
 import type { NativeChatMessage } from '../../../../shared/native-chat-types'
 
 const mocks = vi.hoisted(() => ({ save: vi.fn(), rpc: vi.fn(), write: vi.fn(), resolved: false }))
-vi.mock('./native-chat-image-runtime-context', () => ({
-  useNativeChatImageRuntimeContext: () =>
-    mocks.resolved
-      ? {
-          target: { kind: 'local' },
-          worktreeId: 'w',
-          worktreePath: '/repo'
-        }
-      : null
-}))
 vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: mocks.rpc }))
 vi.mock('./native-chat-visual-markdown-extension', () => ({
   useNativeChatVisualMarkdownExtension: () => undefined
@@ -42,7 +48,14 @@ vi.mock('./native-chat-visual-markdown-extension', () => ({
 vi.mock('./use-native-chat-file-link-existence', () => ({
   useNativeChatFileLinkExists: () => undefined
 }))
-vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+vi.mock('./NativeChatAutocompleteMenus', () => ({
+  NativeChatMentionMenu: () => null,
+  NativeChatPickerMenu: () => null
+}))
+vi.mock('./use-native-chat-skills', () => ({
+  useNativeChatSkills: () => ({ status: 'ready', skills: [], error: null, retry: () => {} })
+}))
 const scope = 'agent-session:consumer35636'
 const path =
   '/host/agent-session-attachments/12345678-1234-1234-1234-123456789abc/orca-paste-123-abc.txt'
@@ -57,20 +70,41 @@ function Composer({ initialValue = '' }: { initialValue?: string }) {
     insertTypedText: (text) => insertNativeChatPastedText(ref.current, text),
     setNotice: () => {}
   })
+  const resolved = mocks.resolved
+  const owner = useMemo(
+    () => ({
+      runtimeContext: resolved
+        ? { target: { kind: 'local' as const }, worktreeId: 'w', worktreePath: '/repo' }
+        : null,
+      isVisible: true,
+      fileLinkContext: null
+    }),
+    [resolved]
+  )
   return (
-    <NativeChatTextAttachmentScope enabled tabId="tab">
-      <NativeChatPromptEditor
-        scopeKey={scope}
-        inputRef={ref}
-        initialValue={initialValue}
-        disabled={false}
-        placeholder="Message"
-        onChange={(current) => {
-          input = current
-        }}
-        onSelect={() => {}}
-      />
-    </NativeChatTextAttachmentScope>
+    <NativeChatMarkdownImageOwnerContext.Provider value={owner}>
+      <NativeChatTextAttachmentScope enabled>
+        <NativeChatPromptEditor
+          scopeKey={scope}
+          inputRef={ref}
+          initialValue={initialValue}
+          disabled={false}
+          placeholder="Message"
+          onChange={(current) => {
+            input = current
+          }}
+          onSelect={() => {}}
+        />
+      </NativeChatTextAttachmentScope>
+    </NativeChatMarkdownImageOwnerContext.Provider>
+  )
+}
+async function openSource() {
+  fireEvent.click(screen.getByRole('button', { name: 'Pasted text' }))
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Copy contents' }).hasAttribute('disabled')).toBe(
+      false
+    )
   )
 }
 function row(text: string) {
@@ -218,3 +252,267 @@ it('keeps a committed picked filename actionable through the existing editor ins
   expect(screen.getByRole('button', { name: 'report.csv' })).toBeTruthy()
   expect(input!.value).toContain(`@${picked}`)
 })
+
+it.each(['save', 'cancel', 'escape', 'unmount'] as const)(
+  'retires the actual queued composer source on %s while the normal composer keeps its editor',
+  async (exit) => {
+    const initial = useAppStore.getInitialState()
+    const fixture = nativeChatFanoutFixture(1, 1, 0)
+    useAppStore.setState(
+      {
+        ...initial,
+        ...fixture,
+        settings: getDefaultSettings('/test35636'),
+        runtimeEnvironmentCatalogHydrated: true
+      },
+      true
+    )
+    const text = 'queued source bytes'
+    const bytes = Buffer.from(text)
+    const reply = {
+      snapshot: 'a'.repeat(64),
+      size: bytes.length,
+      bytesRead: bytes.length,
+      contentBase64: bytes.toString('base64'),
+      eof: true
+    }
+    mocks.rpc.mockImplementation(async (_target, method) =>
+      method === 'status.get' ? { capabilities: ['native-chat.text-attachment-read.v1'] } : reply
+    )
+    Object.defineProperty(window, 'api', {
+      configurable: true,
+      value: {
+        ui: { writeClipboardText: mocks.write },
+        git: { discoverCommitMessageModels: vi.fn(async () => ({ success: false })) }
+      }
+    })
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      }
+    )
+    const transport: NativeChatStructuredComposerTransport = {
+      capturePresentation: () => () => true,
+      send: () => true,
+      dispatchCommand: async () => ({ handled: false, accepted: false, error: null }),
+      optionsSurface: {
+        getSnapshot: () => [],
+        setOption: vi.fn(),
+        invokeAction: vi.fn(),
+        subscribe: () => () => {}
+      },
+      optionSnapshot: [],
+      onError: vi.fn(),
+      runtime: 'local',
+      sessionId: 'session-0',
+      runtimeEnvironmentId: null
+    }
+    const observed: { owner: NativeChatImageRuntimeContext } = { owner: null }
+    function OwnerProbe() {
+      observed.owner = useContext(NativeChatMarkdownImageOwnerContext)!.runtimeContext
+      return null
+    }
+    function Chat({ visible = true }: { visible?: boolean }) {
+      const queue = useQueuedEditFixture({ messages: [withText(`@${path}`)] })
+      return (
+        <TooltipProvider>
+          <NativeChatMarkdownImageOwnerProvider
+            tabId="chat-0"
+            sessionId="session-0"
+            isVisible={visible}
+          >
+            <OwnerProbe />
+            <NativeChatComposer
+              terminalTabId="chat-0"
+              paneKey="normal35636"
+              targetPtyId={null}
+              agent="codex"
+              structuredTransport={transport}
+            />
+            <button onClick={() => void queue.begin('card')}>Edit queued source</button>
+            {queue.editor ? (
+              <NativeChatQueuedMessageComposer
+                editor={queue.editor}
+                attachTo={{ terminalTabId: 'chat-0', transport }}
+              />
+            ) : null}
+          </NativeChatMarkdownImageOwnerProvider>
+        </TooltipProvider>
+      )
+    }
+    const view = render(<Chat />)
+    try {
+      const normal = screen.getByRole('textbox')
+      const normalEditor = promptEditor(normal)
+      await act(async () => normalEditor.commands.insertContent('unsent normal draft'))
+      fireEvent.click(screen.getByRole('button', { name: 'Edit queued source' }))
+      await waitFor(() => expect(screen.getAllByRole('textbox')).toHaveLength(2))
+      const editor = screen.getAllByRole('textbox')[1]!
+      const queuedEditor = promptEditor(editor)
+      await act(async () =>
+        queuedEditor.commands.insertContent([
+          { type: 'text', text: 'edited ' },
+          fileReferenceContent(path),
+          { type: 'text', text: ' ' }
+        ])
+      )
+      // Owner replacement retires only the preview and preserves both real editor instances/drafts.
+      await openSource()
+      await act(async () =>
+        useAppStore.setState({
+          sshStateByEnvironment: new Map([
+            [
+              'unrelated',
+              {
+                targets: [],
+                targetGenerations: new Map(),
+                targetLabels: new Map(),
+                removedTargetLabels: new Map(),
+                targetsHydrated: true,
+                connectionStates: new Map()
+              }
+            ]
+          ])
+        })
+      )
+      expect(screen.getByRole('button', { name: 'Copy contents' })).toBeTruthy()
+      await act(async () =>
+        useAppStore.setState({
+          folderWorkspaces: useAppStore
+            .getState()
+            .folderWorkspaces.map((row) =>
+              row.id === 'workspace-0' ? { ...row, folderPath: '/renamed35636' } : row
+            )
+        })
+      )
+      expect(screen.queryByRole('button', { name: 'Copy contents' })).toBeNull()
+      expect(promptEditor(editor)).toBe(queuedEditor)
+      expect(promptEditor(normal)).toBe(normalEditor)
+      expect(promptValue(normal)).toBe('unsent normal draft')
+      if (exit === 'save') {
+        const folders = useAppStore.getState().folderWorkspaces
+        await openSource()
+        await act(async () => useAppStore.setState({ folderWorkspaces: [] }))
+        expect(screen.queryByRole('button', { name: 'Copy contents' })).toBeNull()
+        await act(async () => useAppStore.setState({ folderWorkspaces: folders }))
+        const ssh = (generation: number) =>
+          new Map([
+            [
+              'owner-a',
+              {
+                targets: [],
+                targetGenerations: new Map(),
+                targetLabels: new Map(),
+                removedTargetLabels: new Map(),
+                targetsHydrated: true,
+                connectionStates: new Map([
+                  [
+                    'ssh35636',
+                    {
+                      targetId: 'ssh35636',
+                      status: 'connected' as const,
+                      error: null,
+                      reconnectAttempt: 0,
+                      connectionGeneration: generation
+                    }
+                  ]
+                ])
+              }
+            ]
+          ])
+        await act(async () =>
+          useAppStore.setState({
+            unifiedTabsByWorktree: {
+              'wt-ssh': [agentSessionTabFixture('chat-0', 'wt-ssh', { entityId: 'session-0' })]
+            },
+            activeWorktreeId: 'wt-ssh',
+            activeWorkspaceExecutionHostId: 'ssh:ssh35636',
+            repos: [repoFixture({ executionHostId: 'runtime:owner-a' })],
+            worktreesByRepo: {
+              repo: [
+                worktreeFixture('wt-ssh', '/ssh35636', {
+                  hostId: 'ssh:ssh35636',
+                  runtimeOwnerEnvironmentId: 'owner-a'
+                })
+              ]
+            },
+            runtimeEnvironments: [
+              {
+                id: 'owner-a',
+                name: 'owner-a',
+                createdAt: 0,
+                updatedAt: 0,
+                lastUsedAt: null,
+                runtimeId: null,
+                preferredEndpointId: 'endpoint',
+                endpoints: []
+              }
+            ],
+            sshStateByEnvironment: ssh(1)
+          })
+        )
+        expect(observed.owner).toMatchObject({
+          expectedSshConnectionGeneration: 1,
+          target: { kind: 'environment', environmentId: 'owner-a' }
+        })
+        await openSource()
+        await act(async () => useAppStore.setState({ sshStateByEnvironment: ssh(2) }))
+        expect(observed.owner).toMatchObject({ expectedSshConnectionGeneration: 2 })
+        expect(screen.queryByRole('button', { name: 'Copy contents' })).toBeNull()
+        expect(promptEditor(editor)).toBe(queuedEditor)
+        expect(promptEditor(normal)).toBe(normalEditor)
+      }
+      await openSource()
+      view.rerender(<Chat visible={false} />)
+      expect(screen.queryByRole('button', { name: 'Copy contents' })).toBeNull()
+      view.rerender(<Chat />)
+      await openSource()
+      const pending = Promise.withResolvers<typeof reply>()
+      mocks.rpc.mockImplementationOnce(() => pending.promise)
+      fireEvent.click(screen.getByRole('button', { name: 'Copy contents' }))
+      await act(async () => {})
+      if (exit === 'save') {
+        fireEvent.keyDown(editor, { key: 'Enter' })
+        await waitFor(() => expect(writeSpy).toHaveBeenCalled())
+      } else if (exit === 'cancel') {
+        fireEvent.click(
+          within(view.container).getByRole('button', { name: 'Cancel', hidden: true })
+        )
+      } else if (exit === 'escape') {
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+        await waitFor(() =>
+          expect(screen.queryByRole('button', { name: 'Copy contents' })).toBeNull()
+        )
+        await act(async () => editor.focus())
+        fireEvent.keyDown(editor, { key: 'Escape' })
+      } else {
+        view.unmount()
+      }
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'Copy contents' })).toBeNull()
+      )
+      await act(async () => pending.resolve(reply))
+      expect(mocks.write).not.toHaveBeenCalled()
+      if (exit !== 'unmount') {
+        await waitFor(() => expect(screen.getAllByRole('textbox')).toEqual([normal]))
+        expect(promptValue(normal)).toBe('unsent normal draft')
+        fireEvent.click(screen.getByRole('button', { name: 'Edit queued source' }))
+        await waitFor(() => expect(screen.getAllByRole('textbox')).toHaveLength(2))
+        await act(async () =>
+          promptEditor(screen.getAllByRole('textbox')[1]!).commands.insertContent(
+            fileReferenceContent(path)
+          )
+        )
+        await openSource()
+        fireEvent.click(screen.getByRole('button', { name: 'Copy contents' }))
+        await waitFor(() => expect(mocks.write).toHaveBeenCalledWith(text))
+      }
+    } finally {
+      view.unmount()
+      useAppStore.setState(initial, true)
+      vi.unstubAllGlobals()
+    }
+  }
+)

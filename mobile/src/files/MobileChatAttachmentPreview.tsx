@@ -1,16 +1,23 @@
 import { createMobileChatAttachmentReader } from './mobile-chat-attachment-read'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useWorkspaceRouteHandoff } from '../navigation/workspace-route-handoff'
 import { useWorkspaceClient } from '../transport/use-workspace-client'
-import { useAttachmentTextPreview } from '../../../src/shared/use-attachment-text-preview'
+import { createAttachmentTextPreviewHook } from '../../../src/shared/use-attachment-text-preview'
 import { chatTextAttachmentName } from '../../../src/shared/native-chat-text-attachment-references'
 import { MOBILE_BRIDGE_MAX_FRAME_BYTES } from '../../../src/shared/mobile-bridge-frame-bytes'
 import { useClipboardWriter } from '../platform/clipboard'
+import { getUiIntlLocale } from '../i18n/ui-intl-locale'
 import { filePreviewStyles as styles } from './mobile-file-preview-styles'
 import type { MobileFilePreviewRouteParams } from './mobile-file-preview-route'
+
+const useAttachmentTextPreview = createAttachmentTextPreviewHook({
+  useState,
+  useEffect,
+  useCallback
+})
 
 export function MobileChatAttachmentPreview({ params }: { params: MobileFilePreviewRouteParams }) {
   useMobileColorScheme()
@@ -77,7 +84,9 @@ export function MobileChatAttachmentPreview({ params }: { params: MobileFilePrev
               {chatTextAttachmentName(path)}
             </Text>
             <Text style={styles.meta}>
-              {source.size === null ? 'Text attachment' : `${source.size.toLocaleString()} bytes`}
+              {source.size === null
+                ? 'Text attachment'
+                : `${source.size.toLocaleString(getUiIntlLocale())} bytes`}
             </Text>
           </View>
         </View>

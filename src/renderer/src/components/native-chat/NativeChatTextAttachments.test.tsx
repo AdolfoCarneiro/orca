@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { StrictMode, useContext, useState } from 'react'
+import { StrictMode, useContext, useState, useMemo } from 'react'
 import type { RuntimeFileOperationArgs } from '@/runtime/runtime-file-client-types'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -10,6 +10,7 @@ import {
 } from './NativeChatTextAttachments'
 import { NativeChatTextAttachmentPreview } from './NativeChatTextAttachmentPreview'
 import { AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY } from '../../../../shared/agent-session-runtime-capabilities'
+import { NativeChatMarkdownImageOwnerContext } from './native-chat-markdown-image-owner'
 import { replaceRuntimeEnvironmentRevisions } from '@/runtime/runtime-environment-revision'
 
 const mocks = vi.hoisted(() => ({
@@ -23,9 +24,6 @@ const mocks = vi.hoisted(() => ({
   cancel: vi.fn()
 }))
 vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: mocks.rpc }))
-vi.mock('./native-chat-image-runtime-context', () => ({
-  useNativeChatImageRuntimeContext: () => mocks.context
-}))
 vi.mock('@/lib/web-client-location', () => ({ isWebClientLocation: () => mocks.web }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 const path =
@@ -164,11 +162,21 @@ it.each([true, false])(
         </>
       )
     }
-    const ui = () => (
-      <NativeChatTextAttachmentScope enabled={enabled} tabId="tab">
-        <Child />
-      </NativeChatTextAttachmentScope>
-    )
+    function Ui() {
+      const runtimeContext = mocks.context
+      const owner = useMemo(
+        () => ({ runtimeContext, isVisible: true, fileLinkContext: null }),
+        [runtimeContext]
+      )
+      return (
+        <NativeChatMarkdownImageOwnerContext.Provider value={owner}>
+          <NativeChatTextAttachmentScope enabled={enabled}>
+            <Child />
+          </NativeChatTextAttachmentScope>
+        </NativeChatMarkdownImageOwnerContext.Provider>
+      )
+    }
+    const ui = () => <Ui />
     const view = render(ui())
     const input = screen.getByRole('textbox', { name: 'draft' })
     fireEvent.change(input, { target: { value: 'local editor state' } })
