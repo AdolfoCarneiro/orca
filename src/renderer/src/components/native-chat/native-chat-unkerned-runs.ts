@@ -8,7 +8,7 @@ export const NATIVE_CHAT_UNKERNED_STYLE = 'font-kerning: none'
 export const NATIVE_CHAT_UNKERNED_CSS: CSSProperties = { fontKerning: 'none' }
 
 // Whitespace, plus scripts Chromium breaks between characters: Thai, Hangul, kana, CJK ideographs.
-function breaksRun(code: number): boolean {
+export function nativeChatBreaksUnkernedRun(code: number): boolean {
   return (
     code === 32 ||
     (code >= 9 && code <= 13) ||
@@ -30,7 +30,7 @@ export function nativeChatUnkernedRuns(text: string, limit = Infinity): [number,
   const runs: [number, number][] = []
   let start = 0
   for (let index = 0; index <= text.length && runs.length < limit; index++) {
-    if (index === text.length || breaksRun(text.charCodeAt(index))) {
+    if (index === text.length || nativeChatBreaksUnkernedRun(text.charCodeAt(index))) {
       if (index - start > KERNED_RUN_MAX_CHARS) {
         runs.push([start, index])
       }
