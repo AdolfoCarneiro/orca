@@ -13,7 +13,7 @@ afterEach(() => {
 
 describe('OrcadFeatureReadiness', () => {
   it('adds no await for open or undeclared features, so ungated dispatch starts synchronously', () => {
-    expect(rpcMethodFeatureWait(undefined)).toBeNull()
+    expect(rpcMethodFeatureWait([])).toBeNull()
     expect(rpcMethodFeatureWait(['accounts'])).toBeNull()
     const readiness = installOrcadFeatureReadiness()
     expect(rpcMethodFeatureWait([])).toBeNull()
@@ -39,7 +39,7 @@ describe('OrcadFeatureReadiness', () => {
   it('refuses with runtime_unavailable after the bound and leaves no timer behind', async () => {
     vi.useFakeTimers()
     installOrcadFeatureReadiness()
-    const wait = rpcMethodFeatureWait(['sessionSearch'], 50)
+    const wait = rpcMethodFeatureWait(['sessionSearch'], [], 50)
     const refused = expect(wait).rejects.toThrow('runtime_unavailable')
     await vi.advanceTimersByTimeAsync(50)
     await refused
