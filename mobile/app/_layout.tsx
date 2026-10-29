@@ -3,13 +3,16 @@ import { registerPushDismissalTask } from '../src/notifications/push-background-
 import { readNativeNotificationData } from '../src/notifications/native-notification-data'
 import { setNotificationViewingWorkspace } from '../src/notifications/notification-viewing-policy'
 import { useCallback, useEffect, useRef } from 'react'
-import { View, StyleSheet } from 'react-native'
+import { View } from 'react-native'
 import { Stack, useRouter, useGlobalSearchParams, usePathname } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import * as SplashScreen from 'expo-splash-screen'
 import * as Notifications from 'expo-notifications'
 import * as Linking from 'expo-linking'
 import { colors } from '../src/theme/mobile-theme'
+import { startMobileAppearance } from '../src/theme/mobile-appearance'
+import { themedStyleSheet } from '../src/theme/themed-styles'
+import { useMobileColorScheme } from '../src/theme/use-mobile-color-scheme'
 import { OrcaLogo } from '../src/components/OrcaLogo'
 import { RpcClientProvider } from '../src/transport/client-context'
 import { getNotificationNavigationTarget } from '../src/notifications/notification-routing'
@@ -26,12 +29,23 @@ import { extractPairingCodeFromUrl } from '../src/transport/pairing'
 import { recoverMobileRelayPairing } from '../src/transport/mobile-relay-pairing-recovery'
 import { appUpdateChecker } from '../src/app-update/app-update-runtime'
 import { SideSafeArea } from '../src/layout/side-safe-area'
+import { useFollowDeviceUiLocale } from '../src/i18n/use-follow-device-ui-locale'
+import { startMobileUiLanguage } from '../src/i18n/ui-language-preference'
+import { subscribeMobileUiLanguage } from '../src/i18n/mobile-i18n'
 
 // Keep splash visible until React content is ready to avoid a blank frame.
 SplashScreen.preventAutoHideAsync()
+// Apply the phone's scheme before the first render; the saved choice lands under the splash.
+const appearanceReady = startMobileAppearance()
+// Likewise the UI language: the saved choice and its catalog load under the splash.
+const languageReady = startMobileUiLanguage()
 
 // Create orca-desktop channel at boot: background FCM can arrive before socket subscription, and Android drops unknown-channel pushes.
 void ensureDesktopNotificationChannel().catch(() => {})
+// Channel names show in Android settings; rename them in the active language.
+subscribeMobileUiLanguage(() => {
+  void ensureDesktopNotificationChannel().catch(() => {})
+})
 void registerPushDismissalTask().catch(() => {})
 
 // Register before scheduling so foreground delivery uses the same suppression policy.
@@ -40,6 +54,8 @@ Notifications.setNotificationHandler({
 })
 
 export default function RootLayout() {
+  const colorScheme = useMobileColorScheme()
+  useFollowDeviceUiLocale()
   const router = useRouter()
   const pathname = usePathname()
   const { hostId, worktreeId, executionHost } = useGlobalSearchParams<{
@@ -171,13 +187,16 @@ export default function RootLayout() {
 
   // Hide splash only after Stack layout; a placeholder render can precede real screen content and expose a grey gap.
   const onNavigatorLayout = useCallback(async () => {
+    await Promise.all([appearanceReady, languageReady])
+    // Let the language switch commit before revealing the first frame.
+    await new Promise((resolve) => requestAnimationFrame(resolve))
     await SplashScreen.hideAsync()
   }, [])
 
   return (
     <RpcClientProvider>
       <View style={styles.root} onLayout={onNavigatorLayout}>
-        <StatusBar style="light" />
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         <SideSafeArea>
           <Stack
             screenOptions={{
@@ -204,6 +223,7 @@ export default function RootLayout() {
               options={{ headerShown: false, presentation: 'modal', gestureEnabled: false }}
             />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
+            <Stack.Screen name="appearance-settings" options={{ headerShown: false }} />
             <Stack.Screen name="terminal-settings" options={{ headerShown: false }} />
             <Stack.Screen name="native-chat-settings" options={{ headerShown: false }} />
             <Stack.Screen name="browser-settings" options={{ headerShown: false }} />
@@ -230,9 +250,9 @@ export default function RootLayout() {
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyleSheet(() => ({
   root: {
     flex: 1,
     backgroundColor: colors.bgBase
   }
-})
+}))
