@@ -134,3 +134,38 @@ it('holds grouping until delayed owner input and keeps owner groups across A →
     desktop.sendRequest.mock.calls.filter(([method]) => method === MOBILE_PROJECT_SECTIONS_METHOD)
   ).toHaveLength(1)
 })
+
+it.each(['null', 'method_not_found'] as const)(
+  'finishes owner loading for an old desktop response: %s',
+  async (kind) => {
+    const base = {
+      id: 'legacy-a',
+      displayName: 'App',
+      path: '/app/a',
+      upstream: { owner: 'org', repo: 'app' }
+    }
+    const repos = [base, { ...base, id: 'legacy-b', path: '/app/b' }]
+    const client = new FakeSession('connected')
+    client.sendRequest.mockImplementation(async (method) => {
+      if (method === MOBILE_PROJECT_SECTIONS_METHOD) {
+        return kind === 'null'
+          ? reply({ catalog: null })
+          : {
+              id: 'reply',
+              ok: false,
+              error: { code: 'method_not_found', message: 'Unknown method' }
+            }
+      }
+      return reply({ repos })
+    })
+    function Harness() {
+      const state = useNewWorkspaceRepositories({ client, visible: true })
+      return <output>{state.grouping?.groups.length ?? 'pending'}</output>
+    }
+    container = document.createElement('div')
+    document.body.append(container)
+    root = createRoot(container)
+    await act(async () => root!.render(<Harness />))
+    expect(container.textContent).toBe('2')
+  }
+)
