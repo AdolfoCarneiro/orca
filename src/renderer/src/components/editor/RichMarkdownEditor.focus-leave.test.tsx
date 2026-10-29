@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
-import { act, cleanup, fireEvent, render } from '@testing-library/react'
-import { afterEach, expect, it, vi } from 'vitest'
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { Editor } from '@tiptap/react'
 import type * as EditorInstance from './useRichMarkdownEditorInstance'
 import RichMarkdownEditor from './RichMarkdownEditor'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { installHappyDomSelectionNotificationTasks } from '../../../../../config/scripts/vitest-dom-setup'
 
 const live = vi.hoisted((): { editor: Editor | null } => ({ editor: null }))
 vi.mock('./useRichMarkdownEditorInstance', async (importOriginal) => {
@@ -20,12 +21,21 @@ vi.mock('./useRichMarkdownEditorInstance', async (importOriginal) => {
   }
 })
 
+let disposeSelectionNotifications: (() => void) | null = null
+beforeEach(() => {
+  disposeSelectionNotifications = installHappyDomSelectionNotificationTasks(document)
+})
 afterEach(() => {
-  cleanup()
-  vi.useRealTimers()
-  vi.restoreAllMocks()
-  vi.unstubAllGlobals()
-  live.editor = null
+  try {
+    cleanup()
+  } finally {
+    disposeSelectionNotifications?.()
+    disposeSelectionNotifications = null
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    live.editor = null
+  }
 })
 
 it.each(['outside', 'null', 'inside'] as const)(
@@ -63,7 +73,15 @@ it.each(['outside', 'null', 'inside'] as const)(
         headerSlot={<input aria-label="inside" />}
       />
     )
-    await act(async () => {})
+    await waitFor(() => {
+      const current = live.editor
+      if (!current) {
+        throw new Error('Editor did not mount')
+      }
+      expect(current.isInitialized).toBe(true)
+      expect(current.view.dom.isConnected).toBe(true)
+      expect(view.container.contains(current.view.dom)).toBe(true)
+    })
     const editor = live.editor
     const root = view.container.querySelector('.rich-markdown-editor-shell')
     if (!editor || !root) {
@@ -180,7 +198,10 @@ it.each([
     if (action === 'dragstart') {
       // The DOM emulator aliases DragEvent to Event and drops its dataTransfer initializer.
       Object.defineProperty(event, 'dataTransfer', { value: data })
-      expect(Reflect.get(event, 'dataTransfer')).toBe(data)
+      if (!(event instanceof DragEvent)) {
+        throw new Error('Expected drag event')
+      }
+      expect(event.dataTransfer).toBe(data)
     }
     fireEvent(editor.view.dom, event)
     if (action === 'paste') {

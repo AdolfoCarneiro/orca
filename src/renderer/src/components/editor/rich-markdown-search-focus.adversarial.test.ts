@@ -9,11 +9,12 @@ import {
   richMarkdownSelectionCompletionEvents
 } from './drag-selection-guard'
 import { CellSelection } from '@tiptap/pm/tables'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { focusRichMarkdownEditorFromSearch } from './rich-markdown-search-focus'
 import { createElement } from 'react'
 import { fireEvent, render } from '@testing-library/react'
 import { RichMarkdownToolbar } from './RichMarkdownToolbar'
+import { installHappyDomSelectionNotificationTasks } from '../../../../../config/scripts/vitest-dom-setup'
 
 function findTextPosition(editor: Editor, text: string): number {
   let position: number | null = null
@@ -58,7 +59,13 @@ function createSurface(content: string, extensions: AnyExtension[] = []) {
   return { editor, input, replace }
 }
 
+let disposeSelectionNotifications: (() => void) | null = null
+beforeEach(() => {
+  disposeSelectionNotifications = installHappyDomSelectionNotificationTasks(document)
+})
 afterEach(() => {
+  disposeSelectionNotifications?.()
+  disposeSelectionNotifications = null
   vi.useRealTimers()
   vi.restoreAllMocks()
   document.body.replaceChildren()
@@ -128,6 +135,8 @@ describe('Find focus with editor-owned selection', () => {
         vi.spyOn(native, 'addRange'),
         vi.spyOn(native, 'removeAllRanges')
       ]
+      const notifications = vi.fn()
+      document.addEventListener('selectionchange', notifications)
       try {
         fireEvent.keyDown(active.view.dom, { key: 'Shift' })
         document.dispatchEvent(new Event('selectionchange'))
@@ -160,6 +169,7 @@ describe('Find focus with editor-owned selection', () => {
           restorations.mockClear()
           nativeWrites.forEach((write) => write.mockClear())
           publications.mockClear()
+          notifications.mockClear()
           reads.fill(0)
           if (boundary !== 'key') {
             const measuredActive = measuredViews.at(-1)
@@ -175,9 +185,12 @@ describe('Find focus with editor-owned selection', () => {
           }
           expect(publications).toHaveBeenCalledOnce()
           expect(active.state.selection.anchor - active.state.selection.head).toBe(5)
+          expect(notifications).not.toHaveBeenCalled()
           // Deliver completion's notification and settle engine work; it must not restore and notify again.
           document.dispatchEvent(new Event('selectionchange'))
+          expect(notifications).toHaveBeenCalledOnce()
           vi.runAllTimers()
+          expect(notifications).toHaveBeenCalledTimes(2)
           expect(publications).toHaveBeenCalledOnce()
           expect(restorations).toHaveBeenCalledTimes(1)
           expect(nativeWrites.map((write) => write.mock.calls.length)).toEqual([0, 0, 0, 0])
@@ -195,6 +208,7 @@ describe('Find focus with editor-owned selection', () => {
           expect(settledReads).toBeLessThanOrEqual(30 * paragraphs)
         }
       } finally {
+        document.removeEventListener('selectionchange', notifications)
         measuredViews.forEach(({ restore }) => restore())
         surfaces.forEach(({ editor }) => editor.destroy())
         restorations.mockRestore()
