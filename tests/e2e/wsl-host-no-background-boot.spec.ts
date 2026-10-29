@@ -3,6 +3,7 @@
  * (the HUB stands in for the distro's orcad) keeps a WSL project and a local one. With the distro
  * stopped, a window of ordinary background activity elsewhere must start nothing in it; the user
  * then opening a terminal there starts it exactly once. Catches any new caller that skips the gate.
+ * Host dials only; bridge/UNC background paths are covered by their unit gates and the Windows lane guard.
  */
 import { mkdtempSync, rmSync } from 'node:fs'
 import os from 'node:os'
@@ -166,11 +167,14 @@ test.describe('E9: background work on a stopped WSL host', () => {
         )
         .toContain('Ubuntu was stopped')
       const connectsWhileStopped = fakeWslConnects(connectLogFile).length
+      // Setup connected at least once: a connect log that was never written fails here.
+      expect(connectsWhileStopped).toBeGreaterThan(0)
       const wslRepoId = await page.evaluate(
         (wslPath) =>
           window.__store?.getState().repos.find((repo) => repo.path === wslPath)?.id ?? null,
         wslProjectPath
       )
+      expect(wslRepoId).toBeTruthy()
 
       // The background window: nothing here is the user acting on the WSL workspace.
       for (let round = 0; round < 2; round += 1) {
