@@ -1,6 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
-import { AppState } from 'react-native'
-import { useFocusEffect } from 'expo-router'
+import { useEffect } from 'react'
 import type { MobileNativeChatVisualSource } from './visual/mobile-native-chat-visual-read'
 
 /** Report when the user sees this chat at rest: it comes on screen idle and read, or its turn ends on screen.
@@ -11,21 +9,8 @@ export function useMobileStructuredSessionTouchReport(
   shown: boolean,
   atRest: boolean
 ): void {
-  const [focused, setFocused] = useState(false)
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true)
-      return () => setFocused(false)
-    }, [])
-  )
-  const [appActive, setAppActive] = useState(AppState.currentState === 'active')
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) =>
-      setAppActive(state === 'active')
-    )
-    return () => subscription.remove()
-  }, [])
-  const seenAtRest = shown && focused && appActive && atRest
+  // Shown counts as seen even under another screen or a backgrounded app: keeping a chat is the safe error.
+  const seenAtRest = shown && atRest
   const client = source?.client
   const sessionId = source?.sessionId
   useEffect(() => {
