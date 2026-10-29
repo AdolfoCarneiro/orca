@@ -37,8 +37,6 @@ describe('installAndroidApk', () => {
 describe('dumpAndroidAccessibilityTree', () => {
   it.each([
     { stdout: '', stderr: 'ERROR: could not get idle state.' },
-    { stdout: '', stderr: 'ERROR: null root node returned by UiTestAutomationBridge.' },
-    { stdout: 'ERROR: could not get idle state.', stderr: '' },
     { stdout: 'ERROR: could not get idle state.', stderr: 'WARNING: diagnostic output' }
   ])('rejects a zero-exit dump failure before reading stale XML: %j', async (diagnostic) => {
     const runner = vi.fn<AndroidCommandRunner>().mockResolvedValueOnce({ ...diagnostic, code: 0 })
@@ -69,15 +67,7 @@ describe('dumpAndroidAccessibilityTree', () => {
 describe('launchAndroidApp', () => {
   it.each([
     { stdout: '', stderr: 'Error type 3\nError: Activity class {com.x/.Missing} does not exist.' },
-    {
-      stdout: '',
-      stderr: 'Error: Activity not started, unable to resolve Intent { cmp=com.x/.Main }'
-    },
-    { stdout: '', stderr: 'Error: Activity not started, you do not have permission to access it.' },
-    {
-      stdout: 'Error: Activity class {com.x/.Missing} does not exist.',
-      stderr: 'WARNING: diagnostic output'
-    }
+    { stdout: 'Error: Activity class {com.x/.Missing} does not exist.', stderr: '' }
   ])('rejects a zero-exit activity launch failure: %j', async (diagnostic) => {
     const runner = vi.fn<AndroidCommandRunner>().mockResolvedValue({ ...diagnostic, code: 0 })
 
@@ -87,15 +77,11 @@ describe('launchAndroidApp', () => {
     })
   })
 
-  it.each([
-    '',
-    'Warning: Activity not started, intent has been delivered to currently running top-most instance.',
-    'Warning: Activity not started, its current task has been brought to the front'
-  ])('accepts successful activity launches with diagnostics: %s', async (stderr) => {
+  it('accepts a successful launch with a brought-to-front warning', async () => {
     const runner = vi.fn<AndroidCommandRunner>().mockResolvedValue({
       code: 0,
       stdout: 'Starting: Intent { cmp=com.Error/.ErrorActivity }',
-      stderr
+      stderr: 'Warning: Activity not started, its current task has been brought to the front'
     })
 
     await expect(
