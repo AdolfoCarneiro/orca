@@ -17,7 +17,9 @@ import { translate } from '@/i18n/i18n'
 import type { Repo } from '../../../shared/repo-types'
 import type { TaskProjectPickerGroup } from './task-page/task-page-default-repo-selection'
 import {
+  getSelectedTaskProjectSource,
   hasMultipleTaskProjectHosts,
+  hasMultipleTaskProjectHostsInGroup,
   isTaskProjectGroupSelected,
   selectedTaskProjectGroups
 } from './task-project-source-combobox-model'

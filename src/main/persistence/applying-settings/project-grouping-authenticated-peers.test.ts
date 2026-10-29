@@ -149,146 +149,175 @@ it.each(['web', 'mobile', 'old'] as const)(
   }
 )
 
-it('recovers undecodable owner status on an installed browser foreground wake before marked acknowledged and best-effort writes reach disk', async () => {
-  testState.dir = mkdtempSync(join(tmpdir(), 'orca-browser-filter-owner-'))
-  const store = createStore()
-  const runtime = new OrcaRuntimeService(store)
-  const server = new OrcaRuntimeRpcServer({
-    runtime,
-    userDataPath: testState.dir,
-    methods: [...CLIENT_UI_METHODS, ...STATUS_METHODS],
-    enableWebSocket: false
-  })
-  const registry = new DeviceRegistry(testState.dir)
-  server['deviceRegistry'] = registry
-  const device = registry.addDevice('Fixture browser', 'runtime')
-  const desktop = generateKeyPair()
-  let malformed = true
-  const requests: { method: string; params?: unknown }[] = []
-  const authLists: string[][] = []
-  const wiring = new MobileSocketWiring({
-    deviceRegistry: registry,
-    e2eeKeypair: { ...desktop, publicKeyB64: Buffer.from(desktop.publicKey).toString('base64') },
-    onReady: (socket) => {
-      authLists.push([...socket.clientCapabilities])
-    },
-    onText: (socket, message, reply) => {
-      const request = JSON.parse(message)
-      requests.push(request)
-      void server['handleWebSocketMessage'](
-        message,
-        (response) => {
-          const parsed = JSON.parse(response)
-          reply(
-            request.method === 'status.get' && malformed && parsed.ok
-              ? JSON.stringify({ ...parsed, result: null })
-              : response
-          )
-        },
-        () => {},
-        undefined,
-        socket.ws,
-        socket.device.deviceToken,
-        socket
-      )
-    },
-    onBinary: () => {},
-    onClose: () => {}
-  })
-  let receive: Parameters<MobileSocketTransport['onMessage']>[0] = () => {}
-  let closed: Parameters<MobileSocketTransport['onConnectionClose']>[0] = () => {}
-  const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 })
-  await new Promise<void>((resolve) => wss.once('listening', resolve))
-  const transport: MobileSocketTransport = {
-    onMessage: (callback) => {
-      receive = callback
-    },
-    onConnectionClose: (callback) => {
-      closed = callback
-    },
-    setClientId: () => {},
-    terminateClientConnections: () => 0
-  }
-  wiring.attachTransport(transport)
-  wss.on('connection', (ws) => {
-    ws.on('message', (bytes) => receive(bytes.toString(), (response) => ws.send(response), ws))
-    ws.on('close', () => closed(null, ws, false))
-  })
-  const globals = installBrowserGlobals('Linux')
-  Object.assign(globals.window, { setTimeout, clearTimeout, setInterval, clearInterval })
-  const visibility = new EventTarget()
-  Object.assign(visibility, { visibilityState: 'visible' })
-  vi.stubGlobal('document', visibility)
-  vi.stubGlobal('WebSocket', WebSocket)
-  const address = wss.address()
-  if (!address || typeof address === 'string') {
-    throw new Error('Expected listening fixture socket')
-  }
-  globals.storage.setItem(
-    'orca.web.runtimeEnvironment.v1',
-    JSON.stringify({
-      id: 'owner',
-      name: 'Desktop',
-      createdAt: 1,
-      updatedAt: 1,
-      lastUsedAt: null,
-      runtimeId: null,
-      preferredEndpointId: 'ws-owner',
-      endpoints: [
-        {
-          id: 'ws-owner',
-          kind: 'websocket',
-          label: 'WebSocket',
-          endpoint: `ws://127.0.0.1:${address.port}`,
-          deviceToken: device.token,
-          publicKeyB64: Buffer.from(desktop.publicKey).toString('base64')
-        }
-      ]
+it.each([100, 1000])(
+  'recovers undecodable owner status and %i superseding browser writes on an installed foreground wake through settlement and disk',
+  async (count) => {
+    testState.dir = mkdtempSync(join(tmpdir(), 'orca-browser-filter-owner-'))
+    const store = createStore()
+    const runtime = new OrcaRuntimeService(store)
+    const server = new OrcaRuntimeRpcServer({
+      runtime,
+      userDataPath: testState.dir,
+      methods: [...CLIENT_UI_METHODS, ...STATUS_METHODS],
+      enableWebSocket: false
     })
-  )
-  vi.resetModules()
-  const session = await import('../../../renderer/src/web/preload-api/web-runtime-session')
-  const { createWebUiApi } = await import('../../../renderer/src/web/preload-api/web-ui-api')
-  const Q = 'runtime:server\0same'
-  try {
-    store.updateUI({ filterRepoIds: ['same', Q], agentsFilterRepoIds: [Q] })
-    const ui = createWebUiApi()
-    const writing = ui.setWithAck!({ filterRepoIds: [Q], agentsFilterRepoIds: [] })
-    await vi.waitFor(() =>
-      expect(session.webRuntimeState.activeClient?.statusOwner?.read().verification).toBe('blocked')
-    )
-    expect(requests.filter((request) => request.method === 'ui.set')).toEqual([])
-    malformed = false
-    visibility.dispatchEvent(new Event('visibilitychange'))
-    await writing
-    expect(requests.filter((request) => request.method === 'ui.set')).toEqual([
-      expect.objectContaining({ params: { filterRepoIds: [Q], filterRepoIdsMode: 'exact' } })
-    ])
-    expect(store.getUI()).toMatchObject({ filterRepoIds: [Q], agentsFilterRepoIds: [Q] })
-    expect(JSON.parse(globals.storage.getItem('orca.web.ui.v1') ?? '{}')).not.toHaveProperty(
-      'filterRepoIdsMode'
-    )
-    await ui.set({ filterRepoIds: [] })
-    expect(store.getUI().filterRepoIds).toEqual([])
-    expect(
-      requests.filter((request) => request.method === 'runtime.clientCapabilities.update')
-    ).toHaveLength(0)
-    expect(authLists).toHaveLength(1)
-    expect(authLists[0]).not.toContain('ui.project-repo-filter-exact.v1')
-    store.flush()
-    expect(readDataFile()).toHaveProperty('ui.filterRepoIds', [])
-    expect(readDataFile().ui).not.toHaveProperty('filterRepoIdsMode')
-    await closeTestStores()
-    expect(createStore().getUI()).toMatchObject({ filterRepoIds: [], agentsFilterRepoIds: [Q] })
-  } finally {
-    session.closeActiveRuntimeClients()
-    for (const socket of wss.clients) {
-      socket.close()
+    const registry = new DeviceRegistry(testState.dir)
+    server['deviceRegistry'] = registry
+    const device = registry.addDevice('Fixture browser', 'runtime')
+    const desktop = generateKeyPair()
+    let malformed = true
+    const requests: { method: string; params?: unknown }[] = []
+    const authLists: string[][] = []
+    const wiring = new MobileSocketWiring({
+      deviceRegistry: registry,
+      e2eeKeypair: { ...desktop, publicKeyB64: Buffer.from(desktop.publicKey).toString('base64') },
+      onReady: (socket) => {
+        authLists.push([...socket.clientCapabilities])
+      },
+      onText: (socket, message, reply) => {
+        const request = JSON.parse(message)
+        requests.push(request)
+        void server['handleWebSocketMessage'](
+          message,
+          (response) => {
+            const parsed = JSON.parse(response)
+            reply(
+              request.method === 'status.get' && malformed && parsed.ok
+                ? JSON.stringify({ ...parsed, result: null })
+                : response
+            )
+          },
+          () => {},
+          undefined,
+          socket.ws,
+          socket.device.deviceToken,
+          socket
+        )
+      },
+      onBinary: () => {},
+      onClose: () => {}
+    })
+    let receive: Parameters<MobileSocketTransport['onMessage']>[0] = () => {}
+    let closed: Parameters<MobileSocketTransport['onConnectionClose']>[0] = () => {}
+    const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 })
+    await new Promise<void>((resolve) => wss.once('listening', resolve))
+    const transport: MobileSocketTransport = {
+      onMessage: (callback) => {
+        receive = callback
+      },
+      onConnectionClose: (callback) => {
+        closed = callback
+      },
+      setClientId: () => {},
+      terminateClientConnections: () => 0
     }
-    await new Promise<void>((resolve) => wss.close(() => resolve()))
-    wiring.dispose()
-    vi.unstubAllGlobals()
-    await closeTestStores()
-    rmSync(testState.dir, { recursive: true, force: true })
+    wiring.attachTransport(transport)
+    wss.on('connection', (ws) => {
+      ws.on('message', (bytes) => receive(bytes.toString(), (response) => ws.send(response), ws))
+      ws.on('close', () => closed(null, ws, false))
+    })
+    const globals = installBrowserGlobals('Linux')
+    Object.assign(globals.window, { setTimeout, clearTimeout, setInterval, clearInterval })
+    const visibility = new EventTarget()
+    Object.assign(visibility, { visibilityState: 'visible' })
+    vi.stubGlobal('document', visibility)
+    vi.stubGlobal('WebSocket', WebSocket)
+    const address = wss.address()
+    if (!address || typeof address === 'string') {
+      throw new Error('Expected listening fixture socket')
+    }
+    globals.storage.setItem(
+      'orca.web.runtimeEnvironment.v1',
+      JSON.stringify({
+        id: 'owner',
+        name: 'Desktop',
+        createdAt: 1,
+        updatedAt: 1,
+        lastUsedAt: null,
+        runtimeId: null,
+        preferredEndpointId: 'ws-owner',
+        endpoints: [
+          {
+            id: 'ws-owner',
+            kind: 'websocket',
+            label: 'WebSocket',
+            endpoint: `ws://127.0.0.1:${address.port}`,
+            deviceToken: device.token,
+            publicKeyB64: Buffer.from(desktop.publicKey).toString('base64')
+          }
+        ]
+      })
+    )
+    vi.resetModules()
+    const session = await import('../../../renderer/src/web/preload-api/web-runtime-session')
+    const { createWebUiApi } = await import('../../../renderer/src/web/preload-api/web-ui-api')
+    const Q = 'runtime:server\0same'
+    try {
+      store.updateUI({ filterRepoIds: ['same', Q], agentsFilterRepoIds: [Q] })
+      const ui = createWebUiApi()
+      const superseded: Promise<unknown>[] = [
+        ui.setWithAck!({ filterRepoIds: [Q], sortBy: 'name', agentsFilterRepoIds: [] }).catch(
+          (error) => error
+        )
+      ]
+      await vi.waitFor(() =>
+        expect(session.webRuntimeState.activeClient?.statusOwner?.read().verification).toBe(
+          'blocked'
+        )
+      )
+      expect(requests.filter((request) => request.method === 'ui.set')).toEqual([])
+      for (let index = 0; index < count - 1; index++) {
+        superseded.push(
+          ui.setWithAck!({ filterRepoIds: [Q, `offline-${index}`] }).catch((error) => error)
+        )
+      }
+      const selected = [Q, `offline-${count - 1}`]
+      const writing = ui.setWithAck!({ filterRepoIds: selected })
+      await vi.waitFor(() =>
+        expect(requests.filter((request) => request.method === 'ui.set')).toEqual([
+          expect.objectContaining({ params: { sortBy: 'name' } })
+        ])
+      )
+      malformed = false
+      visibility.dispatchEvent(new Event('visibilitychange'))
+      await writing
+      expect(requests.filter((request) => request.method === 'ui.set')).toEqual([
+        expect.objectContaining({ params: { sortBy: 'name' } }),
+        expect.objectContaining({ params: { filterRepoIds: selected, filterRepoIdsMode: 'exact' } })
+      ])
+      expect(await Promise.all(superseded)).toEqual(
+        Array.from({ length: count }, () => expect.any(Error))
+      )
+      expect(store.getUI()).toMatchObject({
+        filterRepoIds: selected,
+        sortBy: 'name',
+        agentsFilterRepoIds: [Q]
+      })
+      expect(JSON.parse(globals.storage.getItem('orca.web.ui.v1') ?? '{}')).not.toHaveProperty(
+        'filterRepoIdsMode'
+      )
+      await ui.set({ filterRepoIds: [] })
+      expect(store.getUI().filterRepoIds).toEqual([])
+      expect(
+        requests.filter((request) => request.method === 'runtime.clientCapabilities.update')
+      ).toHaveLength(0)
+      expect(authLists).toHaveLength(1)
+      expect(authLists[0]).not.toContain('ui.project-repo-filter-exact.v1')
+      store.flush()
+      expect(readDataFile()).toHaveProperty('ui.filterRepoIds', [])
+      expect(readDataFile().ui).not.toHaveProperty('filterRepoIdsMode')
+      await closeTestStores()
+      expect(createStore().getUI()).toMatchObject({ filterRepoIds: [], agentsFilterRepoIds: [Q] })
+    } finally {
+      session.closeActiveRuntimeClients()
+      for (const socket of wss.clients) {
+        socket.close()
+      }
+      await new Promise<void>((resolve) => wss.close(() => resolve()))
+      wiring.dispose()
+      vi.unstubAllGlobals()
+      await closeTestStores()
+      rmSync(testState.dir, { recursive: true, force: true })
+    }
   }
-})
+)
