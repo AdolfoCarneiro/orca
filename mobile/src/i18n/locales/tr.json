@@ -97,6 +97,7 @@
       "connecting": "Bağlanılıyor…",
       "invalidPairingCode": "Geçerli bir eşleştirme kodu değil — bilgisayarınızdan kopyalayıp yeniden yapıştırın",
       "invalidQrCode": "Geçerli bir Orca QR kodu değil",
+      "downloadQrCode": "Bu indirme kodu. Bilgisayarınızdaki 2. adımda bulunan eşleştirme kodunu tarayın.",
       "openDesktopStep": "Bilgisayarınızda Orca'yı açın",
       "openMobileSettingsStep": "Ayarlar → Mobil bölümüne gidin",
       "openSettings": "Ayarları Aç",
@@ -1003,6 +1004,11 @@
       "folder": "Klasör",
       "project": "{{repo}} projesi",
       "remoteHost": "Uzak sunucu"
+    },
+    "nativeScreenRecovery": {
+      "title": "Bir sorun oluştu",
+      "tryAgain": "Tekrar dene",
+      "home": "Ana sayfa"
     }
   },
   "connection": {
@@ -2518,7 +2524,8 @@
       "saveFailed": "Hızlı komut kaydedilemedi"
     },
     "useSessionTerminalSendActions": {
-      "inputTooLarge": "Girdi çok büyük (en fazla 256 KiB)"
+      "inputTooLarge": "Girdi çok büyük (en fazla 256 KiB)",
+      "liveInputInterrupted": "Canlı giriş kesildi. Alan temizlendi; devam etmeden önce terminali kontrol edin."
     },
     "useStartup": {
       "wakeAgents": "Uykudaki ajanları uyandırmak için sunucuda Orca'yı açın."
