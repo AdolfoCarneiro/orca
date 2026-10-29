@@ -5,7 +5,6 @@ import {
   validateAdoptedOpenCodeSource,
   type AdoptedTranscriptSource
 } from './adopted-transcript-source'
-import { createReadStream } from 'node:fs'
 import type { AgentType } from '../../../shared/agent-status-types'
 import type {
   AgentJournalCursor,
@@ -21,7 +20,7 @@ import {
   decodeGrokTranscriptLine,
   decodeOmpTranscriptLine
 } from '../transcript-line-decoders'
-import { decodeTranscriptStream } from '../transcript-stream-lines'
+import { readLegacyImportTranscript } from './journal-legacy-transcript-stream'
 import { readOpenCodeNativeChatTranscriptFull } from '../transcript-opencode'
 import { boundSubagentEntryId } from '../subagent-entry-id-bounds'
 import { createLegacyIdentityTracker } from './journal-legacy-identity'
@@ -111,6 +110,9 @@ export async function prepareLegacyTranscriptImport(input: {
       agent: input.agent,
       sessionId: input.sessionId,
       source: options.source,
+      codexSessionsDirs: options.source?.conversationStore
+        ? [options.source.conversationStore]
+        : options.codexSessionsDirs,
       decodedMessageIdentities: options.decodedMessageIdentities,
       limits
     })
@@ -186,7 +188,8 @@ function replacementItem(
 
 const TRANSCRIPT_DECODERS = {
   claude: decodeClaudeTranscriptLine,
-  codex: decodeCodexTranscriptLine,
+  codex: (line: string, fallbackId: string) =>
+    decodeCodexTranscriptLine(line, fallbackId, { historyImport: true }),
   grok: decodeGrokTranscriptLine,
   omp: decodeOmpTranscriptLine
 } as const
@@ -199,6 +202,7 @@ async function decodeReplacementItems(input: {
   sessionId: string
   decodedMessageIdentities?: true
   source?: AdoptedTranscriptSource
+  codexSessionsDirs?: string[]
   limits: JournalPayloadLimits
 }): Promise<{ items: JournalReplacementItem[]; consumedBytes: number }> {
   const source = input.source
@@ -224,12 +228,16 @@ async function decodeReplacementItems(input: {
       : null
   let lineIndex = 0
   try {
-    const { consumedBytes } = await decodeTranscriptStream(
-      createReadStream(input.filePath),
-      input.filePath,
-      0,
-      (line, fallbackId) => {
-        source?.observe(line)
+    const { consumedBytes } = await readLegacyImportTranscript(
+      {
+        filePath: input.filePath,
+        codex: input.transcriptAgent === 'codex',
+        roots: input.codexSessionsDirs
+      },
+      (line, fallbackId, recordId, selected = true) => {
+        if (selected) {
+          source?.observe(line)
+        }
         const currentLineIndex = lineIndex
         lineIndex += 1
         if (pi) {
@@ -241,21 +249,19 @@ async function decodeReplacementItems(input: {
           retained.push(
             toItem(
               message,
-              input.decodedMessageIdentities
+              recordId || input.decodedMessageIdentities
                 ? {
                     provider: 'legacy',
                     agent: input.agent,
                     sessionId: input.sessionId,
-                    recordId: message.id
+                    recordId: recordId ?? message.id
                   }
                 : tracker.identify(line, currentLineIndex)
             )
           )
         }
         return null
-      },
-      true,
-      MAX_LEGACY_IMPORT_RECORD_BYTES
+      }
     )
     if (consumedBytes > 0) {
       await source?.validate()

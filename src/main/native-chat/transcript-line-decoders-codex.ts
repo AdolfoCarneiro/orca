@@ -13,9 +13,27 @@ import {
 import { claudeContentBlocks, toolResultOutput } from './transcript-record-blocks'
 import { CODEX_EVENT_TURN_ABORTED } from './transcript-turn-markers'
 
+/** Paginated completed items own visible messages; response tools retain their legacy format. */
+export function isCodexVisibleHistoryRecord(
+  record: Record<string, unknown> | null,
+  paginated: boolean
+): boolean {
+  const payload = asRecord(record?.payload)
+  return (
+    !paginated ||
+    !(
+      (record?.type === 'response_item' &&
+        (payload?.type === 'message' || payload?.type === 'reasoning')) ||
+      (record?.type === 'event_msg' &&
+        (payload?.type === 'user_message' || payload?.type === 'agent_message'))
+    )
+  )
+}
+
 export function decodeCodexTranscriptLine(
   line: string,
-  fallbackId: string
+  fallbackId: string,
+  options?: { historyImport: true }
 ): NativeChatMessage | null {
   const record = parseJsonObject(line)
   if (!record) {
@@ -30,10 +48,15 @@ export function decodeCodexTranscriptLine(
   const baseId = extractString(payload.id) ?? fallbackId
 
   if (record.type === 'response_item') {
-    return codexResponseItem(payload, baseId, timestamp)
+    return codexResponseItem(
+      payload,
+      baseId,
+      timestamp,
+      options?.historyImport ? codexTurnItemBlocks : claudeContentBlocks
+    )
   }
   if (record.type === 'event_msg') {
-    return codexEventMessage(payload, baseId, timestamp)
+    return codexEventMessage(payload, baseId, timestamp, options?.historyImport === true)
   }
   return null
 }
@@ -56,7 +79,8 @@ function codexUnwrappedResponseItem(
 function codexResponseItem(
   payload: Record<string, unknown>,
   id: string,
-  timestamp: number | null
+  timestamp: number | null,
+  decodeMessageBlocks = claudeContentBlocks
 ): NativeChatMessage | null {
   if (payload.type === 'message') {
     const role =
@@ -64,7 +88,7 @@ function codexResponseItem(
     if (!role) {
       return null
     }
-    const decodedBlocks = claudeContentBlocks(payload.content)
+    const decodedBlocks = decodeMessageBlocks(payload.content)
     const blocks =
       role === 'user' ? decodedBlocks.filter((block) => !isSkillContext(block)) : decodedBlocks
     if (blocks.length === 0) {
@@ -122,7 +146,8 @@ function isSkillContext(block: NativeChatBlock): boolean {
 function codexEventMessage(
   payload: Record<string, unknown>,
   id: string,
-  timestamp: number | null
+  timestamp: number | null,
+  historyImport: boolean
 ): NativeChatMessage | null {
   if (payload.type === CODEX_EVENT_TURN_ABORTED) {
     return {
@@ -138,7 +163,7 @@ function codexEventMessage(
     return codexCompactionMarker(id, timestamp)
   }
   if (payload.type === 'item_completed') {
-    return codexCompletedTurnItem(payload, id, timestamp)
+    return codexCompletedTurnItem(payload, id, timestamp, historyImport)
   }
   if (payload.type === 'user_message') {
     const text = extractString(payload.message)
@@ -158,13 +183,24 @@ function codexEventMessage(
 function codexCompletedTurnItem(
   payload: Record<string, unknown>,
   fallbackId: string,
-  timestamp: number | null
+  timestamp: number | null,
+  historyImport: boolean
 ): NativeChatMessage | null {
   const item = asRecord(payload.item)
   if (!item) {
     return null
   }
   const id = extractString(item.id) ?? fallbackId
+  if (historyImport && item.type === 'Reasoning') {
+    return codexResponseItem(
+      {
+        type: 'reasoning',
+        text: codexSummaryText(item.summary_text) ?? codexSummaryText(item.raw_content)
+      },
+      id,
+      timestamp
+    )
+  }
   if (item.type === 'ContextCompaction') {
     return codexCompactionMarker(id, timestamp)
   }
@@ -194,11 +230,20 @@ function codexCompactionMarker(id: string, timestamp: number | null): NativeChat
 }
 
 function codexTurnItemBlocks(content: unknown): NativeChatBlock[] {
+  if (typeof content === 'string') {
+    return content.trim() ? [{ type: 'text', text: content }] : []
+  }
   if (!Array.isArray(content)) {
     return []
   }
   const blocks: NativeChatBlock[] = []
   for (const value of content) {
+    if (typeof value === 'string') {
+      if (value.trim()) {
+        blocks.push({ type: 'text', text: value })
+      }
+      continue
+    }
     const item = asRecord(value)
     if (!item) {
       continue

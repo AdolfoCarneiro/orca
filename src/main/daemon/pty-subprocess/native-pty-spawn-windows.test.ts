@@ -9,6 +9,11 @@ const ptyJob = vi.hoisted(() => ({
 }))
 vi.mock('../../windows/windows-pty-job', () => ptyJob)
 
+import '../mock-descendant-sweep'
+import { TerminalHost } from '../terminal-host'
+import { TerminalSpawnGate } from '../terminal-spawn-gate'
+import { TerminalCreationWork } from '../terminal-creation-work'
+import { createDaemonPtySubprocessHandle } from './subprocess-handle'
 import { spawnNativeDaemonPty } from './native-pty-spawn'
 import {
   _resetConptyStartupTrustForTest,
@@ -42,8 +47,25 @@ function fakePane(pid: number, chunks: string[], exitCode?: number) {
   const exitListeners = new Set<(event: { exitCode: number }) => void>()
   const pane = {
     pid,
-    kill: vi.fn(),
+    kill: vi.fn(() => {
+      for (const listener of exitListeners) {
+        listener({ exitCode: 137 })
+      }
+    }),
     write: vi.fn(),
+    resize: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    emitData: (data: string) => {
+      for (const listener of dataListeners) {
+        listener(data)
+      }
+    },
+    emitExit: (exitCode: number) => {
+      for (const listener of exitListeners) {
+        listener({ exitCode })
+      }
+    },
     onData: (listener: (data: string) => void) => {
       dataListeners.add(listener)
       return { dispose: () => dataListeners.delete(listener) }
@@ -84,6 +106,7 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
   })
   afterEach(() => {
     Object.defineProperty(process, 'platform', platform)
+    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
@@ -159,6 +182,81 @@ describe('Windows shell fallback over node-pty ConPTY', () => {
     expect(healthy.write).toHaveBeenCalledExactlyOnceWith('\x1b[?61;4c')
     expect(result.claimStartupEvents?.().data).toEqual(['\x1b[1t\x1b[?1004h'])
   })
+
+  it.each(['physical-exit', 'deadline'] as const)(
+    'ordinary create keeps the startup predecessor owned through %s and host disposal',
+    async (outcome) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      const broken = deadPane(990010)
+      broken.kill.mockImplementation(() => {})
+      const replacement = fakePane(990011, [])
+      nodePty.spawn.mockReturnValueOnce(broken).mockReturnValueOnce(replacement)
+      vi.spyOn(process, 'kill').mockImplementation((pid) => {
+        expect([broken.pid, replacement.pid]).toContain(pid)
+        if (pid === replacement.pid) {
+          queueMicrotask(() => replacement.emitExit(137))
+        }
+        return true
+      })
+      const gate = new TerminalSpawnGate({ log: () => {} })
+      const host = new TerminalHost({
+        spawnGate: gate,
+        spawnSubprocess: async (options) => {
+          const work = new TerminalCreationWork()
+          try {
+            const spawned = await spawnNativeDaemonPty({ ...args, creationWork: work })
+            return createDaemonPtySubprocessHandle({
+              ...spawned,
+              env: {},
+              sessionId: options.sessionId,
+              startupCommandDeliveredInShellArgs: false,
+              startupAgentRecognition: null,
+              startupEvents: spawned.claimStartupEvents?.()
+            })
+          } finally {
+            await work.finish()
+            options.onCreationDisposition?.(await work.completion)
+          }
+        }
+      })
+      const creating = host.createOrAttach({
+        sessionId: 'ordinary-conpty',
+        cols: 80,
+        rows: 24,
+        streamClient: { onData() {}, onExit() {} }
+      })
+      try {
+        await vi.waitFor(() => expect(broken.kill).toHaveBeenCalledOnce())
+        expect(nodePty.spawn).toHaveBeenCalledOnce()
+        expect(host.listSessions()).toEqual([])
+        if (outcome === 'physical-exit') {
+          broken.emitExit(137)
+          await vi.waitFor(() => expect(nodePty.spawn).toHaveBeenCalledTimes(2))
+          replacement.emitData(CONPTY_PRELUDE)
+        } else {
+          await vi.advanceTimersByTimeAsync(CONPTY_STARTUP_DECISION_LIMIT_MS)
+        }
+        const created = await creating
+        expect(created.isNew).toBe(true)
+        expect(created.pid).toBe(outcome === 'physical-exit' ? replacement.pid : broken.pid)
+        expect(nodePty.spawn).toHaveBeenCalledTimes(outcome === 'physical-exit' ? 2 : 1)
+        expect(gate.snapshot().terminals).toBe(1)
+        const disposing = host.dispose()
+        if (outcome === 'deadline') {
+          await vi.waitFor(() => expect(process.kill).toHaveBeenCalled())
+          expect(gate.snapshot().terminals).toBe(1)
+          broken.emitExit(137)
+        }
+        await disposing
+        expect(gate.snapshot().terminals).toBe(0)
+        expect(host.listSessions()).toEqual([])
+      } finally {
+        broken.emitExit(137)
+        replacement.emitExit(137)
+        await host.dispose()
+      }
+    }
+  )
 
   it('respawns only once, then says so in the pane', async () => {
     nodePty.spawn.mockReturnValueOnce(healthyPane(990001))

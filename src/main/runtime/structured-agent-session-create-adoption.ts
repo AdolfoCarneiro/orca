@@ -218,6 +218,7 @@ export function structuredAgentSessionAdoptAttach(input: {
     agent: AgentSessionProviderHandle['agent']
   }
   handleNamesTranscript: boolean | undefined
+  conversationStore?: string
   transcriptPath: string
   providerSessionId: string
   workspaceCwd: string
@@ -229,6 +230,12 @@ export function structuredAgentSessionAdoptAttach(input: {
       nativeId: input.handleNamesTranscript ? input.transcriptPath : input.providerSessionId
     },
     transcriptPath: input.transcriptPath,
-    source: { providerSessionId: input.providerSessionId, workspaceCwd: input.workspaceCwd }
+    source: {
+      providerSessionId: input.providerSessionId,
+      workspaceCwd: input.workspaceCwd,
+      ...(input.conversationStore !== undefined
+        ? { conversationStore: input.conversationStore }
+        : {})
+    }
   }
 }

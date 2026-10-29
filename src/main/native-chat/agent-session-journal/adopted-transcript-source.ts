@@ -8,7 +8,12 @@ import { readOpenCodeTranscriptSignalViaWorker } from '../../ai-vault/session-sc
 import { samePiDirectory } from '../../pi/rpc-launch-resolution'
 import { admitTranscriptPath } from '../transcript-path-admission'
 
-export type AdoptedTranscriptSource = { providerSessionId: string; workspaceCwd: string }
+export type AdoptedTranscriptSource = {
+  providerSessionId: string
+  workspaceCwd: string
+  /** Host-selected account store, never supplied by a wire caller or persisted. */
+  conversationStore?: string
+}
 
 export function assertAdoptedSourceIdentity(
   source: AdoptedTranscriptSource,
