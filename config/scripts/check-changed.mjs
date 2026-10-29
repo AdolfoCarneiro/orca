@@ -330,7 +330,7 @@ export async function main(root, argv) {
     if (result.ok) {
       console.log(`✓ ${task.name} (${result.elapsed})`)
     } else {
-      console.error(`\n✗ ${task.name} (${result.elapsed})\n${tail(result.output)}`)
+      console.error(`\n✗ ${task.name} (${result.elapsed})\n${result.output}`)
     }
     return result
   }).finally(() => clearInterval(heartbeat))
