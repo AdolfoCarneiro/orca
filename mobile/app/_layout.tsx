@@ -25,6 +25,7 @@ import { startPushTokenSync } from '../src/notifications/push-registration'
 import { ensureDesktopNotificationChannel } from '../src/notifications/desktop-notification-channel'
 import { loadHostCatalog } from '../src/transport/host-store'
 import { usePairingLinks } from '../src/navigation/use-pairing-links'
+import { consumeInitialLaunchIntent } from '../src/navigation/initial-launch-intent'
 import { recoverMobileRelayPairing } from '../src/transport/mobile-relay-pairing-recovery'
 import { appUpdateChecker } from '../src/app-update/app-update-runtime'
 import { SideSafeArea } from '../src/layout/side-safe-area'
@@ -154,7 +155,9 @@ export default function RootLayout() {
       }
     }
 
-    const initialResponse = getInitialNotificationResponse()
+    const initialResponse = consumeInitialLaunchIntent('notification')
+      ? getInitialNotificationResponse()
+      : null
     if (initialResponse) {
       void handleNotificationResponse(initialResponse)
     }

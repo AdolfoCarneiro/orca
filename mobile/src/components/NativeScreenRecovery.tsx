@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { useRouter, useSegments, type ErrorBoundaryProps } from 'expo-router'
+import { discardInitialLaunchIntent } from '../navigation/initial-launch-intent'
 import { recordNativeRenderError } from '../diagnostics/native-render-log'
 import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { colors, radii, spacing, typography } from '../theme/mobile-theme'
@@ -30,7 +31,10 @@ export function NativeScreenRecovery({ error, retry }: ErrorBoundaryProps) {
       <Pressable
         accessibilityRole="button"
         style={styles.homeButton}
-        onPress={() => router.replace('/')}
+        onPress={() => {
+          discardInitialLaunchIntent()
+          router.replace('/')
+        }}
       >
         <Text style={styles.homeText}>{t('components.nativeScreenRecovery.home', 'Home')}</Text>
       </Pressable>

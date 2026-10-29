@@ -2,8 +2,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'expo-router'
 import * as Linking from 'expo-linking'
 import { extractPairingCodeFromUrl } from '../transport/pairing'
-
-let initialUrlRequested = false
+import { consumeInitialLaunchIntent } from './initial-launch-intent'
 
 export function usePairingLinks(): void {
   const router = useRouter()
@@ -20,12 +19,11 @@ export function usePairingLinks(): void {
       }
     }
 
-    // A recovery remount must not replay the link that launched this process.
-    if (!initialUrlRequested) {
-      initialUrlRequested = true
+    const intent = consumeInitialLaunchIntent('pairing-link')
+    if (intent) {
       void Linking.getInitialURL()
         .then((url) => {
-          if (url) {
+          if (url && !intent.discarded) {
             handleUrl(url)
           }
         })
