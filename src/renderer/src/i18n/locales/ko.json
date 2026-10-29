@@ -12531,8 +12531,6 @@
           "autoUpdateHint": "새 접근 권한이 있을 때만 다시 묻습니다"
         },
         "InstalledPluginCarousel": {
-          "title": "설치됨 · {{value0}}",
-          "seeAll": "모두 보기",
           "previous": "이전 설치된 플러그인",
           "next": "다음 설치된 플러그인"
         },

@@ -13185,10 +13185,10 @@
           "devUnverified": "Dev · unverified"
         },
         "InstalledPluginCarousel": {
-          "title": "Installed · {{value0}}",
-          "seeAll": "See all",
           "previous": "Previous installed plugins",
-          "next": "Next installed plugins"
+          "next": "Next installed plugins",
+          "heading": "Installed",
+          "seeAllCount": "See all {{value0}}"
         },
         "PluginInUseAction": {
           "inUseDark": "In use · Dark",
@@ -18295,7 +18295,8 @@
           "clearSearch": "Clear search"
         },
         "PluginListGroup": {
-          "showAll": "Show {{value0}} more"
+          "showAll": "Show {{value0}} more",
+          "showAllTotal": "Show all {{value0}} plugins"
         },
         "PluginListRow": {
           "official": "Official"

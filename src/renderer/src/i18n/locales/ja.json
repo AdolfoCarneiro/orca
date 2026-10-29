@@ -12531,8 +12531,6 @@
           "autoUpdateHint": "新しいアクセスがあるときだけ確認します"
         },
         "InstalledPluginCarousel": {
-          "title": "インストール済み · {{value0}}",
-          "seeAll": "すべて表示",
           "previous": "前のインストール済みプラグイン",
           "next": "次のインストール済みプラグイン"
         },

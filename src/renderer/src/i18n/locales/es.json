@@ -12808,8 +12808,6 @@
           "autoUpdateHint": "Solo vuelve a preguntar por accesos nuevos"
         },
         "InstalledPluginCarousel": {
-          "title": "Instalados · {{value0}}",
-          "seeAll": "Ver todos",
           "previous": "Plugins instalados anteriores",
           "next": "Siguientes plugins instalados"
         },

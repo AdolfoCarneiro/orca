@@ -55,8 +55,8 @@ function resultCountLabel(count: number): string {
       })
 }
 
-/** Rows a group shows before "Show N more"; search and filters show everything. */
-export const PLUGIN_GROUP_ROW_CAP = 6
+/** Rows a group shows before "Show all"; search and filters show everything. 12 fills whole rows at 1–4 columns. */
+export const PLUGIN_GROUP_ROW_CAP = 12
 
 type PluginManagerProps = {
   plugins: readonly PluginHostListEntry[]

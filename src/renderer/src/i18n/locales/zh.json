@@ -12564,8 +12564,6 @@
           "autoUpdateHint": "仅在需要新访问权限时再次询问"
         },
         "InstalledPluginCarousel": {
-          "title": "已安装 · {{value0}}",
-          "seeAll": "查看全部",
           "previous": "上一组已安装插件",
           "next": "下一组已安装插件"
         },
