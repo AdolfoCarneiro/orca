@@ -1,5 +1,4 @@
 /// <reference types="chrome" />
-import { webContents } from 'electron'
 import { getChromeExtensionOrigin } from '../../../shared/browser-extension-url'
 import { browserManager } from '../browser-manager'
 import { createBrowserTabInRenderer } from '../../runtime/browser/browser-tab-renderer-create'
@@ -23,6 +22,10 @@ import {
 import { isBrowserExtensionSupportEnabled } from './browser-extension-support'
 import { whenBrowserExtensionMainWindowReady } from './browser-extension-main-window-readiness'
 import { findDiscardedBrowserTabForPage } from './browser-extension-discarded-tabs'
+import {
+  liveBrowserExtensionTabContents,
+  resolveBrowserExtensionTabWindow
+} from './browser-extension-tab-owner'
 import {
   getBrowserExtensionMainWindow,
   getLastFocusedBrowserExtensionWindowId,
@@ -50,11 +53,6 @@ const MAIN_WINDOW_WAIT_MS = 30_000
 let activeBrowserPageId: string | null = null
 let lastActivatedTabId: number | null = null
 
-function liveContents(id: number | null | undefined): Electron.WebContents | null {
-  const contents = id == null ? undefined : webContents.fromId(id)
-  return contents && !contents.isDestroyed() ? contents : null
-}
-
 /** Fed by the renderer's browser:activeTabChanged; the single answer to `active: true`. */
 export function recordActiveBrowserPage(browserPageId: string): void {
   const pageChanged = browserPageId !== activeBrowserPageId
@@ -71,7 +69,8 @@ export function recordActiveBrowserPage(browserPageId: string): void {
   lastActivatedTabId = tabId
   if (windowId !== undefined) {
     const sess =
-      liveContents(tabId)?.session ?? findDiscardedBrowserTabForPage(browserPageId)?.session
+      liveBrowserExtensionTabContents(tabId)?.session ??
+      findDiscardedBrowserTabForPage(browserPageId)?.session
     emitBrowserExtensionEvent({ session: sess }, 'tabs', 'onActivated', [{ tabId, windowId }])
   }
 }
@@ -89,14 +88,17 @@ export function getActiveBrowserTabId(): number | null {
     return null
   }
   return (
-    liveContents(browserManager.getGuestWebContentsId(activeBrowserPageId))?.id ??
+    liveBrowserExtensionTabContents(browserManager.getGuestWebContentsId(activeBrowserPageId))
+      ?.id ??
     findDiscardedBrowserTabForPage(activeBrowserPageId)?.tabId ??
     null
   )
 }
 
 export function mainWindowTabIds(): number[] {
-  return [...browserManager.getWebContentsIdByTabId().values()].filter((id) => liveContents(id))
+  return [...browserManager.getWebContentsIdByTabId().values()].filter((id) =>
+    liveBrowserExtensionTabContents(id)
+  )
 }
 
 /** Reuse only within one synchronous tab enumeration. */
@@ -107,17 +109,13 @@ export function createBrowserExtensionTabResolver(
   let tabCount = 0
   let activeTabId: number | null | undefined
   return (tabId) => {
-    const contents = liveContents(tabId)
-    if (!contents) {
+    const owner = resolveBrowserExtensionTabWindow(tabId)
+    if (!owner) {
       return null
     }
-    const popout = getPopoutWindowForWebContents(contents)
-    if (popout) {
-      return { contents, windowId: popout.id, windowType: 'popup', index: 0, active: true }
-    }
-    const mainWindow = getBrowserExtensionMainWindow()
-    if (!mainWindow) {
-      return null
+    const { contents, window: mainWindow, windowType } = owner
+    if (windowType === 'popup') {
+      return { contents, windowId: mainWindow.id, windowType, index: 0, active: true }
     }
     if (!tabIndices) {
       const ids = mainTabIds ?? mainWindowTabIds()
@@ -279,7 +277,7 @@ export function recentWorktreeIdForBrowserProfile(profileId: string): string | u
     ...browserManager.getWebContentsIdByTabId().keys()
   ]
   for (const pageId of pageIds) {
-    const contents = liveContents(browserManager.getGuestWebContentsId(pageId))
+    const contents = liveBrowserExtensionTabContents(browserManager.getGuestWebContentsId(pageId))
     const worktreeId = browserManager.getWorktreeIdForTab(pageId)
     if (contents?.session === sess && worktreeId) {
       return worktreeId

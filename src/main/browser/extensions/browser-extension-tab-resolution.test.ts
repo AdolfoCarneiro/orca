@@ -1,19 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BrowserExtensionCaller } from './browser-extension-namespace-registry'
+import type { emitBrowserExtensionEvent } from './browser-extension-api-host'
 
 const mocks = vi.hoisted(() => {
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: tab resolution uses session identity only.
-  const workSession = { name: 'work' } as unknown as Electron.Session
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: tab resolution uses session identity only.
-  const otherSession = { name: 'other' } as unknown as Electron.Session
+  const extensions = new Map<string, Electron.Extension>()
+  const extensionLookup = { getExtension: (id: string) => extensions.get(id) ?? null }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: resolution and dispatch use session identity and extension lookup only.
+  const workSession = { name: 'work', extensions: extensionLookup } as unknown as Electron.Session
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: resolution and dispatch use session identity and extension lookup only.
+  const otherSession = { name: 'other', extensions: extensionLookup } as unknown as Electron.Session
   const main = { id: 1, webContents: { id: 1 } }
   const pages = new Map<string, number>()
-  function guest(id: number, session = workSession) {
+  const reverse = new Map<number, string>()
+  function guest(
+    id: number,
+    session = workSession,
+    hostWebContents: { id: number } | null = main.webContents
+  ) {
     return {
       id,
       session,
       destroyed: false,
-      hostWebContents: main.webContents,
+      hostWebContents,
       isDestroyed() {
         return this.destroyed
       },
@@ -36,19 +44,32 @@ const mocks = vi.hoisted(() => {
   }[] = []
   const counts = { lookups: 0, registries: 0, discardedReads: 0 }
   const hostPatterns: string[] = []
-  function addGuest(id: number, session = workSession, registered = true) {
-    const entry = guest(id, session)
+  const frames = new Map<
+    string,
+    { url: string; isDestroyed: () => boolean; send: ReturnType<typeof vi.fn> }
+  >()
+  function addGuest(
+    id: number,
+    session = workSession,
+    registered = true,
+    hostWebContents: { id: number } | null = main.webContents
+  ) {
+    const entry = guest(id, session, hostWebContents)
     contents.set(id, entry)
     if (registered) {
       pages.set(`page-${id}`, id)
+      reverse.set(id, `page-${id}`)
     }
     return entry
   }
   return {
     workSession,
     otherSession,
+    extensions,
+    frames,
     main,
     pages,
+    reverse,
     contents,
     popouts,
     discarded,
@@ -61,6 +82,9 @@ const mocks = vi.hoisted(() => {
 })
 
 vi.mock('electron', () => ({
+  webFrameMain: {
+    fromId: (processId: number, routingId: number) => mocks.frames.get(`${processId}:${routingId}`)
+  },
   webContents: {
     fromId: (id: number) => {
       mocks.counts.lookups += 1
@@ -74,14 +98,49 @@ vi.mock('../browser-manager', () => ({
       mocks.counts.registries += 1
       return mocks.pages
     },
-    getGuestWebContentsId: (pageId: string) => mocks.pages.get(pageId) ?? null
+    getGuestWebContentsId: (pageId: string) => mocks.pages.get(pageId) ?? null,
+    getTabIdForWebContentsId: (id: number) => mocks.reverse.get(id) ?? null
   }
 }))
 vi.mock('../../runtime/browser/browser-tab-renderer-create', () => ({}))
 vi.mock('../../runtime/browser/browser-tab-renderer-close', () => ({}))
 vi.mock('../../runtime/browser/browser-tab-renderer-activate', () => ({}))
 vi.mock('../../ipc/browser-tab-registration-wait', () => ({}))
-vi.mock('./browser-extension-api-host', () => ({ emitBrowserExtensionEvent: vi.fn() }))
+vi.mock('./browser-extension-api-host', async () => {
+  const contexts = await import('./browser-extension-contexts')
+  return {
+    getBrowserExtensionProfileIdForSession: (session: Electron.Session) =>
+      contexts.getHostSessionState(session)?.browserProfileId ?? null,
+    emitBrowserExtensionEvent: (...args: Parameters<typeof emitBrowserExtensionEvent>) => {
+      const [target, namespace, event, payload, matchesFilter] = args
+      contexts.dispatchBrowserExtensionEvent(
+        target,
+        namespace,
+        event,
+        payload,
+        () => {
+          throw new Error('Unexpected worker start')
+        },
+        matchesFilter
+      )
+    }
+  }
+})
+vi.mock('./browser-extension-worker-event-stream', () => ({
+  deliverToWorker: () => {
+    throw new Error('Unexpected worker delivery')
+  },
+  queueWorkerEvent: () => {
+    throw new Error('Unexpected worker queue')
+  },
+  detachWorkerEventStream: vi.fn()
+}))
+vi.mock('../browser-session-request-decisions', () => ({
+  installBrowserSessionHeadersReceived: vi.fn(),
+  installBrowserSessionRequestLifecycle: vi.fn(),
+  removeBrowserSessionHeadersReceived: vi.fn(),
+  removeBrowserSessionRequestLifecycle: vi.fn()
+}))
 vi.mock('./browser-extension-popup-host', () => ({ closeBrowserExtensionPopup: vi.fn() }))
 vi.mock('./browser-extension-support', () => ({ isBrowserExtensionSupportEnabled: () => false }))
 vi.mock('./browser-extension-session-loader', () => ({}))
@@ -123,8 +182,14 @@ vi.mock('./browser-extension-window-model', () => ({
 
 const { listBrowserExtensionTabs, recordActiveBrowserPage, resolveBrowserExtensionTab } =
   await import('./browser-extension-tab-model')
+const { resolveBrowserExtensionTabOwner } = await import('./browser-extension-tab-owner')
+const { reportBrowserSessionWebRequest } = await import('../browser-session-web-request-observer')
+const { installBrowserExtensionWebRequestForwarding } =
+  await import('./browser-extension-web-request')
+const contexts = await import('./browser-extension-contexts')
 const { registerTabsNamespace } = await import('./api/tabs')
-const { getBrowserExtensionNamespace } = await import('./browser-extension-namespace-registry')
+const { getBrowserExtensionNamespace, registerBrowserExtensionNamespace } =
+  await import('./browser-extension-namespace-registry')
 
 function caller(permissions: string[] = ['tabs']): BrowserExtensionCaller {
   const extension: Electron.Extension = {
@@ -153,7 +218,12 @@ function resetCounts(): void {
 }
 
 beforeEach(() => {
+  contexts.forgetHostSession(mocks.workSession)
+  contexts.forgetHostSession(mocks.otherSession)
+  mocks.extensions.clear()
+  mocks.frames.clear()
   mocks.pages.clear()
+  mocks.reverse.clear()
   mocks.contents.clear()
   mocks.popouts.clear()
   mocks.discarded.length = 0
@@ -163,6 +233,165 @@ beforeEach(() => {
   recordActiveBrowserPage('none')
   resetCounts()
   registerTabsNamespace()
+  registerBrowserExtensionNamespace('webRequest', {
+    permission: 'webRequest',
+    methods: {},
+    events: ['onCompleted']
+  })
+  installBrowserExtensionWebRequestForwarding()
+})
+
+describe('request event delivery', () => {
+  function listener() {
+    const extension = caller(['webRequest']).extension
+    mocks.extensions.set(extension.id, extension)
+    const state = contexts.ensureHostSessionState(mocks.workSession, 'work')
+    const context = {
+      extensionId: extension.id,
+      webContentsId: 91,
+      processId: 5,
+      routingId: 7,
+      events: new Set(['webRequest.onCompleted']),
+      filters: new Map<string, unknown[]>(),
+      dispose: () => {}
+    }
+    state.frames.set('91:5:7', context)
+    const frame = {
+      url: `chrome-extension://${extension.id}/page.html`,
+      isDestroyed: () => false,
+      send: vi.fn()
+    }
+    mocks.frames.set('5:7', frame)
+    const details = {
+      id: 42,
+      url: 'https://site.test/image.png',
+      method: 'GET',
+      webContentsId: 109,
+      resourceType: 'image',
+      timestamp: 5,
+      requestHeaders: { Accept: 'image/png', Cookie: 'private' }
+    }
+    mocks.hostPatterns.push('https://site.test/*')
+    return {
+      extension,
+      context,
+      frame,
+      details,
+      report: () => reportBrowserSessionWebRequest(mocks.workSession, 'onCompleted', details)
+    }
+  }
+
+  it('delivers registered requests without full tab or discarded active-page metadata', () => {
+    const { frame, report } = listener()
+    for (let id = 10; id < 110; id++) {
+      mocks.addGuest(id, mocks.workSession, true, null)
+    }
+    recordActiveBrowserPage('saved')
+    resetCounts()
+    for (let request = 0; request < 20; request++) {
+      report()
+    }
+    expect(frame.send.mock.calls.map(([, payload]) => payload.args)).toEqual(
+      Array.from({ length: 20 }, () => [
+        {
+          requestId: '42',
+          url: 'https://site.test/image.png',
+          method: 'GET',
+          tabId: 109,
+          windowId: 1,
+          frameId: 0,
+          parentFrameId: -1,
+          type: 'image',
+          timeStamp: 5,
+          requestHeaders: [{ name: 'Accept', value: 'image/png' }]
+        }
+      ])
+    )
+    expect(mocks.counts).toEqual({ lookups: 20, registries: 0, discardedReads: 0 })
+  })
+
+  it('retains current-session, listener-filter and live permission gates', () => {
+    const { extension, context, frame, details, report } = listener()
+    mocks.addGuest(109)
+    report()
+    expect(frame.send.mock.calls.map(([, payload]) => payload.args)).toEqual([
+      [expect.objectContaining({ requestId: '42', tabId: 109, windowId: 1 })]
+    ])
+    context.filters.set('webRequest.onCompleted', [{ urls: ['https://elsewhere.test/*'] }])
+    report()
+    context.filters.clear()
+    reportBrowserSessionWebRequest(mocks.otherSession, 'onCompleted', details)
+    context.events.clear()
+    report()
+    context.events.add('webRequest.onCompleted')
+    mocks.hostPatterns.length = 0
+    report()
+    mocks.hostPatterns.push('https://site.test/*')
+    extension.manifest.permissions = []
+    report()
+    expect(frame.send).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('request tab ownership', () => {
+  it('resolves registered guests without registry or discarded active-page metadata', () => {
+    for (let id = 10; id < 110; id++) {
+      mocks.addGuest(id, mocks.workSession, true, null)
+    }
+    recordActiveBrowserPage('saved')
+    resetCounts()
+    for (let request = 0; request < 20; request++) {
+      expect(resolveBrowserExtensionTabOwner(109)).toMatchObject({
+        contents: { id: 109 },
+        windowId: 1,
+        windowType: 'normal'
+      })
+    }
+    expect(mocks.counts).toEqual({ lookups: 20, registries: 0, discardedReads: 0 })
+  })
+
+  it('matches fresh full resolution across ownership changes and inconsistent aliases', () => {
+    const entry = mocks.addGuest(10, mocks.workSession, false, null)
+    function check(expected: { windowId: number; windowType: 'normal' | 'popup' } | null) {
+      const owner = resolveBrowserExtensionTabOwner(10)
+      const full = resolveBrowserExtensionTab(10)
+      expect(owner).toEqual(
+        full
+          ? { contents: full.contents, windowId: full.windowId, windowType: full.windowType }
+          : null
+      )
+      expect(owner).toEqual(expected ? { contents: entry, ...expected } : null)
+    }
+    check(null)
+    mocks.pages.set('page-10', 10)
+    mocks.reverse.set(10, 'page-10')
+    check({ windowId: 1, windowType: 'normal' })
+    mocks.pages.set('alias', 10)
+    mocks.reverse.delete(10)
+    check({ windowId: 1, windowType: 'normal' })
+    mocks.pages.clear()
+    mocks.pages.set('other-page', 20)
+    mocks.reverse.set(10, 'other-page')
+    check(null)
+    mocks.reverse.clear()
+    entry.hostWebContents = mocks.main.webContents
+    check({ windowId: 1, windowType: 'normal' })
+    entry.getType = () => 'window'
+    check(null)
+    mocks.popouts.set(2, { id: 2, webContents: entry })
+    mocks.hasMain = false
+    check({ windowId: 2, windowType: 'popup' })
+    mocks.popouts.clear()
+    check(null)
+    mocks.hasMain = true
+    mocks.pages.set('registered-again', 10)
+    mocks.reverse.set(10, 'registered-again')
+    check({ windowId: 1, windowType: 'normal' })
+    entry.destroyed = true
+    check(null)
+    mocks.contents.delete(10)
+    check(null)
+  })
 })
 
 describe('extension tab enumeration', () => {

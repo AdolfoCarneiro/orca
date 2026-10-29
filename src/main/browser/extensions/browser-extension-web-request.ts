@@ -21,7 +21,7 @@ import { matchesExtensionMatchPattern } from './browser-extension-match-pattern'
 import { extensionHasPermission } from './browser-extension-namespace-registry'
 import { hasBrowserExtensionHostPermission } from './browser-extension-permission-grants'
 import { canExtensionAccessRequest } from './browser-extension-request-host-access'
-import { resolveBrowserExtensionTab } from './browser-extension-tab-model'
+import { resolveBrowserExtensionTabOwner } from './browser-extension-tab-owner'
 
 /**
  * chrome.webRequest, observed rather than blocking. Electron 43 delivers no webRequest events to
@@ -224,7 +224,9 @@ function forward(
     return
   }
   const entry =
-    details.webContentsId === undefined ? null : resolveBrowserExtensionTab(details.webContentsId)
+    details.webContentsId === undefined
+      ? null
+      : resolveBrowserExtensionTabOwner(details.webContentsId)
   const chromeDetails = toChromeWebRequestDetails(
     details,
     entry ? { tabId: entry.contents.id, windowId: entry.windowId } : { tabId: -1, windowId: -1 },
