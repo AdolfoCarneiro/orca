@@ -200,6 +200,21 @@ describe('orchestration RPC methods', () => {
       expect(db.listRuns().runs.filter((run) => run.legacy === 0)).toEqual([])
     })
 
+    it('creates no Run when an unbound coordinator start fails preflight', async () => {
+      setup(false)
+      mockCurrentWorkerStart()
+
+      await expect(
+        call('orchestration.workerStart', {
+          spec: 'Audit the parser',
+          from: 'term_coord',
+          agent: 'codex',
+          worktree: 'new-child'
+        })
+      ).rejects.toThrow('--name')
+      expect(db.listRuns().runs.filter((run) => run.legacy === 0)).toEqual([])
+    })
+
     it('applies and reports opaque per-invocation model preferences', async () => {
       setup()
       mockCurrentWorkerStart()
@@ -222,7 +237,8 @@ describe('orchestration RPC methods', () => {
 
       expect(result).toMatchObject({
         state: 'ready',
-        next: expect.stringContaining('end your turn'),
+        // A recorded start receipt replays verbatim, so it never claims the fleet lets you stop.
+        next: expect.not.stringContaining('end your turn'),
         launch: {
           requested: { agent: 'claude', model: 'aws-bedrock-opus-5', effort: 'high' },
           effective: { agent: 'claude', model: 'aws-bedrock-opus-5', effort: 'high' }

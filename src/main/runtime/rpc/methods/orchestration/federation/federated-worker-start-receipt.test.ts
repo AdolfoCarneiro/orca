@@ -62,7 +62,7 @@ describe('federated worker start receipt validation', () => {
       },
       runtime,
       db,
-      runId: run.id,
+      bindRunId: () => run.id,
       task,
       orchestrationMutation: {
         callerFingerprint: 'caller',

@@ -1,10 +1,10 @@
 import { z } from 'zod'
 import type { OrcaRuntimeService } from '../../../orca-runtime'
 import { projectWorkerListFleet } from './worker/worker-list-projection'
-import { chatAssigneeSessionId } from '../../../orchestration/chat-assignee'
-import { isStructuredWorkerHandle } from '../../../../../shared/structured-worker-handle'
 
-// A receipt carries `next` only where stopping is the right move; without it, act on the receipt.
+// Only an empty check sees the whole mailbox, so only it says to stop; the rest drain first.
+const DRAIN_MAILBOX =
+  'Handle the rest of the mail you already read and start any other workers you need, then run check until count is 0 and follow its next.'
 const AWAIT_WORKER_REPORTS =
   'Orca wakes you when a worker reports. Once every worker you need is started, end your turn. Do not poll.'
 export const WORKER_DONE_RECORDED_NEXT = 'Recorded. End your turn.'
@@ -21,16 +21,10 @@ const EmptyRunCheck = z.looseObject({
   waitInterrupted: z.never().optional()
 })
 
-/** A worker that already reported left mail to act on, so only an unreported start says to stop. */
-export async function withWorkerStartNext(
-  runtime: OrcaRuntimeService,
-  runId: string,
-  receipt: unknown
-): Promise<unknown> {
+/** A start may come mid-batch, so it sends the caller to `check`, which alone decides stopping. */
+export function withWorkerStartNext(receipt: unknown): unknown {
   const ready = ReadyWorkerStart.safeParse(receipt)
-  return ready.success && (await awaitsWorkerReports(runtime, runId))
-    ? { ...ready.data, next: AWAIT_WORKER_REPORTS }
-    : receipt
+  return ready.success ? { ...ready.data, next: DRAIN_MAILBOX } : receipt
 }
 
 export async function withRunCheckNext(
@@ -43,52 +37,25 @@ export async function withRunCheckNext(
     : result
 }
 
-/** An answered question unblocks its worker, so the coordinator waits for that worker's report. */
-export async function withAnswerNext<T extends object>(
-  runtime: OrcaRuntimeService,
-  runId: string,
-  receipt: T
-): Promise<T & { next?: string }> {
-  return (await awaitsWorkerReports(runtime, runId))
-    ? { ...receipt, next: AWAIT_WORKER_REPORTS }
-    : receipt
+/** A question arrives in a batch the caller has not finished handling. */
+export function withAnswerNext<T extends object>(receipt: T): T & { next: string } {
+  return { ...receipt, next: DRAIN_MAILBOX }
 }
 
-/** A worker still runs, worker-list owes no action, and every running worker's failure wakes the coordinator. */
+/** A worker still runs, worker-list owes no action, and no running worker is remote: a remote exit sends no mail. */
 async function awaitsWorkerReports(runtime: OrcaRuntimeService, runId: string): Promise<boolean> {
-  const rows = runtime.getOrchestrationDb().listWorkerTerminalResources({ runId })
+  const db = runtime.getOrchestrationDb()
+  const rows = db.listWorkerTerminalResources({ runId })
   const { workers } = await projectWorkerListFleet(runtime, rows, {
     limit: rows.length,
     completeProjection: true
   })
-  const running = new Set(
-    workers.filter((worker) => worker.outcome === 'in_progress').map((worker) => worker.dispatchId)
-  )
+  const running = workers
+    .filter((worker) => worker.outcome === 'in_progress')
+    .map((worker) => worker.dispatchId)
   return (
-    running.size > 0 &&
+    running.length > 0 &&
     workers.every((worker) => worker.nextAction.kind === 'none') &&
-    failuresSendMail(
-      runtime,
-      rows.filter((row) => running.has(row.dispatchId))
-    )
-  )
-}
-
-/** A remote exit sends no mail, and a chat failure sends it only while the user allows that. */
-function failuresSendMail(
-  runtime: OrcaRuntimeService,
-  rows: { dispatchId: string; agentTerminalHandle: string | null }[]
-): boolean {
-  const ids = rows.map((row) => row.dispatchId)
-  if (runtime.getOrchestrationDb().listFederatedDispatchesByIds(ids).length > 0) {
-    return false
-  }
-  return (
-    runtime.isChatWorkerErrorEscalationEnabled() ||
-    !rows.some(
-      (row) =>
-        chatAssigneeSessionId(row.agentTerminalHandle) ||
-        isStructuredWorkerHandle(row.agentTerminalHandle)
-    )
+    db.listFederatedDispatchesByIds(running).length === 0
   )
 }

@@ -488,7 +488,9 @@ it('normalizes linked refused starts, reads explicitly scoped late words past a 
   ])
   r.enabled(false)
   await tick()
-  expect(r.mail()).toHaveLength(2)
+  // Muted at read: the stop is still reported, without the error words.
+  expect(r.mail()).toHaveLength(3)
+  expect(r.mail()[2]?.body).not.toContain('muted before read')
 })
 
 it('announces proven live death before cleanup, deduplicates settlement, and excludes requested or unproven ends', async () => {

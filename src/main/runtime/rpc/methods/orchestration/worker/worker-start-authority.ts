@@ -10,7 +10,7 @@ import { resolveDispatchCreator } from '../runs/dispatch-creator'
 import { createBoundRun } from '../runs/runs'
 import { ROOT_DISPATCH_DEPTH } from '../../../../../../shared/nested-worker-depth'
 
-/** Coordinators start workers in their Run, creating one when none is bound; active workers start helpers as themselves so reports return to their Dispatch without moving its mailbox. */
+/** Coordinators start workers in their Run, creating one when none is bound; active workers start helpers as themselves so reports return to their Dispatch without moving its mailbox. A new Run is created and bound only when `bindRun` is first called, so a start refused before it leaves no Run behind. */
 export function resolveWorkerStartRun(
   runtime: OrcaRuntimeService,
   args: {
@@ -21,7 +21,7 @@ export function resolveWorkerStartRun(
     /** Objective for a Run this start may create; absent when it names an existing Task. */
     objective: string | undefined
   }
-): { run: RunRow; runCreated: boolean; helperCreator?: DispatchContextRow } {
+): { bindRun: () => RunRow; runCreated: boolean; helperCreator?: DispatchContextRow } {
   const db = runtime.getOrchestrationDb()
   const coordinator = args.coordinator
   const coordinated = coordinator ? db.getCurrentRunForCoordinator(coordinator) : undefined
@@ -30,7 +30,7 @@ export function resolveWorkerStartRun(
     if (!run) {
       throw fenced(`This caller coordinates Run ${coordinated.id}, not ${args.runId}.`)
     }
-    return { run, runCreated: false }
+    return { bindRun: () => run, runCreated: false }
   }
   // Use the same active delegated Dispatch for authority and creator/reporting identity; remote Dispatches have no local row.
   const dispatchCreator = resolveDispatchCreator(runtime, args.from, args.callerSession)
@@ -43,7 +43,7 @@ export function resolveWorkerStartRun(
         `This worker's Dispatch ${creator.id} is in Run ${run.id}; it starts helpers only there.`
       )
     }
-    return { run, runCreated: false, helperCreator: creator }
+    return { bindRun: () => run, runCreated: false, helperCreator: creator }
   }
   // Only a root caller gets a new Run, so a worker can never reset its depth this way.
   if (
@@ -52,8 +52,10 @@ export function resolveWorkerStartRun(
     !args.runId &&
     db.resolveCreatorDepth(dispatchCreator) === ROOT_DISPATCH_DEPTH
   ) {
+    const { coordinator: caller, objective } = args
+    let created: RunRow | undefined
     return {
-      run: createBoundRun(runtime, args.coordinator, args.from, args.objective),
+      bindRun: () => (created ??= createBoundRun(runtime, caller, args.from, objective)),
       runCreated: true
     }
   }

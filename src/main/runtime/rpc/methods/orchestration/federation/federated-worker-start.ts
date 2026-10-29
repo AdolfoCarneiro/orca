@@ -39,7 +39,8 @@ export async function startFederatedWorker(args: {
   params: WorkerStartInput
   runtime: OrcaRuntimeService
   db: OrchestrationDb
-  runId: string
+  /** Called only once preflight passes, so a refused start binds no new Run. */
+  bindRunId: () => string
   task?: { id: string; spec: string; status: string }
   orchestrationMutation?: {
     callerFingerprint: string
@@ -50,7 +51,7 @@ export async function startFederatedWorker(args: {
   /** The coordinator's resolved session, when it is one; recorded as the Dispatch creator. */
   callerSession?: OrchestrationSessionCaller
 }): Promise<unknown> {
-  const { params, runtime, db, task, runId, orchestrationMutation } = args
+  const { params, runtime, db, task, orchestrationMutation } = args
   if (!isWorkerStartTimeoutWithinTimerLimit(params.timeoutMs)) {
     throw new OrchestrationError(
       'invalid_argument',
@@ -120,6 +121,7 @@ export async function startFederatedWorker(args: {
         : 1
 
   const setupDecision = createsWorktree ? (params.setup ?? 'run') : 'not_applicable'
+  const runId = args.bindRunId()
   const started = db.createStartingWorkerDispatch({
     creator: resolveDispatchCreator(runtime, params.from, args.callerSession),
     maxDepth: runtime.getNestedWorkerMaxDepth(),

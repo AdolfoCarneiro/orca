@@ -113,7 +113,7 @@ export const ORCHESTRATION_MESSAGE_METHODS = [
           body: params.body
         })
         const federated = db.getFederatedDispatch(question.dispatch_id)
-        const receipt = await withAnswerNext(runtime, run.id, {
+        const receipt = withAnswerNext({
           message: exposeMessage(answered.message),
           question: answered.question,
           duplicate: answered.duplicate

@@ -41,7 +41,8 @@ export async function startLocalWorker(args: {
   params: WorkerStartInput
   runtime: OrcaRuntimeService
   db: OrchestrationDb
-  run: RunRow
+  /** Called only once effect-free validation passes, so a refused start binds no new Run. */
+  bindRun: () => RunRow
   coordinator: OrchestrationCallerIdentity | null
   callerSession?: OrchestrationSessionCaller
   existingTask?: TaskRow
@@ -51,7 +52,7 @@ export async function startLocalWorker(args: {
   /** Set when a worker starts its own helper; the helper reports to this Dispatch. */
   helperCreator?: DispatchContextRow
 }): Promise<unknown> {
-  const { runtime, db, run, coordinator, callerSession, existingTask, orchestrationMutation } = args
+  const { runtime, db, coordinator, callerSession, existingTask, orchestrationMutation } = args
   // `--terminal` names a party: a chat by its `/clear` root address, as its Dispatch does.
   const terminal = args.params.terminal && resolveDispatchAssigneeParty(args.params.terminal, db)
   const params = terminal ? { ...args.params, terminal: terminal.address } : args.params
@@ -150,6 +151,7 @@ export async function startLocalWorker(args: {
         : 'orchestration_default'
       : 'existing_worktree'
   }
+  const run = args.bindRun()
   const started = db.createStartingWorkerDispatch({
     creator: resolveDispatchCreator(runtime, params.from, callerSession),
     maxDepth: runtime.getNestedWorkerMaxDepth(),

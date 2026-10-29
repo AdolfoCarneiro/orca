@@ -13,12 +13,11 @@ import { chatRequestError, isSenderOwnRejection } from './chat-worker-error-word
 import type { OrchestrationDb } from './db'
 import type { DispatchContextRow } from './types'
 import { escalateWorkerFailure } from './worker-failure-escalation'
+import { reportWorkerTurnStop, type WorkerTurnStopReportDeps } from './worker-turn-stop-report'
 
-export type ChatWorkerErrorEscalationDeps = {
-  /** Chat UI is on and the user left the Orchestration switch on. */
+export type ChatWorkerErrorEscalationDeps = WorkerTurnStopReportDeps & {
+  /** Chat UI is on and the user left the Orchestration switch on; off still reports a plain stop. */
   enabled: () => boolean
-  db: () => OrchestrationDb | null
-  notify: (handle: string, messageType: string) => void
 }
 
 export function chatWorkerErrorEscalationEnabled(
@@ -81,10 +80,7 @@ export async function escalateChatWorkerError(
   deps: ChatWorkerErrorEscalationDeps
 ): Promise<void> {
   try {
-    if (!deps.enabled()) {
-      return
-    }
-    const db = deps.db()
+    const db = deps.getDb()
     const targets = db ? chatWorkerDispatches(request.sessionId, db) : []
     if (!db || targets.length === 0) {
       return
@@ -117,13 +113,18 @@ export async function escalateChatWorkerError(
     }
     const { text, detail, kind } = error ?? { ...unrecordedError(request), detail: undefined }
     for (const { dispatch, from } of targets) {
-      // The journal read awaited: the Dispatch may have settled, or the user turned this off.
+      // The journal read awaited: the Dispatch may have settled.
       const current = db.getDispatchContextById(dispatch.id)
       if (
-        !deps.enabled() ||
         (current?.status !== 'pending' && current?.status !== 'dispatched') ||
         current.assignee_handle !== dispatch.assignee_handle
       ) {
+        continue
+      }
+      if (!deps.enabled()) {
+        const stopKey = `request:${request.kind}:${request.id}`
+        const stop = { from, stopKey, reason: 'errored' as const, lastOutput: undefined }
+        reportWorkerTurnStop(db, { kind: 'local', dispatch }, stop, deps)
         continue
       }
       escalateWorkerFailure(

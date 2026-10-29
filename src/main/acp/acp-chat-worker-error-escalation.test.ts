@@ -79,7 +79,12 @@ async function assigned() {
   let enabled = true
   const failure = vi.fn((request: Parameters<typeof escalateChatWorkerError>[0]) => {
     deliveries.push(
-      escalateChatWorkerError(request, { db: () => db, enabled: () => enabled, notify: () => {} })
+      escalateChatWorkerError(request, {
+        getDb: () => db,
+        enabled: () => enabled,
+        notify: () => {},
+        isWaitingForMail: () => false
+      })
     )
   })
   const h = await openHostRig({ onRequestFailure: failure })
@@ -396,9 +401,13 @@ it.each(['dispatch', 'setting', 'history', 'clear'] as const)(
       }
       r.rig.child().agent.reply(frame, { stopReason: 'end_turn' })
       await Promise.all(deliveries)
-      expect(r.mail()).toHaveLength(change === 'clear' ? 1 : 0)
+      // With the switch off the coordinator still learns of the stop, without the error words.
+      expect(r.mail()).toHaveLength(change === 'clear' || change === 'setting' ? 1 : 0)
       if (change === 'clear') {
         expect(r.mail()[0]?.body).toContain('captured A words')
+      }
+      if (change === 'setting') {
+        expect(r.mail()[0]?.body).not.toContain('captured A words')
       }
       expect(
         (await r.host.journalSnapshot(SESSION)).items.some((item) =>

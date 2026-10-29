@@ -150,11 +150,13 @@ describe('a chat worker whose turn fails', () => {
     }
   )
 
-  it('sends nothing while the Orchestration switch is off', async () => {
+  it('still reports the stop without the error while the Orchestration switch is off', async () => {
     vi.spyOn(runtime, 'isChatWorkerErrorEscalationEnabled').mockReturnValue(false)
-    const { runId } = await dispatchAndFailWorkerTurn()
+    const { runId, dispatchId } = await dispatchAndFailWorkerTurn()
 
-    await new Promise((resolve) => setTimeout(resolve, 50))
-    expect(escalationsTo(runId)).toHaveLength(0)
+    await vi.waitFor(() => expect(escalationsTo(runId)).toHaveLength(1), WAIT)
+    const [stop] = escalationsTo(runId)
+    expect(stop!.body).not.toContain(CAPACITY)
+    expect(JSON.parse(stop!.payload)).toMatchObject({ dispatchId, stopReason: 'errored' })
   })
 })

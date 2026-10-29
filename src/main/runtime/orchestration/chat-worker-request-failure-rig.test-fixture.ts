@@ -83,7 +83,12 @@ export async function rig(
     capturePendingOutput,
     wordsContext: () => ({ agentName: 'Codex', retryControl: true }),
     onFailure: (failure) => {
-      void escalateChatWorkerError(failure, { db: () => db, enabled: () => enabled, notify })
+      void escalateChatWorkerError(failure, {
+        getDb: () => db,
+        enabled: () => enabled,
+        notify,
+        isWaitingForMail: () => false
+      })
     }
   })
   const session: StructuredAgentSessionHostSession = {
