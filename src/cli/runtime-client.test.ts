@@ -426,12 +426,12 @@ describe.skipIf(process.platform === 'win32')('RuntimeClient', () => {
   it('preserves a dropped read-only orchestration failure exactly', async () => {
     const userDataPath = makeRuntimeClientFixture()
     const endpoint = join(userDataPath, 'runtime.sock')
-    let request: Record<string, unknown> | undefined
+    let request: unknown
     const server = createServer((socket) => {
       sockets.add(socket)
       socket.once('close', () => sockets.delete(socket))
       socket.once('data', (data) => {
-        request = JSON.parse(String(data).trim()) as Record<string, unknown>
+        request = JSON.parse(String(data).trim())
         socket.end()
       })
     })
@@ -445,10 +445,11 @@ describe.skipIf(process.platform === 'win32')('RuntimeClient', () => {
       .catch((error: unknown) => error)
 
     expect(failure).toBeInstanceOf(RuntimeClientError)
-    expect((failure as RuntimeClientError).message).toBe(
-      'Orca closed the connection before responding.'
-    )
-    expect((failure as RuntimeClientError).data).toEqual({
+    if (!(failure instanceof RuntimeClientError)) {
+      throw new Error('Expected a runtime client error', { cause: failure })
+    }
+    expect(failure.message).toBe('Orca closed the connection before responding.')
+    expect(failure.data).toEqual({
       nextSteps: ['Check that Orca is open and that this terminal can access it.']
     })
     expect(request).toMatchObject({ method: 'orchestration.workerShow' })
