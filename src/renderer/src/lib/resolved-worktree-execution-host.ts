@@ -29,9 +29,10 @@ export function getResolvedFolderExecutionOwner<
     state.activeWorktreeId === folderWorkspaceKey(folderWorkspaceId)
       ? (state.activeWorkspaceExecutionHostId ?? undefined)
       : undefined
+  const folderWorkspaces = state.folderWorkspaces
   const folder =
-    findIndexedFolderWorkspaceOwner(state.folderWorkspaces, folderWorkspaceId, preferredHostId) ??
-    findIndexedFolderWorkspaceOwner(state.folderWorkspaces, folderWorkspaceId)
+    findIndexedFolderWorkspaceOwner(folderWorkspaces, folderWorkspaceId, preferredHostId) ??
+    findIndexedFolderWorkspaceOwner(folderWorkspaces, folderWorkspaceId)
   if (!folder) {
     return null
   }
