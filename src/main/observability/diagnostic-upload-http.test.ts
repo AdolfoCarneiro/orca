@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { httpRequestMock, httpsRequestMock } = vi.hoisted(() => ({
   httpRequestMock: vi.fn(),
@@ -23,6 +23,9 @@ class FakeResponse extends EventEmitter {
 }
 
 describe('diagnostic upload HTTP', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
   it('reports only the status for an error response with an invalid JSON body', async () => {
     const request = new FakeRequest()
     const response = new FakeResponse()
@@ -92,6 +95,51 @@ describe('diagnostic upload HTTP', () => {
     await expect(result).rejects.toThrow('diagnostic network request timed out')
     expect(request.destroy).toHaveBeenCalledOnce()
     expect(() => request.emit('error', new Error('socket hang up'))).not.toThrow()
+    request.emit('close')
+    expect(request.eventNames()).toEqual([])
+  })
+
+  it('expires a response that keeps receiving data before the socket idle timeout', async () => {
+    const request = new FakeRequest()
+    const response = new FakeResponse()
+    httpRequestMock.mockImplementationOnce((_options, callback) => {
+      callback(response)
+      return request
+    })
+    const result = postJsonForJson('http://diagnostics.example/upload', {}, 1000)
+    const outcome = result.catch((error: Error) => error.message)
+    for (let chunk = 0; chunk < 3; chunk++) {
+      await vi.advanceTimersByTimeAsync(300)
+      response.emit('data', Buffer.from(' '))
+    }
+    await vi.advanceTimersByTimeAsync(100)
+
+    expect(request.destroy).toHaveBeenCalledExactlyOnceWith()
+    expect(await outcome).toBe('diagnostic network request timed out')
+    expect(response.listenerCount('data')).toBe(0)
+    expect(vi.getTimerCount()).toBe(0)
+    expect(() => request.emit('error', new Error('socket hang up'))).not.toThrow()
+    request.emit('close')
+    expect(request.eventNames()).toEqual([])
+  })
+
+  it('clears the elapsed deadline when a streamed response completes in time', async () => {
+    const request = new FakeRequest()
+    const response = new FakeResponse()
+    httpRequestMock.mockImplementationOnce((_options, callback) => {
+      callback(response)
+      return request
+    })
+    const result = postJsonForJson('http://diagnostics.example/upload', {}, 1000)
+    response.emit('data', Buffer.from('{"accepted":'))
+    await vi.advanceTimersByTimeAsync(500)
+    response.emit('data', Buffer.from('true}'))
+    response.emit('end')
+
+    await expect(result).resolves.toEqual({ accepted: true })
+    expect(vi.getTimerCount()).toBe(0)
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(request.destroy).not.toHaveBeenCalled()
     request.emit('close')
     expect(request.eventNames()).toEqual([])
   })

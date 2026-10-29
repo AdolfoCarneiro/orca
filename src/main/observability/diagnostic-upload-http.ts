@@ -40,9 +40,11 @@ function postRaw(
     let settled = false
     let req: ClientRequest | null = null
     let res: IncomingMessage | null = null
+    let deadline: ReturnType<typeof setTimeout> | undefined
     const chunks: Buffer[] = []
     let responseBytes = 0
     function cleanupListeners(): void {
+      clearTimeout(deadline)
       req?.off('timeout', onRequestTimeout)
       res?.off('data', onResponseData)
       res?.off('end', onResponseEnd)
@@ -144,6 +146,7 @@ function postRaw(
     req.on('error', onRequestError)
     req.once('close', () => req?.off('error', onRequestError))
     req.on('timeout', onRequestTimeout)
+    deadline = setTimeout(onRequestTimeout, timeoutMs)
     req.write(body)
     req.end()
   })
