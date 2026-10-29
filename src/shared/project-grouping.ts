@@ -90,16 +90,18 @@ export function selectProjectGroupTarget<S extends GroupingSetup>(
     hostId?: string | null
   } = {}
 ): S {
-  const onHost = (setup: S) => !hint.hostId || setup.hostId === hint.hostId
+  const explicit = (setup: S) =>
+    Boolean(
+      (hint.setupId && setup.id === hint.setupId) ||
+      (hint.path &&
+        normalizeRuntimePathForComparison(setup.path) ===
+          normalizeRuntimePathForComparison(hint.path))
+    )
   return (
     group.members.find(
-      (setup) =>
-        onHost(setup) &&
-        ((hint.setupId && setup.id === hint.setupId) ||
-          (hint.path &&
-            normalizeRuntimePathForComparison(setup.path) ===
-              normalizeRuntimePathForComparison(hint.path)))
+      (setup) => explicit(setup) && (!hint.hostId || setup.hostId === hint.hostId)
     ) ??
+    group.members.find(explicit) ??
     group.members.find((setup) => setup.repoId === hint.contextualRepoId) ??
     group.members.find((setup) => setup.hostId === (hint.hostId ?? LOCAL_EXECUTION_HOST_ID)) ??
     group.representative

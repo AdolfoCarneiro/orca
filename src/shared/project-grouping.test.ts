@@ -74,6 +74,9 @@ describe('project grouping', () => {
     const group = buildProjectGroups(model)[0]
     expect(selectProjectGroupTarget(group, { setupId: second.id }).repoId).toBe('second')
     expect(selectProjectGroupTarget(group, { path: second.path }).repoId).toBe('second')
+    expect(selectProjectGroupTarget(group, { setupId: second.id, hostId: remote.hostId })).toBe(
+      second
+    )
     expect(selectProjectGroupTarget(group, { contextualRepoId: second.repoId }).repoId).toBe(
       'second'
     )
