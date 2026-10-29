@@ -81,13 +81,15 @@ it('keeps content uncached and preserves rich rows through the production listin
   ).toHaveLength(2)
 })
 
-it('forces cursor traversal on a manual refresh of a later page', async () => {
+it('starts without saved cursors on a manual refresh of a later page', async () => {
   api.specialNodes = rows()
   await page(1)
   await page(2)
   const before = api.graphqlCalls
   expect((await page(2, true))[0].number).toBe(9976)
   expect(api.graphqlCalls - before).toBe(1)
+  expect(api.calls.at(-1)?.args.join(' ')).toContain('first: 48')
+  expect(api.calls.at(-1)?.args.join(' ')).not.toContain('after:')
 })
 
 it.each(['labels', 'reviewRequests', 'unavailable'])(
@@ -143,6 +145,8 @@ it('does not share PR cursors across credentials', async () => {
   const before = api.graphqlCalls
   expect((await page(2))[0].number).toBe(9976)
   expect(api.graphqlCalls - before).toBe(1)
+  expect(api.calls.at(-1)?.args.join(' ')).toContain('first: 48')
+  expect(api.calls.at(-1)?.args.join(' ')).not.toContain('after:')
 })
 
 it('routes sequential production PR pages through cursor reads', async () => {
