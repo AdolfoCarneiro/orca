@@ -39,7 +39,10 @@ export function MobileSessionTitleBlock({
           onPress={details.toggle}
           aria-expanded={details.requestedOpen}
           accessibilityRole="button"
-          accessibilityHint="Shows the full workspace name and where it is"
+          accessibilityHint={t(
+            'session.header.workspaceDetailsHint',
+            'Shows the full workspace name and where it is'
+          )}
         >
           <Text
             ref={details.titleRef}
