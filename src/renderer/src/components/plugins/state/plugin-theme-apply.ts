@@ -104,6 +104,7 @@ export async function applyPluginThemesNow(pluginKey: string): Promise<boolean> 
     terminalThemeDark: settings.terminalThemeDark,
     terminalThemeLight: settings.terminalThemeLight,
     terminalUseSeparateLightTheme: settings.terminalUseSeparateLightTheme,
+    terminalColorOverrides: settings.terminalColorOverrides,
     terminalPluginPalettes: settings.terminalPluginPalettes ?? []
   }
   let next: Partial<GlobalSettings> = {}

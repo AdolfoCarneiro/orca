@@ -33,6 +33,7 @@ export function createPluginSyntaxEngine(options: {
   const { monaco, languageId } = options
   const disposables: Monaco.IDisposable[] = []
   let failed = false
+  let disposed = false
   let client: Promise<PluginGrammarWorkerClient | null> | null = null
 
   const fail = (reason: PluginGrammarFailure): void => {
@@ -47,7 +48,8 @@ export function createPluginSyntaxEngine(options: {
     client ??= options
       .load()
       .then((payload) => {
-        if (!payload) {
+        // Why: a load that lands after dispose must not leave its editing rules registered.
+        if (!payload || disposed) {
           return null
         }
         disposables.push(
@@ -115,6 +117,7 @@ export function createPluginSyntaxEngine(options: {
       }
     },
     dispose: () => {
+      disposed = true
       for (const disposable of disposables) {
         disposable.dispose()
       }
