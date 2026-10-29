@@ -39,7 +39,6 @@ export function AutomationSurfaceField({
         type="single"
         spacing={1}
         size="sm"
-        // oxlint-disable-next-line shadcn/require-static-classes -- Temporary: forwards the editor's existing segmented group styles unchanged; shared picker replacement tracked in #34728.
         className={groupClassName}
         value={automationDraftSurface(draft, settings, supported)}
         disabled={supported === null}
@@ -55,7 +54,6 @@ export function AutomationSurfaceField({
             aria-checked={automationDraftSurface(draft, settings, supported) === surface}
             key={surface}
             value={surface}
-            // oxlint-disable-next-line shadcn/require-static-classes -- Temporary: forwards the editor's existing segmented item styles unchanged; shared picker replacement tracked in #34728.
             className={itemClassName}
             disabled={surface === 'chat' && supported !== true}
           >
