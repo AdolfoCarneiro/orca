@@ -23,6 +23,7 @@ type TrackedGuest = {
     stopWatchingDetach: () => void
     /** An active site override must be cleared when leaving the site. */
     standing: boolean
+    commandRevision: number
   } | null
 }
 
@@ -177,6 +178,7 @@ export class BrowserSiteDisplayController {
       return
     }
     state.standing = colorScheme !== undefined
+    const commandRevision = ++state.commandRevision
     // Reapply on navigation because an agent's setEmulatedMedia replaces all emulated features.
     tracked.guest.debugger
       .sendCommand('Emulation.setEmulatedMedia', {
@@ -188,9 +190,18 @@ export class BrowserSiteDisplayController {
           error: errorMessage(error)
         })
       })
+      .finally(() => {
+        if (
+          !colorScheme &&
+          tracked.colorScheme === state &&
+          state.commandRevision === commandRevision
+        ) {
+          this.releaseColorScheme(guestId)
+        }
+      })
   }
 
-  // Keep a lifetime lease so an agent releasing its earlier lease cannot clear the scheme.
+  // Keep the override leased so an agent releasing its earlier lease cannot clear it.
   private acquireColorScheme(tracked: TrackedGuest): TrackedGuest['colorScheme'] {
     const { guest } = tracked
     let lease: ElectronDebuggerLease
@@ -210,7 +221,8 @@ export class BrowserSiteDisplayController {
     tracked.colorScheme = {
       lease,
       stopWatchingDetach: () => guest.debugger.off('detach', onDetach),
-      standing: false
+      standing: false,
+      commandRevision: 0
     }
     return tracked.colorScheme
   }

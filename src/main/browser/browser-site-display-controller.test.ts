@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { setImmediate as nextTurn } from 'node:timers/promises'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PersistedUIState } from '../../shared/persisted-ui-state-types'
 import {
@@ -10,6 +11,7 @@ import {
 } from '../../shared/browser-page-zoom'
 import { BrowserSiteDisplayController } from './browser-site-display-controller'
 import { configureBrowserSiteDisplayStore } from './browser-site-display-store'
+import { acquireElectronDebugger } from './electron-debugger-lease'
 
 type FakeGuest = Electron.WebContents &
   EventEmitter & { url: string; level: number; mediaSent: unknown[] }
@@ -178,6 +180,82 @@ describe('BrowserSiteDisplayController color scheme', () => {
 
     expect(guest.debugger.isAttached()).toBe(true)
     expect(guest.mediaSent.at(-1)).toBe('dark')
+  })
+
+  it('releases its debugger when the site returns to the default scheme', async () => {
+    const controller = new BrowserSiteDisplayController()
+    const guest = fakeGuest('https://github.com/')
+    controller.onGuestRegistered(guest, null)
+    controller.setColorScheme(guest.id, 'dark')
+    expect(guest.debugger.isAttached()).toBe(true)
+
+    controller.setColorScheme(guest.id, null)
+    await nextTurn()
+
+    expect(guest.mediaSent).toEqual(['dark', ''])
+    expect(guest.debugger.isAttached()).toBe(false)
+    expect(guest.debugger.listenerCount('detach')).toBe(0)
+    controller.setColorScheme(guest.id, 'light')
+    expect(guest.debugger.isAttached()).toBe(true)
+    expect(guest.mediaSent.at(-1)).toBe('light')
+    controller.onGuestRetired(guest.id)
+  })
+
+  it('releases after leaving an overridden site and reapplies it on return', async () => {
+    const controller = new BrowserSiteDisplayController()
+    const guest = fakeGuest('https://github.com/')
+    controller.onGuestRegistered(guest, null)
+    controller.setColorScheme(guest.id, 'dark')
+
+    commit(controller, guest, 'https://docs.example.com/')
+    await nextTurn()
+    expect(guest.debugger.isAttached()).toBe(false)
+
+    commit(controller, guest, 'https://github.com/next')
+    expect(guest.debugger.isAttached()).toBe(true)
+    expect(guest.mediaSent).toEqual(['dark', '', 'dark'])
+    controller.onGuestRetired(guest.id)
+  })
+
+  it('keeps another debugger owner attached until that owner releases', async () => {
+    const controller = new BrowserSiteDisplayController()
+    const guest = fakeGuest('https://github.com/')
+    controller.onGuestRegistered(guest, null)
+    const other = acquireElectronDebugger(guest)
+    controller.setColorScheme(guest.id, 'dark')
+
+    controller.setColorScheme(guest.id, null)
+    await nextTurn()
+    expect(guest.debugger.isAttached()).toBe(true)
+    expect(guest.debugger.listenerCount('detach')).toBe(0)
+    other.release()
+    expect(guest.debugger.isAttached()).toBe(false)
+    controller.onGuestRetired(guest.id)
+  })
+
+  it('waits for the latest clear before releasing across rapid scheme changes', async () => {
+    const controller = new BrowserSiteDisplayController()
+    const guest = fakeGuest('https://github.com/')
+    controller.onGuestRegistered(guest, null)
+    controller.setColorScheme(guest.id, 'dark')
+    const first = Promise.withResolvers<Record<string, never>>()
+    const second = Promise.withResolvers<Record<string, never>>()
+    vi.spyOn(guest.debugger, 'sendCommand')
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({})
+      .mockReturnValueOnce(second.promise)
+
+    controller.setColorScheme(guest.id, null)
+    controller.setColorScheme(guest.id, 'light')
+    controller.setColorScheme(guest.id, null)
+    first.resolve({})
+    await nextTurn()
+    expect(guest.debugger.isAttached()).toBe(true)
+
+    second.resolve({})
+    await nextTurn()
+    expect(guest.debugger.isAttached()).toBe(false)
+    controller.onGuestRetired(guest.id)
   })
 })
 
