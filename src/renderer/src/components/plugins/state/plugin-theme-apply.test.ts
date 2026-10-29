@@ -4,8 +4,9 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../../shared/constants'
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
+import type { PluginTerminalThemeRegistration } from '../../../../../shared/plugins/artifacts/plugin-terminal-theme-artifact'
 import { useAppStore } from '@/store'
-import { applyPluginThemesNow } from './plugin-theme-apply'
+import { applyPluginThemesNow, isPluginTerminalThemeSelected } from './plugin-theme-apply'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 import { toast, type ExternalToast } from 'sonner'
@@ -68,7 +69,7 @@ beforeEach(() => {
 
 afterEach(() => useAppStore.setState(initialState, true))
 
-const darkTerminal = {
+const darkTerminal: PluginTerminalThemeRegistration = {
   id: `plugin:${pluginKey}/term`,
   pluginKey,
   pluginName: 'Dusk & Ember',
@@ -123,6 +124,18 @@ it('switches to the mode of a single theme so installing it visibly changes the 
   await vi.waitFor(() => expect(useAppStore.getState().settings?.theme).toBe('light'))
 })
 
+it('shows a lone terminal theme in the mode a single app theme switches to', async () => {
+  installApi({
+    themes: [appTheme('dusk', 'dark')],
+    terminals: [{ ...darkTerminal, mode: 'light' }]
+  })
+  await applyPluginThemesNow(pluginKey)
+  expect(useAppStore.getState().settings).toMatchObject({
+    theme: 'dark',
+    terminalThemeDark: `plugin:${pluginKey}/term`
+  })
+})
+
 it('puts a lone terminal theme for the other mode in the terminal slot that is showing', async () => {
   installApi({ terminals: [darkTerminal] })
   await applyPluginThemesNow(pluginKey)
@@ -131,6 +144,8 @@ it('puts a lone terminal theme for the other mode in the terminal slot that is s
     terminalThemeLight: `plugin:${pluginKey}/term`,
     terminalUseSeparateLightTheme: true
   })
+  const settings = useAppStore.getState().settings!
+  expect(isPluginTerminalThemeSelected(settings, darkTerminal, false)).toBe(true)
 })
 
 it('keeps another pack in the other slot so packs mix', async () => {

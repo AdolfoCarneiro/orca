@@ -34,10 +34,11 @@ export function isPluginTerminalThemeSelected(
   theme: PluginTerminalThemeRegistration,
   dark: boolean
 ): boolean {
-  const slot = terminalSlot(theme.mode, dark)
-  return (
-    settings[slot] === theme.id &&
-    (slot === 'terminalThemeDark' || settings.terminalUseSeparateLightTheme)
+  // Why the showing slot too: a lone theme for the other mode is applied where it can be seen.
+  return [terminalSlot(theme.mode, dark), terminalSlot('unknown', dark)].some(
+    (slot) =>
+      settings[slot] === theme.id &&
+      (slot === 'terminalThemeDark' || settings.terminalUseSeparateLightTheme)
   )
 }
 
@@ -98,7 +99,7 @@ export async function applyPluginThemesNow(pluginKey: string): Promise<boolean> 
     terminalPicks.push(ownTerminals[0])
   }
   const shownMode = dark ? 'dark' : 'light'
-  if (appSlots.length === 0 && terminalPicks.length === 1 && terminalPicks[0].mode !== shownMode) {
+  if (terminalPicks.length === 1 && terminalPicks[0].mode !== shownMode) {
     // Why: a lone terminal theme for the other mode would fill a slot nobody sees right now.
     terminalPicks[0] = { ...terminalPicks[0], mode: 'unknown' }
   }
