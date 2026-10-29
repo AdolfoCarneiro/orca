@@ -22,7 +22,7 @@ function tab(id: string, patch: Partial<OpenFile> = {}): OpenFile {
 const view = (id: string) => useAppStore.getState().openFiles.find((file) => file.id === id)
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     worktreesByRepo: {
       'repo-1': [makeWorktree({ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' })]

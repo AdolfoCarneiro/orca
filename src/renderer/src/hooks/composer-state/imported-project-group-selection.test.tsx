@@ -21,7 +21,7 @@ const group: ProjectGroup = {
 }
 afterEach(() => {
   cleanup()
-  useAppStore.setState(originalState, true)
+  setSessionTestState(useAppStore, originalState, true)
 })
 
 describe('imported group composer selection', () => {

@@ -28,7 +28,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
   resetWebSessionTabsSnapshotFreshnessForTests()
   resetWebRuntimeWakeTerminalRespawnForTests()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 function makeWorktree(): Worktree {

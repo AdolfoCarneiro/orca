@@ -93,14 +93,14 @@ async function collectRetiredState(): Promise<void> {
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   vi.stubGlobal('window', { api: { agentStatus: { dropPersistedBatch } } })
 })
 
 afterEach(() => {
   feedback.release()
   flushPendingClearCompletedEvictions()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   vi.clearAllMocks()
   vi.useRealTimers()
   vi.unstubAllGlobals()

@@ -74,7 +74,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   Reflect.deleteProperty(window, 'api')
 })
 

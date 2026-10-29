@@ -1,4 +1,5 @@
 /** Direct SSH wake must wait for connection before declaring panes absent (STA-3500/3498 once forked five Claude writers). Paired-runtime web-terminal guards did not cover this path; retain records while unreachable and wake genuine sleepers after reconnect. */
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SleepingAgentSessionRecord } from '../../../shared/agent-session-resume'
 import { useAppStore } from '@/store'
@@ -14,7 +15,7 @@ const LOCAL_WORKTREE_ID = 'repoLocal::/home/dev/proj/feature'
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 function makeRecord(worktreeId: string): SleepingAgentSessionRecord {

@@ -89,7 +89,7 @@ function listing(): RuntimeMobileSessionTabsResult {
 }
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     activeWorktreeId: WT,
     unifiedTabsByWorktree: {

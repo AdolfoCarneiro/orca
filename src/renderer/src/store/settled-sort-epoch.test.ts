@@ -19,11 +19,11 @@ function settled(): boolean {
 describe('settledSortEpoch', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   afterEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     vi.useRealTimers()
   })
 
@@ -93,7 +93,7 @@ describe('settledSortEpoch', () => {
     useAppStore.setState({ sortBy: 'recent' })
     bump()
     expect(vi.getTimerCount()).toBe(1)
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     expect(vi.getTimerCount()).toBe(0)
   })
 })

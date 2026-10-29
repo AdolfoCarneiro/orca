@@ -596,7 +596,7 @@ describe('runKillAllTerminalSurfaces', () => {
     } finally {
       vi.unstubAllGlobals()
       unsubscribe()
-      useAppStore.setState(previousState, true)
+      setSessionTestState(useAppStore, previousState, true)
     }
   })
 })

@@ -28,7 +28,7 @@ vi.mock('@/lib/repo-ssh-connection', async (original) => {
 })
 const initial = useAppStore.getInitialState()
 beforeEach(() => {
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   useAppStore.setState({ runtimeEnvironments: [environment('A'), environment('B')] })
   publish('A', 1)
   publish('B', 1)
@@ -39,7 +39,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
 })
 
 it.each([10, 100])('bounds mounted Create work independently of a %i-target catalog', (size) => {

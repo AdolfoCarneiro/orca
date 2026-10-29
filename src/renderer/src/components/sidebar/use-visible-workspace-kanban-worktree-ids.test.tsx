@@ -14,12 +14,12 @@ const initialState = useAppStore.getInitialState()
 
 describe('useVisibleWorkspaceKanbanWorktreeIds', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('keeps a single-host filter host-qualified when workspace ids collide', () => {

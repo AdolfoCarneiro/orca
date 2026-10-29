@@ -55,7 +55,7 @@ beforeEach(() => {
     }
   })
 })
-afterEach(() => useAppStore.setState(initialState, true))
+afterEach(() => setSessionTestState(useAppStore, initialState, true))
 
 it('undo of a delete never replaces a file recreated at the same path', async () => {
   mocks.write.mockResolvedValue({ ok: false, diskConflict: 'changed' })

@@ -198,7 +198,8 @@ function seedRemoteMirrorState(): void {
     publicRuntimeEnvironment({ id: ENV_B, createdAt: 200, pairingRevision: REVISION_B })
   ]
   replaceRuntimeEnvironmentRevisions(runtimeEnvironments)
-  useAppStore.setState(
+  setSessionTestState(
+    useAppStore,
     {
       ...initialState,
       activeWorktreeId: WORKTREE,
@@ -244,7 +245,7 @@ describe('useWebSessionTabsSync window visibility', () => {
 
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     replaceRuntimeEnvironmentRevisions([])
     resetWebSessionTabsSnapshotFreshnessForTests()
     clearRuntimeEnvironmentConnectionGenerationsForTests()

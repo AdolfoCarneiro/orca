@@ -145,7 +145,7 @@ describe('NativeChatImageAttachments', () => {
       expect(mocks.callRuntimeRpc).toHaveBeenCalledTimes(1)
     } finally {
       await act(async () => root.unmount())
-      useAppStore.setState(original, true)
+      setSessionTestState(useAppStore, original, true)
     }
   })
 

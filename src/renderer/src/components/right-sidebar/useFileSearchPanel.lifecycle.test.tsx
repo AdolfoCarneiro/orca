@@ -30,7 +30,7 @@ beforeEach(() => {
   )
 })
 afterEach(() => {
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   vi.useRealTimers()
 })
 

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SleepingAgentSessionRecord } from '../../../shared/agent-session-resume'
 import { makePaneKey } from '../../../shared/stable-pane-id'
@@ -10,7 +11,7 @@ const OTHER_LEAF_ID = '44444444-4444-4444-8444-444444444444'
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 function makeRecord(

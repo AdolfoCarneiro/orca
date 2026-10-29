@@ -54,7 +54,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
   resetHostMirrorHandleGapWaitsForTests()
   clearRuntimeEnvironmentConnectionGenerationsForTests()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
   setRuntimeEnvironmentConnectionGenerationForTests(ENVIRONMENT_ID, 1)
   setSessionTestState(useAppStore, {
     ptyIdsByTabId: {},
@@ -75,7 +75,7 @@ beforeEach(() => {
 afterEach(() => {
   resetHostMirrorHandleGapWaitsForTests()
   clearRuntimeEnvironmentConnectionGenerationsForTests()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
   vi.restoreAllMocks()
   vi.useRealTimers()
 })

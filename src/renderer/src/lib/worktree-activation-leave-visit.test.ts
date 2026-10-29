@@ -9,7 +9,7 @@ vi.mock('../../../shared/sidebar-inputs-switch', () => ({ ORCA_SIDEBAR_INPUTS_IS
 const initialAppStoreState = useAppStore.getState()
 
 afterEach(() => {
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
   vi.useRealTimers()
 })
 

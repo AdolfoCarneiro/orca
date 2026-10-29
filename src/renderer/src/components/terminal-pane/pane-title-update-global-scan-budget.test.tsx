@@ -335,7 +335,7 @@ afterEach(() => {
   root = null
   container?.remove()
   container = null
-  useAppStore.setState(originalState, true)
+  setSessionTestState(useAppStore, originalState, true)
   vi.restoreAllMocks()
 })
 
@@ -428,7 +428,7 @@ function mountChatConsumers(
     act(() => root?.unmount())
   }
   container?.remove()
-  useAppStore.setState(originalState, true)
+  setSessionTestState(useAppStore, originalState, true)
   const sleptAtByPaneKey: Record<string, number | null> = {}
   const entries = worktreeIds.map((worktreeId, workspaceIndex) => {
     const tabs: Tab[] = []

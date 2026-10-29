@@ -129,7 +129,7 @@ const REQUEST = {
 afterEach(() => {
   mocks.mainStarts.length = 0
   vi.unstubAllGlobals()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
 })
 
 describe('a background worktree create whose paired server declines the chat', () => {

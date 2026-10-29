@@ -10,7 +10,7 @@ import { folderWorkspaceKey } from '../../../shared/workspace-scope'
 import { getActivatableBrowserWorkspaceTab } from './browser-workspace-tab-activation'
 
 const initialState = useAppStore.getInitialState()
-afterEach(() => useAppStore.setState(initialState, true))
+afterEach(() => setSessionTestState(useAppStore, initialState, true))
 
 function makeWorktree(overrides: Partial<Worktree> & Pick<Worktree, 'id'>): Worktree {
   return {

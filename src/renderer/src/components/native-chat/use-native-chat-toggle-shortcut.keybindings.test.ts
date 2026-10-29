@@ -70,7 +70,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   vi.clearAllMocks()
   vi.unstubAllGlobals()
 })

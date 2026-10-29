@@ -173,7 +173,7 @@ vi.mock('../rows/project-header-host-context', async (original) => {
 
 const initial = useAppStore.getInitialState()
 beforeEach(() => {
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   setSessionTestState(useAppStore, {
     runtimeEnvironments: [environment('A', 'mine'), environment('B')],
     worktreesByRepo: { [repo.id]: [worktree] }
@@ -200,7 +200,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
 })
 
 it('does zero device scans while off and preserves equal identities while on, including catalog fallback', () => {

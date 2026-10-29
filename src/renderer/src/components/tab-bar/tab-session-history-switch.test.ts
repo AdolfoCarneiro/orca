@@ -102,7 +102,7 @@ function makeState(
   agentStatusByPaneKey: AppState['agentStatusByPaneKey'] = {},
   repo: Partial<ReturnType<typeof makeRepo>> = {}
 ): AppState {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     agentStatusByPaneKey,
     activeRepoId: 'repo-1',

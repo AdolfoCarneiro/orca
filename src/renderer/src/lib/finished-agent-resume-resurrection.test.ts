@@ -1,4 +1,5 @@
 /** Completed local agents retain cold-restore identity (#9454) without posing as unfinished work or resurrecting after pane removal. This path does not use paired-runtime web-tab recovery. */
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it } from 'vitest'
 import { makePaneKey } from '../../../shared/stable-pane-id'
 import { useAppStore } from '@/store'
@@ -13,7 +14,7 @@ const PANE_KEY = makePaneKey(TAB_ID, LEAF_ID)
 const SESSION_ID = 'ses_fdc9b294effeBRR2JwiALSLpwy'
 
 afterEach(() => {
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 function seedLiveLocalCodexPane(): void {

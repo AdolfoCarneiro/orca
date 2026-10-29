@@ -135,7 +135,7 @@ async function save(): Promise<void> {
 
 describe('workspace linked work editor', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     useAppStore.setState({
       fetchWorkItems: vi.fn(async () => []),
       getCachedWorkItems: vi.fn(() => []),

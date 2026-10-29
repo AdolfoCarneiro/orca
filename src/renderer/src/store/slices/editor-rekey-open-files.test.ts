@@ -74,7 +74,7 @@ function rekeyFor(oldId: string, newPath: string, newRel: string): OpenFilePathR
 
 describe('rekeyOpenFilesForPathChange', () => {
   beforeEach(async () => {
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     main = await drawTabsFromMain(useAppStore)
   })
 

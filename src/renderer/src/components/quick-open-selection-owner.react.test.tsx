@@ -20,7 +20,7 @@ import { openQuickOpenFile } from './quick-open-file-navigation'
 const initial = useAppStore.getInitialState()
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   vi.clearAllMocks()
 })
 it('revokes a pending actual open when detected ownership changes and returns', async () => {

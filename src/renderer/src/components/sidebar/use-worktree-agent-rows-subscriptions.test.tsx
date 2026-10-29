@@ -82,7 +82,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount())
   container.remove()
-  useAppStore.setState(original, true)
+  setSessionTestState(useAppStore, original, true)
   vi.useRealTimers()
 })
 

@@ -265,7 +265,7 @@ describe('native chat Markdown image preview', () => {
       expect(mocks.readRuntimeFilePreview).toHaveBeenCalledTimes(2)
     } finally {
       view.unmount()
-      useAppStore.setState(original, true)
+      setSessionTestState(useAppStore, original, true)
     }
   })
 

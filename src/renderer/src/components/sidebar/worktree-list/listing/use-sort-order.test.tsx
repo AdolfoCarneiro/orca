@@ -90,13 +90,13 @@ function renderSortOrderOutsideAct(sortBy: SortBy) {
 
 describe('useSidebarWorktreeSortOrder', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   afterEach(() => {
     cleanup()
     vi.useRealTimers()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('renders once per sortEpoch bump in Manual (no hook-initiated re-render)', () => {

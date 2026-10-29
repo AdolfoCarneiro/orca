@@ -136,7 +136,7 @@ function seedSleepingRecord(worktreeId: string, sessionId: string): void {
 }
 
 afterEach(() => {
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
   resetHostSessionMirrorHydrationForTests()
 })
 

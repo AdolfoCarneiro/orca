@@ -225,7 +225,7 @@ function corpus(scale: number, dense = false) {
 const initialState = useAppStore.getState()
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   resetNativeChatSkillDiscoveryCacheForTests()
   resetStructuredAgentSessionStatusFeedsForTests()
   handOffTransport.subscribe.mockReset()

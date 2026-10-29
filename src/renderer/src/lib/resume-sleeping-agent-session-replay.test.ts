@@ -16,7 +16,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
   vi.unstubAllGlobals()
 })
 

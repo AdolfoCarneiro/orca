@@ -21,7 +21,7 @@ const WORKTREE_ID = `repo-1::${REMOTE_PATH}`
 const SESSION_ID = '87987465-66f6-4967-bf3f-0659565cbcc5'
 
 afterEach(() => {
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 function makeRecord(

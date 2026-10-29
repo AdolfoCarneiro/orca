@@ -31,14 +31,14 @@ const PANE_KEY = makePaneKey(TAB_ID, LEAF_ID)
 const initialAppState = useAppStore.getInitialState()
 
 beforeEach(() => {
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
 })
 
 afterEach(() => {
   cleanup()
   setLocalRuntimeCapabilitiesForTests(null)
   resetHostStructuredAgentsForTests()
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
 })
 
 function repo(): Repo {

@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resolveProjectExecutionRuntime } from '../../../shared/project-execution-runtime'
 import * as inventory from './agent-detection-target-inventory'
@@ -41,7 +42,7 @@ vi.mock('@/store', async () => {
   Object.defineProperty(mocks, 'store', {
     get: store.getState,
     set: (state: typeof mocks.store) => {
-      store.setState(state, true)
+      setSessionTestState(store, state, true)
     }
   })
   return { useAppStore: store }

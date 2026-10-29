@@ -95,7 +95,7 @@ describe('AI operation recovery composer', () => {
     cleanup()
     clearHostAgentMenuSettingsForTests()
     setLocalRuntimeCapabilitiesForTests(null)
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it.each<GitConflictOperation>(['merge', 'rebase', 'cherry-pick'])(

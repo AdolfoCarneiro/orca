@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { SleepingAgentSessionRecord } from '../../../shared/agent-session-resume'
 import { makePaneKey } from '../../../shared/stable-pane-id'
@@ -14,7 +15,7 @@ const initialAppStoreState = useAppStore.getState()
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 // #22657: deleting or ignoring it would leave the session with no resume handle at all.

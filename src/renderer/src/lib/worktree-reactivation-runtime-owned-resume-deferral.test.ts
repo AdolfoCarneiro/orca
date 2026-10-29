@@ -128,7 +128,7 @@ function seedSleepingRecord(worktreeId: string, sessionId: string): string {
 }
 
 afterEach(() => {
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 describe('runtime-owned worktree activation with an unhydrated host mirror', () => {

@@ -162,7 +162,7 @@ describe('useTabAgent process signals', () => {
   beforeEach(() => {
     latestHookAgent = undefined
     clearTabLaunchAgent.mockReset()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     setSessionTestState(useAppStore, {
       ptyIdsByTabId: { 'tab-1': ['pty-1'] },
       terminalLayoutsByTabId: {
@@ -183,7 +183,7 @@ describe('useTabAgent process signals', () => {
       act(() => root.unmount())
     })
     document.body.replaceChildren()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
   })
 
   it('shows the recognized foreground agent for a manual launch with no hooks or titles', async () => {

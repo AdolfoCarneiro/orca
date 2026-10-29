@@ -25,7 +25,7 @@ function tab(id: string, worktreeId: string, patch: Partial<OpenFile> = {}): Ope
 const state = () => useAppStore.getState()
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     worktreesByRepo: {
       'repo-1': [

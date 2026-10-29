@@ -22,7 +22,7 @@ import { useAgentMenuObservation, useNewTabAgentMenuRows } from './use-new-tab-a
 const initial = useAppStore.getState()
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   setLocalRuntimeCapabilitiesForTests(null)
 })
 it('settles ownerless continuation and plus inventory without borrowing agents, then recovers on hydration', async () => {

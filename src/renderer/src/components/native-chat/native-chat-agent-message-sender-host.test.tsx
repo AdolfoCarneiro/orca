@@ -246,7 +246,7 @@ afterEach(() => {
   cleanup()
   resetStructuredAgentSessionStatusFeedsForTests()
   clearRuntimeCompatibilityCacheForTests()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   if (previousApi) {
     Object.defineProperty(window, 'api', previousApi)
   } else {

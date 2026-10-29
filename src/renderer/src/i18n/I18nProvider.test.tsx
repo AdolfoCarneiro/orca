@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -41,14 +42,14 @@ async function renderProvider(): Promise<void> {
 }
 
 beforeEach(() => {
-  useLanguageReadiness.setState(useLanguageReadiness.getInitialState(), true)
+  setSessionTestState(useLanguageReadiness, useLanguageReadiness.getInitialState(), true)
   vi.spyOn(languageReadiness, 'initializeLanguageDetection').mockImplementation(async () => {
     const detection = getBrowserLanguageDetection()
     setRendererLanguageDetection(detection)
     useLanguageReadiness.setState({ detection })
     return detection
   })
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
 })
 
 afterEach(async () => {
@@ -58,7 +59,7 @@ afterEach(async () => {
     })
   }
   roots.length = 0
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
   stubSystemLocale(ORIGINAL_SYSTEM_LOCALE)
   vi.restoreAllMocks()
 })

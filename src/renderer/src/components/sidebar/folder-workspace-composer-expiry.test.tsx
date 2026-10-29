@@ -73,7 +73,7 @@ afterEach(() => {
   expect(vi.getTimerCount()).toBe(0)
   vi.restoreAllMocks()
   vi.useRealTimers()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   if (originalApi) {
     Object.defineProperty(window, 'api', originalApi)
   } else {

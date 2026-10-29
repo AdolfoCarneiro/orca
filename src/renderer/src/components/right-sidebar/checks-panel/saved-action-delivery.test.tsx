@@ -34,7 +34,7 @@ afterEach(() => {
   cleanup()
   clearHostAgentMenuSettingsForTests()
   setLocalRuntimeCapabilitiesForTests(null)
-  useAppStore.setState(original, true)
+  setSessionTestState(useAppStore, original, true)
   clearPendingPRCommentAiAck()
   vi.clearAllMocks()
 })

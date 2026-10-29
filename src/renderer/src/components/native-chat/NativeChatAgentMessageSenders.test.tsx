@@ -106,7 +106,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
 })
 
 describe('the name a sender is shown under', () => {

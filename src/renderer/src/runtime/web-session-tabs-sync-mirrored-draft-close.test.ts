@@ -105,7 +105,7 @@ describe('tab-strip close of a client-dirty mirrored file after a host republish
 
   afterEach(() => {
     window.removeEventListener(ORCA_EDITOR_REQUEST_FILE_CLOSE_EVENT, onCloseRequest)
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('routes the close to the unsaved-changes prompt instead of discarding the draft', () => {

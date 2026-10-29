@@ -116,7 +116,7 @@ afterEach(() => {
   sync = null
   provideLayoutFrameTerminalPanes({ holdsTerminalPane: () => false, terminalTab: () => undefined })
   vi.unstubAllGlobals()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 describe('STA-1111 worktree reopen does not fork-bomb tabs', () => {

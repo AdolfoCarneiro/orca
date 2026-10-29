@@ -73,12 +73,12 @@ const copyOf = (row: Worktree) => [{ id: row.id, hostId: row.hostId }]
 
 describe('a sidebar drop on one card of a twin', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     updateWorktreesMeta.mockClear()
   })
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('writes the status to the dragged copy, not the twin the id-keyed map kept', async () => {

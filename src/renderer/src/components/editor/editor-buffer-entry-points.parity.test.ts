@@ -54,7 +54,7 @@ const SHARED_FILES = [tab('a', { isDirty: true }), tab('b', { isDirty: true }), 
 
 describe('editor buffer entry points return the per-tab answer', () => {
   beforeEach(() => {
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     quiesce.mockClear()
   })
 

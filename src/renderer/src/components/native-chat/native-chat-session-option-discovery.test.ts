@@ -12,7 +12,7 @@ import {
 const initialState = useAppStore.getInitialState()
 
 afterEach(() => {
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
 })
 
 describe('resolveNativeChatModelDiscoveryContext', () => {

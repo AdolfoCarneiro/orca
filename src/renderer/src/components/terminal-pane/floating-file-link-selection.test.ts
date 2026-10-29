@@ -83,7 +83,7 @@ beforeEach(() => {
 
 afterEach(() => {
   registerWorkspaceHttpLinkBrowserOpener(null)
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   vi.unstubAllGlobals()
 })
 

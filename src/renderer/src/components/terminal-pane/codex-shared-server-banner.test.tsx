@@ -97,7 +97,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   routing.activateAndRevealWorkspace.mockReturnValue({ primaryTabId: null })
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   ptyId = `pty-${(nextPtyId += 1)}`
   paneElement = document.createElement('div')
   paneElement.className = 'pane'
@@ -126,7 +126,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
   vi.useRealTimers()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 describe('CodexSharedServerBanner', () => {

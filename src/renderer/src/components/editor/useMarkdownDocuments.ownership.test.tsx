@@ -35,7 +35,7 @@ const document = {
 }
 
 beforeEach(() => {
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   mocks.list.mockReset().mockResolvedValue([document])
   mocks.toastError.mockClear()
   setSessionTestState(useAppStore, {
@@ -46,7 +46,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
 })
 
 function render(file: OpenFile) {

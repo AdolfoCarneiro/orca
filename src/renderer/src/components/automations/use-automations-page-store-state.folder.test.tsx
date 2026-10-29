@@ -11,7 +11,7 @@ import { useAutomationsPageStoreState } from './use-automations-page-store-state
 const initialState = useAppStore.getState()
 
 afterEach(() => {
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
 })
 
 describe('automation rows that target a folder workspace', () => {

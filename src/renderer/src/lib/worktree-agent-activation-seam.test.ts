@@ -181,7 +181,7 @@ function stubInventory(args?: {
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   layoutApplyTestTransport.reset()
 })
 

@@ -82,7 +82,7 @@ describe('OpenCode native title tab identity', () => {
     latestAgent = undefined
     getForegroundProcess.mockReset()
     clearTabLaunchAgent.mockReset()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     setSessionTestState(useAppStore, {
       activeTabId: 'other-tab',
       ptyIdsByTabId: { 'opencode-tab': ['pty-opencode'] },
@@ -105,7 +105,7 @@ describe('OpenCode native title tab identity', () => {
       root = null
     }
     document.body.replaceChildren()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     window.api = originalApi
   })
 

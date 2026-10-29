@@ -31,7 +31,7 @@ const SIBLING = 'repo-a::/repo-a-2'
 let main: TabsDrawnFromMain
 
 beforeEach(async () => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(
     useAppStore,
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a partial catalog with only the fields editor opens and frames read.

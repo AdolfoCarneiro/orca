@@ -1,4 +1,5 @@
 /** Cover desktop exit → surviving daemon PTYs → serve-owned profile lock → GUI promotion (#8457/STA-1716). Promotion hydration must not cold-resume live sessions. Join both halves or either promotion/resume assertion passes vacuously. */
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { App, BrowserWindow } from 'electron'
 import { useAppStore } from '@/store'
@@ -37,7 +38,7 @@ const DUPLICATE_SERVE_ARGV = [
 const initialAppStoreState = useAppStore.getState()
 
 afterEach(() => {
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 function createFakeWindow(): BrowserWindow {

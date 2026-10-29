@@ -46,12 +46,12 @@ describe('main sleeping retention against the window, on one fake clock', () => 
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(5_000_000)
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
   afterEach(() => {
     cleanup()
     vi.useRealTimers()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('keeps and releases the same sleeping rows', async () => {

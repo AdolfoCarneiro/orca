@@ -103,7 +103,7 @@ async function renderProbe(args: ProbeProps): Promise<Root> {
 }
 
 beforeEach(() => {
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
   listRuntimeFilesMock.mockReset().mockResolvedValue(['packages/app/package.json'])
 })
 
@@ -114,7 +114,7 @@ afterEach(async () => {
     })
   }
   roots.length = 0
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
 })
 
 describe('useRuntimeFileListForWorktree host name filter', () => {

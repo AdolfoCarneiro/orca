@@ -28,7 +28,7 @@ const initialAppStoreState = useAppStore.getState()
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 /** The state a workspace lands in once its last terminal is closed: the row survives as an

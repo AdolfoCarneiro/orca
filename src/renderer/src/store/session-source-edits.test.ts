@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it } from 'vitest'
 import { createStore } from 'zustand/vanilla'
 import { useAppStore } from './index'
@@ -168,7 +169,8 @@ describe('source write identity gate', () => {
       mode: 'edit' as const,
       isDirty: false
     }
-    store.setState(
+    setSessionTestState(
+      store,
       replaceSessionSourceFields({
         ...fixture(),
         openFiles: [{ ...file, isDirty: true }],
@@ -222,7 +224,7 @@ describe('source write identity gate', () => {
         store.setState(unsupported)
         expect(full).toBe(true)
       }
-      store.setState(replaceSessionSourceFields(fixture()), true)
+      setSessionTestState(store, replaceSessionSourceFields(fixture()), true)
       expect(full).toBe(true)
     }
   })

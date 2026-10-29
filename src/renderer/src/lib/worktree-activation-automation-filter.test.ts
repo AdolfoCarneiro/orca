@@ -14,7 +14,7 @@ vi.mock('@/runtime/runtime-rpc-client', async (importOriginal) =>
 const initialAppStoreState = useAppStore.getState()
 
 afterEach(() => {
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 function makeAutomationWorktree(): Worktree {

@@ -50,7 +50,7 @@ function localMoveOwner(worktreeId: string | undefined): EditorMoveOwner {
 
 describe('remapOpenEditorTabsForPathChange', () => {
   beforeEach(async () => {
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     main = await drawTabsFromMain(useAppStore)
   })
 

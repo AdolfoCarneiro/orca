@@ -56,7 +56,7 @@ describe('editorTabFileAccess', () => {
   })
 
   afterEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it.each<[string, TabFileAccessFields, string | undefined]>([
@@ -183,7 +183,7 @@ describe('editorTabDocumentFolderAccess', () => {
   })
 
   afterEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('declares the file itself for writes on a local user-named tab', () => {

@@ -27,7 +27,7 @@ const PANE_KEY = makePaneKey('tab-1', LEAF_ID)
 afterEach(() => {
   mocks.layoutOwnerIsMain = false
   mocks.launch.mockClear()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 const record: SleepingAgentSessionRecord = {

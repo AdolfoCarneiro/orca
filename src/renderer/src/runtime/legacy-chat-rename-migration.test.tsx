@@ -138,7 +138,7 @@ function partitionedSessionApi(partitions: Record<string, WorkspaceSessionState>
 const stops: (() => void)[] = []
 beforeEach(() => {
   vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   mock.activates.mockClear()
   mock.deactivates.mockClear()
   mock.rpc.mockReset()

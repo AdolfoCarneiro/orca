@@ -126,7 +126,7 @@ it.skipIf(!process.env.ORCA_AGENT_ROWS_BENCH)(
     } finally {
       act(() => root.unmount())
       container.remove()
-      useAppStore.setState(original, true)
+      setSessionTestState(useAppStore, original, true)
     }
   },
   120_000

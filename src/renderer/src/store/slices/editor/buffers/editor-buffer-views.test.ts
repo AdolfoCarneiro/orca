@@ -1,3 +1,4 @@
+import { editSessionSource } from '../../../session-source-edits'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from 'zustand'
@@ -68,7 +69,7 @@ const SHARED: EditorBufferViewIndex = {
 
 describe('editor buffer view index', () => {
   beforeEach(() => {
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   })
 
   it('maps each tab to its own record through open, rekey and close', async () => {
@@ -127,7 +128,9 @@ describe('editor buffer view index', () => {
       ...buildEditorBufferViewIndex(files, (file) => file.id)
     }
 
-    const next = writeEditorBuffer(state, 'a', { isDirty: true }, { isPreview: false })
+    const edit = editSessionSource(state)
+    const ordinary = writeEditorBuffer(edit, 'a', { isDirty: true }, { isPreview: false })
+    const next = edit.view(ordinary)
 
     expect(next.openFiles[0]).toMatchObject({ isDirty: true, isPreview: false })
     expect(next.openFiles[1]).toBe(files[1])
@@ -145,7 +148,9 @@ describe('editor buffer view index', () => {
       ...SHARED
     }
 
-    const next = writeEditorBuffer(state, 'b', { isDirty: true }, { isPreview: false })
+    const edit = editSessionSource(state)
+    const ordinary = writeEditorBuffer(edit, 'b', { isDirty: true }, { isPreview: false })
+    const next = edit.view(ordinary)
 
     expect(next.editorBuffers.rec?.isDirty).toBe(true)
     expect(next.openFiles.map((file) => file.isDirty)).toEqual([true, true, false])

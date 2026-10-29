@@ -107,7 +107,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   clearHostAgentMenuSettingsForTests()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   setLocalRuntimeCapabilitiesForTests(null)
   replaceRuntimeEnvironmentRevisions([])
 })

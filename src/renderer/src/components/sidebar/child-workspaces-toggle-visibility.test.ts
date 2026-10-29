@@ -66,7 +66,7 @@ function target(state: AppState): string | null {
 
 describe('child workspace shortcut follows canonical rendered chips', () => {
   afterEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     setVisibleWorktreeIds(null)
     setVisibleWorktreeShortcutTargets(null)
   })

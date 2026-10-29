@@ -65,7 +65,7 @@ function makeProjectGroup(overrides: Partial<ProjectGroup> = {}): ProjectGroup {
 describe('getTabEntryAllowAbsolutePaths', () => {
   afterEach(() => {
     vi.restoreAllMocks()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it.each(['report.html', 'notes.txt'])(

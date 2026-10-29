@@ -43,14 +43,14 @@ function publishRow(options: { handleLanded: boolean }): void {
 describe('handle-gap verdict, landed-handle eviction', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    useAppStore.setState(initialAppStoreState, true)
+    setSessionTestState(useAppStore, initialAppStoreState, true)
     setRuntimeEnvironmentConnectionGenerationForTests(ENV_ID, 1)
   })
 
   afterEach(() => {
     resetHostMirrorHandleGapWaitsForTests()
     clearRuntimeEnvironmentConnectionGenerationsForTests()
-    useAppStore.setState(initialAppStoreState, true)
+    setSessionTestState(useAppStore, initialAppStoreState, true)
     vi.useRealTimers()
   })
 

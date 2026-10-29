@@ -84,7 +84,7 @@ describe('NativeChatResumeStatusSegment', () => {
     Reflect.deleteProperty(window, 'api')
     _resetNativeChatRestartOffer()
     consumeNativeChatResumeOnRestartDialogRequest()
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   })
 
   it('shows the host count and reopens the dialog on a fresh read', async () => {

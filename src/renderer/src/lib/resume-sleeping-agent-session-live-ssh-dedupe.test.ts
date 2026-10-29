@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SleepingAgentSessionRecord } from '../../../shared/agent-session-resume'
 import { makePaneKey } from '../../../shared/stable-pane-id'
@@ -19,7 +20,7 @@ const SSH_PTY_ID = 'ssh:ssh-target-1@@pty-3'
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 function setStoreState(partial: Record<string, unknown>): void {

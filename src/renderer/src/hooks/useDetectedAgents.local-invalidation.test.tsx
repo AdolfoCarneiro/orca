@@ -14,7 +14,7 @@ const detectAgents = vi.fn()
 const updateProject = vi.fn()
 
 beforeEach(() => {
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   useAppStore.getState().clearLocalDetectedAgents()
   detectAgents.mockReset().mockResolvedValue(['codex'])
   updateProject.mockReset()
@@ -30,7 +30,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   useAppStore.getState().clearLocalDetectedAgents()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
 })
 
 const localTargets: AgentDetectionTarget[] = [

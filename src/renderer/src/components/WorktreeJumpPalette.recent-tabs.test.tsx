@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -234,7 +235,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     setCommandQuery = null
     setCommandSelection = null
     activateWorkspaceTabPaletteResult.mockClear()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     testContainer = document.createElement('div')
     document.body.appendChild(testContainer)
     testRoot = createRoot(testContainer)
@@ -245,7 +246,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
       testRoot.unmount()
     })
     document.body.replaceChildren()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
   })
 
   it('leads the empty-query list with the recent section', async () => {

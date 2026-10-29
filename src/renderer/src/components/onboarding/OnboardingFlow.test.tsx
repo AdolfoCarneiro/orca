@@ -24,7 +24,7 @@ function renderOnboardingFlow(props: ComponentProps<typeof OnboardingFlow>): str
 
 describe('OnboardingFlow', () => {
   beforeEach(() => {
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     setSessionTestState(useAppStore, {
       repos: [],
       settings: getDefaultSettings('/tmp')
@@ -33,7 +33,7 @@ describe('OnboardingFlow', () => {
   })
 
   afterEach(() => {
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     vi.unstubAllGlobals()
   })
 

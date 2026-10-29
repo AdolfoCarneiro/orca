@@ -30,7 +30,7 @@ afterEach(() => {
 })
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   // Seed a resolved local owner so both tabs share one model URI.
   setSessionTestState(useAppStore, {
     worktreesByRepo: {

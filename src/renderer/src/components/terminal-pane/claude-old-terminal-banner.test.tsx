@@ -87,7 +87,7 @@ function button(label: string): HTMLButtonElement {
 
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   ptyId = `pty-${(nextPtyId += 1)}`
   paneElement = document.createElement('div')
   document.body.appendChild(paneElement)
@@ -103,7 +103,7 @@ afterEach(() => {
   act(() => root.unmount())
   paneElement.remove()
   vi.unstubAllGlobals()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 describe('ClaudeOldTerminalBanner', () => {

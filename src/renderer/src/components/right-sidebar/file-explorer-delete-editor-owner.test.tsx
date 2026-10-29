@@ -112,9 +112,9 @@ const cases: {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
 })
-afterEach(() => useAppStore.setState(initialState, true))
+afterEach(() => setSessionTestState(useAppStore, initialState, true))
 
 for (const scenario of cases) {
   it(`saves and closes only the deletion owner's editor: ${scenario.name}`, async () => {

@@ -84,7 +84,7 @@ function publishUnrelatedStatuses(): void {
 
 describe('useNativeChatComposerAttachments', () => {
   afterEach(() => {
-    useAppStore.setState(initialStoreState, true)
+    setSessionTestState(useAppStore, initialStoreState, true)
     runtimeTarget.remote = false
     clearNativeChatAttachmentCacheForTests()
     document.body.replaceChildren()
@@ -529,7 +529,7 @@ describe('useNativeChatComposerAttachments', () => {
     act(() => probe.latest().attachResolvedPaths(refused))
     expect(probe.notice()).toBe('Local attachments are not available for remote sessions.')
 
-    useAppStore.setState(initialStoreState, true)
+    setSessionTestState(useAppStore, initialStoreState, true)
     runtimeTarget.remote = false
     act(() => probe.latest().attachResolvedPaths(['/local/allowed.txt']))
     composing = false

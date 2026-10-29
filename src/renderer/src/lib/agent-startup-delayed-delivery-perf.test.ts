@@ -82,7 +82,7 @@ function countedLaunchConfigs(count: number): {
 
 afterEach(() => {
   resetAgentStartupDelayedDeliveryForTests()
-  useAppStore.setState(originalState, true)
+  setSessionTestState(useAppStore, originalState, true)
 })
 
 describe('delayed agent startup subscription', () => {

@@ -23,7 +23,7 @@ const initial = useAppStore.getInitialState()
 const originalApi = Object.getOwnPropertyDescriptor(window, 'api')
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   if (originalApi) {
     Object.defineProperty(window, 'api', originalApi)
   } else {
@@ -32,7 +32,7 @@ afterEach(() => {
 })
 
 it('composes real dispatched headers, current repo gates and folder cache refresh without unrelated viewport work', async () => {
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   const group = {
     ...createProjectGroup({
       name: 'Repo',
@@ -288,7 +288,7 @@ it('composes real dispatched headers, current repo gates and folder cache refres
 })
 
 it('keeps empty requests inert, deduplicates owner routes and still fetches null snapshots', () => {
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   const group = {
     ...createProjectGroup({
       name: 'Folder',

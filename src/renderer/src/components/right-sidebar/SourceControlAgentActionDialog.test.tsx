@@ -232,7 +232,7 @@ describe('SourceControlAgentActionDialog', () => {
       root.unmount()
     })
     container.remove()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     setLocalRuntimeCapabilitiesForTests(null)
   })
   it.each(['global', 'repo'])(

@@ -77,7 +77,7 @@ describe('detached Claude account-move restart', () => {
 
   beforeEach(() => {
     resetCodexDetachedPaneRestartExecutorForTests()
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     // Why: switch on, a restart binds only into a pane main's layout holds.
     provideLayoutFrameTerminalPanes({
       holdsTerminalPane: () => false,

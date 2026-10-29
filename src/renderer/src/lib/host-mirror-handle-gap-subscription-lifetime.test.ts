@@ -76,7 +76,7 @@ describe('host-mirror handle-gap store subscription lifetime', () => {
     vi.restoreAllMocks()
     resetHostMirrorHandleGapWaitsForTests()
     clearRuntimeEnvironmentConnectionGenerationsForTests()
-    useAppStore.setState(initialAppStoreState, true)
+    setSessionTestState(useAppStore, initialAppStoreState, true)
     vi.useRealTimers()
   })
 

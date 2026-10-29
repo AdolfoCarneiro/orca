@@ -158,7 +158,7 @@ describe('useTabAgent sleeping-session', () => {
     latestHookAgent = undefined
     getForegroundProcess.mockReset()
     clearTabLaunchAgent.mockReset()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     setSessionTestState(useAppStore, {
       ptyIdsByTabId: { 'tab-1': ['pty-1'] },
       agentStatusByPaneKey: {},
@@ -179,7 +179,7 @@ describe('useTabAgent sleeping-session', () => {
       act(() => root.unmount())
     })
     document.body.replaceChildren()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     window.api = originalApi
   })
 

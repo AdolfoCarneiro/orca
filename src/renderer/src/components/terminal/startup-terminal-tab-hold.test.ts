@@ -120,7 +120,7 @@ function admits(
 
 describe('startup terminal tab hold', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     setSessionTestState(useAppStore, {
       tabsByWorktree: {
         [WORKTREE_ID]: [terminalTab(TAB_1, WORKTREE_ID), terminalTab(TAB_2, WORKTREE_ID)],
@@ -140,7 +140,7 @@ describe('startup terminal tab hold', () => {
     vi.useRealTimers()
     globalThis.requestIdleCallback = originalRequestIdle
     globalThis.cancelIdleCallback = originalCancelIdle
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('mounts the restored surface before the gate opens and holds every terminal tab', () => {

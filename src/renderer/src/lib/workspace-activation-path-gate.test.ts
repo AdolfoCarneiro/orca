@@ -80,7 +80,7 @@ async function seedFolderWorkspace(
 
 describe('Cmd/Ctrl+1-9 folder-workspace path gate (#10716)', () => {
   beforeEach(() => {
-    store.setState(store.getInitialState(), true)
+    setSessionTestState(store, store.getInitialState(), true)
     mocks.toastError.mockClear()
     vi.stubGlobal('window', {
       api: { folderWorkspaces: { getPathStatus: mocks.getPathStatus } }

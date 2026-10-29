@@ -62,7 +62,7 @@ describe('host-mirror handle-gap verdicts across environment teardown', () => {
   afterEach(() => {
     resetHostMirrorHandleGapWaitsForTests()
     clearRuntimeEnvironmentConnectionGenerationsForTests()
-    useAppStore.setState(initialAppStoreState, true)
+    setSessionTestState(useAppStore, initialAppStoreState, true)
     vi.useRealTimers()
   })
 

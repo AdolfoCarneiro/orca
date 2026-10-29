@@ -30,7 +30,7 @@ Object.assign(window, { api })
 afterEach(cleanup)
 beforeEach(() => {
   vi.clearAllMocks()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     folderWorkspaces: [makeFolderWorkspace({ id: 'workspace', folderPath: '/repo' })]
   })

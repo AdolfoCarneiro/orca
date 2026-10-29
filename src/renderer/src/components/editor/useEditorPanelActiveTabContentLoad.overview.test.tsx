@@ -35,7 +35,7 @@ function openView(worktreeId: string): OpenFile {
 }
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     worktreesByRepo: {
       'repo-1': [

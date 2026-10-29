@@ -33,7 +33,7 @@ function render(props: React.ComponentProps<typeof Harness>): void {
 
 beforeEach(() => {
   onToggleSpy.mockReset()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -43,7 +43,7 @@ afterEach(() => {
   act(() => root.unmount())
   vi.restoreAllMocks()
   container.remove()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 const LOCAL_TREE = [

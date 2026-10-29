@@ -59,7 +59,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  useAppStore.setState(original, true)
+  setSessionTestState(useAppStore, original, true)
   scrollTopCache.clear()
 })
 

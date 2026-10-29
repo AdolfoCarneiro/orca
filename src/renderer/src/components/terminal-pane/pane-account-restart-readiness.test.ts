@@ -32,7 +32,7 @@ const ready = (): string[] => selectReadyAccountRestartPtyIds(useAppStore.getSta
 
 describe('selectReadyAccountRestartPtyIds', () => {
   beforeEach(() => {
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     setSessionTestState(useAppStore, {
       terminalLayoutsByTabId: Object.fromEntries(
         ['tab-1', 'tab-2'].map((tabId) => [

@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { act, useState } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -18,7 +19,7 @@ import { OnboardingLanguageSwitcher } from './OnboardingLanguageSwitcher'
 const { submit, telemetryTrack } = vi.hoisted(() => ({ submit: vi.fn(), telemetryTrack: vi.fn() }))
 
 beforeEach(async () => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   useAppStore.setState({ settings: getDefaultSettings('/tmp') })
   useLanguageReadiness.setState({ ...useLanguageReadiness.getInitialState(), ready: true })
   usePluginLanguagePackStore.setState({ entries: [], loaded: true })

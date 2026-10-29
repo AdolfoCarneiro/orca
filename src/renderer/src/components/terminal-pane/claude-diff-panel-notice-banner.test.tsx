@@ -77,7 +77,7 @@ async function renderBanner(): Promise<void> {
 beforeEach(() => {
   resizeCallbacks.length = 0
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   paneElement = document.createElement('div')
   document.body.appendChild(paneElement)
   root = createRoot(paneElement)
@@ -93,7 +93,7 @@ afterEach(() => {
   act(() => root.unmount())
   paneElement.remove()
   vi.unstubAllGlobals()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 describe('ClaudeDiffPanelNoticeBanner', () => {

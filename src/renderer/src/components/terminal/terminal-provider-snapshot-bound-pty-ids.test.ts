@@ -65,7 +65,7 @@ describe('createTerminalProviderSnapshotBoundPtyIdsSelector', () => {
   let unsubscribe: () => void
 
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     seedWorkspace()
     collectPtyIds.mockClear()
     select = createTerminalProviderSnapshotBoundPtyIdsSelector()
@@ -77,7 +77,7 @@ describe('createTerminalProviderSnapshotBoundPtyIdsSelector', () => {
 
   afterEach(() => {
     unsubscribe()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   // Title and active-leaf writes replace scanned maps without changing their PTY set.

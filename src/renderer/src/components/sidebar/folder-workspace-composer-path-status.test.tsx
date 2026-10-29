@@ -55,7 +55,7 @@ describe('useFolderWorkspaceComposerPathStatus', () => {
     container = null
     delete (globalThis as { __folderWorkspaceComposerPathStatusResult?: unknown })
       .__folderWorkspaceComposerPathStatusResult
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('blocks creation while an expired path status refresh is pending', async () => {

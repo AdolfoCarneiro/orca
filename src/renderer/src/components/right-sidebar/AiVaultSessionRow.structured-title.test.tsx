@@ -154,7 +154,7 @@ async function renderRow(session: AiVaultSession): Promise<void> {
 
 beforeEach(() => {
   vi.useFakeTimers()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   resetStructuredAgentSessionStatusFeedsForTests()
   emitters.clear()
   mocks.supports.mockReset()
@@ -172,7 +172,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   resetStructuredAgentSessionStatusFeedsForTests()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   vi.useRealTimers()
 })
 

@@ -30,12 +30,12 @@ const initialState = useAppStore.getInitialState()
 
 describe('useVisibleSidebarWorktrees', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('keeps the pure filtering functions available through the sidebar module', async () => {

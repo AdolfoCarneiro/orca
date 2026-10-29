@@ -151,7 +151,7 @@ beforeEach(async () => {
   resetStructuredAgentLaunchPersistenceForTests()
   resetStructuredAgentLaunchRegistryForTests()
   resetWebSessionFocusIntentForTests()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   useAppStore.setState({ activeWorktreeId: 'wt-1' })
   mocks.source = SOURCE
   mocks.frameDrawn = false
@@ -617,7 +617,7 @@ describe('CLI identity resume through the existing launch owner', () => {
     stopStructuredLaunchSlotTracking()
     resetStructuredAgentLaunchPersistenceForTests()
     resetStructuredAgentLaunchRegistryForTests()
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     setSessionTestState(useAppStore, {
       ...buildHydratedTabState(session, new Set(['wt-1'])),
       worktreesByRepo: { repo: [makeWorktree({ id: 'wt-1', repoId: 'repo', hostId: 'local' })] }

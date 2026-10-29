@@ -30,7 +30,7 @@ function deferred(): { promise: Promise<{ ok: true }>; resolve: () => void } {
 }
 
 function seed(filePath = FILE_PATH): string {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     activeWorktreeId: SOURCE,
     settings: { editorAutoSave: true, editorAutoSaveDelayMs: 250 },

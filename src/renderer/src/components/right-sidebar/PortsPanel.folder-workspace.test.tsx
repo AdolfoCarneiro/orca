@@ -49,7 +49,7 @@ const scan: WorkspacePortScanResult = {
 
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
 })
 
 describe('Ports panel for a folder workspace on a managed SSH server', () => {

@@ -66,7 +66,7 @@ describe('LocalGitToolchainScanBanner', () => {
     })
     repos = [makeRepo('web-app'), makeRepo('api-server')]
     vi.mocked(toast.success).mockClear()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   afterEach(async () => {
@@ -78,7 +78,7 @@ describe('LocalGitToolchainScanBanner', () => {
       value: originalUserAgent,
       configurable: true
     })
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('shows one banner instead of a per-repo marker for an Xcode license failure', async () => {

@@ -17,7 +17,7 @@ const initialAppStoreState = useAppStore.getState()
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 function makeRecord(

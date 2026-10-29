@@ -26,7 +26,7 @@ const PATH = '/Users/me/orca/chat-scratch/0123456789abcdef0123456789abcdef/usage
 const initialState = useAppStore.getInitialState()
 
 afterEach(() => {
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   vi.clearAllMocks()
 })
 

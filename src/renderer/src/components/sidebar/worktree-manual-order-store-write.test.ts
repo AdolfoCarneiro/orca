@@ -57,7 +57,7 @@ function manualOrderedIds(): readonly string[] {
 
 describe('sidebar manual-order drop', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     updateMeta.mockClear()
     toastInfo.mockClear()
     Object.assign(window, { api: { worktrees: { updateMeta } } })
@@ -65,7 +65,7 @@ describe('sidebar manual-order drop', () => {
 
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('moves the dragged row past its neighbor in the store', async () => {

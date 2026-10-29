@@ -25,7 +25,7 @@ function worktree(hostId: Worktree['hostId'], runtimeOwnerEnvironmentId?: string
 
 afterEach(() => {
   useAppStore.getState().setRuntimeEnvironments([])
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
 })
 
 describe('file explorer operation generations', () => {

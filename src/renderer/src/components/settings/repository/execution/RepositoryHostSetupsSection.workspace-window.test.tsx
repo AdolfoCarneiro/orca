@@ -86,7 +86,7 @@ function renderWithOwnerStatus(status: RuntimeStatus | null): void {
 }
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
@@ -97,7 +97,7 @@ afterEach(() => {
     root.unmount()
   })
   container.remove()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 // Reachable servers with missing renderer graphs previously showed every owned setup Ready (#12350).

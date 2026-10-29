@@ -221,7 +221,7 @@ function clearRuntimeEnvironmentStatusEntryForTests(environmentId: string): void
 describe('resume across the mirror handle gap', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    useAppStore.setState(initialAppStoreState, true)
+    setSessionTestState(useAppStore, initialAppStoreState, true)
     resetHostSessionMirrorHydrationForTests()
     resetHostMirrorHandleGapWaitsForTests()
     clearRuntimeEnvironmentConnectionGenerationsForTests()
@@ -230,7 +230,7 @@ describe('resume across the mirror handle gap', () => {
   afterEach(() => {
     // Cancel waits before store reset retracts rows and synchronously replays them.
     resetHostMirrorHandleGapWaitsForTests()
-    useAppStore.setState(initialAppStoreState, true)
+    setSessionTestState(useAppStore, initialAppStoreState, true)
     resetHostSessionMirrorHydrationForTests()
     clearRuntimeEnvironmentConnectionGenerationsForTests()
     vi.useRealTimers()

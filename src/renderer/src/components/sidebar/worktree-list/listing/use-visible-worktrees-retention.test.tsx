@@ -53,7 +53,7 @@ describe('useVisibleSidebarWorktrees sleeping retention', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(1_000)
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     setSessionTestState(useAppStore, {
       worktreesByRepo: { [repo.id]: [worktree] },
       tabsByWorktree: { [worktree.id]: [tab] },
@@ -64,7 +64,7 @@ describe('useVisibleSidebarWorktrees sleeping retention', () => {
   afterEach(() => {
     cleanup()
     forgetWorktreeSleepIntent(worktree.id)
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     vi.useRealTimers()
   })
 

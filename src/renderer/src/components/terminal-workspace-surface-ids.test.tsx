@@ -30,12 +30,12 @@ function countingSurfaces(ids: string[]): { surfaces: WorkspaceSurface[]; mapCal
 
 describe('workspace surface ids', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     vi.restoreAllMocks()
   })
 

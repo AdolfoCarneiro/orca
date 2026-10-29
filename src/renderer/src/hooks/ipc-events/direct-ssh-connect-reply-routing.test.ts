@@ -146,7 +146,7 @@ async function createHarness(
 }
 
 beforeEach(() => {
-  useAppStore.setState(originalStore, true)
+  setSessionTestState(useAppStore, originalStore, true)
 })
 
 afterEach(async () => {
@@ -155,7 +155,7 @@ afterEach(async () => {
   }
   await settle()
   vi.restoreAllMocks()
-  useAppStore.setState(originalStore, true)
+  setSessionTestState(useAppStore, originalStore, true)
   vi.unstubAllGlobals()
 })
 

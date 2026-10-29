@@ -69,7 +69,7 @@ const initial = useAppStore.getInitialState()
 const search = vi.mocked(jiraSearchIssuesForTarget)
 const openTaskPage = vi.fn()
 beforeEach(() => {
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   search.mockReset().mockResolvedValue([issue])
   vi.mocked(jiraStatusForTarget)
     .mockReset()
@@ -98,7 +98,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
 })
 
 it('finds an unlinked Jira task from keywords and opens detail with the returned site/account identity', async () => {

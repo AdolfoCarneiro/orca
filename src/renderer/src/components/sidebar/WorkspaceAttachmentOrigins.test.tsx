@@ -49,7 +49,8 @@ const tab = (id: string): Tab => ({
   agentSessionAgent: 'codex'
 })
 beforeEach(() => {
-  useAppStore.setState(
+  setSessionTestState(
+    useAppStore,
     {
       ...useAppStore.getInitialState(),
       setActiveWorktree: mocks.setActiveWorktree,

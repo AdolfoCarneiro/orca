@@ -13,7 +13,7 @@ function switchAccount(ptyId: string, from: string, to: string): void {
 }
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 describe('codex restart notice lifecycle', () => {

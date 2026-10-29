@@ -119,7 +119,7 @@ function drainIdleAdmissions(passes: number): void {
 
 describe('cold-activation deferral stranding', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     // Deterministic drain: force scheduleActivationDeferredAdmission onto timers.
     // @ts-expect-error -- exercising the no-requestIdleCallback environment
     globalThis.requestIdleCallback = undefined
@@ -134,7 +134,7 @@ describe('cold-activation deferral stranding', () => {
     globalThis.cancelIdleCallback = originalCancelIdle
     clearTerminalProviderSnapshotCapabilities()
     capturedPanesByTabId.clear()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('precondition: both seeded tabs are deferrable under the real coverage predicate', async () => {

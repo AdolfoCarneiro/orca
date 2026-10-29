@@ -36,7 +36,7 @@ function state(box: HTMLElement): string | null {
 
 beforeEach(() => {
   onToggleSpy.mockReset()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -45,7 +45,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount())
   container.remove()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 it('is tri-state at every level, each node over every chat under it', () => {

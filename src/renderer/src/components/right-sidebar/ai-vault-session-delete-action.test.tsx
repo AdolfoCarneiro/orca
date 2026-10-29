@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AI_VAULT_DELETE_SESSION_RUNTIME_CAPABILITY } from '../../../../shared/ai-vault-runtime-capabilities'
@@ -18,7 +19,7 @@ function publishStatus(capabilities: string[]): void {
 }
 
 afterEach(() => {
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
 })
 
 describe('useAiVaultSessionDeleteHost', () => {

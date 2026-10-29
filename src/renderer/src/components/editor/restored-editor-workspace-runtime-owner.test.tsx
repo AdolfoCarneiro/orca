@@ -26,7 +26,7 @@ const FILE_PATH = '/root/repo/README.md'
 
 /** Simulate unstamped relay-era tabs after their workspace moves to a managed server. */
 function seedConvertedWorkspace(): void {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     activeWorktreeId: WORKTREE,
     repos: [

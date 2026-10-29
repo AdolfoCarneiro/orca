@@ -50,7 +50,7 @@ const WORKTREE_ID = 'repo-1::/repo/wt'
 
 beforeEach(() => {
   panelRequests.length = 0
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     activeRepoId: 'repo-1',
     activeWorktreeId: WORKTREE_ID,

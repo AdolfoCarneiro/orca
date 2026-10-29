@@ -30,7 +30,7 @@ const initialState = useAppStore.getInitialState()
 
 describe('workspace URL tab placement', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     resetWebSessionTabsSyncTestState()
     resetWebSessionBrowserPlacementsForTests()
     resetHostPages()
@@ -48,7 +48,7 @@ describe('workspace URL tab placement', () => {
     vi.unstubAllGlobals()
     resetWebSessionTabsSyncTestState()
     resetWebSessionBrowserPlacementsForTests()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it.each([true, false])(

@@ -96,7 +96,7 @@ describe('useRuntimeSessionMirrorEnvironmentKeys', () => {
 
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('does not rescan remote ownership for unrelated store writes or parent renders', () => {

@@ -36,7 +36,7 @@ beforeEach(() => {
   setDocumentVisibility('visible')
   refresh.mockClear()
   invalidate.mockClear()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   useAppStore.setState({ refreshPreflightStatus: refresh, invalidatePreflightStatus: invalidate })
 })
 
@@ -44,7 +44,7 @@ afterEach(() => {
   cleanup()
   setDocumentVisibility('visible')
   vi.useRealTimers()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 describe('landing preflight runtime boundary', () => {

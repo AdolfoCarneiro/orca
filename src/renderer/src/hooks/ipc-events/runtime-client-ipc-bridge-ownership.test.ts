@@ -16,7 +16,7 @@ const initialState = useAppStore.getState()
 
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => {
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   replaceRuntimeEnvironmentRevisions(initialState.runtimeEnvironments)
   vi.useRealTimers()
   vi.unstubAllGlobals()

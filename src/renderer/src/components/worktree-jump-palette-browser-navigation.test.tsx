@@ -152,7 +152,7 @@ describe('Cmd+J website selection', () => {
     main?.close()
     main = undefined
     vi.restoreAllMocks()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
   })
 
   it('leads weaker workspace and tab matches even when both sections are present', async () => {

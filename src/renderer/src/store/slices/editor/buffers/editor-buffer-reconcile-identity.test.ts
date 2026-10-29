@@ -33,7 +33,7 @@ const view = (id: string) => state().openFiles.find((file) => file.id === id)
 const recordOf = (id: string) => state().editorBufferIdOf[id]
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 afterEach(() => {

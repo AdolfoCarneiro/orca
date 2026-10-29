@@ -111,13 +111,13 @@ function expectNoAutomaticResume(worktreeId: string): void {
 
 describe('a tab closed on another paired client', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     resetWebSessionTabsSyncTestState()
     resetHostSessionMirrorHydrationForTests()
   })
 
   afterEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     resetWebSessionTabsSyncTestState()
     resetHostSessionMirrorHydrationForTests()
   })

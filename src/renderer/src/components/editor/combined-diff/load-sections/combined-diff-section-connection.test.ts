@@ -54,7 +54,7 @@ function makeGroup(parentPath: string): ProjectGroup {
 
 describe('getCombinedDiffSectionConnectionId', () => {
   afterEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('routes a section to its SSH child repo in a mixed folder workspace (#6688)', () => {

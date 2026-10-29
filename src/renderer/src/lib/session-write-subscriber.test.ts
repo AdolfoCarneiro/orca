@@ -69,7 +69,7 @@ describe('createSessionWriteSubscriber', () => {
 
   afterEach(() => {
     vi.useRealTimers()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('does not write until both workspaceSessionReady and hydrationSucceeded are true', () => {

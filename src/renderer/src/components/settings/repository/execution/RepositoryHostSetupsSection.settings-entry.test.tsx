@@ -41,7 +41,7 @@ function findButton(label: string): HTMLButtonElement | undefined {
 }
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
@@ -52,7 +52,7 @@ afterEach(() => {
     root.unmount()
   })
   container.remove()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 describe('RepositoryHostSetupsSection settings entry scope', () => {

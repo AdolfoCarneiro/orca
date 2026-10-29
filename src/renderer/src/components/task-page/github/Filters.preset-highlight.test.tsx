@@ -55,7 +55,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initialStore, true)
+  setSessionTestState(useAppStore, initialStore, true)
   if (initialApiDescriptor) {
     Object.defineProperty(window, 'api', initialApiDescriptor)
   } else {

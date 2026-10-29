@@ -71,7 +71,7 @@ describe('host-mirror handle-gap drain', () => {
     vi.restoreAllMocks()
     resetHostMirrorHandleGapWaitsForTests()
     clearRuntimeEnvironmentConnectionGenerationsForTests()
-    useAppStore.setState(initialAppStoreState, true)
+    setSessionTestState(useAppStore, initialAppStoreState, true)
     vi.useRealTimers()
   })
 

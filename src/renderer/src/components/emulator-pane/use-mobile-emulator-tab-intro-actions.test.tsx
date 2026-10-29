@@ -96,7 +96,7 @@ afterEach(async () => {
   container?.remove()
   container = null
   latestActions = null
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   vi.clearAllMocks()
 })
 

@@ -181,7 +181,7 @@ describe('WorkspaceKanbanDrawer mount gating', () => {
     contextualTourMock.mockClear()
     onOpenChange.mockClear()
     onMenuOpenChange.mockClear()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     testContainer = document.createElement('div')
     document.body.appendChild(testContainer)
     testRoot = createRoot(testContainer)
@@ -190,7 +190,7 @@ describe('WorkspaceKanbanDrawer mount gating', () => {
   afterEach(async () => {
     await act(async () => testRoot.unmount())
     document.body.replaceChildren()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     vi.clearAllTimers()
     vi.useRealTimers()
   })

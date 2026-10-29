@@ -22,7 +22,7 @@ const initialState = useAppStore.getState()
 afterEach(() => {
   cleanup()
   clearHostAgentMenuSettingsForTests()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   setLocalRuntimeCapabilitiesForTests(null)
 })
 

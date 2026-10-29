@@ -146,7 +146,7 @@ function renameCalls(): unknown[][] {
 }
 
 beforeEach(async () => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, { repos: [repo], worktreesByRepo: { 'repo-local': [worktree] } })
   clearFileExplorerUndoHistory()
   mocks.renameRuntimePath.mockReset().mockResolvedValue(undefined)

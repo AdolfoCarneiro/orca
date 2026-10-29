@@ -139,7 +139,7 @@ describe('EditorPanel markdown classification memoization', () => {
     resetMarkdownRichModeEligibilityCache()
     const file = makeOpenFile()
     contentState.fileContents = { [file.id]: { content: MARKDOWN_WITH_HTML, isBinary: false } }
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     setSessionTestState(useAppStore, {
       openFiles: [file],
       activeFileId: file.id,
@@ -154,7 +154,7 @@ describe('EditorPanel markdown classification memoization', () => {
   afterEach(async () => {
     await act(async () => root.unmount())
     document.body.replaceChildren()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     resetMarkdownRichModeEligibilityCache()
   })
 

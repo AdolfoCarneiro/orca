@@ -59,7 +59,7 @@ function row(overrides: Partial<AiVaultSession> = {}): AiVaultSession {
 }
 
 function makeState(): AppState {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     activeRepoId: 'repo-1',
     activeWorktreeId: WORKTREE_ID,

@@ -14,12 +14,12 @@ import { collectRetainedAgentsOnDisappear, useRetainedAgentsSync } from './useRe
 const initialAppState = useAppStore.getInitialState()
 
 beforeEach(() => {
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
   resetAgentPaneAuthorityAliasesForTests()
 })
 
 afterEach(() => {
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
   resetAgentPaneAuthorityAliasesForTests()
 })
 

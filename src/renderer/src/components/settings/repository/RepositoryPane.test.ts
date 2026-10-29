@@ -66,7 +66,7 @@ function activeAgent(paneKey: string, worktreeId: string): AgentStatusEntry {
 }
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
@@ -83,7 +83,7 @@ afterEach(() => {
   })
   container.remove()
   delete (window as unknown as { api?: unknown }).api
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
 })
 
 describe('RepositoryPane search entries', () => {

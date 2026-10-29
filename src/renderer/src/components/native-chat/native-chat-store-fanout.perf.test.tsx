@@ -96,7 +96,7 @@ afterEach(() => {
   cleanup()
   drafts.clearNativeChatComposerDraftsForTests()
   resetStructuredAgentSessionStatusFeedsForTests()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   Object.assign(window, { api: originalApi })
 })
 

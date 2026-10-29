@@ -16,7 +16,7 @@ const initialState = useAppStore.getState()
 const LEAF_ID = '11111111-1111-4111-8111-111111111111'
 const HOST_TAB_ID = 'web-terminal-host-tab'
 
-afterEach(() => useAppStore.setState(initialState, true))
+afterEach(() => setSessionTestState(useAppStore, initialState, true))
 
 function makeRecord(
   worktreeId: string,

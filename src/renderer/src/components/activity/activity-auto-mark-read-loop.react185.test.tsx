@@ -63,12 +63,16 @@ let root: Root
 let seededContainer: HTMLElement
 
 beforeEach(() => {
-  useAppStore.setState({ ...initialState, refreshGitHubForWorktreeIfStale: () => {} }, true)
+  setSessionTestState(
+    useAppStore,
+    { ...initialState, refreshGitHubForWorktreeIfStale: () => {} },
+    true
+  )
 })
 
 afterEach(() => {
   act(() => root?.unmount())
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
   document.body.replaceChildren()
 })
 

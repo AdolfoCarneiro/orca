@@ -34,7 +34,7 @@ describe('useSidebarWorktreeSortOrder with the switch on', () => {
   afterEach(() => {
     persistOrder.mockClear()
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('re-sorts as soon as a stamp lands, with no settle window and no saved order', () => {

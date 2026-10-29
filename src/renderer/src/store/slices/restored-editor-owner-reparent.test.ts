@@ -42,7 +42,7 @@ function WatchProbe(): null {
 }
 
 function installWorkspaceState(): void {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     activeWorktreeId: SOURCE,
     settings: { editorAutoSave: false },

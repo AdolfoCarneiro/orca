@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { createElement } from 'react'
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -29,7 +30,7 @@ import {
 const originalState = useAppStore.getState()
 afterEach(() => {
   cleanup()
-  useAppStore.setState(originalState, true)
+  setSessionTestState(useAppStore, originalState, true)
 })
 
 function state(overrides: Partial<AppState> = {}): AppState {

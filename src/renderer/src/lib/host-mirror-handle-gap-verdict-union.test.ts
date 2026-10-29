@@ -62,7 +62,7 @@ function parkAndExpire(environmentId: string, tabId: string): void {
 describe('handle-gap verdict map, all rules on one tree', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    useAppStore.setState(initialAppStoreState, true)
+    setSessionTestState(useAppStore, initialAppStoreState, true)
     resetHostMirrorHandleGapWaitsForTests()
     clearRuntimeEnvironmentConnectionGenerationsForTests()
   })

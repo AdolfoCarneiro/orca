@@ -77,7 +77,7 @@ function seedQueuedRestart(mainLeafIds: string[]): void {
 describe('an account-switch restart in a layout-owner build', () => {
   beforeEach(() => {
     resetCodexDetachedPaneRestartExecutorForTests()
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     vi.stubGlobal('window', {
       ...globalThis.window,
       api: {

@@ -29,7 +29,7 @@ const recordOf = (id: string) => state().editorBufferIdOf[id]
 const settled = () => Promise.resolve()
 
 beforeEach(() => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     worktreesByRepo: {
       'repo-1': [

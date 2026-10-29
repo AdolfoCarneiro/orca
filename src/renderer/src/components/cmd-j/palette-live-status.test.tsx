@@ -106,7 +106,7 @@ describe('palette live status', () => {
   beforeEach(() => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     bodyRenderCount = 0
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     setSessionTestState(useAppStore, {
       tabsByWorktree: { 'wt-a': [makeTerminalTab('term-a', 'wt-a')] },
       ptyIdsByTabId: { 'term-a': ['pty-term-a'] },
@@ -122,7 +122,7 @@ describe('palette live status', () => {
       testRoot.unmount()
     })
     document.body.replaceChildren()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
   })
 
   async function render(active = true): Promise<void> {

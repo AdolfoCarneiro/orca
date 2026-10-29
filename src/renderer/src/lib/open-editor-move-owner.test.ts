@@ -29,7 +29,7 @@ const tab = (operationProvenance?: EditorFileOperationProvenance) => ({
 
 describe('isOpenFileOnMoveOwner', () => {
   beforeEach(() => {
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   })
 
   it('never moves a direct-SSH tab for a rename on this app, and moves it for its own host', () => {

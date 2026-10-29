@@ -81,14 +81,14 @@ vi.stubGlobal('window', testWindow)
 beforeEach(() => {
   vi.clearAllMocks()
   Object.assign(window, { api })
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   setSessionTestState(useAppStore, {
     folderWorkspaces: [makeFolderWorkspace({ id: 'workspace', folderPath: '/repo' })]
   })
 })
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   Object.assign(window, { api: originalApi })
 })
 function hasPropertyKey<T extends object>(target: T, key: PropertyKey): key is keyof T {

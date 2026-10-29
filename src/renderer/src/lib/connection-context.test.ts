@@ -51,7 +51,7 @@ function makeWorktree(overrides: Partial<Worktree> & { id: string; repoId: strin
 
 describe('getConnectionId', () => {
   afterEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   it('resolves SSH targets from composite worktree IDs before worktree discovery completes', () => {

@@ -71,7 +71,7 @@ function useComposedJiraListState() {
 }
 afterEach(() => {
   cleanup()
-  useAppStore.setState(originalState, true)
+  setSessionTestState(useAppStore, originalState, true)
   localStorage.removeItem('orca.jira.has-workspace.v1')
 })
 beforeEach(() => {

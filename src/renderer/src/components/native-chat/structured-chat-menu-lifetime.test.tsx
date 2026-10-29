@@ -18,7 +18,7 @@ let renders = 0
 let revision = 0
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   vi.clearAllMocks()
 })
 function Host({ index }: { index: number }) {

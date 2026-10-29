@@ -154,14 +154,15 @@ beforeEach(() => {
     live: true,
     activations: 0
   })
-  useAppStore.setState(
+  setSessionTestState(
+    useAppStore,
     { ...initial, activeWorktreeId: RECIPIENT, activeWorkspaceExecutionHostId: 'local' },
     true
   )
 })
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
   feeds.clear()
 })
 

@@ -203,7 +203,7 @@ describe('WorktreeJumpPalette', () => {
     activateAndRevealWorkspace.mockReset().mockReturnValue({ primaryTabId: null })
     activateWorkspaceTabPaletteResult.mockReset().mockReturnValue({ status: 'activated' })
     vi.mocked(toast.error).mockClear()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     testContainer = document.createElement('div')
     document.body.appendChild(testContainer)
     testRoot = createRoot(testContainer)
@@ -214,7 +214,7 @@ describe('WorktreeJumpPalette', () => {
       testRoot.unmount()
     })
     document.body.replaceChildren()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
   })
 
   it('lists actual folder workspaces with no repositories or active terminals', async () => {

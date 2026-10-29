@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 // With main layout ownership, restored-file moves and content rekeys must arrive together in main’s frame.
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import { captureEditorFileOperationProvenance } from '@/lib/editor-file-operation-owner'
@@ -30,7 +31,7 @@ let main: TabsDrawnFromMain
 let sentSoFar = 0
 
 function installWorkspaceState(): void {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   useAppStore.setState(
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a partial catalog with only the fields the owner route reads, as restored-editor-owner-reparent.test.ts uses.
     {

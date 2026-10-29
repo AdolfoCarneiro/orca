@@ -189,7 +189,8 @@ function seedRemoteMirrorState(connectionGeneration: number): void {
     publicRuntimeEnvironment({ id: ENV, createdAt: 100, pairingRevision: REVISION })
   ]
   replaceRuntimeEnvironmentRevisions(runtimeEnvironments)
-  useAppStore.setState(
+  setSessionTestState(
+    useAppStore,
     {
       ...initialState,
       activeWorktreeId: WORKTREE,
@@ -221,7 +222,7 @@ describe('useWebSessionTabsSync initial-terminal bootstrap across an effect re-r
 
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     replaceRuntimeEnvironmentRevisions([])
     resetWebSessionTabsSnapshotFreshnessForTests()
     resetWebRuntimeInitialTerminalBootstrapForTests()
@@ -369,7 +370,7 @@ describe('activating a host-owned workspace before the host has answered', () =>
 
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     replaceRuntimeEnvironmentRevisions([])
     resetWebSessionTabsSnapshotFreshnessForTests()
     resetWebRuntimeInitialTerminalBootstrapForTests()

@@ -14,7 +14,7 @@ const initialState = useAppStore.getState()
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  useAppStore.setState(initialState, true)
+  setSessionTestState(useAppStore, initialState, true)
 })
 
 it('resumes a settled worker and an ordinary agent once each in the same wake sweep', () => {

@@ -104,7 +104,7 @@ describe('codex detached pane restart executor', () => {
 
   beforeEach(() => {
     resetCodexDetachedPaneRestartExecutorForTests()
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     // Why: switch on, a restart binds only into a pane main's layout holds.
     mainFramePanes = [{ leafId: LEAF_ID, ptyId: OLD_PTY }]
     provideLayoutFrameTerminalPanes({

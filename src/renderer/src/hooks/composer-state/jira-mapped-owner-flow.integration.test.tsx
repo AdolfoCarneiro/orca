@@ -223,7 +223,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   clearRuntimeCompatibilityCacheForTests()
-  useAppStore.setState(originalState, true)
+  setSessionTestState(useAppStore, originalState, true)
   if (originalApi) {
     Object.defineProperty(window, 'api', originalApi)
   } else {

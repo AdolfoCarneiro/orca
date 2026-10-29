@@ -49,7 +49,7 @@ describe('useUnreadDockBadge', () => {
 
   afterEach(() => {
     cleanup()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     vi.unstubAllGlobals()
   })
 

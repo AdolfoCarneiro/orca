@@ -11,7 +11,7 @@ vi.mock('./worktree-activation', () => ({ activateAndRevealWorkspace: () => true
 import { activateWorkspaceTabPaletteResult } from './workspace-tab-palette-activation'
 
 const initialState = useAppStore.getInitialState()
-afterEach(() => useAppStore.setState(initialState, true))
+afterEach(() => setSessionTestState(useAppStore, initialState, true))
 
 it('keeps the selected diff active when an editor for the same file shares its group', () => {
   const worktree: Worktree = {

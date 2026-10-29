@@ -60,7 +60,7 @@ function watchInvariant(): { notifications: () => number; stop: () => void } {
 
 describe('editor buffer records', () => {
   beforeEach(() => {
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   })
 
   it('creates a record when a tab opens and deletes it when the tab closes', () => {

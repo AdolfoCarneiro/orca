@@ -18,7 +18,7 @@ const initialAppStoreState = useAppStore.getState()
 const PI_TRANSCRIPT_PATH = join(tmpdir(), 'pi-session-1.jsonl')
 
 afterEach(() => {
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 describe('Pi session wake', () => {

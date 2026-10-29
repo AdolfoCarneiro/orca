@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 // Local-main rename and paired twin host_not_owned refusal must isolate each workspace regardless of listing order.
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import { isTwinWorkspace } from '@/lib/resolve-owner'
@@ -30,7 +31,7 @@ const FILE = '/repo-a/src/a.ts'
 let main: TabsDrawnFromMain
 
 beforeEach(async () => {
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   const twinRow = { id: TWIN, repoId: 'repo-a', path: '/repo-a-twin', hostId: 'local', branch: '' }
   useAppStore.setState(
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a partial catalog with only the fields editor opens, owner routes and frames read.

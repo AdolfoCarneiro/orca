@@ -77,7 +77,7 @@ describe('useGitStatusPolling rerender stability', () => {
     vi.useFakeTimers()
     refreshMock.mockReset().mockResolvedValue(undefined)
 
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     setSessionTestState(useAppStore, {
       activeWorktreeId: WORKTREE_ID,
       worktreesByRepo: {
@@ -99,7 +99,7 @@ describe('useGitStatusPolling rerender stability', () => {
       act(() => root.unmount())
     })
     document.body.replaceChildren()
-    useAppStore.setState(initialAppState, true)
+    setSessionTestState(useAppStore, initialAppState, true)
     vi.useRealTimers()
   })
 

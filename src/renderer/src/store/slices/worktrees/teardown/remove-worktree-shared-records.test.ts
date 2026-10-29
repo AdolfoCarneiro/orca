@@ -31,7 +31,7 @@ beforeEach(() => {
   show.mockClear()
   vi.spyOn(console, 'warn').mockImplementation(() => {})
   vi.stubGlobal('window', { api: { pty: { kill: vi.fn() } } })
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     worktreesByRepo: {
       'repo-1': [

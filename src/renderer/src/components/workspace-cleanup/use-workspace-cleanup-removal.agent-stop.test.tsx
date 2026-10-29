@@ -100,7 +100,7 @@ function renderAtConfirm(candidates: WorkspaceCleanupCandidate[]) {
 
 describe('workspace cleanup removal of workspaces with a running agent', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     Object.assign(window, { api: { workspaceCleanup: {} } })
   })
 

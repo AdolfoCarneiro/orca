@@ -78,7 +78,7 @@ function open(
 
 describe('workspace details exact host selection', () => {
   beforeEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     update.mockClear()
   })
   afterEach(cleanup)

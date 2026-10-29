@@ -116,7 +116,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  useAppStore.setState(initialAppStoreState, true)
+  setSessionTestState(useAppStore, initialAppStoreState, true)
 })
 
 describe('background wake of a pane whose PTY the host still holds', () => {

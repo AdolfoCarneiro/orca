@@ -128,7 +128,7 @@ beforeEach(() => {
   mocks.scopePaths.length = 0
   mocks.sessions = []
   mocks.handleResumeInNewChat.mockReset()
-  useAppStore.setState(useAppStore.getInitialState(), true)
+  setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   setSessionTestState(useAppStore, {
     activeRepoId: 'repo-1',
     activeWorktreeId: OTHER_WORKTREE,

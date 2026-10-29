@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import type { NativeChatLiveSession } from './use-native-chat-live-session'
@@ -59,7 +60,7 @@ afterEach(() => {
   cleanup()
   restoreViewport()
   resetLocalImageSrcStateForTests()
-  useAppStore.setState(original, true)
+  setSessionTestState(useAppStore, original, true)
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
   readFile.mockReset()

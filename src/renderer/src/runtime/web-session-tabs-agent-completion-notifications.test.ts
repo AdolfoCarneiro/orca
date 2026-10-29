@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RuntimeMobileSessionTabsResult } from '../../../shared/runtime-types'
 import { makePaneKey } from '../../../shared/stable-pane-id'
@@ -93,11 +94,11 @@ describe('paired session-tab agent completion notifications', () => {
     resetWebSessionTabsSnapshotFreshnessForTests()
     resetRendererOwnedAgentStatusPanesForTests()
     resetAgentCompletionCoordinatorIdentitiesForTest()
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
   })
 
   afterEach(() => {
-    useAppStore.setState(initialState, true)
+    setSessionTestState(useAppStore, initialState, true)
     resetWebSessionTabsSnapshotFreshnessForTests()
     resetRendererOwnedAgentStatusPanesForTests()
     vi.unstubAllGlobals()

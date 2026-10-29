@@ -106,7 +106,7 @@ describe('accepted account restart queue progress', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     resetCodexDetachedPaneRestartExecutorForTests()
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
     spawn.mockReset().mockImplementation(async ({ replacesPtyId }) => ({
       id: replacesPtyId?.replace('old-', 'replacement-') ?? 'unexpected-spawn'
     }))

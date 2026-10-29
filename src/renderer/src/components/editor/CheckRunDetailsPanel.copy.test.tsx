@@ -442,7 +442,7 @@ describe('mounted store-driven details refresh', () => {
   const original = useAppStore.getState()
   afterEach(() => {
     cleanup()
-    useAppStore.setState(original, true)
+    setSessionTestState(useAppStore, original, true)
     scrollTopCache.clear()
     vi.restoreAllMocks()
   })

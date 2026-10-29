@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -72,7 +73,7 @@ beforeEach(() => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only window.api shim
   ;(window as any).api = { pty: { getCwd: getCwdMock } }
 
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
   useAppStore.setState({
     activeWorktreeId: PARENT_ID,
     worktreesByRepo: { [REPO_ID]: [parentWorktree, childWorktree] },
@@ -85,7 +86,7 @@ beforeEach(() => {
 afterEach(() => {
   roots.splice(0).forEach((root) => act(() => root.unmount()))
   document.body.replaceChildren()
-  useAppStore.setState(initialAppState, true)
+  setSessionTestState(useAppStore, initialAppState, true)
   vi.useRealTimers()
 })
 

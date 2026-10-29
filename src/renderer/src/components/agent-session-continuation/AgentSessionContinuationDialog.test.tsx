@@ -62,7 +62,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  useAppStore.setState(initial, true)
+  setSessionTestState(useAppStore, initial, true)
 })
 
 it('clears failed detection, gates unresolved Start, and submits the displayed root/subfolder choice', async () => {
