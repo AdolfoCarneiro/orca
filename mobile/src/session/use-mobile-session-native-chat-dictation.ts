@@ -140,8 +140,8 @@ export function useMobileSessionNativeChatDictation(
     client,
     enabled: (showNativeChat || canCompose) && dictationEnabled,
     onTranscript: (text) => {
-      // Route dictation to the visible chat composer locally; terminal mode retains live-input routing.
-      if (showNativeChatRef.current || destination.capturedChat()) {
+      // Chat dictation is inserted locally; terminal mode retains live-input routing.
+      if (destination.landsInChat(showNativeChatRef.current)) {
         if (destination.insertInChat(text)) {
           showToast('Dictation inserted')
         } else {

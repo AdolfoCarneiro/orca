@@ -8,10 +8,11 @@ import {
   type MobileNativeChatDictationPreview,
   type MobileNativeChatTextDestination
 } from './native-chat/composer/mobile-native-chat-draft-inputs'
+import { editMobileNativeChatDraft } from './native-chat/composer/mobile-native-chat-draft-store'
 
 type MobileDictationTarget =
   | { field: 'chat'; scope: string | null; anchor: MobileDictationAnchor | null }
-  | { field: 'command'; anchor: MobileDictationAnchor | null }
+  | { field: 'command'; handle: string | null; anchor: MobileDictationAnchor | null }
   // Live terminal input: the words show on that terminal's status row.
   | { field: 'live'; handle: string }
   | null
@@ -41,6 +42,7 @@ export function useMobileDictationDestination({
 }) {
   const chatRef = useRef<MobileNativeChatTextDestination | undefined>(undefined)
   const [target, setTarget] = useState<MobileDictationTarget>(null)
+  const targetRef = useRef<MobileDictationTarget>(null)
   const captureDestination = useCallback(
     (
       chatShown: boolean,
@@ -52,7 +54,7 @@ export function useMobileDictationDestination({
     ) => {
       const chat = captureMobileNativeChatTextDestination()
       chatRef.current = chat
-      setTarget(
+      targetRef.current =
         chat || chatShown
           ? {
               field: 'chat',
@@ -61,12 +63,16 @@ export function useMobileDictationDestination({
             }
           : terminal?.liveInputEnabled
             ? { field: 'live', handle: terminal.handle }
-            : { field: 'command', anchor: terminal?.anchor ?? null }
-      )
+            : {
+                field: 'command',
+                handle: terminal?.handle ?? null,
+                anchor: terminal?.anchor ?? null
+              }
+      setTarget(targetRef.current)
     },
     [chatComposerScopeKey]
   )
-  // The final text goes to the chat captured at start, or the end of the chat draft; false when that chat refused it.
+  // The final text goes to the chat captured at start, or the end of that chat's draft; false when that chat refused it.
   const insertInChat = useCallback(
     (text: string): boolean => {
       const chat = chatRef.current
@@ -74,15 +80,23 @@ export function useMobileDictationDestination({
       if (chat) {
         return chat.insert(text) !== false
       }
-      setChatComposerText((current) => insertDictationText(current, text, null).text)
+      const append = (current: string) => insertDictationText(current, text, null).text
+      const captured = targetRef.current?.field === 'chat' ? targetRef.current.scope : null
+      if (captured && captured !== chatComposerScopeKey) {
+        editMobileNativeChatDraft(captured, append)
+      } else {
+        setChatComposerText(append)
+      }
       return true
     },
-    [setChatComposerText]
+    [chatComposerScopeKey, setChatComposerText]
   )
   return {
     target,
     captureDestination,
-    capturedChat: () => chatRef.current !== undefined,
+    // Words land where their preview showed: the target captured at start, else the visible field.
+    landsInChat: (chatShown: boolean) =>
+      targetRef.current ? targetRef.current.field === 'chat' : chatShown,
     insertInChat
   }
 }
@@ -101,9 +115,13 @@ export function useMobileDictationPreviews(
         : null,
     [heard, target]
   )
+  // Another terminal's draft takes the words at its end, so the saved selection only places them in its own.
   const commandDictationPreview = useMemo(
-    () => (heard && target?.field === 'command' ? { anchor: target.anchor, text: heard } : null),
-    [heard, target]
+    () =>
+      heard && target?.field === 'command'
+        ? { anchor: target.handle === activeHandle ? target.anchor : null, text: heard }
+        : null,
+    [activeHandle, heard, target]
   )
   return {
     chatDictationPreview,
