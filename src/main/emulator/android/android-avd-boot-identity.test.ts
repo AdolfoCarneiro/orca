@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { bootAndroidDevice } from './android-avd-boot'
 import type { AndroidSdkPaths } from './android-sdk-discovery'
 
@@ -36,7 +36,9 @@ function bootWithInventory(snapshots: Device[][], requested = 'Wanted') {
     }
     return { code: 0, stdout, stderr: '' }
   })
-  const sleep = vi.fn(async () => {})
+  const sleep = vi.fn(async (ms: number) => {
+    vi.advanceTimersByTime(ms)
+  })
   return {
     result: bootAndroidDevice(runner, sdk, requested, {
       bootTimeoutMs: 30,
@@ -48,7 +50,12 @@ function bootWithInventory(snapshots: Device[][], requested = 'Wanted') {
   }
 }
 
-beforeEach(() => io.launch.mockClear())
+beforeEach(() => {
+  io.launch.mockClear()
+  vi.useFakeTimers()
+  vi.setSystemTime(0)
+})
+afterEach(() => vi.useRealTimers())
 
 describe('Android AVD boot identity', () => {
   it('waits for the requested AVD when another emulator boots first', async () => {

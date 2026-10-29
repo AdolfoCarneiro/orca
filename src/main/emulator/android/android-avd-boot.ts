@@ -1,6 +1,9 @@
 import { spawn } from 'node:child_process'
 import { EmulatorError } from '../emulator-errors'
-import type { AndroidCommandRunner } from './android-command-runner'
+import {
+  DEFAULT_ANDROID_COMMAND_TIMEOUT_MS,
+  type AndroidCommandRunner
+} from './android-command-runner'
 import type { AndroidSdkPaths } from './android-sdk-discovery'
 import { bootCompletedArgs, isBootCompleted } from './adb-devices'
 import { bootAvdArgs, listAvdsArgs, parseAvdList } from './avd-manager'
@@ -58,23 +61,39 @@ async function waitForNewBootedSerial(
   known: Set<string>,
   options: AndroidBootOptions
 ): Promise<string> {
-  let waited = 0
-  while (waited < options.bootTimeoutMs) {
-    const fresh = (await listRunningAdbDevices(runner, sdk)).filter(
-      (device) => device.isEmulator && !known.has(device.serial)
-    )
-    const serial = await findRunningAvdSerial(runner, sdk, avdName, fresh)
-    if (serial) {
-      const booted = await runner(sdk.adb, bootCompletedArgs(serial))
-      if (isBootCompleted(booted.stdout)) {
-        return serial
-      }
-    }
-    await options.sleep(options.pollIntervalMs)
-    waited += options.pollIntervalMs
-  }
-  throw new EmulatorError(
+  const deadline = Date.now() + options.bootTimeoutMs
+  const timeoutError = new EmulatorError(
     'emulator_helper_failed',
     `AVD "${avdName}" did not finish booting in time.`
   )
+  const runBeforeDeadline: AndroidCommandRunner = (binary, args, commandOptions) => {
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) {
+      return Promise.reject(timeoutError)
+    }
+    return runner(binary, args, {
+      ...commandOptions,
+      timeoutMs: Math.min(
+        remaining,
+        commandOptions?.timeoutMs ?? DEFAULT_ANDROID_COMMAND_TIMEOUT_MS
+      )
+    })
+  }
+  while (Date.now() < deadline) {
+    const fresh = (await listRunningAdbDevices(runBeforeDeadline, sdk)).filter(
+      (device) => device.isEmulator && !known.has(device.serial)
+    )
+    const serial = await findRunningAvdSerial(runBeforeDeadline, sdk, avdName, fresh)
+    if (serial) {
+      const booted = await runBeforeDeadline(sdk.adb, bootCompletedArgs(serial))
+      if (isBootCompleted(booted.stdout) && Date.now() < deadline) {
+        return serial
+      }
+    }
+    const remaining = deadline - Date.now()
+    if (remaining > 0) {
+      await options.sleep(Math.min(options.pollIntervalMs, remaining))
+    }
+  }
+  throw timeoutError
 }

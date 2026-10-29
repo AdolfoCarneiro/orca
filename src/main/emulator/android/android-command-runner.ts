@@ -11,7 +11,7 @@ export type AndroidCommandRunner = (
   options?: { timeoutMs?: number }
 ) => Promise<AndroidCommandResult>
 
-const DEFAULT_TIMEOUT_MS = 60_000
+export const DEFAULT_ANDROID_COMMAND_TIMEOUT_MS = 60_000
 const MAX_BUFFER_BYTES = 16 * 1024 * 1024
 
 export const execFileAndroidCommandRunner: AndroidCommandRunner = (binary, args, options) =>
@@ -19,7 +19,10 @@ export const execFileAndroidCommandRunner: AndroidCommandRunner = (binary, args,
     execFile(
       binary,
       [...args],
-      { timeout: options?.timeoutMs ?? DEFAULT_TIMEOUT_MS, maxBuffer: MAX_BUFFER_BYTES },
+      {
+        timeout: options?.timeoutMs ?? DEFAULT_ANDROID_COMMAND_TIMEOUT_MS,
+        maxBuffer: MAX_BUFFER_BYTES
+      },
       (error, stdout, stderr) => {
         const exitCode =
           error && typeof (error as { code?: unknown }).code === 'number'
