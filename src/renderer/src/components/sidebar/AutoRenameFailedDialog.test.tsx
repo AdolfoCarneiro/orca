@@ -5,6 +5,11 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useNativeChatNamingFailure } from '../tab-bar/use-native-chat-naming-failure'
 import { NameGenerationFailedDialog, AutoRenameFailedDialog } from './AutoRenameFailedDialog'
+import { useAppStore } from '@/store'
+import { toast } from 'sonner'
+import type { AppState } from '@/store/types'
+
+vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
 
 vi.mock('@/runtime/structured-agent-session-host-capability', () => ({
   useStructuredAgentSessionHostCapabilityState: () => 'unsupported'
@@ -35,12 +40,14 @@ function ChatFailure({ failedAt }: { failedAt: number }) {
 const getBranchRenameFailureOutput =
   vi.fn<(args: { worktreeId: string }) => Promise<string | null>>()
 const writeClipboardText = vi.fn<(text: string) => Promise<void>>()
+const updateWorktreeMeta = vi.fn<AppState['updateWorktreeMeta']>()
 
 let container: HTMLDivElement
 let root: Root
 
 beforeEach(() => {
   vi.clearAllMocks()
+  useAppStore.setState({ updateWorktreeMeta })
   ;(window as unknown as { api: unknown }).api = {
     worktrees: { getBranchRenameFailureOutput },
     nativeChat: { getConversationNameFailureOutput: getBranchRenameFailureOutput },
@@ -61,19 +68,64 @@ afterEach(() => {
 
 const EXCERPT_ERROR = 'Pi CLI command failed with code 1: No API key found for github-copilot.'
 
+const onOpenChange = vi.fn<(open: boolean) => void>()
+
 async function renderDialog(error = EXCERPT_ERROR): Promise<void> {
   await act(async () => {
     root.render(
       <AutoRenameFailedDialog
         open
-        onOpenChange={() => {}}
+        onOpenChange={onOpenChange}
         worktreeId="wt-1"
+        executionHostId="ssh:builder"
         worktreeName="staghorn"
         error={error}
       />
     )
   })
 }
+
+describe('AutoRenameFailedDialog dismissal', () => {
+  it('keeps Close temporary and persists Dismiss error on the workspace owner', async () => {
+    getBranchRenameFailureOutput.mockResolvedValue(null)
+    updateWorktreeMeta.mockResolvedValue({ ok: true })
+    await renderDialog()
+    const footer = document.querySelector('[data-slot="dialog-footer"]')
+    await act(async () => footer?.querySelector<HTMLButtonElement>('button')?.click())
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(updateWorktreeMeta).not.toHaveBeenCalled()
+    onOpenChange.mockClear()
+
+    await act(async () => {
+      const dismiss = Array.from(document.querySelectorAll('button')).find(
+        (button) => button.textContent === 'Dismiss error'
+      )
+      dismiss?.click()
+    })
+
+    expect(updateWorktreeMeta).toHaveBeenCalledWith(
+      'wt-1',
+      { firstAgentMessageRenameError: null },
+      { executionHostId: 'ssh:builder' }
+    )
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('reports a failed dismissal and leaves the dialog available to retry', async () => {
+    getBranchRenameFailureOutput.mockResolvedValue(null)
+    updateWorktreeMeta.mockResolvedValue({ ok: false, error: 'Server disconnected' })
+    await renderDialog()
+    const dismiss = Array.from(document.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Dismiss error'
+    )
+    await act(async () => dismiss?.click())
+
+    expect(toast.error).toHaveBeenCalledWith('Server disconnected')
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(dismiss?.disabled).toBe(false)
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(EXCERPT_ERROR)
+  })
+})
 
 describe('AutoRenameFailedDialog full output', () => {
   it('shows the full CLI output fetched from main when available', async () => {

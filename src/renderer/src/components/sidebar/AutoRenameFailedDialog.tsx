@@ -10,11 +10,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { Trans } from 'react-i18next'
 import { i18n, translate } from '@/i18n/i18n'
+import { useAppStore } from '@/store'
+import { toast } from 'sonner'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
 
 type AutoRenameFailedDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   worktreeId: string
+  executionHostId?: ExecutionHostId
   worktreeName: string
   /** Persisted failure message — headline plus a sanitized output excerpt. */
   error: string
@@ -23,8 +27,31 @@ type AutoRenameFailedDialogProps = {
 export function AutoRenameFailedDialog({
   worktreeId,
   worktreeName,
+  executionHostId,
+  onOpenChange,
   ...props
 }: AutoRenameFailedDialogProps): React.JSX.Element {
+  const updateWorktreeMeta = useAppStore((s) => s.updateWorktreeMeta)
+  const [dismissing, setDismissing] = useState(false)
+  const handleDismiss = async () => {
+    setDismissing(true)
+    try {
+      const result = await updateWorktreeMeta(
+        worktreeId,
+        { firstAgentMessageRenameError: null },
+        { executionHostId: executionHostId ?? 'local' }
+      )
+      if (result.ok) {
+        onOpenChange(false)
+      } else {
+        toast.error(result.error)
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    } finally {
+      setDismissing(false)
+    }
+  }
   const readFullOutput = useCallback(
     () => window.api.worktrees.getBranchRenameFailureOutput({ worktreeId }),
     [worktreeId]
@@ -32,6 +59,7 @@ export function AutoRenameFailedDialog({
   return (
     <NameGenerationFailedDialog
       {...props}
+      onOpenChange={onOpenChange}
       title={translate(
         'auto.components.sidebar.AutoRenameFailedDialog.ca3b225195',
         'Branch auto-name failed'
@@ -48,6 +76,20 @@ export function AutoRenameFailedDialog({
         />
       }
       readFullOutput={readFullOutput}
+      action={
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={dismissing}
+          onClick={handleDismiss}
+        >
+          {translate(
+            'auto.components.sidebar.AutoRenameFailedDialog.dismissError',
+            'Dismiss error'
+          )}
+        </Button>
+      }
     />
   )
 }
@@ -169,7 +211,7 @@ export function NameGenerationFailedDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             {translate('auto.components.sidebar.AutoRenameFailedDialog.aed1623b1e', 'Close')}
           </Button>
           {action}

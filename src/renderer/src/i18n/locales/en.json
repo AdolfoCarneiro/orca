@@ -1018,6 +1018,7 @@
                 "persist": {
                   "877e3638d8": "Update the remote runtime to change this workspace’s linked issue",
                   "4367540861": "Update the remote runtime to link Linear issues",
+                  "dismissRenameError": "Update the remote runtime to dismiss auto-name errors",
                   "github": {
                     "pr": {
                       "suppression": "Update the remote runtime to unlink GitHub pull requests"
@@ -5688,6 +5689,7 @@
           "remoteCloneParentPlaceholder": "/home/user/projects"
         },
         "AutoRenameFailedDialog": {
+          "dismissError": "Dismiss error",
           "aed1623b1e": "Close",
           "eab8b45238": "Copy error",
           "a23b22d16f": "Copied",
