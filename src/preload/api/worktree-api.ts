@@ -80,6 +80,8 @@ export type WorktreeApi = {
     sourceBranch?: string
     targetBranch?: string
     isCrossRepository?: boolean
+    /** The user creating from the MR: it may start a stopped WSL distro. */
+    wakeWslDistro?: boolean
   }) => Promise<
     { baseBranch: string; compareBaseRef?: string; pushTarget?: GitPushTarget } | { error: string }
   >

@@ -14,7 +14,10 @@ import {
   resolveRuntimeGitHubWorktreeBase,
   type RuntimeGitHubWorktreeBaseArgs
 } from '../runtime-github-worktree-base'
-import { resolveRuntimeGitLabWorktreeBase } from '../runtime-gitlab-worktree-base'
+import {
+  resolveRuntimeGitLabWorktreeBase,
+  type RuntimeGitLabWorktreeBaseArgs
+} from '../runtime-gitlab-worktree-base'
 import { listWorktreesStrict } from '../../git/worktree-listing'
 import {
   adoptRuntimeProvisionedRoot,
@@ -193,13 +196,9 @@ export abstract class OrcaRuntimeWithCreateManagedRemoteWorktree extends OrcaRun
     })
   }
 
-  async resolveManagedMrBase(args: {
-    repoSelector: string
-    mrIid: number
-    sourceBranch?: string
-    targetBranch?: string
-    isCrossRepository?: boolean
-  }): Promise<
+  async resolveManagedMrBase(
+    args: RuntimeGitLabWorktreeBaseArgs
+  ): Promise<
     { baseBranch: string; compareBaseRef?: string; pushTarget?: GitPushTarget } | { error: string }
   > {
     return resolveRuntimeGitLabWorktreeBase(args, {

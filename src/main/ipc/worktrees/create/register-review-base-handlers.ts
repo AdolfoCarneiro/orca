@@ -110,6 +110,8 @@ export function registerReviewBaseHandlers(context: WorktreeIpcContext): void {
         sourceBranch?: string
         targetBranch?: string
         isCrossRepository?: boolean
+        /** The user creating from the MR: it may start a stopped WSL distro. */
+        wakeWslDistro?: boolean
       }
     ): Promise<
       | { baseBranch: string; compareBaseRef?: string; pushTarget?: GitPushTarget }
@@ -120,7 +122,8 @@ export function registerReviewBaseHandlers(context: WorktreeIpcContext): void {
         mrIid: args.mrIid,
         sourceBranch: args.sourceBranch,
         targetBranch: args.targetBranch,
-        isCrossRepository: args.isCrossRepository
+        isCrossRepository: args.isCrossRepository,
+        wakeWslDistro: args.wakeWslDistro
       })
     }
   )
