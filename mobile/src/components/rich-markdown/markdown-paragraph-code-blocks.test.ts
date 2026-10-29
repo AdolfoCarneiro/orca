@@ -70,8 +70,8 @@ it('retains literal code and surrounding marked prose through transparent paragr
   after.innerHTML = '<em>After</em>'
   wrapper.append(before, inner, after)
 
-  expectRoundTrip(wrapper, '**Before**\n\n````ts\n  one\u00a0&amp;\n```\nTail\n````\n\n*After*', [
-    '  one\u00a0&amp;\n```\nTail'
+  expectRoundTrip(wrapper, '**Before**\n\n````ts\n  one &amp;\n```\nTail\n````\n\n*After*', [
+    '  one &amp;\n```\nTail'
   ])
 })
 

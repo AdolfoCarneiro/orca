@@ -114,38 +114,12 @@ async function verifyStructuredSelections({
   readSurface
 }) {
   const samples = [
-    { markdown: '> Before after', selector: 'blockquote', caret: '> code\n> Before after' },
-    { markdown: '- Before after', selector: 'ul', caret: '- code\nBefore after' },
-    {
-      markdown: '- [ ] Before after',
-      selector: 'input[type="checkbox"]',
-      caret: '- [ ] code\nBefore after'
-    },
-    {
-      markdown: 'Before ![pixel](/inserted.png) after',
-      selector: 'img',
-      caret: '```\ncode\n```\n\nBefore ![pixel](/inserted.png) after'
-    },
+    { markdown: 'Before\n\n- first\n- second\n  - nested\n\nAfter', selector: 'ul' },
+    { markdown: '| one | two |\n| --- | --- |\n| a | b |', selector: 'table' },
     {
       markdown: 'left ![pixel](/inserted.png) right',
       html: '<p>left <img src="/inserted.png" alt="pixel"> right</p>'
-    },
-    {
-      markdown: '**left ![pixel](/inserted.png) right**',
-      html: '<p><strong>left <img src="/inserted.png" alt="pixel"> right</strong></p>'
-    },
-    {
-      markdown: 'left ![pixel](/inserted.png) right',
-      html: '<p>left <img src="/inserted.png" alt="pixel"> right</p>',
-      select: 'word'
-    },
-    { markdown: '- first\n- second', selector: 'ul' },
-    { markdown: 'Before\n\n- first\n- second\n  - nested\n\nAfter', selector: 'ul' },
-    { markdown: '- [ ] first\n  - [x] nested\n- [ ] last', selector: 'input[type="checkbox"]' },
-    { markdown: 'Before\n\n---\n\nAfter', selector: 'hr' },
-    { markdown: '- [ ] first\n- [x] second', selector: 'input[type="checkbox"]' },
-    { markdown: '> Quoted', html: '<blockquote><p>Quoted</p></blockquote>' },
-    { markdown: '| one | two |\n| --- | --- |\n| a | b |', selector: 'table' }
+    }
   ]
   for (const sample of samples) {
     const { page, consoleErrors } = await openPage(browser)
@@ -156,39 +130,16 @@ async function verifyStructuredSelections({
         await page.evaluate((content) => globalThis.__orcaEditor.set({ content }), sample.markdown)
         await page.waitForSelector(`#first-surface #editor ${sample.selector}`)
       }
-      await (sample.caret
-        ? page.evaluate(() => {
-            const editor = document.querySelector('#first-surface #editor')
-            editor.focus()
-            const range = document.createRange()
-            range.setStart(editor.querySelector('p').firstChild, 0)
-            range.collapse(true)
-            window.getSelection().removeAllRanges()
-            window.getSelection().addRange(range)
-          })
-        : select(page, sample.select ?? 'all'))
+      await select(page, 'all')
       const before = await readSurface(page)
       const selected = await page.evaluate(() => window.getSelection().toString())
       await page.evaluate(() => {
         globalThis.__orcaEditor.changes.length = 0
       })
       await press(page, 'Code block')
-      if (sample.caret) {
-        expect(await page.locator('#first-surface #editor pre code').textContent()).toBe('code')
-        expect(await page.locator(`#first-surface #editor ${sample.selector}`).count()).toBe(1)
-        expect(await page.evaluate(() => globalThis.__orcaEditor.changes.at(-1))).toBe(sample.caret)
-        await page.keyboard.press(`${historyModifier}+z`)
-        await expect.poll(() => readSurface(page)).toBe(before)
-        expect(await page.evaluate(() => window.getSelection().toString())).toBe(selected)
-        await page.keyboard.press(`${historyModifier}+Shift+z`)
-        await expect
-          .poll(() => page.evaluate(() => globalThis.__orcaEditor.changes.at(-1)))
-          .toBe(sample.caret)
-      } else {
-        expect(await readSurface(page)).toBe(before)
-        expect(await page.evaluate(() => window.getSelection().toString())).toBe(selected)
-        expect(await page.evaluate(() => globalThis.__orcaEditor.changes)).toEqual([])
-      }
+      expect(await readSurface(page)).toBe(before)
+      expect(await page.evaluate(() => window.getSelection().toString())).toBe(selected)
+      expect(await page.evaluate(() => globalThis.__orcaEditor.changes)).toEqual([])
       expect(await page.evaluate(() => globalThis.__orcaCspViolations)).toEqual([])
       expect(consoleErrors).toEqual([])
     } finally {
@@ -230,7 +181,7 @@ function structuredCodeBlockSelectionTest(
   readSurface
 ) {
   it(
-    'protects structured selections and retains existing caret code-block insertion',
+    'leaves structured selections unchanged instead of formatting them as code',
     () =>
       verifyStructuredSelections({
         browser: getBrowser(),

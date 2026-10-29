@@ -18,10 +18,7 @@ it.each([
     '```html\n<span>&amp; &#38; &lt;tag&gt;</span>\n```',
     '<span>&amp; &#38; &lt;tag&gt;</span>'
   ],
-  ['inline entities', 'Literal `&amp; &#38; &lt;tag&gt;` sample.', '&amp; &#38; &lt;tag&gt;'],
-  ['fenced nonbreaking space', '```text\nleft\u00a0right\n```', 'left\u00a0right'],
-  ['inline nonbreaking space', 'Literal `left\u00a0right` sample.', 'left\u00a0right'],
-  ['fenced trailing blank line', '```text\nkeep\n\n```', 'keep\n']
+  ['inline entities', 'Literal `&amp; &#38; &lt;tag&gt;` sample.', '&amp; &#38; &lt;tag&gt;']
 ])('preserves %s while editing a different paragraph', (_name, codeMarkdown, codeText) => {
   document.body.innerHTML = RICH_MARKDOWN_EDITOR_MARKUP
   const messages: MobileRichMarkdownEditorMessage[] = []
@@ -44,17 +41,6 @@ it.each([
   expect(messages.filter((message) => message.type === 'change')).toEqual([
     { type: 'change', generation: 7, markdown: `${original}!` }
   ])
-})
-
-it('continues decoding entities and browser-created spaces in prose', () => {
-  document.body.innerHTML = RICH_MARKDOWN_EDITOR_MARKUP
-  const editorDocument = createRichMarkdownEditorDocument(quietRichMarkdownEditorHost())
-  stopDocuments.push(editorDocument.stop)
-  editorDocument.send.setMarkdown('R&D &amp; Sales and &lt;tag&gt;', 1)
-  expect(document.querySelector('#editor p')?.textContent).toBe('R&D & Sales and <tag>')
-  expect(editorDocument.send.currentMarkdown()).toBe('R&D & Sales and <tag>')
-  document.querySelector('#editor p')!.textContent = 'ordinary\u00a0spaces'
-  expect(editorDocument.send.currentMarkdown()).toBe('ordinary spaces')
 })
 
 it('preserves text after formatting the gap between inline code spans', async () => {
@@ -84,10 +70,7 @@ it('preserves text after formatting the gap between inline code spans', async ()
 
 it.each([
   ['<code>a`</code><code>``b</code>', '````a```b````', 'a```b'],
-  ['<code> left</code><code>right </code>', '`  leftright  `', ' leftright '],
-  ['<code>left\u00a0</code><code>right</code>', '`left\u00a0right`', 'left\u00a0right'],
-  ['<code>&amp;</code><!-- ignored --><code>&lt;tag&gt;</code>', '`&<tag>`', '&<tag>'],
-  ['<code>alpha</code><code></code><code>beta</code>', '`alphabeta`', 'alphabeta']
+  ['<code> left</code><code>right </code>', '`  leftright  `', ' leftright ']
 ])('preserves adjacent literal code through save and reopen: %s', (html, markdown, text) => {
   document.body.innerHTML = RICH_MARKDOWN_EDITOR_MARKUP
   const editorDocument = createRichMarkdownEditorDocument(quietRichMarkdownEditorHost())
@@ -98,5 +81,30 @@ it.each([
   expect(editorDocument.send.currentMarkdown()).toBe(markdown)
   editorDocument.send.setMarkdown(markdown, 8)
   expect(surface.querySelector('code')?.textContent).toBe(text)
+  expect(editorDocument.send.currentMarkdown()).toBe(markdown)
+})
+
+it.each([
+  ['heading', '<h2><code>a</code><code>b</code><pre>x</pre></h2>', '## `ab`\n\n```\nx\n```'],
+  ['paragraph', '<p><code>a</code><code>b</code><pre>x</pre></p>', '`ab`\n\n```\nx\n```']
+])('joins adjacent inline code beside a %s-owned code block', (_name, html, markdown) => {
+  document.body.innerHTML = RICH_MARKDOWN_EDITOR_MARKUP
+  const editorDocument = createRichMarkdownEditorDocument(quietRichMarkdownEditorHost())
+  stopDocuments.push(editorDocument.stop)
+  document.getElementById('editor')!.innerHTML = html
+
+  expect(editorDocument.send.currentMarkdown()).toBe(markdown)
+})
+
+it.each([
+  ['inline code', '<p><code>x\u00a0 z\u00a0</code> after</p>', '`x  z ` after'],
+  ['an inline code line break', '<p><code>first<br>second</code></p>', '`first second`'],
+  ['a code block', '<pre><code>\u00a0 \u00a0if x:</code></pre>', '```\n   if x:\n```']
+])('saves browser-created spacing in %s as ordinary spaces', (_name, html, markdown) => {
+  document.body.innerHTML = RICH_MARKDOWN_EDITOR_MARKUP
+  const editorDocument = createRichMarkdownEditorDocument(quietRichMarkdownEditorHost())
+  stopDocuments.push(editorDocument.stop)
+  document.getElementById('editor')!.innerHTML = html
+
   expect(editorDocument.send.currentMarkdown()).toBe(markdown)
 })

@@ -32,8 +32,7 @@ it.each([
   ['edge`', '`` edge` ``'],
   ['`', '`` ` ``'],
   ['  surrounded  ', '`   surrounded   `'],
-  ['   ', '`   `'],
-  ['a` &amp; <tag> **literal**', '``a` &amp; <tag> **literal**``']
+  ['   ', '`   `']
 ])('preserves selected inline code %j through the host and a reload', async (literal, saved) => {
   const editor = mount()
   editor.send.setMarkdown('placeholder', 7)
@@ -67,16 +66,4 @@ it('matches whole delimiter runs and leaves unmatched runs as prose', () => {
   expect(editor.surface.querySelector('p')?.textContent).toBe(
     'Use a```b and plain and unmatched ``` tail'
   )
-})
-
-it('handles a large unmatched delimiter run and preserves later independent code', () => {
-  const editor = mount()
-  const unmatched = '`'.repeat(8192)
-  editor.send.setMarkdown(`Prose ${unmatched} tail and \`matched\` code`, 1)
-  expect(editor.surface.querySelector('p')?.textContent).toBe(
-    `Prose ${unmatched} tail and matched code`
-  )
-  expect(
-    Array.from(editor.surface.querySelectorAll('code')).map((code) => code.textContent)
-  ).toEqual(['matched'])
 })

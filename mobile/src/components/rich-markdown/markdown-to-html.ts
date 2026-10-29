@@ -19,7 +19,7 @@ export function markdownToHtml(scope: RichMarkdownEditorScope, markdown: string)
   const parents: { lines: string[]; html: string[]; index: number }[] = []
   while (index < lines.length || parents.length > 0) {
     if (index >= lines.length) {
-      const markup = html.join('\n') || '<p class="is-empty"><br /></p>'
+      const markup = html.join('\n') || '<p><br /></p>'
       const parent = parents.pop()
       if (!parent) {
         break

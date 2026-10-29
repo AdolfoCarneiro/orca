@@ -14,15 +14,9 @@ afterEach(() => {
 
 it.each([
   ['first<br>second', 'first\nsecond'],
-  ['<code>first</code><!-- ignored marker --><br><code>second</code>', 'first\nsecond'],
-  ['<code>first\n</code><code>second</code>', 'first\nsecond'],
   ['<code>first</code><br><br><code>second</code>', 'first\n\nsecond'],
   ['prefix <code>middle</code> suffix', 'prefix middle suffix'],
-  [
-    '<code>a &amp;amp; &lt;tag&gt; \u00a0</code><br><code>last</code>',
-    'a &amp; <tag> \u00a0\nlast'
-  ],
-  ['<code>unchanged\n\n</code>', 'unchanged\n\n']
+  ['<code>last line</code><br><br>', 'last line']
 ])('saves native code-block markup %j through input and reload', (html, literal) => {
   document.body.innerHTML = RICH_MARKDOWN_EDITOR_MARKUP
   const messages: MobileRichMarkdownEditorMessage[] = []

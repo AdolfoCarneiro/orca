@@ -4,7 +4,6 @@ import {
   inlineChildren,
   inlineMarkdown,
   inlineNodesMarkdown,
-  literalTextContent,
   textContent
 } from './html-inline-markdown'
 import { holdsUnownedList, listMarkdown } from './html-list-markdown'
@@ -44,12 +43,13 @@ function hasParagraphCodeBlock(element: Element): boolean {
 // WebKit 26.4/Chromium 147 insertUnorderedList nests ul inside p; serialize surrounding inline runs and list as separate blocks or typed list markers vanish. Leave DOM unchanged.
 function blocksAroundLists(element: Element, preserveCode = false): string {
   const blocks: string[] = []
-  let inline = ''
+  let inline: Node[] = []
   const flushInline = () => {
-    if (inline.trim()) {
-      blocks.push(inline.trim())
+    const markdown = inlineNodesMarkdown(inline).trim()
+    if (markdown) {
+      blocks.push(markdown)
     }
-    inline = ''
+    inline = []
   }
   const containsLists = !preserveCode || holdsUnownedList(element)
   const nodes = preserveCode ? paragraphCodeNodes(element) : Array.from(element.childNodes)
@@ -59,7 +59,7 @@ function blocksAroundLists(element: Element, preserveCode = false): string {
       continue
     }
     if (!(child instanceof Element)) {
-      inline += inlineMarkdown(child)
+      inline.push(child)
       continue
     }
     const tag = child.tagName.toLowerCase()
@@ -78,7 +78,7 @@ function blocksAroundLists(element: Element, preserveCode = false): string {
       blocks.push(blocksAroundLists(child))
       continue
     }
-    inline += inlineMarkdown(child)
+    inline.push(child)
   }
   flushInline()
   return blocks.filter(Boolean).join('\n\n')
@@ -119,19 +119,20 @@ function quoteMarkdown(element: Element): string {
 function headingCodeMarkdown(element: Element): string {
   const prefix = '#'.repeat(Number(element.tagName.slice(1)))
   const blocks: string[] = []
-  let inline = ''
+  let inline: Node[] = []
   const flushInline = () => {
-    if (inline.trim()) {
-      blocks.push(`${prefix} ${inline.trim()}`)
+    const markdown = inlineNodesMarkdown(inline).trim()
+    if (markdown) {
+      blocks.push(`${prefix} ${markdown}`)
     }
-    inline = ''
+    inline = []
   }
   for (const child of Array.from(element.childNodes)) {
     if (child instanceof Element && child.tagName.toLowerCase() === 'pre') {
       flushInline()
       blocks.push(blockMarkdown(child))
     } else {
-      inline += inlineMarkdown(child)
+      inline.push(child)
     }
   }
   flushInline()
@@ -148,10 +149,8 @@ export function blockMarkdown(node: Node): string {
   }
   const tag = node.tagName.toLowerCase()
   if (/^h[1-6]$/.test(tag)) {
-    for (let index = 0; index < node.children.length; index += 1) {
-      if (node.children.item(index)?.tagName.toLowerCase() === 'pre') {
-        return headingCodeMarkdown(node)
-      }
+    if (Array.from(node.children).some((child) => child.tagName.toLowerCase() === 'pre')) {
+      return headingCodeMarkdown(node)
     }
     return `${'#'.repeat(Number(tag.slice(1)))} ${inlineChildren(node).trim()}`
   }
@@ -166,7 +165,8 @@ export function blockMarkdown(node: Node): string {
   }
   if (tag === 'pre') {
     const language = node.getAttribute('data-language') ?? ''
-    const code = literalTextContent(node)
+    // Drop trailing newlines: browsers leave a placeholder <br> after Enter at the end of a block.
+    const code = textContent(node).replace(/\n+$/, '')
     const fence = codeFenceFor(code)
     return `${fence}${language}\n${code}\n${fence}`
   }

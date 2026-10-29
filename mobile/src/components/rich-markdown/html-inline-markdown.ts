@@ -1,6 +1,6 @@
 import { codeFenceFor } from './markdown-code-fence'
 
-export function literalTextContent(node: Node): string {
+function renderedText(node: Node): string {
   if (node.nodeType === Node.COMMENT_NODE) {
     return ''
   }
@@ -8,14 +8,19 @@ export function literalTextContent(node: Node): string {
     if (node.tagName.toLowerCase() === 'br') {
       return '\n'
     }
-    return Array.from(node.childNodes).map(literalTextContent).join('')
+    return Array.from(node.childNodes).map(renderedText).join('')
   }
   return node.textContent ?? ''
 }
 
-/** A node's prose with browser-created non-breaking spaces turned back into spaces. */
+// A code span cannot hold a line break (readers turn it into a space), and a raw newline would end a table row or heading.
+function inlineCodeText(node: Node): string {
+  return textContent(node).replace(/\n/g, ' ')
+}
+
+/** A node's text with line breaks kept and browser-created non-breaking spaces turned back into spaces. */
 export function textContent(node: Node): string {
-  return literalTextContent(node).replace(/ /g, ' ')
+  return renderedText(node).replace(/ /g, ' ')
 }
 
 function codeMarkdown(code: string): string {
@@ -66,7 +71,7 @@ export function inlineMarkdown(node: Node | null | undefined): string {
     return `~~${inlineChildren(node)}~~`
   }
   if (isInlineCode(node)) {
-    return codeMarkdown(literalTextContent(node))
+    return codeMarkdown(inlineCodeText(node))
   }
   if (tag === 'a') {
     return `[${inlineChildren(node)}](${node.getAttribute('href') ?? ''})`
@@ -89,7 +94,7 @@ export function inlineNodesMarkdown(nodes: Iterable<Node>): string {
   let code = ''
   for (const child of nodes) {
     if (isInlineCode(child)) {
-      code += literalTextContent(child)
+      code += inlineCodeText(child)
       continue
     }
     const markdown = inlineMarkdown(child)

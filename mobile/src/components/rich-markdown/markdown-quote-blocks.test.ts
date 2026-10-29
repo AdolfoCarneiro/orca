@@ -85,10 +85,10 @@ it('reopens quoted headings, rules, lists and tables through the existing block 
 
 it('keeps quoted code literal rather than interpreting its block markers', () => {
   const { editorDocument, editor } = surface()
-  const markdown = '> ```text\n> > literal &amp;\n> # still code\n> \n> ```'
+  const markdown = '> ```text\n> > literal &amp;\n> # still code\n> ```'
   editorDocument.send.setMarkdown(markdown, 8)
 
-  expect(editor.querySelector('pre code')?.textContent).toBe('> literal &amp;\n# still code\n')
+  expect(editor.querySelector('pre code')?.textContent).toBe('> literal &amp;\n# still code')
   expect(editor.querySelectorAll('blockquote').length).toBe(1)
   expect(editorDocument.send.currentMarkdown()).toBe(markdown)
 })
