@@ -10,10 +10,11 @@ import {
   inferFolderWorkspacePathConnection
 } from '../../project-groups/folder-workspace-path-status'
 import {
-  assertWslUncPathRunning,
+  blockedWslDistroForPath,
   runAsWslUserAct,
   wslDistroForPath
 } from '../../wsl/wsl-unc-access-gate'
+import { wslDistroHoldMessage } from '../../../shared/wsl-distro-stopped-hold'
 import type { TerminalWorkspaceLaunchScope } from '../runtime-legacy-worker-terminal-recovery-types'
 import { folderWorkspaceKey, parseWorkspaceKey } from '../../../shared/workspace-scope'
 import type { ResolvedWorktree } from '../runtime-worktree-path-identity'
@@ -145,8 +146,11 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
         await runAsWslUserAct(wslDistroForPath(workspace.folderPath), readStatus)
       )
     } else {
-      // Background work names the stopped distro rather than a vague "folder unavailable".
-      await assertWslUncPathRunning(workspace.folderPath)
+      // Background work holds with Start (a pane's card, an automation's hold), never "unavailable".
+      const blocked = await blockedWslDistroForPath(workspace.folderPath)
+      if (blocked) {
+        throw new Error(wslDistroHoldMessage(blocked.distro, blocked.state))
+      }
       assertFolderWorkspacePathUsable(await readStatus())
     }
     return {
