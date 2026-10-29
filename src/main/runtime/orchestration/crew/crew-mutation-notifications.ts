@@ -86,6 +86,28 @@ export function attachCrewMutationNotifications(ctor: { prototype: object }): vo
   ) {
     throw new Error('Crew notifications require installed orchestration methods')
   }
+  if (hasDomainMethod(prototype, 'settleWorkerTerminalRelease')) {
+    const release = prototype.settleWorkerTerminalRelease
+    prototype.settleWorkerTerminalRelease = function (this: OrchestrationDb, resourceId) {
+      const before = this.getWorkerTerminalResource(resourceId)?.release_state
+      const result = release.call(this, resourceId)
+      if (before !== result.release_state) {
+        this.crewChanges.notify(new Set(['topology']))
+      }
+      return result
+    }
+  }
+  if (hasDomainMethod(prototype, 'settleDeadWorkerTerminalRelease')) {
+    const release = prototype.settleDeadWorkerTerminalRelease
+    prototype.settleDeadWorkerTerminalRelease = function (this: OrchestrationDb, params) {
+      const before = this.getWorkerTerminalResource(params.resourceId)?.release_state
+      const result = release.call(this, params)
+      if (before !== result.resource.release_state) {
+        this.crewChanges.notify(new Set(['topology']))
+      }
+      return result
+    }
+  }
   const sourceIdentity = prototype.getOrCreateLocalMutationCallerFingerprint
   prototype.getOrCreateLocalMutationCallerFingerprint = function (this: OrchestrationDb) {
     const known = this.localMutationCallerFingerprint

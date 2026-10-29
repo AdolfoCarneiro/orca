@@ -5,6 +5,8 @@ import { OrchestrationDb } from './orchestration/db'
 import { subscribeCrew } from './orchestration/crew/crew-stream'
 import { setStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
 import { sessionCrewChanges } from './orchestration/crew/crew-changes'
+import { holdStructuredWorker } from './structured-worker-authority'
+import type { StructuredWorkerIdentity } from './structured-worker-identity'
 /** Early launch admission and the later chat host must share one record-store writer. */
 
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -200,6 +202,119 @@ it('retires a sole Crew observer generation on empty-source open, real name writ
     setStructuredAgentSessionHost(host)
     await flush()
     expect(captures).toHaveBeenCalledTimes(afterInstall + 2)
+    const identity: StructuredWorkerIdentity = {
+      handle: 'structworker_source-availability',
+      sessionId,
+      agent: 'codex',
+      paneKey: 'session-source:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      processIncarnation: `structured:${sessionId}`,
+      worktreeId: 'workspace-1',
+      hostScope: { kind: 'local', hostId: 'local' }
+    }
+    const held = (worker = identity) => {
+      const latest = captures.mock.results.at(-1)
+      if (latest?.type !== 'return') {
+        throw new Error('Crew did not capture raw identity inputs')
+      }
+      const context = runtime.createTerminalIdentityReadContext(latest.value)
+      const actual = holdStructuredWorker(worker, db, undefined, context.structured)
+      const expected = holdStructuredWorker(worker, db)
+      expect(actual.kind).toBe(expected.kind)
+      if ('running' in actual && 'running' in expected) {
+        expect(actual.running.record.ownerObservation.claimStatus).toBe(
+          expected.running.record.ownerObservation.claimStatus
+        )
+      }
+      return actual.kind
+    }
+    expect(held()).toBe('held')
+    const fence = opened.store.getRecord(sessionId)!.lease.runtimeFence
+    await opened.store.commitProcessIdentity({
+      sessionId,
+      fence,
+      process: {
+        hostId: 'local',
+        pid: 999999,
+        processStartTimeMs: now,
+        spawnToken: 'source-only-no-process'
+      },
+      now
+    })
+    await opened.store.proveOwner({ sessionId, fence, now })
+    await flush()
+    expect(held()).toBe('held')
+    await opened.store.evictProvenDeadOwner({
+      sessionId,
+      expectedFence: fence,
+      probe: { outcome: 'pid-absent' },
+      now: now + 1
+    })
+    await flush()
+    expect(held()).toBe('not-held')
+    const beforeShow = captures.mock.calls.length
+    await opened.store.showSessionTabs([sessionId])
+    await flush()
+    expect(captures).toHaveBeenCalledTimes(beforeShow + 1)
+    expect(held()).toBe('held')
+    await opened.store.setSessionTabVisibility(sessionId, true)
+    await flush()
+    expect(captures).toHaveBeenCalledTimes(beforeShow + 1)
+    await opened.store.setSessionTabVisibility(sessionId, false)
+    await flush()
+    expect(captures).toHaveBeenCalledTimes(beforeShow + 2)
+    expect(held()).toBe('not-held')
+    await opened.store.setSessionTabVisibility(sessionId, true)
+    const run = db.createRun({
+      objective: 'Source custody',
+      coordinatorHandle: 'term_source_coordinator',
+      coordinatorPaneKey: 'source-coordinator:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    })
+    for (const mode of ['archived', 'dead'] as const) {
+      const worker = { ...identity, handle: `${identity.handle}_${mode}` }
+      const start = db.createStartingWorkerDispatch({
+        taskSpec: `Custody ${mode}`,
+        taskRunId: run.id,
+        startOptions: {},
+        creator: { kind: 'system' },
+        maxDepth: 10
+      })
+      db.prepareStartingWorkerAuthority({
+        dispatchId: start.dispatch.id,
+        handle: worker.handle,
+        paneKey: worker.paneKey,
+        processIncarnation: worker.processIncarnation,
+        worktreeId: worker.worktreeId,
+        hostScope: JSON.stringify(worker.hostScope),
+        terminalOwnership: 'created',
+        setupState: 'not_applicable',
+        effects: []
+      })
+      db.failWorkerStart(start.dispatch.id, 'agent_readiness', 'Agent did not start')
+      const resource = db.getWorkerTerminalResourceByOwner(start.dispatch.id)!
+      if (mode === 'archived') {
+        db.requestWorkerTerminalRelease(start.dispatch.id)
+      }
+      await flush()
+      expect(held(worker)).toBe('held')
+      const beforeRelease = captures.mock.calls.length
+      const release = () =>
+        mode === 'archived'
+          ? db.settleWorkerTerminalRelease(resource.id)
+          : db.settleDeadWorkerTerminalRelease({
+              requestingDispatchId: start.dispatch.id,
+              resourceId: resource.id,
+              processIncarnation: worker.processIncarnation
+            })
+      release()
+      await flush()
+      expect(captures).toHaveBeenCalledTimes(beforeRelease + 1)
+      expect(held(worker)).toBe('not-held')
+      release()
+      await flush()
+      expect(captures).toHaveBeenCalledTimes(beforeRelease + 1)
+    }
+    db.resetTasks()
+    await flush()
     const beforeRename = captures.mock.calls.length
     await opened.store.setConversationName(sessionId, 'Renamed without process')
     await flush()
