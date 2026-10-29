@@ -299,11 +299,17 @@ export async function proveWslStructuredChat(lane: ChatLane) {
     `${home}/wsl-orcad-lane-repo`
   )
   const grok = await exerciseScriptedProviderChat(lane, install.grok, folderWorktree, folderPath)
+  const opencode = await exerciseScriptedProviderChat(
+    lane,
+    install.opencode,
+    gitWorktree,
+    `${home}/wsl-orcad-lane-repo`
+  )
   const decoy = await expectWindowsDecoyReachable(lane)
   await expectWindowsDecoyUnrun(lane, home)
   const windowsOnly = await probeWindowsDecoy(lane, install, gitWorktree)
   expect(windowsOnly.errors, JSON.stringify(windowsOnly)).toEqual([])
   const windowsOnlyChat = await expectWindowsOnlyChatRefused(lane, gitWorktree)
   await expectWindowsDecoyUnrun(lane, home)
-  return { git, folder, codex, grok, decoy, windowsOnly, windowsOnlyChat }
+  return { git, folder, codex, grok, opencode, decoy, windowsOnly, windowsOnlyChat }
 }

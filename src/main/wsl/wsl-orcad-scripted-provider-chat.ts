@@ -43,10 +43,21 @@ const PROVIDERS = {
     stopMethod: 'session/cancel',
     answered: (report: z.infer<typeof ScriptedProviderReport>) => report.permissionResponses,
     answer: { outcome: { outcome: 'selected', optionId: 'allow' } }
+  },
+  // OpenCode 1.x dialect: once/always/reject options, message-id chunks, `acp` with its own env.
+  opencode: {
+    reply: 'Guest opencode reply.',
+    optionId: 'once',
+    accountVar: 'XDG_DATA_HOME',
+    argv: ['acp'],
+    stopMethod: 'session/cancel',
+    answered: (report: z.infer<typeof ScriptedProviderReport>) => report.permissionResponses,
+    answer: { outcome: { outcome: 'selected', optionId: 'once' } },
+    env: { OPENCODE_CLIENT: 'acp', OPENCODE_ENABLE_QUESTION_TOOL: 'false' }
   }
 } as const
 
-/** Streaming, approval and Stop through orcad for a scripted guest Codex or ACP agent. */
+/** Streaming, approval and Stop through orcad for a scripted guest Codex or ACP agent (Grok, OpenCode). */
 export async function exerciseScriptedProviderChat(
   lane: ChatLane,
   install: WslScriptedProviderInstall,
@@ -183,6 +194,7 @@ export async function exerciseScriptedProviderChat(
     expect(report.argv[0]).toBe(install.script)
     expect(report.argv).toEqual(expect.arrayContaining([...provider.argv]))
     expect(report.env).toMatchObject({
+      ...('env' in provider ? provider.env : {}),
       ORCA_LANE_CLI_WRAPPER: install.cli,
       ORCA_AGENT_SESSION_ID: sessionId,
       ORCA_STRUCTURED_SESSION: '1',
