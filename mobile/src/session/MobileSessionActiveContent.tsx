@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
 import { Animated, View, Text, Pressable, ActivityIndicator } from 'react-native'
 import { saveTerminalTextScale } from '../storage/preferences'
 import { MobileBrowserPane } from '../browser/MobileBrowserPane'
 import { TerminalPaneView } from './TerminalPaneView'
 import { MobileNativeChatOverlay } from './MobileNativeChatOverlay'
+import { MobileNativeChatDictationPreviewContext } from './native-chat/composer/mobile-native-chat-dictation-preview-context'
 import { resolveMobileNativeChatSessionId } from './native-chat/mobile-native-chat-eligibility'
 import { colors } from '../theme/mobile-theme'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
@@ -49,6 +51,7 @@ export function MobileSessionActiveContent({
     nativeChatOverlayInputLockReason,
     nativeChatController,
     dictation,
+    chatDictationPreview,
     handleDictationToggle,
     handleDictationPressIn,
     handleDictationPressOut,
@@ -96,6 +99,10 @@ export function MobileSessionActiveContent({
   } = controller
   const hostProfile = useHostProfile(hostId)
   const hostTitle = useHostDisplay(hostProfile).title
+  const nativeChatImageSource = useMemo(
+    () => (client ? { client, worktreeId } : undefined),
+    [client, worktreeId]
+  )
   const content = showLoadingState ? (
     <View style={styles.emptyState}>
       <ActivityIndicator size="small" color={colors.textSecondary} />
@@ -243,27 +250,32 @@ export function MobileSessionActiveContent({
           onOpenUrl={handleTerminalOpenUrl}
         />
       ))}
-      <MobileNativeChatOverlay
-        controller={nativeChatController}
-        activeSessionTabId={controller.activeSessionTab?.id}
-        onOpenFile={handleNativeChatFileTap}
-        images={nativeChatImages}
-        structuredComposer={nativeChatStructuredComposer}
-        onMicPress={dictationEnabled ? handleDictationToggle : undefined}
-        micActive={dictation.isRecording}
-        dictationMode={dictationMode}
-        onMicPressIn={handleDictationPressIn}
-        onMicPressOut={handleDictationPressOut}
-        inputLockReason={nativeChatOverlayInputLockReason}
-        sendErrorMessage={nativeChatSendError.message}
-        onClearSendError={nativeChatSendError.clear}
-        sendSurfaceId={controller.nativeChatScopeKey ?? ''}
-        sessionId={resolveMobileNativeChatSessionId(controller.activeSessionTab)}
-        getSendCompletionGeneration={controller.getSendCompletionGeneration}
-        keyboardInset={keyboardLift}
-        // A workspace routed to another server stops with that server, whose name the phone lacks.
-        hostName={executionHost === undefined && hostProfile ? hostTitle : null}
-      />
+      <MobileNativeChatDictationPreviewContext.Provider value={chatDictationPreview}>
+        <MobileNativeChatOverlay
+          controller={nativeChatController}
+          imageSource={nativeChatImageSource}
+          activeSessionTabId={controller.activeSessionTab?.id}
+          onOpenFile={handleNativeChatFileTap}
+          images={nativeChatImages}
+          structuredComposer={nativeChatStructuredComposer}
+          onMicPress={dictationEnabled ? handleDictationToggle : undefined}
+          micActive={dictation.isStarting || dictation.isRecording}
+          micStarting={dictation.isStarting}
+          micProcessing={dictation.isProcessing}
+          dictationMode={dictationMode}
+          onMicPressIn={handleDictationPressIn}
+          onMicPressOut={handleDictationPressOut}
+          inputLockReason={nativeChatOverlayInputLockReason}
+          sendErrorMessage={nativeChatSendError.message}
+          onClearSendError={nativeChatSendError.clear}
+          sendSurfaceId={controller.nativeChatScopeKey ?? ''}
+          sessionId={resolveMobileNativeChatSessionId(controller.activeSessionTab)}
+          getSendCompletionGeneration={controller.getSendCompletionGeneration}
+          keyboardInset={keyboardLift}
+          // A workspace routed to another server stops with that server, whose name the phone lacks.
+          hostName={executionHost === undefined && hostProfile ? hostTitle : null}
+        />
+      </MobileNativeChatDictationPreviewContext.Provider>
       {toastMessage && (
         <Animated.View pointerEvents="none" style={[styles.toast, toastAnimatedStyle]}>
           <Text style={styles.toastText}>{toastMessage}</Text>

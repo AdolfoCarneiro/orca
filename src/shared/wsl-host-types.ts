@@ -63,11 +63,14 @@ export type WslHostCapability = {
  * listed with its stop pending, so Remove can retry; older mains removed it anyway.
  */
 export type WslHostServerStop =
-  | { stopped: true }
+  /** `keptForOtherDesktops`: another Orca shares the server, so only this desktop let go of it. */
+  | { stopped: true; keptForOtherDesktops?: string[] }
   | { stopped: false; reason: string; verdict?: 'live' | 'unverifiable'; kept?: boolean }
 
 export type WslHostAddFailureKind =
   | 'unsupported-wsl1'
+  /** Its platform, libc or loader can't run Orca's server (e.g. NixOS, musl without libstdc++). */
+  | 'unsupported-distro'
   | 'distro-stopped'
   | 'already-added'
   | 'ssh-managed'

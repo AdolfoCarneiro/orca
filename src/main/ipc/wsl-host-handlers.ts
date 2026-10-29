@@ -1,4 +1,5 @@
 import { BrowserWindow, ipcMain } from 'electron'
+import { abortWhenRendererGone } from './renderer-lifetime-abort'
 import { noteWslHostUserAction } from '../wsl/wsl-host-user-actions'
 import {
   WSL_HOST_STATUS_CHANNEL,
@@ -23,12 +24,19 @@ import {
   wslHostsGateOpen,
   wslHostsServing
 } from '../wsl/wsl-host-gate'
-import { getWslHostService, setWslHostService } from '../wsl/wsl-host-service-instance'
+import {
+  getWslHostService,
+  setWslHostPhoneGate,
+  setWslHostService
+} from '../wsl/wsl-host-service-instance'
+import { WslHostPhoneGate } from '../wsl/wsl-host-phone-reach'
+import { readWslHostRecordsQuietly } from '../wsl/wsl-host-connection-record'
 import { retireRemovedRuntimeEnvironment } from './runtime-environments/runtime-environment-removal-cleanup'
 import { getRuntimeEnvironmentStatus } from './runtime-environments/runtime-environment-status-probe'
 import { callRuntimeEnvironment } from './runtime-environments/runtime-environment-transport-routing'
 import { isRemoteRuntimeConnectionReady } from './runtime-environments/runtime-environment-request-connections'
 import { resolveEnvironment } from '../../shared/runtime-environment-store'
+import { reconcileWslHostBridgePorts } from '../../shared/runtime-environment-wsl-host-store'
 import { getPreferredPairedRuntimeConnection } from '../../shared/runtime-environments'
 import { requestOrcadTerminalCensus } from '../ssh/orcad-terminal-census-client'
 import type { WslHostRuntimeAccess } from '../wsl/wsl-host-server-stop'
@@ -120,11 +128,22 @@ function createService(args: WslHostHandlerArgs): WslHostService | null {
   if (process.platform !== 'win32' && !fake) {
     return null
   }
+  // Before any bridge connects or the window lists servers: a crash mid-save must not hide a host.
+  try {
+    for (const environmentId of reconcileWslHostBridgePorts(args.getUserDataPath())) {
+      console.warn(`[wsl-hosts] Realigned ${environmentId}'s bridge port with its pairing.`)
+    }
+  } catch (error) {
+    console.warn('[wsl-hosts] Could not check WSL host records against their pairings:', error)
+  }
   let automationWake: WslHostAutomationWake | null = null
+  const runGate = {
+    isEnabled: () => args.store.getSettings().experimentalWslHosts === true,
+    hasServerFiles: fake ? () => fake.serverFiles !== 'missing' : hasOrcadTemplate
+  }
   const created = new WslHostService({
     userDataPath: args.getUserDataPath,
-    isEnabled: () => args.store.getSettings().experimentalWslHosts === true,
-    hasServerFiles: fake ? () => fake.serverFiles !== 'missing' : hasOrcadTemplate,
+    ...runGate,
     publish,
     pairingChanged: (environmentId) => void args.invalidateTransport(environmentId),
     ready: (environmentId) => {
@@ -150,16 +169,23 @@ function createService(args: WslHostHandlerArgs): WslHostService | null {
   const onChange = created.handleConnectionChange.bind(created)
   const isKnownDistro = (distro: string): boolean => created.isKnownDistro(distro)
   const runtime = wslHostRuntimeAccess(args.getUserDataPath)
-  created.attach(
-    fake
-      ? createFakeWslHostConnector(fake, onChange, { isKnownDistro, runtime })
-      : createWslHostConnector({
-          userDataPath: args.getUserDataPath(),
-          onChange,
-          hasUserVisibleWork: (distro) => created.hasUserVisibleWork(distro),
-          isKnownDistro,
-          runtime
-        })
+  const connector = fake
+    ? createFakeWslHostConnector(fake, onChange, { isKnownDistro, runtime })
+    : createWslHostConnector({
+        userDataPath: args.getUserDataPath(),
+        onChange,
+        hasUserVisibleWork: (distro) => created.hasUserVisibleWork(distro),
+        isKnownDistro,
+        runtime
+      })
+  created.attach(connector)
+  setWslHostPhoneGate(
+    new WslHostPhoneGate({
+      statuses: () => created.getStatuses(),
+      records: () => readWslHostRecordsQuietly(args.getUserDataPath()),
+      connector,
+      ...runGate
+    })
   )
   automationWake = createWslHostAutomationWake(args.getUserDataPath, created)
   return created
@@ -265,7 +291,12 @@ export function registerWslHostHandlers(args: WslHostHandlerArgs): void {
     const windowId = sender.id
     const ids = Array.isArray(request.environmentIds) ? request.environmentIds : []
     if (!visibleWork.has(windowId)) {
-      sender.once('destroyed', () => wsl.setVisibleWork(visibleWork.forget(windowId)))
+      const lifetime = abortWhenRendererGone(sender)
+      lifetime.signal.addEventListener(
+        'abort',
+        () => wsl.setVisibleWork(visibleWork.forget(windowId)),
+        { once: true }
+      )
     }
     wsl.setVisibleWork(visibleWork.report(windowId, ids))
   })
