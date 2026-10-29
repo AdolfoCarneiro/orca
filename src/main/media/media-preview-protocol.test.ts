@@ -43,6 +43,8 @@ import {
   statRemotePreviewFile
 } from './remote-file-preview-reader'
 import type * as RemoteFilePreviewReader from './remote-file-preview-reader'
+import { readPreviewGrantRange } from './preview-grant-range-read'
+import { previewGrantForSender, remoteSnapshot, revokeGrant } from './preview-grant-registry'
 
 function png(width: number, height: number): Uint8Array {
   const bytes = new Uint8Array(33)
@@ -256,6 +258,167 @@ describe('media preview protocol', () => {
       vi.mocked(assertRemoteChunkReadsSupported).mockReset().mockResolvedValue(undefined)
     })
     afterEach(() => vi.mocked(Date.now).mockRestore())
+
+    const head = (url: string, signal?: AbortSignal) =>
+      handleMediaPreviewRequest(new Request(url, { method: 'HEAD', signal }))
+    const holdStats = () => {
+      const pending: {
+        signal: AbortSignal
+        snapshot: ReturnType<
+          typeof Promise.withResolvers<RemoteFilePreviewReader.RemotePreviewFileSnapshot>
+        >
+      }[] = []
+      vi.mocked(statRemotePreviewFile)
+        .mockClear()
+        .mockImplementation((_address, signal) => {
+          const snapshot =
+            Promise.withResolvers<RemoteFilePreviewReader.RemotePreviewFileSnapshot>()
+          const abort = () => snapshot.reject(signal.reason)
+          signal.addEventListener('abort', abort, { once: true })
+          pending.push({ signal, snapshot })
+          return snapshot.promise.finally(() => signal.removeEventListener('abort', abort))
+        })
+      return pending
+    }
+
+    it.each(['destroyed', 'render-process-gone', 'did-navigate'])(
+      'retires every expired stat after re-mint when the renderer emits %s',
+      async (name) => {
+        const url = await mint()
+        const pending = holdStats()
+        const responses: Promise<Response>[] = []
+        for (let index = 0; index < 12; index += 1) {
+          now += 1_001
+          responses.push(head(url))
+        }
+        expect(pending).toHaveLength(12)
+        vi.mocked(statRemotePreviewFile).mockResolvedValueOnce({ size: 99, mtime: 2 })
+        const reloaded = await mint()
+        expect(new URL(reloaded).pathname).toBe(new URL(url).pathname)
+        expect((await head(reloaded)).headers.get('Content-Length')).toBe('99')
+
+        emitter.emit(name)
+        expect(pending.every(({ signal }) => signal.aborted)).toBe(true)
+        expect((await Promise.all(responses)).map((response) => response.status)).toEqual(
+          Array.from({ length: 12 }, () => 502)
+        )
+        expect((await head(reloaded)).status).toBe(404)
+      }
+    )
+
+    it('shares a pending stat across media and PDF callers when one request aborts', async () => {
+      vi.mocked(readRemotePreviewRange).mockResolvedValue(new TextEncoder().encode('%PDF-1.7'))
+      const url = await mint('docs/spec.pdf')
+      const pending = holdStats()
+      now += 1_001
+      const cancelled = new AbortController()
+      const first = head(url, cancelled.signal)
+      const live = head(url)
+      vi.mocked(readRemotePreviewRange).mockResolvedValue(new TextEncoder().encode('data'))
+      const pdf = readPreviewGrantRange(event.sender, url, 0, 4)
+      expect(pending).toHaveLength(1)
+      cancelled.abort()
+      expect(pending[0].signal.aborted).toBe(false)
+      pending[0].snapshot.resolve({ size: 6, mtime: 2 })
+      await first
+      expect((await live).status).toBe(200)
+      expect(new TextDecoder().decode(await pdf)).toBe('data')
+      expect(pending).toHaveLength(1)
+    })
+
+    it('keeps the re-minted snapshot when displaced generations settle', async () => {
+      const url = await mint()
+      const pending = holdStats()
+      now += 1_001
+      const old = head(url)
+      now += 1_001
+      const newer = head(url)
+      vi.mocked(statRemotePreviewFile).mockResolvedValueOnce({ size: 99, mtime: 3 })
+      const reloaded = await mint()
+      pending[0].snapshot.reject(new Error('old generation failed'))
+      expect((await old).status).toBe(502)
+      pending[1].snapshot.resolve({ size: 12, mtime: 2 })
+      expect((await newer).status).toBe(200)
+      expect((await head(reloaded)).headers.get('Content-Length')).toBe('99')
+      expect(pending).toHaveLength(2)
+      emitter.emit('destroyed')
+      expect(pending.every(({ signal }) => !signal.aborted)).toBe(true)
+    })
+
+    it('retries a failed current stat without an older success replacing the retry', async () => {
+      const url = await mint()
+      const pending = holdStats()
+      now += 1_001
+      const old = head(url)
+      now += 1_001
+      const current = head(url)
+      pending[1].snapshot.reject(new Error('current failed'))
+      expect((await current).status).toBe(502)
+      const retry = head(url)
+      expect(pending).toHaveLength(3)
+      pending[0].snapshot.resolve({ size: 20, mtime: 2 })
+      expect((await old).status).toBe(200)
+      pending[2].snapshot.resolve({ size: 8, mtime: 3 })
+      expect((await retry).headers.get('Content-Length')).toBe('8')
+      expect((await head(url)).headers.get('Content-Length')).toBe('8')
+      expect(pending).toHaveLength(3)
+    })
+
+    it('cancels only the revoked environment while another grant still answers', async () => {
+      const removed = await mint()
+      const other = await grantRemoteFilePreview(
+        event,
+        { ...addr('clip.mp4'), environmentId: 'env-2', worktree: '/folder-workspace' },
+        store
+      )
+      if (!other) {
+        throw new Error('Missing preview')
+      }
+      const pending = holdStats()
+      now += 1_001
+      const retired = head(removed)
+      const live = head(other.mediaUrl)
+      revokeRemoteFilePreviewGrants('env-1')
+      expect(pending[0].signal.aborted).toBe(true)
+      expect(pending[1].signal.aborted).toBe(false)
+      expect((await retired).status).toBe(502)
+      expect((await head(removed)).status).toBe(404)
+      pending[1].snapshot.resolve({ size: 10, mtime: 2 })
+      expect((await live).headers.get('Content-Length')).toBe('10')
+    })
+
+    it('rejects stale grant references while a fresh same-key mint remains usable', async () => {
+      const url = await mint()
+      const found = previewGrantForSender(url, event.sender.id)
+      if (!found) {
+        throw new Error('Missing grant')
+      }
+      revokeGrant(found.token)
+      now += 1_001
+      vi.mocked(statRemotePreviewFile).mockClear()
+      await expect(remoteSnapshot(found.grant, addr('out/clip.webm'))).rejects.toThrow(
+        'Preview is no longer available'
+      )
+      expect(statRemotePreviewFile).not.toHaveBeenCalled()
+      const fresh = await mint()
+      expect(new URL(fresh).pathname).not.toBe(new URL(url).pathname)
+      expect((await head(fresh)).status).toBe(200)
+    })
+
+    it('stops a stat revoked during setup before starting its remote work', async () => {
+      const url = await mint()
+      let started = 0
+      vi.mocked(statRemotePreviewFile).mockImplementation(async (_address, signal) => {
+        revokeRemoteFilePreviewGrants('env-1')
+        signal.throwIfAborted()
+        started += 1
+        return { size: 6, mtime: 2 }
+      })
+      now += 1_001
+      expect((await head(url)).status).toBe(502)
+      expect(started).toBe(0)
+      expect((await head(url)).status).toBe(404)
+    })
 
     it('mints a stream for audio and video only, after one stat proves the file', async () => {
       const result = await grantRemoteFilePreview(event, addr('out/clip.webm'), store)

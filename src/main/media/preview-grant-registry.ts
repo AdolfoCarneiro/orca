@@ -24,6 +24,8 @@ export type PreviewGrant = {
   key: string
   // Why: a seek or prefetch burst opens several ranges at once; one stat answers all of them.
   stat?: { at: number; snapshot: Promise<RemotePreviewFileSnapshot> }
+  statControllers?: Set<AbortController>
+  revoked?: boolean
 }
 export type PreviewUrl = {
   content: string
@@ -60,7 +62,7 @@ export function mintPreviewUrl(
       'abort',
       () => {
         for (const token of entries.values()) {
-          grants.delete(token)
+          revokeGrant(token)
         }
         senders.delete(sender.id)
         lifetime.dispose()
@@ -98,6 +100,11 @@ export function revokeGrant(token: string): void {
     return
   }
   grants.delete(token)
+  grant.revoked = true
+  for (const controller of grant.statControllers ?? []) {
+    controller.abort()
+  }
+  grant.statControllers?.clear()
   const owned = senders.get(grant.senderId)
   if (owned?.get(grant.key) === token) {
     owned.delete(grant.key)
@@ -114,17 +121,27 @@ export function revokeRemoteFilePreviewGrants(environmentId: string): void {
 }
 
 export function remoteSnapshot(grant: PreviewGrant, remote: RemoteFilePreviewAddress) {
+  if (grant.revoked) {
+    return Promise.reject(new Error('Preview is no longer available'))
+  }
   const now = Date.now()
   if (!grant.stat || now - grant.stat.at > REMOTE_STAT_REUSE_MS) {
     // Not tied to one request's abort: other ranges in the burst may be waiting on it.
-    const snapshot = statRemotePreviewFile(remote, new AbortController().signal)
+    const controller = new AbortController()
+    const controllers = (grant.statControllers ??= new Set())
+    controllers.add(controller)
+    const snapshot = statRemotePreviewFile(remote, controller.signal)
     const stat = { at: now, snapshot }
     grant.stat = stat
-    snapshot.catch(() => {
-      if (grant.stat === stat) {
-        grant.stat = undefined
+    void snapshot.then(
+      () => controllers.delete(controller),
+      () => {
+        controllers.delete(controller)
+        if (grant.stat === stat) {
+          grant.stat = undefined
+        }
       }
-    })
+    )
   }
   return grant.stat.snapshot
 }
