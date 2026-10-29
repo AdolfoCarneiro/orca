@@ -41,10 +41,21 @@ type HostRemoveDialogProps = {
 
 export function HostRemoveDialog(props: HostRemoveDialogProps): React.JSX.Element {
   const [busy, setBusy] = useState(false)
+  const mountedRef = useMountedRef()
+  const handleRemovalSuccess = (): void => {
+    if (mountedRef.current) {
+      props.onOpenChange(false)
+    }
+  }
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent surface="security" className="sm:max-w-md">
-        <HostRemoveDialogBody {...props} busy={busy} setBusy={setBusy} />
+        <HostRemoveDialogBody
+          {...props}
+          busy={busy}
+          setBusy={setBusy}
+          onRemovalSuccess={handleRemovalSuccess}
+        />
       </DialogContent>
     </Dialog>
   )
@@ -58,15 +69,16 @@ function HostRemoveDialogBody({
   label,
   target,
   busy,
-  setBusy
+  setBusy,
+  onRemovalSuccess
 }: HostRemoveDialogProps & {
   busy: boolean
   setBusy: (busy: boolean) => void
+  onRemovalSuccess: () => void
 }): React.JSX.Element {
   // Keep workspaces by default; destructive remote removal requires explicit Advanced opt-in.
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [deleteWorkspaces, setDeleteWorkspaces] = useState(false)
-  const mountedRef = useMountedRef()
 
   const repos = useAppStore((s) => s.repos)
   const worktreesByRepo = useAppStore(selectWorktreesByRepo)
@@ -153,9 +165,7 @@ function HostRemoveDialogBody({
       } else {
         await removeSshTarget(target.targetId)
       }
-      if (mountedRef.current) {
-        onOpenChange(false)
-      }
+      onRemovalSuccess()
       toast.success(
         translate('auto.components.sidebar.HostRemoveDialog.1a2b3c4d5e', 'Removed {{value0}}', {
           value0: label

@@ -36,6 +36,7 @@ function replaceCatalogs(count: number) {
 }
 
 beforeEach(() => {
+  onOpenChange.mockReset()
   useAppStore.setState({
     repos: [{ ...TEST_REPO, connectionId: 'one' }],
     openFiles: [],
@@ -133,6 +134,9 @@ it.each(['success', 'failure'] as const)(
       updateSettings: vi.fn().mockResolvedValue(undefined)
     })
     const view = render(dialogs('one'))
+    onOpenChange.mockImplementation((open: boolean) => {
+      view.rerender(dialogs(open ? 'one' : null))
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Remove host' }))
     expect(remove).toHaveBeenCalledTimes(1)
     view.rerender(dialogs(null))
@@ -151,6 +155,12 @@ it.each(['success', 'failure'] as const)(
       }
       await pending.promise.catch(() => {})
     })
-    expect(button).toBeEnabled()
+    if (outcome === 'success') {
+      expect(onOpenChange).toHaveBeenCalledWith(false)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    } else {
+      expect(onOpenChange).not.toHaveBeenCalled()
+      expect(button).toBeEnabled()
+    }
   }
 )
