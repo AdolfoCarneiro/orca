@@ -1,4 +1,5 @@
 import type { Readable } from 'node:stream'
+import { StringDecoder } from 'node:string_decoder'
 import type {
   RemoteCommandChannel,
   RemoteInstallTransport
@@ -179,6 +180,8 @@ async function execCommandOnce(
   return new Promise((resolve, reject) => {
     let stdout = ''
     let stderr = ''
+    const stdoutDecoder = new StringDecoder('utf8')
+    const stderrDecoder = new StringDecoder('utf8')
     let settled = false
     let terminationError: SshCommandTerminationError | null = null
     let closeGraceTimer: ReturnType<typeof setTimeout> | null = null
@@ -242,12 +245,14 @@ async function execCommandOnce(
     }
     const onAbort = (): void => requestTermination(createSshOperationAbortError())
     const onStdoutData = (data: Buffer): void => {
-      stdout = appendExecOutputTail(stdout, data.toString('utf-8'))
+      stdout = appendExecOutputTail(stdout, stdoutDecoder.write(data))
     }
     const onStderrData = (data: Buffer): void => {
-      stderr = appendExecOutputTail(stderr, data.toString('utf-8'))
+      stderr = appendExecOutputTail(stderr, stderrDecoder.write(data))
     }
     const onClose = (code: number): void => {
+      stdout = appendExecOutputTail(stdout, stdoutDecoder.end())
+      stderr = appendExecOutputTail(stderr, stderrDecoder.end())
       if (
         !terminationError &&
         openedWithSystemSsh &&

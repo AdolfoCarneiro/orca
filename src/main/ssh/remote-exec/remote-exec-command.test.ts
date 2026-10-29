@@ -30,6 +30,57 @@ describe('execCommand', () => {
   const installMarkerToken = 'a'.repeat(32)
   const installMarkerPath = `/home/u/.install-lock/.sftp-namespace-${installMarkerToken}`
 
+  it.each([0, 3])('preserves split stdout and stderr UTF-8 on exit %i', async (code) => {
+    const channel = createMockChannel()
+    const conn = { exec: async () => channel, usesSystemSshTransport: () => false }
+    const captured: string[] = []
+    const command = execCommand(conn, 'probe', {
+      wrapCommand: false,
+      onStderr: (stderr) => captured.push(stderr)
+    })
+    const stdout = Buffer.from('é界🌍')
+    const stderr = Buffer.from('ø家🚀')
+
+    await Promise.resolve()
+    for (let offset = 0; offset < stdout.length; offset++) {
+      channel.emit('data', stdout.subarray(offset, offset + 1))
+      channel.stderr.emit('data', stderr.subarray(offset, offset + 1))
+    }
+    channel.emit('close', code)
+
+    if (code === 0) {
+      await expect(command).resolves.toBe('é界🌍')
+      expect(captured).toEqual(['ø家🚀'])
+    } else {
+      await expect(command).rejects.toMatchObject({
+        exitCode: code,
+        stdout: 'é界🌍',
+        message: expect.stringContaining('ø家🚀\né界🌍')
+      })
+      expect(captured).toEqual([])
+    }
+  })
+
+  it('flushes incomplete UTF-8 at close within the command output cap', async () => {
+    const channel = createMockChannel()
+    const conn = { exec: async () => channel, usesSystemSshTransport: () => false }
+    const captured: string[] = []
+    const command = execCommand(conn, 'probe', {
+      wrapCommand: false,
+      onStderr: (stderr) => captured.push(stderr)
+    })
+    const prefix = 'x'.repeat(1024 * 1024)
+
+    await Promise.resolve()
+    channel.emit('data', Buffer.from(prefix))
+    channel.emit('data', Buffer.from([0xe2, 0x82]))
+    channel.stderr.emit('data', Buffer.from([0xf0, 0x9f]))
+    channel.emit('close', 0)
+
+    await expect(command).resolves.toBe(`${prefix.slice(1)}\ufffd`)
+    expect(captured).toEqual(['\ufffd'])
+  })
+
   it('waits for channel close before rejecting a timed-out remote command', async () => {
     vi.useFakeTimers()
     try {
