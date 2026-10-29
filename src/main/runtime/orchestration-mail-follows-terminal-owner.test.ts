@@ -101,6 +101,63 @@ describe('Run mail follows the terminal that owns its mailbox', () => {
     expect(pointerCount(write)).toBe(0)
     db.close()
   })
+
+  it('wakes a Run bound to one of two panes showing its terminal, whichever is listed first', async () => {
+    const runtime = new OrcaRuntimeService(null)
+    const write = vi.fn((_ptyId: string, _data: string) => true)
+    runtime.setPtyController({
+      write,
+      writeWithSettlement: settledWriteStub(write),
+      kill: () => true,
+      getForegroundProcess: async () => null
+    })
+    runtime.registerPty(RENDERER_PTY_ID, WORKTREE_ID, null, {
+      tabId: TAB_ID,
+      leafId: LEAF_ID,
+      incarnationId: 'original'
+    })
+    // A launched agent's handle outlives aliases; a pane-issued one is dropped once two panes show it.
+    runtime.registerPreAllocatedHandleForPty(RENDERER_PTY_ID, 'term_preallocated')
+    const paneA = GRAPH.leaves[0]!
+    const aliasB = { ...paneA, tabId: SECOND_TAB_ID, leafId: SECOND_LEAF_ID, paneRuntimeId: 2 }
+    const showing = (leaves: (typeof paneA)[]) => ({
+      tabs: [
+        ...GRAPH.tabs,
+        { ...GRAPH.tabs[0]!, tabId: SECOND_TAB_ID, activeLeafId: SECOND_LEAF_ID }
+      ],
+      leaves
+    })
+    runtime.attachWindow(1)
+    runtime.syncWindowGraph(1, showing([aliasB, paneA]))
+    const db = new OrchestrationDb(':memory:')
+    runtime.setOrchestrationDb(db)
+    const run = db.createRun({
+      objective: 'Coordinator in pane A',
+      coordinatorHandle: 'term_preallocated',
+      coordinatorPaneKey: PANE_KEY
+    })
+    runtime.onPtyData(RENDERER_PTY_ID, '\x1b]0;Codex done\x07', 1)
+    await runtime.serializeMainTerminalBuffer(RENDERER_PTY_ID)
+    const message = db.insertMessage({
+      from: 'term_sender',
+      to: `run:${run.id}`,
+      subject: 'worker done',
+      type: 'worker_done',
+      runId: run.id
+    })
+    runtime.notifyMessageArrived(`run:${run.id}`, 'worker_done')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(pointerCount(write)).toBe(1)
+
+    // The alias unmounts and remounts ahead of A before the delayed Enter rechecks ownership.
+    runtime.syncWindowGraph(1, showing([paneA]))
+    runtime.syncWindowGraph(1, showing([aliasB, paneA]))
+    await vi.advanceTimersByTimeAsync(600)
+    expect(write.mock.calls.filter(([, payload]) => payload === '\r')).toHaveLength(1)
+    expect(db.getMessageById(message.id)?.delivered_at).not.toBeNull()
+    expect(pointerCount(write)).toBe(1)
+    db.close()
+  })
 })
 
 // Reload start keeps a terminal's waits and identity; a failed graph still ends them, as before.

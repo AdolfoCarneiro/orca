@@ -163,9 +163,11 @@ export abstract class OrcaRuntimeWithBuildPtyTerminalSummary extends OrcaRuntime
     handle: string,
     pty: RuntimePtyWorktreeRecord
   ): OrchestrationMailboxTerminal | null {
-    const paneKey = this.getMailboxPaneKeyForPty(pty)
+    const paneKeys = this.getMailboxPaneKeysForPty(pty)
     const { ptyId, lastAgentStatus, lastAgentStatusObservedLive } = pty
-    return paneKey ? { ptyId, handle, paneKey, lastAgentStatus, lastAgentStatusObservedLive } : null
+    return paneKeys.length > 0
+      ? { ptyId, handle, paneKeys, lastAgentStatus, lastAgentStatusObservedLive }
+      : null
   }
 
   /** The handle a terminal is known by: its own, else the one its window pane issued. */
@@ -183,25 +185,25 @@ export abstract class OrcaRuntimeWithBuildPtyTerminalSummary extends OrcaRuntime
     }
   }
 
-  /** The pane Runs and Dispatches bind this terminal by: the window pane showing it, else the pane
-   *  it records, unless another terminal holds or shares that pane (then no mail is typed). */
-  private getMailboxPaneKeyForPty(pty: RuntimePtyWorktreeRecord): string | null {
-    const [shownIn] = this.getLeavesForPty(pty.ptyId)
-    if (shownIn) {
-      return `${shownIn.tabId}:${shownIn.leafId}`
+  /** The panes Runs and Dispatches bind this terminal by: every window pane showing it, else the
+   *  pane it records, unless another terminal holds or shares that pane (then no mail is typed). */
+  private getMailboxPaneKeysForPty(pty: RuntimePtyWorktreeRecord): string[] {
+    const shownIn = this.getLeavesForPty(pty.ptyId)
+    if (shownIn.length > 0) {
+      return shownIn.map((leaf) => `${leaf.tabId}:${leaf.leafId}`)
     }
     const { paneKey } = this.paneOfPty(pty)
     const pane = parsePaneKey(paneKey ?? '')
     if (!paneKey || (pane && this.leaves.get(this.getLeafKey(pane.tabId, pane.leafId))?.ptyId)) {
-      return null
+      return []
     }
     // A retained predecessor and its replacement can both claim a pane no window shows.
     for (const other of this.ptysById.values()) {
       if (other !== pty && other.connected && this.paneOfPty(other).paneKey === paneKey) {
-        return null
+        return []
       }
     }
-    return paneKey
+    return [paneKey]
   }
 
   /** Whether a handle names a terminal, including one a graph reload cleared the record of. */

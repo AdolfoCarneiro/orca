@@ -14,7 +14,7 @@ function terminalFor(tabId: string, leafId: string): OrchestrationMailboxTermina
   return {
     ptyId: `pty_${leafId}`,
     handle: `term_${paneKey}`,
-    paneKey,
+    paneKeys: [paneKey],
     lastAgentStatus: 'idle',
     lastAgentStatusObservedLive: true
   }

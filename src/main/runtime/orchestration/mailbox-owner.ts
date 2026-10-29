@@ -6,8 +6,8 @@ export type OrchestrationMailboxTerminal = {
   ptyId: string
   /** The handle the terminal is known by; direct mail and Run coordinators name it. */
   handle: string
-  /** The pane Runs and Dispatches bind it by. */
-  paneKey: string
+  /** Every pane Runs and Dispatches bind it by: two window panes can show one terminal. */
+  paneKeys: readonly string[]
   lastAgentStatus: AgentStatus | null
   lastAgentStatusObservedLive: boolean
 }
@@ -61,15 +61,17 @@ export class OrchestrationMailboxOwner {
     if (!db) {
       return null
     }
-    const { handle: terminalHandle, paneKey } = terminal
-    const runs = db.runsBoundToPane?.(paneKey) ?? []
+    const { handle: terminalHandle, paneKeys } = terminal
+    const runs = this.runsBoundToTerminal(db, terminal)
     // A coordinator of several Runs owns each one's mailbox; unnamed mail goes to its current Run.
     const run = runs.find((bound) => requestedMailbox === `run:${bound.id}`) ?? runs[0]
     if (run) {
       return this.resolveRunMailbox(db, terminal, run.id, requestedMailbox, options)
     }
 
-    const dispatch = db.getActiveDispatchForIdentity?.(terminalHandle, paneKey)
+    const dispatch = firstDefined(paneKeys, (paneKey) =>
+      db.getActiveDispatchForIdentity?.(terminalHandle, paneKey)
+    )
     if (dispatch) {
       return this.resolveDispatchMailbox(
         db,
@@ -81,8 +83,12 @@ export class OrchestrationMailboxOwner {
       )
     }
 
-    const remoteAttachment = db.findActiveRemoteAttachmentForPane?.(paneKey)
-    if (remoteAttachment) {
+    const attached = firstDefined(paneKeys, (paneKey) => {
+      const attachment = db.findActiveRemoteAttachmentForPane?.(paneKey)
+      return attachment ? { paneKey, remoteAttachment: attachment } : undefined
+    })
+    if (attached) {
+      const { paneKey, remoteAttachment } = attached
       const isCurrent = db.isRemoteAttachmentProcessCurrent?.({
         dispatchId: remoteAttachment.dispatch_id,
         paneKey,
@@ -104,8 +110,13 @@ export class OrchestrationMailboxOwner {
     if (!mailboxHandle) {
       return []
     }
-    const runs = this.deps.getDb()?.runsBoundToPane?.(terminal.paneKey) ?? []
+    const db = this.deps.getDb()
+    const runs = db ? this.runsBoundToTerminal(db, terminal) : []
     return [...new Set([mailboxHandle, ...runs.map((run) => `run:${run.id}`)])]
+  }
+
+  private runsBoundToTerminal(db: OrchestrationDb, terminal: OrchestrationMailboxTerminal) {
+    return terminal.paneKeys.flatMap((paneKey) => db.runsBoundToPane?.(paneKey) ?? [])
   }
 
   routeForeignDirectMessages(terminal: OrchestrationMailboxTerminal): RoutedOrchestrationMailbox[] {
@@ -122,15 +133,13 @@ export class OrchestrationMailboxOwner {
     if (!ownerRunId) {
       return []
     }
-    const routed = db.routeForeignDirectMessagesToOwnedMailboxes?.(
-      terminal.handle,
-      ownerRunId,
-      terminal.paneKey
+    const pages = terminal.paneKeys.map((paneKey) =>
+      db.routeForeignDirectMessagesToOwnedMailboxes?.(terminal.handle, ownerRunId, paneKey)
     )
-    if (routed?.hasMore) {
+    if (pages.some((routed) => routed?.hasMore)) {
       this.scheduleDirectReconciliation(terminal)
     }
-    return routed?.mailboxes ?? []
+    return pages.flatMap((routed) => routed?.mailboxes ?? [])
   }
 
   routeDetachedDirectMessages(directHandle: string, paneKey?: string): DetachedMailboxRoutingPage {
@@ -256,4 +265,14 @@ export class OrchestrationMailboxOwner {
       }
     })
   }
+}
+
+function firstDefined<T, R>(items: readonly T[], read: (item: T) => R | undefined): R | undefined {
+  for (const item of items) {
+    const value = read(item)
+    if (value !== undefined) {
+      return value
+    }
+  }
+  return undefined
 }

@@ -12,7 +12,7 @@ import {
 const TERMINAL = {
   ptyId: 'pty-1',
   handle: 'term-1',
-  paneKey: 'tab-1:leaf-1',
+  paneKeys: ['tab-1:leaf-1'],
   lastAgentStatus: 'idle' as const,
   lastAgentStatusObservedLive: true
 }

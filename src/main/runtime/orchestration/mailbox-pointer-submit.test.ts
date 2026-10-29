@@ -26,7 +26,7 @@ describe('orchestration mailbox pointer submit', () => {
     const terminal = {
       ptyId,
       handle: 'term-reused',
-      paneKey: 'tab-1:leaf-1',
+      paneKeys: ['tab-1:leaf-1'],
       lastAgentStatus: 'idle' as const,
       lastAgentStatusObservedLive: true
     }
@@ -124,7 +124,7 @@ describe('orchestration mailbox pointer submit', () => {
     const terminal = {
       ptyId,
       handle: 'term-parked',
-      paneKey: 'tab-1:leaf-1',
+      paneKeys: ['tab-1:leaf-1'],
       lastAgentStatus: 'idle' as const,
       lastAgentStatusObservedLive: true
     }
@@ -185,7 +185,7 @@ describe('orchestration mailbox pointer submit', () => {
     const terminal = {
       ptyId,
       handle: 'term-question',
-      paneKey: 'tab-1:leaf-1',
+      paneKeys: ['tab-1:leaf-1'],
       lastAgentStatus: 'idle' as const,
       lastAgentStatusObservedLive: true
     }
@@ -256,7 +256,7 @@ describe('orchestration mailbox pointer submit', () => {
     const terminal = {
       ptyId,
       handle: 'term-parked',
-      paneKey: 'tab-1:leaf-1',
+      paneKeys: ['tab-1:leaf-1'],
       lastAgentStatus: 'idle' as const,
       lastAgentStatusObservedLive: true
     }
@@ -359,7 +359,7 @@ describe('orchestration mailbox pointer submit', () => {
     const current = {
       ptyId: 'pty-current',
       handle: 'term-current',
-      paneKey: 'tab:leaf',
+      paneKeys: ['tab:leaf'],
       lastAgentStatus: 'idle' as const,
       lastAgentStatusObservedLive: true
     }
@@ -393,7 +393,7 @@ describe('orchestration mailbox pointer submit', () => {
     const terminal = {
       ptyId,
       handle: 'term-parked',
-      paneKey: 'tab-1:leaf-1',
+      paneKeys: ['tab-1:leaf-1'],
       lastAgentStatus: 'idle' as const,
       lastAgentStatusObservedLive: true
     }
@@ -446,7 +446,7 @@ describe('orchestration mailbox pointer submit', () => {
     const terminal = {
       ptyId,
       handle: 'term-teardown',
-      paneKey: 'tab-teardown:leaf-teardown',
+      paneKeys: ['tab-teardown:leaf-teardown'],
       lastAgentStatus: 'idle' as const,
       lastAgentStatusObservedLive: true
     }
@@ -501,7 +501,7 @@ describe('orchestration mailbox pointer submit', () => {
     const terminal = {
       ptyId,
       handle: 'term-surviving',
-      paneKey: 'tab-surviving:leaf-surviving',
+      paneKeys: ['tab-surviving:leaf-surviving'],
       lastAgentStatus: 'idle' as const,
       lastAgentStatusObservedLive: true
     }
