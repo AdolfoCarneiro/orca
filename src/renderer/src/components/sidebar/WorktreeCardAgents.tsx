@@ -1,9 +1,7 @@
+import { useWorktreeAgentActivation } from './use-worktree-agent-activation'
 import React, { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
-import { activateAndRevealWorktree } from '@/lib/worktree-activation'
-import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
-import { activateTerminalTabOnOwner } from '@/lib/terminal-tab-owner-activation'
 import DashboardAgentRow from '@/components/dashboard/DashboardAgentRow'
 import { useNow } from '@/hooks/use-now'
 import { deriveRunningAgentSendTargets } from '@/lib/running-agent-targets'
@@ -15,8 +13,6 @@ import { useWorktreeAgentRows } from './useWorktreeAgentRows'
 import { useWorktreeAgentDisplay } from './use-worktree-agent-display'
 import { cn } from '@/lib/utils'
 import type { DashboardAgentRow as DashboardAgentRowData } from '@/components/dashboard/useDashboardData'
-import { parsePaneKey } from '../../../../shared/stable-pane-id'
-import { dismissStaleAgentRowByKey } from '../terminal-pane/stale-agent-row'
 import { useFocusedAgentPaneKey } from './focused-agent-row-highlight'
 import {
   CompactAgentExpansion,
@@ -29,7 +25,6 @@ import { useWorktreeAgentExpansionState } from './worktree-card-agents-expansion
 import { translate } from '@/i18n/i18n'
 import { agentSendDisabledReasonLabel } from '@/lib/agent-send-disabled-reason-label'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
-import { activateStructuredAgentSessionTab } from '@/lib/agent-session/structured-agent-session-tab-activation'
 import { activateRetainedAgentRow } from './activate-retained-agent-row'
 import { selectAgentRowsUnread } from './worktree-card-agent-ack-inputs'
 import { opensClaudeParentConversation } from '@/lib/claude-agent-row-view'
@@ -80,7 +75,6 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
   const { targetMode: agentSendPopoverTargetMode, agentStatusEpoch } = useAppStore(
     useShallow((s) => selectSendTargetControlInputs(s, worktreeId))
   )
-  // Use a stable empty selector outside our send popover so unrelated title/status churn cannot wake idle cards.
   const sendTargetInputs = useAppStore(useShallow((s) => selectSendTargetInputs(s, worktreeId)))
   const sendPromptToSidebarAgentTarget = useAppStore((s) => s.sendPromptToSidebarAgentTarget)
   const focusedAgentPaneKey = useFocusedAgentPaneKey(worktreeId)
@@ -153,45 +147,7 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
     [sendPromptToSidebarAgentTarget]
   )
 
-  const handleActivateAgentTab = useCallback(
-    (tabId: string, paneKey: string) => {
-      const parsed = parsePaneKey(paneKey)
-      if (!parsed) {
-        // Legacy/malformed pane keys cannot resolve after replay; discard stale rows rather than guessing.
-        console.warn('[WorktreeCardAgents] malformed paneKey, skipping pane focus', paneKey)
-        dismissStaleAgentRowByKey(paneKey)
-        return
-      }
-      if (parsed.tabId !== tabId) {
-        console.warn('[WorktreeCardAgents] paneKey tabId mismatch, dismissing row', {
-          tabId,
-          paneKey
-        })
-        dismissStaleAgentRowByKey(paneKey)
-        return
-      }
-      // Use shared activation for cross-repo reveal and navigation history.
-      activateAndRevealWorktree(worktreeId)
-      const tabs = useAppStore.getState().tabsByWorktree[worktreeId] ?? []
-      if (tabs.some((t) => t.id === tabId)) {
-        activateTabAndFocusPane(tabId, parsed.leafId, {
-          ackPaneKeyOnSuccess: paneKey,
-          flashFocusedPane: true,
-          scrollToBottomIfOutputSinceLastView: true
-        })
-        activateTerminalTabOnOwner(worktreeId, tabId, parsed.leafId)
-      } else if (!activateStructuredAgentSessionTab({ worktreeId, tabId })) {
-        const liveEntry = useAppStore.getState().agentStatusByPaneKey[paneKey]
-        if (liveEntry?.worktreeId === worktreeId) {
-          // Live worker status can precede tab hydration; retain the row and activate its owning terminal.
-          activateTerminalTabOnOwner(worktreeId, tabId, parsed.leafId)
-          return
-        }
-        dismissStaleAgentRowByKey(paneKey)
-      }
-    },
-    [worktreeId]
-  )
+  const handleActivateAgentTab = useWorktreeAgentActivation(worktreeId)
   const handleActivateRetainedAgent = useCallback(
     (tabId: string, paneKey: string) => activateRetainedAgentRow(worktreeId, tabId, paneKey),
     [worktreeId]
