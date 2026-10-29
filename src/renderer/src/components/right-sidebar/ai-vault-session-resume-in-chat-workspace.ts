@@ -1,4 +1,3 @@
-import { inPlaceSwitchEnabled } from '../../../../shared/structured-agent-cli-conversation-adoption'
 import { resolveHostCapabilities, workspaceKindForWorktreeId } from '@/lib/agent-launch-route-input'
 import {
   structuredAgentSessionLaunchFeasible,
@@ -10,7 +9,8 @@ import type { AiVaultSession } from '../../../../shared/ai-vault-types'
 import { normalizeExecutionHostId } from '../../../../shared/execution-host'
 import {
   adoptsCliConversations,
-  CLI_CONVERSATION_ADOPTING_AGENTS
+  CLI_CONVERSATION_ADOPTING_AGENTS,
+  inPlaceSwitchEnabled
 } from '../../../../shared/structured-agent-cli-conversation-adoption'
 import { STRUCTURED_AGENT_SESSION_RESUME_HISTORY_RUNTIME_CAPABILITY } from '../../../../shared/protocol-version'
 import { resolveAiVaultTargetWorkspacePath } from './ai-vault-session-launch-target'

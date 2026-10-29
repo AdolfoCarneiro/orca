@@ -1,6 +1,8 @@
 import { hasLiveTerminalHostSessions } from './terminal-host-session-listing'
 import type { TakePendingOutputResult, TerminalSnapshot } from './types'
 import {
+  confirmTerminalHostForegroundProcess,
+  confirmTerminalHostShellForeground,
   getSettledTerminalHostSnapshot,
   getTerminalHostAppliedSize,
   getTerminalHostPartialEscapeTail,
@@ -15,10 +17,6 @@ import {
   inspectTerminalHostSession,
   type TerminalHostProcessInspection
 } from './terminal-host-process-inspection'
-import {
-  confirmTerminalHostForegroundProcess,
-  confirmTerminalHostShellForeground
-} from './terminal-host-session-inspection-operations'
 export abstract class TerminalHostInspection {
   protected abstract sessions: Map<string, Session>
   protected abstract readonly retiredIncarnations: Map<

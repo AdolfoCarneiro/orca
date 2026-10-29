@@ -41,7 +41,7 @@ export class TerminalCreationWork {
     ]
     const release = async () => {
       await Promise.all(
-        [...this.owners, ...joined.filter((entry) => entry.kind !== 'no-fork')].map((entry) =>
+        [...this.owners, ...joined.filter((entry) => entry.kind !== 'no-fork')].map(async (entry) =>
           entry.recover?.()
         )
       )

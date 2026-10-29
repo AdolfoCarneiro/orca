@@ -1,4 +1,3 @@
-import { resolveStructuredCoordinatorMailboxTarget } from './structured-session-mail-target'
 import type { RuntimeTerminalAgentPresenceOptions } from '../runtime-terminal-agent-presence'
 import { OrcaRuntimeWithPruneMobileSessionTabGroupLayout } from '../session-lifecycle/projection/prune-mobile-session-tab-group-layout'
 import type { RuntimePtyWorktreeRecord } from '../runtime-terminal-state-records'
@@ -19,6 +18,7 @@ import type { StructuredPointerTarget } from './structured-mailbox-pointer-deliv
 import type { OrchestrationMailboxLeaf } from './mailbox-owner'
 import {
   chatDispatchMailTarget,
+  resolveStructuredCoordinatorMailboxTarget,
   structuredSessionAddressTarget,
   structuredSessionIdleEdgeMailboxes
 } from './structured-session-mail-target'

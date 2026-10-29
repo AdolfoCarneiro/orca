@@ -9,13 +9,15 @@ import {
   codexProviderHandle
 } from '../../../shared/agent-session-provider-handle-encoding'
 import { agentTurnVerdict } from '../../../shared/agent-turn-outcome'
-import { agentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
+import {
+  agentJournalItemKey,
+  agentJournalSubmissionKey
+} from '../../../shared/agent-session-journal-item-key'
 import Database from '../../sqlite/sync-database'
 import { claudePromptUuidForSubmission } from '../../claude/structured/claude-structured-session-id'
 import { encodePiHistoryClaim } from '../../pi/rpc-history-journal-view'
 import { createLegacyProviderTimelineIdentityScheme } from '../agent-session-timeline/provider-timeline-identity'
 import { acpNamedTextKey } from '../../acp/acp-turn-messages'
-import { agentJournalSubmissionKey } from '../../../shared/agent-session-journal-item-key'
 import type { AgentSessionJournal } from '../agent-session-journal/journal-store'
 import { piHistoryEntryIdentity } from '../../pi/rpc-history-import'
 import { createTrackedJournalOpener } from '../agent-session-journal/journal-host-database-test-support'

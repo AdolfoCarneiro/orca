@@ -24,17 +24,21 @@ import {
   WORKTREE_ID,
   TAB_ID
 } from '../../runtime/main-owned-workspace-runtime-fixture'
-import { expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { agentSessionSwitchDeadline } from '../../../shared/agent-session-switch-execution'
 import { DEFAULT_SPAWN_ADMISSION_LIMITS } from '../../../shared/host-spawn-admission'
-import { restTestSend, type RestTestRig } from './structured-agent-session-rest-test-rig'
-import { CREATE_TEST_CALLER as caller } from './structured-agent-session-create-test-fixture'
+import {
+  createRestTestRig,
+  restTestSend,
+  type RestTestRig
+} from './structured-agent-session-rest-test-rig'
+import {
+  CREATE_TEST_CALLER as caller,
+  createTestParams
+} from './structured-agent-session-create-test-fixture'
 import { HOST_TEST_SESSION as id } from './structured-agent-session-host-test-data'
 import { verifyOrdinarySwitchLostOutcome } from './structured-agent-session-switch-command-ordinary.test-fixture'
 import type * as LocalPtyUtils from '../../providers/local-pty-utils'
-import { afterEach, beforeEach } from 'vitest'
-import { createRestTestRig } from './structured-agent-session-rest-test-rig'
-import { createTestParams } from './structured-agent-session-create-test-fixture'
 const nativePty = vi.hoisted(() => ({ spawn: vi.fn() }))
 vi.mock('node-pty', () => nativePty)
 vi.mock('../../providers/local-pty-utils', async (importOriginal) => ({

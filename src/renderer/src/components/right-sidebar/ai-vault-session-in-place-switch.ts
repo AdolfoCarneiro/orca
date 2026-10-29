@@ -2,10 +2,10 @@ import type { ConfirmationDialogContextValue } from '@/components/confirmation-d
 import type { AiVaultOriginalPaneTarget } from './ai-vault-original-pane'
 import {
   cliConversationRowsShareAgent,
-  adoptsCliConversations
+  adoptsCliConversations,
+  inPlaceSwitchEnabled
 } from '../../../../shared/structured-agent-cli-conversation-adoption'
 import { useAppStore } from '@/store'
-import { inPlaceSwitchEnabled } from '../../../../shared/structured-agent-cli-conversation-adoption'
 import type { AiVaultSession } from '../../../../shared/ai-vault-types'
 import { resolveCliChatResumeSource } from '../tab-bar/cli-chat-resume-source'
 import {

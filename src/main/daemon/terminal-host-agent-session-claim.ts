@@ -1,6 +1,8 @@
-import type { PtyCreationDisposition } from '../../shared/claimed-agent-pty-owner'
 import type { TerminalCreationWork } from './terminal-creation-work'
-import type { ClaimedAgentPtyOwnerRegistry } from '../../shared/claimed-agent-pty-owner'
+import type {
+  ClaimedAgentPtyOwnerRegistry,
+  PtyCreationDisposition
+} from '../../shared/claimed-agent-pty-owner'
 import type { AgentSessionOwnerBinding } from '../../shared/agent-session-host-authority'
 import type { SpawnIntent } from '../../shared/host-spawn-admission'
 import type { CreateOrAttachOptions, CreateOrAttachResult } from './terminal-host-create-contract'

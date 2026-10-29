@@ -1,5 +1,4 @@
 import type { ChatStopTarget } from './structured-agent-session-chat-stop-target'
-import type { TurnOutcome } from './structured-agent-session-turns'
 import { agentSessionFailureSentence } from '../../../shared/agent-session-failure-words'
 import { refuse, type AgentSessionCancelResult } from '../../../shared/agent-session-wire'
 import {
@@ -23,7 +22,8 @@ import {
 } from './structured-agent-session-mutation-plans'
 import type {
   AgentSessionOperationReceipt,
-  AgentSessionTurnContext
+  AgentSessionTurnContext,
+  TurnOutcome
 } from './structured-agent-session-turns'
 // Commit Stop receipt/effects before interrupting; failed acceptance acts on nothing and retries never retarget.
 

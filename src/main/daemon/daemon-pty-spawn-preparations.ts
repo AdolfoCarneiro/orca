@@ -1,5 +1,7 @@
-import { compactDaemonSpawnPreparation } from './daemon-pty-spawn-preparation-release'
-import { releaseDaemonSpawnPreparation } from './daemon-pty-spawn-preparation-release'
+import {
+  compactDaemonSpawnPreparation,
+  releaseDaemonSpawnPreparation
+} from './daemon-pty-spawn-preparation-release'
 import type {
   PendingPtySpawnPreparation,
   CompletedPreparation

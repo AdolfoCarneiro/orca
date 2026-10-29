@@ -22,7 +22,11 @@ export async function readGrokTurnLifecycle(
       if (event?.type === 'turn_started') {
         latest =
           event.session_id === sessionId && typeof event.turn_number === 'number'
-            ? { state: 'working', turnId: `grok:${event.turn_number}:${event.ts}`, timestamp }
+            ? {
+                state: 'working',
+                turnId: `grok:${event.turn_number}:${String(event.ts)}`,
+                timestamp
+              }
             : undefined
       } else if (event?.type === 'turn_ended' && latest) {
         const state =

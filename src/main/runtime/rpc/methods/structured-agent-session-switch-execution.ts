@@ -1,7 +1,9 @@
-import { requireStructuredSwitchRecord } from './structured-agent-session-switch-preparation'
 import { retainStructuredSwitchSource } from './structured-agent-session-switch-retention'
 import { structuredSessionSwitchFailure } from './structured-agent-session-switch-failure'
-import { prepareStructuredSessionSwitch } from './structured-agent-session-switch-preparation'
+import {
+  prepareStructuredSessionSwitch,
+  requireStructuredSwitchRecord
+} from './structured-agent-session-switch-preparation'
 import type { z } from 'zod'
 import type { RpcContext } from '../core'
 import type { SwitchToChatParams, SwitchToTerminalParams } from './structured-agent-session-schemas'
