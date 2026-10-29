@@ -45,6 +45,7 @@ export type MobileNativeChatStructuredComposer = {
   catalog: MobileComposerStructuredCatalog
   onSlashMenuOpen: () => void
   onOpenFile?: (path: string) => void
+  onSlashMenuDemand?: (open: boolean) => void
   onAttachFiles?: () => void
   // An uploading attachment must hold Send.
   files: readonly PendingNativeChatFile[]
@@ -165,6 +166,7 @@ export function MobileNativeChatComposer({
     skillDiscovery,
     onNeedSkills,
     onSlashMenuOpen: structured?.onSlashMenuOpen,
+    onSlashMenuDemand: structured?.onSlashMenuDemand,
     focusField: () => fieldRef.current?.focus()
   })
   const dictation = useMobileNativeChatComposerDictation({

@@ -16,7 +16,6 @@ import { parseExecutionHostId, toRuntimeExecutionHostId } from '../../../../shar
 import { isFloatingWorkspaceId } from '../../../../shared/floating-workspace-worktree'
 import { resolveNativeChatTabDirectory } from './native-chat-tab-directory'
 import { useMemo } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 import { shallow } from 'zustand/shallow'
 import { firstRegisteredStructuredChatTab } from '@/lib/structured-chat-tab-index'
 import {
@@ -201,33 +200,37 @@ export function createNativeChatImageOwnerSelector(tabId: string) {
   }
 }
 
-export function useNativeChatImageRuntimeContext(tabId: string): NativeChatImageRuntimeContext {
-  const selectContext = useMemo(() => {
-    const selectOwner = createNativeChatImageOwnerSelector(tabId)
-    let previousInputs: ReturnType<typeof selectOwner> | undefined
-    let context: NativeChatImageRuntimeContext = null
-    return (state: AppState) => {
-      const ownerState = selectOwner(state)
-      if (!previousInputs || !shallow(previousInputs, ownerState)) {
-        previousInputs = ownerState
-        const unifiedTabsByWorktree =
-          ownerState.owner && ownerState.floatingTab
-            ? { [ownerState.owner]: [ownerState.floatingTab] }
-            : {}
-        context = resolveNativeChatImageRouteContext(
-          {
-            ...ownerState,
-            unifiedTabsByWorktree,
-            structuredSessionLaunchDirectoryByTabId: ownerState.pin
-              ? { [tabId]: ownerState.pin }
-              : {}
-          },
-          tabId,
-          ownerState.owner
-        )
-      }
-      return withSshExpectation(state, context)
+/** Keep equal resolved contexts stable without re-deriving routes for unrelated owner inputs. */
+export function createNativeChatImageRuntimeContextSelector(tabId: string) {
+  const selectOwner = createNativeChatImageOwnerSelector(tabId)
+  let previousInputs: ReturnType<typeof selectOwner> | undefined
+  let baseRoute: NativeChatImageRuntimeContext = null
+  let context: NativeChatImageRuntimeContext = null
+  return (state: AppState): NativeChatImageRuntimeContext => {
+    const ownerState = selectOwner(state)
+    if (!previousInputs || !shallow(previousInputs, ownerState)) {
+      previousInputs = ownerState
+      const unifiedTabsByWorktree =
+        ownerState.owner && ownerState.floatingTab
+          ? { [ownerState.owner]: [ownerState.floatingTab] }
+          : {}
+      baseRoute = resolveNativeChatImageRouteContext(
+        {
+          ...ownerState,
+          unifiedTabsByWorktree,
+          structuredSessionLaunchDirectoryByTabId: ownerState.pin ? { [tabId]: ownerState.pin } : {}
+        },
+        tabId,
+        ownerState.owner
+      )
     }
-  }, [tabId])
-  return useAppStore(useShallow(selectContext))
+    const resolved = withSshExpectation(state, baseRoute)
+    context = shallow(context, resolved) ? context : resolved
+    return context
+  }
+}
+
+export function useNativeChatImageRuntimeContext(tabId: string): NativeChatImageRuntimeContext {
+  const selectContext = useMemo(() => createNativeChatImageRuntimeContextSelector(tabId), [tabId])
+  return useAppStore(selectContext)
 }

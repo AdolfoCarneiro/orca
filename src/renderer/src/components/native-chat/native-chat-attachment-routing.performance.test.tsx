@@ -682,3 +682,91 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
     }
   )
 }
+
+it('keeps mounted attachment scopes quiet and folder catalog work linear at N and 10N', async () => {
+  for (const n of [10, 100]) {
+    const fixture = nativeChatFanoutFixture(n, n + 1, 0)
+    let visits = 0
+    for (const folder of fixture.folderWorkspaces) {
+      instrument(folder, () => visits++)
+    }
+    useAppStore.setState(
+      {
+        ...initial,
+        ...fixture,
+        activeWorktreeId: null,
+        activeWorkspaceExecutionHostId: null,
+        runtimeEnvironments: [],
+        runtimeEnvironmentCatalogHydrated: true
+      },
+      true
+    )
+    const contexts = new Map<string, NativeChatImageRuntimeContext>()
+    const renders = new Map<string, number>()
+    function Probe({ id }: { id: string }) {
+      contexts.set(id, useContext(NativeChatMarkdownImageOwnerContext)!.runtimeContext)
+      renders.set(id, (renders.get(id) ?? 0) + 1)
+      return null
+    }
+    let commits = 0
+    const view = render(
+      Array.from({ length: n }, (_, index) => {
+        const id = `chat-${index}`
+        return (
+          <Profiler key={id} id={id} onRender={() => commits++}>
+            <NativeChatMarkdownImageOwnerProvider tabId={id} sessionId={null} isVisible>
+              <NativeChatTextAttachmentScope enabled>
+                <Probe id={id} />
+              </NativeChatTextAttachmentScope>
+            </NativeChatMarkdownImageOwnerProvider>
+          </Profiler>
+        )
+      })
+    )
+    await act(async () => {})
+    const baseline = new Map(renders)
+    const state = useAppStore.getState()
+    const unusedFolders = state.folderWorkspaces.map((folder, index) =>
+      index === n ? { ...folder, name: 'Unused rename' } : folder
+    )
+    visits = 0
+    commits = 0
+    await act(async () => useAppStore.setState({ folderWorkspaces: unusedFolders }))
+    expect(renders).toEqual(baseline)
+    expect(commits).toBe(0)
+    expect(visits).toBeLessThanOrEqual(8 * (n + 1))
+    visits = 0
+    await act(async () =>
+      useAppStore.setState({
+        sshStateByEnvironment: new Map([
+          [
+            'other-host',
+            {
+              targets: [],
+              targetGenerations: new Map(),
+              targetLabels: new Map(),
+              removedTargetLabels: new Map(),
+              targetsHydrated: true,
+              connectionStates: new Map()
+            }
+          ]
+        ])
+      })
+    )
+    expect(renders).toEqual(baseline)
+    expect(commits).toBe(0)
+    expect(visits).toBe(0)
+    const ownChange = unusedFolders.map((folder, index) =>
+      index === 0 ? { ...folder, folderPath: '/renamed' } : folder
+    )
+    visits = 0
+    await act(async () => useAppStore.setState({ folderWorkspaces: ownChange }))
+    expect(contexts.get('chat-0')?.worktreePath).toBe('/renamed')
+    expect(renders.get('chat-0')).toBe(baseline.get('chat-0')! + 1)
+    for (let index = 1; index < n; index++) {
+      expect(renders.get(`chat-${index}`)).toBe(baseline.get(`chat-${index}`))
+    }
+    expect(visits).toBeLessThanOrEqual(8 * (n + 1))
+    view.unmount()
+  }
+})

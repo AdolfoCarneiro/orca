@@ -95,6 +95,7 @@ export function BrowserGuestAnnotateOverlays({
       {pendingAnnotationPayload ? (
         <PendingBrowserAnnotationCard
           payload={pendingAnnotationPayload}
+          worktreeId={worktreeId}
           resolveAnchor={(cardHeight) =>
             getBrowserOverlayAnchor(
               pendingAnnotationPayload,
