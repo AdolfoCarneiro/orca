@@ -72,14 +72,15 @@ function codedText(code: unknown, params: unknown): string | null {
   if (!isEmulatorFailureCode(code)) {
     return null
   }
-  const read = (name: string): Param => {
-    if (typeof params !== 'object' || params === null || !Object.hasOwn(params, name)) {
-      return null
-    }
-    const value: unknown = Reflect.get(params, name)
-    return typeof value === 'string' ? value : null
-  }
-  return COPY[code](read)
+  const values: Record<string, string> =
+    typeof params === 'object' && params !== null
+      ? Object.fromEntries(
+          Object.entries(params).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string'
+          )
+        )
+      : {}
+  return COPY[code]((name) => (Object.hasOwn(values, name) ? values[name] : null))
 }
 
 /** Availability text: known codes translate; unknown codes and older hosts keep the English message. */
@@ -96,7 +97,6 @@ export function emulatorErrorText(error: unknown, fallback: string): string {
   if (!(error instanceof Error) || !error.message) {
     return fallback
   }
-  const code: unknown = Reflect.get(error, 'code')
-  const copy = matchEmulatorErrorCopy(code, error.message)
+  const copy = matchEmulatorErrorCopy('code' in error ? error.code : undefined, error.message)
   return (copy && codedText(copy.code, copy.params)) ?? error.message
 }
