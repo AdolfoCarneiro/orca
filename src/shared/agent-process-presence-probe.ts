@@ -47,7 +47,7 @@ export async function readAgentProcess(pid: number): Promise<AgentProcessObserva
       // Pin the hook capture's zone/locale so local-time lstart strings compare.
       const env = { ...process.env, TZ: 'UTC0', LC_ALL: 'C', LANG: 'C' }
       const result =
-        (await runPsInProcess(args, env)) ??
+        (await runPsInProcess(args, { env, timeoutMs: 1000, maxOutputBytes: 4096 })) ??
         (await runProcess({
           program: '/bin/ps',
           args,

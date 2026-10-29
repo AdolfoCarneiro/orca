@@ -31,7 +31,10 @@ function hasUsableTty(tty: string): boolean {
 async function runPs(pid: number): Promise<string> {
   const args = ['-p', String(pid), '-o', 'pid=,tpgid=,tty=']
   const result =
-    (await runPsInProcess(args)) ??
+    (await runPsInProcess(args, {
+      timeoutMs: PROCESS_TABLE_QUERY_TIMEOUT_MS,
+      maxOutputBytes: PROCESS_TABLE_MAX_BYTES
+    })) ??
     (await runProcess({
       program: 'ps',
       args,

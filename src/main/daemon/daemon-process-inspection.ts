@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { promisify } from 'node:util'
 import { psLocaleEnvironment } from '../../shared/ps-locale-environment'
-import { runPsInProcess } from '../../shared/libproc-process-table'
+import { readPsStdoutInProcess } from '../../shared/libproc-process-table'
 import { parseLinuxBootTimeSeconds, parseLinuxProcStartTicks } from './daemon-process-start-time'
 import type {
   LinuxStatEvidence,
@@ -203,12 +203,12 @@ async function runInspectionCommand(
   args: string[],
   timeoutMs: number
 ): Promise<string> {
-  const inProcess = file === 'ps' ? await runPsInProcess(args, psLocaleEnvironment()) : null
-  if (inProcess) {
-    if (inProcess.code !== 0) {
-      throw new Error(`ps ${args.join(' ')} matched no process`)
-    }
-    return inProcess.stdout
+  const inProcess =
+    file === 'ps'
+      ? await readPsStdoutInProcess(args, { env: psLocaleEnvironment(), timeoutMs })
+      : null
+  if (inProcess !== null) {
+    return inProcess
   }
   const { stdout } = await execFileAsync(file, args, {
     encoding: 'utf8',

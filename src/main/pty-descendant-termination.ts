@@ -6,7 +6,7 @@ import {
   type WindowsTreeKillTarget
 } from './windows-pty-root-identity'
 import { parseProcessTable, type ProcessTableRow } from './pty-process-table-parser'
-import { runPsInProcess } from '../shared/libproc-process-table'
+import { readPsStdoutInProcess } from '../shared/libproc-process-table'
 
 export { parseProcessTable, type ProcessTableRow } from './pty-process-table-parser'
 
@@ -47,9 +47,9 @@ async function readFreshProcessTable(
   const capturedAtMs = Date.now()
   // Pin lstart’s locale so delayed identity checks parse it consistently.
   const env = { ...process.env, LANG: 'C', LC_ALL: 'C' }
-  const inProcess = await runPsInProcess(DESCENDANT_PS_ARGS, env)
-  if (inProcess) {
-    return { rows: parseProcessTable(inProcess.stdout), capturedAtMs }
+  const inProcess = await readPsStdoutInProcess(DESCENDANT_PS_ARGS, { env, timeoutMs })
+  if (inProcess !== null) {
+    return { rows: parseProcessTable(inProcess), capturedAtMs }
   }
   const options = { maxBuffer: PS_MAX_BUFFER_BYTES, timeout: timeoutMs, env }
   return new Promise((resolve, reject) => {

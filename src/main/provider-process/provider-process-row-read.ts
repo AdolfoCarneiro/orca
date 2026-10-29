@@ -48,7 +48,11 @@ async function readPsProcessRow(pid: number): Promise<ProcessRowRead> {
     // Stable locale makes repeated start markers comparable.
     const env = { ...process.env, LANG: 'C', LC_ALL: 'C' }
     const result =
-      (await runPsInProcess(args, env)) ??
+      (await runPsInProcess(args, {
+        env,
+        timeoutMs: PROCESS_ROW_TIMEOUT_MS,
+        maxOutputBytes: 4096
+      })) ??
       (await runProcess({
         program: 'ps',
         args,

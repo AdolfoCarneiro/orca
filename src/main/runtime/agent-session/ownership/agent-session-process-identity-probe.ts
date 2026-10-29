@@ -63,7 +63,7 @@ async function readDarwinProcessStartTimeMs(pid: number): Promise<number | null>
     const args = ['-o', 'lstart=', '-p', String(pid)]
     const env = psLocaleEnvironment()
     const result =
-      (await runPsInProcess(args, env)) ??
+      (await runPsInProcess(args, { env, timeoutMs: PROCESS_START_TIME_TIMEOUT_MS })) ??
       (await runProcess({ program: 'ps', args, env, timeoutMs: PROCESS_START_TIME_TIMEOUT_MS }))
     if (result.timedOut || result.code !== 0) {
       return null
@@ -86,7 +86,7 @@ async function readDarwinProcessStartTimesMs(
     const args = ['-o', 'pid=,lstart=', '-p', pids.join(',')]
     const env = psLocaleEnvironment()
     const result =
-      (await runPsInProcess(args, env)) ??
+      (await runPsInProcess(args, { env, timeoutMs: PROCESS_START_TIME_TIMEOUT_MS })) ??
       (await runProcess({ program: 'ps', args, env, timeoutMs: PROCESS_START_TIME_TIMEOUT_MS }))
     if (result.timedOut || result.code !== 0) {
       return observed

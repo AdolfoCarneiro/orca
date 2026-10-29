@@ -26,7 +26,7 @@ async function readSelectedRows(pids: readonly number[]): Promise<ProcessTableRo
   const args = ['-p', pids.join(','), '-o', PS_ARGS[1]]
   const env = { ...process.env, LC_ALL: 'C', LANG: 'C', TZ: 'UTC0' }
   const result =
-    (await runPsInProcess(args, env)) ??
+    (await runPsInProcess(args, { env, timeoutMs: 1000, maxOutputBytes: 65536 })) ??
     (await runProcess({ program: '/bin/ps', args, env, timeoutMs: 1000, maxOutputBytes: 65536 }))
   if (result.timedOut || result.code !== 0 || result.stdout.length >= 65536) {
     throw new Error('tmux_process_capture_unverifiable')

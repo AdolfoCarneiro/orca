@@ -1,10 +1,14 @@
 import { nameDarwinTerminals } from './darwin-terminal-names'
+import {
+  claimDarwinTerminalNaming,
+  isDarwinTerminalNamingInFlight,
+  resetDarwinTerminalNamingForTests
+} from './darwin-terminal-naming-slot'
 import { errorMessage } from './error-message'
 import { ProcessTableCaptureError, PS_ARGS } from './process-table-snapshot'
 import { withTimeout } from './promise-timeout-fallback'
 
 let deviceColumnUnsupported = false
-let terminalNamingInFlight: Promise<string> | null = null
 
 export async function captureDarwinProcessTable(
   capture: (args: readonly string[], timeoutMs?: number) => Promise<string>,
@@ -20,7 +24,7 @@ export async function captureDarwinProcessTable(
     return remaining
   }
   const canonicalCapture = (): Promise<string> => capture(PS_ARGS, remainingBudget())
-  if (deviceColumnUnsupported || terminalNamingInFlight) {
+  if (deviceColumnUnsupported || isDarwinTerminalNamingInFlight()) {
     return canonicalCapture()
   }
   let captured: string
@@ -42,19 +46,14 @@ export async function captureDarwinProcessTable(
     return canonicalCapture()
   }
   remainingBudget()
-  if (terminalNamingInFlight) {
+  const controller = new AbortController()
+  // In-process `tty=` captures share this slot, so the canonical fallback never names concurrently either.
+  const pending = claimDarwinTerminalNaming(() =>
+    nameDarwinTerminals(captured, undefined, controller.signal)
+  )
+  if (!pending) {
     return canonicalCapture()
   }
-  const controller = new AbortController()
-  const pending = nameDarwinTerminals(captured, undefined, controller.signal)
-  terminalNamingInFlight = pending
-  // Uncancelable filesystem calls keep the slot until they drain.
-  const clearNaming = (): void => {
-    if (terminalNamingInFlight === pending) {
-      terminalNamingInFlight = null
-    }
-  }
-  void pending.then(clearNaming, clearNaming)
   let remainingMs: number
   try {
     remainingMs = remainingBudget()
@@ -90,5 +89,5 @@ export async function captureDarwinProcessTable(
 
 export function resetDarwinProcessTableCaptureForTests(): void {
   deviceColumnUnsupported = false
-  terminalNamingInFlight = null
+  resetDarwinTerminalNamingForTests()
 }

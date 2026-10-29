@@ -17,17 +17,14 @@ import { runPsInProcess } from './libproc-process-table'
 /** Keep cheap captures separate: without tty=/command= they parse differently and cannot serve strict evidence readers. Share coalescing/TTL policy. */
 const cheapProcessTableReader = createProcessTableSnapshotReader<CheapProcessTableRow[]>({
   runPs: async () => {
-    const inProcess = await runPsInProcess(CHEAP_PS_ARGS, psLocaleEnvironment())
-    if (inProcess) {
-      return parseCheapProcessTableRows(inProcess.stdout)
-    }
-    const result = await runProcess({
-      program: 'ps',
-      args: CHEAP_PS_ARGS,
+    const options = {
       env: psLocaleEnvironment(),
       timeoutMs: PS_TIMEOUT_MS,
       maxOutputBytes: PS_MAX_BUFFER_BYTES
-    })
+    }
+    const result =
+      (await runPsInProcess(CHEAP_PS_ARGS, options)) ??
+      (await runProcess({ program: 'ps', args: CHEAP_PS_ARGS, ...options }))
     // A ceiling hit is truncation, not absence: name it in the domain vocabulary.
     if (result.outputTruncated) {
       throw new ProcessTableCaptureError('capture_truncated')

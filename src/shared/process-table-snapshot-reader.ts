@@ -2,7 +2,7 @@ import { execFile as execFileCb } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { promisify } from 'node:util'
 import { psLocaleEnvironment } from './ps-locale-environment'
-import { runPsInProcess } from './libproc-process-table'
+import { readPsStdoutInProcess } from './libproc-process-table'
 import {
   captureDarwinProcessTable,
   resetDarwinProcessTableCaptureForTests
@@ -244,18 +244,17 @@ async function readLinuxProcessStartTimes(
 }
 
 async function captureProcessTable(args: readonly string[], timeout = PS_TIMEOUT_MS) {
-  const inProcess = await runPsInProcess(args, psLocaleEnvironment())
-  if (inProcess) {
-    return assertWholeCapture(inProcess.stdout)
-  }
-  let stdout: string
+  const env = psLocaleEnvironment()
+  let stdout = await readPsStdoutInProcess(args, { env, timeoutMs: timeout })
   try {
-    ;({ stdout } = await execFile('ps', [...args], {
-      encoding: 'utf-8',
-      env: psLocaleEnvironment(),
-      timeout,
-      maxBuffer: PS_MAX_BUFFER_BYTES
-    }))
+    stdout ??= (
+      await execFile('ps', [...args], {
+        encoding: 'utf-8',
+        env,
+        timeout,
+        maxBuffer: PS_MAX_BUFFER_BYTES
+      })
+    ).stdout
   } catch (error) {
     // A ceiling hit is truncation, not absence: name it in the domain vocabulary.
     if ((error as { code?: unknown } | null)?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') {

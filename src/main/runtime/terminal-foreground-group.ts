@@ -18,7 +18,11 @@ async function ps(args: readonly string[]): Promise<string | null> {
   try {
     const env = psLocaleEnvironment()
     const result =
-      (await runPsInProcess(args, env)) ??
+      (await runPsInProcess(args, {
+        env,
+        timeoutMs: PS_TIMEOUT_MS,
+        maxOutputBytes: PS_MAX_OUTPUT_BYTES
+      })) ??
       (await runProcess({
         program: 'ps',
         args,

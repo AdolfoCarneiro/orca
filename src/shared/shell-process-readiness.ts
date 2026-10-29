@@ -4,7 +4,8 @@ import { access, readlink, realpath, stat } from 'node:fs/promises'
 import { delimiter, isAbsolute, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { LSOF_NONBLOCKING_ARGS } from './lsof-nonblocking-args'
-import { readLibprocProcessPath, runPsInProcess } from './libproc-process-table'
+import { readLibprocProcessPath } from './libproc-addon'
+import { readPsStdoutInProcess } from './libproc-process-table'
 import { PS_MAX_BUFFER_BYTES } from './process-table-snapshot'
 
 const execFile = promisify(execFileCallback)
@@ -48,12 +49,12 @@ async function readExecutablePath(pid: number): Promise<string | null> {
 
 /** Rejects like execFile when ps exits nonzero, so callers keep their error paths. */
 async function readPs(args: string[]): Promise<string> {
-  const inProcess = await runPsInProcess(args)
-  if (inProcess) {
-    if (inProcess.code !== 0) {
-      throw new Error(`ps ${args.join(' ')} matched no process`)
-    }
-    return inProcess.stdout
+  const inProcess = await readPsStdoutInProcess(args, {
+    timeoutMs: PROCESS_READINESS_TIMEOUT_MS,
+    maxOutputBytes: PS_MAX_BUFFER_BYTES
+  })
+  if (inProcess !== null) {
+    return inProcess
   }
   const { stdout } = await execFile('ps', args, {
     encoding: 'utf8',
