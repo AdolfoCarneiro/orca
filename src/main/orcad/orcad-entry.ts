@@ -163,12 +163,10 @@ async function startOrcadRuntime(
 
   // Reconcile, daemon and runtime all consume this environment.
   await timed('login-env-wait', () => loginEnvironment)
-  const published = Promise.withResolvers<void>()
-  startOrcadManagedAgentHooks(
+  const managedAgentHooks = startOrcadManagedAgentHooks(
     profileStore,
     (enabled) => agentHookServer.setStatusHooksEnabled(enabled),
-    registerCleanup,
-    published.promise
+    registerCleanup
   )
 
   // Install the daemon provider before PTY handlers can route their first call.
@@ -335,7 +333,7 @@ async function startOrcadRuntime(
 
   await new ServeReadinessPublisher().publish(readiness, servePublishMode(options))
   reportStartupTiming()
-  published.resolve()
+  managedAgentHooks.readinessPublished()
 
   await idleExitStartup.start({
     rpc,
