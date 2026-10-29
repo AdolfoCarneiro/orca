@@ -9,6 +9,10 @@ import {
 } from './structured-agent-session-options'
 import { structuredAgentSessionOptionView } from './structured-agent-session-option-view'
 import { structuredAgentSessionSeedCatalog } from './structured-agent-session-seed-catalog'
+import {
+  projectRuntimePermission,
+  runtimePermissionReportKey
+} from './structured-agent-session-permission-option'
 
 const permission = (state: Parameters<typeof structuredAgentSessionOptionSnapshot>[0]) =>
   structuredAgentSessionOptionSnapshot(state).find(
@@ -100,5 +104,42 @@ describe('the permission mode picker', () => {
       )
     ).not.toContain('permissionMode')
     expect(structuredAgentSessionOptionPicks(state, { permissionMode: 'full-access' })).toEqual([])
+  })
+})
+
+describe('the reported permission mode after a pick', () => {
+  const reporting = (mode: string | null, fence = 1) => ({ runtimePermission: { fence, mode } })
+  const picked = { permissionMode: 'full-access', reportedPermissionMode: undefined }
+
+  it('shows the pick while the agent still reports the mode it was made over', () => {
+    const over = runtimePermissionReportKey(reporting('ask'), 1)
+    expect(projectRuntimePermission(picked, reporting('ask'), 1, over)).toMatchObject({
+      reportedPermissionMode: 'full-access'
+    })
+    expect(projectRuntimePermission(picked, reporting('ask'), 1)).toMatchObject({
+      reportedPermissionMode: 'ask'
+    })
+  })
+
+  it("shows the agent's next report, or none, once it differs", () => {
+    const over = runtimePermissionReportKey(reporting('ask'), 1)
+    expect(projectRuntimePermission(picked, reporting('accept-edits'), 1, over)).toMatchObject({
+      reportedPermissionMode: 'accept-edits'
+    })
+    expect(projectRuntimePermission(picked, reporting('ask', 2), 2, over)).toMatchObject({
+      reportedPermissionMode: 'ask'
+    })
+    expect(
+      projectRuntimePermission(picked, { runtimePermission: null }, 1, over).reportedPermissionMode
+    ).toBeUndefined()
+  })
+
+  it('never shows own settings as a running mode', () => {
+    const over = runtimePermissionReportKey(reporting('ask'), 1)
+    expect(
+      projectRuntimePermission({ ...picked, permissionMode: 'own' }, reporting('ask'), 1, over)
+    ).toMatchObject({ reportedPermissionMode: 'ask' })
+    expect(runtimePermissionReportKey({ runtimePermission: null }, 1)).toBeNull()
+    expect(runtimePermissionReportKey({}, 1)).toBeNull()
   })
 })

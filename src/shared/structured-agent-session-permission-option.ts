@@ -3,6 +3,7 @@
 import {
   AGENT_CHAT_PERMISSION_MODE_OPTION_ID,
   agentChatPermissionModes,
+  isAgentChatPermissionMode,
   type AgentChatPermissionMode
 } from './agent-chat-permission-mode'
 import type { StructuredAgentSessionOptionRecord } from './structured-agent-session-option-state'
@@ -129,25 +130,51 @@ export function legacyHostPermissionDescriptor(): SessionOptionDescriptor {
   }
 }
 
-/** Absent producers retain options fallback; present evidence owns the description, even cleared. */
-export function projectRuntimePermission<T extends { reportedPermissionMode?: string | null }>(
-  state: T,
+function runtimePermissionReport(
   summary: unknown,
   fence: number | null
-): T {
+): { mode: string | null } | null | undefined {
   if (typeof summary !== 'object' || summary === null || !('runtimePermission' in summary)) {
-    return state
+    return undefined
   }
   const report = summary.runtimePermission
-  const valid =
-    typeof report === 'object' &&
-    report !== null &&
-    'fence' in report &&
-    Number.isSafeInteger(report.fence) &&
-    typeof report.fence === 'number' &&
-    report.fence >= 0 &&
-    report.fence === fence &&
-    'mode' in report &&
-    (report.mode === null || typeof report.mode === 'string')
-  return { ...state, reportedPermissionMode: valid ? report.mode : undefined }
+  if (
+    typeof report !== 'object' ||
+    report === null ||
+    !('fence' in report) ||
+    typeof report.fence !== 'number' ||
+    !Number.isSafeInteger(report.fence) ||
+    report.fence < 0 ||
+    report.fence !== fence ||
+    !('mode' in report) ||
+    (report.mode !== null && typeof report.mode !== 'string')
+  ) {
+    return null
+  }
+  return { mode: report.mode }
+}
+
+/** Names the agent's current report, so a pick made over it gives way to the next one. */
+export function runtimePermissionReportKey(summary: unknown, fence: number | null): string | null {
+  const report = runtimePermissionReport(summary, fence)
+  return report ? `${fence}:${report.mode}` : null
+}
+
+/** Absent producers retain options fallback; present evidence owns the description, even cleared.
+ *  A pick the agent hasn't taken yet stands in for the report it was made over, until the next one. */
+export function projectRuntimePermission<
+  T extends { reportedPermissionMode?: string | null; permissionMode?: string | null }
+>(state: T, summary: unknown, fence: number | null, pickedOver: string | null = null): T {
+  const report = runtimePermissionReport(summary, fence)
+  if (report === undefined) {
+    return state
+  }
+  if (
+    pickedOver !== null &&
+    pickedOver === runtimePermissionReportKey(summary, fence) &&
+    isAgentChatPermissionMode(state.permissionMode)
+  ) {
+    return { ...state, reportedPermissionMode: state.permissionMode }
+  }
+  return { ...state, reportedPermissionMode: report ? report.mode : undefined }
 }

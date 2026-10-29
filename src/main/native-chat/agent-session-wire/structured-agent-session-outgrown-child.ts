@@ -11,6 +11,9 @@ import {
   type StructuredAgentSessionChildWorkReads
 } from './structured-agent-session-idle-sweep'
 import type { StructuredAgentSessionLogger } from './structured-agent-session-logger'
+import type { StructuredAgentSessionClientDelivery } from './structured-agent-session-client-delivery'
+import type { StructuredAgentSessionHostDeps } from './structured-agent-session-host-types'
+import { hostStructuredAgentSessionCurrentWork } from './structured-agent-session-host-current-work'
 import type { AgentChatPermissionChoice } from '../../../shared/agent-chat-permission-mode'
 import { agentJournalSubmissionKey } from '../../../shared/agent-session-journal-item-key'
 
@@ -151,4 +154,25 @@ export function structuredAgentSessionChildOwesWork(
   }
 ): boolean {
   return structuredAgentSessionChildHasOpenWork(work) || owesWakeUp(journal, work.childWork())
+}
+
+/** What still holds a conversation's running agent: its turn, prompts, dispatches and child work. */
+export function structuredAgentSessionRetainedWork(
+  deps: Pick<StructuredAgentSessionHostDeps, 'store' | 'hasOpenDispatch' | 'adapter'>,
+  sessions: ReadonlyMap<string, StructuredAgentSessionHostSession>,
+  clientDelivery: Pick<StructuredAgentSessionClientDelivery, 'readChildWork' | 'childWorkOpen'>
+) {
+  return (sessionId: string, continuingId?: string) => ({
+    currentWork: () =>
+      hostStructuredAgentSessionCurrentWork({ store: deps.store, sessions }, sessionId),
+    childWork: () => clientDelivery.readChildWork(sessionId),
+    childWorkOpen: () => clientDelivery.childWorkOpen(sessionId),
+    hasOpenDispatch: () => {
+      const record = deps.store.getConversation(sessionId)
+      return record !== null && deps.hasOpenDispatch?.(record) === true
+    },
+    providerHoldsDispatch: () =>
+      deps.adapter.holdsDispatch?.(sessionId) === true ||
+      [...(sessions.get(sessionId)?.child?.heldSends?.() ?? [])].some((id) => id !== continuingId)
+  })
 }
