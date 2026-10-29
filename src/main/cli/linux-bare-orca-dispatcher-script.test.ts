@@ -141,19 +141,80 @@ describe.runIf(process.platform !== 'win32')('the bare orca dispatcher as a shel
     )
   })
 
-  it("hands Orca's own children to the screen reader once Orca is gone", async () => {
-    const fixture = await makeFixture()
-    const otherBin = await addSecondDispatcher(fixture)
-    await rm(fixture.resourcesPath, { recursive: true, force: true })
+  it.each(['ORCA_PANE_KEY', 'ORCA_CLI_BIN_DIR', 'ORCA_USER_DATA_PATH'])(
+    'never starts the screen reader for Orca children (%s) once Orca is gone',
+    async (variable) => {
+      const fixture = await makeFixture()
+      const otherBin = await addSecondDispatcher(fixture)
+      await rm(fixture.resourcesPath, { recursive: true, force: true })
 
-    const result = runOrca(
-      fixture,
-      [otherBin, join(fixture.homePath, '.local', 'bin'), fixture.screenReaderDir],
-      { ORCA_PANE_KEY: 'tab:1', ORCA_CLI_BIN_DIR: '/x', ORCA_USER_DATA_PATH: '/y' }
+      const result = runOrca(
+        fixture,
+        [otherBin, join(fixture.homePath, '.local', 'bin'), fixture.screenReaderDir],
+        { [variable]: 'set' }
+      )
+      expect(result.status).toBe(127)
+      expect(result.stdout).toBe('')
+      expect(result.stderr).toContain('Orca is no longer installed')
+    }
+  )
+
+  it('finds the real `orca` in a PATH folder with spaces', async () => {
+    const fixture = await makeFixture()
+    const spaced = join(fixture.root, 'screen reader bin')
+    await writeProgram(join(spaced, 'orca'), 'SPACED')
+
+    expect(runOrca(fixture, [join(fixture.homePath, '.local', 'bin'), spaced]).stdout).toBe(
+      'SPACED status\n'
     )
-    expect(result.status).toBe(0)
-    expect(result.stdout).toBe('SCREEN_READER status\n')
   })
+
+  it('ignores empty and relative PATH entries, which depend on the caller folder', async () => {
+    const fixture = await makeFixture()
+    await writeProgram(join(fixture.root, 'relative', 'orca'), 'RELATIVE')
+
+    const result = spawnSync(fixture.dispatcherPath, ['status'], {
+      cwd: fixture.root,
+      encoding: 'utf8',
+      env: {
+        HOME: fixture.homePath,
+        PATH: ['', '.', 'relative', fixture.toolsDir].join(':')
+      },
+      timeout: 10_000
+    })
+    expect(result.stdout).toBe('ORCA_CLI status\n')
+  })
+
+  it('skips a symlink to itself on PATH', async () => {
+    const fixture = await makeFixture()
+    const linkDir = join(fixture.root, 'linked')
+    await mkdir(linkDir)
+    await symlink(fixture.dispatcherPath, join(linkDir, 'orca'))
+
+    expect(
+      runOrca(fixture, [linkDir, join(fixture.homePath, '.local', 'bin'), fixture.screenReaderDir])
+        .stdout
+    ).toBe('SCREEN_READER status\n')
+  })
+
+  it.skipIf(process.getuid?.() === 0)(
+    'runs an unreadable candidate as the real `orca` rather than skipping it',
+    async () => {
+      const fixture = await makeFixture()
+      const lockedDir = join(fixture.root, 'locked')
+      await writeProgram(join(lockedDir, 'orca'), 'LOCKED')
+      await chmod(join(lockedDir, 'orca'), 0o111)
+
+      const result = runOrca(fixture, [
+        join(fixture.homePath, '.local', 'bin'),
+        lockedDir,
+        fixture.screenReaderDir
+      ])
+      // Exec'd (and refused by the kernel/shell), never passed over for the next `orca`.
+      expect(result.stdout).not.toContain('SCREEN_READER')
+      expect(result.status).not.toBe(0)
+    }
+  )
 
   it('never loops when the only other `orca` is another dispatcher', async () => {
     const fixture = await makeFixture()

@@ -75,22 +75,30 @@ export function buildBareOrcaCliScript(launcherPath: string): string {
 }
 
 /**
- * Orca's own children reach this app's CLI; anyone else gets the next `orca` on PATH (GNOME's
- * screen reader shares the name), then this app, then a clear message once it is uninstalled.
+ * Orca's own children reach this app's CLI, or a clear error once it is gone, never another `orca`
+ * (GNOME's screen reader shares the name). Anyone else gets the next real `orca` on PATH first.
  */
 export function buildBareOrcaDispatcherScript(launcherPath: string): string {
   return [
     '#!/usr/bin/env bash',
     `launcher=${quotePosixShellDoubleQuotedApostrophe(launcherPath)}`,
-    'if [ -n "${ORCA_CLI_BIN_DIR-}${ORCA_PANE_KEY-}${ORCA_USER_DATA_PATH-}" ] && [ -x "$launcher" ]; then',
-    '  exec "$launcher" "$@"',
+    'gone() {',
+    `  printf 'orca: Orca is no longer installed at %s. Remove %s to stop this message.\\n' "$launcher" "\${BASH_SOURCE[0]}" >&2`,
+    '  exit 127',
+    '}',
+    // An agent's `orca …` must never start a talking screen reader, even once Orca is gone.
+    'if [ -n "${ORCA_CLI_BIN_DIR-}${ORCA_PANE_KEY-}${ORCA_USER_DATA_PATH-}" ]; then',
+    '  [ -x "$launcher" ] && exec "$launcher" "$@"',
+    '  gone',
     'fi',
     // Skip every Orca dispatcher, not just this one, so none can hand the call back to Orca;
-    // the real target runs with nothing added to its environment.
+    // the real target runs with nothing added to its environment. Relative entries depend on the
+    // caller's folder, so only absolute ones count.
     'IFS=: read -r -a path_dirs <<< "${PATH-}"',
     'for dir in "${path_dirs[@]}"; do',
+    '  case "$dir" in /*) ;; *) continue ;; esac',
     '  candidate="$dir/orca"',
-    '  if [ -n "$dir" ] && [ -f "$candidate" ] && [ -x "$candidate" ] && ! [ "$candidate" -ef "${BASH_SOURCE[0]}" ]; then',
+    '  if [ -f "$candidate" ] && [ -x "$candidate" ] && ! [ "$candidate" -ef "${BASH_SOURCE[0]}" ]; then',
     '    marker=""',
     '    { IFS= read -r _ && IFS= read -r marker; } < "$candidate" 2>/dev/null',
     `    if [ "$marker" != ${quotePosixShellDoubleQuotedApostrophe(DISPATCHER_MARKER)} ]; then`,
@@ -98,11 +106,8 @@ export function buildBareOrcaDispatcherScript(launcherPath: string): string {
     '    fi',
     '  fi',
     'done',
-    'if [ -x "$launcher" ]; then',
-    '  exec "$launcher" "$@"',
-    'fi',
-    `printf 'orca: Orca is no longer installed at %s. Remove %s to stop this message.\\n' "$launcher" "\${BASH_SOURCE[0]}" >&2`,
-    'exit 127',
+    '[ -x "$launcher" ] && exec "$launcher" "$@"',
+    'gone',
     ''
   ].join('\n')
 }
