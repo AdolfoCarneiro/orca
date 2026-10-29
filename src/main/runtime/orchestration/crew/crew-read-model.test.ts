@@ -481,6 +481,10 @@ it('keeps corrupt clear branches, missing successors and cycles independent of r
   }
   expect(identities(rows)).toEqual(rows.map((row) => `orca_session_id:${row.sessionId}`))
   expect(identities(rows.toReversed())).toEqual(identities(rows))
+  const invalid = [record('!invalid', 'chat-valid'), record('chat-valid', '')]
+  for (const records of [invalid, invalid.toReversed()]) {
+    expect(() => identities(records)).toThrow('Not an Orca session id: !invalid')
+  }
 })
 
 it('wakes for later routing pages and existing-message question registration, including rollback', async () => {

@@ -95,8 +95,8 @@ it('captures real main partitions once and keeps paired/local/folder qualificati
 class MainCrewRuntime extends OrcaRuntimeService {
   seedPty(id: string, handle: string): void {
     this.recordPtyWorktree(id, FIXTURE_GIT_WORKTREE_ID, { connected: true })
-    this.handleByPtyId.set(id, handle)
-    this.handles.set(handle, {
+    this.terminalIdentity.bindPty(id, handle)
+    this.terminalIdentity.setHandle(handle, {
       handle,
       runtimeId: this.runtimeId,
       rendererGraphEpoch: this.rendererGraphEpoch,

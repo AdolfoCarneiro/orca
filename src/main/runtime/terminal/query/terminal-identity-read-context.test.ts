@@ -1,3 +1,4 @@
+import { identityFixture as fixture, LEAF, COLD, PANE } from './terminal-identity.test-fixture'
 import { AgentHookServer } from '../../../agent-hooks/server'
 import { agentHookRuntimeDeps } from '../../../agent-hooks/agent-hook-runtime-deps'
 import {
@@ -12,159 +13,8 @@ import { CrewReadModel } from '../../orchestration/crew/crew-read-model'
 import { readCrewRuntimeInputs } from '../../orchestration/crew/crew-runtime-watch'
 import { expect, it, vi } from 'vitest'
 import '../../orca-runtime-test-mocks.spec'
-import { store, TEST_WORKTREE_ID } from '../../orca-runtime-test-fixtures.spec'
-import type {
-  RuntimeLeafRecord,
-  RuntimePtyWorktreeRecord
-} from '../../runtime-terminal-state-records'
-import type {
-  OrchestrationCompatibilitySshTerminal,
-  TerminalHandleRecord
-} from '../../runtime-terminal-contracts'
-import type { PtyIncarnationHandleRecord } from '../../orca-runtime-core'
-import type { CrewChanges } from '../../orchestration/crew/crew-changes'
-import type { RuntimeTerminalWaiterRegistry } from '../wait/terminal-waiter-registry'
-import { OrcaRuntimeService } from '../../orca-runtime'
+import { TEST_WORKTREE_ID } from '../../orca-runtime-test-fixtures.spec'
 import type { TerminalIdentityReadContext } from './terminal-identity-read-context'
-
-const LEAF = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-const COLD = 'cold:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
-const PANE = `tab-original:${LEAF}`
-
-type Owner = {
-  terminalWaiters: RuntimeTerminalWaiterRegistry
-  crewChanges: CrewChanges
-  orchestrationCompatibilitySshTerminals: Map<string, OrchestrationCompatibilitySshTerminal>
-  getOrchestrationCompatibilitySshTerminal: (
-    handle: string,
-    context?: TerminalIdentityReadContext
-  ) => OrchestrationCompatibilitySshTerminal | undefined
-  runtimeId: string
-  rendererGraphEpoch: number
-  handles: Map<string, TerminalHandleRecord>
-  handleByPtyId: Map<string, string>
-  handleByLeafKey: Map<string, string>
-  handleByPtyIncarnation: Map<string, PtyIncarnationHandleRecord>
-  syntheticTerminalHandles: Set<string>
-  leaves: Map<string, RuntimeLeafRecord>
-  ptysById: Map<string, RuntimePtyWorktreeRecord>
-  recordPtyWorktree: (
-    id: string,
-    worktree: string,
-    state?: Partial<RuntimePtyWorktreeRecord>
-  ) => RuntimePtyWorktreeRecord
-  getLivePtyForHandle: (
-    handle: string,
-    context?: TerminalIdentityReadContext
-  ) => { record: TerminalHandleRecord; pty: RuntimePtyWorktreeRecord } | null
-  getPtyRecordForPaneKey: (
-    pane: string,
-    context?: TerminalIdentityReadContext
-  ) => RuntimePtyWorktreeRecord | null
-  setPtyConnected: (pty: RuntimePtyWorktreeRecord, connected: boolean) => void
-  dropDisconnectedPtyRecord: (id: string) => void
-  beginGraphReload: (windowId: number) => number
-  findHandleForPtyRecord: (ptyId: string, context?: TerminalIdentityReadContext) => string | null
-  issueHandle: (leaf: RuntimeLeafRecord, context?: TerminalIdentityReadContext) => string
-  rejectWaitersForHandle: (handle: string, reason: string) => void
-}
-
-class IdentityRuntime extends OrcaRuntimeService {
-  identityOwner(): Owner {
-    const current = () => this
-    return {
-      get runtimeId() {
-        return current().runtimeId
-      },
-      get rendererGraphEpoch() {
-        return current().rendererGraphEpoch
-      },
-      get terminalWaiters() {
-        return current().terminalWaiters
-      },
-      get crewChanges() {
-        return current().crewChanges
-      },
-      get syntheticTerminalHandles() {
-        return current().syntheticTerminalHandles
-      },
-      get handles() {
-        return current().handles
-      },
-      get handleByPtyId() {
-        return current().handleByPtyId
-      },
-      get handleByLeafKey() {
-        return current().handleByLeafKey
-      },
-      get handleByPtyIncarnation() {
-        return current().handleByPtyIncarnation
-      },
-      get leaves() {
-        return current().leaves
-      },
-      get ptysById() {
-        return current().ptysById
-      },
-      get orchestrationCompatibilitySshTerminals() {
-        return current().orchestrationCompatibilitySshTerminals
-      },
-      getOrchestrationCompatibilitySshTerminal:
-        this.getOrchestrationCompatibilitySshTerminal.bind(this),
-      recordPtyWorktree: this.recordPtyWorktree.bind(this),
-      getLivePtyForHandle: this.getLivePtyForHandle.bind(this),
-      getPtyRecordForPaneKey: this.getPtyRecordForPaneKey.bind(this),
-      setPtyConnected: this.setPtyConnected.bind(this),
-      dropDisconnectedPtyRecord: this.dropDisconnectedPtyRecord.bind(this),
-      beginGraphReload: this.beginGraphReload.bind(this),
-      findHandleForPtyRecord: this.findHandleForPtyRecord.bind(this),
-      issueHandle: this.issueHandle.bind(this),
-      rejectWaitersForHandle: this.rejectWaitersForHandle.bind(this)
-    }
-  }
-}
-
-function fixture(deps?: ConstructorParameters<typeof IdentityRuntime>[2]) {
-  const runtime = new IdentityRuntime(store, undefined, deps)
-  const owner = runtime.identityOwner()
-  const rejected = vi.fn<(handle: string, reason: string) => void>()
-  const reject = owner.rejectWaitersForHandle
-  Object.defineProperty(runtime, 'rejectWaitersForHandle', {
-    value: (handle: string, reason: string) => {
-      rejected(handle, reason)
-      reject(handle, reason)
-    },
-    configurable: true
-  })
-  const add = (id: string, handle: string, paneKey = PANE, connected = true) => {
-    owner.recordPtyWorktree(id, TEST_WORKTREE_ID, { paneKey, connected })
-    owner.handleByPtyId.set(id, handle)
-  }
-  const stamp = (handle: string, ptyId: string) => {
-    owner.handles.set(handle, {
-      handle,
-      runtimeId: owner.runtimeId,
-      rendererGraphEpoch: owner.rendererGraphEpoch,
-      worktreeId: TEST_WORKTREE_ID,
-      tabId: `pty:${ptyId}`,
-      leafId: `pty:${ptyId}`,
-      ptyId,
-      ptyGeneration: 0
-    })
-  }
-  const state = () => ({
-    handles: [...owner.handles].map(([key, record]) => [
-      key,
-      { ...record, runtimeId: '<runtime>' }
-    ]),
-    reverse: [...owner.handleByPtyId],
-    leaf: [...owner.handleByLeafKey],
-    retained: [...owner.handleByPtyIncarnation].map(([key, value]) => [key, { ...value }]),
-    synthetic: [...owner.syntheticTerminalHandles],
-    rejected: rejected.mock.calls
-  })
-  return { runtime, owner, add, stamp, state, rejected }
-}
 
 it('matches separate production runtimes across reverse repair, stale first mapping, adoption and dependent reads in either order', () => {
   for (const reverseOrder of [false, true]) {
@@ -172,14 +22,14 @@ it('matches separate production runtimes across reverse repair, stale first mapp
       const baseline = fixture()
       const candidate = fixture()
       for (const f of [baseline, candidate]) {
-        f.owner.handleByPtyId.set('absent-first', 'term_shared')
+        f.owner.source.bindPty('absent-first', 'term_shared')
         if (!absentFirst) {
           f.add('absent-first', 'term_shared', 'malformed-pane', false)
         }
         f.add('live-second', 'term_shared', 'repaired-second')
         f.add('cold', 'term_cold', COLD)
         f.stamp('term_cold', 'cold')
-        f.owner.handleByPtyId.delete('cold')
+        f.owner.source.unbindPty('cold')
         f.add('adopted', 'term_adopted', `tab-new:${LEAF}`)
         f.runtime.attachWindow(1)
         f.runtime.syncWindowGraph(1, {
@@ -235,9 +85,12 @@ it('matches separate production runtimes across reverse repair, stale first mapp
 })
 
 function countIterations<K, V>(
-  map: Map<K, V>,
+  map: ReadonlyMap<K, V>,
   counts: { entries: number; get: number; set: number; delete: number }
 ) {
+  if (!(map instanceof Map)) {
+    throw new Error('Expected native map instrumentation')
+  }
   const get = map.get.bind(map)
   const set = map.set.bind(map)
   const remove = map.delete.bind(map)
@@ -299,7 +152,7 @@ it('charges actual native map visits at N/10N for missing, moved and cold identi
     for (let i = 0; i < population; i++) {
       f.add(`cold-${i}`, `term_cold_${i}`, `cold-pane-${i}`)
       f.stamp(`term_cold_${i}`, `cold-${i}`)
-      f.owner.handleByPtyId.delete(`cold-${i}`)
+      f.owner.source.unbindPty(`cold-${i}`)
     }
     const counts = { entries: 0, get: 0, set: 0, delete: 0 }
     countIterations(f.owner.handles, counts)
@@ -396,11 +249,11 @@ it('keeps cold candidates coherent through real retained-handle invalidation and
       ]
     })
     const leaf = f.owner.leaves.get(`tab-original::${LEAF}`)!
-    f.owner.handleByLeafKey.clear()
-    f.owner.handleByPtyId.clear()
+    f.owner.source.clearLeafBindings()
+    f.owner.source.clearPtyBindings()
     f.stamp('term_retained', 'retained-pty')
-    f.owner.syntheticTerminalHandles.add('term_retained')
-    f.owner.handleByPtyIncarnation.set('retained-pty', {
+    f.owner.source.addSynthetic('term_retained')
+    f.owner.source.setIncarnation('retained-pty', {
       handle: 'term_retained',
       incarnationId: 'old-process',
       leafKey: `tab-original::${LEAF}`
@@ -458,7 +311,7 @@ it('reuses raw inputs for new historical parties through the production Crew bou
     const capture = vi.spyOn(f.runtime, 'createTerminalIdentityRawInputs')
     const model = new CrewReadModel(
       (previous) => {
-        const inputs = readCrewRuntimeInputs(f.runtime, db, true, 'same-host', previous)
+        const inputs = readCrewRuntimeInputs(f.owner.crewReaders, db, true, 'same-host', previous)
         if (captured) {
           return inputs
         }

@@ -23,7 +23,11 @@ import { execCommand } from '../ssh/remote-exec/remote-exec-command'
 import { readConfirmedRunningWslDistros } from '../wsl-background-distro-gate'
 import { readWindowsProcessTableFresh } from '../windows/windows-process-table'
 import { resolveWslInteropSpawnCwd } from '../wsl-interop-spawn-directory'
-import { buildWslExecArgs, buildWslLoginShellCommand } from '../../shared/wsl-login-shell-command'
+import {
+  buildWslExecArgs,
+  buildWslInteractiveLoginShellCommand,
+  buildWslLoginShellCommand
+} from '../../shared/wsl-login-shell-command'
 import { resolveWslExecutablePath } from './wsl-executable-path'
 import { createWslDistroHolder, type WslDistroHolder } from './wsl-distro-holder'
 import { WSL_DISTRO_HOLDER_POLL_SECONDS } from './wsl-distro-holder-command'
@@ -446,6 +450,46 @@ async function restartThroughBridgeExec(): Promise<Receipt> {
   return { firstOutputMs }
 }
 
+/**
+ * (c) Old bridge as the app runs it: wsl.exe in a ConPTY with the same setup command the bridge's
+ * WSL terminals use (cd, PATH, the distro's interactive login shell), the probe typed ahead.
+ */
+async function restartThroughBridgeConpty(): Promise<Receipt> {
+  await terminatePlain()
+  const pty = await import('node-pty')
+  const probe = outputProbe()
+  const setup = ['cd "$HOME"', buildWslInteractiveLoginShellCommand()].join(' && ')
+  const started = performance.now()
+  const terminal = pty.spawn(
+    resolveWslExecutablePath(),
+    buildWslExecArgs(PLAIN, ['sh', '-c', setup]),
+    {
+      cols: 120,
+      rows: 30,
+      cwd: resolveWslInteropSpawnCwd(),
+      env: { ...process.env }
+    }
+  )
+  let output = ''
+  let firstPaintMs: number | null = null
+  terminal.onData((data) => {
+    firstPaintMs ??= Math.round(performance.now() - started)
+    output += data
+  })
+  try {
+    terminal.write(`${probe.command}\r`)
+    await waitFor(
+      'the bridge terminal to answer',
+      async () => (output.includes(probe.token) ? true : null),
+      120_000,
+      50
+    )
+    return { firstPaintMs, firstOutputMs: Math.round(performance.now() - started) }
+  } finally {
+    terminal.kill()
+  }
+}
+
 // A guest command's output is capped at 1 MiB; read big files in base64 chunks below that.
 const GUEST_READ_BLOCK_BYTES = 64 * 1024
 const GUEST_READ_BLOCKS_PER_CHUNK = 8
@@ -506,9 +550,11 @@ async function distroRestartBaseline(): Promise<void> {
   await restartThroughBridgeExec()
   const host: Awaited<ReturnType<typeof restartThroughHost>>[] = []
   const bridge: Receipt[] = []
+  const conpty: Receipt[] = []
   for (let i = 0; i < 3; i++) {
     host.push(await restartThroughHost(repoPath))
     bridge.push(await restartThroughBridgeExec())
+    conpty.push(await restartThroughBridgeConpty())
   }
   const median = (runs: Receipt[], key: string): number =>
     runs.map((run) => Number(run[key])).toSorted((a, b) => a - b)[1] ?? 0
@@ -521,7 +567,10 @@ async function distroRestartBaseline(): Promise<void> {
     medianHostSendToFirstOutputMs: median(host, 'sendToFirstOutputMs'),
     medianOrcadStartup: medianOrcadStartupTiming(host.map((run) => run.orcadStartup)),
     medianHostPhases: medianWslOrcadEnsurePhases(host.map((run) => run.phases)),
-    medianBridgeExecLowerBoundMs: median(bridge, 'firstOutputMs')
+    medianBridgeExecLowerBoundMs: median(bridge, 'firstOutputMs'),
+    bridgeConpty: conpty,
+    medianBridgeConptyFirstPaintMs: median(conpty, 'firstPaintMs'),
+    medianBridgeConptyFirstOutputMs: median(conpty, 'firstOutputMs')
   }
   receipt.orcadStartupProfiles = await profileOrcadRestart(repoPath)
   await terminatePlain()

@@ -31,14 +31,10 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
   /** An inventory's connection verdict; main's panes that bind the terminal re-compose. */
   protected setPtyConnected(pty: RuntimePtyWorktreeRecord, connected: boolean): void {
     const prior = mainPaneRecordFacts(pty)
-    const changed = pty.connected !== connected
-    pty.connected = connected
+    this.terminalIdentity.setPtyConnected(pty, connected)
     pty.disconnectedAt = connected ? null : (pty.disconnectedAt ?? Date.now())
     if (ORCA_LAYOUT_OWNER_IS_MAIN) {
       noteMainPaneRecordChange(this, prior, pty)
-    }
-    if (changed) {
-      this.crewChanges.notify()
     }
   }
 
@@ -82,18 +78,6 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
       state = withoutPaneClaim(state)
     }
     let pty = this.ptysById.get(ptyId)
-    const identityMayChange =
-      !pty ||
-      pty.worktreeId !== worktreeId ||
-      state.connected !== undefined ||
-      state.tabId !== undefined ||
-      state.paneKey !== undefined ||
-      state.surfaceRecordedAtGraphSequence !== undefined ||
-      state.connectionId !== undefined ||
-      state.incarnationId !== undefined ||
-      state.wslDistro !== undefined ||
-      state.isWsl !== undefined
-    const previousCrewIdentity = identityMayChange ? crewPtyIdentity(pty) : undefined
     const previousTitle = pty?.title
     if (!pty) {
       const titleObservedAt = state.title ? this.nextTitleObservationSequence() : null
@@ -166,7 +150,7 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
       if (state.title) {
         this.setPtyManagementTitleFromObservedTitle(pty, state.title, titleObservedAt ?? 0)
       }
-      this.ptysById.set(ptyId, pty)
+      pty = this.terminalIdentity.createPty(pty)
       if (wslDistro) {
         this.wslDistroByPtyId.set(ptyId, wslDistro)
       } else if (connectionId !== null) {
@@ -178,11 +162,10 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
       if (prior !== null) {
         noteMainPaneRecordChange(this, prior, pty)
       }
-      this.crewChanges.notify()
       return pty
     }
 
-    pty.worktreeId = worktreeId
+    this.terminalIdentity.setPtyWorktreeId(pty, worktreeId)
     if (
       state.incarnationId !== undefined &&
       pty.incarnationId !== null &&
@@ -204,15 +187,15 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
         this.invalidatePtyIncarnationHandle(ptyId)
         this.retirePredecessorPtyExitEvidence(pty)
       }
-      pty.incarnationId = state.incarnationId
+      this.terminalIdentity.setPtyIncarnationId(pty, state.incarnationId)
     }
     if (state.agentSessionOwners !== undefined) {
       pty.agentSessionOwners = state.agentSessionOwners.map(cloneAgentSessionOwnerBinding)
     }
     if (state.connectionId !== undefined) {
-      pty.connectionId = state.connectionId
+      this.terminalIdentity.setPtyConnectionId(pty, state.connectionId)
       if (state.connectionId !== null) {
-        pty.wslDistro = null
+        this.terminalIdentity.setPtyWslDistro(pty, null)
         this.wslDistroByPtyId.delete(ptyId)
       }
     }
@@ -220,10 +203,10 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
       pty.runtimeSessionOwned = state.runtimeSessionOwned
     }
     if (state.isWsl !== undefined) {
-      pty.isWsl = state.isWsl
+      this.terminalIdentity.setPtyIsWsl(pty, state.isWsl)
     }
     if (state.wslDistro !== undefined) {
-      pty.wslDistro = state.wslDistro
+      this.terminalIdentity.setPtyWslDistro(pty, state.wslDistro)
       if (state.wslDistro) {
         this.wslDistroByPtyId.set(ptyId, state.wslDistro)
       } else {
@@ -231,11 +214,12 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
       }
     }
     if (state.tabId !== undefined) {
-      pty.tabId = state.tabId
+      this.terminalIdentity.setPtyTabId(pty, state.tabId)
     }
     if (state.paneKey !== undefined) {
       // Persisted replay cannot gain graph standing and resurrect a dropped pane (#18191).
       recordPtySurfaceClaim(
+        this.terminalIdentity,
         pty,
         state.paneKey,
         state.surfaceRecordedAtGraphSequence ?? SURFACE_CLAIM_WITHOUT_STANDING
@@ -245,7 +229,7 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
       pty.spawnPaneKey = state.spawnPaneKey
     }
     if (state.connected !== undefined) {
-      pty.connected = state.connected
+      this.terminalIdentity.setPtyConnected(pty, state.connected)
       pty.disconnectedAt = state.connected ? null : (pty.disconnectedAt ?? Date.now())
     }
     if (state.lastOutputAt !== undefined) {
@@ -271,9 +255,7 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
     if (prior !== null) {
       noteMainPaneRecordChange(this, prior, pty)
     }
-    if (identityMayChange && previousCrewIdentity !== crewPtyIdentity(pty)) {
-      this.crewChanges.notify()
-    } else if (previousTitle !== pty.title) {
+    if (previousTitle !== pty.title) {
       this.crewChanges.notify(new Set(['names']))
     }
     return pty
@@ -304,19 +286,4 @@ export abstract class OrcaRuntimeWithRecordPtyWorktree extends RuntimeWorkspaceR
     // Worktree-prefixed daemon ids preserve mobile summaries across graph gaps/reloads.
     return this.recordPtyWorktree(ptyId, inferredWorktreeId)
   }
-}
-
-function crewPtyIdentity(pty: RuntimePtyWorktreeRecord | undefined): string | undefined {
-  const facts = pty && [
-    pty.worktreeId,
-    pty.connected,
-    pty.tabId,
-    pty.paneKey,
-    pty.surfaceRecordedAtGraphSequence,
-    pty.connectionId,
-    pty.incarnationId,
-    pty.wslDistro,
-    pty.isWsl
-  ]
-  return facts && JSON.stringify(facts)
 }

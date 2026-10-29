@@ -233,14 +233,10 @@ export abstract class OrcaRuntimeWithOnPtyExit extends OrcaRuntimeWithOnClientDi
         this.rememberPtyLivenessVerdict(ptyId, { status: 'exited' })
       }
       if (pty) {
-        const wasConnected = pty.connected
-        pty.connected = false
+        this.terminalIdentity.setPtyConnected(pty, false)
         pty.runtimeSessionOwned = false
         this.setPairedRendererSessionOwnership(pty.ptyId, false)
         pty.disconnectedAt = Date.now()
-        if (wasConnected) {
-          this.crewChanges.notify()
-        }
         pty.lastExitCode = exitCode
         pty.lastExitCause = exitCause
         // Same-id replacements must earn live idle evidence before delivery; retain status only for display.
@@ -282,7 +278,7 @@ export abstract class OrcaRuntimeWithOnPtyExit extends OrcaRuntimeWithOnClientDi
     const exitedSurfaces: { handle: string; paneKey: string | null }[] = []
     for (const leaf of this.getLeavesForPty(ptyId)) {
       this.detachedPreAllocatedLeaves.delete(ptyId)
-      leaf.connected = false
+      this.terminalIdentity.updateLeafConnected(leaf, false)
       leaf.writable = false
       leaf.lastExitCode = exitCode
       leaf.lastExitCause = exitCause

@@ -150,7 +150,7 @@ export abstract class OrcaRuntimeWithResolveKnownWorkspaceFileTarget extends Orc
       return existing
     }
     const handle = this.createPreAllocatedTerminalHandle()
-    this.handleByPtyId.set(ptyId, handle)
+    this.terminalIdentity.bindPty(ptyId, handle)
     return handle
   }
 
@@ -192,11 +192,11 @@ export abstract class OrcaRuntimeWithResolveKnownWorkspaceFileTarget extends Orc
     }
     const retained = this.handleByPtyIncarnation.get(ptyId)
     if (retained?.handle === handle) {
-      this.handleByPtyIncarnation.delete(ptyId)
+      this.terminalIdentity.removeIncarnation(ptyId)
     } else {
       this.invalidatePtyIncarnationHandle(ptyId)
     }
-    this.handleByPtyId.set(ptyId, handle)
+    this.terminalIdentity.bindPty(ptyId, handle)
     for (const leaf of this.getLeavesForPty(ptyId)) {
       this.adoptPreAllocatedHandle(leaf)
     }
@@ -219,7 +219,7 @@ export abstract class OrcaRuntimeWithResolveKnownWorkspaceFileTarget extends Orc
     if (changedIncarnation) {
       const priorHandle = this.handleByPtyId.get(ptyId)
       this.invalidateAllHandlesForPty(ptyId)
-      forgetPtySurface(pty!)
+      forgetPtySurface(this.terminalIdentity, pty!)
       // Reusing an exported handle would make stale client metadata name the replacement process.
       if (priorHandle === trimmed) {
         return
