@@ -45,13 +45,20 @@ export const ZSH_WSL_CWD_REPORT_BLOCK = `__orca_wsl_cwd_report() {
  * A WSL bridge sh/dash/ash pane's ENV file (read once, by interactive shells only, after the login
  * profile). It first hands ENV back to the user's own value, so children see theirs, and sources it.
  * Then, inside WSL, it prefixes PS1 with the folder report; dash has no prompt hook, so the report
- * runs in a command substitution and re-encodes $PWD byte by byte every prompt.
+ * runs in a command substitution and re-encodes $PWD byte by byte every prompt. bash and busybox
+ * ash (fancy prompt, on in Alpine's and Debian's builds) get it inside \\[ \\] so the invisible bytes
+ * do not count toward the prompt's width; dash has no line editor to miscount, and would print \\[.
  */
 export const SH_WSL_ENV_FILE = `# Orca WSL bridge sh ENV: restore the user's ENV, then report the folder (OSC 7) at each prompt.
 if [ -n "\${ORCA_WSL_USER_ENV:-}" ]; then
   ENV=$ORCA_WSL_USER_ENV
   unset ORCA_WSL_USER_ENV
-  eval "__orca_user_env=\\"$ENV\\""
+  # The shell expands ENV's value before reading it; a here-document does the same without
+  # parsing the user's quotes as shell syntax.
+  eval "IFS= read -r __orca_user_env <<__ORCA_USER_ENV_EOF
+$ENV
+__ORCA_USER_ENV_EOF
+"
   if [ -r "$__orca_user_env" ]; then
     . "$__orca_user_env"
   fi
@@ -77,7 +84,13 @@ if [ -n "\${WSL_DISTRO_NAME:-}" ]; then
   }
   case $PS1 in
     *__orca_wsl_cwd_report*) ;;
-    *) PS1='$(__orca_wsl_cwd_report)'"$PS1" ;;
+    *)
+      if [ -n "\${BASH_VERSION:-}" ] || [ -n "\${BB_ASH_VERSION:-}" ]; then
+        PS1='\\[$(__orca_wsl_cwd_report)\\]'"$PS1"
+      else
+        PS1='$(__orca_wsl_cwd_report)'"$PS1"
+      fi
+      ;;
   esac
 fi
 `

@@ -17,6 +17,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildWslInteractiveLoginShellCommand } from '../shared/wsl-login-shell-command'
 import { SH_WSL_ENV_FILE } from './wsl-shell-cwd-report'
+import { parseFileUriPath } from './daemon/osc7-file-uri'
 
 function findOnPath(name: string): string | null {
   for (const dir of ['/bin', '/usr/bin', '/usr/local/bin', '/opt/homebrew/bin']) {
@@ -30,15 +31,21 @@ function findOnPath(name: string): string | null {
 
 const DASH = findOnPath('dash')
 const BUSYBOX = findOnPath('busybox')
-const PROMPT = 'USERPS1> '
+// The user's prompt carries `$`, a quote and a backslash, which the prefix must leave intact.
+const USER_PS1 = '$PWD "x" \\$ '
+const PROMPT_MARK = '"x" '
 
-// Orca's reports carry no host.
-function reports(output: string): string[] {
+// Read as the daemon reads a WSL pane's report.
+function reports(output: string): (string | null)[] {
   return output
     .split('\x1b]7;')
     .slice(1)
     .map((report) => report.slice(0, report.indexOf('\x07')))
-    .map((uri) => decodeURIComponent(uri.slice('file://'.length)))
+    .map((uri) => parseFileUriPath(uri, { wslDistro: 'Ubuntu' }))
+}
+
+function inDistro(posixPath: string): string {
+  return `\\\\wsl.localhost\\Ubuntu${posixPath.replace(/\//g, '\\')}`
 }
 
 describe.skipIf(process.platform === 'win32')('a WSL bridge sh pane reports its folder', () => {
@@ -56,8 +63,10 @@ describe.skipIf(process.platform === 'win32')('a WSL bridge sh pane reports its 
     mkdirSync(deep, { recursive: true })
     mkdirSync(bin)
     writeFileSync(path.join(root, 'sh', 'env'), SH_WSL_ENV_FILE)
-    writeFileSync(path.join(home, '.profile'), `PS1='${PROMPT}'\n`)
-    writeFileSync(path.join(home, 'user-env'), 'echo USER_ENV_SOURCED\n')
+    writeFileSync(path.join(home, '.profile'), `PS1='${USER_PS1}'\n`)
+    // The user's ENV names a file whose path has a quote and a space, through a `$` expansion.
+    mkdirSync(path.join(home, 'u "q" sp'))
+    writeFileSync(path.join(home, 'u "q" sp', 'env'), 'echo USER_ENV_SOURCED\n')
   })
   afterEach(() => rmSync(home, { recursive: true, force: true }))
 
@@ -87,7 +96,7 @@ describe.skipIf(process.platform === 'win32')('a WSL bridge sh pane reports its 
     term.onData((chunk) => {
       rendered += chunk
     })
-    const prompts = (): number => rendered.split(PROMPT).length - 1
+    const prompts = (): number => rendered.split(PROMPT_MARK).length - 1
     const command = async (line: string): Promise<void> => {
       const before = prompts()
       term.write(`${line}\r`)
@@ -121,11 +130,15 @@ describe.skipIf(process.platform === 'win32')('a WSL bridge sh pane reports its 
     '%s: at every prompt inside WSL, after the profile, handing ENV back to the user',
     async (_name, resolve) => {
       const shell = resolve()
-      const userEnv = path.join(home, 'user-env')
+      const userEnv = '$HOME/u "q" sp/env'
       const output = await runBridge(shell, { WSL_DISTRO_NAME: 'Ubuntu', ENV: userEnv })
-      expect(reports(output)).toEqual([home, deep, deep])
+      expect(reports(output)).toEqual([inDistro(home), inDistro(deep), inDistro(deep)])
       expect(output).toContain('USER_ENV_SOURCED')
+      expect(output).not.toMatch(/[Ss]yntax error|unexpected|unterminated/u)
       expect(output).toContain(`CHILD_ENV=[${userEnv}]`)
+      // The user's prompt survives after the prefix, and no width marker is printed literally.
+      expect(output).toContain(`${deep} "x" `)
+      expect(output).not.toContain('\\[')
     },
     60_000
   )

@@ -91,6 +91,8 @@ export function buildWslInteractiveLoginShellCommand(): string {
     '      case "$_orca_shell_ready_root" in',
     "        *'$'*|*'`'*|*'\\'*) ;;",
     '        *)',
+    // If ~/.profile replaces ENV, nothing of ours runs after it to unset this; it then holds only the
+    // user's own former ENV value.
     '          if [ -n "${ENV+x}" ]; then export ORCA_WSL_USER_ENV="$ENV"; fi',
     '          export ENV="${_orca_shell_ready_root}/sh/env"',
     '          ;;',
