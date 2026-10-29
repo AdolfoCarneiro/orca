@@ -41,28 +41,28 @@ function reuseRecordIfEqual<T>(
   return nextKeys.every((key) => previous[key] === next[key]) ? previous : next
 }
 
-function projectTabAgentTypesByTabId(
+function layoutClaimsTab(layout: TerminalLayoutSnapshot | undefined): boolean {
+  return Boolean(layout && (layout.root || layout.activeLeafId))
+}
+
+function activeLeafAgentType(
+  tabId: string,
+  layout: TerminalLayoutSnapshot,
+  agentStatusByPaneKey: Record<string, AgentStatusEntry>
+): AgentType | undefined {
+  const activeLeafId = resolveNativeChatActiveLayoutLeafId(layout)
+  return activeLeafId
+    ? (agentStatusByPaneKey[`${tabId}:${activeLeafId}`]?.agentType ?? undefined)
+    : undefined
+}
+
+/** Before layout hydration a tab takes its first pane's agent in pane-map insertion order. */
+function firstPaneAgentTypes(
   agentStatusByPaneKey: Record<string, AgentStatusEntry>,
-  terminalLayoutsByTabId: Record<string, TerminalLayoutSnapshot>,
+  isUnclaimedTab: (tabId: string) => boolean,
   dependencies?: TabBarAgentProjectionSelectorDependencies
-): Record<string, AgentType> {
-  const byTabId: Record<string, AgentType> = {}
-  const claimed = new Set<string>()
-  for (const [tabId, layout] of Object.entries(terminalLayoutsByTabId)) {
-    dependencies?.onAgentTypeLayoutVisited?.(tabId)
-    if (!layout.root && !layout.activeLeafId) {
-      continue
-    }
-    claimed.add(tabId)
-    const activeLeafId = resolveNativeChatActiveLayoutLeafId(layout)
-    if (!activeLeafId) {
-      continue
-    }
-    const entry = agentStatusByPaneKey[`${tabId}:${activeLeafId}`]
-    if (entry?.agentType != null) {
-      byTabId[tabId] = entry.agentType
-    }
-  }
+): Map<string, AgentType | undefined> {
+  const byTabId = new Map<string, AgentType | undefined>()
   for (const [paneKey, entry] of Object.entries(agentStatusByPaneKey)) {
     dependencies?.onStatusEntryVisited?.(paneKey)
     const colon = paneKey.indexOf(':')
@@ -70,15 +70,140 @@ function projectTabAgentTypesByTabId(
       continue
     }
     const tabId = paneKey.slice(0, colon)
-    if (claimed.has(tabId)) {
-      continue
-    }
-    claimed.add(tabId)
-    if (entry.agentType != null) {
-      byTabId[tabId] = entry.agentType
+    if (!byTabId.has(tabId) && isUnclaimedTab(tabId)) {
+      byTabId.set(tabId, entry.agentType ?? undefined)
     }
   }
   return byTabId
+}
+
+function projectTabAgentTypesByTabId(
+  agentStatusByPaneKey: Record<string, AgentStatusEntry>,
+  terminalLayoutsByTabId: Record<string, TerminalLayoutSnapshot>,
+  dependencies?: TabBarAgentProjectionSelectorDependencies
+): Record<string, AgentType> {
+  const byTabId: Record<string, AgentType> = {}
+  for (const [tabId, layout] of Object.entries(terminalLayoutsByTabId)) {
+    dependencies?.onAgentTypeLayoutVisited?.(tabId)
+    if (!layoutClaimsTab(layout)) {
+      continue
+    }
+    const agentType = activeLeafAgentType(tabId, layout, agentStatusByPaneKey)
+    if (agentType != null) {
+      byTabId[tabId] = agentType
+    }
+  }
+  const firstPanes = firstPaneAgentTypes(
+    agentStatusByPaneKey,
+    (tabId) => !layoutClaimsTab(terminalLayoutsByTabId[tabId]),
+    dependencies
+  )
+  for (const [tabId, agentType] of firstPanes) {
+    if (agentType != null) {
+      byTabId[tabId] = agentType
+    }
+  }
+  return byTabId
+}
+
+/** True when the projection cannot differ: same pane keys in the same order, and every changed entry keeps its agent. */
+function statusChangeKeepsAgentTypes(
+  previous: Record<string, AgentStatusEntry>,
+  next: Record<string, AgentStatusEntry>
+): boolean {
+  const previousKeys = Object.keys(previous)
+  let index = 0
+  for (const paneKey in next) {
+    if (previousKeys[index] !== paneKey) {
+      return false
+    }
+    index += 1
+    const before = previous[paneKey]
+    const entry = next[paneKey]
+    if (before !== entry && before?.agentType !== entry?.agentType) {
+      return false
+    }
+  }
+  return index === previousKeys.length
+}
+
+/** Tab ids whose layout entry was added, replaced or removed. */
+function changedLayoutTabIds(
+  previous: Record<string, TerminalLayoutSnapshot>,
+  next: Record<string, TerminalLayoutSnapshot>
+): string[] {
+  const changed: string[] = []
+  let nextCount = 0
+  for (const tabId in next) {
+    nextCount += 1
+    if (previous[tabId] !== next[tabId]) {
+      changed.push(tabId)
+    }
+  }
+  if (nextCount - changed.length !== Object.keys(previous).length) {
+    for (const tabId in previous) {
+      if (!(tabId in next)) {
+        changed.push(tabId)
+      }
+    }
+  }
+  return changed
+}
+
+function patchRecord<T>(
+  previous: Record<string, T>,
+  patches: Iterable<[string, T | undefined]>
+): Record<string, T> {
+  let next: Record<string, T> | null = null
+  for (const [key, value] of patches) {
+    if (previous[key] === value) {
+      continue
+    }
+    next ??= { ...previous }
+    if (value === undefined) {
+      delete next[key]
+    } else {
+      next[key] = value
+    }
+  }
+  return next ?? previous
+}
+
+function patchTabAgentTypesForLayouts(
+  previous: Record<string, AgentType>,
+  changedTabIds: readonly string[],
+  agentStatusByPaneKey: Record<string, AgentStatusEntry>,
+  terminalLayoutsByTabId: Record<string, TerminalLayoutSnapshot>,
+  dependencies?: TabBarAgentProjectionSelectorDependencies
+): Record<string, AgentType> {
+  const patches: [string, AgentType | undefined][] = []
+  const unclaimed = new Set<string>()
+  for (const tabId of changedTabIds) {
+    dependencies?.onAgentTypeLayoutVisited?.(tabId)
+    const layout = terminalLayoutsByTabId[tabId]
+    if (layout && layoutClaimsTab(layout)) {
+      patches.push([tabId, activeLeafAgentType(tabId, layout, agentStatusByPaneKey)])
+    } else {
+      unclaimed.add(tabId)
+    }
+  }
+  if (unclaimed.size > 0) {
+    const firstPanes = firstPaneAgentTypes(
+      agentStatusByPaneKey,
+      (tabId) => unclaimed.has(tabId),
+      dependencies
+    )
+    for (const tabId of unclaimed) {
+      patches.push([tabId, firstPanes.get(tabId)])
+    }
+  }
+  return patchRecord(previous, patches)
+}
+
+function nativeChatTabWideFallbackUnsafe(
+  layout: TerminalLayoutSnapshot | undefined
+): true | undefined {
+  return layout && !isNativeChatTabWideFallbackSafe(layout) ? true : undefined
 }
 
 function projectNativeChatTabWideFallbackUnsafeTabsById(
@@ -88,11 +213,26 @@ function projectNativeChatTabWideFallbackUnsafeTabsById(
   const unsafeTabs: Record<string, true> = {}
   for (const [tabId, layout] of Object.entries(terminalLayoutsByTabId)) {
     dependencies?.onUnsafeLayoutVisited?.(tabId)
-    if (!isNativeChatTabWideFallbackSafe(layout)) {
+    if (nativeChatTabWideFallbackUnsafe(layout)) {
       unsafeTabs[tabId] = true
     }
   }
   return unsafeTabs
+}
+
+function patchNativeChatTabWideFallbackUnsafeTabsById(
+  previous: Record<string, true>,
+  changedTabIds: readonly string[],
+  terminalLayoutsByTabId: Record<string, TerminalLayoutSnapshot>,
+  dependencies?: TabBarAgentProjectionSelectorDependencies
+): Record<string, true> {
+  return patchRecord(
+    previous,
+    changedTabIds.map((tabId): [string, true | undefined] => {
+      dependencies?.onUnsafeLayoutVisited?.(tabId)
+      return [tabId, nativeChatTabWideFallbackUnsafe(terminalLayoutsByTabId[tabId])]
+    })
+  )
 }
 
 /** Project stable agent identity to avoid status-driven strip rerenders; active leaves win, with first-pane fallback before layout hydration. */
@@ -123,19 +263,43 @@ export function createTabBarAgentProjectionSelector(
     const nativeChatEnabled = state.settings?.experimentalNativeChat === true
     const statuses = state.agentStatusByPaneKey ?? EMPTY_AGENT_STATUS_BY_PANE_KEY
     const layouts = state.terminalLayoutsByTabId ?? EMPTY_TERMINAL_LAYOUTS_BY_TAB_ID
+    // Status pings and single-tab layout edits patch affected tabs instead of rescanning thousands of layouts.
     if (statuses !== cachedAgentStatusByPaneKey || layouts !== cachedAgentTypeLayoutsByTabId) {
-      cachedAgentTypesByTabId = reuseRecordIfEqual(
-        cachedAgentTypesByTabId,
-        projectTabAgentTypesByTabId(statuses, layouts, dependencies)
-      )
+      const statusesKeepAgents =
+        cachedAgentStatusByPaneKey !== null &&
+        (statuses === cachedAgentStatusByPaneKey ||
+          statusChangeKeepsAgentTypes(cachedAgentStatusByPaneKey, statuses))
+      cachedAgentTypesByTabId =
+        statusesKeepAgents && cachedAgentTypeLayoutsByTabId !== null
+          ? layouts === cachedAgentTypeLayoutsByTabId
+            ? cachedAgentTypesByTabId
+            : patchTabAgentTypesForLayouts(
+                cachedAgentTypesByTabId,
+                changedLayoutTabIds(cachedAgentTypeLayoutsByTabId, layouts),
+                statuses,
+                layouts,
+                dependencies
+              )
+          : reuseRecordIfEqual(
+              cachedAgentTypesByTabId,
+              projectTabAgentTypesByTabId(statuses, layouts, dependencies)
+            )
       cachedAgentStatusByPaneKey = statuses
       cachedAgentTypeLayoutsByTabId = layouts
     }
     if (layouts !== cachedUnsafeLayoutsByTabId) {
-      cachedUnsafeTabsById = reuseRecordIfEqual(
-        cachedUnsafeTabsById,
-        projectNativeChatTabWideFallbackUnsafeTabsById(layouts, dependencies)
-      )
+      cachedUnsafeTabsById =
+        cachedUnsafeLayoutsByTabId === null
+          ? reuseRecordIfEqual(
+              cachedUnsafeTabsById,
+              projectNativeChatTabWideFallbackUnsafeTabsById(layouts, dependencies)
+            )
+          : patchNativeChatTabWideFallbackUnsafeTabsById(
+              cachedUnsafeTabsById,
+              changedLayoutTabIds(cachedUnsafeLayoutsByTabId, layouts),
+              layouts,
+              dependencies
+            )
       cachedUnsafeLayoutsByTabId = layouts
     }
     if (

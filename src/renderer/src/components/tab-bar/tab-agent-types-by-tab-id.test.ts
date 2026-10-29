@@ -269,8 +269,9 @@ describe('selectTabAgentTypesByTabId', () => {
     })
 
     expect(afterStatus).toBe(first)
-    expect(onStatusEntryVisited).toHaveBeenCalledTimes(4)
-    expect(onAgentTypeLayoutVisited).toHaveBeenCalledTimes(2)
+    // Same-key pings that keep each agent revisit neither statuses nor layouts.
+    expect(onStatusEntryVisited).toHaveBeenCalledTimes(2)
+    expect(onAgentTypeLayoutVisited).toHaveBeenCalledTimes(1)
     expect(onUnsafeLayoutVisited).toHaveBeenCalledTimes(1)
 
     const singleLeaf = {
@@ -292,9 +293,58 @@ describe('selectTabAgentTypesByTabId', () => {
     expect(afterLayout.nativeChatTabWideFallbackUnsafeTabsById).not.toBe(
       first.nativeChatTabWideFallbackUnsafeTabsById
     )
-    expect(onStatusEntryVisited).toHaveBeenCalledTimes(6)
-    expect(onAgentTypeLayoutVisited).toHaveBeenCalledTimes(3)
+    // Only the edited tab is re-resolved; its layout claims it, so no first-pane status walk.
+    expect(onStatusEntryVisited).toHaveBeenCalledTimes(2)
+    expect(onAgentTypeLayoutVisited).toHaveBeenCalledTimes(2)
     expect(onUnsafeLayoutVisited).toHaveBeenCalledTimes(2)
+  })
+
+  it('patches incrementally to the same result as a full projection', () => {
+    let seed = 7
+    const random = (limit: number): number => {
+      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648
+      return seed % limit
+    }
+    const agents = ['claude', 'codex', 'grok', undefined] as const
+    const leaves = ['leaf-a', 'leaf-b', 'leaf-c'] as const
+    const layoutChoices: TerminalLayoutSnapshot[] = [
+      splitLayout('leaf-a'),
+      splitLayout('leaf-b'),
+      splitLayout(null),
+      splitLayout('leaf-c'),
+      { root: { type: 'leaf', leafId: 'leaf-b' }, activeLeafId: 'leaf-b', expandedLeafId: null },
+      { root: null, activeLeafId: 'leaf-a', expandedLeafId: null },
+      { root: null, activeLeafId: null, expandedLeafId: null }
+    ]
+    const select = createTabBarAgentProjectionSelector()
+    let statuses: Record<string, AgentStatusEntry> = {}
+    let layouts: Record<string, TerminalLayoutSnapshot> = {}
+    for (let step = 0; step < 2_000; step++) {
+      const tabId = `tab-${random(8)}`
+      const paneKey = `${tabId}:${leaves[random(leaves.length)]}`
+      const operation = random(7)
+      if (operation === 0) {
+        statuses = { ...statuses, [paneKey]: entry({ agentType: agents[random(agents.length)] }) }
+      } else if (operation === 1 && statuses[paneKey]) {
+        statuses = { ...statuses, [paneKey]: { ...statuses[paneKey], state: 'done' } }
+      } else if (operation === 2) {
+        const { [paneKey]: _removed, ...rest } = statuses
+        statuses = rest
+      } else if (operation === 3) {
+        // Same keys and entries in a new insertion order.
+        statuses = Object.fromEntries(Object.entries(statuses).toReversed())
+      } else if (operation === 4) {
+        layouts = { ...layouts, [tabId]: layoutChoices[random(layoutChoices.length)]! }
+      } else if (operation === 5) {
+        const { [tabId]: _removed, ...rest } = layouts
+        layouts = rest
+      }
+      const result = select({ agentStatusByPaneKey: statuses, terminalLayoutsByTabId: layouts })
+      expect(result.tabAgentTypesByTabId).toEqual(selectTabAgentTypesByTabId(statuses, layouts))
+      expect(result.nativeChatTabWideFallbackUnsafeTabsById).toEqual(
+        selectNativeChatTabWideFallbackUnsafeTabsById(layouts)
+      )
+    }
   })
 
   it('normalizes missing maps to shared empty inputs', () => {
