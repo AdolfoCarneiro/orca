@@ -1,6 +1,10 @@
 import type { AppState } from '@/store/types'
+import {
+  canNativeChatOpenOwnedBrowser,
+  resolveNativeChatHttpLinkSourceOwner
+} from '@/components/native-chat/native-chat-http-link-source-owner'
 import { getWorkspaceClientCreationActionPolicy } from './client-creation-action-policy'
-import { openOwnedHttpLink } from './http-link-routing'
+import { openOwnedHttpLink, type HttpLinkSourceOwner } from './http-link-routing'
 import { getShortcutPlatform } from './shortcut-platform'
 
 // The store registers itself so link buttons need not import it.
@@ -33,18 +37,29 @@ export function openAppHttpLink(url: string, options: OpenAppHttpLinkOptions = {
   }
   const state = appStateAccessor?.()
   const hostWorktreeId = options.worktreeId || state?.activeWorktreeId
-  // Without a workspace whose browser can open pages, the link has nowhere in Orca to go.
-  const canHost =
-    state &&
-    hostWorktreeId &&
-    getWorkspaceClientCreationActionPolicy(state, hostWorktreeId)['managed-browser'].state ===
-      'enabled'
-  // Orca's own UI is the source; the opener still routes by the host workspace's owner.
+  const host = state && hostWorktreeId ? resolveBrowserHost(state, hostWorktreeId) : null
   openOwnedHttpLink(url, {
-    worktreeId: canHost ? hostWorktreeId : null,
-    sourceOwner: { kind: 'local' },
+    worktreeId: host?.worktreeId ?? null,
+    sourceOwner: host?.owner ?? LOCAL_OWNER,
+    allowRemoteInApp: true,
     modifierHeld: isEscapeModifierClick(options.event)
   })
+}
+
+const LOCAL_OWNER: HttpLinkSourceOwner = { kind: 'local' }
+
+/** The workspace's browser hosts the link under its own owner; without one, the system browser does. */
+function resolveBrowserHost(
+  state: AppState,
+  worktreeId: string
+): { worktreeId: string; owner: HttpLinkSourceOwner } | null {
+  const owner = resolveNativeChatHttpLinkSourceOwner(state, worktreeId)
+  const canHost =
+    owner.kind === 'local'
+      ? getWorkspaceClientCreationActionPolicy(state, worktreeId)['managed-browser'].state ===
+        'enabled'
+      : canNativeChatOpenOwnedBrowser(state, worktreeId, owner)
+  return canHost ? { worktreeId, owner } : null
 }
 
 type AppHttpLinkAnchorClick = AppHttpLinkClick &
