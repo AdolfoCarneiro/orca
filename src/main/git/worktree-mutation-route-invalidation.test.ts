@@ -155,7 +155,7 @@ describe('worktree mutations invalidate the WSL linked-worktree Git route', () =
     )
     expect(gitExecFileAsyncMock).toHaveBeenCalledWith(
       ['rev-parse', '--verify', 'refs/remotes/origin/main^{commit}'],
-      { cwd: REPO, wslDistro: 'Ubuntu' }
+      { cwd: REPO, wslDistro: 'Ubuntu', captureWslLoginShellOutput: true }
     )
     expect(gitExecFileAsyncMock).toHaveBeenLastCalledWith(
       ['reset', '--hard', head],

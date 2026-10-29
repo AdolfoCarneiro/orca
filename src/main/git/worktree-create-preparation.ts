@@ -66,7 +66,7 @@ export async function prepareWorktreeCreateCheckout(
             await verifyWorktreePreparationLockAtPath(lockPath, lockReason, options.signal)
             const { stdout } = await gitExecFileAsync(
               ['rev-parse', '--verify', `${effectiveBase}^{commit}`],
-              gitExecOptions(repoPath, options)
+              { ...gitExecOptions(repoPath, options), captureWslLoginShellOutput: true }
             )
             materializationBase = stdout.trim()
             await verifyWorktreePreparationLockAtPath(lockPath, lockReason, options.signal)
@@ -167,15 +167,18 @@ export async function finalizePreparedWorktree(
             (
               await gitExecFileAsync(
                 ['rev-parse', '--verify', `${baseContext.effectiveBase}^{commit}`],
-                gitExecOptions(repoPath, finalizeGitOptions)
+                {
+                  ...gitExecOptions(repoPath, finalizeGitOptions),
+                  captureWslLoginShellOutput: true
+                }
               )
             ).stdout.trim()
           return { baseContext, targetHead }
         })(),
-        gitExecFileAsync(
-          ['rev-parse', '--verify', 'HEAD'],
-          gitExecOptions(preparedPath, finalizeGitOptions)
-        )
+        gitExecFileAsync(['rev-parse', '--verify', 'HEAD'], {
+          ...gitExecOptions(preparedPath, finalizeGitOptions),
+          captureWslLoginShellOutput: true
+        })
       ])
       // Settle both reads before failure cleanup can remove the prepared checkout.
       if (targetResult.status === 'rejected') {
