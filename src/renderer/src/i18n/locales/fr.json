@@ -13008,7 +13008,6 @@
           "offTitle": "Les plugins sont désactivés"
         },
         "PluginFilterPopover": {
-          "label": "Filtrer les plugins",
           "kind": "Catégorie",
           "catalog": "Catalogue",
           "clear": "Effacer les filtres",

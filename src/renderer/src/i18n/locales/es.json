@@ -12784,7 +12784,6 @@
           "offTitle": "Los plugins están desactivados"
         },
         "PluginFilterPopover": {
-          "label": "Filtrar plugins",
           "kind": "Categoría",
           "catalog": "Catálogo",
           "clear": "Borrar filtros",

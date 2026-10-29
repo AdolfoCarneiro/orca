@@ -12498,7 +12498,6 @@
           "offTitle": "プラグインはオフです"
         },
         "PluginFilterPopover": {
-          "label": "プラグインを絞り込む",
           "kind": "カテゴリ",
           "catalog": "カタログ",
           "clear": "絞り込みをクリア",

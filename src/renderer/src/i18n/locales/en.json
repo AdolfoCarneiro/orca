@@ -13183,7 +13183,6 @@
           "offTitle": "Plugins are off"
         },
         "PluginFilterPopover": {
-          "label": "Filter plugins",
           "kind": "Category",
           "catalog": "Catalog",
           "clear": "Clear filters",
@@ -13191,7 +13190,8 @@
           "languages": "Languages",
           "icons": "Icons",
           "commands": "Commands & panels",
-          "machines": "Machines & recipes"
+          "machines": "Machines & recipes",
+          "catalogLabel": "Filter by catalog"
         },
         "PluginUpdateAllDialog": {
           "previewError": "Couldn’t read this update",

@@ -14,6 +14,8 @@ type PluginCatalogLayoutProps = {
   installedCount: number
   updateCount: number
   toolbar?: React.ReactNode
+  /** A row under the search, e.g. the category chips. */
+  filters?: React.ReactNode
   children: React.ReactNode
 }
 
@@ -30,6 +32,7 @@ export function PluginCatalogLayout({
   installedCount,
   updateCount,
   toolbar,
+  filters,
   children
 }: PluginCatalogLayoutProps): React.JSX.Element {
   return (
@@ -112,6 +115,7 @@ export function PluginCatalogLayout({
         </div>
         {toolbar ? <div className="ml-auto flex items-center gap-1">{toolbar}</div> : null}
       </div>
+      {filters}
 
       {children}
     </section>

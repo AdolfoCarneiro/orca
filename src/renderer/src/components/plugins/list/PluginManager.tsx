@@ -24,6 +24,7 @@ import {
   type CatalogCardHandlers
 } from '../catalog/PluginCatalogGroups'
 import { PluginListToolbar } from './PluginListToolbar'
+import { PluginCategoryChips } from './PluginCategoryChips'
 import {
   PluginAllInstalled,
   PluginNoMatches,
@@ -36,7 +37,6 @@ import { PluginUpdateAllDialog } from '../dialogs/PluginUpdateAllDialog'
 import {
   matchesPluginFilter,
   NO_PLUGIN_LIST_FILTER,
-  pluginFilterCategories,
   pluginFilterSize,
   type PluginListFilter
 } from './plugin-list-filter'
@@ -327,12 +327,18 @@ export function PluginManager({
         onSearchChange={setSearch}
         installedCount={plugins.length}
         updateCount={updates.length}
+        filters={
+          <PluginCategoryChips
+            entries={[...entries.installed, ...entries.available]}
+            filter={listFilter}
+            onChange={setListFilter}
+          />
+        }
         toolbar={
           <PluginListToolbar
             updateCount={filter === 'updates' ? updates.length : 0}
             onUpdateAll={() => openUpdates(updates)}
             filter={listFilter}
-            categories={pluginFilterCategories([...entries.installed, ...entries.available])}
             sources={catalog.sources}
             onFilterChange={setListFilter}
             refreshBusy={catalog.refreshBusy}

@@ -12531,7 +12531,6 @@
           "offTitle": "插件已关闭"
         },
         "PluginFilterPopover": {
-          "label": "筛选插件",
           "kind": "类别",
           "catalog": "目录",
           "clear": "清除筛选",

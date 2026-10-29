@@ -12498,7 +12498,6 @@
           "offTitle": "플러그인이 꺼져 있습니다"
         },
         "PluginFilterPopover": {
-          "label": "플러그인 필터",
           "kind": "카테고리",
           "catalog": "카탈로그",
           "clear": "필터 지우기",

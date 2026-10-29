@@ -223,6 +223,28 @@ describe('PluginManager', () => {
     expect(keys().sort()).toEqual(['local.dev-theme', 'stablyai.orca-nord-theme'])
   })
 
+  it('filters by an inline category chip', async () => {
+    installApi({
+      listMarketplacePlugins: vi
+        .fn()
+        .mockResolvedValue([
+          ...catalogListings,
+          listing('stablyai.gleam', { categories: ['syntax'] })
+        ])
+    })
+    const container = await render()
+    const chip = Array.from(container.querySelectorAll('[data-slot="toggle-group-item"]')).find(
+      (node) => node.textContent === 'Languages'
+    )
+    expect(chip?.querySelector('svg')).not.toBeNull()
+    await act(async () => chip?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+    expect(
+      Array.from(container.querySelectorAll('[data-plugin-key]'), (card) =>
+        card.getAttribute('data-plugin-key')
+      )
+    ).toEqual(['stablyai.gleam'])
+  })
+
   it('labels cards by category with an icon, keeping a chip only for full access', async () => {
     const worker: PluginHostListEntry = {
       ...installedPlugin,
