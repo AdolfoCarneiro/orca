@@ -3,7 +3,7 @@ import { OrcaRuntimeService } from '../../../../orca-runtime'
 import { OrchestrationDb } from '../../../../orchestration/db'
 import { ORCHESTRATION_METHODS } from '../../orchestration'
 import { createRootDispatch } from '../../../../orchestration/db/root-dispatch-test-fixture'
-import { eraseRpcMethods } from '../../../core'
+import { isStreamingMethod, eraseRpcMethods } from '../../../core'
 
 describe('manual Dispatch observation', () => {
   let db: OrchestrationDb | undefined
@@ -52,9 +52,9 @@ describe('manual Dispatch observation', () => {
       coordinatorPaneKey
     })
     const task = db.createTask({ spec: 'injected lane', runId: run.id })
-    const dispatchMethod = eraseRpcMethods(ORCHESTRATION_METHODS).find(
-      (candidate) => candidate.name === 'orchestration.dispatch'
-    )
+    const dispatchMethod = eraseRpcMethods(ORCHESTRATION_METHODS)
+      .filter((method) => !isStreamingMethod(method))
+      .find((candidate) => candidate.name === 'orchestration.dispatch')
     if (!dispatchMethod) {
       throw new Error('Missing method orchestration.dispatch')
     }
@@ -77,9 +77,9 @@ describe('manual Dispatch observation', () => {
       process_incarnation: 'runtime_test:term_worker:1'
     })
 
-    const workerShowMethod = eraseRpcMethods(ORCHESTRATION_METHODS).find(
-      (candidate) => candidate.name === 'orchestration.workerShow'
-    )
+    const workerShowMethod = eraseRpcMethods(ORCHESTRATION_METHODS)
+      .filter((method) => !isStreamingMethod(method))
+      .find((candidate) => candidate.name === 'orchestration.workerShow')
     if (!workerShowMethod) {
       throw new Error('Missing method orchestration.workerShow')
     }
@@ -127,9 +127,9 @@ describe('manual Dispatch observation', () => {
     )
     const context = { runtime }
     const call = async (name: string, params: Record<string, unknown>) => {
-      const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
-        (candidate) => candidate.name === name
-      )
+      const method = eraseRpcMethods(ORCHESTRATION_METHODS)
+        .filter((method) => !isStreamingMethod(method))
+        .find((candidate) => candidate.name === name)
       if (!method) {
         throw new Error(`Missing method ${name}`)
       }
@@ -229,9 +229,9 @@ describe('manual Dispatch observation', () => {
     const task = db.createTask({ spec: 'operator lane', runId: run.id })
     const dispatch = createRootDispatch(db, task.id, 'term_worker', 'tab_worker:leaf_worker')
 
-    const workerListMethod = eraseRpcMethods(ORCHESTRATION_METHODS).find(
-      (candidate) => candidate.name === 'orchestration.workerList'
-    )
+    const workerListMethod = eraseRpcMethods(ORCHESTRATION_METHODS)
+      .filter((method) => !isStreamingMethod(method))
+      .find((candidate) => candidate.name === 'orchestration.workerList')
     if (!workerListMethod) {
       throw new Error('Missing method orchestration.workerList')
     }
@@ -276,9 +276,9 @@ describe('manual Dispatch observation', () => {
       'launch-hash',
       'runtime_test:term_worker:1'
     )
-    const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
-      (candidate) => candidate.name === name
-    )
+    const method = eraseRpcMethods(ORCHESTRATION_METHODS)
+      .filter((method) => !isStreamingMethod(method))
+      .find((candidate) => candidate.name === name)
 
     if (!method) {
       throw new Error(`Missing method ${name}`)

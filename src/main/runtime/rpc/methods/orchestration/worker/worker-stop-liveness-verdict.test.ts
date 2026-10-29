@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OrcaRuntimeService } from '../../../../orca-runtime'
 import { OrchestrationDb } from '../../../../orchestration/db'
 import { ORCHESTRATION_METHODS } from '../../orchestration'
-import { eraseRpcMethods } from '../../../core'
+import { isStreamingMethod, eraseRpcMethods } from '../../../core'
 
 // Dropped relays clear connected across remote PTYs; use host verdicts to distinguish lost contact from death.
 describe('worker-stop against a terminal we lost contact with', () => {
@@ -28,9 +28,9 @@ describe('worker-stop against a terminal we lost contact with', () => {
   afterEach(() => db.close())
 
   async function call(name: string, params: Record<string, unknown>) {
-    const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
-      (candidate) => candidate.name === name
-    )
+    const method = eraseRpcMethods(ORCHESTRATION_METHODS)
+      .filter((method) => !isStreamingMethod(method))
+      .find((candidate) => candidate.name === name)
     if (!method) {
       throw new Error(`Method not found: ${name}`)
     }

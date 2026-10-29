@@ -1,18 +1,18 @@
-import '../../rpc/unused-default-rpc-methods.test-fixture'
+import '../main/runtime/rpc/unused-default-rpc-methods.test-fixture'
 import { afterEach, expect, it, vi } from 'vitest'
 import { z } from 'zod'
-import { dispatch } from '../../../../cli/dispatch'
-import { RuntimeClient, RuntimeClientError } from '../../../../cli/runtime-client'
-import { ORCHESTRATION_CONTRACT_VERSION } from '../../../../shared/protocol-version'
+import { dispatch } from './dispatch'
+import { RuntimeClient, RuntimeClientError } from './runtime-client'
+import { ORCHESTRATION_CONTRACT_VERSION } from '../shared/protocol-version'
 import {
   createSessionCallerHarness,
   orchestrationRequest
-} from '../../rpc/orchestration-session-caller-test-fixture'
-import { configureFederationWorkerRuntime } from '../../rpc/methods/orchestration/federation/federation-runtime.test-support'
-import { buildCrewSnapshot } from './crew-read-model'
+} from '../main/runtime/rpc/orchestration-session-caller-test-fixture'
+import { configureFederationWorkerRuntime } from '../main/runtime/rpc/methods/orchestration/federation/federation-runtime.test-support'
+import { buildCrewSnapshot } from '../main/runtime/orchestration/crew/crew-read-model'
 
 const hostRef = vi.hoisted((): { current: unknown } => ({ current: null }))
-vi.mock('../../../native-chat/agent-session-wire/structured-agent-session-registry', () => ({
+vi.mock('../main/native-chat/agent-session-wire/structured-agent-session-registry', () => ({
   getStructuredAgentSessionHost: () => hostRef.current
 }))
 afterEach(() => {

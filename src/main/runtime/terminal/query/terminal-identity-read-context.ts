@@ -14,7 +14,7 @@ import type {
   RuntimeLeafRecord,
   RuntimePtyWorktreeRecord
 } from '../../runtime-terminal-state-records'
-import type { PtyPane } from '../surface/pty-pane-query'
+import type { PtyPane, PtyPaneOf, PtyPaneSource } from '../surface/pty-pane-query'
 
 type IdentitySources = {
   handles: ReadonlyMap<string, TerminalHandleRecord>
@@ -22,7 +22,7 @@ type IdentitySources = {
   leaves: ReadonlyMap<string, RuntimeLeafRecord>
   ptys: ReadonlyMap<string, RuntimePtyWorktreeRecord>
   sshTerminals: ReadonlyMap<string, OrchestrationCompatibilitySshTerminal>
-  capturePaneOf: () => (pty: RuntimePtyWorktreeRecord) => PtyPane
+  capturePaneOf: () => PtyPaneOf
 }
 
 type OrderedKeys = ReadonlyMap<string, number>
@@ -62,14 +62,14 @@ export class TerminalIdentityRawInputs {
   private panePtys: IndexedKeys | undefined
   private leafPtys: IndexedKeys | undefined
   private ssh: Map<string, string[]> | undefined
-  private paneReader: ((pty: RuntimePtyWorktreeRecord) => PtyPane) | undefined
+  private paneReader: PtyPaneOf | undefined
   private readonly reverseFacts = new Map<string, { handle: string; order: number }>()
   private handleCount = 0
   private readonly handleFacts = new Map<string, { ptyId: string; order: number }>()
 
   constructor(private readonly source: IdentitySources) {}
 
-  paneOf(pty: RuntimePtyWorktreeRecord): PtyPane {
+  paneOf(pty: PtyPaneSource): PtyPane {
     this.paneReader ??= this.source.capturePaneOf()
     return this.paneReader(pty)
   }
@@ -188,7 +188,7 @@ export class TerminalIdentityReadContext {
     return (this.structuredContext ??= this.inputs.openStructured())
   }
 
-  paneOf = (pty: RuntimePtyWorktreeRecord): PtyPane => this.inputs.paneOf(pty)
+  paneOf = (pty: PtyPaneSource): PtyPane => this.inputs.paneOf(pty)
   captureProjectionRecords = (read: () => AgentSessionRecordReader | null) =>
     this.inputs.captureProjectionRecords(read)
 

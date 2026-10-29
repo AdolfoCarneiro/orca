@@ -1,6 +1,5 @@
 import type { TerminalIdentityReadContext } from '../query/terminal-identity-read-context'
 import type { AgentStatusOrchestrationContext } from '../../../../shared/agent-status-types'
-import type { OrchestrationDb } from '../../orchestration/db/orchestration-db'
 import { OrcaRuntimeWithVerifyOrchestrationCompatibilityCaller } from '../../orchestration/terminal-authority/verify-orchestration-compatibility-caller'
 import type { OrchestrationCompatibilityTerminalAuthority } from '../../runtime-terminal-contracts'
 import { createHash } from 'node:crypto'
@@ -16,7 +15,10 @@ import type { ProjectExecutionRuntimeResolution } from '../../../../shared/proje
 import { resolveLocalProjectRuntimeForWorktreeId } from '../../../local-project-runtime-resolution'
 import type { AgentDetectionHost } from '../../../preflight/workspace-agent-detection'
 import { resolveRuntimeAgentDetectionHost } from '../../runtime-agent-detection-host'
-import type { RuntimePtyWorktreeRecord } from '../../runtime-terminal-state-records'
+import type {
+  RuntimeLeafRecord,
+  RuntimePtyWorktreeRecord
+} from '../../runtime-terminal-state-records'
 import {
   localOrchestrationCliCommand,
   resolveTerminalOrchestrationCliCommand,
@@ -33,8 +35,11 @@ import { parseOrcaSessionAddress } from '../../../../shared/orca-session-address
 import { matchesProcessIncarnation } from '../../orchestration/worker-terminal-process-liveness'
 
 export abstract class OrcaRuntimeWithGetOrchestrationDispatchAuthority extends OrcaRuntimeWithVerifyOrchestrationCompatibilityCaller {
+  protected abstract issueHandle(
+    leaf: RuntimeLeafRecord,
+    context?: TerminalIdentityReadContext
+  ): string
   protected abstract getExistingTerminalHandlesForPtyId(ptyId: string): string[]
-  protected abstract getOrchestrationDbIfAvailable(): OrchestrationDb | null
   getTerminalProcessIncarnation(
     handle: string,
     context?: TerminalIdentityReadContext
@@ -64,10 +69,6 @@ export abstract class OrcaRuntimeWithGetOrchestrationDispatchAuthority extends O
   abstract getAgentStatusOrchestrationContextForPaneKey(
     paneKey: string
   ): AgentStatusOrchestrationContext | undefined
-  protected abstract issuePtyHandle(
-    pty: RuntimePtyWorktreeRecord,
-    context?: TerminalIdentityReadContext
-  ): string
 
   /** Every pane key this PTY could be addressed by, including restored receipts. */
   protected collectPaneKeysForPty(ptyId: string): Set<string> {
