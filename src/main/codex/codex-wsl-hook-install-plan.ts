@@ -173,6 +173,18 @@ function canonicalizeWslLinuxPath(
   return cached ?? null
 }
 
+/** Whether this home is a WSL Codex home, whose hooks only the WSL writer may touch. */
+export function isCodexWslRuntimeHome(
+  runtimeHomePath: string | null | undefined,
+  target?: CodexWslRuntimeHookTarget
+): boolean {
+  return (
+    !!runtimeHomePath &&
+    (parseWslUncPath(runtimeHomePath) !== null ||
+      (target?.runtime === 'wsl' && !!target.wslDistro?.trim()))
+  )
+}
+
 export function createCodexWslRuntimeHookInstallPlan(
   runtimeHomePath: string | null | undefined,
   target?: CodexWslRuntimeHookTarget,

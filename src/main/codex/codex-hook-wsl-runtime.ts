@@ -42,6 +42,17 @@ export async function isWslHookDistroBlocked(distro: string): Promise<boolean> {
   return (await blockedWslDistroForPath('', distro)) !== null
 }
 
+/** A WSL home whose install was skipped because its distro is stopped; the relay installs later. */
+export function skippedWslHookInstallStatus(runtimeHomePath: string): AgentHookInstallStatus {
+  return {
+    agent: 'codex',
+    state: 'not_installed',
+    configPath: pathWin32.join(runtimeHomePath, 'hooks.json'),
+    managedHooksPresent: false,
+    detail: 'The WSL distro is not running; Orca installs these hooks once it runs.'
+  }
+}
+
 /**
  * Serialize clear/grant/fallback per file so concurrent pane launches cannot interleave trust writes.
  * Null: skipped, because the distro is stopped and its UNC files would start it.

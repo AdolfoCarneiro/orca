@@ -118,4 +118,21 @@ describe('Codex WSL hook install on a stopped distro', () => {
     expect(settled).toBeDefined()
     expect(mocks.removeStale).not.toHaveBeenCalled()
   })
+
+  it('a launch on a stopped distro skips, never falling back to the host writer over UNC', async () => {
+    mocks.createPlan.mockReturnValue(plan())
+    mocks.blocked.mockResolvedValue(STOPPED)
+    const service = new CodexHookService()
+    const hostWriter = vi.spyOn(service, 'installForLaunchPrep')
+    const home = '\\\\wsl.localhost\\Ubuntu\\home\\alice\\.codex'
+    await expect(
+      service.prepareRuntimeHomeForLaunch(
+        home,
+        { runtime: 'wsl', wslDistro: 'Ubuntu' },
+        () => true,
+        true
+      )
+    ).resolves.toMatchObject({ state: 'not_installed', managedHooksPresent: false })
+    expect(hostWriter).not.toHaveBeenCalled()
+  })
 })

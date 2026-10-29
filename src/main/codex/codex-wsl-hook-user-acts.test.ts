@@ -54,7 +54,7 @@ describe('Codex WSL hook installs that are user acts', () => {
     expect(inAct).toEqual([true, false])
   })
 
-  it('a pane launch prepares its Codex home as a user act on its distro', async () => {
+  it('a pane launch is not a user act: a passive restore reaches it too, so it must not start the distro', async () => {
     const inAct: boolean[] = []
     mocks.prepare.mockImplementation(async () => {
       inAct.push(isWslUserActFor('Ubuntu'))
@@ -75,6 +75,6 @@ describe('Codex WSL hook installs that are user acts', () => {
     await prepare({ runtime: 'wsl', wslDistro: 'Ubuntu' }, undefined, {
       launchesCodex: true
     })
-    expect(inAct).toEqual([true])
+    expect(inAct).toEqual([false])
   })
 })

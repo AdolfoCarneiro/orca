@@ -7,7 +7,6 @@ import { getDefaultWslDistro } from '../wsl'
 import { isAgentStatusHooksEnabledForAgent } from '../agent-hooks/managed-agent-hook-controls'
 import { reconcileCodexHooksForLaunch } from './codex-hook-reconcile'
 import { grantCodexSandboxReadOnManagedHome } from './codex-windows-sandbox-read-grant'
-import { runAsWslUserAct } from '../wsl/wsl-unc-access-gate'
 
 export function createCodexRuntimeHomeLaunchPreparation(deps: {
   getRuntimeHome: () => Pick<CodexRuntimeHomeService, 'prepareForCodexLaunchAsync'> | null
@@ -45,16 +44,13 @@ export function createCodexRuntimeHomeLaunchPreparation(deps: {
       isAgentStatusHooksEnabledForAgent(deps.getSettings(), 'codex')
     const hooksEnabled = isHooksEnabled()
     try {
-      // Launching a pane is a user act: preparing its Codex home may start the distro it runs in.
-      const status = await runAsWslUserAct(
-        hookTarget?.runtime === 'wsl' ? (hookTarget.wslDistro ?? null) : null,
-        () =>
-          codexHookService.prepareRuntimeHomeForLaunch(
-            runtimeHomePath,
-            hookTarget,
-            isHooksEnabled,
-            launchesCodex
-          )
+      // Not a user act here: a passive restore or remount reaches this too (#35813), so a
+      // stopped distro skips the install; the hook relay installs once the distro runs.
+      const status = await codexHookService.prepareRuntimeHomeForLaunch(
+        runtimeHomePath,
+        hookTarget,
+        isHooksEnabled,
+        launchesCodex
       )
       if (status.state === 'error') {
         console.warn(
