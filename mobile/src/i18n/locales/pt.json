@@ -161,6 +161,7 @@
       "clickModifier": "Modificador de clique {{key}}"
     },
     "useBrowserCommands": {
+      "deliveryUnconfirmed": "Envio não confirmado — verifique a página antes de tentar novamente",
       "dialogAnswerFailed": "A resposta não chegou à página.",
       "sent": "Enviado"
     },
@@ -230,10 +231,6 @@
     },
     "nativeChatProse": {
       "attachedImage": "Imagem anexada",
-      "continuedOutside": "Continuou fora deste chat.",
-      "continuedOutsideRewound": "Continuou fora deste chat. As respostas anteriores acima não fazem mais parte do histórico desta conversa.",
-      "historyItemTooLarge": "Esta parte do chat era grande demais para ser exibida.",
-      "historyRepaired": "Não foi possível carregar parte do histórico deste chat.",
       "image": "imagem",
       "openImageHint": "Abre a imagem em tamanho original"
     },
@@ -1939,7 +1936,9 @@
       "groupShell": "Shell",
       "groupTasks": "Tarefas",
       "groupWorkflows": "Fluxos de Trabalho",
-      "headerTotal": "{{value0}} tarefas em segundo plano",
+      "headerTotalCount_many": "{{count}} tarefas em segundo plano",
+      "headerTotalCount_one": "{{count}} tarefa em segundo plano",
+      "headerTotalCount_other": "{{count}} tarefas em segundo plano",
       "monitor": "Monitor em segundo plano",
       "monitoring": "Monitorando tarefas em segundo plano",
       "reasonBlocked": "falhou",
@@ -1983,8 +1982,8 @@
     "commandDock": {
       "commandPlaceholder": "Digite um comando…",
       "liveInputHint": "O texto digitado é enviado diretamente ao terminal ativo.",
-      "sendCommand": "Enviar comando",
-      "showLiveInputKeyboard": "Mostrar teclado para entrada em tempo real no terminal"
+      "liveInputLabel": "Entrada em tempo real no terminal",
+      "sendCommand": "Enviar comando"
     },
     "contentRow": {
       "dismissCreationWarning": "Dispensar aviso de criação do espaço de trabalho"
@@ -2292,7 +2291,6 @@
       "transcribingDictation": "Transcrevendo ditado por voz"
     },
     "terminalLiveInputStatus": {
-      "keyboardHint": "Toque para mostrar o teclado",
       "listening": "Ouvindo",
       "liveInput": "Entrada em tempo real",
       "preparingMic": "Preparando microfone",
@@ -2301,7 +2299,8 @@
       "startingMic": "Ativando microfone",
       "stopHint": "Toque no microfone para parar",
       "transcribing": "Transcrevendo no desktop",
-      "uploadingImage": "Enviando imagem para o host"
+      "uploadingImage": "Enviando imagem para o host",
+      "uploadingImageTitle": "Enviando imagem"
     },
     "terminalRecords": {
       "defaultTitle": "Terminal"

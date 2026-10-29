@@ -157,6 +157,7 @@
       "clickModifier": "Tıklamalarda {{key}} tuşunu kullan"
     },
     "useBrowserCommands": {
+      "deliveryUnconfirmed": "Gönderim doğrulanamadı — yeniden denemeden önce sayfayı kontrol edin",
       "dialogAnswerFailed": "Yanıt sayfaya ulaşmadı.",
       "sent": "Gönderildi"
     },
@@ -226,10 +227,6 @@
     },
     "nativeChatProse": {
       "attachedImage": "Ekli görsel",
-      "continuedOutside": "Bu sohbetin dışında devam edildi.",
-      "continuedOutsideRewound": "Bu sohbetin dışında devam edildi. Yukarıdaki önceki yanıtlar artık bu sohbetin geçmişinde yer almıyor.",
-      "historyItemTooLarge": "Sohbetin bu bölümü gösterilemeyecek kadar büyüktü.",
-      "historyRepaired": "Bu sohbetin geçmişinin bir bölümü yüklenemedi.",
       "image": "görsel",
       "openImageHint": "Görseli tam boyutta açar"
     },
@@ -1881,7 +1878,8 @@
       "groupShell": "Kabuk",
       "groupTasks": "Görevler",
       "groupWorkflows": "İş akışları",
-      "headerTotal": "{{value0}} arka plan görevi",
+      "headerTotalCount_one": "{{count}} arka plan görevi",
+      "headerTotalCount_other": "{{count}} arka plan görevi",
       "monitor": "Arka plan izleyicisi",
       "monitoring": "Arka plan görevleri izleniyor",
       "reasonBlocked": "başarısız",
@@ -1925,8 +1923,8 @@
     "commandDock": {
       "commandPlaceholder": "Bir komut yazın…",
       "liveInputHint": "Yazılan metin doğrudan etkin terminale gönderilir",
-      "sendCommand": "Komut gönder",
-      "showLiveInputKeyboard": "Canlı terminal girişi için klavyeyi göster"
+      "liveInputLabel": "Canlı terminal girişi",
+      "sendCommand": "Komut gönder"
     },
     "contentRow": {
       "dismissCreationWarning": "Çalışma alanı oluşturma uyarısını kapat"
@@ -2232,7 +2230,6 @@
       "transcribingDictation": "Sesli dikte yazıya dökülüyor"
     },
     "terminalLiveInputStatus": {
-      "keyboardHint": "Klavyeyi açmak için dokunun",
       "listening": "Dinliyor",
       "liveInput": "Canlı giriş",
       "preparingMic": "Mikrofon hazırlanıyor",
@@ -2241,7 +2238,8 @@
       "startingMic": "Mikrofon başlatılıyor",
       "stopHint": "Durdurmak için mikrofona dokunun",
       "transcribing": "Masaüstünde yazıya dökülüyor",
-      "uploadingImage": "Görsel sunucuya yükleniyor"
+      "uploadingImage": "Görsel sunucuya yükleniyor",
+      "uploadingImageTitle": "Görsel yükleniyor"
     },
     "terminalRecords": {
       "defaultTitle": "Terminal"
@@ -2865,37 +2863,6 @@
       "push": "Push",
       "stageAll": "Tümünü Stage Et",
       "sync": "Senkronize Et"
-    },
-    "primaryActionCopy": {
-      "checkingReviewStatus": "İnceleme durumu kontrol ediliyor.",
-      "checkoutBranchBeforePublish": "Commit'leri yayınlamadan önce bir branch'i checkout edin.",
-      "commit": "Commit",
-      "commitInProgress": "Commit devam ediyor.",
-      "commitStagedChanges": "Stage edilmiş değişiklikleri commit'leyin.",
-      "enterCommitMessage": "Commit'lemek için bir commit mesajı girin.",
-      "forcePush": "Force Push",
-      "forcePushInProgress": "Force push devam ediyor.",
-      "forcePushWithLease": "Remote branch'i güncellemek için lease korumasıyla force push edin.",
-      "linkedReviewTargetUnavailable": "Bağlı inceleme branch'i kullanılamıyor.",
-      "nothingToCommitUpToDate": "Commit'lenecek bir şey yok. Branch güncel.",
-      "publishBranch": "Branch'i Yayınla",
-      "publishBranchHint": "Bu branch'i origin'e yayınlayın.",
-      "pull": "Pull",
-      "pullCommits_one": "{{count}} commit'i pull edin.",
-      "pullCommits_other": "{{count}} commit'i pull edin.",
-      "push": "Push",
-      "pushCommits_one": "{{count}} commit'i push edin.",
-      "pushCommits_other": "{{count}} commit'i push edin.",
-      "pushLinkedReview": "Güncellemeleri bağlı inceleme branch'ine push edin.",
-      "remoteOperationBlocksCommit": "Remote işlemi tamamlandığında yeniden deneyin.",
-      "remoteOperationInProgress": "Remote işlemi devam ediyor.",
-      "resolveConflictsBeforeCommit": "Commit'lemeden önce çakışmaları çözün.",
-      "reviewAlreadyMerged": "Commit'lenecek bir şey yok. İnceleme zaten merge edildi.",
-      "stageAll": "Tümünü Stage Et",
-      "stageAllChanges": "Tüm değişiklikleri stage edin.",
-      "stageFileToCommit": "Commit'lemek için en az bir dosya stage edin.",
-      "sync": "Senkronize Et",
-      "syncCounts": "{{behind}} commit'i pull, {{ahead}} commit'i push edin."
     },
     "remoteDropdown": {
       "branchAlreadyPublished": "Branch zaten yayımlandı",
