@@ -35,18 +35,7 @@ import type {
   CodexStructuredItemStreamAdmission,
   CodexStructuredItemStreams
 } from './codex-structured-item-stream-contracts'
-export type {
-  CodexStructuredItemStreamAdmission,
-  CodexStructuredItemStreamHandleResult,
-  CodexStructuredItemStreams
-} from './codex-structured-item-stream-contracts'
-export { codexStructuredItemKey } from './codex-structured-item-stream-bounds'
-export {
-  MAX_CODEX_ITEM_STREAM_PENDING_PATCH_BYTES,
-  MAX_CODEX_ITEM_STREAM_RETAINED_BYTES,
-  MAX_CODEX_ITEM_STREAM_PENDING_PATCHES,
-  MAX_CODEX_ITEM_STREAM_STATES
-} from './codex-structured-item-stream-bounds'
+export type { CodexStructuredItemStreams } from './codex-structured-item-stream-contracts'
 export function createCodexStructuredItemStreams(
   deps: CodexItemStreamDeps
 ): CodexStructuredItemStreams {
@@ -129,8 +118,7 @@ export function createCodexStructuredItemStreams(
         previous === undefined || performance.now() - previous >= AGENT_SESSION_TEXT_CHECKPOINT_MS
       )
     }
-    const checkpointLength = checkpointLengths.get(key) ?? 0
-    return codexStreamCheckpointDue(checkpointLength, textLength)
+    return codexStreamCheckpointDue(checkpointLengths.get(key) ?? 0, textLength)
   }
 
   const coalescer = createAgentSessionDeltaCoalescer({
@@ -225,10 +213,14 @@ export function createCodexStructuredItemStreams(
         }
         const key = codexStructuredItemKey(threadId, itemId)
         const streamFlushed = coalescer.flush(key)
+        const created = !states.get(key)
         const state = ensureState(threadId, itemId, 'fileChange', params)
-        const capacity = trimStates()
-        if (!capacity.accepted) {
-          return { handled: true, admission: capacity }
+        if (created) {
+          const capacity = trimStates()
+          if (!capacity.accepted) {
+            forgetState(key)
+            return { handled: true, admission: capacity }
+          }
         }
         state.item = { ...state.item, changes: paramsRecord.changes }
         const translated = codexJournalItem(state.item)
@@ -271,14 +263,33 @@ export function createCodexStructuredItemStreams(
       if (!itemId) {
         return { handled: true, admission: { accepted: true } }
       }
-      const state = ensureState(threadId, itemId, type ?? 'reasoning', params)
-      const capacity = trimStates()
-      if (!capacity.accepted) {
-        return { handled: true, admission: capacity }
+      const key = codexStructuredItemKey(threadId, itemId)
+      const created = !states.get(key)
+      ensureState(threadId, itemId, type ?? 'reasoning', params)
+      if (created) {
+        const capacity = trimStates()
+        if (!capacity.accepted) {
+          // Retry a refused creation before accepting any incoming content.
+          forgetState(key)
+          return { handled: true, admission: capacity }
+        }
       }
       const delta = method === REASONING_PART_METHOD ? '\n' : paramsRecord.delta
       if (typeof delta === 'string' && delta.length > 0) {
-        const key = codexStructuredItemKey(threadId, state.item.id)
+        // Buffer allocation can evict a time-skipped snapshot even with retained metadata.
+        const evicted = coalescer.evictionFor(key)
+        const buffered = evicted === undefined ? null : coalescer.snapshot(evicted)
+        if (
+          evicted !== undefined &&
+          buffered &&
+          checkpointLengths.get(evicted) !== buffered.text.length
+        ) {
+          const admission = persist(evicted, buffered.text)
+          if (!admission.accepted) {
+            return { handled: true, admission }
+          }
+          coalescer.markFlushed(evicted)
+        }
         pendingCheckpoints.add(key)
         const accepted = coalescer.append(key, delta)
         if (!accepted) {
@@ -287,10 +298,7 @@ export function createCodexStructuredItemStreams(
       }
       return { handled: true, admission: { accepted: true } }
     },
-    forget: (threadId, itemId) => {
-      const key = codexStructuredItemKey(threadId, itemId)
-      forgetState(key)
-    },
+    forget: (threadId, itemId) => forgetState(codexStructuredItemKey(threadId, itemId)),
     flush,
     dispose: () => {
       coalescer.dispose()
@@ -302,9 +310,6 @@ export function createCodexStructuredItemStreams(
       pendingPatches.clear()
       retainedPatchBytes = 0
     },
-    snapshot: (threadId, itemId) => {
-      const key = codexStructuredItemKey(threadId, itemId)
-      return coalescer.snapshot(key)
-    }
+    snapshot: (threadId, itemId) => coalescer.snapshot(codexStructuredItemKey(threadId, itemId))
   }
 }

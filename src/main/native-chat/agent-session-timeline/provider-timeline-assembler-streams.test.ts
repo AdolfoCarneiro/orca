@@ -1,3 +1,8 @@
+import { AcpStructuredLane } from '../../acp/acp-structured-lane'
+import { GENERIC_ACP_DIALECT } from '../../acp/acp-dialects/acp-dialect'
+import { PiRpcMessages } from '../../pi/rpc-messages'
+import { PiRpcContextUsage } from '../../pi/rpc-context-usage'
+import { testEventSinkLogging } from '../agent-session-wire/structured-agent-session-logger-test-support'
 import { measureDeltaSnapshotWork } from '../agent-session-wire/agent-session-delta-work-test-support'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseAgentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
@@ -122,7 +127,10 @@ it.each(['close', 'tool', 'flush-dispose', 'next-delta'])(
     vi.advanceTimersByTime(60)
     expect(messageText((await r.row(providerItemId('item', 'm')))?.body)).toBe('P')
     expect(vi.getTimerCount()).toBe(0)
-    vi.advanceTimersByTime(40)
+    vi.advanceTimersByTime(340)
+    delta('')
+    expect(vi.getTimerCount()).toBe(0)
+    expect(messageText((await r.row(providerItemId('item', 'm')))?.body)).toBe('P')
     if (boundary === 'next-delta') {
       vi.setSystemTime(100)
       vi.advanceTimersByTime(300)
@@ -298,4 +306,153 @@ it('actual ACP lane flush/dispose saves a skipped tail and session end retains S
   expect(await r.turn('t')).toMatchObject({ state: 'interrupted' })
   expect(failed).not.toHaveBeenCalled()
   expect(vi.getTimerCount()).toBe(0)
+})
+
+it.each([false, true])(
+  'real ACP empty=%s does not consume the next content window',
+  async (empty) => {
+    const r = await openProviderTimelineRig()
+    r.assembler.dispose()
+    vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] })
+    const admitted = vi.spyOn(r.sink, 'tryAppendTransition')
+    const failed = vi.fn()
+    const lane = new AcpStructuredLane({
+      sink: r.sink,
+      sessionId: 'session-timeline',
+      agent: 'grok',
+      agentName: 'Grok',
+      generation: 'gen-1',
+      providerSessionId: 'provider-session-1',
+      dialect: GENERIC_ACP_DIALECT,
+      logger: testEventSinkLogging().logger,
+      onInputAccepted: () => {},
+      onFailed: failed
+    })
+    const chunk = (text: string) => {
+      const events = lane.translator.notification(
+        'session/update',
+        {
+          sessionId: 'provider-session-1',
+          update: {
+            sessionUpdate: 'agent_message_chunk',
+            messageId: 'reply',
+            content: { type: 'text', text }
+          }
+        },
+        1000 + performance.now()
+      )
+      expect(events).toHaveLength(1)
+      expect(events[0]).toMatchObject({ type: 'text.delta', text })
+      lane.apply(events)
+    }
+    const reply = () =>
+      r.journal
+        .publicRead()
+        .snapshot.items.find((row) => row.body.kind === 'message' && row.body.role === 'assistant')
+    try {
+      chunk('P')
+      await vi.advanceTimersByTimeAsync(60)
+      await r.eventSink.written?.()
+      const first = reply()
+      expect(messageText(first?.body)).toBe('P')
+      await vi.advanceTimersByTimeAsync(440)
+      if (empty) {
+        chunk('')
+      }
+      const timersAfterEmpty = vi.getTimerCount()
+      await vi.advanceTimersByTimeAsync(60)
+      await r.eventSink.written?.()
+      const admissions560 = admitted.mock.calls.length
+      await vi.advanceTimersByTimeAsync(40)
+      chunk('T')
+      await vi.advanceTimersByTimeAsync(60)
+      await r.eventSink.written?.()
+      expect(messageText(reply()?.body)).toBe('PT')
+      expect(timersAfterEmpty).toBe(0)
+      expect(admissions560).toBe(1)
+      await vi.advanceTimersByTimeAsync(3000)
+      expect(vi.getTimerCount()).toBe(0)
+      expect(messageText(reply()?.body)).toBe('PT')
+      lane.flush()
+      await r.eventSink.written?.()
+      expect(reply()).toMatchObject({
+        sequence: first?.sequence,
+        observedAt: first?.observedAt,
+        turnScope: first?.turnScope
+      })
+      expect(failed).not.toHaveBeenCalled()
+      lane.dispose()
+      const reopened = await r.reopenJournal()
+      expect(
+        messageText(
+          reopened.publicRead().snapshot.items.find((row) => row.itemId === first?.itemId)?.body
+        )
+      ).toBe('PT')
+    } finally {
+      lane.dispose()
+    }
+  }
+)
+
+it('retains empty-origin chronology, whitespace and an authoritative empty final independently of increments', async () => {
+  vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] })
+  const r = await openProviderTimelineRig({
+    schedule: (run, ms) => {
+      const timer = setTimeout(run, ms)
+      return () => clearTimeout(timer)
+    }
+  })
+  const delta = (text: string) =>
+    r.assembler.apply({ type: 'text.delta', item: { id: 'm' }, channel: 'assistant', text })
+  delta('')
+  expect(vi.getTimerCount()).toBe(0)
+  r.assembler.apply({
+    type: 'item.close',
+    item: 'tool',
+    body: { kind: 'tool-call', name: 'Bash', input: {}, state: 'completed' }
+  })
+  delta('P')
+  await vi.advanceTimersByTimeAsync(60)
+  const first = await r.row(providerItemId('item', 'm'))
+  expect(messageText(first?.body)).toBe('P')
+  expect((await r.row(providerItemId('item', 'tool')))!.sequence).toBeLessThan(first!.sequence)
+  await vi.advanceTimersByTimeAsync(400)
+  delta(' \n')
+  await vi.advanceTimersByTimeAsync(60)
+  expect(messageText((await r.row(providerItemId('item', 'm')))?.body)).toBe('P \n')
+  r.assembler.apply({ type: 'text.close', item: { id: 'm' }, text: '' })
+  const final = await r.row(providerItemId('item', 'm'))
+  expect(messageText(final?.body)).toBe('')
+  expect(final).toMatchObject({
+    sequence: first?.sequence,
+    observedAt: first?.observedAt,
+    turnScope: first?.turnScope
+  })
+  r.assembler.dispose()
+  expect(vi.getTimerCount()).toBe(0)
+  const reopened = await r.reopenJournal()
+  expect(messageText(reopened.item(providerItemId('item', 'm'))?.body)).toBe('')
+})
+
+it('accepts Pi empty increments on the same active key', () => {
+  const messages = new PiRpcMessages('generation', new PiRpcContextUsage())
+  const deltas = ['P', '', 'T'].map((delta, index) =>
+    messages
+      .message(
+        {
+          type: 'message_update',
+          assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta }
+        },
+        1000 + index
+      )
+      .find((event) => event.type === 'text.delta')
+  )
+  expect(deltas.map((event) => (event?.type === 'text.delta' ? event.text : null))).toEqual([
+    'P',
+    '',
+    'T'
+  ])
+  expect(deltas.map((event) => (event?.type === 'text.delta' ? event.item : null))).toEqual(
+    Array.from({ length: 3 }, () => ({ id: 'message:generation:1:0:assistant' }))
+  )
 })

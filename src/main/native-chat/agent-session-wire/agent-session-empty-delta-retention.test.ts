@@ -56,7 +56,7 @@ describe('empty streamed deltas', () => {
     }
   })
 
-  it('preserves empty stream snapshots, scheduled publication and explicit flushes', () => {
+  it('empty increments create no stream and do not dirty retained clean or dirty content', () => {
     const pending = new Set<() => void>()
     const emitted: { key: string; text: string }[] = []
     const instance = createAgentSessionDeltaCoalescer({
@@ -70,61 +70,61 @@ describe('empty streamed deltas', () => {
     })
     try {
       expect(instance.append('empty', '')).toBe(true)
-      expect(instance.snapshot('empty')).toEqual({
-        text: '',
-        observedBytes: 0,
-        truncated: false
-      })
-      expect(pending.size).toBe(1)
-      expect(emitted).toEqual([])
-      expect(instance.flushAll()).toBe(true)
+      expect(instance.snapshot('empty')).toBeNull()
       expect(pending.size).toBe(0)
-      expect(emitted).toEqual([{ key: 'empty', text: '' }])
-      instance.append('empty', 'visible')
-      instance.append('empty', '')
-      expect(pending.size).toBe(1)
-      expect(instance.flush('empty')).toBe(true)
-      expect(emitted.at(-1)).toEqual({ key: 'empty', text: 'visible' })
-      instance.append('empty', '')
       expect(instance.flushAll()).toBe(true)
-      expect(emitted).toHaveLength(3)
-      expect(emitted.at(-1)).toEqual({ key: 'empty', text: 'visible' })
+      expect(emitted).toEqual([])
+      instance.append('live', 'visible')
+      const before = instance.snapshot('live')
+      instance.append('live', '')
+      expect(instance.snapshot('live')).toEqual(before)
+      expect(pending.size).toBe(1)
+      expect(instance.flushAll()).toBe(true)
+      expect(emitted).toEqual([{ key: 'live', text: 'visible' }])
+      instance.append('live', '')
+      expect(instance.dirty()).toEqual([])
+      expect(pending.size).toBe(0)
+      expect(instance.flushAll()).toBe(true)
+      expect(emitted).toHaveLength(1)
     } finally {
       instance.dispose()
     }
     expect(pending.size).toBe(0)
   })
 
-  it('still refuses a new empty stream while the oldest output is backpressured', () => {
+  it('empty input never evicts or refuses and preserves a genuine refused-tail wake', () => {
+    vi.useFakeTimers()
     let accepting = false
     const emitted: [string, string][] = []
-    const instance = createAgentSessionDeltaCoalescer({
-      maxStreams: 1,
-      schedule: () => () => {},
-      emit: (key, text) => {
-        if (!accepting) {
-          return false
-        }
-        emitted.push([key, text])
-        return true
+    const emit = vi.fn((key: string, text: string) => {
+      if (!accepting) {
+        return false
       }
+      emitted.push([key, text])
+      return true
     })
+    const instance = createAgentSessionDeltaCoalescer({ maxStreams: 1, emit })
     try {
       instance.append('first', 'preserved')
-      expect(instance.append('second', '')).toBe(false)
-      expect(instance.snapshot('second')).toBeNull()
-      expect(instance.snapshot('first')?.text).toBe('preserved')
-      accepting = true
+      vi.advanceTimersByTime(60)
+      expect(emit).toHaveBeenCalledTimes(1)
+      expect(vi.getTimerCount()).toBe(1)
+      const dirty = instance.dirty()
       expect(instance.append('second', '')).toBe(true)
-      expect(instance.snapshot('first')).toBeNull()
-      expect(instance.snapshot('second')?.text).toBe('')
-      expect(instance.flushAll()).toBe(true)
-      expect(emitted).toEqual([
-        ['first', 'preserved'],
-        ['second', '']
-      ])
+      expect(instance.append('first', '')).toBe(true)
+      expect(instance.snapshot('second')).toBeNull()
+      expect(instance.dirty()).toEqual(dirty)
+      expect(emit).toHaveBeenCalledTimes(1)
+      expect(vi.getTimerCount()).toBe(1)
+      accepting = true
+      vi.advanceTimersByTime(60)
+      expect(emitted).toEqual([['first', 'preserved']])
+      expect(instance.snapshot('first')?.text).toBe('preserved')
+      expect(instance.dirty()).toEqual([])
+      expect(vi.getTimerCount()).toBe(0)
     } finally {
       instance.dispose()
+      vi.useRealTimers()
     }
   })
 })

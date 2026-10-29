@@ -35,6 +35,8 @@ export type AgentSessionDeltaCoalescerDeps = {
 export type AgentSessionDeltaCoalescer = {
   /** False means a retained stream could not flush to admit this key. */
   append: (key: string, delta: string) => boolean
+  /** Actual count victim immediately before a nonempty append; does not allocate or mutate. */
+  evictionFor: (key: string) => string | undefined
   flush: (key: string) => boolean
   /** Lifecycle barriers flush every stream first. */
   flushAll: () => boolean
@@ -124,6 +126,9 @@ export function createAgentSessionDeltaCoalescer(
 
   return {
     append: (key, delta) => {
+      if (delta.length === 0) {
+        return true
+      }
       let stream = streams.get(key)
       if (!stream) {
         // Flush before eviction so a new untrusted ID cannot erase observed output.
@@ -187,6 +192,22 @@ export function createAgentSessionDeltaCoalescer(
       scheduleFlush()
       return true
     },
+    evictionFor: (key) => {
+      if (streams.has(key) || deps.isProtected?.(key) || evictable.size < maxStreams) {
+        return undefined
+      }
+      let remaining = evictable.size
+      for (const oldest of evictable) {
+        if (remaining < maxStreams) {
+          return undefined
+        }
+        if (!deps.isProtected?.(oldest)) {
+          return oldest || undefined
+        }
+        remaining -= 1
+      }
+      return undefined
+    },
     flush: flushKey,
     flushAll: () => flushAll(),
     forget: (key) => {
@@ -248,9 +269,7 @@ function appendWithinUtf8ByteLimit(
   const available = Math.max(0, maxBytes - currentBytes)
   if (deltaBytes <= available) {
     // Append in place to avoid copying the entire prefix for every token.
-    if (delta.length > 0) {
-      current.push(delta)
-    }
+    current.push(delta)
     return {
       chunks: current,
       retainedBytes: currentBytes + deltaBytes,
