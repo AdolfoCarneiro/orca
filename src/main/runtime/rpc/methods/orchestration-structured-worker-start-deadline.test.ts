@@ -100,6 +100,7 @@ it('leaves the preamble only what the setup gate did not use of the caller’s t
     db: db as unknown as OrchestrationDb,
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only the run id is read.
     bindRun: () => ({ id: 'run_1' }) as never,
+    taskDeps: undefined,
     coordinator: null
   })
 

@@ -125,6 +125,7 @@ describe('a structured worker-start that fails after the session exists', () => 
       runtime,
       db,
       bindRun: () => ({ id: 'run_1' }) as never,
+      taskDeps: undefined,
       existingTask: { id: 't1', spec: 'do the thing' } as never,
       coordinator: null,
       orchestrationMutation: undefined

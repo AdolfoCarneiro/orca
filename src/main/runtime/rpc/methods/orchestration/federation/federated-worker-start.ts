@@ -32,7 +32,6 @@ import {
   federatedUnknownReceipt,
   isKnownRemoteStartFailure
 } from './federated-worker-start-receipts'
-import { parseTaskDeps } from '../worker/task-deps-argument'
 import { releaseRetriedWorkerTerminal } from '../worker/retried-worker-terminal-release'
 
 export async function startFederatedWorker(args: {
@@ -42,6 +41,7 @@ export async function startFederatedWorker(args: {
   /** Called only once preflight passes, so a refused start binds no new Run. */
   bindRunId: () => string
   task?: { id: string; spec: string; status: string }
+  taskDeps: string[] | undefined
   orchestrationMutation?: {
     callerFingerprint: string
     requestId: string
@@ -128,7 +128,7 @@ export async function startFederatedWorker(args: {
     taskId: task?.id,
     taskSpec: params.spec,
     taskTitle: params.taskTitle,
-    taskDeps: parseTaskDeps(params.deps),
+    taskDeps: args.taskDeps,
     taskParentId: params.parent,
     taskRunId: runId,
     retryOf: params.retryOf,

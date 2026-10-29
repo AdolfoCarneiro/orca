@@ -8,7 +8,7 @@ import { replaceDispatchCapabilities } from './worker-terminal-redaction'
 // One screenful: enough to show the agent's last words or error banner without flooding the inbox.
 const LAST_OUTPUT_MAX_CHARS = 2_000
 
-export type WorkerTurnStopReason = 'finished' | 'errored' | 'needs-input'
+export type WorkerTurnStopReason = 'finished' | 'errored' | 'needs-input' | 'exited'
 
 export type WorkerTurnStop = {
   /** The worker's own mailbox identity: terminal handle, chat address or structured worker handle. */
@@ -17,6 +17,8 @@ export type WorkerTurnStop = {
   stopKey: string
   reason: WorkerTurnStopReason
   lastOutput: string | undefined
+  /** Why the process ended, for an `exited` stop. */
+  exitCause?: string
 }
 
 export type WorkerTurnStopDispatch =
@@ -37,19 +39,24 @@ export function workerTurnStopDispatchId(target: WorkerTurnStopDispatch): string
 const SUBJECTS: Record<WorkerTurnStopReason, string> = {
   finished: 'Worker stopped without reporting',
   errored: 'Worker stopped on an error without reporting',
-  'needs-input': 'Worker is waiting on a prompt'
+  'needs-input': 'Worker is waiting on a prompt',
+  exited: 'Worker exited without reporting'
 }
 
 function describeStop(stop: WorkerTurnStop, task: string, dispatchId: string): string {
   const what =
     stop.reason === 'needs-input'
       ? `Worker ${stop.from} is stopped at a prompt that needs a person (approval or a question) while running task ${task}.`
-      : `Worker ${stop.from} ended its turn ${stop.reason === 'errored' ? 'on an error ' : ''}without sending worker_done for task ${task}.`
+      : stop.reason === 'exited'
+        ? `Worker ${stop.from} exited (${stop.exitCause ?? 'process ended'}) without sending worker_done for task ${task}.`
+        : `Worker ${stop.from} ended its turn ${stop.reason === 'errored' ? 'on an error ' : ''}without sending worker_done for task ${task}.`
   // Agent prose can echo its injected capability; mail must never carry it.
   const output = stop.lastOutput && replaceDispatchCapabilities(stop.lastOutput).value.trim()
   return [
     what,
-    `The Dispatch is still open. Answer it with \`orca orchestration send --to dispatch:${dispatchId}\`, retry it, or stop the worker.`,
+    stop.reason === 'exited'
+      ? 'The Dispatch is still open. Stop the worker, then retry it or tell the user.'
+      : `The Dispatch is still open. Answer it with \`orca orchestration send --to dispatch:${dispatchId}\`, retry it, or stop the worker.`,
     ...(output
       ? [
           'Last output:',

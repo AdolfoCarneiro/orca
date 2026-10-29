@@ -26,7 +26,6 @@ import {
   persistWorkerSetupWaitOutcome
 } from './worker-setup-gate'
 import { failWorkerStartWithReceipt } from './worker-start-receipt'
-import { parseTaskDeps } from './task-deps-argument'
 import { assertExplicitWorkerUsable } from './explicit-worker-terminal-validation'
 import { resolveDispatchAssigneeParty } from '../../../../orchestration/orchestration-party'
 import { CHAT_WORKER_AUTHORITY, chatAssigneeOf, chatWorkerMode } from '../chat-assignee-admission'
@@ -43,6 +42,7 @@ export async function startLocalWorker(args: {
   db: OrchestrationDb
   /** Called only once effect-free validation passes, so a refused start binds no new Run. */
   bindRun: () => RunRow
+  taskDeps: string[] | undefined
   coordinator: OrchestrationCallerIdentity | null
   callerSession?: OrchestrationSessionCaller
   existingTask?: TaskRow
@@ -159,7 +159,7 @@ export async function startLocalWorker(args: {
     taskId: existingTask?.id,
     taskSpec: params.spec,
     taskTitle: params.taskTitle,
-    taskDeps: parseTaskDeps(params.deps),
+    taskDeps: args.taskDeps,
     // A helper's Task sits under its creator's Task, so the Run's Task tree shows who started it.
     taskParentId: params.parent ?? args.helperCreator?.task_id,
     taskRunId: run.id,

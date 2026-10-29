@@ -42,7 +42,7 @@ export function withAnswerNext<T extends object>(receipt: T): T & { next: string
   return { ...receipt, next: DRAIN_MAILBOX }
 }
 
-/** A worker still runs, worker-list owes no action, and no running worker is remote: a remote exit sends no mail. */
+/** A worker still runs and worker-list owes no action: each running worker's stop or exit sends mail. */
 async function awaitsWorkerReports(runtime: OrcaRuntimeService, runId: string): Promise<boolean> {
   const db = runtime.getOrchestrationDb()
   const rows = db.listWorkerTerminalResources({ runId })
@@ -50,12 +50,8 @@ async function awaitsWorkerReports(runtime: OrcaRuntimeService, runId: string): 
     limit: rows.length,
     completeProjection: true
   })
-  const running = workers
-    .filter((worker) => worker.outcome === 'in_progress')
-    .map((worker) => worker.dispatchId)
   return (
-    running.length > 0 &&
-    workers.every((worker) => worker.nextAction.kind === 'none') &&
-    db.listFederatedDispatchesByIds(running).length === 0
+    workers.some((worker) => worker.outcome === 'in_progress') &&
+    workers.every((worker) => worker.nextAction.kind === 'none')
   )
 }

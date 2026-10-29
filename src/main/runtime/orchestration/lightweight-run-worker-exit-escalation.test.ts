@@ -547,4 +547,53 @@ describe('STA-4604 worker PTY exit escalation reaches the coordinator', () => {
     )
     warn.mockRestore()
   })
+
+  it('relays a paired-server worker exit to the Run home', async () => {
+    const { runtime, workerHandle } = makeRuntimeWithTwoPanes()
+    const db = new OrchestrationDb(':memory:')
+    try {
+      db.createRemoteDispatchAttachment({
+        runId: 'run_home',
+        dispatchId: 'ctx_remote',
+        taskId: 'task_remote',
+        homePeerFingerprint: 'home_peer',
+        protocolVersion: 1,
+        runtimeEpoch: 'worker_epoch',
+        mutationReceipt: {
+          callerFingerprint: 'home_peer',
+          requestId: 'remote_start',
+          method: 'orchestration.federationAttachStart',
+          payloadHash: 'remote_payload'
+        }
+      })
+      db.prepareRemoteAttachmentAuthority({
+        dispatchId: 'ctx_remote',
+        paneKey: WORKER_PANE_KEY,
+        processIncarnation: runtime.getTerminalProcessIncarnation(workerHandle) ?? '',
+        worktreeId: WORKTREE_ID,
+        terminalHandle: workerHandle,
+        setupState: 'not_applicable',
+        effects: []
+      })
+      db.markRemoteAttachmentReady('ctx_remote')
+      const relay = vi.spyOn(db, 'enqueueFederationRelay')
+      runtime.setOrchestrationDb(db)
+
+      runtime.onPtyExit(WORKER_PTY_ID, 137)
+      await settle()
+
+      expect(relay).toHaveBeenCalledTimes(1)
+      const [{ dispatchId, direction, kind, payload }] = relay.mock.calls[0]
+      expect({ dispatchId, direction, kind }).toEqual({
+        dispatchId: 'ctx_remote',
+        direction: 'to_home',
+        kind: 'escalation'
+      })
+      const relayed = JSON.parse(payload)
+      expect(relayed.body).toContain('exited (Agent process exited with code 137)')
+      expect(JSON.parse(relayed.payload)).toMatchObject({ stopReason: 'exited' })
+    } finally {
+      db.close()
+    }
+  })
 })

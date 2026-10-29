@@ -491,7 +491,7 @@ describe('orchestration federated worker output', () => {
     })
   })
 
-  it('never says to end the turn while a remote worker runs, since its silent exit sends no mail', async () => {
+  it('says to end the turn while a remote worker runs, since its stop or exit is relayed home', async () => {
     const taskId = createHomeTask().id
     const started = await homeDispatcher.dispatch(startRequest(taskId))
     const checked = await homeDispatcher.dispatch({
@@ -504,8 +504,10 @@ describe('orchestration federated worker output', () => {
     })
 
     expect(started).toMatchObject({ ok: true, result: { state: 'ready' } })
-    expect(checked).toMatchObject({ ok: true, result: { count: 0 } })
-    expect(checked.ok && checked.result).not.toHaveProperty('next')
+    expect(checked).toMatchObject({
+      ok: true,
+      result: { count: 0, next: expect.stringContaining('end your turn') }
+    })
   })
 
   it('negotiates release on the execution host and never treats relay loss as exit', async () => {
