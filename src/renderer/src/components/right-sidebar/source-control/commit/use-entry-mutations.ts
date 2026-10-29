@@ -6,7 +6,8 @@ import {
   requestEditorSaveQuiesce
 } from '@/components/editor/editor-autosave'
 import { getConnectionId } from '@/lib/connection-context'
-import { basename } from '@/lib/path'
+import { basename, joinPath } from '@/lib/path'
+import { createSelfWriteInvalidationCapture } from '@/components/editor/editor-self-write-registry'
 import {
   bulkDiscardRuntimeGitPaths,
   bulkUnstageRuntimeGitPaths,
@@ -100,13 +101,20 @@ export function useSourceControlEntryMutations({
       }
       const runtimeEnvironmentId =
         activeRepoTarget?.kind === 'environment' ? activeRepoTarget.environmentId : null
+      const selfWrites = createSelfWriteInvalidationCapture([
+        { filePath: joinPath(worktreePath, filePath), runtimeEnvironmentId }
+      ])
       // Hold pending autosaves so delayed writes cannot recreate edits after Git restores the file.
-      const releaseAutoSave = await requestEditorSaveQuiesce({
-        worktreeId: activeWorktreeId,
-        worktreePath,
-        relativePath: filePath,
-        runtimeEnvironmentId
-      })
+      const releaseAutoSave = await requestEditorSaveQuiesce(
+        {
+          worktreeId: activeWorktreeId,
+          worktreePath,
+          relativePath: filePath,
+          runtimeEnvironmentId
+        },
+        { onDrainedFilePaths: selfWrites.addPaths }
+      )
+      const invalidateSelfWrites = selfWrites.capture()
       // Release in finally so every workspace holds autosave until Git finishes.
       try {
         const connectionId = getConnectionId(activeWorktreeId) ?? undefined
@@ -120,6 +128,7 @@ export function useSourceControlEntryMutations({
           },
           filePath
         )
+        invalidateSelfWrites()
         notifyEditorExternalFileChange({
           worktreeId: activeWorktreeId,
           worktreePath,
@@ -140,15 +149,24 @@ export function useSourceControlEntryMutations({
       }
       const runtimeEnvironmentId =
         activeRepoTarget?.kind === 'environment' ? activeRepoTarget.environmentId : null
+      const selfWrites = createSelfWriteInvalidationCapture(
+        filePaths.map((relativePath) => ({
+          filePath: joinPath(worktreePath, relativePath),
+          runtimeEnvironmentId
+        }))
+      )
       // Quiesce matching editors so delayed autosaves cannot recreate edits after Git mutates files.
       const quiesced = await Promise.allSettled(
         filePaths.map((relativePath) =>
-          requestEditorSaveQuiesce({
-            worktreeId: activeWorktreeId,
-            worktreePath,
-            relativePath,
-            runtimeEnvironmentId
-          })
+          requestEditorSaveQuiesce(
+            {
+              worktreeId: activeWorktreeId,
+              worktreePath,
+              relativePath,
+              runtimeEnvironmentId
+            },
+            { onDrainedFilePaths: selfWrites.addPaths }
+          )
         )
       )
       const releases = quiesced.flatMap((result) =>
@@ -162,6 +180,7 @@ export function useSourceControlEntryMutations({
         }
         throw failed.reason
       }
+      const invalidateSelfWrites = selfWrites.capture()
       try {
         const connectionId = getConnectionId(activeWorktreeId) ?? undefined
         await bulkDiscardRuntimeGitPaths(
@@ -174,6 +193,7 @@ export function useSourceControlEntryMutations({
           },
           filePaths
         )
+        invalidateSelfWrites()
         for (const relativePath of filePaths) {
           notifyEditorExternalFileChange({
             worktreeId: activeWorktreeId,

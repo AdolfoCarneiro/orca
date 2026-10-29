@@ -10,6 +10,7 @@ import {
 } from '../../../../shared/constants'
 import { clampNumber } from '@/lib/terminal-theme'
 import { isAutosavePausedForNonUtf8File } from './editor-non-utf8-autosave-pause'
+import type { EditorSelfWritePath } from './editor-self-write-registry'
 
 export const ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT = 'orca:editor-quiesce-file-saves'
 export const ORCA_EDITOR_EXTERNAL_FILE_CHANGE_EVENT = 'orca:editor-external-file-change'
@@ -51,6 +52,7 @@ export type EditorSaveQuiesceDetail = EditorSaveQuiesceTarget & {
   reject?: (message: string) => void
   /** A path or discard quiesce holds autosave of that file in every workspace until this release runs. */
   onHold?: (release: () => void) => void
+  onDrainedFilePaths?: (paths: readonly EditorSelfWritePath[]) => void
 }
 
 export type EditorSaveFileTarget = {
@@ -175,32 +177,62 @@ export function getOpenFilesForExternalFileChange(
 
 /** Resolves to a release for the autosave hold a path quiesce takes; call it once git finishes. */
 export async function requestEditorSaveQuiesce(
-  target: EditorSaveQuiesceTarget
+  target: EditorSaveQuiesceTarget,
+  options?: { onDrainedFilePaths: (paths: readonly EditorSelfWritePath[]) => void }
 ): Promise<() => void> {
   let release = (): void => {}
+  const releases: (() => void)[] = []
+  const releaseAll = (): void => {
+    for (const hold of releases.splice(0)) {
+      hold()
+    }
+  }
   await new Promise<void>((resolve, reject) => {
-    let claimed = false
+    let claimed = 0
+    let resolved = 0
+    let dispatched = false
+    let failed = false
+    const resolveAll = (): void => {
+      resolved++
+      if (dispatched && resolved === claimed) {
+        resolve()
+      }
+    }
     window.dispatchEvent(
       new CustomEvent<EditorSaveQuiesceDetail>(ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT, {
         detail: {
           ...target,
+          ...options,
           claim: () => {
-            claimed = true
+            claimed++
           },
-          resolve,
-          reject: (message) => reject(new Error(message)),
+          resolve: options ? resolveAll : resolve,
+          reject: (message) => {
+            if (options) {
+              failed = true
+              releaseAll()
+            }
+            reject(new Error(message))
+          },
           onHold: (hold) => {
-            release = hold
+            if (!options) {
+              release = hold
+            } else if (failed) {
+              hold()
+            } else {
+              releases.push(hold)
+            }
           }
         }
       })
     )
+    dispatched = true
     // Discard/delete can run with no mounted controller; unclaimed quiesce requests must resolve rather than hang.
-    if (!claimed) {
+    if (claimed === 0 || (options && resolved === claimed)) {
       resolve()
     }
   })
-  return release
+  return options ? releaseAll : release
 }
 
 export async function requestEditorFileSave(target: EditorSaveFileTarget): Promise<void> {

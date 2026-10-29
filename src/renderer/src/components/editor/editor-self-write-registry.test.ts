@@ -4,6 +4,7 @@ import {
   __clearSelfWriteRegistryForTests,
   __getSelfWriteRegistrySizeForTests,
   clearSelfWrite,
+  createSelfWriteInvalidationCapture,
   getRecentSelfWrite,
   hasRecentSelfWrite,
   recordSelfWrite,
@@ -135,5 +136,48 @@ describe('editor self-write registry', () => {
     expect(__getSelfWriteRegistrySizeForTests()).toBe(1)
     expect(timeout.mock.calls.at(-1)?.[1]).toBe(MAX_TIMER_DELAY_MS)
     expect(vi.getTimerCount()).toBe(1)
+  })
+
+  it('captures the drained stamp after collecting normalized paths without touching other owners', () => {
+    const capture = createSelfWriteInvalidationCapture([
+      { filePath: 'C:\\Repo\\a.md', runtimeEnvironmentId: 'env-1' }
+    ])
+    capture.addPaths([{ filePath: 'c:\\repo\\a.md', runtimeEnvironmentId: ' env-1 ' }])
+    recordSelfWrite('C:\\Repo\\a.md', 'drained save', 'env-1')
+    recordSelfWrite('C:\\Repo\\a.md', 'other owner', 'env-2')
+    recordSelfWrite('/repo/other.md', 'other path', 'env-1')
+
+    capture.capture()()
+
+    expect(getRecentSelfWrite('C:\\Repo\\a.md', 'env-1')).toBe(null)
+    expect(getRecentSelfWrite('C:\\Repo\\a.md', 'env-2')?.content).toBe('other owner')
+    expect(getRecentSelfWrite('/repo/other.md', 'env-1')?.content).toBe('other path')
+  })
+
+  it('preserves a newer identical-content save recorded in the same clock tick', () => {
+    recordSelfWrite('/repo/a.md', 'same content')
+    const invalidate = createSelfWriteInvalidationCapture([{ filePath: '/repo/a.md' }]).capture()
+    recordSelfWrite('/repo/a.md', 'same content')
+
+    invalidate()
+
+    expect(getRecentSelfWrite('/repo/a.md')?.content).toBe('same content')
+    recordSelfWrite('/repo/a.md', 'later content')
+    invalidate()
+    expect(getRecentSelfWrite('/repo/a.md')?.content).toBe('later content')
+  })
+
+  it('does not let an absent or expired snapshot invalidate a later save', () => {
+    const absent = createSelfWriteInvalidationCapture([{ filePath: '/repo/missing.md' }]).capture()
+    recordSelfWrite('/repo/a.md', 'expired')
+    vi.advanceTimersByTime(751)
+    const expired = createSelfWriteInvalidationCapture([{ filePath: '/repo/a.md' }]).capture()
+    expect(expired).toBe(absent)
+    expect(vi.getTimerCount()).toBe(0)
+    recordSelfWrite('/repo/a.md', 'new')
+
+    expired()
+
+    expect(getRecentSelfWrite('/repo/a.md')?.content).toBe('new')
   })
 })

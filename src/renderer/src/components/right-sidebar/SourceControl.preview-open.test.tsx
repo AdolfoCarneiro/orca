@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import type { requestEditorSaveQuiesce } from '@/components/editor/editor-autosave'
 import type {
   GitBranchChangeEntry,
   GitBranchCompareSummary
@@ -49,7 +50,8 @@ const mocks = vi.hoisted(() => {
     discardRuntimeGitPath: vi.fn(),
     bulkStageRuntimeGitPaths: vi.fn(),
     refreshGitStatusForWorktree: vi.fn(),
-    requestEditorSaveQuiesce: vi.fn(),
+    requestEditorSaveQuiesce: vi.fn<typeof requestEditorSaveQuiesce>(),
+    releaseEditorSaveHold: vi.fn<() => void>(),
     notifyEditorExternalFileChange: vi.fn()
   }
   return {
@@ -144,7 +146,7 @@ function resetState(overrides: Partial<Record<string, unknown>> = {}): void {
   mocks.calls.discardRuntimeGitPath.mockResolvedValue(undefined)
   mocks.calls.bulkStageRuntimeGitPaths.mockResolvedValue(undefined)
   mocks.calls.refreshGitStatusForWorktree.mockResolvedValue(undefined)
-  mocks.calls.requestEditorSaveQuiesce.mockResolvedValue(undefined)
+  mocks.calls.requestEditorSaveQuiesce.mockResolvedValue(mocks.calls.releaseEditorSaveHold)
   mocks.state = {
     activeWorktreeId: mocks.activeWorktree.id,
     activeGroupIdByWorktree: { [mocks.activeWorktree.id]: 'group-1' },
@@ -433,18 +435,22 @@ describe('SourceControl preview row opens', () => {
       await Promise.resolve()
     })
 
-    expect(mocks.calls.requestEditorSaveQuiesce).toHaveBeenCalledWith({
-      worktreeId: mocks.activeWorktree.id,
-      worktreePath: '/repo/wt',
-      relativePath: 'src/file.ts',
-      runtimeEnvironmentId: 'runtime-remote'
-    })
+    expect(mocks.calls.requestEditorSaveQuiesce).toHaveBeenCalledWith(
+      {
+        worktreeId: mocks.activeWorktree.id,
+        worktreePath: '/repo/wt',
+        relativePath: 'src/file.ts',
+        runtimeEnvironmentId: 'runtime-remote'
+      },
+      { onDrainedFilePaths: expect.any(Function) }
+    )
     expect(mocks.calls.notifyEditorExternalFileChange).toHaveBeenCalledWith({
       worktreeId: mocks.activeWorktree.id,
       worktreePath: '/repo/wt',
       relativePath: 'src/file.ts',
       runtimeEnvironmentId: 'runtime-remote'
     })
+    expect(mocks.calls.releaseEditorSaveHold).toHaveBeenCalledTimes(1)
   })
 
   it('keeps nested-only submodule rows non-stageable from the parent repo', () => {

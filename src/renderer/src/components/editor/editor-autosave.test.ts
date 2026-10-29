@@ -9,7 +9,8 @@ import {
   ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT,
   requestEditorFileClose,
   requestEditorFileSave,
-  requestEditorSaveQuiesce
+  requestEditorSaveQuiesce,
+  type EditorSaveQuiesceDetail
 } from './editor-autosave'
 
 type WindowEventStub = Pick<
@@ -109,6 +110,115 @@ describe('normalizeAutoSaveDelayMs', () => {
 })
 
 describe('requestEditorSaveQuiesce', () => {
+  it('waits for every capture listener and releases each hold once', async () => {
+    const held: string[] = []
+    const paths: string[] = []
+    let finishSecond = (): void => {}
+    const first = (event: Event): void => {
+      if (!(event instanceof CustomEvent)) {
+        return
+      }
+      const detail: EditorSaveQuiesceDetail = event.detail
+      detail.claim()
+      detail.onDrainedFilePaths?.([{ filePath: '/repo/first.ts' }])
+      detail.onHold?.(() => held.push('first'))
+      detail.resolve()
+    }
+    const second = (event: Event): void => {
+      if (!(event instanceof CustomEvent)) {
+        return
+      }
+      const detail: EditorSaveQuiesceDetail = event.detail
+      detail.claim()
+      finishSecond = () => {
+        detail.onDrainedFilePaths?.([{ filePath: '/repo/second.ts' }])
+        detail.onHold?.(() => held.push('second'))
+        detail.resolve()
+      }
+    }
+    window.addEventListener(ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT, first)
+    window.addEventListener(ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT, second)
+    try {
+      let settled = false
+      const pending = requestEditorSaveQuiesce(
+        { fileId: 'file' },
+        {
+          onDrainedFilePaths: (files) => {
+            for (const file of files) {
+              paths.push(file.filePath)
+            }
+          }
+        }
+      ).then((release) => {
+        settled = true
+        return release
+      })
+      await Promise.resolve()
+      expect(settled).toBe(false)
+      expect(paths).toEqual(['/repo/first.ts'])
+      finishSecond()
+      const release = await pending
+      expect(paths).toEqual(['/repo/first.ts', '/repo/second.ts'])
+      expect(held).toEqual([])
+      release()
+      release()
+      expect(held).toEqual(['first', 'second'])
+    } finally {
+      window.removeEventListener(ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT, first)
+      window.removeEventListener(ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT, second)
+    }
+  })
+
+  it('releases capture holds acquired before and after another listener rejects', async () => {
+    const held: string[] = []
+    let finishLate = (): void => {}
+    const failing = (event: Event): void => {
+      if (!(event instanceof CustomEvent)) {
+        return
+      }
+      const detail: EditorSaveQuiesceDetail = event.detail
+      detail.claim()
+      detail.onHold?.(() => held.push('early'))
+      detail.reject?.('cannot drain')
+    }
+    const late = (event: Event): void => {
+      if (!(event instanceof CustomEvent)) {
+        return
+      }
+      const detail: EditorSaveQuiesceDetail = event.detail
+      detail.claim()
+      finishLate = () => {
+        detail.onHold?.(() => held.push('late'))
+        detail.resolve()
+      }
+    }
+    window.addEventListener(ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT, failing)
+    window.addEventListener(ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT, late)
+    try {
+      await expect(
+        requestEditorSaveQuiesce({ fileId: 'file' }, { onDrainedFilePaths: () => {} })
+      ).rejects.toThrow('cannot drain')
+      expect(held).toEqual(['early'])
+      finishLate()
+      expect(held).toEqual(['early', 'late'])
+    } finally {
+      window.removeEventListener(ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT, failing)
+      window.removeEventListener(ORCA_EDITOR_QUIESCE_FILE_SAVES_EVENT, late)
+    }
+  })
+
+  it('resolves capture requests with no mounted controller', async () => {
+    const release = await requestEditorSaveQuiesce(
+      { fileId: 'missing' },
+      {
+        onDrainedFilePaths: () => {
+          throw new Error('no listener')
+        }
+      }
+    )
+    expect(() => release()).not.toThrow()
+  })
+
   it('resolves immediately when no editor listener claims the request', async () => {
     const release = await requestEditorSaveQuiesce({ fileId: 'file-1' })
     expect(release).toBeTypeOf('function')

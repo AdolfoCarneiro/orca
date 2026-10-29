@@ -11,6 +11,11 @@ export type RecentSelfWrite = {
   content: string | null
 }
 
+export type EditorSelfWritePath = {
+  filePath: string
+  runtimeEnvironmentId?: string | null
+}
+
 type SelfWriteStamp = RecentSelfWrite & {
   expiresAt: number
 }
@@ -95,10 +100,58 @@ export function recordSelfWrite(
   scheduleExpiredSelfWriteCleanup()
 }
 
-export function clearSelfWrite(absolutePath: string, runtimeEnvironmentId?: string | null): void {
-  stamps.delete(selfWriteKey(absolutePath, runtimeEnvironmentId))
+function clearSelfWriteKey(key: string): void {
+  stamps.delete(key)
   if (stamps.size === 0) {
     clearExpiryTimer()
+  }
+}
+
+export function clearSelfWrite(absolutePath: string, runtimeEnvironmentId?: string | null): void {
+  clearSelfWriteKey(selfWriteKey(absolutePath, runtimeEnvironmentId))
+}
+
+const noSelfWriteToInvalidate = (): void => {}
+
+export function createSelfWriteInvalidationCapture(paths: Iterable<EditorSelfWritePath>) {
+  const keys = new Set<string>()
+  const addPaths = (paths: Iterable<EditorSelfWritePath>): void => {
+    for (const path of paths) {
+      keys.add(selfWriteKey(path.filePath, path.runtimeEnvironmentId))
+    }
+  }
+  addPaths(paths)
+  return {
+    addPaths,
+    capture: (): (() => void) => {
+      pruneExpiredSelfWrites()
+      if (stamps.size === 0) {
+        keys.clear()
+        clearExpiryTimer()
+        return noSelfWriteToInvalidate
+      }
+      const captured = new Map<string, WeakRef<SelfWriteStamp>>()
+      for (const key of keys) {
+        const stamp = stamps.get(key)
+        if (stamp) {
+          captured.set(key, new WeakRef(stamp))
+        }
+      }
+      keys.clear()
+      if (captured.size === 0) {
+        return noSelfWriteToInvalidate
+      }
+      return () => {
+        for (const [key, reference] of captured) {
+          const stamp = reference.deref()
+          // Explicit saves may replace the drained stamp while Git is pending.
+          if (stamp && stamps.get(key) === stamp) {
+            clearSelfWriteKey(key)
+          }
+        }
+        captured.clear()
+      }
+    }
   }
 }
 
