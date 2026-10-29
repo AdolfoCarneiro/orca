@@ -682,6 +682,7 @@ async function proveMidTurnStop(distro: string) {
         environmentId: added.environmentId,
         host,
         rpc: (method, params) => rpc(current(), method, params),
+        pairing: () => pairedConnection(current()),
         guest: (command) => guest(distro, command),
         terminate: async () => {
           const terminated = await wslExe(['--terminate', distro])

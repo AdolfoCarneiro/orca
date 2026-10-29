@@ -6,7 +6,13 @@ import { z } from 'zod'
 import { AGENT_SESSION_CONTINUE_INTERRUPTED_RUNTIME_CAPABILITY } from '../../shared/agent-session-continue-interrupted-capability'
 import type { AgentJournalRenderItem } from '../../shared/agent-session-journal-types'
 import { readAgentJournalTurn } from '../../shared/agent-session-turn-record'
-import type { AgentSessionHistoryResult } from '../../shared/agent-session-wire'
+import type {
+  AgentSessionHistoryResult,
+  AgentSessionSubscribeEvent
+} from '../../shared/agent-session-wire'
+import { ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES } from '../../shared/electron-remote-runtime-client-capabilities'
+import type { PairedRuntimeConnection } from '../../shared/paired-runtime-connection'
+import { subscribeRemoteRuntimeRequest } from '../../shared/remote-runtime/remote-runtime-client'
 import { latestNativeChatOrcaStopCut } from '../../shared/native-chat/native-chat-orca-stop-cut'
 import { quotePosixShell } from '../../shared/shell-argument-quoting'
 import type { WslHostStatus } from '../../shared/wsl-host-types'
@@ -67,6 +73,8 @@ export function createLaneWslHost(userDataPath: string): LaneWslHost {
 }
 
 export type MidTurnStopLane = Pick<WslChatHost, 'rpc' | 'guest'> & {
+  /** The host connection's pairing, read at each call: Start replaces the connection. */
+  pairing(): PairedRuntimeConnection
   distro: string
   environmentId: string
   host: LaneWslHost
@@ -84,6 +92,39 @@ function heldReplyScenario(providerId: string, ackPath: string) {
       step.awaitFile ? { awaitFile: { ...step.awaitFile, timeoutMs: 120_000 } } : step
     )
   }
+}
+
+/** Streamed assistant text, as the open chat sees it; history keeps only settled rows. */
+async function watchAssistantText(lane: MidTurnStopLane, sessionId: string) {
+  const text: string[] = []
+  const errors: Error[] = []
+  const subscription = await subscribeRemoteRuntimeRequest<AgentSessionSubscribeEvent>(
+    lane.pairing(),
+    'agentSession.subscribe',
+    { sessionId },
+    30_000,
+    {
+      onResponse(response) {
+        if (!response.ok) {
+          errors.push(new Error(JSON.stringify(response.error)))
+          return
+        }
+        const event = response.result
+        const rows =
+          event.type === 'batch'
+            ? event.batch.items
+            : event.type === 'snapshot' || event.type === 'reset'
+              ? event.page.items
+              : []
+        text.push(...rows.map(assistantText))
+      },
+      onError(error) {
+        errors.push(error)
+      }
+    },
+    { clientCapabilities: ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES }
+  )
+  return { text, errors, close: () => subscription.close() }
 }
 
 export async function proveWslMidTurnStopAndContinue(
@@ -118,6 +159,7 @@ export async function proveWslMidTurnStopAndContinue(
       envelope: envelope(sessionId, 'agentSession.create', fields, null)
     })
   )
+  const held = await watchAssistantText(lane, sessionId)
   const body = {
     kind: 'message',
     role: 'user',
@@ -131,8 +173,9 @@ export async function proveWslMidTurnStopAndContinue(
   ).toMatchObject({ ok: true })
   await vi.waitFor(
     async () => {
+      expect(held.errors).toEqual([])
+      expect(held.text).toContain('Packaged server ')
       const rows = await items()
-      expect(rows.map(assistantText)).toContain('Packaged server ')
       expect(rows.some((row) => readAgentJournalTurn(row.body)?.state === 'running')).toBe(true)
     },
     { timeout: 30_000, interval: 250 }
@@ -142,6 +185,8 @@ export async function proveWslMidTurnStopAndContinue(
   host.service.setVisibleWork([environmentId])
   const since = host.published.length
   let started = performance.now()
+  // The stop ends the stream; the chat's stopped state is the host status below.
+  held.close()
   await lane.terminate()
   const terminatedAt = performance.now()
   const stoppedMessage = wslHostStoppedMessage(distro)
@@ -205,6 +250,7 @@ export async function proveWslMidTurnStopAndContinue(
     JSON.stringify(packagedClaudeChatScenario(providerId, ackPath))
   )
   await lane.guest(`touch ${quotePosixShell(ackPath)}`)
+  const resumedWatch = await watchAssistantText(lane, sessionId)
   const continued = z.object({ outcome: z.string() }).parse(
     await lane.rpc('agentSession.continueInterrupted', {
       sessionId,
@@ -215,7 +261,8 @@ export async function proveWslMidTurnStopAndContinue(
   await vi.waitFor(
     async () => {
       const rows = await items()
-      expect(rows.map(assistantText)).toContain('Packaged server reply.')
+      expect(resumedWatch.errors).toEqual([])
+      expect(resumedWatch.text).toContain('Packaged server reply.')
       expect(
         rows.some(
           (row) =>
@@ -237,6 +284,7 @@ export async function proveWslMidTurnStopAndContinue(
     'the continued turn'
   )
   expect(resumed.cwd).toBe(fixture.cwd)
+  resumedWatch.close()
   await lane.rpc('agentSession.close', { sessionId })
   return {
     sessionId,
