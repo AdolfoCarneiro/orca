@@ -120,13 +120,15 @@ function isAiVaultScanIssueCode(code: unknown): code is AiVaultScanIssueCode {
   return typeof code === 'string' && Object.hasOwn(COPY, code)
 }
 
-function stringParam(params: object, key: string): string | null {
-  const value: unknown = Object.hasOwn(params, key) ? Reflect.get(params, key) : undefined
+type IssueParams = NonNullable<AiVaultScanIssueText['messageParams']>
+
+function stringParam(params: IssueParams, key: string): string | null {
+  const value = Object.hasOwn(params, key) ? params[key] : undefined
   return typeof value === 'string' ? value : null
 }
 
-function numberParam(params: object, key: string): number | null {
-  const value: unknown = Object.hasOwn(params, key) ? Reflect.get(params, key) : undefined
+function numberParam(params: IssueParams, key: string): number | null {
+  const value = Object.hasOwn(params, key) ? params[key] : undefined
   return typeof value === 'number' ? value : null
 }
 
@@ -135,7 +137,8 @@ export function aiVaultScanIssueDisplayText(text: AiVaultScanIssueText): string 
   if (!isAiVaultScanIssueCode(text.messageCode)) {
     return text.message
   }
-  const params =
+  // Unchecked wire data from a paired host: a non-object reads as no params.
+  const params: IssueParams =
     typeof text.messageParams === 'object' && text.messageParams !== null ? text.messageParams : {}
   return (
     COPY[text.messageCode]({
