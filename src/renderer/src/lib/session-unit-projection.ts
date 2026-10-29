@@ -99,6 +99,7 @@ export class SessionUnitProjection extends SessionProjectionIndex {
         for (const id of keys ?? []) {
           for (const address of this.index.references('file', id)) {
             if (address.field === 'openFilesByWorktree') {
+              queue.push(address)
               owners.add(address.key)
             }
           }
