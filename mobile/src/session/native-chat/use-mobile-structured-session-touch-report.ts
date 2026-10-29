@@ -3,12 +3,13 @@ import { AppState } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import type { MobileNativeChatVisualSource } from './visual/mobile-native-chat-visual-read'
 
-/** Report when the user sees this chat at rest: it comes on screen idle, or its turn ends on screen.
+/** Report when the user sees this chat at rest: it comes on screen idle and read, or its turn ends on screen.
+ *  A reconnect re-reads the chat, so a report lost to a dropped connection is sent again.
  *  The owning host keeps a finished worker's chat on such a report instead of closing it. */
 export function useMobileStructuredSessionTouchReport(
   source: MobileNativeChatVisualSource | null,
   shown: boolean,
-  isWorking: boolean
+  atRest: boolean
 ): void {
   const [focused, setFocused] = useState(false)
   useFocusEffect(
@@ -24,7 +25,7 @@ export function useMobileStructuredSessionTouchReport(
     )
     return () => subscription.remove()
   }, [])
-  const seenAtRest = shown && focused && appActive && !isWorking
+  const seenAtRest = shown && focused && appActive && atRest
   const client = source?.client
   const sessionId = source?.sessionId
   useEffect(() => {

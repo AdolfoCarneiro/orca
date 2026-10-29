@@ -379,6 +379,47 @@ describe('orchestration worker automatic release', () => {
       }
     )
 
+    function claimAndCommitChatRelease(dispatchId: string): string {
+      h.db.claimDueWorkerTerminalAutoReleases(Date.now() + GRACE_MS)
+      const resourceId = h.db.getWorkerTerminalResourceByOwner(dispatchId)!.id
+      h.db.commitWorkerTerminalArchiveForRelease({
+        dispatchId,
+        resourceId,
+        kind: 'transcript_pin',
+        content: '{}',
+        archiveSource: 'transcript',
+        archiveStatus: 'captured'
+      })
+      return resourceId
+    }
+
+    it('lets a touch after the archive commit win until the close is admitted, then not', async () => {
+      setupWithFakeClock()
+      const touched = claimAndCommitChatRelease(startSettledChatWorker())
+      await expect(touch()).resolves.toEqual({ changed: 1 })
+      expect(h.db.admitWorkerChatReleaseClose(touched)).toBe(false)
+
+      const closing = claimAndCommitChatRelease(startSettledChatWorker())
+      expect(h.db.admitWorkerChatReleaseClose(closing)).toBe(true)
+      await expect(touch()).resolves.toEqual({ changed: 0 })
+    })
+
+    it('falls back to manual release when a client that cannot report touches joins before the close', () => {
+      setupWithFakeClock()
+      const dispatchId = startSettledChatWorker()
+      const resourceId = claimAndCommitChatRelease(dispatchId)
+      h.runtime.bindConnectedClientCapabilities(() => [[]])
+
+      expect(h.db.admitWorkerChatReleaseClose(resourceId)).toBe(false)
+
+      expect(h.db.getWorkerTerminalResourceByOwner(dispatchId)).toMatchObject({
+        ownership_state: 'owned',
+        release_state: 'not_requested',
+        auto_release_at: null
+      })
+      expect(h.db.getWorkerTerminalArchive(dispatchId)).toBeUndefined()
+    })
+
     it('ignores a touch on a running worker and on an explicit release', async () => {
       setupWithFakeClock()
       const { taskId, dispatchId } = startChatWorker()

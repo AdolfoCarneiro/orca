@@ -167,7 +167,8 @@ export function useStructuredAgentSession(args: StructuredAgentSessionViewArgs) 
     capturePresentation
   })
   const isWorking = transportState.isWorking || transportState.queueSendsNext
-  useStructuredSessionTouchReport(sessionId, target, args.isVisible, isWorking)
+  const atRest = transportEnabled && state.status === 'ready' && !isWorking
+  useStructuredSessionTouchReport(sessionId, target, args.isVisible, atRest)
   const send = (...input: Parameters<typeof sends.send>) =>
     // Legacy: an older host refuses sends while a command runs; removable once those hosts age out.
     (!commandPending.current || hostStatesTurnScopes(journalItems)) &&

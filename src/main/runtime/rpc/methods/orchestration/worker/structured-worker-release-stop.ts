@@ -17,8 +17,20 @@ export async function stopStructuredWorkerForRelease(args: {
   archiveStatus: string | null
 }): Promise<WorkerReleaseReceipt> {
   const { structured, dispatchId, resource, runtime, db } = args
-  const stop = await stopStructuredWorker(structured, dispatchId, runtime)
+  const stop = await stopStructuredWorker(structured, dispatchId, runtime, () =>
+    db.admitWorkerChatReleaseClose(resource.id)
+  )
   if (!stop.stopped) {
+    const current = db.getWorkerTerminalResource(resource.id)
+    if (current && current.release_state !== 'releasing') {
+      // Refused in the session lane: a touch kept the chat, or it fell back to manual release.
+      return {
+        dispatchId,
+        state: 'retained',
+        processAction: 'none',
+        archive: archiveSummary(current)
+      }
+    }
     const unknown = db.markWorkerTerminalReleaseUnknown(
       resource.id,
       stop.reason ?? 'The structured session close was not proven.'

@@ -41,10 +41,10 @@ export function markWorkerTerminalUserOwned(this: OrchestrationDb, paneKey: stri
   )
 }
 
-// A touch yields only an automatic release, until archive commit: release then closes in the same tick.
+// A touch yields only an automatic release, until its close is admitted in the session lane.
 const TOUCH_CLAIMABLE_RESOURCE_SQL = `ownership_state = 'owned' AND auto_release_at IS NOT NULL
   AND auto_release_dispatch_id = owner_dispatch_id
-  AND release_state IN ('not_requested', 'requested')`
+  AND release_state IN ('not_requested', 'requested', 'releasing')`
 
 /** The user opened or watched a finished worker's chat; running workers and explicit releases ignore it. */
 export function markWorkerChatTouched(this: OrchestrationDb, paneKey: string): number {
