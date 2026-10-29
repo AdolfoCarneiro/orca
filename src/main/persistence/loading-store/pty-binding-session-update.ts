@@ -11,7 +11,7 @@ import { createMinimalPersistedTerminalTab } from '../restoring-sessions/session
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { placedSplitRoot } from '../terminal-topology/terminal-pane-placement-graft'
 import { tabRowPtyIdAfterLeafBinding } from './terminal-tab-pty-ownership'
-import type { PersistPtyBindingArgs } from './pty-binding-persistence'
+import type { PersistPtyBindingArgs } from './pty-binding-args'
 import { SessionUnitReader } from '../../../shared/session-unit-reader'
 import { reduceReusedTerminalBinding } from './reused-terminal-id-unbind'
 

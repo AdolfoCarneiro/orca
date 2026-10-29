@@ -30,7 +30,7 @@ import {
 function upsertRepo(
   edit: SessionSourceEdit<Pick<AppState, 'repos'>>,
   repo: Repo,
-  hostId: string | null
+  hostId: string
 ): void {
   if (edit.read('repos').some((entry) => repoMatchesHostIdentity(entry, repo.id, hostId))) {
     edit

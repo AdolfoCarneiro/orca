@@ -65,7 +65,7 @@ export const createStructuredSessionLaunchDirectorySlice: SessionStateCreator<
               tabId
             )
           }
-        : state
+        : undefined
     )
   }
 })

@@ -205,7 +205,7 @@ export type HostSessionWriteMode = 'patch' | 'replace'
 /** Restore parked co-claimant rows to their own split slices before writing so primary updates cannot erase them. */
 export function attachHostSessionShadow(
   slices: HostSessionSlices,
-  shadow: HostSessionSlices | undefined,
+  shadow: Partial<Record<ExecutionHostId, Partial<WorkspaceSessionState>>> | undefined,
   claims: WorktreeHostClaims,
   mode: HostSessionWriteMode
 ): void {
@@ -214,7 +214,7 @@ export function attachHostSessionShadow(
   }
   for (const [hostId, shadowSlice] of Object.entries(shadow) as [
     ExecutionHostId,
-    WorkspaceSessionState | undefined
+    Partial<WorkspaceSessionState> | undefined
   ][]) {
     const slice = slices[hostId]
     if (!slice || !shadowSlice) {

@@ -1,7 +1,7 @@
 import type { PublicationState, Partition, SessionRefSnapshot } from './session-publication-types'
 export type { SessionRefSnapshot, PublicationState, Partition } from './session-publication-types'
 import { mergeSessionChanges } from './session-change-coalescing'
-import { SessionPublicationResources } from './session-publication-resources'
+import { SessionPublicationResources, type SessionAliasSink } from './session-publication-resources'
 import {
   registerReconnectRoot,
   publishReconnectRoot
@@ -47,10 +47,10 @@ export function sessionPublication(state: PublicationState): SessionPublication 
 export function initializeSessionPublication(
   state: PublicationState,
   durableState: PublicationState = state,
-  aliasesActive = false
+  publishAliases?: SessionAliasSink
 ): void {
   publications.get(state)?.dispose()
-  publications.set(state, new SessionPublication(state, durableState, aliasesActive))
+  publications.set(state, new SessionPublication(state, durableState, publishAliases))
 }
 
 export function disposeSessionPublication(state: PublicationState): void {
@@ -67,9 +67,9 @@ export class SessionPublication {
   constructor(
     private readonly state: PublicationState,
     durableState: PublicationState = state,
-    aliasesActive = false
+    publishAliases?: SessionAliasSink
   ) {
-    this.resources = new SessionPublicationResources(this.epoch, this.partitions, aliasesActive)
+    this.resources = new SessionPublicationResources(this.epoch, this.partitions, publishAliases)
     if (state.sshRemotePtyLeases) {
       sessionBindingIndex(state.sshRemotePtyLeases)
     }

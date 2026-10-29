@@ -103,13 +103,15 @@ export function reduceSessionIdentityMove(
       if (value?.worktreeId === oldId) {
         reader.write(field, key, { present: true, value: { ...value, worktreeId: newId } })
       }
-    } else if (
-      field === 'clientHostedBrowserCloseIntentsByEnvironment' ||
-      field === 'pairedTerminalTabCloseIntentsByEnvironment'
-    ) {
+    } else if (field === 'clientHostedBrowserCloseIntentsByEnvironment') {
       const rows = reader.unit(field, key).value
       if (rows?.some((row) => row.worktreeId === oldId)) {
-        reader.write(field, key, { present: true, value: rows.map(repoint) })
+        reader.write(field, key, { present: true, value: rows.map((row) => repoint(row)) })
+      }
+    } else if (field === 'pairedTerminalTabCloseIntentsByEnvironment') {
+      const rows = reader.unit(field, key).value
+      if (rows?.some((row) => row.worktreeId === oldId)) {
+        reader.write(field, key, { present: true, value: rows.map((row) => repoint(row)) })
       }
     }
   }

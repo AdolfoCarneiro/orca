@@ -73,7 +73,7 @@ export function createAgentStatusRecoveryActions(
     rememberSleepingAgentSession: (record) => {
       set((s) =>
         s.sleepingAgentSessionsByPaneKey[record.paneKey]
-          ? s
+          ? undefined
           : editSessionSource(s)
               .set('sleepingAgentSessionsByPaneKey', record.paneKey, record)
               .finish({})

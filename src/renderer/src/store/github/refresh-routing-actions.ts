@@ -28,7 +28,7 @@ export const createRefreshRoutingActions = (
     set((s) =>
       s.visibleReviewCardWorktreeIds?.length === ids.length &&
       ids.every((id, index) => s.visibleReviewCardWorktreeIds[index] === id)
-        ? s
+        ? undefined
         : { visibleReviewCardWorktreeIds: ids }
     )
   },
@@ -74,7 +74,7 @@ export const createRefreshRoutingActions = (
     set((s) =>
       s.visibleReviewWorktreeIds?.length === worktreeIds.length &&
       worktreeIds.every((id, index) => s.visibleReviewWorktreeIds[index] === id)
-        ? s
+        ? undefined
         : { visibleReviewWorktreeIds: worktreeIds }
     )
     const state = get()

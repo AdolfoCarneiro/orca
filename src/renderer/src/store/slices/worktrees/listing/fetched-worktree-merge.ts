@@ -138,7 +138,7 @@ export function preserveConcurrentDisplayName<T extends Worktree>(
 }
 
 export function mergeFetchedWorktrees(
-  set: Parameters<SessionStateCreator<AppState, WorktreeSlice>>[0],
+  _set: Parameters<SessionStateCreator<AppState, WorktreeSlice>>[0],
   get: () => AppState,
   args: FencedWorktreeMergeArgs
 ): WorktreeListingMergeOutcome {

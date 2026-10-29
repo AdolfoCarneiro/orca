@@ -45,7 +45,7 @@ export const createRepoSlice: SessionStateCreator<AppState, RepoSlice> = (set, g
     folderWorkspacePathStatuses: {},
     floatingWorkspacePath: null,
     setFloatingWorkspacePath: (path) =>
-      set((s) => (s.floatingWorkspacePath === path ? s : { floatingWorkspacePath: path })),
+      set((s) => (s.floatingWorkspacePath === path ? undefined : { floatingWorkspacePath: path })),
     activeRepoId: null,
     reposFetchGeneration: 0,
     pendingSshRepoReadoptions: [],

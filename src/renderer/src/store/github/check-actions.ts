@@ -1,3 +1,4 @@
+import type { OrdinarySourcePartial } from '../session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
 import type { GitHubSlice } from './slice-types'
@@ -170,7 +171,7 @@ export const createCheckActions = (
         return checks
       }
       set((s) => {
-        const nextState: Partial<AppState> = {
+        const nextState: OrdinarySourcePartial<AppState> = {
           checksCache: withBoundedCacheEntry(s.checksCache, cacheKey, {
             data: checks,
             fetchedAt: Date.now(),

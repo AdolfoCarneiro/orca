@@ -1,9 +1,6 @@
 import { runSessionOperation } from './session-operation'
 import { LOCAL_EXECUTION_HOST_ID, parseExecutionHostId } from '../../../shared/execution-host'
 import { makePaneKey } from '../../../shared/stable-pane-id'
-import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
-
-import type { PtyBindingSourceExpectation } from './store'
 
 import type { StoreRuntimeState } from './store-runtime-state'
 import { resolveHostId, type SessionHostPartitionOperations } from './session-host-partitions'
@@ -18,10 +15,8 @@ import {
   reportPtyBindingOwnerConflict,
   reportPtyBindingPlacement,
   startPtyBindingSpan,
-  type PtyBindingOrigin,
   type PtyBindingSpan
 } from './pty-binding-span'
-import type { TerminalPanePlacement } from '../../../shared/terminal-pane-placement'
 import type {
   TerminalLeafMoveRequest,
   TerminalLeafMoveResult
@@ -65,26 +60,8 @@ function markPtyBindingSessionDirty(
   )
 }
 
-export type PersistPtyBindingArgs = {
-  worktreeId: string
-  tabId: string
-  leafId: string
-  ptyId: string
-  incarnationId?: string
-  startupCwd?: string
-  correctStartupCwd?: string
-  expectedBinding?: { ptyId: string; incarnationId?: string }
-  expectedSourceBinding?: PtyBindingSourceExpectation
-  /** Spawns may precede layout saves; reattach must disable creation once absence proves a user close. */
-  mayCreate?: boolean
-  mayReviveRetiredSurface?: boolean
-  /** Tracing metadata only; persistence must not branch on origin. */
-  origin?: PtyBindingOrigin
-  /** Report-only until main owns layout; then determines split placement. */
-  placement?: TerminalPanePlacement
-  /** Replacement without incarnationId clears the saved incarnation. */
-  dropsIncarnation?: true
-}
+export type { PersistPtyBindingArgs } from './pty-binding-args'
+import type { PersistPtyBindingArgs } from './pty-binding-args'
 
 const ptyBindingPersistenceOperationsContext = Symbol('PtyBindingPersistenceOperations')
 type PtyBindingPersistenceOperationsContext = {
@@ -204,7 +181,7 @@ export class PtyBindingPersistenceOperations {
         return {
           value: true,
           writtenHostIds: [resolvedHostId],
-          rollback: writePtyBinding(this, args, session, resolvedHostId, bindingWorktreeId, paneKey)
+          rollback: writePtyBinding(this, args, resolvedHostId, bindingWorktreeId, paneKey)
         }
       })
       span?.finish(outcome)
@@ -253,7 +230,6 @@ export class PtyBindingPersistenceOperations {
 export function writePtyBinding(
   owner: PtyBindingPersistenceOperations,
   args: PersistPtyBindingArgs,
-  session: WorkspaceSessionState,
   resolvedHostId: ReturnType<typeof resolveHostId>,
   bindingWorktreeId: string,
   paneKey: string

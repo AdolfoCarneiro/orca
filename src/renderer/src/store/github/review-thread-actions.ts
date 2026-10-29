@@ -52,7 +52,7 @@ export const createReviewThreadActions = (
         set((s) => {
           const entry = s.commentsCache[cacheKey]
           if (!entry?.data) {
-            return s
+            return undefined
           }
           return {
             commentsCache: {
@@ -104,7 +104,7 @@ export const createReviewThreadActions = (
         set((s) => {
           const entry = s.commentsCache[cacheKey]
           if (!entry?.data) {
-            return s
+            return undefined
           }
           return {
             commentsCache: {

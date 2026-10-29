@@ -61,14 +61,14 @@ export function createTerminalLayoutActions(
     setTabPaneExpanded: (tabId, expanded) => {
       set((s) =>
         s.expandedPaneByTabId[tabId] === expanded
-          ? s
+          ? undefined
           : { expandedPaneByTabId: { ...s.expandedPaneByTabId, [tabId]: expanded } }
       )
     },
     setTabCanExpandPane: (tabId, canExpand) => {
       set((s) =>
         s.canExpandPaneByTabId[tabId] === canExpand
-          ? s
+          ? undefined
           : { canExpandPaneByTabId: { ...s.canExpandPaneByTabId, [tabId]: canExpand } }
       )
     },

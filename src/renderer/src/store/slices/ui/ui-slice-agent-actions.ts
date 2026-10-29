@@ -105,7 +105,7 @@ export function createUiAgentActions(
       set((s) =>
         s.diffNotesSendMenuOpenRequest?.worktreeId === worktreeId
           ? { diffNotesSendMenuOpenRequest: null }
-          : s
+          : undefined
       ),
     closeAgentSendPopoverTargetMode: (id, instanceId) =>
       set((s) => {
@@ -148,7 +148,7 @@ export function createUiAgentActions(
                 error: undefined
               }
             }
-          : s
+          : undefined
       )
 
       const agentType = runningAgentSendTargetAgentType(target)
@@ -191,7 +191,7 @@ export function createUiAgentActions(
                   error: message
                 }
               }
-            : s
+            : undefined
         )
         const { toast } = await import('sonner')
         if (!stillCurrent()) {

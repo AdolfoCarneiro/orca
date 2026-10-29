@@ -132,15 +132,15 @@ export function applyBrowserRecordUpdates(context: BrowserRecordContext) {
         certificateFailure
       )
     ) {
-      nextBrowserCertificateFailuresByPageId =
-        nextBrowserCertificateFailuresByPageId === state.browserCertificateFailuresByPageId
-          ? setWebSessionTabsRecordEntry(state, 'browserCertificateFailuresByPageId', batchContext)
-          : nextBrowserCertificateFailuresByPageId
-      if (certificateFailure) {
-        nextBrowserCertificateFailuresByPageId[page.id] = certificateFailure
-      } else {
-        delete nextBrowserCertificateFailuresByPageId[page.id]
-      }
+      nextBrowserCertificateFailuresByPageId = setWebSessionTabsRecordEntry(
+        state,
+        'browserCertificateFailuresByPageId',
+        page.id,
+        certificateFailure,
+        batchContext,
+        !certificateFailure,
+        nextBrowserCertificateFailuresByPageId
+      )
     }
   }
 

@@ -166,8 +166,8 @@ export async function refreshWebRuntimeSessionTabsSnapshot(
               changedAgentPaneKeys,
               undefined
             )
-          : state
-        return patch === state ? state : patch
+          : undefined
+        return patch
       },
       {
         frames: [

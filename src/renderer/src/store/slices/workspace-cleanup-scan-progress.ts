@@ -1,3 +1,4 @@
+import type { SessionSourceSet } from '../session-source-edits'
 import type { AppState } from '../types'
 import type {
   WorkspaceCleanupCandidate,
@@ -59,10 +60,7 @@ export function enqueueWorkspaceCleanupProgress(
   progress: WorkspaceCleanupScanProgress,
   scanToken: number,
   getState: () => AppState,
-  setState: (
-    partial: Partial<AppState> | ((state: AppState) => Partial<AppState>),
-    replace?: false
-  ) => void
+  setState: SessionSourceSet<AppState>
 ): void {
   if (
     scanToken !== latestWorkspaceCleanupScanToken ||
@@ -98,10 +96,7 @@ async function applyWorkspaceCleanupProgress(
   progress: WorkspaceCleanupScanProgress,
   scanToken: number,
   getState: () => AppState,
-  setState: (
-    partial: Partial<AppState> | ((state: AppState) => Partial<AppState>),
-    replace?: false
-  ) => void
+  setState: SessionSourceSet<AppState>
 ): Promise<void> {
   if (
     scanToken !== latestWorkspaceCleanupScanToken ||

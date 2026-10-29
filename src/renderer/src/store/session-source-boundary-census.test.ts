@@ -50,6 +50,8 @@ describe('session source boundary completeness', () => {
     const replacements = new Set([
       'store/session-source-edits.ts',
       'store/session-source-write-boundary.ts',
+      // A secondary window receives the main window's complete catalog snapshot.
+      'space.tsx',
       'store/project-groups/project-group-catalog-actions.ts',
       'store/repos/runtime-repo-catalog-actions.ts',
       'store/repos/all-host-repo-catalog-actions.ts',

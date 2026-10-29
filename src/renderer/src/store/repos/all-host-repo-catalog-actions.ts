@@ -191,7 +191,7 @@ export function createAllHostRepoCatalogActions(
           if (visibilityDefaults !== undefined && isCurrent(fence)) {
             set((state) =>
               isRemovedRuntimeHostId(hostId, state.removedRuntimeEnvironmentIds)
-                ? state
+                ? undefined
                 : {
                     worktreeVisibilityDefaultsByHost: {
                       ...state.worktreeVisibilityDefaultsByHost,

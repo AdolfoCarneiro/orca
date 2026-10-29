@@ -60,7 +60,7 @@ export function createGitStatusActions(
         // A failed read proves nothing about the tree, so keep the last known state and flag it.
         set((s) =>
           s.gitStatusReadErrorByWorktree[worktreeId] === readError
-            ? s
+            ? undefined
             : {
                 gitStatusReadErrorByWorktree: {
                   ...s.gitStatusReadErrorByWorktree,

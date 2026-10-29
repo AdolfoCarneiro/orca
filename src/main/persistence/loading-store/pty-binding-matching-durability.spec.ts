@@ -48,7 +48,6 @@ export function registerPtyBindingMatchingDurabilityTests(): void {
           writePtyBinding(
             store,
             { ...binding, ptyId: 'published-pty' },
-            session,
             hostId,
             binding.worktreeId,
             `${binding.tabId}:${binding.leafId}`
@@ -128,7 +127,6 @@ export function registerPtyBindingMatchingDurabilityTests(): void {
           writePtyBinding(
             store,
             { ...binding, ptyId: 'successor-pty' },
-            session,
             'local',
             binding.worktreeId,
             `${binding.tabId}:${binding.leafId}`

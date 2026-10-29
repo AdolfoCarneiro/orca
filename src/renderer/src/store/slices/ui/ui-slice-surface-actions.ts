@@ -84,7 +84,7 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
     setWorkspacePortScanRefreshing: (refreshing) =>
       set((state) =>
         state.workspacePortScanRefreshing === refreshing
-          ? state
+          ? undefined
           : { workspacePortScanRefreshing: refreshing }
       ),
 
@@ -153,7 +153,7 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
     revealWorktreeInSidebar: (worktreeId, options) =>
       set((state) =>
         state.sidebarBody === 'agents'
-          ? state
+          ? undefined
           : {
               pendingRevealWorktree: {
                 worktreeId,
@@ -167,7 +167,7 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
     revealSidebarRow: (rowKey, options) =>
       set((state) =>
         state.sidebarBody === 'agents'
-          ? state
+          ? undefined
           : {
               pendingRevealSidebarRow: {
                 rowKey,
@@ -184,14 +184,14 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
     setFloatingWorkspacePath: (path) =>
       set((state) =>
         state.floatingWorkspacePath === (path || null)
-          ? state
+          ? undefined
           : { floatingWorkspacePath: path || null }
       ),
     // Restore floating panel size/open state to avoid reopen/remaximize reflow of live TUI buffers (floating-terminal-panel-view-state).
     floatingWorkspacePanelOpen: readPersistedFloatingTerminalPanelViewState()?.open === true,
     setFloatingWorkspacePanelOpen: (open) =>
       set((state) =>
-        state.floatingWorkspacePanelOpen === open ? state : { floatingWorkspacePanelOpen: open }
+        state.floatingWorkspacePanelOpen === open ? undefined : { floatingWorkspacePanelOpen: open }
       )
   }
 }

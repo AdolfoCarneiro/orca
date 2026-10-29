@@ -9,7 +9,7 @@ import type {
   WorkspaceSessionPatch,
   WorkspaceSessionState
 } from '../../../shared/workspace-session-state-types'
-import { groupSessionFiles, type SessionSourceField } from './session-source-fields'
+import type { SessionSourceField } from './session-source-fields'
 
 import { parseAppSshPtyId } from '../../../shared/ssh-pty-id'
 export const SOURCE_MAPS = {
@@ -106,7 +106,7 @@ export class SessionProjectionIndex {
       activeTabId: state.activeTabId,
       tabsByWorktree: state.tabsByWorktree,
       terminalLayoutsByTabId: state.terminalLayoutsByTabId,
-      openFilesByWorktree: Object.fromEntries(groupSessionFiles(state.openFiles))
+      openFilesByWorktree: buildWorkspaceSessionPatch(state, ['openFiles']).openFilesByWorktree
     }
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: these are the fixed, exhaustive source-to-session map keys.
     for (const source of Object.keys(SOURCE_MAPS) as (keyof typeof SOURCE_MAPS)[]) {

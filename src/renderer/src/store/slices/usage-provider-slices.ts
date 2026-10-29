@@ -1,3 +1,4 @@
+import type { OrdinarySourcePartial } from '../session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type {
   ClaudeUsageRange,
@@ -121,12 +122,13 @@ function readUsageData<T extends UsageProviderTypes<string, string, UsageSnapsho
 function createUsagePatch<T extends UsageProviderTypes<string, string, UsageSnapshot>>(
   prefix: string,
   patch: Partial<UsageData<T>>
-): Partial<AppState> {
+): OrdinarySourcePartial<AppState> {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: configured usage-prefixed keys are ordinary provider fields, disjoint from session sources.
   return Object.fromEntries(
     usageDataFields
       .filter((field) => field in patch)
       .map((field) => [usageDataKey(prefix, field), patch[field]])
-  ) as Partial<AppState>
+  ) as OrdinarySourcePartial<AppState>
 }
 
 function createUsageProviderSlice<

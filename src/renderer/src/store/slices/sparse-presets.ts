@@ -37,7 +37,7 @@ type SparsePresetsMaps = Pick<
 export function omitSparsePresetsForRepos(
   s: SparsePresetsMaps,
   removedRepoIds: Iterable<string>
-): Partial<AppState> {
+): Partial<SparsePresetsMaps> {
   const removed = removedRepoIds instanceof Set ? removedRepoIds : new Set(removedRepoIds)
   if (removed.size === 0) {
     return {}
@@ -53,7 +53,7 @@ export function omitSparsePresetsForRepos(
     }
     return changed ? out : obj
   }
-  const result: Partial<AppState> = {}
+  const result: Partial<SparsePresetsMaps> = {}
   const byRepo = omit(s.sparsePresetsByRepo)
   if (byRepo !== s.sparsePresetsByRepo) {
     result.sparsePresetsByRepo = byRepo

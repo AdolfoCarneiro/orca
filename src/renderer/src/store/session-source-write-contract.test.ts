@@ -1,6 +1,10 @@
 import type { StoreApi } from 'zustand'
 import { describe, expect, it } from 'vitest'
-import { editSessionSource, type SessionSourceSet } from './session-source-edits'
+import {
+  editSessionSource,
+  type SessionSourceEdit,
+  type SessionSourceSet
+} from './session-source-edits'
 import { replaceSessionSourceFields } from './session-source-write-boundary'
 
 type State = {
@@ -48,6 +52,8 @@ function sourceWriteContracts(
   void narrowed
   set({ sortEpoch: 1, activeTabId: null })
   set((current) => ({ sortEpoch: current.sortEpoch + 1 }))
+  const narrow: SessionSourceEdit<Pick<State, 'editorDrafts'>> = editSessionSource(state)
+  narrow.set('editorDrafts', 'a', 'accepted by a narrow helper')
   set(finished)
   set((current) => editSessionSource(current).set('editorDrafts', 'a', 'next').finish())
   // @ts-expect-error full ingress must name its authorized boundary.

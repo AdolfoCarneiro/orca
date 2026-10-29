@@ -57,13 +57,7 @@ export type PreparedProfileStateExport = {
   readonly json: string
   commit(): void
 }
-export type PtyBindingSourceExpectation = {
-  worktreeId?: string
-  tabId: string
-  leafId: string
-  ptyId: string
-  incarnationId?: string
-}
+export type { PtyBindingSourceExpectation } from './pty-binding-args'
 
 // oxlint-disable-next-line typescript-eslint/no-unsafe-declaration-merging -- Store installs the exact concrete domain class descriptors and contexts below
 export class Store {
@@ -137,7 +131,13 @@ export class Store {
       this.state = bindPersistedTabTerminalPanes(sweepPersistedUnattachedTerminalRows(this.state))
       this.runtime.state = this.state
     }
-    initializeSessionPublication(this.state, durableSessionState, !imported)
+    initializeSessionPublication(
+      this.state,
+      durableSessionState,
+      imported
+        ? undefined
+        : (owner, recipes) => agentHookServer.replacePaneKeyAliasRecipes(owner, recipes)
+    )
     // Imported snapshots cannot own the live hook server or write their source file.
     if (!imported) {
       // Finish interrupted blob installs; shell history waits for post-attach live-process evidence.

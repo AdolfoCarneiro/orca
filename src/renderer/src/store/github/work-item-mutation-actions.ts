@@ -1,3 +1,4 @@
+import type { OrdinarySourcePartial } from '../session-source-edits'
 import { editSessionSource } from '@/store/session-source-edits'
 import type { SessionStateCreator } from '@/store/session-source-write-boundary'
 import type { AppState } from '../types'
@@ -118,7 +119,7 @@ export const createWorkItemMutationActions = (
       const issues = evictRepoCacheEntries(s.issueCache, eviction)
       const checks = evictRepoCacheEntries(s.checksCache, eviction)
       const comments = evictRepoCacheEntries(s.commentsCache, eviction)
-      const updates: Partial<AppState> = {}
+      const updates: OrdinarySourcePartial<AppState> = {}
 
       if (workItems.evicted) {
         updates.workItemsCache = workItems.cache

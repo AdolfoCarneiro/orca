@@ -100,7 +100,6 @@ const RENAME_CONTEXT = { mintId: randomUUID, mintLeafId: randomUUID, now: Date.n
 function applyToSession(
   reader: SessionUnitReader,
   loaded: LoadedWorkspaceLayout,
-  owners: ReadonlySet<string>,
   command: LayoutCommand,
   keepsViews: boolean,
   live: LayoutLiveContext,
@@ -168,17 +167,7 @@ export function admitPaneToSession(
   ) {
     return { value: 'exists', session: null }
   }
-  const change = applyToSession(
-    reader,
-    loaded,
-    owners,
-    admission,
-    false,
-    {},
-    domain,
-    incremental,
-    true
-  )
+  const change = applyToSession(reader, loaded, admission, false, {}, domain, incremental, true)
   return {
     ...change,
     value: change.value.ok ? 'admitted' : change.value.code,
@@ -200,17 +189,7 @@ export function withdrawPaneFromSession(
     undefined,
     !incremental
   )
-  const change = applyToSession(
-    reader,
-    loaded,
-    owners,
-    command,
-    false,
-    {},
-    domain,
-    incremental,
-    true
-  )
+  const change = applyToSession(reader, loaded, command, false, {}, domain, incremental, true)
   return {
     ...change,
     value: change.value.ok ? null : change.value.code,
@@ -239,16 +218,7 @@ export function applyCommandToSession(
     return { value: taken, session: null, ...(incremental ? { changedOwners: owners } : {}) }
   }
   return {
-    ...applyToSession(
-      reader,
-      loaded,
-      owners,
-      command,
-      views !== undefined,
-      live,
-      domain,
-      incremental
-    ),
+    ...applyToSession(reader, loaded, command, views !== undefined, live, domain, incremental),
     ...(incremental ? { changedOwners: owners } : {})
   }
 }

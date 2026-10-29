@@ -102,10 +102,10 @@ export function reducePtyBindingRollback(
     const restored = reader.unit('terminalLayoutsByTabId', tabId).value
     const current = reader.unit('terminalLayoutsByTabId', tabId, 'prior').value
     const written = staged.unit('terminalLayoutsByTabId', tabId).value
-    if (restored && !isDeepStrictEqual(current?.root, written?.root)) {
+    if (restored && current && !isDeepStrictEqual(current.root, written?.root)) {
       reader.write('terminalLayoutsByTabId', tabId, {
         present: true,
-        value: { ...restored, root: current?.root }
+        value: { ...restored, root: current.root }
       })
     }
   }

@@ -36,13 +36,13 @@ export function createUiTourActions(set: UISliceSet, get: UISliceGet): Partial<U
     setContextualToursOnboardingVisible: (visible) =>
       set((s) =>
         s.contextualToursOnboardingVisible === visible
-          ? s
+          ? undefined
           : { contextualToursOnboardingVisible: visible }
       ),
     setContextualToursBlockingSurfaceVisible: (visible) =>
       set((s) =>
         s.contextualToursBlockingSurfaceVisible === visible
-          ? s
+          ? undefined
           : { contextualToursBlockingSurfaceVisible: visible }
       ),
     requestContextualTour: (id, source, wasFeaturePreviouslyInteracted, options) =>

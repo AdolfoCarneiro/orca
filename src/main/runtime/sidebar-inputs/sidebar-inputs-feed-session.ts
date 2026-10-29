@@ -1,3 +1,4 @@
+import type { SidebarInputsFeedDomain } from './sidebar-inputs-feed'
 import {
   type SidebarInputsChangedEvent,
   type SidebarInputsReadParams,

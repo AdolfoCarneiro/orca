@@ -1,4 +1,3 @@
-import { agentHookServer } from '../../agent-hooks/server'
 import {
   sessionPaneAliasRecipes,
   type SessionPaneAliasRecipe
@@ -19,6 +18,8 @@ import type { WorkspaceSessionState } from '../../../shared/workspace-session-st
 
 import { SessionUnitIndex } from '../../../shared/session-unit-index'
 import type { SessionRefSnapshot, Partition, PublicationState } from './session-publication'
+export type SessionAliasSink = (owner: string, recipes: readonly SessionPaneAliasRecipe[]) => void
+
 export class SessionPublicationResources {
   private readonly durableRefs = new Map<ExecutionHostId, Readonly<Record<string, number>>>()
   private readonly inFlightRefs = new Set<SessionRefSnapshot>()
@@ -26,7 +27,7 @@ export class SessionPublicationResources {
   constructor(
     private readonly epoch: string,
     private readonly partitions: Map<ExecutionHostId, Partition>,
-    private readonly aliasesActive: boolean
+    private readonly publishAliases?: SessionAliasSink
   ) {}
   initialize(state: PublicationState, durableState: PublicationState): void {
     for (const recipe of state.legacyPaneKeyAliasEntries ?? []) {
@@ -75,7 +76,7 @@ export class SessionPublicationResources {
   }
   updateAliasRecipes(hostId: ExecutionHostId, tabId: string, root: WorkspaceSessionState): void {
     const partition = this.partitions.get(hostId)
-    if (!partition || !this.aliasesActive) {
+    if (!partition || !this.publishAliases) {
       return
     }
     const layout = root.terminalLayoutsByTabId?.[tabId]
@@ -102,7 +103,7 @@ export class SessionPublicationResources {
     } else {
       partition.aliases.delete(tabId)
     }
-    agentHookServer.replacePaneKeyAliasRecipes(JSON.stringify([this.epoch, hostId, tabId]), recipes)
+    this.publishAliases?.(JSON.stringify([this.epoch, hostId, tabId]), recipes)
   }
   captureRefs(dirtyDomains: ReadonlySet<string> | null): SessionRefSnapshot {
     const snapshot: SessionRefSnapshot = new Map()
@@ -158,7 +159,7 @@ export class SessionPublicationResources {
   dispose(): void {
     for (const [hostId, partition] of this.partitions) {
       for (const tabId of partition.aliases.keys()) {
-        agentHookServer.replacePaneKeyAliasRecipes(JSON.stringify([this.epoch, hostId, tabId]), [])
+        this.publishAliases?.(JSON.stringify([this.epoch, hostId, tabId]), [])
       }
     }
   }

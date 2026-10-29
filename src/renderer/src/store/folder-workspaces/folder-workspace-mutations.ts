@@ -37,7 +37,10 @@ import {
   deleteWorkspaceChatDrafts
 } from '../slices/worktrees/teardown/removed-worktree-chat-drafts'
 
-import { getFolderWorkspaceUpdateCoordinator } from './folder-workspace-update-owner'
+import {
+  getFolderWorkspaceUpdateCoordinator,
+  type FolderWorkspaceUpdateField
+} from './folder-workspace-update-owner'
 export type {
   FolderWorkspaceUpdateField,
   FolderWorkspaceUpdateCoordinatorInstance,

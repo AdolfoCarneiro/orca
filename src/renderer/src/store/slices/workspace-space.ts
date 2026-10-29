@@ -133,7 +133,7 @@ export const createWorkspaceSpaceSlice: SessionStateCreator<AppState, WorkspaceS
                 updatedAt: Date.now()
               }
             }
-          : state
+          : undefined
       )
     }
     return cancelled

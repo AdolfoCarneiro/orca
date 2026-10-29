@@ -9,7 +9,7 @@ import {
   reduceSessionOwnerRemoval,
   reduceSessionRepoRemoval
 } from '../restoring-sessions/session-owner-reduction'
-import type { PersistPtyBindingArgs } from './pty-binding-persistence'
+import type { PersistPtyBindingArgs } from './pty-binding-args'
 import { reducePtyBinding } from './pty-binding-session-update'
 import { publishSessionChanges, sessionPublication } from './session-publication'
 

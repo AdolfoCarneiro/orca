@@ -31,12 +31,17 @@ type DegradedStartupRecoveryArgs = {
 // Reconnect normally drains pending maps; clear on failure so ready UI cannot retain phantom dead PTYs (#1158).
 function forceWorkspaceSessionReady(): void {
   useAppStore.setState((sourceState) =>
-    editSessionSource(sourceState).replace('pendingReconnectPtyIdByTabId', {}).finish({
-      workspaceSessionReady: true,
-      pendingReconnectWorktreeIds: [],
-      pendingReconnectTabByWorktree: {},
-      terminalStartupRestorationReady: true
-    })
+    editSessionSource(sourceState)
+      .removeKeys(
+        'pendingReconnectPtyIdByTabId',
+        Object.keys(sourceState.pendingReconnectPtyIdByTabId)
+      )
+      .finish({
+        workspaceSessionReady: true,
+        pendingReconnectWorktreeIds: [],
+        pendingReconnectTabByWorktree: {},
+        terminalStartupRestorationReady: true
+      })
   )
 }
 

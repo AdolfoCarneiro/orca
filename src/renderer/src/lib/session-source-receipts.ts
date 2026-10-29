@@ -73,7 +73,10 @@ export class SessionSourceReceipts {
       full: this.full,
       fullBoundary: this.fullBoundary,
       sequences: Object.fromEntries(
-        Object.entries(this.sequences).map(([field, rows]) => [field, new Map(rows)])
+        Object.entries(this.sequences).map(([field, rows]) => [
+          field,
+          new Map<string, readonly unknown[]>(rows)
+        ])
       ),
       presence: new Map([...this.presence].map(([field, entries]) => [field, new Map(entries)]))
     }

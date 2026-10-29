@@ -86,7 +86,7 @@ export function createFetchDetectedWorktrees(
         return areDetectedWorktreeResultsEqual(s.detectedWorktreesByRepo[repoId], mergedDetected)
           ? Object.keys(versionPatch).length === 0
             ? undefined
-            : { ...s, ...versionPatch }
+            : versionPatch
           : {
               ...versionPatch,
               detectedWorktreesByRepo: {

@@ -1,4 +1,8 @@
-import type { SessionSourceField, SessionSourceKind } from '../lib/session-source-fields'
+import type {
+  SessionSourceDiscovery,
+  SessionSourceField,
+  SessionSourceKind
+} from '../lib/session-source-fields'
 import type { SessionSourceWrite } from './session-source-edits'
 
 export type SourceKey<S> = Extract<keyof S, SessionSourceField>
@@ -9,9 +13,7 @@ export type Entry<S, F extends RecordKey<S>> =
     : NonNullable<S[F]> extends Record<string, infer V>
       ? V
       : never
-export type OrdinarySourcePartial<S> = Partial<
-  Omit<S, Exclude<SourceKey<S>, SessionSourceKind<'field'>>>
-> &
+export type OrdinarySourcePartial<S> = Partial<S> &
   Partial<Record<SessionSourceKind<'keyed' | 'sequence'>, never>> & {
     readonly sourceWrite?: never
   }
@@ -25,4 +27,9 @@ export type SessionSourceSetArgs<S> =
 export type SessionSourceSet<S> = {
   (partial: SessionSourceUpdate<S>, replace?: false): void
   (partial: SessionSourceWrite<S>, replace: true): void
+}
+
+export type SourceWriteData<S> = {
+  partial: Readonly<Partial<S>>
+  receipt: SessionSourceDiscovery | undefined
 }

@@ -1,4 +1,8 @@
-import { SessionUnitReader, selectSessionUnits } from '../../../shared/session-unit-reader'
+import {
+  SessionUnitReader,
+  selectSessionUnits,
+  type SessionEntry
+} from '../../../shared/session-unit-reader'
 import {
   SESSION_MAP_FIELDS,
   isSessionMapField,
@@ -128,7 +132,11 @@ export class SessionSnapshotOperations {
         continue
       }
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: validation restricts these keys to the session DTO.
-      reader.replace(field as keyof WorkspaceSessionState, { present: true, value })
+      reader.replace(field as keyof WorkspaceSessionState, {
+        present: true,
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: validateSessionPatch admits only session-field values after envelope fields are excluded.
+        value: value as WorkspaceSessionState[keyof WorkspaceSessionState]
+      })
     }
     for (const field of SESSION_MAP_FIELDS) {
       const delta = patch.mapDeltas?.[field]
@@ -136,7 +144,11 @@ export class SessionSnapshotOperations {
         reader.write(field, key, { present: false, value: undefined })
       }
       for (const key of Object.keys(delta?.set ?? {})) {
-        reader.write(field, key, { present: true, value: delta?.set?.[key] })
+        reader.write(field, key, {
+          present: true,
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: validation and the field-keyed delta admit the selected field's entry domain.
+          value: delta!.set![key] as SessionEntry<typeof field>
+        })
       }
     }
     for (const field of patch.clearFields ?? [])

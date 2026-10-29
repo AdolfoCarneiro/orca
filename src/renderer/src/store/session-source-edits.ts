@@ -3,7 +3,8 @@ import {
   SESSION_SOURCE_KINDS,
   type SessionSourceDiscovery,
   type SessionSourceField,
-  type SessionSourcePresence
+  type SessionSourcePresence,
+  type SessionSourceKind
 } from '../lib/session-source-fields'
 import { SessionSourceSequence } from './session-source-sequence'
 
@@ -14,15 +15,10 @@ import type {
   RecordKey,
   Entry,
   OrdinarySourcePartial,
-  SessionSourcePartial
-} from './session-source-write-types'
-export type {
-  OrdinarySourcePartial,
   SessionSourcePartial,
-  SessionSourceUpdate,
-  SessionSourceSetArgs,
-  SessionSourceSet
+  SourceWriteData
 } from './session-source-write-types'
+export type * from './session-source-write-types'
 
 type FullSourceBoundary = 'hydration' | 'catalog' | 'order' | 'unload'
 
@@ -46,7 +42,7 @@ class SourceWrite<S> {
 export type SessionSourceWrite<S> = SourceWrite<S>
 
 /** Only the setter, middleware and batch boundary may access accepted payloads. */
-export function unwrapSessionSourceWrite<S>(write: SessionSourcePartial<S>) {
+export function unwrapSessionSourceWrite<S>(write: SessionSourcePartial<S>): SourceWriteData<S> {
   return write instanceof SourceWrite
     ? SourceWrite.unwrap(write)
     : { partial: write, receipt: undefined }
@@ -56,7 +52,7 @@ export function unwrapSessionSourceWrite<S>(write: SessionSourcePartial<S>) {
 export class SessionSourceEdit<S extends object> {
   private readonly partial: Partial<S> = {}
   private readonly changes = new Map<SessionSourceField, Set<string> | null>()
-  private readonly copied = new Set<SourceKey<S>>()
+  private readonly copied = new Set<SessionSourceField>()
   private readonly baseEntries = new Map<SessionSourceField, Map<string, SourceEntry>>()
   private readonly presence = new Map<SessionSourceField, Map<string, SessionSourcePresence>>()
   private full = false
@@ -65,7 +61,7 @@ export class SessionSourceEdit<S extends object> {
 
   constructor(private readonly source: S) {}
 
-  read<F extends SourceKey<S>>(field: F): Readonly<S[F]> {
+  read<F extends SourceKey<S>>(field: F): S[F] {
     return Object.hasOwn(this.partial, field) ? this.partial[field]! : this.source[field]
   }
 
@@ -273,14 +269,17 @@ export class SessionSourceEdit<S extends object> {
         }
       }
     }
-    return new SourceWrite(Object.assign({}, other, this.partial), {
+    return new SourceWrite<S>(Object.assign({}, other, this.partial), {
       changes: new Map(
         [...this.changes].map(([field, keys]) => [field, keys === null ? null : new Set(keys)])
       ),
       full: this.full,
       fullBoundary: this.fullBoundary,
       sequences: Object.fromEntries(
-        Object.entries(this.sequences).map(([field, groups]) => [field, new Map(groups)])
+        Object.entries(this.sequences).map(([field, groups]) => [
+          field,
+          new Map<string, readonly unknown[]>(groups)
+        ])
       ),
       presence: new Map([...this.presence].map(([field, entries]) => [field, new Map(entries)]))
     })
@@ -294,7 +293,7 @@ export function editSessionSource<S extends object>(state: S): SessionSourceEdit
 type SequenceRow<S, F extends keyof S> = S[F] extends readonly (infer V)[] ? V : never
 
 export function replaceSessionSourceFields<S extends object>(
-  partial: S,
+  partial: Partial<S>,
   boundary: FullSourceBoundary
 ): SessionSourceWrite<S> {
   return new SourceWrite(partial, {
