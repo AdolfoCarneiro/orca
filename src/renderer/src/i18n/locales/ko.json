@@ -20875,7 +20875,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Orca의 Codex는 이제 ~/.codex를 사용합니다",
-      "description": "Codex는 폴더를 신뢰하거나 명령을 승인하도록 다시 요청할 수 있습니다. ORCA에서만 추가한 MCP 서버를 다시 추가합니다."
+      "description": "Codex는 폴더를 신뢰하거나 명령을 승인하도록 다시 요청할 수 있습니다. ORCA에서만 추가한 MCP 서버를 다시 추가합니다.",
+      "dismiss": "닫기"
     },
     "codexSharedServerBanner": {
       "title": "이 Codex는 다른 Codex 탭과 서버를 공유합니다",

@@ -21177,7 +21177,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "O Codex no Orca agora usa ~/.codex",
-      "description": "O Codex pode pedir novamente para confiar em pastas ou aprovar comandos. Adicione novamente os servidores MCP que você adicionou apenas no Orca."
+      "description": "O Codex pode pedir novamente para confiar em pastas ou aprovar comandos. Adicione novamente os servidores MCP que você adicionou apenas no Orca.",
+      "dismiss": "Descartar"
     },
     "codexSharedServerBanner": {
       "title": "Este Codex está compartilhando um servidor com suas outras abas do Codex",

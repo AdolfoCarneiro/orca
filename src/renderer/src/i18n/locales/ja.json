@@ -20875,7 +20875,8 @@
     },
     "codexSharedSettingsNotice": {
       "title": "Orca の Codex は ~/.codex を使用するようになりました",
-      "description": "Codex は、フォルダーを信頼するか、コマンドを承認するかを再度要求する場合があります。 Orca のみに追加した MCP サーバーを再度追加します。"
+      "description": "Codex は、フォルダーを信頼するか、コマンドを承認するかを再度要求する場合があります。 Orca のみに追加した MCP サーバーを再度追加します。",
+      "dismiss": "閉じる"
     },
     "codexSharedServerBanner": {
       "title": "この Codex は他の Codex タブとサーバーを共有しています",
