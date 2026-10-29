@@ -220,7 +220,12 @@ it('keeps crew as the only observer for title, settings and mirrored-name source
       return () => sessionListeners.delete(listener)
     }
   })
-  const runtime = new OrcaRuntimeService(store)
+  class CrewNameRuntime extends OrcaRuntimeService {
+    publishClientEvent(event: RuntimeClientEvent): void {
+      this.emitClientEvent(event)
+    }
+  }
+  const runtime = new CrewNameRuntime(store)
   const { OrchestrationDb } = await import('../db')
   const { subscribeCrew } = await import('./crew-stream')
   const db = new OrchestrationDb(':memory:')
@@ -299,23 +304,14 @@ it('keeps crew as the only observer for title, settings and mirrored-name source
     selection.mockClear()
     names.mockClear()
     // RuntimeClientEventBus is the real production filter. Crew is its only enrolled consumer.
-    const publish: unknown = Reflect.get(runtime, 'emitClientEvent')
-    if (typeof publish !== 'function') {
-      throw new Error('Missing runtime client-event publication boundary')
-    }
-    const events = {
-      emitClientEvent: (event: RuntimeClientEvent): void => {
-        Reflect.apply(publish, runtime, [event])
-      }
-    }
-    events.emitClientEvent({
+    runtime.publishClientEvent({
       type: 'terminalSideEffects',
       batch: { ptyId: 'pty', seq: 1, facts: [{ kind: 'bell' }] }
     })
     await Promise.resolve()
     expect(selection).not.toHaveBeenCalled()
     expect(names).not.toHaveBeenCalled()
-    events.emitClientEvent({
+    runtime.publishClientEvent({
       type: 'terminalSideEffects',
       batch: {
         ptyId: 'pty',
