@@ -74,7 +74,7 @@ describe('CodexRuntimeHomeService', () => {
 
     expect(service.isHostSystemDefaultRealHomeSelected()).toBe(false)
     expect(service.isHostSystemDefaultSessionMigrationEligible()).toBe(false)
-    expect(service.prepareForCodexLaunch()).toContain(join(dirname(managedHomePath), 'overlays'))
+    expect(service.prepareForCodexLaunch()).toBe(managedHomePath)
     expect(
       service.beginHostSystemDefaultSessionMigrationLaunch(getRuntimeCodexHomePath())
     ).toBeNull()
@@ -128,15 +128,15 @@ describe('CodexRuntimeHomeService', () => {
       const { CodexRuntimeHomeService } = await import('./runtime-home-service')
       const service = new CodexRuntimeHomeService(store as never)
 
-      expect(service.prepareForCodexLaunch()).toContain(join(dirname(home1), 'overlays'))
+      expect(service.prepareForCodexLaunch()).toBe(home1)
       settings.activeCodexManagedAccountId = 'account-2'
       settings.activeCodexManagedAccountIdsByRuntime = { host: 'account-2', wsl: {} }
-      expect(service.prepareForCodexLaunch()).toContain(join(dirname(home2), 'overlays'))
+      expect(service.prepareForCodexLaunch()).toBe(home2)
       expect(
         service.prepareForCodexLaunch(undefined, undefined, {
           unavailableManagedHomePath: home1
         })
-      ).toContain(join(dirname(home2), 'overlays'))
+      ).toBe(home2)
       expect(store.updateSettings).not.toHaveBeenCalled()
 
       expect(readFileSync(join(home1, 'auth.json'), 'utf-8')).toBe(account1Auth)
@@ -186,7 +186,9 @@ describe('CodexRuntimeHomeService', () => {
     const { CodexRuntimeHomeService } = await import('./runtime-home-service')
     const service = new CodexRuntimeHomeService(store as never)
 
-    const launchHome = service.prepareForCodexLaunch()!
+    const launchHome = service.prepareForCodexLaunch(undefined, undefined, {
+      conversationHome: getSystemCodexHomePath()
+    })!
     expect(launchHome).toContain(join(dirname(home1), 'overlays'))
 
     expectResourceLinkedOrCopied(
@@ -257,7 +259,7 @@ describe('CodexRuntimeHomeService', () => {
     const { CodexRuntimeHomeService } = await import('./runtime-home-service')
     const service = new CodexRuntimeHomeService(store as never)
 
-    expect(service.prepareForCodexLaunch()).toContain(join(dirname(brokenHome), 'overlays'))
+    expect(service.prepareForCodexLaunch()).toBe(brokenHome)
     expect(service.prepareForRateLimitFetch()).toEqual({ kind: 'ready', codexHomePath: brokenHome })
     expect(store.getSettings().activeCodexManagedAccountId).toBe('account-1')
   })
@@ -405,7 +407,7 @@ describe('CodexRuntimeHomeService', () => {
     const service = new CodexRuntimeHomeService(store as never)
 
     expect(service.isHostSystemDefaultRealHomeSelected()).toBe(false)
-    expect(service.prepareForCodexLaunch()).toContain(join(dirname(managedHomePath), 'overlays'))
+    expect(service.prepareForCodexLaunch()).toBe(managedHomePath)
 
     writeFileSync(runtimeAuthPath, refreshedManagedAuth, 'utf-8')
 

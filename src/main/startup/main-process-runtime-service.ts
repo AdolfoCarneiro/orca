@@ -24,7 +24,6 @@ import { getDaemonProvider } from '../daemon/daemon-provider-state'
 import type { TerminalSideEffectBatch } from '../../shared/terminal-side-effect-facts'
 import type { OrchestrationEnvironmentTransport } from '../runtime/orchestration/environment-transport'
 import { resolveEnvironment } from '../../shared/runtime-environment-store'
-import { resolveTuiAgentLaunchEnv } from '../../shared/tui-agent-launch-defaults'
 import { getPreferredPairedRuntimeConnection } from '../../shared/runtime-environments'
 import { fingerprintOrchestrationPeer } from '../runtime/orchestration/environment-transport'
 import { callRuntimeEnvironment } from '../ipc/runtime-environments/runtime-environment-transport-routing'
@@ -126,11 +125,6 @@ export function initializeMainProcessRuntime(): OrcaRuntimeService {
       preparePinnedLaunchHome: (home) => prepareCodexPinnedLaunchHome(home)
     })),
     ...codexStructuredLaunchHomeResolvers,
-    prepareCodexCatalogProbeHome: (homePath) =>
-      state.codexRuntimeHome?.prepareHostCodexHomeForReadOnlyAppServer(
-        homePath,
-        resolveTuiAgentLaunchEnv('codex', store.getSettings())
-      ),
     orchestrationEnvironmentTransport,
     workspaceSleepPlatform: {
       callEnvironment: (environmentId, method, params, timeoutMs) =>

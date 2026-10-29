@@ -5,7 +5,7 @@ import type * as NodeFs from 'node:fs'
 import type * as CodexConfigMirror from '../codex/codex-config-mirror'
 import type * as CodexHomePaths from '../codex/codex-home-paths'
 import type * as CodexSessionBackfillMarker from '../codex/codex-session-backfill-marker'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { createSettings } from './runtime-home-settings-test-fixtures'
 import {
   createCodexAccountRecord,
@@ -178,12 +178,12 @@ describe('resolveHostCodexHomePathForLaunchReadOnly', () => {
     )
 
     const readOnlyHome = service.resolveHostCodexHomePathForLaunchReadOnly()
-    expect(readOnlyHome).toContain(join(dirname(managedHomePath), 'overlays'))
+    expect(readOnlyHome).toBe(managedHomePath)
     expectNoSideEffects(sideEffects, store)
 
     // Prove the spies detect actual launch side effects.
     expect(service.prepareForCodexLaunch()).toBe(readOnlyHome)
-    expect(sideEffects.syncResources).toHaveBeenCalled()
+    expect(sideEffects.syncResources).not.toHaveBeenCalled()
     expect(sideEffects.accountBridge).not.toHaveBeenCalled()
   })
 
@@ -246,9 +246,7 @@ describe('resolveHostCodexHomePathForLaunchReadOnly', () => {
     )
     const { ManagedCodexHomeTemporarilyUnavailableError } =
       await import('./host-codex-managed-home-ownership')
-    expect(service.resolveHostCodexHomePathForLaunchReadOnly()).toContain(
-      join(dirname(managedHomePath), 'overlays')
-    )
+    expect(service.resolveHostCodexHomePathForLaunchReadOnly()).toBe(managedHomePath)
     const markerPath = join(realpathSync(managedHomePath), '.orca-managed-home')
     lstatFaults.hold(markerPath)
 
@@ -265,9 +263,7 @@ describe('resolveHostCodexHomePathForLaunchReadOnly', () => {
     expect(store.getSettings().activeCodexManagedAccountId).toBe('account-1')
 
     lstatFaults.release(markerPath)
-    expect(service.resolveHostCodexHomePathForLaunchReadOnly()).toContain(
-      join(dirname(managedHomePath), 'overlays')
-    )
+    expect(service.resolveHostCodexHomePathForLaunchReadOnly()).toBe(managedHomePath)
   })
 
   it('shares the create-path null-to-system-home mapping', async () => {

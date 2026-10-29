@@ -108,7 +108,9 @@ describe('CodexRuntimeHomeService per-account takeover composition', () => {
     for (const account of [accountOne, accountTwo]) {
       selectManagedAccount(settings, account.id)
       service.syncForCurrentSelection()
-      const launchHome = service.prepareForCodexLaunch()!
+      const launchHome = service.prepareForCodexLaunch(undefined, undefined, {
+        conversationHome: systemHome()
+      })!
       expect(launchHome).toContain(join(dirname(account.managedHomePath), 'overlays'))
       expect(readFileSync(join(launchHome, 'skills', 'fixture-skill', 'SKILL.md'), 'utf8')).toBe(
         'fixture skill\n'
@@ -137,9 +139,7 @@ describe('CodexRuntimeHomeService per-account takeover composition', () => {
     expect(readFileSync(sharedSession, 'utf8')).toBe('{"session":"legacy-shared"}\n')
 
     writeFileSync(sharedAuthPath(), createAuth('two@example.com', 'acct-2', 'later-shared', 4_000))
-    expect(service.prepareForCodexLaunch()).toContain(
-      join(dirname(accountTwo.managedHomePath), 'overlays')
-    )
+    expect(service.prepareForCodexLaunch()).toBe(accountTwo.managedHomePath)
     expect(readFileSync(join(accountTwo.managedHomePath, 'auth.json'), 'utf8')).toBe(accountTwoAuth)
   })
 
@@ -156,17 +156,13 @@ describe('CodexRuntimeHomeService per-account takeover composition', () => {
     const service = new CodexRuntimeHomeService(store as never)
 
     expect(readFileSync(join(account.managedHomePath, 'auth.json'), 'utf-8')).toBe(migrated)
-    expect(service.prepareForCodexLaunch()).toContain(
-      join(dirname(account.managedHomePath), 'overlays')
-    )
+    expect(service.prepareForCodexLaunch()).toBe(account.managedHomePath)
     writeFileSync(sharedAuthPath(), laterShared, 'utf-8')
     expect(service.prepareForRateLimitFetch()).toEqual({
       kind: 'ready',
       codexHomePath: account.managedHomePath
     })
-    expect(service.prepareForCodexLaunch()).toContain(
-      join(dirname(account.managedHomePath), 'overlays')
-    )
+    expect(service.prepareForCodexLaunch()).toBe(account.managedHomePath)
     expect(readFileSync(join(account.managedHomePath, 'auth.json'), 'utf-8')).toBe(migrated)
     expect(readFileSync(systemAuthPath(), 'utf-8')).toBe('system auth sentinel\n')
     expect(settings.activeCodexManagedAccountId).toBe(account.id)
@@ -211,9 +207,7 @@ describe('CodexRuntimeHomeService per-account takeover composition', () => {
     rmSync(accountAuthPath)
     writeFileSync(sharedAuthPath(), laterShared, 'utf-8')
 
-    expect(service.prepareForCodexLaunch()).toContain(
-      join(dirname(account.managedHomePath), 'overlays')
-    )
+    expect(service.prepareForCodexLaunch()).toBe(account.managedHomePath)
     expect(service.prepareForRateLimitFetch()).toEqual({
       kind: 'ready',
       codexHomePath: account.managedHomePath
@@ -247,10 +241,10 @@ describe('CodexRuntimeHomeService per-account takeover composition', () => {
 
     selectManagedAccount(settings, accountTwo.id)
     service.syncForCurrentSelection()
-    expect(service.prepareForCodexLaunch()).toContain(
-      join(dirname(accountTwo.managedHomePath), 'overlays')
-    )
-    const launchHome = service.prepareForCodexLaunch()!
+    expect(service.prepareForCodexLaunch()).toBe(accountTwo.managedHomePath)
+    const launchHome = service.prepareForCodexLaunch(undefined, undefined, {
+      conversationHome: systemHome()
+    })!
     expect(readFileSync(join(launchHome, 'sessions', systemRollout), 'utf8')).toBe(
       '{"session":"real-home"}\n'
     )

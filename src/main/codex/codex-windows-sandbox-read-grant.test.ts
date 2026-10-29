@@ -103,4 +103,36 @@ describe('grantCodexSandboxReadOnManagedHome', () => {
 
     expect(grantCalls()).toEqual([join(home, 'generated_images')])
   })
+
+  it('does not recreate removed account resources when a setup marker arrives late', async () => {
+    vi.useFakeTimers()
+    rmSync(join(home, '.sandbox'), { recursive: true })
+    writeFileSync(join(home, 'config.toml'), '[windows]\nsandbox = "elevated"\n')
+    let authorized = true
+    await grantCodexSandboxReadOnManagedHome(home, () => authorized)
+    authorized = false
+    mkdirSync(join(home, '.sandbox'))
+    writeFileSync(join(home, '.sandbox', 'setup_marker.json'), '{}')
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(existsSync(join(home, 'generated_images'))).toBe(false)
+    expect(runProcessMock).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('rechecks account authority after a pending ACL query before granting', async () => {
+    let settleQuery: ((result: ReturnType<typeof processResult>) => void) | undefined
+    runProcessMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          settleQuery = resolve
+        })
+    )
+    let authorized = true
+    const pending = grantCodexSandboxReadOnManagedHome(home, () => authorized)
+    expect(settleQuery).toBeDefined()
+    authorized = false
+    settleQuery?.(processResult(0))
+    await pending
+    expect(grantCalls()).toEqual([])
+  })
 })

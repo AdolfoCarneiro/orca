@@ -2,6 +2,7 @@ import type * as NodeOs from 'node:os'
 import type * as NodeFs from 'node:fs'
 import {
   mkdirSync,
+  readFileSync,
   readdirSync,
   readlinkSync,
   realpathSync,
@@ -14,7 +15,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { installFakeAppEnvironment } from '../../../config/scripts/vitest-host-ports-setup'
 import type { AgentSessionAccountHome } from '../../shared/agent-session-account-home'
 import { requireLegacyAgentSessionAccountHome } from '../../shared/agent-session-account-home'
-import { resolveCodexLaunchHome } from '../codex/codex-launch-home'
+import {
+  resolveCodexLaunchHome,
+  type CodexHomePreparationOperation
+} from '../codex/codex-launch-home'
 import { createSettings } from './runtime-home-settings-test-fixtures'
 import {
   createCodexAccountRecord,
@@ -48,6 +52,9 @@ vi.mock('node:os', async () => {
 })
 
 // Hook install and session bridges are launch chores outside the key; keep them off disk.
+vi.mock('../codex/codex-account-home-hook', () => ({
+  reconcileCodexAccountHomeHook: async () => {}
+}))
 vi.mock('../codex/hook-service', () => ({
   codexHookService: { prepareRuntimeHomeForLaunch: async () => ({ state: 'installed' }) }
 }))
@@ -150,22 +157,14 @@ describe('Codex catalog account key: picker read vs launch', () => {
     const { createCodexModelCatalogProbe } = await import('../codex/codex-model-catalog-probe')
     const { resolveStructuredCodexAccountKind } =
       await import('../runtime/structured-agent-account-home')
-    let expectedStore = healthy
-    const prepared: string[] = []
+    let expectedHome = login
     const probe = createCodexModelCatalogProbe({
       resolveEnvironment: async () => ({}),
       resolveCommand: () => 'codex',
       resolveAccountKind: (home) =>
         resolveStructuredCodexAccountKind(home, wired.store.getSettings()),
-      prepareHome: (home) => {
-        wired.runtimeHome.prepareHostCodexHomeForReadOnlyAppServer(home)
-        prepared.push(home)
-      },
       runSession: async (invocation, body) => {
-        expect(invocation.env?.CODEX_HOME).toBe(prepared.at(-1))
-        expect(realpathSync(join(invocation.env!.CODEX_HOME!, 'sessions'))).toBe(
-          realpathSync(join(expectedStore, 'sessions'))
-        )
+        expect(invocation.env?.CODEX_HOME).toBe(expectedHome)
         return body({
           request: async (method) =>
             method === 'account/read'
@@ -204,18 +203,20 @@ describe('Codex catalog account key: picker read vs launch', () => {
       )
       vi.mocked(readdirSync).mockClear()
       expect(await probe(read)).toMatchObject({ models: [{ id: 'gpt-live' }], origin: 'probe' })
-      expect(inventoryCount()).toBe(1)
-      expect(wired.key(await wired.resolve('launch'))).toBe(wired.key(read))
+      expect(inventoryCount()).toBe(0)
+      const fresh = requireLegacyAgentSessionAccountHome(await wired.resolve('launch')).path
+      expect(fresh).not.toBe(login)
+      expect(realpathSync(join(fresh, 'sessions'))).toBe(realpathSync(join(healthy, 'sessions')))
+      expect(requireLegacyAgentSessionAccountHome(read).path).toBe(login)
       expect(readlinkSync(join(retained, 'sessions'))).toBe(link)
     }
-    expectedStore = removable
+    expectedHome = retained
     expect(await wired.resolve('read', retained)).toMatchObject({ path: retained })
     vi.mocked(readdirSync).mockClear()
     expect(await probe(await wired.resolve('read', retained))).toMatchObject({
       models: [{ id: 'gpt-live' }]
     })
-    expect(inventoryCount()).toBe(1)
-    expect(prepared).toHaveLength(3)
+    expect(inventoryCount()).toBe(0)
     expect(wired.store.getSettings().activeCodexManagedAccountId).toBe('account-1')
   })
 
@@ -232,8 +233,13 @@ describe('Codex catalog account key: picker read vs launch', () => {
     })
     const wired = await wireCodexAccountKey(settings)
     release = wired.release
-    const recorded = await wired.resolve('launch')
-    const overlay = requireLegacyAgentSessionAccountHome(recorded).path
+    const operation: CodexHomePreparationOperation = {}
+    const overlay = (await wired.runtimeHome.prepareForCodexLaunchAsync(
+      undefined,
+      {},
+      { conversationHome: getSystemCodexHomePath(), operation }
+    ))!
+    const recorded = { variable: 'CODEX_HOME' as const, path: overlay }
     const { resolveCodexHomeAfterManagedAuthReadiness } =
       await import('../ipc/pty/host-env/codex-home')
     writeFileSync(
@@ -242,13 +248,17 @@ describe('Codex catalog account key: picker read vs launch', () => {
     )
     vi.useFakeTimers()
     const resolveCurrent = vi.fn(() =>
-      wired.runtimeHome.prepareForCodexLaunchAsync(undefined, {}, { conversationHome: overlay })
+      wired.runtimeHome.prepareForCodexLaunchAsync(
+        undefined,
+        {},
+        { conversationHome: overlay, operation }
+      )
     )
     const resolveAfterUnavailable = vi.fn((home: string) =>
       wired.runtimeHome.prepareForCodexLaunchAsync(
         undefined,
         {},
-        { conversationHome: overlay, unavailableManagedHomePath: home }
+        { conversationHome: overlay, unavailableManagedHomePath: home, operation }
       )
     )
     const pending = resolveCodexHomeAfterManagedAuthReadiness({
@@ -278,7 +288,6 @@ describe('Codex catalog account key: picker read vs launch', () => {
     const probe = createCodexModelCatalogProbe({
       resolveEnvironment: async () => ({}),
       resolveCommand: () => 'codex',
-      prepareHome: (home) => wired.runtimeHome.prepareHostCodexHomeForReadOnlyAppServer(home),
       resolveAccountKind: (home) =>
         resolveStructuredCodexAccountKind(home, wired.store.getSettings()),
       runSession: async (invocation, body) => {
@@ -308,6 +317,109 @@ describe('Codex catalog account key: picker read vs launch', () => {
       )
     ).toBe('codexManagedNotSignedIn')
     expect(wired.store.getSettings().activeCodexManagedAccountId).toBe('account-1')
+  })
+
+  it('shares one actor through terminal readiness callbacks and gives fresh native acquisitions current H over saved X', async () => {
+    const auth = createCodexAuthJson('user@example.com', 'acct-1', 'refresh-1')
+    const login = createManagedAuth(testState.userDataDir, 'account-1', auth)
+    const source = join(testState.fakeHomeDir, 'source')
+    mkdirSync(source)
+    const wired = await wireCodexAccountKey(
+      createSettings({
+        codexSessionSourceHome: { host: source },
+        codexManagedAccounts: [
+          createCodexAccountRecord('account-1', 'user@example.com', 'acct-1', login)
+        ],
+        activeCodexManagedAccountId: 'account-1',
+        activeCodexManagedAccountIdsByRuntime: { host: 'account-1', wsl: {} }
+      })
+    )
+    release = wired.release
+    const { resolvePtySpawnHostEnv } = await import('../ipc/pty/spawn-host-env')
+    const resume = await import('../ipc/pty/host-env/codex-resume')
+    const { prepareCodexRuntimeHomeForLaunch } = await import('../startup/codex-launch-preparation')
+    const { codexAccountOverlayHomes } = await import('../codex/codex-launch-home')
+    writeFileSync(join(login, 'auth.json'), '{"tokens":{"access_token":"incomplete"}}')
+    vi.useFakeTimers()
+    const pending = resolvePtySpawnHostEnv({
+      launchAgent: 'codex',
+      command: 'codex',
+      resumeProviderSession: undefined,
+      env: undefined,
+      cwd: undefined,
+      shellOverride: undefined,
+      expectedWslDistro: null,
+      codexSelectionTarget: { runtime: 'host' },
+      preAdopted: false,
+      isDaemonHostSpawn: false,
+      sessionId: undefined,
+      callerNamedSession: false,
+      mintedSessionId: false,
+      resumeOnSelectedAccount: false,
+      emptySessionIdSkipsHostEnv: false,
+      requestedAgentTeamsPath: undefined,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: local env preparation returns before any provider access.
+      provider: {} as never,
+      deps: {
+        prepareCodexResumeHome: () => null,
+        noCodexResumeLaunch: resume.noCodexResumeLaunch,
+        resolveCodexResumeLaunch: resume.resolveCodexResumeLaunch,
+        reconcileSharedRuntimeResumeHome: resume.reconcileSharedRuntimeResumeHome,
+        stripSequencedStartupResumeArgv: resume.stripSequencedStartupResumeArgv,
+        getSettings: () => wired.store.getSettings(),
+        getSelectedCodexHomePath: prepareCodexRuntimeHomeForLaunch
+      }
+    })
+    await vi.advanceTimersByTimeAsync(50)
+    const actors = codexAccountOverlayHomes(
+      join(testState.userDataDir, 'codex-accounts', 'account-1')
+    )
+    expect(actors).toHaveLength(1)
+    writeFileSync(join(login, 'auth.json'), auth)
+    await vi.advanceTimersByTimeAsync(25)
+    expect((await pending).selectedCodexHomePath).toBe(actors[0])
+    expect(
+      codexAccountOverlayHomes(join(testState.userDataDir, 'codex-accounts', 'account-1'))
+    ).toEqual(actors)
+    vi.useRealTimers()
+
+    const old = actors[0]
+    unlinkSync(join(old, 'auth.json'))
+    writeFileSync(join(old, 'auth.json'), '{"account":"detached"}')
+    writeFileSync(join(login, 'replacement'), auth)
+    renameSync(join(login, 'replacement'), join(login, 'auth.json'))
+    const { agentSessionRecordFixture } =
+      await import('../native-chat/agent-session-record-test-fixture')
+    const record = agentSessionRecordFixture({
+      provider: 'codex',
+      accountHome: { variable: 'CODEX_HOME', path: old }
+    })
+    const { createCodexStructuredLaunchResolver } =
+      await import('../runtime/structured-agent-launch-composition.test-support')
+    const resolve = createCodexStructuredLaunchResolver({
+      store: { getRecord: () => record, pinLaunchDirectory: vi.fn() },
+      resolveWorkspacePath: async () => testState.fakeHomeDir,
+      resolveCommand: () => 'codex',
+      resolveLaunchArgs: () => [],
+      prepareLaunchHome: (input) =>
+        wired.runtimeHome.prepareForCodexLaunchAsync(undefined, input.launchEnv, input)
+    })
+    const identity = {
+      sessionId: record.sessionId,
+      workspaceId: record.location.workspaceId,
+      hostId: record.location.executionHostId,
+      agent: record.provider
+    }
+    const first = await resolve({ identity })
+    const second = await resolve({ identity })
+    expect(first.codexHome).not.toBe(old)
+    expect(second.codexHome).not.toBe(first.codexHome)
+    expect(realpathSync(join(first.codexHome, 'sessions'))).toBe(
+      realpathSync(join(source, 'sessions'))
+    )
+    expect(readFileSync(join(first.codexHome, 'auth.json'), 'utf8')).toBe(auth)
+    expect(readFileSync(join(old, 'auth.json'), 'utf8')).toContain('detached')
+    expect(await wired.resolve('read', old)).toMatchObject({ path: old })
   })
 
   async function expectOneKey(settings: ReturnType<typeof createSettings>, expectedPath: string) {

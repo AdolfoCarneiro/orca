@@ -183,10 +183,6 @@ export abstract class OrcaRuntimeWithPreservedBranchCleanup extends OrcaRuntimeW
     | HostBindings['resolveCodexStructuredLaunchHome']
     | null
 
-  protected readonly prepareCodexCatalogProbeHomeFn!:
-    | HostBindings['prepareCodexCatalogProbeHome']
-    | null
-
   protected readonly agentSessionClaimSigner!: HostBindings['agentSessionClaimSigner']
 
   protected readonly agentSessionCreateOperations = new Map<string, AgentSessionCreateOperation>()

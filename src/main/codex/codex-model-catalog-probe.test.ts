@@ -1,3 +1,7 @@
+import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { safeRemoveTree } from '../pty/overlay-mirror'
 import { resolveStructuredCodexAccountKind } from '../runtime/structured-agent-account-home'
 import { agentSessionSignInCopyId } from '../../shared/agent-session-availability'
 import { AgentModelCatalogUnavailableError } from '../native-chat/agent-model-catalog/agent-model-catalog-unavailable'
@@ -163,47 +167,62 @@ describe('codex model catalog probe', () => {
 
 describe('Codex catalog availability', () => {
   it('turns a managed overlay account/read sign-out into managed recovery copy', async () => {
-    const probe = createCodexModelCatalogProbe({
-      resolveEnvironment: async () => ({}),
-      resolveCommand: () => 'codex',
-      resolveAccountKind: (home) =>
-        resolveStructuredCodexAccountKind(home, {
-          activeCodexManagedAccountId: null,
-          codexManagedAccounts: [
-            {
-              id: 'a',
-              email: 'fixture@example.test',
-              managedHomePath: '/accounts/a/home',
-              managedHomeRuntime: 'host',
-              createdAt: 0,
-              updatedAt: 0,
-              lastAuthenticatedAt: 0
-            }
-          ]
-        }),
-      runSession: async (_invocation, body) =>
-        body({
-          request: async (method) =>
-            method === 'account/read'
-              ? { requiresOpenaiAuth: true, account: null }
-              : { data: [], nextCursor: null },
-          notify: () => {}
-        })
-    })
-    const error = await probe({
-      variable: 'CODEX_HOME',
-      path: `/accounts/a/overlays/${'a'.repeat(32)}`
-    }).catch((failure: unknown) => failure)
-    expect(error).toBeInstanceOf(AgentModelCatalogUnavailableError)
-    if (!(error instanceof AgentModelCatalogUnavailableError)) {
-      throw new Error('Expected unavailable catalog')
+    const root = mkdtempSync(join(tmpdir(), 'codex-catalog-owner-'))
+    const login = join(root, 'a', 'home')
+    const actor = join(root, 'a', 'overlays', 'a'.repeat(32))
+    mkdirSync(login, { recursive: true })
+    mkdirSync(actor, { recursive: true })
+    writeFileSync(join(login, '.orca-managed-home'), 'a')
+    symlinkSync(
+      join(login, 'sessions'),
+      join(actor, 'sessions'),
+      process.platform === 'win32' ? 'junction' : 'dir'
+    )
+    try {
+      const probe = createCodexModelCatalogProbe({
+        resolveEnvironment: async () => ({}),
+        resolveCommand: () => 'codex',
+        resolveAccountKind: (home) =>
+          resolveStructuredCodexAccountKind(home, {
+            activeCodexManagedAccountId: null,
+            codexManagedAccounts: [
+              {
+                id: 'a',
+                email: 'fixture@example.test',
+                managedHomePath: login,
+                managedHomeRuntime: 'host',
+                createdAt: 0,
+                updatedAt: 0,
+                lastAuthenticatedAt: 0
+              }
+            ]
+          }),
+        runSession: async (_invocation, body) =>
+          body({
+            request: async (method) =>
+              method === 'account/read'
+                ? { requiresOpenaiAuth: true, account: null }
+                : { data: [], nextCursor: null },
+            notify: () => {}
+          })
+      })
+      const error = await probe({
+        variable: 'CODEX_HOME',
+        path: actor
+      }).catch((failure: unknown) => failure)
+      expect(error).toBeInstanceOf(AgentModelCatalogUnavailableError)
+      if (!(error instanceof AgentModelCatalogUnavailableError)) {
+        throw new Error('Expected unavailable catalog')
+      }
+      expect(
+        agentSessionSignInCopyId(
+          'codex',
+          error.unavailable.reason === 'notSignedIn' ? error.unavailable.account : undefined
+        )
+      ).toBe('codexManagedNotSignedIn')
+    } finally {
+      safeRemoveTree(root)
     }
-    expect(
-      agentSessionSignInCopyId(
-        'codex',
-        error.unavailable.reason === 'notSignedIn' ? error.unavailable.account : undefined
-      )
-    ).toBe('codexManagedNotSignedIn')
   })
 
   function withAccount(account: unknown) {
@@ -337,13 +356,13 @@ describe('Codex catalog availability', () => {
 })
 
 describe('Codex catalog probe reads the home a launch would', () => {
-  it('runs the launch sync on the home before its app-server reads it', async () => {
+  it('passes the exact supplied actor to the app-server without a preparation phase', async () => {
     const order: string[] = []
     const probe = createCodexModelCatalogProbe({
       resolveEnvironment: async () => ({}),
       resolveCommand: () => 'codex',
-      prepareHome: (prepared) => order.push(`prepare ${prepared}`),
-      runSession: async (_invocation, body) => {
+      runSession: async (invocation, body) => {
+        expect(invocation.env?.CODEX_HOME).toBe('/homes/mirror')
         order.push('spawn')
         return body({
           request: async (method) =>
@@ -355,7 +374,7 @@ describe('Codex catalog probe reads the home a launch would', () => {
       }
     })
     expect((await probe({ variable: 'CODEX_HOME', path: '/homes/mirror' })).models).toHaveLength(1)
-    expect(order).toEqual(['prepare /homes/mirror', 'spawn'])
+    expect(order).toEqual(['spawn'])
   })
 })
 

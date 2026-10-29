@@ -1,4 +1,5 @@
-import { basename, dirname, join } from 'node:path'
+import { codexLoginHome } from './codex-launch-home'
+import { dirname } from 'node:path'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-path'
 import { parseWslUncPath } from '../../shared/wsl-paths'
@@ -76,8 +77,9 @@ function resolveCodexHomeOwnerAccountId(args: {
     return null
   }
   if (
-    normalizeRuntimePathForComparison(args.launchCodexHomePath) ===
-    normalizeRuntimePathForComparison(args.systemCodexHomePath)
+    normalizeRuntimePathForComparison(
+      codexLoginHome(args.launchCodexHomePath, args.systemCodexHomePath)
+    ) === normalizeRuntimePathForComparison(args.systemCodexHomePath)
   ) {
     return null
   }
@@ -104,9 +106,9 @@ function accountOwnsCodexHome(
   if (
     normalizeRuntimePathForComparison(account.managedHomePath) ===
     normalizeRuntimePathForComparison(
-      basename(dirname(launchHomePath)) === 'overlays'
-        ? join(dirname(dirname(launchHomePath)), 'home')
-        : launchHomePath
+      target.runtime === 'wsl'
+        ? launchHomePath
+        : codexLoginHome(launchHomePath, undefined, dirname(dirname(account.managedHomePath)))
     )
   ) {
     return true

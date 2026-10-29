@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { installFakeAppEnvironment } from '../../../config/scripts/vitest-host-ports-setup'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import type * as NodeFs from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { resolveCodexLaunchHome } from '../codex/codex-launch-home'
 import { createSettings } from './runtime-home-settings-test-fixtures'
 import {
   createCodexAccountRecord,
@@ -19,6 +21,11 @@ import {
   testState,
   writePaneRegistry
 } from './runtime-home-service-test-harness'
+
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof NodeFs>()
+  return { ...actual, readdirSync: vi.fn(actual.readdirSync) }
+})
 
 // Keep asserted config bytes independent of platform socket-path limits.
 vi.mock('../codex/codex-daemon-socket-path-guard', async (importOriginal) => ({
@@ -230,6 +237,52 @@ describe('CodexRuntimeHomeService', () => {
       ])
     ).toEqual([getRuntimeCodexHomePath(), accountHome])
   })
+
+  it.each([8, 80])(
+    'inventories a retained actor family once for %i panes per operation',
+    async (count) => {
+      const login = createManagedAuth(testState.userDataDir, 'account-1', '{"account":"one"}')
+      const actors = Array.from({ length: count }, () =>
+        resolveCodexLaunchHome({
+          selectedAccount: { homePath: login, id: 'account-1' },
+          conversationHome: getSystemCodexHomePath()
+        })!
+      )
+      const ids = Array.from({ length: count }, (_, i) => `pane-${i}`)
+      writePaneRegistry(
+        Object.fromEntries(
+          ids.map((id) => [
+            id,
+            {
+              selectionKey: 'host',
+              accountId: 'account-1',
+              homeRoute: 'account-home'
+            }
+          ])
+        )
+      )
+      const settings = createSettings({
+        codexManagedAccounts: [
+          createCodexAccountRecord('account-1', 'one@example.test', 'one', login)
+        ]
+      })
+      const { CodexRuntimeHomeService } = await import('./runtime-home-service')
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture implements the service's settings surface.
+      const service = new CodexRuntimeHomeService(createStore(settings) as never)
+      const familyRoot = join(dirname(login), 'overlays')
+      for (let pass = 0; pass < 2; pass++) {
+        vi.mocked(readdirSync).mockClear()
+        expect(service.getRetainedHostCodexHookHomePaths(ids)).toEqual(
+          expect.arrayContaining(actors)
+        )
+        expect(
+          vi.mocked(readdirSync).mock.calls.filter(([path]) => String(path) === familyRoot)
+        ).toHaveLength(1)
+      }
+      settings.codexManagedAccounts = []
+      expect(service.getRetainedHostCodexHookHomePaths(ids)).toEqual([])
+    }
+  )
 
   it('keeps pre-rollout shared-home panes authenticated on the real-home lane', async () => {
     const oldSystemAuth = createCodexAuthJson('system@example.com', 'acct-system', 'old-system')

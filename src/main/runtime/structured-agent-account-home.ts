@@ -5,9 +5,9 @@ import { getClaudeProfileRouter } from '../claude-accounts/claude-profile-instal
 import { normalizeCodexRuntimeSelection } from '../codex-accounts/runtime-selection'
 import { resolveOrcaManagedCodexHomePath, getSystemCodexHomePath } from '../codex/codex-home-paths'
 import { resolveAbsoluteDirOverride } from '../../shared/absolute-dir-override'
-import { codexLoginHome } from '../codex/codex-launch-home'
+import { canonicalCodexHome, codexLoginHome } from '../codex/codex-launch-home'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 
 // Share account-home resolution between create pins and recordless catalog fingerprints or pickers show another account's models.
 
@@ -77,12 +77,15 @@ export function resolveStructuredCodexAccountKind(
     >
   >
 ): AgentSessionAccountKind | undefined {
-  const loginHome = codexLoginHome(home)
-  const same = (other: string): boolean =>
-    normalizeRuntimePathForComparison(loginHome) === normalizeRuntimePathForComparison(other)
+  const same = (other: string, accountsRoot?: string): boolean =>
+    normalizeRuntimePathForComparison(
+      canonicalCodexHome(codexLoginHome(home, undefined, accountsRoot))
+    ) === normalizeRuntimePathForComparison(canonicalCodexHome(other))
   if (
     (settings.codexManagedAccounts ?? []).some(
-      (account) => account.managedHomeRuntime !== 'wsl' && same(account.managedHomePath)
+      (account) =>
+        account.managedHomeRuntime !== 'wsl' &&
+        same(account.managedHomePath, dirname(dirname(account.managedHomePath)))
     )
   ) {
     return 'managed'

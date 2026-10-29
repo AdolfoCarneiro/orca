@@ -38,8 +38,6 @@ const MAX_FOLDERS_PER_REQUEST = 8
 export type CodexAtRestSkillsDeps = CodexStructuredInvocationDeps & {
   resolveLaunchArgs: () => Promise<string[]> | string[]
   resolveWorkspacePath: (workspaceId: string) => Promise<string>
-  /** Apply launch-time home sync so the probe sees the same configuration. */
-  prepareHome?: (home: string) => void
   now?: () => number
   runSession?: typeof runCodexAppServerSession
   sleep?: (ms: number) => Promise<void>
@@ -206,7 +204,6 @@ export async function probe(
         if (batch.length > 0) {
           const forceReload = batch.some((request) => request.generation > reloaded)
           try {
-            deps.prepareHome?.(pool.accountHomePath)
             batch.forEach((request) => request.admitted())
             if (await answer(rpc, batch, forceReload, signal)) {
               reloaded = Math.max(reloaded, ...batch.map((request) => request.generation))

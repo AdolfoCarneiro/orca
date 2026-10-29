@@ -1,3 +1,4 @@
+import type { CodexStructuredLaunchPartDeps } from '../codex/codex-structured-launch-resolution'
 // Install lazily after Electron finalizes the profile path; runtimes without structured requests need no store. Journal-open failures install a refusal.
 
 import type { AgentSessionAccountKind } from '../../shared/agent-session-availability'
@@ -66,9 +67,8 @@ export type StructuredAgentSessionRuntimeDeps = StructuredAgentSessionTransportO
   conversationNaming?: StructuredAgentSessionHostDeps['conversationNaming']
   /** See `StructuredAgentSessionHostDeps.hasOpenDispatch`. */
   hasOpenDispatch?: StructuredAgentSessionHostDeps['hasOpenDispatch']
+  prepareCodexStructuredLaunch?: CodexStructuredLaunchPartDeps['prepareLaunchHome']
   resolveCodexAccountKind?: (home: string) => AgentSessionAccountKind | undefined
-  /** Launch prep's sync for a probed home; see `CodexModelCatalogProbeDeps.prepareHome`. */
-  prepareCodexCatalogProbeHome?: (homePath: string) => void
   /** See `StructuredAgentSessionHostDeps.onSessionTabHidden`. */
   onSessionTabHidden?: StructuredAgentSessionHostDeps['onSessionTabHidden']
   /** See `StructuredAgentSessionHostDeps.assertNoTerminalWriter`. */

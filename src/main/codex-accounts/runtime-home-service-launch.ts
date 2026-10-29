@@ -1,3 +1,4 @@
+import type { CodexHomePreparationOperation } from '../codex/codex-launch-home'
 import { prepareCodexLaunchHome } from '../codex/codex-legacy-session-resume'
 import { resolveCodexLaunchHome } from '../codex/codex-launch-home'
 import { getSystemCodexHomePath } from '../codex/codex-home-paths'
@@ -36,6 +37,8 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
       unavailableManagedHomePath?: string
       conversationHome?: string
       transcriptPath?: string
+      sessionId?: string
+      operation?: CodexHomePreparationOperation
     }
   ): string | null {
     if (target?.runtime === 'wsl') {
@@ -55,6 +58,8 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
     unavailableManagedHomePath?: string
     conversationHome?: string
     transcriptPath?: string
+    sessionId?: string
+    operation?: CodexHomePreparationOperation
   }) {
     const account = this.getSelfContainedManagedHostAccount()
     const loginHome = account
@@ -65,15 +70,17 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
       this.reconcileLegacySharedHomeForRetainedPanes()
     }
     return {
-      selectedAccount: loginHome ? { homePath: loginHome } : null,
+      selectedAccount: loginHome ? { homePath: loginHome, id: account?.id } : null,
       conversationHome: options?.conversationHome,
       transcriptPath: options?.transcriptPath,
+      sessionId: options?.sessionId,
+      operation: options?.operation,
       storeHome: resolveHostCodexSessionSourceHome(this.store.getSettings()),
       accountsRoot: this.getManagedAccountsRoot()
     }
   }
 
-  /** Catalog reads and launches derive the same path; reads never materialize it. */
+  /** Reads retain an actual actor or select logical H without materializing a future actor. */
   resolveHostCodexHomePathForLaunchReadOnly(
     launchEnv?: NodeJS.ProcessEnv,
     conversationHome?: string
@@ -85,7 +92,8 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
     }
     return (
       resolveCodexLaunchHome({
-        selectedAccount: resolved?.kind === 'owned' ? { homePath: resolved.homePath } : null,
+        selectedAccount:
+          resolved?.kind === 'owned' ? { homePath: resolved.homePath, id: account?.id } : null,
         conversationHome,
         storeHome: resolveHostCodexSessionSourceHome(this.store.getSettings()),
         accountsRoot: this.getManagedAccountsRoot(),
@@ -101,6 +109,8 @@ export abstract class CodexRuntimeHomeLaunch extends CodexRuntimeHomeRouting {
       unavailableManagedHomePath?: string
       conversationHome?: string
       transcriptPath?: string
+      sessionId?: string
+      operation?: CodexHomePreparationOperation
     }
   ): Promise<string | null> {
     if (target?.runtime !== 'wsl') {

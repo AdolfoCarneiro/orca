@@ -270,12 +270,12 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktr
           ? this.structuredAgentLaunchEnv(agent, this.requireStore().getSettings())
           : {},
       resolveAgentCommandSettings: () => this.requireStore().getSettings(),
+      ...(this.prepareCodexStructuredLaunchFn
+        ? { prepareCodexStructuredLaunch: this.prepareCodexStructuredLaunchFn }
+        : {}),
       resolveCodexAccountKind: (home) =>
         resolveStructuredCodexAccountKind(home, this.requireStore().getSettings()),
       resolveAgentAccountHome: (agent) => this.resolveStructuredAgentAccountHome(agent),
-      ...(this.prepareCodexCatalogProbeHomeFn
-        ? { prepareCodexCatalogProbeHome: this.prepareCodexCatalogProbeHomeFn }
-        : {}),
       onRequestFailure: (failure) => this.onStructuredRequestFailureForErrorMail(failure),
       // Structured chat has no CLI hooks; this projection drives first-work renaming.
       onSessionStatusChanged: (summary, options) => {

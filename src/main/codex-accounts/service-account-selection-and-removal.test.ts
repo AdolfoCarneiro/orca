@@ -263,7 +263,8 @@ describe('CodexAccountService config sync', () => {
       const systemHome = join(testState.fakeHomeDir, '.codex')
       const overlay = resolveCodexLaunchHome({
         selectedAccount: { homePath: managedHomePath },
-        systemHome
+        systemHome,
+        storeHome: systemHome
       })!
       writeFileSync(join(overlay, 'session_index.jsonl'), 'retained title\n')
       writeFileSync(join(managedHomePath, 'legacy-conversation'), 'retained conversation')

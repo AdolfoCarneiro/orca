@@ -1,135 +1,98 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GlobalSettings } from '../../shared/global-settings-types'
+import type * as NodeOs from 'node:os'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  mkdtempSync,
+  mkdirSync,
+  realpathSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { getDefaultSettings } from '../../shared/constants'
+import { safeRemoveTree } from '../pty/overlay-mirror'
+import { GUEST_CODEX_ACCOUNTS_ROOT_SEGMENTS } from '../codex-accounts/guest-codex-account-homes'
+import {
+  type CodexHomePreparationOperation,
+  codexConversationStore
+} from '../codex/codex-launch-home'
 
-vi.mock('../codex/codex-launch-home', () => ({
-  resolveCodexLaunchHome: launchHome
+const state = vi.hoisted(() => ({ home: '', wsl: false, hooks: vi.fn(async () => {}) }))
+vi.mock('node:os', async (importOriginal) => ({
+  ...(await importOriginal<typeof NodeOs>()),
+  homedir: () => state.home
 }))
-
-const { prepareHooks, resolveHome, listHomes, launchHome } = vi.hoisted(() => ({
-  prepareHooks: vi.fn(
-    async (_home: string, _isHooksEnabled: () => boolean, _launchesCodex: boolean) => {}
-  ),
-  resolveHome: vi.fn((candidate: string | undefined): string | null =>
-    candidate === '/home/u/.local/share/orca/codex-accounts/a1/home' ? candidate : null
-  ),
-  listHomes: vi.fn(() => ['/home/u/.local/share/orca/codex-accounts/a1/home']),
-  launchHome: vi.fn(
-    ({ selectedAccount }: { selectedAccount: { homePath: string } }) =>
-      `${selectedAccount.homePath}/overlay`
-  )
-}))
-
-const wslHost = vi.hoisted(() => vi.fn(() => false))
-vi.mock('../ipc/wsl-guest-windows-drive-path', () => ({ isWslHostOrcadProcess: wslHost }))
-vi.mock('../codex/codex-account-home-hook', () => ({
-  reconcileCodexAccountHomeHook: prepareHooks
-}))
+vi.mock('../ipc/wsl-guest-windows-drive-path', () => ({ isWslHostOrcadProcess: () => state.wsl }))
+vi.mock('../codex/codex-account-home-hook', () => ({ reconcileCodexAccountHomeHook: state.hooks }))
 vi.mock('../codex/codex-state-db-backfill-recovery', () => ({
-  stopCodexStateDbBackfillRecoveries: vi.fn(async () => {})
+  stopCodexStateDbBackfillRecoveries: vi.fn()
 }))
-vi.mock('../codex-accounts/guest-codex-account-homes', () => ({
-  resolveGuestCodexAccountHome: resolveHome,
-  listGuestCodexAccountHomes: listHomes
-}))
-
 import { orcadCodexAccountHomes } from './orcad-codex-account-homes'
 
-const noCleanup = (): void => {}
-const ACCOUNT_HOME = '/home/u/.local/share/orca/codex-accounts/a1/home'
-
-function settings(overrides: Partial<GlobalSettings>): GlobalSettings {
-  return {
-    ...getDefaultSettings('/home/u'),
-    agentStatusHooksEnabled: true,
-    ...overrides
-  }
-}
-
-describe('orcadCodexAccountHomes', () => {
+describe.skipIf(process.platform === 'win32')('orcadCodexAccountHomes', () => {
+  let login: string
+  let store: string
   beforeEach(() => {
-    prepareHooks.mockClear()
-    launchHome.mockClear()
-    wslHost.mockReturnValue(false)
+    state.home = realpathSync(mkdtempSync(join(tmpdir(), 'codex-guest-actors-')))
+    state.wsl = false
+    state.hooks.mockClear()
+    login = join(state.home, ...GUEST_CODEX_ACCOUNTS_ROOT_SEGMENTS, 'a1', 'home')
+    store = join(state.home, 'source')
+    mkdirSync(login, { recursive: true })
+    mkdirSync(store)
+    writeFileSync(join(login, '.orca-managed-home'), 'a1')
+    writeFileSync(join(login, 'auth.json'), '{"account":"current"}')
   })
+  afterEach(() => safeRemoveTree(state.home))
 
-  it('puts the hook into a client-sent account home and launches on it', async () => {
-    const homes = orcadCodexAccountHomes(() => settings({}), noCleanup)
-    await expect(
-      homes.selectLaunchHome(
-        { runtime: 'host' },
-        { CODEX_HOME: ACCOUNT_HOME },
-        { launchesCodex: true }
-      )
-    ).resolves.toBe(`${ACCOUNT_HOME}/overlay`)
-    expect(prepareHooks).toHaveBeenCalledWith(`${ACCOUNT_HOME}/overlay`, expect.any(Function), true)
-  })
-
-  it('reads the hook switch live, so turning hooks off takes the entry out', async () => {
-    let current = settings({})
-    const homes = orcadCodexAccountHomes(() => current, noCleanup)
-    await homes.selectLaunchHome(undefined, { CODEX_HOME: ACCOUNT_HOME })
-    const isEnabled = prepareHooks.mock.calls[0]?.[1]
-    expect(isEnabled?.()).toBe(true)
-    current = settings({ agentStatusHooksEnabled: false })
-    expect(isEnabled?.()).toBe(false)
-    expect(prepareHooks.mock.calls[0]?.[2]).toBe(false)
-  })
-
-  it('preserves an existing overlay store across guest reads and launches', async () => {
-    const overlay = `/home/u/.local/share/orca/codex-accounts/a1/overlays/${'a'.repeat(32)}`
-    const homes = orcadCodexAccountHomes(() => settings({}), noCleanup)
-    resolveHome.mockReturnValueOnce(overlay)
-    homes.readLaunchHome({ CODEX_HOME: overlay })
-    expect(launchHome).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        selectedAccount: { homePath: ACCOUNT_HOME },
-        conversationHome: overlay,
-        readOnly: true
-      })
+  function homes() {
+    return orcadCodexAccountHomes(
+      () => ({ ...getDefaultSettings(state.home), codexSessionSourceHome: { host: store } }),
+      () => {}
     )
-    resolveHome.mockReturnValueOnce(overlay)
-    await homes.selectLaunchHome(undefined, { CODEX_HOME: overlay })
-    expect(launchHome).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        selectedAccount: { homePath: ACCOUNT_HOME },
-        conversationHome: overlay,
-        readOnly: false
-      })
-    )
+  }
+
+  it('reads H without constructing, shares one fresh preparation, and retains exact detached O on reads', async () => {
+    const h = homes()
+    const env = { CODEX_HOME: login }
+    expect(h.readLaunchHome(env)).toBe(login)
+    expect(h.listSessionHomes()).toEqual([login])
+    const operation: CodexHomePreparationOperation = {}
+    const actor = (await h.selectLaunchHome(undefined, env, { operation }))!
+    expect(await h.selectLaunchHome(undefined, env, { operation })).toBe(actor)
+    expect(codexConversationStore(actor)).toBe(store)
+    unlinkSync(join(actor, 'auth.json'))
+    writeFileSync(join(actor, 'auth.json'), '{"account":"private"}')
+    expect(h.readLaunchHome({ CODEX_HOME: actor })).toBe(actor)
+    const fresh = (await h.selectLaunchHome(undefined, { CODEX_HOME: actor }))!
+    expect(fresh).not.toBe(actor)
+    expect(readFileSync(join(fresh, 'auth.json'), 'utf8')).toContain('current')
+    expect(readFileSync(join(actor, 'auth.json'), 'utf8')).toContain('private')
+    expect(h.listSessionHomes()).toEqual(expect.arrayContaining([login, actor, fresh, store]))
+    expect(state.hooks).toHaveBeenCalledWith(fresh, expect.any(Function), false)
   })
 
-  it('leaves a launch without an Orca account home alone', async () => {
-    const homes = orcadCodexAccountHomes(() => settings({}), noCleanup)
-    await expect(
-      homes.selectLaunchHome(undefined, { CODEX_HOME: '/home/u/my-codex' })
-    ).resolves.toBe(null)
-    await expect(homes.selectLaunchHome(undefined, {})).resolves.toBe(null)
-    await expect(homes.selectLaunchHome()).resolves.toBe(null)
-    expect(prepareHooks).not.toHaveBeenCalled()
-  })
-
-  it('preserves the desktop-prepared WSL route for reads and actual PTY launch', async () => {
-    wslHost.mockReturnValue(true)
-    const homes = orcadCodexAccountHomes(() => settings({}), noCleanup)
-    expect(homes.readLaunchHome({ CODEX_HOME: ACCOUNT_HOME })).toBe(ACCOUNT_HOME)
-    await expect(
-      homes.selectLaunchHome(
+  it('preserves the desktop-prepared WSL route on read and actual launch', async () => {
+    const h = homes()
+    const actor = (await h.selectLaunchHome(undefined, { CODEX_HOME: login }))!
+    state.wsl = true
+    expect(h.readLaunchHome({ CODEX_HOME: actor })).toBe(actor)
+    expect(
+      await h.selectLaunchHome(
         undefined,
-        { CODEX_HOME: ACCOUNT_HOME },
-        {
-          launchesCodex: true,
-          conversationHome: '/desktop/chosen/source'
-        }
+        { CODEX_HOME: actor },
+        { conversationHome: '/ignored/desktop-source', launchesCodex: true }
       )
-    ).resolves.toBe(ACCOUNT_HOME)
-    expect(prepareHooks).toHaveBeenCalledWith(ACCOUNT_HOME, expect.any(Function), true)
-    expect(launchHome).not.toHaveBeenCalled()
+    ).toBe(actor)
+    expect(state.hooks).toHaveBeenLastCalledWith(actor, expect.any(Function), true)
+    expect(h.listSessionHomes().filter((home) => home.includes('/overlays/'))).toHaveLength(1)
   })
 
-  it('lists the account homes for session discovery', () => {
-    expect(orcadCodexAccountHomes(() => settings({}), noCleanup).listSessionHomes()).toEqual([
-      ACCOUNT_HOME
-    ])
+  it('leaves user homes outside the owned guest root alone', async () => {
+    const h = homes()
+    expect(h.readLaunchHome({ CODEX_HOME: join(state.home, '.codex') })).toBeNull()
+    expect(await h.selectLaunchHome(undefined, {})).toBeNull()
+    expect(state.hooks).not.toHaveBeenCalled()
   })
 })

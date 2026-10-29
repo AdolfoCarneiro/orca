@@ -58,32 +58,29 @@ describe("the catalog probe's home prep on the mirror route", () => {
     teardownRuntimeHomeTest()
   })
 
-  it('brings a login made in ~/.codex into the mirror before the probe reads it', async () => {
+  it('reads current System login without seeding a mirror or future actor', async () => {
     const service = await mirrorRouteService()
-    service.syncForCurrentSelection()
-    expect(existsSync(getRuntimeCodexAuthPath())).toBe(false)
     loginInSystemHome()
-
-    service.prepareHostCodexHomeForReadOnlyAppServer(getRuntimeCodexHomePath())
-
-    expect(readFileSync(getRuntimeCodexAuthPath(), 'utf-8')).toBe(login)
+    const home = service.resolveHostCodexHomePathForLaunchReadOnly()
+    expect(home ?? join(testState.fakeHomeDir, '.codex')).toBe(
+      join(testState.fakeHomeDir, '.codex')
+    )
+    expect(existsSync(getRuntimeCodexAuthPath())).toBe(false)
+    expect(readFileSync(getSystemCodexAuthPath(), 'utf8')).toBe(login)
   })
 
-  it('seeds a mirror no launch has prepared yet', async () => {
+  it('retains a supplied actual actor without reseeding its missing auth', async () => {
     const service = await mirrorRouteService()
     loginInSystemHome()
-
-    service.prepareHostCodexHomeForReadOnlyAppServer(getRuntimeCodexHomePath())
-
-    expect(readFileSync(getRuntimeCodexAuthPath(), 'utf-8')).toBe(login)
-  })
-
-  it('leaves every other home alone', async () => {
-    const service = await mirrorRouteService()
-    loginInSystemHome()
-
-    service.prepareHostCodexHomeForReadOnlyAppServer(join(testState.fakeHomeDir, 'account-home'))
-
-    expect(existsSync(getRuntimeCodexAuthPath())).toBe(false)
+    const actor = service.prepareForCodexLaunch(
+      undefined,
+      {},
+      { conversationHome: getRuntimeCodexHomePath() }
+    )!
+    const { unlinkSync } = await import('node:fs')
+    unlinkSync(join(actor, 'auth.json'))
+    expect(service.resolveHostCodexHomePathForLaunchReadOnly({}, actor)).toBe(actor)
+    expect(existsSync(join(actor, 'auth.json'))).toBe(false)
+    expect(readFileSync(getSystemCodexAuthPath(), 'utf8')).toBe(login)
   })
 })

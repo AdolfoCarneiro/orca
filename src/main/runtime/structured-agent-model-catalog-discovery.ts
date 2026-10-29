@@ -31,9 +31,6 @@ export function codexModelCatalogDiscovery({
       resolveAccountKind: deps.resolveCodexAccountKind,
       ...(deps.runCodexCatalogSession ? { runSession: deps.runCodexCatalogSession } : {}),
       resolveLaunchArgs: () => deps.resolveLaunchArgs('codex'),
-      ...(deps.prepareCodexCatalogProbeHome
-        ? { prepareHome: deps.prepareCodexCatalogProbeHome }
-        : {}),
       resolveEnvironment: environment.resolveBaseEnvironment,
       resolveSavedEnvironment: () => environment.resolveBaseEnvironment(true),
       resolveEnv: () => deps.resolveAgentLaunchEnv?.('codex') ?? {},

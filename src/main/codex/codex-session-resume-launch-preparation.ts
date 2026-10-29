@@ -1,3 +1,4 @@
+import type { CodexHomePreparationOperation } from './codex-launch-home'
 import type { AgentProviderSessionMetadata } from '../../shared/agent-session-resume'
 import type { CodexAccountSelectionTarget } from '../codex-accounts/runtime-selection'
 import {
@@ -5,7 +6,7 @@ import {
   type CodexSessionResumePreparation
 } from './codex-session-resume-home'
 import { prepareCodexSessionResume } from './codex-session-resume-preparation'
-import { codexHookService } from './hook-service'
+import { reconcileCodexAccountHomeHook } from './codex-account-home-hook'
 import { reconcileCodexHooksForLaunch } from './codex-hook-reconcile'
 import { ensureCodexDaemonSocketGuard } from './codex-config-mirror'
 import { isAgentStatusHooksEnabledForAgent } from '../agent-hooks/managed-agent-hook-controls'
@@ -28,13 +29,9 @@ export function createCodexSessionResumeLaunchPreparation(deps: {
     const isHooksEnabled = (): boolean =>
       isAgentStatusHooksEnabledForAgent(deps.getSettings(), 'codex')
     try {
-      if (isSystemHome) {
-        await reconcileCodexHooksForLaunch()
-      } else if (isHooksEnabled()) {
-        await codexHookService.installForLaunchPrep(home, true, isHooksEnabled)
-      } else {
-        await codexHookService.refreshRuntimeUserHooksForLaunchPrep(home)
-      }
+      await (isSystemHome
+        ? reconcileCodexHooksForLaunch()
+        : reconcileCodexAccountHomeHook(home, isHooksEnabled, true))
     } catch (error) {
       // Hook repair must not prevent launch in the verified home.
       console.warn('[codex-hook-service] failed to prepare automatic resume home:', error)
@@ -50,6 +47,7 @@ export function createCodexSessionResumeLaunchPreparation(deps: {
     target: CodexAccountSelectionTarget
     launchEnv?: NodeJS.ProcessEnv
     useSelectedAccount?: boolean
+    operation?: CodexHomePreparationOperation
   }): Promise<CodexSessionResumePreparation | null> {
     const runtimeHome = deps.getRuntimeHome()
     if (args.target.runtime === 'wsl' || !runtimeHome || !deps.getSettings()) {
@@ -70,6 +68,7 @@ export function createCodexSessionResumeLaunchPreparation(deps: {
         const resumeHome =
           (await runtimeHome.prepareForCodexLaunchAsync(undefined, args.launchEnv, {
             conversationHome: sessionSource.homePath,
+            operation: args.operation,
             transcriptPath: sessionSource.transcriptPath
           })) ?? systemHomePath
         await prepareCodexPinnedLaunchHome(resumeHome, systemHomePath)

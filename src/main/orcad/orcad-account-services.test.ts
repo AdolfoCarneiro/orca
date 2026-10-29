@@ -11,6 +11,20 @@ import { installFakeAppEnvironment } from '../../../config/scripts/vitest-host-p
 import { createOrcadAccountServices } from './orcad-account-services'
 import { USAGE_CREDENTIALS_RUNTIME_CAPABILITY } from '../../shared/account-runtime-capabilities'
 import type { OrcadRuntimeCleanup } from './orcad-runtime-lifetime'
+import type * as ClaudeAgentView from '../claude/agent-view-service'
+
+// Shared account construction starts Claude hook IO outside these Codex routing assertions.
+vi.mock('../claude/agent-view-service', async (importOriginal) => {
+  const actual = await importOriginal<typeof ClaudeAgentView>()
+  return {
+    ...actual,
+    getClaudeAgentViewService: () => {
+      const service = actual.getClaudeAgentViewService()
+      vi.spyOn(service, 'reconcile').mockResolvedValue()
+      return service
+    }
+  }
+})
 
 const directories: string[] = []
 const stores: Store[] = []

@@ -1,3 +1,4 @@
+import type { CodexHomePreparationOperation } from '../codex/codex-launch-home'
 import type { Store } from '../persistence'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import type {
@@ -10,7 +11,6 @@ import type {
   AiVaultPrepareSessionResumeResult
 } from '../../shared/ai-vault-resume-preparation'
 import type { ClaudeStatusLineRateLimits } from '../../shared/claude-statusline-rate-limits'
-import { resolveTuiAgentLaunchEnv } from '../../shared/tui-agent-launch-defaults'
 import { createProviderAccountServices } from '../provider-account-services'
 import { createCodexRuntimeHomeLaunchPreparation } from '../codex/codex-runtime-home-launch-preparation'
 import { createCodexSessionResumeLaunchPreparation } from '../codex/codex-session-resume-launch-preparation'
@@ -20,7 +20,12 @@ import { resolveHostAgentBaseEnvironment } from '../runtime/structured-agent-she
 import { isWslHostOrcadProcess } from '../ipc/wsl-guest-windows-drive-path'
 import type { OrcadRuntimeCleanup } from './orcad-runtime-lifetime'
 
-type StructuredLaunchInput = { launchEnv: NodeJS.ProcessEnv; conversationHome?: string }
+type StructuredLaunchInput = {
+  launchEnv: NodeJS.ProcessEnv
+  conversationHome?: string
+  operation?: CodexHomePreparationOperation
+  sessionId?: string
+}
 
 type OrcadAccountServices = {
   prepareCodexHome: ReturnType<typeof createCodexRuntimeHomeLaunchPreparation>
@@ -30,7 +35,6 @@ type OrcadAccountServices = {
   runtimeDeps: {
     prepareCodexStructuredLaunch: (input: StructuredLaunchInput) => Promise<string | null>
     resolveCodexStructuredLaunchHome: (input: StructuredLaunchInput) => string | null
-    prepareCodexCatalogProbeHome: (homePath: string) => void
     prepareAiVaultSessionResume: (
       args: AiVaultPrepareSessionResumeArgs
     ) => Promise<AiVaultPrepareSessionResumeResult>
@@ -90,17 +94,15 @@ export function createOrcadAccountServices(args: {
         ? null
         : resumeLaunch.prepareCodexSessionResumeForLaunch(resumeArgs),
     runtimeDeps: {
-      prepareCodexStructuredLaunch: async ({ launchEnv, conversationHome }) =>
-        (await clientCodexHomes.selectLaunchHome(undefined, launchEnv, { conversationHome })) ??
-        prepareCodexHome(undefined, launchEnv, { conversationHome }),
+      prepareCodexStructuredLaunch: async ({ launchEnv, conversationHome, operation, sessionId }) =>
+        (await clientCodexHomes.selectLaunchHome(undefined, launchEnv, {
+          conversationHome,
+          operation,
+          sessionId
+        })) ?? prepareCodexHome(undefined, launchEnv, { conversationHome, operation, sessionId }),
       resolveCodexStructuredLaunchHome: ({ launchEnv, conversationHome }) =>
         clientCodexHomes.readLaunchHome(launchEnv, conversationHome) ??
         codexRuntimeHome.resolveHostCodexHomePathForLaunchReadOnly(launchEnv, conversationHome),
-      prepareCodexCatalogProbeHome: (homePath) =>
-        codexRuntimeHome.prepareHostCodexHomeForReadOnlyAppServer(
-          homePath,
-          resolveTuiAgentLaunchEnv('codex', store.getSettings())
-        ),
       prepareAiVaultSessionResume: (resumeArgs) =>
         prepareCodexAiVaultSessionResume(resumeArgs, {
           runtimeHome: codexRuntimeHome,

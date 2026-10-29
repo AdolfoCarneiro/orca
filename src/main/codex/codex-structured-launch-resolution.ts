@@ -1,5 +1,4 @@
-import { prepareCodexLaunchHome } from './codex-legacy-session-resume'
-import { codexLoginHome } from './codex-launch-home'
+import type { CodexHomePreparationOperation } from './codex-launch-home'
 import { getSystemCodexHomePath } from './codex-home-paths'
 import { delimiter, isAbsolute, resolve } from 'node:path'
 import { waitForPromiseWithSignal } from '../../shared/abort-signal-reason'
@@ -18,6 +17,12 @@ import {
 } from '../native-chat/native-chat-visuals-delivery'
 
 export type CodexStructuredLaunchPartDeps = {
+  prepareLaunchHome?: (input: {
+    launchEnv: NodeJS.ProcessEnv
+    conversationHome?: string
+    sessionId?: string
+    operation?: CodexHomePreparationOperation
+  }) => string | null | Promise<string | null>
   resolveLaunchArgs: () => Promise<string[]> | string[]
   resolveCommand?: (options?: { pathEnv?: string | null; homePath?: string }) => string
 }
@@ -87,15 +92,17 @@ export function codexStructuredLaunchPart(
   return async (basis) => {
     const { record } = basis
     const accountHome = requireLegacyAgentSessionAccountHome(record.accountHome)
-    const loginHome = codexLoginHome(accountHome.path)
     const head = agentSessionProviderHandleChainHead(record.providerHandleChain)
     const resumeThreadId = head?.handle.nativeId ?? null
-    const codexHome =
-      (await prepareCodexLaunchHome({
-        selectedAccount: loginHome === getSystemCodexHomePath() ? null : { homePath: loginHome },
-        conversationHome: accountHome.path,
-        ...(resumeThreadId ? { sessionId: resumeThreadId } : {})
-      })) ?? getSystemCodexHomePath()
+    const operation: CodexHomePreparationOperation = {}
+    const codexHome = deps.prepareLaunchHome
+      ? ((await deps.prepareLaunchHome({
+          launchEnv: basis.launchEnv(),
+          conversationHome: accountHome.path,
+          operation,
+          ...(resumeThreadId ? { sessionId: resumeThreadId } : {})
+        })) ?? getSystemCodexHomePath())
+      : accountHome.path
     const { command } = await resolveCodexStructuredInvocation({
       ...(deps.resolveCommand ? { resolveCommand: deps.resolveCommand } : {}),
       refreshEnvironmentAfterMiss: basis.refreshAfterMissingProgram,

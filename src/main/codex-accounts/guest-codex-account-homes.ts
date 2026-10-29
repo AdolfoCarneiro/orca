@@ -1,6 +1,10 @@
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
-import { codexConversationStore, discoverCodexStoreHomes } from '../codex/codex-launch-home'
+import {
+  codexConversationStore,
+  codexOverlayBelongsToFamily,
+  discoverCodexStoreHomes
+} from '../codex/codex-launch-home'
 import { getSystemCodexHomePath } from '../codex/codex-home-paths'
 import { resolveHostCodexManagedHomeVerdict } from './host-codex-managed-home-ownership'
 
@@ -40,6 +44,9 @@ export function resolveGuestCodexAccountHome(
     return null
   }
   if (overlay) {
+    if (!codexOverlayBelongsToFamily(candidatePath, dirname(path))) {
+      return null
+    }
     try {
       codexConversationStore(candidatePath)
     } catch {

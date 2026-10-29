@@ -1,4 +1,5 @@
 import * as fsPromises from 'node:fs/promises'
+import * as crypto from 'node:crypto'
 import {
   prepareCodexLaunchHome,
   prepareLegacySharedCodexSessionResume
@@ -18,6 +19,7 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   renameSync,
   symlinkSync,
@@ -32,7 +34,8 @@ import {
   codexConversationStore,
   codexLoginHome,
   discoverCodexStoreHomes,
-  reconcileCodexOverlaySignOut,
+  codexAccountOverlayHomes,
+  type CodexHomePreparationOperation,
   resolveCodexLaunchHome
 } from './codex-launch-home'
 import { readConfiguredCodexSqliteHome, resolveEffectiveCodexSqliteHome } from './codex-sqlite-home'
@@ -41,6 +44,11 @@ import { safeRemoveTree } from '../pty/overlay-mirror'
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof fsPromises>()
   return { ...actual, link: vi.fn(actual.link) }
+})
+
+vi.mock('node:crypto', async (importOriginal) => {
+  const actual = await importOriginal<typeof crypto>()
+  return { ...actual, randomUUID: vi.fn(actual.randomUUID) }
 })
 
 vi.mock('./codex-home-paths', async (importOriginal) => ({
@@ -53,6 +61,7 @@ vi.mock('./codex-home-paths', async (importOriginal) => ({
 
 const originalFsPromises = await vi.importActual<typeof fsPromises>('node:fs/promises')
 
+const originalPlatform = process.platform
 let root: string
 let system: string
 let accounts: string
@@ -69,6 +78,7 @@ beforeEach(() => {
   writeFileSync(join(system, 'config.toml'), 'model = "test"\n')
 })
 afterEach(() => {
+  Object.defineProperty(process, 'platform', { configurable: true, value: originalPlatform })
   vi.restoreAllMocks()
   safeRemoveTree(root)
 })
@@ -81,10 +91,17 @@ function account(id: string): string {
   writeFileSync(join(home, 'config.toml'), '# legacy settings stay here\n')
   return home
 }
-function launch(login: string | null, conversationHome?: string, readOnly = false): string {
+function launch(
+  login: string | null,
+  conversationHome?: string,
+  readOnly = false,
+  operation?: CodexHomePreparationOperation
+): string {
   const home = resolveCodexLaunchHome({
     selectedAccount: login ? { homePath: login } : null,
     conversationHome,
+    storeHome: system,
+    operation,
     systemHome: system,
     accountsRoot: accounts,
     readOnly
@@ -95,9 +112,9 @@ function launch(login: string | null, conversationHome?: string, readOnly = fals
 describe('Codex login overlays over conversation stores', () => {
   it('atomically links the store directories, leaving login and indexes private', () => {
     const predicted = launch(a, undefined, true)
-    expect(existsSync(predicted)).toBe(false)
+    expect(predicted).toBe(a)
     const overlay = launch(a)
-    expect(overlay).toBe(predicted)
+    expect(overlay).not.toBe(predicted)
     for (const entry of CODEX_STORE_DIRECTORIES) {
       expect(realpathSync(join(overlay, entry))).toBe(realpathSync(join(system, entry)))
     }
@@ -114,7 +131,7 @@ describe('Codex login overlays over conversation stores', () => {
     writeFileSync(join(overlay, 'session_index.jsonl'), 'private index\n')
     writeFileSync(join(overlay, 'models_cache.json'), '{}')
     expect(existsSync(join(system, 'session_index.jsonl'))).toBe(false)
-    expect(launch(a)).toBe(overlay)
+    expect(launch(a)).not.toBe(overlay)
     expect(readFileSync(join(a, 'config.toml'), 'utf8')).toBe('# legacy settings stay here\n')
   })
 
@@ -134,7 +151,7 @@ describe('Codex login overlays over conversation stores', () => {
     switched.exec("UPDATE threads SET rollout_path = 'after-undo' WHERE id = 'T'")
     switched.close()
     const resumed = launch(a, second)
-    expect(resumed).toBe(first)
+    expect(resumed).not.toBe(first)
     expect(resolveEffectiveCodexSqliteHome(resumed)).toBe(resolveEffectiveCodexSqliteHome(second))
     expect(db.prepare('SELECT rollout_path FROM threads WHERE id = ?').get('T')).toEqual({
       rollout_path: 'after-undo'
@@ -167,19 +184,92 @@ describe('Codex login overlays over conversation stores', () => {
     expect(codexConversationStore(next)).toBe(realpathSync(nextStore))
   })
 
-  it('propagates logout but preserves an atomic re-auth newer than the missing link', () => {
-    const overlay = launch(a)
-    unlinkSync(join(overlay, 'auth.json'))
-    reconcileCodexOverlaySignOut(dirname(a), a)
-    expect(existsSync(join(a, 'auth.json'))).toBe(false)
+  it.each(['darwin', 'win32'] as const)(
+    'owns one actor per preparation on %s without reseeding a detached actor',
+    (platform) => {
+      Object.defineProperty(process, 'platform', { configurable: true, value: platform })
+      const operation: CodexHomePreparationOperation = {}
+      const first = launch(a, system, false, operation)
+      expect(launch(a, system, false, operation)).toBe(first)
+      const sibling = launch(a, system)
+      expect(sibling).not.toBe(first)
+      unlinkSync(join(first, 'auth.json'))
+      writeFileSync(join(first, 'auth.json'), '{"account":"private"}')
+      writeFileSync(join(a, 'replacement'), '{"account":"current"}')
+      renameSync(join(a, 'replacement'), join(a, 'auth.json'))
+      expect(launch(a, first, true)).toBe(first)
+      expect(launch(a, system, false, operation)).toBe(first)
+      expect(readFileSync(join(first, 'auth.json'), 'utf8')).toContain('private')
+      const fresh = launch(a, first)
+      expect(fresh).not.toBe(first)
+      expect(readFileSync(join(fresh, 'auth.json'), 'utf8')).toContain('current')
+      expect(readFileSync(join(b, 'auth.json'), 'utf8')).toContain('b')
+      expect(existsSync(join(system, 'auth.json'))).toBe(false)
+      const underB = launch(b, first, false, operation)
+      expect(operation.current).toMatchObject({
+        loginHome: realpathSync(b),
+        store: realpathSync(system),
+        home: underB
+      })
+      expect(launch(a, system, false, operation)).not.toBe(first)
+      expect(codexAccountOverlayHomes(dirname(a))).toEqual(
+        expect.arrayContaining([first, sibling, fresh])
+      )
+    }
+  )
 
-    writeFileSync(join(a, 'auth.json'), '{"account":"new login"}')
-    launch(a)
-    unlinkSync(join(overlay, 'auth.json'))
-    writeFileSync(join(a, 'reauth.json'), '{"account":"reauthenticated"}')
-    renameSync(join(a, 'reauth.json'), join(a, 'auth.json'))
-    launch(a)
-    expect(readFileSync(join(overlay, 'auth.json'), 'utf8')).toContain('reauthenticated')
+  it('uses the selected login directly by default and reads without allocating a future actor', () => {
+    expect(resolveCodexLaunchHome({ selectedAccount: { homePath: a }, systemHome: system })).toBe(a)
+    const before = codexAccountOverlayHomes(dirname(a))
+    expect(launch(a, system, true)).toBe(a)
+    expect(codexAccountOverlayHomes(dirname(a))).toEqual(before)
+    expect(existsSync(join(a, 'auth.lock'))).toBe(false)
+  })
+
+  it('never adopts a colliding actor or removes another constructor staging directory', () => {
+    vi.mocked(crypto.randomUUID).mockReturnValue('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')
+    const actor = launch(a)
+    unlinkSync(join(actor, 'auth.json'))
+    writeFileSync(join(actor, 'auth.json'), 'detached')
+    expect(() => launch(a)).toThrow('Codex actor already exists')
+    expect(readFileSync(join(actor, 'auth.json'), 'utf8')).toBe('detached')
+    expect(readdirSync(dirname(actor))).toEqual([crypto.randomUUID().replaceAll('-', '')])
+    const staging = `${actor}.creating`
+    mkdirSync(staging)
+    writeFileSync(join(staging, 'owned-by-other'), 'unfinished')
+    expect(() => launch(a)).toThrow()
+    expect(readFileSync(join(staging, 'owned-by-other'), 'utf8')).toBe('unfinished')
+  })
+
+  it('places new Windows System actors on trusted H and retains old root addresses without trusting redirects', () => {
+    writeFileSync(join(system, 'auth.json'), '{"system":true}')
+    const old = launch(null, a)
+    Object.defineProperty(process, 'platform', { configurable: true, value: 'win32' })
+    const current = launch(null, a)
+    expect(realpathSync(dirname(dirname(current)))).toBe(realpathSync(system))
+    expect(codexLoginHome(current, system, accounts)).toBe(system)
+    expect(codexLoginHome(old, system, accounts)).toBe(system)
+    expect(discoverCodexStoreHomes(accounts, system)).toEqual(
+      expect.arrayContaining([old, current, realpathSync(a)])
+    )
+    const redirected = join(dirname(current), 'f'.repeat(32))
+    symlinkSync(current, redirected, 'junction')
+    expect(codexLoginHome(redirected, system, accounts)).toBe(redirected)
+    expect(codexAccountOverlayHomes(system)).not.toContain(redirected)
+    expect(launch(null, current, true)).toBe(current)
+  })
+
+  it('does not construct System actors through a redirected family', () => {
+    writeFileSync(join(system, 'auth.json'), '{"system":true}')
+    const foreign = join(root, 'foreign')
+    mkdirSync(foreign)
+    symlinkSync(
+      foreign,
+      join(accounts, 'system'),
+      process.platform === 'win32' ? 'junction' : 'dir'
+    )
+    expect(() => launch(null, a)).toThrow('Codex actor family is redirected')
+    expect(readdirSync(foreign)).toEqual([])
   })
 
   it('keeps the owning store when sessions redirect elsewhere', () => {
@@ -290,7 +380,7 @@ describe('Codex login overlays over conversation stores', () => {
     expect(launch(null, a)).toBe(system)
     writeFileSync(join(system, 'auth.json'), '{"system":true}')
     const overlay = launch(null, a)
-    expect(codexLoginHome(overlay, system)).toBe(system)
+    expect(codexLoginHome(overlay, system, accounts)).toBe(system)
     expect(codexConversationStore(overlay)).toBe(realpathSync(a))
     expect(readFileSync(join(overlay, 'auth.json'), 'utf8')).toContain('system')
   })
@@ -347,6 +437,15 @@ it('predicts without copying and awaits actual native preparation before returni
   const resolver = createCodexStructuredLaunchResolver({
     store: { getRecord: () => record, pinLaunchDirectory: vi.fn() },
     resolveWorkspacePath: async () => root,
+    prepareLaunchHome: ({ conversationHome, sessionId, operation }) =>
+      prepareCodexLaunchHome({
+        selectedAccount: null,
+        conversationHome,
+        sessionId,
+        operation,
+        systemHome: system,
+        accountsRoot: accounts
+      }).then((home) => home ?? null),
     resolveCommand: () => 'codex',
     resolveLaunchArgs: () => [],
     resolveEnvironment: async () => ({

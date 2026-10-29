@@ -101,10 +101,7 @@ export class CodexConfigMirror {
           continue
         }
         for (const overlay of codexAccountOverlayHomes(dirname(trusted))) {
-          syncSystemConfigIntoManagedCodexHome({
-            runtimeHomePath: overlay,
-            systemHomePath: join(homedir(), '.codex')
-          })
+          ensureCodexDaemonSocketGuard(overlay)
         }
       } catch (error) {
         console.warn('[codex-accounts] Failed to sync managed config:', error)

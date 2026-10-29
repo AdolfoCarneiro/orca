@@ -1,3 +1,4 @@
+import type { CodexHomePreparationOperation } from '../../codex/codex-launch-home'
 import type { AiVaultSessionSources } from '../../ai-vault/cached-session-list'
 import type { CliWriterObservation } from '../../agent-hooks/server/cli-writer-observation'
 import type { ExecutionHostScope } from '../../../shared/execution-host'
@@ -66,6 +67,8 @@ export type RuntimeConstructionDependencies = {
     args: AiVaultPrepareSessionResumeArgs
   ) => Promise<AiVaultPrepareSessionResumeResult>
   prepareCodexStructuredLaunch?: (input: {
+    operation?: CodexHomePreparationOperation
+    sessionId?: string
     conversationHome?: string
     launchEnv: NodeJS.ProcessEnv
   }) => string | null | Promise<string | null>
@@ -73,7 +76,6 @@ export type RuntimeConstructionDependencies = {
     conversationHome?: string
     launchEnv: NodeJS.ProcessEnv
   }) => string | null | Promise<string | null>
-  prepareCodexCatalogProbeHome?: (homePath: string) => void
   buildAgentHookPtyEnv?: () => Record<string, string>
   getDesktopWindowStatus?: () => RuntimeDesktopWindowStatus
   agentSessionClaimSigner?: AgentSessionClaimSigner

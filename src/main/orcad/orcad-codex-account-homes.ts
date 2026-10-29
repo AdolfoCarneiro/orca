@@ -1,5 +1,9 @@
 import { basename, dirname, join } from 'node:path'
-import { resolveCodexLaunchHome } from '../codex/codex-launch-home'
+import {
+  codexLoginHome,
+  resolveCodexLaunchHome,
+  type CodexHomePreparationOperation
+} from '../codex/codex-launch-home'
 import { resolveHostCodexSessionSourceHome } from '../codex/codex-session-source-home'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import { isAgentStatusHooksEnabledForAgent } from '../agent-hooks/managed-agent-hook-controls'
@@ -22,7 +26,8 @@ export function orcadCodexAccountHomes(
   const launchHome = (
     env?: NodeJS.ProcessEnv,
     readOnly = true,
-    conversationHome?: string
+    conversationHome?: string,
+    operation?: CodexHomePreparationOperation
   ): string | null => {
     const home = resolveGuestCodexAccountHome(env?.CODEX_HOME)
     if (!home) {
@@ -32,19 +37,24 @@ export function orcadCodexAccountHomes(
       return home
     }
     const isOverlay = basename(dirname(home)) === 'overlays'
-    const loginHome = isOverlay ? join(dirname(dirname(home)), 'home') : home
+    const loginHome = codexLoginHome(
+      home,
+      undefined,
+      dirname(dirname(isOverlay ? join(dirname(dirname(home)), 'home') : home))
+    )
     return (
       resolveCodexLaunchHome({
         selectedAccount: { homePath: loginHome },
         conversationHome: conversationHome ?? (isOverlay ? home : undefined),
         storeHome: resolveHostCodexSessionSourceHome(getSettings()),
-        readOnly
+        readOnly,
+        operation
       }) ?? null
     )
   }
   const selectLaunchHome: GetSelectedCodexHomePath = async (_target, launchEnv, context) => {
     // Wire-supplied CODEX_HOME must be managed; user-owned homes are not ours to edit.
-    const home = launchHome(launchEnv, false, context?.conversationHome)
+    const home = launchHome(launchEnv, false, context?.conversationHome, context?.operation)
     if (!home) {
       return null
     }

@@ -21,20 +21,33 @@ const markerPolls = new Set<string>()
  * Codex's elevated setup grants its sandbox group read on every USERPROFILE child, so ~/.codex is
  * readable; Orca's managed home sits under a protected userData DACL and never gets that ACE.
  */
-export async function grantCodexSandboxReadOnManagedHome(codexHome: string): Promise<void> {
+export async function grantCodexSandboxReadOnManagedHome(
+  codexHome: string,
+  isAuthorized: () => boolean = () => true
+): Promise<void> {
   if (process.platform !== 'win32') {
+    return
+  }
+  const mayMaintain = (): boolean => {
+    try {
+      return isAuthorized()
+    } catch {
+      return false
+    }
+  }
+  if (!mayMaintain()) {
     return
   }
   if (!hasSetupMarker(codexHome)) {
     // Codex provisions its sandbox users mid-session, after this launch.
     if (requestsElevatedSandbox(codexHome)) {
-      pollForSetupMarker(codexHome)
+      pollForSetupMarker(codexHome, mayMaintain)
     }
     return
   }
   // A large existing tree keeps propagating in the background instead of delaying the terminal.
   await Promise.race([
-    grantEntries(codexHome),
+    grantEntries(codexHome, mayMaintain),
     new Promise<void>((resolve) => setTimeout(resolve, LAUNCH_WAIT_MS).unref())
   ])
 }
@@ -53,17 +66,19 @@ function requestsElevatedSandbox(codexHome: string): boolean {
   }
 }
 
-function pollForSetupMarker(codexHome: string): void {
+function pollForSetupMarker(codexHome: string, mayMaintain: () => boolean): void {
   if (markerPolls.has(codexHome)) {
     return
   }
   markerPolls.add(codexHome)
   const startedAt = Date.now()
   const timer = setInterval(() => {
-    if (hasSetupMarker(codexHome)) {
-      void grantEntries(codexHome)
-    } else if (Date.now() - startedAt < MARKER_POLL_LIMIT_MS) {
-      return
+    if (mayMaintain()) {
+      if (hasSetupMarker(codexHome)) {
+        void grantEntries(codexHome, mayMaintain)
+      } else if (Date.now() - startedAt < MARKER_POLL_LIMIT_MS) {
+        return
+      }
     }
     clearInterval(timer)
     markerPolls.delete(codexHome)
@@ -71,17 +86,22 @@ function pollForSetupMarker(codexHome: string): void {
   timer.unref()
 }
 
-async function grantEntries(codexHome: string): Promise<void> {
+async function grantEntries(codexHome: string, mayMaintain: () => boolean): Promise<void> {
+  if (!mayMaintain()) {
+    return
+  }
   try {
     // Created before Codex writes images so they inherit the grant.
     mkdirSync(join(codexHome, 'generated_images'), { recursive: true })
   } catch {
     // Codex creates it itself; the grant then applies on the next launch.
   }
-  await Promise.all(SANDBOX_READABLE_ENTRIES.map((entry) => grantDir(join(codexHome, entry))))
+  await Promise.all(
+    SANDBOX_READABLE_ENTRIES.map((entry) => grantDir(join(codexHome, entry), mayMaintain))
+  )
 }
 
-function grantDir(dir: string): Promise<void> {
+function grantDir(dir: string, mayMaintain: () => boolean): Promise<void> {
   let ino: number
   try {
     const stat = lstatSync(dir)
@@ -100,7 +120,7 @@ function grantDir(dir: string): Promise<void> {
   let pending = pendingGrants.get(key)
   if (!pending) {
     // Failures stay uncached so the next launch retries.
-    pending = runIcaclsGrant(dir)
+    pending = runIcaclsGrant(dir, mayMaintain)
       .then((granted) => {
         if (granted) {
           grantedDirs.add(key)
@@ -134,12 +154,15 @@ async function hasCompletedGrant(icacls: string, dir: string): Promise<boolean> 
   return lastEntry === undefined || (await hasSandboxAce(icacls, join(dir, lastEntry), '(I)'))
 }
 
-async function runIcaclsGrant(dir: string): Promise<boolean> {
+async function runIcaclsGrant(dir: string, mayMaintain: () => boolean): Promise<boolean> {
   const icacls = getSystem32ExePath('icacls.exe')
   try {
     // A repeat grant would re-propagate through the whole tree on every Orca start.
     if (await hasCompletedGrant(icacls, dir)) {
       return true
+    }
+    if (!mayMaintain()) {
+      return false
     }
     // No timeout: killing icacls mid-propagation would leave part of the tree unreadable.
     const result = await runProcess({

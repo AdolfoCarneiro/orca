@@ -1,3 +1,4 @@
+import type { CodexHomePreparationOperation } from '../../../codex/codex-launch-home'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { AgentProviderSessionMetadata } from '../../../../shared/agent-session-resume'
 import type { NetworkProxySettings } from '../../../../shared/network-proxy'
@@ -37,6 +38,8 @@ export type BuildPtyHostEnvOptions = {
 }
 
 export type CodexHomeLaunchContext = {
+  operation?: CodexHomePreparationOperation
+  sessionId?: string
   conversationHome?: string
   unavailableManagedHomePath?: string
   launchesCodex?: boolean
@@ -54,6 +57,7 @@ export type PrepareCodexSessionResume = (args: {
   target: CodexAccountSelectionTarget
   launchEnv?: NodeJS.ProcessEnv
   useSelectedAccount?: boolean
+  operation?: CodexHomePreparationOperation
 }) => Promise<CodexSessionResumePreparation | null>
 
 export type CodexHomePtySpawnedLifecycleArgs = {

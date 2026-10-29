@@ -1,3 +1,4 @@
+import { canonicalCodexHome, codexLoginHome } from '../codex/codex-launch-home'
 import { readFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 
@@ -75,16 +76,17 @@ function isManagedHostCodexHome(
   codexHomePath: string,
   settings: GlobalSettings | undefined
 ): boolean {
-  const expected = normalizeRuntimePathForComparison(
-    basename(dirname(codexHomePath)) === 'overlays'
-      ? join(dirname(dirname(codexHomePath)), 'home')
-      : codexHomePath
-  )
   return (
     settings?.codexManagedAccounts?.some(
       (account) =>
         account.managedHomeRuntime !== 'wsl' &&
-        normalizeRuntimePathForComparison(account.managedHomePath) === expected
+        (normalizeRuntimePathForComparison(account.managedHomePath) ===
+          normalizeRuntimePathForComparison(codexHomePath) ||
+          (basename(dirname(codexHomePath)) === 'overlays' &&
+            normalizeRuntimePathForComparison(canonicalCodexHome(account.managedHomePath)) ===
+              normalizeRuntimePathForComparison(
+                codexLoginHome(codexHomePath, undefined, dirname(dirname(account.managedHomePath)))
+              )))
     ) === true
   )
 }

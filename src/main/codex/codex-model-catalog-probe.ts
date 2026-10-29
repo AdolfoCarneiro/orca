@@ -24,8 +24,6 @@ export type CodexModelCatalogProbeDeps = CodexStructuredInvocationDeps & {
   resolveEnv?: () => Record<string, string>
   resolveLaunchArgs?: () => Promise<string[]> | string[]
   resolveAccountKind?: (home: string) => AgentSessionAccountKind | undefined
-  /** Match launch-time home sync so probes use the same login. */
-  prepareHome?: (home: string) => void
   runSession?: typeof runCodexAppServerSession
 }
 
@@ -66,7 +64,6 @@ export function createCodexModelCatalogProbe(
     return {
       identity: { command, args, cwd, overlay: Object.entries(overlay).sort() },
       run: async (signal?: AbortSignal): Promise<AgentModelCatalogSuccess> => {
-        deps.prepareHome?.(accountHomePath)
         const run = deps.runSession ?? runCodexAppServerSession
         const { listing, unavailable } = await run(
           {

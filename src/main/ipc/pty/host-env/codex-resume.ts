@@ -1,3 +1,4 @@
+import type { CodexHomePreparationOperation } from '../../../codex/codex-launch-home'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import {
   normalizeAgentProviderSession,
@@ -31,6 +32,7 @@ export type PrepareCodexResumeHomeArgs = {
   target: CodexAccountSelectionTarget
   launchEnv?: NodeJS.ProcessEnv
   useSelectedAccount?: boolean
+  operation?: CodexHomePreparationOperation
 }
 
 export function prepareCodexResumeHome(
@@ -50,6 +52,7 @@ export function prepareCodexResumeHome(
       providerSession,
       target: args.target,
       launchEnv: args.launchEnv,
+      operation: args.operation,
       ...(args.useSelectedAccount ? { useSelectedAccount: true } : {})
     })
   }

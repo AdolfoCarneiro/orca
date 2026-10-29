@@ -1,3 +1,4 @@
+import type { CodexHomePreparationOperation } from '../../codex/codex-launch-home'
 import { getClaudeAgentViewService } from '../../claude/agent-view-service'
 import type { AgentProviderSessionMetadata } from '../../../shared/agent-session-resume'
 import { getAppEnvironment } from '../../../shared/app-environment'
@@ -96,6 +97,7 @@ type PtySpawnHostEnvArgs = {
 
 export async function resolvePtySpawnHostEnv(args: PtySpawnHostEnvArgs): Promise<PtySpawnHostEnv> {
   const { deps, codexSelectionTarget: target } = args
+  const operation: CodexHomePreparationOperation = {}
   const codexResumePreparation = args.preAdopted
     ? null
     : deps.prepareCodexResumeHome({
@@ -104,6 +106,7 @@ export async function resolvePtySpawnHostEnv(args: PtySpawnHostEnvArgs): Promise
         target,
         // Client-supplied CODEX_HOME can bypass host resume preparation.
         launchEnv: args.env,
+        operation,
         ...(args.resumeOnSelectedAccount ? { useSelectedAccount: true } : {})
       })
   const codexResumeLaunch = codexResumePreparation
@@ -115,8 +118,13 @@ export async function resolvePtySpawnHostEnv(args: PtySpawnHostEnvArgs): Promise
   const launchCommand = codexResumeLaunch.command
   const baseEnv = deps.stripSequencedStartupResumeArgv(args.env, codexResumeLaunch)
   const launchesCodex = args.launchAgent === 'codex'
+  const conversationHome = codexResumeHome ? operation.current?.store : undefined
   const selectLaunchCodexHome = async (): Promise<string | null> =>
-    (await deps.getSelectedCodexHomePath?.(target, baseEnv, { launchesCodex })) ?? null
+    (await deps.getSelectedCodexHomePath?.(target, baseEnv, {
+      launchesCodex,
+      operation,
+      ...(conversationHome ? { conversationHome } : {})
+    })) ?? null
   let selectedCodexHomePath = !args.preAdopted
     ? getCompatibleSelectedCodexHomePath(
         target,
@@ -136,13 +144,19 @@ export async function resolvePtySpawnHostEnv(args: PtySpawnHostEnvArgs): Promise
       resolveCurrent: async () =>
         getCompatibleSelectedCodexHomePath(
           target,
-          (await deps.getSelectedCodexHomePath?.(target, baseEnv, { launchesCodex })) ?? null
+          (await deps.getSelectedCodexHomePath?.(target, baseEnv, {
+            launchesCodex,
+            operation,
+            ...(conversationHome ? { conversationHome } : {})
+          })) ?? null
         ),
       resolveAfterUnavailable: async (unavailableManagedHomePath) =>
         getCompatibleSelectedCodexHomePath(
           target,
           (await deps.getSelectedCodexHomePath?.(target, baseEnv, {
             unavailableManagedHomePath,
+            operation,
+            ...(conversationHome ? { conversationHome } : {}),
             launchesCodex
           })) ?? null
         )

@@ -185,26 +185,19 @@ describe('a resting Codex chat lists the skills Codex would load', () => {
     async (count) => {
       vi.useFakeTimers()
       visits.mockClear()
-      let canonical = true,
-        mirrored = true
-      const h = harness({
-          prepareHome: () => {
-            mirrored = canonical
-          }
-        }),
+      const h = harness(),
         removed = vi.spyOn(Set.prototype, 'delete')
       const chats = Array.from({ length: count }, (_, i) =>
         floatingCodexChat(String(i), `/work/w${i}`)
       )
       chats.forEach(h.catalog.read)
       await vi.advanceTimersByTimeAsync(0)
-      canonical = false
       h.catalog.retireContext()
       chats.forEach(h.catalog.read)
       h.request.mockImplementation(async (_method, params = {}) => ({
         data: (Array.isArray(params.cwds) ? params.cwds.map(String) : []).map((cwd) => ({
           cwd,
-          skills: mirrored ? [{ name: 'plugin', path: '/plugin/SKILL.md' }] : []
+          skills: []
         }))
       }))
       const warned = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
