@@ -1,9 +1,17 @@
+import { LoadedCohortMigrationOperations } from '../loading-store/loaded-cohort-migrations'
+import { getDefaultPersistedState } from '../../../shared/constants'
+import { ProfileStateSqliteAuthority } from '../profile-state/profile-state-sqlite-authority'
+import { buildNativeChatProviderUpdate } from '../../../shared/native-chat/native-chat-providers'
+import { nativeChatPreferenceFor } from '../../../shared/structured-native-chat-launch-route'
+import { isStructuredNativeChatDefaultFor } from '../../runtime/rpc/methods/structured-agent-session-policy'
 import {
   closeTestStores,
   testState,
   createStore,
   readDataFile,
-  writeDataFile
+  writeDataFile,
+  writePersistedStateJson,
+  dataFile
 } from '../persistence-test-harness'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -136,3 +144,101 @@ describe('carrying what launches opened while Chat UI was experimental', () => {
     expect(createStore().getSettings().nativeChatProviders).toEqual(nativeChatProviders)
   })
 })
+
+it('retains valid saved agent IDs after migration, an unrelated provider edit, main save and reopen', async () => {
+  writeDataFile({
+    settings: {
+      experimentalNativeChat: true,
+      nativeChatProviders: {
+        'acme-agent': true,
+        'other-agent': false,
+        malformed: 'true',
+        'invalid id': true
+      }
+    }
+  })
+  const store = createStore()
+  expect(nativeChatPreferenceFor(store.getSettings(), 'acme-agent')).toBe(true)
+  store.updateSettings(buildNativeChatProviderUpdate(store.getSettings(), 'claude', false))
+  store.flush()
+  const saved = (await reopen()).getSettings()
+  expect(saved.nativeChatProviders).toMatchObject({
+    'acme-agent': true,
+    'other-agent': false,
+    claude: false
+  })
+  expect(saved.nativeChatProviders).not.toHaveProperty('malformed')
+  expect(saved.nativeChatProviders).not.toHaveProperty('invalid id')
+  for (const [agent, on] of [
+    ['acme-agent', true],
+    ['other-agent', false],
+    ['absent-agent', false],
+    ['malformed', false]
+  ] as const) {
+    expect(nativeChatPreferenceFor(saved, agent)).toBe(on)
+    // Same runtime settings read that the legacy create-support admission uses; capabilities remain separate.
+    expect(
+      isStructuredNativeChatDefaultFor(
+        { requireStore: () => ({ getSettings: () => saved }) },
+        agent
+      )
+    ).toBe(on)
+  }
+})
+
+it.each([100, 1000])(
+  'carries %i saved choices linearly, commits once, and terminates on reopen',
+  async (size) => {
+    let reads = 0
+    const choices: Record<string, boolean> = {}
+    for (let index = 0; index < size; index++) {
+      Object.defineProperty(choices, `agent-${index}`, {
+        enumerable: true,
+        get: () => {
+          reads++
+          return index % 2 === 0
+        }
+      })
+    }
+    const state = getDefaultPersistedState(testState.dir)
+    const saved = { settings: { experimentalNativeChat: true, nativeChatProviders: choices } }
+    const runtime = { loadNeedsSave: false }
+    const operations = new LoadedCohortMigrationOperations(runtime)
+    const audience = operations.captureChatUiLaunchTipAudience(saved)
+    const carried = operations.carryChatUiChoices(state, saved, audience)
+    expect(reads).toBe(size)
+    expect(Object.keys(carried.settings.nativeChatProviders ?? {})).toHaveLength(
+      size + Object.keys(EVERY_AGENT_CHAT).length
+    )
+    expect(carried.workspaceSession).toBe(state.workspaceSession)
+    expect(runtime.loadNeedsSave).toBe(true)
+    const completed = { ...carried, chatUiLaunchTipAudience: audience }
+    runtime.loadNeedsSave = false
+    expect(operations.captureChatUiLaunchTipAudience(completed)).toEqual(audience)
+    expect(operations.carryChatUiChoices(completed, completed, audience)).toBe(completed)
+    expect(reads).toBe(size)
+    expect(runtime.loadNeedsSave).toBe(false)
+
+    // Seed SQLite before counting: importing legacy JSON is a separate existing write.
+    writePersistedStateJson(dataFile(), JSON.stringify({ settings: saved.settings }))
+    const commits = vi.spyOn(
+      ProfileStateSqliteAuthority.prototype,
+      'writeCompleteSerializedDomains'
+    )
+    const selective = vi.spyOn(ProfileStateSqliteAuthority.prototype, 'writeSerializedDomains')
+    try {
+      const store = createStore()
+      store.flush()
+      expect(commits.mock.calls.length + selective.mock.calls.length).toBe(1)
+      const reopened = await reopen()
+      reopened.flush()
+      // Other normalizers may save on reopen; this migration's own zero-debt re-entry is asserted above.
+      expect(readDataFile()).toHaveProperty('chatUiLaunchTipAudience', audience)
+      expect(reopened.getSettings().nativeChatProviders?.['agent-0']).toBe(true)
+      expect(reopened.getSettings().nativeChatProviders?.['agent-1']).toBe(false)
+    } finally {
+      commits.mockRestore()
+      selective.mockRestore()
+    }
+  }
+)

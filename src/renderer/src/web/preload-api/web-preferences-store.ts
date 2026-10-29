@@ -15,6 +15,7 @@ import {
 import { readStoredWebRuntimeEnvironment } from '../web-runtime-environment'
 import {
   mergeSettings,
+  stripRetiredWebChatSettings,
   mergeWebUIState,
   migrateStoredWebSettings,
   runtimeChatPermissionSetting
@@ -225,7 +226,8 @@ export async function syncRuntimeBackedSettings(
       runtimeUpdates,
       15_000
     )
-    const runtimeSettings = { ...result.settings }
+    const runtimeSettings = stripRetiredWebChatSettings(result.settings)
+    delete runtimeSettings.nativeChatProviders
     delete runtimeSettings.activeRuntimeEnvironmentId
     const updatedVisibilityDefaults = normalizeWorktreeVisibilityDefaults(
       runtimeSettings.worktreeVisibilityDefaults

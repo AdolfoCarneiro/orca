@@ -151,8 +151,7 @@ export function mergeOsc52ClipboardNoticePending(
 export function migrateStoredWebSettings(
   stored: Partial<GlobalSettings> & RetiredWebSettings
 ): Partial<GlobalSettings> {
-  const { experimentalNativeChat: _retiredChatUi, ...current } = stored
-  void _retiredChatUi
+  const current = stripRetiredWebChatSettings(stored)
   return {
     ...current,
     ...carryChatUiChoices(stored),
@@ -163,6 +162,21 @@ export function migrateStoredWebSettings(
     terminalCustomThemes: normalizeTerminalCustomThemes(stored.terminalCustomThemes),
     ...migratePortugueseUiLanguageOnLoad(stored)
   }
+}
+
+/** Retired host intent must not become a new browser-owned legacy choice. */
+export function stripRetiredWebChatSettings(
+  settings: Partial<GlobalSettings>
+): Partial<GlobalSettings> {
+  const current = { ...settings }
+  for (const key of [
+    'experimentalNativeChat',
+    'experimentalStructuredNativeChat',
+    'openAgentTabsInChatByDefault'
+  ]) {
+    Reflect.deleteProperty(current, key)
+  }
+  return current
 }
 
 type RetiredWebSettings = { experimentalNativeChat?: unknown }

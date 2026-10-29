@@ -18,6 +18,50 @@ import {
 } from './pane/spawn-reservation'
 import { acquireWatcherRemovalGate } from '../watcher-removal-gate'
 
+const renderer = vi.hoisted(() => {
+  const ptyIdsByTabId: Record<string, string[]> = {}
+  return {
+    state: {
+      settings: {},
+      activeWorktreeId: 'repo-1::/tmp/pane-launch',
+      tabsByWorktree: {},
+      ptyIdsByTabId,
+      seedNativeChatLaunchPrompt: vi.fn(),
+      seedNativeChatLaunchDraft: vi.fn(),
+      markNativeChatLaunchPromptFailed: vi.fn()
+    },
+    subscribers: new Set<(state: { ptyIdsByTabId: Record<string, string[]> }) => void>(),
+    watchers: new Map<string, (data: string) => void>(),
+    writes: vi.fn(async (_ptyId: string, _data: string) => true)
+  }
+})
+vi.mock('@/store', () => ({
+  useAppStore: {
+    getState: () => renderer.state,
+    subscribe: (listener: (state: { ptyIdsByTabId: Record<string, string[]> }) => void) => {
+      renderer.subscribers.add(listener)
+      return () => renderer.subscribers.delete(listener)
+    }
+  }
+}))
+vi.mock('@/components/terminal-pane/pty-dispatcher', () => ({ ensurePtyDispatcher: () => {} }))
+vi.mock('@/components/terminal-pane/pty-data-sidecar-subscriptions', () => ({
+  subscribeToPtyData: (id: string, listener: (data: string) => void) => {
+    renderer.watchers.set(id, listener)
+    return () => renderer.watchers.delete(id)
+  }
+}))
+vi.mock('@/runtime/runtime-terminal-inspection', () => ({
+  inspectRuntimeTerminalProcess: async () => null
+}))
+vi.mock('@/runtime/runtime-terminal-verified-input', () => ({
+  sendRuntimePtyInputVerified: renderer.writes
+}))
+vi.mock('@/runtime/runtime-terminal-stream', () => ({ subscribeToRuntimeTerminalData: vi.fn() }))
+vi.mock('@/lib/agent-ready-wait', () => ({ waitForAgentReady: async () => ({ ready: false }) }))
+vi.mock('@/lib/telemetry', () => ({ track: vi.fn(), tuiAgentToAgentKind: () => 'claude' }))
+vi.mock('sonner', () => ({ toast: { error: vi.fn(), message: vi.fn() } }))
+
 vi.mock('electron', () => import('./pty-ipc-mock-registry').then((m) => m.electronModuleMock()))
 vi.mock('fs', () => import('./pty-ipc-mock-registry').then((m) => m.fsModuleMock()))
 vi.mock('node:fs/promises', async (importOriginal) =>
@@ -88,7 +132,7 @@ describe('a pane that starts its own agent launch', () => {
     plan: () => Promise<Record<string, unknown>> = async () => ({ command: 'claude' })
   ) {
     classifyErrorMock.mockReturnValue({ error_class: 'unknown' })
-    installDaemonTestProvider({ spawn: providerSpawn })
+    installDaemonTestProvider({ spawn: providerSpawn, hasPty: (id: string) => id === 'pty-agent' })
     const runtime = {
       ...createLaunchRaceRuntime(),
       setPtyController: vi.fn(),
@@ -325,6 +369,166 @@ describe('a pane that starts its own agent launch', () => {
     expect(isAgentLaunchRunningIn(worktreeId, closedPane)).toBe(false)
     await preparationDone
     expect(drained).toHaveBeenCalledOnce()
+    expect(runtime.reportAgentLaunchPaneVerdict).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    'accepted',
+    'planner-failed',
+    'unconfirmed',
+    'registration-exited',
+    'closed-late',
+    'remount'
+  ] as const)(
+    'settles %s from actual main spawn through renderer connect and owned prompt delivery',
+    async (scenario) => {
+      const { connectIpcPty } = await import('@/components/terminal-pane/ipc-pty-connect')
+      const { awaitAgentLaunchPaneStart } = await import('@/lib/agent-launch-pane-start')
+      const { noteAgentLaunchPaneClosedByUser } = await import('@/lib/agent-launch-pane-closes')
+      const { pasteAgentLaunchPromptOnceReady } =
+        await import('@/lib/launch-agent-tab-prompt-paste')
+      let release!: () => void
+      const pending = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      const providerSpawn = vi.fn(async (): Promise<{ id: string; isReattach?: boolean }> => {
+        if (scenario === 'closed-late') {
+          await pending
+        }
+        if (scenario === 'unconfirmed') {
+          throw new Error('provider answer lost')
+        }
+        return { id: 'pty-agent' }
+      })
+      const runtime = register(providerSpawn, async () => {
+        if (scenario === 'planner-failed') {
+          throw new Error('agent_launch_agent_disabled')
+        }
+        return { command: 'claude' }
+      })
+      if (scenario === 'registration-exited') {
+        runtime.registerPty.mockImplementation(() => {
+          throw new Error('agent_session_exited_during_start')
+        })
+        Object.assign(runtime, { getPtyLivenessVerdict: () => ({ status: 'exited' }) })
+      }
+      runtime.hasLiveTerminalForPaneKey.mockImplementation(
+        () => runtime.registerPty.mock.calls.length > 0
+      )
+      // The verdict push is deliberately not delivered: response settlement must be sufficient.
+      renderer.state.ptyIdsByTabId = {}
+      renderer.subscribers.clear()
+      renderer.watchers.clear()
+      renderer.writes.mockClear()
+      renderer.state.seedNativeChatLaunchPrompt.mockClear()
+      renderer.state.seedNativeChatLaunchDraft.mockClear()
+      const started = awaitAgentLaunchPaneStart(tabId, leafId)
+      const delivered = vi.fn()
+      const delivery = pasteAgentLaunchPromptOnceReady({
+        worktreeId,
+        tabId,
+        agent: 'claude',
+        prompt: 'fix checks',
+        content: 'fix checks',
+        submit: true,
+        launchPty: started,
+        onPromptDelivered: delivered
+      })
+      vi.stubGlobal('window', {
+        setTimeout,
+        clearTimeout,
+        api: {
+          pty: { spawn: (args: unknown) => handlers.get('pty:spawn')!(null, args), kill: vi.fn() }
+        }
+      })
+      onTestFinished(() => vi.unstubAllGlobals())
+      const transportOptions = {
+        cwd: '/tmp/pane-launch',
+        worktreeId,
+        tabId,
+        leafId,
+        agentLaunch: AI_BUTTON
+      }
+      const context: Parameters<typeof connectIpcPty>[1] = {
+        transportOptions,
+        handlers: {
+          registerData: (id) => {
+            renderer.watchers.get(id)?.('claude drawn\r\n\x1b[?2004h> ')
+          },
+          registerExit: () => false,
+          unregisterAll: () => {},
+          unregisterData: () => {},
+          clearAccumulatedState: () => {}
+        },
+        isDestroyed: () => false,
+        isExpectedExitCurrent: () => true,
+        ownsPtyId: () => true,
+        bind: (id) => {
+          renderer.state.ptyIdsByTabId = { [tabId]: [id] }
+          renderer.subscribers.forEach((listener) => listener(renderer.state))
+        },
+        isCurrent: () => true,
+        setCallbacks: () => {},
+        getCallbacks: () => ({})
+      }
+      const connect = () => connectIpcPty({ cols: 132, rows: 40, callbacks: {} }, context)
+      const connected = connect()
+      if (scenario === 'closed-late') {
+        await vi.waitFor(() => expect(providerSpawn).toHaveBeenCalledOnce())
+        noteAgentLaunchPaneClosedByUser(tabId, leafId)
+        markAgentLaunchesClosedByUser(worktreeId, { kind: 'pane', tabId, leafId })
+        release()
+      }
+      await connected
+      if (scenario === 'remount') {
+        // A remount reattaches the established pane, without replaying its startup or delivery.
+        providerSpawn.mockResolvedValueOnce({ id: 'pty-agent', isReattach: true })
+        await connectIpcPty({ sessionId: 'pty-agent', cols: 132, rows: 40, callbacks: {} }, context)
+        expect(runtime.planAgentPaneLaunch).toHaveBeenCalledOnce()
+      }
+      const accepted = scenario === 'accepted' || scenario === 'remount'
+      await expect(started).resolves.toBe(accepted ? 'pty-agent' : null)
+      await expect(delivery).resolves.toMatchObject({ delivered: accepted })
+      expect(delivered).toHaveBeenCalledTimes(accepted ? 1 : 0)
+      expect(renderer.state.seedNativeChatLaunchPrompt).toHaveBeenCalledTimes(accepted ? 1 : 0)
+      expect(renderer.state.seedNativeChatLaunchDraft).not.toHaveBeenCalled()
+      expect(renderer.writes.mock.calls.map(([id, data]) => [id, data])).toEqual(
+        accepted
+          ? [
+              ['pty-agent', '\x1b[200~fix checks\x1b[201~'],
+              ['pty-agent', '\r']
+            ]
+          : []
+      )
+      expect(providerSpawn).toHaveBeenCalledTimes(
+        scenario === 'planner-failed' ? 0 : scenario === 'remount' ? 2 : 1
+      )
+      expect(isAgentLaunchRunningIn(worktreeId, { kind: 'pane', tabId, leafId })).toBe(false)
+      expect(renderer.subscribers.size).toBe(0)
+      expect(renderer.watchers.size).toBe(0)
+      expect(paneSpawnReservationsByOwnerKey.size).toBe(0)
+      expect(runtime.reportAgentLaunchPaneVerdict).toHaveBeenCalledTimes(
+        scenario === 'closed-late' ? 0 : 1
+      )
+    }
+  )
+
+  it('keeps ordinary exited terminal attach and final output when no owned agent was requested', async () => {
+    const runtime = register(vi.fn(async () => ({ id: 'pty-agent', snapshot: 'final output' })))
+    runtime.registerPty.mockImplementation(() => {
+      throw new Error('agent_session_exited_during_start')
+    })
+    Object.assign(runtime, { getPtyLivenessVerdict: () => ({ status: 'exited' }) })
+    await expect(
+      handlers.get('pty:spawn')!(null, {
+        cols: 132,
+        rows: 40,
+        cwd: '/tmp/pane-launch',
+        worktreeId,
+        tabId,
+        leafId
+      })
+    ).resolves.toMatchObject({ id: 'pty-agent', snapshot: 'final output' })
     expect(runtime.reportAgentLaunchPaneVerdict).not.toHaveBeenCalled()
   })
 })

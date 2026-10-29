@@ -2,19 +2,20 @@
 
 import type { GlobalSettings } from '../global-settings-types'
 import type { TuiAgent } from '../tui-agent'
-import { isTuiAgent, TUI_AGENT_CONFIG } from '../tui-agent-config'
+import { isStructuredAgentId } from '../agent-session-provider-handle-encoding'
+import { TUI_AGENT_CONFIG } from '../tui-agent-config'
 
-export type NativeChatProviderChoices = Partial<Record<TuiAgent, boolean>>
+export type NativeChatProviderChoices = Partial<Record<string, boolean>>
 
 export type NativeChatProviderSettings = Pick<GlobalSettings, 'nativeChatProviders'>
 
 export function normalizeNativeChatProviderChoices(value: unknown): NativeChatProviderChoices {
   const choices: NativeChatProviderChoices = {}
-  if (!value || typeof value !== 'object') {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return choices
   }
   for (const [agent, on] of Object.entries(value)) {
-    if (isTuiAgent(agent) && typeof on === 'boolean') {
+    if (isStructuredAgentId(agent) && typeof on === 'boolean') {
       choices[agent] = on
     }
   }

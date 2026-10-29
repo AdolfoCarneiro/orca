@@ -1,3 +1,7 @@
+import {
+  launchNewTabPromptThroughHost,
+  newTabPromptLaunchesThroughHost
+} from '@/lib/launch-agent-new-tab-host-route'
 import { readLaunchPermissionChoice } from '../../../shared/tui-agent-permission-choice'
 import type { LaunchAgentInNewTabArgs } from '@/lib/launch-agent-in-new-tab-args'
 import { useAppStore } from '@/store'
@@ -204,6 +208,34 @@ export function launchAgentInNewTabWithOutcome(
 
   if (beforeSurfaceOpen?.({ kind: 'local-terminal' }) === false) {
     return null
+  }
+  if (
+    pasteDraftAfterLaunch !== null &&
+    newTabPromptLaunchesThroughHost({ promptDelivery, pastesPrompt: true, isRemote })
+  ) {
+    const launched = launchNewTabPromptThroughHost({
+      agent,
+      worktreeId,
+      ...(groupId ? { groupId } : {}),
+      prompt: trimmedPrompt,
+      ...(agentArgs !== undefined ? { agentArgs } : {}),
+      ...(terminalOptions.sessionOptions ? { sessionOptions: terminalOptions.sessionOptions } : {}),
+      ...(initialCwd?.trim() ? { cwd: initialCwd } : {}),
+      launchSource: launchSource ?? 'tab_bar_quick_launch',
+      quickCommandLabel,
+      ...(activate === false ? { activate: false } : {}),
+      ...(pendingActivationSpawn ? { pendingActivationSpawn: true } : {}),
+      pasteContent: pasteDraftAfterLaunch,
+      submit: submitPastedPrompt,
+      ...(onPromptDelivered ? { onPromptDelivered } : {}),
+      ...(onPromptDeliveryUnconfirmed ? { onPromptDeliveryUnconfirmed } : {})
+    })
+    return {
+      surface: { kind: 'local-terminal', tabId: launched.tabId },
+      startupPlan,
+      pasteDraftAfterLaunch: true,
+      promptDeliveryResult: launched.promptDeliveryResult
+    }
   }
   const tab = store.createTab(worktreeId, groupId, undefined, {
     launchAgent: agent,
