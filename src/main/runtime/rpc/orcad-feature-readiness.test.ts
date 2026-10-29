@@ -1,13 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  _resetOrcadFeatureReadinessForTests,
   installOrcadFeatureReadiness,
   ORCAD_FEATURES,
   rpcMethodFeatureWait
 } from './orcad-feature-readiness'
 
+// No local readiness reset: the shared vitest setup must restore it (asserted below).
 afterEach(() => {
-  _resetOrcadFeatureReadinessForTests()
   vi.useRealTimers()
 })
 
@@ -44,5 +43,15 @@ describe('OrcadFeatureReadiness', () => {
     await vi.advanceTimersByTimeAsync(50)
     await refused
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  // The shared setup resets after every test; these two run in order in one worker.
+  it('may leave latches closed when a test stops partway', () => {
+    installOrcadFeatureReadiness()
+    expect(rpcMethodFeatureWait(['accounts'])).not.toBeNull()
+  })
+
+  it('finds every latch open again in the next test', () => {
+    expect(rpcMethodFeatureWait(['accounts'])).toBeNull()
   })
 })
