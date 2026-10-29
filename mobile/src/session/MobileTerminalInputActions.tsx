@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, type StyleProp, type ViewStyle } from 'react-native'
 import { ImagePlus, Mic } from 'lucide-react-native'
 import { colors } from '../theme/mobile-theme'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { keepHeldPressThroughLongPress } from './held-press-long-press'
 
@@ -44,6 +45,7 @@ export function MobileTerminalInputActions({
   onDictationCancel
 }: MobileTerminalInputActionsProps) {
   useMobileColorScheme()
+  const t = useMobileTranslation()
   const dictationActive = dictation.isStarting || dictation.isRecording
   // Dictation outlives a reconnect, so its stop and cancel must too; only starting needs the connection.
   const micDisabled = !canSend && !dictationActive && !dictation.isProcessing
@@ -56,8 +58,15 @@ export function MobileTerminalInputActions({
         onPress={onAttachImage}
         onLongPress={onAttachFile}
         delayLongPress={350}
-        accessibilityLabel={isAttaching ? 'Sending image' : 'Attach a photo'}
-        accessibilityHint="Long press to attach a file instead"
+        accessibilityLabel={
+          isAttaching
+            ? t('session.terminalInputActions.sendingImage', 'Sending image')
+            : t('session.terminalInputActions.attachPhoto', 'Attach a photo')
+        }
+        accessibilityHint={t(
+          'session.terminalInputActions.attachFileHint',
+          'Long press to attach a file instead'
+        )}
       >
         {isAttaching ? (
           <ActivityIndicator size="small" color={colors.textSecondary} />
@@ -89,12 +98,15 @@ export function MobileTerminalInputActions({
           aria-busy={dictation.isStarting || dictation.isProcessing}
           accessibilityLabel={
             dictation.isRecording
-              ? 'Stop voice dictation'
+              ? t('session.terminalInputActions.stopDictation', 'Stop voice dictation')
               : dictation.isProcessing
-                ? 'Transcribing voice dictation'
+                ? t(
+                    'session.terminalInputActions.transcribingDictation',
+                    'Transcribing voice dictation'
+                  )
                 : dictation.isStarting
-                  ? 'Starting voice dictation'
-                  : 'Start voice dictation'
+                  ? t('session.terminalInputActions.startingDictation', 'Starting voice dictation')
+                  : t('session.terminalInputActions.startDictation', 'Start voice dictation')
           }
         >
           {dictation.isProcessing ? (

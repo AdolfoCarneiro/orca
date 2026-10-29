@@ -1,3 +1,4 @@
+import { getMobileForcePushBlockedReason } from './mobile-source-control-review-copy'
 import type { SourceControlPrimaryActionDecisionInputs } from '../../../src/shared/source-control-primary-action-decision-types'
 import {
   resolveSourceControlCommitAreaPrimaryActionDecision,
@@ -13,6 +14,8 @@ import type { GitPushTarget } from '../../../src/shared/worktree/types'
 import type { PrSidebarState } from '../session/mobile-pr-sidebar-state'
 import type { MobileGitBranchCompareResult } from './mobile-branch-compare'
 import type { MobileGitStatusResult } from './mobile-git-status'
+
+export { getMobileForcePushBlockedReason } from './mobile-source-control-review-copy'
 
 type GitStep = { method: string; params?: Record<string, unknown> }
 
@@ -65,13 +68,6 @@ export function resolveMobileSourceControlReviewInputs(
     }
   }
   return state.kind === 'loading' ? { ...NO_REVIEW, isPRStateLoading: true } : NO_REVIEW
-}
-
-// Mobile pushes without a review's saved push target, so a force push there could overwrite the wrong branch.
-export function getMobileForcePushBlockedReason(
-  review: MobileSourceControlReviewInputs | undefined
-): string | undefined {
-  return review?.pushTarget ? "Force push this pull request's branch from desktop" : undefined
 }
 
 export type MobileSourceControlPrimaryActionArgs = {

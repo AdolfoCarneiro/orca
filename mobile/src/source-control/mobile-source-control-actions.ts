@@ -1,3 +1,6 @@
+import { translate, type Translate } from '../i18n/mobile-i18n'
+import { mobileCommitDropdownCopy } from './mobile-commit-dropdown-copy'
+import { mobileRemoteDropdownCopy } from './mobile-remote-dropdown-copy'
 import type { GitConflictOperation } from '../../../src/shared/git-status-types'
 import { deriveDropdownActionContext } from '../../../src/shared/source-control-dropdown-action-context'
 import { buildCommitDropdownItems } from '../../../src/shared/source-control-dropdown-commit-items'
@@ -19,6 +22,7 @@ export type MobileSourceControlActionIcon =
   | 'history'
 
 export type MobileSourceControlAction = {
+  id: string
   label: string
   iconKey: MobileSourceControlActionIcon
   disabled?: boolean
@@ -59,7 +63,8 @@ export type MobileSourceControlActionArgs = {
 }
 
 export function buildMobileSourceControlActions(
-  args: MobileSourceControlActionArgs
+  args: MobileSourceControlActionArgs,
+  t: Translate = translate
 ): MobileSourceControlAction[] {
   const { handlers } = args
   const ctx = deriveDropdownActionContext({
@@ -67,9 +72,12 @@ export function buildMobileSourceControlActions(
     conflictOperation: args.conflictOperation,
     rebaseBaseRef: args.rebaseBaseRef
   })
-  const { commit, commitPush, commitSync } = buildCommitDropdownItems(ctx)
+  const { commit, commitPush, commitSync } = buildCommitDropdownItems(
+    ctx,
+    mobileCommitDropdownCopy(t)
+  )
   const { push, forcePush, pull, fastForward, sync, rebase, fetch, publish } =
-    buildRemoteDropdownItems(ctx)
+    buildRemoteDropdownItems(ctx, mobileRemoteDropdownCopy(t))
   const busy =
     args.busyAction !== null || args.openingPath !== null || args.openingBranchPath !== null
   const blockForce = (item: DropdownItem): DropdownItem =>
@@ -82,6 +90,7 @@ export function buildMobileSourceControlActions(
     actionId: string,
     onPress: () => void
   ): MobileSourceControlAction => ({
+    id: actionId,
     label: item.label,
     iconKey,
     disabled: busy || item.disabled,
@@ -104,7 +113,8 @@ export function buildMobileSourceControlActions(
     row(push, 'push', 'push', handlers.push),
     row(blockForce(forcePush), 'push', 'force-push', handlers.forcePush),
     {
-      label: 'Create PR',
+      id: 'create-pr',
+      label: t('sourceControl.actions.createPr', 'Create PR'),
       iconKey: 'pr',
       disabled: busy || !args.prAvailable,
       hint: args.prHint,
@@ -113,7 +123,8 @@ export function buildMobileSourceControlActions(
       onPress: handlers.createPr
     },
     {
-      label: 'Push & Create PR',
+      id: 'push-create-pr',
+      label: t('sourceControl.actions.pushAndCreatePr', 'Push & Create PR'),
       iconKey: 'pr',
       disabled: busy || push.disabled || !args.prAvailable,
       hint: args.prHint ?? (push.disabled ? push.title : undefined),
@@ -128,14 +139,16 @@ export function buildMobileSourceControlActions(
     row(fetch, 'fetch', 'fetch', handlers.fetch),
     row(publish, 'publish', 'publish', handlers.publish),
     {
-      label: 'Switch branch',
+      id: 'checkout',
+      label: t('sourceControl.actions.switchBranch', 'Switch branch'),
       iconKey: 'branch',
       disabled: busy,
       skipAutoClose: true,
       onPress: handlers.checkout
     },
     {
-      label: 'Commits',
+      id: 'history',
+      label: t('sourceControl.actions.commits', 'Commits'),
       iconKey: 'history',
       disabled: busy,
       onPress: handlers.history

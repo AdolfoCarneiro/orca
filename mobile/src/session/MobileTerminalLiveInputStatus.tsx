@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native'
 import { colors, radii, spacing, typography } from '../theme/mobile-theme'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { themedStyleSheet } from '../theme/themed-styles'
 import { TailClippedText } from '../components/TailClippedText'
 import {
@@ -24,23 +25,25 @@ export function MobileTerminalLiveInputStatus({
   heard
 }: MobileTerminalLiveInputStatusProps) {
   useMobileColorScheme()
+  const t = useMobileTranslation()
   const dictationTitle = mobileDictationStatusTitle(dictation)
   if (!dictationTitle && !isAttaching) {
     return null
   }
-  const title = dictationTitle ?? 'Uploading image'
+  const title =
+    dictationTitle ?? t('session.terminalLiveInputStatus.uploadingImageTitle', 'Uploading image')
   // Live input can't type into the terminal until the text is final, so the newest words show here.
   const detail =
     heard ||
     (dictation.isRecording
       ? dictationMode === 'hold'
-        ? 'Release mic to stop'
-        : 'Tap mic to stop'
+        ? t('session.terminalLiveInputStatus.releaseMicHint', 'Release mic to stop')
+        : t('session.terminalLiveInputStatus.stopHint', 'Tap mic to stop')
       : dictation.isProcessing
-        ? 'Transcribing on desktop'
+        ? t('session.terminalLiveInputStatus.transcribing', 'Transcribing on desktop')
         : dictation.isStarting
-          ? 'Preparing microphone'
-          : 'Uploading image to host')
+          ? t('session.terminalLiveInputStatus.preparingMic', 'Preparing microphone')
+          : t('session.terminalLiveInputStatus.uploadingImage', 'Uploading image to host'))
 
   return (
     <View style={styles.status} pointerEvents="none">
