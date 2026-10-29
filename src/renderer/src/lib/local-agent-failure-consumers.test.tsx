@@ -204,16 +204,14 @@ it.each(['failed', 'empty', 'disabled', 'retargeted'] as const)(
       throw new Error('optional inventory failed')
     })
     const repo: Repo = { ...TEST_REPO }
-    const result = await resolveDirectWorkItemAgent({
+    const { store, ...result } = await resolveDirectWorkItemAgent({
       latestStore: useAppStore.getState(),
       agentOverride: 'claude',
       worktreeId: worktree.id,
-      repoHost: repo,
-      launchConnectionId: null,
-      repoConnectionId: null,
-      detectedAgentsPromise: null
+      repoHost: repo
     })
     expect(result).toEqual({ agent: 'claude', unavailable: outcome !== 'failed' })
+    expect(store).toBe(useAppStore.getState())
     expect(useAppStore.getState().readLocalAgentInventory(worktree.id).state).toBe(
       outcome === 'empty' ? 'successful' : outcome === 'retargeted' ? 'pending' : 'failed'
     )
