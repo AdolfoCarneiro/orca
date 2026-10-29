@@ -5,7 +5,7 @@ import type { TerminalPaneManagerOptionsContext } from './terminal-pane-mount-co
 
 export function createPaneManagerOptionsTestContext(
   ptyDeps: PtyConnectionDeps,
-  binding: PanePtyBinding,
+  binding: PanePtyBinding | null,
   startupCwd: string
 ): TerminalPaneManagerOptionsContext {
   return {
@@ -29,7 +29,9 @@ export function createPaneManagerOptionsTestContext(
       expandedStyleSnapshotRef: { current: new Map() },
       paneFontSizesRef: { current: new Map() },
       paneCwdRef: { current: new Map() },
-      panePtyBindingsRef: { current: new Map([[1, binding]]) },
+      panePtyBindingsRef: {
+        current: new Map<number, PanePtyBinding>(binding ? [[1, binding]] : [])
+      },
       dispatchNotification: vi.fn(),
       setTabPaneExpanded: vi.fn(),
       setTabCanExpandPane: vi.fn(),
