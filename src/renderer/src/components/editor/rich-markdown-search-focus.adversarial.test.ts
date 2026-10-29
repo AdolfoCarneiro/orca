@@ -94,7 +94,14 @@ describe('Find focus with editor-owned selection', () => {
           domObserver: { flushSoon(): void }
         }
         const children = view.docView.children
-        const descriptors = Object.getOwnPropertyDescriptors(children)
+        const descriptors: PropertyDescriptorMap = {}
+        for (const key of Reflect.ownKeys(children)) {
+          const descriptor = Object.getOwnPropertyDescriptor(children, key)
+          if (!descriptor) {
+            throw new Error('Expected root child property descriptor')
+          }
+          descriptors[key] = descriptor
+        }
         children.forEach((child, index) => {
           Object.defineProperty(children, index, {
             configurable: true,
@@ -409,7 +416,7 @@ describe('Find focus with editor-owned selection', () => {
       input.focus()
       // Explicit Find navigation changes the model while the input owns the native selection.
       editor.commands.setTextSelection({ from: 1, to: 6 })
-      const bold = toolbar.getByRole('button', { name: 'Bold', exact: true })
+      const bold = toolbar.getByRole('button', { name: 'Bold' })
       fireEvent.mouseDown(bold, { button: 0 })
       fireEvent.click(bold)
       expect(editor.view.dom.querySelector('strong')?.textContent).toBe('first')

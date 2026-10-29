@@ -195,7 +195,7 @@ it.each([
     return
   }
 
-  const button = view.getByRole('button', { name: action, exact: true })
+  const button = view.getByRole('button', { name: action })
   expect(fireEvent.mouseDown(button, { button: 0 })).toBe(false)
   expect(document.activeElement).toBe(editor.view.dom)
   if (action === 'More blocks') {
