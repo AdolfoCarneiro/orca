@@ -5,16 +5,9 @@ import type { Repo } from '../../../../shared/repo-types'
 import { githubRepoIdentityKey } from '../../../../shared/github/repository-identity-key'
 import { buildTaskSourceContextFromRepo } from '../../../../shared/task-source-context'
 import { getRepoExecutionHostId } from '../../../../shared/execution-host'
+import { createHoverPreviewCache } from './native-chat-hover-preview-cache'
 
-const FRESH_MS = 60_000
-const MAX_ENTRIES = 200
-
-type Entry = {
-  promise: Promise<GitHubWorkItem | null>
-  settledAt: number | null
-  value?: GitHubWorkItem
-}
-const previews = new Map<string, Entry>()
+const previews = createHoverPreviewCache<GitHubWorkItem>({ freshMs: 60_000, maxEntries: 200 })
 
 /** Repo ids repeat across hosts, and each host answers with its own GitHub account. */
 export function githubLinkPreviewKey(repo: Repo, link: GitHubIssueOrPRLink): string {
@@ -54,47 +47,12 @@ export function readCachedGitHubLinkPreview(
   repo: Repo,
   link: GitHubIssueOrPRLink
 ): GitHubWorkItem | null {
-  return previews.get(githubLinkPreviewKey(repo, link))?.value ?? null
+  return previews.read(githubLinkPreviewKey(repo, link))
 }
 
-/** One request per link at a time; successes stay fresh for a minute, failures retry on the next open. */
 export function loadGitHubLinkPreview(
   repo: Repo,
   link: GitHubIssueOrPRLink
 ): Promise<GitHubWorkItem | null> {
-  const key = githubLinkPreviewKey(repo, link)
-  const cached = previews.get(key)
-  if (cached && (cached.settledAt === null || Date.now() - cached.settledAt < FRESH_MS)) {
-    return cached.promise
-  }
-  const entry: Entry = { promise: Promise.resolve(null), settledAt: null }
-  const forget = (): void => {
-    if (previews.get(key) === entry) {
-      previews.delete(key)
-    }
-  }
-  entry.promise = fetchPreview(repo, link).then(
-    (item) => {
-      if (item) {
-        entry.settledAt = Date.now()
-        entry.value = item
-      } else {
-        forget()
-      }
-      return item
-    },
-    (error: unknown) => {
-      forget()
-      throw error
-    }
-  )
-  previews.delete(key)
-  previews.set(key, entry)
-  if (previews.size > MAX_ENTRIES) {
-    const oldest = previews.keys().next().value
-    if (oldest !== undefined) {
-      previews.delete(oldest)
-    }
-  }
-  return entry.promise
+  return previews.load(githubLinkPreviewKey(repo, link), () => fetchPreview(repo, link))
 }

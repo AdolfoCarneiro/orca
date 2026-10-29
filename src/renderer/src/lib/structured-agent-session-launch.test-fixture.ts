@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import type * as LaunchErrors from '@/lib/structured-agent-session-launch-errors'
-import { beforeEach, vi, type Mock } from 'vitest'
+import { afterEach, beforeEach, vi, type Mock } from 'vitest'
 import type { RuntimeMobileSessionTabsResult } from '../../../shared/runtime-session-contracts'
 import type * as RecoveryModule from '@/lib/agent-session/launch/structured-agent-session-launch-recovery'
 import type { StructuredAgentSessionLaunchIntent } from '@/lib/launch-structured-agent-session'
@@ -96,6 +96,7 @@ vi.mock('@/runtime/runtime-rpc-client', () => ({
 vi.mock('@/store', () => ({
   useAppStore: {
     getState: () => ({
+      runtimeEnvironmentCatalogHydrated: true,
       unifiedTabsByWorktree: mocks.rendererTabs,
       seedNativeChatLaunchDraft: mocks.seedDraft,
       clearNativeChatLaunchDraft: mocks.clearDraft
@@ -123,6 +124,7 @@ vi.mock('@/lib/agent-catalog', () => ({
 }))
 
 import { resetStructuredAgentSessionSendsForTests } from '@/components/native-chat/structured-agent-session-message-sender'
+import { refreshLocalStructuredSessionTabs } from '@/runtime/local-structured-session-tabs-sync/inventory-refresh'
 import {
   clearNativeChatDraftCacheForTests,
   readNativeChatDraftCache
@@ -130,6 +132,9 @@ import {
 import { structuredAgentSessionDraftScopeKey } from '@/components/native-chat/native-chat-composer-draft-store'
 import { resetStructuredAgentLaunchPersistenceForTests } from './agent-session/launch/structured-agent-session-launch-persistence'
 import { resetStructuredAgentLaunchRegistryForTests } from './agent-session/launch/structured-agent-session-launch-registry'
+import { useAppStore } from '@/store'
+import { registerStructuredSelectionCatalogStore } from './structured-agent-session-selection-controller'
+import { replaceRuntimeEnvironmentRevisions } from '@/runtime/runtime-environment-revision'
 vi.mock('@/lib/native-chat-telemetry', () => ({ emitNativeChatMessageSent: vi.fn() }))
 vi.mock('@/lib/worker-terminal-takeover-report', () => ({
   reportStructuredSessionUserInput: vi.fn()
@@ -179,6 +184,12 @@ function publishedSnapshot(worktreeId: string, sessionId: string): RuntimeMobile
   }
 }
 
+function publishIntent(intent: StructuredAgentSessionLaunchIntent): void {
+  vi.mocked(refreshLocalStructuredSessionTabs).mockResolvedValue([
+    publishedSnapshot(intent.worktreeId, intent.sessionId)
+  ])
+}
+
 function sends(): unknown[][] {
   return mocks.callRuntimeRpc.mock.calls.filter((call) => call[1] === 'agentSession.send')
 }
@@ -193,8 +204,20 @@ async function flushLaunchSettlement(): Promise<void> {
   }
 }
 
+let restoreCatalog: () => void
+afterEach(() => {
+  resetStructuredAgentLaunchRegistryForTests()
+  replaceRuntimeEnvironmentRevisions([])
+  restoreCatalog()
+})
+
 beforeEach(() => {
-  vi.clearAllMocks()
+  vi.resetAllMocks()
+  restoreCatalog = registerStructuredSelectionCatalogStore({
+    read: useAppStore.getState,
+    subscribe: useAppStore.subscribe
+  })
+  replaceRuntimeEnvironmentRevisions([{ id: 'server-1', createdAt: 1, pairingRevision: 1 }])
   localStorage.clear()
   resetStructuredAgentLaunchPersistenceForTests()
   resetStructuredAgentLaunchRegistryForTests()
@@ -226,4 +249,12 @@ beforeEach(() => {
   })
 })
 
-export { mocks, launchIntent, publishedSnapshot, sends, composerDraft, flushLaunchSettlement }
+export {
+  mocks,
+  launchIntent,
+  publishedSnapshot,
+  publishIntent,
+  sends,
+  composerDraft,
+  flushLaunchSettlement
+}

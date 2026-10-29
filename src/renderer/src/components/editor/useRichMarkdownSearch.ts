@@ -15,6 +15,7 @@ import {
 import { createRichMarkdownSearchMatchesCache } from './rich-markdown-search-matches-cache'
 import { useRichMarkdownSearchHighlights } from './useRichMarkdownSearchHighlights'
 import { addAppKeyListener, removeAppKeyListener } from '@/lib/app-keyboard-router'
+import { isImeOwnedKeyboardEvent } from '@/lib/ime-composition-keyboard-event'
 
 export function useRichMarkdownSearch({
   editor,
@@ -89,8 +90,9 @@ export function useRichMarkdownSearch({
     })
   }, [editor, findMatches, isSearchOpen, matchCase, searchQuery, wholeWord])
 
-  // Derive disabled state from the same live atom guards as replacement, including during the highlight debounce.
-  const replaceDisabled = getLiveMatches().some((match) => match.touchesReadOnlyAtom)
+  // Hidden replace controls must not bypass the find debounce with a live scan.
+  const replaceDisabled =
+    isReplaceMode && getLiveMatches().some((match) => match.touchesReadOnlyAtom)
 
   const activeMatchIndex =
     !isSearchOpen || matchCount === 0
@@ -268,7 +270,7 @@ export function useRichMarkdownSearch({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       const root = rootRef.current
-      if (!root) {
+      if (!root || isImeOwnedKeyboardEvent(event)) {
         return
       }
 
