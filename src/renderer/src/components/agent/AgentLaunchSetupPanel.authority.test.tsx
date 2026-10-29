@@ -54,9 +54,7 @@ it.each(['missing-default', 'pending', 'known-default', 'explicit'] as const)(
       ...host.querySelectorAll<HTMLButtonElement>('[data-option-id="effort"] [role="radio"]')
     ]
     expect(radios).toHaveLength(2)
-    expect(radios.every((radio) => radio.disabled)).toBe(
-      state === 'missing-default' || state === 'pending'
-    )
+    expect(radios.every((radio) => radio.disabled)).toBe(state === 'pending')
     expect(
       host.querySelector<HTMLButtonElement>('[data-option-id="fastMode"] [role="switch"]')?.disabled
     ).toBe(state === 'pending')
@@ -65,7 +63,10 @@ it.each(['missing-default', 'pending', 'known-default', 'explicit'] as const)(
         radios.find((radio) => radio.getAttribute('aria-checked') === 'true')?.textContent
       ).toBe(state === 'known-default' ? 'Low' : 'High')
     }
-    for (const way of ['Open chat', 'Open terminal']) {
+    if (state === 'missing-default') {
+      expect(radios.every((radio) => radio.getAttribute('aria-checked') === 'false')).toBe(true)
+    }
+    for (const way of ['Launch chat', 'Launch terminal']) {
       onUse.mockClear()
       fireEvent.click(
         [...host.querySelectorAll('button')].find((button) => button.textContent === way)!
@@ -98,7 +99,7 @@ it('edits the QA inline settings carrier after verbose and compiles the same eff
   expect(fast?.disabled).toBe(false)
   fireEvent.click(fast!)
   fireEvent.click(
-    [...host.querySelectorAll('button')].find((button) => button.textContent === 'Open terminal')!
+    [...host.querySelectorAll('button')].find((button) => button.textContent === 'Launch terminal')!
   )
   const launch = agentPickerLaunchInputs(onUse.mock.calls[0][0], own)
   const compiled = resolveAgentLaunchCommand({
@@ -147,7 +148,7 @@ it('keeps the QA unclosed permission literal once after Ask and preserves actual
   )
   expect(host.querySelector('button[aria-label^="Remove --permission"]')).toBeNull()
   fireEvent.click(
-    [...host.querySelectorAll('button')].find((button) => button.textContent === 'Open terminal')!
+    [...host.querySelectorAll('button')].find((button) => button.textContent === 'Launch terminal')!
   )
   const launch = agentPickerLaunchInputs(onUse.mock.calls[0][0], own)
   expect(launch.agentArgs).toBe(raw)

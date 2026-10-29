@@ -118,8 +118,10 @@ export function AgentLaunchSetupButton({
         sticky="always"
         align="start"
         sideOffset={6}
-        className="flex w-96 min-w-64 max-w-(--radix-popover-content-available-width) max-h-(--radix-popover-content-available-height) flex-col"
+        className="flex w-110 min-w-64 max-w-(--radix-popover-content-available-width) max-h-(--radix-popover-content-available-height) flex-col"
         onClick={(event) => event.stopPropagation()}
+        // Hovering another menu row moves focus there; only a click outside or Escape closes the panel.
+        onFocusOutside={(event) => event.preventDefault()}
       >
         <div className="min-h-0 overflow-y-auto scrollbar-sleek">
           <AgentLaunchSetupPanel

@@ -169,7 +169,7 @@ it('bounds effective-settings work for direct analysis, collapsed Chat render an
           )
         }
         fireEvent.click(
-          [...host.querySelectorAll('button')].find((b) => b.textContent === 'Open terminal')!
+          [...host.querySelectorAll('button')].find((b) => b.textContent === 'Launch terminal')!
         )
         const launch = agentPickerLaunchInputs(onUse.mock.calls.at(-1)![0], own)
         expect(tokenizeStartupCommand(launch.agentArgs ?? '', 'posix')).toMatchObject({
@@ -246,7 +246,8 @@ it('bounds catalog projection independently of raw model operands and retains Co
         fireEvent.change(input, { target: { value: text } })
         const calls = projection.mock.calls.length
         expect(calls).toBe(7)
-        expect(reads).toBeLessThanOrEqual((7 + 8) * models + 8)
+        // The footer summary adds one selected-model lookup per render.
+        expect(reads).toBeLessThanOrEqual((7 + 9) * models + 8)
         if (operands === 300) {
           expect({ calls, reads }).toEqual(previous.get(models))
         }
@@ -259,7 +260,7 @@ it('bounds catalog projection independently of raw model operands and retains Co
           host.querySelector(`button[aria-label="Remove -c service_tier=${tier}"]`)
         ).not.toBeNull()
         fireEvent.click(
-          [...host.querySelectorAll('button')].find((b) => b.textContent === 'Open terminal')!
+          [...host.querySelectorAll('button')].find((b) => b.textContent === 'Launch terminal')!
         )
         const launch = agentPickerLaunchInputs(onUse.mock.calls.at(-1)![0], own)
         expect(launch.agentArgs).toContain(`service_tier=${tier}`)
@@ -288,7 +289,7 @@ it('bounds catalog projection independently of raw model operands and retains Co
       target: { value: '--model claude-opus-4-8 --verbose' }
     })
     fireEvent.click(
-      [...host.querySelectorAll('button')].find((b) => b.textContent === 'Open terminal')!
+      [...host.querySelectorAll('button')].find((b) => b.textContent === 'Launch terminal')!
     )
     const launch = agentPickerLaunchInputs(onUse.mock.calls.at(-1)![0], own)
     expect(launch.agentArgs).toContain('--model claude-opus-4-8')

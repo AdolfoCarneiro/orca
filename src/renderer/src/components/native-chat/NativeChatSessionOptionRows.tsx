@@ -30,6 +30,8 @@ type NativeChatSessionOptionRowsProps = {
   onSet: (descriptor: SessionOptionDescriptor, value: SessionOptionValue) => void
   /** A value-less action; it has nothing to show in place, so it closes the picker. */
   onAction: (descriptor: SessionOptionDescriptor) => void
+  /** False when the caller already separates these rows from what sits above them. */
+  divided?: boolean
 }
 
 // Retain missing rows disabled for this visit so model changes cannot slide the picker under the pointer.
@@ -175,7 +177,8 @@ export function NativeChatSessionOptionRows({
   shownReason,
   pendingIds,
   onSet,
-  onAction
+  onAction,
+  divided = true
 }: NativeChatSessionOptionRowsProps): React.JSX.Element {
   const shown = useRef(options)
   const rows = withEarlierRows(shown.current, options)
@@ -207,7 +210,7 @@ export function NativeChatSessionOptionRows({
     >
       <div ref={content}>
         {rows.length > 0 ? (
-          <div className="border-t border-border p-1">
+          <div className={divided ? 'border-t border-border p-1' : 'p-1'}>
             <div className="flex flex-col gap-0.5">
               {rows.map((descriptor) => {
                 const reason = nativeChatSessionOptionDisabledReason(descriptor.disabledReason, say)

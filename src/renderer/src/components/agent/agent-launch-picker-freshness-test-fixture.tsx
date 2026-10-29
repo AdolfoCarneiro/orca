@@ -76,7 +76,7 @@ export async function exerciseAgentPickerFreshness({
     view.container.querySelector('[data-option-id="effort"] [data-state="on"]')?.textContent
   const launch = () => {
     fireEvent.click(
-      [...view.container.querySelectorAll('button')].find((b) => b.textContent === 'Open chat')!
+      [...view.container.querySelectorAll('button')].find((b) => b.textContent === 'Launch chat')!
     )
     expect(launches.mock.lastCall).toEqual([{}])
   }

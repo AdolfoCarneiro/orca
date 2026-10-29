@@ -692,19 +692,19 @@ it('updates a mounted setup from current host rows without making ordinary actio
     'button[aria-label="Configure Codex"]'
   )!
   fireEvent.click(configure)
-  expect(document.body.textContent).toContain('Open terminal')
-  expect(document.body.textContent).not.toContain('Open chat')
+  expect(document.body.textContent).toContain('Launch terminal')
+  expect(document.body.textContent).not.toContain('Launch chat')
   for (const answer of ['yes', 'ssh', 'yes'] as const) {
     view.rerender(createElement(Menu, { answer }))
     await act(async () => {})
     expect(current[0].defaultSurface).toBe('terminal')
     expect(current[0].defaultsPending).toBe(true)
     expect(current[0].surfaces).toEqual(answer === 'yes' ? ['chat', 'terminal'] : ['terminal'])
-    expect(document.body.textContent?.includes('Open chat')).toBe(answer === 'yes')
+    expect(document.body.textContent?.includes('Launch chat')).toBe(answer === 'yes')
     expect(document.querySelector('textarea')).toHaveProperty('disabled', true)
     expect(
       [...document.querySelectorAll('button')].find(
-        (button) => button.textContent === 'Open terminal'
+        (button) => button.textContent === 'Launch terminal'
       )
     ).toHaveProperty('disabled', false)
   }

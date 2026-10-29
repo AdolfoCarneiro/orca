@@ -187,7 +187,8 @@ export function AgentPermissionMenu({
   inheritLabel?: string
   disabled?: boolean
   size?: 'xs' | 'sm'
-  layout?: 'inline' | 'stacked'
+  /** Row: muted label left and the menu right, like the chat composer's option rows. */
+  layout?: 'inline' | 'stacked' | 'row'
   showInherited?: boolean
   rawValue?: string
 }): React.JSX.Element {
@@ -200,10 +201,16 @@ export function AgentPermissionMenu({
         'flex min-w-0',
         layout === 'stacked'
           ? 'flex-col items-stretch gap-2'
-          : 'flex-wrap items-center gap-x-3 gap-y-1'
+          : layout === 'row'
+            ? 'min-h-7 items-center justify-between gap-3'
+            : 'flex-wrap items-center gap-x-3 gap-y-1'
       )}
     >
-      {layout === 'stacked' ? (
+      {layout === 'row' ? (
+        <span className="text-xs text-muted-foreground">
+          {translate('settings.agents.rowPermissions', 'Permissions')}
+        </span>
+      ) : layout === 'stacked' ? (
         <Label variant="settings">
           {translate('settings.agents.rowPermissions', 'Permissions')}
         </Label>

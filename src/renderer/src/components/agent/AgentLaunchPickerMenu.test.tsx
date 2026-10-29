@@ -37,7 +37,8 @@ const entry: AgentPickerEntry = {
 let root: Root
 let host: HTMLDivElement
 const launch = vi.fn()
-function show(value: AgentPickerEntry) {
+function show(value: AgentPickerEntry, others: AgentPickerEntry[] = []) {
+  const entries = [value, ...others]
   act(() =>
     root.render(
       <TooltipProvider>
@@ -45,17 +46,17 @@ function show(value: AgentPickerEntry) {
           <DropdownMenuTrigger>New tab</DropdownMenuTrigger>
           <DropdownMenuContent>
             <AgentLaunchPickerMenu
-              entries={[value]}
+              entries={entries}
               model={{
                 state: 'settled',
-                rows: value.rows,
+                rows: entries.flatMap((entry) => entry.rows),
                 detection: {
-                  detectedIds: [value.agent],
+                  detectedIds: entries.map((entry) => entry.agent),
                   isLoading: false,
                   isRefreshing: false,
                   detectionFailed: false,
                   needsServerUpdate: false,
-                  refresh: async () => [value.agent]
+                  refresh: async () => entries.map((entry) => entry.agent)
                 }
               }}
               runLaunch={launch}
@@ -121,7 +122,7 @@ it.each([
     const menu = new DOMRect(menuLeft, 80, menuWidth, 240)
     const row = new DOMRect(menuLeft + 5, 128, menuWidth - 10, 32)
     const trigger = new DOMRect(menuLeft + menuWidth - 32, 132, 24, 24)
-    const panel = new DOMRect(0, 0, 384, 480)
+    const panel = new DOMRect(0, 0, 440, 480)
     function geometry(element: Element): DOMRect {
       if (
         element.matches('[data-slot="popover-content"]') ||
@@ -353,7 +354,7 @@ it('opens setup with a clicked chevron without launching, then dispatches its se
   expect(launch).not.toHaveBeenCalled()
   expect(document.body.textContent).toContain('Arguments')
   const terminal = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
-    (button) => button.textContent === 'Open terminal'
+    (button) => button.textContent === 'Launch terminal'
   )
   act(() => terminal?.click())
   expect(launch).toHaveBeenCalledTimes(1)
@@ -380,6 +381,32 @@ it('keeps setup open while the pointer expands and collapses Arguments', async (
   await user.click(toggle)
   expect(document.querySelector('[role="dialog"]')).toBe(panel)
   expect(panel.querySelector('textarea[aria-label="Arguments"]')).toBeNull()
+  expect(launch).not.toHaveBeenCalled()
+})
+
+it('keeps setup open when pointermove focuses another menu row, then closes on pointerdown outside', async () => {
+  show(entry, [
+    {
+      ...entry,
+      agent: 'claude',
+      label: 'Claude',
+      rows: [{ agent: 'claude', kind: 'chat' }]
+    }
+  ])
+  const user = userEvent.setup()
+  await user.click(
+    document.querySelector<HTMLButtonElement>('button[aria-label="Configure Codex"]')!
+  )
+  const panel = document.querySelector('[role="dialog"]')!
+  expect(panel).not.toBeNull()
+  const otherRow = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+    (row) => row.textContent === 'Claude'
+  )!
+  fireEvent.pointerMove(otherRow, { pointerType: 'mouse' })
+  await waitFor(() => expect(document.activeElement).toBe(otherRow))
+  expect(document.querySelector('[role="dialog"]')).toBe(panel)
+  fireEvent.pointerDown(document.body, { pointerType: 'mouse', button: 0 })
+  await waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   expect(launch).not.toHaveBeenCalled()
 })
 
@@ -443,11 +470,11 @@ it('opens a searched setup only from its chevron and launches the alternate way 
   })
   const row = document.querySelector<HTMLElement>('[role="menuitem"]')!
   expect(row.querySelectorAll('button')).toHaveLength(1)
-  expect(document.querySelector('button[aria-label="Open terminal"]')).toBeNull()
+  expect(document.querySelector('button[aria-label="Launch terminal"]')).toBeNull()
   act(() => row.querySelector<HTMLButtonElement>('button')?.click())
   expect(launch).not.toHaveBeenCalled()
   const alternate = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
-    (button) => button.textContent === 'Open terminal'
+    (button) => button.textContent === 'Launch terminal'
   )
   act(() => alternate?.click())
   expect(launch).toHaveBeenCalledTimes(1)
@@ -571,7 +598,7 @@ it('unmounts the setup draft on close/reopen and resets an open draft when its o
   show({ ...own, ownerKey: 'pair8/runtime2', arguments: '--add-dir new-owner' })
   expect(document.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('--add-dir new-owner')
   fireEvent.click(
-    [...document.querySelectorAll('button')].find((b) => b.textContent === 'Open terminal')!
+    [...document.querySelectorAll('button')].find((b) => b.textContent === 'Launch terminal')!
   )
   expect(launch).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ choices: {}, arguments: undefined })
