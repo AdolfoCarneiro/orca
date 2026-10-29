@@ -39,6 +39,12 @@ const removedShellCache = vi.hoisted(() => ({
   })
 }))
 vi.mock('../mobile-web-shell/removed-host-shell-cache', () => removedShellCache)
+const unregisterPushForRemovedHost = vi.hoisted(() =>
+  vi.fn(async (_hostId: string): Promise<() => void> => {
+    throw new Error('Creation must not unregister host push')
+  })
+)
+vi.mock('../notifications/push-registration', () => ({ unregisterPushForRemovedHost }))
 vi.mock('@react-native-async-storage/async-storage', () => ({
   default: { getItem: async () => null, setItem: async () => {}, removeItem: async () => {} }
 }))
@@ -164,6 +170,7 @@ afterEach(() => {
   act(() => renderer?.unmount())
   expect(removedShellCache.forgetHostUpdateFailures).not.toHaveBeenCalled()
   expect(removedShellCache.deleteHostPageCache).not.toHaveBeenCalled()
+  expect(unregisterPushForRemovedHost).not.toHaveBeenCalled()
   renderer = undefined
   fixture.client = null
   vi.useRealTimers()
