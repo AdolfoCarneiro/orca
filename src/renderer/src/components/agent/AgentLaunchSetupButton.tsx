@@ -28,12 +28,14 @@ export function AgentLaunchSetupButton({
   entry,
   initial,
   disabled,
+  mode,
   onOpenChange,
   onUse
 }: {
   entry: AgentPickerEntry
   initial?: AgentPickerDraft
   disabled?: boolean
+  mode?: 'launch' | 'select'
   onOpenChange?: (open: boolean) => void
   onUse: (draft: AgentPickerDraft) => void
 }) {
@@ -69,6 +71,7 @@ export function AgentLaunchSetupButton({
           key={`${entry.ownerKey}:${entry.agent}`}
           entry={entry}
           initial={initial}
+          mode={mode}
           disabled={disabled}
           onUse={(draft) => {
             onUse(draft)

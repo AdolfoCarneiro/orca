@@ -1,3 +1,4 @@
+import { terminalSessionOptionInputs } from '../../../../shared/tui-agent-launch-command'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { AgentStartupShell } from '../../../../shared/tui-agent-startup-shell'
@@ -25,6 +26,7 @@ export type QuickComposerStartupInput = {
   shell: AgentStartupShell | null | undefined
   isRemote: boolean
   telemetrySource: WorktreeCreationRequest['telemetrySource']
+  launchInputs?: WorktreeCreationRequest['launchInputs']
 }
 
 export type QuickComposerStartup = {
@@ -35,6 +37,20 @@ export type QuickComposerStartup = {
 
 export function buildQuickComposerStartup(input: QuickComposerStartupInput): QuickComposerStartup {
   const { agent, draftPrompt, prompt, settings } = input
+  const agentArgs = agent
+    ? input.launchInputs?.agentArgs !== undefined
+      ? input.launchInputs.agentArgs
+      : resolveTuiAgentLaunchArgs(agent, settings)
+    : undefined
+  const optionInputs =
+    agent && input.launchInputs?.sessionOptions
+      ? terminalSessionOptionInputs({
+          agent,
+          sessionOptions: input.launchInputs.sessionOptions,
+          agentArgs,
+          shell: input.shell ?? 'posix'
+        })
+      : {}
   const draftLaunchPlan =
     agent === null || !draftPrompt
       ? null
@@ -42,7 +58,8 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
           agent,
           draft: draftPrompt,
           cmdOverrides: settings?.agentCmdOverrides ?? {},
-          agentArgs: resolveTuiAgentLaunchArgs(agent, settings),
+          agentArgs,
+          ...optionInputs,
           agentEnv: resolveTuiAgentLaunchEnv(
             agent,
             settings,
@@ -70,7 +87,8 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
       agent,
       prompt,
       cmdOverrides: settings?.agentCmdOverrides ?? {},
-      agentArgs: resolveTuiAgentLaunchArgs(agent, settings),
+      agentArgs,
+      ...optionInputs,
       agentEnv: resolveTuiAgentLaunchEnv(
         agent,
         settings,

@@ -92,7 +92,10 @@ it('carries the accepted route across preparation and retains CLI startup/prompt
           'fix',
           null,
           'repo-1',
-          { launchChoice: { agent: 'opencode', route } }
+          {
+            launchChoice: { agent: 'opencode', route },
+            launchInputs: { sessionOptions: { model: 'team-model' }, agentArgs: '--add-dir docs' }
+          }
         )
       })
       useAppStore.setState({
@@ -108,7 +111,8 @@ it('carries the accepted route across preparation and retains CLI startup/prompt
         agentLaunchRoute: route,
         quickPrompt: 'Fix the checkout',
         branchNameOverride: 'feature/test',
-        branchIntent: 'open-existing'
+        branchIntent: 'open-existing',
+        launchInputs: { sessionOptions: { model: 'team-model' }, agentArgs: '--add-dir docs' }
       })
       if (route === 'terminal-tui') {
         expect(request.startup).toMatchObject({
@@ -116,6 +120,9 @@ it('carries the accepted route across preparation and retains CLI startup/prompt
           command: expect.stringContaining('opencode')
         })
         expect(request.startup.command).toContain('Fix the checkout')
+        expect(request.startup.command).toContain('team-model')
+        expect(request.startup.command).toContain('--add-dir')
+        expect(request.startup.command).toContain('docs')
       } else {
         expect(request.startup).toBeUndefined()
       }

@@ -1,3 +1,8 @@
+import {
+  agentPickerLaunchInputs,
+  type AgentPickerDraft,
+  type AgentPickerEntry
+} from '../../../shared/agent-launch-picker'
 import { agentChoicePending } from '@/lib/host-chat-program'
 import type { AgentLaunchSurface } from '@/lib/agent-session-launch-plan'
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -198,23 +203,39 @@ function QuickTabBody({
   const [quickAgentPick, setQuickAgentPick] = useState<{
     agent: TuiAgent | null
     surface?: AgentLaunchSurface
+    draft?: AgentPickerDraft
+    entry?: AgentPickerEntry
+    contextKey?: string
   }>({ agent: null })
-  const quickAgentSurface = quickAgentPick.agent === quickAgent ? quickAgentPick.surface : undefined
   const observation = useAgentMenuObservation(
     cardProps.agentRows?.target ?? null,
     active && Boolean(cardProps.agentRows),
     cardProps.agentRows?.detectionTarget
   )
+  const pickerDraft =
+    quickAgentPick.agent === quickAgent && quickAgentPick.contextKey === observation.contextKey
+      ? quickAgentPick.draft
+      : undefined
+  const quickAgentSurface =
+    quickAgentPick.agent === quickAgent &&
+    (!quickAgentPick.contextKey || quickAgentPick.contextKey === observation.contextKey)
+      ? quickAgentPick.surface
+      : undefined
   const launchSelection = observation.selectionFor(quickAgent, quickAgentSurface)
   const createDisabled = formDisabled || !launchSelection.ready
 
   const handleQuickAgentChange = useCallback(
-    (agent: TuiAgent | null, surface?: AgentLaunchSurface) => {
+    (
+      agent: TuiAgent | null,
+      surface?: AgentLaunchSurface,
+      draft?: AgentPickerDraft,
+      entry?: AgentPickerEntry
+    ) => {
       setQuickAgentOverride(agent)
-      setQuickAgentPick({ agent, surface })
+      setQuickAgentPick({ agent, surface, draft, entry, contextKey: observation.contextKey })
       setQuickSelectionCleared(false)
     },
-    []
+    [observation.contextKey]
   )
 
   const handleQuickSetupOnlySelect = useCallback(() => {
@@ -226,11 +247,38 @@ function QuickTabBody({
     if (createDisabled) {
       return
     }
+    let launchInputs = pickerDraft
+      ? agentPickerLaunchInputs(pickerDraft, quickAgentPick.entry)
+      : undefined
+    if (launchInputs && Object.keys(launchInputs).length === 0) {
+      launchInputs = undefined
+    }
+    if (
+      launchInputs &&
+      pickerDraft?.surface === 'terminal' &&
+      pickerDraft.arguments === undefined &&
+      quickAgentPick.entry &&
+      !quickAgentPick.entry.defaultsPending
+    ) {
+      launchInputs = agentPickerLaunchInputs(
+        { ...pickerDraft, arguments: quickAgentPick.entry.arguments ?? null },
+        quickAgentPick.entry
+      )
+    }
     await submitQuick(quickAgent, {
       setupOnly: quickSetupOnly,
-      launchChoice: launchSelection.choice
+      launchChoice: launchSelection.choice,
+      ...(launchInputs ? { launchInputs } : {})
     })
-  }, [createDisabled, quickAgent, launchSelection.choice, quickSetupOnly, submitQuick])
+  }, [
+    createDisabled,
+    quickAgent,
+    launchSelection.choice,
+    quickSetupOnly,
+    submitQuick,
+    pickerDraft,
+    quickAgentPick.entry
+  ])
   // Layer Add Project without replacing the composer. Retain it for close animation and clone/scan cancellation; folder/non-Git navigation still tears down the modal.
   const [addProjectOpen, setAddProjectOpen] = useState(false)
   const [addProjectMounted, setAddProjectMounted] = useState(false)
@@ -329,6 +377,11 @@ function QuickTabBody({
         onComposerNodeChange={onComposerNodeChange}
         nameInputRef={nameInputRef}
         quickAgent={quickAgent}
+        agentPickerDraft={pickerDraft}
+        agentSetupDisabled={
+          observation.model.state !== 'settled' ||
+          observation.model.pickerContext?.executionHostId !== 'local'
+        }
         onQuickAgentChange={handleQuickAgentChange}
         quickSetupOnly={quickSetupOnly}
         onQuickSetupOnlySelect={handleQuickSetupOnlySelect}

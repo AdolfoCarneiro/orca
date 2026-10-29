@@ -21,7 +21,12 @@ import { useAgentLaunchPickerInventory } from './use-agent-launch-picker-invento
 import { agentPickerAcquisitionDiagnostics } from './agent-launch-picker-acquisition'
 
 vi.mock('@/hooks/useShortcutLabel', () => ({ useOptionalShortcutLabel: () => null }))
-const mocks = vi.hoisted(() => ({ settings: vi.fn(), rpc: vi.fn(), session: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  settings: vi.fn(),
+  rpc: vi.fn(),
+  session: vi.fn(),
+  store: { repos: [{ id: 'repo-prospective', path: '/host/repo' }] }
+}))
 vi.mock('../settings/agent-launch-settings-transport', () => ({
   readHostAgentLaunchSettings: mocks.settings
 }))
@@ -29,7 +34,7 @@ vi.mock('@/store', () => ({
   useAppStore: Object.assign(
     (select: (state: unknown) => unknown) =>
       select({ settings: { agentDefaultArgs: { codex: '--desktop-only' } } }),
-    { getState: () => ({}) }
+    { getState: () => mocks.store }
   )
 }))
 vi.mock('@/lib/agent-launch-route-input', () => ({
@@ -703,4 +708,25 @@ it('updates a mounted setup from current host rows without making ordinary actio
   )
   view.unmount()
   await act(async () => optional.resolve())
+})
+
+it('acquires setup for a not-yet-created workspace against its existing project directory', async () => {
+  const menu = model('prospective-project')
+  if (menu.state !== 'settled' || !menu.pickerContext) {
+    throw new Error('Expected settled picker context')
+  }
+  menu.pickerContext.workspace = { kind: 'git-worktree', repoId: 'repo-prospective' }
+  const { result } = renderHook(() => useAgentLaunchPickerInventory(undefined, menu, true))
+  await vi.waitFor(() => expect(result.current[0]?.catalog.origin).toBe('probe'))
+  expect(mocks.settings).toHaveBeenCalledOnce()
+  expect(mocks.session).toHaveBeenCalledWith(
+    expect.objectContaining({ environmentId: 'prospective-project' }),
+    'agentSession.modelCatalog',
+    { worktree: 'path:/host/repo', agent: 'codex', waitForListing: true }
+  )
+  expect(mocks.session).toHaveBeenCalledWith(
+    expect.objectContaining({ environmentId: 'prospective-project' }),
+    'agentSession.createSupport',
+    { worktree: 'path:/host/repo', agent: 'codex' }
+  )
 })

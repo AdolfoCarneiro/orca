@@ -139,7 +139,8 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         launchHost: selectedRepoAgentLaunchFact,
         shell: selectedRepoStartupShell,
         isRemote: selectedRepoIsRemote,
-        telemetrySource
+        telemetrySource,
+        launchInputs: options?.launchInputs
       })
 
       const startupPolicySettlement = await settleComposerSubmit(
@@ -219,6 +220,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         pushTarget: submitPushTarget,
         agent,
         agentLaunchRoute,
+        launchInputs: options?.launchInputs,
         linkedLinearIssue,
         linkedLinearIssueWorkspaceId,
         linkedLinearIssueOrganizationUrlKey,

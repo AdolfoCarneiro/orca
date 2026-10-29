@@ -42,11 +42,13 @@ export function AgentLaunchSetupPanel({
   entry,
   initial,
   disabled,
+  mode = 'launch',
   onUse
 }: {
   entry: AgentPickerEntry
   initial?: AgentPickerDraft
   disabled?: boolean
+  mode?: 'launch' | 'select'
   onUse: (draft: AgentPickerDraft) => void
 }) {
   const [draft, setDraft] = useState(() => initial ?? agentPickerDraft(entry))
@@ -311,20 +313,26 @@ export function AgentLaunchSetupPanel({
         </div>
       ) : null}
       <div className="flex justify-end gap-2 border-t border-border pt-3">
-        {agentPickerButtonOrder(entry).map((surface) => (
-          <Button
-            key={surface}
-            type="button"
-            size="sm"
-            disabled={disabled}
-            variant={surface === entry.defaultSurface ? 'default' : 'outline'}
-            onClick={() => use(surface)}
-          >
-            {surface === 'chat'
-              ? translate('agentPicker.openChat', 'Open chat')
-              : translate('agentPicker.openTerminal', 'Open terminal')}
+        {mode === 'select' ? (
+          <Button type="button" size="sm" disabled={disabled} onClick={() => use(draft.surface)}>
+            {translate('agentPicker.use', 'Use')}
           </Button>
-        ))}
+        ) : (
+          agentPickerButtonOrder(entry).map((surface) => (
+            <Button
+              key={surface}
+              type="button"
+              size="sm"
+              disabled={disabled}
+              variant={surface === entry.defaultSurface ? 'default' : 'outline'}
+              onClick={() => use(surface)}
+            >
+              {surface === 'chat'
+                ? translate('agentPicker.openChat', 'Open chat')
+                : translate('agentPicker.openTerminal', 'Open terminal')}
+            </Button>
+          ))
+        )}
       </div>
     </div>
   )

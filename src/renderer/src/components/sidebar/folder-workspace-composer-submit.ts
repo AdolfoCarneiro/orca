@@ -1,3 +1,4 @@
+import { terminalSessionOptionInputs } from '../../../../shared/tui-agent-launch-command'
 import { ensureAgentStartupInTerminal, type LinkedWorkItemSummary } from '@/lib/new-workspace'
 import { seedNativeChatLaunchDraftForAgentTab } from '@/lib/agent-launch-prompt-delivery'
 import { createBrowserUuid } from '@/lib/browser-uuid'
@@ -56,6 +57,7 @@ type SubmitFolderWorkspaceCreateParams = {
   note: string
   quickAgent: TuiAgent | null
   launchChoice?: AgentLaunchChoice
+  sessionOptions?: Record<string, string>
   autoRenameBranchFromWork: boolean | undefined
   agentCmdOverrides: Record<string, string> | undefined
   agentArgs?: string | null
@@ -77,6 +79,7 @@ export async function submitFolderWorkspaceCreate({
   note,
   quickAgent,
   launchChoice,
+  sessionOptions,
   autoRenameBranchFromWork,
   agentCmdOverrides,
   agentArgs,
@@ -105,6 +108,15 @@ export async function submitFolderWorkspaceCreate({
   // SSH folders use the plain orca relay shim; keep the Linux-only local executable rename out of remote launches.
   const launchIsRemote = Boolean(projectGroup.connectionId)
   const launchShell = resolveExecutionHostAgentStartupShell(launchHost, terminalWindowsShell)
+  const optionInputs =
+    quickAgent && sessionOptions
+      ? terminalSessionOptionInputs({
+          agent: quickAgent,
+          sessionOptions,
+          agentArgs,
+          shell: launchShell ?? 'posix'
+        })
+      : {}
   const startupPlan =
     quickAgent && launchPlatform && linkedWorkItem
       ? buildFolderWorkspaceLinkedStartupPlan({
@@ -113,6 +125,7 @@ export async function submitFolderWorkspaceCreate({
           note,
           agentCmdOverrides,
           agentArgs,
+          ...optionInputs,
           agentEnv,
           platform: launchPlatform,
           shell: launchShell,
@@ -124,6 +137,7 @@ export async function submitFolderWorkspaceCreate({
             prompt: note,
             cmdOverrides: agentCmdOverrides ?? {},
             agentArgs,
+            ...optionInputs,
             agentEnv,
             platform: launchPlatform,
             shell: launchShell,
@@ -138,6 +152,7 @@ export async function submitFolderWorkspaceCreate({
     ? {
         requestId: newAgentLaunchRequestId(),
         agent: quickAgent,
+        ...(sessionOptions ? { launchOptions: sessionOptions } : {}),
         workspace: {
           kind: 'folder' as const,
           runtimeEnvironmentId,

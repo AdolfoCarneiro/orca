@@ -47,6 +47,11 @@ export function useAgentLaunchPickerInventory(
       }
     }).executionHostId
   const target = structuredAgentSessionTargetForHost(executionHostId)
+  const repo = context?.workspace.repoId
+    ? useAppStore.getState().repos.find((candidate) => candidate.id === context.workspace.repoId)
+    : undefined
+  const workspaceId = worktreeId ?? context?.workspace.worktreeId
+  const selector = workspaceId ? `id:${workspaceId}` : repo ? `path:${repo.path}` : undefined
   const key = useMemo(
     () =>
       JSON.stringify([
@@ -55,6 +60,7 @@ export function useAgentLaunchPickerInventory(
         context?.pairingRevision,
         context?.runtimeId,
         worktreeId,
+        selector,
         executionHostId,
         model.state === 'settled' ? model.rows : [],
         model.state === 'settled' ? model.detection.detectedIds : [],
@@ -66,7 +72,7 @@ export function useAgentLaunchPickerInventory(
           nativeChatPermissionMode: settings.nativeChatPermissionMode
         }
       ]),
-    [context, worktreeId, executionHostId, model, settings]
+    [context, worktreeId, selector, executionHostId, model, settings]
   )
   const generation = useMemo(() => ({ key, open }), [key, open])
   const [snapshot, setSnapshot] = useState<{
@@ -99,7 +105,7 @@ export function useAgentLaunchPickerInventory(
     [key]
   )
   useEffect(() => {
-    if (!open || !target || !worktreeId || model.state !== 'settled') {
+    if (!open || !target || model.state !== 'settled') {
       return
     }
     const controller = new AbortController()
@@ -179,13 +185,20 @@ export function useAgentLaunchPickerInventory(
           await callStructuredAgentSession<AgentSessionModelCatalogResult>(
             target,
             'agentSession.modelCatalog',
-            { worktree: `id:${worktreeId}`, agent: entry.agent, waitForListing: true }
+            {
+              ...(selector ? { worktree: selector } : {}),
+              agent: entry.agent,
+              waitForListing: true
+            }
           ).catch(() => undefined),
         support: async (entry) => {
+          if (!selector) {
+            return undefined
+          }
           const support = await callStructuredAgentSession<{
             seedOptions?: Record<string, string>
           }>(target, 'agentSession.createSupport', {
-            worktree: `id:${worktreeId}`,
+            worktree: selector,
             agent: entry.agent
           })
           const parsed = parseStructuredLaunchSeedOptions(support?.seedOptions)

@@ -31,16 +31,22 @@ type Launch = (row: NewTabAgentMenuRow, draft?: AgentPickerDraft, entry?: AgentP
 export function AgentLaunchPickerMenu({
   model,
   disabled,
+  setupDisabled,
   runLaunch,
   entries,
   hideSearch,
+  mode,
+  value,
   onSelectAgent
 }: {
   model: NewTabAgentMenuModel
   disabled?: boolean
+  setupDisabled?: boolean
   runLaunch: Launch
   entries: AgentPickerEntry[]
   hideSearch?: boolean
+  mode?: 'launch' | 'select'
+  value?: AgentPickerDraft
   onSelectAgent?: (agent: AgentPickerEntry['agent']) => void
 }) {
   const [query, setQuery] = useState('')
@@ -84,6 +90,7 @@ export function AgentLaunchPickerMenu({
         <AgentPickerMenuRow
           key={`${setup.entry.agent}:${setup.model.id}:${setup.choices.options?.effort ?? ''}`}
           entry={setup.entry}
+          mode={mode}
           label={setup.label}
           initial={{
             agent: setup.entry.agent,
@@ -91,7 +98,8 @@ export function AgentLaunchPickerMenu({
             choices: setup.choices
           }}
           onSelectAgent={onSelectAgent}
-          disabled={disabled}
+          disabled={disabled || setupDisabled}
+          setupDisabled={setupDisabled}
           runLaunch={runLaunch}
         />
       ))}
@@ -99,7 +107,10 @@ export function AgentLaunchPickerMenu({
         <AgentPickerMenuRow
           key={entry.agent}
           entry={entry}
+          mode={mode}
+          selected={value?.agent === entry.agent ? value : undefined}
           disabled={disabled}
+          setupDisabled={setupDisabled}
           runLaunch={runLaunch}
           onSelectAgent={onSelectAgent}
           shortcut={
@@ -125,7 +136,10 @@ function AgentPickerMenuRow({
   entry,
   label = entry.label,
   initial,
+  selected,
+  mode,
   disabled,
+  setupDisabled,
   runLaunch,
   shortcut,
   onSelectAgent
@@ -133,6 +147,9 @@ function AgentPickerMenuRow({
   entry: AgentPickerEntry
   label?: string
   initial?: AgentPickerDraft
+  selected?: AgentPickerDraft
+  mode?: 'launch' | 'select'
+  setupDisabled?: boolean
   disabled?: boolean
   runLaunch: Launch
   shortcut?: string
@@ -180,8 +197,9 @@ function AgentPickerMenuRow({
       ) : null}
       <AgentLaunchSetupButton
         entry={entry}
-        initial={initial}
-        disabled={disabled}
+        initial={initial ?? selected}
+        mode={mode}
+        disabled={disabled || setupDisabled}
         onOpenChange={(next) => {
           if (next) {
             onSelectAgent?.(entry.agent)
