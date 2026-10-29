@@ -17,6 +17,7 @@ type WorkerMessage =
     }
   | { type: 'feed'; samples: Float32Array; sampleRate: number }
   | { type: 'stop' }
+  | { type: 'discard' }
   | { type: 'teardown' }
 
 // Use the platform native addon: the main sherpa-onnx WASM package cannot load host model files. Main supplies its resolved path.
@@ -184,11 +185,15 @@ function decodeOfflineChunk(samples: Float32Array): string {
 }
 
 // Discard residual audio and spent streams; recovery must still deliver stopped.
-function resetOfflineSessionState(): void {
+function resetSessionState(): void {
   try {
-    offlineChunker = new OfflineAudioChunker(offlineSampleRate)
+    if (!isStreaming) {
+      offlineChunker = new OfflineAudioChunker(offlineSampleRate)
+    }
     if (sherpa && recognizer) {
-      stream = sherpa.createOfflineStream(recognizer)
+      stream = isStreaming
+        ? sherpa.createOnlineStream(recognizer)
+        : sherpa.createOfflineStream(recognizer)
     }
   } catch {
     // Preserve stopped so stopDictation does not wait 60s.
@@ -277,17 +282,23 @@ function handleStop(): void {
           parentPort?.postMessage({ type: 'final', text })
         }
       }
-      resetOfflineSessionState()
+      resetSessionState()
     }
   } catch (err) {
     if (!isStreaming) {
-      resetOfflineSessionState()
+      resetSessionState()
     }
     parentPort?.postMessage({ type: 'error', error: String(err) })
   } finally {
     // Recovery must not suppress the stopped signal awaited by stopDictation.
     parentPort?.postMessage({ type: 'stopped' })
   }
+}
+
+// A canceled dictation drops its audio undecoded so the warm worker is free at once.
+function handleDiscard(): void {
+  resetSessionState()
+  parentPort?.postMessage({ type: 'stopped' })
 }
 
 function handleTeardown(): void {
@@ -308,6 +319,9 @@ parentPort?.on('message', (msg: WorkerMessage) => {
       break
     case 'stop':
       handleStop()
+      break
+    case 'discard':
+      handleDiscard()
       break
     case 'teardown':
       handleTeardown()
