@@ -48,7 +48,12 @@ export function resolveConflict(
       ['status', '--porcelain=v2', '-z', '--untracked-files=no', '--', pathspec],
       gitOptionsForWorktree(worktreePath, options)
     )
-    const unmerged = stdout.split('\0').find((record) => record.startsWith('u '))
+    // Exact path only: a directory pathspec would match its conflicts and then stage the whole directory.
+    const unmerged = stdout
+      .split('\0')
+      .find(
+        (record) => record.startsWith('u ') && record.split(' ').slice(10).join(' ') === filePath
+      )
     if (!unmerged) {
       throw new Error(`${filePath} is no longer in conflict. Refresh to see its current state.`)
     }

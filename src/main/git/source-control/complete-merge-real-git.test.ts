@@ -79,6 +79,14 @@ describe('delete/modify merge resolved through resolveConflict and completeMerge
     expect(existsSync(join(repoPath, 'gone.txt'))).toBe(true)
   })
 
+  it('refuses a directory path even when a conflict sits inside it', async () => {
+    const { repoPath } = createDeleteModifyConflict()
+
+    await expect(resolveConflict(repoPath, '.', 'mark_resolved')).rejects.toThrow(
+      'no longer in conflict'
+    )
+  })
+
   it('refuses to keep a file that is gone from disk instead of staging its deletion', async () => {
     const { repoPath, git } = createDeleteModifyConflict()
     rmSync(join(repoPath, 'gone.txt'))
