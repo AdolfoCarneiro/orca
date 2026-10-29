@@ -95,8 +95,7 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
     }
     const target = this.deps.resolveStructuredTarget(mailbox)
     if (!target) {
-      this.interests.delete(mailbox)
-      this.deps.cancelRetry?.(mailbox)
+      this.detach(mailbox)
       return false
     }
     const interest = this.interest(mailbox)
@@ -129,6 +128,7 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
               })
             },
             retire: (id) => this.retire(interest, id),
+            interestFor: (scope) => this.interests.get(scope),
             wake: (scope) => {
               if (this.sourceDb === interest.db) {
                 const next = this.interests.get(scope)
@@ -224,8 +224,7 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
   forgetSession(sessionId: string): void {
     for (const [mailbox, interest] of this.interests) {
       if (interest.target.sessionId === sessionId) {
-        this.interests.delete(mailbox)
-        this.deps.cancelRetry?.(mailbox)
+        this.detach(mailbox)
       }
     }
   }
@@ -235,6 +234,7 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
     const target = this.deps.resolveStructuredTarget(mailbox)
     const authority = target && this.deps.host.admission(target.sessionId)
     if (!db || !target || !authority) {
+      this.detach(mailbox)
       return null
     }
     this.history.observe(db, authority.owner)
@@ -295,5 +295,10 @@ export class OrchestrationStructuredMailboxPointerDelivery<T extends Orchestrati
   private retire(interest: Interest, id: string): void {
     interest.deferred.delete(id)
     interest.dirty.delete(id)
+  }
+  private detach(mailbox: string): void {
+    this.interests.delete(mailbox)
+    this.deps.cancelRetry?.(mailbox)
+    this.work.detach(mailbox)
   }
 }

@@ -2097,7 +2097,7 @@
         {
           "file": "src/main/native-chat/agent-session-wire/structured-agent-session-mail-creation-recovery.test.ts",
           "assertions": [
-            "reconciles a saved random batch through original receipt/member history N=%i after Delete and restart, without recreating either report"
+            "reconciles a saved random multi-member batch after ordinary Delete and source/native restart without recreating either report"
           ]
         },
         {

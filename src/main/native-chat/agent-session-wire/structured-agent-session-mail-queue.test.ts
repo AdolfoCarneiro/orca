@@ -39,7 +39,8 @@ import {
   report,
   complete,
   installMailQueueLifecycle,
-  installSourceCapture
+  installSourceCapture,
+  mailWorkCounts
 } from './structured-agent-session-mail-queue.test-fixture'
 installMailQueueLifecycle()
 it('enqueues busy reports before effects and runs the oldest attributed full turn, including an idle arrival', async () => {
@@ -541,6 +542,14 @@ it('retains routed old IDs and a same-ID mutation across awaited acceptance and 
   })
   expect(db.routeDirectMessagePage('consumer', first.run_id, 'old-route').routedCount).toBe(2)
   await eventually(() => expect(paused).toHaveBeenCalledOnce())
+  expect(mailWorkCounts().attempts).toBe(1)
+  bridge.forgetSession(SESSION)
+  expect(mailWorkCounts()).toMatchObject({
+    pendingIds: 0,
+    reverseIds: 0,
+    containers: 0,
+    attempts: 1
+  })
   await rig.restartHostProcess()
   setStructuredAgentSessionHost(rig.host)
   installSourceCapture()
@@ -549,7 +558,7 @@ it('retains routed old IDs and a same-ID mutation across awaited acceptance and 
     .prepare('UPDATE messages SET subject = ? WHERE id = ?')
     .run('newer same-ID content', first.id)
   const current = vi.spyOn(rig.host, 'send')
-  bridge.deliverForHandle('consumer')
+  // The committed content mutation wakes the new owner; no delivery poke.
   await clock.observe(50)
   // The new leaf may offer the unvisited suffix but cannot duplicate the inflight identity.
   expect(
@@ -588,6 +597,15 @@ it('retains routed old IDs and a same-ID mutation across awaited acceptance and 
       .prepare('SELECT count(*) AS n FROM messages WHERE delivered_at IS NULL AND to_handle = ?')
       .get('consumer')?.n
   ).toBe(0)
+  await eventually(() =>
+    expect(mailWorkCounts()).toMatchObject({
+      pendingIds: 0,
+      reverseIds: 0,
+      attempts: 0,
+      deferred: 0,
+      timers: 0
+    })
+  )
 })
 
 it('delivers a real automatic queued request failure in an old Run through its stable observer and one whole report turn', async () => {

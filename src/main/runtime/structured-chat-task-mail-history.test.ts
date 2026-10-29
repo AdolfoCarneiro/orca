@@ -42,7 +42,10 @@ it.each([100, 1000])(
       await journal.appendItem(
         { provider: 'orca', clientMessageId: `populated-X-${n}` },
         { kind: 'status', text: `retained preamble history ${n}` },
-        { fence: host.currentFence(PEER_CHAT)!, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+        {
+          fence: host.deps.store.getRecord(PEER_CHAT)!.lease.runtimeFence,
+          turnScope: AGENT_JOURNAL_THREAD_SCOPE
+        }
       )
     }
     const retained = db.insertMessages(
@@ -90,7 +93,7 @@ it.each([100, 1000])(
             }
           },
           operationId: hostTestOperationId(),
-          expectedRuntimeFence: host.currentFence(COORDINATOR)!,
+          expectedRuntimeFence: host.deps.store.getRecord(COORDINATOR)!.lease.runtimeFence,
           delivery: 'queue',
           queueAlways: true
         }
@@ -136,7 +139,7 @@ it.each([100, 1000])(
         )
       ).toHaveLength(0)
       expect(originals.count()).toBeLessThanOrEqual(12)
-      const queued = journal.queuedMessages.list().filter((card) => card.status === 'waiting')
+      const queued = journal.queuedMessages.list().filter((card) => card.state === 'waiting')
       expect(queued).toHaveLength(3)
       expect(worker.turns).toHaveLength(1)
       const hot = {
@@ -154,6 +157,14 @@ it.each([100, 1000])(
         await observationClock.observe(30)
         expect(worker.turns).toHaveLength(k + 1)
         await settleTurn(PEER_CHAT, k, 'completed')
+      }
+      for (const card of queued) {
+        expect(journal.queuedMessages.get(card.messageId)).toMatchObject({ state: 'dispatched' })
+        const submission = (await host.journalSnapshot(PEER_CHAT)).submissions.find(
+          (row) => row.queuedMessageId === card.messageId
+        )
+        expect(submission).toBeDefined()
+        expect(submission?.clientMessageId).not.toBe(card.messageId)
       }
     } finally {
       originals.restore()

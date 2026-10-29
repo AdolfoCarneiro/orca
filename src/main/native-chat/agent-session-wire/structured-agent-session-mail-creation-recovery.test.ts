@@ -28,7 +28,8 @@ import {
   card,
   complete,
   installMailQueueLifecycle,
-  openMailQueueSource
+  openMailQueueSource,
+  mailWorkCounts
 } from './structured-agent-session-mail-queue.test-fixture'
 installMailQueueLifecycle()
 afterEach(() => vi.restoreAllMocks())
@@ -116,7 +117,7 @@ it('recovers unknown creation and an occupied old identity through stable ordina
     operationId: choice.operationId,
     state: 'accepted'
   })
-  expect(journal().queuedMessages.get(choice.operationId)?.status).not.toBe('waiting')
+  expect(journal().queuedMessages.get(choice.operationId)).toMatchObject({ state: 'withdrawn' })
   expect(
     db.db.prepare('SELECT creation_proof FROM messages WHERE id = ?').get(a.id)?.creation_proof
   ).toBe('{old-private-value}')
@@ -214,6 +215,7 @@ it.each([100, 1000])(
       }))
     )
     const first = sources[0]!
+    db.db.prepare('UPDATE messages SET to_handle = ? WHERE id = ?').run('original-D', first.id)
     db.markAsRead(sources.map((s) => s.id))
     const create = async (sessionId: string) => {
       expect(
@@ -295,6 +297,9 @@ it.each([100, 1000])(
     )
     const history = readMailCreationHistory(rig.host, SESSION)
     expect(history.members.size).toBe(count - 1)
+    // Establish the native recovery owner before the tested route/member commits.
+    bridge.deliverForHandle('consumer')
+    await clock.observe(50)
     expect(cold.count()).toBeGreaterThanOrEqual(count)
     const coldCount = cold.count(),
       coldBytes = cold.evaluatedBytes()
@@ -312,6 +317,18 @@ it.each([100, 1000])(
     expect(receiptReads.mock.calls.length).toBeLessThanOrEqual(8)
     stop()
     // Coherent capture survives the no-listener interval and duplicate member contributions.
+    db.db.prepare('UPDATE messages SET to_handle = ? WHERE id = ?').run('consumer', first.id)
+    await clock.observe(50)
+    expect(db.getMessageById(first.id)).toMatchObject({ read: 1, delivered_at: null })
+    await eventually(() =>
+      expect(mailWorkCounts()).toMatchObject({
+        pendingIds: 0,
+        reverseIds: 0,
+        attempts: 0,
+        deferred: 0
+      })
+    )
+    const sends = vi.spyOn(rig.host, 'send')
     const positive = { ...hostTestMessage('late original report'), from }
     let failed = false
     let delivered = 0
@@ -343,8 +360,6 @@ it.each([100, 1000])(
       .sessions.get(former)!
       .journal.queuedMessages.get(secondOperation)!
     expect(original.body.from?.orchestration).toBeDefined()
-    const sends = vi.spyOn(rig.host, 'send')
-    bridge.deliverForHandle('consumer')
     await eventually(() =>
       expect(db.getMessageById(first.id)).toMatchObject({
         read: 1,
@@ -352,7 +367,9 @@ it.each([100, 1000])(
         delivered_at: expect.any(String)
       })
     )
-    expect(sends).not.toHaveBeenCalled()
+    expect(
+      sends.mock.calls.filter(([, params]) => params.envelope.sessionId === SESSION)
+    ).toHaveLength(0)
     const coldAfter = cold.count()
     const readsAfter = receiptReads.mock.calls.length
     for (const source of sources) {
@@ -376,3 +393,83 @@ it.each([100, 1000])(
     cold.restore()
   }
 )
+
+it('reconciles a saved random multi-member batch after ordinary Delete and source/native restart without recreating either report', async () => {
+  const root = mailTestResources('legacy-batch-reopen-').directory()
+  bridge.resetForDatabaseChange()
+  db.close()
+  openMailQueueSource(join(root, 'source.db'))
+  await rig.workingSend()
+  const [a, b] = db.insertMessages([
+    { from: 'worker', to: 'consumer', subject: 'old batch first' },
+    { from: 'worker', to: 'consumer', subject: 'old batch second' }
+  ])
+  if (!a || !b) {
+    throw new Error('legacy members missing')
+  }
+  const from = structuredMailSource({
+    db,
+    mailboxHandle: 'consumer',
+    dispatchId: null,
+    message: a,
+    senderName: () => null
+  })
+  if (from.orchestration?.message !== 'mail-notice') {
+    throw new Error('legacy attribution missing')
+  }
+  const operationId = hostTestOperationId()
+  expect(
+    await sendAgentTurn({
+      kind: 'structured-session',
+      host: rig.host,
+      sessionId: SESSION,
+      callerKey: 'trusted-local:orchestration:old-random-batch',
+      turn: {
+        body: {
+          ...hostTestMessage('original two-worker report'),
+          from: {
+            ...from,
+            orchestration: {
+              ...from.orchestration,
+              messages: [a, b].map((row) => ({
+                messageId: row.id,
+                runId: row.run_id,
+                from: row.from_handle
+              }))
+            }
+          }
+        },
+        operationId,
+        expectedRuntimeFence: rig.store.getRecord(SESSION)!.lease.runtimeFence,
+        delivery: 'queue',
+        queueAlways: true
+      }
+    })
+  ).toMatchObject({ kind: 'queued' })
+  expect(journal().queuedMessages.get(operationId)).toMatchObject({ state: 'waiting' })
+  expect(await rig.deleteQueued(operationId)).toMatchObject({ ok: true })
+  expect(journal().queuedMessages.get(operationId)).toMatchObject({ state: 'withdrawn' })
+  db.markAsRead([a.id, b.id])
+  db.resetTasks()
+  bridge.resetForDatabaseChange()
+  db.close()
+  openMailQueueSource(join(root, 'source.db'))
+  await rig.restartHostProcess()
+  setStructuredAgentSessionHost(rig.host)
+  await rig.host.history({ sessionId: SESSION, direction: 'tail' })
+  const sends = vi.spyOn(rig.host, 'send')
+  // Initial recovery is a separate trigger from the autonomous changed-READ case above.
+  bridge.deliverForHandle('consumer')
+  await eventually(() => {
+    for (const row of [a, b]) {
+      expect(db.getMessageById(row.id)).toMatchObject({ read: 1, delivered_at: expect.any(String) })
+      expect(journal().queuedMessages.get(ordinaryMailCreationId(row))).toBeNull()
+    }
+  })
+  expect(journal().queuedMessages.get(operationId)).toMatchObject({ state: 'withdrawn' })
+  expect(rig.store.readCommandReceipt({ kind: 'global' }, operationId)).toMatchObject({
+    verdict: 'readable',
+    receipt: { status: 'accepted', result: { kind: 'queued-draft', messageId: operationId } }
+  })
+  expect(sends).not.toHaveBeenCalled()
+})

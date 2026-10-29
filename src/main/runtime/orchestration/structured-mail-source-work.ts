@@ -30,6 +30,13 @@ export class MailSourceWork {
     this.scopes.clear()
     this.attempts.clear()
   }
+  detach(mailbox: string): void {
+    const pending = this.mailboxes.get(mailbox)
+    for (const id of pending?.keys() ?? []) {
+      pending?.delete(id)
+    }
+    this.mailboxes.delete(mailbox)
+  }
   forget(id: string): void {
     for (const mailbox of this.scopes.get(id) ?? []) {
       this.mailboxes.get(mailbox)?.delete(id)
@@ -43,9 +50,10 @@ export class MailSourceWork {
     offer: (
       current: () => boolean,
       capture: () => void,
-      retire: (id: string) => void
+      retire: (id: string, scopeOnly?: boolean) => void
     ) => Promise<void>
     retire: (id: string) => void
+    interestFor: (mailbox: string) => Interest | undefined
     wake: (mailbox: string) => void
   }): Promise<void> {
     const { source, interest, current } = input
@@ -55,6 +63,19 @@ export class MailSourceWork {
     const token = {}
     this.attempts.set(source.id, token)
     let revision = interest.dirty.get(source.id)
+    const observe = () =>
+      [...(this.scopes.get(source.id) ?? [])].map((mailbox) => {
+        const pending = this.mailboxes.get(mailbox)!
+        const deferred = input.interestFor(mailbox)?.deferred
+        return {
+          mailbox,
+          pending,
+          revision: pending.get(source.id),
+          deferred,
+          debt: deferred?.get(source.id)
+        }
+      })
+    let observations = observe()
     const owned = () =>
       current() &&
       this.attempts.get(source.id) === token &&
@@ -65,10 +86,25 @@ export class MailSourceWork {
         () => {
           interest.db.mailSourceMutations.flushCommitted()
           revision = interest.dirty.get(source.id)
+          observations = observe()
         },
-        (id) => {
+        (id, scopeOnly) => {
           if (owned()) {
             input.retire(id)
+            if (!scopeOnly) {
+              for (const observed of observations) {
+                if (
+                  observed.mailbox !== input.mailbox &&
+                  this.mailboxes.get(observed.mailbox) === observed.pending &&
+                  observed.pending.get(id) === observed.revision &&
+                  input.interestFor(observed.mailbox)?.deferred === observed.deferred &&
+                  observed.deferred?.get(id) === observed.debt
+                ) {
+                  observed.deferred?.delete(id)
+                  observed.pending.delete(id)
+                }
+              }
+            }
           }
         }
       )

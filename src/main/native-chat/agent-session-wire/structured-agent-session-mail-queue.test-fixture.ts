@@ -111,3 +111,32 @@ export function openMailQueueSource(path: string) {
   db = new OrchestrationDb(path)
   installSourceCapture()
 }
+
+/** Count the actual disposable owner, separately from durable rows and ordinary queue state. */
+export function mailWorkCounts() {
+  const work = Reflect.get(bridge, 'work')
+  const boxes = Reflect.get(work, 'mailboxes')
+  const scopes = Reflect.get(work, 'scopes')
+  const attempts = Reflect.get(work, 'attempts')
+  const interests = Reflect.get(bridge, 'interests')
+  if (
+    !(
+      boxes instanceof Map &&
+      scopes instanceof Map &&
+      attempts instanceof Map &&
+      interests instanceof Map
+    )
+  ) {
+    throw new Error('mail owner instrumentation changed')
+  }
+  return {
+    containers: boxes.size,
+    pendingIds: [...boxes.values()].reduce((n, ids) => n + ids.size, 0),
+    reverseIds: scopes.size,
+    reverseMemberships: [...scopes.values()].reduce((n, ids) => n + ids.size, 0),
+    attempts: attempts.size,
+    interests: interests.size,
+    deferred: [...interests.values()].reduce((n, interest) => n + interest.deferred.size, 0),
+    timers: retry.pendingCount
+  }
+}

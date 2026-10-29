@@ -26,7 +26,7 @@ export async function offerMailSource<T extends OrchestrationMessageWaiter>(inpu
   source: SourceIdentity
   deps: MailDeliveryDependencies<T>
   current: () => boolean
-  retire: (id: string) => void
+  retire: (id: string, scopeOnly?: boolean) => void
   capture?: () => void
 }): Promise<void> {
   const { mailbox, interest, source, deps, current, retire } = input
@@ -39,7 +39,11 @@ export async function offerMailSource<T extends OrchestrationMessageWaiter>(inpu
   if (!current()) {
     return
   }
-  if (source.delivered_at !== null || source.to_handle !== mailbox) {
+  if (source.to_handle !== mailbox) {
+    retire(source.id, true)
+    return
+  }
+  if (source.delivered_at !== null) {
     retire(source.id)
     return
   }
@@ -190,7 +194,7 @@ export async function offerMailSource<T extends OrchestrationMessageWaiter>(inpu
         latest.to_handle !== mailbox ||
         latest.delivery_contract !== 'current_delivery'
       ) {
-        retire(source.id)
+        retire(source.id, Boolean(latest && latest.to_handle !== mailbox))
       } else if (checkOwns(latest) || latest.pointer_enter_pending !== 0) {
         defer('check')
       } else {
