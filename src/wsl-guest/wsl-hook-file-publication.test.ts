@@ -78,8 +78,8 @@ describe.skipIf(process.platform === 'win32')('remote physical file publication'
     return result
   }
   const adapter = (requirePhysical = false) => {
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The adapter uses only request, routed to the registered production handlers.
     return createWslHookSftpAdapter(
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The adapter uses only request, routed to the registered production handlers.
       { request } as unknown as SshChannelMultiplexer,
       requirePhysical
     )
@@ -92,8 +92,8 @@ describe.skipIf(process.platform === 'win32')('remote physical file publication'
     await Promise.all([home, logical, physical].map((path) => fs.mkdir(path)))
     rootCapture.resolve.mockResolvedValue({ kind: 'system-default', configDir: logical })
     handlers = new Map()
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Registration only uses onRequest; calls run the actual registered handlers.
     registerWslHookFsHandlers(
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Registration only uses onRequest; calls run the actual registered handlers.
       { onRequest: (method, handler) => handlers.set(method, handler) } as RelayDispatcher,
       home
     )
@@ -303,8 +303,8 @@ describe.skipIf(process.platform === 'win32')('remote physical file publication'
               ...(capability === undefined ? {} : { physicalAtomicWrite: capability })
             }
           : request(method, params)
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Only request is used by the facade.
       const stale = createWslHookSftpAdapter(
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Only request is used by the facade.
         { request: uncertain } as unknown as SshChannelMultiplexer,
         true
       )
