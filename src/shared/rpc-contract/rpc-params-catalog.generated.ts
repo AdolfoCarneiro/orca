@@ -321,7 +321,7 @@ import {
   UpdatePrState,
   UpdatePrTitle
 } from './github-pull-request-update-params'
-import { RepoSelector, RepoShow, SlugRepo } from './github-repo-target-params'
+import { RepoIssueCommandRead, RepoSelector, RepoShow, SlugRepo } from './github-repo-target-params'
 import {
   IssuesList,
   RateLimit,
@@ -521,6 +521,7 @@ import {
   ProjectGroupUpdate,
   RepoClone,
   RepoCreate,
+  RepoHooksCheck,
   RepoIssueCommandWrite,
   RepoPath,
   RepoReorder,
@@ -1153,6 +1154,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'layout.getRemoteSnapshots': null,
   'layout.reopenHeldPanes': LayoutReopenHeldPanesParams,
   'layout.reportView': LayoutReportViewParams,
+  'layout.startWslHeldPanes': LayoutReopenHeldPanesParams,
   'layout.subscribe': LayoutSubscribeParams,
   'layout.unsubscribe': LayoutUnsubscribeParams,
   'linear.addIssueComment': IssueCommentOfLinearParams,
@@ -1318,8 +1320,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'repo.create': RepoCreate,
   'repo.gitAvailable': null,
   'repo.hooks': RepoSelector,
-  'repo.hooksCheck': RepoSelector,
-  'repo.issueCommandRead': RepoSelector,
+  'repo.hooksCheck': RepoHooksCheck,
+  'repo.issueCommandRead': RepoIssueCommandRead,
   'repo.issueCommandWrite': RepoIssueCommandWrite,
   'repo.list': null,
   'repo.reorder': RepoReorder,
