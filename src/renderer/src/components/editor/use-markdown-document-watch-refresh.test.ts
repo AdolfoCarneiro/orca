@@ -1,32 +1,44 @@
 // @vitest-environment happy-dom
-import { act, createElement } from 'react'
+import { act, createElement, Fragment } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FsChangeEvent } from '../../../../shared/filesystem-entry-types'
 import { ORCA_WORKTREE_FILE_CHANGE_EVENT } from '@/hooks/worktree-file-change-event'
-import { useMarkdownDocumentWatchRefresh } from './use-markdown-document-watch-refresh'
+import { MARKDOWN_DOCUMENT_LIST_JOIN_WINDOW_MS } from './markdown-document-list-request'
+import {
+  getLatestMarkdownMembershipChangeAt,
+  useMarkdownDocumentWatchRefresh
+} from './use-markdown-document-watch-refresh'
 
 let root: Root
 let container: HTMLDivElement
 
 function Harness({
-  refresh
+  refresh,
+  worktreePath = '/repo',
+  runtimeEnvironmentId = null
 }: {
   refresh: (requireFresh: boolean, freshAfter: number) => Promise<void>
+  worktreePath?: string
+  runtimeEnvironmentId?: string | null
 }): null {
   useMarkdownDocumentWatchRefresh({
     enabled: true,
-    worktreePath: '/repo',
-    runtimeEnvironmentId: null,
+    worktreePath,
+    runtimeEnvironmentId,
     refresh
   })
   return null
 }
 
-function change(events: FsChangeEvent[]): void {
+function change(
+  events: FsChangeEvent[],
+  worktreePath = '/repo',
+  runtimeEnvironmentId: string | null = null
+): void {
   window.dispatchEvent(
     new CustomEvent(ORCA_WORKTREE_FILE_CHANGE_EVENT, {
-      detail: { runtimeEnvironmentId: null, payload: { worktreePath: '/repo', events } }
+      detail: { runtimeEnvironmentId, payload: { worktreePath, events } }
     })
   )
 }
@@ -39,13 +51,14 @@ async function advance(ms: number): Promise<void> {
 
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-  vi.useFakeTimers()
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] })
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
 })
-afterEach(() => {
+afterEach(async () => {
   act(() => root.unmount())
+  await advance(MARKDOWN_DOCUMENT_LIST_JOIN_WINDOW_MS)
   container.remove()
   vi.useRealTimers()
   vi.unstubAllGlobals()
@@ -132,5 +145,158 @@ describe('useMarkdownDocumentWatchRefresh', () => {
         scans.slice(index + 1).every((later) => later.startedAt >= scan.settledAt!)
     )
     expect(published.length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe('Markdown membership freshness lifetime', () => {
+  const refresh = async (): Promise<void> => {}
+
+  it('preserves a change across unmount and remount until the exact join deadline', async () => {
+    const worktreePath = '/lifetime/remount'
+    await act(async () => root.render(createElement(Harness, { refresh, worktreePath })))
+    const changedAt = performance.now()
+    change([{ kind: 'create', absolutePath: `${worktreePath}/new.md` }], worktreePath)
+    await act(async () => root.render(null))
+    await advance(MARKDOWN_DOCUMENT_LIST_JOIN_WINDOW_MS - 1)
+    expect(getLatestMarkdownMembershipChangeAt(null, worktreePath)).toBe(changedAt)
+
+    await act(async () => root.render(createElement(Harness, { refresh, worktreePath })))
+    expect(getLatestMarkdownMembershipChangeAt(null, worktreePath)).toBe(changedAt)
+    await advance(1)
+    expect(getLatestMarkdownMembershipChangeAt(null, worktreePath)).toBeUndefined()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('keeps a renewed change until its own deadline after the old deadline passes', async () => {
+    const worktreePath = '/lifetime/renewed'
+    await act(async () => root.render(createElement(Harness, { refresh, worktreePath })))
+    change([{ kind: 'create', absolutePath: `${worktreePath}/first.md` }], worktreePath)
+    await advance(10_000)
+    const changedAt = performance.now()
+    change([{ kind: 'delete', absolutePath: `${worktreePath}/first.md` }], worktreePath)
+    await act(async () => root.render(null))
+
+    await advance(20_000)
+    expect(getLatestMarkdownMembershipChangeAt(null, worktreePath)).toBe(changedAt)
+    await advance(9_999)
+    expect(getLatestMarkdownMembershipChangeAt(null, worktreePath)).toBe(changedAt)
+    await advance(1)
+    expect(getLatestMarkdownMembershipChangeAt(null, worktreePath)).toBeUndefined()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('expires another root on time when the previously oldest root changes again', async () => {
+    const firstPath = '/lifetime/ordered-first'
+    const secondPath = '/lifetime/ordered-second'
+    await act(async () => root.render(createElement(Harness, { refresh, worktreePath: firstPath })))
+    change([{ kind: 'overflow', absolutePath: firstPath }], firstPath)
+    await advance(10)
+    await act(async () =>
+      root.render(createElement(Harness, { refresh, worktreePath: secondPath }))
+    )
+    change([{ kind: 'overflow', absolutePath: secondPath }], secondPath)
+    await advance(10)
+    await act(async () => root.render(createElement(Harness, { refresh, worktreePath: firstPath })))
+    const renewedAt = performance.now()
+    change([{ kind: 'overflow', absolutePath: firstPath }], firstPath)
+    await act(async () => root.render(null))
+
+    await advance(MARKDOWN_DOCUMENT_LIST_JOIN_WINDOW_MS - 10)
+    expect(getLatestMarkdownMembershipChangeAt(null, secondPath)).toBeUndefined()
+    expect(getLatestMarkdownMembershipChangeAt(null, firstPath)).toBe(renewedAt)
+    await advance(10)
+    expect(getLatestMarkdownMembershipChangeAt(null, firstPath)).toBeUndefined()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('preserves surviving siblings and expires different owners and roots independently', async () => {
+    const worktreePath = '/lifetime/owners'
+    const otherPath = '/lifetime/other-owner-root'
+    const firstPane = createElement(Harness, {
+      key: 'first',
+      refresh,
+      worktreePath,
+      runtimeEnvironmentId: 'env-a'
+    })
+    const siblingPane = createElement(Harness, {
+      key: 'sibling',
+      refresh,
+      worktreePath,
+      runtimeEnvironmentId: ' env-a '
+    })
+    const otherOwner = createElement(Harness, {
+      key: 'owner',
+      refresh,
+      worktreePath,
+      runtimeEnvironmentId: 'env-b'
+    })
+    const otherRoot = createElement(Harness, {
+      key: 'root',
+      refresh,
+      worktreePath: otherPath,
+      runtimeEnvironmentId: 'env-a'
+    })
+    await act(async () =>
+      root.render(createElement(Fragment, null, firstPane, siblingPane, otherOwner, otherRoot))
+    )
+    change([{ kind: 'overflow', absolutePath: worktreePath }], worktreePath, 'env-a')
+    expect(getLatestMarkdownMembershipChangeAt('env-b', worktreePath)).toBeUndefined()
+    expect(getLatestMarkdownMembershipChangeAt(null, worktreePath)).toBeUndefined()
+    await advance(10)
+    change([{ kind: 'overflow', absolutePath: worktreePath }], worktreePath, 'env-b')
+    await advance(10)
+    change([{ kind: 'overflow', absolutePath: otherPath }], otherPath, 'env-a')
+    await act(async () =>
+      root.render(createElement(Fragment, null, siblingPane, otherOwner, otherRoot))
+    )
+    expect(getLatestMarkdownMembershipChangeAt('env-a', worktreePath)).toBe(0)
+    await advance(10)
+    change([{ kind: 'overflow', absolutePath: worktreePath }], worktreePath, 'env-a')
+    await act(async () => root.render(null))
+
+    await advance(MARKDOWN_DOCUMENT_LIST_JOIN_WINDOW_MS - 20)
+    expect(getLatestMarkdownMembershipChangeAt('env-b', worktreePath)).toBeUndefined()
+    expect(getLatestMarkdownMembershipChangeAt('env-a', otherPath)).toBe(20)
+    expect(getLatestMarkdownMembershipChangeAt(' env-a ', worktreePath)).toBe(30)
+    await advance(10)
+    expect(getLatestMarkdownMembershipChangeAt('env-a', otherPath)).toBeUndefined()
+    expect(getLatestMarkdownMembershipChangeAt('env-a', worktreePath)).toBe(30)
+    await advance(10)
+    expect(getLatestMarkdownMembershipChangeAt('env-a', worktreePath)).toBeUndefined()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('does not rearm expiry on unchanged reads and releases the final timer', async () => {
+    const worktreePath = '/lifetime/reads'
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout')
+    try {
+      await act(async () => root.render(createElement(Harness, { refresh, worktreePath })))
+      change([{ kind: 'overflow', absolutePath: worktreePath }], worktreePath)
+      await act(async () => root.render(null))
+      const scheduled = setTimeoutSpy.mock.calls.length
+      for (let index = 0; index < 10; index++) {
+        expect(getLatestMarkdownMembershipChangeAt(null, worktreePath)).toBe(0)
+      }
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(scheduled)
+      await advance(MARKDOWN_DOCUMENT_LIST_JOIN_WINDOW_MS)
+      expect(getLatestMarkdownMembershipChangeAt(null, worktreePath)).toBeUndefined()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      setTimeoutSpy.mockRestore()
+    }
+  })
+
+  it('rejects an expired marker even when its cleanup timer was delayed', async () => {
+    const worktreePath = '/lifetime/delayed'
+    await act(async () => root.render(createElement(Harness, { refresh, worktreePath })))
+    change([{ kind: 'overflow', absolutePath: worktreePath }], worktreePath)
+    await act(async () => root.render(null))
+    const now = vi.spyOn(performance, 'now').mockReturnValue(MARKDOWN_DOCUMENT_LIST_JOIN_WINDOW_MS)
+    try {
+      expect(getLatestMarkdownMembershipChangeAt(null, worktreePath)).toBeUndefined()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      now.mockRestore()
+    }
   })
 })

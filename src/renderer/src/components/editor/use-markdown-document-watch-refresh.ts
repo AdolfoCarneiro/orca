@@ -12,6 +12,47 @@ const DOCUMENT_WATCH_DEBOUNCE_MS = 125
 
 // Remounted panes must bypass scans older than the latest observed change because unmount cancels their predecessor’s follow-up.
 const latestMembershipChangeAt = new Map<string, number>()
+
+let membershipChangeExpiryTimer: ReturnType<typeof setTimeout> | undefined
+
+function pruneExpiredMembershipChanges(now = performance.now()): void {
+  for (const [key, changedAt] of latestMembershipChangeAt) {
+    if (now - changedAt < MARKDOWN_DOCUMENT_LIST_JOIN_WINDOW_MS) {
+      break
+    }
+    latestMembershipChangeAt.delete(key)
+  }
+  if (latestMembershipChangeAt.size === 0) {
+    clearTimeout(membershipChangeExpiryTimer)
+    membershipChangeExpiryTimer = undefined
+  }
+}
+
+function scheduleMembershipChangeExpiry(): void {
+  if (membershipChangeExpiryTimer !== undefined) {
+    return
+  }
+  const oldestChange = latestMembershipChangeAt.values().next().value
+  if (oldestChange === undefined) {
+    return
+  }
+  membershipChangeExpiryTimer = setTimeout(
+    () => {
+      membershipChangeExpiryTimer = undefined
+      pruneExpiredMembershipChanges()
+      scheduleMembershipChangeExpiry()
+    },
+    Math.max(0, Math.ceil(oldestChange + MARKDOWN_DOCUMENT_LIST_JOIN_WINDOW_MS - performance.now()))
+  )
+}
+
+function recordMembershipChange(key: string, changedAt: number): void {
+  pruneExpiredMembershipChanges(changedAt)
+  latestMembershipChangeAt.delete(key)
+  latestMembershipChangeAt.set(key, changedAt)
+  scheduleMembershipChangeExpiry()
+}
+
 const membershipChangeKey = (owner: string | null, rootPath: string): string =>
   `${owner ?? ''}::${normalizeRuntimePathForComparison(rootPath)}`
 
@@ -19,6 +60,7 @@ export function getLatestMarkdownMembershipChangeAt(
   runtimeEnvironmentId: string | null | undefined,
   rootPath: string
 ): number | undefined {
+  pruneExpiredMembershipChanges()
   return latestMembershipChangeAt.get(
     membershipChangeKey(runtimeEnvironmentId?.trim() || null, rootPath)
   )
@@ -117,7 +159,7 @@ export function useMarkdownDocumentWatchRefresh({
         return
       }
       latestChangeAt = performance.now()
-      latestMembershipChangeAt.set(membershipChangeKey(owner, worktreePath), latestChangeAt)
+      recordMembershipChange(membershipChangeKey(owner, worktreePath), latestChangeAt)
       if (activeScan !== null) {
         changedDuringScan = true
         return
