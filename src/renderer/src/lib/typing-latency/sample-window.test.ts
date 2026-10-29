@@ -14,6 +14,13 @@ describe('typing latency sample window', () => {
         dispatchToParseMs: value + 10000,
         parseToPaintMs: value + 20000,
         inputToPaintMs: 3 * value + 30000,
+        eventToHandlerMs: null,
+        eventToPaintMs: null,
+        dispatchToArrivalMs: null,
+        arrivalToWriteMs: null,
+        writeToParseMs: null,
+        startedAt: value,
+        paintedAt: 3 * value + 30000,
         outputBytes: value + 40000,
         outputWrites: value + 5000
       })
