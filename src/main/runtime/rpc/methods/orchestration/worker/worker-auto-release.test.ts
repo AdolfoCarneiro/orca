@@ -6,6 +6,7 @@ import { reconcileRequestedWorkerTerminalReleases } from '../../../../orchestrat
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import { getWorkerTerminalAutoReleaseScheduler } from '../../../../orchestration/worker-terminal-auto-release-scheduler'
 import { createOrchestrationWorkerReleaseHarness } from './worker-release.test-support'
+import { recordStructuredWorkerUserSend } from '../../../../orchestration/structured-worker-user-send-takeover'
 import { ORCHESTRATION_WORKER_CHAT_TOUCH_CLIENT_CAPABILITY } from '../../../../../../shared/orchestration-runtime-capabilities'
 
 const GRACE_MS = 2 * 60_000
@@ -419,6 +420,22 @@ describe('orchestration worker automatic release', () => {
         auto_release_at: null
       })
       expect(h.db.getWorkerTerminalArchive(dispatchId)).toBeUndefined()
+    })
+
+    it('keeps a chat the user sent to while it was working, though they left before it settled', async () => {
+      setupWithFakeClock()
+      const { taskId, dispatchId } = startChatWorker()
+      recordStructuredWorkerUserSend(h.runtime, 's1', { ok: true })
+      h.settle(taskId, dispatchId, 'succeeded')
+
+      await vi.advanceTimersByTimeAsync(GRACE_MS)
+
+      expect(h.db.getWorkerTerminalResourceByOwner(dispatchId)).toMatchObject({
+        ownership_state: 'user_owned',
+        release_state: 'retained',
+        auto_release_at: null
+      })
+      expect(h.runtime.closeTerminal).not.toHaveBeenCalled()
     })
 
     it('ignores a touch on a running worker and on an explicit release', async () => {
