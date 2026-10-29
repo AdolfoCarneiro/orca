@@ -12,11 +12,7 @@ import {
   publishTestJournalEpoch
 } from './journal-host-database-test-support'
 import { applyJournalRow, createJournalReducerState } from './journal-reducer'
-import {
-  clearJournalSavedState,
-  readJournalSavedState,
-  saveJournalState
-} from './journal-saved-state'
+import { readJournalSavedState, saveJournalState } from './journal-saved-state'
 import type { JournalRow } from './journal-row-schema'
 import type { JournalHostDatabase } from './journal-host-database'
 
