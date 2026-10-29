@@ -14,6 +14,7 @@ import { AgentLaunchSetupButton } from './AgentLaunchSetupButton'
 import { AgentLaunchPickerMenu } from './AgentLaunchPickerMenu'
 import {
   agentPickerChoiceSeeds,
+  agentPickerLaunchInputs,
   type AgentPickerEntry
 } from '../../../../shared/agent-launch-picker'
 
@@ -83,6 +84,85 @@ afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
+
+it.each(['chat', 'terminal'] as const)(
+  'keeps preferred %s defaults and sparse primary/Enter intent after alternate launch and reopen',
+  async (preferred) => {
+    const own: AgentPickerEntry = {
+      ...entry,
+      agent: 'claude',
+      label: 'Claude',
+      ownerKey: `${entry.ownerKey}/preferred-${preferred}`,
+      defaultSurface: preferred,
+      arguments: '',
+      terminal: { permissionMode: 'full-access' },
+      structured: { model: 'sonnet', options: { effort: 'high' }, permissionMode: 'ask' },
+      catalog: {
+        origin: 'probe',
+        fetchedAt: 1,
+        listingNamesConfiguredModel: true,
+        models: ['opus', 'sonnet'].map((id) => ({
+          id,
+          label: id,
+          isDefault: id === 'opus',
+          defaultEffort: id === 'opus' ? 'low' : 'high',
+          efforts: [
+            { value: 'low', label: 'Low' },
+            { value: 'high', label: 'High' }
+          ]
+        }))
+      }
+    }
+    act(() =>
+      root.render(
+        <TooltipProvider>
+          <AgentLaunchSetupButton entry={own} onUse={launch} />
+        </TooltipProvider>
+      )
+    )
+    const user = userEvent.setup()
+    const open = () => user.click(getByRole(document.body, 'button', { name: 'Configure Claude' }))
+    const expectDefaults = () => {
+      expect(document.querySelector('[cmdk-item][data-current="true"]')?.textContent).toBe(
+        preferred === 'chat' ? 'sonnet' : 'opus'
+      )
+      expect(
+        getByRole(document.body, 'radio', {
+          name: preferred === 'chat' ? 'High' : 'Low'
+        }).getAttribute('data-state')
+      ).toBe('on')
+      expect(getByRole(document.body, 'button', { name: 'Claude permissions' }).textContent).toBe(
+        preferred === 'chat' ? 'Ask for approval' : 'Full access'
+      )
+    }
+    const expectSparse = (surface: 'chat' | 'terminal') => {
+      const draft = launch.mock.lastCall![0]
+      expect(draft).toEqual({ agent: 'claude', surface, choices: {}, arguments: undefined })
+      expect(agentPickerLaunchInputs(draft, own)).toEqual({})
+    }
+    await open()
+    expectDefaults()
+    const alternate = preferred === 'chat' ? 'terminal' : 'chat'
+    await user.click(getByRole(document.body, 'button', { name: `Launch ${alternate}` }))
+    expectSparse(alternate)
+    for (const method of ['primary', 'Enter']) {
+      await waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+      await open()
+      expectDefaults()
+      if (method === 'primary') {
+        await user.click(getByRole(document.body, 'button', { name: `Launch ${preferred}` }))
+      } else {
+        if (!document.querySelector('textarea')) {
+          await user.click(getByRole(document.body, 'button', { name: 'Toggle Arguments' }))
+        }
+        await user.click(document.querySelector<HTMLTextAreaElement>('textarea')!)
+        await user.keyboard('{Enter}')
+      }
+      expectSparse(preferred)
+    }
+    expect(launch).toHaveBeenCalledTimes(3)
+  }
+)
 
 it.each([
   { menuLeft: 700, menuWidth: 280, viewport: 1000, height: 800, side: 'left' },

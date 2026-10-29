@@ -158,7 +158,6 @@ export function AgentLaunchSetupButton({
             disabled={disabled}
             onDraftChange={(draft) => sessionDrafts.set(draftKey, draft)}
             onUse={(draft) => {
-              sessionDrafts.set(draftKey, draft)
               onUse(draft)
               changeOpen(false)
             }}
