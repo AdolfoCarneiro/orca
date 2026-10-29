@@ -51,7 +51,17 @@ export function structuredAgentSessionShownSnapshot(
   const view = structuredAgentSessionOptionView(state, undefined, {})
   const snapshot = structuredAgentSessionOptionSnapshot(view)
   const model = structuredAgentSessionModelId(view.record, 'any')
-  if (view.record.agent !== 'codex' || !model || !view.verifiedModelIds?.includes(model)) {
+  if (
+    view.record.agent !== 'codex' ||
+    !model ||
+    !snapshot.some(
+      (descriptor) =>
+        descriptor.id === 'effort' &&
+        descriptor.kind.type === 'select' &&
+        descriptor.kind.currentValue === undefined
+    ) ||
+    !view.verifiedModelIds?.includes(model)
+  ) {
     return snapshot
   }
   const effort = structuredAgentSessionDescribedModel(view, model)?.options.find(

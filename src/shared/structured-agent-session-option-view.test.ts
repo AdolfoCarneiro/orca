@@ -370,6 +370,28 @@ it.each(['claude', 'codex'] as const)('bounds %s capture and display work', (age
     expect(verified).toBeGreaterThanOrEqual(count)
     expect(verified).toBeLessThanOrEqual(5 * count)
     work.push({ capture, rows, verified })
+    if (agent === 'codex') {
+      for (const effort of ['low', 'high']) {
+        const accepted = commitStructuredAgentSessionOption(state, 'effort', effort)
+        rows = verified = 0
+        const canonical = structuredAgentSessionOptionSnapshot(accepted)
+        const canonicalWork = { rows, verified }
+        rows = verified = 0
+        const shown = structuredAgentSessionShownSnapshot(accepted)
+        const shownWork = { rows, verified }
+        expect(shownWork).toEqual(canonicalWork)
+        expect(shown).toEqual(canonical)
+        expect(shown.find((row) => row.id === 'effort')).toMatchObject({
+          valueSource: 'dispatched',
+          kind: { currentValue: effort }
+        })
+        expect(structuredAgentSessionMessageSelection(accepted)).toEqual({ model, effort })
+        console.info(
+          'accepted-codex-projection-visits',
+          JSON.stringify({ count, effort, canonicalWork, shownWork })
+        )
+      }
+    }
   }
   expect(work[1].capture).toBeLessThanOrEqual(11 * work[0].capture)
   expect(work[1].rows).toBeLessThanOrEqual(11 * work[0].rows)
