@@ -31,6 +31,7 @@ export function AgentLaunchSetupButton({
   renderAnchor,
   disabled,
   open: controlledOpen,
+  replacedByAnotherSetup = false,
   onOpenChange,
   onUse
 }: {
@@ -39,11 +40,20 @@ export function AgentLaunchSetupButton({
   renderAnchor?: (trigger: ReactElement) => ReactElement
   disabled?: boolean
   open?: boolean
+  replacedByAnotherSetup?: boolean
   onOpenChange?: (open: boolean) => void
   onUse: (draft: AgentPickerDraft) => void
 }) {
   const [localOpen, setOpen] = useState(false)
   const open = controlledOpen ?? localOpen
+  const closeFocus = useRef({ open, restore: true })
+  useLayoutEffect(() => {
+    if (closeFocus.current.open && !open) {
+      // Preserve the close cause until Radix's deferred unmount autofocus runs.
+      closeFocus.current.restore = !replacedByAnotherSetup
+    }
+    closeFocus.current.open = open
+  }, [open, replacedByAnotherSetup])
   const [placement, setPlacement] = useState<'right' | 'bottom'>('right')
   const content = useRef<HTMLDivElement>(null)
   const anchor = useRef<HTMLDivElement>(null)
@@ -127,6 +137,11 @@ export function AgentLaunchSetupButton({
         onClick={(event) => event.stopPropagation()}
         // Hovering another menu row moves focus there; only a click outside or Escape closes the panel.
         onFocusOutside={(event) => event.preventDefault()}
+        onCloseAutoFocus={(event) => {
+          if (!closeFocus.current.restore) {
+            event.preventDefault()
+          }
+        }}
       >
         <div className="min-h-0 overflow-y-auto scrollbar-sleek">
           <AgentLaunchSetupPanel

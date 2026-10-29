@@ -163,6 +163,7 @@ function AgentPickerMenuRow({
       entry={entry}
       initial={initial}
       open={openSetup === setupId}
+      replacedByAnotherSetup={openSetup !== null && openSetup !== setupId}
       disabled={disabled}
       onOpenChange={(next) => {
         onSetupOpenChange(next ? setupId : null)

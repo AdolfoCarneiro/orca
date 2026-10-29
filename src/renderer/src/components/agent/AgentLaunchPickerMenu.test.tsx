@@ -414,12 +414,24 @@ it.each(['{Enter}', ' '])(
     expect(document.activeElement).toBe(otherTrigger)
     await user.keyboard(key)
     await waitFor(() => expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1))
-    expect(
-      document.querySelector('[role="dialog"] input[placeholder="Search Claude models…"]')
-    ).not.toBeNull()
-    expect(document.querySelector('[role="dialog"]')).not.toBe(panel)
+    const replacement = document.querySelector('[role="dialog"]')!
+    const search = replacement.querySelector<HTMLInputElement>(
+      'input[placeholder="Search Claude models…"]'
+    )!
+    expect(search).not.toBeNull()
+    expect(replacement).not.toBe(panel)
+    await waitFor(() => expect(panel.isConnected).toBe(false))
+    // The outgoing FocusScope restores focus on a deferred unmount callback.
+    await act(async () => {
+      await new Promise<void>((resolve) => setTimeout(resolve, 60))
+    })
+    expect(document.activeElement).toBe(search)
+    await user.keyboard('astra')
+    expect(search.value).toBe('astra')
+    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
     await user.keyboard('{Escape}')
     await waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await waitFor(() => expect(document.activeElement).toBe(otherTrigger))
     await user.click(otherTrigger)
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
     fireEvent.pointerDown(document.body, { pointerType: 'mouse', button: 0 })

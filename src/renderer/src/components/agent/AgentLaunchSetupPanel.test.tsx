@@ -227,6 +227,7 @@ it('launches explicit model and effort picks when settled defaults have neither 
         {
           id: 'host-model',
           label: 'Host model',
+          isDefault: false,
           efforts: [
             { value: 'low', label: 'Low' },
             { value: 'high', label: 'High' }
