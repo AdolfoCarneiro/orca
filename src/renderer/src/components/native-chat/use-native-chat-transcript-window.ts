@@ -126,7 +126,7 @@ export function useNativeChatTranscriptWindow({
   }, [])
   useEffect(() => finishReaderTakeover, [finishReaderTakeover])
 
-  // Measure actual in-flow predecessors; stale margins misplace every row, so older-history controls stay out of flow.
+  // Only spacing changes the top gutter; history controls stay out of flow and rows follow the sizer.
   const readScrollMargin = useCallback(() => {
     const container = scrollRef.current
     const sizer = sizerElementRef.current
@@ -139,7 +139,7 @@ export function useNativeChatTranscriptWindow({
       setScrollMargin((current) => (current === offset ? current : offset))
     }
   }, [scrollRef])
-  useLayoutEffect(readScrollMargin)
+  useLayoutEffect(readScrollMargin, [readScrollMargin, isVisible, typography.spacingScale])
 
   useLayoutEffect(() => {
     const container = scrollRef.current

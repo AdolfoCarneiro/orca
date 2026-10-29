@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { cleanup, renderHook } from '@testing-library/react'
+import { act, cleanup, renderHook } from '@testing-library/react'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { NativeChatMessageSlot } from './native-chat-transcript-slots'
@@ -153,9 +153,16 @@ describe('native chat transcript virtualizer contract', () => {
     expect(virtualizerMock.scrollToOffset).toHaveBeenCalledExactlyOnceWith(320)
   })
 
-  it('keeps item-key lookup stable across content-only row revisions', () => {
-    const scrollRef = { current: null }
-    const { rerender } = renderHook(
+  it('keeps item keys stable without reading layout across content-only row revisions', () => {
+    const container = document.createElement('div')
+    const sizer = document.createElement('div')
+    const readOffsetTop = vi.fn(() => 40)
+    Object.defineProperties(sizer, {
+      offsetTop: { get: readOffsetTop },
+      offsetParent: { value: container }
+    })
+    const scrollRef = { current: container }
+    const { result, rerender } = renderHook(
       ({ text }) => {
         const current = slot('message-0')
         current.message.blocks = [{ type: 'text', text }]
@@ -168,11 +175,53 @@ describe('native chat transcript virtualizer contract', () => {
       },
       { initialProps: { text: 'first' } }
     )
+    act(() => result.current.sizerRef(sizer))
+    expect(result.current.scrollMargin).toBe(40)
+    expect(readOffsetTop).toHaveBeenCalled()
+    readOffsetTop.mockClear()
     const getItemKey = virtualizerMock.options.current?.getItemKey
 
     rerender({ text: 'streamed revision' })
 
     expect(virtualizerMock.options.current?.getItemKey).toBe(getItemKey)
+    expect(readOffsetTop).not.toHaveBeenCalled()
+  })
+
+  it('refreshes the top gutter when spacing changes or a hidden pane is restored', () => {
+    const container = document.createElement('div')
+    const sizer = document.createElement('div')
+    let offset = 40
+    Object.defineProperties(sizer, {
+      offsetTop: { get: () => offset },
+      offsetParent: { get: () => (offset === 0 ? null : container) }
+    })
+    const scrollRef = { current: container }
+    const { result, rerender } = renderHook(
+      ({ spacingScale, isVisible }) =>
+        useNativeChatTranscriptWindow({
+          scrollRef,
+          slots: [],
+          isVisible,
+          revealIndex: -1,
+          typography: { lineHeightPx: 22, charsPerLine: 96, spacingScale }
+        }),
+      { initialProps: { spacingScale: 1, isVisible: true } }
+    )
+    act(() => result.current.sizerRef(sizer))
+    expect(result.current.scrollMargin).toBe(40)
+
+    offset = 50
+    rerender({ spacingScale: 1.25, isVisible: true })
+    expect(result.current.scrollMargin).toBe(50)
+
+    offset = 0
+    rerender({ spacingScale: 1.25, isVisible: false })
+    expect(result.current.scrollMargin).toBe(50)
+    rerender({ spacingScale: 1.5, isVisible: false })
+    expect(result.current.scrollMargin).toBe(50)
+    offset = 60
+    rerender({ spacingScale: 1.5, isVisible: true })
+    expect(result.current.scrollMargin).toBe(60)
   })
 
   it('attributes a clamped fallback landing after content grows before its echo', () => {
