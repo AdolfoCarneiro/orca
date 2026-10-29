@@ -202,6 +202,48 @@ export function registerJournalRowWriterTests(): void {
       expect(readJournalRowsAfter(database.db, SESSION_ID, 'epoch-2', 0)).toHaveLength(1)
     })
 
+    it('prepares a receipt once from built rows, preserves its target, and leaves empty or failed plans unwritten', async () => {
+      const { writer, committedRows } = writerHarness()
+      database.db.exec('CREATE TABLE receipt_fact (sequence INTEGER)')
+      const build = vi.fn(row)
+      const write = vi.fn((db: JournalHostDatabase['db'], target?: JournalRow) => {
+        if (!target) {
+          throw new Error('missing receipt target')
+        }
+        db.prepare('INSERT INTO receipt_fact VALUES (?)').run(target.seq)
+      })
+      const committed = vi.fn(() => {
+        expect(committedRows).toEqual([])
+        expect(database.db.prepare('SELECT sequence FROM receipt_fact').get()?.sequence).toBe(2)
+      })
+      const prepare = vi.fn((rows: readonly JournalRow[]) => {
+        expect(rows.map((value) => value.seq)).toEqual([1, 2])
+        expect(readTestJournalRows(database.db, SESSION_ID, EPOCH)).toEqual([])
+        return { write, committed }
+      })
+      await writer.enqueueRows(
+        () => [build, build],
+        prepare,
+        (rows) => rows[1]
+      )
+      expect(build).toHaveBeenCalledTimes(2)
+      expect(prepare).toHaveBeenCalledTimes(1)
+      expect(write).toHaveBeenCalledTimes(1)
+      expect(committed).toHaveBeenCalledTimes(1)
+      expect(committedRows).toHaveLength(2)
+      prepare.mockClear()
+      await writer.enqueueRows(() => [], prepare)
+      expect(prepare).not.toHaveBeenCalled()
+      await expect(
+        writer.enqueue(build, () => {
+          throw new Error('prepare failed')
+        })
+      ).rejects.toThrow('prepare failed')
+      expect(readTestJournalRows(database.db, SESSION_ID, EPOCH)).toHaveLength(2)
+      await writer.enqueue(row)
+      expect(committedRows.map((value) => value.seq)).toEqual([1, 2, 3])
+    })
+
     it('rolls the transaction back and sets no latch when the insert fails', async () => {
       const { writer, committedRows } = writerHarness()
       insertTestJournalRow(database.db, SESSION_ID, row(1, 1))

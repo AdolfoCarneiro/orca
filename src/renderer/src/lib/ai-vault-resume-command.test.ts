@@ -363,7 +363,7 @@ describe('ai vault resume command runtime', () => {
         }
       })
     ).toBe(
-      `cd '/home/alice/repo' && env -u CODEX_HOME -u ORCA_CODEX_HOME codex '-c' 'tui.resume_cwd=current' 'resume' 'session one'`
+      `cd '/home/alice/repo' && env -u CODEX_HOME -u ORCA_CODEX_HOME codex '-c' 'disable_paste_burst=true' '-c' 'tui.resume_cwd=current' 'resume' 'session one'`
     )
   })
 
@@ -384,7 +384,7 @@ describe('ai vault resume command runtime', () => {
     })
 
     expect(command).toBe(
-      "cd '/home/alice/repo' && CODEX_HOME='/home/alice/custom-codex' codex '-c' 'tui.resume_cwd=current' 'resume' 'session one'"
+      "cd '/home/alice/repo' && CODEX_HOME='/home/alice/custom-codex' codex '-c' 'disable_paste_burst=true' '-c' 'tui.resume_cwd=current' 'resume' 'session one'"
     )
     expect(command).not.toContain('unset CODEX_HOME')
   })
@@ -441,7 +441,7 @@ describe('ai vault resume command runtime', () => {
         }
       })
     ).toBe(
-      "CODEX_HOME='/home/alice/.codex' codex '-c' 'tui.resume_cwd=current' 'resume' 'session one'"
+      "CODEX_HOME='/home/alice/.codex' codex '-c' 'disable_paste_burst=true' '-c' 'tui.resume_cwd=current' 'resume' 'session one'"
     )
   })
 
@@ -598,7 +598,8 @@ describe('ai vault resume command runtime', () => {
         }
       })
     ).toMatchObject({
-      command: "codex '-c' 'tui.resume_cwd=current' 'resume' 'session one'",
+      command:
+        "codex '-c' 'disable_paste_burst=true' '-c' 'tui.resume_cwd=current' 'resume' 'session one'",
       cwd: '/home/alice/repo',
       envToDelete: ['CODEX_HOME', 'ORCA_CODEX_HOME'],
       providerSession: { key: 'session_id', id: 'session one' }
@@ -623,7 +624,9 @@ describe('ai vault resume command runtime', () => {
           resumeCommand: "CODEX_HOME='/root/.codex' codex resume 'session one'"
         }
       })
-    ).toBe("codex '-c' 'tui.resume_cwd=current' 'resume' 'session one'")
+    ).toBe(
+      "codex '-c' 'disable_paste_burst=true' '-c' 'tui.resume_cwd=current' 'resume' 'session one'"
+    )
   })
 
   it('copies remote real-home Codex commands with explicit environment cleanup', () => {
@@ -645,7 +648,7 @@ describe('ai vault resume command runtime', () => {
     })
 
     expect(command).toBe(
-      `cd '/home/alice/repo' && env -u CODEX_HOME -u ORCA_CODEX_HOME codex '-c' 'tui.resume_cwd=current' 'resume' 'session one'`
+      `cd '/home/alice/repo' && env -u CODEX_HOME -u ORCA_CODEX_HOME codex '-c' 'disable_paste_burst=true' '-c' 'tui.resume_cwd=current' 'resume' 'session one'`
     )
     expect(command).not.toContain('/retired/shared-home')
   })
@@ -754,6 +757,8 @@ describe('ai vault resume command runtime', () => {
           resumeCommand: "CODEX_HOME='/root/.codex' codex resume 'session one'"
         }
       })
-    ).toBe("codex '-c' 'tui.resume_cwd=current' 'resume' 'session one'")
+    ).toBe(
+      "codex '-c' 'disable_paste_burst=true' '-c' 'tui.resume_cwd=current' 'resume' 'session one'"
+    )
   })
 })

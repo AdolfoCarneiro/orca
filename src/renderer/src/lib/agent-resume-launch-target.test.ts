@@ -31,10 +31,11 @@ async function resolveWith(
   overrides: Partial<AgentResumeLaunchTargetArgs>
 ): Promise<{ platform: NodeJS.Platform; shell: string | undefined }> {
   const { resolveAgentResumeLaunchTarget } = await import('./agent-resume-launch-target')
-  return resolveAgentResumeLaunchTarget({
+  const { platform, shell } = resolveAgentResumeLaunchTarget({
     ...LOCAL_WINDOWS_ARGS,
     ...overrides
   })
+  return { platform, shell }
 }
 
 describe('resolveAgentResumeLaunchTarget on a Windows client', () => {
@@ -133,6 +134,33 @@ describe('resolveAgentResumeLaunchTarget on a Windows client', () => {
         terminalWindowsShell: 'cmd.exe'
       })
     ).resolves.toEqual({ platform: 'linux', shell: undefined })
+  })
+
+  // Why: Codex's paste-burst flag must follow the server's OS, not this client's quoting (#34496).
+  it.each([
+    ['linux', 'linux'],
+    ['win32', 'win32'],
+    [null, null]
+  ] as const)('reports a paired server on %s as the agent host OS', async (reported, expected) => {
+    const { resolveAgentResumeLaunchTarget } = await import('./agent-resume-launch-target')
+    const target = resolveAgentResumeLaunchTarget({
+      ...LOCAL_WINDOWS_ARGS,
+      executionHostId: 'runtime:prod-box',
+      worktreePath: '/srv/repo',
+      runtimeHostPlatform: reported
+    })
+    expect(target.agentHostPlatform).toBe(expected)
+  })
+
+  it('leaves an SSH host that has not reported its OS unknown', async () => {
+    const { resolveAgentResumeLaunchTarget } = await import('./agent-resume-launch-target')
+    const target = resolveAgentResumeLaunchTarget({
+      ...LOCAL_WINDOWS_ARGS,
+      connectionId: 'ssh-1',
+      executionHostId: 'ssh:ssh-1',
+      worktreePath: '/home/neil/repo'
+    })
+    expect(target.agentHostPlatform).toBeNull()
   })
 
   it('does not describe a remote runtime host with the local Windows shell setting', async () => {
