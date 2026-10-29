@@ -3786,7 +3786,8 @@
         "settingUp": "Das Projekt wird auf dem ausgewählten Automatisierungs-Host noch eingerichtet.",
         "error": "Die Projekteinrichtung auf dem ausgewählten Automatisierungs-Host ist fehlgeschlagen.",
         "unsupported": "Der ausgewählte Automatisierungs-Host unterstützt dieses Projekt nicht."
-      }
+      },
+      "wslDistroStopped": "Die WSL-Distribution {{distro}} ist gestoppt, daher hat dieser geplante Lauf sie nicht gestartet. Starte die Distribution oder nutze „Jetzt ausführen“; spätere Läufe finden statt, solange sie läuft."
     }
   },
   "auto": {

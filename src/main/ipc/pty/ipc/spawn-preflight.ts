@@ -35,6 +35,7 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
       args.worktreeId,
       args.sessionId,
       localPtySpawnCwd(args),
+      args.wslPassiveRestore === true,
       args.connectionId
     )
     if (admission) {
@@ -49,6 +50,7 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
       args.worktreeId,
       args.sessionId,
       localPtySpawnCwd(args),
+      args.wslPassiveRestore === true,
       args.connectionId
     )
     if (admission) {
@@ -92,7 +94,16 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
     preAdopted: ctx.preAdoptedStablePane !== null,
     getSettings: ctx.deps.getSettings,
     resolveStartupCwd: (id, cwd, fallback) =>
-      ctx.deps.resolvePtySpawnStartupCwd(id, cwd, fallback, args.connectionId)
+      ctx.deps.resolvePtySpawnStartupCwd(id, cwd, fallback, args.connectionId),
+    ...(args.wslPassiveRestore === true
+      ? {
+          passiveWslRestore: {
+            sessionId: ctx.effectiveSessionId,
+            isNewSession: ctx.ownsNewIncarnation,
+            attachOnly: args.attachOnlyView === true
+          }
+        }
+      : {})
   })
   ctx.cwd = target.cwd
   ctx.prevalidatedCwd = target.prevalidatedCwd

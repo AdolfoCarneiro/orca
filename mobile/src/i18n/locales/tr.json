@@ -3786,7 +3786,8 @@
         "settingUp": "Proje seçili otomasyon sunucusunda hâlâ kuruluyor.",
         "error": "Proje seçili otomasyon sunucusunda kurulamadı.",
         "unsupported": "Seçili otomasyon sunucusu bu projeyi desteklemiyor."
-      }
+      },
+      "wslDistroStopped": "WSL dağıtımı {{distro}} durdurulmuş, bu yüzden bu zamanlanmış çalıştırma onu başlatmadı. Dağıtımı başlatın veya Şimdi çalıştır'ı kullanın; dağıtım çalıştığı sürece sonraki çalıştırmalar devam eder."
     }
   },
   "auto": {

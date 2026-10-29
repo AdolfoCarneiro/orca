@@ -26,6 +26,7 @@ export type PtyRuntimeControllerDeps = PtySpawnCodexResumeDeps & {
     worktreeId: string | undefined,
     sessionId?: string,
     cwd?: string,
+    passiveWslRestore?: boolean,
     connectionId?: string | null
   ) => Promise<void> | void
   resolvePtySpawnStartupCwd: (

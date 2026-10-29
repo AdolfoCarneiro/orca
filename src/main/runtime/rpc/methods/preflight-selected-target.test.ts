@@ -119,7 +119,7 @@ describe('qualified discovery at the runtime RPC boundary', () => {
     })
     const request = {
       automation,
-      run: { id: 'current', title: 'Current', scheduledFor: 2 },
+      run: { id: 'current', title: 'Current', scheduledFor: 2, trigger: 'scheduled' as const },
       target: { ok: true as const, repo, cwd: repo.path },
       runs: [previous]
     }

@@ -3881,7 +3881,8 @@
         "settingUp": "Le projet est encore en cours de configuration sur l’hôte sélectionné pour l’automatisation.",
         "error": "La configuration du projet a échoué sur l’hôte sélectionné pour l’automatisation.",
         "unsupported": "L’hôte sélectionné pour l’automatisation ne prend pas en charge ce projet."
-      }
+      },
+      "wslDistroStopped": "La distribution WSL {{distro}} est arrêtée, donc cette exécution planifiée ne l’a pas démarrée. Démarrez la distribution ou utilisez Exécuter maintenant ; les exécutions suivantes ont lieu tant qu’elle tourne."
     }
   },
   "auto": {

@@ -115,10 +115,9 @@ export function registerPtyHandlers(
   const getLocalPtyProviderStartupPromise = (
     hostId: ResolvedPtyHost = LOCAL_EXECUTION_HOST_ID
   ): Promise<void> | undefined => {
-    if (hostId !== LOCAL_EXECUTION_HOST_ID) {
-      return undefined
-    }
-    return options?.awaitLocalPtyProviderStartup?.() ?? options?.awaitLocalPtyStartup?.()
+    return hostId === LOCAL_EXECUTION_HOST_ID
+      ? (options?.awaitLocalPtyProviderStartup?.() ?? options?.awaitLocalPtyStartup?.())
+      : undefined
   }
 
   // macOS window reactivation can re-register; remove old handlers first.
@@ -219,9 +218,17 @@ export function registerPtyHandlers(
     worktreeId: string | undefined,
     sessionId?: string,
     cwd?: string,
+    passiveWslRestore?: boolean,
     connectionId?: string | null
   ): Promise<void> | void =>
-    assertWorkspaceAcceptsNewPtyImpl(store, worktreeId, sessionId, cwd, connectionId)
+    assertWorkspaceAcceptsNewPtyImpl(
+      store,
+      worktreeId,
+      sessionId,
+      cwd,
+      passiveWslRestore,
+      connectionId
+    )
   const resolvePtySpawnStartupCwd = (
     worktreeId: string | undefined,
     cwd: string | undefined,

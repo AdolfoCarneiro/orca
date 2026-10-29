@@ -159,6 +159,8 @@ export abstract class OrcaRuntimeWithTerminalCreateDeduplication extends OrcaRun
       title?: string
       extraAgentArgs?: string
       suppressStartupUpdatePrompt?: boolean
+      /** Run now is the user's act; a scheduled run is background and a stopped WSL distro holds it. */
+      wslUserAct?: true
     },
     resolvedTarget?: { worktree: ResolvedWorktree; repo: Repo; folderWorkspace?: FolderWorkspace }
   ): Promise<RuntimeTerminalCreate> {
@@ -196,7 +198,8 @@ export abstract class OrcaRuntimeWithTerminalCreateDeduplication extends OrcaRun
         launchRuntime: startup.launchRuntime,
         startupCommandDelivery: startup.startup.startupCommandDelivery,
         telemetry: startup.startup.telemetry,
-        title: opts.title
+        title: opts.title,
+        ...(opts.wslUserAct ? { wslUserAct: true } : {})
       },
       undefined,
       worktree,

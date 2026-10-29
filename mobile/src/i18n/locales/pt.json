@@ -3881,7 +3881,8 @@
         "settingUp": "O projeto ainda está sendo configurado no host selecionado para a automação.",
         "error": "A configuração do projeto falhou no host selecionado para a automação.",
         "unsupported": "O host selecionado para a automação não oferece suporte a este projeto."
-      }
+      },
+      "wslDistroStopped": "A distribuição WSL {{distro}} está parada, então esta execução agendada não a iniciou. Inicie a distribuição ou use Executar agora; as próximas execuções acontecem enquanto ela estiver em execução."
     }
   },
   "auto": {

@@ -34,6 +34,8 @@ export async function prepareRuntimePtySpawn(
       args.worktreeId,
       args.sessionId,
       localPtySpawnCwd(args),
+      // Main's background start must not stat a stopped distro's folder as a user act (E9).
+      args.wslUserAct !== true,
       args.connectionId
     )
     if (admission) {

@@ -185,6 +185,19 @@ describe('mobile automation run failure copy', () => {
     }
   )
 
+  it('localizes a stopped distro by name and falls back for unusable distro params', async () => {
+    await activateMobileUiLocale('fr')
+    const base = { ...savedRun(), error: 'Stored distro reason', errorCode: 'wslDistroStopped' }
+    expect(
+      automationRunErrorText(runSchema.parse({ ...base, errorParams: { distro: 'Ubuntu' } }))
+    ).toBe(
+      'La distribution WSL Ubuntu est arrêtée, donc cette exécution planifiée ne l’a pas démarrée. Démarrez la distribution ou utilisez Exécuter maintenant ; les exécutions suivantes ont lieu tant qu’elle tourne.'
+    )
+    for (const errorParams of [undefined, null, {}, { distro: 1 }]) {
+      expect(automationRunErrorText(runSchema.parse({ ...base, errorParams }))).toBe(base.error)
+    }
+  })
+
   it('keeps stored errors for old hosts, nullable fields and future codes, and preserves no error', async () => {
     await activateMobileUiLocale('fr')
     for (const fields of [

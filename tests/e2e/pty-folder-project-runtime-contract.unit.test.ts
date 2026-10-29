@@ -1,6 +1,7 @@
 import { mockPanePtyArgs } from '../../src/renderer/src/components/terminal-pane/pty-connection-test-connect-mock-pane'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as React from 'react'
+import type * as WslDistroGate from '../../src/main/wsl-background-distro-gate'
 import type { PtyApi } from '../../src/preload/api/pty-api'
 import type { RuntimePtyController } from '../../src/main/runtime/runtime-pty-controller-contract'
 import type { Project, ProjectHostSetup } from '../../src/shared/project-types'
@@ -71,6 +72,12 @@ vi.mock('@/components/terminal-pane/pty-transport', () => ({
     })
     return Object.assign(transport, { connect })
   }
+}))
+
+// This runtime-selection fixture models a running distro; stopped/unverifiable holds have their own tests.
+vi.mock('../../src/main/wsl-background-distro-gate', async (importOriginal) => ({
+  ...(await importOriginal<typeof WslDistroGate>()),
+  readWslDistroRunningState: vi.fn(async (): Promise<'running'> => 'running')
 }))
 
 vi.mock('electron', () =>

@@ -1,5 +1,9 @@
 import { resolveQualifiedFolderWorkspaceResult } from '../../../../shared/folder-workspace-execution-host'
-import { getConnectionExecutionHostId } from '../../../../shared/execution-host'
+import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
+import {
+  getConnectionExecutionHostId,
+  type ExecutionHostId
+} from '../../../../shared/execution-host'
 import { stat } from 'node:fs/promises'
 import type { Store } from '../../../persistence'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
@@ -21,6 +25,12 @@ import {
   WslMoveProjectFencedError
 } from '../../../persistence/moving-wsl-projects/wsl-move-scope-guard'
 import { listLiveDaemonPtyIds } from '../../../daemon/daemon-provider-state'
+import { wslDistroHoldMessage } from '../../../../shared/wsl-distro-stopped-hold'
+import {
+  blockedWslDistroForPath,
+  runAsWslUserAct,
+  wslDistroForPath
+} from '../../../wsl/wsl-unc-access-gate'
 
 /**
  * A new PTY needs a workspace no WSL move is taking, and a folder that still exists. Reattaching to
@@ -33,15 +43,16 @@ export function assertWorkspaceAcceptsNewPty(
   worktreeId: string | undefined,
   sessionId?: string,
   cwd?: string,
+  passiveWslRestore?: boolean,
   connectionId?: string | null
 ): Promise<void> | void {
   const fencedByCwd = !!cwd && isWslMoveCwdFenced(cwd)
   if (fencedByCwd || isWslMoveWorkspaceBlocked(store, worktreeId)) {
     return assertReattachesLiveSession(sessionId, worktreeId).then(() =>
-      assertFolderWorkspacePtyPathUsable(store, worktreeId, connectionId)
+      assertFolderWorkspacePtyPathUsable(store, worktreeId, passiveWslRestore, connectionId)
     )
   }
-  return assertFolderWorkspacePtyPathUsable(store, worktreeId, connectionId)
+  return assertFolderWorkspacePtyPathUsable(store, worktreeId, passiveWslRestore, connectionId)
 }
 
 /** Only a spawn on this machine starts in a folder a WSL move can be taking. */
@@ -69,6 +80,7 @@ async function assertReattachesLiveSession(
 export function assertFolderWorkspacePtyPathUsable(
   store: Store | undefined,
   worktreeId: string | undefined,
+  passiveWslRestore = false,
   connectionId?: string | null
 ): Promise<void> | void {
   const workspaceScope = typeof worktreeId === 'string' ? parseWorkspaceKey(worktreeId) : null
@@ -79,14 +91,41 @@ export function assertFolderWorkspacePtyPathUsable(
   if (selected.kind === 'missing') {
     throw new Error('folder_workspace_path_scope_not_found')
   }
-  return (
-    selected.kind === 'selected'
-      ? getResolvedFolderWorkspacePathStatus(selected.value.workspace, selected.value.hostId)
-      : getFolderWorkspacePathStatus(store, {
-          scope: 'folder-workspace',
-          folderWorkspaceId: workspaceScope.folderWorkspaceId
-        })
-  ).then(assertFolderWorkspacePathUsable)
+  if (selected.kind !== 'selected') {
+    return getFolderWorkspacePathStatus(store, {
+      scope: 'folder-workspace',
+      folderWorkspaceId: workspaceScope.folderWorkspaceId
+    }).then(assertFolderWorkspacePathUsable)
+  }
+  return checkFolderWorkspacePtyPath(
+    selected.value.workspace,
+    selected.value.hostId,
+    passiveWslRestore
+  )
+}
+
+/** A passive check holds before touching a stopped distro; only the user's spawn may start it. */
+async function checkFolderWorkspacePtyPath(
+  workspace: Pick<FolderWorkspace, 'folderPath'>,
+  hostId: ExecutionHostId,
+  passiveWslRestore: boolean
+): Promise<void> {
+  const checkPath = () => getResolvedFolderWorkspacePathStatus(workspace, hostId)
+  if (hostId !== 'local') {
+    assertFolderWorkspacePathUsable(await checkPath())
+    return
+  }
+  if (passiveWslRestore) {
+    const blocked = await blockedWslDistroForPath(workspace.folderPath)
+    if (blocked) {
+      throw new Error(wslDistroHoldMessage(blocked.distro, blocked.state))
+    }
+    assertFolderWorkspacePathUsable(await checkPath())
+    return
+  }
+  assertFolderWorkspacePathUsable(
+    await runAsWslUserAct(wslDistroForPath(workspace.folderPath), checkPath)
+  )
 }
 
 export function resolvePtySpawnStartupCwd(

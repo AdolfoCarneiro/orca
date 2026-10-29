@@ -86,7 +86,12 @@ function automation(overrides: Record<string, unknown>) {
   }
 }
 
-const RUN = { id: 'run-1', title: 'Nightly', scheduledFor: Date.UTC(2026, 9, 9, 3) }
+const RUN = {
+  id: 'run-1',
+  title: 'Nightly',
+  scheduledFor: Date.UTC(2026, 9, 9, 3),
+  trigger: 'scheduled' as const
+}
 const TARGET = { ok: true, repo: { id: 'repo-1', path: '/repo', displayName: 'repo' } }
 
 function previousRun(overrides: Partial<AutomationRun> = {}): AutomationRun {
@@ -118,7 +123,8 @@ function previousRun(overrides: Partial<AutomationRun> = {}): AutomationRun {
 function launch(
   runtime: ReturnType<typeof harness>,
   overrides: Record<string, unknown>,
-  runs: AutomationRun[] = []
+  runs: AutomationRun[] = [],
+  run: typeof RUN | (Omit<typeof RUN, 'trigger'> & { trigger: 'manual' }) = RUN
 ) {
   return launchHeadlessAutomationAgent(
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the launch reads only the members faked in harness().
@@ -126,7 +132,7 @@ function launch(
     {
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only these automation fields are read.
       automation: automation(overrides) as never,
-      run: RUN,
+      run,
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only the repo is read.
       target: TARGET as never,
       runs
@@ -135,6 +141,21 @@ function launch(
 }
 
 describe('headless automation agent launch', () => {
+  // E9: the runtime holds a background start on a stopped WSL distro; only Run now names the user.
+  it("starts Run now as the user's act, and a scheduled run as background work", async () => {
+    const scheduled = harness()
+    await launch(scheduled, {})
+    expect(scheduled.launchAgentTerminal.mock.calls[0]?.[1]).not.toHaveProperty('wslUserAct')
+
+    const manual = harness()
+    await launch(manual, {}, [], { ...RUN, trigger: 'manual' })
+    expect(manual.launchAgentTerminal).toHaveBeenCalledWith(
+      'id:wt-1',
+      expect.objectContaining({ wslUserAct: true }),
+      { worktree: { displayName: 'repo' }, repo: TARGET.repo }
+    )
+  })
+
   it('admits the selected workspace before writing, and vetoes historical or live host conflicts', async () => {
     const runtime = harness()
     const oldTarget = {
