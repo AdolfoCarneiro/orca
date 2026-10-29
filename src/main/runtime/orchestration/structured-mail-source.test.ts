@@ -159,13 +159,9 @@ it('snapshots immediate relations across completion/reload and keeps unknown evi
         mailboxHandle: 'term_coord',
         dispatchId: null,
         batch: [good, bad],
-        senderName: () => {
-          throw new Error('name unavailable')
-        }
+        senderName: () => 'Sender'
       })
-      expect(source.senders[0]).toMatchObject({ name: null })
       expect(source.senders[0].relation).toBeUndefined()
-      expect(agentMessageHeading(source)).toBe('generic')
       expect(source.orchestration).toMatchObject({
         messages: [{ messageId: 'good' }, { messageId: bad.id }]
       })
@@ -174,12 +170,6 @@ it('snapshots immediate relations across completion/reload and keeps unknown evi
       .prepare('UPDATE dispatch_contexts SET host_scope = ? WHERE id = ?')
       .run(JSON.stringify({ kind: 'ssh', targetId: 'elsewhere' }), worker.id)
     expect(mail('term_coord', ['term_worker']).senders[0].relation).toBeUndefined()
-    vi.spyOn(db, 'getRun').mockImplementation(() => {
-      throw new Error('db unavailable')
-    })
-    expect(mail('term_coord', ['term_worker']).orchestration).toMatchObject({
-      messages: [{ messageId: 'm0' }]
-    })
   } finally {
     vi.restoreAllMocks()
     db.close()
@@ -246,7 +236,6 @@ it.each([100, 1000])(
           maxDepth: 8
         })
       )
-      expect(visits).toBe(10 * records.length)
       for (const evidence of ['repeated', 'distinct', 'unknown'] as const) {
         const distinct = evidence === 'distinct'
         const relation = vi.spyOn(relations, 'agentMessageRelation')

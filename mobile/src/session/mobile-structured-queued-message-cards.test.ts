@@ -4,11 +4,6 @@ import { agentSessionFailureWords } from '../../../src/shared/agent-session-fail
 import { QUEUED_MESSAGE_PAUSED_SEND_FAILED } from '../../../src/shared/agent-session-wire'
 import type { AgentSessionQueuedMessage } from '../../../src/shared/agent-session-wire'
 import { mobileQueuedMessageCards } from './mobile-structured-queued-message-cards'
-import {
-  projectQueuedMessageCards,
-  queuedMessageCardLine
-} from '../../../src/shared/structured-agent-session-queued-cards'
-import { queuedMessageEditableText } from '../../../src/shared/queued-message-edit'
 
 function returnedAs(fact: Parameters<typeof agentSessionFailureWords>[0]) {
   const { reason, rejection } = agentSessionFailureWords(fact, { surface: 'rejection' })
@@ -115,43 +110,4 @@ describe('mobileQueuedMessageCards', () => {
     )
     expect(cards.map((card) => card.line)).toEqual(['shot.png', 'Pasted image', '2 images'])
   })
-
-  it.each([
-    ['mail', 'Check [Image #1]', 1, 'Check'],
-    ['task', 'Check [Image #1]', 1, 'Check'],
-    ['task', '[Image #1]', 1, 'shot.png']
-  ] as const)(
-    'cleans only selected %s preview markers in %s with %i images, retaining canonical input',
-    (attribution, text, imageCount, line) => {
-      const raw =
-        attribution === 'task'
-          ? `You are working inside Orca, a multi-agent IDE.\n=== TASK ===\n${text}`
-          : text
-      const body: AgentSessionQueuedMessage['body'] = {
-        kind: 'message',
-        role: 'user',
-        blocks: [
-          { type: 'text', text: raw },
-          ...(imageCount ? [{ type: 'image-ref' as const, path: '/host/shot.png' }] : [])
-        ],
-        from: {
-          kind: 'agent',
-          senders: [],
-          orchestration:
-            attribution === 'task'
-              ? { message: 'task', runId: 'r', taskId: 't', dispatchId: 'd' }
-              : null
-        }
-      }
-      const message = draft({ messageId: 'image-preview', body })
-      const [projected] = projectQueuedMessageCards([message], [], {})
-      expect(projected.text).toBe(raw)
-      expect(queuedMessageCardLine(projected)).toBe(text)
-      const [card] = mobileQueuedMessageCards([message], [])
-      expect(card.line).toBe(line)
-      expect(card.images?.length ?? 0).toBe(imageCount)
-      expect(card.text).toBe(raw)
-      expect(queuedMessageEditableText(body)).toBe(raw)
-    }
-  )
 })

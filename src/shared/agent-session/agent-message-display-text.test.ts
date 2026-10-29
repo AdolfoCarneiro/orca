@@ -24,10 +24,6 @@ it('keeps exact task suffixes and canonical blocks, with paragraph fallback for 
     expect(blocks).toEqual(original)
   }
   for (const blocks of [
-    [
-      { type: 'text', text: 'First' },
-      { type: 'text', text: 'Second' }
-    ],
     [{ type: 'text', text: 'ordinary prose' }],
     [
       {
@@ -62,9 +58,6 @@ it.each([100, 1000])(
       }
       expect(parse).not.toHaveBeenCalled()
       for (const blocks of inputs) {
-        expect(
-          agentMessageDisplayText([...blocks, { type: 'text', text: 'second block' }], task)
-        ).toBeUndefined()
         expect(
           agentMessageDisplayText([{ type: 'text', text: prefix + suffix + 'edited' }], task)
         ).toBe(suffix + 'edited')

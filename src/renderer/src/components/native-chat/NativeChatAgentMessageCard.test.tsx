@@ -1,11 +1,13 @@
 // @vitest-environment happy-dom
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, fireEvent, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, renderHook, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { render } from './native-chat-tooltip-test-harness'
 import { useAppStore } from '@/store'
 import { makeTab, makeWorktree, TEST_REPO } from '@/store/slices/store-test-helpers'
 import { readStoreListenerCount } from '@/store/store-listener-census'
+import { getKnownExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
+import { resolveStructuredAgentSessionOwner } from '@/runtime/structured-agent-session-owner'
 import type { TerminalLayoutSnapshot } from '../../../../shared/terminal-tab-types'
 import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
 import type { AgentMessageSenderView } from '../../../../shared/agent-session/agent-message-presentation'
@@ -208,11 +210,7 @@ it.each(['task', 'mail'] as const)(
       ...status(0),
       programStatus: { state: 'working' as const, progress: 40, observedAt: 2_000_000 }
     }
-    useAppStore.setState({
-      tabsByWorktree: { workspace: [makeTab({ id: 'tab-0', worktreeId: 'workspace' })] },
-      agentStatusByPaneKey: { [paneKey]: entry },
-      agentStatusEpoch: 1
-    })
+    useAppStore.setState({ agentStatusByPaneKey: { [paneKey]: entry } })
     const prefix =
       kind === 'task' ? 'You are working inside Orca, a multi-agent IDE.\n=== TASK ===\n' : ''
     const message: NativeChatMessage = {
@@ -230,7 +228,7 @@ it.each(['task', 'mail'] as const)(
       blocks: [
         {
           type: 'text',
-          text: `${prefix}Current **task** with [link](https://example.com) and ![image](https://example.com/image.png).\n\nSecond paragraph.`
+          text: `${prefix}Current **task** with [link](https://example.com) and ![image](https://example.com/image.png).\n\nSecond paragraph with [another link](https://example.com/second).`
         }
       ]
     }
@@ -253,7 +251,7 @@ it.each(['task', 'mail'] as const)(
       'https://example.com/image.png'
     )
     const text =
-      'Current **task** with [link](https://example.com) and ![image](https://example.com/image.png).\n\nSecond paragraph.'
+      'Current **task** with [link](https://example.com) and ![image](https://example.com/image.png).\n\nSecond paragraph with [another link](https://example.com/second).'
     const writeClipboardText = vi.fn(async () => {})
     vi.stubGlobal('api', { ui: { writeClipboardText } })
     navigation.rpc.mockRejectedValue(new Error('unreachable'))
@@ -275,10 +273,26 @@ it.each(['task', 'mail'] as const)(
       height = 120
       resize()
     })
-    expect(screen.getByRole('button', { name: 'Show more' })).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    )
+    const more = screen.getByRole('button', { name: 'Show more' })
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    const clip = document.getElementById(more.getAttribute('aria-controls')!)!
+    const first = screen.getByRole('link', { name: 'link' })
+    const second = screen.getByRole('link', { name: 'another link' })
+    const documentFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(true)
+    first.focus()
+    clip.scrollTop = 74
+    second.focus()
+    expect(second).toHaveFocus()
+    expect(clip.scrollTop).toBe(74)
+    documentFocus.mockReturnValue(false)
+    second.blur()
+    expect(clip.scrollTop).toBe(74)
+    documentFocus.mockReturnValue(true)
+    second.focus()
+    more.focus()
+    expect(more).toHaveFocus()
+    expect(clip.scrollTop).toBe(0)
+    expect(more).toHaveAttribute('aria-expanded', 'false')
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Copy message' })))
     expect(writeClipboardText).toHaveBeenCalledWith(text)
     expect(nativeChatSlotCopyText(slots(message), message.id)).toBe(text)
@@ -367,44 +381,6 @@ it.each(['task', 'mail'] as const)(
   }
 )
 
-it('restores folded prose on focus exit while preserving internal focus and document deactivation', () => {
-  height = 120
-  const documentFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(true)
-  render(
-    card({
-      id: 'fold-focus',
-      role: 'user',
-      source: 'transcript',
-      timestamp: 1,
-      from,
-      blocks: [
-        {
-          type: 'text',
-          text: 'Opening prose with [First link](https://example.com/first).\n\nBelow the fold [Second link](https://example.com/second).'
-        }
-      ]
-    })
-  )
-  const more = screen.getByRole('button', { name: 'Show more' })
-  const clip = document.getElementById(more.getAttribute('aria-controls')!)!
-  const first = screen.getByRole('link', { name: 'First link' })
-  const second = screen.getByRole('link', { name: 'Second link' })
-  first.focus()
-  clip.scrollTop = 74
-  second.focus()
-  expect(second).toHaveFocus()
-  expect(clip.scrollTop).toBe(74)
-  documentFocus.mockReturnValue(false)
-  second.blur()
-  expect(clip.scrollTop).toBe(74)
-  documentFocus.mockReturnValue(true)
-  second.focus()
-  more.focus()
-  expect(more).toHaveFocus()
-  expect(clip.scrollTop).toBe(0)
-  expect(more).toHaveAttribute('aria-expanded', 'false')
-})
-
 it.each([100, 1000])(
   'shares actual row acquisition and isolates selected progress across %i cards',
   (n) => {
@@ -482,6 +458,7 @@ it.each([100, 1000])(
 )
 
 it('keeps other hosts isolated, retains completed senders, and releases disconnected subscriptions', () => {
+  const create = vi.spyOn(cache, 'createWorktreeAgentRowsCache')
   const baseline = readStoreListenerCount()
   expect(baseline).not.toBeNull()
   const other = status(9, 'remote')
@@ -505,6 +482,13 @@ it('keeps other hosts isolated, retains completed senders, and releases disconne
     </>
   )
   expect(readStoreListenerCount()).toBeGreaterThan(baseline!)
+  const leased = create.mock.results.flatMap((result) =>
+    result.type === 'return' && result.value.byWorktree.size ? [result.value] : []
+  )
+  expect(leased.flatMap((value) => [...value.byWorktree.keys()]).sort()).toEqual([
+    'remote',
+    'workspace'
+  ])
   const before = new Map(renders)
   write(9, { state: 'waiting' })
   expect(views.get(9)?.dot).toBe('waiting')
@@ -516,6 +500,9 @@ it('keeps other hosts isolated, retains completed senders, and releases disconne
   })
   expect(views.get(0)).toEqual({ agentType: 'codex', dot: 'permission', progress: 60 })
   expect(renders.get(9)).toBe(before.get(9)! + 1)
+  for (const value of leased) {
+    expect(value.lastComputedWorktreeIds.length).toBeLessThanOrEqual(1)
+  }
   const entry = { ...status(0), state: 'done' as const }
   act(() =>
     useAppStore.setState({
@@ -552,9 +539,14 @@ it('keeps other hosts isolated, retains completed senders, and releases disconne
   act(() => useAppStore.setState({ activeWorkspaceExecutionHostId: 'local' }))
   expect(views.get(0)?.dot).toBe('done')
   const disconnected = new Map(renders)
+  const constructions = create.mock.calls.length
   act(() => useAppStore.setState({ sidebarBody: 'agents' }))
   expect(renders).toEqual(disconnected)
+  expect(create).toHaveBeenCalledTimes(constructions)
   mounted.unmount()
+  for (const value of leased) {
+    expect(value.byWorktree.size).toBe(0)
+  }
   expect(readStoreListenerCount()).toBe(baseline)
   render(<Probe id={0} />)
   expect(views.get(0)?.dot).toBe('done')
@@ -588,4 +580,33 @@ it('uses the child row own glyph even when its parent program needs permission',
   expect(value?.progress).toBeUndefined()
   expect(screen.queryByRole('progressbar')).toBeNull()
   expect(screen.getByLabelText('Working')).toBeDefined()
+})
+
+it('refuses a target-less ambiguous workspace twin while an explicit local target resolves', () => {
+  const workspace = `${TEST_REPO.id}::/w`
+  const entry = status(0, workspace)
+  useAppStore.setState({
+    repos: [TEST_REPO],
+    activeWorktreeId: 'different',
+    activeWorkspaceExecutionHostId: 'local',
+    detectedWorktreesByRepo: {},
+    worktreesByRepo: {
+      [TEST_REPO.id]: [
+        makeWorktree({ id: workspace, repoId: TEST_REPO.id, hostId: 'local' }),
+        makeWorktree({ id: workspace, repoId: TEST_REPO.id, hostId: 'runtime:e' })
+      ]
+    },
+    tabsByWorktree: { [workspace]: [makeTab({ id: 'tab-0', worktreeId: workspace })] },
+    agentStatusByPaneKey: { [entry.paneKey]: entry }
+  })
+  const state = useAppStore.getState()
+  expect(getKnownExecutionHostIdForWorktree(state, workspace)).toBe('local')
+  expect(resolveStructuredAgentSessionOwner(state, workspace)).toBeNull()
+  const view = renderHook(() => useAgentMessageSenderView(from.senders[0], workspace))
+  expect(view.result.current).toEqual({})
+  view.unmount()
+  const explicit = renderHook(() =>
+    useAgentMessageSenderView(from.senders[0], workspace, { kind: 'local' })
+  )
+  expect(explicit.result.current.dot).toBe('working')
 })
