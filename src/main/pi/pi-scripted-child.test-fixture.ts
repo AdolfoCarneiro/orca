@@ -133,6 +133,10 @@ class ScriptedPiConnection implements PiRpcConnection {
     }
   }
 
+  setNativeEffort(level: string): void {
+    this.effort = level
+  }
+
   releaseHandshake(): void {
     if (!this.closed) {
       this.handshake.resolve(this.state())
@@ -219,6 +223,7 @@ export type ScriptedPiChild = ScriptedAgentChild & {
   wire(): readonly string[]
   inputs(): readonly { command: string; params: Record<string, unknown> }[]
   signIn(): void
+  setNativeEffort(level: string): void
 }
 
 export const piScriptedChild = (options: PiScriptOptions = {}): ScriptedPiChild => {
@@ -285,6 +290,7 @@ export const piScriptedChild = (options: PiScriptOptions = {}): ScriptedPiChild 
     closes: () => closed,
     wire: () => wire,
     inputs: () => inputs,
+    setNativeEffort: (level) => children.at(-1)?.setNativeEffort(level),
     signIn: () => {
       signedOut = false
     }

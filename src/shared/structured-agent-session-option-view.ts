@@ -11,11 +11,6 @@ import {
   structuredAgentSessionModelId,
   structuredAgentSessionOwnValue
 } from './structured-agent-session-option-state'
-import {
-  catalogEffortLevels,
-  effectiveAgentEffort
-} from './structured-agent-session-effective-effort'
-import { structuredAgentSessionDescribedModel } from './structured-agent-session-option-snapshot'
 import { AGENT_CHAT_PERMISSION_MODE_OPTION_ID } from './agent-chat-permission-mode'
 
 function catalogListsSeedModel(
@@ -91,13 +86,7 @@ function modelOptionView(
     record: cloneStructuredAgentSessionOptionRecord(state.record)
   }
   if (seeded) {
-    const model = seed.model ? structuredAgentSessionDescribedModel(state, seed.model) : undefined
-    const effort = effectiveAgentEffort(
-      seed.effort,
-      model && catalogEffortLevels(model.options),
-      'nearest'
-    )
-    view = commitStructuredAgentSessionOptionValues(view, effort ? { ...seed, effort } : seed)
+    view = commitStructuredAgentSessionOptionValues(view, seed)
   }
   return { ...commitStructuredAgentSessionOptionValues(view, held), pendingId: state.pendingId }
 }

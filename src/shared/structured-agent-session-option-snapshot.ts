@@ -92,7 +92,13 @@ function valuesUnderControls(
 ): Readonly<Record<string, TrackedNativeChatSessionOption>> {
   const tier = values.serviceTier?.value
   const control = controls.find((option) => option.id === 'serviceTier')
-  if (typeof tier !== 'string' || !control || (olderHost && tier === 'flex')) {
+  if (
+    typeof tier !== 'string' ||
+    !control ||
+    values.serviceTier?.source === 'applied' ||
+    values.model?.source === 'default' ||
+    (olderHost && tier === 'flex')
+  ) {
     return values
   }
   const effective = effectiveServiceTier({
@@ -138,11 +144,7 @@ function drawnModelControls(state: StructuredAgentSessionOptionState) {
     typeof requested?.value === 'string' &&
     requested.source !== 'reported'
   ) {
-    const effort = effectiveAgentEffort(
-      requested.value,
-      catalogEffortLevels(controls),
-      'higher-first'
-    )
+    const effort = effectiveAgentEffort(requested.value, catalogEffortLevels(controls))
     if (effort && effort !== requested.value) {
       values = { ...values, effort: { ...requested, value: effort } }
     }
@@ -209,8 +211,8 @@ export function structuredAgentSessionOptionSnapshot(
 ): SessionOptionDescriptor[] {
   const permission = structuredAgentSessionPermissionDescriptor(state)
   const options = modelOptionSnapshot(state).map((option) =>
-    (state.listingInProgress && ['effort', 'serviceTier', 'fastMode'].includes(option.id)) ||
-    (state.fastModeRestricted && option.id === 'fastMode')
+    (state.fastModeRestricted && option.id === 'fastMode') ||
+    (state.listingInProgress && ['effort', 'serviceTier', 'fastMode'].includes(option.id))
       ? { ...option, settable: false }
       : option
   )
@@ -233,16 +235,28 @@ export function canSetStructuredAgentSessionOption(
   state: StructuredAgentSessionOptionState,
   id: string,
   value: SessionOptionValue,
-  snapshot = structuredAgentSessionOptionSnapshot(state)
+  snapshot = structuredAgentSessionOptionSnapshot(state),
+  interactionReady = true
 ): boolean {
-  const descriptor = snapshot.find((entry) => entry.id === id)
-  return Boolean(
-    state.catalog &&
-    descriptor?.settable &&
-    state.pendingId !== id &&
-    ((typeof value === 'string' &&
-      descriptor?.kind.type === 'select' &&
-      descriptor.kind.choices.some((choice) => choice.value === value)) ||
-      (typeof value === 'boolean' && descriptor?.kind.type === 'boolean'))
+  if (
+    !interactionReady ||
+    state.pendingId === id ||
+    (id === 'fastMode' && state.fastModeRestricted)
+  ) {
+    return false
+  }
+  if (id === 'permissionMode') {
+    const descriptor = snapshot.find((entry) => entry.id === id)
+    return (
+      descriptor?.settable === true &&
+      descriptor.kind.type === 'select' &&
+      descriptor.kind.choices.some((choice) => choice.value === value)
+    )
+  }
+  return (
+    (['model', 'effort', 'serviceTier', 'personality'].includes(id) &&
+      typeof value === 'string' &&
+      value.length > 0) ||
+    (id === 'fastMode' && typeof value === 'boolean')
   )
 }

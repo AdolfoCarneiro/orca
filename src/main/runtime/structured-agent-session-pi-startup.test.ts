@@ -14,6 +14,13 @@ import { structuredAgentSessionResumeParams } from '../native-chat/agent-session
 import type { OrcaRuntimeService } from './orca-runtime'
 import { prepareStructuredAgentSessionCreateForWorktree } from './rpc/methods/structured-agent-session-create'
 import type { AgentSessionModelOption } from '../../shared/agent-session-wire'
+import { structuredAgentSessionSeedCatalog } from '../../shared/structured-agent-session-seed-catalog'
+import {
+  applyStructuredAgentSessionModelCatalog,
+  applyStructuredAgentSessionOptions,
+  createStructuredAgentSessionOptionState
+} from '../../shared/structured-agent-session-options'
+import { structuredAgentSessionShownSnapshot } from '../../shared/structured-agent-session-option-view'
 import { readPiRpcModelOptions } from '../pi/rpc-options'
 import { piScriptedChild } from '../pi/pi-scripted-child.test-fixture'
 import { peekOpenedAgentSessionRecordStore } from './agent-session-record-store-slot'
@@ -166,10 +173,13 @@ it('attaches Pi at spawn and holds the opening send until the provider answers i
   await vi.waitFor(() => expect(script.prompts()).toEqual(['hello while Pi is starting']))
   await vi.waitFor(() =>
     expect(peekOpenedAgentSessionRecordStore()?.getRecord(HOST_TEST_SESSION)?.options).toEqual({
-      model: 'scripted/model-1',
-      effort: 'medium'
+      model: 'scripted/model-1'
     })
   )
+  await expect(host.readOptions(HOST_TEST_SESSION)).resolves.toMatchObject({
+    current: { model: 'scripted/model-1', effort: 'medium' }
+  })
+  expect(script.wire()).not.toContain('set_thinking_level')
   await stopStructuredAgentSessionRuntime()
   expect(script.closes()).toBe(1)
 })
@@ -246,7 +256,20 @@ it('ends Pi on Stop and resumes its real session file when the next send starts 
   )
 })
 
-const gpt5 = { provider: 'openai', id: 'gpt-5', reasoning: true, thinkingLevelMap: { off: null } }
+const gpt5 = {
+  provider: 'openai-codex',
+  id: 'gpt-6.1-sol',
+  reasoning: true,
+  thinkingLevelMap: {
+    off: null,
+    minimal: 'low',
+    low: 'low',
+    medium: 'medium',
+    high: 'high',
+    xhigh: 'xhigh',
+    max: 'max'
+  }
+}
 const stateInputs = (script: ReturnType<typeof piScriptedChild>) =>
   script.inputs().filter(({ command }) => command.startsWith('set_') || command === 'prompt')
 const sendText = (
@@ -258,31 +281,55 @@ const sendText = (
   return host.send(caller, { envelope: envelope('agentSession.send', { body }), body })
 }
 
-it('prepares a remembered seed before create-first-message, while explicit off still fails strict admission', async () => {
+function displayed(
+  answer: Awaited<ReturnType<Awaited<ReturnType<typeof setup>>['host']['readOptions']>>
+) {
+  const seed = structuredAgentSessionSeedCatalog('pi')
+  return structuredAgentSessionShownSnapshot(
+    applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('pi', seed),
+      seed,
+      answer
+    )
+  ).find((entry) => entry.id === 'effort')
+}
+
+it('keeps remembered and explicit raw off through create while native application is minimal', async () => {
   const models = await readPiRpcModelOptions({ request: async () => ({ models: [gpt5] }) })
   const h = await setup({
     create: true,
-    seed: { model: 'openai/gpt-5', effort: 'off' },
+    seed: { model: 'openai-codex/gpt-6.1-sol', effort: 'off' },
     catalog: models,
     native: { model: gpt5, appliedEfforts: { off: 'minimal' } },
     firstMessage: 'new seed'
   })
-  expect(h.params.options).toEqual({ model: 'openai/gpt-5', effort: 'minimal' })
+  expect(h.params.options).toEqual({ model: 'openai-codex/gpt-6.1-sol', effort: 'off' })
+  expect(displayed(await h.host.readOptions(HOST_TEST_SESSION))).toMatchObject({
+    kind: { currentValue: 'minimal', choices: models[0]!.efforts }
+  })
+  expect(models[0]!.efforts.map(({ value }) => value)).toEqual([
+    'minimal',
+    'low',
+    'medium',
+    'high',
+    'xhigh',
+    'max'
+  ])
   await vi.waitFor(() => expect(h.script.spawns()).toBe(1))
   h.script.releaseHandshake()
   await vi.waitFor(() => expect(h.script.prompts()).toEqual(['new seed']))
   expect(stateInputs(h.script)).toMatchObject([
-    { command: 'set_thinking_level', params: { level: 'minimal' } },
+    { command: 'set_model', params: { provider: 'openai-codex', modelId: 'gpt-6.1-sol' } },
+    { command: 'set_thinking_level', params: { level: 'off' } },
     { command: 'prompt', params: { message: 'new seed', effort: 'minimal' } }
   ])
   const explicit = {
     ...h.params,
-    options: { model: 'openai/gpt-5', effort: 'off' },
+    options: { model: 'openai-codex/gpt-6.1-sol', effort: 'off' },
     envelope: { ...h.params.envelope, sessionId: 'explicit-off', clientOperationId: operationId() }
   }
   expect(await h.host.create(h.caller, explicit, { catalogModels: models })).toMatchObject({
-    ok: false,
-    refusal: { code: 'agent_session_operation_invalid' }
+    ok: true
   })
 })
 
@@ -291,7 +338,7 @@ it('restores blank raw intent through start/capture and preserves an accepted hi
   const models = await readPiRpcModelOptions({ request: async () => ({ models: [gpt5] }) })
   const h = await setup({
     create: true,
-    seed: { model: 'openai/gpt-5', effort: 'minimal' },
+    seed: { model: 'openai-codex/gpt-6.1-sol', effort: 'minimal' },
     catalog: models,
     native: { model: gpt5, appliedEfforts: { off: 'minimal' } }
   })
@@ -299,10 +346,12 @@ it('restores blank raw intent through start/capture and preserves an accepted hi
   await store.replaceSessionOptions({
     sessionId: HOST_TEST_SESSION,
     fence: h.fence,
-    options: { model: 'openai/gpt-5', effort: 'off' },
+    options: { model: 'openai-codex/gpt-6.1-sol', effort: 'off' },
     now: HOST_TEST_NOW
   })
-  expect((await h.host.readOptions(HOST_TEST_SESSION)).current.effort).toBe('minimal')
+  const resting = await h.host.readOptions(HOST_TEST_SESSION)
+  expect(resting.current.effort).toBe('off')
+  expect(displayed(resting)).toMatchObject({ kind: { currentValue: 'minimal' } })
   expect(store.getRecord(HOST_TEST_SESSION)?.options?.effort).toBe('off')
   const resume = structuredAgentSessionResumeParams(
     store.getRecord(HOST_TEST_SESSION)!,
@@ -317,6 +366,7 @@ it('restores blank raw intent through start/capture and preserves an accepted hi
   expect((await sendText(h.host, h.caller, 'restored blank')).ok).toBe(true)
   await vi.waitFor(() => expect(h.script.prompts()).toEqual(['restored blank']))
   expect(stateInputs(h.script)).toMatchObject([
+    { command: 'set_model', params: { provider: 'openai-codex', modelId: 'gpt-6.1-sol' } },
     { command: 'set_thinking_level', params: { level: 'off' } },
     { command: 'prompt', params: { message: 'restored blank', effort: 'minimal' } }
   ])
@@ -325,10 +375,48 @@ it('restores blank raw intent through start/capture and preserves an accepted hi
     fetchedAt: 2,
     models: [{ ...models[0]!, efforts: [{ value: 'off', label: 'Off' }] }]
   })
-  expect((await h.host.readOptions(HOST_TEST_SESSION)).current).toMatchObject({
-    effort: 'minimal',
-    confirmed: expect.arrayContaining(['effort'])
+  await vi.waitFor(async () =>
+    expect((await h.host.readOptions(HOST_TEST_SESSION)).current).toMatchObject({
+      effort: 'minimal',
+      confirmed: expect.arrayContaining(['effort'])
+    })
+  )
+  h.script.setNativeEffort('low')
+  expect((await sendText(h.host, h.caller, 'same raw off')).ok).toBe(true)
+  await vi.waitFor(async () =>
+    expect((await h.host.readOptions(HOST_TEST_SESSION)).current).toMatchObject({
+      effort: 'low',
+      confirmed: expect.arrayContaining(['effort'])
+    })
+  )
+  expect(stateInputs(h.script).at(-1)).toMatchObject({
+    command: 'prompt',
+    params: { effort: 'low' }
   })
+  expect(
+    stateInputs(h.script).filter(({ command }) => command === 'set_thinking_level')
+  ).toHaveLength(1)
+  const actual = await h.host.readOptions(HOST_TEST_SESSION)
+  const seed = structuredAgentSessionSeedCatalog('pi')
+  const actualState = applyStructuredAgentSessionOptions(
+    createStructuredAgentSessionOptionState('pi', seed),
+    seed,
+    actual
+  )
+  const late = applyStructuredAgentSessionModelCatalog(
+    actualState,
+    seed,
+    {
+      origin: 'probe',
+      fetchedAt: 3,
+      models: [{ ...models[0]!, efforts: [{ value: 'minimal', label: 'Minimal' }] }]
+    },
+    { newLaunch: false, coherentCatalog: true }
+  )
+  expect(
+    structuredAgentSessionShownSnapshot(late).find((entry) => entry.id === 'effort')
+  ).toMatchObject({ kind: { currentValue: 'low' } })
+  expect(store.getRecord(HOST_TEST_SESSION)?.options?.effort).toBe('off')
   expect(
     (
       await h.host.setOption(h.caller, {
@@ -340,42 +428,55 @@ it('restores blank raw intent through start/capture and preserves an accepted hi
   ).toBe(true)
   const future = await h.host.readOptions(HOST_TEST_SESSION)
   expect(future.current.effort).toBe('high')
+  expect(displayed(future)).toMatchObject({ kind: { currentValue: 'high' } })
   expect(future.current.confirmed).not.toContain('effort')
   expect((await sendText(h.host, h.caller, 'accepted high')).ok).toBe(true)
-  await vi.waitFor(() => expect(h.script.prompts()).toHaveLength(2))
+  await vi.waitFor(() => expect(h.script.prompts()).toHaveLength(3))
   expect(stateInputs(h.script).slice(-2)).toMatchObject([
     { command: 'set_thinking_level', params: { level: 'high' } },
     { command: 'prompt', params: { effort: 'high' } }
   ])
 })
 
-it('separates gapped seed nearest from opaque/frozen native application at the actual dispatch input', async () => {
+it('displays native gapped support and dispatches raw medium for seed and existing-record input', async () => {
   const model = { ...gpt5, thinkingLevelMap: { medium: null, high: null, xhigh: 'xhigh' } }
   const models = await readPiRpcModelOptions({ request: async () => ({ models: [model] }) })
   const h = await setup({
     create: true,
-    seed: { model: 'openai/gpt-5', effort: 'medium' },
+    seed: { model: 'openai-codex/gpt-6.1-sol', effort: 'medium' },
     catalog: models,
     native: { model, appliedEfforts: { medium: 'xhigh' } },
-    firstMessage: 'nearest seed'
+    firstMessage: 'raw seed'
   })
-  expect(h.params.options?.effort).toBe('low')
+  expect(h.params.options?.effort).toBe('medium')
+  expect(displayed(await h.host.readOptions(HOST_TEST_SESSION))).toMatchObject({
+    kind: { currentValue: 'xhigh' }
+  })
   await vi.waitFor(() => expect(h.script.spawns()).toBe(1))
   h.script.releaseHandshake()
   await vi.waitFor(() => expect(h.script.prompts()).toHaveLength(1))
-  expect(stateInputs(h.script).at(-1)?.params.effort).toBe('low')
+  expect(stateInputs(h.script)).toMatchObject([
+    { command: 'set_model', params: { provider: 'openai-codex', modelId: 'gpt-6.1-sol' } },
+    { command: 'set_thinking_level', params: { level: 'medium' } },
+    { command: 'prompt', params: { effort: 'xhigh' } }
+  ])
   const store = peekOpenedAgentSessionRecordStore()!
   await store.replaceSessionOptions({
     sessionId: HOST_TEST_SESSION,
     fence: store.getRecord(HOST_TEST_SESSION)!.lease.runtimeFence,
-    options: { model: 'openai/gpt-5', effort: 'medium' },
+    options: { model: 'openai-codex/gpt-6.1-sol', effort: 'medium' },
     now: HOST_TEST_NOW
   })
-  expect((await h.host.readOptions(HOST_TEST_SESSION)).current.effort).toBe('xhigh')
+  expect(displayed(await h.host.readOptions(HOST_TEST_SESSION))).toMatchObject({
+    kind: { currentValue: 'xhigh' }
+  })
   expect((await sendText(h.host, h.caller, 'opaque medium')).ok).toBe(true)
   await vi.waitFor(() => expect(h.script.prompts()).toHaveLength(2))
-  expect(stateInputs(h.script).slice(-2)).toMatchObject([
-    { command: 'set_thinking_level', params: { level: 'medium' } },
-    { command: 'prompt', params: { effort: 'xhigh' } }
-  ])
+  expect(stateInputs(h.script).at(-1)).toMatchObject({
+    command: 'prompt',
+    params: { effort: 'xhigh' }
+  })
+  expect(
+    stateInputs(h.script).filter(({ command }) => command === 'set_thinking_level')
+  ).toHaveLength(1)
 })

@@ -28,6 +28,11 @@ vi.mock('@/lib/structured-agent-session-launch-options', () => ({
   getStructuredAgentSessionLaunchSelection: () => null
 }))
 
+import {
+  piOptionRefreshContract,
+  type PiRefreshMount
+} from '../../../../main/native-chat/agent-session-wire/structured-agent-session-option-refresh.test-fixture'
+
 import type { SessionOptionDescriptor } from '../../../../shared/native-chat/input/native-chat-session-options'
 import type { StructuredAgentSessionMutate } from './use-structured-agent-session-mutate'
 import { useStructuredAgentSessionOptions } from './use-structured-agent-session-options'
@@ -80,7 +85,8 @@ type RenderProps = {
   launchSeedOptions?: Record<string, string>
   heldOptions?: Record<string, string>
   worktree?: string
-  agent?: 'claude' | 'codex'
+  agent?: 'claude' | 'codex' | 'pi'
+  sessionId?: string
   providerStarting?: boolean
   paired?: boolean
 }
@@ -96,7 +102,7 @@ function renderOptions(initial: RenderProps, mutate: StructuredAgentSessionMutat
     (props: RenderProps) =>
       useStructuredAgentSessionOptions({
         agent: props.agent ?? 'codex',
-        sessionId: 'session-1',
+        sessionId: props.sessionId ?? 'session-1',
         target: props.paired ? PAIRED_TARGET : LOCAL_TARGET,
         transportEnabled: props.transportEnabled,
         isVisible: !props.hidden,
@@ -318,12 +324,7 @@ describe('useStructuredAgentSessionOptions', () => {
         accepted = await result.current.setStructuredOption('model', 'gpt-5.6-luna')
       })
       expect(accepted).toBe(true)
-      expect(mocks.hold).toHaveBeenCalledWith(
-        'session-1',
-        'model',
-        'gpt-5.6-luna',
-        expect.anything()
-      )
+      expect(mocks.hold).toHaveBeenCalledWith('session-1', 'model', 'gpt-5.6-luna')
       rerender({ ...PROVISIONAL, launchSeedOptions: SEED, heldOptions: { model: 'gpt-5.6-luna' } })
       expect(currentValue(result.current.optionSnapshot, 'model')).toBe('gpt-5.6-luna')
       expect(descriptor(result.current.optionSnapshot, 'model')?.valueSource).toBe('dispatched')
@@ -629,7 +630,7 @@ describe('useStructuredAgentSessionOptions', () => {
       await act(async () => {
         await result.current.setStructuredOption('model', 'gpt-hosted')
       })
-      expect(mocks.hold).toHaveBeenCalledWith('session-1', 'model', 'gpt-hosted', expect.anything())
+      expect(mocks.hold).toHaveBeenCalledWith('session-1', 'model', 'gpt-hosted')
       unmount()
     })
 
@@ -771,6 +772,69 @@ describe('useStructuredAgentSessionOptions', () => {
       )
       expect(result.current.acceptsImages).toBe(acceptsImages)
       unmount()
+    }
+  )
+})
+
+describe('Pi catalog refresh completion', () => {
+  beforeEach(() => {
+    mocks.call.mockReset()
+    mocks.enqueue.mockReset()
+    mocks.hold.mockReset()
+    resetHostModelCatalogSnapshotsForTests()
+  })
+
+  const hosts = new Map<string, Parameters<PiRefreshMount>[0]>()
+  piOptionRefreshContract(
+    async (host) => {
+      hosts.set(host.record.sessionId, host)
+      mocks.call.mockImplementation(
+        (_target: unknown, method: string, params: { sessionId?: string }) => {
+          const current = params?.sessionId ? hosts.get(params.sessionId) : undefined
+          if (method === 'agentSession.options' && current) {
+            return current.options()
+          }
+          if (method === 'agentSession.modelCatalog' && current) {
+            return current.catalog()
+          }
+          return new Promise(() => {})
+        }
+      )
+      const { mutate } = mutateWith(async (_method, _fingerprint, fields) => {
+        if (
+          typeof fields !== 'object' ||
+          fields === null ||
+          !('value' in fields) ||
+          typeof fields.value !== 'string'
+        ) {
+          throw new Error('missing effort')
+        }
+        return host.acceptEffort(fields.value)
+      })
+      const props: RenderProps = { ...REOPENED, agent: 'pi', sessionId: host.record.sessionId }
+      const harness = renderOptions(props, mutate)
+      await act(async () => {
+        await Promise.resolve()
+      })
+      return {
+        snapshot: () => harness.result.current.optionSnapshot,
+        demand: () => harness.result.current.optionSurface.demandModelCatalog?.(),
+        pick: (value) => harness.result.current.setStructuredOption('effort', value),
+        replace: async (fence, otherHost) => {
+          await act(async () => harness.rerender({ ...props, fence, paired: otherHost }))
+        },
+        close: async () => {
+          harness.unmount()
+          hosts.delete(host.record.sessionId)
+        }
+      }
+    },
+    async (work) => {
+      await act(async () => {
+        work()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
     }
   )
 })

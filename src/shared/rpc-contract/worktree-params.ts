@@ -70,7 +70,9 @@ export const WorktreeTeardownMissingTerminalsParams = WorktreeDetectedListParams
 export const WorktreePsParams = z.object({
   limit: OptionalFiniteNumber,
   afterSnapshotId: z.string().min(1).max(128).nullable().optional(),
-  supportsWorktreeVisibilitySourceDefaults: z.literal(true).optional()
+  supportsWorktreeVisibilitySourceDefaults: z.literal(true).optional(),
+  // Opt-in: wait lookups read screens and probe PTYs, too costly for pollers; older hosts omit agentWait.
+  includeAgentWait: z.literal(true).optional()
 })
 
 export const WorktreeSortOrder = z.object({
@@ -159,6 +161,8 @@ export const WorktreeSet = WorktreeSelector.extend({
     .optional(),
   // Older clients may send unsupported review shapes alongside unrelated metadata edits.
   diffComments: z.array(DiffCommentSchema).optional().catch(undefined),
+  // The list the writer started from; the host applies only its changes so other devices' notes survive.
+  diffCommentsBase: z.array(DiffCommentSchema).optional().catch(undefined),
   mobileDiffReview: MobileDiffReviewSchema.optional().catch(undefined),
   parentWorktree: OptionalString,
   noParent: OptionalBoolean
@@ -179,7 +183,9 @@ export const WorktreeRemove = WorktreeSelector.extend({
   allowUnverifiedPtyStop: OptionalBoolean,
   runHooks: OptionalBoolean,
   // Waive failed-hook refusal explicitly and record it; independent of force and whether hooks run (#19334).
-  allowFailedArchiveHook: OptionalBoolean
+  allowFailedArchiveHook: OptionalBoolean,
+  // Reply with Git's outcome instead of on acceptance; older hosts strip it and answer `removing: true` (#35135).
+  waitForBackgroundRemoval: OptionalBoolean
 })
 
 export const WorktreeForceDeleteBranch = WorktreeSelector.extend({

@@ -79,32 +79,37 @@ describe('a launch that adopts a conversation is its own identity', () => {
     })
   })
 
-  it('keeps held Pi model/effort as strict first-message identity despite supported drawing', async () => {
-    recordHostModelCatalogSnapshot({ kind: 'local' }, 'pi', null, {
-      origin: 'probe',
-      fetchedAt: 1,
-      models: [
-        {
-          id: 'openai/gpt-5',
-          label: 'GPT-5',
-          isDefault: false,
-          efforts: ['minimal', 'high'].map((value) => ({ value, label: value }))
-        }
-      ]
-    })
-    const launch = startStructuredAgentLaunch('held-pi', 'pi', {
-      requestId: 'held-pi-1',
-      prompt: 'opening text'
-    })
-    holdStructuredAgentSessionLaunchOption(launch.sessionId, 'model', 'openai/gpt-5')
-    holdStructuredAgentSessionLaunchOption(launch.sessionId, 'effort', 'off')
-    await flushLaunchDispatch()
-    await vi.waitFor(() => expect(createParams()).toHaveLength(1))
-    expect(createParams()[0]?.firstMessage?.body.blocks).toEqual([
-      { type: 'text', text: 'opening text' }
-    ])
-    expect(createParams()[0]?.options).toEqual({ model: 'openai/gpt-5', effort: 'off' })
-  })
+  it.each(['off', 'medium'])(
+    'keeps held Pi %s raw in first-message identity despite supported drawing',
+    async (effort) => {
+      recordHostModelCatalogSnapshot({ kind: 'local' }, 'pi', null, {
+        origin: 'probe',
+        fetchedAt: 1,
+        models: [
+          {
+            id: 'openai/gpt-5',
+            label: 'GPT-5',
+            isDefault: false,
+            efforts: ['off', 'minimal', 'low', 'xhigh']
+              .filter((value) => effort !== 'off' || value !== 'off')
+              .map((value) => ({ value, label: value }))
+          }
+        ]
+      })
+      const launch = startStructuredAgentLaunch(`held-pi-${effort}`, 'pi', {
+        requestId: `held-pi-${effort}`,
+        prompt: 'opening text'
+      })
+      holdStructuredAgentSessionLaunchOption(launch.sessionId, 'model', 'openai/gpt-5')
+      holdStructuredAgentSessionLaunchOption(launch.sessionId, 'effort', effort)
+      await flushLaunchDispatch()
+      await vi.waitFor(() => expect(createParams()).toHaveLength(1))
+      expect(createParams()[0]?.firstMessage?.body.blocks).toEqual([
+        { type: 'text', text: 'opening text' }
+      ])
+      expect(createParams()[0]?.options).toEqual({ model: 'openai/gpt-5', effort })
+    }
+  )
 
   it('does not hand a resume the blank launch already pending for the same worktree', async () => {
     // Joiners inherit existing intent and add prompt only; joining a blank launch would discard conversation adoption.

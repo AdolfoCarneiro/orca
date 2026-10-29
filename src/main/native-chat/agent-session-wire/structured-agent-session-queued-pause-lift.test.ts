@@ -108,6 +108,11 @@ describe("a Stop's queue pause", () => {
       drivesRecord: () => true,
       resolveAccountHome: async () => record.accountHome
     })
+    await catalog.prepareSaved?.({
+      agent: record.provider,
+      sessionId: HOST_TEST_SESSION,
+      inSessionWorkspace: true
+    })
     rig.host.deps.modelCatalog = catalog
     rig.host.deps.adapter.readOptions = async () => ({ models: [], current: {} })
     const key = agentModelCatalogFingerprintForRecord(record)
@@ -143,7 +148,7 @@ describe("a Stop's queue pause", () => {
       origin: 'probe' as const,
       complete: true
     }))
-    await catalogStore.refresh(key, record.provider, refresh, refresh)
+    await catalogStore.refresh(key, record.provider, refresh, () => true)
     expect(refresh).toHaveBeenCalledTimes(1)
     const refreshed = await rig.host.readOptions(HOST_TEST_SESSION)
     expect(

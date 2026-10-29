@@ -235,7 +235,7 @@ describe('Pi supported selection apart from saved intent', () => {
         kind: { currentValue: 'minimal', choices: row.efforts },
         settable: true
       })
-      expect(canSetStructuredAgentSessionOption(state, 'effort', 'off')).toBe(false)
+      expect(canSetStructuredAgentSessionOption(state, 'effort', 'off')).toBe(true)
       expect(canSetStructuredAgentSessionOption(state, 'effort', 'minimal')).toBe(true)
       expect(structuredAgentSessionSendSelection(state)).toBeUndefined()
     }
@@ -243,10 +243,10 @@ describe('Pi supported selection apart from saved intent', () => {
     expect(precise.record.values).toEqual({})
   })
 
-  it('keeps seed nearest and ordinary native policy distinct, and actual/unknown evidence honest', () => {
+  it('uses native policy for seeds and ordinary input, and keeps actual/unknown evidence honest', () => {
     const gapped = { ...row, efforts: levels('off', 'minimal', 'low', 'xhigh') }
     const state = install(fresh(), gapped.efforts)
-    expect(shown(state, { ...remembered, effort: 'medium' }, {})).toMatchObject({ effort: 'low' })
+    expect(shown(state, { ...remembered, effort: 'medium' }, {})).toMatchObject({ effort: 'xhigh' })
     const ordinary = applyStructuredAgentSessionOptions(state, seed, {
       models: [gapped],
       current: { ...remembered, effort: 'medium' }
