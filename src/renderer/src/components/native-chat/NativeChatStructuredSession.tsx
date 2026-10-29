@@ -230,7 +230,7 @@ export function NativeChatStructuredSession(
     availability: {
       unavailable: controller.unavailable,
       agent: props.agent,
-      agentLabel,
+      wslDistro: continuation.view.wslDistro,
       launchFailure: provisionalLaunch.lifecycle === 'failed' ? provisionalLaunch.failure : null,
       journalItems: controller.journalItems,
       submissions: controller.submissions,

@@ -5,6 +5,7 @@ import type { Session } from './session'
 import { SessionNotFoundError, type SessionInfo } from './types'
 import type { CreateOrAttachResult } from './terminal-host-create-contract'
 import type { TerminalHostOptions } from './terminal-host-options'
+import { recordTerminalHostSessionExit } from './terminal-host-session-exit'
 import { disposeTerminalHostSessions, killLiveSessionGroupsSync } from './terminal-host-disposal'
 import { getAliveTerminalHostSession } from './terminal-host-session-access'
 import { writeSessionInput } from './session-input-path'
@@ -19,14 +20,12 @@ import { createOrAttachTerminalSession } from './terminal-host-session-create'
 import { TerminalAttachCanceledError } from './daemon-errors'
 import { waitForTerminalAttachOperation } from './terminal-attach-cancellation'
 import { randomUUID } from 'node:crypto'
-import { pruneRetiredPtyIncarnations } from '../../shared/retired-pty-incarnations'
 import { TerminalHostInspection } from './terminal-host-inspection'
 export type { CreateOrAttachOptions, CreateOrAttachResult } from './terminal-host-create-contract'
 
 export type { TerminalHostOptions } from './terminal-host-options'
 
 const DEFAULT_MAX_TOMBSTONES = 1000
-const REMOTE_FOREGROUND_TOMBSTONE_RETENTION_MS = 2_000
 
 export class TerminalHost extends TerminalHostInspection {
   protected sessions = new Map<string, Session>()
@@ -190,15 +189,12 @@ export class TerminalHost extends TerminalHostInspection {
   }
 
   private handleSessionExit(sessionId: string, generation: string | undefined): void {
-    const session = this.sessions.get(sessionId)
-    if (session) {
-      pruneRetiredPtyIncarnations(this.retiredIncarnations)
-      this.retiredIncarnations.set(sessionId, {
-        incarnationId: session.incarnationId,
-        code: session.exitCode ?? 0,
-        expiresAt: Date.now() + REMOTE_FOREGROUND_TOMBSTONE_RETENTION_MS
-      })
-    }
+    recordTerminalHostSessionExit(
+      sessionId,
+      this.sessions.get(sessionId),
+      this.retiredIncarnations,
+      this.reportReadinessEvent
+    )
     this.agentSessionOwners.release(sessionId, generation)
     this.agentSessionGenerations.forget(sessionId, generation)
     this.reapSession(sessionId)

@@ -1,3 +1,4 @@
+import { agentLaunchFeatureRequirement } from '../agent-launch-feature-requirement'
 import { AgentLaunchTabClosedError } from '../../../../shared/agent-launch-tab-closed'
 import { computeAgentLaunchFingerprint } from '../../../../shared/agent-launch-operation'
 import type { AgentLaunchResult } from '../../../../shared/agent-launch-intent'
@@ -257,6 +258,7 @@ function runReplaySafeAgentLaunch(
 export const AGENT_LAUNCH_METHODS = [
   defineMethod({
     name: 'agent.launchReplay',
+    requires: agentLaunchFeatureRequirement,
     permission: 'workspace',
     params: AgentLaunchReplay,
     handler: async (params, context): Promise<AgentLaunchResult> => {
@@ -288,6 +290,7 @@ export const AGENT_LAUNCH_METHODS = [
   }),
   defineMethod({
     name: 'agent.launch',
+    requires: agentLaunchFeatureRequirement,
     permission: 'workspace',
     params: AgentLaunch,
     handler: async (params, context): Promise<AgentLaunchResult> => {

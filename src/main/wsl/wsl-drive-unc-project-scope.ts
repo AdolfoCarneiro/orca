@@ -10,7 +10,9 @@ import type { ProjectGroup } from '../../shared/project-group-types'
 import type { Repo } from '../../shared/repo-types'
 import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-path'
 import { rewriteWorktreeIdPath } from '../../shared/worktree/id'
-import { wslUncPathToLinux } from '../../shared/wsl-paths'
+import { wslUncDrivePathToWindows } from '../../shared/wsl-paths'
+
+export { wslUncDrivePathToWindows }
 import { wslMoveRepoPaths } from '../persistence/moving-wsl-projects/wsl-move-scope'
 import type { WindowsDriveMount } from '../runtime/wsl-guest-drive-mountinfo'
 import { wslUncPathIsWindowsDriveFolder } from './wsl-drive-unc-mounts'
@@ -24,6 +26,8 @@ export type WslDriveUncRefusal =
   | 'duplicate-windows-project'
   /** The distro's `/mnt/<letter>` folder is not that Windows drive, so the drive path is another folder. */
   | 'not-windows-drive-mount'
+  /** A folder of it nests with one of a refused project, whose paths would then be split. */
+  | 'overlaps-refused-project'
 
 export type WslDriveUncScope = {
   repoIds: string[]
@@ -35,18 +39,6 @@ type WslDriveUncScopeState = {
   repos: readonly Repo[]
   folderWorkspaces: readonly FolderWorkspace[]
   projectGroups: readonly ProjectGroup[]
-}
-
-/** `\\wsl.localhost\<distro>\mnt\c\x` → `C:\x`; null for any other path. */
-export function wslUncDrivePathToWindows(path: string, distro: string): string | null {
-  const linux = wslUncPathToLinux(path, distro)?.replace(/\\/g, '/')
-  // Windows folds the `/mnt/<drive>` part of a UNC path case-insensitively.
-  const match = linux?.match(/^\/mnt\/([a-z])(\/.*)?$/i)
-  if (!match) {
-    return null
-  }
-  const tail = (match[2] ?? '').replace(/\/+$/, '').replace(/\//g, '\\')
-  return `${match[1].toUpperCase()}:${tail || '\\'}`
 }
 
 export function collectWslDriveUncScope(
@@ -92,6 +84,7 @@ export function collectWslDriveUncScope(
       scope.repoIds.push(repo.id)
     }
   }
+  refuseOverlaps(scope, state.repos, distro)
   const hostState = { repos: [...state.repos], projectGroups: [...state.projectGroups] }
   // This row alone: another host may hold a folder workspace with the same id.
   const isLocal = (workspace: FolderWorkspace): boolean =>
@@ -124,6 +117,36 @@ export function collectWslDriveUncScope(
     }
   }
   return scope
+}
+
+/** A bare path is re-keyed by the folder it lies in, so nested projects must convert together. */
+function refuseOverlaps(scope: WslDriveUncScope, repos: readonly Repo[], distro: string): void {
+  // A duplicate's folder is the project it duplicates, so it never splits a converted folder.
+  const refusedIds = new Set(
+    scope.refused
+      .filter((entry) => entry.reason !== 'duplicate-windows-project')
+      .map((entry) => entry.id)
+  )
+  const comparable = (repo: Repo): string[] =>
+    wslMoveRepoPaths(repo).flatMap((path) => {
+      const drive = wslUncDrivePathToWindows(path, distro)
+      return drive ? [normalizeRuntimePathForComparison(drive)] : []
+    })
+  const refusedRoots = repos.filter((repo) => refusedIds.has(repo.id)).flatMap(comparable)
+  const nests = (left: string, right: string): boolean =>
+    left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`)
+  const overlapping = new Set(
+    repos
+      .filter((repo) => scope.repoIds.includes(repo.id))
+      .filter((repo) =>
+        comparable(repo).some((root) => refusedRoots.some((refused) => nests(root, refused)))
+      )
+      .map((repo) => repo.id)
+  )
+  scope.repoIds = scope.repoIds.filter((id) => !overlapping.has(id))
+  for (const id of overlapping) {
+    scope.refused.push({ kind: 'repo', id, reason: 'overlaps-refused-project' })
+  }
 }
 
 /** The worktree id a converted project's worktree gets: same repo id, drive path. */
