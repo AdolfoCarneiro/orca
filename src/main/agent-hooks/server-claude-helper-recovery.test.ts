@@ -30,6 +30,7 @@ afterEach(async () => {
 })
 const lines = (records: Record<string, unknown>[]) =>
   records.map((r) => `${JSON.stringify(r)}\n`).join('')
+// ast-grep-ignore: test-no-real-time-wait -- Real elapsed gaps separate hook R, provider K and restart S.
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 async function load(stream: string): Promise<Record<string, unknown>[]> {
   return (
@@ -135,10 +136,11 @@ async function setup(
     )
   }
   if (when === 'before-start') {
+    // ast-grep-ignore: test-no-real-time-wait -- Provider K must follow failed-hook R with real I/O.
     await pause(5)
     oldKill = { ...oldKill, timestamp: new Date(options.killAt ?? Date.now()).toISOString() }
     await appendFile(transcript, lines([oldKill]))
-    // Real elapsed time separates K from S; no Date.now/fake timer mock anywhere.
+    // ast-grep-ignore: test-no-real-time-wait -- Restart S must follow provider K without mocking host time.
     await pause(20)
   }
   options.beforeStart?.()

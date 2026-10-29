@@ -34,6 +34,7 @@ class DesktopProbe extends AgentHookServer {
 it.each(['desktop', 'relay'])(
   'keeps nested Claude and Muse scheduler keys isolated on %s',
   async (kind) => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-29T12:00:00Z'))
     const calls = vi.spyOn(AgentTranscriptPollScheduler.prototype, 'schedule')
     const clears = vi.spyOn(AgentTranscriptPollScheduler.prototype, 'clear')
     const desktop = new DesktopProbe()
