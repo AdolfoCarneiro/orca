@@ -29,7 +29,8 @@ import { installOrcadProcessErrorGuards } from './orcad-process-error-guards'
 import { orcadWsPortOptions } from './orcad-ws-port-policy'
 import { createOrcadStartupTiming } from './orcad-startup-timing'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
-import { placeUnshownLiveTerminalsBestEffort } from '../runtime/terminal/adoption/unshown-live-terminal-placement'
+import { restoreOrcadTerminalAuthority } from './orcad-restored-terminal-authority'
+import { installOrcadFeatureReadiness } from '../runtime/rpc/orcad-feature-readiness'
 
 export { parseArgs }
 
@@ -183,6 +184,8 @@ async function startOrcadRuntime(
     registerCleanup
   )
 
+  // Gates open where each phase finishes today; RPC starts after all of them (no behavior change).
+  const featureReadiness = installOrcadFeatureReadiness()
   const { createOrcadAccountServices } = await import('./orcad-account-services')
   const accountLaunch = createOrcadAccountServices({
     store: profileStore,
@@ -229,6 +232,7 @@ async function startOrcadRuntime(
   // Restore prior desktop-pushed account selection before automations or CLI launches.
   const { restoreOrcadHostAccountLaunchEnv } = await import('./orcad-host-account-launch-env-store')
   restoreOrcadHostAccountLaunchEnv(runtime, runtimeUserDataPath)
+  featureReadiness.open('accounts')
 
   const { installOrcadSessionSearchService } = await import('./orcad-session-search')
   sessionSearch = await installOrcadSessionSearchService({
@@ -236,6 +240,7 @@ async function startOrcadRuntime(
     getSettings: () => profileStore.getSettings()
   })
   getAppEnvironment().onWillQuit(() => sessionSearch?.dispose())
+  featureReadiness.open('sessionSearch')
 
   const { startAgentStateRulesLiveUpdates } =
     await import('../runtime/agent-state-rules/agent-state-rules-live-update')
@@ -271,11 +276,7 @@ async function startOrcadRuntime(
   // Recover browser/orchestration authority before clients attach to the runtime graph.
   runtime.rehydrateClientHostedBrowserPages()
 
-  await timed('orchestration', () => runtime.refreshRestoredOrchestrationAuthority())
-  await timed('reconcile-terminals', () => runtime.reconcileLegacyWorkerTerminals())
-  if (ORCA_LAYOUT_OWNER_IS_MAIN) {
-    await placeUnshownLiveTerminalsBestEffort(runtime)
-  }
+  await restoreOrcadTerminalAuthority(runtime, timed, featureReadiness)
   runtime.agentTransitions.seedRestoredRows()
   void runtime.sidebarFacts?.reconcileSortStampTiers(getLocalPtyProvider())
 
