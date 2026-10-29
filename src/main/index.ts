@@ -41,6 +41,10 @@ import { configureWslHostsGateFromDisk } from './wsl/wsl-host-gate-startup'
 import { ignoreInheritedWslHostsGateState } from '../shared/wsl-host-internal-gate'
 import { registerOrcaProtocolClient } from './startup/orca-protocol-registration'
 import { clearWindowsStdHandleInheritance } from './startup/windows-std-handle-inheritance'
+import { dropE2eSpawnLogOutsideE2e } from './startup/e2e-spawn-log-env'
+
+// Before anything spawns, so no daemon, PTY or agent inherits it outside e2e.
+dropE2eSpawnLogOutsideE2e()
 
 function openMainWindow(options: { revealOnDidFinishLoad?: boolean } = {}): BrowserWindow {
   return openMainWindowController(options)
