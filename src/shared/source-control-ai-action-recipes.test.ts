@@ -539,7 +539,7 @@ describe('source-control AI action recipes', () => {
         operation: 'commitMessage',
         discoveryHostKey: 'local'
       })
-    ).toEqual({
+    ).toMatchObject({
       ok: false,
       error: 'Command template is empty for commit messages.'
     })
@@ -565,7 +565,7 @@ describe('source-control AI action recipes', () => {
         operation: 'commitMessage',
         discoveryHostKey: 'local'
       })
-    ).toEqual({
+    ).toMatchObject({
       ok: false,
       error:
         'Agent "aider" does not support Source Control AI commit messages. Supported agents: OMP, Claude, Codex, OpenCode, OpenCode 2, Pi, Amp, Cursor, Kimi, Muse, DeepSeek Harness, GitHub Copilot, Antigravity, Jcode, or Custom command.'

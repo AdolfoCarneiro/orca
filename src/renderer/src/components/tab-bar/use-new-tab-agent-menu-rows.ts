@@ -1,5 +1,5 @@
-import type { NewTabAgentMenuModel } from './new-tab-agent-menu-model'
-export type { NewTabAgentMenuModel } from './new-tab-agent-menu-model'
+import type { AgentMenuRowsTarget, NewTabAgentMenuModel } from './new-tab-agent-menu-model'
+export type { AgentMenuRowsTarget, NewTabAgentMenuModel } from './new-tab-agent-menu-model'
 import { useSyncExternalStore } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import {
@@ -12,10 +12,10 @@ import { runtimeHostContactForEntry } from '../../../../shared/runtime-host-cont
 import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import { isNativeChatEnabled } from '../../../../shared/structured-native-chat-launch-route'
 import { useAppStore } from '@/store'
+import { useAgentPickerRefusedWake } from './use-agent-picker-refused-wake'
 import {
   buildAgentLaunchRouteInput,
-  workspaceKindForWorktreeId,
-  type ProspectiveWorkspace
+  workspaceKindForWorktreeId
 } from '@/lib/agent-launch-route-input'
 import { useHostStructuredAgentsVersion } from '@/lib/chat-provider-agents'
 import { structuredAgentSessionTargetForHost } from '@/runtime/structured-agent-session-owner'
@@ -57,26 +57,24 @@ function catalogUnlearned(
   )
 }
 
-/** A launch whose workspace may not exist yet, or that starts in a directory of its own. */
-export type AgentMenuRowsTarget = {
-  workspace: ProspectiveWorkspace
-  /** Only a terminal can start here, so chat rows say so instead of dropping the directory. */
-  launchCwd?: string | null
-}
-
 /** `detectionTarget` is the workspace's agent-inventory host, resolved by the caller. */
 export function useNewTabAgentMenuRows(
   target: string | AgentMenuRowsTarget,
   open: boolean,
-  detectionTarget: AgentDetectionTarget | undefined
+  detectionTarget: AgentDetectionTarget | undefined,
+  options?: AgentMenuObservationOptions
 ): NewTabAgentMenuModel {
-  return useAgentMenuObservation(target, open, detectionTarget).model
+  return useAgentMenuObservation(target, open, detectionTarget, options).model
 }
+
+/** `wakeOnOpen`: `open` is the user opening this picker, a user act that may start its WSL distro. */
+export type AgentMenuObservationOptions = { wakeOnOpen?: boolean }
 
 export function useAgentMenuObservation(
   target: string | AgentMenuRowsTarget | null,
   open: boolean,
-  detectionTarget: AgentDetectionTarget | undefined
+  detectionTarget: AgentDetectionTarget | undefined,
+  options?: AgentMenuObservationOptions
 ) {
   const worktreeId = typeof target === 'string' ? target : target?.workspace.worktreeId
   const launchCwd = typeof target === 'string' ? undefined : target?.launchCwd
@@ -87,6 +85,7 @@ export function useAgentMenuObservation(
   )
   // Why: acquiring while the workspace is shown means the first open already knows its agents.
   const acquired = useDetectedAgents(open || worktreeShown ? detectionTarget : undefined)
+  useAgentPickerRefusedWake(options?.wakeOnOpen === true && open, detectionTarget)
   // Closing the menu or leaving the workspace must not erase the known inventory.
   const storedIds = useAppStore((state) =>
     detectionTarget ? readDetectedAgentsForTarget(state, detectionTarget) : null

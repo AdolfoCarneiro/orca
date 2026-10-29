@@ -11,6 +11,7 @@ import type { ActionModelSelection, SourceControlActionRecipe } from './source-c
 
 import {
   actionArgumentChoicesValue,
+  lowerActionArgumentNodes,
   readActionArgumentNode,
   demoteActionArgumentChoices
 } from './source-control-action-argument-document'
@@ -65,8 +66,21 @@ export function reconcileActionArgumentDocument<T extends SourceControlActionRec
   recipe: T,
   mode: 'load' | 'arguments-edit'
 ): T {
+  return reconcileActionArgumentDocumentTransaction(recipe, mode).recipe
+}
+
+/** The receipt belongs to this operation, never to the saved document. */
+export function reconcileActionArgumentDocumentTransaction<T extends SourceControlActionRecipe>(
+  recipe: T,
+  mode: 'load' | 'arguments-edit',
+  input?: {
+    choices: AgentDedicatedChoices
+    permissionEligible: boolean
+    literalKeys: readonly string[]
+  }
+) {
   if (!isTuiAgent(recipe.agentId) || typeof recipe.agentArgs !== 'string') {
-    return recipe
+    return { recipe }
   }
   const agent = recipe.agentId
   const authored = recipe.launchPreferences
@@ -82,30 +96,41 @@ export function reconcileActionArgumentDocument<T extends SourceControlActionRec
   const result = reconcileAgentChoiceArgsDetailed({
     agent,
     userArgs: recipe.agentArgs,
-    choices: effective,
+    choices: input?.choices ?? effective,
     mode,
     keys: new Set([
       'model',
       'effort',
-      ...(authored && authored.agentId !== agent ? [] : ['permissionMode'])
+      ...((input ? !input.permissionEligible : authored && authored.agentId !== agent)
+        ? []
+        : ['permissionMode'])
     ])
   })
   if (!result.selected.length) {
-    return recipe
+    return { recipe, result }
   }
   const ranges = [...result.selected].sort((a, b) => a.start - b.start)
   const map = actionCutOffset(recipe.agentArgs, result)
   const touched = new Set(result.selected.map((entry) => entry.key))
+  const document = recipe.argumentChoices
+  const foreign = document !== undefined && document.syntaxAgent !== agent
+  const retained = (document?.nodes ?? [])
+    .filter((node) => {
+      const key = readActionArgumentNode(document!.syntaxAgent, node.text)!.key
+      return (
+        foreign ||
+        (!touched.has(key) &&
+          !(
+            touched.has('model') &&
+            key !== 'model' &&
+            (!input || input.literalKeys.includes(key)) &&
+            result.choices.options?.[key] === undefined
+          ))
+      )
+    })
+    .map((node) => ({ ...node, at: map(node.at) }))
   const nodes = [
-    ...(recipe.argumentChoices?.nodes ?? [])
-      .filter((node) => {
-        const key = readActionArgumentNode(agent, node.text)!.key
-        return (
-          !touched.has(key) &&
-          !(touched.has('model') && key !== 'model' && result.choices.options?.[key] === undefined)
-        )
-      })
-      .map((node) => ({ ...node, at: map(node.at) })),
+    ...retained,
     ...ranges
       .filter((entry) => entry.key !== 'permissionMode')
       .map((entry) => ({
@@ -113,45 +138,80 @@ export function reconcileActionArgumentDocument<T extends SourceControlActionRec
         text: recipe.agentArgs!.slice(entry.start, entry.end)
       }))
   ].sort((a, b) => a.at - b.at)
+  const committed = lowerActionArgumentNodes(
+    {
+      agentArgs: result.userArgs,
+      argumentChoices: { syntaxAgent: agent, nodes }
+    },
+    (node) => foreign && retained.includes(node)
+  )
   const preferences = { ...authored }
-  const modelSelection = selection ? { ...selection, options: { ...selection.options } } : undefined
-  if (modelSelection) {
-    if (
-      mode === 'arguments-edit' &&
-      touched.has('model') &&
-      modelSelection.model?.agentId === agent
-    ) {
-      delete modelSelection.model
-    }
-    for (const [key, entry] of Object.entries(modelSelection.options ?? {})) {
-      if (
-        entry.agentId === agent &&
-        ((mode === 'arguments-edit' && touched.has(key)) ||
-          (touched.has('model') &&
-            entry.value !== null &&
-            result.choices.options?.[key] === undefined))
-      ) {
-        delete modelSelection.options![key]
-      }
-    }
-  }
+  const modelSelection = retireActionArgumentModelSelection(
+    selection,
+    agent,
+    touched,
+    result.choices,
+    mode
+  )
   if (touched.has('permissionMode')) {
     preferences.permissionMode = result.choices.permissionMode
   }
   const normalized = modelSelection && normalizeActionModelSelection(modelSelection)
   return {
-    ...recipe,
-    agentArgs: result.userArgs,
-    launchPreferences:
-      normalized || preferences.permissionMode
-        ? {
-            agentId: authored?.agentId ?? agent,
-            ...(normalized ? { modelSelection: normalized } : {}),
-            ...(preferences.permissionMode ? { permissionMode: preferences.permissionMode } : {})
-          }
-        : undefined,
-    argumentChoices: nodes.length ? { syntaxAgent: agent, nodes } : undefined
+    result,
+    recipe: {
+      ...recipe,
+      agentArgs: committed.agentArgs,
+      launchPreferences:
+        normalized || preferences.permissionMode
+          ? {
+              agentId: authored?.agentId ?? agent,
+              ...(normalized ? { modelSelection: normalized } : {}),
+              ...(preferences.permissionMode ? { permissionMode: preferences.permissionMode } : {})
+            }
+          : undefined,
+      argumentChoices: committed.argumentChoices?.nodes.length
+        ? committed.argumentChoices
+        : undefined
+    }
   }
+}
+
+/** Retire only the authored keys selected by this document operation. */
+export function retireActionArgumentModelSelection(
+  value: ActionModelSelection | undefined,
+  agent: TuiAgent,
+  touched: ReadonlySet<string>,
+  choices: AgentDedicatedChoices,
+  mode: 'load' | 'arguments-edit',
+  owns: (key: string) => boolean = () => true
+) {
+  if (!value) {
+    return value
+  }
+  const next = { ...value, options: { ...value.options } }
+  let changed = false
+  if (
+    mode === 'arguments-edit' &&
+    touched.has('model') &&
+    owns('model') &&
+    next.model?.agentId === agent
+  ) {
+    delete next.model
+    changed = true
+  }
+  for (const [key, entry] of Object.entries(next.options)) {
+    if (
+      owns(key) &&
+      entry.agentId === agent &&
+      ((mode === 'arguments-edit' && touched.has(key)) ||
+        (touched.has('model') && entry.value !== null && choices.options?.[key] === undefined))
+    ) {
+      delete next.options[key]
+      changed = true
+    }
+  }
+  return changed ? normalizeActionModelSelection(next) : value
 }
 
 export function editActionArgumentChoices(

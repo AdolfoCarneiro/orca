@@ -21,3 +21,10 @@ export type NewTabAgentMenuModel =
         key: string
       }
     }
+
+/** A launch whose workspace may not exist yet, or that starts in a directory of its own. */
+export type AgentMenuRowsTarget = {
+  workspace: ProspectiveWorkspace
+  /** Only a terminal can start here, so chat rows say so instead of dropping the directory. */
+  launchCwd?: string | null
+}
