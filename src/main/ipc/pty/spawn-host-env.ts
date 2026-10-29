@@ -19,7 +19,7 @@ import { getRuntimeSourceStamp } from '../../runtime/host-descriptor'
 import type { OrcaRuntimeService } from '../../runtime/orca-runtime'
 import { buildPtyHostEnv } from './host-env/assembly'
 import { blockedWslDistroForPath } from '../../wsl/wsl-unc-access-gate'
-import { runAsWslExecUserAct } from '../../wsl/wsl-background-exec-gate'
+import { runAsWslLaunchUserAct } from '../../wsl/wsl-background-exec-gate'
 import {
   codexHomePathsEqual,
   getCompatibleSelectedCodexHomePath,
@@ -106,10 +106,13 @@ type PtySpawnHostEnvArgs = {
  */
 export async function resolvePtySpawnHostEnv(args: PtySpawnHostEnvArgs): Promise<PtySpawnHostEnv> {
   const target = args.codexSelectionTarget
-  const distro =
-    target.runtime === 'wsl' ? args.expectedWslDistro || target.wslDistro?.trim() || null : null
-  return runAsWslExecUserAct(args.wslPassiveRestore ? null : distro, () =>
-    resolvePtySpawnHostEnvForAct(args)
+  return runAsWslLaunchUserAct(
+    {
+      isWsl: target.runtime === 'wsl',
+      passiveRestore: args.wslPassiveRestore === true,
+      distro: args.expectedWslDistro || target.wslDistro?.trim() || null
+    },
+    () => resolvePtySpawnHostEnvForAct(args)
   )
 }
 
