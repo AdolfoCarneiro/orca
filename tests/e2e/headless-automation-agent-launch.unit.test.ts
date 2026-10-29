@@ -19,14 +19,17 @@ import type { AgentLaunchResult } from '../../src/shared/agent-launch-intent'
 import { buildProfileStateCutoverFixture } from '../../src/main/persistence/profile-state-cutover-fixture'
 import { launchAutomationChatAgent } from '../../src/main/automations/automation-chat-agent-launch'
 
-const mocks = vi.hoisted(() => ({
-  actualHost: null as StructuredAgentSessionHost | null,
-  hostAvailable: true,
-  openChat: vi.fn(),
-  readChat: vi.fn<typeof callStructuredAgentSession>().mockResolvedValue({}),
-  launch: vi.fn(),
-  host: { journalSnapshot: vi.fn(), currentWork: vi.fn(), send: vi.fn() }
-}))
+const mocks = vi.hoisted(() => {
+  const hostState: { actualHost: StructuredAgentSessionHost | null } = { actualHost: null }
+  return {
+    ...hostState,
+    hostAvailable: true,
+    openChat: vi.fn(),
+    readChat: vi.fn<typeof callStructuredAgentSession>().mockResolvedValue({}),
+    launch: vi.fn(),
+    host: { journalSnapshot: vi.fn(), currentWork: vi.fn(), send: vi.fn() }
+  }
+})
 vi.mock('../../src/main/runtime/rpc/methods/agent-launch', () => ({
   launchAgentOnHost: mocks.launch
 }))

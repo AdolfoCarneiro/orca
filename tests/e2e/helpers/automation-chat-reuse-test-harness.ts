@@ -95,8 +95,7 @@ export async function exerciseBusyChatReuse(
       }
       return answer
     })
-    // SAFETY: only runtime transport/metadata is scripted; service, send, receipts, queue, writer and observer are real.
-    const runtime = {
+    const runtimeFacade = {
       ensureStructuredAgentSessionHost: async () => {},
       openAgentSessionRecordStore: async () => rig.store,
       openedAgentSessionRecordStore: () => rig.store,
@@ -105,7 +104,9 @@ export async function exerciseBusyChatReuse(
       showManagedWorktree: async () => {
         throw new Error('optional display unavailable')
       }
-    } as unknown as OrcaRuntimeService
+    }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only the runtime facade is scripted; the real host/store and service/send/receipt/queue/observer/writer execute.
+    const runtime = runtimeFacade as unknown as OrcaRuntimeService
     service = createRuntimeAutomationService({ store: disk, runtime, headless: true })
     const dispatched = await service.runNow(saved.id)
     expect(dispatched).toMatchObject({
@@ -226,14 +227,15 @@ export async function exerciseBusyChatReuse(
       status: 'completed',
       outputSnapshot: { content: 'Exact automation output' }
     })
-    // SAFETY: page context alone is scripted; the ordinary Details action executes.
-    const context = {
+    const pageContext = {
       store: {
         repoForRow: () => undefined,
         worktreeForRow: () => ({ id: saved.workspaceId, hostId: 'local' })
       },
       list: { selectedRow: { key: 'row' } }
-    } as unknown as AutomationsPageActionContext
+    }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: selectedRow/repoForRow/worktreeForRow are scripted; the ordinary Details action and actual Chat opener execute.
+    const context = pageContext as unknown as AutomationsPageActionContext
     createAutomationRunWorkspaceAction(context)(readCurrent())
     await eventually(() =>
       expect(controls.openChat).toHaveBeenCalledWith(

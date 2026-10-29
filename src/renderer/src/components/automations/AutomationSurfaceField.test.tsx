@@ -123,7 +123,7 @@ it('the real dialog footer withholds an unchosen native Chat save until support 
   }
   setLocalRuntimeCapabilitiesForTests(null)
   const view = render(<AutomationEditorDialog {...props} />)
-  const button = screen.getByRole('button', { name: 'Create', exact: true })
+  const button = screen.getByRole('button', { name: 'Create' })
   expect(button.hasAttribute('disabled')).toBe(true)
   fireEvent.click(button)
   expect(onSave).not.toHaveBeenCalled()

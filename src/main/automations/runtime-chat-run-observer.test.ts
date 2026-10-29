@@ -26,14 +26,17 @@ import {
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../shared/agent-session-journal-types'
 import { automationRunOperationId } from './automation-run-operation'
 
-const mocks = vi.hoisted(() => ({
-  actualHost: null as StructuredAgentSessionHost | null,
-  host: {
-    journalSnapshot: vi.fn(),
-    observeConversationPublications: vi.fn(),
-    queuedSendAnswer: vi.fn(async () => null)
+const mocks = vi.hoisted(() => {
+  const hostState: { actualHost: StructuredAgentSessionHost | null } = { actualHost: null }
+  return {
+    ...hostState,
+    host: {
+      journalSnapshot: vi.fn(),
+      observeConversationPublications: vi.fn(),
+      queuedSendAnswer: vi.fn(async () => null)
+    }
   }
-}))
+})
 vi.mock('../native-chat/agent-session-wire/structured-agent-session-registry', () => ({
   getStructuredAgentSessionHost: () => mocks.actualHost ?? mocks.host
 }))
@@ -400,8 +403,7 @@ describe('real host queue publication and operation bounds', () => {
           const beforeBaseline = measure()
           await tokenBurst()
           const baselineWork = difference(beforeBaseline)
-          // SAFETY: only receipt acquisition is a transport stand-in; the observer uses the actual host below.
-          const runtime = {
+          const runtimeFacade = {
             ensureStructuredAgentSessionHost: async () => {},
             openAgentSessionRecordStore: async () => ({
               getOperationRow: (_caller: string, id: string) =>
@@ -413,7 +415,9 @@ describe('real host queue publication and operation bounds', () => {
                 location: { workspaceId: 'workspace-1' }
               })
             })
-          } as unknown as OrcaRuntimeService
+          }
+          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: initialization/receipt reads are scripted; the actual host/journal/queue/observer and N/10N measurements execute.
+          const runtime = runtimeFacade as unknown as OrcaRuntimeService
           let pending =
             mode === 'internal' ? observeAutomationChatRun(runtime, run, controller.signal) : null
           void pending?.catch(() => {})
@@ -612,7 +616,7 @@ describe('real host queue publication and operation bounds', () => {
             getConversation: () => ({ provider: 'codex', location: { workspaceId: 'workspace-1' } })
           })
         }
-        // SAFETY: only receipt transport is scripted; all observation and queue lifecycle owners are real.
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: initialization/receipt reads are scripted; the actual host/journal/queue/observer and eviction/reopen lifecycle execute.
         const typedRuntime = runtime as unknown as OrcaRuntimeService
         const live = observeAutomationChatRun(typedRuntime, run, new AbortController().signal)
         const liveResult = live.then(
