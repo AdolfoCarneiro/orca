@@ -96,7 +96,7 @@ describe('orcad external-chromium agent-browser environment', () => {
   it('never bounds the daemon that owns the Chromium tree', () => {
     const env = externalChromiumAgentBrowserEnvironment({ inheritedEnv: {}, ...BASE })
 
-    expect(env.AGENT_BROWSER_IDLE_TIMEOUT_MS).toBeUndefined()
+    expect(env.AGENT_BROWSER_IDLE_TIMEOUT_MS).toBe('0')
     expect(env.AGENT_BROWSER_EXECUTABLE_PATH).toBe(BASE.executablePath)
     expect(env.AGENT_BROWSER_SESSION).toBe(BASE.sessionName)
   })

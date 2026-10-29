@@ -30,3 +30,8 @@ function withoutDaemonLifecycle(data: unknown): unknown {
   const { lifecycle: _lifecycle, ...rest } = data
   return rest
 }
+
+/** "Unknown ref" for a ref never issued; 0.39+ also says "Stale ref for role=…" once its element is gone. */
+export function isAgentBrowserStaleRefError(message: string): boolean {
+  return /unknown ref|stale ref|ref not found|element not found: @e/i.test(message)
+}

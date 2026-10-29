@@ -38,7 +38,7 @@ const AgentBrowserEnvelope = z.object({
 export type AgentBrowserTab = z.infer<typeof AgentBrowserTab>
 
 function classifyAgentBrowserError(message: string): string {
-  if (/unknown ref|ref not found|element not found: @e/i.test(message)) {
+  if (isAgentBrowserStaleRefError(message)) {
     return 'browser_stale_ref'
   }
   if (/evaluation error/i.test(message)) {
@@ -57,6 +57,7 @@ function classifyAgentBrowserError(message: string): string {
 }
 
 // No idle timeout: this daemon owns the user’s remote Chromium and all its live tabs.
+// agent-browser 0.33+ reads an unset timeout as one hour, so only "0" keeps it unbounded.
 export function externalChromiumAgentBrowserEnvironment(options: {
   inheritedEnv: NodeJS.ProcessEnv
   executablePath: string
@@ -66,6 +67,8 @@ export function externalChromiumAgentBrowserEnvironment(options: {
 }): NodeJS.ProcessEnv {
   return {
     ...options.inheritedEnv,
+    AGENT_BROWSER_IDLE_TIMEOUT_MS:
+      options.inheritedEnv.AGENT_BROWSER_IDLE_TIMEOUT_MS?.trim() || '0',
     AGENT_BROWSER_EXECUTABLE_PATH: options.executablePath,
     AGENT_BROWSER_PROFILE: options.profilePath,
     AGENT_BROWSER_SESSION: options.sessionName,

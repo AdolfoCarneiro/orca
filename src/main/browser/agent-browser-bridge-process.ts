@@ -7,6 +7,7 @@ import { BrowserError } from './cdp-bridge'
 import { ORCA_TAB_SESSION_PREFIX } from './agent-browser-orphan-sweep'
 import { EMBEDDED_NAVIGATION_TIMEOUT_MS } from './agent-browser-bridge-types'
 import { ensureDependencyBinaryExecutable } from './agent-browser-dependency-binary'
+import { isAgentBrowserStaleRefError } from './agent-browser-batch-command'
 
 export function agentBrowserNativeName(): string {
   const ext = process.platform === 'win32' ? '.exe' : ''
@@ -86,7 +87,7 @@ export function stripAgentBrowserTargetArgs(args: string[]): string[] {
 
 // Stale refs need a distinct code so agents can retry with a fresh snapshot.
 export function classifyErrorCode(message: string): string {
-  if (/unknown ref|ref not found|element not found: @e/i.test(message)) {
+  if (isAgentBrowserStaleRefError(message)) {
     return 'browser_stale_ref'
   }
   return 'browser_error'

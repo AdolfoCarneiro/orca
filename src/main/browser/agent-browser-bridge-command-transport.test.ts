@@ -210,6 +210,14 @@ describe('AgentBrowserBridge', () => {
     await expect(bridge.click('@e2')).resolves.toEqual({ clicked: '@e2' })
   })
 
+  it('reports a ref whose element is gone as stale', async () => {
+    // agent-browser 0.39.2+ wording when it cannot re-resolve a ref by role and name.
+    failWith(
+      'Stale ref for role=button name=Approve cannot be recovered: several elements now match. Run snapshot again and use a fresh ref.'
+    )
+    await expect(bridge.click('@e2')).rejects.toMatchObject({ code: 'browser_stale_ref' })
+  })
+
   it('returns browser_error with truncated output for malformed JSON', async () => {
     execFileMock.mockImplementation(
       (_bin: string, _args: string[], _opts: unknown, cb: ExecFileCallback) => {
