@@ -165,10 +165,31 @@ export function AutomationListLocalRow({
     ? getLocalAutomationLastRunSnapshot(automation, lastRun)
     : getAutomationRowLastRunSnapshot(row)
 
+  const dropdownRunItem = (
+    <DropdownMenuItem
+      disabled={!canRunNow}
+      onSelect={() => {
+        if (canRunNow) {
+          onRunNow(row)
+        }
+      }}
+    >
+      <Play className="size-3.5" />
+      <span className="min-w-0 truncate">
+        {automationRunAvailability.canRunNow
+          ? translate('auto.components.automations.AutomationsPage.2faecab10b', 'Run Now')
+          : automationRunAvailability.message}
+      </span>
+    </DropdownMenuItem>
+  )
+
   const actionItems = (
     <>
       <MenuRunItem
         disabled={!canRunNow}
+        disabledReason={
+          automationRunAvailability.canRunNow ? undefined : automationRunAvailability.message
+        }
         label={
           automationRunAvailability.canRunNow
             ? translate('auto.components.automations.AutomationsPage.2faecab10b', 'Run Now')
@@ -278,21 +299,11 @@ export function AutomationListLocalRow({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                disabled={!canRunNow}
-                onSelect={() => {
-                  if (canRunNow) {
-                    onRunNow(row)
-                  }
-                }}
-              >
-                <Play className="size-3.5" />
-                <span className="min-w-0 truncate">
-                  {automationRunAvailability.canRunNow
-                    ? translate('auto.components.automations.AutomationsPage.2faecab10b', 'Run Now')
-                    : automationRunAvailability.message}
-                </span>
-              </DropdownMenuItem>
+              {automationRunAvailability.canRunNow ? (
+                dropdownRunItem
+              ) : (
+                <div title={automationRunAvailability.message}>{dropdownRunItem}</div>
+              )}
               <DropdownMenuItem disabled={!allows(row, 'edit')} onSelect={() => onEdit(row)}>
                 <Pencil className="size-3.5" />
                 {translate('auto.components.automations.AutomationsPage.f4612e3f78', 'Edit')}
@@ -327,14 +338,16 @@ export function AutomationListLocalRow({
 
 function MenuRunItem({
   disabled,
+  disabledReason,
   label,
   onSelect
 }: {
   disabled: boolean
+  disabledReason?: string
   label: string
   onSelect: () => void
 }): React.JSX.Element {
-  return (
+  const item = (
     <ContextMenuItem
       disabled={disabled}
       onSelect={(event) => {
@@ -349,6 +362,8 @@ function MenuRunItem({
       <span className="min-w-0 truncate">{label}</span>
     </ContextMenuItem>
   )
+  // Disabled items ignore pointer events; put explanatory titles on a wrapper.
+  return disabledReason ? <div title={disabledReason}>{item}</div> : item
 }
 
 function MenuItem({

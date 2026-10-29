@@ -2,7 +2,7 @@ import { AUTOMATION_ORPHAN_ISSUES } from '../../../../shared/automation-list-sco
 import { AUTOMATION_CAPTURED_HOST_REFUSALS } from '../../../../shared/automation-owner-conflict'
 import type { AutomationCapturedOwner } from './automation-captured-owner'
 import { createElement } from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, it, vi } from 'vitest'
 import type { Automation } from '../../../../shared/automations-types'
@@ -45,25 +45,27 @@ export function registerCapturedAutomationRunActionTests({
   makeProjectHostSetup: (overrides?: Partial<ProjectHostSetup>) => ProjectHostSetup
 }): void {
   it.each([
-    ['local', false],
-    ['local', true],
-    ['ssh', false],
-    ['ssh', true],
-    ['ssh-offline', false],
-    ['ssh-offline', true],
-    ['reselection-connected', false],
-    ['reselection-disconnected', false],
-    ['runtime', false],
-    ['runtime', true],
-    ['runtime-ssh', false],
-    ['runtime-ssh', true],
-    ['runtime-ssh-offline', false],
-    ['runtime-ssh-offline', true],
-    ['ambiguous', false],
-    ['ambiguous', true]
+    ['local', false, false],
+    ['local', true, false],
+    ['ssh', false, false],
+    ['ssh', true, false],
+    ['ssh-offline', false, false],
+    ['ssh-offline', true, false],
+    ['reselection-connected', false, false],
+    ['reselection-disconnected', false, false],
+    ['reselection-connected', false, true],
+    ['reselection-disconnected', false, true],
+    ['runtime', false, false],
+    ['runtime', true, false],
+    ['runtime-ssh', false, false],
+    ['runtime-ssh', true, false],
+    ['runtime-ssh-offline', false, false],
+    ['runtime-ssh-offline', true, false],
+    ['ambiguous', false, false],
+    ['ambiguous', true, false]
   ] as const)(
-    'runs the canonical %s definition through its captured RPC with copied IDs, reversed=%s',
-    async (kind, reverse) => {
+    'runs the canonical %s definition through its captured RPC with copied IDs, reversed=%s, enabled=%s',
+    async (kind, reverse, enabled) => {
       vi.clearAllMocks()
       const isRuntime =
         kind === 'runtime' || kind === 'runtime-ssh' || kind === 'runtime-ssh-offline'
@@ -100,7 +102,7 @@ export function registerCapturedAutomationRunActionTests({
         : { owner, selector: owner.selector }
       const capturedOwners = new Map([[`row-${kind}`, captured]])
       const saved = makeAutomation({
-        enabled: false,
+        enabled,
         agentId: 'claude',
         executionTargetType: isSsh && !reselection ? 'ssh' : 'local',
         executionTargetId: isSsh && !reselection ? 'box' : 'local',
@@ -252,6 +254,7 @@ export function registerCapturedAutomationRunActionTests({
         isRuntime
           ? { kind: 'environment' as const, environmentId: 'gpu' }
           : { kind: 'local' as const }
+      const onRunNow = vi.fn(() => void runNow())
       function Controls() {
         store = useAutomationsPageStoreState()
         const repo = store.repoForRow(row)
@@ -280,7 +283,7 @@ export function registerCapturedAutomationRunActionTests({
             hostTargetFor,
             automationSourceHostAvailabilityByRowKey: new Map(),
             onSelect: vi.fn(),
-            onRunNow: () => void runNow(),
+            onRunNow,
             onEdit: vi.fn(),
             onToggle: vi.fn(),
             onDelete: vi.fn()
@@ -293,14 +296,14 @@ export function registerCapturedAutomationRunActionTests({
             projectDefaultBaseRef: null,
             runNowAvailability: availability,
             now: 1,
-            onRunNow: () => void runNow(),
+            onRunNow,
             onEdit: vi.fn(),
             onToggle: vi.fn(),
             onDelete: vi.fn()
           })
         )
       }
-      render(createElement(Controls))
+      const view = render(createElement(Controls))
       expect(store.repoForRow(row)?.executionHostId).toBe(kind === 'ambiguous' ? undefined : host)
       expect(store.worktreeForRow(row, store.repoForRow(row))?.hostId).toBe(
         kind === 'ambiguous' ? undefined : isRuntime && isSsh ? 'ssh:box' : host
@@ -336,6 +339,46 @@ export function registerCapturedAutomationRunActionTests({
         name: blocked ? blockedMessage : 'Run Now'
       })
       expect(item.getAttribute('aria-disabled')).toBe(blocked ? 'true' : null)
+      if (blocked) {
+        const wrapper = screen.getByTitle(blockedMessage)
+        expect(wrapper).toBe(item.parentElement)
+        expect(wrapper.hasAttribute('disabled')).toBe(false)
+        expect(wrapper.getAttribute('aria-disabled')).toBeNull()
+        expect(wrapper.classList.contains('pointer-events-none')).toBe(false)
+        await user.hover(wrapper)
+        await user.click(wrapper)
+        fireEvent.click(item)
+        expect(onRunNow).not.toHaveBeenCalled()
+        expect(actionMocks.rpc).not.toHaveBeenCalled()
+        expect(actionMocks.interaction).not.toHaveBeenCalled()
+      } else {
+        expect(item.closest('[title]')).toBeNull()
+      }
+      await user.keyboard('{Escape}')
+      const rowElement = view.container.querySelector('[data-automation-row-id]')
+      if (!rowElement) {
+        throw new Error('Automation list row is missing')
+      }
+      fireEvent.contextMenu(rowElement)
+      const contextItem = await screen.findByRole('menuitem', {
+        name: blocked ? blockedMessage : 'Run Now'
+      })
+      expect(contextItem.getAttribute('aria-disabled')).toBe(blocked ? 'true' : null)
+      if (blocked) {
+        const wrapper = screen.getByTitle(blockedMessage)
+        expect(wrapper).toBe(contextItem.parentElement)
+        expect(wrapper.hasAttribute('disabled')).toBe(false)
+        expect(wrapper.getAttribute('aria-disabled')).toBeNull()
+        expect(wrapper.classList.contains('pointer-events-none')).toBe(false)
+        await user.hover(wrapper)
+        await user.click(wrapper)
+        fireEvent.click(contextItem)
+        expect(onRunNow).not.toHaveBeenCalled()
+        expect(actionMocks.rpc).not.toHaveBeenCalled()
+        expect(actionMocks.interaction).not.toHaveBeenCalled()
+      } else {
+        expect(contextItem.closest('[title]')).toBeNull()
+      }
       await user.keyboard('{Escape}')
       if (blocked) {
         await runNow()
