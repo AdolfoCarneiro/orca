@@ -25,6 +25,7 @@ import {
   applyModelLanguage
 } from '@/lib/monaco-languages/plugin-syntax-editor-options'
 import { useMonacoTheme } from '@/hooks/use-monaco-theme'
+import { installDiffSectionViewport } from './diff-section-viewport'
 
 const ImageDiffViewer = lazy(() => import('./ImageDiffViewer'))
 
@@ -32,6 +33,7 @@ type DiffSectionBodyProps = {
   section: DiffSection
   index: number
   sectionBodyHeight: number | undefined
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>
   useIntrinsicImageHeight: boolean
   isBranchMode: boolean
   sideBySide: boolean
@@ -53,6 +55,7 @@ export function DiffSectionBody({
   section,
   index,
   sectionBodyHeight,
+  scrollContainerRef,
   useIntrinsicImageHeight,
   isBranchMode,
   sideBySide,
@@ -73,6 +76,8 @@ export function DiffSectionBody({
   const monacoTheme = useMonacoTheme(isDark)
   const renderLimit = section.largeDiffRenderLimit?.limited ? section.largeDiffRenderLimit : null
   const diffEditorRef = useRef<editor.IStandaloneDiffEditor | null>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
   const wordWrapOptionsSubRef = useRef<{ dispose: () => void } | null>(null)
   const wordWrapMountFrameRef = useRef(0)
   const diffWordWrapRef = useRef(diffWordWrap)
@@ -87,8 +92,24 @@ export function DiffSectionBody({
     diffEditorRef.current = diffEditor
     applyModelLanguage([diffEditor.getModel()?.original, diffEditor.getModel()?.modified], language)
     const cleanupShiftWheelScroll = installDiffEditorShiftWheelScroll(diffEditor)
+    const viewport = viewportRef.current
+    const scrollContainer = scrollContainerRef?.current
+    const cleanupViewport =
+      bodyRef.current && viewport && scrollContainer
+        ? installDiffSectionViewport({
+            body: bodyRef.current,
+            viewport,
+            scrollContainer,
+            diffEditor
+          })
+        : undefined
+    if (!cleanupViewport && viewport) {
+      // Without a list to window against, the mount-time cap would hide content past one screen.
+      viewport.style.maxHeight = ''
+    }
     diffEditor.getModifiedEditor().onDidDispose(() => {
       cleanupShiftWheelScroll()
+      cleanupViewport?.()
       if (diffEditorRef.current !== diffEditor) {
         return
       }
@@ -130,6 +151,7 @@ export function DiffSectionBody({
 
   return (
     <div
+      ref={bodyRef}
       className={cn('relative', useIntrinsicImageHeight && 'overflow-visible')}
       style={sectionBodyHeight === undefined ? undefined : { height: sectionBodyHeight }}
     >
@@ -218,40 +240,47 @@ export function DiffSectionBody({
           }
         />
       ) : (
-        <DiffEditor
-          height="100%"
-          language={language}
-          original={section.originalContent}
-          modified={section.modifiedContent}
-          theme={monacoTheme}
-          onMount={handleEditorMount}
-          // The React wrapper may dispose models before widgets; retain them through teardown and dispose unattached models next tick.
-          originalModelPath={`${modelPathBase}:original`}
-          modifiedModelPath={`${modelPathBase}:modified`}
-          keepCurrentOriginalModel
-          keepCurrentModifiedModel
-          options={{
-            dropIntoEditor: { enabled: false },
-            // Native EditContext focus scrolls its hidden input into the combined viewport.
-            editContext: false,
-            readOnly: !isEditable,
-            originalEditable: false,
-            renderSideBySide: sideBySide,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            ...PLUGIN_SYNTAX_EDITOR_OPTIONS,
-            fontSize: diffEditorFontSize,
-            fontFamily: editorFontFamily || 'monospace',
-            lineNumbers: 'on',
-            ...buildDiffEditorWordWrapOptions(diffWordWrap),
-            ...buildDiffEditorWhitespaceOptions(diffShowWhitespace),
-            automaticLayout: true,
-            renderOverviewRuler: false,
-            scrollbar: combinedDiffSectionScrollbarOptions,
-            hideUnchangedRegions: { enabled: true },
-            find: monacoFindOptions
-          }}
-        />
+        <div
+          ref={viewportRef}
+          className="diff-section-viewport relative w-full h-full"
+          // Bound Monaco's first render until onMount windows it to the visible slice.
+          style={scrollContainerRef ? { maxHeight: '100vh' } : undefined}
+        >
+          <DiffEditor
+            height="100%"
+            language={language}
+            original={section.originalContent}
+            modified={section.modifiedContent}
+            theme={monacoTheme}
+            onMount={handleEditorMount}
+            // The React wrapper may dispose models before widgets; retain them through teardown and dispose unattached models next tick.
+            originalModelPath={`${modelPathBase}:original`}
+            modifiedModelPath={`${modelPathBase}:modified`}
+            keepCurrentOriginalModel
+            keepCurrentModifiedModel
+            options={{
+              dropIntoEditor: { enabled: false },
+              // Native EditContext focus scrolls its hidden input into the combined viewport.
+              editContext: false,
+              readOnly: !isEditable,
+              originalEditable: false,
+              renderSideBySide: sideBySide,
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              ...PLUGIN_SYNTAX_EDITOR_OPTIONS,
+              fontSize: diffEditorFontSize,
+              fontFamily: editorFontFamily || 'monospace',
+              lineNumbers: 'on',
+              ...buildDiffEditorWordWrapOptions(diffWordWrap),
+              ...buildDiffEditorWhitespaceOptions(diffShowWhitespace),
+              automaticLayout: true,
+              renderOverviewRuler: false,
+              scrollbar: combinedDiffSectionScrollbarOptions,
+              hideUnchangedRegions: { enabled: true },
+              find: monacoFindOptions
+            }}
+          />
+        </div>
       )}
     </div>
   )

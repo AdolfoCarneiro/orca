@@ -344,6 +344,7 @@ export function PRFilesCombinedDiffViewer({
                   style={{ top: `${virtualItem.start}px` }}
                 >
                   <DiffSectionItem
+                    scrollContainerRef={scrollContainerRef}
                     section={section}
                     index={virtualItem.index}
                     isBranchMode={false}

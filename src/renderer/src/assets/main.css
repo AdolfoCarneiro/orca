@@ -805,6 +805,12 @@ body[data-modal-overlay-open]
   height: 0;
 }
 
+/* Why: a windowed section editor can sit partly under the sticky file header; pin open find to the visible slice.
+   Hidden find keeps no margin so Monaco's slide-out transform still clips it at the editor top. */
+.diff-section-viewport .find-widget.visible {
+  margin-top: var(--diff-section-visible-top, 0px);
+}
+
 /* Why: horizontal tab strips scroll via chevrons, wheel, and trackpad; a
    native scrollbar thumb overlays tab labels and looks broken. */
 .terminal-tab-strip,

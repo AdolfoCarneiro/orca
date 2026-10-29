@@ -20,6 +20,7 @@ describe('combined diff load scheduler', () => {
     const started: number[] = []
     let rendered = new Set([0, 2, 3])
     const scheduler = createCombinedDiffLoadScheduler({
+      maxConcurrent: 1,
       getRenderedIndices: () => rendered,
       schedule: (callback) => callback(),
       loadSection: async (index) => {
@@ -41,7 +42,32 @@ describe('combined diff load scheduler', () => {
     scheduler.dispose()
   })
 
-  it('defaults to serial section loads', async () => {
+  it('loads newly visible files before queued prefetches', async () => {
+    const blocker = deferred()
+    const started: number[] = []
+    const scheduler = createCombinedDiffLoadScheduler({
+      maxConcurrent: 1,
+      schedule: (callback) => callback(),
+      loadSection: async (index) => {
+        started.push(index)
+        if (index === 0) {
+          await blocker.promise
+        }
+      }
+    })
+    for (const index of [0, 1, 2, 3]) {
+      scheduler.request(index)
+    }
+    scheduler.prioritize([3])
+    blocker.resolve()
+    await flushMicrotasks()
+    expect(started.slice(0, 2)).toEqual([0, 3])
+    await flushMicrotasks()
+    await flushMicrotasks()
+    expect(started).toEqual([0, 3, 1, 2])
+  })
+
+  it('defaults to two concurrent section loads', async () => {
     const blockers = [deferred(), deferred()]
     const started: number[] = []
     const scheduler = createCombinedDiffLoadScheduler({
@@ -54,7 +80,7 @@ describe('combined diff load scheduler', () => {
 
     scheduler.request(1)
     scheduler.request(2)
-    expect(started).toEqual([1])
+    expect(started).toEqual([1, 2])
 
     blockers[0]!.resolve()
     await flushMicrotasks()

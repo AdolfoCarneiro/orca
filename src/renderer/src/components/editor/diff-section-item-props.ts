@@ -16,6 +16,7 @@ export type DiffSectionItemProps = {
     diffShowWhitespace?: boolean
   } | null
   sectionHeight: number | undefined
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>
   worktreeId?: string
   loadSection: (index: number) => void
   loadDeferredSection?: (index: number) => void

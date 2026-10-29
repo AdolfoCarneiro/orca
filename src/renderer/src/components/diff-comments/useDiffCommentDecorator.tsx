@@ -21,6 +21,7 @@ import {
 } from './diff-comment-view-zone-entry'
 import type { DiffCommentLineRange, DiffCommentLineTarget } from './diff-comment-line-range'
 import { useDiffCommentDraftZone, type DiffCommentDraft } from './diff-comment-draft-zone'
+import { setEditorScrollTopIntentionally } from '../editor/editor-scroll-intent'
 
 export type { DiffCommentDraft }
 
@@ -277,7 +278,7 @@ export function useDiffCommentDecorator({
         }
         const top = editor.getTopForLineNumber(entry.delegate.afterLineNumber, true)
         const editorHeight = editor.getLayoutInfo().height
-        editor.setScrollTop(Math.max(0, top - editorHeight / 2))
+        setEditorScrollTopIntentionally(editor, Math.max(0, top - editorHeight / 2))
         pendingScrollRef.current = null
         onPendingScrollConsumedRef.current?.()
       })

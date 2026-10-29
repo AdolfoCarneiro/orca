@@ -29,6 +29,7 @@ export function DiffSectionItem({
   isDark,
   settings,
   sectionHeight,
+  scrollContainerRef,
   worktreeId,
   loadSection,
   loadDeferredSection,
@@ -317,6 +318,7 @@ export function DiffSectionItem({
           section={section}
           index={index}
           sectionBodyHeight={sectionBodyHeight}
+          scrollContainerRef={scrollContainerRef}
           useIntrinsicImageHeight={useIntrinsicImageHeight}
           isBranchMode={isBranchMode}
           sideBySide={sideBySide}

@@ -3,6 +3,7 @@ export type CombinedDiffLoadRequest = { viewportOnly?: boolean }
 export type CombinedDiffLoadScheduler = {
   request: (index: number, options?: CombinedDiffLoadRequest) => void
   rerequest: (index: number, options?: CombinedDiffLoadRequest) => void
+  prioritize: (indices: readonly number[]) => void
   reset: () => void
   dispose: () => void
 }
@@ -12,8 +13,8 @@ export function createCombinedDiffLoadScheduler({
   getRenderedIndices,
   isSectionExpanded = () => true,
   schedule = (callback) => queueMicrotask(callback),
-  // Section completion mounts Monaco; serialize by default to avoid stacking large-diff render work.
-  maxConcurrent = 1
+  // Windowed section editors bound mount cost, so overlap two fetches to hide IPC latency.
+  maxConcurrent = 2
 }: {
   loadSection: (index: number) => Promise<void>
   getRenderedIndices?: () => ReadonlySet<number>
@@ -103,6 +104,17 @@ export function createCombinedDiffLoadScheduler({
   }
 
   return {
+    prioritize(indices) {
+      const priority = new Set(indices)
+      const requests = [...pending]
+      const first = requests.filter(([index]) => priority.has(index))
+      const rest = requests.filter(([index]) => !priority.has(index))
+      pending.clear()
+      for (const [index, request] of [...first, ...rest]) {
+        request.order = order++
+        pending.set(index, request)
+      }
+    },
     request(index, options) {
       enqueue(index, options)
     },

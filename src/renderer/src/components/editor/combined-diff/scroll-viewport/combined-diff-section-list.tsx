@@ -31,6 +31,7 @@ export function CombinedDiffSectionList({
   openSectionPreview,
   retrySection,
   scrollThumb,
+  scrollContainerRef,
   sectionHeights,
   sections,
   setScrollContainerRef,
@@ -60,6 +61,7 @@ export function CombinedDiffSectionList({
   openSectionPreview: (section: DiffSection) => void
   retrySection: (index: number) => void
   scrollThumb: CombinedDiffScrollThumb
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>
   sectionHeights: Record<number, number>
   sections: DiffSection[]
   setScrollContainerRef: (node: HTMLDivElement | null) => void
@@ -108,6 +110,7 @@ export function CombinedDiffSectionList({
               >
                 <DiffSectionItem
                   section={section}
+                  scrollContainerRef={scrollContainerRef}
                   index={virtualItem.index}
                   isBranchMode={isBranchMode}
                   sideBySide={sideBySide}

@@ -9,16 +9,16 @@ export function getCombinedDiffRenderRange(
   let end = range.endIndex
   const budget = Math.max(0, viewportHeight)
   let height = 0
-  while (start > 0 && range.startIndex - start < range.overscan) {
-    height += estimateHeight(start - 1)
+  while (budget > 0 && start > 0 && range.startIndex - start < range.overscan) {
+    height += Math.min(estimateHeight(start - 1), budget)
     if (height > budget) {
       break
     }
     start -= 1
   }
   height = 0
-  while (end + 1 < range.count && end - range.endIndex < range.overscan) {
-    height += estimateHeight(end + 1)
+  while (budget > 0 && end + 1 < range.count && end - range.endIndex < range.overscan) {
+    height += Math.min(estimateHeight(end + 1), budget)
     if (height > budget) {
       break
     }

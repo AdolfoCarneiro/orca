@@ -14,6 +14,7 @@ import {
 import { useCombinedDiffSectionIndexMap } from './resolve-changes/use-combined-diff-section-index-map'
 import { useCombinedDiffSectionRowKeys } from './resolve-changes/use-combined-diff-section-row-keys'
 import { useCombinedDiffSectionLoadRegistry } from './load-sections/combined-diff-section-load-registry'
+import { useCombinedDiffSectionPrefetch } from './load-sections/use-combined-diff-section-prefetch'
 import { useCombinedDiffSectionLoader } from './load-sections/use-combined-diff-section-loader'
 import { useCombinedDiffSectionRetry } from './load-sections/use-combined-diff-section-retry'
 import { useCombinedDiffSectionRevalidation } from './load-sections/use-combined-diff-section-revalidation'
@@ -146,6 +147,12 @@ export default function CombinedDiffViewer({
     sectionHeights,
     sections,
     sideBySide: preferences.sideBySide
+  })
+  useCombinedDiffSectionPrefetch({
+    loadSection,
+    schedulerRef: registry.loadSchedulerRef,
+    sectionCount: sections.length,
+    virtualizer
   })
   const anchors = useCombinedDiffScrollAnchors({
     clampRestoreCount,
@@ -388,6 +395,7 @@ export default function CombinedDiffViewer({
             openSectionPreview={openSectionPreview}
             retrySection={retrySection}
             scrollThumb={scrollThumb}
+            scrollContainerRef={scrollContainerRef}
             sectionHeights={sectionHeights}
             sections={sections}
             setScrollContainerRef={setScrollContainerRef}

@@ -294,7 +294,8 @@ test.describe('Combined diff invalidation freeze repro (STA-3420)', () => {
       )
 
       console.log(`external-change burst measurement ${JSON.stringify(measurement)}`)
-      expect(measurement.sectionRowCount).toBe(1)
+      // The visible row plus one prepared tall neighbor; windowed editors keep that neighbor's mount bounded.
+      expect(measurement.sectionRowCount).toBe(2)
       expect(measurement.stuckLoadingRowCount).toBe(0)
       expect(measurement.editorCount).toBeGreaterThan(0)
       // Compare burst cost against the same idle fixture; fixed budgets confuse machine floor with invalidation regressions.

@@ -208,12 +208,16 @@ export function useCombinedDiffSectionLoader({
 
   const loadSection = useCallback(
     (index: number, options: CombinedDiffLoadRequest = { viewportOnly: true }) => {
-      if (sectionsRef.current[index]?.collapsed || sectionsRef.current[index]?.loadOnDemand) {
+      if (
+        loadedIndicesRef.current.has(index) ||
+        sectionsRef.current[index]?.collapsed ||
+        sectionsRef.current[index]?.loadOnDemand
+      ) {
         return
       }
       loadSchedulerRef.current.request(index, options)
     },
-    [loadSchedulerRef, sectionsRef]
+    [loadSchedulerRef, loadedIndicesRef, sectionsRef]
   )
 
   const loadDeferredSection = useCallback(

@@ -40,7 +40,7 @@ export function useCombinedDiffVirtualizer({
     estimateSize,
     // Retain visible heights while hidden rows measure zero so anchors survive reopening.
     measureElement: measureVirtualRowRetainingHiddenSize,
-    // Offscreen Monaco sections render their full height; bound that work by pixels, too.
+    // Editors window their lines; allow a tall neighbor to prepare before it enters view.
     rangeExtractor: (range) =>
       getCombinedDiffRenderRange(
         range,
