@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react'
@@ -56,7 +57,7 @@ vi.mock('../../store', async () => {
     }
     setSessionTestState(useAppStore, { unifiedTabsByWorktree: mocks.state.unifiedTabsByWorktree })
   }
-  const useAppStore = create(() => mocks.state)
+  const useAppStore = create(withSessionSourceWrites(() => mocks.state))
   return { useAppStore }
 })
 vi.mock('@/runtime/web-runtime-terminal-buffer-actions', () => ({

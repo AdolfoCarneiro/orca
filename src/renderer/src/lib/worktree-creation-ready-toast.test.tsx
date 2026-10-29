@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -27,15 +28,17 @@ const { toasts, store } = await vi.hoisted(async () => {
     activeWorkspaceExecutionHostId: ExecutionHostId | null
     worktreesByRepo: Record<string, Pick<Worktree, 'id' | 'repoId' | 'hostId'>[]>
     settings: { activeRuntimeEnvironmentId: string | null }
-  }>(() => ({
-    repos: [],
-    activeView: 'terminal',
-    activeWorktreeId: null,
-    activePendingCreationId: null,
-    activeWorkspaceExecutionHostId: null,
-    worktreesByRepo: {},
-    settings: { activeRuntimeEnvironmentId: null }
-  }))
+  }>()(
+    withSessionSourceWrites(() => ({
+      repos: [],
+      activeView: 'terminal',
+      activeWorktreeId: null,
+      activePendingCreationId: null,
+      activeWorkspaceExecutionHostId: null,
+      worktreesByRepo: {},
+      settings: { activeRuntimeEnvironmentId: null }
+    }))
+  )
   return { toasts, store }
 })
 

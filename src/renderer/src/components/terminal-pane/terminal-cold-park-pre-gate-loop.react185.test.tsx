@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 import { act, StrictMode } from 'react'
@@ -31,23 +32,25 @@ vi.mock('react', async () => {
 
 vi.mock('../../store', async () => {
   const { create } = await import('zustand')
-  const useAppStore = create(() => ({
-    activeGroupIdByWorktree: {} as Record<string, string | undefined>,
-    groupsByWorktree: {} as Record<string, TabGroup[]>,
-    pendingStartupByTabId: {} as Record<string, unknown>,
-    ptyIdsByTabId: {} as Record<string, string[]>,
-    runtimeStatusByEnvironmentId: new Map<string, unknown>(),
-    runtimePaneTitlesByTabId: {} as Record<string, Record<number, string>>,
-    settings: {} as Record<string, unknown>,
-    sleepingAgentSessionsByPaneKey: {} as Record<string, unknown>,
-    tabsByWorktree: {} as Record<string, TerminalTab[]>,
-    terminalLayoutsByTabId: {} as Record<string, unknown>,
-    unifiedTabsByWorktree: {} as Record<string, Tab[]>,
-    consumeSuppressedPtyExit: () => false,
-    focusGroup: () => {},
-    reconcileWorktreeTabModel: () => ({ renderableTabCount: 2 }),
-    setActiveWorktree: () => {}
-  }))
+  const useAppStore = create(
+    withSessionSourceWrites(() => ({
+      activeGroupIdByWorktree: {} as Record<string, string | undefined>,
+      groupsByWorktree: {} as Record<string, TabGroup[]>,
+      pendingStartupByTabId: {} as Record<string, unknown>,
+      ptyIdsByTabId: {} as Record<string, string[]>,
+      runtimeStatusByEnvironmentId: new Map<string, unknown>(),
+      runtimePaneTitlesByTabId: {} as Record<string, Record<number, string>>,
+      settings: {} as Record<string, unknown>,
+      sleepingAgentSessionsByPaneKey: {} as Record<string, unknown>,
+      tabsByWorktree: {} as Record<string, TerminalTab[]>,
+      terminalLayoutsByTabId: {} as Record<string, unknown>,
+      unifiedTabsByWorktree: {} as Record<string, Tab[]>,
+      consumeSuppressedPtyExit: () => false,
+      focusGroup: () => {},
+      reconcileWorktreeTabModel: () => ({ renderableTabCount: 2 }),
+      setActiveWorktree: () => {}
+    }))
+  )
   return { useAppStore }
 })
 

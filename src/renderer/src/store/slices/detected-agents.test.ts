@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -47,7 +48,7 @@ function createTestStore(initial?: Partial<AppState>) {
         }) as AppState
     )
   )
-  store.setState({
+  setSessionTestState(store, {
     repos: [],
     worktreesByRepo: {},
     activeRepoId: null,
@@ -437,7 +438,7 @@ describe('createDetectedAgentsSlice WSL context', () => {
     await expect(store.getState().ensureDetectedAgents()).resolves.toEqual(['claude'])
     expect(store.getState().detectedAgentIds).toEqual(['claude'])
 
-    store.setState({
+    setSessionTestState(store, {
       repos: [makeRepo({ id: 'repo-1', path: 'C:\\repo' })],
       activeRepoId: 'repo-1',
       activeWorktreeId: null

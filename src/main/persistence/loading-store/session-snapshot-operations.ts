@@ -130,7 +130,7 @@ export class SessionSnapshotOperations {
         reader.write(field, key, { present: false, value: undefined })
       }
       for (const key of Object.keys(delta?.set ?? {})) {
-        reader.write(field, key, { present: true, value: Reflect.get(delta?.set ?? {}, key) })
+        reader.write(field, key, { present: true, value: delta?.set?.[key] })
       }
     }
     for (const field of patch.clearFields ?? [])

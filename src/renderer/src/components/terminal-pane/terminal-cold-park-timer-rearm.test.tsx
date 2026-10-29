@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 /** Tab-model writes must recheck watcher coverage without rearming unchanged absolute deadlines; title floods must preserve the park instant and avoid timer churn. */
@@ -15,16 +16,18 @@ const park = vi.hoisted(() => ({
 
 vi.mock('../../store', async () => {
   const { create } = await import('zustand')
-  const useAppStore = create(() => ({
-    pendingStartupByTabId: {} as Record<string, unknown>,
-    ptyIdsByTabId: {} as Record<string, string[]>,
-    runtimeStatusByEnvironmentId: new Map<string, unknown>(),
-    settings: {} as Record<string, unknown>,
-    terminalLayoutsByTabId: {} as Record<string, unknown>,
-    runtimePaneTitlesByTabId: {} as Record<string, unknown>,
-    sleepingAgentSessionsByPaneKey: {} as Record<string, unknown>,
-    tabsByWorktree: {} as Record<string, TerminalTab[]>
-  }))
+  const useAppStore = create(
+    withSessionSourceWrites(() => ({
+      pendingStartupByTabId: {} as Record<string, unknown>,
+      ptyIdsByTabId: {} as Record<string, string[]>,
+      runtimeStatusByEnvironmentId: new Map<string, unknown>(),
+      settings: {} as Record<string, unknown>,
+      terminalLayoutsByTabId: {} as Record<string, unknown>,
+      runtimePaneTitlesByTabId: {} as Record<string, unknown>,
+      sleepingAgentSessionsByPaneKey: {} as Record<string, unknown>,
+      tabsByWorktree: {} as Record<string, TerminalTab[]>
+    }))
+  )
   return { useAppStore }
 })
 

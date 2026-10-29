@@ -22,7 +22,10 @@ export function registerReconnectRoot(root: WorkspaceSessionState, index: Sessio
 }
 
 /** Live facts invalidate only panes naming that PTY, independently of renderer map edits. */
-export function invalidateShutdownReconnectPty(owner: object, ptyId: string): void {
+export function invalidateShutdownReconnectPty(
+  owner: NonNullable<ReconnectFactSources['factOwner']>,
+  ptyId: string
+): void {
   const subscribers = liveSubscribers.get(owner)
   for (const reference of subscribers ?? []) {
     const cache = reference.deref()

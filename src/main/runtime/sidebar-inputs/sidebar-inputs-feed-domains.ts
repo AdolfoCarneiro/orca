@@ -190,7 +190,10 @@ export function sidebarInputsFeedDomains(
         return Object.fromEntries(
           keys
             .filter((key) => Object.hasOwn(facts, key))
-            .map((key) => [key, Reflect.get(facts, key)])
+            .map((key) => {
+              // SAFETY: own-property filtering above admits desktop fact names only.
+              return [key, facts[key as keyof typeof facts]]
+            })
         )
       },
       watch: (changed) => {

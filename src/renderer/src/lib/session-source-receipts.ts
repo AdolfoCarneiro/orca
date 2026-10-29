@@ -4,7 +4,9 @@ import {
   type SessionSourceDiscovery,
   type SessionSourceField,
   type SessionSourcePresence,
-  type SessionSourceSequences
+  type SessionSourceSequences,
+  type SessionSourceKind,
+  type SessionSequenceField
 } from './session-source-fields'
 
 /** Source coalescing is independent of delivery ACKs; deletion history retains native order. */
@@ -49,14 +51,18 @@ export class SessionSourceReceipts {
         this.changes.set(field, selected)
       }
     }
-    for (const field of Object.keys(receipt.sequences ?? {})) {
+    // SAFETY: receipt sequences use only the exhaustive sequence field domain.
+    for (const field of Object.keys(receipt.sequences ?? {}) as SessionSequenceField[]) {
       // SAFETY: sequence properties are restricted to the exhaustive sequence field domain.
-      const incoming = Reflect.get(receipt.sequences!, field) as ReadonlyMap<string, unknown[]>
-      const pending = Reflect.get(this.sequences, field) ?? new Map<string, unknown[]>()
+      const incoming = receipt.sequences![field] as ReadonlyMap<string, unknown[]>
+      // SAFETY: each sequence field retains its own row domain across accumulator writes.
+      const pending =
+        (this.sequences[field] as Map<string, unknown[]> | undefined) ??
+        new Map<string, unknown[]>()
       for (const [key, rows] of incoming ?? []) {
         pending.set(key, rows)
       }
-      Reflect.set(this.sequences, field, pending)
+      Object.assign(this.sequences, { [field]: pending })
     }
   }
 
@@ -85,12 +91,18 @@ export class SessionSourceReceipts {
         changes.set(field, selected)
         continue
       }
+      // SAFETY: the field-kind branch above admits only keyed source collections.
+      const name = field as SessionSourceKind<'keyed'>
+      const oldEntries = before[name],
+        newEntries = after[name]
       const keys = new Set<string>()
       for (const key of selected) {
-        const oldPresent = prior instanceof Map ? prior.has(key) : Object.hasOwn(prior ?? {}, key)
-        const newPresent = next instanceof Map ? next.has(key) : Object.hasOwn(next ?? {}, key)
-        const oldValue = prior instanceof Map ? prior.get(key) : Reflect.get(prior ?? {}, key)
-        const newValue = next instanceof Map ? next.get(key) : Reflect.get(next ?? {}, key)
+        const oldPresent =
+          oldEntries instanceof Map ? oldEntries.has(key) : Object.hasOwn(oldEntries ?? {}, key)
+        const newPresent =
+          newEntries instanceof Map ? newEntries.has(key) : Object.hasOwn(newEntries ?? {}, key)
+        const oldValue = oldEntries instanceof Map ? oldEntries.get(key) : oldEntries?.[key]
+        const newValue = newEntries instanceof Map ? newEntries.get(key) : newEntries?.[key]
         if (oldPresent !== newPresent || oldValue !== newValue) {
           keys.add(key)
         }

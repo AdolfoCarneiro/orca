@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -38,7 +39,7 @@ function seed(
   store: ReturnType<typeof createTestStore>,
   repo: Record<string, unknown> & { id: string; path: string }
 ) {
-  store.setState({
+  setSessionTestState(store, {
     settings: { activeRuntimeEnvironmentId: null } as never,
     repos: [repo],
     worktreesByRepo: {

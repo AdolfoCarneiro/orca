@@ -27,6 +27,7 @@ export type {
 type FullSourceBoundary = 'hydration' | 'catalog' | 'order' | 'unload'
 
 type SourceEntry = { present: boolean; value: unknown }
+type SourceEntries = Map<string, unknown> | Readonly<Record<string, unknown>> | undefined
 
 class SourceWrite<S> {
   readonly sourceWrite = true
@@ -87,10 +88,9 @@ export class SessionSourceEdit<S extends object> {
 
   private current<F extends RecordKey<S>>(field: F) {
     // SAFETY: RecordKey admits only string-keyed Records and Maps, including optional ones.
-    return (Object.hasOwn(this.partial, field) ? this.partial[field] : this.source[field]) as
-      | ReadonlyMap<string, unknown>
-      | Readonly<Record<string, unknown>>
-      | undefined
+    return (
+      Object.hasOwn(this.partial, field) ? this.partial[field] : this.source[field]
+    ) as SourceEntries
   }
 
   has<F extends RecordKey<S>>(field: F, key: string): boolean {
@@ -103,10 +103,11 @@ export class SessionSourceEdit<S extends object> {
     this.baseEntries.set(field, entries)
     let entry = entries.get(key)
     if (!entry) {
-      const source = this.source[field]
+      // SAFETY: RecordKey admits only the source collection domain.
+      const source = this.source[field] as SourceEntries
       entry = {
         present: source instanceof Map ? source.has(key) : Object.hasOwn(source ?? {}, key),
-        value: source instanceof Map ? source.get(key) : Reflect.get(source ?? {}, key)
+        value: source instanceof Map ? source.get(key) : source?.[key]
       }
       entries.set(key, entry)
     }
@@ -118,7 +119,7 @@ export class SessionSourceEdit<S extends object> {
     const value = Object.hasOwn(this.partial, field)
       ? current instanceof Map
         ? current.get(key)
-        : Reflect.get(current ?? {}, key)
+        : current?.[key]
       : this.baseEntry(field, key).value
     // SAFETY: the field/key pair admits only that Record or Map's entry type.
     return value as Entry<S, F> | undefined
@@ -145,11 +146,7 @@ export class SessionSourceEdit<S extends object> {
         ? current.has(key)
         : Object.hasOwn(current ?? {}, key)
       : base.present
-    const prior = edited
-      ? current instanceof Map
-        ? current.get(key)
-        : Reflect.get(current ?? {}, key)
-      : base.value
+    const prior = edited ? (current instanceof Map ? current.get(key) : current?.[key]) : base.value
     if (present && prior === value) {
       return this
     }
@@ -228,7 +225,8 @@ export class SessionSourceEdit<S extends object> {
       rows,
       (row) => {
         // SAFETY: openFiles groups by owner; the three catalogs group by entity ID.
-        return Reflect.get(row as object, field === 'openFiles' ? 'worktreeId' : 'id') as string
+        const identity = row as { id: string; worktreeId: string }
+        return field === 'openFiles' ? identity.worktreeId : identity.id
       },
       (rows, groups, keys, reordered, presence) => {
         Object.assign(this.partial, { [field]: rows })
@@ -260,12 +258,13 @@ export class SessionSourceEdit<S extends object> {
       if (!keys || SESSION_SOURCE_KINDS[field] !== 'keyed') {
         continue
       }
-      const after = Reflect.get(this.partial, field)
+      // SAFETY: keyed changes were admitted only by this edit's RecordKey methods.
+      const after = this.current(field as RecordKey<S>)
       for (const key of keys) {
         // SAFETY: set/remove capture the base entry before admitting a keyed edit.
         const base = this.baseEntries.get(field)?.get(key) as SourceEntry
         const nextPresent = after instanceof Map ? after.has(key) : Object.hasOwn(after ?? {}, key)
-        const nextValue = after instanceof Map ? after.get(key) : Reflect.get(after ?? {}, key)
+        const nextValue = after instanceof Map ? after.get(key) : after?.[key]
         if (base.present === nextPresent && base.value === nextValue) {
           keys.delete(key)
         }

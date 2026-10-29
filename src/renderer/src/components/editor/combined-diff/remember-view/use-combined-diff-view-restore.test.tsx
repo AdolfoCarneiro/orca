@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 
@@ -148,7 +149,7 @@ describe('useCombinedDiffViewRestore deferral', () => {
       language: 'plaintext',
       isDirty: false
     }
-    const store = createStore(() => ({ openFiles: [closedTab] }))
+    const store = createStore(withSessionSourceWrites(() => ({ openFiles: [closedTab] })))
     const detach = attachClosedEditorTabCleanup(store, createEditorModelRegistry())
     try {
       setSessionTestState(store, { openFiles: [] })

@@ -1,6 +1,6 @@
 import { expect } from 'vitest'
 import type { AppState } from '../../store/types'
-import type { SessionSourceDiscovery } from '../session-source-fields'
+import type { SessionSourceDiscovery, SessionSequenceField } from '../session-source-fields'
 import { discoverSessionSources } from './session-source-discovery'
 
 type SourceTestStore = {
@@ -48,11 +48,13 @@ export function observeSessionSourceOracle(store: SourceTestStore): () => void {
             expect(reported?.has(key), `missing source address: ${field}/${key}`).toBe(true)
           }
         }
-        const sequences = Reflect.get(native.sequences ?? {}, field)
+        // SAFETY: only sequence fields can own occurrence collections.
+        const sequenceField = field as SessionSequenceField
+        const sequences = native.sequences?.[sequenceField]
         if (sequences && keys) {
           for (const key of keys) {
             expect(
-              Reflect.get(receipt?.sequences ?? {}, field)?.get(key) ?? [],
+              receipt?.sequences?.[sequenceField]?.get(key) ?? [],
               `${field}/${key} occurrences`
             ).toEqual(sequences.get(key) ?? [])
           }

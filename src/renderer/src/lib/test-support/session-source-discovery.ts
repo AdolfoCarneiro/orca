@@ -9,14 +9,16 @@ import {
 } from '../session-source-fields'
 export * from '../session-source-fields'
 
-function sourceKeys(value: object): string[] {
+type SourceCollection = Readonly<Record<string, unknown>> | Map<string, unknown>
+
+function sourceKeys(value: SourceCollection): string[] {
   return value instanceof Map ? [...value.keys()] : Object.keys(value)
 }
-function sourceHas(value: object, key: string): boolean {
+function sourceHas(value: SourceCollection, key: string): boolean {
   return value instanceof Map ? value.has(key) : Object.hasOwn(value, key)
 }
-function sourceValue(value: object, key: string): unknown {
-  return value instanceof Map ? value.get(key) : Reflect.get(value, key)
+function sourceValue(value: SourceCollection, key: string): unknown {
+  return value instanceof Map ? value.get(key) : value[key]
 }
 function isIntegerProperty(key: string): boolean {
   const numeric = Number(key)
@@ -26,8 +28,8 @@ function isIntegerProperty(key: string): boolean {
 }
 
 function compareRecordSources(
-  before: object,
-  after: object
+  before: Readonly<Record<string, unknown>>,
+  after: Readonly<Record<string, unknown>>
 ): { keys: Set<string>; reordered: boolean } {
   const newKeys = Object.keys(after)
   // SAFETY: this branch handles own string-keyed Records, after excluding Maps/arrays/Sets.

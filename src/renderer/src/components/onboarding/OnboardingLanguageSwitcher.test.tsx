@@ -21,7 +21,7 @@ const { submit, telemetryTrack } = vi.hoisted(() => ({ submit: vi.fn(), telemetr
 beforeEach(async () => {
   setSessionTestState(useAppStore, useAppStore.getInitialState(), true)
   useAppStore.setState({ settings: getDefaultSettings('/tmp') })
-  setSessionTestState(useLanguageReadiness, {
+  useLanguageReadiness.setState({
     ...useLanguageReadiness.getInitialState(),
     ready: true
   })

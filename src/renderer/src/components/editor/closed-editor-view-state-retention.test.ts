@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
@@ -43,10 +44,12 @@ function open(path: string, text = 'original') {
     'plaintext',
     monaco.Uri.parse(toEditorModelUri(path))
   )
-  const store = createStore(() => ({
-    openFiles: [file],
-    worktreesByRepo: { fixture: [{ id: 'fixture', repoId: 'fixture', hostId: 'local' as const }] }
-  }))
+  const store = createStore(
+    withSessionSourceWrites(() => ({
+      openFiles: [file],
+      worktreesByRepo: { fixture: [{ id: 'fixture', repoId: 'fixture', hostId: 'local' as const }] }
+    }))
+  )
   const bridge = createEditorModelRegistry()
   disposeOwners.push(bridge.register(monaco), attachClosedEditorTabCleanup(store, bridge))
   return {
@@ -153,7 +156,9 @@ it('keeps a Windows-path model that a second open tab still owns', async () => {
   }
   const modelUri = monaco.Uri.parse(toEditorModelUri(filePath))
   const model = monaco.editor.createModel('live', 'plaintext', modelUri)
-  const store = createStore(() => ({ openFiles: [editing, { ...editing, id: 'tab-b' }] }))
+  const store = createStore(
+    withSessionSourceWrites(() => ({ openFiles: [editing, { ...editing, id: 'tab-b' }] }))
+  )
   const bridge = createEditorModelRegistry()
   disposeOwners.push(bridge.register(monaco), attachClosedEditorTabCleanup(store, bridge))
 

@@ -67,7 +67,7 @@ export class SessionUnitReader extends SessionFieldReader {
           this.index
             .ordered(field, keys)
             .filter((key) => Object.hasOwn(this.prior[field] ?? {}, key))
-            .map((key) => [key, Reflect.get(this.prior[field] ?? {}, key)])
+            .map((key) => [key, this.prior[field]?.[key]])
         ) as NonNullable<WorkspaceSessionState[typeof field]>
       },
       references: (kind, id) => this.references(kind, id, 'prior')

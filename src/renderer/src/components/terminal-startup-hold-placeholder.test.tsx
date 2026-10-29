@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act } from 'react'
@@ -13,16 +14,18 @@ vi.mock('../store', async () => {
   const groupsByWorktree: Record<string, TabGroup[]> = {}
   const tabsByWorktree: Record<string, TerminalTab[]> = {}
   const unifiedTabsByWorktree: Record<string, Tab[]> = {}
-  const useAppStore = create(() => ({
-    activeGroupIdByWorktree,
-    groupsByWorktree,
-    tabsByWorktree,
-    unifiedTabsByWorktree,
-    consumeSuppressedPtyExit: () => false,
-    focusGroup: () => {},
-    reconcileWorktreeTabModel: () => ({ renderableTabCount: 1 }),
-    setActiveWorktree: () => {}
-  }))
+  const useAppStore = create(
+    withSessionSourceWrites(() => ({
+      activeGroupIdByWorktree,
+      groupsByWorktree,
+      tabsByWorktree,
+      unifiedTabsByWorktree,
+      consumeSuppressedPtyExit: () => false,
+      focusGroup: () => {},
+      reconcileWorktreeTabModel: () => ({ renderableTabCount: 1 }),
+      setActiveWorktree: () => {}
+    }))
+  )
   return { useAppStore }
 })
 vi.mock('./native-chat/use-native-chat-toggle-shortcut', () => ({

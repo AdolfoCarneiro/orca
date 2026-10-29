@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 // Model worktree-level watcher coverage oscillating with mount state (#15136). A lone last-active tab has no cold candidates, proving only rendered-verdict pinning can stop this driver.
@@ -12,15 +13,17 @@ const park = vi.hoisted(() => ({ worktreeId: 'repo::/wt-worktree-driver' }))
 
 vi.mock('../../store', async () => {
   const { create } = await import('zustand')
-  const useAppStore = create(() => ({
-    pendingStartupByTabId: {} as Record<string, unknown>,
-    ptyIdsByTabId: {} as Record<string, string[]>,
-    runtimeStatusByEnvironmentId: new Map<string, unknown>(),
-    settings: {} as Record<string, unknown>,
-    terminalLayoutsByTabId: {} as Record<string, unknown>,
-    runtimePaneTitlesByTabId: {} as Record<string, unknown>,
-    tabsByWorktree: {} as Record<string, TerminalTab[]>
-  }))
+  const useAppStore = create(
+    withSessionSourceWrites(() => ({
+      pendingStartupByTabId: {} as Record<string, unknown>,
+      ptyIdsByTabId: {} as Record<string, string[]>,
+      runtimeStatusByEnvironmentId: new Map<string, unknown>(),
+      settings: {} as Record<string, unknown>,
+      terminalLayoutsByTabId: {} as Record<string, unknown>,
+      runtimePaneTitlesByTabId: {} as Record<string, unknown>,
+      tabsByWorktree: {} as Record<string, TerminalTab[]>
+    }))
+  )
   return { useAppStore }
 })
 

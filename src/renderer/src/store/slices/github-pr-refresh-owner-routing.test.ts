@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -115,7 +116,7 @@ function seed(
   store: ReturnType<typeof createTestStore>,
   state: Pick<AppState, 'repos' | 'worktreesByRepo'> & Partial<AppState>
 ): void {
-  store.setState({
+  setSessionTestState(store, {
     settings: { activeRuntimeEnvironmentId: null } as AppState['settings'],
     groupBy: 'pr-status',
     worktreeCardProperties: ['status'],

@@ -38,7 +38,7 @@ function NoticeProbe(): null {
 
 beforeEach(async () => {
   setSessionTestState(useAppStore, initialAppState, true)
-  setSessionTestState(usePluginLanguagePackStore, initialPluginLanguagePackState, true)
+  usePluginLanguagePackStore.setState(initialPluginLanguagePackState, true)
   subscribeToMacosTccPromptNotice.mockClear()
   toastWarning.mockClear()
   await i18n.changeLanguage('en')
@@ -50,7 +50,7 @@ afterEach(async () => {
     root = null
   }
   setSessionTestState(useAppStore, initialAppState, true)
-  setSessionTestState(usePluginLanguagePackStore, initialPluginLanguagePackState, true)
+  usePluginLanguagePackStore.setState(initialPluginLanguagePackState, true)
 })
 
 it('waits for the persisted locale catalog before consuming the one-time notice', async () => {

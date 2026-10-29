@@ -26,10 +26,13 @@ export class SessionFieldReader extends SessionReaderState {
       // SAFETY: entries are admitted by the same typed map field.
       return entry as SessionPresence<SessionEntry<F>>
     }
-    const map = transition ? transition.base.value : this.prior[field]
+    // SAFETY: transitions for a map field hold that field's admitted entries.
+    const map = (transition ? transition.base.value : this.prior[field]) as
+      | Readonly<Record<string, SessionEntry<F>>>
+      | undefined
     return map && Object.hasOwn(map, key)
       ? // SAFETY: this own property belongs to session map F.
-        { present: true, value: Reflect.get(map, key) as SessionEntry<F> }
+        { present: true, value: map[key] }
       : { present: false, value: undefined }
   }
 
@@ -102,9 +105,10 @@ export class SessionFieldReader extends SessionReaderState {
       transition.intent = { kind: 'entries', present: true }
     }
     transition.entries ??= new Map()
-    const base = transition.base.value
+    // SAFETY: this transition belongs to the admitted map field.
+    const base = transition.base.value as Readonly<Record<string, unknown>> | null | undefined
     const basePresent = base != null && Object.hasOwn(base, key)
-    if (basePresent === value.present && Reflect.get(base ?? {}, key) === value.value) {
+    if (basePresent === value.present && base?.[key] === value.value) {
       transition.entries.delete(key)
     } else {
       transition.entries.set(key, value)

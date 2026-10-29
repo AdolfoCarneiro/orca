@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resolveProjectExecutionRuntime } from '../../../shared/project-execution-runtime'
@@ -29,7 +30,6 @@ const mocks = vi.hoisted(() => ({
     ensureRemoteDetectedAgents: ReturnType<typeof vi.fn>
     createWorktree: ReturnType<typeof vi.fn>
     updateWorktreeMeta: ReturnType<typeof vi.fn>
-    setSidebarOpen: ReturnType<typeof vi.fn>
     seedNativeChatLaunchPrompt: ReturnType<typeof vi.fn>
     seedNativeChatLaunchDraft: ReturnType<typeof vi.fn>
     markNativeChatLaunchPromptFailed: ReturnType<typeof vi.fn>
@@ -38,7 +38,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/store', async () => {
   const { createStore } = await import('zustand/vanilla')
-  const store = createStore(() => mocks.store)
+  const store = createStore(withSessionSourceWrites(() => mocks.store))
   Object.defineProperty(mocks, 'store', {
     get: store.getState,
     set: (state: typeof mocks.store) => {

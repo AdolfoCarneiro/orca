@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -39,12 +40,14 @@ function makeStore(settings: AppState['settings'] = null) {
       | 'repos'
       | 'prCache'
     >
-  >()((...args) => ({
-    settings,
-    repos: [{ id: 'repo-1', path: '/repo', connectionId: null } as AppState['repos'][number]],
-    prCache: {},
-    ...createHostedReviewSlice(...(args as Parameters<typeof createHostedReviewSlice>))
-  }))
+  >()(
+    withSessionSourceWrites((...args) => ({
+      settings,
+      repos: [{ id: 'repo-1', path: '/repo', connectionId: null } as AppState['repos'][number]],
+      prCache: {},
+      ...createHostedReviewSlice(...(args as Parameters<typeof createHostedReviewSlice>))
+    }))
+  )
 }
 
 function stampRepoOwner(store: ReturnType<typeof makeStore>, executionHostId: `runtime:${string}`) {

@@ -59,8 +59,9 @@ export class SessionWriteBaselines {
       const fresh = await this.api.getWithGeneration(hostArg)
       const next = applySessionMapDeltas(fresh.session, patch.mapDeltas ?? {})
       const full: WorkspaceSessionPatch = { expectedPartitionGeneration: fresh.partitionGeneration }
-      for (const field of Object.keys(patch.mapDeltas ?? {})) {
-        Object.assign(full, { [field]: Reflect.get(next, field) ?? {} })
+      // SAFETY: map delta keys are restricted to the session map field domain.
+      for (const field of Object.keys(patch.mapDeltas ?? {}) as SessionMapField[]) {
+        Object.assign(full, { [field]: next[field] ?? {} })
       }
       for (const [field, value] of Object.entries(patch)) {
         if (
@@ -99,18 +100,18 @@ export class SessionWriteBaselines {
     const routingChanged =
       update.routingChanged ??
       (!this.routingState ||
-        [
-          'repos',
-          'worktreesByRepo',
-          'folderWorkspaces',
-          'projectGroups',
-          'restoredRuntimeHostIdByWorkspaceSessionKey',
-          'hydratedRuntimeSessionHostIds',
-          'contestedPrimaryHostBySessionKey',
-          'contestedHostWorkspaceSessions'
-        ].some(
-          (field) => Reflect.get(this.routingState ?? {}, field) !== Reflect.get(state, field)
-        ))
+        (
+          [
+            'repos',
+            'worktreesByRepo',
+            'folderWorkspaces',
+            'projectGroups',
+            'restoredRuntimeHostIdByWorkspaceSessionKey',
+            'hydratedRuntimeSessionHostIds',
+            'contestedPrimaryHostBySessionKey',
+            'contestedHostWorkspaceSessions'
+          ] as const
+        ).some((field) => this.routingState?.[field] !== state[field]))
     if (routingChanged) {
       this.routing = update.routing ?? buildHostSessionRouting(state)
       this.routingState = state

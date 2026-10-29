@@ -127,11 +127,12 @@ describe('immutable session publication', () => {
 
   it('closes over co-owners without inspecting an unrelated bucket', () => {
     const unrelated = new Proxy([tab('unrelated', 'other::/x')], {
-      get(target, property, receiver) {
+      get(target, property) {
         if (property === Symbol.iterator) {
           throw new Error('unrelated bucket inspected')
         }
-        return Reflect.get(target, property, receiver)
+        // SAFETY: this proxy forwards the array's native keys unchanged.
+        return target[property as keyof typeof target]
       }
     })
     const state = {

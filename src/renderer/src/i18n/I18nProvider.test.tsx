@@ -43,7 +43,7 @@ async function renderProvider(): Promise<void> {
 }
 
 beforeEach(() => {
-  setSessionTestState(useLanguageReadiness, useLanguageReadiness.getInitialState(), true)
+  useLanguageReadiness.setState(useLanguageReadiness.getInitialState(), true)
   vi.spyOn(languageReadiness, 'initializeLanguageDetection').mockImplementation(async () => {
     const detection = getBrowserLanguageDetection()
     setRendererLanguageDetection(detection)

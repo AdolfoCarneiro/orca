@@ -220,7 +220,9 @@ export function reduceWindowSessionPatch(
         continue
       }
       if (Object.hasOwn(joined, field)) {
-        Object.assign(after, { [field]: Reflect.get(joined, field) })
+        // SAFETY: layout fields come from the saved workspace session domain.
+        const name = field as keyof WorkspaceSessionState
+        Object.assign(after, { [field]: joined[name] })
       } else {
         Reflect.deleteProperty(after, field)
       }

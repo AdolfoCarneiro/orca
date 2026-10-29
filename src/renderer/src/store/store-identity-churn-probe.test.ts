@@ -1,4 +1,3 @@
-import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create, type StoreApi } from 'zustand'
 import { withReactCommitCascadeWriteProbe } from './react-commit-cascade-write-probe'
@@ -123,7 +122,7 @@ describe('store identity churn probe', () => {
     const store = createProbeStore()
     armStoreIdentityChurnProbe()
 
-    setSessionTestState(store, (state) => state)
+    store.setState((state) => state)
 
     expect(readStoreIdentityChurnReport()).toEqual([])
   })
@@ -138,7 +137,7 @@ describe('store identity churn probe', () => {
     creator(innerSet, innerGet, api)
     const updater = (state: { counter: number }) => ({ counter: state.counter + 1 })
 
-    setSessionTestState(api, updater, true)
+    api.setState(updater, true)
 
     // The disarmed path forwards the exact arguments and never calls get().
     expect(innerSet).toHaveBeenCalledTimes(1)
@@ -170,7 +169,7 @@ describe('store identity churn probe', () => {
       return { counter: state.counter + 10 }
     })
     store.getState().refresh([{ id: 'a', label: 'A' }])
-    setSessionTestState(store, { ...store.getState(), counter: 100 }, true)
+    store.setState({ ...store.getState(), counter: 100 }, true)
 
     expect(updaterCalls).toBe(1)
     expect(store.getState().counter).toBe(100)
@@ -186,7 +185,7 @@ describe('store identity churn probe', () => {
     const rows = store.getState().rows
     armStoreIdentityChurnProbe()
 
-    setSessionTestState(store, { ...store.getState(), rows: [{ ...rows[0] }] }, true)
+    store.setState({ ...store.getState(), rows: [{ ...rows[0] }] }, true)
 
     expect(churnFor('rows')).toBe(1)
   })

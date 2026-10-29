@@ -92,7 +92,9 @@ export class SessionUnitWriter extends SessionWriteBaselines {
     }
     for (const host of this.pendingGlobals) {
       for (const [field, value] of Object.entries(this.desiredGlobals.get(host) ?? {})) {
-        if (!same(Reflect.get(this.globals.get(host) ?? {}, field), value)) {
+        // SAFETY: desired globals are a workspace session patch.
+        const name = field as keyof WorkspaceSessionPatch
+        if (!same(this.globals.get(host)?.[name], value)) {
           Object.assign(ensure(host), { [field]: value })
         }
       }

@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react'
@@ -22,17 +23,19 @@ vi.mock('@/store', async () => {
   const { create } = await import('zustand')
   const { getDefaultSettings } = await import('../../../../shared/constants')
   return {
-    useAppStore: create<ContextState>(() => ({
-      settings: getDefaultSettings('/home/test'),
-      repos: [],
-      projectGroups: [],
-      folderWorkspaces: [],
-      worktreesByRepo: {},
-      tabsByWorktree: {},
-      unifiedTabsByWorktree: {},
-      detectedWorktreesByRepo: {},
-      floatingWorkspacePath: null
-    }))
+    useAppStore: create<ContextState>()(
+      withSessionSourceWrites(() => ({
+        settings: getDefaultSettings('/home/test'),
+        repos: [],
+        projectGroups: [],
+        folderWorkspaces: [],
+        worktreesByRepo: {},
+        tabsByWorktree: {},
+        unifiedTabsByWorktree: {},
+        detectedWorktreesByRepo: {},
+        floatingWorkspacePath: null
+      }))
+    )
   }
 })
 

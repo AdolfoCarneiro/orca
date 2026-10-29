@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 import { act, StrictMode, useEffect } from 'react'
@@ -24,11 +25,13 @@ const harness = vi.hoisted(() => ({
 
 vi.mock('../../store', async () => {
   const { create } = await import('zustand')
-  const useAppStore = create(() => ({
-    ptyIdsByTabId: {} as Record<string, string[]>,
-    runtimePaneTitlesByTabId: {} as Record<string, Record<number, string>>,
-    terminalLayoutsByTabId: {} as Record<string, TerminalLayoutSnapshot>
-  }))
+  const useAppStore = create(
+    withSessionSourceWrites(() => ({
+      ptyIdsByTabId: {} as Record<string, string[]>,
+      runtimePaneTitlesByTabId: {} as Record<string, Record<number, string>>,
+      terminalLayoutsByTabId: {} as Record<string, TerminalLayoutSnapshot>
+    }))
+  )
   return { useAppStore }
 })
 

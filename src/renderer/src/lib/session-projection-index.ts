@@ -108,8 +108,9 @@ export class SessionProjectionIndex {
       terminalLayoutsByTabId: state.terminalLayoutsByTabId,
       openFilesByWorktree: Object.fromEntries(groupSessionFiles(state.openFiles))
     }
-    for (const [source, field] of Object.entries(SOURCE_MAPS)) {
-      Object.assign(session, { [field]: Reflect.get(state, source) })
+    // SAFETY: these are the fixed, exhaustive source-to-session map keys.
+    for (const source of Object.keys(SOURCE_MAPS) as (keyof typeof SOURCE_MAPS)[]) {
+      Object.assign(session, { [SOURCE_MAPS[source]]: state[source] })
     }
     return session
   }

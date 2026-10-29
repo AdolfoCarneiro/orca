@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -7,7 +8,7 @@ import { createStore } from 'zustand/vanilla'
 type NoticeTestState = Record<string, unknown>
 
 /** Stands in for `@/store`: a real zustand store, so selectors re-render and subscribe fires. */
-export const noticeTestStore = createStore<NoticeTestState>()(() => ({}))
+export const noticeTestStore = createStore<NoticeTestState>()(withSessionSourceWrites(() => ({})))
 
 export const useAppStore = Object.assign(
   <T>(selector: (state: NoticeTestState) => T): T => useStore(noticeTestStore, selector),

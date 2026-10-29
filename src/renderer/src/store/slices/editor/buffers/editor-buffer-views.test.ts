@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { editSessionSource } from '../../../session-source-edits'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -159,12 +160,14 @@ describe('editor buffer view index', () => {
   })
 
   it('writes and clears drafts through every view of the record', () => {
-    const store = createStore<EditorBufferState>()(() => ({
-      openFiles: [tab('a'), tab('b'), tab('c'), tab('ro', { readOnly: true })],
-      editorBuffers: {},
-      editorDrafts: {},
-      ...SHARED
-    }))
+    const store = createStore<EditorBufferState>()(
+      withSessionSourceWrites(() => ({
+        openFiles: [tab('a'), tab('b'), tab('c'), tab('ro', { readOnly: true })],
+        editorBuffers: {},
+        editorDrafts: {},
+        ...SHARED
+      }))
+    )
     const drafts = createEditorDraftState(
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the draft actions read and write only openFiles, editorDrafts and the view index.
       store.setState as unknown as EditorSet,

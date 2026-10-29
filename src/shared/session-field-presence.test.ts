@@ -39,9 +39,10 @@ class CoalescingReader extends SessionUnitReader {
   checkRetainedEntries(): void {
     for (const transition of this.transitions.values()) {
       for (const [key, entry] of transition.entries ?? []) {
-        const base = transition.base.value ?? {}
+        // SAFETY: retained entry transitions belong to map fields.
+        const base = transition.base.value as Readonly<Record<string, unknown>> | undefined
         expect(
-          Object.hasOwn(base, key) === entry.present && Reflect.get(base, key) === entry.value
+          Object.hasOwn(base ?? {}, key) === entry.present && base?.[key] === entry.value
         ).toBe(false)
       }
     }
@@ -52,7 +53,7 @@ it('coalesces base-relative entries against native operations without discarded 
   for (const field of SESSION_MAP_FIELDS) {
     const prior = freeze(root(field, 'populated'))
     const reader = new CoalescingReader(prior, new SessionUnitIndex(prior))
-    const base = Reflect.get(prior[field]!, 'selected')
+    const base = prior[field]?.selected
     let model = { ...prior }
     for (const value of [undefined, base, 'changed', base]) {
       const next = { ...model[field] }
@@ -215,7 +216,7 @@ describe('resolved field transitions against independent native values', () => {
           expect(reader.entryCount(field)).toBe(Object.keys(model[field] ?? {}).length)
           for (const key of ['selected', '1', '2', 'next', 'ownUndefined']) {
             expect(reader.unit(field, key).present).toBe(Object.hasOwn(model[field] ?? {}, key))
-            expect(reader.unit(field, key).value).toBe(Reflect.get(model[field] ?? {}, key))
+            expect(reader.unit(field, key).value).toBe(model[field]?.[key])
           }
           retained.push({ root: snapshot, saved: structuredClone(snapshot) })
           freeze(snapshot)

@@ -84,7 +84,9 @@ export class SessionUnitProjection extends SessionProjectionIndex {
               queue.push(...this.index.references(kind, id))
             }
           }
-          this.index.replace(field, key, Reflect.get(state, source)?.[key])
+          // SAFETY: field is defined only for the source-to-session map domain.
+          const mapSource = source as keyof typeof SOURCE_MAPS
+          this.index.replace(field, key, state[mapSource]?.[key])
         }
       }
       if (source === 'openFiles') {
@@ -167,11 +169,13 @@ export class SessionUnitProjection extends SessionProjectionIndex {
       repos: this.catalog.repoRows([...owners].map(getRepoIdFromWorktreeId)),
       worktreesByRepo: {}
     } satisfies AppState
-    for (const [source, field] of Object.entries(SOURCE_MAPS)) {
+    // SAFETY: these are the declared projection map inputs.
+    for (const source of Object.keys(SOURCE_MAPS) as (keyof typeof SOURCE_MAPS)[]) {
+      const field = SOURCE_MAPS[source]
       Object.assign(sparse, {
         [source]: Object.fromEntries(
           [...(scope.get(field) ?? [])].flatMap((key) => {
-            const value = Reflect.get(state, source)?.[key]
+            const value = state[source]?.[key]
             return value === undefined ? [] : [[key, value]]
           })
         )

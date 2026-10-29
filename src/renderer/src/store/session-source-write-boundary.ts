@@ -2,13 +2,16 @@ import type { StateCreator, StoreApi } from 'zustand'
 import {
   SESSION_SOURCE_FIELDS,
   SESSION_SOURCE_KINDS,
-  type SessionSourceDiscovery
+  type SessionSourceDiscovery,
+  type SessionSourceField
 } from '../lib/session-source-fields'
 import {
   unwrapSessionSourceWrite,
   type SessionSourceSet,
   type SessionSourcePartial
 } from './session-source-edits'
+
+type SourceFields<S> = { [F in SessionSourceField]?: F extends keyof S ? S[F] : never }
 
 type SourceApi<S> = Omit<S, 'setState'> & {
   setState: S extends StoreApi<infer T> ? SessionSourceSet<T> : never
@@ -65,10 +68,14 @@ export function withSessionSourceWrites<T extends object>(
               let receipt = suppliedReceipt
               const changes = new Map(receipt?.changes)
               const unreported: string[] = []
+              // SAFETY: the fixed field domain reads only source properties of this store.
+              const priorSources = state as SourceFields<T>
+              // SAFETY: accepted partials retain the same store field types.
+              const nextSources = prepared as SourceFields<T>
               for (const field of SESSION_SOURCE_FIELDS) {
                 if (
                   !(replace || Object.hasOwn(prepared, field)) ||
-                  (Reflect.get(state, field) === Reflect.get(prepared, field) &&
+                  (priorSources[field] === nextSources[field] &&
                     Object.hasOwn(state, field) === Object.hasOwn(prepared, field))
                 ) {
                   continue

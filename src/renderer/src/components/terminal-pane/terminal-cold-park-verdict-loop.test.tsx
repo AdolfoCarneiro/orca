@@ -1,3 +1,4 @@
+import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 /** @vitest-environment happy-dom */
 /** Model mount/unmount changing watcher coverage and tab identity to provoke park oscillation. Parameterize commits per flip because React’s 50-commit limit can arrive before a flip-based damping threshold. */
@@ -16,15 +17,17 @@ const park = vi.hoisted(() => ({
 
 vi.mock('../../store', async () => {
   const { create } = await import('zustand')
-  const useAppStore = create(() => ({
-    pendingStartupByTabId: {} as Record<string, unknown>,
-    ptyIdsByTabId: {} as Record<string, string[]>,
-    runtimeStatusByEnvironmentId: new Map<string, unknown>(),
-    settings: {} as Record<string, unknown>,
-    terminalLayoutsByTabId: {} as Record<string, unknown>,
-    runtimePaneTitlesByTabId: {} as Record<string, unknown>,
-    tabsByWorktree: {} as Record<string, TerminalTab[]>
-  }))
+  const useAppStore = create(
+    withSessionSourceWrites(() => ({
+      pendingStartupByTabId: {} as Record<string, unknown>,
+      ptyIdsByTabId: {} as Record<string, string[]>,
+      runtimeStatusByEnvironmentId: new Map<string, unknown>(),
+      settings: {} as Record<string, unknown>,
+      terminalLayoutsByTabId: {} as Record<string, unknown>,
+      runtimePaneTitlesByTabId: {} as Record<string, unknown>,
+      tabsByWorktree: {} as Record<string, TerminalTab[]>
+    }))
+  )
   return { useAppStore }
 })
 

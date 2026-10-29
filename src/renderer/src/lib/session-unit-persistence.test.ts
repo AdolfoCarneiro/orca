@@ -369,9 +369,7 @@ it('matches full projection through dependent edits, deletion, routing and order
         Object.assign(deltas, {
           [field]: {
             set: Object.fromEntries(
-              [...keys]
-                .filter((key) => Object.hasOwn(values, key))
-                .map((key) => [key, Reflect.get(values, key)])
+              [...keys].filter((key) => Object.hasOwn(values, key)).map((key) => [key, values[key]])
             ),
             remove: [...keys].filter((key) => !Object.hasOwn(values, key))
           }
@@ -389,7 +387,8 @@ it('matches full projection through dependent edits, deletion, routing and order
       if (field === 'activeWorktreeIdsOnShutdown' || field === 'activeConnectionIdsAtShutdown') {
         continue
       }
-      expect(Reflect.get(materialized, field), field).toEqual(expected)
+      // SAFETY: oracle entries are keys of the workspace session patch.
+      expect(materialized[field as keyof typeof materialized], field).toEqual(expected)
     }
     expect(JSON.stringify(prior)).toBe(frozen)
     state = next
