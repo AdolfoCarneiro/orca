@@ -15,15 +15,8 @@ type RestoredReport = Awaited<ReturnType<typeof agentHookServer.readRestoredAgen
 
 async function reattachQuietCoordinator(
   report: RestoredReport,
-  {
-    foreground = 'codex',
-    composer = ''
-  }: {
-    foreground?: string
-    composer?: string
-  } = {}
+  { foreground = 'codex' }: { foreground?: string } = {}
 ) {
-  const screen = `${'─'.repeat(40)}\r\n❯ ${composer}`
   const runtime = new OrcaRuntimeService(store)
   vi.spyOn(agentHookServer, 'readRestoredAgentStatus').mockResolvedValue(report)
   const db = new InMemoryOrchestrationMessages()
@@ -33,26 +26,11 @@ async function reattachQuietCoordinator(
     write,
     writeWithSettlement: settledWriteStub(write),
     kill: vi.fn(),
-    getForegroundProcess: async () => foreground,
-    // The daemon's image covers the bytes that crossed the attach.
-    serializeProviderBuffer: async () => ({
-      data: screen,
-      cols: 80,
-      rows: 24,
-      seq: 2000,
-      source: 'headless' as const
-    })
+    getForegroundProcess: async () => foreground
   })
   syncSinglePty(runtime)
   const [terminal] = (await runtime.listTerminals()).terminals
   bindSinglePtyRun(db, terminal.handle)
-  // Reattach order: stream bytes can land before the daemon's sequence and snapshot do.
-  runtime.onPtyData('pty-1', screen, Date.now())
-  runtime.synchronizePtyOutputSequenceFromProvider('pty-1', {
-    value: 1000,
-    generation: 'continued'
-  })
-  runtime.seedHeadlessTerminal('pty-1', screen)
   // The restarted runtime has seen no status from the surviving session.
   seedTerminalRestoreRecordsFromSpawnResult(runtime, { id: 'pty-1', isReattach: true })
   await vi.advanceTimersByTimeAsync(0)
@@ -97,11 +75,6 @@ describe('restart wake for a quiet coordinator', () => {
       {
         foreground: 'zsh'
       }
-    ],
-    [
-      'text typed before the restart is still unsent',
-      { state: 'done' } as const,
-      { composer: 'please refactor the auth' }
     ]
   ])('holds mail when %s', async (_case, report, options) => {
     vi.useFakeTimers()

@@ -2,8 +2,7 @@ import type { PtyProviderBufferSnapshot } from '../../../providers/pty-provider-
 import type {
   HeadlessSeedMetadata,
   ProviderTerminalBufferWait,
-  RuntimeHeadlessTerminal,
-  RuntimeVisibleTerminalState
+  RuntimeHeadlessTerminal
 } from '../../runtime-terminal-state-records'
 import type { OrcaRuntimeWithSerializeTerminalBufferFromAvailableState } from './terminal-buffer-selection'
 import { OrcaRuntimeWithNotifyRemoteTerminalViewPresenceChanged } from '../layout/terminal-view-presence'
@@ -77,9 +76,6 @@ export abstract class OrcaRuntimeWithSerializeMainTerminalBuffer extends OrcaRun
     dims: { cols: number; rows: number }
   ): RuntimeHeadlessTerminal
   protected abstract applySeededAgentStatus(ptyId: string, title: string): void
-  protected abstract readCurrentTerminalWaitScreen(
-    ptyId: string
-  ): Promise<RuntimeVisibleTerminalState | null | undefined>
 
   serializeMainTerminalBuffer(
     ptyId: string,
@@ -260,18 +256,12 @@ export abstract class OrcaRuntimeWithSerializeMainTerminalBuffer extends OrcaRun
     void Promise.all([
       this.ptyForegroundAgent.identifyForeground(ptyId),
       ...paneKeys.map((paneKey) => agentHookServer.readRestoredAgentStatus(paneKey))
-    ]).then(async ([agent, ...reports]) => {
+    ]).then(([agent, ...reports]) => {
       const report = reports.find((candidate) => candidate !== null)
       const turn = agent && report ? hookLeadTurnState(report) : null
-      if (!turn) {
-        return
-      }
-      // Text typed before the restart sits in the composer; the pointer and Enter would send it.
-      const screen = await this.readCurrentTerminalWaitScreen(ptyId)
       // A respawn, an exit or a live report since the reattach decides instead.
       if (
-        !screen ||
-        screen.draft !== undefined ||
+        !turn ||
         this.ptysById.get(ptyId) !== pty ||
         pty.incarnationId !== incarnationId ||
         this.getPtyLifecycleGeneration(ptyId) !== generation ||
