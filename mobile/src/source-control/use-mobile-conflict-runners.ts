@@ -5,13 +5,9 @@ import {
   MOBILE_COMPLETE_MERGE_ACTION_ID,
   MOBILE_CONFLICT_NEEDS_NEWER_HOST_MESSAGE
 } from './mobile-source-control-conflict-actions'
-import type {
-  GitCommitResult,
-  GitRequestError,
-  MobileGitStatusEntryView
-} from './mobile-source-control-screen-state'
+import type { MobileGitStatusEntryView } from './mobile-source-control-screen-state'
 
-type SendGitRequest = <T>(method: string, params?: Record<string, unknown>) => Promise<T>
+type SendGitRequest = (method: string, params?: Record<string, unknown>) => Promise<unknown>
 
 type Params = {
   sendGitRequest: SendGitRequest
@@ -23,11 +19,14 @@ type Params = {
 export function useMobileConflictRunners({ sendGitRequest, runGitAction, runGitWorkflow }: Params) {
   // Hosts older than these ops refuse them; say what to do instead of echoing the raw refusal.
   const sendConflictRequest = useCallback(
-    async <T>(method: string, params?: Record<string, unknown>): Promise<T> => {
+    async (method: string, params?: Record<string, unknown>): Promise<unknown> => {
       try {
-        return await sendGitRequest<T>(method, params)
+        return await sendGitRequest(method, params)
       } catch (err) {
-        const code = err instanceof Error ? (err as GitRequestError).code : undefined
+        const code =
+          err instanceof Error && 'code' in err && typeof err.code === 'string'
+            ? err.code
+            : undefined
         if (isMobileGitUnavailable(code, err instanceof Error ? err.message : undefined)) {
           throw new Error(MOBILE_CONFLICT_NEEDS_NEWER_HOST_MESSAGE)
         }
@@ -50,9 +49,12 @@ export function useMobileConflictRunners({ sendGitRequest, runGitAction, runGitW
   )
 
   const resolveConflict = useCallback(
-    async (entry: MobileGitStatusEntryView, resolution: ConflictResolution) => {
+    async (
+      entry: Pick<MobileGitStatusEntryView, 'path' | 'resolveActionId'>,
+      resolution: ConflictResolution
+    ) => {
       await runGitWorkflow(entry.resolveActionId, async () => {
-        await sendConflictRequest<unknown>('git.resolveConflict', {
+        await sendConflictRequest('git.resolveConflict', {
           filePath: entry.path,
           resolution
         })
@@ -64,12 +66,24 @@ export function useMobileConflictRunners({ sendGitRequest, runGitAction, runGitW
   const completeMerge = useCallback(async () => {
     await runGitWorkflow(MOBILE_COMPLETE_MERGE_ACTION_ID, async () => {
       // completeMerge reports Git's refusal in-band, like git.commit.
-      const result = await sendConflictRequest<GitCommitResult>('git.completeMerge')
-      if (!result || result.success !== true) {
-        throw new Error(result?.error || 'Complete merge failed')
+      const failure = readCompleteMergeFailure(await sendConflictRequest('git.completeMerge'))
+      if (failure) {
+        throw new Error(failure)
       }
     })
   }, [runGitWorkflow, sendConflictRequest])
 
   return { abortConflictOperation, resolveConflict, completeMerge }
+}
+
+function readCompleteMergeFailure(result: unknown): string | null {
+  if (typeof result !== 'object' || result === null) {
+    return 'Complete merge failed'
+  }
+  if ('success' in result && result.success === true) {
+    return null
+  }
+  return 'error' in result && typeof result.error === 'string' && result.error
+    ? result.error
+    : 'Complete merge failed'
 }
