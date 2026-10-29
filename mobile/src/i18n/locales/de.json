@@ -1242,6 +1242,7 @@
       "chooseWorkspaceFile": "Eine Datei in diesem Arbeitsbereich auswählen.",
       "discard": "Verwerfen",
       "discardMessage": "Nicht gespeicherte Änderungen gehen verloren.",
+      "discardMessageSaving": "Das laufende Speichern wird möglicherweise nicht abgeschlossen. Nicht gespeicherte Änderungen gehen verloren.",
       "discardTitle": "Änderungen verwerfen?",
       "fileTitle": "Datei",
       "loadFailed": "Vorschau konnte nicht geladen werden.",

@@ -150,13 +150,21 @@ describe('the NSIS uninstaller', () => {
     )
     expect(detect).toContain('ReadRegStr $R5 ${HIVE} "${INSTALL_REGISTRY_KEY}" InstallLocation')
     // Our own registration is excluded, and the other one must still have the app.
-    expect(detect).toContain('${andIf} $R5 != $INSTDIR')
+    expect(detect).toContain('${elseIf} $R5 != $INSTDIR')
     expect(detect).toContain('${andIf} ${FileExists} "$R5\\${APP_EXECUTABLE_FILENAME}"')
     // A read failure other than "no such key" reports unknown, which skips the removal.
     expect(detect).toMatch(
       /\$\{elseIf\} \$R7 != \$\{ORCA_ERROR_FILE_NOT_FOUND\}\s+StrCpy \$\{OUT\} "unknown"/
     )
     expect(detect).not.toMatch(/nsExec|ExecWait|powershell/i)
+  })
+
+  it('keeps the hooks when an Orca registration names no install location', () => {
+    const detect = nsis('orca-other-install-check.nsh')
+    // An opened key whose InstallLocation reads empty is doubtful, never "none".
+    expect(detect).toMatch(
+      /ReadRegStr \$R5 \$\{HIVE\} "\$\{INSTALL_REGISTRY_KEY\}" InstallLocation[\s\S]*?\$\{if\} \$R5 == ""\s+(?:;[^\n]*\n\s+)?StrCpy \$\{OUT\} "unknown"\s+\$\{elseIf\} \$R5 != \$INSTDIR/
+    )
   })
 
   it("removes the `orca` command's PATH entry on a real uninstall only", () => {
