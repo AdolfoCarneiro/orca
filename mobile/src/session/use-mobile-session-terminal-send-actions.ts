@@ -138,7 +138,8 @@ export function useMobileSessionTerminalSendActions(scope: MobileSessionTerminal
       const accepted = terminalInputSend.interpret(response) === true
       if (accepted) {
         reportWorkerTerminalUserInput(client, activeHandle)
-      } else {
+      }
+      if (!accepted) {
         restoreRejectedDraft()
       }
       const draftUnchanged =
