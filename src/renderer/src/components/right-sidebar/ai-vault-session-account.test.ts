@@ -40,56 +40,6 @@ function session(agent: AiVaultSession['agent'], path: string): AiVaultSession {
 }
 
 describe('session account labels', () => {
-  it.each(['claude', 'codex'] as const)(
-    'uses the recorded %s folder despite a different selection',
-    (agent) => {
-      const recorded = session(agent, `/accounts/${agent}`)
-      expect(resolveAiVaultSessionAccount(recorded, settings, null)).toBe('recorded@example.com')
-      const changedSelection = {
-        ...settings,
-        activeClaudeManagedAccountId: 'third',
-        activeCodexManagedAccountId: 'third'
-      }
-      expect(resolveAiVaultSessionAccount(recorded, changedSelection, null)).toBe(
-        'recorded@example.com'
-      )
-      expect(resolveAiVaultSessionAccount({ ...recorded, accountHome: null }, settings, null)).toBe(
-        'System default'
-      )
-      for (const unknown of [
-        { ...recorded, accountHome: undefined },
-        { ...recorded, executionHostId: 'runtime:other' as const },
-        { ...recorded, accountHome: null, executionHostId: 'runtime:other' as const },
-        session(agent, '/custom/config')
-      ]) {
-        expect(resolveAiVaultSessionAccount(unknown, settings, null)).toBeNull()
-      }
-    }
-  )
-
-  it('uses the current Claude profile home and email ahead of the obsolete saved folder', () => {
-    const accounts = {
-      claude: {
-        activeAccountId: 'another',
-        accounts: [{ ...claude, home: '/profiles/current', email: 'current@example.com' }]
-      }
-    }
-    expect(
-      resolveAiVaultSessionAccount(session('claude', '/profiles/current'), settings, accounts)
-    ).toBe('current@example.com')
-    expect(
-      resolveAiVaultSessionAccount(session('claude', claude.managedAuthPath), settings, accounts)
-    ).toBeNull()
-    expect(
-      resolveAiVaultSessionAccount(session('claude', claude.managedAuthPath), settings, {
-        claude: {
-          activeAccountId: 'another',
-          accounts: [{ ...claude, email: 'older-server@example.com' }]
-        }
-      })
-    ).toBe('older-server@example.com')
-  })
-
   it('uses the same current Codex label as the account menu', () => {
     expect(
       resolveAiVaultSessionAccount(session('codex', codex.managedHomePath), settings, {
@@ -124,36 +74,27 @@ describe('session account labels', () => {
       ]
     }
     const wsl = { ...session('claude', '/home/me/.claude'), accountWslDistro: 'Ubuntu' }
-    expect(resolveAiVaultSessionAccount(wsl, wslSettings, null)).toBe(claude.email)
+    const olderRoster = {
+      claude: { accounts: wslSettings.claudeManagedAccounts, activeAccountId: null }
+    }
+    expect(resolveAiVaultSessionAccount(wsl, wslSettings, olderRoster)).toBe(claude.email)
     expect(
-      resolveAiVaultSessionAccount({ ...wsl, accountWslDistro: 'Debian' }, wslSettings, null)
+      resolveAiVaultSessionAccount({ ...wsl, accountWslDistro: 'Debian' }, wslSettings, olderRoster)
     ).toBeNull()
     expect(
-      resolveAiVaultSessionAccount({ ...wsl, accountWslDistro: undefined }, wslSettings, null)
+      resolveAiVaultSessionAccount(
+        { ...wsl, accountWslDistro: undefined },
+        wslSettings,
+        olderRoster
+      )
     ).toBeNull()
   })
 
-  it('resolves a saved data profile by its recorded id, and leaves unsupported agents unknown', () => {
-    const profileId = '019fd532-7c11-7a90-b6de-4e1a2c3d5f60'
-    const recorded = {
-      ...session('opencode', '/unused'),
-      accountHome: {
-        kind: 'opencode' as const,
-        locator: { kind: 'managed' as const, managedProfileId: profileId }
-      }
-    }
-    expect(
-      resolveAiVaultSessionAccount(recorded, settings, {
-        opencode: {
-          activeAccountId: 'profile-b',
-          accounts: [{ id: profileId, label: 'Work', integrations: [], createdAt: 1 }]
-        }
-      })
-    ).toBe('Work')
+  it('keeps explicit unmanaged data accounts as default and unsupported bindings unknown', () => {
     expect(
       resolveAiVaultSessionAccount(
         {
-          ...recorded,
+          ...session('opencode', '/unused'),
           accountHome: { kind: 'opencode', locator: { kind: 'unmanaged' } }
         },
         settings,

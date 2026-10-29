@@ -8,6 +8,7 @@ import type { ManagedDataAccountsState } from '../../../../shared/managed-accoun
 import { translate } from '@/i18n/i18n'
 import { getCodexAccountDisplayLabel } from '@/lib/codex-account-display-label'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
+import { subscribeRuntimeRpc } from '@/runtime/runtime-rpc-subscribe'
 import {
   fetchProviderAccountsSnapshot,
   type ProviderAccountsSnapshot
@@ -55,7 +56,10 @@ export function resolveAiVaultSessionAccount(
       : runtime !== 'wsl'
 
   if (session.agent === 'claude' && home.variable === 'CLAUDE_CONFIG_DIR') {
-    const roster = accounts?.claude?.accounts ?? []
+    if (!accounts?.claude || accounts.failedProviders?.includes('claude')) {
+      return null
+    }
+    const roster = accounts.claude.accounts
     const current = roster.find(
       (account) =>
         sameRuntime(account.managedAuthRuntime, account.wslDistro) && sameHome(account.home)
@@ -73,7 +77,7 @@ export function resolveAiVaultSessionAccount(
     }
     const summary = roster.find((account) => account.id === saved.id)
     // The router may replace a legacy saved folder; only older summaries lack its actual home.
-    return summary?.home && !sameHome(summary.home) ? null : (summary?.email ?? saved.email)
+    return !summary || (summary.home && !sameHome(summary.home)) ? null : summary.email
   }
   if (session.agent === 'codex' && home.variable === 'CODEX_HOME') {
     const saved = settings?.codexManagedAccounts.find(
@@ -118,23 +122,58 @@ export function useAiVaultSessionAccount(session: SessionAccountSource): string 
       return
     }
     let cancelled = false
-    const request = dataAccount
-      ? callRuntimeRpc<SessionAccounts>({ kind: 'local' }, 'accounts.listData')
-      : fetchProviderAccountsSnapshot({ kind: 'local' })
-    void request.then(
-      (snapshot) => {
-        if (!cancelled) {
-          setAccounts(snapshot)
+    let generation = 0
+    let unsubscribe: (() => void) | undefined
+    const load = (): void => {
+      const attempt = ++generation
+      const request = dataAccount
+        ? callRuntimeRpc<SessionAccounts>({ kind: 'local' }, 'accounts.listData')
+        : fetchProviderAccountsSnapshot({ kind: 'local' })
+      void request.then(
+        (snapshot) => {
+          if (!cancelled && generation === attempt) {
+            setAccounts(snapshot)
+          }
+        },
+        () => {
+          if (!cancelled && generation === attempt) {
+            setAccounts(null)
+          }
         }
-      },
-      () => {
-        if (!cancelled) {
-          setAccounts(null)
-        }
+      )
+    }
+    const lose = (): void => {
+      generation += 1
+      if (!cancelled) {
+        setAccounts(null)
       }
-    )
+    }
+    if (dataAccount) {
+      void subscribeRuntimeRpc({ kind: 'local' }, 'accounts.subscribe', null, {
+        onEvent: (frame) => {
+          if (!cancelled && typeof frame === 'object' && frame !== null && 'type' in frame) {
+            if (frame.type === 'ready' || frame.type === 'snapshot') {
+              load()
+            } else if (frame.type === 'end') {
+              lose()
+            }
+          }
+        },
+        onError: lose,
+        onClose: lose
+      }).then((handle) => {
+        if (cancelled) {
+          handle.unsubscribe()
+        } else {
+          unsubscribe = handle.unsubscribe
+        }
+      }, lose)
+    } else {
+      load()
+    }
     return () => {
       cancelled = true
+      unsubscribe?.()
     }
   }, [agent, dataAccount, needsAccounts, claudeSaved, codexSaved])
 
