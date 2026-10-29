@@ -54,7 +54,7 @@ export async function claudePipedFixture() {
     claimKeyId: 'key-1',
     logger: logs,
     resolveWorkspacePath: async () => directory,
-    resolveClaudeCommand: () => '/fixture/claude',
+    resolveClaudeCommand: () => ({ command: '/fixture/claude', prefixArgs: [] }),
     resolveLaunchArgs: () => [],
     resolveClaudeAuthPolicy: () => ({ account: 'system' }),
     readProcessStartTime: async (pid) => {

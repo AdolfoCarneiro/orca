@@ -25,6 +25,7 @@ import {
   type AgentSessionProviderContextBoundary
 } from './agent-session-provider-context'
 import { isStructuredAgentId } from './agent-session-provider-handle-encoding'
+import { isNonNegativeSafeInteger } from './ssh-retained-payload-limits'
 import {
   isAgentSessionAccountHome,
   MAX_PATH_LENGTH,
@@ -257,14 +258,10 @@ function isAgentSessionDeathEvidence(value: unknown): value is AgentSessionDeath
       evidence.kind === 'pid-absent' ||
       evidence.kind === 'identity-mismatch') &&
     isBoundedString(evidence.detail, MAX_AGENT_SESSION_DEATH_DETAIL_CHARS) &&
-    typeof observedAt === 'number' &&
-    Number.isSafeInteger(observedAt) &&
-    observedAt >= 0 &&
-    (ownerFence === undefined || (Number.isSafeInteger(ownerFence) && ownerFence >= 0)) &&
+    isNonNegativeSafeInteger(observedAt) &&
+    (ownerFence === undefined || isNonNegativeSafeInteger(ownerFence)) &&
     (lastProvenAliveAt === undefined ||
-      (Number.isSafeInteger(lastProvenAliveAt) &&
-        lastProvenAliveAt >= 0 &&
-        lastProvenAliveAt <= observedAt)) &&
+      (isNonNegativeSafeInteger(lastProvenAliveAt) && lastProvenAliveAt <= observedAt)) &&
     (runtimeEnd === undefined || isBoundedString(runtimeEnd, MAX_ID_LENGTH))
   )
 }
