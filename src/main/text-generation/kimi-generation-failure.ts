@@ -5,7 +5,7 @@ import {
   type TextGenerationFailureFields
 } from '../../shared/text-generation-failure-copy'
 
-function emptyInputFailure(input: string | undefined): TextGenerationFailureFields | null {
+function emptyInputFailure(input: string): TextGenerationFailureFields | null {
   switch (input) {
     case 'Prompt':
       return textGenerationFailure('kimiEmptyPrompt')
@@ -124,7 +124,7 @@ function stderrDiagnosis(stderr: string): TextGenerationFailureFields | null {
       return textGenerationFailure('kimiCancelled')
     }
     const emptyInput = emptyInputFailure(
-      /^(Prompt|Model|Agent|Agent file path) cannot be empty\.$/.exec(terminal)?.[1]
+      /^(Prompt|Model|Agent|Agent file path) cannot be empty\.$/.exec(terminal)?.[1] ?? ''
     )
     if (emptyInput) {
       return emptyInput
