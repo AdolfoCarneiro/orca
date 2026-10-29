@@ -22116,5 +22116,38 @@
       },
       "finishPending": "Uma movimentação anterior para o host {{distro}} já foi concluída lá. O Orca a conclui aqui quando reiniciar, ou agora com Verificar novamente."
     }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "Nenhuma janela do Orca estava disponível para iniciar a automação.",
+      "unevaluableSchedule": "O Orca não conseguiu avaliar esta automação e ignorou esta execução.",
+      "noRunnableHost": "Esta automação não tem host onde ser executada.",
+      "wslMoveInProgress": "O projeto desta automação está sendo movido para seu host WSL, por isso o Orca ignorou esta execução. As execuções serão retomadas quando a movimentação terminar.",
+      "wslMoveOwnedByHost": "O projeto desta automação agora é executado em seu host WSL, que também executa esta automação. O Orca não executa mais esta cópia local.",
+      "missedGraceWindow": "Quando o Orca verificou novamente, o período de tolerância para recuperar esta execução perdida já havia expirado.",
+      "targetMissing": "O host da automação não está mais registrado, então esta automação não tem onde ser executada.",
+      "targetReplaced": "O host da automação foi removido e registrado novamente, então esta automação precisa ser vinculada novamente antes de poder ser executada.",
+      "workspaceHostAmbiguous": "O espaço de trabalho da automação abrange mais de um host, então o Orca não consegue determinar em qual deles executá-la.",
+      "legacyTwinHosts": "Esta automação foi salva antes de o Orca registrar em qual host ela é executada, e seu projeto está em mais de um host. Abra a automação e escolha o host em que ela deve ser executada.",
+      "targetUnavailable": "O destino de execução da automação não está mais disponível.",
+      "remoteSchedulingUnavailable": "O agendamento de automações em servidores remotos ainda não está disponível neste cliente do Orca. Execute esta automação no servidor remoto ou atualize o Orca quando o agendamento remoto persistente estiver disponível.",
+      "projectSetupMissing": "O projeto não está mais configurado no host selecionado para a automação.",
+      "targetSetupMismatch": "O destino de execução da automação não corresponde mais à configuração do host selecionado para o projeto.",
+      "repoUnavailable": "O repositório do host selecionado para a automação não está mais disponível.",
+      "repoDetached": "O repositório não está mais vinculado ao host selecionado para a automação.",
+      "projectPathChanged": "O caminho do projeto no host selecionado para a automação mudou.",
+      "automationChanged": "A automação mudou antes que esta execução pudesse ser iniciada.",
+      "destinationChanged": "O destino da automação mudou antes que esta execução pudesse ser iniciada.",
+      "hooksReviewBlocked": "O agente está aguardando alguém revisar os hooks novos ou alterados (“Hooks need review”). Abra esta execução e confie neles ou remova-os. As execuções agendadas continuam e serão bem-sucedidas assim que não houver mais nada para revisar.",
+      "agentNeverStarted": "O agente da automação nunca foi iniciado após o envio do prompt.",
+      "agentNoCompletion": "O agente da automação não informou a conclusão.",
+      "watchTimedOut": "O Orca parou de monitorar esta execução após 6 horas sem um sinal de conclusão.",
+      "projectSetupState": {
+        "notSetUp": "O projeto não está configurado no host selecionado para a automação.",
+        "settingUp": "O projeto ainda está sendo configurado no host selecionado para a automação.",
+        "error": "A configuração do projeto falhou no host selecionado para a automação.",
+        "unsupported": "O host selecionado para a automação não oferece suporte a este projeto."
+      }
+    }
   }
 }

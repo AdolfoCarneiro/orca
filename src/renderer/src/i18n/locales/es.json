@@ -22111,5 +22111,38 @@
       },
       "finishPending": "Un traslado anterior al host {{distro}} ya terminó allí. Orca lo termina aquí cuando se reinicie, o ahora con Verificar de nuevo."
     }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "No había ninguna ventana de Orca disponible para iniciar la automatización.",
+      "unevaluableSchedule": "Orca no pudo evaluar esta automatización y omitió esta ejecución.",
+      "noRunnableHost": "Esta automatización no tiene host donde ejecutarse.",
+      "wslMoveInProgress": "El proyecto de esta automatización se está moviendo a su host WSL, por lo que Orca omitió esta ejecución. Las ejecuciones se reanudarán cuando termine el traslado.",
+      "wslMoveOwnedByHost": "El proyecto de esta automatización ahora se ejecuta en su host WSL, que ejecuta allí esta automatización. Orca ya no ejecuta esta copia local.",
+      "missedGraceWindow": "Cuando Orca volvió a comprobarlo, ya había vencido el período de gracia para recuperar esta ejecución omitida.",
+      "targetMissing": "El host de la automatización ya no está registrado, por lo que esta automatización no tiene dónde ejecutarse.",
+      "targetReplaced": "El host de la automatización se eliminó y se volvió a registrar, por lo que hay que volver a vincular esta automatización antes de poder ejecutarla.",
+      "workspaceHostAmbiguous": "El espacio de trabajo de la automatización abarca varios hosts, por lo que Orca no puede determinar en cuál ejecutarla.",
+      "legacyTwinHosts": "Esta automatización se guardó antes de que Orca registrara en qué host se ejecuta, y su proyecto está en varios hosts. Abre la automatización y elige el host donde debe ejecutarse.",
+      "targetUnavailable": "El destino de ejecución de la automatización ya no está disponible.",
+      "remoteSchedulingUnavailable": "La programación de automatizaciones en servidores remotos aún no está disponible desde este cliente de Orca. Ejecuta esta automatización en el servidor remoto o actualiza Orca cuando esté disponible la programación remota persistente.",
+      "projectSetupMissing": "El proyecto ya no está configurado en el host seleccionado para la automatización.",
+      "targetSetupMismatch": "El destino de ejecución de la automatización ya no coincide con la configuración del host seleccionado para el proyecto.",
+      "repoUnavailable": "El repositorio del host seleccionado para la automatización ya no está disponible.",
+      "repoDetached": "El repositorio ya no está vinculado al host seleccionado para la automatización.",
+      "projectPathChanged": "La ruta del proyecto en el host seleccionado para la automatización ha cambiado.",
+      "automationChanged": "La automatización cambió antes de que pudiera iniciarse esta ejecución.",
+      "destinationChanged": "El destino de la automatización cambió antes de que pudiera iniciarse esta ejecución.",
+      "hooksReviewBlocked": "El agente está esperando a que alguien revise los hooks nuevos o modificados («Hooks need review»). Abre esta ejecución y confía en ellos o elimínalos. Las ejecuciones programadas continúan y se completarán correctamente cuando no quede nada por revisar.",
+      "agentNeverStarted": "El agente de la automatización no llegó a iniciarse tras el envío del prompt.",
+      "agentNoCompletion": "El agente de la automatización no informó de la finalización.",
+      "watchTimedOut": "Orca dejó de supervisar esta ejecución tras 6 horas sin una señal de finalización.",
+      "projectSetupState": {
+        "notSetUp": "El proyecto no está configurado en el host seleccionado para la automatización.",
+        "settingUp": "El proyecto aún se está configurando en el host seleccionado para la automatización.",
+        "error": "La configuración del proyecto falló en el host seleccionado para la automatización.",
+        "unsupported": "El host seleccionado para la automatización no admite este proyecto."
+      }
+    }
   }
 }

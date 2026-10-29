@@ -21788,5 +21788,38 @@
       "markFile": "{{path}} als angesehen markieren",
       "unmarkFile": "Markierung „Angesehen“ für {{path}} aufheben"
     }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "Zum Starten der Automatisierung war kein Orca-Fenster verfügbar.",
+      "unevaluableSchedule": "Orca konnte diese Automatisierung nicht auswerten und hat diese Ausführung übersprungen.",
+      "noRunnableHost": "Dieser Automatisierung fehlt ein Host zur Ausführung.",
+      "wslMoveInProgress": "Das Projekt dieser Automatisierung wird auf seinen WSL-Host verschoben. Deshalb hat Orca diese Ausführung übersprungen. Die Ausführungen werden nach Abschluss des Verschiebens fortgesetzt.",
+      "wslMoveOwnedByHost": "Das Projekt dieser Automatisierung läuft jetzt auf seinem WSL-Host, der die Automatisierung dort ausführt. Orca führt diese lokale Kopie nicht mehr aus.",
+      "missedGraceWindow": "Bei der nächsten Prüfung durch Orca war die Nachholfrist für diese verpasste Ausführung bereits abgelaufen.",
+      "targetMissing": "Der Host der Automatisierung ist nicht mehr registriert. Daher gibt es für diese Automatisierung keinen Ausführungsort.",
+      "targetReplaced": "Der Host der Automatisierung wurde entfernt und erneut registriert. Daher muss diese Automatisierung vor der Ausführung erneut zugeordnet werden.",
+      "workspaceHostAmbiguous": "Der Arbeitsbereich der Automatisierung erstreckt sich über mehrere Hosts. Orca kann daher nicht bestimmen, auf welchem Host sie ausgeführt werden soll.",
+      "legacyTwinHosts": "Diese Automatisierung wurde gespeichert, bevor Orca ihren ausführenden Host erfasste. Ihr Projekt befindet sich auf mehreren Hosts. Die Automatisierung öffnen und den Host auswählen, auf dem sie ausgeführt werden soll.",
+      "targetUnavailable": "Das Ausführungsziel der Automatisierung ist nicht mehr verfügbar.",
+      "remoteSchedulingUnavailable": "Die Zeitplanung für Automatisierungen auf Remote-Servern ist mit diesem Orca-Client noch nicht verfügbar. Diese Automatisierung auf dem Remote-Server ausführen oder Orca aktualisieren, sobald dauerhafte Remote-Zeitplanung verfügbar ist.",
+      "projectSetupMissing": "Das Projekt ist auf dem ausgewählten Automatisierungs-Host nicht mehr eingerichtet.",
+      "targetSetupMismatch": "Das Ausführungsziel der Automatisierung stimmt nicht mehr mit der ausgewählten Host-Einrichtung des Projekts überein.",
+      "repoUnavailable": "Das Repository für den ausgewählten Automatisierungs-Host ist nicht mehr verfügbar.",
+      "repoDetached": "Das Repository ist dem ausgewählten Automatisierungs-Host nicht mehr zugeordnet.",
+      "projectPathChanged": "Der Projektpfad für den ausgewählten Automatisierungs-Host hat sich geändert.",
+      "automationChanged": "Die Automatisierung wurde geändert, bevor diese Ausführung gestartet werden konnte.",
+      "destinationChanged": "Das Ziel der Automatisierung wurde geändert, bevor diese Ausführung gestartet werden konnte.",
+      "hooksReviewBlocked": "Der Agent wartet darauf, dass neue oder geänderte Hooks überprüft werden („Hooks need review“). Diese Ausführung öffnen und den Hooks vertrauen oder sie entfernen. Geplante Ausführungen laufen weiter und sind erfolgreich, sobald nichts mehr überprüft werden muss.",
+      "agentNeverStarted": "Der Agent der Automatisierung wurde nach dem Absenden des Prompts nie gestartet.",
+      "agentNoCompletion": "Der Agent der Automatisierung hat keinen Abschluss gemeldet.",
+      "watchTimedOut": "Orca hat die Überwachung dieser Ausführung nach 6 Stunden ohne Abschlusssignal beendet.",
+      "projectSetupState": {
+        "notSetUp": "Das Projekt ist auf dem ausgewählten Automatisierungs-Host nicht eingerichtet.",
+        "settingUp": "Das Projekt wird auf dem ausgewählten Automatisierungs-Host noch eingerichtet.",
+        "error": "Die Projekteinrichtung auf dem ausgewählten Automatisierungs-Host ist fehlgeschlagen.",
+        "unsupported": "Der ausgewählte Automatisierungs-Host unterstützt dieses Projekt nicht."
+      }
+    }
   }
 }

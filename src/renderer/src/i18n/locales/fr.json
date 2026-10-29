@@ -22111,5 +22111,38 @@
       },
       "finishPending": "Un déplacement précédent vers l'hôte {{distro}} est terminé là-bas. Orca le finalise ici au redémarrage, ou dès maintenant avec Revérifier."
     }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "Aucune fenêtre Orca n’était disponible pour lancer l’automatisation.",
+      "unevaluableSchedule": "Orca n’a pas pu évaluer cette automatisation et a ignoré cette occurrence.",
+      "noRunnableHost": "Cette automatisation n’a pas d’hôte sur lequel s’exécuter.",
+      "wslMoveInProgress": "Le projet de cette automatisation est en cours de déplacement vers son hôte WSL. Orca a donc ignoré cette exécution. Les exécutions reprendront à la fin du déplacement.",
+      "wslMoveOwnedByHost": "Le projet de cette automatisation s’exécute désormais sur son hôte WSL, qui y exécute cette automatisation. Orca n’exécute plus cette copie locale.",
+      "missedGraceWindow": "Lors de la vérification suivante par Orca, la marge de rattrapage de cette exécution manquée était déjà dépassée.",
+      "targetMissing": "L’hôte de l’automatisation n’est plus enregistré. Cette automatisation n’a donc plus d’hôte sur lequel s’exécuter.",
+      "targetReplaced": "L’hôte de l’automatisation a été supprimé puis réenregistré. Cette automatisation doit donc être rattachée à nouveau avant de pouvoir s’exécuter.",
+      "workspaceHostAmbiguous": "L’espace de travail de l’automatisation s’étend sur plusieurs hôtes. Orca ne peut donc pas déterminer sur lequel l’exécuter.",
+      "legacyTwinHosts": "Cette automatisation a été enregistrée avant qu’Orca ne suive son hôte d’exécution, et son projet se trouve sur plusieurs hôtes. Ouvrez l’automatisation et choisissez l’hôte sur lequel elle doit s’exécuter.",
+      "targetUnavailable": "La cible d’exécution de l’automatisation n’est plus disponible.",
+      "remoteSchedulingUnavailable": "La planification des automatisations sur serveur distant n’est pas encore disponible depuis ce client Orca. Exécutez cette automatisation sur le serveur distant ou mettez Orca à jour lorsque la planification distante persistante sera disponible.",
+      "projectSetupMissing": "Le projet n’est plus configuré sur l’hôte sélectionné pour l’automatisation.",
+      "targetSetupMismatch": "La cible d’exécution de l’automatisation ne correspond plus à la configuration de l’hôte sélectionné pour le projet.",
+      "repoUnavailable": "Le dépôt de l’hôte sélectionné pour l’automatisation n’est plus disponible.",
+      "repoDetached": "Le dépôt n’est plus rattaché à l’hôte sélectionné pour l’automatisation.",
+      "projectPathChanged": "Le chemin du projet sur l’hôte sélectionné pour l’automatisation a changé.",
+      "automationChanged": "L’automatisation a changé avant que cette exécution ait pu démarrer.",
+      "destinationChanged": "La destination de l’automatisation a changé avant que cette exécution ait pu démarrer.",
+      "hooksReviewBlocked": "L’agent attend que quelqu’un examine les hooks nouveaux ou modifiés (« Hooks need review »). Ouvrez cette exécution et approuvez-les ou supprimez-les. Les exécutions planifiées continuent et réussiront dès qu’il ne restera plus rien à examiner.",
+      "agentNeverStarted": "L’agent de l’automatisation n’a jamais démarré après l’envoi du prompt.",
+      "agentNoCompletion": "L’agent de l’automatisation n’a pas signalé la fin de l’exécution.",
+      "watchTimedOut": "Orca a cessé de surveiller cette exécution après 6 h sans signal de fin.",
+      "projectSetupState": {
+        "notSetUp": "Le projet n’est pas configuré sur l’hôte sélectionné pour l’automatisation.",
+        "settingUp": "Le projet est encore en cours de configuration sur l’hôte sélectionné pour l’automatisation.",
+        "error": "La configuration du projet a échoué sur l’hôte sélectionné pour l’automatisation.",
+        "unsupported": "L’hôte sélectionné pour l’automatisation ne prend pas en charge ce projet."
+      }
+    }
   }
 }
