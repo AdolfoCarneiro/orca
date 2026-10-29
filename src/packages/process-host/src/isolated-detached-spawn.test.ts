@@ -135,6 +135,31 @@ describe('spawnDetachedWithoutInheritance', () => {
     expect(spawnProcess).not.toHaveBeenCalled()
   })
 
+  it('reports exits like libuv: its own kill as a signal, any other exit as the code', async () => {
+    onPlatform('win32')
+    const exits: ((code: number) => void)[] = []
+    let nextPid = 100
+    setIsolatedSpawner((_file, _line, _cwd, _env, onExit) => {
+      exits.push(onExit)
+      return { pid: nextPid++, exitWatchError: null }
+    })
+    const processKill = vi.spyOn(process, 'kill').mockImplementation(() => true)
+    const stopped = spawnDetachedWithoutInheritance({ program: 'C:\\wsl.exe' })
+    const killed = spawnDetachedWithoutInheritance({ program: 'C:\\wsl.exe' })
+
+    expect(killed.kill()).toBe(true)
+    expect(processKill).toHaveBeenCalledWith(101, 'SIGTERM')
+    const stoppedExit = once(stopped, 'exit')
+    const killedExit = once(killed, 'exit')
+    // The holder exits 1 when its distro stops; TerminateProcess also leaves 1.
+    exits[0](1)
+    exits[1](1)
+
+    expect(await stoppedExit).toEqual([1, null])
+    expect(await killedExit).toEqual([null, 'SIGTERM'])
+    expect(killed.kill()).toBe(false)
+  })
+
   it('reports a native spawn failure as an error event, like libuv', async () => {
     onPlatform('win32')
     setIsolatedSpawner(() => {

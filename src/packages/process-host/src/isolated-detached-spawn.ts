@@ -14,7 +14,11 @@ export type IsolatedSpawner = (
   onExit: (code: number) => void
 ) => { pid: number; exitWatchError: number | null }
 
-export type DetachedChild = EventEmitter & { readonly pid?: number; unref(): void }
+export type DetachedChild = EventEmitter & {
+  readonly pid?: number
+  unref(): void
+  kill(signal?: NodeJS.Signals): boolean
+}
 
 export type DetachedSpec = Omit<ProcessSpec, 'stdio' | 'detached' | 'windowsVerbatimArguments'>
 
@@ -106,25 +110,48 @@ export function spawnDetachedWithoutInheritance(spec: DetachedSpec): DetachedChi
   const child = new EventEmitter()
   const commandLine = [resolved.file, ...resolved.args].map(quoteWindowsArgumentLikeLibuv).join(' ')
   const startedAt = hasSpawnObserver() ? performance.now() : null
+  let pid: number | undefined
+  let exited = false
+  let killedWith: NodeJS.Signals | null = null
+  // Like libuv: an exit after our own kill() reports (null, signal); any other exit, its code.
+  const onExit = (code: number): void => {
+    exited = true
+    child.emit('exit', killedWith ? null : code, killedWith)
+    child.emit('close', killedWith ? null : code, killedWith)
+  }
+  const kill = (signal: NodeJS.Signals = 'SIGTERM'): boolean => {
+    if (pid === undefined || exited) {
+      return false
+    }
+    try {
+      process.kill(pid, signal)
+    } catch {
+      return false
+    }
+    killedWith = signal
+    return true
+  }
   try {
-    const { pid, exitWatchError } = spawner(
+    const spawned = spawner(
       resolved.file,
       commandLine,
       spec.cwd ?? '',
       buildWindowsEnvironmentBlock(resolved.options.env ?? process.env),
-      (code) => child.emit('exit', code, null)
+      onExit
     )
+    pid = spawned.pid
     if (startedAt !== null) {
       notifySpawnObserver(resolved.file, resolved.args, performance.now() - startedAt)
     }
-    if (exitWatchError !== null) {
-      console.warn(`[process-host] pid ${pid} exit is unobservable; Win32 error ${exitWatchError}`)
+    if (spawned.exitWatchError !== null) {
+      console.warn(
+        `[process-host] pid ${pid} exit is unobservable; Win32 error ${spawned.exitWatchError}`
+      )
     }
     process.nextTick(() => child.emit('spawn'))
-    // The native exit watch never holds the event loop, so unref has nothing to release.
-    return Object.assign(child, { pid, unref: () => {} })
   } catch (error) {
     process.nextTick(() => child.emit('error', error))
-    return Object.assign(child, { pid: undefined, unref: () => {} })
   }
+  // The native exit watch never holds the event loop, so unref has nothing to release.
+  return Object.assign(child, { pid, unref: () => {}, kill })
 }

@@ -98,6 +98,36 @@ describeOnWindows('isolated detached spawn against real Windows processes', () =
     expect(JSON.parse(readFileSync(argvFile, 'utf8'))).toEqual(tricky)
   }, 30_000)
 
+  // Holder liveness reads these: exit 1 means its distro stopped (or someone else killed it).
+  it.each(['isolated', 'libuv'] as const)(
+    '%s spawn: own kill reports SIGTERM, an outside kill reports exit 1',
+    async (mode) => {
+      const start = () => {
+        const spec = {
+          program: process.execPath,
+          args: ['-e', 'setTimeout(() => {}, 60000)'],
+          env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }
+        }
+        return mode === 'isolated'
+          ? spawnDetachedWithoutInheritance(spec)
+          : spawnProcess({ ...spec, detached: true, stdio: 'ignore' })
+      }
+      const own = start()
+      const outside = start()
+      await Promise.all([once(own, 'spawn'), once(outside, 'spawn')])
+      const ownExit = once(own, 'exit', { signal: AbortSignal.timeout(10_000) })
+      const outsideExit = once(outside, 'exit', { signal: AbortSignal.timeout(10_000) })
+
+      expect(own.kill()).toBe(true)
+      process.kill(Number(outside.pid))
+
+      expect(await ownExit).toEqual([null, 'SIGTERM'])
+      expect(await outsideExit).toEqual([1, null])
+    },
+    // Two cold Node starts on a loaded Windows runner can exceed the 5 s default.
+    20_000
+  )
+
   it('reports a missing program as an error event', async () => {
     const child = spawnDetachedWithoutInheritance({
       program: join(root, 'missing.exe')
