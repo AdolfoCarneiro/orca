@@ -10,7 +10,7 @@ import {
   type WslHostsPolicy
 } from '../../shared/wsl-hosts-policy'
 import { getMainHttpClient } from '../network/http-client'
-import { writePluginFileAtomically } from '../plugins/plugin-atomic-file-write'
+import { writePluginFileAtomically } from '../plugins/installation/plugin-atomic-file-write'
 
 const REFRESH_INTERVAL_MS = 4 * 60 * 60 * 1000
 const FETCH_TIMEOUT_MS = 30_000

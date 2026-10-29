@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import ProjectRoadmap from './ProjectRoadmap'
 import { i18n, loadRendererUiLanguage, setRendererPluginLanguagePacks } from '@/i18n/i18n'
 import { DEFAULT_LOCALE } from '@/i18n/supported-languages'
-import { pluginLanguageResourceId } from '../../../../shared/plugins/plugin-language-pack-artifact'
+import { pluginLanguageResourceId } from '../../../../shared/plugins/artifacts/plugin-language-pack-artifact'
 import type {
   GitHubProjectField,
   GitHubProjectFieldValue,
@@ -118,7 +118,8 @@ describe('ProjectRoadmap', () => {
         resourceLanguage,
         pluginKey: 'stablyai.orca-portuguese',
         locale: packLocale,
-        catalog: { common: { cancel: 'Cancelar' } }
+        catalog: { common: { cancel: 'Cancelar' } },
+        coverage: 100
       }
     ])
     await i18n.changeLanguage(await loadRendererUiLanguage(packId))

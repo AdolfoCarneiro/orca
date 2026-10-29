@@ -76,8 +76,9 @@ export function planSourceControlTextGeneration(
   if (!planned.ok) {
     return { ok: false, error: textGenerationErrorText(planned) }
   }
-  const delivery =
-    planned.plan.stdinPayload === null
+  const delivery = planned.plan.promptFile
+    ? 'Prompt is delivered as a temporary file attachment.'
+    : planned.plan.stdinPayload === null
       ? 'Prompt is delivered as command arguments.'
       : 'Prompt is piped to the agent over stdin.'
   return {

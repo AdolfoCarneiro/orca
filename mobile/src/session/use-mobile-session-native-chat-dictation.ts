@@ -20,12 +20,14 @@ import {
 } from '../dictation/mobile-dictation-setup'
 import { useMobileNativeChatController } from './use-mobile-native-chat-controller'
 import { useMobileDictationLeaveHold } from './mobile-dictation-leave-hold'
+import { useMobileDictationHaptics } from './use-mobile-dictation-haptics'
 import { useMobileNativeChatReadability } from './use-mobile-native-chat-readability'
 import { useMobileNativeChatInputLease } from './native-chat/use-mobile-native-chat-input-lease'
 import { useMobileNativeChatSendError } from './native-chat/use-mobile-native-chat-send-error'
 import { mobileNativeChatScopeKey } from './native-chat/mobile-native-chat-scope-key'
 import { isMobileNativeChatAgentConfirmed } from './native-chat/mobile-native-chat-eligibility'
 import { useMobileSendCompletionGeneration } from './use-mobile-send-completion-generation'
+import { nativeChatDictationCopy } from './mobile-session-native-chat-dictation-copy'
 import type { MobileSessionFeedbackCapabilitiesModel } from './use-mobile-session-feedback-capabilities'
 
 export function useMobileSessionNativeChatDictation(
@@ -128,8 +130,8 @@ export function useMobileSessionNativeChatDictation(
   const keepUndeliveredDictation = (text: string) => {
     triggerError()
     void clipboard.writeText(text).then(
-      () => showToast("Couldn't insert dictation, so it was copied to the clipboard"),
-      () => showToast("Couldn't insert dictation")
+      () => showToast(nativeChatDictationCopy.insertFailedCopied()),
+      () => showToast(nativeChatDictationCopy.insertFailed())
     )
   }
 
@@ -142,9 +144,7 @@ export function useMobileSessionNativeChatDictation(
     onTranscript: (text) => {
       // Chat dictation is inserted locally; terminal mode retains live-input routing.
       if (destination.landsInChat(showNativeChatRef.current)) {
-        if (destination.insertInChat(text)) {
-          showToast('Dictation inserted')
-        } else {
+        if (!destination.insertInChat(text)) {
           keepUndeliveredDictation(text)
         }
         return
@@ -162,8 +162,9 @@ export function useMobileSessionNativeChatDictation(
             insertHandle !== null &&
             (await flushPendingLiveInputBeforeExternalSend(insertHandle)) &&
             (await sendLiveTerminalInput(insertHandle, route.text))
+          // Live input lands in a terminal the keyboard may cover; the visible fields need no receipt.
           if (sent) {
-            showToast('Dictation inserted')
+            showToast(nativeChatDictationCopy.inserted())
           } else {
             keepUndeliveredDictation(route.text)
           }
@@ -173,7 +174,6 @@ export function useMobileSessionNativeChatDictation(
       // The draft written is the active terminal's; a selection read in another terminal only appends there.
       const anchor = routeContext?.handle === activeHandleRef.current ? routeContext.anchor : null
       setInput((current) => insertDictationText(current, route.text, anchor).text)
-      showToast('Dictation inserted')
     },
     onError: (err) => {
       dictationRouteContextRef.current = null
@@ -220,6 +220,8 @@ export function useMobileSessionNativeChatDictation(
     showNativeChat
   ])
 
+  const stopDictation = useMobileDictationHaptics(dictation)
+
   const cancelDictation = useCallback(() => {
     dictationRouteContextRef.current = null
     void dictation.cancel()
@@ -229,11 +231,11 @@ export function useMobileSessionNativeChatDictation(
     if (dictation.isStarting || dictation.isProcessing) {
       // Ignore toggles until start or finish settles; a tap must not discard what was said.
     } else if (dictation.isRecording) {
-      void dictation.stop()
+      stopDictation()
     } else {
       startDictation()
     }
-  }, [dictation, startDictation])
+  }, [dictation, startDictation, stopDictation])
 
   const handleDictationPressIn = useCallback(() => {
     if (!dictation.isStarting && !dictation.isRecording && !dictation.isProcessing) {
@@ -243,12 +245,12 @@ export function useMobileSessionNativeChatDictation(
 
   const handleDictationPressOut = useCallback(() => {
     if (dictation.isRecording) {
-      void dictation.stop()
+      stopDictation()
     } else if (dictation.isStarting) {
       // Released before recording began: cancel so we don't leave a live mic.
       cancelDictation()
     }
-  }, [cancelDictation, dictation])
+  }, [cancelDictation, dictation, stopDictation])
 
   const dictationSettingsReadRef = useRef(0)
   const refreshDictationMode = useCallback(async () => {

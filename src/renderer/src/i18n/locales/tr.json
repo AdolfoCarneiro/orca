@@ -669,7 +669,13 @@
       "permissionOverrideMore_one": "ve {{count}} ajan daha",
       "permissionOverrideMore_other": "ve {{count}} ajan daha",
       "permissionOverridesUse": "{{mode}} ayarını kullan",
-      "approveForMe": "benim için onayla"
+      "approveForMe": "benim için onayla",
+      "codexHistorySharing": {
+        "title": "Codex geçmişini hesaplar arasında paylaş",
+        "description": "Her Codex hesabının ve kendi ~/.codex dizininin, diğerlerinde başlatılan konuşmaları sürdürmesine izin verir. Her hesabın geçmişini ayrı tutmak için kapatın. Kapatmak, zaten paylaşılmış hiçbir şeyi kaldırmaz.",
+        "unsupported": "Bu ayarı orada değiştirmek için {{host}} üzerindeki Orca'yı güncelleyin.",
+        "updateFailed": "{{host}} üzerindeki ayar güncellenemedi."
+      }
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "sembolik bağlantı",
@@ -2243,8 +2249,7 @@
         "estimateValue": "Tahmin {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Branch'i yeniden kullan",
-        "reuseExistingBranchHint": "Ondan yeni bir tane oluşturmak yerine mevcut branch'i checkout edin.",
+        "openExistingWorkspace": "Mevcut çalışma alanını aç",
         "createMultiple": "Daha fazla oluştur",
         "cbb47ee0dc": "Yalnızca yerel Git projeleri için kullanılabilir.",
         "d861de981b": "Sparse checkout",
@@ -11674,34 +11679,15 @@
           "leaveToTerminalLabel": "Terminale bırak"
         },
         "PluginConsentDialog": {
-          "workerTrust": "Arka plan işçisi; kendi işlemini çalıştırır",
-          "instructionalTrust": "Talimat içeriği; daha sonra kullanıcı veya ajan yetkisiyle çalışır",
-          "declarativeTrust": "Bildirimsel içerik; eklenti kodu yok",
-          "panelTrust": "Panel veya host'a entegre içerik; işçi işlemi yok",
-          "trustShortWorker": "İşçi",
-          "trustShortInstructional": "Talimat",
-          "trustShortPanel": "Panel",
-          "trustShortDeclarative": "Bildirimsel",
-          "reviewTitle": "Eklentiyi incele",
-          "title": "İzinleri incele",
-          "mixedTitle": "Erişimi ve içeriği incele",
-          "instructionalTitle": "Eklenti içeriğini incele",
-          "subtitle": "{{value0}} v{{value1}} · {{value2}}",
           "reconsent": "Bu eklentiyi son incelemenizden bu yana izinler, işçi güven düzeyi veya talimat içeriği değişti. Çalışabilmesi için tekrar inceleyin.",
-          "capabilities": "Bu eklenti şunları yapabilir",
-          "warning": "Bu izinler eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. İşçisi yine de bilgisayarınızda dosyalarınıza, ağınıza ve diğer işlemlere tam erişimi olan normal bir işlem olarak çalışmaya devam eder.",
           "instructionalWarning": "Bu eklentinin işçi işlemi yok. Talimat içeriği yine de siz veya bir ajan onu kullandığında eylemlere neden olabilir. Etkinleştirmeden önce aşağıdaki talimatları ve komutları inceleyin.",
-          "panelWarning": "Bu izinler eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. Bu eklentinin arka plan işçisi yok.",
           "declarativeWarning": "Bu eklenti yalnızca doğrulanmış içerik sağlar. Arka plan işçisi çalıştırmaz veya Orca'nın API'sine erişim almaz.",
-          "keepDisabled": "Devre Dışı Bırak",
           "enable": "Eklentiyi etkinleştir",
           "capability": {
             "workspaceRead": "Odaklanılan worktree'nizin adını, branch'ini ve terminal listesini okur",
-            "terminalSend": "Görebildiğiniz bir terminale metin yazar (her zaman belirli bir terminal)",
             "notificationsShow": "Eklenti adıyla etiketlenmiş masaüstü bildirimleri gösterir",
             "storage": "Eklentinin kendi depolama klasöründe veri saklar",
             "secrets": "Eklentinin kendi şifreli kasasında gizli bilgileri saklar ve okur",
-            "eventsSubscribe": "Worktree'ler oluşturulduğunda veya kaldırıldığında ve ajan durumu değiştiğinde bildirim alır",
             "settingsOwn": "Eklentinin kendi ayarlarını okur ve değiştirir"
           },
           "decisionFailed": "İzin kararı kaydedilemedi. Tekrar deneyin."
@@ -11721,7 +11707,6 @@
           "saveFailed": "Geliştirme eklentisi yolları kaydedilemedi.",
           "pathRequired": "Bir eklenti klasörü yolu girin.",
           "title": "Geliştirme",
-          "help": "Geliştirirken eklentileri doğrudan bu bilgisayardaki klasörlerden yükleyin. Geliştirme eklentileri yine de izin incelemesi gerektirir. İşçiler bu masaüstü host'unda çalışır; SSH çalışma alanı eylemleri Orca üzerinden yönlendirilir, bu yüzden buradaki yollar masaüstü yollarıdır.",
           "remove": "Kaldır",
           "pathLabel": "Geliştirme eklentisi klasör yolu",
           "placeholder": "/Users/you/plugins/my-plugin veya C:\\Users\\you\\plugins\\my-plugin",
@@ -11749,16 +11734,11 @@
           "installFailed": "Eklenti yüklemesi başarısız oldu. Kaynağı kontrol edin ve tekrar deneyin."
         },
         "PluginKeybindingConsentPreview": {
-          "heading": "Klavye kısayolları",
-          "worktree": "Yalnızca bir çalışma alanı etkinken çalışır.",
-          "global": "Etkin bir çalışma alanı gerektirmeden uygulamada çalışır.",
-          "shadows": "Şunun yerini alır: {{value0}}"
+          "worktree": "Yalnızca bir çalışma alanı etkinken çalışır."
         },
         "PluginMarketplaceBrowser": {
           "loadFailed": "Marketplace eklentileri yüklenemedi.",
           "refreshFailed": "Marketplace'ler yenilenemedi. Önbelleğe alınmış listeler kullanılabilir durumda kalmaya devam ediyor.",
-          "previewFailed": "Bu eklenti inceleme için hazırlanamadı. Marketplace'i yenileyin ve tekrar deneyin.",
-          "installFailed": "Bu eklenti yüklenemedi. İncelenen kaynak değişmiş olabilir.",
           "manageSources": "Kaynakları yönet",
           "refreshing": "Yenileniyor…",
           "refresh": "Yenile",
@@ -11767,7 +11747,6 @@
           "loading": "Marketplace eklentileri yükleniyor…",
           "tryAgain": "Tekrar dene",
           "noSourcesTitle": "Marketplace yapılandırılmadı",
-          "noSources": "Eklentilere göz atmak için resmi, topluluk veya özel bir Git marketplace'i ekleyin.",
           "addSource": "Marketplace ekle",
           "noResultsTitle": "Eşleşen eklenti yok",
           "noResults": "Hiçbir marketplace eklentisi bu aramayla eşleşmiyor.",
@@ -11776,39 +11755,8 @@
           "empty": "Yapılandırılmış marketplace'ler herhangi bir eklenti listelemiyor."
         },
         "PluginMarketplaceListingRow": {
-          "official": "Resmi",
-          "installed": "Yüklü",
-          "noDescription": "Açıklama sağlanmadı.",
           "blocked": "Orca'nın güvenlik listesi tarafından engellendi: {{value0}}",
-          "blockedAction": "Engellendi",
-          "checkUpdate": "Güncelleme kontrol et",
           "install": "Yükle"
-        },
-        "PluginMarketplacePreviewDialog": {
-          "languagePacksOne": "1 dil paketi",
-          "languagePacks": "{{value0}} dil paketi",
-          "commandsOne": "1 komut",
-          "commands": "{{value0}} komut",
-          "keybindingsOne": "1 klavye kısayolu",
-          "keybindings": "{{value0}} klavye kısayolu",
-          "vmRecipesOne": "1 VM tarifi",
-          "vmRecipes": "{{value0}} VM tarifi",
-          "panelsOne": "1 panel",
-          "panels": "{{value0}} panel",
-          "eventsOne": "1 olay aboneliği",
-          "events": "{{value0}} olay aboneliği",
-          "worker": "Arka plan işçisi",
-          "versionLine": "v{{value0}} · {{value1}}",
-          "includes": "İçerir",
-          "noContributions": "Yalnızca manifest meta verisi",
-          "capabilities": "İstenen erişim",
-          "workerWarning": "Yetkinlikler bu eklentinin Orca'nın API'sini nasıl kullandığını sınırlar. İşçisi yine de bu bilgisayarda dosyalarınıza, ağınıza ve diğer işlemlere tam erişimi olan normal bir işlem olarak çalışmaya devam eder.",
-          "blocked": "Orca'nın güvenlik listesi bu eklentiyi engelliyor: {{value0}}",
-          "current": "Bu eklentinin tam olarak bu içeriği zaten yüklü.",
-          "close": "Kapat",
-          "cancel": "İptal",
-          "update": "Eklentiyi güncelle",
-          "install": "Eklentiyi yükle"
         },
         "PluginMarketplaceSourceDialog": {
           "addFailed": "Bu marketplace eklenemedi. Git URL'sini, ref'i ve Git kimlik bilgilerinizi kontrol edin.",
@@ -11834,21 +11782,15 @@
           "done": "Tamam"
         },
         "PluginRemoveDialog": {
-          "title": "Eklenti kaldırılsın mı?",
-          "description": "Bu, {{value0}} eklentisini ve bu bilgisayarda saklanan eklenti verilerini kaldırır. Daha sonra tekrar yükleyebilirsiniz.",
           "cancel": "İptal",
           "remove": "Eklentiyi kaldır"
         },
         "PluginRollbackDialog": {
-          "title": "Eklenti geri alınsın mı?",
-          "description": "Bu, {{value0}} eklentisini devre dışı bırakır ve önceki değiştirilemez sürümünü geri yükler. O sürüm farklı bir erişim veya talimat içeriği istiyorsa Orca yeniden inceleme ister.",
           "cancel": "İptal",
           "confirm": "Eklentiyi geri al"
         },
         "PluginsSettingsSection": {
           "systemLabel": "Eklenti sistemi",
-          "systemDescription": "Yüklü eklentileri bulur ve bunları tek tek etkinleştirmenize olanak tanır. Siz inceleyip etkinleştirene kadar hiçbir şey çalışmaz. Worker'lar her zaman bu bilgisayarda çalışır; SSH çalışma alanı işlemleri Orca üzerinden yönlendirilir.",
-          "featureOff": "Yüklü eklentileri görmek ve yönetmek için eklenti sistemini açın. Zaten yüklü olanlar diskte kalır ve sistem kapalıyken devre dışı kalır.",
           "loading": "Eklentiler yükleniyor…",
           "noInstalledResultsTitle": "Eşleşen eklenti yok",
           "noInstalledResults": "Bu aramayla eşleşen yüklü eklenti yok.",
@@ -11858,37 +11800,18 @@
           "settingsUpdateFailed": "Eklenti ayarları kaydedilemedi.",
           "install": "Eklenti yükle",
           "title": "Eklentiler",
-          "experimental": "Deneysel",
           "description": "Orca eklentilerini yükleyin ve yönetin. Eklentiler, SSH çalışma alanları için bile bu bilgisayarda çalışır.",
           "logsFailed": "Eklenti günlükleri yüklenemedi.",
           "rollbackFailed": "Bu eklenti geri alınamadı. Önceki değiştirilemez bir sürüm mevcut olmayabilir."
         },
         "PluginSettingsRow": {
-          "blocked": "Engellendi",
-          "needsReview": "İnceleme gerekiyor",
-          "restarting": "Yeniden başlatılıyor",
-          "invalid": "Geçersiz",
-          "error": "Hata",
-          "disabled": "Devre dışı",
-          "running": "Çalışıyor",
-          "enabled": "Etkin",
           "loadingLogs": "Günlükler yükleniyor…",
           "noLogs": "Kayıtlı günlük satırı yok.",
           "logCount": "En fazla 200 satırdan son {{value0}}",
-          "reviewAndEnable": "İncele ve etkinleştir",
-          "official": "Resmi",
-          "dev": "Geliştirici",
           "bundled": "Paket içinde",
-          "noDescription": "Açıklama sağlanmadı.",
           "killListMessage": "Orca'nın güvenlik listesi bu eklentiyi devre dışı bıraktı: {{value0}}",
-          "viewAdvisory": "Uyarıyı görüntüle",
-          "runtimeError": "Eklenti, bir etkinleştirme veya worker hatasından sonra durdu.",
-          "restartCount": " · {{value0}} yeniden başlatma",
           "moreActions": "{{value0}} için diğer işlemler",
-          "hideLogs": "Günlükleri gizle",
           "viewLogs": "Günlükleri görüntüle",
-          "rollback": "Geri al",
-          "remove": "Kaldır",
           "disableLabel": "{{value0}} eklentisini devre dışı bırak",
           "enableLabel": "{{value0}} eklentisini etkinleştir",
           "invalidPluginError": "Eklenti manifest'i veya yüklü dosyalar geçersiz. Eklentiyi düzeltip yenileyin."
@@ -20832,6 +20755,15 @@
     "openDefault": "Varsayılan uygulamada aç"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Bu çalışma ağacı için dal",
+      "existing": "Mevcut dal",
+      "existingHint": "Yeni commitler bu dala eklenir.",
+      "new": "Yeni dal",
+      "newHint": "Yeni bir yerel dal oluştur",
+      "newName": "Yeni dal adı",
+      "automaticName": "Otomatik ad"
+    },
     "links": {
       "foreignReview": "Bu inceleme başka bir repo'ya ait. Bu çalışma alanının repo'sundaki incelemeleri ekleyin.",
       "repositoryLoading": "Repo kimliği hâlâ yükleniyor. Kullanılabilir olduğunda yeniden deneyin.",

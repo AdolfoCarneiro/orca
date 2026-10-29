@@ -48,7 +48,9 @@ vi.mock('expo-router', () => ({ useFocusEffect: () => {} }))
 vi.mock('../platform/haptics', () => ({
   triggerError: () => {
     seen.errorHaptics += 1
-  }
+  },
+  triggerEdgeBump: () => {},
+  triggerSelection: () => {}
 }))
 vi.mock('../platform/clipboard', () => {
   const writer = {
@@ -288,7 +290,7 @@ describe('an audio interruption while recording', () => {
     expect(methods).toContain('speech.dictation.finish')
     expect(methods).not.toContain('speech.dictation.cancel')
     expect(seen.inputs).toEqual(['call me back'])
-    expect(seen.toasts).toEqual(['Dictation inserted'])
+    expect(seen.toasts).toEqual([])
   })
 
   it('says the microphone was interrupted when nothing was transcribed', async () => {
@@ -320,7 +322,7 @@ describe('leaving the session while recording', () => {
     expect(methods.filter((method) => method === 'speech.dictation.finish')).toHaveLength(1)
     expect(methods).not.toContain('speech.dictation.cancel')
     expect(seen.inputs).toEqual(['one more thing'])
-    expect(seen.toasts).toEqual(['Dictation inserted'])
+    expect(seen.toasts).toEqual([])
   })
 })
 
