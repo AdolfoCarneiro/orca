@@ -1,3 +1,4 @@
+import { terminalInputSend } from '../terminal/mobile-terminal-operations'
 // @vitest-environment happy-dom
 import { createElement, useEffect, useRef, type RefObject } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
@@ -59,6 +60,7 @@ let restoredDrafts: string[] = []
 function buildScope(session: Session): MobileSessionTerminalWebviewModel {
   const noop = (): void => {}
   const scope = {
+    sendTerminalUserInput: terminalInputSend.request,
     client: session.client,
     activeHandle: session.activeHandle,
     activeSessionTab: null,

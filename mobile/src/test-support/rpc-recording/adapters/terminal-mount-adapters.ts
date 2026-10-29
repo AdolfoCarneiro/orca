@@ -52,6 +52,9 @@ export function terminalMountAdapters(
       }
     },
     'terminal.accessory-raw-send': ({ client }) => {
+      const { terminalInputSend } = modules.load<
+        typeof import('../../../terminal/mobile-terminal-operations')
+      >('mobile/src/terminal/mobile-terminal-operations.ts')
       const send = modules.load<
         typeof import('../../../terminal/terminal-live-accessory-raw-send')
       >('mobile/src/terminal/terminal-live-accessory-raw-send.ts').sendTerminalLiveAccessoryRawBytes
@@ -60,6 +63,7 @@ export function terminalMountAdapters(
         action: (_name, args) =>
           send({
             client,
+            sendTerminalUserInput: terminalInputSend.request,
             targetHandle: HANDLE,
             activeHandle: args.activeHandle === null ? null : String(args.activeHandle ?? HANDLE),
             activeSessionTabType: String(args.tabType ?? 'terminal'),

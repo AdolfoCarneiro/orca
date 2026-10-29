@@ -150,7 +150,7 @@ describe('terminal live input around a click', () => {
 
       release()
       expect(await clicked).toBe(true)
-      await vi.waitFor(() => expect(sent).toEqual(['abc', CLICK + 'X']))
+      await vi.waitFor(() => expect(sent.join('')).toBe('abc' + CLICK + 'X'))
     } finally {
       unmount()
     }
