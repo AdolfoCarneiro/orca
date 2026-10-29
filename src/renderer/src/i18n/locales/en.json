@@ -21402,7 +21402,9 @@
         "agy": "agy",
         "google": "google",
         "accounts": "accounts"
-      }
+      },
+      "windowsChanged": "The host default account changed. Select a saved account to apply it again.",
+      "windowsSessions": "Select applies and verifies the host default agy credential. Command choices and later account changes are handled by agy. Existing sessions may keep their previous account."
     },
     "claude": {
       "added": "Account added. Select it to use it for the next Claude you start.",
