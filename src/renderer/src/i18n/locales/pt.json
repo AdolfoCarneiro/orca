@@ -959,6 +959,44 @@
       "laptop": "Notebook — 1024 × 768",
       "laptop-l": "Notebook G — 1440 × 900",
       "desktop": "Desktop — 1920 × 1080"
+    },
+    "cookieImport": {
+      "errors": {
+        "notAuthorized": "Não autorizado",
+        "profileNotFound": "Perfil de sessão não encontrado.",
+        "invalidBrowserProfile": "Nome de perfil do navegador inválido.",
+        "browserNotFound": "Nenhum navegador encontrado neste sistema.",
+        "browserProfileDatabaseMissing": "Nenhum banco de dados de cookies encontrado para o perfil “{{profile}}”.",
+        "fileUnreadable": "Não foi possível ler o arquivo selecionado.",
+        "fileInvalidJson": "O arquivo não contém JSON válido.",
+        "fileNotArray": "Era esperado um array JSON de objetos de cookie.",
+        "fileEmpty": "O arquivo de cookies está vazio.",
+        "fileNoValidCookies_one": "Nenhum cookie válido encontrado. {{count}} entrada foi ignorada devido a campos ausentes ou inválidos.",
+        "fileNoValidCookies_other": "Nenhum cookie válido encontrado. {{count}} entradas foram ignoradas devido a campos ausentes ou inválidos.",
+        "fileNoValidCookies_many": "Nenhum cookie válido encontrado. {{count}} entradas foram ignoradas devido a campos ausentes ou inválidos.",
+        "databaseNotFound": "Banco de dados de cookies do {{browser}} não encontrado.",
+        "databaseCopyFailed": "Não foi possível copiar o banco de dados de cookies do {{browser}}. Tente fechar o {{browser}} primeiro.",
+        "noCookies": "Nenhum cookie encontrado no {{browser}}.",
+        "noValidCookies": "Nenhum cookie válido encontrado no {{browser}}.",
+        "allCookiesExpired": "Todos os cookies do {{browser}} expiraram.",
+        "encryptionKeyDenied": "Não foi possível acessar a chave de criptografia do {{browser}}. O sistema operacional pode ter negado o acesso.",
+        "readFailed": "Não foi possível ler os cookies do {{browser}}.",
+        "importFailed": "Não foi possível importar cookies do {{browser}}.",
+        "importFailedTryClosing": "Não foi possível importar cookies do {{browser}}. Tente fechar o {{browser}} primeiro.",
+        "importFailedWithLog": "Não foi possível importar cookies do {{browser}}: {{detail}}. Os detalhes foram gravados em {{logPath}}.",
+        "safariFullDiskAccess": "O macOS negou acesso aos cookies do Safari. Conceda ao Orca Acesso Total ao Disco em Ajustes do Sistema → Privacidade e Segurança → Acesso Total ao Disco.",
+        "connectionEnded": "A conexão com este servidor foi encerrada durante a importação. Reconecte-se e tente novamente.",
+        "serverRepaired": "Este servidor foi pareado novamente durante a importação. Tente novamente."
+      },
+      "notice": {
+        "importedMore_one": "{{count}} cookie importado para os domínios {{domains}} (+{{more}}). Recarregue a página para usá-lo.",
+        "importedMore_other": "{{count}} cookies importados para os domínios {{domains}} (+{{more}}). Recarregue a página para usá-los.",
+        "importedMore_many": "{{count}} cookies importados para os domínios {{domains}} (+{{more}}). Recarregue a página para usá-los.",
+        "imported_one": "{{count}} cookie importado para {{domains}}. Recarregue a página para usá-lo.",
+        "imported_other": "{{count}} cookies importados para {{domains}}. Recarregue a página para usá-los.",
+        "imported_many": "{{count}} cookies importados para {{domains}}. Recarregue a página para usá-los.",
+        "failed": "Não foi possível importar cookies: {{reason}}"
+      }
     }
   },
   "settings": {

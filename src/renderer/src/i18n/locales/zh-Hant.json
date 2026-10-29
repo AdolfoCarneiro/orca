@@ -331,6 +331,38 @@
       "mobile-m": "行動裝置 M — 375 × 667",
       "mobile-s": "行動裝置 S — 320 × 568",
       "tablet": "平板電腦 — 768 × 1024"
+    },
+    "cookieImport": {
+      "errors": {
+        "notAuthorized": "未獲授權",
+        "profileNotFound": "找不到工作階段設定檔。",
+        "invalidBrowserProfile": "瀏覽器設定檔名稱無效。",
+        "browserNotFound": "此系統上找不到瀏覽器。",
+        "browserProfileDatabaseMissing": "找不到設定檔「{{profile}}」的 Cookie 資料庫。",
+        "fileUnreadable": "無法讀取所選檔案。",
+        "fileInvalidJson": "檔案不是有效的 JSON。",
+        "fileNotArray": "預期為包含 Cookie 物件的 JSON 陣列。",
+        "fileEmpty": "Cookie 檔案是空的。",
+        "fileNoValidCookies_other": "找不到有效的 Cookie。因欄位缺漏或無效，已略過 {{count}} 筆資料。",
+        "databaseNotFound": "找不到 {{browser}} 的 Cookie 資料庫。",
+        "databaseCopyFailed": "無法複製 {{browser}} 的 Cookie 資料庫。請先嘗試關閉 {{browser}}。",
+        "noCookies": "在 {{browser}} 中找不到 Cookie。",
+        "noValidCookies": "在 {{browser}} 中找不到有效的 Cookie。",
+        "allCookiesExpired": "{{browser}} 的所有 Cookie 都已過期。",
+        "encryptionKeyDenied": "無法存取 {{browser}} 的加密金鑰。作業系統可能已拒絕存取。",
+        "readFailed": "無法讀取 {{browser}} 的 Cookie。",
+        "importFailed": "無法從 {{browser}} 匯入 Cookie。",
+        "importFailedTryClosing": "無法從 {{browser}} 匯入 Cookie。請先嘗試關閉 {{browser}}。",
+        "importFailedWithLog": "無法從 {{browser}} 匯入 Cookie：{{detail}}。詳細資訊已寫入 {{logPath}}。",
+        "safariFullDiskAccess": "macOS 拒絕存取 Safari 的 Cookie。請在「系統設定」→「隱私權與安全性」→「完全磁碟存取權限」中授予 Orca 完全磁碟存取權限。",
+        "connectionEnded": "匯入期間與此伺服器的連線已中斷。請重新連線後再試一次。",
+        "serverRepaired": "此伺服器已在匯入期間重新配對。請再試一次。"
+      },
+      "notice": {
+        "importedMore_other": "已為 {{domains}} 及其他 {{more}} 個網域匯入 {{count}} 個 Cookie。請重新載入頁面以使用這些 Cookie。",
+        "imported_other": "已為 {{domains}} 匯入 {{count}} 個 Cookie。請重新載入頁面以使用這些 Cookie。",
+        "failed": "Cookie 匯入失敗：{{reason}}"
+      }
     }
   },
   "editor": {

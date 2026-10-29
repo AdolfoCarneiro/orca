@@ -334,6 +334,47 @@
       "mobile-m": "Мобильное устройство M — 375 × 667",
       "mobile-s": "Мобильное устройство S — 320 × 568",
       "tablet": "Планшет — 768 × 1024"
+    },
+    "cookieImport": {
+      "errors": {
+        "notAuthorized": "Нет доступа",
+        "profileNotFound": "Профиль сессии не найден.",
+        "invalidBrowserProfile": "Недопустимое имя профиля браузера.",
+        "browserNotFound": "Браузер не найден в этой системе.",
+        "browserProfileDatabaseMissing": "База данных файлов cookie для профиля «{{profile}}» не найдена.",
+        "fileUnreadable": "Не удалось прочитать выбранный файл.",
+        "fileInvalidJson": "Файл содержит некорректный JSON.",
+        "fileNotArray": "Ожидался JSON-массив объектов cookie.",
+        "fileEmpty": "Файл cookie пуст.",
+        "fileNoValidCookies_one": "Не найдено корректных файлов cookie. Пропущена {{count}} запись из-за отсутствующих или некорректных полей.",
+        "fileNoValidCookies_other": "Не найдено корректных файлов cookie. Пропущено {{count}} записи из-за отсутствующих или некорректных полей.",
+        "databaseNotFound": "База данных файлов cookie браузера {{browser}} не найдена.",
+        "databaseCopyFailed": "Не удалось скопировать базу данных файлов cookie браузера {{browser}}. Попробуйте сначала закрыть {{browser}}.",
+        "noCookies": "В {{browser}} не найдены файлы cookie.",
+        "noValidCookies": "В {{browser}} не найдены корректные файлы cookie.",
+        "allCookiesExpired": "Срок действия всех файлов cookie браузера {{browser}} истёк.",
+        "encryptionKeyDenied": "Не удалось получить доступ к ключу шифрования {{browser}}. Возможно, ОС отказала в доступе.",
+        "readFailed": "Не удалось прочитать файлы cookie браузера {{browser}}.",
+        "importFailed": "Не удалось импортировать файлы cookie из {{browser}}.",
+        "importFailedTryClosing": "Не удалось импортировать файлы cookie из {{browser}}. Попробуйте сначала закрыть {{browser}}.",
+        "importFailedWithLog": "Не удалось импортировать файлы cookie из {{browser}}: {{detail}}. Подробности записаны в {{logPath}}.",
+        "safariFullDiskAccess": "macOS отказала в доступе к файлам cookie Safari. Предоставьте Orca полный доступ к диску в разделе «Системные настройки» → «Конфиденциальность и безопасность» → «Полный доступ к диску».",
+        "connectionEnded": "Соединение с этим сервером прервалось во время импорта. Подключитесь заново и повторите попытку.",
+        "serverRepaired": "Во время импорта было выполнено повторное сопряжение с этим сервером. Повторите попытку.",
+        "fileNoValidCookies_few": "Не найдено корректных файлов cookie. Пропущены {{count}} записи из-за отсутствующих или некорректных полей.",
+        "fileNoValidCookies_many": "Не найдено корректных файлов cookie. Пропущено {{count}} записей из-за отсутствующих или некорректных полей."
+      },
+      "notice": {
+        "importedMore_one": "Импортирован {{count}} файл cookie для {{domains}} и ещё {{more}}. Перезагрузите страницу, чтобы использовать его.",
+        "importedMore_other": "Импортировано {{count}} файла cookie для {{domains}} и ещё {{more}}. Перезагрузите страницу, чтобы использовать их.",
+        "imported_one": "Импортирован {{count}} файл cookie для {{domains}}. Перезагрузите страницу, чтобы использовать его.",
+        "imported_other": "Импортировано {{count}} файла cookie для {{domains}}. Перезагрузите страницу, чтобы использовать их.",
+        "failed": "Не удалось импортировать файлы cookie: {{reason}}",
+        "importedMore_few": "Импортировано {{count}} файла cookie для {{domains}} и ещё {{more}}. Перезагрузите страницу, чтобы использовать их.",
+        "importedMore_many": "Импортировано {{count}} файлов cookie для {{domains}} и ещё {{more}}. Перезагрузите страницу, чтобы использовать их.",
+        "imported_few": "Импортировано {{count}} файла cookie для {{domains}}. Перезагрузите страницу, чтобы использовать их.",
+        "imported_many": "Импортировано {{count}} файлов cookie для {{domains}}. Перезагрузите страницу, чтобы использовать их."
+      }
     }
   },
   "editor": {

@@ -19860,6 +19860,38 @@
       "laptop": "笔记本电脑 — 1024 × 768",
       "laptop-l": "大屏笔记本电脑 — 1440 × 900",
       "desktop": "桌面电脑 — 1920 × 1080"
+    },
+    "cookieImport": {
+      "errors": {
+        "notAuthorized": "未获授权",
+        "profileNotFound": "未找到会话配置文件。",
+        "invalidBrowserProfile": "浏览器配置文件名称无效。",
+        "browserNotFound": "在此系统上未找到浏览器。",
+        "browserProfileDatabaseMissing": "未找到配置文件“{{profile}}”的 Cookie 数据库。",
+        "fileUnreadable": "无法读取所选文件。",
+        "fileInvalidJson": "文件不是有效的 JSON。",
+        "fileNotArray": "需要包含 Cookie 对象的 JSON 数组。",
+        "fileEmpty": "Cookie 文件为空。",
+        "fileNoValidCookies_other": "未找到有效的 Cookie。由于字段缺失或无效，已跳过 {{count}} 条记录。",
+        "databaseNotFound": "未找到 {{browser}} 的 Cookie 数据库。",
+        "databaseCopyFailed": "无法复制 {{browser}} 的 Cookie 数据库。请先尝试关闭 {{browser}}。",
+        "noCookies": "在 {{browser}} 中未找到 Cookie。",
+        "noValidCookies": "在 {{browser}} 中未找到有效的 Cookie。",
+        "allCookiesExpired": "{{browser}} 的所有 Cookie 均已过期。",
+        "encryptionKeyDenied": "无法访问 {{browser}} 的加密密钥。操作系统可能拒绝了访问。",
+        "readFailed": "无法读取 {{browser}} 的 Cookie。",
+        "importFailed": "无法从 {{browser}} 导入 Cookie。",
+        "importFailedTryClosing": "无法从 {{browser}} 导入 Cookie。请先尝试关闭 {{browser}}。",
+        "importFailedWithLog": "无法从 {{browser}} 导入 Cookie：{{detail}}。详细信息已写入 {{logPath}}。",
+        "safariFullDiskAccess": "macOS 拒绝访问 Safari 的 Cookie。请在系统设置 → 隐私与安全 → 完全磁盘访问权限中授予 Orca 完全磁盘访问权限。",
+        "connectionEnded": "导入期间与此服务器的连接已断开。请重新连接后重试。",
+        "serverRepaired": "此服务器在导入期间已重新配对。请重试。"
+      },
+      "notice": {
+        "importedMore_other": "已为 {{domains}} 及其他 {{more}} 个域名导入 {{count}} 个 Cookie。请重新加载页面以使用它们。",
+        "imported_other": "已为 {{domains}} 导入 {{count}} 个 Cookie。请重新加载页面以使用它们。",
+        "failed": "Cookie 导入失败：{{reason}}"
+      }
     }
   },
   "runtimeRpc": {

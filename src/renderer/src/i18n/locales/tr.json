@@ -332,6 +332,41 @@
       "mobile-m": "Mobil M — 375 × 667",
       "mobile-s": "Mobil S — 320 × 568",
       "tablet": "Tablet — 768 × 1024"
+    },
+    "cookieImport": {
+      "errors": {
+        "notAuthorized": "Yetki yok",
+        "profileNotFound": "Oturum profili bulunamadı.",
+        "invalidBrowserProfile": "Geçersiz tarayıcı profili adı.",
+        "browserNotFound": "Bu sistemde tarayıcı bulunamadı.",
+        "browserProfileDatabaseMissing": "“{{profile}}” profili için çerez veritabanı bulunamadı.",
+        "fileUnreadable": "Seçilen dosya okunamadı.",
+        "fileInvalidJson": "Dosya geçerli bir JSON değil.",
+        "fileNotArray": "Çerez nesnelerinden oluşan bir JSON dizisi bekleniyordu.",
+        "fileEmpty": "Çerez dosyası boş.",
+        "fileNoValidCookies_one": "Geçerli çerez bulunamadı. Eksik veya geçersiz alanlar nedeniyle {{count}} kayıt atlandı.",
+        "fileNoValidCookies_other": "Geçerli çerez bulunamadı. Eksik veya geçersiz alanlar nedeniyle {{count}} kayıt atlandı.",
+        "databaseNotFound": "{{browser}} çerez veritabanı bulunamadı.",
+        "databaseCopyFailed": "{{browser}} çerez veritabanı kopyalanamadı. Önce {{browser}} tarayıcısını kapatmayı deneyin.",
+        "noCookies": "{{browser}} tarayıcısında çerez bulunamadı.",
+        "noValidCookies": "{{browser}} tarayıcısında geçerli çerez bulunamadı.",
+        "allCookiesExpired": "{{browser}} tarayıcısındaki tüm çerezlerin süresi dolmuş.",
+        "encryptionKeyDenied": "{{browser}} şifreleme anahtarına erişilemedi. İşletim sistemi erişimi reddetmiş olabilir.",
+        "readFailed": "{{browser}} çerezleri okunamadı.",
+        "importFailed": "{{browser}} tarayıcısından çerezler içe aktarılamadı.",
+        "importFailedTryClosing": "{{browser}} tarayıcısından çerezler içe aktarılamadı. Önce {{browser}} tarayıcısını kapatmayı deneyin.",
+        "importFailedWithLog": "{{browser}} tarayıcısından çerezler içe aktarılamadı: {{detail}}. Ayrıntılar {{logPath}} konumuna yazıldı.",
+        "safariFullDiskAccess": "macOS, Safari çerezlerine erişimi reddetti. System Settings → Privacy & Security → Full Disk Access bölümünde Orca'ya Tam Disk Erişimi izni verin.",
+        "connectionEnded": "İçe aktarma sırasında bu sunucuyla bağlantı kesildi. Yeniden bağlanıp tekrar deneyin.",
+        "serverRepaired": "Bu sunucu içe aktarma sırasında yeniden eşleştirildi. Tekrar deneyin."
+      },
+      "notice": {
+        "importedMore_one": "{{domains}} ve diğer {{more}} alan adı için {{count}} çerez içe aktarıldı. Kullanmak için sayfayı yeniden yükleyin.",
+        "importedMore_other": "{{domains}} ve diğer {{more}} alan adı için {{count}} çerez içe aktarıldı. Kullanmak için sayfayı yeniden yükleyin.",
+        "imported_one": "{{domains}} için {{count}} çerez içe aktarıldı. Kullanmak için sayfayı yeniden yükleyin.",
+        "imported_other": "{{domains}} için {{count}} çerez içe aktarıldı. Kullanmak için sayfayı yeniden yükleyin.",
+        "failed": "Çerezler içe aktarılamadı: {{reason}}"
+      }
     }
   },
   "editor": {

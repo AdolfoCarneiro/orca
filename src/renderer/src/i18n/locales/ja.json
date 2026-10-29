@@ -19860,6 +19860,38 @@
       "laptop": "ノートパソコン — 1024 × 768",
       "laptop-l": "ノートパソコン L — 1440 × 900",
       "desktop": "デスクトップ — 1920 × 1080"
+    },
+    "cookieImport": {
+      "errors": {
+        "notAuthorized": "権限がありません",
+        "profileNotFound": "セッションプロファイルが見つかりません。",
+        "invalidBrowserProfile": "ブラウザプロファイル名が無効です。",
+        "browserNotFound": "このシステムにブラウザが見つかりません。",
+        "browserProfileDatabaseMissing": "プロファイル「{{profile}}」の Cookie データベースが見つかりません。",
+        "fileUnreadable": "選択したファイルを読み取れませんでした。",
+        "fileInvalidJson": "ファイルは有効な JSON ではありません。",
+        "fileNotArray": "Cookie オブジェクトの JSON 配列が必要です。",
+        "fileEmpty": "Cookie ファイルが空です。",
+        "fileNoValidCookies_other": "有効な Cookie が見つかりません。フィールドの欠落や無効な値のため、{{count}} 件のエントリをスキップしました。",
+        "databaseNotFound": "{{browser}} の Cookie データベースが見つかりません。",
+        "databaseCopyFailed": "{{browser}} の Cookie データベースをコピーできませんでした。先に {{browser}} を閉じてみてください。",
+        "noCookies": "{{browser}} に Cookie が見つかりません。",
+        "noValidCookies": "{{browser}} に有効な Cookie が見つかりません。",
+        "allCookiesExpired": "{{browser}} の Cookie はすべて有効期限切れです。",
+        "encryptionKeyDenied": "{{browser}} の暗号化キーにアクセスできませんでした。OS がアクセスを拒否した可能性があります。",
+        "readFailed": "{{browser}} の Cookie を読み取れませんでした。",
+        "importFailed": "{{browser}} から Cookie をインポートできませんでした。",
+        "importFailedTryClosing": "{{browser}} から Cookie をインポートできませんでした。先に {{browser}} を閉じてみてください。",
+        "importFailedWithLog": "{{browser}} から Cookie をインポートできませんでした: {{detail}}。詳細は {{logPath}} に記録されました。",
+        "safariFullDiskAccess": "macOS が Safari の Cookie へのアクセスを拒否しました。「システム設定」→「プライバシーとセキュリティ」→「フルディスクアクセス」で Orca にフルディスクアクセスを許可してください。",
+        "connectionEnded": "インポート中にこのサーバーへの接続が切れました。再接続して、もう一度お試しください。",
+        "serverRepaired": "インポート中にこのサーバーが再ペアリングされました。もう一度お試しください。"
+      },
+      "notice": {
+        "importedMore_other": "{{domains}} と他 {{more}} 件のドメイン用に Cookie を {{count}} 個インポートしました。使用するにはページを再読み込みしてください。",
+        "imported_other": "{{domains}} 用に Cookie を {{count}} 個インポートしました。使用するにはページを再読み込みしてください。",
+        "failed": "Cookie をインポートできませんでした: {{reason}}"
+      }
     }
   },
   "runtimeRpc": {
