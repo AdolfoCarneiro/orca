@@ -196,6 +196,37 @@ describe('website annotation delivery', () => {
     expect(notes()).toHaveLength(1)
   })
 
+  it('switches Send, the open sidebar picker and Copy to page details together', () => {
+    const writeClipboardText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(window, 'api', {
+      configurable: true,
+      value: { ui: { writeClipboardText } }
+    })
+    store.setState({
+      openAgentSendPopoverTargetMode: (next) => {
+        mode = next
+        store.setState({
+          agentSendPopoverTargetMode: {
+            ...next,
+            instanceId: 'instance-1',
+            eligiblePaneKeys: [],
+            disabledPaneKeys: {},
+            status: 'open'
+          }
+        })
+      }
+    })
+    const view = mount()
+    act(() => view.result.current.handleAnnotationTraySendOpenChange(true))
+    expect(mode?.prompt).not.toContain('**Computed styles:**')
+
+    act(() => view.result.current.handleIncludePageDetailsChange(true))
+    expect(mode?.prompt).toContain('**Computed styles:**')
+    expect(view.result.current.browserAnnotationsPrompt).toBe(mode?.prompt)
+    act(() => view.result.current.handleCopyBrowserAnnotations())
+    expect(writeClipboardText).toHaveBeenCalledWith(expect.stringContaining('**Computed styles:**'))
+  })
+
   it('does not erase replacement notes after a navigation clears the original page', () => {
     const view = mount()
     const delivered = view.result.current.handleBrowserAnnotationsSentToAgent
