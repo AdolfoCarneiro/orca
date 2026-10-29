@@ -1379,10 +1379,7 @@
       },
       "claudeAgentRowView": {
         "subagentNavigationSetup": "请在“设置 → 智能体”中启用 Claude 子智能体导航，然后在 Orca 中启动 Claude 2.1.300+。检查 keybindings.json 是否仍将 Ctrl+Alt+G、H 或 V 绑定到 command:orca-agent-view。",
-        "permissionPrompt": "请先回应 Claude 的权限提示，再切换智能体。",
-        "agentUnavailable": "Claude 无法打开此智能体。它可能已不可用。",
-        "closeDialog": "Claude 未切换视图。请关闭所有打开的对话框后重试。",
-        "hostUnavailable": "此主机上无法使用子智能体导航。请更新 Orca 并在此窗格中重启 Claude。"
+        "permissionPrompt": "请先回应 Claude 的权限提示，再切换智能体。"
       },
       "wslHostWindowsDriveRefusal": {
         "addOnThisComputer": "在此计算机上添加",
@@ -11230,8 +11227,8 @@
           "managedOverSshHelp": "此桌面通过 SSH 更新此服务器。请在远程 Orca 服务器中该服务器所在行使用“更新”。"
         },
         "BrowserLinkRoutingSetting": {
-          "description": "在 Orca 内置浏览器中打开来自终端、Markdown 和编辑器的 http(s) 链接。{{shortcut}} 始终使用系统浏览器。",
-          "descriptionBase": "在 Orca 内置浏览器中打开来自终端、Markdown 和编辑器的 http(s) 链接。"
+          "description": "在 Orca 内置浏览器中打开 Orca 各处的 http(s) 链接。登录页面和 {{shortcut}} 始终使用系统浏览器。",
+          "descriptionBase": "在 Orca 内置浏览器中打开 Orca 各处的 http(s) 链接。登录页面仍会在系统浏览器中打开。"
         },
         "BrowserLinkRoutingModifierSetting": {
           "titleSystem": "按住 Shift 在系统浏览器中打开",
@@ -16562,7 +16559,8 @@
                     "annotations": {
                       "0c7b9b2b7a": "已复制",
                       "c937229f19": "截图",
-                      "1f5cb19034": "添加了注释"
+                      "1f5cb19034": "添加了注释",
+                      "limitReached": "已达到 {{limit}} 条注释的上限。请发送、删除或清除一些后再添加。"
                     }
                   }
                 }
@@ -16577,7 +16575,10 @@
                     "024467ceac": "取消",
                     "449d2c2629": "注释意图",
                     "38d320108c": "折叠注释",
-                    "9f209891a7": "展开注释"
+                    "9f209891a7": "展开注释",
+                    "includePageDetails": "包含页面详情",
+                    "copyFeedback": "复制反馈",
+                    "copyFeedbackWithPageDetails": "复制反馈及页面详情"
                   }
                 }
               }
