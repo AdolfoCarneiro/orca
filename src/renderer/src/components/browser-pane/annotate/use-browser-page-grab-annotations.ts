@@ -1,13 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type Dispatch,
-  type MutableRefObject,
-  type SetStateAction
-} from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { translate } from '@/i18n/i18n'
 import { useMountedRef } from '@/hooks/useMountedRef'
 import { useAppStore } from '@/store'
@@ -26,6 +17,7 @@ import {
 import { useBrowserPageAnnotationViewportTracking } from './use-browser-page-annotation-viewport-tracking'
 import { runBrowserGrabActionShortcut } from './browser-page-grab-action'
 import type {
+  BrowserPageGrabAnnotations,
   BrowserPageGrabAnnotationsOptions,
   BrowserPageGrabToastState,
   GrabIntent
@@ -58,27 +50,7 @@ export function useBrowserPageGrabAnnotations({
   webviewRef,
   setBrowserOverlayViewport,
   browserAnnotationsLength
-}: BrowserPageGrabAnnotationsOptions): {
-  grabIntent: GrabIntent
-  startGrabIntent: (nextIntent: GrabIntent) => void
-  pendingAnnotationPayload: BrowserGrabPayload | null
-  setPendingAnnotationPayload: Dispatch<SetStateAction<BrowserGrabPayload | null>>
-  grabToast: BrowserPageGrabToastState | null
-  setGrabToast: Dispatch<SetStateAction<BrowserPageGrabToastState | null>>
-  grabToastTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | undefined>
-  dismissGrabToast: () => void
-  handleGrabCopy: () => void
-  handleGrabCopyScreenshot: () => void
-  grabMenuActionTakenRef: MutableRefObject<boolean>
-  handleAddBrowserAnnotation: (
-    comment: string,
-    intent: BrowserAnnotationIntent,
-    imagePaths?: string[]
-  ) => void
-  handleCancelPendingBrowserAnnotation: () => void
-  cancelPendingBrowserCapture: () => void
-  handleGrabActionShortcut: (key: 'c' | 's') => void
-} {
+}: BrowserPageGrabAnnotationsOptions): BrowserPageGrabAnnotations {
   const mountedRef = useMountedRef()
   const toolTargetIdRef = useRef(toolTargetId)
   const grabToastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
