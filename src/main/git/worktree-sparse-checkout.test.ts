@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import * as path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { listWorktrees, parseCoreSparseCheckoutFlag, removeWorktree } from './worktree'
+import { detectSparseCheckout } from './worktree-sparse-state'
 
 const tempRoots: string[] = []
 
@@ -133,6 +134,65 @@ describe('sparse-checkout detection', () => {
       expect(mainWorktree(await listWorktrees(repoPath)).isSparse).toBe(true)
     }
   )
+
+  it.skipIf(process.platform === 'win32').each([
+    { name: 'quote fragments', config: '[core]\nsparseCheckout = tr"u"e\n' },
+    { name: 'continued values', config: '[core]\nsparseCheckout = tr\\\nue\n' },
+    {
+      name: 'unrelated continued assignments',
+      config: '[core]\nsparseCheckout = true\neditor = \\\nsparseCheckout = false\n'
+    }
+  ])('reports sparse state from $name', async ({ config }) => {
+    const repoPath = await createRepoWithTwoDirs()
+    await writeFile(path.join(repoPath, '.git', 'config'), config)
+    await writeFile(path.join(repoPath, '.git', 'info', 'sparse-checkout'), '/keep/\n')
+
+    expect(git(repoPath, ['config', '--bool', 'core.sparseCheckout']).trim()).toBe('true')
+    expect(mainWorktree(await listWorktrees(repoPath)).isSparse).toBe(true)
+  })
+
+  it.skipIf(process.platform === 'win32').each([
+    { name: 'missing', config: '', expected: true },
+    { name: 'explicit empty', config: '[core]\nsparseCheckout =\n', expected: false },
+    { name: 'explicit false', config: '[core]\nsparseCheckout = false\n', expected: false }
+  ])('uses a $name worktree flag with shared true', async ({ config, expected }) => {
+    const repoPath = await createRepoWithTwoDirs()
+    git(repoPath, ['sparse-checkout', 'set', 'keep'])
+    git(repoPath, ['config', 'core.sparseCheckout', 'true'])
+    await writeFile(path.join(repoPath, '.git', 'config.worktree'), config)
+
+    expect(git(repoPath, ['config', '--bool', 'core.sparseCheckout']).trim()).toBe(String(expected))
+    expect(mainWorktree(await listWorktrees(repoPath)).isSparse === true).toBe(expected)
+  })
+
+  it.skipIf(process.platform === 'win32')(
+    'decodes the worktree-config extension gate',
+    async () => {
+      const repoPath = await createRepoWithTwoDirs()
+      git(repoPath, ['sparse-checkout', 'set', 'keep'])
+      await writeFile(
+        path.join(repoPath, '.git', 'config'),
+        '[core]\nrepositoryFormatVersion = 1\nsparseCheckout = false\n' +
+          '[extensions]\nworktreeConfig = tr"u"e\n'
+      )
+      await writeFile(path.join(repoPath, '.git', 'config.worktree'), '[core]\nsparseCheckout\n')
+
+      expect(git(repoPath, ['config', '--bool', 'core.sparseCheckout']).trim()).toBe('true')
+      expect(mainWorktree(await listWorktrees(repoPath)).isSparse).toBe(true)
+    }
+  )
+
+  it.skipIf(process.platform === 'win32')('requires a nonempty sparse pattern file', async () => {
+    const repoPath = await createRepoWithTwoDirs()
+    git(repoPath, ['config', 'core.sparseCheckout', 'true'])
+    const patternPath = path.join(repoPath, '.git', 'info', 'sparse-checkout')
+
+    expect(await detectSparseCheckout(repoPath)).toBe(false)
+    await writeFile(patternPath, '')
+    expect(await detectSparseCheckout(repoPath)).toBe(false)
+    await writeFile(patternPath, '/keep/\n')
+    expect(await detectSparseCheckout(repoPath)).toBe(true)
+  })
 })
 
 describe('sparse-checkout cache invalidation across the worktree lifecycle', () => {
@@ -143,8 +203,7 @@ describe('sparse-checkout cache invalidation across the worktree lifecycle', () 
       const linkedPath = path.join(path.dirname(repoPath), 'linked')
 
       git(repoPath, ['worktree', 'add', '-b', 'sparse-branch', linkedPath])
-      // Older Git needs the linked gitdir's info directory before writing sparse patterns.
-      await mkdir(path.join(git(linkedPath, ['rev-parse', '--git-dir']).trim(), 'info'), {
+      await mkdir(path.join(git(linkedPath, ['rev-parse', '--absolute-git-dir']).trim(), 'info'), {
         recursive: true
       })
       git(linkedPath, ['sparse-checkout', 'set', 'keep'])
