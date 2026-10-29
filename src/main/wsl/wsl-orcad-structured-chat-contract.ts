@@ -266,8 +266,8 @@ async function exerciseChat(
       lane,
       reportPath,
       WslChatProviderReport,
-      (written) => resumedArgv.test(written.argv.join(' ')),
-      'the resumed launch'
+      (written) => resumedArgv.test(written.argv.join(' ')) && written.userMessages.length > 0,
+      'the resumed turn'
     )
     expect(resumed.cwd).toBe(cwd)
     expect(resumed.argv.join(' ')).toMatch(resumedArgv)
