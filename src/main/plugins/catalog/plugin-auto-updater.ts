@@ -108,7 +108,11 @@ export class PluginAutoUpdater {
     // Why per pass: installs only rewrite their own entry, and preview/install reread the lock.
     let installLock: Promise<PluginLockfile> | null = null
     const readInstallLock = (): Promise<PluginLockfile> =>
-      (installLock ??= this.options.installer.readInstallLockfile())
+      (installLock ??= this.options.installer.readInstallLockfile().catch((error: unknown) => {
+        // Why: a transient read error fails only this plugin, as the per-plugin reads did.
+        installLock = null
+        throw error
+      }))
     const updatedNow: PluginAutoUpdateState['updated'] = {}
     const needsReview: PluginAutoUpdateState['needsReview'] = {}
     for (const plugin of this.options.pluginService.getDiscovered()) {
