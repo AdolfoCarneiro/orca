@@ -14,6 +14,32 @@ function countNormalizations(run: () => unknown): number {
 }
 
 describe('tracked pathspec partition', () => {
+  it.each([100, 1_000])('indexes repeated matches across %i tracked paths', (size) => {
+    const paths = Array.from({ length: size }, (_, index) => `docs/file-${index}`)
+    const prefixes = new Set(paths.map((name) => `${name}/`))
+    const startsWith = String.prototype.startsWith
+    let comparisons = 0
+    const spy = vi.spyOn(String.prototype, 'startsWith').mockImplementation(function (
+      this: string,
+      searchString: string,
+      position?: number
+    ) {
+      if (prefixes.has(searchString)) {
+        comparisons += 1
+      }
+      return startsWith.call(this, searchString, position)
+    })
+    try {
+      expect(partitionTrackedPathSpecs(paths, paths)).toEqual({
+        trackedPaths: paths,
+        untrackedPaths: []
+      })
+      expect(comparisons).toBeLessThanOrEqual(size * (Math.ceil(Math.log2(size)) + 1))
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
   it.each([
     ['docs', ['docs/readme.md'], true],
     ['doc', ['docs/readme.md'], false],
@@ -63,6 +89,48 @@ describe('tracked pathspec partition', () => {
     const tracked = Array.from({ length: 64 }, (_, index) => `docs/file-${index}`)
     expect(countNormalizations(() => partitionTrackedPathSpecs(['docs'], tracked))).toBe(2)
     expect(countNormalizations(() => partitionTrackedPathSpecs([], tracked))).toBe(0)
+  })
+
+  it('keeps repeated first-descendant matches lazy', () => {
+    const requests = Array.from({ length: 1_000 }, () => 'docs')
+    const tracked = Array.from({ length: 1_000 }, (_, index) => `docs/file-${index}`)
+    expect(countNormalizations(() => partitionTrackedPathSpecs(requests, tracked))).toBe(1_001)
+  })
+
+  it('avoids sorting for a missing request followed by one early directory match', () => {
+    const tracked = Array.from({ length: 1_000 }, (_, index) => `docs/file-${index}`)
+    const sort = vi.spyOn(Array.prototype, 'sort')
+    let sorts: number
+    try {
+      partitionTrackedPathSpecs(['missing', 'docs'], tracked)
+      sorts = sort.mock.calls.length
+    } finally {
+      sort.mockRestore()
+    }
+    expect(sorts).toBe(0)
+  })
+
+  it('does not build an index only for the last request', () => {
+    const tracked = Array.from({ length: 64 }, (_, index) => `docs/file-${index}`)
+    const requests = [...Array.from({ length: 400 }, () => 'docs'), 'missing']
+    const sort = vi.spyOn(Array.prototype, 'sort')
+    let sorts: number
+    try {
+      partitionTrackedPathSpecs(requests, tracked)
+      sorts = sort.mock.calls.length
+    } finally {
+      sort.mockRestore()
+    }
+    expect(sorts).toBe(0)
+  })
+
+  it('finds descendants after nonchild lexical neighbors when repeated scans build an index', () => {
+    const requests = ['missing', 'missing', 'docs', 'docs-extra', 'doc', '']
+    const tracked = ['docs-extra', 'docs/file', 'docs/file', '/absolute']
+    expect(partitionTrackedPathSpecs(requests, tracked)).toEqual({
+      trackedPaths: ['docs', 'docs-extra', ''],
+      untrackedPaths: ['missing', 'missing', 'doc']
+    })
   })
 
   it('does not reuse tracked evidence across operations', () => {
