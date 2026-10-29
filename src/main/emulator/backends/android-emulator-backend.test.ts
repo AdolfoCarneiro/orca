@@ -235,6 +235,9 @@ describe('AndroidEmulatorBackend', () => {
       if (binary === SDK.adb && a === '-s emulator-5556 shell getprop sys.boot_completed') {
         return ok('1')
       }
+      if (binary === SDK.adb && a === '-s emulator-5556 emu avd name') {
+        return ok('Pixel_Tablet\nOK\n')
+      }
       if (binary === SDK.emulator && a === '-list-avds') {
         return ok('Pixel_Tablet')
       }
