@@ -119,23 +119,53 @@ describe.runIf(process.platform !== 'win32')('the bare orca dispatcher as a shel
     )
   })
 
-  it('stops after one hop when two dispatchers point at each other', async () => {
+  async function addSecondDispatcher(fixture: { root: string; dispatcherPath: string }) {
+    const otherBin = join(fixture.root, 'other-home', '.local', 'bin')
+    await mkdir(otherBin, { recursive: true })
+    await writeFile(join(otherBin, 'orca'), await readFile(fixture.dispatcherPath, 'utf8'), {
+      mode: 0o755
+    })
+    return otherBin
+  }
+
+  it('skips a second Orca dispatcher ahead of it and reaches the real `orca`', async () => {
     const fixture = await makeFixture()
-    const other = join(fixture.root, 'other-home')
-    await mkdir(join(other, '.local', 'bin'), { recursive: true })
-    await writeFile(
-      join(other, '.local', 'bin', 'orca'),
-      await readFile(fixture.dispatcherPath, 'utf8'),
-      { mode: 0o755 }
+    const otherBin = await addSecondDispatcher(fixture)
+    const binDir = join(fixture.homePath, '.local', 'bin')
+
+    expect(runOrca(fixture, [otherBin, binDir, fixture.screenReaderDir]).stdout).toBe(
+      'SCREEN_READER status\n'
     )
+    expect(runOrca(fixture, [binDir, otherBin, fixture.screenReaderDir]).stdout).toBe(
+      'SCREEN_READER status\n'
+    )
+  })
+
+  it('never loops when the only other `orca` is another dispatcher', async () => {
+    const fixture = await makeFixture()
+    const otherBin = await addSecondDispatcher(fixture)
     await rm(fixture.resourcesPath, { recursive: true, force: true })
 
-    const result = runOrca(fixture, [
-      join(fixture.homePath, '.local', 'bin'),
-      join(other, '.local', 'bin')
-    ])
+    const result = runOrca(fixture, [join(fixture.homePath, '.local', 'bin'), otherBin])
     expect(result.status).toBe(127)
     expect(result.stderr).toContain('Orca is no longer installed')
+  })
+
+  it('adds nothing to the environment of the `orca` it hands over to', async () => {
+    const fixture = await makeFixture()
+    const otherBin = await addSecondDispatcher(fixture)
+    await writeFile(
+      join(fixture.screenReaderDir, 'orca'),
+      "#!/bin/sh\nenv | grep '^ORCA_' || echo NO_ORCA_ENV\n",
+      { mode: 0o755 }
+    )
+
+    const result = runOrca(fixture, [
+      otherBin,
+      join(fixture.homePath, '.local', 'bin'),
+      fixture.screenReaderDir
+    ])
+    expect(result.stdout).toBe('NO_ORCA_ENV\n')
   })
 })
 
