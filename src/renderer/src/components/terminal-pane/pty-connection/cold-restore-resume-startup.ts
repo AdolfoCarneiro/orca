@@ -2,6 +2,7 @@ import { useAppStore } from '@/store'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
 import {
+  resolveRuntimeHostReportedPlatform,
   resolveSshHostReportedPlatform,
   resolveAgentResumeLaunchTarget
 } from '@/lib/agent-resume-launch-target'
@@ -88,7 +89,8 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
         state,
         session.executionHostId,
         session.transport.getRuntimeEnvironmentId?.() ?? null
-      )
+      ),
+      runtimeHostPlatform: resolveRuntimeHostReportedPlatform(state, session.executionHostId)
     })
     const startupPlan = buildAgentResumeStartupPlan({
       agent,
@@ -96,6 +98,7 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
       cmdOverrides: state.settings?.agentCmdOverrides ?? {},
       ...resolveResumeLaunchRecipe(launchConfig),
       platform: resumeTarget.platform,
+      agentHostPlatform: resumeTarget.agentHostPlatform,
       shell: resumeTarget.shell,
       launchCwd: session.worktree?.path
     })
