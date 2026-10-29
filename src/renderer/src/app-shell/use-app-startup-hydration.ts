@@ -35,7 +35,6 @@ import {
   LOCAL_EXECUTION_HOST_ID,
   parseExecutionHostId
 } from '../../../shared/execution-host'
-import { getBrowserSettingsHostId } from '../store/slices/browser/browser-host-state'
 import { listRuntimeSessionHostsForStartup } from './startup-runtime-session-hosts'
 import { mapWithConcurrency } from '../../../shared/map-with-concurrency'
 import { collectWslMovedWorkspaceKeysFromSession } from '../store/repos/wsl-moved-projects'
@@ -222,9 +221,7 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
             actions.fetchBrowserSessionProfiles()
           ).catch(() => {})
           // Why: local and SSH tabs use this desktop's profiles even when Settings shows a paired server.
-          if (getBrowserSettingsHostId(useAppStore.getState()) !== LOCAL_EXECUTION_HOST_ID) {
-            void actions.fetchBrowserSessionProfiles(LOCAL_EXECUTION_HOST_ID)
-          }
+          void actions.fetchBrowserSessionProfiles(LOCAL_EXECUTION_HOST_ID)
           const onboardingState = await onboardingPromise
           if (!cancelled) {
             onOnboardingLoadedRef.current(onboardingState)
