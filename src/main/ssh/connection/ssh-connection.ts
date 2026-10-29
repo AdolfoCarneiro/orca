@@ -1,3 +1,4 @@
+import type { SshConnectDecision } from '../ssh-session-start-failure'
 /* eslint-disable max-lines -- Why: the connect attempt (transport choice, the system-ssh ControlMaster retry, the ssh2 proxy and credential prompts) and teardown all read and write one generation, proxy, transport flags and cached sign-in; splitting them would spread each guard across files. Reconnect and channel opening live in their own modules. */
 import {
   createSshFileUploadSession,
@@ -296,8 +297,9 @@ export class SshConnection {
     }
   }
 
-  async connect(): Promise<void> {
+  async connect(observeFailure?: (decision: SshConnectDecision) => void): Promise<void> {
     if (this.disposed) {
+      observeFailure?.('retired')
       throw new Error('Connection disposed')
     }
 
@@ -314,6 +316,7 @@ export class SshConnection {
 
         // Late cancellation errors must not overwrite Disconnect's published state.
         if (this.disposed) {
+          observeFailure?.('retired')
           throw lastError
         }
 
@@ -322,16 +325,19 @@ export class SshConnection {
           !this.isCurrentConnectAttempt(connectGeneration) ||
           isCancelledConnectAttemptError(lastError)
         ) {
+          observeFailure?.('retired')
           throw lastError
         }
 
         if (isAuthError(lastError) || isPassphraseError(lastError)) {
           this.setState('auth-failed', lastError.message)
+          observeFailure?.('stopped')
           throw lastError
         }
 
         if (!isTransientError(lastError)) {
           this.setState('error', lastError.message)
+          observeFailure?.('stopped')
           throw lastError
         }
 
@@ -343,6 +349,7 @@ export class SshConnection {
 
     const finalError = lastError ?? new Error('Connection failed')
     this.setState('error', finalError.message)
+    observeFailure?.('exhausted-transient')
     throw finalError
   }
 

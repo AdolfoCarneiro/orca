@@ -1,5 +1,5 @@
 import '../../orca-runtime-test-mocks.spec'
-import { vi } from 'vitest'
+import { vi, type Mock, type MockInstance } from 'vitest'
 import { store, TEST_WORKTREE_ID } from '../../orca-runtime-test-fixtures.spec'
 import type { RuntimeSyncWindowGraph } from '../../../../shared/runtime-types'
 import type { TerminalIdentitySource } from '../identity/terminal-identity-source'
@@ -190,7 +190,16 @@ export function identityFixture(
 }
 
 /** Observes the production host generation; each lookup opens fresh finite scratch. */
-export function watchIdentityFixture(f: ReturnType<typeof identityFixture>, captured = true) {
+export function watchIdentityFixture(
+  f: ReturnType<typeof identityFixture>,
+  captured = true
+): {
+  acquisition: MockInstance<OrcaRuntimeService['createTerminalIdentityRawInputs']>
+  wake: Mock<() => void>
+  context: () => TerminalIdentityReadContext | undefined
+  pane: (pane: string) => RuntimePtyWorktreeRecord | null
+  close: () => void
+} {
   const db = new OrchestrationDb(':memory:')
   const acquisition = vi.spyOn(f.runtime, 'createTerminalIdentityRawInputs')
   const model = new CrewReadModel(

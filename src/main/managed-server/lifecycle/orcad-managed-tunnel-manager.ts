@@ -1,10 +1,9 @@
-import {
-  getRuntimeSshAccess,
-  type KnownRuntimeEnvironment
-} from '../../../shared/runtime-environments'
+import type { RuntimeEnvironmentSetupOutcome } from '../../../shared/runtime-environment-subscription-setup'
+import { ensureManagedTunnelOperation } from './orcad-managed-tunnel-operation'
+import type { SshSessionStartObserver } from '../../ssh/ssh-session-start-failure'
+import type { KnownRuntimeEnvironment } from '../../../shared/runtime-environments'
 import type { SshTarget } from '../../../shared/ssh-types'
 import type { SshConnection } from '../../ssh/connection/ssh-connection'
-import { isAuthError } from '../../ssh/ssh-reconnect-error-classification'
 import type { SshConnectionManager } from '../../ssh/connection/ssh-connection-manager'
 import { SshPortForwardManager } from '../../ssh/port-forwarding/ssh-port-forward'
 import { OrcadManagedTunnelTransportProvider } from './orcad-managed-tunnel-transport'
@@ -46,7 +45,7 @@ type OrcadManagedTunnelDependencies = {
 
 export class OrcadManagedTunnelManager {
   private readonly active = new Map<string, ActiveOrcadTunnel>()
-  private readonly inFlight = new Map<string, Promise<void>>()
+  private readonly inFlight = new Map<string, Promise<RuntimeEnvironmentSetupOutcome<void>>>()
   private readonly ownershipGenerations = new Map<string, number>()
   // Track in-flight build targets so Disconnect can supersede unrecorded forwards.
   private readonly buildTargets = new Map<string, string>()
@@ -86,39 +85,30 @@ export class OrcadManagedTunnelManager {
   ensure(
     environment: KnownRuntimeEnvironment,
     resolveCurrent: () => KnownRuntimeEnvironment | null = () => environment,
-    retryJoined = true
+    retryJoined = true,
+    observeFailure?: SshSessionStartObserver
   ): Promise<void> {
-    if (!getRuntimeSshAccess(environment)) {
-      return Promise.resolve()
-    }
-    const pending = this.inFlight.get(environment.id)
-    if (pending) {
-      // Retry joined runs cancelled by another caller; authentication failures remain authoritative.
-      return pending.catch((error: unknown) =>
-        retryJoined && !(error instanceof Error && isAuthError(error))
-          ? this.ensure(environment, resolveCurrent, false)
-          : Promise.reject(error)
-      )
-    }
-    const operation = this.ensureManagedTunnel(environment, resolveCurrent).finally(() => {
-      if (this.inFlight.get(environment.id) === operation) {
-        this.inFlight.delete(environment.id)
+    return ensureManagedTunnelOperation(environment, retryJoined, this.inFlight, (observe) =>
+      this.ensureManagedTunnel(environment, resolveCurrent, false, observe)
+    ).then((outcome) => {
+      if (!outcome.ok) {
+        observeFailure?.(outcome.failure)
+        throw outcome.failure.error
       }
     })
-    this.inFlight.set(environment.id, operation)
-    return operation
   }
 
   async rebuild(
     environment: KnownRuntimeEnvironment,
-    resolveCurrent: () => KnownRuntimeEnvironment | null = () => environment
+    resolveCurrent: () => KnownRuntimeEnvironment | null = () => environment,
+    observeFailure?: SshSessionStartObserver
   ): Promise<void> {
     await this.inFlight.get(environment.id)?.catch(() => undefined)
     const active = this.active.get(environment.id)
     if (active) {
       await dropActiveOrcadTunnel(this.active, this.forwards, environment.id, active)
     }
-    await this.ensure(environment, resolveCurrent)
+    await this.ensure(environment, resolveCurrent, true, observeFailure)
   }
 
   async start(
@@ -241,7 +231,8 @@ export class OrcadManagedTunnelManager {
   private async ensureManagedTunnel(
     environment: KnownRuntimeEnvironment,
     resolveCurrent: () => KnownRuntimeEnvironment | null,
-    rebound = false
+    rebound = false,
+    observeFailure?: SshSessionStartObserver
   ): Promise<void> {
     const { deployment, targetStore, connectionManager, target } = resolveManagedTunnelBinding(
       environment,
@@ -260,7 +251,7 @@ export class OrcadManagedTunnelManager {
         targetStore.getTarget(target.id),
         expected
       )
-    const connection = await connectionManager.connect(target)
+    const connection = await connectionManager.connect(target, undefined, observeFailure)
     if (!stillOwned()) {
       throw supersededTunnelError()
     }
@@ -308,7 +299,7 @@ export class OrcadManagedTunnelManager {
       throw supersededTunnelError()
     }
     if (serving.rebind && !rebound) {
-      await this.ensureManagedTunnel(environment, resolveCurrent, true)
+      await this.ensureManagedTunnel(environment, resolveCurrent, true, observeFailure)
     }
   }
 }
