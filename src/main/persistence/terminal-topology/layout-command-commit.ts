@@ -38,7 +38,7 @@ export type LayoutCommandRun = {
 export function keepFrozen(
   hostId: ExecutionHostId,
   source: WorkspaceSessionState | SessionUnitReader,
-  context: TerminalTopologyCommitContext
+  context: Pick<TerminalTopologyCommitContext, 'getSession'>
 ): WorkspaceSessionState | SessionUnitReader {
   if (hostId !== LOCAL_EXECUTION_HOST_ID) {
     return source

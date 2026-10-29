@@ -97,31 +97,13 @@ export function deriveIndexedShutdownReconnectFacts(
 ): ShutdownReconnectFacts {
   const prior = contributions(reader.prior, reader.index, sources)
   const candidate = prior.candidate()
-  const owners = new Set(selection.get('tabsByWorktree') ?? [])
-  for (const [field, keys] of selection) {
-    for (const key of keys) {
-      for (const owner of reader.ids(field, key, 'owner')) {
-        owners.add(owner)
-      }
-      for (const tab of reader.ids(field, key, 'tab')) {
-        for (const unit of reader.references('tab', tab)) {
-          if (unit.field === 'tabsByWorktree') {
-            owners.add(unit.key)
-          }
-        }
-      }
-    }
-  }
+  const owners = reader.affectedOwners(selection)
   candidate.update(
     reader,
     owners,
     sources,
     (keys) => reader.orderSelection('tabsByWorktree', keys),
-    (tab) =>
-      reader
-        .references('tab', tab)
-        .filter((unit) => unit.field === 'tabsByWorktree')
-        .map((unit) => unit.key),
+    (tab) => reader.terminalOwners(tab),
     reader.replaces('tabsByWorktree')
   )
   const others = (sources.otherPartitions?.() ?? []).map((root) => {

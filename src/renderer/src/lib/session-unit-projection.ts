@@ -7,6 +7,10 @@ import {
   sessionMap,
   type SessionMapField
 } from '../../../shared/session-change-set'
+import {
+  selectIndexedSessionUnits,
+  indexedSessionOwners
+} from '../../../shared/session-unit-selection'
 import type { SessionUnitAddress } from '../../../shared/session-unit-index'
 
 import {
@@ -51,6 +55,7 @@ export class SessionUnitProjection extends SessionProjectionIndex {
       return this.full(state)
     }
     const queue: SessionUnitAddress[] = []
+    const replacements: (() => void)[] = []
     const owners = new Set<string>()
     const tabIds = new Set<string>()
     const changed = new Set<keyof WorkspaceSessionSnapshot>()
@@ -77,29 +82,15 @@ export class SessionUnitProjection extends SessionProjectionIndex {
       if (field) {
         for (const key of keys ?? []) {
           queue.push({ field, key })
-          for (const owner of this.index.ids(field, key, 'owner')) {
-            owners.add(owner)
-          }
-          for (const kind of ['tab', 'file', 'page', 'browser', 'pane'] as const) {
-            for (const id of this.index.ids(field, key, kind)) {
-              if (kind === 'tab') {
-                tabIds.add(id)
-              }
-              queue.push(...this.index.references(kind, id))
-            }
-          }
           // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: field is defined only for the source-to-session map domain.
           const mapSource = source as keyof typeof SOURCE_MAPS
-          this.index.replace(field, key, state[mapSource]?.[key])
+          replacements.push(() => this.index.replace(field, key, state[mapSource]?.[key]))
         }
       }
       if (source === 'openFiles') {
         for (const owner of keys ?? []) {
-          for (const id of this.index.ids('openFilesByWorktree', owner, 'file')) {
-            queue.push(...this.index.references('file', id))
-          }
           const files = discovery.sequences?.openFiles?.get(owner)
-          this.index.replace('openFilesByWorktree', owner, files)
+          replacements.push(() => this.index.replace('openFilesByWorktree', owner, files))
           owners.add(owner)
           queue.push({ field: 'openFilesByWorktree', key: owner })
         }
@@ -125,34 +116,28 @@ export class SessionUnitProjection extends SessionProjectionIndex {
         }
       }
     }
-    const scope = new Map<SessionMapField, Set<string>>()
-    for (let cursor = 0; cursor < queue.length; cursor++) {
-      const address = queue[cursor]
-      const keys = scope.get(address.field) ?? new Set<string>()
-      if (keys.has(address.key)) {
-        continue
-      }
-      keys.add(address.key)
-      scope.set(address.field, keys)
-      for (const index of [this.index]) {
-        for (const kind of ['owner', 'tab', 'file', 'page', 'browser', 'pane'] as const) {
-          for (const id of index.ids(address.field, address.key, kind)) {
-            if (kind === 'owner') {
-              owners.add(id)
-            }
-            if (kind === 'tab') {
-              tabIds.add(id)
-            }
-            queue.push(...index.references(kind, id))
-          }
-        }
+    const priorScope = selectIndexedSessionUnits(this.index, queue)
+    for (const owner of indexedSessionOwners(this.index, priorScope)) {
+      owners.add(owner)
+    }
+    for (const keys of priorScope.get('tabsByWorktree') ?? []) {
+      for (const id of this.index.ids('tabsByWorktree', keys, 'tab')) {
+        tabIds.add(id)
       }
     }
-    for (const owner of owners) {
-      for (const address of this.index.references('owner', owner)) {
-        const keys = scope.get(address.field) ?? new Set<string>()
-        keys.add(address.key)
-        scope.set(address.field, keys)
+    for (const replace of replacements) {
+      replace()
+    }
+    const scope = selectIndexedSessionUnits(this.index, [
+      ...queue,
+      ...[...priorScope].flatMap(([field, keys]) => [...keys].map((key) => ({ field, key })))
+    ])
+    for (const owner of indexedSessionOwners(this.index, scope)) {
+      owners.add(owner)
+    }
+    for (const key of scope.get('tabsByWorktree') ?? []) {
+      for (const id of this.index.ids('tabsByWorktree', key, 'tab')) {
+        tabIds.add(id)
       }
     }
     const editorChanged = (

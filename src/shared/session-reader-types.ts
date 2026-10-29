@@ -7,6 +7,7 @@ import type {
   SessionUnitChange,
   SessionMapField
 } from './session-change-set'
+import type { SessionUnitSelection } from './session-unit-selection'
 import type { SessionUnitReader } from './session-unit-reader'
 export type SessionPresence<T> = { present: true; value: T } | { present: false; value: undefined }
 export type SessionScalarField = Exclude<keyof WorkspaceSessionState, SessionMapField>
@@ -46,7 +47,9 @@ export type PreparedSession = {
   kind: SessionAdmissionKind
   fullReplacement: boolean
   partitionDeleted: boolean
-  affected: Pick<SessionChangeSet, 'owners' | 'tabs' | 'panes' | 'files' | 'pages' | 'repos'>
+  affected: Pick<SessionChangeSet, 'owners' | 'tabs' | 'panes' | 'files' | 'pages' | 'repos'> & {
+    units: SessionUnitSelection
+  }
   units: readonly SessionUnitChange[]
   orders: ReadonlyMap<SessionMapField, readonly string[]>
   relatedViews?: ReadonlyMap<string, { prior: unknown; next: unknown }>

@@ -1,13 +1,36 @@
-import type { SessionUnitAddress } from './session-unit-index'
+import type {
+  SessionUnitIndex,
+  SessionReferenceKind,
+  SessionUnitAddress
+} from './session-unit-index'
 import { SESSION_MAP_FIELDS, type SessionMapField } from './session-change-set'
 
 import type { SessionUnitReader } from './session-unit-reader'
 export type SessionUnitSelection = Map<SessionMapField, Set<string>>
 
+export type SessionDependencySource = {
+  index: { keys(field: SessionMapField): Iterable<string> }
+  keys(field: SessionMapField): Iterable<string>
+  changedKeys(field: SessionMapField): Iterable<string>
+  dependencyIds(
+    field: SessionMapField,
+    key: string,
+    kind: SessionReferenceKind
+  ): ReadonlySet<string>
+  references(
+    kind: SessionReferenceKind,
+    id: string,
+    phase?: 'prior' | 'candidate'
+  ): readonly SessionUnitAddress[]
+  touches(field: SessionMapField): boolean
+  orderSelection(field: SessionMapField, keys: Iterable<string>): readonly string[]
+}
+
 export function resolveSessionUnits(
-  reader: SessionUnitReader,
+  reader: SessionDependencySource,
   extra: readonly SessionUnitAddress[] = [],
-  full = false
+  full = false,
+  includeChanges = true
 ): SessionUnitSelection {
   const selected: SessionUnitSelection = new Map()
   if (full) {
@@ -20,7 +43,7 @@ export function resolveSessionUnits(
     const revisions = selected.get('terminalTopologyRevisionByRepoId')!
     for (const [field, keys] of selected) {
       for (const key of keys) {
-        for (const repo of reader.ids(field, key, 'repo')) {
+        for (const repo of reader.dependencyIds(field, key, 'repo')) {
           revisions.add(repo)
         }
       }
@@ -31,7 +54,7 @@ export function resolveSessionUnits(
     return selected
   }
   const queue = [...extra]
-  for (const field of SESSION_MAP_FIELDS) {
+  for (const field of includeChanges ? SESSION_MAP_FIELDS : []) {
     const keys = reader.changedKeys(field)
     for (const key of keys) {
       queue.push({ field, key })
@@ -55,11 +78,11 @@ export function resolveSessionUnits(
       'pty',
       'leaf'
     ] as const) {
-      for (const id of reader.ids(field, key, kind)) {
+      for (const id of reader.dependencyIds(field, key, kind)) {
         queue.push(...reader.references(kind, id, 'prior'), ...reader.references(kind, id))
       }
     }
-    for (const repo of reader.ids(field, key, 'repo')) {
+    for (const repo of reader.dependencyIds(field, key, 'repo')) {
       queue.push({ field: 'terminalTopologyRevisionByRepoId', key: repo })
     }
     if (field === 'terminalTopologyRevisionByRepoId' && reader.touches(field)) {
@@ -78,4 +101,34 @@ export function selectSessionUnits(
   full = false
 ): SessionUnitSelection {
   return reader.selection(extra, full)
+}
+
+export function selectIndexedSessionUnits(
+  index: SessionUnitIndex,
+  seeds: readonly SessionUnitAddress[]
+) {
+  return resolveSessionUnits(
+    {
+      index,
+      keys: (field) => index.keys(field),
+      changedKeys: () => [],
+      dependencyIds: (field, key, kind) => index.dependencyIds(field, key, kind),
+      references: (kind, id) => index.references(kind, id),
+      touches: () => false,
+      orderSelection: (field, keys) => index.ordered(field, keys)
+    },
+    seeds
+  )
+}
+
+export function indexedSessionOwners(index: SessionUnitIndex, selection: SessionUnitSelection) {
+  const owners = new Set<string>()
+  for (const [field, keys] of selection) {
+    for (const key of keys) {
+      for (const owner of index.dependencyIds(field, key, 'owner')) {
+        owners.add(owner)
+      }
+    }
+  }
+  return owners
 }

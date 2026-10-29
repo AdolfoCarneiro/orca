@@ -1,5 +1,8 @@
 export { type SessionUnitSelection, selectSessionUnits } from './session-unit-selection'
 
+import { WORKSPACE_SESSION_FIELD_OWNERSHIP } from './workspace-session-host-field-ownership'
+import { SESSION_MAP_FIELDS } from './session-change-set'
+import type { SessionReferenceKind } from './session-unit-index'
 import { getRepoIdFromWorktreeId } from './worktree/id'
 import type { WorkspaceSessionState } from './workspace-session-state-types'
 import type { SessionUnitIndex, SessionUnitAddress } from './session-unit-index'
@@ -77,6 +80,8 @@ export class SessionUnitReader extends SessionReaderQueries {
   }
 
   private dependencyCache?: { revision: number; full: boolean; units: SessionUnitSelection }
+  private ownerSelectionRevision = -1
+  private ownerSelections = new WeakMap<SessionUnitSelection, ReadonlySet<string>>()
   private readonly dependencySeeds = new Map<SessionMapField, Set<string>>()
 
   selection(extra: readonly SessionUnitAddress[] = [], full = false): SessionUnitSelection {
@@ -99,15 +104,49 @@ export class SessionUnitReader extends SessionReaderQueries {
     return units
   }
 
+  selectReferences(
+    identities: readonly { kind: SessionReferenceKind; id: string }[],
+    full = false
+  ): SessionUnitSelection {
+    const seeds = identities.flatMap(({ kind, id }) => [
+      ...this.references(kind, id, 'prior'),
+      ...this.references(kind, id),
+      ...(kind === 'owner'
+        ? SESSION_MAP_FIELDS.filter(
+            (field) => WORKSPACE_SESSION_FIELD_OWNERSHIP[field] === 'worktreeKeyed'
+          ).map((field) => ({ field, key: id }))
+        : []),
+      ...(kind === 'tab'
+        ? SESSION_MAP_FIELDS.filter(
+            (field) => WORKSPACE_SESSION_FIELD_OWNERSHIP[field] === 'tabKeyed'
+          ).map((field) => ({ field, key: id }))
+        : []),
+      ...(kind === 'repo' ? [{ field: 'terminalTopologyRevisionByRepoId' as const, key: id }] : [])
+    ])
+    return this.selection(seeds, full)
+  }
+
   affectedOwners(selection = this.selection()): ReadonlySet<string> {
+    if (this.ownerSelectionRevision !== this.revision) {
+      this.ownerSelections = new WeakMap()
+      this.ownerSelectionRevision = this.revision
+    }
+    const cached = this.ownerSelections.get(selection)
+    if (cached) {
+      return cached
+    }
     const owners = new Set<string>()
     for (const [field, keys] of selection) {
       for (const key of keys) {
-        for (const owner of this.ids(field, key, 'owner')) {
+        if (WORKSPACE_SESSION_FIELD_OWNERSHIP[field] === 'worktreeKeyed') {
+          owners.add(key)
+        }
+        for (const owner of this.dependencyIds(field, key, 'owner')) {
           owners.add(owner)
         }
       }
     }
+    this.ownerSelections.set(selection, owners)
     return owners
   }
 
@@ -175,8 +214,22 @@ export class SessionUnitReader extends SessionReaderQueries {
         nextPresent: Object.hasOwn(root, field)
       })
     }
+    const dependencyUnits = resolveSessionUnits(
+      this,
+      [
+        ...units.flatMap((unit) =>
+          unit.key === null ? [] : [{ field: unit.field, key: unit.key }]
+        ),
+        ...[...this.dependencySeeds].flatMap(([field, keys]) =>
+          [...keys].map((key) => ({ field, key }))
+        )
+      ],
+      false,
+      false
+    )
     const affected = {
-      owners: this.affectedOwners(),
+      units: dependencyUnits,
+      owners: this.affectedOwners(dependencyUnits),
       tabs: new Set<string>(),
       panes: new Set<string>(),
       files: new Set<string>(),

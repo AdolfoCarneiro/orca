@@ -76,14 +76,7 @@ export function publishWorkspaceSessionSnapshot(
 ): void {
   const { state } = context.runtime
   const local = hostId === LOCAL_EXECUTION_HOST_ID
-  const owners = new Set(selection.get('tabsByWorktree') ?? [])
-  for (const [field, keys] of selection) {
-    for (const key of keys) {
-      for (const owner of reader.ids(field, key, 'owner')) {
-        owners.add(owner)
-      }
-    }
-  }
+  const owners = reader.affectedOwners(selection)
   if (local) {
     keepFrozenSnapshotUnits(reader, selection)
   }

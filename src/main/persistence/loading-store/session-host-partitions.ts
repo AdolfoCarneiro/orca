@@ -1,4 +1,4 @@
-import { SessionUnitReader, selectSessionUnits } from '../../../shared/session-unit-reader'
+import { SessionUnitReader } from '../../../shared/session-unit-reader'
 import { publishWorkspaceSessionSnapshot } from './workspace-session-snapshot-publication'
 import { runSessionOperation } from './session-operation'
 import type { PersistedState } from '../../../shared/persisted-state-types'
@@ -102,11 +102,12 @@ export class SessionHostPartitionOperations {
       this[sessionHostPartitionOperationsContext].runtime.state
     ).partition(resolved)
     const reader = new SessionUnitReader(root, index)
-    const selected = selectSessionUnits(
-      reader,
-      keys.flatMap((key) => index.references('owner', key))
-    )
-    return { reader: reader.view('candidate'), selected, owners: keys }
+    const selected = reader.selectReferences(keys.map((id) => ({ kind: 'owner', id })))
+    return {
+      reader: reader.view('candidate'),
+      selected,
+      owners: [...reader.affectedOwners(selected)]
+    }
   }
 
   removeWorkspaceSessionHost(hostId: ExecutionHostId): void {
@@ -153,9 +154,10 @@ export class SessionHostPartitionOperations {
   }
 
   getWorktreeIdForTab(tabId: string): string | undefined {
-    return sessionPublication(this[sessionHostPartitionOperationsContext].runtime.state)
-      .partition(LOCAL_EXECUTION_HOST_ID)
-      .index.terminalOwner(tabId, 'first')
+    const { root, index } = sessionPublication(
+      this[sessionHostPartitionOperationsContext].runtime.state
+    ).partition(LOCAL_EXECUTION_HOST_ID)
+    return new SessionUnitReader(root, index).terminalOwner(tabId, 'first')
   }
 
   removeWorkspaceSessionStateForWorktree(

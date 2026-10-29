@@ -109,19 +109,8 @@ export function reduceTerminalScrollbackBuffers(
     if (!layout?.buffersByLeafId && !layout?.scrollbackRefsByLeafId && !local) {
       continue
     }
-    let owner: string | undefined
-    let ptyId: string | null | undefined
-    for (const unit of reader.references('tab', tabId)) {
-      if (unit.field !== 'tabsByWorktree') {
-        continue
-      }
-      for (const tab of reader.unit('tabsByWorktree', unit.key).value ?? []) {
-        if (tab.id === tabId) {
-          owner = unit.key
-          ptyId = tab.ptyId
-        }
-      }
-    }
+    const owner = reader.terminalOwner(tabId, 'last')
+    const ptyId = reader.terminalTab(tabId, 'last')?.ptyId
     const preserves =
       ptyId === null || shouldPreserveTerminalScrollbackBuffersForRepoMap(owner, repos)
     if (layout && (layout.buffersByLeafId || layout.scrollbackRefsByLeafId)) {

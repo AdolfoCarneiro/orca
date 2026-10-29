@@ -1,3 +1,4 @@
+import { nativeAffectedOwners } from './session-dependency-native.test-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -222,6 +223,10 @@ describe('shared writer normalization differential', () => {
       expect(keyed.runtime.state).toStrictEqual(complete.runtime.state)
       expect(prior).toStrictEqual(saved)
       const installed = keyed.runtime.state.workspaceSession
+      const notices = publication.take('local')
+      for (const event of notices) {
+        expect(event.owners).toEqual(nativeAffectedOwners(prior, installed, event.units))
+      }
       const actual = publication.partition('local').index
       const rebuilt = new SessionUnitIndex(installed)
       for (const field of SESSION_MAP_FIELDS) {
@@ -243,7 +248,7 @@ describe('shared writer normalization differential', () => {
             'repo',
             'scrollback'
           ] as const) {
-            for (const id of rebuilt.ids(field, key, kind)) {
+            for (const id of rebuilt.dependencyIds(field, key, kind)) {
               expect(actual.references(kind, id)).toEqual(rebuilt.references(kind, id))
             }
           }

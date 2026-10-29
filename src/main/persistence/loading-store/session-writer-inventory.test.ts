@@ -1,3 +1,4 @@
+import { nativeAffectedOwners } from './session-dependency-native.test-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultPersistedState } from '../../../shared/constants'
 import type { PersistedState } from '../../../shared/persisted-state-types'
@@ -70,7 +71,11 @@ function verify(
 ) {
   expect(state.workspaceSession).toStrictEqual(expected)
   expect(prior).toStrictEqual(saved)
-  const actual = sessionPublication(state).partition('local').index
+  const publication = sessionPublication(state)
+  for (const event of publication.take('local')) {
+    expect(event.owners).toEqual(nativeAffectedOwners(prior, expected, event.units))
+  }
+  const actual = publication.partition('local').index
   const rebuilt = new SessionUnitIndex(expected)
   for (const field of SESSION_MAP_FIELDS) {
     expect(Object.hasOwn(state.workspaceSession, field)).toBe(Object.hasOwn(expected, field))
@@ -88,8 +93,10 @@ function verify(
         'browser',
         'scrollback'
       ] as const) {
-        expect(actual.ids(field, key, kind)).toEqual(rebuilt.ids(field, key, kind))
-        for (const id of rebuilt.ids(field, key, kind)) {
+        expect(actual.dependencyIds(field, key, kind)).toEqual(
+          rebuilt.dependencyIds(field, key, kind)
+        )
+        for (const id of rebuilt.dependencyIds(field, key, kind)) {
           expect(actual.references(kind, id)).toEqual(rebuilt.references(kind, id))
         }
       }

@@ -3,7 +3,11 @@ export { ContributionOverlay } from './reconnect-contribution-overlay'
 import { copySessionRecord } from '../../../../shared/session-record-edit'
 
 import type { SessionUnitIndex } from '../../../../shared/session-unit-index'
-import { readSessionUnit, type SessionUnitView } from '../../../../shared/session-unit-reader'
+import {
+  SessionUnitReader,
+  readSessionUnit,
+  type SessionUnitView
+} from '../../../../shared/session-unit-reader'
 import { parseAppSshPtyId } from '../../../../shared/ssh-pty-id'
 import type { WorkspaceSessionState } from '../../../../shared/workspace-session-state-types'
 import {
@@ -91,30 +95,19 @@ export class ReconnectContributions {
       }
       this.initialized = true
     }
-    for (const pty of this.dirtyPtys) {
-      for (const unit of this.index.references('pty', pty)) {
-        for (const owner of this.index.ids(unit.field, unit.key, 'owner')) {
-          this.dirtyOwners.add(owner)
-        }
-        for (const tab of this.index.ids(unit.field, unit.key, 'tab')) {
-          for (const row of this.index.references('tab', tab)) {
-            if (row.field === 'tabsByWorktree') {
-              this.dirtyOwners.add(row.key)
-            }
-          }
-        }
-      }
+    const reader = new SessionUnitReader(this.root, this.index)
+    const selection = reader.selectReferences(
+      [...this.dirtyPtys].map((id) => ({ kind: 'pty', id }))
+    )
+    for (const owner of reader.affectedOwners(selection)) {
+      this.dirtyOwners.add(owner)
     }
     this.update(
       this.root,
       this.dirtyOwners,
       sources,
       (keys) => this.index.ordered('tabsByWorktree', keys),
-      (tab) =>
-        this.index
-          .references('tab', tab)
-          .filter((unit) => unit.field === 'tabsByWorktree')
-          .map((unit) => unit.key)
+      (tab) => reader.terminalOwners(tab)
     )
     this.dirtyOwners.clear()
     this.dirtyPtys.clear()

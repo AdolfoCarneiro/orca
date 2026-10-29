@@ -118,20 +118,7 @@ export function reduceMissingSessionTerminalBindings(
     const incoming = layout.ptyIdsByLeafId ?? {}
     const hasBinding = Object.keys(incoming).length > 0
     const liveLeaves = bindingRecovery.getTerminalLayoutLeafIds(layout.root)
-    const ownerKeys = new Set(
-      [...reader.references('tab', tabId, 'prior'), ...reader.references('tab', tabId)]
-        .filter((unit) => unit.field === 'tabsByWorktree')
-        .map((unit) => unit.key)
-    )
-    let owner: string | undefined
-    for (const key of reader.orderSelection('tabsByWorktree', ownerKeys)) {
-      const tabs =
-        reader.unit('tabsByWorktree', key).value ??
-        reader.unit('tabsByWorktree', key, 'prior').value
-      if (tabs?.some((tab) => tab.id === tabId)) {
-        owner = key
-      }
-    }
+    const owner = reader.replayTerminalOwner(tabId)
     const targetId = owner ? targetIdForWorktree(owner) : null
     const restored = Object.fromEntries(
       Object.entries(priorLayout.ptyIdsByLeafId).filter(

@@ -1,3 +1,6 @@
+import { SessionUnitReader } from '../../../shared/session-unit-reader'
+import { sessionPublication } from '../loading-store/session-publication'
+import { commandSessionReferences } from './layout-operation-selection'
 import type {
   CommandOf,
   LayoutApplyOutcome,
@@ -94,7 +97,15 @@ export class LayoutCommandPersistence {
         live: run.live,
         stopBeforeWrite: run.stopBeforeWrite,
         noteEffects: (noted) => (effects = noted)
-      })
+      }),
+      (hostId) => {
+        const { root, index } = sessionPublication(context.runtime.state).partition(hostId)
+        return (
+          new SessionUnitReader(root, index)
+            .selectReferences(commandSessionReferences(command))
+            .get('terminalLayoutsByTabId') ?? []
+        )
+      }
     )
     // Applied closes must stay closed even when persistence fails.
     const applied: Promise<LayoutApplyOutcome> =

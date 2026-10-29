@@ -62,8 +62,10 @@ function compareOperation(
         'repo',
         'scrollback'
       ] as const) {
-        expect(actual.ids(field, key, kind)).toEqual(rebuilt.ids(field, key, kind))
-        for (const id of rebuilt.ids(field, key, kind)) {
+        expect(actual.dependencyIds(field, key, kind)).toEqual(
+          rebuilt.dependencyIds(field, key, kind)
+        )
+        for (const id of rebuilt.dependencyIds(field, key, kind)) {
           expect(actual.references(kind, id)).toEqual(rebuilt.references(kind, id))
         }
       }

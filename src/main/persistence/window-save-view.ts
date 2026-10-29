@@ -202,14 +202,7 @@ export function reduceWindowSessionPatch(
   }
   const fields = new Set(reader.touchedFields())
   if ([...fields].some(isLayoutField)) {
-    const owners = new Set<string>()
-    for (const [field, keys] of selected) {
-      for (const key of keys) {
-        for (const owner of reader.ids(field, key, 'owner')) {
-          owners.add(owner)
-        }
-      }
-    }
+    const owners = reader.affectedOwners(selected)
     const ordered = [...reader.orderSelection('tabsByWorktree', owners)]
     const context = nameBasedLoadContext()
     const main = loadWorkspaceLayoutUnits(

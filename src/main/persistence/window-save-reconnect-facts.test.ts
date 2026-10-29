@@ -403,6 +403,11 @@ describe('reconnect dependency transitions', () => {
       expect(root).toStrictEqual(saved)
       publishSessionChanges(state, 'local', reader.prepare({ kind: 'authoritative' }))
       expect(state.workspaceSession).toStrictEqual(model)
+      const published = publication.partition('local')
+      const fresh = new SessionUnitReader(published.root, published.index)
+      expect(deriveIndexedShutdownReconnectFacts(fresh, fresh.selection(), sources)).toStrictEqual(
+        expected
+      )
     }
     const paneKey = `tab-s:${leaf(3)}`
     const sleeping = {

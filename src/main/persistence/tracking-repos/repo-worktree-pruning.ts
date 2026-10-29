@@ -1,3 +1,4 @@
+import { SessionUnitReader } from '../../../shared/session-unit-reader'
 import { sessionPublication } from '../loading-store/session-publication'
 import { runSessionOperation } from '../loading-store/session-operation'
 import type { WorkspaceKey } from '../../../shared/folder-workspace-types'
@@ -70,10 +71,9 @@ export function pruneWorktreeStateForRepo(
     if (!partitionHostId) {
       continue
     }
-    const index = publication.partition(partitionHostId).index
-    for (const address of index.references('repo', id)) {
-      collectPrefixedKeys(index.ids(address.field, address.key, 'owner'))
-    }
+    const { root, index } = publication.partition(partitionHostId)
+    const reader = new SessionUnitReader(root, index)
+    collectPrefixedKeys(reader.affectedOwners(reader.selectReferences([{ kind: 'repo', id }])))
   }
 
   for (const key of Object.keys(state.worktreeMeta)) {

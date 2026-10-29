@@ -11,9 +11,6 @@ import type { LoadedWorkspaceLayout } from '../../../shared/workspace-layout/wor
 
 import type { PartitionEditorViews } from '../loading-store/layout-editor-views'
 
-import { SESSION_MAP_FIELDS, type SessionMapField } from '../../../shared/session-change-set'
-import { WORKSPACE_SESSION_FIELD_OWNERSHIP } from '../../../shared/workspace-session-host-field-ownership'
-import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
 import { loadWorkspaceLayoutUnits } from '../../../shared/workspace-layout/workspace-layout-load'
 import { patchSessionUnits } from '../../../shared/workspace-layout/workspace-layout-record-patch'
 
@@ -162,56 +159,8 @@ export function loadLayoutOperation(
   views?: PartitionEditorViews,
   full = false
 ) {
-  const selected = new Map<SessionMapField, Set<string>>()
-  const owners = new Set(identities.filter((id) => id.kind === 'owner').map((id) => id.id))
-  const queue = identities.flatMap((id) => reader.references(id.kind, id.id))
-  for (const owner of owners) {
-    for (const field of SESSION_MAP_FIELDS) {
-      if (WORKSPACE_SESSION_FIELD_OWNERSHIP[field] === 'worktreeKeyed') {
-        queue.push({ field, key: owner })
-      }
-    }
-    queue.push({ field: 'terminalTopologyRevisionByRepoId', key: getRepoIdFromWorktreeId(owner) })
-  }
-  for (let i = 0; i < queue.length; i++) {
-    const { field, key } = queue[i]
-    const keys = selected.get(field) ?? new Set<string>()
-    if (keys.has(key)) {
-      continue
-    }
-    keys.add(key)
-    selected.set(field, keys)
-    for (const kind of [
-      'owner',
-      'tab',
-      'pane',
-      'leaf',
-      'pty',
-      'file',
-      'page',
-      'browser'
-    ] as const) {
-      for (const id of reader.index.ids(field, key, kind)) {
-        if (kind === 'owner') {
-          owners.add(id)
-        }
-        queue.push(...reader.references(kind, id))
-      }
-    }
-  }
-  if (full) {
-    for (const field of SESSION_MAP_FIELDS) {
-      selected.set(field, new Set(reader.index.keys(field)))
-      for (const key of reader.index.keys(field)) {
-        for (const owner of reader.index.ids(field, key, 'owner')) {
-          owners.add(owner)
-        }
-      }
-    }
-  }
-  for (const [field, keys] of selected) {
-    selected.set(field, new Set(reader.orderSelection(field, keys)))
-  }
+  const selected = reader.selectReferences(identities, full)
+  const owners = reader.affectedOwners(selected)
   const orderedOwners = reader.orderSelection('tabsByWorktree', owners)
   const context = views
     ? { ...nameBasedLoadContext(), editorViewsOf: (key: string) => views[key] }

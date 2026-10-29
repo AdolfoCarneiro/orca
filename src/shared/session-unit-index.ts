@@ -1,42 +1,22 @@
+import {
+  record,
+  rawOwner,
+  type SessionReferenceKind,
+  type SessionUnitAddress
+} from './session-unit-reference'
+export type { SessionReferenceKind, SessionUnitAddress } from './session-unit-reference'
 import type { TerminalTab } from './terminal-tab-types'
 import { SessionFieldOrder } from './session-field-order'
 import { WORKSPACE_SESSION_FIELD_OWNERSHIP } from './workspace-session-host-field-ownership'
 import { getRepoIdFromWorktreeId } from './worktree/id'
-import { parseWorkspaceKey } from './workspace-scope'
 import { parsePaneKey } from './stable-pane-id'
 import { SESSION_MAP_FIELDS, type SessionMapField } from './session-change-set'
 
-export type SessionReferenceKind =
-  | 'owner'
-  | 'tab'
-  | 'pane'
-  | 'leaf'
-  | 'pty'
-  | 'file'
-  | 'page'
-  | 'browser'
-  | 'repo'
-  | 'scrollback'
-export type SessionUnitAddress = { field: SessionMapField; key: string }
 type Contribution = SessionUnitAddress & {
   references: Map<SessionReferenceKind, Set<string>>
-  terminalOccurrences: Map<string, { count: number; first: unknown }>
+  terminalOccurrences: Map<string, { count: number; first: unknown; last: unknown }>
   scrollbackOccurrences: Map<string, number>
   sourceFiles?: readonly unknown[]
-}
-
-function record(value: unknown): Record<string, unknown> | undefined {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the object check excludes primitives and arrays; members remain unknown.
-    return value as Record<string, unknown>
-  }
-  return undefined
-}
-
-function rawOwner(key: string): string {
-  const unqualified = key.includes('|') ? key.slice(key.indexOf('|') + 1) : key
-  const scope = parseWorkspaceKey(unqualified)
-  return scope?.type === 'worktree' ? scope.worktreeId : unqualified
 }
 
 export class SessionUnitIndex {
@@ -151,7 +131,8 @@ export class SessionUnitIndex {
             const occurrence = unit.terminalOccurrences.get(tabId)
             unit.terminalOccurrences.set(tabId, {
               count: (occurrence?.count ?? 0) + 1,
-              first: occurrence?.first ?? row
+              first: occurrence?.first ?? row,
+              last: row
             })
           }
         }
@@ -233,7 +214,19 @@ export class SessionUnitIndex {
       .map(({ field, key }) => ({ field, key }))
   }
 
-  ids(field: SessionMapField, key: string, kind: SessionReferenceKind): ReadonlySet<string> {
+  ids(
+    field: SessionMapField,
+    key: string,
+    kind: Exclude<SessionReferenceKind, 'owner'>
+  ): ReadonlySet<string> {
+    return this.dependencyIds(field, key, kind)
+  }
+
+  dependencyIds(
+    field: SessionMapField,
+    key: string,
+    kind: SessionReferenceKind
+  ): ReadonlySet<string> {
     return this.units.get(field)?.get(key)?.references.get(kind) ?? new Set()
   }
 
@@ -274,11 +267,15 @@ export class SessionUnitIndex {
     return selection === 'first' ? units[0]?.key : units.at(-1)?.key
   }
 
-  terminalRow(owner: string, tabId: string): TerminalTab | undefined {
+  terminalRow(
+    owner: string,
+    tabId: string,
+    selection: 'first' | 'last' = 'first'
+  ): TerminalTab | undefined {
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: tabsByWorktree contributions retain the original admitted terminal DTO row.
-    return this.units.get('tabsByWorktree')?.get(owner)?.terminalOccurrences.get(tabId)?.first as
-      | TerminalTab
-      | undefined
+    return this.units.get('tabsByWorktree')?.get(owner)?.terminalOccurrences.get(tabId)?.[
+      selection
+    ] as TerminalTab | undefined
   }
 
   terminalUnitOccurrenceCount(field: SessionMapField, key: string, tabId: string): number {

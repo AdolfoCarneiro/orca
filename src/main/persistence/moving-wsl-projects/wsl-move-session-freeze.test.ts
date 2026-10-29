@@ -1,3 +1,6 @@
+import { SessionUnitReader } from '../../../shared/session-unit-reader'
+import { SessionUnitIndex } from '../../../shared/session-unit-index'
+import { keepFrozen } from '../terminal-topology/layout-command-commit'
 import { hostWorktreeTarget } from '../../../shared/worktree/host-qualified-identity'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -106,6 +109,19 @@ describe('WSL move session freeze', () => {
         }
       })
       expect(store.getWorkspaceSession().terminalLayoutsByTabId['moving-tab']).toBe(prior)
+    })
+
+    it('preserves the same frozen layout through the topology command adapter', () => {
+      const root = store.getWorkspaceSession()
+      const prior = root.terminalLayoutsByTabId['moving-tab']
+      const reader = new SessionUnitReader(root, new SessionUnitIndex(root))
+      reader.write('terminalLayoutsByTabId', 'moving-tab', {
+        present: true,
+        value: { ...prior, activeLeafId: 'later' }
+      })
+      keepFrozen('local', reader, { getSession: () => root })
+      expect(reader.unit('terminalLayoutsByTabId', 'moving-tab').value).toBe(prior)
+      expect(reader.prepare({ kind: 'authoritative' }).units).toEqual([])
     })
 
     it('keeps it through a patch and the before-unload stage', () => {

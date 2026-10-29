@@ -1,4 +1,4 @@
-import { getDefaultWorkspaceSession } from '../../../shared/constants'
+import { nativeSessionReferences } from './session-dependency-native.test-fixture'
 import { SESSION_MAP_FIELDS } from '../../../shared/session-change-set'
 import {
   SessionUnitIndex,
@@ -25,12 +25,8 @@ class EnumeratedSessionIndex extends SessionUnitIndex {
   override references(kind: SessionReferenceKind, id: string): readonly SessionUnitAddress[] {
     const selected: SessionUnitAddress[] = []
     for (const field of SESSION_MAP_FIELDS) {
-      for (const [key, value] of Object.entries(this.source[field] ?? {})) {
-        const unit = new SessionUnitIndex({
-          ...getDefaultWorkspaceSession(),
-          [field]: { [key]: value }
-        })
-        if (unit.ids(field, key, kind).has(id)) {
+      for (const key of Object.keys(this.source[field] ?? {})) {
+        if (nativeSessionReferences(this.source, field, key).get(kind)?.has(id)) {
           selected.push({ field, key })
         }
       }

@@ -16,6 +16,7 @@ import {
 
 import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
 
+import { SessionUnitReader } from '../../../shared/session-unit-reader'
 import { SessionUnitIndex } from '../../../shared/session-unit-index'
 import type { SessionRefSnapshot, Partition, PublicationState } from './session-publication'
 export type SessionAliasSink = (owner: string, recipes: readonly SessionPaneAliasRecipe[]) => void
@@ -79,6 +80,7 @@ export class SessionPublicationResources {
     if (!partition || !this.publishAliases) {
       return
     }
+    const reader = new SessionUnitReader(root, partition.index)
     const layout = root.terminalLayoutsByTabId?.[tabId]
     const previous = partition.aliases.get(tabId) ?? []
     const entries = new Map<string, SessionPaneAliasRecipe>()
@@ -91,8 +93,8 @@ export class SessionPublicationResources {
         ) {
           continue
         }
-        const owner = partition.index.terminalOwner(tabId)
-        const tab = owner && root.tabsByWorktree[owner]?.find((row) => row.id === tabId)
+        const owner = reader.terminalOwner(tabId, 'last')
+        const tab = owner && partition.index.terminalRow(owner, tabId)
         const ptyId = layout.ptyIdsByLeafId?.[pane.leafId] ?? (tab && tab.ptyId) ?? undefined
         entries.set(recipe.legacyPaneKey, { ...recipe, ptyId })
       }
