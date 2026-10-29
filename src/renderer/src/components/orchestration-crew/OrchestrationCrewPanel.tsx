@@ -196,7 +196,7 @@ export function CrewPanelContent({
                         disabled={!canMention || !rows.some(runningWorker)}
                         onClick={() => mention(rows.filter(runningWorker))}
                       >
-                        Mention all
+                        {translate('components.orchestrationCrew.mentionAll', 'Mention all')}
                       </Button>
                     ) : null}
                   </div>
@@ -351,7 +351,7 @@ function CrewRowView({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onCloseAutoFocus={(event) => event.preventDefault()}>
                 <DropdownMenuItem disabled={!canMention || !row.sendAddress} onSelect={mention}>
-                  Mention in message
+                  {translate('components.orchestrationCrew.mentionInMessage', 'Mention in message')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={open}>
                   {translate('components.orchestrationCrew.openChat', 'Open its chat')}

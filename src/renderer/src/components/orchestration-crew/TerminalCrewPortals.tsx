@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
+import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import type { ManagedPane } from '@/lib/pane-manager/pane-manager'
 import type { TerminalPaneController } from '../terminal-pane/use-terminal-pane-controller'
@@ -58,7 +59,12 @@ function TerminalCrewPortal({
         )
         if (manager) {
           const rejected = () =>
-            toast.error('The terminal did not accept the agent reference. Try again.')
+            toast.error(
+              translate(
+                'components.orchestrationCrew.mentionRejected',
+                'The terminal did not accept the agent reference. Try again.'
+              )
+            )
           void insertTerminalCrewMention(
             manager,
             paneTransportsRef.current,

@@ -1,9 +1,5 @@
 // @vitest-environment happy-dom
-import { claudeDispatchMessageContent } from '../../../../main/claude/claude-structured-dispatch-content'
-import { turnInputFor } from '../../../../main/codex/codex-structured-message-options'
-import type { CodexTurnHost } from '../../../../main/codex/codex-structured-turn-start'
-import { createCodexDispatchEchoes } from '../../../../main/codex/codex-structured-dispatch-echo'
-import { preparePiRpcPrompt } from '../../../../main/pi/rpc-prompt'
+import { agentReferenceDeliveryText } from '../../../../shared/orchestration-agent-reference.test-fixture'
 import type { NativeChatMessage } from '../../../../shared/native-chat-types'
 import {
   pendingSendsAsMessages,
@@ -93,8 +89,12 @@ function editor(scope: string, text = 'Hello ') {
 function transport(): NativeChatStructuredComposerTransport {
   return {
     capturePresentation: () => () => true,
-    send: vi.fn(() => 'queued'),
-    dispatchCommand: vi.fn(async () => ({ accepted: true, error: null })),
+    send: vi.fn<NativeChatStructuredComposerTransport['send']>(() => 'queued'),
+    dispatchCommand: vi.fn<NativeChatStructuredComposerTransport['dispatchCommand']>(async () => ({
+      handled: false,
+      accepted: false,
+      error: null
+    })),
     optionsSurface: {
       getSnapshot: () => [],
       setOption: vi.fn(),
@@ -190,6 +190,7 @@ it('serializes before structured queue admission, PTY writes and goal submission
   await act(async () => {
     await structuredHook.result.current(snapshot.text)
   })
+  expect(wire).toBe(agentReferenceDeliveryText)
   expect(structured.send).toHaveBeenCalledWith(wire, [])
   expect(wire.match(/\[Orca agent/g)).toHaveLength(2)
   const queued = vi.mocked(structured.send).mock.calls[0][0]
@@ -265,19 +266,6 @@ it('serializes before structured queue admission, PTY writes and goal submission
     wire
   ])
   expect(optimistic).toHaveBeenCalledExactlyOnceWith(wire, [])
-  if (!entry) {
-    throw new Error('send slot not admitted')
-  }
-  expect(await claudeDispatchMessageContent(entry.body)).toEqual([{ type: 'text', text: wire }])
-  const codexHost: CodexTurnHost = {
-    connection: { request: vi.fn<CodexTurnHost['connection']['request']>() },
-    threadId: 'captured-thread',
-    options: new Map(),
-    dispatchEchoes: createCodexDispatchEchoes(),
-    turnOpenWaits: { wait: vi.fn<CodexTurnHost['turnOpenWaits']['wait']>() }
-  }
-  expect(turnInputFor(codexHost, entry.body)).toEqual([{ type: 'text', text: wire }])
-  expect((await preparePiRpcPrompt(entry.body)).message).toBe(wire)
   const goalTransport = transport()
   goalTransport.threadGoal = { setObjective: vi.fn(async () => true) }
   const goalHook = renderHook(() =>

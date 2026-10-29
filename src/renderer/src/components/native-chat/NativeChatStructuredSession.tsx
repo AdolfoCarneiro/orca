@@ -291,11 +291,7 @@ export function NativeChatStructuredSession(
         <NativeChatCrewPanel
           {...props}
           composerRef={composerRef}
-          canMention={
-            composerShown &&
-            stopControls.composer.canSend !== false &&
-            install.unavailableHint === undefined
-          }
+          canMention={composerShown && install.unavailableHint === undefined}
         />
         <NativeChatContextClearFade clearing={controller.contextClear.clearing}>
           {find.isOpen ? <NativeChatFindBar find={find} isVisible={props.isVisible} /> : null}
