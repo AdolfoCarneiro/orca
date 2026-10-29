@@ -104,6 +104,7 @@ const COMPUTER_USE_MARKDOWN = [
   "- An action's verification is separate from whether its provider call succeeded:",
   "  - `verified` means the changed value was read back.",
   "  - `unverified (accessibility action unasserted)` means the accessibility call succeeded but no post-state assertion was made.",
+  "  - `unverified (suspected noop)` means the accessibility call succeeded but the window's tree and the app's windows were unchanged about a second later. Web and Electron controls often ignore it. Do not repeat the same element click; if the effect you expect would show in the window, retry once with `click --x --y` at the control from a fresh screenshot. If the effect lives elsewhere (clipboard, another app), check there first.",
   "  - `unverified (synthetic input)` means input was fired into the void and is unverifiable.",
   "  - Missing verification metadata is unverified, including responses from older runtimes.",
   "  - Never report an unverified action as success. If it could have sent, submitted, bought, or deleted something, say the effect is unproven.",

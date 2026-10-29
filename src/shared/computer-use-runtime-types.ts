@@ -113,6 +113,8 @@ export type ComputerActionVerification =
         | 'readback_unsupported'
         | 'window_changed'
         | 'value_mismatch'
+        // The accessibility call succeeded but the window and the app's windows looked the same about a second later.
+        | 'suspected_noop'
       expected?: string | null
       actualPreview?: string | null
     }

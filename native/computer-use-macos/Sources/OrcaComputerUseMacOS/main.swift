@@ -159,6 +159,12 @@ struct Snapshot {
     let elements: [Int: ElementRecord]
     let truncated: Bool
     let maxDepthReached: Bool
+    /// On-screen windows of the app (menus and sheets included), so a new or closed window counts as a change.
+    let appWindowIds: [CGWindowID]
+
+    func showsSameState(as other: Snapshot) -> Bool {
+        treeText == other.treeText && windowBounds == other.windowBounds && appWindowIds == other.appWindowIds
+    }
 
     func withoutScreenshotPayload() -> Snapshot {
         Snapshot(
@@ -176,7 +182,8 @@ struct Snapshot {
             screenshotEngine: nil,
             elements: elements,
             truncated: truncated,
-            maxDepthReached: maxDepthReached
+            maxDepthReached: maxDepthReached,
+            appWindowIds: appWindowIds
         )
     }
 }
@@ -251,8 +258,21 @@ final class Provider {
         var action = try runAction()
         // Why: only --restore-window activates the app or posts to the HID tap; every other route leaves the user's desktop alone.
         action["delivery"] = isForegroundRequest(params) ? "foreground" : "background"
+        // Why: the action's currentSnapshot just cached this target's tree from before the action.
+        let before = action["path"] as? String == "accessibility" && action["verification"] == nil
+            ? try? cachedSnapshot(params: params)
+            : nil
         do {
-            return try renderActionResult(action: action, snapshot: observe(params: params))
+            let after = try observe(params: params)
+            guard let before, after.showsSameState(as: before) else {
+                return renderActionResult(action: action, snapshot: after)
+            }
+            if let changed = observeLateChange(before: before, after: after, params: params) {
+                return renderActionResult(action: action, snapshot: changed)
+            }
+            // Why: an AX call can succeed and do nothing, as AXPress does on many web controls (#31758).
+            action["verification"] = unverifiedAction(reason: "suspected_noop")
+            return renderActionResult(action: action, snapshot: after)
         } catch let error as ProviderError where (error.code == "window_not_found" || error.code == "window_stale") && hasRequestedWindowSelector(params) {
             var fallbackParams = params
             fallbackParams.removeValue(forKey: "windowId")
@@ -262,6 +282,23 @@ final class Provider {
             }
             return try renderActionResult(action: action, snapshot: observe(params: fallbackParams))
         }
+    }
+
+    /// Re-reads the target for about a second, since apps often apply an action on a later run-loop turn.
+    /// Returns the observation to report once something changed, or nil if nothing did.
+    private func observeLateChange(before: Snapshot, after: Snapshot, params: [String: JSONValue]) -> Snapshot? {
+        let settleParams = params.merging(["restoreWindow": .bool(false)]) { _, replacement in replacement }
+        let quietParams = settleParams.merging(["noScreenshot": .bool(true)]) { _, replacement in replacement }
+        let deadline = Date().addingTimeInterval(1)
+        while Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.2)
+            // A failed read means the window changed or closed, which is an effect.
+            guard let polled = try? observe(params: quietParams) else { return after }
+            if !polled.showsSameState(as: before) {
+                return params["noScreenshot"]?.bool == true ? polled : (try? observe(params: settleParams)) ?? polled
+            }
+        }
+        return nil
     }
 
     private func observe(params: [String: JSONValue]) throws -> Snapshot {
@@ -682,7 +719,8 @@ final class Provider {
             screenshotEngine: capture.image?.engine,
             elements: renderer.records,
             truncated: renderer.truncated,
-            maxDepthReached: renderer.maxDepthReached
+            maxDepthReached: renderer.maxDepthReached,
+            appWindowIds: windowCandidates.map(\.windowId).sorted()
         )
     }
 
