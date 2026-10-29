@@ -16,19 +16,29 @@ type MobileDictationTarget =
   | { field: 'live'; handle: string }
   | null
 
-// Terminals share one command field: a selection read in another terminal doesn't place this one's words.
-export function commandFieldAnchorIn(
-  saved: { handle: string | null; anchor: MobileDictationAnchor } | null,
-  handle: string
-): MobileDictationAnchor | null {
-  return saved?.handle === handle ? saved.anchor : null
+// The terminal a dictation starts in. Terminals share one command field: a selection read in another terminal doesn't place this one's words.
+export function dictationRouteContextFor(
+  handle: string | null,
+  liveInputHandles: ReadonlySet<string>,
+  saved: { handle: string | null; anchor: MobileDictationAnchor } | null
+) {
+  return handle
+    ? {
+        handle,
+        liveInputEnabled: liveInputHandles.has(handle),
+        anchor: saved?.handle === handle ? saved.anchor : null
+      }
+    : null
 }
 
 // Where a dictation's words go, read once when it starts: a chat composer, the terminal's command field, or live input.
-export function useMobileDictationDestination(
-  chatComposerScopeKey: string | null | undefined,
+export function useMobileDictationDestination({
+  chatComposerScopeKey,
+  setChatComposerText
+}: {
+  chatComposerScopeKey?: string | null
   setChatComposerText: Dispatch<SetStateAction<string>>
-) {
+}) {
   const chatRef = useRef<MobileNativeChatTextDestination | undefined>(undefined)
   const [target, setTarget] = useState<MobileDictationTarget>(null)
   const captureDestination = useCallback(

@@ -7,7 +7,7 @@ import { useClipboardWriter } from '../platform/clipboard'
 import { routeDictationTranscript } from '../terminal/terminal-live-dictation-routing'
 import { insertDictationText } from '../dictation/mobile-dictation-text-insertion'
 import {
-  commandFieldAnchorIn,
+  dictationRouteContextFor,
   useMobileDictationDestination,
   useMobileDictationPreviews
 } from './use-mobile-dictation-destination'
@@ -133,10 +133,7 @@ export function useMobileSessionNativeChatDictation(
     )
   }
 
-  const destination = useMobileDictationDestination(
-    nativeChatController.chatComposerScopeKey,
-    nativeChatController.setChatComposerText
-  )
+  const destination = useMobileDictationDestination(nativeChatController)
   // Starting needs the host, but a reconnect must not end a recording: the host keeps the session through it.
   const dictationCanStart = showNativeChat ? connState === 'connected' : canSend
   const dictation = useMobileDictation({
@@ -199,13 +196,11 @@ export function useMobileSessionNativeChatDictation(
       setShowDictationSetup(true)
       return
     }
-    const routeContext = activeHandle
-      ? {
-          handle: activeHandle,
-          liveInputEnabled: liveInputTerminalHandles.has(activeHandle),
-          anchor: commandFieldAnchorIn(commandFieldAnchorRef.current, activeHandle)
-        }
-      : null
+    const routeContext = dictationRouteContextFor(
+      activeHandle,
+      liveInputTerminalHandles,
+      commandFieldAnchorRef.current
+    )
     dictationRouteContextRef.current = routeContext
     destination.captureDestination(showNativeChat, routeContext)
     void dictation.start().catch((err) => {
