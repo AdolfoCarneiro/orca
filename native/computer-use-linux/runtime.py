@@ -197,19 +197,30 @@ def restore_window(app, window=None):
     )
 
 
+def wait_window_focused(window):
+    deadline = time.monotonic() + 0.5
+    while time.monotonic() < deadline:
+        if has_state(window, Atspi.StateType.ACTIVE):
+            return True
+        time.sleep(0.05)
+    return has_state(window, Atspi.StateType.ACTIVE)
+
+
 def require_keyboard_focus(window, operation):
     if has_state(window, Atspi.StateType.ACTIVE):
         return
     if operation.get("restoreWindow"):
-        deadline = time.monotonic() + 0.5
-        while time.monotonic() < deadline:
-            if has_state(window, Atspi.StateType.ACTIVE):
-                return
-            time.sleep(0.05)
-        if has_state(window, Atspi.StateType.ACTIVE):
+        if wait_window_focused(window):
             return
         raise RuntimeError("window_not_focused: keyboard input requires the target window to be focused; restoreWindow was requested but the target window is still not focused; bring it forward manually or check desktop permissions")
     raise RuntimeError("window_not_focused: keyboard input requires the target window to be focused; retry with --restore-window")
+
+
+def restore_pointer_window(app, window):
+    restore_window(app, window)
+    if not wait_window_focused(window):
+        raise RuntimeError("window_not_focused: window restoration did not focus the target window; no pointer input was sent")
+    return screen_rect(window)
 
 
 def app_matches(app, query):
@@ -1137,7 +1148,7 @@ def run_operation(operation):
         handled = not has_modifiers and operation.get("mouse_button", "left") == "left" and click_count <= 1 and perform_action(node, preferred)
         if not handled:
             # Why: pointer clicks are synthetic global input; AT-SPI actions need no focus.
-            restore_window(app, window)
+            bounds = restore_pointer_window(app, window)
             click_at(
                 *screen_point(bounds, saved, operation.get("x"), operation.get("y"), node),
                 operation.get("mouse_button", "left"),
@@ -1159,13 +1170,13 @@ def run_operation(operation):
     elif tool == "scroll":
         # Why: pointer wheel events should land in the requested app window even
         # when another desktop window is currently foregrounded.
-        restore_window(app, window)
+        bounds = restore_pointer_window(app, window)
         scroll_at(*screen_point(bounds, saved, operation.get("x"), operation.get("y"), node), operation.get("direction"), operation.get("pages"))
         action = {"path": "synthetic", "actionName": "scroll", "fallbackReason": None}
     elif tool == "drag":
         # Why: pointer drags are synthetic global input, so activate the target
         # window before using cached coordinates from its accessibility tree.
-        restore_window(app, window)
+        bounds = restore_pointer_window(app, window)
         drag_between(
             screen_point(bounds, operation.get("fromElement"), operation.get("from_x"), operation.get("from_y"), from_node),
             screen_point(bounds, operation.get("toElement"), operation.get("to_x"), operation.get("to_y"), to_node),

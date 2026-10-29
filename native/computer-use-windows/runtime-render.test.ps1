@@ -240,21 +240,8 @@ try {
         if ($keys -cne $case[1]) { throw "hotkey $($case[0]) expected '$($case[1])', received '$keys'" }
     }
 
-    $calls = New-Object System.Collections.Generic.List[string]
-    function Find-OrcaProcess { [pscustomobject]@{ MainWindowHandle = 0 } }
-    function Get-OrcaRootElement { $null }
-    function Get-OrcaWindowFrame { @{ x = 0; y = 0 } }
-    function Find-OrcaElement($RootElement, $Record) { $Record }
-    function Invoke-OrcaPrimaryAction($Element) { $true }
-    function Restore-OrcaWindow { [void]$calls.Add("restore") }
-    function Send-OrcaMouseClick { [void]$calls.Add("pointer") }
-    function New-OrcaSnapshot { [pscustomobject]@{} }
-    $patternClick = Invoke-OrcaOperation ([pscustomobject]@{ tool = "click"; app = "Fixture"; element = [pscustomobject]@{ index = 1 } })
-    Assert-TestEqual $patternClick.action.path "accessibility" "pattern click path"
-    Assert-TestEqual ($calls -join "|") "" "pattern click leaves the window in the background"
-    $pointerClick = Invoke-OrcaOperation ([pscustomobject]@{ tool = "click"; app = "Fixture"; x = 5; y = 5 })
-    Assert-TestEqual $pointerClick.action.path "synthetic" "pointer click path"
-    Assert-TestEqual ($calls -join "|") "restore|pointer" "pointer click restores the window first"
+    & (Join-Path $PSHOME "powershell.exe") -NoLogo -NoProfile -File (Join-Path $PSScriptRoot "runtime-pointer.test.ps1")
+    if ($LASTEXITCODE -ne 0) { throw "Windows pointer tests failed" }
 
     Write-Output "windows-snapshot-render-tests-ok"
 } finally {

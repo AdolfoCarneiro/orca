@@ -295,13 +295,55 @@ class RuntimeRenderTest(unittest.TestCase):
                 FakeAccessible("frame", "Editor", children=[button, label])
             ) as fixture:
                 calls = []
-                fixture.restore = lambda: calls.append("restore")
+                def restore():
+                    calls.append("restore")
+                    fixture.root.get_state_set = lambda: FakeStateSet(FakeStateType.ACTIVE)
+                fixture.restore = restore
                 snapshot = runtime.make_snapshot("Fixture", False)
                 element = next(item for item in snapshot["elements"] if item["name"] == target.name)
                 with patch.object(runtime, "click_at", lambda *_: calls.append("pointer")):
                     result = runtime.run_operation({"tool": "click", "app": "Fixture", "element": element, "noScreenshot": True})
                 self.assertEqual(result["action"]["path"], expected_path)
                 self.assertEqual(calls, expected_calls)
+
+    def test_pointer_input_waits_for_activation_and_uses_restored_geometry(self):
+        operations = (
+            {"tool": "click", "x": 5, "y": 6},
+            {"tool": "scroll", "x": 5, "y": 6, "direction": "down", "pages": 1},
+            {"tool": "drag", "from_x": 5, "from_y": 6, "to_x": 25, "to_y": 26},
+        )
+        for operation in operations:
+            for activates in (False, True):
+                with self.subTest(tool=operation["tool"], activates=activates), SnapshotFixture(
+                    FakeAccessible("frame", "Editor")
+                ) as fixture:
+                    restored = []
+                    pointer_calls = []
+                    fixture.root.get_state_set = lambda: FakeStateSet(
+                        *([FakeStateType.ACTIVE] if activates and restored and fixture.clock >= 0.1 else [])
+                    )
+                    def restore():
+                        restored.append(True)
+                        fixture.bounds[fixture.root] = runtime.Rect(500, 200, 300, 400)
+                    fixture.restore = restore
+                    def sleep(seconds):
+                        fixture.clock += seconds
+                    with patch.object(runtime.time, "sleep", sleep), \
+                         patch.object(runtime, "click_at", lambda *args: pointer_calls.append(args[:2])), \
+                         patch.object(runtime, "scroll_at", lambda *args: pointer_calls.append(args[:2])), \
+                         patch.object(runtime, "drag_between", lambda start, end: pointer_calls.extend((start, end))):
+                        request = {**operation, "app": "Fixture", "noScreenshot": True, "restoreWindow": False}
+                        if activates:
+                            result = runtime.run_operation(request)
+                            self.assertTrue(result["ok"])
+                            self.assertEqual(pointer_calls, [(505, 206), (525, 226)] if operation["tool"] == "drag" else [(505, 206)])
+                            self.assertGreaterEqual(fixture.clock, 0.1)
+                        else:
+                            with self.assertRaisesRegex(RuntimeError, "window_not_focused"):
+                                runtime.run_operation(request)
+                            self.assertEqual(pointer_calls, [])
+                            self.assertGreaterEqual(fixture.clock, 0.5)
+                    self.assertTrue(restored)
 
     def test_text_entry_inserts_into_the_focused_field_of_a_background_window(self):
         for tool in ("type_text", "paste_text"):
