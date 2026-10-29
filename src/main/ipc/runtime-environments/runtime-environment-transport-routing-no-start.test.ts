@@ -1,3 +1,4 @@
+import type { subscribeRemoteRuntimeRequest } from '../../../shared/remote-runtime/remote-runtime-client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OrcadDeploymentLink } from '../../../shared/runtime-environments'
 
@@ -133,11 +134,7 @@ it('captures the selected prepared route before a synchronous authenticated firs
   const onSource = vi.fn()
   const onEvent = vi.fn()
   mocks.subscribe.mockImplementationOnce(
-    (
-      ...parameters: Parameters<
-        typeof import('../../../shared/remote-runtime/remote-runtime-client').subscribeRemoteRuntimeRequest
-      >
-    ) => {
+    (...parameters: Parameters<typeof subscribeRemoteRuntimeRequest>) => {
       expect(onSource).toHaveBeenCalledExactlyOnceWith(
         selected,
         getPreferredPairedRuntimeConnection(selected)

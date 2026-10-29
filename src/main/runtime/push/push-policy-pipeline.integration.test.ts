@@ -43,13 +43,13 @@ async function pipeline() {
       setMobilePushOrigin: controller.setPushOrigin.bind(controller),
       setMobilePushRegistrar: controller.setPushRegistrar.bind(controller),
       onNotificationDispatched: controller.onDispatched.bind(controller)
-    } as never,
+    },
     runtimeRpc: {
       getE2EEKeypair: () => createPushHostKeypair(),
       getDeviceRegistry: () => registry,
       getPushUnregisterOutbox: () => new PushUnregisterOutbox(path),
       setOnPushUnregisterQueued: () => {}
-    } as never,
+    },
     gatewayUrl: 'https://push.onorca.dev',
     client: client as never
   })!

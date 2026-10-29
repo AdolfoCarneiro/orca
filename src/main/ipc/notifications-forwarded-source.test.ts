@@ -1,3 +1,4 @@
+import { findForwardedPushSource } from './runtime-environments/runtime-environment-subscription-source'
 import { EventEmitter } from 'node:events'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -25,12 +26,11 @@ import { deriveRelayHostId } from '../runtime/mobile-cloud-relay/relay-http-clie
 import { subscribeRuntimeEnvironmentFromPreload } from '../../preload/runtime-environment-subscriptions'
 import { subscribeRuntimeRpc } from '../../renderer/src/runtime/runtime-rpc-subscribe'
 import { registerNotificationHandlers } from './notifications'
-import {
-  findForwardedPushSource,
-  registerRuntimeEnvironmentSubscriptionHandlers,
-  type PendingRuntimeSubscription,
-  type RetainedRemoteRuntimeSubscription
-} from './runtime-environments/runtime-environment-subscription-handlers'
+import { registerRuntimeEnvironmentSubscriptionHandlers } from './runtime-environments/runtime-environment-subscription-handlers'
+import type {
+  PendingRuntimeSubscription,
+  RetainedRemoteRuntimeSubscription
+} from './runtime-environments/runtime-environment-subscription-source'
 function required<T>(get: () => T | undefined): T {
   const value = get()
   if (value === undefined) {
@@ -303,7 +303,7 @@ it.each([
   const context = { subscriptionId: 'pending', requestId: 'R1' }
   if (kind === 'close') {
     active.onEvent({ type: 'close' })
-    callbacks.onClose()
+    active.onClose()
   }
   if (kind === 'reload') {
     sender.emit('did-navigate')

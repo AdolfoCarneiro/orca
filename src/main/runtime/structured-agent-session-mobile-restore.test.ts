@@ -46,7 +46,7 @@ function wire(host: StructuredAgentSessionHost, controller: RuntimeMobileNotific
     id: 'host-attention-delivery',
     includePrompts: true,
     emit: (event) => {
-      if (event.type !== 'end') {
+      if (event.type === 'completion' || event.type === 'prompt') {
         delivery.deliver(event, host.readStatusSummary(SESSION))
       }
     },

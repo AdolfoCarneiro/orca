@@ -25,6 +25,7 @@ import {
 } from './push-registration'
 import { addPushTokenListener, getDevicePushToken } from './push-token'
 import type { MobilePushToken } from './push-token'
+import { isRpcResponse } from '../transport/rpc-response-shape'
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { removeHost } from '../transport/host-store'
@@ -63,8 +64,12 @@ function deferred<T>() {
 function client(
   register: () => Promise<unknown> = async () => ({ ok: true, result: { registered: true } })
 ) {
+  if (!rootStarted) {
+    rootStarted = true
+    startPushTokenSync()
+  }
   return {
-    sendRequest: vi.fn(async (method: string) => {
+    sendRequest: vi.fn(async (method: string, _params?: unknown, _options?: unknown) => {
       if (method === 'status.get') {
         return { ok: true, result: { capabilities: [NOTIFICATIONS_REMOTE_PUSH_CAPABILITY] } }
       }
@@ -75,7 +80,9 @@ function client(
     })
   }
 }
+let rootStarted = false
 beforeEach(() => {
+  rootStarted = false
   vi.clearAllMocks()
   resetPushRegistrationForTests()
   storage.clear()
@@ -85,7 +92,10 @@ beforeEach(() => {
   vi.mocked(removeHost).mockReset()
 })
 
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  resetPushRegistrationForTests()
+  vi.useRealTimers()
+})
 
 it('does not resurrect a removed host when its registration response arrives late', async () => {
   const pending = deferred<unknown>()
@@ -276,4 +286,74 @@ it('still commits removal when unregister and cleanup storage fail', async () =>
   await removeHostAndCloseClient('host', close)
   expect(removeHost).toHaveBeenCalledWith('host')
   expect(close).toHaveBeenCalledWith('host')
+})
+
+it('shares a timed-out native acquisition, keeps listener T2 over late T1 and retires callbacks at restart', async () => {
+  vi.useFakeTimers()
+  const pending = deferred<MobilePushToken | null>()
+  vi.mocked(getDevicePushToken).mockReturnValueOnce(pending.promise)
+  const first = client()
+  const second = client()
+  attachPushRegistration('first', {
+    sendRequest: async (method, params, options) => {
+      const result = await first.sendRequest(method, params, options)
+      if (!result || typeof result !== 'object') {
+        throw new Error('Missing actual fixture reply')
+      }
+      const response = { ...result, id: 'native-race' }
+      if (!isRpcResponse(response)) {
+        throw new Error('Invalid fixture RPC reply')
+      }
+      return response
+    }
+  })
+  attachPushRegistration('second', {
+    sendRequest: async (method, params, options) => {
+      const result = await second.sendRequest(method, params, options)
+      if (!result || typeof result !== 'object') {
+        throw new Error('Missing actual fixture reply')
+      }
+      const response = { ...result, id: 'native-race' }
+      if (!isRpcResponse(response)) {
+        throw new Error('Invalid fixture RPC reply')
+      }
+      return response
+    }
+  })
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(getDevicePushToken).toHaveBeenCalledOnce()
+  expect(
+    first.sendRequest.mock.calls.some(([method]) => method === 'notifications.registerPush')
+  ).toBe(false)
+  const listener = vi.mocked(addPushTokenListener).mock.calls.at(-1)?.[0]
+  if (!listener) {
+    throw new Error('Missing actual native listener')
+  }
+  const next = { ...token, token: 'b'.repeat(64) }
+  const consentWrite = deferred<void>()
+  vi.mocked(AsyncStorage.setItem).mockImplementationOnce(async (key, value) => {
+    await consentWrite.promise
+    storage.set(key, value)
+  })
+  const renewedConsent = setRemotePushEnabled(true)
+  listener(next)
+  consentWrite.resolve()
+  await renewedConsent
+  await vi.advanceTimersByTimeAsync(0)
+  pending.resolve(token)
+  listener(next)
+  await vi.advanceTimersByTimeAsync(0)
+  for (const connection of [first, second]) {
+    const registrations = connection.sendRequest.mock.calls.filter(
+      ([method]) => method === 'notifications.registerPush'
+    )
+    expect(registrations).toHaveLength(1)
+    expect(registrations[0]?.[1]).toMatchObject({ token: next.token })
+  }
+  resetPushRegistrationForTests()
+  const before = first.sendRequest.mock.calls.length
+  startPushTokenSync()
+  listener(token)
+  await vi.advanceTimersByTimeAsync(0)
+  expect(first.sendRequest).toHaveBeenCalledTimes(before)
 })

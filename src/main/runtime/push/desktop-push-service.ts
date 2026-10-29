@@ -8,8 +8,7 @@ import type {
 } from '../../../shared/mobile-push-contract'
 import { runKeyedSerializedOperation } from '../../cli/keyed-promise-queue'
 import type { DeviceRegistry } from '../device-registry'
-import type { OrcaRuntimeService } from '../orca-runtime'
-import type { OrcaRuntimeRpcServer } from '../runtime-rpc'
+import type { DesktopPushRuntime, DesktopPushRuntimeRpc } from './desktop-push-service-ports'
 import { PushDispatcher } from './push-dispatcher'
 import { PushGatewayClient } from './push-gateway-client'
 import { PushRegisterThrottle } from './push-register-throttle'
@@ -21,8 +20,8 @@ const OUTBOX_RETRY_MAX_MS = 10 * 60_000
 type RegisterStorageFailure = 'not_mobile' | 'registration_storage_failed'
 
 type DesktopPushServiceOptions = {
-  runtime: OrcaRuntimeService
-  runtimeRpc: OrcaRuntimeRpcServer
+  runtime: DesktopPushRuntime
+  runtimeRpc: DesktopPushRuntimeRpc
   gatewayUrl: string
   /** Inject a gateway client for tests. */
   client?: PushGatewayClient
@@ -33,8 +32,8 @@ type DesktopPushServiceOptions = {
 }
 
 export class DesktopPushService {
-  private readonly runtime: OrcaRuntimeService
-  private readonly runtimeRpc: OrcaRuntimeRpcServer
+  private readonly runtime: DesktopPushServiceOptions['runtime']
+  private readonly runtimeRpc: DesktopPushServiceOptions['runtimeRpc']
   private readonly registry: DeviceRegistry
   private readonly outbox: PushUnregisterOutbox
   private readonly client: PushGatewayClient
