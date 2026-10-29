@@ -240,6 +240,62 @@ export function registerPtyConnectionVisibilityResumeSizeTests(): void {
         expect(transport.resize).toHaveBeenCalledWith(65, 63, { claim: true })
       })
 
+      it('defers settled grid drift repair on streaming output until a geometry signal', async () => {
+        const { connectPanePty } = await import('./pty-connection')
+        const transport = createMockTransport('pty-pane-2')
+        const capturedDataCallback: { current: ((data: string) => void) | null } = { current: null }
+        transport.connect.mockImplementation(
+          async ({ callbacks }: { callbacks: ConnectCallbacks }) => {
+            capturedDataCallback.current = callbacks.onData ?? null
+            return 'pty-pane-2'
+          }
+        )
+        transportFactoryQueue.push(transport)
+        const manager = createManager(2)
+        const deps = createDeps({
+          restoredLeafId: LEAF_2,
+          paneTransportsRef: { current: new Map([[1, createMockTransport('pty-pane-1')]]) }
+        })
+        const pane = createPane(2)
+        let proposedGrid = { cols: 62, rows: 63 }
+        pane.terminal.cols = 62
+        pane.terminal.rows = 63
+        const fit = vi.fn(() => {
+          pane.terminal.cols = proposedGrid.cols
+          pane.terminal.rows = proposedGrid.rows
+        })
+        pane.fitAddon = {
+          ...pane.fitAddon,
+          fit,
+          proposeDimensions: vi.fn(() => proposedGrid)
+        } as never
+        pane.terminal.write.mockImplementation((_data, callback) => callback?.())
+        vi.mocked(window.api.pty.getSize).mockResolvedValue({ cols: 62, rows: 63 })
+        const waitPastProbeInterval = (): Promise<void> =>
+          new Promise((resolve) => setTimeout(resolve, 300))
+
+        const binding = connectPanePty(...mockPanePtyArgs(pane, manager, deps))
+        await flushAsyncTicks()
+        // Real frames are async; the shared sync rAF mock would leave the probe's frame handle stuck.
+        globalThis.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) =>
+          Number(setTimeout(() => callback(0), 0))
+        )
+        capturedDataCallback.current?.('frame 1')
+        await waitPastProbeInterval()
+        proposedGrid = { cols: 65, rows: 63 }
+        fit.mockClear()
+
+        capturedDataCallback.current?.('frame 2')
+        await waitPastProbeInterval()
+        expect(fit).not.toHaveBeenCalled()
+
+        binding.noteVisibilityResume()
+        capturedDataCallback.current?.('frame 3')
+        await waitPastProbeInterval()
+        expect(fit).toHaveBeenCalled()
+        expect(transport.resize).toHaveBeenCalledWith(65, 63, { claim: true })
+      })
+
       it('skips foreground grid drift repair while mobile owns the PTY without a fit override', async () => {
         const { setDriverForPty } = await import('@/lib/pane-manager/mobile-driver-state')
         const { connectPanePty } = await import('./pty-connection')

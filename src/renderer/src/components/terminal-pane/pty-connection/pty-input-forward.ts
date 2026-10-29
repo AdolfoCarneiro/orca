@@ -19,7 +19,10 @@ import {
   type PanePtyResizeHoldFlushDetail
 } from '@/lib/pane-manager/pane-pty-resize-hold'
 
-import { FOREGROUND_GRID_DRIFT_CHECK_MIN_MS } from './foreground-output-budgets'
+import {
+  FOREGROUND_GRID_DRIFT_CHECK_MIN_MS,
+  FOREGROUND_GRID_DRIFT_SETTLED_RECHECK_MS
+} from './foreground-output-budgets'
 import { TERMINAL_FOCUS_IN_SEQUENCE, TERMINAL_FOCUS_OUT_SEQUENCE } from './foreground-output-scan'
 import { isCodexPaneStale } from './codex-pane-stale'
 import { installTerminalSelectionFitGuard } from '../terminal-selection-fit-guard'
@@ -214,6 +217,7 @@ export function installPtyInputForward(session: ConnectPanePtySession): void {
   )
 
   session.onResizeDisposable = session.pane.terminal.onResize(({ cols, rows }) => {
+    session.foregroundGridDriftProbeSettled = false
     if (session.suppressStructuralReplayPtyResize || session.suppressViewportClaimTerminalResize) {
       return
     }
@@ -276,6 +280,8 @@ export function installPtyInputForward(session: ConnectPanePtySession): void {
   }
   session.pendingForegroundGridDriftCheckRaf = null
   session.lastForegroundGridDriftCheckAt = Number.NEGATIVE_INFINITY
+  // Why: proposeDimensions() forces style/layout; after a matching probe, wait for a geometry signal or the backstop.
+  session.foregroundGridDriftProbeSettled = false
   session.scheduleForegroundGridDriftCheck = (force = false): void => {
     if (
       session.disposed ||
@@ -287,10 +293,10 @@ export function installPtyInputForward(session: ConnectPanePtySession): void {
       return
     }
     const now = performance.now()
-    if (
-      !force &&
-      now - session.lastForegroundGridDriftCheckAt < FOREGROUND_GRID_DRIFT_CHECK_MIN_MS
-    ) {
+    const minIntervalMs = session.foregroundGridDriftProbeSettled
+      ? FOREGROUND_GRID_DRIFT_SETTLED_RECHECK_MS
+      : FOREGROUND_GRID_DRIFT_CHECK_MIN_MS
+    if (!force && now - session.lastForegroundGridDriftCheckAt < minIntervalMs) {
       return
     }
     session.lastForegroundGridDriftCheckAt = now
@@ -300,9 +306,13 @@ export function installPtyInputForward(session: ConnectPanePtySession): void {
         session.disposed ||
         !session.deps.isVisibleRef.current ||
         session.shouldSuppressDesktopPtyResize() ||
-        session.terminalSelectionFitGuard?.isActive() ||
-        !session.terminalGridDriftedFromFit()
+        session.terminalSelectionFitGuard?.isActive()
       ) {
+        return
+      }
+      const drifted = session.terminalGridDriftedFromFit()
+      session.foregroundGridDriftProbeSettled = !drifted
+      if (!drifted) {
         return
       }
       requestStablePaneFit(session.pane as ManagedPaneInternal, () =>
