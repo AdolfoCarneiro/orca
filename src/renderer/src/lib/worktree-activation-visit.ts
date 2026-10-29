@@ -4,6 +4,7 @@ import type { AppState } from '@/store/types'
 import type { ActiveWorktreeStateTransition } from '@/store/slices/worktree-helpers'
 import { stampWorktreeVisit } from '@/store/slices/worktrees/session/worktree-visit-recency'
 import { appendHistoryEntry } from '@/store/slices/worktree-nav-history'
+import { noteUserWorkspaceSwitch } from './workspace-switch-user-act'
 
 type PreviousActive = { worktreeId: string | null; hostId: ExecutionHostId | null }
 type VisitState = Pick<
@@ -49,6 +50,8 @@ export function markVisited(
   previous: PreviousActive,
   nextHostId?: ExecutionHostId | null
 ): void {
+  // Opening a workspace is the user acting on it: its restores may start a stopped WSL distro.
+  noteUserWorkspaceSwitch(workspaceId)
   for (const stamp of visitStampsFor(workspaceId, previous, nextHostId)) {
     state.markWorktreeVisited(...stamp)
   }

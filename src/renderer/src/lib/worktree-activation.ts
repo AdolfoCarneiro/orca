@@ -1,3 +1,4 @@
+import { noteUserWorkspaceSwitch } from './workspace-switch-user-act'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import type { PendingSidebarWorktreeReveal } from '@/store/slices/ui'
@@ -209,6 +210,7 @@ export function activateAndRevealWorktree(
   if (state.activeView !== 'terminal') {
     state.setActiveView('terminal')
   }
+  noteUserWorkspaceSwitch(worktreeId)
 
   state.setActiveWorktree(
     worktreeId,

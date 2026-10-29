@@ -50,6 +50,12 @@ export async function buildPtyIpcSpawnOptions(ctx: PtyIpcSpawnState): Promise<vo
     claudeAuth: ctx.claudeAuth
   })
   ctx.spawnOptions = launch.spawnOptions
+  if (args.wslPassiveRestore === true) {
+    ctx.spawnOptions.wslPassiveRestore = true
+  }
+  if (typeof args.wslUserSwitchAt === 'number' && Number.isFinite(args.wslUserSwitchAt)) {
+    ctx.spawnOptions.wslUserSwitchAt = args.wslUserSwitchAt
+  }
   ctx.spawnEnv = launch.env
   ctx.launchCommand = launch.launchCommand
   ctx.provisionalPtySize = seedPtySpawnSize({
