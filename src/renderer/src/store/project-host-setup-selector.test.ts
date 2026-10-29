@@ -83,16 +83,37 @@ describe('project host setup selector', () => {
       const repos = countCollectionReads(
         Array.from({ length: count }, (_, i) => makeRepo(`repo-${i}`))
       )
-      const state = { repos: repos.value, settings: { projectGroupingMode: 'repository' as const } }
+      const state = {
+        repos: repos.value,
+        settings: {
+          projectGroupingMode: 'repository' as const,
+          projectGroupingOverrides: { 'repo:repo-0': 'repository' as const }
+        }
+      }
       const index = getProjectGroupingIndexFromState(state)
       expect(index.groups).toHaveLength(count)
       Object.assign(repos.counters, { map: 0, flatMap: 0, iterator: 0, length: 0 })
       for (let i = 0; i < count; i++) {
         expect(
-          getProjectGroupingIndexFromState({ ...state, settings: { ...state.settings } })
+          getProjectGroupingIndexFromState({
+            ...state,
+            settings: {
+              ...state.settings,
+              projectGroupingOverrides: { ...state.settings.projectGroupingOverrides }
+            }
+          })
         ).toBe(index)
       }
       expect(repos.counters).toEqual({ map: 0, flatMap: 0, iterator: 0, length: 0 })
+      expect(
+        getProjectGroupingIndexFromState({
+          ...state,
+          settings: {
+            ...state.settings,
+            projectGroupingOverrides: { 'repo:repo-0': 'folder' }
+          }
+        })
+      ).not.toBe(index)
       expect(
         getProjectGroupingIndexFromState({ ...state, settings: { projectGroupingMode: 'folder' } })
       ).not.toBe(index)

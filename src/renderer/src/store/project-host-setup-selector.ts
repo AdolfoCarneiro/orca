@@ -1,3 +1,4 @@
+import { shallow } from 'zustand/vanilla/shallow'
 import type { ProjectGroupingSettings } from '../../../shared/project-grouping'
 import type { Project, ProjectHostSetup } from '../../../shared/project-types'
 import {
@@ -60,7 +61,10 @@ export function getProjectHostSetupProjectionFromState(
   return projection
 }
 
-const groupingModels = new WeakMap<ProjectHostSetupProjection, ProjectGroupingModel>()
+const groupingModels = new WeakMap<
+  ProjectHostSetupProjection,
+  { model: ProjectGroupingModel; overrides: ProjectGroupingSettings['projectGroupingOverrides'] }
+>()
 
 export function getProjectGroupingModelFromState(
   state: Parameters<typeof getProjectHostSetupProjectionFromState>[0] & {
@@ -73,17 +77,19 @@ export function getProjectGroupingModelFromState(
   const overrides = state.settings?.projectGroupingOverrides
   if (
     cached &&
-    cached.settings?.projectGroupingMode === mode &&
-    cached.settings?.projectGroupingOverrides === overrides
+    cached.model.settings?.projectGroupingMode === mode &&
+    (cached.overrides === overrides ||
+      shallow(cached.model.settings?.projectGroupingOverrides, overrides))
   ) {
-    return cached
+    cached.overrides = overrides
+    return cached.model
   }
   const model = {
     projects: projection.projects,
     projectHostSetups: projection.setups,
     settings: { projectGroupingMode: mode, projectGroupingOverrides: overrides }
   }
-  groupingModels.set(projection, model)
+  groupingModels.set(projection, { model, overrides })
   return model
 }
 

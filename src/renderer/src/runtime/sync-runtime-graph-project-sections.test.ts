@@ -86,7 +86,14 @@ describe("the sidebar's Project catalog in the window graph", () => {
       expect(syncWindowGraph.mock.calls[0]?.[0].projectSectionCatalog?.setups).toHaveLength(count)
       expect(reads).toBeLessThan(100 * count)
       reads = 0
-      state = { ...state, settings: { ...state.settings, terminalFontSize: 19 } }
+      state = {
+        ...state,
+        settings: {
+          ...state.settings,
+          terminalFontSize: 19,
+          projectGroupingOverrides: { ...state.settings.projectGroupingOverrides }
+        }
+      }
       scheduleRuntimeGraphSync()
       await flushSync()
       expect(reads).toBe(0)

@@ -136,7 +136,15 @@ it.each([100, 1000])(
       act(() => useAppStore.setState({ activeRepoId: 'unrelated' }))
       expect(renders).toBe(settledRenders)
       expect(reads).toBe(0)
-      act(() => useAppStore.setState({ settings: { ...settings, terminalFontSize: 19 } }))
+      act(() =>
+        useAppStore.setState({
+          settings: {
+            ...settings,
+            terminalFontSize: 19,
+            projectGroupingOverrides: { ...settings.projectGroupingOverrides }
+          }
+        })
+      )
       expect(renders).toBe(settledRenders)
       expect(reads).toBe(0)
       act(() => useAppStore.setState({ settings: { ...settings, projectGroupingMode: 'host' } }))
