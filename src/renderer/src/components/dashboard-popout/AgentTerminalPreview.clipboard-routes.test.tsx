@@ -54,6 +54,7 @@ const imeHarness = vi.hoisted(() => ({
 
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
+    options = {}
     cols = 80
     rows = 24
     buffer = { active: { cursorY: 0 } }

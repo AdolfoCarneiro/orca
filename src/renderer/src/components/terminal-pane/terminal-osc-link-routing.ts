@@ -4,6 +4,7 @@ import type { LinkHandlerDeps } from './terminal-link-handlers'
 import { classifyTerminalOscLinkTarget } from '../../../../shared/terminal-osc-link-target'
 import {
   isTerminalLinkActionActivation,
+  isTerminalLinkContextMenuActivation,
   isTerminalLinkDirectActivation
 } from './terminal-link-activation'
 import {
@@ -26,12 +27,16 @@ type TerminalLinkEvent = Pick<MouseEvent, 'metaKey' | 'ctrlKey'> &
       | 'shiftKey'
       | 'preventDefault'
       | 'stopPropagation'
+      | 'type'
     >
   >
 
 function isDesktopOscLinkActivation(event: TerminalLinkEvent | undefined): boolean {
   if (!event) {
     return false
+  }
+  if (isTerminalLinkContextMenuActivation(event)) {
+    return true
   }
   if ('button' in event && event.button !== undefined && event.button !== 0) {
     return false
@@ -94,6 +99,9 @@ export function handleOscLink(
         actionDestination: rawText
       })
     )
+  }
+  if (!cwd) {
+    return false
   }
   const file =
     target?.kind === 'file-url'

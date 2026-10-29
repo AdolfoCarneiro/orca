@@ -25,6 +25,15 @@ import {
 } from '../standalone-terminal/open-standalone-terminal'
 import type { TerminalPreviewDataPayload } from '../../../../shared/terminal-preview'
 import { terminalPreviewApiFor } from './terminal-preview-api'
+import {
+  previewTerminalLinkContext,
+  type PreviewTerminalLinkSource
+} from './preview-terminal-link-context'
+import { LinkActionPopover } from '@/components/link-actions/LinkActionPopover'
+import {
+  closeTerminalLinkActionRequest,
+  type TerminalLinkActionRequest
+} from '@/components/terminal-pane/terminal-link-action-request'
 
 const PREVIEW_SCROLLBACK_ROWS = 24
 // Preview snapshots bound history; pane scrollback would only cost memory.
@@ -41,12 +50,14 @@ function clamp(value: number, min: number, max: number): number {
 export function AgentTerminalPreview({
   ptyId,
   terminalInput = null,
+  linkSource,
   className,
   onRequestClose
 }: {
   ptyId: string
   /** Host-input facts relayed with the card; null routes bytes by client OS. */
   terminalInput?: DashboardCardTerminalInput | null
+  linkSource?: PreviewTerminalLinkSource
   className?: string
   onRequestClose?: () => void
 }): React.JSX.Element {
@@ -60,6 +71,8 @@ export function AgentTerminalPreview({
   const macOptionAsAltRef = useRef(macOptionAsAlt)
   const terminalInputRef = useRef(terminalInput)
   const onRequestCloseRef = useRef(onRequestClose)
+  const linkSourceRef = useRef(linkSource)
+  const [linkRequest, setLinkRequest] = useState<TerminalLinkActionRequest | null>(null)
   const { terminalTheme: composedTheme, terminalMode } = useMemo(() => {
     if (!settings) {
       return { terminalTheme: null, terminalMode: 'dark' as const }
@@ -84,7 +97,8 @@ export function AgentTerminalPreview({
     macOptionAsAltRef.current = macOptionAsAlt
     terminalInputRef.current = terminalInput
     onRequestCloseRef.current = onRequestClose
-  }, [settings, macOptionAsAlt, terminalInput, onRequestClose])
+    linkSourceRef.current = linkSource
+  }, [settings, macOptionAsAlt, terminalInput, onRequestClose, linkSource])
 
   // Font changes retain the replay-driven fit, grid claim and input-owner reset.
   useEffect(() => {
@@ -181,6 +195,10 @@ export function AgentTerminalPreview({
           getSettings: () => settingsRef.current,
           getMacOptionAsAlt: () => macOptionAsAltRef.current,
           getTerminalInput: () => terminalInputRef.current,
+          linkRouting: {
+            getContext: () => previewTerminalLinkContext(linkSourceRef.current),
+            request: setLinkRequest
+          },
           requestClose: () => onRequestCloseRef.current?.()
         })
         if (!standalone) {
@@ -234,6 +252,7 @@ export function AgentTerminalPreview({
       standalone = null
       terminal = null
       terminalRef.current = null
+      setLinkRequest(null)
       void previewApi.unsubscribe(ptyId)
     }
 
@@ -323,6 +342,14 @@ export function AgentTerminalPreview({
       )}
       style={terminalTheme?.background ? { backgroundColor: terminalTheme.background } : undefined}
     >
+      {linkRequest ? (
+        <LinkActionPopover
+          request={linkRequest}
+          onClose={(dismissed) =>
+            setLinkRequest((current) => closeTerminalLinkActionRequest(current, dismissed))
+          }
+        />
+      ) : null}
       {ptyGone ? (
         <div className="absolute inset-0 flex items-center justify-center px-2.5 py-8 text-center text-[11px] text-muted-foreground">
           {terminalPreviewUnavailableMessage({ ptyId })}

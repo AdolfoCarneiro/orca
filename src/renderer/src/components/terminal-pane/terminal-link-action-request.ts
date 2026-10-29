@@ -1,6 +1,7 @@
 import type { TerminalLinkPointerGesture } from './terminal-link-pointer-gesture'
 import {
   isTerminalLinkActionActivation,
+  isTerminalLinkContextMenuActivation,
   isTerminalMiddleClickActivation
 } from './terminal-link-activation'
 import type { TerminalLinkClickBehavior } from './terminal-link-click-behavior'
@@ -49,14 +50,16 @@ export function requestTerminalLinkAction(
   context: TerminalLinkActionContext | null | undefined,
   details: LinkActionDetails
 ): boolean {
+  const contextMenu = event && isTerminalLinkContextMenuActivation(event)
   if (
     !event ||
     !context ||
     !(
+      contextMenu ||
       (isTerminalLinkActionActivation(event) && context.plainClickBehavior !== 'none') ||
       (isTerminalMiddleClickActivation(event) && context.middleClickBehavior !== 'none')
     ) ||
-    !context.pointerGesture.canRequestAction(event)
+    (!contextMenu && !context.pointerGesture.canRequestAction(event))
   ) {
     return false
   }
@@ -66,7 +69,10 @@ export function requestTerminalLinkAction(
   }
   event.preventDefault()
   const middleClick = isTerminalMiddleClickActivation(event)
-  if ((middleClick ? context.middleClickBehavior : context.plainClickBehavior) === 'open') {
+  if (
+    !contextMenu &&
+    (middleClick ? context.middleClickBehavior : context.plainClickBehavior) === 'open'
+  ) {
     context.focusTerminal()
     details.primary?.run()
     return true

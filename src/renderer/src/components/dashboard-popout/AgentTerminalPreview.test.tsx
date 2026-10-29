@@ -1,13 +1,17 @@
 // @vitest-environment happy-dom
 
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, render, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Terminal } from '@xterm/xterm'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import type { TerminalPreviewApi } from '../../../../preload/api/dashboard-api'
 import type { TerminalPreviewConnectResult } from '../../../../shared/terminal-preview'
 
 const terminalHarness = vi.hoisted(() => ({
   instances: [] as {
+    options: Terminal['options']
+    element: HTMLElement
     write: ReturnType<typeof vi.fn>
     writeCallbacks: (() => void)[]
     onDataListener: ((data: string) => void) | null
@@ -46,6 +50,7 @@ const imeHarness = vi.hoisted(() => ({
 
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
+    options: Terminal['options'] = {}
     cols = 80
     rows = 24
     buffer = { active: { cursorY: 0 } }
@@ -79,6 +84,7 @@ vi.mock('@xterm/xterm', () => ({
     scrollToTop = vi.fn()
     scrollToBottom = vi.fn()
     selectAll = vi.fn()
+    clearSelection = vi.fn()
     getSelection = vi.fn(() => this.selectionText)
     hasSelection = vi.fn(() => this.selectionText !== '')
     attachCustomKeyEventHandler = vi.fn((handler: (event: KeyboardEvent) => boolean) => {
@@ -225,6 +231,35 @@ describe('AgentTerminalPreview', () => {
     multiplexerHarness.environments.length = 0
     multiplexerHarness.subscriptions.length = 0
     vi.clearAllMocks()
+  })
+
+  it('opens the shared link actions from a preview right-click and launches the chosen browser', async () => {
+    const openUrl = vi.fn(async () => {})
+    Object.assign(window.api, { shell: { openUrl } })
+    const view = render(
+      <TooltipProvider>
+        <AgentTerminalPreview ptyId="pty-1" />
+      </TooltipProvider>
+    )
+    await waitFor(() => expect(terminalHarness.instances).toHaveLength(1))
+    const terminal = terminalHarness.instances[0]!
+    const url = 'https://github.com/stablyai/orca/pull/34229'
+    act(() => {
+      terminal.options.linkHandler?.hover?.(new MouseEvent('mousemove'), url, {
+        start: { x: 1, y: 1 },
+        end: { x: 2, y: 1 }
+      })
+      terminal.element.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          button: 2,
+          cancelable: true
+        })
+      )
+    })
+    const browser = await view.findByRole('button', { name: /System Browser/ })
+    fireEvent.click(browser)
+    expect(openUrl).toHaveBeenCalledExactlyOnceWith(url)
+    await waitFor(() => expect(view.queryByRole('button', { name: /System Browser/ })).toBeNull())
   })
 
   it('routes signaled user input while a live write parses and drops parser replies', async () => {
