@@ -77,7 +77,6 @@ export function createAgentSessionDeltaCoalescer(
       textLength: number
       observedBytes: number
       truncated: boolean
-      dirty: boolean
       lastAccepted?: number
     }
   >()
@@ -85,14 +84,15 @@ export function createAgentSessionDeltaCoalescer(
   let cancelTimer: (() => void) | null = null
   let timerAt = Number.POSITIVE_INFINITY
   const evictable = new Set<string>()
+  const pendingKeys = new Set<string>()
 
   const flushKey = (key: string): boolean => {
     const stream = streams.get(key)
-    if (!stream?.dirty) {
+    if (!stream || !pendingKeys.has(key)) {
       return true
     }
     if (deps.shouldEmit?.(key, stream.textLength) === false) {
-      stream.dirty = false
+      pendingKeys.delete(key)
       return true
     }
     const text = stream.chunks.join('')
@@ -104,31 +104,37 @@ export function createAgentSessionDeltaCoalescer(
     if (emitted === false) {
       return false
     }
-    stream.dirty = false
+    pendingKeys.delete(key)
     stream.lastAccepted = performance.now()
     return true
   }
 
   const pendingDelay = (): number => {
     let delay = Number.POSITIVE_INFINITY
-    for (const [key, stream] of streams) {
-      if (stream.dirty) {
+    for (const key of pendingKeys) {
+      const stream = streams.get(key)
+      if (stream) {
         const interval = deps.checkpointMs?.(key)
-        delay = Math.min(
-          delay,
+        const remaining =
           interval !== undefined && stream.lastAccepted !== undefined
-            ? stream.lastAccepted + interval > performance.now()
-              ? stream.lastAccepted + interval - performance.now()
-              : windowMs
+            ? stream.lastAccepted + interval - performance.now()
             : windowMs
-        )
+        delay = Math.min(delay, remaining > 0 ? remaining : windowMs)
       }
     }
     return delay
   }
 
+  const cancelIfClean = (): void => {
+    if (pendingKeys.size === 0) {
+      cancelTimer?.()
+      cancelTimer = null
+      timerAt = Number.POSITIVE_INFINITY
+    }
+  }
   const scheduleFlush = (delay = windowMs): void => {
-    if (!Number.isFinite(delay)) {
+    cancelIfClean()
+    if (!pendingKeys.size || !Number.isFinite(delay)) {
       return
     }
     if (cancelTimer && timerAt <= performance.now() + delay) {
@@ -139,12 +145,14 @@ export function createAgentSessionDeltaCoalescer(
     cancelTimer = schedule(() => {
       cancelTimer = null
       timerAt = Number.POSITIVE_INFINITY
-      for (const [key, stream] of streams) {
+      for (const key of pendingKeys) {
+        const stream = streams.get(key)
         const interval = deps.checkpointMs?.(key)
         if (
-          interval === undefined ||
-          stream.lastAccepted === undefined ||
-          performance.now() >= stream.lastAccepted + interval
+          stream &&
+          (interval === undefined ||
+            stream.lastAccepted === undefined ||
+            performance.now() >= stream.lastAccepted + interval)
         ) {
           flushKey(key)
         }
@@ -157,13 +165,24 @@ export function createAgentSessionDeltaCoalescer(
     cancelTimer?.()
     cancelTimer = null
     let emitted = true
-    for (const key of streams.keys()) {
+    for (const key of pendingKeys) {
       if (!include || include(key)) {
         emitted = flushKey(key) && emitted
       }
     }
     scheduleFlush(pendingDelay())
     return emitted
+  }
+
+  const snapshot = (key: string): AgentSessionDeltaSnapshot | null => {
+    const stream = streams.get(key)
+    return stream
+      ? {
+          text: stream.chunks.join(''),
+          observedBytes: stream.observedBytes,
+          truncated: stream.truncated
+        }
+      : null
   }
 
   return {
@@ -180,6 +199,7 @@ export function createAgentSessionDeltaCoalescer(
             }
             // Backpressure must retain observed text for retry.
             if (!flushKey(oldest)) {
+              scheduleFlush()
               return false
             }
             const evicted = streams.get(oldest)
@@ -187,6 +207,7 @@ export function createAgentSessionDeltaCoalescer(
               totalRetainedBytes -= evicted.retainedBytes
             }
             streams.delete(oldest)
+            pendingKeys.delete(oldest)
             evictable.delete(oldest)
           }
           break
@@ -196,8 +217,7 @@ export function createAgentSessionDeltaCoalescer(
           retainedBytes: 0,
           textLength: 0,
           observedBytes: 0,
-          truncated: false,
-          dirty: false
+          truncated: false
         }
         if (!deps.isProtected?.(key)) {
           evictable.add(key)
@@ -224,7 +244,7 @@ export function createAgentSessionDeltaCoalescer(
         stream.chunks = next.chunks
         stream.retainedBytes = next.retainedBytes
         stream.truncated = next.truncated
-        stream.dirty = true
+        pendingKeys.add(key)
       }
       streams.set(key, stream)
       // Share one timer across streams to bound wakeups per window.
@@ -234,14 +254,10 @@ export function createAgentSessionDeltaCoalescer(
     flush: (key, force = false) => {
       const stream = streams.get(key)
       if (stream && force) {
-        stream.dirty = true
+        pendingKeys.add(key)
       }
       const accepted = flushKey(key)
-      if (![...streams.values()].some((stream) => stream.dirty)) {
-        cancelTimer?.()
-        cancelTimer = null
-      }
-      scheduleFlush(pendingDelay())
+      scheduleFlush()
       return accepted
     },
     flushAll,
@@ -252,49 +268,31 @@ export function createAgentSessionDeltaCoalescer(
         streams.delete(key)
         evictable.delete(key)
       }
-      if (![...streams.values()].some((stream) => stream.dirty)) {
-        cancelTimer?.()
-        cancelTimer = null
-      }
+      pendingKeys.delete(key)
+      cancelIfClean()
     },
     dispose: () => {
       cancelTimer?.()
       cancelTimer = null
       streams.clear()
+      pendingKeys.clear()
       evictable.clear()
+      timerAt = Number.POSITIVE_INFINITY
       totalRetainedBytes = 0
     },
-    snapshot: (key) => {
-      const stream = streams.get(key)
-      return stream
-        ? {
-            text: stream.chunks.join(''),
-            observedBytes: stream.observedBytes,
-            truncated: stream.truncated
-          }
-        : null
-    },
+    snapshot,
     dirty: () =>
-      [...streams].flatMap(([key, stream]) =>
-        stream.dirty
-          ? [
-              {
-                key,
-                snapshot: {
-                  text: stream.chunks.join(''),
-                  observedBytes: stream.observedBytes,
-                  truncated: stream.truncated
-                }
-              }
-            ]
-          : []
-      ),
+      [...pendingKeys].flatMap((key) => {
+        const value = snapshot(key)
+        return value ? [{ key, snapshot: value }] : []
+      }),
     markFlushed: (key) => {
       const stream = streams.get(key)
       if (stream) {
-        stream.dirty = false
+        pendingKeys.delete(key)
         stream.lastAccepted = performance.now()
       }
+      cancelIfClean()
     }
   }
 }

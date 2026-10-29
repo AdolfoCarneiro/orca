@@ -52,12 +52,15 @@ export function createClaudeStreamedThinking(deps: {
     ...(deps.schedule ? { schedule: deps.schedule } : {}),
     producer: deps.producer
   })
-  const finish = (ended: ClaudeStreamedBlockEnd, scope?: string, finalTail = false): void => {
-    checkpoints.finish(
-      ended,
-      scope === undefined ? undefined : (key) => open.get(key)?.scope === scope,
+  const finish = (
+    ended: ClaudeStreamedBlockEnd,
+    options: { scope?: string; finalTail?: boolean } = {}
+  ): void => {
+    const { scope, finalTail } = options
+    checkpoints.finish(ended, {
+      only: scope === undefined ? undefined : (key) => open.get(key)?.scope === scope,
       finalTail
-    )
+    })
     for (const [key, block] of open) {
       if (scope === undefined || block.scope === scope) {
         open.delete(key)
@@ -70,7 +73,7 @@ export function createClaudeStreamedThinking(deps: {
       // A new message abandons unfinished blocks in the same stream.
       const restarted = streamScope(frame)
       if (restarted !== null) {
-        finish({ completedAt: observedAt }, restarted)
+        finish({ completedAt: observedAt }, { scope: restarted })
         const sessionId = claudeText(frame.session_id)
         if (sessionId) {
           checkpoints.retire(sessionId, claudeText(frame.parent_tool_use_id), observedAt)
@@ -129,8 +132,8 @@ export function createClaudeStreamedThinking(deps: {
       )
       return body !== null || streamed !== null
     },
-    finishOpen: (completedAt: number, finalTail = false): void => {
-      finish({ completedAt }, undefined, finalTail)
+    finishOpen: (completedAt: number, options: { finalTail?: boolean } = {}): void => {
+      finish({ completedAt }, options)
     },
     flush: checkpoints.flush,
     admit: checkpoints.admit,

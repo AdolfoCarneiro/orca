@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { measureDeltaSnapshotWork } from './agent-session-delta-work-test-support'
 import {
   AGENT_SESSION_DELTA_COALESCE_MS,
   createAgentSessionDeltaCoalescer
@@ -365,4 +366,116 @@ it('retains a forced terminal snapshot on refusal even when the capped stream wa
   expect(emitted).toEqual([coalescer.snapshot('reply')?.text, coalescer.snapshot('reply')?.text])
   expect(clock.pendingCount()).toBe(0)
   coalescer.dispose()
+})
+
+it('keeps all-dirty force, refused full flush, scheduled recovery and selected removal linear', () => {
+  vi.useFakeTimers()
+  try {
+    for (const n of [10, 100]) {
+      let refuse = false
+      const outputs: string[] = []
+      const c = createAgentSessionDeltaCoalescer({
+        checkpointMs: () => 400,
+        emit: (key, text) => {
+          if (refuse) {
+            return false
+          }
+          outputs.push(`${key}:${text}`)
+          return true
+        }
+      })
+      for (let i = 0; i < n; i++) {
+        c.append(`m${i}`, 'P')
+      }
+      c.flushAll()
+      refuse = true
+      const meter = measureDeltaSnapshotWork()
+      for (let i = 0; i < n; i++) {
+        expect(c.flush(`m${i}`, true)).toBe(false)
+      }
+      expect(meter.work()).toBeLessThanOrEqual(3 * n)
+      meter.reset()
+      expect(vi.getTimerCount()).toBe(1)
+      vi.advanceTimersByTime(60)
+      expect(outputs).toHaveLength(n)
+      expect(meter.work()).toBeLessThanOrEqual(3 * n)
+      refuse = false
+      vi.advanceTimersByTime(340)
+      expect(outputs).toHaveLength(2 * n)
+      expect(vi.getTimerCount()).toBe(0)
+      for (let i = 0; i < n; i++) {
+        c.append(`m${i}`, ' tail')
+      }
+      refuse = true
+      meter.reset()
+      expect(c.flushAll()).toBe(false)
+      expect(meter.work()).toBeLessThanOrEqual(4 * n)
+      expect(vi.getTimerCount()).toBe(1)
+      refuse = false
+      vi.advanceTimersByTime(400)
+      for (let i = 0; i < n; i++) {
+        expect(outputs.filter((text) => text === `m${i}:P tail`)).toHaveLength(1)
+      }
+      meter.reset()
+      for (let i = 0; i < n; i++) {
+        c.forget(`m${i}`)
+      }
+      expect(meter.work()).toBeLessThanOrEqual(2 * n)
+      meter.stop()
+      expect(vi.getTimerCount()).toBe(0)
+      c.dispose()
+    }
+  } finally {
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+  }
+})
+
+it('distinguishes intentional skips from refusal and tolerates accepted callback retirement across eviction and reentry', () => {
+  const clock = manualClock()
+  let eligible = false
+  let refuse = false
+  const outputs: string[] = []
+  const c = createAgentSessionDeltaCoalescer({
+    maxStreams: 1,
+    schedule: clock.schedule,
+    shouldEmit: () => eligible,
+    emit: (key, text) => {
+      if (refuse) {
+        return false
+      }
+      outputs.push(`${key}:${text}`)
+      c.markFlushed(key)
+      c.markFlushed(key)
+      if (text === 'retire') {
+        c.forget(key)
+      }
+      return true
+    }
+  })
+  c.append('a', 'P')
+  clock.fire()
+  expect(clock.pendingCount()).toBe(0)
+  expect(outputs).toEqual([])
+  expect(c.snapshot('a')?.text).toBe('P')
+  eligible = true
+  c.append('a', ' tail')
+  refuse = true
+  expect(c.append('b', 'B')).toBe(false)
+  expect(clock.windows().every((ms) => ms > 0)).toBe(true)
+  refuse = false
+  clock.fire()
+  expect(outputs).toEqual(['a:P tail'])
+  expect(c.append('b', 'B')).toBe(true)
+  expect(c.snapshot('a')).toBeNull()
+  clock.fire()
+  c.forget('b')
+  c.append('a', 'retire')
+  clock.fire()
+  expect(c.snapshot('a')).toBeNull()
+  c.append('a', 'new')
+  clock.fire()
+  expect(outputs).toEqual(['a:P tail', 'b:B', 'a:retire', 'a:new'])
+  c.dispose()
+  expect(clock.pendingCount()).toBe(0)
 })

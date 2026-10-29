@@ -1,3 +1,5 @@
+import { agentJournalLinkageFields } from '../../shared/agent-session-journal-producer'
+import type { ClaudeCheckpointIntent } from './claude-checkpoint-intent'
 import { AGENT_SESSION_MAX_STREAMS } from '../native-chat/agent-session-wire/agent-session-delta-coalescer'
 import {
   AGENT_SESSION_STREAMED_TEXT_MAX_BYTES,
@@ -25,7 +27,7 @@ export type ClaudeStreamedTextCheckpointDeps = {
   coalesceMs?: number
   schedule?: AgentSessionDeltaCoalescerDeps['schedule']
 }
-export type Route = {
+export type ClaudeCheckpointRoute = {
   identity: AgentJournalItemIdentity
   options: StructuredAgentSessionItemAppendOptions
   parent: string | null
@@ -33,14 +35,34 @@ export type Route = {
   truncated: boolean
   lastAccepted?: number
   ended?: ClaudeStreamedBlockEnd
-  written?: string
+  acceptedOptionsFingerprint?: string
   retired?: boolean
 }
-export type Debt = {
+export type PendingClaudeCheckpoint = {
   chunks: string[]
   bytes: number
   replacement?: AgentJournalMessageItem
   due: number
+}
+
+export type ClaudeCheckpointTransfer = {
+  key: string
+  route: ClaudeCheckpointRoute
+  debt: PendingClaudeCheckpoint
+  intent: ClaudeCheckpointIntent
+}
+
+export function claudeCheckpointAppendOptions(
+  route: ClaudeCheckpointRoute,
+  producer: ClaudeSubagentLinkageSource
+) {
+  return {
+    ...route.options,
+    ...(route.parent === null || route.options.providerParentRef !== undefined
+      ? {}
+      : agentJournalLinkageFields(producer.settledLinkageFor(route.parent).linkage)),
+    ...(route.ended ? { lifecycle: true } : {})
+  }
 }
 
 /** Return a UTF8 prefix and its source offset without allocating an encoded copy of the frame. */
@@ -64,7 +86,7 @@ export function utf8Prefix(
 }
 
 export type HeldClaudeCheckpointFrame = {
-  route: Route
+  route: ClaudeCheckpointRoute
   key: string
   text: string
   offset: number
@@ -73,9 +95,9 @@ export type HeldClaudeCheckpointFrame = {
 export function consumeClaudeCheckpointFrame(
   frame: HeldClaudeCheckpointFrame,
   input: {
-    dirty: Map<string, Debt>
+    dirty: Map<string, PendingClaudeCheckpoint>
     budget: ClaudeCheckpointDeliveryBudget
-    owe: (key: string, route: Route) => Debt
+    owe: (key: string, route: ClaudeCheckpointRoute) => PendingClaudeCheckpoint
     arm: (at: number) => void
   }
 ): boolean {

@@ -113,8 +113,8 @@ export function claudeCheckpointOutputRetirement(
 ) {
   return createClaudeOutputRetirement({
     finish: () => {
-      text.finish({ completedAt: endedAt() }, undefined, true)
-      thinking.finishOpen(endedAt() ?? Date.now(), true)
+      text.finish({ completedAt: endedAt() }, { finalTail: true })
+      thinking.finishOpen(endedAt() ?? Date.now(), { finalTail: true })
       if (!text.finalize() || !thinking.finalizeOutput()) {
         throw new Error('Claude output handoff failed')
       }

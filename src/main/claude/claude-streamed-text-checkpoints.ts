@@ -1,4 +1,3 @@
-import { agentJournalLinkageFields } from '../../shared/agent-session-journal-producer'
 import {
   AGENT_JOURNAL_THREAD_SCOPE,
   type AgentJournalItemIdentity,
@@ -10,20 +9,21 @@ import {
   AGENT_SESSION_DELTA_COALESCE_MS,
   AGENT_SESSION_TEXT_CHECKPOINT_MS
 } from '../native-chat/agent-session-wire/agent-session-delta-coalescer'
-import { claudeCheckpointStep, type ClaudeCheckpointIntent } from './claude-checkpoint-intent'
-
+import { claudeCheckpointStep } from './claude-checkpoint-intent'
 import {
   consumeClaudeCheckpointFrame,
+  claudeCheckpointAppendOptions,
   type HeldClaudeCheckpointFrame,
-  type Route,
-  type Debt,
+  type ClaudeCheckpointRoute,
+  type ClaudeCheckpointTransfer,
+  type PendingClaudeCheckpoint,
   type ClaudeStreamedBlockEnd,
   type ClaudeStreamedTextCheckpointDeps
 } from './claude-checkpoint-input'
 /** Only unadmitted input is budget.bytes; clean routes contain scalars, never full text. */
 export function createClaudeStreamedTextCheckpoints(deps: ClaudeStreamedTextCheckpointDeps) {
-  const routes = new Map<string, Route>()
-  const dirty = new Map<string, Debt>()
+  const routes = new Map<string, ClaudeCheckpointRoute>()
+  const dirty = new Map<string, PendingClaudeCheckpoint>()
   const budget = deps.deliveryBudget ?? { bytes: 0, transfer: () => transfer(dirty.keys()) }
   let cancel: (() => void) | undefined
   let timerAt = Infinity
@@ -37,14 +37,9 @@ export function createClaudeStreamedTextCheckpoints(deps: ClaudeStreamedTextChec
       timer.unref?.()
       return () => clearTimeout(timer)
     })
-  const optionsFor = (route: Route) => ({
-    ...route.options,
-    ...(route.parent === null || route.options.providerParentRef !== undefined
-      ? {}
-      : agentJournalLinkageFields(deps.producer.settledLinkageFor(route.parent).linkage)),
-    ...(route.ended ? { lifecycle: true } : {})
-  })
-  const owe = (key: string, route: Route): Debt => {
+  const optionsFor = (route: ClaudeCheckpointRoute) =>
+    claudeCheckpointAppendOptions(route, deps.producer)
+  const owe = (key: string, route: ClaudeCheckpointRoute): PendingClaudeCheckpoint => {
     let debt = dirty.get(key)
     if (!debt) {
       debt = {
@@ -90,7 +85,7 @@ export function createClaudeStreamedTextCheckpoints(deps: ClaudeStreamedTextChec
     }
   }
   const transfer = (keys: Iterable<string>, finalTail = false): boolean => {
-    const intents: { key: string; route: Route; debt: Debt; intent: ClaudeCheckpointIntent }[] = []
+    const intents: ClaudeCheckpointTransfer[] = []
     for (const key of keys) {
       const debt = dirty.get(key),
         route = routes.get(key)
@@ -148,7 +143,7 @@ export function createClaudeStreamedTextCheckpoints(deps: ClaudeStreamedTextChec
     }
     for (const { key, route, intent } of intents) {
       route.lastAccepted = performance.now()
-      route.written = JSON.stringify(intent.options)
+      route.acceptedOptionsFingerprint = JSON.stringify(intent.options)
       if (route.parent !== null && deps.producer.linkageFor(route.parent).kind === 'linked') {
         route.options = intent.options
       }
@@ -239,22 +234,26 @@ export function createClaudeStreamedTextCheckpoints(deps: ClaudeStreamedTextChec
     transfer: (keys: Iterable<string>) => flush(keys),
     reattribute: () => {
       for (const [key, route] of routes) {
-        if (route.written && route.written !== JSON.stringify(optionsFor(route))) {
+        const accepted = route.acceptedOptionsFingerprint
+        if (accepted && accepted !== JSON.stringify(optionsFor(route))) {
           owe(key, route)
         }
       }
       flush()
     },
-    finish: (ended: ClaudeStreamedBlockEnd, only?: (key: string) => boolean, finalTail = false) => {
+    finish: (
+      ended: ClaudeStreamedBlockEnd,
+      options: { only?: (key: string) => boolean; finalTail?: boolean } = {}
+    ) => {
       for (const [key, route] of routes) {
-        if ((!only || only(key)) && !route.ended) {
+        if ((!options.only || options.only(key)) && !route.ended) {
           route.ended = ended
           route.bytes = 0
           route.truncated = false
           owe(key, route)
         }
       }
-      flush(dirty.keys(), finalTail)
+      flush(dirty.keys(), options.finalTail)
     },
     retire: (sessionId: string, parent: string | null, completedAt: number) => {
       for (const [key, route] of routes) {
