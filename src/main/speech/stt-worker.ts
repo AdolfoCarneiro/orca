@@ -272,7 +272,6 @@ function handleStop(): void {
       if (text) {
         parentPort?.postMessage({ type: 'final', text })
       }
-      stream = sherpa.createOnlineStream(recognizer)
     } else {
       // flush() leaves less than one bounded chunk.
       const remaining = offlineChunker?.flush()
@@ -282,14 +281,11 @@ function handleStop(): void {
           parentPort?.postMessage({ type: 'final', text })
         }
       }
-      resetSessionState()
     }
   } catch (err) {
-    if (!isStreaming) {
-      resetSessionState()
-    }
     parentPort?.postMessage({ type: 'error', error: String(err) })
   } finally {
+    resetSessionState()
     // Recovery must not suppress the stopped signal awaited by stopDictation.
     parentPort?.postMessage({ type: 'stopped' })
   }
