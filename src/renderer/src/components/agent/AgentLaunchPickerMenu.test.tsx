@@ -236,26 +236,35 @@ it('unmounts the setup draft on close/reopen and resets an open draft when its o
   )
 })
 
-it('reopens a form selection in the same setup panel and uses it without launching', () => {
-  const initial = {
-    agent: 'codex' as const,
-    surface: 'terminal' as const,
-    choices: { model: 'astra', options: { effort: 'low' } }
-  }
-  act(() =>
-    root.render(
-      <TooltipProvider>
-        <AgentLaunchSetupButton entry={entry} initial={initial} mode="select" onUse={launch} />
-      </TooltipProvider>
+it.each(['button', 'enter'] as const)(
+  'reopens a form selection and preserves its route on %s',
+  (activation) => {
+    const initial = {
+      agent: 'codex' as const,
+      surface: 'terminal' as const,
+      choices: { model: 'astra', options: { effort: 'low' } }
+    }
+    act(() =>
+      root.render(
+        <TooltipProvider>
+          <AgentLaunchSetupButton entry={entry} initial={initial} mode="select" onUse={launch} />
+        </TooltipProvider>
+      )
     )
-  )
-  fireEvent.click(
-    document.querySelector<HTMLButtonElement>('button[aria-label="Configure Codex"]')!
-  )
-  expect(launch).not.toHaveBeenCalled()
-  expect(document.body.textContent).not.toContain('Open terminal')
-  fireEvent.click(
-    [...document.querySelectorAll('button')].find((button) => button.textContent === 'Use')!
-  )
-  expect(launch).toHaveBeenCalledExactlyOnceWith(initial)
-})
+    fireEvent.click(
+      document.querySelector<HTMLButtonElement>('button[aria-label="Configure Codex"]')!
+    )
+    expect(launch).not.toHaveBeenCalled()
+    expect(document.body.textContent).not.toContain('Open terminal')
+    if (activation === 'enter') {
+      fireEvent.keyDown(document.querySelector('input[aria-label="Search models"]')!, {
+        key: 'Enter'
+      })
+    } else {
+      fireEvent.click(
+        [...document.querySelectorAll('button')].find((button) => button.textContent === 'Use')!
+      )
+    }
+    expect(launch).toHaveBeenCalledExactlyOnceWith(initial)
+  }
+)

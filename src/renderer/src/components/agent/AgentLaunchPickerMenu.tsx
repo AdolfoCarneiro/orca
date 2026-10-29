@@ -114,7 +114,7 @@ export function AgentLaunchPickerMenu({
           runLaunch={runLaunch}
           onSelectAgent={onSelectAgent}
           shortcut={
-            model.state === 'settled' && model.defaultTuiAgent === entry.agent
+            mode !== 'select' && model.state === 'settled' && model.defaultTuiAgent === entry.agent
               ? (shortcut ?? undefined)
               : undefined
           }

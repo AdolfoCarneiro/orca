@@ -160,7 +160,7 @@ export function AgentLaunchSetupPanel({
           (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
         ) {
           event.preventDefault()
-          use(entry.defaultSurface)
+          use(mode === 'select' ? draft.surface : entry.defaultSurface)
         }
       }}
     >
@@ -178,7 +178,7 @@ export function AgentLaunchSetupPanel({
             ) {
               event.preventDefault()
               event.stopPropagation()
-              use(entry.defaultSurface)
+              use(mode === 'select' ? draft.surface : entry.defaultSurface)
             }
           }}
           onKeyDown={(event) => {
