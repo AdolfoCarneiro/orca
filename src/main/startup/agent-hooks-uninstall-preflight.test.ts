@@ -127,6 +127,38 @@ describe('the NSIS uninstaller', () => {
     expect(nsis('orca-installer-hooks.nsh').split(AGENT_HOOKS_UNINSTALL_FLAG)).toHaveLength(2)
   })
 
+  it('keeps the hooks while another Orca install for this user still uses them', () => {
+    const branch = realUninstallBranch()
+    const launch = branch.indexOf(AGENT_HOOKS_UNINSTALL_FLAG)
+    const check = branch.indexOf('!insertmacro ORCA_OTHER_INSTALL_STATE $1')
+    expect(check).toBeGreaterThan(-1)
+    // Only a definite "no other install" runs the removal; "other" and "unknown" skip it.
+    const gate = branch.lastIndexOf('${if} $1 == "none"', launch)
+    expect(gate).toBeGreaterThan(check)
+    expect(branch.slice(gate, launch)).not.toContain('${endIf}')
+    expect(nsis('orca-installer-hooks.nsh')).toContain(
+      '!include "${__FILEDIR__}\\orca-other-install-check.nsh"'
+    )
+
+    const detect = nsis('orca-other-install-check.nsh')
+    // Both registrations a second install can have, by the key the installer writes.
+    expect(detect).toContain(
+      '!insertmacro ORCA_CHECK_ONE_REGISTRATION ${ORCA_OTHER_INSTALL_HKCU} HKCU ${OUT}'
+    )
+    expect(detect).toContain(
+      '!insertmacro ORCA_CHECK_ONE_REGISTRATION ${ORCA_OTHER_INSTALL_HKLM} HKLM ${OUT}'
+    )
+    expect(detect).toContain('ReadRegStr $R5 ${HIVE} "${INSTALL_REGISTRY_KEY}" InstallLocation')
+    // Our own registration is excluded, and the other one must still have the app.
+    expect(detect).toContain('${andIf} $R5 != $INSTDIR')
+    expect(detect).toContain('${andIf} ${FileExists} "$R5\\${APP_EXECUTABLE_FILENAME}"')
+    // A read failure other than "no such key" reports unknown, which skips the removal.
+    expect(detect).toMatch(
+      /\$\{elseIf\} \$R7 != \$\{ORCA_ERROR_FILE_NOT_FOUND\}\s+StrCpy \$\{OUT\} "unknown"/
+    )
+    expect(detect).not.toMatch(/nsExec|ExecWait|powershell/i)
+  })
+
   it("removes the `orca` command's PATH entry on a real uninstall only", () => {
     const hooksFile = nsis('orca-installer-hooks.nsh')
     expect(hooksFile).toContain('!include "${__FILEDIR__}\\orca-user-path-cleanup.nsh"')
@@ -153,7 +185,12 @@ describe('the NSIS uninstaller', () => {
     expect(cleanup).toMatch(/\$\{andIf\} \$R1 < \$R2/)
     expect(cleanup).toContain('WriteRegExpandStr HKCU "Environment" "Path" $R3')
     expect(cleanup).toContain('WriteRegStr HKCU "Environment" "Path" $R3')
-    // Only a removal rewrites PATH.
+    // Only a removal rewrites PATH, and only with a value type it actually read.
+    expect(cleanup).toMatch(/\$\{if\} \$R7 == 1\s+\$\{andIf\} \$R8 != ""/)
     expect(cleanup.indexOf('${if} $R7 == 1')).toBeLessThan(cleanup.indexOf('WriteRegExpandStr'))
+    expect(cleanup).toContain('StrCpy $R8 ""')
+    expect(cleanup).toMatch(/\$\{if\} \$R7 == 0\s+StrCpy \$R8 \$R4/)
+    expect(cleanup).toContain('${elseIf} $R8 == ${ORCA_REG_SZ}')
+    expect(cleanup).not.toMatch(/\$\{else\}\s+WriteRegStr/)
   })
 })

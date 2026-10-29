@@ -28,8 +28,9 @@ export async function removeAgentHooksForUninstall(
 }
 
 /**
- * Uninstall only: Windows hooks call Orca's scripts by bare path, so removing the app must take
- * their entries out of each agent's settings too. File edits only; no window or shell.
+ * Uninstall only: Windows hook entries call the ~/.orca scripts by bare path, so once that folder
+ * is removed every agent would fail a hook per event; the last install takes them out. File edits
+ * only; no window or shell.
  */
 export function runAgentHooksUninstallPreflight(argv: readonly string[] = process.argv): boolean {
   if (!argv.includes(AGENT_HOOKS_UNINSTALL_FLAG)) {

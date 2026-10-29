@@ -2,6 +2,7 @@
 
 !include "${__FILEDIR__}\orca-process-check.nsh"
 !include "${__FILEDIR__}\orca-user-path-cleanup.nsh"
+!include "${__FILEDIR__}\orca-other-install-check.nsh"
 
 ; #10138/#23225: electron-builder’s APP_ASSOCIATE overwrites the extension’s default without backup,
 ; and APP_UNASSOCIATE never restores it. Register only additive ProgID/OpenWithProgids/SupportedTypes
@@ -90,11 +91,16 @@
       nsExec::Exec '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --orca-uninstall-release-wsl-holders'
       Pop $0
     ${endIf}
-    ; Agent hooks on Windows call Orca's scripts by bare path, so take their entries out of each
-    ; agent's settings before the files go. Best effort: the exit code never blocks uninstall.
+    ; Agent hook entries call the ~/.orca\agent-hooks scripts by bare path. Those scripts outlive the
+    ; app, but once that folder is removed every agent fails a hook per event, so the last Orca for
+    ; this user takes the entries out. Another install, or an unreadable registry, keeps them.
+    ; Best effort: the exit code never blocks uninstall.
     ; Sync the flag with AGENT_HOOKS_UNINSTALL_FLAG in src/main/startup/agent-hooks-uninstall-preflight.ts.
-    nsExec::Exec '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --orca-uninstall-remove-agent-hooks'
-    Pop $0
+    !insertmacro ORCA_OTHER_INSTALL_STATE $1
+    ${if} $1 == "none"
+      nsExec::Exec '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --orca-uninstall-remove-agent-hooks'
+      Pop $0
+    ${endIf}
     ; The `orca` command's PATH entry (Settings → Command line) would otherwise outlive the app.
     !insertmacro ORCA_REMOVE_USER_PATH_ENTRY "$INSTDIR\resources\bin"
     Pop $2

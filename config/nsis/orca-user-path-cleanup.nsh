@@ -4,6 +4,7 @@
 
 !define ORCA_HKEY_CURRENT_USER 0x80000001
 !define ORCA_KEY_QUERY_VALUE 0x20019
+!define ORCA_REG_SZ 1
 !define ORCA_REG_EXPAND_SZ 2
 
 !macro ORCA_REMOVE_USER_PATH_ENTRY DIR
@@ -24,12 +25,15 @@
   ; A PATH at the string limit may have been truncated on read; writing it back would lose entries.
   ${if} $R0 != ""
   ${andIf} $R1 < $R2
-    ; Read the value type so an expandable PATH stays expandable.
-    StrCpy $R8 1
+    ; Read the value type so an expandable PATH stays expandable; an unknown type skips the edit.
+    StrCpy $R8 ""
     System::Call 'advapi32::RegOpenKeyEx(p ${ORCA_HKEY_CURRENT_USER}, t "Environment", i 0, i ${ORCA_KEY_QUERY_VALUE}, *p .R6) i .R7'
     ${if} $R7 == 0
-      System::Call 'advapi32::RegQueryValueEx(p R6, t "Path", p 0, *i .R8, p 0, p 0) i .R7'
+      System::Call 'advapi32::RegQueryValueEx(p R6, t "Path", p 0, *i .R4, p 0, p 0) i .R7'
       System::Call 'advapi32::RegCloseKey(p R6)'
+      ${if} $R7 == 0
+        StrCpy $R8 $R4
+      ${endIf}
     ${endIf}
     StrCpy $R3 ""
     StrCpy $R4 ""
@@ -61,11 +65,12 @@
       IntOp $R5 $R5 + 1
     ${Loop}
     ${if} $R7 == 1
+    ${andIf} $R8 != ""
       ${if} $R3 == ""
         DeleteRegValue HKCU "Environment" "Path"
       ${elseIf} $R8 == ${ORCA_REG_EXPAND_SZ}
         WriteRegExpandStr HKCU "Environment" "Path" $R3
-      ${else}
+      ${elseIf} $R8 == ${ORCA_REG_SZ}
         WriteRegStr HKCU "Environment" "Path" $R3
       ${endIf}
       ; Tell Explorer, so new shells stop seeing the removed entry.
