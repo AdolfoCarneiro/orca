@@ -58,7 +58,7 @@
             statusEl.textContent = `${context.displayName} on branch ${context.branch} · ${count} ${terminals}`
           },
           function (error) {
-            statusEl.textContent = 'context failed: ' + error.code + ': ' + error.message
+            statusEl.textContent = `context failed: ${error.code}: ${error.message}`
           }
         )
       })
@@ -71,7 +71,7 @@
               : 'Notifications are turned off.'
           },
           function (error) {
-            statusEl.textContent = 'notify failed: ' + error.code + ': ' + error.message
+            statusEl.textContent = `notify failed: ${error.code}: ${error.message}`
           }
         )
       })

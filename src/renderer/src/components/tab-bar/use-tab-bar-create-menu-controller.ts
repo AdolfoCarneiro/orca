@@ -227,6 +227,10 @@ export function useTabBarCreateMenuController({
       case 'new-simulator':
       case 'go-to-simulator':
         onNewSimulatorTab?.()
+        break
+      case 'new-plugin-file':
+        // usePluginNewFileMenuOptions handles these before they reach this switch.
+        break
     }
   }
   const launchAgentRow = useTabAgentMenuLaunch({

@@ -79,7 +79,9 @@ export function loadEditorBytes(
   saved: CustomEditorBinaryDocument,
   savedSha256: string
 ): void {
-  documents.set(fileId, { saved, savedSha256, draft: documents.get(fileId)?.draft ?? null })
+  const existing = documents.get(fileId)
+  // Why keep the draft's baseline: a later read must not vouch for bytes the edit never saw.
+  documents.set(fileId, existing?.draft ? existing : { saved, savedSha256, draft: null })
   unsubscribeStore ??= useAppStore.subscribe(dropSettledDrafts)
   notify()
 }

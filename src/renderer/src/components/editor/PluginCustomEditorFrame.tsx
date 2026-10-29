@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { translate } from '@/i18n/i18n'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import type { ActivePluginCustomEditor } from '@/store/plugin-custom-editors'
@@ -73,15 +73,17 @@ export default function PluginCustomEditorFrame({
     binaryDocument,
     onBytesChange
   })
-  latestRef.current = {
-    content,
-    readOnly,
-    onContentChange,
-    onSave,
-    onDirtyHint,
-    binaryDocument,
-    onBytesChange
-  }
+  useLayoutEffect(() => {
+    latestRef.current = {
+      content,
+      readOnly,
+      onContentChange,
+      onSave,
+      onDirtyHint,
+      binaryDocument,
+      onBytesChange
+    }
+  })
   const isBinary = binaryDocument !== undefined
   // Why code units for text: a byte count would re-encode the whole document on every edit.
   const isLarge =

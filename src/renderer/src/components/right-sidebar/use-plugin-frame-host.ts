@@ -18,10 +18,12 @@ export function usePluginFrameHost(options: {
   const { surface, iframeRef, frameKey, sessionToken, editor } = options
   const [loadedFrameKey, setLoadedFrameKey] = useState<string | null>(null)
   const onUnresponsiveRef = useRef(options.onUnresponsive)
-  onUnresponsiveRef.current = options.onUnresponsive
   // Why a ref: main rotates sessions without replacing the document or its in-flight calls.
   const sessionTokenRef = useRef(sessionToken)
-  sessionTokenRef.current = sessionToken
+  useLayoutEffect(() => {
+    onUnresponsiveRef.current = options.onUnresponsive
+    sessionTokenRef.current = sessionToken
+  })
   usePluginFrameThemeSync(iframeRef)
 
   const watchdog = useMemo(

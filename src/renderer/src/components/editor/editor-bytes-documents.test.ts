@@ -108,4 +108,16 @@ describe('binary custom editor views', () => {
     expect(editorBytesDocument('book')).toBe(edited)
     releaseEditorBytes('book')
   })
+
+  it('keeps an edit guarded by the bytes it started from when a later read lands', async () => {
+    setEditorBytesDraft('book', edited)
+    const newer = new Uint8Array([9])
+    loadEditorBytes('book', { bytes: newer, fileType: 'xlsx' }, await sha256Hex(newer))
+    writeRuntimeFileBytes.mockResolvedValue({ ok: true })
+    await save()
+    expect(writeRuntimeFileBytes.mock.calls[0]?.[4]).toEqual({
+      expectedSha256: hex(loaded),
+      allowMissing: true
+    })
+  })
 })

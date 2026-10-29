@@ -140,7 +140,9 @@
           }
         )
         setTimeout(function () {
-          if (!settled) report(name, false, 'host sent no refusal')
+          if (!settled) {
+            report(name, false, 'host sent no refusal')
+          }
         }, 2000)
       }
 
