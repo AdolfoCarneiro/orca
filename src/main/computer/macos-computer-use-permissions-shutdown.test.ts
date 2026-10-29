@@ -113,6 +113,33 @@ describe('computer-use setup cancellation', () => {
     expect(setupLaunches()).toEqual([['--permission', 'accessibility']])
   })
 
+  it('lets the newest request win when an older one resumes after it launched', async () => {
+    const status = deferredStatus()
+    mocks.peek.mockReturnValueOnce(status.promise).mockReturnValueOnce(status.promise)
+    const { permissions } = await loadModules()
+    // A1 and B wait on a slow probe; A2 joins an answer that is already in.
+    const a1 = permissions.openComputerUsePermissions('accessibility')
+    const b = permissions.openComputerUsePermissions('screenshots')
+    await permissions.openComputerUsePermissions('accessibility')
+    status.resolve()
+    await Promise.all([a1, b])
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(setupLaunches()).toEqual([['--permission', 'accessibility']])
+  })
+
+  it('cancels an untargeted Open during shutdown even when everything is granted', async () => {
+    mocks.peek.mockResolvedValue({
+      ...denied,
+      permissions: [
+        { id: 'accessibility', status: 'granted' },
+        { id: 'screenshots', status: 'granted' }
+      ]
+    })
+    const { permissions, markHostShuttingDown } = await loadModules()
+    markHostShuttingDown()
+    await expect(permissions.openComputerUsePermissions()).rejects.toThrow('cancelled')
+  })
+
   it('cancels a queued launch before reset waits on the bundle id', async () => {
     const { permissions } = await loadModules()
     await permissions.openComputerUsePermissions('accessibility')

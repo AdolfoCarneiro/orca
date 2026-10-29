@@ -107,6 +107,8 @@ export async function startOrcadWithLifecycle<T extends object>(
   const cleanup = createIdempotentOrcadCleanup(async () => {
     // Stamp quit before awaiting teardown so dying chat agents read as restart rather than crash.
     recordAgentSessionRuntimeEnd('quit')
+    // Startup failures reach cleanup without shutdown admission while RPC may already be serving.
+    markHostShuttingDown()
     let runtimeCleanupSucceeded = false
     try {
       await runtime.stop()

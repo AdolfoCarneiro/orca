@@ -200,8 +200,8 @@ export function ComputerUsePane(): React.JSX.Element {
       if (result.launchQueued) {
         toast.message(
           translate(
-            'auto.components.settings.ComputerUsePane.60ef4f0ec2',
-            'Opening macOS Privacy & Security…'
+            'auto.components.settings.ComputerUsePane.794807aa21',
+            'Queued macOS Privacy & Security; a newer request or a reset may replace it'
           )
         )
       } else if (result.launchedHelper) {

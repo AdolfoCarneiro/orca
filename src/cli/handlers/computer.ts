@@ -256,7 +256,7 @@ function permissionSetupHeadline(result: {
   launchQueued?: boolean
 }): string {
   if (result.launchQueued) {
-    return 'Queued Orca Computer Use permission setup; it opens within 5s unless a newer request replaces it.'
+    return 'Queued Orca Computer Use permission setup; a newer request or a reset may replace it.'
   }
   return result.launchedHelper
     ? 'Opened Orca Computer Use permission setup.'

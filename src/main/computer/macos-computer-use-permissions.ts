@@ -21,11 +21,13 @@ const SETUP_HELPER_LAUNCH_WINDOW_MS = 5_000
 // Requests are numbered on arrival; a queued request loses to any later one (latest wins).
 type SetupLaunchRequest = { seq: number; helperAppPath: string; helperArgs: string[] }
 let setupRequestSeq = 0
-let lastLaunch: { coversSeq: number; argsKey: string; at: number } | null = null
+let lastLaunch: { seq: number; coversSeq: number; argsKey: string; at: number } | null = null
 let queuedSetupLaunch: SetupLaunchRequest | null = null
 let queuedSetupTimer: ReturnType<typeof setTimeout> | null = null
 // Bumped by reset so Opens still waiting on status never launch afterwards.
 let setupGeneration = 0
+// Opens that arrive mid-reset wait for it, so reset's helper cleanup can't kill what they open.
+let resetInProgress: Promise<unknown> | null = null
 
 export function openComputerUsePermissions(
   permissionId?: ComputerUsePermissionId
@@ -46,7 +48,13 @@ const setupWindowOpensAt = (): number =>
   (lastLaunch?.at ?? Number.NEGATIVE_INFINITY) + SETUP_HELPER_LAUNCH_WINDOW_MS
 
 // Launches now, or queues for when the window reopens; a later request supersedes a queued one.
-function requestSetupHelperLaunch(request: SetupLaunchRequest): 'launched' | 'queued' {
+function requestSetupHelperLaunch(
+  request: SetupLaunchRequest
+): 'launched' | 'queued' | 'superseded' {
+  // A newer request already spawned; showing this older one now would replace it.
+  if (lastLaunch && request.seq <= lastLaunch.seq) {
+    return 'superseded'
+  }
   if (performance.now() >= setupWindowOpensAt() && !queuedSetupLaunch) {
     launchSetupHelper(request)
     return 'launched'
@@ -75,8 +83,10 @@ function armQueuedSetupTimer(): void {
       // Same-args requests that arrived before the last spawn were already shown by it.
       const covered =
         queued &&
-        lastLaunch?.argsKey === queued.helperArgs.join(' ') &&
-        queued.seq <= lastLaunch.coversSeq
+        lastLaunch &&
+        (queued.seq <= lastLaunch.seq ||
+          (lastLaunch.argsKey === queued.helperArgs.join(' ') &&
+            queued.seq <= lastLaunch.coversSeq))
       if (queued && !covered) {
         try {
           launchSetupHelper(queued)
@@ -103,6 +113,7 @@ function launchSetupHelper(request: SetupLaunchRequest): void {
   )
   // Measured after the spawn so a slow pkill can't pull the next spawn inside the window.
   lastLaunch = {
+    seq: request.seq,
     coversSeq: setupRequestSeq,
     argsKey: request.helperArgs.join(' '),
     at: performance.now()
@@ -139,6 +150,16 @@ async function openComputerUsePermissionsAsync(
     throw new RuntimeClientError('accessibility_error', status.helperUnavailableReason)
   }
   const nextStep = nextPermissionStep(status.permissions)
+  while (resetInProgress) {
+    await resetInProgress.catch(() => {})
+  }
+  if (generation !== setupGeneration || isHostShuttingDown()) {
+    // An error rather than launchedHelper: false, which clients render as "setup complete".
+    throw new RuntimeClientError(
+      'accessibility_error',
+      'Computer Use setup was cancelled because permissions were reset or Orca is quitting'
+    )
+  }
 
   if (!permissionId && !nextStep) {
     return {
@@ -151,14 +172,6 @@ async function openComputerUsePermissionsAsync(
       nextStep
     }
   }
-
-  if (generation !== setupGeneration || isHostShuttingDown()) {
-    // An error, not launchedHelper: false, so no client reads a cancelled Open as "setup complete".
-    throw new RuntimeClientError(
-      'accessibility_error',
-      'Computer Use setup was cancelled because permissions were reset or Orca is quitting'
-    )
-  }
   const helperArgs = permissionId ? ['--permission', permissionId] : ['--permissions']
   const launch = requestSetupHelperLaunch({ seq, helperAppPath, helperArgs })
 
@@ -167,6 +180,7 @@ async function openComputerUsePermissionsAsync(
     helperAppPath,
     permissionId,
     openedSettings: launch === 'launched' && permissionId !== undefined,
+    // Also true when superseded: a newer request's helper is already showing.
     launchedHelper: true,
     launchQueued: launch === 'queued',
     permissions: status.permissions,
@@ -175,7 +189,13 @@ async function openComputerUsePermissionsAsync(
 }
 
 export function resetComputerUsePermissions(): Promise<ComputerUsePermissionResetResult> {
-  return resetComputerUsePermissionsAsync()
+  const reset = resetComputerUsePermissionsAsync().finally(() => {
+    if (resetInProgress === reset) {
+      resetInProgress = null
+    }
+  })
+  resetInProgress = reset
+  return reset
 }
 
 async function resetComputerUsePermissionsAsync(): Promise<ComputerUsePermissionResetResult> {
