@@ -34,6 +34,12 @@ export function switchToPluginLanguage(pack: PluginLanguagePackRegistration): vo
   applyUiLanguage(pack.id)
 }
 
+export function switchBackFromPluginLanguage(): void {
+  const previous = uiLanguageBeforeSwitch ?? UI_LANGUAGE_SYSTEM
+  uiLanguageBeforeSwitch = null
+  applyUiLanguage(previous)
+}
+
 /** Switches the UI to a plugin's language pack, with a way back; never applied unasked. */
 export function PluginContributionActionLanguage({
   pack
@@ -55,11 +61,7 @@ export function PluginContributionActionLanguage({
           'Switch back from {{value0}}',
           { value0: name }
         )}
-        onClick={() => {
-          const previous = uiLanguageBeforeSwitch ?? UI_LANGUAGE_SYSTEM
-          uiLanguageBeforeSwitch = null
-          applyUiLanguage(previous)
-        }}
+        onClick={switchBackFromPluginLanguage}
       >
         {translate(
           'auto.components.settings.PluginContributionActionLanguage.switchBack',

@@ -25,6 +25,9 @@ import { usePluginLanguagePackStore } from '@/store/plugin-language-packs'
 import type { ActivePluginCommand } from '@/store/plugin-panels'
 import { usePluginSyntaxes } from '@/store/plugin-syntax-packs'
 import { ShortcutKeyCombo } from '../../ShortcutKeyCombo'
+import { Button } from '../../ui/button'
+import { applyPluginThemesNow } from '../state/plugin-theme-apply'
+import { revealPluginIconTheme } from '../state/plugin-try-action'
 import { DetailRow, DetailSection } from './PluginDetailSections'
 import { PluginContributionActionCommand } from './PluginContributionActionCommand'
 import { PluginContributionEventRow, usePluginWorkerEvents } from './PluginContributionActionEvents'
@@ -223,9 +226,18 @@ function useContributionRowActions(
         const newFile = collectActivePluginNewFiles([plugin])[Number(id)]
         return newFile ? <PluginContributionActionNewFile newFile={newFile} /> : null
       }
+      case 'iconThemes':
+        return (
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => revealPluginIconTheme(() => applyPluginThemesNow(plugin.pluginKey))}
+          >
+            {translate('auto.components.settings.pluginInstallAction.tryIt', 'Try it')}
+          </Button>
+        )
       case 'themes':
       case 'terminalThemes':
-      case 'iconThemes':
       case 'customEditors':
       case 'vmRecipes':
         // Themes have "Use now" above the list; editors open from their new files; recipes have nothing to try here.
