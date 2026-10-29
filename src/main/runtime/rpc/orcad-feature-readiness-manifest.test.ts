@@ -17,13 +17,13 @@ const requiresOf = (name: string, params: unknown = {}): readonly OrcadFeature[]
 // Launches that start an agent (and so read its account home); a terminal create is one only with an agent.
 const AGENT_LAUNCHES = [
   'terminal.createAgentSession',
-  'terminal.ensureAgentSession',
   'agentSession.create',
   'git.generateCommitMessage',
   'orchestration.workerStart',
   'orchestration.federationAttachStart'
 ]
 const PARAM_GATED_LAUNCHES = [
+  'terminal.ensureAgentSession',
   'terminal.create',
   'session.tabs.createTerminal',
   'agent.launch',
@@ -78,6 +78,11 @@ describe('which RPC methods wait for an orcad startup phase', () => {
       expect(requiresOf(name, { resumeProviderSession: { id: 's' } }), name).toEqual(['accounts'])
     }
     expect(requiresOf('session.tabs.createTerminal', { agent: 'claude' })).toEqual(['accounts'])
+  })
+
+  it('gates only an explicit ensureAgentSession; an attach is restore latency', () => {
+    expect(requiresOf('terminal.ensureAgentSession', { kind: 'explicit' })).toEqual(['accounts'])
+    expect(requiresOf('terminal.ensureAgentSession', { kind: 'automatic' })).toEqual([])
   })
 
   it('gates agent.launch unless it reuses a live terminal', () => {

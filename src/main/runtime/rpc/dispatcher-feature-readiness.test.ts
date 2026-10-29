@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { RpcDispatcher } from './dispatcher'
 import { defineMethod, defineStreamingMethod, type RpcRequest } from './core'
 import type { OrcaRuntimeService } from '../orca-runtime'
+import { ensureAgentSessionFeatureRequirement } from './agent-launch-feature-requirement'
 import {
   _resetOrcadFeatureReadinessForTests,
   installOrcadFeatureReadiness,
@@ -51,6 +52,16 @@ function dispatcher(): { dispatcher: RpcDispatcher; ran: string[] } {
       params: z.object({ command: z.string().optional() }),
       handler: (params) => {
         ran.push(`create ${params.command ?? 'shell'}`)
+        return {}
+      }
+    }),
+    defineMethod({
+      name: 'terminal.ensureAgentSession',
+      requires: ensureAgentSessionFeatureRequirement,
+      permission: 'workspace',
+      params: z.object({ kind: z.enum(['automatic', 'explicit']) }),
+      handler: (params) => {
+        ran.push(`ensure ${params.kind}`)
         return {}
       }
     }),
@@ -183,5 +194,18 @@ describe('RPC methods that require an orcad startup phase', () => {
     await vi.advanceTimersByTimeAsync(1)
     expect(reply).toMatchObject({ ok: false, error: { code: 'runtime_unavailable' } })
     expect(ran).toEqual([])
+  })
+
+  it('run an attach-only ensureAgentSession at once while every latch is closed', async () => {
+    const readiness = installOrcadFeatureReadiness()
+    const { dispatcher: rpc, ran } = dispatcher()
+    const explicit = rpc.dispatch(request('terminal.ensureAgentSession', { kind: 'explicit' }))
+    await expect(
+      rpc.dispatch(request('terminal.ensureAgentSession', { kind: 'automatic' }))
+    ).resolves.toMatchObject({ ok: true })
+    expect(ran).toEqual(['ensure automatic'])
+    readiness.open('accounts')
+    await expect(explicit).resolves.toMatchObject({ ok: true })
+    expect(ran).toEqual(['ensure automatic', 'ensure explicit'])
   })
 })

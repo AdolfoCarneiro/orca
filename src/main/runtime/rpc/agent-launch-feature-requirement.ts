@@ -13,7 +13,10 @@ type TerminalCreateLaunchFields = {
   sourceChatFork?: unknown
 }
 
-/** A terminal create that starts an agent needs its account home; a plain shell needs nothing. */
+/**
+ * A terminal create that starts an agent needs its account home; a plain shell needs nothing.
+ * An agent behind a bare command the recognizer does not know stays ungated (only Claude/Codex use accounts).
+ */
 export function terminalCreateFeatureRequirement(
   params: TerminalCreateLaunchFields
 ): readonly OrcadFeature[] {
@@ -32,4 +35,11 @@ export function agentLaunchFeatureRequirement(params: {
   reuseTerminal?: unknown
 }): readonly OrcadFeature[] {
   return params.reuseTerminal ? NONE : ACCOUNTS
+}
+
+/** Only an explicit ensure may start an agent; attaching to an existing session is restore latency. */
+export function ensureAgentSessionFeatureRequirement(params: {
+  kind?: unknown
+}): readonly OrcadFeature[] {
+  return params.kind === 'explicit' ? ACCOUNTS : NONE
 }
