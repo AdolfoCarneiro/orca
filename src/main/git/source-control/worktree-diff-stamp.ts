@@ -1,6 +1,7 @@
-import { readFile, stat } from 'node:fs/promises'
+import { lstat, readFile, stat } from 'node:fs/promises'
 import * as path from 'node:path'
 import { resolveWorktreeHostPath } from '../../../shared/git-metadata-path'
+import { parseWslUncPath } from '../../../shared/wsl-paths'
 import type { GitRuntimeOptions } from '../git-runtime-options'
 import { resolveGitDir } from './resolve-git-dir'
 
@@ -38,14 +39,30 @@ export async function readWorktreeDiffStamp(
   includeWorkingTree: boolean,
   options: Pick<GitRuntimeOptions, 'wslDistro'> = {}
 ): Promise<WorktreeDiffStamp | null> {
+  // WSL login environments and custom Git routing cannot be attested from Node's default ref path.
+  if (
+    options.wslDistro !== undefined ||
+    parseWslUncPath(worktreePath) ||
+    [
+      'GIT_REPLACE_REF_BASE',
+      'GIT_NO_REPLACE_OBJECTS',
+      'GIT_DIR',
+      'GIT_COMMON_DIR',
+      'GIT_WORK_TREE',
+      'GIT_INDEX_FILE',
+      'GIT_OBJECT_DIRECTORY',
+      'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+      'GIT_NAMESPACE'
+    ].some((key) => process.env[key] !== undefined)
+  ) {
+    return null
+  }
   const capturedAtMs = Date.now()
   try {
-    // Git can run in the distro against a raw Linux worktree path while Node stats it through Win32.
     const hostWorktreePath = resolveWorktreeHostPath(worktreePath, options)
     if (!hostWorktreePath) {
       return null
     }
-    // Retain distro options for non-drvfs gitdir pointers even after the worktree becomes a drive path.
     const gitDir = await resolveGitDir(hostWorktreePath, options)
     const [head, index, gitmodules, workingTree] = await Promise.all([
       readHeadComponent(gitDir),
@@ -75,7 +92,7 @@ export async function readWorktreeDiffStamp(
   }
 }
 
-/** Read loose ref content to detect commits without HEAD changes; packed/reftable/unborn tips use file stamps. */
+/** Loose replacement namespaces can change blob reads without moving HEAD or the index. */
 async function readHeadComponent(gitDir: string): Promise<StampComponent | null> {
   const [head, commonDirEntry] = await Promise.all([
     readTrimmedFile(path.join(gitDir, 'HEAD')),
@@ -85,6 +102,31 @@ async function readHeadComponent(gitDir: string): Promise<StampComponent | null>
     return null
   }
   const commonDir = commonDirEntry ? path.resolve(gitDir, commonDirEntry) : gitDir
+  try {
+    await lstat(path.join(commonDir, 'refs', 'replace'))
+    return null
+  } catch (error) {
+    if (!isMissingEntryError(error)) {
+      throw error
+    }
+  }
+  // The parent stamp catches a namespace created and removed during an awaited blob read.
+  const refs = await readFileStampComponent(path.join(commonDir, 'refs'))
+  if (refs === ABSENT) {
+    return null
+  }
+  const component = await readHeadRefComponent(gitDir, commonDir, head)
+  return {
+    text: JSON.stringify([gitDir, commonDir, refs.text, component.text]),
+    mtimeMs: Math.max(refs.mtimeMs, component.mtimeMs)
+  }
+}
+
+async function readHeadRefComponent(
+  gitDir: string,
+  commonDir: string,
+  head: string
+): Promise<StampComponent> {
   const refName = head.match(/^ref:\s*(.+?)\s*$/)?.[1]
   if (!refName || !isSafeRefName(refName)) {
     // Detached HEAD already holds the object id; an unrecognized HEAD is covered by its own text.

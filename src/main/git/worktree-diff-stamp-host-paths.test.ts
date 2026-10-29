@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { readFileMock, statMock } = vi.hoisted(() => ({
+const { readFileMock, statMock, lstatMock } = vi.hoisted(() => ({
   readFileMock: vi.fn(),
-  statMock: vi.fn()
+  statMock: vi.fn(),
+  lstatMock: vi.fn()
 }))
 
 vi.mock('fs/promises', () => ({
   readFile: readFileMock,
-  stat: statMock
+  stat: statMock,
+  lstat: lstatMock
 }))
 
 import { readWorktreeDiffStamp } from './source-control/worktree-diff-stamp'
@@ -20,6 +22,7 @@ describe('readWorktreeDiffStamp on a drvfs-spelled WSL worktree', () => {
   beforeEach(() => {
     readFileMock.mockReset()
     statMock.mockReset()
+    lstatMock.mockRejectedValue(missing())
     readFileMock.mockImplementation(async (target: string) => {
       const value = slashed(target)
       if (value === 'C:/repo/wt/.git') {
@@ -30,11 +33,16 @@ describe('readWorktreeDiffStamp on a drvfs-spelled WSL worktree', () => {
       }
       throw missing()
     })
-    statMock.mockImplementation(async (target: string) =>
-      slashed(target) === 'C:/repo/wt/src/a.ts'
-        ? { mtimeMs: 1_000, size: 12, ino: 7 }
-        : Promise.reject(missing())
-    )
+    statMock.mockImplementation(async (target: string) => {
+      const value = slashed(target)
+      if (value === 'C:/repo/.git/worktrees/wt/refs') {
+        return { mtimeMs: 500, size: 0, ino: 8 }
+      }
+      if (value === 'C:/repo/wt/src/a.ts') {
+        return { mtimeMs: 1_000, size: 12, ino: 7 }
+      }
+      throw missing()
+    })
   })
 
   it('stamps the working-tree file through the same host spelling as the gitdir', async () => {

@@ -91,6 +91,7 @@ const FILE = 'src/file.ts'
 const WORKING_TREE_PATH = `${REPO}/${FILE}`
 const HEAD_PATH = `${REPO}/.git/HEAD`
 const REF_PATH = `${REPO}/.git/refs/heads/main`
+const REFS_PATH = `${REPO}/.git/refs`
 const INDEX_PATH = `${REPO}/.git/index`
 const GITMODULES_PATH = `${REPO}/.gitmodules`
 
@@ -110,6 +111,7 @@ function seedRepo(): void {
   files.clear()
   writeFile(HEAD_PATH, 'ref: refs/heads/main\n')
   writeFile(REF_PATH, `${'a'.repeat(40)}\n`)
+  writeFile(REFS_PATH, '')
   writeFile(INDEX_PATH, 'index-bytes')
   writeFile(WORKING_TREE_PATH, 'working-tree-content')
 }
@@ -121,6 +123,12 @@ describe('settled diff cache', () => {
     gitStreamOptionsMock.mockReset()
     readFileMock.mockClear()
     statMock.mockClear()
+    lstatMock.mockReset()
+    const statFile = statMock.getMockImplementation()
+    if (!statFile) {
+      throw new Error('the fake filesystem lost its stat implementation')
+    }
+    lstatMock.mockImplementation(statFile)
     accessMock.mockClear()
     existsSyncMock.mockReset()
     invalidateGitReadCaches()
@@ -172,20 +180,19 @@ describe('settled diff cache', () => {
       expect(readFileMock).not.toHaveBeenCalledWith(path.join(WSL_WORKTREE, FILE))
     })
 
-    it('stamps through the host spelling so the second read does not respawn git', async () => {
+    it('keeps WSL reads uncached when the guest Git environment is not attested', async () => {
       await getDiff(WSL_WORKTREE, FILE, false, false, WSL_OPTIONS)
       const spawnsAfterFirst = blobReadCount()
 
       await getDiff(WSL_WORKTREE, FILE, false, false, WSL_OPTIONS)
 
       expect(spawnsAfterFirst).toBeGreaterThan(0)
-      expect(blobReadCount()).toBe(spawnsAfterFirst)
-      expect(settledDiffCache.stats().hits).toBe(1)
-      expect(statMock).toHaveBeenCalledWith(path.join(HOST_WORKTREE, '.git/index'))
+      expect(blobReadCount()).toBeGreaterThan(spawnsAfterFirst)
+      expect(settledDiffCache.stats().hits).toBe(0)
+      expect(statMock).not.toHaveBeenCalledWith(path.join(HOST_WORKTREE, '.git/index'))
     })
 
-    // A permanently absent component would stop the stamp moving and serve stale diffs.
-    it('invalidates when the working tree file is edited under the host spelling', async () => {
+    it('reads edited working-tree bytes through the host spelling on uncached WSL reads', async () => {
       await getDiff(WSL_WORKTREE, FILE, false, false, WSL_OPTIONS)
       const spawnsAfterFirst = blobReadCount()
 
@@ -194,17 +201,6 @@ describe('settled diff cache', () => {
 
       expect(blobReadCount()).toBeGreaterThan(spawnsAfterFirst)
       expect(second.modifiedContent).toBe('edited-in-another-editor')
-    })
-
-    it('invalidates when .gitmodules appears under the host spelling', async () => {
-      await getDiff(WSL_WORKTREE, FILE, false, false, WSL_OPTIONS)
-      const spawnsAfterFirst = blobReadCount()
-
-      writeFile(path.join(HOST_WORKTREE, '.gitmodules'), '[submodule "vendor"]\n')
-      await getDiff(WSL_WORKTREE, FILE, false, false, WSL_OPTIONS)
-
-      expect(blobReadCount()).toBeGreaterThan(spawnsAfterFirst)
-      expect(statMock).toHaveBeenCalledWith(path.join(HOST_WORKTREE, '.gitmodules'))
     })
   })
 
