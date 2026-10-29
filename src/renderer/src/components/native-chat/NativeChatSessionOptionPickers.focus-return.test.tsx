@@ -22,6 +22,58 @@ import { NativeChatSessionOptionPickers } from './NativeChatSessionOptionPickers
 const settle = (): Promise<void> =>
   act(async () => new Promise((resolve) => setTimeout(resolve, 30)))
 
+it('keeps pointer, ArrowDown and requested-open on the same disabled-placeholder boundary', async () => {
+  const placeholder: SessionOptionDescriptor = {
+    id: 'model',
+    label: 'Model',
+    category: 'model',
+    kind: { type: 'select', choices: [] },
+    valueSource: 'unknown',
+    transport: 'agent-session',
+    settable: false
+  }
+  const consume = vi.fn()
+  const view = render(
+    <TooltipProvider>
+      <NativeChatSessionOptionPickers
+        surface={surface}
+        snapshot={[placeholder]}
+        isWorking={false}
+      />
+    </TooltipProvider>
+  )
+  const trigger = screen.getByRole('button', { name: 'Model' })
+  expect(trigger).toHaveProperty('disabled', true)
+  fireEvent.click(trigger)
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' })
+  view.rerender(
+    <TooltipProvider>
+      <NativeChatSessionOptionPickers
+        surface={surface}
+        snapshot={[placeholder]}
+        isWorking={false}
+        pickerRequest={{ id: 'model', consume }}
+      />
+    </TooltipProvider>
+  )
+  await settle()
+  expect(consume).toHaveBeenCalledOnce()
+  expect(screen.queryByRole('dialog')).toBeNull()
+  view.rerender(
+    <TooltipProvider>
+      <NativeChatSessionOptionPickers
+        surface={surface}
+        snapshot={[placeholder, effort]}
+        isWorking={false}
+      />
+    </TooltipProvider>
+  )
+  expect(trigger).toHaveProperty('disabled', false)
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' })
+  await settle()
+  expect(screen.getByRole('dialog')).not.toBeNull()
+})
+
 const surface = {
   getSnapshot: vi.fn(() => []),
   setOption: vi.fn(() => Promise.resolve({ snapshot: [] })),
@@ -336,7 +388,10 @@ describe('session option picker focus', () => {
     expect(screen.queryByRole('tooltip')).toBeNull()
 
     cleanup()
-    await renderComposer([{ ...model, settable: false, disabledReason: 'set-when-session-starts' }])
+    await renderComposer([
+      { ...model, settable: false, disabledReason: 'set-when-session-starts' },
+      effort
+    ])
     pill().focus()
     await settle()
     expect(screen.getByRole('tooltip').textContent).toBe('Set when the session starts.')

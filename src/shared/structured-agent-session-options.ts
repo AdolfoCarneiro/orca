@@ -14,6 +14,7 @@ import { usesInstalledAgentModelCatalog } from './agent-model-catalog-ownership'
 import { structuredAgentSessionShownModel } from './structured-agent-session-option-snapshot'
 import type { SessionOptionValue } from './native-chat/input/native-chat-session-options'
 import type { AgentSessionAcceptedInputSources } from './agent-session-options-result'
+import { labelFromModelId } from './model-id-label'
 import type {
   AgentSessionModelCatalogResult,
   AgentSessionOptionsResult
@@ -39,7 +40,8 @@ export function structuredAgentSessionOptionCatalog(
   if (result.current.model && !models.some((model) => model.id === result.current.model)) {
     models.push({
       id: result.current.model,
-      label: result.current.model,
+      label: labelFromModelId(result.current.model),
+      description: result.current.model,
       options: seed.unknownModelOptions ?? []
     })
   }
@@ -48,8 +50,8 @@ export function structuredAgentSessionOptionCatalog(
 
 export type StructuredAgentSessionOptionState = {
   catalog: AgentSessionOptionCatalog | null
-  /** Catalog provenance, not current-child eligibility: seed stays a placeholder until the host answers;
-   * builtin then enables the static list without naming a model the host may replace. */
+  /** Catalog provenance, independent of known input: seed offers no replacement models;
+   * builtin enables static rows only after unavailable discovery. */
   catalogSource: 'seed' | 'builtin' | 'host' | 'live' | null
   /** Live-answer IDs verified by the agent’s listing; extra rows name the chat’s own model, not listed capabilities. Old hosts omit this. */
   verifiedModelIds?: readonly string[]
@@ -71,7 +73,7 @@ export type StructuredAgentSessionOptionState = {
   fastModeRestricted?: boolean
 }
 
-/** Install a static seed immediately, but show the placeholder until the host answers; later sources only upgrade it. */
+/** Seed definitions supply geometry; only accepted input or host inventory can name a model. */
 export function createStructuredAgentSessionOptionState(
   agent = 'codex',
   seedCatalog?: AgentSessionOptionCatalog | null
@@ -91,7 +93,8 @@ export function settleStructuredAgentSessionBuiltinCatalog(
   state: StructuredAgentSessionOptionState,
   listingInProgress = state.listingInProgress
 ): StructuredAgentSessionOptionState {
-  const catalogSource = state.catalogSource === 'seed' ? 'builtin' : state.catalogSource
+  const catalogSource =
+    state.catalogSource === 'seed' && !listingInProgress ? 'builtin' : state.catalogSource
   return catalogSource === state.catalogSource && state.listingInProgress === listingInProgress
     ? state
     : { ...state, catalogSource, listingInProgress }
@@ -128,7 +131,7 @@ export function applyStructuredAgentSessionModelCatalog(
   options: { newLaunch: boolean; coherentCatalog?: boolean }
 ): StructuredAgentSessionOptionState {
   const installed = usesInstalledAgentModelCatalog(state.record.agent, options.coherentCatalog)
-  const listingInProgress = installed && catalog.listingInProgress === true
+  const listingInProgress = catalog.listingInProgress === true
   if (Boolean(state.listingInProgress) !== listingInProgress) {
     state = { ...state, listingInProgress }
   }

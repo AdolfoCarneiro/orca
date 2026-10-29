@@ -271,14 +271,16 @@ describe('structured agent session options', () => {
         valueSource: 'dispatched',
         kind: expect.objectContaining({
           currentValue: 'gpt-next',
-          choices: expect.arrayContaining([{ value: 'gpt-next', label: 'gpt-next' }])
+          choices: expect.arrayContaining([
+            { value: 'gpt-next', label: 'GPT Next', description: 'gpt-next' }
+          ])
         })
       })
     ])
-    // Before the host answers, and on the built-in list, no saved pick is named.
-    expect(viewModel(cold, seed, {})).toBeUndefined()
+    // Known saved input stays named before discovery and after unavailable discovery.
+    expect(viewModel(cold, seed, {})).toBe(seed.model)
     const settled = settleStructuredAgentSessionBuiltinCatalog(cold, false)
-    expect(viewModel(settled, seed, {})).toBeUndefined()
+    expect(viewModel(settled, seed, {})).toBe(seed.model)
     expect(settleStructuredAgentSessionBuiltinCatalog(settled, false)).toBe(settled)
     expect(
       settleStructuredAgentSessionBuiltinCatalog({ ...settled, listingInProgress: true }, false)

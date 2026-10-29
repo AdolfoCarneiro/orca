@@ -179,6 +179,44 @@ describe('MobileNativeChatSessionOptionPickers', () => {
     renderer = null
   })
 
+  it('blocks a placeholder drawer, including a requested page, but keeps permissions reachable', () => {
+    const placeholder: SessionOptionDescriptor = {
+      ...MODEL_DESCRIPTOR,
+      kind: { type: 'select', choices: [] },
+      valueSource: 'unknown',
+      settable: false
+    }
+    const controller: MobileNativeChatSessionOptionsController = {
+      snapshot: [placeholder],
+      pendingId: null,
+      setOption,
+      invokeAction,
+      recordCommand: vi.fn()
+    }
+    const onDrawerOpen = vi.fn()
+    const props = {
+      controller,
+      isWorking: false,
+      presentation: { page: 'model', refocus: false },
+      onNavigate: vi.fn(),
+      onDrawerOpen
+    }
+    act(() => {
+      renderer = create(createElement(MobileNativeChatSessionOptionPickers, props))
+    })
+    expect(pill('Model').props.disabled).toBe(true)
+    act(() => pill('Model').props.onPress())
+    expect(onDrawerOpen).not.toHaveBeenCalled()
+    expect(findAllByHostType(renderer!.root, 'BottomDrawer')).toHaveLength(0)
+    const state = createStructuredAgentSessionOptionState('claude')
+    state.permissionMode = 'ask'
+    const permission = structuredAgentSessionPermissionDescriptor(state)!
+    controller.snapshot = [placeholder, permission]
+    act(() => renderer!.update(createElement(MobileNativeChatSessionOptionPickers, props)))
+    expect(pill('Model').props.disabled).toBe(false)
+    expect(findAllByHostType(renderer!.root, 'BottomDrawer')).toHaveLength(1)
+  })
+
   it('renders actual settled permission/reset picks without busy state and locks ordinary pending model work', async () => {
     const idle = deferred<AgentSessionOptionsResult>()
     let reads = 0

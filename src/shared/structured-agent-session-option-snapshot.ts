@@ -116,11 +116,15 @@ export function structuredAgentSessionDrawnValues(
 }
 
 function drawnModelControls(state: StructuredAgentSessionOptionState) {
-  const { catalog, record } = state
-  if (!catalog || state.catalogSource === 'seed') {
+  const { record } = state
+  if (
+    !state.catalog ||
+    (state.catalogSource === 'seed' && structuredAgentSessionModelId(record, 'own') === null)
+  ) {
     return null
   }
-  // A seeded default can name a model the static seed does not list yet.
+  // Before discovery, name only accepted input; static rows cannot supply installed capabilities.
+  const catalog = state.catalogSource === 'seed' ? { ...state.catalog, models: [] } : state.catalog
   const models = withTrackedNativeChatModel(catalog, catalog.models, { model: record.values.model })
   const shown = structuredAgentSessionShownModel(catalog, models, record)
   const controls = shown.controlsModelId
@@ -129,7 +133,10 @@ function drawnModelControls(state: StructuredAgentSessionOptionState) {
   // Normalize only under the named model’s listed controls; stand-ins/unlisted models preserve host values.
   const normalises =
     shown.shown.currentId !== null &&
-    structuredAgentSessionDescribedModel(state, shown.shown.currentId) !== undefined
+    structuredAgentSessionDescribedModel(
+      { catalog, verifiedModelIds: state.verifiedModelIds },
+      shown.shown.currentId
+    ) !== undefined
   const values = normalises
     ? valuesUnderControls(catalog, controls, record.values, state.olderHost === true)
     : record.values
