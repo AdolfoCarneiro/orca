@@ -23,7 +23,9 @@ const paletteMeasurementFile =
 const measurementFiles = [measurementFile, paletteMeasurementFile]
 const phoneContractModules = [
   'mobile/src/session/native-chat/mobile-native-chat-stream-frame.ts',
-  'mobile/src/session/mobile-native-chat-render-data.ts'
+  'mobile/src/session/mobile-native-chat-render-data.ts',
+  'mobile/src/i18n/mobile-i18n.ts',
+  'mobile/src/i18n/locale-catalog-imports.ts'
 ].map((file) => normalizePath(resolve(file)))
 const phoneContractPattern = new RegExp(
   `^(?:${phoneContractModules.map((file) => file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?:\\?.*)?$`
@@ -53,7 +55,7 @@ const transforms = {
       name: 'locale-catalog-test-assets',
       enforce: 'pre' as const,
       load(id: string) {
-        if (/\/i18n\/locales\/[a-z]+\.json\?url$/.test(id)) {
+        if (/\/i18n\/locales\/[A-Za-z-]+\.json\?url$/.test(id)) {
           const catalog = readFileSync(id.slice(0, -4)).toString('base64')
           return `export default ${JSON.stringify(`data:application/json;base64,${catalog}`)}`
         }
@@ -160,7 +162,6 @@ export default defineConfig({
   ...transforms,
   test: {
     ...testOptions,
-    experimental: { recordDependencies: !process.env.CI },
     forceRerunTriggers: [
       ...configDefaults.forceRerunTriggers,
       '**/pnpm-lock.yaml',
