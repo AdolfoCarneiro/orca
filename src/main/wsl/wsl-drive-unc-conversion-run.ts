@@ -155,9 +155,17 @@ function checkScope(
     { repoIds, folderWorkspaceIds },
     rewriteRoots
   )
-  const split = wslDriveUncDuplicatesSplitBy(state, scope, request.distro, rewriteRoots(converting))
+  const split = wslDriveUncDuplicatesSplitBy(state, scope, request.distro, converting, () =>
+    rewriteRoots(converting)
+  )
   return split.length > 0
-    ? { blockers: split.map(({ id, reason }) => ({ kind: 'not-convertible', id, reason })) }
+    ? {
+        blockers: split.map((id) => ({
+          kind: 'not-convertible',
+          id,
+          reason: 'overlaps-refused-project'
+        }))
+      }
     : converting
 }
 
