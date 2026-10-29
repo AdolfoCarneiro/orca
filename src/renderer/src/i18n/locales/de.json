@@ -20219,8 +20219,28 @@
         "jiraSummaryBusyInOtherDraft": "In einem anderen Entwurf wird bereits ein Jira-Titel generiert.",
         "stagedChangesReadFailed": "Vorgemerkte Änderungen konnten nicht gelesen werden.",
         "noStagedChanges": "Keine vorgemerkten Änderungen zum Zusammenfassen.",
-        "noBranchChanges": "Keine Änderungen im Branch zum Zusammenfassen."
-      }
+        "noBranchChanges": "Keine Änderungen im Branch zum Zusammenfassen.",
+        "commandTemplateEmptyCommitMessage": "Die Befehlsvorlage für Commit-Nachrichten ist leer.",
+        "commandTemplateEmptyPullRequest": "Die Befehlsvorlage für Pull-Request-Details ist leer.",
+        "commandTemplateEmptyBranchName": "Die Befehlsvorlage für Branch-Namen ist leer.",
+        "commandTemplateEmptyChatName": "Die Befehlsvorlage für Chat-Namen ist leer.",
+        "sourceControlAgentUnsupported": "Für diese Aktion unter Einstellungen -> Git -> KI für die Quellcodeverwaltung einen unterstützten Agenten auswählen. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "chatNameAgentUnsupported": "Für diese Aktion unter Einstellungen -> Chat -> Chat-Namen einen unterstützten Agenten für Chat-Namen auswählen. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "sourceControlCustomCommandEmpty": "Der benutzerdefinierte Befehl ist leer. Unter Einstellungen -> Git -> KI für die Quellcodeverwaltung einen hinzufügen.",
+        "chatNameCustomCommandEmpty": "Der benutzerdefinierte Befehl ist leer. Unter Einstellungen -> Chat -> Chat-Namen einen hinzufügen.",
+        "agentCannotGenerateCommitMessage": "Agent „{{agent}}“ unterstützt keine Commit-Nachrichten über die KI für die Quellcodeverwaltung. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "agentCannotGeneratePullRequest": "Agent „{{agent}}“ unterstützt keine Pull-Request-Details über die KI für die Quellcodeverwaltung. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "agentCannotGenerateBranchName": "Agent „{{agent}}“ unterstützt keine Branch-Namen über die KI für die Quellcodeverwaltung. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "agentCannotGenerateChatName": "Agent „{{agent}}“ unterstützt keine Chat-Namen. Unterstützte Agenten: {{agents}} oder „Benutzerdefinierter Befehl“.",
+        "noModelForAgent": "Für {{label}} ist kein Modell verfügbar.",
+        "planCustomCommandEmpty": "Der benutzerdefinierte Befehl ist leer. Unter Einstellungen → Git → KI-Commit-Nachrichten einen hinzufügen.",
+        "planAgentUnsupported": "Agent „{{agent}}“ unterstützt keine KI-generierten Commit-Nachrichten.",
+        "planModelUnavailable": "Modell „{{model}}“ ist für {{label}} nicht verfügbar.",
+        "planModelWithoutThinking": "Modell „{{model}}“ unterstützt keine Einstellung des Denkaufwands.",
+        "planThinkingLevelInvalid": "Die Denkstufe „{{level}}“ ist für {{model}} nicht gültig."
+      },
+      "enableSourceControlAi": "KI für die Quellcodeverwaltung unter Einstellungen -> Git aktivieren.",
+      "chooseBaseBranch": "Vor dem Generieren einen Basis-Branch auswählen."
     }
   },
   "agentsSidebarIntro": {

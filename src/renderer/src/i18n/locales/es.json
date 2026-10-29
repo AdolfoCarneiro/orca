@@ -20934,8 +20934,28 @@
         "jiraSummaryBusyInOtherDraft": "Ya se está generando un título de Jira en otro borrador.",
         "stagedChangesReadFailed": "No se pudieron leer los cambios preparados.",
         "noStagedChanges": "No hay cambios preparados para resumir.",
-        "noBranchChanges": "No hay cambios en la rama para resumir."
-      }
+        "noBranchChanges": "No hay cambios en la rama para resumir.",
+        "commandTemplateEmptyCommitMessage": "La plantilla de comando para mensajes de commit está vacía.",
+        "commandTemplateEmptyPullRequest": "La plantilla de comando para detalles de pull requests está vacía.",
+        "commandTemplateEmptyBranchName": "La plantilla de comando para nombres de ramas está vacía.",
+        "commandTemplateEmptyChatName": "La plantilla de comando para nombres de chats está vacía.",
+        "sourceControlAgentUnsupported": "Elige un agente compatible con Source Control AI para esta acción en Ajustes -> Git -> Source Control AI. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "chatNameAgentUnsupported": "Elige un agente compatible para generar nombres de chats en esta acción en Ajustes -> Chat -> Nombres de chats. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "sourceControlCustomCommandEmpty": "El comando personalizado está vacío. Añade uno en Ajustes -> Git -> Source Control AI.",
+        "chatNameCustomCommandEmpty": "El comando personalizado está vacío. Añade uno en Ajustes -> Chat -> Nombres de chats.",
+        "agentCannotGenerateCommitMessage": "El agente «{{agent}}» no admite mensajes de commit de Source Control AI. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "agentCannotGeneratePullRequest": "El agente «{{agent}}» no admite detalles de pull requests de Source Control AI. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "agentCannotGenerateBranchName": "El agente «{{agent}}» no admite nombres de ramas de Source Control AI. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "agentCannotGenerateChatName": "El agente «{{agent}}» no admite nombres de chats. Agentes compatibles: {{agents}}, o «Comando personalizado».",
+        "noModelForAgent": "No hay ningún modelo disponible para {{label}}.",
+        "planCustomCommandEmpty": "El comando personalizado está vacío. Añade uno en Ajustes → Git → Mensajes de commit con IA.",
+        "planAgentUnsupported": "El agente «{{agent}}» no admite mensajes de commit con IA.",
+        "planModelUnavailable": "El modelo «{{model}}» no está disponible para {{label}}.",
+        "planModelWithoutThinking": "El modelo «{{model}}» no admite un nivel de esfuerzo de razonamiento.",
+        "planThinkingLevelInvalid": "El nivel de razonamiento «{{level}}» no es válido para {{model}}."
+      },
+      "enableSourceControlAi": "Activa Source Control AI en Ajustes -> Git.",
+      "chooseBaseBranch": "Elige una rama base antes de generar."
     }
   },
   "aiVault": {

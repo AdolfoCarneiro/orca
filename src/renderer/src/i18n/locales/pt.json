@@ -128,8 +128,28 @@
         "jiraSummaryBusyInOtherDraft": "Um título do Jira já está sendo gerado em outro rascunho.",
         "stagedChangesReadFailed": "Não foi possível ler as alterações no stage.",
         "noStagedChanges": "Não há alterações no stage para resumir.",
-        "noBranchChanges": "Não há alterações na branch para resumir."
-      }
+        "noBranchChanges": "Não há alterações na branch para resumir.",
+        "commandTemplateEmptyCommitMessage": "O modelo de comando para mensagens de commit está vazio.",
+        "commandTemplateEmptyPullRequest": "O modelo de comando para detalhes de pull requests está vazio.",
+        "commandTemplateEmptyBranchName": "O modelo de comando para nomes de branches está vazio.",
+        "commandTemplateEmptyChatName": "O modelo de comando para nomes dos chats está vazio.",
+        "sourceControlAgentUnsupported": "Escolha um agente compatível com a IA de Controle de Versão para esta ação em Configurações -> Git -> IA de Controle de Versão. Agentes suportados: {{agents}}, ou Comando personalizado.",
+        "chatNameAgentUnsupported": "Escolha um agente compatível para gerar nomes dos chats nesta ação em Configurações -> Chat -> Nomes dos chats. Agentes suportados: {{agents}}, ou Comando personalizado.",
+        "sourceControlCustomCommandEmpty": "O comando personalizado está vazio. Adicione um em Configurações -> Git -> IA de Controle de Versão.",
+        "chatNameCustomCommandEmpty": "O comando personalizado está vazio. Adicione um em Configurações -> Chat -> Nomes dos chats.",
+        "agentCannotGenerateCommitMessage": "O agente \"{{agent}}\" não suporta mensagens de commit da IA de Controle de Versão. Agentes suportados: {{agents}}, ou Comando personalizado.",
+        "agentCannotGeneratePullRequest": "O agente \"{{agent}}\" não suporta detalhes de pull requests da IA de Controle de Versão. Agentes suportados: {{agents}}, ou Comando personalizado.",
+        "agentCannotGenerateBranchName": "O agente \"{{agent}}\" não suporta nomes de branches da IA de Controle de Versão. Agentes suportados: {{agents}}, ou Comando personalizado.",
+        "agentCannotGenerateChatName": "O agente \"{{agent}}\" não suporta nomes dos chats. Agentes suportados: {{agents}}, ou Comando personalizado.",
+        "noModelForAgent": "Nenhum modelo está disponível para {{label}}.",
+        "planCustomCommandEmpty": "O comando personalizado está vazio. Adicione um em Configurações → Git → Mensagens de commit com IA.",
+        "planAgentUnsupported": "O agente \"{{agent}}\" não suporta mensagens de commit com IA.",
+        "planModelUnavailable": "O modelo \"{{model}}\" não está disponível para {{label}}.",
+        "planModelWithoutThinking": "O modelo \"{{model}}\" não suporta um nível de esforço de raciocínio.",
+        "planThinkingLevelInvalid": "O nível de raciocínio \"{{level}}\" não é válido para {{model}}."
+      },
+      "enableSourceControlAi": "Ative a IA de Controle de Versão em Configurações -> Git.",
+      "chooseBaseBranch": "Escolha uma branch base antes de gerar."
     }
   },
   "githubChecks": {

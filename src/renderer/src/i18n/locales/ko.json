@@ -19922,8 +19922,28 @@
         "jiraSummaryBusyInOtherDraft": "다른 초안에서 이미 Jira 제목을 생성하고 있습니다.",
         "stagedChangesReadFailed": "스테이징된 변경 사항을 읽을 수 없습니다.",
         "noStagedChanges": "요약할 스테이징된 변경 사항이 없습니다.",
-        "noBranchChanges": "요약할 브랜치 변경 사항이 없습니다."
-      }
+        "noBranchChanges": "요약할 브랜치 변경 사항이 없습니다.",
+        "commandTemplateEmptyCommitMessage": "commit 메시지용 명령 템플릿이 비어 있습니다.",
+        "commandTemplateEmptyPullRequest": "PR 세부 정보용 명령 템플릿이 비어 있습니다.",
+        "commandTemplateEmptyBranchName": "브랜치 이름용 명령 템플릿이 비어 있습니다.",
+        "commandTemplateEmptyChatName": "채팅 이름용 명령 템플릿이 비어 있습니다.",
+        "sourceControlAgentUnsupported": "설정 -> Git -> 소스 제어 AI에서 이 작업에 사용할 수 있는 에이전트를 선택하세요. 지원되는 에이전트: {{agents}} 또는 사용자 지정 명령.",
+        "chatNameAgentUnsupported": "설정 -> 채팅 -> 채팅 이름에서 이 작업에 사용할 수 있는 채팅 이름 생성 에이전트를 선택하세요. 지원되는 에이전트: {{agents}} 또는 사용자 지정 명령.",
+        "sourceControlCustomCommandEmpty": "사용자 지정 명령이 비어 있습니다. 설정 -> Git -> 소스 제어 AI에서 추가하세요.",
+        "chatNameCustomCommandEmpty": "사용자 지정 명령이 비어 있습니다. 설정 -> 채팅 -> 채팅 이름에서 추가하세요.",
+        "agentCannotGenerateCommitMessage": "\"{{agent}}\" 에이전트는 소스 제어 AI의 commit 메시지를 지원하지 않습니다. 지원되는 에이전트: {{agents}} 또는 사용자 지정 명령.",
+        "agentCannotGeneratePullRequest": "\"{{agent}}\" 에이전트는 소스 제어 AI의 PR 세부 정보를 지원하지 않습니다. 지원되는 에이전트: {{agents}} 또는 사용자 지정 명령.",
+        "agentCannotGenerateBranchName": "\"{{agent}}\" 에이전트는 소스 제어 AI의 브랜치 이름을 지원하지 않습니다. 지원되는 에이전트: {{agents}} 또는 사용자 지정 명령.",
+        "agentCannotGenerateChatName": "\"{{agent}}\" 에이전트는 채팅 이름을 지원하지 않습니다. 지원되는 에이전트: {{agents}} 또는 사용자 지정 명령.",
+        "noModelForAgent": "{{label}}에서 사용할 수 있는 모델이 없습니다.",
+        "planCustomCommandEmpty": "사용자 지정 명령이 비어 있습니다. 설정 → Git → AI commit 메시지에서 추가하세요.",
+        "planAgentUnsupported": "\"{{agent}}\" 에이전트는 AI commit 메시지를 지원하지 않습니다.",
+        "planModelUnavailable": "\"{{model}}\" 모델은 {{label}}에서 사용할 수 없습니다.",
+        "planModelWithoutThinking": "\"{{model}}\" 모델은 사고 강도 설정을 지원하지 않습니다.",
+        "planThinkingLevelInvalid": "{{model}}에서는 사고 강도 \"{{level}}\" 설정을 사용할 수 없습니다."
+      },
+      "enableSourceControlAi": "설정 -> Git에서 소스 제어 AI를 활성화하세요.",
+      "chooseBaseBranch": "생성하기 전에 기준 브랜치를 선택하세요."
     }
   },
   "rendererRecovery": {

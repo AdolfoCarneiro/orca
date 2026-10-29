@@ -19922,8 +19922,28 @@
         "jiraSummaryBusyInOtherDraft": "別の下書きですでに Jira のタイトルを生成中です。",
         "stagedChangesReadFailed": "ステージ済みの変更を読み取れませんでした。",
         "noStagedChanges": "要約するステージ済みの変更はありません。",
-        "noBranchChanges": "要約するブランチの変更はありません。"
-      }
+        "noBranchChanges": "要約するブランチの変更はありません。",
+        "commandTemplateEmptyCommitMessage": "コミットメッセージ用のコマンドテンプレートが空です。",
+        "commandTemplateEmptyPullRequest": "PR の詳細用のコマンドテンプレートが空です。",
+        "commandTemplateEmptyBranchName": "ブランチ名用のコマンドテンプレートが空です。",
+        "commandTemplateEmptyChatName": "チャット名用のコマンドテンプレートが空です。",
+        "sourceControlAgentUnsupported": "この操作に対応する Agent を設定 -> Git -> ソース管理 AI で選択してください。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "chatNameAgentUnsupported": "この操作に対応するチャット名生成用の Agent を設定 -> チャット -> チャット名で選択してください。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "sourceControlCustomCommandEmpty": "カスタムコマンドが空です。設定 -> Git -> ソース管理 AI で追加してください。",
+        "chatNameCustomCommandEmpty": "カスタムコマンドが空です。設定 -> チャット -> チャット名で追加してください。",
+        "agentCannotGenerateCommitMessage": "Agent「{{agent}}」はソース管理 AI のコミットメッセージに対応していません。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "agentCannotGeneratePullRequest": "Agent「{{agent}}」はソース管理 AI の PR の詳細に対応していません。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "agentCannotGenerateBranchName": "Agent「{{agent}}」はソース管理 AI のブランチ名に対応していません。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "agentCannotGenerateChatName": "Agent「{{agent}}」はチャット名に対応していません。対応 Agent: {{agents}}、またはカスタムコマンド。",
+        "noModelForAgent": "{{label}} で利用できるモデルがありません。",
+        "planCustomCommandEmpty": "カスタムコマンドが空です。設定 → Git → AI コミットメッセージで追加してください。",
+        "planAgentUnsupported": "Agent「{{agent}}」は AI コミットメッセージに対応していません。",
+        "planModelUnavailable": "モデル「{{model}}」は {{label}} で利用できません。",
+        "planModelWithoutThinking": "モデル「{{model}}」は思考の強度設定に対応していません。",
+        "planThinkingLevelInvalid": "思考レベル「{{level}}」は {{model}} では無効です。"
+      },
+      "enableSourceControlAi": "設定 -> Git でソース管理 AI を有効にしてください。",
+      "chooseBaseBranch": "生成する前にベースブランチを選択してください。"
     }
   },
   "rendererRecovery": {

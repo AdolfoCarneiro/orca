@@ -19935,8 +19935,28 @@
         "jiraSummaryBusyInOtherDraft": "另一份草稿已在產生 Jira 標題。",
         "stagedChangesReadFailed": "無法讀取已暫存的變更。",
         "noStagedChanges": "沒有可供產生摘要的已暫存變更。",
-        "noBranchChanges": "沒有可供產生摘要的分支變更。"
-      }
+        "noBranchChanges": "沒有可供產生摘要的分支變更。",
+        "commandTemplateEmptyCommitMessage": "提交訊息的命令範本為空白。",
+        "commandTemplateEmptyPullRequest": "PR 詳細資料的命令範本為空白。",
+        "commandTemplateEmptyBranchName": "分支名稱的命令範本為空白。",
+        "commandTemplateEmptyChatName": "聊天名稱的命令範本為空白。",
+        "sourceControlAgentUnsupported": "請在「設定 -> Git -> 原始碼控制 AI」中，為此操作選擇支援的代理程式。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "chatNameAgentUnsupported": "請在「設定 -> 聊天 -> 聊天名稱」中，為此操作選擇支援的聊天命名代理程式。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "sourceControlCustomCommandEmpty": "自訂命令為空白。請在「設定 -> Git -> 原始碼控制 AI」中新增。",
+        "chatNameCustomCommandEmpty": "自訂命令為空白。請在「設定 -> 聊天 -> 聊天名稱」中新增。",
+        "agentCannotGenerateCommitMessage": "代理程式「{{agent}}」不支援原始碼控制 AI 提交訊息。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "agentCannotGeneratePullRequest": "代理程式「{{agent}}」不支援原始碼控制 AI PR 詳細資料。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "agentCannotGenerateBranchName": "代理程式「{{agent}}」不支援原始碼控制 AI 分支名稱。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "agentCannotGenerateChatName": "代理程式「{{agent}}」不支援聊天名稱。支援的代理程式：{{agents}}，或選擇「自訂命令」。",
+        "noModelForAgent": "{{label}} 沒有可用的模型。",
+        "planCustomCommandEmpty": "自訂命令為空白。請在「設定 → Git → AI 提交訊息」中新增。",
+        "planAgentUnsupported": "代理程式「{{agent}}」不支援 AI 提交訊息。",
+        "planModelUnavailable": "模型「{{model}}」無法用於 {{label}}。",
+        "planModelWithoutThinking": "模型「{{model}}」不支援設定思考強度。",
+        "planThinkingLevelInvalid": "思考強度「{{level}}」不適用於 {{model}}。"
+      },
+      "enableSourceControlAi": "請在「設定 -> Git」中啟用原始碼控制 AI。",
+      "chooseBaseBranch": "產生前請先選擇基礎分支。"
     }
   },
   "agentsSidebarIntro": {

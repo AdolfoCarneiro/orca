@@ -20200,8 +20200,28 @@
         "jiraSummaryBusyInOtherDraft": "Başka bir taslakta zaten bir Jira başlığı oluşturuluyor.",
         "stagedChangesReadFailed": "Stage'e eklenen değişiklikler okunamadı.",
         "noStagedChanges": "Özetlenecek stage'e eklenmiş değişiklik yok.",
-        "noBranchChanges": "Özetlenecek branch değişikliği yok."
-      }
+        "noBranchChanges": "Özetlenecek branch değişikliği yok.",
+        "commandTemplateEmptyCommitMessage": "Commit mesajları için komut şablonu boş.",
+        "commandTemplateEmptyPullRequest": "Pull request ayrıntıları için komut şablonu boş.",
+        "commandTemplateEmptyBranchName": "Branch adları için komut şablonu boş.",
+        "commandTemplateEmptyChatName": "Sohbet adları için komut şablonu boş.",
+        "sourceControlAgentUnsupported": "Bu eylem için Ayarlar -> Git -> Kaynak Kontrolü AI bölümünde desteklenen bir ajan seçin. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "chatNameAgentUnsupported": "Bu eylem için Ayarlar -> Sohbet -> Sohbet adları bölümünde desteklenen bir sohbet adı oluşturma ajanı seçin. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "sourceControlCustomCommandEmpty": "Özel komut boş. Ayarlar -> Git -> Kaynak Kontrolü AI bölümünde bir komut ekleyin.",
+        "chatNameCustomCommandEmpty": "Özel komut boş. Ayarlar -> Sohbet -> Sohbet adları bölümünde bir komut ekleyin.",
+        "agentCannotGenerateCommitMessage": "\"{{agent}}\" ajanı Kaynak Kontrolü AI commit mesajlarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "agentCannotGeneratePullRequest": "\"{{agent}}\" ajanı Kaynak Kontrolü AI pull request ayrıntılarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "agentCannotGenerateBranchName": "\"{{agent}}\" ajanı Kaynak Kontrolü AI branch adlarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "agentCannotGenerateChatName": "\"{{agent}}\" ajanı sohbet adlarını desteklemiyor. Desteklenen ajanlar: {{agents}} veya Özel komut.",
+        "noModelForAgent": "{{label}} için kullanılabilir model yok.",
+        "planCustomCommandEmpty": "Özel komut boş. Ayarlar → Git → Yapay Zekâ Destekli Commit Mesajları bölümünde bir komut ekleyin.",
+        "planAgentUnsupported": "\"{{agent}}\" ajanı yapay zekâ destekli commit mesajlarını desteklemiyor.",
+        "planModelUnavailable": "\"{{model}}\" modeli {{label}} için kullanılamıyor.",
+        "planModelWithoutThinking": "\"{{model}}\" modeli düşünme çabası düzeyini desteklemiyor.",
+        "planThinkingLevelInvalid": "\"{{level}}\" düşünme düzeyi {{model}} için geçerli değil."
+      },
+      "enableSourceControlAi": "Ayarlar -> Git bölümünde Kaynak Kontrolü AI özelliğini etkinleştirin.",
+      "chooseBaseBranch": "Oluşturmadan önce bir temel branch seçin."
     }
   },
   "agentsSidebarIntro": {

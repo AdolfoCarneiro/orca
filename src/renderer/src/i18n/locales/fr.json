@@ -20488,8 +20488,28 @@
         "jiraSummaryBusyInOtherDraft": "Un titre Jira est déjà en cours de génération dans un autre brouillon.",
         "stagedChangesReadFailed": "Impossible de lire les modifications stagées.",
         "noStagedChanges": "Aucune modification stagée à résumer.",
-        "noBranchChanges": "Aucune modification de branche à résumer."
-      }
+        "noBranchChanges": "Aucune modification de branche à résumer.",
+        "commandTemplateEmptyCommitMessage": "Le modèle de commande pour les messages de commit est vide.",
+        "commandTemplateEmptyPullRequest": "Le modèle de commande pour les détails des pull requests est vide.",
+        "commandTemplateEmptyBranchName": "Le modèle de commande pour les noms de branches est vide.",
+        "commandTemplateEmptyChatName": "Le modèle de commande pour les noms des chats est vide.",
+        "sourceControlAgentUnsupported": "Choisissez un agent pris en charge pour cette action dans Paramètres -> Git -> IA du contrôle de code source. Agents pris en charge : {{agents}}, ou « Commande personnalisée ».",
+        "chatNameAgentUnsupported": "Choisissez un agent de nommage des chats pris en charge pour cette action dans Paramètres -> Chat -> Noms des chats. Agents pris en charge : {{agents}}, ou « Commande personnalisée ».",
+        "sourceControlCustomCommandEmpty": "La commande personnalisée est vide. Ajoutez-en une dans Paramètres -> Git -> IA du contrôle de code source.",
+        "chatNameCustomCommandEmpty": "La commande personnalisée est vide. Ajoutez-en une dans Paramètres -> Chat -> Noms des chats.",
+        "agentCannotGenerateCommitMessage": "L’agent « {{agent}} » ne prend pas en charge les messages de commit de l’IA du contrôle de code source. Agents pris en charge : {{agents}}, ou « Commande personnalisée ».",
+        "agentCannotGeneratePullRequest": "L’agent « {{agent}} » ne prend pas en charge les détails des pull requests de l’IA du contrôle de code source. Agents pris en charge : {{agents}}, ou « Commande personnalisée ».",
+        "agentCannotGenerateBranchName": "L’agent « {{agent}} » ne prend pas en charge les noms de branches de l’IA du contrôle de code source. Agents pris en charge : {{agents}}, ou « Commande personnalisée ».",
+        "agentCannotGenerateChatName": "L’agent « {{agent}} » ne prend pas en charge les noms des chats. Agents pris en charge : {{agents}}, ou « Commande personnalisée ».",
+        "noModelForAgent": "Aucun modèle n’est disponible pour {{label}}.",
+        "planCustomCommandEmpty": "La commande personnalisée est vide. Ajoutez-en une dans Paramètres → Git → Messages de commit par IA.",
+        "planAgentUnsupported": "L’agent « {{agent}} » ne prend pas en charge les messages de commit générés par IA.",
+        "planModelUnavailable": "Le modèle « {{model}} » n’est pas disponible pour {{label}}.",
+        "planModelWithoutThinking": "Le modèle « {{model}} » ne prend pas en charge les niveaux d’effort de réflexion.",
+        "planThinkingLevelInvalid": "Le niveau de réflexion « {{level}} » n’est pas valide pour {{model}}."
+      },
+      "enableSourceControlAi": "Activez l’IA du contrôle de code source dans Paramètres -> Git.",
+      "chooseBaseBranch": "Choisissez une branche de base avant de générer."
     }
   },
   "agentsSidebarIntro": {
