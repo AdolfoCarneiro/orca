@@ -12,7 +12,7 @@ import { useStore } from 'zustand'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
 import { useTaskPageLinearCollectionEffectsPrelude } from './use-task-page-linear-collection-effects'
 import { useTaskPageLinearCustomViewEffects } from './use-task-page-linear-custom-view-effects'
-import { afterEach, beforeEach, vi } from 'vitest'
+import { afterEach, beforeEach, vi, type Mock } from 'vitest'
 import { cleanup, renderHook } from '@testing-library/react'
 import { createTestStore, issue } from '../../../store/slices/linear-slice-test-harness'
 import { clearLinearRequestMaps } from '../../../store/slices/linear/linear-slice-request-state'
@@ -66,7 +66,18 @@ vi.mock('@/i18n/i18n', async (original) => ({
     fallback.replace(/{{(\w+)}}/g, (match, key) => values?.[key] ?? match)
 }))
 
-const reads = vi.hoisted(() => ({
+const reads: {
+  list: Mock
+  search: Mock
+  project: Mock
+  view: Mock
+  detail: Mock
+  update: Mock
+  create: Mock
+  projects: Mock
+  connect: Mock
+  test: Mock
+} = vi.hoisted(() => ({
   list: vi.fn(),
   search: vi.fn(),
   project: vi.fn(),
@@ -205,7 +216,7 @@ export function read(s: Store, view: View, force = true) {
   return state.listLinearIssues(listArgs, { force })
 }
 
-export function wire(view: View) {
+export function wire(view: View): Mock {
   return view === 'custom-view' ? reads.view : reads[view]
 }
 
