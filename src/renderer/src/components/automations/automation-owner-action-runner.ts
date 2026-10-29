@@ -62,12 +62,27 @@ const CONFLICT_RECOVERY: Record<AutomationOwnerConflictCode, AutomationHostRecov
     automation_destination_invalid: 'retry'
   }
 
-function conflictOutcome(code: AutomationOwnerConflictCode): AutomationActionOutcome<never> {
+function conflictOutcome(
+  code: AutomationOwnerConflictCode,
+  error: unknown
+): AutomationActionOutcome<never> {
+  const message =
+    typeof error === 'string'
+      ? error
+      : error &&
+          typeof error === 'object' &&
+          'message' in error &&
+          typeof error.message === 'string'
+        ? error.message
+        : null
   return {
     status: 'conflict',
     conflict: {
       code,
-      message: automationOwnerConflictMessage(code),
+      message:
+        message && message.trim() !== code
+          ? stripAutomationOwnerConflictCode(message)
+          : automationOwnerConflictMessage(code),
       recovery: CONFLICT_RECOVERY[code]
     }
   }
@@ -76,7 +91,7 @@ function conflictOutcome(code: AutomationOwnerConflictCode): AutomationActionOut
 function classify(error: unknown): AutomationActionOutcome<never> {
   const conflict = matchAutomationOwnerConflict(error)
   if (conflict) {
-    return conflictOutcome(conflict)
+    return conflictOutcome(conflict, error)
   }
   if (error instanceof AutomationHostScopeUnsupportedError) {
     return {

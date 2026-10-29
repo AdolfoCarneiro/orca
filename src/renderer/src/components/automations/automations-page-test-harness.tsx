@@ -21,13 +21,12 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { resetAutomationCapabilityProbes } from './automation-scoped-list-client'
 import {
   addRuntimeProject as addRuntimeProjectFixture,
-  RUNTIME_REPO_ID as RUNTIME_REPO_ID_FIXTURE,
-  RUNTIME_WORKSPACE_ID as RUNTIME_WORKSPACE_ID_FIXTURE,
+  RUNTIME_REPO_ID,
+  RUNTIME_WORKSPACE_ID,
   selfScopedList
 } from './automations-page-runtime-fixtures'
 
-export const RUNTIME_REPO_ID = RUNTIME_REPO_ID_FIXTURE
-export const RUNTIME_WORKSPACE_ID = RUNTIME_WORKSPACE_ID_FIXTURE
+export { RUNTIME_REPO_ID, RUNTIME_WORKSPACE_ID }
 
 export type ListPanelProps = {
   sortedListItems: readonly AutomationListViewItem[]
@@ -85,6 +84,7 @@ export type EditorDialogProps = {
   draft?: { projectId: string; workspaceId: string }
   canSave?: boolean
   onSave: () => void
+  onProjectChange: (projectId: string) => void
   onDraftChange: (updater: (current: unknown) => unknown) => void
 }
 

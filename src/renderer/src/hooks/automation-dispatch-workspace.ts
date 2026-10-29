@@ -37,20 +37,18 @@ export function resolveAutomationDispatchWorkspace(
   const runRepoId = getAutomationRunRepoId(automation)
   const repo = findAutomationRepo(state.repos, runRepoId, automation.runContext)
   const automationWorkspaceScope = parseWorkspaceKey(automation.workspaceId ?? '')
+  const folderTarget =
+    automationWorkspaceScope?.type === 'folder'
+      ? resolveQualifiedFolderWorkspaceResult(state, automationWorkspaceScope.folderWorkspaceId)
+      : null
   const automationWorktree = automation.workspaceId
-    ? automationWorkspaceScope?.type === 'folder'
-      ? (() => {
-          const folder = resolveQualifiedFolderWorkspaceResult(
-            state,
-            automationWorkspaceScope.folderWorkspaceId
-          )
-          return folder.kind === 'selected'
-            ? folderWorkspaceToWorktree({
-                ...folder.value.workspace,
-                executionHostId: folder.value.hostId
-              })
-            : null
-        })()
+    ? folderTarget
+      ? folderTarget.kind === 'selected'
+        ? folderWorkspaceToWorktree({
+            ...folderTarget.value.workspace,
+            executionHostId: folderTarget.value.hostId
+          })
+        : null
       : state
           .allWorktrees()
           .find(
@@ -64,7 +62,7 @@ export function resolveAutomationDispatchWorkspace(
     workspaceDisplayName: automationWorktree?.displayName ?? run.workspaceDisplayName ?? null,
     precheckResult: null
   }
-  return { runRepoId, repo, automationWorkspaceScope, automationWorktree, context }
+  return { runRepoId, repo, automationWorkspaceScope, automationWorktree, folderTarget, context }
 }
 
 type ResolvedAutomationDispatchWorkspace = ReturnType<typeof resolveAutomationDispatchWorkspace>
@@ -89,7 +87,7 @@ export async function prepareAutomationDispatchWorkspace(args: {
             automationWorkspaceScope.folderWorkspaceId,
             resolved.automationWorktree.hostId
           )
-        : { kind: 'missing' as const }
+        : resolved.folderTarget
       : null
   const folder = folderTarget?.kind === 'selected' ? folderTarget.value : null
   const automationWorktree = folder
@@ -134,10 +132,16 @@ export async function prepareAutomationDispatchWorkspace(args: {
       status: 'skipped_unavailable',
       workspaceId: automation.workspaceId,
       workspaceDisplayName: context.workspaceDisplayName,
-      error: translate(
-        'auto.hooks.useAutomationDispatchEvents.59718b120b',
-        'The target workspace is no longer available.'
-      )
+      error:
+        folderTarget?.kind === 'ambiguous'
+          ? translate(
+              'auto.hooks.useAutomationDispatchEvents.workspaceHostUnresolved',
+              'The target workspace spans more than one host, so this run has no single host to use.'
+            )
+          : translate(
+              'auto.hooks.useAutomationDispatchEvents.59718b120b',
+              'The target workspace is no longer available.'
+            )
     })
     return null
   }

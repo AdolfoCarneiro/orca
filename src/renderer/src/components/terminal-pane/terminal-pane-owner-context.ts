@@ -4,6 +4,8 @@ import { getConnectionIdFromState } from '@/lib/connection-context'
 import type { TerminalWorktreeRoute } from '@/lib/terminal-worktree-route'
 import { resolveWorktreeOperationRouteForHost } from '@/lib/worktree-operation-route'
 import { getRemoteRuntimePtyEnvironmentId } from '@/runtime/runtime-terminal-stream'
+import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
+import { isEphemeralSetupTerminalWorktreeId } from '../../../../shared/ephemeral-setup-terminal-worktree-id'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
 import { isWebTerminalSurfaceTabId } from '../../../../shared/terminal-surface-id'
 import {
@@ -98,7 +100,13 @@ export function resolveTerminalPaneOwnerContext(
       ? toRuntimeExecutionHostId(runtimeEnvironmentId)
       : (selectedHost?.id ??
         parseExecutionHostId(worktree?.hostId)?.id ??
-        (repo ? getRepoExecutionHostId(repo) : getConnectionExecutionHostId(connectionId)))
+        (repo
+          ? getRepoExecutionHostId(repo)
+          : connectionId !== undefined ||
+              worktreeId === FLOATING_TERMINAL_WORKTREE_ID ||
+              isEphemeralSetupTerminalWorktreeId(worktreeId)
+            ? getConnectionExecutionHostId(connectionId)
+            : UNRESOLVED_OWNER_HOST_ID))
   return {
     tab,
     selectedHost,

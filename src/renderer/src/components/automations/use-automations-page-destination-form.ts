@@ -1,3 +1,8 @@
+import { AUTOMATION_ORPHAN_ISSUES } from '../../../../shared/automation-list-scope'
+import {
+  recordedAutomationRunContext,
+  isSameAutomationWorkspace
+} from './automation-recorded-target'
 import { useCallback, useEffect, useMemo } from 'react'
 import {
   getRepoExecutionHostId,
@@ -99,6 +104,18 @@ export function useAutomationsPageDestinationForm({
       ? editHostEntries.find((entry) => entry.stableKey === editingHostStableKey)
       : null
   )
+  const recordedAutomation =
+    captured.selector?.kind === 'orphan' &&
+    captured.selector.issue === AUTOMATION_ORPHAN_ISSUES.hostReselection &&
+    editingRow?.automation.runContext
+      ? editingRow.automation
+      : null
+  const recordedTargetSelected = !!(
+    recordedAutomation &&
+    isSameAutomationWorkspace(recordedAutomation, draft) &&
+    editHostResolution.status === 'ready' &&
+    recordedAutomationRunContext(recordedAutomation, captured, editHostResolution)
+  )
   const editHostProjects =
     editHostResolution.status === 'ready'
       ? automationCreateEligibleProjects(
@@ -133,6 +150,15 @@ export function useAutomationsPageDestinationForm({
     )
     const projectId = draftRef.current.projectId
     if (
+      recordedAutomation &&
+      isSameAutomationWorkspace(recordedAutomation, draftRef.current) &&
+      resolved.status === 'ready' &&
+      recordedAutomationRunContext(recordedAutomation, captured, resolved)
+    ) {
+      setEditingDestination({ projectId, destination: resolved })
+      return
+    }
+    if (
       projectId &&
       resolved.status === 'ready' &&
       !automationCreateProjectMismatch(repoTables, resolved, projectId)
@@ -156,6 +182,10 @@ export function useAutomationsPageDestinationForm({
     resolution: editHostResolution,
     onSelect: handleEditHostChange,
     projects: editHostProjects,
+    recordedProject:
+      recordedAutomation && (!editingHostStableKey || recordedTargetSelected)
+        ? { id: recordedAutomation.projectId, label: recordedAutomation.runContext!.path }
+        : undefined,
     moveWarning: editMoveTargetEntry
       ? translate(
           'auto.components.automations.createDestination.move',
@@ -203,7 +233,9 @@ export function useAutomationsPageDestinationForm({
       if (hostStableKey) {
         const selected = resolveAutomationCreateDestination(selectedEntry)
         return selected.status === 'ready' &&
-          !automationCreateProjectMismatch(repoTables, selected, projectId)
+          (!automationCreateProjectMismatch(repoTables, selected, projectId) ||
+            (recordedAutomation?.projectId === projectId &&
+              !!recordedAutomationRunContext(recordedAutomation, captured, selected)))
           ? selected
           : null
       }
@@ -222,11 +254,12 @@ export function useAutomationsPageDestinationForm({
       const resolved = resolveAutomationCreateDestination(entry)
       return resolved.status === 'ready' ? resolved : null
     },
-    [hostCatalog.entries, projectHostSetups, repoTables, repos]
+    [hostCatalog.entries, projectHostSetups, repoTables, repos, recordedAutomation, captured]
   )
 
   return {
     editingRow,
+    recordedTargetSelected,
     editingRowCapturedOwner,
     automationDialogTarget,
     dialogAuthorityRepos,

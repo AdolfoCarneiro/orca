@@ -42,7 +42,7 @@ export function useAutomationEditorActions({
     editingHostStableKey
   } = local
   const { getDefaultTarget, automationDispatchContext, rowRecoveryHost } = destination
-  const { destinationForProject, editHostResolution } = destinationForm
+  const { destinationForProject, editHostResolution, editDestinationControl } = destinationForm
 
   const openCreateDialog = (template?: AutomationTemplate): void => {
     editRequestRef.current += 1
@@ -126,6 +126,12 @@ export function useAutomationEditorActions({
   const handleProjectChange = useCallback(
     (projectId: string): void => {
       setTargetEdited(true)
+      if (
+        editDestinationControl.recordedProject?.id === projectId &&
+        draftRef.current.projectId === projectId
+      ) {
+        return
+      }
       const currentWorktrees = worktreesByRepo[projectId] ?? []
       const currentDefaultWorktree = getDefaultWorktree(currentWorktrees)
       const selectedEditDestination =
@@ -171,6 +177,8 @@ export function useAutomationEditorActions({
     },
     [
       destinationForProject,
+      editDestinationControl.recordedProject,
+      draftRef,
       editingAutomationId,
       editingHostStableKey,
       editHostResolution,

@@ -3,10 +3,7 @@ import { findProjectHostSetup } from '../../shared/project-host-setup-target'
 import type { Store } from '../persistence'
 import type { Automation } from '../../shared/automations-types'
 import { getAutomationLegacyRepoId } from '../../shared/automation-run-identity'
-import {
-  AUTOMATION_ORPHAN_ISSUES,
-  type AutomationCapturedHostIssue
-} from '../../shared/automation-list-scope'
+import { AUTOMATION_CAPTURED_HOST_REFUSALS } from '../../shared/automation-owner-conflict'
 import { getRepoExecutionHostId, parseExecutionHostId } from '../../shared/execution-host'
 import type { ProjectHostSetup } from '../../shared/project-types'
 import type { Repo } from '../../shared/repo-types'
@@ -21,20 +18,6 @@ import { isOrcadFencedAutomation, ORCAD_FENCED_AUTOMATION } from './orcad-fenced
 export type AutomationRunTargetResult =
   | { ok: true; cwd: string; repo: Repo; setup?: ProjectHostSetup }
   | { ok: false; error: string }
-
-// Keep diagnoses distinct and stable: skip coalescing keys on exact error text.
-const CAPTURED_HOST_REFUSALS: Record<AutomationCapturedHostIssue, string> = {
-  [AUTOMATION_ORPHAN_ISSUES.hostReselection]:
-    'Edit the automation and reselect its host before running it.',
-  [AUTOMATION_ORPHAN_ISSUES.malformed]:
-    'The automation host identity is incomplete. Edit the automation and reselect its host before running it.',
-  [AUTOMATION_ORPHAN_ISSUES.targetMissing]:
-    'The automation host is no longer registered, so this automation has nowhere to run.',
-  [AUTOMATION_ORPHAN_ISSUES.targetReplaced]:
-    'The automation host was removed and re-registered, so this automation must be re-adopted before it can run.',
-  [AUTOMATION_ORPHAN_ISSUES.workspaceHostAmbiguous]:
-    'The automation workspace spans more than one host, so Orca cannot tell which one to run it on.'
-}
 
 const NO_RUNNABLE_HOST = 'This automation has no host to run on.'
 
@@ -57,7 +40,7 @@ function resolveAutomationOwnerRefusal(store: Store, automation: Automation): st
     return null
   }
   const issue = store.automationCapturedHostIssue(automation)
-  return issue ? CAPTURED_HOST_REFUSALS[issue] : NO_RUNNABLE_HOST
+  return issue ? AUTOMATION_CAPTURED_HOST_REFUSALS[issue] : NO_RUNNABLE_HOST
 }
 
 const LEGACY_TWIN_REFUSAL =
@@ -167,7 +150,7 @@ export function resolveAutomationRunTarget(
   // Use the list’s host-generation verdict: matching IDs and paths can survive host replacement.
   const hostIssue = store.automationCapturedHostIssue(automation)
   if (hostIssue) {
-    return { ok: false, error: CAPTURED_HOST_REFUSALS[hostIssue] }
+    return { ok: false, error: AUTOMATION_CAPTURED_HOST_REFUSALS[hostIssue] }
   }
 
   const setup = findProjectHostSetup(store.getProjectHostSetups(), {

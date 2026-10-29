@@ -1,3 +1,5 @@
+import { makeWorktree, TEST_REPO } from '@/store/slices/worktrees-slice-test-fixtures'
+import { makeTab } from '@/store/slices/store-session-test-harness'
 import { createPaneManagerOptionsTestContext } from './terminal-pane-manager-options-test-context'
 import { mockPanePtyArgs } from './pty-connection-test-connect-mock-pane'
 import type * as React from 'react'
@@ -130,6 +132,63 @@ describe('connectPanePty queued startup consume', () => {
   afterEach(async () => {
     await restoreTerminalTestGlobals()
     vi.unstubAllGlobals()
+  })
+
+  it('parks an unknown owner until hydration, then retains the acquired backend on refresh', async () => {
+    const { connectPanePty } = await import('./pty-connection')
+    const { createIpcPtyTransport } = await import('./pty-transport')
+    const { createRemoteRuntimePtyTransport } = await import('./remote-runtime-pty-transport')
+    const { createTerminalPaneManagerOptions } = await import('./terminal-pane-manager-options')
+    const { clearTerminalTabsParkedOnUnresolvedHost, getTabIdsAwaitingHostHydrationRemount } =
+      await import('@/lib/parked-terminal-host-hydration')
+    clearTerminalTabsParkedOnUnresolvedHost()
+    const worktree = makeWorktree({ id: 'wt-hydrating', repoId: TEST_REPO.id, hostId: undefined })
+    const tab = makeTab({ id: 'tab-1', worktreeId: worktree.id, ptyId: null })
+    mockStoreState.repos = []
+    mockStoreState.worktreesByRepo = { [TEST_REPO.id]: [worktree] }
+    mockStoreState.tabsByWorktree = { [worktree.id]: [tab] }
+    mockStoreState.ptyIdsByTabId = {}
+    const deps = buildPaneConnectionDeps(() => mockStoreState, { worktreeId: worktree.id })
+    const pane = createPane(1)
+    const args = mockPanePtyArgs(pane, createManager(1), deps)
+    const parked = connectPanePty(...args)
+    expect(parked.getOwnerContext().executionHostId).toBe('runtime:unresolved-owner')
+    expect(createIpcPtyTransport).not.toHaveBeenCalled()
+    expect(createRemoteRuntimePtyTransport).not.toHaveBeenCalled()
+    const hydrationState = {
+      repos: [],
+      folderWorkspaces: [],
+      projectGroups: [],
+      worktreesByRepo: { [TEST_REPO.id]: [worktree] },
+      tabsByWorktree: { [worktree.id]: [tab] },
+      ptyIdsByTabId: {}
+    }
+    expect(getTabIdsAwaitingHostHydrationRemount(hydrationState)).toEqual([])
+    const repo = { ...TEST_REPO, executionHostId: 'runtime:server' as const }
+    mockStoreState.repos = [repo]
+    mockStoreState.runtimeEnvironments = [{ id: 'server' }]
+    expect(getTabIdsAwaitingHostHydrationRemount({ ...hydrationState, repos: [repo] })).toEqual([
+      'tab-1'
+    ])
+    parked.dispose()
+    transportFactoryQueue.push(createMockTransport())
+    const binding = connectPanePty(...args)
+    const captured = binding.getOwnerContext()
+    expect(captured.executionHostId).toBe('runtime:server')
+    expect(createRemoteRuntimePtyTransport).toHaveBeenCalledExactlyOnceWith(
+      'server',
+      expect.any(Object)
+    )
+    expect(createIpcPtyTransport).not.toHaveBeenCalled()
+    mockStoreState.settings = { ...mockStoreState.settings, activeRuntimeEnvironmentId: 'other' }
+    const context = createPaneManagerOptionsTestContext(args[2], binding, deps.cwd)
+    const options = createTerminalPaneManagerOptions(context)
+    if (typeof options.terminalOptions === 'function') {
+      options.terminalOptions(1)
+    }
+    expect(binding.getOwnerContext()).toBe(captured)
+    binding.dispose()
+    clearTerminalTabsParkedOnUnresolvedHost()
   })
 
   it('spends the queued startup only after the pty is bound to the tab', async () => {

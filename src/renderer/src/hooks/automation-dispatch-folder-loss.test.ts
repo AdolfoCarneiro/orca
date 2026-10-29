@@ -29,7 +29,7 @@ import { handleAutomationDispatchRequest } from './automation-dispatch-handler'
 describe('claimed automation folder loss', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it.each(['removed', 'ambiguous'])(
+  it.each(['removed', 'ambiguous', 'mixed-host'])(
     'settles a claimed run when its folder becomes %s before renderer dispatch',
     async (kind) => {
       vi.clearAllMocks()
@@ -38,7 +38,12 @@ describe('claimed automation folder loss', () => {
           ? []
           : [
               { id: 'saved', projectGroupId: 'g', folderPath: '/first', executionHostId: 'local' },
-              { id: 'saved', projectGroupId: 'g', folderPath: '/second', executionHostId: 'local' }
+              {
+                id: 'saved',
+                projectGroupId: 'g',
+                folderPath: '/second',
+                executionHostId: kind === 'mixed-host' ? 'ssh:other' : 'local'
+              }
             ]
       vi.stubGlobal('window', { api: { automations: { markDispatchResult } } })
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this claimed-run fixture supplies the identity and existing-target members the real handler reads before settlement.
@@ -58,7 +63,11 @@ describe('claimed automation folder loss', () => {
         expect.objectContaining({
           runId: 'run-claimed',
           status: 'skipped_unavailable',
-          workspaceId: 'folder:saved'
+          workspaceId: 'folder:saved',
+          error:
+            kind === 'removed'
+              ? 'The target workspace is no longer available.'
+              : 'The target workspace spans more than one host, so this run has no single host to use.'
         })
       )
       expect(launch).not.toHaveBeenCalled()

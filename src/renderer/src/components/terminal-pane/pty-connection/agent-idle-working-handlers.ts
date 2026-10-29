@@ -89,7 +89,9 @@ export function installAgentIdleWorkingHandlers(session: ConnectPanePtySession):
   session.hostAgnosticTerminalWorktree =
     session.deps.worktreeId === FLOATING_TERMINAL_WORKTREE_ID ||
     isEphemeralSetupTerminalWorktreeId(session.deps.worktreeId)
-  session.worktreeProvesLocalHost = isLocalExecutionHost(session.ownerContext.executionHostId)
+  session.worktreeProvesLocalHost =
+    isLocalExecutionHost(session.worktree?.hostId) ||
+    (session.ownerContext.selectedHost?.kind === 'local' && !!session.worktree)
   session.connectionOwnerHydrating =
     !session.terminalOwnerUnresolved &&
     !session.hostAgnosticTerminalWorktree &&

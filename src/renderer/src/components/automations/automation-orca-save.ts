@@ -1,3 +1,9 @@
+import { completeAutomationSave } from './automation-save-completion'
+import {
+  recordedAutomationRunContext,
+  isSameAutomationWorkspace
+} from './automation-recorded-target'
+import { capturedAutomationOwner } from './automation-captured-owner'
 import { toast } from 'sonner'
 import type {
   Automation,
@@ -22,8 +28,7 @@ import {
   createAutomationOnDestination,
   moveAutomationToDestination,
   resolveAutomationEditDestination,
-  saveExistingAutomation,
-  showAutomationSavedToast
+  saveExistingAutomation
 } from './automation-orca-save-operations'
 import type { AutomationSaveContext } from './automation-save-context'
 
@@ -32,7 +37,7 @@ export async function saveOrcaAutomation(
   context: AutomationSaveContext,
   time: { hour: number; minute: number; now: number }
 ): Promise<void> {
-  const { store, local, setup, destination, destinationForm, pageRefresh } = context
+  const { store, local, setup, destination, destinationForm } = context
   const { projectHostSetups } = store
   const {
     draft,
@@ -40,12 +45,6 @@ export async function saveOrcaAutomation(
     editingRowKey,
     editingDestination,
     draftAtOpen,
-    setAutomations,
-    setDraft,
-    selectAutomationId,
-    setSelectedRowKey,
-    setSelectedAutomationRunPageId,
-    setCreateOpen,
     setEditorNotice,
     setEditorNoticeHost,
     moveCreationKeysRef
@@ -53,7 +52,6 @@ export async function saveOrcaAutomation(
   const {
     automationHostTarget,
     automationDispatchContext,
-    invalidateRowHost,
     invalidateWrittenHost,
     rowRecoveryHost,
     createDestination
@@ -105,6 +103,14 @@ export async function saveOrcaAutomation(
   const missedRunGraceMinutes = Number.isFinite(rawGrace) ? Math.max(0, rawGrace) : 720
   const precheck = buildDraftPrecheck(draft)
   const reposForDraft = dialogRepos
+  const recordedContext =
+    currentAutomation && editingDestination && isSameAutomationWorkspace(currentAutomation, draft)
+      ? recordedAutomationRunContext(
+          currentAutomation,
+          capturedAutomationOwner(context.list.capturedAutomationOwners, editingRowKey),
+          editingDestination.destination
+        )
+      : null
   const setupResolution =
     editingAutomationId !== null
       ? editHostResolution
@@ -135,7 +141,7 @@ export async function saveOrcaAutomation(
           draftSetupDecision: draft.setupDecision
         })
       : currentAutomation.setupDecision
-  if (setupDecision === 'run' && (targetEdited || edited('setupDecision'))) {
+  if (setupDecision === 'run' && ((targetEdited && !recordedContext) || edited('setupDecision'))) {
     const trustDecision = await ensureHooksConfirmed(
       useAppStore.getState(),
       draft.projectId,
@@ -148,11 +154,12 @@ export async function saveOrcaAutomation(
   }
 
   const runContext = targetEdited
-    ? buildAutomationRunContextForRepo({
+    ? (recordedContext ??
+      buildAutomationRunContextForRepo({
         repoId: draft.projectId,
         repos: reposForDraft,
         projectHostSetups: setupProjectHostSetups
-      })
+      }))
     : currentAutomation?.runContext
   if (targetEdited && !runContext) {
     toast.error(
@@ -279,29 +286,5 @@ export async function saveOrcaAutomation(
     setEditorNoticeHost(moveTarget?.entry ?? null)
     return
   }
-  const automation = saved.value
-  if (editingAutomationId !== null) {
-    invalidateRowHost(editingRowKey, 'definition')
-  } else {
-    await pageRefresh.hydratePersistedUIState()
-  }
-  setAutomations((current) => {
-    const next = current.filter((entry) => entry.id !== automation.id)
-    return [...next, automation].sort((left, right) => left.name.localeCompare(right.name))
-  })
-  setDraft((current) => ({ ...current, name: '', prompt: '' }))
-  await pageRefresh.refresh()
-  if (editingAutomationId !== null && editingRowKey && !moveTarget) {
-    setSelectedAutomationRunPageId(null)
-    setSelectedRowKey(editingRowKey)
-  }
-  selectAutomationId(automation.id)
-  setCreateOpen(false)
-  if (editingAutomationId === null) {
-    useAppStore.getState().recordFeatureInteraction('automation-created')
-  }
-  if (moveTarget && !originalRemoved) {
-    return
-  }
-  showAutomationSavedToast(moveTarget, editingAutomationId)
+  await completeAutomationSave(context, saved.value, moveTarget, originalRemoved)
 }

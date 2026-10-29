@@ -98,6 +98,7 @@ export function createAutomationSaveAction(context: AutomationSaveContext) {
     setIsSaving(true)
     try {
       const selectedWorkspaceExists =
+        destinationForm.recordedTargetSelected ||
         draft.workspaceMode !== 'existing' ||
         destinationForm.dialogWorktrees.some((worktree) => worktree.id === draft.workspaceId)
       if (targetEdited && !selectedWorkspaceExists) {

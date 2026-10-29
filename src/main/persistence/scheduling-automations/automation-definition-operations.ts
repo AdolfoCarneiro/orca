@@ -1,8 +1,8 @@
+import { retainAutomationReselectionContexts } from './automation-host-reselection'
 import { getRepoSshConnectionId } from '../../../shared/execution-host'
 import type { Repo } from '../../../shared/repo-types'
 import { findAutomationRepoForWrite } from '../../../shared/automation-repo-target'
 import { randomUUID } from 'node:crypto'
-import { invalidateLocalWorktreeMetadataPruneInputs } from '../../local-worktree-metadata-prune-gate'
 import type {
   Automation,
   AutomationCreateInput,
@@ -166,6 +166,13 @@ export function updateAutomation(
   if (options?.destination) {
     assertAutomationDestination(options.destination, projectionContext)
   }
+  const retainContexts = retainAutomationReselectionContexts(
+    operations.state,
+    current,
+    updates,
+    options?.destination,
+    projectionContext
+  )
   // Ignore undefined values preserved by structuredClone; explicit clears use null.
   const definedUpdates = Object.fromEntries(
     Object.entries(updates).filter(([, value]) => value !== undefined)
@@ -202,18 +209,22 @@ export function updateAutomation(
     // Why the wire object is ignored: contexts are the storing authority's own
     // registry speaking. A move restates them from that registry, anything else
     // keeps the stored value; an explicit null still clears.
-    runContext: automationContextAfterUpdate(
-      current.runContext,
-      definedUpdates.runContext,
-      contexts.runContext,
-      selectorMoveRequested
-    ),
-    sourceContext: automationContextAfterUpdate(
-      current.sourceContext,
-      definedUpdates.sourceContext,
-      contexts.sourceContext,
-      selectorMoveRequested
-    ),
+    runContext: retainContexts
+      ? current.runContext
+      : automationContextAfterUpdate(
+          current.runContext,
+          definedUpdates.runContext,
+          contexts.runContext,
+          selectorMoveRequested
+        ),
+    sourceContext: retainContexts
+      ? current.sourceContext
+      : automationContextAfterUpdate(
+          current.sourceContext,
+          definedUpdates.sourceContext,
+          contexts.sourceContext,
+          selectorMoveRequested
+        ),
     schedulerOwner,
     workspaceMode,
     workspaceId:
@@ -247,6 +258,9 @@ export function updateAutomation(
       ? nextAutomationOccurrenceAfter(rrule, dtstart, Date.now())
       : current.nextRunAt,
     updatedAt: Date.now()
+  }
+  if (retainContexts && !Object.hasOwn(current, 'sourceContext')) {
+    delete merged.sourceContext
   }
   if (extraAgentArgs === undefined) {
     delete merged.extraAgentArgs
@@ -286,28 +300,4 @@ export function updateAutomation(
 
 export { stampLegacyAutomationRunContext } from './automation-context-migration'
 
-export function deleteAutomation(
-  operations: AutomationDefinitionOperations,
-  id: string,
-  options?: { expectedOwner?: AutomationOwnerPrecondition }
-): void {
-  const automation = (operations.state.automations ?? []).find((entry) => entry.id === id)
-  if (automation) {
-    assertAutomationOwnerFence({
-      automation,
-      expectedOwner: options?.expectedOwner,
-      operation: 'mutate',
-      context: automationProjectionContext(operations.state, operations.storageAuthority, false)
-    })
-  }
-  operations.state.automations = (operations.state.automations ?? []).filter(
-    (entry) => entry.id !== id
-  )
-  operations.state.automationRuns = (operations.state.automationRuns ?? []).filter(
-    (entry) => entry.automationId !== id
-  )
-  operations.recordAutomationRunsMutation?.(operations.state.automationRuns)
-  // Removing definitions and unfinished runs releases their workspace claims (#17775).
-  invalidateLocalWorktreeMetadataPruneInputs()
-  operations.flush()
-}
+export { deleteAutomation } from './automation-definition-removal'
