@@ -27,6 +27,7 @@ export function createLinearIssueDetailActions(
         get().linearIssueCache[key] ??
         (scope.explicitSource ? undefined : get().linearIssueCache[id])
       const read = openStoreLinearIssueRead<LinearIssue | null>({
+        set,
         scope,
         key,
         workspaceId,

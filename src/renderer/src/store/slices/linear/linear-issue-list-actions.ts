@@ -67,6 +67,7 @@ export function createLinearIssueListActions(
       const workspaceId = getSelectedWorkspaceId(get().linearStatus, options)
       const key = scopedLinearCacheKey(scope, linearSearchCacheKey(workspaceId, query, limit))
       return openStoreLinearIssueRead({
+        set,
         scope,
         key,
         workspaceId,
@@ -96,6 +97,7 @@ export function createLinearIssueListActions(
         linearListCacheKey(workspaceId, filter, limit, attributeFilter)
       )
       return openStoreLinearIssueRead({
+        set,
         scope,
         key,
         workspaceId,

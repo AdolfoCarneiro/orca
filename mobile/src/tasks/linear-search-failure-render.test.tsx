@@ -21,7 +21,7 @@ vi.mock('../../../src/main/linear/client', () => ({
   getClients: () => [
     { workspace: { id: 'w' }, client: { client: { rawRequest: provider.request } } }
   ],
-  isAuthError: () => false
+  isAuthError: (error: unknown) => error instanceof Error && error.message.startsWith('401')
 }))
 vi.mock('../../../src/main/linear/linear-token-store', () => ({ clearToken: vi.fn() }))
 vi.mock('../../../src/main/linear/linear-request-concurrency', () => ({
@@ -104,6 +104,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 it.each([
+  ['401 private provider diagnostic', 'Unable to load Linear issues. Try again.'],
   ['429: GraphQL request failed private diagnostic', 'Unable to load Linear issues. Try again.'],
   [credentialDecryptionMessage('Linear'), credentialDecryptionMessage('Linear')]
 ])('renders the real provider rejection safely: %s', async (raw, visible) => {
@@ -115,10 +116,12 @@ it.each([
   if (raw !== visible) {
     expect(screen.queryByText(raw)).toBeNull()
   }
-  expect(warn).toHaveBeenCalledWith(
-    '[linear] searchIssues failed:',
-    expect.objectContaining({ message: raw })
-  )
+  if (!raw.startsWith('401')) {
+    expect(warn).toHaveBeenCalledWith(
+      '[linear] searchIssues failed:',
+      expect.objectContaining({ message: raw })
+    )
+  }
 })
 
 vi.mock('./mobile-tasks-dependencies', async () => {
@@ -250,8 +253,10 @@ it('shipping phone Tasks renders the safe real main/RPC search failure', async (
     expect(screen.getByText('Unable to load Linear issues. Try again.')).toBeTruthy()
   )
   expect(screen.queryByText(raw)).toBeNull()
-  expect(warn).toHaveBeenCalledWith(
-    '[linear] searchIssues failed:',
-    expect.objectContaining({ message: raw })
-  )
+  if (!raw.startsWith('401')) {
+    expect(warn).toHaveBeenCalledWith(
+      '[linear] searchIssues failed:',
+      expect.objectContaining({ message: raw })
+    )
+  }
 })

@@ -46,7 +46,11 @@ type IssueReadLifecycle = {
   edge: (id: string, confirmed?: boolean) => void
   patch: (id: string, patch: Delta) => void
   drain: () => void
-  invalidate: (identifier?: string, workspaceId?: string | null) => void
+  invalidate: (
+    identifier?: string,
+    workspaceId?: string | null,
+    affectedWorkspaces?: ReadonlySet<string>
+  ) => void
   abandon: () => void
 }
 const reads = new Map<string, Set<IssueReadLifecycle>>()
@@ -555,7 +559,19 @@ export function openLinearIssueRead<T extends LinearIssueData>(args: {
         }
       }
     },
-    invalidate: (identifier?: string, workspaceId?: string | null) => {
+    invalidate: (
+      identifier?: string,
+      workspaceId?: string | null,
+      affectedWorkspaces?: ReadonlySet<string>
+    ) => {
+      if (
+        affectedWorkspaces &&
+        args.workspaceId !== 'all' &&
+        !affectedWorkspaces.has(args.workspaceId ?? 'default') &&
+        !(args.workspaceId == null && affectedWorkspaces.has('selected'))
+      ) {
+        return
+      }
       if (identifier && args.identifier) {
         // Cold equal lookups can be affected too; the exact detail is forced by its caller.
         const organization = workspaceId ? organizations.get(workspaceId) : undefined
@@ -696,7 +712,8 @@ export function invalidateLinearIssueReads(
   scope: LinearReadScope,
   identifier?: string,
   allSources = false,
-  workspaceId?: string | null
+  workspaceId?: string | null,
+  affectedWorkspaces?: ReadonlySet<string>
 ) {
   const affected = allSources
     ? [...reads.values()].filter(
@@ -707,7 +724,7 @@ export function invalidateLinearIssueReads(
   for (const scoped of affected) {
     // oxlint-disable-next-line unicorn/no-useless-spread -- Why: refresh callbacks can replace demand.
     for (const read of [...scoped]) {
-      read.invalidate(identifier, workspaceId)
+      read.invalidate(identifier, workspaceId, affectedWorkspaces)
     }
   }
 }

@@ -1,3 +1,8 @@
+import type {
+  LinearIssueData,
+  LinearIssueView
+} from '@/store/slices/linear/linear-issue-publication'
+import { getProviderRuntimeContextKey } from '@/lib/provider-runtime-context'
 import { useLinearIssueResult } from '@/hooks/linear-issue-committed-state'
 import { getLinearSourceScope } from '@/store/slices/linear/linear-slice-scope'
 import { defaultScopeSource } from '@/lib/default-creation-host'
@@ -40,6 +45,7 @@ export function useWorkItemSourceFoundation(props: NormalizedWorkItemSourceSearc
     getCachedWorkItems,
     linearStatus: defaultLinearStatus,
     linearStatusChecked: defaultLinearStatusChecked,
+    linearStatusContextKey,
     listLinearIssues,
     preflightStatus,
     preflightStatusChecked,
@@ -58,6 +64,7 @@ export function useWorkItemSourceFoundation(props: NormalizedWorkItemSourceSearc
       getCachedWorkItems: s.getCachedWorkItems,
       linearStatus: s.linearStatus,
       linearStatusChecked: s.linearStatusChecked,
+      linearStatusContextKey: s.linearStatusContextKey,
       listLinearIssues: s.listLinearIssues,
       preflightStatus: s.preflightStatus,
       preflightStatusChecked: s.preflightStatusChecked,
@@ -148,12 +155,15 @@ export function useWorkItemSourceFoundation(props: NormalizedWorkItemSourceSearc
     enabled: hasLinearSearchSource && !disabled && !textOnly,
     sourceContext: linearSourceContext
   })
+  const defaultStatusCurrent = linearStatusContextKey === getProviderRuntimeContextKey(settings)
   const linearStatus = hasLinearSearchSource
     ? (linearConnection.status ?? { connected: false, viewer: null })
-    : defaultLinearStatus
+    : defaultStatusCurrent
+      ? defaultLinearStatus
+      : { connected: false, viewer: null }
   const linearStatusChecked = hasLinearSearchSource
     ? linearConnection.loaded
-    : defaultLinearStatusChecked
+    : defaultStatusCurrent && defaultLinearStatusChecked
   const linearWorkspaceIdOverride = hasLinearSearchSource
     ? (linearStatus.selectedWorkspaceId ?? linearStatus.activeWorkspaceId ?? null)
     : undefined
@@ -215,6 +225,10 @@ export function useWorkItemSourceFoundation(props: NormalizedWorkItemSourceSearc
     ...props,
     ...state,
     linearIssueResult,
+    refreshLinearSourceConnection: (
+      view: LinearIssueView<LinearIssueData>,
+      workspaceId?: string | null
+    ) => linearConnection.refresh({ view, workspaceId, status: linearStatus }),
     linearIssues: linearIssueResult.data,
     setLinearIssues: linearIssueResult.setData,
     linearLoading: linearIssueResult.loading,

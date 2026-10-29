@@ -1,10 +1,11 @@
+import { getSelectedWorkspaceId } from '@/store/slices/linear/linear-cache'
 import {
   observeLinearIssueRead,
   mapLinearIssueRead
 } from '@/store/slices/linear/linear-issue-publication'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { LinearCollectionResult } from '../../../../shared/linear/workspace-types'
-import { linearIssueReadError } from '@/lib/linear-read-error'
+import { linearIssueViewError } from '@/lib/linear-read-error'
 import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 import { useEffect, useMemo, useRef } from 'react'
 import { searchRuntimeRepoBaseRefDetails } from '@/runtime/runtime-repo-client'
@@ -67,7 +68,9 @@ export function useSmartWorkspaceSecondarySearches({
   // react-doctor-disable-next-line react-doctor/no-ref-current-in-render
   linearReadMethodsRef.current = foundation
   const failedLinearReadRef = useRef<readonly unknown[] | null>(null)
-  const linearScopeSignature = linearWorkspaceScopeSignature(linearStatus)
+  const linearScopeSignature = linearUrlIntent
+    ? linearWorkspaceScopeSignature(linearStatus)
+    : getSelectedWorkspaceId(linearStatus, { workspaceId: linearWorkspaceIdOverride })
   const branchSearchRequest = useMemo(
     () =>
       getBranchSearchRequest({
@@ -101,20 +104,13 @@ export function useSmartWorkspaceSecondarySearches({
       return
     }
     let stale = false
+    const { repoId, query, limit } = branchSearchRequest
     setBranchesLoading(true)
-    void searchRuntimeRepoBaseRefDetails(
-      selectedRepoHostId,
-      branchSearchRequest.repoId,
-      branchSearchRequest.query,
-      branchSearchRequest.limit
-    )
+    void searchRuntimeRepoBaseRefDetails(selectedRepoHostId, repoId, query, limit)
       .then((results) => {
         if (!stale) {
           setBranches(results)
-          setBranchResultsSource({
-            repoId: branchSearchRequest.repoId,
-            query: branchSearchRequest.query
-          })
+          setBranchResultsSource({ repoId, query })
         }
       })
       .catch(() => {
@@ -201,25 +197,24 @@ export function useSmartWorkspaceSecondarySearches({
           }
           return
         }
-        if (view.kind === 'data' || view.kind === 'error') {
+        const terminal = view.kind === 'data' || view.kind === 'error'
+        if (terminal) {
           failedLinearReadRef.current =
             view.kind === 'error' && isIntegrationCredentialDecryptionError(view.error)
               ? readKey
               : null
         }
         const data = view.data
-        const partialError = !Array.isArray(data) ? data?.errors?.[0]?.message : null
+        void linearReadMethodsRef.current.refreshLinearSourceConnection(
+          view,
+          linearWorkspaceIdOverride
+        )
         consumeLinearRead(lease, view, {
           ...(data
             ? { data: Array.isArray(data) ? data : data.items }
             : view.kind !== 'error' && { data: [] }),
-          ...((view.kind === 'data' || view.kind === 'error') && {
-            error:
-              view.kind === 'error'
-                ? linearIssueReadError(view.error)
-                : partialError
-                  ? linearIssueReadError(partialError)
-                  : null,
+          ...(terminal && {
+            error: linearIssueViewError(view),
             settledUrl: linearUrlIntent ? trimmed : null
           }),
           loading: view.kind === 'loading'

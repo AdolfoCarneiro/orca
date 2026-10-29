@@ -4,6 +4,7 @@ import {
   type LinearIssueRequest
 } from './linear-issue-publication'
 import { rowLessSourceTarget } from '@/lib/default-creation-host'
+import { taskSourceCacheScopeHostId } from '../../../../../shared/task-source-context'
 import type { LinearSlice } from './linear-slice-contract'
 import type { LinearReadScope } from './linear-slice-scope'
 import type { LinearIssue } from '../../../../../shared/linear/issue-types'
@@ -13,6 +14,7 @@ import type {
   LinearProjectSummary
 } from '../../../../../shared/linear/project-types'
 import type {
+  LinearConnectionStatus,
   LinearCollectionResult,
   LinearTeam
 } from '../../../../../shared/linear/workspace-types'
@@ -42,6 +44,12 @@ export type InflightLinearTeamRequest = {
   mutationGeneration: number
 }
 
+type InflightLinearStatusRequest = {
+  contextKey: string
+  queued: boolean
+  promise: Promise<LinearConnectionStatus | null>
+}
+
 export const linearRequestState = {
   issueRequests: new Map<string, InflightLinearIssueRequest>(),
   searchRequests: new Map<string, InflightLinearListRequest>(),
@@ -60,7 +68,7 @@ export const linearRequestState = {
     string,
     InflightLinearCollectionRequest<LinearProjectSummary>
   >(),
-  inflightStatusRequest: null as { contextKey: string; promise: Promise<void> } | null,
+  inflightStatusRequest: null as InflightLinearStatusRequest | null,
   statusReadGeneration: 0,
   mutationGeneration: 0,
   cacheGeneration: 0
@@ -92,11 +100,14 @@ function clearLinearMetadataRequests(): void {
   linearRequestState.customViewProjectRequests.clear()
 }
 
-export function invalidateLinearCaches(scope: LinearReadScope): void {
+export function invalidateLinearCaches(
+  scope: LinearReadScope,
+  affectedWorkspaces?: ReadonlySet<string>
+): void {
   linearRequestState.cacheGeneration += 1
   clearLinearMetadataRequests()
   clearLinearMetadataCache()
-  invalidateLinearIssueReads(scope, undefined, true)
+  invalidateLinearIssueReads(scope, undefined, true, undefined, affectedWorkspaces)
 }
 
 export function beginLinearMutation(): number {
@@ -107,6 +118,10 @@ export function beginLinearMutation(): number {
 
 export function isCurrentLinearMutation(generation: number): boolean {
   return generation === linearRequestState.mutationGeneration
+}
+
+export function getLinearStatusReadGeneration(): number {
+  return linearRequestState.statusReadGeneration
 }
 
 export function nextLinearStatusReadGeneration(): number {
@@ -126,27 +141,52 @@ export function getLinearMutationGeneration(): number {
   return linearRequestState.mutationGeneration
 }
 
-export function getInflightStatusRequest(): {
-  contextKey: string
-  promise: Promise<void>
-} | null {
+export function getInflightStatusRequest(): InflightLinearStatusRequest | null {
   return linearRequestState.inflightStatusRequest
 }
 
-export function setInflightStatusRequest(
-  request: { contextKey: string; promise: Promise<void> } | null
-): void {
+export function setInflightStatusRequest(request: InflightLinearStatusRequest | null): void {
   linearRequestState.inflightStatusRequest = request
 }
 
-export function evictLinearScopeCaches(state: LinearSlice, scope: LinearReadScope) {
+export function evictLinearScopeCaches(
+  state: LinearSlice,
+  scope: LinearReadScope,
+  affectedWorkspaces?: ReadonlySet<string>
+) {
   const target = rowLessSourceTarget(scope.settings)
   const host = target.kind === 'environment' ? `runtime:${target.environmentId}` : 'local'
   const prefix = `linear:${encodeURIComponent(host)}:`
-  const retain = <T>(cache: Record<string, T>) =>
-    Object.fromEntries(
-      Object.entries(cache).filter(([key]) => key.startsWith('linear:') && !key.startsWith(prefix))
-    )
+  const retain = <T extends { fetchedAt: number }>(cache: Record<string, T>): Record<string, T> => {
+    const retained: Record<string, T> = {}
+    for (const [key, entry] of Object.entries(cache)) {
+      if (key.startsWith('linear:') && !key.startsWith(prefix)) {
+        retained[key] = entry
+        continue
+      }
+      if (!affectedWorkspaces) {
+        continue
+      }
+      let localKey = key
+      if (key.startsWith(prefix)) {
+        let separator = key.indexOf('::')
+        while (separator >= 0) {
+          if (taskSourceCacheScopeHostId(key.slice(0, separator))) {
+            localKey = key.slice(separator + 2)
+            break
+          }
+          separator = key.indexOf('::', separator + 1)
+        }
+      }
+      const workspaceId = localKey.split('::')[0]
+      if (workspaceId === 'all') {
+        retained[key] = affectedWorkspaces.size ? { ...entry, fetchedAt: 0 } : entry
+      } else if (!affectedWorkspaces.has(workspaceId)) {
+        retained[key] = entry
+      }
+    }
+    return retained
+  }
   return {
     linearIssueCache: retain(state.linearIssueCache),
     linearSearchCache: retain(state.linearSearchCache),

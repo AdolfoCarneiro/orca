@@ -1,4 +1,7 @@
-import { isIntegrationCredentialDecryptionError } from '../../shared/integration-credential-errors'
+import {
+  LINEAR_AUTHENTICATION_ERROR,
+  isIntegrationCredentialDecryptionError
+} from '../../shared/integration-credential-errors'
 import type { LinearIssue } from '../../shared/linear/issue-types'
 import type { LinearWorkspaceSelection } from '../../shared/linear/workspace-types'
 import { acquire, release } from './linear-request-concurrency'
@@ -82,7 +85,7 @@ async function readIssueWithSignal(
       if (isAuthError(error)) {
         clearToken(entry.workspace.id)
         if (shouldThrowAuthError(workspaceId)) {
-          throw error
+          throw new Error(LINEAR_AUTHENTICATION_ERROR)
         }
       } else {
         console.warn('[linear] getIssue failed:', error)
@@ -208,6 +211,9 @@ export async function searchIssues(
   if (failure?.status === 'rejected' && results.every((result) => result.status === 'rejected')) {
     if (isIntegrationCredentialDecryptionError(failure.reason)) {
       throw failure.reason
+    }
+    if (results.some((result) => result.status === 'rejected' && isAuthError(result.reason))) {
+      throw new Error(LINEAR_AUTHENTICATION_ERROR)
     }
     throw new Error('Unable to load Linear issues. Try again.')
   }

@@ -47,6 +47,7 @@ export type LinearPatchOptions = {
 
 export type LinearSlice = {
   linearStatus: LinearConnectionStatus
+  linearStatusObserved: boolean
   linearStatusChecked: boolean
   linearStatusContextKey: string | null
   linearIssueCache: Record<string, CacheEntry<LinearIssue>>

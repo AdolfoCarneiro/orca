@@ -99,7 +99,7 @@ function deferred<T>() {
 
 describe('createLinearSlice invalidation', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
   })
 
   it('refreshing a linked Linear issue invalidates stale issue collection caches', async () => {
@@ -145,9 +145,8 @@ describe('createLinearSlice invalidation', () => {
     )
   })
 
-  it('connect invalidates cached Linear rows and waits for refreshed status', async () => {
+  it('connect consumes its scoped acknowledgement and invalidates affected cached Linear rows without redundant status', async () => {
     const store = createTestStore()
-    const statusRefresh = deferred<LinearConnectionStatus>()
     store.setState({
       linearIssueCache: {
         'workspace-1::issue-1': { data: issue('issue-1'), fetchedAt: Date.now() }
@@ -162,8 +161,8 @@ describe('createLinearSlice invalidation', () => {
         'workspace-1::teams': { data: [team('team-old')], fetchedAt: Date.now() }
       }
     })
-    linearConnect.mockResolvedValueOnce({ ok: true, viewer })
-    linearStatus.mockReturnValueOnce(statusRefresh.promise)
+    const acknowledgement = { ok: true, viewer, workspace: status('workspace-1').workspaces![0] }
+    linearConnect.mockResolvedValueOnce(acknowledgement)
 
     let resolved = false
     const connectPromise = store
@@ -175,15 +174,15 @@ describe('createLinearSlice invalidation', () => {
       })
     await Promise.resolve()
 
-    expect(resolved).toBe(false)
+    await expect(connectPromise).resolves.toEqual(acknowledgement)
+    expect(resolved).toBe(true)
     expect(store.getState().linearIssueCache).toEqual({})
     expect(store.getState().linearSearchCache).toEqual({})
     expect(store.getState().linearListCache).toEqual({})
     expect(store.getState().linearTeamCache).toEqual({})
 
-    statusRefresh.resolve(status('workspace-1'))
-    await expect(connectPromise).resolves.toEqual({ ok: true, viewer })
     expect(store.getState().linearStatus.selectedWorkspaceId).toBe('workspace-1')
+    expect(linearStatus).not.toHaveBeenCalled()
   })
 
   it('drops stale in-flight issue and team cache writes after connect invalidation', async () => {

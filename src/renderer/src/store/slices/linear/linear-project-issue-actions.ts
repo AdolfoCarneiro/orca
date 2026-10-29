@@ -25,6 +25,7 @@ export function createLinearProjectIssueActions(
         linearCollectionCacheKey(workspaceId, 'project-issues', projectId, effectiveLimit)
       )
       return openStoreLinearIssueRead({
+        set,
         scope,
         key,
         workspaceId,

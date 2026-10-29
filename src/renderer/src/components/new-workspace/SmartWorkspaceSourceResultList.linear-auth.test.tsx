@@ -7,15 +7,44 @@ import {
   LinearPicker,
   prepareDefaultPicker
 } from './smart-workspace-linear-read-test-fixtures'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { credentialDecryptionMessage } from '../../../../shared/integration-credential-errors'
+import { getStatus } from '../../../../main/linear/client'
 import { searchIssues } from '../../../../main/linear/linear-issue-lookups'
 import { LINEAR_METHODS } from '../../../../main/runtime/rpc/methods/linear'
 import { mapDispatcherError } from '../../../../main/runtime/rpc/dispatcher-error-response'
 import { successResponse } from '../../../../main/runtime/rpc/errors'
 import { unwrapRuntimeRpcResult } from '@/runtime/runtime-rpc-result'
 import type { RpcContext } from '../../../../main/runtime/rpc/core'
+
+function installMainRpc(
+  status: () => ReturnType<typeof getStatus> | Promise<ReturnType<typeof getStatus>> = getStatus
+) {
+  const searchMethod = LINEAR_METHODS.find((item) => item.name === 'linear.searchIssues')!
+  const statusMethod = LINEAR_METHODS.find((item) => item.name === 'linear.status')!
+  const runtime = { linearSearchIssues: searchIssues, linearStatus: status }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: these two real RPC methods use only the supplied production search/status methods.
+  const context = { runtime } as unknown as RpcContext
+  detailTransport.rpc.mockImplementation(async (target, name, params) => {
+    expect(target).toEqual({ kind: 'environment', environmentId: 'env-1' })
+    const request = { id: 'auth-boundary', authToken: '', method: name, params },
+      meta = { runtimeId: 'test' }
+    try {
+      const result =
+        name === 'linear.status'
+          ? await statusMethod.handler(undefined, context)
+          : await searchMethod.handler(searchMethod.params.parse(params), context)
+      return unwrapRuntimeRpcResult(successResponse(request.id, meta, result))
+    } catch (error) {
+      return unwrapRuntimeRpcResult(mapDispatcherError(request, meta, error))
+    }
+  })
+  mocks.statusReads.mockImplementation((source) => actualSearch.linearStatus(source))
+  mocks.state.searchLinearIssues.mockImplementation((query, source, limit, workspaceId) =>
+    actualSearch.linearSearchIssues(source, query, limit, workspaceId)
+  )
+}
 
 it.each(['sdk-auth', 'credential'] as const)(
   'real main/RPC/renderer classifies %s safely and refreshes concrete default status',
@@ -26,33 +55,22 @@ it.each(['sdk-auth', 'credential'] as const)(
       kind === 'sdk-auth'
         ? '401 private authentication diagnostic'
         : credentialDecryptionMessage('Linear')
-    detailTransport.search.mockRejectedValue(new Error(raw))
-    detailTransport.clear.mockImplementation(() => {
-      mocks.state.linearStatus = { connected: false, viewer: null }
-    })
-    const method = LINEAR_METHODS.find((item) => item.name === 'linear.searchIssues')!
-    // SAFETY: this production RPC method calls only linearSearchIssues on the supplied runtime.
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
-    const context = { runtime: { linearSearchIssues: searchIssues } } as unknown as RpcContext
-    detailTransport.rpc.mockImplementation(async (_target, name, params) => {
-      expect(name).toBe(method.name)
-      const request = { id: 'safe-search', authToken: '', method: name, params },
-        meta = { runtimeId: 'test' }
-      try {
-        return unwrapRuntimeRpcResult(
-          successResponse(
-            request.id,
-            meta,
-            await method.handler(method.params.parse(params), context)
-          )
-        )
-      } catch (error) {
-        return unwrapRuntimeRpcResult(mapDispatcherError(request, meta, error))
+    detailTransport.accountFixture = true
+    detailTransport.workspaces = ['workspace-1']
+    detailTransport.credential.message = kind === 'credential' ? raw : undefined
+    detailTransport.search.mockRejectedValue(new detailTransport.AuthError(raw))
+    const oldStatus = Promise.withResolvers<ReturnType<typeof getStatus>>()
+    const captured = getStatus()
+    let first = kind === 'sdk-auth'
+    installMainRpc(() => {
+      if (first) {
+        first = false
+        return oldStatus.promise
       }
+      return getStatus()
     })
-    mocks.state.searchLinearIssues.mockImplementation((query, source, limit, workspaceId) =>
-      actualSearch.linearSearchIssues(source, query, limit, workspaceId)
-    )
+    const beforeAuth =
+      kind === 'sdk-auth' ? pickerStore.getState().checkLinearConnection(true) : undefined
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const before = mocks.statusReads.mock.calls.length
     const mounted = render(<LinearPicker value="auth-boundary" defaultSource />)
@@ -72,11 +90,18 @@ it.each(['sdk-auth', 'credential'] as const)(
       expect(screen.queryByText(raw)).toBeNull()
       expect(detailTransport.clear).toHaveBeenCalledWith('workspace-1')
     }
+    if (kind === 'sdk-auth') {
+      await act(async () => {
+        oldStatus.resolve(captured)
+        await beforeAuth
+      })
+      expect(pickerStore.getState().linearStatus.connected).toBe(false)
+    }
     expect(mocks.statusReads.mock.calls.length).toBeGreaterThan(before)
     expect(warn).toHaveBeenCalledWith(
-      kind === 'credential' ? '[linear] searchIssues failed:' : '[linear] issue read failed:',
+      '[linear] issue read failed:',
       expect.objectContaining({
-        message: kind === 'credential' ? raw : 'Unable to load Linear issues. Try again.'
+        message: kind === 'credential' ? raw : 'Linear authentication expired for this workspace.'
       })
     )
     mounted.unmount()
@@ -84,3 +109,90 @@ it.each(['sdk-auth', 'credential'] as const)(
     detailTransport.clear.mockReset()
   }
 )
+
+// Disk/token membership and SDK transport are synthetic; account derivation, auth classifier,
+// main search, RPC handler/envelope, runtime adapter, owned read and picker are production.
+it('sole rejected token updates known account scope even if status fails; ambiguous empty Retry keeps main behavior', async () => {
+  detailTransport.accountFixture = true
+  detailTransport.workspaces = ['workspace-1']
+  prepareDefaultPicker(getStatus())
+  detailTransport.search.mockRejectedValue(
+    new detailTransport.AuthError('401 private SDK diagnostic')
+  )
+  installMainRpc(() => {
+    throw new Error('status transport unavailable')
+  })
+  const mounted = render(<LinearPicker value="retry-auth" defaultSource />)
+  fireEvent.click(screen.getByRole('button', { name: 'Linear tab' }))
+  await waitFor(() => expect(pickerStore.getState().linearStatus.connected).toBe(false))
+  expect(detailTransport.workspaces).toEqual([])
+  expect(screen.queryByText('401 private SDK diagnostic')).toBeNull()
+  const calls = detailTransport.search.mock.calls.length
+  const retry = pickerStore
+    .getState()
+    .searchLinearIssues('retry-auth', 12, { force: true })
+    .acquire()
+  await act(async () => {
+    expect(await retry.waitForCurrentTerminal()).toMatchObject({ kind: 'data', data: [] })
+  })
+  expect(detailTransport.search).toHaveBeenCalledTimes(calls)
+  expect(pickerStore.getState().linearStatus.connected).toBe(false)
+  retry.release()
+  mounted.unmount()
+})
+
+it('one SDK-rejected workspace cannot erase a healthy partial result when account delivery fails', async () => {
+  detailTransport.accountFixture = true
+  detailTransport.workspaces = ['workspace-1', 'healthy']
+  prepareDefaultPicker({ ...getStatus(), selectedWorkspaceId: 'all' })
+  detailTransport.search.mockImplementation(async (_query, _variables, workspace) => {
+    if (workspace === 'workspace-1') {
+      throw new detailTransport.AuthError('401 private diagnostic')
+    }
+    return {
+      data: {
+        searchIssues: {
+          nodes: [
+            {
+              id: 'healthy-row',
+              identifier: 'ENG-2',
+              title: 'Healthy task',
+              updatedAt: '2026-01-01T00:00:00.000Z',
+              state: { name: 'Todo', type: 'unstarted', color: '#888' },
+              team: { id: 't', key: 'ENG', name: 'Team' },
+              labels: { nodes: [] }
+            }
+          ]
+        }
+      }
+    }
+  })
+  installMainRpc(() => {
+    throw new Error('unreachable')
+  })
+  render(<LinearPicker value="partial-auth" defaultSource />)
+  fireEvent.click(screen.getByRole('button', { name: 'Linear tab' }))
+  await waitFor(() => expect(screen.getByText('Healthy task')).toBeTruthy())
+  await waitFor(() => expect(mocks.statusReads).toHaveBeenCalled())
+  expect(detailTransport.workspaces).toEqual(['healthy'])
+  expect(pickerStore.getState().linearStatus.connected).toBe(true)
+  // A later successful matching account observation contains the remaining real workspace.
+  const beforeReplacement = detailTransport.search.mock.calls.length
+  const replacement = Promise.withResolvers<unknown>()
+  detailTransport.search.mockReturnValue(replacement.promise)
+  // Status I/O keeps the actual aggregate selection while reporting the remaining account.
+  installMainRpc(() => ({ ...getStatus(), selectedWorkspaceId: 'all' }))
+  await act(async () => {
+    await pickerStore.getState().checkLinearConnection(true)
+  })
+  expect(pickerStore.getState().linearStatus.workspaces?.map((workspace) => workspace.id)).toEqual([
+    'healthy'
+  ])
+  await waitFor(() => expect(detailTransport.search).toHaveBeenCalledTimes(beforeReplacement + 1))
+  expect(screen.getByText('Healthy task')).toBeTruthy()
+  await act(async () => {
+    replacement.resolve({ data: { searchIssues: { nodes: [] } } })
+    await replacement.promise
+  })
+  await waitFor(() => expect(screen.queryByText('Healthy task')).toBeNull())
+})

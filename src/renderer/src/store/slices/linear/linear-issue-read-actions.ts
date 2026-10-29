@@ -5,10 +5,13 @@ import {
   isCurrentLinearRuntimeContext,
   type LinearReadScope
 } from './linear-slice-scope'
-import type { LinearSliceGet } from './linear-slice-contract'
-import { isFresh, looksLikeAuthError, shouldRefreshStatusAfterRead } from './linear-cache'
+import {
+  readLinearAccountStatus,
+  removeLinearAccountWorkspaces
+} from './linear-slice-status-actions'
+import type { LinearSliceGet, LinearSliceSet } from './linear-slice-contract'
+import { isFresh, linearReadAccountRejections } from './linear-cache'
 import type { CacheEntry } from '../../github/cache-model'
-import { isIntegrationCredentialDecryptionError } from '../../../../../shared/integration-credential-errors'
 
 export function openStoreLinearIssueRead<T extends LinearIssueData>(args: {
   scope: LinearReadScope
@@ -19,6 +22,7 @@ export function openStoreLinearIssueRead<T extends LinearIssueData>(args: {
   cached: CacheEntry<T> | undefined
   seed?: T
   force?: boolean
+  set: LinearSliceSet
   get: LinearSliceGet
   dispatch: (force: boolean) => Promise<T>
   publish: (data: T) => void
@@ -76,19 +80,23 @@ export function openStoreLinearIssueRead<T extends LinearIssueData>(args: {
       }
     },
     onSettled: (data, error) => {
-      const failure =
-        error ??
-        (data && !Array.isArray(data) && 'errors' in data ? data.errors?.[0]?.message : undefined)
-      if (
-        canPublishLinearScopeCache(scope, get().settings) &&
-        !(scope.explicitSource && args.workspaceId !== undefined) &&
-        (error !== undefined ||
-          isIntegrationCredentialDecryptionError(failure) ||
-          looksLikeAuthError(failure) ||
-          shouldRefreshStatusAfterRead(args.workspaceId, get().linearStatus))
-      ) {
-        void get().checkLinearConnection(true)
+      if (scope.explicitSource || !canPublishLinearScopeCache(scope, get().settings)) {
+        return
       }
+      const rejected = linearReadAccountRejections(
+        data,
+        error,
+        args.workspaceId,
+        get().linearStatus,
+        scope.settings
+      )
+      if (rejected === null) {
+        return
+      }
+      if (rejected.length) {
+        removeLinearAccountWorkspaces(args.set, get, scope, rejected)
+      }
+      void readLinearAccountStatus(args.set, get, scope)
     }
   })
   requests.set(requestKey, read)

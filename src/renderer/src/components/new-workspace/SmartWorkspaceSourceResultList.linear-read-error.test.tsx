@@ -15,6 +15,8 @@ import {
   aliasStatus,
   aliasRow
 } from './smart-workspace-linear-read-test-fixtures'
+import { LinearIntegrationCard } from '../settings/task-tracker-integration-cards'
+import { TooltipProvider } from '../ui/tooltip'
 import { getIssue } from '../../../../main/linear/linear-issue-lookups'
 import React from 'react'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -31,6 +33,11 @@ import { credentialDecryptionMessage } from '../../../../shared/integration-cred
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { LinearConnectionStatus } from '../../../../shared/linear/workspace-types'
 import { referenceLinearIssue } from '../sidebar/workspace-reference-fixtures.test-support'
+
+vi.mock('../settings/linear-agent-skill-install-cta', () => ({
+  LinearAgentSkillInstallCta: () => null
+}))
+vi.mock('../linear-api-key-dialog', () => ({ LinearApiKeyDialog: () => null }))
 
 describe('composer Linear read errors', () => {
   beforeEach(() => {
@@ -578,3 +585,73 @@ it.each(['success', 'fallback', 'legacy', 'release'] as const)(
     }
   }
 )
+
+it.each([false, true])(
+  'warm default launch/12 keeps Task and one error with status outage=%s',
+  async (outage) => {
+    prepareDefaultPicker({ connected: true, viewer: null, selectedWorkspaceId: 'workspace-1' })
+    mocks.state.searchLinearIssues.mockReset().mockResolvedValue([referenceLinearIssue()])
+    render(<LinearPicker value="launch" defaultSource />)
+    fireEvent.click(screen.getByRole('button', { name: 'Linear tab' }))
+    await waitFor(() => expect(screen.getByText(/Task/)).toBeTruthy())
+    if (outage) {
+      mocks.statusReads.mockRejectedValue(new Error('remote status transport unavailable'))
+    }
+    mocks.state.searchLinearIssues.mockRejectedValue(
+      new Error('remote search transport unavailable')
+    )
+    const read = pickerStore
+      .getState()
+      .searchLinearIssues('launch', 12, { force: true, workspaceId: 'workspace-1' })
+      .acquire()
+    await act(async () => {
+      await read.waitForCurrentTerminal()
+    })
+    expect(pickerStore.getState().linearStatus.connected).toBe(true)
+    expect(screen.getByText(/Task/)).toBeTruthy()
+    expect(screen.getAllByText('Unable to load Linear issues. Try again.')).toHaveLength(1)
+    expect(mocks.statusReads).not.toHaveBeenCalled()
+    read.release()
+  }
+)
+
+it('Settings keeps the confirmed account during failed checks, then displays actual disconnected status', async () => {
+  prepareDefaultPicker({ connected: true, viewer: null, selectedWorkspaceId: 'workspace-1' })
+  render(
+    <TooltipProvider>
+      <LinearIntegrationCard />
+    </TooltipProvider>
+  )
+  expect(screen.getByText('Connected')).toBeTruthy()
+  mocks.statusReads.mockRejectedValue(new Error('status transport unavailable'))
+  await act(async () => {
+    await pickerStore.getState().checkLinearConnection(true)
+  })
+  expect(screen.getByText('Connected')).toBeTruthy()
+  expect(screen.queryByText('Not connected')).toBeNull()
+  mocks.statusReads.mockResolvedValue({ connected: false, viewer: null })
+  await act(async () => {
+    await pickerStore.getState().checkLinearConnection(true)
+  })
+  expect(screen.getByText('Not connected')).toBeTruthy()
+})
+
+it('a cold default host cannot import the previously focused host account or rows', async () => {
+  prepareDefaultPicker({ connected: true, viewer: null, selectedWorkspaceId: 'workspace-1' })
+  mocks.state.searchLinearIssues.mockReset().mockResolvedValue([referenceLinearIssue()])
+  render(<LinearPicker value="launch" defaultSource />)
+  fireEvent.click(screen.getByRole('button', { name: 'Linear tab' }))
+  await waitFor(() => expect(screen.getByText(/Task/)).toBeTruthy())
+  mocks.statusReads.mockRejectedValue(new Error('new host unavailable'))
+  const settings = pickerStore.getState().settings
+  if (!settings) {
+    throw new Error('fixture requires captured host settings')
+  }
+  act(() =>
+    pickerStore.setState({ settings: { ...settings, activeRuntimeEnvironmentId: 'other' } })
+  )
+  expect(screen.queryByText(/Task/)).toBeNull()
+  await waitFor(() => expect(pickerStore.getState().linearStatusContextKey).toBe('runtime:other#0'))
+  expect(pickerStore.getState().linearStatusObserved).toBe(false)
+  expect(pickerStore.getState().linearStatusChecked).toBe(true)
+})

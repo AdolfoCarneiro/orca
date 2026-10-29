@@ -76,12 +76,18 @@ const reads = vi.hoisted(() => ({
   projects: vi.fn()
 }))
 
+const accountViewer = vi.hoisted(() => ({
+  displayName: 'User',
+  email: null,
+  organizationName: 'Acme'
+}))
+
 vi.mock('@/runtime/runtime-linear-client', async (original) => ({
   ...(await original<Record<string, unknown>>()),
-  linearTestConnection: async () => ({ ok: true }),
+  linearTestConnection: async () => ({ ok: true, viewer: accountViewer }),
   linearDisconnect: async () => {},
-  linearConnect: async () => ({ ok: true }),
-  linearStatus: async () => ({ connected: true, viewer: null, selectedWorkspaceId: 'w' }),
+  linearConnect: async () => ({ ok: true, viewer: accountViewer }),
+  linearStatus: async () => ({ connected: true, viewer: accountViewer, selectedWorkspaceId: 'w' }),
   linearListIssues: (...args: unknown[]) => reads.list(...args),
   linearSearchIssues: (...args: unknown[]) => reads.search(...args)
 }))
@@ -164,7 +170,12 @@ export function task(state = 'In Review') {
 
 export function store() {
   const result = createTestStore()
-  result.setState({ linearStatus: { connected: true, viewer: null, selectedWorkspaceId: 'w' } })
+  result.setState({
+    linearStatus: { connected: true, viewer: accountViewer, selectedWorkspaceId: 'w' },
+    linearStatusObserved: true,
+    linearStatusChecked: true,
+    linearStatusContextKey: getLinearSourceScope(defaultScopeSource(null)).runtimeContextKey
+  })
   active.store.mockReturnValue(result)
   return result
 }

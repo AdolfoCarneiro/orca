@@ -25,6 +25,7 @@ export function createLinearCustomViewIssueActions(
         linearCollectionCacheKey(workspaceId, 'custom-view-issues', viewId, effectiveLimit)
       )
       return openStoreLinearIssueRead({
+        set,
         scope,
         key,
         workspaceId,

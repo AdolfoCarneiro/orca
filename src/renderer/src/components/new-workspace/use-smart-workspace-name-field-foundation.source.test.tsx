@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
     checkLinearConnection: vi.fn(),
     linearStatus: { connected: false, viewer: null, selectedWorkspaceId: 'focused-workspace' },
     linearStatusChecked: true,
+    linearStatusContextKey: 'local#0',
     settings: null,
     preflightStatus: null,
     preflightStatusChecked: true,
@@ -41,12 +42,15 @@ vi.mock('@/lib/gitlab-work-item-source-lookup', () => ({
   lookupGitLabWorkItemByPathForSource: vi.fn()
 }))
 vi.mock('@/store', () => ({
-  useAppStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      ...mocks.state,
-      searchLinearIssues: (...args: Parameters<typeof mocks.state.searchLinearIssues>) =>
-        linearIssueReadFixture(() => mocks.state.searchLinearIssues(...args))
-    })
+  useAppStore: Object.assign(
+    (selector: (state: unknown) => unknown) =>
+      selector({
+        ...mocks.state,
+        searchLinearIssues: (...args: Parameters<typeof mocks.state.searchLinearIssues>) =>
+          linearIssueReadFixture(() => mocks.state.searchLinearIssues(...args))
+      }),
+    { getState: () => mocks.state, subscribe: () => () => {} }
+  )
 }))
 vi.mock('@/lib/local-preflight-context', () => ({
   getLocalPreflightContext: () => ({}),

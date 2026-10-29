@@ -26,6 +26,7 @@ export type {
 
 export const createLinearSlice: StateCreator<AppState, [], [], LinearSlice> = (set, get) => ({
   linearStatus: { connected: false, viewer: null },
+  linearStatusObserved: false,
   linearStatusChecked: false,
   linearStatusContextKey: null,
   linearIssueCache: {},

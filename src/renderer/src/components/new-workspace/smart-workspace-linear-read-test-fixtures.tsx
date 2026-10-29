@@ -5,6 +5,7 @@ import { clearLinearRequestMaps } from '@/store/slices/linear/linear-slice-reque
 
 import React from 'react'
 import type * as ReactModule from 'react'
+import type * as MainLinearClient from '../../../../main/linear/client'
 import type * as RuntimeLinearClient from '@/runtime/runtime-linear-client'
 import type * as RuntimeLinearIssueMutations from '@/runtime/runtime-linear-issue-mutations'
 import { registerRuntimeClientIpcBridge } from '@/hooks/ipc-events/runtime-client-ipc-bridge'
@@ -49,30 +50,82 @@ vi.mock('react', async (original) => {
     }
   }
 })
-const detailTransport = vi.hoisted(() => ({
-  issue: vi.fn(),
-  rpc: vi.fn(),
-  search: vi.fn(),
-  clear: vi.fn()
-}))
+const detailTransport = vi.hoisted(() => {
+  const credential: { message?: string } = {}
+  return {
+    issue: vi.fn(),
+    rpc: vi.fn(),
+    search: vi.fn(),
+    clear: vi.fn(),
+    workspaces: ['workspace-1'],
+    accountFixture: false,
+    credential,
+    AuthError: class AuthenticationLinearError extends Error {}
+  }
+})
 vi.mock('@/runtime/runtime-rpc-client', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   callRuntimeRpc: (...args: unknown[]) => detailTransport.rpc(...args)
 }))
-vi.mock('../../../../main/linear/client', () => ({
-  getClients: (workspaceId: string) => [
-    {
-      workspace: { id: workspaceId, organizationName: 'Acme' },
-      client: {
-        issue: (id: string) => detailTransport.issue(id, workspaceId),
-        client: { rawRequest: (...args: unknown[]) => detailTransport.search(...args) }
+vi.mock('../../../../main/linear/client', async (original) => {
+  const actual = await original<typeof MainLinearClient>()
+  return {
+    ...actual,
+    getClients: (workspaceId: string) =>
+      detailTransport.accountFixture
+        ? actual.getClients(workspaceId)
+        : [
+            {
+              workspace: { id: workspaceId, organizationName: 'Acme' },
+              client: {
+                issue: (id: string) => detailTransport.issue(id, workspaceId),
+                client: { rawRequest: (...args: unknown[]) => detailTransport.search(...args) }
+              }
+            }
+          ]
+  }
+})
+vi.mock('../../../../main/linear/linear-sdk', () => ({
+  loadLinearSdk: () => ({
+    AuthenticationLinearError: detailTransport.AuthError,
+    LinearClient: class {
+      client: { rawRequest: (...args: unknown[]) => Promise<unknown> }
+      apiKey: string
+      constructor({ apiKey }: { apiKey: string }) {
+        this.apiKey = apiKey
+        this.client = { rawRequest: (...args) => detailTransport.search(...args, apiKey) }
+      }
+      issue(id: string) {
+        return detailTransport.issue(id, this.apiKey)
       }
     }
-  ],
-  isAuthError: (error: unknown) => error instanceof Error && error.message.startsWith('401')
+  })
+}))
+vi.mock('../../../../main/linear/linear-workspace-registry', () => ({
+  getWorkspaceState: () => ({
+    workspaces: detailTransport.workspaces.map((id) => ({
+      id,
+      organizationId: id,
+      organizationName: 'Acme'
+    })),
+    activeWorkspaceId: detailTransport.workspaces[0] ?? null,
+    selectedWorkspaceId: detailTransport.workspaces[0] ?? null
+  }),
+  resolveWorkspaceId: (id?: string | null) => id ?? detailTransport.workspaces[0],
+  getCredentialError: () => detailTransport.credential.message
 }))
 vi.mock('../../../../main/linear/linear-token-store', () => ({
-  clearToken: (...args: unknown[]) => detailTransport.clear(...args)
+  clearToken: (id: string) => {
+    detailTransport.workspaces = detailTransport.workspaces.filter((workspace) => workspace !== id)
+    detailTransport.clear(id)
+  },
+  loadToken: ({ workspaceId }: { workspaceId: string }) => {
+    if (detailTransport.credential.message) {
+      throw new Error(detailTransport.credential.message)
+    }
+    return workspaceId
+  },
+  getWorkspaceTokenProtection: () => null
 }))
 const events = vi.hoisted(() => ({ emit: (_event: RuntimeClientEvent) => {} }))
 vi.mock('@/runtime/runtime-client-events', () => ({
@@ -99,6 +152,7 @@ const mocks = vi.hoisted(() => {
       linearStatus,
       // The repo's own host: its status refresh reaches the composer's host-scoped read.
       linearStatusContextKey: 'runtime:env-1#0',
+      linearStatusObserved: true,
       linearStatusChecked: true,
       settings: null,
       preflightStatus: null,
@@ -132,10 +186,8 @@ vi.mock('@/store', () => ({
 }))
 vi.mock('@/runtime/runtime-linear-client', async (original) => ({
   ...(await original<Record<string, unknown>>()),
-  linearStatus: async () => {
-    mocks.statusReads()
-    return mocks.state.linearStatus
-  },
+  linearStatus: async (source: unknown) =>
+    (await mocks.statusReads(source)) ?? mocks.state.linearStatus,
   linearListIssues: (...args: unknown[]) => mocks.state.list(...args),
   linearSearchIssues: (
     settings: unknown,
@@ -217,6 +269,7 @@ export function prepareDefaultPicker(status: LinearConnectionStatus) {
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture supplies the real consumer's exercised fields and actions; unrelated full-page/provider services are intentionally absent.
     settings: { activeRuntimeEnvironmentId: 'env-1' } as never,
     linearStatus: status,
+    linearStatusObserved: true,
     linearStatusChecked: true,
     linearStatusContextKey: 'runtime:env-1#0',
     preflightStatusChecked: true,
@@ -285,6 +338,10 @@ export function resetPickerStore() {
   pickerStore = createTestStore()
 }
 afterEach(() => {
+  mocks.statusReads.mockReset()
+  detailTransport.accountFixture = false
+  detailTransport.workspaces = ['workspace-1']
+  delete detailTransport.credential.message
   stopBridge()
   stopBridge = () => {}
   restoreApi()

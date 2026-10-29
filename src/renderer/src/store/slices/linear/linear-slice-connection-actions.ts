@@ -1,23 +1,27 @@
-import type { LinearViewer } from '../../../../../shared/linear/workspace-types'
 import type { LinearSlice, LinearSliceGet, LinearSliceSet } from './linear-slice-contract'
 import {
   linearConnect,
   linearDisconnect,
   linearDisconnectWorkspace,
   linearSelectWorkspace,
-  linearStatus,
   linearTestConnection
 } from '@/runtime/runtime-linear-client'
-import { translate } from '@/i18n/i18n'
 import {
   beginLinearMutation,
-  invalidateLinearCaches,
-  evictLinearScopeCaches,
-  isCurrentLinearMutation
+  isCurrentLinearMutation,
+  isCurrentLinearStatusRead,
+  getLinearStatusReadGeneration
 } from './linear-slice-request-state'
+import { looksLikeAuthError } from './linear-cache'
+import { isIntegrationCredentialDecryptionError } from '../../../../../shared/integration-credential-errors'
 import { detachLinearIssuePublication } from './linear-issue-publication'
 import { getLinearReadScope, isCurrentLinearRuntimeContext } from './linear-slice-scope'
-import { linearStatusScopeSignature } from './linear-cache'
+import {
+  acknowledgeLinearAccount,
+  publishLinearAccountStatus,
+  removeLinearAccountWorkspaces,
+  readLinearAccountStatus
+} from './linear-slice-status-actions'
 
 export function createLinearConnectionActions(
   set: LinearSliceSet,
@@ -30,160 +34,87 @@ export function createLinearConnectionActions(
   | 'disconnectLinear'
   | 'disconnectLinearWorkspace'
 > {
+  const begin = () => {
+    const scope = getLinearReadScope(get().settings)
+    const mutation = beginLinearMutation()
+    const generation = getLinearStatusReadGeneration()
+    return {
+      scope,
+      current: () =>
+        isCurrentLinearMutation(mutation) &&
+        isCurrentLinearStatusRead(generation) &&
+        isCurrentLinearRuntimeContext(scope.runtimeContextKey, get().settings)
+    }
+  }
   return {
     testLinearConnection: async (workspaceId) => {
-      const scope = getLinearReadScope(get().settings)
-      const requestGeneration = beginLinearMutation()
-      const contextKey = scope.runtimeContextKey
+      const { scope, current } = begin()
       try {
         const result = await linearTestConnection(scope.settings, workspaceId)
-        if (
-          !isCurrentLinearMutation(requestGeneration) ||
-          !isCurrentLinearRuntimeContext(contextKey, get().settings)
-        ) {
-          return result
-        }
-        const status = await linearStatus(scope.settings)
-        if (
-          isCurrentLinearMutation(requestGeneration) &&
-          isCurrentLinearRuntimeContext(contextKey, get().settings)
-        ) {
-          const prev = get().linearStatus
-          if (linearStatusScopeSignature(prev) !== linearStatusScopeSignature(status)) {
-            invalidateLinearCaches(scope)
-            set({
-              linearStatus: status,
-              ...evictLinearScopeCaches(get(), scope),
-              linearStatusChecked: true,
-              linearStatusContextKey: contextKey
-            })
-          } else if (!get().linearStatusChecked || get().linearStatusContextKey !== contextKey) {
-            // Preserve the status reference when the probe did not change scope.
-            set({ linearStatusChecked: true, linearStatusContextKey: contextKey })
+        if (current()) {
+          if (result.ok) {
+            acknowledgeLinearAccount(set, get, scope, result.viewer, result.workspace)
+          } else if (
+            looksLikeAuthError(result.error) ||
+            isIntegrationCredentialDecryptionError(result.error)
+          ) {
+            void readLinearAccountStatus(set, get, scope)
           }
         }
         return result
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Test failed'
-        return { ok: false as const, error: message }
+        return { ok: false as const, error: error instanceof Error ? error.message : 'Test failed' }
       }
     },
-
-    connectLinear: async (apiKey: string) => {
-      const scope = getLinearReadScope(get().settings)
-      const requestGeneration = beginLinearMutation()
-      const contextKey = scope.runtimeContextKey
+    connectLinear: async (apiKey) => {
+      const { scope, current } = begin()
       try {
         const result = await linearConnect(scope.settings, apiKey)
-        if (
-          result.ok &&
-          isCurrentLinearMutation(requestGeneration) &&
-          isCurrentLinearRuntimeContext(contextKey, get().settings)
-        ) {
-          invalidateLinearCaches(scope)
-          set({
-            ...evictLinearScopeCaches(get(), scope)
-          })
-          const status = await linearStatus(scope.settings)
-          if (
-            !isCurrentLinearMutation(requestGeneration) ||
-            !isCurrentLinearRuntimeContext(contextKey, get().settings)
+        if (current()) {
+          if (result.ok) {
+            acknowledgeLinearAccount(set, get, scope, result.viewer, result.workspace)
+          } else if (
+            looksLikeAuthError(result.error) ||
+            isIntegrationCredentialDecryptionError(result.error)
           ) {
-            return {
-              ok: false as const,
-              error: translate(
-                'auto.store.slices.linear.37d36984d0',
-                'Linear connection was superseded by a newer request.'
-              )
-            }
-          }
-          set({
-            linearStatus: status,
-            linearStatusChecked: true,
-            linearStatusContextKey: contextKey
-          })
-        } else if (result.ok) {
-          return {
-            ok: false as const,
-            error: translate(
-              'auto.store.slices.linear.37d36984d0',
-              'Linear connection was superseded by a newer request.'
-            )
+            void readLinearAccountStatus(set, get, scope)
           }
         }
-        return result as { ok: true; viewer: LinearViewer } | { ok: false; error: string }
+        return result
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Connection failed'
-        return { ok: false as const, error: message }
+        return {
+          ok: false as const,
+          error: error instanceof Error ? error.message : 'Connection failed'
+        }
       }
     },
-
     selectLinearWorkspace: async (workspaceId) => {
-      const scope = getLinearReadScope(get().settings)
-      const requestGeneration = beginLinearMutation()
-      const contextKey = scope.runtimeContextKey
+      const { scope, current } = begin()
       const status = await linearSelectWorkspace(scope.settings, workspaceId)
-      if (
-        !isCurrentLinearMutation(requestGeneration) ||
-        !isCurrentLinearRuntimeContext(contextKey, get().settings)
-      ) {
-        return
+      if (current()) {
+        publishLinearAccountStatus(set, get, scope, status)
       }
-      invalidateLinearCaches(scope)
-      set({
-        linearStatus: status,
-        ...evictLinearScopeCaches(get(), scope),
-        linearStatusChecked: true,
-        linearStatusContextKey: contextKey
-      })
     },
-
     disconnectLinear: async () => {
-      const scope = getLinearReadScope(get().settings)
-      const requestGeneration = beginLinearMutation()
-      const contextKey = scope.runtimeContextKey
+      const { scope, current } = begin()
       detachLinearIssuePublication(scope, true)
       await linearDisconnect(scope.settings)
-      if (
-        !isCurrentLinearMutation(requestGeneration) ||
-        !isCurrentLinearRuntimeContext(contextKey, get().settings)
-      ) {
-        return
+      if (current()) {
+        publishLinearAccountStatus(set, get, scope, { connected: false, viewer: null })
       }
-      invalidateLinearCaches(scope)
-      set({
-        linearStatus: { connected: false, viewer: null },
-        ...evictLinearScopeCaches(get(), scope),
-        linearStatusChecked: true,
-        linearStatusContextKey: contextKey
-      })
     },
-
     disconnectLinearWorkspace: async (workspaceId) => {
-      const scope = getLinearReadScope(get().settings)
-      const requestGeneration = beginLinearMutation()
-      const contextKey = scope.runtimeContextKey
+      const { scope, current } = begin()
       await linearDisconnectWorkspace(scope.settings, workspaceId)
-      if (
-        !isCurrentLinearMutation(requestGeneration) ||
-        !isCurrentLinearRuntimeContext(contextKey, get().settings)
-      ) {
-        return
+      if (current()) {
+        removeLinearAccountWorkspaces(set, get, scope, [workspaceId])
+        if (
+          get().linearStatusContextKey !== scope.runtimeContextKey ||
+          !get().linearStatus.workspaces
+        ) {
+          void readLinearAccountStatus(set, get, scope)
+        }
       }
-      const status = await linearStatus(scope.settings)
-      if (
-        !isCurrentLinearMutation(requestGeneration) ||
-        !isCurrentLinearRuntimeContext(contextKey, get().settings)
-      ) {
-        return
-      }
-      invalidateLinearCaches(scope)
-      set({
-        linearStatus: status,
-        ...evictLinearScopeCaches(get(), scope),
-        linearStatusChecked: true,
-        linearStatusContextKey: contextKey
-      })
     }
   }
 }
