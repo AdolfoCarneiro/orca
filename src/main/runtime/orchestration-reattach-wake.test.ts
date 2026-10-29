@@ -27,6 +27,7 @@ async function reattachQuietCoordinator(
     writeWithSettlement: settledWriteStub(write),
     kill: vi.fn(),
     getForegroundProcess: () =>
+      // ast-grep-ignore: test-no-real-time-wait -- the installed fake clock delays the probe's answer.
       new Promise((resolve) => setTimeout(() => resolve(foreground), probeDelayMs))
   })
   syncSinglePty(runtime)
