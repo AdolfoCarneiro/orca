@@ -16,17 +16,14 @@ import {
   countWorkerTerminalInventory,
   scanWorkerTerminalStates
 } from './worker-terminal-inventory-counts'
-import {
-  markWorkerTouched,
-  markWorkerTerminalUserOwned,
-} from './worker-terminal-user-takeover'
+import { markWorkerTouched, markWorkerTerminalUserOwned } from './worker-terminal-user-takeover'
 
 export {
   countWorkerTerminalInventory,
   getWorkerAttentionFacts,
   getWorkerAttentionFactsForDispatches,
   markWorkerTouched,
-  markWorkerTerminalUserOwned,
+  markWorkerTerminalUserOwned
 }
 
 /** `databaseId` is the real order key; the timestamp fields only satisfy pre-v3 cursors. */

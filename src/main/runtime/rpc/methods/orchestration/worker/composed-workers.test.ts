@@ -194,6 +194,7 @@ describe('orchestration RPC methods', () => {
       vi.spyOn(runtime, 'showManagedTerminalWorkspace').mockImplementation(
         () =>
           new Promise((resolve) =>
+            // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: preflight reads only the workspace id.
             preflights.push(() => resolve({ id: 'repo::worktree' } as never))
           )
       )
@@ -208,11 +209,10 @@ describe('orchestration RPC methods', () => {
       preflights[0]()
       const firstReceipt = await first
 
-      expect(db.listRuns().runs.filter((run) => run.legacy === 0)).toHaveLength(1)
-      expect(secondReceipt).toMatchObject({ run: { created: true } })
-      expect(firstReceipt).toMatchObject({
-        run: { id: (secondReceipt as { run: { id: string } }).run.id, created: false }
-      })
+      const runs = db.listRuns().runs.filter((run) => run.legacy === 0)
+      expect(runs).toHaveLength(1)
+      expect(secondReceipt).toMatchObject({ run: { id: runs[0].id, created: true } })
+      expect(firstReceipt).toMatchObject({ run: { id: runs[0].id, created: false } })
     })
 
     it.each([['not-json'], ['["task_elsewhere"]']])(

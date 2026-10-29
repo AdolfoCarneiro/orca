@@ -137,6 +137,7 @@ describe('a structured worker-start that fails after the session exists', () => 
       } as const,
       runtime,
       db,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the start reads only the bound Run's id.
       bindRun: () => ({ id: 'run_1' }) as never,
       taskDeps: undefined,
       existingTask: { id: 't1', spec: 'do the thing' } as never,
