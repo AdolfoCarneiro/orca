@@ -133,10 +133,15 @@ public enum BackgroundInputTransport {
         let appElement = AXUIElementCreateApplication(pid)
         var hitElement: AXUIElement?
         guard AXUIElementCopyElementAtPosition(appElement, Float(point.x), Float(point.y), &hitElement) == .success,
-              var current = hitElement
+              let hitElement
         else {
             return .other
         }
+        return classifyPointerHit(hitElement)
+    }
+
+    public static func classifyPointerHit(_ element: AXUIElement) -> PointerHit {
+        var current = element
         for depth in 0..<48 {
             let role = stringAttribute(current, kAXRoleAttribute as String)
             // Why: the hit lands on a popup's label or the popup itself, never deeper than its parent.

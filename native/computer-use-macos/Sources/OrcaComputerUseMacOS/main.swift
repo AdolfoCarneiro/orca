@@ -741,8 +741,14 @@ final class Provider {
         }
         let modifiers = try KeyMap.parseModifiers(params["modifiers"]?.string)
         let foreground = isForegroundRequest(params)
+        if foreground {
+            recoverWindow(snapshot.app, windowId: snapshot.windowId, windowBounds: snapshot.windowBounds)
+        }
         if let elementIndex = try optionalInteger(params, "elementIndex") {
             let record = try element(snapshot, elementIndex)
+            if !foreground {
+                try requireBackgroundClickAllowed(BackgroundInputTransport.classifyPointerHit(record.element))
+            }
             if modifiers.isEmpty,
                count <= 1,
                button.hasAccessibilityAction,
@@ -1387,9 +1393,7 @@ private func clickPointer(
         return
     }
     let hit = BackgroundInputTransport.classifyPointerHit(pid: snapshot.app.pid, at: point)
-    guard hit != .popupMenu else {
-        throw ProviderError.coded("background_unavailable", "a background click on a popup menu or web <select> opens the menu off screen or wedges the app's input; set the option with set-value on the popup element, or retry with --restore-window for a foreground click")
-    }
+    try requireBackgroundClickAllowed(hit)
     try withTransportErrors {
         try BackgroundInputTransport.click(
             backgroundTarget(snapshot),
@@ -1399,6 +1403,12 @@ private func clickPointer(
             flags: eventFlags(modifiers),
             hit: hit
         )
+    }
+}
+
+private func requireBackgroundClickAllowed(_ hit: BackgroundInputTransport.PointerHit) throws {
+    guard hit != .popupMenu else {
+        throw ProviderError.coded("background_unavailable", "a background click on a popup menu or web <select> opens the menu off screen or wedges the app's input; set the option with set-value on the popup element, or retry with --restore-window for a foreground click")
     }
 }
 
