@@ -25,6 +25,7 @@ import { emulatorProbe, emulatorProbeError } from '../emulator-probe'
 const DEVICE_NAME_BYTES = 64
 const DUMMY_BYTE = 1
 const DYNAMIC_FORWARD_PORT = 0
+const SERVER_LOG_PREVIEW_CHARS = 1_000
 
 export type ScrcpyStreamCallbacks = {
   onMeta: (meta: ScrcpyVideoMeta) => void
@@ -119,13 +120,16 @@ export class ScrcpyStreamSession {
     })
     let serverLog = ''
     const capture = (chunk: Buffer): void => {
-      serverLog += chunk.toString()
+      const remaining = SERVER_LOG_PREVIEW_CHARS - serverLog.length
+      if (remaining > 0) {
+        serverLog += chunk.toString().slice(0, remaining)
+      }
     }
     this.server.stdout?.on('data', capture)
     this.server.stderr?.on('data', capture)
     this.server.on('error', (error) => this.fail(error.message))
     this.server.on('exit', (code) => {
-      emulatorProbe('scrcpy.server.exit', { code, log: serverLog.slice(0, 1000).trim() })
+      emulatorProbe('scrcpy.server.exit', { code, log: serverLog.trim() })
       if (!this.metaSeen) {
         this.fail('scrcpy server exited before the video stream started')
         return

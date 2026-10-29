@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ScrcpyStreamSession } from './scrcpy-stream-session'
+import { emulatorProbe } from '../emulator-probe'
 
 const io = vi.hoisted(() => ({ spawn: vi.fn(), connect: vi.fn() }))
 vi.mock('node:child_process', () => ({ spawn: io.spawn }))
@@ -54,6 +55,7 @@ async function startSession() {
 }
 
 beforeEach(() => {
+  vi.mocked(emulatorProbe).mockClear()
   io.spawn.mockReset()
   io.connect.mockReset()
 })
@@ -199,5 +201,47 @@ describe('ScrcpyStreamSession teardown', () => {
     expect(control.destroy).toHaveBeenCalledTimes(1)
     expect(server.kill).toHaveBeenCalledTimes(1)
     expect(callbacks.onClose).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('ScrcpyStreamSession server diagnostics', () => {
+  it('drains output after the exit preview fills without decoding discarded log chunks', async () => {
+    const { video, server, started } = await startSession()
+    video.emit('data', handshake())
+    const session = await started
+    const chunk = Buffer.alloc(64 * 1024, 'x')
+    const decode = vi.spyOn(chunk, 'toString')
+    try {
+      for (let index = 0; index < 256; index += 1) {
+        const output = index % 2 === 0 ? server.stdout : server.stderr
+        output.emit('data', chunk)
+      }
+      server.emit('exit', 0)
+      expect(emulatorProbe).toHaveBeenCalledWith('scrcpy.server.exit', {
+        code: 0,
+        log: 'x'.repeat(1000)
+      })
+      expect(decode).toHaveBeenCalledTimes(1)
+    } finally {
+      decode.mockRestore()
+      session.close()
+    }
+  })
+
+  it('keeps short stdout and stderr diagnostics in order and trims only the final preview', async () => {
+    const { video, server, started } = await startSession()
+    video.emit('data', handshake())
+    const session = await started
+    try {
+      server.stdout.emit('data', Buffer.from('  模擬器'))
+      server.stderr.emit('data', Buffer.from('🙂 failure  '))
+      server.emit('exit', 1)
+      expect(emulatorProbe).toHaveBeenCalledWith('scrcpy.server.exit', {
+        code: 1,
+        log: '模擬器🙂 failure'
+      })
+    } finally {
+      session.close()
+    }
   })
 })
