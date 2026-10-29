@@ -98,6 +98,38 @@
       "firstPrompt": "A primeira solicitação do usuário neste espaço de trabalho ou chat.",
       "assistantMessage": "A resposta inicial do agente, quando disponível no Orca.",
       "linkedIssue": "O número da issue do GitHub vinculada a este espaço de trabalho. Fica vazio quando não há issue do GitHub vinculada (incluindo espaços vinculados ao GitLab). Prefira modelos com instruções: \"Fixes #{linkedIssue}\" isolado vira \"Fixes #\" quando não há vínculo."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "O prompt de {{label}} é grande demais para a linha de comando do Windows. Adicione menos alterações ao stage e tente novamente.",
+        "promptTooLargeForArgument": "O prompt de {{label}} é grande demais para ser passado como um único argumento de linha de comando. Adicione menos alterações ao stage e tente novamente.",
+        "agentCouldNotStart": "Não foi possível iniciar {{label}}. Verifique o comando do agente em Configurações e tente novamente.",
+        "agentFailedToStart": "Falha ao iniciar {{label}}. Verifique o comando do agente em Configurações e tente novamente.",
+        "agentBinaryNotFound": "{{binary}} não foi encontrado no PATH. Instale {{label}} para usar mensagens de commit com IA.",
+        "timedOut": "A geração excedeu o tempo limite de {{seconds}} s.",
+        "outputTooLarge": "O comando CLI de {{label}} gerou saída demais. Verifique a configuração da CLI do agente e tente novamente.",
+        "windowsBatchUnsafeArguments": "{{label}} é executado por um script em lote do Windows que não aceita o prompt de várias linhas como argumento. Em Configurações, indique o executável do agente ou use um comando personalizado sem {prompt} para que o Orca envie o prompt pelo stdin.",
+        "cliTerminated": "O comando CLI de {{label}} foi interrompido antes de terminar.",
+        "cliTerminatedWithDetail": "O comando CLI de {{label}} foi interrompido antes de terminar: {{detail}}",
+        "cliFailed": "O comando CLI de {{label}} falhou com o código {{exitCode}}.",
+        "cliFailedWithDetail": "O comando CLI de {{label}} falhou com o código {{exitCode}}: {{detail}}",
+        "agentReportedError": "{{label}} relatou um erro.",
+        "emptyCommitMessage": "{{label}} retornou uma mensagem vazia.",
+        "emptyCommitMessageWithDetail": "{{label}} retornou uma mensagem vazia. Saída da CLI: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} retornou detalhes vazios.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} retornou detalhes vazios. Saída da CLI: {{detail}}",
+        "emptyJiraSummary": "{{label}} retornou um resumo vazio.",
+        "emptyJiraSummaryWithDetail": "{{label}} retornou um resumo vazio. Saída da CLI: {{detail}}",
+        "commitMessageUnparseable": "Não foi possível interpretar a mensagem de commit gerada.",
+        "pullRequestDetailsUnparseable": "Não foi possível interpretar os detalhes gerados do pull request.",
+        "jiraSummaryEmptyAfterSanitization": "O resumo gerado ficou vazio após a limpeza.",
+        "jiraDescriptionRequired": "A descrição é obrigatória.",
+        "jiraAccountDisconnected": "Reconecte a conta do Jira selecionada neste host.",
+        "jiraSummaryBusyInOtherDraft": "Um título do Jira já está sendo gerado em outro rascunho.",
+        "stagedChangesReadFailed": "Não foi possível ler as alterações no stage.",
+        "noStagedChanges": "Não há alterações no stage para resumir.",
+        "noBranchChanges": "Não há alterações na branch para resumir."
+      }
     }
   },
   "githubChecks": {

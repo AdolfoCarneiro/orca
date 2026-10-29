@@ -20732,6 +20732,38 @@
       "patch": "Различия ветки относительно базовой ветки для генерации сведений о PR.",
       "stagedFiles": "Список файлов в индексе, по одному в строке, для создания сообщения коммита.",
       "stagedPatch": "Патч Git с изменениями в индексе для создания сообщения коммита."
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "Запрос для {{label}} слишком большой для командной строки Windows. Добавьте в индекс меньше изменений и повторите попытку.",
+        "promptTooLargeForArgument": "Запрос для {{label}} слишком большой для передачи одним аргументом командной строки. Добавьте в индекс меньше изменений и повторите попытку.",
+        "agentCouldNotStart": "Не удалось запустить {{label}}. Проверьте команду агента в разделе «Настройки» и повторите попытку.",
+        "agentFailedToStart": "Запуск {{label}} завершился ошибкой. Проверьте команду агента в разделе «Настройки» и повторите попытку.",
+        "agentBinaryNotFound": "{{binary}} не найден в PATH. Установите {{label}} для генерации сообщений коммитов с помощью ИИ.",
+        "timedOut": "Время ожидания генерации истекло через {{seconds}} с.",
+        "outputTooLarge": "Команда CLI {{label}} вывела слишком много данных. Проверьте настройки CLI агента и повторите попытку.",
+        "windowsBatchUnsafeArguments": "{{label}} запускается через пакетный скрипт Windows, который не может принять многострочный запрос как аргумент. В разделе «Настройки» укажите исполняемый файл агента или используйте свою команду без {prompt}, чтобы Orca передавала запрос через stdin.",
+        "cliTerminated": "Команда CLI {{label}} была принудительно остановлена до завершения.",
+        "cliTerminatedWithDetail": "Команда CLI {{label}} была принудительно остановлена до завершения: {{detail}}",
+        "cliFailed": "Команда CLI {{label}} завершилась с ошибкой и кодом {{exitCode}}.",
+        "cliFailedWithDetail": "Команда CLI {{label}} завершилась с ошибкой и кодом {{exitCode}}: {{detail}}",
+        "agentReportedError": "{{label}} сообщил об ошибке.",
+        "emptyCommitMessage": "{{label}} вернул пустое сообщение.",
+        "emptyCommitMessageWithDetail": "{{label}} вернул пустое сообщение. Вывод CLI: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} не вернул никаких сведений.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} не вернул никаких сведений. Вывод CLI: {{detail}}",
+        "emptyJiraSummary": "{{label}} вернул пустое краткое описание.",
+        "emptyJiraSummaryWithDetail": "{{label}} вернул пустое краткое описание. Вывод CLI: {{detail}}",
+        "commitMessageUnparseable": "Не удалось разобрать сгенерированное сообщение коммита.",
+        "pullRequestDetailsUnparseable": "Не удалось разобрать сгенерированные сведения о пул-реквесте.",
+        "jiraSummaryEmptyAfterSanitization": "После очистки сгенерированное краткое описание оказалось пустым.",
+        "jiraDescriptionRequired": "Описание обязательно.",
+        "jiraAccountDisconnected": "Повторно подключите выбранную учётную запись Jira на этом сервере.",
+        "jiraSummaryBusyInOtherDraft": "Заголовок Jira уже генерируется в другом черновике.",
+        "stagedChangesReadFailed": "Не удалось прочитать изменения в индексе.",
+        "noStagedChanges": "Нет изменений в индексе для составления сводки.",
+        "noBranchChanges": "Нет изменений в ветке для составления сводки."
+      }
     }
   },
   "agentsSidebarIntro": {

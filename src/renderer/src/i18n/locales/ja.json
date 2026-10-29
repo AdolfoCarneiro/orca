@@ -20108,6 +20108,38 @@
       "firstPrompt": "このワークスペースまたはチャットでの最初のユーザーの依頼です。",
       "assistantMessage": "Orca が取得できる場合の、Agent の最初の応答です。",
       "linkedIssue": "このワークスペースにリンクされた GitHub Issue の番号です。GitHub Issue がリンクされていない場合は空です（GitLab にリンクされたワークスペースを含む）。指示を含むテンプレートを使ってください。リンクがない場合、単独の「Fixes #{linkedIssue}」は「Fixes #」になります。"
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} のプロンプトが Windows のコマンドラインには大きすぎます。ステージする変更を減らして、もう一度お試しください。",
+        "promptTooLargeForArgument": "{{label}} のプロンプトが大きすぎるため、単一のコマンドライン引数として渡せません。ステージする変更を減らして、もう一度お試しください。",
+        "agentCouldNotStart": "{{label}} を起動できませんでした。設定で Agent のコマンドを確認し、もう一度お試しください。",
+        "agentFailedToStart": "{{label}} の起動に失敗しました。設定で Agent のコマンドを確認し、もう一度お試しください。",
+        "agentBinaryNotFound": "PATH に {{binary}} が見つかりません。AI コミットメッセージを使用するには、{{label}} をインストールしてください。",
+        "timedOut": "生成が {{seconds}} 秒でタイムアウトしました。",
+        "outputTooLarge": "{{label}} の CLI コマンドの出力が多すぎます。Agent の CLI 設定を確認し、もう一度お試しください。",
+        "windowsBatchUnsafeArguments": "{{label}} の実行に使われる Windows バッチスクリプトは、複数行のプロンプトを引数として受け取れません。設定で Agent の実行ファイルを指定するか、{prompt} を含まないカスタムコマンドを使用して、Orca がプロンプトを stdin に送信できるようにしてください。",
+        "cliTerminated": "{{label}} の CLI コマンドは終了前に停止されました。",
+        "cliTerminatedWithDetail": "{{label}} の CLI コマンドは終了前に停止されました：{{detail}}",
+        "cliFailed": "{{label}} の CLI コマンドがコード {{exitCode}} で失敗しました。",
+        "cliFailedWithDetail": "{{label}} の CLI コマンドがコード {{exitCode}} で失敗しました：{{detail}}",
+        "agentReportedError": "{{label}} がエラーを報告しました。",
+        "emptyCommitMessage": "{{label}} が空のメッセージを返しました。",
+        "emptyCommitMessageWithDetail": "{{label}} が空のメッセージを返しました。CLI 出力: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} が返した詳細は空でした。",
+        "emptyPullRequestDetailsWithDetail": "{{label}} が返した詳細は空でした。CLI 出力: {{detail}}",
+        "emptyJiraSummary": "{{label}} が空の要約を返しました。",
+        "emptyJiraSummaryWithDetail": "{{label}} が空の要約を返しました。CLI 出力: {{detail}}",
+        "commitMessageUnparseable": "生成されたコミットメッセージを解析できませんでした。",
+        "pullRequestDetailsUnparseable": "生成された PR の詳細を解析できませんでした。",
+        "jiraSummaryEmptyAfterSanitization": "生成された要約はサニタイズ後に空になりました。",
+        "jiraDescriptionRequired": "説明は必須です。",
+        "jiraAccountDisconnected": "このホストで、選択した Jira アカウントを再接続してください。",
+        "jiraSummaryBusyInOtherDraft": "別の下書きですでに Jira のタイトルを生成中です。",
+        "stagedChangesReadFailed": "ステージ済みの変更を読み取れませんでした。",
+        "noStagedChanges": "要約するステージ済みの変更はありません。",
+        "noBranchChanges": "要約するブランチの変更はありません。"
+      }
     }
   },
   "rendererRecovery": {

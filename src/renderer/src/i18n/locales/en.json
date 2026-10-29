@@ -20527,6 +20527,38 @@
       "high": "High",
       "xhigh": "Extra High",
       "max": "Max"
+    },
+    "textGeneration": {
+      "errors": {
+        "promptTooLargeForWindows": "{{label}} prompt is too large for the Windows command line. Stage fewer changes and try again.",
+        "promptTooLargeForArgument": "{{label}} prompt is too large to pass as a single command-line argument. Stage fewer changes and try again.",
+        "agentCouldNotStart": "{{label}} could not be started. Check the agent command in Settings and try again.",
+        "agentFailedToStart": "{{label}} failed to start. Check the agent command in Settings and try again.",
+        "agentBinaryNotFound": "{{binary}} not found on PATH. Install {{label}} to use AI commit messages.",
+        "timedOut": "Generation timed out after {{seconds}}s.",
+        "outputTooLarge": "{{label}} CLI command produced too much output. Check the agent CLI configuration and try again.",
+        "windowsBatchUnsafeArguments": "{{label}} runs through a Windows batch script that cannot take the multi-line prompt as an argument. Point Settings at the agent's executable, or use a custom command without {prompt} so Orca sends the prompt on stdin.",
+        "cliTerminated": "{{label}} CLI command was terminated before exiting.",
+        "cliTerminatedWithDetail": "{{label}} CLI command was terminated before exiting: {{detail}}",
+        "cliFailed": "{{label}} CLI command failed with code {{exitCode}}.",
+        "cliFailedWithDetail": "{{label}} CLI command failed with code {{exitCode}}: {{detail}}",
+        "agentReportedError": "{{label}} reported an error.",
+        "emptyCommitMessage": "{{label}} returned an empty message.",
+        "emptyCommitMessageWithDetail": "{{label}} returned an empty message. CLI output: {{detail}}",
+        "emptyPullRequestDetails": "{{label}} returned an empty details.",
+        "emptyPullRequestDetailsWithDetail": "{{label}} returned an empty details. CLI output: {{detail}}",
+        "emptyJiraSummary": "{{label}} returned an empty summary.",
+        "emptyJiraSummaryWithDetail": "{{label}} returned an empty summary. CLI output: {{detail}}",
+        "commitMessageUnparseable": "Generated commit message could not be parsed.",
+        "pullRequestDetailsUnparseable": "Generated pull request details could not be parsed.",
+        "jiraSummaryEmptyAfterSanitization": "Generated summary was empty after sanitization.",
+        "jiraDescriptionRequired": "Description is required.",
+        "jiraAccountDisconnected": "Reconnect the selected Jira account on this host.",
+        "jiraSummaryBusyInOtherDraft": "A Jira title is already being generated in another draft.",
+        "stagedChangesReadFailed": "Failed to read staged changes.",
+        "noStagedChanges": "No staged changes to summarize.",
+        "noBranchChanges": "No branch changes to summarize."
+      }
     }
   },
   "agentsSidebarIntro": {
