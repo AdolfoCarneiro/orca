@@ -151,6 +151,6 @@ it('codes a diagnosed failure so clients can translate it, keeping the English e
     error:
       'Kimi received conflicting options: --prompt with --auto. Correct the generation recipe or CLI arguments before retrying.',
     errorCode: 'kimiConflictingOptions',
-    errorParams: { options: '--prompt with --auto' }
+    errorParams: { option: '--prompt', otherOption: '--auto' }
   })
 })

@@ -36,10 +36,13 @@ describe('textGenerationErrorText', () => {
     i18n.addResourceBundle('es', 'translation', es)
     await i18n.changeLanguage('es')
     const failed = textGenerationFailure('kimiConflictingOptions', {
-      options: '--prompt with --auto'
+      option: '--prompt',
+      otherOption: '--auto'
     })
     expect(textGenerationErrorText(failed)).toBe(
-      errors.kimiConflictingOptions.replace('{{options}}', '--prompt with --auto')
+      errors.kimiConflictingOptions
+        .replace('{{option}}', '--prompt')
+        .replace('{{otherOption}}', '--auto')
     )
   })
 

@@ -20852,14 +20852,15 @@
         "kimiEmptyAgentFilePath": "Kimi a reçu un chemin de fichier d’agent vide. Corrigez cette entrée dans la recette de génération ou les arguments CLI, puis réessayez.",
         "kimiOutputFormatInvalid": "Le format de sortie de Kimi nécessite le mode prompt et une valeur prise en charge : text ou stream-json. Corrigez la recette de génération ou les arguments CLI avant de réessayer.",
         "kimiSessionIdRequired": "Kimi a besoin d’un identifiant de session pour reprendre en mode prompt. Corrigez la recette de génération ou les arguments CLI, puis réessayez.",
-        "kimiConflictingOptions": "Kimi a reçu des options incompatibles : {{options}}. Corrigez la recette de génération ou les arguments CLI avant de réessayer.",
+        "kimiConflictingOptions": "Kimi a reçu des options incompatibles : {{option}} avec {{otherOption}}. Corrigez la recette de génération ou les arguments CLI avant de réessayer.",
         "kimiAgentChangeOnResume": "Kimi ne peut pas changer d’agent lors de la reprise d’une session. Supprimez l’option qui remplace l’agent ou démarrez une nouvelle session dans la recette de génération ou les arguments CLI.",
         "kimiResponseBlocked": "Kimi n’a pas pu renvoyer de réponse car elle a été bloquée. Modifiez le prompt ou la configuration du modèle avant de réessayer.",
         "kimiAuthFailed": "Kimi n’a pas pu s’authentifier. Connectez-vous ou corrigez les identifiants du fournisseur sur l’hôte d’exécution, puis réessayez.",
         "kimiConnectionFailed": "Kimi n’a pas pu se connecter à son fournisseur. Vérifiez le réseau sur l’hôte d’exécution, puis réessayez.",
         "kimiProviderLimited": "Kimi a atteint une limite du fournisseur ou le fournisseur est occupé. Attendez avant de réessayer ou réduisez la fréquence des requêtes.",
         "kimiContextOverflow": "Kimi a épuisé son contexte. Raccourcissez le prompt ou démarrez une nouvelle session, puis réessayez.",
-        "kimiConfigInvalid": "La configuration de Kimi est invalide. Vérifiez la configuration du modèle et du fournisseur sur l’hôte d’exécution avant de réessayer."
+        "kimiConfigInvalid": "La configuration de Kimi est invalide. Vérifiez la configuration du modèle et du fournisseur sur l’hôte d’exécution avant de réessayer.",
+        "kimiContinueSessionConflict": "Kimi a reçu des options incompatibles : --continue, --session. Corrigez la recette de génération ou les arguments CLI avant de réessayer."
       },
       "enableSourceControlAi": "Activez l’IA du contrôle de code source dans Paramètres -> Git.",
       "chooseBaseBranch": "Choisissez une branche de base avant de générer."

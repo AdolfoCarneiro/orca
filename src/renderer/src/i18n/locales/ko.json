@@ -20284,14 +20284,15 @@
         "kimiEmptyAgentFilePath": "Kimi가 빈 에이전트 파일 경로를 받았습니다. 텍스트 생성 레시피 또는 CLI 인수에서 해당 입력을 수정한 후 다시 시도하세요.",
         "kimiOutputFormatInvalid": "Kimi 출력 형식에는 프롬프트 모드와 지원되는 text 또는 stream-json 값이 필요합니다. 다시 시도하기 전에 텍스트 생성 레시피 또는 CLI 인수를 수정하세요.",
         "kimiSessionIdRequired": "Kimi가 프롬프트 모드에서 재개하려면 세션 ID가 필요합니다. 텍스트 생성 레시피 또는 CLI 인수를 수정한 후 다시 시도하세요.",
-        "kimiConflictingOptions": "Kimi가 충돌하는 옵션을 받았습니다: {{options}}. 다시 시도하기 전에 텍스트 생성 레시피 또는 CLI 인수를 수정하세요.",
+        "kimiConflictingOptions": "Kimi가 충돌하는 옵션을 받았습니다: {{option}} 및 {{otherOption}}. 다시 시도하기 전에 텍스트 생성 레시피 또는 CLI 인수를 수정하세요.",
         "kimiAgentChangeOnResume": "Kimi는 세션을 재개할 때 에이전트를 변경할 수 없습니다. 텍스트 생성 레시피 또는 CLI 인수에서 에이전트 재정의를 제거하거나 새 세션을 시작하세요.",
         "kimiResponseBlocked": "응답이 차단되어 Kimi가 응답을 반환하지 못했습니다. 다시 시도하기 전에 프롬프트 또는 모델 구성을 수정하세요.",
         "kimiAuthFailed": "Kimi가 인증하지 못했습니다. 실행 호스트에서 로그인하거나 공급자 자격 증명을 수정한 후 다시 시도하세요.",
         "kimiConnectionFailed": "Kimi가 공급자에 연결하지 못했습니다. 실행 호스트의 네트워크를 확인한 후 다시 시도하세요.",
         "kimiProviderLimited": "Kimi가 공급자 한도에 도달했거나 공급자가 혼잡한 상태입니다. 잠시 기다린 후 다시 시도하거나 요청 빈도를 줄이세요.",
         "kimiContextOverflow": "Kimi의 컨텍스트 한도에 도달했습니다. 프롬프트를 줄이거나 새 세션을 시작한 후 다시 시도하세요.",
-        "kimiConfigInvalid": "Kimi의 구성이 잘못되었습니다. 다시 시도하기 전에 실행 호스트의 모델 및 공급자 구성을 확인하세요."
+        "kimiConfigInvalid": "Kimi의 구성이 잘못되었습니다. 다시 시도하기 전에 실행 호스트의 모델 및 공급자 구성을 확인하세요.",
+        "kimiContinueSessionConflict": "Kimi가 충돌하는 옵션을 받았습니다: --continue, --session. 다시 시도하기 전에 텍스트 생성 레시피 또는 CLI 인수를 수정하세요."
       },
       "enableSourceControlAi": "설정 -> Git에서 소스 제어 AI를 활성화하세요.",
       "chooseBaseBranch": "생성하기 전에 기준 브랜치를 선택하세요."

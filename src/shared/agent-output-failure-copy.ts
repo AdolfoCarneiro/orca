@@ -40,7 +40,9 @@ export const AGENT_OUTPUT_FAILURE_COPY = {
   kimiSessionIdRequired:
     'Kimi needs a session id to resume in prompt mode. Correct the generation recipe or CLI arguments, then retry.',
   kimiConflictingOptions:
-    'Kimi received conflicting options: {{options}}. Correct the generation recipe or CLI arguments before retrying.',
+    'Kimi received conflicting options: {{option}} with {{otherOption}}. Correct the generation recipe or CLI arguments before retrying.',
+  kimiContinueSessionConflict:
+    'Kimi received conflicting options: --continue, --session. Correct the generation recipe or CLI arguments before retrying.',
   kimiAgentChangeOnResume:
     'Kimi cannot change the agent when resuming a session. Remove the agent override or start a new session in the generation recipe or CLI arguments.',
   kimiResponseBlocked:

@@ -140,12 +140,18 @@ function stderrDiagnosis(stderr: string): TextGenerationFailureFields | null {
     if (terminal === 'Cannot use --session without an id in prompt mode.') {
       return textGenerationFailure('kimiSessionIdRequired')
     }
+    if (terminal === 'Cannot combine --continue, --session.') {
+      return textGenerationFailure('kimiContinueSessionConflict')
+    }
     const conflict =
-      /^Cannot combine (--prompt with --(?:yolo|auto|plan)|--continue, --session|--yolo with --auto)\.$/.exec(
+      /^Cannot combine (--prompt) with (--(?:yolo|auto|plan))\.$|^Cannot combine (--yolo) with (--auto)\.$/.exec(
         terminal
-      )?.[1]
+      )
     if (conflict) {
-      return textGenerationFailure('kimiConflictingOptions', { options: conflict })
+      return textGenerationFailure('kimiConflictingOptions', {
+        option: conflict[1] ?? conflict[3],
+        otherOption: conflict[2] ?? conflict[4]
+      })
     }
     if (
       terminal ===

@@ -127,6 +127,12 @@ export const AGENT_OUTPUT_ERROR_COPY: Record<
       EN.kimiConflictingOptions,
       values
     ),
+  kimiContinueSessionConflict: (values) =>
+    translate(
+      'sourceControl.textGeneration.errors.kimiContinueSessionConflict',
+      EN.kimiContinueSessionConflict,
+      values
+    ),
   kimiAgentChangeOnResume: (values) =>
     translate(
       'sourceControl.textGeneration.errors.kimiAgentChangeOnResume',

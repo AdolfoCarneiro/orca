@@ -20290,14 +20290,15 @@
         "kimiEmptyAgentFilePath": "Kimi hat einen leeren Pfad zur Agentendatei erhalten. Diese Eingabe im Textgenerierungsrezept oder in den CLI-Argumenten korrigieren und erneut versuchen.",
         "kimiOutputFormatInvalid": "Das Kimi-Ausgabeformat erfordert den Prompt-Modus und einen unterstützten Wert: text oder stream-json. Vor einem erneuten Versuch das Textgenerierungsrezept oder die CLI-Argumente korrigieren.",
         "kimiSessionIdRequired": "Kimi benötigt eine Sitzungs-ID zum Fortsetzen im Prompt-Modus. Das Textgenerierungsrezept oder die CLI-Argumente korrigieren und erneut versuchen.",
-        "kimiConflictingOptions": "Kimi hat widersprüchliche Optionen erhalten: {{options}}. Vor einem erneuten Versuch das Textgenerierungsrezept oder die CLI-Argumente korrigieren.",
+        "kimiConflictingOptions": "Kimi hat widersprüchliche Optionen erhalten: {{option}} mit {{otherOption}}. Vor einem erneuten Versuch das Textgenerierungsrezept oder die CLI-Argumente korrigieren.",
         "kimiAgentChangeOnResume": "Kimi kann den Agenten beim Fortsetzen einer Sitzung nicht ändern. Die Agentenüberschreibung entfernen oder im Textgenerierungsrezept oder in den CLI-Argumenten eine neue Sitzung starten.",
         "kimiResponseBlocked": "Kimi konnte keine Antwort zurückgeben, da sie blockiert wurde. Vor einem erneuten Versuch den Prompt oder die Modellkonfiguration überarbeiten.",
         "kimiAuthFailed": "Kimi konnte sich nicht authentifizieren. Auf dem Ausführungshost anmelden oder die Anbieter-Zugangsdaten korrigieren und erneut versuchen.",
         "kimiConnectionFailed": "Kimi konnte keine Verbindung zum Anbieter herstellen. Das Netzwerk auf dem Ausführungshost prüfen und erneut versuchen.",
         "kimiProviderLimited": "Kimi hat ein Anbieterlimit erreicht oder der Anbieter ist ausgelastet. Vor einem erneuten Versuch warten oder die Anfragehäufigkeit reduzieren.",
         "kimiContextOverflow": "Der Kontext von Kimi ist ausgeschöpft. Den Prompt kürzen oder eine neue Sitzung starten und erneut versuchen.",
-        "kimiConfigInvalid": "Die Konfiguration von Kimi ist ungültig. Vor einem erneuten Versuch die Modell- und Anbieterkonfiguration auf dem Ausführungshost prüfen."
+        "kimiConfigInvalid": "Die Konfiguration von Kimi ist ungültig. Vor einem erneuten Versuch die Modell- und Anbieterkonfiguration auf dem Ausführungshost prüfen.",
+        "kimiContinueSessionConflict": "Kimi hat widersprüchliche Optionen erhalten: --continue, --session. Vor einem erneuten Versuch das Textgenerierungsrezept oder die CLI-Argumente korrigieren."
       },
       "enableSourceControlAi": "KI für die Quellcodeverwaltung unter Einstellungen -> Git aktivieren.",
       "chooseBaseBranch": "Vor dem Generieren einen Basis-Branch auswählen."

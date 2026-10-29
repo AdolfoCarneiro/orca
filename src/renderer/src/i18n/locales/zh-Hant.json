@@ -20005,14 +20005,15 @@
         "kimiEmptyAgentFilePath": "Kimi 收到空白的代理程式檔案路徑。請修正產生文字的動作範本或 CLI 引數中的該項輸入，然後再試一次。",
         "kimiOutputFormatInvalid": "Kimi 輸出格式需要提示詞模式及支援的 text 或 stream-json 值。請在重試前修正產生文字的動作範本或 CLI 引數。",
         "kimiSessionIdRequired": "Kimi 在提示詞模式下繼續工作階段時需要工作階段 ID。請修正產生文字的動作範本或 CLI 引數，然後再試一次。",
-        "kimiConflictingOptions": "Kimi 收到衝突的選項：{{options}}。請在重試前修正產生文字的動作範本或 CLI 引數。",
+        "kimiConflictingOptions": "Kimi 收到衝突的選項：{{option}} 與 {{otherOption}}。請在重試前修正產生文字的動作範本或 CLI 引數。",
         "kimiAgentChangeOnResume": "Kimi 無法在繼續工作階段時變更代理程式。請移除代理程式覆寫設定，或在產生文字的動作範本或 CLI 引數中啟動新的工作階段。",
         "kimiResponseBlocked": "Kimi 無法傳回回應，因為回應遭到封鎖。請在重試前修改提示詞或模型設定。",
         "kimiAuthFailed": "Kimi 無法通過驗證。請在執行主機上登入或修正提供者憑證，然後再試一次。",
         "kimiConnectionFailed": "Kimi 無法連線至提供者。請檢查執行主機上的網路，然後再試一次。",
         "kimiProviderLimited": "Kimi 已達到提供者的限制，或提供者正忙碌中。請稍候再試，或降低要求頻率。",
         "kimiContextOverflow": "Kimi 的上下文已用盡。請縮短提示詞或啟動新的工作階段，然後再試一次。",
-        "kimiConfigInvalid": "Kimi 的設定無效。請在重試前檢查執行主機上的模型和提供者設定。"
+        "kimiConfigInvalid": "Kimi 的設定無效。請在重試前檢查執行主機上的模型和提供者設定。",
+        "kimiContinueSessionConflict": "Kimi 收到衝突的選項：--continue, --session。請在重試前修正產生文字的動作範本或 CLI 引數。"
       },
       "enableSourceControlAi": "請在「設定 -> Git」中啟用原始碼控制 AI。",
       "chooseBaseBranch": "產生前請先選擇基礎分支。"

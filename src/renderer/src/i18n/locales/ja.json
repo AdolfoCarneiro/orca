@@ -20284,14 +20284,15 @@
         "kimiEmptyAgentFilePath": "Kimi に空の Agent ファイルパスが渡されました。テキスト生成レシピまたは CLI 引数の該当する入力を修正してから、再試行してください。",
         "kimiOutputFormatInvalid": "Kimi の出力形式には、プロンプトモードと、サポートされている値 text または stream-json が必要です。再試行する前にテキスト生成レシピまたは CLI 引数を修正してください。",
         "kimiSessionIdRequired": "Kimi のプロンプトモードでセッションを再開するには、セッション ID が必要です。テキスト生成レシピまたは CLI 引数を修正してから、再試行してください。",
-        "kimiConflictingOptions": "Kimi に競合するオプションが渡されました：{{options}}。再試行する前にテキスト生成レシピまたは CLI 引数を修正してください。",
+        "kimiConflictingOptions": "Kimi に競合するオプションが渡されました：{{option}} と {{otherOption}}。再試行する前にテキスト生成レシピまたは CLI 引数を修正してください。",
         "kimiAgentChangeOnResume": "Kimi はセッションの再開時に Agent を変更できません。テキスト生成レシピまたは CLI 引数で Agent の上書き指定を削除するか、新しいセッションを開始してください。",
         "kimiResponseBlocked": "ブロックされたため、Kimi は応答を返せませんでした。再試行する前にプロンプトまたはモデル設定を見直してください。",
         "kimiAuthFailed": "Kimi で認証できませんでした。実行ホストでサインインするか、プロバイダーの認証情報を修正してから、再試行してください。",
         "kimiConnectionFailed": "Kimi はプロバイダーに接続できませんでした。実行ホストのネットワークを確認してから、再試行してください。",
         "kimiProviderLimited": "Kimi がプロバイダーの制限に達したか、プロバイダーが混雑しています。しばらく待ってから再試行するか、リクエストの頻度を減らしてください。",
         "kimiContextOverflow": "Kimi のコンテキストを使い切りました。プロンプトを短くするか、新しいセッションを開始してから、再試行してください。",
-        "kimiConfigInvalid": "Kimi の設定が無効です。再試行する前に実行ホストのモデルとプロバイダーの設定を確認してください。"
+        "kimiConfigInvalid": "Kimi の設定が無効です。再試行する前に実行ホストのモデルとプロバイダーの設定を確認してください。",
+        "kimiContinueSessionConflict": "Kimi に競合するオプションが渡されました：--continue, --session。再試行する前にテキスト生成レシピまたは CLI 引数を修正してください。"
       },
       "enableSourceControlAi": "設定 -> Git でソース管理 AI を有効にしてください。",
       "chooseBaseBranch": "生成する前にベースブランチを選択してください。"

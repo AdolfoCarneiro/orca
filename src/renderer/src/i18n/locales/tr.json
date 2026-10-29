@@ -20271,14 +20271,15 @@
         "kimiEmptyAgentFilePath": "Kimi boş bir ajan dosyası yolu aldı. Metin oluşturma tarifindeki veya CLI argümanlarındaki bu girdiyi düzeltip yeniden deneyin.",
         "kimiOutputFormatInvalid": "Kimi çıktı biçimi, istem modu ve desteklenen text veya stream-json değerlerinden birini gerektirir. Yeniden denemeden önce metin oluşturma tarifini veya CLI argümanlarını düzeltin.",
         "kimiSessionIdRequired": "Kimi'nin istem modunda devam edebilmesi için bir oturum kimliği gerekiyor. Metin oluşturma tarifini veya CLI argümanlarını düzeltip yeniden deneyin.",
-        "kimiConflictingOptions": "Kimi çakışan seçenekler aldı: {{options}}. Yeniden denemeden önce metin oluşturma tarifini veya CLI argümanlarını düzeltin.",
+        "kimiConflictingOptions": "Kimi çakışan seçenekler aldı: {{option}} ile {{otherOption}}. Yeniden denemeden önce metin oluşturma tarifini veya CLI argümanlarını düzeltin.",
         "kimiAgentChangeOnResume": "Kimi bir oturumu sürdürürken ajanı değiştiremez. Ajanı değiştiren ayarı kaldırın veya metin oluşturma tarifinde ya da CLI argümanlarında yeni bir oturum başlatın.",
         "kimiResponseBlocked": "Kimi'nin yanıtı engellendiği için döndürülemedi. Yeniden denemeden önce istemi veya model yapılandırmasını gözden geçirin.",
         "kimiAuthFailed": "Kimi'de kimlik doğrulanamadı. Çalıştırma sunucusunda oturum açın veya sağlayıcı kimlik bilgilerini düzeltin, ardından yeniden deneyin.",
         "kimiConnectionFailed": "Kimi'nin sağlayıcısına bağlanılamadı. Çalıştırma sunucusundaki ağı kontrol edip yeniden deneyin.",
         "kimiProviderLimited": "Kimi sağlayıcı sınırına ulaştı veya sağlayıcı meşgul. Yeniden denemeden önce bekleyin veya istek sıklığını azaltın.",
         "kimiContextOverflow": "Kimi'nin bağlamı tükendi. İstemi kısaltın veya yeni bir oturum başlatın, ardından yeniden deneyin.",
-        "kimiConfigInvalid": "Kimi'nin yapılandırması geçersiz. Yeniden denemeden önce çalıştırma sunucusundaki model ve sağlayıcı yapılandırmasını kontrol edin."
+        "kimiConfigInvalid": "Kimi'nin yapılandırması geçersiz. Yeniden denemeden önce çalıştırma sunucusundaki model ve sağlayıcı yapılandırmasını kontrol edin.",
+        "kimiContinueSessionConflict": "Kimi çakışan seçenekler aldı: --continue, --session. Yeniden denemeden önce metin oluşturma tarifini veya CLI argümanlarını düzeltin."
       },
       "enableSourceControlAi": "Ayarlar -> Git bölümünde Kaynak Kontrolü AI özelliğini etkinleştirin.",
       "chooseBaseBranch": "Oluşturmadan önce bir temel branch seçin."
