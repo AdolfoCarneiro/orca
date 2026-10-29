@@ -3,6 +3,7 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
 import { Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { createRichMarkdownExtensions } from './rich-markdown-extensions'
 import { handleRichMarkdownEditorClick } from './rich-markdown-editor-click-routing'
 import type { DocLinkMenuState } from './rich-markdown-commands'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -305,4 +306,3 @@ describe('rich Markdown slash commands in code', () => {
     expect(editor.state.doc.firstChild?.textContent).toBe('')
   })
 })
-
