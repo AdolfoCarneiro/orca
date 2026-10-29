@@ -14,10 +14,9 @@ export function buildProjectSectionCatalog(
   visibleHostIds: readonly ExecutionHostId[] | null,
   projectOrderBy: ProjectOrderBy | null
 ): ProjectSectionCatalog {
+  const visible = visibleHostIds === null ? null : new Set(visibleHostIds)
   const shown = (repos: readonly SectionRepo[]) =>
-    visibleHostIds
-      ? repos.filter((repo) => visibleHostIds.includes(getRepoExecutionHostId(repo)))
-      : repos
+    visible ? repos.filter((repo) => visible.has(getRepoExecutionHostId(repo))) : repos
   if (!served) {
     return {
       ...NO_PROJECT_SECTION_CATALOG,

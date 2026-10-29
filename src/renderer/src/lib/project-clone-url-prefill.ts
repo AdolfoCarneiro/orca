@@ -61,25 +61,27 @@ export function resolveProjectCloneUrlPrefill(
   const projectIndex = selectedProjectId.startsWith('project:')
     ? (grouping ?? buildRepoProjectGroupingIndex(repos, settings))
     : null
-  const members = projectIndex
-    ? repos.filter((repo) => getProjectGroupForRepo(projectIndex, repo)?.key === selectedProjectId)
-    : source
-      ? repos.filter((repo) =>
-          projects
-            .find((project) => project.id === selectedProjectId)
-            ?.sourceRepoIds.includes(repo.id)
-        )
-      : []
   if (source) {
-    const concrete = members.find(
+    const concrete = repos.find(
       (repo) =>
         repo.id === source.repoId &&
         getRepoExecutionHostId(repo) === source.hostId &&
         (!source.path || repo.path === source.path)
     )
-    return stripCredentialsFromMessage(concrete?.gitRemoteIdentity?.remoteUrl ?? '')
+    if (!concrete) {
+      return ''
+    }
+    const member = projectIndex
+      ? getProjectGroupForRepo(projectIndex, concrete)?.key === selectedProjectId
+      : projects
+          .find((project) => project.id === selectedProjectId)
+          ?.sourceRepoIds.includes(concrete.id)
+    return member ? stripCredentialsFromMessage(concrete.gitRemoteIdentity?.remoteUrl ?? '') : ''
   }
   if (projectIndex) {
+    const members = repos.filter(
+      (repo) => getProjectGroupForRepo(projectIndex, repo)?.key === selectedProjectId
+    )
     return stripCredentialsFromMessage(
       members.find((repo) => repo.gitRemoteIdentity?.remoteUrl)?.gitRemoteIdentity?.remoteUrl ?? ''
     )

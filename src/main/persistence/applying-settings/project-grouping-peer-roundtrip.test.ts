@@ -185,14 +185,25 @@ it('adapts real remote Task full-array edits against the current canonical owner
   await closeTestStores()
   const loaded = createStore()
   expect(loaded.getSettings().defaultRepoSelection).toEqual(['runtime:new\0same', 'new', 'other'])
-  const remote = new RuntimeClientSettingsController(loaded)
-  await remote.update({ defaultRepoSelection: ['new'] })
-  await remote.update({ defaultRepoSelection: ['same', 'new'] })
-  expect(loaded.getSettings().defaultRepoSelection).toEqual(['same', 'new'])
-  await remote.update({ defaultRepoSelection: [] })
-  expect(loaded.getSettings().defaultRepoSelection).toEqual([])
-  await remote.update({ defaultRepoSelection: null })
-  expect(loaded.getSettings().defaultRepoSelection).toBeNull()
+  let currentOwner = loaded
+  const cases: [Parameters<RuntimeClientSettingsController['update']>[0], string[] | null][] = [
+    [{ defaultRepoSelection: ['new'] }, ['new']],
+    [{ defaultRepoSelection: ['same', 'new'] }, ['same', 'new']],
+    [{ machineName: 'After reload' }, ['same', 'new']],
+    [{ defaultRepoSelection: [] }, []],
+    [{ defaultRepoSelection: null }, null]
+  ]
+  for (const [patch, canonical] of cases) {
+    const remote = new RuntimeClientSettingsController(currentOwner)
+    await remote.update(patch)
+    expect(currentOwner.getSettings().defaultRepoSelection).toEqual(canonical)
+    expect(remote.get().defaultRepoSelection).toEqual(canonical)
+    currentOwner.flush()
+    expect(readDataFile().settings.defaultRepoSelection).toEqual(canonical)
+    await closeTestStores()
+    currentOwner = createStore()
+    expect(currentOwner.getSettings().defaultRepoSelection).toEqual(canonical)
+  }
 })
 
 it('selects request meaning atomically before a single current-owner mutation, independently of socket lists', async () => {

@@ -19,13 +19,16 @@ export function getGroupKeyForWorktree(
   /** Null reads every worktree as having no PR, which is the in-progress lane. */
   prGroupOf: SidebarPRGroupReader | null,
   workspaceStatuses: readonly WorkspaceStatusDefinition[] = cloneDefaultWorkspaceStatuses(),
-  projectGrouping?: ProjectSectionModel
+  projectGrouping?: ProjectSectionModel,
+  workspaceStatusById?: ReadonlyMap<string, WorkspaceStatusDefinition>
 ): string | null {
   if (groupBy === 'none') {
     return ALL_GROUP_KEY
   }
   if (groupBy === 'workspace-status') {
-    return getWorkspaceStatusGroupKey(getWorkspaceStatus(worktree, workspaceStatuses))
+    return getWorkspaceStatusGroupKey(
+      getWorkspaceStatus(worktree, workspaceStatuses, workspaceStatusById)
+    )
   }
   if (groupBy === 'repo') {
     return getProjectGroupingForRepo(

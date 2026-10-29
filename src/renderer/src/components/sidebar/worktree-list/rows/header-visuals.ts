@@ -80,7 +80,8 @@ type SidebarHeaderVisual = {
 /** What the window draws for a header's icon key; read at paint so labels follow the locale. */
 export function getSidebarHeaderVisual(
   icon: SidebarHeaderIcon,
-  workspaceStatuses: readonly WorkspaceStatusDefinition[]
+  workspaceStatuses: readonly WorkspaceStatusDefinition[],
+  workspaceStatusById?: ReadonlyMap<string, WorkspaceStatusDefinition>
 ): SidebarHeaderVisual {
   switch (icon.kind) {
     case 'pinned':
@@ -93,7 +94,9 @@ export function getSidebarHeaderVisual(
       return PR_GROUP_META[icon.prGroup]
     case 'workspace-status': {
       const { icon: statusIcon, tone } = getWorkspaceStatusVisualMeta(
-        workspaceStatuses.find((status) => status.id === icon.status) ?? icon.status
+        (workspaceStatusById
+          ? workspaceStatusById.get(icon.status)
+          : workspaceStatuses.find((status) => status.id === icon.status)) ?? icon.status
       )
       return { icon: statusIcon, tone }
     }

@@ -51,6 +51,7 @@ export type SectionHeaderRowContext = {
   groupBy: WorktreeGroupBy
   projectHeaderHostContexts?: ReadonlyMap<string, ProjectHeaderHostContext>
   collapsedGroups: Set<string>
+  workspaceStatusById?: ReadonlyMap<string, WorkspaceStatusDefinition>
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   projectGroups: readonly ProjectGroup[]
   highlightedRevealRowKey: string | null
@@ -145,10 +146,14 @@ export function renderWorktreeSectionHeaderRow(args: {
     headerDrag.projectGroupDrag.state.draggingGroupId === projectGroupIdForHeader
   const headerWorkspaceStatus =
     ctx.groupBy === 'workspace-status'
-      ? getWorkspaceStatusFromGroupKey(row.key, ctx.workspaceStatuses)
+      ? getWorkspaceStatusFromGroupKey(row.key, ctx.workspaceStatuses, ctx.workspaceStatusById)
       : null
   const isPinnedHeader = row.key === PINNED_GROUP_KEY
-  const headerVisual = getSidebarHeaderVisual(row.icon, ctx.workspaceStatuses)
+  const headerVisual = getSidebarHeaderVisual(
+    row.icon,
+    ctx.workspaceStatuses,
+    ctx.workspaceStatusById
+  )
   const label = row.label ?? headerVisual.label ?? ''
   const hostContext =
     ctx.groupBy === 'repo' ? ctx.projectHeaderHostContexts?.get(row.key) : undefined

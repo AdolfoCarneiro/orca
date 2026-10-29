@@ -70,14 +70,17 @@ export function useProjectFilterOptions(filterRepoIds: readonly string[], pairin
     ready: !remote || readable,
     repos: groupedRepos,
     selection,
-    edit: (kind: 'complete' | 'remove', keys: readonly string[]) =>
-      legacy
-        ? [
-            ...new Set([
-              ...filterRepoIds.filter((id) => !keys.includes(id)),
-              ...(kind === 'complete' ? keys : [])
-            ])
-          ]
-        : editProjectFilter(index, filterRepoIds, { kind, keys })
+    edit: (kind: 'complete' | 'remove', keys: readonly string[]) => {
+      if (!legacy) {
+        return editProjectFilter(index, filterRepoIds, { kind, keys })
+      }
+      const touched = new Set(keys)
+      return [
+        ...new Set([
+          ...filterRepoIds.filter((id) => !touched.has(id)),
+          ...(kind === 'complete' ? keys : [])
+        ])
+      ]
+    }
   }
 }

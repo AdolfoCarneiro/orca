@@ -39,6 +39,7 @@ export type WorktreeVirtualRowContext = {
   measureVirtualRowElement: (element: HTMLDivElement | null) => void
   groupBy: WorktreeGroupBy
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
+  workspaceStatusById?: ReadonlyMap<string, WorkspaceStatusDefinition>
   activeWorktreeId: string | null
   worktreeDragState: WorktreeRowDragState
   orderedHostIds: readonly string[]
@@ -216,7 +217,7 @@ export function renderWorktreeVirtualRow(
 
   const itemWorkspaceStatus =
     ctx.groupBy === 'workspace-status'
-      ? getWorkspaceStatus(row.worktree, ctx.workspaceStatuses)
+      ? getWorkspaceStatus(row.worktree, ctx.workspaceStatuses, ctx.workspaceStatusById)
       : null
   const itemPreviewOffset =
     ctx.worktreeDragState.previewOffsetsByWorktreeId.get(row.worktree.id) ?? 0

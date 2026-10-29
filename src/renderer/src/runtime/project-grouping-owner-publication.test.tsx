@@ -10,7 +10,15 @@ import { OrcaRuntimeService } from '../../../main/runtime/orca-runtime'
 import { partialRuntimeStore } from '../../../main/runtime/runtime-store-partial-fixture'
 import { registerRuntimeHandlers } from '../../../main/ipc/runtime'
 import { MOBILE_PROJECT_SECTIONS_METHODS } from '../../../main/runtime/rpc/methods/mobile-project-sections'
+import { getProjectSectionsResource } from '../../../../mobile/src/worktree/project-sections-resource'
+import { stubRpcClient } from '../../../../mobile/src/transport/rpc-client-test-stub'
+import { RpcClientRequestTracker } from '../../../../mobile/src/transport/rpc-client-request-tracker'
+import { mapRuntimeError, successResponse } from '../../../main/runtime/rpc/errors'
 import type { RuntimeRendererSyncWindowGraph } from '../../../shared/runtime-types'
+
+vi.mock('../../../../mobile/src/i18n/mobile-i18n', () => ({
+  translate: (_key: string, fallback: string) => fallback
+}))
 
 const ipc = vi.hoisted(() => ({ handlers: new Map<string, (...args: unknown[]) => unknown>() }))
 vi.mock('electron', () => ({
@@ -48,6 +56,43 @@ it('joins successful real settings/catalog owners to graph scheduling, IPC autho
   const accepted: RuntimeRendererSyncWindowGraph[] = []
   const read = () => MOBILE_PROJECT_SECTIONS_METHODS[0].handler(undefined, { runtime })
   let events = 0
+  let sequence = 0
+  let requests = 0
+  const tracker = new RpcClientRequestTracker({
+    nextId: () => String(++sequence),
+    getState: () => 'connected',
+    waitForConnected: async () => {},
+    sendFrame: (request) => {
+      requests++
+      void Promise.resolve()
+        .then(read)
+        .then(
+          (result) => tracker.resolve(successResponse(request.id, { runtimeId: 'owner' }, result)),
+          (error) => tracker.resolve(mapRuntimeError(request.id, { runtimeId: 'owner' }, error))
+        )
+      return true
+    }
+  })
+  let leases = 0
+  const client = stubRpcClient({
+    sendRequest: tracker.sendRequest.bind(tracker),
+    subscribe: (_method, _params, onEvent) => {
+      leases++
+      const stop = runtime.onClientEvent(onEvent, { consumesTerminalSideEffects: false })
+      return () => {
+        leases--
+        stop()
+      }
+    }
+  })
+  const resource = getProjectSectionsResource(client)
+  let resourceUpdates = 0
+  const release = resource.subscribe(
+    () => {
+      resourceUpdates++
+    },
+    { addEventListener: () => ({ remove: () => {} }) }
+  )
   const stopEvents = runtime.onClientEvent(
     (message) => {
       if (message.type === 'reposChanged') {
@@ -101,6 +146,9 @@ it('joins successful real settings/catalog owners to graph scheduling, IPC autho
     expect(read).toThrow('runtime_unavailable')
     expect(accepted.every((graph) => !graph.projectSectionCatalog)).toBe(true)
     expect(events).toBe(0)
+    expect(resource.getSnapshot()).toEqual({ kind: 'pending' })
+    expect(tracker.size()).toBe(0)
+    expect(requests).toBe(1)
     await act(async () => {
       await useAppStore.getState().fetchSettings()
       await useAppStore.getState().fetchRepos({ runtimeEnvironmentId: null })
@@ -108,11 +156,19 @@ it('joins successful real settings/catalog owners to graph scheduling, IPC autho
     await settle()
     expect(accepted.at(-1)?.projectSectionCatalog).toMatchObject({ repos: [], setups: [] })
     expect(events).toBe(1)
+    expect(resource.getSnapshot()).toEqual({
+      kind: 'answered',
+      value: accepted.at(-1)?.projectSectionCatalog
+    })
+    expect(resourceUpdates).toBe(1)
+    expect(tracker.size()).toBe(0)
+    const afterEmpty = requests
     await act(async () => {
       await useAppStore.getState().fetchRepos({ runtimeEnvironmentId: null })
     })
     await settle()
     expect(events).toBe(1)
+    expect(requests).toBe(afterEmpty)
     list.mockResolvedValue([
       {
         id: 'a',
@@ -136,6 +192,10 @@ it('joins successful real settings/catalog owners to graph scheduling, IPC autho
     })
     await settle()
     expect(events).toBe(2)
+    expect(resource.getSnapshot()).toEqual({
+      kind: 'answered',
+      value: accepted.at(-1)?.projectSectionCatalog
+    })
     expect(accepted.at(-1)?.projectSectionCatalog?.setups.map((setup) => setup.groupKey)).toEqual([
       'project:github:org/app',
       'project:github:org/app'
@@ -148,6 +208,10 @@ it('joins successful real settings/catalog owners to graph scheduling, IPC autho
     expect(
       new Set(accepted.at(-1)?.projectSectionCatalog?.setups.map((setup) => setup.groupKey)).size
     ).toBe(2)
+    expect(resource.getSnapshot()).toEqual({
+      kind: 'answered',
+      value: accepted.at(-1)?.projectSectionCatalog
+    })
     const known = read()
     expect(() =>
       ipc.handlers.get('runtime:syncWindowGraph')!({ ...event, senderFrame: {} }, accepted.at(-1))
@@ -161,6 +225,13 @@ it('joins successful real settings/catalog owners to graph scheduling, IPC autho
   } finally {
     act(() => root.unmount())
     stopEvents()
+    release()
+    expect(leases).toBe(0)
+    const finalRequests = requests
+    runtime.notifyReposChangedForRemoteClients()
+    await Promise.resolve()
+    expect(requests).toBe(finalRequests)
+    expect(tracker.size()).toBe(0)
     container.remove()
     useAppStore.setState(useAppStore.getInitialState(), true)
     vi.useRealTimers()

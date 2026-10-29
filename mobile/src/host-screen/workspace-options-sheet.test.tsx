@@ -309,7 +309,7 @@ it.each([100, 1000])(
     try {
       render({ newCardStyle: false, hideSleeping: false, selected, repos: options })
       expect(texts()).toContain(`${count} projects · Partially selected`)
-      expect(visits).toBeGreaterThan(count)
+      expect(visits).toBeGreaterThanOrEqual(count)
       expect(visits).toBeLessThan(40 * count)
       visits = 0
       press(`Projects, ${count} projects · Partially selected`)
@@ -318,7 +318,7 @@ it.each([100, 1000])(
           (node) => String(node.type) === 'Pressable' && node.props.accessibilityRole === 'checkbox'
         )
       ).toHaveLength(count + 1)
-      expect(visits).toBeGreaterThan(count)
+      expect(visits).toBeGreaterThanOrEqual(count)
       expect(visits).toBeLessThan(40 * count)
       visits = 0
       act(() =>

@@ -1,3 +1,7 @@
+import type { ExecutionHostId } from '../execution-host'
+import { ALL_GROUP_KEY } from './group-keys'
+import { getLaneHostWorktreeCounts, getLaneHostWorktreeIds } from './host-labels'
+import { compareFolderWorkspacesForDisplay } from './folder-workspace-lanes'
 import { getRepoExecutionHostId } from '../execution-host'
 import type { Repo } from '../repo-types'
 import type { Worktree } from '../worktree/types'
@@ -127,5 +131,61 @@ export function buildFolderWorkspaceRow(
     projectGroup: pair.projectGroup,
     depth: 0,
     groupDepth
+  }
+}
+
+export function appendUngroupedWorkspaceRows({
+  naturalWorktrees,
+  renderableFolderWorkspaces,
+  repoOf,
+  defaultHostId,
+  collapsedGroups,
+  occurrencePlan,
+  mixedWorktreeHostContextLabels,
+  result
+}: {
+  naturalWorktrees: readonly Worktree[]
+  renderableFolderWorkspaces: readonly RenderableFolderWorkspace[]
+  repoOf: RepoOfWorktree
+  defaultHostId: ExecutionHostId
+  collapsedGroups: Set<string>
+  occurrencePlan: WorktreeOccurrencePlan<Worktree>
+  mixedWorktreeHostContextLabels: ReadonlyMap<string, string>
+  result: Row[]
+}): void {
+  // Folder-only accounts must still render flat rows (#15362).
+  if (naturalWorktrees.length > 0 || renderableFolderWorkspaces.length > 0) {
+    result.push({
+      type: 'header',
+      key: ALL_GROUP_KEY,
+      count: naturalWorktrees.length + renderableFolderWorkspaces.length,
+      icon: { kind: 'all' },
+      hostWorktreeCounts: getLaneHostWorktreeCounts(
+        naturalWorktrees,
+        renderableFolderWorkspaces,
+        repoOf,
+        defaultHostId
+      ),
+      hostWorktreeIds: getLaneHostWorktreeIds(
+        naturalWorktrees,
+        renderableFolderWorkspaces,
+        repoOf,
+        defaultHostId
+      ),
+      worktreeIds: naturalWorktrees.map((worktree) => worktree.id)
+    })
+    if (!collapsedGroups.has(ALL_GROUP_KEY)) {
+      appendWorktreeRows(result, repoOf, occurrencePlan, {
+        collapsedGroups,
+        groupDepth: 0,
+        sectionKey: ALL_GROUP_KEY,
+        hostContextLabelByWorktreeIdentity: mixedWorktreeHostContextLabels
+      })
+      for (const pair of [...renderableFolderWorkspaces].sort((left, right) =>
+        compareFolderWorkspacesForDisplay(left.folderWorkspace, right.folderWorkspace)
+      )) {
+        result.push(buildFolderWorkspaceRow(pair, 0))
+      }
+    }
   }
 }

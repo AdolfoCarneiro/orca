@@ -35,6 +35,7 @@ export type SectionAppendContext = {
   result: Row[]
   groupBy: WorktreeGroupBy
   collapsedGroups: Set<string>
+  workspaceStatusById?: ReadonlyMap<string, WorkspaceStatusDefinition>
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   repoMap: Map<string, Repo>
   repoOf: RepoOfWorktree
@@ -60,6 +61,7 @@ export function appendOrderedGroups(
     groupBy,
     collapsedGroups,
     workspaceStatuses,
+    workspaceStatusById,
     repoMap,
     repoOf,
     defaultHostId,
@@ -89,10 +91,12 @@ export function appendOrderedGroups(
         : groupBy === 'workspace-status'
           ? (() => {
               const workspaceStatus =
-                getWorkspaceStatusFromGroupKey(key, workspaceStatuses) ??
+                getWorkspaceStatusFromGroupKey(key, workspaceStatuses, workspaceStatusById) ??
                 workspaceStatuses[0]?.id ??
                 'in-progress'
-              const definition = workspaceStatuses.find((status) => status.id === workspaceStatus)
+              const definition = workspaceStatusById
+                ? workspaceStatusById.get(workspaceStatus)
+                : workspaceStatuses.find((status) => status.id === workspaceStatus)
               return {
                 type: 'header' as const,
                 key,

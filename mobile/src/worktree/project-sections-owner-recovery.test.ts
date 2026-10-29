@@ -113,6 +113,8 @@ it.each([false, true])(
       })
     )
     runtime.syncWindowGraph(HEADLESS_RUNTIME_WINDOW_ID, { tabs: [], leaves: [] })
+    const catalog = { repos: [], projects: [], setups: [], projectOrderBy: 'manual' as const }
+    publishMobileProjectSections(catalog)
     const context = {
       runtime,
       connectionId: 'owner-resource-release',
@@ -184,7 +186,7 @@ it.each([false, true])(
     const release = resource.subscribe(() => {}, { addEventListener: () => ({ remove: () => {} }) })
     try {
       await flush()
-      expect(resource.getSnapshot()).toEqual({ kind: 'answered', value: null })
+      expect(resource.getSnapshot()).toEqual({ kind: 'answered', value: catalog })
       expect(registered).toHaveBeenCalledOnce()
       expect(streams.size()).toBe(1)
       release()

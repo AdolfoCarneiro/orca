@@ -37,11 +37,21 @@ function collapseMergedHostCheckouts(
   options: readonly ReadyProjectHostSetupOption[],
   hostById: ReadonlyMap<ExecutionHostId, ExecutionHostRegistryEntry>
 ): ReadyProjectHostSetupOption[] {
+  const firstByHostPath = new Map<ExecutionHostId, Map<string, ReadyProjectHostSetupOption>>()
+  for (const option of options) {
+    let paths = firstByHostPath.get(option.hostId)
+    if (!paths) {
+      paths = new Map()
+      firstByHostPath.set(option.hostId, paths)
+    }
+    if (!paths.has(option.path)) {
+      paths.set(option.path, option)
+    }
+  }
   const findShown = (option: ReadyProjectHostSetupOption): ReadyProjectHostSetupOption | null => {
     const mergedIntoHostId = hostById.get(option.hostId)?.mergedIntoHostId
     return mergedIntoHostId
-      ? (options.find((other) => other.hostId === mergedIntoHostId && other.path === option.path) ??
-          null)
+      ? (firstByHostPath.get(mergedIntoHostId)?.get(option.path) ?? null)
       : null
   }
   const aliasesByShown = new Map<ReadyProjectHostSetupOption, ProjectHostSetupSelection[]>()

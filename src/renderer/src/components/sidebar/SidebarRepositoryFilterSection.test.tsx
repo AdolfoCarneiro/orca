@@ -38,6 +38,7 @@ import {
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import SidebarFilter from './SidebarFilter'
+import { useProjectFilterOptions } from './use-project-filter-options'
 import SidebarRepositoryFilterSection from './SidebarRepositoryFilterSection'
 
 const REPOS = [
@@ -182,6 +183,7 @@ afterEach(() => {
   container.remove()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  window.history.replaceState(null, '', '/')
 })
 
 describe('SidebarRepositoryFilterSection', () => {
@@ -474,3 +476,129 @@ it.each([100, 1000])(
     expect(membershipVisits).toBeLessThan(60 * count)
   }
 )
+
+it.each([
+  [100, 100],
+  [1000, 100],
+  [100, 1000],
+  [1000, 1000]
+])(
+  'bounds known-old real Select all with %i retained and %i displayed raw keys',
+  async (retained, shown) => {
+    window.history.replaceState(null, '', '/web-index.html')
+    const keys = Array.from({ length: shown }, (_, i) => `raw-${i}`)
+    const previous = Array.from({ length: retained }, (_, i) => `raw-${i + 1}`)
+    setState({
+      repos: keys.map((id) => ({ id, path: `/${id}`, displayName: id })),
+      filterRepoIds: previous,
+      runtimeEnvironments: [{ id: 'old' }],
+      runtimeStatusByEnvironmentId: new Map([
+        [
+          'old',
+          {
+            snapshot: {
+              verification: 'verified',
+              transport: 'ready',
+              retired: false,
+              status: { capabilities: [] }
+            }
+          }
+        ]
+      ])
+    })
+    act(() =>
+      root.render(
+        <TooltipProvider>
+          <SidebarFilter onMenuOpenChange={() => {}} />
+        </TooltipProvider>
+      )
+    )
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-label^="Edit filters"]')!
+    act(() =>
+      trigger.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse' })
+      )
+    )
+    await settle()
+    const selectAll = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+      (node) => node.textContent === 'Select all'
+    )!
+    expect(selectAll).toBeTruthy()
+    expect(selectAll.disabled).toBe(false)
+    let membership = 0
+    const includes = Array.prototype.includes
+    const has = Set.prototype.has
+    vi.spyOn(Array.prototype, 'includes').mockImplementation(function (
+      this: unknown[],
+      value: unknown,
+      from?: number
+    ) {
+      if (typeof value === 'string' && value.startsWith('raw-')) {
+        membership += this.length
+      }
+      return includes.call(this, value, from)
+    })
+    vi.spyOn(Set.prototype, 'has').mockImplementation(function (
+      this: Set<unknown>,
+      value: unknown
+    ) {
+      if (typeof value === 'string' && value.startsWith('raw-')) {
+        membership++
+      }
+      return has.call(this, value)
+    })
+    act(() => selectAll.click())
+    const actionMembership = membership
+    process.stdout.write(`PG6-A ${JSON.stringify({ retained, shown, actionMembership })}\n`)
+    const touched = new Set(keys)
+    expect(setFilterRepoIds).toHaveBeenLastCalledWith([
+      ...new Set([...previous.filter((id) => !touched.has(id)), ...keys])
+    ])
+    expect(actionMembership).toBeGreaterThanOrEqual(retained)
+    expect(actionMembership).toBeLessThanOrEqual(4 * (retained + shown))
+    const clear = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent === 'Clear'
+    )!
+    act(() => clear.click())
+    expect(setFilterRepoIds).toHaveBeenLastCalledWith([])
+    window.history.replaceState(null, '', '/')
+  }
+)
+
+it('keeps literal old-owner remove/complete/empty semantics for duplicates and offline opaque tokens', () => {
+  window.history.replaceState(null, '', '/web-index.html')
+  const previous = ['raw-a', 'local\0raw-a', 'raw-a', 'offline']
+  setState({
+    filterRepoIds: previous,
+    runtimeEnvironments: [{ id: 'old' }],
+    runtimeStatusByEnvironmentId: new Map([
+      [
+        'old',
+        {
+          snapshot: {
+            verification: 'verified',
+            transport: 'ready',
+            retired: false,
+            status: { capabilities: [] }
+          }
+        }
+      ]
+    ])
+  })
+  let edit: ReturnType<typeof useProjectFilterOptions>['edit'] = () => []
+  function Capture() {
+    edit = useProjectFilterOptions(previous).edit
+    return null
+  }
+  act(() => root.render(<Capture />))
+  expect(edit('remove', ['raw-a', 'raw-a'])).toEqual(['local\0raw-a', 'offline'])
+  expect(edit('complete', ['raw-b', 'raw-b', 'unavailable'])).toEqual([
+    'raw-a',
+    'local\0raw-a',
+    'offline',
+    'raw-b',
+    'unavailable'
+  ])
+  expect(edit('remove', [])).toEqual(['raw-a', 'local\0raw-a', 'offline'])
+  expect(edit('remove', ['missing'])).toEqual(['raw-a', 'local\0raw-a', 'offline'])
+})

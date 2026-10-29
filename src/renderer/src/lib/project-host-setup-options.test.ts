@@ -1,5 +1,6 @@
 import { buildProjectGroupingIndex } from '../../../shared/project-section-grouping'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import * as dedupeRows from './project-host-setup-row-dedupe'
 import { getExecutionHostLabel, type ExecutionHostId } from '../../../shared/execution-host'
 import {
   buildExecutionHostRegistry,
@@ -699,4 +700,75 @@ describe('buildProjectHostSetupOptions', () => {
       ['server', 'runtime:openclaw-server']
     ])
   })
+})
+
+afterEach(() => vi.restoreAllMocks())
+
+it.each([
+  [100, 100],
+  [1000, 100],
+  [100, 1000],
+  [1000, 1000]
+])('bounds the actual ready picker merged clones at S=%i H=%i', (count, hostCount) => {
+  let reads = 0
+  let dedupeReads = 0
+  let dedupeInput = 0
+  const original = dedupeRows.dedupeReadySetupRows
+  vi.spyOn(dedupeRows, 'dedupeReadySetupRows').mockImplementation((options, hosts) => {
+    dedupeInput = options.length
+    const counted = options.map(
+      (option) =>
+        new Proxy(option, {
+          get(target, key, receiver) {
+            if (key === 'hostId' || key === 'path') {
+              reads++
+            }
+            return Reflect.get(target, key, receiver)
+          }
+        })
+    )
+    const rows = original(counted, hosts)
+    dedupeReads = reads
+    return rows
+  })
+  const canonical = 'runtime:server'
+  const alias = 'ssh:alias'
+  const projectHostSetups = Array.from({ length: count }, (_, i) => [
+    setup(`alias-${i}`, 'app', alias, `alias-${i}`, { path: `/checkout/${i}` }),
+    setup(`server-${i}`, 'app', canonical, `server-${i}`, { path: `/checkout/${i}` })
+  ]).flat()
+  const eligibleRepos = projectHostSetups.map((entry) => ({
+    ...repo(entry.repoId),
+    executionHostId: entry.hostId,
+    path: entry.path
+  }))
+  const hosts = [
+    host(alias, { mergedIntoHostId: canonical }),
+    host(canonical),
+    ...Array.from({ length: hostCount }, (_, i) => host(`ssh:other-${i}`))
+  ]
+  const options = buildProjectHostSetupOptions({
+    projectId: 'app',
+    projectHostSetups,
+    eligibleRepos,
+    hosts
+  })
+  expect(dedupeInput).toBe(2 * count)
+  expect(dedupeReads).toBeGreaterThanOrEqual(2 * count)
+  expect(dedupeReads).toBeLessThanOrEqual(28 * count)
+  const ready = options.filter((option) => option.kind === 'ready')
+  expect(ready).toHaveLength(count)
+  expect(options.filter((option) => option.kind === 'needs-setup')).toHaveLength(hostCount)
+  expect(new Set(ready.map((option) => option.hostId))).toEqual(new Set([canonical]))
+  for (const option of ready) {
+    const suffix = option.id.slice('server-'.length)
+    expect(option).toMatchObject({
+      path: `/checkout/${suffix}`,
+      repoId: `server-${suffix}`,
+      aliasSetups: [{ id: `alias-${suffix}`, hostId: alias }]
+    })
+  }
+  process.stdout.write(
+    `PG6-E ${JSON.stringify({ count, hostCount, dedupeInput, dedupeReads, ready: ready.length })}\n`
+  )
 })

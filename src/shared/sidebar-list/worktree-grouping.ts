@@ -27,6 +27,7 @@ export function buildOrderedGroups(args: {
   repoMap: Map<string, Repo>
   repos?: readonly Repo[]
   prGroupOf: SidebarPRGroupReader
+  workspaceStatusById?: ReadonlyMap<string, WorkspaceStatusDefinition>
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   projectIndex: ProjectGroupingIndex | null
   displayRootByIdentity?: ReadonlyMap<string, Worktree>
@@ -44,6 +45,7 @@ export function buildOrderedGroups(args: {
     repoMap,
     prGroupOf,
     workspaceStatuses,
+    workspaceStatusById,
     projectIndex,
     displayRootByIdentity,
     placeholderRepoIds,
@@ -86,7 +88,7 @@ export function buildOrderedGroups(args: {
   for (const w of naturalWorktrees) {
     const key =
       groupBy === 'workspace-status'
-        ? getWorkspaceStatusGroupKey(getWorkspaceStatus(w, workspaceStatuses))
+        ? getWorkspaceStatusGroupKey(getWorkspaceStatus(w, workspaceStatuses, workspaceStatusById))
         : getPRLaneKey(prGroupOf(w))
     if (!grouped.has(key)) {
       grouped.set(key, { label: '', items: [], repo: undefined, repoIds: new Set() })
@@ -97,7 +99,7 @@ export function buildOrderedGroups(args: {
   }
   // Folder workspaces bypass the worktree loop; create their lanes even when they are the only occupants (#15362).
   for (const pair of folderWorkspaces) {
-    const key = getFolderWorkspaceLaneKey(pair, groupBy, workspaceStatuses)
+    const key = getFolderWorkspaceLaneKey(pair, groupBy, workspaceStatuses, workspaceStatusById)
     if (!grouped.has(key)) {
       grouped.set(key, {
         label: '',

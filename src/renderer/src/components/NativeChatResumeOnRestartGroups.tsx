@@ -1,4 +1,5 @@
 import { getIndexedRepoHostMap, getIndexedRepoMap } from '@/store/worktree-repo-index'
+import { findIndexedProjectGroupDisplay } from '@/lib/worktree-runtime-owner-index'
 import { projectGroupIdFromRepoId } from '../../../shared/folder-workspace-worktree'
 import { memo, useMemo } from 'react'
 import { Folder, FolderTree, GitBranch, Monitor } from 'lucide-react'
@@ -155,8 +156,11 @@ function ProjectNode({
       getIndexedRepoHostMap(store.repos).get(`${hostId}\0${repoId}`) ??
       getIndexedRepoMap(store.repos).get(repoId)
   )
+  const projectGroupId = projectGroupIdFromRepoId(repoId)
   const projectGroup = useAppStore((store) =>
-    store.projectGroups.find((group) => group.id === projectGroupIdFromRepoId(repoId))
+    projectGroupId === null
+      ? undefined
+      : findIndexedProjectGroupDisplay(store.projectGroups, projectGroupId)
   )
   const header = resolveResumeGroupHeader(
     repoId,
