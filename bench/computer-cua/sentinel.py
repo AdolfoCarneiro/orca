@@ -15,6 +15,9 @@ root.geometry(geometry)
 text = tk.Text(root, font=("Courier", 10))
 text.pack(fill="both", expand=True)
 base = {"q": 0, "other": 0}
+ptr = {"clicks": 0, "wheels": 0}
+root.bind_all("<ButtonPress>", lambda e: ptr.__setitem__("wheels" if e.num in (4, 5) else "clicks", ptr["wheels" if e.num in (4, 5) else "clicks"] + 1))
+root.bind_all("<MouseWheel>", lambda e: ptr.__setitem__("wheels", ptr["wheels"] + 1))
 last = [None]
 
 
@@ -31,7 +34,7 @@ def tick():
         focus = str(root.focus_get())
     except Exception:
         focus = "?"
-    data = json.dumps({"q": base["q"] + q, "other": base["other"] + other, "focus": focus, "pid": os.getpid()})
+    data = json.dumps({"q": base["q"] + q, "other": base["other"] + other, "focus": focus, "pid": os.getpid(), **ptr})
     if data != last[0]:
         tmp = out + ".tmp"
         try:

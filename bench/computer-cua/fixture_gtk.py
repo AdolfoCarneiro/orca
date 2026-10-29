@@ -7,7 +7,7 @@ import sys
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk  # noqa: E402
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
 state_dir = sys.argv[1]
 STATE = os.path.join(state_dir, "state.json")
@@ -34,7 +34,7 @@ edit = Gtk.MenuItem(label="Edit")
 sub = Gtk.Menu()
 sub.set_accel_group(accel)
 bump = Gtk.MenuItem(label="Bump")
-bump.add_accelerator("activate", accel, ord("b"), 4, Gtk.AccelFlags.VISIBLE)  # 4 = CONTROL_MASK
+bump.add_accelerator("activate", accel, ord("b"), Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE)
 bump.connect("activate", lambda _w: s.__setitem__("menuHits", s["menuHits"] + 1))
 sub.append(bump)
 edit.set_submenu(sub)

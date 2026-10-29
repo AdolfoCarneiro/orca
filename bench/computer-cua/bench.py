@@ -230,7 +230,7 @@ def orca_tree_text(snapshot):
 
 
 # ------------------------------------------------------------------ element lookup
-ROLE_KEYS = ("role", "control_type", "role_description", "localized_role", "subrole", "controlType", "localizedControlType")
+ROLE_KEYS = ("role", "control_type", "role_description", "localized_role", "subrole", "controlType", "localizedControlType", "className")
 LABEL_KEYS = ("label", "name", "title", "description", "value", "automation_id", "automationId", "help", "placeholder")
 
 
@@ -239,11 +239,16 @@ def norm(e):
 
 
 def find(elements, sel):
+    """Role and label; else label alone; else role/class alone (Orca's managed UIA reports WinForms controls as bare panes)."""
     role_re, label_re = sel
-    for e in elements:
-        role, label = norm(e)
-        if re.search(role_re, role, re.I) and re.search(label_re, label, re.I):
-            return e
+    stages = [lambda r, l: re.search(role_re, r, re.I) and re.search(label_re, l, re.I)]
+    if label_re:
+        stages.append(lambda r, l: re.search(label_re, l, re.I))
+        stages.append(lambda r, l: re.search(role_re, r, re.I) and not re.search(r"\bwindow\b", r, re.I))
+    for ok in stages:
+        for e in elements:
+            if ok(*norm(e)):
+                return e
     return None
 
 
@@ -290,6 +295,7 @@ class FileTarget:
 
     def check(self, action):
         s = self.st()
+        s["text"] = str(s.get("text") or "").replace("q", "")
         return {
             "click_button": lambda: s.get("count", 0) >= 1,
             "click_checkbox": lambda: s.get("check") is True,
@@ -317,8 +323,11 @@ class NotepadTarget:
             raise RuntimeError("no Edit/RichEdit child in Notepad")
         self.lines = "\n".join(f"line {i}" for i in range(400)).replace("\n", "\r\n")
 
-    def text(self):
+    def raw(self):
         return obs.edit_text(self.edit).replace("\r\n", "\n").replace("\r", "\n")
+
+    def text(self):
+        return self.raw().replace("q", "")
 
     def prepare(self, action):
         if action in ("return", "ctrl_a"):
@@ -340,10 +349,10 @@ class NotepadTarget:
         }[action]()
 
     def stray(self):
-        return self.text().count("q")
+        return self.raw().count("q")
 
     def snapshot_state(self):
-        return {"text": self.text()[:80], "sel": obs.edit_sel(self.edit), "first": obs.edit_first_line(self.edit)}
+        return {"text": self.raw()[:80], "sel": obs.edit_sel(self.edit), "first": obs.edit_first_line(self.edit)}
 
 
 class GeditTarget:
@@ -385,9 +394,12 @@ class GeditTarget:
                     pass
         return None
 
-    def text(self):
+    def raw(self):
         t = self.node.get_text_iface()
         return self.A.Text.get_text(t, 0, -1)
+
+    def text(self):
+        return self.raw().replace("q", "")
 
     def set(self, value, caret):
         self.A.EditableText.set_text_contents(self.node.get_editable_text_iface(), value)
@@ -427,10 +439,10 @@ class GeditTarget:
         }[action]()
 
     def stray(self):
-        return self.text().count("q")
+        return self.raw().count("q")
 
     def snapshot_state(self):
-        return {"text": self.text()[:80], "sel": self.selection(), "top": self.top_offset()}
+        return {"text": self.raw()[:80], "sel": self.selection(), "top": self.top_offset()}
 
 
 # ------------------------------------------------------------------ selectors and actions
@@ -711,6 +723,17 @@ class Bench:
         s = jread(self.sent_path)
         return s.get("q", 0), s.get("other", 0)
 
+    def sentinel_pointer(self):
+        s = jread(self.sent_path)
+        return s.get("clicks", 0), s.get("wheels", 0)
+
+    def park_pointer(self):
+        """Bench setup: park the real pointer outside both windows so every trial starts from the same spot."""
+        if WIN:
+            obs.u.SetCursorPos(2, 2)
+        else:
+            obs.xdotool("mousemove", 2, 2)
+
     def sync(self, timeout=0.6):
         end = time.time() + timeout
         s0 = self.typer.sent
@@ -739,7 +762,9 @@ class Bench:
     def trial(self, engine, action, refs, escalate, i):
         prepared = self.target.prepare(action)
         refronted = self.ensure_front()
+        self.park_pointer()
         sent0, q0, o0 = self.sync()
+        pc0 = self.sentinel_pointer()
         stray0 = self.target.stray()
         sm = obs.Sampler(self.sw, self.tw, self.tpid)
         sm.start()
@@ -777,6 +802,7 @@ class Bench:
             time.sleep(0.02)
         sent1 = self.typer.sent
         q1, o1 = self.sent_counts()
+        pc1 = self.sentinel_pointer()
         row = {
             "engine": engine.name + ("+escalated" if escalate else "") if engine else "control", "action": action, "i": i,
             "delivered": delivered, "t_call_ms": round(t_call, 1), "t_effect_ms": round(t_eff, 1) if t_eff else None,
@@ -784,6 +810,7 @@ class Bench:
             "detail": res.get("detail"), "prepared": prepared, "refronted_before": refronted,
             "keys_sent": sent1 - sent0, "keys_received": q1 - q0, "keys_lost": max(0, (sent1 - sent0) - (q1 - q0)),
             "keys_redirected_into_target": max(0, self.target.stray() - stray0), "agent_text_in_sentinel": o1 - o0,
+            "agent_pointer_in_sentinel": (pc1[0] - pc0[0]) + (pc1[1] - pc0[1]),
             **o, "target_state": self._tstate(),
         }
         self.rows.append(row)
@@ -943,6 +970,7 @@ def summarize(rows):
             "keys_lost": sum(r["keys_lost"] for r in rs), "keys_sent": sum(r["keys_sent"] for r in rs),
             "keys_redirected": sum(r["keys_redirected_into_target"] for r in rs),
             "agent_text_in_sentinel": sum(r["agent_text_in_sentinel"] for r in rs),
+            "agent_pointer_in_sentinel": sum(r.get("agent_pointer_in_sentinel", 0) for r in rs),
             "pointer_moved": sum(r["pointer_moved"] for r in rs), "clipboard_changed": sum(r["clipboard_changed"] for r in rs),
             "primary_changed": sum(r.get("primary_changed", False) for r in rs),
             "reported": rep, "routes": sorted({str(r["route"]) for r in rs}),
@@ -955,7 +983,7 @@ def summarize_print(rows):
     s = summarize(rows)[0]
     log(f'{s["engine"]:<16} {s["action"]:<16} ok {s["delivered"]}/{s["n"]} call {s["call_ms"]} eff {s["effect_ms"]} '
         f'lost {s["lost_focus"]} raised {s["raised"]} keysLost {s["keys_lost"]}/{s["keys_sent"]} redir {s["keys_redirected"]} '
-        f'leak {s["agent_text_in_sentinel"]} ptr {s["pointer_moved"]} clip {s["clipboard_changed"]} rep {s["reported"]} | {str(s["example"])[:160]}')
+        f'leak {s["agent_text_in_sentinel"]}/{s["agent_pointer_in_sentinel"]} ptr {s["pointer_moved"]} clip {s["clipboard_changed"]} rep {s["reported"]} | {str(s["example"])[:160]}')
 
 
 def markdown(meta, summary):
@@ -966,13 +994,13 @@ def markdown(meta, summary):
               "missing_elements", "orca_error", "cua_error", "skipped", "notepad", "gedit"):
         if k in meta:
             lines.append(f"- {k}: `{json.dumps(meta[k], default=str)}`")
-    lines += ["", "| action | engine | delivered | call ms | effect ms | sentinel lost focus (max ms) | target raised | user keys lost / sent | keys into target | agent text in sentinel | pointer moved | clipboard changed | reported/delivered |",
+    lines += ["", "| action | engine | delivered | call ms | effect ms | sentinel lost focus (max ms) | target raised | user keys lost / sent | keys into target | agent text / pointer events in sentinel | pointer moved | clipboard changed | reported/delivered |",
               "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for s in sorted(summary, key=lambda s: (s["action"], s["engine"])):
         rep = ", ".join(f"{k}×{v}" for k, v in s["reported"].items())
         lines.append(f'| {s["action"]} | {s["engine"]} | {s["delivered"]}/{s["n"]} | {s["call_ms"]} | {s["effect_ms"] if s["effect_ms"] is not None else "–"} | '
                      f'{s["lost_focus"]} ({s["lost_ms_max"]}) | {s["raised"]} | {s["keys_lost"]}/{s["keys_sent"]} | {s["keys_redirected"]} | '
-                     f'{s["agent_text_in_sentinel"]} | {s["pointer_moved"]} | {s["clipboard_changed"]} | {rep} |')
+                     f'{s["agent_text_in_sentinel"]}/{s["agent_pointer_in_sentinel"]} | {s["pointer_moved"]} | {s["clipboard_changed"]} | {rep} |')
     snaps = meta.get("snapshots") or {}
     if snaps:
         lines += ["", "| snapshot | median ms | median chars | median raw bytes | full_output chars | lost focus | raised |", "|---|---|---|---|---|---|---|"]
@@ -983,6 +1011,7 @@ def markdown(meta, summary):
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", choices=["fixture", "editor", "electron"], required=True)
     ap.add_argument("--cua", required=True)

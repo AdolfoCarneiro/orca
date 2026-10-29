@@ -50,7 +50,10 @@ jobs:
           ls -la "$RUNNER_TEMP/cua"
       - name: Install Electron
         if: matrix.target == 'electron'
-        run: npm install --no-save --no-package-lock --prefix "$RUNNER_TEMP/electron" "electron@$ELECTRON_VERSION"
+        run: |
+          npm install --no-save --no-package-lock --prefix "$RUNNER_TEMP/electron" "electron@$ELECTRON_VERSION"
+          node "$RUNNER_TEMP/electron/node_modules/electron/install.js"
+          ls -la "$RUNNER_TEMP/electron/node_modules/electron/dist/electron"
       - name: Run bench
         env:
           ACCESSIBILITY_ENABLED: '1'
@@ -99,7 +102,10 @@ jobs:
       - name: Install Electron
         if: matrix.target == 'electron'
         shell: pwsh
-        run: npm install --no-save --no-package-lock --prefix "$env:RUNNER_TEMP\electron" "electron@$env:ELECTRON_VERSION"
+        run: |
+          npm install --no-save --no-package-lock --prefix "$env:RUNNER_TEMP\electron" "electron@$env:ELECTRON_VERSION"
+          node "$env:RUNNER_TEMP\electron\node_modules\electron\install.js"
+          Get-Item "$env:RUNNER_TEMP\electron\node_modules\electron\dist\electron.exe"
       - name: Run bench
         shell: pwsh
         run: |
