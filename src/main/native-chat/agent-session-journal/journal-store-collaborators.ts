@@ -13,18 +13,14 @@ import { JournalStopMarks } from './journal-stop-marks'
 import { JournalStopAcceptor } from './journal-stop-acceptance'
 import { journalQueuePauseRestatement } from './queued-message-pause'
 import type { JournalReducerState } from './journal-reducer'
-import {
-  composeJournalOperationReceipts,
-  JournalRowWriter,
-  type JournalOperationReceipt
-} from './journal-row-writer'
+import { JournalRowWriter, type JournalOperationReceipt } from './journal-row-writer'
 import { JournalStepWriter } from './journal-step-writer'
 import { restoreJournalStore } from './journal-store-restore'
 import { JournalSubmissionWriter } from './journal-submission-writer'
 import type { JournalRow } from './journal-row-schema'
 import type { AgentSessionJournal } from './journal-store'
 import type { JournalWriteBody } from './journal-write-queue'
-import type { JournalAttachmentClaim } from './journal-submission-hook'
+import { journalInputClaimsReceipt, type JournalAttachmentClaim } from './journal-submission-hook'
 import { claimAgentSessionAttachmentsInTransaction } from '../agent-session-attachments/agent-session-attachment-claims'
 import { JournalGoalAttachmentInverse } from './journal-goal-attachment-inverse'
 import { isJournalStreamedTextRevision } from './journal-streamed-text-revision'
@@ -43,10 +39,7 @@ export type JournalStoreHost = {
   adopt: (loaded: JournalLoad) => void
   commit: (rows: readonly JournalRow[], savedAt: number) => void
   journal: () => AgentSessionJournal
-  enqueue: (
-    build: (seq: number, ts: number) => JournalRow,
-    receipt?: JournalOperationReceipt
-  ) => Promise<JournalRow>
+  enqueue: JournalRowWriter['enqueue']
 }
 
 export type JournalStoreCollaborators = {
@@ -109,49 +102,8 @@ export function createJournalStoreCollaborators(host: JournalStoreHost): Journal
     commit: host.commit,
     streamedTextRevision: (row) => isJournalStreamedTextRevision(host.state(), row)
   })
-  const withInputClaims = <Result>(
-    plan: () => readonly ((seq: number, ts: number) => JournalRow)[],
-    run: (
-      plan: () => readonly ((seq: number, ts: number) => JournalRow)[],
-      receipt?: JournalOperationReceipt,
-      receiptRow?: (rows: readonly JournalRow[]) => JournalRow | undefined
-    ) => Result,
-    receipt?: JournalOperationReceipt,
-    receiptRow?: (rows: readonly JournalRow[]) => JournalRow | undefined
-  ) => {
-    const rows: JournalRow[] = []
-    const commits: (() => void)[] = []
-    const claims: JournalOperationReceipt = {
-      write: (db) => {
-        for (const row of rows) {
-          const items = row.kind === 'lifecycle-batch' ? row.mutations : [row]
-          for (const item of items) {
-            if (item.kind !== 'item' || goalAttachments.isLive(item.itemId)) {
-              continue
-            }
-            if (item.body.kind !== 'message' || item.body.role !== 'user') {
-              continue
-            }
-            const commit = claimAttachments(db, item.body, false)
-            if (commit) {
-              commits.push(commit)
-            }
-          }
-        }
-      },
-      committed: () => commits.forEach((commit) => commit())
-    }
-    return run(
-      () =>
-        plan().map((build) => (seq, ts) => {
-          const row = build(seq, ts)
-          rows.push(row)
-          return row
-        }),
-      receipt ? composeJournalOperationReceipts(claims, receipt) : claims,
-      receiptRow
-    )
-  }
+  const inputReceipt = (rows: readonly JournalRow[], receipt?: JournalOperationReceipt) =>
+    journalInputClaimsReceipt(claimAttachments, (id) => goalAttachments.isLive(id), rows, receipt)
   const queuedMessages = new JournalQueuedMessages({
     sessionId: host.identity.sessionId,
     serialize: host.serialize,
@@ -166,7 +118,7 @@ export function createJournalStoreCollaborators(host: JournalStoreHost): Journal
   const lifecycleBatchAppender = new JournalLifecycleBatchAppender({
     state: host.state,
     cursor: host.cursor,
-    enqueueRows: (plan) => withInputClaims(plan, (p, r) => rowWriter.enqueueRows(p, r))
+    enqueueRows: (plan) => rowWriter.enqueueRows(plan, inputReceipt)
   })
   return {
     goalAttachments,
@@ -191,7 +143,7 @@ export function createJournalStoreCollaborators(host: JournalStoreHost): Journal
       claimAttachments
     }),
     itemAppender: new JournalItemAppender({
-      isLiveGoal: (id) => goalAttachments.isLive(id),
+      inputReceipt,
       state: host.state,
       enqueue: host.enqueue,
       claimAttachments
@@ -200,7 +152,7 @@ export function createJournalStoreCollaborators(host: JournalStoreHost): Journal
     stepWriter: new JournalStepWriter({
       serialize: host.serialize,
       state: host.state,
-      writeRows: (plan) => withInputClaims(plan, (p, r) => rowWriter.writeRows(p, r)),
+      writeRows: (plan) => rowWriter.writeRows(plan, inputReceipt),
       planSettlement: (batch) => lifecycleBatchAppender.planResolved(batch)
     })
   }

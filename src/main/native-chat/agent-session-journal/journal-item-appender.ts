@@ -8,8 +8,8 @@ import { journalItemRowBuilder } from './journal-row-builders'
 import type { JournalReducerState } from './journal-reducer'
 import type { JournalAppendResult, JournalItemAppendOptions } from './journal-store-contracts'
 import type { JournalRow } from './journal-row-schema'
-import { composeJournalOperationReceipts, type JournalOperationReceipt } from './journal-row-writer'
-import type { JournalAttachmentClaim } from './journal-submission-hook'
+import type { JournalOperationReceipt, JournalRowWriter } from './journal-row-writer'
+import type { JournalAttachmentClaim, journalInputClaimsReceipt } from './journal-submission-hook'
 
 // Module-level Error stacks retain startup code and buffers; construct them only when needed.
 class NothingResolvedError extends Error {}
@@ -19,12 +19,12 @@ export type JournalResolvedItem = { identity: AgentJournalItemIdentity; body: Ag
 export class JournalItemAppender {
   constructor(
     private readonly deps: {
-      isLiveGoal?: (id: string) => boolean
-      state: () => JournalReducerState
-      enqueue: (
-        build: (seq: number, ts: number) => JournalRow,
+      inputReceipt: (
+        rows: readonly JournalRow[],
         receipt?: JournalOperationReceipt
-      ) => Promise<JournalRow>
+      ) => ReturnType<typeof journalInputClaimsReceipt>
+      state: () => JournalReducerState
+      enqueue: JournalRowWriter['enqueue']
       claimAttachments: JournalAttachmentClaim
     }
   ) {}
@@ -36,20 +36,10 @@ export class JournalItemAppender {
     receipt?: JournalOperationReceipt
   ): Promise<JournalAppendResult> {
     const itemId = agentJournalItemKey(identity)
-    if (body.kind === 'message' && body.role === 'user') {
-      let committed: (() => void) | void
-      const claims: JournalOperationReceipt = {
-        write: (db) => {
-          if (!this.deps.isLiveGoal?.(itemId)) {
-            committed = this.deps.claimAttachments(db, body, false)
-          }
-        },
-        committed: () => committed?.()
-      }
-      receipt = receipt ? composeJournalOperationReceipts(claims, receipt) : claims
-    }
     return this.deps
-      .enqueue(journalItemRowBuilder(this.deps.state, identity, body, options), receipt)
+      .enqueue(journalItemRowBuilder(this.deps.state, identity, body, options), (rows) =>
+        this.deps.inputReceipt(rows, receipt)
+      )
       .then((row) => appendResult(row, itemId))
   }
 
@@ -82,8 +72,6 @@ export class JournalItemAppender {
     options: JournalItemAppendOptions
   ): Promise<JournalAppendResult | null> {
     let itemId = ''
-    let body: AgentJournalItemBody | undefined
-    let committed: (() => void) | void
     return this.deps
       .enqueue(
         (seq, ts) => {
@@ -91,7 +79,6 @@ export class JournalItemAppender {
           if (resolved === null) {
             throw new NothingResolvedError('journal_item_resolved_to_nothing')
           }
-          body = resolved.body
           itemId = agentJournalItemKey(resolved.identity)
           return journalItemRowBuilder(
             this.deps.state,
@@ -100,18 +87,7 @@ export class JournalItemAppender {
             options
           )(seq, ts)
         },
-        {
-          write: (db) => {
-            if (
-              body?.kind === 'message' &&
-              body.role === 'user' &&
-              !this.deps.isLiveGoal?.(itemId)
-            ) {
-              committed = this.deps.claimAttachments(db, body, false)
-            }
-          },
-          committed: () => committed?.()
-        }
+        (rows) => this.deps.inputReceipt(rows)
       )
       .then(
         (row) => appendResult(row, itemId),

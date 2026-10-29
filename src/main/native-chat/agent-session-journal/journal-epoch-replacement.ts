@@ -199,12 +199,7 @@ export function replaceJournalEpoch(input: {
     }
     for (const row of rows) {
       insertJournalRow(db, sessionId, row)
-      const body =
-        row.kind === 'item' || row.kind === 'submission'
-          ? row.body
-          : row.kind === 'queue' && row.change.op === 'queued'
-            ? row.change.body
-            : null
+      const body = row.kind === 'item' || row.kind === 'submission' ? row.body : null
       if (
         body?.kind === 'message' &&
         body.role === 'user' &&
