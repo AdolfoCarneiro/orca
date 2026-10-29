@@ -48,6 +48,7 @@ export async function searchWorkItemPage<T>(args: {
   page: number
   options: GitHubRepoExecOptions
   noCache?: boolean
+  cacheResults?: boolean
 }): Promise<T[]> {
   const { options, noCache } = args
   const environment = { ...(options.env ?? process.env) }
@@ -96,7 +97,7 @@ export async function searchWorkItemPage<T>(args: {
       selection: 'issueCount pageInfo { endCursor hasNextPage }',
       options,
       environment,
-      noCache
+      noCache: noCache || args.cacheResults === false
     })
     if (!skipped.pageInfo || !Number.isSafeInteger(skipped.issueCount)) {
       throw new Error('GitHub search response missing pagination')
@@ -118,7 +119,7 @@ export async function searchWorkItemPage<T>(args: {
     selection: `issueCount pageInfo { endCursor hasNextPage } nodes { ${args.nodeSelection} }`,
     options,
     environment,
-    noCache
+    noCache: noCache || args.cacheResults === false
   })
   if (!Array.isArray(result.nodes) || !result.pageInfo) {
     throw new Error('GitHub search response missing page')
