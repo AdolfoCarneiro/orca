@@ -184,7 +184,7 @@ function decodeOfflineChunk(samples: Float32Array): string {
   }
 }
 
-// Discard residual audio and spent streams; recovery must still deliver stopped.
+// Discard residual audio and spent streams so a warm worker never carries one session into the next.
 function resetSessionState(): void {
   try {
     if (!isStreaming) {
@@ -196,7 +196,8 @@ function resetSessionState(): void {
         : sherpa.createOfflineStream(recognizer)
     }
   } catch {
-    // Preserve stopped so stopDictation does not wait 60s.
+    // The old stream still holds the last session's audio; exiting settles stop and forces a fresh worker.
+    process.exit(1)
   }
 }
 
