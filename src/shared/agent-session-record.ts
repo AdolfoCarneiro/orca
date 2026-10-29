@@ -274,12 +274,11 @@ function isStoredRecordObject(value: unknown): value is Record<string, unknown> 
 }
 
 function isPersistedAgentSessionObservationLease(
-  value: unknown
-): value is PersistedAgentSessionObservationLease {
-  if (!isStoredRecordObject(value)) {
+  lease: unknown
+): lease is PersistedAgentSessionObservationLease {
+  if (!isStoredRecordObject(lease)) {
     return false
   }
-  const lease = value
   return (
     isAgentSessionId(lease.sessionId) &&
     isPersistedAgentSessionRuntimeKind(lease.runtimeKind) &&
