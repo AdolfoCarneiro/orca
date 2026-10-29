@@ -109,6 +109,7 @@ export type GithubPullRequestApi = {
     repoPath: string
     repoId?: string
     sourceContext?: TaskSourceContext | null
+    repoOwnerExecutionHostId?: ExecutionHostId
     reactionSubjectId: string
     content: GitHubReactionContent
     reacted: boolean
@@ -183,6 +184,7 @@ export type GithubPullRequestApi = {
   ) => Promise<{ ok: true } | { ok: false; error: string }>
   addPRReviewCommentReply: (
     args: GitHubRepoSelectorArgs & {
+      repoOwnerExecutionHostId?: ExecutionHostId
       prNumber: number
       commentId: number
       body: string

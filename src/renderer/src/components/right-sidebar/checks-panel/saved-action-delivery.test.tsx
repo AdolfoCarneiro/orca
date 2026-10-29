@@ -122,6 +122,17 @@ function fixture(saved = true, paired = false) {
   const setComments = vi.fn()
   const isCurrentAsyncResult = (key: string) => key === context.current
   const resolveThread = vi.fn().mockResolvedValue(true)
+  const replyToThread = vi.fn<typeof original.addPRReviewCommentReply>().mockResolvedValue({
+    ok: true,
+    comment: {
+      id: 91,
+      author: 'agent',
+      authorAvatarUrl: '',
+      body: 'Fixing',
+      createdAt: '',
+      url: ''
+    }
+  })
   let composerState: ChecksAgentComposerState | null = null
   const composer = vi.fn<(value: ChecksAgentComposerState | null) => void>()
   const setAgentComposerState: Dispatch<SetStateAction<ChecksAgentComposerState | null>> = (
@@ -173,7 +184,7 @@ function fixture(saved = true, paired = false) {
       })
       const ack = useChecksPanelAiAcknowledgement({
         addPRConversationComment: vi.fn(),
-        addPRReviewCommentReply: vi.fn(),
+        addPRReviewCommentReply: replyToThread,
         asyncResultKeyRef: context,
         claimedCommentResolutionRef: claimed,
         commentsRef: { current: [] },
@@ -235,7 +246,7 @@ function fixture(saved = true, paired = false) {
         sourceControlAiActionsVisible: true,
         stateRequestKey: context.current
       })
-      return { ...queue, noEnabledAgentKnown: resolution.noEnabledAgentKnown }
+      return { ...ack, ...queue, noEnabledAgentKnown: resolution.noEnabledAgentKnown }
     },
     { initialProps: { head: 'head' } }
   )
@@ -266,10 +277,60 @@ function fixture(saved = true, paired = false) {
     context,
     composer,
     resolveThread,
+    replyToThread,
+    setComments,
     loading,
     fetchPRComments
   }
 }
+
+it('forwards captured owner and source context in the existing nested acknowledgement adapter after navigation', async () => {
+  const f = fixture(false)
+  await act(async () => {})
+  const payload: PendingPRCommentAiAck = {
+    provider: 'github',
+    reviewContextKey: f.context.current,
+    selectedGroups: f.groups.map((group) => ({
+      ...group,
+      root: { ...group.root, isResolved: true, path: 'src/widget.ts', line: 8 }
+    })),
+    githubTarget: {
+      repoPath: '/repo',
+      repoId: 'repo-1',
+      prNumber: 42,
+      prRepo: { owner: 'acme', repo: 'repo' },
+      repoOwnerExecutionHostId: 'runtime:alpha',
+      sourceContext: {
+        kind: 'task-source',
+        provider: 'github',
+        projectId: 'project',
+        repoId: 'mapped-repo',
+        hostId: 'runtime:source'
+      }
+    }
+  }
+  const callbacks = f.result.current.commentLaunchCallbacks(payload)
+  f.context.current = 'other-review::head'
+  f.setComments.mockClear()
+  act(() => {
+    callbacks.onLaunchAccepted()
+    callbacks.onLaunched()
+    callbacks.onLaunched()
+  })
+  await waitFor(() => expect(f.busy.current).toBe(false))
+  expect(f.replyToThread).toHaveBeenCalledOnce()
+  expect(f.replyToThread).toHaveBeenCalledWith('/repo', 42, 1, expect.any(String), {
+    repoId: 'repo-1',
+    prRepo: { owner: 'acme', repo: 'repo' },
+    threadId: 'thread-42',
+    path: 'src/widget.ts',
+    line: 8,
+    repoOwnerExecutionHostId: 'runtime:alpha',
+    sourceContext: payload.githubTarget?.sourceContext
+  })
+  expect(f.resolveThread).not.toHaveBeenCalled()
+  expect(f.setComments).not.toHaveBeenCalled()
+})
 
 it('owns detection single-flight, returns failed delivery to the editor, then consumes its exact review once', async () => {
   const delivery = deferred<{ delivered: boolean; failureNotified: boolean }>()

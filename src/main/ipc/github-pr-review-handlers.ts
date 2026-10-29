@@ -1,10 +1,11 @@
 import { ipcMain } from 'electron'
 import type { GitHubOwnerRepo } from '../../shared/github/pull-request-types'
-import type { TaskSourceContext } from '../../shared/task-source-context'
 import { addPRReviewComment, addPRReviewCommentReply, setPRFileViewed } from '../github/client'
 import type { Store } from '../persistence'
 import {
   assertRegisteredGitHubRepo,
+  assertRegisteredGitHubPRCommentRepo,
+  type GitHubPRCommentRepoArgs,
   getGitHubLocalGitOptionArgs,
   getGitHubRepoConnectionId
 } from './github-repo-routing'
@@ -59,10 +60,7 @@ export function registerGitHubPRReviewHandlers(store: Store): void {
     'gh:addPRReviewCommentReply',
     async (
       event,
-      args: {
-        repoPath: string
-        repoId?: string
-        sourceContext?: TaskSourceContext | null
+      args: GitHubPRCommentRepoArgs & {
         prNumber: number
         commentId: number
         body: string
@@ -72,7 +70,7 @@ export function registerGitHubPRReviewHandlers(store: Store): void {
         prRepo?: GitHubOwnerRepo | null
       }
     ) => {
-      const repo = assertRegisteredGitHubRepo(args, store)
+      const repo = assertRegisteredGitHubPRCommentRepo(args, store)
       if (
         typeof args.prNumber !== 'number' ||
         !Number.isInteger(args.prNumber) ||

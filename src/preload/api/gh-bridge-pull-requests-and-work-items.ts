@@ -156,6 +156,7 @@ export const ghPullRequestsAndWorkItemsApi = {
     repoPath: string
     repoId?: string | null
     sourceContext?: TaskSourceContext | null
+    repoOwnerExecutionHostId?: ExecutionHostId
     reactionSubjectId: string
     content: GitHubReactionContent
     reacted: boolean

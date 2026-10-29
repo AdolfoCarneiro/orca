@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { GitHubPRRefreshCandidate } from '../../shared/github/pull-request-refresh-types'
 import type { Repo } from '../../shared/repo-types'
+import { UNRESOLVED_OWNER_HOST_ID } from '../../shared/execution-host'
 import type { Store } from '../persistence'
 
 vi.mock('../project-runtime-git-options', () => ({
@@ -57,12 +58,30 @@ describe('registered GitHub repo lookup for a repo id on two hosts', () => {
     expect(() => assertRegisteredGitHubPRCommentRepo(args, storeWith([localTwin]))).toThrow(
       'PR comment owner does not match repository host'
     )
-    expect(() =>
+    for (const repoOwnerExecutionHostId of ['runtime:', UNRESOLVED_OWNER_HOST_ID] as const) {
+      expect(() =>
+        assertRegisteredGitHubPRCommentRepo(
+          { ...args, repoOwnerExecutionHostId },
+          storeWith([{ ...localTwin, executionHostId: repoOwnerExecutionHostId }])
+        )
+      ).toThrow('PR comment owner does not match repository host')
+    }
+    expect(
       assertRegisteredGitHubPRCommentRepo(
-        { ...args, repoOwnerExecutionHostId: 'runtime:' },
-        storeWith([localTwin])
+        {
+          ...args,
+          repoOwnerExecutionHostId: UNRESOLVED_OWNER_HOST_ID,
+          sourceContext: {
+            kind: 'task-source',
+            provider: 'github',
+            projectId: 'project',
+            repoId: 'mapped-repo',
+            hostId: 'ssh:builder'
+          }
+        },
+        storeWith([samePathSshTwin])
       )
-    ).toThrow('PR comment owner does not match repository host')
+    ).toBe(samePathSshTwin)
     expect(
       assertRegisteredPRRefreshCandidateRepo(
         candidate({ repoPath: localTwin.path }),

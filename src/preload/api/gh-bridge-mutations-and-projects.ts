@@ -110,6 +110,7 @@ export const ghMutationsAndProjectsApi = {
     repoPath: string
     repoId?: string | null
     sourceContext?: TaskSourceContext | null
+    repoOwnerExecutionHostId?: ExecutionHostId
     prNumber: number
     commentId: number
     body: string

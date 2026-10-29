@@ -8,6 +8,7 @@ import { restoreReactionOnSubject, setReactionOnSubject } from '@/lib/pr-comment
 import { prCommentsCacheSuffix, sourceScopedRepoCacheKey } from './cache-identity'
 import { withBoundedCacheEntry } from './cache-policy'
 import { hasUsableCommentPayload, mergePRCommentIntoList } from './pr-comment-cache'
+import { githubPRCommentOwner } from './pr-comment-owner'
 import {
   getGitHubRepoSourceSettings,
   getGitHubSourceTarget,
@@ -19,9 +20,17 @@ export const createCommentMutationActions = (
   get: Parameters<StateCreator<AppState>>[1]
 ): Pick<GitHubSlice, 'addPRReviewCommentReply' | 'setPRCommentReaction'> => ({
   addPRReviewCommentReply: async (repoPath, prNumber, commentId, body, options) => {
-    const repo = get().repos?.find((candidate) =>
-      options?.repoId ? candidate.id === options.repoId : candidate.path === repoPath
-    )
+    const owner = githubPRCommentOwner(get(), repoPath, options, { allowUnregisteredRepo: true })
+    if (!owner.ok) {
+      return {
+        ok: false,
+        error: translate(
+          'auto.runtime.forgeCredentialTarget.unknownHost',
+          'The machine that owns this repository is not known yet. Reconnect it and try again.'
+        )
+      }
+    }
+    const { repo } = owner
     const repoId = options?.repoId ?? repo?.id
     const requestSettings = getGitHubRepoSourceSettings(get(), repo, options?.sourceContext)
     const cacheKey = sourceScopedRepoCacheKey(
@@ -70,7 +79,10 @@ export const createCommentMutationActions = (
               path: options?.path,
               line: options?.line,
               prRepo: options?.prRepo ?? null,
-              sourceContext: options?.sourceContext
+              sourceContext: options?.sourceContext,
+              ...(options?.repoOwnerExecutionHostId
+                ? { repoOwnerExecutionHostId: options.repoOwnerExecutionHostId }
+                : {})
             })
     } catch (err) {
       const error = err instanceof Error ? err.message : 'Failed to post reply.'
@@ -113,9 +125,11 @@ export const createCommentMutationActions = (
     reacted,
     options
   ) => {
-    const repo = get().repos?.find((candidate) =>
-      options?.repoId ? candidate.id === options.repoId : candidate.path === repoPath
-    )
+    const owner = githubPRCommentOwner(get(), repoPath, options, { allowUnregisteredRepo: true })
+    if (!owner.ok) {
+      return false
+    }
+    const { repo } = owner
     const repoId = options?.repoId ?? repo?.id
     const requestSettings = getGitHubRepoSourceSettings(get(), repo, options?.sourceContext)
     const cacheKey = sourceScopedRepoCacheKey(
@@ -180,7 +194,10 @@ export const createCommentMutationActions = (
               content,
               reacted,
               prRepo: options?.prRepo ?? null,
-              sourceContext: options?.sourceContext
+              sourceContext: options?.sourceContext,
+              ...(options?.repoOwnerExecutionHostId
+                ? { repoOwnerExecutionHostId: options.repoOwnerExecutionHostId }
+                : {})
             })
     } catch (err) {
       console.error('Failed to update PR comment reaction:', err)

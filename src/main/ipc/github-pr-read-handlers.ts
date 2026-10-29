@@ -124,17 +124,14 @@ export function registerGitHubPRReadHandlers(store: Store): void {
     'gh:setPRCommentReaction',
     (
       _event,
-      args: {
-        repoPath: string
-        repoId?: string | null
-        sourceContext?: TaskSourceContext | null
+      args: GitHubPRCommentRepoArgs & {
         reactionSubjectId: string
         content: GitHubReactionContent
         reacted: boolean
         prRepo?: GitHubOwnerRepo | null
       }
     ) => {
-      const repo = assertRegisteredGitHubRepo(args, store)
+      const repo = assertRegisteredGitHubPRCommentRepo(args, store)
       if (!args.reactionSubjectId?.trim()) {
         return false
       }

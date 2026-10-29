@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import {
   getRepoExecutionHostId,
-  normalizeExecutionHostId,
+  parseRoutableExecutionHostId,
   type ExecutionHostId
 } from '../../shared/execution-host'
 import type {
@@ -87,7 +87,7 @@ function validateRegisteredRepo(
         }
   }
   if (query.requiredOwnerHostId !== undefined) {
-    const hostId = normalizeExecutionHostId(query.requiredOwnerHostId)
+    const hostId = parseRoutableExecutionHostId(query.requiredOwnerHostId)?.id
     const ownedRows = hostId
       ? pathRows.filter((candidate) => getRepoExecutionHostId(candidate) === hostId)
       : []

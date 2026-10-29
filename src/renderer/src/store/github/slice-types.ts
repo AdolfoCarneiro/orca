@@ -109,12 +109,13 @@ export type GitHubSlice = {
     prNumber: number,
     commentId: number,
     body: string,
-    options?: RepoScopedFetchOptions & {
-      prRepo?: GitHubOwnerRepo | null
-      threadId?: string
-      path?: string
-      line?: number
-    }
+    options?: RepoScopedFetchOptions &
+      GitHubPRCommentOwnerOptions & {
+        prRepo?: GitHubOwnerRepo | null
+        threadId?: string
+        path?: string
+        line?: number
+      }
   ) => Promise<GitHubCommentResult>
   setPRCommentReaction: (
     repoPath: string,
@@ -122,7 +123,8 @@ export type GitHubSlice = {
     reactionSubjectId: string,
     content: GitHubReactionContent,
     reacted: boolean,
-    options?: RepoScopedFetchOptions & { prRepo?: GitHubOwnerRepo | null }
+    options?: RepoScopedFetchOptions &
+      GitHubPRCommentOwnerOptions & { prRepo?: GitHubOwnerRepo | null }
   ) => Promise<boolean>
   resolveReviewThread: (
     repoPath: string,

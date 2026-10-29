@@ -1,5 +1,8 @@
 import type { ExecutionHostId } from '../../../../shared/execution-host'
-import { getRepoExecutionHostId, normalizeExecutionHostId } from '../../../../shared/execution-host'
+import {
+  getRepoExecutionHostId,
+  parseRoutableExecutionHostId
+} from '../../../../shared/execution-host'
 import type { Repo } from '../../../../shared/repo-types'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import type { AppState } from '../types'
@@ -34,7 +37,7 @@ export function githubPRCommentOwner(
     return { ok: true, repo: sourceRows.length === 1 ? sourceRows[0] : uniqueRepo }
   }
   if (options?.repoOwnerExecutionHostId !== undefined) {
-    const hostId = normalizeExecutionHostId(options.repoOwnerExecutionHostId)
+    const hostId = parseRoutableExecutionHostId(options.repoOwnerExecutionHostId)?.id
     if (!hostId) {
       return { ok: false }
     }

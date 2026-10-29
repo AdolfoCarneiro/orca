@@ -150,7 +150,13 @@ export function useChecksPanelAiAcknowledgement(model: ChecksPanelAiAcknowledgem
                   prRepo: githubTarget.prRepo,
                   threadId: parentThreadId,
                   path: comment.path,
-                  line: comment.line
+                  line: comment.line,
+                  ...(githubTarget.repoOwnerExecutionHostId
+                    ? { repoOwnerExecutionHostId: githubTarget.repoOwnerExecutionHostId }
+                    : {}),
+                  ...(githubTarget.sourceContext
+                    ? { sourceContext: githubTarget.sourceContext }
+                    : {})
                 }
               )
               if (result.ok) {

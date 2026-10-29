@@ -29,6 +29,59 @@ describe('registerGitHubHandlers', () => {
 
   beforeEach(harness.reset)
 
+  it('strictly selects optional owners for nested replies and reactions, with legacy omitted-owner compatibility', async () => {
+    const local = harness.repos[0]
+    const remote = { ...local, connectionId: 'builder' }
+    harness.repos = [local, remote]
+    mocks.client.addPRReviewCommentReply.mockResolvedValue({ ok: false, error: 'stub' })
+    mocks.client.setPRCommentReaction.mockResolvedValue(true)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this fixture implements the repo/settings reads used by these handlers.
+    registerGitHubHandlers(store as never, stats as never)
+    const args = { repoPath: local.path, repoId: local.id, repoOwnerExecutionHostId: 'ssh:builder' }
+    const reply = { ...args, prNumber: 12, commentId: 42, body: 'Reply' }
+    const reaction = { ...args, reactionSubjectId: 'subject', content: 'heart', reacted: true }
+    await handlers['gh:addPRReviewCommentReply'](null, reply)
+    await handlers['gh:setPRCommentReaction'](null, reaction)
+    expect(mocks.client.addPRReviewCommentReply).toHaveBeenCalledWith(
+      local.path,
+      12,
+      42,
+      'Reply',
+      undefined,
+      undefined,
+      undefined,
+      'builder',
+      null
+    )
+    expect(mocks.client.setPRCommentReaction).toHaveBeenCalledWith(
+      local.path,
+      'subject',
+      'heart',
+      true,
+      'builder',
+      null
+    )
+    harness.repos = [local]
+    await expect(handlers['gh:addPRReviewCommentReply'](null, reply)).rejects.toThrow(
+      'PR comment owner does not match repository host'
+    )
+    expect(() => handlers['gh:setPRCommentReaction'](null, reaction)).toThrow(
+      'PR comment owner does not match repository host'
+    )
+    expect(mocks.client.addPRReviewCommentReply).toHaveBeenCalledTimes(1)
+    expect(mocks.client.setPRCommentReaction).toHaveBeenCalledTimes(1)
+    await handlers['gh:addPRReviewCommentReply'](null, {
+      ...reply,
+      repoOwnerExecutionHostId: undefined
+    })
+    await handlers['gh:setPRCommentReaction'](null, {
+      ...reaction,
+      repoOwnerExecutionHostId: undefined
+    })
+    expect(mocks.client.addPRReviewCommentReply).toHaveBeenCalledTimes(2)
+    expect(mocks.client.setPRCommentReaction).toHaveBeenCalledTimes(2)
+  })
+
   it('validates optional PR comment owners for reads and PR posts while preserving issue routing', async () => {
     const local = harness.repos[0]
     const remote = { ...local, connectionId: 'builder' }

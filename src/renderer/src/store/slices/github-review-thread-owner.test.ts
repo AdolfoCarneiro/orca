@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import type { Repo } from '../../../../shared/repo-types'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
+import { UNRESOLVED_OWNER_HOST_ID, type ExecutionHostId } from '../../../../shared/execution-host'
 import { getDefaultSettings } from '../../../../shared/constants'
 import { prCommentsCacheSuffix, sourceScopedRepoCacheKey } from '../github/cache-identity'
 import {
@@ -29,6 +30,7 @@ const comments = [
     createdAt: '',
     url: '',
     threadId: 'thread',
+    reactionSubjectId: 'subject',
     isResolved: false
   }
 ]
@@ -223,7 +225,13 @@ it('keeps delayed AI resolution on its captured owner after runtime focus change
   expect(onResolvedOptimistically).not.toHaveBeenCalled()
 })
 
-const conversation = { ...comments[0], id: 2, threadId: undefined, isResolved: undefined }
+const conversation = {
+  ...comments[0],
+  id: 2,
+  threadId: undefined,
+  isResolved: undefined,
+  reactionSubjectId: undefined
+}
 const postedComment = { ...conversation, id: 3, body: 'Fixing' }
 
 it.each([false, true])(
@@ -299,9 +307,15 @@ it.each([
     path: remote.path,
     hostId: 'runtime:owner' as const
   },
-  { name: 'invalid owner', repos: [local, remote], path: remote.path, hostId: 'runtime:' as const }
-])(
-  'refuses read and conversation dispatch with an explicit $name before touching cache',
+  { name: 'invalid owner', repos: [local, remote], path: remote.path, hostId: 'runtime:' as const },
+  {
+    name: 'unresolved owner',
+    repos: [{ ...remote, executionHostId: UNRESOLVED_OWNER_HOST_ID }],
+    path: remote.path,
+    hostId: UNRESOLVED_OWNER_HOST_ID
+  }
+] satisfies { name: string; repos: Repo[]; path: string; hostId: ExecutionHostId }[])(
+  'refuses read, conversation, and thread dispatch with an explicit $name before touching cache',
   async ({ repos, path, hostId }) => {
     const { store } = setup(repos)
     const cache = store.getState().commentsCache
@@ -310,41 +324,132 @@ it.each([
     await expect(
       store.getState().addPRConversationComment(path, 12, 'Fixing', options)
     ).resolves.toMatchObject({ ok: false })
+    await expect(
+      store.getState().resolveReviewThread(path, 12, 'thread', true, options)
+    ).resolves.toBe(false)
     expect(store.getState().commentsCache).toBe(cache)
     expect(mockApi.gh.prComments).not.toHaveBeenCalled()
     expect(mockApi.gh.addIssueComment).not.toHaveBeenCalled()
+    expect(mockApi.gh.resolveReviewThread).not.toHaveBeenCalled()
     expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
   }
 )
 
-it('keeps rowless source-context reads and replies in their mapped repo and cache domain', async () => {
+it.each(['local', UNRESOLVED_OWNER_HOST_ID] as const)(
+  'keeps rowless source-context reads and replies ahead of explicit owner %s in their mapped repo and cache domain',
+  async (repoOwnerExecutionHostId) => {
+    const { store } = setup([])
+    store.setState({ commentsCache: {} })
+    const options = {
+      repoId: local.id,
+      sourceContext: source,
+      repoOwnerExecutionHostId
+    }
+    runtimeEnvironmentCall.mockResolvedValueOnce({
+      id: 'rpc-read',
+      ok: true,
+      result: [conversation],
+      _meta: {}
+    })
+    await store.getState().fetchPRComments(local.path, 12, options)
+    runtimeEnvironmentCall.mockResolvedValueOnce({
+      id: 'rpc-post',
+      ok: true,
+      result: { ok: true, comment: postedComment },
+      _meta: {}
+    })
+    await store.getState().addPRConversationComment(local.path, 12, 'Fixing', options)
+    const key = cacheKey(local, source)
+    expect(Object.keys(store.getState().commentsCache)).toEqual([key])
+    expect(store.getState().commentsCache[key]?.data?.map((comment) => comment.id)).toEqual([2, 3])
+    for (const [args] of runtimeEnvironmentCall.mock.calls) {
+      expect(args).toMatchObject({ selector: 'source', params: { repo: 'server-repo' } })
+    }
+    expect(mockApi.gh.prComments).not.toHaveBeenCalled()
+    expect(mockApi.gh.addIssueComment).not.toHaveBeenCalled()
+  }
+)
+
+it.each([
+  { name: 'empty catalog', repos: [], hostId: 'runtime:owner' as const },
+  { name: 'removed owner', repos: [local], hostId: 'runtime:owner' as const },
+  {
+    name: 'ambiguous owner',
+    repos: [local, remote, { ...remote }],
+    hostId: 'runtime:owner' as const
+  },
+  {
+    name: 'changed path',
+    repos: [local, { ...remote, path: '/elsewhere' }],
+    hostId: 'runtime:owner' as const
+  },
+  { name: 'invalid owner', repos: [local, remote], hostId: 'runtime:' as const },
+  {
+    name: 'unresolved owner',
+    repos: [{ ...remote, executionHostId: UNRESOLVED_OWNER_HOST_ID }],
+    hostId: UNRESOLVED_OWNER_HOST_ID
+  }
+] satisfies { name: string; repos: Repo[]; hostId: ExecutionHostId }[])(
+  'refuses nested replies and reactions with an explicit $name before cache optimism',
+  async ({ repos, hostId }) => {
+    const { store } = setup(repos)
+    const cache = store.getState().commentsCache
+    const options = { repoId: remote.id, repoOwnerExecutionHostId: hostId }
+    await expect(
+      store.getState().addPRReviewCommentReply(remote.path, 12, 1, 'Reply', options)
+    ).resolves.toMatchObject({ ok: false })
+    await expect(
+      store.getState().setPRCommentReaction(remote.path, 12, 'subject', 'heart', true, options)
+    ).resolves.toBe(false)
+    expect(store.getState().commentsCache).toBe(cache)
+    expect(mockApi.gh.addPRReviewCommentReply).not.toHaveBeenCalled()
+    expect(mockApi.gh.setPRCommentReaction).not.toHaveBeenCalled()
+    expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
+  }
+)
+
+it('preserves rowless source ownership, reply payload metadata, and reaction rollback in the source cache', async () => {
   const { store } = setup([])
-  store.setState({ commentsCache: {} })
+  const key = cacheKey(local, source)
+  store.setState({ commentsCache: { [key]: { data: comments, fetchedAt: 1 } } })
   const options = {
     repoId: local.id,
     sourceContext: source,
-    repoOwnerExecutionHostId: 'local' as const
+    repoOwnerExecutionHostId: 'local' as const,
+    threadId: 'thread',
+    path: 'src/widget.ts',
+    line: 8
   }
   runtimeEnvironmentCall.mockResolvedValueOnce({
-    id: 'rpc-read',
-    ok: true,
-    result: [conversation],
-    _meta: {}
-  })
-  await store.getState().fetchPRComments(local.path, 12, options)
-  runtimeEnvironmentCall.mockResolvedValueOnce({
-    id: 'rpc-post',
+    id: 'rpc-reply',
     ok: true,
     result: { ok: true, comment: postedComment },
     _meta: {}
   })
-  await store.getState().addPRConversationComment(local.path, 12, 'Fixing', options)
-  const key = cacheKey(local, source)
+  await expect(
+    store.getState().addPRReviewCommentReply(local.path, 12, 1, 'Reply', options)
+  ).resolves.toMatchObject({
+    ok: true,
+    comment: { id: 3, threadId: 'thread', path: 'src/widget.ts', line: 8 }
+  })
+  const reaction = Promise.withResolvers<{ id: string; ok: true; result: boolean; _meta: {} }>()
+  runtimeEnvironmentCall.mockReturnValueOnce(reaction.promise)
+  const pending = store
+    .getState()
+    .setPRCommentReaction(local.path, 12, 'subject', 'heart', true, options)
+  expect(store.getState().commentsCache[key]?.data?.[0].reactions).toEqual([
+    { content: 'heart', count: 1, viewerHasReacted: true }
+  ])
+  reaction.resolve({ id: 'rpc-reaction', ok: true, result: false, _meta: {} })
+  await expect(pending).resolves.toBe(false)
+  expect(store.getState().commentsCache[key]?.data?.[0].reactions).toBeUndefined()
+  expect(
+    store.getState().commentsCache[key]?.data?.find((comment) => comment.id === 3)
+  ).toMatchObject({ threadId: 'thread', path: 'src/widget.ts', line: 8 })
   expect(Object.keys(store.getState().commentsCache)).toEqual([key])
-  expect(store.getState().commentsCache[key]?.data?.map((comment) => comment.id)).toEqual([2, 3])
   for (const [args] of runtimeEnvironmentCall.mock.calls) {
     expect(args).toMatchObject({ selector: 'source', params: { repo: 'server-repo' } })
   }
-  expect(mockApi.gh.prComments).not.toHaveBeenCalled()
-  expect(mockApi.gh.addIssueComment).not.toHaveBeenCalled()
+  expect(mockApi.gh.addPRReviewCommentReply).not.toHaveBeenCalled()
+  expect(mockApi.gh.setPRCommentReaction).not.toHaveBeenCalled()
 })

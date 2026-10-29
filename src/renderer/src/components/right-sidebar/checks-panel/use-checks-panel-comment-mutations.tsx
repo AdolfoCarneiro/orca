@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useLayoutEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { mergePRCommentIntoList } from '@/store/github/pr-comment-cache'
 import { githubProjectHost } from '../../../../../shared/github/project-identity'
@@ -17,11 +17,16 @@ import { checksPanelAsyncResultKey } from '../checks-panel-async-result-key'
 import { isMutablePRConversationComment } from '../../../../../shared/github/pr-comment-mutability'
 import type { GitHubReactionContent, PRComment } from '../../../../../shared/github/comment-types'
 import { translate } from '@/i18n/i18n'
+import { normalizeExecutionHostId } from '../../../../../shared/execution-host'
+import { forgeOwnerHostIdForWorkspace } from '@/runtime/forge-credential-target'
+import { githubPRCommentOwner } from '@/store/github/pr-comment-owner'
+import { useAppStore } from '@/store'
 
 type ChecksPanelCommentMutationsInput = Pick<
   ChecksPanelControllerState,
   | 'addPRConversationComment'
   | 'addPRReviewCommentReply'
+  | 'activeWorktree'
   | 'branch'
   | 'commentsRef'
   | 'confirm'
@@ -37,6 +42,7 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
   const {
     addPRConversationComment,
     addPRReviewCommentReply,
+    activeWorktree,
     branch,
     commentsDisabledReason,
     commentsRef,
@@ -49,10 +55,43 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
     setComments,
     setPRCommentReaction
   } = model
+  const selectedOwnerHostId = repo
+    ? normalizeExecutionHostId(forgeOwnerHostIdForWorkspace(repo, activeWorktree))
+    : null
+  const currentOwnerHostId = useRef(selectedOwnerHostId)
+  useLayoutEffect(() => {
+    currentOwnerHostId.current = selectedOwnerHostId
+    return () => {
+      currentOwnerHostId.current = null
+    }
+  }, [selectedOwnerHostId])
+  const getCommentOwnerOptions = useCallback(() => {
+    if (!repo || !selectedOwnerHostId) {
+      return null
+    }
+    const options = { repoId: repo.id, repoOwnerExecutionHostId: selectedOwnerHostId }
+    return githubPRCommentOwner(useAppStore.getState(), repo.path, options).ok ? options : null
+  }, [repo, selectedOwnerHostId])
+  const isCurrentCommentTarget = useCallback(
+    (requestKey: string) =>
+      currentOwnerHostId.current !== null &&
+      currentOwnerHostId.current === selectedOwnerHostId &&
+      isCurrentAsyncResult(requestKey),
+    [selectedOwnerHostId, isCurrentAsyncResult]
+  )
+  const ownerUnavailableError = translate(
+    'auto.runtime.forgeCredentialTarget.unknownHost',
+    'The machine that owns this repository is not known yet. Reconnect it and try again.'
+  )
   const handleAddPRComment = useCallback(
     async (body: string) => {
       if (!repo || !prNumber || !pr?.prRepo) {
         return { ok: false as const, error: commentsDisabledReason ?? 'Commenting unavailable.' }
+      }
+      const ownerOptions = getCommentOwnerOptions()
+      if (!ownerOptions) {
+        toast.error(ownerUnavailableError)
+        return { ok: false as const, error: ownerUnavailableError }
       }
       const requestKey = checksPanelAsyncResultKey(
         prCacheKey,
@@ -62,15 +101,15 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
         pr.headSha
       )
       const result = await addPRConversationComment(repo.path, prNumber, body, {
-        repoId: repo.id,
+        ...ownerOptions,
         prRepo: pr.prRepo
       })
-      if (!isCurrentAsyncResult(requestKey)) {
-        return result.ok ? { ok: true as const } : result
-      }
       if (!result.ok) {
         toast.error(result.error)
         return result
+      }
+      if (!isCurrentCommentTarget(requestKey)) {
+        return { ok: true as const }
       }
       setComments((prev) => mergePRCommentIntoList(prev, result.comment))
       return { ok: true as const }
@@ -79,7 +118,9 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
       addPRConversationComment,
       branch,
       commentsDisabledReason,
-      isCurrentAsyncResult,
+      getCommentOwnerOptions,
+      isCurrentCommentTarget,
+      ownerUnavailableError,
       pr,
       prCacheKey,
       prNumber,
@@ -154,6 +195,11 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
       if (!repo || !prNumber || !pr?.prRepo || !reactionSubjectId) {
         return false
       }
+      const ownerOptions = getCommentOwnerOptions()
+      if (!ownerOptions) {
+        toast.error(ownerUnavailableError)
+        return false
+      }
       const requestKey = checksPanelAsyncResultKey(
         prCacheKey,
         branch,
@@ -169,14 +215,16 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
         reactionSubjectId,
         content,
         reacted,
-        { repoId: repo.id, prRepo: pr.prRepo }
+        { ...ownerOptions, prRepo: pr.prRepo }
       )
-      if (!isCurrentAsyncResult(requestKey) || ok) {
-        return ok
+      if (ok) {
+        return true
       }
-      setComments((current) =>
-        restoreReactionOnSubject(current, reactionSubjectId, content, previousReaction)
-      )
+      if (isCurrentCommentTarget(requestKey)) {
+        setComments((current) =>
+          restoreReactionOnSubject(current, reactionSubjectId, content, previousReaction)
+        )
+      }
       toast.error(
         translate(
           'auto.components.right.sidebar.ChecksPanel.updateReactionFailed',
@@ -187,7 +235,9 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
     },
     [
       branch,
-      isCurrentAsyncResult,
+      getCommentOwnerOptions,
+      isCurrentCommentTarget,
+      ownerUnavailableError,
       pr,
       prCacheKey,
       prNumber,
@@ -202,6 +252,13 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
       const notifyOnFailure = options.notifyOnFailure !== false
       if (!repo || !prNumber || !pr?.prRepo) {
         return { ok: false as const, error: commentsDisabledReason ?? 'Commenting unavailable.' }
+      }
+      const ownerOptions = getCommentOwnerOptions()
+      if (!ownerOptions) {
+        if (notifyOnFailure) {
+          toast.error(ownerUnavailableError)
+        }
+        return { ok: false as const, error: ownerUnavailableError }
       }
       const requestKey = checksPanelAsyncResultKey(
         prCacheKey,
@@ -218,7 +275,7 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
         }) ?? comment.threadId
       const result = canPostPRReviewThreadReply(comment)
         ? await addPRReviewCommentReply(repo.path, prNumber, comment.id, body, {
-            repoId: repo.id,
+            ...ownerOptions,
             prRepo: pr.prRepo,
             threadId: parentThreadId,
             path: comment.path,
@@ -229,18 +286,18 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
             prNumber,
             buildPRCommentConversationReplyBody(comment.author, body),
             {
-              repoId: repo.id,
+              ...ownerOptions,
               prRepo: pr.prRepo
             }
           )
-      if (!isCurrentAsyncResult(requestKey)) {
-        return result.ok ? { ok: true as const } : result
-      }
       if (!result.ok) {
         if (notifyOnFailure) {
           toast.error(result.error)
         }
         return result
+      }
+      if (!isCurrentCommentTarget(requestKey)) {
+        return { ok: true as const }
       }
       // Restore omitted threadId/path on review replies so the sidebar retains parent grouping.
       const mergedComment = canPostPRReviewThreadReply(comment)
@@ -257,7 +314,9 @@ export function useChecksPanelCommentMutations(model: ChecksPanelCommentMutation
       addPRReviewCommentReply,
       branch,
       commentsDisabledReason,
-      isCurrentAsyncResult,
+      getCommentOwnerOptions,
+      isCurrentCommentTarget,
+      ownerUnavailableError,
       pr,
       prCacheKey,
       prNumber,

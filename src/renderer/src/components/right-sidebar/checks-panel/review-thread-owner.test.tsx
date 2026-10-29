@@ -5,6 +5,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { toast } from 'sonner'
 import type { Repo } from '../../../../../shared/repo-types'
+import type { ExecutionHostId } from '../../../../../shared/execution-host'
 import type { PRComment } from '../../../../../shared/github/comment-types'
 import type { PRInfo } from '../../../../../shared/github/pull-request-types'
 import type { GitLabProjectRef } from '../../../../../shared/gitlab-types'
@@ -27,6 +28,7 @@ import {
   runtimeEnvironmentCall
 } from '@/store/slices/github-slice-test-harness'
 import { useChecksPanelCommentResolution } from './use-checks-panel-comment-resolution'
+import { useChecksPanelCommentMutations } from './use-checks-panel-comment-mutations'
 import { gitHubPRToChecksPanelReview } from '../checks-panel-review'
 import { checksPanelAsyncResultKey } from '../checks-panel-async-result-key'
 import { useChecksPanelReviewData } from './use-checks-panel-review-data'
@@ -117,9 +119,18 @@ function key(repo: Repo, review = pr) {
     true
   )
 }
-async function catalog(nestedSsh = false, runtimeFirst = false) {
+async function catalog(
+  nestedSsh = false,
+  runtimeFirst = false,
+  selectedLocal = false,
+  remotePath = registeredRepo.path
+) {
   Object.assign(mockApi.repos, { list: vi.fn().mockResolvedValue([registeredRepo]) })
-  const remote = nestedSsh ? { ...registeredRepo, connectionId: 'private' } : registeredRepo
+  const remote = {
+    ...registeredRepo,
+    path: remotePath,
+    ...(nestedSsh ? { connectionId: 'private' } : {})
+  }
   runtimeEnvironmentCall.mockImplementation(async (args) => ({
     id: 'rpc-catalog',
     ok: true,
@@ -146,13 +157,14 @@ async function catalog(nestedSsh = false, runtimeFirst = false) {
   const worktree = makePRRefreshWorktree({
     id: `${registeredRepo.id}::${registeredRepo.path}`,
     repoId: registeredRepo.id,
-    path: registeredRepo.path,
-    hostId: nestedSsh ? 'ssh:private' : 'runtime:self',
+    path: selectedLocal ? registeredRepo.path : remotePath,
+    hostId: selectedLocal ? 'local' : nestedSsh ? 'ssh:private' : 'runtime:self',
     ...(nestedSsh ? { runtimeOwnerEnvironmentId: 'self' } : {})
   })
   const localEntry = { data: comments, fetchedAt: 1 }
   const settings = getDefaultSettings('/tmp/pr-comment-owner')
   settings.sourceControlAi = { ...getDefaultSourceControlAiSettings(), actions: {} }
+  settings.activeRuntimeEnvironmentId = 'self'
   useAppStore.setState({
     settings,
     repos,
@@ -180,8 +192,12 @@ afterEach(() => {
   useAppStore.setState(originalState, true)
 })
 
-function useLoadedChecks(review: PRInfo) {
-  const activeWorktree = useActiveWorktree()
+function useLoadedChecks(review: PRInfo, worktreeHostId?: ExecutionHostId) {
+  const selectedWorktree = useActiveWorktree()
+  const activeWorktree =
+    selectedWorktree && worktreeHostId !== undefined
+      ? { ...selectedWorktree, hostId: worktreeHostId }
+      : selectedWorktree
   const branch = activeWorktree?.branch ?? ''
   const repo = useRepoById(activeWorktree?.repoId ?? null)
   const settings = useAppStore((state) => state.settings)
@@ -313,7 +329,24 @@ function useLoadedChecks(review: PRInfo) {
     stateRequestKey
   })
   const selection = usePRCommentsListSelection(panelComments, stateRequestKey, clearRequest)
+  const mutations = useChecksPanelCommentMutations({
+    activeWorktree,
+    addPRConversationComment: useAppStore.getState().addPRConversationComment,
+    addPRReviewCommentReply: useAppStore.getState().addPRReviewCommentReply,
+    setPRCommentReaction: useAppStore.getState().setPRCommentReaction,
+    branch,
+    commentsRef,
+    confirm: vi.fn(),
+    repo,
+    setComments,
+    commentsDisabledReason: resolution.commentsDisabledReason,
+    isCurrentAsyncResult,
+    pr: review,
+    prCacheKey,
+    prNumber: review.number
+  })
   return {
+    ...mutations,
     ...queue,
     ...selection,
     ...data,
@@ -334,6 +367,113 @@ const conversation: PRComment = {
   url: 'https://github.com/acme/widgets/pull/12#issuecomment-41'
 }
 const postedComment: PRComment = { ...conversation, id: 91, author: 'agent', body: 'Fixing' }
+const inlineComment: PRComment = {
+  ...conversation,
+  id: 42,
+  threadId: 'thread-42',
+  reactionSubjectId: 'GQL42',
+  isResolved: false,
+  path: 'src/widget.ts',
+  line: 8,
+  url: 'https://github.com/acme/widgets/pull/12#discussion_r42'
+}
+
+it.each([
+  { runtimeFirst: false, selectedLocal: false, nestedSsh: false, remotePath: registeredRepo.path },
+  { runtimeFirst: true, selectedLocal: false, nestedSsh: false, remotePath: registeredRepo.path },
+  { runtimeFirst: true, selectedLocal: true, nestedSsh: false, remotePath: registeredRepo.path },
+  { runtimeFirst: false, selectedLocal: false, nestedSsh: true, remotePath: '/server/widgets' }
+])(
+  'keeps all manual comment mutations on the selected owner and cache (%j)',
+  async ({ runtimeFirst, selectedLocal, nestedSsh, remotePath }) => {
+    const { localRepo, remoteRepo } = await catalog(
+      nestedSsh,
+      runtimeFirst,
+      selectedLocal,
+      remotePath
+    )
+    const selected = selectedLocal ? localRepo : remoteRepo
+    const foreign = selectedLocal ? remoteRepo : localRepo
+    const foreignEntry = useAppStore.getState().commentsCache[key(foreign)]
+    const freshComments = [conversation, inlineComment]
+    let nextId = 91
+    const posted = () => ({ ok: true as const, comment: { ...postedComment, id: nextId++ } })
+    mockApi.gh.prComments.mockResolvedValue(freshComments)
+    mockApi.gh.addPRReviewCommentReply.mockImplementation(async () => posted())
+    mockApi.gh.addIssueComment.mockImplementation(async () => posted())
+    mockApi.gh.setPRCommentReaction.mockResolvedValue(true)
+    runtimeEnvironmentCall.mockImplementation(async (args) => ({
+      id: 'rpc-manual',
+      ok: true,
+      result:
+        args.method === 'github.prComments'
+          ? freshComments
+          : args.method === 'github.setPRCommentReaction'
+            ? true
+            : posted(),
+      _meta: {}
+    }))
+    const { result } = renderHook(() => useLoadedChecks(pr))
+    await waitFor(() => expect(result.current.comments).toEqual(freshComments))
+    expect(result.current.repo).toBe(selected)
+    const inline = result.current.comments.find((comment) => comment.id === inlineComment.id)
+    const parent = result.current.comments.find((comment) => comment.id === conversation.id)
+    if (!inline || !parent) {
+      throw new Error('Missing freshly loaded manual reply targets')
+    }
+    await act(async () => {
+      const nested = await result.current.handleReplyToComment(inline, 'Manual nested reply')
+      const reaction = await result.current.handleSetReaction(inline, 'heart', true)
+      const reply = await result.current.handleReplyToComment(parent, 'Manual conversation reply')
+      const added = await result.current.handleAddPRComment('New comment')
+      expect([nested, reaction, reply, added]).toEqual([
+        { ok: true },
+        true,
+        { ok: true },
+        { ok: true }
+      ])
+    })
+    const selectedComments = useAppStore.getState().commentsCache[key(selected)]?.data
+    expect(selectedComments?.map((comment) => comment.id)).toEqual([41, 42, 91, 92, 93])
+    expect(selectedComments?.find((comment) => comment.id === 91)).toMatchObject({
+      threadId: inline.threadId,
+      path: inline.path,
+      line: inline.line
+    })
+    expect(selectedComments?.find((comment) => comment.id === 42)?.reactions).toEqual([
+      { content: 'heart', count: 1, viewerHasReacted: true }
+    ])
+    expect(useAppStore.getState().commentsCache[key(foreign)]).toBe(foreignEntry)
+    expect(result.current.comments.map((comment) => comment.id)).toEqual([41, 42, 91, 92, 93])
+    if (selectedLocal) {
+      expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
+      expect(mockApi.gh.addPRReviewCommentReply).toHaveBeenCalledWith(
+        expect.objectContaining({ repoOwnerExecutionHostId: 'local' })
+      )
+      expect(mockApi.gh.setPRCommentReaction).toHaveBeenCalledWith(
+        expect.objectContaining({ repoOwnerExecutionHostId: 'local' })
+      )
+      expect(mockApi.gh.addIssueComment).toHaveBeenCalledTimes(2)
+      for (const call of mockApi.gh.addIssueComment.mock.calls) {
+        expect(call[0]).toMatchObject({ repoOwnerExecutionHostId: 'local' })
+      }
+    } else {
+      expect(mockApi.gh.addPRReviewCommentReply).not.toHaveBeenCalled()
+      expect(mockApi.gh.setPRCommentReaction).not.toHaveBeenCalled()
+      expect(mockApi.gh.addIssueComment).not.toHaveBeenCalled()
+      expect(runtimeEnvironmentCall.mock.calls.map(([args]) => args.method)).toEqual([
+        'github.prComments',
+        'github.addPRReviewCommentReply',
+        'github.setPRCommentReaction',
+        'github.addIssueComment',
+        'github.addIssueComment'
+      ])
+      for (const [args] of runtimeEnvironmentCall.mock.calls) {
+        expect(args).toMatchObject({ selector: 'self' })
+      }
+    }
+  }
+)
 
 it.each([false, true])(
   'keeps loaded, forced, and delayed conversation acknowledgement on the selected owner after navigation (runtime first: %s)',
@@ -437,6 +577,124 @@ it('reads initial and forced comments through the runtime credential owner behin
   ])
   expect(useAppStore.getState().commentsCache[key(remoteRepo)]?.data).toEqual([conversation])
   expect(mockApi.gh.prComments).not.toHaveBeenCalled()
+})
+
+it.each([false, true])(
+  'refuses actual manual handlers before local optimism or dispatch when their owner is unavailable (invalid host: %s)',
+  async (invalidHost) => {
+    await catalog()
+    const freshComments = [conversation, inlineComment]
+    runtimeEnvironmentCall.mockResolvedValue({
+      id: 'rpc-read',
+      ok: true,
+      result: freshComments,
+      _meta: {}
+    })
+    const initialProps: { hostId: ExecutionHostId | undefined } = { hostId: undefined }
+    const { result, rerender } = renderHook(({ hostId }) => useLoadedChecks(pr, hostId), {
+      initialProps
+    })
+    await waitFor(() => expect(result.current.comments).toEqual(freshComments))
+    const captured = result.current
+    if (invalidHost) {
+      rerender({ hostId: 'runtime:' })
+    } else {
+      act(() => useAppStore.setState({ repos: [] }))
+    }
+    await waitFor(() => expect(result.current.comments).toEqual([]))
+    const callbacks = invalidHost ? result.current : captured
+    const panelComments = result.current.comments
+    const cache = useAppStore.getState().commentsCache
+    vi.clearAllMocks()
+    await act(async () => {
+      await expect(
+        callbacks.handleReplyToComment(inlineComment, 'Reply', { notifyOnFailure: false })
+      ).resolves.toMatchObject({ ok: false })
+      await expect(
+        callbacks.handleReplyToComment(conversation, 'Reply', { notifyOnFailure: false })
+      ).resolves.toMatchObject({ ok: false })
+      await expect(callbacks.handleAddPRComment('New comment')).resolves.toMatchObject({
+        ok: false
+      })
+      await expect(callbacks.handleSetReaction(inlineComment, 'heart', true)).resolves.toBe(false)
+    })
+    expect(result.current.comments).toBe(panelComments)
+    expect(useAppStore.getState().commentsCache).toBe(cache)
+    expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
+    expect(mockApi.gh.addPRReviewCommentReply).not.toHaveBeenCalled()
+    expect(mockApi.gh.addIssueComment).not.toHaveBeenCalled()
+    expect(mockApi.gh.setPRCommentReaction).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledTimes(2)
+    expect(toast.error).toHaveBeenCalledWith(
+      'The machine that owns this repository is not known yet. Reconnect it and try again.'
+    )
+  }
+)
+
+it('reports failed manual writes globally after navigation while limiting reaction rollback to the captured cache', async () => {
+  const { localRepo, remoteRepo, localEntry } = await catalog()
+  const freshComments = [conversation, inlineComment]
+  const nextComments = [{ ...conversation, id: 99, body: 'New review' }]
+  const replies = Promise.withResolvers<{
+    id: string
+    ok: true
+    result: { ok: false; error: string }
+    _meta: {}
+  }>()
+  const reaction = Promise.withResolvers<{ id: string; ok: true; result: boolean; _meta: {} }>()
+  runtimeEnvironmentCall.mockImplementation(async (args) => {
+    if (args.method === 'github.setPRCommentReaction') {
+      return reaction.promise
+    }
+    if (
+      args.method === 'github.addPRReviewCommentReply' ||
+      args.method === 'github.addIssueComment'
+    ) {
+      return replies.promise
+    }
+    return {
+      id: 'rpc-read',
+      ok: true,
+      result: args.params?.prNumber === 99 ? nextComments : freshComments,
+      _meta: {}
+    }
+  })
+  const { result, rerender } = renderHook(({ review }) => useLoadedChecks(review), {
+    initialProps: { review: pr }
+  })
+  await waitFor(() => expect(result.current.comments).toEqual(freshComments))
+  let pending: Promise<unknown> = Promise.resolve()
+  act(() => {
+    pending = Promise.all([
+      result.current.handleReplyToComment(inlineComment, 'Nested reply'),
+      result.current.handleReplyToComment(conversation, 'Conversation reply'),
+      result.current.handleAddPRComment('New comment'),
+      result.current.handleSetReaction(inlineComment, 'heart', true)
+    ])
+  })
+  expect(result.current.comments.find((comment) => comment.id === 42)?.reactions).toEqual([
+    { content: 'heart', count: 1, viewerHasReacted: true }
+  ])
+  rerender({ review: makePR({ number: 99, prRepo: pr.prRepo }) })
+  await waitFor(() => expect(result.current.comments).toEqual(nextComments))
+  await act(async () => {
+    replies.resolve({
+      id: 'rpc-post',
+      ok: true,
+      result: { ok: false, error: 'Host refused write' },
+      _meta: {}
+    })
+    reaction.resolve({ id: 'rpc-reaction', ok: true, result: false, _meta: {} })
+    await pending
+  })
+  expect(toast.error).toHaveBeenCalledTimes(4)
+  expect(result.current.comments).toEqual(nextComments)
+  expect(
+    useAppStore
+      .getState()
+      .commentsCache[key(remoteRepo)]?.data?.find((comment) => comment.id === 42)?.reactions
+  ).toBeUndefined()
+  expect(useAppStore.getState().commentsCache[key(localRepo)]).toBe(localEntry)
 })
 
 it.each([false, true])(
