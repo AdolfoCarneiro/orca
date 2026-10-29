@@ -18510,6 +18510,7 @@
         "codexManagedNotSignedIn": "Dieses Codex-Konto ist nicht angemeldet. In den Einstellungen unter Codex-Konten erneut anmelden.",
         "antigravityNotSignedIn": "Antigravity ist nicht angemeldet. Unter Einstellungen → Konten → Antigravity anmelden. Anschließend die Nachricht erneut senden.",
         "cliMissing": "{{agent}} wurde auf dem Computer, auf dem dieser Chat läuft, nicht gefunden. Installieren oder den Befehl unter Einstellungen → Agenten prüfen.",
+        "cliMissingInWslDistro": "{{agent}} ist in der WSL-Distribution {{distro}} nicht installiert. In {{distro}} installieren oder den Befehl unter Einstellungen → Agenten prüfen.",
         "signInFirst": "Zuerst anmelden.",
         "signInThenRunCommand": "Anmelden und anschließend /{{command}} erneut ausführen.",
         "signInThenSend": "Anmelden und anschließend die Nachricht erneut senden.",

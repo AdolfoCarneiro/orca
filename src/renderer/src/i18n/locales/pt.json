@@ -19818,6 +19818,7 @@
         "codexManagedNotSignedIn": "Esta conta do Codex não está conectada. Entre novamente nas configurações de Contas do Codex.",
         "antigravityNotSignedIn": "O Antigravity não está conectado à conta. Entre em Configurações → Contas → Antigravity. Depois, envie sua mensagem novamente.",
         "cliMissing": "{{agent}} não foi encontrado no computador que executa este chat. Instale-o ou verifique seu Comando em Configurações → Agentes.",
+        "cliMissingInWslDistro": "{{agent}} não está instalado na distribuição WSL {{distro}}. Instale-o dentro de {{distro}} ou verifique seu Comando em Configurações → Agentes.",
         "signInFirst": "Entre na conta primeiro.",
         "signInThenRunCommand": "Entre na conta e execute /{{command}} novamente.",
         "signInThenSend": "Entre na conta e envie sua mensagem novamente.",

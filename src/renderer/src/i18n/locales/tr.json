@@ -18496,6 +18496,7 @@
         "codexManagedNotSignedIn": "Bu Codex hesabında oturum açık değil. Codex Hesapları ayarlarından yeniden oturum açın.",
         "antigravityNotSignedIn": "Antigravity oturumu açık değil. Ayarlar → Hesaplar → Antigravity bölümünden oturum açın. Ardından mesajınızı yeniden gönderin.",
         "cliMissing": "Bu sohbetin çalıştığı bilgisayarda {{agent}} bulunamadı. Yükleyin veya Ayarlar → Ajanlar bölümündeki Komut ayarını kontrol edin.",
+        "cliMissingInWslDistro": "{{agent}}, {{distro}} WSL dağıtımında yüklü değil. {{distro}} içine yükleyin veya Ayarlar → Ajanlar bölümündeki Komut ayarını kontrol edin.",
         "signInFirst": "Önce oturum açın.",
         "signInThenRunCommand": "Oturum açıp /{{command}} komutunu yeniden çalıştırın.",
         "signInThenSend": "Oturum açıp mesajınızı yeniden gönderin.",

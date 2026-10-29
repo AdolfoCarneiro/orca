@@ -18286,6 +18286,7 @@
         "codexManagedNotSignedIn": "此 Codex 帳戶尚未登入。請在 Codex 帳戶設定中重新登入。",
         "antigravityNotSignedIn": "Antigravity 尚未登入。請前往「設定 → 帳戶 → Antigravity」登入，再重新傳送訊息。",
         "cliMissing": "在執行此聊天的電腦上找不到 {{agent}}。請安裝它，或檢查「設定 → 代理程式」中的命令。",
+        "cliMissingInWslDistro": "WSL 發行版 {{distro}} 中未安裝 {{agent}}。請在 {{distro}} 中安裝它，或檢查「設定 → 代理程式」中的命令。",
         "signInFirst": "請先登入。",
         "signInThenRunCommand": "請登入，然後重新執行 /{{command}}。",
         "signInThenSend": "請登入，然後重新傳送您的訊息。",
