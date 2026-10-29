@@ -290,10 +290,10 @@ it('keeps version facts separate for different prefixes through the same program
       : '2.0.0'
   )
   await expect(
-    support.supports(CLAUDE_THINKING_DISPLAY_FLAG, { ...LAUNCH, prefixArgs: ['old'] })
+    supports(support, CLAUDE_THINKING_DISPLAY_FLAG, { ...LAUNCH, prefixArgs: ['old'] })
   ).resolves.toBe(false)
   await expect(
-    support.supports(CLAUDE_THINKING_DISPLAY_FLAG, { ...LAUNCH, prefixArgs: ['new'] })
+    supports(support, CLAUDE_THINKING_DISPLAY_FLAG, { ...LAUNCH, prefixArgs: ['new'] })
   ).resolves.toBe(true)
   expect(calls).toHaveBeenCalledTimes(2)
 })
