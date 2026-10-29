@@ -18978,7 +18978,7 @@
         "outdatedHost": "このホストの古い Orca はチャットの権限設定に対応していないため、{{value0}} が確認なしで実行されます。{{value1}} を使うには、このホストの Orca を更新してください。"
       },
       "explicitChatWsl": "WSL ではチャットを利用できません。ターミナルで Agent を開いてください。",
-      "explicitChatSsh": "このホストでは Orca サーバーがまだ設定されていません。再接続して設定するか、ターミナルでエージェントを開いてください。",
+      "explicitChatSsh": "このホストでは Orca サーバーがまだ設定されていません。再接続して設定するか、ターミナルで Agent を開いてください。",
       "structuredSessionTerminalNotVisible": "Orca はターミナルで {{value0}} を開きましたが、起動が終了したときにここに表示できませんでした。チャットの下書きが保存されました。",
       "explicitChatUnavailable": "このワークスペースではチャットを実行できません。Agent のインストール状況を確認するか、ターミナルで開いてください。",
       "goalControl": {
