@@ -236,7 +236,6 @@ export function createRuntimeEnvironmentsApi(): NonNullable<
     ) => {
       const environment = resolveEnvironment(selector)
       assertEnvironmentPairing(selector, expectedEnvironmentPairingRevision)
-      const client = getClientForEnvironment(environment)
       const controller = new AbortController()
       if (subscriptionId) {
         if (pendingSubscriptions.has(subscriptionId)) {
@@ -254,7 +253,7 @@ export function createRuntimeEnvironmentsApi(): NonNullable<
             if (manuallyDisconnectedEnvironmentIds.has(environment.id)) {
               throw new Error('runtime_manually_disconnected')
             }
-            return client.subscribe(
+            return getClientForEnvironment(environment).subscribe(
               method,
               params,
               {

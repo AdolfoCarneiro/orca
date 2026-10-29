@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RuntimeRpcResponse } from '../../../shared/runtime-rpc-envelope'
 import type { WebRuntimeSubscriptionCallbacks } from './web-runtime-subscription-contract'
 import {
+  encodePairingCode,
   installBrowserGlobals,
   writeStoredRuntimeEnvironment
 } from './web-preload-api-test-harness'
@@ -274,4 +275,59 @@ describe('web preload runtime calls', () => {
     await expect(queued).resolves.toMatchObject({ ok: true, result: 'done' })
     expect(call).toHaveBeenLastCalledWith('runtime.queued-timeout', undefined, { timeoutMs: 25 })
   })
+
+  it.each(['unchanged', 'replaced'] as const)(
+    'preserves queued subscription pairing ownership: %s',
+    async (pairing) => {
+      let release!: () => void
+      const blocked = new Promise<RuntimeRpcResponse<unknown>>((resolve) => {
+        release = () =>
+          resolve({ id: 'blocker', ok: true, result: null, _meta: { runtimeId: 'runtime-a' } })
+      })
+      const subscribe = vi.fn(async () => ({ unsubscribe: vi.fn(), sendBinary: vi.fn() }))
+      vi.doMock('./web-runtime-client', () => ({
+        WebRuntimeClient: class {
+          call = () => blocked
+          subscribe = subscribe
+          close(): void {}
+        }
+      }))
+      const globals = installBrowserGlobals('Linux')
+      writeStoredRuntimeEnvironment(globals.storage, 'web-server-a')
+      const { installWebPreloadApi } = await import('./web-preload-api')
+      installWebPreloadApi()
+      const api = globals.window.api.runtimeEnvironments
+      const blockers = Array.from({ length: 8 }, () =>
+        globals.window.api.runtime.call({ method: 'blocker' })
+      )
+      const queued = api
+        .subscribe(
+          { selector: 'web-server-a', method: 'accounts.subscribe' },
+          { onResponse: vi.fn() }
+        )
+        .then(
+          (handle) => ({ handle }),
+          (error: unknown) => ({ error })
+        )
+      expect(subscribe).not.toHaveBeenCalled()
+      if (pairing === 'replaced') {
+        const replacement = await api.addFromPairingCode({
+          name: 'Re-paired server',
+          pairingCode: encodePairingCode({ publicKeyB64: 'public-key', deviceToken: 'new-token' })
+        })
+        expect(replacement.environment.id).toBe('web-server-a')
+      }
+      release()
+      await Promise.all(blockers)
+      if (pairing === 'replaced') {
+        await expect(queued).resolves.toMatchObject({
+          error: { message: expect.stringContaining('paired Orca server changed') }
+        })
+        expect(subscribe).not.toHaveBeenCalled()
+      } else {
+        await expect(queued).resolves.toHaveProperty('handle')
+        expect(subscribe).toHaveBeenCalledOnce()
+      }
+    }
+  )
 })
