@@ -5,7 +5,32 @@ import { useAppStore } from '@/store/index'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
-export function useTaskPageGitHubIssueCreation(model: TaskPageWorkspaceActionsModel) {
+type TaskPageGitHubIssueCreationInput = Pick<
+  TaskPageWorkspaceActionsModel,
+  | 'setTaskRefreshNonce'
+  | 'setDialogWorkItem'
+  | 'openGitHubDetailPage'
+  | 'setNewIssueOpen'
+  | 'newIssueTitle'
+  | 'setNewIssueTitle'
+  | 'newIssueBody'
+  | 'setNewIssueBody'
+  | 'newIssueLabels'
+  | 'setNewIssueLabels'
+  | 'newIssueAssignees'
+  | 'setNewIssueAssignees'
+  | 'newIssueSubmitting'
+  | 'setNewIssueSubmitting'
+  | 'setNewIssueDraft'
+  | 'clearNewIssueDraft'
+  | 'newIssueTargetRepo'
+  | 'newIssueSourceContext'
+  | 'newIssueRuntimeTarget'
+>
+
+export function useTaskPageGitHubIssueCreation<Model extends TaskPageGitHubIssueCreationInput>(
+  model: Model
+) {
   const {
     setTaskRefreshNonce,
     setDialogWorkItem,
@@ -199,4 +224,6 @@ export function useTaskPageGitHubIssueCreation(model: TaskPageWorkspaceActionsMo
   nextModel.handleCreateNewIssue = handleCreateNewIssue
   return nextModel
 }
-export type TaskPageGitHubIssueCreationModel = ReturnType<typeof useTaskPageGitHubIssueCreation>
+export type TaskPageGitHubIssueCreationModel = ReturnType<
+  typeof useTaskPageGitHubIssueCreation<TaskPageWorkspaceActionsModel>
+>

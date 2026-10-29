@@ -7,10 +7,11 @@ import { createUIStore } from '@/store/slices/ui-slice-test-harness'
 import { useTaskPageGitHubDetail } from '@/components/task-page/github/use-task-page-github-detail'
 import { useTaskPageGitHubIssueCreation } from '@/components/task-page/github/use-task-page-github-issue-creation'
 import { useTaskPageWorkspaceActions } from '@/components/task-page/use-task-page-workspace-actions'
-import type { TaskPageGitHubListStateModel } from '@/components/task-page/github/use-task-page-github-list-state'
-import type { TaskPageWorkspaceActionsModel } from '@/components/task-page/use-task-page-workspace-actions'
-import type { TaskPageSearchActionsModel } from '@/components/task-page/use-task-page-search-actions'
+import type { GitHubListRestoreWrite } from './task-page-github-list-scroll-restore'
 import type { GitHubWorkItem } from '../../../../../shared/github/work-item-types'
+import type { GitHubAssignableUser } from '../../../../../shared/github/pull-request-types'
+import type { GitLabWorkItem } from '../../../../../shared/gitlab-types'
+import type { Repo } from '../../../../../shared/repo-types'
 import type { AppState } from '@/store/types'
 import type { StoreApi } from 'zustand/vanilla'
 
@@ -63,14 +64,21 @@ function setup(remote: boolean) {
   holders.store = store
   const rendered = renderHook(() => {
     const pageData = useStore(store, (s) => s.taskPageData)
-    const [githubMode, setGithubMode] = useState('items')
-    const [gitlabDialogItem, setGitlabDialogItem] = useState(null)
+    const targetRepo: Repo = {
+      id: 'repo-1',
+      path: '/repo',
+      displayName: 'Repo',
+      badgeColor: '',
+      addedAt: 1
+    }
+    const [githubMode, setGithubMode] = useState<'items' | 'project'>('items')
+    const [gitlabDialogItem, setGitlabDialogItem] = useState<GitLabWorkItem | null>(null)
     const base = {
       pageData,
       openTaskPage: store.getState().openTaskPage,
       repos: [],
       selectedRepos: [],
-      primaryRepo: null,
+      primaryRepo: targetRepo,
       githubMode,
       setGithubMode,
       gitlabDialogItem,
@@ -81,24 +89,27 @@ function setup(remote: boolean) {
       pages: [],
       currentPage: 0,
       currentPageRef: useRef(0),
-      githubListScrollRef: useRef(null),
+      githubListScrollRef: useRef<HTMLDivElement | null>(null),
       githubListScrollTopRef: useRef(0),
-      pendingGithubScrollRestoreRef: useRef(null),
-      githubListRestoreWriteRef: useRef(null),
-      taskListPositionRef: useRef(null)
+      pendingGithubScrollRestoreRef: useRef<number | null>(null),
+      githubListRestoreWriteRef: useRef<GitHubListRestoreWrite | null>(null),
+      taskListPositionRef: useRef<AppState['taskListPosition']>(null)
     }
-    // SAFETY: this production hook only reads the fields supplied above.
-    const detail = useTaskPageGitHubDetail(base as unknown as TaskPageGitHubListStateModel)
+    const detail = useTaskPageGitHubDetail(base)
     const actions = { ...detail, openModal: store.getState().openModal }
-    // SAFETY: this production hook only reads repos and openModal from the stage model.
-    const workspace = useTaskPageWorkspaceActions(actions as unknown as TaskPageSearchActionsModel)
+    const workspace = useTaskPageWorkspaceActions(actions)
     const [newIssueOpen, setNewIssueOpen] = useState(true)
     const [newIssueTitle, setNewIssueTitle] = useState('Created issue')
     const [newIssueBody, setNewIssueBody] = useState('Body')
     const [newIssueLabels, setNewIssueLabels] = useState<string[]>([])
-    const [newIssueAssignees, setNewIssueAssignees] = useState([])
+    const [newIssueAssignees, setNewIssueAssignees] = useState<GitHubAssignableUser[]>([])
     const [newIssueSubmitting, setNewIssueSubmitting] = useState(false)
     const [taskRefreshNonce, setTaskRefreshNonce] = useState(0)
+    const newIssueRuntimeTarget: Parameters<
+      typeof useTaskPageGitHubIssueCreation
+    >[0]['newIssueRuntimeTarget'] = remote
+      ? { kind: 'environment', environmentId: 'builder' }
+      : null
     const creation = {
       ...workspace,
       newIssueOpen,
@@ -115,14 +126,13 @@ function setup(remote: boolean) {
       setNewIssueSubmitting,
       taskRefreshNonce,
       setTaskRefreshNonce,
-      setNewIssueDraft: vi.fn(),
-      clearNewIssueDraft: vi.fn(),
-      newIssueTargetRepo: { id: 'repo-1', path: '/repo', displayName: 'Repo', addedAt: 1 },
+      setNewIssueDraft: vi.fn<AppState['setNewIssueDraft']>(),
+      clearNewIssueDraft: vi.fn<AppState['clearNewIssueDraft']>(),
+      newIssueTargetRepo: targetRepo,
       newIssueSourceContext: null,
-      newIssueRuntimeTarget: remote ? { kind: 'environment', environmentId: 'builder' } : null
+      newIssueRuntimeTarget
     }
-    // SAFETY: this production hook only reads the fields supplied above.
-    return useTaskPageGitHubIssueCreation(creation as unknown as TaskPageWorkspaceActionsModel)
+    return useTaskPageGitHubIssueCreation(creation)
   })
   return { ...rendered, store }
 }
