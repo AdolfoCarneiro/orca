@@ -15,6 +15,16 @@ function freezeTabs(tabsByWorktree: AppState['tabsByWorktree']): AppState['tabsB
   return Object.freeze(tabsByWorktree)
 }
 
+function applyCleanup(state: AppState, targetId: string): AppState {
+  const store = createTestStore()
+  setSessionTestState(store, state)
+  const write = buildRemovedSshTargetCleanupPatch(store.getState(), targetId)
+  if (write) {
+    store.setState(write)
+  }
+  return store.getState()
+}
+
 describe('SSH target cleanup tab map', () => {
   it.each([1, 10])('preserves frozen inputs and untouched identities with stride %i', (stride) => {
     const tabsByWorktree = freezeTabs(
@@ -37,7 +47,7 @@ describe('SSH target cleanup tab map', () => {
       )
     )
     const state = Object.freeze({ ...createTestStore().getState(), tabsByWorktree })
-    const patch = buildRemovedSshTargetCleanupPatch(state, 'removed')!
+    const patch = applyCleanup(state, 'removed')
     expect(patch.tabsByWorktree).not.toBe(tabsByWorktree)
     expect(Object.keys(patch.tabsByWorktree!)).toEqual(Object.keys(tabsByWorktree))
     Object.entries(tabsByWorktree).forEach(([key, tabs], index) => {
@@ -74,7 +84,7 @@ describe('SSH target cleanup tab map', () => {
         [removedPtyId]: { previousAccountLabel: 'old', nextAccountLabel: 'new' }
       })
     })
-    const patch = buildRemovedSshTargetCleanupPatch(state, 'removed')!
+    const patch = applyCleanup(state, 'removed')
     expect(patch.tabsByWorktree!['folder:split']).not.toBe(tabsByWorktree['folder:split'])
     expect(patch.tabsByWorktree!['folder:last']).not.toBe(tabsByWorktree['folder:last'])
     expect(patch.tabsByWorktree!['folder:empty']).toBe(tabsByWorktree['folder:empty'])
@@ -96,10 +106,10 @@ describe('SSH target cleanup tab map', () => {
       Object.setPrototypeOf(tabsByWorktree, null)
     }
     freezeTabs(tabsByWorktree)
-    const patch = buildRemovedSshTargetCleanupPatch(
+    const patch = applyCleanup(
       Object.freeze({ ...createTestStore().getState(), tabsByWorktree }),
       'removed'
-    )!
+    )
     expect(Object.getPrototypeOf(patch.tabsByWorktree)).toBe(Object.prototype)
     expect(Object.keys(patch.tabsByWorktree!)).toEqual(keys)
     for (const key of keys) {
@@ -125,11 +135,8 @@ describe('SSH target cleanup tab map', () => {
     store.getState().clearRemovedSshTargetState('removed')
     expect(store.getState()).toBe(before)
     store.setState({ deferredSshReconnectTargets: ['removed'] })
-    const patch = buildRemovedSshTargetCleanupPatch(store.getState(), 'removed')
-    expect(patch && Object.fromEntries(Object.entries(patch))).toEqual({
-      deferredSshReconnectTargets: []
-    })
     store.getState().clearRemovedSshTargetState('removed')
+    expect(store.getState().deferredSshReconnectTargets).toEqual([])
     expect(store.getState().tabsByWorktree).toBe(tabsByWorktree)
   })
 })

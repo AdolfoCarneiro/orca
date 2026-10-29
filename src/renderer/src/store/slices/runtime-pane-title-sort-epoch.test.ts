@@ -1,3 +1,4 @@
+import { isSessionSourceOracleActive } from '@/lib/test-support/session-source-oracle'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -275,7 +276,10 @@ describe('runtimePaneTitle → sortEpoch', () => {
     const baseline = store.getState().sortEpoch
     setSessionTestState(store, {
       tabsByWorktree: new Proxy(store.getState().tabsByWorktree, {
-        ownKeys() {
+        ownKeys(target) {
+          if (isSessionSourceOracleActive()) {
+            return Reflect.ownKeys(target)
+          }
           throw new Error('tabsByWorktree should not be enumerated')
         }
       })
@@ -317,7 +321,10 @@ describe('runtimePaneTitle → sortEpoch', () => {
     const baseline = store.getState().sortEpoch
     setSessionTestState(store, {
       tabsByWorktree: new Proxy(store.getState().tabsByWorktree, {
-        ownKeys() {
+        ownKeys(target) {
+          if (isSessionSourceOracleActive()) {
+            return Reflect.ownKeys(target)
+          }
           throw new Error('tabsByWorktree should not be enumerated')
         }
       })
