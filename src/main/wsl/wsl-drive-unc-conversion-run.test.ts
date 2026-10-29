@@ -93,23 +93,49 @@ describe('startWslDriveUncConversion', () => {
     expect(run.restart).toHaveBeenCalledOnce()
   })
 
-  it('converts a nested project with its parent, since its path moves with the parent', async () => {
-    const nested = `${UNC}\\nested`
-    const value = state()
-    value.repos.push({ id: 'repo-b', path: nested, displayName: 'b', badgeColor: '', addedAt: 0 })
-    value.projects.push({ ...value.projects[0], id: 'repo-b', sourceRepoIds: ['repo-b'] })
-    const run = deps({ readProfileState: async () => value })
-    expect(await startWslDriveUncConversion(run, REQUEST)).toMatchObject({ outcome: 'restarting' })
-    expect(listWslDriveUncConversions(root)).toEqual([
-      expect.objectContaining({
-        repoIds: ['repo-a', 'repo-b'],
-        worktreeIds: [
-          [`repo-a::${UNC}`, `repo-a::${DRIVE}`],
-          [`repo-b::${nested}`, `repo-b::${DRIVE}\\nested`]
-        ]
+  const savedMeta = {
+    instanceId: 'saved',
+    displayName: 'feature',
+    comment: '',
+    linkedIssue: null,
+    linkedPR: null,
+    linkedLinearIssue: null,
+    isArchived: false,
+    isUnread: false,
+    isPinned: false,
+    sortOrder: 0,
+    lastActivityAt: 0,
+    hostId: 'local' as const
+  }
+  const ubuntu = String.raw`\\wsl.localhost\Ubuntu\mnt\c`
+  it.each([
+    { shape: 'inside its folder', parent: UNC, nested: `${UNC}\\nested`, savedWorktree: null },
+    { shape: 'at a drive root', parent: ubuntu, nested: `${ubuntu}\\src`, savedWorktree: null },
+    {
+      shape: 'inside its saved worktree',
+      parent: UNC,
+      nested: `${ubuntu}\\feature\\nested`,
+      savedWorktree: `${ubuntu}\\feature`
+    }
+  ])(
+    'converts a project nested $shape with its parent',
+    async ({ parent, nested, savedWorktree }) => {
+      const value = state()
+      value.repos[0].path = parent
+      value.repos.push({ id: 'repo-b', path: nested, displayName: 'b', badgeColor: '', addedAt: 0 })
+      value.projects.push({ ...value.projects[0], id: 'repo-b', sourceRepoIds: ['repo-b'] })
+      if (savedWorktree) {
+        value.worktreeMeta = { [`repo-a::${savedWorktree}`]: savedMeta }
+      }
+      const run = deps({ readProfileState: async () => value })
+      expect(await startWslDriveUncConversion(run, REQUEST)).toMatchObject({
+        outcome: 'restarting'
       })
-    ])
-  })
+      expect(listWslDriveUncConversions(root)).toEqual([
+        expect.objectContaining({ repoIds: ['repo-a', 'repo-b'] })
+      ])
+    }
+  )
 
   it('refuses, pausing nothing, when the distro does not show /mnt/c as drive C:', async () => {
     for (const mounts of [null, [{ mountPoint: '/mnt/c', windowsRoot: null }]]) {

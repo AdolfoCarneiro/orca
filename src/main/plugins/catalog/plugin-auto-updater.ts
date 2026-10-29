@@ -177,8 +177,9 @@ export class PluginAutoUpdater {
       }
     }
     const preview = await installer.previewInstalledUpdate(plugin.pluginKey)
-    // Why: a catalog refresh since the hold check can list another release; install only the held one.
+    // Why: a catalog refresh or source switch since the hold check can list another release; install only the held one.
     if (
+      preview.marketplaceSourceId !== found.listing.marketplaceSourceId ||
       preview.resolvedCommit !== release.commit ||
       preview.contentHash !== release.contentHash ||
       preview.contentHash === plugin.contentHash

@@ -145,28 +145,25 @@ function refuseOverlaps(scope: WslDriveUncScope, repos: readonly Repo[], distro:
 
 /** The picked projects and every convertible one nesting with them, which must convert together. */
 export function withNestedWslDriveUncProjects(
-  state: WslDriveUncScopeState,
   scope: WslDriveUncScope,
   distro: string,
-  picked: { repoIds: readonly string[]; folderWorkspaceIds: readonly string[] }
+  picked: { repoIds: readonly string[]; folderWorkspaceIds: readonly string[] },
+  /** The folders a conversion of just this project rewrites, its saved worktrees included. */
+  rewriteRoots: (project: { repoIds: string[]; folderWorkspaceIds: string[] }) => string[]
 ): { repoIds: string[]; folderWorkspaceIds: string[] } {
   const repoIds = new Set(picked.repoIds)
   const folderWorkspaceIds = new Set(picked.folderWorkspaceIds)
   const candidates = [
-    ...state.repos
-      .filter((repo) => scope.repoIds.includes(repo.id))
-      .map((repo) => ({
-        ids: repoIds,
-        id: repo.id,
-        roots: driveRoots(wslMoveRepoPaths(repo), distro)
-      })),
-    ...state.folderWorkspaces
-      .filter((folder) => scope.folderWorkspaceIds.includes(folder.id))
-      .map((folder) => ({
-        ids: folderWorkspaceIds,
-        id: folder.id,
-        roots: driveRoots([folder.folderPath], distro)
-      }))
+    ...scope.repoIds.map((id) => ({
+      ids: repoIds,
+      id,
+      roots: driveRoots(rewriteRoots({ repoIds: [id], folderWorkspaceIds: [] }), distro)
+    })),
+    ...scope.folderWorkspaceIds.map((id) => ({
+      ids: folderWorkspaceIds,
+      id,
+      roots: driveRoots(rewriteRoots({ repoIds: [], folderWorkspaceIds: [id] }), distro)
+    }))
   ]
   for (let added = true; added;) {
     added = false
@@ -194,7 +191,12 @@ function driveRoots(paths: readonly string[], distro: string): string[] {
 }
 
 function nests(left: string, right: string): boolean {
-  return left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`)
+  return left === right || isInside(left, right) || isInside(right, left)
+}
+
+// Why: a drive root normalizes to `c:/`, which already ends in the separator.
+function isInside(path: string, folder: string): boolean {
+  return path.startsWith(folder.endsWith('/') ? folder : `${folder}/`)
 }
 
 /** The worktree id a converted project's worktree gets: same repo id, drive path. */

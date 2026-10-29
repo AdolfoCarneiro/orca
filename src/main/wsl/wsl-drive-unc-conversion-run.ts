@@ -29,7 +29,7 @@ import {
   withNestedWslDriveUncProjects,
   wslUncDrivePathToWindows
 } from './wsl-drive-unc-project-scope'
-import { rewriteWslDriveUncState } from './wsl-drive-unc-state-rewrite'
+import { rewriteWslDriveUncState, wslDriveUncRewriteRoots } from './wsl-drive-unc-state-rewrite'
 import type { WindowsDriveMount } from '../runtime/wsl-guest-drive-mountinfo'
 
 export type WslDriveUncConversionRunDeps = Pick<
@@ -145,7 +145,12 @@ function checkScope(
   // Bare paths are re-keyed by folder, so a nested project's rows would move without its ids.
   return blockers.length > 0
     ? { blockers }
-    : withNestedWslDriveUncProjects(state, scope, request.distro, { repoIds, folderWorkspaceIds })
+    : withNestedWslDriveUncProjects(
+        scope,
+        request.distro,
+        { repoIds, folderWorkspaceIds },
+        (project) => wslDriveUncRewriteRoots(state, { distro: request.distro, ...project })
+      )
 }
 
 /** Windows Git runs in the drive path, which is the same folder the distro shows. */
