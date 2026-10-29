@@ -1,4 +1,4 @@
-import type { JiraProject } from '../../../shared/jira/jira-types'
+import type { JiraProject } from '../../../../../shared/jira/jira-types'
 import { uiCollator } from '@/i18n/ui-intl-formatters'
 
 export function getJiraProjectSelectionKey(project: JiraProject): string {
