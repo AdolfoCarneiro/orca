@@ -12,6 +12,7 @@ export const hooksApi = {
   readIssueCommand: (args: {
     repoId: string
     hostId?: ExecutionHostId
+    wakeWslDistro?: boolean
   }): Promise<{
     status?: 'ok' | 'error'
     localContent: string | null

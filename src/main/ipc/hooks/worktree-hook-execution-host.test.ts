@@ -26,7 +26,7 @@ vi.mock('../../hooks', () => ({
   parseOrcaYaml: () => ({ issueCommand: 'shared' })
 }))
 vi.mock('../../issue-command-file', () => ({
-  readIssueCommand: mocks.localRead,
+  readIssueCommandUnlessWslStopped: mocks.localRead,
   writeIssueCommand: mocks.localWrite
 }))
 vi.mock('../../project-runtime-git-options', () => ({

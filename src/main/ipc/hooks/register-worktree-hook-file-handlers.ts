@@ -3,7 +3,7 @@ import { ipcMain } from 'electron'
 import { getRepoDialableSshTargetId, type ExecutionHostId } from '../../../shared/execution-host'
 import { isFolderRepo } from '../../../shared/repo-kind'
 import { joinWorktreeRelativePath } from '../../runtime/runtime-relative-paths'
-import { readIssueCommand, writeIssueCommand } from '../../issue-command-file'
+import { readIssueCommandUnlessWslStopped, writeIssueCommand } from '../../issue-command-file'
 import { resolveRepoForExecutionHost } from '../worktrees/repo-host-ownership'
 import type { WorktreeIpcContext } from '../worktrees/worktree-ipc-context'
 import { assertWslMoveRepoWritable } from '../../persistence/moving-wsl-projects/wsl-move-scope-guard'
@@ -14,7 +14,7 @@ export function registerWorktreeHookFileHandlers(context: WorktreeIpcContext): v
 
   ipcMain.handle(
     'hooks:readIssueCommand',
-    async (_event, args: { repoId: string; hostId?: ExecutionHostId }) => {
+    async (_event, args: { repoId: string; hostId?: ExecutionHostId; wakeWslDistro?: boolean }) => {
       const repo = resolveRepoForExecutionHost(store, args.repoId, args.hostId)
       if (!repo || isFolderRepo(repo)) {
         return {
@@ -37,7 +37,8 @@ export function registerWorktreeHookFileHandlers(context: WorktreeIpcContext): v
           source: 'none' as const
         }
       }
-      return readIssueCommand(repo.path)
+      // Settings renders read this; only a launch (`wakeWslDistro`) may start a stopped distro.
+      return readIssueCommandUnlessWslStopped(repo.path, { wakeWslDistro: args.wakeWslDistro })
     }
   )
 

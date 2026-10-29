@@ -4,6 +4,11 @@ import { join } from 'node:path'
 import { loadHooks } from './hooks'
 import type { GitRuntimeOptions } from './git/git-runtime-options'
 import { checkIgnoredPaths } from './git/check-ignored-paths'
+import {
+  guardWslUncPathAccess,
+  WslDistroStoppedError,
+  WslDistroUnverifiableError
+} from './wsl/wsl-unc-access-gate'
 
 type IssueCommandGitOptions = GitRuntimeOptions | (() => GitRuntimeOptions)
 
@@ -48,6 +53,34 @@ export function readIssueCommand(repoPath: string): ResolvedIssueCommand {
     effectiveContent,
     localFilePath: filePath,
     source: localContent ? 'local' : sharedContent ? 'shared' : 'none'
+  }
+}
+
+/**
+ * `readIssueCommand` that never starts a stopped WSL distro for a background read (E9): its
+ * `\\wsl.localhost` touch is refused with the unreachable result. `wakeWslDistro` is a launch, a
+ * user act that may start it.
+ */
+export async function readIssueCommandUnlessWslStopped(
+  repoPath: string,
+  options: { wakeWslDistro?: boolean } = {}
+): Promise<ResolvedIssueCommand & { status?: 'error' }> {
+  try {
+    return await guardWslUncPathAccess(repoPath, async () => readIssueCommand(repoPath), {
+      wake: options.wakeWslDistro === true
+    })
+  } catch (error) {
+    if (error instanceof WslDistroStoppedError || error instanceof WslDistroUnverifiableError) {
+      return {
+        status: 'error',
+        localContent: null,
+        sharedContent: null,
+        effectiveContent: null,
+        localFilePath: getIssueCommandFilePath(repoPath),
+        source: 'none'
+      }
+    }
+    throw error
   }
 }
 
