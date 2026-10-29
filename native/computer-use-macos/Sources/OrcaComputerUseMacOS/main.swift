@@ -1722,7 +1722,23 @@ private func numberAttribute(_ element: AXUIElement, _ attribute: String) -> NSN
     return value as? NSNumber
 }
 
+private typealias AXUIElementGetWindowFunction = @convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError
+
+private let axUIElementGetWindow: AXUIElementGetWindowFunction? = {
+    guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "_AXUIElementGetWindow") else {
+        return nil
+    }
+    // SAFETY: HIServices exports `AXError _AXUIElementGetWindow(AXUIElementRef, CGWindowID *)`, the signature yabai and Hammerspoon call.
+    return unsafeBitCast(symbol, to: AXUIElementGetWindowFunction.self)
+}()
+
 private func windowNumber(_ element: AXUIElement) -> CGWindowID? {
+    // Why: AppKit and WebKit windows don't answer AXWindowNumber, so matching fell back to frames and
+    // paired a capture with whichever same-frame window AX listed first (#27252).
+    var windowId: CGWindowID = 0
+    if let axUIElementGetWindow, axUIElementGetWindow(element, &windowId) == .success, windowId != 0 {
+        return windowId
+    }
     guard let number = numberAttribute(element, "AXWindowNumber") else {
         return nil
     }
