@@ -806,7 +806,7 @@
       "run": "Exécution",
       "output": "Sortie",
       "noOutput": "Aucun contenu de sortie disponible.",
-      "loadingRuns": "Chargement des courses…",
+      "loadingRuns": "Chargement des exécutions…",
       "loading": "Chargement…",
       "hourly": "Toutes les heures",
       "daily": "Chaque jour",

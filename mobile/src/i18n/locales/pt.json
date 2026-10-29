@@ -804,7 +804,7 @@
       "skipped": "Ignorada",
       "started": "Iniciado",
       "trigger": "Acionador",
-      "run": "Executar",
+      "run": "Execução",
       "output": "Saída",
       "noOutput": "Nenhum conteúdo de saída disponível.",
       "loadingRuns": "Carregando execuções…",
@@ -935,7 +935,7 @@
               "a95afb7483": "De hora em hora aos :{{minute}}",
               "280ccd2701": "Diariamente às {{time}}",
               "3f1422adc1": "Dias de semana às {{time}}",
-              "cc71e252ba": "{{day}}s às {{time}}"
+              "cc71e252ba": "Toda semana: {{day}}, às {{time}}"
             }
           }
         }
