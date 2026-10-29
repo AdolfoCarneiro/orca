@@ -64,6 +64,7 @@
     "check:focus-read-ratchet": "node config/scripts/check-focus-read-ratchet.mjs",
     "check:layout-writer-ratchets": "node config/scripts/check-layout-writer-ratchets.mjs",
     "check:readme-local-links": "node config/scripts/check-readme-local-links.mjs",
+    "check:has-restyle-scope": "node config/scripts/check-has-restyle-scope.mjs",
     "check:daemon-protocol-crossing": "node config/scripts/check-daemon-protocol-crossing.mjs",
     "check:runtime-launcher-protocol-ratchet": "node config/scripts/check-runtime-launcher-protocol-ratchet.mjs",
     "check:node-runtime-pin": "node config/scripts/check-node-runtime-pin.mjs",
