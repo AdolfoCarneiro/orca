@@ -1,5 +1,8 @@
 import type { OrchestrationDb } from '../db'
 
+type CrewMutationPrototype = Partial<OrchestrationDb>
+type CrewMutationInvocation = (this: OrchestrationDb, ...args: unknown[]) => unknown
+
 const mutations = [
   'createRemoteDispatchAttachment',
   'prepareRemoteAttachmentAuthority',
@@ -78,7 +81,7 @@ const trafficMutations: ReadonlySet<keyof OrchestrationDb> = new Set([
 ])
 
 /** Wake after the synchronous outer mutation; nested writes coalesce and rolled-back reads compare equal. */
-export function attachCrewMutationNotifications(ctor: { prototype: object }): void {
+export function attachCrewMutationNotifications(ctor: { prototype: CrewMutationPrototype }): void {
   const prototype = ctor.prototype
   if (
     !hasDomainMethod(prototype, 'getOrCreateLocalMutationCallerFingerprint') ||
@@ -126,15 +129,15 @@ export function attachCrewMutationNotifications(ctor: { prototype: object }): vo
     return result
   }
   for (const name of mutations) {
-    if (!hasDomainMethod(prototype, name)) {
+    if (!hasCrewMutationInvocation(prototype, name)) {
       continue
     }
-    const original = prototype[name]
+    const original: CrewMutationInvocation = prototype[name]
     Object.defineProperty(ctor.prototype, name, {
       configurable: true,
       writable: true,
       value(this: OrchestrationDb, ...args: unknown[]) {
-        const result: unknown = Reflect.apply(original, this, args)
+        const result = original.apply(this, args)
         if (
           typeof result === 'object' &&
           result !== null &&
@@ -152,8 +155,15 @@ export function attachCrewMutationNotifications(ctor: { prototype: object }): vo
 }
 
 function hasDomainMethod<K extends keyof OrchestrationDb>(
-  prototype: object,
+  prototype: CrewMutationPrototype,
   name: K
-): prototype is object & Pick<OrchestrationDb, K> {
-  return name in prototype && typeof Reflect.get(prototype, name) === 'function'
+): prototype is CrewMutationPrototype & Pick<OrchestrationDb, K> {
+  return name in prototype && typeof prototype[name] === 'function'
+}
+
+function hasCrewMutationInvocation<K extends (typeof mutations)[number]>(
+  prototype: CrewMutationPrototype,
+  name: K
+): prototype is CrewMutationPrototype & Record<K, CrewMutationInvocation> {
+  return hasDomainMethod(prototype, name)
 }
