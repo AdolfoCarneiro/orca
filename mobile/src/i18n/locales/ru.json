@@ -1090,6 +1090,11 @@
       "folder": "Папка",
       "project": "Проект {{repo}}",
       "remoteHost": "Удалённый сервер"
+    },
+    "nativeScreenRecovery": {
+      "title": "Что-то пошло не так",
+      "tryAgain": "Повторить",
+      "home": "Главная"
     }
   },
   "connection": {
