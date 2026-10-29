@@ -269,7 +269,7 @@ it("re-applies a plugin language only when the selected pack's content changes",
   let listed = [pack('Speichern')]
   Object.defineProperty(window, 'api', {
     configurable: true,
-    value: { plugins: { listLanguagePacks: async () => listed } }
+    value: { plugins: { listLanguagePacks: async () => structuredClone(listed) } }
   })
   usePluginLanguagePackStore.setState({ entries: [], loaded: false })
   useAppStore.setState({ settings: { ...getDefaultSettings('/tmp'), uiLanguage: id } })
@@ -277,11 +277,13 @@ it("re-applies a plugin language only when the selected pack's content changes",
   await act(() => usePluginLanguagePackStore.getState().fetchEntries())
   await vi.waitFor(() => expect(i18n.language).toBe(pluginLanguageResourceId(id)))
   const changeLanguage = vi.spyOn(i18n, 'changeLanguage')
+  const removeBundle = vi.spyOn(i18n, 'removeResourceBundle')
 
   // Plugin-change refreshes rebuild every registration over IPC, even when nothing changed.
   await act(() => usePluginLanguagePackStore.getState().fetchEntries())
   await vi.waitFor(() => expect(useLanguageReadiness.getState().loading).toBe(false))
   expect(changeLanguage).not.toHaveBeenCalled()
+  expect(removeBundle).not.toHaveBeenCalled()
 
   listed = [pack('Sichern')]
   await act(() => usePluginLanguagePackStore.getState().fetchEntries())

@@ -23,6 +23,10 @@ export function replacePluginLanguagePackResources(
     i18n.removeResourceBundle(pack.resourceLanguage, 'translation')
     changed.add(pack.resourceLanguage)
   }
+  if (changed.size > 0) {
+    // removeResourceBundle also drops the namespace that later backend loads read.
+    void i18n.loadNamespaces('translation')
+  }
   for (const pack of next) {
     if (unchanged.has(pack.resourceLanguage)) {
       continue
