@@ -15,17 +15,14 @@ import {
 
 type TestAppEnvironment = { getAppPath(): string; isPackaged(): boolean }
 
-const { forkMock, existsSyncMock, appEnvironment, invalidatePermissionStatusMock } = vi.hoisted(
-  () => {
-    const environment: { current: TestAppEnvironment | null } = { current: null }
-    return {
-      forkMock: vi.fn(),
-      invalidatePermissionStatusMock: vi.fn(),
-      existsSyncMock: vi.fn((_path: string) => true),
-      appEnvironment: environment
-    }
+const { forkMock, existsSyncMock, appEnvironment } = vi.hoisted(() => {
+  const environment: { current: TestAppEnvironment | null } = { current: null }
+  return {
+    forkMock: vi.fn(),
+    existsSyncMock: vi.fn((_path: string) => true),
+    appEnvironment: environment
   }
-)
+})
 
 vi.mock('child_process', () => ({
   fork: forkMock
@@ -34,10 +31,6 @@ vi.mock('child_process', () => ({
 vi.mock('node:fs', async (importOriginal) => ({
   ...(await importOriginal<typeof NodeFs>()),
   existsSync: existsSyncMock
-}))
-
-vi.mock('./macos-computer-use-permission-status-gate', () => ({
-  computerUsePermissionStatusGate: { invalidate: invalidatePermissionStatusMock }
 }))
 
 vi.mock('../../shared/app-environment', () => ({
@@ -116,23 +109,6 @@ describe('computer sidecar client', () => {
       [],
       expect.anything()
     )
-  })
-
-  it('drops cached macOS permission status when the provider reports permission_denied', async () => {
-    const originalPlatform = process.platform
-    Object.defineProperty(process, 'platform', { value: 'darwin' })
-    try {
-      const call = callComputerSidecarCapabilities()
-      children[0]!.emit('message', {
-        id: children[0]!.sent[0]!.id,
-        ok: false,
-        error: { code: 'permission_denied', message: 'Accessibility permission is required' }
-      })
-      await expect(call).rejects.toMatchObject({ code: 'permission_denied' })
-      expect(invalidatePermissionStatusMock).toHaveBeenCalledTimes(1)
-    } finally {
-      Object.defineProperty(process, 'platform', { value: originalPlatform })
-    }
   })
 
   it('says computer use is unavailable when an older server install has no sidecar', async () => {

@@ -4,10 +4,8 @@ import type {
   ComputerUsePermissionStatusResult
 } from '../../shared/computer-use-permissions-types'
 import {
-  createPermissionStatusProbeGate,
-  PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS,
-  PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS,
-  PERMISSION_STATUS_RESULT_REUSE_MS
+  bindPermissionStatusGateToAppActivity,
+  createPermissionStatusProbeGate
 } from './macos-computer-use-permission-status-gate'
 
 function statusWith(accessibility: ComputerUsePermissionStatus): ComputerUsePermissionStatusResult {
@@ -44,7 +42,7 @@ describe('createPermissionStatusProbeGate', () => {
     await Promise.all([gate.read(background), gate.read(background), gate.read(background)])
     expect(probe).toHaveBeenCalledTimes(1)
 
-    for (let elapsed = 0; elapsed < PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS * 5; elapsed += 500) {
+    for (let elapsed = 0; elapsed < 600_000; elapsed += 500) {
       clock += 500
       await gate.read(background)
     }
@@ -92,13 +90,32 @@ describe('createPermissionStatusProbeGate', () => {
     expect(probe).toHaveBeenCalledTimes(2)
   })
 
+  it('counts the first app return after a startup spent inactive', async () => {
+    const probe = vi.fn().mockResolvedValueOnce(denied).mockResolvedValueOnce(granted)
+    const gate = createPermissionStatusProbeGate({ probe, now: () => 0 })
+    let returnToApp = (): void => {}
+    let active = false
+    bindPermissionStatusGateToAppActivity(gate, {
+      onDeparture: () => {},
+      onReturn: (listener) => {
+        returnToApp = listener
+      },
+      isAppActive: () => active
+    })
+
+    await gate.read(background)
+    active = true
+    returnToApp()
+    await expect(gate.read(background)).resolves.toBe(granted)
+  })
+
   it('keeps callers that omit background, like older clients, within 2s of live', async () => {
     let clock = 0
     const probe = vi.fn().mockResolvedValueOnce(denied).mockResolvedValueOnce(granted)
     const gate = createPermissionStatusProbeGate({ probe, now: () => clock })
 
     await gate.read()
-    clock += PERMISSION_STATUS_RESULT_REUSE_MS - 1
+    clock += 2_000 - 1
     await expect(gate.read()).resolves.toBe(denied)
     clock += 1
     await expect(gate.read(background)).resolves.toBe(denied)
@@ -123,7 +140,7 @@ describe('createPermissionStatusProbeGate', () => {
     expect(probe).toHaveBeenCalledTimes(2)
 
     // Only the live probe counts toward the backoff: first step is 10s, not 20s.
-    clock += PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS
+    clock += 10_000
     await gate.read(background)
     expect(probe).toHaveBeenCalledTimes(3)
   })
@@ -141,7 +158,7 @@ describe('createPermissionStatusProbeGate', () => {
     ])
     expect(probe).toHaveBeenCalledTimes(1)
 
-    clock += PERMISSION_STATUS_RESULT_REUSE_MS
+    clock += 2_000
     await expect(gate.read(background)).resolves.toBe(granted)
     expect(probe).toHaveBeenCalledTimes(2)
   })

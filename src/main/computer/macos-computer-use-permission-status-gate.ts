@@ -1,9 +1,9 @@
 import type { ComputerUsePermissionStatusResult } from '../../shared/computer-use-permissions-types'
 
 // Each macOS probe launches a helper that polls TCC for ~3.5s; denied answers only change on user action.
-export const PERMISSION_STATUS_RESULT_REUSE_MS = 2_000
-export const PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS = 10_000
-export const PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS = 120_000
+const PERMISSION_STATUS_RESULT_REUSE_MS = 2_000
+const PERMISSION_STATUS_DENIED_MIN_BACKOFF_MS = 10_000
+const PERMISSION_STATUS_DENIED_MAX_BACKOFF_MS = 120_000
 
 type ProbeOutcome =
   | { ok: true; result: ComputerUsePermissionStatusResult }
@@ -150,6 +150,10 @@ export function bindPermissionStatusGateToAppActivity(
   activity: AppActivitySource
 ): void {
   gate.setAppActiveProbe(activity.isAppActive)
+  // Listeners attach after startup; a grant made while Orca was inactive must count on first return.
+  if (!activity.isAppActive()) {
+    gate.noteAppDeparture()
+  }
   activity.onDeparture(() => gate.noteAppDeparture())
   activity.onReturn(() => gate.noteAppReturn())
 }
