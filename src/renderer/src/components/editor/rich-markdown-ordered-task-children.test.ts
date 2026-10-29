@@ -102,6 +102,38 @@ describe('task children of ordered list items', () => {
     }
   })
 
+  it.each([
+    ['1. Parent\n   - [ ] a\n    - [x] b', 3],
+    ['10. Parent\n    - [ ] a\n     - [x] b', 3],
+    ['> 1. Parent\n>    - [ ] a\n>     - [x] b', 4]
+  ] as const)('keeps a task one column deeper as a sibling checkbox in %j', (source, depth) => {
+    const editor = openMarkdown(source)
+    try {
+      editor.state.doc.check()
+      expect(taskItems(editor)).toEqual([
+        { text: 'a', checked: false, depth },
+        { text: 'b', checked: true, depth }
+      ])
+    } finally {
+      editor.destroy()
+    }
+  })
+
+  it('keeps a four-space continuation paragraph free of leftover indent', () => {
+    const editor = openMarkdown('1. Parent\n    - [ ] a\n        more text')
+    try {
+      const paragraphs: string[] = []
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'paragraph') {
+          paragraphs.push(node.textContent)
+        }
+      })
+      expect(paragraphs).toEqual(['Parent', 'a', 'more text'])
+    } finally {
+      editor.destroy()
+    }
+  })
+
   it('keeps an intentionally nested task under its owning sibling', () => {
     const editor = openMarkdown(
       '4. Parent\n   - [ ] First\n     - [x] Child\n   - [x] Middle\n   - [x] Last'

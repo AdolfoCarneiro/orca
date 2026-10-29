@@ -19,6 +19,20 @@ function inlineTokenSpansLineBreak(tokens: MarkdownToken[], lineBreak: number): 
 }
 
 function normalizeTaskListToken(token: MarkdownToken, lexer: MarkdownLexerConfiguration): void {
+  if (token.type === 'taskItem') {
+    for (const nested of token.nestedTokens ?? []) {
+      if (
+        nested.type === 'paragraph' &&
+        typeof nested.text === 'string' &&
+        /^[ \t]/m.test(nested.text)
+      ) {
+        // Why: Tiptap dedents task children by two columns, leaving deeper paragraph indent as text.
+        nested.text = nested.text.replace(/^[ \t]+/gm, '')
+        nested.raw = nested.text
+        nested.tokens = lexer.inlineTokens(nested.text)
+      }
+    }
+  }
   const firstNested = token.nestedTokens?.[0]
   if (
     token.type === 'taskItem' &&
