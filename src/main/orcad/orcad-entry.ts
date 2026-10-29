@@ -78,12 +78,7 @@ async function startOrcadRuntime(
   // mid-spawn. It disconnects without killing daemon PTYs that must survive restart, after an
   // in-flight spawn settles; a failed one leaves only the disconnect to do.
   registerCleanup(() => daemonStartup.catch(() => {}).then(() => stopOrcadDaemon()))
-  // Bundled imports resolve as microtasks; a turn of the loop lets a finished login env spawn the
-  // daemon (a separate process) while the runtime graph evaluates.
-  const yieldToLoop = () => new Promise<void>((resolve) => setImmediate(resolve))
-  await yieldToLoop()
   const { OrcaRuntimeService } = await import('../runtime/orca-runtime')
-  await yieldToLoop()
   const { OrcaRuntimeRpcServer } = await import('../runtime/runtime-rpc')
   const { registerHeadlessPtyRuntime } = await import('../ipc/pty/register-headless-runtime')
   const { getLocalPtyProvider } = await import('../ipc/pty/provider/registry')
