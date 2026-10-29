@@ -67,6 +67,7 @@ export function DiffCommentPopover({
   const [submitting, setSubmitting] = useState(false)
   const mountedRef = useMountedRef()
   const popoverRef = useRef<HTMLDivElement | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   // Why: keep onCancel in a ref so the mousedown listener reads it fresh without re-attaching when parents pass a new callback each render.
   const onCancelRef = useRef(onCancel)
   onCancelRef.current = onCancel
@@ -123,7 +124,14 @@ export function DiffCommentPopover({
   }, [measureResolvedTop])
 
   const focusTextareaRef = useCallback((textarea: HTMLTextAreaElement | null): void => {
+    textareaRef.current = textarea
     textarea?.focus()
+  }, [])
+
+  useEffect(() => {
+    // Pierre assigns the annotation slot after React attaches this textarea.
+    const frame = requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }))
+    return () => cancelAnimationFrame(frame)
   }, [])
 
   // Why: consume the add-review-note chord on the popover subtree, not window, so a repeat chord doesn't remount the draft.

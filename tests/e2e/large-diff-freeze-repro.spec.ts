@@ -315,6 +315,7 @@ test.describe('Large diff freeze repro', () => {
         maxGap: value.maxGap,
         samples: value.samples
       }))
+      console.log('replacement measurement', JSON.stringify(measurement))
       expect(measurement.samples).toBeGreaterThan(5)
       expect(measurement.maxGap).toBeLessThan(1_000)
       await changedFile.click()

@@ -23,7 +23,7 @@ export function usePierreDiffSearchView({
   active?: DiffSearchMatch
 }) {
   const viewRef = useRef<{ host: HTMLElement; instance: PierreDiffInstance } | null>(null)
-  const owner = useRef({})
+  const owner = useRef(Symbol())
   const frame = useRef<number | null>(null)
   const pending = useRef(false)
   const nativeRange = useRef<{ start: Range; end: Range } | null>(null)

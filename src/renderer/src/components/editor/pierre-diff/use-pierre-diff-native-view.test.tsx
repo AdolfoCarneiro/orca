@@ -51,7 +51,7 @@ function setup(activeGroup = 'left') {
     getCodeScrollLeft: () => state.saved.scrollLeft,
     setCodeScrollLeft: vi.fn()
   } as unknown as PierreDiffInstance
-  const editorRef = { current: { setDeletedTextSelectionActive: vi.fn() } }
+  const editorRef = { current: { setDeletedTextSelectionActive: vi.fn(), getViewState: vi.fn() } }
   const containerRef = { current: container }
   state.restore.mockReturnValue(true)
   const hook = renderHook(
@@ -130,4 +130,21 @@ it('stops retrying a saved selection whose content is stale', () => {
   tick()
   tick()
   expect(state.restore).toHaveBeenCalledOnce()
+})
+
+it('keeps the editor selection captured before a tab click clears it', () => {
+  const { container, editorRef, unmount } = setup()
+  const saved = {
+    selections: [{ start: { line: 0, character: 4 }, end: { line: 0, character: 5 }, direction: 1 }]
+  }
+  editorRef.current.getViewState.mockReturnValue(saved)
+  container.tabIndex = -1
+  container.focus()
+  document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+  editorRef.current.getViewState.mockReturnValue({ selections: [] })
+  unmount()
+  expect(state.remember).toHaveBeenLastCalledWith(
+    'file',
+    expect.objectContaining({ editor: saved })
+  )
 })

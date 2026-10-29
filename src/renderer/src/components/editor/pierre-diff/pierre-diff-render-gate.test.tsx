@@ -5,7 +5,10 @@ import DiffViewer from '../DiffViewer'
 import { requestPierreFileDiff } from './pierre-diff-parse-client'
 import { getLargeDiffRenderLimit } from '../large-diff-render-limit'
 
-vi.mock('@/store', () => ({ useAppStore: (selector: (s: object) => unknown) => selector({}) }))
+vi.mock('@/store', () => {
+  const state = { settings: undefined }
+  return { useAppStore: (selector: (s: typeof state) => unknown) => selector(state) }
+})
 vi.mock('../editor-shortcuts', () => ({ installEditorSaveShortcut: () => () => {} }))
 vi.mock('../diff-navigation-context', () => ({
   useDiffNavigatorRegistration: () => ({

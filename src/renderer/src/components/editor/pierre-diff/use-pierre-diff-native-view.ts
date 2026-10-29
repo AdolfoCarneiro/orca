@@ -27,7 +27,7 @@ export function usePierreDiffNativeView(
   editable: boolean,
   containerRef: React.RefObject<HTMLElement | null>,
   activeGroupId: string,
-  editorRef: React.RefObject<Pick<Editor, 'setDeletedTextSelectionActive'> | null>
+  editorRef: React.RefObject<Pick<Editor, 'setDeletedTextSelectionActive' | 'getViewState'> | null>
 ) {
   const view = useRef<{ host: HTMLElement; instance: PierreDiffInstance } | null>(null)
   const latest = useRef({ fileDiff, editable, activeGroupId })
@@ -157,7 +157,8 @@ export function usePierreDiffNativeView(
       }
       lastSnapshot.current = {
         scrollLeft: current.instance.getCodeScrollLeft(),
-        selection
+        selection,
+        editor: latest.current.editable ? editorRef.current?.getViewState() : undefined
       }
       rememberPierreNativeView(key, lastSnapshot.current)
     }
@@ -200,7 +201,7 @@ export function usePierreDiffNativeView(
         capture()
       }
     }
-  }, [key, containerRef])
+  }, [key, containerRef, editorRef])
   return useCallback(
     (host: HTMLElement, phase: PostRenderPhase, instance: PierreDiffInstance) => {
       if (phase === 'unmount') {

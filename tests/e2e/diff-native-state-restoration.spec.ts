@@ -53,6 +53,7 @@ for (const mode of ['original-file', 'readonly-combined']) {
     const side = mode === 'original-file' ? 'deletions' : 'additions'
     const code = host.locator(`[data-code][data-${side}]`)
     await expect(code).toBeVisible({ timeout: 20_000 })
+    await expect(code.locator('[data-line] [style*="--diffs-token-"]').first()).toBeVisible()
     const points = await diffTextSelectionPoints(code, 'SELECT_ME')
     await orcaPage.mouse.move(points.end.x, points.end.y)
     await orcaPage.mouse.down()

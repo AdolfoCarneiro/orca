@@ -60,3 +60,46 @@ it('does not adopt a worker result without the editor token transformer', () => 
   renderer.beginEditSession({ ...external, cacheKey: 'session' }, external)
   expect(renderer.editorRenderReady()).toBe(false)
 })
+
+it('updates whitespace-ignoring replacement hunks incrementally until an edit matches the original', () => {
+  const options = { theme: 'dark-plus', useTokenTransformer: true }
+  const original = 'const original = 1\nconst second = 2\n'
+  const modified = 'const changed = 3\nconst current = 4\n'
+  const external = {
+    ...parseDiffFromFile(
+      { name: 'file.ts', contents: original },
+      { name: 'file.ts', contents: modified },
+      { ignoreWhitespace: true }
+    ),
+    cacheKey: 'external'
+  }
+  const session = { ...external, additionLines: [...external.additionLines], cacheKey: 'session' }
+  const result: ThemedDiffResult = {
+    code: { additionLines: [], deletionLines: [] },
+    themeStyles: '',
+    baseThemeType: undefined
+  }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Only cache reads run; no worker is dispatched by this edit-session test.
+  const worker = {
+    isWorkingPool: () => true,
+    getDiffRenderOptions: () => options,
+    getDiffResultCache: () => ({ options, result })
+  } as unknown as WorkerPoolManager
+  const renderer = new DiffHunksRenderer(
+    { parseDiffOptions: { ignoreWhitespace: true } },
+    undefined,
+    undefined,
+    worker
+  )
+  renderer.beginEditSession(session, external)
+  const hunks = session.hunks
+  renderer.updateRenderCache(new Map(), 'dark', false, new Map([[1, 'const current = 45\n']]), 3)
+  expect(session.hunks).toBe(hunks)
+  expect(session.additionLines[1]).toBe('const current = 45\n')
+  renderer.updateRenderCache(new Map(), 'dark', false, new Map([[1, '  const second = 2  \n']]), 3)
+  expect(session.hunks).not.toBe(hunks)
+  expect(session.hunks.flatMap((hunk) => hunk.hunkContent)).toContainEqual(
+    expect.objectContaining({ type: 'context', lines: 1 })
+  )
+  expect(external.additionLines.join('')).toBe(modified)
+})

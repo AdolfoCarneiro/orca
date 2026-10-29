@@ -33,7 +33,8 @@ test('renders wrap, whitespace, layout, font and theme changes in a narrow diff'
   await orcaPage.getByRole('button', { name: /^Source Control/ }).click()
   await orcaPage.getByRole('button', { name: 'View all', exact: true }).first().click()
   const host = orcaPage.locator('diffs-container').first()
-  const code = host.locator('[data-code][data-additions]')
+  await expect(host.locator('pre')).toHaveAttribute('data-diff-type', 'single')
+  const code = host.locator('[data-code]')
   const wide = code.locator('[data-line]').filter({ hasText: 'export const wide' })
   await expect(wide).toBeVisible({ timeout: 20_000 })
   await expect

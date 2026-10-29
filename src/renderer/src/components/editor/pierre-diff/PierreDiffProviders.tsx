@@ -4,6 +4,7 @@ import { EditProvider, WorkerPoolContext, VirtualizerContext } from '@pierre/dif
 import type { PierreDiffAnnotationData } from './pierre-diff-comment-annotations'
 import { createDiffHighlightPool } from './pierre-diff-highlight-pool'
 import { createPierreEditor } from './pierre-diff-edit-state'
+import { PierreDiffNarrowLayoutContext } from './pierre-diff-layout'
 
 /**
  * Shares one Shiki worker pool and one editor factory across every mounted diff
@@ -23,21 +24,29 @@ export function PierreDiffProviders({
   // Why: lazy initializer keeps worker startup off app launch until a diff opens.
   const [pool] = useState(createDiffHighlightPool)
   const [virtualizer] = useState(() => new Virtualizer())
+  const [narrow, setNarrow] = useState(false)
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) {
       return
     }
     virtualizer.setup(container, container.lastElementChild ?? undefined)
-    return () => virtualizer.cleanUp()
+    const resize = new ResizeObserver(() => setNarrow(container.clientWidth <= 900))
+    resize.observe(container)
+    return () => {
+      resize.disconnect()
+      virtualizer.cleanUp()
+    }
   }, [scrollContainerRef, virtualizer])
 
   return (
     <WorkerPoolContext.Provider value={pool}>
       <VirtualizerContext.Provider value={virtualizer}>
-        <EditProvider<PierreDiffAnnotationData, undefined> createEditor={createPierreEditor}>
-          {children}
-        </EditProvider>
+        <PierreDiffNarrowLayoutContext.Provider value={narrow}>
+          <EditProvider<PierreDiffAnnotationData, undefined> createEditor={createPierreEditor}>
+            {children}
+          </EditProvider>
+        </PierreDiffNarrowLayoutContext.Provider>
       </VirtualizerContext.Provider>
     </WorkerPoolContext.Provider>
   )

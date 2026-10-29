@@ -9,6 +9,7 @@ import {
   openGoldenSourceControl
 } from './helpers/golden-source-control'
 import { waitForSessionReady } from './helpers/store'
+import { setDiffWindowSize } from './diff-window-size'
 
 type DiffSurface = 'file' | 'combined'
 
@@ -19,32 +20,21 @@ async function toggleWordWrap(page: Page, surface: DiffSurface): Promise<void> {
   }
   await page.getByRole('button', { name: 'File actions', exact: true }).click()
   await page.getByRole('menuitemcheckbox', { name: 'Word Wrap', exact: true }).click()
+  await expect(page.getByRole('menu')).toBeHidden()
 }
 
 async function expectWrappedParagraphs(page: Page): Promise<void> {
-  for (const side of ['original', 'modified']) {
-    const pane = page.locator(`.${side}-in-monaco-diff-editor`)
+  for (const side of ['deletions', 'additions']) {
+    const pane = page.locator(`diffs-container [data-code][data-${side}]`)
+    const paragraph = pane
+      .locator('[data-content] [data-line]')
+      .filter({ hasText: 'This long Markdown paragraph' })
+      .first()
     await expect
-      .poll(() => pane.locator('.view-line').count(), {
-        message: `${side} paragraphs should occupy multiple wrapped rows`
-      })
-      .toBeGreaterThan(10)
+      .poll(() => paragraph.evaluate((line) => line.getBoundingClientRect().height))
+      .toBeGreaterThan(100)
     await expect
-      .poll(() =>
-        pane.evaluate((element) => {
-          const viewport = element.querySelector('.monaco-scrollable-element')
-          if (!viewport) {
-            throw new Error('Missing Monaco text viewport')
-          }
-          const textWidth = Math.max(
-            ...Array.from(
-              element.querySelectorAll('.view-line > span'),
-              (line) => line.getBoundingClientRect().width
-            )
-          )
-          return textWidth - viewport.getBoundingClientRect().width
-        })
-      )
+      .poll(() => pane.evaluate((code) => code.scrollWidth - code.clientWidth))
       .toBeLessThanOrEqual(1)
   }
 }
@@ -52,6 +42,7 @@ async function expectWrappedParagraphs(page: Page): Promise<void> {
 for (const surface of ['file', 'combined'] as const) {
   test(`${surface} diff word wrap applies to both panes after toggles and narrow inline layout`, async ({
     orcaPage,
+    electronApp,
     testRepoPath,
     registerPostElectronShutdownCleanup
   }, testInfo) => {
@@ -74,7 +65,7 @@ for (const surface of ['file', 'combined'] as const) {
       content.replaceAll('original', 'modified').replaceAll('Original', 'Modified')
     )
 
-    await orcaPage.setViewportSize({ width: 1600, height: 850 })
+    await setDiffWindowSize(electronApp, 1600, 850)
     await waitForSessionReady(orcaPage)
     await orcaPage.evaluate(async () => {
       await window.__store?.getState().updateSettings({
@@ -93,23 +84,24 @@ for (const surface of ['file', 'combined'] as const) {
             .filter({ hasText: 'README.md' })
     ).click()
     await orcaPage.evaluate(() => window.__store?.getState().setRightSidebarOpen(false))
-    const diff = orcaPage.locator('.monaco-diff-editor')
-    await expect(diff).toHaveClass(/side-by-side/)
+    const diff = orcaPage.locator('diffs-container pre')
+    await expect(diff).toHaveAttribute('data-diff-type', 'split')
     await toggleWordWrap(orcaPage, surface)
     await orcaPage.screenshot({ path: testInfo.outputPath('wrap-on.png') })
     await expectWrappedParagraphs(orcaPage)
 
-    await orcaPage.setViewportSize({ width: 1000, height: 850 })
-    await expect(diff).not.toHaveClass(/side-by-side/)
-    await orcaPage.setViewportSize({ width: 1600, height: 850 })
-    await expect(diff).toHaveClass(/side-by-side/)
+    await setDiffWindowSize(electronApp, 1000, 850)
+    await expect(diff).toHaveAttribute('data-diff-type', 'single')
+    await setDiffWindowSize(electronApp, 1600, 850)
+    await expect(diff).toHaveAttribute('data-diff-type', 'split')
     await expectWrappedParagraphs(orcaPage)
 
     await toggleWordWrap(orcaPage, surface)
-    for (const side of ['original', 'modified']) {
+    for (const side of ['deletions', 'additions']) {
+      const pane = orcaPage.locator(`diffs-container [data-code][data-${side}]`)
       await expect
-        .poll(() => orcaPage.locator(`.${side}-in-monaco-diff-editor .view-line`).count())
-        .toBeLessThanOrEqual(6)
+        .poll(() => pane.evaluate((code) => code.scrollWidth - code.clientWidth))
+        .toBeGreaterThan(500)
     }
     await toggleWordWrap(orcaPage, surface)
     await expectWrappedParagraphs(orcaPage)

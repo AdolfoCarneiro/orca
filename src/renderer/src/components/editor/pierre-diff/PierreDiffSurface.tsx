@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { FileDiff } from '@pierre/diffs/react'
 import type {
   FileDiff as PierreFileDiff,
@@ -32,6 +32,8 @@ import { usePierreDiffNativeView } from './use-pierre-diff-native-view'
 import { installPierreContextualCopy } from './pierre-diff-context-copy'
 import { editorShortcutMatches } from '../editor-shortcuts'
 import { usePierreDiffNoteNavigation } from './use-pierre-diff-note-navigation'
+import { usePierreDiffNoteSelection } from './use-pierre-diff-note-selection'
+import { PierreDiffNarrowLayoutContext } from './pierre-diff-layout'
 import { canCommentOnPierreRange } from './pierre-diff-comment-range'
 import { withPierreDiffEditState } from './pierre-diff-edit-state'
 import { shouldAutoFocusPierreDiffHost, shouldFocusPierreDiffHost } from './pierre-diff-host-focus'
@@ -103,6 +105,7 @@ export function PierreDiffSurface({
   onSubmitComment,
   className
 }: PierreDiffSurfaceProps): React.JSX.Element {
+  const narrowLayout = useContext(PierreDiffNarrowLayoutContext)
   const editorFontZoomLevel = useAppStore((s) => s.editorFontZoomLevel)
   const clearDeliveredDiffComments = useAppStore((s) => s.clearDeliveredDiffComments)
   const activeGroupId = useAppStore((s) =>
@@ -166,34 +169,44 @@ export function PierreDiffSurface({
     activeGroupId,
     editorRef
   )
+  const commentableLines = useMemo(
+    () => (commentableLineNumbers ? new Set(commentableLineNumbers) : null),
+    [commentableLineNumbers]
+  )
+  const noteSelection = usePierreDiffNoteSelection({
+    containerRef,
+    editorRef,
+    onAddComment,
+    pendingComment,
+    commentableLines
+  })
   const navigateToNote = usePierreDiffNoteNavigation({ worktreeId, filePath, comments })
   const postRenderRef = useRef({
     onPostRender,
     navigateToNote,
     searchPostRender,
     shiftWheelPostRender,
-    nativeViewPostRender
+    nativeViewPostRender,
+    noteSelectionPostRender: noteSelection.onPostRender
   })
-  // Why layout and not render: Pierre treats a new onPostRender identity as forceRender, so the
-  // callback below must stay stable and read its chain from here. Writing during render is impure
-  // -- React can discard that work.
-  //
-  // This does NOT guarantee a fresh chain on every emit, and it cannot: Pierre renders from its
-  // own layout effect in a child, and children commit before parents, so an emit can read the
-  // previous cycle's callbacks. useRef seeds the first mount. What keeps that harmless is that
-  // FileDiff.render early-returns without emitting when the diff, annotations, theme and range are
-  // all unchanged, so search-only and note-target-only updates never reach a stale chain. The one
-  // overlap -- content changing while a search is active -- can paint a frame of stale ranges; the
-  // next results tick corrects it.
+  // Keep Pierre's render callback stable; committed callbacks may lag a child layout effect.
   useLayoutEffect(() => {
     postRenderRef.current = {
       onPostRender,
       navigateToNote,
       searchPostRender,
       shiftWheelPostRender,
-      nativeViewPostRender
+      nativeViewPostRender,
+      noteSelectionPostRender: noteSelection.onPostRender
     }
-  }, [onPostRender, navigateToNote, searchPostRender, shiftWheelPostRender, nativeViewPostRender])
+  }, [
+    onPostRender,
+    navigateToNote,
+    searchPostRender,
+    shiftWheelPostRender,
+    nativeViewPostRender,
+    noteSelection.onPostRender
+  ])
   const handlePostRender = useCallback(
     (node: HTMLElement, instance: PierreDiffInstance, phase: PostRenderPhase) => {
       const chain = postRenderRef.current
@@ -202,12 +215,9 @@ export function PierreDiffSurface({
       chain.searchPostRender(node, phase, instance)
       chain.shiftWheelPostRender(node, phase, instance)
       chain.nativeViewPostRender(node, phase, instance)
+      chain.noteSelectionPostRender(node, phase, instance)
     },
     []
-  )
-  const commentableLines = useMemo(
-    () => (commentableLineNumbers ? new Set(commentableLineNumbers) : null),
-    [commentableLineNumbers]
   )
 
   // Why: Monaco's diff panes owned `editor.copyContext`; restore it for Pierre rows.
@@ -227,7 +237,7 @@ export function PierreDiffSurface({
     () => ({
       ...buildPierreDiffOptions<PierreDiffAnnotationData>({
         settings,
-        sideBySide,
+        sideBySide: sideBySide && !narrowLayout,
         collapseUnchanged
       }),
       enableGutterUtility: Boolean(onAddComment),
@@ -236,27 +246,21 @@ export function PierreDiffSurface({
       gutterUtilityLabel:
         addCommentLabel ??
         translate('auto.components.editor.MarkdownPreview.d737791433', 'Add note for the AI'),
-      onGutterUtilityClick: onAddComment
-        ? (range: SelectedLineRange) => {
-            if (!canCommentOnPierreRange(range, commentableLines)) {
-              return
-            }
-            onAddComment({
-              lineNumber: Math.max(range.start, range.end),
-              startLine: range.start === range.end ? undefined : Math.min(range.start, range.end)
-            })
-          }
-        : undefined,
+      onGutterUtilityClick: onAddComment ? noteSelection.addComment : undefined,
+      onLineSelectionEnd: onAddComment ? noteSelection.onLineSelectionEnd : undefined,
       onPostRender: handlePostRender
     }),
     [
       settings,
       sideBySide,
+      narrowLayout,
       collapseUnchanged,
       onAddComment,
       handlePostRender,
       commentableLines,
-      addCommentLabel
+      addCommentLabel,
+      noteSelection.addComment,
+      noteSelection.onLineSelectionEnd
     ]
   )
   const style = useMemo(

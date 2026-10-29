@@ -21,14 +21,14 @@ vi.mock('@pierre/diffs/react', () => ({
     return <div data-testid="file-diff" />
   }
 }))
-vi.mock('@/store', () => ({
-  useAppStore: (selector: (state: object) => unknown) =>
-    selector({
-      editorFontZoomLevel: 0,
-      clearDeliveredDiffComments: vi.fn(),
-      activeGroupIdByWorktree: {}
-    })
-}))
+vi.mock('@/store', () => {
+  const state = {
+    editorFontZoomLevel: 0,
+    clearDeliveredDiffComments: vi.fn(),
+    activeGroupIdByWorktree: {}
+  }
+  return { useAppStore: (selector: (s: typeof state) => unknown) => selector(state) }
+})
 vi.mock('@/components/error-boundaries/RecoverableRenderErrorBoundary', () => ({
   RecoverableRenderErrorBoundary: ({ children }: { children: React.ReactNode }) => children
 }))

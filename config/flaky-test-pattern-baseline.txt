@@ -576,7 +576,6 @@
 3 test-no-real-time-wait:tests/e2e/dead-terminal-stress.spec.ts
 2 test-no-real-time-wait:tests/e2e/default-tabs-mark-crash-relaunch.spec.ts
 1 test-no-real-time-wait:tests/e2e/dictation-indicator.spec.ts
-1 test-no-real-time-wait:tests/e2e/diff-note-draft.spec.ts
 2 test-no-real-time-wait:tests/e2e/droid-notification.spec.ts
 2 test-no-real-time-wait:tests/e2e/editor-tab-selection-restore.spec.ts
 1 test-no-real-time-wait:tests/e2e/file-explorer-linked-watch-refresh.spec.ts

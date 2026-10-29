@@ -5,15 +5,15 @@ import DiffViewer from './DiffViewer'
 
 let latestAutoFocusHost: boolean | undefined
 
-vi.mock('@/store', () => ({
-  useAppStore: (selector: (s: object) => unknown) =>
-    selector({
-      settings: {},
-      addDiffComment: () => {},
-      deleteDiffComment: () => {},
-      updateDiffComment: () => {}
-    })
-}))
+vi.mock('@/store', () => {
+  const state = {
+    settings: {},
+    addDiffComment: () => {},
+    deleteDiffComment: () => {},
+    updateDiffComment: () => {}
+  }
+  return { useAppStore: (selector: (s: typeof state) => unknown) => selector(state) }
+})
 vi.mock('./editor-shortcuts', () => ({ installEditorSaveShortcut: () => () => {} }))
 vi.mock('./diff-navigation-context', () => ({
   useDiffNavigatorRegistration: () => ({

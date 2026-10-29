@@ -53,12 +53,12 @@ it('leaves active highlights untouched when an unrelated surface removes no rang
   const registry = new Map<string, Set<Range>>()
   vi.stubGlobal('Highlight', class extends Set<Range> {})
   vi.stubGlobal('CSS', { highlights: registry })
-  const owner = {}
+  const owner = Symbol()
   try {
     paintPierreSearchHighlights(owner, { matches: [document.createRange()], active: [] })
     const active = registry.get('orca-diff-find')
     for (let row = 0; row < 10; row++) {
-      paintPierreSearchHighlights({})
+      paintPierreSearchHighlights(Symbol())
     }
     expect(registry.get('orca-diff-find')).toBe(active)
     paintPierreSearchHighlights(owner)

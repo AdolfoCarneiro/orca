@@ -39,5 +39,12 @@ transport and lazy line ASTs replace the old whole-AST structured clone. The
 remaining patch covers editor-cache adoption, cleanup, gutter eligibility, the
 existing diff iterator export, and original-side selection control. It also
 retires a worker when its last consumer cancels, replaces crashed workers, and
-bounds replacement initialization. Shared tasks keep running for surviving
-consumers; a later request can retry a failed replacement.
+bounds replacement initialization and render execution. Shared tasks keep running
+for surviving consumers until completion or the execution deadline. If no worker
+survives a failed replacement, queued consumers receive an error so Retry can
+start fresh work.
+
+Same-line-count edits also retain replacement hunks when whitespace is ignored.
+The cached original-line set uses the same trimmed comparison as jsdiff; an edit
+that matches an original line still rebuilds the hunks. This avoids a full-file
+diff on each keystroke in large replacements without hiding reverted changes.

@@ -1,6 +1,6 @@
 import { getShadowRootSelection } from '@/lib/shadow-root-selection'
 import type { FileDiffMetadata } from '@pierre/diffs'
-import type { Editor } from '@pierre/diffs/edit'
+import type { Editor, EditorViewState } from '@pierre/diffs/edit'
 import { getDiffContentSignature } from '../diff-content-signature'
 import { setWithLRU } from '@/lib/scroll-cache'
 import { getPierreSelectionRange, selectionSide } from './pierre-diff-selection'
@@ -11,6 +11,7 @@ import type { DiffSearchSide } from './PierreDiffSearchBar'
 
 export type PierreNativeViewState = {
   scrollLeft: number
+  editor?: EditorViewState
   selection?: {
     range: NonNullable<ReturnType<typeof getPierreSelectionRange>>
     side: DiffSearchSide

@@ -6,10 +6,10 @@ export const PIERRE_SEARCH_CSS = `
 ::highlight(orca-diff-find) { background-color: color-mix(in srgb, var(--markdown-search-match) 50%, transparent); color: inherit; }
 ::highlight(orca-diff-find-active) { background-color: color-mix(in srgb, var(--markdown-search-match-active) 60%, transparent); color: inherit; }
 `
-const highlights = new Map<object, { matches: Range[]; active: Range[] }>()
+const highlights = new Map<symbol, { matches: Range[]; active: Range[] }>()
 
 export function paintPierreSearchHighlights(
-  owner: object,
+  owner: symbol,
   ranges?: { matches: Range[]; active: Range[] }
 ) {
   if (ranges) {

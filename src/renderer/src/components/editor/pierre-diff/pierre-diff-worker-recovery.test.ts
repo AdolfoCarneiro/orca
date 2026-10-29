@@ -16,7 +16,7 @@ class HighlightWorker extends EventTarget implements Worker {
     const requestType = request.type
     if ((requestType === 'initialize' && this.initialize) || requestType === 'set-render-options') {
       queueMicrotask(() =>
-        this.respond({ type: 'success', requestType, id: request.id, sentAt: Date.now() })
+        this.respond({ type: 'success', requestType, id: request.id, sentAt: 0 })
       )
     }
   }
@@ -86,7 +86,7 @@ async function setup(silentWorkerIndex?: number, allowStartupFailure = false) {
       type: 'success',
       requestType: 'diff',
       id,
-      sentAt: Date.now(),
+      sentAt: 0,
       options: manager.getDiffRenderOptions(),
       result: {
         code: { additionLines: [], deletionLines: [] },
@@ -156,13 +156,49 @@ it('bounds replacement startup and lets a later request retry a failed replaceme
   await requestFrom(await workerAt(0))
   manager.cleanUpTasks(first)
   const silent = await workerAt(1)
+  const waiting = instance(),
+    shared = instance()
+  manager.highlightDiffAST(waiting, diff)
+  manager.highlightDiffAST(shared, diff)
   await vi.waitFor(() => expect(silent.terminated).toBe(true))
+  expect(waiting.onHighlightError).toHaveBeenCalledTimes(1)
+  expect(shared.onHighlightError).toHaveBeenCalledTimes(1)
+  expect(manager.getStats()).toMatchObject({ queuedTasks: 0, activeTasks: 0 })
   const successor = instance()
   manager.highlightDiffAST(successor, diff)
   const replacement = await workerAt(2)
   complete(replacement, (await requestFrom(replacement)).id)
   expect(successor.onHighlightSuccess).toHaveBeenCalledTimes(1)
   expect(manager.getStats()).toMatchObject({ activeTasks: 0, queuedTasks: 0, totalWorkers: 1 })
+})
+
+it('fails a silently hung shared job and gives queued work a fresh worker', async () => {
+  const { manager, diff, instance, workers, workerAt, requestFrom, complete } = await setup()
+  vi.useFakeTimers()
+  try {
+    const preparation = instance(),
+      mounted = instance(),
+      successor = instance()
+    manager.highlightDiffAST(preparation, diff)
+    const worker = await workerAt(0)
+    await requestFrom(worker)
+    manager.highlightDiffAST(mounted, diff)
+    manager.highlightDiffAST(successor, { ...diff, cacheKey: 'next' })
+    manager.cleanUpTasks(preparation)
+    expect(worker.terminated).toBe(false)
+    await vi.advanceTimersByTimeAsync(30_001)
+    expect(worker.terminated).toBe(true)
+    expect(mounted.onHighlightError).toHaveBeenCalledTimes(1)
+    const replacement = await workerAt(1)
+    complete(replacement, (await requestFrom(replacement)).id)
+    expect(successor.onHighlightSuccess).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(30_001)
+    expect(successor.onHighlightError).not.toHaveBeenCalled()
+    expect(workers).toHaveLength(2)
+    expect(manager.getStats()).toMatchObject({ activeTasks: 0, queuedTasks: 0, busyWorkers: 0 })
+  } finally {
+    vi.useRealTimers()
+  }
 })
 
 it('accepts a fresh initialization after a failed startup', async () => {

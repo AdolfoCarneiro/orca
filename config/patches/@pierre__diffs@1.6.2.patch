@@ -248,8 +248,48 @@ index 15867836cba2d1d969fed379c0c869de74f6e435..f13881fdea14e7a91affdc0250de3be8
  	return realigned;
  }
  function canAppendFinalDocumentRow(additionLines, documentLineCount) {
+diff --git a/dist/utils/editSessionHunks.js b/dist/utils/editSessionHunks.js
+index d2a16996d62009788b58c9847b60559238597450..4c03c2b3b20f58263d48564c2ed4c7fe47c50a22 100644
+--- a/dist/utils/editSessionHunks.js
++++ b/dist/utils/editSessionHunks.js
+@@ -90,14 +90,15 @@ function applySessionChangedLines(diff, changedAdditionLineIndexes, parseDiffOpt
+ 	return rebuildSessionHunks(diff, parseDiffOptions, getPreviousAdditionLine);
+ }
+ function canRetainCanonicalBlocks(diff, changedLines, regionIndex, previousAdditionLines, parseDiffOptions) {
+-	if (previousAdditionLines == null || parseDiffOptions?.ignoreWhitespace === true || parseDiffOptions?.stripTrailingCr === true) return false;
+-	const deletionLineSet = getDeletionLineSet(diff);
++	if (previousAdditionLines == null || parseDiffOptions?.stripTrailingCr === true || parseDiffOptions?.ignoreCase === true || parseDiffOptions?.newlineIsToken === true || parseDiffOptions?.ignoreNewlineAtEof === true || parseDiffOptions?.comparator != null) return false;
++	const ignoreWhitespace = parseDiffOptions?.ignoreWhitespace === true;
++	const deletionLineSet = getDeletionLineSet(diff, ignoreWhitespace);
+ 	const hunk = diff.hunks[regionIndex];
+ 	if (hunk.hunkContent.some(isPureChange)) return false;
+ 	for (const line of changedLines) {
+ 		const previousLine = previousAdditionLines.get(line);
+ 		const additionLine = diff.additionLines[line];
+-		if (previousLine == null || additionLine == null || deletionLineSet.has(previousLine) || deletionLineSet.has(additionLine)) return false;
++		if (previousLine == null || additionLine == null || deletionLineSet.has(ignoreWhitespace ? previousLine.trim() : previousLine) || deletionLineSet.has(ignoreWhitespace ? additionLine.trim() : additionLine)) return false;
+ 		let insideBalancedChange = false;
+ 		for (const content of hunk.hunkContent) if (content.type === "change" && content.additions === content.deletions && line >= content.additionLineIndex && line < content.additionLineIndex + content.additions) {
+ 			insideBalancedChange = true;
+@@ -107,12 +108,13 @@ function canRetainCanonicalBlocks(diff, changedLines, regionIndex, previousAddit
+ 	}
+ 	return true;
+ }
+-function getDeletionLineSet(diff) {
++function getDeletionLineSet(diff, ignoreWhitespace) {
+ 	const cached = deletionLineSetCache.get(diff);
+-	if (cached?.lines === diff.deletionLines) return cached.set;
+-	const set = new Set(diff.deletionLines);
++	if (cached?.lines === diff.deletionLines && cached.ignoreWhitespace === ignoreWhitespace) return cached.set;
++	const set = new Set(ignoreWhitespace ? diff.deletionLines.map(line => line.trim()) : diff.deletionLines);
+ 	deletionLineSetCache.set(diff, {
+ 		lines: diff.deletionLines,
++		ignoreWhitespace,
+ 		set
+ 	});
+ 	return set;
 diff --git a/dist/worker/WorkerPoolManager.js b/dist/worker/WorkerPoolManager.js
-index 31166ff003ae36c64b225e2ed7ad2b0272a16850..3f221e88f30010e2ddd3fcbd927124724c45af09 100644
+index 31166ff003ae36c64b225e2ed7ad2b0272a16850..13895411f0198651d57704b7bc7027eed905b9fa 100644
 --- a/dist/worker/WorkerPoolManager.js
 +++ b/dist/worker/WorkerPoolManager.js
 @@ -255,6 +255,7 @@ var WorkerPoolManager = class {
@@ -260,7 +300,7 @@ index 31166ff003ae36c64b225e2ed7ad2b0272a16850..3f221e88f30010e2ddd3fcbd92712472
  			const { lifecycleGeneration } = this;
  			const initialization = new Promise((resolve, reject) => {
  				(async () => {
-@@ -313,75 +314,80 @@ var WorkerPoolManager = class {
+@@ -313,75 +314,104 @@ var WorkerPoolManager = class {
  			if (!(error instanceof HighlighterDisposedError)) throw error;
  		}
  	}
@@ -380,6 +420,25 @@ index 31166ff003ae36c64b225e2ed7ad2b0272a16850..3f221e88f30010e2ddd3fcbd92712472
 +  this.workers.splice(index, 1);
 +  managedWorker.worker.terminate();
 + }
++ failWorkerTask(managedWorker, task, error) {
++  this.retireWorker(managedWorker);
++  if (isRenderTask(task)) {
++   this.notifyHighlightError(task, error);
++   this.rejectRenderTaskCallbacks(task, error);
++  } else if (task != null && 'reject' in task) task.reject(error);
++  this.cleanWorkerAndTask(managedWorker, task);
++  this.replenishWorkers();
++  this.queueBroadcastStateChanges();
++ }
++ failQueuedTasks(error) {
++  const tasks = this.queuedTasks.splice(0);
++  for (const task of tasks) {
++   this.clearQueuedInstanceRequests(task);
++   this.clearHighlightKey(task);
++   this.rejectRenderTaskCallbacks(task, error);
++  }
++  for (const task of tasks) for (const instance of getInstances(task)) instance.onHighlightError(error);
++ }
 + replenishWorkers() {
 +  if (this.initialized !== true || this.terminated) return;
 +  this.pendingWorkerReplacements ??= 0;
@@ -399,6 +458,11 @@ index 31166ff003ae36c64b225e2ed7ad2b0272a16850..3f221e88f30010e2ddd3fcbd92712472
 +     if (this.isCurrentLifecycle(generation) && !this.terminated) this.queueDrain();
 +    } catch (error) {
 +     console.error('WorkerPoolManager: replacement worker failed:', error);
++     if (reserved) {
++      this.pendingWorkerReplacements--;
++      reserved = false;
++     }
++     if (this.isCurrentLifecycle(generation) && !this.terminated && this.workers.length === 0 && this.pendingWorkerReplacements === 0) this.failQueuedTasks(error);
 +    } finally {
 +     if (reserved) this.pendingWorkerReplacements--;
 +     this.queueBroadcastStateChanges();
@@ -410,7 +474,7 @@ index 31166ff003ae36c64b225e2ed7ad2b0272a16850..3f221e88f30010e2ddd3fcbd92712472
  	handleWorkerError(managedWorker, event) {
  		const { onWorkerError } = this.options;
  		if (onWorkerError != null) try {
-@@ -391,7 +397,18 @@ var WorkerPoolManager = class {
+@@ -391,8 +421,17 @@ var WorkerPoolManager = class {
  		}
  		else console.error("Worker error:", event, managedWorker);
  		const { pendingSetupRequestId } = managedWorker;
@@ -418,19 +482,40 @@ index 31166ff003ae36c64b225e2ed7ad2b0272a16850..3f221e88f30010e2ddd3fcbd92712472
 +		if (pendingSetupRequestId == null) {
 +   const task = this.activeTaskById.get(managedWorker.requestId);
 +   const error = errorFromWorkerErrorEvent(event);
-+   if (isRenderTask(task)) {
-+    this.notifyHighlightError(task, error);
-+    this.rejectRenderTaskCallbacks(task, error);
-+   } else if (task != null && 'reject' in task) task.reject(error);
-+   this.cleanWorkerAndTask(managedWorker, task);
-+   this.retireWorker(managedWorker);
-+   this.replenishWorkers();
++   this.failWorkerTask(managedWorker, task, error);
 +   return;
 +  }
  		const task = this.activeTaskById.get(pendingSetupRequestId);
++  if (task?.type === "set-render-options") {
++   this.failWorkerTask(managedWorker, task, errorFromWorkerErrorEvent(event));
++   return;
++  }
  		if (task?.type !== "initialize") return;
  		const error = errorFromWorkerErrorEvent(event);
-@@ -699,6 +716,7 @@ var WorkerPoolManager = class {
+ 		if (onWorkerError != null) markWorkerErrorReported(error);
+@@ -586,8 +625,11 @@ var WorkerPoolManager = class {
+ 	}
+ 	cancelActiveWorkerTasks() {
+ 		const error = new WorkerPoolTerminatedError();
+-		for (const task of this.activeTaskById.values()) if ("reject" in task) task.reject(error);
+-		else if (isRenderTask(task)) this.rejectRenderTaskCallbacks(task, error);
++		for (const task of this.activeTaskById.values()) {
++   clearTimeout(task.executionTimeout);
++   if ("reject" in task) task.reject(error);
++   else if (isRenderTask(task)) this.rejectRenderTaskCallbacks(task, error);
++  }
+ 	}
+ 	terminateWorkers() {
+ 		for (const managedWorker of this.workers) managedWorker.worker.terminate();
+@@ -615,6 +657,7 @@ var WorkerPoolManager = class {
+ 		const highlightKey = this.getHighlightKeyForRequest(request);
+ 		const existingTask = highlightKey != null ? this.getTaskByHighlightKey(highlightKey) : void 0;
+ 		if (existingTask != null) {
++   this.replenishWorkers();
+ 			this.detachInstanceFromQueuedTasks(instance, existingTask);
+ 			this.addInstanceToTask(existingTask, instance);
+ 			this.queueBroadcastStateChanges();
+@@ -699,6 +742,7 @@ var WorkerPoolManager = class {
  		return task;
  	}
  	enqueueRenderTask(task, instance) {
@@ -438,7 +523,25 @@ index 31166ff003ae36c64b225e2ed7ad2b0272a16850..3f221e88f30010e2ddd3fcbd92712472
  		this.queuedTasks.push(task);
  		if (instance != null) this.queuedTaskByInstance.set(instance, task);
  		if (task.highlightKey != null) this.taskByHighlightKey.set(task.highlightKey, task);
-@@ -917,12 +935,18 @@ var WorkerPoolManager = class {
+@@ -823,6 +867,7 @@ var WorkerPoolManager = class {
+ 		if (managedWorker.requestId === requestId) managedWorker.requestId = void 0;
+ 		if (managedWorker.pendingSetupRequestId === requestId) managedWorker.pendingSetupRequestId = void 0;
+ 		if (task != null) {
++   clearTimeout(task.executionTimeout);
+ 			if (isRenderTask(task)) {
+ 				this.rejectRenderTaskCallbacks(task, new WorkerPoolTaskCanceledError());
+ 				this.clearInstanceRequests(task);
+@@ -835,6 +880,9 @@ var WorkerPoolManager = class {
+ 		if (shouldSyncCustomExtensions(task.request)) this.maybeAttachCustomExtensions(managedWorker, task.request);
+ 		if (!this.activeTaskById.has(task.id)) this.assignWorkerToTask(task, managedWorker);
+ 		try {
++   if (isRenderTask(task)) task.executionTimeout = setTimeout(() => {
++    if (this.activeTaskById.get(task.id) === task) this.failWorkerTask(managedWorker, task, new Error('Diff highlighting worker timed out. Retry this file.'));
++   }, 30_000);
+ 			if (task.type === "file") task.cacheKeyAtDispatch = task.request.file.cacheKey;
+ 			else if (task.type === "diff") task.cacheKeyAtDispatch = task.request.diff.cacheKey;
+ 			managedWorker.worker.postMessage(task.request);
+@@ -917,12 +965,19 @@ var WorkerPoolManager = class {
  		this.clearQueuedInstanceRequests(task);
  		this.clearHighlightKey(task);
  	}
@@ -449,6 +552,7 @@ index 31166ff003ae36c64b225e2ed7ad2b0272a16850..3f221e88f30010e2ddd3fcbd92712472
 -		this.activeTaskById.delete(task.id);
 -	}
 + removeActiveTask(task) {
++  clearTimeout(task.executionTimeout);
 +  const managedWorker = this.workers.find(worker => worker.requestId === task.id);
 +  this.rejectRenderTaskCallbacks(task, new WorkerPoolTaskCanceledError());
 +  this.clearInstanceRequests(task);

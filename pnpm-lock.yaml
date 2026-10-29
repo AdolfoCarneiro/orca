@@ -173,7 +173,7 @@ packageExtensionsChecksum: sha256-TrarseUCmMKP0lVjkfyLP2TAvkGZMZzvzPxjKY48nrY=
 pnpmfileChecksum: sha256-6l6qdgUHKyTLYIQLx/UGfGRnEiFXxIaSlGMgK4mttEw=
 
 patchedDependencies:
-  '@pierre/diffs@1.6.2': b4ffd63effda372e3991a1512516ed79975347df283755231af86fdf3b8e6d63
+  '@pierre/diffs@1.6.2': 67b1080f0a7db13ed10d5b749820db4921d8fcfa457522205a501af9d69e2759
   '@tiptap/extension-list@3.31.3': 294a9c187f6733c78b52c5ac182a8adf90c24c07093a2b40b68725cdb320d7bd
   '@vscode/windows-process-tree@0.8.0': a09f2e8b2b4e73ef20c317af91f9e06c09abf62fa2c891d99b16f53047f596fd
   '@xterm/addon-image@0.10.0-beta.301': f088c9207dac42844a542b9da8078be52351cee60585725ef189b9fd30f33f34
@@ -212,7 +212,7 @@ importers:
         version: 2.5.6
       '@pierre/diffs':
         specifier: 1.6.2
-        version: 1.6.2(patch_hash=b4ffd63effda372e3991a1512516ed79975347df283755231af86fdf3b8e6d63)(@shikijs/themes@4.5.0)(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(@types/react@19.2.18)(react@19.2.8))(react@19.2.8)
+        version: 1.6.2(patch_hash=67b1080f0a7db13ed10d5b749820db4921d8fcfa457522205a501af9d69e2759)(@shikijs/themes@4.5.0)(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(@types/react@19.2.18)(react@19.2.8))(react@19.2.8)
       '@xterm/addon-serialize':
         specifier: 0.15.0-beta.301
         version: 0.15.0-beta.301(patch_hash=b35533fe252e7e45433150170348889f4e08a6c17f7017ac34ea694d831fec7f)(@xterm/xterm@6.1.0-beta.304(patch_hash=6a96a556cb32825d4084043f7e18fe16203686d8352affd2f01613c0b464a6ed))
@@ -9341,7 +9341,7 @@ snapshots:
       tslib: 2.8.1
       webcrypto-core: 1.9.2
 
-  '@pierre/diffs@1.6.2(patch_hash=b4ffd63effda372e3991a1512516ed79975347df283755231af86fdf3b8e6d63)(@shikijs/themes@4.5.0)(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(@types/react@19.2.18)(react@19.2.8))(react@19.2.8)':
+  '@pierre/diffs@1.6.2(patch_hash=67b1080f0a7db13ed10d5b749820db4921d8fcfa457522205a501af9d69e2759)(@shikijs/themes@4.5.0)(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(@types/react@19.2.18)(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@pierre/highlights': 0.3.0
       '@pierre/theme': 2.0.0
