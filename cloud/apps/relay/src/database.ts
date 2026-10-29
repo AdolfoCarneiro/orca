@@ -153,6 +153,12 @@ CREATE INDEX IF NOT EXISTS relay_invites_sweep_expiry
 CREATE INDEX IF NOT EXISTS relay_invites_sweep_reservation
   ON relay_invites(reservation_expires_at) WHERE state = 'reserved';
 
+-- schema-deferrable: created out of band, so a boot that cannot take the lock must retry
+-- Why: the settled reaper matches (terminal state, updated_at) every cycle over 7 days of retained
+-- terminal invites. Unindexed, even a drained cycle seq-scans the heap.
+CREATE INDEX IF NOT EXISTS relay_invites_reap_terminal
+  ON relay_invites(updated_at) WHERE state IN ('expired', 'consumed', 'invalidated');
+
 CREATE TABLE IF NOT EXISTS relay_devices (
   user_id TEXT NOT NULL,
   relay_host_id TEXT NOT NULL,
@@ -219,10 +225,16 @@ CREATE TABLE IF NOT EXISTS relay_direct_authorizations (
 );
 
 -- schema-deferrable: created out of band, so a boot that cannot take the lock must retry
--- Why: the sweep expires pending authorizations by (consumed_at IS NULL, deadline), and consumed
--- rows are never deleted. Partial, so the index stays the size of the pending set.
+-- Why: the sweep expires pending authorizations by (consumed_at IS NULL, deadline). Partial, so
+-- the index stays the size of the pending set.
 CREATE INDEX IF NOT EXISTS relay_direct_authorizations_pending_deadline
   ON relay_direct_authorizations(deadline) WHERE consumed_at IS NULL;
+
+-- schema-deferrable: created out of band, so a boot that cannot take the lock must retry
+-- Why: the settled reaper deletes consumed rows by consumed_at. Unindexed, every cycle seq-scans
+-- the day of retained consumed rows.
+CREATE INDEX IF NOT EXISTS relay_direct_authorizations_reap_consumed
+  ON relay_direct_authorizations(consumed_at) WHERE consumed_at IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS relay_confirm_results (
   user_id TEXT NOT NULL,

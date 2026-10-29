@@ -204,6 +204,30 @@ describePostgres('credential cleanup against PostgreSQL', () => {
     expect(windows).not.toContain('Seq Scan on relay_rate_windows')
   })
 
+  it('plans the drained terminal-invite and consumed-authorization reapers off partial indexes', async () => {
+    // Drained steady state: every settled row is still inside retention, so each cycle matches none.
+    await seedInvites(20_000, 'consumed', NOW)
+    await seedInvites(200, 'available', NOW, NOW + DAY_MS)
+    await database.query(
+      `INSERT INTO relay_direct_authorizations
+       (direct_auth_id, user_id, relay_host_id, relay_device_id, owning_control_generation,
+        deadline, consumed_at)
+       SELECT 'auth-' || n, ?, ?, 'device-1', 1, ?, ?
+       FROM generate_series(1, 20000) AS n`,
+      [identity.userId, identity.relayHostId, NOW - 1, NOW - 1]
+    )
+    await database.query(`ANALYZE relay_invites`)
+    await database.query(`ANALYZE relay_direct_authorizations`)
+
+    const invites = await cleanupPlan('DELETE FROM relay_invites')
+    const authorizations = await cleanupPlan('DELETE FROM relay_direct_authorizations')
+
+    expect(invites).toContain('relay_invites_reap_terminal')
+    expect(invites).not.toContain('Seq Scan on relay_invites')
+    expect(authorizations).toContain('relay_direct_authorizations_reap_consumed')
+    expect(authorizations).not.toContain('Seq Scan on relay_direct_authorizations')
+  })
+
   it('reaps settled bases and consumed authorizations through ctid', async () => {
     await database.query(
       `INSERT INTO relay_connection_bases
