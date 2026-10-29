@@ -1,3 +1,4 @@
+import { ClaudeHelperKillPoller } from '../../../shared/agent-hook-listener/providers/claude-helper-kill-poller'
 import { pollCodexTranscriptStatus } from '../../../shared/agent-hook-listener/providers/codex-transcript-poll'
 import { normalizeHookPayload } from '../../../shared/agent-hook-listener'
 import {
@@ -27,6 +28,14 @@ type TranscriptPoll = {
 }
 
 export abstract class AgentHookServerStatusRetries extends AgentHookServerStatusUpdate {
+  private readonly claudeHelperKills = new ClaudeHelperKillPoller(this.state, {
+    current: (paneKey) => this.state.lastStatusByPaneKey.get(paneKey),
+    publish: (event) => {
+      this.applyNormalizedStatus(event)
+    },
+    listening: () => Boolean(this.server)
+  })
+
   private readonly transcriptPollScheduler = new AgentTranscriptPollScheduler<TranscriptPoll>(
     CODEX_SUBAGENT_POLL_MS,
     (paneKey, poll) => this.runTranscriptPoll(paneKey, poll)
@@ -34,6 +43,7 @@ export abstract class AgentHookServerStatusRetries extends AgentHookServerStatus
 
   protected clearAllTranscriptPolls(): void {
     this.transcriptPollScheduler.clearAll()
+    this.claudeHelperKills.clearAll()
   }
 
   protected clearAssistantMessageRetry(paneKey: string): void {
@@ -47,6 +57,7 @@ export abstract class AgentHookServerStatusRetries extends AgentHookServerStatus
 
   protected clearTranscriptPoll(paneKey: string): void {
     this.transcriptPollScheduler.clear(paneKey)
+    this.claudeHelperKills.clear(paneKey)
   }
 
   protected scheduleTranscriptPoll(
@@ -54,6 +65,10 @@ export abstract class AgentHookServerStatusRetries extends AgentHookServerStatus
     body: unknown,
     original: EnrichedAgentHookEventPayload
   ): void {
+    if (source === 'claude') {
+      this.claudeHelperKills.schedule(original)
+      return
+    }
     // Nested CLIs inherit pane keys; another provider must not clear this transcript poll.
     if (source !== 'codex' && source !== 'muse') {
       return
