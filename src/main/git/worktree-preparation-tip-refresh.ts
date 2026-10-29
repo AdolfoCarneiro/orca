@@ -24,14 +24,14 @@ export async function refreshPreparedWorktreeTip(
   await withRepoRefMaintenancePaused('worktree-prepare', async () => {
     const lockPath = await verifyWorktreePreparationLock(preparedPath, lockReason, refreshOptions)
     const [target, prepared] = await Promise.allSettled([
-      gitExecFileAsync(
-        ['rev-parse', '--verify', `${canonicalBase}^{commit}`],
-        gitExecOptions(repoPath, refreshOptions)
-      ),
-      gitExecFileAsync(
-        ['rev-parse', '--verify', 'HEAD'],
-        gitExecOptions(preparedPath, refreshOptions)
-      )
+      gitExecFileAsync(['rev-parse', '--verify', `${canonicalBase}^{commit}`], {
+        ...gitExecOptions(repoPath, refreshOptions),
+        captureWslLoginShellOutput: true
+      }),
+      gitExecFileAsync(['rev-parse', '--verify', 'HEAD'], {
+        ...gitExecOptions(preparedPath, refreshOptions),
+        captureWslLoginShellOutput: true
+      })
     ])
     if (target.status === 'rejected') {
       throw target.reason
