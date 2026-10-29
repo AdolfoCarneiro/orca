@@ -1,6 +1,7 @@
 import '../../orca-runtime-test-mocks.spec'
 import { vi } from 'vitest'
 import { store, TEST_WORKTREE_ID } from '../../orca-runtime-test-fixtures.spec'
+import type { RuntimeSyncWindowGraph } from '../../../../shared/runtime-types'
 import type { TerminalIdentitySource } from '../identity/terminal-identity-source'
 import type { CrewRuntimeReaders } from '../../orchestration/crew/crew-runtime-watch'
 import type {
@@ -14,9 +15,11 @@ import type {
 import type { PtyIncarnationHandleRecord } from '../../orca-runtime-core'
 import type { CrewChanges } from '../../orchestration/crew/crew-changes'
 import type { RuntimeTerminalWaiterRegistry } from '../wait/terminal-waiter-registry'
-import type { LegacyWorkerTerminalRecoveryCandidate } from '../../orchestration/orchestration-legacy-worker-terminal-recovery'
 import { OrcaRuntimeService } from '../../orca-runtime'
 import type { TerminalIdentityReadContext } from './terminal-identity-read-context'
+import { OrchestrationDb } from '../../orchestration/db'
+import { CrewReadModel } from '../../orchestration/crew/crew-read-model'
+import { readCrewRuntimeInputs } from '../../orchestration/crew/crew-runtime-watch'
 
 export const LEAF = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 export const COLD = 'cold:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
@@ -26,8 +29,8 @@ type Owner = {
   source: TerminalIdentitySource
   crewReaders: CrewRuntimeReaders
   getLeavesForPty: (id: string) => readonly RuntimeLeafRecord[]
-  rollbackLegacy: (candidate: LegacyWorkerTerminalRecoveryCandidate) => void
   markUnavailable: (windowId: number) => void
+  hasMobileSnapshot: (worktree: string) => boolean
   terminalWaiters: RuntimeTerminalWaiterRegistry
   crewChanges: CrewChanges
   orchestrationCompatibilitySshTerminals: Map<string, OrchestrationCompatibilitySshTerminal>
@@ -70,8 +73,8 @@ class IdentityRuntime extends OrcaRuntimeService {
     const current = () => this
     return {
       source: this.terminalIdentity,
+      hasMobileSnapshot: (worktree) => this.mobileSessionTabsByWorktree.has(worktree),
       getLeavesForPty: this.getLeavesForPty.bind(this),
-      rollbackLegacy: this.rollbackLegacyWorkerTerminalSurface.bind(this),
       markUnavailable: this.markGraphUnavailable.bind(this),
       crewReaders: {
         getTerminalWorktreeIdForHandle: (handle, context) =>
@@ -184,4 +187,52 @@ export function identityFixture(
     rejected: rejected.mock.calls
   })
   return { runtime, owner, add, stamp, state, rejected }
+}
+
+/** Observes the production host generation; each lookup opens fresh finite scratch. */
+export function watchIdentityFixture(f: ReturnType<typeof identityFixture>, captured = true) {
+  const db = new OrchestrationDb(':memory:')
+  const acquisition = vi.spyOn(f.runtime, 'createTerminalIdentityRawInputs')
+  const model = new CrewReadModel(
+    (previous) => readCrewRuntimeInputs(f.owner.crewReaders, db, true, 'schedule-host', previous),
+    (wake) => f.owner.crewChanges.subscribe(wake)
+  )
+  const wake = vi.fn()
+  const stop = model.subscribe(wake)
+  const context = () => {
+    model.read('term_schedule')
+    const raw = acquisition.mock.results.at(-1)
+    if (!raw || raw.type !== 'return') {
+      throw new Error('Expected the production Crew host raw capture')
+    }
+    return captured ? f.runtime.createTerminalIdentityReadContext(raw.value) : undefined
+  }
+  return {
+    acquisition,
+    wake,
+    context,
+    pane: (pane: string) => f.owner.getPtyRecordForPaneKey(pane, context()),
+    close: () => {
+      stop()
+      acquisition.mockRestore()
+      db.close()
+    }
+  }
+}
+
+export function identityGraph(ptyId: string): RuntimeSyncWindowGraph {
+  return {
+    tabs: [
+      {
+        tabId: 'tab-original',
+        worktreeId: TEST_WORKTREE_ID,
+        title: 'Terminal',
+        activeLeafId: LEAF,
+        layout: null
+      }
+    ],
+    leaves: [
+      { tabId: 'tab-original', worktreeId: TEST_WORKTREE_ID, leafId: LEAF, paneRuntimeId: 1, ptyId }
+    ]
+  }
 }

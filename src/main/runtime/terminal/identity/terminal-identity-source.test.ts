@@ -1,31 +1,17 @@
-import { afterEach, expect, it, vi } from 'vitest'
-import { identityFixture, LEAF, PANE } from '../query/terminal-identity.test-fixture'
+import { expect, it, vi } from 'vitest'
+import {
+  identityFixture,
+  identityGraph as graph,
+  LEAF,
+  PANE
+} from '../query/terminal-identity.test-fixture'
 import {
   makeRuntimeStoreWithWorkspaceSession,
   makeWorkspaceSessionWithHeadlessTerminal,
   TEST_WORKTREE_ID
 } from '../../orca-runtime-test-fixtures.spec'
 import { recordPtySurface, forgetPtySurface } from '../../pty-recorded-surface-topology'
-import { RUNTIME_GRAPH_RELOAD_TIMEOUT_MS } from '../../runtime-graph-reload-lifecycle'
-import type { RuntimeSyncWindowGraph } from '../../../../shared/runtime-types'
 import type { TerminalLeafMoveResult } from '../../../../shared/terminal-leaf-move'
-
-const graph = (ptyId: string): RuntimeSyncWindowGraph => ({
-  tabs: [
-    {
-      tabId: 'tab-original',
-      worktreeId: TEST_WORKTREE_ID,
-      title: 'Terminal',
-      activeLeafId: LEAF,
-      layout: null
-    }
-  ],
-  leaves: [
-    { tabId: 'tab-original', worktreeId: TEST_WORKTREE_ID, leafId: LEAF, paneRuntimeId: 1, ptyId }
-  ]
-})
-
-afterEach(() => vi.useRealTimers())
 
 it('owns consumed creation aliases while preserving canonical output and retained graph leaf references', () => {
   const f = identityFixture()
@@ -150,42 +136,5 @@ it('wakes for preallocation before any leaf or incarnation and for a real pane m
       f.runtime.createTerminalIdentityReadContext()
     )
   ).toBe(f.owner.getPtyRecordForPaneKey(`tab-moved:${LEAF}`))
-  stop()
-})
-
-it('retires real rollback with no snapshot and reload timeout with no browser publication', async () => {
-  vi.useFakeTimers()
-  const f = identityFixture()
-  f.add('pty-owned', 'term_owned', PANE)
-  f.runtime.attachWindow(1)
-  f.runtime.syncWindowGraph(1, graph('pty-owned'))
-  f.owner.issueHandle(f.owner.leaves.get(`tab-original::${LEAF}`)!)
-  const wake = vi.fn()
-  const stop = f.owner.crewChanges.subscribe(wake)
-  f.owner.rollbackLegacy({
-    dispatchId: 'dispatch',
-    dispatchStatus: 'dispatched',
-    contractVersion: 1,
-    taskId: 'task',
-    worktreeId: TEST_WORKTREE_ID,
-    terminalHandle: 'term_owned',
-    paneKey: PANE,
-    tabId: 'tab-original',
-    leafId: LEAF,
-    processIncarnation: 'pty-owned:process',
-    ptyId: 'pty-owned',
-    incarnationId: 'process'
-  })
-  expect(f.owner.leaves.size).toBe(0)
-  expect(f.owner.ptysById.get('pty-owned')?.paneKey).toBeNull()
-  expect(wake).toHaveBeenCalled()
-  f.runtime.syncWindowGraph(1, graph('pty-owned'))
-  f.owner.beginGraphReload(1)
-  const before = wake.mock.calls.length
-  await vi.advanceTimersByTimeAsync(RUNTIME_GRAPH_RELOAD_TIMEOUT_MS)
-  expect(f.owner.leaves.size).toBe(0)
-  expect(f.owner.handles.size).toBe(0)
-  expect(wake.mock.calls.length).toBeGreaterThan(before)
-  expect(() => f.runtime.assertGraphReady()).toThrow('runtime_unavailable')
   stop()
 })

@@ -507,9 +507,7 @@ it('preserves actual fleet binding, ingestion Dispatch, ordinary attention fault
       dispatches[0]
     )
     const context = captured ? f.runtime.createTerminalIdentityReadContext() : undefined
-    let evidence:
-      | ReturnType<IdentityRuntime['getOrchestrationFleetAgentStatusSnapshot']>
-      | undefined
+    let evidence: ReturnType<typeof f.runtime.getOrchestrationFleetAgentStatusSnapshot> | undefined
     let failure: unknown
     try {
       evidence = f.runtime.getOrchestrationFleetAgentStatusSnapshot(context)
