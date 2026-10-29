@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, cleanup, fireEvent, renderHook } from '@testing-library/react'
+import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -137,11 +137,13 @@ describe('useRichMarkdownReviewController openAnnotationPopover draft guard', ()
       if (!text) {
         throw new Error('Expected editor text')
       }
-      vi.spyOn(editor.view, 'posAtCoords').mockReturnValue({ pos: 5, inside: -1 })
-      fireEvent.mouseDown(editor.view.dom, { button: 0, shiftKey: true })
-      document.getSelection()?.setBaseAndExtent(text, 9, text, 4)
-      document.dispatchEvent(new Event('selectionchange'))
-      fireEvent.mouseUp(document, { button: 0 })
+      const holdNotification = (event: Event) => event.stopImmediatePropagation()
+      document.addEventListener('selectionchange', holdNotification, true)
+      try {
+        document.getSelection()?.setBaseAndExtent(text, 9, text, 4)
+      } finally {
+        document.removeEventListener('selectionchange', holdNotification, true)
+      }
       expect(editor.state.selection.empty).toBe(true)
       let opened = false
       act(() => {

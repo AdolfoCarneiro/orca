@@ -37,6 +37,7 @@ export function completeRichMarkdownSelection(editorView: EditorView): false {
   const view = selectionView(editorView)
   const observer = view.domObserver
   const beforeFlush = view.state.doc
+  const initialSelection = view.state.selection
   const native = view.domSelectionRange()
   let range: NativeRange = {
     anchorNode: native.anchorNode,
@@ -83,7 +84,7 @@ export function completeRichMarkdownSelection(editorView: EditorView): false {
     if (
       !view.isDestroyed &&
       view.state.doc === doc &&
-      !view.state.selection.eq(selection) &&
+      !view.state.selection.eq(initialSelection) &&
       view.state.selection instanceof TextSelection &&
       view.state.selection.anchor === anchor &&
       view.state.selection.head === head &&
@@ -137,6 +138,17 @@ export const DragSelectionGuard = Extension.create({
           viewRef = selectionView(editorView)
           const observer = viewRef.domObserver
           const doc = editorView.dom.ownerDocument
+          const completeNativeGesture = (event: MouseEvent): void => {
+            if (
+              (event.type === 'mouseup' ? event.button === 0 : event.buttons === 0) &&
+              viewRef?.input.mouseDown?.allowDefault &&
+              editorView.hasFocus()
+            ) {
+              completeRichMarkdownSelection(editorView)
+            }
+          }
+          doc.addEventListener('mouseup', completeNativeGesture, true)
+          doc.addEventListener('mousemove', completeNativeGesture, true)
           const originalOnSelectionChange = observer.onSelectionChange
           doc.removeEventListener('selectionchange', originalOnSelectionChange)
           const patchedOnSelectionChange = (): void => {
@@ -153,6 +165,8 @@ export const DragSelectionGuard = Extension.create({
           doc.addEventListener('selectionchange', patchedOnSelectionChange)
           return {
             destroy() {
+              doc.removeEventListener('mouseup', completeNativeGesture, true)
+              doc.removeEventListener('mousemove', completeNativeGesture, true)
               doc.removeEventListener('selectionchange', patchedOnSelectionChange)
               observer.onSelectionChange = originalOnSelectionChange
               doc.addEventListener('selectionchange', originalOnSelectionChange)

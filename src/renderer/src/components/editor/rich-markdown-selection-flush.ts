@@ -5,11 +5,12 @@ export function flushPendingProseMirrorSelection(editor: Editor): void {
   let view: Editor['view']
   try {
     view = editor.view
+    // External controls use the model once another owner has taken native focus.
+    if (!view.hasFocus()) {
+      return
+    }
   } catch {
     return
   }
-  // External controls consume the model once another focus owner has taken the native range.
-  if (view.hasFocus()) {
-    completeRichMarkdownSelection(view)
-  }
+  completeRichMarkdownSelection(view)
 }

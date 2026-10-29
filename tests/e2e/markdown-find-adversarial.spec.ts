@@ -118,6 +118,25 @@ test('toolbar formatting consumes completed forward and backward native drags', 
     await orcaPage.mouse.up()
     expect(await selectedText(orcaPage)).toBe(action.selected)
     await expect(editor).toBeFocused()
+    // No key, blur or command may rescue publication before passive selection UI appears.
+    await expect(
+      orcaPage.getByRole('button', { name: 'Add review note', exact: true })
+    ).toBeVisible()
+    const published = await editor.evaluate((element) => {
+      const instance = element.closest<HTMLElement & { editor?: Editor }>(
+        '.rich-markdown-editor'
+      )?.editor
+      const native = document.getSelection()
+      if (!instance || !native?.anchorNode || !native.focusNode)
+        throw new Error('Expected editor/native selection')
+      return (
+        instance.state.selection.anchor ===
+          instance.view.posAtDOM(native.anchorNode, native.anchorOffset) &&
+        instance.state.selection.head ===
+          instance.view.posAtDOM(native.focusNode, native.focusOffset)
+      )
+    })
+    expect(published).toBe(true)
     await orcaPage.getByRole('button', { name: action.label, exact: true }).click()
     await expect(editor.locator(action.tag)).toHaveText(
       action.label === 'Bold' ? action.selected : action.paragraph

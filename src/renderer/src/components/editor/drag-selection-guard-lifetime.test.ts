@@ -9,6 +9,10 @@ import { createRichMarkdownSearchPlugin, richMarkdownSearchPluginKey } from './r
 const editors: Editor[] = []
 const hosts: HTMLElement[] = []
 const selectionListeners = new Set<EventListenerOrEventListenerObject>()
+const terminalListeners = new Map<string, Set<EventListenerOrEventListenerObject>>([
+  ['mouseup', new Set()],
+  ['mousemove', new Set()]
+])
 
 function createEditor(): Editor {
   const host = document.createElement('div')
@@ -31,12 +35,14 @@ beforeEach(() => {
     if (type === 'selectionchange' && listener) {
       selectionListeners.add(listener)
     }
+    if (listener && options === true) terminalListeners.get(type)?.add(listener)
     add(type, listener, options)
   })
   vi.spyOn(document, 'removeEventListener').mockImplementation((type, listener, options) => {
     if (type === 'selectionchange' && listener) {
       selectionListeners.delete(listener)
     }
+    if (listener && options === true) terminalListeners.get(type)?.delete(listener)
     remove(type, listener, options)
   })
 })
@@ -51,6 +57,10 @@ afterEach(async () => {
     document.removeEventListener('selectionchange', listener)
   }
   selectionListeners.clear()
+  for (const [type, listeners] of terminalListeners) {
+    for (const listener of listeners) document.removeEventListener(type, listener, true)
+    listeners.clear()
+  }
   for (const host of hosts.splice(0)) {
     host.remove()
   }
@@ -66,6 +76,7 @@ describe('drag selection guard listener lifetime', () => {
 
     editor.destroy()
     editor.destroy()
+    expect([...terminalListeners.values()].map((listeners) => listeners.size)).toEqual([0, 0])
     expect(view.isDestroyed).toBe(true)
     expect(view.state.doc).toBe(doc)
     expect(selectionListeners.size).toBe(1)
@@ -103,6 +114,7 @@ describe('drag selection guard listener lifetime', () => {
       editor.registerPlugin(createRichMarkdownSearchPlugin())
       editor.unregisterPlugin(richMarkdownSearchPluginKey)
       expect(selectionListeners.size).toBe(1)
+      expect([...terminalListeners.values()].map((listeners) => listeners.size)).toEqual([1, 1])
       await Promise.resolve()
       expect(selectionListeners.size).toBe(1)
       expect(editor.view).toBe(view)
@@ -128,6 +140,7 @@ describe('drag selection guard listener lifetime', () => {
     expect(newView).not.toBe(oldView)
     expect(newView.state.doc).toBe(doc)
     expect(selectionListeners.size).toBe(2)
+    expect([...terminalListeners.values()].map((listeners) => listeners.size)).toEqual([1, 1])
 
     await Promise.resolve()
 

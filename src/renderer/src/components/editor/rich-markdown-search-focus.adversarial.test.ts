@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { Editor, Node } from '@tiptap/core'
+import { Editor, Node, type AnyExtension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { TableKit } from '@tiptap/extension-table'
 import { Plugin } from '@tiptap/pm/state'
@@ -30,12 +30,12 @@ function findTextPosition(editor: Editor, text: string): number {
   return position
 }
 
-function createSurface(content: string) {
+function createSurface(content: string, extensions: AnyExtension[] = []) {
   const root = document.createElement('div')
   root.className = 'rich-markdown-editor-shell'
   document.body.append(root)
   const editor = new Editor({
-    extensions: [StarterKit, TableKit, DragSelectionGuard],
+    extensions: [StarterKit, TableKit, DragSelectionGuard, ...extensions],
     content,
     editorProps: {
       handleDOMEvents: {
@@ -73,7 +73,11 @@ describe('Find focus with editor-owned selection', () => {
       const surfaces = Array.from({ length: 3 * scale }, () =>
         createSurface('<p>lower caret</p>'.repeat(paragraphs))
       )
-      const active = surfaces[surfaces.length - 1].editor
+      const activeSurface = surfaces.at(-1)
+      if (!activeSurface) {
+        throw new Error('Expected active editor')
+      }
+      const active = activeSurface.editor
       const text = active.view.dom.querySelector('p:last-child')?.firstChild
       if (!text) {
         throw new Error('Expected editor text')
@@ -83,9 +87,12 @@ describe('Find focus with editor-owned selection', () => {
       const reads = surfaces.map(() => 0)
       const publications = vi.fn()
       active.on('selectionUpdate', publications)
-      const restoreChildren = surfaces.map(({ editor }, owner) => {
+      const measuredViews = surfaces.map(({ editor }, owner) => {
         // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Count real sibling reads on the pinned engine's root view description, without replacing its mapping logic.
-        const view = editor.view as Editor['view'] & { docView: { children: unknown[] } }
+        const view = editor.view as Editor['view'] & {
+          docView: { children: unknown[] }
+          domObserver: { flushSoon(): void }
+        }
         const children = view.docView.children
         const descriptors = Object.getOwnPropertyDescriptors(children)
         children.forEach((child, index) => {
@@ -97,7 +104,10 @@ describe('Find focus with editor-owned selection', () => {
             }
           })
         })
-        return () => Object.defineProperties(children, descriptors)
+        return {
+          restore: () => Object.defineProperties(children, descriptors),
+          flushSoon: () => view.domObserver.flushSoon()
+        }
       })
       const mappings = surfaces.map(({ editor }) => vi.spyOn(editor.view, 'posAtDOM'))
       const native = document.getSelection()
@@ -112,25 +122,56 @@ describe('Find focus with editor-owned selection', () => {
         expect(publications).not.toHaveBeenCalled()
         expect(restorations).not.toHaveBeenCalled()
         expect(reads.slice(0, -1)).toEqual(Array(surfaces.length - 1).fill(0))
-        expect(reads[reads.length - 1]).toBeGreaterThanOrEqual(paragraphs)
-        expect(reads[reads.length - 1]).toBeLessThanOrEqual(20 * paragraphs)
-        samples.push(reads[reads.length - 1])
+        const activeReads = reads.at(-1)
+        if (activeReads === undefined) {
+          throw new Error('Expected active mapping count')
+        }
+        expect(activeReads).toBeGreaterThanOrEqual(paragraphs)
+        expect(activeReads).toBeLessThanOrEqual(20 * paragraphs)
+        samples.push(activeReads)
 
-        native.setBaseAndExtent(text, 7, text, 2)
-        restorations.mockClear()
-        reads.fill(0)
-        fireEvent.keyDown(active.view.dom, { key: 'Control' })
-        expect(publications).toHaveBeenCalledOnce()
-        expect(active.state.selection.anchor - active.state.selection.head).toBe(5)
-        // Deliver completion's notification and settle engine work; it must not restore and notify again.
-        document.dispatchEvent(new Event('selectionchange'))
-        vi.runAllTimers()
-        expect(publications).toHaveBeenCalledOnce()
-        expect(restorations).toHaveBeenCalledTimes(1)
-        expect(reads.slice(0, -1)).toEqual(Array(surfaces.length - 1).fill(0))
-        expect(reads[reads.length - 1]).toBeLessThanOrEqual(30 * paragraphs)
+        for (const [step, boundary] of ['key', 'pending-flush', 'release'].entries()) {
+          if (boundary === 'release') {
+            vi.spyOn(active.view, 'posAtCoords').mockReturnValue({
+              pos: active.state.selection.head,
+              inside: -1
+            })
+            fireEvent.mouseDown(text.parentElement ?? active.view.dom, {
+              button: 0,
+              buttons: 1,
+              shiftKey: true
+            })
+          }
+          native.setBaseAndExtent(text, 7 + step, text, 2 + step)
+          restorations.mockClear()
+          publications.mockClear()
+          reads.fill(0)
+          if (boundary !== 'key') {
+            const measuredActive = measuredViews.at(-1)
+            if (!measuredActive) {
+              throw new Error('Expected active observer')
+            }
+            measuredActive.flushSoon()
+          }
+          if (boundary === 'release') {
+            fireEvent.mouseUp(document, { button: 0 })
+          } else {
+            fireEvent.keyDown(active.view.dom, { key: 'Control' })
+          }
+          expect(publications).toHaveBeenCalledOnce()
+          expect(active.state.selection.anchor - active.state.selection.head).toBe(5)
+          // Deliver completion's notification and settle engine work; it must not restore and notify again.
+          document.dispatchEvent(new Event('selectionchange'))
+          vi.runAllTimers()
+          expect(publications).toHaveBeenCalledOnce()
+          expect(restorations).toHaveBeenCalledTimes(1)
+          expect(reads.slice(0, -1)).toEqual(Array(surfaces.length - 1).fill(0))
+          const settledReads = reads.at(-1)
+          if (settledReads === undefined) throw new Error('Expected settled owner mapping count')
+          expect(settledReads).toBeLessThanOrEqual(30 * paragraphs)
+        }
       } finally {
-        restoreChildren.forEach((restore) => restore())
+        measuredViews.forEach(({ restore }) => restore())
         surfaces.forEach(({ editor }) => editor.destroy())
         restorations.mockRestore()
       }
@@ -142,6 +183,174 @@ describe('Find focus with editor-owned selection', () => {
     }
     expect(samples[1]).toBeLessThanOrEqual(12 * samples[0])
   })
+
+  it.each([
+    { table: false, terminal: 'mouseup', anchor: 2, head: 7 },
+    { table: true, terminal: 'mouseup', anchor: 7, head: 2 },
+    { table: false, terminal: 'mousemove', anchor: 7, head: 2 }
+  ])(
+    'settles the real engine release writer ($terminal, table=$table)',
+    ({ table, terminal, anchor, head }) => {
+      vi.useFakeTimers()
+      const { editor } = createSurface(
+        table
+          ? '<table><tbody><tr><td>lower caret</td><td>other cell</td></tr></tbody></table>'
+          : '<p>lower caret</p>'
+      )
+      const text = editor.view.dom.querySelector('p')?.firstChild
+      if (!text) throw new Error('Expected native text')
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Inspect the pinned engine's actual tracker/observer; never replace its done or delayed writer.
+      const engine = editor.view as Editor['view'] & {
+        input: {
+          mouseDown: { allowDefault: boolean; delayedSelectionSync: boolean; done(): void } | null
+        }
+        domObserver: { flushSoon(): void }
+      }
+      try {
+        editor.view.focus()
+        editor.commands.setTextSelection(editor.view.posAtDOM(text, 0))
+        vi.runAllTimers()
+        vi.spyOn(editor.view, 'posAtCoords').mockReturnValue({
+          pos: editor.state.selection.from,
+          inside: -1
+        })
+        fireEvent.mouseDown(text.parentElement ?? editor.view.dom, {
+          button: 0,
+          buttons: 1,
+          shiftKey: true
+        })
+        const tracker = engine.input.mouseDown
+        if (!tracker) throw new Error('Expected real native engine tracker')
+        expect(tracker.allowDefault).toBe(true)
+        const done = vi.spyOn(tracker, 'done')
+        const mappings = vi.spyOn(editor.view, 'posAtDOM')
+        fireEvent.mouseMove(document, { buttons: 1 })
+        expect(mappings).not.toHaveBeenCalled()
+        const native = document.getSelection()
+        if (!native) throw new Error('Expected native selection')
+        native.setBaseAndExtent(text, anchor, text, head)
+        document.dispatchEvent(new Event('selectionchange'))
+        expect(editor.state.selection.empty).toBe(true)
+        engine.domObserver.flushSoon()
+        const publications = vi.fn()
+        editor.on('selectionUpdate', publications)
+        const restore = vi.spyOn(native, 'setBaseAndExtent')
+        const writes = [
+          vi.spyOn(native, 'collapse'),
+          vi.spyOn(native, 'extend'),
+          vi.spyOn(native, 'addRange'),
+          vi.spyOn(native, 'removeAllRanges')
+        ]
+        document.dispatchEvent(new MouseEvent(terminal, { button: 0, buttons: 0, bubbles: true }))
+        expect(done).toHaveBeenCalledOnce()
+        expect(engine.input.mouseDown).toBeNull()
+        expect(tracker.delayedSelectionSync).toBe(true)
+        expect(publications).toHaveBeenCalledOnce()
+        expect(restore).toHaveBeenCalledOnce()
+        expect(editor.state.selection.anchor).toBe(editor.view.posAtDOM(text, anchor))
+        expect(editor.state.selection.head).toBe(editor.view.posAtDOM(text, head))
+        const immediateWrites = writes.map((write) => write.mock.calls.length)
+        document.dispatchEvent(new Event('selectionchange'))
+        vi.runAllTimers()
+        expect(writes.map((write) => write.mock.calls.length)).toEqual(immediateWrites)
+        expect(restore).toHaveBeenCalledOnce()
+        expect(publications).toHaveBeenCalledOnce()
+        expect(native.anchorNode).toBe(text)
+        expect(native.focusNode).toBe(text)
+        expect(native.anchorOffset).toBe(anchor)
+        expect(native.focusOffset).toBe(head)
+        // Teardown with a fresh real delayed engine writer still outstanding.
+        fireEvent.mouseDown(text.parentElement ?? editor.view.dom, {
+          clientX: 1000,
+          clientY: 1000,
+          button: 0,
+          buttons: 1,
+          shiftKey: true
+        })
+        const teardownTracker = engine.input.mouseDown
+        if (!teardownTracker) throw new Error('Expected teardown gesture tracker')
+        native.setBaseAndExtent(text, head, text, anchor)
+        document.dispatchEvent(new Event('selectionchange'))
+        fireEvent.mouseUp(document, { button: 0 })
+        expect(teardownTracker.delayedSelectionSync).toBe(true)
+        editor.destroy()
+        const settledWrites = writes.map((write) => write.mock.calls.length)
+        document.dispatchEvent(new MouseEvent('mouseup', { button: 0 }))
+        document.dispatchEvent(new MouseEvent('mousemove', { buttons: 0 }))
+        vi.runAllTimers()
+        expect(writes.map((write) => write.mock.calls.length)).toEqual(settledWrites)
+      } finally {
+        editor.destroy()
+      }
+    }
+  )
+
+  it.each(['find', 'replace', 'control', 'return-before-release'] as const)(
+    'does not import another focus owner’s editor-contained fallback on release (%s)',
+    (owner) => {
+      vi.useFakeTimers()
+      const controlNode = Node.create({
+        name: 'releaseControl',
+        group: 'block',
+        atom: true,
+        parseHTML: () => [{ tag: 'section' }],
+        renderHTML: () => ['section'],
+        addNodeView: () => () => {
+          const dom = document.createElement('section')
+          const input = document.createElement('input')
+          dom.append(input)
+          return { dom, stopEvent: () => true }
+        }
+      })
+      const { editor, input, replace } = createSurface('<p>lower caret</p><section></section>', [
+        controlNode
+      ])
+      const text = editor.view.dom.querySelector('p')?.firstChild
+      const control = editor.view.dom.querySelector('section input')
+      if (!text || !(control instanceof HTMLInputElement))
+        throw new Error('Expected text and stopped control')
+      try {
+        editor.view.focus()
+        vi.spyOn(editor.view, 'posAtCoords').mockReturnValue({ pos: 1, inside: -1 })
+        fireEvent.mouseDown(text.parentElement ?? editor.view.dom, {
+          button: 0,
+          buttons: 1,
+          shiftKey: true
+        })
+        document.getSelection()?.setBaseAndExtent(text, 2, text, 7)
+        document.dispatchEvent(new Event('selectionchange'))
+        const destination = owner === 'control' ? control : owner === 'replace' ? replace : input
+        destination.focus()
+        expect(editor.state.selection.from).toBe(3)
+        expect(editor.state.selection.to).toBe(8)
+        if (owner === 'control') {
+          fireEvent.mouseDown(control, { button: 0 })
+        }
+        editor.commands.setTextSelection({ from: 9, to: 12 })
+        document.getSelection()?.setBaseAndExtent(text, 0, text, 1)
+        document.dispatchEvent(new Event('selectionchange'))
+        const mappings = vi.spyOn(editor.view, 'posAtDOM')
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Observe the pinned engine flush boundary without replacing it.
+        const engine = editor.view as Editor['view'] & { domObserver: { forceFlush(): void } }
+        const flushes = vi.spyOn(engine.domObserver, 'forceFlush')
+        if (owner === 'return-before-release') editor.view.focus()
+        fireEvent.mouseUp(document, { button: 0 })
+        if (owner !== 'return-before-release') {
+          expect(mappings).not.toHaveBeenCalled()
+          expect(flushes).not.toHaveBeenCalled()
+        }
+        vi.runAllTimers()
+        expect(editor.state.selection.from).toBe(9)
+        expect(editor.state.selection.to).toBe(12)
+        editor.view.focus()
+        editor.commands.insertContent('new')
+        vi.runAllTimers()
+        expect(editor.view.dom.querySelector('p')?.textContent).toBe('lower canew')
+      } finally {
+        editor.destroy()
+      }
+    }
+  )
 
   it('formats the deliberate model selection while Find owns focus', () => {
     vi.useFakeTimers()
