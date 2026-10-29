@@ -123,7 +123,7 @@ export async function requestAutomationDispatch(
   }
   // The distro may have stopped since the tick decided; a manual run may start it.
   const stopped =
-    run.trigger === 'scheduled' ? await describeStoppedWslDistroRefusal(target.cwd) : null
+    run.trigger === 'scheduled' ? await describeStoppedWslDistroRefusal(ctx.store, target) : null
   if (stopped) {
     return refuse(stopped)
   }

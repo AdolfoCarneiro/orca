@@ -21866,6 +21866,7 @@
       "agentNeverStarted": "送出提示詞後，自動化代理程式始終未啟動。",
       "agentNoCompletion": "自動化代理程式未回報完成。",
       "watchTimedOut": "6 小時內未收到完成訊號，Orca 已停止監看此次執行。",
+      "wslDistroStopped": "WSL 發行版 {{distro}} 已停止，因此這次排程執行沒有啟動它。請啟動該發行版或使用「立即執行」；它執行期間，之後的排程會照常進行。",
       "projectSetupState": {
         "notSetUp": "專案尚未在所選自動化主機上完成設定。",
         "settingUp": "專案仍在所選自動化主機上進行設定。",

@@ -22606,6 +22606,7 @@
       "agentNeverStarted": "O agente da automação nunca foi iniciado após o envio do prompt.",
       "agentNoCompletion": "O agente da automação não informou a conclusão.",
       "watchTimedOut": "O Orca parou de monitorar esta execução após 6 horas sem um sinal de conclusão.",
+      "wslDistroStopped": "A distribuição WSL {{distro}} está parada, então esta execução agendada não a iniciou. Inicie a distribuição ou use Executar agora; as próximas execuções acontecem enquanto ela estiver em execução.",
       "projectSetupState": {
         "notSetUp": "O projeto não está configurado no host selecionado para a automação.",
         "settingUp": "O projeto ainda está sendo configurado no host selecionado para a automação.",

@@ -11,6 +11,7 @@ import type { AutomationRunWriter } from './automation-run-writer'
 import { wslMoveRepoBackoff } from '../persistence/moving-wsl-projects/wsl-move-background-backoff'
 import { isOrcadFencedAutomation } from './orcad-fenced-automation'
 import { blockedWslDistroForPath } from '../wsl/wsl-unc-access-gate'
+import { getLocalProjectWorktreeGitOptions } from '../project-runtime-git-options'
 import {
   AUTOMATION_RUN_FAILURE_COPY,
   automationRunFailure,
@@ -43,21 +44,32 @@ export function describeScheduledRefusal(input: {
   return input.canDispatch ? null : automationRunFailure('noDispatchHost')
 }
 
-/** E9: a scheduled run never starts a stopped (or unverifiable) WSL distro; Run now is the user's act. */
+/**
+ * E9: a scheduled run never starts a stopped (or unverifiable) WSL distro; Run now is the user's
+ * act. A host-path project whose Git runs in WSL names its distro through the project runtime.
+ */
 export async function describeStoppedWslDistroRefusal(
-  cwd: string
+  store: Store,
+  target: Extract<AutomationRunTargetResult, { ok: true }>
 ): Promise<AutomationRunFailure | null> {
-  const blocked = await blockedWslDistroForPath(cwd)
+  let wslDistro: string | undefined
+  try {
+    wslDistro = getLocalProjectWorktreeGitOptions(store, target.repo).wslDistro
+  } catch {
+    // A runtime needing repair fails its own dispatch; the path alone still names a UNC distro.
+  }
+  const blocked = await blockedWslDistroForPath(target.cwd, wslDistro)
   return blocked ? automationRunFailure('wslDistroStopped', { distro: blocked.distro }) : null
 }
 
 /** A tick's refusal: the synchronous reasons, then a stopped WSL distro (an async read). */
 export async function describeScheduledTickRefusal(
+  store: Store,
   input: Parameters<typeof describeScheduledRefusal>[0]
 ): Promise<AutomationRunFailure | null> {
   return (
     describeScheduledRefusal(input) ??
-    (input.target.ok ? await describeStoppedWslDistroRefusal(input.target.cwd) : null)
+    (input.target.ok ? await describeStoppedWslDistroRefusal(store, input.target) : null)
   )
 }
 

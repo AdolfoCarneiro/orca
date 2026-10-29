@@ -22793,6 +22793,7 @@
       "agentNeverStarted": "L’agent de l’automatisation n’a jamais démarré après l’envoi du prompt.",
       "agentNoCompletion": "L’agent de l’automatisation n’a pas signalé la fin de l’exécution.",
       "watchTimedOut": "Orca a cessé de surveiller cette exécution après 6 h sans signal de fin.",
+      "wslDistroStopped": "La distribution WSL {{distro}} est arrêtée, donc cette exécution planifiée ne l’a pas démarrée. Démarrez la distribution ou utilisez Exécuter maintenant ; les exécutions suivantes ont lieu tant qu’elle tourne.",
       "projectSetupState": {
         "notSetUp": "Le projet n’est pas configuré sur l’hôte sélectionné pour l’automatisation.",
         "settingUp": "Le projet est encore en cours de configuration sur l’hôte sélectionné pour l’automatisation.",

@@ -22168,6 +22168,7 @@
       "agentNeverStarted": "提交提示词后，自动化智能体始终未启动。",
       "agentNoCompletion": "自动化智能体未报告完成。",
       "watchTimedOut": "6 小时内未收到完成信号，Orca 已停止监视此次运行。",
+      "wslDistroStopped": "WSL 发行版 {{distro}} 已停止，因此本次计划运行没有启动它。请启动该发行版或使用“立即运行”；它运行期间，后续运行会照常进行。",
       "projectSetupState": {
         "notSetUp": "项目尚未在所选自动化主机上完成设置。",
         "settingUp": "项目仍在所选自动化主机上进行设置。",
