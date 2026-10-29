@@ -1,16 +1,32 @@
 import type { i18n as I18nInstance } from 'i18next'
 import { withPluralCategoriesFromOther } from '../i18n-plural-family'
+import { structuralValuesEqual } from '../structural-value-equality'
 import type { PluginLanguagePackRegistration } from './plugin-language-pack-artifact'
 
+/** Re-registers only packs whose catalog changed; returns the resource languages it touched. */
 export function replacePluginLanguagePackResources(
   i18n: I18nInstance,
   previous: readonly PluginLanguagePackRegistration[],
   next: readonly PluginLanguagePackRegistration[]
-): void {
+): Set<string> {
+  const unchanged = new Set<string>()
+  const changed = new Set<string>()
   for (const pack of previous) {
+    const replacement = next.find((entry) => entry.resourceLanguage === pack.resourceLanguage)
+    if (
+      replacement &&
+      (replacement === pack || structuralValuesEqual(replacement.catalog, pack.catalog))
+    ) {
+      unchanged.add(pack.resourceLanguage)
+      continue
+    }
     i18n.removeResourceBundle(pack.resourceLanguage, 'translation')
+    changed.add(pack.resourceLanguage)
   }
   for (const pack of next) {
+    if (unchanged.has(pack.resourceLanguage)) {
+      continue
+    }
     const categories = new Intl.PluralRules(pack.resourceLanguage).resolvedOptions()
       .pluralCategories
     i18n.addResourceBundle(
@@ -20,5 +36,7 @@ export function replacePluginLanguagePackResources(
       true,
       true
     )
+    changed.add(pack.resourceLanguage)
   }
+  return changed
 }

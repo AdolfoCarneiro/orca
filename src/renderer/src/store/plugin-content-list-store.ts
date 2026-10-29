@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import type { PluginsApi } from '../../../preload/api/plugin-host-api'
+import { structuralValuesEqual } from '../../../shared/structural-value-equality'
+import { arrayElementsUnchanged } from './catalog-identity'
 
 type PluginContentListState<Entry> = {
   entries: Entry[]
@@ -33,7 +35,7 @@ export function createPluginContentListStore<Entry>(options: {
       if (!list) {
         if (generation === requestGeneration) {
           latestRequestStartedAt = null
-          set({ entries: [], loaded: true })
+          set({ entries: keepUnchangedEntries([]), loaded: true })
         }
         return
       }
@@ -49,11 +51,11 @@ export function createPluginContentListStore<Entry>(options: {
           )
         }
         if (generation === requestGeneration) {
-          set({ entries, loaded: true })
+          set({ entries: keepUnchangedEntries(entries), loaded: true })
         }
       } catch {
         if (generation === requestGeneration) {
-          set({ entries: [], loaded: true })
+          set({ entries: keepUnchangedEntries([]), loaded: true })
         }
       } finally {
         if (generation === requestGeneration) {
@@ -62,6 +64,15 @@ export function createPluginContentListStore<Entry>(options: {
       }
     }
   }))
+
+  // Refreshes rebuild every entry over IPC; reuse unchanged ones so subscribers (e.g. I18nProvider) stay quiet.
+  function keepUnchangedEntries(next: Entry[]): Entry[] {
+    const previous = useStore.getState().entries
+    const reused = next.map((entry, index) =>
+      structuralValuesEqual(previous[index], entry) ? previous[index] : entry
+    )
+    return arrayElementsUnchanged(reused, previous) ? previous : reused
+  }
 
   function ensureLoaded(): void {
     const state = useStore.getState()
