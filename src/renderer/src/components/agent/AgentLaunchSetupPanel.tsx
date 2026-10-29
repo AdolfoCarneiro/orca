@@ -204,10 +204,10 @@ export function AgentLaunchSetupPanel({
           })}
         />
         <CommandList className="max-h-56">
+          <CommandEmpty>
+            {translate('agentPicker.noModels', 'No models match your search.')}
+          </CommandEmpty>
           <CommandGroup>
-            <CommandEmpty>
-              {translate('agentPicker.noModels', 'No models match your search.')}
-            </CommandEmpty>
             {legacy && !modelQuery ? (
               <CommandItem value="__back__" disabled={disabled} onSelect={() => setLegacy(false)}>
                 <ChevronLeft className="size-3.5 text-muted-foreground" />

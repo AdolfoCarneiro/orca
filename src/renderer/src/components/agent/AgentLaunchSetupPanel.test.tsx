@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { entry, host, root, onUse } from './agent-launch-setup-panel-test-fixture'
 import { act } from 'react'
-import { fireEvent } from '@testing-library/react'
+import { fireEvent, getByText, isInaccessible, waitFor } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AgentLaunchSetupPanel } from './AgentLaunchSetupPanel'
@@ -13,6 +13,34 @@ import {
   agentPickerLaunchInputs,
   type AgentPickerEntry
 } from '../../../../shared/agent-launch-picker'
+
+it('shows visible no-match feedback for a nonempty model query', async () => {
+  act(() =>
+    root.render(
+      <TooltipProvider>
+        <AgentLaunchSetupPanel
+          entry={{
+            ...entry,
+            terminal: { model: 'opus', permissionMode: 'ask' },
+            catalog: {
+              origin: 'probe',
+              fetchedAt: 1,
+              models: [{ id: 'opus', label: 'Opus', isDefault: true, efforts: [] }]
+            }
+          }}
+          onUse={onUse}
+        />
+      </TooltipProvider>
+    )
+  )
+  fireEvent.change(host.querySelector('input[aria-label="Search models"]')!, {
+    target: { value: 'zzzzzz' }
+  })
+  await waitFor(() => {
+    const message = getByText(host, 'No models match your search.')
+    expect(isInaccessible(message)).toBe(false)
+  })
+})
 
 it('shows a raw Arguments value in the shared Permissions menu; removing its chip selects own and preserves other text', () => {
   act(() =>

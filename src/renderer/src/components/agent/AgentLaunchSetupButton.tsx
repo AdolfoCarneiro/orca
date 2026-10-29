@@ -133,6 +133,9 @@ export function AgentLaunchSetupButton({
         sticky="always"
         align="start"
         sideOffset={6}
+        aria-label={translate('agentPicker.configure', 'Configure {{agent}}', {
+          agent: entry.label
+        })}
         className="flex w-110 min-w-64 max-w-(--radix-popover-content-available-width) max-h-(--radix-popover-content-available-height) flex-col"
         onClick={(event) => event.stopPropagation()}
         // Hovering another menu row moves focus there; only a click outside or Escape closes the panel.

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { act } from 'react'
-import { fireEvent, waitFor } from '@testing-library/react'
+import { fireEvent, getByRole, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -353,6 +353,7 @@ it('opens setup with a clicked chevron without launching, then dispatches its se
   act(() => configure?.click())
   expect(launch).not.toHaveBeenCalled()
   expect(document.body.textContent).toContain('Arguments')
+  expect(getByRole(document.body, 'dialog', { name: 'Configure Codex' })).not.toBeNull()
   const terminal = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
     (button) => button.textContent === 'Launch terminal'
   )
