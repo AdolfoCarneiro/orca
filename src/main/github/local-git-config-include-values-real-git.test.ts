@@ -1,4 +1,5 @@
 import { appendFile, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import * as fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -30,6 +31,7 @@ import { getOwnerRepo } from './github-owner-repo-selection'
 type IncludePathCase = {
   name: string
   includedPath: string
+  legacyIncludedPath?: string
   value: string
   posixOnly?: boolean
   otherIncludedPaths?: string[]
@@ -41,6 +43,43 @@ type IncludePathCase = {
 
 const cases: IncludePathCase[] = [
   { name: 'unquoted', includedPath: 'includes/team.cfg', value: 'includes/team.cfg' },
+  ...[
+    { name: 'literal tab', value: 'includes/te\tam.cfg', path: 'includes/te\tam.cfg' },
+    {
+      name: 'multiple literal tabs',
+      value: 'includes/te\t\tam.cfg',
+      path: 'includes/te\t\tam.cfg'
+    },
+    { name: 'literal carriage return', value: 'includes/te\ram.cfg', path: 'includes/te\ram.cfg' },
+    {
+      name: 'unquoted continuation indent tab',
+      value: 'includes/te\\\n\tam.cfg',
+      path: 'includes/te\tam.cfg'
+    },
+    {
+      name: 'tab before empty quotes',
+      value: 'includes/team.cfg\t""',
+      path: 'includes/team.cfg\t'
+    }
+  ].map(({ name, value, path }) => ({
+    name,
+    value,
+    includedPath: path,
+    legacyIncludedPath: path.replace(/[\t\r]/g, ' '),
+    posixOnly: true
+  })),
+  {
+    name: 'mixed quoted and unquoted tabs',
+    includedPath: 'includes/te\t\tam.cfg',
+    legacyIncludedPath: 'includes/te\t am.cfg',
+    value: '"includes/te\t"\tam.cfg',
+    posixOnly: true
+  },
+  ...['\u2028', '\u2029'].map((char) => ({
+    name: `literal Unicode separator ${char.codePointAt(0)}`,
+    includedPath: `includes/te${char}am.cfg`,
+    value: `includes/te${char}am.cfg`
+  })),
   ...[
     { name: 'vertical tab', char: '\v', posixOnly: true },
     { name: 'form feed', char: '\f', posixOnly: true },
@@ -476,6 +515,7 @@ describe.skipIf(Boolean(process.env.ORCA_GIT_COMPAT_IMAGE))(
       'refreshes signed remote caches after an include changes: $name',
       async ({
         includedPath,
+        legacyIncludedPath,
         value,
         otherIncludedPaths,
         expectedIncludedPaths,
@@ -490,12 +530,17 @@ describe.skipIf(Boolean(process.env.ORCA_GIT_COMPAT_IMAGE))(
           await mkdir(dirname(stableConfig), { recursive: true })
           await writeFile(stableConfig, '# stable included config\n')
         }
-        const includedConfig = join(repo, '.git', includedPath)
-        await mkdir(dirname(includedConfig), { recursive: true })
-        await writeFile(
-          includedConfig,
-          '[remote "origin"]\n\turl = https://github.com/before-org/origin-project.git\n'
-        )
+        const candidatePaths = legacyIncludedPath
+          ? [includedPath, legacyIncludedPath]
+          : [includedPath]
+        for (const candidate of candidatePaths) {
+          const configPath = join(repo, '.git', candidate)
+          await mkdir(dirname(configPath), { recursive: true })
+          await writeFile(
+            configPath,
+            '[remote "origin"]\n\turl = https://github.com/before-org/origin-project.git\n'
+          )
+        }
         const mainConfigPath = join(repo, '.git', 'config')
         await appendFile(
           mainConfigPath,
@@ -503,13 +548,22 @@ describe.skipIf(Boolean(process.env.ORCA_GIT_COMPAT_IMAGE))(
         )
         const mainConfig = await readFile(mainConfigPath)
         const head = await readFile(join(repo, '.git', 'HEAD'))
-        expect(
-          (
-            await git.exec(['config', '--null', '--get-all', includeKey ?? 'include.path'], repo)
-          ).stdout
-            .slice(0, -1)
-            .split('\0')
-        ).toEqual(expectedIncludedPaths ?? [includedPath])
+        const actualIncludePaths = (
+          await git.exec(['config', '--null', '--get-all', includeKey ?? 'include.path'], repo)
+        ).stdout
+          .slice(0, -1)
+          .split('\0')
+        if (legacyIncludedPath) {
+          expect(actualIncludePaths).toHaveLength(1)
+          expect(candidatePaths).toContain(actualIncludePaths[0])
+        } else {
+          expect(actualIncludePaths).toEqual(expectedIncludedPaths ?? [includedPath])
+        }
+        const includedConfig = join(
+          repo,
+          '.git',
+          legacyIncludedPath ? actualIncludePaths[0] : includedPath
+        )
 
         const signature = await readLocalGitConfigSignature({ repoPath: repo })
         expect(signature).toBeDefined()
@@ -556,6 +610,83 @@ describe.skipIf(Boolean(process.env.ORCA_GIT_COMPAT_IMAGE))(
         })
         expect(await readFile(mainConfigPath)).toEqual(mainConfig)
         expect(await readFile(join(repo, '.git', 'HEAD'))).toEqual(head)
+      }
+    )
+
+    it.skipIf(process.platform === 'win32')(
+      'bounds reads to uniform whitespace graphs and ignores mixed graph edits',
+      async () => {
+        const repo = await mkdtemp(join(root, 'repo-'))
+        await git.exec(['init', '-q', repo])
+        const writeIncludeTree = async (configPath: string, depth: number): Promise<void> => {
+          await mkdir(dirname(configPath), { recursive: true })
+          await writeFile(
+            configPath,
+            depth === 0
+              ? '[remote "origin"]\nurl = https://github.com/org/project.git\n'
+              : '[include]\npath = next\t/child.cfg\n'
+          )
+          if (depth > 0) {
+            await writeIncludeTree(join(dirname(configPath), 'next\t', 'child.cfg'), depth - 1)
+            await writeIncludeTree(join(dirname(configPath), 'next ', 'child.cfg'), depth - 1)
+          }
+        }
+        await writeIncludeTree(join(repo, '.git', 'config'), 3)
+        const actualOrigin = (await git.exec(['remote', 'get-url', 'origin'], repo)).stdout
+        const readSpy = vi.spyOn(fs, 'readFile')
+        let signature: string | undefined
+        try {
+          signature = await readLocalGitConfigSignature({ repoPath: repo })
+          expect(signature).toBeDefined()
+          const paths = readSpy.mock.calls.map(([path]) => String(path))
+          expect(paths).toHaveLength(8)
+          expect(new Set(paths).size).toBe(paths.length)
+        } finally {
+          readSpy.mockRestore()
+        }
+        expect(await listCachedRemoteNames(repo)).toEqual(['origin'])
+        const mixedGraphConfig = join(repo, '.git', 'next\t', 'next ', 'next\t', 'child.cfg')
+        await appendFile(mixedGraphConfig, '\n# unused by either Git interpretation\n')
+        expect((await git.exec(['remote', 'get-url', 'origin'], repo)).stdout).toBe(actualOrigin)
+        expect(await readLocalGitConfigSignature({ repoPath: repo })).toBe(signature)
+      }
+    )
+
+    it.skipIf(process.platform === 'win32')(
+      'reads converging include paths once and tracks both modes after they diverge',
+      async () => {
+        const repo = await mkdtemp(join(root, 'repo-'))
+        await git.exec(['init', '-q', repo])
+        await writeFile(join(repo, '.git', 'config'), '[include]\npath = sides/a\t.cfg\n')
+        await mkdir(join(repo, '.git', 'sides'))
+        for (const path of ['a\t.cfg', 'a .cfg']) {
+          await writeFile(join(repo, '.git', 'sides', path), '[include]\npath = ../shared.cfg\n')
+        }
+        const sharedConfig = join(repo, '.git', 'shared.cfg')
+        await writeFile(sharedConfig, '[include]\npath = leaf\t.cfg\n')
+        for (const path of ['leaf\t.cfg', 'leaf .cfg']) {
+          await writeFile(
+            join(repo, '.git', path),
+            '[remote "origin"]\nurl = https://github.com/org/project.git\n'
+          )
+        }
+        expect((await git.exec(['remote'], repo)).stdout.trim()).toBe('origin')
+        const readSpy = vi.spyOn(fs, 'readFile')
+        let signature: string | undefined
+        try {
+          signature = await readLocalGitConfigSignature({ repoPath: repo })
+          expect(signature).toBeDefined()
+          const paths = readSpy.mock.calls.map(([path]) => String(path))
+          expect(paths.filter((path) => path === sharedConfig)).toHaveLength(1)
+        } finally {
+          readSpy.mockRestore()
+        }
+        for (const path of ['leaf\t.cfg', 'leaf .cfg']) {
+          await appendFile(join(repo, '.git', path), '\n# changed after convergence\n')
+          const changed = await readLocalGitConfigSignature({ repoPath: repo })
+          expect(changed).not.toBe(signature)
+          signature = changed
+        }
       }
     )
 
