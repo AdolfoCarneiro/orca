@@ -4,7 +4,7 @@ import type { RuntimePtyController } from '../../runtime-pty-controller-contract
 import type { TerminalCreateOptions } from '../../runtime-terminal-contracts'
 import type { RuntimePtyWorktreeRecord } from '../../runtime-terminal-state-records'
 import { copySleepingAgentLaunchConfig } from '../../runtime-agent-launch-resolution'
-import { launchExitReceiptId } from '../../../agent-launch/agent-launch-token'
+import { agentLaunchTokenHash, launchExitReceiptId } from '../../../agent-launch/agent-launch-token'
 
 type TerminalSpawnResult = Awaited<ReturnType<NonNullable<RuntimePtyController['spawn']>>>
 
@@ -73,7 +73,10 @@ export function recordTerminalLaunchMetadata(
 
 export function bindLaunchExitReceipt(pty: RuntimePtyWorktreeRecord): void {
   pty.launchExitReceipt = pty.launchToken
-    ? { id: launchExitReceiptId(pty.launchToken), incarnationId: pty.launchIncarnationId }
+    ? {
+        id: launchExitReceiptId(agentLaunchTokenHash(pty.launchToken)),
+        incarnationId: pty.launchIncarnationId
+      }
     : null
 }
 

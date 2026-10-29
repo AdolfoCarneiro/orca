@@ -15,7 +15,12 @@ export function withAgentLaunchToken(
   return { ...env, ...(launchToken ? { ORCA_AGENT_LAUNCH_TOKEN: launchToken } : {}) }
 }
 
-/** Names a launch in its exit receipt without printing the token itself into the terminal. */
-export function launchExitReceiptId(launchToken: string): string {
-  return createHash('sha256').update(`launch-exit:${launchToken}`).digest('hex').slice(0, 32)
+/** The commitment a Dispatch persists for its terminal's launch. */
+export function agentLaunchTokenHash(launchToken: string): string {
+  return createHash('sha256').update(launchToken).digest('hex')
+}
+
+/** Derived from the persisted commitment so a restarted runtime can still expect it; the token itself never prints. */
+export function launchExitReceiptId(launchTokenHash: string): string {
+  return createHash('sha256').update(`launch-exit:${launchTokenHash}`).digest('hex').slice(0, 32)
 }

@@ -59,13 +59,20 @@ export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithMig
   /** Only the receipt of this PTY's current launch counts: a nested shell has none, a relaunch names a new one. */
   protected observeLaunchExitReceipt(ptyId: string, receiptId: string): void {
     const pty = this.ptysById.get(ptyId)
-    const launch = pty?.launchExitReceipt
-    if (!pty || !launch || launch.id !== receiptId || launch.incarnationId !== pty.incarnationId) {
+    if (!pty) {
       return
     }
-    pty.launchExitReceipt = null
+    const launch = pty.launchExitReceipt
+    // A PTY reattached after restart has no launch in memory; its Dispatch's commitment names the receipt.
+    const restoredReceiptId = pty.launchToken === null ? receiptId : undefined
+    if (!restoredReceiptId) {
+      if (!launch || launch.id !== receiptId || launch.incarnationId !== pty.incarnationId) {
+        return
+      }
+      pty.launchExitReceipt = null
+    }
     for (const paneKey of this.collectPaneKeysForPty(ptyId)) {
-      this.terminalWorkerTurnStops.observeAgentExited(paneKey)
+      this.terminalWorkerTurnStops.observeAgentExited(paneKey, restoredReceiptId)
     }
   }
 

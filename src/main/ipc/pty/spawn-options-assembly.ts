@@ -12,7 +12,7 @@ import { LEGACY_TERMINAL_SHIM_REMOTE_ENV_KEYS } from '../../pty/legacy-terminal-
 import { PI_PROCESS_OWNER_ENV_KEYS } from '../../pty/pi-process-owner-env'
 import { planCodexNoDaemonLaunch } from '../../pty/codex-no-daemon-launch-command'
 import { applyAgentWorkspaceTrustToSpawn } from '../../agent-workspace-trust-spawn'
-import { launchExitReceiptId } from '../../agent-launch/agent-launch-token'
+import { agentLaunchTokenHash, launchExitReceiptId } from '../../agent-launch/agent-launch-token'
 import type { PtySpawnOptions } from '../../providers/pty-provider-contract'
 import type { CodexAccountSelectionTarget } from '../../codex-accounts/runtime-selection'
 import { getStartupTerminalIngressIntent } from '../terminal-startup-color-query-replies'
@@ -180,7 +180,7 @@ export async function assemblePtySpawnLaunchOptions(input: PtySpawnLaunchOptions
     spawnOptions.command = launchToken
       ? withLaunchExitReceipt(
           command,
-          launchExitReceiptId(launchToken),
+          launchExitReceiptId(agentLaunchTokenHash(launchToken)),
           connectionId ? 'posix' : shell
         )
       : command
