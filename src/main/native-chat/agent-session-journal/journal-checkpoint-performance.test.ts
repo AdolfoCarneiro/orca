@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -17,9 +17,6 @@ import {
   readJournalSavedState,
   saveJournalState
 } from './journal-saved-state'
-import Database from '../../sqlite/sync-database'
-import { journalDatabasePath } from './journal-host-database'
-import { backfillJournalState } from './journal-state-backfill'
 import type { JournalRow } from './journal-row-schema'
 import type { JournalHostDatabase } from './journal-host-database'
 
@@ -119,65 +116,4 @@ it.each([100, 1_000])(
     expect(stringify).not.toHaveBeenCalled()
     expect(database.db.prepare('SELECT n FROM checkpoint_write_count').get()?.n).toBe(2 * count)
   }
-)
-
-it.skipIf(!process.env.ORCA_JOURNAL_BENCH_PROFILE)(
-  'benchmarks backfill, largest publication and unchanged capture on a copied real corpus',
-  async () => {
-    const sourceDirectory = process.env.ORCA_JOURNAL_BENCH_PROFILE
-    if (!sourceDirectory) {
-      throw new Error('missing benchmark corpus')
-    }
-    const copy = join(root, 'corpus')
-    await mkdir(copy)
-    const source = new Database(journalDatabasePath(sourceDirectory), { readonly: true })
-    try {
-      await source.backup(journalDatabasePath(copy))
-    } finally {
-      source.close()
-    }
-    const corpus = openTestJournalHostDatabase(copy)
-    const size = corpus.db
-      .prepare(`SELECT COUNT(*) AS rows, COUNT(DISTINCT session_id) AS sessions,
-      SUM(length(row_json)) AS row_bytes FROM journal_rows`)
-      .get()
-    corpus.transaction((db) => {
-      db.exec('DELETE FROM journal_items; DELETE FROM journal_state')
-    })
-    const start = performance.now()
-    await backfillJournalState({
-      database: () => corpus,
-      checkpointOpen: async () => false,
-      stopped: () => false
-    })
-    const backfillMs = performance.now() - start
-    const largest = corpus.db
-      .prepare(`SELECT session_id, epoch, COUNT(*) AS items,
-      SUM(length(item_json)) AS item_bytes FROM journal_items GROUP BY session_id, epoch
-      ORDER BY item_bytes DESC LIMIT 1`)
-      .get()
-    if (typeof largest?.session_id !== 'string' || typeof largest.epoch !== 'string') {
-      throw new Error('benchmark corpus contains no saved chat')
-    }
-    const state = readJournalSavedState(corpus.db, largest.session_id, largest.epoch)
-    if (!state) {
-      throw new Error('largest checkpoint did not decode')
-    }
-    corpus.transaction((db) => clearJournalSavedState(db, state.sessionId))
-    const publishStart = performance.now()
-    expect(saveJournalState(corpus, state)).toBe(true)
-    const publishMs = performance.now() - publishStart
-    const noopStart = performance.now()
-    expect(saveJournalState(corpus, state)).toBe(false)
-    const noopMs = performance.now() - noopStart
-    console.info('journal checkpoint corpus benchmark', {
-      ...size,
-      items: largest.items,
-      itemBytes: largest.item_bytes,
-      backfillMs,
-      publishMs,
-      noopMs
-    })
-  },
-  3_600_000
 )
