@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
@@ -11,7 +12,10 @@ import {
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AgentLaunchSetupButton } from './AgentLaunchSetupButton'
 import { AgentLaunchPickerMenu } from './AgentLaunchPickerMenu'
-import type { AgentPickerEntry } from '../../../../shared/agent-launch-picker'
+import {
+  agentPickerChoiceSeeds,
+  type AgentPickerEntry
+} from '../../../../shared/agent-launch-picker'
 
 vi.mock('@/hooks/useShortcutLabel', () => ({ useOptionalShortcutLabel: () => null }))
 const entry: AgentPickerEntry = {
@@ -33,12 +37,7 @@ const entry: AgentPickerEntry = {
 let root: Root
 let host: HTMLDivElement
 const launch = vi.fn()
-beforeEach(() => {
-  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-  launch.mockClear()
-  host = document.createElement('div')
-  document.body.append(host)
-  root = createRoot(host)
+function show(value: AgentPickerEntry) {
   act(() =>
     root.render(
       <TooltipProvider>
@@ -46,17 +45,17 @@ beforeEach(() => {
           <DropdownMenuTrigger>New tab</DropdownMenuTrigger>
           <DropdownMenuContent>
             <AgentLaunchPickerMenu
-              entries={[entry]}
+              entries={[value]}
               model={{
                 state: 'settled',
-                rows: entry.rows,
+                rows: value.rows,
                 detection: {
-                  detectedIds: ['codex'],
+                  detectedIds: [value.agent],
                   isLoading: false,
                   isRefreshing: false,
                   detectionFailed: false,
                   needsServerUpdate: false,
-                  refresh: async () => ['codex']
+                  refresh: async () => [value.agent]
                 }
               }}
               runLaunch={launch}
@@ -66,6 +65,14 @@ beforeEach(() => {
       </TooltipProvider>
     )
   )
+}
+beforeEach(() => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  launch.mockClear()
+  host = document.createElement('div')
+  document.body.append(host)
+  root = createRoot(host)
+  show(entry)
 })
 afterEach(() => {
   act(() => root.unmount())
@@ -91,6 +98,75 @@ it('opens setup with a clicked chevron without launching, then dispatches its se
     entry
   ])
 })
+it('keeps setup open while the pointer expands and collapses Arguments', async () => {
+  const user = userEvent.setup()
+  await user.click(
+    document.querySelector<HTMLButtonElement>('button[aria-label="Configure Codex"]')!
+  )
+  const panel = document.querySelector('[role="dialog"]')!
+  expect(panel).not.toBeNull()
+  expect(panel.querySelector('textarea[aria-label="Arguments"]')).toBeNull()
+  const toggle = panel.querySelector<HTMLButtonElement>('button[aria-label="Toggle Arguments"]')!
+  await user.hover(toggle)
+  expect(document.querySelector('[role="dialog"]')).toBe(panel)
+  await user.click(toggle)
+  expect(document.querySelector('[role="dialog"]')).toBe(panel)
+  expect(panel.querySelector('textarea[aria-label="Arguments"]')).not.toBeNull()
+  await user.click(toggle)
+  expect(document.querySelector('[role="dialog"]')).toBe(panel)
+  expect(panel.querySelector('textarea[aria-label="Arguments"]')).toBeNull()
+  expect(launch).not.toHaveBeenCalled()
+})
+
+it('keeps model, permission and Fast badge pointer interactions inside setup, but dismisses outside', async () => {
+  show({
+    ...entry,
+    agent: 'claude',
+    label: 'Claude',
+    rows: [{ agent: 'claude', kind: 'chat' }],
+    ...agentPickerChoiceSeeds('claude', {
+      agentPermissionDefault: 'own',
+      agentDefaultArgs: {
+        claude: `--model opus --settings '{"fastMode":true,"theme":"light"}' --add-dir docs`
+      }
+    }),
+    structured: { model: 'opus', permissionMode: 'own', options: { fastMode: 'true' } },
+    catalog: {
+      origin: 'probe',
+      fetchedAt: 1,
+      models: [{ id: 'opus', label: 'Opus', isDefault: true, efforts: [], supportsFastMode: true }]
+    }
+  })
+  const user = userEvent.setup()
+  await user.click(
+    document.querySelector<HTMLButtonElement>('button[aria-label="Configure Claude"]')!
+  )
+  const panel = document.querySelector('[role="dialog"]')!
+  const model = panel.querySelector<HTMLElement>('[cmdk-item]')!
+  await user.hover(model)
+  await user.click(model)
+  expect(document.querySelector('[role="dialog"]')).toBe(panel)
+  await user.click(
+    panel.querySelector<HTMLButtonElement>('button[aria-label="Claude permissions"]')!
+  )
+  await user.click(
+    [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find((item) =>
+      item.textContent?.startsWith('Full access')
+    )!
+  )
+  expect(document.querySelector('[role="dialog"]')).toBe(panel)
+  await user.click(panel.querySelector<HTMLButtonElement>('button[aria-label="Toggle Arguments"]')!)
+  const chip = panel.querySelector<HTMLButtonElement>('button[aria-label*="Remove --settings"]')!
+  expect(chip).not.toBeNull()
+  await user.click(chip)
+  expect(document.querySelector('[role="dialog"]')).toBe(panel)
+  expect(panel.querySelector('button[aria-label*="Remove --settings"]')).toBeNull()
+  expect(panel.querySelector<HTMLTextAreaElement>('textarea')?.value).toContain('"theme":"light"')
+  await user.click(document.body)
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(launch).not.toHaveBeenCalled()
+})
+
 it('opens a searched setup only from its chevron and launches the alternate way from its footer', () => {
   const input = document.querySelector('input')
   act(() => {
@@ -138,11 +214,12 @@ it('launches the row default with Enter once, without opening setup', () => {
   expect(document.querySelector('[role="menu"]')).toBeNull()
 })
 
-it('still launches today’s default when the row is clicked while its setup is open', () => {
+it('still launches today’s default when the row is clicked while its setup is open', async () => {
+  const user = userEvent.setup()
   const row = document.querySelector<HTMLElement>('[role="menuitem"]')!
-  act(() => row.querySelector<HTMLButtonElement>('button')?.click())
+  await user.click(row.querySelector<HTMLButtonElement>('button')!)
   expect(launch).not.toHaveBeenCalled()
-  act(() => row.click())
+  await user.click(row)
   expect(launch).toHaveBeenCalledExactlyOnceWith(entry.rows[0], undefined)
 })
 

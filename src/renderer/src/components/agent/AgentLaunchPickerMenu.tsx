@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type PointerEvent } from 'react'
 import { Input } from '@/components/ui/input'
 import { DropdownMenuItem, DropdownMenuShortcut } from '@/components/ui/dropdown-menu'
 import { AgentIcon } from '@/lib/agent-catalog'
@@ -27,6 +27,13 @@ export function pickerLaunchRow(
 }
 
 type Launch = (row: NewTabAgentMenuRow, draft?: AgentPickerDraft, entry?: AgentPickerEntry) => void
+
+function keepSetupFocus(event: PointerEvent<HTMLDivElement>) {
+  // Radix row hover must not steal focus from the row's portaled setup or its nested controls.
+  if (event.currentTarget.querySelector('[data-slot="popover-trigger"][aria-expanded="true"]')) {
+    event.preventDefault()
+  }
+}
 
 export function AgentLaunchPickerMenu({
   model,
@@ -169,6 +176,8 @@ function AgentPickerMenuRow({
           item.current?.querySelector<HTMLButtonElement>('button')?.focus()
         }
       }}
+      onPointerMove={keepSetupFocus}
+      onPointerLeave={keepSetupFocus}
     >
       <AgentIcon agent={entry.agent} size={14} />
       <span className="flex-1">{label}</span>
