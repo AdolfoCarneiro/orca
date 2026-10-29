@@ -1,3 +1,4 @@
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { CalendarClock, ChevronRight } from 'lucide-react-native'
 import { Pressable, Text, View } from 'react-native'
 import { colors } from '../theme/mobile-theme'
@@ -10,10 +11,11 @@ export function MobileHomeAutomationsCard({
   enabled: boolean
   onOpen: () => void
 }) {
+  const t = useMobileTranslation()
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Automations"
+      accessibilityLabel={t('automations.mobile.automations', 'Automations')}
       disabled={!enabled}
       onPress={onOpen}
       style={[styles.card, !enabled && styles.disabled]}
@@ -21,8 +23,13 @@ export function MobileHomeAutomationsCard({
       <View style={styles.row}>
         <CalendarClock size={22} color={colors.textSecondary} />
         <View style={styles.grow}>
-          <Text style={styles.heading}>Automations</Text>
-          <Text style={styles.meta}>Schedule agent work and view runs</Text>
+          <Text style={styles.heading}>{t('automations.mobile.automations', 'Automations')}</Text>
+          <Text style={styles.meta}>
+            {t(
+              'automations.mobile.scheduleAgentWorkAndViewRuns',
+              'Schedule agent work and view runs'
+            )}
+          </Text>
         </View>
         <ChevronRight size={16} color={colors.textMuted} />
       </View>

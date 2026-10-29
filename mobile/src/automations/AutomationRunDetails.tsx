@@ -1,3 +1,4 @@
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Text, View } from 'react-native'
@@ -23,6 +24,7 @@ export function AutomationRunDetails(props: {
   history: AutomationRunObservation
   onBack: () => void
 }) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   const history = props.history
   const run = history.selected ?? props.run
@@ -72,12 +74,20 @@ export function AutomationRunDetails(props: {
         return
       }
       if (found === 'unverifiable') {
-        setError('Could not verify the original agent pane. Reconnect and try again.')
+        setError(
+          t(
+            'automations.mobile.couldNotVerifyTheOriginalAgentPaneReconnectAndTryAgain',
+            'Could not verify the original agent pane. Reconnect and try again.'
+          )
+        )
         return
       }
       if (found !== 'available' || !run.workspaceId || !run.terminalPaneKey) {
         setError(
-          'The original agent pane is no longer available to open. Saved output remains here.'
+          t(
+            'automations.mobile.theOriginalAgentPaneIsNoLongerAvailableToOpenSavedOutputRemainsHere',
+            'The original agent pane is no longer available to open. Saved output remains here.'
+          )
         )
         return
       }
@@ -94,7 +104,12 @@ export function AutomationRunDetails(props: {
       )
     } catch {
       if (current()) {
-        setError('Could not verify the original agent pane. Reconnect and try again.')
+        setError(
+          t(
+            'automations.mobile.couldNotVerifyTheOriginalAgentPaneReconnectAndTryAgain',
+            'Could not verify the original agent pane. Reconnect and try again.'
+          )
+        )
       }
     } finally {
       if (current()) {
@@ -104,7 +119,10 @@ export function AutomationRunDetails(props: {
   }
   return (
     <View style={styles.stack}>
-      <AutomationButton label="All runs" onPress={props.onBack} />
+      <AutomationButton
+        label={t('automations.mobile.allRuns', 'All runs')}
+        onPress={props.onBack}
+      />
       {history.error ? (
         <Text accessibilityRole="alert" style={styles.error}>
           {history.error}
@@ -112,37 +130,65 @@ export function AutomationRunDetails(props: {
       ) : null}
       {history.unavailable ? (
         <Text style={styles.meta}>
-          This run is no longer in the host’s retained history. Last saved information remains
-          below.
+          {t(
+            'automations.mobile.thisRunIsNoLongerInTheHostSRetainedHistoryLastSavedInformationRemainsBelow',
+            'This run is no longer in the host’s retained history. Last saved information remains below.'
+          )}
         </Text>
       ) : null}
       <Text style={styles.title}>{run.title}</Text>
       <Text style={styles.text}>{automationRunStatusLabel(run.status)}</Text>
       <View style={styles.card}>
-        <AutomationMetadata label="Scheduled for" value={automationDate(run.scheduledFor)} />
-        <AutomationMetadata label="Started" value={automationDate(run.startedAt)} />
         <AutomationMetadata
-          label="Trigger"
-          value={run.trigger === 'manual' ? 'Run now' : 'Schedule'}
+          label={t('automations.mobile.scheduledFor', 'Scheduled for')}
+          value={automationDate(run.scheduledFor)}
         />
         <AutomationMetadata
-          label="Workspace"
+          label={t('automations.mobile.started', 'Started')}
+          value={automationDate(run.startedAt)}
+        />
+        <AutomationMetadata
+          label={t('automations.mobile.trigger', 'Trigger')}
           value={
-            run.workspaceDisplayName ?? run.runContext?.path ?? run.workspaceId ?? 'Not created'
+            run.trigger === 'manual'
+              ? t('automations.mobile.runNow', 'Run now')
+              : t('automations.mobile.schedule', 'Schedule')
           }
         />
-        <AutomationMetadata label="Project host" value={run.runContext?.hostId ?? 'Not recorded'} />
-        <AutomationMetadata label="Run" value={run.id} />
+        <AutomationMetadata
+          label={t('automations.mobile.workspace', 'Workspace')}
+          value={
+            run.workspaceDisplayName ??
+            run.runContext?.path ??
+            run.workspaceId ??
+            t('automations.mobile.notCreated', 'Not created')
+          }
+        />
+        <AutomationMetadata
+          label={t('automations.mobile.projectHost', 'Project host')}
+          value={run.runContext?.hostId ?? t('automations.mobile.notRecorded', 'Not recorded')}
+        />
+        <AutomationMetadata label={t('automations.mobile.run', 'Run')} value={run.id} />
       </View>
       {run.error ? <Text style={styles.error}>{run.error}</Text> : null}
-      <Text style={styles.heading}>Output</Text>
+      <Text style={styles.heading}>{t('automations.mobile.output', 'Output')}</Text>
       <Text selectable style={styles.output}>
-        {getAutomationRunContent(run)}
+        {getAutomationRunContent(
+          run,
+          t('automations.mobile.noOutput', 'No output content available.')
+        )}
       </Text>
       {run.outputSnapshot ? (
         <Text style={styles.meta}>
-          Captured {automationDate(run.outputSnapshot.capturedAt)}
-          {run.outputSnapshot.truncated ? ' · Output truncated by host' : ''}
+          {run.outputSnapshot.truncated
+            ? t(
+                'automations.mobile.capturedTruncated',
+                'Captured {{date}} · Output truncated by host',
+                { date: automationDate(run.outputSnapshot.capturedAt) }
+              )
+            : t('automations.mobile.capturedDate', 'Captured {{date}}', {
+                date: automationDate(run.outputSnapshot.capturedAt)
+              })}
         </Text>
       ) : null}
       {error ? (
@@ -152,11 +198,14 @@ export function AutomationRunDetails(props: {
       ) : null}
       {!run.terminalPaneKey || !run.workspaceId ? (
         <Text style={styles.meta}>
-          The original agent pane is unavailable. Saved output remains here.
+          {t(
+            'automations.mobile.theOriginalAgentPaneIsUnavailableSavedOutputRemainsHere',
+            'The original agent pane is unavailable. Saved output remains here.'
+          )}
         </Text>
       ) : null}
       <AutomationButton
-        label="Open agent"
+        label={t('automations.mobile.openAgent', 'Open agent')}
         onPress={() => void openAgent()}
         disabled={opening || !props.connected || !run.terminalPaneKey || !run.workspaceId}
       />

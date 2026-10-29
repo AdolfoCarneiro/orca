@@ -1,3 +1,4 @@
+import { translate } from '../i18n/mobile-i18n'
 import { assertAutomationExtraAgentArgs } from '../../../src/shared/automation-extra-agent-args-record'
 import type { TuiAgent } from '../../../src/shared/tui-agent'
 import type { RpcSendParams } from '../transport/rpc-params-contract'
@@ -60,10 +61,16 @@ export function validateAutomationDraft(
   saved?: MobileAutomation
 ): string | null {
   if (!draft.name.trim() || !draft.prompt.trim() || !draft.agentId) {
-    return 'Add a name, instructions and an agent.'
+    return translate(
+      'automations.mobile.addANameInstructionsAndAnAgent',
+      'Add a name, instructions and an agent.'
+    )
   }
   if (draft.workspaceMode === 'existing' && !draft.workspaceId) {
-    return 'Choose an existing workspace.'
+    return translate(
+      'automations.mobile.chooseAnExistingWorkspace',
+      'Choose an existing workspace.'
+    )
   }
   if (
     !saved ||
@@ -74,7 +81,12 @@ export function validateAutomationDraft(
     try {
       assertAutomationExtraAgentArgs({ ...draft, agentId: draft.agentId })
     } catch (failure) {
-      return failure instanceof Error ? failure.message : 'Check the extra agent arguments.'
+      return failure instanceof Error
+        ? failure.message
+        : translate(
+            'automations.mobile.checkTheExtraAgentArguments',
+            'Check the extra agent arguments.'
+          )
     }
   }
   if (step < 2) {
@@ -87,20 +99,29 @@ export function validateAutomationDraft(
       validate: isValidAutomationSchedule
     })
   ) {
-    return 'Enter a valid cron or RRULE schedule.'
+    return translate(
+      'automations.mobile.enterAValidCronOrRRULESchedule',
+      'Enter a valid cron or RRULE schedule.'
+    )
   }
   if (draft.timezone !== saved?.timezone) {
     try {
       new Intl.DateTimeFormat('en', { timeZone: draft.timezone }).format()
     } catch {
-      return 'Enter a valid time zone, such as America/Los_Angeles.'
+      return translate(
+        'automations.mobile.enterAValidTimeZoneSuchAsAmericaLosAngeles',
+        'Enter a valid time zone, such as America/Los_Angeles.'
+      )
     }
   }
   if (
     draft.grace !== String(saved?.missedRunGraceMinutes) &&
     (!Number.isInteger(Number(draft.grace)) || Number(draft.grace) < 0)
   ) {
-    return 'Missed-run grace must be zero or a positive number of minutes.'
+    return translate(
+      'automations.mobile.missedRunGraceMustBeZeroOrAPositiveNumberOfMinutes',
+      'Missed-run grace must be zero or a positive number of minutes.'
+    )
   }
   if (
     (draft.precheckCommand !== (saved?.precheck?.command ?? '') ||
@@ -110,7 +131,11 @@ export function validateAutomationDraft(
       Number(draft.precheckTimeout) < 1 ||
       Number(draft.precheckTimeout) > MAX_AUTOMATION_PRECHECK_TIMEOUT_SECONDS)
   ) {
-    return `Precheck timeout must be between 1 and ${MAX_AUTOMATION_PRECHECK_TIMEOUT_SECONDS} seconds.`
+    return translate(
+      'automations.mobile.precheckTimeoutRange',
+      'Precheck timeout must be between 1 and {{maximum}} seconds.',
+      { maximum: MAX_AUTOMATION_PRECHECK_TIMEOUT_SECONDS }
+    )
   }
   return null
 }

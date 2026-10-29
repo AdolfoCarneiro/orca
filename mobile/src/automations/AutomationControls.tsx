@@ -1,3 +1,4 @@
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
@@ -76,13 +77,17 @@ export function AutomationChoice<Value extends string>(props: {
   onSelect: (value: Value) => void
   disabled?: boolean
 }) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   const [open, setOpen] = useState(false)
   return (
     <View style={styles.field}>
       <Text style={styles.meta}>{props.label}</Text>
       <AutomationButton
-        label={props.options.find((option) => option.value === props.value)?.label ?? 'Choose…'}
+        label={
+          props.options.find((option) => option.value === props.value)?.label ??
+          t('automations.mobile.choose', 'Choose…')
+        }
         onPress={() => setOpen(true)}
         disabled={props.disabled}
       />

@@ -4,7 +4,7 @@ import type { RpcClient } from '../transport/rpc-client'
 import { hostStatusProbe } from '../transport/host-status-probe-operations'
 import { subscribeConnectionRevival } from '../transport/connection-revival-signal'
 import { automationListRead } from './automation-operations'
-import { AUTOMATION_OUTCOME_UNKNOWN, automationErrorMessage } from './automation-error'
+import { automationOutcomeUnknownMessage, automationErrorMessage } from './automation-error'
 import type { MobileAutomationRow } from './automation-reply-schema'
 
 export function useAutomationCatalog(client: RpcClient | null, server: boolean) {
@@ -151,11 +151,13 @@ export function useAutomationCatalog(client: RpcClient | null, server: boolean) 
       if (current()) {
         accept(value)
       } else if (mounted.current) {
-        setActionError(AUTOMATION_OUTCOME_UNKNOWN)
+        setActionError(automationOutcomeUnknownMessage())
       }
     } catch (failure) {
       if (mounted.current) {
-        setActionError(current() ? automationErrorMessage(failure) : AUTOMATION_OUTCOME_UNKNOWN)
+        setActionError(
+          current() ? automationErrorMessage(failure) : automationOutcomeUnknownMessage()
+        )
       }
     } finally {
       locked.current = false

@@ -1,3 +1,4 @@
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useState, type ReactNode } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { Check } from 'lucide-react-native'
@@ -75,6 +76,7 @@ function PickerModalContent<T extends string = string>({
   onClose,
   searchable
 }: PickerModalContentProps<T>) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   const [query, setQuery] = useState('')
   const visibleOptions = searchable
@@ -88,7 +90,11 @@ function PickerModalContent<T extends string = string>({
   return (
     <View style={styles.group}>
       {searchable ? (
-        <MobileSearchField value={query} onChangeText={setQuery} placeholder="Search options" />
+        <MobileSearchField
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('automations.mobile.searchOptions', 'Search options')}
+        />
       ) : null}
       {visibleOptions.map((opt, i) => {
         const isSelected = opt.value === selected

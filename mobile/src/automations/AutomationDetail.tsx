@@ -1,3 +1,4 @@
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { useEffect, useState } from 'react'
 import type { RpcClient } from '../transport/rpc-client'
@@ -8,7 +9,7 @@ import {
   type AutomationTargets
 } from './automation-target-inventory'
 import { Switch, Text, View } from 'react-native'
-import { formatAutomationSchedule } from '../../../src/shared/automation-schedules'
+import { formatAutomationSchedule } from './automation-schedule-label'
 import { MOBILE_TUI_AGENT_LABELS } from '../tasks/mobile-tui-agents'
 import type { MobileAutomationRow } from './automation-reply-schema'
 import { AutomationButton, AutomationMetadata } from './AutomationControls'
@@ -26,6 +27,7 @@ export function AutomationDetail(props: {
   onDelete: () => void
   onRuns: () => void
 }) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   const { automation, item } = props.row
   const orphan = item.selector.kind === 'orphan'
@@ -114,11 +116,16 @@ export function AutomationDetail(props: {
   const workspace = workspaces.length === 1 ? workspaces[0] : undefined
   return (
     <View style={styles.stack}>
-      <AutomationButton label="All automations" onPress={props.onBack} />
+      <AutomationButton
+        label={t('automations.mobile.allAutomations', 'All automations')}
+        onPress={props.onBack}
+      />
       <View style={styles.row}>
         <Text style={[styles.title, styles.grow]}>{automation.name}</Text>
         <Switch
-          accessibilityLabel={`Run ${automation.name} on schedule`}
+          accessibilityLabel={t('automations.mobile.runOnSchedule', 'Run {{name}} on schedule', {
+            name: automation.name
+          })}
           value={automation.enabled}
           onValueChange={props.onToggle}
           disabled={props.disabled}
@@ -129,49 +136,63 @@ export function AutomationDetail(props: {
       ) : null}
       <View style={styles.card}>
         <AutomationMetadata
-          label="Schedule"
+          label={t('automations.mobile.schedule', 'Schedule')}
           value={`${formatAutomationSchedule(automation.rrule)} · ${automation.timezone}`}
         />
         <AutomationMetadata
-          label="Next run"
+          label={t('automations.mobile.nextRun', 'Next run')}
           value={
             automation.enabled
               ? automationDate(automation.nextRunAt, automation.timezone)
-              : 'No next scheduled run'
+              : t('automations.mobile.noNextScheduledRun', 'No next scheduled run')
           }
         />
-        <AutomationMetadata label="Agent" value={MOBILE_TUI_AGENT_LABELS[automation.agentId]} />
         <AutomationMetadata
-          label="Project"
-          value={setup ? `${setup.label} · ${setup.path}` : 'Unavailable'}
+          label={t('automations.mobile.agent', 'Agent')}
+          value={MOBILE_TUI_AGENT_LABELS[automation.agentId]}
         />
         <AutomationMetadata
-          label="Workspace"
+          label={t('automations.mobile.project', 'Project')}
+          value={
+            setup
+              ? `${setup.label} · ${setup.path}`
+              : t('automations.mobile.unavailable', 'Unavailable')
+          }
+        />
+        <AutomationMetadata
+          label={t('automations.mobile.workspace', 'Workspace')}
           value={
             automation.workspaceMode === 'existing'
-              ? workspace?.displayName || 'Unavailable'
-              : 'New workspace per run'
+              ? workspace?.displayName || t('automations.mobile.unavailable', 'Unavailable')
+              : t('automations.mobile.newWorkspacePerRun', 'New workspace per run')
           }
         />
       </View>
-      <Text style={styles.heading}>Instructions</Text>
+      <Text style={styles.heading}>{t('automations.mobile.instructions', 'Instructions')}</Text>
       <Text selectable style={styles.text}>
         {automation.prompt}
       </Text>
       <View style={styles.row}>
         <View style={styles.grow}>
           <AutomationButton
-            label="Run now"
+            label={t('automations.mobile.runNow', 'Run now')}
             onPress={props.onRun}
             primary
             disabled={props.disabled || orphan}
           />
         </View>
-        <AutomationButton label="Edit" onPress={props.onEdit} disabled={props.disabled} />
+        <AutomationButton
+          label={t('automations.mobile.edit', 'Edit')}
+          onPress={props.onEdit}
+          disabled={props.disabled}
+        />
       </View>
-      <AutomationButton label="View all runs" onPress={props.onRuns} />
       <AutomationButton
-        label="Delete automation"
+        label={t('automations.mobile.viewAllRuns', 'View all runs')}
+        onPress={props.onRuns}
+      />
+      <AutomationButton
+        label={t('automations.mobile.deleteAutomation', 'Delete automation')}
         onPress={props.onDelete}
         destructive
         disabled={props.disabled}

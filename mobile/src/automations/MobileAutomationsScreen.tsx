@@ -1,3 +1,4 @@
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { useState } from 'react'
 import { useLocalSearchParams } from 'expo-router'
@@ -16,6 +17,7 @@ import { AutomationManager } from './AutomationManager'
 import { automationStyles as styles } from './automation-styles'
 
 export function MobileAutomationsScreen() {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   const params = useLocalSearchParams<{ hostId?: string | string[] }>()
   const hostId = firstParam(params.hostId)
@@ -33,29 +35,43 @@ export function MobileAutomationsScreen() {
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel={t('automations.mobile.back', 'Back')}
           onPress={() => router.back()}
           hitSlop={8}
         >
           <ChevronLeft size={22} color={colors.textPrimary} />
         </Pressable>
-        <Text style={[styles.title, styles.grow]}>Automations</Text>
+        <Text style={[styles.title, styles.grow]}>
+          {t('automations.mobile.automations', 'Automations')}
+        </Text>
       </View>
       {servers?.length || authority !== 'paired' ? (
         <View style={styles.header}>
           <View style={styles.grow}>
             <AutomationChoice
-              label="Host"
+              label={t('automations.mobile.host', 'Host')}
               value={authority}
               options={[
-                { value: 'paired', label: 'Paired host' },
+                { value: 'paired', label: t('automations.mobile.pairedHost', 'Paired host') },
                 ...(authority !== 'paired' && !selected
-                  ? [{ value: authority, label: 'Selected server (unavailable)', disabled: true }]
+                  ? [
+                      {
+                        value: authority,
+                        label: t(
+                          'automations.mobile.selectedServerUnavailable',
+                          'Selected server (unavailable)'
+                        ),
+                        disabled: true
+                      }
+                    ]
                   : []),
                 ...(servers ?? []).map((server) => ({
                   value: server.hostId,
                   label: server.label,
-                  subtitle: server.relay === 'ready' ? undefined : 'Unavailable',
+                  subtitle:
+                    server.relay === 'ready'
+                      ? undefined
+                      : t('automations.mobile.unavailable', 'Unavailable'),
                   disabled: server.relay !== 'ready'
                 }))
               ]}

@@ -1,3 +1,6 @@
+import { AutomationDraftReview } from './AutomationDraftReview'
+import { AutomationEditorHeader, AutomationEditorNavigation } from './AutomationEditorNavigation'
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { useEffect, useRef, useState } from 'react'
 import { useAutomationTargetDrafts } from './use-automation-target-drafts'
@@ -7,13 +10,7 @@ import type { MobileAutomation } from './automation-reply-schema'
 import { MOBILE_TUI_AGENT_LABELS } from '../tasks/mobile-tui-agents'
 import type { MobileNewTabAgentOption } from '../session/mobile-new-tab-agent-options'
 import { AutomationAdvancedFields } from './AutomationAdvancedFields'
-import { formatAutomationSchedule } from '../../../src/shared/automation-schedules'
-import {
-  AutomationButton,
-  AutomationChoice,
-  AutomationField,
-  AutomationMetadata
-} from './AutomationControls'
+import { AutomationButton, AutomationChoice, AutomationField } from './AutomationControls'
 import { AutomationScheduleFields } from './AutomationScheduleFields'
 import {
   automationSetupKey,
@@ -41,6 +38,7 @@ export function AutomationEditor(props: {
   onCancel: () => void
   onSave: (draft: AutomationDraft, original: AutomationDraft, targets: AutomationTargets) => void
 }) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   const [draft, setDraft] = useState(() => props.initialDraft ?? newAutomationDraft(props.current))
   const original = useRef(newAutomationDraft(props.current))
@@ -154,7 +152,9 @@ export function AutomationEditor(props: {
   if (draft.agentId && !agentOptions.some((option) => option.value === draft.agentId)) {
     agentOptions.unshift({
       value: draft.agentId,
-      label: `${MOBILE_TUI_AGENT_LABELS[draft.agentId]} (saved)`
+      label: t('automations.mobile.savedAgent', '{{agent}} (saved)', {
+        agent: MOBILE_TUI_AGENT_LABELS[draft.agentId]
+      })
     })
   }
   function change(patch: Partial<AutomationDraft>) {
@@ -180,7 +180,12 @@ export function AutomationEditor(props: {
       return
     }
     if (!targets || (!props.current && !setup)) {
-      setError('Choose a project set up on this host.')
+      setError(
+        t(
+          'automations.mobile.chooseAProjectSetUpOnThisHost',
+          'Choose a project set up on this host.'
+        )
+      )
       return
     }
     if (step < 3) {
@@ -191,15 +196,12 @@ export function AutomationEditor(props: {
   }
   return (
     <View style={styles.stack}>
-      <View style={styles.row}>
-        <Text style={[styles.title, styles.grow]}>
-          {props.current ? 'Edit automation' : 'New automation'}
-        </Text>
-        <AutomationButton label="Cancel" onPress={props.onCancel} disabled={props.busy} />
-      </View>
-      <Text style={styles.meta}>
-        {step} of 3 · {step === 1 ? 'Task' : step === 2 ? 'Schedule' : 'Review'}
-      </Text>
+      <AutomationEditorHeader
+        step={step}
+        editing={!!props.current}
+        busy={props.busy}
+        onCancel={props.onCancel}
+      />
       {error || agentError ? (
         <View style={styles.stack}>
           <Text accessibilityRole="alert" style={styles.error}>
@@ -207,31 +209,35 @@ export function AutomationEditor(props: {
           </Text>
           {!targets ? (
             <AutomationButton
-              label="Retry project loading"
+              label={t('automations.mobile.retryProjectLoading', 'Retry project loading')}
               onPress={() => setReload((value) => value + 1)}
               disabled={props.busy || !props.connected}
             />
           ) : null}
         </View>
       ) : null}
-      {!targets && !error ? <Text style={styles.meta}>Loading projects…</Text> : null}
+      {!targets && !error ? (
+        <Text style={styles.meta}>
+          {t('automations.mobile.loadingProjects', 'Loading projects…')}
+        </Text>
+      ) : null}
       {step === 1 ? (
         <>
           <AutomationField
-            label="Name"
+            label={t('automations.mobile.name', 'Name')}
             value={draft.name}
             onChange={(name) => change({ name })}
             disabled={disabled}
           />
           <AutomationField
-            label="Instructions"
+            label={t('automations.mobile.instructions', 'Instructions')}
             value={draft.prompt}
             onChange={(prompt) => change({ prompt })}
             multiline
             disabled={disabled}
           />
           <AutomationChoice
-            label="Project and host setup"
+            label={t('automations.mobile.projectAndHostSetup', 'Project and host setup')}
             value={draft.setupId}
             options={[
               ...(targets?.setups
@@ -245,7 +251,7 @@ export function AutomationEditor(props: {
                 ? [
                     {
                       value: draft.setupId,
-                      label: 'Saved target',
+                      label: t('automations.mobile.savedTarget', 'Saved target'),
                       subtitle: props.current.runContext?.path ?? props.current.projectId
                     }
                   ]
@@ -264,22 +270,25 @@ export function AutomationEditor(props: {
             }}
           />
           <AutomationChoice
-            label="Workspace"
+            label={t('automations.mobile.workspace', 'Workspace')}
             value={draft.workspaceMode}
             options={[
               {
                 value: 'new_per_run',
-                label: 'New workspace per run',
+                label: t('automations.mobile.newWorkspacePerRun', 'New workspace per run'),
                 disabled: setup?.kind === 'folder'
               },
-              { value: 'existing', label: 'Use an existing workspace' }
+              {
+                value: 'existing',
+                label: t('automations.mobile.useAnExistingWorkspace', 'Use an existing workspace')
+              }
             ]}
             onSelect={(workspaceMode) => changeTarget({ workspaceMode, reuseSession: false })}
             disabled={disabled}
           />
           {draft.workspaceMode === 'existing' ? (
             <AutomationChoice
-              label="Existing workspace"
+              label={t('automations.mobile.existingWorkspace', 'Existing workspace')}
               value={draft.workspaceId}
               options={[
                 ...workspaces.map((workspace) => ({
@@ -293,7 +302,7 @@ export function AutomationEditor(props: {
                   ? [
                       {
                         value: draft.workspaceId,
-                        label: 'Saved workspace',
+                        label: t('automations.mobile.savedWorkspace', 'Saved workspace'),
                         subtitle: draft.workspaceId
                       }
                     ]
@@ -307,7 +316,7 @@ export function AutomationEditor(props: {
           ) : null}
           {targets?.coverage.truncated ? (
             <AutomationButton
-              label="Load more workspaces"
+              label={t('automations.mobile.loadMoreWorkspaces', 'Load more workspaces')}
               onPress={() =>
                 setInventoryLimit(Math.max(inventoryLimit + 200, targets.coverage.totalCount))
               }
@@ -316,11 +325,18 @@ export function AutomationEditor(props: {
           ) : null}
           {setup && targets?.coverage.hostScope.omittedHostIds.includes(setup.hostId) ? (
             <Text style={styles.meta}>
-              This host’s workspace inventory is incomplete. Refresh or load more workspaces.
+              {t(
+                'automations.mobile.thisHostSWorkspaceInventoryIsIncompleteRefreshOrLoadMoreWorkspaces',
+                'This host’s workspace inventory is incomplete. Refresh or load more workspaces.'
+              )}
             </Text>
           ) : null}
           <AutomationChoice
-            label={agentsLoading ? 'Agent · detecting…' : 'Agent'}
+            label={
+              agentsLoading
+                ? t('automations.mobile.agentDetecting', 'Agent · detecting…')
+                : t('automations.mobile.agent', 'Agent')
+            }
             value={draft.agentId ?? ''}
             options={agentOptions}
             onSelect={(value) => {
@@ -332,10 +348,19 @@ export function AutomationEditor(props: {
             disabled={disabled || agentsLoading}
           />
           {!agentsLoading && !agentError && setup && agents.length === 0 && !props.current ? (
-            <Text style={styles.meta}>Install and enable an agent on this host, then retry.</Text>
+            <Text style={styles.meta}>
+              {t(
+                'automations.mobile.installAndEnableAnAgentOnThisHostThenRetry',
+                'Install and enable an agent on this host, then retry.'
+              )}
+            </Text>
           ) : null}
           <AutomationButton
-            label={advanced ? 'Hide advanced options' : 'Advanced options'}
+            label={
+              advanced
+                ? t('automations.mobile.hideAdvancedOptions', 'Hide advanced options')
+                : t('automations.mobile.advancedOptions', 'Advanced options')
+            }
             onPress={() => setAdvanced(!advanced)}
           />
           {advanced ? (
@@ -350,45 +375,16 @@ export function AutomationEditor(props: {
       ) : step === 2 ? (
         <AutomationScheduleFields draft={draft} change={change} disabled={disabled} />
       ) : (
-        <View style={styles.card}>
-          <Text style={styles.title}>{draft.name}</Text>
-          <AutomationMetadata label="Instructions" value={draft.prompt} />
-          <AutomationMetadata
-            label="Agent"
-            value={draft.agentId ? MOBILE_TUI_AGENT_LABELS[draft.agentId] : 'Choose an agent'}
-          />
-          <AutomationMetadata
-            label="Project"
-            value={setup ? `${setup.label} · ${setup.path}` : 'Saved target'}
-          />
-          <AutomationMetadata
-            label="Workspace"
-            value={
-              draft.workspaceMode === 'existing'
-                ? (workspaces.find((entry) => entry.worktreeId === draft.workspaceId)
-                    ?.displayName ?? draft.workspaceId)
-                : 'New workspace per run'
-            }
-          />
-          <AutomationMetadata
-            label="Schedule"
-            value={`${formatAutomationSchedule(draft.rrule)} · ${draft.timezone}`}
-          />
-        </View>
+        <AutomationDraftReview draft={draft} setup={setup} workspaces={workspaces} />
       )}
-      <View style={styles.row}>
-        {step > 1 ? (
-          <AutomationButton label="Back" onPress={() => setStep(step - 1)} disabled={props.busy} />
-        ) : null}
-        <View style={styles.grow}>
-          <AutomationButton
-            label={step < 3 ? 'Continue' : props.current ? 'Save changes' : 'Create automation'}
-            primary
-            onPress={next}
-            disabled={disabled || !targets || agentsLoading}
-          />
-        </View>
-      </View>
+      <AutomationEditorNavigation
+        step={step}
+        editing={!!props.current}
+        busy={props.busy}
+        disabled={disabled || !targets || agentsLoading}
+        onBack={() => setStep(step - 1)}
+        onNext={next}
+      />
     </View>
   )
 }

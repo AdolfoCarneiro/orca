@@ -1,24 +1,16 @@
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
+import { getUiIntlLocale } from '../i18n/ui-intl-locale'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { useState } from 'react'
 import { Text, View } from 'react-native'
-import {
-  describeAutomationSchedule,
-  formatAutomationSchedule
-} from '../../../src/shared/automation-schedules'
+import { describeAutomationSchedule } from '../../../src/shared/automation-schedules'
+import { formatAutomationSchedule } from './automation-schedule-label'
 import { buildAutomationCronSchedule } from '../../../src/shared/automation-schedule-occurrences'
 import { AutomationChoice, AutomationField } from './AutomationControls'
 import type { AutomationDraft } from './automation-draft'
 import { automationStyles as styles } from './automation-styles'
 
 type Cadence = 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom'
-const CADENCES: { value: Cadence; label: string }[] = [
-  { value: 'hourly', label: 'Hourly' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekdays', label: 'Weekdays' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'custom', label: 'Custom cron or RRULE' }
-]
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 export function AutomationScheduleFields({
   draft,
   change,
@@ -28,7 +20,20 @@ export function AutomationScheduleFields({
   change: (patch: Partial<AutomationDraft>) => void
   disabled: boolean
 }) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
+  const cadences: { value: Cadence; label: string }[] = [
+    { value: 'hourly', label: t('automations.mobile.hourly', 'Hourly') },
+    { value: 'daily', label: t('automations.mobile.daily', 'Daily') },
+    { value: 'weekdays', label: t('automations.mobile.weekdays', 'Weekdays') },
+    { value: 'weekly', label: t('automations.mobile.weekly', 'Weekly') },
+    { value: 'custom', label: t('automations.mobile.customCronOrRRULE', 'Custom cron or RRULE') }
+  ]
+  const days = Array.from({ length: 7 }, (_, day) =>
+    new Intl.DateTimeFormat(getUiIntlLocale(), { weekday: 'long', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(2024, 0, 7 + day))
+    )
+  )
   const descriptor = describeAutomationSchedule(draft.rrule)
   const [cadence, setCadence] = useState<Cadence>(
     descriptor.kind === 'invalid' ? 'custom' : descriptor.kind
@@ -59,9 +64,9 @@ export function AutomationScheduleFields({
   return (
     <View style={styles.stack}>
       <AutomationChoice
-        label="Cadence"
+        label={t('automations.mobile.cadence', 'Cadence')}
         value={cadence}
-        options={CADENCES}
+        options={cadences}
         disabled={disabled}
         onSelect={(next) => {
           setCadence(next)
@@ -70,7 +75,7 @@ export function AutomationScheduleFields({
       />
       {cadence === 'custom' ? (
         <AutomationField
-          label="Cron or RRULE"
+          label={t('automations.mobile.cronOrRRULE', 'Cron or RRULE')}
           literal
           value={draft.rrule}
           onChange={(rrule) => change({ rrule })}
@@ -79,7 +84,11 @@ export function AutomationScheduleFields({
       ) : (
         <>
           <AutomationField
-            label={cadence === 'hourly' ? 'Minute (from HH:MM)' : 'Time (HH:MM, 24 hour)'}
+            label={
+              cadence === 'hourly'
+                ? t('automations.mobile.minuteFromHHMM', 'Minute (from HH:MM)')
+                : t('automations.mobile.timeHHMM24Hour', 'Time (HH:MM, 24 hour)')
+            }
             literal
             value={time}
             onChange={(next) => {
@@ -88,12 +97,16 @@ export function AutomationScheduleFields({
             }}
             disabled={disabled}
           />
-          {!validTime ? <Text style={styles.error}>Use a time such as 09:00.</Text> : null}
+          {!validTime ? (
+            <Text style={styles.error}>
+              {t('automations.mobile.useATimeSuchAs0900', 'Use a time such as 09:00.')}
+            </Text>
+          ) : null}
           {cadence === 'weekly' ? (
             <AutomationChoice
-              label="Day"
+              label={t('automations.mobile.day', 'Day')}
               value={day}
-              options={DAYS.map((label, index) => ({ value: String(index), label }))}
+              options={days.map((label, index) => ({ value: String(index), label }))}
               onSelect={(next) => {
                 setDay(next)
                 updateSchedule(cadence, time, next)
@@ -104,7 +117,7 @@ export function AutomationScheduleFields({
         </>
       )}
       <AutomationField
-        label="Time zone"
+        label={t('automations.mobile.timeZone', 'Time zone')}
         literal
         value={draft.timezone}
         onChange={(timezone) => change({ timezone })}
@@ -114,7 +127,10 @@ export function AutomationScheduleFields({
         {formatAutomationSchedule(draft.rrule)} · {draft.timezone}
       </Text>
       <Text style={styles.meta}>
-        Runs on the selected host. Keep that host available at the scheduled time.
+        {t(
+          'automations.mobile.runsOnTheSelectedHostKeepThatHostAvailableAtTheScheduledTime',
+          'Runs on the selected host. Keep that host available at the scheduled time.'
+        )}
       </Text>
     </View>
   )

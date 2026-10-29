@@ -1,7 +1,8 @@
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { CalendarClock, ChevronRight } from 'lucide-react-native'
 import { Pressable, Switch, Text, View } from 'react-native'
-import { formatAutomationSchedule } from '../../../src/shared/automation-schedules'
+import { formatAutomationSchedule } from './automation-schedule-label'
 import { colors } from '../theme/mobile-theme'
 import { AutomationButton } from './AutomationControls'
 import type { MobileAutomationRow } from './automation-reply-schema'
@@ -17,22 +18,35 @@ export function AutomationList(props: {
   onOpen: (row: MobileAutomationRow) => void
   onToggle: (row: MobileAutomationRow, enabled: boolean) => void
 }) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   return (
     <View style={styles.stack}>
       <AutomationButton
-        label="New automation"
+        label={t('automations.mobile.newAutomation', 'New automation')}
         onPress={props.onCreate}
         primary
         disabled={props.disabled || !props.loaded}
       />
       {!props.loaded && !props.failed ? (
-        <Text style={styles.meta}>Loading automations…</Text>
+        <Text style={styles.meta}>
+          {t('automations.mobile.loadingAutomations', 'Loading automations…')}
+        </Text>
       ) : props.loaded && props.rows.length === 0 ? (
         <View style={styles.empty}>
           <CalendarClock size={28} color={colors.textMuted} />
-          <Text style={styles.heading}>Let your agents work on a schedule</Text>
-          <Text style={styles.meta}>Create an automation to run a task on this host.</Text>
+          <Text style={styles.heading}>
+            {t(
+              'automations.mobile.letYourAgentsWorkOnASchedule',
+              'Let your agents work on a schedule'
+            )}
+          </Text>
+          <Text style={styles.meta}>
+            {t(
+              'automations.mobile.createAnAutomationToRunATaskOnThisHost',
+              'Create an automation to run a task on this host.'
+            )}
+          </Text>
         </View>
       ) : (
         props.rows.map((row) => {
@@ -51,7 +65,11 @@ export function AutomationList(props: {
                   </View>
                 </Pressable>
                 <Switch
-                  accessibilityLabel={`Run ${automation.name} on schedule`}
+                  accessibilityLabel={t(
+                    'automations.mobile.runOnSchedule',
+                    'Run {{name}} on schedule',
+                    { name: automation.name }
+                  )}
                   value={automation.enabled}
                   onValueChange={(enabled) => props.onToggle(row, enabled)}
                   disabled={props.disabled}
@@ -62,17 +80,26 @@ export function AutomationList(props: {
               </Text>
               <Text style={styles.meta}>
                 {automation.enabled
-                  ? `Next: ${automationDate(automation.nextRunAt, automation.timezone)}`
-                  : 'No next scheduled run'}
+                  ? t('automations.mobile.nextDate', 'Next: {{date}}', {
+                      date: automationDate(automation.nextRunAt, automation.timezone)
+                    })
+                  : t('automations.mobile.noNextScheduledRun', 'No next scheduled run')}
               </Text>
               <Text style={styles.meta}>
                 {item.usageSummary?.lastRunStatus
-                  ? `Last: ${automationRunStatusLabel(item.usageSummary.lastRunStatus)} · ${automationDate(item.usageSummary.lastRunAt)}`
-                  : 'Latest result not reported'}
+                  ? t('automations.mobile.lastResult', 'Last: {{status}} · {{date}}', {
+                      status: automationRunStatusLabel(item.usageSummary.lastRunStatus),
+                      date: automationDate(item.usageSummary.lastRunAt)
+                    })
+                  : t('automations.mobile.latestResultNotReported', 'Latest result not reported')}
               </Text>
               <Text style={styles.meta}>
                 {automation.runContext?.path ?? automation.projectId}
-                {item.selector.kind === 'ssh' ? ` · SSH ${item.selector.targetId}` : ''}
+                {item.selector.kind === 'ssh'
+                  ? t('automations.mobile.sshTarget', ' · SSH {{target}}', {
+                      target: item.selector.targetId
+                    })
+                  : ''}
               </Text>
               {item.selector.kind === 'orphan' ? (
                 <Text style={styles.error}>{item.selector.issue}</Text>

@@ -1,3 +1,4 @@
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { Pressable, Text, View } from 'react-native'
 import { ChevronRight } from 'lucide-react-native'
@@ -19,6 +20,7 @@ export function AutomationRunList(props: {
   recent?: boolean
   onSelect: (run: MobileAutomationRun) => void
 }) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   const history = props.history
   const matches = history.runs.filter((run) => runMatchesOutcome(run, props.outcome ?? 'all'))
@@ -31,27 +33,38 @@ export function AutomationRunList(props: {
             {history.error}
           </Text>
           <AutomationButton
-            label="Retry history"
+            label={t('automations.mobile.retryHistory', 'Retry history')}
             onPress={history.reload}
             disabled={!props.connected || history.loading}
           />
         </>
       ) : null}
       {history.loading && history.runs.length === 0 ? (
-        <Text style={styles.meta}>Loading runs…</Text>
+        <Text style={styles.meta}>{t('automations.mobile.loadingRuns', 'Loading runs…')}</Text>
       ) : null}
       {!history.loading && visible.length === 0 ? (
         <Text style={styles.meta}>
           {history.cursor
-            ? 'No matching runs in the loaded history. Load more to continue.'
-            : 'No matching runs yet.'}
+            ? t(
+                'automations.mobile.noMatchingRunsInTheLoadedHistoryLoadMoreToContinue',
+                'No matching runs in the loaded history. Load more to continue.'
+              )
+            : t('automations.mobile.noMatchingRunsYet', 'No matching runs yet.')}
         </Text>
       ) : null}
       {visible.map((run) => (
         <Pressable
           key={run.id}
           accessibilityRole="button"
-          accessibilityLabel={`${run.title}, ${automationRunStatusLabel(run.status)}, ${automationDate(run.scheduledFor)}`}
+          accessibilityLabel={t(
+            'automations.mobile.runSummary',
+            '{{title}}, {{status}}, {{date}}',
+            {
+              title: run.title,
+              status: automationRunStatusLabel(run.status),
+              date: automationDate(run.scheduledFor)
+            }
+          )}
           onPress={() => props.onSelect(run)}
           style={styles.card}
         >
@@ -62,7 +75,9 @@ export function AutomationRunList(props: {
           <Text style={styles.text}>{automationRunStatusLabel(run.status)}</Text>
           <Text style={styles.meta}>
             {automationDate(run.scheduledFor)} ·{' '}
-            {run.trigger === 'manual' ? 'Run now' : 'Scheduled'}
+            {run.trigger === 'manual'
+              ? t('automations.mobile.runNow', 'Run now')
+              : t('automations.mobile.scheduled', 'Scheduled')}
           </Text>
           {run.workspaceDisplayName ? (
             <Text style={styles.meta}>{run.workspaceDisplayName}</Text>
@@ -71,7 +86,11 @@ export function AutomationRunList(props: {
       ))}
       {!props.recent && history.cursor ? (
         <AutomationButton
-          label={history.loading ? 'Loading…' : 'Load more runs'}
+          label={
+            history.loading
+              ? t('automations.mobile.loading', 'Loading…')
+              : t('automations.mobile.loadMoreRuns', 'Load more runs')
+          }
           onPress={history.loadMore}
           disabled={history.loading || !props.connected}
         />

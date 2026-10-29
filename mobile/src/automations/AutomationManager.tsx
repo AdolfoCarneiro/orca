@@ -1,3 +1,4 @@
+import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import { useAutomationRuns, type AutomationRunScope } from './use-automation-runs'
 import { useState } from 'react'
@@ -38,6 +39,7 @@ export function AutomationManager(props: {
   hostId: string
   executionHost?: ExecutionHostId
 }) {
+  const t = useMobileTranslation()
   useMobileColorScheme()
   const catalog = useAutomationCatalog(props.client, !!props.executionHost)
   const [view, setView] = useState<AutomationView>({ kind: 'list' })
@@ -236,8 +238,8 @@ export function AutomationManager(props: {
         <MobileSegmentedControl
           fill
           segments={[
-            { value: 'automations', label: 'Automations' },
-            { value: 'runs', label: 'Runs' }
+            { value: 'automations', label: t('automations.mobile.automations', 'Automations') },
+            { value: 'runs', label: t('automations.mobile.runs', 'Runs') }
           ]}
           selected={tab}
           onSelect={(next) => {
@@ -248,8 +250,10 @@ export function AutomationManager(props: {
         />
         {!catalog.connected ? (
           <Text style={styles.meta}>
-            Reconnect to this host to refresh or make changes. Saved information remains available
-            below.
+            {t(
+              'automations.mobile.reconnectToThisHostToRefreshOrMakeChangesSavedInformationRemainsAvailableBelow',
+              'Reconnect to this host to refresh or make changes. Saved information remains available below.'
+            )}
           </Text>
         ) : null}
         {catalog.error ? (
@@ -258,7 +262,7 @@ export function AutomationManager(props: {
               {catalog.error}
             </Text>
             <AutomationButton
-              label="Refresh"
+              label={t('automations.mobile.refresh', 'Refresh')}
               onPress={() => void catalog.refresh(true)}
               disabled={disabled}
             />
@@ -293,7 +297,7 @@ export function AutomationManager(props: {
               onDelete={() => setDeleting(row)}
               onRuns={() => allRuns(row.automation.id)}
             />
-            <Text style={styles.heading}>Recent runs</Text>
+            <Text style={styles.heading}>{t('automations.mobile.recentRuns', 'Recent runs')}</Text>
             <AutomationRunList
               history={history}
               connected={catalog.connected}
@@ -336,10 +340,10 @@ export function AutomationManager(props: {
         {view.kind === 'list' && tab === 'runs' ? (
           <View style={styles.stack}>
             <AutomationChoice
-              label="Automation"
+              label={t('automations.mobile.automation', 'Automation')}
               value={filterId}
               options={[
-                { value: '', label: 'All automations' },
+                { value: '', label: t('automations.mobile.allAutomations', 'All automations') },
                 ...catalog.rows.map((entry) => ({
                   value: entry.automation.id,
                   label: entry.automation.name
@@ -348,14 +352,17 @@ export function AutomationManager(props: {
               onSelect={selectFilter}
             />
             <AutomationChoice
-              label="Outcome"
+              label={t('automations.mobile.outcome', 'Outcome')}
               value={outcome}
               options={[
-                { value: 'all', label: 'All outcomes' },
-                { value: 'active', label: 'In progress' },
-                { value: 'completed', label: 'Completed' },
-                { value: 'dispatch_failed', label: 'Could not start' },
-                { value: 'skipped', label: 'Skipped' }
+                { value: 'all', label: t('automations.mobile.allOutcomes', 'All outcomes') },
+                { value: 'active', label: t('automations.mobile.inProgress', 'In progress') },
+                { value: 'completed', label: t('automations.mobile.completed', 'Completed') },
+                {
+                  value: 'dispatch_failed',
+                  label: t('automations.mobile.couldNotStart', 'Could not start')
+                },
+                { value: 'skipped', label: t('automations.mobile.skipped', 'Skipped') }
               ]}
               onSelect={setOutcome}
             />
@@ -370,9 +377,13 @@ export function AutomationManager(props: {
       </ScrollView>
       <ConfirmModal
         visible={deleting !== null}
-        title="Delete automation?"
-        message={`Delete “${deleting?.automation.name ?? ''}” and its retained runs?`}
-        confirmLabel="Delete automation"
+        title={t('automations.mobile.deleteAutomationTitle', 'Delete automation?')}
+        message={t(
+          'automations.mobile.deleteRetained',
+          'Delete “{{name}}” and its retained runs?',
+          { name: deleting?.automation.name ?? '' }
+        )}
+        confirmLabel={t('automations.mobile.deleteAutomation', 'Delete automation')}
         destructive
         onCancel={() => setDeleting(null)}
         onConfirm={() => {
