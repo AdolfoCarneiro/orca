@@ -1,14 +1,11 @@
 import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
-import type { ExecutionHostId } from '../../../shared/execution-host'
+import { getRepoExecutionHostId, type ExecutionHostId } from '../../../shared/execution-host'
 import type { Worktree } from '../../../shared/worktree/types'
 import type { HostWorktreeTarget } from '../../../shared/worktree/host-qualified-identity'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import { findIndexedWorktreeOwnerForHost } from '@/lib/worktree-runtime-owner-index'
 import type { AppState } from './types'
-import {
-  folderWorkspaceMatchesHost,
-  getFolderWorkspaceWorktree
-} from './slices/worktrees/listing/detected-worktree-meta'
+import { getFolderWorkspaceWorktree } from './slices/worktrees/listing/detected-worktree-meta'
 
 // Route workspace readers here; check-workspace-record-read-ratchet.mjs enforces this boundary.
 
@@ -36,7 +33,7 @@ export function selectDetectedWorktreesByRepo<TState extends { detectedWorktrees
 
 const folderRecordsById = new WeakMap<
   readonly FolderWorkspace[],
-  ReadonlyMap<string, readonly FolderWorkspace[]>
+  ReadonlyMap<string, FolderWorkspace>
 >()
 
 /** Directory readers preserve catalog order, including unqualified twin rows. */
@@ -47,22 +44,19 @@ export function findFolderWorkspaceRecord(
 ): FolderWorkspace | undefined {
   let index = folderRecordsById.get(folderWorkspaces)
   if (!index) {
-    const rows = new Map<string, FolderWorkspace[]>()
+    const rows = new Map<string, FolderWorkspace>()
     for (const folder of folderWorkspaces) {
-      const matches = rows.get(folder.id)
-      if (matches) {
-        matches.push(folder)
-      } else {
-        rows.set(folder.id, [folder])
+      const id = folder.id
+      for (const key of [id, `${id}\0${getRepoExecutionHostId(folder)}`]) {
+        if (!rows.has(key)) {
+          rows.set(key, folder)
+        }
       }
     }
     index = rows
     folderRecordsById.set(folderWorkspaces, index)
   }
-  const matches = index.get(folderWorkspaceId)
-  return hostId
-    ? matches?.find((folder) => folderWorkspaceMatchesHost(folder, hostId))
-    : matches?.[0]
+  return index.get(hostId ? `${folderWorkspaceId}\0${hostId}` : folderWorkspaceId)
 }
 
 /**

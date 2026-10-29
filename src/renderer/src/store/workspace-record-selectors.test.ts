@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { hostWorktreeTarget } from '../../../shared/worktree/host-qualified-identity'
 import { folderWorkspaceKey } from '../../../shared/workspace-scope'
 import type { AppState } from './types'
+import { resolveIndexedFolderWorkspaceOwner } from '@/lib/worktree-runtime-owner-index'
 import { makeFolderWorkspace, makeWorktree } from './slices/worktrees-slice-test-fixtures'
 import {
   selectDetectedWorktreesByRepo,
@@ -97,6 +98,11 @@ it('preserves first matching folder and host semantics across indexed reads and 
   })
   const laterLocal = { ...folder, folderPath: '/later' }
   const rows = [remote, folder, laterLocal]
+  expect(resolveIndexedFolderWorkspaceOwner(rows, folder.id).kind).toBe('ambiguous')
+  expect(resolveIndexedFolderWorkspaceOwner(rows, folder.id, 'local')).toEqual({
+    kind: 'resolved',
+    owner: laterLocal
+  })
   expect(findFolderWorkspaceRecord(rows, folder.id)).toBe(remote)
   expect(findFolderWorkspaceRecord(rows, folder.id, 'local')).toBe(folder)
   expect(findFolderWorkspaceRecord(rows, folder.id, 'ssh:build-box')).toBe(remote)

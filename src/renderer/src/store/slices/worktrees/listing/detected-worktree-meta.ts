@@ -6,7 +6,8 @@ import type { DetectedWorktreeListResult, Worktree } from '../../../../../../sha
 import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import {
   LOCAL_EXECUTION_HOST_ID,
-  getRepoExecutionHostId
+  getRepoExecutionHostId,
+  parseExecutionHostId
 } from '../../../../../../shared/execution-host'
 import { parseWorkspaceKey } from '../../../../../../shared/workspace-scope'
 import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../../../../../shared/sidebar-inputs-switch'
@@ -17,7 +18,6 @@ import {
 } from '../../../../../../shared/floating-workspace-worktree'
 import { findIndexedDetectedWorktrees } from '@/lib/worktree-runtime-owner-index'
 import { findWorktreeById, withoutErasedRequiredWorktreeFields } from '../../worktree-helpers'
-import { worktreeMatchesHost } from './worktree-host-ownership'
 import { hostWorktreeTarget } from '../../../../../../shared/worktree/host-qualified-identity'
 import {
   selectFolderWorkspaces,
@@ -130,17 +130,46 @@ export function findKnownWorktreeById(
     state.detectedWorktreesByRepo,
     worktreeId
   ) as DetectedWorktreeListResult['worktrees']
-  for (const detected of detectedCandidates) {
-    if (
-      !executionHostId ||
-      worktreeMatchesHost(detected, executionHostId, {
-        unhostedWorktreesMatchHost: executionHostId === LOCAL_EXECUTION_HOST_ID
-      })
-    ) {
-      return detected
-    }
+  return executionHostId
+    ? firstDetectedDirectoryForHost(detectedCandidates, executionHostId)
+    : detectedCandidates[0]
+}
+
+type DetectedDirectoryRow = DetectedWorktreeListResult['worktrees'][number]
+const detectedDirectoryIndexes = new WeakMap<
+  readonly DetectedDirectoryRow[],
+  ReadonlyMap<string, { row: DetectedDirectoryRow; position: number }>
+>()
+
+function firstDetectedDirectoryForHost(
+  rows: readonly DetectedDirectoryRow[],
+  hostId: ExecutionHostId
+): DetectedDirectoryRow | undefined {
+  if (!rows.length) {
+    return undefined
   }
-  return undefined
+  let index = detectedDirectoryIndexes.get(rows)
+  if (!index) {
+    const next = new Map<string, { row: DetectedDirectoryRow; position: number }>()
+    rows.forEach((row, position) => {
+      // Directory matching gives raw logical ownership precedence over physical host spelling.
+      const key = row.runtimeOwnerEnvironmentId
+        ? `owner\0${row.runtimeOwnerEnvironmentId}`
+        : `host\0${row.hostId || LOCAL_EXECUTION_HOST_ID}`
+      if (!next.has(key)) {
+        next.set(key, { row, position })
+      }
+    })
+    index = next
+    detectedDirectoryIndexes.set(rows, index)
+  }
+  const physical = index.get(`host\0${hostId}`)
+  const parsed = parseExecutionHostId(hostId)
+  const logical =
+    parsed?.kind === 'runtime' ? index.get(`owner\0${parsed.environmentId}`) : undefined
+  return logical && (!physical || logical.position < physical.position)
+    ? logical.row
+    : physical?.row
 }
 
 export function getFolderWorkspaceMetaUpdates(

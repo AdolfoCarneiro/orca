@@ -11,6 +11,7 @@ import {
 } from './native-chat-image-runtime-context'
 import {
   detectedListingFixture,
+  nativeChatFanoutFixture,
   agentSessionTabFixture,
   repoFixture,
   worktreeFixture
@@ -343,3 +344,251 @@ it('shares cold all-rival transport aggregation without losing ambiguity or cata
     view.unmount()
   }
 })
+
+for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
+  it.each(['inactive-detected', 'folder-twins', 'detected-twins', 'unstamped-project'] as const)(
+    `shares all directory and explicit-route derivation for %s (${mode})`,
+    async (kind) => {
+      for (const n of [10, 100]) {
+        let operations = 0,
+          commits = 0,
+          renders = 0
+        const meter = <T extends object, K extends keyof T>(row: T, key: K): T => {
+          const value = row[key]
+          Object.defineProperty(row, key, {
+            enumerable: true,
+            get: () => {
+              operations++
+              return value
+            }
+          })
+          return row
+        }
+        const folderCase = kind === 'folder-twins'
+        const unstamped = kind === 'unstamped-project'
+        const fixture = nativeChatFanoutFixture(n, 1, 0)
+        const ws = folderCase ? 'folder:workspace-0' : 'wt-0'
+        const known = worktreeFixture(
+          ws,
+          '/own',
+          unstamped
+            ? {}
+            : {
+                hostId: 'ssh:ssh-1',
+                runtimeOwnerEnvironmentId: 'owner-a'
+              }
+        )
+        const detected = Array.from({ length: n }, (_, index) =>
+          meter(
+            worktreeFixture(
+              ws,
+              kind === 'detected-twins' && index < n - 1 ? '/other' : '/own',
+              unstamped
+                ? {}
+                : kind === 'detected-twins' && index < n - 1
+                  ? { hostId: `runtime:other-${index}` }
+                  : { hostId: 'ssh:ssh-1', runtimeOwnerEnvironmentId: 'owner-a' }
+            ),
+            'runtimeOwnerEnvironmentId'
+          )
+        )
+        const folders = Array.from({ length: n }, (_, index) =>
+          meter(
+            {
+              ...fixture.folderWorkspaces[0]!,
+              folderPath: index === n - 1 ? '/own' : '/other',
+              executionHostId:
+                index === n - 1 ? ('runtime:owner-a' as const) : (`runtime:other-${index}` as const)
+            },
+            'executionHostId'
+          )
+        )
+        const repos = unstamped
+          ? Array.from({ length: n }, (_, index) =>
+              meter(
+                repoFixture({
+                  executionHostId: index % 2 ? 'runtime:owner-a' : 'local'
+                }),
+                'id'
+              )
+            )
+          : [repoFixture({ executionHostId: 'runtime:owner-a' })]
+        useAppStore.setState(
+          {
+            ...initial,
+            ...fixture,
+            repos,
+            worktreesByRepo: folderCase || kind === 'detected-twins' ? {} : { repo: [known] },
+            detectedWorktreesByRepo: folderCase
+              ? {}
+              : { repo: { ...detectedListingFixture([]), worktrees: detected } },
+            folderWorkspaces: folderCase ? folders : [],
+            unifiedTabsByWorktree: {
+              [ws]: Array.from({ length: n }, (_, i) => agentSessionTabFixture(`chat-${i}`, ws))
+            },
+            activeWorktreeId: folderCase || kind === 'detected-twins' ? ws : 'different-workspace',
+            activeWorkspaceExecutionHostId:
+              folderCase || kind === 'detected-twins' ? 'runtime:owner-a' : 'local',
+            sshStateByEnvironment: new Map([['owner-a', ssh(3)]])
+          },
+          true
+        )
+        const contexts: NativeChatImageRuntimeContext[] = []
+        function Probe({ index }: { index: number }) {
+          contexts[index] = useNativeChatImageRuntimeContext(`chat-${index}`)
+          renders++
+          return null
+        }
+        operations = 0
+        const view = render(
+          Array.from({ length: n }, (_, index) => (
+            <Profiler key={index} id={String(index)} onRender={() => commits++}>
+              <NativeChatTextAttachmentScope tabId={`chat-${index}`} enabled={mode !== 'disabled'}>
+                {mode === 'with-probe' ? <Probe index={index} /> : <span />}
+              </NativeChatTextAttachmentScope>
+            </Profiler>
+          ))
+        )
+        await act(async () => {})
+        const bound = mode === 'disabled' ? 0 : 20 * n
+        expect(operations).toBeLessThanOrEqual(bound)
+        if (mode === 'with-probe') {
+          expect(contexts).toHaveLength(n)
+          expect(contexts.every((context) => context?.worktreePath === '/own')).toBe(true)
+          expect(contexts[0]?.target).toEqual(
+            unstamped ? { kind: 'local' } : { kind: 'environment', environmentId: 'owner-a' }
+          )
+        }
+        const metrics = [{ event: 'cold', operations, commits, renders }]
+        const check = async (
+          event: string,
+          patch: Partial<AppState>,
+          changed = false,
+          expectedPath: string | null = '/own',
+          limit = bound
+        ) => {
+          operations = 0
+          commits = 0
+          renders = 0
+          await act(async () => useAppStore.setState(patch))
+          expect(operations).toBeLessThanOrEqual(limit)
+          expect(commits).toBe(changed && mode !== 'disabled' ? n : 0)
+          expect(renders).toBe(changed && mode === 'with-probe' ? n : 0)
+          if (mode === 'with-probe') {
+            expect(
+              contexts.every((context) =>
+                expectedPath === null ? context === null : context?.worktreePath === expectedPath
+              )
+            ).toBe(true)
+          }
+          metrics.push({ event, operations, commits, renders })
+        }
+        await check('known replacement', {
+          worktreesByRepo: { ...useAppStore.getState().worktreesByRepo }
+        })
+        await check(
+          'directory catalog replacement',
+          folderCase
+            ? { folderWorkspaces: [...folders] }
+            : {
+                detectedWorktreesByRepo: {
+                  repo: { ...detectedListingFixture([]), worktrees: [...detected] }
+                }
+              }
+        )
+        await check('repo replacement', { repos: [...repos] })
+        await check(
+          'other host',
+          {
+            sshStateByEnvironment: new Map([
+              ['owner-a', ssh(3)],
+              ['other', ssh(8)]
+            ])
+          },
+          false,
+          '/own',
+          0
+        )
+        if (kind === 'inactive-detected') {
+          for (const generation of [4, null, 5]) {
+            await check(
+              'own generation',
+              {
+                sshStateByEnvironment: new Map([
+                  [
+                    'owner-a',
+                    generation === null
+                      ? { ...ssh(3), connectionStates: new Map() }
+                      : ssh(generation)
+                  ]
+                ])
+              },
+              true,
+              generation === null ? null : '/own',
+              0
+            )
+            if (mode === 'with-probe' && generation !== null) {
+              expect(
+                contexts.every((context) => context?.expectedSshConnectionGeneration === generation)
+              ).toBe(true)
+            }
+          }
+        }
+        if (!folderCase && kind !== 'detected-twins') {
+          const rival = worktreeFixture(ws, '/rival', {
+            hostId: 'ssh:ssh-1',
+            runtimeOwnerEnvironmentId: 'owner-b'
+          })
+          await check(
+            'nonfirst rival',
+            {
+              detectedWorktreesByRepo: {
+                repo: { ...detectedListingFixture([]), worktrees: [...detected, rival] }
+              }
+            },
+            true,
+            null
+          )
+          await check(
+            'rival removed',
+            {
+              detectedWorktreesByRepo: {
+                repo: { ...detectedListingFixture([]), worktrees: detected }
+              }
+            },
+            true
+          )
+        }
+        if (unstamped) {
+          await check(
+            'SSH repo sibling',
+            { repos: [...repos, repoFixture({ executionHostId: 'ssh:ssh-1' })] },
+            true,
+            null
+          )
+          await check('SSH repo sibling removed', { repos: [...repos] }, true)
+        }
+        const ownPath = folderCase
+          ? {
+              folderWorkspaces: [
+                ...folders.slice(0, -1),
+                { ...folders[n - 1]!, folderPath: '/changed' }
+              ]
+            }
+          : kind === 'detected-twins'
+            ? {
+                detectedWorktreesByRepo: {
+                  repo: {
+                    ...detectedListingFixture([]),
+                    worktrees: [...detected.slice(0, -1), { ...detected[n - 1]!, path: '/changed' }]
+                  }
+                }
+              }
+            : { worktreesByRepo: { repo: [{ ...known, path: '/changed' }] } }
+        await check('own path', ownPath, true, '/changed')
+        console.info('attachment-catalog-derivation', JSON.stringify({ mode, kind, n, metrics }))
+        view.unmount()
+      }
+    }
+  )
+}
