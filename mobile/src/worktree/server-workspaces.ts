@@ -107,9 +107,24 @@ export function applyServerWorkspaces(
   previous: ServerWorkspaces,
   fetched: FetchedServerWorkspaces
 ): ServerWorkspaces {
+  let previousByHost: Map<ExecutionHostId | undefined, Worktree[]> | undefined
+  const previousRows = (hostId: ExecutionHostId): readonly Worktree[] => {
+    if (previousByHost === undefined) {
+      previousByHost = new Map()
+      for (const row of previous.worktrees) {
+        const host = row.hostId
+        const rows = previousByHost.get(host)
+        if (rows) {
+          rows.push(row)
+        } else {
+          previousByHost.set(host, [row])
+        }
+      }
+    }
+    return previousByHost.get(hostId) ?? []
+  }
   const worktrees = fetched.hosts.flatMap(
-    (host, index) =>
-      fetched.rows[index] ?? previous.worktrees.filter((row) => row.hostId === host.hostId)
+    (host, index) => fetched.rows[index] ?? previousRows(host.hostId)
   )
   // Keep hosts identity when only rows change; screens key their per-server clients on it.
   const hosts =

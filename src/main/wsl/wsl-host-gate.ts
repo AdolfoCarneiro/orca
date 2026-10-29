@@ -4,6 +4,7 @@ import {
   isWslHostsInternalGateOpen,
   noteWslHostsPolicyBlocked,
   noteWslHostsServeOnly,
+  publishWslHostsGateState,
   resolveWslHostsGateState,
   type WslHostsGateState
 } from '../../shared/wsl-host-internal-gate'
@@ -11,8 +12,6 @@ import type { OrcadDeploymentLink } from '../../shared/runtime-environments'
 import type { WslHostsPolicyState } from '../../shared/wsl-hosts-policy'
 
 export const WSL_HOSTS_GATED_OFF_MESSAGE = 'WSL hosts are not available in this build.'
-export const WSL_HOSTS_NEW_WORK_PAUSED_MESSAGE =
-  'Adding WSL hosts and moving projects onto them is paused in this build. Your saved WSL hosts keep working.'
 
 // Fixed for the run once main reads the disk; nothing can create a host or a move while not open.
 let promoted: { hasSavedWslHost: boolean; hasWslMoveCutover: boolean } | null = null
@@ -58,22 +57,23 @@ export function configureWslHostsGate(facts: {
   policy?: () => WslHostsPolicyState
 }): void {
   notePolicy(readPolicy(facts.policy))
-  if (wslHostsGateOpen()) {
-    promoted = null
-    noteWslHostsServeOnly(false)
-    return
-  }
-  promoted = {
-    hasSavedWslHost: readFact(facts.hasSavedWslHost),
-    hasWslMoveCutover: readFact(facts.hasWslMoveCutover)
-  }
-  noteWslHostsServeOnly(wslHostsGateState() === 'serve-only')
+  promoted = wslHostsGateOpen()
+    ? null
+    : {
+        hasSavedWslHost: readFact(facts.hasSavedWslHost),
+        hasWslMoveCutover: readFact(facts.hasWslMoveCutover)
+      }
+  const state = wslHostsGateState()
+  noteWslHostsServeOnly(state === 'serve-only')
+  // Children inherit ORCA_INTERNAL_WSL_HOSTS even when a block closed it; this tells them the truth.
+  publishWslHostsGateState(process.env, state)
 }
 
 export function resetWslHostsGateForTests(): void {
   promoted = null
   noteWslHostsServeOnly(false)
   notePolicy(null)
+  publishWslHostsGateState(process.env, null)
 }
 
 export function wslHostsGateState(): WslHostsGateState {

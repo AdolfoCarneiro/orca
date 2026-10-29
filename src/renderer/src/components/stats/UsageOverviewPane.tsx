@@ -285,23 +285,15 @@ export function UsageOverviewPane(): React.JSX.Element {
           </div>
           <Badge variant="outline" className="gap-1">
             <Activity className="size-3" />
-            {overview.sessions === 1
-              ? translate(
-                  'auto.components.stats.UsageOverviewPane.sessionCount_one',
-                  '{{formatted}} session',
-                  {
-                    count: overview.sessions,
-                    formatted: overview.sessions.toLocaleString()
-                  }
-                )
-              : translate(
-                  'auto.components.stats.UsageOverviewPane.sessionCount_other',
-                  '{{formatted}} sessions',
-                  {
-                    count: overview.sessions,
-                    formatted: overview.sessions.toLocaleString()
-                  }
-                )}
+            {translate(
+              'auto.components.stats.UsageOverviewPane.sessionCount',
+              '{{formatted}} sessions',
+              {
+                count: overview.sessions,
+                formatted: overview.sessions.toLocaleString(),
+                defaultValue_one: '{{formatted}} session'
+              }
+            )}
           </Badge>
         </div>
         <div className="grid gap-3 xl:grid-cols-2">
