@@ -157,7 +157,6 @@
       "clickModifier": "Tıklamalarda {{key}} tuşunu kullan"
     },
     "useBrowserCommands": {
-      "deliveryUnconfirmed": "Gönderim doğrulanamadı — yeniden denemeden önce sayfayı kontrol edin",
       "dialogAnswerFailed": "Yanıt sayfaya ulaşmadı.",
       "sent": "Gönderildi"
     },
@@ -227,6 +226,10 @@
     },
     "nativeChatProse": {
       "attachedImage": "Ekli görsel",
+      "continuedOutside": "Bu sohbetin dışında devam edildi.",
+      "continuedOutsideRewound": "Bu sohbetin dışında devam edildi. Yukarıdaki önceki yanıtlar artık bu sohbetin geçmişinde yer almıyor.",
+      "historyItemTooLarge": "Sohbetin bu bölümü gösterilemeyecek kadar büyüktü.",
+      "historyRepaired": "Bu sohbetin geçmişinin bir bölümü yüklenemedi.",
       "image": "görsel",
       "openImageHint": "Görseli tam boyutta açar"
     },
@@ -527,7 +530,7 @@
     "agentLaunchNotice": {
       "copyFailed": "Kopyalanamadı",
       "copyPrompt": "İstemi kopyala",
-      "statusUnreadable": "Bu ana makinenin durumu okunamadı. Yeniden deneniyor…",
+      "statusUnreadable": "Bu sunucunun durumu okunamadı. Yeniden deneniyor…",
       "updateRequired": "Telefonunuzdan ajan başlatmak için bilgisayarınızdaki Orca'yı güncelleyin."
     },
     "agentSpinner": {
@@ -543,7 +546,7 @@
     },
     "authFailedBannerActions": {
       "repair": "Yeniden eşleştir",
-      "webNote": "Orca uygulamasından bu ana makineye yeniden bağlanın veya ana makineyi kaldırın."
+      "webNote": "Orca uygulamasından bu sunucuya yeniden bağlanın veya sunucuyu kaldırın."
     },
     "codexResetCredit": {
       "alreadyAppliedTitle": "Sıfırlama zaten uygulandı",
@@ -562,7 +565,7 @@
       "expiryNowMultiple": "Sıradaki şimdi sona eriyor",
       "expiryNowSingle": "Şimdi sona eriyor",
       "invalidResponse": "Sunucudan geçersiz sıfırlama yanıtı",
-      "noResetMessage": "Bu hesabın kullanabileceği kazanılmış sıfırlama kredisi yok.",
+      "noResetMessage": "Bu hesabın kullanabileceği kazanılmış sıfırlama hakkı yok.",
       "noResetTitle": "Sıfırlama hakkı yok",
       "nothingToResetMessage": "Sıfırlamaya uygun hiçbir Codex hız sınırı penceresinde kullanım hakkı tükenmedi.",
       "nothingToResetTitle": "Sıfırlanacak bir şey yok",
@@ -575,7 +578,7 @@
       "resetting": "Sıfırlanıyor…",
       "resettingLabel": "Codex hız sınırları sıfırlanıyor",
       "scopedHint": "{{scopeLabel}} için kazanılmış bir sıfırlama hakkı kullanır",
-      "useReset": "Sıfırla",
+      "useReset": "Sıfırlama hakkını kullan",
       "useResetLabel": "Codex hız sınırı sıfırlama hakkını kullan"
     },
     "customKeyModal": {
@@ -698,15 +701,15 @@
       "discard": "At",
       "discardFile": "Dosya değişikliklerini at",
       "markFileReviewed": "Dosyayı incelendi olarak işaretle",
-      "markReviewed": "İncelenmiş Say",
+      "markReviewed": "İncelendi Olarak İşaretle",
       "nextFile": "Sonraki dosya",
       "note": "Not",
       "previousFile": "Önceki dosya",
       "reviewed": "İncelendi",
       "stage": "Stage Et",
       "stageFile": "Dosyayı stage et",
-      "unstage": "Unstage Et",
-      "unstageFile": "Dosyayı unstage et"
+      "unstage": "Stage'den Çıkar",
+      "unstageFile": "Dosyayı stage'den çıkar"
     },
     "diffReviewHeader": {
       "filterAll": "Tümü",
@@ -763,7 +766,7 @@
       "viewDiagnostics": "Ağ tanılamasını görüntüle"
     },
     "hostProtocolGate": {
-      "checkingCompatibility": "Ana makine uyumluluğu kontrol ediliyor"
+      "checkingCompatibility": "Sunucu uyumluluğu kontrol ediliyor"
     },
     "hostRouteNoticeBanner": {
       "dismissNotice": "Bildirimi kapat"
@@ -942,18 +945,18 @@
       "shortcutBarDescription": "Tuşları gösterip gizlemek için düğmeleri açıp kapatın. Terminal kısayol çubuğunda bir tuşun sırasını değiştirmek için tutamacını basılı tutup sürükleyin."
     },
     "useCodexResetCreditAction": {
-      "confirmTitle": "Hız sınırı sıfırlama kredisi kullanılsın mı?",
+      "confirmTitle": "Hız sınırı sıfırlama hakkı kullanılsın mı?",
       "detailsChanged": "Sıfırlama ayrıntıları değişti",
       "detailsChangedMessage": "Sunucu Codex ile iletişime geçmeden önce hesap veya sıfırlama teklifi değişti. Güncellenen ayrıntıları inceleyin, ardından yeniden onaylayın.",
       "hostAccount": "Sunucudaki {{identity}}",
-      "hostAccountConfirmMessage": "Bu işlem, sunucudaki {{identity}} hesabı için kazanılmış bir sıfırlama kredisi kullanır ve uygun hız sınırı pencerelerini hemen sıfırlar.",
+      "hostAccountConfirmMessage": "Bu işlem, sunucudaki {{identity}} hesabı için kazanılmış bir sıfırlama hakkı kullanır ve uygun hız sınırı pencerelerini hemen sıfırlar.",
       "hostSelectedAccount": "sunucudaki seçili yönetilen hesap",
-      "hostSelectedAccountConfirmMessage": "Bu işlem, sunucudaki seçili yönetilen hesap için kazanılmış bir sıfırlama kredisi kullanır ve uygun hız sınırı pencerelerini hemen sıfırlar.",
+      "hostSelectedAccountConfirmMessage": "Bu işlem, sunucudaki seçili yönetilen hesap için kazanılmış bir sıfırlama hakkı kullanır ve uygun hız sınırı pencerelerini hemen sıfırlar.",
       "resetFailed": "Hız sınırları sıfırlanamadı",
       "wslAccount": "WSL {{distro}} üzerindeki {{identity}}",
-      "wslAccountConfirmMessage": "Bu işlem, WSL {{distro}} üzerindeki {{identity}} hesabı için kazanılmış bir sıfırlama kredisi kullanır ve uygun hız sınırı pencerelerini hemen sıfırlar.",
+      "wslAccountConfirmMessage": "Bu işlem, WSL {{distro}} üzerindeki {{identity}} hesabı için kazanılmış bir sıfırlama hakkı kullanır ve uygun hız sınırı pencerelerini hemen sıfırlar.",
       "wslSelectedAccount": "WSL {{distro}} üzerindeki seçili yönetilen hesap",
-      "wslSelectedAccountConfirmMessage": "Bu işlem, WSL {{distro}} üzerindeki seçili yönetilen hesap için kazanılmış bir sıfırlama kredisi kullanır ve uygun hız sınırı pencerelerini hemen sıfırlar."
+      "wslSelectedAccountConfirmMessage": "Bu işlem, WSL {{distro}} üzerindeki seçili yönetilen hesap için kazanılmış bir sıfırlama hakkı kullanır ve uygun hız sınırı pencerelerini hemen sıfırlar."
     },
     "voiceModelList": {
       "deleteModel": "{{label}} modelini sil",
@@ -991,7 +994,7 @@
       "connectingViaRelay": "Relay üzerinden bağlanılıyor…",
       "desktopUnreachable": "Bilgisayara ulaşılamadı",
       "disconnected": "Bağlantı kesildi",
-      "hostFallback": "Ana Makine",
+      "hostFallback": "Sunucu",
       "hostOffline": "{{host}} çevrimdışı",
       "hostOfflineDetail": "Bilgisayarınızın uyanık, Orca'nın çalışır durumda ve oturumunuzun açık olduğunu kontrol edin",
       "labelWithHint": "{{label}} — {{hint}}",
@@ -1012,13 +1015,13 @@
       "directViaTailscale": "Tailscale üzerinden doğrudan"
     },
     "hostEndpoint": {
-      "addressRequired": "Bir ana makine adresi girin.",
+      "addressRequired": "Bir sunucu adresi girin.",
       "hostnameRequired": "Ana makine adı eksik.",
       "invalidAddress": "Geçerli bir adres değil.",
       "invalidHostname": "Geçerli bir ana makine adı değil.",
       "invalidPort": "Port 1–65535 aralığında olmalıdır.",
       "invalidScheme": "ws:// veya wss:// (ya da host:port) kullanın.",
-      "pathOrQueryNotAllowed": "Ana makine adresi yol veya sorgu içermemelidir."
+      "pathOrQueryNotAllowed": "Sunucu adresi yol veya sorgu içermemelidir."
     },
     "pairConfirmState": {
       "invalidCode": "Geçerli bir eşleştirme kodu değil",
@@ -1418,7 +1421,7 @@
       "agentActivitySort": "Ajan Etkinliği",
       "agentActivitySortDescription": "Önce ilgilenilmesi gereken ajanlar, ardından en son etkinlik.",
       "agentStatuses": "Ajan durumları",
-      "allHosts": "Tüm ana makineler",
+      "allHosts": "Tüm sunucular",
       "allProjects": "Tüm projeler",
       "automation": "Otomasyon",
       "branchFolderPath": "Branch / klasör yolu",
@@ -1428,7 +1431,7 @@
       "fullList": "Tam liste",
       "githubIssues": "GitHub sorunları",
       "githubTicket": "GitHub sorunu",
-      "host": "Ana Makine",
+      "host": "Sunucu",
       "hover": "Üzerine gelme",
       "jiraIssue": "Jira sorunu",
       "jiraIssues": "Jira sorunları",
@@ -1465,7 +1468,7 @@
       "hideDetachedHead": "Detached HEAD durumundakileri gizle",
       "hideOtherClientWorkspaces": "Diğer istemcilerin çalışma alanlarını gizle",
       "hideSleeping": "Uyuyanları gizle",
-      "hosts": "Ana Makineler",
+      "hosts": "Sunucular",
       "localLinux": "Yerel Linux",
       "localMac": "Yerel Mac",
       "localWindows": "Yerel Windows",
@@ -1755,7 +1758,7 @@
     },
     "prSidebarCreateEmptyState": {
       "branchNotLinked": "{{branch}} branch'i açık bir PR'a bağlı değil.",
-      "branchRequired": "Bir pull request oluşturmadan önce bir branch'e checkout yapın.",
+      "branchRequired": "Bir pull request oluşturmadan önce bir branch'i checkout edin.",
       "createFailed": "Pull request oluşturulamadı.",
       "createPr": "PR Oluştur",
       "createPullRequest": "Pull request oluştur",
@@ -1874,8 +1877,7 @@
       "groupShell": "Kabuk",
       "groupTasks": "Görevler",
       "groupWorkflows": "İş akışları",
-      "headerTotalCount_one": "{{count}} arka plan görevi",
-      "headerTotalCount_other": "{{count}} arka plan görevi",
+      "headerTotal": "{{value0}} arka plan görevi",
       "monitor": "Arka plan izleyicisi",
       "monitoring": "Arka plan görevleri izleniyor",
       "reasonBlocked": "başarısız",
@@ -1919,8 +1921,8 @@
     "commandDock": {
       "commandPlaceholder": "Bir komut yazın…",
       "liveInputHint": "Yazılan metin doğrudan etkin terminale gönderilir",
-      "liveInputLabel": "Canlı terminal girişi",
-      "sendCommand": "Komut gönder"
+      "sendCommand": "Komut gönder",
+      "showLiveInputKeyboard": "Canlı terminal girişi için klavyeyi göster"
     },
     "contentRow": {
       "dismissCreationWarning": "Çalışma alanı oluşturma uyarısını kapat"
@@ -2104,7 +2106,7 @@
       "globalScope": "Genel",
       "label": "Etiket",
       "labelPlaceholder": "Geliştirme sunucusunu başlat",
-      "olderHostPromptTooLong": "Bu ana makine için çok uzun. Daha uzun istemleri kaydetmek için ana makinedeki Orca'yı güncelleyin.",
+      "olderHostPromptTooLong": "Bu sunucu için çok uzun. Daha uzun istemleri kaydetmek için sunucudaki Orca'yı güncelleyin.",
       "projectScope": "Proje",
       "prompt": "İstem",
       "promptHint": "Becerileri, dosya yollarını ve yerleşik komutları destekler.",
@@ -2226,6 +2228,7 @@
       "transcribingDictation": "Sesli dikte yazıya dökülüyor"
     },
     "terminalLiveInputStatus": {
+      "keyboardHint": "Klavyeyi açmak için dokunun",
       "listening": "Dinliyor",
       "liveInput": "Canlı giriş",
       "preparingMic": "Mikrofon hazırlanıyor",
@@ -2234,8 +2237,7 @@
       "startingMic": "Mikrofon başlatılıyor",
       "stopHint": "Durdurmak için mikrofona dokunun",
       "transcribing": "Masaüstünde yazıya dökülüyor",
-      "uploadingImage": "Görsel ana makineye yükleniyor",
-      "uploadingImageTitle": "Görsel yükleniyor"
+      "uploadingImage": "Görsel sunucuya yükleniyor"
     },
     "terminalRecords": {
       "defaultTitle": "Terminal"
@@ -2337,7 +2339,7 @@
       "terminalNotReady": "Durdurma isteği gönderilemedi (terminal hazır değil)"
     },
     "usePanelRouteActions": {
-      "checkHostHint": "Ana makine bağlantısını kontrol edin",
+      "checkHostHint": "Sunucu bağlantısını kontrol edin",
       "copyNotesHint": "Bunun yerine notları kopyalayın",
       "detectingAgents": "Ajanlar Algılanıyor",
       "newSessionHint": "Yeni ajan oturumu",
@@ -2365,12 +2367,12 @@
       "inputTooLarge": "Girdi çok büyük (en fazla 256 KiB)"
     },
     "useStartup": {
-      "wakeAgents": "Uykudaki ajanları uyandırmak için ana makinede Orca'yı açın."
+      "wakeAgents": "Uykudaki ajanları uyandırmak için sunucuda Orca'yı açın."
     },
     "useTerminalCreateActions": {
       "createFailed": "Terminal oluşturulamadı",
       "forkBusy": "Başka bir terminal açılıyor. Bekleyip {{agentName}} sohbetini açmayı tekrar deneyin.",
-      "forkUnavailable": "Bağlı ve güncel bir ana makinede {{agentName}} sohbetini açıp tekrar deneyin.",
+      "forkUnavailable": "Bağlı ve güncel bir sunucuda {{agentName}} sohbetini açıp tekrar deneyin.",
       "inputLocked": "Terminal girişi başka bir istemci tarafından kilitlenmiş.",
       "notesSent": "Notlar gönderildi",
       "sendNotesError": "Notlar gönderilemedi",
@@ -2540,7 +2542,7 @@
     },
     "actions": {
       "checkingReviewStatus": "İnceleme durumu kontrol ediliyor.",
-      "checkoutBeforePublish": "Commit'leri yayınlamadan önce bir branch'e geçiş yapın (checkout).",
+      "checkoutBeforePublish": "Commit'leri yayınlamadan önce bir branch'i checkout edin.",
       "commitStagedChanges": "Stage edilmiş değişiklikleri commit'leyin.",
       "commits": "Commit'ler",
       "committing": "Commit işlemi sürüyor.",
@@ -2610,13 +2612,13 @@
       "commitStagedChanges": "Stage edilmiş değişiklikleri commit'le",
       "commitSync": "Commit'le ve Senkronize Et",
       "commitThenPullPush": "Commit'leyin, ardından pull ve push yapın",
-      "enterMessage": "Commit etmek için bir commit mesajı girin",
+      "enterMessage": "Commit'lemek için bir commit mesajı girin",
       "linkedReviewTargetUnavailable": "Bağlı incelemenin hedef branch'i kullanılamıyor",
       "prAlreadyMerged": "PR zaten merge edilmiş",
       "publishBranchFirstToPush": "Commit'leri push etmek için önce branch'i yayımlayın",
       "publishBranchFirstToSync": "Commit'leri senkronize etmek için önce branch'i yayımlayın",
-      "resolveConflicts": "Commit etmeden önce conflict'leri çözün",
-      "stageFile": "Commit etmek için en az bir dosya stage edin",
+      "resolveConflicts": "Commit'lemeden önce conflict'leri çözün",
+      "stageFile": "Commit'lemek için en az bir dosya stage edin",
       "useCommitAndForcePush": "Commit ve force push seçeneğini kullanın — remote'da yalnızca yerel commit'lerin eski kopyaları var"
     },
     "commitFailurePanel": {
@@ -2634,7 +2636,7 @@
     },
     "commitRunners": {
       "actionFailed": "Kaynak kontrolü işlemi gerçekleştirilemedi",
-      "commitFailed": "Commit yapılamadı"
+      "commitFailed": "Commit'lenemedi"
     },
     "conflictAbort": {
       "abortMerge": "Merge'i iptal et",
@@ -2774,7 +2776,7 @@
       "reviewCommitMessage": "Commit mesajını gözden geçirin, ardından PR Oluştur işlemini tekrar deneyin."
     },
     "hostedReviewGitPreparation": {
-      "commitFailed": "Commit yapılamadı",
+      "commitFailed": "Commit'lenemedi",
       "refreshFailed": "Kaynak kontrolü yenilenemedi",
       "stageFailed": "Değişiklikler stage edilemedi",
       "updateBranchFailed": "Remote branch güncellenemedi. PR Oluştur işlemini tekrar deneyin."
@@ -2786,7 +2788,7 @@
     },
     "hostedReviewService": {
       "createFailed": "Pull request oluşturulamadı",
-      "pushBeforeCreateFailed": "Gönderme işlemi yapılamadı. Gönderme hatasını giderip tekrar deneyin."
+      "pushBeforeCreateFailed": "Push işlemi yapılamadı. Push hatasını giderip tekrar deneyin."
     },
     "hubTab": {
       "changes": "Değişiklikler",
@@ -2833,7 +2835,7 @@
       "baseNotOnRemote": "Bir {{reviewLabel}} oluşturmadan önce temel branch'i push edin.",
       "createdNotRefreshed": "{{titleLabel}} oluşturuldu ancak Orca tarafından henüz yenilenemedi.",
       "defaultBranch": "Bir {{reviewLabel}} oluşturmadan önce bir özellik branch'ine geçin.",
-      "detachedHead": "Bir {{reviewLabel}} oluşturmadan önce bir branch'e geçiş yapın (checkout).",
+      "detachedHead": "Bir {{reviewLabel}} oluşturmadan önce bir branch'i checkout edin.",
       "dirty": "Bir {{reviewLabel}} oluşturmadan önce değişiklikleri commit'leyin.",
       "existing": "{{titleLabel}} zaten açık.",
       "existingNumber": "{{titleLabel}} #{{number}} zaten açık.",
@@ -2859,6 +2861,37 @@
       "push": "Push",
       "stageAll": "Tümünü Stage Et",
       "sync": "Senkronize Et"
+    },
+    "primaryActionCopy": {
+      "checkingReviewStatus": "İnceleme durumu kontrol ediliyor.",
+      "checkoutBranchBeforePublish": "Commit'leri yayınlamadan önce bir branch'i checkout edin.",
+      "commit": "Commit",
+      "commitInProgress": "Commit devam ediyor.",
+      "commitStagedChanges": "Stage edilmiş değişiklikleri commit'leyin.",
+      "enterCommitMessage": "Commit'lemek için bir commit mesajı girin.",
+      "forcePush": "Force Push",
+      "forcePushInProgress": "Force push devam ediyor.",
+      "forcePushWithLease": "Remote branch'i güncellemek için lease korumasıyla force push edin.",
+      "linkedReviewTargetUnavailable": "Bağlı inceleme branch'i kullanılamıyor.",
+      "nothingToCommitUpToDate": "Commit'lenecek bir şey yok. Branch güncel.",
+      "publishBranch": "Branch'i Yayınla",
+      "publishBranchHint": "Bu branch'i origin'e yayınlayın.",
+      "pull": "Pull",
+      "pullCommits_one": "{{count}} commit'i pull edin.",
+      "pullCommits_other": "{{count}} commit'i pull edin.",
+      "push": "Push",
+      "pushCommits_one": "{{count}} commit'i push edin.",
+      "pushCommits_other": "{{count}} commit'i push edin.",
+      "pushLinkedReview": "Güncellemeleri bağlı inceleme branch'ine push edin.",
+      "remoteOperationBlocksCommit": "Remote işlemi tamamlandığında yeniden deneyin.",
+      "remoteOperationInProgress": "Remote işlemi devam ediyor.",
+      "resolveConflictsBeforeCommit": "Commit'lemeden önce çakışmaları çözün.",
+      "reviewAlreadyMerged": "Commit'lenecek bir şey yok. İnceleme zaten merge edildi.",
+      "stageAll": "Tümünü Stage Et",
+      "stageAllChanges": "Tüm değişiklikleri stage edin.",
+      "stageFileToCommit": "Commit'lemek için en az bir dosya stage edin.",
+      "sync": "Senkronize Et",
+      "syncCounts": "{{behind}} commit'i pull, {{ahead}} commit'i push edin."
     },
     "remoteDropdown": {
       "branchAlreadyPublished": "Branch zaten yayımlandı",
@@ -2932,14 +2965,14 @@
     "useMobileGitRequests": {
       "actionFailed": "Kaynak kontrolü işlemi gerçekleştirilemedi",
       "branchUnavailable": "Branch durumu alınamadı",
-      "commitFailed": "Commit yapılamadı",
+      "commitFailed": "Commit'lenemedi",
       "waitingForDesktop": "Masaüstü bekleniyor…"
     }
   },
   "tasks": {
     "composerSource": {
       "baseFailed": "Temel branch çözümlenemedi.",
-      "forkPushWarning": "Bu PR'da “Allow edits from maintainers” kapalı; fork'a gönderme işlemi GitHub tarafından reddedilebilir."
+      "forkPushWarning": "Bu PR'da “Allow edits from maintainers” kapalı; fork'a push işlemi GitHub tarafından reddedilebilir."
     },
     "detailCommentRenderers": {
       "commentPlaceholder": "Bir yorum ekleyin",
@@ -3297,7 +3330,7 @@
     },
     "providerControls": {
       "myTodos": "Yapılacaklarım",
-      "projectMergeRequests": "Proje MR'leri",
+      "projectMergeRequests": "Proje MR'ları",
       "sort": "Sırala: {{sortLabel}}"
     },
     "providerItemList": {
@@ -3586,11 +3619,11 @@
     "hostWorkspaceListStates": {
       "checkHost": "Bilgisayarınızın uyanık ve Orca'nın çalışır durumda olduğunu kontrol edin",
       "empty": "Çalışma alanı yok",
-      "loadFailed": "Bu ana makineden çalışma alanları yüklenemedi",
+      "loadFailed": "Bu sunucudan çalışma alanları yüklenemedi",
       "noFilterMatches": "Filtrelerle eşleşen çalışma alanı yok",
       "noMatches": "Eşleşen çalışma alanı yok",
       "reopen": "Güncellemek için yeniden açın",
-      "reopenDetail": "Bu ana bilgisayar, çalışma alanlarını bu sayfanın henüz tanımadığı bir biçimde listeliyor.",
+      "reopenDetail": "Bu sunucu, çalışma alanlarını bu sayfanın henüz tanımadığı bir biçimde listeliyor.",
       "retrying": "worktree.ps tamamlanamadı ({{error}}) — otomatik olarak yeniden deneniyor"
     },
     "workspaceListSections": {

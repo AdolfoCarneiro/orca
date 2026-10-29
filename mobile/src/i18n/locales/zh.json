@@ -13,7 +13,7 @@
       "sessionWindow": "5小时",
       "switchFailed": "无法切换账户",
       "title": "账户",
-      "useReset": "使用重置机会",
+      "useReset": "使用重置额度",
       "weeklyWindow": "7天"
     }
   },
@@ -168,7 +168,7 @@
   },
   "chat": {
     "ask": {
-      "answerPlaceholder": "输入你的回答",
+      "answerPlaceholder": "输入您的回答",
       "next": "下一步",
       "other": "其他…",
       "skip": "跳过",
@@ -281,7 +281,7 @@
       "stoppedManually": "已手动停止"
     },
     "orcaStop": {
-      "canContinue": "你可以在此对话中继续。",
+      "canContinue": "您可以在此对话中继续。",
       "crash": "此回复进行期间，{{machine}} 上的 Orca 意外停止。",
       "quit": "此回复进行期间，{{machine}} 上的 Orca 已关闭。",
       "remote": "此回复进行期间，{{machine}} 上的 Orca 已停止。",
@@ -834,7 +834,7 @@
       "loadFailed": "发生错误。",
       "loading": "正在加载 PR…",
       "notPermitted": "无权访问：您的 GitHub 账户尚未连接。",
-      "retryLoading": "重新加载 PR"
+      "retryLoading": "重试加载 PR"
     },
     "protocolBlockScreen": {
       "backToHosts": "返回主机列表",
@@ -1555,7 +1555,7 @@
       "openOnWeb": "在网页上打开 {{name}}",
       "passed": "{{count}} 项通过",
       "pending": "待处理",
-      "pendingCount": "{{count}} 项待完成",
+      "pendingCount": "{{count}} 项待处理",
       "queued": "已加入队列",
       "rerunFailing": "重新运行失败的检查",
       "skipped": "已跳过",
@@ -1958,14 +1958,14 @@
       "unstaged": "未暂存"
     },
     "fileReader": {
-      "copyReviewNotes": "复制评论注释",
+      "copyReviewNotes": "复制评审备注",
       "imageLabel": "{{title}} 图片",
-      "noReviewNotes": "暂无评论注释",
+      "noReviewNotes": "暂无评审备注",
       "previewLabel": "{{title}} 预览",
-      "reviewNotes_one": "{{count}} 条评论注释",
-      "reviewNotes_other": "{{count}} 条评论注释",
+      "reviewNotes_one": "{{count}} 条评审备注",
+      "reviewNotes_other": "{{count}} 条评审备注",
       "send": "发送",
-      "sendReviewNotes": "将评论注释发送给 AI"
+      "sendReviewNotes": "将评审备注发送给 AI"
     },
     "floatingWorkspace": {
       "title": "浮动工作区"
@@ -2179,7 +2179,7 @@
       "notesHint": "选择接收当前注释的智能体会话。",
       "removeShortcutMessage": "移除此自定义快捷键？",
       "renameTerminal": "重命名终端",
-      "sendReviewNotes": "发送评论注释",
+      "sendReviewNotes": "发送评审备注",
       "shortcut": "快捷键",
       "terminal": "终端",
       "terminalName": "终端名称",
@@ -2303,7 +2303,7 @@
       "notesCopied": "评审笔记已复制",
       "notesSent": "评审笔记已发送",
       "notesSentWithWarning": "评审笔记已发送。{{warning}}",
-      "promptNotSent": "智能体已启动，但笔记未发送。请使用“复制笔记”复制后粘贴。",
+      "promptNotSent": "智能体已启动，但笔记未发送。请使用“复制备注”复制后粘贴。",
       "sendFailed": "发送笔记失败",
       "startingAgent": "正在启动智能体…",
       "waitingForDesktop": "等待桌面连接…"
@@ -2354,7 +2354,7 @@
       "updateFailed": "更新标题失败。"
     },
     "useQuickCommands": {
-      "loadFailed": "加载快速命令失败",
+      "loadFailed": "加载快捷命令失败",
       "saveFailed": "保存快速命令失败"
     },
     "useSessionTerminalSendActions": {
@@ -2848,13 +2848,44 @@
     },
     "primaryAction": {
       "commit": "提交",
-      "forcePush": "强力推",
+      "forcePush": "强制推送",
       "forcePushFromDesktop": "从桌面强制推送此 PR 的分支",
       "publishBranch": "发布分支",
       "pull": "拉",
       "push": "推",
       "stageAll": "暂存全部",
       "sync": "同步"
+    },
+    "primaryActionCopy": {
+      "checkingReviewStatus": "正在检查评审状态。",
+      "checkoutBranchBeforePublish": "请先检出分支再发布提交。",
+      "commit": "提交",
+      "commitInProgress": "正在提交。",
+      "commitStagedChanges": "提交已暂存的更改。",
+      "enterCommitMessage": "请先输入提交信息再提交。",
+      "forcePush": "强制推送",
+      "forcePushInProgress": "正在强制推送。",
+      "forcePushWithLease": "使用带租约的强制推送更新远程分支。",
+      "linkedReviewTargetUnavailable": "关联的评审分支不可用。",
+      "nothingToCommitUpToDate": "没有可提交的内容。分支已是最新状态。",
+      "publishBranch": "发布分支",
+      "publishBranchHint": "将此分支发布到 origin。",
+      "pull": "拉",
+      "pullCommits_one": "拉取 {{count}} 个提交。",
+      "pullCommits_other": "拉取 {{count}} 个提交。",
+      "push": "推",
+      "pushCommits_one": "推送 {{count}} 个提交。",
+      "pushCommits_other": "推送 {{count}} 个提交。",
+      "pushLinkedReview": "将更新推送到关联的评审分支。",
+      "remoteOperationBlocksCommit": "请在远程操作完成后重试。",
+      "remoteOperationInProgress": "正在执行远程操作。",
+      "resolveConflictsBeforeCommit": "请先解决冲突再提交。",
+      "reviewAlreadyMerged": "没有可提交的内容。该评审已合并。",
+      "stageAll": "暂存全部",
+      "stageAllChanges": "暂存所有更改。",
+      "stageFileToCommit": "请至少暂存一个文件再提交。",
+      "sync": "同步",
+      "syncCounts": "拉取 {{behind}} 个提交，推送 {{ahead}} 个提交。"
     },
     "remoteDropdown": {
       "branchAlreadyPublished": "分支已发布",

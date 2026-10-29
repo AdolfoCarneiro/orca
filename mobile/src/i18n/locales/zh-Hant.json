@@ -8,7 +8,7 @@
       "hostNotFound": "找不到主機",
       "invalidSnapshot": "主機傳回的帳戶快照無效",
       "loadingAccounts": "正在載入帳戶…",
-      "manageAccountsHint": "請至電腦版的「設定」→「帳戶」，新增帳戶或重新驗證。",
+      "manageAccountsHint": "請至桌面版的「設定」→「帳戶」，新增帳戶或重新驗證。",
       "refreshAccounts": "重新整理帳戶",
       "sessionWindow": "5 小時",
       "switchFailed": "無法切換帳戶",
@@ -117,12 +117,12 @@
       "autocompleteOn": "開啟",
       "defaultText": "預設（100%）",
       "keepPhoneSize": "保持手機尺寸（預設）",
-      "keyboardInputDescription": "自動完成、自動修正和拼字建議僅適用於暫存指令輸入模式。點一下鍵盤上方的雙箭頭按鈕，從即時輸入切換至此模式，編輯好指令後再點「傳送」。預設為關閉，以免指令、旗標或路徑遭到改寫。",
+      "keyboardInputDescription": "自動完成、自動修正和拼字建議僅適用於緩衝命令輸入模式。點一下鍵盤上方的雙箭頭按鈕，從即時輸入切換至此模式，編輯好命令後再點「傳送」。預設為關閉，以免命令、旗標或路徑遭到改寫。",
       "keyboardInputHeading": "鍵盤輸入",
       "largeText": "大（125%）",
       "largerText": "較大（150%）",
       "largestText": "最大（200%）",
-      "leaveAppDescription": "在手機上使用終端機時，Orca 會將終端機縮小以符合螢幕大小。關閉 App 或切換到其他 App 時，此設定決定終端機要保持手機尺寸（避免互動式 CLI 工具重新排版），還是還原為電腦上的尺寸。你隨時都能使用電腦版橫幅上的「還原」手動調整尺寸。",
+      "leaveAppDescription": "在手機上使用終端機時，Orca 會將終端機縮小以符合螢幕大小。關閉 App 或切換到其他 App 時，此設定決定終端機要保持手機尺寸（避免互動式 CLI 工具重新排版），還是還原為電腦上的尺寸。您隨時都能使用桌面版橫幅上的「還原」手動調整尺寸。",
       "leaveAppHeading": "離開 App 時",
       "noPairedDesktops": "尚未配對任何電腦。配對一台電腦後，即可設定終端機行為。",
       "restoreAfterMinutes_one": "{{count}} 分鐘後",
@@ -133,7 +133,7 @@
       "smallerText": "較小（75%）",
       "smallestText": "最小（50%）",
       "textSize": "文字大小",
-      "textSizeDescription": "調整終端機文字大小。文字較小時可顯示更多欄，並保留兩側邊距；文字較大時顯示的欄數較少，可向左右拖曳來平移。你也可以直接在終端機中用雙指縮放，同時更新此設定。此設定僅影響此裝置的顯示，不會變更電腦上的終端機。",
+      "textSizeDescription": "調整終端機文字大小。文字較小時可顯示更多欄，並保留兩側邊距；文字較大時顯示的欄數較少，可向左右拖曳來平移。您也可以直接在終端機中用雙指縮放，同時更新此設定。此設定僅影響此裝置的顯示，不會變更電腦上的終端機。",
       "textSizeHeading": "文字大小",
       "textSizePickerTitle": "終端機文字大小",
       "title": "終端機"
@@ -168,7 +168,7 @@
   },
   "chat": {
     "ask": {
-      "answerPlaceholder": "輸入你的回答",
+      "answerPlaceholder": "輸入您的回答",
       "next": "下一步",
       "other": "其他…",
       "skip": "跳過",
@@ -281,7 +281,7 @@
       "stoppedManually": "已手動停止"
     },
     "orcaStop": {
-      "canContinue": "你可以在此對話中繼續。",
+      "canContinue": "您可以在此對話中繼續。",
       "crash": "此回覆進行期間，{{machine}} 上的 Orca 意外停止。",
       "quit": "此回覆進行期間，{{machine}} 上的 Orca 已關閉。",
       "remote": "此回覆進行期間，{{machine}} 上的 Orca 已停止。",
@@ -303,7 +303,7 @@
     },
     "question": {
       "otherReplyPlaceholder": "或輸入回覆…",
-      "replyPlaceholder": "輸入你的回覆…",
+      "replyPlaceholder": "輸入您的回覆…",
       "sendReply": "傳送回覆",
       "submit": "送出",
       "submitCount": "送出（{{count}}）",
@@ -678,8 +678,8 @@
       "editFileNote": "編輯檔案備註",
       "hunk": "差異區塊",
       "nextHunk": "下一個差異區塊",
-      "notes_one": "{{count}} 則筆記",
-      "notes_other": "{{count}} 則筆記",
+      "notes_one": "{{count}} 則備註",
+      "notes_other": "{{count}} 則備註",
       "previousHunk": "上一個差異區塊",
       "reviewed": "已審查",
       "staged": "已暫存",
@@ -707,7 +707,7 @@
     "diffReviewHeader": {
       "filterAll": "全部",
       "filterBranch": "分支",
-      "filterNotes": "筆記",
+      "filterNotes": "備註",
       "filterStaged": "已暫存",
       "filterUnreviewed": "未審查",
       "filterUnstaged": "未暫存",
@@ -716,7 +716,7 @@
       "reviewedProgress": "已審查 {{reviewedCount}}/{{queueLength}}",
       "showAllFiles": "顯示所有審查檔案",
       "showBranchFiles": "顯示分支的審查檔案",
-      "showNotesFiles": "顯示有筆記的檔案",
+      "showNotesFiles": "顯示有備註的檔案",
       "showStagedFiles": "顯示已暫存的檔案",
       "showUnreviewedFiles": "顯示未審查的檔案",
       "showUnstagedFiles": "顯示未暫存的檔案",
@@ -752,7 +752,7 @@
       "pairingTemporarilyUnavailable": "配對暫時無法使用",
       "repairHint": "點一下以重新與電腦配對",
       "unlockHint": "解鎖手機後，點一下以重試",
-      "updateDesktopHint": "更新電腦版 Orca 並登入，即可隨時隨地連線",
+      "updateDesktopHint": "更新桌面版 Orca 並登入，即可隨時隨地連線",
       "worktreeAccessibilitySummary": "{{summary}}，{{activeCount}} 個使用中"
     },
     "hostDiagnosticsLink": {
@@ -773,10 +773,10 @@
     },
     "jiraConnectPrompt": {
       "checkAgain": "再次檢查",
-      "connectHint": "在 Orca 電腦版的「設定 → 整合」中新增 Jira 網站，然後再次檢查。",
+      "connectHint": "在 Orca 桌面版的「設定 → 整合」中新增 Jira 網站，然後再次檢查。",
       "connectOnDesktop": "在電腦上連線至 Jira",
       "credentialUnreadable": "Jira 憑證已儲存，但無法讀取：{{credentialError}}",
-      "updateDesktop": "更新 Orca 電腦版"
+      "updateDesktop": "更新 Orca 桌面版"
     },
     "markdownBlocks": {
       "copyCode": "複製程式碼",
@@ -792,14 +792,14 @@
       "hooks": "鉤子",
       "label": "設定指令碼",
       "run": "執行",
-      "runSetupCommand": "執行設定指令",
+      "runSetupCommand": "執行設定命令",
       "skip": "跳過"
     },
     "newWorkspaceSshConnectionField": {
       "connect": "連線",
       "connecting": "連線中…",
       "label": "SSH 連線",
-      "serverRecovery": "需要從電腦版復原此伺服器：「設定」→「SSH 主機」→「復原伺服器」。"
+      "serverRecovery": "需要從桌面版復原此伺服器：「設定」→「SSH 主機」→「復原伺服器」。"
     },
     "newWorktreeAgentSelection": {
       "blankTerminal": "空白終端機"
@@ -854,7 +854,7 @@
       "workspaceNeedsUpdateGitHubReleases": "此桌面版的行動版工作區需要較新版本的 Orca Mobile。請從 GitHub Releases 更新 Orca Mobile，再重新連線至此主機。"
     },
     "richMarkdownEditor": {
-      "imageUrl": "影像網址",
+      "imageUrl": "圖片網址",
       "insert": "插入",
       "linkUrl": "連結網址"
     },
@@ -867,7 +867,7 @@
       "heading1": "標題 1",
       "heading2": "標題 2",
       "heading3": "標題 3",
-      "image": "影像",
+      "image": "圖片",
       "inlineCode": "行內程式碼",
       "italic": "斜體",
       "link": "連結",
@@ -895,7 +895,7 @@
       "workspaceName": "工作區名稱"
     },
     "smartWorkspaceSourceDrawer": {
-      "connectRepository": "請連接存放庫以搜尋來源。",
+      "connectRepository": "請連線至存放庫以搜尋來源。",
       "crossRepoMessage": "此項目位於 {{owner}}/{{repo}}。",
       "gitHubRemoteRequired": "此 SSH 存放庫需要 GitHub 遠端存放庫，才能列出議題和 PR。",
       "noResults": "找不到結果。",
@@ -989,7 +989,7 @@
       "disconnected": "已中斷連線",
       "hostFallback": "主機",
       "hostOffline": "{{host}} 已離線",
-      "hostOfflineDetail": "確認電腦已喚醒、Orca 正在執行，且你已登入",
+      "hostOfflineDetail": "確認電腦已喚醒、Orca 正在執行，且您已登入",
       "labelWithHint": "{{label}} — {{hint}}",
       "pairingInvalid": "配對已失效，請重新與電腦配對",
       "rePairDetail": "重新與電腦配對",
@@ -1066,7 +1066,7 @@
     },
     "troubleshootCommonIssues": {
       "allowNotifications": "確認系統設定允許 Orca 傳送通知，且「專注模式」或「勿擾模式」已關閉。",
-      "checkTailnet": "確認電腦未進入睡眠，且在你的 tailnet 中顯示為已連線。",
+      "checkTailnet": "確認電腦未進入睡眠，且在您的 tailnet 中顯示為已連線。",
       "desktopTitle": "桌面版應用程式未執行",
       "disableVpn": "停用該 VPN，或啟用分割通道／「允許 LAN」。",
       "firewallTitle": "防火牆封鎖連接埠 6768",
@@ -1181,13 +1181,13 @@
     "fileExplorerPanel": {
       "backToSession": "返回工作階段",
       "closeFiles": "關閉檔案",
-      "connecting": "正在連線至桌面版…",
+      "connecting": "正在連線至電腦…",
       "emptyState": "找不到檔案",
       "loadFailed": "無法載入檔案",
       "loadInterrupted": "資料夾載入中斷",
       "title": "檔案",
       "truncatedList": "{{worktreeLabel}} - 僅顯示前 5000 筆",
-      "waiting": "正在等待桌面版…"
+      "waiting": "正在等待電腦…"
     },
     "fileExplorerRow": {
       "fileUnavailable": "{{name}} 無法在行動版使用",
@@ -1208,7 +1208,7 @@
       "downloading": "正在下載 {{bytes}}，共 {{total}}",
       "loadFailed": "無法載入媒體",
       "loading": "正在載入媒體…",
-      "waiting": "正在等待桌面版…"
+      "waiting": "正在等待電腦…"
     },
     "fileMutationOwnership": {
       "sshOwnerChanged": "無法驗證 SSH 連線。請重新連線至主機後再試一次。"
@@ -1247,7 +1247,7 @@
       "saveFailed": "無法儲存檔案",
       "stay": "留在此頁",
       "title": "預覽",
-      "waiting": "正在等待桌面版…"
+      "waiting": "正在等待電腦…"
     },
     "filePreviewSourceText": {
       "previewLabel": "檔案預覽",
@@ -1280,7 +1280,7 @@
       "updateHint": "點一下即可更新"
     },
     "emptyState": {
-      "connectedDescription": "你的電腦會顯示在這裡。所有資料皆採端對端加密。",
+      "connectedDescription": "您的電腦會顯示在這裡。所有資料皆採端對端加密。",
       "connectedTitle": "已連線",
       "description": "與電腦上的 Orca 配對，即可用手機查看代理程式狀態、開啟任何終端機，並推進工作。",
       "openDesktopDescription": "前往「設定」→「行動版」，產生配對用的 QR Code。",
@@ -1289,7 +1289,7 @@
       "scanCodeDescription": "點一下上方按鈕開啟掃描器，對準電腦螢幕上的 QR Code。",
       "scanCodeTitle": "掃描 QR Code",
       "stepsHeading": "使用方式",
-      "title": "連線至你的電腦"
+      "title": "連線至您的電腦"
     },
     "listFooter": {
       "hostPickerTitle": "選擇開啟任務的主機",
@@ -1467,13 +1467,13 @@
       "localWindows": "本機 Windows",
       "projectOrder": "專案排序",
       "projects": "專案",
-      "savingToDesktop": "正在儲存至電腦版",
+      "savingToDesktop": "正在儲存至電腦",
       "show": "顯示",
       "showProperties": "顯示屬性",
       "sortBy": "排序方式",
-      "syncedAcrossDevices": "已在你的裝置間同步",
+      "syncedAcrossDevices": "已在您的裝置間同步",
       "thisComputer": "本機",
-      "waitingForDesktop": "仍在等待電腦版回應",
+      "waitingForDesktop": "仍在等待電腦回應",
       "workspaceOptions": "工作區選項"
     }
   },
@@ -1513,20 +1513,20 @@
   },
   "onboarding": {
     "notificationOnboardingPreview": {
-      "claudeNeedsInput": "Claude 需要你的輸入",
+      "claudeNeedsInput": "Claude 需要您的輸入",
       "codexFinished": "Codex 已完成",
       "now": "現在",
       "testsPassing": "測試已通過。",
-      "waitingOnYou": "正在等待你回應。"
+      "waitingOnYou": "正在等待您回應。"
     },
     "onboardingPage": {
       "enableAgentNotifications": "啟用代理程式通知",
       "enableNotifications": "啟用通知",
       "keepTerminal": "繼續使用終端機",
       "notNow": "暫時不要",
-      "notificationsDescription": "即使未使用應用程式，代理程式完成工作或等待你回應時，此手機也會收到通知。",
-      "notificationsDisclosure": "電腦閒置 3 分鐘後，便會透過 Orca 推播服務傳送通知。你隨時可在「設定」中變更。",
-      "notificationsTitle": "代理程式需要你時，別錯過通知",
+      "notificationsDescription": "即使未使用應用程式，代理程式完成工作或等待您回應時，此手機也會收到通知。",
+      "notificationsDisclosure": "電腦閒置 3 分鐘後，便會透過 Orca 推播服務傳送通知。您隨時可在「設定」中變更。",
+      "notificationsTitle": "代理程式需要您時，別錯過通知",
       "openInChatUi": "以聊天介面開啟工作階段",
       "openInTerminal": "在終端機中開啟工作階段",
       "sessionViewDescription": "選擇在此裝置上以終端機或聊天介面開啟支援此功能的代理程式工作階段。長按工作階段分頁可切換檢視方式，也可稍後在「設定」中變更預設值。",
@@ -1554,7 +1554,7 @@
       "noChecks": "無檢查",
       "openOnWeb": "在網頁上開啟 {{name}}",
       "passed": "{{count}} 項通過",
-      "pending": "等待中",
+      "pending": "待處理",
       "pendingCount": "{{count}} 項待處理",
       "queued": "已加入佇列",
       "rerunFailing": "重新執行失敗的檢查",
@@ -1738,7 +1738,7 @@
       "stateClosed": "已關閉",
       "stateDraft": "草稿",
       "stateMerged": "已合併",
-      "stateOpen": "開啟中",
+      "stateOpen": "開放",
       "unavailable": "無法取得檢查結果"
     },
     "prCommentAudienceLabels": {
@@ -1945,7 +1945,7 @@
       "desktopUpdateRequired": "請更新 Orca 桌面版，以便在手機上審查變更。",
       "diffLoadFailed": "無法載入差異",
       "invalidSourceControlResponse": "原始碼控制回應無效",
-      "reviewNotesLoadFailed": "無法載入審查註記"
+      "reviewNotesLoadFailed": "無法載入審查備註"
     },
     "diffReviewQueue": {
       "committedOnBranch": "已在分支上提交",
@@ -1982,13 +1982,13 @@
       "moreActions": "更多工作階段操作",
       "openFileExplorer": "開啟檔案總管",
       "openSourceControl": "開啟原始碼控制",
-      "reconnectToDesktop": "重新連線至桌面版",
+      "reconnectToDesktop": "重新連線至電腦",
       "showSidebar": "顯示側邊欄",
       "terminalTitle": "終端機"
     },
     "headerMoreActionsSheet": {
       "agentHistory": "代理程式歷史紀錄",
-      "agentHistoryHint": "瀏覽並繼續代理程式工作階段",
+      "agentHistoryHint": "瀏覽並恢復代理程式工作階段",
       "checks": "檢查項目",
       "checksHint": "開啟 PR 檢查項目"
     },
@@ -2017,7 +2017,7 @@
       "collapse": "收合"
     },
     "nativeChatCliFork": {
-      "resumeInNewCli": "在新的 CLI 中繼續"
+      "resumeInNewCli": "在新的 CLI 中恢復"
     },
     "nativeChatFloatingControls": {
       "scrollToLatest": "捲動至最新內容"
@@ -2083,7 +2083,7 @@
       "steerHint": "提交且不中斷模型"
     },
     "queuedMessageComposer": {
-      "commandsNotAllowed": "無法將指令儲存在排隊中的訊息內。",
+      "commandsNotAllowed": "無法將命令儲存在排隊中的訊息內。",
       "editing": "正在編輯訊息",
       "editingAttributed": "正在編輯訊息 · {{attribution}}"
     },
@@ -2168,7 +2168,7 @@
       "discard": "放棄",
       "discardAndLeave": "放棄並離開",
       "discardChanges": "放棄變更",
-      "discardMessage": "要以桌面版的最新檔案取代手機草稿嗎？",
+      "discardMessage": "要以電腦上的最新檔案取代手機草稿嗎？",
       "draftsHint": "離開前請先複製或放棄手機草稿。",
       "file": "檔案",
       "markdown": "Markdown",
@@ -2209,7 +2209,7 @@
     "terminalActionSheetActions": {
       "clearTerminal": "清除終端機",
       "rename": "重新命名",
-      "switchToDesktop": "切換為電腦模式",
+      "switchToDesktop": "切換為桌面模式",
       "switchToPhone": "切換為手機模式"
     },
     "terminalInputActions": {
@@ -2259,7 +2259,7 @@
       "browserCreateFailed": "建立瀏覽器失敗",
       "browserUnavailable": "瀏覽器頁面尚未就緒。",
       "browserUpdateRequired": "需更新桌面版才能使用行動版瀏覽器串流",
-      "invalidUrl": "請輸入有效的 URL",
+      "invalidUrl": "請輸入有效的網址",
       "noteCreateFailed": "建立 Markdown 筆記失敗",
       "untitledNoteCreateFailed": "無法建立未命名的 Markdown 筆記"
     },
@@ -2270,7 +2270,7 @@
       "notesCopied": "已複製備註",
       "saveNoteFailed": "儲存備註失敗",
       "saveNotesFailed": "儲存審查備註失敗",
-      "waitingForDesktop": "等待桌面版…"
+      "waitingForDesktop": "等待電腦…"
     },
     "useDiffReviewCommentActions": {
       "saveFailed": "儲存審查失敗",
@@ -2328,9 +2328,9 @@
       "inserted": "已插入聽寫內容"
     },
     "useNativeChatStop": {
-      "stopNotSent": "未送出停止指令",
+      "stopNotSent": "未送出停止命令",
       "stopUnconfirmed": "尚未確認是否已停止，請先查看聊天再重試",
-      "terminalNotReady": "未送出停止指令（終端機尚未就緒）"
+      "terminalNotReady": "未送出停止命令（終端機尚未就緒）"
     },
     "usePanelRouteActions": {
       "checkHostHint": "請檢查主機連線",
@@ -2344,13 +2344,13 @@
     },
     "usePrAiTriage": {
       "launchFailed": "啟動代理程式失敗",
-      "waitingForDesktop": "等待桌面版…"
+      "waitingForDesktop": "等待電腦…"
     },
     "usePrCommentActions": {
       "actionFailed": "留言操作失敗"
     },
     "usePrTitleAction": {
-      "disconnected": "尚未連線至桌面版。",
+      "disconnected": "尚未連線至電腦。",
       "updateFailed": "更新標題失敗。"
     },
     "useQuickCommands": {
@@ -2458,7 +2458,7 @@
       "support": "支援"
     },
     "nativeChatSettingsScreen": {
-      "defaultViewDescription": "選擇此裝置上受支援的代理程式工作階段（Claude、Codex 及其他支援聊天的代理程式）的開啟方式。「終端機」會顯示原始 CLI；「聊天介面」則提供類似電腦版的聊天介面。你仍可透過長按選單，切換個別工作階段的顯示方式。",
+      "defaultViewDescription": "選擇此裝置上受支援的代理程式工作階段（Claude、Codex 及其他支援聊天的代理程式）的開啟方式。「終端機」會顯示原始 CLI；「聊天介面」則提供類似桌面版的聊天介面。您仍可透過長按選單，切換個別工作階段的顯示方式。",
       "defaultViewHeading": "預設檢視",
       "off": "關閉",
       "on": "開啟",
@@ -2488,7 +2488,7 @@
       "updateDesktop": "請更新電腦上的 Orca，以執行此測試。"
     },
     "notificationSettingsScreen": {
-      "description": "當代理程式需要你的回應或完成任務時，在此裝置上接收通知。",
+      "description": "當代理程式需要您的回應或完成任務時，在此裝置上接收通知。",
       "enableNotifications": "啟用通知",
       "loadFailed": "無法載入通知設定，請再試一次。",
       "notificationsBlocked": "系統設定已停用通知。",
@@ -2532,7 +2532,7 @@
   "sourceControl": {
     "actionSheetRunners": {
       "noBaseBranch": "沒有可供變基的基底分支",
-      "waitingForDesktop": "等待桌面版…"
+      "waitingForDesktop": "等待電腦…"
     },
     "actions": {
       "checkingReviewStatus": "正在檢查審查狀態。",
@@ -2647,7 +2647,7 @@
       "generateMessage": "使用 AI 產生提交訊息",
       "noStagedFiles": "沒有已暫存的檔案",
       "openActions": "開啟原始碼控制操作",
-      "reconnecting": "正在重新連線至桌面版…",
+      "reconnecting": "正在重新連線至電腦…",
       "regenerateHint": "清除訊息以重新產生。",
       "stageAll": "暫存全部",
       "unstageAll": "全部取消暫存"
@@ -2722,7 +2722,7 @@
       "noCommits": "沒有提交記錄。",
       "noFileChanges": "沒有檔案變更",
       "retryFiles": "重新載入提交的檔案",
-      "waitingForDesktop": "正在等待桌面版…"
+      "waitingForDesktop": "正在等待電腦…"
     },
     "gitStatus": {
       "changes": "變更",
@@ -2790,10 +2790,10 @@
       "pullRequest": "PR"
     },
     "loaders": {
-      "connectingToDesktop": "正在連線至桌面版…",
+      "connectingToDesktop": "正在連線至電腦…",
       "loadFailed": "無法載入原始碼控制",
       "updateDesktop": "請更新 Orca 桌面版，才能在行動裝置上使用原始碼控制。",
-      "waitingForDesktop": "等待桌面版…"
+      "waitingForDesktop": "等待電腦…"
     },
     "modals": {
       "actionsTitle": "原始碼控制",
@@ -2809,7 +2809,7 @@
     "openers": {
       "openDiffFailed": "無法開啟差異",
       "tabNotReady": "檔案已開啟，但分頁尚未就緒。請再試一次。",
-      "waitingForDesktop": "等待桌面版…"
+      "waitingForDesktop": "等待電腦…"
     },
     "panel": {
       "loadFailedTitle": "無法載入",
@@ -2856,6 +2856,37 @@
       "stageAll": "暫存全部",
       "sync": "同步"
     },
+    "primaryActionCopy": {
+      "checkingReviewStatus": "正在檢查審查狀態。",
+      "checkoutBranchBeforePublish": "請先檢出分支再發布提交。",
+      "commit": "提交",
+      "commitInProgress": "正在提交。",
+      "commitStagedChanges": "提交已暫存的變更。",
+      "enterCommitMessage": "請輸入提交訊息以進行提交。",
+      "forcePush": "強制推送",
+      "forcePushInProgress": "正在強制推送。",
+      "forcePushWithLease": "以附帶租約檢查的強制推送更新遠端分支。",
+      "linkedReviewTargetUnavailable": "已連結的審查分支無法使用。",
+      "nothingToCommitUpToDate": "沒有可提交的內容。分支已是最新狀態。",
+      "publishBranch": "發布分支",
+      "publishBranchHint": "將此分支發布至 origin。",
+      "pull": "拉取",
+      "pullCommits_one": "拉取 {{count}} 筆提交。",
+      "pullCommits_other": "拉取 {{count}} 筆提交。",
+      "push": "推送",
+      "pushCommits_one": "推送 {{count}} 筆提交。",
+      "pushCommits_other": "推送 {{count}} 筆提交。",
+      "pushLinkedReview": "將更新推送至已連結的審查分支。",
+      "remoteOperationBlocksCommit": "請等遠端操作完成後再試。",
+      "remoteOperationInProgress": "正在進行遠端操作。",
+      "resolveConflictsBeforeCommit": "請先解決衝突再提交。",
+      "reviewAlreadyMerged": "沒有可提交的內容。審查項目已合併。",
+      "stageAll": "暫存全部",
+      "stageAllChanges": "暫存所有變更。",
+      "stageFileToCommit": "請至少暫存一個檔案才能提交。",
+      "sync": "同步",
+      "syncCounts": "拉取 {{behind}}，推送 {{ahead}}。"
+    },
     "remoteDropdown": {
       "branchAlreadyPublished": "分支已發布",
       "branchUpToDate": "分支已是最新狀態",
@@ -2894,7 +2925,7 @@
       "push": "推送",
       "pushAndSetUpstream": "推送此分支，並視需要設定上游分支",
       "pushMayNeedSync": "推送本機提交；git 可能要求先同步",
-      "pushToLinkedReview": "將更新推送到已關聯的審查分支",
+      "pushToLinkedReview": "將更新推送到已連結的審查分支",
       "rebaseChooseRemoteBase": "選擇要作為變基基準的遠端分支",
       "rebaseDirtyHint": "嘗試變基；git 可能要求先提交或儲藏本機變更",
       "rebaseFromBase": "以基準分支進行變基",
@@ -2917,7 +2948,7 @@
     },
     "useMobileCommitFailureRecovery": {
       "launchFailed": "無法啟動代理程式",
-      "waitingForDesktop": "等待桌面版…"
+      "waitingForDesktop": "等待電腦…"
     },
     "useMobileCommitMessageGeneration": {
       "generateFailed": "無法產生提交訊息"
@@ -2929,7 +2960,7 @@
       "actionFailed": "原始碼控制操作失敗",
       "branchUnavailable": "無法取得分支狀態",
       "commitFailed": "提交失敗",
-      "waitingForDesktop": "等待桌面版…"
+      "waitingForDesktop": "等待電腦…"
     }
   },
   "tasks": {
@@ -3093,7 +3124,7 @@
       "mergeMethodTitle": "合併方式",
       "mergePullRequestTitle": "合併 PR",
       "mergeRequestMergeMessage": "選擇此合併請求的合併方式。",
-      "mergeRequestTitle": "合併此請求",
+      "mergeRequestTitle": "合併請求",
       "pullRequestMergeMessage": "選擇此 PR 的合併方式。",
       "retryLoadingIssues": "重新嘗試從 {{source}} 載入議題",
       "retrying": "正在重試…",
@@ -3377,7 +3408,7 @@
       "repoRelativeDirectoriesRequired": "使用相對於存放庫的目錄，而不是根目錄、絕對路徑或上層目錄路徑片段。"
     },
     "taskViewOptions": {
-      "allSubtitle": "所選站台中的未解決議題",
+      "allSubtitle": "所選網站中的未解決議題",
       "assignedSubtitle": "指派給您的未解決議題",
       "doneSubtitle": "指派給您且最近已解決的議題",
       "noGitHubTasks": "沒有 GitHub 任務",

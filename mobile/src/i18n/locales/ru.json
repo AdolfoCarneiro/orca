@@ -1530,12 +1530,12 @@
       "cardDisplay": "Отображение карточек",
       "cardLayout": "Вид карточек",
       "clearFilters": "Сбросить фильтры",
-      "exceptDefaultBranch": "Кроме основной ветки",
+      "exceptDefaultBranch": "Кроме ветки по умолчанию",
       "filters": "Фильтры",
       "groupBy": "Группировать по",
       "hideAutomationCreated": "Скрыть созданные автоматизацией",
       "hideCliCreated": "Скрыть созданные через CLI",
-      "hideDefaultBranch": "Скрыть основную ветку",
+      "hideDefaultBranch": "Скрыть ветку по умолчанию",
       "hideDetachedHead": "Скрыть с отсоединённым HEAD",
       "hideOtherClientWorkspaces": "Скрыть рабочие пространства других клиентов",
       "hideSleeping": "Скрыть спящие рабочие пространства",
@@ -1816,7 +1816,7 @@
       "noDetails": "Подробности недоступны."
     },
     "prCheckDetailContent": {
-      "annotation": "Примечание",
+      "annotation": "Аннотация",
       "failedJobs": "Неудачные задания",
       "jobs": "Задания",
       "unknown": "неизвестно"
@@ -2349,7 +2349,7 @@
     },
     "terminalLiveInputStatus": {
       "listening": "Прослушивание",
-      "liveInput": "Ввод в реальном времени",
+      "liveInput": "Прямой ввод",
       "preparingMic": "Подготовка микрофона",
       "processing": "Обработка",
       "releaseMicHint": "Отпустите кнопку микрофона, чтобы остановить запись",
@@ -2384,7 +2384,7 @@
       "browserCommandFailed": "Не удалось выполнить команду браузера",
       "browserCreateFailed": "Не удалось создать вкладку браузера",
       "browserUnavailable": "Страница браузера пока недоступна.",
-      "browserUpdateRequired": "Для трансляции браузера на телефон обновите Orca на сервере",
+      "browserUpdateRequired": "Для трансляции браузера на телефон обновите Orca на компьютере",
       "invalidUrl": "Введите корректный URL",
       "noteCreateFailed": "Не удалось создать заметку Markdown",
       "untitledNoteCreateFailed": "Не удалось создать заметку Markdown без названия"
@@ -2478,7 +2478,7 @@
       "actionFailed": "Не удалось выполнить действие с комментарием"
     },
     "usePrTitleAction": {
-      "disconnected": "Нет подключения к серверу.",
+      "disconnected": "Нет подключения к компьютеру.",
       "updateFailed": "Не удалось обновить заголовок."
     },
     "useQuickCommands": {

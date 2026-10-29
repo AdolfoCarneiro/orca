@@ -6,7 +6,7 @@
       "connectingTo": "Verbindung zu {{name}} wird hergestellt…",
       "default": "Systemstandard",
       "hostNotFound": "Host nicht gefunden",
-      "invalidSnapshot": "Ungültiger Kontodaten-Snapshot vom Host",
+      "invalidSnapshot": "Ungültige Momentaufnahme der Konten vom Host",
       "loadingAccounts": "Konten werden geladen…",
       "manageAccountsHint": "Konten auf dem Desktop unter Einstellungen → Konten hinzufügen oder erneut authentifizieren.",
       "refreshAccounts": "Konten aktualisieren",
@@ -572,10 +572,10 @@
     "codexResetCreditAction": {
       "activeAccountHint": "Verbraucht einen verdienten Credit zum Zurücksetzen des Ratenlimits für das aktive Codex-Konto",
       "earnedReset": "Verdienter Credit zum Zurücksetzen des Codex-Ratenlimits",
-      "resetting": "Einlösen…",
+      "resetting": "Wird zurückgesetzt…",
       "resettingLabel": "Codex-Ratenlimits werden zurückgesetzt",
       "scopedHint": "Verbraucht einen verdienten Credit zum Zurücksetzen des Ratenlimits für {{scopeLabel}}",
-      "useReset": "Einlösen",
+      "useReset": "Jetzt zurücksetzen",
       "useResetLabel": "Zurücksetzung des Codex-Ratenlimits verwenden"
     },
     "customKeyModal": {
@@ -1795,10 +1795,10 @@
       "dismissed": "Verworfen",
       "loadFailed": "Prüfer konnten nicht geladen werden. Zum erneuten Laden auf „Aktualisieren“ tippen.",
       "loading": "Prüfer werden geladen…",
-      "noReviewers": "Keine Prüfer angefragt",
+      "noReviewers": "Keine Prüfer angefordert",
       "pending": "Ausstehend",
       "removeReviewer": "{{login}} entfernen",
-      "requested": "Angefragt",
+      "requested": "Angefordert",
       "reviewed": "Geprüft",
       "title": "Prüfer"
     }
@@ -2227,7 +2227,7 @@
     },
     "terminalLiveInputStatus": {
       "listening": "Hört zu",
-      "liveInput": "Live-Eingabe",
+      "liveInput": "Direkte Eingabe",
       "preparingMic": "Mikrofon wird vorbereitet",
       "processing": "Wird verarbeitet",
       "releaseMicHint": "Zum Stoppen Mikrofon loslassen",
@@ -2848,7 +2848,7 @@
     },
     "prLink": {
       "updatePullRequestFailed": "Verknüpfter Pull Request konnte nicht aktualisiert werden.",
-      "updateReviewFailed": "Verknüpfter Review konnte nicht aktualisiert werden."
+      "updateReviewFailed": "Verknüpftes Review konnte nicht aktualisiert werden."
     },
     "primaryAction": {
       "commit": "Committen",
@@ -3046,8 +3046,8 @@
       "pipelineJobs_one": "{{count}} Job",
       "pipelineJobs_other": "{{count}} Jobs",
       "project": "Projekt",
-      "rerunAll": "Alle wiederholen",
-      "rerunFailed": "Fehlgeschlagene wiederholen",
+      "rerunAll": "Alle erneut ausführen",
+      "rerunFailed": "Fehlgeschlagene erneut ausführen",
       "status": "Status",
       "subIssueTitle": "Titel des Unter-Issues",
       "subIssues": "Untergeordnete Issues",
@@ -3453,7 +3453,7 @@
       "editPreset": "{{name}} bearbeiten",
       "fullCheckout": "Vollständiger Checkout",
       "fullCheckoutSubtitle": "Gesamtes Repository verwenden",
-      "newPreset": "Vorlage erstellen",
+      "newPreset": "Voreinstellung erstellen",
       "noBranches": "Keine passenden Branches.",
       "searchBranches": "Branches suchen",
       "sparseCheckoutTitle": "Partieller Checkout"
@@ -3475,11 +3475,11 @@
       "directories_one": "{{count}} Verzeichnis",
       "directories_other": "{{count}} Verzeichnisse",
       "dontRun": "Nicht ausführen",
-      "editSparsePreset": "Vorlage für partiellen Checkout bearbeiten",
+      "editSparsePreset": "Voreinstellung für partiellen Checkout bearbeiten",
       "nameLabel": "Name",
       "namePlaceholder": "Renderer-Oberfläche",
       "newSetupScript": "Neues Einrichtungsskript",
-      "newSparsePreset": "Neue Vorlage für partiellen Checkout",
+      "newSparsePreset": "Neue Voreinstellung für partiellen Checkout",
       "runHooks": "Hooks ausführen",
       "runSetupAndCreate": "Einrichten und erstellen",
       "runSetupTitle": "Einrichtung von {{name}} ausführen?",

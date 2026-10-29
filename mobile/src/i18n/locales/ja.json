@@ -117,7 +117,7 @@
       "autocompleteOn": "オン",
       "defaultText": "標準（100%）",
       "keepPhoneSize": "スマートフォンサイズを維持（デフォルト）",
-      "keyboardInputDescription": "自動補完、自動修正、スペル候補は、バッファー方式のコマンド入力にのみ適用されます。キーボード上部の二重矢印ボタンでライブ入力から切り替えると、「送信」をタップする前にコマンドを編集できます。コマンド、フラグ、パスが書き換わるのを防ぐため、デフォルトではオフです。",
+      "keyboardInputDescription": "自動補完、自動修正、スペル候補は、バッファー方式のコマンド入力にのみ適用されます。キーボード上部の二重矢印ボタンでリアルタイム入力から切り替えると、「送信」をタップする前にコマンドを編集できます。コマンド、フラグ、パスが書き換わるのを防ぐため、デフォルトではオフです。",
       "keyboardInputHeading": "キーボード入力",
       "largeText": "大（125%）",
       "largerText": "特大（150%）",
@@ -277,7 +277,7 @@
     "notice": {
       "compaction": "コンテキストを圧縮しました",
       "contextCleared": "コンテキストをクリアしました",
-      "plan": "計画",
+      "plan": "プラン",
       "stoppedManually": "手動で停止しました"
     },
     "orcaStop": {
@@ -388,10 +388,10 @@
       "empty": "タスクがありません",
       "finished": "{{task}} を完了しました",
       "inProgress": "進行中",
-      "pending": "未着手",
+      "pending": "保留中",
       "progress": "{{total}} 件中 {{completed}} 件のタスクが完了しました",
       "removed": "{{task}} を削除しました",
-      "reset": "未着手に変更しました：{{task}}",
+      "reset": "保留中としてマーク: {{task}}",
       "showAll": "完全なタスクリスト",
       "started": "{{task}} を開始しました",
       "taskStatus": "{{status}}：{{task}}",
@@ -1710,7 +1710,7 @@
       "stackChangesRequested": "#{{number}} で変更が要求されています。",
       "stackClosed": "#{{number}} はクローズされています。",
       "stackConflicts": "#{{number}} にマージの競合があります。",
-      "stackDraft": "#{{number}} はまだドラフトです。",
+      "stackDraft": "#{{number}} はまだ下書きです。",
       "stackReviewRequired": "#{{number}} はまだレビューの承認が必要です。"
     },
     "prCheckDetail": {
@@ -2172,7 +2172,7 @@
       "draftsHint": "画面を離れる前に、スマートフォンの下書きをコピーするか破棄してください。",
       "file": "ファイル",
       "markdown": "Markdown",
-      "markdownNote": "Markdown メモ",
+      "markdownNote": "Markdown ノート",
       "newBrowser": "新規ブラウザ",
       "newTab": "新規タブ",
       "notesCopied": "メモをコピーしました。",
@@ -2462,7 +2462,7 @@
       "defaultViewHeading": "デフォルトの表示",
       "off": "オフ",
       "on": "オン",
-      "openInChatUi": "セッションを Chat UI で開く",
+      "openInChatUi": "セッションをチャット UI で開く",
       "title": "Chat UI"
     },
     "nativeNotificationDeliverySettings": {
@@ -2542,8 +2542,8 @@
       "committing": "コミット中です。",
       "createPr": "PR を作成",
       "enterCommitMessage": "コミットするには、コミットメッセージを入力してください。",
-      "forcePushWithLease": "リース付きフォースプッシュでリモートブランチを更新します。",
-      "forcePushing": "フォースプッシュ中です。",
+      "forcePushWithLease": "lease 付きで強制プッシュしてリモートブランチを更新します。",
+      "forcePushing": "強制プッシュ中です。",
       "linkedReviewUnavailable": "リンクされたレビューのブランチを利用できません。",
       "publishToOrigin": "このブランチを origin に公開します。",
       "pullCommits_one": "{{count}} 件のコミットをプルします。",
@@ -2752,7 +2752,7 @@
     "hostedReviewCopy": {
       "committingChanges": "変更をコミット中…",
       "creatingReview": "レビューを作成中…",
-      "forcePushing": "リース付きで強制プッシュ中…",
+      "forcePushing": "lease 付きで強制プッシュ中…",
       "generatingCommitMessage": "コミットメッセージを生成中…",
       "publishingBranch": "ブランチを公開中…",
       "pushingCommits": "コミットをプッシュ中…",
@@ -2776,7 +2776,7 @@
       "updateBranchFailed": "リモートブランチを更新できませんでした。「PR を作成」を再試行してください。"
     },
     "hostedReviewRemotePrerequisite": {
-      "forcePushFailed": "リース付きの強制プッシュに失敗しました。",
+      "forcePushFailed": "lease 付きの強制プッシュに失敗しました。",
       "publishFailed": "ブランチの公開に失敗しました。",
       "pushFailed": "コミットのプッシュに失敗しました。"
     },
@@ -2855,6 +2855,37 @@
       "push": "プッシュ",
       "stageAll": "ステージオール",
       "sync": "同期"
+    },
+    "primaryActionCopy": {
+      "checkingReviewStatus": "レビューの状態を確認中です。",
+      "checkoutBranchBeforePublish": "コミットを公開する前にブランチをチェックアウトしてください。",
+      "commit": "Commit",
+      "commitInProgress": "コミット中です。",
+      "commitStagedChanges": "ステージ済みの変更をコミットします。",
+      "enterCommitMessage": "コミットするにはコミットメッセージを入力してください。",
+      "forcePush": "フォースプッシュ",
+      "forcePushInProgress": "強制プッシュ中です。",
+      "forcePushWithLease": "lease 付きで強制プッシュしてリモートブランチを更新します。",
+      "linkedReviewTargetUnavailable": "リンクされたレビューブランチを利用できません。",
+      "nothingToCommitUpToDate": "コミットするものがありません。ブランチは最新です。",
+      "publishBranch": "ブランチを公開",
+      "publishBranchHint": "このブランチを origin に公開します。",
+      "pull": "プル",
+      "pullCommits_one": "{{count}} 件のコミットをプルします。",
+      "pullCommits_other": "{{count}} 件のコミットをプルします。",
+      "push": "プッシュ",
+      "pushCommits_one": "{{count}} 件のコミットをプッシュします。",
+      "pushCommits_other": "{{count}} 件のコミットをプッシュします。",
+      "pushLinkedReview": "リンクされたレビューブランチに更新をプッシュします。",
+      "remoteOperationBlocksCommit": "リモート操作が完了してから再試行してください。",
+      "remoteOperationInProgress": "リモート操作を実行中です。",
+      "resolveConflictsBeforeCommit": "コミットする前に競合を解決してください。",
+      "reviewAlreadyMerged": "コミットするものがありません。レビューはすでにマージ済みです。",
+      "stageAll": "ステージオール",
+      "stageAllChanges": "すべての変更をステージします。",
+      "stageFileToCommit": "コミットするにはファイルを1つ以上ステージしてください。",
+      "sync": "同期",
+      "syncCounts": "{{behind}} 件をプルし、{{ahead}} 件をプッシュします。"
     },
     "remoteDropdown": {
       "branchAlreadyPublished": "ブランチは既に公開されています",
@@ -3194,7 +3225,7 @@
       "sources_one": "{{count}} 件のソース",
       "sources_other": "{{count}} 件のソース",
       "unsupportedLayout": "モバイルでは未対応のレイアウト",
-      "updatedSort": "更新済み",
+      "updatedSort": "更新日時",
       "usesFieldAscending": "{{field}} の昇順を使用",
       "usesFieldDescending": "{{field}} の降順を使用",
       "usesGitHubRankOrder": "GitHub のランク順を使用",

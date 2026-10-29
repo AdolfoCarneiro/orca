@@ -6,7 +6,7 @@
       "connectingTo": "Conectando a {{name}}…",
       "default": "Padrão do sistema",
       "hostNotFound": "Host não encontrado",
-      "invalidSnapshot": "Dados de contas inválidos recebidos do host",
+      "invalidSnapshot": "Snapshot de contas inválido recebido do host",
       "loadingAccounts": "Carregando contas…",
       "manageAccountsHint": "Adicione contas ou autentique-as novamente em Configurações → Contas no desktop.",
       "refreshAccounts": "Atualizar contas",
@@ -161,7 +161,6 @@
       "clickModifier": "Modificador de clique {{key}}"
     },
     "useBrowserCommands": {
-      "deliveryUnconfirmed": "Envio não confirmado — verifique a página antes de tentar novamente",
       "dialogAnswerFailed": "A resposta não chegou à página.",
       "sent": "Enviado"
     },
@@ -231,6 +230,10 @@
     },
     "nativeChatProse": {
       "attachedImage": "Imagem anexada",
+      "continuedOutside": "Continuou fora deste chat.",
+      "continuedOutsideRewound": "Continuou fora deste chat. As respostas anteriores acima não fazem mais parte do histórico desta conversa.",
+      "historyItemTooLarge": "Esta parte do chat era grande demais para ser exibida.",
+      "historyRepaired": "Não foi possível carregar parte do histórico deste chat.",
       "image": "imagem",
       "openImageHint": "Abre a imagem em tamanho original"
     },
@@ -383,8 +386,8 @@
       "stoppingState": "Parando…"
     },
     "streamFrame": {
-      "streamEnded": "Transmissão da conversa encerrada",
-      "streamFailed": "Falha na transmissão da conversa"
+      "streamEnded": "Transmissão da transcrição encerrada",
+      "streamFailed": "Falha na transmissão da transcrição"
     },
     "taskList": {
       "added": "Adicionada {{task}}",
@@ -604,7 +607,7 @@
       "resetting": "Redefinindo…",
       "resettingLabel": "Redefinindo limites de taxa do Codex",
       "scopedHint": "Usa uma redefinição obtida para {{scopeLabel}}",
-      "useReset": "Usar redefinição",
+      "useReset": "Redefinir agora",
       "useResetLabel": "Usar redefinição de limite de taxa do Codex"
     },
     "customKeyModal": {
@@ -1234,7 +1237,7 @@
       "loadFolderFailed": "Não foi possível carregar a pasta",
       "loading": "Carregando…",
       "openFolder": "Abrir pasta {{name}}",
-      "previewFile": "Visualizar arquivo {{name}}",
+      "previewFile": "Pré-visualizar arquivo {{name}}",
       "retryLoading": "Tentar carregar {{path}} novamente",
       "unavailable": "Indisponível no celular"
     },
@@ -1261,16 +1264,16 @@
       "editorLabel": "Editor de {{title}}"
     },
     "filePreviewResponse": {
-      "binaryUnavailable": "Visualização de arquivos binários indisponível",
+      "binaryUnavailable": "Pré-visualização de arquivos binários indisponível",
       "bytes": "{{size}} B",
-      "fileChanged": "O arquivo foi alterado no desktop. Recarregue a visualização antes de salvar.",
+      "fileChanged": "O arquivo foi alterado no desktop. Recarregue a pré-visualização antes de salvar.",
       "fileNotFound": "Arquivo não encontrado",
-      "fileTooLarge": "Arquivo muito grande para visualização no celular",
+      "fileTooLarge": "Arquivo muito grande para pré-visualização no celular",
       "filesystemUnreachable": "Não foi possível acessar o sistema de arquivos do desktop",
       "kilobytes": "{{size}} KB",
-      "loadFailed": "Não foi possível carregar a visualização",
+      "loadFailed": "Não foi possível carregar a pré-visualização",
       "megabytes": "{{size}} MB",
-      "reloadBeforeSaving": "Recarregue a visualização antes de salvar.",
+      "reloadBeforeSaving": "Recarregue a pré-visualização antes de salvar.",
       "unknownSize": "tamanho desconhecido"
     },
     "filePreviewScreen": {
@@ -1290,8 +1293,8 @@
       "waiting": "Aguardando o desktop…"
     },
     "filePreviewSourceText": {
-      "previewLabel": "Visualização do arquivo",
-      "truncatedNote": "Visualização truncada. Tamanho do arquivo: {{size}}."
+      "previewLabel": "Pré-visualização do arquivo",
+      "truncatedNote": "Pré-visualização truncada. Tamanho do arquivo: {{size}}."
     },
     "markdownPreviewImage": {
       "expandFallback": "Expandir imagem",
@@ -1354,7 +1357,7 @@
       "tryAgain": "Tente novamente."
     },
     "tasksCard": {
-      "noSources": "Nenhuma fonte de tarefas conectada",
+      "noSources": "Nenhuma origem de tarefas conectada",
       "openProviderTasks": "Abrir tarefas do {{provider}}",
       "title": "Tarefas"
     }
@@ -1863,7 +1866,7 @@
       "sendKey": "Enviar {{label}}",
       "switchToBufferedInput": "Mudar para entrada de comandos em buffer",
       "switchToDesktopMode": "Alternar para o modo desktop",
-      "switchToLiveInput": "Mudar para entrada direta no terminal",
+      "switchToLiveInput": "Mudar para entrada em tempo real no terminal",
       "switchToPhoneMode": "Mudar para o modo celular"
     },
     "activeContent": {
@@ -1932,9 +1935,7 @@
       "groupShell": "Shell",
       "groupTasks": "Tarefas",
       "groupWorkflows": "Fluxos de Trabalho",
-      "headerTotalCount_many": "{{count}} tarefas em segundo plano",
-      "headerTotalCount_one": "{{count}} tarefa em segundo plano",
-      "headerTotalCount_other": "{{count}} tarefas em segundo plano",
+      "headerTotal": "{{value0}} tarefas em segundo plano",
       "monitor": "Monitor em segundo plano",
       "monitoring": "Monitorando tarefas em segundo plano",
       "reasonBlocked": "falhou",
@@ -1978,8 +1979,8 @@
     "commandDock": {
       "commandPlaceholder": "Digite um comando…",
       "liveInputHint": "O texto digitado é enviado diretamente ao terminal ativo.",
-      "liveInputLabel": "Entrada em tempo real no terminal",
-      "sendCommand": "Enviar comando"
+      "sendCommand": "Enviar comando",
+      "showLiveInputKeyboard": "Mostrar teclado para entrada em tempo real no terminal"
     },
     "contentRow": {
       "dismissCreationWarning": "Dispensar aviso de criação do espaço de trabalho"
@@ -2287,6 +2288,7 @@
       "transcribingDictation": "Transcrevendo ditado por voz"
     },
     "terminalLiveInputStatus": {
+      "keyboardHint": "Toque para mostrar o teclado",
       "listening": "Ouvindo",
       "liveInput": "Entrada em tempo real",
       "preparingMic": "Preparando microfone",
@@ -2295,8 +2297,7 @@
       "startingMic": "Ativando microfone",
       "stopHint": "Toque no microfone para parar",
       "transcribing": "Transcrevendo no desktop",
-      "uploadingImage": "Enviando imagem para o host",
-      "uploadingImageTitle": "Enviando imagem"
+      "uploadingImage": "Enviando imagem para o host"
     },
     "terminalRecords": {
       "defaultTitle": "Terminal"
@@ -3402,10 +3403,10 @@
     "providerPickers": {
       "allRepositories": "Todos os repositórios",
       "githubView": "Visualização do GitHub",
-      "issueSources": "Fontes de issues do GitHub",
+      "issueSources": "Origens de issues do GitHub",
       "issueSourcesDescription": "Escolha, para cada repositório, se deseja buscar e criar issues em upstream ou origin.",
       "issues": "Issues",
-      "noIssueSources": "Nenhuma fonte alternativa de issues disponível.",
+      "noIssueSources": "Nenhuma origem alternativa de issues disponível.",
       "origin": "Origin",
       "pageHint": "Ir para uma página de resultados carregada ou disponível.",
       "pageLoaded": "Carregada",
@@ -3416,7 +3417,7 @@
       "queryingSource": "Consultando {{source}}",
       "repoDescription": "Escolha quais repositórios consultar.",
       "repos": "Repositórios",
-      "taskSource": "Fonte de tarefas",
+      "taskSource": "Origem de tarefas",
       "upstream": "Upstream"
     },
     "providerViewProjection": {
