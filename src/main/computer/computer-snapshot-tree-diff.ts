@@ -13,33 +13,32 @@ const MAX_DIFF_TO_FULL_RATIO = 0.5
 
 type ComputerTreeDiff = { text: string; changed: number; added: number; removed: number }
 
-// Why: lines are keyed by element index and any line whose text or position changed is resent, so an
-// index the agent still holds means what the new tree says; stable provider indexes only shrink it.
+// Added or moved controls need the full tree so omitted lines cannot hide their location.
 export function diffComputerTreeText(previous: string, next: string): ComputerTreeDiff | null {
   const before = parseComputerTreeText(previous)
   const after = parseComputerTreeText(next)
   if (before.elements.length === 0 || after.elements.length === 0) {
     return null
   }
-  const beforeByIndex = new Map(before.elements.map((element) => [element.index, element]))
   const beforeParents = elementParents(before.elements)
   const afterParents = elementParents(after.elements)
   const afterIndexes = new Set(after.elements.map((element) => element.index))
-  const moved = movedIndexes(before.elements, after.elements)
+  const retainedBefore = before.elements.filter((element) => afterIndexes.has(element.index))
   const body: string[] = []
   let changed = 0
-  let added = 0
-  for (const element of after.elements) {
-    const old = beforeByIndex.get(element.index)
-    if (old && beforeParents.get(element.index) !== afterParents.get(element.index)) {
+  for (const [position, element] of after.elements.entries()) {
+    const old = retainedBefore[position]
+    if (
+      !old ||
+      old.index !== element.index ||
+      old.depth !== element.depth ||
+      beforeParents.get(element.index) !== afterParents.get(element.index)
+    ) {
       return null
     }
-    if (!old) {
-      added += 1
-      body.push(...markLines('+', element))
-    } else if (moved.has(element.index) || old.lines.join('\n') !== element.lines.join('\n')) {
+    if (old.lines.join('\n') !== element.lines.join('\n')) {
       changed += 1
-      body.push(...markLines('~', element))
+      body.push(...element.lines.map((line) => `~ ${line}`))
     }
   }
   const removedIndexes = before.elements
@@ -48,7 +47,7 @@ export function diffComputerTreeText(previous: string, next: string): ComputerTr
   if (removedIndexes.length > 0) {
     body.push(`- ${formatIndexRanges(removedIndexes)}`)
   }
-  const summary = { changed, added, removed: removedIndexes.length }
+  const summary = { changed, added: 0, removed: removedIndexes.length }
   if (body.length === 0) {
     return {
       ...summary,
@@ -62,16 +61,12 @@ export function diffComputerTreeText(previous: string, next: string): ComputerTr
   const text = joinComputerTreeText(
     after.header,
     [
-      'Changes since the previous snapshot (~ changed, + added, - removed). Unchanged elements are omitted and keep their indexes.',
+      'Changes since the previous snapshot (~ changed, - removed). Unchanged elements are omitted and keep their indexes.',
       ...body
     ],
     after.footer
   )
   return text.length > next.length * MAX_DIFF_TO_FULL_RATIO ? null : { ...summary, text }
-}
-
-function markLines(mark: '+' | '~', element: ComputerTreeElement): string[] {
-  return element.lines.map((line) => `${mark} ${line}`)
 }
 
 function elementParents(elements: ComputerTreeElement[]): Map<number, number | undefined> {
@@ -83,42 +78,6 @@ function elementParents(elements: ComputerTreeElement[]): Map<number, number | u
     path[element.depth] = element.index
   }
   return parents
-}
-
-// Elements that kept their index but changed position; the longest run in old order stays put.
-function movedIndexes(before: ComputerTreeElement[], after: ComputerTreeElement[]): Set<number> {
-  const oldPosition = new Map(before.map((element, position) => [element.index, position]))
-  const common = after.flatMap((element) => {
-    const position = oldPosition.get(element.index)
-    return position === undefined ? [] : [{ index: element.index, position }]
-  })
-  const kept = new Set(longestIncreasingRun(common.map((entry) => entry.position)))
-  return new Set(common.filter((_, i) => !kept.has(i)).map((entry) => entry.index))
-}
-
-// Returns positions (into `values`) of one longest strictly increasing subsequence.
-function longestIncreasingRun(values: number[]): number[] {
-  const tails: number[] = []
-  const previous: number[] = Array.from({ length: values.length }, () => -1)
-  for (let i = 0; i < values.length; i += 1) {
-    let low = 0
-    let high = tails.length
-    while (low < high) {
-      const mid = (low + high) >> 1
-      if (values[tails[mid]] < values[i]) {
-        low = mid + 1
-      } else {
-        high = mid
-      }
-    }
-    previous[i] = low > 0 ? tails[low - 1] : -1
-    tails[low] = i
-  }
-  const run: number[] = []
-  for (let i = tails.at(-1) ?? -1; i !== -1; i = previous[i]) {
-    run.push(i)
-  }
-  return run.toReversed()
 }
 
 function formatIndexRanges(indexes: number[]): string {

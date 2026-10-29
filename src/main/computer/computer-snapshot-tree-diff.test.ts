@@ -45,26 +45,20 @@ function replaceLine(lines: string[], from: string, to: string[]): string[] {
 }
 
 describe('diffComputerTreeText', () => {
-  it('sends only the changed and inserted lines when indexes are stable', () => {
-    const after = replaceLine(
-      replaceLine(BEFORE, '\t\t\t12 heading Top stories', [
-        '\t\t\t986 container, Text: Saved. Undo',
-        '\t\t\t12 heading Top stories'
-      ]),
-      '\t\t\t\t\t16 text field (settable) Title, Value: draft',
-      ['\t\t\t\t\t16 text field (settable) Title, Value: Computer use diffs']
-    )
+  it('sends only changed lines when elements keep their locations', () => {
+    const after = replaceLine(BEFORE, '\t\t\t\t\t16 text field (settable) Title, Value: draft', [
+      '\t\t\t\t\t16 text field (settable) Title, Value: Computer use diffs'
+    ])
 
     const diff = diffComputerTreeText(tree(BEFORE), tree(after))
 
-    expect(diff).toMatchObject({ changed: 1, added: 1, removed: 0 })
+    expect(diff).toMatchObject({ changed: 1, added: 0, removed: 0 })
     expect(diff?.text).toBe(
       [
         'App=webfixture (pid 5310)',
         'Window: "Fixture News", App: webfixture.',
         '',
-        'Changes since the previous snapshot (~ changed, + added, - removed). Unchanged elements are omitted and keep their indexes.',
-        '+ \t\t\t986 container, Text: Saved. Undo',
+        'Changes since the previous snapshot (~ changed, - removed). Unchanged elements are omitted and keep their indexes.',
         '~ \t\t\t\t\t16 text field (settable) Title, Value: Computer use diffs',
         ...FOOTER
       ].join('\n')
@@ -94,15 +88,23 @@ describe('diffComputerTreeText', () => {
     )
   })
 
-  it('reports an element that kept its index but moved, so list order stays right', () => {
+  it.each(['\t\t\t\t14 container', '\t\t\t\t17 container'])(
+    'returns the full tree for a checkbox inserted under %s',
+    (parent) => {
+      const after = replaceLine(BEFORE, parent, [parent, '\t\t\t\t\t986 checkbox Enabled'])
+
+      expect(diffComputerTreeText(tree(BEFORE), tree(after))).toBeNull()
+    }
+  )
+
+  it('returns the full tree when siblings change order', () => {
     const story0 = BEFORE.slice(20, 23)
     const story1 = BEFORE.slice(23, 26)
     const after = [...BEFORE.slice(0, 20), ...story1, ...story0, ...BEFORE.slice(26)]
 
     const diff = diffComputerTreeText(tree(BEFORE), tree(after))
 
-    expect(diff?.changed).toBe(3)
-    expect(diff?.text).toContain('~ \t\t\t\t27 container, Value: 7 points')
+    expect(diff).toBeNull()
   })
 
   const titleField = '\t\t\t\t\t16 text field (settable) Title, Value: draft'
