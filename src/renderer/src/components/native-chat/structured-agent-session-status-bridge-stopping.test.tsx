@@ -15,7 +15,7 @@ import type { Tab } from '../../../../shared/tab-types'
 import type { AppState } from '@/store/types'
 
 type TestStore = {
-  getState: () => AppState
+  getState: () => AppState & { testRuntimeOwner?: string | null }
   setState: SessionSourceSet<AppState & { testRuntimeOwner?: string | null }>
 }
 
@@ -28,7 +28,7 @@ const mocks = vi.hoisted(() => {
   return hoisted
 })
 
-function seedMockState(partial: Partial<AppState>): void {
+function seedMockState(partial: Partial<AppState & { testRuntimeOwner?: string | null }>): void {
   if (mocks.store) {
     setSessionTestState(mocks.store, partial)
   }

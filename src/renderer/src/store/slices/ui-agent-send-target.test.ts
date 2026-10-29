@@ -239,6 +239,7 @@ describe('createUISlice agent send target mode', () => {
     const store = createAgentSendStore()
     seedAgentSendState(store)
     const agentStatusByPaneKey = store.getState().agentStatusByPaneKey
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This agentStatusByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       agentStatusByPaneKey: {
         ...agentStatusByPaneKey,
@@ -822,6 +823,7 @@ describe('openDiffNotesSendMenuForActiveWorktree', () => {
   ): { store: SessionTestStore<AppState>; setRightSidebarTab: ReturnType<typeof vi.fn> } {
     const store = createAgentSendStore()
     const setRightSidebarTab = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This activeWorktreeId, getDiffComments, setRightSidebarTab fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       activeWorktreeId,
       getDiffComments: () => comments,

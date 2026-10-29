@@ -89,6 +89,7 @@ describe('createWorktree composer parent pick', () => {
 
   it('drops a stale parent pick and falls back to the active folder workspace', async () => {
     const store = createParentPickStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This activeWorkspaceKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       activeWorkspaceKey: folderWorkspaceKey('folder-1')
     } as Partial<AppState>)

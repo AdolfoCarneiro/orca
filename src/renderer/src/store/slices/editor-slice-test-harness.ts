@@ -1,5 +1,4 @@
 import { withSessionSourceTestWrites } from '@/lib/test-support/session-source-test-store'
-import { editSessionSource } from '../session-source-edits'
 import { vi } from 'vitest'
 import { createStore } from 'zustand/vanilla'
 import { createEditorSlice } from './editor'
@@ -54,9 +53,9 @@ export function createEditorTabsStore() {
           activeTabIdByWorktree: {},
           tabBarOrderByWorktree: {},
           setTabBarOrder: (worktreeId: string, order: string[]) =>
-            args[0]((state) =>
-              editSessionSource(state).set('tabBarOrderByWorktree', worktreeId, order).finish()
-            ),
+            args[0]((state) => ({
+              tabBarOrderByWorktree: { ...state.tabBarOrderByWorktree, [worktreeId]: order }
+            })),
           repos: [{ id: 'repo-1', path: '/repo' }],
           worktreesByRepo: { 'repo-1': [{ id: 'wt-1', repoId: 'repo-1', path: '/repo' }] },
           folderWorkspaces: [],

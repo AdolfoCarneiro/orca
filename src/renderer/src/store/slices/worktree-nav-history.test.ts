@@ -54,7 +54,7 @@ function createHistoryStore(worktreeIds: string[] = [], folderWorkspaceIds: stri
             get as Parameters<typeof createWorktreeNavHistorySlice>[1],
             api as Parameters<typeof createWorktreeNavHistorySlice>[2]
           )
-        }) as AppState
+        }) as unknown as AppState
     )
   )
 }

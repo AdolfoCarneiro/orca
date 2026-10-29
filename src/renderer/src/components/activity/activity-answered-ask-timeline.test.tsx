@@ -24,7 +24,7 @@ import { tabActivationPatch } from '@/store/slices/tabs/tabs-focus-actions'
 import { getStructuredChatTabNames } from '@/runtime/structured-chat-name-observation'
 
 type TestStore = {
-  getState: () => AppState
+  getState: () => AppState & { testRuntimeOwner?: string | null }
   setState: SessionSourceSet<AppState & { testRuntimeOwner?: string | null }>
 }
 

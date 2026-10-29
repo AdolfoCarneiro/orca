@@ -116,16 +116,7 @@ import TerminalPaneOverlayLayer from './TerminalPaneOverlayLayer'
 const TAB_IDS = ['tab-a', 'tab-b'] as const
 const GROUP_ID = 'group-a'
 
-type ParkingStoreState = {
-  groupsByWorktree: Record<string, TabGroup[]>
-  tabsByWorktree: Record<string, TerminalTab[]>
-  unifiedTabsByWorktree: Record<string, Tab[]>
-}
-
-const parkingStore = useAppStore as unknown as {
-  getState: () => ParkingStoreState
-  setState: (partial: Record<string, unknown>) => void
-}
+const parkingStore = useAppStore
 
 function terminalTab(id: string): TerminalTab {
   return {

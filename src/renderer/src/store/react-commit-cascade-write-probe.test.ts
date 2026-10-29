@@ -1,3 +1,4 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -66,7 +67,7 @@ describe('withReactCommitCascadeWriteProbe', () => {
     const useProbedStore = createProbedStore()
     probe.armed = true
 
-    useProbedStore.setState({ ticks: 2 }, true)
+    setSessionTestState(useProbedStore, { ticks: 2 }, true)
 
     expect(useProbedStore.getState()).toEqual({ ticks: 2 })
   })

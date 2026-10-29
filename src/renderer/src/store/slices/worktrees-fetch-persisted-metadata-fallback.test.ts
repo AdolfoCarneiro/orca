@@ -66,6 +66,7 @@ describe('fetchWorktrees', () => {
       executionHostId: 'ssh:ssh-1',
       result: detected
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [sshRepo],
       sshConnectionStates: new Map([
@@ -127,6 +128,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [sshRepo],
       sshConnectionStates: new Map(),
@@ -178,6 +180,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [sshRepo, localRepo],
       sshConnectionStates: new Map(),
@@ -216,6 +219,7 @@ describe('fetchWorktrees', () => {
       path: '/home/orca/purged'
     })
     listKnownForExecutionHostMock.mockImplementationOnce(async (args) => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This sshConnectionStates, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(store, {
         sshConnectionStates: new Map([
           [
@@ -242,6 +246,7 @@ describe('fetchWorktrees', () => {
         })
       }
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [sshRepo],
       sshConnectionStates: new Map()
@@ -283,6 +288,7 @@ describe('fetchWorktrees', () => {
       })
     })
     const connectedStates = createTestStore().getState().sshConnectionStates
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [sshRepo],
       sshConnectionStates: new Map()
@@ -294,6 +300,7 @@ describe('fetchWorktrees', () => {
     ])
 
     worktreeListMock.mockResolvedValueOnce([live])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { sshConnectionStates: connectedStates } as Partial<AppState>)
     await store.getState().fetchWorktrees(sshRepo.id)
 
@@ -331,6 +338,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates, detectedWorktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [sshRepo, localRepo],
       sshConnectionStates: new Map(),
@@ -381,6 +389,7 @@ describe('fetchWorktrees', () => {
     })
     const connectedStates = createTestStore().getState().sshConnectionStates
     listKnownForExecutionHostMock.mockResolvedValueOnce(metadataResult())
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [sshRepo],
       sshConnectionStates: new Map()
@@ -393,12 +402,14 @@ describe('fetchWorktrees', () => {
 
     // The host connects and an authoritative scan proves the worktree is gone.
     worktreeListMock.mockResolvedValueOnce([live])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { sshConnectionStates: connectedStates } as Partial<AppState>)
     await store.getState().fetchWorktrees(sshRepo.id)
     expect(store.getState().worktreesByRepo[sshRepo.id]).toEqual([live])
 
     // The host drops again; persisted metadata still lists the deleted worktree.
     listKnownForExecutionHostMock.mockResolvedValueOnce(metadataResult())
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { sshConnectionStates: new Map() } as Partial<AppState>)
     await store.getState().fetchWorktrees(sshRepo.id)
 
@@ -436,6 +447,7 @@ describe('fetchWorktrees', () => {
         source: 'metadata-fallback'
       })
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [sshRepo],
       sshConnectionStates: new Map()
@@ -446,6 +458,7 @@ describe('fetchWorktrees', () => {
     expect(forgetRemovedForExecutionHostMock).not.toHaveBeenCalled()
 
     worktreeListMock.mockResolvedValueOnce([live])
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { sshConnectionStates: connectedStates } as Partial<AppState>)
     await store.getState().fetchWorktrees(sshRepo.id)
 
@@ -476,6 +489,7 @@ describe('fetchWorktrees', () => {
       repoId: localRepo.id,
       path: '/local/survivor'
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [localRepo],
       worktreesByRepo: { [localRepo.id]: [removed, survivor] }
@@ -499,6 +513,7 @@ describe('fetchWorktrees', () => {
       addedAt: 0,
       connectionId: 'ssh-1'
     }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, sshConnectionStates fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       repos: [sshRepo],
       sshConnectionStates: new Map()

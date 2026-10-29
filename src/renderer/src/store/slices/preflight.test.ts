@@ -366,11 +366,13 @@ describe('createPreflightSlice', () => {
       .mockReturnValueOnce(firstRuntime.promise)
       .mockReturnValueOnce(secondRuntime.promise)
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'runtime-1' }
     } as Partial<AppState>)
 
     const first = store.getState().refreshPreflightStatus()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'runtime-2' }
     } as Partial<AppState>)
@@ -458,6 +460,7 @@ describe('createPreflightSlice', () => {
       .mockReturnValueOnce(runtimeB.promise)
       .mockReturnValueOnce(reconnectedB.promise)
     const store = createTestStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'runtime-a' }
     } as Partial<AppState>)
@@ -467,6 +470,7 @@ describe('createPreflightSlice', () => {
     })
 
     const requestA = store.getState().refreshPreflightStatus()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: { activeRuntimeEnvironmentId: 'runtime-b' }
     } as Partial<AppState>)

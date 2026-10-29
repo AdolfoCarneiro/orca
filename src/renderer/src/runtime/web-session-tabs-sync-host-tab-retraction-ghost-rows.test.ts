@@ -143,6 +143,7 @@ function applyHostSnapshot(
   if (opts?.expectChange !== false) {
     expect(patch, 'host snapshot must pass the freshness gate').not.toBe(state)
   }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test stub supplies only the API members exercised by this scenario.
   setSessionTestState(store, patch as Partial<AppState>)
 }
 
@@ -651,6 +652,7 @@ describe('a host-retracted paired tab leaves no ghost agent row behind', () => {
       T0 + 2_000
     )
     expect(patch, 'the batch must pass the freshness gate').not.toBe(state)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test stub supplies only the API members exercised by this scenario.
     setSessionTestState(store, patch as Partial<AppState>)
     release()
 

@@ -132,7 +132,7 @@ describe('purgeWorktreeTerminalState with a surviving twin', () => {
   it('collapses a split the purged copy emptied, handing selection to the survivor', () => {
     const f = twin()
     const key = f.workspaceKey
-    setSessionTestState(f.store, (s) => {
+    setSessionTestState(f.store, (s): Partial<AppState> => {
       const [group] = s.groupsByWorktree[key] ?? []
       if (!group) {
         throw new Error('fixture has no tab group')
@@ -176,7 +176,7 @@ describe('purgeWorktreeTerminalState with a surviving twin', () => {
     const f = twin()
     const key = f.workspaceKey
     const remoteIds = [f.remote.terminalTabId, f.remote.fileId]
-    setSessionTestState(f.store, (s) => {
+    setSessionTestState(f.store, (s): Partial<AppState> => {
       const [group] = s.groupsByWorktree[key] ?? []
       if (!group) {
         throw new Error('fixture has no tab group')

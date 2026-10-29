@@ -1,3 +1,5 @@
+import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
+import { replaceSessionSourceFields } from '@/store/session-source-write-boundary'
 import { withSessionSourceWrites } from '@/store/session-source-write-boundary'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { create } from 'zustand'
@@ -134,12 +136,13 @@ describe('store identity churn probe', () => {
   it('passes disarmed writes straight through without reading state', () => {
     const innerSet = vi.fn()
     const innerGet = vi.fn(() => ({ counter: 0 }))
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This setState, getState fixture intentionally supplies only the state members exercised by this scenario.
     const api = { setState: innerSet, getState: innerGet } as unknown as Parameters<
       typeof creator
     >[2]
     const creator = withStoreIdentityChurnProbe<{ counter: number }>(() => ({ counter: 0 }))
     creator(innerSet, innerGet, api)
-    const updater = (state: { counter: number }) => ({ counter: state.counter + 1 })
+    const updater = replaceSessionSourceFields({ counter: 1 }, 'hydration')
 
     api.setState(updater, true)
 
@@ -175,7 +178,7 @@ describe('store identity churn probe', () => {
       return { counter: state.counter + 10 }
     })
     store.getState().refresh([{ id: 'a', label: 'A' }])
-    store.setState({ ...store.getState(), counter: 100 }, true)
+    setSessionTestState(store, { ...store.getState(), counter: 100 }, true)
 
     expect(updaterCalls).toBe(1)
     expect(store.getState().counter).toBe(100)
@@ -191,7 +194,7 @@ describe('store identity churn probe', () => {
     const rows = store.getState().rows
     armStoreIdentityChurnProbe()
 
-    store.setState({ ...store.getState(), rows: [{ ...rows[0] }] }, true)
+    setSessionTestState(store, { ...store.getState(), rows: [{ ...rows[0] }] }, true)
 
     expect(churnFor('rows')).toBe(1)
   })

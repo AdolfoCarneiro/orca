@@ -717,6 +717,7 @@ describe('attachEditorAutosaveController', () => {
       expect(openFileScans).toBe(1)
       openFileScans = 0
 
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This activeWorktreeId fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(store, { activeWorktreeId: 'wt-2' } as Partial<AppState>)
       expect(openFileScans).toBe(0)
 

@@ -474,12 +474,14 @@ describe('fetchAllWorktrees hydration-time purge (design §4.4)', () => {
     expect(store.getState().hasHydratedWorktreePurge).toBe(false)
     expect(store.getState().tabsByWorktree['repoA::/a/zombie']).toBeDefined()
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This workspaceSessionReady fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { workspaceSessionReady: true } as Partial<AppState>)
     await store.getState().fetchAllWorktrees()
 
     expect(store.getState().hasHydratedWorktreePurge).toBe(false)
     expect(store.getState().tabsByWorktree['repoA::/a/zombie']).toBeDefined()
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This hydrationSucceeded fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { hydrationSucceeded: true } as Partial<AppState>)
     await store.getState().fetchAllWorktrees()
 

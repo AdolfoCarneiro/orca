@@ -333,7 +333,7 @@ it('matches full projection through dependent edits, deletion, routing and order
     pendingReconnectPtyIdByTabId: {},
     deferredSshSessionIdsByTabId: {},
     activeFileIdByWorktree: { [owner]: 'shared', [other]: 'shared' },
-    activeTabTypeByWorktree: { [owner]: 'file', [other]: 'file' },
+    activeTabTypeByWorktree: { [owner]: 'editor', [other]: 'editor' },
     lastVisitedAtByWorktreeId: { [owner]: 1, [other]: 2 },
     sleepingAgentSessionsByPaneKey: {}
   }

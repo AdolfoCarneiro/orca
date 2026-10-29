@@ -26,6 +26,7 @@ function makeStore() {
       >
     >((...args) =>
       createPinnedTabCloseConfirmSlice(
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test stub supplies only the API members exercised by this scenario.
         ...(args as unknown as Parameters<typeof createPinnedTabCloseConfirmSlice>)
       )
     )

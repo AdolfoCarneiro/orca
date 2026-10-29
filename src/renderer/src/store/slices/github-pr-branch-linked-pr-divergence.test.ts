@@ -70,6 +70,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       worktreeId,
       linkedPRNumber: 12
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo, hostedReviewCache, prCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: {
         [repoId]: [
@@ -240,6 +241,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
         linkedPR: 12
       })
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This prCache fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       prCache: {
         [`${repoId}::${branch}`]: {
@@ -492,6 +494,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       worktreeId,
       linkedPRNumber: 12
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: {
         [repoId]: [
@@ -553,6 +556,7 @@ describe('createGitHubSlice.fetchPRForBranch', () => {
       worktreeId,
       linkedPRNumber: 12
     })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This worktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       worktreesByRepo: {
         [repoId]: [

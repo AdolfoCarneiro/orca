@@ -1,3 +1,4 @@
+import { publicRuntimeEnvironment } from '@/runtime/paired-runtime-environment-test-fixture'
 import { createGlobalSettingsFixture } from '../../../../../shared/global-settings-test-fixture'
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 // @vitest-environment happy-dom
@@ -112,7 +113,7 @@ describe('RemoteRuntimeEgressIndicator', () => {
   beforeEach(() => {
     priorEnvironments = useAppStore.getState().runtimeEnvironments
     useAppStore.setState({
-      runtimeEnvironments: [{ id: 'env-1', name: 'Cloud Box' }]
+      runtimeEnvironments: [publicRuntimeEnvironment({ id: 'env-1', name: 'Cloud Box' })]
     })
   })
   afterEach(() => {

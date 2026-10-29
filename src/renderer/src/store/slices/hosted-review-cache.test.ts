@@ -51,6 +51,7 @@ function makeStore(settings: AppState['settings'] = null) {
     >((...args) => ({
       settings,
       repos: [{ id: 'repo-1', path: '/repo', connectionId: null } as AppState['repos'][number]],
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test stub supplies only the API members exercised by this scenario.
       ...createHostedReviewSlice(...(args as unknown as Parameters<typeof createHostedReviewSlice>))
     }))
   )

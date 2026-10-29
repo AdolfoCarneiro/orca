@@ -102,7 +102,11 @@ describe('flush-time source discovery preserves native collection semantics', ()
     ]).toEqual(['a'])
     const reordered = { ...initial, activeFileIdByWorktree: { b: null, a: null } }
     expect(discoverSessionSources(initial, reordered).full).toBe(true)
-    const present = { ...before, lastVisitedAtByWorktreeId: Object.fromEntries([['a', undefined]]) }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: own undefined is intentional malformed fixture input for the presence oracle.
+    const ownUndefined = Object.fromEntries([
+      ['a', undefined]
+    ]) as unknown as AppState['lastVisitedAtByWorktreeId']
+    const present = { ...before, lastVisitedAtByWorktreeId: ownUndefined }
     expect([
       ...(discoverSessionSources(before, present).changes.get('lastVisitedAtByWorktreeId') ?? [])
     ]).toEqual(['a'])
@@ -144,7 +148,8 @@ it('compares Record membership and string order against native patch application
     { '1': 1, '2': 2, a: 1 },
     { '4294967294': 2, '01': 1, a: 1 },
     { a: 1, '01': 1, '4294967295': 2 },
-    Object.fromEntries([['a', undefined]]),
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this malformed own-undefined entry is part of the independent presence matrix.
+    Object.fromEntries([['a', undefined]]) as unknown as AppState['lastVisitedAtByWorktreeId'],
     {}
   ]
   for (const old of shapes) {

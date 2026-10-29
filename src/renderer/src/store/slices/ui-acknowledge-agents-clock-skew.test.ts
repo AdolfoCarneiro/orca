@@ -52,6 +52,7 @@ describe('acknowledgeAgents with a clock-skewed execution host', () => {
   it('clears unread for a live turn stamped ahead of the local clock in one acknowledge', () => {
     const store = createUIStore()
     const futureStartedAt = NOW + SKEW_MS
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree, agentStatusByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       tabsByWorktree: { 'wt-1': [makeTerminalTab('tab-1', 'wt-1')] },
       agentStatusByPaneKey: {
@@ -69,6 +70,7 @@ describe('acknowledgeAgents with a clock-skewed execution host', () => {
   it('stops rewriting the ack map once a future-stamped turn is acknowledged', () => {
     const store = createUIStore()
     const futureStartedAt = NOW + SKEW_MS
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This agentStatusByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       agentStatusByPaneKey: {
         [PANE_KEY]: makeAgentEntry({ stateStartedAt: futureStartedAt, updatedAt: futureStartedAt })
@@ -88,6 +90,7 @@ describe('acknowledgeAgents with a clock-skewed execution host', () => {
   it('covers a retained row and a future history event on the same pane', () => {
     const store = createUIStore()
     const futureHistoryAt = NOW + SKEW_MS
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This retainedAgentsByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       retainedAgentsByPaneKey: {
         [PANE_KEY]: {
@@ -111,6 +114,7 @@ describe('acknowledgeAgents with a clock-skewed execution host', () => {
   it('covers a future-stamped migration-unsupported row, which Activity renders as a blocked event', () => {
     const store = createUIStore()
     const futureUpdatedAt = NOW + SKEW_MS
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This migrationUnsupportedByPtyId fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       migrationUnsupportedByPtyId: {
         'pty-1': {
@@ -130,6 +134,7 @@ describe('acknowledgeAgents with a clock-skewed execution host', () => {
 
   it('still stamps the local clock when the turn is not ahead of it', () => {
     const store = createUIStore()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This agentStatusByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       agentStatusByPaneKey: {
         [PANE_KEY]: makeAgentEntry({ stateStartedAt: NOW - 5_000, updatedAt: NOW - 5_000 })

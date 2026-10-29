@@ -10,6 +10,7 @@ function makeStore() {
     withSessionSourceTestWrites<
       Pick<AppState, 'newIssueDraft' | 'setNewIssueDraft' | 'clearNewIssueDraft'>
     >((...args) =>
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This test stub supplies only the API members exercised by this scenario.
       createNewIssueDraftSlice(...(args as unknown as Parameters<typeof createNewIssueDraftSlice>))
     )
   )

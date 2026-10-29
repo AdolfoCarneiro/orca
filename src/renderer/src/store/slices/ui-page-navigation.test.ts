@@ -252,6 +252,7 @@ describe('createUISlice settings navigation', () => {
       providerIdentity: { provider: 'linear', workspaceId: 'workspace-1' }
     }
 
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This settings, linearStatus, prefetchLinearIssues fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       settings: {
         visibleTaskProviders: ['linear'],
@@ -370,6 +371,7 @@ describe('createUISlice page navigation history', () => {
   it('records provider-depth interactions for direct Tasks detail opens', () => {
     const store = createUIStore()
     const recordFeatureInteraction = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This recordFeatureInteraction fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { recordFeatureInteraction } as Partial<AppState>)
     const workItem = makeGitHubWorkItem()
     const linearIssue = makeLinearIssue()
@@ -494,6 +496,7 @@ describe('createUISlice page navigation history', () => {
   it('can suppress the Tasks surface interaction for in-page provider navigation', () => {
     const store = createUIStore()
     const recordFeatureInteraction = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This recordFeatureInteraction fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { recordFeatureInteraction } as Partial<AppState>)
     const workItem = makeGitHubWorkItem()
     const linearIssue = makeLinearIssue()

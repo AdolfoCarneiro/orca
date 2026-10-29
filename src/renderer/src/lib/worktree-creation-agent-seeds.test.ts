@@ -41,6 +41,7 @@ function setTabs(
   tabs: { id: string; launchAgent?: string; viewMode?: 'terminal' | 'chat' }[],
   runtimeOwnerEnvironmentId?: string
 ): void {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree, terminalLayoutsByTabId, agentStatusByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
   setSessionTestState(useAppStore, {
     tabsByWorktree: { 'wt-1': tabs },
     terminalLayoutsByTabId: {},
@@ -99,6 +100,7 @@ beforeEach(() => {
 
 afterEach(() => {
   resetHookCommandDelayedDeliveryForTests()
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree, unifiedTabsByWorktree, getKnownWorktreeById fixture intentionally supplies only the state members exercised by this scenario.
   setSessionTestState(useAppStore, {
     tabsByWorktree: initialTabsByWorktree,
     unifiedTabsByWorktree: initialUnifiedTabsByWorktree,

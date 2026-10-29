@@ -131,10 +131,7 @@ const LEAF_IDS: Record<string, string> = {
   'tab-b': '11111111-2222-4333-8444-55555555555b'
 }
 
-const harnessStore = useAppStore as unknown as {
-  setState: (partial: Record<string, unknown>) => void
-  getState: () => { tabsByWorktree: Record<string, TerminalTab[]> }
-}
+const harnessStore = useAppStore
 
 function ptyIdFor(tabId: string): string {
   return `${harness.worktreeId}@@session-${tabId}`

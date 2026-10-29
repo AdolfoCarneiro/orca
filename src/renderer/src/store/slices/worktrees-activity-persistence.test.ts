@@ -294,6 +294,7 @@ describe('worktree remote runtime mutations', () => {
     const folderWorkspace = makeFolderWorkspace({ id: 'folder-rejected' })
     setSessionTestState(store, { folderWorkspaces: [folderWorkspace], projectGroups: [] })
     const updateFolderWorkspace = vi.fn().mockResolvedValue(false)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This updateFolderWorkspace fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { updateFolderWorkspace } as Partial<AppState>)
 
     const result = await store
@@ -309,6 +310,7 @@ describe('worktree remote runtime mutations', () => {
     const folderWorkspace = makeFolderWorkspace({ id: 'folder-throwing' })
     setSessionTestState(store, { folderWorkspaces: [folderWorkspace], projectGroups: [] })
     const updateFolderWorkspace = vi.fn().mockRejectedValue(new Error('Runtime is offline'))
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This updateFolderWorkspace fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, { updateFolderWorkspace } as Partial<AppState>)
 
     const result = await store

@@ -25,7 +25,7 @@ import type { AppState } from '@/store/types'
 import type * as RuntimeRpcClientModule from '@/runtime/runtime-rpc-client'
 
 type TestStore = {
-  getState: () => AppState
+  getState: () => AppState & { testRuntimeOwner?: string | null }
   setState: SessionSourceSet<AppState & { testRuntimeOwner?: string | null }>
 }
 
@@ -44,7 +44,7 @@ const mocks = vi.hoisted(() => {
   }
 })
 
-function seedMockState(partial: Partial<AppState>): void {
+function seedMockState(partial: Partial<AppState & { testRuntimeOwner?: string | null }>): void {
   if (mocks.holder.store) {
     setSessionTestState(mocks.holder.store, partial)
   }

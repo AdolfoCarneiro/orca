@@ -291,6 +291,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     expect(getTabRowIds()).toEqual(['tab-beta'])
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This unreadTerminalTabs fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(useAppStore, {
         unreadTerminalTabs: { 'term-alpha': true }
       } as Partial<AppState>)
@@ -316,6 +317,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     expect(getTabRowIds()).toContain('tab-alpha')
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This unreadTerminalTabs, agentStatusByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(useAppStore, {
         unreadTerminalTabs: {},
         agentStatusByPaneKey: {
@@ -348,6 +350,7 @@ describe('WorktreeJumpPalette recent chats & terminals', () => {
     expect(getTabRowIds()).toContain('tab-alpha')
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This agentStatusByPaneKey fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(useAppStore, {
         agentStatusByPaneKey: {
           [makePaneKey('term-alpha', LEAF_ID)]: makeAgentEntry('term-alpha', 'done', Date.now())

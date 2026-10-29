@@ -294,6 +294,7 @@ describe('palette live status', () => {
     const rendersAfterMount = bodyRenderCount
 
     await act(async () => {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This unreadTerminalTabs fixture intentionally supplies only the state members exercised by this scenario.
       setSessionTestState(useAppStore, {
         unreadTerminalTabs: { 'term-a': true }
       } as Partial<AppState>)
@@ -424,6 +425,7 @@ describe('palette live status', () => {
   })
 
   it('badges unread agent completion when the agent is quiet', async () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This unreadAgentCompletionPanes fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(useAppStore, {
       unreadAgentCompletionPanes: {
         [makePaneKey('term-a', LEAF)]: true
@@ -453,6 +455,7 @@ describe('palette live status', () => {
 
   it('prefers working over unread on the same row', async () => {
     setAgentState('working')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This unreadTerminalTabs fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(useAppStore, {
       unreadTerminalTabs: { 'term-a': true }
     } as Partial<AppState>)
@@ -502,6 +505,7 @@ describe('palette live status', () => {
 
   it('prefers unread over freshly done on the same row', async () => {
     setAgentState('done')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This unreadTerminalTabs fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(useAppStore, {
       unreadTerminalTabs: { 'term-a': true }
     } as Partial<AppState>)
@@ -527,6 +531,7 @@ describe('palette live status', () => {
 
   it('prefers permission over unread on the same row', async () => {
     setAgentState('blocked')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This unreadTerminalTabs fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(useAppStore, {
       unreadTerminalTabs: { 'term-a': true }
     } as Partial<AppState>)

@@ -42,7 +42,7 @@ const noHover = {
 } as unknown as HoverDocument
 
 function seed(overrides: Partial<AppState> = {}): AppState {
-  setSessionTestState(
+  setSessionTestState<AppState>(
     useAppStore,
     {
       ...initialState,

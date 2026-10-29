@@ -69,6 +69,7 @@ function seedCollidingSidebar(
   confirmedRowHostId: ExecutionHostId
 ): void {
   const otherHostId = confirmedRowHostId === LOCAL_HOST ? SSH_HOST : LOCAL_HOST
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, worktreesByRepo, detectedWorktreesByRepo fixture intentionally supplies only the state members exercised by this scenario.
   setSessionTestState(store, {
     repos: [{ id: 'repo1', path: '/repo1', displayName: 'Repo 1', executionHostId: LOCAL_HOST }],
     worktreesByRepo: { repo1: [rowOnHost(otherHostId), rowOnHost(confirmedRowHostId)] },
@@ -162,6 +163,7 @@ describe('STA-4343 sidebar delete: the confirmed row decides the host', () => {
     )
     const store = storeRef.current as ReturnType<typeof createTestStore>
     seedCollidingSidebar(store, SSH_HOST)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This tabsByWorktree fixture intentionally supplies only the state members exercised by this scenario.
     setSessionTestState(store, {
       tabsByWorktree: {
         [WORKTREE_ID]: [makeTab({ id: 'shared-tab', worktreeId: WORKTREE_ID })]

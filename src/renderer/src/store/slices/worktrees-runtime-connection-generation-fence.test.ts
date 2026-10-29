@@ -26,6 +26,7 @@ const ENV = 'env-remote'
 const REPO_IDS = ['repo1', 'repo2', 'repo3', 'repo4', 'repo5'] as const
 
 function seedRuntimeRepos(store: ReturnType<typeof createTestStore>) {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This repos, settings, hasHydratedWorktreePurge fixture intentionally supplies only the state members exercised by this scenario.
   setSessionTestState(store, {
     repos: REPO_IDS.map((id) => ({
       id,
