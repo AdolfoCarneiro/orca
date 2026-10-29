@@ -24,41 +24,53 @@ describe('resolveGitHubPrStartPoint compare base', () => {
   })
   afterEach(() => vi.restoreAllMocks())
 
-  it('drops the compare base for a fork PR when its base ref is missing locally too', async () => {
-    const fetchRemoteTrackingRef = vi.fn(async () => {
-      throw new Error("fatal: couldn't find remote ref refs/heads/main")
-    })
-    const fetchPullRequestHeadRef = vi.fn(async () => durablePrLocalRef)
-    const gitExec = vi.fn(async (args: string[]) => {
-      if (args[2] === durablePrRev) {
-        return { stdout: 'fork-head-sha\n', stderr: '' }
-      }
-      throw new Error('fatal: Needed a single revision')
-    })
+  it.each([false, true])(
+    'retains the fork target after a missing base; durable head: %s',
+    async (durableHead) => {
+      const fetchRemoteTrackingRef = vi.fn(async () => {
+        throw new Error("fatal: couldn't find remote ref refs/heads/main")
+      })
+      const fetchPullRequestHeadRef = vi.fn(async () => {
+        if (durableHead) {
+          throw new Error('Connection reset by peer')
+        }
+        return durablePrLocalRef
+      })
+      const gitExec = vi.fn(async (args: string[]) => {
+        if (args[0] === 'remote' && args[1] === 'get-url') {
+          return { stdout: `${ORIGIN_URL}\n`, stderr: '' }
+        }
+        if (args[2] === durablePrRev) {
+          return { stdout: 'fork-head-sha\n', stderr: '' }
+        }
+        throw new Error('fatal: Needed a single revision')
+      })
 
-    const result = await resolveGitHubPrStartPoint({
-      repoPath: '/repo-root',
-      prNumber: 42,
-      headRefName: 'contributor/fix',
-      baseRefName: 'main',
-      isCrossRepository: true,
-      gitExec,
-      fetchRemoteTrackingRef,
-      fetchPullRequestHeadRef,
-      resolveRemote: async () => 'origin'
-    })
+      const result = await resolveGitHubPrStartPoint({
+        repoPath: '/repo-root',
+        prNumber: 42,
+        headRefName: 'contributor/fix',
+        baseRefName: 'main',
+        isCrossRepository: true,
+        gitExec,
+        fetchRemoteTrackingRef,
+        fetchPullRequestHeadRef,
+        resolveRemote: async () => 'origin'
+      })
 
-    expect(gitExec).toHaveBeenCalledWith(['rev-parse', '--verify', durablePrRev])
-    expect(result).toEqual({
-      baseBranch: 'fork-head-sha',
-      headSha: 'fork-head-sha',
-      branchNameOverride: 'contributor/fix'
-    })
-    expect(console.warn).toHaveBeenCalledWith(
-      '[github:resolvePrStartPoint] optional compare-base fetch failed',
-      expect.objectContaining({ baseRefName: 'main', prNumber: 42, localBaseResolved: false })
-    )
-  })
+      expect(gitExec).toHaveBeenCalledWith(['rev-parse', '--verify', durablePrRev])
+      expect(result).toEqual({
+        baseBranch: 'fork-head-sha',
+        compareBaseRef: 'refs/remotes/origin/main',
+        headSha: 'fork-head-sha',
+        branchNameOverride: 'contributor/fix'
+      })
+      expect(console.warn).toHaveBeenCalledWith(
+        '[github:resolvePrStartPoint] optional compare-base fetch failed',
+        expect.objectContaining({ baseRefName: 'main', prNumber: 42, localBaseResolved: false })
+      )
+    }
+  )
 
   it('keeps the compare base for a fork PR when the local tracking ref still resolves', async () => {
     const fetchRemoteTrackingRef = vi.fn(async () => {
@@ -133,35 +145,44 @@ describe('resolveGitHubPrStartPoint compare base', () => {
     })
   })
 
-  it('drops a same-repo PR compare base when neither fetch nor local ref resolves', async () => {
-    const fetchRemoteTrackingRef = vi.fn(async (_remote: string, branch: string) => {
-      if (branch === 'main') {
-        throw new Error('network unavailable')
-      }
-    })
-    const gitExec = vi.fn(async (args: string[]) => {
-      if (args[2] === 'refs/remotes/origin/main^{commit}') {
-        throw new Error('fatal: Needed a single revision')
-      }
-      return { stdout: 'same-repo-head-sha\n', stderr: '' }
-    })
+  it.each([false, true])(
+    'retains the target after a missing base; missing source: %s',
+    async (missingSource) => {
+      const fetchRemoteTrackingRef = vi.fn(async (_remote: string, branch: string) => {
+        if (missingSource && branch === 'feature/fix') {
+          throw new Error("fatal: couldn't find remote ref refs/heads/feature/fix")
+        }
+        if (branch === 'main') {
+          throw new Error('network unavailable')
+        }
+      })
+      const gitExec = vi.fn(async (args: string[]) => {
+        if (args[2] === 'refs/remotes/origin/main^{commit}') {
+          throw new Error('fatal: Needed a single revision')
+        }
+        return { stdout: 'same-repo-head-sha\n', stderr: '' }
+      })
 
-    const result = await resolveGitHubPrStartPoint({
-      repoPath: '/repo-root',
-      prNumber: 44,
-      headRefName: 'feature/fix',
-      baseRefName: 'main',
-      gitExec,
-      fetchRemoteTrackingRef,
-      fetchPullRequestHeadRef: async () => durablePrLocalRef,
-      resolveRemote: async () => 'origin'
-    })
+      const result = await resolveGitHubPrStartPoint({
+        repoPath: '/repo-root',
+        prNumber: 44,
+        headRefName: 'feature/fix',
+        baseRefName: 'main',
+        gitExec,
+        fetchRemoteTrackingRef,
+        fetchPullRequestHeadRef: async () => durablePrLocalRef,
+        resolveRemote: async () => 'origin'
+      })
 
-    expect(result).toEqual({
-      baseBranch: 'same-repo-head-sha',
-      headSha: 'same-repo-head-sha',
-      branchNameOverride: 'feature/fix',
-      pushTarget: { remoteName: 'origin', branchName: 'feature/fix' }
-    })
-  })
+      expect(result).toEqual({
+        baseBranch: 'same-repo-head-sha',
+        compareBaseRef: 'refs/remotes/origin/main',
+        headSha: 'same-repo-head-sha',
+        branchNameOverride: 'feature/fix',
+        ...(missingSource
+          ? {}
+          : { pushTarget: { remoteName: 'origin', branchName: 'feature/fix' } })
+      })
+    }
+  )
 })

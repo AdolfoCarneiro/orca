@@ -176,11 +176,11 @@ export async function resolveGitHubPrStartPoint(
     if ('error' in result) {
       return result
     }
-    const compareBaseFetched = await fetchCompareBaseRef()
+    await fetchCompareBaseRef()
     // Keep the contributor's branch name locally; push still targets the fork.
     return {
       ...result,
-      ...(compareBaseFetched && compareBaseRef ? { compareBaseRef } : {}),
+      ...(compareBaseRef ? { compareBaseRef } : {}),
       headSha: result.baseBranch,
       branchNameOverride: headRefName,
       ...(pushTarget ? { pushTarget } : {}),
@@ -197,10 +197,10 @@ export async function resolveGitHubPrStartPoint(
       const result = await fetchPullRequestHeadSha()
       if (!('error' in result)) {
         await resolvePushTarget()
-        const compareBaseFetched = await fetchCompareBaseRef()
+        await fetchCompareBaseRef()
         return {
           ...result,
-          ...(compareBaseFetched && compareBaseRef ? { compareBaseRef } : {}),
+          ...(compareBaseRef ? { compareBaseRef } : {}),
           headSha: result.baseBranch,
           branchNameOverride: headRefName,
           ...(pushTarget ? { pushTarget } : {}),
@@ -227,11 +227,11 @@ export async function resolveGitHubPrStartPoint(
   if (!headSha) {
     return reviewStartPointFailure('github.headShaEmpty', { number: args.prNumber })
   }
-  const compareBaseFetched = await fetchCompareBaseRef()
+  await fetchCompareBaseRef()
 
   return {
     baseBranch: headSha,
-    ...(compareBaseFetched && compareBaseRef ? { compareBaseRef } : {}),
+    ...(compareBaseRef ? { compareBaseRef } : {}),
     headSha,
     branchNameOverride: headRefName,
     pushTarget: { remoteName: remote, branchName: headRefName }
