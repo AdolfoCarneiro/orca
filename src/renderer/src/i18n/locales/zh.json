@@ -19053,6 +19053,14 @@
           "descriptionMany": "删除将停止这些智能体当前任务。",
           "confirm": "停止智能体并删除",
           "confirmOne": "停止智能体并删除"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "干净",
+            "dirty": "有更改",
+            "unpushed": "未推送",
+            "unknown": "未知"
+          }
         }
       },
       "creation": {
@@ -20342,7 +20350,32 @@
     "sortDescending": "对选中的列降序排序",
     "originalOrder": "原始行顺序",
     "save": "保存",
-    "inspectionOnly": "仅查看 · 文件行顺序不变"
+    "inspectionOnly": "仅查看 · 文件行顺序不变",
+    "error": {
+      "tooManyCells": "CSV 中的单元格过多，无法安全预览。",
+      "recordTooLarge": "CSV 记录过大，无法安全预览。",
+      "tooManyPages": "CSV 页数过多，无法安全预览。",
+      "previewRecordLimit": "CSV 记录超出 1 MB 的预览限制。",
+      "binaryData": "此文件包含二进制数据。",
+      "previewColumnLimit": "CSV 超出 4,096 列的预览限制。",
+      "changedOnDisk": "磁盘上的 CSV 已更改。请重新加载文件以刷新预览。",
+      "pageBoundaryMismatch": "CSV 页面边界不匹配。请重新加载预览。",
+      "canceled": "CSV 预览已取消",
+      "workerFailed": "CSV 预览后台工作进程出错。请重新加载文件以重试。",
+      "workerUnreadableResponse": "CSV 预览后台工作进程返回了无法读取的响应。",
+      "cellMissing": "所选 CSV 行或列已不存在。",
+      "rowMissing": "所选 CSV 行已不存在。",
+      "columnLimit": "CSV 超出 4,096 列的限制。",
+      "recordLimit": "CSV 记录超出 1 MB 的限制。",
+      "tableEditBudget": "表格编辑内容必须小于 1 MiB。更大的更改请使用“源码”。",
+      "editConflict": "编辑此单元格时 CSV 已更改。请取消后重试。",
+      "saveFailed": "无法保存 CSV。编辑内容仍保留在草稿中。",
+      "pasteConflict": "粘贴完成前 CSV 已更改。请重试。",
+      "copyTooManyCells": "请减少一次复制的单元格数量。",
+      "copyTooLarge": "所选单元格过大，无法安全复制。",
+      "pasteExceedsTable": "粘贴范围超出表格。请先添加行或列。",
+      "pasteTooManyCells": "请减少一次粘贴的单元格数量。"
+    }
   },
   "worktree": {
     "nestedRemoval": {

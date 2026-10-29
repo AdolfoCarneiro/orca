@@ -11,6 +11,7 @@ import { CsvTableToolbar } from './CsvTableToolbar'
 import { remapCsvColumnWidths } from './csv-column-width-preferences'
 import { useCsvColumnWidths } from './useCsvColumnWidths'
 import { buildFileViewPreferenceKey } from '../file-view-preference-storage'
+import { formatCsvPreviewError } from './csv-preview-error-message'
 
 export default function CsvViewer({
   content,
@@ -48,7 +49,7 @@ export default function CsvViewer({
         error: null
       }
     } catch (error) {
-      return { parsed: null, error: error instanceof Error ? error.message : String(error) }
+      return { parsed: null, error }
     }
   }, [content, delimiter])
   const [filter, setFilter] = useState('')
@@ -113,7 +114,7 @@ export default function CsvViewer({
           filter={filter}
           sort={effectiveSort}
           saving={editor.saving}
-          canEdit={!result.error}
+          canEdit={result.parsed !== null}
           canSave={Boolean(onSave)}
           onFilter={(next) => {
             if (editor.interaction?.commit() !== false) {
@@ -139,12 +140,12 @@ export default function CsvViewer({
           {editor.error}
         </div>
       )}
-      {result.error ? (
+      {result.parsed === null ? (
         <div
           role="alert"
           className="flex flex-1 items-center justify-center px-4 text-sm text-muted-foreground"
         >
-          {result.error}
+          {formatCsvPreviewError(result.error)}
         </div>
       ) : result.parsed?.rows.length ? (
         <CsvGrid

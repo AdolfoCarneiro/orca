@@ -19088,6 +19088,14 @@
           "descriptionMany": "削除すると、これらの Agent の現在の作業が停止します。",
           "confirm": "Agent を停止して削除",
           "confirmOne": "Agent を停止して削除"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "クリーン",
+            "dirty": "変更あり",
+            "unpushed": "未プッシュ",
+            "unknown": "不明"
+          }
         }
       },
       "creation": {
@@ -20342,7 +20350,32 @@
     "sortDescending": "選択した列を降順に並べ替え",
     "originalOrder": "元の行順",
     "save": "保存",
-    "inspectionOnly": "検査のみ · ファイルの行順は変更されません"
+    "inspectionOnly": "検査のみ · ファイルの行順は変更されません",
+    "error": {
+      "tooManyCells": "CSV に含まれるセルが多すぎるため、安全にプレビューできません。",
+      "recordTooLarge": "CSV レコードが大きすぎるため、安全にプレビューできません。",
+      "tooManyPages": "CSV のページ数が多すぎるため、安全にプレビューできません。",
+      "previewRecordLimit": "CSV レコードがプレビューの上限である 1 MB を超えています。",
+      "binaryData": "このファイルにはバイナリデータが含まれています。",
+      "previewColumnLimit": "CSV の列数がプレビューの上限である 4,096 列を超えています。",
+      "changedOnDisk": "ディスク上の CSV が変更されました。ファイルを再読み込みしてプレビューを更新してください。",
+      "pageBoundaryMismatch": "CSV のページ境界が一致しません。プレビューを再読み込みしてください。",
+      "canceled": "CSV のプレビューがキャンセルされました",
+      "workerFailed": "CSV プレビューのワーカーでエラーが発生しました。ファイルを再読み込みして再試行してください。",
+      "workerUnreadableResponse": "CSV プレビューのワーカーが読み取れない応答を返しました。",
+      "cellMissing": "選択した CSV の行または列はもう存在しません。",
+      "rowMissing": "選択した CSV の行はもう存在しません。",
+      "columnLimit": "CSV の列数が上限の 4,096 列を超えています。",
+      "recordLimit": "CSV レコードが上限の 1 MB を超えています。",
+      "tableEditBudget": "テーブルの編集は 1 MiB 未満に収めてください。それ以上の変更には「ソース」を使用してください。",
+      "editConflict": "このセルの編集中に CSV が変更されました。キャンセルして再試行してください。",
+      "saveFailed": "CSV を保存できませんでした。編集内容は下書きに残っています。",
+      "pasteConflict": "貼り付けが完了する前に CSV が変更されました。再試行してください。",
+      "copyTooManyCells": "一度にコピーするセルの数を減らしてください。",
+      "copyTooLarge": "選択したセルが大きすぎるため、安全にコピーできません。",
+      "pasteExceedsTable": "貼り付け範囲がテーブルを超えています。先に行または列を追加してください。",
+      "pasteTooManyCells": "一度に貼り付けるセルの数を減らしてください。"
+    }
   },
   "worktree": {
     "nestedRemoval": {

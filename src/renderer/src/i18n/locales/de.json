@@ -37,7 +37,32 @@
     "sortDescending": "Ausgewählte Spalte absteigend sortieren",
     "originalOrder": "Ursprüngliche Zeilenreihenfolge",
     "save": "Speichern",
-    "inspectionOnly": "Nur zur Ansicht · Zeilenreihenfolge der Datei unverändert"
+    "inspectionOnly": "Nur zur Ansicht · Zeilenreihenfolge der Datei unverändert",
+    "error": {
+      "tooManyCells": "CSV enthält zu viele Zellen für eine sichere Vorschau.",
+      "recordTooLarge": "Der CSV-Datensatz ist zu groß für eine sichere Vorschau.",
+      "tooManyPages": "CSV hat zu viele Seiten für eine sichere Vorschau.",
+      "previewRecordLimit": "Der CSV-Datensatz überschreitet das Vorschau-Limit von 1 MB.",
+      "binaryData": "Diese Datei enthält Binärdaten.",
+      "previewColumnLimit": "CSV überschreitet das Vorschau-Limit von 4.096 Spalten.",
+      "changedOnDisk": "CSV wurde auf dem Datenträger geändert. Datei neu laden, um die Vorschau zu aktualisieren.",
+      "pageBoundaryMismatch": "Die CSV-Seitengrenzen stimmen nicht überein. Vorschau neu laden.",
+      "canceled": "Die CSV-Vorschau wurde abgebrochen",
+      "workerFailed": "Der CSV-Vorschauprozess ist fehlgeschlagen. Datei neu laden, um es erneut zu versuchen.",
+      "workerUnreadableResponse": "Der CSV-Vorschauprozess hat eine unlesbare Antwort zurückgegeben.",
+      "cellMissing": "Die ausgewählte CSV-Zeile oder -Spalte existiert nicht mehr.",
+      "rowMissing": "Die ausgewählte CSV-Zeile existiert nicht mehr.",
+      "columnLimit": "CSV überschreitet das Limit von 4.096 Spalten.",
+      "recordLimit": "Der CSV-Datensatz überschreitet das Limit von 1 MB.",
+      "tableEditBudget": "Änderungen an der Tabelle müssen unter 1 MiB bleiben. Für größere Änderungen „Quelltext“ verwenden.",
+      "editConflict": "CSV wurde während der Bearbeitung dieser Zelle geändert. Abbrechen und erneut versuchen.",
+      "saveFailed": "CSV konnte nicht gespeichert werden. Die Änderungen bleiben im Entwurf.",
+      "pasteConflict": "CSV wurde vor Abschluss des Einfügens geändert. Erneut versuchen.",
+      "copyTooManyCells": "Zum Kopieren weniger Zellen auf einmal auswählen.",
+      "copyTooLarge": "Die ausgewählten Zellen sind zu groß, um sie sicher zu kopieren.",
+      "pasteExceedsTable": "Der Einfügebereich geht über die Tabelle hinaus. Zuerst Zeilen oder Spalten hinzufügen.",
+      "pasteTooManyCells": "Zum Einfügen weniger Zellen auf einmal auswählen."
+    }
   },
   "osDocumentOpen": {
     "failed": "Die Datei konnte nicht geöffnet werden."
@@ -19642,6 +19667,14 @@
           "descriptionMany": "Beim Löschen wird die aktuelle Arbeit dieser Agenten gestoppt.",
           "confirm": "Agenten stoppen und löschen",
           "confirmOne": "Den Agenten stoppen und löschen"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Sauber",
+            "dirty": "Geändert",
+            "unpushed": "Nicht gepusht",
+            "unknown": "Unbekannt"
+          }
         }
       },
       "creation": {

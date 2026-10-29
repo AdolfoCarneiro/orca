@@ -20015,6 +20015,14 @@
           "descriptionMany": "A exclusão interromperá o trabalho atual destes agentes.",
           "confirm": "Parar agentes e excluir",
           "confirmOne": "Parar agente e excluir"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Limpo",
+            "dirty": "Com alterações",
+            "unpushed": "Não enviado",
+            "unknown": "Desconhecido"
+          }
         }
       },
       "creation": {
@@ -20279,7 +20287,32 @@
     "sortDescending": "Ordenar coluna selecionada em ordem decrescente",
     "originalOrder": "Ordem original das linhas",
     "save": "Salvar",
-    "inspectionOnly": "Somente inspeção · Ordem das linhas do arquivo preservada"
+    "inspectionOnly": "Somente inspeção · Ordem das linhas do arquivo preservada",
+    "error": {
+      "tooManyCells": "O CSV contém células demais para uma prévia segura.",
+      "recordTooLarge": "O registro CSV é grande demais para uma prévia segura.",
+      "tooManyPages": "O CSV tem páginas demais para uma prévia segura.",
+      "previewRecordLimit": "O registro CSV excede o limite de 1 MB da prévia.",
+      "binaryData": "Este arquivo contém dados binários.",
+      "previewColumnLimit": "O CSV excede o limite de 4.096 colunas da prévia.",
+      "changedOnDisk": "O CSV foi alterado no disco. Recarregue o arquivo para atualizar a prévia.",
+      "pageBoundaryMismatch": "Os limites de página do CSV não coincidem. Recarregue a prévia.",
+      "canceled": "A prévia do CSV foi cancelada",
+      "workerFailed": "O worker de prévia do CSV falhou. Recarregue o arquivo para tentar novamente.",
+      "workerUnreadableResponse": "O worker de prévia do CSV retornou uma resposta ilegível.",
+      "cellMissing": "A linha ou coluna selecionada do CSV não existe mais.",
+      "rowMissing": "A linha selecionada do CSV não existe mais.",
+      "columnLimit": "O CSV excede o limite de 4.096 colunas.",
+      "recordLimit": "O registro CSV excede o limite de 1 MB.",
+      "tableEditBudget": "As edições na tabela devem ficar abaixo de 1 MiB. Use Origem para alterações maiores.",
+      "editConflict": "O CSV foi alterado durante a edição desta célula. Cancele e tente novamente.",
+      "saveFailed": "Não foi possível salvar o CSV. Suas edições continuam no rascunho.",
+      "pasteConflict": "O CSV foi alterado antes de concluir a colagem. Tente novamente.",
+      "copyTooManyCells": "Selecione menos células para copiar de uma vez.",
+      "copyTooLarge": "As células selecionadas são grandes demais para copiar com segurança.",
+      "pasteExceedsTable": "A colagem excede os limites da tabela. Adicione linhas ou colunas primeiro.",
+      "pasteTooManyCells": "Selecione menos células para colar de uma vez."
+    }
   },
   "osDocumentOpen": {
     "failed": "Não foi possível abrir o arquivo."

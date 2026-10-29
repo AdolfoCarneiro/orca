@@ -12,6 +12,7 @@ import { useCsvColumnWidths } from './useCsvColumnWidths'
 import { buildFileViewPreferenceKey } from '../file-view-preference-storage'
 import { openCsvHttpLink } from './csv-link-routing'
 import { runtimeTargetEnvironmentId } from '@/runtime/runtime-client-target'
+import { formatCsvPreviewError } from './csv-preview-error-message'
 
 export default function CsvPagedViewer({
   file,
@@ -109,8 +110,11 @@ function CsvPagedTable({
   const rowCount = Math.max(0, (preview.index?.rowCount ?? 0) - 1)
   return (
     <>
-      {preview.error ? (
-        <EditorFileLoadErrorView message={preview.error} onRetry={onReload} />
+      {preview.error !== null ? (
+        <EditorFileLoadErrorView
+          message={formatCsvPreviewError(preview.error)}
+          onRetry={onReload}
+        />
       ) : preview.index ? (
         <CsvGrid
           header={preview.header}

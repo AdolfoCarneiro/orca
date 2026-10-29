@@ -19299,6 +19299,14 @@
           "confirm": "Detener agentes y eliminar",
           "confirmOne": "Detener agente y eliminar",
           "descriptionMany": "La eliminación detendrá el trabajo actual de estos agentes."
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Limpio",
+            "dirty": "Con cambios",
+            "unpushed": "Sin subir",
+            "unknown": "Desconocido"
+          }
         }
       },
       "creation": {
@@ -20654,7 +20662,32 @@
     "sortDescending": "Ordenar la columna seleccionada de forma descendente",
     "originalOrder": "Orden de filas original",
     "save": "Guardar",
-    "inspectionOnly": "Solo inspección · Se mantiene el orden de filas del archivo"
+    "inspectionOnly": "Solo inspección · Se mantiene el orden de filas del archivo",
+    "error": {
+      "tooManyCells": "El CSV contiene demasiadas celdas para una vista previa segura.",
+      "recordTooLarge": "El registro CSV es demasiado grande para una vista previa segura.",
+      "tooManyPages": "El CSV tiene demasiadas páginas para una vista previa segura.",
+      "previewRecordLimit": "El registro CSV supera el límite de 1 MB de la vista previa.",
+      "binaryData": "Este archivo contiene datos binarios.",
+      "previewColumnLimit": "El CSV supera el límite de 4096 columnas de la vista previa.",
+      "changedOnDisk": "El CSV ha cambiado en el disco. Vuelve a cargar el archivo para actualizar la vista previa.",
+      "pageBoundaryMismatch": "Los límites de página del CSV no coinciden. Vuelve a cargar la vista previa.",
+      "canceled": "Se canceló la vista previa del CSV",
+      "workerFailed": "El proceso de vista previa del CSV ha fallado. Vuelve a cargar el archivo para reintentarlo.",
+      "workerUnreadableResponse": "El proceso de vista previa del CSV devolvió una respuesta ilegible.",
+      "cellMissing": "La fila o columna seleccionada del CSV ya no existe.",
+      "rowMissing": "La fila seleccionada del CSV ya no existe.",
+      "columnLimit": "El CSV supera el límite de 4096 columnas.",
+      "recordLimit": "El registro CSV supera el límite de 1 MB.",
+      "tableEditBudget": "Los cambios en la tabla deben ocupar menos de 1 MiB. Usa Código fuente para cambios mayores.",
+      "editConflict": "El CSV cambió mientras editabas esta celda. Cancela e inténtalo de nuevo.",
+      "saveFailed": "No se pudo guardar el CSV. Tus cambios siguen en el borrador.",
+      "pasteConflict": "El CSV cambió antes de terminar de pegar. Inténtalo de nuevo.",
+      "copyTooManyCells": "Selecciona menos celdas para copiar a la vez.",
+      "copyTooLarge": "Las celdas seleccionadas son demasiado grandes para copiarlas de forma segura.",
+      "pasteExceedsTable": "El contenido para pegar excede la tabla. Añade filas o columnas primero.",
+      "pasteTooManyCells": "Selecciona menos celdas para pegar a la vez."
+    }
   },
   "worktree": {
     "nestedRemoval": {

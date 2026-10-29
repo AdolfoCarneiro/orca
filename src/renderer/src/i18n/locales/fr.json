@@ -19481,6 +19481,14 @@
           "descriptionMany": "La suppression interrompra le travail en cours de ces agents.",
           "confirm": "Arrêter les agents et supprimer",
           "confirmOne": "Arrêter l'agent et supprimer"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Propre",
+            "dirty": "Modifié",
+            "unpushed": "Non poussé",
+            "unknown": "Inconnu"
+          }
         }
       },
       "creation": {
@@ -20654,7 +20662,32 @@
     "sortDescending": "Trier la colonne sélectionnée par ordre décroissant",
     "originalOrder": "Ordre d'origine des lignes",
     "save": "Enregistrer",
-    "inspectionOnly": "Inspection uniquement · Ordre des lignes du fichier inchangé"
+    "inspectionOnly": "Inspection uniquement · Ordre des lignes du fichier inchangé",
+    "error": {
+      "tooManyCells": "Le CSV contient trop de cellules pour être prévisualisé sans risque.",
+      "recordTooLarge": "L’enregistrement CSV est trop volumineux pour être prévisualisé sans risque.",
+      "tooManyPages": "Le CSV contient trop de pages pour être prévisualisé sans risque.",
+      "previewRecordLimit": "L’enregistrement CSV dépasse la limite d’aperçu de 1 Mo.",
+      "binaryData": "Ce fichier contient des données binaires.",
+      "previewColumnLimit": "Le CSV dépasse la limite d’aperçu de 4 096 colonnes.",
+      "changedOnDisk": "Le CSV a changé sur le disque. Rechargez le fichier pour actualiser l’aperçu.",
+      "pageBoundaryMismatch": "Les limites de page du CSV ne correspondent pas. Rechargez l’aperçu.",
+      "canceled": "L’aperçu du CSV a été annulé",
+      "workerFailed": "Le worker d’aperçu CSV a échoué. Rechargez le fichier pour réessayer.",
+      "workerUnreadableResponse": "Le worker d’aperçu CSV a renvoyé une réponse illisible.",
+      "cellMissing": "La ligne ou la colonne CSV sélectionnée n’existe plus.",
+      "rowMissing": "La ligne CSV sélectionnée n’existe plus.",
+      "columnLimit": "Le CSV dépasse la limite de 4 096 colonnes.",
+      "recordLimit": "L’enregistrement CSV dépasse la limite de 1 Mo.",
+      "tableEditBudget": "Les modifications du tableau doivent rester sous 1 Mio. Utilisez Source pour les modifications plus importantes.",
+      "editConflict": "Le CSV a changé pendant la modification de cette cellule. Annulez et réessayez.",
+      "saveFailed": "Le CSV n’a pas pu être enregistré. Vos modifications restent dans le brouillon.",
+      "pasteConflict": "Le CSV a changé avant la fin du collage. Réessayez.",
+      "copyTooManyCells": "Sélectionnez moins de cellules à copier à la fois.",
+      "copyTooLarge": "Les cellules sélectionnées sont trop volumineuses pour être copiées sans risque.",
+      "pasteExceedsTable": "Le collage dépasse les limites du tableau. Ajoutez d’abord des lignes ou des colonnes.",
+      "pasteTooManyCells": "Sélectionnez moins de cellules à coller à la fois."
+    }
   },
   "worktree": {
     "nestedRemoval": {

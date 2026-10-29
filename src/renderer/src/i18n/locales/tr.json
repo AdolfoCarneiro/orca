@@ -37,7 +37,32 @@
     "sortDescending": "Seçili sütunu azalan sırada sırala",
     "originalOrder": "Özgün satır sırası",
     "save": "Kaydet",
-    "inspectionOnly": "Yalnızca inceleme · Dosyadaki satır sırası değişmez"
+    "inspectionOnly": "Yalnızca inceleme · Dosyadaki satır sırası değişmez",
+    "error": {
+      "tooManyCells": "CSV, güvenli önizleme için çok fazla hücre içeriyor.",
+      "recordTooLarge": "CSV kaydı güvenli önizleme için çok büyük.",
+      "tooManyPages": "CSV, güvenli önizleme için çok fazla sayfa içeriyor.",
+      "previewRecordLimit": "CSV kaydı, 1 MB önizleme sınırını aşıyor.",
+      "binaryData": "Bu dosya ikili veri içeriyor.",
+      "previewColumnLimit": "CSV, 4.096 sütunluk önizleme sınırını aşıyor.",
+      "changedOnDisk": "CSV diskte değişti. Önizlemeyi yenilemek için dosyayı yeniden yükleyin.",
+      "pageBoundaryMismatch": "CSV sayfa sınırları eşleşmiyor. Önizlemeyi yeniden yükleyin.",
+      "canceled": "CSV önizlemesi iptal edildi",
+      "workerFailed": "CSV önizleme işçisinde hata oluştu. Yeniden denemek için dosyayı yeniden yükleyin.",
+      "workerUnreadableResponse": "CSV önizleme işçisi okunamayan bir yanıt döndürdü.",
+      "cellMissing": "Seçili CSV satırı veya sütunu artık yok.",
+      "rowMissing": "Seçili CSV satırı artık yok.",
+      "columnLimit": "CSV, 4.096 sütunluk sınırı aşıyor.",
+      "recordLimit": "CSV kaydı, 1 MB sınırını aşıyor.",
+      "tableEditBudget": "Tablo düzenlemeleri 1 MiB sınırının altında kalmalıdır. Daha büyük değişiklikler için Kaynak görünümünü kullanın.",
+      "editConflict": "Bu hücre düzenlenirken CSV değişti. İptal edip yeniden deneyin.",
+      "saveFailed": "CSV kaydedilemedi. Düzenlemeleriniz taslakta duruyor.",
+      "pasteConflict": "Yapıştırma tamamlanmadan CSV değişti. Yeniden deneyin.",
+      "copyTooManyCells": "Tek seferde kopyalamak için daha az hücre seçin.",
+      "copyTooLarge": "Seçili hücreler güvenle kopyalanamayacak kadar büyük.",
+      "pasteExceedsTable": "Yapıştırılacak içerik tablonun sınırlarını aşıyor. Önce satır veya sütun ekleyin.",
+      "pasteTooManyCells": "Tek seferde yapıştırmak için daha az hücre seçin."
+    }
   },
   "osDocumentOpen": {
     "failed": "Dosya açılamadı."
@@ -19408,6 +19433,14 @@
           "descriptionMany": "Silme işlemi bu ajanların mevcut çalışmalarını durdurur.",
           "confirm": "Ajanları durdur ve sil",
           "confirmOne": "Ajanı durdur ve sil"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Temiz",
+            "dirty": "Değişiklik var",
+            "unpushed": "Push edilmemiş",
+            "unknown": "Bilinmiyor"
+          }
         }
       },
       "creation": {

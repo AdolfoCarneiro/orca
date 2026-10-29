@@ -37,7 +37,32 @@
     "sortDescending": "依選取的欄遞減排序",
     "originalOrder": "原始列順序",
     "save": "儲存",
-    "inspectionOnly": "僅檢視 · 檔案列順序不變"
+    "inspectionOnly": "僅檢視 · 檔案列順序不變",
+    "error": {
+      "tooManyCells": "CSV 中的儲存格過多，無法安全預覽。",
+      "recordTooLarge": "CSV 記錄過大，無法安全預覽。",
+      "tooManyPages": "CSV 頁數過多，無法安全預覽。",
+      "previewRecordLimit": "CSV 記錄超過 1 MB 的預覽上限。",
+      "binaryData": "此檔案含有二進位資料。",
+      "previewColumnLimit": "CSV 超過 4,096 欄的預覽上限。",
+      "changedOnDisk": "磁碟上的 CSV 已變更。請重新載入檔案以更新預覽。",
+      "pageBoundaryMismatch": "CSV 頁面邊界不符。請重新載入預覽。",
+      "canceled": "CSV 預覽已取消",
+      "workerFailed": "CSV 預覽背景工作行程發生錯誤。請重新載入檔案以重試。",
+      "workerUnreadableResponse": "CSV 預覽背景工作行程傳回無法讀取的回應。",
+      "cellMissing": "選取的 CSV 列或欄已不存在。",
+      "rowMissing": "選取的 CSV 列已不存在。",
+      "columnLimit": "CSV 超過 4,096 欄的上限。",
+      "recordLimit": "CSV 記錄超過 1 MB 的上限。",
+      "tableEditBudget": "表格編輯內容必須小於 1 MiB。較大的變更請使用「原始碼」。",
+      "editConflict": "編輯此儲存格時 CSV 已變更。請取消後重試。",
+      "saveFailed": "無法儲存 CSV。編輯內容仍保留在草稿中。",
+      "pasteConflict": "貼上完成前 CSV 已變更。請重試。",
+      "copyTooManyCells": "請減少一次複製的儲存格數量。",
+      "copyTooLarge": "選取的儲存格過大，無法安全複製。",
+      "pasteExceedsTable": "貼上範圍超出表格。請先新增列或欄。",
+      "pasteTooManyCells": "請減少一次貼上的儲存格數量。"
+    }
   },
   "osDocumentOpen": {
     "failed": "無法開啟檔案。"
@@ -19368,6 +19393,14 @@
           "descriptionMany": "刪除時會停止這些代理程式目前的工作。",
           "confirm": "停止代理程式並刪除",
           "confirmOne": "停止代理程式並刪除"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "乾淨",
+            "dirty": "有變更",
+            "unpushed": "未推送",
+            "unknown": "未知"
+          }
         }
       },
       "creation": {
