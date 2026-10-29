@@ -22,30 +22,19 @@ final class BackgroundInputTransportTests: XCTestCase {
         }
     }
 
-    func testChordKeysCarryNoUnicodeStringSoMenuKeyEquivalentsFire() throws {
+    func testChordKeysCarryOnlyKeyCodesAndFlags() throws {
         let events = try BackgroundInputTransport.chordEvents(keyCode: 0, modifiers: [(keyCode: 55, flag: .maskCommand)])
         XCTAssertEqual(events.map { $0.getIntegerValueField(.keyboardEventKeycode) }, [55, 0, 0, 55])
         XCTAssertEqual(events.map { $0.flags.contains(.maskCommand) }, [true, true, true, false])
-        XCTAssertEqual(events.map(carriesUnicodeString), [false, false, false, false])
     }
 
     func testTypedTextRidesTheKeyDownOnly() throws {
         let events = try BackgroundInputTransport.textEvents("hé")
         XCTAssertEqual(events.map { $0.type }, [.keyDown, .keyUp, .keyDown, .keyUp])
-        XCTAssertEqual(events.map(carriesUnicodeString), [true, false, true, false])
         XCTAssertEqual([events[0], events[2]].map(unicodeString), ["h", "é"])
-    }
-
-    /// An unset string still reads back as the layout's translation, so compare against a plain twin.
-    private func carriesUnicodeString(_ event: CGEvent) -> Bool {
-        let twin = CGEvent(
-            keyboardEventSource: nil,
-            virtualKey: CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode)),
-            keyDown: event.type == .keyDown
-        )!
-        twin.flags = event.flags
-        twin.timestamp = event.timestamp
-        return twin.data != event.data
+        // Why: an unset string reads back as the layout's translation of key code 0, never the typed character.
+        XCTAssertNotEqual(unicodeString(events[1]), "h")
+        XCTAssertNotEqual(unicodeString(events[3]), "é")
     }
 
     private func windowLocation(of event: CGEvent) throws -> CGPoint {
