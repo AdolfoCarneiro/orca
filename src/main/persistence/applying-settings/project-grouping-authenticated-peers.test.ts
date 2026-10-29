@@ -222,6 +222,8 @@ it.each([100, 1000])(
     Object.assign(visibility, { visibilityState: 'visible' })
     vi.stubGlobal('document', visibility)
     vi.stubGlobal('WebSocket', WebSocket)
+    const installedWakes = vi.spyOn(visibility, 'addEventListener')
+    const releasedWakes = vi.spyOn(visibility, 'removeEventListener')
     const address = wss.address()
     if (!address || typeof address === 'string') {
       throw new Error('Expected listening fixture socket')
@@ -254,6 +256,7 @@ it.each([100, 1000])(
     const Q = 'runtime:server\0same'
     try {
       store.updateUI({ filterRepoIds: ['same', Q], agentsFilterRepoIds: [Q] })
+      const mutations = vi.spyOn(store, 'updateUI')
       const ui = createWebUiApi()
       const superseded: Promise<unknown>[] = [
         ui.setWithAck!({ filterRepoIds: [Q], sortBy: 'name', agentsFilterRepoIds: [] }).catch(
@@ -299,6 +302,11 @@ it.each([100, 1000])(
       await ui.set({ filterRepoIds: [] })
       expect(store.getUI().filterRepoIds).toEqual([])
       expect(
+        requests.filter((request) => request.method === 'status.get').length
+      ).toBeLessThanOrEqual(5)
+      expect(requests.filter((request) => request.method === 'ui.set')).toHaveLength(3)
+      expect(mutations).toHaveBeenCalledTimes(3)
+      expect(
         requests.filter((request) => request.method === 'runtime.clientCapabilities.update')
       ).toHaveLength(0)
       expect(authLists).toHaveLength(1)
@@ -310,6 +318,19 @@ it.each([100, 1000])(
       expect(createStore().getUI()).toMatchObject({ filterRepoIds: [], agentsFilterRepoIds: [Q] })
     } finally {
       session.closeActiveRuntimeClients()
+      const installed = installedWakes.mock.calls
+        .filter(([event]) => event === 'visibilitychange')
+        .map(([, listener]) => listener)
+      const released = releasedWakes.mock.calls
+        .filter(([event]) => event === 'visibilitychange')
+        .map(([, listener]) => listener)
+      // Transport liveness and status revalidation own distinct foreground interests.
+      expect(installed).toHaveLength(2)
+      expect(new Set(released)).toEqual(new Set(installed))
+      const retiredRequests = requests.length
+      visibility.dispatchEvent(new Event('visibilitychange'))
+      await Promise.resolve()
+      expect(requests).toHaveLength(retiredRequests)
       for (const socket of wss.clients) {
         socket.close()
       }
