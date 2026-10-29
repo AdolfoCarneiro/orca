@@ -153,6 +153,7 @@ export class RelayAgentHookServer extends RelayAgentHookCanonicalStatus {
       },
       setPort: (port) => {
         this.port = port
+        this.retryScheduler.scheduleRecoveredClaudeHelpers()
       },
       onFallback: () => {
         this.portFallbackApplied = true

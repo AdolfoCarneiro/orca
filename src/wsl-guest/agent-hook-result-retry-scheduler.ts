@@ -104,6 +104,12 @@ export class AgentHookResultRetryScheduler {
     this.claudeHelperKills.clear(paneKey)
   }
 
+  scheduleRecoveredClaudeHelpers(): void {
+    for (const row of this.host.state.lastStatusByPaneKey.values()) {
+      this.claudeHelperKills.schedule(row)
+    }
+  }
+
   scheduleTranscriptPoll(
     source: AgentHookSource,
     body: unknown,

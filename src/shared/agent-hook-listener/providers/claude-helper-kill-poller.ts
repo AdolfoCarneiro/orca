@@ -221,7 +221,16 @@ export class ClaudeHelperKillPoller {
     if (!roster.size) {
       this.state.claudeSubagentRosterByPaneKey.delete(paneKey)
     }
-    const payload = buildClaudeCachedLeadStatusPayload(this.state, 'SubagentStop', paneKey, {})
+    const payload = buildClaudeCachedLeadStatusPayload(
+      this.state,
+      'SubagentStop',
+      paneKey,
+      {},
+      {
+        endedChildWork: true,
+        endedRuntimeChildWork: true
+      }
+    )
     if (!payload) {
       return
     }

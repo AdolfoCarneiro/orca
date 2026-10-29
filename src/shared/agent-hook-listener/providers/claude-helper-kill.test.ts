@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile, appendFile, mkdir, rm, rename } from 'node:fs/promises'
+import { mkdtemp, writeFile, appendFile, mkdir, rm, rename, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -8,6 +8,7 @@ import { ClaudeHelperKillPoller } from './claude-helper-kill-poller'
 import { createClaudeTranscriptCursor, readClaudeTranscriptChunk } from './claude-transcript-cursor'
 import type { ClaudeLaunchedBackgroundTasks } from '../../claude-owed-task-notifications'
 import type { AgentHookEventPayload } from '../listener-event'
+import { readClaudeHelperEvidence } from './claude-helper-transcript-evidence'
 
 let dir: string
 const now = Date.parse('2026-10-29T12:00:00Z')
@@ -30,7 +31,7 @@ afterEach(async () => {
   await rm(dir, { recursive: true, force: true })
 })
 
-async function pane(shell = false, reader = readClaudeTranscriptChunk) {
+async function pane(shell = false, reader = readClaudeTranscriptChunk, cron = false) {
   const state = createHookListenerState()
   const path = join(dir, 'session.jsonl')
   await writeFile(path, prompt(-20))
@@ -66,7 +67,7 @@ async function pane(shell = false, reader = readClaudeTranscriptChunk) {
       { id: 'a123', type: 'subagent', status: 'running' },
       ...(shell ? [{ id: 'shell', type: 'local_bash', status: 'running' }] : [])
     ],
-    session_crons: []
+    session_crons: cron ? [{ id: 'cron' }] : []
   })
   const publish = vi.fn((event: AgentHookEventPayload) => {
     current = event
@@ -102,17 +103,18 @@ async function drain(p: Awaited<ReturnType<typeof pane>>) {
 }
 
 describe('Claude helper provider evidence', () => {
-  it.each([false, true])(
-    'retires a killed helper, preserves parent and surviving shell=%s',
-    async (shell) => {
-      const p = await pane(shell)
+  it.each(['none', 'cron'])(
+    'retires a killed helper, preserves parent and surviving work=%s',
+    async (work) => {
+      const active = work !== 'none'
+      const p = await pane(false, readClaudeTranscriptChunk, work === 'cron')
       const before = p.row()
       try {
         await appendFile(p.path, kill())
         await drain(p)
         expect(p.row().payload.subagents ?? []).toEqual([])
-        expect(p.row().payload.state).toBe(shell ? 'working' : 'done')
-        if (shell) {
+        expect(p.row().payload.state).toBe(active ? 'working' : 'done')
+        if (active) {
           expect(p.row().payload.workingMode).toBe('monitoring')
         }
         expect(p.row().payload.mainAgent).toEqual(before.payload.mainAgent)
@@ -161,7 +163,29 @@ describe('Claude helper provider evidence', () => {
       )
       await drain(p)
       expect(p.row().payload.subagents ?? []).toEqual([])
-      await appendFile(p.child('a123'), prompt(20))
+      await appendFile(
+        p.child('a123'),
+        [
+          { message: { content: '[Request interrupted by user]' } },
+          { message: { content: [{ type: 'text', text: '[Request interrupted by user]' }] } },
+          { isMeta: true, message: { content: 'Injected context' } },
+          { isCompactSummary: true, message: { content: 'Summary' } },
+          { message: { content: [{ type: 'tool_result' }, { type: 'text', text: 'tool result' }] } }
+        ]
+          .map((r) => `${JSON.stringify({ type: 'user', timestamp: stamp(10), ...r })}\n`)
+          .join('')
+      )
+      p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: 'a123' }))
+      await drain(p)
+      expect(p.row().payload.subagents ?? []).toEqual([])
+      await appendFile(
+        p.child('a123'),
+        `${JSON.stringify({
+          type: 'user',
+          timestamp: stamp(20),
+          message: { content: [{ type: 'text', text: 'Resume the work' }] }
+        })}\n`
+      )
       p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: 'a123' }))
       await drain(p)
       expect(p.row().payload.subagents?.[0]?.state).toBe('working')
@@ -175,6 +199,10 @@ describe('Claude helper provider evidence', () => {
     try {
       await appendFile(p.path, kill())
       await drain(p)
+      await writeFile(p.child('areviewer-123'), prompt(-10))
+      p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: 'areviewer-123' }))
+      await drain(p)
+      expect(p.row().payload.subagents?.[0]?.state).toBe('idle')
       await appendFile(
         p.path,
         `${JSON.stringify({
@@ -182,7 +210,12 @@ describe('Claude helper provider evidence', () => {
           timestamp: stamp(10),
           message: {
             content: [
-              { type: 'tool_use', id: 'resume-tool', name: 'Agent', input: { resume: 'a123' } }
+              {
+                type: 'tool_use',
+                id: 'resume-tool',
+                name: 'Agent',
+                input: { resume: 'areviewer-123' }
+              }
             ]
           }
         })}\n`
@@ -192,13 +225,16 @@ describe('Claude helper provider evidence', () => {
         `${JSON.stringify({
           type: 'user',
           timestamp: stamp(15),
-          toolUseResult: { isAsync: true, agentId: 'a123' },
+          toolUseResult: { isAsync: true, agentId: 'areviewer-123' },
           message: { content: [{ type: 'tool_result', tool_use_id: 'resume-tool' }] }
         })}\n`
       )
-      p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: 'a123' }))
+      p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: 'areviewer-123' }))
       await drain(p)
       expect(p.row().payload.subagents?.[0]?.state).toBe('working')
+      await appendFile(p.path, kill(30))
+      await drain(p)
+      expect(p.row().payload.subagents?.[0]?.state).toBe('idle')
     } finally {
       p.poller.clearAll()
     }
@@ -238,7 +274,7 @@ describe('Claude helper provider evidence', () => {
     }
   })
 
-  it('ends only killed agent notification debt and releases its permission wait', async () => {
+  it('ends only killed agent notification debt without claiming delivery', async () => {
     const p = await pane()
     try {
       const tasks: ClaudeLaunchedBackgroundTasks = new Map([
@@ -249,18 +285,8 @@ describe('Claude helper provider evidence', () => {
         'test-tab:11111111-1111-4111-8111-111111111111',
         tasks
       )
-      p.replace(
-        p.post({
-          hook_event_name: 'PermissionRequest',
-          agent_id: 'a123',
-          tool_name: 'Bash',
-          tool_use_id: 'approval'
-        })
-      )
       await appendFile(p.path, kill())
       await drain(p)
-      expect(p.row().payload.state).not.toBe('waiting')
-      expect(p.row().toolAgentId).toBe('a123')
       expect(tasks.get('a123')).toEqual({
         kind: 'agent',
         notificationOwedAt: undefined,
@@ -288,14 +314,10 @@ describe('Claude helper provider evidence', () => {
     }
   })
 
-  it('keeps unavailable child generations unverifiable and forgets kills on file replacement', async () => {
+  it('forgets kills on parent file replacement', async () => {
     const p = await pane()
     try {
-      await rm(p.child('a123'))
       await appendFile(p.path, kill())
-      await drain(p)
-      expect(p.row().payload.subagents?.[0]?.state).toBe('working')
-      await writeFile(p.child('a123'), prompt(-10))
       await drain(p)
       expect(p.row().payload.subagents ?? []).toEqual([])
       await writeFile(join(dir, 'replacement.jsonl'), kill())
@@ -364,4 +386,117 @@ describe('forward transcript reading', () => {
     await appendFile(path, kill(20))
     expect((await readClaudeTranscriptChunk(cursor))?.records).toHaveLength(1)
   })
+})
+
+it('consumes every settled launch correlation at N and 10N without inventing failed resumes', () => {
+  for (const count of [10, 100]) {
+    const evidence = {
+      observedAt: now,
+      resumedAt: new Map<string, number>(),
+      launches: new Map<string, number>()
+    }
+    for (let index = 0; index < count; index++) {
+      for (const outcome of ['sync', 'failed', 'async', 'missing-time']) {
+        const id = `${outcome}-${index}`
+        readClaudeHelperEvidence(evidence, [
+          {
+            type: 'assistant',
+            timestamp: stamp(index),
+            message: { content: [{ type: 'tool_use', name: 'Agent', id }] }
+          },
+          {
+            type: 'user',
+            ...(outcome === 'missing-time' ? {} : { timestamp: stamp(index + 1) }),
+            toolUseResult: { isAsync: outcome === 'async' || outcome === 'failed', agentId: id },
+            message: {
+              content: [{ type: 'tool_result', tool_use_id: id, is_error: outcome === 'failed' }]
+            }
+          }
+        ])
+      }
+    }
+    expect(evidence.launches.size).toBe(0)
+    expect([...evidence.resumedAt.keys()]).toEqual(
+      Array.from({ length: count }, (_, i) => `async-${i}`)
+    )
+  }
+})
+
+it('bounds real corpus reads at N and 10N, parks after settlement and delivers after a legitimate wake', async () => {
+  const corpus = await readFile(
+    new URL('../../__fixtures__/claude-helper-kill-2.1.310-parent.jsonl', import.meta.url),
+    'utf8'
+  )
+  const results: { children: number; bytes: number; records: number; calls: number; ms: number }[] =
+    []
+  for (const count of [10, 100]) {
+    let calls = 0,
+      bytes = 0,
+      records = 0
+    const reader: typeof readClaudeTranscriptChunk = async (cursor) => {
+      const before = cursor.offset
+      const chunk = await readClaudeTranscriptChunk(cursor)
+      calls++
+      bytes += cursor.offset - before
+      records += chunk?.records.length ?? 0
+      expect(cursor.carry.length).toBeLessThanOrEqual(256 * 1024)
+      return chunk
+    }
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const p = await pane(false, reader)
+    const started = performance.now()
+    try {
+      // Captured history is old at this observation; only the appended fresh kill can settle work.
+      await appendFile(p.path, corpus.repeat(count * 10))
+      for (let i = 1; i < count; i++) {
+        await writeFile(p.child(`a${i}`), prompt(-10))
+        p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: `a${i}` }))
+      }
+      p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: 'a123' }))
+      await appendFile(p.path, kill())
+      // Keep one real resumed generation alive and one missing file unverifiable across safety probes.
+      await appendFile(p.child('a123'), prompt(10))
+      await rm(p.child('a1'))
+      for (
+        let i = 0;
+        i < Math.ceil((Buffer.byteLength(corpus) * count * 10) / (1024 * 1024)) + 2;
+        i++
+      ) {
+        await p.poller.poll('test-tab:11111111-1111-4111-8111-111111111111')
+      }
+      expect(
+        p
+          .row()
+          .payload.subagents?.map((c) => c.id)
+          .sort()
+      ).toEqual(['a1', 'a123'])
+      expect(p.publish).toHaveBeenCalledTimes(1)
+      const baselineCalls = calls,
+        baselineBytes = bytes
+      await drain(p)
+      expect(calls - baselineCalls).toBe(8 * 3)
+      expect(bytes).toBe(baselineBytes)
+      await writeFile(p.child('a1'), prompt(-10))
+      await appendFile(p.path, kill(20))
+      await p.poller.poll('test-tab:11111111-1111-4111-8111-111111111111')
+      expect(p.row().payload.subagents ?? []).toEqual([])
+      expect(p.publish).toHaveBeenCalledTimes(2)
+      expect(vi.getTimerCount()).toBe(0)
+      const published = p.publish.mock.calls.length
+      const settledBytes = bytes
+      p.replace(p.post({ hook_event_name: 'SubagentStart', agent_id: 'a123' }))
+      await p.poller.poll('test-tab:11111111-1111-4111-8111-111111111111')
+      expect(p.row().payload.subagents ?? []).toEqual([])
+      expect(p.publish).toHaveBeenCalledTimes(published + 1)
+      expect(bytes).toBe(settledBytes)
+      results.push({ children: count, bytes, records, calls, ms: performance.now() - started })
+      expect(calls).toBeLessThan(count * 2 + 50)
+    } finally {
+      p.poller.clearAll()
+      vi.useRealTimers()
+    }
+  }
+  expect(results[1]!.records).toBeLessThanOrEqual(results[0]!.records * 10)
+  expect(results[1]!.bytes).toBeLessThanOrEqual(results[0]!.bytes * 10)
+  process.stdout.write(`Claude helper corpus contract ${JSON.stringify(results)}\n`)
 })

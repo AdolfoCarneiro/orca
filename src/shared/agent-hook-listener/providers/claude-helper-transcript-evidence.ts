@@ -1,4 +1,5 @@
 import type { ClaudeTranscriptCursor } from './claude-transcript-cursor'
+import { isKnownHarnessInjectedUserTurnText } from '../../harness-injected-user-turns'
 
 export type ClaudeHelperTranscriptEvidence = {
   observedAt: number
@@ -13,9 +14,6 @@ export function readClaudeHelperEvidence(
 ): void {
   for (const record of records) {
     const at = typeof record.timestamp === 'string' ? Date.parse(record.timestamp) : Number.NaN
-    if (!Number.isFinite(at)) {
-      continue
-    }
     if (
       record.type === 'system' &&
       record.subtype === 'agents_killed' &&
@@ -27,7 +25,7 @@ export function readClaudeHelperEvidence(
     if (!Array.isArray(content)) {
       continue
     }
-    if (record.type === 'assistant') {
+    if (record.type === 'assistant' && Number.isFinite(at)) {
       for (const item of content) {
         if (
           isRecord(item) &&
@@ -39,33 +37,29 @@ export function readClaudeHelperEvidence(
         }
       }
     }
-    const result = record.toolUseResult
-    if (
-      record.type !== 'user' ||
-      !isRecord(result) ||
-      result.isAsync !== true ||
-      typeof result.agentId !== 'string'
-    ) {
+    if (record.type !== 'user') {
       continue
     }
+    const result = record.toolUseResult
     for (const item of content) {
-      if (
-        !isRecord(item) ||
-        item.type !== 'tool_result' ||
-        item.is_error === true ||
-        typeof item.tool_use_id !== 'string'
-      ) {
+      if (!isRecord(item) || item.type !== 'tool_result' || typeof item.tool_use_id !== 'string') {
         continue
       }
       const started = evidence.launches.get(item.tool_use_id)
-      if (started === undefined) {
+      evidence.launches.delete(item.tool_use_id)
+      if (
+        started === undefined ||
+        item.is_error === true ||
+        !isRecord(result) ||
+        result.isAsync !== true ||
+        typeof result.agentId !== 'string'
+      ) {
         continue
       }
       evidence.resumedAt.set(
         result.agentId,
         Math.max(evidence.resumedAt.get(result.agentId) ?? 0, started)
       )
-      evidence.launches.delete(item.tool_use_id)
     }
   }
 }
@@ -77,20 +71,27 @@ export function readClaudeChildPrompts(
   records: Record<string, unknown>[]
 ): void {
   for (const record of records) {
-    if (record.type !== 'user') {
+    if (record.type !== 'user' || record.isMeta === true || record.isCompactSummary === true) {
       continue
     }
     const content = messageContent(record)
-    const text =
-      typeof content === 'string' ||
-      (Array.isArray(content) && content.some((item) => isRecord(item) && item.type === 'text'))
-    const at = typeof record.timestamp === 'string' ? Date.parse(record.timestamp) : Number.NaN
+    const blocks = typeof content === 'string' ? [{ type: 'text', text: content }] : content
     if (
-      text &&
-      record.isMeta !== true &&
-      !(typeof content === 'string' && content.startsWith('[Request interrupted by user')) &&
-      Number.isFinite(at)
+      !Array.isArray(blocks) ||
+      blocks.some((item) => isRecord(item) && item.type === 'tool_result')
     ) {
+      continue
+    }
+    const text = blocks.some(
+      (item) =>
+        isRecord(item) &&
+        item.type === 'text' &&
+        typeof item.text === 'string' &&
+        item.text.trim() !== '' &&
+        !isKnownHarnessInjectedUserTurnText(item.text)
+    )
+    const at = typeof record.timestamp === 'string' ? Date.parse(record.timestamp) : Number.NaN
+    if (text && Number.isFinite(at)) {
       child.promptedAt = Math.max(child.promptedAt ?? 0, at)
     }
   }
