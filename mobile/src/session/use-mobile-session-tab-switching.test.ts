@@ -9,6 +9,8 @@ import { MobileTerminalDiagnostics } from './mobile-terminal-diagnostics'
 import type { FileDocState, MarkdownDocState, MobileSessionTab } from './mobile-session-route-types'
 import { isCachedActiveDocumentRetap } from './mobile-session-active-document-retap'
 import { useMobileSessionTabSwitching } from './use-mobile-session-tab-switching'
+import type { RpcClient } from '../transport/rpc-client'
+import type { ConnectionState } from '../transport/types'
 
 const markdownTab: MobileSessionTab = {
   type: 'markdown',
@@ -44,6 +46,9 @@ function mountSwitching(args: {
   activeSessionTabId: string | null
   markdownDocs?: Map<string, MarkdownDocState>
   fileDocs?: Map<string, FileDocState>
+  client?: Pick<RpcClient, 'sendRequest'>
+  sessionTabs?: MobileSessionTab[]
+  connState?: ConnectionState
 }) {
   const readMarkdownTab = vi.fn()
   const readFileTab = vi.fn()
@@ -64,8 +69,13 @@ function mountSwitching(args: {
         pendingSelectionRef: { current: null },
         activeSessionTabTypeRef: { current: null },
         activeHandleRef: { current: null },
-        client: null,
-        sessionTabs: []
+        client: args.client ?? null,
+        connState: args.connState ?? 'connected',
+        sessionTabs: args.sessionTabs ?? [],
+        unsubscribeTerminal: vi.fn(),
+        subscribeToTerminal: vi.fn(),
+        terminalUnsubsRef: { current: new Map() },
+        defaultTerminalHandlesToLiveInput: vi.fn()
       })
     )
   })
@@ -76,6 +86,16 @@ function mountSwitching(args: {
     setActiveSessionTabId,
     switchTo: (tab: MobileSessionTab) => {
       performHookAction(() => switching?.switchSessionTab(tab))
+    },
+    /** A snapshot that displays `tabId` without any tap; equal snapshots keep tab identity, as in production. */
+    display: (tabId: string | null, sessionTabs: MobileSessionTab[]) => {
+      args.activeSessionTabId = tabId
+      args.sessionTabs = sessionTabs
+      hook.update()
+    },
+    setConnState: (connState: ConnectionState) => {
+      args.connState = connState
+      hook.update()
     },
     unmount: hook.unmount
   }
@@ -165,6 +185,64 @@ describe('useMobileSessionTabSwitching active document retap', () => {
     try {
       harness.switchTo(markdownTab)
       expect(harness.readMarkdownTab).toHaveBeenCalledOnce()
+    } finally {
+      harness.unmount()
+    }
+  })
+})
+
+describe('useMobileSessionTabSwitching worker touch', () => {
+  it('reports a worker chat a snapshot selects, again after each reconnect until its host records the keep', async () => {
+    const replies = [{ changed: 0 }, { changed: 0, pending: true }, { changed: 1 }]
+    const sendRequest = vi.fn<RpcClient['sendRequest']>(async () => ({
+      id: 'rpc',
+      ok: true,
+      result: replies.shift()
+    }))
+    const plain: MobileSessionTab = {
+      type: 'terminal',
+      id: 'plain',
+      title: 'zsh',
+      terminal: 'pty-plain',
+      isActive: true
+    }
+    const worker: MobileSessionTab = {
+      type: 'agent-session',
+      id: 'chat',
+      title: 'Worker',
+      sessionId: 's1',
+      agent: 'claude',
+      isActive: false
+    }
+    const touches = () =>
+      sendRequest.mock.calls
+        .filter(([method]) => method === 'orchestration.workerChatTouch')
+        .map(([, params]) => params)
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
+    const harness = mountSwitching({
+      activeSessionTabId: 'plain',
+      client: { sendRequest },
+      sessionTabs: [plain, worker]
+    })
+    try {
+      await vi.waitFor(() => expect(touches()).toEqual([{ terminal: 'pty-plain' }]))
+      // The plain terminal closes and the next snapshot falls back to the worker chat.
+      const snapshot = [worker]
+      harness.display('chat', snapshot)
+      await settle()
+      harness.display('chat', snapshot)
+      await settle()
+      expect(touches()).toEqual([{ terminal: 'pty-plain' }, { sessionId: 's1' }])
+      for (let reconnect = 0; reconnect < 2; reconnect++) {
+        harness.setConnState('reconnecting')
+        harness.setConnState('connected')
+        await settle()
+      }
+      expect(touches()).toEqual([
+        { terminal: 'pty-plain' },
+        { sessionId: 's1' },
+        { sessionId: 's1' }
+      ])
     } finally {
       harness.unmount()
     }

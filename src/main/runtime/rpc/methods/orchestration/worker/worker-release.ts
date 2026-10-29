@@ -146,14 +146,21 @@ export const ORCHESTRATION_WORKER_RELEASE_METHODS = [
     name: 'orchestration.workerChatTouch',
     permission: 'workspace',
     params: OrchestrationWorkerTerminalUserInputParams,
-    // Clients cannot tell worker chats apart, so every chat reports; only a finished worker's pending close yields.
+    // Clients cannot tell workers apart, so every terminal or chat the user sees reports; the host keeps only workers.
     handler: (params, { runtime }) => {
       const db = runtime.getOrchestrationDb()
       // Durable identity, not live authority: a closing chat's hidden tab must still be touchable.
+      const identity = params.sessionId
+        ? resolveStructuredWorkerIdentityForSession(params.sessionId, db)
+        : null
       const paneKey = params.sessionId
-        ? resolveStructuredWorkerIdentityForSession(params.sessionId, db)?.paneKey
+        ? identity?.paneKey
         : resolveUserWorkerPaneKey(runtime, params)
-      return { changed: paneKey ? db.markWorkerChatTouched(paneKey) : 0 }
+      const changed = paneKey ? db.markWorkerTouched(paneKey) : 0
+      // A chat is shown before its custody is recorded; the client reports it again until it is.
+      return identity && !db.getWorkerTerminalResourceByHandle(identity.handle)
+        ? { changed, pending: true as const }
+        : { changed }
     }
   })
 ]

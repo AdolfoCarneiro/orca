@@ -33,6 +33,11 @@ import {
 import { paneKeyTabId } from '@/store/slices/workspace-attention/workspace-live-markers'
 import { isOrcaWindowForegroundFocused } from '@/components/terminal-pane/terminal-notification-pane-visibility'
 import type { ClientWorkspaceViewReporter } from './client-workspace-view-report'
+import type { WorkerTouch } from '@/lib/worker-terminal-takeover-report'
+import {
+  createOnScreenWorkerTouchReporter,
+  resolveOnScreenWorkerTouches
+} from './on-screen-worker-touch'
 
 type ScanStore = {
   getState: () => AppState
@@ -51,6 +56,8 @@ export type OnScreenAttentionEnvironment = {
   subscribePresenceSignals: (onRescan: () => void, onInput: () => void) => () => void
   /** Where the owning hosts raise the unread flag, they learn what this window shows. */
   viewReporter?: ClientWorkspaceViewReporter
+  /** Tells a worker's host the user saw it, so Orca never closes it automatically. */
+  reportWorkerTouch?: (touch: WorkerTouch) => Promise<unknown>
 }
 
 function hasMarkersOnScreen(s: AppState, targets: readonly AutoAckTabTarget[]): boolean {
@@ -87,6 +94,9 @@ export function startOnScreenAttentionScan(
   let lastFloatingPanelVisible = false
   // The screen last read, or null when none has been read since the window or workspace left.
   let lastReadScreenKey: string | null = null
+  const workerTouches = env.reportWorkerTouch
+    ? createOnScreenWorkerTouchReporter(env.reportWorkerTouch)
+    : null
 
   // `force` re-scans after a presence signal the store never sees.
   let pendingPresenceReads: readonly AgentSubjectRead[] | undefined
@@ -154,6 +164,7 @@ export function startOnScreenAttentionScan(
     env.viewReporter?.update(s, workspaceIds, targets)
     if (workspaceIds.length === 0) {
       lastReadScreenKey = null
+      workerTouches?.report([])
       return
     }
     const screenKey = [
@@ -205,6 +216,16 @@ export function startOnScreenAttentionScan(
     // Why before the writes below: they re-enter this scan synchronously, which must not see an arrival again.
     lastReadScreenKey = screenKey
     pendingPresenceReads = undefined
+    if (workerTouches) {
+      const touches = resolveOnScreenWorkerTouches(s, targets, reads)
+      if (options?.presenceConfirmed || isPresenceConfirmed()) {
+        workerTouches.report(touches)
+      } else if (workerTouches.hasUnreported(touches)) {
+        // Only a present user sees a worker; input or the idle check rescans with presence.
+        pendingPresenceReads = reads
+        presence.request()
+      }
+    }
     // Only movement to another agent lapses explicit unread protection; empty views or closing the panel alone do not count.
     if (targets.length > 0 && !floatingPanelClosed) {
       const activeSubjectKeys = new Set<string>()

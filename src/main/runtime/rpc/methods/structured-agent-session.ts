@@ -92,8 +92,9 @@ export const STRUCTURED_AGENT_SESSION_METHODS = [
     handler: async (params, ctx) => {
       requireStructuredCapability(ctx)
       await ensureHostInstalled(ctx)
-      const host = requireSessionHost(ctx, params.envelope.sessionId)
-      await host.revealSession(params.envelope.sessionId)
+      const { sessionId } = params.envelope
+      const host = requireSessionHost(ctx, sessionId)
+      await host.revealSession(sessionId)
       return host.conversationCommand(callerFor(ctx), { ...params, userSend: true })
     }
   }),

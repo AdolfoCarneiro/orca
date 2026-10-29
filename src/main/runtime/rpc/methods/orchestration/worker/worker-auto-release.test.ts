@@ -6,6 +6,7 @@ import { reconcileRequestedWorkerTerminalReleases } from '../../../../orchestrat
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import { getWorkerTerminalAutoReleaseScheduler } from '../../../../orchestration/worker-terminal-auto-release-scheduler'
 import { createOrchestrationWorkerReleaseHarness } from './worker-release.test-support'
+import { recordStructuredWorkerUserSend } from '../../../../orchestration/structured-worker-user-send-takeover'
 import { ORCHESTRATION_WORKER_CHAT_TOUCH_CLIENT_CAPABILITY } from '../../../../../../shared/orchestration-runtime-capabilities'
 
 const GRACE_MS = 2 * 60_000
@@ -105,6 +106,26 @@ describe('orchestration worker automatic release', () => {
       })
     }
   )
+
+  it('keeps a terminal the user saw while it worked, and still lets the coordinator release it', async () => {
+    setupWithFakeClock()
+    const { taskId, dispatchId } = await h.startWorker()
+    await expect(
+      h.call('orchestration.workerChatTouch', { paneKey: h.workerPaneKey })
+    ).resolves.toEqual({ changed: 1 })
+    h.settle(taskId, dispatchId, 'succeeded')
+
+    await vi.advanceTimersByTimeAsync(2 * GRACE_MS)
+
+    expect(h.runtime.closeTerminal).not.toHaveBeenCalled()
+    expect(h.db.getWorkerTerminalResourceByOwner(dispatchId)).toMatchObject({
+      ownership_state: 'owned',
+      release_state: 'retained',
+      auto_release_at: null
+    })
+    await h.call('orchestration.workerRelease', { dispatch: dispatchId })
+    expect(h.runtime.closeTerminal).toHaveBeenCalledTimes(1)
+  })
 
   it('keeps a terminal the user typed into while its output was being captured', async () => {
     setupWithFakeClock()
@@ -357,9 +378,8 @@ describe('orchestration worker automatic release', () => {
 
         const resource = h.db.getWorkerTerminalResourceByOwner(dispatchId)!
         expect(resource).toMatchObject({
-          ownership_state: 'user_owned',
+          ownership_state: 'owned',
           release_state: 'retained',
-          retained_reason: 'user_takeover',
           auto_release_at: null
         })
         expect(
@@ -400,6 +420,20 @@ describe('orchestration worker automatic release', () => {
       await expect(touch()).resolves.toEqual({ changed: 0 })
     })
 
+    it('keeps a chat the user sent to after its automatic close committed the archive', () => {
+      setupWithFakeClock()
+      const dispatchId = startSettledChatWorker()
+      const resourceId = claimAndCommitChatRelease(dispatchId)
+
+      recordStructuredWorkerUserSend(h.runtime, 's1')
+
+      expect(h.db.admitWorkerChatReleaseClose(resourceId)).toBe(false)
+      expect(h.db.getWorkerTerminalResourceByOwner(dispatchId)).toMatchObject({
+        ownership_state: 'user_owned',
+        release_state: 'retained'
+      })
+    })
+
     it('falls back to manual release when a client that cannot report touches joins before the close', () => {
       setupWithFakeClock()
       const dispatchId = startSettledChatWorker()
@@ -416,15 +450,36 @@ describe('orchestration worker automatic release', () => {
       expect(h.db.getWorkerTerminalArchive(dispatchId)).toBeUndefined()
     })
 
-    it('ignores a touch on a running worker and on an explicit release', async () => {
+    it('keeps a chat the user sent to while it was working, though they left before it settled', async () => {
       setupWithFakeClock()
       const { taskId, dispatchId } = startChatWorker()
-      await expect(touch()).resolves.toEqual({ changed: 0 })
-
+      recordStructuredWorkerUserSend(h.runtime, 's1')
       h.settle(taskId, dispatchId, 'succeeded')
-      h.db.requestWorkerTerminalRelease(dispatchId)
-      await expect(touch()).resolves.toEqual({ changed: 0 })
+
+      await vi.advanceTimersByTimeAsync(GRACE_MS)
+
       expect(h.db.getWorkerTerminalResourceByOwner(dispatchId)).toMatchObject({
+        ownership_state: 'user_owned',
+        release_state: 'retained',
+        auto_release_at: null
+      })
+      expect(h.runtime.closeTerminal).not.toHaveBeenCalled()
+    })
+
+    it('keeps a chat the user saw while it worked, and ignores a touch on an explicit release', async () => {
+      setupWithFakeClock()
+      const { taskId, dispatchId } = startChatWorker()
+      await expect(touch()).resolves.toEqual({ changed: 1 })
+      h.settle(taskId, dispatchId, 'succeeded')
+      expect(h.db.getWorkerTerminalResourceByOwner(dispatchId)).toMatchObject({
+        release_state: 'retained',
+        auto_release_at: null
+      })
+
+      const released = startSettledChatWorker()
+      h.db.requestWorkerTerminalRelease(released)
+      await expect(touch()).resolves.toEqual({ changed: 0 })
+      expect(h.db.getWorkerTerminalResourceByOwner(released)).toMatchObject({
         ownership_state: 'owned',
         release_state: 'requested'
       })

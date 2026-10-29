@@ -16,14 +16,17 @@ import {
   countWorkerTerminalInventory,
   scanWorkerTerminalStates
 } from './worker-terminal-inventory-counts'
-import { markWorkerChatTouched, markWorkerTerminalUserOwned } from './worker-terminal-user-takeover'
+import {
+  markWorkerTouched,
+  markWorkerTerminalUserOwned,
+} from './worker-terminal-user-takeover'
 
 export {
   countWorkerTerminalInventory,
   getWorkerAttentionFacts,
   getWorkerAttentionFactsForDispatches,
-  markWorkerChatTouched,
-  markWorkerTerminalUserOwned
+  markWorkerTouched,
+  markWorkerTerminalUserOwned,
 }
 
 /** `databaseId` is the real order key; the timestamp fields only satisfy pre-v3 cursors. */
@@ -274,7 +277,7 @@ export function getWorkerTerminalOrderingKey(
 
 export type WorkerTerminalListingMethods = {
   markWorkerTerminalUserOwned: typeof markWorkerTerminalUserOwned
-  markWorkerChatTouched: typeof markWorkerChatTouched
+  markWorkerTouched: typeof markWorkerTouched
   listWorkerTerminalReleaseBacklog: typeof listWorkerTerminalReleaseBacklog
   listWorkerTerminalResources: typeof listWorkerTerminalResources
   getWorkerTerminalListingSnapshot: typeof getWorkerTerminalListingSnapshot
@@ -287,7 +290,7 @@ export type WorkerTerminalListingMethods = {
 export function attachWorkerTerminalListing(ctor: { prototype: object }): void {
   Object.assign(ctor.prototype, {
     markWorkerTerminalUserOwned,
-    markWorkerChatTouched,
+    markWorkerTouched,
     listWorkerTerminalReleaseBacklog,
     listWorkerTerminalResources,
     getWorkerTerminalListingSnapshot,

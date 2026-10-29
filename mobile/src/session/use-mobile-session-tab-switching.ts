@@ -1,10 +1,11 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { STARTUP_CWD_FALLBACK_SENTENCE } from '../../../src/shared/startup-cwd-fallback'
 import { triggerSelection } from '../platform/haptics'
 import type { RpcResponse } from '../transport/types'
 import { isCachedActiveDocumentRetap } from './mobile-session-active-document-retap'
 import { activateMobileSessionTab } from './mobile-session-tab-activation'
 import { activatedAtWorkspaceRoot } from './session-write-reply-schema'
+import { reportMobileWorkerTouch, workerTouchSubjectOf } from './mobile-worker-touch-report'
 import type { MobileSessionTab } from './mobile-session-route-types'
 import type { MobileSessionKeyboardStateModel } from './use-mobile-session-keyboard-state'
 
@@ -12,6 +13,7 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
   const {
     worktreeId,
     client,
+    connState,
     sessionTabs,
     defaultTerminalHandlesToLiveInput,
     setActiveHandle,
@@ -175,6 +177,21 @@ export function useMobileSessionTabSwitching(scope: MobileSessionKeyboardStateMo
     ]
   )
   switchSessionTabRef.current = switchSessionTab
+  // Every displayed terminal or chat, tapped or selected for the user, until its host records the keep; reconnects retry.
+  const keptSubjectRef = useRef<string | null>(null)
+  const openTab = sessionTabs.find((tab) => tab.id === activeSessionTabId)
+  useEffect(() => {
+    const subject = openTab ? workerTouchSubjectOf(openTab) : null
+    const key = subject && JSON.stringify([worktreeId, subject])
+    if (!client || connState !== 'connected' || !subject || keptSubjectRef.current === key) {
+      return
+    }
+    void reportMobileWorkerTouch(client, subject).then((kept) => {
+      if (kept) {
+        keptSubjectRef.current = key
+      }
+    })
+  }, [client, connState, openTab, worktreeId])
   return {
     switchTab,
     switchSessionTab

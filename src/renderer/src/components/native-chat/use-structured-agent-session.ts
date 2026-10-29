@@ -39,7 +39,6 @@ import { hostStatesTurnScopes } from '../../../../shared/native-chat-turn-member
 import { withNativeChatCutTurnNotices } from '../../../../shared/native-chat-cut-turn-notice'
 import { useNativeChatContextClearFloor } from './use-native-chat-context-clear-floor'
 import { useStructuredAgentSessionRewind } from './use-structured-agent-session-rewind'
-import { useStructuredSessionTouchReport } from './use-structured-session-touch-report'
 
 export type { StructuredPromptItem } from '../../../../shared/structured-agent-session-message-projection'
 
@@ -167,9 +166,6 @@ export function useStructuredAgentSession(args: StructuredAgentSessionViewArgs) 
     capturePresentation
   })
   const isWorking = transportState.isWorking || transportState.queueSendsNext
-  // readCurrent drops on lost contact and returns on resume, so a touch lost to a disconnect is sent again.
-  const atRest = transportEnabled && state.status === 'ready' && readCurrent && !isWorking
-  useStructuredSessionTouchReport(sessionId, target, args.isVisible, atRest)
   const send = (...input: Parameters<typeof sends.send>) =>
     // Legacy: an older host refuses sends while a command runs; removable once those hosts age out.
     (!commandPending.current || hostStatesTurnScopes(journalItems)) &&

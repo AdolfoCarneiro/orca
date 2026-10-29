@@ -233,6 +233,28 @@ describe('a /compact that waits in line', () => {
     expect(await rig.drafts()).toEqual([])
   })
 
+  it("a person's /compact is recorded accepted before a close queued behind it decides, ahead of its reply", async () => {
+    await rig.dispose()
+    const order: string[] = []
+    rig = await createQueuedMessageTestRig({
+      restartable: true,
+      onUserSendAccepted: (sessionId) => order.push(`accepted ${sessionId}`)
+    })
+    let replied = false
+    const { result } = compact()
+    void result.then(() => (replied = true))
+    const closed = rig.host.close(SESSION, 'user-close', () => {
+      order.push(replied ? 'close after reply' : 'close')
+      return false
+    })
+
+    await expect(closed).rejects.toThrow()
+    expect(order).toEqual([`accepted ${SESSION}`, 'close'])
+    expect(await result).toMatchObject({ ok: true })
+    await compact(undefined, hostTestOperationId(), { internal: true }).result
+    expect(order).toHaveLength(2)
+  })
+
   it('without the opt-in (an older client), is refused while a message is unanswered, as today', async () => {
     await rig.workingSend()
     expect(await compact().result).toMatchObject({

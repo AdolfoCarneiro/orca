@@ -170,6 +170,8 @@ export type StructuredAgentSessionHostDeps = {
   hasOwedSwitchWork?: (record: AgentSessionRecord) => boolean
   /** Advisory tab-hidden notice; failures are logged. */
   onSessionTabHidden?: (sessionId: string) => void
+  /** A person's send or command was accepted; runs inside session serialization, ahead of any queued close. */
+  onUserSendAccepted?: (sessionId: string) => void
   /** Throws while a terminal may still write the record's head conversation; run before a spawn. */
   assertNoTerminalWriter?: (record: AgentSessionRecord) => Promise<void>
   /** Where every failure the host carries on past is reported. Required: a host without one would

@@ -177,14 +177,15 @@ export function revertWorkerTerminalReleaseToRetained(
 export function retainTerminalResourceInTransaction(
   database: OrchestrationDb,
   resourceId: string,
-  dispatchId: string
+  dispatchId: string,
+  retainableSql = "release_state IN ('not_requested', 'retained', 'requested')"
 ): boolean {
   const { changes } = database.db
     .prepare(
       `UPDATE worker_terminal_resources
        SET release_state = 'retained', retained_reason = 'user_requested',
            auto_release_at = NULL, updated_at = datetime('now')
-       WHERE id = ? AND release_state IN ('not_requested', 'retained', 'requested')`
+       WHERE id = ? AND ${retainableSql}`
     )
     .run(resourceId)
   if (changes > 0) {
