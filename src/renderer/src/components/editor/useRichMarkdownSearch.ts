@@ -89,7 +89,7 @@ export function useRichMarkdownSearch({
     })
   }, [editor, findMatches, isSearchOpen, matchCase, searchQuery, wholeWord])
 
-  // Visible replace controls need live guards; hidden controls must not bypass the find debounce.
+  // Hidden replace controls must not bypass the find debounce with a live scan.
   const replaceDisabled =
     isReplaceMode && getLiveMatches().some((match) => match.touchesReadOnlyAtom)
 

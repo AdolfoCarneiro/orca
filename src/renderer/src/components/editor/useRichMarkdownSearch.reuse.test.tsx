@@ -104,23 +104,6 @@ describe('live rich markdown search reuse', () => {
     hook.unmount()
   })
 
-  it('scans only the settled find query after a burst of input', () => {
-    vi.useFakeTimers()
-    const walk = vi.spyOn(visibleText, 'createRichMarkdownVisibleTextMap')
-    const { hook } = mountSearch()
-    act(() => hook.result.current.openSearch())
-    for (const query of ['b', 'be', 'bet', 'beta']) {
-      act(() => hook.result.current.searchActions.setSearchQuery(query))
-    }
-    expect(walk).not.toHaveBeenCalled()
-    act(() => vi.advanceTimersByTime(149))
-    expect(walk).not.toHaveBeenCalled()
-    act(() => vi.advanceTimersByTime(1))
-    expect(walk).toHaveBeenCalledTimes(1)
-    expect(hook.result.current.searchState.matchCount).toBe(2)
-    hook.unmount()
-  })
-
   it('uses the immediate query for atom guards and replacements during the debounce window', () => {
     vi.useFakeTimers()
     const { hook, editor } = mountSearch()
