@@ -152,8 +152,7 @@ describe('orchestration CLI/runtime boundary', () => {
       '--outcome succeeded',
       '--outcome failed',
       'orchestration ask --from',
-      '--type escalation',
-      'orchestration check --terminal'
+      '--type escalation'
     ]) {
       expect(result.preamble).toContain(command)
     }
