@@ -13,6 +13,18 @@ export type BrowserAnnotationSendMenuContentProps = {
   onPromptHandedOff?: (delivered: Promise<unknown>) => void
 }
 
+export function browserAnnotationCopyTooltip(includePageDetails: boolean): string {
+  return includePageDetails
+    ? translate(
+        'auto.components.browser.pane.annotate.browser.page.annotation.tray.copyFeedbackWithPageDetails',
+        'Copy feedback with page details'
+      )
+    : translate(
+        'auto.components.browser.pane.annotate.browser.page.annotation.tray.copyFeedback',
+        'Copy feedback'
+      )
+}
+
 export function BrowserAnnotationSendMenuContent({
   worktreeId,
   groupId,
@@ -37,7 +49,7 @@ export function BrowserAnnotationSendMenuContent({
       <DropdownMenuSeparator />
       <DropdownMenuCheckboxItem
         checked={includePageDetails}
-        onCheckedChange={(checked) => onIncludePageDetailsChange(checked === true)}
+        onCheckedChange={onIncludePageDetailsChange}
         onSelect={(event) => event.preventDefault()}
       >
         {translate(

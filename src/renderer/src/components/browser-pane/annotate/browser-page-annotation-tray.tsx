@@ -27,7 +27,10 @@ import {
   type BrowserPageAnnotation
 } from '../../../../../shared/browser-grab-types'
 import { BROWSER_ANNOTATION_INTENT_OPTIONS } from '../describe-page/browser-annotation-geometry'
-import { BrowserAnnotationSendMenuContent } from './BrowserAnnotationSendMenuContent'
+import {
+  BrowserAnnotationSendMenuContent,
+  browserAnnotationCopyTooltip
+} from './BrowserAnnotationSendMenuContent'
 import { preventAgentSendTargetOutsideDismiss } from './prevent-agent-send-target-outside-dismiss'
 import { browserAnnotationMatchesPageUrl } from './browser-annotation-page-url'
 import { useBrowserAnnotationImages } from './use-browser-annotation-images'
@@ -218,15 +221,7 @@ export function BrowserPageAnnotationTray({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={6}>
-              {includePageDetails
-                ? translate(
-                    'auto.components.browser.pane.annotate.browser.page.annotation.tray.copyFeedbackWithPageDetails',
-                    'Copy feedback with page details'
-                  )
-                : translate(
-                    'auto.components.browser.pane.annotate.browser.page.annotation.tray.copyFeedback',
-                    'Copy feedback'
-                  )}
+              {browserAnnotationCopyTooltip(includePageDetails)}
             </TooltipContent>
           </Tooltip>
           <Tooltip>

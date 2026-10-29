@@ -23,6 +23,7 @@ vi.mock('@/store', () => ({
 }))
 vi.mock('@/i18n/i18n', () => ({ translate: (_key: string, fallback: string) => fallback }))
 vi.mock('./BrowserAnnotationSendMenuContent', () => ({
+  browserAnnotationCopyTooltip: () => 'Copy feedback',
   BrowserAnnotationSendMenuContent: ({ onPromptDelivered }: { onPromptDelivered?: () => void }) => (
     <button onClick={onPromptDelivered}>Complete delivery</button>
   )
