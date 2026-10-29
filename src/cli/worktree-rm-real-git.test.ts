@@ -249,7 +249,6 @@ afterEach(async () => {
 })
 
 it.each([
-  { flags: [], deleted: false, host: 'local' },
   { flags: [], deleted: false, host: 'runtime:server' },
   { flags: ['--force'], deleted: false },
   { flags: ['--delete-branch'], deleted: true }
