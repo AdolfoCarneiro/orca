@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { adoptEndpointRepo } from '../../../../shared/endpoint-catalog-adoption'
 import { projectHostSetupProjectionFromRepos } from '../../../../shared/project-host-setup-projection'
 import { buildRows } from './worktree-list/grouping/build-rows.test-fixture'
 import { getGroupKeyForWorktree } from '../../../../shared/sidebar-list/worktree-group-keys'
@@ -498,6 +499,10 @@ describe('buildRows with pinned worktrees', () => {
 
   it('counts projection twins for one directory as one checkout', () => {
     const runtimeHostId = 'runtime:m2-air'
+    const adoptedRemoteRepo = adoptEndpointRepo(
+      { kind: 'environment', environmentId: 'm2-air' },
+      remoteRepo
+    )
     const runtimeRepo: Repo = {
       ...remoteRepo,
       id: 'repo-runtime',
@@ -541,7 +546,7 @@ describe('buildRows with pinned worktrees', () => {
       getGroupKeyForWorktree(
         'repo',
         remoteWorktree,
-        new Map([[remoteRepo.id, remoteRepo]]),
+        new Map([[adoptedRemoteRepo.id, adoptedRemoteRepo]]),
         null,
         undefined,
         grouping
