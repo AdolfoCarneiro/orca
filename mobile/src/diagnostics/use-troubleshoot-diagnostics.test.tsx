@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type * as HostReachability from './host-reachability'
 
 const hosts = vi.hoisted(() => ({
   catalog: vi.fn<() => Promise<{ endpoint: string }[]>>(),
@@ -12,7 +13,7 @@ vi.mock('../transport/host-store', () => ({
   loadHosts: hosts.profiles
 }))
 vi.mock('./host-reachability', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./host-reachability')>()),
+  ...(await importOriginal<typeof HostReachability>()),
   testHostReachability: async () => true
 }))
 
