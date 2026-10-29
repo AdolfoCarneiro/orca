@@ -93,8 +93,8 @@ export function dismissAvailableUpdate(): void {
 }
 
 export function setupAutoUpdater(
-  getMainWindow: () => BrowserWindow | null,
+  mainWindow: BrowserWindow | null,
   opts?: UpdaterSetupOptions
 ): void {
-  updater.setupAutoUpdater(getMainWindow, opts)
+  updater.setupAutoUpdater(mainWindow, opts)
 }

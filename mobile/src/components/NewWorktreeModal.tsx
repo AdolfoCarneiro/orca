@@ -69,7 +69,7 @@ function NewWorktreeModalContent(props: NewWorktreeModalProps) {
     onCreated,
     onClose
   } = props
-  const { repos, selectedRepo, setSelectedRepo, loading } = useNewWorkspaceRepositories({
+  const { repos, allRepos, selectedRepo, setSelectedRepo, loading } = useNewWorkspaceRepositories({
     client: desktopClient,
     serverClients,
     hostId,
@@ -81,7 +81,7 @@ function NewWorktreeModalContent(props: NewWorktreeModalProps) {
   const navigation = useNewWorktreeDrawerNavigation(visible)
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
-  const runtime = useNewWorkspaceRuntimeContext(client, visible, hostId)
+  const runtime = useNewWorkspaceRuntimeContext(client, visible, hostId, repoServer)
   const repoRuntime = useNewWorktreeRuntimeCapabilities(client, visible)
   const { tasksSupported, getWorktreeCreateCutoverSupport, getAgentLaunchSupport } = repoRuntime
   // The desktop's own run target is named for the desktop, whichever host the picked repo is on.
@@ -128,6 +128,7 @@ function NewWorktreeModalContent(props: NewWorktreeModalProps) {
   )
   const createSubmit = useNewWorkspaceCreateSubmit({
     client,
+    repos: allRepos,
     selectedRepo,
     selectedAgent: agentSelection.selectedAgent,
     setSelectedAgent: agentSelection.setSelectedAgent,

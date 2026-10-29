@@ -43,7 +43,7 @@ export class ReleaseFeedPreflightError extends Error {
 }
 
 export abstract class UpdaterState {
-  protected getMainWindow: () => BrowserWindow | null = () => null
+  protected mainWindowRef: BrowserWindow | null = null
   protected currentStatus: UpdateStatus = { state: 'idle' }
   protected userInitiatedCheck = false
   protected onBeforeQuitCleanup: (() => void | Promise<void>) | null = null
@@ -123,4 +123,13 @@ export abstract class UpdaterState {
   protected readonly installFailureCauseMaxLength = 200
 
   constructor() {}
+
+  // The ref outlives a closed window, whose webContents getter throws once destroyed.
+  protected sendToMainWindow(channel: string, ...args: unknown[]): void {
+    const win = this.mainWindowRef
+    if (!win || win.isDestroyed() || win.webContents.isDestroyed()) {
+      return
+    }
+    win.webContents.send(channel, ...args)
+  }
 }

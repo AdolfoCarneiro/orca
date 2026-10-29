@@ -1,9 +1,9 @@
-import { updaterMainWindow } from './updater-test-main-window'
 import os from 'node:os'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as TracerModule from './observability/tracer'
 import type * as UpdaterModule from './updater'
 import { loadUpdaterModule, warmUpdaterModule } from './updater-test-module-loader'
+import { updaterMainWindow } from './updater-test-main-window'
 
 const {
   appMock,
@@ -165,7 +165,7 @@ async function reachDownloaded(): Promise<typeof UpdaterModule> {
   tracer.setActiveSink(capturingSink())
   const updater = await loadUpdaterModule()
 
-  updater.setupAutoUpdater(() => mainWindow)
+  updater.setupAutoUpdater(mainWindow)
   await vi.advanceTimersByTimeAsync(0)
   await vi.waitFor(() => {
     expect(autoUpdaterMock.checkForUpdates).toHaveBeenCalledTimes(1)

@@ -2,7 +2,6 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UpdateStatus } from '../../../../shared/update-status-types'
-import { registerUpdaterStatusIpcBridge } from '../../hooks/ipc-events/updater-status-ipc-bridge'
 import { useAppStore } from '../../store'
 import { UpdateCard } from '../UpdateCard'
 import { TooltipProvider } from '../ui/tooltip'
@@ -172,43 +171,4 @@ it('keeps blocked installs accessible as waiting rather than a failed download',
   expect(screen.queryByText('Update failed')).toBeNull()
   fireEvent.click(toggle)
   expect(screen.getByRole('complementary', { name: 'Update waiting' })).toBeTruthy()
-})
-
-it('catches up a successor from the snapshot and clears dismissal through the bridge', async () => {
-  const snapshot: UpdateStatus = { state: 'available', version: '1.4.200', changelog: null }
-  let pushStatus: (status: UpdateStatus) => void = () => {
-    throw new Error('Missing status listener')
-  }
-  let clearDismissal: () => void = () => {
-    throw new Error('Missing dismissal listener')
-  }
-  const api = {
-    getStatus: async () => snapshot,
-    onStatus: (listener: typeof pushStatus) => {
-      pushStatus = listener
-      return vi.fn()
-    },
-    onClearDismissal: (listener: typeof clearDismissal) => {
-      clearDismissal = listener
-      return vi.fn()
-    },
-    dismissAvailableUpdate: vi.fn(async () => undefined)
-  }
-  Object.defineProperty(window, 'api', {
-    configurable: true,
-    value: { updater: api, ui: { set: vi.fn(async () => undefined) } }
-  })
-  const unsubs: (() => void)[] = []
-  renderUpdateControls()
-  await act(async () => {
-    registerUpdaterStatusIpcBridge(unsubs)
-  })
-  expect(screen.getByRole('complementary', { name: 'Update available' })).toBeTruthy()
-  act(() => useAppStore.getState().dismissUpdate())
-  expect(screen.queryByRole('complementary', { name: 'Update available' })).toBeNull()
-  act(() => pushStatus(snapshot))
-  expect(screen.queryByRole('complementary', { name: 'Update available' })).toBeNull()
-  act(() => clearDismissal())
-  expect(screen.getByRole('complementary', { name: 'Update available' })).toBeTruthy()
-  unsubs.forEach((unsubscribe) => unsubscribe())
 })

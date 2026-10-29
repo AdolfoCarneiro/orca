@@ -5,18 +5,17 @@ import type { Store } from '../persistence'
 import type { UpdaterSetupOptions } from '../updater'
 
 const { setupMock, milestoneMock } = vi.hoisted(() => ({
-  setupMock:
-    vi.fn<(getWindow: () => BrowserWindow | null, options?: UpdaterSetupOptions) => void>(),
+  setupMock: vi.fn<(window: BrowserWindow, options?: UpdaterSetupOptions) => void>(),
   milestoneMock: vi.fn<(name: string) => void>()
 }))
 
 vi.mock('electron', () => ({ app: {}, ipcMain: {} }))
 vi.mock('../updater', () => ({ setupAutoUpdater: setupMock }))
+vi.mock('../updater/electron-updater-proxy-session', () => ({
+  applyProxyToElectronUpdaterSession: vi.fn()
+}))
 vi.mock('../ipc/ui', () => ({ isTrustedUIRenderer: () => true }))
 vi.mock('../startup/startup-diagnostics', () => ({ logStartupMilestone: milestoneMock }))
-
-const mainProcessState: { mainWindow: BrowserWindow | null } = { mainWindow: null }
-const getCurrentMainWindow = () => mainProcessState.mainWindow
 
 function createWindowOwner() {
   const window = Object.assign(new EventEmitter(), {
@@ -30,6 +29,7 @@ function createWindowOwner() {
     releaseChannelOverride: 'rc'
   } satisfies Partial<ReturnType<Store['getUI']>>
   const store = {
+    getSettings: vi.fn(() => ({})),
     getUI: vi.fn(() => ui),
     updateUI: vi.fn<(patch: Parameters<Store['updateUI']>[0]) => void>(),
     flushPendingAsync: vi.fn<Store['flushPendingAsync']>().mockResolvedValue(undefined)
@@ -38,7 +38,6 @@ function createWindowOwner() {
   const mainWindow = window as unknown as BrowserWindow
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The complete owner accesses only these three store methods and the checked UI fields above.
   const persistence = store as unknown as Store
-  mainProcessState.mainWindow = mainWindow
   return { window, mainWindow, store, persistence }
 }
 
@@ -77,15 +76,10 @@ describe('completed deferred updater setup ownership', () => {
     const updater = await import('./main-window-updater')
     for (let index = 0; index < 64; index++) {
       const owner = createWindowOwner()
-      updater.scheduleMainWindowAutoUpdaterSetup(
-        owner.mainWindow,
-        getCurrentMainWindow,
-        owner.persistence
-      )
+      updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
       expect(vi.getTimerCount()).toBe(1)
       updater.ensureAutoUpdaterConfigured()
-      expect(setupMock).toHaveBeenLastCalledWith(getCurrentMainWindow, expect.any(Object))
-      expect(setupMock.mock.calls.at(-1)?.[0]()).toBe(mainProcessState.mainWindow)
+      expect(setupMock).toHaveBeenLastCalledWith(owner.mainWindow, expect.any(Object))
       expect(milestoneMock).toHaveBeenLastCalledWith('updater-setup-done')
       expect(vi.getTimerCount()).toBe(0)
     }
@@ -109,11 +103,7 @@ describe('completed deferred updater setup ownership', () => {
           nativeSetTimeout(callback, delay === 15_000 ? 1 : delay, ...args)
         )
       try {
-        updater.scheduleMainWindowAutoUpdaterSetup(
-          owner.mainWindow,
-          getCurrentMainWindow,
-          owner.persistence
-        )
+        updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
         expect(armed).toHaveBeenCalledOnce()
         expect(armed.mock.calls[0]?.[1]).toBe(15_000)
         const handle = armed.mock.results[0]?.value
@@ -146,11 +136,7 @@ describe('completed deferred updater setup ownership', () => {
   it('keeps setup after ready-to-show and releases its fallback afterward', async () => {
     const updater = await import('./main-window-updater')
     const owner = createWindowOwner()
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      owner.mainWindow,
-      getCurrentMainWindow,
-      owner.persistence
-    )
+    updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
     owner.window.emit('ready-to-show')
     expect(setupMock).not.toHaveBeenCalled()
     expect(vi.getTimerCount()).toBe(2)
@@ -167,11 +153,7 @@ describe('completed deferred updater setup ownership', () => {
   it('preserves the 15-second fallback when first paint never arrives', async () => {
     const updater = await import('./main-window-updater')
     const owner = createWindowOwner()
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      owner.mainWindow,
-      getCurrentMainWindow,
-      owner.persistence
-    )
+    updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
     await vi.advanceTimersByTimeAsync(14_999)
     expect(setupMock).not.toHaveBeenCalled()
     expect(vi.getTimerCount()).toBe(1)
@@ -186,11 +168,7 @@ describe('completed deferred updater setup ownership', () => {
   it('preserves destroyed-window guard reads before and at the fallback deadline', async () => {
     const updater = await import('./main-window-updater')
     const owner = createWindowOwner()
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      owner.mainWindow,
-      getCurrentMainWindow,
-      owner.persistence
-    )
+    updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
     owner.window.isDestroyed.mockReturnValue(true)
     updater.ensureAutoUpdaterConfigured()
     expect(owner.window.isDestroyed).toHaveBeenCalledOnce()
@@ -207,11 +185,7 @@ describe('completed deferred updater setup ownership', () => {
   it('keeps the fallback guard when destruction happens after ready but before immediate', async () => {
     const updater = await import('./main-window-updater')
     const owner = createWindowOwner()
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      owner.mainWindow,
-      getCurrentMainWindow,
-      owner.persistence
-    )
+    updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
     owner.window.emit('ready-to-show')
     owner.window.isDestroyed.mockReturnValue(true)
     await vi.advanceTimersByTimeAsync(0)
@@ -235,11 +209,7 @@ describe('completed deferred updater setup ownership', () => {
       trace.push('milestone')
       updater.ensureAutoUpdaterConfigured()
     })
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      owner.mainWindow,
-      getCurrentMainWindow,
-      owner.persistence
-    )
+    updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
     updater.ensureAutoUpdaterConfigured()
     expect(trace).toEqual(['setup', 'setup-return', 'milestone'])
     expect(setupMock).toHaveBeenCalledOnce()
@@ -262,11 +232,7 @@ describe('completed deferred updater setup ownership', () => {
           throw error
         })
       }
-      updater.scheduleMainWindowAutoUpdaterSetup(
-        owner.mainWindow,
-        getCurrentMainWindow,
-        owner.persistence
-      )
+      updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
       expect(captureError(() => updater.ensureAutoUpdaterConfigured())).toBe(error)
       expect(setupMock).toHaveBeenCalledOnce()
       expect(milestoneMock).toHaveBeenCalledTimes(failure === 'setup' ? 0 : 1)
@@ -292,11 +258,7 @@ describe('completed deferred updater setup ownership', () => {
           throw error
         })
       }
-      updater.scheduleMainWindowAutoUpdaterSetup(
-        owner.mainWindow,
-        getCurrentMainWindow,
-        owner.persistence
-      )
+      updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
       await expect(vi.advanceTimersByTimeAsync(15_000)).rejects.toBe(error)
       updater.ensureAutoUpdaterConfigured()
       expect(setupMock).toHaveBeenCalledOnce()
@@ -311,11 +273,7 @@ describe('completed deferred updater setup ownership', () => {
     owner.window.isDestroyed.mockImplementationOnce(() => {
       throw error
     })
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      owner.mainWindow,
-      getCurrentMainWindow,
-      owner.persistence
-    )
+    updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
     expect(captureError(() => updater.ensureAutoUpdaterConfigured())).toBe(error)
     expect(setupMock).not.toHaveBeenCalled()
     expect(vi.getTimerCount()).toBe(1)
@@ -333,11 +291,7 @@ describe('completed deferred updater setup ownership', () => {
     })
     expect(
       captureError(() =>
-        updater.scheduleMainWindowAutoUpdaterSetup(
-          owner.mainWindow,
-          getCurrentMainWindow,
-          owner.persistence
-        )
+        updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
       )
     ).toBe(error)
     expect(vi.getTimerCount()).toBe(0)
@@ -353,11 +307,7 @@ describe('completed deferred updater setup ownership', () => {
       updater.ensureAutoUpdaterConfigured()
       return once(event, listener)
     })
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      owner.mainWindow,
-      getCurrentMainWindow,
-      owner.persistence
-    )
+    updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence)
     expect(setupMock).toHaveBeenCalledOnce()
     expect(milestoneMock).toHaveBeenCalledOnce()
     expect(vi.getTimerCount()).toBe(0)
@@ -370,27 +320,15 @@ describe('completed deferred updater setup ownership', () => {
     const updater = await import('./main-window-updater')
     const old = createWindowOwner()
     const successor = createWindowOwner()
-    mainProcessState.mainWindow = old.mainWindow
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      old.mainWindow,
-      getCurrentMainWindow,
-      old.persistence
-    )
-    mainProcessState.mainWindow = successor.mainWindow
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      successor.mainWindow,
-      getCurrentMainWindow,
-      successor.persistence
-    )
+    updater.scheduleMainWindowAutoUpdaterSetup(old.mainWindow, old.persistence)
+    updater.scheduleMainWindowAutoUpdaterSetup(successor.mainWindow, successor.persistence)
     expect(vi.getTimerCount()).toBe(2)
     old.window.emit('ready-to-show')
     await vi.advanceTimersByTimeAsync(0)
-    expect(setupMock).toHaveBeenLastCalledWith(getCurrentMainWindow, expect.any(Object))
-    expect(setupMock.mock.calls.at(-1)?.[0]()).toBe(mainProcessState.mainWindow)
+    expect(setupMock).toHaveBeenLastCalledWith(old.mainWindow, expect.any(Object))
     expect(vi.getTimerCount()).toBe(1)
     updater.ensureAutoUpdaterConfigured()
-    expect(setupMock).toHaveBeenLastCalledWith(getCurrentMainWindow, expect.any(Object))
-    expect(setupMock.mock.calls.at(-1)?.[0]()).toBe(mainProcessState.mainWindow)
+    expect(setupMock).toHaveBeenLastCalledWith(successor.mainWindow, expect.any(Object))
     expect(setupMock).toHaveBeenCalledTimes(2)
     expect(vi.getTimerCount()).toBe(0)
   })
@@ -403,11 +341,7 @@ describe('completed deferred updater setup ownership', () => {
       const successor = createWindowOwner()
       const error = new Error('old owner failed after replacement')
       const replaceAndThrow = () => {
-        updater.scheduleMainWindowAutoUpdaterSetup(
-          successor.mainWindow,
-          getCurrentMainWindow,
-          successor.persistence
-        )
+        updater.scheduleMainWindowAutoUpdaterSetup(successor.mainWindow, successor.persistence)
         throw error
       }
       if (failure === 'setup') {
@@ -415,16 +349,11 @@ describe('completed deferred updater setup ownership', () => {
       } else {
         milestoneMock.mockImplementationOnce(replaceAndThrow)
       }
-      updater.scheduleMainWindowAutoUpdaterSetup(
-        old.mainWindow,
-        getCurrentMainWindow,
-        old.persistence
-      )
+      updater.scheduleMainWindowAutoUpdaterSetup(old.mainWindow, old.persistence)
       expect(captureError(() => updater.ensureAutoUpdaterConfigured())).toBe(error)
       expect(vi.getTimerCount()).toBe(1)
       updater.ensureAutoUpdaterConfigured()
-      expect(setupMock).toHaveBeenLastCalledWith(getCurrentMainWindow, expect.any(Object))
-      expect(setupMock.mock.calls.at(-1)?.[0]()).toBe(mainProcessState.mainWindow)
+      expect(setupMock).toHaveBeenLastCalledWith(successor.mainWindow, expect.any(Object))
       expect(setupMock).toHaveBeenCalledTimes(2)
       expect(vi.getTimerCount()).toBe(0)
     }
@@ -434,23 +363,15 @@ describe('completed deferred updater setup ownership', () => {
     const updater = await import('./main-window-updater')
     const old = createWindowOwner()
     const successor = createWindowOwner()
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      old.mainWindow,
-      getCurrentMainWindow,
-      old.persistence
-    )
+    updater.scheduleMainWindowAutoUpdaterSetup(old.mainWindow, old.persistence)
     old.window.isDestroyed.mockReturnValue(true)
     await vi.advanceTimersByTimeAsync(5_000)
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      successor.mainWindow,
-      getCurrentMainWindow,
-      successor.persistence
-    )
+    updater.scheduleMainWindowAutoUpdaterSetup(successor.mainWindow, successor.persistence)
     await vi.advanceTimersByTimeAsync(10_000)
     expect(setupMock).not.toHaveBeenCalled()
     expect(vi.getTimerCount()).toBe(1)
     updater.ensureAutoUpdaterConfigured()
-    expect(setupMock).toHaveBeenCalledWith(getCurrentMainWindow, expect.any(Object))
+    expect(setupMock).toHaveBeenCalledWith(successor.mainWindow, expect.any(Object))
     expect(vi.getTimerCount()).toBe(0)
   })
 
@@ -462,19 +383,14 @@ describe('completed deferred updater setup ownership', () => {
     owner.store.flushPendingAsync.mockImplementation(async () => {
       trace.push('flush')
     })
-    updater.scheduleMainWindowAutoUpdaterSetup(
-      owner.mainWindow,
-      getCurrentMainWindow,
-      owner.persistence,
-      {
-        updateInstallMode: 'supervised-headless-serve',
-        onBeforeUpdateQuitFailure: 'abort',
-        onBeforeUpdateQuit: () => {
-          trace.push('cleanup')
-          throw error
-        }
+    updater.scheduleMainWindowAutoUpdaterSetup(owner.mainWindow, owner.persistence, {
+      updateInstallMode: 'supervised-headless-serve',
+      onBeforeUpdateQuitFailure: 'abort',
+      onBeforeUpdateQuit: () => {
+        trace.push('cleanup')
+        throw error
       }
-    )
+    })
     updater.ensureAutoUpdaterConfigured()
     const options = capturedSetupOptions()
     expect(Object.keys(options)).toEqual([

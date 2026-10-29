@@ -61,8 +61,7 @@ describe('updater', () => {
       quitAndInstall,
       getUpdateStatus
     } = await loadUpdaterModule()
-    const mainWindow = updaterMainWindow(send)
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(updaterMainWindow(send), {
       getLastUpdateCheckAt: () => Date.now(),
       onBeforeQuit,
       onBeforeQuitFailure: 'abort'
@@ -136,7 +135,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu()
 
     await vi.waitFor(() => {
@@ -191,7 +190,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu()
 
     await vi.waitFor(() => {
@@ -244,7 +243,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu()
 
     await vi.waitFor(() => {
@@ -301,7 +300,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu()
 
     await vi.waitFor(() => {
@@ -343,7 +342,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu()
 
     await vi.waitFor(() => {
@@ -386,7 +385,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu()
 
     await vi.waitFor(() => {
@@ -429,7 +428,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu()
 
     expect(sendMock).toHaveBeenCalledWith('updater:status', {
@@ -472,7 +471,7 @@ describe('updater', () => {
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
     appMock.getVersion.mockReturnValue('1.4.35')
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => null })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => null })
     checkForUpdatesFromMenu({ includePrerelease: true })
 
     expect(sendMock).toHaveBeenCalledWith('updater:status', {
@@ -528,7 +527,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => null })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => null })
     checkForUpdatesFromMenu()
     resolveTags({ tags: [], state: 'no-newer' })
 
@@ -577,7 +576,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu()
     checkForUpdatesFromMenu()
 

@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import type { OrcaRuntimeService } from '../runtime/orca-runtime'
+import type { RuntimeNotifier } from '../runtime/runtime-notifier-contract'
 
 type MockFn = ReturnType<typeof vi.fn>
 
@@ -21,6 +21,15 @@ export type MainWindowStub = {
       setPermissionCheckHandler: MockFn
     }
   }
+}
+
+type RuntimeStub = {
+  attachWindow: MockFn
+  setNotifier: ReturnType<typeof vi.fn<(notifier: RuntimeNotifier | null) => void>>
+  markRendererReloading: MockFn
+  markRendererReloadCancelled: MockFn
+  markGraphReloadFailed: MockFn
+  markGraphUnavailable: MockFn
 }
 
 export function createMainWindowServiceStub(
@@ -51,16 +60,14 @@ export function createMainWindowServiceStub(
   }
 }
 
-export function createRuntime() {
+export function createRuntime(): RuntimeStub {
   return {
-    attachWindow: vi.fn<OrcaRuntimeService['attachWindow']>(),
-    setNotifier: vi.fn<OrcaRuntimeService['setNotifier']>(),
-    markRendererReloading: vi.fn<OrcaRuntimeService['markRendererReloading']>(() => null),
-    markRendererReloadCancelled: vi.fn<OrcaRuntimeService['markRendererReloadCancelled']>(
-      () => false
-    ),
-    markGraphReloadFailed: vi.fn<OrcaRuntimeService['markGraphReloadFailed']>(),
-    markGraphUnavailable: vi.fn<OrcaRuntimeService['markGraphUnavailable']>()
+    attachWindow: vi.fn(),
+    setNotifier: vi.fn<(notifier: RuntimeNotifier | null) => void>(),
+    markRendererReloading: vi.fn(),
+    markRendererReloadCancelled: vi.fn(),
+    markGraphReloadFailed: vi.fn(),
+    markGraphUnavailable: vi.fn()
   }
 }
 

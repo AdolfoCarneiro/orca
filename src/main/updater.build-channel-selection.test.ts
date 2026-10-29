@@ -1,6 +1,6 @@
-import { updaterMainWindow } from './updater-test-main-window'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadUpdaterModule, warmUpdaterModule } from './updater-test-module-loader'
+import { updaterMainWindow } from './updater-test-main-window'
 
 const {
   appMock,
@@ -58,8 +58,7 @@ describe('updater', () => {
       try {
         const send = vi.fn()
         const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
-        const mainWindow = updaterMainWindow(send)
-        setupAutoUpdater(() => mainWindow, {
+        setupAutoUpdater(updaterMainWindow(send), {
           getLastUpdateCheckAt: () => Date.now()
         })
 
@@ -84,8 +83,7 @@ describe('updater', () => {
       appMock.getVersion.mockReturnValue('1.4.160')
       const send = vi.fn()
       const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now()
       })
 
@@ -114,8 +112,7 @@ describe('updater', () => {
         appMock.getVersion.mockReturnValue('1.4.160-hourly.202607281400')
         const send = vi.fn()
         const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
-        const mainWindow = updaterMainWindow(send)
-        setupAutoUpdater(() => mainWindow, {
+        setupAutoUpdater(updaterMainWindow(send), {
           getLastUpdateCheckAt: () => Date.now()
         })
 
@@ -148,8 +145,7 @@ describe('updater', () => {
       })
       const send = vi.fn()
       const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now()
       })
 
@@ -175,7 +171,7 @@ describe('updater', () => {
         )
       })
 
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now()
       })
       expect(autoUpdaterMock.setFeedURL).toHaveBeenLastCalledWith({
@@ -202,8 +198,7 @@ describe('updater', () => {
       const send = vi.fn()
       const { setupAutoUpdater, checkForUpdates, checkForUpdatesFromMenu } =
         await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now()
       })
 
@@ -246,8 +241,7 @@ describe('updater', () => {
       const send = vi.fn()
       const { setupAutoUpdater, checkForUpdates, checkForUpdatesFromMenu } =
         await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now()
       })
 
@@ -286,8 +280,7 @@ describe('updater', () => {
       const send = vi.fn()
       const { setupAutoUpdater, checkForUpdates, checkForUpdatesFromMenu } =
         await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now()
       })
 
@@ -333,8 +326,7 @@ describe('updater', () => {
       const send = vi.fn()
       const { setupAutoUpdater, checkForUpdatesFromMenu, downloadUpdate } =
         await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now()
       })
 
@@ -386,8 +378,7 @@ describe('updater', () => {
       const send = vi.fn()
       const { setupAutoUpdater, checkForUpdates, checkForUpdatesFromMenu, dismissAvailableUpdate } =
         await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now()
       })
 
@@ -434,8 +425,7 @@ describe('updater', () => {
       const send = vi.fn()
       const { setupAutoUpdater, checkForUpdatesFromMenu, dismissAvailableUpdate, downloadUpdate } =
         await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now()
       })
 
@@ -469,7 +459,7 @@ describe('updater', () => {
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
     // Defer startup checks to inspect initial state without racing an RC check.
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     const setupFeedUrlCalls = autoUpdaterMock.setFeedURL.mock.calls.length
     expect(autoUpdaterMock.allowPrerelease).not.toBe(true)
 
@@ -497,7 +487,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
 
     checkForUpdatesFromMenu({ includePerfPrerelease: true })
 
@@ -524,7 +514,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     const setupFeedUrlCalls = autoUpdaterMock.setFeedURL.mock.calls.length
 
     checkForUpdatesFromMenu({ includePerfPrerelease: true })
@@ -555,7 +545,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
 
     checkForUpdatesFromMenu({ includePerfPrerelease: true })
 
@@ -589,7 +579,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu({ includePrerelease: true })
 
     await vi.waitFor(() => {
@@ -611,7 +601,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     const initialFeedUrlCalls = autoUpdaterMock.setFeedURL.mock.calls.length
 
     checkForUpdatesFromMenu()

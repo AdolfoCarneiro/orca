@@ -1,8 +1,8 @@
-import { updaterMainWindow } from './updater-test-main-window'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UpdateStatus } from '../shared/update-status-types'
 import type * as UpdaterModule from './updater'
 import { loadUpdaterModule, warmUpdaterModule } from './updater-test-module-loader'
+import { updaterMainWindow } from './updater-test-main-window'
 
 const {
   appMock,
@@ -151,8 +151,7 @@ describe('linux package recovery actions', () => {
   }> => {
     const send = vi.fn()
     const updater = await loadUpdaterModule()
-    const mainWindow = updaterMainWindow(send)
-    updater.setupAutoUpdater(() => mainWindow, {
+    updater.setupAutoUpdater(updaterMainWindow(send), {
       getLastUpdateCheckAt: () => Date.now()
     })
     return { send, updater }

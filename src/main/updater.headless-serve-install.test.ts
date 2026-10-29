@@ -175,8 +175,7 @@ describe('headless serve update install handoff', () => {
     killAllPtyMock.mockImplementation(beginSessionCleanup)
 
     const { checkForUpdatesFromMenu, quitAndInstall, setupAutoUpdater } = await loadUpdaterModule()
-    const mainWindow = updaterMainWindow(send)
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(updaterMainWindow(send), {
       getLastUpdateCheckAt: () => Date.now(),
       installMode: 'unsupported-headless-serve'
     })
@@ -248,8 +247,7 @@ describe('headless serve update install handoff', () => {
     })
 
     const { checkForUpdatesFromMenu, downloadUpdate, setupAutoUpdater } = await loadUpdaterModule()
-    const mainWindow = updaterMainWindow(send)
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(updaterMainWindow(send), {
       getLastUpdateCheckAt: () => Date.now(),
       installMode: 'unsupported-headless-serve'
     })
@@ -306,8 +304,7 @@ describe('headless serve update install handoff', () => {
 
     const { checkForUpdatesFromMenu, downloadUpdate, quitAndInstall, setupAutoUpdater } =
       await loadUpdaterModule()
-    const mainWindow = updaterMainWindow(send)
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(updaterMainWindow(send), {
       getLastUpdateCheckAt: () => Date.now(),
       installMode: 'supervised-headless-serve',
       onBeforeQuit: () => {
@@ -367,8 +364,7 @@ describe('headless serve update install handoff', () => {
       })
       const { checkForUpdatesFromMenu, downloadUpdate, quitAndInstall, setupAutoUpdater } =
         await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(vi.fn())
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(vi.fn()), {
         getLastUpdateCheckAt: () => Date.now(),
         installMode: 'supervised-headless-serve'
       })
@@ -403,8 +399,7 @@ describe('headless serve update install handoff', () => {
     })
 
     const { checkForUpdatesFromMenu, quitAndInstall, setupAutoUpdater } = await loadUpdaterModule()
-    const mainWindow = updaterMainWindow(send)
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(updaterMainWindow(send), {
       getLastUpdateCheckAt: () => Date.now(),
       installMode: 'supervised-headless-serve'
     })
@@ -475,8 +470,7 @@ describe('headless serve update install handoff', () => {
 
       const { checkForUpdatesFromMenu, downloadUpdate, quitAndInstall, setupAutoUpdater } =
         await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now(),
         installMode: 'supervised-headless-serve'
       })
@@ -622,8 +616,7 @@ describe('headless serve update install handoff', () => {
       })
 
       const { checkForUpdatesFromMenu, setupAutoUpdater } = await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now(),
         installMode: 'unsupported-headless-serve'
       })
@@ -671,8 +664,7 @@ describe('headless serve update install handoff', () => {
       })
 
       const { checkForUpdatesFromMenu, setupAutoUpdater } = await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now(),
         installMode: 'unsupported-headless-serve'
       })
@@ -702,8 +694,7 @@ describe('headless serve update install handoff', () => {
 
       const { checkForUpdatesFromMenu, quitAndInstall, setupAutoUpdater } =
         await loadUpdaterModule()
-      const mainWindow = updaterMainWindow(send)
-      setupAutoUpdater(() => mainWindow, {
+      setupAutoUpdater(updaterMainWindow(send), {
         getLastUpdateCheckAt: () => Date.now(),
         installMode: 'unsupported-headless-serve'
       })
@@ -738,8 +729,7 @@ describe('headless serve update install handoff', () => {
       getRemoteServerUpdateSupport,
       setupAutoUpdater
     } = await loadUpdaterModule()
-    const mainWindow = updaterMainWindow(send)
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(updaterMainWindow(send), {
       getLastUpdateCheckAt: () => Date.now(),
       installMode: 'interactive'
     })
@@ -765,8 +755,7 @@ describe('headless serve update install handoff', () => {
   it('advertises remote update control only for safely restartable installs', async () => {
     const { checkForRemoteServerUpdate, getRemoteServerUpdateSupport, setupAutoUpdater } =
       await loadUpdaterModule()
-    const mainWindow = updaterMainWindow(vi.fn())
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(updaterMainWindow(vi.fn()), {
       getLastUpdateCheckAt: () => Date.now(),
       installMode: 'unsupported-headless-serve'
     })

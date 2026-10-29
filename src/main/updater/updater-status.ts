@@ -5,18 +5,6 @@ import type { UpdateCheckVariant } from './updater-types'
 import { UpdaterState as BaseUpdaterState } from './updater-state'
 
 export abstract class UpdaterStatus extends BaseUpdaterState {
-  protected sendToRenderer(channel: string, ...args: unknown[]): void {
-    const window = this.getMainWindow()
-    if (!window || window.isDestroyed() || window.webContents.isDestroyed()) {
-      return
-    }
-    try {
-      window.webContents.send(channel, ...args)
-    } catch (error) {
-      console.warn(`[updater] Could not send ${channel} to the main window:`, error)
-    }
-  }
-
   protected getAutoUpdater(): ElectronAutoUpdater {
     if (!this.autoUpdater) {
       this.autoUpdater = loadElectronAutoUpdater()
@@ -176,7 +164,7 @@ export abstract class UpdaterStatus extends BaseUpdaterState {
       // Deliver forced status before a queued check starts the next cycle.
       if (options?.force) {
         this.currentStatus = decoratedStatus
-        this.sendToRenderer('updater:status', decoratedStatus)
+        this.sendToMainWindow('updater:status', decoratedStatus)
       }
       this.launchPendingUserInitiatedCheckAfterInFlight(pendingUserInitiatedCheckVariant)
       return
@@ -185,7 +173,7 @@ export abstract class UpdaterStatus extends BaseUpdaterState {
       return
     }
     this.currentStatus = decoratedStatus
-    this.sendToRenderer('updater:status', decoratedStatus)
+    this.sendToMainWindow('updater:status', decoratedStatus)
   }
 
   protected abstract finishActiveUpdateCheckAttempt(): void

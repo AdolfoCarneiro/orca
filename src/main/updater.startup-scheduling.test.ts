@@ -1,6 +1,6 @@
-import { updaterMainWindow } from './updater-test-main-window'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadUpdaterModule, warmUpdaterModule } from './updater-test-module-loader'
+import { updaterMainWindow } from './updater-test-main-window'
 
 const {
   appMock,
@@ -39,7 +39,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow)
+    setupAutoUpdater(mainWindow)
 
     expect(autoUpdaterMock.updateConfigPath).toBeUndefined()
     expect(autoUpdaterMock.setFeedURL).not.toHaveBeenCalled()
@@ -53,7 +53,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => Date.now() - 25 * 60 * 60 * 1000,
       setLastUpdateCheckAt
     })
@@ -71,7 +71,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow)
+    setupAutoUpdater(mainWindow)
 
     expect(autoUpdaterMock.setFeedURL).toHaveBeenCalledTimes(1)
     expect(autoUpdaterMock.on).toHaveBeenCalled()
@@ -93,7 +93,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => Date.now() - 23 * 60 * 60 * 1000,
       setLastUpdateCheckAt
     })
@@ -118,7 +118,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => lastUpdateCheckAt
     })
 
@@ -147,7 +147,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => lastUpdateCheckAt,
       setLastUpdateCheckAt
     })
@@ -182,7 +182,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => null,
       setLastUpdateCheckAt: vi.fn()
     })
@@ -219,7 +219,7 @@ describe('updater', () => {
     const { setupAutoUpdater } = await loadUpdaterModule()
 
     // Start 23h in to distinguish the result handler's re-arm from the initial startup timer.
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => Date.now() - 23 * 60 * 60 * 1000,
       setLastUpdateCheckAt
     })
@@ -257,7 +257,7 @@ describe('updater', () => {
     const sendMock = vi.fn()
     const mainWindow = updaterMainWindow(sendMock)
 
-    setupAutoUpdater(() => mainWindow)
+    setupAutoUpdater(mainWindow)
 
     expect((autoUpdaterMock as Record<string, unknown>).verifyUpdateCodeSignature).toBeUndefined()
   })

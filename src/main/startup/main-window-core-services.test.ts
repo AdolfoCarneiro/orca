@@ -23,7 +23,6 @@ const {
     registerCoreHandlersMock: vi.fn(),
     state: {
       store,
-      mainWindow: { webContents: { id: 17 } },
       runtime: {},
       stats: {},
       claudeUsage: {},
@@ -117,11 +116,7 @@ describe('main window profile-state update preparation', () => {
         recordRendererReload: vi.fn()
       })
 
-      const getMainWindow = attachMainWindowServicesMock.mock.calls[0]?.[1]
-      expect(getMainWindow()).toBe(state.mainWindow)
-      state.mainWindow = { webContents: { id: 18 } }
-      expect(getMainWindow()).toBe(state.mainWindow)
-      const options = attachMainWindowServicesMock.mock.calls[0]?.[6]
+      const options = attachMainWindowServicesMock.mock.calls[0]?.[5]
       if (
         typeof options !== 'object' ||
         options === null ||

@@ -364,9 +364,7 @@ describe('desktop startup activation', () => {
       })
 
       expect(setupHeadlessServeAutoUpdater).toHaveBeenCalledTimes(1)
-      const getMainWindow = setupHeadlessServeAutoUpdater.mock.calls[0][1]
-      expect(getMainWindow()).toBe(state.mainWindow)
-      const hooks = setupHeadlessServeAutoUpdater.mock.calls[0][2]
+      const hooks = setupHeadlessServeAutoUpdater.mock.calls[0][1]
       expect(hooks.onBeforeUpdateQuitFailure).toBe('abort')
       await hooks.onBeforeUpdateQuit()
       expect(codexRuntimeHome.syncForCurrentSelection).toHaveBeenCalledTimes(1)

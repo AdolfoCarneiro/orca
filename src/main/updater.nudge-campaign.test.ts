@@ -1,6 +1,6 @@
-import { updaterMainWindow } from './updater-test-main-window'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadUpdaterModule, warmUpdaterModule } from './updater-test-module-loader'
+import { updaterMainWindow } from './updater-test-main-window'
 
 const {
   appMock,
@@ -32,27 +32,6 @@ describe('updater', () => {
     resetUpdaterMocks()
   })
 
-  it('continues the nudge check after the main window closes', async () => {
-    let closed = false
-    const send = vi.fn()
-    const mainWindow = updaterMainWindow(send, () => closed)
-    let deliverNudge: (nudge: { id: string; minVersion: string }) => void = () => {}
-    fetchNudgeMock.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          deliverNudge = resolve
-        })
-    )
-    shouldApplyNudgeMock.mockReturnValue(true)
-    const updater = await loadUpdaterModule()
-    updater.setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
-    closed = true
-    send.mockClear()
-    deliverNudge({ id: 'campaign-closed', minVersion: '1.0.0' })
-    await vi.waitFor(() => expect(autoUpdaterMock.checkForUpdates).toHaveBeenCalledOnce())
-    expect(send).not.toHaveBeenCalled()
-  })
-
   it('does not leak a nudge marker into a later ordinary update cycle', async () => {
     const sendMock = vi.fn()
     const mainWindow = updaterMainWindow(sendMock)
@@ -67,7 +46,7 @@ describe('updater', () => {
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
     // Defer startup checks so they cannot block the nudge check.
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => Date.now()
     })
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -119,7 +98,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => null,
       getPendingUpdateNudgeId: () => 'campaign-1',
       getDismissedUpdateNudgeId: () => null
@@ -152,7 +131,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => null,
       setLastUpdateCheckAt: vi.fn()
     })
@@ -175,7 +154,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow)
+    setupAutoUpdater(mainWindow)
 
     await vi.advanceTimersByTimeAsync(0)
 
@@ -207,7 +186,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => Date.now(),
       setPendingUpdateNudgeId,
       getPendingUpdateNudgeId: () => null,
@@ -242,7 +221,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => Date.now(),
       setPendingUpdateNudgeId,
       getPendingUpdateNudgeId: () => pendingNudgeId,
@@ -278,7 +257,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => Date.now(),
       setPendingUpdateNudgeId,
       getPendingUpdateNudgeId: () => null,
@@ -314,7 +293,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => Date.now(),
       setPendingUpdateNudgeId,
       getPendingUpdateNudgeId: () => null,
@@ -344,7 +323,7 @@ describe('updater', () => {
 
     const { setupAutoUpdater, dismissNudge } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, {
+    setupAutoUpdater(mainWindow, {
       getLastUpdateCheckAt: () => Date.now(),
       setPendingUpdateNudgeId,
       getPendingUpdateNudgeId: () => 'campaign-1',

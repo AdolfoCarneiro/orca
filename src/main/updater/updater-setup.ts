@@ -20,6 +20,7 @@ import { recordUpdaterLifecycle } from '../updater-lifecycle-diagnostics'
 import { AUTO_UPDATE_CHECK_INTERVAL_MS } from './updater-state'
 import { UpdaterDownloadInstall } from './updater-download-install'
 import { configureMacShipItScheduling } from './macos-shipit-scheduling'
+import { handleElectronUpdaterProxyLogin } from './electron-updater-proxy-session'
 import type { PreQuitCleanupFailureMode, UpdateInstallMode } from './updater-state'
 
 export type UpdaterSetupOptions = {
@@ -110,8 +111,9 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     super.dismissAvailableUpdate()
   }
 
-  setupAutoUpdater(getMainWindow: () => BrowserWindow | null, opts?: UpdaterSetupOptions): void {
-    this.getMainWindow = getMainWindow
+  setupAutoUpdater(mainWindow: BrowserWindow | null, opts?: UpdaterSetupOptions): void {
+    // Headless setup must not erase a later attached window.
+    this.mainWindowRef = mainWindow ?? this.mainWindowRef
     this.onBeforeQuitCleanup = opts?.onBeforeQuit ?? null
     this.onBeforeQuitFailure = opts?.onBeforeQuitFailure ?? 'continue'
     this.persistLastUpdateCheckAt = opts?.setLastUpdateCheckAt ?? null
@@ -164,6 +166,7 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
       return
     }
     this.autoUpdaterInitialized = true
+    autoUpdater.on('login', handleElectronUpdaterProxyLogin)
 
     registerAutoUpdaterHandlers({
       autoUpdater,

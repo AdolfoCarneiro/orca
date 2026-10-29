@@ -1,8 +1,8 @@
-import { updaterMainWindow } from './updater-test-main-window'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { installNetRequestFetchAdapter } from './updater-net-request.fixture'
 import { publishingIncident } from './updater-prerelease-feed-reproduction.fixture'
 import { loadUpdaterModule, warmUpdaterModule } from './updater-test-module-loader'
+import { updaterMainWindow } from './updater-test-main-window'
 
 const { netFetchMock, netRequestMock } = vi.hoisted(() => ({
   netFetchMock: vi.fn(),
@@ -205,7 +205,7 @@ describe('updater check failure handling', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu()
 
     await vi.advanceTimersByTimeAsync(0)
@@ -239,7 +239,7 @@ describe('updater check failure handling', () => {
 
     const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdatesFromMenu()
     await vi.waitFor(() => {
       const statuses = sendMock.mock.calls
@@ -281,7 +281,7 @@ describe('updater check failure handling', () => {
       const mainWindow = updaterMainWindow(sendMock)
       const { setupAutoUpdater, checkForUpdatesFromMenu } = await loadUpdaterModule()
 
-      setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+      setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
       checkForUpdatesFromMenu()
 
       await vi.waitFor(() => {
@@ -307,7 +307,7 @@ describe('updater check failure handling', () => {
 
     const { setupAutoUpdater, checkForUpdates } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdates()
 
     await vi.advanceTimersByTimeAsync(0)
@@ -339,7 +339,7 @@ describe('updater check failure handling', () => {
     const mainWindow = updaterMainWindow(sendMock)
     const { setupAutoUpdater, checkForUpdates, getUpdateStatus } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdates()
     await vi.waitFor(() => {
       expect(netFetchMock).toHaveBeenCalledTimes(2)
@@ -365,7 +365,7 @@ describe('updater check failure handling', () => {
 
     const { setupAutoUpdater, checkForUpdates } = await loadUpdaterModule()
 
-    setupAutoUpdater(() => mainWindow, { getLastUpdateCheckAt: () => Date.now() })
+    setupAutoUpdater(mainWindow, { getLastUpdateCheckAt: () => Date.now() })
     checkForUpdates()
     await vi.advanceTimersByTimeAsync(0)
     expect(autoUpdaterMock.checkForUpdates).toHaveBeenCalledTimes(1)
@@ -400,5 +400,28 @@ describe('updater check failure handling', () => {
     expect(autoUpdaterMock.checkForUpdates).toHaveBeenCalledTimes(6)
     await vi.advanceTimersByTimeAsync(ONE_HOUR_MS)
     expect(autoUpdaterMock.checkForUpdates).toHaveBeenCalledTimes(7)
+  })
+
+  it('records check failures without touching a destroyed main window', async () => {
+    makeBenignCheckFailure('Unable to find latest version on GitHub')
+    // Electron throws from a destroyed BrowserWindow's webContents getter.
+    const mainWindow = {
+      isDestroyed: () => true,
+      get webContents(): never {
+        throw new TypeError('Object has been destroyed')
+      }
+    }
+
+    const { setupAutoUpdater, checkForUpdatesFromMenu, getUpdateStatus } = await loadUpdaterModule()
+
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the guard only reads isDestroyed/webContents, which this partial BrowserWindow covers.
+    setupAutoUpdater(mainWindow as never, { getLastUpdateCheckAt: () => Date.now() })
+    checkForUpdatesFromMenu()
+
+    await vi.waitFor(() => {
+      expect(getUpdateStatus()).toEqual(
+        expect.objectContaining({ state: 'error', userInitiated: true })
+      )
+    })
   })
 })
