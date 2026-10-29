@@ -25,6 +25,7 @@ import {
 } from '@/store/workspace-record-selectors'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import { hostWorktreeTarget } from '../../../shared/worktree/host-qualified-identity'
+import { resolveQualifiedWorktreeExecutionOwner } from './qualified-worktree-execution-owner'
 
 type ConnectionOwnerState = Pick<
   AppState,
@@ -169,6 +170,14 @@ export function getConnectionIdForWorktreeCopy(
   worktreeId: string,
   hostId: ExecutionHostId
 ): string | null | undefined {
+  if (parseWorkspaceKey(worktreeId)?.type !== 'folder') {
+    return resolveQualifiedWorktreeExecutionOwner(
+      selectWorktreesByRepo(state),
+      state.repos,
+      worktreeId,
+      hostId
+    )?.connectionId
+  }
   const row = selectWorkspaceByHostTarget(
     {
       worktreesByRepo: selectWorktreesByRepo(state),

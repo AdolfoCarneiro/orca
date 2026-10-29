@@ -1,5 +1,9 @@
 import { expect, it, vi } from 'vitest'
 import type { Repo } from '../../../shared/repo-types'
+import { resolveQualifiedWorktreeExecutionOwner } from '@/lib/qualified-worktree-execution-owner'
+import { getResolvedExecutionHostIdForWorktree } from '@/lib/resolved-worktree-execution-host'
+import { getConnectionIdForWorktreeCopy } from '@/lib/connection-owner-resolution'
+import { resolveEditorExternalWatchTargetRows } from './editor-external-watch-target-rows'
 import { useAppStore } from '@/store'
 import { subscribeEditorRuntimeFileWatch } from './editor-runtime-file-watch'
 import type { AppState } from '@/store/types'
@@ -289,7 +293,7 @@ it('never watches a sibling repo host when the requested worktree owner is absen
   ).toMatchObject([{ connectionId: 'builder', worktreePath: '/repo' }])
 })
 
-it('resolves an unstamped watch row before matching SSH or local consumers and refuses repo ambiguity', () => {
+it('proves legacy watch hosts before matching and refuses unresolved or ambiguous repo proof', () => {
   const repo: Repo = {
     id: 'repo',
     path: '/remote/repo',
@@ -318,4 +322,99 @@ it('resolves an unstamped watch row before matching SSH or local consumers and r
     selectEditorExternalWatchTargets({ ...state, repos: [repo, { ...repo, connectionId: null }] })
       .targets
   ).toEqual([])
+  expect(getResolvedExecutionHostIdForWorktree(state, 'same-worktree')).toBe('ssh:box')
+  expect(getConnectionIdForWorktreeCopy(state, 'same-worktree', 'ssh:box')).toBe('box')
+  expect(getConnectionIdForWorktreeCopy(state, 'same-worktree', 'local')).toBeUndefined()
+  expect(selectEditorExternalWatchTargets({ ...state, repos: [] }).targets).toEqual([])
+  const first = state.worktreesByRepo.repo[0]
+  const duplicates = { repo: [first, { ...first, path: '/later-copy' }] }
+  expect(
+    resolveQualifiedWorktreeExecutionOwner(duplicates, state.repos, 'same-worktree', 'ssh:box')
+      ?.worktree
+  ).toBe(first)
+})
+
+it('keeps each logical watch owner amid shared physical SSH aliases in both catalog orders', () => {
+  const repo: Repo = {
+    id: 'repo',
+    path: '/repo',
+    displayName: 'Repo',
+    badgeColor: 'blue',
+    addedAt: 1
+  }
+  const aliases: SelectedHostState = {
+    ...makeState('worktree'),
+    repos: ['hub-a', 'hub-b'].map((id) => ({
+      ...repo,
+      executionHostId: `runtime:${id}` as const,
+      connectionId: null
+    })),
+    worktreesByRepo: {
+      repo: ['hub-a', 'hub-b'].map((runtimeOwnerEnvironmentId) =>
+        makeWorktree({
+          id: 'same-worktree',
+          repoId: 'repo',
+          path: `/${runtimeOwnerEnvironmentId}/repo`,
+          hostId: 'ssh:private-target',
+          runtimeOwnerEnvironmentId
+        })
+      )
+    }
+  }
+  for (const reverse of [false, true]) {
+    const ordered = {
+      ...aliases,
+      repos: reverse ? aliases.repos.toReversed() : aliases.repos,
+      worktreesByRepo: {
+        repo: reverse ? aliases.worktreesByRepo.repo.toReversed() : aliases.worktreesByRepo.repo
+      }
+    }
+    for (const id of ['hub-a', 'hub-b'] as const) {
+      expect(
+        selectEditorExternalWatchTargets({
+          ...ordered,
+          activeWorktreeId: null,
+          rightSidebarOpen: false,
+          lastVisitedAtByWorktreeId: { 'same-worktree': 1 },
+          openFiles: [
+            {
+              id: `${id}:file.ts`,
+              worktreeId: 'same-worktree',
+              filePath: `/${id}/repo/file.ts`,
+              relativePath: 'file.ts',
+              language: 'typescript',
+              mode: 'edit',
+              isDirty: false,
+              runtimeEnvironmentId: id
+            }
+          ]
+        }).targets
+      ).toEqual([
+        {
+          worktreeId: 'same-worktree',
+          worktreePath: `/${id}/repo`,
+          runtimeEnvironmentId: id,
+          connectionId: undefined
+        }
+      ])
+      const selected = resolveQualifiedWorktreeExecutionOwner(
+        ordered.worktreesByRepo,
+        ordered.repos,
+        'same-worktree',
+        `runtime:${id}`
+      )
+      expect(selected?.hostId).toBe(`runtime:${id}`)
+      expect(selected?.worktree.path).toBe(`/${id}/repo`)
+      expect(
+        getResolvedExecutionHostIdForWorktree(
+          { ...ordered, activeWorkspaceExecutionHostId: `runtime:${id}` },
+          'same-worktree'
+        )
+      ).toBe(`runtime:${id}`)
+    }
+    expect(resolveEditorExternalWatchTargetRows(ordered, 'same-worktree', null)).toBeNull()
+    expect(
+      resolveEditorExternalWatchTargetRows(ordered, 'same-worktree', 'ssh:private-target')
+    ).toBeNull()
+  }
 })

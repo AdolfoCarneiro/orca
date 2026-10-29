@@ -1,20 +1,11 @@
 import type { AppState } from '@/store'
-import { getIndexedWorktreesById } from '@/store/worktree-repo-index'
 import { isWindowsAbsolutePathLike } from '../../../shared/cross-platform-path'
 import {
   isLocalExecutionHost,
   parseExecutionHostId,
   type ExecutionHostId
 } from '../../../shared/execution-host'
-import {
-  findIndexedWorktreeOwnerForHost,
-  worktreeOwnerHostIds,
-  resolveIndexedWorktreeOwner
-} from '@/lib/worktree-runtime-owner-index'
-import {
-  createRepoRowExecutionHostLookup,
-  resolveWorktreeExecutionHost
-} from '../../../shared/worktree-execution-host-resolution'
+import { resolveQualifiedWorktreeExecutionOwner } from '@/lib/qualified-worktree-execution-owner'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import {
   resolveQualifiedIndexedFolderWorkspace,
@@ -40,40 +31,13 @@ export function resolveEditorExternalWatchTargetRows(
   worktreeId: string,
   hostId: ExecutionHostId | null
 ): EditorExternalWatchTargetRows | null {
-  const worktrees = selectWorktreesByRepo(state)
-  const lookup = createRepoRowExecutionHostLookup(state.repos)
-  const candidates = getIndexedWorktreesById(worktrees, worktreeId).flatMap((worktree) => {
-    const indexedHost = worktreeOwnerHostIds(worktree)[0]
-    if (findIndexedWorktreeOwnerForHost(worktrees, worktreeId, indexedHost) !== worktree) {
-      return []
-    }
-    const owner = resolveWorktreeExecutionHost(lookup, worktree)
-    if (owner.kind !== 'resolved') {
-      return []
-    }
-    const matchesHost =
-      !hostId ||
-      (worktree.runtimeOwnerEnvironmentId?.trim()
-        ? worktreeOwnerHostIds(worktree).includes(hostId)
-        : owner.hostId === hostId)
-    if (!matchesHost) {
-      return []
-    }
-    const selectedOwner =
-      hostId && hostId !== owner.hostId
-        ? resolveWorktreeExecutionHost(lookup, { ...worktree, hostId })
-        : owner
-    return selectedOwner.kind === 'resolved' ? [{ worktree, owner: selectedOwner }] : []
-  })
-  const indexed = resolveIndexedWorktreeOwner(
-    { candidates: candidates.map(({ worktree }) => worktree) },
-    worktreeId
+  const worktreeOwner = resolveQualifiedWorktreeExecutionOwner(
+    selectWorktreesByRepo(state),
+    state.repos,
+    worktreeId,
+    hostId
   )
-  const selected =
-    indexed.kind === 'resolved'
-      ? candidates.find(({ worktree }) => worktree === indexed.owner)
-      : undefined
-  const worktree = selected?.worktree
+  const worktree = worktreeOwner?.worktree
   const workspaceScope = parseWorkspaceKey(worktreeId)
   const qualifiedFolder =
     workspaceScope?.type === 'folder'
@@ -88,7 +52,6 @@ export function resolveEditorExternalWatchTargetRows(
   if (!worktree && !folderWorkspace) {
     return null
   }
-  const worktreeOwner = selected?.owner
   const repo = worktreeOwner?.kind === 'resolved' ? (worktreeOwner.owner ?? undefined) : undefined
   const folderHost = parseExecutionHostId(
     selectedFolder?.hostId ?? folderWorkspace?.executionHostId
