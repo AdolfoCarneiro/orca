@@ -55,11 +55,15 @@ export async function dumpAndroidAccessibilityTree(
   sdk: AndroidSdkPaths,
   serial: string
 ): Promise<AndroidAxNode> {
-  // Check the dump before reading its file to avoid returning stale XML.
-  ensureAdbOk(
+  const dump = ensureAdbOk(
     await runner(sdk.adb, ['-s', serial, 'shell', 'uiautomator', 'dump', UIAUTOMATOR_DUMP_PATH]),
     'uiautomator dump'
   )
+  // uiautomator reports idle/root failures with exit 0 and leaves the previous XML untouched.
+  const failure = `${dump.stdout}\n${dump.stderr}`.match(/^\s*ERROR:.*$/im)?.[0]
+  if (failure) {
+    throw new EmulatorError('emulator_error', `uiautomator dump failed: ${failure.trim()}`)
+  }
   const xml = ensureAdbOk(
     await runner(sdk.adb, ['-s', serial, 'shell', 'cat', UIAUTOMATOR_DUMP_PATH]),
     'read ui dump'
