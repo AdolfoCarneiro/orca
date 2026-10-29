@@ -242,11 +242,15 @@ export function removeConflictingOverrides(
     }
 
     diagnostics.push(
-      keybindingFileDiagnostic({ severity: 'error' }, 'conflictingOverrides', {
-        actions: Array.from(conflictingOverrides)
-          .map((actionId) => getKeybindingDefinition(actionId)?.title ?? actionId)
-          .join(', ')
-      })
+      keybindingFileDiagnostic(
+        { severity: 'error', actionIds: Array.from(conflictingOverrides) },
+        'conflictingOverrides',
+        {
+          actions: Array.from(conflictingOverrides)
+            .map((actionId) => getKeybindingDefinition(actionId)?.title ?? actionId)
+            .join(', ')
+        }
+      )
     )
   }
   return next

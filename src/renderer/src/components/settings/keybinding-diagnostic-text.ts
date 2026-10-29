@@ -4,8 +4,11 @@ import {
   KEYBINDING_REASON_COPY as REASON_EN,
   type KeybindingDiagnosticCode,
   type KeybindingFileDiagnostic,
-  type KeybindingReasonCode
+  type KeybindingReasonCode,
+  getKeybindingDefinition,
+  isKeybindingActionId
 } from '../../../../shared/keybindings'
+import { localizedKeybindingTitle } from './keybinding-title-copy'
 
 const REASON_COPY: Record<KeybindingReasonCode, () => string> = {
   invalidFormat: () =>
@@ -49,10 +52,25 @@ function text(params: Params, name: string): string | null {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : null
 }
 
+function localizedActionTitles(actionIds: unknown): string | null {
+  if (!Array.isArray(actionIds) || actionIds.length === 0) {
+    return null
+  }
+  const titles: string[] = []
+  for (const actionId of actionIds) {
+    if (typeof actionId !== 'string') {
+      return null
+    }
+    const definition = isKeybindingActionId(actionId) ? getKeybindingDefinition(actionId) : null
+    titles.push(definition ? localizedKeybindingTitle(definition) : actionId)
+  }
+  return titles.join(', ')
+}
+
 // null = a required param is missing; the caller shows the host's English message.
 const DIAGNOSTIC_COPY: Record<
   KeybindingDiagnosticCode,
-  (params: Params, reasonCode: unknown) => string | null
+  (params: Params, reasonCode: unknown, actionIds: unknown) => string | null
 > = {
   sectionNotObject: (params) => {
     const section = text(params, 'section')
@@ -97,8 +115,8 @@ const DIAGNOSTIC_COPY: Record<
           platform
         })
   },
-  conflictingOverrides: (params) => {
-    const actions = text(params, 'actions')
+  conflictingOverrides: (params, _reasonCode, actionIds) => {
+    const actions = localizedActionTitles(actionIds) ?? text(params, 'actions')
     return actions === null
       ? null
       : translate(
@@ -127,5 +145,8 @@ export function keybindingDiagnosticText(diagnostic: KeybindingFileDiagnostic): 
   if (!isDiagnosticCode(code)) {
     return diagnostic.message
   }
-  return DIAGNOSTIC_COPY[code](diagnostic.params ?? {}, diagnostic.reasonCode) ?? diagnostic.message
+  return (
+    DIAGNOSTIC_COPY[code](diagnostic.params ?? {}, diagnostic.reasonCode, diagnostic.actionIds) ??
+    diagnostic.message
+  )
 }

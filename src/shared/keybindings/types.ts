@@ -135,6 +135,8 @@ export type KeybindingFileDiagnostic = {
   params?: Record<string, string | number>
   /** Code of params.reason when that reason is an Orca sentence, not verbatim text. */
   reasonCode?: string
+  /** Actions named by a conflict diagnostic, so renderers can show localized titles. */
+  actionIds?: string[]
 }
 
 export type KeybindingFileSnapshot = {

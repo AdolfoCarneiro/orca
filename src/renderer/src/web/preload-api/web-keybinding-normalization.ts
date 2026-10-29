@@ -139,9 +139,13 @@ export function removeConflictingWebOverrides(
       delete next[actionId]
     }
     diagnostics.push(
-      keybindingFileDiagnostic({ severity: 'error' }, 'conflictingOverrides', {
-        actions: Array.from(conflictingOverrides).join(', ')
-      })
+      keybindingFileDiagnostic(
+        { severity: 'error', actionIds: Array.from(conflictingOverrides) },
+        'conflictingOverrides',
+        {
+          actions: Array.from(conflictingOverrides).join(', ')
+        }
+      )
     )
   }
   return next

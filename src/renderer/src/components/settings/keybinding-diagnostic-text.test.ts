@@ -51,6 +51,17 @@ describe('keybinding diagnostic text', () => {
         'Unexpected token } in JSON'
       )
     )
+    const conflict = keybindingFileDiagnostic(
+      { severity: 'error', actionIds: ['view.tasks'] },
+      'conflictingOverrides',
+      { actions: 'Open Tasks' }
+    )
+    expect(keybindingDiagnosticText(conflict)).toBe(
+      es.settings.shortcuts.diagnostics.conflictingOverrides.replace(
+        '{{actions}}',
+        es.keybindings.title.viewTasks
+      )
+    )
     expect(keybindingDiagnosticText({ severity: 'error', message: 'Old main text' })).toBe(
       'Old main text'
     )

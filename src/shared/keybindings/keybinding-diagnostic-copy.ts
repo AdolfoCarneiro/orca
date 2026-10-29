@@ -37,7 +37,7 @@ export function keybindingValidationFailure(errorCode: KeybindingReasonCode): {
 
 /** `reasonCode` names params.reason when it is one of Orca's sentences rather than verbatim text. */
 export function keybindingFileDiagnostic(
-  base: Pick<KeybindingFileDiagnostic, 'severity' | 'section' | 'actionId'>,
+  base: Pick<KeybindingFileDiagnostic, 'severity' | 'section' | 'actionId' | 'actionIds'>,
   code: KeybindingDiagnosticCode,
   params: Record<string, string> = {},
   reasonCode?: KeybindingReasonCode

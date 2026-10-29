@@ -30,9 +30,11 @@ export function repoCreateFailure(
   errorCode: RepoCreateFailureCode,
   values: { name?: string; detail?: string } = {}
 ): RepoCreateFailure {
-  const error = REPO_CREATE_FAILURE_COPY[errorCode]
-    .replace('{{name}}', () => values.name ?? '')
-    .replace('{{detail}}', () => values.detail ?? '')
+  // One pass so a name containing "{{detail}}" stays verbatim.
+  const error = REPO_CREATE_FAILURE_COPY[errorCode].replace(
+    /\{\{(name|detail)\}\}/g,
+    (_slot, slot: 'name' | 'detail') => values[slot] ?? ''
+  )
   return {
     error,
     errorCode,
