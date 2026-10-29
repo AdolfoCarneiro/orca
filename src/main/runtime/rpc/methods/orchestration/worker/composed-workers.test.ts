@@ -284,8 +284,7 @@ describe('orchestration RPC methods', () => {
 
       expect(result).toMatchObject({
         state: 'ready',
-        // A recorded start receipt replays verbatim, so it never claims the fleet lets you stop.
-        next: expect.not.stringContaining('end your turn'),
+        next: "Orca wakes you when workers report; end your turn when you're done.",
         launch: {
           requested: { agent: 'claude', model: 'aws-bedrock-opus-5', effort: 'high' },
           effective: { agent: 'claude', model: 'aws-bedrock-opus-5', effort: 'high' }

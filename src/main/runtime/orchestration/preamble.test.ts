@@ -58,7 +58,7 @@ describe('buildDispatchPreamble', () => {
       .split('\n')
       .filter((line) => line.trimStart().startsWith('orca orchestration'))
 
-    expect(commandLines).toHaveLength(6)
+    expect(commandLines).toHaveLength(4)
     expect(result).not.toContain('\\\n')
     expect(commandLines.filter((line) => line.includes('--type worker_done'))).toHaveLength(1)
     expect(commandLines.filter((line) => line.includes('orchestration ask'))).toHaveLength(2)
@@ -222,7 +222,7 @@ describe('buildDispatchPreamble', () => {
       dispatchId: 'ctx_SNAP',
       taskSpec: 'TASK_BODY',
       coordinatorHandle: 'term_COORD',
-      workerHandle: 'term_WORKER',
+      workerHandle: 'term_WORKER'
     })
     expect(result).toMatchSnapshot()
   })
@@ -233,7 +233,7 @@ describe('buildDispatchPreamble', () => {
       dispatchId: 'ctx_SNAP',
       taskSpec: 'TASK_BODY',
       coordinatorHandle: 'orca_session_id:COORD',
-      workerHandle: 'orca_session_id:WORKER',
+      workerHandle: 'orca_session_id:WORKER'
     })
     expect(result).toMatchSnapshot()
   })
@@ -245,7 +245,7 @@ describe('sub-dispatch section', () => {
     dispatchId: 'ctx_1',
     taskSpec: 'do the thing',
     coordinatorHandle: 'term_coord',
-    workerHandle: 'term_worker',
+    workerHandle: 'term_worker'
   }
 
   it('is omitted explicitly when nesting is disallowed', () => {
@@ -291,7 +291,7 @@ describe('how the preamble names the worker and its coordinator, by kind', () =>
       expect(chat).not.toContain('Exit the shell')
       expect(chat).not.toContain('Your terminal')
       expect(chat).toContain('return to an idle prompt')
-      expect(chat).toContain(`check --terminal ${SESSION_WORKER}`)
+      expect(chat).toContain(`--from ${SESSION_WORKER}`)
       expect(afterWorkerDoneSection(chat).trimEnd().endsWith(CHAT_REDISPATCH)).toBe(true)
     }
   })
