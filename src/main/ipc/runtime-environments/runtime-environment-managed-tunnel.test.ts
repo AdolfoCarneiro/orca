@@ -13,6 +13,8 @@ import { PromiseSettlementWaiters } from '../../../shared/promise-settlement-wai
 import type * as ServingModule from '../../managed-server/lifecycle/orcad-managed-serving'
 import type { ManagedOrcadStartListener } from '../../managed-server/lifecycle/orcad-managed-serving'
 import type { SshTarget } from '../../../shared/ssh-types'
+import type { ensureOrcadManagedTunnel } from '../../managed-server/lifecycle/orcad-managed-tunnel'
+import type { RuntimeEnvironmentSetupFailure } from '../../../shared/runtime-environment-subscription-setup'
 import type { updateManagedOrcadOnRestore } from '../../managed-server/lifecycle/orcad-managed-update-on-restore'
 
 const mocks = vi.hoisted(() => {
@@ -28,7 +30,7 @@ const mocks = vi.hoisted(() => {
     rawSubscribe: vi.fn(),
     handle: vi.fn(),
     on: vi.fn(),
-    ensureTunnel: vi.fn(async () => {}),
+    ensureTunnel: vi.fn(async (..._args: Parameters<typeof ensureOrcadManagedTunnel>) => {}),
     rebuildTunnel: vi.fn(async () => {}),
     verify: vi.fn(),
     restoreUpdate: vi.fn((): ReturnType<typeof updateManagedOrcadOnRestore> => null),
@@ -292,6 +294,51 @@ describe('crew waits at the actual managed preparation/routing boundary', () => 
     mocks.verify.mockResolvedValue({ state: 'serving' })
     mocks.restoreUpdate.mockReset().mockResolvedValue(undefined)
   })
+
+  it.each([false, true])(
+    'preserves undefined preparation rejection with observation present=%s',
+    async (observed) => {
+      const fact = { kind: 'ssh', decision: 'stopped' } as const
+      mocks.ensureTunnel.mockImplementation(async (_path, _id, observe) => {
+        if (observed) {
+          observe?.({ error: undefined, fact })
+        }
+        throw undefined
+      })
+      const observeFailure = vi.fn((failure: RuntimeEnvironmentSetupFailure) => {
+        expect(failure.error).toBeUndefined()
+      })
+      await expect(
+        subscribeRuntimeEnvironment(
+          '/u',
+          'undefined-preparation',
+          'orchestration.crewSubscribe',
+          {},
+          undefined,
+          { onEvent: vi.fn(), onClose: vi.fn() },
+          () => true,
+          undefined,
+          undefined,
+          { assertCurrent: vi.fn(), observeFailure }
+        )
+      ).rejects.toBeUndefined()
+      expect(observeFailure).toHaveBeenCalledExactlyOnceWith({
+        error: undefined,
+        fact: observed ? fact : { kind: 'operation', operation: 'managed-preparation' }
+      })
+      await expect(
+        subscribeRuntimeEnvironment(
+          '/u',
+          'undefined-preparation',
+          'orchestration.crewSubscribe',
+          {},
+          undefined,
+          { onEvent: vi.fn(), onClose: vi.fn() }
+        )
+      ).rejects.toBeUndefined()
+      expect(mocks.rawSubscribe).not.toHaveBeenCalled()
+    }
+  )
 
   it('preserves the actual readonly AbortError on the ordinary subscription hint path', async () => {
     mocks.environments = {

@@ -160,7 +160,7 @@ export function crewSubscriptionSetupFailure(
   const observed =
     error instanceof RuntimeEnvironmentSetupGuardError
       ? { error, fact: error.setupFact }
-      : failure?.error === error
+      : failure !== undefined && failure.error === error
         ? failure
         : runtimeEnvironmentSetupFailure(error, operation)
   const fact = isAbortSignalReason(setupSignal, error)
