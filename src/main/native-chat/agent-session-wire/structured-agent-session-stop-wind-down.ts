@@ -30,6 +30,12 @@ export type StructuredAgentSessionStopWindDown = {
   settled?: (failedOn?: JournalStopFailedOn) => void
 }
 
+export type StructuredAgentSessionChatStopWindDown = {
+  owed: StructuredAgentSessionStopWindDown
+  ctx: AgentSessionTurnContext
+  stopChild: () => Promise<void>
+}
+
 /** Queue in the Stop’s tick to exclude intervening input; failures revise its note.
  * Unproven closes retain the child, and later agent operations join that close. */
 export async function endStoppedStructuredAgentSession(
@@ -69,12 +75,14 @@ export async function endStoppedStructuredAgentSession(
     windDown.settled?.(failedOn)
   }
   const outcome = windDown.outcome
+  const writerStopped =
+    outcome?.root === 'exited' || outcome?.deathEvidenceKind === 'kill-delivered'
   if (
     outcome &&
     (outcome.errors.length > 0 ||
       outcome.pause === 'unconfirmed' ||
       outcome.interrupt === 'unconfirmed' ||
-      outcome.root !== 'exited' ||
+      !writerStopped ||
       outcome.workload !== 'exited')
   ) {
     // Thread-scoped operation feedback survives generic turn-end rekeying and turnless shutdown.
@@ -100,7 +108,7 @@ export async function endStoppedStructuredAgentSession(
               stopNotice:
                 outcome.pause === 'unconfirmed' &&
                 outcome.interrupt !== 'unconfirmed' &&
-                outcome.root === 'exited' &&
+                writerStopped &&
                 outcome.workload === 'exited'
                   ? 'pauseUnconfirmed'
                   : 'stopUnconfirmed'

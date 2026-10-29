@@ -8,6 +8,17 @@ import type {
 } from './agent-session-record'
 import type { PersistedAgentSessionProviderHandleLink } from './agent-session-provider-handle'
 
+/** Use spawnToken across platforms; start time requires Windows CIM and is unavailable in some containers. */
+export type AgentSessionProcessIdentity = {
+  hostId: string
+  pid: number
+  processStartTimeMs: number | null
+  spawnToken: string
+  /** The Orca runtime that started this process and holds its transport, stamped when the owner is
+   *  recorded; absent on owners older builds recorded. */
+  runtime?: string
+}
+
 type LegacyHandoffRuntimeKind = 'tui'
 type LegacyHandoffStage = 'preparing' | 'old-owner-stopped' | 'manual-recovery'
 
@@ -25,10 +36,11 @@ export type PersistedAgentSessionLease = Omit<AgentSessionLease, 'runtimeKind' |
 /** A record as a row stores it. Decode through `decodePersistedAgentSessionRecord`. */
 export type PersistedAgentSessionRecord = Omit<
   AgentSessionRecord,
-  'lease' | 'providerHandleChain' | 'sleptAt'
+  'lease' | 'providerHandleChain' | 'sleptAt' | 'lastTurn'
 > & {
   lease: PersistedAgentSessionLease
   sleptAt?: unknown
+  lastTurn?: unknown
   providerHandleChain: PersistedAgentSessionProviderHandleLink[]
 }
 

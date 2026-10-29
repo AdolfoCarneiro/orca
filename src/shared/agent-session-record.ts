@@ -6,10 +6,12 @@ import {
   isPersistedAgentSessionRuntimeKind,
   type PersistedAgentSessionObservationLease,
   type PersistedAgentSessionObservationRecord,
-  type PersistedAgentSessionRecord
+  type PersistedAgentSessionRecord,
+  type AgentSessionProcessIdentity
 } from './agent-session-legacy-handoff-lease'
 /** Identity pins location, provider and account home independently of terminal tabs; the lease separately grants one process writer authority. */
 
+import type { AgentSessionLastTurn } from './agent-session-last-turn'
 import type { ExecutionHostId } from './execution-host'
 import {
   isAgentSessionConversationCommandRecord,
@@ -32,6 +34,7 @@ import {
 
 export type { AgentSessionAccountHome } from './agent-session-account-home'
 export type { AgentSessionOptionsReplacement } from './agent-session-options-replacement'
+export type { AgentSessionProcessIdentity } from './agent-session-legacy-handoff-lease'
 
 export const AGENT_SESSION_RECORD_SCHEMA_VERSION = 2 as const
 
@@ -59,22 +62,11 @@ export type AgentSessionOwnerRuntimeKind = 'native'
 /** The acquisition stage. Stages only older builds wrote are mapped away at decode. */
 export type AgentSessionHandoffStage = 'new-owner-proving' | 'recovering'
 
-/** Use spawnToken across platforms; start time requires Windows CIM and is unavailable in some containers. */
-export type AgentSessionProcessIdentity = {
-  hostId: string
-  pid: number
-  processStartTimeMs: number | null
-  spawnToken: string
-  /** The Orca runtime that started this process and holds its transport, stamped when the owner is
-   *  recorded; absent on owners older builds recorded. */
-  runtime?: string
-}
-
 /** released has no owner; conflicted retains a legacy terminal owner that recovery waits for and never stops because it is the user's agent. */
 export type AgentSessionClaimStatus = 'reserved' | 'live' | 'conflicted' | 'released'
 
 export type AgentSessionDeathEvidence = {
-  kind: 'exit-observed' | 'pid-absent' | 'identity-mismatch'
+  kind: 'exit-observed' | 'kill-delivered' | 'pid-absent' | 'identity-mismatch'
   detail: string
   observedAt: number
   /** Fence of the owner (or reservation) this death is about; a fence names exactly one. Absent on
@@ -142,6 +134,8 @@ export type AgentSessionRecord = {
   conversationNameSource?: 'user'
   /** When the user's Sleep stopped this chat; the next admitted send clears it. */
   sleptAt?: number
+  /** Latest turn edge for lists that must not open conversation history. */
+  lastTurn?: AgentSessionLastTurn
   launchArgs?: AgentSessionLaunchArgs
   lease: AgentSessionLease
   createdAt: number
@@ -252,6 +246,7 @@ function isAgentSessionDeathEvidence(value: unknown): value is AgentSessionDeath
   const { observedAt, lastProvenAliveAt, ownerFence, runtimeEnd } = evidence
   return (
     (evidence.kind === 'exit-observed' ||
+      evidence.kind === 'kill-delivered' ||
       evidence.kind === 'pid-absent' ||
       evidence.kind === 'identity-mismatch') &&
     isBoundedString(evidence.detail, MAX_AGENT_SESSION_DEATH_DETAIL_CHARS) &&

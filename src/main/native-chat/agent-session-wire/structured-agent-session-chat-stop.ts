@@ -28,11 +28,12 @@ import {
 import { STOP_NOTE_CANCELLATION_REQUESTED } from './structured-agent-session-turn-stop-notes'
 import {
   endStoppedStructuredAgentSession,
-  type StructuredAgentSessionStopWindDown
+  type StructuredAgentSessionChatStopWindDown
 } from './structured-agent-session-stop-wind-down'
 import { performCancel, type AcceptedChatStop } from './structured-agent-session-turns-cancel'
 import { contextStructuredAgentSessionCurrentWork } from './structured-agent-session-current-work'
 import type { AgentSessionTurnContext, TurnOutcome } from './structured-agent-session-turns'
+import type { AgentSessionCloseObserver } from './structured-agent-session-adapter-stop'
 import {
   isStructuredAgentSessionCommandTurnId,
   structuredAgentSessionStopNoteIdentity,
@@ -61,13 +62,7 @@ export function mutateWithChatStop<TValue>(
   const { envelope, turnId } = params
   const { sessionId } = envelope
   // Replayed Stops owe no second wind-down.
-  let windDown:
-    | {
-        owed: StructuredAgentSessionStopWindDown
-        ctx: AgentSessionTurnContext
-        stopChild: () => Promise<void>
-      }
-    | undefined
+  let windDown: StructuredAgentSessionChatStopWindDown | undefined
   let reached = params.stoppedPrePrompt === true
   const named = turnId !== undefined ? { turnId } : {}
   const logChildEnd = (error: unknown) =>
@@ -133,26 +128,28 @@ export function mutateWithChatStop<TValue>(
     const { child } = target
     const feedbackId = `child:${child.fence}:${child.generation ?? 'unknown'}`
     let stopOutcome = child.close?.stopOutcome
+    const observeClose: AgentSessionCloseObserver = (evidence) => {
+      if (stopOutcome && evidence) {
+        stopOutcome.root = evidence.root === 'exited' ? 'exited' : stopOutcome.root
+        stopOutcome.workload = evidence.workload === 'exited' ? 'exited' : stopOutcome.workload
+        if (evidence.deathEvidenceKind) {
+          stopOutcome.deathEvidenceKind = evidence.deathEvidenceKind
+        }
+      }
+    }
     const stopChild = async () => {
-      if (context.sessions.get(sessionId)?.child === child) {
-        try {
+      try {
+        if (context.sessions.get(sessionId)?.child === child) {
           await context.stopAgent(sessionId, {
             recorded: 'user-stop',
-            observeClose: (evidence) => {
-              if (stopOutcome) {
-                if (evidence?.root === 'exited') {
-                  stopOutcome.root = 'exited'
-                }
-                if (evidence?.workload === 'exited') {
-                  stopOutcome.workload = 'exited'
-                }
-              }
-            }
+            observeClose
           })
-        } finally {
-          if (child.close) {
-            child.close.stopOutcome ??= stopOutcome
-          }
+        }
+      } finally {
+        const observed = child.exitObservation?.().close
+        observeClose({ ...observed?.processExit, deathEvidenceKind: observed?.deathEvidenceKind })
+        if (child.close) {
+          child.close.stopOutcome ??= stopOutcome
         }
       }
     }
