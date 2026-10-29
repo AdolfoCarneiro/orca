@@ -9,6 +9,8 @@ import {
 /** Resolve launched/detected identity from the tab and status before applying this pure toggle policy. */
 export type NativeChatAvailabilityInput = {
   contentType: Tab['contentType']
+  /** Only WSL projects retain the terminal-backed chat view. */
+  isWslProject?: boolean
   /** The coding-agent Orca launched in this terminal, if any (from TerminalTab). */
   launchAgent?: TuiAgent | null
   /** Live identity for manually launched or resumed agents without launch metadata. */
@@ -41,13 +43,16 @@ export function isNativeChatAgentAvailable(
   return isNativeChatSupportedAgent(agent)
 }
 
-/** Existing chat views may return to terminal; entry requires supported, readable agent identity in detected/launch/resolved order. */
+/** Return to terminal everywhere; entry requires a WSL project and a supported, readable agent. */
 export function canToggleNativeChat(input: NativeChatAvailabilityInput): boolean {
   if (input.contentType !== 'terminal') {
     return false
   }
   if (input.isChatViewMode === true) {
     return true
+  }
+  if (input.isWslProject !== true) {
+    return false
   }
   return isNativeChatAgentAvailable(
     nativeChatAvailabilityAgent(input),

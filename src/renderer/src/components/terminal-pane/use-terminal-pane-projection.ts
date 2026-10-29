@@ -28,6 +28,7 @@ export function useTerminalPaneProjection(controller: TerminalPaneMobileControll
     applyNativeChatLeafRoute,
     canToggleChatForLeaf,
     chatLeafId,
+    chatViewIsSupported,
     contextMenu,
     contextMenuLeafId,
     effectiveChatViewMode,
@@ -116,6 +117,7 @@ export function useTerminalPaneProjection(controller: TerminalPaneMobileControll
     applyNativeChatLeafRoute(
       resolveNativeChatLeafRoute({
         isChatViewMode,
+        chatViewIsSupported,
         chatLeafId,
         activeLeafId,
         chatLeafStillMounted,
@@ -124,6 +126,7 @@ export function useTerminalPaneProjection(controller: TerminalPaneMobileControll
     )
   }, [
     isChatViewMode,
+    chatViewIsSupported,
     chatLeafId,
     activePane?.leafId,
     chatLeafStillMounted,
@@ -131,7 +134,7 @@ export function useTerminalPaneProjection(controller: TerminalPaneMobileControll
     isChatEligibleForLeaf
   ])
   const chatPane =
-    isChatViewMode && chatLeafId
+    effectiveChatViewMode && chatLeafId
       ? (managedPanes.find((pane) => pane.leafId === chatLeafId) ?? null)
       : null
   const chatPanePtyId = chatPane
@@ -150,7 +153,7 @@ export function useTerminalPaneProjection(controller: TerminalPaneMobileControll
     leafIds: getNativeChatLeafIds()
   })
   const activePaneIsChatLeaf = Boolean(
-    isChatViewMode && activePane?.leafId && activePane.leafId === chatLeafId
+    effectiveChatViewMode && activePane?.leafId && activePane.leafId === chatLeafId
   )
   const resolveAgentForLeaf = (leafId: string | null): string | null => {
     const detectedAgent = leafId ? (tabAgentTypeByLeaf[leafId] ?? null) : null

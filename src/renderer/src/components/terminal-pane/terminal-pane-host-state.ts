@@ -1,3 +1,4 @@
+import { getLocalProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
 import type { AppState } from '@/store/types'
 import { sshConnectFailureText } from '@/ssh/ssh-host-server-status-copy'
 import { getConnectionIdFromState } from '@/lib/connection-context'
@@ -13,6 +14,7 @@ import {
 } from '@/store/slices/runtime-environment-ssh'
 
 export type TerminalPaneHostState = {
+  nativeChatIsWslProject: boolean
   nativeChatTranscriptIsLocalReadable: boolean
   sshReconnectEnvironmentId: string | null
   /** The failure detail behind the status; the overlay shows only a canned sentence without it. */
@@ -37,12 +39,16 @@ function reconnectErrorText(
 }
 
 function computeTerminalPaneHostState(state: AppState, worktreeId: string): TerminalPaneHostState {
+  const projectRuntime = getLocalProjectExecutionRuntimeContext(state, worktreeId)
+  const nativeChatIsWslProject =
+    projectRuntime?.status === 'resolved' && projectRuntime.runtime.kind === 'wsl'
   const connectionId = getConnectionIdFromState(state, worktreeId)
   const nativeChatTranscriptIsLocalReadableResult =
     isNativeChatTranscriptLocalReadable(connectionId)
   const host = resolveWorktreeHostConnection(state, worktreeId, connectionId)
   if (!host.targetId) {
     return {
+      nativeChatIsWslProject,
       nativeChatTranscriptIsLocalReadable: nativeChatTranscriptIsLocalReadableResult,
       sshReconnectEnvironmentId: null,
       sshReconnectError: null,
@@ -54,6 +60,7 @@ function computeTerminalPaneHostState(state: AppState, worktreeId: string): Term
   }
   const { targetId: sshReconnectTargetId, environmentId: sshReconnectEnvironmentId } = host
   return {
+    nativeChatIsWslProject,
     nativeChatTranscriptIsLocalReadable: nativeChatTranscriptIsLocalReadableResult,
     sshReconnectEnvironmentId,
     sshReconnectError: reconnectErrorText(
@@ -79,6 +86,7 @@ function computeTerminalPaneHostState(state: AppState, worktreeId: string): Term
 
 function isSameHostState(a: TerminalPaneHostState, b: TerminalPaneHostState): boolean {
   return (
+    a.nativeChatIsWslProject === b.nativeChatIsWslProject &&
     a.nativeChatTranscriptIsLocalReadable === b.nativeChatTranscriptIsLocalReadable &&
     a.sshReconnectEnvironmentId === b.sshReconnectEnvironmentId &&
     a.sshReconnectError === b.sshReconnectError &&

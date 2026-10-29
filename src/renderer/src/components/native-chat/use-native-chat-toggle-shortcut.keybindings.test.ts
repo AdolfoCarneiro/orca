@@ -2,6 +2,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
+import type * as PreflightContext from '@/lib/local-preflight-context'
 import type { ActivePluginCommand } from '@/store/plugin-panels'
 import { makeGroup, makeTerminalTab, makeUnifiedTab } from '../worktree-jump-palette-test-fixtures'
 import { useNativeChatToggleShortcut } from './use-native-chat-toggle-shortcut'
@@ -12,6 +13,10 @@ import { addAppKeyListener, removeAppKeyListener } from '@/lib/app-keyboard-rout
 const plugins = vi.hoisted((): { commands: ActivePluginCommand[] } => ({ commands: [] }))
 vi.mock('@/store/plugin-panels', () => ({ usePluginCommands: () => plugins.commands }))
 vi.mock('@/lib/plugin-command-execution', () => ({ executePluginCommand: vi.fn(async () => {}) }))
+vi.mock('@/lib/local-preflight-context', async (importOriginal) => ({
+  ...(await importOriginal<typeof PreflightContext>()),
+  getLocalProjectExecutionRuntimeContext: () => ({ status: 'resolved', runtime: { kind: 'wsl' } })
+}))
 vi.mock('@/lib/shortcut-platform', () => ({ getShortcutPlatform: () => 'win32' }))
 vi.mock('@/app-shell/app-window-chrome', () => ({ shortcutPlatform: 'win32' }))
 vi.mock('../../../../shared/native-chat/transcript/native-chat-transcript-readability', () => ({

@@ -2,6 +2,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { useEffect, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useAppStore } from '../../store'
 import type { TerminalLayoutSnapshot } from '../../../../shared/terminal-tab-types'
 import { useTerminalPaneChatState } from './use-terminal-pane-chat-state'
 import { useTerminalPaneLayoutPersistence } from './use-terminal-pane-layout-persistence'
@@ -83,6 +84,7 @@ function makeFixture(paneIds = [1, 2], remotePusher?: RemotePaneLayoutPusher) {
   return {
     managerRef: { current: manager },
     containerRef: { current: container },
+    nativeChatIsWslProject: true,
     nativeChatTranscriptIsLocalReadable: true,
     onAgentExitedRef: { current: vi.fn() },
     paneCount: 2,
@@ -119,6 +121,7 @@ function useFixture(fixture: ReturnType<typeof makeFixture>, initialOwner: strin
     applyNativeChatLeafRoute(
       resolveNativeChatLeafRoute({
         isChatViewMode,
+        chatViewIsSupported: chat.chatViewIsSupported,
         chatLeafId,
         activeLeafId,
         chatLeafStillMounted: mounted,
@@ -129,6 +132,7 @@ function useFixture(fixture: ReturnType<typeof makeFixture>, initialOwner: strin
     applyNativeChatLeafRoute,
     isChatEligibleForLeaf,
     isChatViewMode,
+    chat.chatViewIsSupported,
     chatLeafId,
     activeLeafId,
     mounted
@@ -137,6 +141,7 @@ function useFixture(fixture: ReturnType<typeof makeFixture>, initialOwner: strin
 }
 
 beforeEach(() => {
+  useAppStore.setState({ agentStatusByPaneKey: {} })
   mocks.state.settings.experimentalNativeChat = true
   mocks.state.runtimePaneTitlesByTabId.tab = { 1: 'codex', 2: 'codex' }
   mocks.state.setTabViewMode('tab', 'chat')
@@ -155,6 +160,41 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('terminal chat ownership lifecycle', () => {
+  it.each([
+    { isWsl: false, agent: 'codex' },
+    { isWsl: true, agent: 'openclaude' },
+    { isWsl: true, agent: 'zcode' }
+  ] as const)(
+    'returns saved and mounted $agent chat panes to terminal (WSL: $isWsl)',
+    ({ isWsl, agent }) => {
+      const fixture = makeFixture()
+      fixture.nativeChatIsWslProject = isWsl
+      useAppStore.setState({
+        agentStatusByPaneKey: {
+          [`tab:${RIGHT}`]: {
+            agentType: agent,
+            state: 'waiting',
+            prompt: '',
+            updatedAt: 0,
+            stateStartedAt: 0,
+            paneKey: `tab:${RIGHT}`
+          }
+        }
+      })
+      const savedLayout = mocks.state.terminalLayoutsByTabId.tab
+      const hook = renderHook(() => useFixture(fixture, savedLayout.chatLeafId ?? null))
+      expect(hook.result.current.effectiveChatViewMode).toBe(false)
+      expect(hook.result.current.chatLeafId).toBeNull()
+      expect(mocks.state.unifiedTabsByWorktree.wt[0].viewMode).toBe('terminal')
+      expect(mocks.state.terminalLayoutsByTabId.tab).toEqual({
+        ...savedLayout,
+        chatLeafId: undefined
+      })
+      expect(fixture.managerRef.current.getPanes()).toHaveLength(2)
+      expect(hook.result.current.canToggleChatForLeaf(RIGHT)).toBe(false)
+    }
+  )
+
   it('batches a pane toggle into chat and back without selecting the active sibling', () => {
     mocks.state.setTabViewMode('tab', 'terminal')
     const fixture = makeFixture()

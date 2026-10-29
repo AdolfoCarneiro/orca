@@ -82,6 +82,7 @@ export type NativeChatLeafRoute = {
 
 export function resolveNativeChatLeafRoute(args: {
   isChatViewMode: boolean
+  chatViewIsSupported: boolean
   chatLeafId: string | null
   activeLeafId: string | null
   chatLeafStillMounted: boolean
@@ -91,6 +92,9 @@ export function resolveNativeChatLeafRoute(args: {
   const confirmedAgentExit = args.chatLeafHasConfirmedAgentExit
   if (!args.isChatViewMode) {
     return { chatLeafId: null, exitChat: false }
+  }
+  if (!args.chatViewIsSupported) {
+    return { chatLeafId: null, exitChat: true }
   }
   if (args.chatLeafId && args.chatLeafStillMounted && !confirmedAgentExit) {
     // Missing reconnect evidence is not an agent exit; retain chat while its owning pane remains mounted.

@@ -8,7 +8,11 @@ import { sanitizeTerminalLayoutPaneTitles } from '../../../../shared/terminal-pa
 import { resolveNativeChatLeafTitleAgent } from './native-chat-leaf-title-agent'
 import { useTerminalPaneStoreActions } from './use-terminal-pane-store-actions'
 import { selectUnifiedTerminalTabFields } from './terminal-unified-tab-lookup'
-import { canToggleNativeChat } from '../../../../shared/native-chat-availability'
+import {
+  canToggleNativeChat,
+  nativeChatAvailabilityAgent
+} from '../../../../shared/native-chat-availability'
+import { isNativeChatSupportedAgent } from '../../../../shared/native-chat-agent-support'
 import {
   nativeChatLaunchAgentForLeaf,
   resolveNativeChatLeafRoute,
@@ -20,6 +24,7 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
   const {
     chatLeafId,
     managerRef,
+    nativeChatIsWslProject,
     nativeChatTranscriptIsLocalReadable,
     onAgentExitedRef,
     paneCount,
@@ -45,7 +50,6 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
       selectUnifiedTerminalTabFields(store.unifiedTabsByWorktree, worktreeId, tabId)
     )
   )
-  const effectiveChatViewMode = isChatViewMode
   const runtimePaneTitlesByPaneId = useAppStore(
     useShallow((store) => store.runtimePaneTitlesByTabId[tabId] ?? {})
   )
@@ -114,8 +118,8 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
       managerRef
     ]
   )
-  const isChatEligibleForLeaf = useCallback(
-    (leafId: string | null): boolean => {
+  const agentEvidenceForLeaf = useCallback(
+    (leafId: string | null) => {
       const detectedAgent = leafId ? (tabAgentTypeByLeaf[leafId] ?? null) : null
       const launchAgent = nativeChatLaunchAgentForLeaf({
         launchAgent: terminalTab?.launchAgent,
@@ -123,23 +127,35 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
         leafId,
         leafIds: getNativeChatLeafIds()
       })
-      return canToggleNativeChat({
-        contentType: 'terminal',
+      return {
         launchAgent: detectedAgent ? null : launchAgent,
         detectedAgent,
-        resolvedAgent: detectedAgent ? null : resolveTitleAgentForLeaf(leafId),
-        nativeChatTranscriptIsLocalReadable
-      })
+        resolvedAgent: detectedAgent ? null : resolveTitleAgentForLeaf(leafId)
+      }
     },
     [
       tabAgentTypeByLeaf,
-      nativeChatTranscriptIsLocalReadable,
       terminalTab?.launchAgent,
       getNativeChatLeafIds,
       getTabWideAgentHintLeafId,
       resolveTitleAgentForLeaf
     ]
   )
+  const isChatEligibleForLeaf = useCallback(
+    (leafId: string | null): boolean =>
+      canToggleNativeChat({
+        contentType: 'terminal',
+        isWslProject: nativeChatIsWslProject,
+        ...agentEvidenceForLeaf(leafId),
+        nativeChatTranscriptIsLocalReadable
+      }),
+    [nativeChatIsWslProject, nativeChatTranscriptIsLocalReadable, agentEvidenceForLeaf]
+  )
+  const chatAgent = nativeChatAvailabilityAgent(agentEvidenceForLeaf(chatLeafId))
+  // Reconnect may omit identity; a known unsupported agent must still return to its terminal.
+  const chatViewIsSupported =
+    nativeChatIsWslProject && (chatAgent === null || isNativeChatSupportedAgent(chatAgent))
+  const effectiveChatViewMode = isChatViewMode && chatViewIsSupported
   const applyNativeChatLeafRoute = useCallback(
     (route: NativeChatLeafRoute): void => {
       const state = useAppStore.getState()
@@ -190,6 +206,7 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
       applyNativeChatLeafRoute(
         resolveNativeChatLeafRoute({
           isChatViewMode,
+          chatViewIsSupported,
           chatLeafId,
           activeLeafId,
           chatLeafStillMounted: panes.some((pane) => pane.leafId === chatLeafId),
@@ -198,17 +215,22 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
         })
       )
     },
-    [applyNativeChatLeafRoute, chatLeafId, isChatEligibleForLeaf, isChatViewMode, managerRef]
+    [
+      applyNativeChatLeafRoute,
+      chatLeafId,
+      chatViewIsSupported,
+      isChatEligibleForLeaf,
+      isChatViewMode,
+      managerRef
+    ]
   )
   useEffect(() => {
     onAgentExitedRef.current = handleConfirmedAgentExit
   }, [handleConfirmedAgentExit, onAgentExitedRef])
   const canToggleChatForLeaf = useCallback(
-    (leafId: string | null): boolean => {
-      // Scope the "always allow toggling back" rule to the leaf showing chat; must not make an unsupported sibling look eligible.
-      const isChatViewForLeaf = effectiveChatViewMode && leafId !== null && chatLeafId === leafId
-      return isChatViewForLeaf || isChatEligibleForLeaf(leafId)
-    },
+    (leafId: string | null): boolean =>
+      (effectiveChatViewMode && leafId !== null && chatLeafId === leafId) ||
+      isChatEligibleForLeaf(leafId),
     [chatLeafId, effectiveChatViewMode, isChatEligibleForLeaf]
   )
   const toggleNativeChatForLeaf = useCallback(
@@ -242,9 +264,6 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
     }
   }, [chatLeafId, setChatLeafId, setTabViewMode, unifiedTabId])
   const readNativeChatTerminalScreen = useCallback((): string | null => {
-    if (!chatLeafId) {
-      return null
-    }
     const pane = managerRef.current?.getPanes().find((candidate) => candidate.leafId === chatLeafId)
     return pane?.serializeAddon.serialize({ scrollback: 0 }) ?? null
   }, [chatLeafId, managerRef])
@@ -258,6 +277,7 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
     unifiedTabId,
     isChatViewMode,
     effectiveChatViewMode,
+    chatViewIsSupported,
     unifiedTabLabel,
     isTabPinned,
     runtimePaneTitlesByPaneId,

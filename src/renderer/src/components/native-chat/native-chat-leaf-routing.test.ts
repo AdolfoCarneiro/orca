@@ -105,6 +105,7 @@ describe('resolveNativeChatLeafRoute', () => {
   it('keeps chat attached to its eligible leaf when focus moves to a shell sibling', () => {
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: true,
         chatLeafId: 'agent-leaf',
         activeLeafId: 'shell-leaf',
@@ -116,6 +117,7 @@ describe('resolveNativeChatLeafRoute', () => {
 
   it('keeps chat attached through a transient eligibility loss and reconnect', () => {
     const disconnected = resolveNativeChatLeafRoute({
+      chatViewIsSupported: true,
       isChatViewMode: true,
       chatLeafId: 'agent-leaf',
       activeLeafId: 'agent-leaf',
@@ -126,6 +128,7 @@ describe('resolveNativeChatLeafRoute', () => {
     expect(disconnected).toEqual({ chatLeafId: 'agent-leaf', exitChat: false })
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: true,
         chatLeafId: disconnected.chatLeafId,
         activeLeafId: 'agent-leaf',
@@ -138,6 +141,7 @@ describe('resolveNativeChatLeafRoute', () => {
   it('exits chat when the user closes its pane', () => {
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: true,
         chatLeafId: 'closed-leaf',
         activeLeafId: 'agent-sibling',
@@ -150,6 +154,7 @@ describe('resolveNativeChatLeafRoute', () => {
   it('does not move chat when its mounted leaf temporarily becomes ineligible', () => {
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: true,
         chatLeafId: 'stopped-agent',
         activeLeafId: 'agent-sibling',
@@ -162,6 +167,7 @@ describe('resolveNativeChatLeafRoute', () => {
   it('exits chat rather than inheriting an active shell after close', () => {
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: true,
         chatLeafId: 'closed-agent',
         activeLeafId: 'shell-leaf',
@@ -174,6 +180,7 @@ describe('resolveNativeChatLeafRoute', () => {
   it('keeps chat open when its mounted leaf loses agent evidence', () => {
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: true,
         chatLeafId: 'stopped-agent',
         activeLeafId: 'shell-leaf',
@@ -186,6 +193,7 @@ describe('resolveNativeChatLeafRoute', () => {
   it('exits chat when the mounted agent has authoritatively returned to its shell', () => {
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: true,
         chatLeafId: 'exited-agent',
         activeLeafId: 'exited-agent',
@@ -199,6 +207,7 @@ describe('resolveNativeChatLeafRoute', () => {
   it('moves chat to an eligible sibling after the owning agent exits', () => {
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: true,
         chatLeafId: 'exited-agent',
         activeLeafId: 'agent-sibling',
@@ -212,6 +221,7 @@ describe('resolveNativeChatLeafRoute', () => {
   it('attaches a tab-level chat request to the eligible active leaf', () => {
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: true,
         chatLeafId: null,
         activeLeafId: 'active-agent',
@@ -224,6 +234,7 @@ describe('resolveNativeChatLeafRoute', () => {
   it('waits through manager hydration when there is no concrete active leaf', () => {
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: true,
         chatLeafId: 'restored-agent',
         activeLeafId: null,
@@ -236,6 +247,7 @@ describe('resolveNativeChatLeafRoute', () => {
   it('clears leaf ownership after returning to terminal view', () => {
     expect(
       resolveNativeChatLeafRoute({
+        chatViewIsSupported: true,
         isChatViewMode: false,
         chatLeafId: 'agent-leaf',
         activeLeafId: 'agent-leaf',

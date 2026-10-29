@@ -84,15 +84,18 @@ describe('resolveMobileNativeChat', () => {
     })
   })
 
-  it('admits OpenClaude with its distinct agent identity', () => {
-    expect(resolveMobileNativeChat({ type: 'terminal', launchAgent: 'openclaude' })).toEqual({
-      agent: 'openclaude',
-      sessionId: null,
-      transcriptPath: null,
-      agentConfirmed: true,
-      sessionLive: false
-    })
-  })
+  it.each(['openclaude', 'zcode'] as const)(
+    'does not offer terminal-backed chat for %s',
+    (agent) => {
+      expect(resolveMobileNativeChat({ type: 'terminal', launchAgent: agent }, true)).toBeNull()
+      expect(
+        resolveMobileNativeChat(
+          { type: 'terminal', agentStatus: status({ agentType: agent }) },
+          true
+        )
+      ).toBeNull()
+    }
+  )
 
   it.each(['opencode', 'opencode2'])('admits %s only on the execution host', (agent) => {
     const tab = {

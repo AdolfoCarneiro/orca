@@ -36,9 +36,9 @@ it('keeps the terminal-only words in serve-only, where Add WSL distro is hidden'
   expect(structuredChatUnavailableText('wsl')).toBe(OLD)
 })
 
-it('leaves the SSH refusal alone', () => {
+it('explains that the SSH host does not run an Orca server yet', () => {
   desktop(true, true)
   expect(structuredChatUnavailableText('remote')).toBe(
-    'Chat is not available over SSH. Open the agent in a terminal instead.'
+    'This host isn’t on Orca’s server yet. Connect again to set it up, or open the agent in a terminal.'
   )
 })
