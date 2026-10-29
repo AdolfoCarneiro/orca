@@ -191,7 +191,8 @@ describe('base-ref queries on a drive project whose runtime is WSL', () => {
   })
 
   it('reads the default base and remote count with the distro Git', async () => {
-    await handlers.get('repos:getBaseRefDefault')!(null, { repoId: 'r1' })
+    // A user act, so the stopped-distro gate cannot hide the routing under test.
+    await handlers.get('repos:getBaseRefDefault')!(null, { repoId: 'r1', wakeWslDistro: true })
 
     expect(getBaseRefDefault).toHaveBeenCalledWith(repo.path, { wslDistro: 'Ubuntu' })
     expect(getRemoteCount).toHaveBeenCalledWith(repo.path, { wslDistro: 'Ubuntu' })
