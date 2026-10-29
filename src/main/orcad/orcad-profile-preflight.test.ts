@@ -9,6 +9,7 @@ import type * as BundledRuntime from './orcad-bundled-runtime'
 import { resolveOrcadExitCode } from './orcad-exit-code'
 import {
   confirmBundledOrcadStartupQualified,
+  discardBundledOrcadStartupQualification,
   forgetBundledOrcadStartupQualification,
   preflightBundledOrcadStartup,
   runOrcadProfilePreflight
@@ -319,11 +320,33 @@ describe('startup qualification on an unchanged host', () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     fixture.consumeQualification.mockResolvedValue(true)
 
-    await preflightBundledOrcadStartup()
+    // A matching marker never qualifies a Windows slot, so its node-pty probe runs too.
+    await expect(preflightBundledOrcadStartup()).resolves.toBe(false)
     await confirmBundledOrcadStartupQualified()
 
     expect(fixture.run).toHaveBeenCalledOnce()
     expect(fixture.recordQualification).not.toHaveBeenCalled()
+  })
+
+  it('discards the slot marker after node-pty fails to load, and records nothing for this launch', async () => {
+    fixture.consumeQualification.mockResolvedValue(true)
+    await preflightBundledOrcadStartup()
+
+    await discardBundledOrcadStartupQualification()
+    await confirmBundledOrcadStartupQualified()
+
+    expect(fixture.discardQualification).toHaveBeenCalledExactlyOnceWith('/slot')
+    expect(fixture.recordQualification).not.toHaveBeenCalled()
+  })
+
+  it('touches no marker on Windows or outside a managed slot when node-pty fails', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+    await discardBundledOrcadStartupQualification()
+    fixture.qualifiable.mockReturnValue(false)
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('linux')
+    await discardBundledOrcadStartupQualification()
+
+    expect(fixture.discardQualification).not.toHaveBeenCalled()
   })
 
   it('never skips the version check, which runs before any marker is read', async () => {

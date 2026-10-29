@@ -60,6 +60,15 @@ export async function preflightBundledOrcadStartup(): Promise<boolean> {
   return false
 }
 
+/** node-pty failed to load at spawn: the next launch must re-probe and report why. */
+export async function discardBundledOrcadStartupQualification(): Promise<void> {
+  pendingQualification = null
+  const directory = resolveBundledOrcadSlot()
+  if (process.platform !== 'win32' && isQualifiableOrcadSlot(directory)) {
+    await discardOrcadStartupQualification(directory)
+  }
+}
+
 /** A launch whose node-pty probe did not pass must not let the next one skip either probe. */
 export function forgetBundledOrcadStartupQualification(): void {
   pendingQualification = null
