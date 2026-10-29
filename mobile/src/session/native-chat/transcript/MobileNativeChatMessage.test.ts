@@ -1,6 +1,7 @@
 import { createElement, type ReactNode } from 'react'
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX } from '../../../../../src/shared/orca-dispatch-status-prompt'
 import { projectStructuredItemToNativeChat } from '../../../../../src/shared/structured-agent-session-projection'
 import type { NativeChatMessage } from '../../../../../src/shared/native-chat-types'
 import { AGENT_SESSION_HOST_STATUS_COPY } from '../../../../../src/shared/agent-session-host-status-rows'
@@ -10,6 +11,16 @@ import { colors, typography } from '../../../theme/mobile-theme'
 import { ANSWERED_PROMPT_ITEMS } from '../input/mobile-native-chat-answered-prompts.test-fixture'
 import { MobileNativeChatRowOverlaysContext } from './mobile-native-chat-row-overlays'
 import { styles } from './mobile-native-chat-message-styles'
+import { agentMessageTranscriptText } from '../../../../../src/shared/agent-session/agent-message-display-text'
+import {
+  agentMessageHeading,
+  agentMessageSenderLabel,
+  agentMessageOverflows,
+  AGENT_MESSAGE_FOLDED_LINES
+} from '../../../../../src/shared/agent-session/agent-message-presentation'
+import { MobileAgentMessageContext, mobileAgentMessageTabs } from './mobile-agent-message-context'
+import type { AgentMessageSource } from '../../../../../src/shared/agent-session/agent-session-message-source'
+
 import { stubRpcClient } from '../../../transport/rpc-client-test-stub'
 
 vi.mock('react-native', async () => {
@@ -40,11 +51,14 @@ vi.mock('react-native', async () => {
     useWindowDimensions: () => ({ width: 400, height: 800 })
   }
 })
+vi.mock('../../../components/MobileAgentIcon', () => ({ MobileAgentIcon: 'MobileAgentIcon' }))
+vi.mock('../../../components/AgentStateDot', () => ({ AgentStateDot: 'AgentStateDot' }))
 vi.mock('expo-clipboard', () => ({ setStringAsync: vi.fn() }))
 vi.mock('lucide-react-native', () => ({
   AlertCircle: 'AlertCircle',
   AlertTriangle: 'AlertTriangle',
   ArrowUp: 'ArrowUp',
+  ArrowUpRight: 'ArrowUpRight',
   Bot: 'Bot',
   Brain: 'Brain',
   Check: 'Check',
@@ -67,7 +81,16 @@ vi.mock('lucide-react-native', () => ({
   SquareTerminal: 'SquareTerminal',
   Wrench: 'Wrench'
 }))
-vi.mock('../../../components/MobileMarkdown', () => ({ MobileMarkdown: 'MobileMarkdown' }))
+const proseRenders = vi.hoisted(() => ({ count: 0 }))
+vi.mock('../../../components/MobileMarkdown', async () => {
+  const React = await import('react')
+  return {
+    MobileMarkdown: (props: object) => {
+      proseRenders.count++
+      return React.createElement('MobileMarkdown', props)
+    }
+  }
+})
 vi.mock('./MobileNativeChatMessageActionsSheet', () => ({
   MobileNativeChatMessageActionsSheet: 'MessageActionsSheet'
 }))
@@ -353,27 +376,133 @@ describe('MobileNativeChatMessage', () => {
     }
   )
 
-  it("names another agent's message and sets it apart from the person's bubble", () => {
-    const agentMessage: NativeChatMessage = {
-      ...userMessage([{ type: 'text', text: 'You have 1 orchestration message.' }]),
-      from: {
+  it.each(['task', 'coordinator', 'worker', 'generic'] as const)(
+    'uses the desktop shared heading, sender, text and fold rules for %s',
+    (kind) => {
+      const from: AgentMessageSource = {
         kind: 'agent',
         senders: [
           {
-            party: { address: 'term_a', terminalHandle: 'term_a', orcaSessionId: null },
-            name: 'Coder'
+            party: { address: 'term_sender', terminalHandle: 'term_sender', orcaSessionId: null },
+            name: 'Parser worker',
+            ...(kind === 'coordinator' || kind === 'worker' ? { relation: kind } : {})
           }
         ],
-        orchestration: null
+        orchestration:
+          kind === 'task'
+            ? { message: 'task', runId: 'r', taskId: 't', dispatchId: 'd' }
+            : { message: 'mail-notice', mailbox: 'term_recipient', dispatchId: null, messages: [] }
       }
+      const body = 'A short task fits without a disclosure.'
+      const raw =
+        kind === 'task'
+          ? `${ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX}\r\nInstructions\r\n=== TASK ===\r\n${body}`
+          : body
+      const message = { ...userMessage([{ type: 'text' as const, text: raw }]), from }
+      const tree = render(message)
+      const headings = {
+        task: 'Task from your coordinator',
+        coordinator: 'Message from your coordinator',
+        worker: 'Update from your worker',
+        generic: 'Message from'
+      }
+      expect(textIn(tree.root).slice(0, 2)).toEqual([
+        headings[agentMessageHeading(from)],
+        agentMessageSenderLabel({
+          localChat: false,
+          snapshotName: from.senders[0].name,
+          fallback: 'an agent'
+        })
+      ])
+      expect(markdownIn(tree.root)).toEqual([agentMessageTranscriptText(message.blocks, from)])
+      const measured = tree.root.findByProps({ testID: 'agent-message-body' })
+      const clip = measured.parent!
+      const lineHeight = clip.props.style.maxHeight / AGENT_MESSAGE_FOLDED_LINES
+      for (const height of [lineHeight * 2, lineHeight * 4]) {
+        act(() => measured.props.onLayout({ nativeEvent: { layout: { height } } }))
+        expect(textIn(tree.root).includes('Show more')).toBe(
+          agentMessageOverflows(height, lineHeight)
+        )
+      }
+      const toggle = findAllByHostType(tree.root, 'Pressable').find(
+        (node) => node.props.accessibilityState?.expanded === false
+      )!
+      act(() => toggle.props.onPress())
+      expect(textIn(tree.root)).toContain('Show less')
+      expect(clip.props.style).toBeUndefined()
+      // An older server supplies no provenance; it keeps the existing human bubble and body.
+      const oldServer = render({ ...message, from: undefined })
+      expect(oldServer.root.findAllByProps({ testID: 'agent-message-card' })).toHaveLength(0)
+      expect(markdownIn(oldServer.root)).toEqual([raw])
     }
-    const tree = render(agentMessage)
-    expect(textIn(tree.root)[0]).toBe('Message from Coder')
-    expect(tree.root.findAll((node) => String(node.type) === 'MobileMarkdown')).toHaveLength(1)
-    const rows = tree.root.findAll(
-      (node) => String(node.type) === 'View' && Array.isArray(node.props.style)
-    )
-    expect(rows.some((row) => row.props.style.includes(styles.rowUser))).toBe(false)
+  )
+
+  it('uses existing phone status and navigation without invalidating the Markdown body', () => {
+    const from: AgentMessageSource = {
+      kind: 'agent',
+      orchestration: null,
+      senders: [
+        {
+          name: 'Snapshot name',
+          party: { address: 'term_sender', terminalHandle: 'term_sender', orcaSessionId: null }
+        }
+      ]
+    }
+    const open = vi.fn()
+    const message = { ...userMessage([{ type: 'text' as const, text: 'body' }]), from }
+    const draw = (title: string) =>
+      createElement(
+        MobileAgentMessageContext.Provider,
+        {
+          value: {
+            now: 100,
+            open,
+            tabsBySender: mobileAgentMessageTabs([
+              {
+                type: 'terminal',
+                id: 'sender',
+                title: 'Sender',
+                terminal: 'term_sender',
+                isActive: false,
+                agentStatus: {
+                  state: 'done',
+                  agentType: 'codex',
+                  prompt: '',
+                  updatedAt: 100,
+                  stateStartedAt: 100,
+                  stateHistory: []
+                }
+              },
+              {
+                type: 'agent-session',
+                id: 'tab',
+                sessionId: 'other',
+                agent: 'codex',
+                title,
+                isActive: false
+              }
+            ])
+          }
+        },
+        createElement(MobileNativeChatMessage, { message })
+      )
+    act(() => {
+      renderer = create(draw('Other tab'))
+    })
+    expect(renderer!.root.findAllByProps({ testID: 'agent-message-card' })).not.toHaveLength(0)
+    expect(findAllByHostType(renderer!.root, 'AgentStateDot')[0].props.state).toBe('done')
+    const renderedBefore = proseRenders.count
+    const markdown = renderer!.root.find((node) => String(node.type) === 'MobileMarkdown')
+    act(() => {
+      renderer!.update(draw('Unrelated rename'))
+    })
+    expect(renderer!.root.find((node) => String(node.type) === 'MobileMarkdown')).toBe(markdown)
+    expect(proseRenders.count).toBe(renderedBefore)
+    const arrow = findAllByHostType(renderer!.root, 'Pressable').find(
+      (node) => node.props.accessibilityRole === 'button' && !node.props.accessibilityState
+    )!
+    act(() => arrow.props.onPress())
+    expect(open).toHaveBeenCalledWith(from, from.senders[0])
   })
 
   describe('a message the host recorded and did not deliver', () => {
