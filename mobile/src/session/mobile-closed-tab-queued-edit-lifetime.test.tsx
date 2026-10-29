@@ -78,7 +78,7 @@ async function mount(holdSave = false) {
             : { status: 'held', fingerprint: 'fp', leaseDurationMs: 120_000, remainingMs: 120_000 }
         }
       }
-      return { id: 'ok', ok: true, result: {} }
+      return { id: 'ok', ok: true, result: { closed: true, retirementConfirmed: true } }
     }
   })
   let edit: ReturnType<typeof useMobileStructuredQueuedEdit> | undefined

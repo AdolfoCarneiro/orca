@@ -59,6 +59,8 @@ describe('legacy terminal close acknowledgments', () => {
         })
     )
     const subscribe = vi.fn()
+    const tabTombstones = new Map<string, number>()
+    const setSessionTabs = vi.fn()
     let current: {
       actions: ReturnType<typeof useMobileSessionCloseActions>
       terminals: Terminal[]
@@ -83,12 +85,12 @@ describe('legacy terminal close acknowledgments', () => {
         activeHandleRef,
         setActiveHandle,
         pendingSelectionRef,
-        setSessionTabs: vi.fn(),
+        setSessionTabs,
         setFileDocs: vi.fn(),
         setMarkdownDocs: vi.fn(),
         sessionTabsRef: { current: [] },
         reconcileBufferedDraftsRef: { current: vi.fn() },
-        closedTabTombstonesRef: { current: new Map() },
+        closedTabTombstonesRef: { current: tabTombstones },
         clearTerminalLiveInputDefault: vi.fn(),
         setActiveSessionTabId: vi.fn(),
         activeSessionTabIdRef: { current: null },
@@ -134,8 +136,15 @@ describe('legacy terminal close acknowledgments', () => {
         return current
       },
       subscribe,
+      tabTombstones,
+      setSessionTabs,
       requests: client.sendRequest,
-      async acknowledge(handle: string, operation: Promise<void>, accepted = true) {
+      async acknowledge(
+        handle: string,
+        operation: Promise<void>,
+        accepted = true,
+        result: unknown = { closed: true, retirementConfirmed: true }
+      ) {
         await act(async () => {
           const resolve = acknowledgments.get(handle)
           if (!resolve) {
@@ -143,7 +152,7 @@ describe('legacy terminal close acknowledgments', () => {
           }
           resolve(
             accepted
-              ? { id: `close-${handle}`, ok: true, result: {} }
+              ? { id: `close-${handle}`, ok: true, result }
               : { id: `close-${handle}`, ok: false, error: { code: 'refused', message: 'Retry' } }
           )
           await operation
@@ -283,6 +292,38 @@ describe('legacy terminal close acknowledgments', () => {
     expect(readMobileNativeChatDraftInputs(scope).pending).toBe(1)
     expect(readMobileNativeChatDraftEditGeneration(scope)).toBe(1)
     expect(mobileNativeChatLaunchDraftSeeds.has(scope)).toBe(true)
+  })
+
+  it.each([
+    ['refused', { closed: true, refused: true, refusalReason: 'unknown-liveness' }],
+    ['refused receipt', { closed: true, refused: true, retirementConfirmed: true }],
+    ['delegated', { closed: true }],
+    ['legacy', {}],
+    ['invalid receipt', { closed: false, retirementConfirmed: true }]
+  ] as const)('preserves every draft owner for a %s close reply', async (kind, result) => {
+    const harness = await mount()
+    const key = 'host\0workspace\0uncertain'
+    const destination = mobileNativeChatDraftDestination(key)
+    updateMobileNativeChatDraftInputs(destination, (current) => ({ ...current, pending: 1 }))
+    const inputs = readMobileNativeChatDraftInputs(key)
+    setMobileNativeChatDraftText(key, 'keep this draft')
+    mobileNativeChatLaunchDraftSeeds.set(key, null)
+    const operation = harness.read().actions.handleCloseSessionTab({
+      type: 'terminal',
+      id: 'uncertain',
+      title: 'Uncertain',
+      isActive: false,
+      terminal: 'term'
+    })
+    await harness.acknowledge('uncertain', operation, true, result)
+    expect(destination.active).toBe(true)
+    expect(readMobileNativeChatDraftInputs(key)).toBe(inputs)
+    expect(readMobileNativeChatDraftEditGeneration(key)).toBe(1)
+    expect(mobileNativeChatLaunchDraftSeeds.has(key)).toBe(true)
+    if (kind.startsWith('refused')) {
+      expect(harness.tabTombstones.has('uncertain')).toBe(false)
+      expect(harness.setSessionTabs).not.toHaveBeenCalled()
+    }
   })
 
   it('retires uploads handed back from a queued editor when their destination tab closes', async () => {

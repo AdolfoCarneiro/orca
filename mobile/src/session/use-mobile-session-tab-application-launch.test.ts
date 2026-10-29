@@ -111,6 +111,7 @@ let renderer: ReactTestRenderer | undefined
 afterEach(() => {
   act(() => renderer?.unmount())
   renderer = undefined
+  vi.restoreAllMocks()
   resetMobileNativeChatDraftStoreForTests()
 })
 
@@ -208,6 +209,56 @@ it.each([10, 100])(
     expect(retained.every((key) => mobileNativeChatLaunchDraftSeeds.has(key))).toBe(true)
   }
 )
+
+it('keeps host-published draft owners hidden by optimistic close tombstones', () => {
+  vi.spyOn(Date, 'now').mockReturnValue(1_000)
+  const { state } = scope(null)
+  const apply = mount(state)
+  const key = 'host\0workspace-1\0pending-close'
+  const destination = mobileNativeChatDraftDestination(key)
+  updateMobileNativeChatDraftInputs(destination, (current) => ({ ...current, pending: 1 }))
+  const inputs = readMobileNativeChatDraftInputs(key)
+  setMobileNativeChatDraftText(key, 'still live on host')
+  mobileNativeChatLaunchDraftSeeds.set(key, null)
+  state.closedTabTombstonesRef.current.set('pending-close', 11_000)
+  const tabs = [
+    terminalTab('pending-close', 'term-pending'),
+    terminalTab('live', 'term-live', true)
+  ]
+  expect(apply(snapshot(tabs)).accepted).toBe(true)
+  expect(destination.active).toBe(true)
+  expect(readMobileNativeChatDraftInputs(key)).toBe(inputs)
+  expect(readMobileNativeChatDraftEditGeneration(key)).toBe(1)
+  expect(mobileNativeChatLaunchDraftSeeds.has(key)).toBe(true)
+  expect(apply(snapshot([tabs[1]!])).accepted).toBe(true)
+  expect(destination.active).toBe(false)
+  expect(readMobileNativeChatDraftEditGeneration(key)).toBe(0)
+  expect(mobileNativeChatLaunchDraftSeeds.has(key)).toBe(false)
+})
+
+it.each([
+  { agentSessionsUnverifiable: true },
+  { clientHostedPagesUnreconciled: true },
+  { publicationEpoch: 'mobile-local:pending' },
+  { publicationEpoch: 'none' },
+  { publicationEpoch: 'none:client-navigation' }
+] as const)('retains draft owners until a complete host inventory: %j', (extra) => {
+  const { state } = scope(null)
+  const apply = mount(state)
+  const key = 'host\0workspace-1\0unverifiable'
+  const destination = mobileNativeChatDraftDestination(key)
+  setMobileNativeChatDraftText(key, 'not proven absent')
+  mobileNativeChatLaunchDraftSeeds.set(key, null)
+  const live = terminalTab('live', 'term-live', true)
+  expect(apply(snapshot([live], extra)).accepted).toBe(true)
+  expect(destination.active).toBe(true)
+  expect(readMobileNativeChatDraftEditGeneration(key)).toBe(1)
+  expect(mobileNativeChatLaunchDraftSeeds.has(key)).toBe(true)
+  expect(apply(snapshot([live])).accepted).toBe(true)
+  expect(destination.active).toBe(false)
+  expect(readMobileNativeChatDraftEditGeneration(key)).toBe(0)
+  expect(mobileNativeChatLaunchDraftSeeds.has(key)).toBe(false)
+})
 
 describe('landing on a launched tab', () => {
   it('records a launched terminal as this device’s pick on the host once its tab arrives', () => {

@@ -99,11 +99,18 @@ export function useMobileSessionTabApplication(scope: MobileSessionTerminalListM
       reconcileBufferedDraftsRef.current(currentSessionTabs, nextTabs, {
         retainMissingSurfaces: result.tabs.length === 0
       })
-      if (result.tabs.length > 0) {
+      if (
+        result.tabs.length > 0 &&
+        confirmsMirroredTabSelection(result.publicationEpoch) &&
+        result.publicationEpoch !== 'none' &&
+        result.publicationEpoch !== 'none:client-navigation' &&
+        !result.clientHostedPagesUnreconciled &&
+        !result.agentSessionsUnverifiable
+      ) {
         pruneMobileNativeChatTabDrafts(
           hostId,
           worktreeId,
-          nextTabs.map((tab) => tab.id)
+          [...result.tabs, ...nextTabs].map((tab) => tab.id)
         )
       }
       sessionTabsRef.current = nextTabs

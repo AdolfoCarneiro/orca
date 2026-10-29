@@ -115,9 +115,9 @@ export function useMobileSessionCloseActions(scope: MobileSessionContentCreateAc
           reason: 'user'
         })
       )
-      if (response.accepted) {
+      if (response.accepted && !response.value.refused) {
         const chatScope = mobileNativeChatScopeKey(hostId, worktreeId, tab.id)
-        if (chatScope) {
+        if (chatScope && response.value.retirementConfirmed) {
           closeMobileNativeChatTabDraft(chatScope)
         }
         if (tab.type === 'markdown') {
