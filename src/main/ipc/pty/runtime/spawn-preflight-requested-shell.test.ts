@@ -105,6 +105,19 @@ describe('runtime pty spawn options: declared spawn intent', () => {
 })
 
 describe("runtime pty spawn options: the user's act on a WSL distro (E9)", () => {
+  it("checks a folder workspace's path passively unless the start is the user's act", async () => {
+    const admit = vi.fn<PtyRuntimeControllerDeps['assertWorkspaceAcceptsNewPty']>(() => undefined)
+    for (const args of [{}, { wslUserAct: true as const }]) {
+      const ctx = createRuntimePtySpawnState(
+        { ...makeDeps(), assertWorkspaceAcceptsNewPty: admit },
+        { cols: 120, rows: 40, worktreeId: 'wt-1', ...args }
+      )
+      await prepareRuntimePtySpawn(ctx)
+      ctx.finishTerminalInstall()
+    }
+    expect(admit.mock.calls.map((call) => call[3])).toEqual([true, false])
+  })
+
   it('marks every main-side start as background work unless its caller names the user', async () => {
     await expect(resolveSpawnOptions({ cols: 120, rows: 40 })).resolves.toMatchObject({
       wslBackgroundStart: true
