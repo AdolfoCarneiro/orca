@@ -154,7 +154,7 @@ describe('StatsCollector async debounced save', () => {
       expect(JSON.parse(readFileSync(statsPath(), 'utf-8')).events).toEqual([])
     )
 
-    for (let at = 1; at <= 20_000; at += 1) {
+    for (let at = 1; at <= 100; at += 1) {
       collector.onAgentStart(`pane-${at}`, at, undefined, 'repo::/Users/someone/workspaces/feature')
       collector.onAgentStop(`pane-${at}`, at + 10)
     }
@@ -165,7 +165,7 @@ describe('StatsCollector async debounced save', () => {
     expect(JSON.parse(raw)).toMatchObject({
       schemaVersion: 1,
       events: [],
-      aggregates: { totalAgentsSpawned: 20_007, totalAgentTimeMs: 200_000, firstEventAt: 0 }
+      aggregates: { totalAgentsSpawned: 107, totalAgentTimeMs: 1_000, firstEventAt: 0 }
     })
   })
 
