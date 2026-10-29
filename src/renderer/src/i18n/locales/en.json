@@ -19477,6 +19477,8 @@
     }
   },
   "aiVault": {
+    "sessionAccount": "Account",
+    "sessionAccountUnknown": "Unknown",
     "antigravityReferenceDescription": "Continues in a new Antigravity CLI conversation using this transcript as a reference.",
     "searchHitSourceHost": "Found on {{value0}}",
     "antigravityIdeToCli": "IDE → CLI",
