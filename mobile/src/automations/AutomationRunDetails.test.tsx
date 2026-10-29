@@ -1,6 +1,8 @@
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { activateMobileUiLocale } from '../i18n/mobile-i18n'
+import { runSchema } from './automation-reply-schema'
 import { AutomationRunDetails } from './AutomationRunDetails'
 import { AutomationButton } from './AutomationControls'
 import { automationClient, deferred, savedRun } from './automation-test-fixtures'
@@ -18,10 +20,11 @@ vi.mock('../navigation/route-handoff', () => ({
 }))
 const inventory = vi.hoisted(() => ({ push: vi.fn() }))
 let tree: ReactTestRenderer | null = null
-afterEach(() => {
+afterEach(async () => {
   act(() => tree?.unmount())
   tree = null
   inventory.push.mockClear()
+  await activateMobileUiLocale('en')
 })
 function root() {
   if (!tree) {
@@ -123,4 +126,49 @@ describe('exact automation run pane navigation', () => {
       )
     }
   )
+})
+
+it('localizes the selected run failure in both the reason and the output fallback', async () => {
+  await activateMobileUiLocale('fr')
+  const run = runSchema.parse({
+    ...savedRun(),
+    error: 'Automation run target is no longer available.',
+    errorCode: 'targetUnavailable',
+    outputSnapshot: null
+  })
+  await act(async () => {
+    tree = create(
+      createElement(AutomationRunDetails, {
+        run: savedRun(),
+        client: null,
+        hostId: 'A',
+        connected: false,
+        history: {
+          runs: [run],
+          selected: run,
+          unavailable: false,
+          cursor: null,
+          loading: false,
+          error: null,
+          loadMore: vi.fn(),
+          reload: vi.fn()
+        },
+        onBack: vi.fn()
+      })
+    )
+  })
+  const text = () =>
+    root()
+      .findAll((node) => String(node.type) === 'Text')
+      .map((node) => node.props.children)
+  expect(
+    text().filter(
+      (value) => value === 'La cible d’exécution de l’automatisation n’est plus disponible.'
+    )
+  ).toHaveLength(2)
+  expect(text()).not.toContain(run.error)
+  await act(async () => {
+    await activateMobileUiLocale('en')
+  })
+  expect(text().filter((value) => value === run.error)).toHaveLength(2)
 })

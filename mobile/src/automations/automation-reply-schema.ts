@@ -94,6 +94,8 @@ export const runSchema = z.looseObject({
   terminalPaneKey: z.string().nullable(),
   terminalPtyId: z.string().nullable(),
   error: z.string().nullable(),
+  errorCode: z.string().nullish(),
+  errorParams: z.record(z.string(), z.union([z.string(), z.number()])).nullish(),
   outputSnapshot: z
     .object({ content: z.string(), capturedAt: z.number(), truncated: z.boolean() })
     .nullable(),

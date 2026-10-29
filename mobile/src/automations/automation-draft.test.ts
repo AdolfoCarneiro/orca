@@ -1,16 +1,24 @@
 import { loadAutomationTargets, automationSetupKey } from './automation-target-inventory'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { activateMobileUiLocale } from '../i18n/mobile-i18n'
+import { automationRunErrorText } from './automation-run-presentation'
+import { AUTOMATION_RUN_FAILURE_COPY } from '../../../src/shared/automation-run-failure-copy'
 import {
   AutomationCreate,
   AutomationUpdate
 } from '../../../src/shared/rpc-contract/automation-params'
-import { automationListSchema } from './automation-reply-schema'
+import { automationListSchema, runSchema } from './automation-reply-schema'
 import {
   automationCreateParams,
   automationUpdateParams,
   newAutomationDraft
 } from './automation-draft'
-import { automationClient, automationTargets, savedAutomation } from './automation-test-fixtures'
+import {
+  automationClient,
+  automationTargets,
+  savedAutomation,
+  savedRun
+} from './automation-test-fixtures'
 
 describe('mobile automation host contracts', () => {
   it('keeps target host identity and expands the managed inventory past the initial range', async () => {
@@ -143,5 +151,82 @@ describe('mobile automation host contracts', () => {
     expect(
       automationListSchema.parse({ automations, items: [item] })[0]?.automation.futureField
     ).toBe('keep me')
+  })
+})
+
+describe('mobile automation run failure copy', () => {
+  afterEach(async () => {
+    await activateMobileUiLocale('en')
+  })
+
+  it.each([
+    [
+      'fr',
+      'L’hôte de l’automatisation n’est plus enregistré. Cette automatisation n’a donc plus d’hôte sur lequel s’exécuter.'
+    ],
+    [
+      'ja',
+      'オートメーションのホストは登録されていないため、このオートメーションを実行する場所がありません。'
+    ]
+  ] as const)(
+    'localizes a coded host reply in %s without changing the stored text',
+    async (locale, expected) => {
+      const run = runSchema.parse({
+        ...savedRun(),
+        error: AUTOMATION_RUN_FAILURE_COPY.targetMissing,
+        errorCode: 'targetMissing',
+        errorParams: null
+      })
+      await activateMobileUiLocale(locale)
+      expect(automationRunErrorText(run)).toBe(expected)
+      expect(run.error).toBe(AUTOMATION_RUN_FAILURE_COPY.targetMissing)
+      await activateMobileUiLocale('en')
+      expect(automationRunErrorText(run)).toBe(AUTOMATION_RUN_FAILURE_COPY.targetMissing)
+    }
+  )
+
+  it('keeps stored errors for old hosts, nullable fields and future codes, and preserves no error', async () => {
+    await activateMobileUiLocale('fr')
+    for (const fields of [
+      {},
+      { errorCode: null, errorParams: null },
+      { errorCode: 'futureReason' }
+    ]) {
+      const run = runSchema.parse({ ...savedRun(), error: 'Stored host reason', ...fields })
+      expect(automationRunErrorText(run)).toBe('Stored host reason')
+    }
+    expect(
+      automationRunErrorText(runSchema.parse({ ...savedRun(), errorCode: 'targetMissing' }))
+    ).toBeNull()
+  })
+
+  it('uses whole setup-state sentences and keeps stored text when setup params are unusable', async () => {
+    await activateMobileUiLocale('ja')
+    const base = { ...savedRun(), error: 'Stored setup reason', errorCode: 'projectSetupNotReady' }
+    for (const [setupState, expected] of [
+      [
+        'not-set-up',
+        '選択したオートメーションのホストでは、プロジェクトがセットアップされていません。'
+      ],
+      ['setting-up', '選択したオートメーションのホストで、プロジェクトをまだセットアップ中です。'],
+      ['error', '選択したオートメーションのホストで、プロジェクトのセットアップに失敗しました。'],
+      [
+        'unsupported',
+        '選択したオートメーションのホストは、このプロジェクトをサポートしていません。'
+      ]
+    ]) {
+      const run = runSchema.parse({ ...base, errorParams: { setupState } })
+      expect(run.errorParams).toEqual({ setupState })
+      expect(automationRunErrorText(run)).toBe(expected)
+    }
+    for (const errorParams of [
+      undefined,
+      null,
+      {},
+      { setupState: 'futureState' },
+      { setupState: 1 }
+    ]) {
+      expect(automationRunErrorText(runSchema.parse({ ...base, errorParams }))).toBe(base.error)
+    }
   })
 })

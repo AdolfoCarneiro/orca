@@ -9,7 +9,11 @@ import { hostStackRouteHref } from '../navigation/host-stack-navigation'
 import { useRouteHandoff } from '../navigation/route-handoff'
 import type { RpcClient } from '../transport/rpc-client'
 import { AutomationButton, AutomationMetadata } from './AutomationControls'
-import { automationDate, automationRunStatusLabel } from './automation-run-presentation'
+import {
+  automationDate,
+  automationRunErrorText,
+  automationRunStatusLabel
+} from './automation-run-presentation'
 import { canOpenAutomationRunAgent } from './automation-run-agent'
 import type { MobileAutomationRun } from './automation-reply-schema'
 import type { AutomationRunObservation } from './use-automation-runs'
@@ -28,6 +32,7 @@ export function AutomationRunDetails(props: {
   useMobileColorScheme()
   const history = props.history
   const run = history.selected ?? props.run
+  const runError = automationRunErrorText(run)
   const [opening, setOpening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouteHandoff()
@@ -170,11 +175,11 @@ export function AutomationRunDetails(props: {
         />
         <AutomationMetadata label={t('automations.mobile.run', 'Run')} value={run.id} />
       </View>
-      {run.error ? <Text style={styles.error}>{run.error}</Text> : null}
+      {runError ? <Text style={styles.error}>{runError}</Text> : null}
       <Text style={styles.heading}>{t('automations.mobile.output', 'Output')}</Text>
       <Text selectable style={styles.output}>
         {getAutomationRunContent(
-          run,
+          { ...run, error: runError },
           t('automations.mobile.noOutput', 'No output content available.')
         )}
       </Text>
