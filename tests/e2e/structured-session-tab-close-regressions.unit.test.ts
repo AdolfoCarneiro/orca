@@ -1,5 +1,8 @@
 // @vitest-environment happy-dom
-import { setSessionTestState } from '../../src/renderer/src/lib/test-support/session-source-fixture'
+import {
+  setSessionTestState,
+  sessionTestEdit
+} from '../../src/renderer/src/lib/test-support/session-source-fixture'
 
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { RuntimeMobileSessionTabsResult } from '../../src/shared/runtime-types'
@@ -14,7 +17,7 @@ import { resetWebSessionTabsSnapshotFreshnessForTests } from '../../src/renderer
 import { registerSessionTabIpcBridge } from '../../src/renderer/src/hooks/ipc-events/session-tab-ipc-bridge'
 import { registerTerminalUiRoutingIpcBridge } from '../../src/renderer/src/hooks/ipc-events/terminal-ui-routing-ipc-bridge'
 import type { RuntimeClientTarget } from '../../src/shared/runtime-client-target'
-import { applyWebSessionTabsSnapshot } from '../../src/renderer/src/runtime/web-session-tabs-sync/snapshot-api'
+import { applyWebSessionTabsSnapshotsToEdit } from '../../src/renderer/src/runtime/web-session-tabs-sync/snapshot-api'
 import {
   suppressCancelledStructuredSessionTabs,
   retireStructuredAgentSessionTab
@@ -512,13 +515,18 @@ describe('in-flight structured session close', () => {
       })
       const applyServerFrame = (snapshot: RuntimeMobileSessionTabsResult): void =>
         useAppStore.setState((state) =>
-          applyWebSessionTabsSnapshot(
-            state,
-            suppressCancelledStructuredSessionTabs(snapshot, {
-              kind: 'environment',
-              environmentId: SERVER
-            }),
-            SERVER
+          sessionTestEdit(state, (edit) =>
+            applyWebSessionTabsSnapshotsToEdit(
+              edit,
+              state,
+              [
+                suppressCancelledStructuredSessionTabs(snapshot, {
+                  kind: 'environment',
+                  environmentId: SERVER
+                })
+              ],
+              SERVER
+            )
           )
         )
       const strip = (): string[] =>

@@ -41,7 +41,7 @@ import { createNotificationDeliveryService } from '../../src/main/notifications/
 import { SESSION } from '../../src/main/runtime/rpc/methods/structured-agent-session-rpc.test-fixture'
 import { makeUnifiedTab, makeWorktree } from '@/store/slices/store-test-helpers'
 import { captureAgentSubjectReads } from '@/attention/agent-subject-read-actions'
-import { useAppStore } from '@/store'
+import { useAppStore, type AppState } from '@/store'
 import { StructuredAgentSessionAttentionBridge } from '@/components/native-chat/StructuredAgentSessionAttentionBridge'
 import type { AgentSessionExecutionLocation } from '../../src/shared/agent-session-record'
 
@@ -195,7 +195,7 @@ describe('Delayed remote prompt delivery', () => {
       }
       if (mode === 'tab/store rerender') {
         act(() =>
-          setSessionTestState(useAppStore, (state) => ({
+          setSessionTestState(useAppStore, (state): Partial<AppState> => ({
             settings: state.settings ? { ...state.settings } : null,
             unifiedTabsByWorktree: {
               ...state.unifiedTabsByWorktree,
@@ -322,7 +322,7 @@ describe('Delayed remote prompt delivery', () => {
       }
       if (mode === 'different target') {
         act(() =>
-          setSessionTestState(useAppStore, (state) => ({
+          setSessionTestState(useAppStore, (state): Partial<AppState> => ({
             unifiedTabsByWorktree: {
               [WORKSPACE]: state.unifiedTabsByWorktree[WORKSPACE].map((tab) => ({
                 ...tab,

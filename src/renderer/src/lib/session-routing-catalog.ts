@@ -217,7 +217,7 @@ export class SessionRoutingCatalog {
       for (const row of this.folders.get(id) ?? []) {
         this.foldersByGroup.get(row.projectGroupId)?.delete(id)
       }
-      const rows = discovery.sequences?.folderWorkspaces?.get(id)
+      const rows = discovery.sequences?.['folderWorkspaces']?.get(id)
       if (rows) {
         this.folders.set(id, rows)
       } else {
