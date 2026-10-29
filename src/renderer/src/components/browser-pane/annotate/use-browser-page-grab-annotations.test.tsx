@@ -202,4 +202,17 @@ describe('per-page annotation limit', () => {
     await waitFor(() => expect(h.result.current.annotations.grabToast?.type).toBe('error'))
     expect(h.result.current.annotations.pendingAnnotationPayload).toBeNull()
   })
+
+  it('shows no limit toast for a selection that loading cancelled first', async () => {
+    const h = mount(true, GRAB_BUDGET.annotationsMaxPerPage)
+    act(() => h.result.current.annotations.startGrabIntent('annotate'))
+    await waitFor(() => expect(h.awaitGrabSelection).toHaveBeenCalledOnce())
+    await act(async () => {
+      h.selection.resolve(selected())
+      h.screenshot.resolve({ ok: false, reason: 'fixture' })
+      await h.screenshot.promise
+    })
+    expect(h.result.current.grab.state).toBe('idle')
+    expect(h.result.current.annotations.grabToast).toBeNull()
+  })
 })

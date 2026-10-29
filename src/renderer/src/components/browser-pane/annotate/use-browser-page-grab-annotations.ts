@@ -160,7 +160,10 @@ export function useBrowserPageGrabAnnotations({
     }
     if (grabIntent === 'annotate') {
       // The store refuses notes past the cap, so say so before the user writes one.
-      if (browserAnnotationsLengthRef.current >= GRAB_BUDGET.annotationsMaxPerPage) {
+      if (
+        grabPayloadRef.current === grab.payload &&
+        browserAnnotationsLengthRef.current >= GRAB_BUDGET.annotationsMaxPerPage
+      ) {
         showGrabToast(browserAnnotationLimitMessage(), 'error', grab.payload)
         return
       }
