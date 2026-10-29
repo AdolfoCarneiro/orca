@@ -36,10 +36,11 @@ export function registerPtyConnectionMobileOverlayRefreshTests(): void {
     const deps = buildPaneConnectionDeps(() => mockStoreState, { refreshMobileOverlays })
     connectPanePty(...mockPanePtyArgs(createPane(1), createManager(1), deps))
     await flushAsyncTicks()
-    const onPtySpawn = createdTransportOptions[0]?.onPtySpawn as
-      | ((ptyId: string) => void)
-      | undefined
-    onPtySpawn?.(PTY_ID)
+    const onPtySpawn = createdTransportOptions[0]?.onPtySpawn
+    if (typeof onPtySpawn !== 'function') {
+      throw new Error('Transport did not register its spawn callback')
+    }
+    onPtySpawn(PTY_ID)
     // Guard the premise: the pane actually bound the PTY.
     expect(deps.updateTabPtyId).toHaveBeenCalledWith('tab-1', PTY_ID)
     return refreshMobileOverlays
