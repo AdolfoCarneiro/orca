@@ -20192,7 +20192,25 @@
       "existingReview": "A {{reviewLabel}} already exists for this branch.",
       "creationUnconfirmed": "{{shortLabel}} creation may have completed. Refreshing branch review state...",
       "withDetail": "Create {{shortLabel}} failed: {{detail}}",
-      "pushFailed": "Push failed. Resolve the push error, then try again."
+      "pushFailed": "Push failed. Resolve the push error, then try again.",
+      "stacked": {
+        "stackGithubOnly": "Stacked pull request creation is available only for GitHub repositories.",
+        "stackGithubComOnly": "GitHub stacked pull requests are available only on GitHub.com.",
+        "stackSameParent": "Choose a different parent branch before creating a stacked pull request.",
+        "stackParentWithoutReview": "The parent branch {{base}} does not have an open pull request. Create that pull request first.",
+        "stackParentAmbiguous": "Orca found multiple open pull requests for the parent branch {{base}}.",
+        "stackHeadAmbiguous": "Orca found multiple open pull requests for the current branch {{head}}.",
+        "stackParentMultipleStacks": "The selected parent pull request belongs to multiple stacks.",
+        "stackParentClosed": "The selected parent belongs to a closed stack.",
+        "stackParentNotTop": "Choose the top pull request in the stack as the base branch before adding another layer.",
+        "stackConflict": "The pull request already belongs to a different GitHub stack.",
+        "stacksUnavailable": "GitHub stacked pull requests are not available for this repository.",
+        "stackParentUnverified": "Orca could not verify the parent pull request. Retry in a moment.",
+        "stackExistingReviewOtherBase": "An open pull request already exists for this branch but does not target the selected parent branch.",
+        "stackCreationUnconfirmed": "Pull request creation may have completed. Retry to finish stack registration.",
+        "stackRegistrationUnavailable": "The pull request was created, but GitHub stacks are not available for this repository.",
+        "stackRegistrationFailed": "The pull request was created, but GitHub could not add it to the stack. Retry to finish stack registration."
+      }
     },
     "variables": {
       "basePrompt": "Orca’s built-in prompt for this action, including the context Orca knows how to gather safely.",
@@ -21886,6 +21904,24 @@
         "jobLogPermissionDenied": "You don't have permission to read this job's log. Check your GitLab token scopes.",
         "jobProjectNotFound": "Could not find this job's GitLab project.",
         "jobLogFailed": "Failed to load the job log: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "Repo not found",
+      "folderUnsupported": "Folder mode does not support creating worktrees.",
+      "fetchFailed": "Failed to fetch {{ref}}: {{detail}}",
+      "remoteRefMissing": "Remote ref {{ref}} does not exist after fetch.",
+      "github": {
+        "prNotFound": "PR #{{number}} not found.",
+        "prHeadBranchMissing": "PR #{{number}} has no head branch.",
+        "forkHeadUnresolved": "Could not resolve fork PR #{{number}} head after fetch.",
+        "headShaEmpty": "Empty SHA resolving PR #{{number}} head."
+      },
+      "gitlab": {
+        "projectNotFound": "No GitLab project found for this repository.",
+        "mrNotFound": "MR !{{number}} not found.",
+        "mrSourceBranchMissing": "MR !{{number}} has no source branch.",
+        "forkHeadUnresolved": "Could not resolve fork MR !{{number}} head after fetch."
       }
     }
   }

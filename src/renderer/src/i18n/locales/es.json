@@ -20875,7 +20875,25 @@
       "existingReview": "Esta rama ya tiene {{reviewLabel}}.",
       "creationUnconfirmed": "Puede que la creación de {{shortLabel}} se haya completado. Actualizando el estado de revisión de la rama...",
       "withDetail": "No se pudo crear {{shortLabel}}: {{detail}}",
-      "pushFailed": "El push falló. Resuelve el error de push y vuelve a intentarlo."
+      "pushFailed": "El push falló. Resuelve el error de push y vuelve a intentarlo.",
+      "stacked": {
+        "stackGithubOnly": "La creación de pull requests apilados solo está disponible para repositorios de GitHub.",
+        "stackGithubComOnly": "Los pull requests apilados de GitHub solo están disponibles en GitHub.com.",
+        "stackSameParent": "Elige otra rama padre antes de crear un pull request apilado.",
+        "stackParentWithoutReview": "La rama padre {{base}} no tiene ningún pull request abierto. Crea ese pull request primero.",
+        "stackParentAmbiguous": "Orca encontró varios pull requests abiertos para la rama padre {{base}}.",
+        "stackHeadAmbiguous": "Orca encontró varios pull requests abiertos para la rama actual {{head}}.",
+        "stackParentMultipleStacks": "El pull request padre seleccionado pertenece a varias pilas.",
+        "stackParentClosed": "El pull request padre seleccionado pertenece a una pila cerrada.",
+        "stackParentNotTop": "Elige el pull request superior de la pila como rama base antes de añadir otra capa.",
+        "stackConflict": "El pull request ya pertenece a otra pila de GitHub.",
+        "stacksUnavailable": "Los pull requests apilados de GitHub no están disponibles para este repositorio.",
+        "stackParentUnverified": "Orca no pudo verificar el pull request padre. Vuelve a intentarlo en un momento.",
+        "stackExistingReviewOtherBase": "Ya existe un pull request abierto para esta rama, pero no apunta a la rama padre seleccionada.",
+        "stackCreationUnconfirmed": "Es posible que el pull request ya se haya creado. Vuelve a intentarlo para completar el registro en la pila.",
+        "stackRegistrationUnavailable": "El pull request se creó, pero las pilas de GitHub no están disponibles para este repositorio.",
+        "stackRegistrationFailed": "El pull request se creó, pero GitHub no pudo añadirlo a la pila. Vuelve a intentarlo para completar el registro en la pila."
+      }
     },
     "model": {
       "auto": "Automático",
@@ -22157,6 +22175,24 @@
         "jobLogPermissionDenied": "No tienes permiso para leer el log de este job. Comprueba los alcances de tu token de GitLab.",
         "jobProjectNotFound": "No se pudo encontrar el proyecto de GitLab de este job.",
         "jobLogFailed": "No se pudo cargar el log del job: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "Repositorio no encontrado",
+      "folderUnsupported": "El modo carpeta no permite crear worktrees.",
+      "fetchFailed": "No se pudo obtener {{ref}}: {{detail}}",
+      "remoteRefMissing": "La referencia remota {{ref}} no existe tras el fetch.",
+      "github": {
+        "prNotFound": "No se encontró la PR #{{number}}.",
+        "prHeadBranchMissing": "La PR #{{number}} no tiene rama head.",
+        "forkHeadUnresolved": "No se pudo resolver el head de la PR #{{number}} de un fork tras el fetch.",
+        "headShaEmpty": "SHA vacío al resolver el head de la PR #{{number}}."
+      },
+      "gitlab": {
+        "projectNotFound": "No se encontró ningún proyecto de GitLab para este repositorio.",
+        "mrNotFound": "No se encontró la MR !{{number}}.",
+        "mrSourceBranchMissing": "La MR !{{number}} no tiene rama de origen.",
+        "forkHeadUnresolved": "No se pudo resolver el head de la MR !{{number}} de un fork tras el fetch."
       }
     }
   }

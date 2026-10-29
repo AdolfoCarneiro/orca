@@ -19876,7 +19876,25 @@
       "existingReview": "此分支已有 {{reviewLabel}}。",
       "creationUnconfirmed": "{{shortLabel}} 可能已建立完成。正在重新整理分支審查狀態...",
       "withDetail": "建立 {{shortLabel}} 失敗：{{detail}}",
-      "pushFailed": "推送失敗。請解決推送錯誤後再試一次。"
+      "pushFailed": "推送失敗。請解決推送錯誤後再試一次。",
+      "stacked": {
+        "stackGithubOnly": "只有 GitHub 存放庫支援建立堆疊中的 PR。",
+        "stackGithubComOnly": "GitHub 堆疊中的 PR 只能在 GitHub.com 上使用。",
+        "stackSameParent": "建立堆疊中的 PR 前，請選擇其他父分支。",
+        "stackParentWithoutReview": "父分支 {{base}} 沒有開啟中的 PR。請先建立該 PR。",
+        "stackParentAmbiguous": "Orca 發現父分支 {{base}} 有多個開啟中的 PR。",
+        "stackHeadAmbiguous": "Orca 發現目前分支 {{head}} 有多個開啟中的 PR。",
+        "stackParentMultipleStacks": "所選的父 PR 屬於多個堆疊。",
+        "stackParentClosed": "所選的父 PR 屬於已關閉的堆疊。",
+        "stackParentNotTop": "新增另一層前，請選擇堆疊最上層的 PR 作為基礎分支。",
+        "stackConflict": "此 PR 已屬於另一個 GitHub 堆疊。",
+        "stacksUnavailable": "此存放庫無法使用 GitHub 堆疊中的 PR。",
+        "stackParentUnverified": "Orca 無法驗證父 PR。請稍後重試。",
+        "stackExistingReviewOtherBase": "此分支已有開啟中的 PR，但目標不是所選的父分支。",
+        "stackCreationUnconfirmed": "PR 可能已建立完成。請重試以完成堆疊註冊。",
+        "stackRegistrationUnavailable": "PR 已建立，但此存放庫無法使用 GitHub 堆疊。",
+        "stackRegistrationFailed": "PR 已建立，但 GitHub 無法將其加入堆疊。請重試以完成堆疊註冊。"
+      }
     },
     "model": {
       "auto": "自動",
@@ -21538,6 +21556,24 @@
         "jobLogPermissionDenied": "你沒有權限讀取此作業的日誌。請檢查 GitLab 權杖範圍。",
         "jobProjectNotFound": "找不到此作業的 GitLab 專案。",
         "jobLogFailed": "無法載入作業日誌：{{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "找不到存放庫",
+      "folderUnsupported": "資料夾模式不支援建立工作樹。",
+      "fetchFailed": "無法擷取 {{ref}}：{{detail}}",
+      "remoteRefMissing": "擷取後，遠端參照 {{ref}} 不存在。",
+      "github": {
+        "prNotFound": "找不到 PR #{{number}}。",
+        "prHeadBranchMissing": "PR #{{number}} 沒有來源分支。",
+        "forkHeadUnresolved": "擷取後，無法解析來自 Fork 的 PR #{{number}} 的頂端參照。",
+        "headShaEmpty": "解析 PR #{{number}} 的頂端參照時取得空白 SHA。"
+      },
+      "gitlab": {
+        "projectNotFound": "找不到此存放庫對應的 GitLab 專案。",
+        "mrNotFound": "找不到 MR !{{number}}。",
+        "mrSourceBranchMissing": "MR !{{number}} 沒有來源分支。",
+        "forkHeadUnresolved": "擷取後，無法解析來自 Fork 的 MR !{{number}} 的頂端參照。"
       }
     }
   }

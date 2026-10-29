@@ -20141,7 +20141,25 @@
       "existingReview": "Bu branch için zaten bir {{reviewLabel}} var.",
       "creationUnconfirmed": "{{shortLabel}} oluşturma işlemi tamamlanmış olabilir. Branch'in inceleme durumu yenileniyor…",
       "withDetail": "{{shortLabel}} oluşturulamadı: {{detail}}",
-      "pushFailed": "Gönderme işlemi yapılamadı. Gönderme hatasını giderip tekrar deneyin."
+      "pushFailed": "Gönderme işlemi yapılamadı. Gönderme hatasını giderip tekrar deneyin.",
+      "stacked": {
+        "stackGithubOnly": "Yığındaki pull request'ler yalnızca GitHub repository'lerinde oluşturulabilir.",
+        "stackGithubComOnly": "Yığındaki GitHub pull request'leri yalnızca GitHub.com'da kullanılabilir.",
+        "stackSameParent": "Yığındaki bir pull request oluşturmadan önce farklı bir üst branch seçin.",
+        "stackParentWithoutReview": "{{base}} üst branch'i için açık bir pull request yok. Önce bu pull request'i oluşturun.",
+        "stackParentAmbiguous": "Orca, {{base}} üst branch'i için birden fazla açık pull request buldu.",
+        "stackHeadAmbiguous": "Orca, mevcut {{head}} branch'i için birden fazla açık pull request buldu.",
+        "stackParentMultipleStacks": "Seçilen üst pull request birden fazla yığına ait.",
+        "stackParentClosed": "Seçilen üst pull request kapalı bir yığına ait.",
+        "stackParentNotTop": "Yeni bir katman eklemeden önce yığının en üstündeki pull request'i temel branch olarak seçin.",
+        "stackConflict": "Pull request zaten farklı bir GitHub yığınına ait.",
+        "stacksUnavailable": "Bu repository için GitHub pull request yığınları kullanılamıyor.",
+        "stackParentUnverified": "Orca üst pull request'i doğrulayamadı. Birazdan yeniden deneyin.",
+        "stackExistingReviewOtherBase": "Bu branch için zaten açık bir pull request var, ancak seçilen üst branch'i hedeflemiyor.",
+        "stackCreationUnconfirmed": "Pull request oluşturulmuş olabilir. Yığın kaydını tamamlamak için yeniden deneyin.",
+        "stackRegistrationUnavailable": "Pull request oluşturuldu, ancak bu repository için GitHub yığınları kullanılamıyor.",
+        "stackRegistrationFailed": "Pull request oluşturuldu, ancak GitHub bunu yığına ekleyemedi. Yığın kaydını tamamlamak için yeniden deneyin."
+      }
     },
     "model": {
       "auto": "Otomatik",
@@ -21815,6 +21833,24 @@
         "jobLogPermissionDenied": "Bu işin günlüğünü okuma izniniz yok. GitLab belirtecinizin kapsamlarını kontrol edin.",
         "jobProjectNotFound": "Bu işin GitLab projesi bulunamadı.",
         "jobLogFailed": "İş günlüğü yüklenemedi: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "Repo bulunamadı",
+      "folderUnsupported": "Klasör modu worktree oluşturmayı desteklemiyor.",
+      "fetchFailed": "{{ref}} getirilemedi: {{detail}}",
+      "remoteRefMissing": "Getirme işleminden sonra remote ref {{ref}} mevcut değil.",
+      "github": {
+        "prNotFound": "PR #{{number}} bulunamadı.",
+        "prHeadBranchMissing": "PR #{{number}} için head branch yok.",
+        "forkHeadUnresolved": "Getirme işleminden sonra fork PR #{{number}} için head çözümlenemedi.",
+        "headShaEmpty": "PR #{{number}} için head çözümlenirken boş SHA alındı."
+      },
+      "gitlab": {
+        "projectNotFound": "Bu repository için GitLab projesi bulunamadı.",
+        "mrNotFound": "MR !{{number}} bulunamadı.",
+        "mrSourceBranchMissing": "MR !{{number}} için kaynak branch yok.",
+        "forkHeadUnresolved": "Getirme işleminden sonra fork MR !{{number}} için head çözümlenemedi."
       }
     }
   }

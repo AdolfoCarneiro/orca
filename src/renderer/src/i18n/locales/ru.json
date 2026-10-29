@@ -20777,7 +20777,25 @@
       "signInHintCommand": "Выполните {{command}} в этом окружении",
       "signInHintVariable": "Задайте {{variable}} в этом окружении",
       "unsupportedProvider": "Чтобы создать {{reviewLabel}}, нужен удалённый репозиторий на {{providerName}}.",
-      "withDetail": "Не удалось создать {{shortLabel}}: {{detail}}"
+      "withDetail": "Не удалось создать {{shortLabel}}: {{detail}}",
+      "stacked": {
+        "stackGithubOnly": "Создание пул-реквестов в стеке доступно только для репозиториев GitHub.",
+        "stackGithubComOnly": "Пул-реквесты в стеках GitHub доступны только на GitHub.com.",
+        "stackSameParent": "Выберите другую родительскую ветку перед созданием пул-реквеста в стеке.",
+        "stackParentWithoutReview": "У родительской ветки {{base}} нет открытого пул-реквеста. Сначала создайте этот пул-реквест.",
+        "stackParentAmbiguous": "Orca обнаружила несколько открытых пул-реквестов для родительской ветки {{base}}.",
+        "stackHeadAmbiguous": "Orca обнаружила несколько открытых пул-реквестов для текущей ветки {{head}}.",
+        "stackParentMultipleStacks": "Выбранный родительский пул-реквест входит в несколько стеков.",
+        "stackParentClosed": "Выбранный родительский пул-реквест входит в закрытый стек.",
+        "stackParentNotTop": "Перед добавлением ещё одного уровня выберите верхний пул-реквест стека в качестве базовой ветки.",
+        "stackConflict": "Пул-реквест уже входит в другой стек GitHub.",
+        "stacksUnavailable": "Пул-реквесты в стеках GitHub недоступны для этого репозитория.",
+        "stackParentUnverified": "Orca не удалось проверить родительский пул-реквест. Повторите попытку чуть позже.",
+        "stackExistingReviewOtherBase": "Для этой ветки уже есть открытый пул-реквест, но он нацелен не на выбранную родительскую ветку.",
+        "stackCreationUnconfirmed": "Возможно, пул-реквест уже создан. Повторите попытку, чтобы завершить регистрацию в стеке.",
+        "stackRegistrationUnavailable": "Пул-реквест создан, но стеки GitHub недоступны для этого репозитория.",
+        "stackRegistrationFailed": "Пул-реквест создан, но GitHub не удалось добавить его в стек. Повторите попытку, чтобы завершить регистрацию в стеке."
+      }
     },
     "model": {
       "auto": "Автоматически",
@@ -22505,6 +22523,24 @@
         "jobLogPermissionDenied": "У вас нет разрешения на чтение журнала этого задания. Проверьте права токена GitLab.",
         "jobProjectNotFound": "Не удалось найти проект GitLab для этого задания.",
         "jobLogFailed": "Не удалось загрузить журнал задания: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "Репозиторий не найден",
+      "folderUnsupported": "В режиме папки нельзя создавать рабочие деревья.",
+      "fetchFailed": "Не удалось получить {{ref}}: {{detail}}",
+      "remoteRefMissing": "Удалённая ссылка {{ref}} отсутствует после получения изменений.",
+      "github": {
+        "prNotFound": "PR #{{number}} не найден.",
+        "prHeadBranchMissing": "У PR #{{number}} нет исходной ветки.",
+        "forkHeadUnresolved": "Не удалось определить вершину PR #{{number}} из форка после получения изменений.",
+        "headShaEmpty": "При определении вершины PR #{{number}} получен пустой SHA."
+      },
+      "gitlab": {
+        "projectNotFound": "Для этого репозитория не найден проект GitLab.",
+        "mrNotFound": "MR !{{number}} не найден.",
+        "mrSourceBranchMissing": "У MR !{{number}} нет исходной ветки.",
+        "forkHeadUnresolved": "Не удалось определить вершину MR !{{number}} из форка после получения изменений."
       }
     }
   }

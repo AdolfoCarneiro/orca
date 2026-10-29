@@ -1229,6 +1229,24 @@
       "issueUpdateFailed": "Failed to update issue: {{detail}}",
       "networkError": "Network error — check your connection.",
       "titleRequired": "Title is required"
+    },
+    "startPoint": {
+      "fetchFailed": "Failed to fetch {{ref}}: {{detail}}",
+      "folderUnsupported": "Folder mode does not support creating worktrees.",
+      "github": {
+        "forkHeadUnresolved": "Could not resolve fork PR #{{number}} head after fetch.",
+        "headShaEmpty": "Empty SHA resolving PR #{{number}} head.",
+        "prHeadBranchMissing": "PR #{{number}} has no head branch.",
+        "prNotFound": "PR #{{number}} not found."
+      },
+      "gitlab": {
+        "forkHeadUnresolved": "Could not resolve fork MR !{{number}} head after fetch.",
+        "mrNotFound": "MR !{{number}} not found.",
+        "mrSourceBranchMissing": "MR !{{number}} has no source branch.",
+        "projectNotFound": "No GitLab project found for this repository."
+      },
+      "remoteRefMissing": "Remote ref {{ref}} does not exist after fetch.",
+      "repoNotFound": "Repo not found"
     }
   },
   "components": {
@@ -1817,6 +1835,26 @@
     }
   },
   "sourceControl": {
+    "createReviewFailure": {
+      "stacked": {
+        "stackConflict": "The pull request already belongs to a different GitHub stack.",
+        "stackCreationUnconfirmed": "Pull request creation may have completed. Retry to finish stack registration.",
+        "stackExistingReviewOtherBase": "An open pull request already exists for this branch but does not target the selected parent branch.",
+        "stackGithubComOnly": "GitHub stacked pull requests are available only on GitHub.com.",
+        "stackGithubOnly": "Stacked pull request creation is available only for GitHub repositories.",
+        "stackHeadAmbiguous": "Orca found multiple open pull requests for the current branch {{head}}.",
+        "stackParentAmbiguous": "Orca found multiple open pull requests for the parent branch {{base}}.",
+        "stackParentClosed": "The selected parent belongs to a closed stack.",
+        "stackParentMultipleStacks": "The selected parent pull request belongs to multiple stacks.",
+        "stackParentNotTop": "Choose the top pull request in the stack as the base branch before adding another layer.",
+        "stackParentUnverified": "Orca could not verify the parent pull request. Retry in a moment.",
+        "stackParentWithoutReview": "The parent branch {{base}} does not have an open pull request. Create that pull request first.",
+        "stackRegistrationFailed": "The pull request was created, but GitHub could not add it to the stack. Retry to finish stack registration.",
+        "stackRegistrationUnavailable": "The pull request was created, but GitHub stacks are not available for this repository.",
+        "stackSameParent": "Choose a different parent branch before creating a stacked pull request.",
+        "stacksUnavailable": "GitHub stacked pull requests are not available for this repository."
+      }
+    },
     "discard": {
       "deleteUntrackedFilesDescription_other": "This will permanently delete these {{count}} untracked files. This cannot be undone.",
       "deleteUntrackedTitle_one": "Delete {{count}} untracked file?",

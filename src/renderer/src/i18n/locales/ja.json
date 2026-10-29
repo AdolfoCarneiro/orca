@@ -19863,7 +19863,25 @@
       "existingReview": "このブランチの {{reviewLabel}} はすでに存在します。",
       "creationUnconfirmed": "{{shortLabel}} の作成は完了している可能性があります。ブランチのレビュー状態を更新しています…",
       "withDetail": "{{shortLabel}} の作成に失敗しました: {{detail}}",
-      "pushFailed": "プッシュに失敗しました。プッシュのエラーを解決してから、もう一度お試しください。"
+      "pushFailed": "プッシュに失敗しました。プッシュのエラーを解決してから、もう一度お試しください。",
+      "stacked": {
+        "stackGithubOnly": "スタックされた PR の作成は GitHub リポジトリでのみ利用できます。",
+        "stackGithubComOnly": "GitHub のスタックされた PR は GitHub.com でのみ利用できます。",
+        "stackSameParent": "スタックされた PR を作成する前に、別の親ブランチを選択してください。",
+        "stackParentWithoutReview": "親ブランチ {{base}} にオープンな PR がありません。先にその PR を作成してください。",
+        "stackParentAmbiguous": "Orca が親ブランチ {{base}} のオープンな PR を複数検出しました。",
+        "stackHeadAmbiguous": "Orca が現在のブランチ {{head}} のオープンな PR を複数検出しました。",
+        "stackParentMultipleStacks": "選択した親 PR は複数のスタックに属しています。",
+        "stackParentClosed": "選択した親 PR はクローズ済みのスタックに属しています。",
+        "stackParentNotTop": "別のレイヤーを追加する前に、スタック最上位の PR をベースブランチとして選択してください。",
+        "stackConflict": "この PR はすでに別の GitHub スタックに属しています。",
+        "stacksUnavailable": "このリポジトリでは GitHub のスタックされた PR を利用できません。",
+        "stackParentUnverified": "Orca は親 PR を確認できませんでした。しばらくしてから再試行してください。",
+        "stackExistingReviewOtherBase": "このブランチにはすでにオープンな PR がありますが、選択した親ブランチを対象にしていません。",
+        "stackCreationUnconfirmed": "PR の作成が完了している可能性があります。再試行してスタックへの登録を完了してください。",
+        "stackRegistrationUnavailable": "PR は作成されましたが、このリポジトリでは GitHub スタックを利用できません。",
+        "stackRegistrationFailed": "PR は作成されましたが、GitHub がスタックに追加できませんでした。再試行してスタックへの登録を完了してください。"
+      }
     },
     "model": {
       "auto": "自動",
@@ -21545,6 +21563,24 @@
         "jobLogPermissionDenied": "このジョブのログを読む権限がありません。GitLab トークンのスコープを確認してください。",
         "jobProjectNotFound": "このジョブの GitLab プロジェクトが見つかりませんでした。",
         "jobLogFailed": "ジョブログを読み込めませんでした: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "リポジトリが見つかりません",
+      "folderUnsupported": "フォルダーモードではワークツリーを作成できません。",
+      "fetchFailed": "{{ref}} のフェッチに失敗しました: {{detail}}",
+      "remoteRefMissing": "フェッチ後もリモート参照 {{ref}} が存在しません。",
+      "github": {
+        "prNotFound": "PR #{{number}} が見つかりません。",
+        "prHeadBranchMissing": "PR #{{number}} にヘッドブランチがありません。",
+        "forkHeadUnresolved": "フェッチ後にフォークの PR #{{number}} のヘッドを解決できませんでした。",
+        "headShaEmpty": "PR #{{number}} のヘッド解決時に SHA が空でした。"
+      },
+      "gitlab": {
+        "projectNotFound": "このリポジトリに対応する GitLab プロジェクトが見つかりません。",
+        "mrNotFound": "MR !{{number}} が見つかりません。",
+        "mrSourceBranchMissing": "MR !{{number}} にソースブランチがありません。",
+        "forkHeadUnresolved": "フェッチ後にフォークの MR !{{number}} のヘッドを解決できませんでした。"
       }
     }
   }

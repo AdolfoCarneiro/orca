@@ -19863,7 +19863,25 @@
       "existingReview": "此分支已存在 {{reviewLabel}}。",
       "creationUnconfirmed": "{{shortLabel}} 可能已创建完成。正在刷新分支评审状态...",
       "withDetail": "创建 {{shortLabel}} 失败：{{detail}}",
-      "pushFailed": "推送失败。请解决推送错误后重试。"
+      "pushFailed": "推送失败。请解决推送错误后重试。",
+      "stacked": {
+        "stackGithubOnly": "仅 GitHub 仓库支持创建堆栈中的 PR。",
+        "stackGithubComOnly": "GitHub 堆栈中的 PR 仅在 GitHub.com 上可用。",
+        "stackSameParent": "创建堆栈中的 PR 前，请选择其他父分支。",
+        "stackParentWithoutReview": "父分支 {{base}} 没有打开的 PR。请先创建该 PR。",
+        "stackParentAmbiguous": "Orca 发现父分支 {{base}} 有多个打开的 PR。",
+        "stackHeadAmbiguous": "Orca 发现当前分支 {{head}} 有多个打开的 PR。",
+        "stackParentMultipleStacks": "所选父 PR 属于多个堆栈。",
+        "stackParentClosed": "所选父 PR 属于已关闭的堆栈。",
+        "stackParentNotTop": "添加新层前，请选择堆栈最顶层的 PR 作为基础分支。",
+        "stackConflict": "此 PR 已属于另一个 GitHub 堆栈。",
+        "stacksUnavailable": "此仓库不支持 GitHub 堆栈中的 PR。",
+        "stackParentUnverified": "Orca 无法验证父 PR。请稍后重试。",
+        "stackExistingReviewOtherBase": "此分支已有打开的 PR，但其目标不是所选父分支。",
+        "stackCreationUnconfirmed": "PR 可能已创建成功。请重试以完成堆栈注册。",
+        "stackRegistrationUnavailable": "PR 已创建，但此仓库不支持 GitHub 堆栈。",
+        "stackRegistrationFailed": "PR 已创建，但 GitHub 无法将其添加到堆栈。请重试以完成堆栈注册。"
+      }
     },
     "model": {
       "auto": "自动",
@@ -21545,6 +21563,24 @@
         "jobLogPermissionDenied": "你没有权限读取此作业的日志。请检查 GitLab 令牌范围。",
         "jobProjectNotFound": "找不到此作业的 GitLab 项目。",
         "jobLogFailed": "加载作业日志失败：{{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "未找到仓库",
+      "folderUnsupported": "文件夹模式不支持创建工作树。",
+      "fetchFailed": "无法获取 {{ref}}：{{detail}}",
+      "remoteRefMissing": "获取后，远程引用 {{ref}} 不存在。",
+      "github": {
+        "prNotFound": "未找到 PR #{{number}}。",
+        "prHeadBranchMissing": "PR #{{number}} 没有源分支。",
+        "forkHeadUnresolved": "获取后，无法解析来自 fork 的 PR #{{number}} 的头部引用。",
+        "headShaEmpty": "解析 PR #{{number}} 的头部引用时得到空 SHA。"
+      },
+      "gitlab": {
+        "projectNotFound": "未找到此仓库对应的 GitLab 项目。",
+        "mrNotFound": "未找到 MR !{{number}}。",
+        "mrSourceBranchMissing": "MR !{{number}} 没有源分支。",
+        "forkHeadUnresolved": "获取后，无法解析来自 fork 的 MR !{{number}} 的头部引用。"
       }
     }
   }

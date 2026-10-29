@@ -20429,7 +20429,25 @@
       "existingReview": "Une {{reviewLabel}} existe déjà pour cette branche.",
       "creationUnconfirmed": "La création de {{shortLabel}} est peut-être terminée. Actualisation de l'état de revue de la branche...",
       "withDetail": "La création de {{shortLabel}} a échoué : {{detail}}",
-      "pushFailed": "Le push a échoué. Résolvez l'erreur de push, puis réessayez."
+      "pushFailed": "Le push a échoué. Résolvez l'erreur de push, puis réessayez.",
+      "stacked": {
+        "stackGithubOnly": "La création de pull requests empilées n'est disponible que pour les dépôts GitHub.",
+        "stackGithubComOnly": "Les pull requests empilées GitHub ne sont disponibles que sur GitHub.com.",
+        "stackSameParent": "Choisissez une autre branche parente avant de créer une pull request empilée.",
+        "stackParentWithoutReview": "La branche parente {{base}} n'a pas de pull request ouverte. Créez cette pull request d'abord.",
+        "stackParentAmbiguous": "Orca a trouvé plusieurs pull requests ouvertes pour la branche parente {{base}}.",
+        "stackHeadAmbiguous": "Orca a trouvé plusieurs pull requests ouvertes pour la branche actuelle {{head}}.",
+        "stackParentMultipleStacks": "La pull request parente sélectionnée appartient à plusieurs stacks.",
+        "stackParentClosed": "La pull request parente sélectionnée appartient à une stack fermée.",
+        "stackParentNotTop": "Choisissez la pull request au sommet de la stack comme branche de base avant d'ajouter un niveau.",
+        "stackConflict": "La pull request appartient déjà à une autre stack GitHub.",
+        "stacksUnavailable": "Les pull requests empilées GitHub ne sont pas disponibles pour ce dépôt.",
+        "stackParentUnverified": "Orca n'a pas pu vérifier la pull request parente. Réessayez dans un instant.",
+        "stackExistingReviewOtherBase": "Une pull request ouverte existe déjà pour cette branche, mais elle ne cible pas la branche parente sélectionnée.",
+        "stackCreationUnconfirmed": "La pull request a peut-être été créée. Réessayez pour terminer l'enregistrement dans la stack.",
+        "stackRegistrationUnavailable": "La pull request a été créée, mais les stacks GitHub ne sont pas disponibles pour ce dépôt.",
+        "stackRegistrationFailed": "La pull request a été créée, mais GitHub n'a pas pu l'ajouter à la stack. Réessayez pour terminer l'enregistrement dans la stack."
+      }
     },
     "thinking": {
       "off": "Désactivé",
@@ -22157,6 +22175,24 @@
         "jobLogPermissionDenied": "Vous n'avez pas l'autorisation de lire le journal de ce job. Vérifiez les scopes de votre token GitLab.",
         "jobProjectNotFound": "Impossible de trouver le projet GitLab de ce job.",
         "jobLogFailed": "Échec du chargement du journal du job : {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "Dépôt introuvable",
+      "folderUnsupported": "Le mode dossier ne permet pas de créer des worktrees.",
+      "fetchFailed": "Impossible de récupérer {{ref}} : {{detail}}",
+      "remoteRefMissing": "La référence distante {{ref}} n'existe pas après récupération.",
+      "github": {
+        "prNotFound": "PR #{{number}} introuvable.",
+        "prHeadBranchMissing": "La PR #{{number}} n'a pas de branche source.",
+        "forkHeadUnresolved": "Impossible de résoudre la tête de la PR #{{number}} issue d'un fork après récupération.",
+        "headShaEmpty": "SHA vide lors de la résolution de la tête de la PR #{{number}}."
+      },
+      "gitlab": {
+        "projectNotFound": "Aucun projet GitLab trouvé pour ce dépôt.",
+        "mrNotFound": "MR !{{number}} introuvable.",
+        "mrSourceBranchMissing": "La MR !{{number}} n'a pas de branche source.",
+        "forkHeadUnresolved": "Impossible de résoudre la tête de la MR !{{number}} issue d'un fork après récupération."
       }
     }
   }

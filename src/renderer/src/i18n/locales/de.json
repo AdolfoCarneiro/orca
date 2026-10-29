@@ -20160,7 +20160,25 @@
       "existingReview": "Für diesen Branch gibt es bereits einen {{reviewLabel}}.",
       "creationUnconfirmed": "{{shortLabel}} wurde möglicherweise erstellt. Der Review-Status des Branches wird aktualisiert…",
       "withDetail": "Erstellen von {{shortLabel}} fehlgeschlagen: {{detail}}",
-      "pushFailed": "Push fehlgeschlagen. Den Push-Fehler beheben und erneut versuchen."
+      "pushFailed": "Push fehlgeschlagen. Den Push-Fehler beheben und erneut versuchen.",
+      "stacked": {
+        "stackGithubOnly": "Das Erstellen von Pull Requests in einem Stack ist nur für GitHub-Repositorys verfügbar.",
+        "stackGithubComOnly": "Pull Requests in einem GitHub-Stack sind nur auf GitHub.com verfügbar.",
+        "stackSameParent": "Vor dem Erstellen eines Pull Requests in einem Stack einen anderen übergeordneten Branch auswählen.",
+        "stackParentWithoutReview": "Der übergeordnete Branch {{base}} hat keinen offenen Pull Request. Diesen Pull Request zuerst erstellen.",
+        "stackParentAmbiguous": "Orca hat mehrere offene Pull Requests für den übergeordneten Branch {{base}} gefunden.",
+        "stackHeadAmbiguous": "Orca hat mehrere offene Pull Requests für den aktuellen Branch {{head}} gefunden.",
+        "stackParentMultipleStacks": "Der ausgewählte übergeordnete Pull Request gehört zu mehreren Stacks.",
+        "stackParentClosed": "Der ausgewählte übergeordnete Pull Request gehört zu einem geschlossenen Stack.",
+        "stackParentNotTop": "Vor dem Hinzufügen einer weiteren Ebene den obersten Pull Request im Stack als Basis-Branch auswählen.",
+        "stackConflict": "Der Pull Request gehört bereits zu einem anderen GitHub-Stack.",
+        "stacksUnavailable": "Pull Requests in einem GitHub-Stack sind für dieses Repository nicht verfügbar.",
+        "stackParentUnverified": "Orca konnte den übergeordneten Pull Request nicht überprüfen. In Kürze erneut versuchen.",
+        "stackExistingReviewOtherBase": "Für diesen Branch gibt es bereits einen offenen Pull Request, der aber nicht auf den ausgewählten übergeordneten Branch zielt.",
+        "stackCreationUnconfirmed": "Der Pull Request wurde möglicherweise bereits erstellt. Erneut versuchen, um die Stack-Registrierung abzuschließen.",
+        "stackRegistrationUnavailable": "Der Pull Request wurde erstellt, aber GitHub-Stacks sind für dieses Repository nicht verfügbar.",
+        "stackRegistrationFailed": "Der Pull Request wurde erstellt, aber GitHub konnte ihn nicht zum Stack hinzufügen. Erneut versuchen, um die Stack-Registrierung abzuschließen."
+      }
     },
     "model": {
       "auto": "Automatisch",
@@ -21834,6 +21852,24 @@
         "jobLogPermissionDenied": "Keine Berechtigung zum Lesen dieses Job-Protokolls. GitLab-Token-Berechtigungen prüfen.",
         "jobProjectNotFound": "GitLab-Projekt dieses Jobs konnte nicht gefunden werden.",
         "jobLogFailed": "Job-Protokoll konnte nicht geladen werden: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "Repo nicht gefunden",
+      "folderUnsupported": "Im Ordnermodus können keine Worktrees erstellt werden.",
+      "fetchFailed": "{{ref}} konnte nicht gefetcht werden: {{detail}}",
+      "remoteRefMissing": "Remote-Ref {{ref}} ist nach dem Fetch nicht vorhanden.",
+      "github": {
+        "prNotFound": "PR #{{number}} nicht gefunden.",
+        "prHeadBranchMissing": "PR #{{number}} hat keinen Quell-Branch.",
+        "forkHeadUnresolved": "Der Head von Fork-PR #{{number}} konnte nach dem Fetch nicht aufgelöst werden.",
+        "headShaEmpty": "Leerer SHA-Wert beim Auflösen des Heads von PR #{{number}}."
+      },
+      "gitlab": {
+        "projectNotFound": "Kein GitLab-Projekt für dieses Repository gefunden.",
+        "mrNotFound": "MR !{{number}} nicht gefunden.",
+        "mrSourceBranchMissing": "MR !{{number}} hat keinen Quell-Branch.",
+        "forkHeadUnresolved": "Der Head von Fork-MR !{{number}} konnte nach dem Fetch nicht aufgelöst werden."
       }
     }
   }

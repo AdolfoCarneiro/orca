@@ -19863,7 +19863,25 @@
       "existingReview": "이 브랜치에 대한 {{reviewLabel}}이(가) 이미 있습니다.",
       "creationUnconfirmed": "{{shortLabel}} 생성이 완료되었을 수 있습니다. 브랜치 리뷰 상태를 새로고침하는 중...",
       "withDetail": "{{shortLabel}} 생성에 실패했습니다: {{detail}}",
-      "pushFailed": "푸시에 실패했습니다. 푸시 오류를 해결한 후 다시 시도하세요."
+      "pushFailed": "푸시에 실패했습니다. 푸시 오류를 해결한 후 다시 시도하세요.",
+      "stacked": {
+        "stackGithubOnly": "스택에 포함된 PR 생성은 GitHub 리포지토리에서만 가능합니다.",
+        "stackGithubComOnly": "스택에 포함된 GitHub PR은 GitHub.com에서만 사용할 수 있습니다.",
+        "stackSameParent": "스택에 포함할 PR을 만들기 전에 다른 상위 브랜치를 선택하세요.",
+        "stackParentWithoutReview": "상위 브랜치 {{base}}에 열린 PR이 없습니다. 먼저 해당 PR을 만드세요.",
+        "stackParentAmbiguous": "Orca가 상위 브랜치 {{base}}의 열린 PR을 여러 개 찾았습니다.",
+        "stackHeadAmbiguous": "Orca가 현재 브랜치 {{head}}의 열린 PR을 여러 개 찾았습니다.",
+        "stackParentMultipleStacks": "선택한 상위 PR이 여러 스택에 속해 있습니다.",
+        "stackParentClosed": "선택한 상위 PR이 닫힌 스택에 속해 있습니다.",
+        "stackParentNotTop": "다른 계층을 추가하기 전에 스택의 최상위 PR을 기본 브랜치로 선택하세요.",
+        "stackConflict": "이 PR은 이미 다른 GitHub 스택에 속해 있습니다.",
+        "stacksUnavailable": "이 리포지토리에서는 GitHub의 스택에 포함된 PR을 사용할 수 없습니다.",
+        "stackParentUnverified": "Orca가 상위 PR을 확인하지 못했습니다. 잠시 후 다시 시도하세요.",
+        "stackExistingReviewOtherBase": "이 브랜치에 열린 PR이 이미 있지만 선택한 상위 브랜치를 대상으로 하지 않습니다.",
+        "stackCreationUnconfirmed": "PR 생성이 완료되었을 수 있습니다. 다시 시도하여 스택 등록을 완료하세요.",
+        "stackRegistrationUnavailable": "PR이 생성되었지만 이 리포지토리에서는 GitHub 스택을 사용할 수 없습니다.",
+        "stackRegistrationFailed": "PR이 생성되었지만 GitHub가 스택에 추가하지 못했습니다. 다시 시도하여 스택 등록을 완료하세요."
+      }
     },
     "model": {
       "auto": "자동",
@@ -21545,6 +21563,24 @@
         "jobLogPermissionDenied": "이 작업의 로그를 읽을 권한이 없습니다. GitLab 토큰 범위를 확인하세요.",
         "jobProjectNotFound": "이 작업의 GitLab 프로젝트를 찾을 수 없습니다.",
         "jobLogFailed": "작업 로그를 불러오지 못했습니다: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "리포지토리를 찾을 수 없습니다",
+      "folderUnsupported": "폴더 모드에서는 작업 트리를 만들 수 없습니다.",
+      "fetchFailed": "{{ref}} 가져오기에 실패했습니다: {{detail}}",
+      "remoteRefMissing": "가져온 후 {{ref}} 원격 참조가 존재하지 않습니다.",
+      "github": {
+        "prNotFound": "PR #{{number}}을(를) 찾을 수 없습니다.",
+        "prHeadBranchMissing": "PR #{{number}}에 헤드 브랜치가 없습니다.",
+        "forkHeadUnresolved": "가져온 후 포크 PR #{{number}}의 헤드를 확인하지 못했습니다.",
+        "headShaEmpty": "PR #{{number}}의 헤드를 확인하는 중 빈 SHA가 반환되었습니다."
+      },
+      "gitlab": {
+        "projectNotFound": "이 리포지토리에 해당하는 GitLab 프로젝트를 찾을 수 없습니다.",
+        "mrNotFound": "MR !{{number}}을(를) 찾을 수 없습니다.",
+        "mrSourceBranchMissing": "MR !{{number}}에 소스 브랜치가 없습니다.",
+        "forkHeadUnresolved": "가져온 후 포크 MR !{{number}}의 헤드를 확인하지 못했습니다."
       }
     }
   }

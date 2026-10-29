@@ -68,7 +68,25 @@
       "existingReview": "Já existe um(a) {{reviewLabel}} para esta branch.",
       "creationUnconfirmed": "A criação do(a) {{shortLabel}} pode ter sido concluída. Atualizando o estado de revisão da branch...",
       "withDetail": "Falha ao criar {{shortLabel}}: {{detail}}",
-      "pushFailed": "O push falhou. Resolva o erro de push e tente novamente."
+      "pushFailed": "O push falhou. Resolva o erro de push e tente novamente.",
+      "stacked": {
+        "stackGithubOnly": "A criação de pull requests empilhados só está disponível para repositórios do GitHub.",
+        "stackGithubComOnly": "Pull requests empilhados do GitHub só estão disponíveis no GitHub.com.",
+        "stackSameParent": "Escolha outra branch pai antes de criar um pull request empilhado.",
+        "stackParentWithoutReview": "A branch pai {{base}} não tem um pull request aberto. Crie esse pull request primeiro.",
+        "stackParentAmbiguous": "O Orca encontrou vários pull requests abertos para a branch pai {{base}}.",
+        "stackHeadAmbiguous": "O Orca encontrou vários pull requests abertos para a branch atual {{head}}.",
+        "stackParentMultipleStacks": "O pull request pai selecionado pertence a várias pilhas.",
+        "stackParentClosed": "O pull request pai selecionado pertence a uma pilha fechada.",
+        "stackParentNotTop": "Escolha o pull request no topo da pilha como branch base antes de adicionar outra camada.",
+        "stackConflict": "O pull request já pertence a outra pilha do GitHub.",
+        "stacksUnavailable": "Pull requests empilhados do GitHub não estão disponíveis para este repositório.",
+        "stackParentUnverified": "O Orca não conseguiu verificar o pull request pai. Tente novamente em instantes.",
+        "stackExistingReviewOtherBase": "Já existe um pull request aberto para esta branch, mas ele não tem como destino a branch pai selecionada.",
+        "stackCreationUnconfirmed": "A criação do pull request pode ter sido concluída. Tente novamente para concluir o registro na pilha.",
+        "stackRegistrationUnavailable": "O pull request foi criado, mas as pilhas do GitHub não estão disponíveis para este repositório.",
+        "stackRegistrationFailed": "O pull request foi criado, mas o GitHub não conseguiu adicioná-lo à pilha. Tente novamente para concluir o registro na pilha."
+      }
     },
     "actionSaveFailed": "Não foi possível salvar esta ação. Tente salvá-la novamente em Configurações.",
     "model": {
@@ -22162,6 +22180,24 @@
         "jobLogPermissionDenied": "Você não tem permissão para ler o log deste job. Verifique os escopos do seu token do GitLab.",
         "jobProjectNotFound": "Não foi possível encontrar o projeto do GitLab deste job.",
         "jobLogFailed": "Falha ao carregar o log do job: {{detail}}"
+      }
+    },
+    "startPoint": {
+      "repoNotFound": "Repositório não encontrado",
+      "folderUnsupported": "O modo de pasta não permite criar worktrees.",
+      "fetchFailed": "Não foi possível buscar {{ref}}: {{detail}}",
+      "remoteRefMissing": "A ref remota {{ref}} não existe após o fetch.",
+      "github": {
+        "prNotFound": "PR #{{number}} não encontrado.",
+        "prHeadBranchMissing": "O PR #{{number}} não tem uma branch head.",
+        "forkHeadUnresolved": "Não foi possível resolver o head do PR #{{number}} de um fork após o fetch.",
+        "headShaEmpty": "SHA vazio ao resolver o head do PR #{{number}}."
+      },
+      "gitlab": {
+        "projectNotFound": "Nenhum projeto do GitLab encontrado para este repositório.",
+        "mrNotFound": "MR !{{number}} não encontrado.",
+        "mrSourceBranchMissing": "O MR !{{number}} não tem uma branch de origem.",
+        "forkHeadUnresolved": "Não foi possível resolver o head do MR !{{number}} de um fork após o fetch."
       }
     }
   }
