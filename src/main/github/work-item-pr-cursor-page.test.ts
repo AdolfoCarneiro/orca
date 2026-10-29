@@ -4,6 +4,7 @@ import { parseTaskQuery } from '../../shared/task-query'
 import { listPullRequestWorkItemPage } from './client/list/work-item-pr-page'
 import { listWorkItems } from './client/list/list-work-items'
 import { searchWorkItemPage } from './client/list/work-item-search-page'
+import { requestWorkItemSearch } from './client/list/work-item-search-batch'
 
 const ownerRepo = { owner: 'fixture', repo: 'repo', host: 'github.com' }
 function rows() {
@@ -239,4 +240,39 @@ it('isolates search response coalescing, content and cursor identity by search t
     24
   )
   expect(api.calls.at(-1)?.args.join(' ')).toContain('first: 48')
+})
+
+it('does not attach legacy count readers to advanced pages or seed their cache', async () => {
+  api.specialNodes = rows()
+  const search = 'repo:fixture/count-type-isolation is:open'
+  const advancedPage = () =>
+    searchWorkItemPage({
+      search,
+      searchType: 'ISSUE_ADVANCED',
+      nodeSelection: '__typename ... on PullRequest { number }',
+      limit: 24,
+      page: 1,
+      options: {}
+    })
+  const legacyCount = () =>
+    requestWorkItemSearch({ search, first: 1, selection: 'issueCount', options: {} })
+  await Promise.all([advancedPage(), legacyCount()])
+  expect(api.graphqlFields).toBe(2)
+
+  await searchWorkItemPage({
+    search: `${search} label:only-advanced`,
+    searchType: 'ISSUE_ADVANCED',
+    nodeSelection: '__typename ... on PullRequest { number }',
+    limit: 24,
+    page: 1,
+    options: {}
+  })
+  const before = api.graphqlFields
+  await requestWorkItemSearch({
+    search: `${search} label:only-advanced`,
+    first: 1,
+    selection: 'issueCount',
+    options: {}
+  })
+  expect(api.graphqlFields - before).toBe(1)
 })
