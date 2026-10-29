@@ -141,6 +141,20 @@ describe.runIf(process.platform !== 'win32')('the bare orca dispatcher as a shel
     )
   })
 
+  it("hands Orca's own children to the screen reader once Orca is gone", async () => {
+    const fixture = await makeFixture()
+    const otherBin = await addSecondDispatcher(fixture)
+    await rm(fixture.resourcesPath, { recursive: true, force: true })
+
+    const result = runOrca(
+      fixture,
+      [otherBin, join(fixture.homePath, '.local', 'bin'), fixture.screenReaderDir],
+      { ORCA_PANE_KEY: 'tab:1', ORCA_CLI_BIN_DIR: '/x', ORCA_USER_DATA_PATH: '/y' }
+    )
+    expect(result.status).toBe(0)
+    expect(result.stdout).toBe('SCREEN_READER status\n')
+  })
+
   it('never loops when the only other `orca` is another dispatcher', async () => {
     const fixture = await makeFixture()
     const otherBin = await addSecondDispatcher(fixture)
