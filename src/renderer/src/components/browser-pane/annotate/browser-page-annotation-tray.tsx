@@ -73,6 +73,7 @@ export function BrowserPageAnnotationTray({
   const [editComment, setEditComment] = useState('')
   const [editIntent, setEditIntent] = useState<BrowserAnnotationIntent>('change')
   const editImages = useBrowserAnnotationImages(worktreeId)
+  const resetEditImages = editImages.resetImages
   const [expanded, setExpanded] = useState(true)
   const ToggleChevron = expanded ? ChevronDown : ChevronRight
 
@@ -83,8 +84,9 @@ export function BrowserPageAnnotationTray({
       !browserAnnotations.some((annotation) => annotation.id === editingAnnotationId)
     ) {
       setEditingAnnotationId(null)
+      resetEditImages()
     }
-  }, [browserAnnotations, editingAnnotationId])
+  }, [browserAnnotations, editingAnnotationId, resetEditImages])
 
   const handleStartEdit = (annotation: BrowserPageAnnotation): void => {
     setEditingAnnotationId(annotation.id)
