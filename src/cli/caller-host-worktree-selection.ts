@@ -12,7 +12,8 @@ import {
 } from '../shared/execution-host'
 import { readOrchestrationCompatibilityEvidence } from '../shared/orchestration-compatibility-evidence'
 import type { RuntimeWorktreeListResult, RuntimeWorktreeRecord } from '../shared/runtime-types'
-import { RuntimeClientError, type RuntimeClient } from './runtime-client'
+import type { RuntimeClient } from './runtime-client'
+import { RuntimeClientError } from './runtime/types'
 
 type CatalogRow = Pick<RuntimeWorktreeRecord, 'id' | 'path' | 'hostId'> & {
   identity?: { key: string }
@@ -56,7 +57,7 @@ export function selectEnclosingWorktreeSelectionOnHost(
     if (!isOnCallerHost(row, hostId)) {
       continue
     }
-    const rowPath = resolvePath(row.path)
+    const rowPath = normalizeRuntimePathForComparison(resolvePath(row.path))
     if (!isPathInsideOrEqual(rowPath, currentPath)) {
       continue
     }
@@ -82,20 +83,20 @@ export function selectEnclosingRepoOnHost(
   callerWorktreeId?: string
 ): string | undefined {
   const currentPath = resolvePath(cwd)
-  const enclosing = catalog.filter(
-    (row) => isOnCallerHost(row, hostId) && isPathInsideOrEqual(resolvePath(row.path), currentPath)
-  )
-  const innermostLength = Math.max(...enclosing.map((row) => resolvePath(row.path).length))
-  const candidates = enclosing.filter((row) => resolvePath(row.path).length === innermostLength)
-  // A folder's synthetic repo names its group, not an association with a Git checkout.
-  const checkouts = new Map<string, (typeof candidates)[number]>()
+  const enclosing = catalog
+    .filter(
+      (row) =>
+        !projectGroupIdFromRepoId(row.repoId) &&
+        isOnCallerHost(row, hostId) &&
+        isPathInsideOrEqual(resolvePath(row.path), currentPath)
+    )
+    .map((row) => ({ row, path: normalizeRuntimePathForComparison(resolvePath(row.path)) }))
+  const innermostLength = Math.max(...enclosing.map(({ path }) => path.length))
+  const candidates = enclosing.filter(({ path }) => path.length === innermostLength)
+  const checkouts = new Map<string, (typeof catalog)[number]>()
   const callerCheckouts = new Set<string>()
-  for (const row of candidates) {
-    const key = JSON.stringify([
-      row.repoId,
-      row.hostId ?? LOCAL_EXECUTION_HOST_ID,
-      normalizeRuntimePathForComparison(resolvePath(row.path))
-    ])
+  for (const { row, path } of candidates) {
+    const key = JSON.stringify([row.repoId, row.hostId ?? LOCAL_EXECUTION_HOST_ID, path])
     checkouts.set(key, row)
     if (row.id === callerWorktreeId) {
       callerCheckouts.add(key)
@@ -119,8 +120,22 @@ export function selectEnclosingRepoOnHost(
       }
     )
   }
-  const repoId = matches[0]?.repoId
-  return repoId && !projectGroupIdFromRepoId(repoId) ? repoId : undefined
+  return matches[0]?.repoId
+}
+
+export function selectWorktreeCreateCwdContext(
+  catalog: RuntimeWorktreeListResult['worktrees'],
+  cwd: string,
+  inferRepo: boolean
+): { parentWorktree?: HostScopedWorktreeSelection; repoId?: string } {
+  const hostId = getCallerExecutionHostId()
+  const callerWorktreeId = process.env.ORCA_WORKTREE_ID
+  return {
+    repoId: inferRepo
+      ? selectEnclosingRepoOnHost(catalog, cwd, hostId, callerWorktreeId)
+      : undefined,
+    parentWorktree: selectEnclosingWorktreeSelectionOnHost(catalog, cwd, hostId, callerWorktreeId)
+  }
 }
 
 export function selectEnclosingWorktreeOnHost(

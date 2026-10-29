@@ -72,16 +72,21 @@ An Orca worktree is Orca's tracked view of a repo checkout, its metadata, termin
 
 Its id is a two-part address, `<repoId>::<worktreePath>`, such as `repo-123::/Users/me/orca/fix-login`. Copy the whole `id` field from `ORCA worktree create --json` or `ORCA worktree list --json`. `repo-123` alone names only the repo.
 
-For local creation, omit `--repo` and `--project` to stay in the caller's project. Use `--parent-worktree active` for a child of the current workspace. Project selection and parent selection are separate: pass `--repo` or `--project` only when deliberately creating in another project, or when Orca asks you to disambiguate. Outside any Orca-managed project, pass an explicit target. With a paired server, discover and use that server's exact target instead of the local cwd.
+For local creation, omit `--repo` and `--project` to stay in the caller's project. Use `--parent-worktree active` for a child of the current workspace. Project selection and parent selection are separate: a native folder parent supplies lineage, not a Git destination, so pass an explicit Git target when creating from a folder outside any managed checkout. Otherwise, pass `--repo` or `--project` only when deliberately creating in another project, or when Orca asks you to disambiguate. Outside any Orca-managed project, pass an explicit target. With a paired server, discover and use that server's exact target instead of the local cwd.
 
 Same-project creation:
 
 ```text
 ORCA worktree create --name related-task --parent-worktree active --json
 ORCA worktree create --name child-task --parent-worktree active --agent codex --prompt "hi" --json
-ORCA worktree create --name folder-child --parent-worktree folder:<folderId> --json
 ORCA worktree create --name independent-task --no-parent --json
 ORCA worktree create --name review-task --parent-worktree active --pr 123 --json
+```
+
+A native folder parent with an explicit Git destination:
+
+```text
+ORCA worktree create --repo id:<repoId> --name folder-child --parent-worktree folder:<folderId> --json
 ```
 
 Other common commands:
