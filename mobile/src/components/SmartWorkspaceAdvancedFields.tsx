@@ -65,24 +65,12 @@ export function SmartWorkspaceAdvancedFields({ composer, selectedRepoIsGit }: Pr
       {composer.reuseEligibleBranch ? (
         <View style={styles.field}>
           <Text style={styles.label}>
-            {t(
-              'components.smartWorkspaceAdvancedFields.branchForWorktree',
-              'Branch for this worktree'
-            )}
+            {t('workspace.branchChoice.title', 'Branch for this worktree')}
           </Text>
           <MobileSegmentedControl
             segments={[
-              {
-                value: 'existing',
-                label: t(
-                  'components.smartWorkspaceAdvancedFields.existingBranch',
-                  'Existing branch'
-                )
-              },
-              {
-                value: 'new',
-                label: t('components.smartWorkspaceAdvancedFields.newBranch', 'New branch')
-              }
+              { value: 'existing', label: t('workspace.branchChoice.existing', 'Existing branch') },
+              { value: 'new', label: t('workspace.branchChoice.new', 'New branch') }
             ]}
             selected={composer.reuseSelectedBranch ? 'existing' : 'new'}
             onSelect={(value) => {
@@ -97,37 +85,25 @@ export function SmartWorkspaceAdvancedFields({ composer, selectedRepoIsGit }: Pr
             <View style={styles.branchDetail}>
               <Text style={styles.branchName}>{composer.reuseEligibleBranch}</Text>
               <Text style={styles.description}>
-                {t(
-                  'components.smartWorkspaceAdvancedFields.newCommitsOnBranch',
-                  'New commits go on this branch.'
-                )}
+                {t('workspace.branchChoice.existingHint', 'New commits go on this branch.')}
               </Text>
             </View>
           ) : (
             <View style={styles.branchDetail}>
               <Text style={styles.description}>
-                {t(
-                  'components.smartWorkspaceAdvancedFields.createLocalBranch',
-                  'Create a new local branch'
-                )}
+                {t('workspace.branchChoice.newHint', 'Create a new local branch')}
               </Text>
               <Text style={styles.label}>
-                {t('components.smartWorkspaceAdvancedFields.newBranchName', 'New branch name')}
+                {t('workspace.branchChoice.newName', 'New branch name')}
               </Text>
               <TextInput
                 ref={branchNameInputRef}
-                accessibilityLabel={t(
-                  'components.smartWorkspaceAdvancedFields.newBranchName',
-                  'New branch name'
-                )}
+                accessibilityLabel={t('workspace.branchChoice.newName', 'New branch name')}
                 autoFocus
                 style={styles.input}
                 value={composer.branchNameOverride ?? ''}
                 onChangeText={composer.handleBranchNameOverrideChange}
-                placeholder={t(
-                  'components.smartWorkspaceAdvancedFields.automaticName',
-                  'Automatic name'
-                )}
+                placeholder={t('workspace.branchChoice.automaticName', 'Automatic name')}
                 placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}

@@ -533,7 +533,6 @@
       "branchName": "Branch adı",
       "derivedFromName": "Addan türetilir",
       "name": "Ad",
-      "reuseBranch": "“{{branch}}” branch'ini yeniden kullan",
       "workspaceName": "Çalışma alanı adı"
     },
     "smartWorkspaceSourceDrawer": {
@@ -1491,6 +1490,17 @@
       "inProgress": "Devam ediyor",
       "inReview": "İncelemede",
       "pinned": "Sabitlenenler"
+    }
+  },
+  "workspace": {
+    "branchChoice": {
+      "title": "Bu çalışma ağacı için dal",
+      "existing": "Mevcut dal",
+      "existingHint": "Yeni commitler bu dala eklenir.",
+      "new": "Yeni dal",
+      "newHint": "Yeni bir yerel dal oluştur",
+      "newName": "Yeni dal adı",
+      "automaticName": "Otomatik ad"
     }
   }
 }

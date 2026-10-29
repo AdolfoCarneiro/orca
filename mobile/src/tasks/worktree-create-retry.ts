@@ -1,3 +1,4 @@
+import { translate } from '../i18n/mobile-i18n'
 import type { TuiAgent } from '../../../src/shared/tui-agent'
 import type { RpcClient } from '../transport/rpc-client'
 import type { RpcResponse } from '../transport/types'
@@ -69,8 +70,10 @@ export async function createWorktreeWithNameRetry(
     if (attempt === 0 && candidateParams.branchIntent) {
       if ((await args.branchIntentSupported) !== true) {
         return {
-          error:
+          error: translate(
+            'workspace.branchChoice.hostUpdateRequired',
             'Update Orca on the workspace host to reuse a branch or explicitly create a separate branch.'
+          )
         }
       }
     }

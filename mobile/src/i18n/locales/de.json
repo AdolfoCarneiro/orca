@@ -533,7 +533,6 @@
       "branchName": "Branch-Name",
       "derivedFromName": "Vom Namen abgeleitet",
       "name": "Name",
-      "reuseBranch": "Branch „{{branch}}“ wiederverwenden",
       "workspaceName": "Name des Arbeitsbereichs"
     },
     "smartWorkspaceSourceDrawer": {
@@ -1491,6 +1490,17 @@
       "inProgress": "In Bearbeitung",
       "inReview": "Im Review",
       "pinned": "Angeheftet"
+    }
+  },
+  "workspace": {
+    "branchChoice": {
+      "title": "Branch für diesen Worktree",
+      "existing": "Bestehender Branch",
+      "existingHint": "Neue Commits werden diesem Branch hinzugefügt.",
+      "new": "Neuer Branch",
+      "newHint": "Einen neuen lokalen Branch erstellen",
+      "newName": "Name des neuen Branches",
+      "automaticName": "Automatischer Name"
     }
   }
 }
