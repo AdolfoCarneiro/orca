@@ -114,7 +114,7 @@ export async function createWorktreeWithNameRetry(
           ...(created.warning ? { warning: created.warning } : {})
         }
       }
-      lastError = 'Failed to create workspace'
+      lastError = translate('tasks.worktreeCreateRetry.createFailed', 'Failed to create workspace')
       break
     }
     lastError = response.error.message
@@ -126,7 +126,10 @@ export async function createWorktreeWithNameRetry(
       break
     }
   }
-  return { error: lastError ?? 'Failed to create workspace' }
+  return {
+    error:
+      lastError ?? translate('tasks.worktreeCreateRetry.createFailed', 'Failed to create workspace')
+  }
 }
 
 async function resolveAgentLaunchRoute(

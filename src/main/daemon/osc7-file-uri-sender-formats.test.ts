@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { parseFileUriPathParts, type ParseFileUriPathOptions } from './osc7-file-uri'
+import {
+  parseFileUriPath,
+  parseFileUriPathParts,
+  type ParseFileUriPathOptions
+} from './osc7-file-uri'
+import { OSC7_PARSER_AGREEMENT_CASES } from '../../shared/osc7-parser-agreement-cases'
 
 const FLAVORS: Record<string, ParseFileUriPathOptions> = {
   posix: { pathFlavor: 'posix' },
@@ -240,17 +245,19 @@ describe('OSC 7 file URIs from existing senders', () => {
   })
 })
 
-// No control byte is rejected: tab and newline are stripped by the URL parser, encoded ones decode.
 // The OSC 7 scanner ends a report at BEL or ESC, so raw ESC/BEL never reach this parser.
-describe('OSC 7 file URIs with control bytes, as before', () => {
+describe('OSC 7 file URIs with control bytes', () => {
   it.each([
-    ['file:///tmp/%00x', '/tmp/\u0000x'],
-    ['file:///tmp/a\u0000b', '/tmp/a\u0000b'],
+    // NUL, raw or encoded, is refused: no path holds one, node-pty truncates at it, execFile throws.
+    ['file:///tmp/%00x', null],
+    ['file:///tmp/a\u0000b', null],
+    // Other control characters are legal in a folder name and decode as before.
     ['file:///tmp/%01x', '/tmp/\u0001x'],
-    ['file:///tmp/a\tb', '/tmp/ab'],
     ['file:///tmp/%0Ax', '/tmp/\nx'],
+    ['file:///tmp/%1Bx', '/tmp/\u001bx'],
     ['file:///tmp/%7Fx', '/tmp/\u007fx'],
-    ['file:///tmp/%1Bx', '/tmp/\u001bx']
+    // A raw tab is kept, not stripped by the URL parser into another folder's name.
+    ['file:///tmp/a\tb', '/tmp/a\tb']
   ])('%j', (uri, path) => {
     expect(parseFileUriPathParts(uri, { pathFlavor: 'posix' })?.path ?? null).toBe(path)
   })
@@ -280,5 +287,11 @@ describe('OSC 7 file URIs from nushell', () => {
         hostname: 'desktop'
       }
     )
+  })
+})
+
+describe('OSC 7 file URIs both parsers must agree on (daemon side)', () => {
+  it.each(OSC7_PARSER_AGREEMENT_CASES)('%s', (_case, uri, path) => {
+    expect(parseFileUriPath(uri, { pathFlavor: 'posix' })).toBe(path)
   })
 })

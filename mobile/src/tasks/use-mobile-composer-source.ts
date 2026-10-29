@@ -31,6 +31,7 @@ import type {
   SmartNameSelection
 } from './mobile-composer-source-types'
 import { useMobileComposerName } from './use-mobile-composer-name'
+import { getBaseResolveError, useForkPushWarning } from './composer-source-copy'
 
 export type UseMobileComposerSourceArgs = {
   client: RpcClient | null
@@ -45,7 +46,7 @@ export function useMobileComposerSource(args: UseMobileComposerSourceArgs) {
   const [base, setBase] = useState<ComposerBaseState>({})
   const [reuseEligibleBranch, setReuseEligibleBranch] = useState<string | null>(null)
   const [reuseSelectedBranch, setReuseSelectedBranch] = useState(false)
-  const [forkPushWarning, setForkPushWarning] = useState<string | null>(null)
+  const [forkPushWarning, setForkPushWarning] = useForkPushWarning()
   const [resolvingBase, setResolvingBase] = useState(false)
   const [branchCreateIntent, setBranchCreateIntent] = useState(false)
 
@@ -78,11 +79,10 @@ export function useMobileComposerSource(args: UseMobileComposerSourceArgs) {
           setForkPushWarning(getForkPushWarning(result))
         })
         .catch((error: unknown) => {
-          if (resolveTokenRef.current !== token) {
-            return
+          if (resolveTokenRef.current === token) {
+            setBase({})
+            onError?.(getBaseResolveError(error))
           }
-          setBase({})
-          onError?.(error instanceof Error ? error.message : 'Failed to resolve base branch.')
         })
         .finally(() => {
           if (resolveTokenRef.current === token) {

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { colors, radii, spacing, typography } from '../../../theme/mobile-theme'
 import { themedStyleSheet } from '../../../theme/themed-styles'
 import { useMobileColorScheme } from '../../../theme/use-mobile-color-scheme'
+import { useMobileTranslation } from '../../../i18n/use-mobile-translation'
 import type { AskAnswerSelection } from '../../../../../src/shared/native-chat-ask-answer'
 import type { AskPrompt } from '../../../../../src/shared/native-chat/input/native-chat-ask-types'
 import { MobileNativeChatAsk } from './MobileNativeChatAsk'
@@ -50,19 +51,24 @@ export function MobileNativeChatPromptCard({
   onAnswerQuestion?: (text: string, prompt?: MobileChatQuestion['prompt']) => Promise<boolean>
 }): React.JSX.Element | null {
   useMobileColorScheme()
+  const t = useMobileTranslation()
   const card =
     ask && requiresTerminal ? (
       <View style={styles.terminalCard}>
-        <Text style={styles.explanation}>Answer this OMP question in the terminal.</Text>
+        <Text style={styles.explanation}>
+          {t('chat.promptCard.terminalExplanation', 'Answer this OMP question in the terminal.')}
+        </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Answer in terminal"
+          accessibilityLabel={t('chat.promptCard.answerInTerminal', 'Answer in terminal')}
           accessibilityState={{ disabled: !onAnswerInTerminal }}
           disabled={!onAnswerInTerminal}
           onPress={onAnswerInTerminal}
           style={styles.terminalButton}
         >
-          <Text style={styles.terminalButtonText}>Answer in terminal</Text>
+          <Text style={styles.terminalButtonText}>
+            {t('chat.promptCard.answerInTerminal', 'Answer in terminal')}
+          </Text>
         </Pressable>
       </View>
     ) : ask ? (

@@ -14,6 +14,7 @@ import {
   normalizeMobileFilePreviewResult,
   previewError,
   previewErrorFromRefusal,
+  terminalArtifactPreviewChangedError,
   type MobileFilePreviewResult
 } from './mobile-file-preview-response'
 import {
@@ -270,14 +271,7 @@ async function verifyTerminalArtifactBaseContent(
     return { status: 'error', error: latest }
   }
   if (!terminalArtifactPreviewMatchesBase(latest, baseContent)) {
-    return {
-      status: 'error',
-      error: {
-        status: 'error',
-        message: 'File changed on desktop. Reload preview before saving',
-        reconnect: false
-      }
-    }
+    return { status: 'error', error: terminalArtifactPreviewChangedError() }
   }
   return { status: 'ok', source: readSource, refreshed }
 }
