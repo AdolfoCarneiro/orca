@@ -148,7 +148,8 @@ describe('typing latency diagnostic lifecycle', () => {
       if (!observation) {
         throw new Error('Echo observation was not created')
       }
-      onObservation(observation)
+      const observationWithText = { ...observation, text: source === 'direct' ? 'a' : '한' }
+      onObservation(observationWithText)
     }
 
     const runningReport = bridge.report()
