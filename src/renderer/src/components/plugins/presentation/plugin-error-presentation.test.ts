@@ -11,5 +11,11 @@ describe('invalid plugin error copy', () => {
     expect(invalidPluginErrorMessage(schemaError, true)).toBe(
       "This version can't load in this Orca. Update or reinstall it."
     )
+    expect(invalidPluginErrorMessage('invalid JSON in orca-plugin.json: x', true)).toBe(
+      "This version can't load in this Orca. Update or reinstall it."
+    )
+    expect(invalidPluginErrorMessage('requires Orca >=9.0.0 (this is 1.4.0)', true)).toBe(
+      'This plugin requires a different Orca version.'
+    )
   })
 })
