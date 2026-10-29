@@ -1,5 +1,4 @@
-import { getExtensionField } from '@tiptap/core'
-import { getChangedRanges } from '@tiptap/core'
+import { getChangedRanges, getExtensionField } from '@tiptap/core'
 import { CodeBlock } from '@tiptap/extension-code-block'
 import CodeBlockLowlight, {
   type CodeBlockLowlightOptions
@@ -208,6 +207,7 @@ export const RichMarkdownCodeBlockLowlight = CodeBlock.extend<CodeBlockLowlightO
     return { ...CodeBlockLowlight.options }
   },
   addProseMirrorPlugins() {
+    // Why: Tiptap copies this method into child configs, so this.parent() would re-enter it and install a second plugin.
     const basePlugins = getExtensionField<
       NonNullable<typeof CodeBlock.config.addProseMirrorPlugins>
     >(CodeBlock, 'addProseMirrorPlugins', this)
