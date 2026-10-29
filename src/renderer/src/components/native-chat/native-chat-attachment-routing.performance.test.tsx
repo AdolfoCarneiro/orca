@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { Profiler, useContext } from 'react'
+import { Profiler, useContext, type ComponentType } from 'react'
 import {
   NativeChatMarkdownImageOwnerProvider,
   NativeChatMarkdownImageOwnerContext
@@ -67,6 +67,25 @@ function instrument<T extends { id: string }>(row: T, visit: () => void): T {
     }
   })
   return row
+}
+
+function mountScopes(
+  count: number,
+  mode: 'scope-only' | 'with-probe' | 'disabled',
+  commit: () => void,
+  Probe: ComponentType<{ index: number }>
+) {
+  return render(
+    Array.from({ length: count }, (_, index) => (
+      <Profiler key={index} id={String(index)} onRender={commit}>
+        <NativeChatMarkdownImageOwnerProvider tabId={`chat-${index}`} sessionId={null} isVisible>
+          <NativeChatTextAttachmentScope enabled={mode !== 'disabled'}>
+            {mode === 'with-probe' ? <Probe index={index} /> : <span />}
+          </NativeChatTextAttachmentScope>
+        </NativeChatMarkdownImageOwnerProvider>
+      </Profiler>
+    ))
+  )
 }
 
 for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
@@ -139,21 +158,7 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
         }
         visits = 0
         ownerHook.mockClear()
-        const view = render(
-          tabs.map((_, index) => (
-            <Profiler key={index} id={String(index)} onRender={() => commits++}>
-              <NativeChatMarkdownImageOwnerProvider
-                tabId={`chat-${index}`}
-                sessionId={null}
-                isVisible
-              >
-                <NativeChatTextAttachmentScope enabled={mode !== 'disabled'}>
-                  {mode === 'with-probe' ? <Probe index={index} /> : <span />}
-                </NativeChatTextAttachmentScope>
-              </NativeChatMarkdownImageOwnerProvider>
-            </Profiler>
-          ))
-        )
+        const view = mountScopes(n, mode, () => commits++, Probe)
         await act(async () => {})
         // The preexisting provider owns all route hooks; enabled scopes add none.
         expect(ownerHook).toHaveBeenCalledTimes(n)
@@ -456,21 +461,7 @@ for (const mode of ['scope-only', 'with-probe', 'disabled'] as const) {
         }
         operations = 0
         ownerHook.mockClear()
-        const view = render(
-          Array.from({ length: n }, (_, index) => (
-            <Profiler key={index} id={String(index)} onRender={() => commits++}>
-              <NativeChatMarkdownImageOwnerProvider
-                tabId={`chat-${index}`}
-                sessionId={null}
-                isVisible
-              >
-                <NativeChatTextAttachmentScope enabled={mode !== 'disabled'}>
-                  {mode === 'with-probe' ? <Probe index={index} /> : <span />}
-                </NativeChatTextAttachmentScope>
-              </NativeChatMarkdownImageOwnerProvider>
-            </Profiler>
-          ))
-        )
+        const view = mountScopes(n, mode, () => commits++, Probe)
         await act(async () => {})
         expect(ownerHook).toHaveBeenCalledTimes(n)
         const bound = 20 * n
