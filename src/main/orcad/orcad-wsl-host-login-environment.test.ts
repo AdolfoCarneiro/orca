@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const loginShell = vi.hoisted(() => ({
   resolveLoginShellEnvironment: vi.fn(async (_options?: { env?: NodeJS.ProcessEnv }) => ({}))
@@ -7,6 +7,7 @@ vi.mock('../startup/login-shell-environment', () => loginShell)
 
 import {
   adoptWslHostLoginEnvironment,
+  settleWithin,
   wslHostLoginEnvironmentOverlay
 } from './orcad-wsl-host-login-environment'
 
@@ -70,5 +71,43 @@ describe('adoptWslHostLoginEnvironment', () => {
     expect(await adoptWslHostLoginEnvironment(env, resolve, () => false)).toEqual([])
     expect(resolve).not.toHaveBeenCalled()
     expect(env).toEqual({})
+  })
+})
+
+describe('settleWithin', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('returns as soon as the login env lands, and leaves no timer behind', async () => {
+    vi.useFakeTimers()
+    let settled = false
+    const waiting = settleWithin(Promise.resolve(['SSH_AUTH_SOCK']), 50).then(() => {
+      settled = true
+    })
+
+    await waiting
+
+    expect(settled).toBe(true)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('gives up at the cap on a slow login shell, without waiting for it', async () => {
+    vi.useFakeTimers()
+    let settled = false
+    const waiting = settleWithin(new Promise(() => {}), 50).then(() => {
+      settled = true
+    })
+
+    await vi.advanceTimersByTimeAsync(49)
+    expect(settled).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    await waiting
+
+    expect(settled).toBe(true)
+  })
+
+  it('treats a failed login env as settled, never as a startup error', async () => {
+    await expect(settleWithin(Promise.reject(new Error('shell died')), 50)).resolves.toBeUndefined()
   })
 })

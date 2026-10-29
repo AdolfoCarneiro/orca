@@ -24,7 +24,11 @@ import { orcadAutomationsKeepHostBusy, startOrcadAutomations } from './orcad-aut
 import { changedAiVaultSearchSettings } from '../../shared/ai-vault-search-settings'
 import type { AiVaultSearchSettings } from '../../shared/ai-vault-search-settings'
 import { stampRuntimeSourceEnv } from '../../shared/runtime-source-env'
-import { adoptWslHostLoginEnvironmentLogged } from './orcad-wsl-host-login-environment'
+import {
+  adoptWslHostLoginEnvironmentLogged,
+  LOGIN_ENVIRONMENT_HEAD_START_MS,
+  settleWithin
+} from './orcad-wsl-host-login-environment'
 import { installOrcadProcessErrorGuards } from './orcad-process-error-guards'
 import { orcadWsPortOptions } from './orcad-ws-port-policy'
 import { createOrcadStartupTiming } from './orcad-startup-timing'
@@ -78,12 +82,11 @@ async function startOrcadRuntime(
   // mid-spawn. It disconnects without killing daemon PTYs that must survive restart, after an
   // in-flight spawn settles; a failed one leaves only the disconnect to do.
   registerCleanup(() => daemonStartup.catch(() => {}).then(() => stopOrcadDaemon()))
-  // Bundled imports resolve as microtasks; a turn of the loop lets a finished login env spawn the
-  // daemon (a separate process) while the runtime graph evaluates.
-  const yieldToLoop = () => new Promise<void>((resolve) => setImmediate(resolve))
-  await yieldToLoop()
+  // Bundled imports resolve as microtasks and never yield, so a login env finishing during them could
+  // only spawn the daemon after them all. A plain login shell lands within the cap, and the daemon
+  // (a separate process) then boots while the runtime graph evaluates; a slow one costs only the cap.
+  await settleWithin(loginEnvironment, LOGIN_ENVIRONMENT_HEAD_START_MS)
   const { OrcaRuntimeService } = await import('../runtime/orca-runtime')
-  await yieldToLoop()
   const { OrcaRuntimeRpcServer } = await import('../runtime/runtime-rpc')
   const { registerHeadlessPtyRuntime } = await import('../ipc/pty/register-headless-runtime')
   const { getLocalPtyProvider } = await import('../ipc/pty/provider/registry')

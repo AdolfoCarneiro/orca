@@ -88,3 +88,26 @@ export function adoptWslHostLoginEnvironmentLogged(): Promise<void> {
     (error: unknown) => console.warn('[orcad] could not adopt login-shell variables:', error)
   )
 }
+
+/** How long orcad startup waits for the login env before its imports, so the daemon can spawn first. */
+export const LOGIN_ENVIRONMENT_HEAD_START_MS = 50
+
+/** Waits for `pending` at most `capMs`; the timer is unref'd and cleared once `pending` settles. */
+export async function settleWithin(pending: Promise<unknown>, capMs: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const cap = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, capMs)
+    timer.unref?.()
+  })
+  try {
+    await Promise.race([
+      pending.then(
+        () => {},
+        () => {}
+      ),
+      cap
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
+}
