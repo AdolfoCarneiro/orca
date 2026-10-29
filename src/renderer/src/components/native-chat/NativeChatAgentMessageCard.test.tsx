@@ -367,6 +367,44 @@ it.each(['task', 'mail'] as const)(
   }
 )
 
+it('restores folded prose on focus exit while preserving internal focus and document deactivation', () => {
+  height = 120
+  const documentFocus = vi.spyOn(document, 'hasFocus').mockReturnValue(true)
+  render(
+    card({
+      id: 'fold-focus',
+      role: 'user',
+      source: 'transcript',
+      timestamp: 1,
+      from,
+      blocks: [
+        {
+          type: 'text',
+          text: 'Opening prose with [First link](https://example.com/first).\n\nBelow the fold [Second link](https://example.com/second).'
+        }
+      ]
+    })
+  )
+  const more = screen.getByRole('button', { name: 'Show more' })
+  const clip = document.getElementById(more.getAttribute('aria-controls')!)!
+  const first = screen.getByRole('link', { name: 'First link' })
+  const second = screen.getByRole('link', { name: 'Second link' })
+  first.focus()
+  clip.scrollTop = 74
+  second.focus()
+  expect(second).toHaveFocus()
+  expect(clip.scrollTop).toBe(74)
+  documentFocus.mockReturnValue(false)
+  second.blur()
+  expect(clip.scrollTop).toBe(74)
+  documentFocus.mockReturnValue(true)
+  second.focus()
+  more.focus()
+  expect(more).toHaveFocus()
+  expect(clip.scrollTop).toBe(0)
+  expect(more).toHaveAttribute('aria-expanded', 'false')
+})
+
 it.each([100, 1000])(
   'shares actual row acquisition and isolates selected progress across %i cards',
   (n) => {

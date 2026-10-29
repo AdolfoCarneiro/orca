@@ -116,6 +116,11 @@ export function NativeChatAgentMessageCard({
             overflows && !disclosure.open && 'mask-b-from-[calc(100%-1.75rem)]'
           )}
           style={disclosure.open ? undefined : { maxHeight: `${AGENT_MESSAGE_FOLDED_LINES}lh` }}
+          onBlur={(event) => {
+            if (document.hasFocus() && !event.currentTarget.contains(event.relatedTarget)) {
+              event.currentTarget.scrollTop = 0
+            }
+          }}
         >
           <NativeChatMarkdown
             rowKey={message.id}
