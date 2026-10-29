@@ -14463,6 +14463,7 @@
       },
       "mobile": {
         "MobileHero": {
+          "downloadApp": "Uygulamayı indir",
           "a8fb43cf1c": "Devam Et",
           "3f90dbd274": "Bitti",
           "b622eba64d": "Geri",

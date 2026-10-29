@@ -14131,6 +14131,7 @@
       },
       "mobile": {
         "MobileHero": {
+          "downloadApp": "アプリをダウンロード",
           "a8fb43cf1c": "Continue",
           "3f90dbd274": "完了",
           "b622eba64d": "戻る",

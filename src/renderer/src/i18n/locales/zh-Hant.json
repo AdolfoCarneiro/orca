@@ -14449,6 +14449,7 @@
       },
       "mobile": {
         "MobileHero": {
+          "downloadApp": "下載應用程式",
           "a8fb43cf1c": "繼續",
           "3f90dbd274": "完成",
           "b622eba64d": "返回",

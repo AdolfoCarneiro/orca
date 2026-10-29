@@ -14286,6 +14286,7 @@
       },
       "mobile": {
         "MobileHero": {
+          "downloadApp": "Descargar la aplicación",
           "a8fb43cf1c": "Continuar",
           "3f90dbd274": "Hecho",
           "b622eba64d": "Atrás",
