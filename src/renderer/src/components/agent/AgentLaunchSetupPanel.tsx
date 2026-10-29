@@ -125,7 +125,7 @@ export function AgentLaunchSetupPanel({
       settable:
         !disabled &&
         !defaultsPending &&
-        current !== undefined &&
+        (option.kind.type === 'select' ? option.kind.choices.length > 0 : current !== undefined) &&
         (!(option.id === 'fastMode' || option.id === 'serviceTier') ||
           !entry.surfaces.includes('terminal') ||
           argumentsKnown)

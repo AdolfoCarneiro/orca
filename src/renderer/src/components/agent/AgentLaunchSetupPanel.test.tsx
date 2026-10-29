@@ -2,10 +2,11 @@
 import { entry, host, root, onUse } from './agent-launch-setup-panel-test-fixture'
 import { act } from 'react'
 import { fireEvent } from '@testing-library/react'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AgentLaunchSetupPanel } from './AgentLaunchSetupPanel'
 import * as shell from '../../../../shared/tui-agent-startup-shell'
+import { fetchCodexModelCatalogListing } from '../../lib/codex-model-catalog-reader-test-fixture'
 import {
   agentPickerDraft,
   agentPickerChoiceSeeds,
@@ -620,6 +621,66 @@ it.each([
     }
   }
 )
+
+it('enables recorded Codex tier choices after defaults become known without inventing an inherited tier', async () => {
+  const { default: capture } =
+    await import('../../../../shared/fixtures/agent-picker-cli-recordings.json')
+  const listing = await fetchCodexModelCatalogListing({
+    connection: { request: vi.fn().mockResolvedValue(capture.modelList) }
+  })
+  const model = listing.models[0]
+  const tier = model.serviceTiers![0]
+  const own: AgentPickerEntry = {
+    ...entry,
+    agent: 'codex',
+    label: 'Codex',
+    defaultSurface: 'terminal',
+    arguments: '',
+    terminal: { model: model.id, permissionMode: 'ask' },
+    structured: { model: model.id, permissionMode: 'ask' },
+    catalog: { origin: 'probe', fetchedAt: 1, models: [model] }
+  }
+  const show = (value: AgentPickerEntry) =>
+    act(() =>
+      root.render(
+        <TooltipProvider>
+          <AgentLaunchSetupPanel entry={value} onUse={onUse} />
+        </TooltipProvider>
+      )
+    )
+  const radios = () => [...host.querySelectorAll<HTMLButtonElement>('[role="radio"]')]
+  const fast = () => radios().find((radio) => radio.textContent === tier.label)!
+  const standard = () => radios().find((radio) => radio.textContent === 'Standard')!
+  show({ ...own, arguments: undefined, defaultsPending: true, structuredDefaultsPending: true })
+  expect(fast().disabled).toBe(true)
+  expect(standard().disabled).toBe(true)
+  show(own)
+  expect(fast().disabled).toBe(false)
+  expect(standard().disabled).toBe(false)
+  expect(fast().getAttribute('aria-checked')).toBe('false')
+  expect(standard().getAttribute('aria-checked')).toBe('false')
+  const launch = (way: string) => {
+    onUse.mockClear()
+    fireEvent.click(
+      [...host.querySelectorAll('button')].find((button) => button.textContent === way)!
+    )
+    return agentPickerLaunchInputs(onUse.mock.calls[0][0], own)
+  }
+  for (const way of ['Open chat', 'Open terminal']) {
+    expect(launch(way)).toEqual({})
+  }
+  fireEvent.click(fast())
+  expect(fast().getAttribute('aria-checked')).toBe('true')
+  expect(launch('Open chat').sessionOptions?.serviceTier).toBe(tier.value)
+  const terminal = launch('Open terminal')
+  expect(terminal.sessionOptions?.serviceTier).toBe(tier.value)
+  expect(terminal.agentArgs).toContain(`service_tier=${tier.value}`)
+  expect(terminal.sessionOptions?.permissionMode).toBe('ask')
+  fireEvent.click(standard())
+  expect(standard().getAttribute('aria-checked')).toBe('true')
+  expect(launch('Open chat').sessionOptions?.serviceTier).toBe('default')
+  expect(launch('Open terminal').agentArgs).toContain('service_tier=default')
+})
 
 it.each([`--settings '{"fastMode":true}' --settings ./team.json`, `--settings '{broken'`])(
   'keeps opaque effective settings literal and Fast unclaimed: %s',
