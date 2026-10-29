@@ -265,19 +265,21 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
     },
     onCommandStarted(requireConfirmation = false) {
       startupSampled = false
-      // An accepted submit may already own this boundary's confirmation ladder.
-      if (scheduledReadReason === 'accepted-input' || activeReadReason === 'accepted-input') {
-        return
-      }
+      // Keep an accepted submit's read while applying the actual OSC lifecycle boundary.
+      const acceptedReadPending =
+        scheduledReadReason === 'accepted-input' || activeReadReason === 'accepted-input'
       const hadReadBeforeCommandStart = hasPendingRead()
-      cancelPendingRead()
+      if (!acceptedReadPending) {
+        cancelPendingRead()
+      }
       const ptyId = trackablePtyId()
       if (!ptyId) {
+        cancelPendingRead()
         releaseRetainedCapability(hadReadBeforeCommandStart)
         return
       }
       const alreadyHasKnownIdentity = deps.hasKnownAgentIdentity?.() === true
-      hasAgentExpectation = requireConfirmation
+      hasAgentExpectation = requireConfirmation || acceptedReadPending
       if (alreadyHasKnownIdentity) {
         hasKnownAgentEvidence = true
       }
@@ -285,7 +287,9 @@ export function createPaneForegroundAgentTracker(deps: PaneForegroundAgentTracke
       if (deps.isRemotePtyId?.(ptyId) !== true) {
         deps.publish({ agent: null, shellForeground: false })
       }
-      scheduleRead(FOREGROUND_COMMAND_READS.settleMs, 0, 'command')
+      if (!acceptedReadPending) {
+        scheduleRead(FOREGROUND_COMMAND_READS.settleMs, 0, 'command')
+      }
     },
     onAgentStartupObserved() {
       if (
