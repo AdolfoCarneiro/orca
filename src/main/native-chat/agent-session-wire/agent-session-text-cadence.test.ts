@@ -10,15 +10,18 @@ function producer(agent: 'claude' | 'codex', role: 'assistant' | 'reasoning') {
   const saves: { text: string; at: number }[] = []
   let appendAccepted = true
   let publicationAccepted = true
+  const appendItem = vi.fn<StructuredAgentSessionEventSink['appendItem']>((_id, body) =>
+    record(body)
+  )
   const sink: StructuredAgentSessionEventSink = {
-    appendItem: (_id, body) => record(body),
+    appendItem,
     appendTombstone: () => {},
     publish: () => {},
-    tryAppendItem: (_id, body) => {
+    tryAppendItem: (identity, body, options) => {
       if (!appendAccepted) {
         return { accepted: false, reason: 'backpressure' }
       }
-      record(body)
+      appendItem(identity, body, options)
       return { accepted: true }
     },
     tryPublish: () =>
@@ -84,6 +87,8 @@ function producer(agent: 'claude' | 'codex', role: 'assistant' | 'reasoning') {
   }
   return {
     saves,
+    appendItem,
+    codex,
     delta,
     refuse: (append: boolean, publish: boolean) => {
       appendAccepted = !append
@@ -167,3 +172,98 @@ it('Claude observes append refusal without adding an autonomous cross-turn retry
   expect(r.saves.at(-1)?.text).toBe('PT')
   r.dispose()
 })
+
+it.each([10, 100])(
+  'Codex ignores %i empty deltas without spending content cadence or rewriting full bodies',
+  (count) => {
+    for (const role of ['assistant', 'reasoning'] as const) {
+      vi.useFakeTimers({ toFake: ['Date', 'performance', 'setTimeout', 'clearTimeout'] })
+      const r = producer('codex', role)
+      const identity = {
+        provider: 'codex' as const,
+        threadId: 'thread',
+        turnId: 'turn',
+        ordinal: 0
+      }
+      r.codex.track(
+        'thread',
+        'turn',
+        { type: role === 'assistant' ? 'agentMessage' : 'reasoning', id: 'reply' },
+        identity,
+        1234
+      )
+      r.delta('')
+      vi.advanceTimersByTime(60)
+      expect(r.saves).toEqual([])
+      expect(vi.getTimerCount()).toBe(0)
+      vi.advanceTimersByTime(40)
+      const text = 'P'.repeat(64 * 1024)
+      r.delta(text)
+      vi.advanceTimersByTime(59)
+      expect(r.saves).toEqual([])
+      vi.advanceTimersByTime(1)
+      expect(r.saves).toEqual([{ text, at: 160 }])
+      const contentCalls = () =>
+        r.appendItem.mock.calls.filter(([, body]) => body.kind === 'message' && body.role === role)
+      const first = contentCalls()[0]
+      const bytes = Buffer.byteLength(JSON.stringify(first[1]), 'utf8')
+      const join = Array.prototype.join
+      let assemblies = 0
+      const joining = vi.spyOn(Array.prototype, 'join').mockImplementation(function (
+        this: string[],
+        separator
+      ) {
+        if (this[0] === text) {
+          assemblies++
+        }
+        return join.call(this, separator)
+      })
+      try {
+        for (let index = 0; index < count; index++) {
+          vi.advanceTimersByTime(500)
+          r.delta('')
+          vi.advanceTimersByTime(60)
+          expect(vi.getTimerCount()).toBe(0)
+        }
+        expect(assemblies).toBe(0)
+        expect(r.saves).toEqual([{ text, at: 160 }])
+        expect(
+          contentCalls().reduce(
+            (sum, [, body]) => sum + Buffer.byteLength(JSON.stringify(body), 'utf8'),
+            0
+          )
+        ).toBe(bytes)
+        r.delta('T')
+        vi.advanceTimersByTime(60)
+        expect(r.saves.at(-1)).toEqual({ text: `${text}T`, at: 220 + count * 560 })
+        expect(r.saves).toHaveLength(2)
+        assemblies = 0
+        r.delta('U')
+        vi.advanceTimersByTime(60)
+        expect(r.saves).toHaveLength(2)
+        expect(assemblies).toBe(0)
+        r.delta('')
+        vi.advanceTimersByTime(60)
+        expect(r.saves).toHaveLength(2)
+        expect(assemblies).toBe(0)
+      } finally {
+        joining.mockRestore()
+      }
+      r.flush()
+      expect(r.saves.at(-1)?.text).toBe(`${text}TU`)
+      expect(r.saves).toHaveLength(3)
+      for (const [savedIdentity, body, options] of contentCalls()) {
+        expect(savedIdentity).toEqual(identity)
+        expect(body).toMatchObject({
+          kind: 'message',
+          role,
+          blocks: [{ type: 'text', text: expect.stringContaining(text) }]
+        })
+        expect(options).toMatchObject({ turnScope: { kind: 'thread' }, observedAt: 1234 })
+      }
+      r.dispose()
+      expect(vi.getTimerCount()).toBe(0)
+      vi.useRealTimers()
+    }
+  }
+)

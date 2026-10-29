@@ -277,7 +277,7 @@ export function createCodexStructuredItemStreams(
         return { handled: true, admission: capacity }
       }
       const delta = method === REASONING_PART_METHOD ? '\n' : paramsRecord.delta
-      if (typeof delta === 'string') {
+      if (typeof delta === 'string' && delta.length > 0) {
         const key = codexStructuredItemKey(threadId, state.item.id)
         pendingCheckpoints.add(key)
         const accepted = coalescer.append(key, delta)
