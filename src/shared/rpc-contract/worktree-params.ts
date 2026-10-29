@@ -228,5 +228,7 @@ export const WorktreeResolveMrBase = z.object({
     .pipe(z.number().int().positive('Missing MR number')),
   sourceBranch: OptionalString,
   targetBranch: OptionalString,
-  isCrossRepository: OptionalBoolean
+  isCrossRepository: OptionalBoolean,
+  /** The user creating from the MR; older hosts drop it. */
+  wakeWslDistro: OptionalBoolean
 })
