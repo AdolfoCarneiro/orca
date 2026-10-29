@@ -17362,7 +17362,7 @@
                       "0c7b9b2b7a": "Copied",
                       "c937229f19": "Screenshotted",
                       "1f5cb19034": "Annotation added",
-                      "limitReached": "Limit of {{value0}} annotations reached. Send, copy or clear them to add more."
+                      "limitReached": "Limit of {{value0}} annotations reached. Send, delete or clear some to add more."
                     }
                   }
                 }

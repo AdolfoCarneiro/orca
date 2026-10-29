@@ -16959,7 +16959,7 @@
                       "0c7b9b2b7a": "Kopiert",
                       "c937229f19": "Screenshot erstellt",
                       "1f5cb19034": "Anmerkung hinzugefügt",
-                      "limitReached": "Limit von {{value0}} Anmerkungen erreicht. Senden, kopieren oder löschen Sie sie, um weitere hinzuzufügen."
+                      "limitReached": "Limit von {{value0}} Anmerkungen erreicht. Senden, entfernen oder löschen Sie einige, um weitere hinzuzufügen."
                     }
                   }
                 }

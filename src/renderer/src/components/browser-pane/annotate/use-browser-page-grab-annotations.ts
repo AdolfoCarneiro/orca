@@ -48,7 +48,7 @@ const annotationAddedGrabToastMessage = (): string =>
 export const browserAnnotationLimitMessage = (): string =>
   translate(
     'auto.components.browser.pane.annotate.use.browser.page.grab.annotations.limitReached',
-    'Limit of {{value0}} annotations reached. Send, copy or clear them to add more.',
+    'Limit of {{value0}} annotations reached. Send, delete or clear some to add more.',
     { value0: GRAB_BUDGET.annotationsMaxPerPage }
   )
 
