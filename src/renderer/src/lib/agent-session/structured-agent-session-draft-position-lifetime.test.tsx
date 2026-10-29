@@ -281,6 +281,7 @@ it.each([10, 100])(
         'wt-1': [
           {
             id: row.groupId,
+            worktreeId: 'wt-1',
             tabOrder: rows.map((tab) => tab.id),
             activeTabId: rows[0]!.id,
             recentTabIds: []
