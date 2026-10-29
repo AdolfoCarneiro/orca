@@ -35,6 +35,26 @@ function isOnCallerHost(row: CatalogRow, callerHostId: ExecutionHostId): boolean
     : parseExecutionHostId(rowHostId)?.kind !== 'ssh'
 }
 
+function enclosingCandidatesOnHost<Row extends CatalogRow>(
+  catalog: readonly Row[],
+  cwd: string,
+  hostId: ExecutionHostId
+): { row: Row; comparisonPath: string }[] {
+  const currentPath = resolvePath(cwd)
+  const candidates: { row: Row; comparisonPath: string }[] = []
+  for (const row of catalog) {
+    if (!isOnCallerHost(row, hostId)) {
+      continue
+    }
+    const rawPath = resolvePath(row.path)
+    if (isPathInsideOrEqual(rawPath, currentPath)) {
+      // WSL comparison keys are not raw paths; only use them for rank and equivalence.
+      candidates.push({ row, comparisonPath: normalizeRuntimePathForComparison(rawPath) })
+    }
+  }
+  return candidates
+}
+
 // Prefer id: for repo inference; shared IDs need an exact host-qualified identity.
 function toHostScopedSelector(row: CatalogRow, catalog: readonly CatalogRow[]): string {
   const sharedId = catalog.some((other) => other !== row && other.id === row.id)
@@ -50,26 +70,18 @@ export function selectEnclosingWorktreeSelectionOnHost(
   hostId: ExecutionHostId,
   callerWorktreeId?: string
 ): HostScopedWorktreeSelection | undefined {
-  const currentPath = resolvePath(cwd)
   let enclosing: CatalogRow | undefined
   let enclosingPathLength = -1
-  for (const row of catalog) {
-    if (!isOnCallerHost(row, hostId)) {
-      continue
-    }
-    const rowPath = normalizeRuntimePathForComparison(resolvePath(row.path))
-    if (!isPathInsideOrEqual(rowPath, currentPath)) {
-      continue
-    }
+  for (const { row, comparisonPath } of enclosingCandidatesOnHost(catalog, cwd, hostId)) {
     // Folder workspaces share their project's path, so only the caller's pane can break the tie.
     if (
-      rowPath.length < enclosingPathLength ||
-      (rowPath.length === enclosingPathLength && row.id !== callerWorktreeId)
+      comparisonPath.length < enclosingPathLength ||
+      (comparisonPath.length === enclosingPathLength && row.id !== callerWorktreeId)
     ) {
       continue
     }
     enclosing = row
-    enclosingPathLength = rowPath.length
+    enclosingPathLength = comparisonPath.length
   }
   return enclosing
     ? { selector: toHostScopedSelector(enclosing, catalog), worktreeId: enclosing.id }
@@ -83,20 +95,19 @@ export function selectEnclosingRepoOnHost(
   callerWorktreeId?: string
 ): string | undefined {
   const currentPath = resolvePath(cwd)
-  const enclosing = catalog
-    .filter(
-      (row) =>
-        !projectGroupIdFromRepoId(row.repoId) &&
-        isOnCallerHost(row, hostId) &&
-        isPathInsideOrEqual(resolvePath(row.path), currentPath)
-    )
-    .map((row) => ({ row, path: normalizeRuntimePathForComparison(resolvePath(row.path)) }))
-  const innermostLength = Math.max(...enclosing.map(({ path }) => path.length))
-  const candidates = enclosing.filter(({ path }) => path.length === innermostLength)
+  const enclosing = enclosingCandidatesOnHost(
+    catalog.filter((row) => !projectGroupIdFromRepoId(row.repoId)),
+    cwd,
+    hostId
+  )
+  const innermostLength = Math.max(...enclosing.map(({ comparisonPath }) => comparisonPath.length))
+  const candidates = enclosing.filter(
+    ({ comparisonPath }) => comparisonPath.length === innermostLength
+  )
   const checkouts = new Map<string, (typeof catalog)[number]>()
   const callerCheckouts = new Set<string>()
-  for (const { row, path } of candidates) {
-    const key = JSON.stringify([row.repoId, row.hostId ?? LOCAL_EXECUTION_HOST_ID, path])
+  for (const { row, comparisonPath } of candidates) {
+    const key = JSON.stringify([row.repoId, row.hostId ?? LOCAL_EXECUTION_HOST_ID, comparisonPath])
     checkouts.set(key, row)
     if (row.id === callerWorktreeId) {
       callerCheckouts.add(key)

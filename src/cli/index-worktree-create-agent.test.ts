@@ -145,6 +145,7 @@ describe('orca cli worktree awareness', () => {
           setupDecision: 'run',
           parentWorktree: undefined,
           cwdParentWorktree: 'id:repo-1::/tmp/repo',
+          envParentWorkspace: 'worktree:repo-1::/tmp/repo',
           noParent: false,
           callerTerminalHandle: undefined,
           cliProvenanceRequest: {}
@@ -250,6 +251,7 @@ describe('orca cli worktree awareness', () => {
         navigation: 'host',
         parentWorktree: undefined,
         cwdParentWorktree: 'id:repo-1::/tmp/repo',
+        envParentWorkspace: 'worktree:repo-1::/tmp/repo',
         noParent: false,
         callerTerminalHandle: undefined,
         cliProvenanceRequest: {},
