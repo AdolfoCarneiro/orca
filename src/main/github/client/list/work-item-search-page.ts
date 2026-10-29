@@ -91,6 +91,7 @@ export async function searchWorkItemPage<T>(args: {
     const first = Math.min(100, offset - position)
     const { value: skipped, at } = await requestWorkItemSearch<SearchConnection<never>>({
       search,
+      countSearch: args.search,
       first,
       after,
       selection: 'issueCount pageInfo { endCursor hasNextPage }',
@@ -113,6 +114,7 @@ export async function searchWorkItemPage<T>(args: {
   }
   const { value: result, at } = await requestWorkItemSearch<SearchConnection<T>>({
     search,
+    countSearch: args.search,
     first: limit,
     after,
     selection: `issueCount pageInfo { endCursor hasNextPage } nodes { ${args.nodeSelection} }`,
