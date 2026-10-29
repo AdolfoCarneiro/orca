@@ -12,7 +12,7 @@ import {
   type PtySurfaceTopology
 } from '../../pty-recorded-surface-topology'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
-import { persistFreshPaneBinding } from '../../../ipc/pty/spawn-commit-binding'
+import { persistFreshPaneBindingIfSupported } from '../../../ipc/pty/spawn-commit-binding'
 
 export abstract class OrcaRuntimeWithReconcileOwnedMobileTerminal extends OrcaRuntimeWithResolveMobileSessionTerminalCommand {
   protected abstract ptySurfaceTopology(): PtySurfaceTopology
@@ -127,26 +127,19 @@ export abstract class OrcaRuntimeWithReconcileOwnedMobileTerminal extends OrcaRu
       }
       return { tabId: candidate.tabId, leafId: candidate.leafId }
     }
-    const store = this.store
-    if (store?.persistPtyBinding && store.getWorkspaceSession) {
-      const { persistPtyBinding, getWorkspaceSession } = store
-      const persisted = await persistFreshPaneBinding(
-        {
-          persistPtyBinding: persistPtyBinding.bind(store),
-          getWorkspaceSession: getWorkspaceSession.bind(store)
-        },
-        () => ({
-          ...resolve(),
-          worktreeId,
-          ptyId: pty.ptyId,
-          ...(incarnationId ? { incarnationId } : {}),
-          mayReviveRetiredSurface: false
-        }),
-        connectionId
-      )
-      if (!persisted) {
-        throw new Error('terminal_handle_stale')
-      }
+    const pendingBinding = persistFreshPaneBindingIfSupported(
+      this.store,
+      () => ({
+        ...resolve(),
+        worktreeId,
+        ptyId: pty.ptyId,
+        ...(incarnationId ? { incarnationId } : {}),
+        mayReviveRetiredSurface: false
+      }),
+      connectionId
+    )
+    if (pendingBinding && !(await pendingBinding)) {
+      throw new Error('terminal_handle_stale')
     }
     const surface = resolve()
     if (

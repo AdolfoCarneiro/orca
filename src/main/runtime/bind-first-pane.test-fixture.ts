@@ -2,7 +2,7 @@
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
 import type { RuntimePtyController } from './runtime-pty-controller-contract'
 import type { WorkspaceSessionState } from '../../shared/workspace-session-state-types'
-import { getConnectionExecutionHostId } from '../../shared/execution-host'
+import { captureFakeSpawnBinding } from './runtime-fake-spawn-binding.test-fixture'
 import { getPtyExecutionHost } from '../../shared/terminal-execution-host'
 import { asProfileSessionStore, storeOf } from './profile-session-store.test-fixture'
 import { reusedTerminalIdUnbinding } from '../persistence/loading-store/reused-terminal-id-unbind'
@@ -172,57 +172,12 @@ export function committingSpawn<
   hostId = 'local'
 ): (args: Args) => Promise<Result> {
   return async (args) => {
+    const commit = captureFakeSpawnBinding(runtime, args, hostId)
     const result = await spawn(args)
-    if (args.worktreeId && args.tabId && args.leafId && typeof result?.id === 'string') {
-      bindPaneFirst(
-        runtime,
-        {
-          worktreeId: args.worktreeId,
-          tabId: args.tabId,
-          leafId: args.leafId,
-          ptyId: result.id
-        },
-        hostId
-      )
-    }
+    commit(result)
     return result
   }
 }
-
-/** Bind the pre-spawn pane, refusing one closed since; emulate it for stores without pane writes. */
-function commitIntoWrittenPane(
-  runtime: OrcaRuntimeService,
-  args: SpawnArgs,
-  result: unknown
-): void {
-  const ptyId = result && typeof result === 'object' && 'id' in result ? result.id : null
-  const store = storeOf(runtime)
-  if (
-    !store?.getWorkspaceSession ||
-    !args.worktreeId ||
-    !args.tabId ||
-    !args.leafId ||
-    typeof ptyId !== 'string'
-  ) {
-    return
-  }
-  const { worktreeId, tabId, leafId } = args
-  const holdsPane = (hostId: string): boolean => {
-    const session = store.getWorkspaceSession?.(hostId)
-    return (
-      (session?.tabsByWorktree?.[worktreeId]?.some((tab) => tab.id === tabId) ?? false) &&
-      layoutContainsLeafId(session?.terminalLayoutsByTabId?.[tabId]?.root ?? null, leafId)
-    )
-  }
-  const hostId = !Reflect.has(store, 'admitTerminalPane')
-    ? 'local'
-    : [getConnectionExecutionHostId(args.connectionId), 'local'].find(holdsPane)
-  if (hostId) {
-    bindPaneFirst(runtime, { worktreeId, tabId, leafId, ptyId }, hostId)
-  }
-}
-
-type SpawnArgs = Parameters<NonNullable<RuntimePtyController['spawn']>>[0]
 
 type PtyControllerRuntimePrototype = {
   setPtyController: (this: OrcaRuntimeService, controller: RuntimePtyController | null) => void
@@ -244,8 +199,6 @@ export function commitFakeSpawnsInRuntimeTests(prototype: PtyControllerRuntimePr
       setPtyController.call(this, controller)
       return
     }
-    const commit = (args: SpawnArgs, result: unknown): void =>
-      commitIntoWrittenPane(this, args, result)
     // Wrap via accessor so later spy/reassignment spawns also commit.
     type Spawn = NonNullable<RuntimePtyController['spawn']>
     const committed = new WeakMap<Spawn, Spawn>()
@@ -258,8 +211,9 @@ export function commitFakeSpawnsInRuntimeTests(prototype: PtyControllerRuntimePr
         let wrapped = committed.get(own)
         if (!wrapped) {
           wrapped = async (args) => {
+            const commit = captureFakeSpawnBinding(this, args)
             const result = await own.call(controller, args)
-            commit(args, result)
+            commit(result)
             return result
           }
           committed.set(own, wrapped)

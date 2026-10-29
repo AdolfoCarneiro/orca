@@ -109,7 +109,10 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
     it('clears pre-hook launch config when an Orca-started command exits', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout'] })
       const { connectPanePty } = await import('./pty-connection')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('zsh')
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: 'zsh',
+        hasChildProcesses: false
+      })
 
       const capturedDataCallback: { current: ((data: string) => void) | null } = { current: null }
       const transport = createMockTransport()
@@ -173,9 +176,10 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
       const ptyId = 'pty-manually-typed-droid'
       const tabId = 'tab-manually-typed-droid'
       const foregroundResults = ['powershell.exe', 'droid']
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockImplementation(async (id: string) =>
-        id === ptyId ? (foregroundResults.shift() ?? 'droid') : null
-      )
+      vi.mocked(window.api.pty.inspectProcess).mockImplementation(async (id: string) => ({
+        foregroundProcess: id === ptyId ? (foregroundResults.shift() ?? 'droid') : null,
+        hasChildProcesses: false
+      }))
       const transport = createMockTransport(ptyId)
       transport.connect.mockImplementation(
         async ({ callbacks }: { callbacks: ConnectCallbacks }) => {
@@ -215,7 +219,10 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
     it('confirms a manually typed Droid without OSC command boundaries', async () => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('droid')
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: 'droid',
+        hasChildProcesses: false
+      })
       const pane = createPane(1)
       const ptyId = 'pty-manual-droid-no-osc'
       const tabId = 'tab-manual-droid-no-osc'
@@ -237,7 +244,9 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
 
       await vi.advanceTimersByTimeAsync(350)
 
-      expect(window.api.pty.confirmForegroundProcess).toHaveBeenCalledWith(ptyId)
+      expect(window.api.pty.inspectProcess).toHaveBeenCalledWith(ptyId, {
+        scanChildProcesses: true
+      })
       expect(mockStoreState.paneForegroundAgentByPaneKey[paneKey]).toEqual({
         agent: 'droid',
         agentEvidence: 'process-read',
@@ -252,7 +261,10 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
       vi.mocked(window.api.pty.getForegroundProcess).mockResolvedValue('droid')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('droid')
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: 'droid',
+        hasChildProcesses: false
+      })
       const pane = createPane(1)
       const ptyId = 'pty-launched-droid-no-osc'
       const tabId = 'tab-launched-droid-no-osc'
@@ -283,7 +295,9 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
       )
       await flushAsyncTicks()
 
-      expect(window.api.pty.confirmForegroundProcess).toHaveBeenCalledWith(ptyId)
+      expect(window.api.pty.inspectProcess).toHaveBeenCalledWith(ptyId, {
+        scanChildProcesses: true
+      })
       expect(mockStoreState.paneForegroundAgentByPaneKey[paneKey]).toEqual({
         agent: 'droid',
         agentEvidence: 'process-read',
@@ -298,9 +312,10 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
       const foregroundResults = ['bash.exe', 'bash.exe', 'droid']
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockImplementation(
-        async () => foregroundResults.shift() ?? 'droid'
-      )
+      vi.mocked(window.api.pty.inspectProcess).mockImplementation(async () => ({
+        foregroundProcess: foregroundResults.shift() ?? 'droid',
+        hasChildProcesses: false
+      }))
       const pane = createPane(1)
       const ptyId = 'pty-launched-droid-slow-boot'
       const tabId = 'tab-launched-droid-slow-boot'
@@ -342,7 +357,10 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
       let foreground = 'bash.exe'
       // Why both: the pane's process monitor reads the same foreground the confirm read sees.
       vi.mocked(window.api.pty.getForegroundProcess).mockImplementation(async () => foreground)
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockImplementation(async () => foreground)
+      vi.mocked(window.api.pty.inspectProcess).mockImplementation(async () => ({
+        foregroundProcess: foreground,
+        hasChildProcesses: false
+      }))
       const pane = createPane(1)
       const ptyId = 'pty-launched-droid-slow'
       const tabId = 'tab-launched-droid-slow'
@@ -394,7 +412,10 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
       const { connectPanePty } = await import('./pty-connection')
       let foreground = 'sleep'
       vi.mocked(window.api.pty.getForegroundProcess).mockImplementation(async () => foreground)
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockImplementation(async () => foreground)
+      vi.mocked(window.api.pty.inspectProcess).mockImplementation(async () => ({
+        foregroundProcess: foreground,
+        hasChildProcesses: false
+      }))
       const tabId = 'tab-delayed-claude'
       const ptyId = 'pty-delayed-claude'
       const paneKey = makePaneKey(tabId, LEAF_1)
@@ -428,7 +449,10 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
     it('revokes trusted Droid after accepted no-OSC exit input until shell confirmation', async () => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('cmd.exe')
+      vi.mocked(window.api.pty.inspectProcess).mockResolvedValue({
+        foregroundProcess: 'cmd.exe',
+        hasChildProcesses: false
+      })
       const pane = createPane(1)
       const ptyId = 'pty-droid-exit-no-osc'
       const tabId = 'tab-droid-exit-no-osc'
@@ -470,7 +494,10 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
       const { connectPanePty } = await import('./pty-connection')
       let foreground = 'pi'
       vi.mocked(window.api.pty.getForegroundProcess).mockResolvedValue('pi')
-      vi.mocked(window.api.pty.confirmForegroundProcess).mockImplementation(async () => foreground)
+      vi.mocked(window.api.pty.inspectProcess).mockImplementation(async () => ({
+        foregroundProcess: foreground,
+        hasChildProcesses: false
+      }))
       const pane = createPane(1)
       const ptyId = 'pty-pi-no-osc-lifecycle'
       const tabId = 'tab-pi-no-osc-lifecycle'
@@ -524,10 +551,10 @@ export function registerPtyConnectionForegroundAgentRoutingTests(): void {
     it('never promotes typed Droid text when foreground enrichment is unavailable', async () => {
       vi.useFakeTimers()
       const { connectPanePty } = await import('./pty-connection')
-      vi.mocked(window.api.pty.confirmForegroundProcess)
-        .mockResolvedValueOnce(null)
+      vi.mocked(window.api.pty.inspectProcess)
+        .mockResolvedValueOnce({ foregroundProcess: null, hasChildProcesses: false })
         .mockRejectedValueOnce(new Error('inspection unavailable'))
-        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ foregroundProcess: null, hasChildProcesses: false })
       const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
       const pane = createPane(1)
       const ptyId = 'pty-typed-droid-unavailable-start'

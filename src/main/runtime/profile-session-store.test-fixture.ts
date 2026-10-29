@@ -105,19 +105,19 @@ export function asProfileSessionStore(
       const host = resolveHostId(hostIds[0])
       const change = applyCommandToSession(
         host,
-        getWorkspaceSession(host) ?? getDefaultWorkspaceSession(),
+        getWorkspaceSession.call(store, host) ?? getDefaultWorkspaceSession(),
         command
       )
       if (change.session) {
-        setWorkspaceSession(change.session, host)
+        setWorkspaceSession.call(store, change.session, host)
       }
       return change.value
     }
   }
   boundHostIdsByStore.get(store)?.add(hostId)
   return {
-    get: (host) => getWorkspaceSession(host) ?? getDefaultWorkspaceSession(),
-    set: (session, host) => setWorkspaceSession(session, host)
+    get: (host) => getWorkspaceSession.call(store, host) ?? getDefaultWorkspaceSession(),
+    set: (session, host) => setWorkspaceSession.call(store, session, host)
   }
 }
 

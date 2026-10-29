@@ -368,7 +368,7 @@ it('gates eligible native header hover and menu switches through capability hydr
   const row = within(actions)
   expect(row.getByRole('button', { name: 'Close tab', hidden: true })).toBeTruthy()
   const transcript = screen.getByTestId('message-list')
-  const legacyName = 'Show as terminal'
+  const legacyName = 'Continue with Terminal Agent'
   const expectHidden = () => {
     expect(screen.queryAllByRole('button', { name: 'Switch to CLI', hidden: true })).toHaveLength(0)
     expect(screen.queryByRole('menuitem', { name: 'Switch to CLI' })).toBeNull()

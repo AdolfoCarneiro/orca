@@ -32,8 +32,8 @@ const CREATE_PATHS = [
   },
   {
     path: 'runtime-owned mobile create and restored-pane start',
-    file: 'src/main/runtime/terminal/launch/mobile-terminal-owned-create.ts',
-    bindsWith: 'createTerminal('
+    file: 'src/main/runtime/terminal/launch/mobile-terminal-create-reconciliation.ts',
+    bindsWith: 'persistFreshPaneBindingIfSupported('
   },
   {
     path: 'CLI split of a terminal',

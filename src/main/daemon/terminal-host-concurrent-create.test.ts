@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SubprocessHandle } from './session-subprocess-handle'
+import type { TerminalHostOptions } from './terminal-host-options'
 import { TerminalHost } from './terminal-host'
 
 vi.mock('../pty-descendant-termination', () => ({ killWithDescendantSweep: vi.fn() }))
@@ -95,8 +96,11 @@ describe('concurrent createOrAttach across the async spawn', () => {
 
   it('lets the next caller spawn after a failed spawn releases the gate', async () => {
     const spawnSubprocess = vi
-      .fn<() => Promise<SubprocessHandle>>()
-      .mockRejectedValueOnce(new Error('Working directory "X" does not exist.'))
+      .fn<TerminalHostOptions['spawnSubprocess']>()
+      .mockImplementationOnce((opts) => {
+        opts.onCreationDisposition?.({ kind: 'no-fork' })
+        throw new Error('Working directory "X" does not exist.')
+      })
       .mockImplementation(async () => mockSubprocess())
     const host = new TerminalHost({ spawnSubprocess })
 
@@ -174,6 +178,7 @@ describe('concurrent createOrAttach across the async spawn', () => {
     })
 
     const creation = host.createOrAttach(createOptions('shutdown-race'))
+    const canceled = expect(creation).rejects.toThrow('Attach canceled')
     const disposal = host.dispose()
     let disposed = false
     void disposal.then(() => {
@@ -184,7 +189,7 @@ describe('concurrent createOrAttach across the async spawn', () => {
     expect(disposed).toBe(false)
 
     releaseSpawn()
-    await creation
+    await canceled
     await disposal
 
     expect(subprocess.forceKill).toHaveBeenCalledOnce()
@@ -197,9 +202,14 @@ describe('concurrent createOrAttach across the async spawn', () => {
       rejectSpawn = () => reject(new Error('spawn failed'))
     })
     const spawnSubprocess = vi
-      .fn<() => Promise<SubprocessHandle>>()
-      .mockImplementationOnce(async () => {
-        await spawnGate
+      .fn<TerminalHostOptions['spawnSubprocess']>()
+      .mockImplementationOnce(async (opts) => {
+        try {
+          await spawnGate
+        } catch (error) {
+          opts.onCreationDisposition?.({ kind: 'no-fork' })
+          throw error
+        }
         return mockSubprocess()
       })
       .mockImplementation(async () => mockSubprocess())

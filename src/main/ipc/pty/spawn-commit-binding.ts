@@ -105,6 +105,25 @@ export async function savePtySpawnPaneBinding(
   }
 }
 
+/** Optional runtime stores delegate the same binding write without introducing an await when absent. */
+export function persistFreshPaneBindingIfSupported(
+  store: Partial<Pick<Store, 'persistPtyBinding' | 'getWorkspaceSession'>> | null | undefined,
+  input: PersistPtyBindingArgs | (() => PersistPtyBindingArgs),
+  connectionId?: string | null
+): Promise<boolean> | undefined {
+  if (!store?.persistPtyBinding || !store.getWorkspaceSession) {
+    return undefined
+  }
+  return persistFreshPaneBinding(
+    {
+      persistPtyBinding: store.persistPtyBinding.bind(store),
+      getWorkspaceSession: store.getWorkspaceSession.bind(store)
+    },
+    input,
+    connectionId
+  )
+}
+
 /** Runs inside the existing durable mutation, after source/topology checks and before any bind. */
 export async function persistFreshPaneBinding(
   store: Pick<Store, 'persistPtyBinding' | 'getWorkspaceSession'>,
