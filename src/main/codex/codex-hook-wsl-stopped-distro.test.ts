@@ -80,12 +80,17 @@ describe('Codex WSL hook install on a stopped distro', () => {
     expect(mocks.grant).not.toHaveBeenCalled()
   })
 
-  it('skips the fallback trust write when the distro stopped during the hash wait', async () => {
+  it('skips the fallback trust write when the distro stopped during the hash wait, and says trust is pending', async () => {
     mocks.grant.mockImplementation(async () => {
       mocks.blocked.mockResolvedValue(STOPPED)
       return { lane: 'fallback', reason: 'unavailable' }
     })
-    await expect(installManagedHooksIntoWslRuntime(plan())).resolves.toBeNull()
+    // hooks.json is written by then, so this is not a clean skip: report the pending trust.
+    await expect(installManagedHooksIntoWslRuntime(plan())).resolves.toMatchObject({
+      state: 'error',
+      managedHooksPresent: true,
+      detail: expect.stringContaining('trust is pending')
+    })
     expect(mocks.upsert).not.toHaveBeenCalled()
   })
 

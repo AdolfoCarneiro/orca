@@ -142,8 +142,16 @@ async function installManagedHooksIntoWslRuntimeExclusively(
       removeSelfComputedTrustBeforeGrant(grantPlan)
     )
     // The distro may have stopped during the hash wait; the fallback write would start it again.
+    // hooks.json is already written, so report the missing trust rather than a clean skip.
     if (grant.lane === 'fallback' && (await isWslHookDistroBlocked(plan.wslDistro))) {
-      return null
+      return {
+        agent: 'codex',
+        state: 'error',
+        configPath: plan.configPath,
+        managedHooksPresent: true,
+        detail:
+          'Hooks installed but trust is pending: the WSL distro stopped before Orca could write it. Orca writes it once the distro runs.'
+      }
     }
     if (grant.lane === 'fallback') {
       // Upsert only Orca's entries to preserve user approvals not rebuilt here.
