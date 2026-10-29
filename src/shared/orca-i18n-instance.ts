@@ -9,7 +9,7 @@ import i18next, {
 import { resolvePluralFamilyKey } from './i18n-plural-family'
 import { isPseudoLocalizationLocale, pseudoLocalizeString } from './pseudo-localization'
 import { DEFAULT_UI_LOCALE } from './ui-locale'
-import type { PluginLanguagePackRegistration } from './plugins/plugin-language-pack-artifact'
+import type { PluginLanguagePackRegistration } from './plugins/artifacts/plugin-language-pack-artifact'
 import { replacePluginLanguagePackResources } from './plugins/plugin-language-pack-i18n-resources'
 
 export type OrcaI18n = {
