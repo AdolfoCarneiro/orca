@@ -1,4 +1,4 @@
-import { getChangedRanges } from '@tiptap/core'
+import { getChangedRanges, getExtensionField } from '@tiptap/core'
 import { CodeBlock } from '@tiptap/extension-code-block'
 import CodeBlockLowlight, {
   type CodeBlockLowlightOptions
@@ -40,8 +40,12 @@ function highlightBlock(
   defaultLanguage: string | null | undefined
 ): Decoration[] {
   const language = (block.node.attrs.language as string | null | undefined) || defaultLanguage
+  // Why: unlabeled fences show as Plain text, matching the preview's rehype-highlight.
+  if (!language) {
+    return []
+  }
   const highlighted =
-    language && (languages.has(language) || lowlight.registered(language))
+    languages.has(language) || lowlight.registered(language)
       ? lowlight.highlight(language, block.node.textContent)
       : lowlight.highlightAuto(block.node.textContent)
   const decorations: Decoration[] = []
@@ -207,8 +211,12 @@ export const RichMarkdownCodeBlockLowlight = CodeBlock.extend<CodeBlockLowlightO
     return { ...CodeBlockLowlight.options }
   },
   addProseMirrorPlugins() {
+    // Why: Tiptap copies this method into child configs, so this.parent() would re-enter it and install a second plugin.
+    const basePlugins = getExtensionField<
+      NonNullable<typeof CodeBlock.config.addProseMirrorPlugins>
+    >(CodeBlock, 'addProseMirrorPlugins', this)
     return [
-      ...(this.parent?.() ?? []),
+      ...(basePlugins?.() ?? []),
       createRichMarkdownLowlightPlugin({
         name: this.name,
         lowlight: this.options.lowlight as Lowlight,

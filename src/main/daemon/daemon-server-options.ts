@@ -1,6 +1,7 @@
 import type { DaemonFileLog } from './daemon-file-log'
 import type { TerminalHostOptions } from './terminal-host-options'
 import type { TerminalSpawnAdmissionMode } from './terminal-spawn-gate'
+import type { HostTerminalPolicy } from './host-terminal-policy'
 
 export type DaemonServerOptions = {
   socketPath: string
@@ -35,5 +36,6 @@ export type DaemonServerOptions = {
   automaticWorkMarkerPath?: string
   /** Shared terminal counts for the host-wide cap. */
   hostTerminalLedgerDir?: string
+  terminalLimitPolicy?: HostTerminalPolicy
   spawnSubprocess: TerminalHostOptions['spawnSubprocess']
 }
