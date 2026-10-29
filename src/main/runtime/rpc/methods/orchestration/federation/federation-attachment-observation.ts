@@ -4,6 +4,11 @@ import { OrchestrationError } from '../../../../orchestration/orchestration-erro
 import { parseWorkerTerminalHostScope } from '../../../../../../shared/worker-terminal-host-scope'
 import type { RemoteDispatchAttachmentRow } from '../../../../orchestration/types'
 import { orchestrationTimestampToMs } from '../worker/worker-output'
+import type { FleetAgentStatusEvidence } from '../../../../../../shared/orchestration-fleet-agent-status-evidence'
+import {
+  isFleetAgentWorking,
+  projectLiveness
+} from '../../../../../../shared/orchestration-fleet-worker-projection'
 
 export function requireHomeAttachment(
   runtime: WorkerTerminalReleaseRuntime,
@@ -123,4 +128,15 @@ export async function observeRemoteAttachmentLiveness(
     ) ?? Promise.resolve(null)
   ).catch(() => 'unverifiable' as const)
   return agent === 'exited' ? { ...observation, status: 'exited', agentWait: null } : observation
+}
+
+/** The attachment pane's fresh agent status shows a turn in progress. */
+export function isAttachmentAgentWorking(
+  attachment: Pick<RemoteDispatchAttachmentRow, 'pane_key'> | null | undefined,
+  statuses: readonly FleetAgentStatusEvidence[]
+): boolean {
+  const evidence = attachment?.pane_key
+    ? statuses.find((status) => status.activity.paneKey === attachment.pane_key)
+    : undefined
+  return isFleetAgentWorking(projectLiveness({ resource: null }, evidence, Date.now()), evidence)
 }

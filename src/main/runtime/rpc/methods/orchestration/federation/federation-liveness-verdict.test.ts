@@ -6,6 +6,8 @@ import { OrchestrationDb } from '../../../../orchestration/db'
 import { ORCHESTRATION_METHODS } from '../../orchestration'
 import { eraseRpcMethods } from '../../../core'
 import { registerBoundPty } from '../../../../bind-first-pane.test-fixture'
+import type { AgentStatusIpcPayload } from '../../../../../../shared/agent-status-ipc-payload'
+import { mintFleetAgentStatusEvidence } from '../../../../../../shared/orchestration-fleet-agent-status-evidence'
 
 // Host contact loss never proves worker exit; relay only confirmed stops as settled.
 
@@ -300,6 +302,44 @@ describe('federation host liveness verdicts', () => {
     ).resolves.toMatchObject({
       items: [{ dispatchId: DISPATCH_ID, observation: { status: 'live', exactWorker: true } }]
     })
+  })
+
+  it('tells the Run home its worker is working again, so a reported stop does not stand', async () => {
+    vi.spyOn(runtime, 'showTerminal').mockResolvedValue({
+      handle: HANDLE,
+      worktreeId: 'repo::remote-worktree',
+      connected: true,
+      status: 'running'
+    } as never)
+    vi.spyOn(runtime, 'getTerminalLivenessVerdict').mockReturnValue(null)
+    vi.spyOn(runtime, 'getOrchestrationDispatchAuthority').mockReturnValue({
+      hostScope: { kind: 'local', hostId: 'local' }
+    } as never)
+    const status = (state: 'working' | 'blocked') =>
+      mintFleetAgentStatusEvidence(
+        {
+          paneKey: PANE_KEY,
+          terminalHandle: HANDLE,
+          connectionId: null,
+          state,
+          prompt: '',
+          receivedAt: Date.now(),
+          stateStartedAt: Date.now()
+        } as AgentStatusIpcPayload,
+        { kind: 'pane', terminalHandle: HANDLE, paneKey: PANE_KEY, processIncarnation: INCARNATION }
+      )
+    const snapshot = vi.spyOn(runtime, 'getOrchestrationFleetAgentStatusSnapshot')
+    const observe = async () =>
+      (
+        (await call('orchestration.federationFleetSnapshot', { dispatchIds: [DISPATCH_ID] })) as {
+          items: { observation: { working?: boolean } }[]
+        }
+      ).items[0]?.observation.working
+
+    snapshot.mockReturnValue([status('working')])
+    expect(await observe()).toBe(true)
+    snapshot.mockReturnValue([status('blocked')])
+    expect(await observe()).toBeUndefined()
   })
 
   it('keeps a disconnected verdict-less pane unverifiable rather than exited', async () => {

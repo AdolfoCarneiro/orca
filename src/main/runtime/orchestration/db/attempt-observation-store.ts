@@ -170,71 +170,14 @@ export function activeSiblingAttemptSql(taskId: string, dispatchId: string): str
        AND sibling.state NOT IN ('failed', 'succeeded', 'stopped', 'abandoned')`
 }
 
-function recordWorkerTurn(
-  db: OrchestrationDb,
-  dispatchId: string,
-  id: string,
-  turn: 'waiting' | 'working',
-  at: number
-): void {
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the SELECT yields exactly these aggregate columns.
-  const { sequence } = db.db
-    .prepare(
-      'SELECT MAX(sequence) AS sequence FROM attempt_observation_facts WHERE dispatch_id = ?'
-    )
-    .get(dispatchId) as { sequence: number | null }
-  db.recordAttemptObservation({
-    id,
-    dispatchId,
-    sequence: (sequence ?? -1) + 1,
-    authorityId: 'orca_turn_observer',
-    authorityClock: 'home',
-    facet: 'process_turn',
-    payload: { process: 'running', turn },
-    homeReceivedAt: at
-  })
-}
-
-/** A reported stop: the worker's turn is at rest until it resumes. */
-export function recordWorkerTurnStopped(
-  this: OrchestrationDb,
-  dispatchId: string,
-  stopId: string,
-  at: number
-): void {
-  recordWorkerTurn(this, dispatchId, stopId, 'waiting', at)
-}
-
-/** A worker that resumed after a reported stop is working again, however it was resumed. */
-export function recordWorkerTurnResumed(
-  this: OrchestrationDb,
-  dispatchId: string,
-  at: number
-): void {
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the SELECT yields exactly these columns.
-  const latest = this.db
-    .prepare(
-      `SELECT id, json_extract(payload, '$.turn') AS turn FROM attempt_observation_facts
-        WHERE dispatch_id = ? AND facet = 'process_turn' ORDER BY sequence DESC LIMIT 1`
-    )
-    .get(dispatchId) as { id: string; turn: string | null } | undefined
-  if (latest?.turn === 'waiting') {
-    recordWorkerTurn(this, dispatchId, `${latest.id}:resumed`, 'working', at)
-  }
-}
-
 export type AttemptObservationStoreMethods = {
   recordAttemptObservation: typeof recordAttemptObservation
   getAttemptObservationFacts: typeof getAttemptObservationFacts
-  recordWorkerTurnStopped: typeof recordWorkerTurnStopped
-  recordWorkerTurnResumed: typeof recordWorkerTurnResumed
 }
 
 export function attachAttemptObservationStore(ctor: { prototype: object }): void {
   Object.assign(ctor.prototype, {
     recordAttemptObservation,
-    getAttemptObservationFacts,
-    recordWorkerTurnStopped,
-    recordWorkerTurnResumed
+    getAttemptObservationFacts
   })
 }

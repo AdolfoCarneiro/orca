@@ -84,7 +84,7 @@ export function reportWorkerTurnStop(
   const payload = { dispatchId, handle: stop.from, stopReason: stop.reason }
   if (target.kind === 'local') {
     const { dispatch } = target
-    const reported = escalateWorkerFailure(
+    escalateWorkerFailure(
       db,
       dispatch,
       {
@@ -99,9 +99,6 @@ export function reportWorkerTurnStop(
       },
       deps.notify
     )
-    if (reported) {
-      db.recordWorkerTurnStopped(dispatch.id, id, Date.now())
-    }
     return
   }
   // The Run home imports relayed worker mail into the coordinator's Run and wakes it.

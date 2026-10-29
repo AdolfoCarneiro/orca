@@ -122,7 +122,7 @@ function applyChatAssigneeLiveness(
           : { verdict: 'unverifiable', reason: 'host_unavailable' }
     worker.evidence.liveStatus = observed.status === 'live' ? 'fresh' : 'unavailable'
     worker.evidence.lastObservedAt = observed.status === 'live' ? now : null
-    refreshFleetWorkerVerdict(worker, fleet.durable)
+    refreshFleetWorkerVerdict(worker, fleet.durable, observed.status === 'live' && observed.working)
   }
 }
 

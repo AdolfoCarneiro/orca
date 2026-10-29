@@ -26,9 +26,16 @@ describe('a chat assignee', () => {
 
   it('is live at rest: a released lease is not an exit', () => {
     const resting = sessionRecord(CHAT, { lease: { claimStatus: 'released' } })
-    expect(observeChatAssignee(CHAT, null, store(resting, true))).toMatchObject({
+    expect(observeChatAssignee(CHAT, null, store(resting, true), () => undefined)).toMatchObject({
       status: 'live',
-      session: { sessionId: CHAT }
+      session: { sessionId: CHAT },
+      working: false
+    })
+    // Its live status, not Dispatch mail, ends a reported stop once its turn runs again.
+    const working = () => ({ status: 'working' })
+    expect(observeChatAssignee(CHAT, null, store(resting, true), working)).toMatchObject({
+      status: 'live',
+      working: true
     })
   })
 

@@ -3,14 +3,11 @@ import type {
   AgentSessionTurnCompletionEvent
 } from '../../../shared/agent-session-wire'
 import { chatWorkerDispatches } from './chat-worker-error-escalation'
-import type { OrchestrationDb } from './db'
 import {
   reportWorkerTurnStop,
   type WorkerTurnStopReason,
   type WorkerTurnStopReportDeps
 } from './worker-turn-stop-report'
-
-export type ChatWorkerStatus = Pick<AgentSessionStatusSummary, 'sessionId' | 'status'>
 
 type ChatStop = {
   sessionId: string
@@ -67,12 +64,5 @@ export function chatWorkerTurnStopReporter(deps: WorkerTurnStopReportDeps) {
     } catch (error) {
       console.warn('[orchestration] chat worker stop report failed', error)
     }
-  }
-}
-
-/** A prompt answered in the chat, or any other resume, ends the reported stop. */
-export function recordChatWorkerResumed(sessionId: string, db: OrchestrationDb | null): void {
-  for (const { dispatch } of db ? chatWorkerDispatches(sessionId, db) : []) {
-    db?.recordWorkerTurnResumed(dispatch.id, Date.now())
   }
 }

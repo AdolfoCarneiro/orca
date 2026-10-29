@@ -99,6 +99,14 @@ export function projectLiveness(
   return { verdict: 'live', observedAt, source: 'agent_status' }
 }
 
+/** Fresh agent status of a turn in progress; it outranks a stop the worker already reported. */
+export function isFleetAgentWorking(
+  liveness: FleetLiveness,
+  evidence: FleetAgentStatusEvidence | undefined
+): boolean {
+  return liveness.verdict === 'live' && evidence?.activity.state === 'working'
+}
+
 function projectResource(worker: FleetDurableWorker): FleetResourceProjection {
   const resource = worker.resource
   if (!resource) {
@@ -221,7 +229,8 @@ export function projectOrchestrationFleetWorker(
   const outcome = resolveFleetWorkerOutcome({
     attemptOutcome: worker.outcome,
     workerState: worker.workerState,
-    dispatchStatus: worker.dispatchStatus
+    dispatchStatus: worker.dispatchStatus,
+    working: isFleetAgentWorking(liveness, evidence)
   })
   return {
     id: worker.dispatchId,
@@ -254,7 +263,7 @@ export function projectOrchestrationFleetWorker(
     },
     resource: projectResource(worker),
     ...(worker.resource?.autoReleaseAt ? { autoReleaseAt: worker.resource.autoReleaseAt } : {}),
-    nextAction: projectFleetNextAction(worker, liveness),
+    nextAction: projectFleetNextAction({ ...worker, outcome }, liveness),
     attention: projectOrchestrationFleetAttention({
       isRoot: worker.parentTaskId === null,
       outcome,

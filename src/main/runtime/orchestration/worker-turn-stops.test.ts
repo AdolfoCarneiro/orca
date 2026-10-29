@@ -6,7 +6,7 @@ import { makePaneKey } from '../../../shared/stable-pane-id'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
 import { formatOrcaSessionAddress } from '../../../shared/orca-session-address'
 import { testOrcaSessionId } from '../../../shared/orca-session-address-test-fixture'
-import { chatWorkerTurnStopReporter, recordChatWorkerResumed } from './chat-worker-turn-stops'
+import { chatWorkerTurnStopReporter } from './chat-worker-turn-stops'
 import { OrchestrationDb } from './db'
 import { createRootDispatch } from './db/root-dispatch-test-fixture'
 import { TerminalWorkerTurnStops } from './terminal-worker-turn-stops'
@@ -200,24 +200,6 @@ describe('terminal worker turn stops', () => {
     ])
   })
 
-  it('stops asking for action once the worker resumes on its own, until it stops again', async () => {
-    const ctx = setup()
-    const current = { row: hookRow({ state: 'blocked' }) }
-    const stops = terminal(ctx, current)
-    const outcome = () => ctx.db.getWorkerAttentionFacts(ctx.dispatch.id, 1).outcome
-    stops.observe(moved('working', 'needs-you'))
-    await settle()
-    expect(outcome()).toBe('finished_unverified')
-    // Approved in the terminal itself: no mail reaches the Dispatch.
-    current.row = hookRow({ state: 'working', stateStartedAt: 300 })
-    stops.observe(moved('needs-you', 'working'))
-    expect(outcome()).not.toBe('finished_unverified')
-    current.row = hookRow({ stateStartedAt: 400 })
-    stops.observe(moved('working', 'done'))
-    await settle()
-    expect(outcome()).toBe('finished_unverified')
-  })
-
   it('stays quiet for a resumed turn, a settled Dispatch, or a deliberate wait', async () => {
     const resumed = setup()
     const current = { row: hookRow({}) }
@@ -268,18 +250,6 @@ describe('chat worker turn stops', () => {
     report(completion('success'), status)
     expect(ctx.mail()).toHaveLength(1)
     expect(ctx.mail()[0].body).toContain('Read the files.')
-  })
-
-  it('stops asking for action once the chat resumes without Dispatch mail', () => {
-    const ctx = setup(formatOrcaSessionAddress(CHAT_SESSION))
-    const outcome = () => ctx.db.getWorkerAttentionFacts(ctx.dispatch.id, 1).outcome
-    chatWorkerTurnStopReporter(ctx.deps)(completion('success'), () => ({
-      status: 'idle' as const,
-      lastAssistantMessage: undefined
-    }))
-    expect(outcome()).toBe('finished_unverified')
-    recordChatWorkerResumed(CHAT_SESSION, ctx.db)
-    expect(outcome()).not.toBe('finished_unverified')
   })
 })
 

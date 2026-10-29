@@ -407,7 +407,7 @@ describe('fleet liveness and attention after a host verdict', () => {
     const now = 10_000
     const projected = projectOrchestrationFleet({
       workers: [worker('1', { outcome: 'finished_unverified' })],
-      statuses: [status('1', now - 1)],
+      statuses: [status('1', now - 1, { state: 'done' })],
       now
     })
     const subject = projected.workers[0]!
@@ -480,6 +480,20 @@ describe('fleet liveness and attention after a host verdict', () => {
       liveness: { verdict: 'live' },
       attention: { requiresAction: true },
       nextAction: { kind: 'recover', argv: ['orchestration', 'worker-read', '--dispatch', '1'] }
+    })
+  })
+
+  it('drops a reported stop once the live status shows the worker working again', () => {
+    const now = 10_000
+    const projected = projectOrchestrationFleet({
+      workers: [worker('1', { outcome: 'finished_unverified' })],
+      statuses: [status('1', now - 1, { state: 'working' })],
+      now
+    })
+    expect(projected.workers[0]).toMatchObject({
+      outcome: 'in_progress',
+      attention: { requiresAction: false },
+      nextAction: { kind: 'none' }
     })
   })
 

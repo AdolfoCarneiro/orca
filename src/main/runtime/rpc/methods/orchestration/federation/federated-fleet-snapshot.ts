@@ -6,6 +6,7 @@ import {
   type FleetDurableWorker,
   type OrchestrationFleetPage
 } from '../../../../../../shared/orchestration-fleet-projection'
+import { resolveFleetWorkerOutcome } from '../../../../../../shared/orchestration-fleet-outcome-resolution'
 import { projectFleetNextAction } from '../../../../../../shared/orchestration-fleet-worker-projection'
 import { getOrchestrationPeerCapabilityCache } from '../../../../orchestration/orchestration-peer-capability-cache'
 import type { OrchestrationDb } from '../../../../orchestration/db'
@@ -25,6 +26,8 @@ export type FederatedFleetObservation = {
   /** Hosts that release settled workers on their own report it; older hosts omit both. */
   released?: boolean
   autoReleaseAt?: string
+  /** The host's live agent status shows a turn in progress; older hosts omit it. */
+  working?: boolean
 }
 
 export type FederatedFleetHostError = {
@@ -233,7 +236,7 @@ export function applyFederatedFleetObservations(
           : { verdict: 'unverifiable', reason: hostReportedReason(observation.reason) }
     worker.evidence.liveStatus = observation.status === 'live' ? 'fresh' : 'unavailable'
     worker.evidence.lastObservedAt = observation.status === 'unverifiable' ? null : observedAt
-    refreshFleetWorkerVerdict(worker, durable)
+    refreshFleetWorkerVerdict(worker, durable, observation.working === true)
     if (observation.autoReleaseAt) {
       worker.autoReleaseAt = observation.autoReleaseAt
       worker.nextAction = { kind: 'none', argv: [] }
@@ -241,14 +244,24 @@ export function applyFederatedFleetObservations(
   }
 }
 
+/** `working`: the host's live status shows a turn in progress, which outranks a reported stop. */
 export function refreshFleetWorkerVerdict(
   worker: OrchestrationFleetPage['workers'][number],
-  durable: ReadonlyMap<string, FleetDurableWorker>
+  durable: ReadonlyMap<string, FleetDurableWorker>,
+  working = false
 ): void {
-  refreshOrchestrationFleetLivenessAttention(worker)
   const row = durable.get(worker.dispatchId)
   if (row) {
-    worker.nextAction = projectFleetNextAction(row, worker.liveness)
+    worker.outcome = resolveFleetWorkerOutcome({
+      attemptOutcome: row.outcome,
+      workerState: row.workerState,
+      dispatchStatus: row.dispatchStatus,
+      working
+    })
+  }
+  refreshOrchestrationFleetLivenessAttention(worker)
+  if (row) {
+    worker.nextAction = projectFleetNextAction({ ...row, outcome: worker.outcome }, worker.liveness)
   }
 }
 
