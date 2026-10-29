@@ -119,6 +119,25 @@
         "gitInitFailed": "Git repository'si başlatılamadı: {{detail}}",
         "initialCommitFailed": "İlk commit oluşturulamadı: {{detail}}"
       }
+    },
+    "wslHosts": {
+      "addErrors": {
+        "alreadyAdded": "{{distro}} zaten ana makine olarak ekli.",
+        "distroStopped": "Liste okunduktan sonra {{distro}} durdu. Başlatmak için “Başlat ve ekle” seçeneğini seçin.",
+        "wsl1": "{{distro}}, Orca'nın artık desteklemediği WSL 1'i kullanıyor. Windows terminalinde şu komutla WSL 2'ye dönüştürün: {{command}}",
+        "notRegistered": "{{distro}} yüklü bir WSL dağıtımı değil. Yüklü dağıtımları görmek için Windows terminalinde {{command}} komutunu çalıştırın veya dağıtımı yeniden yükleyip tekrar deneyin.",
+        "sshManaged": "{{distro}} içinde zaten “{{server}}” için Orca sunucusu çalışıyor ve bu bilgisayar ona SSH üzerinden bağlanıyor. Önce bu sunucuyu kaldırın; WSL ana makinesine taşıma henüz desteklenmiyor."
+      },
+      "statusDetails": {
+        "runningListUnavailable": "Windows, dağıtımın çalışıp çalışmadığını bildirmedi.",
+        "guestUnanswered": "Dağıtım çalışıyor ancak Orca'nın kontrolüne yanıt vermedi.",
+        "orcadUnanswered": "Dağıtım içindeki Orca sunucusu yanıt vermedi.",
+        "restartGaveUp_one": "{{count}} denemeden sonra {{distro}} içindeki Orca sunucusu yeniden başlatılamadı",
+        "restartGaveUp_other": "{{count}} denemeden sonra {{distro}} içindeki Orca sunucusu yeniden başlatılamadı",
+        "serviceUnconfirmed": "WSL hizmeti dağıtımın çalışıp çalışmadığını doğrulamadı.",
+        "peerCheckFailed": "Orca tarafından WSL ana makinesine bu bilgisayardaki başka bir Orca'nın onu hâlâ kullanıp kullanmadığı sorulamadı: {{detail}}",
+        "removalUnrecorded": "Bu kaldırma işleminden sonra nelerin çalışmaya devam ettiği Orca tarafından kaydedilemedi: {{detail}}"
+      }
     }
   },
   "app": {
@@ -21752,6 +21771,39 @@
         "attemptsExhausted": "birkaç denemeden sonra tamamlanamadı"
       },
       "finishPending": "{{distro}} ana makinesine yapılan önceki bir taşıma orada tamamlandı. Orca bu taşımayı burada yeniden başladığında ya da şimdi Yeniden kontrol et ile tamamlar."
+    }
+  },
+  "automations": {
+    "runFailures": {
+      "noDispatchHost": "Otomasyonu başlatmak için kullanılabilir bir Orca penceresi yoktu.",
+      "unevaluableSchedule": "Orca bu otomasyonu değerlendiremedi ve bu çalıştırmayı atladı.",
+      "noRunnableHost": "Bu otomasyonun çalışacağı bir sunucu yok.",
+      "wslMoveInProgress": "Bu otomasyonun projesi WSL ana makinesine taşınıyor. Bu nedenle Orca bu çalıştırmayı atladı. Taşıma tamamlandığında çalıştırmalar devam edecek.",
+      "wslMoveOwnedByHost": "Bu otomasyonun projesi artık WSL ana makinesinde çalışıyor ve bu otomasyon da orada ana makine tarafından çalıştırılıyor. Orca artık bu yerel kopyayı çalıştırmıyor.",
+      "missedGraceWindow": "Orca'nın bir sonraki kontrolünde bu çalıştırma, kaçırılan çalıştırmalar için tanınan tolerans süresini aşmıştı.",
+      "targetMissing": "Otomasyon sunucusu artık kayıtlı olmadığından bu otomasyonun çalışacağı bir yer yok.",
+      "targetReplaced": "Otomasyon sunucusu kaldırılıp yeniden kaydedildiği için bu otomasyonun çalıştırılmadan önce yeniden ilişkilendirilmesi gerekiyor.",
+      "workspaceHostAmbiguous": "Otomasyonun çalışma alanı birden fazla sunucuya yayıldığı için Orca hangi sunucuda çalıştırılacağını belirleyemiyor.",
+      "legacyTwinHosts": "Bu otomasyon, Orca hangi sunucuda çalıştığını izlemeye başlamadan önce kaydedilmiş ve projesi birden fazla sunucuda bulunuyor. Otomasyonu açın ve çalışması gereken sunucuyu seçin.",
+      "targetUnavailable": "Otomasyonun çalıştırma hedefi artık kullanılamıyor.",
+      "remoteSchedulingUnavailable": "Bu Orca istemcisinden uzak sunucu otomasyonlarını zamanlama henüz kullanılamıyor. Bu otomasyonu uzak sunucuda çalıştırın veya kalıcı uzak zamanlama kullanıma sunulduğunda Orca'yı güncelleyin.",
+      "projectSetupMissing": "Proje artık seçili otomasyon sunucusunda kurulu değil.",
+      "targetSetupMismatch": "Otomasyonun çalıştırma hedefi artık projenin seçili sunucu kurulumuyla eşleşmiyor.",
+      "repoUnavailable": "Seçili otomasyon sunucusunun repository'si artık kullanılamıyor.",
+      "repoDetached": "Repository artık seçili otomasyon sunucusuna bağlı değil.",
+      "projectPathChanged": "Seçili otomasyon sunucusundaki proje yolu değişti.",
+      "automationChanged": "Bu çalıştırma başlatılamadan otomasyon değişti.",
+      "destinationChanged": "Bu çalıştırma başlatılamadan otomasyonun hedefi değişti.",
+      "hooksReviewBlocked": "Ajan, yeni veya değiştirilmiş hook'ların incelenmesini bekliyor (\"Hooks need review\"). Bu çalıştırmayı açıp hook'lara güvenin veya onları kaldırın. Zamanlanmış çalıştırmalar devam eder ve incelenecek bir şey kalmadığında başarıyla tamamlanır.",
+      "agentNeverStarted": "İstem gönderildikten sonra otomasyon ajanı hiç başlatılmadı.",
+      "agentNoCompletion": "Otomasyon ajanı tamamlanma bildirimi göndermedi.",
+      "watchTimedOut": "Orca, 6 saat boyunca tamamlanma sinyali gelmeyince bu çalıştırmayı izlemeyi durdurdu.",
+      "projectSetupState": {
+        "notSetUp": "Proje seçili otomasyon sunucusunda kurulu değil.",
+        "settingUp": "Proje seçili otomasyon sunucusunda hâlâ kuruluyor.",
+        "error": "Proje seçili otomasyon sunucusunda kurulamadı.",
+        "unsupported": "Seçili otomasyon sunucusu bu projeyi desteklemiyor."
+      }
     }
   }
 }
