@@ -3,7 +3,7 @@ import {
   clearClientHostedBrowserCloseIntents,
   recordClientHostedBrowserCloseIntents
 } from '@/runtime/client-hosted-browser-close-intents'
-import { getBrowserSettingsHostId } from './browser-host-state'
+import { getBrowserSettingsHostId, saveDefaultBrowserProfileForHost } from './browser-host-state'
 import { parseExecutionHostId } from '../../../../../shared/execution-host'
 
 export function createBrowserHostActions(
@@ -56,15 +56,7 @@ export function createBrowserHostActions(
     },
 
     setDefaultBrowserSessionProfileId: (profileId) => {
-      const state = get()
-      const hostId = getBrowserSettingsHostId(state)
-      const { [hostId]: _previous, ...otherHosts } =
-        state.settings?.browserDefaultProfileIdByHostId ?? {}
-      void state.updateSettings({
-        browserDefaultProfileIdByHostId: profileId
-          ? { ...otherHosts, [hostId]: profileId }
-          : otherHosts
-      })
+      saveDefaultBrowserProfileForHost(get(), getBrowserSettingsHostId(get()), profileId)
     }
   }
 }

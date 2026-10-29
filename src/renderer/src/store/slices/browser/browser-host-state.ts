@@ -140,21 +140,29 @@ export function getBrowserProfilesForHost(
   )
 }
 
-/** The host's chosen default profile, or null (Default) when unset or no longer in the host's listing. */
+/** The host's chosen default profile for new tabs, or null for Default. */
 export function getDefaultBrowserProfileForHost(
-  state: Pick<AppState, 'settings' | 'browserSessionProfilesByHostId'>,
+  state: Pick<AppState, 'settings'>,
   hostId: ExecutionHostId
 ): string | null {
   // Why: only paired runtimes keep their own profiles; every other host renders on this desktop's.
   const profileHostId =
     parseExecutionHostId(hostId)?.kind === 'runtime' ? hostId : LOCAL_EXECUTION_HOST_ID
   const profileId = state.settings?.browserDefaultProfileIdByHostId?.[profileHostId]
-  // Why: a real listing always has Default, so an empty one is a failed fetch and proves nothing.
-  const listed = state.browserSessionProfilesByHostId[profileHostId]
-  return typeof profileId === 'string' &&
-    (!listed?.length || listed.some((p) => p.id === profileId))
-    ? profileId
-    : null
+  return typeof profileId === 'string' ? profileId : null
+}
+
+/** Persists a host's default pick; null goes back to Default. */
+export function saveDefaultBrowserProfileForHost(
+  state: Pick<AppState, 'settings' | 'updateSettings'>,
+  hostId: ExecutionHostId,
+  profileId: string | null
+): void {
+  const { [hostId]: _previous, ...otherHosts } =
+    state.settings?.browserDefaultProfileIdByHostId ?? {}
+  void state.updateSettings({
+    browserDefaultProfileIdByHostId: profileId ? { ...otherHosts, [hostId]: profileId } : otherHosts
+  })
 }
 
 export function browserImportStateForHostUpdate(

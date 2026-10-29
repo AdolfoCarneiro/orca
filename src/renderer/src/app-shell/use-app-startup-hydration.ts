@@ -32,8 +32,10 @@ import {
 import {
   getRepoExecutionHostId,
   isOwnedSshTargetId,
+  LOCAL_EXECUTION_HOST_ID,
   parseExecutionHostId
 } from '../../../shared/execution-host'
+import { getBrowserSettingsHostId } from '../store/slices/browser/browser-host-state'
 import { listRuntimeSessionHostsForStartup } from './startup-runtime-session-hosts'
 import { mapWithConcurrency } from '../../../shared/map-with-concurrency'
 import { collectWslMovedWorkspaceKeysFromSession } from '../store/repos/wsl-moved-projects'
@@ -217,7 +219,12 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
           })
           // Browser profiles can take a 15s runtime RPC and do not gate restoration. Start here without awaiting; the action handles its own failure.
           void timeRendererStartupStep('fetch-browser-session-profiles', () =>
-            actions.fetchBrowserSessionProfiles()
+            Promise.all([
+              actions.fetchBrowserSessionProfiles(),
+              // Why: local and SSH tabs use this desktop's profiles even when Settings shows a paired server.
+              getBrowserSettingsHostId(useAppStore.getState()) !== LOCAL_EXECUTION_HOST_ID &&
+                actions.fetchBrowserSessionProfiles(LOCAL_EXECUTION_HOST_ID)
+            ])
           ).catch(() => {})
           const onboardingState = await onboardingPromise
           if (!cancelled) {

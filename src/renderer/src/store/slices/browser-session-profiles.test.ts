@@ -489,6 +489,16 @@ describe('createBrowserSlice runtime guard', () => {
     expect(getDefaultBrowserProfileForHost(store.getState(), 'local')).toBeNull()
   })
 
+  it('drops the default profile pick when that profile is deleted', async () => {
+    const store = createTestStore()
+    store.getState().setDefaultBrowserSessionProfileId('work')
+    mockApi.browser.sessionDeleteProfile.mockResolvedValueOnce(true)
+
+    await store.getState().deleteBrowserSessionProfile('work')
+
+    expect(store.getState().settings?.browserDefaultProfileIdByHostId).toEqual({})
+  })
+
   it('keeps the newest listing when an older one answers last', async () => {
     const store = createTestStore()
     const listed = (id: string) => ({

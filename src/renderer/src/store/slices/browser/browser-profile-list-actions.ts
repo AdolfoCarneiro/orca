@@ -12,7 +12,8 @@ import {
   getBrowserProfilesForHost,
   getBrowserSettingsHostId,
   getBrowserSettingsRuntimeEnvironmentId,
-  profileListByHostUpdate
+  profileListByHostUpdate,
+  saveDefaultBrowserProfileForHost
 } from './browser-host-state'
 
 export function createBrowserProfileListActions(
@@ -25,6 +26,22 @@ export function createBrowserProfileListActions(
   // Why: change events can overlap fetches; only the latest listing per host may land, or an older one restores a deleted profile.
   const latestListingByHost = new Map<ExecutionHostId, number>()
   let listingCount = 0
+  const forgetDefaultProfileUnless = (
+    hostId: ExecutionHostId,
+    isKept: (profileId: string) => boolean
+  ): void => {
+    const profileId = get().settings?.browserDefaultProfileIdByHostId?.[hostId]
+    if (profileId && !isKept(profileId)) {
+      saveDefaultBrowserProfileForHost(get(), hostId, null)
+    }
+  }
+  // Why: a real listing always has Default, so an empty one (a web client's local host) proves nothing.
+  const landListing = (hostId: ExecutionHostId, profiles: BrowserSessionProfile[]): void => {
+    set((s) => profileListByHostUpdate(s, profiles, hostId))
+    if (profiles.length > 0) {
+      forgetDefaultProfileUnless(hostId, (id) => profiles.some((profile) => profile.id === id))
+    }
+  }
   return {
     fetchBrowserSessionProfiles: async (requestedHostId) => {
       const hostId = requestedHostId ?? getBrowserSettingsHostId(get())
@@ -53,7 +70,7 @@ export function createBrowserProfileListActions(
               : profile
           )
           if (isLatest()) {
-            set((s) => profileListByHostUpdate(s, profiles, hostId))
+            landListing(hostId, profiles)
           }
           return {
             hostId,
@@ -72,7 +89,7 @@ export function createBrowserProfileListActions(
       try {
         const profiles = (await window.api.browser.sessionListProfiles()) as BrowserSessionProfile[]
         if (isLatest()) {
-          set((s) => profileListByHostUpdate(s, profiles, hostId))
+          landListing(hostId, profiles)
         }
       } catch {
         /* best-effort — stale profile list is preferable to a crash */
@@ -145,6 +162,7 @@ export function createBrowserProfileListActions(
                 hostId
               )
             )
+            forgetDefaultProfileUnless(hostId, (id) => id !== profileId)
           }
           return result.deleted
         } catch {
@@ -161,6 +179,7 @@ export function createBrowserProfileListActions(
               hostId
             )
           )
+          forgetDefaultProfileUnless(hostId, (id) => id !== profileId)
         }
         return ok
       } catch {
