@@ -407,7 +407,26 @@
       "claudeWorkspace": "Claude 워크스페이스"
     },
     "shortcuts": {
-      "parseFailed": "단축키를 해석할 수 없습니다."
+      "parseFailed": "단축키를 해석할 수 없습니다.",
+      "validation": {
+        "invalidFormat": "Ctrl+Shift+P 또는 Cmd+K 같은 단축키를 사용하세요.",
+        "mixedModifiers": "Mod 또는 플랫폼별 수정자 중 하나만 사용하세요.",
+        "modifierRequired": "수정 키를 하나 이상 포함하세요.",
+        "digitKeyRequired": "Cmd+1 또는 Ctrl+1처럼 수정 키와 숫자 키 1–9를 조합하세요.",
+        "modifierOnly": "수정 키만 누르지 말고 다른 키도 누르세요.",
+        "invalidBindingValue": "문자열, 문자열 배열, null 또는 false를 사용하세요.",
+        "stringArrayRequired": "문자열 배열을 사용하세요.",
+        "fileNotObject": "키바인딩 파일에는 JSON 객체가 있어야 합니다."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}}은(는) 객체여야 합니다.",
+        "unknownAction": "알 수 없는 키 바인딩 작업 \"{{actionId}}\"이(가) 무시되었습니다.",
+        "shortcutIgnored": "\"{{actionId}}\"의 단축키가 무시되었습니다: {{reason}}",
+        "platformsNotObject": "platforms는 darwin, linux 또는 win32 섹션이 있는 객체여야 합니다.",
+        "unknownPlatform": "알 수 없는 플랫폼 \"{{platform}}\"이(가) 무시되었습니다.",
+        "conflictingOverrides": "충돌하는 맞춤 단축키가 무시되었습니다: {{actions}}.",
+        "readFailed": "키바인딩 파일을 읽지 못했습니다: {{reason}}"
+      }
     }
   },
   "menu": {
@@ -582,14 +601,7 @@
             "b8a1618172": "웹 클라이언트에서는 PR 세부 정보 생성을 사용할 수 없습니다.",
             "e57c82d276": "웹 클라이언트에서는 Commit 메시지 모델 검색을 사용할 수 없습니다.",
             "9fc90740b6": "웹 클라이언트에서는 Commit 메시지 생성을 사용할 수 없습니다.",
-            "52bee9d8a0": "충돌하는 맞춤 단축키가 무시되었습니다: {{value0}}.",
-            "32f15bdb0f": "알 수 없는 플랫폼 \"{{value0}}\"이(가) 무시되었습니다.",
-            "0a69fcd8bc": "플랫폼은 darwin, linux 또는 win32 섹션이 있는 객체여야 합니다.",
-            "10898045f3": "\"{{value0}}\"에 대한 단축키가 무시되었습니다. 문자열 배열을 사용하세요.",
-            "36761d9604": "알 수 없는 키 바인딩 작업 \"{{value0}}\"이(가) 무시되었습니다.",
-            "d2e43e426a": "{{value0}}은(는) 객체여야 합니다.",
-            "fb290366b2": "웹에서는 사용할 수 없습니다.",
-            "76122208ca": "\"{{value0}}\"에 대한 단축키가 무시되었습니다: {{value1}}"
+            "fb290366b2": "웹에서는 사용할 수 없습니다."
           }
         },
         "runtime": {
@@ -1636,22 +1648,30 @@
         "5c1c973855": "리뷰어 삭제",
         "commentTooLarge": "댓글이 너무 길어 안전하게 제출할 수 없습니다.",
         "timeline": {
-          "completed": "를 완료로",
-          "notPlanned": "미계획으로",
           "someone": "someone",
-          "assigned": "assigned",
-          "unassigned": "unassigned",
-          "mentioned": "이 이슈를 언급했습니다",
-          "in": "in",
-          "closed": "이 이슈를 닫았습니다",
-          "reopened": "이 이슈를 다시 열었습니다",
-          "moved": "이 이슈를 이동했습니다",
-          "from": "from",
-          "to": "to",
           "activity": "활동",
           "noActivity": "아직 활동이 없습니다.",
           "pullRequestReference": "PR #{{number}}",
-          "issueReference": "이슈 #{{number}}"
+          "issueReference": "이슈 #{{number}}",
+          "movedFromToInProject": "<actor/> 님이 <project/>에서 이 이슈를 <from/>에서 <to/>(으)로 이동했습니다",
+          "movedFromTo": "<actor/> 님이 이 이슈를 <from/>에서 <to/>(으)로 이동했습니다",
+          "movedToInProject": "<actor/> 님이 <project/>에서 이 이슈를 <to/>(으)로 이동했습니다",
+          "movedTo": "<actor/> 님이 이 이슈를 <to/>(으)로 이동했습니다",
+          "movedFromInProject": "<actor/> 님이 <project/>에서 이 이슈를 <from/>에서 이동했습니다",
+          "movedFrom": "<actor/> 님이 이 이슈를 <from/>에서 이동했습니다",
+          "movedInProject": "<actor/> 님이 <project/>에서 이 이슈를 이동했습니다",
+          "movedThis": "<actor/> 님이 이 이슈를 이동했습니다",
+          "closedCompletedIn": "<actor/> 님이 <target/>에서 이 이슈를 완료로 닫았습니다",
+          "closedCompleted": "<actor/> 님이 이 이슈를 완료로 닫았습니다",
+          "closedNotPlannedIn": "<actor/> 님이 <target/>에서 이 이슈를 계획 없음으로 닫았습니다",
+          "closedNotPlanned": "<actor/> 님이 이 이슈를 계획 없음으로 닫았습니다",
+          "closedIn": "<actor/> 님이 <target/>에서 이 이슈를 닫았습니다",
+          "closedThis": "<actor/> 님이 이 이슈를 닫았습니다",
+          "assignedUser": "<actor/> 님이 <assignee/> 님을 담당자로 지정했습니다",
+          "unassignedUser": "<actor/> 님이 <assignee/> 님의 담당자 지정을 해제했습니다",
+          "mentionedIn": "<actor/> 님이 <target/>에서 이 이슈를 언급했습니다",
+          "mentionedThis": "<actor/> 님이 이 이슈를 언급했습니다",
+          "reopenedThis": "<actor/> 님이 이 이슈를 다시 열었습니다"
         },
         "checkActionRequiredHint": "머지 차단을 해제하려면 GitHub에서 수동 작업(예: 실행 승인)이 필요합니다.",
         "e15a8b77ef": "이 검사에는 인라인 세부정보가 없습니다.",
@@ -1893,6 +1913,7 @@
         "estimateValue": "추정치 {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
+        "openExistingWorkspace": "기존 워크스페이스 열기",
         "cbb47ee0dc": "로컬 Git 프로젝트에만 사용할 수 있습니다.",
         "d861de981b": "스파스 체크아웃",
         "090cfedeb4": "메모 쓰기",
@@ -1926,8 +1947,6 @@
         "notConnected": "연결되지 않음",
         "runOn": "실행 위치",
         "notePasteTooLarge": "메모 필드에 붙여넣을 내용이 너무 큽니다.",
-        "reuseExistingBranch": "브랜치 재사용",
-        "reuseExistingBranchHint": "기존 브랜치에서 새 브랜치를 만들지 않고 해당 브랜치를 체크아웃합니다.",
         "createMultiple": "더 만들기",
         "waitForSetupBeforeAgent": "agent를 시작하기 전에 설정이 완료될 때까지 기다리세요.",
         "destroyDisabled": "삭제 비활성화됨",
@@ -5206,8 +5225,6 @@
           "b589b77997": "디렉터리로 이동한 후 선택을 클릭하여 선택합니다."
         },
         "DeleteWorktreeDialog": {
-          "ff2a74ac0e": "그리고",
-          "91492c9ad6": "제거",
           "4f6750ca7b": "워크스페이스를 삭제하지 못했습니다.",
           "42e610d6cf": "강제 삭제 실패",
           "5cc1a6701c": "설정 열기",
@@ -5216,7 +5233,15 @@
           "fc23c4cbdf": "워크스페이스 삭제",
           "86f0ae1257": "워크스페이스 삭제",
           "removeFolderProjectInstead": "이 워크스페이스를 삭제하는 대신 폴더 프로젝트를 제거하세요.",
-          "gitBlocksMainWorktree": "Git에서는 메인 워크트리를 제거할 수 없습니다."
+          "gitBlocksMainWorktree": "Git에서는 메인 워크트리를 제거할 수 없습니다.",
+          "removeBatchFolder_other": "Orca에서 <target>워크스페이스 {{count}}개</target>를 제거합니다. 디스크의 프로젝트 폴더는 삭제되지 않습니다.",
+          "removeBatchMixed_other": "Orca에서 <target>워크스페이스 {{count}}개</target>를 제거합니다. Git 워크트리는 git과 디스크에서도 제거됩니다. 폴더 워크스페이스는 Orca 항목만 제거됩니다.",
+          "removeBatchGit_other": "git에서 <target>워크스페이스 {{count}}개</target>를 제거하고 해당 워크스페이스 폴더를 삭제합니다.",
+          "removeSingleFolder": "Orca에서 <target/>을(를) 제거합니다. 디스크의 프로젝트 폴더는 삭제되지 않습니다.",
+          "removeSingleGit": "git에서 <target/>을(를) 제거하고 해당 워크스페이스 폴더를 삭제합니다.",
+          "removeWithChildrenFolder_other": "Orca에서 <target/> 및 <descendants>하위 워크스페이스 {{count}}개</descendants>를 제거합니다. 디스크의 프로젝트 폴더는 삭제되지 않습니다.",
+          "removeWithChildrenMixed_other": "Orca에서 <target/> 및 <descendants>하위 워크스페이스 {{count}}개</descendants>를 제거합니다. Git 워크트리는 git과 디스크에서도 제거됩니다. 폴더 워크스페이스는 Orca 항목만 제거됩니다.",
+          "removeWithChildrenGit_other": "git에서 <target/> 및 <descendants>하위 워크스페이스 {{count}}개</descendants>를 제거하고 해당 워크스페이스 폴더를 삭제합니다."
         },
         "DeleteWorktreeDirtyChangeHint": {
           "showLoadedPaths": "불러온 경로 표시",
@@ -5271,17 +5296,32 @@
         "OrcaYamlTrustDialog": {
           "f3e2b868fb": "후크 실행",
           "43b7bec4cd": "실행 안 함",
-          "c494b3ccb1": "~에",
-          "79afc6772b": "orca.yaml",
-          "531689199b": "항상 신뢰",
-          "bf800b7e04": ". 믿을 수 있는 경우에만 실행하세요.",
-          "831f2cd9f0": "내 컴퓨터에서 실행",
-          "aa3ffb33fb": "이 repos의",
-          "c55beddbf8": "마지막으로 승인한 이후 변경되었습니다. 실행하기 전에 재리뷰하세요.",
-          "95bf974a1a": "{{value0}} 스크립트",
-          "9e52effffd": "새로운 {{value0}} 스크립트",
-          "e4a51dc4b3": "{{value1}}에서 {{value0}}을(를) 실행하시겠습니까?",
-          "02b0ede5ad": "{{value0}}의 {{value1}}이 변경되었습니다. 새 버전을 실행하시겠습니까?"
+          "setupChangedTitle": "{{repo}}의 설정 스크립트가 변경되었습니다. 새 버전을 실행할까요?",
+          "archiveChangedTitle": "{{repo}}의 아카이브 스크립트가 변경되었습니다. 새 버전을 실행할까요?",
+          "issueCommandChangedTitle": "{{repo}}의 이슈 명령이 변경되었습니다. 새 버전을 실행할까요?",
+          "vmRecipeChangedTitle": "{{repo}}의 VM 레시피가 변경되었습니다. 새 버전을 실행할까요?",
+          "setupRunTitle": "{{repo}}의 설정 스크립트를 실행할까요?",
+          "archiveRunTitle": "{{repo}}의 아카이브 스크립트를 실행할까요?",
+          "issueCommandRunTitle": "{{repo}}의 이슈 명령을 실행할까요?",
+          "vmRecipeRunTitle": "{{repo}}의 VM 레시피를 실행할까요?",
+          "setupChangedBody": "마지막 승인 이후 <code>orca.yaml</code>이 변경되었습니다. 이 워크스페이스를 만들 때 실행되기 전에 다시 검토하세요.",
+          "archiveChangedBody": "마지막 승인 이후 <code>orca.yaml</code>이 변경되었습니다. 이 워크스페이스를 제거할 때 실행되기 전에 다시 검토하세요.",
+          "issueCommandChangedBody": "마지막 승인 이후 <code>orca.yaml</code>이 변경되었습니다. 연결된 이슈가 있는 이 워크스페이스를 시작할 때 실행되기 전에 다시 검토하세요.",
+          "vmRecipeChangedBody": "마지막 승인 이후 <code>orca.yaml</code>이 변경되었습니다. VM 프로비저닝에 앞서 실행되기 전에 다시 검토하세요.",
+          "setupRunBody": "이 리포지토리의 <code>orca.yaml</code>은 이 워크스페이스를 만들 때 사용자의 컴퓨터에서 실행됩니다. <repo/>을(를) 신뢰하는 경우에만 실행하세요.",
+          "archiveRunBody": "이 리포지토리의 <code>orca.yaml</code>은 이 워크스페이스를 제거할 때 사용자의 컴퓨터에서 실행됩니다. <repo/>을(를) 신뢰하는 경우에만 실행하세요.",
+          "issueCommandRunBody": "이 리포지토리의 <code>orca.yaml</code>은 연결된 이슈가 있는 이 워크스페이스를 시작할 때 사용자의 컴퓨터에서 실행됩니다. <repo/>을(를) 신뢰하는 경우에만 실행하세요.",
+          "vmRecipeRunBody": "이 리포지토리의 <code>orca.yaml</code>은 VM 프로비저닝 전에 사용자의 컴퓨터에서 실행됩니다. <repo/>을(를) 신뢰하는 경우에만 실행하세요.",
+          "newSetupScript": "새 설정 스크립트",
+          "setupScript": "설정 스크립트",
+          "newArchiveScript": "새 아카이브 스크립트",
+          "archiveScript": "아카이브 스크립트",
+          "newIssueCommand": "새 이슈 명령",
+          "issueCommand": "이슈 명령",
+          "newVmRecipe": "새 VM 레시피",
+          "vmRecipe": "VM 레시피",
+          "thisRepository": "이 리포지토리",
+          "alwaysTrustRepo": "<repo/>의 <code>orca.yaml</code>을 항상 신뢰"
         },
         "PendingWorktreeRow": {
           "af21e953d1": "워크트리 만들기 취소",
@@ -12426,7 +12466,8 @@
             "31b4c3195d": "추가 탐색기 작업",
             "d95e30fe28": "탐색기 새로 고침",
             "6026b16950": "모두 축소",
-            "c1f3f3ec70": "파일 내용 검색"
+            "c1f3f3ec70": "파일 내용 검색",
+            "openInApp": "{{app}}에서 열기"
           },
           "FileExplorerTreeStatus": {
             "ce03835e1f": "이 워크스페이스에는 파일이 없습니다.",
@@ -12444,7 +12485,6 @@
             "6d1e0a7c3b": "commit 파일을 로드하지 못했습니다"
           },
           "HostedReviewActions": {
-            "4d5fb5a284": "닫기",
             "9845a71e17": "추가 작업",
             "2bfaf4379c": "추가 {{value0}} 작업",
             "377269db6f": "{{value0}}이 다시 열렸습니다.",
@@ -12465,8 +12505,15 @@
             "markingReady": "표시 준비됨...",
             "markReady": "검토 준비 완료로 표시",
             "draftMoreActions": "추가 {{value0}} 작업",
-            "closeDraft": "닫기",
-            "readyToast": "{{value0}}을(를) 검토 준비 완료로 표시했습니다."
+            "readyToast": "{{value0}}을(를) 검토 준비 완료로 표시했습니다.",
+            "closeReview": "{{review}} 닫기",
+            "closeReviewConfirmTitle": "{{review}}을(를) 닫을까요?",
+            "reopenReviewConfirmTitle": "{{review}}을(를) 다시 열까요?",
+            "closeConfirm": "닫기",
+            "reopenConfirm": "다시 열기",
+            "closeReviewFailed": "{{review}}을(를) 닫지 못했습니다",
+            "reopenReviewFailed": "{{review}}을(를) 다시 열지 못했습니다",
+            "markReadyFailed": "{{review}}을(를) 검토 준비 완료로 표시하지 못했습니다"
           },
           "PortsPanel": {
             "3ea4a02a8f": "취소",
@@ -14118,7 +14165,6 @@
       },
       "mobile": {
         "MobileHero": {
-          "downloadApp": "앱 다운로드",
           "a8fb43cf1c": "Continue",
           "3f90dbd274": "완료",
           "b622eba64d": "뒤로",
@@ -14151,11 +14197,6 @@
           "e59a252eca": "코드 재생성",
           "d0b52871ce": "휴대전화가 페어링되었습니다.",
           "051978a785": "휴대전화가 페어링되었습니다.",
-          "channel": {
-            "group": "릴리스 채널",
-            "preview": "미리 보기",
-            "stable": "안정 버전"
-          },
           "pairingQrError": "이 페어링 코드를 QR 코드로 표시할 수 없습니다. 대신 Orca Mobile에 복사하세요.",
           "directAddressDisclosure": "더 빠른 로컬 경로도 사용",
           "directAddressHint": "선택 사항. 근처에 있을 때(같은 Wi‑Fi 또는 Tailscale) 휴대폰이 사용할 주소를 고르세요. 보통 Relay보다 빠릅니다. 외부에 있을 때는 여전히 Relay를 사용합니다.",
@@ -14202,12 +14243,8 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "최신 기능, 매일 업데이트."
-              },
-              "stable": {
-                "tagline": "정식 출시 버전, 매주 업데이트."
-              }
+              "downloadApk": "APK 다운로드",
+              "openAppStore": "App Store 열기"
             }
           }
         },
@@ -18453,39 +18490,34 @@
         "task": "백그라운드 작업",
         "outputFile": "출력: {{value0}}",
         "detailsUnavailable": "이 세션에서는 작업 세부정보를 사용할 수 없습니다.",
-        "countAgentsOne": "에이전트 1명",
-        "countAgentsMany": "{{value0}} 에이전트",
-        "countShellOne": "셸 1개",
-        "countShellMany": "셸 {{value0}}개",
         "countShellCommandOne": "셸 명령 1개",
-        "countMonitorsOne": "모니터 1개",
-        "countMonitorsMany": "{{value0}} 모니터",
-        "countWorkflowsOne": "워크플로우 1개",
-        "countWorkflowsMany": "{{value0}} 워크플로",
-        "countTasksOne": "작업 1개",
-        "countTasksMany": "{{value0}} 작업",
-        "headerTotal": "{{value0}} 백그라운드 작업",
         "stateWorking": "작업 중",
-        "stateWorkingCount": "{{value0}} 작업 중",
         "stateMonitoring": "모니터링",
-        "stateMonitoringCount": "{{value0}} 모니터링",
         "stateWaiting": "대기 중",
-        "stateWaitingCount": "{{value0}} 대기 중",
         "stateBlocked": "막힌",
-        "stateBlockedCount": "{{value0}} 막힌",
         "stateDone": "완료",
-        "stateDoneCount": "{{value0}} 완료",
         "stateIdle": "중지됨",
-        "stateIdleCount": "{{value0}} 중지됨",
         "stateUnverifiable": "상태를 확인할 수 없음",
-        "stateUnverifiableCount": "{{value0}} 상태를 확인할 수 없음",
         "reasonWaiting": "승인이 필요합니다",
         "reasonBlocked": "실패한",
         "groupAgents": "에이전트",
         "groupShell": "셸",
         "groupMonitors": "모니터",
         "groupWorkflows": "워크플로",
-        "groupTasks": "작업"
+        "groupTasks": "작업",
+        "countAgents_other": "에이전트 {{count}}개",
+        "countShell_other": "셸 {{count}}개",
+        "countMonitors_other": "모니터 {{count}}개",
+        "countWorkflows_other": "워크플로 {{count}}개",
+        "countTasks_other": "작업 {{count}}개",
+        "headerTotal_other": "백그라운드 작업 {{count}}개",
+        "stateWorkingCount_other": "작업 중: {{value0}}",
+        "stateMonitoringCount_other": "모니터링 중: {{value0}}",
+        "stateWaitingCount_other": "대기 중: {{value0}}",
+        "stateBlockedCount_other": "차단됨: {{value0}}",
+        "stateDoneCount_other": "완료: {{value0}}",
+        "stateIdleCount_other": "중지됨: {{value0}}",
+        "stateUnverifiableCount_other": "상태 확인 불가: {{value0}}"
       },
       "railLabel": "귀하의 메시지",
       "railImageMessage": "이미지 첨부",
@@ -18504,18 +18536,16 @@
           "failed": "실패한",
           "stopped": "중지됨",
           "unverifiable": "상태를 확인할 수 없음",
-          "workingCount": "{{value0}} 작업 중",
-          "idleCount": "{{value0}} 유휴",
-          "failedCount": "{{value0}} 실패",
-          "stoppedCount": "{{value0}} 중지됨",
-          "unverifiableCount": "{{value0}} 상태를 확인할 수 없음"
+          "workingCount_other": "{{count}}개 작업 중",
+          "idleCount_other": "{{count}}개 유휴",
+          "failedCount_other": "{{count}}개 실패",
+          "stoppedCount_other": "{{count}}개 중지됨",
+          "unverifiableCount_other": "{{count}}개 상태 확인 불가"
         },
-        "startedOne": "하위 에이전트 1개가 시작되었습니다.",
-        "startedN": "{{value0}} 하위 에이전트가 시작되었습니다.",
-        "ranOne": "하위 에이전트 1개 실행",
-        "ranN": "{{value0}} 하위 에이전트를 실행했습니다.",
         "tokens": "{{value0}} 토큰",
-        "unnamed": "하위 에이전트"
+        "unnamed": "하위 에이전트",
+        "started_other": "하위 에이전트 {{count}}개 시작",
+        "ran_other": "하위 에이전트 {{count}}개 실행"
       },
       "drop": {
         "messageTitle": "놓아서 이 메시지에 첨부",
@@ -19041,6 +19071,14 @@
           "descriptionMany": "삭제하면 이 agent들의 현재 작업이 중지됩니다.",
           "confirm": "agent 중지 후 삭제",
           "confirmOne": "agent 중지 후 삭제"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "변경 없음",
+            "dirty": "변경 있음",
+            "unpushed": "푸시되지 않음",
+            "unknown": "알 수 없음"
+          }
         }
       },
       "creation": {
@@ -19637,6 +19675,23 @@
     "startupWorktreeRefresh": {
       "loading": "워크스페이스를 찾는 중…",
       "description": "로컬 및 원격 프로젝트를 불러오는 동안 워크스페이스가 더 표시될 수 있습니다."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "이름은 비워 둘 수 없습니다",
+        "nameInvalid": "이름에 슬래시를 포함하거나 \".\" / \"..\"로 지정할 수 없습니다",
+        "parentRequired": "상위 디렉터리가 필요합니다",
+        "parentNotAbsolute": "상위 디렉터리는 절대 경로여야 합니다",
+        "targetInaccessible": "대상 경로에 접근할 수 없습니다: {{detail}}",
+        "targetNotEmpty": "이 위치에 \"{{name}}\"이(가) 이미 있으며 비어 있지 않습니다.",
+        "targetNotFolder": "이 위치에 \"{{name}}\"이(가) 이미 있으며 폴더가 아닙니다.",
+        "readDirectoryFailed": "디렉터리를 읽지 못했습니다: {{detail}}",
+        "createDirectoryFailed": "디렉터리를 생성하지 못했습니다: {{detail}}",
+        "prepareDirectoryFailed": "디렉터리를 준비하지 못했습니다: {{detail}}",
+        "gitIdentityMissing": "Git 작성자 정보가 설정되지 않았습니다. `git config --global user.name \"Your Name\"` 및 `git config --global user.email \"you@example.com\"` 명령을 실행한 후 다시 시도하세요.",
+        "gitInitFailed": "Git 리포지토리를 초기화하지 못했습니다: {{detail}}",
+        "initialCommitFailed": "초기 commit을 생성하지 못했습니다: {{detail}}"
+      }
     }
   },
   "editor": {
@@ -20291,7 +20346,32 @@
     "sortDescending": "선택한 열을 내림차순으로 정렬",
     "originalOrder": "원래 행 순서",
     "save": "저장",
-    "inspectionOnly": "검사 전용 · 파일 행 순서 변경 없음"
+    "inspectionOnly": "검사 전용 · 파일 행 순서 변경 없음",
+    "error": {
+      "tooManyCells": "CSV에 셀이 너무 많아 안전하게 미리 볼 수 없습니다.",
+      "recordTooLarge": "CSV 레코드가 너무 커서 안전하게 미리 볼 수 없습니다.",
+      "tooManyPages": "CSV에 페이지가 너무 많아 안전하게 미리 볼 수 없습니다.",
+      "previewRecordLimit": "CSV 레코드가 미리보기 한도인 1 MB를 초과합니다.",
+      "binaryData": "이 파일에는 바이너리 데이터가 포함되어 있습니다.",
+      "previewColumnLimit": "CSV의 열 수가 미리보기 한도인 4,096개를 초과합니다.",
+      "changedOnDisk": "디스크의 CSV가 변경되었습니다. 파일을 다시 로드하여 미리보기를 새로 고치세요.",
+      "pageBoundaryMismatch": "CSV 페이지 경계가 일치하지 않습니다. 미리보기를 다시 로드하세요.",
+      "canceled": "CSV 미리보기가 취소되었습니다",
+      "workerFailed": "CSV 미리보기 워커에 오류가 발생했습니다. 파일을 다시 로드하여 재시도하세요.",
+      "workerUnreadableResponse": "CSV 미리보기 워커가 읽을 수 없는 응답을 반환했습니다.",
+      "cellMissing": "선택한 CSV 행 또는 열이 더 이상 존재하지 않습니다.",
+      "rowMissing": "선택한 CSV 행이 더 이상 존재하지 않습니다.",
+      "columnLimit": "CSV의 열 수가 한도인 4,096개를 초과합니다.",
+      "recordLimit": "CSV 레코드가 1 MB 한도를 초과합니다.",
+      "tableEditBudget": "테이블 편집 크기는 1 MiB 미만이어야 합니다. 더 큰 변경에는 소스 보기를 사용하세요.",
+      "editConflict": "이 셀을 편집하는 동안 CSV가 변경되었습니다. 취소하고 다시 시도하세요.",
+      "saveFailed": "CSV를 저장할 수 없습니다. 편집 내용은 초안에 남아 있습니다.",
+      "pasteConflict": "붙여넣기가 완료되기 전에 CSV가 변경되었습니다. 다시 시도하세요.",
+      "copyTooManyCells": "한 번에 복사할 셀 수를 줄이세요.",
+      "copyTooLarge": "선택한 셀이 너무 커서 안전하게 복사할 수 없습니다.",
+      "pasteExceedsTable": "붙여넣기 범위가 테이블을 벗어납니다. 먼저 행이나 열을 추가하세요.",
+      "pasteTooManyCells": "한 번에 붙여넣을 셀 수를 줄이세요."
+    }
   },
   "worktree": {
     "nestedRemoval": {
@@ -20412,6 +20492,15 @@
     "alwaysForceDeleteBranches": "보존된 브랜치 항상 삭제"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "이 워크트리의 브랜치",
+      "existing": "기존 브랜치",
+      "existingHint": "새 커밋이 이 브랜치에 추가됩니다.",
+      "new": "새 브랜치",
+      "newHint": "새 로컬 브랜치 만들기",
+      "newName": "새 브랜치 이름",
+      "automaticName": "자동 이름"
+    },
     "links": {
       "foreignReview": "이 리뷰는 다른 리포지토리에 속합니다. 이 워크스페이스의 리포지토리에서 리뷰를 추가하세요.",
       "repositoryLoading": "리포지토리 정보를 아직 불러오는 중입니다. 사용할 수 있게 되면 다시 시도하세요.",

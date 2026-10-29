@@ -4,7 +4,7 @@ import { dictationSessionErrorMessage } from '../dictation/mobile-dictation-setu
 import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import { MobileDictationPendingAudioBudget } from './mobile-dictation-pending-audio-budget'
 import {
-  MobileDictationTranscriptSoFar,
+  useMobileDictationTranscriptSoFar,
   sendAcrossConnectionMove,
   subscribeMobileDictationAudioChunks
 } from './mobile-dictation-audio-chunk'
@@ -34,6 +34,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
   const capture = useDictationCapture()
   const [status, setStatus] = useState<DictationStatus>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [transcriptSoFar, setTranscriptSoFar, keptTranscript] = useMobileDictationTranscriptSoFar()
   // Read from an abort that may run between a commit and its passive Effects, where state is stale.
   const statusRef = useRef<DictationStatus>('idle')
   const activeIdRef = useRef<string | null>(null)
@@ -45,7 +46,6 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
   const pendingAudioBudgetRef = useRef(new MobileDictationPendingAudioBudget())
   const acceptingChunksRef = useRef(false)
   const generationRef = useRef(0)
-  const transcriptSoFarRef = useRef(new MobileDictationTranscriptSoFar())
 
   useLayoutEffect(() => {
     // Native audio events can arrive before passive Effects flush, but refs
@@ -59,6 +59,8 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
   const applyStatus = useCallback((next: DictationStatus) => {
     statusRef.current = next
     setStatus(next)
+    // Kept through processing so the text so far stays in place until the final transcript replaces it in the same render.
+    setTranscriptSoFar((text) => (next === 'recording' || next === 'processing' ? text : ''))
   }, [])
 
   const reportError = useCallback(
@@ -94,7 +96,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
       if (client && dictationId) {
         void cancelDesktopDictation(client, dictationId)
       }
-      const kept = transcriptSoFarRef.current.take(dictationId)
+      const kept = keptTranscript.take(dictationId)
       if (kept) {
         onTranscriptRef.current(kept)
       }
@@ -113,7 +115,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
       pendingChunks: pendingChunksRef.current,
       pendingAudioBudget: pendingAudioBudgetRef.current,
       failActiveDictation,
-      transcriptSoFar: transcriptSoFarRef.current
+      transcriptSoFar: keptTranscript
     })
     return () => sub.remove()
   }, [capture, failActiveDictation])
@@ -322,6 +324,7 @@ export function useMobileDictation(options: UseMobileDictationOptions): UseMobil
     isStarting: status === 'starting',
     isRecording: status === 'recording',
     isProcessing: status === 'processing',
+    transcriptSoFar,
     error,
     start,
     stop,

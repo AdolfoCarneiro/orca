@@ -192,6 +192,26 @@ describe('keybinding-file', () => {
       'error',
       'error'
     ])
+    expect(snapshot.diagnostics[1]).toMatchObject({
+      message:
+        'Shortcut for "terminal.search" was ignored: Use a shortcut like Ctrl+Shift+P or Cmd+K.',
+      code: 'shortcutIgnored',
+      params: { actionId: 'terminal.search' },
+      reasonCode: 'invalidFormat'
+    })
+  })
+
+  it('keeps the English read failure and codes its nested reason', () => {
+    writeFileSync(filePath, '[]', 'utf8')
+    expect(readKeybindingFile(filePath, 'linux').diagnostics).toEqual([
+      {
+        severity: 'error',
+        message: 'Could not read keybindings file: Keybindings file must contain a JSON object.',
+        code: 'readFailed',
+        params: { reason: 'Keybindings file must contain a JSON object.' },
+        reasonCode: 'fileNotObject'
+      }
+    ])
   })
 
   it('writes active-platform overrides while preserving other platforms', () => {

@@ -17,6 +17,8 @@ export type UseMobileDictationResult = {
   isStarting: boolean
   isRecording: boolean
   isProcessing: boolean
+  // Empty until a newer host reports words; older hosts never do.
+  transcriptSoFar: string
   error: string | null
   start: () => Promise<void>
   stop: () => Promise<void>

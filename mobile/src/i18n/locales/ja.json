@@ -533,7 +533,6 @@
       "branchName": "ブランチ名",
       "derivedFromName": "名前から生成",
       "name": "名前",
-      "reuseBranch": "ブランチ「{{branch}}」を再利用",
       "workspaceName": "ワークスペース名"
     },
     "smartWorkspaceSourceDrawer": {
@@ -1489,6 +1488,17 @@
       "inProgress": "進行中",
       "inReview": "レビュー中",
       "pinned": "ピン留め済み"
+    }
+  },
+  "workspace": {
+    "branchChoice": {
+      "title": "このワークツリーのブランチ",
+      "existing": "既存のブランチ",
+      "existingHint": "新しいコミットはこのブランチに追加されます。",
+      "new": "新しいブランチ",
+      "newHint": "新しいローカルブランチを作成",
+      "newName": "新しいブランチ名",
+      "automaticName": "自動で命名"
     }
   }
 }

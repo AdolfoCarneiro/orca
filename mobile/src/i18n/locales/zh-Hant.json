@@ -533,7 +533,6 @@
       "branchName": "分支名稱",
       "derivedFromName": "依名稱產生",
       "name": "名稱",
-      "reuseBranch": "重複使用分支「{{branch}}」",
       "workspaceName": "工作區名稱"
     },
     "smartWorkspaceSourceDrawer": {
@@ -1489,6 +1488,17 @@
       "inProgress": "進行中",
       "inReview": "審查中",
       "pinned": "已固定"
+    }
+  },
+  "workspace": {
+    "branchChoice": {
+      "title": "此工作樹的分支",
+      "existing": "現有分支",
+      "existingHint": "新提交會加入此分支。",
+      "new": "新分支",
+      "newHint": "建立新的本機分支",
+      "newName": "新分支名稱",
+      "automaticName": "自動命名"
     }
   }
 }

@@ -533,7 +533,6 @@
       "branchName": "브랜치 이름",
       "derivedFromName": "이름을 바탕으로 생성",
       "name": "이름",
-      "reuseBranch": "“{{branch}}” 브랜치 재사용",
       "workspaceName": "워크스페이스 이름"
     },
     "smartWorkspaceSourceDrawer": {
@@ -1489,6 +1488,17 @@
       "inProgress": "진행중",
       "inReview": "리뷰 중",
       "pinned": "고정됨"
+    }
+  },
+  "workspace": {
+    "branchChoice": {
+      "title": "이 워크트리의 브랜치",
+      "existing": "기존 브랜치",
+      "existingHint": "새 커밋이 이 브랜치에 추가됩니다.",
+      "new": "새 브랜치",
+      "newHint": "새 로컬 브랜치 만들기",
+      "newName": "새 브랜치 이름",
+      "automaticName": "자동 이름"
     }
   }
 }

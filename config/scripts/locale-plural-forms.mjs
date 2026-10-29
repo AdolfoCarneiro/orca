@@ -20,9 +20,10 @@ export function pluralFamilyDefaults(ts, key, fallback, options) {
   if (PLURAL_KEY_RE.test(key) || !options || !ts.isObjectLiteralExpression(options)) {
     return undefined
   }
-  const one = options.properties.find((entry) => entry.name?.getText() === 'defaultValue_one')
-  // Without defaultValue_one, count only fills {{count}} in a singular key.
-  if (!one) {
+  const property = (name) => options.properties.find((entry) => entry.name?.getText() === name)
+  const one = property('defaultValue_one')
+  // Without defaultValue_one, count only fills {{count}} in a singular key; without count, i18next reads the base key.
+  if (!one || !property('count')) {
     return undefined
   }
   const oneDefault =

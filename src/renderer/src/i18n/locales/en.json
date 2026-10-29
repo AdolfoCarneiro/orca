@@ -37,7 +37,32 @@
     "sortDescending": "Sort selected column descending",
     "originalOrder": "Original row order",
     "save": "Save",
-    "inspectionOnly": "Inspection only · File row order unchanged"
+    "inspectionOnly": "Inspection only · File row order unchanged",
+    "error": {
+      "tooManyCells": "CSV contains too many cells to preview safely.",
+      "recordTooLarge": "CSV record is too large to preview safely.",
+      "tooManyPages": "CSV has too many pages to preview safely.",
+      "previewRecordLimit": "CSV record exceeds the 1 MB preview limit.",
+      "binaryData": "This file contains binary data.",
+      "previewColumnLimit": "CSV exceeds the 4,096 column preview limit.",
+      "changedOnDisk": "CSV changed on disk. Reload the file to refresh the preview.",
+      "pageBoundaryMismatch": "CSV page boundary mismatch. Reload the preview.",
+      "canceled": "CSV preview was canceled",
+      "workerFailed": "CSV preview worker failed. Reload the file to retry.",
+      "workerUnreadableResponse": "CSV preview worker returned an unreadable response.",
+      "cellMissing": "The selected CSV row or column no longer exists.",
+      "rowMissing": "The selected CSV row no longer exists.",
+      "columnLimit": "CSV exceeds the 4,096 column limit.",
+      "recordLimit": "CSV record exceeds the 1 MB limit.",
+      "tableEditBudget": "Table edits must stay below 1 MiB. Use Source for larger changes.",
+      "editConflict": "CSV changed while this cell was being edited. Cancel and try again.",
+      "saveFailed": "CSV could not be saved. Your edits remain in the draft.",
+      "pasteConflict": "CSV changed before paste completed. Try again.",
+      "copyTooManyCells": "Select fewer cells to copy at once.",
+      "copyTooLarge": "Selected cells are too large to copy safely.",
+      "pasteExceedsTable": "Paste exceeds the table. Add rows or columns first.",
+      "pasteTooManyCells": "Select fewer cells to paste at once."
+    }
   },
   "osDocumentOpen": {
     "failed": "Failed to open the file."
@@ -77,6 +102,23 @@
     "startupWorktreeRefresh": {
       "loading": "Discovering workspaces…",
       "description": "More workspaces may appear while local and remote projects load."
+    },
+    "createProject": {
+      "errors": {
+        "nameEmpty": "Name cannot be empty",
+        "nameInvalid": "Name cannot contain slashes or be \".\" / \"..\"",
+        "parentRequired": "Parent directory is required",
+        "parentNotAbsolute": "Parent directory must be an absolute path",
+        "targetInaccessible": "Cannot access target path: {{detail}}",
+        "targetNotEmpty": "\"{{name}}\" already exists at this location and is not empty.",
+        "targetNotFolder": "\"{{name}}\" already exists at this location and is not a folder.",
+        "readDirectoryFailed": "Failed to read directory: {{detail}}",
+        "createDirectoryFailed": "Failed to create directory: {{detail}}",
+        "prepareDirectoryFailed": "Failed to prepare directory: {{detail}}",
+        "gitIdentityMissing": "Git author identity is not configured. Run `git config --global user.name \"Your Name\"` and `git config --global user.email \"you@example.com\"`, then try again.",
+        "gitInitFailed": "Failed to initialize git repository: {{detail}}",
+        "initialCommitFailed": "Failed to create initial commit: {{detail}}"
+      }
     }
   },
   "app": {
@@ -692,7 +734,26 @@
       }
     },
     "shortcuts": {
-      "parseFailed": "Unable to parse shortcut."
+      "parseFailed": "Unable to parse shortcut.",
+      "validation": {
+        "invalidFormat": "Use a shortcut like Ctrl+Shift+P or Cmd+K.",
+        "mixedModifiers": "Use either Mod or a platform-specific modifier, not both.",
+        "modifierRequired": "Include at least one modifier key.",
+        "digitKeyRequired": "Pick a number key 1–9 with a modifier, like Cmd+1 or Ctrl+1.",
+        "modifierOnly": "Press a key, not only a modifier.",
+        "invalidBindingValue": "Use a string, string array, null, or false.",
+        "stringArrayRequired": "Use a string array.",
+        "fileNotObject": "Keybindings file must contain a JSON object."
+      },
+      "diagnostics": {
+        "sectionNotObject": "{{section}} must be an object.",
+        "unknownAction": "Unknown keybinding action \"{{actionId}}\" was ignored.",
+        "shortcutIgnored": "Shortcut for \"{{actionId}}\" was ignored: {{reason}}",
+        "platformsNotObject": "platforms must be an object with darwin, linux, or win32 sections.",
+        "unknownPlatform": "Unknown platform \"{{platform}}\" was ignored.",
+        "conflictingOverrides": "Conflicting custom shortcuts were ignored: {{actions}}.",
+        "readFailed": "Could not read keybindings file: {{reason}}"
+      }
     },
     "mcp": {
       "inspectFailed": "Unable to inspect {{directory}}.",
@@ -895,14 +956,7 @@
             "b8a1618172": "Pull request detail generation is unavailable in the web client.",
             "e57c82d276": "Commit message model discovery is unavailable in the web client.",
             "9fc90740b6": "Commit message generation is unavailable in the web client.",
-            "52bee9d8a0": "Conflicting custom shortcuts were ignored: {{value0}}.",
-            "32f15bdb0f": "Unknown platform \"{{value0}}\" was ignored.",
-            "0a69fcd8bc": "platforms must be an object with darwin, linux, or win32 sections.",
-            "10898045f3": "Shortcut for \"{{value0}}\" was ignored: Use a string array.",
-            "36761d9604": "Unknown keybinding action \"{{value0}}\" was ignored.",
-            "d2e43e426a": "{{value0}} must be an object.",
-            "fb290366b2": "Unavailable on web.",
-            "76122208ca": "Shortcut for \"{{value0}}\" was ignored: {{value1}}"
+            "fb290366b2": "Unavailable on web."
           }
         },
         "runtime": {
@@ -1954,22 +2008,30 @@
         "5c1c973855": "Remove reviewer",
         "commentTooLarge": "Comment is too large to submit safely.",
         "timeline": {
-          "completed": "as completed",
-          "notPlanned": "as not planned",
           "someone": "someone",
-          "assigned": "assigned",
-          "unassigned": "unassigned",
-          "mentioned": "mentioned this",
-          "in": "in",
-          "closed": "closed this",
-          "reopened": "reopened this",
-          "moved": "moved this",
-          "from": "from",
-          "to": "to",
           "activity": "Activity",
           "noActivity": "No activity yet.",
           "pullRequestReference": "PR #{{number}}",
-          "issueReference": "issue #{{number}}"
+          "issueReference": "issue #{{number}}",
+          "movedFromToInProject": "<actor/> moved this from <from/> to <to/> in <project/>",
+          "movedFromTo": "<actor/> moved this from <from/> to <to/>",
+          "movedToInProject": "<actor/> moved this to <to/> in <project/>",
+          "movedTo": "<actor/> moved this to <to/>",
+          "movedFromInProject": "<actor/> moved this from <from/> in <project/>",
+          "movedFrom": "<actor/> moved this from <from/>",
+          "movedInProject": "<actor/> moved this in <project/>",
+          "movedThis": "<actor/> moved this",
+          "closedCompletedIn": "<actor/> closed this as completed in <target/>",
+          "closedCompleted": "<actor/> closed this as completed",
+          "closedNotPlannedIn": "<actor/> closed this as not planned in <target/>",
+          "closedNotPlanned": "<actor/> closed this as not planned",
+          "closedIn": "<actor/> closed this in <target/>",
+          "closedThis": "<actor/> closed this",
+          "assignedUser": "<actor/> assigned <assignee/>",
+          "unassignedUser": "<actor/> unassigned <assignee/>",
+          "mentionedIn": "<actor/> mentioned this in <target/>",
+          "mentionedThis": "<actor/> mentioned this",
+          "reopenedThis": "<actor/> reopened this"
         },
         "checkActionRequiredHint": "Needs a manual action on GitHub (e.g. approving the run) to unblock merging.",
         "e15a8b77ef": "No inline details are available for this check.",
@@ -2215,8 +2277,7 @@
         "estimateValue": "Estimate {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
-        "reuseExistingBranch": "Reuse branch",
-        "reuseExistingBranchHint": "Check out the existing branch instead of creating a new one from it.",
+        "openExistingWorkspace": "Open existing workspace",
         "createMultiple": "Create more",
         "cbb47ee0dc": "Only available for local Git projects.",
         "d861de981b": "Sparse checkout",
@@ -5707,8 +5768,6 @@
           "b589b77997": "Navigate to a directory and click Select to choose it."
         },
         "DeleteWorktreeDialog": {
-          "ff2a74ac0e": "and",
-          "91492c9ad6": "Remove",
           "4f6750ca7b": "Failed to delete workspace",
           "42e610d6cf": "Force delete failed",
           "5cc1a6701c": "Open Settings",
@@ -5717,7 +5776,21 @@
           "fc23c4cbdf": "Delete Workspace",
           "86f0ae1257": "Delete Workspaces",
           "removeFolderProjectInstead": "Remove the folder project instead of deleting this workspace.",
-          "gitBlocksMainWorktree": "Git does not allow removing the main worktree."
+          "gitBlocksMainWorktree": "Git does not allow removing the main worktree.",
+          "removeBatchFolder_one": "Remove <target>{{count}} workspace</target> from Orca. Project folders on disk will not be deleted.",
+          "removeBatchFolder_other": "Remove <target>{{count}} workspaces</target> from Orca. Project folders on disk will not be deleted.",
+          "removeBatchMixed_one": "Remove <target>{{count}} workspace</target> from Orca. Git worktrees will also be removed from git and disk; folder workspaces will only remove the Orca workspace entry.",
+          "removeBatchMixed_other": "Remove <target>{{count}} workspaces</target> from Orca. Git worktrees will also be removed from git and disk; folder workspaces will only remove the Orca workspace entry.",
+          "removeBatchGit_one": "Remove <target>{{count}} workspace</target> from git and delete its workspace folder.",
+          "removeBatchGit_other": "Remove <target>{{count}} workspaces</target> from git and delete their workspace folders.",
+          "removeSingleFolder": "Remove <target/> from Orca. The project folder on disk will not be deleted.",
+          "removeSingleGit": "Remove <target/> from git and delete its workspace folder.",
+          "removeWithChildrenFolder_one": "Remove <target/> and <descendants>{{count}} child workspace</descendants> from Orca. Project folders on disk will not be deleted.",
+          "removeWithChildrenFolder_other": "Remove <target/> and <descendants>{{count}} child workspaces</descendants> from Orca. Project folders on disk will not be deleted.",
+          "removeWithChildrenMixed_one": "Remove <target/> and <descendants>{{count}} child workspace</descendants> from Orca. Git worktrees will also be removed from git and disk; folder workspaces will only remove the Orca workspace entry.",
+          "removeWithChildrenMixed_other": "Remove <target/> and <descendants>{{count}} child workspaces</descendants> from Orca. Git worktrees will also be removed from git and disk; folder workspaces will only remove the Orca workspace entry.",
+          "removeWithChildrenGit_one": "Remove <target/> and <descendants>{{count}} child workspace</descendants> from git and delete their workspace folders.",
+          "removeWithChildrenGit_other": "Remove <target/> and <descendants>{{count}} child workspaces</descendants> from git and delete their workspace folders."
         },
         "DeleteWorktreeDirtyChangeHint": {
           "showLoadedPaths": "Show loaded paths",
@@ -5776,17 +5849,32 @@
         "OrcaYamlTrustDialog": {
           "f3e2b868fb": "Run hooks",
           "43b7bec4cd": "Don't run",
-          "c494b3ccb1": "in",
-          "79afc6772b": "orca.yaml",
-          "531689199b": "Always trust",
-          "bf800b7e04": ". Only run if you trust",
-          "831f2cd9f0": "runs on your machine",
-          "aa3ffb33fb": "This repository's",
-          "c55beddbf8": "changed since you last approved. Re-review before it runs",
-          "95bf974a1a": "{{value0}} script",
-          "9e52effffd": "New {{value0}} script",
-          "e4a51dc4b3": "Run {{value0}} from {{value1}}?",
-          "02b0ede5ad": "{{value0}}'s {{value1}} changed — run the new version?"
+          "setupChangedTitle": "{{repo}}'s setup script changed — run the new version?",
+          "archiveChangedTitle": "{{repo}}'s archive script changed — run the new version?",
+          "issueCommandChangedTitle": "{{repo}}'s issue command changed — run the new version?",
+          "vmRecipeChangedTitle": "{{repo}}'s VM recipe changed — run the new version?",
+          "setupRunTitle": "Run setup script from {{repo}}?",
+          "archiveRunTitle": "Run archive script from {{repo}}?",
+          "issueCommandRunTitle": "Run issue command from {{repo}}?",
+          "vmRecipeRunTitle": "Run VM recipe from {{repo}}?",
+          "setupChangedBody": "<code>orca.yaml</code> changed since you last approved. Re-review before it runs when this workspace is created.",
+          "archiveChangedBody": "<code>orca.yaml</code> changed since you last approved. Re-review before it runs when this workspace is removed.",
+          "issueCommandChangedBody": "<code>orca.yaml</code> changed since you last approved. Re-review before it runs when this workspace launches with a linked issue.",
+          "vmRecipeChangedBody": "<code>orca.yaml</code> changed since you last approved. Re-review before it runs before provisioning a VM.",
+          "setupRunBody": "This repository's <code>orca.yaml</code> runs on your machine when this workspace is created. Only run if you trust <repo/>.",
+          "archiveRunBody": "This repository's <code>orca.yaml</code> runs on your machine when this workspace is removed. Only run if you trust <repo/>.",
+          "issueCommandRunBody": "This repository's <code>orca.yaml</code> runs on your machine when this workspace launches with a linked issue. Only run if you trust <repo/>.",
+          "vmRecipeRunBody": "This repository's <code>orca.yaml</code> runs on your machine before provisioning a VM. Only run if you trust <repo/>.",
+          "newSetupScript": "New setup script",
+          "setupScript": "Setup script",
+          "newArchiveScript": "New archive script",
+          "archiveScript": "Archive script",
+          "newIssueCommand": "New issue command",
+          "issueCommand": "Issue command",
+          "newVmRecipe": "New VM recipe",
+          "vmRecipe": "VM recipe",
+          "thisRepository": "this repository",
+          "alwaysTrustRepo": "Always trust <code>orca.yaml</code> in <repo/>"
         },
         "PendingWorktreeRow": {
           "af21e953d1": "Cancel worktree creation",
@@ -12925,7 +13013,8 @@
             "31b4c3195d": "More Explorer Actions",
             "d95e30fe28": "Refresh Explorer",
             "6026b16950": "Collapse All",
-            "c1f3f3ec70": "Search file contents"
+            "c1f3f3ec70": "Search file contents",
+            "openInApp": "Open in {{app}}"
           },
           "FileExplorerTreeStatus": {
             "ce03835e1f": "No files in this workspace",
@@ -12943,7 +13032,6 @@
             "6d1e0a7c3b": "Failed to load commit files"
           },
           "HostedReviewActions": {
-            "4d5fb5a284": "Close",
             "9845a71e17": "More actions",
             "2bfaf4379c": "More {{value0}} actions",
             "377269db6f": "{{value0}} reopened",
@@ -12964,8 +13052,15 @@
             "markingReady": "Marking ready...",
             "markReady": "Mark ready for review",
             "draftMoreActions": "More {{value0}} actions",
-            "closeDraft": "Close",
-            "readyToast": "{{value0}} marked ready for review"
+            "readyToast": "{{value0}} marked ready for review",
+            "closeReview": "Close {{review}}",
+            "closeReviewConfirmTitle": "Close {{review}}?",
+            "reopenReviewConfirmTitle": "Reopen {{review}}?",
+            "closeConfirm": "Close",
+            "reopenConfirm": "Reopen",
+            "closeReviewFailed": "Failed to close {{review}}",
+            "reopenReviewFailed": "Failed to reopen {{review}}",
+            "markReadyFailed": "Failed to mark {{review}} ready for review"
           },
           "PortsPanel": {
             "3ea4a02a8f": "Cancel",
@@ -14684,11 +14779,6 @@
           "e59a252eca": "Regenerate code",
           "d0b52871ce": "Your phones are paired.",
           "051978a785": "Your phone is paired.",
-          "channel": {
-            "group": "Release channel",
-            "preview": "Preview",
-            "stable": "Stable"
-          },
           "pairingQrError": "This pairing code couldn’t be rendered as a QR code. Copy it into Orca Mobile instead.",
           "noRelayCode": "No pairing code available",
           "noPairingCode": "No pairing code available",
@@ -14704,8 +14794,7 @@
           "androidHelp": {
             "guide": "Install guide"
           },
-          "openAppAndScan": "Open Orca Mobile, tap <strong>Pair Desktop</strong>, and scan the code.",
-          "downloadApp": "Download app"
+          "openAppAndScan": "Open Orca Mobile, tap <strong>Pair Desktop</strong>, and scan the code."
         },
         "MobilePage": {
           "e17393c6a3": "Phone preview",
@@ -14736,12 +14825,8 @@
         "mobile": {
           "platform": {
             "copy": {
-              "preview": {
-                "tagline": "Newest features, updated daily."
-              },
-              "stable": {
-                "tagline": "The public release, updated weekly."
-              }
+              "downloadApk": "Download APK",
+              "openAppStore": "Open App Store"
             }
           }
         },
@@ -18934,39 +19019,47 @@
         "task": "Background task",
         "outputFile": "Output: {{value0}}",
         "detailsUnavailable": "Task details are unavailable for this session.",
-        "countAgentsOne": "1 agent",
-        "countAgentsMany": "{{value0}} agents",
-        "countShellOne": "1 shell",
-        "countShellMany": "{{value0}} shells",
         "countShellCommandOne": "1 shell command",
-        "countMonitorsOne": "1 monitor",
-        "countMonitorsMany": "{{value0}} monitors",
-        "countWorkflowsOne": "1 workflow",
-        "countWorkflowsMany": "{{value0}} workflows",
-        "countTasksOne": "1 task",
-        "countTasksMany": "{{value0}} tasks",
-        "headerTotal": "{{value0}} background tasks",
         "stateWorking": "working",
-        "stateWorkingCount": "{{value0}} working",
         "stateMonitoring": "monitoring",
-        "stateMonitoringCount": "{{value0}} monitoring",
         "stateWaiting": "waiting",
-        "stateWaitingCount": "{{value0}} waiting",
         "stateBlocked": "blocked",
-        "stateBlockedCount": "{{value0}} blocked",
         "stateDone": "done",
-        "stateDoneCount": "{{value0}} done",
         "stateIdle": "stopped",
-        "stateIdleCount": "{{value0}} stopped",
         "stateUnverifiable": "status unavailable",
-        "stateUnverifiableCount": "{{value0}} with status unavailable",
         "reasonWaiting": "needs approval",
         "reasonBlocked": "failed",
         "groupAgents": "Agents",
         "groupShell": "Shell",
         "groupMonitors": "Monitors",
         "groupWorkflows": "Workflows",
-        "groupTasks": "Tasks"
+        "groupTasks": "Tasks",
+        "countAgents_one": "{{count}} agent",
+        "countAgents_other": "{{count}} agents",
+        "countShell_one": "{{count}} shell",
+        "countShell_other": "{{count}} shells",
+        "countMonitors_one": "{{count}} monitor",
+        "countMonitors_other": "{{count}} monitors",
+        "countWorkflows_one": "{{count}} workflow",
+        "countWorkflows_other": "{{count}} workflows",
+        "countTasks_one": "{{count}} task",
+        "countTasks_other": "{{count}} tasks",
+        "headerTotal_one": "{{count}} background task",
+        "headerTotal_other": "{{count}} background tasks",
+        "stateWorkingCount_one": "{{value0}} working",
+        "stateWorkingCount_other": "{{value0}} working",
+        "stateMonitoringCount_one": "{{value0}} monitoring",
+        "stateMonitoringCount_other": "{{value0}} monitoring",
+        "stateWaitingCount_one": "{{value0}} waiting",
+        "stateWaitingCount_other": "{{value0}} waiting",
+        "stateBlockedCount_one": "{{value0}} blocked",
+        "stateBlockedCount_other": "{{value0}} blocked",
+        "stateDoneCount_one": "{{value0}} done",
+        "stateDoneCount_other": "{{value0}} done",
+        "stateIdleCount_one": "{{value0}} stopped",
+        "stateIdleCount_other": "{{value0}} stopped",
+        "stateUnverifiableCount_one": "{{value0}} with status unavailable",
+        "stateUnverifiableCount_other": "{{value0}} with status unavailable"
       },
       "jumpToLatest": "Jump to latest",
       "newRowsAnnouncement": "New messages arrived while you were away",
@@ -19065,18 +19158,23 @@
           "failed": "failed",
           "stopped": "stopped",
           "unverifiable": "status unavailable",
-          "workingCount": "{{value0}} working",
-          "idleCount": "{{value0}} idle",
-          "failedCount": "{{value0}} failed",
-          "stoppedCount": "{{value0}} stopped",
-          "unverifiableCount": "{{value0}} with status unavailable"
+          "workingCount_one": "{{count}} working",
+          "workingCount_other": "{{count}} working",
+          "idleCount_one": "{{count}} idle",
+          "idleCount_other": "{{count}} idle",
+          "failedCount_one": "{{count}} failed",
+          "failedCount_other": "{{count}} failed",
+          "stoppedCount_one": "{{count}} stopped",
+          "stoppedCount_other": "{{count}} stopped",
+          "unverifiableCount_one": "{{count}} with status unavailable",
+          "unverifiableCount_other": "{{count}} with status unavailable"
         },
-        "startedOne": "Kicked off 1 subagent",
-        "startedN": "Kicked off {{value0}} subagents",
-        "ranOne": "Ran 1 subagent",
-        "ranN": "Ran {{value0}} subagents",
         "tokens": "{{value0}} tokens",
-        "unnamed": "Subagent"
+        "unnamed": "Subagent",
+        "started_one": "Kicked off {{count}} subagent",
+        "started_other": "Kicked off {{count}} subagents",
+        "ran_one": "Ran {{count}} subagent",
+        "ran_other": "Ran {{count}} subagents"
       },
       "rewind": {
         "unsupported": "This chat can't go back to an earlier message.",
@@ -19620,6 +19718,14 @@
           "descriptionMany": "Deleting will stop these agents' current work.",
           "confirm": "Stop agents and delete",
           "confirmOne": "Stop agent and delete"
+        },
+        "candidateRow": {
+          "gitChip": {
+            "clean": "Clean",
+            "dirty": "Dirty",
+            "unpushed": "Unpushed",
+            "unknown": "Unknown"
+          }
         }
       },
       "creation": {
@@ -20714,6 +20820,15 @@
     "openDefault": "Open in Default App"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Branch for this worktree",
+      "existing": "Existing branch",
+      "existingHint": "New commits go on this branch.",
+      "new": "New branch",
+      "newHint": "Create a new local branch",
+      "newName": "New branch name",
+      "automaticName": "Automatic name"
+    },
     "links": {
       "foreignReview": "This review belongs to another repository. Add reviews from this workspace’s repository.",
       "repositoryLoading": "Repository identity is still loading. Try again once it is available.",

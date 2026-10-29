@@ -555,7 +555,6 @@
       "branchName": "Название ветки",
       "derivedFromName": "На основе названия",
       "name": "Название",
-      "reuseBranch": "Повторно использовать ветку «{{branch}}»",
       "workspaceName": "Название рабочего пространства"
     },
     "smartWorkspaceSourceDrawer": {
@@ -1561,6 +1560,17 @@
       "inProgress": "В работе",
       "inReview": "На проверке",
       "pinned": "Закреплено"
+    }
+  },
+  "workspace": {
+    "branchChoice": {
+      "title": "Ветка для этого рабочего дерева",
+      "existing": "Существующая ветка",
+      "existingHint": "Новые коммиты добавляются в эту ветку.",
+      "new": "Новая ветка",
+      "newHint": "Создать новую локальную ветку",
+      "newName": "Имя новой ветки",
+      "automaticName": "Автоматическое имя"
     }
   }
 }
