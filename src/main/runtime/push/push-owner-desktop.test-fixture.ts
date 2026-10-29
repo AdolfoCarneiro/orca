@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto'
+import { expect } from 'vitest'
+import { integrationRows as rows } from './push-owner-bridge.test-fixture'
 import { deriveRelayHostId } from '../mobile-cloud-relay/relay-http-client'
 import { join } from 'node:path'
 import { DeviceRegistry } from '../device-registry'
@@ -7,7 +10,7 @@ import { DesktopPushService } from './desktop-push-service'
 import { PushGatewayClient } from './push-gateway-client'
 import { createPushHostKeypair } from './push-host-challenge-fixtures'
 import { NotificationRegisterPushParams } from '../../../shared/rpc-contract/notifications-params'
-import { record, text } from '../../../shared/push-owner-integration.test-fixture'
+import { record, text } from '../../../../cloud/apps/push/src/push-owner-integration.test-fixture'
 
 export function desktopActors(
   path: string,
@@ -52,6 +55,7 @@ export function desktopActors(
   const origin = deriveRelayHostId(source.keypair.publicKey)
   return {
     origin,
+    fingerprints: actors.map((actor) => deriveRelayHostId(actor.keypair.publicKey)).sort(),
     profiles: actors.map((actor) => ({
       id: actor.id,
       name: actor.id,
@@ -95,13 +99,76 @@ export function desktopActors(
     },
     registered() {
       return actors.map((actor) =>
-        record(actor.registry.getDevice(actor.device.deviceId)?.pushRegistration)
+        record(actor.registry.getDevice(actor.device.deviceId)?.pushRegistration ?? {})
       )
     },
     stop() {
+      const failures: unknown[] = []
       for (const actor of actors) {
-        actor.service.stop()
+        try {
+          actor.service.stop()
+        } catch (error) {
+          failures.push(error)
+        }
+      }
+      if (failures.length) {
+        throw new AggregateError(failures, 'Desktop actor cleanup failed')
       }
     }
   }
+}
+
+export async function settleOwnerDelivery(
+  ports: {
+    actors: ReturnType<typeof desktopActors>
+    sent(occurrence: string): Promise<unknown>
+    cloud(op: string): Promise<unknown>
+    advance(delta: number): Promise<unknown>
+  },
+  label: string,
+  expected: number,
+  token: string
+) {
+  const { actors, cloud, advance } = ports
+  const occurrence = createHash('sha256').update(label).digest('base64url')
+  actors.dispatch(occurrence)
+  await ports.sent(occurrence)
+  await cloud('flush')
+  await advance(1000)
+  await cloud('flush')
+  const snapshot = record(await cloud('snapshot'))
+  const providers = rows(snapshot.providers)
+  expect(providers).toHaveLength(expected)
+  const provider = providers.at(-1)
+  if (!provider) {
+    throw new Error('No actual final provider request')
+  }
+  expect(provider.path).toBe(`/3/device/${token}`)
+  expect(record(record(JSON.parse(text(provider.body))).orca)).toMatchObject({
+    origin: actors.origin,
+    occurrence
+  })
+  expect(rows(snapshot.claims).filter((claim) => claim.state === 'sent')).toHaveLength(expected)
+  expect(rows(snapshot.pending)).toEqual([])
+  if (!Array.isArray(snapshot.decisions)) {
+    throw new Error('Missing actual admission observations')
+  }
+  expect(snapshot.decisions.filter((decision) => decision === 'admitted')).toHaveLength(expected)
+  expect(snapshot.decisions.filter((decision) => decision === 'superseded')).toHaveLength(expected)
+  expect(rows(snapshot.recipients)).toHaveLength(expected * 2)
+  return snapshot
+}
+
+export function expectOwnerEnrollment(
+  snapshot: Record<string, unknown>,
+  token: string,
+  routeKey: unknown
+): void {
+  expect(rows(snapshot.devices)).toHaveLength(2)
+  expect(
+    rows(snapshot.devices).every(
+      (device) => device.token === token && device.route_key === routeKey
+    )
+  ).toBe(true)
+  expect(rows(snapshot.claims).every((claim) => claim.winner_route_key === routeKey)).toBe(true)
 }

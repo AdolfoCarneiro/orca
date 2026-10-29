@@ -3,7 +3,7 @@ import { loadPushNotificationsEnabled } from '../storage/preferences'
 import { ensureDesktopNotificationChannel } from './desktop-notification-channel'
 import { startMobilePushLeaseRenewal } from './mobile-push-lease-renewal'
 import { addPushTokenListener, getDevicePushToken, type MobilePushToken } from './push-token'
-import { startPushRoutePublication } from './push-route-declaration'
+import { startPushRoutePublication, type PushRoutePublication } from './push-route-declaration'
 
 export type MobilePushOwner = ReturnType<typeof createMobilePushOwner>
 
@@ -23,7 +23,7 @@ export function createMobilePushOwner(
     enabled: boolean | undefined
     intent: number
     renewal: number
-    publication: ReturnType<typeof startPushRoutePublication>
+    publication: PushRoutePublication
     isCurrent: () => boolean
     invalidate: () => void
     rederive: () => void
@@ -44,6 +44,7 @@ export function createMobilePushOwner(
     isCurrent: () => active && current() && root.intent === generation(),
     invalidate() {
       root.enabled = undefined
+      changed()
       root.publication.wake('input')
     },
     rederive() {
@@ -72,15 +73,16 @@ export function createMobilePushOwner(
         }
         root.renewal++
         renewalWake = true
-        void refresh()
         changed()
-      })
+        void refresh()
+      }, changed)
       stopToken = addPushTokenListener((token) => {
         if (!active || !current()) {
           return
         }
         observation = {}
         root.token = token
+        changed()
         void refresh()
       })
       void refresh()
@@ -88,6 +90,7 @@ export function createMobilePushOwner(
     },
     stop() {
       active = false
+      changed()
       root.publication.stop()
       stopLease()
       stopToken()
@@ -122,6 +125,7 @@ export function createMobilePushOwner(
           const token = await getDevicePushToken()
           if (valid()) {
             root.token = token
+            changed()
           }
         })()
           .catch(() => {})

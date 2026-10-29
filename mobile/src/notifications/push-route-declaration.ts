@@ -12,13 +12,20 @@ type Publication = {
   sending: boolean
   attempt: number
 }
-let attached: ReturnType<typeof startPushRoutePublication> | undefined
+export type PushRoutePublication = {
+  wake(reason: Wake): void
+  registered(gatewayOrigin?: string): void
+  stop(): void
+}
+let attached: PushRoutePublication | undefined
 
 export function refreshPushRoutes(): void {
   attached?.wake('catalog')
 }
 
-export function startPushRoutePublication(readDesired: () => Desired | undefined) {
+export function startPushRoutePublication(
+  readDesired: () => Desired | undefined
+): PushRoutePublication {
   attached?.stop()
   let active = true
   let identity: string | undefined
@@ -151,7 +158,7 @@ export function startPushRoutePublication(readDesired: () => Desired | undefined
       slot.running = false
     }
   }
-  const handle = {
+  const handle: PushRoutePublication = {
     wake(reason: Wake): void {
       if (!active) {
         return

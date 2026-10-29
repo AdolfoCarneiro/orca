@@ -15,6 +15,7 @@ export type HostPushState = {
   routeKeySupported?: boolean
   capabilityProbeStop: (() => void) | null
   chain: Promise<void>
+  preparation?: { releaseIfObsolete(): void }
   running?: boolean
   dirty?: boolean
   target?: {
@@ -36,7 +37,9 @@ export async function registerMobilePushTarget(
   const renewal = root.renewal
   const capable = state.routeKeySupported
   const token = await root.currentToken()
+  let released = false
   const valid = () =>
+    !released &&
     root.isCurrent() &&
     isCurrent() &&
     root.intent === generation &&
@@ -53,11 +56,26 @@ export async function registerMobilePushTarget(
   if (!valid()) {
     return
   }
-  const routeKey = capable
-    ? await mobilePushRouteKey(
-        () => valid() && capable === state.routeKeySupported && state.supported === true
-      )
-    : undefined
+  let routeKey: string | undefined
+  if (capable) {
+    const release = Promise.withResolvers<undefined>()
+    const preparation = {
+      releaseIfObsolete() {
+        if (!valid()) {
+          released = true
+          release.resolve(undefined)
+        }
+      }
+    }
+    state.preparation = preparation
+    try {
+      routeKey = await Promise.race([mobilePushRouteKey(valid), release.promise])
+    } finally {
+      if (state.preparation === preparation) {
+        state.preparation = undefined
+      }
+    }
+  }
   if (!valid() || capable !== state.routeKeySupported) {
     return
   }

@@ -2,6 +2,17 @@ vi.mock('../transport/pairing-keychain', () => {
   const items = new Map<string, string>()
   return {
     readPairingKeychainItem: async (key: string) => items.get(key) ?? null,
+    writePairingKeychainItemIfCurrent: async (
+      key: string,
+      value: string,
+      isCurrent: () => boolean
+    ) => {
+      if (!isCurrent()) {
+        return 'retired' as const
+      }
+      items.set(key, value)
+      return 'written' as const
+    },
     writePairingKeychainItem: async (key: string, value: string) => {
       items.set(key, value)
     },

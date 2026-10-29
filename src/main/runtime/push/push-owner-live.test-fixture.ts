@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -7,11 +6,19 @@ import { runProcess } from '@orca/process-host'
 import { expect, it, vi } from 'vitest'
 import {
   createOwnerBridge,
-  integrationRows as rows,
+  ownerCleanup,
   integrationDeadline as deadline
 } from './push-owner-bridge.test-fixture'
-import { desktopActors } from './push-owner-desktop.test-fixture'
-import { httpResult, record, text } from '../../../shared/push-owner-integration.test-fixture'
+import {
+  desktopActors,
+  settleOwnerDelivery,
+  expectOwnerEnrollment
+} from './push-owner-desktop.test-fixture'
+import {
+  httpResult,
+  record,
+  text
+} from '../../../../cloud/apps/push/src/push-owner-integration.test-fixture'
 
 it('keeps T2 through late/lost actual replies and recovers bounded source failures through real route/admission/provider settlement', async () => {
   const root = resolve('.')
@@ -28,6 +35,7 @@ it('keeps T2 through late/lost actual replies and recovers bounded source failur
   const refusalResponse = Promise.withResolvers<void>()
   const registrationCommit = Promise.withResolvers<void>()
   let refusalRace = false
+  let rollover = false
   let aFirst = true
   let t1RouteHeld = false
   let accepted = 0
@@ -93,12 +101,12 @@ it('keeps T2 through late/lost actual replies and recovers bounded source failur
       expect(record(result).registered).toBe(true)
       const host = text(value.host)
       const token = text(params.token)
-      bridge.event(`committed:${host}:${token}`)
+      bridge.event(`${rollover ? 'committed' : 'first-committed'}:${host}:${token}`)
       if (host === 'A' && token === T1 && aFirst) {
         aFirst = false
         await heldA.promise
       }
-      if (host === 'A' && token === T2) {
+      if (rollover && host === 'A' && token === T2) {
         await droppedA.promise
       }
     }
@@ -121,53 +129,67 @@ it('keeps T2 through late/lost actual replies and recovers bounded source failur
     })
   })
   const resultsPromise = Promise.allSettled(launches)
-  let passed = false
+  let primary: { failed: true; error: unknown } | undefined
   const advance = async (delta: number) => {
     clock += delta
     await cloud('advance', { delta })
     return mobile('advance', { delta })
   }
-  const settle = async (label: string, expected: number) => {
-    const occurrence = createHash('sha256').update(label).digest('base64url')
-    actors.dispatch(occurrence)
-    await deadline(
-      Promise.all(['A', 'B'].map((host) => bridge.wait(`sent:${host}:${occurrence}`))),
-      'actual desktop sends'
+  const settle = (label: string, expected: number) =>
+    settleOwnerDelivery(
+      {
+        actors,
+        cloud,
+        advance,
+        sent: (occurrence) =>
+          deadline(
+            Promise.all(['A', 'B'].map((host) => bridge.wait(`sent:${host}:${occurrence}`))),
+            'actual desktop sends'
+          )
+      },
+      label,
+      expected,
+      T2
     )
-    await cloud('flush')
-    await advance(1000)
-    await cloud('flush')
-    const snapshot = record(await cloud('snapshot'))
-    const providers = rows(snapshot.providers)
-    expect(providers).toHaveLength(expected)
-    const provider = providers.at(-1)
-    if (!provider) {
-      throw new Error('No actual final provider request')
-    }
-    expect(provider.path).toBe(`/3/device/${T2}`)
-    expect(record(record(JSON.parse(text(provider.body))).orca)).toMatchObject({
-      origin: actors.origin,
-      occurrence
-    })
-    expect(rows(snapshot.claims).filter((claim) => claim.state === 'sent')).toHaveLength(expected)
-    expect(rows(snapshot.pending)).toEqual([])
-    if (!Array.isArray(snapshot.decisions)) {
-      throw new Error('Missing actual admission observations')
-    }
-    expect(snapshot.decisions.filter((decision) => decision === 'admitted')).toHaveLength(expected)
-    expect(snapshot.decisions.filter((decision) => decision === 'superseded')).toHaveLength(
-      expected
-    )
-    expect(rows(snapshot.recipients)).toHaveLength(expected * 2)
-    return snapshot
-  }
   try {
     await deadline(
       Promise.all([bridge.ready('cloud'), bridge.ready('mobile')]),
       'actors ready',
       45_000
     )
-    await mobile('start', { profiles: actors.profiles })
+    const initial = record(await mobile('start', { profiles: actors.profiles }))
+    expect(initial.keyReads).toBe(1)
+    expect(initial.keyWrites).toBe(0)
+    const joined = record(await mobile('attach'))
+    expect(joined.preparations).toBe(2)
+    expect(joined.keyReads).toBe(1)
+    expect(joined.keyWrites).toBe(0)
+    expect(routeAttempts).toBe(0)
+    expect(actors.registered()).toEqual([{}, {}])
+    await mobile('release-key')
+    await deadline(
+      Promise.all(['A', 'B'].map((host) => bridge.wait(`first-committed:${host}:${T2}`))),
+      'first-use keyed registrations'
+    )
+    await deadline(
+      Promise.all(['A', 'B'].map((host) => bridge.wait(`first-observed:${host}:${T2}`))),
+      'first-use acknowledgements consumed'
+    )
+    await mobile('drain')
+    const firstDeclaration = record(
+      await deadline(bridge.wait('accepted:1'), 'unseeded signed declaration')
+    )
+    const created = record(await mobile('stats'))
+    expect(created.keyReads).toBe(2)
+    expect(created.keyWrites).toBe(1)
+    expect(created.metadataReads).toBe(1)
+    expect(created.metadataWrites).toBe(0)
+    expect(firstDeclaration).toMatchObject({ token: T2, routeKey: created.routeKey })
+    expect(firstDeclaration.hosts).toEqual(actors.fingerprints)
+    const firstState = await settle('first-use-current-creators', 1)
+    expectOwnerEnrollment(firstState, T2, created.routeKey)
+    rollover = true
+    await mobile('begin-rollover')
     await deadline(bridge.wait(`committed:B:${T1}`), 'B T1 registration')
     await advance(1000)
     await deadline(bridge.wait('T1 route committed'), 'real signed T1 route')
@@ -180,20 +202,12 @@ it('keeps T2 through late/lost actual replies and recovers bounded source failur
     await advance(5000)
     heldRoute.resolve()
     const declaration = record(
-      await deadline(bridge.wait('accepted:1'), 'actual current T2 declaration')
+      await deadline(bridge.wait('accepted:2'), 'actual current T2 declaration')
     )
     expect(declaration.token).toBe(T2)
     expect(declaration.hosts).toHaveLength(2)
-    const state = await settle('g4-current-owner', 1)
-    expect(rows(state.devices)).toHaveLength(2)
-    expect(
-      rows(state.devices).every(
-        (device) => device.token === T2 && device.route_key === declaration.routeKey
-      )
-    ).toBe(true)
-    expect(
-      rows(state.claims).every((claim) => claim.winner_route_key === declaration.routeKey)
-    ).toBe(true)
+    const state = await settle('g4-current-owner', 2)
+    expectOwnerEnrollment(state, T2, declaration.routeKey)
     expect(actors.registered()).toHaveLength(2)
     droppedA.resolve()
     await actors.rpc({ host: 'A', method: 'notifications.unregisterPush' })
@@ -209,7 +223,7 @@ it('keeps T2 through late/lost actual replies and recovers bounded source failur
     await advance(1)
     await deadline(bridge.wait(`accepted:${priorRefusal + 1}`), 'real refusal wake accepted')
     refusalRace = false
-    await settle('refusal-racing-registration', 2)
+    await settle('refusal-racing-registration', 3)
     await mobile('disconnect')
     for (const [index, kind] of [
       'catalog-read',
@@ -237,51 +251,41 @@ it('keeps T2 through late/lost actual replies and recovers bounded source failur
         await deadline(bridge.wait(`accepted:${posts + 1}`), `real repair ${kind}`)
       )
       expect(restored.token).toBe(T2)
-      await settle(`g5-recovered-${index}`, index + 3)
+      await settle(`g5-recovered-${index}`, index + 4)
     }
     const prior = accepted
     await mobile('restart')
     await deadline(bridge.wait(`accepted:${prior + 1}`), 'saved-state disconnected restart')
-    passed = true
-  } finally {
-    heldA.resolve()
-    heldRoute.resolve()
-    droppedA.resolve()
-    refusalResponse.resolve()
-    registrationCommit.resolve()
-    actors.stop()
-    let cleanupError: unknown
-    try {
-      if (passed) {
-        await mobile('stop')
-        await cloud('stop')
-      } else {
-        abort.abort()
-      }
-    } catch (error) {
-      cleanupError = error
-      abort.abort()
-    }
-    const results = await resultsPromise
-    try {
-      await bridge.close()
-    } catch (error) {
-      cleanupError ??= error
-    }
-    vi.restoreAllMocks()
-    if (closed.size === 2) {
-      rmSync(scratch, { recursive: true, force: true })
-    } else {
-      throw new Error(`Owned companion closure unverified; retained ${scratch}`)
-    }
-    if (cleanupError) {
-      throw cleanupError
-    }
-    for (const result of results) {
+  } catch (error) {
+    primary = { failed: true, error }
+  }
+  const cleanup = ownerCleanup(primary)
+  for (const barrier of [heldA, heldRoute, droppedA, refusalResponse, registrationCommit]) {
+    await cleanup.run(() => barrier.resolve())
+  }
+  await cleanup.run(() => actors.stop())
+  for (const stop of [() => mobile('stop'), () => cloud('stop')]) {
+    await cleanup.run(stop)
+  }
+  if (cleanup.failed) {
+    await cleanup.run(() => abort.abort())
+  }
+  const results = await resultsPromise
+  for (const result of results) {
+    await cleanup.run(() => {
       if (result.status === 'rejected') {
         throw result.reason
       }
       expect(result.value.code).toBe(0)
-    }
+    })
   }
+  await cleanup.run(() => bridge.close())
+  await cleanup.run(() => vi.restoreAllMocks())
+  await cleanup.run(() => {
+    if (closed.size !== 2) {
+      throw new Error(`Owned companion closure unverified; retained ${scratch}`)
+    }
+    rmSync(scratch, { recursive: true, force: true })
+  })
+  cleanup.finish()
 }, 180_000)

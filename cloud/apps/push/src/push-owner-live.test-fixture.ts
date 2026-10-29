@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { companion, headers, integer, text } from '../../../../src/shared/push-owner-integration.test-fixture.js'
+import { companion, headers, integer, text } from './push-owner-integration.test-fixture.js'
 import { createPushServerHarness } from './push-server-harness.test-fixture.js'
 
 it('serves live production route/registration/dispatch and fenced settlement to the owner parent', async () => {

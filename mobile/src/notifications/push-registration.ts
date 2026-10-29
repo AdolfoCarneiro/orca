@@ -153,6 +153,7 @@ function enqueueReconcile(hostId: string): Promise<void> {
   if (!state) {
     return Promise.resolve()
   }
+  state.preparation?.releaseIfObsolete()
   state.dirty = true
   if (!state.running) {
     state.running = true
@@ -186,6 +187,7 @@ export function attachPushRegistration(hostId: string, client: PushClient): () =
     state.capabilityProbeStop = null
     state.connection.client = client
     state.supported = null
+    state.preparation?.releaseIfObsolete()
   }
   if (owner && !owner.token) {
     owner.refresh()
@@ -198,11 +200,13 @@ export function attachPushRegistration(hostId: string, client: PushClient): () =
       state.capabilityProbeStop?.()
       state.capabilityProbeStop = null
       state.supported = null
+      state.preparation?.releaseIfObsolete()
       const current = hostsById.get(hostId)
       if (current && current !== state) {
         current.capabilityProbeStop?.()
         current.capabilityProbeStop = null
         current.supported = null
+        current.preparation?.releaseIfObsolete()
       }
     }
   }
@@ -248,6 +252,7 @@ export async function unregisterPushForRemovedHost(hostId: string): Promise<() =
   const state = hostsById.get(hostId)
   // Retire ownership before waiting for earlier RPCs to settle.
   hostsById.delete(hostId)
+  state?.preparation?.releaseIfObsolete()
   state?.capabilityProbeStop?.()
   if (state) {
     state.target = undefined
@@ -291,6 +296,9 @@ export function startPushTokenSync(): () => void {
     () => owner === root,
     () => consentGeneration,
     () => {
+      for (const state of hostsById.values()) {
+        state.preparation?.releaseIfObsolete()
+      }
       void reconcileAllHosts()
     }
   )

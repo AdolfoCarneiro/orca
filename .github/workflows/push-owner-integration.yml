@@ -2,6 +2,7 @@ name: Push owner integration
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - mobile/src/notifications/**
       - mobile/src/storage/**
@@ -43,17 +44,19 @@ permissions:
   contents: read
 
 concurrency:
-  group: push-owner-${{ github.ref }}
-  cancel-in-progress: true
+  group: push-owner-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   live-owner:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft != true
     name: live mobile-desktop-gateway owner
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/install-node-dependencies
+      - id: root-deps
+        uses: ./.github/actions/install-node-dependencies
         with:
           native-runtime: none
           node-version: '24'
@@ -61,29 +64,46 @@ jobs:
             pnpm-lock.yaml
             mobile/pnpm-lock.yaml
             cloud/pnpm-lock.yaml
-      - uses: ./.github/actions/install-mobile-dependencies
-      - uses: ./.github/actions/setup-pnpm
+      - id: mobile-deps
+        uses: ./.github/actions/install-mobile-dependencies
+      - id: cloud-setup
+        uses: ./.github/actions/setup-pnpm
         with:
           package-json-file: cloud/package.json
       - name: Install existing cloud workspace
+        id: cloud-deps
         working-directory: cloud
         run: pnpm install --frozen-lockfile
       - name: Build existing cloud prerequisites
+        id: cloud-build
         working-directory: cloud
         run: |
           pnpm --filter @orca-cloud/postgres-schema build
           pnpm --filter @orca-cloud/push-contract build
           pnpm --filter @orca-cloud/cloud-database build
-      - uses: ./.github/actions/setup-pnpm
+      - id: root-setup
+        uses: ./.github/actions/setup-pnpm
       - name: Compile actual root node consumer program
+        id: root-compile
         run: pnpm run typecheck:node
       - name: Check actual e2e consumer program
+        id: e2e
         run: pnpm run check:e2e-typecheck-ratchet
+      - name: Expose actual e2e diagnostics after failure
+        if: ${{ !cancelled() && steps.e2e.outcome == 'failure' }}
+        run: node config/scripts/run-e2e-typecheck.mjs
+      - name: Compile actual mobile production program
+        if: ${{ !cancelled() && steps.mobile-deps.outcome == 'success' && steps.root-deps.outcome == 'success' && steps.root-setup.outcome == 'success' }}
+        working-directory: mobile
+        run: pnpm run typecheck
       - name: Compile actual mobile test program
+        if: ${{ !cancelled() && steps.mobile-deps.outcome == 'success' && steps.root-deps.outcome == 'success' && steps.root-setup.outcome == 'success' }}
         working-directory: mobile
         run: pnpm run check:tests-typecheck
       - name: Compile actual cloud test-inclusive program
+        if: ${{ !cancelled() && steps.cloud-deps.outcome == 'success' && steps.cloud-build.outcome == 'success' && steps.root-setup.outcome == 'success' }}
         working-directory: cloud
         run: pnpm --filter @orca-cloud/push typecheck
       - name: Run named live owner parent and explicit companions
+        if: ${{ !cancelled() && steps.root-deps.outcome == 'success' && steps.mobile-deps.outcome == 'success' && steps.cloud-deps.outcome == 'success' && steps.cloud-build.outcome == 'success' && steps.root-setup.outcome == 'success' && steps.root-compile.outcome == 'success' }}
         run: pnpm exec vitest run --config config/push-owner-root.vitest.config.mjs

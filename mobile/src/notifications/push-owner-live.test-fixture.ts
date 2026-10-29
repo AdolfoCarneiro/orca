@@ -1,3 +1,4 @@
+import { ports } from './push-owner-native-ports.test-fixture'
 import { expect, it, vi } from 'vitest'
 import nacl from 'tweetnacl'
 import {
@@ -7,106 +8,15 @@ import {
   post,
   record,
   text
-} from '../../../src/shared/push-owner-integration.test-fixture'
+} from '../../../cloud/apps/push/src/push-owner-integration.test-fixture'
 import type { RpcOperationSender } from '../transport/rpc-operation-sender'
-import type { MobilePushToken } from './push-token'
 import { AppState } from 'react-native'
+import * as publication from './push-route-declaration'
 import {
   attachPushRegistration,
   resetPushRegistrationForTests,
   startPushTokenSync
 } from './push-registration'
-
-type Ports = {
-  storage: Map<string, string>
-  keys: Map<string, string>
-  listener?: (token: MobilePushToken) => void
-  foreground?: (state: string) => void
-  finalFailure?: ReturnType<typeof Promise.withResolvers<void>>
-  fault: string
-  reads: number
-  writes: number
-  bytes: number
-  native: MobilePushToken
-}
-const ports = vi.hoisted((): Ports => ({
-  storage: new Map(),
-  keys: new Map(),
-  fault: '',
-  reads: 0,
-  writes: 0,
-  bytes: 0,
-  native: { platform: 'ios', token: 'a'.repeat(64), apnsEnvironment: 'production' }
-}))
-vi.mock('@react-native-async-storage/async-storage', () => ({
-  default: {
-    getItem: async (key: string) => {
-      if (key === 'orca:push-route-version') {
-        ports.reads++
-      }
-      if (key === 'orca:hosts') {
-        ports.bytes += (ports.storage.get(key) ?? '').length
-      }
-      const fault = ports.fault
-      if (fault === 'catalog-race' && key === 'orca:hosts') {
-        if (ports.reads === 3) {
-          await ports.finalFailure?.promise
-        }
-        throw new Error('Controlled final catalog failure')
-      }
-      if (
-        (ports.fault === 'catalog-read' && key === 'orca:hosts') ||
-        (ports.fault === 'version-read' && key === 'orca:push-route-version')
-      ) {
-        throw new Error('Controlled storage read failure')
-      }
-      if (ports.fault === 'non-array' && key === 'orca:hosts') {
-        return '{}'
-      }
-      return ports.storage.get(key) ?? null
-    },
-    setItem: async (key: string, value: string) => {
-      if (key === 'orca:push-route-version') {
-        ports.writes++
-        if (ports.fault === 'version-write') {
-          throw new Error('Controlled storage write failure')
-        }
-      }
-      ports.storage.set(key, value)
-    }
-  }
-}))
-vi.mock('../transport/pairing-keychain', () => ({
-  readPairingKeychainItem: async (key: string) => ports.keys.get(key) ?? null,
-  writePairingKeychainItem: async (key: string, value: string) => {
-    ports.keys.set(key, value)
-  }
-}))
-vi.mock('react-native', () => ({
-  AppState: {
-    currentState: 'active',
-    addEventListener: (_: string, callback: typeof ports.foreground) => {
-      ports.foreground = callback
-      return {
-        remove: () => {
-          ports.foreground = undefined
-        }
-      }
-    }
-  }
-}))
-vi.mock('./desktop-notification-channel', () => ({
-  ensureDesktopNotificationChannel: async () => {}
-}))
-vi.mock('./push-token', () => ({
-  getDevicePushToken: async () => ports.native,
-  addPushTokenListener: (callback: typeof ports.listener) => {
-    ports.listener = callback
-    return () => {
-      ports.listener = undefined
-    }
-  }
-}))
 
 it('runs the actual current-owner, prepared sender and signed publisher against live parent desktop/cloud actors', async () => {
   const base = text(process.env.ORCA_PUSH_OWNER_BRIDGE)
@@ -114,6 +24,17 @@ it('runs the actual current-owner, prepared sender and signed publisher against 
   let stop: (() => void) | undefined
   const detach: (() => void)[] = []
   let renewalPhase = false
+  let firstUse = true
+  const bothPreparations = Promise.withResolvers<void>()
+  const prepare = publication.mobilePushRouteKey
+  let preparationCount = 0
+  const preparations = vi.spyOn(publication, 'mobilePushRouteKey').mockImplementation((current) => {
+    const result = prepare(current)
+    if (++preparationCount === 2) {
+      bothPreparations.resolve()
+    }
+    return result
+  })
   let clock = 1_700_000_000_000
   const drain = () => vi.advanceTimersByTimeAsync(0)
   const client = (host: string): RpcOperationSender => ({
@@ -127,7 +48,7 @@ it('runs the actual current-owner, prepared sender and signed publisher against 
       })
       const response = post(base, '/rpc', { host, method, params }).then(async (result) => {
         await post(base, '/event', {
-          name: `observed:${host}:${record(params ?? {}).token ?? method}`,
+          name: `${firstUse ? 'first-observed' : 'observed'}:${host}:${record(params ?? {}).token ?? method}`,
           data: result
         })
         if (renewalPhase && method === 'notifications.registerPush') {
@@ -167,14 +88,31 @@ it('runs the actual current-owner, prepared sender and signed publisher against 
       if (op === 'start') {
         ports.storage.set('orca:pushServiceNotificationsEnabled', 'true')
         ports.storage.set('orca:hosts', JSON.stringify(data.profiles))
-        ports.storage.set('orca:push-route-version', String(clock - 1))
-        const key = nacl.sign.keyPair.fromSeed(new Uint8Array(32).fill(7))
-        ports.keys.set('orca.push-route-key', Buffer.from(key.secretKey).toString('base64'))
-        // Attach before root deliberately exercises the independent effect ordering.
+        expect(ports.keys.size).toBe(0)
+        expect(ports.storage.has('orca:push-route-version')).toBe(false)
+        ports.keyRead = Promise.withResolvers<void>()
+        ports.keyReadStarted = Promise.withResolvers<void>()
+        stop = startPushTokenSync()
+        await ports.keyReadStarted.promise
+      } else if (op === 'attach') {
+        expect(ports.keyReads).toBe(1)
         for (const host of ['A', 'B']) {
           detach.push(attachPushRegistration(host, client(host)))
         }
-        stop = startPushTokenSync()
+        await bothPreparations.promise
+      } else if (op === 'release-key') {
+        expect(preparations).toHaveBeenCalledTimes(2)
+        expect(preparations.mock.calls.every(([current]) => current())).toBe(true)
+        expect(ports.keyWrites).toBe(0)
+        expect(ports.keyReads).toBe(1)
+        ports.keyRead?.resolve()
+      } else if (op === 'begin-rollover') {
+        firstUse = false
+        ports.native = { platform: 'ios', token: 'a'.repeat(64), apnsEnvironment: 'production' }
+        if (!ports.listener) {
+          throw new Error('Missing native owner')
+        }
+        ports.listener(ports.native)
       } else if (op === 'token') {
         ports.native = { platform: 'ios', token: text(data.token), apnsEnvironment: 'production' }
         if (!ports.listener) {
@@ -205,6 +143,7 @@ it('runs the actual current-owner, prepared sender and signed publisher against 
         }
       } else if (op === 'background') {
         AppState.currentState = 'background'
+        ports.foreground?.('background')
       } else if (op === 'repair') {
         ports.fault = ''
         AppState.currentState = 'active'
@@ -225,12 +164,27 @@ it('runs the actual current-owner, prepared sender and signed publisher against 
         reads: ports.reads,
         writes: ports.writes,
         bytes: ports.bytes,
+        preparations: preparations.mock.calls.length,
+        keyReads: ports.keyReads,
+        keyWrites: ports.keyWrites,
+        metadataReads: ports.metadataReads,
+        metadataWrites: ports.metadataWrites,
+        routeKey: ports.keys.has('orca.push-route-key')
+          ? Buffer.from(
+              nacl.sign.keyPair.fromSecretKey(
+                Buffer.from(text(ports.keys.get('orca.push-route-key')), 'base64')
+              ).publicKey
+            ).toString('base64url')
+          : null,
         version: ports.storage.get('orca:push-route-version')
       }
     })
     expect(ports.storage.get('orca:pushServiceNotificationsEnabled')).toBe('true')
   } finally {
+    ports.keyRead?.resolve()
+    ports.finalFailure?.resolve()
     stop?.()
+    preparations.mockRestore()
     resetPushRegistrationForTests()
     vi.unstubAllGlobals()
     vi.useRealTimers()
