@@ -83,6 +83,17 @@ it('reopens quoted headings, rules, lists and tables through the existing block 
   expect(editorDocument.send.currentMarkdown()).toBe(markdown)
 })
 
+it.each([
+  ['> - a\n>   continued', '- a<br>  continued'],
+  ['> > nested\n> back', '&gt; nested<br>back']
+])('keeps quoted text the block readers would restructure as written: %s', (markdown, html) => {
+  const { editorDocument, editor } = surface()
+  editorDocument.send.setMarkdown(markdown, 8)
+
+  expect(editor.firstElementChild?.innerHTML).toBe(`<p>${html}</p>`)
+  expect(editorDocument.send.currentMarkdown()).toBe(markdown)
+})
+
 it('keeps quoted code literal rather than interpreting its block markers', () => {
   const { editorDocument, editor } = surface()
   const markdown = '> ```text\n> > literal &amp;\n> # still code\n> ```'

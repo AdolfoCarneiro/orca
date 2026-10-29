@@ -4,11 +4,28 @@ import { renderListItems } from './markdown-list-render'
 import { parseListTree } from './markdown-list-parse'
 import { closesFence, openingFence } from './markdown-code-fence'
 import { isTableSeparator, splitTableRow } from './markdown-table-rows'
+import { blockMarkdown } from './html-block-markdown'
 import type { RichMarkdownEditorScope } from './document-scope'
 
 /** Whether a line opens a block of its own, which is what ends the paragraph being gathered. */
 export function isBlockStart(line: string): boolean {
   return /^(```|#{1,6}\s+|>\s?|\s*(?:[-*+]|\d+[.)])\s+|\s*(-{3,}|\*{3,}|_{3,})\s*$)/.test(line)
+}
+
+// Use quote blocks only when they save the source or what the literal paragraph saves; the list reader drops continuation and lazy lines.
+function quoteMarkup(probe: () => Element, quote: string[], structured: string): string {
+  const literal = `<p>${renderInline(quote.join('\n').trim()).replace(/\n/g, '<br />')}</p>`
+  if (structured === literal) {
+    return structured
+  }
+  const element = probe()
+  element.innerHTML = structured
+  const structuredMarkdown = blockMarkdown(element)
+  if (structuredMarkdown.replace(/^> /gm, '').trim() === quote.join('\n').trim()) {
+    return structured
+  }
+  element.innerHTML = literal
+  return blockMarkdown(element) === structuredMarkdown ? structured : literal
 }
 
 // Read fenced/table/list blocks by their own consumed line runs, not flat replacements; empty source still needs paragraph for placeholder.
@@ -17,13 +34,20 @@ export function markdownToHtml(scope: RichMarkdownEditorScope, markdown: string)
   let html: string[] = []
   let index = 0
   const parents: { lines: string[]; html: string[]; index: number }[] = []
+  let quoteProbe: Element | null = null
+  // Inert document so probed images and links never load.
+  const probe = () =>
+    (quoteProbe ??= scope
+      .getDocument()
+      .implementation.createHTMLDocument('')
+      .createElement('blockquote'))
   while (index < lines.length || parents.length > 0) {
     if (index >= lines.length) {
-      const markup = html.join('\n') || '<p><br /></p>'
       const parent = parents.pop()
       if (!parent) {
         break
       }
+      const markup = quoteMarkup(probe, lines, html.join('\n') || '<p><br /></p>')
       lines = parent.lines
       html = parent.html
       index = parent.index
