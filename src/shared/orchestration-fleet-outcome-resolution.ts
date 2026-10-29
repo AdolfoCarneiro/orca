@@ -36,14 +36,8 @@ export function resolveFleetWorkerOutcome(args: {
   attemptOutcome?: FleetAttemptOutcome
   workerState?: string | null
   dispatchStatus?: string | null
-  /** The worker's live status shows a turn in progress, locally or on its execution host. */
-  working?: boolean
 }): FleetAttemptOutcome {
   const { attemptOutcome, workerState, dispatchStatus } = args
-  // A stop report is mail read once; a worker working again has not finished.
-  if (attemptOutcome === 'finished_unverified' && args.working) {
-    return 'in_progress'
-  }
   if (attemptOutcome && attemptOutcome !== 'outcome_unknown') {
     return attemptOutcome
   }

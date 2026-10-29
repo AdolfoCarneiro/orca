@@ -8,7 +8,6 @@ import { archiveWorkerOutputBeforeStop } from '../worker/worker-stop-archive'
 import { describeUnconfirmedAgentStop } from '../../../../../../shared/pty-liveness-verdict'
 import {
   inspectRemoteAttachment,
-  isAttachmentAgentWorking,
   observeRemoteAttachmentLiveness,
   requireHomeAttachment
 } from './federation-attachment-observation'
@@ -27,15 +26,11 @@ export const ORCHESTRATION_FEDERATION_CONTROL_METHODS = [
     permission: 'workspace',
     params: FederationFleetSnapshotParams,
     handler: async (params, { runtime, authenticatedCallerFingerprint }) => {
-      const statuses = runtime.getOrchestrationFleetAgentStatusSnapshot()
       const items = await mapWithConcurrency(params.dispatchIds, 16, async (dispatchId) => {
         requireHomeAttachment(runtime, dispatchId, authenticatedCallerFingerprint)
         const observation = await observeRemoteAttachmentLiveness(runtime, dispatchId)
         const db = runtime.getOrchestrationDb()
         const autoReleaseAt = db.getLiveWorkerTerminalAutoReleaseAt(dispatchId)
-        const attachment = db.getRemoteDispatchAttachment(dispatchId)
-        const working =
-          observation.status === 'live' && isAttachmentAgentWorking(attachment, statuses)
         return {
           dispatchId,
           observation: {
@@ -45,8 +40,9 @@ export const ORCHESTRATION_FEDERATION_CONTROL_METHODS = [
                 : 'unverifiable',
             exactWorker: observation.exact,
             ...(observation.reason ? { reason: observation.reason } : {}),
-            ...(attachment?.stage === 'released' ? { released: true } : {}),
-            ...(working ? { working } : {}),
+            ...(db.getRemoteDispatchAttachment(dispatchId)?.stage === 'released'
+              ? { released: true }
+              : {}),
             ...(autoReleaseAt ? { autoReleaseAt } : {})
           }
         }

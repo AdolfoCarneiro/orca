@@ -46,10 +46,7 @@ function hookRow(overrides: Partial<AgentStatusIpcPayload>): AgentStatusIpcPaylo
   }
 }
 
-function moved(
-  from: 'working' | 'done' | 'needs-you',
-  to: 'working' | 'done' | 'needs-you'
-): AgentPaneChange {
+function moved(from: 'working' | 'done', to: 'done' | 'needs-you'): AgentPaneChange {
   return {
     kind: 'moved',
     paneKey: PANE,
@@ -57,7 +54,7 @@ function moved(
     from,
     to,
     at: 1,
-    transition: to === 'needs-you' ? 'needs-input' : to === 'done' ? 'turn-finished' : null
+    transition: to === 'needs-you' ? 'needs-input' : 'turn-finished'
   }
 }
 
@@ -104,16 +101,12 @@ describe('terminal worker turn stops', () => {
     expect(message.body).toContain('Selected model is at capacity')
     expect(message.body).toContain(`worker-read --dispatch ${ctx.dispatch.id}`)
     expect(ctx.notify).toHaveBeenCalledWith(message.to_handle, 'escalation')
-    // The open attempt now asks for action until the coordinator writes to the worker.
-    const outcome = () => ctx.db.getWorkerAttentionFacts(ctx.dispatch.id, 1).outcome
-    expect(outcome()).toBe('finished_unverified')
     ctx.db.insertMessage({
       from: 'term_coordinator',
       to: `dispatch:${ctx.dispatch.id}`,
       subject: 'retry',
       runId: ctx.run.id
     })
-    expect(outcome()).not.toBe('finished_unverified')
 
     // The coordinator's reply starts a new turn; its stop is reported again.
     current.row = hookRow({

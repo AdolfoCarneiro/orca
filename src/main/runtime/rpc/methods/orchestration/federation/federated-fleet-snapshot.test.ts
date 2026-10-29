@@ -4,10 +4,7 @@ import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import type { OrchestrationDb } from '../../../../orchestration/db'
 import { OrchestrationError } from '../../../../orchestration/orchestration-error'
 import type { FederatedDispatchRow } from '../../../../orchestration/types'
-import {
-  projectOrchestrationFleet,
-  type FleetDurableWorker
-} from '../../../../../../shared/orchestration-fleet-projection'
+import { projectOrchestrationFleet } from '../../../../../../shared/orchestration-fleet-projection'
 import {
   applyFederatedFleetObservations,
   readFederatedFleetSnapshots
@@ -275,47 +272,6 @@ describe('federated fleet snapshots', () => {
       host: { kind: 'remote', id: 'environment-offline' },
       liveness: { verdict: 'exited', source: 'execution_host' },
       evidence: { liveStatus: 'unavailable', lastObservedAt: null }
-    })
-  })
-
-  it('drops a remote reported stop while its host reports the worker working', () => {
-    const durable = {
-      dispatchId: 'dispatch-remote',
-      taskId: 'task-remote',
-      runId: 'run-home',
-      parentTaskId: null,
-      workerState: 'ready',
-      dispatchStatus: 'dispatched',
-      workerStage: 'prompt_delivered',
-      agentTerminalHandle: 'term-remote',
-      paneKey: null,
-      worktreeId: null,
-      terminalState: 'active',
-      resource: null,
-      outcome: 'finished_unverified'
-    } satisfies FleetDurableWorker
-    const apply = (working?: boolean) => {
-      const fleet = projectOrchestrationFleet({ workers: [durable], statuses: [], now: 1 })
-      applyFederatedFleetObservations(
-        fleet,
-        {
-          observations: new Map([
-            ['dispatch-remote', { status: 'live' as const, exactWorker: true, working }]
-          ]),
-          errors: [],
-          hosts: new Map([['dispatch-remote', 'environment-a']])
-        },
-        new Map([['dispatch-remote', durable]])
-      )
-      return fleet.workers[0]
-    }
-
-    // Answered on the execution host: no Dispatch mail, but its live status is working.
-    expect(apply(true)).toMatchObject({ outcome: 'in_progress', nextAction: { kind: 'none' } })
-    // Stopped again, or an older host that sends no live status: the report stands.
-    expect(apply()).toMatchObject({
-      outcome: 'finished_unverified',
-      nextAction: { kind: 'recover' }
     })
   })
 

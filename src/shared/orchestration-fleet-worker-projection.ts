@@ -99,14 +99,6 @@ export function projectLiveness(
   return { verdict: 'live', observedAt, source: 'agent_status' }
 }
 
-/** Fresh agent status of a turn in progress; it outranks a stop the worker already reported. */
-export function isFleetAgentWorking(
-  liveness: FleetLiveness,
-  evidence: FleetAgentStatusEvidence | undefined
-): boolean {
-  return liveness.verdict === 'live' && evidence?.activity.state === 'working'
-}
-
 function projectResource(worker: FleetDurableWorker): FleetResourceProjection {
   const resource = worker.resource
   if (!resource) {
@@ -164,9 +156,9 @@ export function projectFleetNextAction(
         }
       : { kind: 'none', argv: [] }
   }
-  // Unsettled workers with proven exits, or whose turn ended without a report, need transcript recovery, then stop/abandon; unverifiable absence cannot qualify.
+  // Unsettled workers with proven exits need transcript recovery, then stop/abandon; unverifiable absence cannot qualify.
   if (
-    (liveness.verdict === 'exited' || worker.outcome === 'finished_unverified') &&
+    liveness.verdict === 'exited' &&
     !SETTLED_WORKER_STATES.has(worker.workerState) &&
     !worker.pendingInput &&
     !worker.pendingApproval
@@ -229,8 +221,7 @@ export function projectOrchestrationFleetWorker(
   const outcome = resolveFleetWorkerOutcome({
     attemptOutcome: worker.outcome,
     workerState: worker.workerState,
-    dispatchStatus: worker.dispatchStatus,
-    working: isFleetAgentWorking(liveness, evidence)
+    dispatchStatus: worker.dispatchStatus
   })
   return {
     id: worker.dispatchId,
@@ -263,7 +254,7 @@ export function projectOrchestrationFleetWorker(
     },
     resource: projectResource(worker),
     ...(worker.resource?.autoReleaseAt ? { autoReleaseAt: worker.resource.autoReleaseAt } : {}),
-    nextAction: projectFleetNextAction({ ...worker, outcome }, liveness),
+    nextAction: projectFleetNextAction(worker, liveness),
     attention: projectOrchestrationFleetAttention({
       isRoot: worker.parentTaskId === null,
       outcome,

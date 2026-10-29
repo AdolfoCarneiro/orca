@@ -4,7 +4,6 @@ import {
   parseOrcaSessionAddress,
   type OrcaSessionId
 } from '../../../shared/orca-session-address'
-import { getStructuredAgentSessionHost } from '../../native-chat/agent-session-wire/structured-agent-session-registry'
 import type { OrchestrationDb } from './db'
 import { DISPATCH_CONTEXT_COLUMN_LIST } from './db/row-column-lists'
 import type { DispatchContextRow } from './types'
@@ -24,7 +23,7 @@ export function chatAssigneeSessionId(
 
 export type ChatAssigneeObservation =
   /** `session` is the conversation's live session: its `/clear` successor, if it has one. */
-  | { status: 'live'; session: AgentSessionConversationView; working: boolean }
+  | { status: 'live'; session: AgentSessionConversationView }
   | { status: 'exited'; reason: string }
   | { status: 'unverifiable'; reason: string }
 
@@ -32,9 +31,7 @@ export type ChatAssigneeObservation =
 export function observeChatAssignee(
   sessionId: OrcaSessionId,
   db: OrchestrationDb | null | undefined,
-  store: AgentSessionRecordReader | null = readAgentSessionRecordStore(),
-  readStatus: (sessionId: string) => { status: string | null } | undefined = (id) =>
-    getStructuredAgentSessionHost()?.readStatusSummary(id)
+  store: AgentSessionRecordReader | null = readAgentSessionRecordStore()
 ): ChatAssigneeObservation {
   if (!store) {
     return {
@@ -49,11 +46,7 @@ export function observeChatAssignee(
   const reach = structuredSessionMailReach(store, record, db)
   switch (reach.kind) {
     case 'reachable':
-      return {
-        status: 'live',
-        session: reach.session,
-        working: readStatus(reach.session.sessionId)?.status === 'working'
-      }
+      return { status: 'live', session: reach.session }
     case 'other-host':
       return { status: 'unverifiable', reason: 'The chat runs on another host.' }
     case 'unverifiable':

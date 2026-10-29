@@ -10,13 +10,6 @@ import type { TerminalExitCause } from '../../../../../shared/terminal-exit-caus
 import type { OrchestrationDb } from '../orchestration-db'
 import { ATTEMPT_OBSERVATION_FACT_COLUMN_LIST } from '../row-column-lists'
 
-// Stop reports use stable `msg_stop_` ids (worker-turn-stop-report.ts); the range keeps the id index.
-const STOP_REPORT_SINCE_LAST_MAIL_SQL = `SELECT 1 FROM messages m
-   WHERE m.id >= 'msg_stop_' AND m.id < 'msg_stop\`' AND m.run_id = d.run_id
-     AND CASE WHEN json_valid(m.payload) THEN json_extract(m.payload, '$.dispatchId') END = d.id
-     AND m.rowid > COALESCE(
-       (SELECT MAX(r.rowid) FROM messages r WHERE r.to_handle = 'dispatch:' || d.id), 0)`
-
 export type WorkerAttentionFacts = {
   outcome: AttemptProjectedOutcome
   pendingInput: boolean
@@ -64,9 +57,6 @@ export function getWorkerAttentionFactsForDispatches(
                  WHERE m.run_id = d.run_id AND m.to_handle = 'dispatch:' || d.id
                    AND m.read = 0 AND m.delivery_contract = 'current_delivery'
               ) AS pending_guidance,
-              d.status IN ('pending', 'dispatched')
-                AND COALESCE(w.state, '') NOT IN ('failed', 'succeeded', 'stopped', 'abandoned')
-                AND EXISTS (${STOP_REPORT_SINCE_LAST_MAIL_SQL}) AS stopped_without_report,
               EXISTS (${activeSiblingAttemptSql('d.task_id', 'd.id')}) AS active_sibling
          FROM dispatch_contexts d
          LEFT JOIN worker_dispatches w ON w.dispatch_id = d.id
@@ -88,7 +78,6 @@ export function getWorkerAttentionFactsForDispatches(
     pending_input: number
     pending_approval: number
     pending_guidance: number
-    stopped_without_report: number
     active_sibling: number
   }[]
   const observationRows = this.db
@@ -113,14 +102,10 @@ export function getWorkerAttentionFactsForDispatches(
         activeSibling: row.active_sibling === 1,
         authorityNow: { home: authorityNow }
       }).taskOutcome
-      // Orca saw the turn end without worker_done, and no mail has reached the worker since.
-      const stopped =
-        row.stopped_without_report === 1 &&
-        (projected === 'in_progress' || projected === 'outcome_unknown')
       return [
         row.dispatch_id,
         {
-          outcome: stopped ? 'finished_unverified' : projected,
+          outcome: projected,
           pendingInput: row.pending_input === 1,
           pendingGuidance: row.pending_guidance === 1,
           pendingApproval: row.pending_approval === 1,
