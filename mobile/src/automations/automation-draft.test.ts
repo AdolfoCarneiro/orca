@@ -165,12 +165,12 @@ describe('mobile automation host contracts', () => {
 
   it('resolves legacy inventory only from a unique repo host and never assumes local', async () => {
     const setup = automationTargets().setups[0]!
-    let repos: Array<{
+    let repos: {
       id: string
       path: string
       displayName: string
       connectionId: string | null
-    }> = [{ id: setup.repoId, path: setup.path, displayName: 'Local', connectionId: null }]
+    }[] = [{ id: setup.repoId, path: setup.path, displayName: 'Local', connectionId: null }]
     const port = automationClient((method) => {
       if (method === 'project.list') {
         return { projects: [] }

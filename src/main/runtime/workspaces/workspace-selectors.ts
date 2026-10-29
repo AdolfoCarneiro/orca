@@ -5,7 +5,7 @@ import { splitWorktreeIdForFilesystem, worktreeIdentityKey } from '../../../shar
 import { branchSelectorMatches, runtimePathsEqual } from '../runtime-worktree-path-identity'
 import {
   getRepoExecutionHostId,
-  getRepoRoutingConnectionId,
+  getSshTargetIdForExecutionHost,
   type ExecutionHostId
 } from '../../../shared/execution-host'
 import {
@@ -92,16 +92,12 @@ export abstract class RuntimeWorkspaceSelectors extends OrcaRuntimeWithResolveBr
       }
       if (candidates.length === 0) {
         const parsed = splitWorktreeIdForFilesystem(worktreeId)
-        const repos = this.store?.getRepos() ?? []
         const owner = this.store && resolveWorktreeMetaOwner(this.store, worktreeId)
-        const repo =
-          parsed && owner
-            ? createRepoRowExecutionHostLookup(repos).byHost(parsed.repoId, owner.hostId)
-            : null
         const fallback =
           requiredHostId === undefined &&
-          repo &&
-          getRepoRoutingConnectionId(repo) &&
+          parsed &&
+          owner &&
+          getSshTargetIdForExecutionHost(owner.hostId) &&
           this.store?.getWorktreeMeta(worktreeId)
             ? this.buildResolvedWorktreeFromId(worktreeId)
             : null

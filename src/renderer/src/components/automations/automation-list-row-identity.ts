@@ -157,12 +157,20 @@ export function automationWorktreesForRepo(
     }
     const owner = resolveWorktreeExecutionHost(lookup, worktree)
     if (host?.kind === 'runtime') {
-      if (owner.kind === 'resolved' && owner.hostId === hostId) {
-        return true
-      }
+      const legacyOwner =
+        !worktree.hostId && !worktree.runtimeOwnerEnvironmentId && owner.kind === 'resolved'
+          ? owner
+          : null
       return (
-        (worktree.runtimeOwnerEnvironmentId === host.environmentId || worktree.hostId === hostId) &&
-        (worktree.hostId === hostId ? 'local' : worktree.hostId) ===
+        (worktree.runtimeOwnerEnvironmentId === host.environmentId ||
+          worktree.hostId === hostId ||
+          legacyOwner?.hostId === hostId) &&
+        (worktree.hostId === hostId
+          ? 'local'
+          : (worktree.hostId ??
+            (legacyOwner?.connectionId
+              ? toSshExecutionHostId(legacyOwner.connectionId)
+              : 'local'))) ===
           (getRepoSshConnectionId(repo)
             ? toSshExecutionHostId(getRepoSshConnectionId(repo)!)
             : 'local')

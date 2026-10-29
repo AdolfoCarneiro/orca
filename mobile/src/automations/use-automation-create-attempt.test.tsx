@@ -1,5 +1,5 @@
-// @vitest-environment happy-dom
-import { act, renderHook, cleanup } from '@testing-library/react'
+import { act } from 'react-test-renderer'
+import { hookMount } from '../test-support/rpc-recording/hook-mount'
 import { afterEach, describe, expect, it } from 'vitest'
 import { useAutomationCreateAttempt } from './use-automation-create-attempt'
 import { automationClient, automationTargets, savedAutomation } from './automation-test-fixtures'
@@ -8,9 +8,31 @@ import { newAutomationDraft } from './automation-draft'
 import { AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY } from '../../../src/shared/automation-runtime-capabilities'
 import { markRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
 
-afterEach(cleanup)
+const mounts = new Set<ReturnType<typeof hookMount>>()
+afterEach(() => {
+  for (const mount of mounts) {
+    mount.unmount()
+  }
+  mounts.clear()
+})
 
 const current = () => true
+function renderAttempt() {
+  let value!: ReturnType<typeof useAutomationCreateAttempt>
+  const mount = hookMount(() => {
+    value = useAutomationCreateAttempt([], true, () => {}, current)
+  })
+  mounts.add(mount)
+  mount.mount()
+  return {
+    result: {
+      get current() {
+        return value
+      }
+    },
+    unmount: mount.unmount
+  }
+}
 const draft = () => ({
   ...newAutomationDraft(savedAutomation()),
   setupId: automationSetupKey(automationTargets().setups[0]!),
@@ -35,9 +57,7 @@ describe('mobile automation create refusal recovery', () => {
           ok: false,
           error: { code, message: 'Correct the target' }
         })
-        const { result, unmount } = renderHook(() =>
-          useAutomationCreateAttempt([], true, () => {}, current)
-        )
+        const { result, unmount } = renderAttempt()
         const capabilities = keyed ? [AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY] : []
         await act(async () => {
           await expect(
@@ -92,7 +112,7 @@ describe('mobile automation create refusal recovery', () => {
         ok: false,
         error: { code: 'selector_not_found', message: 'Gone' }
       })
-      const { result } = renderHook(() => useAutomationCreateAttempt([], true, () => {}, current))
+      const { result } = renderAttempt()
       const capabilities = [AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY]
       for (let index = 0; index < 2; index++) {
         await act(async () => {

@@ -1,7 +1,17 @@
 import type { Repo } from '../../../shared/repo-types'
 import { getRepoExecutionHostId, type ExecutionHostId } from '../../../shared/execution-host'
+import {
+  createRepoExecutionHostLookup,
+  type ExecutionHostOwnerLookup
+} from '../../../shared/worktree-execution-host-resolution'
 
 type RepoOwnerRecord = Pick<Repo, 'id' | 'connectionId' | 'executionHostId'>
+const EMPTY_ROWS: readonly RepoOwnerRecord[] = []
+const EMPTY_EXECUTION_HOST_LOOKUP = createRepoExecutionHostLookup(() => EMPTY_ROWS)
+const repoExecutionHostLookupCache = new WeakMap<
+  readonly RepoOwnerRecord[],
+  ExecutionHostOwnerLookup<RepoOwnerRecord>
+>()
 
 const repoOwnerIndexCache = new WeakMap<
   readonly RepoOwnerRecord[],
@@ -31,8 +41,15 @@ export function resolveIndexedRepoOwner(
   if (!index) {
     const next = new Map<string, IndexedRepoOwnerResolution>()
     const qualified = new Map<string, IndexedRepoOwnerResolution>()
+    const rowsById = new Map<string, RepoOwnerRecord[]>()
     for (const repo of repos) {
       const repoId = repo.id
+      const rows = rowsById.get(repoId)
+      if (rows) {
+        rows.push(repo)
+      } else {
+        rowsById.set(repoId, [repo])
+      }
       const current = next.get(repoId)
       if (!current) {
         next.set(repoId, { kind: 'resolved', owner: repo })
@@ -61,8 +78,22 @@ export function resolveIndexedRepoOwner(
     index = next
     repoOwnerIndexCache.set(repos, index)
     qualifiedRepoOwnerIndexCache.set(repos, qualified)
+    repoExecutionHostLookupCache.set(
+      repos,
+      createRepoExecutionHostLookup((id) => rowsById.get(id) ?? EMPTY_ROWS)
+    )
   }
   return index.get(repoId) ?? { kind: 'missing' }
+}
+
+export function getIndexedRepoExecutionHostLookup(
+  repos: readonly RepoOwnerRecord[] | undefined
+): ExecutionHostOwnerLookup<RepoOwnerRecord> {
+  if (!repos) {
+    return EMPTY_EXECUTION_HOST_LOOKUP
+  }
+  resolveIndexedRepoOwner(repos, '')
+  return repoExecutionHostLookupCache.get(repos) ?? EMPTY_EXECUTION_HOST_LOOKUP
 }
 
 export function resolveQualifiedIndexedRepoOwnerForHost(
