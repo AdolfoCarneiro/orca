@@ -38,14 +38,25 @@ export function replayJournal(db: Database.Database, sessionId: string): Journal
 }
 
 /** The saved prefix is authoritative; only the contiguous tail is replayed. */
-export function restoreJournal(db: Database.Database, sessionId: string): JournalLoad | null {
+export function restoreJournal(
+  db: Database.Database,
+  sessionId: string,
+  repair?: (state: JournalReducerState) => void
+): JournalLoad | null {
   const epoch = readJournalSessionEpoch(db, sessionId)
   if (epoch === null) {
     return null
   }
+  let unusable = false
   const state =
-    readJournalSavedState(db, sessionId, epoch) ?? createJournalReducerState(sessionId, epoch)
-  return foldJournalFromState(db, state)
+    readJournalSavedState(db, sessionId, epoch, () => {
+      unusable = true
+    }) ?? createJournalReducerState(sessionId, epoch)
+  const loaded = foldJournalFromState(db, state)
+  if (unusable && !loaded.damage && !loaded.newer) {
+    repair?.(loaded.state)
+  }
+  return loaded
 }
 
 function foldJournalFromState(db: Database.Database, state: JournalReducerState): JournalLoad {

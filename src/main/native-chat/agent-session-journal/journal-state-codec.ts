@@ -49,16 +49,7 @@ const pauseMarks = z.object({
         at: number,
         turnId: z.string().optional(),
         caller: z.string().optional()
-      }),
-      settle: z
-        .object({
-          settling: z.boolean(),
-          turnId: z.string().optional(),
-          failedOn: z
-            .union([z.object({ turnId: z.string() }), z.object({ openedAfter: number })])
-            .optional()
-        })
-        .optional()
+      })
     })
     .nullable(),
   resumedSequence: number,
@@ -140,6 +131,14 @@ const fields = {
 } satisfies Record<keyof JournalReducerState, z.ZodType>
 const stateV1 = z.object(fields).omit({ items: true })
 
+// Live Stop settlement belongs to its process; only the row-derived pause facts survive restart.
+function durableQueuePauseMarks(
+  marks: JournalReducerState['queuePauseMarks']
+): JournalReducerState['queuePauseMarks'] {
+  const stop = marks.latestStop
+  return { ...marks, latestStop: stop && { sequence: stop.sequence, event: stop.event } }
+}
+
 export function encodeJournalState(state: JournalReducerState): {
   stateJson: string
   items: { itemId: string; itemJson: string; ordinal: number }[]
@@ -165,7 +164,7 @@ export function encodeJournalState(state: JournalReducerState): {
     appliedSettlementIds: [...state.appliedSettlementIds],
     derivedTurnScope: state.derivedTurnScope.snapshot(),
     latestAcceptedTurnSequence: state.latestAcceptedTurnSequence,
-    queuePauseMarks: state.queuePauseMarks,
+    queuePauseMarks: durableQueuePauseMarks(state.queuePauseMarks),
     stoppedHistoryCarried: [...state.stoppedHistoryCarried],
     queuedHandOffPlaces: [...state.queuedHandOffPlaces],
     normalizedHandOffs: [...state.normalizedHandOffs],
@@ -213,7 +212,7 @@ export function decodeJournalState(
     appliedSettlementIds: new Set(stored.appliedSettlementIds),
     derivedTurnScope: JournalDerivedTurnScope.restore(stored.derivedTurnScope),
     latestAcceptedTurnSequence: stored.latestAcceptedTurnSequence,
-    queuePauseMarks: stored.queuePauseMarks,
+    queuePauseMarks: durableQueuePauseMarks(stored.queuePauseMarks),
     stoppedHistoryCarried: new Map(stored.stoppedHistoryCarried),
     queuedHandOffPlaces: new Map(stored.queuedHandOffPlaces),
     normalizedHandOffs: new Set(stored.normalizedHandOffs),

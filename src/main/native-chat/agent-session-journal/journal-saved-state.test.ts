@@ -34,6 +34,9 @@ import {
   sweepJournalSavedState
 } from './journal-saved-state'
 import { backfillJournalState } from './journal-state-backfill'
+import { JournalStopMarks } from './journal-stop-marks'
+import { readAgentSessionHistory } from '../agent-session-wire/agent-session-history-page'
+import { structuredAgentSessionStopping } from '../agent-session-wire/structured-agent-session-stopping'
 import { failLoadOnUnloadableJournal } from './journal-open-failure'
 import type { JournalRow } from './journal-row-schema'
 import type { JournalHostDatabase } from './journal-host-database'
@@ -86,14 +89,18 @@ function write(rows: readonly JournalRow[]): JournalReducerState {
 
 function requireState(state: JournalReducerState | null | undefined): JournalReducerState {
   expect(state).toBeTruthy()
-  if (!state) throw new Error('missing journal state')
+  if (!state) {
+    throw new Error('missing journal state')
+  }
   return state
 }
 
 function expectSameState(actual: JournalReducerState, expected: JournalReducerState): void {
   expect(Object.keys(actual)).toEqual(Object.keys(expected))
   for (const key in expected) {
-    if (!Object.hasOwn(expected, key)) continue
+    if (!Object.hasOwn(expected, key)) {
+      continue
+    }
     // SAFETY: iteration is over this reducer's own enumerable field names.
     const field = key as keyof JournalReducerState
     const left = actual[field]
@@ -244,10 +251,23 @@ it('opens the saved prefix plus a tail like full replay and still refuses a dama
   expectSameState(requireState(restoreJournal(database.db, identity.sessionId)?.state), full)
   const journal = await journals.open({ identity, stateDirectory: root })
   expect(journal.snapshot()).toStrictEqual(renderJournalState(full))
+  for (const direction of ['tail', 'before', 'after'] as const) {
+    const request = {
+      sessionId: identity.sessionId,
+      direction,
+      cursor: { epoch, sequence: direction === 'before' ? 4 : 1 },
+      limit: 1
+    }
+    expect(readAgentSessionHistory(journal, request)).toStrictEqual(
+      readAgentSessionHistory(journal, request, { snapshot: renderJournalState(full) })
+    )
+  }
   insertTestJournalRowJson(database.db, identity.sessionId, 4, '{damaged')
   const damaged = restoreJournal(database.db, identity.sessionId)
   expect(damaged?.damage).toEqual({ sequence: 4, cause: 'unparseable-row' })
-  if (!damaged) throw new Error('missing load')
+  if (!damaged) {
+    throw new Error('missing load')
+  }
   expect(() => failLoadOnUnloadableJournal(identity.sessionId, damaged)).toThrow()
   await journal.close()
   expect(readJournalSavedState(database.db, identity.sessionId, epoch)?.lastSequence).toBe(3)
@@ -349,4 +369,134 @@ it('backfills a closed chat without changing rows and sweeps retired epochs', as
   sweepJournalSavedState(database)
   expect(database.db.prepare('SELECT 1 FROM journal_state').get()).toBeUndefined()
   expect(database.db.prepare('SELECT 1 FROM journal_items').get()).toBeUndefined()
+})
+
+it.each(['settling', 'bound', 'failed'] as const)(
+  'restores only durable Stop facts from a %s checkpoint, including prior v1 payloads',
+  async (mode) => {
+    write([{ ...base(1), kind: 'epoch', reason: 'session_created', providerHandle }])
+    const journal = await journals.open({ identity, stateDirectory: root })
+    await journal.appendStopEvent({ reason: 'user-stop' }, 1)
+    const settle = journal.stopMarks.beginSettle(true)
+    expect(settle).not.toBeNull()
+    if (mode === 'bound') {
+      journal.stopMarks.settled(settle, 'old-turn')
+    } else if (mode === 'failed') {
+      journal.stopMarks.settled(settle, undefined, { openedAfter: journal.cursor().sequence })
+    }
+    await journal.checkpoint()
+    const saved = database.db.prepare('SELECT state_json FROM journal_state').get()?.state_json
+    if (typeof saved !== 'string') {
+      throw new Error('missing checkpoint')
+    }
+    expect(JSON.parse(saved).queuePauseMarks.latestStop).not.toHaveProperty('settle')
+    expect(journal.stopMarks.latest()?.settle).toBe(settle)
+    // Recreate an earlier v1 payload, which serialized the same live-only binding.
+    const previousV1 = JSON.parse(saved)
+    previousV1.queuePauseMarks.latestStop.settle = settle
+    database.db.prepare('UPDATE journal_state SET state_json = ?').run(JSON.stringify(previousV1))
+    journal.stopMarks.settled(settle)
+    await journal.close()
+
+    const full = requireState(replayJournal(database.db, identity.sessionId)?.state)
+    const replayMarks = new JournalStopMarks({ state: () => full })
+    const reopened = await journals.open({ identity, stateDirectory: root })
+    expectSameState(requireState(restoreJournal(database.db, identity.sessionId)?.state), full)
+    expect(reopened.stopMarks.latest()).toStrictEqual(replayMarks.latest())
+    expect(structuredAgentSessionStopping(reopened, reopened.snapshot().items)).toBe(false)
+
+    const user = text('Another request', 'user')
+    await reopened.appendSubmission({
+      clientMessageId: 'new-send',
+      payloadFingerprint: agentSessionSendBodyFingerprint(identity.sessionId, user),
+      body: user,
+      fence: 1,
+      handoverRecorded: true
+    })
+    const turn = {
+      provider: 'codex',
+      threadId: 'thread-1',
+      turnId: 'new-turn',
+      ordinal: 0
+    } as const
+    await reopened.appendItem(
+      turn,
+      { kind: 'turn', turnId: 'new-turn', state: 'running' },
+      { fence: 1 }
+    )
+    expect(structuredAgentSessionStopping(reopened, reopened.snapshot().items)).toBe(false)
+    expect(reopened.stopMarks.personStopDecides('new-turn')).toBe(false)
+    await reopened.appendItem(
+      turn,
+      { kind: 'turn', turnId: 'new-turn', state: 'interrupted', completedAt: Date.now() },
+      { fence: 1 }
+    )
+    expect(reopened.itemBody(agentJournalItemKey(turn))).not.toHaveProperty('outcome')
+    expect(reopened.snapshot()).toStrictEqual(
+      renderJournalState(requireState(replayJournal(database.db, identity.sessionId)?.state))
+    )
+  }
+)
+
+it('repairs an unreadable equal checkpoint through open and keeps a newer published prefix', async () => {
+  const original = write([
+    { ...base(1), kind: 'epoch', reason: 'session_created', providerHandle },
+    { ...base(2), kind: 'item', itemId: itemId(1), revision: 1, body: text('First') }
+  ])
+  saveJournalState(database, original)
+  database.db.prepare('UPDATE journal_state SET state_json = ?').run('{')
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const journal = await journals.open({ identity, stateDirectory: root })
+  await journal.checkpoint()
+  await journal.close()
+  expectSameState(
+    requireState(readJournalSavedState(database.db, identity.sessionId, epoch)),
+    original
+  )
+  const second = await journals.open({ identity, stateDirectory: root })
+  expect(second.snapshot()).toStrictEqual(renderJournalState(original))
+  const older = requireState(readJournalSavedState(database.db, identity.sessionId, epoch))
+  const newer: JournalRow = {
+    ...base(3),
+    kind: 'item',
+    itemId: itemId(1),
+    revision: 2,
+    body: text('Newer')
+  }
+  insertTestJournalRow(database.db, identity.sessionId, newer)
+  applyJournalRow(original, newer)
+  expect(saveJournalState(database, original)).toBe(true)
+  await second.checkpoint()
+  await second.close()
+  expect(saveJournalState(database, older, true)).toBe(false)
+  expectSameState(
+    requireState(readJournalSavedState(database.db, identity.sessionId, epoch)),
+    original
+  )
+})
+
+it('keeps admitted writes and later sends usable when checkpoint publication fails', async () => {
+  write([{ ...base(1), kind: 'epoch', reason: 'session_created', providerHandle }])
+  const journal = await journals.open({ identity, stateDirectory: root })
+  await journal.checkpoint()
+  database.db.exec(
+    "CREATE TRIGGER fail_checkpoint BEFORE INSERT ON journal_state BEGIN SELECT RAISE(ABORT, 'save failed'); END"
+  )
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const item = { provider: 'codex', threadId: 'thread-1', turnId: 'turn-1', ordinal: 1 } as const
+  await journal.appendItem(item, text('First'), { fence: 1 })
+  await journal.checkpoint()
+  let admitted: Promise<unknown> | undefined
+  let closed: Promise<void> | undefined
+  await journal.readInOrder(() => {
+    admitted = journal.appendItem(item, text('Still sends'), { fence: 1 })
+    closed = journal.close()
+  })
+  await admitted
+  await closed
+  expect(journal.itemBody(agentJournalItemKey(item))).toStrictEqual(text('Still sends'))
+  await expect(journal.appendItem(item, text('Too late'), { fence: 1 })).rejects.toThrow()
+  database.db.exec('DROP TRIGGER fail_checkpoint')
+  const reopened = await journals.open({ identity, stateDirectory: root })
+  expect(reopened.itemBody(agentJournalItemKey(item))).toStrictEqual(text('Still sends'))
 })

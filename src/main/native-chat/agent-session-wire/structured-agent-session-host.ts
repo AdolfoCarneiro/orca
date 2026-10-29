@@ -163,18 +163,9 @@ export class StructuredAgentSessionHost {
 
   private now = (): number => this.deps.now?.() ?? Date.now()
 
-  checkpointOpenJournal = async (sessionId: string): Promise<boolean> => {
-    const session = this.sessions.get(sessionId)
-    if (!session) {
-      return false
-    }
-    await session.journal.checkpoint()
-    return true
-  }
-
+  checkpointOpenJournal = this.sessions.checkpointOpenJournal
   hasSession = (sessionId: string): boolean => this.sessions.has(sessionId)
-  loadedSessionIds = (): string[] =>
-    [...this.sessions].flatMap(([sessionId, { child }]) => (child ? [sessionId] : []))
+  loadedSessionIds = this.sessions.loadedSessionIds
   hasLoadedProviders = (): boolean => this.loadedSessionIds().length > 0
   sessionAgent = (sessionId: string) => this.deps.store.getConversation(sessionId)?.provider ?? null
 

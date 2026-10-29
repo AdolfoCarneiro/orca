@@ -31,6 +31,18 @@ export class StructuredAgentSessionConversations extends Map<
     super()
   }
 
+  checkpointOpenJournal = async (sessionId: string): Promise<boolean> => {
+    const session = this.get(sessionId)
+    if (!session) {
+      return false
+    }
+    await session.journal.checkpoint()
+    return true
+  }
+
+  loadedSessionIds = (): string[] =>
+    [...this].flatMap(([sessionId, { child }]) => (child ? [sessionId] : []))
+
   override set(sessionId: string, session: StructuredAgentSessionHostSession): this {
     const { journal } = session
     let queued = false

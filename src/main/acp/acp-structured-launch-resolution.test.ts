@@ -10,6 +10,15 @@ import {
 } from '../../shared/agent-session-provider-handle'
 import type { AgentSessionRecord } from '../../shared/agent-session-record'
 import { agentSessionRecordFixture } from '../../shared/agent-session-record.test-fixture'
+import { replayJournal, restoreJournal } from '../native-chat/agent-session-journal/journal-open'
+import { saveJournalState } from '../native-chat/agent-session-journal/journal-saved-state'
+import {
+  openTestJournalHostDatabase,
+  closeTestJournalHostDatabase,
+  publishTestJournalEpoch,
+  insertTestJournalRow,
+  insertTestJournalRowJson
+} from '../native-chat/agent-session-journal/journal-host-database-test-support'
 import type { JournalLoad } from '../native-chat/agent-session-journal/journal-open'
 import { createJournalReducerState } from '../native-chat/agent-session-journal/journal-reducer'
 import { agentJournalItemKey } from '../../shared/agent-session-journal-item-key'
@@ -78,6 +87,85 @@ function resolver(record: AgentSessionRecord, readJournal: () => JournalLoad | n
 }
 
 describe('ACP launch resolution', () => {
+  it('preserves resume and loss-warning decisions through a checkpoint and an unreadable tail', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'orca-acp-saved-read-'))
+    const database = openTestJournalHostDatabase(root)
+    try {
+      const handle: AgentSessionProviderHandle = {
+        transport: 'acp',
+        agent: 'grok',
+        nativeId: 'acp-1'
+      }
+      const lostKey = agentSessionProviderHandleKey({ ...handle, nativeId: 'acp-lost' })
+      const record = grokRecord({
+        providerHandleChain: [
+          {
+            linkId: 'head',
+            origin: 'created',
+            mintedAtFence: 1,
+            observedAt: 1,
+            handle,
+            replaces: { key: lostKey, reason: 'restore-failed', replacedAt: 1 }
+          }
+        ]
+      })
+      publishTestJournalEpoch(database.db, identity.sessionId, 'epoch-1')
+      insertTestJournalRow(database.db, identity.sessionId, {
+        v: 4,
+        epoch: 'epoch-1',
+        seq: 1,
+        fence: 1,
+        ts: 1,
+        kind: 'epoch',
+        reason: 'session_created',
+        providerHandle: { kind: 'opaque', agent: 'grok', value: 'acp-1' }
+      })
+      const turn = [...journalWithTurns('acp-1').state.items.values()][0]!
+      const turnIdentity = createLegacyProviderTimelineIdentityScheme({
+        agent: 'grok',
+        sessionId: identity.sessionId
+      }).item({
+        namespace: 'acp-1',
+        family: 'item',
+        key: { source: 'provider', value: 'turn' },
+        thread: 'acp-1'
+      })
+      insertTestJournalRow(database.db, identity.sessionId, {
+        v: 4,
+        epoch: 'epoch-1',
+        seq: 2,
+        fence: 1,
+        ts: 2,
+        kind: 'item',
+        itemId: agentJournalItemKey(turnIdentity),
+        revision: 1,
+        body: turn.body
+      })
+      const load = replayJournal(database.db, identity.sessionId)
+      if (!load) {
+        throw new Error('missing replay')
+      }
+      expect(saveJournalState(database, load.state)).toBe(true)
+      const readDecisions = async (readJournal: () => JournalLoad | null) => {
+        const launch = await resolver(record, readJournal).resolve({ identity })
+        return {
+          unsaved: launch.resume?.mayBeUnsaved(),
+          losses: launch.resume?.unannouncedLosses()
+        }
+      }
+      const full = () => replayJournal(database.db, identity.sessionId)
+      const restored = () => restoreJournal(database.db, identity.sessionId)
+      expect(await readDecisions(restored)).toStrictEqual(await readDecisions(full))
+      expect(await readDecisions(restored)).toEqual({ unsaved: false, losses: [lostKey] })
+      insertTestJournalRowJson(database.db, identity.sessionId, 3, '{damaged')
+      expect(await readDecisions(restored)).toStrictEqual(await readDecisions(full))
+      expect(await readDecisions(restored)).toEqual({ unsaved: false, losses: [] })
+    } finally {
+      closeTestJournalHostDatabase(root)
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('pins the record account home and searches the agent install dir', async () => {
     const { resolve, searched } = resolver(grokRecord())
     const launch = await resolve({ identity })

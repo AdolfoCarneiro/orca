@@ -1,6 +1,6 @@
 // Each session owns its fold and queue; all statements use the host's shared database connection.
 
-import { saveJournalState, logJournalCheckpointFailure } from './journal-saved-state'
+import { JournalCheckpoint } from './journal-saved-state'
 import type { AgentJournalDispatchRejection } from '../../../shared/agent-session-failure-words'
 import { randomUUID } from 'node:crypto'
 import { createJournalPublicReader } from './journal-public-read'
@@ -25,7 +25,7 @@ import {
 } from '../../../shared/structured-agent-session-live-turn'
 import { readJournalSince } from './journal-cursor'
 import type { JournalHostDatabase } from './journal-host-database'
-import { journalRowsAfterReader, type JournalLoad } from './journal-open'
+import { journalRowsAfterReader } from './journal-open'
 import {
   markJournalPendingSubmissionsUnknown,
   rejectJournalPendingSubmissions,
@@ -71,8 +71,6 @@ export class AgentSessionJournal {
   private readonly goalAttachments: JournalCollaborators['goalAttachments']
   private readonly identity: AgentSessionJournalIdentity
   private readonly database: JournalHostDatabase
-  private readonly now: () => number
-  private readonly mintEpoch: () => string
 
   private state: JournalReducerState
   private readonly readPublic = createJournalPublicReader()
@@ -87,8 +85,7 @@ export class AgentSessionJournal {
   private readonly submissionWriter: JournalSubmissionWriter
   private readonly stepWriter: JournalStepWriter
   private readonly restore: () => Promise<void>
-  private checkpointTimer: ReturnType<typeof setTimeout> | null = null
-  private closing: Promise<void> | null = null
+  private readonly checkpoints: JournalCheckpoint
   /** Queued cards never count as owed work. */
   readonly queuedMessages: JournalQueuedMessages
   readonly stopMarks: JournalCollaborators['stopMarks']
@@ -98,22 +95,27 @@ export class AgentSessionJournal {
   constructor(options: AgentSessionJournalOptions) {
     this.identity = options.identity
     this.database = options.database
-    this.now = options.now ?? (() => Date.now())
-    this.mintEpoch = options.mintEpoch ?? randomUUID
     this.state = createJournalReducerState(options.identity.sessionId, '')
     this.queue = new JournalWriteQueue(options.identity.sessionId)
+    this.checkpoints = new JournalCheckpoint({
+      sessionId: this.identity.sessionId,
+      database: this.database,
+      state: () => this.state,
+      queue: this.queue,
+      dispose: () => this.queuedMessages.editLeases.dispose()
+    })
     const collaborators = createJournalStoreCollaborators({
       identity: this.identity,
-      now: this.now,
-      mintEpoch: this.mintEpoch,
+      now: options.now ?? (() => Date.now()),
+      mintEpoch: options.mintEpoch ?? randomUUID,
       serialize: (run) => this.queue.serialize(run),
       database: () => this.database,
       state: () => this.state,
       readOnly: () => this.database.readOnly,
       cursor: this.cursor,
       adopt: (loaded) => {
-        this.adoptLoadedJournal(loaded)
-        this.scheduleCheckpoint()
+        this.state = loaded.state
+        this.checkpoints.schedule()
         this.onCommitted?.()
       },
       commit: (rows, savedAt, streamed) => {
@@ -121,7 +123,7 @@ export class AgentSessionJournal {
           applyJournalRow(this.state, row, savedAt)
         }
         if (!streamed) {
-          this.scheduleCheckpoint()
+          this.checkpoints.schedule()
         }
         this.onCommitted?.(rows)
       },
@@ -168,46 +170,13 @@ export class AgentSessionJournal {
   async open(): Promise<void> {
     await this.restore()
     this.openedThrough = this.cursor()
-    this.scheduleCheckpoint()
+    this.checkpoints.schedule()
   }
 
   /** Refuse future writes and drain admitted ones; the host retains database ownership. */
-  close(): Promise<void> {
-    if (this.closing) {
-      return this.closing
-    }
-    this.queuedMessages.editLeases.dispose()
-    if (this.checkpointTimer) {
-      clearTimeout(this.checkpointTimer)
-      this.checkpointTimer = null
-    }
-    // Admit the final checkpoint behind every admitted write, then close admission.
-    this.closing = this.checkpoint()
-    this.queue.markClosed()
-    return this.closing
-  }
+  close = (): Promise<void> => this.checkpoints.close()
 
-  checkpoint(): Promise<void> {
-    return this.queue
-      .serialize(() => {
-        saveJournalState(this.database, this.state)
-      })
-      .catch((error) => logJournalCheckpointFailure(this.identity.sessionId, error))
-  }
-
-  private scheduleCheckpoint(): void {
-    if (this.closing) {
-      return
-    }
-    if (this.checkpointTimer) {
-      clearTimeout(this.checkpointTimer)
-    }
-    this.checkpointTimer = setTimeout(() => {
-      this.checkpointTimer = null
-      void this.checkpoint()
-    }, 1_000)
-    this.checkpointTimer.unref?.()
-  }
+  checkpoint = (): Promise<void> => this.checkpoints.save()
 
   /** One nonthrowing listener; undefined rows mean adopted history, an empty array means metadata. */
   observeCommits(listener: (rows?: readonly JournalRow[]) => void): void {
@@ -303,9 +272,8 @@ export class AgentSessionJournal {
   }
 
   /** Assign revisions here so callers cannot publish reducer-stale upserts. */
-  appendItem(...args: Parameters<JournalItemAppender['append']>) {
-    return this.itemAppender.append(...args)
-  }
+  appendItem = (...args: Parameters<JournalItemAppender['append']>) =>
+    this.itemAppender.append(...args)
 
   appendClaimingAttachments: JournalItemAppender['appendClaimingAttachments'] = (...args) =>
     this.itemAppender.appendClaimingAttachments(...args)
@@ -411,9 +379,5 @@ export class AgentSessionJournal {
     ...args: Parameters<JournalEpochController['replace']>
   ): Promise<AgentJournalCursor> {
     return this.epochController.replace(...args)
-  }
-
-  private adoptLoadedJournal(loaded: JournalLoad): void {
-    this.state = loaded.state
   }
 }

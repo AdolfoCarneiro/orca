@@ -138,7 +138,9 @@ export function startJournalStateBackfill(
       void backfillJournalState({ ...run, stopped: () => stopped })
         .catch(onError)
         .finally(() => {
-          if (!stopped) schedule(6 * 60 * 60 * 1_000)
+          if (!stopped) {
+            schedule(6 * 60 * 60 * 1_000)
+          }
         })
     }, delay)
     timer.unref?.()

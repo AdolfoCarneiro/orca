@@ -3,6 +3,7 @@
 import type Database from '../../sqlite/sync-database'
 import type { JournalHostDatabase } from './journal-host-database'
 import type { JournalReducerState } from './journal-reducer'
+import type { JournalWriteQueue } from './journal-write-queue'
 import { readJournalSessionEpoch } from './journal-row-table'
 import {
   decodeJournalState,
@@ -31,13 +32,18 @@ export function ensureJournalSavedStateTables(db: Database.Database): void {
 export function readJournalSavedState(
   db: Database.Database,
   sessionId: string,
-  epoch: string
+  epoch: string,
+  onUnusable?: () => void
 ): JournalReducerState | null {
   const row = db
     .prepare(`SELECT through_seq, version, state_json FROM journal_state
     WHERE session_id = ? AND epoch = ?`)
     .get(sessionId, epoch)
-  if (!row || typeof row.version !== 'number' || typeof row.state_json !== 'string') {
+  if (!row) {
+    return null
+  }
+  if (typeof row.version !== 'number' || typeof row.state_json !== 'string') {
+    onUnusable?.()
     return null
   }
   try {
@@ -52,13 +58,18 @@ export function readJournalSavedState(
       return item.item_json
     })
     const state = decodeJournalState(row.version, row.state_json, jsons)
-    return state?.sessionId === sessionId &&
-      state.epoch === epoch &&
-      state.lastSequence === row.through_seq
-      ? state
-      : null
+    if (
+      state?.sessionId !== sessionId ||
+      state.epoch !== epoch ||
+      state.lastSequence !== row.through_seq
+    ) {
+      onUnusable?.()
+      return null
+    }
+    return state
   } catch (error) {
     logJournalCheckpointFailure(sessionId, error)
+    onUnusable?.()
     return null
   }
 }
@@ -66,13 +77,14 @@ export function readJournalSavedState(
 /** Caller owns this chat's write lane; stale background folds may only advance the live epoch. */
 export function saveJournalState(
   database: JournalHostDatabase,
-  state: JournalReducerState
+  state: JournalReducerState,
+  /** Only successful full replay after an unusable checkpoint may replace an equal prefix. */
+  repairEqualPrefix = false
 ): boolean {
   if (database.readOnly || database.isClosed || state.lastSequence === 0) {
     return false
   }
   try {
-    const encoded = encodeJournalState(state)
     return database.transaction((db) => {
       if (readJournalSessionEpoch(db, state.sessionId) !== state.epoch) {
         return false
@@ -80,9 +92,14 @@ export function saveJournalState(
       const previous = db
         .prepare('SELECT epoch, through_seq FROM journal_state WHERE session_id = ?')
         .get(state.sessionId)
-      if (previous?.epoch === state.epoch && Number(previous.through_seq) >= state.lastSequence) {
+      if (
+        previous?.epoch === state.epoch &&
+        (Number(previous.through_seq) > state.lastSequence ||
+          (Number(previous.through_seq) === state.lastSequence && !repairEqualPrefix))
+      ) {
         return false
       }
+      const encoded = encodeJournalState(state)
       clearJournalSavedState(db, state.sessionId)
       const insert = db.prepare(`INSERT INTO journal_items
         (session_id, epoch, item_id, ordinal, item_json) VALUES (?, ?, ?, ?, ?)`)
@@ -124,4 +141,55 @@ export function sweepJournalSavedState(database: JournalHostDatabase): void {
 
 export function logJournalCheckpointFailure(sessionId: string, error: unknown): void {
   console.warn('[agent-session-journal] could not save chat state', { sessionId, error })
+}
+
+/** Schedule captures on the owning write lane; close admits the final capture before closing it. */
+export class JournalCheckpoint {
+  private timer: ReturnType<typeof setTimeout> | null = null
+  private closing: Promise<void> | null = null
+
+  constructor(
+    private readonly deps: {
+      sessionId: string
+      database: JournalHostDatabase
+      state: () => JournalReducerState
+      queue: JournalWriteQueue
+      dispose: () => void
+    }
+  ) {}
+
+  save = (): Promise<void> =>
+    this.deps.queue
+      .serialize(() => {
+        saveJournalState(this.deps.database, this.deps.state())
+      })
+      .catch((error) => logJournalCheckpointFailure(this.deps.sessionId, error))
+
+  schedule(): void {
+    if (this.closing) {
+      return
+    }
+    if (this.timer) {
+      clearTimeout(this.timer)
+    }
+    this.timer = setTimeout(() => {
+      this.timer = null
+      void this.save()
+    }, 1_000)
+    this.timer.unref?.()
+  }
+
+  close(): Promise<void> {
+    if (this.closing) {
+      return this.closing
+    }
+    this.deps.dispose()
+    if (this.timer) {
+      clearTimeout(this.timer)
+      this.timer = null
+    }
+    this.closing = this.save()
+    this.deps.queue.markClosed()
+    return this.closing
+  }
 }
