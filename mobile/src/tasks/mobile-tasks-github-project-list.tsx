@@ -49,7 +49,10 @@ function isProjectFieldEmpty(row: GitHubProjectRow, field: GitHubProjectField): 
       return value.labels.map((label) => label.name).join(', ') === ''
     case 'users':
       return value.users.map((user) => user.login).join(', ') === ''
-    default:
+    case 'date':
+    case 'iteration':
+    case 'number':
+    case 'single-select':
       return false
   }
 }

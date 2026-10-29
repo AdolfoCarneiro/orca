@@ -2,7 +2,6 @@ import type { DetailCommentRenderersModel } from './use-mobile-tasks-detail-comm
 import { type PickerOption, View, useMemo, useMobileColorScheme } from './mobile-tasks-dependencies'
 import {
   type GitHubRepoSources,
-  type LinearTeam,
   PROJECT_VIEW_DEFAULT_SORT,
   PROVIDER_OPTIONS,
   type RepoSummary,
@@ -77,16 +76,19 @@ export function useMobileTasksPickerProjection(model: DetailCommentRenderersMode
           })),
     [hostedRepos, linearTeams, provider, repoHostLabels, t]
   )
-  const selectedCreateTarget =
+  const selectedCreateRepo =
     provider === 'github' || provider === 'gitlab'
       ? (hostedRepos.find((repo) => repo.id === createRepoId) ?? hostedRepos[0] ?? null)
-      : (linearTeams.find((team) => team.id === createTeamId) ?? linearTeams[0] ?? null)
-  const selectedCreateTargetLabel =
+      : null
+  const selectedCreateTeam =
     provider === 'github' || provider === 'gitlab'
-      ? ((selectedCreateTarget as RepoSummary | null)?.displayName ??
-        t('tasks.pickerProjection.selectTarget', 'Select target'))
-      : ((selectedCreateTarget as LinearTeam | null)?.name ??
-        t('tasks.pickerProjection.selectTarget', 'Select target'))
+      ? null
+      : (linearTeams.find((team) => team.id === createTeamId) ?? linearTeams[0] ?? null)
+  const selectedCreateTarget = selectedCreateRepo ?? selectedCreateTeam
+  const selectedCreateTargetLabel =
+    selectedCreateRepo?.displayName ??
+    selectedCreateTeam?.name ??
+    t('tasks.pickerProjection.selectTarget', 'Select target')
   const providerLabel = PROVIDER_LABELS[provider]
   const showHeaderCreateTask =
     provider === 'linear' || (provider === 'github' && githubMode === 'items')
@@ -105,10 +107,6 @@ export function useMobileTasksPickerProjection(model: DetailCommentRenderersMode
     () => PROVIDER_OPTIONS.filter((option) => visibleProviders.includes(option.value)),
     [t, visibleProviders]
   )
-  const selectedCreateRepo =
-    provider === 'github' || provider === 'gitlab'
-      ? (selectedCreateTarget as RepoSummary | null)
-      : null
   const selectedCreateGitHubSources =
     provider === 'github' && selectedCreateRepo
       ? githubRepoSources[selectedCreateRepo.id]

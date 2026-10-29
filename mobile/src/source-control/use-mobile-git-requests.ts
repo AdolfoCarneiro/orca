@@ -31,13 +31,13 @@ export function useMobileGitRequests({ client, connState, worktreeId }: Params) 
         ...params
       })
       if (!response.ok) {
-        const error = new Error(
+        const error: GitRequestError = new Error(
           response.error?.message ||
             translate(
               'sourceControl.useMobileGitRequests.actionFailed',
               'Source control action failed'
             )
-        ) as GitRequestError
+        )
         error.code = response.error?.code
         throw error
       }

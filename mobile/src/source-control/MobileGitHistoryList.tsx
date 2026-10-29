@@ -47,12 +47,11 @@ export const MobileGitHistoryList = memo(function MobileGitHistoryList({
   const colorScheme = useMobileColorScheme()
   const t = useMobileTranslation()
   const forceReconnect = useForceReconnect()
-  const [history, setHistory] = useState<{ result: MobileGitHistoryResult; nowMs: number } | null>(
-    null
-  )
-  const rows = useMemo(
-    () => (history ? mapMobileCommitRows(history.result, history.nowMs) : null),
-    [history, t]
+  // Keep the fetched page, not formatted rows, so relative times follow a language switch.
+  const [rows, setRows] = useState<{ result: MobileGitHistoryResult; nowMs: number } | null>(null)
+  const commitRows = useMemo(
+    () => (rows ? mapMobileCommitRows(rows.result, rows.nowMs) : null),
+    [rows, t]
   )
   const [error, setError] = useState<string | null>(null)
   const [reloadNonce, setReloadNonce] = useState(0)
@@ -62,7 +61,7 @@ export const MobileGitHistoryList = memo(function MobileGitHistoryList({
 
   // Clear on host/worktree switches even offline; retained segments must never show another tree’s history.
   useEffect(() => {
-    setHistory(null)
+    setRows(null)
     setError(null)
     setExpanded(null)
     setFilesById({})
@@ -80,7 +79,7 @@ export const MobileGitHistoryList = memo(function MobileGitHistoryList({
       try {
         const result = await fetchMobileGitHistory(client, worktreeId)
         if (active) {
-          setHistory({ result, nowMs: Date.now() })
+          setRows({ result, nowMs: Date.now() })
         }
       } catch (err) {
         if (active) {
@@ -242,7 +241,7 @@ export const MobileGitHistoryList = memo(function MobileGitHistoryList({
     [colorScheme, connected, connState, expanded, filesById, retryAction, toggleCommit, t]
   )
 
-  const view = resolveMobileHistoryScreenView({ connected, rows, error })
+  const view = resolveMobileHistoryScreenView({ connected, rows: commitRows, error })
 
   if (view.kind === 'error' || view.kind === 'waiting') {
     return (

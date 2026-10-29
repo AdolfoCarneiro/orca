@@ -1,4 +1,3 @@
-import { Fragment } from 'react'
 import type { ConnectionPresentationModel } from './use-mobile-tasks-connection-presentation'
 import { useMobileTranslation } from '../i18n/use-mobile-translation'
 import {
@@ -154,16 +153,11 @@ export function MobileTasksLegacySurface({ model }: { model: ConnectionPresentat
               >
                 <View style={styles.sourceErrorCopy}>
                   <Text style={styles.sourceErrorText}>
-                    {sourceErrorParts.map((part, index) => (
-                      <Fragment key={index}>
-                        {index > 0 ? (
-                          <Text style={styles.sourceErrorSlug}>
-                            {sourceError.source.owner}/{sourceError.source.repo}
-                          </Text>
-                        ) : null}
-                        {part}
-                      </Fragment>
-                    ))}
+                    {sourceErrorParts[0]}
+                    <Text style={styles.sourceErrorSlug}>
+                      {sourceError.source.owner}/{sourceError.source.repo}
+                    </Text>
+                    {sourceErrorParts.slice(1).join('')}
                   </Text>
                   <Text style={styles.sourceErrorMessage} numberOfLines={2}>
                     {sourceError.message}
