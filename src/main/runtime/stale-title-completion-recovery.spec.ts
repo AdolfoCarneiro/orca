@@ -146,7 +146,7 @@ describe('hook title evidence and completion recovery', () => {
     db.close()
   })
 
-  it('CLI waits through a silent titleless turn and delivers mail only after Stop', async () => {
+  it('CLI waits through a silent titleless turn while its mail is typed mid-turn', async () => {
     const { db, runtime, write, status, dispose } = producerFixture()
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-title-wait-cli-'))
     temporaryDirectories.push(userDataPath)
@@ -203,14 +203,15 @@ describe('hook title evidence and completion recovery', () => {
       expect(runtime.getTrackedPtyTitle(PTY_ID)).toBe('⠋ Codex')
       expect(await wait()).toMatchObject({ ok: false, error: { code: 'timeout' } })
       expect(process.exitCode).toBe(1)
-      expect(write).not.toHaveBeenCalled()
+      // A working agent queues typed input, so its mail does not wait for Stop.
+      expect(write.mock.calls.map(([, data]) => data)).toEqual([
+        expect.stringContaining('You have 1 orchestration message'),
+        '\r'
+      ])
 
       status('done')
       expect(await wait()).toMatchObject({ ok: true, result: { wait: { satisfied: true } } })
       expect(process.exitCode).toBe(0)
-      await expect
-        .poll(() => write.mock.calls.map(([, data]) => data))
-        .toEqual([expect.stringContaining('You have 1 orchestration message'), '\r'])
       runtime.notifyMessageArrived(`run:${run.id}`, 'status')
       await new Promise((resolve) => setTimeout(resolve, 500))
       expect(write).toHaveBeenCalledTimes(2)

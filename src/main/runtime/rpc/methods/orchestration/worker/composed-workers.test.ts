@@ -258,7 +258,7 @@ describe('orchestration RPC methods', () => {
           agent: 'codex',
           worktree: 'new-child'
         })
-      ).rejects.toThrow('--name')
+      ).rejects.toThrow('repo_not_found')
       expect(db.listRuns().runs.filter((run) => run.legacy === 0)).toEqual([])
     })
 
