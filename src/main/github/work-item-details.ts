@@ -175,30 +175,26 @@ export async function getWorkItemDetails(
   }
 
   // Nested client reads own their semaphore permits, so they stay outside these permits.
-  const [{ viewedStates, participants, metadata: contextMetadata }, files, comments] =
-    await Promise.all([
-      withWorkItemDetailsPermit(() =>
-        getPRDetailContext(repoPath, item.number, resolvedRepository, connectionId, localGitOptions)
-      ),
-      withWorkItemDetailsPermit(() =>
-        getPRFiles(repoPath, item.number, resolvedRepository, connectionId, localGitOptions)
-      ),
-      resolvedRepository
-        ? getPRComments(
-            repoPath,
-            item.number,
-            { prRepo: resolvedRepository },
-            connectionId,
-            ...localGitOptionArgs(localGitOptions)
-          )
-        : Promise.resolve([])
-    ])
-
-  const metadata =
-    contextMetadata ??
-    (await withWorkItemDetailsPermit(() =>
+  const [{ viewedStates, participants }, metadata, files, comments] = await Promise.all([
+    withWorkItemDetailsPermit(() =>
+      getPRDetailContext(repoPath, item.number, resolvedRepository, connectionId, localGitOptions)
+    ),
+    withWorkItemDetailsPermit(() =>
       getPRMetadata(repoPath, item.number, resolvedRepository, connectionId, localGitOptions)
-    ))
+    ),
+    withWorkItemDetailsPermit(() =>
+      getPRFiles(repoPath, item.number, resolvedRepository, connectionId, localGitOptions)
+    ),
+    resolvedRepository
+      ? getPRComments(
+          repoPath,
+          item.number,
+          { prRepo: resolvedRepository },
+          connectionId,
+          ...localGitOptionArgs(localGitOptions)
+        )
+      : Promise.resolve([])
+  ])
 
   const [mentionParticipants, checks] = await Promise.all([
     withWorkItemDetailsPermit(() =>

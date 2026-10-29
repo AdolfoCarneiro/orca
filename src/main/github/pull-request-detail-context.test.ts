@@ -29,12 +29,7 @@ const files = {
 }
 
 function response(
-  pullRequest: Record<string, unknown> | null = {
-    body: 'PR body',
-    headRefOid: 'head',
-    baseRefOid: 'base',
-    participants: { nodes: [participant] }
-  },
+  pullRequest: Record<string, unknown> | null = { participants: { nodes: [participant] } },
   viewedPullRequest: Record<string, unknown> | null = { id: 'PR_42', files },
   errors?: Record<string, unknown>[]
 ) {
@@ -73,14 +68,13 @@ describe('PR detail context requests', () => {
     mockReads([response()])
     const result = await getPRDetailContext('/folder-workspace', 42, repository)
     expect(result.participants).toEqual([participant])
-    expect(result.metadata).toEqual({ body: 'PR body', headSha: 'head', baseSha: 'base' })
     expect(result.viewedStates).toEqual({
       pullRequestId: 'PR_42',
       viewedStates: new Map([['src/changed.ts', 'VIEWED']])
     })
     expect(exec).toHaveBeenCalledTimes(1)
     expect(graphqlCalls()).toHaveLength(1)
-    expect(graphqlCalls()[0].join(' ')).toContain('body headRefOid baseRefOid')
+    expect(graphqlCalls()[0].join(' ')).not.toMatch(/headRefOid|baseRefOid|\bbody\b/)
     expect(exec.mock.calls[0][1]).toMatchObject({ cwd: '/folder-workspace', host: 'github.com' })
   })
 
@@ -101,25 +95,7 @@ describe('PR detail context requests', () => {
     expect(graphqlCalls()).toHaveLength(2)
     expect(graphqlCalls()[1]).toContain('after=cursor-1')
     expect(graphqlCalls()[1].join(' ')).not.toContain('participants')
-    expect(graphqlCalls()[1].join(' ')).not.toMatch(/headRefOid|baseRefOid|\bbody\b/)
   })
-
-  it.each(['body', 'headRefOid', 'baseRefOid'])(
-    'requires REST metadata recovery after a partial %s error',
-    async (field) => {
-      mockReads([
-        {
-          code: 1,
-          ...response(undefined, undefined, [{ path: ['repository', 'pullRequest', field] }])
-        }
-      ])
-      const result = await getPRDetailContext('/repo', 42, repository)
-      expect(result.metadata).toBeUndefined()
-      expect(result.participants).toEqual([participant])
-      expect(result.viewedStates?.pullRequestId).toBe('PR_42')
-      expect(graphqlCalls()).toHaveLength(1)
-    }
-  )
 
   it('accepts successful empty sources without recovery requests', async () => {
     mockReads([

@@ -130,12 +130,7 @@ describe('getWorkItemDetails concurrency', () => {
             stdout: JSON.stringify({
               data: {
                 repository: {
-                  pullRequest: {
-                    body: 'GraphQL body',
-                    headRefOid: 'head',
-                    baseRefOid: 'base',
-                    participants: { nodes: [] }
-                  },
+                  pullRequest: { participants: { nodes: [] } },
                   viewedPullRequest: {
                     id: 'PR_id',
                     files: { pageInfo: { hasNextPage: false }, nodes: [] }
@@ -175,18 +170,6 @@ describe('getWorkItemDetails concurrency', () => {
 
     expect(details.map((detail) => detail?.item.number)).toEqual([1, 2, 3, 4])
     expect(details.every((detail) => detail?.pullRequestId === 'PR_id')).toBe(true)
-    expect(
-      details.every(
-        (detail) =>
-          detail?.body === 'GraphQL body' && detail.headSha === 'head' && detail.baseSha === 'base'
-      )
-    ).toBe(true)
-    expect(ghExecFileAsyncMock).toHaveBeenCalledTimes(8)
-    expect(
-      ghExecFileAsyncMock.mock.calls.some(([args]) =>
-        args.some((arg: string) => /\/pulls\/\d+$/.test(arg))
-      )
-    ).toBe(false)
     expect(peakGhReads).toBeGreaterThan(0)
     expect(peakGhReads).toBeLessThanOrEqual(4)
     expect(activeGhReads).toBe(0)

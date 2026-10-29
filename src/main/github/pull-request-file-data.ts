@@ -43,15 +43,13 @@ function isBinaryHint(file: RESTPRFile): boolean {
   return file.patch === undefined && file.changes > 0
 }
 
-export type PRMetadata = { body: string; headSha?: string; baseSha?: string }
-
 export async function getPRMetadata(
   repoPath: string,
   prNumber: number,
   repository: GitHubApiRepository | null,
   connectionId?: string | null,
   localGitOptions: LocalGitExecOptions = {}
-): Promise<PRMetadata> {
+): Promise<{ body: string; headSha?: string; baseSha?: string }> {
   if (!repository) {
     return { body: '' }
   }

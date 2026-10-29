@@ -9,12 +9,10 @@ import type { LocalGitExecOptions } from './gh-utils'
 import { githubHostExecOptions, type GitHubApiRepository } from './github-api-repository'
 import { noteRepositoryRateLimitSpend, repositoryRateLimitGuard } from './rate-limit'
 import { getWorkItemParticipants } from './work-item-participants'
-import type { PRMetadata } from './pull-request-file-data'
 
 function detailContextQuery(includeContext: boolean): string {
   const context = includeContext
     ? `pullRequest(number: $number) {
-      body headRefOid baseRefOid
       participants(first: 100) {
         nodes { login avatarUrl(size: 48) ... on User { name } }
       }
@@ -54,11 +52,6 @@ const participantsSchema = z.object({
     z.object({ login: z.string(), avatarUrl: z.string(), name: z.string().nullish() }).nullable()
   )
 })
-const metadataSchema = z.object({
-  body: z.string(),
-  headRefOid: z.string().min(1),
-  baseRefOid: z.string().min(1)
-})
 const filesSchema = z.object({
   id: z.string(),
   files: z.object({
@@ -79,7 +72,6 @@ export type PRFileViewedStatesResult = {
   viewedStates: Map<string, GitHubPRFileViewedState>
 }
 type PRDetailContext = {
-  metadata?: PRMetadata
   participants: GitHubAssignableUser[]
   viewedStates: PRFileViewedStatesResult | null
 }
@@ -152,17 +144,6 @@ async function readPRDetailContext(
       const envelope = envelopeSchema.parse(JSON.parse(stdout))
       const pr = envelope.data?.repository?.pullRequest
       if (firstPage) {
-        const metadata = metadataSchema.safeParse(pr)
-        if (
-          metadata.success &&
-          ['body', 'headRefOid', 'baseRefOid'].every((field) => !sourceFailed(envelope, field))
-        ) {
-          result.metadata = {
-            body: metadata.data.body,
-            headSha: metadata.data.headRefOid,
-            baseSha: metadata.data.baseRefOid
-          }
-        }
         const participants = participantsSchema.safeParse(pr?.participants)
         if (participants.success && !sourceFailed(envelope, 'participants')) {
           result.participants = participants.data.nodes.flatMap((user) =>
@@ -223,7 +204,6 @@ export async function getPRDetailContext(
       localGitOptions
     ))
   return {
-    ...(context.metadata ? { metadata: context.metadata } : {}),
     participants,
     viewedStates: context.viewedStates ?? null
   }
