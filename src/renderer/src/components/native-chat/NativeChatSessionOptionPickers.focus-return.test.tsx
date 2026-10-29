@@ -17,6 +17,7 @@ vi.mock('@/i18n/i18n', () => ({
 import { TooltipProvider } from '@/components/ui/tooltip'
 import type {
   SessionOptionDescriptor,
+  SessionOptionSetResult,
   SessionOptionValue
 } from '../../../../shared/native-chat/input/native-chat-session-options'
 import type { NativeChatOptionPickerRequest } from './native-chat-composer-types'
@@ -89,8 +90,8 @@ it('keeps pointer, ArrowDown and requested-open on the same disabled-placeholder
 
 const surface = {
   getSnapshot: vi.fn(() => []),
-  setOption: vi.fn((_id: string, _value: SessionOptionValue) =>
-    Promise.resolve({ snapshot: [] as SessionOptionDescriptor[] })
+  setOption: vi.fn((_id: string, _value: SessionOptionValue): Promise<SessionOptionSetResult> =>
+    Promise.resolve({ snapshot: [] })
   ),
   invokeAction: vi.fn(() => Promise.resolve({ snapshot: [] })),
   subscribe: vi.fn(() => vi.fn())
