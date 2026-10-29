@@ -195,6 +195,7 @@ export function installSessionReconcileDispose(session: ConnectPanePtySession): 
         cancelAnimationFrame(session.pendingForegroundGridDriftCheckRaf)
         session.pendingForegroundGridDriftCheckRaf = null
       }
+      session.clearForegroundGridDriftTrailingProbe()
       // Why: a pane unmount must never leave its PTY delivery gated — the parked watcher or remounted pane re-decides.
       session.releaseHiddenRendererPtyDelivery()
       if (session.terminalKeyTargetSupportsEvents) {

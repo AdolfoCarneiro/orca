@@ -240,7 +240,13 @@ export function registerPtyConnectionVisibilityResumeSizeTests(): void {
         expect(transport.resize).toHaveBeenCalledWith(65, 63, { claim: true })
       })
 
-      it('defers settled grid drift repair on streaming output until a geometry signal', async () => {
+      async function connectStreamingDriftPane(): Promise<{
+        binding: { noteVisibilityResume: () => void }
+        transport: MockTransport
+        fit: ReturnType<typeof vi.fn>
+        setProposedGrid: (grid: { cols: number; rows: number } | undefined) => void
+        emitFrame: (data: string) => void
+      }> {
         const { connectPanePty } = await import('./pty-connection')
         const transport = createMockTransport('pty-pane-2')
         const capturedDataCallback: { current: ((data: string) => void) | null } = { current: null }
@@ -257,13 +263,14 @@ export function registerPtyConnectionVisibilityResumeSizeTests(): void {
           paneTransportsRef: { current: new Map([[1, createMockTransport('pty-pane-1')]]) }
         })
         const pane = createPane(2)
-        let proposedGrid = { cols: 62, rows: 63 }
+        let proposedGrid: { cols: number; rows: number } | undefined = { cols: 62, rows: 63 }
         pane.terminal.cols = 62
         pane.terminal.rows = 63
         const fit = vi.fn(() => {
-          pane.terminal.cols = proposedGrid.cols
-          pane.terminal.rows = proposedGrid.rows
+          pane.terminal.cols = proposedGrid?.cols ?? pane.terminal.cols
+          pane.terminal.rows = proposedGrid?.rows ?? pane.terminal.rows
         })
+        // SAFETY: as never — the probe only reads fit and proposeDimensions from this partial addon.
         pane.fitAddon = {
           ...pane.fitAddon,
           fit,
@@ -271,27 +278,84 @@ export function registerPtyConnectionVisibilityResumeSizeTests(): void {
         } as never
         pane.terminal.write.mockImplementation((_data, callback) => callback?.())
         vi.mocked(window.api.pty.getSize).mockResolvedValue({ cols: 62, rows: 63 })
-        const waitPastProbeInterval = (): Promise<void> =>
-          new Promise((resolve) => setTimeout(resolve, 300))
 
         const binding = connectPanePty(...mockPanePtyArgs(pane, manager, deps))
         await flushAsyncTicks()
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] })
         // Real frames are async; the shared sync rAF mock would leave the probe's frame handle stuck.
         globalThis.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) =>
           Number(setTimeout(() => callback(0), 0))
         )
-        capturedDataCallback.current?.('frame 1')
-        await waitPastProbeInterval()
-        proposedGrid = { cols: 65, rows: 63 }
         fit.mockClear()
+        transport.resize.mockClear()
+        return {
+          binding,
+          transport,
+          fit,
+          setProposedGrid: (grid) => {
+            proposedGrid = grid
+          },
+          emitFrame: (data) => capturedDataCallback.current?.(data)
+        }
+      }
 
-        capturedDataCallback.current?.('frame 2')
-        await waitPastProbeInterval()
+      it('defers settled grid drift repair on streaming output until a geometry signal', async () => {
+        const { binding, transport, fit, setProposedGrid, emitFrame } =
+          await connectStreamingDriftPane()
+        emitFrame('frame 1')
+        await vi.advanceTimersByTimeAsync(300)
+        setProposedGrid({ cols: 65, rows: 63 })
+
+        emitFrame('frame 2')
+        await vi.advanceTimersByTimeAsync(300)
         expect(fit).not.toHaveBeenCalled()
 
         binding.noteVisibilityResume()
-        capturedDataCallback.current?.('frame 3')
-        await waitPastProbeInterval()
+        emitFrame('frame 3')
+        await vi.advanceTimersByTimeAsync(50)
+        expect(fit).toHaveBeenCalled()
+        expect(transport.resize).toHaveBeenCalledWith(65, 63, { claim: true })
+      })
+
+      it('repairs grid drift after the settled backstop while output keeps streaming', async () => {
+        const { transport, fit, setProposedGrid, emitFrame } = await connectStreamingDriftPane()
+        emitFrame('frame 0')
+        await vi.advanceTimersByTimeAsync(10)
+        setProposedGrid({ cols: 65, rows: 63 })
+
+        for (let frame = 1; frame <= 4; frame += 1) {
+          await vi.advanceTimersByTimeAsync(290)
+          emitFrame(`frame ${frame}`)
+        }
+        await vi.advanceTimersByTimeAsync(50)
+
+        expect(fit).toHaveBeenCalled()
+        expect(transport.resize).toHaveBeenCalledWith(65, 63, { claim: true })
+      })
+
+      it('repairs grid drift with a trailing probe when output stops inside the settled interval', async () => {
+        const { transport, fit, setProposedGrid, emitFrame } = await connectStreamingDriftPane()
+        emitFrame('frame 1')
+        await vi.advanceTimersByTimeAsync(300)
+        setProposedGrid({ cols: 65, rows: 63 })
+        emitFrame('last frame')
+
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(fit).toHaveBeenCalled()
+        expect(transport.resize).toHaveBeenCalledWith(65, 63, { claim: true })
+      })
+
+      it('keeps the fast probe cadence when the fit proposal is unavailable', async () => {
+        const { transport, fit, setProposedGrid, emitFrame } = await connectStreamingDriftPane()
+        setProposedGrid(undefined)
+        emitFrame('frame 1')
+        await vi.advanceTimersByTimeAsync(300)
+        setProposedGrid({ cols: 65, rows: 63 })
+
+        emitFrame('frame 2')
+        await vi.advanceTimersByTimeAsync(50)
+
         expect(fit).toHaveBeenCalled()
         expect(transport.resize).toHaveBeenCalledWith(65, 63, { claim: true })
       })
