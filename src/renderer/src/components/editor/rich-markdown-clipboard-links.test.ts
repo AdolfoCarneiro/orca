@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { Editor, type JSONContent } from '@tiptap/core'
+import { isAllowedUri } from '@tiptap/extension-link'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import { Markdown } from '@tiptap/markdown'
@@ -37,7 +38,9 @@ function createEditor(
   const editor = new Editor({
     element,
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: { isAllowedUri: (url) => Boolean(isAllowedUri(url, ['file'])) }
+      }),
       Image.configure({ inline: true }),
       RichMarkdownClipboardOrigin,
       Markdown
@@ -175,13 +178,16 @@ it.each([
 })
 
 it.each([
-  ['C:\\repo\\notes\\note.md', 'D:\\repo\\other\\note.md'],
-  ['\\\\server\\first\\note.md', '\\\\server\\second\\note.md']
-])('keeps ordinary behavior between incompatible filesystem roots %s and %s', (from, to) => {
+  ['C:\\repo\\notes\\note.md', 'D:\\repo\\other\\note.md', 'file:///C:/repo/notes/guide.md'],
+  ['\\\\server\\first\\note.md', '\\\\server\\second\\note.md', 'file://server/first/guide.md']
+])('preserves the target across filesystem roots %s and %s', (from, to, expected) => {
   const source = createEditor(from)
   const target = createEditor(to)
   paste(target, copy(source))
-  expect(href(target)).toBe('./guide.md')
+  expect(href(target)).toBe(expected)
+  expect(resolveMarkdownPreviewHref(href(target) ?? '', to)?.toString()).toBe(
+    resolveMarkdownPreviewHref('./guide.md', from)?.toString()
+  )
 })
 
 it.each([
@@ -189,11 +195,8 @@ it.each([
   ['mailto:author@example.com', 'mailto:author@example.com'],
   ['#section', '#section'],
   ['/guide.md', '/guide.md'],
-  ['file:///repo/guide.md', null]
+  ['file:///repo/guide.md', 'file:///repo/guide.md']
 ])('keeps ordinary handling for a nonrelative link %s', (link, expected) => {
-  if (link === null) {
-    throw new Error('Missing source link')
-  }
   const source = createEditor('/repo/notes/note.md', link)
   const html = copy(source)
   expect(html).not.toContain('data-orca-link-clipboard-origin=')

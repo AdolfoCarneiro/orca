@@ -32,6 +32,7 @@ async function closePendingEditor(waitForImport?: Promise<void>) {
       ]
     }
   })
+  await new Promise<void>((resolve) => editor.on('create', () => resolve()))
   const refs = {
     editor: new WeakRef(editor),
     document: new WeakRef(editor.state.doc),
@@ -93,8 +94,6 @@ it.each(['read', 'import'])(
         started = Promise.withResolvers<void>()
         refs.push(await closePendingEditor(stage === 'import' ? started.promise : undefined))
       }
-      // Destroyed editors still have queued Tiptap creation callbacks.
-      await new Promise<void>((resolve) => window.setTimeout(resolve, 0))
       if (!globalThis.gc) {
         throw new Error('The test runner must enable --expose-gc')
       }

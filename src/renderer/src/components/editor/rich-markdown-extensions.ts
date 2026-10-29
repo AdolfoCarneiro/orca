@@ -3,7 +3,7 @@ import { createMarkdownTokenizerStart } from './markdown-tokenizer-start'
 import type { AnyExtension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { RichMarkdownTrailingParagraph } from './rich-markdown-trailing-paragraph'
-import Link from '@tiptap/extension-link'
+import Link, { isAllowedUri } from '@tiptap/extension-link'
 import { Code } from '@tiptap/extension-code'
 import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -94,6 +94,7 @@ export function createRichMarkdownExtensions({
       defaultLanguage: null
     }),
     Link.configure({
+      isAllowedUri: (url) => Boolean(isAllowedUri(url, ['file'])),
       openOnClick: false,
       autolink: true,
       linkOnPaste: true

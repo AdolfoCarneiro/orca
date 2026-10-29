@@ -49,7 +49,7 @@ export function rebaseClipboardLink(
     windows !== isWindowsAbsolutePathLike(destinationFilePath) ||
     (windows && !equal(targetSegments[1] ?? '', directorySegments[1] ?? ''))
   ) {
-    return href
+    return canonicalTarget.toString()
   }
   let common = 0
   while (
