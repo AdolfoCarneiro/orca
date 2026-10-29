@@ -108,6 +108,7 @@ export abstract class RuntimeConstructionServices {
   protected abstract readCaughtUpRuledScreen(ptyId: string): RuledScreen | null
   protected abstract clearWaitBlockedStamp(ptyId: string): void
   protected abstract readRuledScreen(ptyId: string | null | undefined): RuledScreen | null
+  protected abstract readOutputClockAt(ptyId: string | null | undefined): number | null
   protected abstract headlessTerminals: Map<string, RuntimeHeadlessTerminal>
   protected abstract readHeadlessVisibleTerminalState(
     ptyId: string
@@ -268,7 +269,7 @@ export abstract class RuntimeConstructionServices {
   protected abstract getTrackedDisplayTitleForPty(ptyId: string): string | null
   protected abstract getLeavesForPty(ptyId: string): RuntimeLeafRecord[]
   abstract notifyMessageArrived(handle: string, messageType?: string): void
-  protected abstract resolveWorktreeSelector(selector: string): Promise<ResolvedWorktree>
+  protected abstract resolveGitWorktreeSelector(selector: string): Promise<ResolvedWorktree>
   protected abstract resolveWorkspaceSelector(
     selector: string,
     options?: { requireUsableFolderPath?: boolean }

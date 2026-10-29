@@ -340,7 +340,8 @@ export abstract class OrcaRuntimeWithRuntimeId extends RuntimeConstructionServic
       (ptyId ? this.ptysById.get(ptyId)?.lastExplicitAgentStatus : null) ?? null,
     getHookTurn: (ptyId, agent) => this.readTuiIdleHookTurnForPty(ptyId, agent),
     readScreenLines: (ptyId) => this.readLiveTerminalScreenLines(ptyId),
-    readRuledScreen: (ptyId) => this.readRuledScreen(ptyId)
+    readRuledScreen: (ptyId) => this.readRuledScreen(ptyId),
+    getOutputClockAt: (ptyId) => this.readOutputClockAt(ptyId)
   }
 
   protected readonly terminalIdlePolls = new RuntimeTerminalIdlePolls({

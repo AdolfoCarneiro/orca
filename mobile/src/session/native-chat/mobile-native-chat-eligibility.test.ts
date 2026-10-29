@@ -8,7 +8,7 @@ import {
   withRememberedNativeChatIdentity
 } from './mobile-native-chat-eligibility'
 import type { MobileSessionTab } from '../mobile-session-route-types'
-import { isNativeChatTranscriptLocalReadable } from '../../../../src/shared/native-chat-transcript-readability'
+import { isNativeChatTranscriptLocalReadable } from '../../../../src/shared/native-chat/transcript/native-chat-transcript-readability'
 
 function status(overrides: Partial<AgentStatusEntry> = {}): AgentStatusEntry {
   return {
