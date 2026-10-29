@@ -58,6 +58,8 @@ async function inProcess(args: readonly string[], env: NodeJS.ProcessEnv): Promi
 
 describe.runIf(process.platform === 'darwin')(
   'runPsInProcess with the real addon against /bin/ps',
+  // Each case runs whole-table /bin/ps with command= (~1-3s alone, longer when the suite loads the host).
+  { timeout: 30_000 },
   () => {
     let holder: ChildProcess | undefined
     let holderPid = 0

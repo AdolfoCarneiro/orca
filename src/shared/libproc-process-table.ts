@@ -90,6 +90,11 @@ export function inProcessSliceMs(timeoutMs: number): number {
   return Math.min(150, Math.floor(timeoutMs / 4))
 }
 
+/** The outer-deadline allowance for that slice: none where the in-process reader will not run (Linux, no addon, stalled). */
+export function inProcessDeadlineAllowanceMs(timeoutMs: number): number {
+  return loadLibprocAddon() && isNativeReaderHealthy() ? inProcessSliceMs(timeoutMs) : 0
+}
+
 /** ps output for `args`, read in process; null when the addon or the invocation is unsupported so callers run ps. */
 export async function runPsInProcess(
   args: readonly string[],

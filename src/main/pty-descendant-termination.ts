@@ -1,19 +1,26 @@
-import { execFile } from 'node:child_process'
 import type { JobTerminationOutcome } from './windows/windows-pty-job'
 import { terminateWindowsProcessTree, type WindowsTreeKiller } from './windows-process-tree-kill'
 import {
   verifyWindowsTreeKillTarget,
   type WindowsTreeKillTarget
 } from './windows-pty-root-identity'
-import { parseProcessTable, type ProcessTableRow } from './pty-process-table-parser'
-import { inProcessSliceMs, runPsInProcess } from '../shared/libproc-process-table'
+import type { ProcessTableRow } from './pty-process-table-parser'
+import {
+  DESCENDANT_SNAPSHOT_TIMEOUT_MS,
+  readFreshProcessTable,
+  type ProcessTableCapture,
+  type ProcessTableReader
+} from './pty-descendant-fresh-table'
 
 export { parseProcessTable, type ProcessTableRow } from './pty-process-table-parser'
 
+export {
+  DESCENDANT_SNAPSHOT_TIMEOUT_MS,
+  type ProcessTableCapture,
+  type ProcessTableReader
+} from './pty-descendant-fresh-table'
+
 export const DESCENDANT_KILL_GRACE_MS = 2_000
-export const DESCENDANT_SNAPSHOT_TIMEOUT_MS = 1_000
-// Busy hosts can exceed execFile’s 1MB default; truncated output would omit descendants.
-const PS_MAX_BUFFER_BYTES = 32 * 1024 * 1024
 
 export type PosixProcessIdentity = Pick<ProcessTableRow, 'pid' | 'startedAt'>
 
@@ -29,39 +36,7 @@ export type DescendantSnapshot = {
   reDerivedPids?: ReadonlySet<number>
 }
 
-export type ProcessTableCapture = {
-  rows: ProcessTableRow[]
-  /** Start boundary of the scan that produced rows, never a later consumer's time. */
-  capturedAtMs: number
-}
-
-export type ProcessTableReader = (timeoutMs?: number) => Promise<ProcessTableCapture>
 export type SignalSender = (pid: number, signal: NodeJS.Signals) => void
-
-const DESCENDANT_PS_ARGS = ['-axo', 'pid=,ppid=,pgid=,tpgid=,lstart=']
-
-async function readFreshProcessTable(
-  timeoutMs = DESCENDANT_SNAPSHOT_TIMEOUT_MS
-): Promise<ProcessTableCapture> {
-  // Stamp before ps starts so a capture-second PID cannot appear older after a clock rollover.
-  const capturedAtMs = Date.now()
-  // Pin lstart’s locale so delayed identity checks parse it consistently.
-  const env = { ...process.env, LANG: 'C', LC_ALL: 'C' }
-  // Registered now, so no native read submitted before this request serves it; a stalled one leaves ps its full timeout.
-  const inProcess = await runPsInProcess(DESCENDANT_PS_ARGS, {
-    env,
-    timeoutMs: inProcessSliceMs(timeoutMs)
-  })
-  if (inProcess && !inProcess.timedOut) {
-    return { rows: parseProcessTable(inProcess.stdout), capturedAtMs }
-  }
-  const options = { maxBuffer: PS_MAX_BUFFER_BYTES, timeout: timeoutMs, env }
-  return new Promise((resolve, reject) => {
-    execFile('ps', DESCENDANT_PS_ARGS, { ...options, killSignal: 'SIGKILL' }, (error, stdout) =>
-      error ? reject(error) : resolve({ rows: parseProcessTable(stdout), capturedAtMs })
-    )
-  })
-}
 
 /** Share only scans not yet started; later requests need fresh identities before signalling. */
 export function createProcessTableSnapshotReader(
@@ -69,7 +44,7 @@ export function createProcessTableSnapshotReader(
 ): ProcessTableReader {
   let queued: { promise: Promise<ProcessTableCapture>; started: boolean } | null = null
 
-  return (timeoutMs) => {
+  const read: ProcessTableReader = (timeoutMs) => {
     if (queued && !queued.started) {
       return queued.promise
     }
@@ -92,6 +67,9 @@ export function createProcessTableSnapshotReader(
     void entry.promise.then(clearQueued, clearQueued)
     return entry.promise
   }
+  // Sharing a scan keeps the wrapped reader's in-process allowance.
+  read.deadlineAllowanceMs = readFresh.deadlineAllowanceMs
+  return read
 }
 
 export const readProcessTable = createProcessTableSnapshotReader(readFreshProcessTable)
@@ -110,9 +88,10 @@ export function readProcessTableBeforeDeadline(
       clearTimeout(timer)
       resolve(capture)
     }
-    // The production reader may spend inProcessSliceMs in process before giving ps the whole timeout.
-    const slackMs = readTable === readProcessTable ? inProcessSliceMs(timeoutMs) : 0
-    const timer = setTimeout(() => finish(null), timeoutMs + slackMs)
+    const timer = setTimeout(
+      () => finish(null),
+      timeoutMs + (readTable.deadlineAllowanceMs?.(timeoutMs) ?? 0)
+    )
     timer.unref?.()
     try {
       void readTable(timeoutMs).then(
