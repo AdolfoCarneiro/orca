@@ -14,9 +14,9 @@ import {
 vi.mock('../../../shared/layout-owner-switch', () => ({ ORCA_LAYOUT_OWNER_IS_MAIN: true }))
 
 /** Count reads without replacing the production owner, lookup, equality or overlay. */
-function observeFieldReads(
-  rows: readonly object[],
-  keys: readonly string[],
+function observeFieldReads<K extends PropertyKey, T extends Partial<Record<K, unknown>>>(
+  rows: readonly T[],
+  keys: readonly K[],
   count: () => void
 ): void {
   for (const row of rows) {
@@ -24,7 +24,7 @@ function observeFieldReads(
       if (!Object.hasOwn(row, key)) {
         continue
       }
-      const value: unknown = Reflect.get(row, key)
+      const value = row[key]
       Object.defineProperty(row, key, {
         configurable: true,
         enumerable: true,
@@ -70,7 +70,7 @@ it('bounds retained placement work linearly on ordinary snapshot and unchanged f
           }))
     }
     let measuring: 'snapshot' | 'frame' | undefined
-    const rowKeys = ['id', 'sessionId', 'parentTabId', 'leafId', 'openPlacement']
+    const rowKeys = ['id', 'sessionId', 'parentTabId', 'leafId', 'openPlacement'] as const
     let snapshotReads = 0
     let frameReads = 0
     const countRead = () => {
@@ -96,10 +96,10 @@ it('bounds retained placement work linearly on ordinary snapshot and unchanged f
     const overlayObservation = vi
       .spyOn(placementProjection, 'withPublishedSessionTabOpenPlacements')
       .mockImplementation((...args) => {
-        observeFieldReads(args[0].tabs, ['id', 'entityId', 'terminal'], countRead)
+        observeFieldReads(args[0].tabs, ['id', 'entityId', 'terminal'] as const, countRead)
         observeFieldReads(
           args[0].tabs.flatMap((tab) => tab.terminal?.panes ?? []),
-          ['leafId', 'ptyId'],
+          ['leafId', 'ptyId'] as const,
           countRead
         )
         measuring = 'frame'

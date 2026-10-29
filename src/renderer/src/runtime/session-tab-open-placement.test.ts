@@ -468,6 +468,7 @@ describe('explicit open placement at the actual ordinary store owner', () => {
                     if (key === 'id' || key === 'entityId' || key === 'contentType') {
                       tabReads++
                     }
+                    // oxlint-disable-next-line anti-slop/no-reflect-get -- Proxy `get` trap: only Reflect.get forwards a raw string|symbol key with the proxy receiver.
                     return Reflect.get(target, key, receiver)
                   }
                 })
@@ -478,6 +479,7 @@ describe('explicit open placement at the actual ordinary store owner', () => {
               if (typeof key === 'string' && /^\d+$/.test(key)) {
                 historyReads++
               }
+              // oxlint-disable-next-line anti-slop/no-reflect-get -- Proxy `get` trap: only Reflect.get forwards a raw string|symbol key with the proxy receiver.
               return Reflect.get(target, key, receiver)
             }
           })

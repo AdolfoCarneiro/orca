@@ -95,7 +95,8 @@ export abstract class OrcaRuntimeWithMainLayoutAgentLaunchTabs extends OrcaRunti
           : {}),
         onApplied: () => {
           withdrawalRoot = this.launchWithdrawalIdentity(worktreeId, tabId)
-          if (request.openPlacement) {
+          const openPlacement = request.openPlacement
+          if (openPlacement) {
             this.hydrateHeadlessMobileSessionTabsFromWorkspaceSession(worktreeId, {
               allowAttachedWindow: true,
               force: true
@@ -109,8 +110,8 @@ export abstract class OrcaRuntimeWithMainLayoutAgentLaunchTabs extends OrcaRunti
                     ? {
                         ...tab,
                         openPlacement: {
-                          ...request.openPlacement,
-                          activate: request.openPlacement.activate && (selectionCurrent?.() ?? true)
+                          ...openPlacement,
+                          activate: openPlacement.activate && (selectionCurrent?.() ?? true)
                         }
                       }
                     : tab
