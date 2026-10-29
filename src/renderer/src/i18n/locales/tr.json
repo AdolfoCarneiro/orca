@@ -14551,10 +14551,7 @@
               },
               "stable": {
                 "tagline": "Genel sürüm, haftalık güncellenir."
-              },
-              "downloadApk": "APK indir",
-              "openTestFlight": "TestFlight'ı aç",
-              "openAppStore": "App Store'u aç"
+              }
             }
           }
         },

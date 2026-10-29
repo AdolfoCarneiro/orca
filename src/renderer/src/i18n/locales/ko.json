@@ -14219,10 +14219,7 @@
               },
               "stable": {
                 "tagline": "정식 출시 버전, 매주 업데이트."
-              },
-              "downloadApk": "APK 다운로드",
-              "openTestFlight": "TestFlight 열기",
-              "openAppStore": "App Store 열기"
+              }
             }
           }
         },

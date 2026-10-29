@@ -14708,10 +14708,7 @@
               },
               "stable": {
                 "tagline": "Die öffentliche Version, wöchentlich aktualisiert."
-              },
-              "downloadApk": "APK herunterladen",
-              "openTestFlight": "TestFlight öffnen",
-              "openAppStore": "App Store öffnen"
+              }
             }
           }
         },

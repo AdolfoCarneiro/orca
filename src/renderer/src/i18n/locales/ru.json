@@ -15098,10 +15098,7 @@
               },
               "stable": {
                 "tagline": "Общедоступный выпуск, обновления каждую неделю."
-              },
-              "downloadApk": "Скачать APK",
-              "openTestFlight": "Открыть TestFlight",
-              "openAppStore": "Открыть App Store"
+              }
             }
           }
         },

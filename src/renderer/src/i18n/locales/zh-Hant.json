@@ -14537,10 +14537,7 @@
               },
               "stable": {
                 "tagline": "公開發布版，每週更新。"
-              },
-              "downloadApk": "下載 APK",
-              "openTestFlight": "開啟 TestFlight",
-              "openAppStore": "開啟 App Store"
+              }
             }
           }
         },

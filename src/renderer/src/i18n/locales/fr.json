@@ -14560,10 +14560,7 @@
               },
               "stable": {
                 "tagline": "La version publique, mise à jour chaque semaine."
-              },
-              "downloadApk": "Télécharger l'APK",
-              "openTestFlight": "Ouvrir TestFlight",
-              "openAppStore": "Ouvrir l'App Store"
+              }
             }
           }
         },

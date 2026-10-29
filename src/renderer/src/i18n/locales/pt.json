@@ -15679,10 +15679,7 @@
               },
               "stable": {
                 "tagline": "O lançamento público, atualizado semanalmente."
-              },
-              "downloadApk": "Baixar APK",
-              "openTestFlight": "Abrir TestFlight",
-              "openAppStore": "Abrir App Store"
+              }
             }
           }
         },

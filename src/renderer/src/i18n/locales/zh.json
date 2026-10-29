@@ -14219,10 +14219,7 @@
               },
               "stable": {
                 "tagline": "公开发布版，每周更新。"
-              },
-              "downloadApk": "下载 APK",
-              "openTestFlight": "打开 TestFlight",
-              "openAppStore": "打开 App Store"
+              }
             }
           }
         },
