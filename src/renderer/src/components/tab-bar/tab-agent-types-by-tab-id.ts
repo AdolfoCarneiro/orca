@@ -7,6 +7,8 @@ import {
 
 type TabBarAgentProjectionSelectorDependencies = {
   onStatusEntryVisited?: (paneKey: string) => void
+  onStatusComparisonVisited?: (paneKey: string) => void
+  onLayoutComparisonVisited?: (tabId: string) => void
   onAgentTypeLayoutVisited?: (tabId: string) => void
   onUnsafeLayoutVisited?: (tabId: string) => void
 }
@@ -109,11 +111,13 @@ function projectTabAgentTypesByTabId(
 /** True when the projection cannot differ: same pane keys in the same order, and every changed entry keeps its agent. */
 function statusChangeKeepsAgentTypes(
   previous: Record<string, AgentStatusEntry>,
-  next: Record<string, AgentStatusEntry>
+  next: Record<string, AgentStatusEntry>,
+  dependencies?: TabBarAgentProjectionSelectorDependencies
 ): boolean {
   const previousKeys = Object.keys(previous)
   let index = 0
   for (const paneKey in next) {
+    dependencies?.onStatusComparisonVisited?.(paneKey)
     if (previousKeys[index] !== paneKey) {
       return false
     }
@@ -130,18 +134,22 @@ function statusChangeKeepsAgentTypes(
 /** Tab ids whose layout entry was added, replaced or removed. */
 function changedLayoutTabIds(
   previous: Record<string, TerminalLayoutSnapshot>,
-  next: Record<string, TerminalLayoutSnapshot>
+  next: Record<string, TerminalLayoutSnapshot>,
+  dependencies?: TabBarAgentProjectionSelectorDependencies
 ): string[] {
   const changed: string[] = []
-  let nextCount = 0
+  let sharedCount = 0
   for (const tabId in next) {
-    nextCount += 1
+    dependencies?.onLayoutComparisonVisited?.(tabId)
+    sharedCount += tabId in previous ? 1 : 0
     if (previous[tabId] !== next[tabId]) {
       changed.push(tabId)
     }
   }
-  if (nextCount - changed.length !== Object.keys(previous).length) {
+  // Why: only removals leave previous keys unmatched, so replacements skip the second walk.
+  if (sharedCount !== Object.keys(previous).length) {
     for (const tabId in previous) {
+      dependencies?.onLayoutComparisonVisited?.(tabId)
       if (!(tabId in next)) {
         changed.push(tabId)
       }
@@ -207,12 +215,10 @@ function nativeChatTabWideFallbackUnsafe(
 }
 
 function projectNativeChatTabWideFallbackUnsafeTabsById(
-  terminalLayoutsByTabId: Record<string, TerminalLayoutSnapshot>,
-  dependencies?: TabBarAgentProjectionSelectorDependencies
+  terminalLayoutsByTabId: Record<string, TerminalLayoutSnapshot>
 ): Record<string, true> {
   const unsafeTabs: Record<string, true> = {}
   for (const [tabId, layout] of Object.entries(terminalLayoutsByTabId)) {
-    dependencies?.onUnsafeLayoutVisited?.(tabId)
     if (nativeChatTabWideFallbackUnsafe(layout)) {
       unsafeTabs[tabId] = true
     }
@@ -253,9 +259,9 @@ export function createTabBarAgentProjectionSelector(
   dependencies?: TabBarAgentProjectionSelectorDependencies
 ): (state: TabBarAgentProjectionState) => TabBarAgentProjections {
   let cachedAgentStatusByPaneKey: Record<string, AgentStatusEntry> | null = null
-  let cachedAgentTypeLayoutsByTabId: Record<string, TerminalLayoutSnapshot> | null = null
+  // Why: starting from the empty map lets the first call patch every tab in through the shared diff.
+  let cachedLayoutsByTabId = EMPTY_TERMINAL_LAYOUTS_BY_TAB_ID
   let cachedAgentTypesByTabId = EMPTY_TAB_AGENT_TYPES_BY_TAB_ID
-  let cachedUnsafeLayoutsByTabId: Record<string, TerminalLayoutSnapshot> | null = null
   let cachedUnsafeTabsById = EMPTY_UNSAFE_TABS_BY_ID
   let cachedEnabledResult: TabBarAgentProjections | null = null
 
@@ -264,43 +270,40 @@ export function createTabBarAgentProjectionSelector(
     const statuses = state.agentStatusByPaneKey ?? EMPTY_AGENT_STATUS_BY_PANE_KEY
     const layouts = state.terminalLayoutsByTabId ?? EMPTY_TERMINAL_LAYOUTS_BY_TAB_ID
     // Status pings and single-tab layout edits patch affected tabs instead of rescanning thousands of layouts.
-    if (statuses !== cachedAgentStatusByPaneKey || layouts !== cachedAgentTypeLayoutsByTabId) {
+    if (statuses !== cachedAgentStatusByPaneKey || layouts !== cachedLayoutsByTabId) {
+      // Why: both projections patch from one diff so a layout edit walks the layout map once.
+      const changedTabIds =
+        layouts === cachedLayoutsByTabId
+          ? null
+          : changedLayoutTabIds(cachedLayoutsByTabId, layouts, dependencies)
       const statusesKeepAgents =
         cachedAgentStatusByPaneKey !== null &&
         (statuses === cachedAgentStatusByPaneKey ||
-          statusChangeKeepsAgentTypes(cachedAgentStatusByPaneKey, statuses))
-      cachedAgentTypesByTabId =
-        statusesKeepAgents && cachedAgentTypeLayoutsByTabId !== null
-          ? layouts === cachedAgentTypeLayoutsByTabId
-            ? cachedAgentTypesByTabId
-            : patchTabAgentTypesForLayouts(
-                cachedAgentTypesByTabId,
-                changedLayoutTabIds(cachedAgentTypeLayoutsByTabId, layouts),
-                statuses,
-                layouts,
-                dependencies
-              )
-          : reuseRecordIfEqual(
+          statusChangeKeepsAgentTypes(cachedAgentStatusByPaneKey, statuses, dependencies))
+      cachedAgentTypesByTabId = !statusesKeepAgents
+        ? reuseRecordIfEqual(
+            cachedAgentTypesByTabId,
+            projectTabAgentTypesByTabId(statuses, layouts, dependencies)
+          )
+        : changedTabIds
+          ? patchTabAgentTypesForLayouts(
               cachedAgentTypesByTabId,
-              projectTabAgentTypesByTabId(statuses, layouts, dependencies)
-            )
-      cachedAgentStatusByPaneKey = statuses
-      cachedAgentTypeLayoutsByTabId = layouts
-    }
-    if (layouts !== cachedUnsafeLayoutsByTabId) {
-      cachedUnsafeTabsById =
-        cachedUnsafeLayoutsByTabId === null
-          ? reuseRecordIfEqual(
-              cachedUnsafeTabsById,
-              projectNativeChatTabWideFallbackUnsafeTabsById(layouts, dependencies)
-            )
-          : patchNativeChatTabWideFallbackUnsafeTabsById(
-              cachedUnsafeTabsById,
-              changedLayoutTabIds(cachedUnsafeLayoutsByTabId, layouts),
+              changedTabIds,
+              statuses,
               layouts,
               dependencies
             )
-      cachedUnsafeLayoutsByTabId = layouts
+          : cachedAgentTypesByTabId
+      if (changedTabIds) {
+        cachedUnsafeTabsById = patchNativeChatTabWideFallbackUnsafeTabsById(
+          cachedUnsafeTabsById,
+          changedTabIds,
+          layouts,
+          dependencies
+        )
+      }
+      cachedAgentStatusByPaneKey = statuses
+      cachedLayoutsByTabId = layouts
     }
     if (
       cachedEnabledResult?.nativeChatEnabled === nativeChatEnabled &&
