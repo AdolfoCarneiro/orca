@@ -10,6 +10,10 @@ import {
   selectRuntimePaneTitlesForWorktree
 } from './worktree-card-status-inputs'
 import { selectWorktreeAgentActivitySummary } from './worktree-agent-activity-summary'
+import { selectStoppedWslDistro } from '@/lib/wsl-host-stopped-status'
+import { selectWorkspaceRuntimeEnvironmentId } from '../terminal-pane/remote-server-outage'
+
+const NO_LIVE_PTYS: Record<string, string[]> = {}
 
 export function useWorktreeActivityStatus(worktreeId: string): WorktreeStatus {
   const tabs = useAppStore((s) => s.tabsByWorktree[worktreeId] ?? EMPTY_TABS)
@@ -22,6 +26,13 @@ export function useWorktreeActivityStatus(worktreeId: string): WorktreeStatus {
   )
   const ptyIdsForWorktree = useAppStore(
     useShallow((s) => selectLivePtyIdsForWorktree(s, worktreeId))
+  )
+  // A stopped distro ended every terminal in it, whatever bindings the panes keep for its Start.
+  // Why the cheap check first: every card subscribes, and almost no host is stopped.
+  const hostStopped = useAppStore(
+    (s) =>
+      Object.values(s.wslHostStatuses ?? {}).some((status) => status.state === 'distro-stopped') &&
+      selectStoppedWslDistro(s, selectWorkspaceRuntimeEnvironmentId(s, worktreeId)) !== null
   )
   const terminalLayoutRootsByTabId = useAppStore(
     useShallow((s) => selectTerminalLayoutRootsForWorktree(s, worktreeId))
@@ -47,7 +58,7 @@ export function useWorktreeActivityStatus(worktreeId: string): WorktreeStatus {
         tabs,
         browserTabs,
         hasStructuredChat,
-        ptyIdsByTabId: ptyIdsForWorktree,
+        ptyIdsByTabId: hostStopped ? NO_LIVE_PTYS : ptyIdsForWorktree,
         runtimePaneTitlesByTabId: runtimePaneTitlesForWorktree,
         agentStatusPaneIdsByTabId,
         stalePaneIdsByTabId,
@@ -66,6 +77,7 @@ export function useWorktreeActivityStatus(worktreeId: string): WorktreeStatus {
       tabs,
       browserTabs,
       hasStructuredChat,
+      hostStopped,
       ptyIdsForWorktree,
       runtimePaneTitlesForWorktree,
       agentStatusPaneIdsByTabId,
