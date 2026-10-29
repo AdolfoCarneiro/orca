@@ -345,3 +345,25 @@ it('removed current account cannot be resurrected by its already-started family 
   expect(fs.existsSync(join(O, 'hooks.json'))).toBe(false)
   expect(readFileSync(join(O, 'config.toml'), 'utf8')).toBe(before)
 })
+
+it('nonlaunch maintenance retains the existing legacy shared-home hook supplement', async () => {
+  const { recordCodexPaneAccount, _internals } =
+    await import('../codex/codex-pane-account-registry')
+  const { CodexRuntimeHomeService } = await import('./runtime-home-service')
+  _internals.resetProcess()
+  const store = createStore(createSettings({ realHomeRoutable: true }))
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only the harness settings store ports are used.
+  const service = new CodexRuntimeHomeService(store as never)
+  const legacy = join(testState.userDataDir, 'codex-runtime-home', 'home')
+  fs.mkdirSync(legacy, { recursive: true })
+  writeFileSync(join(legacy, 'config.toml'), 'model="legacy-fixture"\n')
+  recordCodexPaneAccount('legacy-retained', {
+    selectionKey: 'host',
+    accountId: null,
+    homeRoute: 'shared-home'
+  })
+  expect(await service.reconcileRetainedHostCodexHooks()).toBe(true)
+  expect(readFileSync(join(legacy, 'hooks.json'), 'utf8')).toContain('orca')
+  expect(readFileSync(join(legacy, 'config.toml'), 'utf8')).toContain('model="legacy-fixture"')
+  _internals.resetProcess()
+})

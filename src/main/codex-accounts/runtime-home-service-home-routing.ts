@@ -22,7 +22,10 @@ import {
   type CodexAccountSelectionTarget
 } from './runtime-selection'
 import { hasCustomCodexHomeOverrideForLaunch } from '../codex/codex-real-home-path'
-import { hasRecordedLegacySharedCodexPane } from '../codex/codex-pane-account-registry'
+import {
+  captureCodexPaneAccountInventory,
+  hasRecordedLegacySharedCodexPane
+} from '../codex/codex-pane-account-registry'
 import { ManagedCodexHomeTemporarilyUnavailableError } from './host-codex-managed-home-ownership'
 import { syncLegacySharedCodexConfigForRetainedPanes } from './legacy-shared-config-compatibility'
 import type { CodexManagedAccount } from '../../shared/managed-account-types'
@@ -110,7 +113,7 @@ export abstract class CodexRuntimeHomeRouting extends CodexRuntimeHomeManagedHom
   }
 
   async reconcileRetainedHostCodexHooks(
-    ptyIds: readonly string[] = [],
+    ptyIds: readonly string[] = Object.keys(captureCodexPaneAccountInventory().entries),
     isCurrent = () => true
   ): Promise<boolean> {
     return reconcileRetainedCodexHookHomes({

@@ -112,7 +112,7 @@ export function createOrcadAccountServices(args: {
         })
     },
     reconcileRetainedCodexHooks: (isCurrent) =>
-      codexRuntimeHome.reconcileRetainedHostCodexHooks([], isCurrent),
+      codexRuntimeHome.reconcileRetainedHostCodexHooks(undefined, isCurrent),
     listCodexSessionHomes: () => codexRuntimeHome.getHostCodexHomePathsForSessionDiscovery(),
     attachToRuntime: (runtime) => {
       runtime.setAccountServices({

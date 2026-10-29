@@ -110,7 +110,7 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
     pathReady: app.isPackaged ? hydrateAgentCliShellPath() : Promise.resolve(),
     isEnabled: () => isAgentStatusHooksEnabledForAgent(store.getSettings(), 'codex'),
     reconcileRetainedHomes: (isCurrent) =>
-      state.codexRuntimeHome?.reconcileRetainedHostCodexHooks([], isCurrent) ??
+      state.codexRuntimeHome?.reconcileRetainedHostCodexHooks(undefined, isCurrent) ??
       Promise.resolve(false),
     resolveLaunchHome: () => {
       if (!state.codexRuntimeHome) {
