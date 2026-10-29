@@ -10,49 +10,49 @@ ORCA click --page <browserPageId> --element @e3 --json
 ORCA snapshot --page <browserPageId> --json
 ```
 
-Common commands (every command that acts on a page also takes `--page <browserPageId>`; pass it):
+Common commands:
 
 ```text
-ORCA goto --url <url> --json
-ORCA back --json
-ORCA reload --json
-ORCA snapshot --json
-ORCA screenshot --json
-ORCA full-screenshot --json
-ORCA pdf --json
-ORCA click --element <ref> --json
-ORCA fill --element <ref> --value <text> --json
-ORCA type --input <text> --json
-ORCA select --element <ref> --value <value> --json
-ORCA check --element <ref> --json
-ORCA scroll --direction down --amount 1000 --json
-ORCA hover --element <ref> --json
-ORCA focus --element <ref> --json
-ORCA keypress --key Enter --json
-ORCA upload --element <ref> --files <paths> --json
-ORCA wait --text <text> --json
-ORCA wait --url <substring> --json
-ORCA wait --selector <css> --json
-ORCA wait --load networkidle --json
-ORCA eval --expression <js> --json
-ORCA set device --name "iPhone 15" --json
-ORCA viewport --width 390 --height 844 --scale 3 --mobile --json
+ORCA goto --page <browserPageId> --url <url> --json
+ORCA back --page <browserPageId> --json
+ORCA reload --page <browserPageId> --json
+ORCA snapshot --page <browserPageId> --json
+ORCA screenshot --page <browserPageId> --json
+ORCA full-screenshot --page <browserPageId> --json
+ORCA pdf --page <browserPageId> --json
+ORCA click --page <browserPageId> --element <ref> --json
+ORCA fill --page <browserPageId> --element <ref> --value <text> --json
+ORCA type --page <browserPageId> --input <text> --json
+ORCA select --page <browserPageId> --element <ref> --value <value> --json
+ORCA check --page <browserPageId> --element <ref> --json
+ORCA scroll --page <browserPageId> --direction down --amount 1000 --json
+ORCA hover --page <browserPageId> --element <ref> --json
+ORCA focus --page <browserPageId> --element <ref> --json
+ORCA keypress --page <browserPageId> --key Enter --json
+ORCA upload --page <browserPageId> --element <ref> --files <paths> --json
+ORCA wait --page <browserPageId> --text <text> --json
+ORCA wait --page <browserPageId> --url <substring> --json
+ORCA wait --page <browserPageId> --selector <css> --json
+ORCA wait --page <browserPageId> --load networkidle --json
+ORCA eval --page <browserPageId> --expression <js> --json
+ORCA set device --page <browserPageId> --name "iPhone 15" --json
+ORCA viewport --page <browserPageId> --width 390 --height 844 --scale 3 --mobile --json
 ORCA tab list --json
 ORCA tab create --url <url> --json
 ORCA tab switch --index <n> --json
 ORCA tab close --index <n> --json
-ORCA cookie get --json
-ORCA capture start --json
-ORCA console --limit 50 --json
-ORCA network --limit 50 --json
-ORCA exec --command "help" --json
+ORCA cookie get --page <browserPageId> --json
+ORCA capture start --page <browserPageId> --json
+ORCA console --page <browserPageId> --limit 50 --json
+ORCA network --page <browserPageId> --limit 50 --json
+ORCA exec --page <browserPageId> --command "help" --json
 ```
 
 Browser rules:
 
 - Re-snapshot after navigation, tab switches, clicks that change the page, and any `browser_stale_ref`.
 - Refs like `@e1` are assigned by `snapshot`, scoped to one tab, and invalidated by navigation or tab switch.
-- Always pass `--page <browserPageId>`. Take it from `tab.browserPageId` in `ORCA tab current --json` (the tab the user has open) or `browserPageId` in `ORCA tab create --json`, then reuse it on every command. Without `--page`, a command goes to whichever tab the user selected last, and that changes when they click or open a tab.
+- Always pass `--page <browserPageId>`. Take it from `tab.browserPageId` in `ORCA tab current --json` (the tab the user has open) or `browserPageId` in `ORCA tab create --json`, then reuse it on every command. Without `--page`, a command goes to the worktree's current tab, which moves to the tab the user picked once yours has had no command for about 20 seconds.
 - After `ORCA tab switch`, pass the new page's `browserPageId`.
 - Browser commands default to the current worktree. Use `--worktree all` only intentionally.
 - Use typed tab commands (`ORCA tab list/create/close/switch`), not `ORCA exec --command "tab ..."`, so Orca keeps UI state synchronized.

@@ -253,18 +253,25 @@ describe('AgentBrowserBridge', () => {
     const agentOnTabA = (): AgentBrowserBridge => {
       const tabs = new Map([
         ['tab-a', 1],
-        ['tab-b', 2]
+        ['tab-b', 2],
+        ['tab-c', 3]
       ])
       const worktrees = new Map([
         ['tab-a', 'wt-1'],
-        ['tab-b', 'wt-1']
+        ['tab-b', 'wt-1'],
+        ['tab-c', 'wt-1']
       ])
-      const wc1 = mockWebContents(1, 'https://a.com', 'A')
-      const wc2 = mockWebContents(2, 'https://b.com', 'B')
-      webContentsFromIdMock.mockImplementation((id: number) => (id === 1 ? wc1 : wc2))
+      const guests = new Map(
+        [...tabs].map(([tabId, id]) => [id, mockWebContents(id, `https://${tabId}.com`, tabId)])
+      )
+      webContentsFromIdMock.mockImplementation((id: number) => guests.get(id) ?? null)
       const b = new AgentBrowserBridge(
         mockBrowserManager(tabs, worktrees, {
-          isAgentUsingPage: (id: string) => agentPages.has(id)
+          isAgentUsingPage: (id: string) => agentPages.has(id),
+          beginAgentCommand: (id: string) => {
+            agentPages.add(id)
+            return { run: (execute) => execute(), end: () => {} }
+          }
         })
       )
       b.onTabChanged(1, 'wt-1')
@@ -281,6 +288,17 @@ describe('AgentBrowserBridge', () => {
 
       agentPages.clear()
       expect(b.getActivePageId('wt-1')).toBe('tab-b')
+    })
+
+    it('holds a pick made before the agent switches tabs until the new tab goes idle', async () => {
+      const b = agentOnTabA()
+
+      b.onTabChanged(3, 'wt-1')
+      await b.tabSwitch(undefined, 'wt-1', 'tab-b')
+      expect(b.getActivePageId('wt-1')).toBe('tab-b')
+
+      agentPages.clear()
+      expect(b.getActivePageId('wt-1')).toBe('tab-c')
     })
 
     it.each([

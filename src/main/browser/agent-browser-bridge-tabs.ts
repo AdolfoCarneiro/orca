@@ -18,7 +18,11 @@ export abstract class AgentBrowserBridgeTabs extends AgentBrowserBridgeState {
   protected pointAgentAt(webContentsId: number, worktreeId?: string): void {
     for (const key of routingKeys(worktreeId)) {
       this.setRoutedWebContentsId(key, webContentsId)
-      this.heldPersonSelections.delete(key)
+    }
+    // Mark the new tab now, or a person's pick before the agent's next command would take it.
+    const browserPageId = this.resolveTabIdSafe(webContentsId)
+    if (browserPageId) {
+      this.browserManager.beginAgentCommand(browserPageId).end()
     }
   }
 
