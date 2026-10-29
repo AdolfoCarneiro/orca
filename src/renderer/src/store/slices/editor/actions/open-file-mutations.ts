@@ -49,12 +49,11 @@ export function createOpenFileMutations(
         const worktreeId = file?.worktreeId
         // Floating/background activation stays workspace-local or violates agent-auto-ack’s global-selection invariant.
         const scopeWorktreeId = targetWorktreeId ?? worktreeId ?? s.activeWorktreeId
-        return {
-          ...(scopeWorktreeId === s.activeWorktreeId ? { activeFileId: fileId } : {}),
-          activeFileIdByWorktree: worktreeId
-            ? { ...s.activeFileIdByWorktree, [worktreeId]: fileId }
-            : s.activeFileIdByWorktree
+        const edit = editSessionSource(s)
+        if (worktreeId) {
+          edit.set('activeFileIdByWorktree', worktreeId, fileId)
         }
+        return edit.finish(scopeWorktreeId === s.activeWorktreeId ? { activeFileId: fileId } : {})
       })
       const state = get()
       const worktreeId =

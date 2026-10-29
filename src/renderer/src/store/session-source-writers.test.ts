@@ -13,6 +13,9 @@ import { createTerminalTabAgentLaunchPaneActions } from './terminals/terminal-ta
 import { createTerminalTabPresentationActions } from './terminals/terminal-tab-presentation'
 import { createAgentStatusRuntime } from './slices/agent-status/agent-status-runtime'
 import { makeTab } from './slices/store-session-test-harness'
+import { makeOpenFile } from './slices/store-session-test-harness'
+import { createOpenFileState } from './slices/editor/actions/open-file-state'
+import { createOpenFileMutations } from './slices/editor/actions/open-file-mutations'
 
 vi.mock('@/runtime/sync-runtime-graph', () => ({ scheduleRuntimeGraphSync: vi.fn() }))
 vi.mock('@/runtime/web-runtime-terminal-rename', () => ({ renameHostTerminalTab: vi.fn() }))
@@ -42,6 +45,39 @@ function verifyTransition(
 }
 
 describe('production source writer receipts', () => {
+  it('reports background editor selection without changing the foreground selection', () => {
+    const store = createStore<AppState>()(
+      withSessionSourceWrites(
+        (set, get) => ({
+          ...fixture(),
+          ...createOpenFileState(set, get),
+          ...createOpenFileMutations(set, get),
+          openFiles: [makeOpenFile({ id: 'background', worktreeId: 'last' })],
+          activeFileId: 'foreground',
+          activeTabType: 'terminal'
+        }),
+        true
+      )
+    )
+    let receipt: SessionSourceDiscovery | undefined
+    store.subscribe(() => {
+      receipt = store.getSessionSourceReceipt()
+    })
+    for (const operation of [
+      () => store.getState().setActiveFile('background', 'last'),
+      () => store.getState().setActiveTabType('editor', 'last')
+    ]) {
+      const before = store.getState()
+      Object.freeze(before.activeFileIdByWorktree)
+      Object.freeze(before.activeTabTypeByWorktree)
+      operation()
+      verifyTransition(before, store.getState(), receipt)
+    }
+    expect(store.getState().activeFileId).toBe('foreground')
+    expect(store.getState().activeTabType).toBe('terminal')
+    expect(store.getState().activeFileIdByWorktree.last).toBe('background')
+    expect(store.getState().activeTabTypeByWorktree.last).toBe('editor')
+  })
   it('matches native update-all and first-owner title operations with duplicate occurrences', () => {
     const store = createStore<AppState>()(
       withSessionSourceWrites(

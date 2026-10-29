@@ -226,9 +226,7 @@ export function createTerminalEphemeralActions(
         if (!s.deferredSshSessionIdsByTabId[tabId]) {
           return s
         }
-        const next = { ...s.deferredSshSessionIdsByTabId }
-        delete next[tabId]
-        return { deferredSshSessionIdsByTabId: next }
+        return editSessionSource(s).remove('deferredSshSessionIdsByTabId', tabId).finish()
       })
   }
 }

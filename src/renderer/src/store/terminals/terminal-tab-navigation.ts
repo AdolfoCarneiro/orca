@@ -60,14 +60,14 @@ export function createTerminalTabNavigationActions(
         )
         const isActiveWorktreeTab =
           tabOwnerWorktreeId !== null && ownsGlobalSelection(s, tabOwnerWorktreeId)
-        return {
-          activeTabId: isActiveWorktreeTab ? tabId : s.activeTabId,
-          // Preserve map identity on redundant activation; duplicate tab IDs can prevent convergence and retrigger Terminal’s repair effect into React #185.
-          activeTabIdByWorktree:
-            tabOwnerWorktreeId !== null && s.activeTabIdByWorktree[tabOwnerWorktreeId] !== tabId
-              ? { ...s.activeTabIdByWorktree, [tabOwnerWorktreeId]: tabId }
-              : s.activeTabIdByWorktree
+        const edit = editSessionSource(s)
+        if (isActiveWorktreeTab) {
+          edit.scalar('activeTabId', tabId)
         }
+        if (tabOwnerWorktreeId !== null) {
+          edit.set('activeTabIdByWorktree', tabOwnerWorktreeId, tabId)
+        }
+        return edit.finish()
       })
       const state = get()
       const ownerUnifiedTabs =
