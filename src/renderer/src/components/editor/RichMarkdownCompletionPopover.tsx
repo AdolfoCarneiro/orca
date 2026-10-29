@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode, type Ref } from 'react'
 import type { Editor } from '@tiptap/react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { useDismissWhenEditorHidden } from './use-dismiss-when-editor-hidden'
 
 type RichMarkdownCompletionPopoverProps = {
   editor: Editor | null
@@ -23,6 +24,8 @@ export function RichMarkdownCompletionPopover({
   viewportRef,
   children
 }: RichMarkdownCompletionPopoverProps): React.JSX.Element {
+  const editorDom = editor && !editor.isDestroyed ? editor.view.dom : null
+  useDismissWhenEditorHidden(editorDom, onClose)
   const virtualRef = useMemo(
     () => ({
       current: {
@@ -50,6 +53,12 @@ export function RichMarkdownCompletionPopover({
         collisionPadding={8}
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
+        // Editor clicks and refocus keep the menu; selection sync decides whether it still applies.
+        onInteractOutside={(event) => {
+          if (event.target instanceof Node && editorDom?.contains(event.target)) {
+            event.preventDefault()
+          }
+        }}
       >
         <div ref={viewportRef} className={className} role={role} aria-label={ariaLabel}>
           {children}

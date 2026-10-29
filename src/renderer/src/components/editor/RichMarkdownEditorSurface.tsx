@@ -270,6 +270,7 @@ export function RichMarkdownEditorSurface({
         </div>
         {linkBubble ? (
           <RichMarkdownLinkBubble
+            anchorElement={rootElement}
             linkBubble={linkBubble}
             isEditing={isEditingLink}
             onDismiss={linkBubbleActions.dismissLinkBubble}

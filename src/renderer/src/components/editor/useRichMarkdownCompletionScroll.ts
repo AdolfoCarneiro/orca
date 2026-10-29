@@ -1,6 +1,12 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 
-export function useRichMarkdownCompletionScroll(selectedIndex: number, rows: readonly unknown[]) {
+export function useRichMarkdownCompletionScroll(
+  selectedIndex: number,
+  rows: readonly unknown[]
+): {
+  viewportRef: RefObject<HTMLDivElement | null>
+  activeItemRef: RefObject<HTMLButtonElement | null>
+} {
   const viewportRef = useRef<HTMLDivElement>(null)
   const activeItemRef = useRef<HTMLButtonElement>(null)
 
