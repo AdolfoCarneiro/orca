@@ -2,8 +2,13 @@ import { readWslDistroRunningState } from '../wsl-background-distro-gate'
 import { wslDistroHoldMessage } from '../../shared/wsl-distro-stopped-hold'
 import type { PtySpawnOptions } from '../providers/pty-provider-contract'
 
-/** A provider hold right after the startup-target hold reuses that read instead of probing again. */
-export const WSL_PROVIDER_HOLD_LEASE_MS = 5_000
+/** A probe started this close before a hold still counts as that spawn's own read. */
+const WSL_HOLD_READ_ANCHOR_SLACK_MS = 1
+
+/** The anchor a spawn's first hold reads after; later holds of the same spawn reuse that read. */
+export function wslHoldReadAnchor(): number {
+  return performance.now() - WSL_HOLD_READ_ANCHOR_SLACK_MS
+}
 
 /**
  * Launch restore, a reload, a remount or main's background start (orchestration, automations,
@@ -14,11 +19,14 @@ export const WSL_PROVIDER_HOLD_LEASE_MS = 5_000
 export async function holdPassiveRestoreOfStoppedWslDistro(
   opts: Pick<
     PtySpawnOptions,
-    'wslPassiveRestore' | 'wslBackgroundStart' | 'sessionId' | 'isNewSession' | 'attachOnly'
+    | 'wslPassiveRestore'
+    | 'wslBackgroundStart'
+    | 'wslHoldReadAnchor'
+    | 'sessionId'
+    | 'isNewSession'
+    | 'attachOnly'
   >,
-  wslDistro: string | undefined,
-  /** Accept a running-list read started within this window (a noted stop still forces a new one). */
-  options: { leaseMs?: number } = {}
+  wslDistro: string | undefined
 ): Promise<void> {
   const passiveRestore =
     opts.wslPassiveRestore === true && Boolean(opts.sessionId) && opts.isNewSession !== true
@@ -26,8 +34,9 @@ export async function holdPassiveRestoreOfStoppedWslDistro(
   if (!wslDistro || opts.attachOnly === true || !(passiveRestore || opts.wslBackgroundStart)) {
     return
   }
+  // Without this spawn's anchor the read is fresh; a noted stop or wake still raises the floor.
   const state = await readWslDistroRunningState(wslDistro, {
-    ...(options.leaseMs === undefined ? {} : { startedAfter: performance.now() - options.leaseMs }),
+    ...(opts.wslHoldReadAnchor === undefined ? {} : { startedAfter: opts.wslHoldReadAnchor }),
     retryUnverifiable: true
   })
   if (state !== 'running') {

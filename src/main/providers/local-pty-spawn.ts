@@ -7,10 +7,7 @@ import { prepareMacosTccLoginShell } from './macos-tcc-login-shell'
 import { finalizeLocalPtySpawnEnvironment } from './local-pty-finalize-environment'
 import { normalizeLocalCallerSessionId } from './local-pty-launch-helpers'
 import { createLocalPtyLaunchPlan, DeferredLocalPtyLaunchPlan } from './local-pty-launch-plan'
-import {
-  holdPassiveRestoreOfStoppedWslDistro,
-  WSL_PROVIDER_HOLD_LEASE_MS
-} from '../daemon/daemon-wsl-passive-restore-hold'
+import { holdPassiveRestoreOfStoppedWslDistro } from '../daemon/daemon-wsl-passive-restore-hold'
 import type { LocalPtyProviderOptions } from './local-pty-provider-types'
 import { validateWorkingDirectory, WorkingDirectoryValidationAbortedError } from './local-pty-utils'
 import { allocatePtyId, ptyShutdownOperations } from './local-pty-provider-state'
@@ -67,9 +64,7 @@ export async function spawnLocalPty(
     }
     throwIfCanceled()
     // Daemon-off (the daemon failed to start) a restore spawns here: same E9 hold as the daemon's.
-    await holdPassiveRestoreOfStoppedWslDistro(args, plan.launchWslDistro ?? undefined, {
-      leaseMs: WSL_PROVIDER_HOLD_LEASE_MS
-    })
+    await holdPassiveRestoreOfStoppedWslDistro(args, plan.launchWslDistro ?? undefined)
     throwIfCanceled()
     if (args.prevalidatedCwd !== plan.validationCwd) {
       try {
