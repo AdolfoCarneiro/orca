@@ -145,14 +145,15 @@ async function openComputerUsePermissionsAsync(
   if (!helperAppPath) {
     throw new RuntimeClientError('accessibility_error', 'Orca Computer Use.app was not found')
   }
+  // Wait out a reset before reading status, so this Open never sees pre-reset grants.
+  while (resetInProgress) {
+    await resetInProgress.catch(() => {})
+  }
   const status = await computerUsePermissionStatusGate.peek()
   if (status.helperUnavailableReason) {
     throw new RuntimeClientError('accessibility_error', status.helperUnavailableReason)
   }
   const nextStep = nextPermissionStep(status.permissions)
-  while (resetInProgress) {
-    await resetInProgress.catch(() => {})
-  }
   if (generation !== setupGeneration || isHostShuttingDown()) {
     // An error rather than launchedHelper: false, which clients render as "setup complete".
     throw new RuntimeClientError(
