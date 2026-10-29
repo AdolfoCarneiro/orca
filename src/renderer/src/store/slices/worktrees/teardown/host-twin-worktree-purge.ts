@@ -141,7 +141,8 @@ export function buildHostTwinPurgeState(
   edit: SessionSourceEdit<AppState>,
   hostId: ExecutionHostId,
   twinHostIds: ReadonlyMap<string, readonly ExecutionHostId[]>,
-  priorPatch: OrdinarySourcePartial<AppState> = {}
+  priorPatch: OrdinarySourcePartial<AppState> = {},
+  changedPaneKeys?: Set<string>
 ): OrdinarySourcePartial<AppState> {
   const s = edit.view(priorPatch)
   const twinIds = new Set(twinHostIds.keys())
@@ -250,13 +251,19 @@ export function buildHostTwinPurgeState(
     ...layout,
     // Why: a group may now show a surviving tab of another kind, so selection is derived again.
     ...(selectionRemoved ? buildActiveSurfacePatch(edit, active) : {}),
-    ...buildWorktreePurgeSurfacePatch(edit, omitters, doomed, {
-      ...tabPrefixedSleeping,
-      ...omitSleepingAgentSessionsForWorktrees(edit, new Set(), [
-        ...prefixKeys,
-        ...sshRecordPaneKeys
-      ])
-    }),
+    ...buildWorktreePurgeSurfacePatch(
+      edit,
+      omitters,
+      doomed,
+      {
+        ...tabPrefixedSleeping,
+        ...omitSleepingAgentSessionsForWorktrees(edit, new Set(), [
+          ...prefixKeys,
+          ...sshRecordPaneKeys
+        ])
+      },
+      changedPaneKeys
+    ),
     ...twinSelectionPatch(s, twinHostIds, hostId)
   }
 }

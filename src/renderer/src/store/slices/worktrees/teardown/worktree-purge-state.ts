@@ -31,7 +31,8 @@ import { composeWorktreeHostIdentity } from '../../../../../../shared/worktree/h
  */
 export function buildWorktreePurgeState(
   edit: SessionSourceEdit<AppState>,
-  worktreeTargets: WorktreePurgeTargets
+  worktreeTargets: WorktreePurgeTargets,
+  changedPaneKeys?: Set<string>
 ): OrdinarySourcePartial<AppState> {
   const s = edit.view()
   const targets: WorktreePurgeTarget[] = worktreeTargets.map((target) =>
@@ -39,13 +40,14 @@ export function buildWorktreePurgeState(
   )
   const twinScopes = collectHostTwinPurgeScopes(s, targets)
   if (twinScopes.size === 0) {
-    return buildFullWorktreePurgeState(edit, targets)
+    return buildFullWorktreePurgeState(edit, targets, changedPaneKeys)
   }
   const twinIds = new Set([...twinScopes.values()].flatMap((twins) => [...twins.keys()]))
   const fullTargets = targets.filter((target) => !target.hostId || !twinIds.has(target.id))
-  let patch = fullTargets.length > 0 ? buildFullWorktreePurgeState(edit, fullTargets) : {}
+  let patch =
+    fullTargets.length > 0 ? buildFullWorktreePurgeState(edit, fullTargets, changedPaneKeys) : {}
   for (const [hostId, twinHostIds] of twinScopes) {
-    const twinPatch = buildHostTwinPurgeState(edit, hostId, twinHostIds, patch)
+    const twinPatch = buildHostTwinPurgeState(edit, hostId, twinHostIds, patch, changedPaneKeys)
     patch = {
       ...patch,
       ...twinPatch,
@@ -79,7 +81,8 @@ export function buildWorktreePurgeState(
 /** Drops every bucket under the targets' ids; visit recency alone stays host-scoped. */
 export function buildFullWorktreePurgeState(
   edit: SessionSourceEdit<AppState>,
-  normalizedTargets: readonly WorktreePurgeTarget[]
+  normalizedTargets: readonly WorktreePurgeTarget[],
+  changedPaneKeys?: Set<string>
 ): OrdinarySourcePartial<AppState> {
   const s = edit.view()
   const worktreeIdSet = new Set(normalizedTargets.map((target) => target.id))
@@ -160,7 +163,7 @@ export function buildFullWorktreePurgeState(
       tabIds: doomed.doomedTabIds,
       activeFileCleared
     }),
-    ...buildWorktreePurgeSurfacePatch(edit, omitters, doomed, nextSleeping),
+    ...buildWorktreePurgeSurfacePatch(edit, omitters, doomed, nextSleeping, changedPaneKeys),
     worktreeLineageById: omitByWorktree(s.worktreeLineageById),
     workspaceLineageByChildKey: omitWorkspaceLineageByWorktree(s.workspaceLineageByChildKey),
     deleteStateByWorktreeId: removeDeleteStatesForWorktreeIds(
@@ -188,6 +191,7 @@ export function buildFullWorktreePurgeState(
       s.gitBranchCompareRequestStatusHeadByWorktree
     ),
     gitStatusHugeByWorktree: omitByWorktree(s.gitStatusHugeByWorktree),
+    gitStatusReadErrorByWorktree: omitByWorktree(s.gitStatusReadErrorByWorktree),
     explorerDisplayRootByWorktree: omitByWorktree(s.explorerDisplayRootByWorktree),
     showDotfilesByWorktree: omitByWorktree(s.showDotfilesByWorktree),
     expandedDirs: omitByWorktree(s.expandedDirs),

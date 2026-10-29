@@ -70,11 +70,11 @@ vi.mock('@/store', () => ({
 }))
 
 vi.mock('@/lib/worktree-activation', () => ({
-  activateAndRevealWorktree: vi.fn()
+  activateAndRevealWorkspace: vi.fn()
 }))
 
 import { toast } from 'sonner'
-import { activateAndRevealWorktree } from '@/lib/worktree-activation'
+import { activateAndRevealWorkspace } from '@/lib/worktree-activation'
 import { showWorktreeCreationReadyToast } from './worktree-creation-ready-toast'
 
 const worktree = {
@@ -116,7 +116,7 @@ describe('showWorktreeCreationReadyToast', () => {
     expect(label).toContain('Go to worktree')
 
     toasts[0]?.onClick()
-    expect(activateAndRevealWorktree).toHaveBeenCalledWith(worktree.id, {
+    expect(activateAndRevealWorkspace).toHaveBeenCalledWith(worktree.id, {
       sidebarRevealBehavior: 'auto',
       navigationIntent: 'user-open'
     })
@@ -243,7 +243,7 @@ describe('showWorktreeCreationReadyToast', () => {
   it('opens the notification target on its captured host', () => {
     showWorktreeCreationReadyToast({ ...worktree, hostId: 'runtime:remote-a' })
     toasts[0]?.onClick()
-    expect(activateAndRevealWorktree).toHaveBeenCalledWith(worktree.id, {
+    expect(activateAndRevealWorkspace).toHaveBeenCalledWith(worktree.id, {
       sidebarRevealBehavior: 'auto',
       navigationIntent: 'user-open',
       executionHostId: 'runtime:remote-a'
@@ -283,7 +283,7 @@ describe('showWorktreeCreationReadyToast', () => {
       await Promise.resolve()
       expect(toast.dismiss).not.toHaveBeenCalled()
       toasts[0]?.onClick()
-      expect(activateAndRevealWorktree).toHaveBeenCalledWith(worktree.id, {
+      expect(activateAndRevealWorkspace).toHaveBeenCalledWith(worktree.id, {
         sidebarRevealBehavior: 'auto',
         navigationIntent: 'user-open',
         executionHostId: 'runtime:remote-a'
@@ -333,7 +333,7 @@ describe('showWorktreeCreationReadyToast', () => {
     await Promise.resolve()
     expect(toast.dismiss).not.toHaveBeenCalled()
     toasts[0]?.onClick()
-    expect(activateAndRevealWorktree).toHaveBeenCalledWith(worktree.id, {
+    expect(activateAndRevealWorkspace).toHaveBeenCalledWith(worktree.id, {
       sidebarRevealBehavior: 'auto',
       navigationIntent: 'user-open',
       executionHostId: 'local'

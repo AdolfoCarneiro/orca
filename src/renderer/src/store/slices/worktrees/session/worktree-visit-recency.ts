@@ -1,6 +1,7 @@
-import { editSessionSource } from '@/store/session-source-edits'
+import { editSessionSource, type SessionSourceEdit } from '@/store/session-source-edits'
 import { runAsAutomaticDeselection } from '@/store/active-worktree-deselection-intent'
 import type { WorktreeSlice } from '../../worktree-helpers'
+import type { AppState } from '../../../types'
 import type { WorktreeSliceGet, WorktreeSliceSet } from '../listing/worktree-slice-types'
 import { getRepoIdFromWorktreeId } from '../../worktree-helpers'
 import { worktreeWorkspaceKey } from '../../../../../../shared/workspace-scope'
@@ -20,25 +21,38 @@ export function createMarkWorktreeVisited(
   _get: WorktreeSliceGet
 ): WorktreeSlice['markWorktreeVisited'] {
   return (worktreeId, visitedAt, executionHostId) => {
-    // Cmd+J needs user-focus recency independent of PTY activity; racing CLI/IPC timestamps must not regress (cmd-j-empty-query-ordering.md).
     set((s) => {
-      const now = visitedAt ?? Date.now()
-      const ownerHostId =
-        executionHostId ??
-        (s.activeWorktreeId === worktreeId ? s.activeWorkspaceExecutionHostId : undefined) ??
-        s.getKnownWorktreeById(worktreeId, executionHostId)?.hostId
-      const visitKey = getWorktreeVisitKey(worktreeId, ownerHostId)
-      const prev =
-        getWorktreeVisitTimestamp(s.lastVisitedAtByWorktreeId, {
-          id: worktreeId,
-          hostId: ownerHostId
-        }) ?? 0
-      if (!(now > prev)) {
-        return undefined
-      }
-      return editSessionSource(s).set('lastVisitedAtByWorktreeId', visitKey, now).finish({})
+      const edit = editSessionSource(s)
+      stampWorktreeVisit(edit, worktreeId, visitedAt, executionHostId)
+      return edit.changed ? edit.finish() : undefined
     })
   }
+}
+
+/** Extends the accepted edit only when this focus timestamp advances. */
+export function stampWorktreeVisit(
+  edit: SessionSourceEdit<AppState>,
+  worktreeId: string,
+  visitedAt?: number,
+  executionHostId?: ExecutionHostId,
+  selection?: Pick<AppState, 'activeWorktreeId' | 'activeWorkspaceExecutionHostId'>
+): void {
+  const s = edit.view(selection)
+  // Cmd+J needs user-focus recency independent of PTY activity; racing CLI/IPC timestamps must not regress (cmd-j-empty-query-ordering.md).
+  const now = visitedAt ?? Date.now()
+  const ownerHostId =
+    executionHostId ??
+    (s.activeWorktreeId === worktreeId ? s.activeWorkspaceExecutionHostId : undefined) ??
+    s.getKnownWorktreeById(worktreeId, executionHostId)?.hostId
+  const prev =
+    getWorktreeVisitTimestamp(s.lastVisitedAtByWorktreeId, {
+      id: worktreeId,
+      hostId: ownerHostId
+    }) ?? 0
+  if (!(now > prev)) {
+    return
+  }
+  edit.set('lastVisitedAtByWorktreeId', getWorktreeVisitKey(worktreeId, ownerHostId), now)
 }
 
 export function createPruneLastVisitedTimestamps(

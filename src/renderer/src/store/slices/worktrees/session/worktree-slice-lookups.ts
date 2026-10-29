@@ -155,9 +155,9 @@ export function createPurgeWorktreeTerminalState(
       )
     )
     settleAttentionRemovedBy(set, get, () =>
-      set((s) => {
+      get().updateAgentStatusState((s, changedPaneKeys) => {
         const edit = editSessionSource(s)
-        return edit.finish(buildWorktreePurgeState(edit, purgeableWorktreeTargets))
+        return edit.finish(buildWorktreePurgeState(edit, purgeableWorktreeTargets, changedPaneKeys))
       })
     )
   }

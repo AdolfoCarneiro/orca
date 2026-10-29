@@ -2,7 +2,8 @@
 
 import { setSessionTestState } from '@/lib/test-support/session-source-fixture'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
+import { render } from './native-chat-tooltip-test-harness'
 import type { NativeChatLiveSession } from './use-native-chat-live-session'
 import { resetLocalImageSrcStateForTests } from '@/components/editor/useLocalImageSrc'
 import { useAppStore } from '@/store'

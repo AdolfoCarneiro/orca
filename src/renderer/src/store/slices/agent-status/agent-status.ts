@@ -58,6 +58,8 @@ export const createAgentStatusSlice: SessionStateCreator<AppState, AgentStatusSl
   }
   return {
     ...actions,
+    subscribeAgentStatusChanges: runtime.subscribeAgentStatusChanges,
+    updateAgentStatusState: runtime.set,
     agentStatusByPaneKey: {},
     runtimeAgentOrchestrationByPaneKey: {},
     migrationUnsupportedByPtyId: {},

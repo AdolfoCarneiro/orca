@@ -14,7 +14,8 @@ export function buildWorktreePurgeSurfacePatch(
   edit: SessionSourceEdit<AppState>,
   omitters: WorktreePurgeOmitters,
   doomed: WorktreePurgeDoomedIds,
-  sleeping: WorktreePurgeSleepingMaps
+  sleeping: WorktreePurgeSleepingMaps,
+  changedPaneKeys?: Set<string>
 ): OrdinarySourcePartial<AppState> {
   const s = edit.view()
   const { doomedTabIds } = doomed
@@ -34,7 +35,7 @@ export function buildWorktreePurgeSurfacePatch(
   edit.removeKeys('remoteBrowserPageHandlesByPageId', doomed.doomedPageIds)
   edit.removeKeys('editorDrafts', doomed.removedFileIds)
   edit.removeKeys('markdownFrontmatterVisible', doomed.removedFileIds)
-  const nextAgentStatusByPaneKey = omitByPaneKeyTabPrefix(s.agentStatusByPaneKey)
+  const nextAgentStatusByPaneKey = omitByPaneKeyTabPrefix(s.agentStatusByPaneKey, changedPaneKeys)
   return {
     runtimePaneTitlesByTabId: omitByTabId(s.runtimePaneTitlesByTabId),
     automaticAgentResumeClaimsByTabId: omitByTabId(s.automaticAgentResumeClaimsByTabId),

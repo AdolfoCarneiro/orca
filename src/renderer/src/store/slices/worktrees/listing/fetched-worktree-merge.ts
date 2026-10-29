@@ -159,7 +159,7 @@ export function mergeFetchedWorktrees(
   const decision: { outcome: WorktreeListingMergeOutcome } = { outcome: 'not-current' }
   let authoritativelyRemovedIds: readonly string[] = []
   let authoritativelySeenIds: readonly string[] = []
-  set((s) => {
+  get().updateAgentStatusState((s, changedPaneKeys) => {
     // Check live applied catalog before any row/detection/purge merge so in-flight listings cannot undo newer create/remove replies.
     const refusal = worktreeListingRefusal(
       s,
@@ -284,7 +284,8 @@ export function mergeFetchedWorktrees(
       ...(removedIds.length > 0
         ? buildWorktreePurgeState(
             edit,
-            removedIds.map((id) => hostWorktreeTarget({ id, hostId: args.hostId }))
+            removedIds.map((id) => hostWorktreeTarget({ id, hostId: args.hostId })),
+            changedPaneKeys
           )
         : {})
     })

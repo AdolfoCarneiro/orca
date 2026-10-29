@@ -52,7 +52,7 @@ export function createAgentStatusProviderSessionActions(
       }
       let removedLiveStatus = false
       settleAttentionRemovedBy(set, get, () =>
-        set((s) => {
+        set((s, changedPaneKeys) => {
           const existingStatus = s.agentStatusByPaneKey[paneKey]
           const existingRecord = s.sleepingAgentSessionsByPaneKey[paneKey]
           if (
@@ -124,6 +124,7 @@ export function createAgentStatusProviderSessionActions(
             ? { ...s.agentStatusByPaneKey }
             : s.agentStatusByPaneKey
           if (removedLiveStatus) {
+            changedPaneKeys.add(paneKey)
             delete nextLive[paneKey]
           }
           const nextRetained =

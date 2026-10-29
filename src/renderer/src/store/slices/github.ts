@@ -31,6 +31,7 @@ export const createGitHubSlice: SessionStateCreator<AppState, GitHubSlice> = (se
   issueCache: {},
   checksCache: {},
   commentsCache: {},
+  reviewThreadResolutionsInFlight: {},
   prRefreshSequences: {},
   prRefreshStates: {},
   prVisibleRefreshGeneration: 0,

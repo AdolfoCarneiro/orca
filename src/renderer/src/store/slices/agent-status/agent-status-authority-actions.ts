@@ -57,12 +57,15 @@ export function createAgentStatusAuthorityActions(
       }
       let hadLive = false
       settleAttentionRemovedBy(set, get, () =>
-        set((s) => {
+        set((s, changedPaneKeys) => {
           const edit = editSessionSource(s)
           if (!options?.preserveSleepingAgentSession) {
             edit.removeKeys('sleepingAgentSessionsByPaneKey', retiredPaneKeySet)
           }
           const retiredLivePaneKeys = retiredPaneKeys.filter((key) => key in s.agentStatusByPaneKey)
+          for (const key of retiredLivePaneKeys) {
+            changedPaneKeys.add(key)
+          }
           hadLive = retiredLivePaneKeys.length > 0
           let nextRetentionSuppressedPaneKeys = removePaneKeys(
             s.retentionSuppressedPaneKeys,
@@ -182,7 +185,9 @@ export function createAgentStatusAuthorityActions(
       rendererAgentStatusObservations.rebind(to)
       const targetTabId = getTabIdFromPaneKey(to) ?? undefined
       const targetLeafId = getLeafIdFromPaneKey(to) ?? undefined
-      set((s) => {
+      set((s, changedPaneKeys) => {
+        changedPaneKeys.add(from)
+        changedPaneKeys.add(to)
         const edit = editSessionSource(s)
         const sleeping = s.sleepingAgentSessionsByPaneKey[from]
         if (sleeping !== undefined) {

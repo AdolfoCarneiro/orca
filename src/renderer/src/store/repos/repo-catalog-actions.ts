@@ -37,6 +37,10 @@ import {
 } from '../../../../shared/project-compatibility-merge'
 import { mergeFetchedHostProjectCatalog } from '../../../../shared/project-compatibility-host-merge'
 import { scheduleSafeAutoForkSync } from './safe-auto-fork-sync'
+import {
+  withWslMovedRepoIds,
+  withWslMovedSetupScriptDismissals
+} from './wsl-moved-repo-ui-retention'
 
 export function createRepoCatalogActions(
   set: Parameters<SessionStateCreator<AppState>>[0],
@@ -140,10 +144,17 @@ export function createRepoCatalogActions(
                 : { folderWorkspacePathStatuses: {} }),
               activeRepoId:
                 s.activeRepoId && validRepoIds.has(s.activeRepoId) ? s.activeRepoId : null,
-              filterRepoIds: retainValidFilterRepoIds(s.filterRepoIds, validRepoIds),
-              setupScriptPromptDismissedRepoIds: filterSetupScriptPromptDismissalsToValidRepos(
+              filterRepoIds: retainValidFilterRepoIds(
+                s.filterRepoIds,
+                withWslMovedRepoIds(validRepoIds, s.wslMovedProjects)
+              ),
+              setupScriptPromptDismissedRepoIds: withWslMovedSetupScriptDismissals(
                 s.setupScriptPromptDismissedRepoIds,
-                validRepoHostIdentities
+                filterSetupScriptPromptDismissalsToValidRepos(
+                  s.setupScriptPromptDismissedRepoIds,
+                  validRepoHostIdentities
+                ),
+                s.wslMovedProjects
               )
             },
             'catalog'

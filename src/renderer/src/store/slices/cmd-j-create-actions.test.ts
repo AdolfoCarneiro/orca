@@ -193,12 +193,15 @@ describe('Cmd+J lifted creation actions', () => {
 
     await store.getState().openNewTerminalTabInActiveWorkspace('group-1')
 
-    expect(createWebRuntimeSessionTerminalMock).toHaveBeenCalledWith({
-      worktreeId: 'wt-1',
-      environmentId: 'runtime-1',
-      targetGroupId: 'group-1',
-      activate: true
-    })
+    expect(createWebRuntimeSessionTerminalMock).toHaveBeenCalledWith(
+      {
+        worktreeId: 'wt-1',
+        environmentId: 'runtime-1',
+        targetGroupId: 'group-1',
+        activate: true
+      },
+      { userAct: true }
+    )
     expect(store.getState().tabsByWorktree['wt-1'] ?? []).toEqual([])
   })
 
@@ -279,12 +282,15 @@ describe('Cmd+J lifted creation actions', () => {
 
     await store.getState().openNewTerminalTabInActiveWorkspace('group-1')
 
-    expect(createWebRuntimeSessionTerminalMock).toHaveBeenCalledWith({
-      worktreeId: 'wt-1',
-      environmentId: 'owner-runtime',
-      targetGroupId: 'group-1',
-      activate: true
-    })
+    expect(createWebRuntimeSessionTerminalMock).toHaveBeenCalledWith(
+      {
+        worktreeId: 'wt-1',
+        environmentId: 'owner-runtime',
+        targetGroupId: 'group-1',
+        activate: true
+      },
+      { userAct: true }
+    )
     expect(store.getState().tabsByWorktree['wt-1'] ?? []).toEqual([])
   })
 

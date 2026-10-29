@@ -1,3 +1,4 @@
+import { createAgentStatusSlice } from './agent-status/agent-status'
 import { vi, type Mock } from 'vitest'
 import { create } from 'zustand'
 import { withSessionSourceWrites } from '../session-source-write-boundary'
@@ -137,6 +138,7 @@ export function createTestStore() {
         ({
           // Why: this test isolates the worktree slice, so it provides only the state surface createWorktreeSlice touches.
           ...createWorktreeSlice(...a),
+          ...createAgentStatusSlice(...a),
           ...createWorkspaceAttentionSlice(...a),
           trustedOrcaHooks: {},
           sshConnectionStates: new Map([

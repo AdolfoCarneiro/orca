@@ -12,6 +12,11 @@ import type { HostWorktreeTarget } from '../../../shared/worktree/host-qualified
 import { getDefaultWorkspaceSession } from '../../../shared/constants'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
 import { readTerminalScrollbackSnapshotSync } from '../../terminal-scrollback-snapshots'
+import {
+  hasTerminalScrollbackSnapshotSync,
+  readTerminalScrollbackSnapshot,
+  statTerminalScrollbackSnapshotSize
+} from '../../terminal-scrollback-snapshot-nonblocking-reads'
 import type { SessionReferenceKind } from '../../../shared/session-unit-index'
 import { invalidateLocalWorktreeMetadataPruneInputs } from '../../local-worktree-metadata-prune-gate'
 import { isWslMoveWorkspaceSessionFrozen } from '../moving-wsl-projects/wsl-move-scope-guard'
@@ -44,7 +49,11 @@ export class SessionHostPartitionOperations {
     scheduling: WriteSchedulingOperations,
     bindingRecovery: TerminalBindingRecoveryOperations
   ) {
-    this[sessionHostPartitionOperationsContext] = { runtime, scheduling, bindingRecovery }
+    this[sessionHostPartitionOperationsContext] = {
+      runtime,
+      scheduling,
+      bindingRecovery
+    }
   }
 
   getWorkspaceSession(hostId?: string | null): PersistedState['workspaceSession'] {
@@ -117,6 +126,27 @@ export class SessionHostPartitionOperations {
 
   readTerminalScrollbackSnapshot(ref: string): string | null {
     return readTerminalScrollbackSnapshotSync(
+      ref,
+      this[sessionHostPartitionOperationsContext].runtime.terminalScrollbackSnapshotStorage
+    )
+  }
+
+  hasTerminalScrollbackSnapshot(ref: string): boolean {
+    return hasTerminalScrollbackSnapshotSync(
+      ref,
+      this[sessionHostPartitionOperationsContext].runtime.terminalScrollbackSnapshotStorage
+    )
+  }
+
+  readTerminalScrollbackSnapshotAsync(ref: string): Promise<string | null> {
+    return readTerminalScrollbackSnapshot(
+      ref,
+      this[sessionHostPartitionOperationsContext].runtime.terminalScrollbackSnapshotStorage
+    )
+  }
+
+  statTerminalScrollbackSnapshotSize(ref: string): Promise<number | null> {
+    return statTerminalScrollbackSnapshotSize(
       ref,
       this[sessionHostPartitionOperationsContext].runtime.terminalScrollbackSnapshotStorage
     )
