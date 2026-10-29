@@ -166,6 +166,7 @@ test.describe('Multi-workspace sustained typing latency bench', () => {
         testInfo,
         'baseline',
         measured,
+        { cpuWorkers: 0, ptyMetadata: false, statusTrafficModel: null },
         await readSchedulerDebug(orcaPage),
         await readMainDeliveryDebug(orcaPage)
       )
@@ -239,14 +240,6 @@ test.describe('Multi-workspace sustained typing latency bench', () => {
         liveStatuses: readPositiveInt('ORCA_TYPING_BENCH_METADATA_LIVE_STATUSES', 177),
         statusHistoryEntries: readPositiveInt('ORCA_TYPING_BENCH_METADATA_STATUS_HISTORY', 3)
       })
-      if (process.env.ORCA_TYPING_BENCH_AGENT_ROWS === 'full') {
-        await orcaPage.evaluate(() =>
-          window.__store?.setState({
-            worktreeCardProperties: ['status', 'inline-agents'],
-            agentActivityDisplayMode: 'full'
-          })
-        )
-      }
       console.log(`[multi-workspace-typing] accumulated fixture: ${JSON.stringify(fixtureSummary)}`)
       const statusTrafficEnabled =
         !PTY_METADATA && process.env.ORCA_TYPING_BENCH_METADATA_STATUS !== '0'
@@ -352,6 +345,15 @@ test.describe('Multi-workspace sustained typing latency bench', () => {
         testInfo,
         `hidden-load-${LOAD_PANES}x${LOAD_RATE_KBPS}kbps-cpu${CPU_WORKERS}${ORDER_CHURN_MS > 0 ? `-order${ORDER_CHURN_MS}ms` : ''}`,
         measured,
+        {
+          cpuWorkers: cpuWorkers.length,
+          ptyMetadata: PTY_METADATA,
+          statusTrafficModel: PTY_METADATA
+            ? 'pty-osc-through-runtime-and-ipc-bridge'
+            : statusWorkload
+              ? 'electron-ipc-burst-through-production-bridge'
+              : null
+        },
         await readSchedulerDebug(orcaPage),
         await readMainDeliveryDebug(orcaPage),
         instrumentation,
@@ -469,6 +471,11 @@ test.describe('Multi-workspace sustained typing latency bench', () => {
         testInfo,
         `visible-split-${LOAD_RATE_KBPS}kbps-cpu${CPU_WORKERS}`,
         measured,
+        {
+          cpuWorkers: cpuWorkers.length,
+          ptyMetadata: PTY_METADATA,
+          statusTrafficModel: PTY_METADATA ? 'pty-osc-through-runtime-and-ipc-bridge' : null
+        },
         await readSchedulerDebug(orcaPage),
         await readMainDeliveryDebug(orcaPage)
       )
@@ -544,6 +551,11 @@ test.describe('Multi-workspace sustained typing latency bench', () => {
         testInfo,
         `git-churn-${GIT_CHURN_REPOS}repos-x${GIT_CHURN_CONCURRENCY}`,
         measured,
+        {
+          cpuWorkers: cpuWorkers.length,
+          ptyMetadata: PTY_METADATA,
+          statusTrafficModel: PTY_METADATA ? 'pty-osc-through-runtime-and-ipc-bridge' : null
+        },
         await readSchedulerDebug(orcaPage),
         await readMainDeliveryDebug(orcaPage),
         undefined,
@@ -627,6 +639,11 @@ test.describe('Multi-workspace sustained typing latency bench', () => {
         testInfo,
         `dec2026-render-${LOAD_PANES}panes-${LOAD_RATE_KBPS}kbps-rows${CODEX_FRAME_ROWS}`,
         measured,
+        {
+          cpuWorkers: cpuWorkers.length,
+          ptyMetadata: PTY_METADATA,
+          statusTrafficModel: PTY_METADATA ? 'pty-osc-through-runtime-and-ipc-bridge' : null
+        },
         await readSchedulerDebug(orcaPage),
         await readMainDeliveryDebug(orcaPage),
         undefined,

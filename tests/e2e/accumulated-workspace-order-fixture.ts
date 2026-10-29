@@ -36,6 +36,7 @@ export async function startAccumulatedOrderTraffic(
       const timer = window.setInterval(() => {
         const repoId = repoIds[tick % repoIds.length]
         tick += 1
+        const before = store.getState()
         const startedAt = performance.now()
         store.setState((state) => {
           const rows = state.worktreesByRepo[repoId]
@@ -53,6 +54,9 @@ export async function startAccumulatedOrderTraffic(
             sortOrderEpoch: state.sortOrderEpoch + 1
           }
         })
+        if (store.getState() === before) {
+          return
+        }
         const elapsed = performance.now() - startedAt
         stats.publications += 1
         stats.syncPublishMs.total += elapsed

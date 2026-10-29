@@ -163,10 +163,20 @@ export async function measureTypingWindow(
   }
 }
 
+export type AppliedTypingWorkload = {
+  cpuWorkers: number
+  ptyMetadata: boolean
+  statusTrafficModel:
+    | 'pty-osc-through-runtime-and-ipc-bridge'
+    | 'electron-ipc-burst-through-production-bridge'
+    | null
+}
+
 export function writeBenchReport(
-  testInfo: TestInfo,
+  testInfo: Pick<TestInfo, 'annotations'>,
   scenario: string,
   measured: TypingWindowMeasurement,
+  workload: AppliedTypingWorkload,
   scheduler: SchedulerDebugSnapshot | null,
   mainDelivery: MainDeliveryDebugSnapshot | null,
   instrumentation?: unknown,
@@ -201,8 +211,8 @@ export function writeBenchReport(
       streamPacing: 'utf8-bytes-per-tick',
       keyCount: KEY_COUNT,
       keyCadenceMs: KEY_CADENCE_MS,
-      cpuWorkers: CPU_WORKERS,
-      ptyMetadata: PTY_METADATA,
+      cpuWorkers: workload.cpuWorkers,
+      ptyMetadata: workload.ptyMetadata,
       cpuProfile: process.env.ORCA_TYPING_BENCH_CPU_PROFILE ?? null,
       titleChangeMs: readPositiveInt('ORCA_TYPING_BENCH_TITLE_CHANGE_MS', 0),
       lifecycleMs: readPositiveInt('ORCA_TYPING_BENCH_LIFECYCLE_MS', 0),
@@ -225,9 +235,7 @@ export function writeBenchReport(
       inAppDiagnostic: IN_APP_DIAGNOSTIC,
       // What this scenario actually ran under, not what the flag requested.
       cpuThrottleRate: appliedCpuThrottleRate,
-      statusTrafficModel: PTY_METADATA
-        ? 'pty-osc-through-runtime-and-ipc-bridge'
-        : 'electron-ipc-burst-through-production-bridge'
+      statusTrafficModel: workload.statusTrafficModel
     },
     measurement,
     inAppDiagnostic,

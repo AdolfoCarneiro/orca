@@ -7,11 +7,11 @@ export type ExactLatencySampleWindow = {
   dispatchToParseMs: number[]
   parseToPaintMs: number[]
   inputToPaintMs: number[]
-  eventToHandlerMs: number[]
-  eventToPaintMs: number[]
-  dispatchToArrivalMs: number[]
-  arrivalToWriteMs: number[]
-  writeToParseMs: number[]
+  eventToHandlerMs: (number | null)[]
+  eventToPaintMs: (number | null)[]
+  dispatchToArrivalMs: (number | null)[]
+  arrivalToWriteMs: (number | null)[]
+  writeToParseMs: (number | null)[]
   outputBytes: number[]
   outputWrites: number[]
 }
@@ -32,16 +32,10 @@ export function createExactLatencySampleWindow(): ExactLatencySampleWindow {
   }
 }
 
-export function appendTypingLatencySample(values: number[], value: number): void {
+export function appendTypingLatencySample<T extends number | null>(values: T[], value: T): void {
   values.push(value)
   if (values.length > TYPING_LATENCY_SAMPLE_LIMIT) {
     values.shift()
-  }
-}
-
-function appendOptionalSample(values: number[], value: number | null): void {
-  if (value !== null) {
-    appendTypingLatencySample(values, value)
   }
 }
 
@@ -53,11 +47,11 @@ export function appendExactLatencySample(
   appendTypingLatencySample(samples.dispatchToParseMs, sample.dispatchToParseMs)
   appendTypingLatencySample(samples.parseToPaintMs, sample.parseToPaintMs)
   appendTypingLatencySample(samples.inputToPaintMs, sample.inputToPaintMs)
-  appendOptionalSample(samples.eventToHandlerMs, sample.eventToHandlerMs)
-  appendOptionalSample(samples.eventToPaintMs, sample.eventToPaintMs)
-  appendOptionalSample(samples.dispatchToArrivalMs, sample.dispatchToArrivalMs)
-  appendOptionalSample(samples.arrivalToWriteMs, sample.arrivalToWriteMs)
-  appendOptionalSample(samples.writeToParseMs, sample.writeToParseMs)
+  appendTypingLatencySample(samples.eventToHandlerMs, sample.eventToHandlerMs)
+  appendTypingLatencySample(samples.eventToPaintMs, sample.eventToPaintMs)
+  appendTypingLatencySample(samples.dispatchToArrivalMs, sample.dispatchToArrivalMs)
+  appendTypingLatencySample(samples.arrivalToWriteMs, sample.arrivalToWriteMs)
+  appendTypingLatencySample(samples.writeToParseMs, sample.writeToParseMs)
   appendTypingLatencySample(samples.outputBytes, sample.outputBytes)
   appendTypingLatencySample(samples.outputWrites, sample.outputWrites)
 }

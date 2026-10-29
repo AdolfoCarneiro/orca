@@ -134,7 +134,8 @@ export function buildTypingLatencyReport(
     longTaskOverlap: summarizeLongTaskOverlap(
       state?.longTasks.source ?? 'unavailable',
       state?.longTasks.tasks ?? [],
-      state?.exactSamples ?? []
+      state?.exactSamples ?? [],
+      state?.longTasks
     ),
     ambiguousBursts: {
       inputCount: summarizeLatencySamples(state?.ambiguous.inputCounts ?? []),

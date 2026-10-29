@@ -95,6 +95,11 @@ test.describe('Accumulated workspace-update typing latency bench', () => {
         testInfo,
         `workspace-updates${ORDER_CHURN_MS > 0 ? `-order${ORDER_CHURN_MS}ms` : ''}${statusWorkload ? '-status' : ''}`,
         measured,
+        {
+          cpuWorkers: 0,
+          ptyMetadata: false,
+          statusTrafficModel: statusWorkload ? 'electron-ipc-burst-through-production-bridge' : null
+        },
         await readSchedulerDebug(orcaPage),
         await readMainDeliveryDebug(orcaPage),
         undefined,

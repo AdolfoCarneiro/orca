@@ -25,6 +25,9 @@ export type RendererLongTask = {
 export type RendererLongTaskLog = {
   source: RendererLongTaskSource
   tasks: RendererLongTask[]
+  droppedTasks: number
+  /** Samples starting before this time may overlap evicted tasks. */
+  incompleteBefore: number
   dispose: () => void
 }
 
@@ -67,8 +70,9 @@ function readScripts(entry: LongTaskEntryLike): RendererLongTaskScript[] {
 export function observeRendererLongTasks(): RendererLongTaskLog {
   const source = supportedEntryType()
   const tasks: RendererLongTask[] = []
+  const history = { droppedTasks: 0, incompleteBefore: 0 }
   if (source === 'unavailable') {
-    return { source, tasks, dispose: () => undefined }
+    return { source, tasks, ...history, dispose: () => undefined }
   }
   const record = (entries: readonly LongTaskEntryLike[]): void => {
     for (const entry of entries) {
@@ -80,7 +84,14 @@ export function observeRendererLongTasks(): RendererLongTaskLog {
         scripts: readScripts(entry)
       })
       if (tasks.length > LONG_TASK_LIMIT) {
-        tasks.shift()
+        const evicted = tasks.shift()
+        if (evicted) {
+          history.droppedTasks += 1
+          history.incompleteBefore = Math.max(
+            history.incompleteBefore,
+            evicted.startTime + evicted.durationMs
+          )
+        }
       }
     }
   }
@@ -89,6 +100,12 @@ export function observeRendererLongTasks(): RendererLongTaskLog {
   return {
     source,
     tasks,
+    get droppedTasks() {
+      return history.droppedTasks
+    },
+    get incompleteBefore() {
+      return history.incompleteBefore
+    },
     dispose: () => {
       // Why: entries queued before the observer callback ran would otherwise miss the final report.
       record(observer.takeRecords())
@@ -112,13 +129,16 @@ type SlowEchoSample = {
   arrivalToWriteMs: number | null
   writeToParseMs: number | null
   parseToPaintMs: number
-  longTaskOverlapMs: number
+  longTaskOverlapMs: number | null
   overlappingTasks: RendererLongTask[]
 }
 
 export type LongTaskOverlapReport = {
   source: RendererLongTaskSource
   observedTasks: number
+  droppedTasks: number
+  /** Excluded from overlap percentiles and exactSamplesOverlapped. */
+  incompleteExactSamples: number
   observedTaskMs: number
   exactSamples: number
   exactSamplesOverlapped: number
@@ -130,7 +150,11 @@ export type LongTaskOverlapReport = {
 export function summarizeLongTaskOverlap(
   source: RendererLongTaskSource,
   tasks: readonly RendererLongTask[],
-  samples: readonly ExactEchoSample[]
+  samples: readonly ExactEchoSample[],
+  history: Pick<RendererLongTaskLog, 'droppedTasks' | 'incompleteBefore'> = {
+    droppedTasks: 0,
+    incompleteBefore: 0
+  }
 ): LongTaskOverlapReport {
   const perSampleOverlap: number[] = []
   const decorated = samples.map((sample) => {
@@ -141,8 +165,11 @@ export function summarizeLongTaskOverlap(
       (total, task) => total + overlapMs(task, sample.startedAt, sample.paintedAt),
       0
     )
-    perSampleOverlap.push(overlap)
-    return { sample, overlap, overlapping }
+    const complete = sample.startedAt >= history.incompleteBefore
+    if (complete) {
+      perSampleOverlap.push(overlap)
+    }
+    return { sample, overlap, overlapping, complete }
   })
   const slowest = decorated
     .sort(
@@ -151,7 +178,7 @@ export function summarizeLongTaskOverlap(
         (a.sample.eventToPaintMs ?? a.sample.inputToPaintMs)
     )
     .slice(0, SLOWEST_SAMPLE_LIMIT)
-    .map(({ sample, overlap, overlapping }) => ({
+    .map(({ sample, overlap, overlapping, complete }) => ({
       echoMs: Math.round(sample.eventToPaintMs ?? sample.inputToPaintMs),
       eventToHandlerMs: sample.eventToHandlerMs,
       inputToDispatchMs: sample.inputToDispatchMs,
@@ -159,12 +186,14 @@ export function summarizeLongTaskOverlap(
       arrivalToWriteMs: sample.arrivalToWriteMs,
       writeToParseMs: sample.writeToParseMs,
       parseToPaintMs: sample.parseToPaintMs,
-      longTaskOverlapMs: Math.round(overlap),
+      longTaskOverlapMs: complete ? Math.round(overlap) : null,
       overlappingTasks: overlapping
     }))
   return {
     source,
     observedTasks: tasks.length,
+    droppedTasks: history.droppedTasks,
+    incompleteExactSamples: samples.length - perSampleOverlap.length,
     observedTaskMs: Math.round(tasks.reduce((total, task) => total + task.durationMs, 0)),
     exactSamples: samples.length,
     exactSamplesOverlapped: perSampleOverlap.filter((overlap) => overlap > 0).length,
