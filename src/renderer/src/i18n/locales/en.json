@@ -11960,7 +11960,8 @@
             "terminalRun": "Run commands in your terminals, including SSH"
           },
           "decisionFailed": "Could not save the permission decision. Try again.",
-          "fullAccessWarning": "Full access: runs as a normal program and can read your files, use the network and run other programs."
+          "fullAccessWarning": "Full access: runs as a normal program and can read your files, use the network and run other programs.",
+          "uiWarning": "Runs the publisher's code inside Orca to draw its view. Orca shows what it can access and asks before enabling it."
         },
         "PluginConsentProvenance": {
           "official": "Official",
@@ -13190,8 +13191,9 @@
           "languages": "Languages",
           "icons": "Icons",
           "commands": "Commands & panels",
-          "machines": "Machines & recipes",
-          "catalogLabel": "Filter by catalog"
+          "catalogLabel": "Filter by catalog",
+          "editors": "Editors",
+          "remoteVms": "Remote/VMs"
         },
         "PluginUpdateAllDialog": {
           "previewError": "Couldn’t read this update",
@@ -13281,7 +13283,9 @@
           "addsPanel": "Adds a panel",
           "contentOnly": "Content only",
           "fullAccess": "Full access",
-          "addsEditor": "Adds an editor"
+          "addsVmRecipes": "Adds VM recipes",
+          "opensAndEditsFiles": "Opens and edits files",
+          "runsPluginCode": "Runs plugin code"
         },
         "PluginContributionActionCommand": {
           "run": "Run",

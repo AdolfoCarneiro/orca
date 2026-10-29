@@ -12504,8 +12504,7 @@
           "themes": "テーマ",
           "languages": "言語",
           "icons": "アイコン",
-          "commands": "コマンドとパネル",
-          "machines": "マシンとレシピ"
+          "commands": "コマンドとパネル"
         },
         "PluginUpdateAllDialog": {
           "previewError": "このアップデートを読み取れませんでした",

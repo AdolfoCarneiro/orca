@@ -223,7 +223,7 @@ describe('PluginManager', () => {
     expect(keys().sort()).toEqual(['local.dev-theme', 'stablyai.orca-nord-theme'])
   })
 
-  it('filters by an inline category chip', async () => {
+  it('filters by one inline category chip at a time', async () => {
     installApi({
       listMarketplacePlugins: vi
         .fn()
@@ -243,6 +243,9 @@ describe('PluginManager', () => {
         card.getAttribute('data-plugin-key')
       )
     ).toEqual(['stablyai.gleam'])
+    // Why: single-select; clicking the active chip returns to every category.
+    await act(async () => chip?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+    expect(container.querySelectorAll('[data-plugin-key]').length).toBeGreaterThan(1)
   })
 
   it('labels cards by category with an icon, keeping a chip only for full access', async () => {

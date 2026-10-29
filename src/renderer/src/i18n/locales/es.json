@@ -12790,8 +12790,7 @@
           "themes": "Temas",
           "languages": "Lenguajes",
           "icons": "Iconos",
-          "commands": "Comandos y paneles",
-          "machines": "Máquinas y recetas"
+          "commands": "Comandos y paneles"
         },
         "PluginUpdateAllDialog": {
           "previewError": "No se pudo leer esta actualización",

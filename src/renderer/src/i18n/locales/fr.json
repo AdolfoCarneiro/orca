@@ -13014,8 +13014,7 @@
           "themes": "Thèmes",
           "languages": "Langages",
           "icons": "Icônes",
-          "commands": "Commandes et panneaux",
-          "machines": "Machines et recettes"
+          "commands": "Commandes et panneaux"
         },
         "PluginUpdateAllDialog": {
           "previewError": "Impossible de lire cette mise à jour",

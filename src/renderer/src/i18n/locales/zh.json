@@ -12537,8 +12537,7 @@
           "themes": "主题",
           "languages": "语言",
           "icons": "图标",
-          "commands": "命令和面板",
-          "machines": "机器和配方"
+          "commands": "命令和面板"
         },
         "PluginUpdateAllDialog": {
           "previewError": "无法读取此更新",

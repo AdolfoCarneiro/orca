@@ -5,7 +5,7 @@ import { PluginCategoryIcon } from './PluginCategoryBadge'
 import type { PluginListEntry } from './plugin-list-entries'
 import { pluginFilterCategories, type PluginListFilter } from './plugin-list-filter'
 
-/** Category filters as always-visible chips; none selected means every category. */
+/** One category at a time as always-visible chips; clicking the active one returns to all. */
 export function PluginCategoryChips({
   entries,
   filter,
@@ -21,12 +21,12 @@ export function PluginCategoryChips({
   }
   return (
     <ToggleGroup
-      type="multiple"
+      type="single"
       variant="segmented"
       size="xs"
       spacing={1}
-      value={[...filter.categories]}
-      onValueChange={(next) => onChange({ ...filter, categories: new Set(next) })}
+      value={[...filter.categories][0] ?? ''}
+      onValueChange={(next) => onChange({ ...filter, categories: new Set(next ? [next] : []) })}
       aria-label={translate('auto.components.settings.PluginFilterPopover.kind', 'Category')}
       className="flex-wrap"
     >
