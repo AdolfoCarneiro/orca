@@ -40,14 +40,16 @@ it('reopening stale alias during its older read eventually reloads it', async ()
     ({ expanded }) => {
       const tree = useFileExplorerTree('/repo', expanded, 'wt-1')
       useFileExplorerTreeLoadEffects({
+        activeWorktreeId: 'wt-1',
         visibleFilesWorktreePath: '/repo',
         expanded,
         dirCache: tree.dirCache,
         loadingDirPaths: tree.loadingDirPaths,
         rootError: tree.rootError,
-        isDirStale: tree.isDirStale,
-        loadDir: tree.loadDir,
-        refreshTree: tree.refreshTree,
+        invalidateTree: tree.invalidateTree,
+        retireView: tree.retireView,
+        reconcileView: tree.reconcileView,
+        loadRevision: tree.loadRevision,
         resetAndLoad: tree.resetAndLoad,
         resetSelection,
         setNameFilterQuery

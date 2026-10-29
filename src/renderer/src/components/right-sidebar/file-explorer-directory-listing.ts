@@ -5,7 +5,11 @@ import { sortDirEntries } from '../../../../shared/file-name-sort'
 import { readRuntimeDirectory } from '@/runtime/runtime-file-mutation-client'
 import type { DirCache, FileExplorerOperationOwner, TreeNode } from './file-explorer-types'
 import { shouldIncludeFileExplorerEntry } from './file-explorer-entries'
-import { parentDirForWatchPath, resolveCachedDirPath } from './file-explorer-watch-path'
+import {
+  parentDirForWatchPath,
+  resolveCachedDirPath,
+  createCachedDirPathIndex
+} from './file-explorer-watch-path'
 import {
   getFileExplorerOperationOwner,
   getFileExplorerOwnerUnresolvedMessage,
@@ -73,24 +77,51 @@ export function keepOpenedDirectoryLinks(
   )
 }
 
-export function clearFailedOpenedDirectoryLink(
+export function clearFailedOpenedDirectoryLinks(
   cache: Record<string, DirCache>,
-  linkPath: string
+  failedPaths: Iterable<string>
 ): Record<string, DirCache> {
-  const parentPath = resolveCachedDirPath(cache, parentDirForWatchPath(linkPath))
-  if (!parentPath) {
-    return cache
-  }
-  const parent = cache[parentPath]
-  let changed = false
-  const children = parent.children.map((child) => {
-    if (child.path !== linkPath || !child.isSymlink || !child.isDirectoryFromOpenedLink) {
-      return child
+  let index: ReadonlyMap<string, string> | undefined
+  const parents = new Map<string, Set<string>>()
+  for (const path of failedPaths) {
+    const parent = resolveCachedDirPath(
+      cache,
+      parentDirForWatchPath(path),
+      undefined,
+      () => (index ??= createCachedDirPathIndex(cache))
+    )
+    if (!parent) {
+      continue
     }
-    changed = true
-    return { ...child, isDirectory: false, isDirectoryFromOpenedLink: false }
-  })
-  return changed ? { ...cache, [parentPath]: { ...parent, children } } : cache
+    let targets = parents.get(parent)
+    if (!targets) {
+      parents.set(parent, (targets = new Set()))
+    }
+    targets.add(path)
+  }
+  let next = cache
+  for (const [path, targets] of parents) {
+    const parent = cache[path]
+    let children = parent.children
+    for (let i = 0; i < parent.children.length; i++) {
+      const child = parent.children[i]
+      if (!targets.has(child.path) || !child.isSymlink || !child.isDirectoryFromOpenedLink) {
+        continue
+      }
+      if (children === parent.children) {
+        children = parent.children.slice()
+      }
+      children[i] = { ...child, isDirectory: false, isDirectoryFromOpenedLink: false }
+    }
+    if (children === parent.children) {
+      continue
+    }
+    if (next === cache) {
+      next = { ...cache }
+    }
+    next[path] = { ...parent, children }
+  }
+  return next
 }
 
 export async function readFileExplorerDirectory(
