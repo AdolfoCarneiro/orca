@@ -61,8 +61,10 @@ export function resolveConflict(
     if (!entry) {
       throw new Error(`${filePath} is no longer in conflict. Refresh to see its current state.`)
     }
-    // The UI's own rule on the live conflict: e.g. no git rm for a both-modified file, no add of a vanished one.
-    if (!getConflictResolutions(entry).includes(resolution)) {
+    // The UI's own rule on the live conflict (no git rm for a both-modified file), plus a present file to keep:
+    // the shared status ignores worktree presence for both-modified/added, where git add would stage a deletion.
+    const keepsMissingFile = resolution !== 'keep_deletion' && record?.split(' ')[6] === '000000'
+    if (!getConflictResolutions(entry).includes(resolution) || keepsMissingFile) {
       throw new Error(
         `${filePath} has changed since this list loaded. Refresh to see its current state.`
       )

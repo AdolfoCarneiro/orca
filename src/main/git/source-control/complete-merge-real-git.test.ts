@@ -43,6 +43,23 @@ describe('delete/modify merge resolved through resolveConflict and completeMerge
     return { repoPath, git }
   }
 
+  function createBothModifiedConflict(): ReturnType<typeof createDeleteModifyConflict> {
+    const repo = createDeleteModifyConflict()
+    const { repoPath, git } = repo
+    git('merge', '--abort')
+    writeFileSync(join(repoPath, 'both.txt'), 'base\n')
+    git('add', 'both.txt')
+    git('commit', '--quiet', '-m', 'add both')
+    git('checkout', '--quiet', '-b', 'other')
+    writeFileSync(join(repoPath, 'both.txt'), 'other\n')
+    git('commit', '--quiet', '-am', 'other edit')
+    git('checkout', '--quiet', 'main')
+    writeFileSync(join(repoPath, 'both.txt'), 'main\n')
+    git('commit', '--quiet', '-am', 'main edit')
+    expect(() => git('merge', 'other')).toThrow()
+    return repo
+  }
+
   it('keeps the incoming file and concludes the merge with Git’s message', async () => {
     const { repoPath, git } = createDeleteModifyConflict()
 
@@ -98,21 +115,20 @@ describe('delete/modify merge resolved through resolveConflict and completeMerge
   })
 
   it('refuses to delete a both-modified file, keeping the edits in progress', async () => {
-    const { repoPath, git } = createDeleteModifyConflict()
-    git('merge', '--abort')
-    writeFileSync(join(repoPath, 'both.txt'), 'base\n')
-    git('add', 'both.txt')
-    git('commit', '--quiet', '-m', 'add both')
-    git('checkout', '--quiet', '-b', 'other')
-    writeFileSync(join(repoPath, 'both.txt'), 'other\n')
-    git('commit', '--quiet', '-am', 'other edit')
-    git('checkout', '--quiet', 'main')
-    writeFileSync(join(repoPath, 'both.txt'), 'main\n')
-    git('commit', '--quiet', '-am', 'main edit')
-    expect(() => git('merge', 'other')).toThrow()
+    const { repoPath, git } = createBothModifiedConflict()
     writeFileSync(join(repoPath, 'both.txt'), 'half merged\n')
 
     await expect(resolveConflict(repoPath, 'both.txt', 'keep_deletion')).rejects.toThrow(
+      'has changed since this list loaded'
+    )
+    expect(git('status', '--porcelain', '--', 'both.txt')).toBe('UU both.txt\n')
+  })
+
+  it('refuses to mark a both-modified file resolved once it is gone from disk', async () => {
+    const { repoPath, git } = createBothModifiedConflict()
+    rmSync(join(repoPath, 'both.txt'))
+
+    await expect(resolveConflict(repoPath, 'both.txt', 'mark_resolved')).rejects.toThrow(
       'has changed since this list loaded'
     )
     expect(git('status', '--porcelain', '--', 'both.txt')).toBe('UU both.txt\n')
