@@ -106,6 +106,26 @@
         "runAdministratorHelp": "관리자 가이드",
         "standardStatus": "표준 사용자",
         "unknownAdministrator": "확인할 수 없음"
+      },
+      "limit": {
+        "label": "실행 중인 터미널 최대 개수",
+        "description": "이 호스트의 모든 프로젝트에서 실행 중인 터미널 수를 제한합니다.",
+        "system": "시스템 PTY 한도: {{value}}",
+        "unknown": "확인할 수 없음",
+        "shared": "다른 터미널 앱과 공유합니다. 남은 개수가 아닌 전체 용량입니다.",
+        "disconnected": "이 호스트의 연결이 끊겼습니다. 터미널 한도를 확인하거나 변경하려면 다시 연결하세요.",
+        "unsupported": "이 호스트의 터미널 서비스는 아직 한도 변경을 지원하지 않습니다.",
+        "environment": "이 Orca 인스턴스의 터미널 한도는 환경 변수로 설정되어 있습니다. 여기서 편집하려면 이 호스트에서 해당 설정을 제거하세요.",
+        "savedUnreadable": "이 호스트에 저장된 터미널 제한을 읽지 못했습니다. {{value}}을(를) 사용합니다. 값을 입력하고 Enter 키를 눌러 교체하세요.",
+        "failed": "터미널 한도를 확인하지 못했습니다. 다시 시도하세요.",
+        "retry": "다시 시도",
+        "unit": "터미널",
+        "search": {
+          "limit": "제한",
+          "maximum": "최대",
+          "pty": "pty",
+          "capacity": "용량"
+        }
       }
     },
     "appearance": {
@@ -1350,10 +1370,7 @@
       },
       "claudeAgentRowView": {
         "subagentNavigationSetup": "설정 → 에이전트에서 Claude 하위 에이전트 탐색을 활성화한 다음 Orca에서 Claude 2.1.300+를 실행하세요. keybindings.json에서 Ctrl+Alt+G, H 또는 V가 여전히 command:orca-agent-view에 바인딩되어 있는지 확인하세요.",
-        "permissionPrompt": "에이전트를 전환하기 전에 Claude의 권한 요청에 응답하세요.",
-        "agentUnavailable": "Claude가 이 에이전트를 열 수 없습니다. 더 이상 사용할 수 없는 에이전트일 수 있습니다.",
-        "closeDialog": "Claude가 보기를 전환하지 않았습니다. 열려 있는 대화 상자를 닫고 다시 시도하세요.",
-        "hostUnavailable": "이 호스트에서는 하위 에이전트 탐색을 사용할 수 없습니다. Orca를 업데이트하고 이 창에서 Claude를 다시 시작하세요."
+        "permissionPrompt": "에이전트를 전환하기 전에 Claude의 권한 요청에 응답하세요."
       },
       "dropFailureReason": {
         "tooLarge": "이 호스트에 업로드하기에는 너무 큽니다.",
@@ -6440,7 +6457,12 @@
           "xcodeLicense": "Apple 개발자 도구를 사용하려면 Git을 실행하기 전에 라이선스 동의가 필요합니다.",
           "developerTools": "Apple 명령줄 개발자 도구가 없거나 사용할 수 없습니다.",
           "architectureMismatch": "CPU 아키텍처가 이 실행 호스트와 호환되지 않기 때문에 Git 관련 실행 파일을 실행할 수 없습니다. 호스트 아키텍처용 Git 및 관련 도구를 설치합니다.",
-          "copyDiagnostics": "진단 복사"
+          "copyDiagnostics": "진단 복사",
+          "wslStoppedTitle": "WSL 배포판 {{value0}}이(가) 중지되었습니다",
+          "wslUnverifiableTitle": "WSL 배포판 {{value0}}이(가) 실행 중인지 확인할 수 없습니다",
+          "wslRetained": "Orca가 이미 알고 있던 워크트리를 표시합니다. Orca가 배포판 실행을 확인하면 새로 고쳐집니다.",
+          "wslStartAndScan": "배포판 시작 및 스캔",
+          "wslStartAndScanHint": "아이콘을 클릭하면 배포판을 시작하고 다시 스캔합니다."
         },
         "LocalGitToolchainScanBanner": {
           "xcodeLicenseTitle": "Git을 사용하려면 Xcode 라이선스에 동의하세요",
@@ -18261,7 +18283,7 @@
         "historyInOtherAccount": "이 채팅의 기록은 다른 Claude 계정에 있습니다. 계속하려면 해당 계정으로 다시 전환하세요.",
         "claudeAccountFolderMissing": "선택한 Claude 계정의 폴더가 없습니다. 다시 로그인하거나 다른 계정을 선택하세요.",
         "claudeAccountSetupFailed": "선택한 Claude 계정을 설정할 수 없습니다. 다시 시도하거나 다른 계정을 선택하세요.",
-        "agentCommandNotRunnable": "{{agent}}의 설정 → 에이전트 → 명령은 Orca가 찾을 수 있는 프로그램 경로나 이름이어야 하며, 인수나 변수를 포함할 수 없습니다. 변경하거나 재설정하세요.",
+        "agentCommandNotRunnable": "설정 → 에이전트에서 {{agent}}의 명령은 Orca가 찾을 수 있는 프로그램으로 시작해야 합니다. 변수, 파이프 및 기타 셸 구문은 지원되지 않습니다. 변수는 환경 설정을 사용하세요. 명령을 변경하거나 초기화하세요.",
         "runtimeNotInstalled": "{{agent}}이(가) 이 채팅을 실행하는 컴퓨터에 설치되어 있지 않습니다. 최신 버전의 Orca에서 채팅을 통해 설치하세요.",
         "fullAccessAsRoot": "{{agent}}은(는) root로 실행되는 동안 전체 액세스를 사용하지 않습니다. 이 채팅을 실행하는 컴퓨터의 설정 → 에이전트에서 {{agent}}에 다른 권한을 선택한 다음 새 채팅을 시작하세요.",
         "launchPreparationFailed": "Orca가 이 채팅을 실행하는 컴퓨터에서 {{agent}} 시작을 준비하지 못했습니다.",
