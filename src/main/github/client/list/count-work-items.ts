@@ -22,7 +22,7 @@ import {
   spendsSharedGitHubComQuota
 } from '../../rate-limit'
 import { sameOwnerRepo } from './../github-exec-scope'
-import { resolvePrWorkItemSource } from './work-item-list-request'
+import { buildWorkItemListRequest, resolvePrWorkItemSource } from './work-item-list-request'
 import { buildSearchQueryString, defaultOpenWorkItemQuery } from './work-item-search-query'
 import { searchWorkItemCount, usesGraphqlWorkItemSearch } from './work-item-search-page'
 export async function countWorkItemsForQuery(
@@ -40,6 +40,16 @@ export async function countWorkItemsForQuery(
   if (usesGraphqlWorkItemSearch(ownerRepo, ghOptions)) {
     ghOptions.env = { ...process.env }
     try {
+      if (query.scope === 'pr' && !query.freeText) {
+        const request = buildWorkItemListRequest({
+          kind: 'pr',
+          ownerRepo,
+          query,
+          limit: 1,
+          page: 1
+        })
+        return await searchWorkItemCount(request.search, ghOptions, 'ISSUE_ADVANCED')
+      }
       return await searchWorkItemCount(searchQ, ghOptions)
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {

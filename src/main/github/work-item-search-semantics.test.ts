@@ -70,6 +70,11 @@ it.each([
     'review-requested:"some user" reviewed-by:someone',
     'review-requested:"some user" reviewed-by:someone sort:created-desc',
     'repo:fixture/repo is:pull-request review-requested:"some user" reviewed-by:someone'
+  ],
+  [
+    'is:pr title:foo OR title:bar',
+    'title:foo OR title:bar sort:created-desc',
+    'repo:fixture/repo is:pull-request title:foo OR title:bar'
   ]
 ])('keeps rich PR lists and full count predicates for %s', async (query, prSearch, countSearch) => {
   api.expectedSearch = `( ${prSearch} ) repo:fixture/repo type:pr`
@@ -83,9 +88,11 @@ it.each([
     JSON.stringify(`( ${prSearch} ) repo:fixture/repo type:pr sort:created-desc`)
   )
   expect(request?.args.join(' ')).toContain('reviewRequests(first: 100)')
-  api.expectedSearch = countSearch
+  api.expectedSearch = query.includes('title:')
+    ? countSearch
+    : `( ${prSearch} ) repo:fixture/repo type:pr`
   expect(await countWorkItems('fixture/repo', query)).toBe(120)
-  expect(api.graphqlCalls).toBe(2)
+  expect(api.graphqlCalls).toBe(query.includes('title:') ? 2 : 1)
 })
 
 it('falls back with the original numbered query when GraphQL is unavailable', async () => {

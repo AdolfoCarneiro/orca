@@ -31,6 +31,7 @@ type SearchRequest = {
   options: GitHubRepoExecOptions
   environment?: NodeJS.ProcessEnv
   noCache?: boolean
+  cacheResults?: boolean
 }
 type PendingSearch = {
   request: SearchRequest
@@ -102,7 +103,7 @@ export function requestWorkItemSearch<T>(request: SearchRequest): Promise<Search
   const environment = { ...(request.environment ?? request.options.env ?? process.env) }
   const scope = workItemSearchScope(request.options, environment)
   const key = responseKey(scope, request)
-  const cached = request.noCache ? undefined : responses.get(key)
+  const cached = request.noCache || request.cacheResults === false ? undefined : responses.get(key)
   if (cached && Date.now() - cached.at < WORK_ITEM_SEARCH_CACHE_MS) {
     rememberCount(scope, request, cached)
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The cache key includes the complete selection; callers validate its response shape.
@@ -122,7 +123,9 @@ export function requestWorkItemSearch<T>(request: SearchRequest): Promise<Search
     })
     const response = { at: Date.now(), value }
     if (!request.noCache && ownsKey()) {
-      responses.set(key, response)
+      if (request.cacheResults !== false) {
+        responses.set(key, response)
+      }
       rememberCount(scope, request, response)
     }
     return response

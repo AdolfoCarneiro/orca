@@ -28,10 +28,12 @@ export function usesGraphqlWorkItemSearch(
 
 export async function searchWorkItemCount(
   search: string,
-  options: GitHubRepoExecOptions
+  options: GitHubRepoExecOptions,
+  searchType: WorkItemSearchType = 'ISSUE'
 ): Promise<number> {
   const { value: result } = await requestWorkItemSearch<{ issueCount: number }>({
     search,
+    searchType,
     first: 1,
     selection: 'issueCount',
     options
@@ -105,7 +107,8 @@ export async function searchWorkItemPage<T>(args: {
       selection: 'issueCount pageInfo { endCursor hasNextPage }',
       options,
       environment,
-      noCache: noCache || args.cacheResults === false
+      noCache,
+      cacheResults: args.cacheResults
     })
     if (!skipped.pageInfo || !Number.isSafeInteger(skipped.issueCount)) {
       throw new Error('GitHub search response missing pagination')
@@ -129,7 +132,8 @@ export async function searchWorkItemPage<T>(args: {
     selection: `issueCount pageInfo { endCursor hasNextPage } nodes { ${args.nodeSelection} }`,
     options,
     environment,
-    noCache: noCache || args.cacheResults === false
+    noCache,
+    cacheResults: args.cacheResults
   })
   if (!Array.isArray(result.nodes) || !result.pageInfo) {
     throw new Error('GitHub search response missing page')

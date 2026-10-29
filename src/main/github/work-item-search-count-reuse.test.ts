@@ -26,6 +26,25 @@ it('serves a later matching count without another request', async () => {
   expect(api.graphqlCalls).toBe(1)
 })
 
+it.each(['is:pr is:open', 'is:pr is:closed', 'is:pr is:draft label:bug'])(
+  'reuses a rich PR page total for matching counts: %s',
+  async (query) => {
+    api.specialNodes = []
+    api.reportedCount = 2748
+    const [page, count] = await Promise.all([
+      listWorkItems('fixture/repo', 24, query),
+      countWorkItems('fixture/repo', query)
+    ])
+    expect(page.items).toEqual([])
+    expect(count).toBe(2748)
+    expect(api.graphqlCalls).toBe(1)
+    expect(api.graphqlFields).toBe(1)
+    expect(await countWorkItems('fixture/repo', query)).toBe(2748)
+    expect(api.graphqlCalls).toBe(1)
+    expect(api.restSearches).toBe(0)
+  }
+)
+
 it('removes count-only aliases before applying the existing batch limit', async () => {
   const pairs = Array.from({ length: 25 }, (_, index) => {
     const search = `repo:fixture/repo-${index} is:issue`

@@ -24,6 +24,9 @@ export class WorkItemSearchApi {
       throw new Error(`Unexpected fixture search ${query}`)
     }
     const repo = /repo:([^\s]+)/.exec(query)?.[1] ?? 'unknown/repo'
+    if (!this.specialNodes && /(?:^|\s)type:pr(?:\s|$)/.test(query)) {
+      return []
+    }
     return (
       this.specialNodes ??
       Array.from({ length: this.rowsPerRepo }, (_, index) => ({

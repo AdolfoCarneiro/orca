@@ -73,7 +73,6 @@ export async function listPullRequestWorkItemPage(args: {
   noCache?: boolean
 }): Promise<MainWorkItem[]> {
   const request = buildWorkItemListRequest({ kind: 'pr', ...args })
-  const prSearch = request.args[request.args.indexOf('--search') + 1]
   const preferGraphql = args.limit <= 100 && usesGraphqlWorkItemSearch(args.ownerRepo, args.options)
   const options = preferGraphql
     ? { ...args.options, env: { ...(args.options.env ?? process.env) } }
@@ -81,7 +80,7 @@ export async function listPullRequestWorkItemPage(args: {
   if (preferGraphql) {
     try {
       const nodes = await searchWorkItemPage({
-        search: `( ${prSearch} ) repo:${args.ownerRepo.owner}/${args.ownerRepo.repo} type:pr`,
+        search: request.search,
         searchType: 'ISSUE_ADVANCED',
         nodeSelection: PR_NODE_SELECTION,
         limit: args.limit,
