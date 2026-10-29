@@ -275,7 +275,7 @@ export function ptyRecordForPaneKey(
     leaves: ReadonlyMap<string, RuntimeLeafRecord>
     ptys: ReadonlyMap<string, RuntimePtyWorktreeRecord>
     leafKey: (tab: string, leaf: string) => string
-    paneOf: (pty: RuntimePtyWorktreeRecord) => PtyPane
+    capturePaneOf: () => PtyPaneOf
   },
   context?: TerminalIdentityReadContext
 ): RuntimePtyWorktreeRecord | null {
@@ -305,13 +305,14 @@ export function ptyRecordForPaneKey(
     }
   }
   let newestMatch: RuntimePtyWorktreeRecord | null = null
+  let paneOf: PtyPaneOf | undefined
   const candidates = context ? context.ptysForPane(paneKey) : source.ptys.keys()
   for (const ptyId of candidates) {
     const pty = source.ptys.get(ptyId)
     if (!pty) {
       continue
     }
-    const recordedPaneKey = (context ? context.paneOf(pty) : source.paneOf(pty)).paneKey
+    const recordedPaneKey = (paneOf ??= context?.paneOf ?? source.capturePaneOf())(pty).paneKey
     const ptyPane = parsePaneKey(recordedPaneKey ?? '')
     if (recordedPaneKey === paneKey || (parsed && ptyPane && parsed.leafId === ptyPane.leafId)) {
       if (pty.connected) {
