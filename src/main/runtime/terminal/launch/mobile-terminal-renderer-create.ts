@@ -65,6 +65,8 @@ export abstract class OrcaRuntimeWithRunCreateMobileSessionTerminal extends Orca
         opts.activate !== false,
         afterTabId,
         {
+          // The paired client's own create: its user's act.
+          wslUserAct: true,
           ...startupCommand,
           cwd,
           identity: {
@@ -95,6 +97,7 @@ export abstract class OrcaRuntimeWithRunCreateMobileSessionTerminal extends Orca
         opts.activate !== false,
         afterTabId,
         {
+          wslUserAct: true,
           command: startupCommand.command,
           ...(opts.shellOverride ? { shellOverride: opts.shellOverride } : {}),
           cwd,

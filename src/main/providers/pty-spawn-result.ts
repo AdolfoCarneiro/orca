@@ -71,7 +71,5 @@ export type PtySpawnResult = TerminalLaunchResult & {
     cols?: number
     rows?: number
     oscLinks?: TerminalOscLinkRange[]
-    /** Last OSC title from the recovered checkpoint (see `lastTitle` above). */
-    lastTitle?: string
   }
 }

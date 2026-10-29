@@ -59,7 +59,7 @@ import { nativeChatPaneHeader, nativeChatPaneCaptureHandlers } from './NativeCha
 import { structuredAgentSessionReadFailureNotice } from './structured-agent-session-read-failure-notice'
 import { useNativeChatHostOutage } from './use-native-chat-host-outage'
 import { useNativeChatHostOutageNotice } from './use-native-chat-host-outage-notice'
-import { useNativeChatHostPermissionGate } from './use-native-chat-host-permission-gate'
+import { useNativeChatHostSendGate } from './use-native-chat-host-send-gate'
 import { pendingPromptsAllUnanswerableHere } from '../../../../shared/agent-session-approval-subject'
 import { NativeChatClaudeSignInContext } from './native-chat-claude-sign-in'
 import { useStructuredSessionNotices } from './native-chat-structured-session-notices'
@@ -120,8 +120,8 @@ export function NativeChatStructuredSession(
     hostOutage === null
   )
   const agentLabel = structuredAgentLabel(props.agent)
-  const hostPermission = useNativeChatHostPermissionGate(props.target, props.agent, agentLabel)
-  const hostHeld = hostPermission.sendBlockedReason !== null
+  const hostSendGate = useNativeChatHostSendGate(props.target, props.agent, hostOutage)
+  const hostHeld = hostSendGate.sendBlockedReason !== null
   const submits = useStructuredNativeChatSubmitReveal(controller, provisionalLaunch.retry, hostHeld)
   const promptResponse = useStructuredPromptResponseHold(submits.respond)
   const { startFailures, deliveryNotices, signInFailureRows } = useStructuredNativeChatDelivery({
@@ -208,7 +208,7 @@ export function NativeChatStructuredSession(
     setOptionPickerRequest,
     onError: reportComposerError,
     onSubmitted: submits.revealLatest,
-    sendBlockedReason: hostPermission.sendBlockedReason ?? install.sendBlockedReason
+    sendBlockedReason: hostSendGate.sendBlockedReason ?? install.sendBlockedReason
   })
   const asyncQuestion = { paneKey, session, send: transport.send }
   const continuation = useNativeChatInterruptedContinuation({
@@ -247,7 +247,7 @@ export function NativeChatStructuredSession(
       agentLabel,
       sessionError,
       composerError: composerError ?? continuation.continueError,
-      hostPermission: hostPermission.notice
+      hostPermission: hostSendGate.notice
     },
     hostNotice
   })

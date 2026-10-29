@@ -1,4 +1,4 @@
-import type { MobileTerminalCreateOptions } from './mobile-terminal-renderer-create'
+import type { MobileTerminalCreateOptions } from './mobile-terminal-create-options'
 import type { RuntimeMobileSessionTabsResult } from '../../../../shared/runtime-session-contracts'
 import { OrcaRuntimeWithFailedStartPanes } from './failed-start-pane'
 import type { WorktreeStartupLaunch } from '../../../../shared/worktree/launch-types'
@@ -40,7 +40,11 @@ export function pruneOwnedMobileTerminalDispatchRecipes(
   }
 }
 
+export type { MobileTerminalCreateOptions } from './mobile-terminal-create-options'
+
 export type OwnedMobileTerminalCreateOptions = {
+  /** A paired client's own create or tab open; without it a stopped WSL distro holds the start. */
+  wslUserAct?: true
   command?: string
   shellOverride?: string
   cwd?: string
