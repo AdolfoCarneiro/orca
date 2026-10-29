@@ -155,6 +155,8 @@ export type BrowserPageAnnotation = {
   priority: BrowserAnnotationPriority
   createdAt: string
   payload: BrowserAnnotationPayload
+  /** Pasted images, saved on the worktree's host like a terminal image paste. */
+  imagePaths?: string[]
 }
 
 // Payload budgets are enforced in guest and main.

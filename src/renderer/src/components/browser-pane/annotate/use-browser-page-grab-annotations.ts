@@ -68,7 +68,11 @@ export function useBrowserPageGrabAnnotations({
   handleGrabCopy: () => void
   handleGrabCopyScreenshot: () => void
   grabMenuActionTakenRef: MutableRefObject<boolean>
-  handleAddBrowserAnnotation: (comment: string, intent: BrowserAnnotationIntent) => void
+  handleAddBrowserAnnotation: (
+    comment: string,
+    intent: BrowserAnnotationIntent,
+    imagePaths?: string[]
+  ) => void
   handleCancelPendingBrowserAnnotation: () => void
   cancelPendingBrowserCapture: () => void
   handleGrabActionShortcut: (key: 'c' | 's') => void
@@ -251,7 +255,7 @@ export function useBrowserPageGrabAnnotations({
   }, [grab, recordFeatureInteraction, showGrabToast])
 
   const handleAddBrowserAnnotation = useCallback(
-    (comment: string, intent: BrowserAnnotationIntent): void => {
+    (comment: string, intent: BrowserAnnotationIntent, imagePaths: string[] = []): void => {
       const payload = pendingAnnotationPayloadRef.current
       if (!payload) {
         return
@@ -263,7 +267,8 @@ export function useBrowserPageGrabAnnotations({
         intent,
         priority: DEFAULT_BROWSER_ANNOTATION_PRIORITY,
         createdAt: new Date().toISOString(),
-        payload: createBrowserAnnotationPayload(payload)
+        payload: createBrowserAnnotationPayload(payload),
+        ...(imagePaths.length > 0 ? { imagePaths } : {})
       })
       recordFeatureInteraction('browser-annotations')
       pendingAnnotationPayloadRef.current = null

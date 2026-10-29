@@ -139,7 +139,8 @@ describe('BrowserPageAnnotationTray edit mode', () => {
     expect(handleUpdateBrowserAnnotation).toHaveBeenCalledWith(
       'annotation-1',
       'Updated comment',
-      'question'
+      'question',
+      []
     )
   })
 
@@ -208,7 +209,8 @@ describe('BrowserPageAnnotationTray collapse', () => {
     expect(handleUpdateBrowserAnnotation).toHaveBeenCalledWith(
       'annotation-1',
       'Unsaved draft',
-      'question'
+      'question',
+      []
     )
   })
 })
