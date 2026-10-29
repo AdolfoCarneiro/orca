@@ -5,6 +5,8 @@ import { makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { useAppStore } from '@/store'
 import { createGlobalSettingsFixture } from '../../../../shared/global-settings-test-fixture'
+import { createCompatibleRuntimeStatusResponse } from '@/runtime/runtime-compatibility-test-fixture'
+import type { RuntimeEnvironmentStatus } from '../../../../shared/runtime-host-status'
 import type * as LocalRuntime from '@/lib/local-preflight-context'
 import type * as ConnectionContext from '@/lib/connection-context'
 import type { AppState } from '@/store/types'
@@ -182,6 +184,7 @@ describe('native chat production subscriptions at scale', () => {
           [
             {
               ...makeWorktree({
+                id: p.id,
                 repoId: p.id,
                 hostId: 'local',
                 path: '//wsl.localhost/Ubuntu/work'
@@ -239,8 +242,17 @@ describe('native chat production subscriptions at scale', () => {
       noWork()
       act(() =>
         useAppStore.setState({
-          runtimeStatusByEnvironmentId: new Map([
-            ['another-host', { status: { hostPlatform: 'linux' }, checkedAt: 1 }]
+          runtimeStatusByEnvironmentId: new Map<string, RuntimeEnvironmentStatus>([
+            [
+              'another-host',
+              {
+                status: {
+                  ...createCompatibleRuntimeStatusResponse('another-host').result,
+                  hostPlatform: 'linux'
+                },
+                checkedAt: 1
+              }
+            ]
           ])
         })
       )

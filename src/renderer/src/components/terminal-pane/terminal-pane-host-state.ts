@@ -57,7 +57,7 @@ const localGroupsByCatalog = new WeakMap<AppState['projectGroups'], AppState['pr
 
 function localCatalogRows<
   T extends { executionHostId?: string | null; connectionId?: string | null }
->(rows: T[], cache: WeakMap<T[], T[]>): T[] {
+>(rows: readonly T[], cache: WeakMap<readonly T[], readonly T[]>): readonly T[] {
   let local = cache.get(rows)
   if (!local) {
     local = rows.filter((row) => getRepoExecutionHostId(row) === 'local')

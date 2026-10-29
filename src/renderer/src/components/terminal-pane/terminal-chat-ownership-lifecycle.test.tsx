@@ -51,8 +51,12 @@ const mocks = vi.hoisted(() => {
     runtimePaneTitlesByTabId: { tab: { 1: 'codex', 2: 'codex' } },
     agentStatusByPaneKey: {},
     paneForegroundAgentByPaneKey: {},
-    setTabLayout: (_id: string, layout: TerminalLayoutSnapshot) => {
-      layouts.tab = layout
+    setTabLayout: (id: string, layout: TerminalLayoutSnapshot | null) => {
+      if (layout) {
+        layouts[id] = layout
+      } else {
+        delete layouts[id]
+      }
     },
     setTabViewMode: (_id: string, mode: 'terminal' | 'chat') => {
       state.unifiedTabsByWorktree = { wt: [{ ...tab, viewMode: mode }] }
@@ -70,10 +74,17 @@ vi.mock('../../store', async () => {
   const { create } = await import('zustand')
   const { terminalLayoutEqual } = await import('../../../../shared/terminal-layout-equality')
   mocks.state.setTabLayout = (id, layout) => {
-    if (terminalLayoutEqual(mocks.state.terminalLayoutsByTabId[id], layout)) {
+    const previous = mocks.state.terminalLayoutsByTabId
+    if (layout ? terminalLayoutEqual(previous[id], layout) : !(id in previous)) {
       return
     }
-    mocks.state.terminalLayoutsByTabId = { ...mocks.state.terminalLayoutsByTabId, [id]: layout }
+    const next = { ...previous }
+    if (layout) {
+      next[id] = layout
+    } else {
+      delete next[id]
+    }
+    mocks.state.terminalLayoutsByTabId = next
     useAppStore.setState({ terminalLayoutsByTabId: mocks.state.terminalLayoutsByTabId })
   }
   mocks.state.setTabViewMode = (_id, mode) => {

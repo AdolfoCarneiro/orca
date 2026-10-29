@@ -3,6 +3,8 @@ import type { AppState } from '@/store/types'
 import { selectWorktreeHostConnectionPhase } from '@/lib/worktree-host-connection-phase'
 import { makeFolderWorkspace, makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
 import { createGlobalSettingsFixture } from '../../../../shared/global-settings-test-fixture'
+import { createCompatibleRuntimeStatusResponse } from '@/runtime/runtime-compatibility-test-fixture'
+import type { RuntimeEnvironmentStatus } from '../../../../shared/runtime-host-status'
 import { selectNativeChatWslProject, selectTerminalPaneHostState } from './terminal-pane-host-state'
 
 const platform = vi.hoisted(() => ({ value: 'darwin' }))
@@ -354,8 +356,17 @@ describe('qualified native chat runtime facts', () => {
       expect(selectNativeChatWslProject(state, id)).toBeNull()
       const answered = {
         ...state,
-        runtimeStatusByEnvironmentId: new Map([
-          ['windows', { status: { hostPlatform: 'win32' }, checkedAt: 1 }]
+        runtimeStatusByEnvironmentId: new Map<string, RuntimeEnvironmentStatus>([
+          [
+            'windows',
+            {
+              status: {
+                ...createCompatibleRuntimeStatusResponse('windows').result,
+                hostPlatform: 'win32'
+              },
+              checkedAt: 1
+            }
+          ]
         ])
       }
       expect(selectNativeChatWslProject(answered, id)).toBe(true)
