@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { AutomationDraftValidationError } from './automation-error'
 import { getRepoMainWorktreeId } from '../../../src/shared/worktree/id'
 import { getRepoExecutionHostId, parseExecutionHostId } from '../../../src/shared/execution-host'
 import type { AutomationDestination } from '../../../src/shared/automation-owner-precondition'
@@ -104,7 +105,7 @@ export function automationTargetDestination(
       return { selector: { kind: 'ssh', targetId: target.id, targetGeneration: target.generation } }
     }
   }
-  throw new Error('Select a project on this host or one of its registered SSH hosts.')
+  throw new AutomationDraftValidationError('destination')
 }
 
 export function automationTargetContext(setup: AutomationSetup) {

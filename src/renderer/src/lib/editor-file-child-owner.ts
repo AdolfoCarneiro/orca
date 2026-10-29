@@ -1,0 +1,73 @@
+import type { AppState } from '@/store/types'
+import type { Repo } from '../../../shared/repo-types'
+import type { HostAuthority } from '../../../shared/host-authority'
+import {
+  getRepoExecutionHostId,
+  getRepoSshConnectionId,
+  parseExecutionHostId
+} from '../../../shared/execution-host'
+import { getFileConnectionOwnerFromState } from './connection-owner-resolution'
+import {
+  assertEditorFileOperationCurrent,
+  getExpectedSshConnectionGeneration,
+  OWNER_CHANGED_MESSAGE,
+  type EditorFileOperationProvenance
+} from './editor-file-operation-provenance'
+import { assertWorktreeOperationGenerationSnapshotCurrent } from './worktree-operation-generation'
+import type { WorktreeOperationRoute } from './worktree-operation-route'
+
+export function editorFileChildRoute(repo: Repo | undefined): WorktreeOperationRoute | null {
+  if (!repo) {
+    return null
+  }
+  const executionHostId = getRepoExecutionHostId(repo)
+  const host = parseExecutionHostId(executionHostId)
+  return {
+    executionHostId,
+    runtimeEnvironmentId: host?.kind === 'runtime' ? host.environmentId : null
+  }
+}
+
+export function editorFileChildAuthority(repo: Repo | undefined): HostAuthority | undefined {
+  const route = editorFileChildRoute(repo)
+  if (!route || !repo) {
+    return undefined
+  }
+  const ssh = getRepoSshConnectionId(repo)
+  return {
+    endpoint: route.runtimeEnvironmentId
+      ? { kind: 'environment', environmentId: route.runtimeEnvironmentId }
+      : { kind: 'self' },
+    at: ssh ? `ssh:${encodeURIComponent(ssh)}` : 'local'
+  }
+}
+
+/** Validate the captured resource owner without substituting a new child on the same host. */
+export function assertEditorFileOwnerCurrent(
+  state: AppState,
+  file: { worktreeId: string; filePath: string },
+  provenance: EditorFileOperationProvenance
+): WorktreeOperationRoute {
+  if (!provenance.childRepo) {
+    return assertEditorFileOperationCurrent(state, file.worktreeId, provenance)
+  }
+  const child = getFileConnectionOwnerFromState(state, file.worktreeId, file.filePath)?.repo
+  if (!child || child.id !== provenance.childRepo.id || child.path !== provenance.childRepo.path) {
+    throw new Error(OWNER_CHANGED_MESSAGE)
+  }
+  const route = assertWorktreeOperationGenerationSnapshotCurrent(
+    () => state,
+    file.worktreeId,
+    provenance.generation,
+    () => new Error(OWNER_CHANGED_MESSAGE),
+    () => editorFileChildRoute(child),
+    () => editorFileChildAuthority(child)
+  )
+  if (
+    getExpectedSshConnectionGeneration(state, route, provenance.generation.authority) !==
+    provenance.expectedSshConnectionGeneration
+  ) {
+    throw new Error(OWNER_CHANGED_MESSAGE)
+  }
+  return route
+}

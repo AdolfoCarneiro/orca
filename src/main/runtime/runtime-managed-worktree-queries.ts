@@ -1,10 +1,7 @@
 import type { RuntimeManagedWorktreeQueryDependencies } from './runtime-managed-worktree-query-dependencies'
 import { resolveWorktreeHostRouting } from './worktree-launch-host-repo'
 import { createRepoRowExecutionHostLookup } from '../../shared/worktree-execution-host-resolution'
-import {
-  buildRuntimeWorktreeVisibilityMatchers,
-  buildRuntimeWorktreeVisibilityMatchersByRepoId
-} from './runtime-worktree-visibility'
+import { buildRuntimeWorktreeVisibilityMatchers } from './runtime-worktree-visibility'
 import { getRepoHostIdentityForParts } from '../../shared/repo-host-identity'
 import type { DetectedWorktreeListResult, Worktree } from '../../shared/worktree/types'
 import {
@@ -232,7 +229,7 @@ export class RuntimeManagedWorktreeQueries {
     defaultsSupported = true,
     settingsOverride?: ReturnType<RuntimeStore['getSettings']>
   ): Map<string, WorktreeVisibilitySourceMatcher> {
-    return buildRuntimeWorktreeVisibilityMatchersByRepoId(
+    return buildRuntimeWorktreeVisibilityMatchers(
       this.deps.getStore()?.getRepos() ?? [],
       worktrees,
       this.visibilityDefaults(defaultsSupported, settingsOverride)

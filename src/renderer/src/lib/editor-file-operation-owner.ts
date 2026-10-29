@@ -11,24 +11,21 @@ export {
   resolveEditorOwnerRoute,
   type EditorFileOperationProvenance
 } from './editor-file-operation-provenance'
-import {
-  getRepoExecutionHostId,
-  getRepoSshConnectionId,
-  parseExecutionHostId
-} from '../../../shared/execution-host'
+import { parseExecutionHostId } from '../../../shared/execution-host'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import type { AppState } from '@/store/types'
 import type { OpenFile } from '@/store/slices/editor'
 import { runtimeTargetForOwnerEnvironment } from '@/runtime/runtime-client-target'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
-import type { HostAuthority } from '../../../shared/host-authority'
 import { resolveWorkspaceDirectory } from './workspace-directory'
 import { getFileConnectionOwnerFromState } from './connection-owner-resolution'
+import { captureWorktreeOperationGenerationSnapshot } from './worktree-operation-generation'
 import {
-  assertWorktreeOperationGenerationSnapshotCurrent,
-  captureWorktreeOperationGenerationSnapshot
-} from './worktree-operation-generation'
-import type { WorktreeOperationRoute } from './worktree-operation-route'
+  editorFileChildRoute,
+  editorFileChildAuthority,
+  assertEditorFileOwnerCurrent
+} from './editor-file-child-owner'
+export { assertEditorFileOwnerCurrent } from './editor-file-child-owner'
 import {
   selectDetectedWorktreesByRepo,
   selectWorktreesByRepo
@@ -51,6 +48,7 @@ export function getEditorFileReadContext(
   state: AppState,
   file: {
     worktreeId: string
+    filePath?: string
     runtimeEnvironmentId?: string | null
     externalSshTargetId?: string
     operationProvenance?: EditorFileOperationProvenance
@@ -74,7 +72,13 @@ export function getEditorFileReadContext(
       file.runtimeEnvironmentId !== undefined
     )
   const route = file.operationProvenance
-    ? assertEditorFileOperationCurrent(state, file.worktreeId, provenance)
+    ? file.filePath
+      ? assertEditorFileOwnerCurrent(
+          state,
+          { worktreeId: file.worktreeId, filePath: file.filePath },
+          provenance
+        )
+      : assertEditorFileOperationCurrent(state, file.worktreeId, provenance)
     : provenance.generation.route
   const workspaceScope = parseWorkspaceKey(file.worktreeId)
   const resolvedWorktreePath =
@@ -147,39 +151,19 @@ export function acquireEditorFileOperation(
     throw new Error(OWNER_CHANGED_MESSAGE)
   }
   const state = getState()
-  const childRoute = (repo: typeof child): WorktreeOperationRoute | null => {
-    if (!repo) {
-      return null
-    }
-    const executionHostId = getRepoExecutionHostId(repo)
-    const host = parseExecutionHostId(executionHostId)
-    return {
-      executionHostId,
-      runtimeEnvironmentId: host?.kind === 'runtime' ? host.environmentId : null
-    }
-  }
-  const route = childRoute(child)
-  const childAuthority = (repo: typeof child): HostAuthority | undefined => {
-    const selected = childRoute(repo)
-    if (!selected || !repo) {
-      return undefined
-    }
-    const ssh = getRepoSshConnectionId(repo)
-    return {
-      endpoint: selected.runtimeEnvironmentId
-        ? { kind: 'environment', environmentId: selected.runtimeEnvironmentId }
-        : { kind: 'self' },
-      at: ssh ? `ssh:${encodeURIComponent(ssh)}` : 'local'
-    }
-  }
+  const route = editorFileChildRoute(child)
   const selectedProvenance = route
     ? {
-        generation: captureWorktreeOperationGenerationSnapshot(route, childAuthority(child)),
+        generation: captureWorktreeOperationGenerationSnapshot(
+          route,
+          editorFileChildAuthority(child)
+        ),
         ownershipProjection: 'explicit' as const,
+        ...(child ? { childRepo: { id: child.id, path: child.path } } : {}),
         expectedSshConnectionGeneration: getExpectedSshConnectionGeneration(
           state,
           route,
-          childAuthority(child)
+          editorFileChildAuthority(child)
         )
       }
     : undefined
@@ -225,31 +209,11 @@ export function acquireEditorFileOperation(
   const context = editorFileReadContext(captured, provenance, directory)
   const assertAuthorityCurrent = (): void => {
     const current = getState()
-    if (child) {
-      const liveChild = selectChild(current)
-      if (!liveChild || liveChild.id !== child.id || liveChild.path !== child.path) {
-        throw new Error(OWNER_CHANGED_MESSAGE)
-      }
-      assertWorktreeOperationGenerationSnapshotCurrent(
-        getState,
-        captured.worktreeId,
-        provenance.generation,
-        () => new Error(OWNER_CHANGED_MESSAGE),
-        () => childRoute(liveChild),
-        () => childAuthority(liveChild)
-      )
-      if (
-        getExpectedSshConnectionGeneration(
-          current,
-          provenance.generation.route,
-          provenance.generation.authority
-        ) !== provenance.expectedSshConnectionGeneration
-      ) {
-        throw new Error(OWNER_CHANGED_MESSAGE)
-      }
-    } else {
-      assertEditorFileOperationCurrent(current, captured.worktreeId, provenance)
-    }
+    assertEditorFileOwnerCurrent(
+      current,
+      { ...captured, filePath: resource?.filePath ?? captured.filePath },
+      provenance
+    )
     if (resolveOwnerDirectory(current) !== ownerDirectory) {
       throw new Error(OWNER_CHANGED_MESSAGE)
     }

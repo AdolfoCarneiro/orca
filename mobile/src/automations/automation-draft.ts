@@ -4,6 +4,7 @@ import type { TuiAgent } from '../../../src/shared/tui-agent'
 import type { RpcSendParams } from '../transport/rpc-params-contract'
 import type { MobileAutomation } from './automation-reply-schema'
 import type { AutomationTargets } from './automation-target-inventory'
+import { AutomationDraftValidationError } from './automation-error'
 import {
   automationTargetContext,
   automationTargetDestination,
@@ -116,7 +117,7 @@ export function validateAutomationDraft(
   }
   if (
     draft.grace !== String(saved?.missedRunGraceMinutes) &&
-    (!Number.isInteger(Number(draft.grace)) || Number(draft.grace) < 0)
+    (!draft.grace.trim() || !Number.isInteger(Number(draft.grace)) || Number(draft.grace) < 0)
   ) {
     return translate(
       'automations.mobile.missedRunGraceMustBeZeroOrAPositiveNumberOfMinutes',
@@ -187,17 +188,17 @@ export function automationCreateParams(
 ): RpcSendParams<'automation.create'> {
   const setup = targets.setups.find((entry) => automationSetupKey(entry) === draft.setupId)
   if (!setup || !draft.agentId) {
-    throw new Error('Choose a project and agent on this host.')
+    throw new AutomationDraftValidationError('project')
   }
   assertAutomationExtraAgentArgs({ ...draft, agentId: draft.agentId })
   const workspace = targets.workspaces.find(
     (entry) => entry.worktreeId === draft.workspaceId && workspaceMatchesSetup(entry, setup)
   )
   if (draft.workspaceMode === 'existing' && !workspace) {
-    throw new Error('Choose an existing workspace in this project.')
+    throw new AutomationDraftValidationError('workspace')
   }
   if (setup.kind === 'folder' && draft.workspaceMode !== 'existing') {
-    throw new Error('Folder projects require an existing workspace.')
+    throw new AutomationDraftValidationError('workspace')
   }
   return {
     ...editableFields(draft),

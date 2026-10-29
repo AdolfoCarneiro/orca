@@ -29,6 +29,7 @@ import {
 export type EditorFileOperationProvenance = {
   generation: WorktreeOperationGenerationSnapshot
   ownershipProjection: 'explicit' | 'legacy'
+  childRepo?: { id: string; path: string }
   expectedSshConnectionGeneration?: number
 }
 

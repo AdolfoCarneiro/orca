@@ -5,6 +5,12 @@ import { isRpcDeliveryUnknown } from '../transport/rpc-delivery-ambiguity'
 export const AUTOMATION_OUTCOME_UNKNOWN =
   'The host may have applied this action. Refresh to check before trying again.'
 
+export class AutomationDraftValidationError extends Error {
+  constructor(readonly field: 'project' | 'workspace' | 'destination') {
+    super(field)
+  }
+}
+
 export function automationOutcomeUnknownMessage(): string {
   return translate(
     'automations.mobile.outcomeUnknown',
@@ -13,6 +19,25 @@ export function automationOutcomeUnknownMessage(): string {
 }
 
 export function automationErrorMessage(error: unknown): string {
+  if (error instanceof AutomationDraftValidationError) {
+    switch (error.field) {
+      case 'project':
+        return translate(
+          'automations.mobile.chooseAProjectSetUpOnThisHost',
+          'Choose a project set up on this host.'
+        )
+      case 'workspace':
+        return translate(
+          'automations.mobile.chooseAnExistingWorkspace',
+          'Choose an existing workspace.'
+        )
+      case 'destination':
+        return translate(
+          'automations.mobile.invalidDestination',
+          'That host is no longer available on this authority. Pick a host and try again.'
+        )
+    }
+  }
   if (isRpcDeliveryUnknown(error)) {
     return automationOutcomeUnknownMessage()
   }

@@ -2,6 +2,7 @@ import { loadAutomationTargets, automationSetupKey } from './automation-target-i
 import { afterEach, describe, expect, it } from 'vitest'
 import { activateMobileUiLocale } from '../i18n/mobile-i18n'
 import { automationRunErrorText } from './automation-run-presentation'
+import { automationErrorMessage } from './automation-error'
 import { AUTOMATION_RUN_FAILURE_COPY } from '../../../src/shared/automation-run-failure-copy'
 import {
   AutomationCreate,
@@ -10,8 +11,10 @@ import {
 import { automationListSchema, runSchema } from './automation-reply-schema'
 import {
   automationCreateParams,
+  automationDraftPatch,
   automationUpdateParams,
-  newAutomationDraft
+  newAutomationDraft,
+  validateAutomationDraft
 } from './automation-draft'
 import {
   automationClient,
@@ -21,6 +24,70 @@ import {
 } from './automation-test-fixtures'
 
 describe('mobile automation host contracts', () => {
+  it('rejects changed blank grace, accepts explicit zero and preserves an untouched saved value', () => {
+    const saved = savedAutomation()
+    const original = newAutomationDraft(saved)
+    for (const grace of ['', '  ']) {
+      expect(validateAutomationDraft({ ...original, grace }, 2, saved)).toBe(
+        'Missed-run grace must be zero or a positive number of minutes.'
+      )
+    }
+    expect(validateAutomationDraft({ ...original, grace: '0' }, 2, saved)).toBeNull()
+    expect(automationDraftPatch({ ...original, grace: '0' }, original)).toEqual({})
+    const untouched = { ...saved, missedRunGraceMinutes: 720 }
+    const draft = newAutomationDraft(untouched)
+    expect(validateAutomationDraft(draft, 2, untouched)).toBeNull()
+    expect(validateAutomationDraft({ ...draft, grace: '0' }, 2, untouched)).toBeNull()
+    expect(
+      automationUpdateParams(untouched.id, { ...draft, grace: '0' }, draft, automationTargets())
+        .updates
+    ).toEqual({ missedRunGraceMinutes: 0 })
+    expect(
+      automationUpdateParams(saved.id, { ...draft, name: 'Rename' }, draft, automationTargets())
+        .updates
+    ).toEqual({ name: 'Rename' })
+  })
+
+  it('shows localized local-validation remedies without exposing arbitrary host errors', async () => {
+    const targets = automationTargets()
+    const draft = {
+      ...newAutomationDraft(savedAutomation()),
+      setupId: automationSetupKey(targets.setups[0]!),
+      workspaceMode: 'existing' as const,
+      workspaceId: 'removed',
+      extraAgentArgs: ''
+    }
+    await activateMobileUiLocale('fr')
+    try {
+      const failureMessage = (submit: () => unknown): string => {
+        try {
+          submit()
+        } catch (error) {
+          return automationErrorMessage(error)
+        }
+        throw new Error('Expected a local validation refusal')
+      }
+      expect(failureMessage(() => automationCreateParams(draft, targets))).toBe(
+        'Choisissez un espace de travail existant.'
+      )
+      const remoteSetup = { ...targets.setups[0]!, hostId: 'ssh:removed' as const }
+      expect(
+        failureMessage(() =>
+          automationCreateParams(
+            { ...draft, setupId: automationSetupKey(remoteSetup), workspaceId: 'workspace-1' },
+            {
+              ...targets,
+              setups: [remoteSetup],
+              workspaces: [{ ...targets.workspaces[0]!, hostId: 'ssh:removed' }]
+            }
+          )
+        )
+      ).toBe('Cet hôte n’est plus disponible sur cette instance. Choisissez un hôte et réessayez.')
+      expect(automationErrorMessage(new Error('Secret remote diagnostics'))).not.toContain('Secret')
+    } finally {
+      await activateMobileUiLocale('en')
+    }
+  })
   it('keeps target host identity and expands the managed inventory past the initial range', async () => {
     const base = automationTargets().setups[0]!
     const setups = [base, { ...base, hostId: 'ssh:builder' as const }]

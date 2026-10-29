@@ -186,7 +186,9 @@ export async function saveOrcaAutomation(
         }
       : {}),
     ...(edited('baseBranch') ? { baseBranch: draft.baseBranch.trim() || null } : {}),
-    ...(edited('setupDecision') ? { setupDecision } : {}),
+    ...(edited('setupDecision') || setupDecision !== currentAutomation?.setupDecision
+      ? { setupDecision }
+      : {}),
     ...(edited('reuseSession') || edited('workspaceMode')
       ? { reuseSession: draft.workspaceMode === 'existing' && draft.reuseSession }
       : {}),

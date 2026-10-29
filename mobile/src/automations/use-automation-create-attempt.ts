@@ -116,7 +116,15 @@ export function useAutomationCreateAttempt(
       if (
         firstSubmission &&
         !response.ok &&
-        ['forbidden', 'method_not_found', 'method_not_supported'].includes(response.error.code)
+        [
+          'forbidden',
+          'method_not_found',
+          'method_not_supported',
+          'invalid_argument',
+          'automation_destination_invalid',
+          'selector_not_found',
+          'selector_ambiguous'
+        ].includes(response.error.code)
       ) {
         attempt.current = null
         automationCreateWrite.interpret(response)

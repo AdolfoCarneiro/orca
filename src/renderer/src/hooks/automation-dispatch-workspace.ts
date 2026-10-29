@@ -18,6 +18,10 @@ import { getRepoSshConnectionId, parseExecutionHostId } from '../../../shared/ex
 import { resolveQualifiedFolderWorkspaceResult } from '../../../shared/folder-workspace-execution-host'
 import type { Worktree } from '../../../shared/worktree/types'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
+import {
+  createRepoRowExecutionHostLookup,
+  resolveWorktreeExecutionHost
+} from '../../../shared/worktree-execution-host-resolution'
 
 type AutomationDispatchStoreState = ReturnType<typeof useAppStore.getState>
 type MarkDispatchResult = (result: AutomationDispatchResult) => Promise<void>
@@ -41,6 +45,8 @@ export function resolveAutomationDispatchWorkspace(
     automationWorkspaceScope?.type === 'folder'
       ? resolveQualifiedFolderWorkspaceResult(state, automationWorkspaceScope.folderWorkspaceId)
       : null
+  const expectedHostId = automation.runContext?.hostId
+  const repoOwners = createRepoRowExecutionHostLookup(state.repos)
   const automationWorktree = automation.workspaceId
     ? folderTarget
       ? folderTarget.kind === 'selected'
@@ -49,13 +55,16 @@ export function resolveAutomationDispatchWorkspace(
             executionHostId: folderTarget.value.hostId
           })
         : null
-      : state
-          .allWorktrees()
-          .find(
-            (entry) =>
-              entry.id === automation.workspaceId &&
-              (!automation.runContext || entry.hostId === automation.runContext.hostId)
-          )
+      : state.allWorktrees().find((entry) => {
+          if (entry.id !== automation.workspaceId) {
+            return false
+          }
+          if (!automation.runContext) {
+            return true
+          }
+          const owner = resolveWorktreeExecutionHost(repoOwners, entry)
+          return owner.kind === 'resolved' && owner.hostId === expectedHostId
+        })
     : null
   const context: AutomationDispatchWorkspaceContext = {
     workspaceId: automation.workspaceId,
@@ -95,12 +104,19 @@ export async function prepareAutomationDispatchWorkspace(args: {
     : folderTarget
       ? null
       : resolved.automationWorktree
+  const workspaceOwner = automationWorktree
+    ? resolveWorktreeExecutionHost(
+        createRepoRowExecutionHostLookup(state.repos),
+        automationWorktree
+      )
+    : null
   const workspaceMatchesRunTarget =
     automationWorkspaceScope?.type === 'folder'
       ? !!folder
       : !automation.runContext?.repoId ||
         (automationWorktree?.repoId === automation.runContext.repoId &&
-          automationWorktree.hostId === automation.runContext.hostId)
+          workspaceOwner?.kind === 'resolved' &&
+          workspaceOwner.hostId === automation.runContext.hostId)
   if (automation.workspaceMode === 'existing' && automationWorktree && !workspaceMatchesRunTarget) {
     await markDispatchResult({
       runId: run.id,

@@ -33,6 +33,8 @@ vi.mock('../project-runtime-git-options', async (importOriginal) => ({
 
 import { RuntimeManagedWorktreeQueries } from './runtime-managed-worktree-queries'
 import type { RuntimeStore } from './runtime-store-contract'
+import { partialRuntimeStore } from './runtime-store-partial-fixture'
+import { getRepoHostIdentityForParts } from '../../shared/repo-host-identity'
 import {
   bumpLocalWorktreeScanGeneration,
   getLocalWorktreeScanGeneration,
@@ -93,7 +95,7 @@ function queries(
 
 describe('RuntimeManagedWorktreeQueries.buildVisibilityMatchers', () => {
   it.each([false, true])(
-    'preserves repo-ID matcher inputs and defaults (reversed=%s)',
+    'keeps host-qualified matcher inputs and defaults (reversed=%s)',
     (reversed) => {
       const local = folderRepo({
         customWorktreeVisibilitySources: [{ id: 'local-source', rootPath: '/local-source' }]
@@ -105,55 +107,55 @@ describe('RuntimeManagedWorktreeQueries.buildVisibilityMatchers', () => {
         customWorktreeVisibilitySources: [{ id: 'remote-source', rootPath: '/remote-source' }]
       })
       const repos = reversed ? [remote, local] : [local, remote]
-      const winner = repos[1]!
-      const worktrees = ['/checkout/first', '/checkout/second'].map((path) =>
-        mergeWorktree(
+      const worktrees = ['/checkout/first', '/checkout/second'].map((path, index) => ({
+        ...mergeWorktree(
           local.id,
-          {
-            path,
-            head: 'abc',
-            branch: 'topic',
-            isBare: false,
-            isMainWorktree: false
-          },
+          { path, head: 'abc', branch: 'topic', isBare: false, isMainWorktree: false },
           undefined
-        )
-      )
+        ),
+        hostId: index === 0 ? ('local' as const) : ('ssh:builder' as const)
+      }))
       const defaults = { customSources: [{ id: 'default-source', rootPath: '/default-source' }] }
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the public matcher only reads repos and settings.
-      const store = {
-        getRepos: () => [...repos, folderRepo({ id: 'without-checkout' })],
-        getSettings: () => ({ ...settings, worktreeVisibilityDefaults: defaults })
-      } as unknown as RuntimeStore
-      const catalog = queries(store)
+      const catalog = queries(
+        partialRuntimeStore({
+          getRepos: () => [...repos, folderRepo({ id: 'without-checkout' })],
+          getSettings: () => ({ ...settings, worktreeVisibilityDefaults: defaults })
+        })
+      )
       const matchers = catalog.buildVisibilityMatchers(worktrees)
-
-      expect([...matchers.keys()]).toEqual([local.id])
-      const matcher = matchers.get(local.id)!
-      for (const checkout of worktrees) {
-        expect(matcher(`${checkout.path}/.claude/worktrees/topic`)).toEqual({
+      expect([...matchers.keys()]).toEqual([
+        ...repos.map((repo) =>
+          getRepoHostIdentityForParts(repo.id, repo.connectionId ? 'ssh:builder' : 'local')
+        ),
+        getRepoHostIdentityForParts('without-checkout', 'local')
+      ])
+      for (const [index, hostId] of (['local', 'ssh:builder'] as const).entries()) {
+        const key = getRepoHostIdentityForParts(local.id, hostId)
+        const matcher = matchers.get(key)!
+        expect(matcher(`${worktrees[index]!.path}/.claude/worktrees/topic`)).toEqual({
           kind: 'built-in',
           id: 'claude'
         })
-      }
-      expect(matcher('/local-source/topic')).toEqual(
-        reversed ? { kind: 'custom', id: 'local-source' } : null
-      )
-      expect(matcher('/remote-source/topic')).toEqual(
-        reversed ? null : { kind: 'custom', id: 'remote-source' }
-      )
-      expect(matcher(`${winner.path}/.claude/worktrees/topic`)).toEqual(
-        reversed ? { kind: 'built-in', id: 'claude' } : null
-      )
-      expect(matcher('/default-source/topic')).toEqual({ kind: 'custom', id: 'default-source' })
-      expect(
-        catalog.buildVisibilityMatchers(worktrees, false).get(local.id)!('/default-source/topic')
-      ).toBeNull()
-      expect(
-        catalog.buildVisibilityMatchers(worktrees, true, settings).get(local.id)!(
-          '/default-source/topic'
+        expect(matcher(`${worktrees[1 - index]!.path}/.claude/worktrees/topic`)).toBeNull()
+        expect(matcher('/local-source/topic')).toEqual(
+          index === 0 ? { kind: 'custom', id: 'local-source' } : null
         )
-      ).toBeNull()
+        expect(matcher('/remote-source/topic')).toEqual(
+          index === 1 ? { kind: 'custom', id: 'remote-source' } : null
+        )
+        expect(
+          matcher(`${index === 0 ? local.path : remote.path}/.claude/worktrees/topic`)
+        ).toEqual(index === 0 ? { kind: 'built-in', id: 'claude' } : null)
+        expect(matcher('/default-source/topic')).toEqual({ kind: 'custom', id: 'default-source' })
+        expect(
+          catalog.buildVisibilityMatchers(worktrees, false).get(key)!('/default-source/topic')
+        ).toBeNull()
+        expect(
+          catalog.buildVisibilityMatchers(worktrees, true, settings).get(key)!(
+            '/default-source/topic'
+          )
+        ).toBeNull()
+      }
     }
   )
 })
