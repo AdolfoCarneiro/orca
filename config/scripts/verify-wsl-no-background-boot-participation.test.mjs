@@ -6,7 +6,12 @@ import {
 
 function report(runs = 3) {
   return {
-    stats: { expected: runs, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: {
+      expected: runs * WSL_NO_BACKGROUND_BOOT_TITLES.length,
+      skipped: 0,
+      unexpected: 0,
+      flaky: 0
+    },
     suites: [
       {
         specs: WSL_NO_BACKGROUND_BOOT_TITLES.map((title) => ({
@@ -22,7 +27,7 @@ function report(runs = 3) {
 }
 
 describe('WSL E9 guard participation', () => {
-  it('accepts the guard executed three times', () => {
+  it('accepts both guards executed three times', () => {
     expect(() => verifyWslNoBackgroundBootParticipation(report())).not.toThrow()
   })
   it('rejects a run where the guard skipped', () => {
