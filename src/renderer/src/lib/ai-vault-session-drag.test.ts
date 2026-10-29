@@ -10,7 +10,7 @@ import {
 } from './ai-vault-local-drag-data'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createGlobalSettingsFixture } from '../../../shared/global-settings-test-fixture'
-import { buildAgentTerminalResumePlan } from '../../../shared/agent-terminal-resume-plan'
+import { materializeAiVaultResumeForTest } from './ai-vault-resume-startup.test-fixture'
 import {
   buildAiVaultResumeForWorktree,
   type AiVaultResumeWorktreeArgs
@@ -76,15 +76,29 @@ function createTransfer(): DataTransfer {
   return new FakeDataTransfer() as unknown as DataTransfer
 }
 
+const codecPayload: AiVaultSessionDragPayload = {
+  agent: 'codex',
+  sessionId: 'session-1',
+  title: 'Session History',
+  command: 'codex resume session-1'
+}
+function parentTransfer(change: Record<string, unknown>) {
+  const transfer = createTransfer()
+  transfer.setData(
+    AI_VAULT_SESSION_DRAG_TYPE,
+    JSON.stringify({
+      kind: 'ai-vault-session',
+      version: 1,
+      ...codecPayload,
+      ...change
+    })
+  )
+  return transfer
+}
+
 function historyState(unrelatedEnv: Record<string, string>): AiVaultResumeWorktreeArgs['state'] {
   return {
-    activeRepoId: null,
-    activeWorktreeId: null,
-    folderWorkspaces: [],
-    projectGroups: [],
-    projects: [],
-    repos: [],
-    worktreesByRepo: {},
+    ...sourceState(),
     settings: createGlobalSettingsFixture({
       agentCmdOverrides: { claude: 'selected-claude', codex: 'unused-codex' },
       agentDefaultArgs: { claude: '--model first', codex: '--model unused' },
@@ -96,59 +110,21 @@ function historyState(unrelatedEnv: Record<string, string>): AiVaultResumeWorktr
 }
 
 function historyDrag(state: AiVaultResumeWorktreeArgs['state'], sessionId = 'session-1') {
-  const session = { agent: 'claude' as const, sessionId, cwd: '/repo', codexHome: null }
-  const args = { state, session, worktreeId: state.activeWorktreeId }
-  const startup = buildAiVaultResumeDragStartupForWorktree(args)
-  const realHomeStartup = buildAiVaultResumeDragStartupForWorktree({
-    ...args,
-    session: { ...session, codexHome: null }
-  })
-  const transfer = createTransfer()
-  writeAiVaultLocalDragData(transfer, {
-    agent: session.agent,
-    sessionId,
-    title: 'Claude session',
-    ...startup,
-    sessionFilePath: '/sessions/claude.jsonl',
-    sessionExecutionHostId: 'local',
-    codexHome: session.codexHome,
-    sessionCwd: session.cwd,
-    realHomeStartup
-  })
+  const args = { state, worktreeId: state.activeWorktreeId, session: { ...session, sessionId } }
+  const transfer = drag(args)
   const serialized = transfer.getData(AI_VAULT_SESSION_DRAG_TYPE)
   const privateSerialized = transfer.getData(AI_VAULT_LOCAL_DRAG_TYPE)
-  clearAiVaultSessionDragData()
   const payload = readAiVaultSessionDragData(transfer)
   expect(payload).not.toBeNull()
   const selected = payload ? readAiVaultLocalDragData(transfer, payload)?.normal : undefined
-  return { serialized, privateSerialized, payload, selected, startup, args }
+  return { serialized, privateSerialized, selected, args }
 }
 
-function serializedLeaves(value: unknown): number {
-  return value !== null && typeof value === 'object'
-    ? Object.values(value).reduce<number>((sum, child) => sum + serializedLeaves(child), 0)
-    : 1
-}
-
-function effectiveDragResume(payload: AiVaultResumeDragStartup | null | undefined) {
-  if (!payload?.resume) {
+async function effectiveDragResume(drag: ReturnType<typeof historyDrag>) {
+  if (!drag.selected?.resume) {
     throw new Error('Expected typed History drag')
   }
-  const plan = buildAgentTerminalResumePlan({
-    agent: 'claude',
-    providerSession: { key: 'session_id', id: 'session-1' },
-    resume: payload.resume,
-    settings: { agentDefaultArgs: { claude: '--model host' } },
-    runtime: {
-      platform: 'linux',
-      pty: { shellOverride: undefined, terminalWindowsWslDistro: null }
-    },
-    isRemote: false
-  })
-  if (!plan) {
-    throw new Error('Expected a buildable selected recipe')
-  }
-  return plan
+  return materializeAiVaultResumeForTest(drag.args, drag.selected)
 }
 
 describe('Session History session drag data', () => {
@@ -156,100 +132,76 @@ describe('Session History session drag data', () => {
     clearAiVaultSessionDragData()
   })
 
-  it('bounds actual startup clones and drag serialization at a fixed viewport for unrelated env N/10N', () => {
-    const samples = [100, 1000].map((size) => {
-      const state = historyState(
-        Object.fromEntries(
-          Array.from({ length: size }, (_, index) => [`UNUSED_${index}`, 'unrelated-value'])
-        )
+  it('bounds actual History production at C/U N/10N and a fixed eight-row viewport', async () => {
+    const samples = []
+    for (const size of [100, 1000]) {
+      let visits = 0
+      const state: AiVaultResumeWorktreeArgs['state'] & {
+        activeWorkspaceExecutionHostId: 'local' | 'ssh:target'
+      } = {
+        ...historyState(
+          Object.fromEntries(
+            Array.from({ length: size }, (_, index) => [`UNUSED_${index}`, 'unrelated-value'])
+          )
+        ),
+        activeWorktreeId: 'repo::active',
+        activeWorkspaceExecutionHostId: 'ssh:target',
+        worktreesByRepo: {
+          repo: Array.from({ length: size }, (_, index) => ({
+            ...makeWorktree({ repoId: 'repo', id: `repo::unrelated-${index}` }),
+            get id() {
+              visits += 1
+              return `repo::unrelated-${index}`
+            }
+          }))
+        }
+      }
+      expect(resolveTerminalHostOwnership(state, state.activeWorktreeId, 'spawn').kind).toBe(
+        'local-or-ssh'
       )
+      expect(visits).toBe(size)
+      visits = 0
+      for (let index = 0; index < 8; index += 1) {
+        const drag = historyDrag(state, `session-${index}`)
+        expect(drag.serialized).toBe(parentBytes(drag.args))
+        expect(drag.selected).toBeUndefined()
+        expect(drag.privateSerialized).toBe('')
+      }
+      expect(visits).toBe(0)
+      state.activeWorkspaceExecutionHostId = 'local'
       const clone = vi.spyOn(globalThis, 'structuredClone')
       try {
         const drags = Array.from({ length: 8 }, (_, index) =>
           historyDrag(state, `session-${index}`)
         )
         expect(clone).toHaveBeenCalledTimes(16)
-        const cloneInputs = clone.mock.calls.map(([input]) => JSON.stringify(input) ?? '')
-        for (const serialized of [
-          ...cloneInputs,
-          ...drags.flatMap((drag) => [drag.serialized, drag.privateSerialized])
-        ]) {
-          expect(serialized).not.toContain('UNUSED_')
-          expect(serialized).not.toContain('"codex":')
-        }
-        const count = (serialized: string) => serializedLeaves(JSON.parse(serialized))
-        return {
-          cloneLeaves: cloneInputs.map(count),
-          cloneBytes: cloneInputs.map((text) => new TextEncoder().encode(text).byteLength),
-          dragLeaves: drags.flatMap(({ serialized, privateSerialized }) => [
-            count(serialized),
-            count(privateSerialized)
-          ]),
-          dragBytes: drags.flatMap(({ serialized, privateSerialized }) =>
-            [serialized, privateSerialized].map(
-              (value) => new TextEncoder().encode(value).byteLength
-            )
+        const inputs = [
+          ...clone.mock.calls.map(([input]) => JSON.stringify(input) ?? ''),
+          ...drags.flatMap(({ serialized, privateSerialized }) => [serialized, privateSerialized])
+        ]
+        for (const text of inputs) {
+          expect(text).not.toContain('UNUSED_')
+          expect(text).not.toContain('"codex":')
+          expect(new TextEncoder().encode(text).byteLength).toBeGreaterThan(0)
+          expect(new TextEncoder().encode(text).byteLength).toBeLessThan(
+            AI_VAULT_SESSION_DRAG_PAYLOAD_MAX_BYTES
           )
         }
+        samples.push(inputs)
+        expect((await effectiveDragResume(drags[0]!)).env).toEqual({ SELECTED: 'first' })
       } finally {
         clone.mockRestore()
       }
-    })
+    }
     expect(samples[1]).toEqual(samples[0])
-    for (const bytes of samples[1]!.dragBytes) {
-      expect(bytes).toBeGreaterThan(0)
-      expect(bytes).toBeLessThan(AI_VAULT_SESSION_DRAG_PAYLOAD_MAX_BYTES)
-    }
   })
 
-  it.each([100, 1000])('skips nonlocal catalog visits for eight History rows at C=%i', (size) => {
-    let visits = 0
-    const state = {
-      ...historyState({}),
-      activeWorktreeId: 'repo::active',
-      activeWorkspaceExecutionHostId: 'ssh:target' as const,
-      worktreesByRepo: {
-        repo: Array.from({ length: size }, (_, index) => ({
-          ...makeWorktree({ repoId: 'repo', id: `repo::unrelated-${index}` }),
-          get id() {
-            visits += 1
-            return `repo::unrelated-${index}`
-          }
-        }))
-      }
-    }
-    expect(resolveTerminalHostOwnership(state, state.activeWorktreeId, 'spawn').kind).toBe(
-      'local-or-ssh'
-    )
-    expect(visits).toBe(size)
-    visits = 0
-    for (let index = 0; index < 8; index += 1) {
-      const drag = historyDrag(state, `session-${index}`)
-      expect(drag.startup).toEqual(buildAiVaultResumeForWorktree(drag.args, false))
-      expect(drag.selected).toBeUndefined()
-      expect(drag.privateSerialized).toBe('')
-    }
-    expect(visits).toBe(0)
-    const local = historyDrag({ ...state, activeWorkspaceExecutionHostId: 'local' as const })
-    expect(effectiveDragResume(local.selected).env).toEqual({ SELECTED: 'first' })
-  })
-
-  it('keeps the 9000-character unrelated env drag valid and selected changes effective', () => {
+  it('keeps the 9000-character unrelated env drag valid and selected changes effective', async () => {
     const state = historyState({ UNUSED: 'x'.repeat(9000) })
     const first = historyDrag(state)
     expect(new TextEncoder().encode(first.serialized).byteLength).toBeLessThan(
       AI_VAULT_SESSION_DRAG_PAYLOAD_MAX_BYTES
     )
-    expect(first.selected?.resume?.recipe).toMatchObject({
-      source: 'current-inputs',
-      settings: {
-        agentCmdOverrides: { claude: 'selected-claude' },
-        agentDefaultArgs: { claude: '--model first' },
-        agentDefaultEnv: { claude: { SELECTED: 'first' } },
-        agentPermissionDefault: 'ask',
-        agentPermissionOverrides: { claude: 'full-access' }
-      }
-    })
     if (!state.settings) {
       throw new Error('Missing fixture settings')
     }
@@ -258,78 +210,30 @@ describe('Session History session drag data', () => {
     state.settings.agentDefaultEnv!.claude = { SELECTED: 'second' }
     state.settings.agentPermissionOverrides = { claude: 'accept-edits' }
     const second = historyDrag(state)
-    const originalPlan = effectiveDragResume(first.selected)
-    const changedPlan = effectiveDragResume(second.selected)
-    expect(originalPlan.launchCommand).toContain('selected-claude')
-    expect(originalPlan.launchCommand).toContain('first')
-    expect(originalPlan.launchCommand).toContain('--dangerously-skip-permissions')
+    const originalPlan = await effectiveDragResume(first)
+    const changedPlan = await effectiveDragResume(second)
+    expect(originalPlan.command).toContain('selected-claude')
+    expect(originalPlan.command).toContain('first')
+    expect(originalPlan.command).toContain('--dangerously-skip-permissions')
     expect(originalPlan.env).toEqual({ SELECTED: 'first' })
-    expect(changedPlan.launchCommand).toContain('changed-claude')
-    expect(changedPlan.launchCommand).toContain('second')
-    expect(changedPlan.launchCommand).toContain('acceptEdits')
-    expect(changedPlan.launchCommand).not.toContain('--dangerously-skip-permissions')
+    expect(changedPlan.command).toContain('changed-claude')
+    expect(changedPlan.command).toContain('second')
+    expect(changedPlan.command).toContain('acceptEdits')
+    expect(changedPlan.command).not.toContain('--dangerously-skip-permissions')
     expect(changedPlan.env).toEqual({ SELECTED: 'second' })
     state.settings.agentPermissionOverrides = {}
-    const inherited = effectiveDragResume(historyDrag(state).selected)
-    expect(inherited.launchCommand).toContain('default')
-    expect(inherited.launchCommand).not.toContain('acceptEdits')
+    const inherited = await effectiveDragResume(historyDrag(state))
+    expect(inherited.command).toContain('default')
+    expect(inherited.command).not.toContain('acceptEdits')
   })
 
-  it('writes and reads the private session history payload', () => {
-    const transfer = createTransfer()
-    const payload: AiVaultSessionDragPayload = {
-      agent: 'claude',
-      sessionId: 'session-1',
-      title: 'Fix terminal split',
-      command: "cd '/repo' && claude --resume session-1",
-      sessionFilePath: '/Users/ada/.claude/projects/-repo/session-1.jsonl',
-      codexHome: '/Users/ada/Library/Application Support/orca/codex-runtime-home/home',
-      sessionCwd: '/repo',
-      env: { ANTHROPIC_BASE_URL: 'https://claude.example.test' },
-      envToDelete: ['CODEX_HOME', 'ORCA_CODEX_HOME'],
-      launchConfig: {
-        agentCommand: 'claude --dangerously-skip-permissions',
-        agentArgs: '--dangerously-skip-permissions',
-        agentEnv: { ANTHROPIC_BASE_URL: 'https://claude.example.test' }
-      },
-      realHomeStartup: {
-        command: "cd '/repo' && claude --resume session-1",
-        envToDelete: ['CODEX_HOME', 'ORCA_CODEX_HOME']
-      }
-    }
-
-    writeAiVaultSessionDragData(transfer, payload)
-
-    expect(transfer.effectAllowed).toBe('copy')
-    expect(hasAiVaultSessionDragData(transfer)).toBe(true)
-    expect(readAiVaultSessionDragData(transfer)).toEqual(payload)
-  })
-
-  it('requires executable parent commands while old readers ignore private-only fields', () => {
-    const { payload } = historyDrag(historyState({}))
-    const transfer = createTransfer()
+  it('requires executable commands while old readers ignore private fields', () => {
     for (const command of [undefined, '']) {
-      transfer.setData(
-        AI_VAULT_SESSION_DRAG_TYPE,
-        JSON.stringify({
-          kind: 'ai-vault-session',
-          version: 1,
-          ...payload,
-          command
-        })
-      )
-      expect(readAiVaultSessionDragData(transfer)).toBeNull()
+      expect(readAiVaultSessionDragData(parentTransfer({ command }))).toBeNull()
     }
-    transfer.setData(
-      AI_VAULT_SESSION_DRAG_TYPE,
-      JSON.stringify({
-        kind: 'ai-vault-session',
-        version: 1,
-        ...payload,
-        resume: { unknown: true }
-      })
+    expect(readAiVaultSessionDragData(parentTransfer({ resume: { unknown: true } }))).toEqual(
+      codecPayload
     )
-    expect(readAiVaultSessionDragData(transfer)).toEqual(payload)
   })
 
   it('preserves an explicit null sessionCwd across the serialized round-trip', () => {
@@ -387,7 +291,6 @@ describe('Session History session drag data', () => {
   })
 
   it('rejects malformed parent paths, agents, env, deletion and launch config records', () => {
-    const transfer = createTransfer()
     for (const change of [
       { sessionFilePath: '   ' },
       { agent: 'bad' },
@@ -396,19 +299,7 @@ describe('Session History session drag data', () => {
       { launchConfig: { agentArgs: '', agentEnv: ['ANTHROPIC_BASE_URL=invalid'] } },
       { realHomeStartup: { command: '' } }
     ]) {
-      transfer.setData(
-        AI_VAULT_SESSION_DRAG_TYPE,
-        JSON.stringify({
-          kind: 'ai-vault-session',
-          version: 1,
-          agent: 'claude',
-          sessionId: 'session-1',
-          title: 'Malformed payload',
-          command: 'claude --resume session-1',
-          ...change
-        })
-      )
-      expect(readAiVaultSessionDragData(transfer)).toBeNull()
+      expect(readAiVaultSessionDragData(parentTransfer(change))).toBeNull()
     }
   })
 
@@ -430,21 +321,6 @@ describe('Session History session drag data', () => {
     expect(readAiVaultSessionDragData(transfer)).toBeNull()
   })
 
-  it('does not retain an oversized internal payload for the hidden-data fallback', () => {
-    const source = createTransfer()
-    writeAiVaultSessionDragData(source, {
-      agent: 'claude',
-      sessionId: 'session-oversized',
-      title: 'Oversized payload',
-      command: 'x'.repeat(AI_VAULT_SESSION_DRAG_PAYLOAD_MAX_BYTES)
-    })
-
-    const dropTransfer = new TypeOnlyDataTransfer() as unknown as DataTransfer
-    dropTransfer.setData(AI_VAULT_SESSION_DRAG_TYPE, '')
-
-    expect(readAiVaultSessionDragData(dropTransfer)).toBeNull()
-  })
-
   it('falls back to the active renderer drag payload when Chromium hides custom data', () => {
     const source = createTransfer()
     const payload: AiVaultSessionDragPayload = {
@@ -462,6 +338,12 @@ describe('Session History session drag data', () => {
     expect(readAiVaultSessionDragData(dropTransfer)).toEqual(payload)
 
     clearAiVaultSessionDragData()
+    expect(readAiVaultSessionDragData(dropTransfer)).toBeNull()
+
+    writeAiVaultSessionDragData(source, {
+      ...codecPayload,
+      command: 'x'.repeat(AI_VAULT_SESSION_DRAG_PAYLOAD_MAX_BYTES)
+    })
     expect(readAiVaultSessionDragData(dropTransfer)).toBeNull()
   })
 })
@@ -584,6 +466,7 @@ async function drop(transfer: ReturnType<typeof drag>) {
   if (!pane) {
     throw new Error('Missing real drop target')
   }
+  expect(transfer.effectAllowed).toBe('copy')
   const parent = readAiVaultSessionDragData(transfer)
   expect(parent).not.toBeNull()
   expect(hasAiVaultSessionDragData(transfer)).toBe(true)
@@ -619,6 +502,7 @@ async function drop(transfer: ReturnType<typeof drag>) {
       executionHostId: parent?.sessionExecutionHostId,
       codexHome: parent?.codexHome ?? null
     })
+    expect(createTab.mock.calls[0]?.slice(0, 3)).toEqual([wt, 'group', undefined])
     const pending = createTab.mock.calls[0]?.[3]?.pendingStartup
     if (!pending) {
       throw new Error('Missing queued startup')
@@ -647,6 +531,68 @@ async function planPreferred(request: Parameters<typeof window.api.pty.spawn>[0]
     const response = mapRuntimeError('history', { runtimeId: 'local' }, error)
     throw Object.assign(new Error(response.error.message), { response })
   }
+}
+
+type Pending = Awaited<ReturnType<typeof drop>>
+const placement = { worktreeId: wt, tabId: 'tab', leafId: 'leaf' }
+function paneTransport(pending: Parameters<typeof createIpcPtyTransport>[0]) {
+  return createIpcPtyTransport({ ...pending, ...placement })
+}
+async function connectObserved(
+  pending: Parameters<typeof createIpcPtyTransport>[0],
+  geometry = { cols: 80, rows: 24 }
+) {
+  const transport = paneTransport(pending)
+  const accepted = vi.fn()
+  const onError = vi.fn()
+  const result = await transport.connect({
+    url: '',
+    ...geometry,
+    callbacks: { onStartupAccepted: accepted, onError }
+  })
+  return { transport, accepted, onError, result }
+}
+async function connectPreferred(pending: Pending, env: Record<string, string>) {
+  expect(pending.launchAgent).toBe('claude')
+  const plans: Awaited<ReturnType<typeof planPreferred>>[] = []
+  vi.mocked(window.api.pty.spawn).mockImplementation(async (request) => {
+    const planned = await planPreferred(request)
+    plans.push(planned)
+    return {
+      id: 'preferred',
+      incarnationId: 'inc',
+      launchAgent: planned.launchAgent,
+      resumeProviderSession: planned.resumeProviderSession
+    }
+  })
+  vi.mocked(window.api.pty.spawn).mockClear()
+  const { transport, accepted, onError, result } = await connectObserved(pending)
+  expect(onError).not.toHaveBeenCalled()
+  expect(window.api.pty.spawn).toHaveBeenCalledOnce()
+  const request = vi.mocked(window.api.pty.spawn).mock.calls[0]?.[0]
+  expect(request?.command).toBeUndefined()
+  expect(request?.resume?.recipe).toMatchObject({
+    settings: { agentDefaultEnv: { claude: env } }
+  })
+  expect(plans[0]?.env).toEqual(env)
+  const effective = {
+    id: 'preferred',
+    launchAgent: 'claude',
+    resumeProviderSession: { key: 'session_id', id: 'saved' }
+  }
+  expect(result).toMatchObject(effective)
+  expect(accepted).toHaveBeenCalledExactlyOnceWith(expect.objectContaining(effective))
+  transport.detach?.()
+  return plans[0]
+}
+function refusePreferred() {
+  vi.mocked(window.api.pty.spawn).mockImplementation(async (request) => {
+    if (request.resume) {
+      await planPreferred(request)
+      throw new Error('Malformed recipe unexpectedly planned')
+    }
+    return { id: 'ordinary', incarnationId: 'inc' }
+  })
 }
 
 it.each(['folder:source', wt])(
@@ -698,67 +644,30 @@ it.each(['folder:source', wt])(
   }
 )
 
-it('uses the cross-window same-local selected recipe without compatibility env becoming caller env', async () => {
-  const pending = await drop(drag({ state, worktreeId: 'folder:source', session }))
-  expect(pending.resume?.recipe).toMatchObject({
-    source: 'current-inputs',
-    settings: { agentDefaultEnv: { claude: { SELECTED: 'source' } } }
-  })
-  expect(pending.env).toBeUndefined()
-  expect(pending.launchConfig).toBeUndefined()
-  expect(pending.resumeProviderSession).toEqual({ key: 'session_id', id: 'saved' })
-  const plans: Awaited<ReturnType<typeof planPreferred>>[] = []
-  vi.mocked(window.api.pty.spawn).mockImplementation(async (request) => {
-    const planned = await planPreferred(request)
-    plans.push(planned)
-    return {
-      id: 'preferred',
-      incarnationId: 'inc',
-      launchAgent: planned.launchAgent,
-      resumeProviderSession: planned.resumeProviderSession
-    }
-  })
-  const transport = createIpcPtyTransport({
-    ...pending,
-    worktreeId: wt,
-    tabId: 'tab',
-    leafId: 'leaf'
-  })
-  const accepted = vi.fn()
-  const onError = vi.fn()
-  const result = await transport.connect({
-    url: '',
-    cols: 80,
-    rows: 24,
-    callbacks: { onStartupAccepted: accepted, onError }
-  })
-  expect(onError).not.toHaveBeenCalled()
-  expect(window.api.pty.spawn).toHaveBeenCalledOnce()
-  expect(vi.mocked(window.api.pty.spawn).mock.calls[0]?.[0].command).toBeUndefined()
-  expect(plans[0]?.command).toContain(`team'"'"'s model`)
-  expect(plans[0]?.env).toEqual({ SELECTED: 'source' })
-  const effective = {
-    id: 'preferred',
-    launchAgent: 'claude',
-    resumeProviderSession: { key: 'session_id', id: 'saved' }
-  }
-  expect(result).toMatchObject(effective)
-  expect(accepted).toHaveBeenCalledExactlyOnceWith(expect.objectContaining(effective))
-  transport.detach?.()
-})
-
-it('keeps actual click/drop H1/H2 literal fallback and absence after real C1 null, never after unknown', async () => {
+it('keeps H1/H2 click/drop fallback, red/blue provenance and unknown outcomes distinct', async () => {
   for (const literal of [undefined, 'custom-claude']) {
-    state.settings = createGlobalSettingsFixture({
-      agentCmdOverrides: literal ? {} : { claude: 'custom-claude' },
-      agentDefaultArgs: { claude: '"' },
-      agentDefaultEnv: { claude: { SELECTED: 'recipe' } }
-    })
-    const args = { state, worktreeId: 'folder:source', session, commandOverride: literal }
-    for (const entry of ['click', 'drop'] as const) {
+    let previous: string | undefined
+    const cases = [
+      ['click', 'recipe'],
+      ['drop', 'red'],
+      ['drop', 'blue']
+    ] as const
+    for (const [entry, color] of cases) {
+      state.settings = createGlobalSettingsFixture({
+        agentCmdOverrides: literal ? {} : { claude: 'custom-claude' },
+        agentDefaultArgs: { claude: '"' },
+        agentDefaultEnv: { claude: { SELECTED: color } }
+      })
+      const args = { state, worktreeId: 'folder:source', session, commandOverride: literal }
       createTab.mockClear()
       if (entry === 'drop') {
-        await drop(drag(args))
+        const transfer = drag(args)
+        const parent = transfer.getData(AI_VAULT_SESSION_DRAG_TYPE)
+        if (previous) {
+          expect(parent).toBe(previous)
+        }
+        previous = parent
+        await drop(transfer)
       } else {
         launchAiVaultSessionInNewTab({
           agent: 'claude',
@@ -770,32 +679,26 @@ it('keeps actual click/drop H1/H2 literal fallback and absence after real C1 nul
       if (!pending) {
         throw new Error('Missing queued startup')
       }
-      vi.mocked(window.api.pty.spawn).mockImplementation(async (request) => {
-        if (request.resume) {
-          await planPreferred(request)
-          throw new Error('Malformed recipe unexpectedly planned')
-        }
-        return { id: 'ordinary', incarnationId: 'inc' }
-      })
-      const transport = createIpcPtyTransport({
-        ...pending,
-        worktreeId: wt,
-        tabId: 'tab',
-        leafId: 'leaf',
-        onPtySpawn: () => {
-          throw new Error('presentation failed')
-        }
-      })
+      refusePreferred()
       vi.mocked(window.api.pty.spawn).mockClear()
-      const accepted = vi.fn()
-      await transport.connect({
-        url: '',
-        cols: 121,
-        rows: 37,
-        callbacks: { onStartupAccepted: accepted }
-      })
+      const { transport, accepted, onError, result } = await connectObserved(
+        {
+          ...pending,
+          ...(entry === 'click'
+            ? {
+                onPtySpawn: () => {
+                  throw new Error('presentation failed')
+                }
+              }
+            : {})
+        },
+        { cols: 121, rows: 37 }
+      )
       const calls = vi.mocked(window.api.pty.spawn).mock.calls
       expect(calls).toHaveLength(2)
+      expect(calls[0]?.[0].resume?.recipe).toMatchObject({
+        settings: { agentDefaultEnv: { claude: { SELECTED: color } } }
+      })
       expect(calls[1]?.[0]).toMatchObject({
         command: pending.command,
         launchAgent: undefined,
@@ -809,17 +712,18 @@ it('keeps actual click/drop H1/H2 literal fallback and absence after real C1 nul
         leafId: 'leaf'
       })
       expect(pending.command.startsWith(literal ?? 'claude')).toBe(true)
-      expect(accepted).toHaveBeenCalledOnce()
+      expect(accepted).toHaveBeenCalledExactlyOnceWith({ id: 'ordinary', incarnationId: 'inc' })
+      if (entry === 'drop') {
+        expect(onError).not.toHaveBeenCalled()
+        expect(result).toBe('ordinary')
+      } else {
+        expect(onError).toHaveBeenCalledExactlyOnceWith('presentation failed')
+      }
       transport.detach?.()
       vi.mocked(window.api.pty.spawn).mockRejectedValue(new Error('lost reply'))
-      const unknown = createIpcPtyTransport({
-        ...pending,
-        worktreeId: wt,
-        tabId: 'tab',
-        leafId: 'leaf'
-      })
       vi.mocked(window.api.pty.spawn).mockClear()
-      await unknown.connect({ url: '', cols: 121, rows: 37, callbacks: {} })
+      const { transport: unknown, onError: lost } = await connectObserved(pending)
+      expect(lost).toHaveBeenCalledExactlyOnceWith('lost reply')
       expect(window.api.pty.spawn).toHaveBeenCalledOnce()
       unknown.detach?.()
     }
@@ -855,7 +759,8 @@ it.each(['real-home', 'repin'] as const)(
   }
 )
 
-it('keeps LONG3000 and near-cap parent bytes while the actual local drop plans the selected env', async () => {
+it('keeps cross-window selected, LONG3000 and near-cap parent input through the actual local drop', async () => {
+  const ordinarySettings = state.settings
   state.settings = createGlobalSettingsFixture({
     agentPermissionDefault: 'own',
     agentDefaultArgs: { claude: '' },
@@ -864,10 +769,13 @@ it('keeps LONG3000 and near-cap parent bytes while the actual local drop plans t
   const args = { state, worktreeId: 'folder:source', session }
   const emptySize = new TextEncoder().encode(parentBytes(args)).byteLength
   const nearCap = Math.floor((AI_VAULT_SESSION_DRAG_PAYLOAD_MAX_BYTES - emptySize) / 4)
-  for (const size of [3000, nearCap]) {
+  const largeSettings = state.settings
+  for (const size of [0, 3000, nearCap]) {
     createTab.mockClear()
-    const env = { LONG: 'x'.repeat(size) }
-    state.settings.agentDefaultEnv = { claude: env }
+    const env: Record<string, string> =
+      size === 0 ? { SELECTED: 'source' } : { LONG: 'x'.repeat(size) }
+    state.settings = size === 0 ? ordinarySettings : largeSettings
+    state.settings!.agentDefaultEnv = { claude: env }
     const expected = parentBytes(args)
     const transfer = drag(args)
     expect(transfer.getData(AI_VAULT_SESSION_DRAG_TYPE)).toBe(expected)
@@ -879,97 +787,12 @@ it('keeps LONG3000 and near-cap parent bytes while the actual local drop plans t
     }
     const pending = await drop(transfer)
     expect(pending.env).toBeUndefined()
-    const plans: Awaited<ReturnType<typeof planPreferred>>[] = []
-    vi.mocked(window.api.pty.spawn).mockImplementation(async (request) => {
-      const planned = await planPreferred(request)
-      plans.push(planned)
-      return {
-        id: 'long',
-        incarnationId: 'inc',
-        launchAgent: planned.launchAgent,
-        resumeProviderSession: planned.resumeProviderSession
-      }
-    })
-    vi.mocked(window.api.pty.spawn).mockClear()
-    const transport = createIpcPtyTransport({
-      ...pending,
-      worktreeId: wt,
-      tabId: 'tab',
-      leafId: 'leaf'
-    })
-    const accepted = vi.fn()
-    const onError = vi.fn()
-    const result = await transport.connect({
-      url: '',
-      cols: 80,
-      rows: 24,
-      callbacks: { onStartupAccepted: accepted, onError }
-    })
-    expect(onError).not.toHaveBeenCalled()
-    expect(window.api.pty.spawn).toHaveBeenCalledOnce()
-    expect(vi.mocked(window.api.pty.spawn).mock.calls[0]?.[0].resume?.recipe).toMatchObject({
-      settings: { agentDefaultEnv: { claude: env } }
-    })
-    expect(plans[0]?.env).toEqual(env)
-    const effective = {
-      id: 'long',
-      launchAgent: 'claude',
-      resumeProviderSession: { key: 'session_id', id: 'saved' }
+    expect(pending.launchConfig).toBeUndefined()
+    expect(pending.resumeProviderSession).toEqual({ key: 'session_id', id: 'saved' })
+    const planned = await connectPreferred(pending, env)
+    if (size === 0) {
+      expect(planned?.command).toContain(`team'"'"'s model`)
     }
-    expect(result).toMatchObject(effective)
-    expect(accepted).toHaveBeenCalledExactlyOnceWith(expect.objectContaining(effective))
-    transport.detach?.()
-  }
-})
-
-it('keeps red/blue null-plan env distinct despite identical parent bytes', async () => {
-  let previous: string | undefined
-  for (const color of ['red', 'blue']) {
-    createTab.mockClear()
-    state.settings = createGlobalSettingsFixture({
-      agentPermissionDefault: 'own',
-      agentDefaultArgs: { claude: '"' },
-      agentDefaultEnv: { claude: { SELECTED: color } }
-    })
-    const transfer = drag({ state, worktreeId: 'folder:source', session })
-    const parent = transfer.getData(AI_VAULT_SESSION_DRAG_TYPE)
-    if (previous) {
-      expect(parent).toBe(previous)
-    }
-    previous = parent
-    const pending = await drop(transfer)
-    vi.mocked(window.api.pty.spawn).mockImplementation(async (request) => {
-      if (request.resume) {
-        await planPreferred(request)
-        throw new Error('Malformed input unexpectedly planned')
-      }
-      return { id: 'ordinary', incarnationId: 'inc' }
-    })
-    vi.mocked(window.api.pty.spawn).mockClear()
-    const transport = createIpcPtyTransport({
-      ...pending,
-      worktreeId: wt,
-      tabId: 'tab',
-      leafId: 'leaf'
-    })
-    const accepted = vi.fn()
-    const onError = vi.fn()
-    const result = await transport.connect({
-      url: '',
-      cols: 80,
-      rows: 24,
-      callbacks: { onStartupAccepted: accepted, onError }
-    })
-    expect(onError).not.toHaveBeenCalled()
-    const calls = vi.mocked(window.api.pty.spawn).mock.calls
-    expect(calls).toHaveLength(2)
-    expect(calls[0]?.[0].resume?.recipe).toMatchObject({
-      settings: { agentDefaultEnv: { claude: { SELECTED: color } } }
-    })
-    expect(calls[1]?.[0].env).toBeUndefined()
-    expect(result).toBe('ordinary')
-    expect(accepted).toHaveBeenCalledExactlyOnceWith({ id: 'ordinary', incarnationId: 'inc' })
-    transport.detach?.()
   }
 })
 

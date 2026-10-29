@@ -131,18 +131,18 @@ describe('agent-session creates with a desktop-prepared accountEnv', () => {
         })
       )
       const { planned } = planCreates(runtime)
-      await runtime.createAgentSession({
-        clientOperationId: operationId(),
-        worktree: 'id:worktree-1',
-        agent: 'codex'
-      })
       const recipe =
         source === 'saved'
           ? {
               source,
               launchConfig: {
-                agentArgs: '',
-                agentEnv: { KEEP: '1', CODEX_HOME: '/saved', CLAUDE_CONFIG_DIR: '/saved-claude' }
+                agentCommand: 'recorded-codex',
+                agentArgs: '--model recorded',
+                agentEnv: {
+                  KEEP: 'saved',
+                  CODEX_HOME: '/saved',
+                  CLAUDE_CONFIG_DIR: '/saved-claude'
+                }
               }
             }
           : source === 'current-inputs'
@@ -169,12 +169,14 @@ describe('agent-session creates with a desktop-prepared accountEnv', () => {
             }
           : {})
       })
-      expect(planned[1]?.env).toMatchObject({
-        KEEP: '1',
-        CODEX_HOME: source === 'saved' ? '/explicit-home' : planned[0]?.env?.CODEX_HOME
+      expect(planned[0]?.env).toMatchObject({
+        KEEP: source === 'saved' ? 'saved' : '1',
+        CODEX_HOME: source === 'saved' ? '/explicit-home' : ACCOUNT_ENV.CODEX_HOME
       })
       if (source === 'saved') {
-        expect(planned[1]?.env).toMatchObject({
+        expect(planned[0]?.command).toContain('recorded-codex')
+        expect(planned[0]?.launchConfig?.agentArgs).toBe('--model recorded')
+        expect(planned[0]?.env).toMatchObject({
           ORCA_PANE_KEY: 'restored-tab:restored-leaf',
           ORCA_AGENT_LAUNCH_TOKEN: 'restore-token',
           CLAUDE_CONFIG_DIR: '/caller-claude'

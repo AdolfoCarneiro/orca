@@ -103,174 +103,88 @@ describe('host agent planner', () => {
   })
 })
 
-describe('host-planned resumes', () => {
-  it.each([
-    { settingsShell: 'cmd.exe', shellOverride: undefined, expected: `codex "resume" "session's"` },
+const wslRuntime = {
+  platform: 'linux',
+  pty: { shellOverride: 'wsl.exe', terminalWindowsWslDistro: 'Ubuntu' }
+} as const
+function resumePlan(
+  resume: NonNullable<Parameters<typeof resolveAgentTerminalCreateOptions>[1]['resume']>,
+  options: Parameters<typeof resolveAgentTerminalCreateOptions>[1] = {},
+  terminalWindowsShell = 'cmd.exe'
+) {
+  return resolveAgentTerminalCreateOptions(
+    workspace,
     {
-      settingsShell: 'powershell.exe',
-      shellOverride: 'cmd.exe',
-      expected: `codex "resume" "session's"`
+      startupAgent: 'claude',
+      resumeProviderSession: { key: 'session_id', id: 'saved', cwd: '/original' },
+      launchRuntime: wslRuntime,
+      ...options,
+      resume
     },
     {
-      settingsShell: 'powershell.exe',
-      shellOverride: undefined,
-      expected: "codex 'resume' 'session''s'"
-    }
-  ])(
-    'quotes saved identity for $settingsShell with override $shellOverride',
-    async ({ settingsShell, shellOverride, expected }) => {
-      const launch = await resolveAgentTerminalCreateOptions(
-        workspace,
-        {
-          startupAgent: 'codex',
-          resume: {
-            recipe: { source: 'saved' },
-            providerSession: { key: 'session_id', id: "session's" }
-          },
-          shellOverride
-        },
-        {
-          ...host,
-          // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: this folder workspace reads only getSettings.
-          store: { getSettings: () => ({ terminalWindowsShell: settingsShell }) } as never
-        }
-      )
-      expect(launch.command).toBe(expected)
-      expect(launch.resumeProviderSession).toEqual({ key: 'session_id', id: "session's" })
-      expect(launch.startupCommandDelivery).toBe('shell-ready')
+      ...host,
+      store: partialRuntimeStore({
+        getSettings: () => ({
+          terminalWindowsShell,
+          agentCmdOverrides: { claude: 'host-claude' },
+          agentDefaultArgs: { claude: '--model host-model' },
+          agentDefaultEnv: { claude: { SETTINGS: 'host' } }
+        })
+      })
     }
   )
+}
 
-  it('quotes a raw saved identity for the WSL runtime selected by the host', async () => {
-    const launch = await resolveAgentTerminalCreateOptions(
-      workspace,
+it.each([
+  ['cmd.exe', undefined, undefined, `codex "resume" "session's"`],
+  ['powershell.exe', 'cmd.exe', undefined, `codex "resume" "session's"`],
+  ['powershell.exe', undefined, undefined, "codex 'resume' 'session''s'"],
+  ['cmd.exe', undefined, wslRuntime, `codex 'resume' 'session'"'"'s'`]
+] as const)(
+  'quotes saved identity with setting %s and override %s for runtime %j',
+  async (setting, shellOverride, launchRuntime, expected) => {
+    const launch = await resumePlan(
+      { recipe: { source: 'saved' }, codexHome: null },
       {
         startupAgent: 'codex',
-        resume: { recipe: { source: 'saved' } },
         resumeProviderSession: { key: 'session_id', id: "session's" },
-        launchRuntime: {
-          platform: 'linux',
-          pty: { shellOverride: 'wsl.exe', terminalWindowsWslDistro: 'Ubuntu' }
-        }
-      },
-      host
-    )
-    expect(launch.command).toBe(`codex 'resume' 'session'"'"'s'`)
-    expect(launch.launchRuntime?.platform).toBe('linux')
-    expect(launch.startupCommandDelivery).toBe('shell-ready')
-  })
-
-  it('does not let selected Settings override an explicit home deletion', async () => {
-    const launch = await resolveAgentTerminalCreateOptions(
-      workspace,
-      {
-        startupAgent: 'codex',
-        resumeProviderSession: { key: 'session_id', id: 'codex-session' },
-        resume: { recipe: { source: 'saved' }, codexHome: null },
+        shellOverride,
+        launchRuntime,
         envToDelete: ['EXPLICIT_DELETE']
       },
-      host
+      setting
     )
+    expect(launch.command).toBe(expected)
+    expect(launch.resumeProviderSession).toEqual({ key: 'session_id', id: "session's" })
+    expect(launch.launchRuntime?.platform).toBe(launchRuntime ? 'linux' : 'win32')
+    expect(launch.startupCommandDelivery).toBe('shell-ready')
     expect(launch.envToDelete).toEqual(['EXPLICIT_DELETE', 'CODEX_HOME', 'ORCA_CODEX_HOME'])
-  })
-})
-
-it('keeps typed and ordinary C1 refusals on the existing error contract', async () => {
-  for (const typed of [true, false]) {
-    const result = await resolveAgentTerminalCreateOptions(
-      workspace,
-      {
-        startupAgent: 'claude',
-        agentArgs: '"',
-        ...(typed
-          ? {
-              resume: { recipe: { source: 'current-inputs' as const, settings: {} } },
-              resumeProviderSession: { key: 'session_id' as const, id: 'session' }
-            }
-          : {})
-      },
-      host
-    ).then(
-      () => {
-        throw new Error('Expected planning refusal')
-      },
-      (error: unknown) => error
-    )
-    const response = mapRuntimeError('request', { runtimeId: 'host' }, result)
-    expect(response.error.code).toBe('runtime_error')
-    expect(response.error.message).toBe(
-      typed
-        ? 'Could not build resume command for claude.'
-        : 'Could not build launch command for claude.'
-    )
-    expect(isAgentResumeNotDispatchedResponse(response)).toBe(typed)
-    if (!typed) {
-      expect(response.error).not.toHaveProperty('data')
-    }
   }
+)
+
+it('maps actual ordinary C1 null without typed refusal evidence', async () => {
+  const failure = await resolveAgentTerminalCreateOptions(
+    workspace,
+    { startupAgent: 'claude', agentArgs: '"' },
+    host
+  ).catch((error: unknown) => error)
+  const response = mapRuntimeError('request', { runtimeId: 'host' }, failure)
+  expect(response.error).toEqual({
+    code: 'runtime_error',
+    message: 'Could not build launch command for claude.'
+  })
+  expect(response.error).not.toHaveProperty('data')
+  expect(isAgentResumeNotDispatchedResponse(response)).toBe(false)
 })
 
-it('keeps host defaults, saved absence and literal saved values distinct at C1', async () => {
-  const store = partialRuntimeStore({
-    getSettings: () => ({
-      agentCmdOverrides: { claude: 'host-claude' },
-      agentDefaultArgs: { claude: '--model host-model' },
-      agentDefaultEnv: { claude: { SETTINGS: 'host' } }
-    })
-  })
-  const resolve = (resume: Parameters<typeof resolveAgentTerminalCreateOptions>[1]['resume']) =>
-    resolveAgentTerminalCreateOptions(
-      workspace,
-      {
-        startupAgent: 'claude',
-        resume,
-        resumeProviderSession: { key: 'session_id', id: 'saved', cwd: '/original' },
-        launchRuntime: { platform: 'linux', pty: {} }
-      },
-      { ...host, store }
-    )
-  const defaults = await resolve({ recipe: { source: 'host-defaults' } })
-  const absent = await resolve({ recipe: { source: 'saved' } })
-  const literal = await resolve({
-    recipe: {
-      source: 'saved',
-      launchConfig: {
-        agentCommand: 'recorded-claude',
-        agentArgs: '--model recorded',
-        agentEnv: { SETTINGS: 'recorded' }
-      }
-    }
-  })
+it('keeps host defaults, saved absence and recorded cwd distinct at C1', async () => {
+  const defaults = await resumePlan({ recipe: { source: 'host-defaults' } })
+  const absent = await resumePlan({ recipe: { source: 'saved' } })
   expect(defaults.command).toContain('host-model')
   expect(absent.launchConfig?.agentArgs).toBe('')
   expect(absent.env).toEqual({})
   expect(absent.command).toContain('/original')
   expect(
-    (await resolve({ recipe: { source: 'saved' }, resumeInLaunchCwd: true })).command
+    (await resumePlan({ recipe: { source: 'saved' }, resumeInLaunchCwd: true })).command
   ).not.toContain('/original')
-  expect(literal.command).toContain('recorded-claude')
-  expect(literal.launchConfig?.agentArgs).toBe('--model recorded')
-  expect(literal.env).toEqual({ SETTINGS: 'recorded' })
-})
-
-it('normalizes an OMP transcript for the actual host runtime before building its command', async () => {
-  const launch = await resolveAgentTerminalCreateOptions(
-    workspace,
-    {
-      startupAgent: 'omp',
-      resume: {
-        recipe: { source: 'saved' },
-        ompResumeFilePath: String.raw`\\wsl$\Ubuntu\home\u\custom\saved.jsonl`
-      },
-      resumeProviderSession: { key: 'session_id', id: 'saved' },
-      launchRuntime: {
-        platform: 'linux',
-        pty: { shellOverride: 'wsl.exe', terminalWindowsWslDistro: 'Ubuntu' }
-      }
-    },
-    host
-  )
-  expect(launch.command).toContain('/home/u/custom/saved.jsonl')
-  expect(launch.command).not.toContain('wsl$')
-  expect(launch.launchConfig?.ompResumeFilePath).toBe('/home/u/custom/saved.jsonl')
 })

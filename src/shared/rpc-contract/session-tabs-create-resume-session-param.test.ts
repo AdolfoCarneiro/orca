@@ -1,4 +1,3 @@
-import { AgentTerminalResumeParam } from './agent-terminal-resume-params'
 import { describe, expect, it } from 'vitest'
 import { CreateTerminalTab } from './session-tabs-schemas-params'
 
@@ -20,32 +19,6 @@ describe('session.tabs.createTerminal resumeProviderSession', () => {
       resumeProviderSession: { key: 'thread', id: '' }
     })
     expect(parsed.resumeProviderSession).toBeUndefined()
-  })
-
-  it('carries a typed saved recipe and refuses it on a fork', () => {
-    const request = {
-      worktree: 'id:wt',
-      launchAgent: 'codex',
-      resume: { recipe: { source: 'saved' }, codexHome: null },
-      resumeProviderSession: SESSION
-    }
-    expect(CreateTerminalTab.parse(request)).toEqual(request)
-    expect(
-      AgentTerminalResumeParam.safeParse({ recipe: { source: 'saved', settings: {} } }).success
-    ).toBe(false)
-    expect(
-      AgentTerminalResumeParam.safeParse({
-        recipe: { source: 'current-inputs', settings: { agentPermissionDefault: 'accept-edits' } },
-        providerSession: SESSION
-      }).success
-    ).toBe(true)
-    expect(
-      CreateTerminalTab.safeParse({
-        ...request,
-        sourceChatFork: { sessionId: 'chat-1' },
-        clientMutationId: 'fork-typed'
-      }).success
-    ).toBe(false)
   })
 
   it('refuses it on a fork, which uses the host launch settings', () => {

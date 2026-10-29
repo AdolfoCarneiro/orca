@@ -76,7 +76,10 @@ describe('session.tabs.createTerminal shell selection', () => {
           launchAgent: agent,
           resume: {
             ...(scoped ? { providerSession: { key: 'session_id', id: PROVIDER_SESSION } } : {}),
-            recipe: { source: 'current-inputs', settings: {} }
+            recipe: {
+              source: 'current-inputs',
+              settings: { agentPermissionDefault: 'accept-edits' }
+            }
           },
           ...(!scoped ? { resumeProviderSession: { key: 'session_id', id: PROVIDER_SESSION } } : {})
         })
@@ -118,7 +121,7 @@ describe('session.tabs.createTerminal shell selection', () => {
     installOwnership()
     const runtime = makeRuntime()
     const dispatcher = new RpcDispatcher({ runtime, methods: SESSION_TAB_METHODS })
-    const resume = { recipe: { source: 'saved' } }
+    const resume = { recipe: { source: 'saved' }, codexHome: null }
     const accountEnv = { CODEX_HOME: '/home/qa/managed' }
     const request = {
       worktree: 'id:wt-1',
@@ -134,9 +137,13 @@ describe('session.tabs.createTerminal shell selection', () => {
       'id:wt-1',
       expect.objectContaining({ resume, accountEnv, env: request.env, viewMode: 'chat' })
     )
-    expect(
-      (await dispatcher.dispatch(makeRequest({ ...request, accountEnv: { PATH: '/bad' } }))).ok
-    ).toBe(false)
+    for (const invalid of [
+      { accountEnv: { PATH: '/bad' } },
+      { resume: { recipe: { source: 'saved', settings: {} } } },
+      { sourceChatFork: { sessionId: 'chat-1' }, clientMutationId: 'fork-typed' }
+    ]) {
+      expect((await dispatcher.dispatch(makeRequest({ ...request, ...invalid }))).ok).toBe(false)
+    }
     expect(runtime.createMobileSessionTerminal).toHaveBeenCalledOnce()
   })
 

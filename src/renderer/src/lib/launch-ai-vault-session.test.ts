@@ -84,35 +84,30 @@ describe('launchAiVaultSessionInNewTab', () => {
     mockCreateEmptySplitGroup.mockReturnValue('group-new')
   })
 
-  it.each([false, true])(
-    'queues ordinary/typed History with its original group (typed=%s)',
-    (typed) => {
-      const result = launchAiVaultSessionInNewTab({
-        agent: 'claude',
-        worktreeId: 'wt-1',
-        targetGroupId: 'group-1',
-        command: 'claude --resume session-1',
-        ...(typed ? { resume: { recipe: { source: 'saved' as const } } } : {})
-      })
+  it('creates a terminal in the requested tab group and queues the resume command', () => {
+    const result = launchAiVaultSessionInNewTab({
+      agent: 'claude',
+      worktreeId: 'wt-1',
+      targetGroupId: 'group-1',
+      command: 'claude --resume session-1'
+    })
 
-      expect(mockCreateTab).toHaveBeenCalledWith('wt-1', 'group-1', undefined, {
-        pendingStartup: expect.anything()
-      })
-      expect(queuedStartups()).toContainEqual({
-        command: 'claude --resume session-1',
-        ...(typed ? { resume: { recipe: { source: 'saved' } }, launchAgent: 'claude' } : {}),
-        telemetry: {
-          agent_kind: 'claude',
-          launch_source: 'sidebar',
-          request_kind: 'resume'
-        }
-      })
-      // Resume can target another worktree before activation; resolve by the requested owner.
-      expect(mockSetActiveTabType).toHaveBeenCalledExactlyOnceWith('terminal', 'wt-1')
-      expect(mockSetTabBarOrder).toHaveBeenCalledWith('wt-1', ['tab-1'])
-      expect(result).toEqual({ tabId: 'tab-1' })
-    }
-  )
+    expect(mockCreateTab).toHaveBeenCalledWith('wt-1', 'group-1', undefined, {
+      pendingStartup: expect.anything()
+    })
+    expect(queuedStartups()).toContainEqual({
+      command: 'claude --resume session-1',
+      telemetry: {
+        agent_kind: 'claude',
+        launch_source: 'sidebar',
+        request_kind: 'resume'
+      }
+    })
+    // Resume can target another worktree before activation; resolve by the requested owner.
+    expect(mockSetActiveTabType).toHaveBeenCalledExactlyOnceWith('terminal', 'wt-1')
+    expect(mockSetTabBarOrder).toHaveBeenCalledWith('wt-1', ['tab-1'])
+    expect(result).toEqual({ tabId: 'tab-1' })
+  })
 
   it('queues configured resume startup details for agent history resumes', () => {
     launchAiVaultSessionInNewTab({

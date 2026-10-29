@@ -24,26 +24,18 @@ describe('AI Vault OMP cold resume', () => {
         }
       }
     })
-    const startup = buildAiVaultCopiedSessionStartupForWorktree(
-      {
-        state,
-        session: {
-          agent: 'opencode',
-          sessionId: 'copy-session',
-          cwd: '/repo',
-          codexHome: null,
-          executionHostId: 'local'
-        }
-      },
-      'opencode2'
-    )
-    const effective = await materializeAiVaultResumeForTest(
-      {
-        state,
-        session: { agent: 'opencode', sessionId: 'copy-session', cwd: '/repo', codexHome: null }
-      },
-      startup
-    )
+    const args = {
+      state,
+      session: {
+        agent: 'opencode' as const,
+        sessionId: 'copy-session',
+        cwd: '/repo',
+        codexHome: null,
+        executionHostId: 'local'
+      }
+    }
+    const startup = buildAiVaultCopiedSessionStartupForWorktree(args, 'opencode2')
+    const effective = await materializeAiVaultResumeForTest(args, startup)
     expect(effective.command).toContain("'--standalone'")
     expect(effective.command).toContain("'--model' 'synthetic-model'")
     expect(effective.env).toMatchObject({
@@ -83,7 +75,7 @@ describe('AI Vault OMP cold resume', () => {
         agent: 'omp' as const,
         executionHostId: 'local' as const,
         sessionId: 'omp-session-1',
-        filePath: '/custom/omp-sessions/project/session.jsonl',
+        filePath: String.raw`\\wsl$\Ubuntu\custom\omp-sessions\project\session.jsonl`,
         cwd: '/repo',
         codexHome: null
       }
@@ -97,10 +89,11 @@ describe('AI Vault OMP cold resume', () => {
     expect(selected).toMatchObject({
       resume: {
         recipe: { source: 'current-inputs' },
-        ompResumeFilePath: '/custom/omp-sessions/project/session.jsonl'
+        ompResumeFilePath: args.session.filePath
       }
     })
     const startup = await materializeAiVaultResumeForTest(args, selected)
+    expect(startup.command).not.toContain('wsl$')
 
     expect(startup).toMatchObject({
       command: "omp '--model' 'custom' '--resume' '/custom/omp-sessions/project/session.jsonl'",
@@ -157,16 +150,12 @@ describe('AI Vault OMP cold resume', () => {
 
     expect(record).toMatchObject({
       providerSession: { key: 'session_id', id: 'omp-session-1' },
-      launchConfig: {
-        agentEnv: { OMP_PROFILE: 'custom' },
-        ompResumeFilePath: '/custom/omp-sessions/project/session.jsonl'
-      },
+      launchConfig: startup.launchConfig,
       origin: 'quit'
     })
     expect(coldStartup).toMatchObject({
-      launchCommand:
-        "omp '--model' 'custom' '--resume' '/custom/omp-sessions/project/session.jsonl'",
-      env: { OMP_PROFILE: 'custom' }
+      launchCommand: startup.command,
+      env: startup.env
     })
   })
 })
