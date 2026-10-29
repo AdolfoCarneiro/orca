@@ -36,7 +36,9 @@ import {
   sweepJournalSavedState
 } from './journal-saved-state'
 import { backfillJournalState } from './journal-state-backfill'
+import * as journalRowTable from './journal-row-table'
 import { JournalStopMarks } from './journal-stop-marks'
+import { StructuredAgentSessionConversations } from '../agent-session-wire/structured-agent-session-conversations'
 import { readAgentSessionHistory } from '../agent-session-wire/agent-session-history-page'
 import { structuredAgentSessionStopping } from '../agent-session-wire/structured-agent-session-stopping'
 import { failLoadOnUnloadableJournal } from './journal-open-failure'
@@ -381,6 +383,84 @@ it('backfills a closed chat without changing rows and sweeps retired epochs', as
   sweepJournalSavedState(database)
   expect(database.db.prepare('SELECT 1 FROM journal_state').get()).toBeUndefined()
   expect(database.db.prepare('SELECT 1 FROM journal_items').get()).toBeUndefined()
+})
+
+it('paces closed-chat backfill with the default monotonic clock across calendar rollback', async () => {
+  const rows: JournalRow[] = [
+    { ...base(1), kind: 'epoch', reason: 'session_created', providerHandle }
+  ]
+  for (let revision = 1; revision <= 64; revision++) {
+    rows.push({
+      ...base(rows.length + 1),
+      kind: 'item',
+      itemId: itemId(1),
+      revision,
+      body: text(`revision ${revision}`)
+    })
+  }
+  write(rows)
+  const expected = requireState(replayJournal(database.db, identity.sessionId)?.state)
+  const retained = liveTestJournalRows(database.db, identity.sessionId)
+  const conversations = new StructuredAgentSessionConversations({
+    deliver: vi.fn(),
+    logger: { warn: vi.fn(), error: vi.fn() },
+    now: () => 0
+  })
+  const checkpointOpen = vi.spyOn(conversations, 'checkpointOpenJournal')
+  const pageRows: number[] = []
+  const readRows = journalRowTable.readJournalRowsAfter
+  const readPage = vi
+    .spyOn(journalRowTable, 'readJournalRowsAfter')
+    .mockImplementation((...args) => {
+      const page = readRows(...args)
+      pageRows.push(page.length)
+      return page
+    })
+  const calendar = vi.spyOn(Date, 'now').mockReturnValue(3_600_000)
+  let monotonic = -10
+  const elapsed = vi.spyOn(performance, 'now').mockImplementation(() => (monotonic += 10))
+  const progress: string[] = []
+  const marker = new Promise<void>((resolve) => {
+    setImmediate(() => {
+      progress.push('task')
+      resolve()
+    })
+  })
+  const rests: { ms: number; pageRows: number[] }[] = []
+  try {
+    const running = backfillJournalState({
+      database: () => database,
+      checkpointOpen: conversations.checkpointOpenJournal,
+      stopped: () => false,
+      rest: async (ms) => {
+        rests.push({ ms, pageRows: [...pageRows] })
+        progress.push('rest')
+        await new Promise<void>((resolve) => setImmediate(resolve))
+        progress.push('wake')
+      }
+    })
+    calendar.mockReturnValue(0)
+    await running
+    progress.push('complete')
+    expect(rests).toStrictEqual([{ ms: 270, pageRows: [32] }])
+    expect(progress).toEqual(['rest', 'task', 'wake', 'complete'])
+    expect(pageRows).toEqual([32, 32, 1])
+    expect(readPage.mock.calls.map((call) => [call[3], call[4]])).toEqual([
+      [Number.MIN_SAFE_INTEGER, 32],
+      [32, 32],
+      [64, 32]
+    ])
+    expect(checkpointOpen.mock.calls).toEqual([[identity.sessionId], [identity.sessionId]])
+    const saved = requireState(readJournalSavedState(database.db, identity.sessionId, epoch))
+    expect(saved.lastSequence).toBe(65)
+    expectSameState(saved, expected)
+    expect(retained).toHaveLength(65)
+    expect(liveTestJournalRows(database.db, identity.sessionId)).toStrictEqual(retained)
+  } finally {
+    elapsed.mockRestore()
+    calendar.mockRestore()
+    await marker
+  }
 })
 
 it.each(['settling', 'bound', 'failed'] as const)(

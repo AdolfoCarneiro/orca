@@ -25,7 +25,7 @@ const PAGE_ROWS = 32
 const SLICE_MS = 25
 
 export async function backfillJournalState(run: JournalStateBackfillRun): Promise<void> {
-  const now = run.now ?? Date.now
+  const now = run.now ?? (() => performance.now())
   const rest =
     run.rest ??
     ((ms) => new Promise<void>((resolve) => unrefJournalCheckpointTimer(setTimeout(resolve, ms))))
