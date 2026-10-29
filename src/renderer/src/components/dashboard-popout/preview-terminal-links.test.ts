@@ -85,7 +85,7 @@ function install(
     installPreviewTerminalLinks(terminal, {
       getSettings: () => ({
         openLinksInAppInBackground: config.background,
-        terminalRightClickToPaste: config.rightClickPaste
+        terminalRightClickToPaste: config.rightClickPaste ?? false
       }),
       linkRouting:
         config.actions === false
@@ -239,9 +239,12 @@ describe('preview terminal link routes', () => {
   it.each([10, 100])(
     'bounds real global pointer handlers/callbacks with %i retained SSH terminals',
     (population) => {
-      const add = EventTarget.prototype.addEventListener
-      const remove = EventTarget.prototype.removeEventListener
-      const observed = new Set(['mousemove', 'mouseup', 'blur'])
+      const element = document.createElement('div')
+      const ownerDocument = element.ownerDocument
+      const ownerWindow = ownerDocument.defaultView
+      if (!ownerWindow) {
+        throw new Error('Pointer fixture needs a document with a window')
+      }
       const records: {
         target: EventTarget
         type: string
@@ -249,65 +252,64 @@ describe('preview terminal link routes', () => {
         wrapped: EventListener
       }[] = []
       let callbacks = 0
-      vi.spyOn(EventTarget.prototype, 'addEventListener').mockImplementation(function (
-        this: EventTarget,
-        type,
-        listener,
-        options
-      ) {
-        if (listener && observed.has(type) && (this === document || this === window)) {
-          const wrapped: EventListener = (event) => {
-            callbacks++
-            if (typeof listener === 'function') {
-              listener.call(this, event)
-            } else {
-              listener.handleEvent(event)
+      const targets: EventTarget[] = [ownerDocument, ownerWindow]
+      for (const target of targets) {
+        const add = target.addEventListener
+        const remove = target.removeEventListener
+        vi.spyOn(target, 'addEventListener').mockImplementation((type, listener, options) => {
+          if (listener && ['mousemove', 'mouseup', 'blur'].includes(type)) {
+            const wrapped: EventListener = (event) => {
+              callbacks++
+              if (typeof listener === 'function') {
+                listener.call(target, event)
+              } else {
+                listener.handleEvent(event)
+              }
             }
+            records.push({ target, type, listener, wrapped })
+            add.call(target, type, wrapped, options)
+          } else {
+            add.call(target, type, listener, options)
           }
-          records.push({ target: this, type, listener, wrapped })
-          add.call(this, type, wrapped, options)
-        } else {
-          add.call(this, type, listener, options)
-        }
-      })
-      vi.spyOn(EventTarget.prototype, 'removeEventListener').mockImplementation(function (
-        this: EventTarget,
-        type,
-        listener,
-        options
-      ) {
-        const index = records.findIndex(
-          (r) => r.target === this && r.type === type && r.listener === listener
-        )
-        const record = records[index]
-        if (record) {
-          records.splice(index, 1)
-          remove.call(this, type, record.wrapped, options)
-        } else {
-          remove.call(this, type, listener, options)
-        }
-      })
+        })
+        vi.spyOn(target, 'removeEventListener').mockImplementation((type, listener, options) => {
+          const index = records.findIndex(
+            (record) =>
+              record.target === target && record.type === type && record.listener === listener
+          )
+          const record = records[index]
+          if (record) {
+            records.splice(index, 1)
+            remove.call(target, type, record.wrapped, options)
+          } else {
+            remove.call(target, type, listener, options)
+          }
+        })
+      }
       const start = disposers.length
       try {
         for (let i = 0; i < population; i++) {
-          install(undefined, { actions: false })
+          const retained = install(undefined, { actions: false })
+          expect(retained.element.ownerDocument).toBe(ownerDocument)
         }
-        document.dispatchEvent(new MouseEvent('mousemove'))
-        document.dispatchEvent(new MouseEvent('mouseup'))
-        window.dispatchEvent(new Event('blur'))
+        ownerDocument.dispatchEvent(new MouseEvent('mousemove'))
+        ownerDocument.dispatchEvent(new MouseEvent('mouseup'))
+        ownerWindow.dispatchEvent(new Event('blur'))
         expect(records).toHaveLength(0)
         expect(callbacks).toBe(0)
         const active = install()
+        expect(active.element.ownerDocument).toBe(ownerDocument)
+        expect(active.element.ownerDocument.defaultView).toBe(ownerWindow)
         expect(records).toHaveLength(3)
         active.element.dispatchEvent(new MouseEvent('mousedown'))
-        document.dispatchEvent(new MouseEvent('mousemove'))
+        ownerDocument.dispatchEvent(new MouseEvent('mousemove'))
         harness.web?.activate(new MouseEvent('click'), url)
         expect(active.request).toHaveBeenCalledOnce()
-        document.dispatchEvent(new MouseEvent('mouseup'))
-        window.dispatchEvent(new Event('blur'))
+        ownerDocument.dispatchEvent(new MouseEvent('mouseup'))
+        ownerWindow.dispatchEvent(new Event('blur'))
         expect(callbacks).toBe(3)
         active.element.dispatchEvent(new MouseEvent('mousedown'))
-        document.dispatchEvent(new MouseEvent('mousemove', { clientX: 20 }))
+        ownerDocument.dispatchEvent(new MouseEvent('mousemove', { clientX: 20 }))
         harness.web?.activate(new MouseEvent('click'), url)
         expect(active.request).toHaveBeenCalledOnce()
         disposers
@@ -316,9 +318,9 @@ describe('preview terminal link routes', () => {
           .forEach((dispose) => dispose())
         expect(records).toHaveLength(0)
         callbacks = 0
-        document.dispatchEvent(new MouseEvent('mousemove'))
-        document.dispatchEvent(new MouseEvent('mouseup'))
-        window.dispatchEvent(new Event('blur'))
+        ownerDocument.dispatchEvent(new MouseEvent('mousemove'))
+        ownerDocument.dispatchEvent(new MouseEvent('mouseup'))
+        ownerWindow.dispatchEvent(new Event('blur'))
         expect(callbacks).toBe(0)
       } finally {
         disposers

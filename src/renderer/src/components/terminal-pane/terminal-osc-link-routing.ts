@@ -1,4 +1,5 @@
 import { showFileLinkOpenFailureToast } from '@/lib/file-link-open-failure-toast'
+import { requestTerminalLinkAction } from './terminal-link-action-request'
 import { showFileLinkUnresolvedToast } from '@/components/native-chat/native-chat-file-link-toasts'
 import { resolveTerminalFileLink } from '../../../../shared/terminal-links'
 import { isWindowsAbsolutePathLike } from '../../../../shared/cross-platform-path'
@@ -123,7 +124,12 @@ export function handleOscLink(
         : null
   if (!file) {
     if (target?.kind === 'path') {
-      showFileLinkUnresolvedToast(target.link.pathText)
+      const report = (): void => showFileLinkUnresolvedToast(target.link.pathText)
+      if (isTerminalLinkDirectActivation(mouseEvent)) {
+        report()
+        return finish(true)
+      }
+      return finish(requestTerminalLinkAction(mouseEvent, deps.linkActionContext, report))
     }
     return false
   }

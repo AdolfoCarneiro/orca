@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { previewTerminalLinkContext } from './preview-terminal-link-context'
+import { terminalLinkClickBehaviorFor } from '@/components/terminal-pane/terminal-link-click-behavior'
 import { handleOscLink } from '@/components/terminal-pane/terminal-osc-link-routing'
 import { openDetectedFilePath } from '@/components/terminal-pane/terminal-file-open-routing'
 import type { TerminalLinkActionRequest } from '@/components/terminal-pane/terminal-link-action-request'
@@ -250,7 +251,8 @@ describe('preview source through OSC file opening', () => {
           ctrlKey: false,
           shiftKey: activation === 'modifier',
           type: activation === 'menu' ? 'contextmenu' : 'click',
-          button: activation === 'menu' ? 2 : 0
+          button: activation === 'menu' ? 2 : 0,
+          preventDefault: vi.fn()
         },
         {
           ...context,
@@ -287,6 +289,102 @@ describe('preview source through OSC file opening', () => {
       expect(harness.reveal).not.toHaveBeenCalled()
     }
   )
+
+  it('keeps ignored unresolved gestures silent and reports accepted preview/normal-pane actions once', () => {
+    harness.registered = false
+    const preview = previewTerminalLinkContext(source('ssh:box'))
+    const sources = [
+      { context: preview, target: 'src/main.ts:12', pathText: 'src/main.ts' },
+      {
+        context: { ...preview, startupCwd: '/workspace/package' },
+        target: '~/note.ts',
+        pathText: '~/note.ts'
+      }
+    ]
+    const cases: {
+      name: string
+      settings?: Parameters<typeof terminalLinkClickBehaviorFor>[0]
+      absent?: boolean
+      pointer?: boolean
+      claim?: boolean
+      modifier?: boolean
+      menu?: boolean
+      allowed: boolean
+      claims: number
+    }[] = [
+      {
+        name: 'disabled',
+        settings: { terminalLinkClickBehavior: 'none' },
+        allowed: false,
+        claims: 0
+      },
+      {
+        name: 'legacy disabled',
+        settings: { terminalLinkActionPopoverEnabled: false },
+        allowed: false,
+        claims: 0
+      },
+      { name: 'no requester', absent: true, allowed: false, claims: 0 },
+      { name: 'selection/drag', pointer: false, allowed: false, claims: 0 },
+      { name: 'claim denied', claim: false, allowed: false, claims: 1 },
+      { name: 'plain actions', allowed: true, claims: 1 },
+      {
+        name: 'plain open',
+        settings: { terminalLinkClickBehavior: 'open' },
+        allowed: true,
+        claims: 1
+      },
+      { name: 'modifier', absent: true, modifier: true, allowed: true, claims: 0 },
+      {
+        name: 'contextmenu disabled',
+        settings: { terminalLinkClickBehavior: 'none' },
+        menu: true,
+        pointer: false,
+        allowed: true,
+        claims: 1
+      },
+      { name: 'contextmenu claim denied', menu: true, claim: false, allowed: false, claims: 1 }
+    ]
+    for (const { context, target, pathText } of sources) {
+      for (const activation of cases) {
+        harness.unresolved.mockClear()
+        const pointer = vi.fn(() => activation.pointer !== false)
+        const claim = vi.fn(() => activation.claim !== false)
+        const request = vi.fn()
+        const handled = handleOscLink(
+          target,
+          {
+            metaKey: activation.modifier ?? false,
+            ctrlKey: false,
+            type: activation.menu ? 'contextmenu' : 'click',
+            button: activation.menu ? 2 : 0,
+            preventDefault: vi.fn()
+          },
+          {
+            ...context,
+            linkActionContext: activation.absent
+              ? null
+              : {
+                  paneId: 0,
+                  pointerGesture: { canRequestAction: pointer, dispose: vi.fn() },
+                  claimPtyMouse: claim,
+                  request,
+                  focusTerminal: vi.fn(),
+                  plainClickBehavior: terminalLinkClickBehaviorFor(activation.settings)
+                }
+          }
+        )
+        expect(handled, activation.name).toBe(activation.allowed)
+        expect(harness.unresolved.mock.calls, activation.name).toEqual(
+          activation.allowed ? [[pathText]] : []
+        )
+        expect(request, activation.name).not.toHaveBeenCalled()
+        expect(claim.mock.calls.length, activation.name).toBe(activation.claims)
+      }
+    }
+    expect(harness.stat).not.toHaveBeenCalled()
+    expect(harness.open).not.toHaveBeenCalled()
+  })
 
   it.each(['absent', 'mismatched', 'missing-inputs'] as const)(
     'refuses unknown relative/home bases for %s sources while opening genuine absolute paths',

@@ -48,7 +48,7 @@ type LinkActionDetails = Pick<
 export function requestTerminalLinkAction(
   event: MouseEvent | undefined,
   context: TerminalLinkActionContext | null | undefined,
-  details: LinkActionDetails
+  details: LinkActionDetails | (() => void)
 ): boolean {
   const contextMenu = event && isTerminalLinkContextMenuActivation(event)
   if (
@@ -68,6 +68,10 @@ export function requestTerminalLinkAction(
     return false
   }
   event.preventDefault()
+  if (typeof details === 'function') {
+    details()
+    return true
+  }
   const middleClick = isTerminalMiddleClickActivation(event)
   if (
     !contextMenu &&
