@@ -79,8 +79,45 @@ export function normalizeHtmlText(text: string): string {
   return decodeHtmlEntities(text).replace(/\s+/g, ' ').trim()
 }
 
+// The named entities page titles and descriptions use; numeric references cover the rest.
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: '\u00a0',
+  ndash: '\u2013',
+  mdash: '\u2014',
+  hellip: '\u2026',
+  lsquo: '\u2018',
+  rsquo: '\u2019',
+  sbquo: '\u201a',
+  ldquo: '\u201c',
+  rdquo: '\u201d',
+  bdquo: '\u201e',
+  laquo: '\u00ab',
+  raquo: '\u00bb',
+  lsaquo: '\u2039',
+  rsaquo: '\u203a',
+  middot: '\u00b7',
+  bull: '\u2022',
+  copy: '\u00a9',
+  reg: '\u00ae',
+  trade: '\u2122',
+  times: '\u00d7',
+  deg: '\u00b0',
+  euro: '\u20ac',
+  pound: '\u00a3',
+  yen: '\u00a5',
+  cent: '\u00a2',
+  sect: '\u00a7',
+  para: '\u00b6',
+  rarr: '\u2192',
+  larr: '\u2190'
+}
+
 export function decodeHtmlEntities(text: string): string {
-  const named: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (entity, body: string) => {
     if (body[0] === '#') {
       const code =
@@ -91,6 +128,6 @@ export function decodeHtmlEntities(text: string): string {
         ? String.fromCodePoint(code)
         : entity
     }
-    return named[body.toLowerCase()] ?? entity
+    return NAMED_ENTITIES[body] ?? NAMED_ENTITIES[body.toLowerCase()] ?? entity
   })
 }
