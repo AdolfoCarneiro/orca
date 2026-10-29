@@ -73,12 +73,14 @@ export function createOrcaI18n(options: {
   return {
     i18n,
     translate: (key, fallback, translateOptions) => {
-      const { defaultValue_one: one, ...rest } = translateOptions ?? {}
+      const { defaultValue_one: one, count, ...others } = translateOptions ?? {}
+      // A pass-through `count: undefined` must interpolate like an absent count.
+      const rest = count === undefined ? others : { ...others, count }
       // i18next would pick the English default by the active language's rule (ru 21 -> _one); English text needs English's.
       const defaultValue =
         typeof one === 'string' &&
-        typeof rest.count === 'number' &&
-        ENGLISH_PLURAL_RULES.select(rest.count) === 'one'
+        typeof count === 'number' &&
+        ENGLISH_PLURAL_RULES.select(count) === 'one'
           ? one
           : fallback
       const value = i18n.t(resolvePluralFamilyKey(key, rest), { defaultValue, ...rest })
