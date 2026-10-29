@@ -55,7 +55,7 @@ function sameFileIdentity(opened: Stats, current: Stats): boolean {
   return opened.dev === current.dev && opened.ino === current.ino
 }
 
-async function openAuthorizedDocPreviewTarget(
+export async function openAuthorizedDocPreviewTarget(
   request: DocPreviewFileAccessRequest
 ): Promise<{ handle: FileHandle; canonicalTarget: string }> {
   const [canonicalBoundary, canonicalEntry, canonicalTarget, canonicalImplicitRoot] =

@@ -1,3 +1,7 @@
+import {
+  nativeChatTextAttachmentParts,
+  chatTextAttachmentName
+} from '../../../../../src/shared/native-chat-text-attachment-references'
 import { memo, useCallback, useContext, useLayoutEffect, useMemo, useRef } from 'react'
 import { Text, View } from 'react-native'
 import { INLINE_TEXT_SELECTION } from '../../../components/inline-text-selection'
@@ -243,7 +247,32 @@ function MobileNativeChatMessageImpl({
         open={subagentGroupsOpen?.has(block.groupId) === true}
         onToggle={onToggleSubagentGroup}
       />
-    ) : isSystem ? null : (
+    ) : isSystem ? null : isUser && structuredActivityUi && isTextBlock(block) ? (
+      <View key={index}>
+        {nativeChatTextAttachmentParts(text, true).map((part, partIndex) =>
+          part.path ? (
+            <Text
+              key={partIndex}
+              accessibilityRole="button"
+              onPress={() => onOpenFile?.(part.path!)}
+              style={styles.agentAttribution}
+            >
+              {chatTextAttachmentName(part.path)}
+            </Text>
+          ) : (
+            <Prose
+              key={partIndex}
+              block={block}
+              userMessage
+              fontScale={fontScale}
+              onOpenFile={onOpenFile}
+              onLongPress={onLongPress}
+              text={part.text}
+            />
+          )
+        )}
+      </View>
+    ) : (
       <Prose
         key={index}
         block={block}

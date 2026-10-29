@@ -388,7 +388,9 @@ export function MobileNativeChatView({
       {trayContent}
       <MobileNativeChatDraftComposer
         draftScopeKey={composerScopeKey}
-        structured={structuredActivityUi ? structuredComposer : null}
+        structured={
+          structuredActivityUi && structuredComposer ? { ...structuredComposer, onOpenFile } : null
+        }
         draftKey={draftKey}
         onChangeText={onComposerTextChange}
         onSend={handleSend}

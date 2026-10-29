@@ -1,5 +1,7 @@
 // Per-upload directories preserve original filenames without collisions; atomic commit hides partial bytes.
 
+import { readAttachmentTextChunk } from './agent-session-attachment-text-read'
+import type { AttachmentTextRequest } from '../../../shared/attachment-text-source'
 import { randomUUID } from 'node:crypto'
 import { constants, createWriteStream } from 'node:fs'
 import { appendFile, lstat, mkdir, open, rm, writeFile } from 'node:fs/promises'
@@ -238,6 +240,10 @@ export class AgentSessionAttachmentStore {
   }
 
   /** Refuse out-of-store paths and previews exceeding the remote reply budget. */
+  readTextChunk(request: AttachmentTextRequest, maxContentBytes?: number) {
+    return readAttachmentTextChunk(this.rootDir, request, maxContentBytes)
+  }
+
   async readPreview(filePath: string, maxContentBytes?: number): Promise<RuntimeFilePreviewResult> {
     if (
       !IMAGE_FILE_MIME_TYPES[extname(filePath).toLowerCase()] ||

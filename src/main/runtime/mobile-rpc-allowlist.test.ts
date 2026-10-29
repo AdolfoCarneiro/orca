@@ -238,7 +238,8 @@ describe('mobile RPC allowlist', () => {
       'agentSessionAttachment.uploadAppend',
       'agentSessionAttachment.uploadCommit',
       'agentSessionAttachment.uploadAbort',
-      'agentSessionAttachment.read'
+      'agentSessionAttachment.read',
+      'agentSessionAttachment.readTextChunk'
     ])
   })
 })

@@ -330,6 +330,7 @@ export function NativeChatMessageList({
   const rowContext = useNativeChatTranscriptRowContext({
     agent: session.agent,
     hostWork,
+    structuredAttachments: journalItems !== undefined,
     expandSignal,
     revealedDiff,
     taskListPredecessors,

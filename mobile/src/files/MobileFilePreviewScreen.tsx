@@ -1,3 +1,4 @@
+import { MobileChatAttachmentPreview } from './MobileChatAttachmentPreview'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Pressable, Text, View } from 'react-native'
 import { SafeAreaView, useSafeAreaFrame } from 'react-native-safe-area-context'
@@ -38,6 +39,14 @@ type Props = {
 }
 
 export function MobileFilePreviewScreen({ route }: Props) {
+  return route.ok && route.params.source === 'chatAttachment' ? (
+    <MobileChatAttachmentPreview key={JSON.stringify(route.params)} params={route.params} />
+  ) : (
+    <WorkspaceFilePreviewScreen route={route} />
+  )
+}
+
+function WorkspaceFilePreviewScreen({ route }: Props) {
   useMobileColorScheme()
   // Use the shared route handoff to keep this screen within the bundle asset budget.
   const router = useWorkspaceRouteHandoff()
