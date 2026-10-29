@@ -24,6 +24,7 @@ import {
   CODEX_WORKING_TITLE,
   CURSOR_IDLE_TITLE,
   createMailPaneAgent,
+  type MailPaneAgentOptions,
   type MailPaneAgent
 } from './helpers/orchestration-mail-pane-agent'
 import {
@@ -52,9 +53,7 @@ type MailFixture = {
   client: RuntimeClient
   userDataDir: string
   worktreeId: string
-  openAgentPane: (options?: {
-    titleOnStdin?: { needle: string; title: string }
-  }) => Promise<AgentPane>
+  openAgentPane: (options?: MailPaneAgentOptions) => Promise<AgentPane>
 }
 
 type WaitingCheck = RuntimeRpcSuccess<{
@@ -101,9 +100,7 @@ async function setUpMailFixture(
     )
     .toBe(true)
 
-  const openAgentPane = async (options?: {
-    titleOnStdin?: { needle: string; title: string }
-  }): Promise<AgentPane> => {
+  const openAgentPane: MailFixture['openAgentPane'] = async (options) => {
     // Reuse the mounted leaf that push delivery resolves its target through.
     const ptyId = await waitForActivePanePtyId(orcaPage)
     const { paneKey } = await waitForActivePaneHookDescriptor(orcaPage)
@@ -258,13 +255,14 @@ test.describe('orchestration push-on-idle mail delivery', () => {
       .toBe('pushed')
   })
 
-  test('holds mail while the agent is working and releases it on the idle frame', async ({
+  test('holds mail while an unrecognized program is working and releases it on the idle frame', async ({
     orcaPage,
     electronApp
   }) => {
     test.setTimeout(180_000)
     const { client, userDataDir, openAgentPane } = await setUpMailFixture(orcaPage, electronApp)
-    const pane = await openAgentPane()
+    // A recognized agent takes mid-turn mail (orchestration-follows-terminal-across-remount.spec.ts).
+    const pane = await openAgentPane({ executable: null })
     pane.agent.setTitle(CODEX_WORKING_TITLE)
     await waitForObservedTitle(client, pane.handle, CODEX_WORKING_TITLE)
     const mailbox = await createRunMailbox(client, pane, 'Held while working')
@@ -630,7 +628,7 @@ test.describe('orchestration push-on-idle mail delivery', () => {
   }) => {
     test.setTimeout(180_000)
     const { client, openAgentPane } = await setUpMailFixture(orcaPage, electronApp)
-    const pane = await openAgentPane()
+    const pane = await openAgentPane({ executable: 'cursor-agent' })
     pane.agent.setTitle(CURSOR_IDLE_TITLE)
     await waitForObservedTitle(client, pane.handle, CURSOR_IDLE_TITLE)
     const mailbox = await createRunMailbox(client, pane, 'Cursor pointer submit')
