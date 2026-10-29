@@ -19323,8 +19323,8 @@
       "resumeInNewChat": {
         "hostUpdateRequired": "Mettez à jour Orca sur cet hôte pour continuer dans l'interface de chat.",
         "notSavedYet": "{{agent}} n'a pas encore enregistré cette conversation. Réessayez après sa réponse.",
-        "exitUnconfirmedFromTerminal": "{{agent}} exécute déjà cette conversation dans un autre terminal. Quittez {{agent}} là-bas ou fermez ce terminal, puis ouvrez cette conversation depuis l’historique des sessions.",
-        "exitUnconfirmed": "{{agent}} exécute déjà cette conversation dans un autre terminal. Quittez {{agent}} là-bas ou fermez ce terminal, puis ouvrez cette conversation depuis l’historique des sessions."
+        "exitUnconfirmedFromTerminal": "Orca n’a pas pu confirmer l’arrêt de {{agent}} dans ce terminal. Quittez {{agent}} ici, puis réessayez cette action.",
+        "exitUnconfirmed": "Orca n’a pas pu confirmer l’arrêt de {{agent}}. Quittez {{agent}} dans son terminal, puis réessayez cette action."
       },
       "state": {
         "loading": {
@@ -19848,9 +19848,9 @@
     "tab": {
       "bar": {
         "SortableTabContextMenu": {
-          "switchToTerminalView": "Afficher en terminal",
+          "switchToTerminalView": "Continuer avec l’agent de terminal",
           "switchToChatView": "Afficher en chat",
-          "closeTabsToLeft": "Fermer tous les onglets à gauche"
+          "showAsTerminal": "Afficher en terminal"
         },
         "switch": {
           "toCli": "Passer à la CLI",
@@ -19860,10 +19860,7 @@
           "toNativeChatTooltip": "Passer au chat natif : poursuit la même conversation dans un chat, dans cet onglet.",
           "exitAgentFirst": "Quittez {{agent}} dans ce terminal pour basculer.",
           "waitForReply": "Attendez la fin de la réponse ou arrêtez-la, puis basculez.",
-          "stopUnconfirmed": "Impossible de confirmer l'arrêt de {{agent}}. Réessayez.",
-          "failed": "Impossible de basculer cette conversation vers la CLI.",
-          "noConversation": "Aucune conversation enregistrée n’est encore disponible dans ce terminal.",
-          "unavailable": "Le changement de {{agent}} n’est pas encore disponible."
+          "noConversation": "Aucune conversation enregistrée n’est encore disponible dans ce terminal."
         },
         "BrowserTab": {
           "closeOthers": "Fermer les autres",

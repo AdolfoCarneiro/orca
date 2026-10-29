@@ -176,20 +176,14 @@ export abstract class OrcaRuntimeWithRestoreStructuredAgentSessionTabsOnce exten
     })
     if (activate) {
       input.check?.()
-      if (!this.getAvailableAuthoritativeWindow()) {
-        const session = this.getWorkspaceSessionForWorktree(input.workspaceId)
-        const next =
-          session &&
-          withSelectedChatTab(
-            this.getWorkspaceSessionHostIdForWorktree(input.workspaceId),
-            session,
-            input.workspaceId,
-            input.sessionId
-          )
-        if (next) {
-          this.setWorkspaceSessionForWorktree(input.workspaceId, next)
-        }
-      }
+      this.commitWindowlessChatSession(input.workspaceId, (session) =>
+        withSelectedChatTab(
+          this.getWorkspaceSessionHostIdForWorktree(input.workspaceId),
+          session,
+          input.workspaceId,
+          input.sessionId
+        )
+      )
       if (input.focusWindow !== false) {
         this.notifier?.focusEditorTab?.(
           input.tabId ??

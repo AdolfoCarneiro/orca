@@ -1888,8 +1888,7 @@
           "sourceKept": "{{agent}} opened successfully. The original tab was kept; continue in the new tab."
         },
         "SortableTabContextMenu": {
-          "closeTabsToLeft": "Close All Tabs To The Left",
-          "switchToTerminalView": "Show as terminal"
+          "switchToTerminalView": "Continue with Terminal Agent"
         }
       }
     },

@@ -19494,7 +19494,7 @@
       "resumeInNewChat": {
         "hostUpdateRequired": "Update Orca on this host to continue in Chat UI.",
         "exitUnconfirmedFromTerminal": "Orca could not confirm {{agent}} stopped in this terminal. Quit {{agent}} here, then try this action again.",
-        "exitUnconfirmed": "Orca could not confirm {{agent}} stopped in this terminal. Quit {{agent}} here, then try this action again.",
+        "exitUnconfirmed": "Orca could not confirm {{agent}} stopped. Quit {{agent}} in its terminal, then try this action again.",
         "notSavedYet": "{{agent}} hasn't saved this conversation yet. Try again after it replies."
       },
       "state": {
@@ -19898,9 +19898,9 @@
     "tab": {
       "bar": {
         "SortableTabContextMenu": {
-          "switchToTerminalView": "Show as terminal",
+          "switchToTerminalView": "Continue with Terminal Agent",
           "switchToChatView": "Show as chat",
-          "closeTabsToLeft": "Close All Tabs To The Left"
+          "showAsTerminal": "Show as terminal"
         },
         "switch": {
           "toCli": "Switch to CLI",
@@ -19908,12 +19908,8 @@
           "toCliTooltip": "Switch to CLI: stops {{agent}} in native chat and continues the same conversation in a terminal.",
           "openedInWorkspace": "Opened chat in {{workspace}}.",
           "toNativeChatTooltip": "Switch to native chat: continues the same conversation in a chat, in this tab.",
-          "stopUnconfirmed": "Couldn't confirm {{agent}} stopped. Try again.",
-          "failed": "Couldn't switch this conversation to the CLI.",
           "noConversation": "No saved conversation is available in this terminal yet.",
-          "unavailable": "Switching {{agent}} is not available yet.",
           "openElsewhere": "{{agent}} is open in another chat or terminal. Continue there, then try switching again.",
-          "unavailableNow": "Switching {{agent}} is unavailable for this chat now. You can keep using chat.",
           "stopUnknown": "Orca could not confirm {{agent}} stopped. Check its open chats and terminals, then try switching again.",
           "sourceStopUnknown": "Orca could not confirm {{agent}} stopped. Check {{agent}} in the original terminal, then try switching again.",
           "stopAndSwitchTitle": "{{agent}} is replying. Stop it and switch?",

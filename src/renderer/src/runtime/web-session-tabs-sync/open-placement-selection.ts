@@ -6,6 +6,7 @@ import { deriveActiveSurfaceForWorktree } from '../../store/slices/tabs/tabs-sur
 import { executionHostIdForSessionTabsOwner } from '../local-structured-session-owner'
 import type { SnapshotOpenPlacement } from './open-placement'
 import type { WebSessionTabsSyncState } from './state'
+import { snapshotOpenSelectionRecords } from './store-patch'
 
 /** Membership and original-view admission share one synchronous ordinary snapshot transaction. */
 export function applySnapshotOpenSelection(
@@ -37,11 +38,7 @@ export function applySnapshotOpenSelection(
   return {
     ...patch,
     ...activation,
-    activeTabIdByWorktree: { ...next.activeTabIdByWorktree, [worktreeId]: surface.activeTabId },
-    activeTabTypeByWorktree: {
-      ...next.activeTabTypeByWorktree,
-      [worktreeId]: surface.activeTabType
-    },
+    ...snapshotOpenSelectionRecords(next, worktreeId, surface),
     ...(isFloatingWorkspaceId(worktreeId)
       ? {}
       : {

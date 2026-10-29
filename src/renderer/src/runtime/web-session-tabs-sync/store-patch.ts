@@ -33,6 +33,20 @@ import {
   type HostSessionMirrorSettle
 } from './mirror-settle'
 
+export function snapshotOpenSelectionRecords(
+  state: WebSessionTabsSyncState,
+  worktreeId: string,
+  surface: Pick<WebSessionTabsSyncState, 'activeTabId' | 'activeTabType'>
+): Pick<WebSessionTabsSyncState, 'activeTabIdByWorktree' | 'activeTabTypeByWorktree'> {
+  return {
+    activeTabIdByWorktree: { ...state.activeTabIdByWorktree, [worktreeId]: surface.activeTabId },
+    activeTabTypeByWorktree: {
+      ...state.activeTabTypeByWorktree,
+      [worktreeId]: surface.activeTabType
+    }
+  }
+}
+
 /** Commit a reconciliation patch and return a receipt for its host evidence. */
 export function applyWebSessionTabsStorePatch(
   buildPatch: (

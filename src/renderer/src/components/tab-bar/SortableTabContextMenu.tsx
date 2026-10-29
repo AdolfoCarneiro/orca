@@ -174,7 +174,7 @@ export function SortableTabContextMenu({
             <DropdownMenuItem onSelect={onToggleViewMode}>
               <SquareTerminal className="size-3.5 shrink-0" />
               {translate(
-                'components.tab.bar.SortableTabContextMenu.switchToTerminalView',
+                'components.tab.bar.SortableTabContextMenu.showAsTerminal',
                 'Show as terminal'
               )}
             </DropdownMenuItem>

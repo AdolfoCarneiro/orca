@@ -1,25 +1,23 @@
-import { writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import * as cliTranscript from '../../src/main/ai-vault/structured-chat-cli-fork'
+import { prepareReadableSwitchSource } from './helpers/native-chat-switch-readable-source'
 import { createRestTestRig } from '../../src/main/native-chat/agent-session-wire/structured-agent-session-rest-test-rig'
-import {
-  createTestParams,
-  CREATE_TEST_CALLER
-} from '../../src/main/native-chat/agent-session-wire/structured-agent-session-create-test-fixture'
 import { HOST_TEST_SESSION } from '../../src/main/native-chat/agent-session-wire/structured-agent-session-host-test-data'
 import { setStructuredAgentSessionHost } from '../../src/main/native-chat/agent-session-wire/structured-agent-session-registry'
 import {
   setupMainOwnedWorkspace,
-  WORKTREE_ID
+  WORKTREE_ID,
+  TAB_ID,
+  LEAF_A,
+  PTY_A
 } from '../../src/main/runtime/main-owned-workspace-runtime-fixture'
 import { executeStructuredSessionSwitch } from '../../src/main/runtime/rpc/methods/structured-agent-session-switch-execution'
-import { structuredAgentRuntimeMetadata } from '../../src/main/runtime/structured-agent-runtime-metadata'
-import { agentSessionProviderHandleChainHead } from '../../src/shared/agent-session-provider-handle'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { agentSessionRefusalError } from '../../src/shared/agent-session-wire-refusals'
+import { RuntimeRpcCallError } from '@/runtime/runtime-rpc-result'
 import { beginSwitchPresentation } from '@/lib/conversation-switch-presentation'
 import { NativeChatStructuredSession } from '../../src/renderer/src/components/native-chat/NativeChatStructuredSession'
+import { ConfirmationDialogProvider } from '@/components/confirmation-dialog'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import {
   stubLayout,
   stubResizeObserver,
@@ -100,7 +98,7 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 it.each(['readable', 'refused', 'unmounted'] as const)(
-  'acknowledges the real cold root only after its first history is %s',
+  'completes one physical switch independently of slow provider readiness and renderer history: %s',
   async (outcome) => {
     const restoreLayout = stubLayout()
     const restoreResize = stubResizeObserver()
@@ -118,91 +116,78 @@ it.each(['readable', 'refused', 'unmounted'] as const)(
     }))
     const rig = await createRestTestRig({ idleSweep: { intervalMs: 60_000 } })
     disposals.push(rig.dispose)
-    const params = createTestParams()
-    await rig.host.create(
-      CREATE_TEST_CALLER,
-      createTestParams(undefined, {
-        location: { ...params.location, workspaceId: WORKTREE_ID }
-      })
-    )
     setStructuredAgentSessionHost(rig.host)
-    await rig.host.switchToChat(HOST_TEST_SESSION)
-    await rig.host.switchToTerminal(HOST_TEST_SESSION)
-    rig.adapter.acquire.mockClear()
-    const record = rig.store.getRecord(HOST_TEST_SESSION)!
-    const head = agentSessionProviderHandleChainHead(record.providerHandleChain)!
-    const nativeId = head.handle.nativeId
-    const filePath = join(rig.root, 'readable.jsonl')
-    await writeFile(
-      filePath,
-      `${[
-        { type: 'session_meta', payload: { id: nativeId } },
-        { type: 'event_msg', payload: { type: 'task_started', turn_id: 'terminal-turn' } },
-        {
-          type: 'response_item',
-          payload: {
-            type: 'message',
-            role: 'assistant',
-            content: [{ type: 'output_text', text: 'Readable before Codex is ready' }]
-          }
-        },
-        { type: 'event_msg', payload: { type: 'task_complete', turn_id: 'terminal-turn' } }
-      ]
-        .map((row) => JSON.stringify({ timestamp: '2026-10-26T12:00:00Z', ...row }))
-        .join('\n')}\n`
-    )
-    // External lookup is the I/O boundary; import, journal, command, receipt and root stay real.
-    vi.spyOn(cliTranscript, 'resolveStructuredChatCliSource').mockResolvedValue({
-      host: rig.host,
-      record,
-      head,
-      agent: 'codex',
-      cwd: rig.root,
-      providerSessionId: nativeId,
-      metadata: structuredAgentRuntimeMetadata('codex')!,
-      requireCurrent: () => {
-        const current = rig.store.requireWritableRecord(record.sessionId)
-        expect(current.location).toEqual(record.location)
-        expect(agentSessionProviderHandleChainHead(current.providerHandleChain)?.linkId).toBe(
-          head.linkId
-        )
-      }
+    await prepareReadableSwitchSource(rig, WORKTREE_ID)
+    const { runtime, session } = setupMainOwnedWorkspace()
+    const incarnationId = '11111111-1111-4111-8111-111111111111'
+    runtime.registerPty(PTY_A, WORKTREE_ID, null, { tabId: TAB_ID, leafId: LEAF_A, incarnationId })
+    const source = runtime.resolveTerminalPane(`${TAB_ID}:${LEAF_A}`, WORKTREE_ID)
+    if (!source.presentation) {
+      throw new Error('missing captured source')
+    }
+    const exit = Promise.withResolvers<void>()
+    const stopping = Promise.withResolvers<void>()
+    disposals.unshift(async () => exit.resolve())
+    const stopped = vi.fn(async (ptyId: string) => {
+      expect(ptyId).toBe(PTY_A)
+      stopping.resolve()
+      await exit.promise
+      await runtime.onPtyExit(PTY_A, 0, incarnationId, { hostExitConfirmed: true })
+      return true
     })
-    vi.spyOn(cliTranscript, 'prepareStructuredChatCliTranscript').mockResolvedValue({
-      useRealCodexHome: false,
-      cliForkSource: {
-        agent: 'codex',
-        sourceAgent: 'codex',
-        sessionId: nativeId,
-        filePath,
-        cwd: rig.root,
-        codexHome: null,
-        executionHostPlatform: process.platform
-      }
+    runtime.setPtyController({
+      write: () => true,
+      kill: () => false,
+      stopAndWait: stopped,
+      getForegroundProcess: async () => 'codex'
     })
-    const { runtime } = setupMainOwnedWorkspace()
-    vi.spyOn(runtime, 'inspectTerminalProcess').mockResolvedValue({
-      foregroundProcess: 'zsh',
-      hasChildProcesses: false,
-      childProcessEvidence: 'no-children',
-      switchWitness: 'before-probe'
+    const acquire = rig.adapter.acquire.getMockImplementation()
+    if (!acquire) {
+      throw new Error('missing provider acquisition')
+    }
+    const provider = Promise.withResolvers<void>()
+    disposals.unshift(async () => provider.resolve())
+    const providerReady = vi.fn()
+    rig.adapter.acquire.mockImplementation(async (...args) => {
+      await provider.promise
+      const acquired = await acquire(...args)
+      providerReady()
+      return acquired
     })
-    vi.spyOn(runtime, 'publishStructuredAgentSessionTab').mockImplementation(async (input) => {
-      input.check?.()
-      await rig.store.setSessionTabVisibility(HOST_TEST_SESSION, true)
-    })
-    const close = vi.spyOn(runtime, 'closeSwitchedSourceTerminal').mockResolvedValue(true)
+    const publish = vi.spyOn(runtime, 'publishStructuredAgentSessionTab')
     const invocation = {
       sessionId: HOST_TEST_SESSION,
       execution: {
         invocationId: 'root-readable',
-        source: { terminal: 'source', expectedIncarnationId: 'source-incarnation' }
+        source: {
+          terminal: source.handle,
+          expectedIncarnationId: incarnationId,
+          originalPresentation: source.presentation
+        }
       }
     }
-    const viewResult = await executeStructuredSessionSwitch(invocation, { runtime }, 'chat')
-    if (viewResult.status !== 'present') {
-      throw new Error('missing presentation')
-    }
+    const operation = executeStructuredSessionSwitch(invocation, { runtime }, 'chat')
+    await Promise.race([
+      stopping.promise,
+      operation.then((result) => {
+        throw new Error(`switch finished before physical Stop: ${JSON.stringify(result)}`)
+      })
+    ])
+    expect(publish).not.toHaveBeenCalled()
+    expect(rig.adapter.acquire).not.toHaveBeenCalled()
+    exit.resolve()
+    const completed = await operation
+    expect(completed).toEqual({ status: 'completed', sessionId: HOST_TEST_SESSION })
+    expect(stopped).toHaveBeenCalledOnce()
+    expect(publish).toHaveBeenCalledOnce()
+    expect(session().tabsByWorktree[WORKTREE_ID]).toEqual([])
+    expect(session().unifiedTabs?.[WORKTREE_ID]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ entityId: HOST_TEST_SESSION, contentType: 'agent-session' })
+      ])
+    )
+    await vi.waitFor(() => expect(rig.adapter.acquire).toHaveBeenCalledOnce())
+    expect(providerReady).not.toHaveBeenCalled()
     const page = await rig.host.history({ sessionId: HOST_TEST_SESSION, direction: 'tail' })
     if (!page.ok || !page.page.liveCursor) {
       throw new Error('missing imported history')
@@ -216,30 +201,19 @@ it.each(['readable', 'refused', 'unmounted'] as const)(
       return { ok: true, models: [], current: { model: '' } }
     })
     const visit = beginSwitchPresentation({ kind: 'local' }, HOST_TEST_SESSION)
-    const shown = vi.fn()
-    const completion = visit.shown.then(async (readable) => {
-      shown(readable)
-      return executeStructuredSessionSwitch(
-        {
-          ...invocation,
-          execution: {
-            ...invocation.execution,
-            receipt: { generation: viewResult.generation, shown: readable }
-          }
-        },
-        { runtime },
-        'chat'
-      )
-    })
     const view = render(
-      <NativeChatStructuredSession
-        isVisible
-        isFocusedGroup
-        tabId="cold-tab"
-        sessionId={HOST_TEST_SESSION}
-        target={{ kind: 'local' }}
-        agent="codex"
-      />
+      <ConfirmationDialogProvider>
+        <TooltipProvider>
+          <NativeChatStructuredSession
+            isVisible
+            isFocusedGroup
+            tabId="cold-tab"
+            sessionId={HOST_TEST_SESSION}
+            target={{ kind: 'local' }}
+            agent="codex"
+          />
+        </TooltipProvider>
+      </ConfirmationDialogProvider>
     )
     await waitFor(() =>
       expect(mocks.call).toHaveBeenCalledWith(
@@ -248,9 +222,9 @@ it.each(['readable', 'refused', 'unmounted'] as const)(
         expect.anything()
       )
     )
-    expect(shown).not.toHaveBeenCalled()
-    expect(rig.adapter.acquire).not.toHaveBeenCalled()
-    expect(close).not.toHaveBeenCalled()
+    expect(visit.mounted).toBe(true)
+    expect(visit.visible).toBe(true)
+    expect(providerReady).not.toHaveBeenCalled()
     expect(screen.getByRole('status', { name: 'Loading chat' })).toBeTruthy()
     if (outcome === 'unmounted') {
       view.unmount()
@@ -258,43 +232,48 @@ it.each(['readable', 'refused', 'unmounted'] as const)(
     await act(async () =>
       outcome === 'refused'
         ? read.reject(
-            agentSessionRefusalError('agent_session_journal_unreadable', {
-              reason: 'journalCorrupt'
+            new RuntimeRpcCallError({
+              id: 'history-read',
+              ok: false,
+              error: {
+                code: 'runtime_error',
+                message: 'agent_session_journal_unreadable',
+                data: {
+                  refusal: agentSessionRefusalError('agent_session_journal_unreadable', {
+                    reason: 'journalCorrupt'
+                  }).refusal
+                }
+              }
             })
           )
         : read.resolve(page)
     )
-    await waitFor(() => {
-      act(() => {
-        deliverResizes()
-      })
-      expect(shown).toHaveBeenCalledExactlyOnceWith(outcome === 'readable')
-    })
-    const opened = await completion
     if (outcome === 'readable') {
-      expect(screen.getByText('Readable before Codex is ready')).toBeTruthy()
-      expect(opened).toMatchObject({ status: 'completed', startupPending: true })
-      await executeStructuredSessionSwitch(
-        {
-          ...invocation,
-          execution: {
-            ...invocation.execution,
-            observe: true
-          }
-        },
-        { runtime },
-        'chat'
-      )
-      expect(rig.adapter.acquire).toHaveBeenCalledOnce()
-      expect(close).toHaveBeenCalledOnce()
-    } else {
-      expect(opened).toMatchObject({
-        status: 'uncertain',
-        refusal: { details: { reason: 'tabUnconfirmed' } }
+      await waitFor(() => {
+        act(() => deliverResizes())
+        expect(screen.getByText('Readable before Codex is ready')).toBeTruthy()
+        expect(visit.presentedItems.size).toBeGreaterThan(0)
       })
-      expect(rig.adapter.acquire).not.toHaveBeenCalled()
-      expect(close).not.toHaveBeenCalled()
+    } else if (outcome === 'refused') {
+      await waitFor(() => expect(screen.getByText('Unable to load this chat.')).toBeTruthy())
+      expect(screen.queryByText('Readable before Codex is ready')).toBeNull()
+    } else {
+      expect(visit.mounted).toBe(true)
+      expect(visit.visible).toBe(false)
+      expect(screen.queryByText('Readable before Codex is ready')).toBeNull()
     }
+    expect(providerReady).not.toHaveBeenCalled()
+    expect(stopped).toHaveBeenCalledOnce()
+    expect(publish).toHaveBeenCalledOnce()
+    expect(
+      await rig.host.history({ sessionId: HOST_TEST_SESSION, direction: 'tail' })
+    ).toMatchObject({
+      ok: true
+    })
+    provider.resolve()
+    await vi.waitFor(() => expect(providerReady).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(rig.host.switchExecuting(HOST_TEST_SESSION)).toBe(false))
+    expect(rig.adapter.acquire).toHaveBeenCalledOnce()
     visit.release()
   }
 )

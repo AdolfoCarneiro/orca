@@ -1,7 +1,7 @@
 import type { SessionTabOpenPlacement } from '../../../../shared/session-tab-placement'
 import type { RuntimeMobileSessionTabsResult } from '../../../../shared/runtime-types'
 import {
-  captureTerminalSurfaceIdentity,
+  captureTerminalSurfaceIdentityFromRow,
   isRetainedTerminalSurfaceIdentity
 } from '../../../../shared/terminal-tab-close'
 import { toWebTerminalSurfaceTabId } from '../../../../shared/terminal-surface-id'
@@ -96,12 +96,9 @@ export function createOpenPlacementRead(
         return false
       }
       const row = terminalRows.get(tabId)
-      const current = captureTerminalSurfaceIdentity(
-        {
-          tabsByWorktree: { [worktreeId]: row ? [row] : [] },
-          terminalLayoutsByTabId: state.terminalLayoutsByTabId,
-          terminalPtyIncarnationsByPaneKey: state.terminalPtyIncarnationsByPaneKey
-        },
+      const current = captureTerminalSurfaceIdentityFromRow(
+        state,
+        row,
         worktreeId,
         tabId,
         source.leafId

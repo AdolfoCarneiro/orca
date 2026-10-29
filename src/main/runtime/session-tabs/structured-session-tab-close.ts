@@ -1,3 +1,4 @@
+import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
 import type { OrcaRuntimeWithStoredMobileSnapshotHasStalePreservedTab as BrowserOwnership } from './mobile-session-publication-preservation'
 import type { OrcaRuntimeWithPruneMobileSessionTabGroupLayout as PruneMobileSessionTabGroupLayoutMethods } from '../session-lifecycle/projection/prune-mobile-session-tab-group-layout'
 import type { RuntimeHeadlessTabGroups as HeadlessTabGroupsMethods } from './headless-tab-group-moves'
@@ -304,17 +305,24 @@ export abstract class OrcaRuntimeWithCloseStructuredAgentSessionTab extends Orca
       this.queueChatTabChanges(() => changes.map((change) => ({ worktreeId, change })))
       return
     }
-    const session = this.getAvailableAuthoritativeWindow()
-      ? null
-      : this.getWorkspaceSessionForWorktree(worktreeId)
-    const next =
-      session &&
+    this.commitWindowlessChatSession(worktreeId, (session) =>
       withChatTabChanges(
         this.getWorkspaceSessionHostIdForWorktree(worktreeId),
         session,
         worktreeId,
         changes
       )
+    )
+  }
+
+  protected commitWindowlessChatSession(
+    worktreeId: string,
+    update: (session: WorkspaceSessionState) => WorkspaceSessionState | null
+  ): void {
+    const session = this.getAvailableAuthoritativeWindow()
+      ? null
+      : this.getWorkspaceSessionForWorktree(worktreeId)
+    const next = session && update(session)
     if (next) {
       this.setWorkspaceSessionForWorktree(worktreeId, next)
     }

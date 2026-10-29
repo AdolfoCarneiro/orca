@@ -19103,8 +19103,8 @@
       "resumeInNewChat": {
         "hostUpdateRequired": "Actualiza Orca en este host para continuar en la interfaz de chat.",
         "notSavedYet": "{{agent}} aún no ha guardado esta conversación. Inténtalo de nuevo cuando responda.",
-        "exitUnconfirmed": "{{agent}} ya está ejecutando esta conversación en otra terminal. Sal de {{agent}} allí o cierra esa terminal; luego abre esta conversación desde el Historial de sesiones.",
-        "exitUnconfirmedFromTerminal": "{{agent}} ya está ejecutando esta conversación en otra terminal. Sal de {{agent}} allí o cierra esa terminal; luego abre esta conversación desde el Historial de sesiones."
+        "exitUnconfirmed": "Orca no pudo confirmar que {{agent}} se detuvo. Sal de {{agent}} en su terminal y vuelve a intentar esta acción.",
+        "exitUnconfirmedFromTerminal": "Orca no pudo confirmar que {{agent}} se detuvo en esta terminal. Sal de {{agent}} aquí y vuelve a intentar esta acción."
       },
       "state": {
         "loading": {
@@ -19628,9 +19628,9 @@
     "tab": {
       "bar": {
         "SortableTabContextMenu": {
-          "switchToTerminalView": "Mostrar como terminal",
+          "switchToTerminalView": "Continuar con el agente de terminal",
           "switchToChatView": "Mostrar como chat",
-          "closeTabsToLeft": "Cerrar todas las pestañas a la izquierda"
+          "showAsTerminal": "Mostrar como terminal"
         },
         "switch": {
           "toCli": "Cambiar a la CLI",
@@ -19640,10 +19640,7 @@
           "toNativeChatTooltip": "Cambiar al chat nativo: continúa la misma conversación en un chat, en esta pestaña.",
           "exitAgentFirst": "Salga de {{agent}} en esta terminal para cambiar.",
           "waitForReply": "Espere a que termine la respuesta o deténgala y luego cambie.",
-          "stopUnconfirmed": "No se pudo confirmar que {{agent}} se detuvo. Vuelva a intentarlo.",
-          "failed": "No se pudo cambiar esta conversación a la CLI.",
-          "noConversation": "Todavía no hay una conversación guardada disponible en este terminal.",
-          "unavailable": "Cambiar {{agent}} todavía no está disponible."
+          "noConversation": "Todavía no hay una conversación guardada disponible en este terminal."
         },
         "BrowserTab": {
           "closeOthers": "Cerrar otras",

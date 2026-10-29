@@ -20,7 +20,15 @@ import {
 import { withChatTabChanges } from '../../src/main/runtime/agent-session/agent-session-tab-layout'
 import { committingSpawn } from '../../src/main/runtime/bind-first-pane.test-fixture'
 import type { RuntimeNotifier } from '../../src/main/runtime/runtime-notifier-contract'
-import { DaemonRequestTimeoutError } from '../../src/main/daemon/daemon-errors'
+import '../../src/main/daemon/mock-descendant-sweep'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { DaemonPtyAdapter } from '../../src/main/daemon/daemon-pty-adapter'
+import { DaemonServer } from '../../src/main/daemon/daemon-server'
+import { getDaemonSocketPath } from '../../src/main/daemon/daemon-spawner'
+import { createMockSubprocess } from '../../src/main/daemon/daemon-pty-adapter-test-harness'
+import type { DaemonClientConnections } from '../../src/main/daemon/daemon-client-connections'
 import type { RuntimePtyController } from '../../src/main/runtime/runtime-pty-controller-contract'
 
 const renderer = vi.hoisted(() => {
@@ -40,7 +48,9 @@ vi.mock('@/hooks/ipc-events/terminal-command-state', () => ({
 
 vi.mock('../../src/shared/layout-owner-switch', () => ({ ORCA_LAYOUT_OWNER_IS_MAIN: false }))
 
-async function setup(outcome: 'ready' | 'failed' | 'unknown' = 'ready') {
+type Spawn = NonNullable<RuntimePtyController['spawn']>
+
+async function setup(outcome: 'ready' | 'failed' = 'ready', create?: Spawn) {
   createTabsSliceMockApi()
   renderer.store = createTestStore()
   renderer.store.getState().setActiveWorktree(wt)
@@ -57,18 +67,16 @@ async function setup(outcome: 'ready' | 'failed' | 'unknown' = 'ready') {
   const fixture = makeRuntimeStoreWithWorkspaceSession(session)
   const service = new OrcaRuntimeService(fixture.runtimeStore)
   const events: string[] = []
-  const spawn = vi.fn(
-    async (_options: Parameters<NonNullable<RuntimePtyController['spawn']>>[0]) => {
-      events.push('spawn')
-      if (outcome === 'failed') {
-        throw new Error('spawn rejected')
-      }
-      if (outcome === 'unknown') {
-        throw new DaemonRequestTimeoutError('spawn timed out')
-      }
-      return { id: 'pty-switch', incarnationId: '45454545-4545-4545-8545-454545454545' }
+  const spawn = vi.fn(async (options: Parameters<Spawn>[0]) => {
+    events.push('spawn')
+    if (outcome === 'failed') {
+      throw new Error('spawn rejected')
     }
-  )
+    if (create) {
+      return create(options)
+    }
+    return { id: 'pty-switch', incarnationId: '45454545-4545-4545-8545-454545454545' }
+  })
   service.setPtyController({
     spawn: committingSpawn(service, spawn),
     write: () => true,
@@ -130,11 +138,11 @@ function execution() {
   return {
     ...deadline,
     invocationId: 'click-1',
-    viewer: 'focus-in-workspace' as const,
-    shown: async () => {}
+    viewer: 'focus-in-workspace' as const
   }
 }
 const args = () => ({
+  agent: 'codex' as const,
   invocationId: 'click-1',
   sessionId: 'source-chat',
   afterTabId: 'custom-source',
@@ -155,22 +163,79 @@ it('publishes before ordinary fresh startup, forwards caller choices and never s
   expect(created.tab.terminal).toBeDefined()
 })
 
-it.each(['failed', 'unknown'] as const)(
-  'withdraws only a definitely unused destination after %s spawn',
-  async (outcome) => {
-    const { service, report, publish } = await setup(outcome)
-    await expect(service.createSessionSwitchTerminal(wt, args())).rejects.toThrow()
-    expect(report).toHaveBeenCalledWith(expect.objectContaining({ worktreeId: wt }), {
-      kind: outcome === 'failed' ? 'withdrawn' : 'unconfirmed'
-    })
-    const published = await publish.mock.results[0]!.value
-    if (outcome === 'unknown') {
-      expect(renderer.store!.getState().terminalLayoutsByTabId[published.tabId]?.root).toBeDefined()
-    } else {
-      expect(renderer.store!.getState().terminalLayoutsByTabId[published.tabId]).toBeUndefined()
+it('withdraws a definitely unused destination after failed spawn', async () => {
+  const { service, report, publish } = await setup('failed')
+  await expect(service.createSessionSwitchTerminal(wt, args())).rejects.toThrow()
+  expect(report).toHaveBeenCalledWith(expect.objectContaining({ worktreeId: wt }), {
+    kind: 'withdrawn'
+  })
+  const published = await publish.mock.results[0]!.value
+  expect(renderer.store!.getState().terminalLayoutsByTabId[published.tabId]).toBeUndefined()
+})
+
+it('retains an unresolved receiver destination until real no-fork settlement permits unused cleanup', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'mobile-switch-receiver-'))
+  const socketPath = getDaemonSocketPath(directory)
+  const tokenPath = join(directory, 'test.token')
+  const entered = Promise.withResolvers<void>()
+  const releasePreparation = Promise.withResolvers<void>()
+  const nativeSpawn = vi.fn(() => createMockSubprocess())
+  const preparation = vi.fn(async () => {
+    entered.resolve()
+    await releasePreparation.promise
+    throw new Error('workspace preparation failed')
+  })
+  const server = new DaemonServer({
+    socketPath,
+    tokenPath,
+    spawnSubprocess: nativeSpawn,
+    preparePtySpawn: preparation
+  })
+  const adapter = new DaemonPtyAdapter({ socketPath, tokenPath })
+  let operation: Promise<unknown> | undefined
+  try {
+    await server.start()
+    const { service, report, publish, spawn } = await setup('ready', (options) =>
+      adapter.spawn(options)
+    )
+    operation = service.createSessionSwitchTerminal(wt, args()).catch((error: unknown) => error)
+    await entered.promise
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: access only this fixture's authenticated server sockets to inject transport loss.
+    const connections = (server as unknown as { connections: DaemonClientConnections }).connections
+    const peer = [...connections.values()].find((connection) => connection.controlSocket)
+    if (!peer) {
+      throw new Error('authenticated receiver connection missing')
     }
+    peer.controlSocket.destroy()
+    expect(await operation).toBeInstanceOf(Error)
+    const published = await publish.mock.results[0]!.value
+    expect(report).toHaveBeenCalledWith(expect.objectContaining({ worktreeId: wt }), {
+      kind: 'unconfirmed'
+    })
+    expect(renderer.store!.getState().terminalLayoutsByTabId[published.tabId]?.root).toBeDefined()
+    expect(report.mock.calls.some(([, verdict]) => verdict.kind === 'withdrawn')).toBe(false)
+    expect(nativeSpawn).not.toHaveBeenCalled()
+    releasePreparation.resolve()
+    await adapter.settleSwitchWorkForReplacement()
+    await vi.waitFor(() => {
+      expect(renderer.store!.getState().terminalLayoutsByTabId[published.tabId]).toBeUndefined()
+      expect(report).toHaveBeenLastCalledWith(expect.objectContaining({ worktreeId: wt }), {
+        kind: 'withdrawn'
+      })
+    })
+    expect(preparation).toHaveBeenCalledOnce()
+    expect(spawn).toHaveBeenCalledOnce()
+    expect(nativeSpawn).not.toHaveBeenCalled()
+    expect(server.host.listSessions()).toEqual([])
+  } finally {
+    releasePreparation.resolve()
+    await operation
+    await adapter.settleSwitchWorkForReplacement()
+    adapter.dispose()
+    await server.shutdown()
+    rmSync(directory, { recursive: true, force: true })
   }
-)
+})
 
 it('expires after preparation/publication without dispatching spawn, keeping the source', async () => {
   const { service, spawn, publish, report } = await setup()
