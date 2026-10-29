@@ -89,8 +89,6 @@ function mountReview() {
   return {
     ...hook,
     editor,
-    editorRef,
-    rootRef,
     pending,
     addDiffComment,
     updateComments(next: DiffComment[]) {
@@ -108,32 +106,6 @@ afterEach(() => {
 })
 
 describe('review submission owner', () => {
-  it('finishes persistence without changing highlights in a successor editor', async () => {
-    const review = mountReview()
-    const submission = review.result.current.submitAnnotation('Review abc')
-    const successor = createEditor()
-    highlightXyz(successor)
-    review.editorRef.current = successor
-    await act(async () => {
-      review.pending.resolve(saved)
-      await submission
-    })
-    expect(review.addDiffComment).toHaveBeenCalledWith({
-      worktreeId: 'folder-owner',
-      filePath: 'notes.md',
-      source: 'markdown',
-      startLine: undefined,
-      lineNumber: 1,
-      selectedText: 'abc',
-      body: 'Review abc',
-      side: 'modified'
-    })
-    expect(highlightedText(successor)).toEqual(['xyz'])
-    expect(richMarkdownAnnotationHighlightPluginKey.getState(successor.state)?.activeRange).toEqual(
-      { from: 5, to: 8 }
-    )
-  })
-
   it('leaves a newer draft open when an older submission completes', async () => {
     const review = mountReview()
     const submission = review.result.current.submitAnnotation('Review abc')
@@ -144,18 +116,6 @@ describe('review submission owner', () => {
       await submission
     })
     expect(review.result.current.annotationPopover).toEqual(nextTarget)
-  })
-
-  it('does not publish highlights after the originating root detaches', async () => {
-    const review = mountReview()
-    highlightXyz(review.editor)
-    const submission = review.result.current.submitAnnotation('Review abc')
-    review.rootRef.current = null
-    await act(async () => {
-      review.pending.resolve(saved)
-      await submission
-    })
-    expect(highlightedText(review.editor)).toEqual(['xyz'])
   })
 
   it('keeps highlights for comments that arrive while persistence is pending', async () => {
@@ -172,7 +132,7 @@ describe('review submission owner', () => {
     expect(highlightedText(review.editor)).toEqual(['abc', 'xyz'])
   })
 
-  it('publishes a successful current submission and preserves a failed draft for retry', async () => {
+  it('closes the current draft and highlights the saved note on success', async () => {
     const review = mountReview()
     const submission = review.result.current.submitAnnotation('Review abc')
     await act(async () => {
@@ -181,7 +141,9 @@ describe('review submission owner', () => {
     })
     expect(review.result.current.annotationPopover).toBeNull()
     expect(highlightedText(review.editor)).toEqual(['abc'])
+  })
 
+  it('preserves a failed draft for retry', async () => {
     const failure = mountReview()
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     try {

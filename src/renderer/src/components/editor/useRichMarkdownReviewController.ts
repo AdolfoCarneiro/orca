@@ -164,7 +164,6 @@ export function useRichMarkdownReviewController({
         return
       }
       const submittedEditor = editorRef.current
-      const submittedRoot = rootRef.current
       const result = await addDiffComment({
         worktreeId,
         filePath: sourceRelativePath,
@@ -185,9 +184,6 @@ export function useRichMarkdownReviewController({
       if (
         !submittedEditor ||
         submittedEditor.isDestroyed ||
-        editorRef.current !== submittedEditor ||
-        !submittedRoot ||
-        rootRef.current !== submittedRoot ||
         annotationPopoverRef.current !== annotationPopover
       ) {
         return
@@ -211,7 +207,6 @@ export function useRichMarkdownReviewController({
       clearAnnotationHighlight,
       editorRef,
       markdownSourceLineOffset,
-      rootRef,
       sourceRelativePath,
       worktreeId
     ]
