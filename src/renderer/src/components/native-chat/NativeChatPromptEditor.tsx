@@ -53,7 +53,7 @@ type Props = Omit<HTMLAttributes<HTMLDivElement>, 'onChange' | 'onSelect'> & {
 
 const NO_IMAGES: readonly string[] = []
 
-// `initialValue` only seeds the editor at mount, so a draft the editor itself published needs no re-render.
+// `initialValue` only seeds the editor at mount; keep the other props referentially stable or this memo stops helping.
 export const NativeChatPromptEditor = memo(
   NativePromptEditor,
   ({ initialValue: _previous, ...previous }, { initialValue: _next, ...next }) =>
