@@ -1,3 +1,4 @@
+import { AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY } from './agent-session-attachments'
 import { AGENT_SESSION_ATTENTION_RUNTIME_CAPABILITIES } from './agent-session-attention-capabilities'
 import { AGENT_SESSION_BACKGROUND_TASK_CHILD_VIEWS_CAPABILITY } from './agent-session-background-task-child-views-capability'
 import { AGENT_SESSION_CONTINUE_INTERRUPTED_RUNTIME_CAPABILITY } from './agent-session-continue-interrupted-capability'
@@ -97,8 +98,7 @@ export const AGENT_SESSION_PHONE_ATTACHMENTS_RUNTIME_CAPABILITY =
 export const AGENT_SESSION_BACKGROUND_TASK_ROW_STOP_CAPABILITY =
   'agent-session.background-task-row-stop.v1' as const
 
-export const AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY =
-  'native-chat.text-attachment-read.v1' as const
+export { AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY } from './agent-session-attachments'
 
 // Individual client flags must not retain the unused host capability aggregate.
 export const AGENT_SESSION_RUNTIME_CAPABILITIES = /* @__PURE__ */ (() =>

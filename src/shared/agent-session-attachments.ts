@@ -5,6 +5,9 @@ import type { ImportSkipReason } from './filesystem-import-result-types'
 /** Host userData store name; clients recognize stored paths without a round trip. */
 export const AGENT_SESSION_ATTACHMENTS_DIR_NAME = 'agent-session-attachments'
 
+export const AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY =
+  'native-chat.text-attachment-read.v1' as const
+
 export const AGENT_SESSION_ATTACHMENT_MAX_BYTES = 50 * 1024 * 1024
 
 /** 384 KiB of bytes is 512 KiB of base64 on the wire, the same frame size file imports use. */

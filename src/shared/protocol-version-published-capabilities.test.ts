@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { RUNTIME_CAPABILITIES } from './protocol-version'
+import { AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY } from './agent-session-attachments'
+import {
+  AGENT_SESSION_RUNTIME_CAPABILITIES,
+  AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY as barrelTextReadCapability
+} from './agent-session-runtime-capabilities'
+import {
+  RUNTIME_CAPABILITIES,
+  AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY as protocolTextReadCapability
+} from './protocol-version'
 
 // Frozen baseline: additions need no edit; remove a name only when deliberately retiring support.
 const PUBLISHED_RUNTIME_CAPABILITIES = [
@@ -178,6 +186,18 @@ const PUBLISHED_RUNTIME_CAPABILITIES = [
 ]
 
 describe('RUNTIME_CAPABILITIES', () => {
+  it('publishes the same attachment capability through its domain and existing exports', () => {
+    expect(AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY).toBe(
+      'native-chat.text-attachment-read.v1'
+    )
+    expect(barrelTextReadCapability).toBe(AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY)
+    expect(protocolTextReadCapability).toBe(AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY)
+    expect(AGENT_SESSION_RUNTIME_CAPABILITIES[0]).toBe(
+      AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY
+    )
+    expect(RUNTIME_CAPABILITIES).toContain(AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY)
+  })
+
   it('preserves every previously published capability', () => {
     expect(RUNTIME_CAPABILITIES).toEqual(expect.arrayContaining(PUBLISHED_RUNTIME_CAPABILITIES))
   })

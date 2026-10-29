@@ -6,7 +6,7 @@ import {
   attachmentTextChunkSchema,
   type AttachmentTextRead
 } from '../../../src/shared/attachment-text-source'
-import { AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY } from '../../../src/shared/agent-session-runtime-capabilities'
+import { AGENT_SESSION_TEXT_ATTACHMENT_READ_CAPABILITY } from '../../../src/shared/agent-session-attachments'
 import type { RpcClient } from '../transport/rpc-client'
 import type { RpcOperationSender } from '../transport/rpc-operation-sender'
 
