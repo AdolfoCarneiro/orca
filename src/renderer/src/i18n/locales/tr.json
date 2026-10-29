@@ -11889,6 +11889,7 @@
           "installGit": "Orca, sabitlenmiş Git revizyonunu getiremedi. URL'yi, #ref'i, erişimi ve sistem Git kurulumunu kontrol edin.",
           "invalidManifestMissing": "Eklenti kökünde orca-plugin.json eksik. Ekleyip eklentileri yenileyin.",
           "invalidManifest": "orca-plugin.json geçersiz. Düzeltip eklentileri yenileyin.",
+          "installedManifestUnloadable": "Bu sürüm bu Orca'da yüklenemiyor. Güncelleyin veya yeniden yükleyin.",
           "invalidArtifact": "Bildirilen bir worker veya panel dosyası eksik ya da güvenli değil. Eklenti dosyalarını düzeltip yenileyin.",
           "consentChanged": "Eklenti, siz incelerken değişti. Bu iletişim kutusunu kapatıp güncellenmiş izinleri inceleyin."
         },

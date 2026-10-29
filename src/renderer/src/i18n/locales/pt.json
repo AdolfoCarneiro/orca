@@ -7787,6 +7787,7 @@
           "installGit": "O Orca não conseguiu obter a revisão Git fixada. Verifique a URL, o #ref, o acesso e a configuração do Git do sistema.",
           "invalidManifestMissing": "A raiz do plugin está sem o orca-plugin.json. Adicione-o e depois atualize os plugins.",
           "invalidManifest": "orca-plugin.json é inválido. Corrija-o e depois atualize os plugins.",
+          "installedManifestUnloadable": "Esta versão não pode ser carregada neste Orca. Atualize-a ou reinstale-a.",
           "invalidArtifact": "Um arquivo de worker ou painel declarado está ausente ou é inseguro. Corrija os arquivos do plugin e depois atualize.",
           "consentChanged": "O plugin mudou enquanto você o revisava. Feche esta caixa de diálogo e revise as permissões atualizadas."
         },
@@ -8947,6 +8948,7 @@
           "updatesKeepApproval": "Atualizações só perguntam de novo por novo acesso"
         },
         "PluginManagerRows": {
+          "reinstall": "Reinstalar",
           "crashed": "Falhou ao iniciar",
           "crashedCount": "Falhou {{value0}} vezes seguidas",
           "crashedOnce": "Falhou uma vez",
@@ -8976,10 +8978,6 @@
         "PluginThemeUseNow": {
           "useForLight": "Usar no claro:",
           "useForDark": "Usar no escuro:"
-        },
-        "pluginThemeApply": {
-          "setAsLight": "{{value0}} agora é seu tema claro",
-          "setAsDark": "{{value0}} agora é seu tema escuro"
         },
         "AppearanceInterfaceSection": {
           "lightTheme": "Tema claro",

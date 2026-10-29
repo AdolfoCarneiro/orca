@@ -7,6 +7,7 @@ import {
   SendParams
 } from '../../../shared/rpc-contract/structured-agent-session-params'
 import { structuredAgentSessionCreateFingerprint } from '../../../shared/structured-agent-session-mutation'
+import { registerActionEffortCreateTests } from './structured-agent-session-launch-action-effort.test-fixture'
 import { isStructuredAgentSessionMainAgentWorking } from '../../../shared/structured-agent-session-main-agent-working'
 import type { HostCreateSupport } from './structured-agent-session-host-admission'
 
@@ -279,6 +280,8 @@ describe('the first message owned by create', () => {
       }
     }
   )
+
+  registerActionEffortCreateTests(mocks, created)
 
   it.each(['codex', 'claude'] as const)(
     'creates %s on an unlisted explicit model without importing saved effort',

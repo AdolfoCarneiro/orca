@@ -11884,9 +11884,7 @@
         },
         "pluginThemeApply": {
           "nowUsing": "{{value0}} est maintenant utilisé",
-          "switchBack": "Revenir",
-          "setAsLight": "{{value0}} est maintenant votre thème clair",
-          "setAsDark": "{{value0}} est maintenant votre thème sombre"
+          "switchBack": "Revenir"
         },
         "pluginError": {
           "installManifestMissing": "Aucun orca-plugin.json lisible trouvé. Choisissez le dossier racine du plugin.",
@@ -11897,6 +11895,7 @@
           "installGit": "Impossible de récupérer cette révision Git. Vérifiez l'URL, le #ref et l'accès.",
           "invalidManifestMissing": "orca-plugin.json manque à la racine du plugin. Ajoutez-le, puis actualisez les plugins.",
           "invalidManifest": "orca-plugin.json est non valide. Corrigez-le, puis actualisez les plugins.",
+          "installedManifestUnloadable": "Cette version ne peut pas se charger dans cet Orca. Mettez-la à jour ou réinstallez-la.",
           "invalidArtifact": "Un fichier de worker ou de panneau est manquant ou dangereux. Corrigez-le, puis actualisez.",
           "consentChanged": "Ce plugin a changé pendant votre examen. Examinez-le à nouveau."
         },
@@ -12903,6 +12902,7 @@
           "noAccessReach": "Rien en dehors de ses propres fichiers"
         },
         "PluginManagerRows": {
+          "reinstall": "Réinstaller",
           "crashedCount": "Plantage {{value0}} fois de suite",
           "crashed": "Plantage au démarrage",
           "remove": "Supprimer…",

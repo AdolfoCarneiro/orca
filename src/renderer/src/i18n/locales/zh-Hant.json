@@ -11757,6 +11757,7 @@
           "installGit": "Orca 無法取得固定的 Git 版本。請檢查 URL、#ref、存取權限和系統 Git 設定。",
           "invalidManifestMissing": "外掛根目錄缺少 orca-plugin.json。請新增它，然後重新整理外掛。",
           "invalidManifest": "orca-plugin.json 無效。請修復它，然後重新整理外掛。",
+          "installedManifestUnloadable": "此版本無法在這個 Orca 中載入。請更新或重新安裝。",
           "invalidArtifact": "宣告的工作行程或面板檔案缺失或不安全。請修復外掛檔案，然後重新整理。",
           "consentChanged": "您在審查時外掛發生了變更。請關閉此對話方塊並審查更新後的權限。"
         },

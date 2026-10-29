@@ -11903,6 +11903,7 @@
           "installGit": "Orca konnte die fixierte Git-Revision nicht abrufen. URL, #ref, Zugriffsrechte und die Git-Konfiguration des Systems prüfen.",
           "invalidManifestMissing": "Im Stammordner des Plugins fehlt orca-plugin.json. Die Datei hinzufügen und anschließend die Plugins aktualisieren.",
           "invalidManifest": "orca-plugin.json ist ungültig. Die Datei korrigieren und anschließend die Plugins aktualisieren.",
+          "installedManifestUnloadable": "Diese Version kann in dieser Orca-Version nicht geladen werden. Aktualisieren oder neu installieren.",
           "invalidArtifact": "Eine deklarierte Datei für einen Hintergrundprozess oder ein Panel fehlt oder ist unsicher. Die Plugin-Dateien korrigieren und anschließend aktualisieren.",
           "consentChanged": "Das Plugin wurde während der Prüfung geändert. Diesen Dialog schließen und die aktualisierten Berechtigungen prüfen."
         },

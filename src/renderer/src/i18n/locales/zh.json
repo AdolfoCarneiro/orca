@@ -11433,9 +11433,7 @@
         },
         "pluginThemeApply": {
           "nowUsing": "正在使用 {{value0}}",
-          "switchBack": "切换回去",
-          "setAsLight": "已将 {{value0}} 设为浅色主题",
-          "setAsDark": "已将 {{value0}} 设为深色主题"
+          "switchBack": "切换回去"
         },
         "pluginError": {
           "installManifestMissing": "未找到可读的 orca-plugin.json。请选择插件的根文件夹。",
@@ -11446,6 +11444,7 @@
           "installGit": "无法获取此 Git 版本。请检查 URL、#ref 和访问权限。",
           "invalidManifestMissing": "插件根目录缺少 orca-plugin.json。请添加它，然后刷新插件。",
           "invalidManifest": "orca-plugin.json 无效。请修复它，然后刷新插件。",
+          "installedManifestUnloadable": "此版本无法在当前 Orca 中加载。请更新或重新安装。",
           "invalidArtifact": "工作进程或面板文件缺失或不安全。修复后请刷新。",
           "consentChanged": "你审查期间此插件发生了变化。请重新审查。"
         },
@@ -12473,6 +12472,7 @@
           "noAccessReach": "仅限其自身文件"
         },
         "PluginManagerRows": {
+          "reinstall": "重新安装",
           "crashedCount": "连续崩溃 {{value0}} 次",
           "crashed": "启动时崩溃",
           "remove": "移除…",
