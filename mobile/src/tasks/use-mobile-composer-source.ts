@@ -24,14 +24,14 @@ import {
   toComposerBaseState,
   type ComposerHostedBase
 } from './composer-source-base-resolve'
-import type { ComposerBaseState, MobileLinkedWorkItem } from './mobile-composer-source-types'
+import type {
+  ComposerBaseState,
+  MobileComposerCreateSelection,
+  MobileLinkedWorkItem,
+  SmartNameSelection
+} from './mobile-composer-source-types'
 import { useMobileComposerName } from './use-mobile-composer-name'
-<<<<<<< HEAD
-=======
-import { translate } from '../i18n/mobile-i18n'
-import { useMobileTranslation } from '../i18n/use-mobile-translation'
-const EMPTY_BASE: ComposerBaseState = {}
->>>>>>> d6f9b4a960b (feat(mobile): localize tasks, new workspaces and source control)
+import { getBaseResolveError, useForkPushWarning } from './composer-source-copy'
 
 export type UseMobileComposerSourceArgs = {
   client: RpcClient | null
@@ -41,13 +41,12 @@ export type UseMobileComposerSourceArgs = {
 }
 
 export function useMobileComposerSource(args: UseMobileComposerSourceArgs) {
-  const t = useMobileTranslation()
   const { client, selectedRepoId, worktreeBranches = [], onError } = args
   const [linkedWorkItem, setLinkedWorkItem] = useState<MobileLinkedWorkItem | null>(null)
   const [base, setBase] = useState<ComposerBaseState>({})
   const [reuseEligibleBranch, setReuseEligibleBranch] = useState<string | null>(null)
   const [reuseSelectedBranch, setReuseSelectedBranch] = useState(false)
-  const [forkPushWarning, setForkPushWarning] = useState<string | null>(null)
+  const [forkPushWarning, setForkPushWarning] = useForkPushWarning()
   const [resolvingBase, setResolvingBase] = useState(false)
   const [branchCreateIntent, setBranchCreateIntent] = useState(false)
 
@@ -80,18 +79,10 @@ export function useMobileComposerSource(args: UseMobileComposerSourceArgs) {
           setForkPushWarning(getForkPushWarning(result))
         })
         .catch((error: unknown) => {
-          if (resolveTokenRef.current !== token) {
-            return
+          if (resolveTokenRef.current === token) {
+            setBase({})
+            onError?.(getBaseResolveError(error))
           }
-<<<<<<< HEAD
-          setBase({})
-          onError?.(error instanceof Error ? error.message : 'Failed to resolve base branch.')
-=======
-          setBase(EMPTY_BASE)
-          const baseResolveError = () =>
-            translate('tasks.composerSource.baseFailed', 'Failed to resolve base branch.')
-          onError?.(error instanceof Error ? error.message : baseResolveError())
->>>>>>> d6f9b4a960b (feat(mobile): localize tasks, new workspaces and source control)
         })
         .finally(() => {
           if (resolveTokenRef.current === token) {
@@ -280,12 +271,12 @@ export function useMobileComposerSource(args: UseMobileComposerSourceArgs) {
     [base, forkPushWarning]
   )
 
-  const smartNameSelection = useMemo(
+  const smartNameSelection = useMemo<SmartNameSelection | null>(
     () => buildSmartNameSelection({ linkedWorkItem, baseBranch: base.baseBranch }),
     [base.baseBranch, linkedWorkItem]
   )
 
-  const createSelection = useMemo(
+  const createSelection = useMemo<MobileComposerCreateSelection | null>(
     () =>
       resolveComposerCreateSelection({
         linkedWorkItem,
@@ -307,7 +298,6 @@ export function useMobileComposerSource(args: UseMobileComposerSourceArgs) {
     handleBranchNameOverrideChange,
     reuseEligibleBranch,
     reuseSelectedBranch,
-<<<<<<< HEAD
     setReuseSelectedBranch: (next: boolean) => {
       setReuseSelectedBranch(next)
       setBase((current) => ({
@@ -316,15 +306,6 @@ export function useMobileComposerSource(args: UseMobileComposerSourceArgs) {
       }))
     },
     forkPushWarning,
-=======
-    setReuseSelectedBranch,
-    forkPushWarning: forkPushWarning
-      ? t(
-          'tasks.composerSource.forkPushWarning',
-          'This PR has "Allow edits from maintainers" off; pushing to the fork may be rejected by GitHub.'
-        )
-      : null,
->>>>>>> d6f9b4a960b (feat(mobile): localize tasks, new workspaces and source control)
     resolvingBase,
     isNameAutoManaged,
     smartNameSelection,

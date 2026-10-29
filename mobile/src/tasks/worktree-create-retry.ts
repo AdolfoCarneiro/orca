@@ -1,6 +1,5 @@
 import { translate } from '../i18n/mobile-i18n'
 import type { TuiAgent } from '../../../src/shared/tui-agent'
-import { translate } from '../i18n/mobile-i18n'
 import type { RpcClient } from '../transport/rpc-client'
 import type { RpcResponse } from '../transport/types'
 import {
