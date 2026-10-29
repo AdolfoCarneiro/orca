@@ -1897,6 +1897,7 @@
         "estimateValue": "見積もり {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
+        "openExistingWorkspace": "既存のワークスペースを開く",
         "cbb47ee0dc": "ローカル Git プロジェクトでのみ使用できます。",
         "d861de981b": "まばらなチェックアウト",
         "090cfedeb4": "メモを書く",

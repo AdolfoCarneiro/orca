@@ -1916,6 +1916,7 @@
         "estimateValue": "Estimación {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
+        "openExistingWorkspace": "Abrir espacio de trabajo existente",
         "cbb47ee0dc": "Solo disponible para proyectos Git locales.",
         "d861de981b": "Sparse checkout",
         "090cfedeb4": "Escribe una nota",

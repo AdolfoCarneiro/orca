@@ -2177,6 +2177,7 @@
         "estimateValue": "Tahmin {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
+        "openExistingWorkspace": "Mevcut çalışma alanını aç",
         "createMultiple": "Daha fazla oluştur",
         "cbb47ee0dc": "Yalnızca yerel Git projeleri için kullanılabilir.",
         "d861de981b": "Sparse checkout",
@@ -20442,6 +20443,15 @@
     "openDefault": "Varsayılan uygulamada aç"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Bu çalışma ağacı için dal",
+      "existing": "Mevcut dal",
+      "existingHint": "Yeni commitler bu dala eklenir.",
+      "new": "Yeni dal",
+      "newHint": "Yeni bir yerel dal oluştur",
+      "newName": "Yeni dal adı",
+      "automaticName": "Otomatik ad"
+    },
     "links": {
       "foreignReview": "Bu inceleme başka bir repo'ya ait. Bu çalışma alanının repo'sundaki incelemeleri ekleyin.",
       "repositoryLoading": "Repo kimliği hâlâ yükleniyor. Kullanılabilir olduğunda yeniden deneyin.",

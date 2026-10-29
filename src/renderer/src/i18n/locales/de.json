@@ -2203,6 +2203,7 @@
         "estimateValue": "Schätzung {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
+        "openExistingWorkspace": "Bestehenden Arbeitsbereich öffnen",
         "createMultiple": "Weitere erstellen",
         "cbb47ee0dc": "Nur für lokale Git-Projekte verfügbar.",
         "d861de981b": "Partieller Checkout",
@@ -20684,6 +20685,15 @@
     "openDefault": "In Standard-App öffnen"
   },
   "workspace": {
+    "branchChoice": {
+      "title": "Branch für diesen Worktree",
+      "existing": "Bestehender Branch",
+      "existingHint": "Neue Commits werden diesem Branch hinzugefügt.",
+      "new": "Neuer Branch",
+      "newHint": "Einen neuen lokalen Branch erstellen",
+      "newName": "Name des neuen Branches",
+      "automaticName": "Automatischer Name"
+    },
     "links": {
       "foreignReview": "Dieses Review gehört zu einem anderen Repository. Reviews aus dem Repository dieses Arbeitsbereichs hinzufügen.",
       "repositoryLoading": "Die Repository-Identität wird noch geladen. Erneut versuchen, sobald sie verfügbar ist.",

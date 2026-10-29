@@ -1897,6 +1897,7 @@
         "estimateValue": "추정치 {{estimate}}"
       },
       "NewWorkspaceComposerCard": {
+        "openExistingWorkspace": "기존 워크스페이스 열기",
         "cbb47ee0dc": "로컬 Git 프로젝트에만 사용할 수 있습니다.",
         "d861de981b": "스파스 체크아웃",
         "090cfedeb4": "메모 쓰기",

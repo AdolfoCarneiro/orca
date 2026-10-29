@@ -6,6 +6,7 @@ import type { Repo } from '../../shared/repo-types'
 import type { CreateWorktreeArgs } from '../../shared/worktree/create-types'
 import { gitExecFileAsync } from '../git/runner'
 import { addSparseWorktree, addWorktree } from '../git/worktree'
+import { openWorktreeCreatePathClaim } from '../worktree-create-in-flight'
 import { WorktreeCreate } from '../../shared/rpc-contract/worktree-create-params'
 import { buildManagedWorktreeCreateArgs } from './rpc/methods/worktree-create-args'
 import { RuntimeRemoteFetchController } from './runtime-remote-fetch-controller'
@@ -42,25 +43,32 @@ async function fixture(remote = 'origin') {
   const repo: Repo = { id: 'repo', path: repoPath, displayName: 'Repo', badgeColor: '', addedAt: 0 }
   const workspaceRoot = join(root, 'workspaces')
   const settings = { workspaceDir: workspaceRoot, nestWorkspaces: false, branchPrefix: '' }
-  const candidate = (request: Partial<CreateWorktreeArgs> = {}) =>
-    resolveRuntimeLocalWorktreeCreateCandidate({
-      request: {
-        repoSelector: repo.id,
-        name: 'My workspace',
+  const candidate = async (request: Partial<CreateWorktreeArgs> = {}) => {
+    const pathClaim = openWorktreeCreatePathClaim()
+    try {
+      return await resolveRuntimeLocalWorktreeCreateCandidate({
+        request: {
+          repoSelector: repo.id,
+          name: 'My workspace',
+          baseBranch: base,
+          branchNameOverride: branch,
+          branchIntent: 'open-existing-v2',
+          ...request
+        },
+        repo,
+        settings,
+        worktreePathSettings: settings,
+        workspaceRoot,
+        username: '',
         baseBranch: base,
-        branchNameOverride: branch,
-        branchIntent: 'open-existing-v2',
-        ...request
-      },
-      repo,
-      settings,
-      worktreePathSettings: settings,
-      workspaceRoot,
-      username: '',
-      baseBranch: base,
-      remoteTrackingBase,
-      localWorktreeGitOptions: {}
-    })
+        remoteTrackingBase,
+        localWorktreeGitOptions: {},
+        pathClaim
+      })
+    } finally {
+      pathClaim.release()
+    }
+  }
   const create = async (request: Partial<CreateWorktreeArgs> = {}) => {
     const picked = await candidate(request)
     const addResult = await addWorktree(
