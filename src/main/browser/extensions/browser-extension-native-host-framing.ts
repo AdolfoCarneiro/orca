@@ -5,7 +5,7 @@ import { endianness } from 'node:os'
  * byte order followed by that many bytes of UTF-8 JSON.
  */
 
-const HEADER_BYTES = 4
+export const HEADER_BYTES = 4
 /** Chrome refuses host → extension messages over 1 MB (kMaximumNativeMessageSize). */
 export const MAX_NATIVE_HOST_MESSAGE_BYTES = 1024 * 1024
 
@@ -50,7 +50,7 @@ export function createNativeHostMessageReader(
 
   const readSize = (): number => {
     const head =
-      pending[0].length >= HEADER_BYTES ? pending[0] : Buffer.concat(pending, pendingBytes)
+      pending[0].length >= HEADER_BYTES ? pending[0] : Buffer.concat(pending, HEADER_BYTES)
     return littleEndian ? head.readUInt32LE(0) : head.readUInt32BE(0)
   }
 

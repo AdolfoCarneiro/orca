@@ -7,6 +7,7 @@
  */
 import {
   readConfirmedRunningWslDistros,
+  settledWslRunningReadAnchor,
   type WslRunningDistrosRead
 } from '../wsl-background-distro-gate'
 
@@ -39,14 +40,16 @@ export async function checkWslBridgeDistro(
   readRunning: ReadRunningWslDistros = readConfirmedRunningWslDistros,
   { firstMs = WSL_EXIT_CHECK_FIRST_MS, totalMs = WSL_EXIT_CHECK_TOTAL_MS } = {}
 ): Promise<WslBridgeExitVerdict> {
+  // WSL keeps listing a stopping distro for a moment; a read inside that window would say 'running'.
+  const startedAfter = await settledWslRunningReadAnchor(distro, exitAt)
   const startedAt = performance.now()
-  let running = await readWithin(() => readRunning({ startedAfter: exitAt }), firstMs)
+  let running = await readWithin(() => readRunning({ startedAfter }), firstMs)
   if (running.status !== 'confirmed') {
     const remainingMs = totalMs - (performance.now() - startedAt)
     running =
       remainingMs > 0
         ? await readWithin(
-            () => readRunning({ startedAfter: exitAt, bypassFailureBackoff: true }),
+            () => readRunning({ startedAfter, bypassFailureBackoff: true }),
             remainingMs
           )
         : running

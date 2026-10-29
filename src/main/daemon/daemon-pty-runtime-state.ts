@@ -125,8 +125,10 @@ export abstract class DaemonPtyRuntimeState {
   protected readonly hostLossSessionIds = new Set<string>()
   /** ORCA_PANE_KEY a WSL session was spawned with; its shell's folder is read by it at Sleep. */
   protected wslPaneKeysBySessionId = new Map<string, string>()
-  /** A sleeping WSL pane's shell folder, read before its final checkpoint; the checkpoint keeps it. */
-  protected sleepShellCwds = new Map<string, string>()
+  /** A WSL bridge shell's folder read before a final checkpoint (Sleep or quit); that checkpoint keeps it. */
+  protected probedShellCwds = new Map<string, string>()
+  /** Quit's whole wait for bridge shell folders; a slow distro must not hold up quitting. */
+  protected quitWslCwdBudgetMs = 1_000
   protected killedSessionTombstones = new Map<string, number>()
   protected sleepRestoreSessionIds = new Set<string>()
   protected coldRestoreCache = new ColdRestorePayloadCache(undefined, (sessionId) => {
