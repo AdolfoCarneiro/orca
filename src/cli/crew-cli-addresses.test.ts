@@ -1,13 +1,13 @@
-import type { RuntimeStore } from '../../runtime-store-contract'
-import type { RuntimeClientEvent } from '../../../../shared/runtime-client-events'
-import '../../rpc/unused-default-rpc-methods.test-fixture'
+import type { RuntimeStore } from '../main/runtime/runtime-store-contract'
+import type { RuntimeClientEvent } from '../shared/runtime-client-events'
+import '../main/runtime/rpc/unused-default-rpc-methods.test-fixture'
 import { afterEach, expect, it, vi } from 'vitest'
 import { z } from 'zod'
-import { ORCHESTRATION_FEDERATION_CONTROL_MAIL_PROTOCOL_VERSION } from '../../../../shared/protocol-version'
-import { dispatch } from '../../../../cli/dispatch'
-import { RuntimeClient, RuntimeClientError } from '../../../../cli/runtime-client'
-import { buildCrewSnapshot } from './crew-read-model'
-import { agentSessionConversationView } from '../../../../shared/agent-session-conversation-view'
+import { ORCHESTRATION_FEDERATION_CONTROL_MAIL_PROTOCOL_VERSION } from '../shared/protocol-version'
+import { dispatch } from './dispatch'
+import { RuntimeClient, RuntimeClientError } from './runtime-client'
+import { buildCrewSnapshot } from '../main/runtime/orchestration/crew/crew-read-model'
+import { agentSessionConversationView } from '../shared/agent-session-conversation-view'
 import {
   createSessionCallerHarness,
   orchestrationRequest,
@@ -16,10 +16,10 @@ import {
   SESSION_Y,
   WORKER_HANDLE,
   WORKER_PANE
-} from '../../rpc/orchestration-session-caller-test-fixture'
+} from '../main/runtime/rpc/orchestration-session-caller-test-fixture'
 
 const hostRef = vi.hoisted((): { current: unknown } => ({ current: null }))
-vi.mock('../../../native-chat/agent-session-wire/structured-agent-session-registry', () => ({
+vi.mock('../main/native-chat/agent-session-wire/structured-agent-session-registry', () => ({
   getStructuredAgentSessionHost: () => hostRef.current
 }))
 afterEach(() => {
@@ -184,10 +184,10 @@ it('executes snapshot addresses through CLI send and the dispatcher into the pro
 })
 
 it('keeps crew as the only observer for title, settings and mirrored-name source changes', async () => {
-  const { OrcaRuntimeService } = await import('../../orca-runtime')
-  const { partialRuntimeStore } = await import('../../runtime-store-partial-fixture')
-  const { getDefaultWorkspaceSession } = await import('../../../../shared/constants')
-  const { makeTerminalTab } = await import('../../../persistence/persistence-session-fixtures')
+  const { OrcaRuntimeService } = await import('../main/runtime/orca-runtime')
+  const { partialRuntimeStore } = await import('../main/runtime/runtime-store-partial-fixture')
+  const { getDefaultWorkspaceSession, getDefaultSettings } = await import('../shared/constants')
+  const { makeTerminalTab } = await import('../main/persistence/persistence-session-fixtures')
   const settingsListeners = new Set<Parameters<NonNullable<RuntimeStore['onSettingsChanged']>>[0]>()
   const sessionListeners = new Set<
     Parameters<NonNullable<RuntimeStore['onWorkspaceSessionWritten']>>[0]
@@ -226,8 +226,8 @@ it('keeps crew as the only observer for title, settings and mirrored-name source
     }
   }
   const runtime = new CrewNameRuntime(store)
-  const { OrchestrationDb } = await import('../db')
-  const { subscribeCrew } = await import('./crew-stream')
+  const { OrchestrationDb } = await import('../main/runtime/orchestration/db')
+  const { subscribeCrew } = await import('../main/runtime/orchestration/crew/crew-stream')
   const db = new OrchestrationDb(':memory:')
   runtime.setOrchestrationDb(db)
   const workerPane = 'tab_worker:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
@@ -321,7 +321,10 @@ it('keeps crew as the only observer for title, settings and mirrored-name source
     })
     generated = false
     for (const listener of settingsListeners) {
-      listener({ tabAutoGenerateTitle: false }, store.getSettings())
+      listener(
+        { tabAutoGenerateTitle: false },
+        { ...getDefaultSettings('/tmp'), ...store.getSettings() }
+      )
     }
     session = {
       ...session,

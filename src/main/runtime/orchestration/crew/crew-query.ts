@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../shared/agent-status-freshness'
+import type { OrchestrationCoordinatorKey } from '../orchestration-caller-identity'
 import type { OrchestrationDb } from '../db'
 import { currentRunCoordinatorOrcaSessionIdSql } from '../db/runs/run-coordinator-orca-session'
 
@@ -151,7 +152,7 @@ export function readCrewRuns(db: OrchestrationDb, addresses: string[]) {
 
 export function readCrewOwnedRunAddresses(
   db: OrchestrationDb,
-  party: { terminalHandle: string | null; paneKey: string | null; orcaSessionId: string | null }
+  party: OrchestrationCoordinatorKey
 ): string[] {
   const ids = new Set(
     party.terminalHandle ? db.getRunMailboxOwnerIdsForHandle(party.terminalHandle) : []

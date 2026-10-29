@@ -131,6 +131,8 @@ describe('public crew read and stream', () => {
         sessionId: 'chat-root',
         conversationCommand: {
           command: 'clear',
+          state: 'completed',
+          callerKey: 'crew-fixture-clear',
           phase: 'committed',
           replacementSessionId: 'chat-next',
           operationId: 'clear-one'
@@ -275,6 +277,8 @@ it('preserves a bound offline manager and the complete committed clear conversat
           ? {
               conversationCommand: {
                 command: 'clear',
+                state: 'completed',
+                callerKey: 'crew-fixture-clear',
                 phase: 'committed',
                 replacementSessionId: next,
                 operationId: `clear-${sessionId}`
@@ -342,7 +346,7 @@ it('uses qualified terminal status and keeps canonical native status without req
   const worker = assign('term_worker')
   const now = Date.now()
   deps.now = now
-  const status: FleetAgentStatusEvidence = {
+  const status = {
     binding: {
       kind: 'worker',
       dispatchId: worker.id,
@@ -362,7 +366,7 @@ it('uses qualified terminal status and keeps canonical native status without req
       restoredUnconfirmed: false,
       providerSessionOnly: false
     }
-  }
+  } satisfies FleetAgentStatusEvidence
   const read = () =>
     buildCrewSnapshot('term_coord', deps).sections.managing.find(
       (row) => row.sendAddress === `dispatch:${worker.id}`
@@ -453,6 +457,8 @@ it('keeps corrupt clear branches, missing successors and cycles independent of r
         sessionId,
         conversationCommand: {
           command: 'clear',
+          state: 'completed',
+          callerKey: 'crew-fixture-clear',
           phase: 'committed',
           replacementSessionId: next,
           operationId: sessionId

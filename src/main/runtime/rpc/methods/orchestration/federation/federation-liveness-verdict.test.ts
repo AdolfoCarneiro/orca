@@ -4,7 +4,7 @@ import { ORCHESTRATION_CONTRACT_VERSION } from '../../../../../../shared/protoco
 import { OrcaRuntimeService } from '../../../../orca-runtime'
 import { OrchestrationDb } from '../../../../orchestration/db'
 import { ORCHESTRATION_METHODS } from '../../orchestration'
-import { eraseRpcMethods } from '../../../core'
+import { isStreamingMethod, eraseRpcMethods } from '../../../core'
 import { registerBoundPty } from '../../../../bind-first-pane.test-fixture'
 
 // Host contact loss never proves worker exit; relay only confirmed stops as settled.
@@ -90,9 +90,9 @@ describe('federation host liveness verdicts', () => {
   afterEach(() => db.close())
 
   async function call(name: string, params: Record<string, unknown>) {
-    const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
-      (candidate) => candidate.name === name
-    )
+    const method = eraseRpcMethods(ORCHESTRATION_METHODS)
+      .filter((method) => !isStreamingMethod(method))
+      .find((candidate) => candidate.name === name)
     if (!method) {
       throw new Error(`Method not found: ${name}`)
     }
@@ -147,9 +147,9 @@ describe('federation host liveness verdicts', () => {
     })
     hostDb.markRemoteAttachmentReady(DISPATCH_ID)
     const callHost = async (name: string, params: Record<string, unknown>) => {
-      const method = eraseRpcMethods(ORCHESTRATION_METHODS).find(
-        (candidate) => candidate.name === name
-      )
+      const method = eraseRpcMethods(ORCHESTRATION_METHODS)
+        .filter((method) => !isStreamingMethod(method))
+        .find((candidate) => candidate.name === name)
       if (!method) {
         throw new Error(`Method not found: ${name}`)
       }
