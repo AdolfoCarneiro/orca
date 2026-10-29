@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { isEditorAnchorVisible, observeAnchorAncestorVisibility } from './editor-anchor-visibility'
 
 // Portaled editor overlays outlive a hidden editor (inactive tab or workspace), so close them instead.
 export function useDismissWhenEditorHidden(
@@ -9,15 +10,28 @@ export function useDismissWhenEditorHidden(
   onDismissRef.current = onDismiss
 
   useEffect(() => {
-    if (!editorRoot || typeof IntersectionObserver === 'undefined') {
+    if (!editorRoot) {
       return
     }
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry && !entry.isIntersecting && editorRoot.getClientRects().length === 0) {
+    const dismissIfHidden = (): void => {
+      if (!isEditorAnchorVisible(editorRoot)) {
         onDismissRef.current()
       }
-    })
-    observer.observe(editorRoot)
-    return () => observer.disconnect()
+    }
+    const mutationObserver = new MutationObserver(dismissIfHidden)
+    observeAnchorAncestorVisibility(mutationObserver, editorRoot)
+    const intersectionObserver =
+      typeof IntersectionObserver === 'undefined'
+        ? null
+        : new IntersectionObserver(([entry]) => {
+            if (entry && !entry.isIntersecting) {
+              dismissIfHidden()
+            }
+          })
+    intersectionObserver?.observe(editorRoot)
+    return () => {
+      mutationObserver.disconnect()
+      intersectionObserver?.disconnect()
+    }
   }, [editorRoot])
 }

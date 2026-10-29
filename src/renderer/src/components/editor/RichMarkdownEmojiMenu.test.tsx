@@ -64,3 +64,20 @@ it('dismisses on Escape and on an outside pointer press', async () => {
   })
   expect(onClose).toHaveBeenCalledTimes(2)
 })
+
+it('dismisses when its workspace is hidden while still painted (opacity-0 + inert)', async () => {
+  const workspace = document.createElement('div')
+  document.body.append(workspace)
+  workspace.append(editorRoot)
+  const onClose = vi.fn()
+  renderMenu(onClose)
+
+  workspace.className = 'absolute inset-0 flex'
+  await act(() => Promise.resolve())
+  expect(onClose).not.toHaveBeenCalled()
+
+  workspace.inert = true
+  workspace.setAttribute('aria-hidden', 'true')
+  await act(() => Promise.resolve())
+  expect(onClose).toHaveBeenCalled()
+})
