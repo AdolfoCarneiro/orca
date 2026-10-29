@@ -77,7 +77,7 @@ export function reportWorkerTurnStop(
   deps: WorkerTurnStopReportDeps
 ): void {
   const dispatchId = workerTurnStopDispatchId(target)
-  // Waiting on mail or resting on its own helpers is deliberate; a prompt, error, or exit is not.
+  // Waiting on mail, or a clean finish resting on its own helpers, is deliberate; an exit never is.
   if (
     stop.reason !== 'exited' &&
     (deps.isWaitingForMail(`dispatch:${dispatchId}`) ||
