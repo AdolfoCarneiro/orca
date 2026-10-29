@@ -343,9 +343,12 @@ test.describe('native chat on a WSL host', () => {
         .toContain('Ubuntu was stopped')
       const stoppedNotice = chat.getByText('Ubuntu is stopped', { exact: true })
       await expect(stoppedNotice).toBeVisible({ timeout: 30_000 })
-      // Send waits for Start rather than failing against a stopped distro.
+      // Send waits for Start rather than failing against a stopped distro; while held, the button is
+      // named by why it waits, as for any host hold.
       await type('while stopped')
-      await expect(sendButton).toBeDisabled()
+      await expect(
+        chat.getByRole('button', { name: 'Start Ubuntu to send.', exact: true })
+      ).toBeDisabled()
       await page.screenshot({ path: testInfo.outputPath('wsl-host-chat-parked.png') })
       expect(fakeWslConnects(connectLogFile)).toHaveLength(connectsBeforeStop)
       expect(readDistroState(distrosFile)).toBe('stopped')
