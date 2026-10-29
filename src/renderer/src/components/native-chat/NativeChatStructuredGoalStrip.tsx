@@ -1,9 +1,12 @@
 import { NativeChatThreadGoalBanner } from './NativeChatThreadGoalBanner'
 import type { NativeChatStructuredComposerTransport } from './native-chat-composer-types'
 import type { StructuredAgentSessionThreadGoal } from './use-structured-agent-session-thread-goal'
+import type { NativeChatImageRuntimeContext } from './native-chat-image-runtime-context'
+import { NativeChatTextAttachments } from './NativeChatTextAttachments'
 
 export function NativeChatStructuredGoalStrip(props: {
   sessionId: string
+  runtimeContext: NativeChatImageRuntimeContext
   threadGoal: StructuredAgentSessionThreadGoal | null | undefined
   transport: NativeChatStructuredComposerTransport
   isWorking: boolean
@@ -21,6 +24,14 @@ export function NativeChatStructuredGoalStrip(props: {
     <NativeChatThreadGoalBanner
       key={props.sessionId}
       goal={threadGoal.goal}
+      objectiveContent={
+        <NativeChatTextAttachments
+          content={threadGoal.goal.objective}
+          structured
+          runtimeContext={props.runtimeContext}
+          renderText={(text) => text}
+        />
+      }
       pending={threadGoal.pending}
       hostChanges={threadGoal.hostChanges}
       sendUnavailable={transport.sendOut === true || props.isWorking}

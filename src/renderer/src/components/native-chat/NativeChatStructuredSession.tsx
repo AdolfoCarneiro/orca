@@ -352,7 +352,7 @@ export function NativeChatStructuredSession(
           />
           {prompt ? null : (
             <NativeChatStructuredGoalStrip
-              sessionId={props.sessionId}
+              {...{ sessionId: props.sessionId, runtimeContext: imageRuntimeContext }}
               threadGoal={controller.threadGoal}
               transport={transport}
               isWorking={controller.isWorking}
