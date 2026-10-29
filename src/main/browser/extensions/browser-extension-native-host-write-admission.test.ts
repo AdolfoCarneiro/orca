@@ -3,9 +3,11 @@ import { createNativeHostWriteAdmission } from './browser-extension-native-host-
 
 const BODY_LIMIT = 64 * 1024 * 1024
 const admissions: ReturnType<typeof createNativeHostWriteAdmission>[] = []
+let evicted: number[] = []
 
 function admission() {
-  const writes = createNativeHostWriteAdmission()
+  const index = admissions.length
+  const writes = createNativeHostWriteAdmission(() => evicted.push(index))
   admissions.push(writes)
   return writes
 }
@@ -14,46 +16,50 @@ afterEach(() => {
   for (const writes of admissions.splice(0)) {
     writes.close()
   }
+  evicted = []
 })
 
 describe('native host write admission', () => {
-  it('admits the outgoing protocol boundary and counts headers in the host byte budget', () => {
+  it('admits a max-size frame followed by another, then bounds host bytes', () => {
     const writes = admission()
     expect(writes.claim(BODY_LIMIT + 1)).toBeUndefined()
-    const release = writes.claim(BODY_LIMIT)
-    expect(release).toBeTypeOf('function')
+    const first = writes.claim(BODY_LIMIT)
+    expect(first).toBeTypeOf('function')
+    expect(writes.claim(BODY_LIMIT)).toBeTypeOf('function')
     expect(writes.claim(1)).toBeUndefined()
-    release?.()
-    const smaller = writes.claim(BODY_LIMIT - 5)
-    expect(smaller).toBeTypeOf('function')
+    first?.()
     expect(writes.claim(1)).toBeTypeOf('function')
-    expect(writes.claim(1)).toBeUndefined()
+    expect(evicted).toEqual([])
   })
 
-  it('leaves one full-size frame for another host and bounds aggregate bytes', () => {
-    const stalled = admission()
-    const other = admission()
-    const successor = admission()
-    expect(stalled.claim(BODY_LIMIT)).toBeTypeOf('function')
-    expect(stalled.claim(1)).toBeUndefined()
-    const releaseOther = other.claim(BODY_LIMIT)
-    expect(releaseOther).toBeTypeOf('function')
-    expect(successor.claim(1)).toBeUndefined()
-    releaseOther?.()
-    expect(successor.claim(BODY_LIMIT)).toBeTypeOf('function')
-    expect(other.claim(1)).toBeUndefined()
+  it('evicts the largest byte holder, not the claimant, when the process budget is full', () => {
+    const stalled = [admission(), admission()]
+    for (const writes of stalled) {
+      expect(writes.claim(BODY_LIMIT)).toBeTypeOf('function')
+      expect(writes.claim(BODY_LIMIT)).toBeTypeOf('function')
+    }
+    const fresh = admission()
+    expect(fresh.claim(2)).toBeTypeOf('function')
+    expect(evicted).toEqual([0])
+    expect(stalled[0].claim(1)).toBeUndefined()
+    expect(fresh.claim(BODY_LIMIT)).toBeTypeOf('function')
+    expect(evicted).toEqual([0])
   })
 
-  it('bounds small entries per host and across hosts, then restores a completed slot', () => {
+  it('evicts the largest entry holder when process entries are full', () => {
     const hosts = Array.from({ length: 4 }, admission)
-    const releases = hosts.map((host) => Array.from({ length: 256 }, () => host.claim(1)))
-    expect(releases.flat().every((release) => typeof release === 'function')).toBe(true)
-    expect(hosts[0].claim(1)).toBeUndefined()
-    const successor = admission()
-    expect(successor.claim(1)).toBeUndefined()
-    releases[0][0]?.()
-    expect(successor.claim(1)).toBeTypeOf('function')
-    expect(hosts[0].claim(1)).toBeUndefined()
+    for (const [index, host] of hosts.entries()) {
+      for (let i = 0; i < (index === 2 ? 256 : 255); i++) {
+        expect(host.claim(1)).toBeTypeOf('function')
+      }
+    }
+    const fresh = admission()
+    for (let i = 0; i < 3; i++) {
+      expect(fresh.claim(1)).toBeTypeOf('function')
+    }
+    expect(evicted).toEqual([])
+    expect(fresh.claim(1)).toBeTypeOf('function')
+    expect(evicted).toEqual([2])
   })
 
   it('releases closed owners once, including late callbacks after successor admission', () => {
@@ -61,17 +67,17 @@ describe('native host write admission', () => {
     const late = old.claim(BODY_LIMIT)
     expect(late).toBeTypeOf('function')
     old.close()
-    const first = admission()
-    const second = admission()
-    const blocked = admission()
-    expect(first.claim(BODY_LIMIT)).toBeTypeOf('function')
-    expect(second.claim(BODY_LIMIT)).toBeTypeOf('function')
     old.close()
     late?.()
     late?.()
     expect(old.claim(1)).toBeUndefined()
-    expect(blocked.claim(1)).toBeUndefined()
-    first.close()
-    expect(blocked.claim(BODY_LIMIT)).toBeTypeOf('function')
+    const hosts = [admission(), admission()]
+    for (const host of hosts) {
+      expect(host.claim(BODY_LIMIT)).toBeTypeOf('function')
+      expect(host.claim(BODY_LIMIT)).toBeTypeOf('function')
+    }
+    expect(evicted).toEqual([])
+    expect(admission().claim(1)).toBeTypeOf('function')
+    expect(evicted).toEqual([1])
   })
 })

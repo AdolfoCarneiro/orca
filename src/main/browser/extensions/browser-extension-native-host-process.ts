@@ -115,7 +115,7 @@ export function startNativeHost(
     let pendingClose: string | undefined
     let startTimer: NodeJS.Timeout | undefined
     let outgoingClosed = false
-    const writes = createNativeHostWriteAdmission()
+    const writes = createNativeHostWriteAdmission(() => closeChannel(NATIVE_HOST_ERRORS.io))
     const stopWrites = (): void => {
       outgoingClosed = true
       writes.close()

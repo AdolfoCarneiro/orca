@@ -34,7 +34,10 @@ async function controlledHost(script = 'setInterval(() => {}, 1000);', bufferStd
   let closed: Promise<unknown> = Promise.resolve()
   const connection = await startNativeHost(
     { name: 'com.example.backpressure', program: process.execPath, args: [] },
-    { onMessage: (json) => messages.push(json), onClose: (error) => closes.push(error) },
+    {
+      onMessage: (json) => messages.push(json),
+      onClose: (error) => closes.push(error)
+    },
     (spec) => {
       const child = spawnProcess({
         ...spec,
@@ -133,38 +136,40 @@ describe('native host outgoing backpressure', () => {
     expect(exact.stdin.writableLength).toBe(BODY_LIMIT + 4)
     expect(exact.frames[0].subarray(4).equals(Buffer.from(json))).toBe(true)
     exact.connection.send('0')
+    expect(exact.closes).toEqual([])
+    exact.connection.send(json)
     expect(exact.closes).toEqual([NATIVE_HOST_ERRORS.io])
-    expect(exact.write).toHaveBeenCalledTimes(1)
+    expect(exact.write).toHaveBeenCalledTimes(2)
   })
 
-  it('bounds aggregate entries and releases close/error claims before late callbacks', async () => {
+  it('evicts the largest stalled host for a fresh one and releases each claim once', async () => {
     const hosts = await Promise.all(Array.from({ length: 4 }, () => controlledHost()))
     for (const host of hosts) {
       for (let i = 0; i < 256; i++) {
         host.connection.send('0')
       }
     }
-    const blocked = await controlledHost()
-    blocked.connection.send('0')
-    expect(blocked.closes).toEqual([NATIVE_HOST_ERRORS.io])
-    expect(blocked.write).not.toHaveBeenCalled()
-    hosts[0].connection.close()
+    const fresh = await controlledHost()
+    fresh.connection.send('0')
+    expect(fresh.closes).toEqual([])
+    expect(fresh.write).toHaveBeenCalledTimes(1)
+    expect(hosts.map((host) => host.closes)).toEqual([[NATIVE_HOST_ERRORS.io], [], [], []])
+    expect(hosts[0].stdin.destroyed).toBe(true)
     const successor = await controlledHost()
-    for (let i = 0; i < 256; i++) {
+    for (let i = 0; i < 255; i++) {
       successor.connection.send('0')
     }
     hosts[0].complete()
     await new Promise<void>((resolve) => setImmediate(resolve))
-    const stillBlocked = await controlledHost()
-    stillBlocked.connection.send('0')
-    expect(stillBlocked.closes).toEqual([NATIVE_HOST_ERRORS.io])
-    hosts[1].stdin.destroy(new Error('write failed'))
-    await vi.waitFor(() => expect(hosts[1].closes).toEqual([NATIVE_HOST_ERRORS.io]))
-    const afterError = await controlledHost()
-    for (let i = 0; i < 256; i++) {
-      afterError.connection.send('0')
+    fresh.connection.send('0')
+    expect(hosts.map((host) => host.closes.length)).toEqual([1, 1, 0, 0])
+    hosts[2].stdin.destroy(new Error('write failed'))
+    await vi.waitFor(() => expect(hosts[2].closes).toEqual([NATIVE_HOST_ERRORS.io]))
+    for (let i = 0; i < 254; i++) {
+      fresh.connection.send('0')
     }
-    expect(afterError.closes).toEqual([])
+    expect(hosts[3].closes).toEqual([])
+    expect(fresh.closes).toEqual([])
   })
 
   it('stops writes on exit while delivering a final reply still buffered on stdout', async () => {
