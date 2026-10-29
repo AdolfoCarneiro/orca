@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { SessionUnitReader } from '../../../shared/session-unit-reader'
 import { SessionUnitIndex } from '../../../shared/session-unit-index'
 import { SESSION_MAP_FIELDS } from '../../../shared/session-change-set'
@@ -141,6 +141,22 @@ describe('reader dependency answers over native roots', () => {
     reader.write('unifiedTabs', GIT_KEY, { present: false, value: undefined })
     expect(reader.dataOwner('terminalLayoutsByTabId', 'tab')).toBeUndefined()
     expect(reader.dataOwner('terminalLayoutsByTabId', 'tab', 'prior')).toBe(GIT_KEY)
+  })
+
+  it('visits a shared reference fan-out once rather than once for each record', () => {
+    const root = seed()
+    root.closedTerminalTabTombstonesByTabId = Object.fromEntries(
+      Array.from({ length: 200 }, (_, i) => [`closed-${i}`, { worktreeId: GIT_KEY, closedAt: i }])
+    )
+    const reader = new SessionUnitReader(freeze(root), new SessionUnitIndex(root))
+    reader.write('remoteSessionIdsByTabId', 'tab', { present: true, value: 'pty' })
+    const references = vi.spyOn(reader, 'references')
+    const scope = reader.selection()
+    expect(scope.get('closedTerminalTabTombstonesByTabId')?.size).toBe(200)
+    expect(
+      references.mock.calls.filter(([kind, id]) => kind === 'owner' && id === GIT_KEY)
+    ).toHaveLength(2)
+    expect(reader.selection()).toBe(scope)
   })
 
   it('refreshes dependencies after reducer edits and retains explicit absent owner identities', () => {

@@ -54,6 +54,16 @@ export function resolveSessionUnits(
     return selected
   }
   const queue = [...extra]
+  const visitedReferences = new Map<SessionReferenceKind, Set<string>>()
+  const follow = (kind: SessionReferenceKind, id: string): void => {
+    const visited = visitedReferences.get(kind) ?? new Set<string>()
+    if (visited.has(id)) {
+      return
+    }
+    visited.add(id)
+    visitedReferences.set(kind, visited)
+    queue.push(...reader.references(kind, id, 'prior'), ...reader.references(kind, id))
+  }
   for (const field of includeChanges ? SESSION_MAP_FIELDS : []) {
     const keys = reader.changedKeys(field)
     for (const key of keys) {
@@ -79,14 +89,14 @@ export function resolveSessionUnits(
       'leaf'
     ] as const) {
       for (const id of reader.dependencyIds(field, key, kind)) {
-        queue.push(...reader.references(kind, id, 'prior'), ...reader.references(kind, id))
+        follow(kind, id)
       }
     }
     for (const repo of reader.dependencyIds(field, key, 'repo')) {
       queue.push({ field: 'terminalTopologyRevisionByRepoId', key: repo })
     }
     if (field === 'terminalTopologyRevisionByRepoId' && reader.touches(field)) {
-      queue.push(...reader.references('repo', key, 'prior'), ...reader.references('repo', key))
+      follow('repo', key)
     }
   }
   for (const [field, keys] of selected) {
