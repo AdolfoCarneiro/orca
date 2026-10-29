@@ -20255,6 +20255,32 @@
       "stepDownload": "Download",
       "stepUnpack": "Unpack",
       "stepCheck": "Check"
+    },
+    "orchestrationCrew": {
+      "workers": "{{total}} workers",
+      "managedByNames": "Managed by {{names}}",
+      "talkingWithNames": "Talking with {{names}}",
+      "managedBy": "Managed by",
+      "managing": "Managing",
+      "talkingWith": "Talking with",
+      "label": "Agent crew",
+      "collapse": "Collapse crew panel",
+      "show": "Show crew: {{label}}",
+      "pending": "{{pending}} waiting for you",
+      "waitingPrefix": "Waiting for you · ",
+      "noTask": "No shared task",
+      "open": "Open {{name}}",
+      "more": "More for {{name}}",
+      "openChat": "Open its chat",
+      "copiedAddress": "Copied {{name}}'s address",
+      "copyAddress": "Copy address",
+      "showDetails": "Show {{name}}'s task and latest message",
+      "task": "Task",
+      "progress": "Progress",
+      "asksYou": "Asks you",
+      "latest": "Latest",
+      "to": "To",
+      "from": "From"
     }
   },
   "dashboardPopout": {
