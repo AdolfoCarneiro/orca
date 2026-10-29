@@ -534,10 +534,12 @@ it.each(['deadline', 'retirement', 'stop', 'workspace'] as const)(
       service = c.service
       const selected = vi.spyOn(f.rig.host.deps, 'launchAccountHome').mockReturnValue(home.promise)
       let workspaceIdentity = 'original'
+      const now = 1_800_000_000_000
+      vi.useFakeTimers({ now })
       const pending = f.rig.host.readModelCatalog({
         agent: 'claude',
         sessionId: PARENT,
-        deadline: Date.now() + 500,
+        deadline: now + 500,
         ...(end === 'workspace'
           ? {
               workspace: {
@@ -559,6 +561,7 @@ it.each(['deadline', 'retirement', 'stop', 'workspace'] as const)(
         c.service.stop()
       }
       if (end === 'deadline') {
+        await vi.advanceTimersByTimeAsync(500)
         expect(await settled(pending, 'original scope deadline')).toEqual({ origin: 'unknown' })
       }
       home.resolve(HOME_B)
@@ -570,6 +573,7 @@ it.each(['deadline', 'retirement', 'stop', 'workspace'] as const)(
     } finally {
       home.resolve(HOME_B)
       service?.stop()
+      vi.useRealTimers()
       await f.dispose()
     }
   }
