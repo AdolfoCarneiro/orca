@@ -1,3 +1,14 @@
+import { getResolvedExecutionHostIdForWorktree } from '@/lib/resolved-worktree-execution-host'
+import { isWindowsHostWslWorkspace } from '@/lib/execution-host-facts'
+import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
+import { selectFolderWorkspaces, selectWorktreesByRepo } from '@/store/workspace-record-selectors'
+import {
+  findIndexedFolderWorkspaceOwner,
+  findIndexedWorktreeOwnerForHost
+} from '@/lib/worktree-runtime-owner-index'
+import { getRendererAppPlatform } from '@/lib/renderer-app-platform'
+import { parseExecutionHostId } from '../../../../shared/execution-host'
+import { lastVerifiedRuntimeStatus } from '../../../../shared/runtime-host-status'
 import { getLocalProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
 import type { AppState } from '@/store/types'
 import { sshConnectFailureText } from '@/ssh/ssh-host-server-status-copy'
@@ -14,7 +25,8 @@ import {
 } from '@/store/slices/runtime-environment-ssh'
 
 export type TerminalPaneHostState = {
-  nativeChatIsWslProject: boolean
+  /** Null preserves saved views until the owning host and project runtime are known. */
+  nativeChatIsWslProject: boolean | null
   nativeChatTranscriptIsLocalReadable: boolean
   sshReconnectEnvironmentId: string | null
   /** The failure detail behind the status; the overlay shows only a canned sentence without it. */
@@ -38,10 +50,43 @@ function reconnectErrorText(
   return sshConnectFailureText(state.sshConnectionStates.get(targetId), error)
 }
 
-function computeTerminalPaneHostState(state: AppState, worktreeId: string): TerminalPaneHostState {
+function resolveNativeChatWslProject(state: AppState, worktreeId: string): boolean | null {
   const projectRuntime = getLocalProjectExecutionRuntimeContext(state, worktreeId)
-  const nativeChatIsWslProject =
-    projectRuntime?.status === 'resolved' && projectRuntime.runtime.kind === 'wsl'
+  if (projectRuntime) {
+    return projectRuntime.status === 'resolved' ? projectRuntime.runtime.kind === 'wsl' : null
+  }
+  const owner = parseExecutionHostId(getResolvedExecutionHostIdForWorktree(state, worktreeId) ?? '')
+  if (!owner) {
+    return null
+  }
+  if (owner.kind === 'local') {
+    return getRendererAppPlatform() === 'win32' ? null : false
+  }
+  if (owner.kind === 'ssh') {
+    return false
+  }
+  const hostPlatform = lastVerifiedRuntimeStatus(
+    state.runtimeStatusByEnvironmentId.get(owner.environmentId)
+  )?.hostPlatform
+  const scope = parseWorkspaceKey(worktreeId)
+  const workspacePath =
+    scope?.type === 'folder'
+      ? findIndexedFolderWorkspaceOwner(
+          selectFolderWorkspaces(state),
+          scope.folderWorkspaceId,
+          owner.id
+        )?.folderPath
+      : findIndexedWorktreeOwnerForHost(selectWorktreesByRepo(state), worktreeId, owner.id)?.path
+  if (!hostPlatform || (hostPlatform === 'win32' && !workspacePath)) {
+    return null
+  }
+  return hostPlatform === 'win32'
+    ? isWindowsHostWslWorkspace(hostPlatform, workspacePath) || null
+    : false
+}
+
+function computeTerminalPaneHostState(state: AppState, worktreeId: string): TerminalPaneHostState {
+  const nativeChatIsWslProject = resolveNativeChatWslProject(state, worktreeId)
   const connectionId = getConnectionIdFromState(state, worktreeId)
   const nativeChatTranscriptIsLocalReadableResult =
     isNativeChatTranscriptLocalReadable(connectionId)

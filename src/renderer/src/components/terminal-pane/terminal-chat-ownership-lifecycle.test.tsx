@@ -63,7 +63,11 @@ vi.mock('@/runtime/web-runtime-terminal-buffer-actions', () => ({
   clearWebRuntimeTerminalBuffer: vi.fn()
 }))
 
-function makeFixture(paneIds = [1, 2], remotePusher?: RemotePaneLayoutPusher) {
+function makeFixture(
+  paneIds = [1, 2],
+  remotePusher?: RemotePaneLayoutPusher,
+  isWslProject: boolean | null = true
+) {
   const container = document.createElement('div')
   const split = document.createElement('div')
   split.className = 'pane-split'
@@ -84,7 +88,7 @@ function makeFixture(paneIds = [1, 2], remotePusher?: RemotePaneLayoutPusher) {
   return {
     managerRef: { current: manager },
     containerRef: { current: container },
-    nativeChatIsWslProject: true,
+    nativeChatIsWslProject: isWslProject,
     nativeChatTranscriptIsLocalReadable: true,
     onAgentExitedRef: { current: vi.fn() },
     paneCount: 2,
@@ -160,6 +164,17 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('terminal chat ownership lifecycle', () => {
+  it('preserves a saved view through unknown runtime until non-WSL is confirmed', () => {
+    const fixture = makeFixture(undefined, undefined, null)
+    const hook = renderHook(() => useFixture(fixture, RIGHT))
+    expect(hook.result.current.effectiveChatViewMode).toBe(true)
+    expect(mocks.state.terminalLayoutsByTabId.tab.chatLeafId).toBe(RIGHT)
+    fixture.nativeChatIsWslProject = false
+    hook.rerender()
+    expect(hook.result.current.effectiveChatViewMode).toBe(false)
+    expect(mocks.state.unifiedTabsByWorktree.wt[0].viewMode).toBe('terminal')
+  })
+
   it.each([
     { isWsl: false, agent: 'codex' },
     { isWsl: true, agent: 'openclaude' },
@@ -177,6 +192,7 @@ describe('terminal chat ownership lifecycle', () => {
             prompt: '',
             updatedAt: 0,
             stateStartedAt: 0,
+            stateHistory: [],
             paneKey: `tab:${RIGHT}`
           }
         }

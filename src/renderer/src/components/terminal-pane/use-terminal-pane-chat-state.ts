@@ -145,7 +145,7 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
     (leafId: string | null): boolean =>
       canToggleNativeChat({
         contentType: 'terminal',
-        isWslProject: nativeChatIsWslProject,
+        isWslProject: nativeChatIsWslProject === true,
         ...agentEvidenceForLeaf(leafId),
         nativeChatTranscriptIsLocalReadable
       }),
@@ -154,7 +154,8 @@ export function useTerminalPaneChatState(controller: TerminalPaneTitleController
   const chatAgent = nativeChatAvailabilityAgent(agentEvidenceForLeaf(chatLeafId))
   // Reconnect may omit identity; a known unsupported agent must still return to its terminal.
   const chatViewIsSupported =
-    nativeChatIsWslProject && (chatAgent === null || isNativeChatSupportedAgent(chatAgent))
+    nativeChatIsWslProject !== false &&
+    (chatAgent === null || isNativeChatSupportedAgent(chatAgent))
   const effectiveChatViewMode = isChatViewMode && chatViewIsSupported
   const applyNativeChatLeafRoute = useCallback(
     (route: NativeChatLeafRoute): void => {

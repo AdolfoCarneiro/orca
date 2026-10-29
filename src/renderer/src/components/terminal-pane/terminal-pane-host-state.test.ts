@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { AppState } from '@/store/types'
 import { selectWorktreeHostConnectionPhase } from '@/lib/worktree-host-connection-phase'
 import { selectTerminalPaneHostState } from './terminal-pane-host-state'
+
+vi.mock('@/lib/renderer-app-platform', () => ({ getRendererAppPlatform: () => 'darwin' }))
 
 function makeState(overrides: Record<string, unknown>): AppState {
   return {
@@ -64,6 +66,26 @@ describe('selectTerminalPaneHostState', () => {
     })
   })
 
+  it('recognizes WSL UNC projects on a paired Windows host', () => {
+    const state = makeState({
+      repos: [{ id: 'repo', executionHostId: 'runtime:windows' }],
+      runtimeStatusByEnvironmentId: new Map([
+        ['windows', { status: { hostPlatform: 'win32' }, checkedAt: 1 }]
+      ]),
+      worktreesByRepo: {
+        repo: [
+          {
+            id: 'wt',
+            repoId: 'repo',
+            hostId: 'runtime:windows',
+            path: '//wsl.localhost/Ubuntu/repo'
+          }
+        ]
+      }
+    })
+    expect(selectTerminalPaneHostState(state, 'wt').nativeChatIsWslProject).toBe(true)
+  })
+
   it('reads nested SSH state from the worktree owner runtime', () => {
     const state = makeState({
       repos: [
@@ -110,7 +132,7 @@ describe('selectTerminalPaneHostState', () => {
     })
 
     expect(selectTerminalPaneHostState(state, 'wt-runtime')).toEqual({
-      nativeChatIsWslProject: false,
+      nativeChatIsWslProject: null,
       nativeChatTranscriptIsLocalReadable: false,
       sshReconnectEnvironmentId: 'env-a',
       sshReconnectError: null,
