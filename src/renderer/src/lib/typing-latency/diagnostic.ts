@@ -186,6 +186,7 @@ function stopProbe(): string {
 
 function reportProbe(): TypingLatencyReport {
   if (active) {
+    active.longTasks.flush()
     const now = performance.now()
     for (const entry of active.panes) {
       active.unmatchedKeystrokes += drainTimedOutEchoCandidates(entry, now)

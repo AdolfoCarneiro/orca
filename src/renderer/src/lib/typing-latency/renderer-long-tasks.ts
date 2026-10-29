@@ -28,6 +28,7 @@ export type RendererLongTaskLog = {
   droppedTasks: number
   /** Samples starting before this time may overlap evicted tasks. */
   incompleteBefore: number
+  flush: () => void
   dispose: () => void
 }
 
@@ -72,7 +73,7 @@ export function observeRendererLongTasks(): RendererLongTaskLog {
   const tasks: RendererLongTask[] = []
   const history = { droppedTasks: 0, incompleteBefore: 0 }
   if (source === 'unavailable') {
-    return { source, tasks, ...history, dispose: () => undefined }
+    return { source, tasks, ...history, flush: () => undefined, dispose: () => undefined }
   }
   const record = (entries: readonly LongTaskEntryLike[]): void => {
     for (const entry of entries) {
@@ -97,6 +98,7 @@ export function observeRendererLongTasks(): RendererLongTaskLog {
   }
   const observer = new PerformanceObserver((list) => record(list.getEntries()))
   observer.observe({ type: source, buffered: false })
+  const flush = (): void => record(observer.takeRecords())
   return {
     source,
     tasks,
@@ -106,9 +108,9 @@ export function observeRendererLongTasks(): RendererLongTaskLog {
     get incompleteBefore() {
       return history.incompleteBefore
     },
+    flush,
     dispose: () => {
-      // Why: entries queued before the observer callback ran would otherwise miss the final report.
-      record(observer.takeRecords())
+      flush()
       observer.disconnect()
     }
   }
