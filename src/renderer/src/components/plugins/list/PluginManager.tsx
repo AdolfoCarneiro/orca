@@ -376,19 +376,21 @@ export function PluginManager({
           <PluginAllInstalled onShowInstalled={() => setTab('installed')} />
         ) : filter === 'all' || filter === 'available' ? (
           <div className="@container/plugin-catalog space-y-8">
-            {/* Why the error too: without it Not installed would offer plugins you may already have. */}
-            {filter === 'all' || pluginsError ? installedGroup : null}
-            <PluginCatalogGroups
-              catalog={catalog}
-              available={entries.available}
-              installed={catalogInstalled}
-              cardHandlers={cardHandlers}
-              matches={matches}
-              narrowed={narrowed}
-              capped={capped}
-              showAll={showAll}
-              openSources={() => setSourcesOpen(true)}
-            />
+            {/* Why the error and loading too: until installed plugins are read, Not installed can't tell what you have. */}
+            {filter === 'all' || pluginsError || pluginsLoading ? installedGroup : null}
+            {filter === 'available' && (pluginsLoading || pluginsError) ? null : (
+              <PluginCatalogGroups
+                catalog={catalog}
+                available={entries.available}
+                installed={catalogInstalled}
+                cardHandlers={cardHandlers}
+                matches={matches}
+                narrowed={narrowed}
+                capped={capped}
+                showAll={showAll}
+                openSources={() => setSourcesOpen(true)}
+              />
+            )}
           </div>
         ) : (
           <div className="@container/plugin-catalog">{installedGroup}</div>
