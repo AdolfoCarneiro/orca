@@ -14,8 +14,8 @@ export function paintPierreSearchHighlights(
 ) {
   if (ranges) {
     highlights.set(owner, ranges)
-  } else {
-    highlights.delete(owner)
+  } else if (!highlights.delete(owner)) {
+    return
   }
   if (typeof Highlight === 'undefined' || !CSS.highlights) {
     return

@@ -91,6 +91,7 @@
   --color-editor-surface: var(--editor-surface);
   --color-floating-surface: var(--floating-surface);
   --color-dialog-surface: var(--dialog-surface);
+  --color-editor-selection: var(--editor-selection-background);
   --color-agent-question: var(--agent-question);
   --color-agent-working: var(--agent-working);
   --color-agent-question-text: var(--agent-question-text);
@@ -194,6 +195,7 @@
   --orca-security-ring: #a1a1a1;
   --background: #fff;
   --editor-surface: #ffffff;
+  --editor-selection-background: #add6ff;
   --foreground: #0a0a0a;
   --chat-canvas-mix: 0%;
   --chat-foreground-mix: 82%;
@@ -309,6 +311,7 @@
   --orca-security-ring: #737373;
   --background: #0a0a0a;
   --editor-surface: #1e1e1e;
+  --editor-selection-background: #264f78;
   --foreground: #fafafa;
   --chat-canvas-mix: 5%;
   --chat-foreground-mix: 78%;
@@ -3379,10 +3382,6 @@ html.native-shell .app-layout {
     animation: none;
   }
 }
-
-  /* Match Monaco's default text-selection colors across editor surfaces. */
-  --editor-selection-background: #add6ff;
-  --editor-selection-background: #264f78;
 
 /* Why: inside a Pierre annotation row the diff already owns placement, so the
    note draft drops the overlay's absolute positioning and fills the row. */

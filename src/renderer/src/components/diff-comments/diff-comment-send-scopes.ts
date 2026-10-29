@@ -16,7 +16,10 @@ export function getSingleCommentSendScopes(
         'This note'
       ),
       notes: comment.sentAt ? [] : [comment],
-      formatPrompt: (notes) => formatCommentPrompt ? notes.map(formatCommentPrompt).join("\n\n") : formatDiffComments(notes)
+      formatPrompt: (notes) =>
+        formatCommentPrompt
+          ? notes.map(formatCommentPrompt).join('\n\n')
+          : formatDiffComments(notes)
     }
   ]
 }

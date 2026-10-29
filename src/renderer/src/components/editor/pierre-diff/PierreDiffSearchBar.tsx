@@ -86,7 +86,8 @@ export function PierreDiffSearchBar(props: PierreDiffSearchBarProps) {
             aria-label={translate('editor.diff.search.findLabel', 'Find in diff')}
             placeholder={translate('editor.diff.search.find', 'Find')}
             value={query.text}
-            className="h-7 min-w-0 w-40 text-xs"
+            density="compact"
+            className="w-40"
             onChange={(event) => onQuery({ ...query, text: event.target.value })}
             onKeyDown={(event) => {
               if (isImeCompositionKeyDown(event)) {
@@ -124,7 +125,7 @@ export function PierreDiffSearchBar(props: PierreDiffSearchBarProps) {
               key={key}
               label={label}
               aria-pressed={query[key]}
-              className={query[key] ? 'bg-accent text-accent-foreground' : undefined}
+              variant={query[key] ? 'secondary' : 'ghost'}
               onClick={() => onQuery({ ...query, [key]: !query[key] })}
             >
               <Icon />
@@ -166,10 +167,9 @@ export function PierreDiffSearchBar(props: PierreDiffSearchBarProps) {
           ).map(([side, label]) => (
             <Button
               key={side}
-              variant="ghost"
+              variant={props.side === side ? 'secondary' : 'ghost'}
               size="xs"
               aria-pressed={props.side === side}
-              className={props.side === side ? 'bg-accent text-accent-foreground' : undefined}
               onClick={() => props.onSide(side)}
             >
               {label}
@@ -188,7 +188,7 @@ export function PierreDiffSearchBar(props: PierreDiffSearchBarProps) {
                 'Replace'
               )}
               value={props.replacement}
-              className="h-7 min-w-0 text-xs"
+              density="compact"
               onChange={(event) => props.onReplacement(event.target.value)}
               onKeyDown={(event) => {
                 if (isImeCompositionKeyDown(event)) {

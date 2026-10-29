@@ -1,3 +1,4 @@
+import { getShadowRootSelection } from '@/lib/shadow-root-selection'
 import type { FileDiffMetadata } from '@pierre/diffs'
 import type { Editor } from '@pierre/diffs/edit'
 import { getDiffContentSignature } from '../diff-content-signature'
@@ -18,6 +19,7 @@ export type PierreNativeViewState = {
   }
 }
 const cache = new Map<string, PierreNativeViewState>()
+const signatures = new WeakMap<string[], string>()
 export function rememberPierreNativeView(key: string, state: PierreNativeViewState) {
   setWithLRU(cache, key, state)
 }
@@ -26,17 +28,22 @@ export function getPierreNativeView(key: string) {
 }
 
 function sourceSignature(diff: FileDiffMetadata, side: DiffSearchSide): string {
-  return getDiffContentSignature(
-    (side === 'deletions' ? diff.deletionLines : diff.additionLines).join('')
-  )
+  // Parsed snapshots are immutable; Pierre edits separate session-owned line arrays.
+  const lines = side === 'deletions' ? diff.deletionLines : diff.additionLines
+  let signature = signatures.get(lines)
+  if (signature === undefined) {
+    signature = getDiffContentSignature(lines.join(''))
+    signatures.set(lines, signature)
+  }
+  return signature
 }
 export function readPierreNativeSelection(
   host: HTMLElement,
   diff: FileDiffMetadata,
   editable: boolean
 ): PierreNativeViewState['selection'] {
-  const root = host.shadowRoot as ShadowRoot & { getSelection?: () => Selection | null }
-  const selection = root?.getSelection?.()
+  const root = host.shadowRoot
+  const selection = getShadowRootSelection(root)
   if (
     !root?.contains(selection?.anchorNode ?? null) ||
     !root.contains(selection?.focusNode ?? null)
@@ -68,9 +75,9 @@ export function restorePierreNativeSelection(
   saved: NonNullable<PierreNativeViewState['selection']>,
   instance: PierreDiffInstance,
   editor?: Pick<Editor, 'setDeletedTextSelectionActive'> | null
-): boolean {
+): boolean | 'stale' {
   if (saved.signature !== sourceSignature(diff, saved.side)) {
-    return true
+    return 'stale'
   }
   const { range, side } = saved
   if (
@@ -98,9 +105,7 @@ export function restorePierreNativeSelection(
   if (!first || !last) {
     return false
   }
-  const selection = (
-    host.shadowRoot as ShadowRoot & { getSelection?: () => Selection | null }
-  )?.getSelection?.()
+  const selection = getShadowRootSelection(host.shadowRoot)
   if (!selection) {
     return false
   }

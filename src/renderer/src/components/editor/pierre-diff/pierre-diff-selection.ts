@@ -27,7 +27,9 @@ function selectionBoundary(node: Node, offset: number): { line: number; column: 
 }
 
 // DOM ranges are ordered even when the user drags backwards.
-export function getPierreSelectionRange(selection: Selection | null): IRange | null {
+export function getPierreSelectionRange(
+  selection: Pick<Selection, 'rangeCount' | 'getRangeAt'> | null
+): IRange | null {
   if (!selection?.rangeCount) {
     return null
   }

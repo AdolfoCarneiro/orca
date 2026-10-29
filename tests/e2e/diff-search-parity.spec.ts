@@ -4,6 +4,10 @@ import { waitForSessionReady } from './helpers/store'
 import { addAndActivateRepo } from './helpers/isolated-repo-activation'
 import { createIsolatedLargeDiffRepo } from './large-diff-repro-fixtures'
 
+declare global {
+  var diffSearchProbe: { timer: number; maxLag: number }
+}
+
 test.use({ seedTestRepo: false })
 for (const mode of ['editable-file', 'readonly-combined']) {
   test(`finds both sides and preserves edit permissions in ${mode}`, async ({
@@ -133,19 +137,19 @@ test('cancels a pathological regex without blocking input', async ({
       probe.maxLag = Math.max(probe.maxLag, now - last - 20)
       last = now
     }, 20)
-    ;(window as unknown as { diffSearchProbe: typeof probe }).diffSearchProbe = probe
+    window.diffSearchProbe = probe
   })
   await input.fill('(a+)+$')
   await expect(search.getByRole('status')).toContainText('Search took too long', { timeout: 8_000 })
   await input.fill('(a+)+!$')
   await expect(search.getByRole('status')).toHaveText('1/1', { timeout: 3_000 })
   await input.fill('(a+)+$')
+  // ast-grep-ignore: test-no-real-time-wait -- Cancel the pathological regex after its debounced worker has started.
   await orcaPage.waitForTimeout(300)
   await input.fill('after')
   await expect(search.getByRole('status')).toHaveText('1/1', { timeout: 3_000 })
   const maxLag = await orcaPage.evaluate(() => {
-    const probe = (window as unknown as { diffSearchProbe: { timer: number; maxLag: number } })
-      .diffSearchProbe
+    const probe = window.diffSearchProbe
     clearInterval(probe.timer)
     return probe.maxLag
   })

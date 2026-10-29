@@ -3,6 +3,7 @@ import type { DiffSearchRequest, DiffSearchResult } from './pierre-diff-search'
 
 export function usePierreDiffSearchResults(request: DiffSearchRequest | null) {
   const [result, setResult] = useState<{ request: DiffSearchRequest; value: DiffSearchResult }>()
+  // oxlint-disable-next-line react-doctor/effect-needs-cleanup -- Cleanup clears both the debounce and nested deadline timers and terminates the worker.
   useEffect(() => {
     if (!request || !request.query.text) {
       return

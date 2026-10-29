@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { FileDiffMetadata } from '@pierre/diffs'
+import { parseDiffFromFile } from '@pierre/diffs'
 import { PierreDiffSurface } from './PierreDiffSurface'
 
 vi.mock('@pierre/diffs/react', () => ({ FileDiff: () => null }))
@@ -27,8 +27,8 @@ vi.mock('./use-pierre-diff-native-view', () => ({
 const storeState = vi.hoisted(() => ({
   editorFontZoomLevel: 0,
   clearDeliveredDiffComments: () => {},
-  activeGroupIdByWorktree: {} as Record<string, string>,
-  scrollToDiffCommentId: null as string | null,
+  activeGroupIdByWorktree: {},
+  scrollToDiffCommentId: null,
   keybindings: {}
 }))
 
@@ -38,7 +38,10 @@ vi.mock('@/store', () => {
   return { useAppStore }
 })
 
-const fileDiff = { name: 'file.ts', hunks: [] } as unknown as FileDiffMetadata
+const fileDiff = parseDiffFromFile(
+  { name: 'file.ts', contents: 'old' },
+  { name: 'file.ts', contents: 'new' }
+)
 
 function renderSurface(autoFocusHost?: boolean) {
   return render(

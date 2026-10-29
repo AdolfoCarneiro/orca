@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { getPierreSelectionRange } from './pierre-diff-selection'
 import { formatCopiedSelectionWithContext } from '../selection-copy'
 
-function selection(endOffset: number): Selection {
+function selection(endOffset: number): Pick<Selection, 'rangeCount' | 'getRangeAt'> {
   const root = document.createElement('div')
   root.innerHTML =
     '<div data-line="10"><span>first</span> line</div><div data-line="11"><span>last</span> line</div>'
   const range = document.createRange()
   range.setStart(root.children[0].firstChild!.firstChild!, 1)
   range.setEnd(root.children[1].firstChild!.firstChild!, endOffset)
-  return { rangeCount: 1, getRangeAt: () => range } as unknown as Selection
+  return { rangeCount: 1, getRangeAt: () => range }
 }
 
 describe('Pierre contextual copy boundaries', () => {
@@ -50,8 +50,6 @@ describe('Pierre contextual copy boundaries', () => {
     const range = document.createRange()
     range.setStart(root.children[0].firstChild!, 0)
     range.setEnd(root.children[1].firstChild!, 3)
-    expect(
-      getPierreSelectionRange({ rangeCount: 1, getRangeAt: () => range } as unknown as Selection)
-    ).toBeNull()
+    expect(getPierreSelectionRange({ rangeCount: 1, getRangeAt: () => range })).toBeNull()
   })
 })

@@ -78,9 +78,11 @@ test('diff editing preserves immediate input, saves, and undoes after a render u
     .poll(() => readFileSync(diskPath, 'utf8'))
     .toContain(`${GOLDEN_ADDED_LINE} // immediate input`)
   // A later edit must remain in the same document after the worker settles.
+  // ast-grep-ignore: test-no-real-time-wait -- Cross the editor debounce and undo coalescing boundary before the next action.
   await orcaPage.waitForTimeout(600)
   await orcaPage.keyboard.type(' continued', { delay: 20 })
   await expect(changedLine).toHaveText(`${GOLDEN_ADDED_LINE} // immediate input continued`)
+  // ast-grep-ignore: test-no-real-time-wait -- Cross the editor debounce and undo coalescing boundary before the next action.
   await orcaPage.waitForTimeout(600)
   await orcaPage.keyboard.press('ControlOrMeta+z')
   await orcaPage.keyboard.press('ControlOrMeta+s')

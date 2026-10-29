@@ -89,7 +89,7 @@ export function usePierreDiffNativeView(
         return
       }
       current.instance.setCodeScrollLeft(saved.scrollLeft)
-      if (
+      const restored =
         !saved.selection ||
         restorePierreNativeSelection(
           current.host,
@@ -98,10 +98,14 @@ export function usePierreDiffNativeView(
           current.instance,
           editorRef.current
         )
-      ) {
+      if (restored === 'stale') {
+        pending.current = undefined
+        return
+      }
+      if (restored) {
         // Editor initialization may replace the selected nodes on its next frame.
         schedule()
-      } else {
+      } else if (saved.selection) {
         const { range, side } = saved.selection
         scrollPierreDiffToLine({
           host: current.host,

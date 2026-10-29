@@ -1,12 +1,18 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import type { FileDiffMetadata } from '@pierre/diffs'
+import { FileDiff, parseDiffFromFile } from '@pierre/diffs'
+import type { PierreDiffAnnotationData } from './pierre-diff-comment-annotations'
 import { createPierreEditor, withPierreDiffEditState } from './pierre-diff-edit-state'
 
-const { states, clear, get, nativeViews } = vi.hoisted(() => {
+const { states, clear, get, nativeViews, constructed } = vi.hoisted(() => {
   const states = new Map<string, unknown>()
   const nativeViews = new Map<string, { selection?: { side: string } }>()
+  const constructed: {
+    key?: string
+    options: { initialState?: { document?: unknown; diffSession?: unknown } }
+  }[] = []
   return {
     states,
+    constructed,
     nativeViews,
     get: vi.fn((_: string, key: string) => states.get(key)),
     clear: vi.fn((_: string, key: string) => states.delete(key))
@@ -20,9 +26,14 @@ vi.mock('@pierre/diffs/edit', () => ({
   Editor: class {
     constructor(
       public type: string,
-      public options: { onComplete?: (event: unknown) => void },
+      public options: {
+        onComplete?: (event: unknown) => void
+        initialState?: { document?: unknown; diffSession?: unknown }
+      },
       public key?: string
-    ) {}
+    ) {
+      constructed.push({ key, options })
+    }
     edit() {
       return () => this.options.onComplete?.({})
     }
@@ -31,33 +42,34 @@ vi.mock('@pierre/diffs/edit', () => ({
 }))
 
 function stored(original = 'old\n', modified = 'new\n') {
+  const undoStack: { forwardEdits: { text: string }[]; inverseEdits: { text: string }[] }[] = []
   return {
     type: 'file-diff',
-    document: { getText: () => modified, history: { undoStack: [], redoStack: [] } },
-    diffSession: { type: 'change', oldFile: { lines: [original] } }
+    document: { getText: () => modified, history: { undoStack, redoStack: [] } },
+    diffSession: { type: 'change', oldFile: { name: 'file', lines: [original] } }
   }
 }
 function create(scope: string, original = 'old\n', modified = 'new\n') {
-  const diff = {
-    type: 'change',
-    deletionLines: [original],
-    additionLines: [modified]
-  } as FileDiffMetadata
+  const diff = parseDiffFromFile(
+    { name: 'file', contents: original },
+    { name: 'file', contents: modified }
+  )
   const editor = createPierreEditor('file-diff', withPierreDiffEditState({}, scope, diff))
+  const inspected = constructed.at(-1)
+  if (!inspected?.key) {
+    throw new Error('Expected the mocked Editor to be constructed with a state key')
+  }
   return {
-    key: (editor as unknown as { key: string }).key,
-    initialState: (
-      editor as unknown as {
-        options: { initialState?: { document?: unknown; diffSession?: unknown } }
-      }
-    ).options.initialState,
-    finish: editor.edit({} as never)
+    key: inspected.key,
+    initialState: inspected.options.initialState,
+    finish: editor.edit(new FileDiff<PierreDiffAnnotationData>())
   }
 }
 
 beforeEach(() => {
   states.clear()
   nativeViews.clear()
+  constructed.length = 0
   vi.clearAllMocks()
 })
 
@@ -113,13 +125,13 @@ it('keeps simultaneous copies of a scope independent', () => {
 it('releases the scope when cleanup finishes without emitting complete', () => {
   const editor = createPierreEditor(
     'file-diff',
-    withPierreDiffEditState({}, 'orphaned', {
-      type: 'change',
-      deletionLines: ['old\n'],
-      additionLines: ['new\n']
-    } as FileDiffMetadata)
+    withPierreDiffEditState(
+      {},
+      'orphaned',
+      parseDiffFromFile({ name: 'file', contents: 'old\n' }, { name: 'file', contents: 'new\n' })
+    )
   )
-  editor.edit({} as never)
+  editor.edit(new FileDiff<PierreDiffAnnotationData>())
   editor.cleanUp('discard')
   const reopened = create('orphaned')
   expect(reopened.key).toBe('orphaned')
@@ -129,13 +141,13 @@ it('releases the scope when cleanup finishes without emitting complete', () => {
 it('keeps the scope reserved across a recycle so a remount cannot share the key', () => {
   const editor = createPierreEditor(
     'file-diff',
-    withPierreDiffEditState({}, 'recycled', {
-      type: 'change',
-      deletionLines: ['old\n'],
-      additionLines: ['new\n']
-    } as FileDiffMetadata)
+    withPierreDiffEditState(
+      {},
+      'recycled',
+      parseDiffFromFile({ name: 'file', contents: 'old\n' }, { name: 'file', contents: 'new\n' })
+    )
   )
-  editor.edit({} as never)
+  editor.edit(new FileDiff<PierreDiffAnnotationData>())
   editor.cleanUp('recycle')
   const concurrent = create('recycled')
   expect(concurrent.key).not.toBe('recycled')
@@ -148,7 +160,7 @@ it('evicts dormant document history when retained text exceeds the budget', () =
   const state = stored()
   state.document.history.undoStack = [
     { forwardEdits: [], inverseEdits: [{ text: 'x'.repeat(16_000_001) }] }
-  ] as never
+  ]
   states.set(editor.key, state)
   editor.finish()
   expect(clear).toHaveBeenCalledWith('file-diff', editor.key)
@@ -158,19 +170,17 @@ it('evicts dormant document history when retained text exceeds the budget', () =
 it('rebuilds the session when the old side was renamed', () => {
   const state = stored()
   states.set('renamed', state)
-  const diff = {
-    type: 'rename-changed',
-    prevName: 'other',
-    name: 'file',
-    deletionLines: ['old\n'],
-    additionLines: ['new\n']
-  } as unknown as FileDiffMetadata
+  const diff = parseDiffFromFile(
+    { name: 'other', contents: 'old\n' },
+    { name: 'file', contents: 'new\n' }
+  )
   const editor = createPierreEditor('file-diff', withPierreDiffEditState({}, 'renamed', diff))
-  const initialState = (
-    editor as unknown as { options: { initialState?: { diffSession?: unknown } } }
-  ).options.initialState
+  const initialState =
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The mocked Editor above exposes these construction options and key for assertions.
+    (editor as unknown as { options: { initialState?: { diffSession?: unknown } } }).options
+      .initialState
   // Pierre throws on a retained session that cannot resume against the delivered old file,
   // so a rename must fall back to a rebuilt session rather than preserving this one.
   expect(initialState?.diffSession).toBeUndefined()
-  editor.edit({} as never)()
+  editor.edit(new FileDiff<PierreDiffAnnotationData>())()
 })

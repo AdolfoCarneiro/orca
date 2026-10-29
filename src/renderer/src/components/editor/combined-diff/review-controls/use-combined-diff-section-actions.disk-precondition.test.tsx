@@ -46,6 +46,7 @@ function section(): DiffSection {
     key: 'a.ts',
     path: 'a.ts',
     status: 'modified',
+    area: 'unstaged',
     originalContent: 'old',
     modifiedContent: 'section edit',
     collapsed: false,

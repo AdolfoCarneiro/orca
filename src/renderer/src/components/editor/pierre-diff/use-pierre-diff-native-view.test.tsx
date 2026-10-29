@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { FileDiffMetadata } from '@pierre/diffs'
+import { parseDiffFromFile } from '@pierre/diffs'
 import type { PierreDiffInstance } from './PierreDiffSurface'
 import { usePierreDiffNativeView } from './use-pierre-diff-native-view'
 
@@ -46,6 +46,7 @@ function setup(activeGroup = 'left') {
   const host = document.createElement('div')
   container.append(host)
   document.body.append(container)
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The mocked native restore owns selection; this instance only supplies horizontal scroll.
   const instance = {
     getCodeScrollLeft: () => state.saved.scrollLeft,
     setCodeScrollLeft: vi.fn()
@@ -57,7 +58,7 @@ function setup(activeGroup = 'left') {
     ({ activeGroup }) =>
       usePierreDiffNativeView(
         'file',
-        {} as FileDiffMetadata,
+        parseDiffFromFile(null, { name: 'file', contents: '' }),
         true,
         containerRef,
         activeGroup,
@@ -121,4 +122,12 @@ it('cancels delayed restoration when the user interacts elsewhere', () => {
   document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }))
   tick()
   expect(state.restore).not.toHaveBeenCalled()
+})
+
+it('stops retrying a saved selection whose content is stale', () => {
+  const { tick } = setup()
+  state.restore.mockReturnValue('stale')
+  tick()
+  tick()
+  expect(state.restore).toHaveBeenCalledOnce()
 })

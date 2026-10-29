@@ -1,14 +1,7 @@
-import {
-  searchPierreDiff,
-  type DiffSearchRequest,
-  type DiffSearchResult
-} from './pierre-diff-search'
+import { searchPierreDiff, type DiffSearchRequest } from './pierre-diff-search'
 
-const scope = globalThis as unknown as {
-  onmessage: (event: MessageEvent<DiffSearchRequest>) => void
-  postMessage: (response: DiffSearchResult) => void
-}
-scope.onmessage = ({ data }) => {
+const scope = globalThis
+scope.onmessage = ({ data }: MessageEvent<DiffSearchRequest>) => {
   try {
     scope.postMessage(searchPierreDiff(data))
   } catch {

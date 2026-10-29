@@ -1,5 +1,6 @@
-import { expect, it } from 'vitest'
-import { pierreSearchRevealLine } from './pierre-diff-search-view'
+// @vitest-environment happy-dom
+import { expect, it, vi } from 'vitest'
+import { paintPierreSearchHighlights, pierreSearchRevealLine } from './pierre-diff-search-view'
 import { buildPierreFileDiff } from './pierre-diff-metadata'
 
 const input = {
@@ -46,4 +47,24 @@ it('maps a fully deleted file onto the empty new-file hunk start', () => {
   expect(diff.hunks[0]?.additionCount).toBe(0)
   // FileDiff.revealLine uses 1-based new-file ranges; +0,0 becomes [1, 1).
   expect(pierreSearchRevealLine(diff, 51, 'deletions')).toBe(1)
+})
+
+it('leaves active highlights untouched when an unrelated surface removes no ranges', () => {
+  const registry = new Map<string, Set<Range>>()
+  vi.stubGlobal('Highlight', class extends Set<Range> {})
+  vi.stubGlobal('CSS', { highlights: registry })
+  const owner = {}
+  try {
+    paintPierreSearchHighlights(owner, { matches: [document.createRange()], active: [] })
+    const active = registry.get('orca-diff-find')
+    for (let row = 0; row < 10; row++) {
+      paintPierreSearchHighlights({})
+    }
+    expect(registry.get('orca-diff-find')).toBe(active)
+    paintPierreSearchHighlights(owner)
+    expect(registry.has('orca-diff-find')).toBe(false)
+  } finally {
+    paintPierreSearchHighlights(owner)
+    vi.unstubAllGlobals()
+  }
 })

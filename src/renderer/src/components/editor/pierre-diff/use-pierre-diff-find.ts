@@ -1,3 +1,4 @@
+import { getShadowRootSelection } from '@/lib/shadow-root-selection'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { resolveFindAgainShortcut, type Editor } from '@pierre/diffs/edit'
 import type { FileDiffMetadata } from '@pierre/diffs'
@@ -39,20 +40,21 @@ export function usePierreDiffFind({
   const [replaceOpen, setReplaceOpen] = useState(false)
   const [revision, setRevision] = useState(0)
   const [selection, setSelection] = useState<{ request: object; index: number }>()
+  const enabled = open && query.text.length > 0
+  const source = useMemo(
+    () => ({
+      revision,
+      text: !enabled
+        ? null
+        : side === 'deletions'
+          ? fileDiff.deletionLines.join('')
+          : (editorRef.current?.getText() ?? fileDiff.additionLines.join(''))
+    }),
+    [enabled, side, fileDiff, revision, editorRef]
+  )
   const request = useMemo(
-    () =>
-      open
-        ? {
-            text:
-              side === 'deletions'
-                ? fileDiff.deletionLines.join('')
-                : (editorRef.current?.getText() ?? fileDiff.additionLines.join('')),
-            query,
-            replacement,
-            revision
-          }
-        : null,
-    [open, side, fileDiff, query, replacement, revision, editorRef]
+    () => (source.text === null ? null : { ...source, text: source.text, query, replacement }),
+    [source, query, replacement]
   )
   const result = usePierreDiffSearchResults(request)
   const matches = result?.matches
@@ -151,9 +153,7 @@ export function usePierreDiffFind({
       }
       setOpen(true)
       const root = containerRef.current?.querySelector('diffs-container')?.shadowRoot
-      const selection = (
-        root as ShadowRoot & { getSelection?: () => Selection | null }
-      )?.getSelection?.()
+      const selection = getShadowRootSelection(root)
       const selected = root?.contains(selection?.anchorNode ?? null) ? selection?.toString() : ''
       if (selected) {
         setQuery((value) => ({ ...value, text: selected }))

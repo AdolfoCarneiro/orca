@@ -16,6 +16,7 @@ describe('terminal keyboard pane ownership', () => {
       throw new Error('Diff shortcuts must not consult the terminal')
     })
     const resolveShortcutEvent = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Diff-owned chords return before consulting the omitted terminal context.
     const handlers = createTerminalKeyboardEventHandlers({
       isMac: false,
       isWindows: false,
@@ -55,6 +56,7 @@ describe('terminal keyboard pane ownership', () => {
     })
     const sendFocused = vi.fn()
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This fixture supplies the complete Enter path; unused runtime dependencies intentionally remain absent.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Diff-owned chords return before consulting the omitted terminal context.
     const handlers = createTerminalKeyboardEventHandlers({
       isMac: false,
       isWindows: false,

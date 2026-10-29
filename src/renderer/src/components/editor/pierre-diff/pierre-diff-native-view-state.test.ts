@@ -14,6 +14,7 @@ const diff = buildPierreFileDiff({
   originalContent: 'old one\nold two\n',
   modifiedContent: 'new one\nnew two\n'
 })
+// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The restore seam only calls revealLine; no renderer is mounted.
 const instance = { revealLine: () => false } as unknown as PierreDiffInstance
 function host() {
   const host = document.createElement('diffs-container')
@@ -59,7 +60,7 @@ it('does not restore offsets over changed original content', () => {
       saved,
       instance
     )
-  ).toBe(true)
+  ).toBe('stale')
   expect(view.selection.setBaseAndExtent).not.toHaveBeenCalled()
 })
 
@@ -69,4 +70,16 @@ it('waits for both virtualized endpoints rather than selecting a partial range',
   view.nodes[1].parentElement!.remove()
   expect(restorePierreNativeSelection(view.host, diff, saved, instance)).toBe(false)
   expect(view.selection.setBaseAndExtent).not.toHaveBeenCalled()
+})
+
+it('hashes a parsed side once across native selection reads and restores', () => {
+  const snapshot = { ...diff, deletionLines: [...diff.deletionLines] }
+  const join = vi.spyOn(snapshot.deletionLines, 'join')
+  const view = host()
+  const saved = readPierreNativeSelection(view.host, snapshot, true)!
+  for (let frame = 0; frame < 10; frame++) {
+    readPierreNativeSelection(view.host, snapshot, true)
+    restorePierreNativeSelection(view.host, snapshot, saved, instance)
+  }
+  expect(join).toHaveBeenCalledOnce()
 })

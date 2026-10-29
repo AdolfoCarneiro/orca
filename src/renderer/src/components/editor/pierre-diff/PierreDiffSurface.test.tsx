@@ -1,12 +1,11 @@
 // @vitest-environment happy-dom
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { FileDiffMetadata, PostRenderPhase } from '@pierre/diffs'
-import type { PierreDiffInstance } from './PierreDiffSurface'
+import { parseDiffFromFile } from '@pierre/diffs'
 import { PierreDiffSurface } from './PierreDiffSurface'
 
 const captured = vi.hoisted(() => ({
-  options: [] as { onPostRender?: (...args: unknown[]) => void }[]
+  options: new Array<{ onPostRender?: (...args: unknown[]) => void }>()
 }))
 const consumers = vi.hoisted(() => ({
   height: vi.fn(),
@@ -64,7 +63,10 @@ afterEach(() => {
 function renderSurface(onPostRender = consumers.height) {
   return render(
     <PierreDiffSurface
-      fileDiff={{ name: 'file.ts', hunks: [] } as unknown as FileDiffMetadata}
+      fileDiff={parseDiffFromFile(
+        { name: 'file.ts', contents: 'old' },
+        { name: 'file.ts', contents: 'new' }
+      )}
       sideBySide={false}
       isEditable={false}
       collapseUnchanged
@@ -82,8 +84,8 @@ it('keeps Pierre onPostRender stable across search-only rerenders and still chai
   const first = captured.options.at(-1)?.onPostRender
   expect(first).toEqual(expect.any(Function))
   const node = document.createElement('div')
-  const instance = {} as PierreDiffInstance
-  first?.(node, instance, 'mount' as PostRenderPhase)
+  const instance = {}
+  first?.(node, instance, 'mount')
   expect(consumers.height).toHaveBeenCalledWith(node, 'mount', instance)
   expect(consumers.note).toHaveBeenCalledWith(node, 'mount', instance)
   expect(consumers.search).toHaveBeenCalledWith(node, 'mount', instance)
@@ -91,7 +93,10 @@ it('keeps Pierre onPostRender stable across search-only rerenders and still chai
   expect(consumers.native).toHaveBeenCalledWith(node, 'mount', instance)
   view.rerender(
     <PierreDiffSurface
-      fileDiff={{ name: 'file.ts', hunks: [] } as unknown as FileDiffMetadata}
+      fileDiff={parseDiffFromFile(
+        { name: 'file.ts', contents: 'old' },
+        { name: 'file.ts', contents: 'new' }
+      )}
       sideBySide={false}
       isEditable={false}
       collapseUnchanged
@@ -106,7 +111,10 @@ it('keeps Pierre onPostRender stable across search-only rerenders and still chai
   const latestHeight = vi.fn()
   view.rerender(
     <PierreDiffSurface
-      fileDiff={{ name: 'file.ts', hunks: [] } as unknown as FileDiffMetadata}
+      fileDiff={parseDiffFromFile(
+        { name: 'file.ts', contents: 'old' },
+        { name: 'file.ts', contents: 'new' }
+      )}
       sideBySide={false}
       isEditable={false}
       collapseUnchanged
@@ -118,7 +126,7 @@ it('keeps Pierre onPostRender stable across search-only rerenders and still chai
     />
   )
   expect(captured.options.at(-1)?.onPostRender).toBe(first)
-  first?.(node, instance, 'update' as PostRenderPhase)
+  first?.(node, instance, 'update')
   expect(latestHeight).toHaveBeenCalledWith(node, 'update', instance)
   expect(consumers.note).toHaveBeenCalledWith(node, 'update', instance)
   expect(consumers.search).toHaveBeenCalledWith(node, 'update', instance)

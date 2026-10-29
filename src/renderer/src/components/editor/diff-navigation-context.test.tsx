@@ -21,7 +21,7 @@ function createFakeNavigator(changeLines: number[], id = 'file'): FakeNavigator 
     changeLines,
     container: document.createElement('div'),
     scrollToChange: vi.fn<DiffNavigator['scrollToChange']>()
-  } as FakeNavigator
+  }
 }
 
 let captured: DiffNavigationContextValue | null = null

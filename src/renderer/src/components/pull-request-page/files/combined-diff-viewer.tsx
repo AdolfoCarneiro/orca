@@ -355,11 +355,20 @@ export function PRFilesCombinedDiffViewer({
                       retrySection={retrySection}
                       toggleSection={toggleSection}
                       openSection={openFilesOnGitHub}
-                      openSectionTitle={translate('auto.components.GitHubItemDialog.85a2b66f54', 'Open files on GitHub')}
+                      openSectionTitle={translate(
+                        'auto.components.GitHubItemDialog.85a2b66f54',
+                        'Open files on GitHub'
+                      )}
                       renderHeaderTrailingContent={renderViewedCheckbox}
                       onAddLineComment={handleAddLineComment}
-                      addLineCommentLabel={translate('auto.components.GitHubItemDialog.bf43425540', 'Comment')}
-                      addLineCommentPlaceholder={translate('auto.components.GitHubItemDialog.86d84a17ca', 'Add a review comment')}
+                      addLineCommentLabel={translate(
+                        'auto.components.GitHubItemDialog.bf43425540',
+                        'Comment'
+                      )}
+                      addLineCommentPlaceholder={translate(
+                        'auto.components.GitHubItemDialog.86d84a17ca',
+                        'Add a review comment'
+                      )}
                       getCommentableLineNumbers={getCommentableLineNumbers}
                       setSectionHeights={setSectionHeights}
                       setSections={setSections}

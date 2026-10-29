@@ -40,21 +40,18 @@ export function preparePierreDiffHighlight(
         finish()
         return
       }
-      // Why not cleanUpTasks: the worker may still be running (init + highlight can exceed the
-      // old 10s cap). Detach-and-cancel made the next editable paint highlight on the main thread.
-      finish(new Error('Diff highlighting timed out. Retry this file.'), false)
+      finish(new Error('Diff highlighting timed out. Retry this file.'))
     }, HIGHLIGHT_SETTLE_CEILING_MS)
-    const finish = (error?: unknown, cancelTask = true) => {
+    const finish = (error?: unknown, detach = true) => {
       clearTimeout(ceiling)
-      if (cancelTask) {
-        // Timeout leaves the listener so unmount can still detach if the worker never notifies.
-        signal.removeEventListener('abort', abort)
-        pool.cleanUpTasks(renderer)
-      }
       if (settled) {
         return
       }
       settled = true
+      signal.removeEventListener('abort', abort)
+      if (detach) {
+        pool.cleanUpTasks(renderer)
+      }
       if (error !== undefined) {
         reject(error)
       } else {
@@ -64,7 +61,8 @@ export function preparePierreDiffHighlight(
     const abort = () => finish(new DOMException('Canceled', 'AbortError'))
     const renderer = {
       __id: `orca-highlight:${diff.cacheKey}`,
-      onHighlightSuccess: () => finish(),
+      // The pool releases successful requests after notifying all shared consumers.
+      onHighlightSuccess: () => finish(undefined, false),
       onHighlightError: (error: unknown) => finish(error)
     }
     signal.addEventListener('abort', abort, { once: true })

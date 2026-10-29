@@ -11,7 +11,11 @@ import { withEditorFileWriteLock } from '../../editor-file-write-lock'
 import { editorPathHoldKey } from '../../editor-autosave-holds'
 import type { OpenFile } from '@/store/slices/editor'
 import { getLargeDiffRenderLimit } from '../../large-diff-render-limit'
-import { getStoredTextDiffContent, getStoredTextDiffResult, isPrunedTextDiffResult } from '../../large-diff-section-content'
+import {
+  getStoredTextDiffContent,
+  getStoredTextDiffResult,
+  isPrunedTextDiffResult
+} from '../../large-diff-section-content'
 import { removeDiffSectionMeasuredHeight } from '../../diff-section-height-cache'
 import type { DiffSection } from '../../diff-section-types'
 import type { DiffSectionItemProps } from '../../diff-section-item-props'
@@ -65,7 +69,7 @@ export function useCombinedDiffSectionSave({
   const saveSection = useCallback(
     (index: number, mode?: 'overwrite'): Promise<void> => {
       const requested = sectionsRef.current[index]
-      if (!requested?.dirty) {
+      if (!requested?.dirty || (requested.area !== 'unstaged' && requested.area !== 'untracked')) {
         return Promise.resolve()
       }
       const key = requested.key
@@ -81,14 +85,19 @@ export function useCombinedDiffSectionSave({
             return
           }
           const content = section.modifiedContent
-          const loaded = writtenBySectionRef.current.get(key) ??
+          const loaded =
+            writtenBySectionRef.current.get(key) ??
             (section.diffResult?.kind === 'text' && !isPrunedTextDiffResult(section.diffResult)
               ? section.diffResult.modifiedContent
               : undefined)
-          const markConflict = (): void => setSections((prev) =>
-            prev.map((entry) => entry.key === key && entry.contentGeneration === generation
-              ? { ...entry, saveConflict: true }
-              : entry))
+          const markConflict = (): void =>
+            setSections((prev) =>
+              prev.map((entry) =>
+                entry.key === key && entry.contentGeneration === generation
+                  ? { ...entry, saveConflict: true }
+                  : entry
+              )
+            )
           if (loaded === undefined && mode !== 'overwrite') {
             markConflict()
             return
@@ -101,10 +110,20 @@ export function useCombinedDiffSectionSave({
           const context = getEditorFileOperationContext(state, file, worktree?.path ?? null)
           const written = await withEditorFileWriteLock(
             editorPathHoldKey(state, file, absolutePath),
-            () => writeEditorSave(context, absolutePath, content, undefined,
-              mode === 'overwrite' || loaded === undefined
-                ? { kind: 'explicit-overwrite' }
-                : { kind: 'guarded', signature: getDiskBaselineSignature(loaded), allowMissing: false })
+            () =>
+              writeEditorSave(
+                context,
+                absolutePath,
+                content,
+                undefined,
+                mode === 'overwrite' || loaded === undefined
+                  ? { kind: 'explicit-overwrite' }
+                  : {
+                      kind: 'guarded',
+                      signature: getDiskBaselineSignature(loaded),
+                      allowMissing: false
+                    }
+              )
           )
           if (!written.ok) {
             markConflict()

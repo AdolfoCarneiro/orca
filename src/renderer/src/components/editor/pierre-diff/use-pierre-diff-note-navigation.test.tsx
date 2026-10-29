@@ -5,8 +5,11 @@ import type { DecoratedDiffComment } from '../../diff-comments/decorated-diff-co
 import type { PierreDiffInstance } from './PierreDiffSurface'
 import { usePierreDiffNoteNavigation } from './use-pierre-diff-note-navigation'
 
-const state = vi.hoisted(() => ({
-  scrollToDiffCommentId: 'note' as string | null,
+const state = vi.hoisted<{
+  scrollToDiffCommentId: string | null
+  setScrollToDiffCommentId: ReturnType<typeof vi.fn>
+}>(() => ({
+  scrollToDiffCommentId: 'note',
   setScrollToDiffCommentId: vi.fn()
 }))
 vi.mock('@/store', () => ({
@@ -14,15 +17,19 @@ vi.mock('@/store', () => ({
     getState: () => state
   })
 }))
-const comment = {
+const comment: DecoratedDiffComment = {
   id: 'note',
   worktreeId: 'workspace',
   filePath: 'file.ts',
-  lineNumber: 500
-} as DecoratedDiffComment
+  lineNumber: 500,
+  body: 'note',
+  createdAt: 0,
+  side: 'modified'
+}
 const props = { worktreeId: 'workspace', filePath: 'file.ts', comments: [comment] }
 let host: HTMLElement
 let container: HTMLElement
+// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The navigation seam only uses the two supplied virtual position methods.
 const instance = {
   revealLine: vi.fn(() => false),
   getLinePosition: vi.fn(() => ({ top: 1200, height: 20 }))
@@ -40,11 +47,7 @@ beforeEach(() => {
   container.append(host)
   document.body.append(container)
   Object.defineProperty(container, 'clientHeight', { value: 600 })
-  vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-    top: 0,
-    bottom: 600,
-    height: 600
-  } as DOMRect)
+  vi.spyOn(container, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 0, 600))
 })
 afterEach(() => {
   cleanup()
@@ -57,12 +60,7 @@ function addCard() {
   card.dataset.diffCommentId = 'note'
   host.append(card)
   vi.spyOn(card, 'getBoundingClientRect').mockImplementation(
-    () =>
-      ({
-        top: 1200 - container.scrollTop,
-        bottom: 1300 - container.scrollTop,
-        height: 100
-      }) as DOMRect
+    () => new DOMRect(0, 1200 - container.scrollTop, 0, 100)
   )
   return card
 }

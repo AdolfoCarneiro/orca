@@ -48,13 +48,13 @@ test('copies backwards selections with file and line context from each diff side
       await orcaPage.mouse.up()
       await expect
         .poll(() =>
-          orcaPage
-            .locator('diffs-container')
-            .evaluate((host) =>
-              (host.shadowRoot as ShadowRoot & { getSelection(): Selection })
-                .getSelection()
-                .toString()
-            )
+          orcaPage.locator('diffs-container').evaluate((host) => {
+            const root = host.shadowRoot
+            if (!root || !('getSelection' in root) || typeof root.getSelection !== 'function') {
+              throw new Error('Shadow-root selection is unavailable')
+            }
+            return root.getSelection()?.toString() ?? ''
+          })
         )
         .toBe(contents.trimEnd())
       await orcaPage.keyboard.press('ControlOrMeta+Alt+c')

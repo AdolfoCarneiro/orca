@@ -1,4 +1,4 @@
-# Pierre 1.4.1 edit highlighting
+# Pierre 1.6.2 integration patch
 
 Orca primes syntax highlighting in workers before mounting a diff. Pierre's edit
 session normally ignores that cache and synchronously highlights the complete
@@ -6,9 +6,10 @@ file again. A 60,000-line TypeScript fixture blocked the renderer for over two
 seconds, despite row virtualization.
 
 The patch lets a newly created edit session adopt a compatible worker result,
-copying its mutable additions array as Pierre already does for a rendered
-external result. Loading the editor's local grammar then leaves that result
-intact. Existing active sessions keep their edited cache.
+giving its additions array independent setters while retaining lazy worker rows.
+Mounting or realigning an edit session therefore does not decode every row.
+Loading the editor's local grammar leaves the adopted result intact. Existing
+active sessions keep their edited cache.
 
 Orca also opts out of synchronous hunk recomputation when discarding a mounted
 instance. Draft text is already owned by Orca, and the next mount computes hunks
@@ -32,3 +33,11 @@ unified rows, reusing Pierre's hunk logic without copying its implementation.
 `Editor.setDeletedTextSelectionActive` exposes the existing original-side selection
 mode. Native selection restoration and search closing use it to clear modified-side
 carets and keep the original selection visible without simulating pointer input.
+
+The migration now uses upstream 1.6.2. Upstream source for this refresh is `pierrecomputer/pierre`, revision `70d1e34`. Its compact worker
+transport and lazy line ASTs replace the old whole-AST structured clone. The
+remaining patch covers editor-cache adoption, cleanup, gutter eligibility, the
+existing diff iterator export, and original-side selection control. It also
+retires a worker when its last consumer cancels, replaces crashed workers, and
+bounds replacement initialization. Shared tasks keep running for surviving
+consumers; a later request can retry a failed replacement.

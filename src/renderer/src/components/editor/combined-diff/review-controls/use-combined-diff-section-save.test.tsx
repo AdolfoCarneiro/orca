@@ -11,17 +11,34 @@ const { writeFile, getContext } = vi.hoisted(() => ({
   writeFile: vi.fn(),
   getContext: vi.fn(() => ({ connectionId: 'remote-connection' }))
 }))
-vi.mock('@/runtime/runtime-file-client', () => ({ writeRuntimeFile: writeFile }))
+vi.mock('@/runtime/runtime-file-mutation-client', () => ({ writeRuntimeFile: writeFile }))
 vi.mock('@/lib/editor-file-operation-owner', () => ({ getEditorFileOperationContext: getContext }))
 vi.mock('@/store', () => ({ useAppStore: { getState: () => ({ worktreesByRepo: {} }) } }))
 
-const file = {
+const file: OpenFile = {
   id: 'combined',
   filePath: '/repo',
+  relativePath: '',
+  language: 'plaintext',
+  mode: 'diff',
+  isDirty: false,
   worktreeId: 'folder-workspace',
   runtimeEnvironmentId: 'remote-environment',
-  operationProvenance: { owner: 'remote' }
-} as unknown as OpenFile
+  operationProvenance: {
+    ownershipProjection: 'explicit',
+    generation: {
+      route: {
+        executionHostId: 'runtime:remote-environment',
+        runtimeEnvironmentId: 'remote-environment'
+      },
+      runtimeConnectionGeneration: null,
+      runtimePairingRevision: undefined,
+      runtimeSshGeneration: null,
+      nestedSshGeneration: null,
+      directSshGeneration: null
+    }
+  }
+}
 function section(key = 'file.ts'): DiffSection {
   return {
     key,
@@ -63,8 +80,8 @@ function setup(initial = [section()]) {
 function deferred() {
   let resolve!: () => void
   let reject!: (error: Error) => void
-  const promise = new Promise<void>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise
+  const promise = new Promise<{ ok: true }>((resolvePromise, rejectPromise) => {
+    resolve = () => resolvePromise({ ok: true })
     reject = rejectPromise
   })
   return { promise, resolve, reject }
@@ -76,7 +93,7 @@ beforeEach(() => {
 
 describe('combined diff section saves', () => {
   it('saves native editor edits before React commits a render', async () => {
-    writeFile.mockResolvedValue(undefined)
+    writeFile.mockResolvedValue({ ok: true })
     const view = setup([{ ...section(), dirty: false, modifiedContent: 'disk' }])
     await act(async () => {
       view.result.current.setSections((prev) => [
@@ -112,7 +129,10 @@ describe('combined diff section saves', () => {
     expect(writeFile).toHaveBeenCalledWith(
       { connectionId: 'remote-connection' },
       '/repo/file.ts',
-      'first draft'
+      'first draft',
+      undefined,
+      expect.objectContaining({ allowMissing: false }),
+      undefined
     )
   })
 
@@ -198,7 +218,7 @@ describe('combined diff section saves', () => {
 
   it('retains the draft and baseline after write failure and permits retry', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    writeFile.mockRejectedValueOnce(new Error('disconnected')).mockResolvedValueOnce(undefined)
+    writeFile.mockRejectedValueOnce(new Error('disconnected')).mockResolvedValueOnce({ ok: true })
     const initial = section()
     const view = setup([initial])
     await act(async () => {
@@ -225,7 +245,7 @@ describe('combined diff section saves', () => {
   })
 
   it('re-drives the reload only after the row is acknowledged clean', async () => {
-    writeFile.mockResolvedValue(undefined)
+    writeFile.mockResolvedValue({ ok: true })
     const view = setup()
     // Why assert inside the spy, against the ref: the contract is ordering, and the reload reads
     // sectionsRef (React has not re-rendered yet). Firing it before acknowledgeSectionSave would

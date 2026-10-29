@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { FileDiffMetadata } from '@pierre/diffs'
+import { parseDiffFromFile } from '@pierre/diffs'
 import { createPierreDiffParseScheduler } from './pierre-diff-parse-scheduler'
 import type {
   PierreDiffParseRequest,
@@ -14,7 +14,7 @@ class FakeWorker implements PierreDiffParseWorker {
   onerror: PierreDiffParseWorker['onerror'] = null
   onmessageerror: PierreDiffParseWorker['onmessageerror'] = null
   reply(data: PierreDiffParseResponse) {
-    this.onmessage?.({ data } as MessageEvent<PierreDiffParseResponse>)
+    this.onmessage?.(new MessageEvent('message', { data }))
   }
 }
 const request = (id: number): PierreDiffParseRequest => ({
@@ -28,7 +28,7 @@ const request = (id: number): PierreDiffParseRequest => ({
     parseDiffOptions: {}
   }
 })
-const diff = { name: 'file', hunks: [] } as unknown as FileDiffMetadata
+const diff = parseDiffFromFile({ name: 'file', contents: 'old' }, { name: 'file', contents: 'new' })
 const cleanups: (() => void)[] = []
 afterEach(() => {
   cleanups.splice(0).forEach((fn) => fn())
@@ -95,7 +95,7 @@ describe('diff parse worker scheduling', () => {
     const failed = scheduler
       .request(request(1), new AbortController().signal)
       .catch((error) => error.message)
-    workers[0].onerror?.({ message: 'worker failed' } as ErrorEvent)
+    workers[0].onerror?.(new ErrorEvent('error', { message: 'worker failed' }))
     expect(await failed).toBe('worker failed')
     const recovered = scheduler.request(request(2), new AbortController().signal)
     workers[1].reply({ id: 2, diff })

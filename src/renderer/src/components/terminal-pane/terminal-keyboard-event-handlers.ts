@@ -109,15 +109,11 @@ export function createTerminalKeyboardEventHandlers(context: EventContext) {
       }
     }
     const manager = managerRef.current
-    if (!manager) {
+    if (!manager || isEditorKeyboardTarget(e.target)) {
       return
     }
     const keyboardScope = keyboardScopeRef.current
     if (keyboardScope && !keyboardEventBelongsToScope(e, keyboardScope)) {
-      return
-    }
-    // Shadow hosts and read-only diff panes own their search and editing chords.
-    if (isEditorKeyboardTarget(e.target)) {
       return
     }
 

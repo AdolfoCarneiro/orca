@@ -1,3 +1,4 @@
+import { getShadowRootSelection } from '@/lib/shadow-root-selection'
 import { formatCopiedSelectionWithContext } from '../selection-copy'
 import { editorShortcutMatches } from '../editor-shortcuts'
 import { formatShortcutLabel } from '@/hooks/useShortcutLabel'
@@ -35,8 +36,7 @@ export function installPierreContextualCopy(
 
   const readSelection = (): Selection | null => {
     const root = container.querySelector('diffs-container')?.shadowRoot
-    const selection =
-      (root as unknown as { getSelection?: () => Selection | null })?.getSelection?.() ?? null
+    const selection = getShadowRootSelection(root)
     return root?.contains(selection?.anchorNode ?? null) &&
       root.contains(selection?.focusNode ?? null)
       ? selection

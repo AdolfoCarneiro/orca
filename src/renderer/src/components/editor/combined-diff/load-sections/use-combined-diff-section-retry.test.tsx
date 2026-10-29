@@ -19,8 +19,9 @@ function section(overrides: Partial<DiffSection> = {}): DiffSection {
     loading: false,
     largeDiffRenderLimit: null,
     contentGeneration: 1,
+    diffResult: null,
     ...overrides
-  } as DiffSection
+  }
 }
 
 const invalidate = vi.fn()

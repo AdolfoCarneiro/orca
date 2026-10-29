@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import type { FileDiffMetadata } from '@pierre/diffs'
+import { parseDiffFromFile, type FileDiffMetadata } from '@pierre/diffs'
 import type { PierreDiffInput } from './pierre-diff-metadata'
 import { usePierreFileDiff } from './use-pierre-file-diff'
 import { requestPierreFileDiff } from './pierre-diff-parse-client'
@@ -17,7 +17,7 @@ const input: PierreDiffInput = {
   modifiedContent: 'new',
   parseDiffOptions: {}
 }
-const diff = { name: 'file', hunks: [] } as unknown as FileDiffMetadata
+const diff = parseDiffFromFile({ name: 'file', contents: 'old' }, { name: 'file', contents: 'new' })
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => {
   cleanup()
@@ -168,9 +168,7 @@ it('does not re-parse when only editability flips, but primes the highlight', as
 it('surfaces a prime-on-flip highlight failure so the retry affordance still appears', async () => {
   vi.mocked(requestPierreFileDiff).mockResolvedValue(diff)
   let failPrime: (error: Error) => void = () => {}
-  prepareHighlight.mockImplementation(
-    () => new Promise((_, reject) => (failPrime = reject as (error: Error) => void))
-  )
+  prepareHighlight.mockImplementation(() => new Promise((_, reject) => (failPrime = reject)))
   const { result, rerender } = renderHook(({ editable }) => usePierreFileDiff(input, editable), {
     initialProps: { editable: false }
   })
@@ -186,9 +184,7 @@ it('surfaces a prime-on-flip highlight failure so the retry affordance still app
 it('clears a prime error when retry priming succeeds, before parse completes', async () => {
   vi.mocked(requestPierreFileDiff).mockResolvedValue(diff)
   let failPrime: (error: Error) => void = () => {}
-  prepareHighlight.mockImplementation(
-    () => new Promise((_, reject) => (failPrime = reject as (error: Error) => void))
-  )
+  prepareHighlight.mockImplementation(() => new Promise((_, reject) => (failPrime = reject)))
   const { result, rerender } = renderHook(({ editable }) => usePierreFileDiff(input, editable), {
     initialProps: { editable: false }
   })
@@ -210,9 +206,7 @@ it('clears a prime error when retry priming succeeds, before parse completes', a
 it('re-primes on retry after a prime-on-flip highlight failure', async () => {
   vi.mocked(requestPierreFileDiff).mockResolvedValue(diff)
   let failPrime: (error: Error) => void = () => {}
-  prepareHighlight.mockImplementation(
-    () => new Promise((_, reject) => (failPrime = reject as (error: Error) => void))
-  )
+  prepareHighlight.mockImplementation(() => new Promise((_, reject) => (failPrime = reject)))
   const { result, rerender } = renderHook(({ editable }) => usePierreFileDiff(input, editable), {
     initialProps: { editable: false }
   })

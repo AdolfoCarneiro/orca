@@ -16,10 +16,11 @@ let dispose: () => void
 const writeClipboardText = vi.fn()
 beforeEach(() => {
   vi.clearAllMocks()
-  window.api = { ui: { writeClipboardText } } as never
+  vi.stubGlobal('api', { ui: { writeClipboardText } })
 })
 afterEach(() => {
   dispose?.()
+  vi.unstubAllGlobals()
   document.body.replaceChildren()
 })
 
@@ -39,7 +40,7 @@ function setup() {
     rangeCount: 1,
     getRangeAt: () => range,
     toString: () => 'first\nsec'
-  } as unknown as Selection
+  }
   Object.defineProperty(root, 'getSelection', { value: () => selection })
   container.append(host)
   document.body.append(container)

@@ -14,6 +14,7 @@ const diff = buildPierreFileDiff({
   modifiedContent: 'one\nTWO\n',
   parseDiffOptions: {}
 })
+// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Scroll restoration only reads the supplied virtual line position.
 const instance = {
   getLinePosition: vi.fn(() => ({ top: 900, height: 20 }))
 } as unknown as PierreDiffInstance
@@ -27,7 +28,7 @@ beforeEach(() => {
   container.append(host)
   document.body.append(container)
   Object.defineProperty(container, 'clientHeight', { value: 600 })
-  vi.spyOn(host, 'getBoundingClientRect').mockReturnValue({ top: 0, height: 1200 } as DOMRect)
+  vi.spyOn(host, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 0, 1200))
 })
 afterEach(() => {
   cleanup()
@@ -93,7 +94,7 @@ it('retries after a hidden renderer acquires a layout', () => {
   const { result } = renderHook(() =>
     usePierreDiffScrollRestore('file', { current: container }, diff)
   )
-  vi.mocked(host.getBoundingClientRect).mockReturnValueOnce({ top: 0, height: 0 } as DOMRect)
+  vi.mocked(host.getBoundingClientRect).mockReturnValueOnce(new DOMRect())
   act(() => result.current(host, 'mount', instance))
   act(() => vi.runOnlyPendingTimers())
   expect(container.scrollTop).toBe(0)

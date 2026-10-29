@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, renderHook, cleanup } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { FileDiffMetadata } from '@pierre/diffs'
+import { parseDiffFromFile } from '@pierre/diffs'
 import { usePierreDiffFind } from './use-pierre-diff-find'
 
 const { results } = vi.hoisted(() => ({ results: vi.fn() }))
@@ -30,8 +30,12 @@ function setup(isEditable: boolean) {
     setDeletedTextSelectionActive: vi.fn(),
     focus: vi.fn()
   }
-  const fileDiff = { additionLines: ['modified'], deletionLines: ['original'] } as FileDiffMetadata
+  const fileDiff = parseDiffFromFile(
+    { name: 'file', contents: 'original' },
+    { name: 'file', contents: 'modified' }
+  )
   const containerRef = { current: container }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This isolated hook receives only the editor or event methods supplied at the exercised seam.
   const editorRef = { current: editor } as never
   const { result } = renderHook(() =>
     usePierreDiffFind({
@@ -43,6 +47,7 @@ function setup(isEditable: boolean) {
   )
   const find = (key = 'f') =>
     act(() =>
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This isolated hook receives only the editor or event methods supplied at the exercised seam.
       result.current.handleContainerKeyDown({
         key,
         nativeEvent: new KeyboardEvent('keydown', { key, ctrlKey: true }),
@@ -69,6 +74,14 @@ it('searches original content and restores its native selection on close', () =>
   results.mockReturnValue(null)
   const { result, find, editor } = setup(true)
   find()
+  act(() =>
+    result.current.searchBar?.onQuery({
+      text: 'original',
+      regex: false,
+      wholeWord: false,
+      matchCase: false
+    })
+  )
   act(() => result.current.searchBar?.onSide('deletions'))
   expect(results.mock.lastCall?.[0].text).toBe('original')
   expect(result.current.searchBar?.canReplace).toBe(false)
@@ -83,11 +96,20 @@ it('keeps replace targeting additions after Cmd+H then Cmd+F', () => {
   deleted.setAttribute('data-code', '')
   deleted.setAttribute('data-deletions', '')
   act(() =>
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This isolated hook receives only the editor or event methods supplied at the exercised seam.
     result.current.onPointerDown({
       nativeEvent: { composedPath: () => [deleted] }
     } as unknown as React.PointerEvent<HTMLElement>)
   )
   find('h')
+  act(() =>
+    result.current.searchBar?.onQuery({
+      text: 'modified',
+      regex: false,
+      wholeWord: false,
+      matchCase: false
+    })
+  )
   expect(result.current.searchBar?.side).toBe('additions')
   expect(result.current.searchBar?.canReplace).toBe(true)
   expect(result.current.searchBar?.replaceOpen).toBe(true)
@@ -130,6 +152,7 @@ it('moves between results with F3 and Shift+F3', () => {
   )
   const key = (shiftKey: boolean) =>
     act(() =>
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This isolated hook receives only the editor or event methods supplied at the exercised seam.
       result.current.handleContainerKeyDown({
         key: 'F3',
         shiftKey,
@@ -141,4 +164,22 @@ it('moves between results with F3 and Shift+F3', () => {
   expect(result.current.searchBar?.status).toBe('2/2')
   key(true)
   expect(result.current.searchBar?.status).toBe('1/2')
+})
+
+it('materializes source once per document revision rather than per search keystroke', () => {
+  results.mockReturnValue(null)
+  const { result, editor, find } = setup(true)
+  find()
+  expect(editor.getText).not.toHaveBeenCalled()
+  for (const text of ['m', 'mo', 'mod']) {
+    act(() =>
+      result.current.searchBar?.onQuery({ text, regex: false, wholeWord: false, matchCase: false })
+    )
+  }
+  act(() => result.current.searchBar?.onReplacement('replacement'))
+  expect(editor.getText).toHaveBeenCalledOnce()
+  editor.getText.mockReturnValue('updated')
+  act(() => result.current.onEditChange())
+  expect(results.mock.lastCall?.[0].text).toBe('updated')
+  expect(editor.getText).toHaveBeenCalledTimes(2)
 })

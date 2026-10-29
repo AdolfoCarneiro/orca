@@ -6,8 +6,8 @@ import { createIsolatedLargeDiffRepo } from './large-diff-repro-fixtures'
 
 type WriteArgs = { filePath: string; content: string }
 type WriteHandler = (event: unknown, args: WriteArgs) => unknown
-type SaveBarrierScope = typeof globalThis & {
-  __diffSaveBarrier?: { captured: boolean; release: () => void; restore: () => void }
+declare global {
+  var __diffSaveBarrier: { captured: boolean; release: () => void; restore: () => void } | undefined
 }
 
 test.use({ seedTestRepo: false })
@@ -35,6 +35,7 @@ test('combined diff keeps later typing visible and dirty when an earlier save fi
   await expect(line).toHaveText(`${modified} // first save`)
 
   await electronApp.evaluate(({ ipcMain }, targetPath) => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Electron owns this handler map; the test verifies and restores the existing fs:writeFile entry.
     const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, WriteHandler> })
       ._invokeHandlers
     const original = handlers.get('fs:writeFile')
@@ -53,7 +54,7 @@ test('combined diff keeps later typing visible and dirty when an earlier save fi
         release()
       }
     }
-    ;(globalThis as SaveBarrierScope).__diffSaveBarrier = barrier
+    globalThis.__diffSaveBarrier = barrier
     handlers.set('fs:writeFile', async (event, args) => {
       if (args.filePath === targetPath && !barrier.captured) {
         barrier.captured = true
@@ -65,17 +66,16 @@ test('combined diff keeps later typing visible and dirty when an earlier save fi
   try {
     await orcaPage.keyboard.press('ControlOrMeta+s')
     await expect
-      .poll(() =>
-        electronApp.evaluate(() => (globalThis as SaveBarrierScope).__diffSaveBarrier?.captured)
-      )
+      .poll(() => electronApp.evaluate(() => globalThis.__diffSaveBarrier?.captured))
       .toBe(true)
     await orcaPage.keyboard.type(' plus newer typing', { delay: 20 })
     await expect(line).toHaveText(`${modified} // first save plus newer typing`)
-    await electronApp.evaluate(() => (globalThis as SaveBarrierScope).__diffSaveBarrier!.release())
+    await electronApp.evaluate(() => globalThis.__diffSaveBarrier!.release())
     await expect
       .poll(() => readFileSync(fixture.absolutePath, 'utf8'))
       .toBe(`${modified} // first save\n`)
     // Wait past parser feedback and filesystem revalidation to catch late draft replacement.
+    // ast-grep-ignore: test-no-real-time-wait -- Exercise late parser and filesystem updates after the earlier save acknowledgement.
     await orcaPage.waitForTimeout(700)
     await expect(line).toHaveText(`${modified} // first save plus newer typing`)
     await orcaPage.keyboard.press('ControlOrMeta+s')
@@ -86,8 +86,8 @@ test('combined diff keeps later typing visible and dirty when an earlier save fi
     await orcaPage.screenshot({ path: testInfo.outputPath('retained-newer-draft.png') })
   } finally {
     await electronApp.evaluate(() => {
-      ;(globalThis as SaveBarrierScope).__diffSaveBarrier?.restore()
-      delete (globalThis as SaveBarrierScope).__diffSaveBarrier
+      globalThis.__diffSaveBarrier?.restore()
+      delete globalThis.__diffSaveBarrier
     })
   }
 })

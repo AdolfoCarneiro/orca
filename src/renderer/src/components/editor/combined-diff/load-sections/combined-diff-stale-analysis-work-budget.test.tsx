@@ -1,6 +1,7 @@
+import { useCombinedDiffSectionsState } from '../use-combined-diff-sections-state'
 // @vitest-environment happy-dom
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { OpenFile } from '@/store/slices/editor'
@@ -69,12 +70,10 @@ function replacementViewer(viewStateKey: string): Viewer {
 }
 
 function useViewer(props: Viewer) {
-  const [sections, setSections] = useState<DiffSection[]>([])
+  const { sections, setSections, sectionsRef } = useCombinedDiffSectionsState()
   const [sectionHeights, setSectionHeights] = useState<Record<number, number>>({})
   const [, setGeneration] = useState(0)
   const [, setSideBySide] = useState(false)
-  const sectionsRef = useRef(sections)
-  sectionsRef.current = sections
   const registry = useCombinedDiffSectionLoadRegistry(sectionsRef)
   const restore = useCombinedDiffViewRestore({
     entrySet: props.entrySet,

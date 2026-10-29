@@ -84,7 +84,7 @@ export function buildPierreDiffOptions<LAnnotation>({
 export function buildPierreDiffStyle(
   settings: PierreDiffSettings | null | undefined,
   editorFontZoomLevel: number
-): CSSProperties {
+): CSSProperties & Record<`--diffs-${string}`, string> {
   const fontSize = computeDiffEditorFontSize(settings?.terminalFontSize ?? 13, editorFontZoomLevel)
   return {
     // Why: Pierre's own fallback only applies when the variable is absent, so a
@@ -95,7 +95,7 @@ export function buildPierreDiffStyle(
     '--diffs-editor-selection-bg': 'var(--editor-selection-background)',
     '--diffs-font-size': `${fontSize}px`,
     '--diffs-line-height': `${buildPierreDiffMetrics(settings, editorFontZoomLevel).lineHeight}px`
-  } as CSSProperties
+  }
 }
 
 export function buildPierreDiffMetrics(

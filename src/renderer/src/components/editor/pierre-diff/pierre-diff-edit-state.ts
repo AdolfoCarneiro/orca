@@ -66,7 +66,7 @@ export const createPierreEditor: EditorFactory<PierreDiffAnnotationData, undefin
   const duplicate = active.has(scope)
   const key = duplicate ? `${scope}:concurrent:${++duplicateId}` : scope
   forgetDormant(key)
-  const stored = EditStateManager.get('file-diff', key)
+  const stored = EditStateManager.get<'file-diff', PierreDiffAnnotationData>('file-diff', key)
   const matchesContent = stored?.document.getText() === fileDiff.additionLines.join('')
   // Pierre resumes an edited document only from a complete EditState; dropping diffSession
   // makes it rebuild and drop the restored selection. Keep it when the old side is unchanged,
@@ -112,6 +112,7 @@ export const createPierreEditor: EditorFactory<PierreDiffAnnotationData, undefin
       editorType,
       {
         ...options,
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the file-diff guard narrows the runtime type; TypeScript cannot narrow the factory's generic EType.
         initialState: options.initialState ?? (restored as typeof options.initialState),
         onComplete: (event) => {
           release()

@@ -1,3 +1,4 @@
+import { getShadowRootSelection } from '@/lib/shadow-root-selection'
 import { useCallback, useLayoutEffect, useRef } from 'react'
 import type { FileDiffMetadata, PostRenderPhase } from '@pierre/diffs'
 import type { PierreDiffInstance } from './PierreDiffSurface'
@@ -104,17 +105,14 @@ export function usePierreDiffSearchView({
     if (!range?.start.startContainer.isConnected || !range.end.endContainer.isConnected) {
       return
     }
-    const root = range.start.startContainer.getRootNode() as ShadowRoot & {
-      getSelection?: () => Selection | null
-    }
-    root
-      .getSelection?.()
-      ?.setBaseAndExtent(
-        range.start.startContainer,
-        range.start.startOffset,
-        range.end.endContainer,
-        range.end.endOffset
-      )
+    const root = range.start.startContainer.getRootNode()
+    const selection = root instanceof ShadowRoot ? getShadowRootSelection(root) : null
+    selection?.setBaseAndExtent(
+      range.start.startContainer,
+      range.start.startOffset,
+      range.end.endContainer,
+      range.end.endOffset
+    )
   }, [])
   return { onPostRender, selectActive }
 }

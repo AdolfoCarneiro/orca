@@ -17,7 +17,10 @@ it('hides the gutter action on original and ineligible review lines and labels e
       number.setAttribute('data-column-number', String(line))
       number.setAttribute('data-line-index', `${line - 1},${line - 1}`)
       number.setAttribute('data-line-type', 'context')
-      const content = number.cloneNode() as HTMLElement
+      const content = document.createElement('div')
+      for (const attribute of number.attributes) {
+        content.setAttribute(attribute.name, attribute.value)
+      }
       content.removeAttribute('data-column-number')
       content.setAttribute('data-line', String(line))
       content.textContent = 'example'

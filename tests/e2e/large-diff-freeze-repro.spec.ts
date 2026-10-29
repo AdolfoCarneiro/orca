@@ -157,18 +157,8 @@ test.describe('Large diff freeze repro', () => {
       } else {
         expect(measurement.editorCount).toBeGreaterThan(0)
       }
-      // Steady-state responsiveness is the contract this test defends, and it is the axis
-      // @pierre/diffs improved: this test measures p95 ~14ms, where the Monaco renderer it
-      // replaced measured ~65ms on the same fixture. Assert it tightly so a real freeze fails.
       expect(measurement.p95LagMs).toBeLessThan(50)
-      // The max bound is deliberately looser than Monaco's ~110ms. Pierre's worker returns the
-      // themed AST for the WHOLE file in one message (WorkerPoolManager.highlightDiffAST submits
-      // no render range), so opening a large diff costs one ~450ms main-thread deserialization
-      // where Monaco tokenized lazily per viewport. Measured on one machine, 60k lines:
-      // Monaco 92-129ms worst stall / 5.9s to painted diff; Pierre 438-461ms / 3.8s. On a sparse
-      // realistic diff Pierre's stall is ~820-904ms. A known regression in stall SHAPE, not a
-      // freeze -- do not raise this bound further without re-measuring both renderers.
-      expect(measurement.maxLagMs).toBeLessThan(1_500)
+      expect(measurement.maxLagMs).toBeLessThan(1_000)
     } finally {
       rmSync(fixture.repoPath, { recursive: true, force: true })
     }
@@ -326,10 +316,7 @@ test.describe('Large diff freeze repro', () => {
         samples: value.samples
       }))
       expect(measurement.samples).toBeGreaterThan(5)
-      // Same architecture cost as the single-file bound above: Pierre's worker returns a whole-file
-      // themed AST in one message, so switching to a wholly replaced file costs one long
-      // deserialization rather than Monaco's many short tokenization slices.
-      expect(measurement.maxGap).toBeLessThan(1_500)
+      expect(measurement.maxGap).toBeLessThan(1_000)
       await changedFile.click()
       await expect(
         orcaPage

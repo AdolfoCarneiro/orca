@@ -14,7 +14,9 @@ export async function diffTextSelectionPoints(code: Locator, text: string) {
         }
         const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT)
         while (walker.nextNode()) {
-          found.push(walker.currentNode as Text)
+          if (walker.currentNode instanceof Text) {
+            found.push(walker.currentNode)
+          }
         }
       }
       return found
@@ -118,7 +120,10 @@ export async function diffTextSelectionPoints(code: Locator, text: string) {
       }
       const x = end ? rect.right - 0.5 : rect.left + 0.5
       const y = rect.top + rect.height / 2
-      const root = code.getRootNode() as ShadowRoot
+      const root = code.getRootNode()
+      if (!(root instanceof ShadowRoot)) {
+        throw new Error('Diff selection must be inside its shadow root')
+      }
       const hit = root.elementFromPoint(x, y)
       if (!hit || !contentEl()?.contains(hit) || document.elementFromPoint(x, y) !== root.host) {
         // Why the detail: this only reproduces on displays narrower than a dev machine, so the

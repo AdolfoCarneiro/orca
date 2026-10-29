@@ -1,12 +1,9 @@
 import { buildPierreFileDiff } from './pierre-diff-metadata'
-import type { PierreDiffParseRequest, PierreDiffParseResponse } from './pierre-diff-parse-protocol'
+import type { PierreDiffParseRequest } from './pierre-diff-parse-protocol'
 
-const scope = globalThis as unknown as {
-  onmessage: (event: MessageEvent<PierreDiffParseRequest>) => void
-  postMessage: (response: PierreDiffParseResponse) => void
-}
+const scope = globalThis
 
-scope.onmessage = ({ data: { id, identity, input } }) => {
+scope.onmessage = ({ data: { id, identity, input } }: MessageEvent<PierreDiffParseRequest>) => {
   try {
     scope.postMessage({ id, diff: buildPierreFileDiff(input, identity) })
   } catch (error) {

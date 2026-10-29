@@ -20,7 +20,7 @@ function resolvePoolSize(): number {
  * warm for an app that reopens diffs constantly.
  */
 export function createDiffHighlightPool(): WorkerPoolManager {
-  return getOrCreateWorkerPoolSingleton({
+  const pool = getOrCreateWorkerPoolSingleton({
     poolOptions: {
       workerFactory: () => new PierreDiffHighlightWorker(),
       poolSize: resolvePoolSize(),
@@ -35,4 +35,10 @@ export function createDiffHighlightPool(): WorkerPoolManager {
     // Why: the pool owns `theme` for every component instance; per-file options are ignored.
     highlighterOptions: { theme: PIERRE_DIFF_THEMES, useTokenTransformer: true }
   })
+  if (!pool.isWorkingPool()) {
+    void pool
+      .initialize()
+      .catch((error: unknown) => console.error('Diff highlighting initialization failed', error))
+  }
+  return pool
 }
