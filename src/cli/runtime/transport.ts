@@ -173,7 +173,8 @@ export async function sendRequest<TResult>(
             ok: false,
             error: new RuntimeClientError(
               'runtime_unavailable',
-              'The Orca runtime changed while the request was in flight. Retry the command.'
+              'The Orca runtime changed while the request was in flight.',
+              { nextSteps: ['Retry the command.'] }
             )
           })
           return
