@@ -1,11 +1,16 @@
 import '../../../unused-default-rpc-methods.test-fixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ORCHESTRATION_CONTRACT_VERSION } from '../../../../../../shared/protocol-version'
 import { OrcaRuntimeService } from '../../../../orca-runtime'
 import { OrchestrationDb } from '../../../../orchestration/db'
 import type { RpcRequest } from '../../../core'
+import { createRootDispatch } from '../../../../orchestration/db/root-dispatch-test-fixture'
 import { RpcDispatcher } from '../../../dispatcher'
 import { ORCHESTRATION_METHODS } from '../../orchestration'
+import {
+  attachedRemoteWorker,
+  attachRemoteDispatch,
+  request
+} from './federated-message-targeting.test-fixture'
 
 describe('orchestration federated message targeting', () => {
   let db: OrchestrationDb | undefined
@@ -16,7 +21,7 @@ describe('orchestration federated message targeting', () => {
     db?.close()
   })
 
-  it('rejects explicit send and ask targets without enqueueing a relay', async () => {
+  it('keeps home-only send and ask target refusals while local targets use ordinary errors', async () => {
     ;({ db, runtime } = attachedRemoteWorker())
     const dispatchId = 'ctx_remote_targeting'
     const dispatcher = new RpcDispatcher({ runtime, methods: ORCHESTRATION_METHODS })
@@ -46,15 +51,260 @@ describe('orchestration federated message targeting', () => {
     for (const item of requests) {
       await expect(dispatcher.dispatch(item)).resolves.toMatchObject({
         ok: false,
-        error: {
-          code: 'invalid_argument',
-          message: 'Federated Dispatch messages route to their Run home; omit --to and --run.'
-        }
+        error:
+          item.id === 'rpc_send_to'
+            ? { code: 'run_not_found' }
+            : {
+                code: 'invalid_argument',
+                message: 'Federated Dispatch messages route to their Run home; omit --to and --run.'
+              }
       })
     }
     expect(
       db.listFederationRelay({ dispatchId, direction: 'to_home', afterSequence: 0 })
     ).toHaveLength(0)
+  })
+
+  it('delivers explicit local terminal mail without using admitted sender provenance as scope', async () => {
+    ;({ db, runtime } = attachedRemoteWorker())
+    vi.spyOn(runtime, 'getLiveTerminalPaneKey').mockImplementation((handle) =>
+      handle === 'term_peer' ? 'tab_peer:leaf_peer' : null
+    )
+    const dispatcher = new RpcDispatcher({ runtime, methods: ORCHESTRATION_METHODS })
+    const payload = JSON.stringify({ dispatchId: 'ctx_remote_targeting', note: 'unchanged' })
+    const mail = request('local_peer', 'orchestration.send', {
+      from: 'term_remote_worker',
+      to: 'term_peer',
+      subject: 'Hello peer',
+      payload
+    })
+    const sent = await dispatcher.dispatch(mail)
+    expect(sent).toMatchObject({
+      ok: true,
+      result: {
+        message: {
+          from_handle: 'term_remote_worker',
+          to_handle: 'term_peer',
+          run_id: 'run_unbound',
+          payload
+        },
+        warnings: [{ code: 'legacy_terminal_recipient' }]
+      }
+    })
+    expect(await dispatcher.dispatch(mail)).toMatchObject({
+      ok: true,
+      result: { mutation: { replayed: true }, message: { payload, to_handle: 'term_peer' } }
+    })
+    expect(db.getInbox()).toHaveLength(1)
+    expect(
+      db.listFederationRelay({
+        dispatchId: 'ctx_remote_targeting',
+        direction: 'to_home',
+        afterSequence: 0
+      })
+    ).toEqual([])
+    await expect(
+      dispatcher.dispatch(
+        request('spoofed_dispatch', 'orchestration.send', {
+          from: 'term_remote_worker',
+          to: 'term_peer',
+          subject: 'Wrong source',
+          payload: JSON.stringify({ dispatchId: 'ctx_other' })
+        })
+      )
+    ).resolves.toMatchObject({ ok: false, error: { code: 'dispatch_inactive' } })
+    expect(db.getInbox()).toHaveLength(1)
+  })
+
+  it('uses ordinary Run, Dispatch and nested coordinator destinations, conflicts and final mirror refusal', async () => {
+    ;({ db, runtime } = attachedRemoteWorker())
+    const owner = db
+    const dispatcher = new RpcDispatcher({ runtime, methods: ORCHESTRATION_METHODS })
+    const peerPane = 'tab_peer:leaf_peer'
+    vi.spyOn(runtime, 'getLiveTerminalPaneKey').mockImplementation((handle) =>
+      handle === 'term_peer' ? peerPane : null
+    )
+    const parent = db.createRun({
+      objective: 'parent',
+      coordinatorHandle: 'term_parent',
+      coordinatorPaneKey: 'tab_parent:leaf_parent'
+    })
+    const child = db.createRun({
+      objective: 'child',
+      coordinatorHandle: 'term_peer',
+      coordinatorPaneKey: peerPane
+    })
+    const dispatch = createRootDispatch(
+      db,
+      db.createTask({ runId: parent.id, spec: 'nested lead' }).id,
+      'term_peer',
+      peerPane,
+      undefined,
+      'worker_epoch:pty:1'
+    )
+    for (const [id, to, run] of [
+      ['run', `run:${child.id}`, undefined],
+      ['terminal', 'term_peer', undefined],
+      ['dispatch', `dispatch:${dispatch.id}`, undefined],
+      ['explicit_parent', `dispatch:${dispatch.id}`, parent.id]
+    ]) {
+      await expect(
+        dispatcher.dispatch(
+          request(`local_${id}`, 'orchestration.send', {
+            from: 'term_remote_worker',
+            to,
+            run,
+            subject: 'Nested hello',
+            payload: JSON.stringify({ dispatchId: 'ctx_remote_targeting', taskId: 'sender_task' })
+          })
+        )
+      ).resolves.toMatchObject({
+        ok: true,
+        result: { message: { to_handle: `run:${child.id}`, run_id: child.id } }
+      })
+    }
+    await expect(
+      dispatcher.dispatch(
+        request('conflict', 'orchestration.send', {
+          from: 'term_remote_worker',
+          to: 'term_peer',
+          run: parent.id,
+          subject: 'Conflict'
+        })
+      )
+    ).resolves.toMatchObject({ ok: false, error: { code: 'recipient_run_mismatch' } })
+    // The Run owner can be a remote mirror even when no Run was explicitly named.
+    owner.db.prepare("UPDATE runs SET home_database = 'remote' WHERE id = ?").run(child.id)
+    for (const [id, to] of [
+      ['bare_mirror', 'term_peer'],
+      ['nested_mirror', `dispatch:${dispatch.id}`]
+    ]) {
+      await expect(
+        dispatcher.dispatch(
+          request(id, 'orchestration.send', {
+            from: 'term_remote_worker',
+            to,
+            subject: 'Do not strand mirror mail'
+          })
+        )
+      ).resolves.toMatchObject({ ok: false, error: { code: 'run_home_unreachable' } })
+    }
+    expect(db.getInbox()).toHaveLength(4)
+    expect(
+      db.listFederationRelay({
+        dispatchId: 'ctx_remote_targeting',
+        direction: 'to_home',
+        afterSequence: 0
+      })
+    ).toEqual([])
+  })
+
+  it('keeps ordinary ambiguity, missing recipient and settled Dispatch refusals effect-free', async () => {
+    ;({ db, runtime } = attachedRemoteWorker())
+    const dispatcher = new RpcDispatcher({ runtime, methods: ORCHESTRATION_METHODS })
+    const runId = db.createRun({
+      objective: 'local work',
+      coordinatorHandle: 'term_coord',
+      coordinatorPaneKey: 'tab_coord:leaf_coord'
+    }).id
+    const first = createRootDispatch(db, db.createTask({ runId, spec: 'one' }).id, 'term_exact')
+    db.createRun({
+      objective: 'First historical owner',
+      coordinatorHandle: 'term_ambiguous',
+      coordinatorPaneKey: 'tab_first:leaf_first'
+    })
+    db.createRun({
+      objective: 'Second historical owner',
+      coordinatorHandle: 'term_ambiguous',
+      coordinatorPaneKey: 'tab_second:leaf_second'
+    })
+    const closed = createRootDispatch(
+      db,
+      db.createTask({ runId, spec: 'closed' }).id,
+      'term_closed'
+    )
+    db.completeDispatch(closed.id)
+    for (const [id, to, code] of [
+      ['missing', 'term_missing', 'terminal_not_found'],
+      ['ambiguous', 'term_ambiguous', 'recipient_ambiguous'],
+      ['closed', `dispatch:${closed.id}`, 'dispatch_inactive']
+    ]) {
+      await expect(
+        dispatcher.dispatch(
+          request(id, 'orchestration.send', {
+            from: 'term_remote_worker',
+            to,
+            subject: 'No fallback'
+          })
+        )
+      ).resolves.toMatchObject({ ok: false, error: { code } })
+    }
+    await expect(
+      dispatcher.dispatch(
+        request('explicit_dispatch', 'orchestration.send', {
+          from: 'term_remote_worker',
+          to: `dispatch:${first.id}`,
+          subject: 'Choose exactly'
+        })
+      )
+    ).resolves.toMatchObject({
+      ok: true,
+      result: { message: { to_handle: `dispatch:${first.id}` } }
+    })
+    expect(db.getInbox()).toHaveLength(1)
+  })
+
+  it.each(['worker_done', 'heartbeat', 'escalation', 'decision_gate'] as const)(
+    'keeps %s at home and refuses conflicting local recipients',
+    async (type) => {
+      ;({ db, runtime } = attachedRemoteWorker())
+      const dispatcher = new RpcDispatcher({ runtime, methods: ORCHESTRATION_METHODS })
+      const params = {
+        from: 'term_remote_worker',
+        type,
+        subject: 'Report',
+        payload: JSON.stringify({ outcome: 'succeeded' })
+      }
+      await expect(
+        dispatcher.dispatch(
+          request(`local_${type}`, 'orchestration.send', { ...params, to: 'term_peer' })
+        )
+      ).resolves.toMatchObject({ ok: false, error: { code: 'invalid_argument' } })
+      await expect(
+        dispatcher.dispatch(request(`home_${type}`, 'orchestration.send', params))
+      ).resolves.toMatchObject({ ok: true, result: { relay: { destination: 'run_home' } } })
+      expect(db.getInbox()).toEqual([])
+      expect(
+        db
+          .listFederationRelay({
+            dispatchId: 'ctx_remote_targeting',
+            direction: 'to_home',
+            afterSequence: 0
+          })
+          .map((row) => row.kind)
+      ).toEqual([type])
+    }
+  )
+
+  it.each([
+    'dispatch:ctx_remote_targeting',
+    '@all',
+    '@worktree:repo::remote-worktree',
+    'task:task_remote_targeting'
+  ])('retains the existing attached refusal for %s', async (to) => {
+    ;({ db, runtime } = attachedRemoteWorker())
+    const dispatcher = new RpcDispatcher({ runtime, methods: ORCHESTRATION_METHODS })
+    await expect(
+      dispatcher.dispatch(
+        request('nonindividual', 'orchestration.send', {
+          from: 'term_remote_worker',
+          to,
+          subject: 'Unchanged'
+        })
+      )
+    ).resolves.toMatchObject({ ok: false, error: { code: 'invalid_argument' } })
+    expect(db.getInbox()).toEqual([])
+    expect(db.listPendingFederationRelay('ctx_remote_targeting', 'to_home')).toEqual([])
   })
 
   it('delivers a send that names its own Run home to that home', async () => {
@@ -257,58 +507,3 @@ describe('orchestration federated message targeting', () => {
     ).toHaveLength(0)
   })
 })
-
-/** A worker pane bound to remote Dispatch ctx_remote_targeting, whose Run home is `run-home`. */
-function attachedRemoteWorker(): { db: OrchestrationDb; runtime: OrcaRuntimeService } {
-  const db = new OrchestrationDb(':memory:')
-  const runtime = new OrcaRuntimeService()
-  runtime.setOrchestrationDb(db)
-  vi.spyOn(runtime, 'getTerminalPaneKey').mockReturnValue('tab_worker:leaf_worker')
-  attachRemoteDispatch(db, runtime, 'run-home')
-  return { db, runtime }
-}
-
-function attachRemoteDispatch(db: OrchestrationDb, runtime: OrcaRuntimeService, runId: string) {
-  const processIncarnation = 'worker_epoch:pty:1'
-  const dispatchId = 'ctx_remote_targeting'
-  vi.spyOn(runtime, 'getTerminalProcessIncarnation').mockReturnValue(processIncarnation)
-  db.createRemoteDispatchAttachment({
-    runId,
-    dispatchId,
-    taskId: 'task_remote_targeting',
-    homePeerFingerprint: 'home_peer',
-    protocolVersion: 1,
-    runtimeEpoch: runtime.getRuntimeId(),
-    mutationReceipt: {
-      callerFingerprint: 'home_peer',
-      requestId: 'attach_request',
-      method: 'orchestration.federationAttachStart',
-      payloadHash: 'attach_payload'
-    }
-  })
-  db.prepareRemoteAttachmentAuthority({
-    dispatchId,
-    paneKey: 'tab_worker:leaf_worker',
-    processIncarnation,
-    worktreeId: 'repo::remote-worktree',
-    terminalHandle: 'term_remote_worker',
-    setupState: 'not_applicable',
-    effects: []
-  })
-  db.markRemoteAttachmentReady(dispatchId)
-}
-
-function request(
-  id: string,
-  method: 'orchestration.send' | 'orchestration.ask' | 'orchestration.reply',
-  params: Record<string, unknown>
-): RpcRequest {
-  return {
-    id: `rpc_${id}`,
-    authToken: 'worker-token',
-    orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION,
-    orchestrationRequestId: `request_${id}`,
-    method,
-    params
-  }
-}

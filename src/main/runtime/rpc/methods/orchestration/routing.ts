@@ -28,6 +28,7 @@ export function resolveMessageRun(
     runId?: string
     payload?: string
     type?: string
+    attachedLocalSender?: boolean
   }
 ): { run: RunRow | undefined; dispatchId: string | undefined } {
   const db = runtime.getOrchestrationDb()
@@ -64,7 +65,7 @@ export function resolveMessageRun(
   const targetRunId = params.to?.startsWith('run:') ? params.to.slice('run:'.length) : undefined
   for (const namedRunId of new Set([params.runId, targetRunId])) {
     if (namedRunId) {
-      rejectRemotelyHomedRun(db, namedRunId)
+      rejectRemotelyHomedRun(db, namedRunId, params.attachedLocalSender)
     }
   }
   const resolvedRunId = params.runId ?? targetRunId ?? dispatch?.run_id
@@ -159,21 +160,25 @@ export function interruptedAcknowledgedCheck(
 /** Remote Run rows are local mirrors; mail stored there reaches nobody (#32292). */
 export function rejectRemotelyHomedRun(
   db: ReturnType<OrcaRuntimeService['getOrchestrationDb']>,
-  runId: string
+  runId: string,
+  attachedLocalSender?: boolean
 ): void {
   if (db.getRun(runId)?.home_database === 'remote') {
-    throw remoteRunHomeUnreachable(db, runId)
+    throw remoteRunHomeUnreachable(db, runId, attachedLocalSender)
   }
 }
 
 export function remoteRunHomeUnreachable(
   db: ReturnType<OrcaRuntimeService['getOrchestrationDb']>,
-  runId: string
+  runId: string,
+  attachedLocalSender?: boolean
 ): OrchestrationError {
   const dispatchId = db.findRemoteAttachmentForHomeRun(runId)?.dispatch_id
-  const detached = dispatchId
-    ? `this terminal is no longer attached to its Dispatch ${dispatchId}`
-    : 'this terminal is not attached to one of its Dispatches'
+  const detached = attachedLocalSender
+    ? 'omit --to and --run to report to your Run home, or address an individual recipient on this computer'
+    : dispatchId
+      ? `this terminal is no longer attached to its Dispatch ${dispatchId}`
+      : 'this terminal is not attached to one of its Dispatches'
   return new OrchestrationError(
     'run_home_unreachable',
     `Run ${runId} lives on the computer that coordinates it, which isn't reachable from here: ${detached}. Nothing was sent.`
