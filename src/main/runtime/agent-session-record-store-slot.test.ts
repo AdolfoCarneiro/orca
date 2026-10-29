@@ -1,3 +1,9 @@
+import './orca-runtime-test-mocks.spec'
+import { store as runtimeStore } from './orca-runtime-test-fixtures.spec'
+import { OrcaRuntimeService } from './orca-runtime'
+import { OrchestrationDb } from './orchestration/db'
+import { subscribeCrew } from './orchestration/crew/crew-stream'
+import { setStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
 import { sessionCrewChanges } from './orchestration/crew/crew-changes'
 /** Early launch admission and the later chat host must share one record-store writer. */
 
@@ -115,5 +121,104 @@ it('publishes source installation and release even when opening an empty record 
     released?.journalDatabase.close()
   } finally {
     stop()
+  }
+})
+
+it('retires a sole Crew observer generation on empty-source open, real name writes, host install/replacement and release', async () => {
+  const now = 1_800_000_000_000
+  vi.useFakeTimers({ now })
+  const runtime = new OrcaRuntimeService(runtimeStore)
+  const db = new OrchestrationDb(':memory:')
+  runtime.setOrchestrationDb(db)
+  const captures = vi.spyOn(runtime, 'createTerminalIdentityRawInputs')
+  const frames: unknown[] = []
+  const flush = async () => {
+    await Promise.resolve()
+    await Promise.resolve()
+  }
+  const read = () => runtime.getOrchestrationCrewSnapshot('term_source_coordinator')
+  const stop = subscribeCrew(read, runtime.watchOrchestrationCrew, (frame) => frames.push(frame))
+  try {
+    await flush()
+    expect(captures).toHaveBeenCalledOnce()
+    const opened = await openAgentSessionRecordStoreOnce(location())
+    await flush()
+    expect(captures).toHaveBeenCalledTimes(2)
+    await openAgentSessionRecordStoreOnce(location())
+    await flush()
+    expect(captures).toHaveBeenCalledTimes(2)
+    const sessionId = 'chat-source-availability-0001'
+    await opened.store.reserveOwner({
+      sessionId,
+      location: {
+        executionHostId: 'local',
+        wslDistro: null,
+        workspaceId: 'workspace-1',
+        workspaceKind: 'folder'
+      },
+      provider: 'codex',
+      accountHome: { variable: 'CODEX_HOME', path: '/tmp/unused-source-fixture' },
+      expectedFence: null,
+      spawnToken: 'source-only-no-process',
+      claimKeyId: 'key-1',
+      handoffOperationId: null,
+      probe: { outcome: 'reservation-unused' },
+      operation: {
+        callerKey: 'fixture',
+        operationId: `${now}-${'a'.repeat(32)}`,
+        fingerprint: 'source-availability'
+      },
+      now
+    })
+    await opened.store.setConversationName(sessionId, 'Available chat')
+    const message = db.insertMessage({
+      from: 'term_source_coordinator',
+      to: `orca_session_id:${sessionId}`,
+      subject: 'Recent peer'
+    })
+    db.db
+      .prepare('UPDATE messages SET created_at = ? WHERE sequence = ?')
+      .run(new Date(now).toISOString(), message.sequence)
+    await flush()
+    expect(read().sections.talkingWith[0].label).toBe('Available chat')
+    const host = await ensureStructuredAgentSessionHost({
+      ...location(),
+      claimKeyId: 'key-1',
+      resolveWorkspacePath: async () => stateDirectory,
+      resolveClaudeAuthPolicy: () => ({ account: 'managed' }),
+      resolveEnvironment: async () => ({}),
+      resolveLaunchArgs: () => []
+    })
+    await flush()
+    const afterInstall = captures.mock.calls.length
+    setStructuredAgentSessionHost(host)
+    await flush()
+    expect(captures).toHaveBeenCalledTimes(afterInstall)
+    setStructuredAgentSessionHost(null)
+    await flush()
+    expect(captures).toHaveBeenCalledTimes(afterInstall + 1)
+    setStructuredAgentSessionHost(host)
+    await flush()
+    expect(captures).toHaveBeenCalledTimes(afterInstall + 2)
+    const beforeRename = captures.mock.calls.length
+    await opened.store.setConversationName(sessionId, 'Renamed without process')
+    await flush()
+    expect(captures).toHaveBeenCalledTimes(beforeRename)
+    expect(read().sections.talkingWith[0].label).toBe('Renamed without process')
+    await stopStructuredAgentSessionRuntime()
+    await flush()
+    expect(captures.mock.calls.length).toBeGreaterThan(beforeRename)
+    expect(read().sections.talkingWith[0].label).not.toBe('Renamed without process')
+    stop()
+    const afterStop = captures.mock.calls.length
+    await openAgentSessionRecordStoreOnce(location())
+    await flush()
+    expect(captures).toHaveBeenCalledTimes(afterStop)
+    expect(frames.length).toBeGreaterThan(2)
+  } finally {
+    stop()
+    await stopStructuredAgentSessionRuntime()
+    db.close()
+    vi.useRealTimers()
   }
 })
