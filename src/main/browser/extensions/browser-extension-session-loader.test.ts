@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => {
   const storage: { path: string | null } = { path: null }
   return {
     userData: '',
+    profileSessions: new Map<string, object>(),
     storage,
     prepareGate,
     prepareCalls: 0,
@@ -61,7 +62,8 @@ vi.mock('electron', () => ({
   app: { on: vi.fn(), getPath: () => mocks.userData },
   session: {
     fromPartition: (partition: string) =>
-      partition === 'persist:orca-browser-retired'
+      mocks.profileSessions.get(partition) ??
+      (partition === 'persist:orca-browser-retired'
         ? {
             ...mocks.session,
             extensions: {
@@ -70,7 +72,7 @@ vi.mock('electron', () => ({
               getAllExtensions: () => []
             }
           }
-        : mocks.session
+        : mocks.session)
   }
 }))
 vi.mock('node:fs', async (importOriginal) => ({
@@ -335,6 +337,70 @@ describe('profile changes while startup loads are in flight', () => {
     await expect(enabling).rejects.toThrow('turned off')
     await detaching
     expect(mocks.loaded.size).toBe(0)
+  })
+
+  it('profile delete joins a settings detach until its late native load has stopped', async () => {
+    const retiring = {
+      ...profile,
+      id: 'joined-delete',
+      partition: 'persist:orca-browser-joined-delete'
+    }
+    const loaded = new Map<string, { id: string }>()
+    mocks.prepared.signature = 'v-joined-delete'
+    mocks.prepared.hasWorker = false
+    mocks.emitWorkerStart.mockClear()
+    let releaseNative = (): void => {}
+    let nativeEntered = (): void => {}
+    const nativeGate = new Promise<void>((resolve) => (releaseNative = resolve))
+    const nativeStarted = new Promise<void>((resolve) => (nativeEntered = resolve))
+    mocks.profileSessions.set(retiring.partition, {
+      ...mocks.session,
+      extensions: {
+        getExtension: (id: string) => loaded.get(id) ?? null,
+        getAllExtensions: () => [...loaded.values()],
+        loadExtension: async () => {
+          nativeEntered()
+          await nativeGate
+          const extension = { id: ID, version: '1.0', manifest: {} }
+          loaded.set(ID, extension)
+          return extension
+        },
+        removeExtension: (id: string) => loaded.delete(id)
+      }
+    })
+    setBrowserExtensionSupportEnabled(true)
+    getBrowserExtensionInstallStore().save(installed)
+    loader.attachBrowserExtensionsToProfileSession(retiring, [ID])
+    await Promise.race([
+      nativeStarted,
+      loader.whenBrowserExtensionProfileLoaded(retiring.id).then(() => {
+        throw new Error(
+          `Startup settled before the held native load: ${getBrowserExtensionLoadFailure(retiring.id, ID)}`
+        )
+      })
+    ])
+    setBrowserExtensionSupportEnabled(false)
+    const detaching = loader.detachBrowserExtensionsFromAllProfileSessions()
+    let deleted = false
+    const deleting = loader.detachBrowserExtensionsFromProfileSession(retiring).then(() => {
+      deleted = true
+    })
+    try {
+      await new Promise<void>(setImmediate)
+      expect(deleted).toBe(false)
+      expect(getBrowserExtensionProfileStateStore().read(retiring.id, ID).workerSignature).toBe(
+        'v-joined-delete'
+      )
+      releaseNative()
+      await Promise.all([detaching, deleting])
+      expect(getBrowserExtensionProfileStateStore().readProfile(retiring.id)).toEqual({})
+      expect(loaded.size).toBe(0)
+      expect(mocks.emitWorkerStart).not.toHaveBeenCalled()
+    } finally {
+      releaseNative()
+      await Promise.allSettled([detaching, deleting])
+      mocks.profileSessions.delete(retiring.partition)
+    }
   })
 
   it('profile delete purges saved data only after the startup loads stop writing', async () => {

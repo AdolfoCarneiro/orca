@@ -15,6 +15,21 @@ export function removeBrowserExtensionFromSession(
   unregisteredWorkersBySession.set(sess, ids)
 }
 
+export function forgetBrowserExtensionWorkerRegistration(
+  sess: Electron.Session,
+  extensionId?: string
+): void {
+  if (extensionId === undefined) {
+    unregisteredWorkersBySession.delete(sess)
+    return
+  }
+  const ids = unregisteredWorkersBySession.get(sess)
+  ids?.delete(extensionId)
+  if (ids?.size === 0) {
+    unregisteredWorkersBySession.delete(sess)
+  }
+}
+
 /**
  * Chromium keeps running a worker's cached scripts until the extension version changes, so a new
  * wrapper or shim would never run. Dropping the registration makes the load register it afresh.

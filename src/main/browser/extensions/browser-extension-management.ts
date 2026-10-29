@@ -14,7 +14,6 @@ import {
 } from './browser-extension-manifest'
 import {
   getBrowserExtensionSessionForProfile,
-  listBrowserExtensionSessions,
   loadBrowserExtensionFolderIntoProfile,
   loadBrowserExtensionIntoProfile,
   unloadBrowserExtensionEverywhere,
@@ -40,6 +39,7 @@ import { getBrowserExtensionProfileStateStore } from './browser-extension-profil
 import { getBrowserExtensionSyncStorageStore } from './browser-extension-sync-storage-store'
 import { getBrowserExtensionDnrStore } from './browser-extension-dnr-store'
 import { notifyChromeWebStoreUninstalled } from './browser-extension-webstore-events'
+import { forgetBrowserExtensionWorkerRegistration } from './browser-extension-worker-registration'
 
 /** Settings actions. Each returns a result instead of throwing so the renderer can show the reason. */
 
@@ -112,9 +112,12 @@ export function setBrowserExtensionEnabled(
 }
 
 /** Best effort per profile: leftover data must not keep the extension installed. */
-async function clearBrowserExtensionDataEverywhere(extensionId: string): Promise<void> {
+async function clearBrowserExtensionDataEverywhere(
+  extensionId: string,
+  sessions: Electron.Session[]
+): Promise<void> {
   await Promise.all(
-    listBrowserExtensionSessions().map((sess) =>
+    sessions.map((sess) =>
       clearBrowserExtensionSessionData(sess, extensionId).catch((error: unknown) => {
         console.warn(`[browser-extensions] Could not clear data for ${extensionId}:`, error)
       })
@@ -128,9 +131,9 @@ export function removeBrowserExtension(extensionId: string): Promise<BrowserExte
   return settle(() =>
     withBrowserExtensionLock(extensionId, async () => {
       // Why first: chrome.storage can only be cleared through the still-loaded extension.
-      await clearBrowserExtensionDataEverywhere(extensionId)
-      // Why awaited: a load still in flight would write state the lines below forget.
-      await unloadBrowserExtensionEverywhere(extensionId)
+      const sessions = await unloadBrowserExtensionEverywhere(extensionId, (captured) =>
+        clearBrowserExtensionDataEverywhere(extensionId, captured)
+      )
       browserSessionRegistry.updateEnabledExtensionIds((byProfile) =>
         withoutExtension(byProfile, extensionId)
       )
@@ -141,6 +144,9 @@ export function removeBrowserExtension(extensionId: string): Promise<BrowserExte
       forgetBrowserExtensionLoadFailures({ extensionId })
       forgetHeldBrowserExtensionUpdate(extensionId)
       await getBrowserExtensionInstallStore().remove(extensionId)
+      for (const sess of sessions) {
+        forgetBrowserExtensionWorkerRegistration(sess, extensionId)
+      }
       notifyChromeWebStoreUninstalled(extensionId)
       notifyBrowserExtensionListChanged()
     })

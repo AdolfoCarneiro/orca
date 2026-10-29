@@ -7,7 +7,11 @@ const mocks = vi.hoisted(() => {
   return {
     records,
     forgetDnrState: vi.fn(),
-    sessions: [{ name: 'default' }, { name: 'work' }],
+    unloadSessions: vi.fn(),
+    sessions: ['default', 'work'].map((name) => ({
+      name,
+      extensions: { removeExtension: vi.fn() }
+    })),
     store: {
       get: (id: string) => records.get(id) ?? null,
       save: vi.fn((record: Record<string, unknown>) => records.set(String(record.id), record)),
@@ -42,11 +46,22 @@ vi.mock('./browser-extension-manifest', () => ({
   })
 }))
 vi.mock('./browser-extension-session-loader', () => ({
-  getBrowserExtensionSessionForProfile: vi.fn(),
+  getBrowserExtensionSessionForProfile: vi.fn(
+    (profileId: string) => mocks.sessions.find((sess) => sess.name === profileId) ?? null
+  ),
   listBrowserExtensionSessions: () => mocks.sessions,
   loadBrowserExtensionFolderIntoProfile: vi.fn(async () => ({ id: ID, version: '1.0' })),
   loadBrowserExtensionIntoProfile: vi.fn(),
-  unloadBrowserExtensionEverywhere: vi.fn(),
+  unloadBrowserExtensionEverywhere: vi.fn(
+    async (
+      extensionId: string,
+      beforeUnload?: (sessions: typeof mocks.sessions) => Promise<void>
+    ) => {
+      await beforeUnload?.(mocks.sessions)
+      mocks.unloadSessions(extensionId)
+      return mocks.sessions
+    }
+  ),
   unloadBrowserExtensionFromProfile: vi.fn()
 }))
 vi.mock('./browser-extension-data-removal', () => ({
@@ -61,7 +76,10 @@ vi.mock('./browser-extension-webstore-updater', () => ({
 vi.mock('./browser-extension-support', () => ({ isBrowserExtensionSupportEnabled: () => true }))
 vi.mock('./browser-extension-toolbar-pins', () => ({ forgetPinnedBrowserExtension: vi.fn() }))
 vi.mock('./browser-extension-profile-state-store', () => ({
-  getBrowserExtensionProfileStateStore: () => ({ forgetExtension: vi.fn() })
+  getBrowserExtensionProfileStateStore: () => ({
+    forgetExtension: vi.fn(),
+    read: () => ({ workerSignature: 'same-worker' })
+  })
 }))
 vi.mock('./browser-extension-sync-storage-store', () => ({
   getBrowserExtensionSyncStorageStore: () => ({ forgetExtension: vi.fn() })
@@ -82,6 +100,28 @@ const {
   setBrowserExtensionEnabled
 } = await import('./browser-extension-management')
 const { withBrowserExtensionLock } = await import('./browser-extension-webstore-install')
+const { refreshWorkerRegistration, removeBrowserExtensionFromSession } =
+  await import('./browser-extension-worker-registration')
+
+function sessionsWithUnregisteredWorkers(): Electron.Session[] {
+  return mocks.sessions.map(({ name }) => {
+    const sess = loader.getBrowserExtensionSessionForProfile(name)
+    if (!sess) {
+      throw new Error('Missing extension session fixture')
+    }
+    removeBrowserExtensionFromSession(sess, ID)
+    return sess
+  })
+}
+
+function refreshSameWorker(sess: Electron.Session): Promise<boolean> {
+  return refreshWorkerRegistration(sess, 'default', {
+    extensionId: ID,
+    workerSignature: 'same-worker',
+    directory: '/orca/copy',
+    hasWorker: true
+  })
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -92,9 +132,9 @@ describe('removeBrowserExtension', () => {
   it("clears its data in every profile session before unloading it, then forgets Orca's record", async () => {
     mocks.records.set(ID, { id: ID, name: 'Vault', source: 'webstore' })
     expect(await removeBrowserExtension(ID)).toEqual({ ok: true })
-    expect(loader.unloadBrowserExtensionEverywhere).toHaveBeenCalledWith(ID)
+    expect(loader.unloadBrowserExtensionEverywhere).toHaveBeenCalledWith(ID, expect.any(Function))
     expect(vi.mocked(clearBrowserExtensionSessionData).mock.invocationCallOrder[1]).toBeLessThan(
-      vi.mocked(loader.unloadBrowserExtensionEverywhere).mock.invocationCallOrder[0]
+      mocks.unloadSessions.mock.invocationCallOrder[0]
     )
     expect(vi.mocked(clearBrowserExtensionSessionData).mock.calls).toEqual([
       [mocks.sessions[0], ID],
@@ -102,6 +142,25 @@ describe('removeBrowserExtension', () => {
     ])
     expect(mocks.store.remove).toHaveBeenCalledWith(ID)
     expect(mocks.forgetDnrState).toHaveBeenCalledWith(ID)
+  })
+
+  it('retires the removed worker markers in every captured session', async () => {
+    const sessions = sessionsWithUnregisteredWorkers()
+    mocks.records.set(ID, { id: ID, name: 'Vault', source: 'webstore' })
+
+    expect(await removeBrowserExtension(ID)).toEqual({ ok: true })
+    expect(mocks.records.has(ID)).toBe(false)
+    expect(await Promise.all(sessions.map(refreshSameWorker))).toEqual([false, false])
+  })
+
+  it('preserves worker markers when removing the installation record fails', async () => {
+    const sessions = sessionsWithUnregisteredWorkers()
+    mocks.records.set(ID, { id: ID, name: 'Vault', source: 'webstore' })
+    mocks.store.remove.mockRejectedValueOnce(new Error('record removal failed'))
+
+    expect(await removeBrowserExtension(ID)).toEqual({ ok: false, error: 'record removal failed' })
+    expect(mocks.records.has(ID)).toBe(true)
+    expect(await Promise.all(sessions.map(refreshSameWorker))).toEqual([true, true])
   })
 
   it('refuses while an install or update of the same extension is running', async () => {

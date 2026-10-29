@@ -25,7 +25,10 @@ import {
   BrowserExtensionProfileLoads,
   throwIfBrowserExtensionLoadCancelled
 } from './browser-extension-profile-loads'
-import { removeBrowserExtensionFromSession } from './browser-extension-worker-registration'
+import {
+  forgetBrowserExtensionWorkerRegistration,
+  removeBrowserExtensionFromSession
+} from './browser-extension-worker-registration'
 import {
   loadBrowserExtensionIntoSession,
   loadInstalledBrowserExtensionIntoSession
@@ -60,6 +63,7 @@ export function setBrowserExtensionSessionHooks(hooks: BrowserExtensionSessionHo
 }
 
 const stateByProfileId = new Map<string, ProfileSessionState>()
+const detachingSessions = new WeakMap<Electron.Session, Promise<void>>()
 const PRELOAD_FILE_NAME = 'browser-extension-preload.js'
 const PRELOAD_ID = 'orca-browser-extension-frame'
 const preloadedSessions = new WeakSet<Electron.Session>()
@@ -155,6 +159,22 @@ async function unloadProfileSession(state: ProfileSessionState): Promise<void> {
   sessionHooks?.detached(state.session)
 }
 
+function queueProfileSessionDetach(
+  sess: Electron.Session,
+  detach: () => Promise<void>
+): Promise<void> {
+  const previous = detachingSessions.get(sess)
+  const pending = previous ? previous.catch(() => {}).then(detach) : detach()
+  detachingSessions.set(sess, pending)
+  const clear = (): void => {
+    if (detachingSessions.get(sess) === pending) {
+      detachingSessions.delete(sess)
+    }
+  }
+  void pending.then(clear, clear)
+  return pending
+}
+
 /** Profile delete clears saved extension data before unloading, even if never attached. */
 export async function detachBrowserExtensionsFromProfileSession(
   profile: BrowserSessionProfile
@@ -164,28 +184,37 @@ export async function detachBrowserExtensionsFromProfileSession(
   if (state) {
     stateByProfileId.delete(profile.id)
     forgetBrowserExtensionContexts(sess)
-    await Promise.all([state.loading.catch(() => {}), state.loads.close()])
   }
-  await retireBrowserExtensionProfileStorage(sess, profile.partition).catch((error: unknown) => {
-    console.warn('[browser-extensions] Could not clear deleted profile storage:', error)
-  })
-  try {
+  await queueProfileSessionDetach(sess, async () => {
     if (state) {
-      await unloadProfileSession(state)
+      await Promise.all([state.loading.catch(() => {}), state.loads.close()])
     }
-  } finally {
-    forgetBrowserExtensionActionProfile(profile.id)
-  }
-  getBrowserExtensionProfileStateStore().forgetProfile(profile.id)
-  getBrowserExtensionSyncStorageStore().forgetProfile(profile.id)
-  getBrowserExtensionDnrStore().forgetProfile(profile.id)
+    await retireBrowserExtensionProfileStorage(sess, profile.partition).catch((error: unknown) => {
+      console.warn('[browser-extensions] Could not clear deleted profile storage:', error)
+    })
+    try {
+      if (state) {
+        await unloadProfileSession(state)
+      }
+    } finally {
+      forgetBrowserExtensionActionProfile(profile.id)
+    }
+    getBrowserExtensionProfileStateStore().forgetProfile(profile.id)
+    getBrowserExtensionSyncStorageStore().forgetProfile(profile.id)
+    getBrowserExtensionDnrStore().forgetProfile(profile.id)
+    forgetBrowserExtensionWorkerRegistration(sess)
+  })
 }
 
 /** The experimental setting turned off: every profile drops its extensions until it turns on. */
 export async function detachBrowserExtensionsFromAllProfileSessions(): Promise<void> {
   const states = [...stateByProfileId.values()]
   stateByProfileId.clear()
-  await Promise.all(states.map(unloadProfileSession))
+  await Promise.all(
+    states.map((state) =>
+      queueProfileSessionDetach(state.session, () => unloadProfileSession(state))
+    )
+  )
 }
 
 /** One profile session's startup loads, restore hooks included. */
@@ -276,9 +305,12 @@ export function unloadBrowserExtensionFromProfile(profileId: string, extensionId
   void unloadAndCancel(profileId, extensionId)
 }
 
-function unloadAndCancel(profileId: string, extensionId: string): Promise<unknown> {
+function unloadAndCancel(
+  profileId: string,
+  extensionId: string,
+  state = stateByProfileId.get(profileId)
+): Promise<unknown> {
   clearBrowserExtensionLoadFailure(profileId, extensionId)
-  const state = stateByProfileId.get(profileId)
   if (!state) {
     return Promise.resolve()
   }
@@ -290,8 +322,16 @@ function unloadAndCancel(profileId: string, extensionId: string): Promise<unknow
 }
 
 /** Resolves once its cancelled loads have stopped, so removal can purge what they wrote. */
-export async function unloadBrowserExtensionEverywhere(extensionId: string): Promise<void> {
-  await Promise.all(
-    [...stateByProfileId.keys()].map((profileId) => unloadAndCancel(profileId, extensionId))
-  )
+export async function unloadBrowserExtensionEverywhere(
+  extensionId: string,
+  beforeUnload?: (sessions: Electron.Session[]) => Promise<void>
+): Promise<Electron.Session[]> {
+  const captured = [...stateByProfileId.values()]
+  if (beforeUnload) {
+    await beforeUnload(captured.map((state) => state.session))
+  }
+  const states = [...new Set([...captured, ...stateByProfileId.values()])]
+  await Promise.all(states.map((state) => unloadAndCancel(state.profile.id, extensionId, state)))
+  await Promise.all(states.map((state) => detachingSessions.get(state.session)))
+  return [...new Set(states.map((state) => state.session))]
 }
