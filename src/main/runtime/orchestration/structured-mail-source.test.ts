@@ -136,6 +136,7 @@ it('preserves immediate historical relations, notice evidence disagreement, relo
       .prepare("UPDATE dispatch_contexts SET status = 'completed' WHERE id = ?")
       .run(ambiguous.id)
     expect(mail('term_coord', ['dispatch:foreign']).senders[0].relation).toBeUndefined()
+    const liveMixed = mail('term_worker', ['term_child', 'term_peer'], worker.id)
     db.db.prepare("UPDATE dispatch_contexts SET status = 'completed' WHERE id = ?").run(child.id)
     expect(mail('term_worker', ['term_child'], worker.id, child.id).senders[0].relation).toBe(
       'worker'
@@ -147,9 +148,12 @@ it('preserves immediate historical relations, notice evidence disagreement, relo
     expect(agentMessageHeading(reload(mail('term_worker', ['term_coord'], worker.id)))).toBe(
       'coordinator'
     )
-    const mixed = reload(mail('term_worker', ['term_child', 'term_peer'], worker.id))
+    const mixed = reload(liveMixed)
     expect(mixed.senders.map((sender) => sender.relation)).toEqual(['worker', 'none'])
     expect(agentMessageHeading(mixed)).toBe('generic')
+    const completedMixed = reload(mail('term_worker', ['term_child', 'term_peer'], worker.id))
+    expect(completedMixed.senders.map((sender) => sender.relation)).toEqual([undefined, 'none'])
+    expect(agentMessageHeading(completedMixed)).toBe('generic')
     const senderName = vi.fn<SenderNameResolver>(() => 'Worker')
     const evaluate = vi.spyOn(relations, 'agentMessageRelation')
     const base = {
@@ -403,6 +407,8 @@ it.each([
         return parse(value, ...rest)
       })
       const groups = distinct ? batchSize : 1
+      expect(scanVisits).toBe(batchSize * sessionCount)
+      scanVisits = 0
       batchVisits = 0
       const source = structuredMailSource({
         db,

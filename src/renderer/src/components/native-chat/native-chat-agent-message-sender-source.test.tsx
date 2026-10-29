@@ -310,7 +310,7 @@ it.each([100, 1000])(
     useAppStore.setState({ settings })
     let entries = 0,
       freshnessVisits = 0,
-      handleEntries = 0
+      preProjectorStatusValueVisits = 0
     const population = new Map<SenderPopulation, { calls: number; entries: number }>()
     let projecting = false
     const projector = cache.selectWorktreeAgentRowsCached
@@ -337,7 +337,7 @@ it.each([100, 1000])(
         !projecting &&
         (object === state.agentStatusByPaneKey || object === state.retainedAgentsByPaneKey)
       ) {
-        handleEntries += result.length
+        preProjectorStatusValueVisits += result.length
       }
       return result
     })
@@ -442,22 +442,22 @@ it.each([100, 1000])(
     expect(builds).toHaveBeenCalledTimes(1)
     expect(builds.mock.calls[0][0].entries).toHaveLength(n)
     expect(normalized).toHaveBeenCalledTimes(n)
-    expect(handleEntries).toBe(n)
+    expect(preProjectorStatusValueVisits).toBe(n * 2)
     expect(entries).toBe(n * input.mock.calls.length)
     expect(freshnessVisits).toBe(n)
     expect(projections).toHaveBeenCalledTimes(1)
     for (const spy of recordSelectors) {
       expect(spy).toHaveBeenCalledTimes(1)
     }
-    for (const metric of recordWork.values()) {
-      expect(metric.source).toBe(n)
+    for (const [name, metric] of recordWork) {
+      expect(metric.source).toBe(name === 'ptys' ? n * 2 : n)
     }
     const counts = new Map(renders)
     const reset = () => {
       for (const spy of [input, builds, projections, normalized, ...recordSelectors]) {
         spy.mockClear()
       }
-      entries = freshnessVisits = handleEntries = 0
+      entries = freshnessVisits = preProjectorStatusValueVisits = 0
       for (const metric of recordWork.values()) {
         metric.source = 0
       }
@@ -471,10 +471,10 @@ it.each([100, 1000])(
       terminalLayoutsByTabId: layouts.source({ ...state.terminalLayoutsByTabId }),
       paneForegroundAgentByPaneKey: foreground.source({ ...state.paneForegroundAgentByPaneKey })
     }
-    for (const [update, reads] of [
-      [nextRecords, n],
-      [{ sidebarBody: 'agents' as const }, 0],
-      [{ settings: { ...settings } }, 0]
+    for (const [update, reads, statusValueVisits] of [
+      [nextRecords, n, n],
+      [{ sidebarBody: 'agents' as const }, 0, 0],
+      [{ settings: { ...settings } }, 0, n * 2]
     ] as const) {
       reset()
       act(() => useAppStore.setState(update))
@@ -486,10 +486,10 @@ it.each([100, 1000])(
       for (const spy of recordSelectors) {
         expect(spy).toHaveBeenCalledTimes(1)
       }
-      for (const metric of recordWork.values()) {
-        expect(metric.source).toBe(reads)
+      for (const [name, metric] of recordWork) {
+        expect(metric.source).toBe(name === 'ptys' ? reads * 2 : reads)
       }
-      expect(handleEntries).toBe('settings' in update ? n : 0)
+      expect(preProjectorStatusValueVisits).toBe(statusValueVisits)
       expect(renders).toEqual(counts)
     }
     for (const facetOnly of [true, false]) {
@@ -513,7 +513,7 @@ it.each([100, 1000])(
       expect(builds).toHaveBeenCalledTimes(1)
       expect(builds.mock.calls[0][0].entries).toHaveLength(n)
       expect(normalized).toHaveBeenCalledTimes(n)
-      expect(handleEntries).toBe(n)
+      expect(preProjectorStatusValueVisits).toBe(n * 2)
       expect(entries).toBe(n * input.mock.calls.length)
       expect(freshnessVisits).toBe(facetOnly ? 0 : n)
       expect(projections).toHaveBeenCalledTimes(1)
@@ -607,8 +607,10 @@ it.each([100, 1000])(
     expect(args.retained).toHaveLength(n)
     expect(Object.keys(args.runtimeAgentOrchestrationByPaneKey!)).toHaveLength(n)
     expect(normalized).toHaveBeenCalledTimes(n * 3)
-    expect(population.get(live)).toEqual({ calls: 2, entries: n * 2 })
-    for (const source of [retained, migration, orchestration]) {
+    for (const source of [live, retained]) {
+      expect(population.get(source)).toEqual({ calls: 3, entries: n * 3 })
+    }
+    for (const source of [migration, orchestration]) {
       expect(population.get(source)).toEqual({ calls: 1, entries: n })
     }
     for (const metric of population.values()) {
