@@ -43,7 +43,7 @@ export type MockTransport = {
   setOutputPaused?: ReturnType<typeof vi.fn>
   resize: ReturnType<typeof vi.fn>
   isConnected?: ReturnType<typeof vi.fn>
-  getPtyId: ReturnType<typeof vi.fn>
+  getPtyId: Mock<() => string | null>
   getConnectionId: ReturnType<typeof vi.fn>
   serializeBuffer?: ReturnType<typeof vi.fn>
   serializeBufferOutcome?: ReturnType<typeof vi.fn>

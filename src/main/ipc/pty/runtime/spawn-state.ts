@@ -59,6 +59,7 @@ export type RuntimePtySpawnState = {
   effectiveSessionAppId: string | undefined
   ownsNewIncarnation: boolean
   expectedWslDistro: string | null
+  wslHoldReadAnchor: number | undefined
   /** The host's verdict on the spawn's resume; a refused one starts the pane's plain shell. */
   resumeAdmission: ResumeSpawnAdmission | null
   codexSelectionTarget: CodexAccountSelectionTarget
@@ -208,6 +209,7 @@ export function createRuntimePtySpawnState(
     effectiveSessionAppId: undefined,
     ownsNewIncarnation: false,
     expectedWslDistro: null,
+    wslHoldReadAnchor: undefined,
     resumeAdmission: null,
     codexSelectionTarget: { runtime: 'host' },
     launchCommand: undefined,

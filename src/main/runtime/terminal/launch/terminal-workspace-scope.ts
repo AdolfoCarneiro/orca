@@ -126,14 +126,26 @@ export abstract class OrcaRuntimeWithResolveBrowserNetworkExecutionHostForWorktr
 
   async resolveTerminalWorkspaceLaunchScope(
     selector: string,
-    ...evidence: TerminalWorkspaceCreationEvidence
+    createdWorktree?: Worktree,
+    options: { wslUserAct?: boolean } = {},
+    resolvedWorktree?: ResolvedWorktree,
+    resolvedFolder?: FolderWorkspace
   ): Promise<TerminalWorkspaceLaunchScope> {
-    return (await this.resolveTerminalWorkspaceLaunchTarget(selector, ...evidence)).scope
+    return (
+      await this.resolveTerminalWorkspaceLaunchTarget(
+        selector,
+        createdWorktree,
+        options,
+        resolvedWorktree,
+        resolvedFolder
+      )
+    ).scope
   }
 
   protected async resolveTerminalWorkspaceLaunchTarget(
     selector: string,
     createdWorktree?: Worktree,
+    options: { wslUserAct?: boolean } = {},
     resolvedWorktree?: ResolvedWorktree,
     resolvedFolder?: FolderWorkspace,
     checkPath = true
@@ -154,6 +166,7 @@ export abstract class OrcaRuntimeWithResolveBrowserNetworkExecutionHostForWorktr
 
     const folderScope = await this.resolveFolderWorkspaceLaunchScope(
       selector,
+      options,
       resolvedFolder,
       checkPath
     )

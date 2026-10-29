@@ -17,6 +17,12 @@ import {
   getResolvedFolderWorkspacePathStatus,
   inferFolderWorkspacePathConnection
 } from '../../project-groups/folder-workspace-path-status'
+import {
+  blockedWslDistroForPath,
+  runAsWslUserAct,
+  wslDistroForPath
+} from '../../wsl/wsl-unc-access-gate'
+import { wslDistroHoldMessage } from '../../../shared/wsl-distro-stopped-hold'
 import type { TerminalWorkspaceLaunchScope } from '../runtime-legacy-worker-terminal-recovery-types'
 import { folderWorkspaceKey, parseWorkspaceKey } from '../../../shared/workspace-scope'
 import type { ResolvedWorktree } from '../runtime-worktree-path-identity'
@@ -125,8 +131,10 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
     return connection.kind === 'ssh' ? connection.connectionId : null
   }
 
+  /** `wslUserAct`: the user's start, so its folder check may start a stopped WSL distro (E9). */
   protected async resolveFolderWorkspaceLaunchScope(
     selector: string,
+    options: { wslUserAct?: boolean } = {},
     resolvedFolder?: FolderWorkspace,
     checkPath = true
   ): Promise<(TerminalWorkspaceLaunchScope & { folderWorkspace: FolderWorkspace }) | null> {
@@ -143,9 +151,20 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
     }
     const connectionId = getRepoSshConnectionId(workspace)
     if (checkPath) {
-      assertFolderWorkspacePathUsable(
-        await getResolvedFolderWorkspacePathStatus(workspace, getRepoExecutionHostId(workspace))
-      )
+      const readStatus = () =>
+        getResolvedFolderWorkspacePathStatus(workspace, getRepoExecutionHostId(workspace))
+      if (options.wslUserAct) {
+        assertFolderWorkspacePathUsable(
+          await runAsWslUserAct(wslDistroForPath(workspace.folderPath), readStatus)
+        )
+      } else {
+        // Background work holds with Start, before any physical folder check.
+        const blocked = await blockedWslDistroForPath(workspace.folderPath)
+        if (blocked) {
+          throw new Error(wslDistroHoldMessage(blocked.distro, blocked.state))
+        }
+        assertFolderWorkspacePathUsable(await readStatus())
+      }
     }
     return {
       id: folderWorkspaceKey(workspace.id),
@@ -192,7 +211,7 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
   ): Promise<ResolvedWorktree> {
     const selectedFolder = this.resolveFolderWorkspaceSelector(selector, options.requiredHostId)
     const folderWorkspace = options.requireUsableFolderPath
-      ? (await this.resolveFolderWorkspaceLaunchScope(selector, selectedFolder ?? undefined))
+      ? (await this.resolveFolderWorkspaceLaunchScope(selector, {}, selectedFolder ?? undefined))
           ?.folderWorkspace
       : selectedFolder
     return folderWorkspace

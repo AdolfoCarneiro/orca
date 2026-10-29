@@ -1,3 +1,4 @@
+import type { TerminalWorkspaceCreationEvidence } from './terminal-workspace-scope'
 import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
 import type { Repo } from '../../../../shared/repo-types'
 import type { ResolvedWorktree } from '../../runtime-worktree-path-identity'
@@ -17,8 +18,24 @@ import {
 } from '../../../../shared/execution-host'
 import { resolveWorktreeLaunchHost } from '../../worktree-launch-host-repo'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { TerminalWorkspaceLaunchScope } from '../../runtime-legacy-worker-terminal-recovery-types'
 
 export abstract class OrcaRuntimeWithTerminalCreateDeduplication extends OrcaRuntimeWithCreateAgentSession {
+  /** A create's scope: its `wslUserAct` lets the folder check start a stopped WSL distro (E9). */
+  protected resolveTerminalCreateLaunchScope(
+    selector: string,
+    opts: { wslUserAct?: boolean },
+    ...[createdWorktree, resolvedWorktree, resolvedFolder]: TerminalWorkspaceCreationEvidence
+  ): Promise<TerminalWorkspaceLaunchScope> {
+    return this.resolveTerminalWorkspaceLaunchScope(
+      selector,
+      createdWorktree,
+      { wslUserAct: opts.wslUserAct === true },
+      resolvedWorktree,
+      resolvedFolder
+    )
+  }
+
   async dedupeTerminalCreate(
     clientIdentity: string,
     worktreeSelector: string | undefined,
@@ -27,7 +44,8 @@ export abstract class OrcaRuntimeWithTerminalCreateDeduplication extends OrcaRun
     run: (
       canonicalWorktreeSelector: string | undefined,
       preAllocatedHandle: string | undefined
-    ) => Promise<RuntimeTerminalCreate>
+    ) => Promise<RuntimeTerminalCreate>,
+    options: { wslUserAct?: boolean } = {}
   ): Promise<RuntimeTerminalCreate> {
     if (!clientMutationId || !worktreeSelector) {
       if (reconcileExisting) {
@@ -35,7 +53,11 @@ export abstract class OrcaRuntimeWithTerminalCreateDeduplication extends OrcaRun
       }
       return await run(worktreeSelector, undefined)
     }
-    const workspace = await this.resolveTerminalWorkspaceLaunchScope(worktreeSelector)
+    const workspace = await this.resolveTerminalWorkspaceLaunchScope(
+      worktreeSelector,
+      undefined,
+      options
+    )
     const canonicalWorktreeSelector = `id:${workspace.id}`
     const preAllocatedHandle = deriveRemoteRuntimeTerminalCreateHandle(
       clientIdentity,
@@ -181,6 +203,7 @@ export abstract class OrcaRuntimeWithTerminalCreateDeduplication extends OrcaRun
       launchScope: await this.resolveTerminalWorkspaceLaunchScope(
         `id:${worktree.id}`,
         undefined,
+        { wslUserAct: opts.wslUserAct === true },
         worktree,
         resolvedTarget?.folderWorkspace
       )

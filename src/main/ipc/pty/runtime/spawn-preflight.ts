@@ -84,7 +84,11 @@ export async function prepareRuntimePtySpawn(
     preAdopted: ctx.preAdoptedStablePane !== null,
     getSettings: ctx.deps.getSettings,
     resolveStartupCwd: (id, cwd, fallback) =>
-      ctx.deps.resolvePtySpawnStartupCwd(id, cwd, fallback, args.connectionId)
+      ctx.deps.resolvePtySpawnStartupCwd(id, cwd, fallback, args.connectionId),
+    // Default-deny, as spawn-options' `wslBackgroundStart`: held before the cwd probe and any provider.
+    ...(args.wslUserAct === true
+      ? {}
+      : { wslStartHold: { wslBackgroundStart: true, sessionId: ctx.sessionId } })
   })
   ctx.cwd = target.cwd
   ctx.requestedCwd = target.requestedCwd
@@ -94,6 +98,7 @@ export async function prepareRuntimePtySpawn(
   ctx.terminalRuntimeOptions = target.terminalRuntimeOptions
   ctx.daemonShellOverride = ctx.terminalRuntimeOptions.shellOverride
   ctx.expectedWslDistro = target.expectedWslDistro
+  ctx.wslHoldReadAnchor = target.wslHoldReadAnchor
   ctx.codexSelectionTarget = target.codexSelectionTarget
   args.env = withClaudeProfileTerminalEnv(args.env, ctx.codexSelectionTarget)
   ctx.claudeAuth =

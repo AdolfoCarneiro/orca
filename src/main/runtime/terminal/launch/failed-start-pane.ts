@@ -187,7 +187,7 @@ export abstract class OrcaRuntimeWithFailedStartPanes extends OrcaRuntimeWithCre
   private async keepFailedStartPane(
     worktreeSelector: string,
     pane: FailedStartPane,
-    { title }: dependencies.TerminalCreateOptions,
+    { title, wslUserAct }: dependencies.TerminalCreateOptions,
     error: unknown,
     ...evidence: TerminalWorkspaceCreationEvidence
   ): Promise<void> {
@@ -195,7 +195,14 @@ export abstract class OrcaRuntimeWithFailedStartPanes extends OrcaRuntimeWithCre
       // Another owner's terminal runs in the pane; the window attaches to it.
       return
     }
-    const workspace = await this.resolveTerminalWorkspaceLaunchScope(worktreeSelector, ...evidence)
+    // The failed start retains both its captured owner and the same user's act.
+    const workspace = await this.resolveTerminalWorkspaceLaunchScope(
+      worktreeSelector,
+      evidence[0],
+      { wslUserAct: wslUserAct === true },
+      evidence[1],
+      evidence[2]
+    )
     const create = { type: 'createTerminalTab' as const, workspace: workspace.id, ...pane }
     const reply = await this.applyLayoutCommand(title ? { ...create, title } : create)
     // `tab_exists`: the start wrote this pane before failing and kept it.
