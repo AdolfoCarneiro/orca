@@ -9,8 +9,7 @@ import {
   MessageSquarePlus,
   MessagesSquare,
   Play,
-  SquareTerminal,
-  UserRound
+  SquareTerminal
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -27,6 +26,8 @@ import { sessionDetailConversationTurns, sessionPromptPreview } from './ai-vault
 import { SessionSubagentsSection } from './AiVaultSessionSubagents'
 import { SessionUnsavedConversationNotice } from './AiVaultSessionUnsavedNotice'
 import { useAiVaultSessionAccount } from './ai-vault-session-account'
+import { SessionAccountSection } from './AiVaultSessionAccount'
+import { SessionReceiptSection } from './AiVaultSessionReceiptSection'
 import {
   aiVaultResumeInSessionWorkspaceLabel,
   aiVaultSessionWorkspaceHeading,
@@ -283,41 +284,9 @@ export function SessionInlineDetails({
             <WorktreeMetadataLines worktreeInfo={worktreeInfo} vaultScope={vaultScope} />
           </SessionReceiptSection>
         ) : null}
-        <SessionReceiptSection
-          icon={<UserRound className="size-3" />}
-          label={translate('aiVault.sessionAccount', 'Account')}
-        >
-          <div
-            className={cn(
-              'select-text text-[12px] leading-4 [overflow-wrap:anywhere]',
-              accountLabel ? 'font-medium text-foreground' : 'text-muted-foreground'
-            )}
-          >
-            {accountLabel ?? translate('aiVault.sessionAccountUnknown', 'Unknown')}
-          </div>
-        </SessionReceiptSection>
+        <SessionAccountSection accountLabel={accountLabel} />
       </div>
     </div>
-  )
-}
-
-function SessionReceiptSection({
-  icon,
-  label,
-  children
-}: {
-  icon: React.ReactNode
-  label: string
-  children: React.ReactNode
-}): React.JSX.Element {
-  return (
-    <section className="space-y-1.5">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-        <span className="text-muted-foreground/80">{icon}</span>
-        <span>{label}</span>
-      </div>
-      {children}
-    </section>
   )
 }
 

@@ -130,7 +130,9 @@ function ownedRow(rowAgent: string, ownership: StructuredProviderSessionOwnershi
 
 function projectedAccountHome(ownership: StructuredProviderSessionOwnership) {
   const home = ownership.key.home
-  if (!home) return undefined
+  if (!home) {
+    return undefined
+  }
   if (!isLegacyAgentSessionAccountHome(home)) {
     return home
   }

@@ -134,7 +134,9 @@ describe('structured AI Vault ownership', () => {
       searchResults([searchHit()]),
       OPENS_EVERY_STRUCTURED_CHAT
     )
-    if (response.kind !== 'results') throw new Error('Expected search results')
+    if (response.kind !== 'results') {
+      throw new Error('Expected search results')
+    }
     const hit = response.hits[0]!
     expect(redactForTransport(hit, 'ipc').accountHome).toEqual(accountHome)
     expect(redactForTransport(hit, 'relay')).not.toHaveProperty('accountHome')
@@ -144,7 +146,9 @@ describe('structured AI Vault ownership', () => {
       OPENS_EVERY_STRUCTURED_CHAT,
       'relay'
     )
-    if (relayed.kind !== 'results') throw new Error('Expected search results')
+    if (relayed.kind !== 'results') {
+      throw new Error('Expected search results')
+    }
     expect(relayed.hits[0]).not.toHaveProperty('accountHome')
   })
 

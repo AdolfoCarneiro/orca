@@ -61,8 +61,9 @@ describe('session account labels', () => {
         { ...recorded, executionHostId: 'runtime:other' as const },
         { ...recorded, accountHome: null, executionHostId: 'runtime:other' as const },
         session(agent, '/custom/config')
-      ])
+      ]) {
         expect(resolveAiVaultSessionAccount(unknown, settings, null)).toBeNull()
+      }
     }
   )
 

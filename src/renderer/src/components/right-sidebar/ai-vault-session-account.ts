@@ -26,12 +26,16 @@ export function resolveAiVaultSessionAccount(
   settings: SessionAccountSettings | null,
   accounts: SessionAccounts | null
 ): string | null {
-  if (session.executionHostId !== LOCAL_EXECUTION_HOST_ID) return null
+  if (session.executionHostId !== LOCAL_EXECUTION_HOST_ID) {
+    return null
+  }
   const home = session.accountHome
   if (home === null) {
     return translate('auto.components.status.bar.StatusBar.c676918adc', 'System default')
   }
-  if (!home) return null
+  if (!home) {
+    return null
+  }
   if (!isLegacyAgentSessionAccountHome(home)) {
     if (home.locator.kind === 'unmanaged') {
       return translate('auto.components.status.bar.StatusBar.c676918adc', 'System default')
@@ -56,13 +60,17 @@ export function resolveAiVaultSessionAccount(
       (account) =>
         sameRuntime(account.managedAuthRuntime, account.wslDistro) && sameHome(account.home)
     )
-    if (current) return current.email
+    if (current) {
+      return current.email
+    }
     const saved = settings?.claudeManagedAccounts.find(
       (account) =>
         sameRuntime(account.managedAuthRuntime, account.wslDistro) &&
         (sameHome(account.managedAuthPath) || sameHome(account.wslLinuxAuthPath))
     )
-    if (!saved) return null
+    if (!saved) {
+      return null
+    }
     const summary = roster.find((account) => account.id === saved.id)
     // The router may replace a legacy saved folder; only older summaries lack its actual home.
     return summary?.home && !sameHome(summary.home) ? null : (summary?.email ?? saved.email)
@@ -73,7 +81,9 @@ export function resolveAiVaultSessionAccount(
         sameRuntime(account.managedHomeRuntime, account.wslDistro) &&
         (sameHome(account.managedHomePath) || sameHome(account.wslLinuxHomePath))
     )
-    if (!saved) return null
+    if (!saved) {
+      return null
+    }
     const roster = (accounts?.codex?.accounts ?? settings?.codexManagedAccounts ?? []).filter(
       (account) => sameRuntime(account.managedHomeRuntime, account.wslDistro)
     )
@@ -101,17 +111,23 @@ export function useAiVaultSessionAccount(session: SessionAccountSource): string 
     (agent === 'claude' || agent === 'codex' || dataAccount)
 
   useEffect(() => {
-    if (!needsAccounts) return
+    if (!needsAccounts) {
+      return
+    }
     let cancelled = false
     const request = dataAccount
       ? callRuntimeRpc<SessionAccounts>({ kind: 'local' }, 'accounts.listData')
       : fetchProviderAccountsSnapshot({ kind: 'local' })
     void request.then(
       (snapshot) => {
-        if (!cancelled) setAccounts(snapshot)
+        if (!cancelled) {
+          setAccounts(snapshot)
+        }
       },
       () => {
-        if (!cancelled) setAccounts(null)
+        if (!cancelled) {
+          setAccounts(null)
+        }
       }
     )
     return () => {
