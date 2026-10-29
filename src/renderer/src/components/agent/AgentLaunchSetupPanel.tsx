@@ -7,6 +7,7 @@ import {
   CommandInput,
   CommandList,
   CommandEmpty,
+  CommandGroup,
   CommandItem
 } from '@/components/ui/command'
 import { translate } from '@/i18n/i18n'
@@ -221,63 +222,65 @@ export function AgentLaunchSetupPanel({
             agent: entry.label
           })}
         />
-        <CommandList className="max-h-56 p-1">
-          <CommandEmpty>
-            {translate('agentPicker.noModels', 'No models match your search.')}
-          </CommandEmpty>
-          {legacy && !modelQuery ? (
-            <CommandItem value="__back__" disabled={disabled} onSelect={() => setLegacy(false)}>
-              <ChevronLeft className="size-3.5 text-muted-foreground" />
-              {translate('agentPicker.legacyModels', 'Legacy models')}
-            </CommandItem>
-          ) : null}
-          {models
-            .filter(
-              (model) =>
-                !model.hidden &&
-                (model.id === currentModel || modelQuery || Boolean(model.isLegacy) === legacy)
-            )
-            .map((model) => (
-              <CommandItem
-                key={model.id}
-                value={model.id}
-                keywords={[model.label]}
-                disabled={modelDisabled}
-                data-current={currentModel === model.id}
-                onSelect={() => setDraft(editAgentPickerDraft(draft, { model: model.id }))}
-              >
-                {model.label}
-                <span className="ml-auto flex size-3.5 shrink-0 items-center justify-center">
-                  {currentModel === model.id ? (
-                    <Check className="size-3.5 text-muted-foreground" />
-                  ) : null}
-                </span>
+        <CommandList className="max-h-56">
+          <CommandGroup>
+            <CommandEmpty>
+              {translate('agentPicker.noModels', 'No models match your search.')}
+            </CommandEmpty>
+            {legacy && !modelQuery ? (
+              <CommandItem value="__back__" disabled={disabled} onSelect={() => setLegacy(false)}>
+                <ChevronLeft className="size-3.5 text-muted-foreground" />
+                {translate('agentPicker.legacyModels', 'Legacy models')}
               </CommandItem>
-            ))}
-          {!legacy && !modelQuery && legacyCount > 0 ? (
-            <CommandItem value="__legacy__" disabled={disabled} onSelect={() => setLegacy(true)}>
-              <span className="flex min-w-0 flex-col">
-                <span>{translate('agentPicker.legacyModels', 'Legacy models')}</span>
-                <span className="text-muted-foreground">
-                  {translate('agentPicker.legacyModelCount', '{{count}} models', {
-                    count: legacyCount
-                  })}
+            ) : null}
+            {models
+              .filter(
+                (model) =>
+                  !model.hidden &&
+                  (model.id === currentModel || modelQuery || Boolean(model.isLegacy) === legacy)
+              )
+              .map((model) => (
+                <CommandItem
+                  key={model.id}
+                  value={model.id}
+                  keywords={[model.label]}
+                  disabled={modelDisabled}
+                  data-current={currentModel === model.id}
+                  onSelect={() => setDraft(editAgentPickerDraft(draft, { model: model.id }))}
+                >
+                  {model.label}
+                  <span className="ml-auto flex size-3.5 shrink-0 items-center justify-center">
+                    {currentModel === model.id ? (
+                      <Check className="size-3.5 text-muted-foreground" />
+                    ) : null}
+                  </span>
+                </CommandItem>
+              ))}
+            {!legacy && !modelQuery && legacyCount > 0 ? (
+              <CommandItem value="__legacy__" disabled={disabled} onSelect={() => setLegacy(true)}>
+                <span className="flex min-w-0 flex-col">
+                  <span>{translate('agentPicker.legacyModels', 'Legacy models')}</span>
+                  <span className="text-muted-foreground">
+                    {translate('agentPicker.legacyModelCount', '{{count}} models', {
+                      count: legacyCount
+                    })}
+                  </span>
                 </span>
-              </span>
-              <ChevronRight className="ml-auto size-3.5 text-muted-foreground" />
-            </CommandItem>
-          ) : null}
-          {currentModel && !models.some((model) => model.id === currentModel) ? (
-            <CommandItem
-              value={currentModel}
-              disabled={modelDisabled}
-              onSelect={() => {}}
-              data-current="true"
-            >
-              {currentModel}
-              <Check className="ml-auto size-3.5 text-muted-foreground" />
-            </CommandItem>
-          ) : null}
+                <ChevronRight className="ml-auto size-3.5 text-muted-foreground" />
+              </CommandItem>
+            ) : null}
+            {currentModel && !models.some((model) => model.id === currentModel) ? (
+              <CommandItem
+                value={currentModel}
+                disabled={modelDisabled}
+                onSelect={() => {}}
+                data-current="true"
+              >
+                {currentModel}
+                <Check className="ml-auto size-3.5 text-muted-foreground" />
+              </CommandItem>
+            ) : null}
+          </CommandGroup>
         </CommandList>
       </Command>
       <div className="border-t border-border pb-1">
@@ -316,51 +319,58 @@ export function AgentLaunchSetupPanel({
           optionRows.filter((row) => row.id === 'fastMode' || row.id === 'serviceTier')
         )}
         {entry.surfaces.includes('terminal') ? (
-          <Collapsible open={argumentsOpen} onOpenChange={setArgumentsOpen} className="px-3">
-            <CollapsibleTrigger
-              aria-label={translate('agentPicker.toggleArguments', 'Toggle Arguments')}
-              className="flex min-h-7 w-full items-center gap-1.5 text-left text-xs"
-            >
-              <span className="flex size-3.5 shrink-0 items-center justify-center text-muted-foreground">
-                {argumentsOpen ? (
-                  <ChevronDown className="size-3.5" />
-                ) : (
-                  <ChevronRight className="size-3.5" />
-                )}
-              </span>
-              <span className="text-muted-foreground">
-                {translate('agentPicker.arguments', 'Arguments')}
-              </span>
-              <span className="ml-auto truncate text-muted-foreground/70">
-                {translate(
-                  'agentPicker.argumentsTerminalHint',
-                  'Only used when it opens in a terminal (CLI)'
-                )}
-              </span>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pb-1">
-              <AgentDefaultArgsInput
-                hideLabel
-                defaultArgs={argumentsView.text}
-                argsOverride={argumentsView.text}
-                disabled={disabled || !argumentsKnown}
-                onSaveArgs={() => {}}
-                onDraftChange={(text) =>
-                  setDraft(editAgentPickerPanelText(entry, draft, text, currentModel))
-                }
-                choiceChips={argumentsView.chips.map((chip) => ({
-                  key: chip.key,
-                  label: entry.label,
-                  source: 'arguments',
-                  flag: chip.flag,
-                  onRemove: (text) => {
-                    setDraft(chip.remove())
-                    return text
-                  }
-                }))}
-              />
-            </CollapsibleContent>
-          </Collapsible>
+          <div className="px-3">
+            <Collapsible open={argumentsOpen} onOpenChange={setArgumentsOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={translate('agentPicker.toggleArguments', 'Toggle Arguments')}
+                  className="flex min-h-7 w-full items-center gap-1.5 text-left text-xs"
+                >
+                  <span className="flex size-3.5 shrink-0 items-center justify-center text-muted-foreground">
+                    {argumentsOpen ? (
+                      <ChevronDown className="size-3.5" />
+                    ) : (
+                      <ChevronRight className="size-3.5" />
+                    )}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {translate('agentPicker.arguments', 'Arguments')}
+                  </span>
+                  <span className="ml-auto truncate text-muted-foreground/70">
+                    {translate(
+                      'agentPicker.argumentsTerminalHint',
+                      'Only used when it opens in a terminal (CLI)'
+                    )}
+                  </span>
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="pb-1">
+                  <AgentDefaultArgsInput
+                    hideLabel
+                    defaultArgs={argumentsView.text}
+                    argsOverride={argumentsView.text}
+                    disabled={disabled || !argumentsKnown}
+                    onSaveArgs={() => {}}
+                    onDraftChange={(text) =>
+                      setDraft(editAgentPickerPanelText(entry, draft, text, currentModel))
+                    }
+                    choiceChips={argumentsView.chips.map((chip) => ({
+                      key: chip.key,
+                      label: entry.label,
+                      source: 'arguments',
+                      flag: chip.flag,
+                      onRemove: (text) => {
+                        setDraft(chip.remove())
+                        return text
+                      }
+                    }))}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
         ) : null}
       </div>
       <div className="flex items-center gap-2 border-t border-border px-2.5 py-2">

@@ -234,7 +234,7 @@ describe('picker window launch contract', () => {
           expect(dispatch).not.toHaveBeenCalled()
           fireEvent.click(
             [...document.querySelectorAll('button')].find(
-              (button) => button.textContent === 'Open terminal'
+              (button) => button.textContent === 'Launch terminal'
             )!
           )
           expect(dispatch).toHaveBeenCalledOnce()
@@ -443,7 +443,7 @@ it.each(['claude', 'codex'] as const)(
           )
         }
       }
-      for (const button of ['Open chat', 'Open terminal']) {
+      for (const button of ['Launch chat', 'Launch terminal']) {
         fireEvent.click(view.getByText(button))
       }
       fireEvent.keyDown(view.getByLabelText('Arguments'), { key: 'Enter' })
@@ -474,7 +474,7 @@ it.each(['claude', 'codex'] as const)(
       expect(input).toHaveProperty('disabled', false)
       for (const text of ['--add-dir src', '']) {
         fireEvent.change(input, { target: { value: text } })
-        fireEvent.click(view.getByText('Open terminal'))
+        fireEvent.click(view.getByText('Launch terminal'))
         const launch = agentPickerLaunchInputs(launches.at(-1)!, current!)
         expect(launch.agentArgs).toContain(
           agent === 'claude' ? '--permission-mode default' : '-a on-request -s read-only'

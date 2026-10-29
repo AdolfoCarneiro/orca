@@ -576,14 +576,14 @@ it('launches searched defaults on Enter and reaches the alternate only through C
   launched.mockClear()
   renderEntry({ agentPickerEntries: [entry], onLaunchAgentOption: launched })
   setQuery('astra low')
-  expect(container.querySelector('button[aria-label="Open terminal"]')).toBeNull()
+  expect(container.querySelector('button[aria-label="Launch terminal"]')).toBeNull()
   act(() =>
     container.querySelector<HTMLButtonElement>('button[aria-label="Configure Codex"]')?.click()
   )
   expect(launched).not.toHaveBeenCalled()
   act(() =>
     [...document.querySelectorAll<HTMLButtonElement>('button')]
-      .find((button) => button.textContent === 'Open terminal')
+      .find((button) => button.textContent === 'Launch terminal')
       ?.click()
   )
   expect(launched).toHaveBeenCalledOnce()

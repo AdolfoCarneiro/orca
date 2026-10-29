@@ -232,15 +232,15 @@ describe('structured chat adoption guard on the launch path', () => {
           )
           expect(mockLaunchStructuredCodexSession).not.toHaveBeenCalled()
           expect(document.querySelector('textarea')).toHaveProperty('disabled', true)
-          expect(document.body.textContent).toContain('Open terminal')
+          expect(document.body.textContent).toContain('Launch terminal')
           expect(
             [...document.querySelectorAll('button')].find(
-              (button) => button.textContent === 'Open terminal'
+              (button) => button.textContent === 'Launch terminal'
             )?.className
           ).toContain('bg-primary')
           fireEvent.click(
             [...document.querySelectorAll('button')].find(
-              (button) => button.textContent === 'Open chat'
+              (button) => button.textContent === 'Launch chat'
             )!
           )
         } else {
