@@ -27,11 +27,12 @@ const VENDOR_BASELINE = new Set([
   'pdfjs-dist/web/pdf_viewer.css: #addSignatureDialog .mainContainer #addSignatureActionContainer #addSignatureControls #horizontalContainer #addSignatureDescriptionContainer:has(input:disabled) > label'
 ])
 const CSS_IMPORT =
-  /(?:\bimport\s*(?:[\w*{}\s,]+?\bfrom\s*)?\(?|@import\s+(?:url\()?)\s*['"]([^'"]+\.css)['"]/g
+  /(?:\bimport\s*(?:[\w*{}\s,]+?\bfrom\s*)?\(?|@import\s+(?:url\()?)\s*(?:['"]([^'"]+\.css)['"]|([^'"()\s]+\.css)\s*\))/g
 const IMPORT_SCAN = ['src/renderer/*.ts', 'src/renderer/*.tsx', ...PLAIN_CSS]
 const LS_FILES = ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--']
 const GREP_CSS = ['grep', '-lz', '--untracked', '-F', '.css', '--']
-const COMMENT = /\/\*[\s\S]*?\*\/|(?<![:'"])\/\/.*$/gm
+// Whole-line comments only: stripping mid-line `//` would eat imports after a URL string.
+const COMMENT = /^\s*\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm
 const SPECIFIC = new Set(['class', 'id', 'attribute'])
 const SIBLING = new Set(['next-sibling', 'later-sibling'])
 
@@ -190,8 +191,8 @@ function unlistedVendorImports(root) {
   // git grep prefilters ~13k renderer files; reading each one dominated the runtime.
   for (const file of gitPaths(root, [...GREP_CSS, ...IMPORT_SCAN])) {
     const source = readFileSync(path.join(root, file), 'utf8').replace(COMMENT, '')
-    for (const [, specifier] of source.matchAll(CSS_IMPORT)) {
-      specifiers.add(specifier)
+    for (const [, quoted, unquoted] of source.matchAll(CSS_IMPORT)) {
+      specifiers.add(quoted ?? unquoted)
     }
   }
   return [...specifiers]
